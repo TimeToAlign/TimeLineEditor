@@ -22,7 +22,7 @@ Only arranger and editor may import `svelte`. Add a package only for a present n
 - Add no dependency without an ADR in `decisions/`. Use the MADR structure, weigh writing it ourselves, record the audited version and a review date.
 - Write the relevant `tests/README.md` before tests. State validation logic and exact expected values; tests follow that document.
 - TypeScript is strict ESM. Use Svelte 5 runes. Name commands `verbNoun`.
-- Never construct rationals from floats. A rational coordinate is atomic: `{ value, numerator, denominator }`; integers above `2^53` are strings.
+- Never construct rationals from floats. A coordinate is atomic: `{ unit, number_type, value }`, where `value` is a JSON integer, a JSON number or a `[numerator, denominator]` Fraction pair as `number_type` selects (the BOPP core primitives).
 - Commands are serializable and validated. Return typed, machine-readable errors rather than display-oriented strings.
 - Python uses type hints and Google-style docstrings.
 - Server security is invariant: bind only `127.0.0.1`; generate a token for each run; reject foreign Host and Origin headers; require exact `Authorization: Bearer <token>` for every `/api/` route.

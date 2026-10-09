@@ -20,7 +20,7 @@ At the block level, geometry comes from document data rather than an editable dr
 
 ## The document and commands
 
-Exact rationals travel end to end. A coordinate is one atomic value, `{ value, numerator, denominator }`, never a nested container. Integers above JavaScript's safe integer limit, `2^53`, are encoded as strings. Canvas geometry may use floats because it is derived display data, not canonical document data.
+Exact rationals travel end to end. A coordinate is one atomic value, `{ unit, number_type, value }`, never a container of separately editable parts; its value is a JSON integer, a JSON number or a `[numerator, denominator]` Fraction pair as the number type selects, following the BOPP core primitives. Canvas geometry may use floats because it is derived display data, not canonical document data.
 
 Every user operation is a named, serializable, validated command. Commands are the single entry point for the UI, tests, and automation. Before applying an edit, command handling checks invariants such as containment, number type, and unit. The schema validates the document on load, save, and export.
 
