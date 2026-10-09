@@ -1,0 +1,61 @@
+name: release
+
+permissions:
+  contents: read
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: The tag matches the declared versions
+        run: python3 scripts/check_versions.py --tag "$GITHUB_REF_NAME"
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: app/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+        working-directory: app
+      - run: pnpm lint && pnpm typecheck && pnpm test
+        working-directory: app
+      - run: pnpm build
+        working-directory: app
+      - uses: astral-sh/setup-uv@v10
+        with:
+          version: "0.11.28"
+          python-version: "3.11"
+      - run: uv sync --locked
+        working-directory: server
+      - run: uv run pytest
+        working-directory: server
+      - run: uv build
+        working-directory: server
+      - name: The wheel bundles the built editor
+        run: unzip -l server/dist/*.whl | grep tilie_server/static/index.html
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: server/dist
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-24.04
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@release/v1

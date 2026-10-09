@@ -1,0 +1,20 @@
+# Dependencies and virtual environments
+node_modules/
+.venv/
+
+# Build outputs
+dist/
+.vite/
+server/src/tilie_server/static/
+
+# Python caches
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Editors
+.idea/
+.vscode/
+*.swp

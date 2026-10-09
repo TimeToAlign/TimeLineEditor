@@ -1,0 +1,7 @@
+packages:
+  - "packages/*"
+
+# A published version must be at least 14 days old before pnpm installs it
+# (minutes). Together with exact pins this is the release-age policy of the
+# repository; Renovate applies the same window.
+minimumReleaseAge: 20160

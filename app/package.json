@@ -1,0 +1,27 @@
+{
+  "name": "@timetoalign/tilie-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TimeLineEditor front end: a pnpm workspace of TypeScript packages and the Svelte editor.",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@12.10.1",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "lint": "biome ci . && depcruise --config .dependency-cruiser.cjs packages/*/src packages/*/tests tests",
+    "format": "biome check --write .",
+    "typecheck": "tsc -p tests/tsconfig.json && pnpm -r --workspace-concurrency=1 run typecheck",
+    "test": "vitest run",
+    "build": "pnpm --filter @timetoalign/tilie-editor run build",
+    "dev": "pnpm --filter @timetoalign/tilie-editor run dev"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.14",
+    "@types/node": "22.20.4",
+    "dependency-cruiser": "18.4.0",
+    "typescript": "6.0.3",
+    "vitest": "5.0.1"
+  }
+}
