@@ -1,20 +1,45 @@
+# release-please keeps one release pull request open, carrying the next version (in
+# server/pyproject.toml, app/package.json and server/uv.lock) and its changelog entry.
+# Merging it tags vX.Y.Z and creates the GitHub release; the build job then checks the
+# tag against the declared versions, tests and builds the app and the server, and the
+# publish job uploads the wheel and sdist to PyPI through trusted publishing (OIDC):
+# no token is stored.
 name: release
+
+on:
+  push:
+    branches: [main]
 
 permissions:
   contents: read
 
-on:
-  push:
-    tags:
-      - "v*"
-
 jobs:
+  release-please:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - id: release
+        uses: googleapis/release-please-action@v5
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
   build:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
       - name: The tag matches the declared versions
-        run: python3 scripts/check_versions.py --tag "$GITHUB_REF_NAME"
+        run: python3 scripts/check_versions.py --tag "${{ needs.release-please.outputs.tag_name }}"
       - uses: pnpm/action-setup@v6
         with:
           package_json_file: app/package.json
@@ -29,7 +54,7 @@ jobs:
         working-directory: app
       - run: pnpm build
         working-directory: app
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.2.0
         with:
           version: "0.11.28"
           python-version: "3.11"

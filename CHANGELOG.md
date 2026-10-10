@@ -1,10 +1,8 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+Release entries are written by release-please from the Conventional Commits since the previous release.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to Semantic Versioning.
-
-## [Unreleased]
+## [0.1.0] - 2026-10-10
 
 ### Added
 
@@ -14,12 +12,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Python and TypeScript test gates, dependency checks, release version checking, CI, wheel bundling, and PyPI trusted-publishing workflow configuration.
 - Architecture decisions for the selected tools and distribution design.
 - `Referrer-Policy: no-referrer` on every server response.
-- The `core` package holds the editable TimeSkeleton document: exact rationals over `BigInt` and coordinates mirroring timetoalign's coordinate dicts; `loadDocument` and `saveDocument` over `@timetoalign/timeskeleton` (lossless reading, migration, validation, every invariant, the canonical order and the standard writer); eighteen commands as pure reducers with typed `CommandError`s and the library's invariants; and, at the subpath `@timetoalign/tilie-core/yjs`, a Yjs binding with one undo step per command.
-- Decision records for the exact rationals, the schema package, Yjs and fast-check.
 
 ### Changed
 
-- The application workspace requires Node.js 22.18 or later, as `@timetoalign/timeskeleton` does.
 - `tilie` hands the run's token to the editor in the URL fragment (`/#token=…`) instead of the query, so it never reaches the server's access log; the editor removes it from the address bar and the history entry.
 - The `tilie-server` classifier is `Development Status :: 3 - Alpha`.
 - The server manifest declares compatible ranges for its runtime and build dependencies (`fastapi>=0.141,<1`, `uvicorn[standard]>=0.53,<1`, `hatchling>=1.32`); `uv.lock` keeps the exact resolved versions.

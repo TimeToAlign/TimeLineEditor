@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "bootstrap-sha": "f91c19f1354c07f670cc4b1104dd12150b888ba1",
+  "packages": {
+    ".": {
+      "release-type": "simple",
+      "package-name": "tilie-server",
+      "include-component-in-tag": false,
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "changelog-path": "CHANGELOG.md",
+      "extra-files": [
+        { "type": "toml", "path": "server/pyproject.toml", "jsonpath": "$.project.version" },
+        { "type": "toml", "path": "server/uv.lock", "jsonpath": "$.package[?(@.name.value=='tilie-server')].version" },
+        { "type": "json", "path": "app/package.json", "jsonpath": "$.version" }
+      ]
+    }
+  }
+}

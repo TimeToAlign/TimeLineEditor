@@ -57,13 +57,11 @@ The editor component test mounts the shell and checks its headings, health reque
 
 ## Release
 
-1. Set the same version in `server/pyproject.toml` and `app/package.json`.
-2. From the repository root, run `python3 scripts/check_versions.py --tag vX.Y.Z`.
-3. Tag the matching version and publish the tag.
+Releases are made by [release-please](https://github.com/googleapis/release-please) and `.github/workflows/release.yml`. Write commit messages in the [Conventional Commits](https://www.conventionalcommits.org/) form; release-please derives the next version and the `CHANGELOG.md` entry from them. Before 1.0, a `feat` bumps the patch version and a breaking change the minor version; a commit footer `Release-As: X.Y.Z` sets a version explicitly.
 
-The `release.yml` workflow checks the tag, installs the locked app dependencies, lints, type-checks, tests, builds the app, installs locked server dependencies, tests, builds the distributions, verifies that the wheel contains `index.html`, and publishes the wheel through PyPI OpenID Connect.
+On every push to `main`, release-please opens or updates a release pull request that sets the version in `server/pyproject.toml`, `app/package.json` and the `tilie-server` entry of `server/uv.lock`, and adds the changelog entry. Merging it tags `vX.Y.Z` and creates the GitHub release. The workflow then checks the tag with `scripts/check_versions.py`, installs the locked app dependencies, lints, type-checks, tests and builds the app, installs the locked server dependencies, tests, builds the distributions, verifies that the wheel contains `index.html`, and publishes them through PyPI OpenID Connect. Do not push version tags by hand.
 
-Before the first release, a maintainer configures this PyPI trusted publisher once:
+The workflow needs GitHub Actions to be allowed to create pull requests in this repository, and this PyPI trusted publisher:
 
 | Setting | Value |
 | --- | --- |
@@ -73,4 +71,4 @@ Before the first release, a maintainer configures this PyPI trusted publisher on
 | Workflow file name | `release.yml` |
 | Environment name | `pypi` |
 
-Use PyPI's [trusted-publisher instructions](https://docs.pypi.org/trusted-publishers/adding-a-publisher/) to configure it. The repository does not use a stored PyPI publishing token.
+The repository does not use a stored PyPI publishing token.
