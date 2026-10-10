@@ -4,7 +4,7 @@ TiLiE is a pnpm TypeScript workspace with a Svelte 5 application and a separate 
 
 ## Setup
 
-Install Node.js 22.18 or newer, pnpm 12.10.1, Python 3.11 or newer, and uv. Then prepare both parts of the repository:
+Install Node.js 22.18 or newer, pnpm 12.10.1, Python 3.11 or newer, and uv. Until `@timetoalign/timeskeleton` 0.3.0 is published, the workspace takes that package from a `timeskeleton` checkout next to this repository (a `link:` dependency in `core`, `layout` and `writers`); clone it there and run `pnpm install && pnpm build` in its `js/` directory, and again after each change to it. Then prepare both parts of the repository:
 
 ```bash
 cd app
@@ -36,6 +36,10 @@ uv run tilie --check --no-browser
 ```
 
 Build the application before building a distributable server wheel. The server build hook copies `app/packages/editor/dist` into the wheel; the CI workflow verifies this and runs the installed wheel's self-check. For a development build, run `uv run tilie --check --static-dir ../app/packages/editor/dist` from `server/`.
+
+The writers' compile test runs every golden TikZ figure through `lualatex`, which needs TikZ, the `standalone` class, `fontspec` and the DejaVu Sans font (on Ubuntu: `texlive-luatex`, `texlive-latex-recommended`, `texlive-latex-extra`, `texlive-pictures`, `fonts-dejavu-core`). Without `lualatex` the test is skipped; set `TILIE_REQUIRE_LUALATEX=1` to make its absence a failure, as the `tikz` CI job does.
+
+The golden geometry and figures belong to timeskeleton. After a change to `layout` or the writers that the geometry specification calls for, regenerate them from `app/packages/writers/` with `node scripts/emit-geometry.ts /path/to/timeskeleton` and review the diff there; the script refuses to run unless `layout` reproduces the hand-derived geometries, and refuses to overwrite the goldens of a released schema version.
 
 Each package and the server has a `tests/README.md`. Update the appropriate readme first with the validation logic and exact expected values, then write the test.
 
