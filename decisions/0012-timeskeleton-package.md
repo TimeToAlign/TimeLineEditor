@@ -17,9 +17,9 @@ A TiLiE document is a TimeSkeleton document. Its JSON Schema, the validator, the
 
 ## Decision
 
-Depend on `@timetoalign/timeskeleton` with a manifest range (0.2.1 audited). `core` writes no JSON and no ordering of its own: it reads documents with the package's `parse` (lossless, and checked against the declared schema version), migrates them with `migrate`, validates with `validate`, writes them with `dumps` (canonical order, the standard text that the Python writer also produces), keeps the canonical order of edited timelines with `canonicalOrder`, stores atomic values in Yjs as `compactJson` text read back with `parseJson`, and builds its coordinates on the package's `JsonNumber` and `JsonFloat`. Its tests read `fixtures/<version>/`, `fixtures/rejections/` and `fixtures/migrations/` from the installed package.
+Depend on `@timetoalign/timeskeleton` with a manifest range (0.3.0 audited). `core` writes no JSON and no ordering of its own: it reads documents with the package's `parse` (lossless, and checked against the declared schema version), migrates them with `migrate`, validates with `validate`, writes them with `dumps` (canonical order, the standard text that the Python writer also produces), keeps the canonical order of edited timelines with `canonicalOrder`, stores atomic values in Yjs as `compactJson` text read back with `parseJson`, and builds its coordinates on the package's `JsonNumber` and `JsonFloat`. Its tests read `fixtures/<version>/`, `fixtures/rejections/` and `fixtures/migrations/` from the installed package.
 
-The workspace depends on the released range, `^0.2.1`.
+The workspace depends on the released range, `^0.3.0`, in `core`, `layout` and `writers`.
 
 The package is exempted from the fourteen-day release-age window (`minimumReleaseAgeExclude` in `app/pnpm-workspace.yaml`): it is the contract this project and the library publish together, and TiLiE must be able to consume a schema release as soon as it exists. Every other dependency keeps the window.
 
@@ -27,7 +27,7 @@ The package requires Node 22.18 or later, so the workspace engines field is rais
 
 ## Maintenance and dependencies
 
-`@timetoalign/timeskeleton` is published by the TimeToAlign maintainers (0.2.0 released 2026-10-10, MIT, 764,114 bytes unpacked, most of it fixtures and generated schema; 0.2.1, which adds the lossless reader, the writer and the canonical order, released 2026-10-10). Its one runtime dependency is Ajv 8.20.0 (released 2026-04-24, MIT, 1,033,496 bytes unpacked; maintainers Evgeny Poberezkin and Blake Embrey; dependencies fast-deep-equal, fast-uri, json-schema-traverse, require-from-string).
+`@timetoalign/timeskeleton` is published by the TimeToAlign maintainers (0.2.0 released 2026-10-10, MIT, 764,114 bytes unpacked, most of it fixtures and generated schema; 0.2.1, which adds the lossless reader, the writer and the canonical order, released 2026-10-10; 0.3.0, which adds the graphical block, the geometry specification and its golden figures, released 2026-10-10, 2,514,080 bytes unpacked). Its one runtime dependency is Ajv 8.20.0 (released 2026-04-24, MIT, 1,033,496 bytes unpacked; maintainers Evgeny Poberezkin and Blake Embrey; dependencies fast-deep-equal, fast-uri, json-schema-traverse, require-from-string).
 
 Primary sources: <https://registry.npmjs.org/@timetoalign/timeskeleton>, <https://github.com/TimeToAlign/timeskeleton>, <https://registry.npmjs.org/ajv>, <https://github.com/ajv-validator/ajv>.
 

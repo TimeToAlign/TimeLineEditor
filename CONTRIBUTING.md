@@ -4,7 +4,7 @@ TiLiE is a pnpm TypeScript workspace with a Svelte 5 application and a separate 
 
 ## Setup
 
-Install Node.js 22.18 or newer, pnpm 12.10.1, Python 3.11 or newer, and uv. Until `@timetoalign/timeskeleton` 0.3.0 is published, the workspace takes that package from a `timeskeleton` checkout next to this repository (a `link:` dependency in `core`, `layout` and `writers`); clone it there and run `pnpm install && pnpm build` in its `js/` directory, and again after each change to it. Then prepare both parts of the repository:
+Install Node.js 22.18 or newer, pnpm 12.10.1, Python 3.11 or newer, and uv. Then prepare both parts of the repository:
 
 ```bash
 cd app

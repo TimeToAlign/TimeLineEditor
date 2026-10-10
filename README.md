@@ -27,13 +27,6 @@ TiLiE keeps a small browser editing core and treats the local Python server as a
 
 ## Development
 
-Until `@timetoalign/timeskeleton` 0.3.0 is published, the workspace takes that package from a `timeskeleton` checkout next to this repository (a `link:` dependency); build it first:
-
-```bash
-git clone https://github.com/TimeToAlign/timeskeleton.git
-cd timeskeleton/js && pnpm install && pnpm build && cd ../..
-```
-
 Clone the repository, then install and validate the application workspace:
 
 ```bash
