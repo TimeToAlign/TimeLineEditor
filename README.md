@@ -39,8 +39,6 @@ pnpm test
 pnpm build
 ```
 
-While `core` depends on a `@timetoalign/timeskeleton` version that is not yet on npm, the workspace links it from a [timeskeleton](https://github.com/TimeToAlign/timeskeleton) checkout beside this repository (`../timeskeleton`), which must be built first with `pnpm install && pnpm build` in its `js/` directory ([decisions/0012](decisions/0012-timeskeleton-package.md)).
-
 Set up, test, and build the server separately:
 
 ```bash
