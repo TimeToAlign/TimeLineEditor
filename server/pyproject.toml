@@ -3,6 +3,7 @@ name = "tilie-server"
 version = "0.1.0"
 description = "The local server of TimeLineEditor: serves the editor and bridges it to timetoalign."
 license = "MIT"
+dynamic = ["readme"]
 requires-python = ">=3.11"
 authors = [{ name = "Johannes Hentschel" }]
 keywords = ["music", "timeline", "alignment", "editor", "timetoalign"]
@@ -21,7 +22,7 @@ dependencies = [
 ]
 
 [project.urls]
-Repository = "https://github.com/timetoalign/TimeLineEditor"
+Repository = "https://github.com/TimeToAlign/TimeLineEditor"
 
 [project.scripts]
 tilie = "tilie_server.cli:main"
@@ -47,6 +48,9 @@ artifacts = ["src/tilie_server/static/**"]
 artifacts = ["src/tilie_server/static/**"]
 
 [tool.hatch.build.hooks.custom]
+path = "hatch_build.py"
+
+[tool.hatch.metadata.hooks.custom]
 path = "hatch_build.py"
 
 [tool.uv]

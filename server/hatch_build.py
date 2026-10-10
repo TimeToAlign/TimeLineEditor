@@ -18,9 +18,11 @@ from pathlib import Path
 from typing import Any
 
 from hatchling.builders.hooks.plugin.interface import BuildHookInterface
+from hatchling.metadata.plugin.interface import MetadataHookInterface
 
 STATIC_DIR = Path("src/tilie_server/static")
 EDITOR_DIST = Path("../app/packages/editor/dist")
+README = "README.md"
 
 
 class BundleEditorHook(BuildHookInterface):
@@ -40,9 +42,35 @@ class BundleEditorHook(BuildHookInterface):
         elif (root / "../app/package.json").is_file():
             # A source checkout must never reuse an older copied bundle.
             shutil.rmtree(static, ignore_errors=True)
+        readme = root.parent / README
+        if self.target_name == "sdist" and readme.is_file():
+            # The sdist carries the repository README so that a wheel built
+            # from it still has a description.
+            build_data["force_include"][str(readme)] = README
         if self.target_name == "wheel" and not (static / "index.html").is_file():
             raise RuntimeError(
                 "The editor has not been built: "
                 f"{dist / 'index.html'} is missing. Run `pnpm install` and "
                 "`pnpm build` in the `app` directory before building the wheel."
             )
+
+
+class ReadmeHook(MetadataHookInterface):
+    """Use the repository README as the package description.
+
+    In a checkout it lives beside ``server/``; in an unpacked sdist the build
+    hook above has placed a copy at the project root.
+    """
+
+    PLUGIN_NAME = "custom"
+
+    def update(self, metadata: dict[str, Any]) -> None:
+        root = Path(self.root)
+        for candidate in (root.parent / README, root / README):
+            if candidate.is_file():
+                metadata["readme"] = {
+                    "content-type": "text/markdown",
+                    "text": candidate.read_text(encoding="utf-8"),
+                }
+                return
+        raise RuntimeError(f"{README} is missing beside the server project")
