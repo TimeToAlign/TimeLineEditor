@@ -2,7 +2,7 @@
 
 TiLiE is a local browser editor and visualization tool for musical timelines represented by the Python `timetoalign` library. Its canonical document is a TimeSkeleton document: timelines with exact rational coordinates, child offsets, conversion maps, regions, flow control, measure maps, and metric hierarchies.
 
-**Status: alpha.** `tilie-server` 0.1.0 installs from PyPI, serves the bundled editor shell on `127.0.0.1` with a fresh token for each run, and reports its health; it does not edit anything yet.
+**Status: alpha.** `tilie-server` 0.1.0 installs from PyPI, serves the bundled editor shell on `127.0.0.1` with a fresh token for each run, and reports its health; it does not edit anything yet. In the source tree, the `core` package holds the editable TimeSkeleton document: exact numbers, validated load and save, eighteen commands with the library's invariants, and a Yjs binding with undo. The editor shell does not use it yet.
 
 Today, TiLiE is an application shell. It serves a browser page with Arranger, Inspector, and Diagnostics panes plus a server-health readout; the local server exposes `/api/health`. Editing, loading documents, layout, and export are not implemented yet.
 
@@ -19,7 +19,7 @@ tilie
 
 The server binds only to `127.0.0.1`, creates a random bearer token for each run, rejects foreign Host and Origin headers, serves the bundled application, protects `/api/health`, and sends `Referrer-Policy: no-referrer` with every response. `tilie` prints and opens `http://127.0.0.1:<port>/#token=<token>`: the token travels in the URL fragment, which the browser never sends to the server. The editor reads it, removes it from the address bar, and displays the health response. The token is held in memory only, so reloading the page loses it; restart `tilie` for a fresh URL.
 
-The six application packages currently establish boundaries and build tooling; their exported behavior is intentionally minimal. There is no TimeSkeleton editing core, document loader, renderer, command implementation, writer, CRDT store, OpenAPI client, or export endpoint yet.
+Of the six application packages, `core` implements the document model described in [the architecture guide](docs/architecture.md#the-core-package); the other five establish boundaries and build tooling, and their exported behavior is intentionally minimal. There is no renderer, layout, writer, OpenAPI client, server-side loading or export endpoint yet, and the editor shell neither opens nor edits a document.
 
 ## Architecture
 
@@ -38,6 +38,8 @@ pnpm typecheck
 pnpm test
 pnpm build
 ```
+
+While `core` depends on a `@timetoalign/timeskeleton` version that is not yet on npm, the workspace links it from a [timeskeleton](https://github.com/TimeToAlign/timeskeleton) checkout beside this repository (`../timeskeleton`), which must be built first with `pnpm install && pnpm build` in its `js/` directory ([decisions/0012](decisions/0012-timeskeleton-package.md)).
 
 Set up, test, and build the server separately:
 

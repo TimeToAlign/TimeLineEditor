@@ -29,7 +29,13 @@ Only arranger and editor may import `svelte`. Add a package only for a present n
 
 ## Dependency Policy
 
-`server/pyproject.toml`, the manifest of the published distribution, declares compatible ranges for its runtime and build dependencies (for example `fastapi>=0.141,<1`) and pins the development tools of its `dev` group exactly. The `app/**/package.json` files, whose output is bundled into the server wheel rather than published, pin exact versions. `server/uv.lock` and `app/pnpm-lock.yaml` pin exact resolved versions released at least 14 days before entry. The ADR for a dependency names the version that was audited. Preserve this policy rather than replacing compatible ranges with exact manifest pins.
+- Runtime and peer dependencies declare compatible ranges in every manifest: `server/pyproject.toml` (for example `fastapi>=0.141,<1`) and each `app/**/package.json` (for example the optional peer `yjs` `^13.6.33` of `core`).
+- Development dependencies are pinned exactly: the npm `devDependencies` and the server's `dev` group.
+- The lockfiles, `server/uv.lock` and `app/pnpm-lock.yaml`, pin every resolved version. A version enters a lockfile only once it has been released for at least 14 days (`minimumReleaseAge` in `app/pnpm-workspace.yaml`).
+- The one exception to that window is this project's own schema package, `@timetoalign/timeskeleton`, listed in `minimumReleaseAgeExclude`, so that a schema release can be consumed as soon as it is published.
+- The ADR for a dependency names the version that was audited.
+
+Preserve this policy: never replace a runtime or peer range with an exact pin in a manifest, and never widen a development dependency to a range.
 
 ## Commands
 

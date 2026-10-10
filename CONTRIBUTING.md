@@ -4,7 +4,7 @@ TiLiE is a pnpm TypeScript workspace with a Svelte 5 application and a separate 
 
 ## Setup
 
-Install Node.js 22.12 or newer, pnpm 12.10.1, Python 3.11 or newer, and uv. Then prepare both parts of the repository:
+Install Node.js 22.18 or newer, pnpm 12.10.1, Python 3.11 or newer, and uv. Then prepare both parts of the repository:
 
 ```bash
 cd app
@@ -43,7 +43,7 @@ Each package and the server has a `tests/README.md`. Update the appropriate read
 
 Add an ADR in [`decisions/`](decisions/) before adding a dependency. The record must use the repository's MADR structure, compare writing it ourselves, identify the audited version, and set a review date.
 
-The published server manifest declares compatible ranges for its runtime and build dependencies, such as `fastapi>=0.141,<1` and `uvicorn[standard]>=0.53,<1`, and pins the development tools of its `dev` group exactly; the private app workspace, bundled into the wheel, pins exact versions. The lockfiles, `server/uv.lock` and `app/pnpm-lock.yaml`, pin the resolved versions. Enter only versions released at least 14 days before they enter a lockfile, and name the audited version in its ADR. This is the dependency policy; do not treat a compatible manifest range as an error by itself.
+Manifests declare compatible ranges for runtime and peer dependencies, such as `fastapi>=0.141,<1` and `uvicorn[standard]>=0.53,<1` in the server and the optional peer `yjs` `^13.6.33` in `app/packages/core`; development dependencies, the npm `devDependencies` and the server's `dev` group, are pinned exactly. The lockfiles, `server/uv.lock` and `app/pnpm-lock.yaml`, pin every resolved version. Enter only versions released at least 14 days before they enter a lockfile, and name the audited version in its ADR; the one exception to that window is this project's own schema package, `@timetoalign/timeskeleton` (`minimumReleaseAgeExclude` in `app/pnpm-workspace.yaml`). This is the dependency policy; do not treat a compatible manifest range as an error by itself.
 
 ## Packages
 

@@ -14,6 +14,10 @@
  * which pnpm's workspace links resolve to) and by its bare specifier
  * (`@timetoalign/tilie-<name>`), so a forbidden import is reported even when
  * it cannot be resolved. `tests/ladder.test.ts` proves that the rules fire.
+ *
+ * Yjs is imported only by core's `yjs` entry point (`packages/core/src/yjs/`)
+ * and by core's tests; the rest of core never reaches that entry point, so
+ * the root export of core loads without Yjs.
  */
 
 const PACKAGES = ["core", "layout", "writers", "arranger", "client", "editor"];
@@ -78,6 +82,21 @@ module.exports = {
       to: {
         path: "(^|/)(node_modules/)?(react-dom|jquery|jsdom|happy-dom|@testing-library/(dom|react|svelte))($|/)|\\.svelte$",
       },
+    },
+    {
+      name: "yjs-only-in-core-yjs-entry",
+      severity: "error",
+      comment: "Only core's yjs entry point (and core's tests) may import Yjs.",
+      from: { path: "^(packages/|tests/)", pathNot: "^packages/core/(src/yjs|tests)/" },
+      to: { path: "^(yjs($|/)|node_modules/yjs/|.*/node_modules/yjs/)" },
+    },
+    {
+      name: "core-root-export-without-yjs",
+      severity: "error",
+      comment:
+        "The rest of core never imports its yjs entry point, so the root export needs no Yjs.",
+      from: { path: "^packages/core/src/", pathNot: "^packages/core/src/yjs/" },
+      to: { path: "^packages/core/src/yjs/" },
     },
     {
       name: "no-svelte-outside-arranger-and-editor",
