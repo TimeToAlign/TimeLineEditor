@@ -8,7 +8,13 @@
  * a timeline manifest is timetoalign's `Timeline.to_dict()` without events.
  */
 
-import type { JsonNumber, NumberType, TimelineClass, TimeUnit } from "@timetoalign/timeskeleton";
+import type {
+  Graphical,
+  JsonNumber,
+  NumberType,
+  TimelineClass,
+  TimeUnit,
+} from "@timetoalign/timeskeleton";
 import type { JsonObject } from "../json.ts";
 import type { CoordinateDict } from "../number/coordinate.ts";
 
@@ -83,6 +89,8 @@ export type DocumentMeta = {
 export type Document = {
   readonly meta: DocumentMeta;
   readonly manifest: { readonly timelines: { readonly [id: string]: TimelineManifest } };
+  /** How the document is drawn: its style rules. Absent, every component has its default style. */
+  readonly graphical?: Graphical;
 };
 
 /** The members of a timeline manifest, in the order timetoalign writes them. */

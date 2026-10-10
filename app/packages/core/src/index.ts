@@ -63,3 +63,5 @@ export {
 } from "./number/coordinate.ts";
 export type { IntegerInput, RationalInput } from "./number/rational.ts";
 export { Rational } from "./number/rational.ts";
+export type { Real } from "./number/real.ts";
+export { addReal, compareReal, fromFloat, realOf, toFloat } from "./number/real.ts";

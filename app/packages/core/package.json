@@ -14,7 +14,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@timetoalign/timeskeleton": "^0.2.1"
+    "@timetoalign/timeskeleton": "link:../../../../timeskeleton/js"
   },
   "peerDependencies": {
     "yjs": "^13.6.33"

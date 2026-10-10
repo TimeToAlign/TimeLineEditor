@@ -17,7 +17,7 @@ The command reducers must keep every document valid for any sequence of commands
 
 ## Decision
 
-Use fast-check 4.10.2 as a development dependency of `core`. Sequences are generated as seeds that become commands against the current document, so shrinking keeps them meaningful. The coverage test runs with a fixed seed so its expectation is exact.
+Use fast-check 4.10.2 as a development dependency of `core` and of `layout`, whose properties run over the same command generator. Sequences are generated as seeds that become commands against the current document, so shrinking keeps them meaningful. The coverage test runs with a fixed seed so its expectation is exact.
 
 ## Maintenance and dependencies
 

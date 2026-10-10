@@ -1,13 +1,14 @@
 /**
- * Values compared across number types, as Python compares them.
+ * Values combined and compared across number types, as Python does.
  *
  * A parent and its child share a unit but may differ in number type. Where
  * timetoalign computes a child's end (offset plus child length) and compares
  * it with a length, Python's numeric tower decides: an int or a Fraction is
  * exact, a sum with a float is a float (each exact operand correctly rounded
  * first), and a comparison between a float and an exact value is exact.
- * These values exist only for comparison; a stored coordinate is never
- * re-expressed through them.
+ * These values serve comparisons and derived positions (a child's place on
+ * its root's axis in the layout, a page coordinate in the writers); a stored
+ * coordinate is never re-expressed through them.
  */
 
 import type { NumberType, TimeUnit } from "@timetoalign/timeskeleton";
@@ -25,7 +26,7 @@ function bitLength(value: bigint): number {
 }
 
 /** The double nearest to an exact value, ties to even, as Python's `float(Fraction)`. */
-function toFloat(value: Rational): number {
+export function toFloat(value: Rational): number {
   const { numerator, denominator } = value;
   if (denominator === 1n) return Number(numerator);
   // Scale so the integer quotient carries at least 66 significant bits, and
@@ -40,8 +41,12 @@ function toFloat(value: Rational): number {
   return numerator < 0n ? -result : result;
 }
 
-/** The exact value of a double. */
-function fromFloat(value: number): Rational {
+/**
+ * The exact value of a double, as Python's `Fraction(float)`. For arithmetic
+ * that must be exact on a float's value (a page transform); a coordinate is
+ * never re-expressed through it.
+ */
+export function fromFloat(value: number): Rational {
   const view = new DataView(new ArrayBuffer(8));
   view.setFloat64(0, value);
   const bits = view.getBigUint64(0);

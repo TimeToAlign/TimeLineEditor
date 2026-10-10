@@ -12,7 +12,7 @@ import {
   Rational,
   subtractCoordinates,
 } from "../src/index.ts";
-import { addReal, compareReal, exactCoordinate, realOf } from "../src/number/real.ts";
+import { addReal, compareReal, exactCoordinate, fromFloat, realOf } from "../src/number/real.ts";
 
 const parts = (value: Rational) => [value.numerator, value.denominator];
 
@@ -59,6 +59,29 @@ describe("Rational", () => {
         .toFraction(),
     ).toEqual([2n ** 62n + 2n, 1n]);
     expect(Rational.of([7, 2]).toString()).toBe("7/2");
+  });
+
+  it("multiplies, divides and floors exactly", () => {
+    expect(
+      Rational.of([2, 3])
+        .multiply(Rational.of([9, 4]))
+        .toFraction(),
+    ).toEqual([3n, 2n]);
+    expect(
+      Rational.of([1, 2])
+        .divide(Rational.of([3, 4]))
+        .toFraction(),
+    ).toEqual([2n, 3n]);
+    expect(() => Rational.of(1).divide(Rational.of(0))).toThrow(RangeError);
+    expect(Rational.of([7, 2]).floor()).toBe(3n);
+    expect(Rational.of([-7, 2]).floor()).toBe(-4n);
+    expect(Rational.of(-3).floor()).toBe(-3n);
+    expect(Rational.of([1, 3]).floor()).toBe(0n);
+  });
+
+  it("gives a float's exact binary value", () => {
+    expect(fromFloat(0.1).toFraction()).toEqual([3602879701896397n, 2n ** 55n]);
+    expect(fromFloat(-2.5).toFraction()).toEqual([-5n, 2n]);
   });
 });
 

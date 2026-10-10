@@ -149,7 +149,7 @@ describe("invariants", () => {
       { code: "map_source_unit_mismatch", path: [...base, "conversion_maps", 0, "source_unit"] },
       { code: "duplicate_region", path: [...base, "regions", 1, "name"] },
     ]);
-    expect(() => saveDocument(parse(text) as Document)).toThrow(InvalidDocumentError);
+    expect(() => saveDocument(parse(text) as unknown as Document)).toThrow(InvalidDocumentError);
   });
 
   describe("each invariant is refused on load at its path", () => {

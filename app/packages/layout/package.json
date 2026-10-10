@@ -4,11 +4,19 @@
   "private": true,
   "license": "MIT",
   "type": "module",
+  "sideEffects": false,
   "exports": {
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tests/tsconfig.json",
     "test": "vitest run"
+  },
+  "dependencies": {
+    "@timetoalign/tilie-core": "workspace:*",
+    "@timetoalign/timeskeleton": "link:../../../../timeskeleton/js"
+  },
+  "devDependencies": {
+    "fast-check": "4.10.2"
   }
 }

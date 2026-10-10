@@ -33,6 +33,12 @@ workspace package does; the editor shell lists the names it links.
 3. **Arithmetic.** `1/3 + 1/6 = 1/2`, `1/2 - 3/4 = -1/4`; `compare`
    returns exactly `-1`, `0` or `1`, and orders `-1/2 < 1/3 < 1/2`. Values
    above `2 ** 53` add exactly (`(2^62 + 1)/1 + 1/1 = (2^62 + 2)/1`).
+   `2/3 × 9/4 = 3/2`, `1/2 ÷ 3/4 = 2/3`, a division by zero is a
+   `RangeError`; `floor` gives `3` for `7/2`, `-4` for `-7/2`, `-3` for `-3`
+   and `0` for `1/3`. `fromFloat` gives a float's exact binary value, as
+   Python's `Fraction(float)`: `0.1` is `3602879701896397/2^55`, `-2.5` is
+   `-5/2`; it serves exact arithmetic on a float (a writer's page), never a
+   stored coordinate.
 4. **Coordinates mirror the library.** `coordinateFromDict` and
    `coordinateToDict` follow `timetoalign.core.retrieval.coordinate_from_dict`
    / `coordinate_to_dict` and `timetoalign.core.time.number_from_json` /
@@ -230,6 +236,9 @@ commands.
    `document` for every fixture, and saves to the fixture's exact bytes:
    deep equality ignores the order of an object's members, the text does
    not, so this proves that an atom keeps its members' order through Yjs.
+   The `styled` fixture carries a `graphical` block, so the same comparisons
+   prove that the block, held as one atom, survives the binding and every
+   command, which leaves it untouched.
 2. **Undo and redo.** One command that changes the document is one undo
    step; a command that changes nothing (a refusal, or setting a value to
    itself) writes nothing and adds no step. After n changing commands,

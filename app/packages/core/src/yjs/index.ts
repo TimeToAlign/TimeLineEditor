@@ -2,15 +2,15 @@
  * @timetoalign/tilie-core/yjs: the document as a Yjs document, edited only
  * through the command reducers.
  *
- * Representation: one root `Y.Map` named `document` holding `meta` and
- * `manifest`; `manifest.timelines` is a `Y.Map` by id; each timeline is a
+ * Representation: one root `Y.Map` named `document` holding `meta`,
+ * `manifest` and, when the document has one, `graphical`; `manifest.timelines` is a `Y.Map` by id; each timeline is a
  * `Y.Map` of its members, with `children` a `Y.Map` by id of `Y.Map`s
  * `{offset, timeline}`, `conversion_maps` a `Y.Map` by map id, `regions` a
  * `Y.Map` by name, and `flow_control` a `Y.Map` whose `markers` is a
  * `Y.Map` by name and whose `breaks` and `jumps` are `Y.Map`s keyed by an
  * insertion key unique to the replica and the moment of insertion. Every
  * coordinate dict, map payload, region, break and jump entry, and `meta`,
- * `measure_map` and `metric_hierarchy`, is one atomic value: it is replaced
+ * `graphical`, `measure_map` and `metric_hierarchy`, is one atomic value: it is replaced
  * whole, never merged member by member. Lists carry no order; the canonical
  * order is derived when the document is materialized.
  *
@@ -146,6 +146,7 @@ export function createYDoc(document: Document): Y.Doc {
     }
     root.set("meta", encode(document.meta));
     root.set("manifest", filled({ timelines }));
+    if (document.graphical !== undefined) root.set("graphical", encode(document.graphical));
   });
   return ydoc;
 }
@@ -194,14 +195,20 @@ export function toDocument(ydoc: Y.Doc): Document {
   const manifest = root.get("manifest") as Y.Map<unknown> | undefined;
   if (manifest === undefined) throw new Error("the Yjs document holds no TimeSkeleton document");
   const timelines = manifest.get("timelines") as Y.Map<Y.Map<unknown>>;
-  return canonicalOrder<Document>({
+  const document: Document = {
     meta: decode(root.get("meta")) as Document["meta"],
     manifest: {
       timelines: Object.fromEntries(
         [...timelines.entries()].map(([id, map]) => [id, readTimeline(map)]),
       ),
     },
-  });
+  };
+  const graphical = root.get("graphical");
+  return canonicalOrder<Document>(
+    graphical === undefined
+      ? document
+      : { ...document, graphical: decode(graphical) as NonNullable<Document["graphical"]> },
+  );
 }
 
 /** Write the difference between two keyed collections into a `Y.Map`. */
@@ -311,6 +318,11 @@ function syncTimeline(
 
 function sync(root: Y.Map<unknown>, before: Document, after: Document, keys: Keys): void {
   if (!jsonEqual(before.meta, after.meta)) root.set("meta", encode(after.meta));
+  if (after.graphical === undefined) {
+    if (before.graphical !== undefined) root.delete("graphical");
+  } else if (before.graphical === undefined || !jsonEqual(before.graphical, after.graphical)) {
+    root.set("graphical", encode(after.graphical));
+  }
   const manifest = root.get("manifest") as Y.Map<unknown>;
   const timelines = manifest.get("timelines") as Y.Map<unknown>;
   syncKeyed(

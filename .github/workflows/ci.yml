@@ -35,6 +35,34 @@ jobs:
           path: app/packages/editor/dist
           if-no-files-found: error
 
+  tikz:
+    name: TikZ figures compile under LuaLaTeX
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install a minimal TeX Live with LuaLaTeX, TikZ, standalone and DejaVu Sans
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            texlive-luatex texlive-latex-recommended texlive-latex-extra \
+            texlive-pictures fonts-dejavu-core
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: app/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Compile every golden TikZ figure
+        run: pnpm vitest run --project writers packages/writers/tests/compile.test.ts
+        env:
+          TILIE_REQUIRE_LUALATEX: "1"
+
   server:
     needs: app
     runs-on: ubuntu-24.04

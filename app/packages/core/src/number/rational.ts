@@ -86,6 +86,29 @@ export class Rational {
     );
   }
 
+  multiply(other: Rational): Rational {
+    return Rational.fromParts(
+      this.numerator * other.numerator,
+      this.denominator * other.denominator,
+    );
+  }
+
+  /** @throws {RangeError} if `other` is zero. */
+  divide(other: Rational): Rational {
+    return Rational.fromParts(
+      this.numerator * other.denominator,
+      this.denominator * other.numerator,
+    );
+  }
+
+  /** The largest integer not above this value. */
+  floor(): bigint {
+    const quotient = this.numerator / this.denominator;
+    return this.numerator < 0n && quotient * this.denominator !== this.numerator
+      ? quotient - 1n
+      : quotient;
+  }
+
   /** `-1`, `0` or `1` as this value is below, equal to or above `other`. */
   compare(other: Rational): -1 | 0 | 1 {
     const difference = this.numerator * other.denominator - other.numerator * this.denominator;
