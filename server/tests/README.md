@@ -43,6 +43,15 @@ test overrides it. What proves the behaviour:
    content and a `text/html` content type, and the Host and Origin checks
    apply to it as well (a foreign Host still gets 403).
 
+7. **No referrer leaves the server.** Every HTTP response carries
+   `Referrer-Policy: no-referrer`, so the browser never sends one of the
+   server's URLs as a `Referer` to another site. "Every" is proven over each
+   kind of response the server produces: the built editor at `/`, a static
+   asset, an authorized API route (`/api/health`, 200), and the three
+   refusals produced before routing (401 without a token, 403 for a foreign
+   Origin, 403 for a foreign Host) as well as the 503 of an unbuilt editor.
+   The header value is compared exactly and must occur exactly once.
+
 ## The command (`test_cli.py`)
 
 The installed `tilie` console script beside the current interpreter is
@@ -59,7 +68,25 @@ exercised as a subprocess. CI also runs it from a clean wheel installation. What
 3. **`--check` fails when the port is taken.** A socket is bound to a free
    port for the duration of the test; `--check --port <that port>` exits 1
    with `could not start the server on 127.0.0.1:<port>` on standard error.
-4. **The server never binds anything but the loopback interface.** `HOST`
+4. **The token never reaches the access log.** `tilie --no-browser --port
+   <a free port> --static-dir <a temporary directory holding index.html>` is
+   started as a long-running process. Its first line of standard output is
+   the URL it would open, and it must be exactly
+   `http://127.0.0.1:<port>/#token=<token>` where `<token>` is 43 characters
+   of the URL-safe base64 alphabet (32 random bytes); in particular it holds
+   no `?token=`. That URL is then requested exactly as printed, the way a
+   browser opening it does: the HTTP client sends the request target without
+   the fragment, so the server sees `GET /`. `/api/health` is requested with
+   the token as a bearer header, as the editor does. After the process is
+   interrupted (SIGINT, the Ctrl+C path) it exits 0, and its whole output is
+   inspected:
+   uvicorn's access log holds exactly one line for `"GET / HTTP/1.1" 200`
+   and exactly one for `"GET /api/health HTTP/1.1" 200`, and the token
+   occurs nowhere in standard output or standard error except in the printed
+   URL itself. Because the request is the one a browser makes from the printed
+   URL, this proves the property end to end rather than for a hand-written
+   request.
+5. **The server never binds anything but the loopback interface.** `HOST`
    is the constant `127.0.0.1` and `free_port()` binds to it; the test for
    (1) connects to `127.0.0.1` only. (This is a property of the code, stated
    here so that a future option to bind elsewhere is a deliberate change.)

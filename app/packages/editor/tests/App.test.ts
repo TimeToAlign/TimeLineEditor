@@ -4,10 +4,20 @@ import App from "../src/App.svelte";
 
 const health = { name: "tilie-server", version: "0.1.0", timetoalign: "1.2.0" };
 
+/** The page's path, query and fragment, as the address bar shows them. */
+function address(): string {
+  return `${location.pathname}${location.search}${location.hash}`;
+}
+
+/** Stub `fetch`; each call also records the address at the time of the call. */
 function stubFetch(response: Response) {
-  const fetchStub = vi.fn(async () => response);
+  const addresses: string[] = [];
+  const fetchStub = vi.fn(async (_input: string, _init: RequestInit) => {
+    addresses.push(address());
+    return response;
+  });
   vi.stubGlobal("fetch", fetchStub);
-  return fetchStub;
+  return { fetchStub, addresses };
 }
 
 function text(selector: string): string[] {
@@ -18,7 +28,7 @@ describe("App", () => {
   let app: ReturnType<typeof mount>;
 
   beforeEach(() => {
-    window.history.replaceState({}, "", "/?token=abc");
+    window.history.replaceState({}, "", "/");
   });
 
   afterEach(() => {
@@ -39,8 +49,10 @@ describe("App", () => {
     ]);
   });
 
-  it("requests the health with the token from the URL and shows it", async () => {
-    const fetchStub = stubFetch(Response.json(health));
+  it("takes the token from the fragment, clears it and shows the health", async () => {
+    window.history.replaceState({}, "", "/?view=a#token=abc");
+    const entries = history.length;
+    const { fetchStub, addresses } = stubFetch(Response.json(health));
     app = mount(App, { target: document.body });
 
     await vi.waitFor(() => {
@@ -49,6 +61,23 @@ describe("App", () => {
     expect(fetchStub.mock.calls).toEqual([
       ["/api/health", { headers: { Authorization: "Bearer abc" } }],
     ]);
+    expect(addresses).toEqual(["/?view=a"]);
+    expect(location.hash).toBe("");
+    expect(history.length).toBe(entries);
+  });
+
+  it("sends no token and leaves the URL alone without a fragment token", async () => {
+    window.history.replaceState({}, "", "/?token=abc");
+    const { fetchStub, addresses } = stubFetch(Response.json(health));
+    app = mount(App, { target: document.body });
+
+    await vi.waitFor(() => {
+      expect(fetchStub.mock.calls).toEqual([
+        ["/api/health", { headers: { Authorization: "Bearer " } }],
+      ]);
+    });
+    expect(addresses).toEqual(["/?token=abc"]);
+    expect(address()).toBe("/?token=abc");
   });
 
   it("shows the HTTP error when the health request is rejected", async () => {

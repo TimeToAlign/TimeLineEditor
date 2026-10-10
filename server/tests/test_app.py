@@ -173,3 +173,37 @@ def test_static_assets_are_served(tmp_path: Path) -> None:
     response = client(tmp_path).get("/assets/app.js")
     assert response.status_code == 200
     assert response.content == source
+
+
+def test_every_response_sends_no_referrer(tmp_path: Path) -> None:
+    built_dir = tmp_path / "built"
+    (built_dir / "assets").mkdir(parents=True)
+    (built_dir / "index.html").write_text("<!doctype html>")
+    (built_dir / "assets/app.js").write_text('console.log("TimeLineEditor");')
+    built_client = client(built_dir)
+    unbuilt_dir = tmp_path / "unbuilt"
+    unbuilt_dir.mkdir()
+    responses = {
+        "editor": built_client.get("/"),
+        "asset": built_client.get("/assets/app.js"),
+        "api": built_client.get("/api/health", headers=AUTH),
+        "no token": built_client.get("/api/health"),
+        "foreign origin": built_client.get(
+            "/", headers={"Origin": "http://evil.example"}
+        ),
+        "foreign host": built_client.get("/", headers={"Host": "evil.example:80"}),
+        "not built": client(unbuilt_dir).get("/"),
+    }
+    assert {kind: r.status_code for kind, r in responses.items()} == {
+        "editor": 200,
+        "asset": 200,
+        "api": 200,
+        "no token": 401,
+        "foreign origin": 403,
+        "foreign host": 403,
+        "not built": 503,
+    }
+    policies = {
+        kind: r.headers.get_list("referrer-policy") for kind, r in responses.items()
+    }
+    assert policies == {kind: ["no-referrer"] for kind in responses}

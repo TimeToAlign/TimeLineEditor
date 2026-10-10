@@ -21,7 +21,7 @@ Python environments, distribution builds, style checks and tests need reproducib
 
 ## Decision
 
-Use uv 0.11.28, hatchling 1.32.4, Ruff 0.16.9 and pytest 9.1.1. Pin direct Python tools and framework dependencies; preserve the required timetoalign lower bound. `uv.lock` and `exclude-newer` fix development resolution. Ruff uses line length 88, Python 3.11 syntax and E/F/W/I/UP/B rules.
+Use uv 0.11.28, hatchling 1.32.4, Ruff 0.16.9 and pytest 9.1.1. Pin the direct development tools exactly; runtime and build dependencies (the frameworks, timetoalign and hatchling) declare compatible ranges, such as `hatchling>=1.32`. `uv.lock` and `exclude-newer` fix development resolution. Ruff uses line length 88, Python 3.11 syntax and E/F/W/I/UP/B rules.
 
 Use httpx2 2.13.1 for FastAPI's TestClient via the locked Starlette version. CLI subprocess tests additionally exercise real loopback sockets. TOML metadata is read by the Python standard library, without a direct TOML parser dependency.
 

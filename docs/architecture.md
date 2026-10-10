@@ -38,7 +38,7 @@ Writers sit above that geometry and independently of the on-screen renderer. SVG
 
 ## The server
 
-`tilie-server` uses FastAPI and uvicorn. It binds only `127.0.0.1`, generates a random token for each run, rejects foreign Host and Origin headers, and requires `Authorization: Bearer <token>` on every `/api/` route. The current server serves the built app from its wheel and implements `/api/health`; `tilie` selects a free port and opens the browser, while `tilie --check` verifies an installation.
+`tilie-server` uses FastAPI and uvicorn. It binds only `127.0.0.1`, generates a random token for each run, rejects foreign Host and Origin headers, and requires `Authorization: Bearer <token>` on every `/api/` route. `tilie` hands the token to the browser in the URL fragment (`http://127.0.0.1:<port>/#token=<token>`). A browser never sends the fragment to the server, so the token does not appear in the access log; the editor reads it, removes it from the address bar and the current history entry with `history.replaceState`, and keeps it in memory only, so reloading the page after the handoff loses the token. Every response carries `Referrer-Policy: no-referrer`, so the browser sends none of the server's URLs to another site. The current server serves the built app from its wheel and implements `/api/health`; `tilie` selects a free port and opens the browser, while `tilie --check` verifies an installation.
 
 The server is intended to load any supported source through `timetoalign` loaders; run conversion-map batches; report unfolding and traversal diagnostics with fix suggestions; validate; export; host a committed OpenAPI document and generated TypeScript client; run a CRDT room; and proxy a GitHub token. These responsibilities are not exposed by the current API.
 
@@ -61,7 +61,7 @@ Packages for views and embedding are added only when a concrete need appears. Cu
 
 Tests are README-first: every `tests/README.md` states the validation logic, and tests follow it. Expected values are exact. Fixtures flow from Python to TypeScript so both sides work from the same examples. Current gates include Biome, Vitest, dependency-cruiser, Ruff, and pytest. Playwright end-to-end testing and axe-core accessibility checks are intended additions.
 
-The editor shell test does not currently cover its CSS grid layout, mobile rendering, or absent and empty-token behavior. The server static-file tests do not currently cover traversal behavior. These limits are documented coverage gaps rather than claims of behavior.
+The editor shell test covers the token handoff through the fragment and the absent token; it does not currently cover its CSS grid layout, mobile rendering, or a fragment carrying an empty token. The server static-file tests do not currently cover traversal behavior. These limits are documented coverage gaps rather than claims of behavior.
 
 ## Performance principles
 
@@ -75,7 +75,7 @@ The command layer and the server's OpenAPI document are the intended contracts f
 
 Each dependency requires an ADR under [`decisions/`](../decisions/). The records use MADR headings, weigh writing the component ourselves, record maintenance and exit costs, name audited versions, and include review dates. See [the ADR convention](../decisions/0001-record-architecture-decisions.md), [the TypeScript choice](../decisions/0002-typescript.md), [the Svelte and Vite choice](../decisions/0003-svelte-5-with-vite.md), [the pnpm workspace choice](../decisions/0004-pnpm-workspaces.md), [the Biome choice](../decisions/0005-biome.md), [the Vitest choice](../decisions/0006-vitest.md), [the dependency-cruiser choice](../decisions/0007-dependency-cruiser.md), [the FastAPI and uvicorn choice](../decisions/0008-fastapi-and-uvicorn.md), [the Python tooling choice](../decisions/0009-uv-hatchling-ruff.md), and [the wheel bundling decision](../decisions/0010-wheel-bundles-the-built-app.md).
 
-Manifests use compatible ranges where the contract needs them, such as `timetoalign>=1.2.0`. Lockfiles pin the resolved versions: `server/uv.lock` for Python and `app/pnpm-lock.yaml` for the application. A version must have been released at least 14 days before it enters a lockfile, and the ADR identifies the audited version. This policy deliberately separates compatibility declarations from reproducible resolutions.
+The published server manifest declares compatible ranges for its runtime and build dependencies, such as `fastapi>=0.141,<1`; development tools and the private app workspace, which is bundled into the wheel, pin exact versions. Lockfiles pin the resolved versions: `server/uv.lock` for Python and `app/pnpm-lock.yaml` for the application. A version must have been released at least 14 days before it enters a lockfile, and the ADR identifies the audited version. This policy deliberately separates compatibility declarations from reproducible resolutions.
 
 ## Deployment
 

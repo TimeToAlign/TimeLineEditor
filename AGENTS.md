@@ -25,11 +25,11 @@ Only arranger and editor may import `svelte`. Add a package only for a present n
 - Never construct rationals from floats. A coordinate is atomic: `{ unit, number_type, value }`, where `value` is a JSON integer, a JSON number or a `[numerator, denominator]` Fraction pair as `number_type` selects (the BOPP core primitives).
 - Commands are serializable and validated. Return typed, machine-readable errors rather than display-oriented strings.
 - Python uses type hints and Google-style docstrings.
-- Server security is invariant: bind only `127.0.0.1`; generate a token for each run; reject foreign Host and Origin headers; require exact `Authorization: Bearer <token>` for every `/api/` route.
+- Server security is invariant: bind only `127.0.0.1`; generate a token for each run; hand the token to the editor only in the URL fragment (`/#token=…`), never in a path or query, so it never reaches the server or its access log, and have the editor remove it from the address bar with `history.replaceState`; reject foreign Host and Origin headers; require exact `Authorization: Bearer <token>` for every `/api/` route; send `Referrer-Policy: no-referrer` with every response.
 
 ## Dependency Policy
 
-`server/pyproject.toml` and all `app/**/package.json` files declare compatible ranges where required by the contract; `timetoalign>=1.2.0` is correct. `server/uv.lock` and `app/pnpm-lock.yaml` pin exact resolved versions released at least 14 days before entry. The ADR for a dependency names the version that was audited. Preserve this policy rather than replacing compatible ranges with exact manifest pins.
+`server/pyproject.toml`, the manifest of the published distribution, declares compatible ranges for its runtime and build dependencies (for example `fastapi>=0.141,<1`) and pins the development tools of its `dev` group exactly. The `app/**/package.json` files, whose output is bundled into the server wheel rather than published, pin exact versions. `server/uv.lock` and `app/pnpm-lock.yaml` pin exact resolved versions released at least 14 days before entry. The ADR for a dependency names the version that was audited. Preserve this policy rather than replacing compatible ranges with exact manifest pins.
 
 ## Commands
 

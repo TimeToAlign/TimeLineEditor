@@ -1,4 +1,4 @@
-"""The ASGI application: health endpoint, static editor, local-origin guard."""
+"""The ASGI application: health, static editor, origin guard, referrer policy."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from starlette.types import ASGIApp, Receive, Scope, Send
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from tilie_server import __version__
 
@@ -73,6 +73,32 @@ class LocalOriginGuard:
         return None
 
 
+class NoReferrer:
+    """Send ``Referrer-Policy: no-referrer`` with every HTTP response.
+
+    With this policy the browser sends none of the server's URLs as a
+    ``Referer``, so no other site learns them, whatever a URL may carry.
+    Rejections by :class:`LocalOriginGuard` carry the header as well.
+    """
+
+    HEADER = (b"referrer-policy", b"no-referrer")
+
+    def __init__(self, app: ASGIApp) -> None:
+        self._app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self._app(scope, receive, send)
+            return
+
+        async def send_with_policy(message: Message) -> None:
+            if message["type"] == "http.response.start":
+                message["headers"] = [*message.get("headers", []), self.HEADER]
+            await send(message)
+
+        await self._app(scope, receive, send_with_policy)
+
+
 def allowed_hosts(host: str, port: int) -> frozenset[str]:
     """The ``Host`` header values the server answers to.
 
@@ -125,4 +151,6 @@ def create_app(
             return JSONResponse({"detail": "app not built"}, status_code=503)
 
     app.add_middleware(LocalOriginGuard, token=token, hosts=allowed_hosts(host, port))
+    # Added last, so it is the outermost layer and covers the guard's rejections.
+    app.add_middleware(NoReferrer)
     return app

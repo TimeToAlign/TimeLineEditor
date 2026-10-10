@@ -43,7 +43,7 @@ Each package and the server has a `tests/README.md`. Update the appropriate read
 
 Add an ADR in [`decisions/`](decisions/) before adding a dependency. The record must use the repository's MADR structure, compare writing it ourselves, identify the audited version, and set a review date.
 
-Manifest files use compatible ranges where the contract requires them, including `timetoalign>=1.2.0`. The lockfiles, `server/uv.lock` and `app/pnpm-lock.yaml`, pin the resolved versions. Enter only versions released at least 14 days before they enter a lockfile, and name the audited version in its ADR. This is the dependency policy; do not treat a compatible manifest range as an error by itself.
+The published server manifest declares compatible ranges for its runtime and build dependencies, such as `fastapi>=0.141,<1` and `uvicorn[standard]>=0.53,<1`, and pins the development tools of its `dev` group exactly; the private app workspace, bundled into the wheel, pins exact versions. The lockfiles, `server/uv.lock` and `app/pnpm-lock.yaml`, pin the resolved versions. Enter only versions released at least 14 days before they enter a lockfile, and name the audited version in its ADR. This is the dependency policy; do not treat a compatible manifest range as an error by itself.
 
 ## Packages
 
@@ -53,7 +53,7 @@ When adding a package, first establish a present need. Add its permitted edges t
 
 ## Known Limitations
 
-The editor component test mounts the shell and checks its headings, health request, and displayed result. It does not verify CSS grid layout, mobile rendering, or absent and empty-token behavior. The server static-file tests do not exercise traversal behavior. Treat these gaps as test coverage to improve when their behavior is changed.
+The editor component test mounts the shell and checks its headings, health request, and displayed result. It covers the token taken from the URL fragment and cleared from the address bar, and the absent token (no fragment, so an empty bearer header is sent). It does not verify CSS grid layout, mobile rendering, or a fragment that carries an empty token (`#token=`). The server static-file tests do not exercise traversal behavior. Treat these gaps as test coverage to improve when their behavior is changed.
 
 ## Release
 

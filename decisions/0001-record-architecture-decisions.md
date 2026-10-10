@@ -20,7 +20,7 @@ The repository needs durable reasons for tool choices, including their maintenan
 
 Use MADR-shaped documents under `decisions/`, with Context, Considered options, Decision, Consequences and Review date. Record present needs, primary sources, maintenance risk, licence, size, transitive dependencies and exit cost. No template package is installed.
 
-Pin direct tools and retain lockfiles. Package releases must be at least fourteen days old: pnpm uses `minimumReleaseAge: 20160`, uv uses the fixed `2026-09-25` cutoff, and Renovate applies a fourteen-day window. The required pnpm 12.10.1 toolchain is an explicit exception: published 2026-10-06. The required `timetoalign>=1.2.0` runtime range remains a range; `uv.lock` fixes the development installation.
+Pin direct tools and retain lockfiles. Package releases must be at least fourteen days old: pnpm uses `minimumReleaseAge: 20160`, uv uses the fixed `2026-09-25` cutoff, and Renovate applies a fourteen-day window. The required pnpm 12.10.1 toolchain is an explicit exception: published 2026-10-06. Runtime and build dependencies of a published package declare compatible ranges in its manifest (for the server `fastapi>=0.141,<1`, `uvicorn[standard]>=0.53,<1`, `hatchling>=1.32` and the `timetoalign` lower bound); `uv.lock` fixes the resolved versions of the development installation.
 
 ## Maintenance and dependencies
 

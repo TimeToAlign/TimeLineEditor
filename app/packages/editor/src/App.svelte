@@ -13,8 +13,22 @@ const packages = [core, layout, writers, arranger, client];
 
 let status = $state("connecting to the server");
 
+/**
+ * Take the run's token from the fragment `tilie` opens the editor with
+ * (`/#token=…`) and remove it from the address bar and the history entry.
+ * The fragment never reaches the server, so the token stays out of its logs.
+ */
+function takeToken(): string {
+  const token = new URLSearchParams(location.hash.slice(1)).get("token");
+  if (token === null) {
+    return "";
+  }
+  history.replaceState(history.state, "", `${location.pathname}${location.search}`);
+  return token;
+}
+
 onMount(async () => {
-  const token = new URLSearchParams(location.search).get("token") ?? "";
+  const token = takeToken();
   try {
     const response = await fetch("/api/health", {
       headers: { Authorization: `Bearer ${token}` },

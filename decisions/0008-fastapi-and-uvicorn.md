@@ -20,7 +20,7 @@ The local server must serve static files, report installed versions and reject f
 
 ## Decision
 
-Use fastapi 0.141.1 and uvicorn[standard] 0.53.0. A pure ASGI guard checks Host and Origin before routing, and exact bearer authentication for `/api/`. Static pages require the Host and Origin checks but no bearer header. The CLI binds only 127.0.0.1 and generates a token for each run.
+Use FastAPI and uvicorn[standard]; the audited versions are fastapi 0.141.1 and uvicorn[standard] 0.53.0. The manifest declares the compatible ranges `fastapi>=0.141,<1` and `uvicorn[standard]>=0.53,<1`, and `uv.lock` fixes the resolved versions. A pure ASGI guard checks Host and Origin before routing, and exact bearer authentication for `/api/`. Static pages require the Host and Origin checks but no bearer header. An outermost ASGI layer adds `Referrer-Policy: no-referrer` to every response, the guard's refusals included. The CLI binds only 127.0.0.1, generates a token for each run, and hands it to the editor in the URL fragment (`/#token=…`), which the browser never sends to the server, so the token stays out of uvicorn's access log; the editor removes it from the address bar and keeps it in memory only, so a reload loses it.
 
 `timetoalign>=1.2.0` is required, locked at 1.2.0 for development, and is queried only through `importlib.metadata`; no model code is imported. Health contains exactly three fields. The CLI self-check verifies both health and the built app.
 

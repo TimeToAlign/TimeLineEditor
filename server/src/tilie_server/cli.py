@@ -147,7 +147,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(json.dumps(health))
         return 0
 
-    url = f"{base_url}/?token={token}"
+    # The token rides in the fragment, which the browser never sends to the
+    # server, so it stays out of the access log; the editor reads it from
+    # there and removes it from the address bar and the history entry.
+    url = f"{base_url}/#token={token}"
     print(url, flush=True)
     if not args.no_browser:
         webbrowser.open(url)
