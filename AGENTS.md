@@ -51,6 +51,7 @@ Run each command from the stated directory.
 | `app/` | `pnpm format` | Apply Biome formatting. |
 | `app/` | `pnpm typecheck` | Type-check the workspace. |
 | `app/` | `pnpm test` | Run Vitest. |
+| `app/` | `pnpm test:budget` | Run the workspace store's timing budgets alone, one file at a time (excluded from `pnpm test`). |
 | `app/` | `pnpm build` | Build the editor bundle. |
 | `app/` | `pnpm dev` | Start the editor development server. |
 | `app/` | `TILIE_REQUIRE_LUALATEX=1 pnpm vitest run --project writers packages/writers/tests/compile.test.ts` | Parse every drawing fixture's `figure.svg` and compile every `figure.tex`, failing when `lualatex` is missing. |

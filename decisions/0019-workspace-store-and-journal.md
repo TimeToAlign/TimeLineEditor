@@ -87,7 +87,10 @@ work is planned; `tests/budget.test.ts` holds these limits, and a figure
 beyond them fails the test. The test times each operation as the minimum of
 5 runs after a warm-up, so it measures the code rather than the load of the
 machine: inside the parallel suite a median reached 273 ms for opening while
-the same code takes 175 ms alone.
+the same code takes 175 ms alone, and even the minimum exceeded the limit
+when other work loaded the machine. The budget test therefore runs on its
+own: the default `pnpm test` excludes it, and `pnpm test:budget` runs it
+alone, without file parallelism.
 
 Exit cost: the journal is one array in the file and one module in `core`;
 dropping it leaves the snapshot readable as it is.

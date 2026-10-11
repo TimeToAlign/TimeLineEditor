@@ -564,6 +564,11 @@ clock.
 
 ## Budgets (`budget.test.ts`)
 
+The budgets time the code, so they do not run with the default suite, whose
+files run in parallel with each other: `pnpm test` excludes this file and
+`pnpm test:budget` (in `app/`) runs it alone, one file at a time
+(`packages/core/vitest.budget.config.ts`).
+
 A generated workspace of 300 blocks (the 23 fixtures in turn) with a journal
 of 1,000 entries (300 `add`, 700 `set` moves): `readWorkspace` of its text,
 validation included, takes at most 250 ms; `writeWorkspace` at most 250 ms;

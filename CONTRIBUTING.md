@@ -23,9 +23,12 @@ Run application commands from `app/`:
 pnpm lint
 pnpm typecheck
 pnpm test
+pnpm test:budget
 pnpm build
 pnpm dev
 ```
+
+`pnpm test:budget` runs the workspace store's timing budgets alone, one file at a time; `pnpm test` excludes them.
 
 Run server commands from `server/`:
 
