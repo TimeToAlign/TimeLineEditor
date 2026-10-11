@@ -17,28 +17,30 @@ export interface RecordBase {
   readonly index: string;
 }
 
-export interface Margins {
-  readonly top: number;
-  readonly right: number;
-  readonly bottom: number;
-  readonly left: number;
+/** A group of bands, laid outwards from the root in a block's `order`. */
+export type BandGroup = "children" | "regions" | "flow";
+export const BAND_GROUPS: readonly BandGroup[] = ["children", "regions", "flow"];
+
+/** The inputs of a block's drawing besides its manifest and its style layers. */
+export interface BlockPlacement {
+  /** The uniform scale of the drawing on the canvas, positive. */
+  readonly scale: number;
+  /** The graphical length of the root, positive. */
+  readonly length: number;
+  /** The vertical stretch, positive. */
+  readonly spacing: number;
+  /** The requested box size, positive, or null for the content's own size. */
+  readonly width: number | null;
+  readonly height: number | null;
+  /** The band order, a permutation of the three groups. */
+  readonly order: readonly [BandGroup, BandGroup, BandGroup];
 }
 
-export interface NameColumn {
-  readonly visible: boolean;
-  readonly width: readonly [number, number];
-}
-
-export interface BlockRecord extends RecordBase {
+export interface BlockRecord extends RecordBase, BlockPlacement {
   readonly kind: "block";
   readonly blockKind: "timeline";
   readonly x: number;
   readonly y: number;
-  readonly scale: number;
-  readonly zoom: number;
-  readonly margins: Margins;
-  readonly background: Colour | null;
-  readonly nameColumn: NameColumn;
   /** The style layer of whoever places the block, above the manifest's own. */
   readonly overrides: Graphical;
   readonly manifest: Manifest;

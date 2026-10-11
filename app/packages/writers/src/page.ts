@@ -6,12 +6,12 @@
 import { fromFloat } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
 
-/** One drawing placed at canvas position `(x, y)` and scaled by `zoom`. */
+/** One drawing placed at canvas position `(x, y)` and scaled by `scale`. */
 export interface Placed {
   readonly drawing: Drawing;
   readonly x: number;
   readonly y: number;
-  readonly zoom: number;
+  readonly scale: number;
 }
 
 /** A placed drawing's position on the page. */
@@ -34,8 +34,8 @@ export function page(placed: readonly Placed[]): Page {
   if (placed.length === 0) throw new RangeError("a page holds at least one drawing");
   const left = Math.min(...placed.map((item) => item.x));
   const top = Math.min(...placed.map((item) => item.y));
-  const right = Math.max(...placed.map((item) => item.x + item.drawing.width * item.zoom));
-  const bottom = Math.max(...placed.map((item) => item.y + item.drawing.height * item.zoom));
+  const right = Math.max(...placed.map((item) => item.x + item.drawing.width * item.scale));
+  const bottom = Math.max(...placed.map((item) => item.y + item.drawing.height * item.scale));
   return {
     width: right - left + 2 * MARGIN,
     height: bottom - top + 2 * MARGIN,

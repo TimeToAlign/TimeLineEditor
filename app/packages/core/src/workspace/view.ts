@@ -6,14 +6,8 @@ import { ErrorCode, problem } from "../errors.ts";
 import { manifestProblems } from "../manifest/io.ts";
 import { RECORD_ID } from "./ids.ts";
 import { isIndex } from "./order.ts";
-import type {
-  BlockRecord,
-  Colour,
-  Margins,
-  NameColumn,
-  RecordId,
-  WorkspaceRecord,
-} from "./records.ts";
+import type { BlockPlacement, BlockRecord, RecordId, WorkspaceRecord } from "./records.ts";
+import { BAND_GROUPS } from "./records.ts";
 
 export interface WorkspaceMeta {
   readonly format: "tilie-workspace";
@@ -22,18 +16,10 @@ export interface WorkspaceMeta {
   readonly generator: string;
 }
 
-export interface BlockDefaults {
-  readonly scale: number;
-  readonly zoom: number;
-  readonly margins: Margins;
-  readonly background: Colour | null;
-  readonly nameColumn: NameColumn;
-}
-
 export interface WorkspaceSettings {
   /** The application's style layer, between the defaults and a manifest's own. */
   readonly styles: Graphical;
-  readonly blockDefaults: BlockDefaults;
+  readonly blockDefaults: BlockPlacement;
   readonly grid: { readonly size: number; readonly snap: boolean };
 }
 
@@ -46,11 +32,12 @@ export interface View {
 export const DEFAULT_SETTINGS: WorkspaceSettings = {
   styles: {},
   blockDefaults: {
-    scale: 40,
-    zoom: 1,
-    margins: { top: 16, right: 16, bottom: 16, left: 16 },
-    background: null,
-    nameColumn: { visible: true, width: [1, 4] },
+    scale: 1,
+    length: 400,
+    spacing: 1,
+    width: null,
+    height: null,
+    order: ["children", "regions", "flow"],
   },
   grid: { size: 8, snap: true },
 };
@@ -92,25 +79,30 @@ function recordNumbers(
   const at = (name: string, value: number): void => finite(problems, value, [...path, name]);
   if ("x" in record) at("x", record.x);
   if ("y" in record) at("y", record.y);
-  if ("width" in record) at("width", record.width);
-  if ("height" in record) at("height", record.height);
   if (record.kind === "block") {
-    at("scale", record.scale);
-    at("zoom", record.zoom);
-    for (const side of ["top", "right", "bottom", "left"] as const) {
-      finite(problems, record.margins[side], [...path, "margins", side]);
-    }
-    record.nameColumn.width.forEach((value, index) => {
-      finite(problems, value, [...path, "nameColumn", "width", index]);
-    });
-    for (const name of ["scale", "zoom"] as const) {
-      if (Number.isFinite(record[name]) && record[name] <= 0) {
+    for (const name of ["scale", "length", "spacing", "width", "height"] as const) {
+      const value = record[name];
+      if (value === null && (name === "width" || name === "height")) continue;
+      at(name, value as number);
+      if (Number.isFinite(value) && (value as number) <= 0) {
         problems.push(
           problem(ErrorCode.nonPositiveNumber, `${name} must be positive`, [...path, name]),
         );
       }
     }
-  } else if (record.kind === "connector") {
+    if (!isBandOrder(record.order)) {
+      problems.push(
+        problem(ErrorCode.invalidOrder, "order must hold children, regions and flow once each", [
+          ...path,
+          "order",
+        ]),
+      );
+    }
+  } else {
+    if ("width" in record) at("width", record.width);
+    if ("height" in record) at("height", record.height);
+  }
+  if (record.kind === "connector") {
     for (const [endName, end] of [
       ["from", record.from],
       ["to", record.to],
@@ -126,6 +118,15 @@ function recordNumbers(
     });
   }
   styleNumbers(problems, record, path);
+}
+
+/** Whether a value is a permutation of the three band groups. */
+export function isBandOrder(value: unknown): value is BlockPlacement["order"] {
+  return (
+    Array.isArray(value) &&
+    value.length === BAND_GROUPS.length &&
+    BAND_GROUPS.every((group) => value.includes(group))
+  );
 }
 
 function formsParentCycle(view: View, start: RecordId): boolean {

@@ -4,11 +4,11 @@
  * descriptors on screen; the SVG and TikZ writers serialize them.
  */
 
-import type { Drawing, DrawnElement, Style } from "@timetoalign/tilie-layout";
+import type { Drawing, DrawnElement, Point, Style } from "@timetoalign/tilie-layout";
 import { MAP_SPACING, MARKER_BASE } from "@timetoalign/tilie-layout";
 import { formatNumber } from "./page.ts";
 
-export type Point = readonly [number, number];
+export type { Point } from "@timetoalign/tilie-layout";
 
 /** One path command and its points, in the order they are written. */
 export interface PathCommand {
@@ -130,14 +130,14 @@ function elementDescriptors(element: DrawnElement): Descriptor[] {
         ["fill", style.fill],
         ...opacity(style),
       ]);
-      if (element.type === "timeline") {
+      if (!element.locked) {
         return [
-          line(xs, y, xe - 3 * w, y),
+          line(xs, y, xe, y),
           circle,
           filled([
-            [xe, y],
-            [xe - 3 * w, y - 1.5 * w],
-            [xe - 3 * w, y + 1.5 * w],
+            [xe + 3 * w, y],
+            [xe, y - 1.5 * w],
+            [xe, y + 1.5 * w],
           ]),
         ];
       }
@@ -180,10 +180,24 @@ function elementDescriptors(element: DrawnElement): Descriptor[] {
       ];
     }
     case "map": {
+      const { xs, xe, yc } = element;
       const half = MAP_SPACING / 2;
       return [
-        line(element.xs, element.y - half, element.xe, element.y - half),
-        line(element.xs, element.y + half, element.xe, element.y + half),
+        descriptor("polygon", [
+          address,
+          [
+            "points",
+            [
+              [xs, yc - half],
+              [xe, yc - half],
+              [xe, yc + half],
+              [xs, yc + half],
+            ],
+          ],
+          ["fill", "none"],
+          ...strokeAttributes(style),
+          ...opacity(style),
+        ]),
       ];
     }
     case "region":
@@ -196,37 +210,23 @@ function elementDescriptors(element: DrawnElement): Descriptor[] {
           ...opacity(style),
         ]),
       ];
-    case "jump": {
-      const { xFrom, xTo, yf, yc, yo } = element;
-      const w = style["stroke-width"];
+    case "jump":
       return [
         descriptor("path", [
           address,
           [
             "d",
             [
-              { command: "M", points: [[xFrom, yf]] },
-              {
-                command: "C",
-                points: [
-                  [xFrom, yc],
-                  [xTo, yc],
-                  [xTo, yf],
-                ],
-              },
+              { command: "M", points: [element.start] },
+              { command: "C", points: [element.c1, element.c2, element.base] },
             ],
           ],
           ["fill", "none"],
           ...strokeAttributes(style),
           ...opacity(style),
         ]),
-        filled([
-          [xTo, yf],
-          [xTo - 2 * w, yo],
-          [xTo + 2 * w, yo],
-        ]),
+        filled([element.tip, ...element.corners]),
       ];
-    }
     case "break":
       return [line(element.x, element.y1, element.x, element.y2)];
     case "name":

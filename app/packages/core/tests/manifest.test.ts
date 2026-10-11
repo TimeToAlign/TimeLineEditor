@@ -28,8 +28,8 @@ function refused(text: string): LoadError {
 }
 
 describe("fixture manifests round-trip byte for byte", () => {
-  it("has exactly 34 fixtures", () => {
-    expect(manifestFixtures.length).toBe(34);
+  it("has exactly 23 fixtures", () => {
+    expect(manifestFixtures.length).toBe(23);
   });
 
   it.each(manifestFixtures.map((fixture) => [fixture.name, fixture.text]))("%s", (_, text) => {
@@ -72,7 +72,7 @@ describe("graphical styles", () => {
     const text = dumps({ ...value, graphical });
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const manifest = loaded(text);
-    expect(warn).toHaveBeenCalledExactlyOnceWith("missing graphical styles: a, z");
+    expect(warn).toHaveBeenCalledExactlyOnceWith("Missing graphical styles: 'a', 'z'");
     expect(manifest.graphical?.styles).toEqual({ kept: { fill: "#ABCDEF" }, a: {}, z: {} });
     expect(graphical.styles).toEqual({ kept: { fill: "#ABCDEF" } });
     warn.mockRestore();

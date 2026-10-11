@@ -4,7 +4,7 @@ import type { Graphical, NumberType, TimelineClass, TimeUnit } from "@timetoalig
 import type { JsonObject } from "../json.ts";
 import type { Break, ConversionMap, Jump, Manifest } from "../manifest/types.ts";
 import type { CoordinateDict } from "../number/coordinate.ts";
-import type { Colour, Margins, NameColumn, RecordId } from "../workspace/records.ts";
+import type { BlockPlacement, RecordId } from "../workspace/records.ts";
 import type { WorkspaceSettings } from "../workspace/view.ts";
 
 export type NewTimeline = {
@@ -129,26 +129,22 @@ export type CreateBlock = {
   readonly manifest: Manifest;
   readonly x: number;
   readonly y: number;
-  readonly scale?: number;
-  readonly zoom?: number;
-};
+} & Partial<BlockPlacement>;
 export type MoveRecords = {
   readonly type: "moveRecords";
   readonly moves: readonly { readonly id: RecordId; readonly x: number; readonly y: number }[];
 };
-export type ResizeRecord = {
-  readonly type: "resizeRecord";
-  readonly id: RecordId;
-  readonly scale: number;
-};
+/** Resize a block one way: scale it, set its box, or stretch its distances. */
+export type ResizeRecord = { readonly type: "resizeRecord"; readonly id: RecordId } & (
+  | { readonly mode: "scale"; readonly scale: number }
+  | { readonly mode: "box"; readonly width: number | null; readonly height: number | null }
+  | { readonly mode: "stretch"; readonly length?: number; readonly spacing?: number }
+);
 export type SetRecordProperties = {
   readonly type: "setRecordProperties";
   readonly id: RecordId;
   readonly properties: {
-    readonly zoom?: number;
-    readonly margins?: Margins;
-    readonly background?: Colour | null;
-    readonly nameColumn?: NameColumn;
+    readonly order?: BlockPlacement["order"];
     readonly overrides?: Graphical;
   };
 };

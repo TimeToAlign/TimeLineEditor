@@ -55,11 +55,8 @@ export function loadManifest(text: string): Manifest | LoadError {
   if (problems.length > 0) return refuse(...problems);
   const ordered = canonicalOrder(parsed as Manifest) as Manifest;
   if (ordered.graphical === undefined) return ordered;
-  const { graphical, missing } = completeStyles(ordered.graphical);
-  if (missing.length > 0) {
-    const consoleLike = (globalThis as { console?: { warn(message: string): void } }).console;
-    consoleLike?.warn(`missing graphical styles: ${missing.join(", ")}`);
-  }
+  // completeStyles issues the one warning naming every missing style.
+  const { graphical } = completeStyles(ordered.graphical);
   return { ...ordered, graphical };
 }
 

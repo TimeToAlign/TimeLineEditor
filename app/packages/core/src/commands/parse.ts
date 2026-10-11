@@ -22,6 +22,7 @@ import {
 } from "../number/coordinate.ts";
 import { RECORD_ID } from "../workspace/ids.ts";
 import { isIndex } from "../workspace/order.ts";
+import { isBandOrder } from "../workspace/view.ts";
 import type { Command, CommandType } from "./types.ts";
 import { COMMAND_TYPES } from "./types.ts";
 
@@ -40,6 +41,9 @@ type Kind =
   | "recordId"
   | "number"
   | "positive"
+  | "nullablePositive"
+  | "order"
+  | "mode"
   | "manifest"
   | "moves"
   | "properties"
@@ -66,10 +70,15 @@ const FIELDS: { readonly [type in CommandType]: Fields } = {
     x: { kind: "number" },
     y: { kind: "number" },
     scale: { kind: "positive", optional: true },
-    zoom: { kind: "positive", optional: true },
+    length: { kind: "positive", optional: true },
+    spacing: { kind: "positive", optional: true },
+    width: { kind: "nullablePositive", optional: true },
+    height: { kind: "nullablePositive", optional: true },
+    order: { kind: "order", optional: true },
   },
   moveRecords: { moves: { kind: "moves" } },
-  resizeRecord: { id: { kind: "recordId" }, scale: { kind: "positive" } },
+  // The members of a resize depend on its mode; see RESIZE_FIELDS.
+  resizeRecord: { id: { kind: "recordId" }, mode: { kind: "mode" } },
   setRecordProperties: { id: { kind: "recordId" }, properties: { kind: "properties" } },
   setIndex: { id: { kind: "recordId" }, index: { kind: "index" } },
   deleteRecords: { ids: { kind: "ids" } },
@@ -121,8 +130,22 @@ const FIELDS: { readonly [type in CommandType]: Fields } = {
   },
 };
 
+const RESIZE_MODE = { id: { kind: "recordId" }, mode: { kind: "mode" } } as const;
+const RESIZE_FIELDS: { readonly [mode: string]: Fields } = {
+  scale: { ...RESIZE_MODE, scale: { kind: "positive" } },
+  box: {
+    ...RESIZE_MODE,
+    width: { kind: "nullablePositive" },
+    height: { kind: "nullablePositive" },
+  },
+  stretch: {
+    ...RESIZE_MODE,
+    length: { kind: "positive", optional: true },
+    spacing: { kind: "positive", optional: true },
+  },
+};
+
 const TIMELINE_CLASSES: readonly string[] = schema.$defs.TimelineClass.enum;
-const COLOUR = /^#[0-9A-F]{6}$/;
 
 function invalid(message: string, path: readonly PathSegment[]): CommandError {
   return problem(ErrorCode.invalidCommand, message, path);
@@ -273,6 +296,19 @@ function positiveNumber(value: unknown, path: readonly PathSegment[]): number | 
     : problem(ErrorCode.nonPositiveNumber, "the number must be positive", path);
 }
 
+function nullablePositive(
+  value: unknown,
+  path: readonly PathSegment[],
+): number | null | CommandError {
+  return value === null ? null : positiveNumber(value, path);
+}
+
+function bandOrder(value: unknown, path: readonly PathSegment[]): Json | CommandError {
+  return isBandOrder(value)
+    ? [...value]
+    : problem(ErrorCode.invalidOrder, "order must hold children, regions and flow once each", path);
+}
+
 function recordId(value: unknown, path: readonly PathSegment[]): string | CommandError {
   if (typeof value !== "string" || !RECORD_ID.test(value)) {
     return problem(ErrorCode.invalidRecordId, "expected a ten-character lowercase record id", path);
@@ -288,55 +324,13 @@ function styles(value: unknown, path: readonly PathSegment[]): Json | CommandErr
   return refused ?? converted;
 }
 
-function margins(value: unknown, path: readonly PathSegment[]): JsonObject | CommandError {
-  const input = exactObject(value, path, ["top", "right", "bottom", "left"]);
-  if (isCommandError(input)) return input;
-  const result: Record<string, number> = {};
-  for (const side of ["top", "right", "bottom", "left"] as const) {
-    if (!Object.hasOwn(input, side)) return invalid(`missing member ${side}`, [...path, side]);
-    const read = finiteNumber(input[side], [...path, side]);
-    if (isCommandError(read)) return read;
-    result[side] = read;
-  }
-  return result as unknown as JsonObject;
-}
-
-function nameColumn(value: unknown, path: readonly PathSegment[]): JsonObject | CommandError {
-  const input = exactObject(value, path, ["visible", "width"]);
-  if (isCommandError(input)) return input;
-  if (typeof input.visible !== "boolean")
-    return invalid("expected a boolean", [...path, "visible"]);
-  if (!Array.isArray(input.width) || input.width.length !== 2) {
-    return invalid("width must be a pair", [...path, "width"]);
-  }
-  const width: number[] = [];
-  for (const [index, value] of input.width.entries()) {
-    const read = finiteNumber(value, [...path, "width", index]);
-    if (isCommandError(read)) return read;
-    width.push(read);
-  }
-  return { visible: input.visible, width } as unknown as JsonObject;
-}
-
 function properties(value: unknown, path: readonly PathSegment[]): JsonObject | CommandError {
-  const input = exactObject(value, path, [
-    "zoom",
-    "margins",
-    "background",
-    "nameColumn",
-    "overrides",
-  ]);
+  const input = exactObject(value, path, ["order", "overrides"]);
   if (isCommandError(input)) return input;
   if (Object.keys(input).length === 0) return invalid("properties cannot be empty", path);
   const result: [string, unknown][] = [];
   for (const [key, value] of Object.entries(input)) {
-    let read: unknown;
-    if (key === "zoom") read = positiveNumber(value, [...path, key]);
-    else if (key === "margins") read = margins(value, [...path, key]);
-    else if (key === "nameColumn") read = nameColumn(value, [...path, key]);
-    else if (key === "overrides") read = styles(value, [...path, key]);
-    else if (value === null || (typeof value === "string" && COLOUR.test(value))) read = value;
-    else read = invalid("expected an upper-case #RRGGBB colour or null", [...path, key]);
+    const read = key === "order" ? bandOrder(value, [...path, key]) : styles(value, [...path, key]);
     if (isCommandError(read)) return read;
     result.push([key, read]);
   }
@@ -356,25 +350,18 @@ function settings(value: unknown, path: readonly PathSegment[]): JsonObject | Co
     const defaults = exactObject(
       input.blockDefaults,
       [...path, "blockDefaults"],
-      ["scale", "zoom", "margins", "background", "nameColumn"],
+      ["scale", "length", "spacing", "width", "height", "order"],
     );
     if (isCommandError(defaults)) return defaults;
     const parsed: [string, unknown][] = [];
     for (const [key, item] of Object.entries(defaults)) {
-      let read: unknown;
-      if (key === "scale" || key === "zoom") {
-        read = positiveNumber(item, [...path, "blockDefaults", key]);
-      } else if (key === "margins") {
-        read = margins(item, [...path, "blockDefaults", key]);
-      } else if (key === "nameColumn") {
-        read = nameColumn(item, [...path, "blockDefaults", key]);
-      } else if (item === null || (typeof item === "string" && COLOUR.test(item))) read = item;
-      else
-        read = invalid("expected an upper-case #RRGGBB colour or null", [
-          ...path,
-          "blockDefaults",
-          key,
-        ]);
+      const at = [...path, "blockDefaults", key];
+      const read =
+        key === "order"
+          ? bandOrder(item, at)
+          : key === "width" || key === "height"
+            ? nullablePositive(item, at)
+            : positiveNumber(item, at);
       if (isCommandError(read)) return read;
       parsed.push([key, read]);
     }
@@ -493,6 +480,14 @@ function parseField(kind: Kind, value: unknown, path: readonly PathSegment[]): u
       return finiteNumber(value, path);
     case "positive":
       return positiveNumber(value, path);
+    case "nullablePositive":
+      return nullablePositive(value, path);
+    case "order":
+      return bandOrder(value, path);
+    case "mode":
+      return typeof value === "string" && Object.hasOwn(RESIZE_FIELDS, value)
+        ? value
+        : invalid(`unknown resize mode ${showJson(value)}`, path);
     case "manifest": {
       const converted = toJson(value, path);
       if (isCommandError(converted)) return converted;
@@ -544,8 +539,22 @@ export function parseCommand(input: unknown): Command | CommandError {
   if (!(COMMAND_TYPES as readonly unknown[]).includes(type)) {
     return invalid(`unknown command type ${showJson(type)}`, ["type"]);
   }
-  const fields = parseFields(FIELDS[type as CommandType], input, [], ["type"]);
+  let spec = FIELDS[type as CommandType];
+  if (type === "resizeRecord") {
+    const mode = (input as { mode?: unknown }).mode;
+    const read = parseField("mode", mode, ["mode"]);
+    if (isCommandError(read)) return read;
+    spec = RESIZE_FIELDS[read as string] as Fields;
+  }
+  const fields = parseFields(spec, input, [], ["type"]);
   if (isCommandError(fields)) return fields;
+  if (
+    type === "resizeRecord" &&
+    fields.mode === "stretch" &&
+    !("length" in fields || "spacing" in fields)
+  ) {
+    return invalid("a stretch changes at least one of length and spacing", []);
+  }
   if (type === "setRegion" && !("start" in fields || "end" in fields || "meta" in fields)) {
     return invalid("setRegion changes at least one of start, end and meta", []);
   }

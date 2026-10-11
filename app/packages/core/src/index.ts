@@ -103,6 +103,8 @@ export {
 } from "./workspace/ids.ts";
 export { indexBetween, indicesBetween, isIndex } from "./workspace/order.ts";
 export type {
+  BandGroup,
+  BlockPlacement,
   BlockRecord,
   CanvasStyle,
   ConnectorEnd,
@@ -111,8 +113,6 @@ export type {
   ImageRecord,
   LockEnd,
   LockRecord,
-  Margins,
-  NameColumn,
   RecordBase,
   RecordId,
   RecordKind,
@@ -120,10 +120,10 @@ export type {
   TextRecord,
   WorkspaceRecord,
 } from "./workspace/records.ts";
+export { BAND_GROUPS } from "./workspace/records.ts";
 export type {
-  BlockDefaults,
   View,
   WorkspaceMeta,
   WorkspaceSettings,
 } from "./workspace/view.ts";
-export { checkWorkspace, createView, DEFAULT_SETTINGS } from "./workspace/view.ts";
+export { checkWorkspace, createView, DEFAULT_SETTINGS, isBandOrder } from "./workspace/view.ts";

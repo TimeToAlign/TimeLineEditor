@@ -9,7 +9,7 @@ date: 2026-10-11
 
 The look of a drawing is approved from a review sheet: every manifest
 fixture of the schema package, drawn by `layout` and written by `writeSvg`,
-rasterized to PNG at zoom 2 and listed on one HTML page
+rasterized to PNG at twice its size and listed on one HTML page
 (`app/packages/writers/scripts/review-sheet.ts`). The rasterizer must draw
 the SVG's text in the font the drawing specification names, the
 `fonts/DejaVuSans.ttf` that timeskeleton ships, and never in a system copy of

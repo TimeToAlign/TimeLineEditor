@@ -4,6 +4,7 @@
  */
 
 import {
+  type BandGroup,
   type ConversionMap,
   compareReal,
   type Manifest,
@@ -31,15 +32,13 @@ import {
   zero,
 } from "./numbers.ts";
 
-export type BandGroup = "children" | "maps" | "regions" | "flow";
-
 /** Where and how large the drawing is placed (section 1). */
 export interface Placement {
   readonly length: number;
   readonly spacing: number;
   readonly width: number | null;
   readonly height: number | null;
-  readonly order: readonly [BandGroup, BandGroup, BandGroup, BandGroup];
+  readonly order: readonly [BandGroup, BandGroup, BandGroup];
 }
 
 export const DEFAULT_PLACEMENT: Placement = {
@@ -47,7 +46,7 @@ export const DEFAULT_PLACEMENT: Placement = {
   spacing: 1,
   width: null,
   height: null,
-  order: ["children", "maps", "regions", "flow"],
+  order: ["children", "regions", "flow"],
 };
 
 export interface ShownCoordinate {
@@ -73,13 +72,16 @@ export interface LineElement extends Addressed {
   readonly xs: number;
   readonly xe: number;
   readonly y: number;
+  /** A locked timeline ends with an open diamond, any other with an arrowhead. */
+  readonly locked: boolean;
 }
 
 export interface MapElement extends Addressed {
   readonly type: "map";
   readonly xs: number;
   readonly xe: number;
-  readonly y: number;
+  /** The centre of the closed double line. */
+  readonly yc: number;
 }
 
 export interface RegionElement extends Addressed {
@@ -91,13 +93,21 @@ export interface RegionElement extends Addressed {
   readonly ya: number;
 }
 
+/** A point `(x, y)` in box-local canvas units. */
+export type Point = readonly [number, number];
+
 export interface JumpElement extends Addressed {
   readonly type: "jump";
-  readonly xFrom: number;
-  readonly xTo: number;
-  readonly yf: number;
-  readonly yc: number;
-  readonly yo: number;
+  /** The curve's start `P0` and its controls `C1`, `C2`. */
+  readonly start: Point;
+  readonly c1: Point;
+  readonly c2: Point;
+  /** The arrowhead's tip `P3`, the curve's end. */
+  readonly tip: Point;
+  /** The arrowhead's base centre `Bh`, where the shaft ends. */
+  readonly base: Point;
+  /** The arrowhead's base corners `Bh − 2w × n` and `Bh + 2w × n`. */
+  readonly corners: readonly [Point, Point];
 }
 
 export interface BreakElement extends Addressed {
@@ -142,7 +152,10 @@ export interface Drawing {
 
 const P = 8;
 const G = 8;
-export const MAP_SPACING = 3;
+/** The map double-line spacing `d`. */
+export const MAP_SPACING = 2;
+/** The map gap `g`. */
+const MAP_GAP = 3;
 export const MARKER_BASE = 6;
 const MARKER_HEIGHT = 13;
 const LABEL_GAP = 2;
@@ -208,7 +221,7 @@ interface NameItem {
 
 interface NameRow {
   readonly side: Side | null;
-  readonly band: "root" | "child" | "map";
+  readonly band: "root" | "child";
   readonly row: number;
   readonly items: NameItem[];
 }
@@ -220,7 +233,6 @@ interface DrawnName {
   readonly width: number;
 }
 
-const sideSign = (side: Side): -1 | 1 => (side === "above" ? -1 : 1);
 const opposite = (side: Side): Side => (side === "above" ? "below" : "above");
 const shown = (style: Style): boolean => style.display === "inline";
 
@@ -318,24 +330,14 @@ export function draw(
     const style = cascade.resolve(key, parent);
     return { address, style, entry, side: style.side, label: textOf(key, style, "label") };
   };
-  interface MapItem extends Owned {
-    readonly name: Styled;
-    readonly text: string;
-  }
-  const maps: MapItem[] = [];
+  const maps: Owned[] = [];
   const regions: (Owned & { start: Real; end: Real; text: string })[] = [];
   const breaks: (Owned & { at: Real; text: string | null })[] = [];
   const jumps: (Owned & { from: Real; to: Real; text: string })[] = [];
   for (const entry of entries) {
     const timeline = entry.manifest;
     for (const map of timeline.conversion_maps) {
-      const item = owned("map", `${timeline.id}/map/${map.id}`, entry, entry.style, map);
-      const key = keyOf("map", item.address, timeline, map);
-      maps.push({
-        ...item,
-        name: textOf(key, item.style, "name"),
-        text: (map.name as string | null | undefined) ?? map.id,
-      });
+      maps.push(owned("map", `${timeline.id}/map/${map.id}`, entry, entry.style, map));
     }
     timeline.regions.forEach((region, index) => {
       regions.push({
@@ -403,9 +405,19 @@ export function draw(
   );
 
   const drawnChildren = entries.slice(1).filter((entry) => shown(entry.style));
-  const drawnMaps = maps.filter((map) => shown(map.style));
+  // A map is drawn only when its timeline's line is drawn.
+  const drawnMaps = maps.filter((map) => shown(map.style) && shown(map.entry.style));
+  const stacks = new Map<Entry, Record<Side, Owned[]>>();
+  for (const map of drawnMaps) {
+    if (!stacks.has(map.entry)) stacks.set(map.entry, { above: [], below: [] });
+    (stacks.get(map.entry) as Record<Side, Owned[]>)[map.side].push(map);
+  }
+  /** The reach `e = w / 2 + J × (g + d)` of a timeline's map stack on a side, 0 when empty. */
+  const stackReach = (entry: Entry, side: Side): number => {
+    const count = stacks.get(entry)?.[side].length ?? 0;
+    return count === 0 ? 0 : entry.style["stroke-width"] / 2 + count * (MAP_GAP + MAP_SPACING);
+  };
   const childRows = { above: new Rows(), below: new Rows() };
-  const mapRows = { above: new Rows(), below: new Rows() };
   const childRow = new Map<Entry, number>();
   const anchors = new Map<Entry, Record<Side, number>>([[rootEntry, { above: 0, below: 0 }]]);
   for (const entry of entries.slice(1)) {
@@ -421,13 +433,6 @@ export function draw(
     );
     childRow.set(entry, row);
     anchors.set(entry, { ...parent, [side]: row });
-  }
-  const mapRow = new Map<MapItem, number>();
-  for (const map of drawnMaps) {
-    mapRow.set(
-      map,
-      mapRows[map.side].place([relativeX(map.entry.start), relativeX(map.entry.end)]),
-    );
   }
 
   const rows = new Map<string, NameRow>();
@@ -453,9 +458,6 @@ export function draw(
       entry.name,
       entry.manifest.name ?? entry.manifest.id,
     );
-  }
-  for (const map of drawnMaps) {
-    joinRow("map", map.side, mapRow.get(map) as number, map.name, map.text);
   }
   const nameRows = [...rows.values()];
 
@@ -534,20 +536,21 @@ export function draw(
   }
   const breakTiers = { above: new Rows(), below: new Rows() };
   const breakTier = new Map<(typeof breaks)[number], number>();
+  // The labels of a side's breaks fill the break-label tiers of that side's flow band.
   for (const item of drawnBreaks) {
     const text = breakLabels.get(item);
     if (text === undefined) continue;
     const left = relativeX(item.at) + BREAK_LABEL_OFFSET;
-    breakTier.set(item, breakTiers[opposite(item.side)].place([left - 1, left + text.width + 1]));
+    breakTier.set(item, breakTiers[item.side].place([left - 1, left + text.width + 1]));
   }
 
   const maxSize = (items: readonly Styled[], fallback = 9): number =>
     items.length === 0 ? fallback : Math.max(...items.map((item) => item.style["font-size"]));
   const rootNameSize = rootEntry.name.style["font-size"];
-  const nameBandSize = (kind: "child" | "map", side: Side): number =>
+  const nameBandSize = (side: Side): number =>
     Math.max(
       ...nameRows
-        .filter((row) => row.band === kind && row.side === side)
+        .filter((row) => row.band === "child" && row.side === side)
         .flatMap((row) => row.items.map((item) => item.name.style["font-size"])),
     );
   const wedgeLabelSize = (side: Side) =>
@@ -558,27 +561,23 @@ export function draw(
     maxSize(
       [...regionLabels.keys()].filter((item) => item.side === side).map((item) => item.label),
     );
-  const jumpLabelSize = (side: Side) =>
-    maxSize([...jumpLabels.keys()].filter((item) => item.side === side).map((item) => item.label));
-  const breakLabelSize = (side: Side) =>
+  /** The largest label font size of a side's flow band: its jump and break labels. */
+  const flowLabelSize = (side: Side) =>
     maxSize(
-      [...breakLabels.keys()]
-        .filter((item) => opposite(item.side) === side)
+      [...jumpLabels.keys(), ...breakLabels.keys()]
+        .filter((item) => item.side === side)
         .map((item) => item.label),
     );
 
   const B = 4 * v;
+  const p0 = Math.max(14 * v, h(rootNameSize));
   interface Bands {
-    wedge: number;
-    child: number;
-    pc: number;
-    map: number;
-    pm: number;
+    /** The distance of each child row's line from the root's line, row 1 first. */
+    rows: number[];
     region: number;
     pr: number;
     flow: number;
     pj: number;
-    breakLabel: number;
     edge: number;
   }
   const bands = (side: Side): Bands => {
@@ -590,53 +589,66 @@ export function draw(
       first = false;
       return start;
     };
-    const result = {
-      wedge: 0,
-      child: 0,
-      pc: 0,
-      map: 0,
-      pm: 0,
+    const result: Omit<Bands, "edge"> = {
+      rows: [],
       region: 0,
       pr: 0,
       flow: 0,
       pj: 0,
-      breakLabel: 0,
     };
     const wedgeDrawn = markers.some((marker) => marker.side === side && shown(marker.style));
-    if (wedgeDrawn) {
+    const rootReach = stackReach(rootEntry, side);
+    if (wedgeDrawn || rootReach > 0) {
       const tiers = markerTiers[side].count;
-      result.wedge = next(
-        rootWidth / 2 +
+      const wedgeReach = wedgeDrawn
+        ? rootWidth / 2 +
           MARKER_HEIGHT +
-          (tiers === 0 ? 0 : LABEL_GAP + tiers * h(wedgeLabelSize(side))),
-      );
+          (tiers === 0 ? 0 : LABEL_GAP + tiers * h(wedgeLabelSize(side)))
+        : 0;
+      next(Math.max(wedgeReach, rootReach));
     }
     const addGroup = (group: BandGroup) => {
       if (group === "children" && childRows[side].count > 0) {
-        result.pc = Math.max(14 * v, h(nameBandSize("child", side)));
-        result.child = next(childRows[side].count * result.pc, h(rootNameSize) / 2);
-      } else if (group === "maps" && mapRows[side].count > 0) {
-        result.pm = Math.max(13 * v, h(nameBandSize("map", side)));
-        result.map = next(mapRows[side].count * result.pm, h(rootNameSize) / 2);
+        const p = Math.max(14 * v, h(nameBandSize(side)));
+        const halves = (half: Side) =>
+          childRows[side].rows.map((_, index) =>
+            Math.max(
+              p / 2,
+              ...drawnChildren
+                .filter((entry) => entry.style.side === side && childRow.get(entry) === index + 1)
+                .map((entry) => stackReach(entry, half)),
+            ),
+          );
+        const inner = halves(opposite(side));
+        const outer = halves(side);
+        let width = 0;
+        inner.forEach((half, index) => {
+          width = width + half + (outer[index] as number);
+        });
+        const c0 = next(width, p0 / 2);
+        let line = c0 + (inner[0] as number);
+        result.rows.push(line);
+        for (let index = 1; index < inner.length; index += 1) {
+          line = line + ((outer[index - 1] as number) + (inner[index] as number));
+          result.rows.push(line);
+        }
       } else if (group === "regions" && regionRows[side].count > 0) {
         result.pr = BRACE + LABEL_GAP + h(regionLabelSize(side)) + 4 * v;
         result.region = next(regionRows[side].count * result.pr - 4 * v);
       } else if (group === "flow") {
         const levels = jumpLevels[side].count;
         if (levels > 0 || drawnBreaks.some((item) => item.side === side)) {
-          result.pj = 10 * v + h(jumpLabelSize(side));
-          result.flow = next(
-            levels === 0
-              ? 0
-              : 8 * v + (levels - 1) * result.pj + LABEL_GAP + h(jumpLabelSize(side)),
+          const size = flowLabelSize(side);
+          const tiers = breakTiers[side].count * h(size);
+          result.pj = 10 * v + h(size);
+          const start = next(
+            levels === 0 ? tiers : tiers + 8 * v + (levels - 1) * result.pj + LABEL_GAP + h(size),
           );
+          result.flow = start + tiers;
         }
       }
     };
     for (const group of placement.order) addGroup(group);
-    if (breakTiers[side].count > 0) {
-      result.breakLabel = next(breakTiers[side].count * h(breakLabelSize(side)));
-    }
     return { ...result, edge };
   };
   const above = bands("above");
@@ -649,6 +661,10 @@ export function draw(
     side === "above" ? yRoot - outwards : yRoot + outwards;
   const beyond = (side: Side, y: number, size: number) =>
     side === "above" ? y - d(size) : y + a(size);
+  const rowLine = (side: Side, row: number): number =>
+    yAt(side, band(side).rows[row - 1] as number);
+  const lineY = (entry: Entry): number =>
+    entry === rootEntry ? yRoot : rowLine(entry.style.side, childRow.get(entry) as number);
 
   const elements: DrawnElement[] = [];
   for (const item of drawnBreaks) {
@@ -662,14 +678,17 @@ export function draw(
     });
   }
   for (const map of drawnMaps) {
-    const own = band(map.side);
+    const { entry, side } = map;
+    const j = (stacks.get(entry) as Record<Side, Owned[]>)[side].indexOf(map) + 1;
+    const centre = entry.style["stroke-width"] / 2 + j * (MAP_GAP + MAP_SPACING) - MAP_SPACING / 2;
+    const y = lineY(entry);
     elements.push({
       type: "map",
       address: map.address,
       style: map.style,
-      xs: x(map.entry.start),
-      xe: x(map.entry.end),
-      y: yAt(map.side, own.map + ((mapRow.get(map) as number) - 1 / 2) * own.pm),
+      xs: x(entry.start),
+      xe: x(entry.end),
+      yc: side === "above" ? y - centre : y + centre,
     });
   }
   const regionArms = (region: (typeof regions)[number]) => {
@@ -696,24 +715,33 @@ export function draw(
   for (const jump of placedJumps) {
     const yf = yAt(jump.side, band(jump.side).flow);
     const ya = yAt(jump.side, apex(jump));
-    const width = jump.style["stroke-width"];
+    const w = jump.style["stroke-width"];
+    const xf = x(jump.from);
+    const xt = x(jump.to);
+    const q = (xt - xf) / 4;
+    const yc = yf + (4 / 3) * (ya - yf);
+    const cx = xt - q;
+    // The head points along the curve's direction at its end, from C2 to P3.
+    const length = Math.sqrt((xt - cx) * (xt - cx) + (yf - yc) * (yf - yc));
+    const ux = (xt - cx) / length;
+    const uy = (yf - yc) / length;
+    const base: Point = [xt - 4 * w * ux, yf - 4 * w * uy];
+    const [nx, ny] = [-uy, ux];
     elements.push({
       type: "jump",
       address: jump.address,
       style: jump.style,
-      xFrom: x(jump.from),
-      xTo: x(jump.to),
-      yf,
-      yc: yf + (4 / 3) * (ya - yf),
-      yo: yf + sideSign(jump.side) * (4 * width),
+      start: [xf, yf],
+      c1: [xf + q, yc],
+      c2: [cx, yc],
+      tip: [xt, yf],
+      base,
+      corners: [
+        [base[0] - 2 * w * nx, base[1] - 2 * w * ny],
+        [base[0] + 2 * w * nx, base[1] + 2 * w * ny],
+      ],
     });
   }
-  const lineY = (entry: Entry): number => {
-    if (entry === rootEntry) return yRoot;
-    const side = entry.style.side;
-    const own = band(side);
-    return yAt(side, own.child + ((childRow.get(entry) as number) - 1 / 2) * own.pc);
-  };
   for (const entry of [rootEntry, ...drawnChildren].filter((item) => shown(item.style))) {
     elements.push({
       type: entry === rootEntry ? "timeline" : "child",
@@ -722,6 +750,7 @@ export function draw(
       xs: x(entry.start),
       xe: x(entry.end),
       y: lineY(entry),
+      locked: entry.manifest.locked,
     });
   }
   for (const marker of markers.filter((item) => shown(item.style))) {
@@ -735,14 +764,8 @@ export function draw(
     });
   }
 
-  const rowY = (row: NameRow): number => {
-    if (row.band === "root") return yRoot;
-    const side = row.side as Side;
-    const own = band(side);
-    return row.band === "child"
-      ? yAt(side, own.child + (row.row - 1 / 2) * own.pc)
-      : yAt(side, own.map + (row.row - 1 / 2) * own.pm);
-  };
+  const rowY = (row: NameRow): number =>
+    row.band === "root" ? yRoot : rowLine(row.side as Side, row.row);
   for (const item of [...drawnNames].sort((left, right) => rowY(left.row) - rowY(right.row))) {
     const size = item.first.style["font-size"];
     elements.push({
@@ -797,7 +820,7 @@ export function draw(
   for (const jump of placedJumps) {
     const item = jumpLabels.get(jump);
     if (item === undefined) continue;
-    const size = jumpLabelSize(jump.side);
+    const size = flowLabelSize(jump.side);
     centredText(
       jump,
       x(item.at),
@@ -808,18 +831,20 @@ export function draw(
   for (const item of drawnBreaks) {
     const text = breakLabels.get(item);
     if (text === undefined) continue;
-    const side = opposite(item.side);
-    const size = breakLabelSize(side);
+    const side = item.side;
+    const size = flowLabelSize(side);
     const tier = breakTier.get(item) as number;
+    const yf = yAt(side, band(side).flow);
     elements.push({
       type: "label",
       address: item.label.address,
       style: item.label.style,
       x: x(item.at) + BREAK_LABEL_OFFSET,
+      // Tier 1 touches the flow row on the root's side; tier k lies (k − 1) h further in.
       baseline:
-        side === "above"
-          ? P + a(size) + (tier - 1) * h(size)
-          : Hc - P - d(size) - (tier - 1) * h(size),
+        side === "below"
+          ? yf - d(size) - (tier - 1) * h(size)
+          : yf + a(size) + (tier - 1) * h(size),
       anchor: "start",
       text: text.clean,
     });
@@ -830,21 +855,21 @@ export function draw(
       case "block":
         return undefined;
       case "timeline":
-        return Math.max(element.xs + element.style["stroke-width"], element.xe);
-      case "child":
-        return Math.max(
-          element.xs + element.style["stroke-width"],
-          element.xe + 1.5 * element.style["stroke-width"],
-        );
+      case "child": {
+        // The diamond reaches `Xe + 1.5w`, the arrowhead's tip `Xe + 3w`.
+        const w = element.style["stroke-width"];
+        return Math.max(element.xs + w, element.xe + (element.locked ? 1.5 : 3) * w);
+      }
       case "map":
         return Math.max(element.xs, element.xe);
       case "region":
         return Math.max(element.x1, element.x2, element.xm);
       case "jump":
         return Math.max(
-          element.xFrom,
-          element.xTo,
-          element.xTo + 2 * element.style["stroke-width"],
+          element.start[0],
+          element.tip[0],
+          element.corners[0][0],
+          element.corners[1][0],
         );
       case "break":
         return element.x;

@@ -162,8 +162,8 @@ export function writeTikz(placed: readonly Placed[], options_: TikzOptions = {})
     ...[...colours].sort().map((digits) => `\\definecolor{ts${digits}}{HTML}{${digits}}`),
   ];
   for (const { item, descriptors } of scopes) {
-    const y = sheet.height - item.pageY - item.drawing.height * item.zoom;
-    const scale = item.zoom === 1 ? "" : `,scale=${formatNumber(item.zoom)},transform shape`;
+    const y = sheet.height - item.pageY - item.drawing.height * item.scale;
+    const scale = item.scale === 1 ? "" : `,scale=${formatNumber(item.scale)},transform shape`;
     lines.push(
       `\\begin{scope}[shift={(${formatNumber(item.pageX)},${formatNumber(y)})}${scale}]`,
       ...descriptors.map((descriptor) => command(descriptor, item.drawing.height)),

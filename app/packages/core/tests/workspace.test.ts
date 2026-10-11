@@ -52,6 +52,17 @@ function viewWith(...records: WorkspaceRecord[]): View {
 }
 
 describe("workspace creation and checks", () => {
+  it("defaults blocks to the drawing's placement defaults and scale 1", () => {
+    expect(DEFAULT_SETTINGS.blockDefaults).toEqual({
+      scale: 1,
+      length: 400,
+      spacing: 1,
+      width: null,
+      height: null,
+      order: ["children", "regions", "flow"],
+    });
+  });
+
   it("creates exactly the fixed metadata, defaults and no records", () => {
     expect(empty()).toEqual({
       meta: { format: "tilie-workspace", version: 1, ...meta },
@@ -100,7 +111,11 @@ describe("workspace creation and checks", () => {
       ...base,
       x: Number.POSITIVE_INFINITY,
       scale: 0,
-      zoom: -1,
+      length: -1,
+      spacing: 0,
+      width: -5,
+      height: null,
+      order: ["children", "children", "flow"],
       manifest: {
         ...base.manifest,
         timeline: {
@@ -112,7 +127,10 @@ describe("workspace creation and checks", () => {
     expect(checkWorkspace(viewWith(invalid)).map(({ code, path }) => ({ code, path }))).toEqual([
       { code: "non_finite_number", path: ["records", A, "x"] },
       { code: "non_positive_number", path: ["records", A, "scale"] },
-      { code: "non_positive_number", path: ["records", A, "zoom"] },
+      { code: "non_positive_number", path: ["records", A, "length"] },
+      { code: "non_positive_number", path: ["records", A, "spacing"] },
+      { code: "non_positive_number", path: ["records", A, "width"] },
+      { code: "invalid_order", path: ["records", A, "order"] },
       {
         code: "duplicate_region",
         path: ["records", A, "manifest", "timeline", "regions", 1, "name"],
@@ -144,10 +162,13 @@ describe("workspace commands", () => {
       manifest: load("continuous_physical.json"),
       x: 3,
       y: 4,
-      scale: 50,
-      zoom: 2,
+      scale: 2,
+      length: 800,
+      width: 600,
+      order: ["flow", "regions", "children"],
     });
-    expect(record(view, A)).toMatchObject({
+    const { manifest: _, ...first } = record(view, A);
+    expect(first).toEqual({
       id: A,
       kind: "block",
       blockKind: "timeline",
@@ -155,36 +176,47 @@ describe("workspace commands", () => {
       index: "a0",
       x: 12.5,
       y: -4,
-      scale: 40,
-      zoom: 1,
-      margins: { top: 16, right: 16, bottom: 16, left: 16 },
-      background: null,
-      nameColumn: { visible: true, width: [1, 4] },
+      scale: 1,
+      length: 400,
+      spacing: 1,
+      width: null,
+      height: null,
+      order: ["children", "regions", "flow"],
       overrides: {},
     });
-    expect(record(view, B)).toMatchObject({ index: "a1", x: 3, y: 4, scale: 50, zoom: 2 });
+    expect(record(view, B)).toMatchObject({
+      index: "a1",
+      x: 3,
+      y: 4,
+      scale: 2,
+      length: 800,
+      spacing: 1,
+      width: 600,
+      height: null,
+      order: ["flow", "regions", "children"],
+    });
     expect(checkWorkspace(view)).toEqual([]);
   });
 
   it("moves, resizes, changes properties, order, settings and the manifest", () => {
     let view = withBlock();
     view = changed(view, { type: "moveRecords", moves: [{ id: A, x: -3.5, y: 8 }] });
-    view = changed(view, { type: "resizeRecord", id: A, scale: 24 });
+    view = changed(view, { type: "resizeRecord", id: A, mode: "scale", scale: 2 });
+    view = changed(view, { type: "resizeRecord", id: A, mode: "box", width: 120, height: null });
+    view = changed(view, { type: "resizeRecord", id: A, mode: "stretch", length: 800 });
+    view = changed(view, { type: "resizeRecord", id: A, mode: "stretch", spacing: 2 });
     view = changed(view, {
       type: "setRecordProperties",
       id: A,
       properties: {
-        zoom: 1.5,
-        margins: { top: 1, right: 2, bottom: 3, left: 4 },
-        background: "#ABCDEF",
-        nameColumn: { visible: false, width: [2, 5] },
+        order: ["flow", "regions", "children"],
         overrides: { statements: [{ select: {}, set: { stroke: "#123456" } }] },
       },
     });
     view = changed(view, { type: "setIndex", id: A, index: "a2" });
     view = changed(view, {
       type: "setSettings",
-      settings: { grid: { snap: false }, blockDefaults: { scale: 64 } },
+      settings: { grid: { snap: false }, blockDefaults: { length: 640 } },
     });
     view = changed(view, { type: "setBlockManifest", block: A, manifest: load("map.json") });
     view = changed(view, {
@@ -196,17 +228,20 @@ describe("workspace commands", () => {
     expect(record(view)).toMatchObject({
       x: -3.5,
       y: 8,
-      scale: 24,
-      zoom: 1.5,
+      scale: 2,
+      length: 800,
+      spacing: 2,
+      width: 120,
+      height: null,
+      order: ["flow", "regions", "children"],
       index: "a2",
-      margins: { top: 1, right: 2, bottom: 3, left: 4 },
-      background: "#ABCDEF",
-      nameColumn: { visible: false, width: [2, 5] },
       overrides: { statements: [{ select: {}, set: { stroke: "#123456" } }] },
     });
     expect(record(view).manifest.timeline.name).toBe("Changed");
-    expect(view.settings.blockDefaults.scale).toBe(64);
-    expect(view.settings.blockDefaults.zoom).toBe(1);
+    expect(view.settings.blockDefaults).toEqual({
+      ...DEFAULT_SETTINGS.blockDefaults,
+      length: 640,
+    });
     expect(view.settings.grid).toEqual({ size: 8, snap: false });
     expect(checkWorkspace(view)).toEqual([]);
   });
@@ -246,7 +281,29 @@ describe("workspace commands", () => {
       "non_finite_number",
       ["x"],
     ],
-    [{ type: "resizeRecord", id: A, scale: 0 }, "non_positive_number", ["scale"]],
+    [{ type: "resizeRecord", id: A, mode: "scale", scale: 0 }, "non_positive_number", ["scale"]],
+    [
+      { type: "resizeRecord", id: A, mode: "box", width: -1, height: null },
+      "non_positive_number",
+      ["width"],
+    ],
+    [{ type: "resizeRecord", id: A, mode: "stretch" }, "invalid_command", []],
+    [{ type: "resizeRecord", id: A, mode: "zoom", scale: 2 }, "invalid_command", ["mode"]],
+    [
+      { type: "resizeRecord", id: A, mode: "scale", scale: 2, length: 800 },
+      "invalid_command",
+      ["length"],
+    ],
+    [
+      { type: "setRecordProperties", id: A, properties: { order: ["flow", "regions"] } },
+      "invalid_order",
+      ["properties", "order"],
+    ],
+    [
+      { type: "setRecordProperties", id: A, properties: { zoom: 1.5 } },
+      "invalid_command",
+      ["properties", "zoom"],
+    ],
     [{ type: "moveRecords", moves: [{ id: B, x: 0, y: 0 }] }, "unknown_record", ["records", B]],
     [{ type: "setIndex", id: A, index: "a00" }, "invalid_index", ["index"]],
     [

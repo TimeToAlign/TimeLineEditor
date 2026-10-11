@@ -35,9 +35,9 @@ export const DEFAULT_LAYER: Graphical = {
       select: { element: "map", modality: "continuous" },
       set: { "stroke-dasharray": "none" },
     },
-    { select: { element: "map", modality: "discrete" }, set: { "stroke-dasharray": "3 3" } },
+    { select: { element: "map", modality: "discrete" }, set: { "stroke-dasharray": "1 1" } },
     { select: { element: "wedge" }, set: { fill: "#000000" } },
-    { select: { element: "region" }, set: { "stroke-width": 1 } },
+    { select: { element: "region" }, set: { stroke: "#000000", "stroke-width": 1 } },
     {
       select: { element: "jump" },
       set: { stroke: "#000000", fill: "#000000", "stroke-width": 1.5 },

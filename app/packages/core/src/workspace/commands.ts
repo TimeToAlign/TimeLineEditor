@@ -104,10 +104,11 @@ function createBlock(view: View, command: CreateBlock): View | CommandError {
     x: command.x,
     y: command.y,
     scale: command.scale ?? defaults.scale,
-    zoom: command.zoom ?? defaults.zoom,
-    margins: { ...defaults.margins },
-    background: defaults.background,
-    nameColumn: { ...defaults.nameColumn, width: [...defaults.nameColumn.width] },
+    length: command.length ?? defaults.length,
+    spacing: command.spacing ?? defaults.spacing,
+    width: command.width === undefined ? defaults.width : command.width,
+    height: command.height === undefined ? defaults.height : command.height,
+    order: command.order ?? defaults.order,
     overrides: {},
     manifest,
   };
@@ -136,7 +137,18 @@ function moveRecords(view: View, command: MoveRecords): View | CommandError {
 function resizeRecord(view: View, command: ResizeRecord): View | CommandError {
   const record = block(view, command.id, ["records", command.id]);
   if (isCommandError(record)) return record;
-  return replaceRecord(view, { ...record, scale: command.scale });
+  switch (command.mode) {
+    case "scale":
+      return replaceRecord(view, { ...record, scale: command.scale });
+    case "box":
+      return replaceRecord(view, { ...record, width: command.width, height: command.height });
+    case "stretch":
+      return replaceRecord(view, {
+        ...record,
+        length: command.length ?? record.length,
+        spacing: command.spacing ?? record.spacing,
+      });
+  }
 }
 
 function setRecordProperties(view: View, command: SetRecordProperties): View | CommandError {

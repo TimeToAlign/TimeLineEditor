@@ -1,13 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { descriptorSvg, toDescriptors, writeSvg, writeTikz } from "../src/index.ts";
+import {
+  descriptorSvg,
+  formatNumber,
+  type PathCommand,
+  type Point,
+  toDescriptors,
+  writeSvg,
+  writeTikz,
+} from "../src/index.ts";
 import { reviewCases, style, synthetic } from "./support.ts";
 
 const svgBody = (drawing: ReturnType<typeof synthetic>) =>
-  writeSvg([{ drawing, x: 0, y: 0, zoom: 1 }])
+  writeSvg([{ drawing, x: 0, y: 0, scale: 1 }])
     .split("\n")
     .slice(3, -3);
 const tikzBody = (drawing: ReturnType<typeof synthetic>) => {
-  const lines = writeTikz([{ drawing, x: 0, y: 0, zoom: 1 }], { standalone: false }).split("\n");
+  const lines = writeTikz([{ drawing, x: 0, y: 0, scale: 1 }], { standalone: false }).split("\n");
   return lines.slice(lines.findIndex((line) => line.startsWith("\\begin{scope}")) + 2, -3);
 };
 const BLACK = style({ stroke: "#000000" });
@@ -32,26 +40,66 @@ describe("descriptors", () => {
     ]);
   });
 
-  it("draws a jump and its filled arrowhead", () => {
+  it("ends a jump's shaft at its filled arrowhead's base", () => {
     const drawing = synthetic({
       type: "jump",
       address: "r/jump/0",
       style: style({ stroke: "#000000", fill: "#000000", "stroke-width": 1.5 }),
-      xFrom: 10,
-      xTo: 50,
-      yf: 20,
-      yc: 40,
-      yo: 26,
+      start: [10, 20],
+      c1: [20, 40],
+      c2: [40, 40],
+      tip: [50, 20],
+      base: [48, 24],
+      corners: [
+        [46, 23],
+        [50, 25],
+      ],
     });
     expect(svgBody(drawing)).toEqual([
-      '<path data-address="r/jump/0" d="M10 20C10 40 50 40 50 20" fill="none" stroke="#000000" stroke-width="1.5"/>',
-      '<polygon data-address="r/jump/0" points="50,20 47,26 53,26" fill="#000000"/>',
+      '<path data-address="r/jump/0" d="M10 20C20 40 40 40 48 24" fill="none" stroke="#000000" stroke-width="1.5"/>',
+      '<polygon data-address="r/jump/0" points="50,20 46,23 50,25" fill="#000000"/>',
     ]);
+    expect(tikzBody(drawing)[0]).toBe(
+      "\\path[draw=ts000000,line width=1.5pt] (10,10) .. controls (20,-10) and (40,-10) .. (48,6);",
+    );
   });
 
-  it("draws a child with an open diamond stroked at half width and no dash", () => {
-    const drawing = synthetic({
-      type: "child",
+  for (const [name, count] of [
+    ["flow_control", 1],
+    ["corpus_score_ms3", 4],
+  ] as const) {
+    it(`continues each shaft of ${name} along its head's axis`, () => {
+      const item = reviewCases().find((each) => each.name === name);
+      const descriptors = toDescriptors(item?.drawing as ReturnType<typeof synthetic>);
+      const paths = descriptors.filter(
+        (each) => each.tag === "path" && String(each.attrs[0]?.[1]).includes("/jump/"),
+      );
+      expect(paths.length).toBe(count);
+      for (const path of paths) {
+        const index = descriptors.indexOf(path);
+        const head = descriptors[index + 1];
+        const d = path.attrs.find(([key]) => key === "d")?.[1] as readonly PathCommand[];
+        const [, c2, base] = (d[1] as PathCommand).points as readonly [Point, Point, Point];
+        const points = head?.attrs.find(([key]) => key === "points")?.[1];
+        const [tip, left, right] = points as readonly [Point, Point, Point];
+        const unit = (from: Point, to: Point) => {
+          const length = Math.hypot(to[0] - from[0], to[1] - from[1]);
+          return [(to[0] - from[0]) / length, (to[1] - from[1]) / length].map(formatNumber);
+        };
+        expect(unit(c2, base)).toEqual(unit(base, tip));
+        expect([(left[0] + right[0]) / 2, (left[1] + right[1]) / 2].map(formatNumber)).toEqual(
+          base.map(formatNumber),
+        );
+        const dot =
+          (right[0] - left[0]) * (tip[0] - base[0]) + (right[1] - left[1]) * (tip[1] - base[1]);
+        expect(formatNumber(dot)).toBe("0");
+      }
+    });
+  }
+
+  const line = (type: "timeline" | "child", locked: boolean) =>
+    synthetic({
+      type,
       address: "c",
       style: style({
         stroke: "#00CC00",
@@ -62,26 +110,43 @@ describe("descriptors", () => {
       xs: 10,
       xe: 50,
       y: 20,
+      locked,
     });
-    expect(svgBody(drawing)).toEqual([
-      '<line data-address="c" x1="10" y1="20" x2="47" y2="20" stroke="#00CC00" stroke-width="2" stroke-dasharray="3 3"/>',
-      '<circle data-address="c" cx="10" cy="20" r="2" fill="#00CC00"/>',
-      '<polygon data-address="c" points="47,20 50,17.6 53,20 50,22.4" fill="none" stroke="#00CC00" stroke-width="1"/>',
-    ]);
+  const diamond = [
+    '<line data-address="c" x1="10" y1="20" x2="47" y2="20" stroke="#00CC00" stroke-width="2" stroke-dasharray="3 3"/>',
+    '<circle data-address="c" cx="10" cy="20" r="2" fill="#00CC00"/>',
+    '<polygon data-address="c" points="47,20 50,17.6 53,20 50,22.4" fill="none" stroke="#00CC00" stroke-width="1"/>',
+  ];
+
+  it("ends a locked child or root with an open diamond stroked at half width and no dash", () => {
+    expect(svgBody(line("child", true))).toEqual(diamond);
+    expect(svgBody(line("timeline", true))).toEqual(diamond);
   });
 
-  it("draws a map as two lines 3 apart", () => {
+  it("ends an unlocked child or root with a filled arrowhead beyond its end", () => {
+    const arrow = [
+      '<line data-address="c" x1="10" y1="20" x2="50" y2="20" stroke="#00CC00" stroke-width="2" stroke-dasharray="3 3"/>',
+      '<circle data-address="c" cx="10" cy="20" r="2" fill="#00CC00"/>',
+      '<polygon data-address="c" points="56,20 50,17 50,23" fill="#00CC00"/>',
+    ];
+    expect(svgBody(line("child", false))).toEqual(arrow);
+    expect(svgBody(line("timeline", false))).toEqual(arrow);
+  });
+
+  it("draws a map as one closed, stroked outline whose dash starts at its first corner", () => {
     const drawing = synthetic({
       type: "map",
       address: "r/map/m",
-      style: BLACK,
+      style: style({ stroke: "#00CC00", "stroke-dasharray": "1 1" }),
       xs: 10,
       xe: 50,
-      y: 20,
+      yc: 20,
     });
     expect(svgBody(drawing)).toEqual([
-      '<line data-address="r/map/m" x1="10" y1="18.5" x2="50" y2="18.5" stroke="#000000" stroke-width="1"/>',
-      '<line data-address="r/map/m" x1="10" y1="21.5" x2="50" y2="21.5" stroke="#000000" stroke-width="1"/>',
+      '<polygon data-address="r/map/m" points="10,19 50,19 50,21 10,21" fill="none" stroke="#00CC00" stroke-width="1" stroke-dasharray="1 1"/>',
+    ]);
+    expect(tikzBody(drawing)).toEqual([
+      "\\path[draw=ts00CC00,line width=1pt,dash pattern=on 1pt off 1pt] (10,11) -- (50,11) -- (50,9) -- (10,9) -- cycle;",
     ]);
   });
 
@@ -186,7 +251,7 @@ describe("one command per descriptor", () => {
   for (const item of reviewCases()) {
     it(item.name, () => {
       const descriptors = toDescriptors(item.drawing);
-      const placed = [{ drawing: item.drawing, x: 0, y: 0, zoom: item.zoom }];
+      const placed = [{ drawing: item.drawing, x: 0, y: 0, scale: item.scale }];
       const svg = writeSvg(placed).split("\n");
       expect(svg.slice(2, -3)).toEqual(descriptors.map(descriptorSvg));
       descriptors.forEach((descriptor, index) => {

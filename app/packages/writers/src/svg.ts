@@ -57,7 +57,7 @@ export function writeSvg(placed: readonly Placed[]): string {
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" font-family="DejaVu Sans" style="font-kerning:none;font-variant-ligatures:none">`,
   ];
   for (const item of sheet.drawings) {
-    const scale = item.zoom === 1 ? "" : ` scale(${formatNumber(item.zoom)})`;
+    const scale = item.scale === 1 ? "" : ` scale(${formatNumber(item.scale)})`;
     lines.push(
       `<g transform="translate(${formatNumber(item.pageX)} ${formatNumber(item.pageY)})${scale}">`,
       ...toDescriptors(item.drawing).map(descriptorSvg),

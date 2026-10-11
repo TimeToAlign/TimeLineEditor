@@ -1,14 +1,7 @@
 import type { Graphical, Selector } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
-import {
-  Cascade,
-  DEFAULT_LAYER,
-  DEFAULT_PLACEMENT,
-  draw,
-  type ElementKey,
-  INITIAL_STYLE,
-} from "../src/index.ts";
-import { build, child, drawFixture, element, load, metrics } from "./support.ts";
+import { Cascade, DEFAULT_PLACEMENT, draw, type ElementKey, INITIAL_STYLE } from "../src/index.ts";
+import { drawFixture, element, load, metrics } from "./support.ts";
 
 // A child `c` of a root `r`: the key of its line.
 const ancestry = new Map<string, readonly string[]>([
@@ -165,7 +158,7 @@ describe("inheritance", () => {
     expect(element(drawing, "tl:22").style.stroke).toBe("#123456");
   });
 
-  it("passes a timeline's stroke width to its map and the map's name", () => {
+  it("passes a timeline's stroke width to its map, which has no name", () => {
     const drawing = draw(
       load("map"),
       DEFAULT_PLACEMENT,
@@ -173,7 +166,7 @@ describe("inheritance", () => {
       metrics,
     );
     expect(element(drawing, "melody/map/tempo").style["stroke-width"]).toBe(7);
-    expect(element(drawing, "melody/map/tempo/name").style["stroke-width"]).toBe(7);
+    expect(drawing.elements.some((item) => item.address === "melody/map/tempo/name")).toBe(false);
   });
 
   it("passes a region's font size to its label", () => {
@@ -199,7 +192,7 @@ describe("maps by target unit", () => {
     });
     expect(element(drawing, map("QuartersToTicks_1")).style).toMatchObject({
       stroke: "#00CC00",
-      "stroke-dasharray": "3 3",
+      "stroke-dasharray": "1 1",
     });
     expect(element(drawing, map("QuartersToFloatingMeasures_1")).style).toMatchObject({
       stroke: "#00CC00",

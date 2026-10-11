@@ -9,11 +9,11 @@
 
 export const name = "@timetoalign/tilie-layout" as const;
 
+export type { BandGroup } from "@timetoalign/tilie-core";
 export type { Domain, ElementKey, Modality, Side, Style } from "./cascade.ts";
 export { Cascade, INITIAL_STYLE } from "./cascade.ts";
 export { DEFAULT_LAYER } from "./defaults.ts";
 export type {
-  BandGroup,
   BlockElement,
   BreakElement,
   Drawing,
@@ -23,6 +23,7 @@ export type {
   MapElement,
   MarkerElement,
   Placement,
+  Point,
   RegionElement,
   ShownCoordinate,
   TextElement,

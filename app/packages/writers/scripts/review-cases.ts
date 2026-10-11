@@ -1,7 +1,7 @@
 /**
  * The drawings of the review sheet: every manifest fixture of the installed
- * schema package at the default placement, plus resized and restyled
- * drawings of `nested` and `styled__score`.
+ * schema package at the default placement, plus resized drawings of
+ * `nested` and `map` with its child's map moved below the child.
  */
 
 import { readdirSync, readFileSync } from "node:fs";
@@ -39,7 +39,7 @@ export interface ReviewCase {
   readonly manifest: string;
   readonly placement: Placement;
   readonly layers: readonly (Graphical | undefined)[];
-  readonly zoom: number;
+  readonly scale: number;
   readonly drawing: Drawing;
 }
 
@@ -50,7 +50,7 @@ export function reviewCases(): ReviewCase[] {
     name: string,
     manifestName: string,
     placement: Placement,
-    zoom = 1,
+    scale = 1,
     extra: readonly Graphical[] = [],
   ) => {
     const manifest = loadFixture(manifestName);
@@ -64,7 +64,7 @@ export function reviewCases(): ReviewCase[] {
       manifest: manifestName,
       placement,
       layers,
-      zoom,
+      scale,
       drawing: draw(manifest, placement, layers, metrics),
     });
   };
@@ -79,11 +79,14 @@ export function reviewCases(): ReviewCase[] {
   add("nested__length-800-spacing-2", "nested", at({ length: 800, spacing: 2 }));
   const natural = draw(loadFixture("nested"), DEFAULT_PLACEMENT, [DEFAULT_LAYER], metrics);
   add("nested__box", "nested", at({ width: natural.width + 120, height: natural.height + 60 }));
-  add("nested__zoom-2", "nested", DEFAULT_PLACEMENT, 2);
+  add("nested__scale-2", "nested", DEFAULT_PLACEMENT, 2);
   add(
-    "nested__order-flow-regions-maps-children",
+    "nested__order-flow-regions-children",
     "nested",
-    at({ order: ["flow", "regions", "maps", "children"] }),
+    at({ order: ["flow", "regions", "children"] }),
   );
+  add("map__child-map-below", "map", DEFAULT_PLACEMENT, 1, [
+    { statements: [{ select: { ids: ["phrase/map/ticks"] }, set: { side: "below" } }] },
+  ]);
   return cases;
 }

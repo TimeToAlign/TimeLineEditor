@@ -27,7 +27,7 @@ describe("the review SVG", () => {
     try {
       const files = cases.map((item) => {
         const file = path.join(directory, `${item.name}.svg`);
-        writeFileSync(file, writeSvg([{ drawing: item.drawing, x: 0, y: 0, zoom: item.zoom }]));
+        writeFileSync(file, writeSvg([{ drawing: item.drawing, x: 0, y: 0, scale: item.scale }]));
         return file;
       });
       const result = spawnSync("python3", ["-c", PARSE, ...files], { encoding: "utf8" });
@@ -74,7 +74,9 @@ describe("the review TikZ", () => {
         for (const item of cases) {
           writeFileSync(
             path.join(directory, `${item.name}.tex`),
-            writeTikz([{ drawing: item.drawing, x: 0, y: 0, zoom: item.zoom }], { fontDirectory }),
+            writeTikz([{ drawing: item.drawing, x: 0, y: 0, scale: item.scale }], {
+              fontDirectory,
+            }),
           );
         }
         // The first run builds the font cache; the others run four at a time.

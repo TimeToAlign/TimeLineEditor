@@ -1,7 +1,7 @@
 /**
- * Draw the review sheet: every review drawing as SVG, rasterized at zoom 2
- * by `rsvg-convert` with only the bundled drawing font available, listed on
- * one `index.html` under `review/`.
+ * Draw the review sheet: every review drawing as SVG, rasterized at twice
+ * the size (`rsvg-convert --zoom 2`) with only the bundled drawing font
+ * available, listed on one `index.html` under `review/`.
  *
  * Usage, from `app/packages/writers/`: `pnpm review`.
  */
@@ -40,14 +40,14 @@ try {
   for (const item of reviewCases()) {
     const svg = path.join(output, `${item.name}.svg`);
     const png = path.join(output, `${item.name}.png`);
-    writeFileSync(svg, writeSvg([{ drawing: item.drawing, x: 0, y: 0, zoom: item.zoom }]));
+    writeFileSync(svg, writeSvg([{ drawing: item.drawing, x: 0, y: 0, scale: item.scale }]));
     const result = spawnSync("rsvg-convert", ["--zoom", "2", "--output", png, svg], {
       env,
       encoding: "utf8",
     });
     if (result.status !== 0) throw new Error(`rsvg-convert failed on ${svg}: ${result.stderr}`);
     const { length, spacing, width, height, order } = item.placement;
-    const placement = `length ${length}, spacing ${spacing}, width ${width}, height ${height}, order ${order.join(",")}, zoom ${item.zoom}`;
+    const placement = `length ${length}, spacing ${spacing}, width ${width}, height ${height}, order ${order.join(",")}, scale ${item.scale}`;
     const unmapped =
       item.drawing.unmapped.length === 0
         ? ""
@@ -58,7 +58,7 @@ try {
   }
   writeFileSync(
     path.join(output, "index.html"),
-    `<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<title>TimeSkeleton drawings</title>\n<style>body{font-family:sans-serif;margin:16px}figure{margin:0 0 32px}img{display:block;margin-top:8px;border:1px solid #ccc}</style>\n</head>\n<body>\n<h1>TimeSkeleton drawings</h1>\n<p>Rasterized by rsvg-convert at zoom 2 with only <code>${escapeHtml(path.join(fontDirectory, "DejaVuSans.ttf"))}</code> available.</p>\n${rows.join("\n")}\n</body>\n</html>\n`,
+    `<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<title>TimeSkeleton drawings</title>\n<style>body{font-family:sans-serif;margin:16px}figure{margin:0 0 32px}img{display:block;margin-top:8px;border:1px solid #ccc}</style>\n</head>\n<body>\n<h1>TimeSkeleton drawings</h1>\n<p>Rasterized at twice the size (rsvg-convert --zoom 2) with only <code>${escapeHtml(path.join(fontDirectory, "DejaVuSans.ttf"))}</code> available.</p>\n${rows.join("\n")}\n</body>\n</html>\n`,
   );
   console.log(`${rows.length} drawings in ${path.join(output, "index.html")}`);
 } finally {

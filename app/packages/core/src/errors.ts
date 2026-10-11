@@ -38,6 +38,7 @@ export const ErrorCode = {
   invalidAddress: "invalid_address",
   nonFiniteNumber: "non_finite_number",
   nonPositiveNumber: "non_positive_number",
+  invalidOrder: "invalid_order",
   unknownTimeline: "unknown_timeline",
   notAChild: "not_a_child",
   unknownRegion: "unknown_region",

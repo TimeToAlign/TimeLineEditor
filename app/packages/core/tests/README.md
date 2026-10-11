@@ -11,7 +11,7 @@ General rules: exact values only (`toEqual`/`toBe` against literal expectations
 or against a value reached by another path); no thresholds; no network;
 nothing written outside temporary state. Manifests come from the fixtures
 shipped by the installed `@timetoalign/timeskeleton` package
-(`fixtures/0.4.0/`, 34 files) or are built through commands; a manifest
+(`fixtures/0.4.0/`, 23 files) or are built through commands; a manifest
 literal appears only where a rejection is asserted.
 
 ## Package name (`name.test.ts`)
@@ -86,7 +86,7 @@ nothing is lost. In a loaded manifest every number is a `JsonNumber`: a plain
 number for a safe integer or a float with a fractional part, a `bigint` beyond
 2^53, a `JsonFloat` for an integral float (`600.0`).
 
-1. **Fixture round trip.** There are exactly 34 files in `fixtures/0.4.0/`.
+1. **Fixture round trip.** There are exactly 23 files in `fixtures/0.4.0/`.
    For each, `saveManifest(loadManifest(text))` equals `text` byte for byte.
    No skip, no normalization in the comparison.
 2. **Shared rejections.** For every case in `fixtures/rejections/0.4.0/`, the
@@ -96,7 +96,9 @@ number for a safe integer or a float with a fractional part, a `bigint` beyond
    by `"0.0.0"` is refused with exactly one problem
    `{code: "schema_violation", path: ["meta", "schema_version"]}`.
 4. **Missing styles are completed.** A graphical statement naming each of
-   two absent styles produces one warning naming both, and the loaded
+   two absent styles produces exactly one warning naming both, the one
+   timeskeleton's `completeStyles` issues (`Missing graphical styles: 'a',
+   'z'`, names sorted by code point); core adds none of its own. The loaded
    manifest contains an empty declaration for each. The input object is not
    mutated and a declaration already present is preserved.
 5. **Exact integers.** `discrete_logical.json` with its length value `480`
@@ -286,33 +288,58 @@ strictly increasing.
 ## Workspace view and commands (`workspace.test.ts`, `workspace-properties.test.ts`)
 
 `createView` returns exactly the supplied metadata, `DEFAULT_SETTINGS`, and an
-empty record map. `checkWorkspace` runs by record id and pins exact codes and
-paths: `parent_cycle` and `invalid_index` at `["records", A, "parent"]` and
-`["records", A, "index"]`, `key_mismatch` and `invalid_record_id` at
+empty record map. `DEFAULT_SETTINGS.blockDefaults` is exactly the drawing
+specification's placement defaults plus the block's scale: `{scale: 1,
+length: 400, spacing: 1, width: null, height: null, order: ["children",
+"regions", "flow"]}`. `checkWorkspace` runs by record id and pins exact codes
+and paths: `parent_cycle` and `invalid_index` at `["records", A, "parent"]`
+and `["records", A, "index"]`, `key_mismatch` and `invalid_record_id` at
 `["records", C, "id"]`, `unknown_parent`, a later `duplicate_index` at
 `["records", C, "index"]`, `non_finite_number` at `["records", A, "x"]`,
-`non_positive_number` at `["records", A, "scale"]` and `["records", A,
-"zoom"]`, and a block-manifest problem prefixed as `["records", A, "manifest",
-"timeline", "regions", 1, "name"]`.
+`non_positive_number` at `["records", A, "scale"]`, `["records", A,
+"length"]`, `["records", A, "spacing"]` and `["records", A, "width"]` (a
+block's `width` and `height` are positive or null; `height: null` passes),
+`invalid_order` at `["records", A, "order"]` for `["children", "children",
+"flow"]`, and a block-manifest problem prefixed as `["records", A,
+"manifest", "timeline", "regions", 1, "name"]`.
 
 The eight record commands are `createBlock`, `moveRecords`, `resizeRecord`,
 `setRecordProperties`, `setIndex`, `deleteRecords`, `setSettings`, and
 `setBlockManifest`. Together with the 16 manifest commands, `COMMAND_TYPES`
 has exactly 24 entries in the exported order.
 
+A block record holds `x`, `y`, the drawing inputs `scale`, `length`,
+`spacing`, `width`, `height` and `order`, `overrides` and `manifest`, and
+nothing else (no other key). `resizeRecord` is one of three modes, each
+changing only its own inputs: `{mode: "scale", scale}`, `{mode: "box",
+width, height}` (each positive or null), `{mode: "stretch", length?,
+spacing?}` (at least one). `setRecordProperties` sets only `order` and
+`overrides`.
+
 Every command is checked for purity by deep-freezing the input view. Accepted
 commands pin the complete resulting records and settings: `createBlock` takes
 its defaults from `settings.blockDefaults` and an index after the greatest
-root index; a manifest declaring `"schema_version": "0.0.0"` is refused by
-`createBlock` with `schema_violation` at `["records", <id>, "manifest",
-"meta", "schema_version"]`. Deleting a parent deletes every descendant and
+root index, and accepts any of `scale`, `length`, `spacing`, `width`,
+`height` and `order` to replace a default; a manifest declaring
+`"schema_version": "0.0.0"` is refused by `createBlock` with
+`schema_violation` at `["records", <id>, "manifest", "meta",
+"schema_version"]`. A sequence of `resizeRecord` scale 2, box 120 by null,
+stretch length 800, stretch spacing 2, `setRecordProperties` order
+`["flow", "regions", "children"]` and overrides gives exactly those values
+with `x`, `y` unchanged; `setSettings` with `blockDefaults: {length: 640}`
+changes that default only. Deleting a parent deletes every descendant and
 no unrelated record. Refusals pin exact codes and paths: a malformed id
-(`invalid_record_id`), a non-finite `x` (`non_finite_number`), a zero `scale`
-(`non_positive_number`), a malformed index, an invalid member of
-`setRecordProperties` (`invalid_command` at `["properties", "x"]`), a
-non-finite grid size (`non_finite_number` at `["settings", "grid", "size"]`),
-and an unknown record against a non-block record (`unknown_record` against
-`not_a_block`).
+(`invalid_record_id`), a non-finite `x` (`non_finite_number`), a zero
+`scale` in scale mode (`non_positive_number` at `["scale"]`), a negative box
+`width` (`non_positive_number` at `["width"]`), a stretch with neither
+member (`invalid_command` at `[]`), an unknown mode (`invalid_command` at
+`["mode"]`), a member of another mode (`invalid_command` at `["length"]` for
+a scale resize), an order that is not a permutation of the three groups
+(`invalid_order` at `["properties", "order"]`), a removed property
+(`invalid_command` at `["properties", "zoom"]`), a malformed index, a
+non-finite grid size (`non_finite_number` at `["settings", "grid",
+"size"]`), and an unknown record against a non-block record
+(`unknown_record` against `not_a_block`).
 
 **A command error's path points into the view the command was applied to.**
 A record command reports `["records", <id>, ...]`: `moveRecords` of an absent

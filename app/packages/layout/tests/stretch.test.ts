@@ -35,14 +35,31 @@ describe("stretch", () => {
     });
   }
 
-  it("moves along time by length and between rows by spacing", () => {
+  it("moves along time by length", () => {
     const short = drawFixture("nested", [], { ...DEFAULT_PLACEMENT, length: 200 });
-    const tall = drawFixture("nested", [], { ...DEFAULT_PLACEMENT, spacing: 2 });
-    const root = (drawing: typeof short) =>
-      drawing.elements.find((item) => item.address === "tl:24");
-    expect(root(short)).toMatchObject({ xs: 41.072265625, xe: 241.072265625, y: 42.40234375 });
-    // Spacing 2: the band starts at h(11)/2, then has two rows of pitch 28.
-    expect(root(tall)).toMatchObject({ xs: 41.072265625, xe: 441.072265625, y: 70.40234375 });
+    expect(short.elements.find((item) => item.address === "tl:24")).toMatchObject({
+      xs: 41.072265625,
+      xe: 241.072265625,
+      y: 43,
+    });
+  });
+
+  it("spaces the root's row and every child row one pitch apart", () => {
+    const rows: [number, [number, number, number]][] = [
+      [0.5, [40.01171875, 27.20703125, 14.40234375]],
+      [1, [43, 29, 15]],
+      [2, [78, 50, 22]],
+    ];
+    for (const [spacing, expected] of rows) {
+      const drawing = drawFixture("nested", [], { ...DEFAULT_PLACEMENT, spacing });
+      const y = (address: string) => {
+        const line = drawing.elements.find((item) => item.address === address);
+        return line?.type === "timeline" || line?.type === "child" ? line.y : Number.NaN;
+      };
+      const [root, first, second] = [y("tl:24"), y("tl:23"), y("tl:22")];
+      expect([root, first, second], `${spacing}`).toEqual(expected);
+      expect(root - first).toBe(first - second);
+    }
   });
 });
 
