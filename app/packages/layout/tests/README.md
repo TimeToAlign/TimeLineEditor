@@ -41,10 +41,9 @@ From the metrics file (`units_per_em` 2048, `ascender` 1901, `descender`
 
 `DEFAULT_LAYER` deep-equals the JSON block of section 4, parsed out of the
 specification itself (the first fenced `json` block under "## 4.
-Defaults"). The specification is read from the installed timeskeleton package
-(`docs/drawing.md`) or, failing that, from the linked checkout beside it;
-where neither holds it, the test is skipped and reported as "the installed
-timeskeleton package ships no drawing specification".
+Defaults"). The specification is read from the installed timeskeleton
+package, which ships it as `docs/drawing.md`; a missing file is a failure,
+never a skip.
 
 ## Hand-derived drawings (`examples.test.ts`)
 
