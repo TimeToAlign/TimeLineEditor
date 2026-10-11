@@ -1,24 +1,19 @@
-/**
- * The command reducers: `apply(document, command)` returns the edited
- * document or the reason the command is refused. It never mutates its
- * input, and it checks every invariant an edit could break before the edit
- * is made, as timetoalign checks it (see `tests/README.md`).
- */
+/** Pure reducers for the 16 commands that edit one manifest. */
 
 import { canonicalOrder } from "@timetoalign/timeskeleton";
-import { axisProblems, childEnd, contentEnd, readOnAxis } from "../document/invariants.ts";
-import type {
-  Break,
-  ChildEntry,
-  Document,
-  Jump,
-  Region,
-  TimelineManifest,
-} from "../document/types.ts";
 import type { CommandError } from "../errors.ts";
 import { ErrorCode, isCommandError, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";
 import { canonicalText } from "../json.ts";
+import { axisProblems, childEnd, contentEnd, readOnAxis } from "../manifest/invariants.ts";
+import type {
+  Break,
+  ChildEntry,
+  Jump,
+  Manifest,
+  Region,
+  TimelineManifest,
+} from "../manifest/types.ts";
 import type { Coordinate, CoordinateDict } from "../number/coordinate.ts";
 import {
   compareCoordinates,
@@ -32,29 +27,26 @@ import type {
   AddChild,
   AddConversionMap,
   AddRegion,
-  Command,
-  CreateTimeline,
+  ManifestCommand,
   NewTimeline,
-  RemoveChild,
   RemoveConversionMap,
   RemoveMarker,
   RemoveRegion,
-  RemoveTimeline,
   SetChildOffset,
   SetLength,
   SetMarker,
   SetName,
   SetRegion,
 } from "./types.ts";
+import { MANIFEST_COMMAND_TYPES } from "./types.ts";
 
-/** Where a timeline sits: its document path and, for a child, its parent. */
 interface Located {
   readonly timeline: TimelineManifest;
   readonly path: readonly string[];
   readonly parent: Located | undefined;
 }
 
-function locate(document: Document, id: string): Located | undefined {
+function locate(manifest: Manifest, id: string): Located | undefined {
   const search = (
     timeline: TimelineManifest,
     path: readonly string[],
@@ -68,20 +60,11 @@ function locate(document: Document, id: string): Located | undefined {
     }
     return undefined;
   };
-  for (const [key, timeline] of Object.entries(document.manifest.timelines)) {
-    const found = search(timeline, ["manifest", "timelines", key], undefined);
-    if (found !== undefined) return found;
-  }
-  return undefined;
+  return search(manifest.timeline, ["timeline"], undefined);
 }
 
 type Tree = { readonly [key: string]: unknown };
 
-/**
- * A copy of `root` with the value at `path` replaced, or removed when `value`
- * is undefined. Every object keeps the order of its members; a new member is
- * appended.
- */
 function setIn(root: Tree, path: readonly string[], value: unknown): Tree {
   const [key, ...rest] = path as [string, ...string[]];
   const next = rest.length === 0 ? value : setIn(root[key] as Tree, rest, value);
@@ -92,25 +75,22 @@ function setIn(root: Tree, path: readonly string[], value: unknown): Tree {
   return Object.fromEntries(entries);
 }
 
-function put(document: Document, path: readonly string[], value: unknown): Document {
-  return setIn(document as unknown as Tree, path, value) as unknown as Document;
+function put(manifest: Manifest, path: readonly string[], value: unknown): Manifest {
+  return setIn(manifest as unknown as Tree, path, value) as unknown as Manifest;
 }
 
-/** The document with one timeline replaced, its lists back in canonical order. */
-function replaceTimeline(document: Document, at: Located, timeline: TimelineManifest): Document {
-  const { id } = timeline;
-  const ordered = canonicalOrder({ manifest: { timelines: { [id]: timeline } } });
-  return put(document, at.path, ordered.manifest.timelines[id]);
+function replaceTimeline(manifest: Manifest, at: Located, timeline: TimelineManifest): Manifest {
+  const ordered = canonicalOrder({ timeline }).timeline as TimelineManifest;
+  return put(manifest, at.path, ordered);
 }
 
 function find(
-  document: Document,
+  manifest: Manifest,
   id: string,
   path: readonly PathSegment[],
 ): Located | CommandError {
   return (
-    locate(document, id) ??
-    problem(ErrorCode.unknownTimeline, `no timeline has the id ${JSON.stringify(id)}`, path)
+    locate(manifest, id) ?? problem(ErrorCode.unknownTimeline, `no timeline has the id ${id}`, path)
   );
 }
 
@@ -118,18 +98,16 @@ function isNegative(coordinate: Coordinate): boolean {
   return compareCoordinates(coordinate, zeroCoordinate(coordinate.unit, coordinate.numberType)) < 0;
 }
 
-/** Check a timeline to create; returns its manifest, unlocked and empty as timetoalign makes it. */
 function newTimeline(
-  document: Document,
+  manifest: Manifest,
   spec: NewTimeline,
   path: readonly PathSegment[],
 ): TimelineManifest | CommandError {
-  if (locate(document, spec.id) !== undefined) {
-    return problem(
-      ErrorCode.duplicateTimeline,
-      `the id ${JSON.stringify(spec.id)} is already used`,
-      [...path, "id"],
-    );
+  if (locate(manifest, spec.id) !== undefined) {
+    return problem(ErrorCode.duplicateTimeline, `the id ${spec.id} is already used`, [
+      ...path,
+      "id",
+    ]);
   }
   const [axis] = axisProblems(spec, path);
   if (axis !== undefined) return axis;
@@ -159,41 +137,19 @@ function newTimeline(
   };
 }
 
-function createTimeline(document: Document, command: CreateTimeline): Document | CommandError {
-  const { type: _, ...spec } = command;
-  const timeline = newTimeline(document, spec, []);
-  if (isCommandError(timeline)) return timeline;
-  return put(document, ["manifest", "timelines", timeline.id], timeline);
-}
-
-function removeTimeline(document: Document, command: RemoveTimeline): Document | CommandError {
-  const at = find(document, command.id, ["id"]);
+function setName(manifest: Manifest, command: SetName): Manifest | CommandError {
+  const at = find(manifest, command.id, ["id"]);
   if (isCommandError(at)) return at;
-  if (at.parent !== undefined) {
-    return problem(
-      ErrorCode.notARoot,
-      `timeline ${JSON.stringify(command.id)} is nested; remove it with removeChild`,
-      ["id"],
-    );
-  }
-  return put(document, at.path, undefined);
+  return replaceTimeline(manifest, at, { ...at.timeline, name: command.name });
 }
 
-function setName(document: Document, command: SetName): Document | CommandError {
-  const at = find(document, command.id, ["id"]);
-  if (isCommandError(at)) return at;
-  return replaceTimeline(document, at, { ...at.timeline, name: command.name });
-}
-
-function setLength(document: Document, command: SetLength): Document | CommandError {
-  const at = find(document, command.id, ["id"]);
+function setLength(manifest: Manifest, command: SetLength): Manifest | CommandError {
+  const at = find(manifest, command.id, ["id"]);
   if (isCommandError(at)) return at;
   if (at.timeline.locked) {
-    return problem(
-      ErrorCode.locked,
-      `cannot set the length of locked timeline ${JSON.stringify(command.id)}`,
-      ["id"],
-    );
+    return problem(ErrorCode.locked, `cannot set the length of locked timeline ${command.id}`, [
+      "id",
+    ]);
   }
   const length = readOnAxis(command.length, at.timeline, ["length"]);
   if (isCommandError(length)) return length;
@@ -204,21 +160,16 @@ function setLength(document: Document, command: SetLength): Document | CommandEr
       ["length"],
     );
   }
-  return replaceTimeline(document, at, { ...at.timeline, length: command.length });
+  return replaceTimeline(manifest, at, { ...at.timeline, length: command.length });
 }
 
-/**
- * Place `child` in `parent` at `offset`, as timetoalign's `add_child` does:
- * the child is locked, and a child ending past the parent lengthens an
- * unlocked parent and is refused by a locked one.
- */
 function placeChild(
-  document: Document,
+  manifest: Manifest,
   parent: Located,
   child: TimelineManifest,
   offset: Coordinate,
   childPath: readonly PathSegment[],
-): Document | CommandError {
+): Manifest | CommandError {
   const target = parent.timeline;
   if (child.unit !== target.unit) {
     return problem(
@@ -236,17 +187,15 @@ function placeChild(
     if (target.locked) {
       return problem(
         ErrorCode.childExceedsParent,
-        `the child would end after locked timeline ${JSON.stringify(target.id)}`,
+        `the child would end after locked timeline ${target.id}`,
         ["offset"],
       );
     }
-    // The parent grows to the child's end, which must be a value of the
-    // parent's own number type; a stored value is never re-expressed.
     const grown = exactCoordinate(end, target.unit, target.number_type);
     if (grown === undefined) {
       return problem(
         ErrorCode.childExceedsParent,
-        `the child's end is not a ${target.number_type} value, so timeline ${JSON.stringify(target.id)} cannot grow to it`,
+        `the child's end is not a ${target.number_type} value`,
         ["offset"],
       );
     }
@@ -256,72 +205,57 @@ function placeChild(
     offset: coordinateToDict(offset),
     timeline: { ...child, locked: true },
   };
-  const children = { ...target.children, [child.id]: entry };
-  return replaceTimeline(document, parent, { ...target, length, children });
+  return replaceTimeline(manifest, parent, {
+    ...target,
+    length,
+    children: { ...target.children, [child.id]: entry },
+  });
 }
 
-function addChild(document: Document, command: AddChild): Document | CommandError {
-  const parent = find(document, command.parent, ["parent"]);
+function addChild(manifest: Manifest, command: AddChild): Manifest | CommandError {
+  const parent = find(manifest, command.parent, ["parent"]);
   if (isCommandError(parent)) return parent;
   const offset = readOnAxis(command.offset, parent.timeline, ["offset"]);
   if (isCommandError(offset)) return offset;
-  if (typeof command.child !== "string") {
-    const child = newTimeline(document, command.child, ["child"]);
-    if (isCommandError(child)) return child;
-    return placeChild(document, parent, child, offset, ["child", "unit"]);
-  }
-  const moved = find(document, command.child, ["child"]);
-  if (isCommandError(moved)) return moved;
-  if (moved.parent !== undefined) {
-    return problem(
-      ErrorCode.notARoot,
-      `timeline ${JSON.stringify(command.child)} is nested; only a root timeline can be moved`,
-      ["child"],
-    );
-  }
-  for (let ancestor: Located | undefined = parent; ancestor; ancestor = ancestor.parent) {
-    if (ancestor.timeline.id === moved.timeline.id) {
-      return problem(
-        ErrorCode.childIsAncestor,
-        `timeline ${JSON.stringify(command.child)} contains ${JSON.stringify(command.parent)}`,
-        ["child"],
-      );
-    }
-  }
-  const without = put(document, moved.path, undefined);
-  const parentAgain = locate(without, command.parent) as Located;
-  return placeChild(without, parentAgain, moved.timeline, offset, ["child"]);
+  const child = newTimeline(manifest, command.child, ["child"]);
+  if (isCommandError(child)) return child;
+  return placeChild(manifest, parent, child, offset, ["child", "unit"]);
 }
 
-function nested(document: Document, id: string): Located | CommandError {
-  const at = find(document, id, ["id"]);
+function nested(manifest: Manifest, id: string): Located | CommandError {
+  const at = find(manifest, id, ["id"]);
   if (isCommandError(at)) return at;
   if (at.parent === undefined) {
-    return problem(ErrorCode.notAChild, `timeline ${JSON.stringify(id)} is a root`, ["id"]);
+    return problem(ErrorCode.notAChild, `timeline ${id} is the manifest root`, ["id"]);
   }
   return at;
 }
 
-function setChildOffset(document: Document, command: SetChildOffset): Document | CommandError {
-  const at = nested(document, command.id);
+function setChildOffset(manifest: Manifest, command: SetChildOffset): Manifest | CommandError {
+  const at = nested(manifest, command.id);
   if (isCommandError(at)) return at;
   const parent = at.parent as Located;
   const offset = readOnAxis(command.offset, parent.timeline, ["offset"]);
   if (isCommandError(offset)) return offset;
+  const heldUnder = at.path.at(-2) as string;
   const children = Object.fromEntries(
-    Object.entries(parent.timeline.children).filter(([key]) => key !== at.timeline.id),
+    Object.entries(parent.timeline.children).filter(([key]) => key !== heldUnder),
   );
-  const without: Located = { ...parent, timeline: { ...parent.timeline, children } };
-  return placeChild(document, without, at.timeline, offset, ["id"]);
+  return placeChild(
+    manifest,
+    { ...parent, timeline: { ...parent.timeline, children } },
+    at.timeline,
+    offset,
+    ["id"],
+  );
 }
 
-function removeChild(document: Document, command: RemoveChild): Document | CommandError {
-  const at = nested(document, command.id);
+function removeChild(manifest: Manifest, id: string): Manifest | CommandError {
+  const at = nested(manifest, id);
   if (isCommandError(at)) return at;
-  return put(document, at.path.slice(0, -1), undefined);
+  return put(manifest, at.path.slice(0, -1), undefined);
 }
 
-/** Check a region's coordinates on its timeline. */
 function regionBounds(
   timeline: TimelineManifest,
   start: CoordinateDict,
@@ -339,15 +273,11 @@ function regionBounds(
   return undefined;
 }
 
-function addRegion(document: Document, command: AddRegion): Document | CommandError {
-  const at = find(document, command.timeline, ["timeline"]);
+function addRegion(manifest: Manifest, command: AddRegion): Manifest | CommandError {
+  const at = find(manifest, command.timeline, ["timeline"]);
   if (isCommandError(at)) return at;
   if (at.timeline.regions.some((region) => region.name === command.name)) {
-    return problem(
-      ErrorCode.duplicateRegion,
-      `region ${JSON.stringify(command.name)} already exists`,
-      ["name"],
-    );
+    return problem(ErrorCode.duplicateRegion, `region ${command.name} already exists`, ["name"]);
   }
   const refused = regionBounds(at.timeline, command.start, command.end, ["start"], ["end"]);
   if (refused !== undefined) return refused;
@@ -357,21 +287,19 @@ function addRegion(document: Document, command: AddRegion): Document | CommandEr
     end: command.end,
     meta: command.meta ?? {},
   };
-  return replaceTimeline(document, at, {
+  return replaceTimeline(manifest, at, {
     ...at.timeline,
     regions: [...at.timeline.regions, region],
   });
 }
 
-function setRegion(document: Document, command: SetRegion): Document | CommandError {
-  const at = find(document, command.timeline, ["timeline"]);
+function setRegion(manifest: Manifest, command: SetRegion): Manifest | CommandError {
+  const at = find(manifest, command.timeline, ["timeline"]);
   if (isCommandError(at)) return at;
   const index = at.timeline.regions.findIndex((region) => region.name === command.name);
   const current = at.timeline.regions[index];
   if (current === undefined) {
-    return problem(ErrorCode.unknownRegion, `no region is named ${JSON.stringify(command.name)}`, [
-      "name",
-    ]);
+    return problem(ErrorCode.unknownRegion, `no region is named ${command.name}`, ["name"]);
   }
   const region: Region = {
     name: current.name,
@@ -388,22 +316,21 @@ function setRegion(document: Document, command: SetRegion): Document | CommandEr
   );
   if (refused !== undefined) return refused;
   const regions = at.timeline.regions.map((item, position) => (position === index ? region : item));
-  return replaceTimeline(document, at, { ...at.timeline, regions });
+  return replaceTimeline(manifest, at, { ...at.timeline, regions });
 }
 
-function removeRegion(document: Document, command: RemoveRegion): Document | CommandError {
-  const at = find(document, command.timeline, ["timeline"]);
+function removeRegion(manifest: Manifest, command: RemoveRegion): Manifest | CommandError {
+  const at = find(manifest, command.timeline, ["timeline"]);
   if (isCommandError(at)) return at;
   if (!at.timeline.regions.some((region) => region.name === command.name)) {
-    return problem(ErrorCode.unknownRegion, `no region is named ${JSON.stringify(command.name)}`, [
-      "name",
-    ]);
+    return problem(ErrorCode.unknownRegion, `no region is named ${command.name}`, ["name"]);
   }
-  const regions = at.timeline.regions.filter((region) => region.name !== command.name);
-  return replaceTimeline(document, at, { ...at.timeline, regions });
+  return replaceTimeline(manifest, at, {
+    ...at.timeline,
+    regions: at.timeline.regions.filter((region) => region.name !== command.name),
+  });
 }
 
-/** The identity of a break or jump: its canonical text with normalized coordinates. */
 function entryKey(entry: Break | Jump, keys: readonly string[]): string {
   const normalized = Object.fromEntries(
     Object.entries(entry).map(([key, value]) => {
@@ -422,14 +349,14 @@ const BREAK_KEYS = ["coordinate"] as const;
 const JUMP_KEYS = ["from_coordinate", "to_coordinate"] as const;
 
 function addFlowEntry(
-  document: Document,
+  manifest: Manifest,
   timelineId: string,
   list: "breaks" | "jumps",
   entry: Break | Jump,
   keys: readonly string[],
   field: string,
-): Document | CommandError {
-  const at = find(document, timelineId, ["timeline"]);
+): Manifest | CommandError {
+  const at = find(manifest, timelineId, ["timeline"]);
   if (isCommandError(at)) return at;
   for (const key of keys) {
     const read = readOnAxis(
@@ -440,67 +367,79 @@ function addFlowEntry(
     if (isCommandError(read)) return read;
   }
   const flow = at.timeline.flow_control;
-  const flowControl = { ...flow, [list]: [...flow[list], entry] };
-  return replaceTimeline(document, at, { ...at.timeline, flow_control: flowControl });
+  return replaceTimeline(manifest, at, {
+    ...at.timeline,
+    flow_control: { ...flow, [list]: [...flow[list], entry] },
+  });
 }
 
 function removeFlowEntry(
-  document: Document,
+  manifest: Manifest,
   timelineId: string,
   list: "breaks" | "jumps",
   entry: Break | Jump,
   keys: readonly string[],
   field: string,
-): Document | CommandError {
-  const at = find(document, timelineId, ["timeline"]);
+): Manifest | CommandError {
+  const at = find(manifest, timelineId, ["timeline"]);
   if (isCommandError(at)) return at;
   const flow = at.timeline.flow_control;
   const wanted = entryKey(entry, keys);
   const entries = flow[list] as readonly (Break | Jump)[];
   const index = entries.findIndex((item) => entryKey(item, keys) === wanted);
   if (index < 0) {
-    const code = list === "breaks" ? ErrorCode.unknownBreak : ErrorCode.unknownJump;
-    return problem(code, `no equal ${field} on timeline ${JSON.stringify(timelineId)}`, [field]);
+    return problem(
+      list === "breaks" ? ErrorCode.unknownBreak : ErrorCode.unknownJump,
+      `no equal ${field} on timeline ${timelineId}`,
+      [field],
+    );
   }
-  const flowControl = { ...flow, [list]: entries.filter((_, position) => position !== index) };
-  return replaceTimeline(document, at, { ...at.timeline, flow_control: flowControl });
+  return replaceTimeline(manifest, at, {
+    ...at.timeline,
+    flow_control: {
+      ...flow,
+      [list]: entries.filter((_, position) => position !== index),
+    },
+  });
 }
 
-function setMarker(document: Document, command: SetMarker): Document | CommandError {
-  const at = find(document, command.timeline, ["timeline"]);
+function setMarker(manifest: Manifest, command: SetMarker): Manifest | CommandError {
+  const at = find(manifest, command.timeline, ["timeline"]);
   if (isCommandError(at)) return at;
   const read = readOnAxis(command.coordinate, at.timeline, ["coordinate"]);
   if (isCommandError(read)) return read;
   const flow = at.timeline.flow_control;
-  const markers = { ...flow.markers, [command.name]: command.coordinate };
-  return replaceTimeline(document, at, { ...at.timeline, flow_control: { ...flow, markers } });
+  return replaceTimeline(manifest, at, {
+    ...at.timeline,
+    flow_control: { ...flow, markers: { ...flow.markers, [command.name]: command.coordinate } },
+  });
 }
 
-function removeMarker(document: Document, command: RemoveMarker): Document | CommandError {
-  const at = find(document, command.timeline, ["timeline"]);
+function removeMarker(manifest: Manifest, command: RemoveMarker): Manifest | CommandError {
+  const at = find(manifest, command.timeline, ["timeline"]);
   if (isCommandError(at)) return at;
   const flow = at.timeline.flow_control;
   if (!Object.hasOwn(flow.markers, command.name)) {
-    return problem(ErrorCode.unknownMarker, `no marker is named ${JSON.stringify(command.name)}`, [
-      "name",
-    ]);
+    return problem(ErrorCode.unknownMarker, `no marker is named ${command.name}`, ["name"]);
   }
   const markers = Object.fromEntries(
     Object.entries(flow.markers).filter(([name]) => name !== command.name),
   );
-  return replaceTimeline(document, at, { ...at.timeline, flow_control: { ...flow, markers } });
+  return replaceTimeline(manifest, at, {
+    ...at.timeline,
+    flow_control: { ...flow, markers },
+  });
 }
 
-function addConversionMap(document: Document, command: AddConversionMap): Document | CommandError {
-  const at = find(document, command.timeline, ["timeline"]);
+function addConversionMap(manifest: Manifest, command: AddConversionMap): Manifest | CommandError {
+  const at = find(manifest, command.timeline, ["timeline"]);
   if (isCommandError(at)) return at;
   const { map } = command;
   if (at.timeline.conversion_maps.some((item) => item.id === map.id)) {
-    return problem(
-      ErrorCode.duplicateMap,
-      `conversion map ${JSON.stringify(map.id)} is already attached`,
-      ["map", "id"],
-    );
+    return problem(ErrorCode.duplicateMap, `conversion map ${map.id} is already attached`, [
+      "map",
+      "id",
+    ]);
   }
   if (map.source_unit !== null && map.source_unit !== at.timeline.unit) {
     return problem(
@@ -509,54 +448,52 @@ function addConversionMap(document: Document, command: AddConversionMap): Docume
       ["map", "source_unit"],
     );
   }
-  const maps = [...at.timeline.conversion_maps, map];
-  return replaceTimeline(document, at, { ...at.timeline, conversion_maps: maps });
+  return replaceTimeline(manifest, at, {
+    ...at.timeline,
+    conversion_maps: [...at.timeline.conversion_maps, map],
+  });
 }
 
 function removeConversionMap(
-  document: Document,
+  manifest: Manifest,
   command: RemoveConversionMap,
-): Document | CommandError {
-  const at = find(document, command.timeline, ["timeline"]);
+): Manifest | CommandError {
+  const at = find(manifest, command.timeline, ["timeline"]);
   if (isCommandError(at)) return at;
   if (!at.timeline.conversion_maps.some((item) => item.id === command.map_id)) {
-    return problem(
-      ErrorCode.unknownMap,
-      `no conversion map has the id ${JSON.stringify(command.map_id)}`,
-      ["map_id"],
-    );
+    return problem(ErrorCode.unknownMap, `no conversion map has the id ${command.map_id}`, [
+      "map_id",
+    ]);
   }
-  const maps = at.timeline.conversion_maps.filter((item) => item.id !== command.map_id);
-  return replaceTimeline(document, at, { ...at.timeline, conversion_maps: maps });
+  return replaceTimeline(manifest, at, {
+    ...at.timeline,
+    conversion_maps: at.timeline.conversion_maps.filter((item) => item.id !== command.map_id),
+  });
 }
 
-function reduce(document: Document, command: Command): Document | CommandError {
+function reduce(manifest: Manifest, command: ManifestCommand): Manifest | CommandError {
   switch (command.type) {
-    case "createTimeline":
-      return createTimeline(document, command);
-    case "removeTimeline":
-      return removeTimeline(document, command);
     case "setName":
-      return setName(document, command);
+      return setName(manifest, command);
     case "setLength":
-      return setLength(document, command);
+      return setLength(manifest, command);
     case "addChild":
-      return addChild(document, command);
+      return addChild(manifest, command);
     case "setChildOffset":
-      return setChildOffset(document, command);
+      return setChildOffset(manifest, command);
     case "removeChild":
-      return removeChild(document, command);
+      return removeChild(manifest, command.id);
     case "addRegion":
-      return addRegion(document, command);
+      return addRegion(manifest, command);
     case "setRegion":
-      return setRegion(document, command);
+      return setRegion(manifest, command);
     case "removeRegion":
-      return removeRegion(document, command);
+      return removeRegion(manifest, command);
     case "addBreak":
-      return addFlowEntry(document, command.timeline, "breaks", command.break, BREAK_KEYS, "break");
+      return addFlowEntry(manifest, command.timeline, "breaks", command.break, BREAK_KEYS, "break");
     case "removeBreak":
       return removeFlowEntry(
-        document,
+        manifest,
         command.timeline,
         "breaks",
         command.break,
@@ -564,30 +501,33 @@ function reduce(document: Document, command: Command): Document | CommandError {
         "break",
       );
     case "addJump":
-      return addFlowEntry(document, command.timeline, "jumps", command.jump, JUMP_KEYS, "jump");
+      return addFlowEntry(manifest, command.timeline, "jumps", command.jump, JUMP_KEYS, "jump");
     case "removeJump":
-      return removeFlowEntry(document, command.timeline, "jumps", command.jump, JUMP_KEYS, "jump");
+      return removeFlowEntry(manifest, command.timeline, "jumps", command.jump, JUMP_KEYS, "jump");
     case "setMarker":
-      return setMarker(document, command);
+      return setMarker(manifest, command);
     case "removeMarker":
-      return removeMarker(document, command);
+      return removeMarker(manifest, command);
     case "addConversionMap":
-      return addConversionMap(document, command);
+      return addConversionMap(manifest, command);
     case "removeConversionMap":
-      return removeConversionMap(document, command);
+      return removeConversionMap(manifest, command);
   }
 }
 
 /**
- * Apply one command to a document.
- *
- * The command is read by `parseCommand` first, so an unparsed value is
- * refused with `invalid_command` rather than applied. Returns the new
- * document, or the `CommandError` that refuses the command; `document` is
- * never modified.
+ * Apply a manifest command to one manifest. A refusal's path names the member
+ * of the command at fault; `apply` on a view puts it below
+ * `["records", <block id>, "manifest"]`.
  */
-export function apply(document: Document, command: Command): Document | CommandError {
+export function applyToManifest(
+  manifest: Manifest,
+  command: ManifestCommand,
+): Manifest | CommandError {
   const parsed = parseCommand(command);
   if (isCommandError(parsed)) return parsed;
-  return reduce(document, parsed);
+  if (!(MANIFEST_COMMAND_TYPES as readonly string[]).includes(parsed.type)) {
+    return problem(ErrorCode.invalidCommand, `${parsed.type} does not edit a manifest`, ["type"]);
+  }
+  return reduce(manifest, parsed as ManifestCommand);
 }

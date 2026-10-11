@@ -1,12 +1,12 @@
 /**
  * The page of the geometry specification (`docs/geometry.md` in timeskeleton,
- * sections 8.1 to 8.3): blocks stacked on a page measured in page units, the
+ * sections 8.1 to 8.3): one block on a page measured in page units, the
  * exact page transform, the one number formatting rule and the text rules
  * shared by the SVG and TikZ writers.
  */
 
 import { fromFloat, type JsonObject, Rational } from "@timetoalign/tilie-core";
-import type { LosslessGeometry } from "@timetoalign/tilie-layout";
+import type { LosslessBlock } from "@timetoalign/tilie-layout";
 import { isJsonFloat } from "@timetoalign/timeskeleton";
 
 /** The page options shared by both writers. */
@@ -29,7 +29,6 @@ export const KINDS: ReadonlySet<string> = new Set([
   "label",
 ]);
 
-export const GAP = Rational.of(16n);
 export const MARGIN = Rational.of(16n);
 export const INNER_SEP = Rational.of(2n);
 
@@ -93,12 +92,12 @@ export interface PlacedBlock {
   readonly names: Rational;
 }
 
-/** The page: its width, its height and its blocks. */
+/** The page: its width, height and placed block. */
 export interface Page {
   readonly width: Rational;
   readonly rowHeight: Rational;
   readonly height: Rational;
-  readonly blocks: readonly PlacedBlock[];
+  readonly block: PlacedBlock;
 }
 
 function option(value: number | undefined, fallback: bigint): Rational {
@@ -108,60 +107,42 @@ function option(value: number | undefined, fallback: bigint): Rational {
 const member = (value: unknown, ...keys: string[]): unknown =>
   keys.reduce<unknown>((current, key) => (current as JsonObject)[key], value);
 
-/** Place every block of a geometry on the page; `upwards` selects TikZ ordinates. */
-export function page(geometry: LosslessGeometry, options: PageOptions, upwards: boolean): Page {
+/** Place one block on the page; `upwards` selects TikZ ordinates. */
+export function page(block: LosslessBlock, options: PageOptions, upwards: boolean): Page {
   const width = option(options.width, 400n);
   const rowHeight = option(options.rowHeight, 32n);
-  const blocks = (geometry as unknown as { blocks: JsonObject[] }).blocks;
-  const heights = blocks.map((block) => {
-    const rows = block.rows as JsonObject;
-    return q(Number(rows.max) - Number(rows.min) + 1).multiply(rowHeight);
-  });
-  const total = heights.reduce(
-    (sum, height, index) => (index === 0 ? height : sum.add(GAP).add(height)),
-    q(0),
-  );
-  let top = q(0);
-  const placed = blocks.map((block, index): PlacedBlock => {
-    const height = heights[index] as Rational;
-    const rows = block.rows as JsonObject;
-    const min = q(Number(rows.min));
-    const max = q(Number(rows.max));
-    const frameLength = exact(member(block, "frame", "length"));
-    const scale = width.divide(frameLength);
-    const plotOffset = exact(member(block, "frame", "plot", "offset"));
-    const names = exact(member(block, "frame", "names", "length"));
-    const scalar = exact(member(block, "placement", "scalar"));
-    const offset = exact(member(block, "placement", "offset"));
-    const blockTop = top;
-    const half = q(1, 2n);
-    const y = upwards
-      ? (value: unknown) =>
-          total
-            .subtract(blockTop)
-            .subtract(height)
-            .add(exact(value).subtract(min).add(half).multiply(rowHeight))
-      : (value: unknown) => blockTop.add(max.add(half).subtract(exact(value)).multiply(rowHeight));
-    const result: PlacedBlock = {
-      block,
-      primitives: (block.primitives as JsonObject[]).filter((primitive) =>
-        KINDS.has(primitive.kind as string),
-      ),
-      frameX: (value) => exact(value).multiply(scale),
-      rootX: (value) =>
-        plotOffset
-          .add(scalar.multiply(exact(value)))
-          .add(offset)
-          .multiply(scale),
-      y,
-      top: upwards ? total.subtract(blockTop) : blockTop,
-      bottom: upwards ? total.subtract(blockTop).subtract(height) : blockTop.add(height),
-      names: names.multiply(scale),
-    };
-    top = top.add(height).add(GAP);
-    return result;
-  });
-  return { width, rowHeight, height: total, blocks: placed };
+  const value = block as unknown as JsonObject;
+  const rows = value.rows as JsonObject;
+  const min = q(Number(rows.min));
+  const max = q(Number(rows.max));
+  const height = q(Number(rows.max) - Number(rows.min) + 1).multiply(rowHeight);
+  const frameLength = exact(member(value, "frame", "length"));
+  const scale = width.divide(frameLength);
+  const plotOffset = exact(member(value, "frame", "plot", "offset"));
+  const names = exact(member(value, "frame", "names", "length"));
+  const scalar = exact(member(value, "placement", "scalar"));
+  const offset = exact(member(value, "placement", "offset"));
+  const half = q(1, 2n);
+  const y = upwards
+    ? (position: unknown) => exact(position).subtract(min).add(half).multiply(rowHeight)
+    : (position: unknown) => max.add(half).subtract(exact(position)).multiply(rowHeight);
+  const placed: PlacedBlock = {
+    block: value,
+    primitives: (value.primitives as JsonObject[]).filter((primitive) =>
+      KINDS.has(primitive.kind as string),
+    ),
+    frameX: (position) => exact(position).multiply(scale),
+    rootX: (position) =>
+      plotOffset
+        .add(scalar.multiply(exact(position)))
+        .add(offset)
+        .multiply(scale),
+    y,
+    top: upwards ? height : q(0),
+    bottom: upwards ? q(0) : height,
+    names: names.multiply(scale),
+  };
+  return { width, rowHeight, height, block: placed };
 }
 
 /** A label's text: control characters as spaces, a name-column label cut to its column. */

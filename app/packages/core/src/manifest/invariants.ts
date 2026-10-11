@@ -1,10 +1,13 @@
 /**
- * The invariants of a document beyond its schema, as timetoalign enforces
- * them. `tests/README.md` lists each one with the library source that
- * enforces the same rule.
+ * Manifest invariants beyond the schema, matching timetoalign's behavior.
  */
 
-import type { NumberType, TimelineClass, TimeUnit } from "@timetoalign/timeskeleton";
+import {
+  canonicalOrder,
+  type NumberType,
+  type TimelineClass,
+  type TimeUnit,
+} from "@timetoalign/timeskeleton";
 import type { Problem } from "../errors.ts";
 import { ErrorCode, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";
@@ -18,9 +21,8 @@ import {
 import { Rational } from "../number/rational.ts";
 import type { Real } from "../number/real.ts";
 import { addReal, compareReal, realOf } from "../number/real.ts";
-import type { TimelineManifest } from "./types.ts";
+import type { Manifest, TimelineManifest } from "./types.ts";
 
-/** The units each timeline class admits (timetoalign's `_allowed_units`). */
 export const CLASS_UNITS: { readonly [name in TimelineClass]: readonly TimeUnit[] } = {
   ContinuousLogicalTimeline: ["whole_note", "quarters", "floating_measures", "number"],
   DiscreteLogicalTimeline: ["ticks"],
@@ -32,14 +34,12 @@ export const CLASS_UNITS: { readonly [name in TimelineClass]: readonly TimeUnit[
 
 const DISCRETE_UNITS: readonly TimeUnit[] = ["ticks", "samples", "frames", "pixels"];
 
-/** The number types a unit admits (timetoalign's `TimeUnit.allowed_number_types`). */
 export function allowedNumberTypes(unit: TimeUnit): readonly NumberType[] {
   if (DISCRETE_UNITS.includes(unit)) return ["int"];
   if (unit === "number") return ["int", "float", "fraction"];
   return ["float", "fraction"];
 }
 
-/** Problems with a timeline's axis: class, unit and number type. */
 export function axisProblems(
   timeline: Pick<TimelineManifest, "class" | "unit" | "number_type">,
   path: readonly PathSegment[],
@@ -66,12 +66,6 @@ export function axisProblems(
   return problems;
 }
 
-/**
- * Read a coordinate dict that must lie on a timeline's axis.
- *
- * Returns the coordinate, or the problem: `invalid_coordinate` when the
- * library cannot read it, `off_axis` when its unit or number type differs.
- */
 export function readOnAxis(
   dict: CoordinateDict | unknown,
   timeline: Pick<TimelineManifest, "id" | "unit" | "number_type">,
@@ -89,7 +83,7 @@ export function readOnAxis(
   if (coordinate.unit !== timeline.unit || coordinate.numberType !== timeline.number_type) {
     return problem(
       ErrorCode.offAxis,
-      `coordinate on ${coordinate.unit}/${coordinate.numberType} is not on the axis ${timeline.unit}/${timeline.number_type} of timeline ${JSON.stringify(timeline.id)}`,
+      `coordinate on ${coordinate.unit}/${coordinate.numberType} is not on the axis ${timeline.unit}/${timeline.number_type} of timeline ${timeline.id}`,
       path,
     );
   }
@@ -100,15 +94,10 @@ export function isProblem(value: unknown): value is Problem {
   return typeof value === "object" && value !== null && "code" in value && "path" in value;
 }
 
-/**
- * Where a child ends on its parent: offset (on the parent's axis) plus the
- * child's length (on its own number type), as Python adds them.
- */
 export function childEnd(offset: Coordinate, length: Coordinate): Real {
   return addReal(realOf(offset), realOf(length));
 }
 
-/** The end of the furthest child, or the origin (timetoalign's `_get_max_content_coordinate`). */
 export function contentEnd(timeline: TimelineManifest): Real {
   let end: Real = Rational.of(0n);
   for (const entry of Object.values(timeline.children)) {
@@ -132,15 +121,14 @@ function checkTimeline(
     problems.push(
       problem(
         ErrorCode.duplicateTimeline,
-        `timeline id ${JSON.stringify(timeline.id)} is already used at ${JSON.stringify(previous)}`,
+        `timeline id ${timeline.id} is already used at ${previous.join("/")}`,
         [...path, "id"],
       ),
     );
   } else {
     seen.set(timeline.id, path);
   }
-  const axis = axisProblems(timeline, path);
-  problems.push(...axis);
+  problems.push(...axisProblems(timeline, path));
   const report = (value: Coordinate | Problem): Coordinate | undefined => {
     if (isProblem(value)) {
       problems.push(value);
@@ -175,10 +163,7 @@ function checkTimeline(
     }
     if (!child.locked) {
       problems.push(
-        problem(ErrorCode.childNotLocked, `child ${JSON.stringify(key)} is not locked`, [
-          ...childPath,
-          "locked",
-        ]),
+        problem(ErrorCode.childNotLocked, `child ${key} is not locked`, [...childPath, "locked"]),
       );
     }
     if (offset !== undefined) {
@@ -190,14 +175,13 @@ function checkTimeline(
           ]),
         );
       }
-      // The child's own axis is checked when the child itself is checked.
       const childLength = readOnAxis(child.length, child, [...childPath, "length"]);
       if (length !== undefined && !isProblem(childLength) && child.unit === timeline.unit) {
         if (compareReal(childEnd(offset, childLength), realOf(length)) > 0) {
           problems.push(
             problem(
               ErrorCode.childExceedsParent,
-              `child ${JSON.stringify(key)} ends after its parent ${JSON.stringify(timeline.id)}`,
+              `child ${key} ends after its parent ${timeline.id}`,
               [...entryPath, "offset"],
             ),
           );
@@ -212,7 +196,7 @@ function checkTimeline(
     const mapPath = [...path, "conversion_maps", index];
     if (mapIds.has(map.id)) {
       problems.push(
-        problem(ErrorCode.duplicateMap, `conversion map id ${JSON.stringify(map.id)} is repeated`, [
+        problem(ErrorCode.duplicateMap, `conversion map id ${map.id} is repeated`, [
           ...mapPath,
           "id",
         ]),
@@ -235,7 +219,7 @@ function checkTimeline(
     const regionPath = [...path, "regions", index];
     if (regionNames.has(region.name)) {
       problems.push(
-        problem(ErrorCode.duplicateRegion, `region ${JSON.stringify(region.name)} is repeated`, [
+        problem(ErrorCode.duplicateRegion, `region ${region.name} is repeated`, [
           ...regionPath,
           "name",
         ]),
@@ -246,11 +230,10 @@ function checkTimeline(
     const end = report(readOnAxis(region.end, timeline, [...regionPath, "end"]));
     if (start !== undefined && end !== undefined && compareCoordinates(end, start) < 0) {
       problems.push(
-        problem(
-          ErrorCode.regionEndBeforeStart,
-          `region ${JSON.stringify(region.name)} ends before it starts`,
-          [...regionPath, "end"],
-        ),
+        problem(ErrorCode.regionEndBeforeStart, `region ${region.name} ends before it starts`, [
+          ...regionPath,
+          "end",
+        ]),
       );
     }
   });
@@ -279,24 +262,10 @@ function checkTimeline(
   }
 }
 
-/** Every invariant violation of a schema-valid document, in document order. */
-export function checkDocument(document: {
-  readonly manifest: { readonly timelines: { readonly [id: string]: TimelineManifest } };
-}): Problem[] {
+/** Every invariant violation in canonical traversal order. */
+export function checkManifest(manifest: Manifest): Problem[] {
   const problems: Problem[] = [];
-  const seen = new Map<string, readonly PathSegment[]>();
-  for (const [key, timeline] of Object.entries(document.manifest.timelines)) {
-    const path = ["manifest", "timelines", key];
-    if (timeline.id !== key) {
-      problems.push(
-        problem(
-          ErrorCode.keyMismatch,
-          `timeline stored under ${JSON.stringify(key)} has id ${JSON.stringify(timeline.id)}`,
-          [...path, "id"],
-        ),
-      );
-    }
-    checkTimeline(timeline, path, seen, problems);
-  }
+  const ordered = canonicalOrder(manifest);
+  checkTimeline(ordered.timeline, ["timeline"], new Map(), problems);
   return problems;
 }

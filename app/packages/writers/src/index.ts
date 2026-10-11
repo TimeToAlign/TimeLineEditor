@@ -10,6 +10,6 @@ export const name = "@timetoalign/tilie-writers" as const;
 
 export type { PageOptions } from "./page.ts";
 export { formatNumber } from "./page.ts";
-export { writeSvg } from "./svg.ts";
+export { writeBlockSvg, writeSvg } from "./svg.ts";
 export type { TikzOptions } from "./tikz.ts";
 export { writeTikz } from "./tikz.ts";

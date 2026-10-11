@@ -1,10 +1,10 @@
 /**
- * Commands generated from the whole vocabulary against a current document.
+ * Manifest commands generated against a current manifest.
  *
  * A seed (a command kind and a few natural numbers) becomes a concrete
- * command once the document is known, so a sequence of seeds stays valid
+ * command once the manifest is known, so a sequence of seeds stays valid
  * input whatever the earlier commands did. Addresses are drawn from what the
- * document holds plus unknown ones; coordinates on the axis, off it (another
+ * manifest holds plus unknown ones; coordinates on the axis, off it (another
  * unit, another number type, past int64), negative and past the end;
  * payloads include ones the schema refuses. Every refusal a reducer can
  * produce is reachable.
@@ -12,8 +12,8 @@
 
 import { JsonFloat } from "@timetoalign/timeskeleton";
 import fc from "fast-check";
-import type { Document, TimelineManifest } from "../src/index.ts";
-import { COMMAND_TYPES } from "../src/index.ts";
+import type { Manifest, TimelineManifest } from "../src/index.ts";
+import { MANIFEST_COMMAND_TYPES } from "../src/index.ts";
 
 export interface Seed {
   readonly kind: number;
@@ -21,7 +21,7 @@ export interface Seed {
 }
 
 export const seedArbitrary: fc.Arbitrary<Seed> = fc.record({
-  kind: fc.nat({ max: COMMAND_TYPES.length - 1 }),
+  kind: fc.nat({ max: MANIFEST_COMMAND_TYPES.length - 1 }),
   picks: fc.array(fc.nat({ max: 1_000_000 }), { minLength: 8, maxLength: 8 }),
 });
 
@@ -34,13 +34,13 @@ interface Place {
   readonly parent: TimelineManifest | undefined;
 }
 
-function places(document: Document): Place[] {
+function places(manifest: Manifest): Place[] {
   const found: Place[] = [];
   const walk = (timeline: TimelineManifest, parent: TimelineManifest | undefined) => {
     found.push({ timeline, parent });
     for (const entry of Object.values(timeline.children)) walk(entry.timeline, timeline);
   };
-  for (const root of Object.values(document.manifest.timelines)) walk(root, undefined);
+  walk(manifest.timeline, undefined);
   return found;
 }
 
@@ -147,11 +147,11 @@ function flowEntry(kind: "break" | "jump", axis: Axis, picks: readonly number[])
   };
 }
 
-/** The concrete command a seed stands for in `document`. */
-export function commandFor(document: Document, seed: Seed): object {
-  const type = COMMAND_TYPES[seed.kind] as (typeof COMMAND_TYPES)[number];
+/** The concrete command a seed stands for in `manifest`. */
+export function commandFor(manifest: Manifest, seed: Seed): object {
+  const type = MANIFEST_COMMAND_TYPES[seed.kind] as (typeof MANIFEST_COMMAND_TYPES)[number];
   const [p0 = 0, p1 = 0, p2 = 0, p3 = 0, p4 = 0, p5 = 0] = seed.picks;
-  const all = places(document);
+  const all = places(manifest);
   const ids = [...all.map((place) => place.timeline.id), "ghost"];
   const id = pick(ids, p0);
   const place = all.find((item) => item.timeline.id === id);
@@ -164,12 +164,6 @@ export function commandFor(document: Document, seed: Seed): object {
   const markers = [...Object.keys(place?.timeline.flow_control.markers ?? {}), "m0", "m1"];
   const maps = [...(place?.timeline.conversion_maps.map((map) => map.id) ?? []), "map0"];
   switch (type) {
-    case "createTimeline":
-      return {
-        type,
-        ...newTimeline(p1 % 4 === 0 ? id : `n${p1 % 7}`, seed.picks.slice(2), undefined),
-      };
-    case "removeTimeline":
     case "removeChild":
       return { type, id };
     case "setName":
@@ -177,8 +171,7 @@ export function commandFor(document: Document, seed: Seed): object {
     case "setLength":
       return { type, id, length: coordinate(target, p1, p2) };
     case "addChild": {
-      const child =
-        p1 % 2 === 0 ? pick(ids, p2) : newTimeline(`c${p2 % 7}`, seed.picks.slice(3), target);
+      const child = newTimeline(`c${p2 % 7}`, seed.picks.slice(3), target);
       return { type, parent: id, offset: coordinate(target, p4, p5), child };
     }
     case "setChildOffset":

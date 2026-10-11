@@ -6,7 +6,7 @@
  *   core      -> nothing in the workspace; never svelte or anything DOM-only
  *   layout    -> core
  *   writers   -> layout, core
- *   arranger  -> layout, core          (may import svelte)
+ *   arranger  -> writers, layout, core (may import svelte)
  *   client    -> core
  *   editor    -> any workspace package (may import svelte)
  *
@@ -63,10 +63,10 @@ module.exports = {
       to: { path: allExcept("writers", "layout", "core") },
     },
     {
-      name: "arranger-imports-layout-and-core-only",
+      name: "arranger-imports-writers-layout-and-core-only",
       severity: "error",
       from: { path: "^packages/arranger/" },
-      to: { path: allExcept("arranger", "layout", "core") },
+      to: { path: allExcept("arranger", "writers", "layout", "core") },
     },
     {
       name: "client-imports-core-only",

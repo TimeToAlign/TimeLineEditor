@@ -1,15 +1,4 @@
-/**
- * Reading a command from any value, as an agent or a UI sends it.
- *
- * Numbers are read as timeskeleton's `parse` reads them: a plain integral
- * number or a `bigint` is a JSON integer (an integer beyond 2^53 must be a
- * `bigint`), a `JsonFloat` or a plain number with a fractional part is a
- * float. JavaScript numbers do not distinguish `2.0` from `2`, so an integral
- * float in a payload must be passed as a `JsonFloat`; a float coordinate
- * reads an integer as the float it equals, as timetoalign's
- * `number_from_json` does. Coordinates are normalized as the library
- * normalizes them.
- */
+/** Normalize and validate every workspace and manifest command. */
 
 import {
   JsonFloat,
@@ -31,6 +20,8 @@ import {
   NUMBER_TYPES,
   TIME_UNITS,
 } from "../number/coordinate.ts";
+import { RECORD_ID } from "../workspace/ids.ts";
+import { isIndex } from "../workspace/order.ts";
 import type { Command, CommandType } from "./types.ts";
 import { COMMAND_TYPES } from "./types.ts";
 
@@ -45,7 +36,16 @@ type Kind =
   | "break"
   | "jump"
   | "map"
-  | "child";
+  | "newTimeline"
+  | "recordId"
+  | "number"
+  | "positive"
+  | "manifest"
+  | "moves"
+  | "properties"
+  | "index"
+  | "ids"
+  | "settings";
 
 type Fields = { readonly [field: string]: { readonly kind: Kind; readonly optional?: true } };
 
@@ -58,19 +58,35 @@ const NEW_TIMELINE: Fields = {
   name: { kind: "nullableString", optional: true },
 };
 
+const BLOCK = { block: { kind: "recordId" } } as const;
 const FIELDS: { readonly [type in CommandType]: Fields } = {
-  createTimeline: NEW_TIMELINE,
-  removeTimeline: { id: { kind: "string" } },
-  setName: { id: { kind: "string" }, name: { kind: "nullableString" } },
-  setLength: { id: { kind: "string" }, length: { kind: "coordinate" } },
+  createBlock: {
+    id: { kind: "recordId" },
+    manifest: { kind: "manifest" },
+    x: { kind: "number" },
+    y: { kind: "number" },
+    scale: { kind: "positive", optional: true },
+    zoom: { kind: "positive", optional: true },
+  },
+  moveRecords: { moves: { kind: "moves" } },
+  resizeRecord: { id: { kind: "recordId" }, scale: { kind: "positive" } },
+  setRecordProperties: { id: { kind: "recordId" }, properties: { kind: "properties" } },
+  setIndex: { id: { kind: "recordId" }, index: { kind: "index" } },
+  deleteRecords: { ids: { kind: "ids" } },
+  setSettings: { settings: { kind: "settings" } },
+  setBlockManifest: { block: { kind: "recordId" }, manifest: { kind: "manifest" } },
+  setName: { ...BLOCK, id: { kind: "string" }, name: { kind: "nullableString" } },
+  setLength: { ...BLOCK, id: { kind: "string" }, length: { kind: "coordinate" } },
   addChild: {
+    ...BLOCK,
     parent: { kind: "string" },
     offset: { kind: "coordinate" },
-    child: { kind: "child" },
+    child: { kind: "newTimeline" },
   },
-  setChildOffset: { id: { kind: "string" }, offset: { kind: "coordinate" } },
-  removeChild: { id: { kind: "string" } },
+  setChildOffset: { ...BLOCK, id: { kind: "string" }, offset: { kind: "coordinate" } },
+  removeChild: { ...BLOCK, id: { kind: "string" } },
   addRegion: {
+    ...BLOCK,
     timeline: { kind: "string" },
     name: { kind: "string" },
     start: { kind: "coordinate" },
@@ -78,40 +94,49 @@ const FIELDS: { readonly [type in CommandType]: Fields } = {
     meta: { kind: "object", optional: true },
   },
   setRegion: {
+    ...BLOCK,
     timeline: { kind: "string" },
     name: { kind: "string" },
     start: { kind: "coordinate", optional: true },
     end: { kind: "coordinate", optional: true },
     meta: { kind: "object", optional: true },
   },
-  removeRegion: { timeline: { kind: "string" }, name: { kind: "string" } },
-  addBreak: { timeline: { kind: "string" }, break: { kind: "break" } },
-  removeBreak: { timeline: { kind: "string" }, break: { kind: "break" } },
-  addJump: { timeline: { kind: "string" }, jump: { kind: "jump" } },
-  removeJump: { timeline: { kind: "string" }, jump: { kind: "jump" } },
+  removeRegion: { ...BLOCK, timeline: { kind: "string" }, name: { kind: "string" } },
+  addBreak: { ...BLOCK, timeline: { kind: "string" }, break: { kind: "break" } },
+  removeBreak: { ...BLOCK, timeline: { kind: "string" }, break: { kind: "break" } },
+  addJump: { ...BLOCK, timeline: { kind: "string" }, jump: { kind: "jump" } },
+  removeJump: { ...BLOCK, timeline: { kind: "string" }, jump: { kind: "jump" } },
   setMarker: {
+    ...BLOCK,
     timeline: { kind: "string" },
     name: { kind: "string" },
     coordinate: { kind: "coordinate" },
   },
-  removeMarker: { timeline: { kind: "string" }, name: { kind: "string" } },
-  addConversionMap: { timeline: { kind: "string" }, map: { kind: "map" } },
-  removeConversionMap: { timeline: { kind: "string" }, map_id: { kind: "string" } },
+  removeMarker: { ...BLOCK, timeline: { kind: "string" }, name: { kind: "string" } },
+  addConversionMap: { ...BLOCK, timeline: { kind: "string" }, map: { kind: "map" } },
+  removeConversionMap: {
+    ...BLOCK,
+    timeline: { kind: "string" },
+    map_id: { kind: "string" },
+  },
 };
 
 const TIMELINE_CLASSES: readonly string[] = schema.$defs.TimelineClass.enum;
+const COLOUR = /^#[0-9A-F]{6}$/;
 
 function invalid(message: string, path: readonly PathSegment[]): CommandError {
   return problem(ErrorCode.invalidCommand, message, path);
 }
 
-/** Convert any value to an exact JSON value, or refuse it. */
-function toJson(value: unknown, path: readonly PathSegment[]): Json | CommandError {
+function toJson(value: unknown, path: readonly PathSegment[], canvas = false): Json | CommandError {
   if (value === null || typeof value === "boolean" || typeof value === "string") return value;
   if (typeof value === "bigint") return jsonInteger(value);
   if (value instanceof JsonFloat) return value;
   if (typeof value === "number") {
-    if (!Number.isFinite(value)) return invalid(`${value} has no JSON form`, path);
+    if (!Number.isFinite(value))
+      return canvas
+        ? problem(ErrorCode.nonFiniteNumber, "a canvas number must be finite", path)
+        : invalid(`${value} has no JSON form`, path);
     if (Object.is(value, -0)) return new JsonFloat(-0);
     if (Number.isInteger(value) && !Number.isSafeInteger(value)) {
       return invalid(`${value} is beyond 2^53; pass an integer as a bigint`, path);
@@ -121,7 +146,7 @@ function toJson(value: unknown, path: readonly PathSegment[]): Json | CommandErr
   if (Array.isArray(value)) {
     const items: Json[] = [];
     for (const [index, item] of value.entries()) {
-      const converted = toJson(item, [...path, index]);
+      const converted = toJson(item, [...path, index], canvas);
       if (isCommandError(converted)) return converted;
       items.push(converted);
     }
@@ -134,7 +159,7 @@ function toJson(value: unknown, path: readonly PathSegment[]): Json | CommandErr
     }
     const entries: [string, Json][] = [];
     for (const [key, item] of Object.entries(value)) {
-      const converted = toJson(item, [...path, key]);
+      const converted = toJson(item, [...path, key], canvas);
       if (isCommandError(converted)) return converted;
       entries.push([key, converted]);
     }
@@ -162,46 +187,38 @@ function coordinate(value: unknown, path: readonly PathSegment[]): CoordinateDic
   }
 }
 
-/** A timeline with nothing in it, for validating a member against the schema. */
-function host(members: JsonObject): Json {
+function host(members: JsonObject, graphical?: Json): Json {
   const axis = { unit: "number", number_type: "int" } as const;
   return {
     meta: { schema_version: SCHEMA_VERSION },
-    manifest: {
-      timelines: {
-        host: {
-          id: "host",
-          name: null,
-          class: "ContinuousLogicalTimeline",
-          ...axis,
-          length: { ...axis, value: 0n },
-          locked: false,
-          meta: {},
-          children: {},
-          conversion_maps: [],
-          regions: [],
-          flow_control: { breaks: [], jumps: [], markers: {} },
-          measure_map: null,
-          metric_hierarchy: null,
-          ...members,
-        },
-      },
+    timeline: {
+      id: "host",
+      name: null,
+      class: "ContinuousLogicalTimeline",
+      ...axis,
+      length: { ...axis, value: 0n },
+      locked: false,
+      meta: {},
+      children: {},
+      conversion_maps: [],
+      regions: [],
+      flow_control: { breaks: [], jumps: [], markers: {} },
+      measure_map: null,
+      metric_hierarchy: null,
+      ...members,
     },
+    ...(graphical === undefined ? {} : { graphical }),
   };
 }
 
-/**
- * Validate one member against its schema definition by placing it in an
- * otherwise empty document; `at` is where it sits there.
- */
 function schemaMember(
   value: Json,
-  document: Json,
+  container: Json,
   at: readonly PathSegment[],
   path: readonly PathSegment[],
 ): CommandError | undefined {
   try {
-    validate(document);
+    validate(container);
     return undefined;
   } catch (error) {
     if (!(error instanceof SchemaValidationError)) throw error;
@@ -214,9 +231,18 @@ function schemaMember(
   }
 }
 
-const FLOW_PATH = ["manifest", "timelines", "host", "flow_control"] as const;
+function exactObject(
+  value: unknown,
+  path: readonly PathSegment[],
+  allowed: readonly string[],
+): JsonObject | CommandError {
+  const converted = toJson(value, path, true);
+  if (isCommandError(converted)) return converted;
+  if (!isJsonObject(converted)) return invalid("expected an object", path);
+  const extra = Object.keys(converted).find((key) => !allowed.includes(key));
+  return extra === undefined ? converted : invalid(`unknown member ${extra}`, [...path, extra]);
+}
 
-/** Normalize the coordinate members of a break or jump. */
 function entryCoordinates(
   entry: JsonObject,
   keys: readonly string[],
@@ -229,6 +255,181 @@ function entryCoordinates(
     result[result.findIndex(([name]) => name === key)] = [key, read as unknown as Json];
   }
   return Object.fromEntries(result);
+}
+
+function finiteNumber(value: unknown, path: readonly PathSegment[]): number | CommandError {
+  if (typeof value !== "number") return invalid("expected a number", path);
+  if (!Number.isFinite(value)) {
+    return problem(ErrorCode.nonFiniteNumber, "a canvas number must be finite", path);
+  }
+  return value;
+}
+
+function positiveNumber(value: unknown, path: readonly PathSegment[]): number | CommandError {
+  const read = finiteNumber(value, path);
+  if (isCommandError(read)) return read;
+  return read > 0
+    ? read
+    : problem(ErrorCode.nonPositiveNumber, "the number must be positive", path);
+}
+
+function recordId(value: unknown, path: readonly PathSegment[]): string | CommandError {
+  if (typeof value !== "string" || !RECORD_ID.test(value)) {
+    return problem(ErrorCode.invalidRecordId, "expected a ten-character lowercase record id", path);
+  }
+  return value;
+}
+
+function styles(value: unknown, path: readonly PathSegment[]): Json | CommandError {
+  const converted = toJson(value, path);
+  if (isCommandError(converted)) return converted;
+  const refused = schemaMember(
+    converted,
+    host({}, { styles: converted }),
+    ["graphical", "styles"],
+    path,
+  );
+  return refused ?? converted;
+}
+
+function margins(value: unknown, path: readonly PathSegment[]): JsonObject | CommandError {
+  const input = exactObject(value, path, ["top", "right", "bottom", "left"]);
+  if (isCommandError(input)) return input;
+  const result: Record<string, number> = {};
+  for (const side of ["top", "right", "bottom", "left"] as const) {
+    if (!Object.hasOwn(input, side)) return invalid(`missing member ${side}`, [...path, side]);
+    const read = finiteNumber(input[side], [...path, side]);
+    if (isCommandError(read)) return read;
+    result[side] = read;
+  }
+  return result as unknown as JsonObject;
+}
+
+function nameColumn(value: unknown, path: readonly PathSegment[]): JsonObject | CommandError {
+  const input = exactObject(value, path, ["visible", "width"]);
+  if (isCommandError(input)) return input;
+  if (typeof input.visible !== "boolean")
+    return invalid("expected a boolean", [...path, "visible"]);
+  if (!Array.isArray(input.width) || input.width.length !== 2) {
+    return invalid("width must be a pair", [...path, "width"]);
+  }
+  const width: number[] = [];
+  for (const [index, value] of input.width.entries()) {
+    const read = finiteNumber(value, [...path, "width", index]);
+    if (isCommandError(read)) return read;
+    width.push(read);
+  }
+  return { visible: input.visible, width } as unknown as JsonObject;
+}
+
+function properties(value: unknown, path: readonly PathSegment[]): JsonObject | CommandError {
+  const input = exactObject(value, path, [
+    "zoom",
+    "margins",
+    "background",
+    "nameColumn",
+    "overrides",
+  ]);
+  if (isCommandError(input)) return input;
+  if (Object.keys(input).length === 0) return invalid("properties cannot be empty", path);
+  const result: [string, unknown][] = [];
+  for (const [key, value] of Object.entries(input)) {
+    let read: unknown;
+    if (key === "zoom") read = positiveNumber(value, [...path, key]);
+    else if (key === "margins") read = margins(value, [...path, key]);
+    else if (key === "nameColumn") read = nameColumn(value, [...path, key]);
+    else if (key === "overrides") read = styles(value, [...path, key]);
+    else if (value === null || (typeof value === "string" && COLOUR.test(value))) read = value;
+    else read = invalid("expected an upper-case #RRGGBB colour or null", [...path, key]);
+    if (isCommandError(read)) return read;
+    result.push([key, read]);
+  }
+  return Object.fromEntries(result) as JsonObject;
+}
+
+function settings(value: unknown, path: readonly PathSegment[]): JsonObject | CommandError {
+  const input = exactObject(value, path, ["styles", "blockDefaults", "grid"]);
+  if (isCommandError(input)) return input;
+  const result: [string, unknown][] = [];
+  if (input.styles !== undefined) {
+    const read = styles(input.styles, [...path, "styles"]);
+    if (isCommandError(read)) return read;
+    result.push(["styles", read]);
+  }
+  if (input.blockDefaults !== undefined) {
+    const defaults = exactObject(
+      input.blockDefaults,
+      [...path, "blockDefaults"],
+      ["scale", "zoom", "margins", "background", "nameColumn"],
+    );
+    if (isCommandError(defaults)) return defaults;
+    const parsed: [string, unknown][] = [];
+    for (const [key, item] of Object.entries(defaults)) {
+      let read: unknown;
+      if (key === "scale" || key === "zoom") {
+        read = positiveNumber(item, [...path, "blockDefaults", key]);
+      } else if (key === "margins") {
+        read = margins(item, [...path, "blockDefaults", key]);
+      } else if (key === "nameColumn") {
+        read = nameColumn(item, [...path, "blockDefaults", key]);
+      } else if (item === null || (typeof item === "string" && COLOUR.test(item))) read = item;
+      else
+        read = invalid("expected an upper-case #RRGGBB colour or null", [
+          ...path,
+          "blockDefaults",
+          key,
+        ]);
+      if (isCommandError(read)) return read;
+      parsed.push([key, read]);
+    }
+    result.push(["blockDefaults", Object.fromEntries(parsed)]);
+  }
+  if (input.grid !== undefined) {
+    const grid = exactObject(input.grid, [...path, "grid"], ["size", "snap"]);
+    if (isCommandError(grid)) return grid;
+    const parsed: [string, unknown][] = [];
+    if (grid.size !== undefined) {
+      const size = finiteNumber(grid.size, [...path, "grid", "size"]);
+      if (isCommandError(size)) return size;
+      parsed.push(["size", size]);
+    }
+    if (grid.snap !== undefined) {
+      if (typeof grid.snap !== "boolean")
+        return invalid("expected a boolean", [...path, "grid", "snap"]);
+      parsed.push(["snap", grid.snap]);
+    }
+    result.push(["grid", Object.fromEntries(parsed)]);
+  }
+  return Object.fromEntries(result) as JsonObject;
+}
+
+function moves(value: unknown, path: readonly PathSegment[]): Json | CommandError {
+  if (!Array.isArray(value)) return invalid("expected an array", path);
+  const result: Json[] = [];
+  for (const [index, item] of value.entries()) {
+    const at = [...path, index];
+    const input = exactObject(item, at, ["id", "x", "y"]);
+    if (isCommandError(input)) return input;
+    const id = recordId(input.id, [...at, "id"]);
+    if (isCommandError(id)) return id;
+    const x = finiteNumber(input.x, [...at, "x"]);
+    if (isCommandError(x)) return x;
+    const y = finiteNumber(input.y, [...at, "y"]);
+    if (isCommandError(y)) return y;
+    result.push({ id, x, y });
+  }
+  return result;
+}
+
+function ids(value: unknown, path: readonly PathSegment[]): Json | CommandError {
+  if (!Array.isArray(value)) return invalid("expected an array", path);
+  const result: string[] = [];
+  for (const [index, item] of value.entries()) {
+    const read = recordId(item, [...path, index]);
+    if (isCommandError(read)) return read;
+    result.push(read);
+  }
+  return result;
 }
 
 function parseField(kind: Kind, value: unknown, path: readonly PathSegment[]): unknown {
@@ -266,12 +467,15 @@ function parseField(kind: Kind, value: unknown, path: readonly PathSegment[]): u
       const refused = schemaMember(
         converted,
         host({ flow_control: { breaks: [], jumps: [], markers: {}, [list]: [converted] } }),
-        [...FLOW_PATH, list, 0],
+        ["timeline", "flow_control", list, 0],
         path,
       );
       if (refused !== undefined) return refused;
-      const keys = kind === "break" ? ["coordinate"] : ["from_coordinate", "to_coordinate"];
-      return entryCoordinates(converted as JsonObject, keys, path);
+      return entryCoordinates(
+        converted as JsonObject,
+        kind === "break" ? ["coordinate"] : ["from_coordinate", "to_coordinate"],
+        path,
+      );
     }
     case "map": {
       const converted = toJson(value, path);
@@ -280,14 +484,36 @@ function parseField(kind: Kind, value: unknown, path: readonly PathSegment[]): u
         schemaMember(
           converted,
           host({ conversion_maps: [converted] }),
-          ["manifest", "timelines", "host", "conversion_maps", 0],
+          ["timeline", "conversion_maps", 0],
           path,
         ) ?? converted
       );
     }
-    case "child":
-      if (typeof value === "string") return value;
+    case "newTimeline":
       return parseFields(NEW_TIMELINE, value, path, []);
+    case "recordId":
+      return recordId(value, path);
+    case "number":
+      return finiteNumber(value, path);
+    case "positive":
+      return positiveNumber(value, path);
+    case "manifest": {
+      const converted = toJson(value, path);
+      if (isCommandError(converted)) return converted;
+      return isJsonObject(converted) ? converted : invalid("expected a manifest object", path);
+    }
+    case "moves":
+      return moves(value, path);
+    case "properties":
+      return properties(value, path);
+    case "index":
+      return typeof value !== "string" || !isIndex(value)
+        ? problem(ErrorCode.invalidIndex, "expected a valid fractional index", path)
+        : value;
+    case "ids":
+      return ids(value, path);
+    case "settings":
+      return settings(value, path);
   }
 }
 
@@ -314,10 +540,6 @@ function parseFields(
   return Object.fromEntries(result) as JsonObject;
 }
 
-/**
- * Read a command, refusing a malformed one with the path of the offending
- * member. A command it returns is normalized and may be applied as is.
- */
 export function parseCommand(input: unknown): Command | CommandError {
   if (typeof input !== "object" || input === null || Array.isArray(input)) {
     return invalid("a command is a JSON object", []);

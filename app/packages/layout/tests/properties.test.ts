@@ -1,13 +1,13 @@
 /**
- * Properties of `layout` over documents edited by arbitrary command
+ * Properties of `layout` over manifests edited by arbitrary command
  * sequences (core's generator) and drawn under arbitrary style rules.
  */
 
 import {
-  apply,
-  type Command,
-  type Document,
+  applyToManifest,
   isCommandError,
+  type Manifest,
+  type ManifestCommand,
   type TimelineManifest,
 } from "@timetoalign/tilie-core";
 import { canonicalOrder, dumps, type StyleRule, validateGeometry } from "@timetoalign/timeskeleton";
@@ -15,7 +15,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { commandFor, sequenceArbitrary } from "../../core/tests/generate.ts";
 import { layout } from "../src/index.ts";
-import { documentNames, exact, load } from "./support.ts";
+import { BLOCK, exact, load, manifestNames } from "./support.ts";
 
 type Item = Record<string, unknown>;
 
@@ -41,7 +41,7 @@ const ruleArbitrary: fc.Arbitrary<StyleRule> = fc
   })
   .filter((rule) => Object.keys(rule.set).length > 0) as fc.Arbitrary<StyleRule>;
 
-/** A graphical block: document rules and rules of a few containers, known or not. */
+/** Graphical rules from the manifest and a few containers, known or not. */
 const graphicalArbitrary = fc.record({
   styles: fc.array(ruleArbitrary, { maxLength: 4 }),
   timelines: fc.dictionary(
@@ -80,7 +80,7 @@ const BANDS: Readonly<Record<string, string>> = {
 };
 
 /** Pairs of consecutive siblings in canonical order, at every depth. */
-function siblings(document: Document): [string, string][] {
+function siblings(manifest: Manifest): [string, string][] {
   const pairs: [string, string][] = [];
   const visit = (timeline: TimelineManifest) => {
     const children = Object.values(timeline.children).map((entry) => entry.timeline);
@@ -92,68 +92,67 @@ function siblings(document: Document): [string, string][] {
     }
     for (const child of children) visit(child);
   };
-  const ordered = canonicalOrder(document as never) as unknown as Document;
-  for (const root of Object.values(ordered.manifest.timelines)) {
-    visit(root as unknown as TimelineManifest);
-  }
+  const ordered = canonicalOrder(manifest as never) as unknown as Manifest;
+  visit(ordered.timeline);
   return pairs;
 }
 
-function check(document: Document): void {
-  const text = dumps(layout(document) as never);
-  expect(dumps(layout(document) as never)).toBe(text);
-  const geometry = layout(document);
-  validateGeometry(geometry);
-  const pairs = siblings(document);
-  for (const block of (geometry as unknown as { blocks: Item[] }).blocks) {
-    const rows = block.rows as { min: number; max: number };
-    const items = block.primitives as Item[];
-    const placed = items.filter((item) => BANDS[item.kind as string] !== undefined);
-    for (const item of items) {
-      if (typeof item.row === "number") {
-        expect(item.row >= rows.min && item.row <= rows.max).toBe(true);
-      }
+function check(manifest: Manifest): void {
+  const text = dumps(layout(manifest) as never);
+  expect(dumps(layout(manifest) as never)).toBe(text);
+  const block = layout(manifest) as unknown as Item;
+  validateGeometry({ meta: { schema_version: "0.3.0" }, blocks: [block] });
+  const pairs = siblings(manifest);
+  const rows = block.rows as { min: number; max: number };
+  const items = block.primitives as Item[];
+  const placed = items.filter((item) => BANDS[item.kind as string] !== undefined);
+  for (const item of items) {
+    if (typeof item.row === "number") {
+      expect(item.row >= rows.min && item.row <= rows.max).toBe(true);
     }
-    placed.forEach((left, index) => {
-      for (const right of placed.slice(index + 1)) {
-        if (BANDS[left.kind as string] !== BANDS[right.kind as string] || left.row !== right.row) {
-          continue;
-        }
-        expect(conflicts(extent(left), extent(right)), `${left.id} and ${right.id}`).toBe(false);
+  }
+  placed.forEach((left, index) => {
+    for (const right of placed.slice(index + 1)) {
+      if (BANDS[left.kind as string] !== BANDS[right.kind as string] || left.row !== right.row) {
+        continue;
       }
-    });
-    const lines = new Map(
-      items.filter((item) => item.kind === "child").map((item) => [item.id as string, item]),
-    );
-    const order = items.filter((item) => item.kind === "child");
-    for (const [first, second] of pairs) {
-      const a = lines.get(first);
-      const b = lines.get(second);
-      if (a === undefined || b === undefined) continue;
-      if (Math.sign(a.row as number) !== Math.sign(b.row as number)) continue;
-      if (exact(b.start).compare(exact(a.end)) !== 0 || a.row === b.row) continue;
-      // First fit: b takes a nearer row than its contiguous predecessor's, or
-      // something placed before it blocks that row.
-      if (Math.abs(b.row as number) < Math.abs(a.row as number)) continue;
-      const blockers = order
-        .slice(0, order.indexOf(b))
-        .filter((item) => item.row === a.row && conflicts(extent(item), extent(b)));
-      expect(blockers.length > 0, `${second} could share the row of ${first}`).toBe(true);
+      expect(conflicts(extent(left), extent(right)), `${left.id} and ${right.id}`).toBe(false);
     }
+  });
+  const lines = new Map(
+    items.filter((item) => item.kind === "child").map((item) => [item.id as string, item]),
+  );
+  const order = items.filter((item) => item.kind === "child");
+  for (const [first, second] of pairs) {
+    const a = lines.get(first);
+    const b = lines.get(second);
+    if (a === undefined || b === undefined) continue;
+    if (Math.sign(a.row as number) !== Math.sign(b.row as number)) continue;
+    if (exact(b.start).compare(exact(a.end)) !== 0 || a.row === b.row) continue;
+    // First fit: b takes a nearer row than its contiguous predecessor's, or
+    // something placed before it blocks that row.
+    if (Math.abs(b.row as number) < Math.abs(a.row as number)) continue;
+    const blockers = order
+      .slice(0, order.indexOf(b))
+      .filter((item) => item.row === a.row && conflicts(extent(item), extent(b)));
+    expect(blockers.length > 0, `${second} could share the row of ${first}`).toBe(true);
   }
 }
 
-describe("layout over edited documents", () => {
-  it.each(documentNames())("holds its properties from %s", (name) => {
+describe("layout over edited manifests", () => {
+  it.each(manifestNames())("holds its properties from %s", (name) => {
     const start = load(name);
     fc.assert(
       fc.property(sequenceArbitrary, graphicalArbitrary, (seeds, graphical) => {
-        let document: Document = start;
+        let manifest: Manifest = start;
         for (const seed of seeds) {
-          const result = apply(document, commandFor(document, seed) as Command);
-          if (!isCommandError(result)) document = result;
+          const result = applyToManifest(manifest, {
+            block: BLOCK,
+            ...commandFor(manifest, seed),
+          } as ManifestCommand);
+          if (!isCommandError(result)) manifest = result;
         }
-        check({ ...document, graphical } as Document);
+        check({ ...manifest, graphical });
       }),
       { numRuns: 12 },
     );

@@ -132,7 +132,7 @@ describe("the package ladder", () => {
       core: [],
       layout: ["core"],
       writers: ["core", "layout"],
-      arranger: ["core", "layout"],
+      arranger: ["core", "layout", "writers"],
       client: ["core"],
       editor: ["core", "layout", "writers", "arranger", "client"],
     };
@@ -140,7 +140,7 @@ describe("the package ladder", () => {
       core: "core-imports-no-workspace-package",
       layout: "layout-imports-core-only",
       writers: "writers-imports-layout-and-core-only",
-      arranger: "arranger-imports-layout-and-core-only",
+      arranger: "arranger-imports-writers-layout-and-core-only",
       client: "client-imports-core-only",
     };
     const expected: string[] = [];
@@ -165,7 +165,7 @@ describe("the package ladder", () => {
     expect(
       violations.map((v) => `${v.from.split("/")[1]}: ${v.rule.name}: ${v.to}`).sort(),
     ).toEqual(expected.sort());
-    expect(status).toBe(23);
+    expect(status).toBe(22);
   });
 
   it("rejects DOM-only modules in core", () => {

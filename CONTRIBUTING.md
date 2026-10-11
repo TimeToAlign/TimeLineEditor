@@ -4,9 +4,12 @@ TiLiE is a pnpm TypeScript workspace with a Svelte 5 application and a separate 
 
 ## Setup
 
-Install Node.js 22.18 or newer, pnpm 12.10.1, Python 3.11 or newer, and uv. Then prepare both parts of the repository:
+Install Node.js 22.18 or newer, pnpm 12.10.1, Python 3.11 or newer, and uv.
+
+The application packages consume schema 0.4.0 of `@timetoalign/timeskeleton`, which is not published yet, so they link the JavaScript package of a timeskeleton checkout beside this repository (`link:../../../../timeskeleton/js` in `core`, `layout` and `writers`). Clone it next to TimeLineEditor and build its package before installing; when 0.4.0 is published, the link is replaced by a registry range. Then prepare both parts of the repository:
 
 ```bash
+(cd ../timeskeleton/js && pnpm install && pnpm build)
 cd app
 pnpm install
 cd ../server
@@ -37,9 +40,9 @@ uv run tilie --check --no-browser
 
 Build the application before building a distributable server wheel. The server build hook copies `app/packages/editor/dist` into the wheel; the CI workflow verifies this and runs the installed wheel's self-check. For a development build, run `uv run tilie --check --static-dir ../app/packages/editor/dist` from `server/`.
 
-The writers' compile test runs every golden TikZ figure through `lualatex`, which needs TikZ, the `standalone` class, `fontspec` and the DejaVu Sans font (on Ubuntu: `texlive-luatex`, `texlive-latex-recommended`, `texlive-latex-extra`, `texlive-pictures`, `fonts-dejavu-core`). Without `lualatex` the test is skipped; set `TILIE_REQUIRE_LUALATEX=1` to make its absence a failure, as the `tikz` CI job does.
+The writers' compile test runs each of the 16 TikZ fixtures that `figures.test.ts` reproduces through `lualatex`, which needs TikZ, the `standalone` class, `fontspec` and the DejaVu Sans font (on Ubuntu: `texlive-luatex`, `texlive-latex-recommended`, `texlive-latex-extra`, `texlive-pictures`, `fonts-dejavu-core`). Without `lualatex` the test is skipped; set `TILIE_REQUIRE_LUALATEX=1` to make its absence a failure, as the `tikz` CI job does.
 
-The golden geometry and figures belong to timeskeleton. After a change to `layout` or the writers that the geometry specification calls for, regenerate them from `app/packages/writers/` with `node scripts/emit-geometry.ts /path/to/timeskeleton` and review the diff there; the script refuses to run unless `layout` reproduces the hand-derived geometries, and refuses to overwrite the goldens of a released schema version.
+The SVG and TikZ fixtures that pin the drawing belong to timeskeleton; there is no geometry schema from 0.4.0 on, and the geometry JSON is internal to TiLiE. After a change to `layout` or the writers that the geometry specification calls for, write them from `app/packages/writers/` with `node scripts/emit-geometry.ts /path/to/timeskeleton` and review the diff there. The script writes `figure.svg` and `figure.tex` of every manifest under `fixtures/<version>/drawings/<name>/`, and nothing unless `layout` reproduces each hand-derived SVG that `fixtures/<version>/drawings/README.md` lists; it refuses a version without that README, a version whose tag exists, and 0.3.0, whose fixtures are frozen. timeskeleton has no drawings for 0.4.0 yet, so today the script writes nothing.
 
 Each package and the server has a `tests/README.md`. Update the appropriate readme first with the validation logic and exact expected values, then write the test.
 
@@ -47,11 +50,11 @@ Each package and the server has a `tests/README.md`. Update the appropriate read
 
 Add an ADR in [`decisions/`](decisions/) before adding a dependency. The record must use the repository's MADR structure, compare writing it ourselves, identify the audited version, and set a review date.
 
-Manifests declare compatible ranges for runtime and peer dependencies, such as `fastapi>=0.141,<1` and `uvicorn[standard]>=0.53,<1` in the server and the optional peer `yjs` `^13.6.33` in `app/packages/core`; development dependencies, the npm `devDependencies` and the server's `dev` group, are pinned exactly. The lockfiles, `server/uv.lock` and `app/pnpm-lock.yaml`, pin every resolved version. Enter only versions released at least 14 days before they enter a lockfile, and name the audited version in its ADR; the one exception to that window is this project's own schema package, `@timetoalign/timeskeleton` (`minimumReleaseAgeExclude` in `app/pnpm-workspace.yaml`). This is the dependency policy; do not treat a compatible manifest range as an error by itself.
+Package manifests declare compatible ranges for runtime and peer dependencies, such as `fastapi>=0.141,<1` and `uvicorn[standard]>=0.53,<1` in the server and the optional peer `yjs` `^13.6.33` in `app/packages/core`; development dependencies, the npm `devDependencies` and the server's `dev` group, are pinned exactly. The lockfiles, `server/uv.lock` and `app/pnpm-lock.yaml`, pin every resolved version. Enter only versions released at least 14 days before they enter a lockfile, and name the audited version in its ADR; the one exception to that window is this project's own schema package, `@timetoalign/timeskeleton` (`minimumReleaseAgeExclude` in `app/pnpm-workspace.yaml`). This is the dependency policy; do not treat a compatible manifest range as an error by itself.
 
 ## Packages
 
-The ladder is enforced by [`app/.dependency-cruiser.cjs`](app/.dependency-cruiser.cjs): core has no workspace dependency; layout and client may depend on core; writers and arranger may depend on layout and core; editor may depend on every workspace package. Only arranger and editor may import Svelte.
+The ladder is enforced by [`app/.dependency-cruiser.cjs`](app/.dependency-cruiser.cjs): core has no workspace dependency; layout and client may depend on core; writers may depend on layout and core; arranger may depend on writers, layout and core; editor may depend on every workspace package. Only arranger and editor may import Svelte.
 
 When adding a package, first establish a present need. Add its permitted edges to the dependency-cruiser configuration and the workspace ladder tests, keep it below the packages that consume it, and write its test readme before behavior tests. Do not put UI, DOM, or transport code into core.
 

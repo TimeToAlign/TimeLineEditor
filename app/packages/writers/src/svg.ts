@@ -1,10 +1,10 @@
 /**
- * `writeSvg(geometry, options)`: the SVG profile of the geometry
+ * `writeSvg(block, options)`: the SVG profile of one geometry block
  * specification (`docs/geometry.md` in timeskeleton, section 8.4).
  */
 
 import type { JsonObject, Rational } from "@timetoalign/tilie-core";
-import type { LosslessGeometry } from "@timetoalign/tilie-layout";
+import type { LosslessBlock } from "@timetoalign/tilie-layout";
 import {
   exact,
   fmt,
@@ -181,20 +181,29 @@ export function arc(
   return { start: [from, yb], first: [from, yc], second: [to, yc], end: [to, yb] };
 }
 
-/** Write a geometry as SVG text. */
-export function writeSvg(geometry: LosslessGeometry, options: PageOptions = {}): string {
-  const placed = page(geometry, options, false);
+function blockElements(block: PlacedBlock, width: Rational): string[] {
+  const lines = [
+    `<rect x="0" y="${fmt(block.top)}" width="${fmt(width)}" height="${fmt(block.bottom.subtract(block.top))}" fill="${block.block.background as string}"/>`,
+  ];
+  for (const item of block.primitives) lines.push(...primitive(item, block));
+  return lines;
+}
+
+/** Write one block as a standalone SVG page. */
+export function writeSvg(block: LosslessBlock, options: PageOptions = {}): string {
+  const placed = page(block, options, false);
   const width = placed.width.add(MARGIN).add(MARGIN);
   const height = placed.height.add(MARGIN).add(MARGIN);
   const lines = [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${fmt(width)}" height="${fmt(height)}" viewBox="${fmt(MARGIN.multiply(q(-1)))} ${fmt(MARGIN.multiply(q(-1)))} ${fmt(width)} ${fmt(height)}" font-family="DejaVu Sans, sans-serif" font-size="7">`,
+    ...blockElements(placed.block, placed.width),
   ];
-  for (const block of placed.blocks) {
-    lines.push(
-      `<rect x="0" y="${fmt(block.top)}" width="${fmt(placed.width)}" height="${fmt(block.bottom.subtract(block.top))}" fill="${block.block.background as string}"/>`,
-    );
-    for (const item of block.primitives) lines.push(...primitive(item, block));
-  }
   lines.push("</svg>");
   return `${lines.join("\n")}\n`;
+}
+
+/** Write the SVG group of one block, its top-left at the group origin; the group carries no transform. */
+export function writeBlockSvg(block: LosslessBlock, options: PageOptions = {}): string {
+  const placed = page(block, options, false);
+  return `${["<g>", ...blockElements(placed.block, placed.width), "</g>"].join("\n")}\n`;
 }

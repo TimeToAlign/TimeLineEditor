@@ -1,21 +1,21 @@
 /** Values derived by hand from the page, formatting and profile rules. */
 
 import { Rational } from "@timetoalign/tilie-core";
-import type { LosslessGeometry } from "@timetoalign/tilie-layout";
+import type { LosslessBlock } from "@timetoalign/tilie-layout";
 import { JsonFloat } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
 import { formatNumber, writeSvg, writeTikz } from "../src/index.ts";
-import { geometry } from "./support.ts";
+import { block } from "./support.ts";
 
 type Item = Record<string, unknown>;
 
 const lines = (text: string): string[] => text.split("\n");
 
-/** The bare golden with its blocks changed by `edit`. */
-function edited(name: string, edit: (blocks: Item[]) => void): LosslessGeometry {
-  const value = geometry(name) as unknown as { blocks: Item[] };
-  edit(value.blocks);
-  return value as unknown as LosslessGeometry;
+/** A generated block changed by `edit`. */
+function edited(name: string, edit: (value: Item) => void): LosslessBlock {
+  const value = structuredClone(block(name)) as unknown as Item;
+  edit(value);
+  return value as unknown as LosslessBlock;
 }
 
 describe("number formatting", () => {
@@ -41,8 +41,8 @@ describe("number formatting", () => {
 });
 
 describe("the page of bare", () => {
-  const svg = lines(writeSvg(geometry("bare")));
-  const tikz = lines(writeTikz(geometry("bare")));
+  const svg = lines(writeSvg(block("bare")));
+  const tikz = lines(writeTikz(block("bare")));
 
   it("is 432 by 64 with a margin of 16", () => {
     expect(svg[0]).toBe(
@@ -69,7 +69,7 @@ describe("the page of bare", () => {
 });
 
 describe("the page of flow_control", () => {
-  const svg = lines(writeSvg(geometry("flow_control")));
+  const svg = lines(writeSvg(block("flow_control")));
 
   it("draws the break at 320 from 0 to 64", () => {
     expect(svg[2]).toBe(
@@ -85,23 +85,9 @@ describe("the page of flow_control", () => {
   });
 });
 
-describe("blocks", () => {
-  it("are stacked with a gap of 16", () => {
-    const value = edited("bare", (blocks) => {
-      const second = structuredClone(blocks[0] as Item);
-      second.rows = { min: -1, max: 0 };
-      second.primitives = [];
-      blocks.push(second);
-    });
-    const svg = lines(writeSvg(value));
-    expect(svg[0]).toContain('height="144" viewBox="-16 -16 432 144"');
-    expect(svg).toContain('<rect x="0" y="48" width="400" height="64" fill="#BAC8D3"/>');
-  });
-});
-
 describe("the name column", () => {
   const named = (width: number) =>
-    lines(writeSvg(geometry("bare"), { width })).filter((line) => line.includes("start"));
+    lines(writeSvg(block("bare"), { width })).filter((line) => line.includes("start"));
 
   it("cuts a name to the code points that fit, with an ellipsis", () => {
     expect(named(100)).toEqual([
@@ -116,8 +102,8 @@ describe("the name column", () => {
 
 describe("text", () => {
   const withText = (text: string) =>
-    edited("bare", (blocks) => {
-      const label = ((blocks[0] as Item).primitives as Item[]).find(
+    edited("bare", (value) => {
+      const label = (value.primitives as Item[]).find(
         (item) => item.id === "bare/end/label",
       ) as Item;
       label.text = text;
@@ -134,8 +120,8 @@ describe("text", () => {
   });
 
   it("rotates a label about its point", () => {
-    const value = edited("bare", (blocks) => {
-      const label = ((blocks[0] as Item).primitives as Item[]).find(
+    const value = edited("bare", (blockValue) => {
+      const label = (blockValue.primitives as Item[]).find(
         (item) => item.id === "bare/end/label",
       ) as Item;
       label.rotate = 90;
@@ -144,8 +130,8 @@ describe("text", () => {
       '<text x="400" y="27.25" text-anchor="middle" transform="rotate(-90 400 20)" fill="#000000">',
     );
     expect(writeTikz(value)).toContain("\\node[anchor=north,rotate=90,text=ts000000] at (400,12)");
-    const float = edited("bare", (blocks) => {
-      const label = ((blocks[0] as Item).primitives as Item[]).find(
+    const float = edited("bare", (blockValue) => {
+      const label = (blockValue.primitives as Item[]).find(
         (item) => item.id === "bare/end/label",
       ) as Item;
       label.rotate = new JsonFloat(45);
@@ -156,16 +142,16 @@ describe("text", () => {
 
 describe("unknown kinds and options", () => {
   it("skips a primitive of a kind this version does not know", () => {
-    const value = edited("bare", (blocks) => {
-      ((blocks[0] as Item).primitives as Item[]).push({ kind: "strip", colour: "#123456" });
+    const value = edited("bare", (blockValue) => {
+      (blockValue.primitives as Item[]).push({ kind: "strip", colour: "#123456" });
     });
-    expect(writeSvg(value)).toBe(writeSvg(geometry("bare")));
-    expect(writeTikz(value)).toBe(writeTikz(geometry("bare")));
+    expect(writeSvg(value)).toBe(writeSvg(block("bare")));
+    expect(writeTikz(value)).toBe(writeTikz(block("bare")));
   });
 
   it("writes the picture alone without the preamble", () => {
-    const full = lines(writeTikz(geometry("bare")));
-    const picture = lines(writeTikz(geometry("bare"), { standalone: false }));
+    const full = lines(writeTikz(block("bare")));
+    const picture = lines(writeTikz(block("bare"), { standalone: false }));
     expect(picture).toEqual([...full.slice(6, -2), ""]);
     expect(picture[0]?.startsWith("\\begin{tikzpicture}")).toBe(true);
   });

@@ -1,11 +1,5 @@
 /**
- * The TimeSkeleton document as `core` holds it: exactly the value
- * timeskeleton's `parse` returns for a valid document, its numbers
- * `JsonNumber`s (the runtime form of `Lossless<TimeSkeletonDocument>`),
- * typed member by member.
- *
- * The shapes follow the published schema of `@timetoalign/timeskeleton`;
- * a timeline manifest is timetoalign's `Timeline.to_dict()` without events.
+ * One schema-0.4.0 TimeSkeleton manifest, held losslessly member by member.
  */
 
 import type {
@@ -52,7 +46,7 @@ export type FlowControl = {
   readonly markers: { readonly [name: string]: CoordinateDict };
 };
 
-/** A conversion map payload, carried verbatim; the schema's `ConversionMap`. */
+/** A conversion map payload, carried verbatim. */
 export type ConversionMap = JsonObject & {
   readonly type: string;
   readonly id: string;
@@ -81,15 +75,15 @@ export type TimelineManifest = {
   readonly metric_hierarchy: JsonObject | null;
 };
 
-export type DocumentMeta = {
+export type ManifestMeta = {
   readonly schema_version: string;
   readonly generator?: string;
 };
 
-export type Document = {
-  readonly meta: DocumentMeta;
-  readonly manifest: { readonly timelines: { readonly [id: string]: TimelineManifest } };
-  /** How the document is drawn: its style rules. Absent, every component has its default style. */
+export type Manifest = {
+  readonly meta: ManifestMeta;
+  readonly timeline: TimelineManifest;
+  /** Styling owned by this manifest's elements, never by the canvas. */
   readonly graphical?: Graphical;
 };
 

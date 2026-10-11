@@ -1,16 +1,18 @@
-/**
- * The command vocabulary: every edit of a document is one of these plain
- * JSON objects, discriminated by `type`. A timeline is addressed by its id,
- * a region or marker by its name, a conversion map by its id, a break or a
- * jump by its full value; never by an array index.
- */
+/** Every serializable command understood by the workspace reducer. */
 
-import type { NumberType, TimelineClass, TimeUnit } from "@timetoalign/timeskeleton";
-import type { Break, ConversionMap, Jump } from "../document/types.ts";
+import type {
+  Colour,
+  NumberType,
+  StyleRules,
+  TimelineClass,
+  TimeUnit,
+} from "@timetoalign/timeskeleton";
 import type { JsonObject } from "../json.ts";
+import type { Break, ConversionMap, Jump, Manifest } from "../manifest/types.ts";
 import type { CoordinateDict } from "../number/coordinate.ts";
+import type { Margins, NameColumn, RecordId } from "../workspace/records.ts";
+import type { WorkspaceSettings } from "../workspace/view.ts";
 
-/** A timeline to create. Its class, unit and number type never change afterwards. */
 export type NewTimeline = {
   readonly id: string;
   readonly class: TimelineClass;
@@ -20,37 +22,33 @@ export type NewTimeline = {
   readonly name?: string | null;
 };
 
-export type CreateTimeline = { readonly type: "createTimeline" } & NewTimeline;
-/** Remove a root timeline and everything nested in it. */
-export type RemoveTimeline = { readonly type: "removeTimeline"; readonly id: string };
-export type SetName = {
+interface InBlock {
+  readonly block: RecordId;
+}
+
+export type SetName = InBlock & {
   readonly type: "setName";
   readonly id: string;
   readonly name: string | null;
 };
-export type SetLength = {
+export type SetLength = InBlock & {
   readonly type: "setLength";
   readonly id: string;
   readonly length: CoordinateDict;
 };
-/**
- * Nest a timeline under `parent` at `offset`: a new one, or an existing root
- * named by its id. The child is locked, as timetoalign locks it.
- */
-export type AddChild = {
+export type AddChild = InBlock & {
   readonly type: "addChild";
   readonly parent: string;
   readonly offset: CoordinateDict;
-  readonly child: string | NewTimeline;
+  readonly child: NewTimeline;
 };
-export type SetChildOffset = {
+export type SetChildOffset = InBlock & {
   readonly type: "setChildOffset";
   readonly id: string;
   readonly offset: CoordinateDict;
 };
-/** Remove a nested timeline and everything nested in it. */
-export type RemoveChild = { readonly type: "removeChild"; readonly id: string };
-export type AddRegion = {
+export type RemoveChild = InBlock & { readonly type: "removeChild"; readonly id: string };
+export type AddRegion = InBlock & {
   readonly type: "addRegion";
   readonly timeline: string;
   readonly name: string;
@@ -58,8 +56,7 @@ export type AddRegion = {
   readonly end: CoordinateDict;
   readonly meta?: JsonObject;
 };
-/** Change a region's start, end or meta; at least one is given. */
-export type SetRegion = {
+export type SetRegion = InBlock & {
   readonly type: "setRegion";
   readonly timeline: string;
   readonly name: string;
@@ -67,56 +64,54 @@ export type SetRegion = {
   readonly end?: CoordinateDict;
   readonly meta?: JsonObject;
 };
-export type RemoveRegion = {
+export type RemoveRegion = InBlock & {
   readonly type: "removeRegion";
   readonly timeline: string;
   readonly name: string;
 };
-export type AddBreak = {
+export type AddBreak = InBlock & {
   readonly type: "addBreak";
   readonly timeline: string;
   readonly break: Break;
 };
-/** Remove the first break equal to `break`, in canonical order. */
-export type RemoveBreak = {
+export type RemoveBreak = InBlock & {
   readonly type: "removeBreak";
   readonly timeline: string;
   readonly break: Break;
 };
-export type AddJump = { readonly type: "addJump"; readonly timeline: string; readonly jump: Jump };
-/** Remove the first jump equal to `jump`, in canonical order. */
-export type RemoveJump = {
+export type AddJump = InBlock & {
+  readonly type: "addJump";
+  readonly timeline: string;
+  readonly jump: Jump;
+};
+export type RemoveJump = InBlock & {
   readonly type: "removeJump";
   readonly timeline: string;
   readonly jump: Jump;
 };
-/** Add a marker, or move an existing one. */
-export type SetMarker = {
+export type SetMarker = InBlock & {
   readonly type: "setMarker";
   readonly timeline: string;
   readonly name: string;
   readonly coordinate: CoordinateDict;
 };
-export type RemoveMarker = {
+export type RemoveMarker = InBlock & {
   readonly type: "removeMarker";
   readonly timeline: string;
   readonly name: string;
 };
-/** Attach a conversion map; the payload is carried verbatim. */
-export type AddConversionMap = {
+export type AddConversionMap = InBlock & {
   readonly type: "addConversionMap";
   readonly timeline: string;
   readonly map: ConversionMap;
 };
-export type RemoveConversionMap = {
+export type RemoveConversionMap = InBlock & {
   readonly type: "removeConversionMap";
   readonly timeline: string;
   readonly map_id: string;
 };
 
-export type Command =
-  | CreateTimeline
-  | RemoveTimeline
+export type ManifestCommand =
   | SetName
   | SetLength
   | AddChild
@@ -134,12 +129,83 @@ export type Command =
   | AddConversionMap
   | RemoveConversionMap;
 
+export type CreateBlock = {
+  readonly type: "createBlock";
+  readonly id: RecordId;
+  readonly manifest: Manifest;
+  readonly x: number;
+  readonly y: number;
+  readonly scale?: number;
+  readonly zoom?: number;
+};
+export type MoveRecords = {
+  readonly type: "moveRecords";
+  readonly moves: readonly { readonly id: RecordId; readonly x: number; readonly y: number }[];
+};
+export type ResizeRecord = {
+  readonly type: "resizeRecord";
+  readonly id: RecordId;
+  readonly scale: number;
+};
+export type SetRecordProperties = {
+  readonly type: "setRecordProperties";
+  readonly id: RecordId;
+  readonly properties: {
+    readonly zoom?: number;
+    readonly margins?: Margins;
+    readonly background?: Colour | null;
+    readonly nameColumn?: NameColumn;
+    readonly overrides?: StyleRules;
+  };
+};
+export type SetIndex = {
+  readonly type: "setIndex";
+  readonly id: RecordId;
+  readonly index: string;
+};
+export type DeleteRecords = {
+  readonly type: "deleteRecords";
+  readonly ids: readonly RecordId[];
+};
+export type SetSettings = {
+  readonly type: "setSettings";
+  readonly settings: {
+    readonly styles?: StyleRules;
+    readonly blockDefaults?: Partial<WorkspaceSettings["blockDefaults"]>;
+    readonly grid?: Partial<WorkspaceSettings["grid"]>;
+  };
+};
+export type SetBlockManifest = {
+  readonly type: "setBlockManifest";
+  readonly block: RecordId;
+  readonly manifest: Manifest;
+};
+
+export type RecordCommand =
+  | CreateBlock
+  | MoveRecords
+  | ResizeRecord
+  | SetRecordProperties
+  | SetIndex
+  | DeleteRecords
+  | SetSettings
+  | SetBlockManifest;
+
+export type Command = RecordCommand | ManifestCommand;
 export type CommandType = Command["type"];
 
-/** Every command type, in the order of the vocabulary. */
-export const COMMAND_TYPES = [
-  "createTimeline",
-  "removeTimeline",
+export const RECORD_COMMAND_TYPES = [
+  "createBlock",
+  "moveRecords",
+  "resizeRecord",
+  "setRecordProperties",
+  "setIndex",
+  "deleteRecords",
+  "setSettings",
+  "setBlockManifest",
+] as const satisfies readonly RecordCommand["type"][];
+
+export const MANIFEST_COMMAND_TYPES = [
   "setName",
   "setLength",
   "addChild",
@@ -156,4 +222,11 @@ export const COMMAND_TYPES = [
   "removeMarker",
   "addConversionMap",
   "removeConversionMap",
+] as const satisfies readonly ManifestCommand["type"][];
+
+export const COMMAND_TYPES = [
+  ...RECORD_COMMAND_TYPES,
+  ...MANIFEST_COMMAND_TYPES,
 ] as const satisfies readonly CommandType[];
+
+export type BlockProperties = SetRecordProperties["properties"];

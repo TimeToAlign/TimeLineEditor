@@ -1,10 +1,10 @@
 # TimeLineEditor (TiLiE)
 
-TiLiE is a local browser editor and visualization tool for musical timelines represented by the Python `timetoalign` library. Its canonical document is a TimeSkeleton document: timelines with exact rational coordinates, child offsets, conversion maps, regions, flow control, measure maps, and metric hierarchies.
+TiLiE is a local browser editor and visualization tool for musical timelines represented by the Python `timetoalign` library. It edits a **workspace**, a canvas of records. Its main record, the **block**, places one **manifest** on the canvas: a TimeSkeleton manifest describes one timeline with exact rational coordinates, child offsets, conversion maps, regions, flow control, measure maps, and metric hierarchies, and knows nothing about where it is shown.
 
-**Status: alpha.** `tilie-server` 0.1.0 installs from PyPI, serves the bundled editor shell on `127.0.0.1` with a fresh token for each run, and reports its health; it does not edit anything yet. In the source tree, the `core` package holds the editable TimeSkeleton document: exact numbers, validated load and save, eighteen commands with the library's invariants, and a Yjs binding with undo. The `layout` package draws a document as geometry, and the `writers` package writes that geometry as SVG and TikZ text, both as the [timeskeleton geometry specification](https://github.com/TimeToAlign/timeskeleton/blob/main/docs/geometry.md) defines them. The editor shell does not use these packages yet.
+**Status: alpha.** `tilie-server` 0.1.0 installs from PyPI, serves the bundled editor shell on `127.0.0.1` with a fresh token for each run, and reports its health; it does not edit anything yet. In the source tree, the `core` package holds the workspace and its manifests in memory: exact numbers, validated manifest load and save, the workspace view with its records, ids and order keys, twenty-four commands with the library's invariants, and a Yjs binding of one manifest. The `layout` package draws a manifest as one block of geometry, and the `writers` package writes that block as SVG and TikZ text, both as the [timeskeleton geometry specification](https://github.com/TimeToAlign/timeskeleton/blob/main/docs/geometry.md) defines them. The editor shell does not use these packages yet, and no file format for a workspace exists yet.
 
-Today, TiLiE is an application shell. It serves a browser page with Arranger, Inspector, and Diagnostics panes plus a server-health readout; the local server exposes `/api/health`. Editing, loading documents, on-screen rendering, and export are not available in the application yet.
+Today, TiLiE is an application shell. It serves a browser page with Arranger, Inspector, and Diagnostics panes plus a server-health readout; the local server exposes `/api/health`. Editing, loading manifests, on-screen rendering, and export are not available in the application yet.
 
 ## Install
 
@@ -19,18 +19,20 @@ tilie
 
 The server binds only to `127.0.0.1`, creates a random bearer token for each run, rejects foreign Host and Origin headers, serves the bundled application, protects `/api/health`, and sends `Referrer-Policy: no-referrer` with every response. `tilie` prints and opens `http://127.0.0.1:<port>/#token=<token>`: the token travels in the URL fragment, which the browser never sends to the server. The editor reads it, removes it from the address bar, and displays the health response. The token is held in memory only, so reloading the page loses it; restart `tilie` for a fresh URL.
 
-Of the six application packages, `core` implements the document model described in [the architecture guide](docs/architecture.md#the-core-package), and `layout` and `writers` implement the drawing described in [Layout and writers](docs/architecture.md#layout-and-writers): `layout(document)` returns the geometry of a document in exact numbers, and `writeSvg(geometry)` and `writeTikz(geometry)` return its SVG and TikZ text, byte for byte the golden figures that timeskeleton ships. The other three establish boundaries and build tooling, and their exported behavior is intentionally minimal. There is no on-screen renderer, OpenAPI client, server-side loading or export endpoint yet, and the editor shell neither opens nor edits a document.
+Of the six application packages, `core` implements the workspace, block and manifest model described in [the architecture guide](docs/architecture.md#the-core-package), and `layout` and `writers` implement the drawing described in [Layout and writers](docs/architecture.md#layout-and-writers): `layout(manifest)` returns the geometry block of a manifest in exact numbers, and `writeSvg(block)` and `writeTikz(block)` return its SVG and TikZ text on a standalone page, byte for byte the 0.3.0 SVG and TikZ fixtures that timeskeleton keeps for every envelope with one top-level timeline. The other three establish boundaries and build tooling, and their exported behavior is intentionally minimal. There is no on-screen renderer, OpenAPI client, server-side loading or export endpoint yet, and the editor shell neither opens nor edits a workspace.
 
 ## Architecture
 
-TiLiE keeps a small browser editing core and treats the local Python server as an equal peer for loading, computation, and exports. TimeSkeleton data remains exact and schema-validated, while screen geometry is derived from that data. The package structure prevents UI dependencies from leaking into the document core. Read [the architecture guide](docs/architecture.md) for the complete design and the distinction between current behavior and intended behavior.
+TiLiE keeps a small browser editing core and treats the local Python server as an equal peer for loading, computation, and exports. TimeSkeleton manifests remain exact and schema-validated, while screen geometry is derived from them. The package structure prevents UI dependencies from leaking into the core. Read [the architecture guide](docs/architecture.md) for the complete design and the distinction between current behavior and intended behavior.
 
 ## Development
 
-Clone the repository, then install and validate the application workspace:
+Clone the repository, then install and validate the application workspace. Until timeskeleton publishes schema 0.4.0, the application packages link a timeskeleton checkout beside this repository, so clone both side by side and build its JavaScript package first (see [CONTRIBUTING.md](CONTRIBUTING.md#setup)):
 
 ```bash
+git clone https://github.com/TimeToAlign/timeskeleton.git
 git clone https://github.com/TimeToAlign/TimeLineEditor.git
+(cd timeskeleton/js && pnpm install && pnpm build)
 cd TimeLineEditor/app
 pnpm install
 pnpm lint

@@ -1,24 +1,32 @@
 /**
- * `layout(document)`: the geometry of a TimeSkeleton document, as the
+ * `layout(manifest)`: the geometry block of one TimeSkeleton manifest, as the
  * geometry specification (`docs/geometry.md` in timeskeleton) defines it.
  *
- * Pure and deterministic: the document is read in canonical order, every
+ * Pure and deterministic: the manifest is read in canonical order, every
  * horizontal position is an exact value on the root's axis (or a float where
- * the document's numbers are floats), every vertical position a row or an
+ * the manifest's numbers are floats), every vertical position a row or an
  * exact fraction of one. No text is measured and no page is known.
  */
 
 import {
   compareReal,
-  type Document,
   fromFloat,
   type JsonObject,
+  type Manifest,
   Rational,
   type Real,
   type TimelineManifest,
+  toFloat,
 } from "@timetoalign/tilie-core";
-import type { ElementType, Graphical, Lossless, TimeUnit } from "@timetoalign/timeskeleton";
-import { canonicalOrder, type Geometry } from "@timetoalign/timeskeleton";
+import type {
+  Block,
+  ElementType,
+  Graphical,
+  Lossless,
+  StyleRules,
+  TimeUnit,
+} from "@timetoalign/timeskeleton";
+import { canonicalOrder } from "@timetoalign/timeskeleton";
 import {
   type Domain,
   type DrawnElement,
@@ -40,8 +48,16 @@ import {
   zero,
 } from "./numbers.ts";
 
-/** The geometry as the standard writer reads and writes it. */
-export type LosslessGeometry = Lossless<Geometry>;
+/** One geometry block as the standard reader and writer hold it. */
+export type LosslessBlock = Lossless<Block>;
+
+export interface LayoutOptions {
+  readonly defaults?: StyleRules;
+  readonly nameColumn?: {
+    readonly visible?: boolean;
+    readonly width?: readonly [number | bigint, number | bigint];
+  };
+}
 
 type Primitive = JsonObject;
 type Sign = 1 | -1;
@@ -82,7 +98,12 @@ function modalityOf(manifest: TimelineManifest): Modality {
  * The timelines of a block in pre-order, children in canonical order, with
  * their extents and the rules of the containers holding them.
  */
-function traverse(root: TimelineManifest, graphical: Graphical | undefined): Entry[] {
+function traverse(
+  root: TimelineManifest,
+  graphical: Graphical | undefined,
+  overrides: StyleRules,
+  defaults: StyleRules,
+): Entry[] {
   const entries: Entry[] = [];
   const visit = (
     manifest: TimelineManifest,
@@ -101,7 +122,11 @@ function traverse(root: TimelineManifest, graphical: Graphical | undefined): Ent
       end,
       domain: domainOf(manifest),
       modality: modalityOf(manifest),
-      rules: scopedRules(graphical, ancestry),
+      rules: [
+        ...defaults.map((rule) => ({ ...rule, level: 1, depth: 0 })),
+        ...scopedRules(graphical, ancestry, 2),
+        ...overrides.map((rule) => ({ ...rule, level: 3, depth: 0 })),
+      ],
     };
     entries.push(entry);
     for (const child of Object.values(manifest.children)) {
@@ -184,23 +209,32 @@ interface Drawn {
 }
 
 /** The frame of a block in abstract units, its placement map, and the frame's zero (section 3.3). */
-function frame(root: TimelineManifest): {
+function frame(
+  root: TimelineManifest,
+  options: LayoutOptions["nameColumn"],
+): {
   readonly frame: JsonObject;
   readonly placement: JsonObject;
   readonly zero: GeometryNumber;
 } {
   const float = root.number_type === "float";
   const length = coordinateValue(root.length);
+  const visible = options?.visible ?? true;
+  const widthFraction = Rational.of(options?.width ?? [1, 4]);
   let names: GeometryNumber;
   let plot: GeometryNumber;
   let total: GeometryNumber;
   if (typeof length === "number") {
-    const width = length === 0 ? 1 : length / 4;
+    const width = !visible ? 0 : length === 0 ? 1 : length * toFloat(widthFraction);
     names = jsonFloat(width);
     plot = jsonFloat(length);
     total = jsonFloat(width + length);
   } else {
-    const width = length.numerator === 0n ? Rational.of(1n) : length.divide(Rational.of(4n));
+    const width = !visible
+      ? Rational.of(0n)
+      : length.numerator === 0n
+        ? Rational.of(1n)
+        : length.multiply(widthFraction);
     names = pair(width);
     plot = pair(length);
     total = pair(width.add(length));
@@ -226,10 +260,15 @@ function frame(root: TimelineManifest): {
 }
 
 /** Lay out one top-level timeline as a block. */
-function block(root: TimelineManifest, graphical: Graphical | undefined): JsonObject {
+function block(
+  root: TimelineManifest,
+  graphical: Graphical | undefined,
+  overrides: StyleRules,
+  options: LayoutOptions,
+): JsonObject {
   const rootType = root.number_type;
   const x = (value: Real) => position(value, rootType);
-  const entries = traverse(root, graphical);
+  const entries = traverse(root, graphical, overrides, options.defaults ?? []);
 
   const elementOf = (type: ElementType, id: string, entry: Entry): Drawn => {
     const element: DrawnElement = {
@@ -489,7 +528,7 @@ function block(root: TimelineManifest, graphical: Graphical | undefined): JsonOb
   }
 
   // -- labels -------------------------------------------------------------------
-  const { frame: frameManifest, placement, zero: frameZero } = frame(root);
+  const { frame: frameManifest, placement, zero: frameZero } = frame(root, options.nameColumn);
   const label = (
     drawn: Drawn,
     space: "root" | "frame",
@@ -519,7 +558,7 @@ function block(root: TimelineManifest, graphical: Graphical | undefined): JsonOb
       name: (item.map.name as string | null) ?? (item.map.id as string),
     })),
   ];
-  for (let row = maximum; row >= minimum; row -= 1) {
+  for (let row = maximum; (options.nameColumn?.visible ?? true) && row >= minimum; row -= 1) {
     const contributors = named
       .filter((item) => item.row === row)
       .map((item) => ({ ...item, label: labelOf(`${item.owner.element.id}/name`, item.owner) }))
@@ -611,12 +650,17 @@ function block(root: TimelineManifest, graphical: Graphical | undefined): JsonOb
   };
 }
 
-/** The geometry of a document: one block per top-level timeline, in canonical order. */
-export function layout(document: Document): LosslessGeometry {
-  const ordered = canonicalOrder(document as never) as unknown as Document;
-  const graphical = ordered.graphical as Graphical | undefined;
-  return {
-    meta: { schema_version: "0.3.0" },
-    blocks: Object.values(ordered.manifest.timelines).map((root) => block(root, graphical)),
-  } as unknown as LosslessGeometry;
+/** The one geometry block of a manifest. */
+export function layout(
+  manifest: Manifest,
+  overrides: StyleRules = [],
+  options: LayoutOptions = {},
+): LosslessBlock {
+  const ordered = canonicalOrder(manifest as never) as unknown as Manifest;
+  return block(
+    ordered.timeline,
+    ordered.graphical as Graphical | undefined,
+    overrides,
+    options,
+  ) as unknown as LosslessBlock;
 }

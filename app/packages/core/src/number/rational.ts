@@ -3,7 +3,7 @@
  *
  * A `Rational` is always normalized: the denominator is positive and shares
  * no factor with the numerator. It is built from integers only, never from
- * a JavaScript float, so a value read from a document stays exact.
+ * a JavaScript float, so a value read from a manifest stays exact.
  */
 
 /** An integer a `Rational` may be built from: a bigint or a safe integer. */

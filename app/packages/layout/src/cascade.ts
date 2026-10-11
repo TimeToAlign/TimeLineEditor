@@ -2,13 +2,14 @@
  * The style cascade of the TimeSkeleton geometry specification
  * (`docs/geometry.md` in timeskeleton, sections 2 and 4).
  *
- * Style rules are held by containers: the document, and every timeline with
+ * Style rules are held by containers: the manifest, and every timeline with
  * its subtree. A rule selects elements of its container by type, domain,
  * modality or id and sets display properties on them. Each property is
- * resolved on its own: among the matching rules that set it, a rule naming
- * the element's id wins, then the nearest container, then a rule naming
- * the element type, then the one naming more of domain and modality, then
- * the later rule; a property no rule sets takes its default.
+ * resolved on its own: among the matching rules that set it, the highest
+ * level wins (block overrides 3, the manifest's own rules 2, option defaults
+ * 1), then a rule naming the element's id, then the nearest container, then
+ * a rule naming the element type, then the one naming more of domain and
+ * modality, then the later rule; a property no rule sets takes its default.
  * `visible: false` is the filter.
  */
 
@@ -33,8 +34,10 @@ export interface DrawnElement {
   readonly modality: Modality;
 }
 
-/** A rule with the depth of its container: 0 for the document, 1 for a root timeline, and so on. */
+/** A rule with the depth of its container: 0 for the manifest, then its timelines. */
 export interface ScopedRule extends StyleRule {
+  /** Cascade level: defaults 1, manifest 2, block overrides 3. */
+  readonly level: number;
   readonly depth: number;
 }
 
@@ -79,13 +82,15 @@ export function matches(selector: StyleSelector, element: DrawnElement): boolean
 }
 
 /**
- * The rank of a rule: whether it names ids, the depth of its container,
+ * The rank of a rule: its level (block overrides 3, the manifest's own rules
+ * 2, option defaults 1), whether it names ids, the depth of its container,
  * whether it names the element type, and how many of domain and modality it
  * names; compared in that order.
  */
-export function rank(rule: ScopedRule): readonly [number, number, number, number] {
+export function rank(rule: ScopedRule): readonly [number, number, number, number, number] {
   const { select } = rule;
   return [
+    rule.level,
     select.ids === undefined ? 0 : 1,
     rule.depth,
     select.element === undefined ? 0 : 1,
@@ -94,10 +99,10 @@ export function rank(rule: ScopedRule): readonly [number, number, number, number
 }
 
 function compareRanks(
-  left: readonly [number, number, number, number],
-  right: readonly [number, number, number, number],
+  left: readonly [number, number, number, number, number],
+  right: readonly [number, number, number, number, number],
 ): number {
-  for (let index = 0; index < 4; index += 1) {
+  for (let index = 0; index < 5; index += 1) {
     const difference = (left[index] as number) - (right[index] as number);
     if (difference !== 0) return difference;
   }
@@ -105,19 +110,24 @@ function compareRanks(
 }
 
 /**
- * The rules that apply to the elements of one timeline: the document's
+ * The rules that apply to the elements of one timeline: the manifest's
  * (depth 0), then those of each container on the path from the root down to
  * the timeline (`ancestry`, root first; depth 1, 2, ...), each list in order.
  */
 export function scopedRules(
   graphical: Graphical | undefined,
   ancestry: readonly string[],
+  level = 2,
 ): ScopedRule[] {
-  const rules: ScopedRule[] = (graphical?.styles ?? []).map((rule) => ({ ...rule, depth: 0 }));
+  const rules: ScopedRule[] = (graphical?.styles ?? []).map((rule) => ({
+    ...rule,
+    level,
+    depth: 0,
+  }));
   ancestry.forEach((id, index) => {
     const own = graphical?.timelines?.[id];
     if (own !== undefined) {
-      for (const rule of own) rules.push({ ...rule, depth: index + 1 });
+      for (const rule of own) rules.push({ ...rule, level, depth: index + 1 });
     }
   });
   return rules;
@@ -140,7 +150,7 @@ const PROPERTIES = [
 export function resolveStyle(rules: readonly ScopedRule[], element: DrawnElement): Style {
   const style: Record<string, unknown> = { ...defaultStyle(element) };
   for (const property of PROPERTIES) {
-    let best: readonly [number, number, number, number] | undefined;
+    let best: readonly [number, number, number, number, number] | undefined;
     for (const rule of rules) {
       const value = rule.set[property];
       if (value === undefined || !matches(rule.select, element)) continue;

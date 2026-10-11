@@ -22,7 +22,7 @@ const wedge: DrawnElement = {
   modality: "continuous",
 };
 
-const at = (depth: number, rule: StyleRule): ScopedRule => ({ ...rule, depth });
+const at = (depth: number, rule: StyleRule, level = 2): ScopedRule => ({ ...rule, level, depth });
 
 describe("defaults", () => {
   it("follow the table of the specification", () => {
@@ -133,10 +133,28 @@ describe("one rank after another", () => {
       ]),
     ).toBe("#00CC00");
   });
+
+  it("lets a block override beat a manifest id rule", () => {
+    const manifest = at(0, { select: { ids: ["a/start"] }, set: { colour: "#000001" } });
+    const override = at(0, { select: {}, set: { colour: "#000002" } }, 3);
+    expect(colour([manifest, override])).toBe("#000002");
+  });
+
+  it("lets a manifest type rule beat a defaults rule", () => {
+    const defaults = at(0, { select: { ids: ["a/start"] }, set: { colour: "#000001" } }, 1);
+    const manifest = at(0, { select: { element: "wedge" }, set: { colour: "#000002" } });
+    expect(colour([defaults, manifest])).toBe("#000002");
+  });
+
+  it("lets options defaults beat only the built-in defaults", () => {
+    const defaults = at(0, { select: {}, set: { colour: "#000001" } }, 1);
+    expect(colour([defaults])).toBe("#000001");
+    expect(colour([])).toBe("#00CC00");
+  });
 });
 
 describe("scopedRules", () => {
-  it("lists the document's rules, then each container on the path, with their depths", () => {
+  it("lists the manifest's rules, then each container on the path, with their depths", () => {
     const rule = (colour: string): StyleRule => ({ select: {}, set: { colour } });
     const graphical = {
       styles: [rule("#000001")],
@@ -163,6 +181,7 @@ const elementArbitrary: fc.Arbitrary<DrawnElement> = fc.record({
 });
 
 const ruleArbitrary: fc.Arbitrary<ScopedRule> = fc.record({
+  level: fc.integer({ min: 1, max: 3 }),
   depth: fc.integer({ min: 0, max: 3 }),
   select: fc.record(
     {
@@ -188,7 +207,7 @@ type Property = "colour" | "visible" | "side";
 /**
  * The reference, read from the specification (section 2.5) without the
  * implementation's helpers: among the matching rules that set the property,
- * the greatest (names the id, container depth, names the type, number of
+ * the greatest (level, names the id, container depth, names the type, number of
  * domain and modality named), the later of equals; else the default.
  */
 function reference(rules: readonly ScopedRule[], element: DrawnElement, property: Property) {
@@ -204,6 +223,7 @@ function reference(rules: readonly ScopedRule[], element: DrawnElement, property
       (select.ids === undefined || select.ids.includes(element.id));
     if (!matching) continue;
     const key = [
+      rule.level,
       select.ids === undefined ? 0 : 1,
       rule.depth,
       select.element === undefined ? 0 : 1,

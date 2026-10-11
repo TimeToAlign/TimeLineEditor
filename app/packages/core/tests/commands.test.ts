@@ -1,9 +1,14 @@
 import { JsonFloat } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
-import { TIMELINE_KEYS } from "../src/document/types.ts";
-import type { Command, Document, TimelineManifest } from "../src/index.ts";
-import { apply, isCommandError, parseCommand, saveDocument } from "../src/index.ts";
-import { deepFreeze, goldenFixtures, load, manifestKeyOrders } from "./support.ts";
+import type { Command, Manifest, ManifestCommand, TimelineManifest } from "../src/index.ts";
+import {
+  applyToManifest,
+  isCommandError,
+  parseCommand as parse,
+  saveManifest,
+  TIMELINE_KEYS,
+} from "../src/index.ts";
+import { deepFreeze, load, manifestFixtures, manifestKeyOrders } from "./support.ts";
 
 /** A coordinate dict on the quarters/fraction axis. */
 const q = (numerator: number, denominator = 1) => ({
@@ -27,14 +32,24 @@ const spec = (id: string, length: object = q(8)) => ({
   number_type: "fraction",
   length,
 });
-const create = (id: string, length: object = q(8)) => ({
-  type: "createTimeline",
-  ...spec(id, length),
-});
+const BLOCK = "0000000000";
+
+function contextual(command: object): ManifestCommand {
+  const value = { ...command } as Record<string, unknown>;
+  for (const key of ["id", "parent", "timeline"] as const) {
+    if (value[key] === "a") value[key] = "bare";
+  }
+  return { block: BLOCK, ...value } as ManifestCommand;
+}
+
+const parseCommand = (command: unknown) =>
+  parse(typeof command === "object" && command !== null ? contextual(command as object) : command);
+const apply = (manifest: Manifest, command: Command) =>
+  applyToManifest(manifest, contextual(command));
 
 /** Apply commands in turn; each must be accepted. Inputs are frozen first. */
-function run(document: Document, ...commands: object[]): Document {
-  let current = deepFreeze(document);
+function run(manifest: Manifest, ...commands: object[]): Manifest {
+  let current = deepFreeze(manifest);
   for (const command of commands) {
     const result = apply(current, command as Command);
     if (isCommandError(result)) throw new Error(`${JSON.stringify(command)}: ${result.message}`);
@@ -44,32 +59,50 @@ function run(document: Document, ...commands: object[]): Document {
 }
 
 /** The refusal of a command: its code and path; the frozen input proves nothing changed. */
-function refusal(document: Document, command: object) {
-  const result = apply(deepFreeze(document), command as Command);
+function refusal(manifest: Manifest, command: object) {
+  const result = apply(deepFreeze(manifest), command as Command);
   if (!isCommandError(result)) throw new Error("the command was accepted");
   return { code: result.code, path: result.path };
 }
 
-function timeline(document: Document, id: string): TimelineManifest {
+function timeline(manifest: Manifest, id: string): TimelineManifest {
+  const wanted = id === "a" ? "bare" : id;
   const search = (item: TimelineManifest): TimelineManifest | undefined =>
-    item.id === id
+    item.id === wanted
       ? item
       : Object.values(item.children)
           .map((entry) => search(entry.timeline))
           .find((found) => found !== undefined);
-  for (const root of Object.values(document.manifest.timelines)) {
-    const found = search(root);
-    if (found !== undefined) return found;
-  }
+  const found = search(manifest.timeline);
+  if (found !== undefined) return found;
   throw new Error(`no timeline ${id}`);
 }
 
-const empty = () => load("empty.json");
+const empty = () => load("bare.json");
+const numberRoot = (numberType: "int" | "float" | "fraction", value: unknown): Manifest => {
+  const manifest = empty();
+  return {
+    ...manifest,
+    timeline: {
+      ...manifest.timeline,
+      id: "p",
+      class: "ContinuousLogicalTimeline",
+      unit: "number",
+      number_type: numberType,
+      length: { unit: "number", number_type: numberType, value } as never,
+      children: {},
+      conversion_maps: [],
+      regions: [],
+      flow_control: { breaks: [], jumps: [], markers: {} },
+      measure_map: null,
+      metric_hierarchy: null,
+    },
+  };
+};
 /** Root `a` (length 8) with child `b` (length 2) at offset 1 holding `c` (length 1) at 0. */
 const tree = () =>
   run(
     empty(),
-    create("a"),
     { type: "addChild", parent: "a", offset: q(1), child: spec("b", q(2)) },
     { type: "addChild", parent: "b", offset: q(0), child: spec("c", q(1)) },
   );
@@ -89,79 +122,23 @@ const fresh = {
   metric_hierarchy: null,
 };
 
-describe("createTimeline", () => {
-  it("creates an unlocked, empty root as the library does", () => {
-    const document = run(empty(), create("a", q(6, 4)));
-    expect(document.manifest.timelines).toEqual({ a: { ...fresh, id: "a", length: Q(3n, 2n) } });
-    const named = run(empty(), { ...create("n"), name: "Score" });
-    expect(timeline(named, "n").name).toBe("Score");
-  });
-
-  it("refuses", () => {
-    const document = run(empty(), create("a"));
-    expect(refusal(document, create("a"))).toEqual({ code: "duplicate_timeline", path: ["id"] });
-    expect(refusal(document, { ...create("x"), unit: "seconds", length: seconds(1) })).toEqual({
-      code: "unit_not_allowed",
-      path: ["unit"],
-    });
-    expect(
-      refusal(document, {
-        ...create("x"),
-        class: "DiscreteLogicalTimeline",
-        unit: "ticks",
-        length: { unit: "ticks", number_type: "fraction", value: [1, 1] },
-      }),
-    ).toEqual({ code: "number_type_not_allowed", path: ["number_type"] });
-    expect(refusal(document, create("x", { ...q(1), number_type: "float", value: 1 }))).toEqual({
-      code: "off_axis",
-      path: ["length"],
-    });
-    expect(refusal(document, create("x", q(-1)))).toEqual({
-      code: "negative_length",
-      path: ["length"],
-    });
-    expect(refusal(document, create("x", { ...q(1), value: [2n ** 63n, 1n] }))).toEqual({
-      code: "invalid_coordinate",
-      path: ["length", "value"],
-    });
-  });
-});
-
 describe("edits keep member order", () => {
   it("renaming the deepest timeline of nested.json and back saves the fixture's bytes", () => {
-    const fixture = goldenFixtures.find((item) => item.name === "nested.json");
-    let deepest = Object.values(load("nested.json").manifest.timelines)[0] as TimelineManifest;
+    const fixture = manifestFixtures.find((item) => item.name === "nested.json");
+    let deepest = load("nested.json").timeline;
     while (Object.keys(deepest.children).length > 0) {
       deepest = (Object.values(deepest.children)[0] as { timeline: TimelineManifest }).timeline;
     }
     const renamed = run(load("nested.json"), { type: "setName", id: deepest.id, name: "x" });
     const back = run(renamed, { type: "setName", id: deepest.id, name: deepest.name });
-    expect(saveDocument(back)).toBe(fixture?.text);
-    for (const document of [
+    expect(saveManifest(back)).toBe(fixture?.text);
+    for (const manifest of [
       renamed,
       run(load("nested.json"), { type: "removeChild", id: deepest.id }),
     ]) {
-      const orders = manifestKeyOrders(document);
+      const orders = manifestKeyOrders(manifest);
       expect(orders).toEqual(orders.map(() => [...TIMELINE_KEYS]));
     }
-  });
-});
-
-describe("removeTimeline", () => {
-  it("removes a root and its subtree", () => {
-    const document = run(tree(), create("z"), { type: "removeTimeline", id: "a" });
-    expect(Object.keys(document.manifest.timelines)).toEqual(["z"]);
-  });
-
-  it("refuses", () => {
-    expect(refusal(tree(), { type: "removeTimeline", id: "q" })).toEqual({
-      code: "unknown_timeline",
-      path: ["id"],
-    });
-    expect(refusal(tree(), { type: "removeTimeline", id: "b" })).toEqual({
-      code: "not_a_root",
-      path: ["id"],
-    });
   });
 });
 
@@ -212,38 +189,25 @@ describe("setLength", () => {
 
 describe("addChild", () => {
   it("nests a new timeline, locked, at an exact offset", () => {
-    const document = run(empty(), create("a"), {
+    const manifest = run(empty(), {
       type: "addChild",
       parent: "a",
       offset: q(2, 4),
       child: spec("b", q(2)),
     });
-    expect(timeline(document, "a").children).toEqual({
+    expect(timeline(manifest, "a").children).toEqual({
       b: { offset: Q(1n, 2n), timeline: { ...fresh, id: "b", length: Q(2n), locked: true } },
     });
   });
 
-  it("moves an existing root under a parent", () => {
-    const document = run(tree(), create("m", q(1)), {
-      type: "addChild",
-      parent: "c",
-      offset: q(0),
-      child: "m",
-    });
-    expect(Object.keys(document.manifest.timelines)).toEqual(["a"]);
-    expect(timeline(document, "c").children).toEqual({
-      m: { offset: Q(0n), timeline: { ...fresh, id: "m", length: Q(1n), locked: true } },
-    });
-  });
-
   it("lengthens an unlocked parent to the end of the child", () => {
-    const document = run(empty(), create("a", q(4)), {
+    const manifest = run(empty(), {
       type: "addChild",
       parent: "a",
-      offset: q(7, 2),
+      offset: q(15, 2),
       child: spec("b", q(1)),
     });
-    expect(timeline(document, "a").length).toEqual(Q(9n, 2n));
+    expect(timeline(manifest, "a").length).toEqual(Q(17n, 2n));
   });
 
   it("nests a child of another number type, comparing and growing as Python does", () => {
@@ -258,17 +222,13 @@ describe("addChild", () => {
       number_type: numberType,
     });
     const grow = (parent: [string, unknown], offset: unknown, child: [string, unknown]) => {
-      const document = run(
-        empty(),
-        { type: "createTimeline", ...make("p", ...parent) },
-        {
-          type: "addChild",
-          parent: "p",
-          offset: axis(parent[0], offset),
-          child: make("c", ...child),
-        },
-      );
-      return timeline(document, "p").length;
+      const manifest = run(numberRoot(parent[0] as never, parent[1]), {
+        type: "addChild",
+        parent: "p",
+        offset: axis(parent[0], offset),
+        child: make("c", ...child),
+      });
+      return timeline(manifest, "p").length;
     };
     // int parent, Fraction child ending at 5: grows to the int 5.
     expect(grow(["int", 4], 3, ["fraction", [2, 1]])).toEqual({
@@ -305,12 +265,12 @@ describe("addChild", () => {
       child,
     });
     const other = {
-      ...create("x", seconds(1)),
+      id: "x",
       class: "ContinuousPhysicalTimeline",
       unit: "seconds",
       number_type: "float",
+      length: seconds(1),
     };
-    const withRoot = run(base, create("r", q(1)), other);
     expect(refusal(base, add(spec("x"), q(0), "q"))).toEqual({
       code: "unknown_timeline",
       path: ["parent"],
@@ -319,16 +279,7 @@ describe("addChild", () => {
       code: "off_axis",
       path: ["offset"],
     });
-    expect(refusal(base, add("q"))).toEqual({ code: "unknown_timeline", path: ["child"] });
-    expect(refusal(base, add("c"))).toEqual({ code: "not_a_root", path: ["child"] });
-    expect(refusal(base, add("a", q(0), "c"))).toEqual({
-      code: "child_is_ancestor",
-      path: ["child"],
-    });
-    expect(refusal(base, add("a", q(0), "a"))).toEqual({
-      code: "child_is_ancestor",
-      path: ["child"],
-    });
+    expect(refusal(base, add("q"))).toEqual({ code: "invalid_command", path: ["child"] });
     expect(refusal(base, add(spec("c")))).toEqual({
       code: "duplicate_timeline",
       path: ["child", "id"],
@@ -343,26 +294,25 @@ describe("addChild", () => {
       code: "negative_length",
       path: ["child", "length"],
     });
-    expect(refusal(withRoot, add("x"))).toEqual({ code: "child_unit_mismatch", path: ["child"] });
-    const counted = run(empty(), {
-      ...create("n", { unit: "number", number_type: "int", value: 4 }),
-      unit: "number",
-      number_type: "int",
+    expect(refusal(base, add(other))).toEqual({
+      code: "child_unit_mismatch",
+      path: ["child", "unit"],
     });
+    const counted = numberRoot("int", 4);
     const half = { unit: "number", number_type: "fraction", value: [3, 2] };
     expect(
       refusal(counted, {
         type: "addChild",
-        parent: "n",
+        parent: "p",
         offset: { unit: "number", number_type: "int", value: 3 },
         child: { ...spec("h", half), unit: "number", number_type: "fraction" },
       }),
     ).toEqual({ code: "child_exceeds_parent", path: ["offset"] });
-    expect(refusal(withRoot, add("r", q(-1)))).toEqual({
+    expect(refusal(base, add(spec("r"), q(-1)))).toEqual({
       code: "negative_offset",
       path: ["offset"],
     });
-    expect(refusal(withRoot, add("r", q(2), "b"))).toEqual({
+    expect(refusal(base, add(spec("r"), q(2), "b"))).toEqual({
       code: "child_exceeds_parent",
       path: ["offset"],
     });
@@ -404,8 +354,8 @@ describe("setChildOffset", () => {
 
 describe("removeChild", () => {
   it("removes a nested timeline and its subtree", () => {
-    const document = run(tree(), { type: "removeChild", id: "b" });
-    expect(timeline(document, "a").children).toEqual({});
+    const manifest = run(tree(), { type: "removeChild", id: "b" });
+    expect(timeline(manifest, "a").children).toEqual({});
   });
 
   it("refuses", () => {
@@ -451,8 +401,8 @@ describe("regions", () => {
   });
 
   it("removes a region", () => {
-    const document = run(withRegions(), { type: "removeRegion", timeline: "a", name: "early" });
-    expect(timeline(document, "a").regions.map((region) => region.name)).toEqual(["late"]);
+    const manifest = run(withRegions(), { type: "removeRegion", timeline: "a", name: "early" });
+    expect(timeline(manifest, "a").regions.map((region) => region.name)).toEqual(["late"]);
   });
 
   it("refuses", () => {
@@ -523,7 +473,7 @@ describe("breaks and jumps", () => {
     meta: { source: "synthetic" },
   };
   const flow = () => load("flow_control.json");
-  const id = () => Object.keys(flow().manifest.timelines)[0] as string;
+  const id = () => flow().timeline.id;
   // Entries are stored as given; their coordinates are already normalized.
   const stored = (entry: object, _keys: string[]) => entry;
 
@@ -630,7 +580,7 @@ describe("conversion maps", () => {
   });
 
   it("adds a payload verbatim, in id order, and removes it", () => {
-    const document = run(
+    const manifest = run(
       tree(),
       { type: "addConversionMap", timeline: "a", map: linear("z") },
       { type: "addConversionMap", timeline: "a", map: linear("m", null) },
@@ -639,11 +589,11 @@ describe("conversion maps", () => {
       ...linear(id, sourceUnit),
       scalar: [1, 2],
     });
-    expect(timeline(document, "a").conversion_maps).toEqual([
+    expect(timeline(manifest, "a").conversion_maps).toEqual([
       stored("m", null),
       stored("z", "quarters"),
     ]);
-    const removed = run(document, { type: "removeConversionMap", timeline: "a", map_id: "z" });
+    const removed = run(manifest, { type: "removeConversionMap", timeline: "a", map_id: "z" });
     expect(timeline(removed, "a").conversion_maps).toEqual([stored("m", null)]);
   });
 
@@ -669,18 +619,28 @@ describe("conversion maps", () => {
 
 describe("parseCommand refuses malformed commands", () => {
   const cases: [string, unknown, string, (string | number)[]][] = [
-    ["not an object", [], "invalid_command", []],
+    ["not an object", null, "invalid_command", []],
     ["an unknown type", { type: "moveTimeline" }, "invalid_command", ["type"]],
     ["a missing member", { type: "setName", id: "a" }, "invalid_command", ["name"]],
-    ["an unknown member", { type: "removeTimeline", id: "a", at: 1 }, "invalid_command", ["at"]],
-    ["a wrong type", { type: "removeTimeline", id: 3 }, "invalid_command", ["id"]],
-    ["an unknown class", { ...create("x"), class: "Timeline" }, "invalid_command", ["class"]],
-    ["an unknown unit", { ...create("x"), unit: "bars" }, "invalid_command", ["unit"]],
+    ["an unknown member", { type: "removeChild", id: "a", at: 1 }, "invalid_command", ["at"]],
+    ["a wrong type", { type: "removeChild", id: 3 }, "invalid_command", ["id"]],
+    [
+      "an unknown class",
+      { type: "addChild", parent: "a", offset: q(0), child: { ...spec("x"), class: "Timeline" } },
+      "invalid_command",
+      ["child", "class"],
+    ],
+    [
+      "an unknown unit",
+      { type: "addChild", parent: "a", offset: q(0), child: { ...spec("x"), unit: "bars" } },
+      "invalid_command",
+      ["child", "unit"],
+    ],
     [
       "an unknown number type",
-      { ...create("x"), number_type: "real" },
+      { type: "addChild", parent: "a", offset: q(0), child: { ...spec("x"), number_type: "real" } },
       "invalid_command",
-      ["number_type"],
+      ["child", "number_type"],
     ],
     [
       "an extra coordinate member",
@@ -763,12 +723,14 @@ describe("parseCommand refuses malformed commands", () => {
       parseCommand({ type: "setLength", id: "a", length: { ...seconds(0), value: 3 } }),
     ).toEqual({
       type: "setLength",
-      id: "a",
+      block: BLOCK,
+      id: "bare",
       length: { unit: "seconds", number_type: "float", value: new JsonFloat(3) },
     });
     expect(parseCommand({ type: "setLength", id: "a", length: q(6, 4) })).toEqual({
       type: "setLength",
-      id: "a",
+      block: BLOCK,
+      id: "bare",
       length: Q(3n, 2n),
     });
   });

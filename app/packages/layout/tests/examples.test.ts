@@ -1,9 +1,9 @@
 /**
- * Examples per component and per cascade level, each document built through
+ * Examples per component and per cascade level, each manifest built through
  * core's commands and each expected value derived from the specification.
  */
 
-import type { Document } from "@timetoalign/tilie-core";
+import type { Manifest } from "@timetoalign/tilie-core";
 import { JsonFloat, validateGeometry } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
 import { layout } from "../src/index.ts";
@@ -11,10 +11,10 @@ import { build, clt, quarters } from "./support.ts";
 
 type Item = Record<string, unknown>;
 
-function blockOf(document: Document, graphical: object = {}): Item {
-  const geometry = layout({ ...document, graphical } as Document);
-  validateGeometry(geometry);
-  return (geometry as unknown as { blocks: Item[] }).blocks[0] as Item;
+function blockOf(manifest: Manifest, graphical: object = {}): Item {
+  const block = layout({ ...manifest, graphical } as Manifest);
+  validateGeometry({ meta: { schema_version: "0.3.0" }, blocks: [block] });
+  return block as unknown as Item;
 }
 
 const primitives = (block: Item): Item[] => block.primitives as Item[];
@@ -61,6 +61,27 @@ describe("the frame", () => {
     });
     expect(block.placement).toMatchObject({ scalar: new JsonFloat(1), offset: new JsonFloat(0) });
     expect(byId(block, "t")).toMatchObject({ start: new JsonFloat(0), end: new JsonFloat(0) });
+  });
+
+  it("uses an exact one-half name column", () => {
+    const manifest = build({ type: "createTimeline", ...clt("r", 8, "Root") });
+    const block = layout(manifest, [], { nameColumn: { width: [1, 2] } }) as unknown as Item;
+    expect(block.frame).toEqual({
+      length: [12, 1],
+      names: { offset: [0, 1], length: [4, 1] },
+      plot: { offset: [4, 1], length: [8, 1] },
+    });
+  });
+
+  it("uses no name column or name label when hidden", () => {
+    const manifest = build({ type: "createTimeline", ...clt("r", 8, "Root") });
+    const block = layout(manifest, [], { nameColumn: { visible: false } }) as unknown as Item;
+    expect(block.frame).toEqual({
+      length: [8, 1],
+      names: { offset: [0, 1], length: [0, 1] },
+      plot: { offset: [0, 1], length: [8, 1] },
+    });
+    expect(byId(block, "r/name")).toBeUndefined();
   });
 });
 
@@ -118,7 +139,7 @@ describe("mixed number types", () => {
 });
 
 describe("break labels", () => {
-  const document = (label: string | null) =>
+  const breakManifest = (label: string | null) =>
     build(
       { type: "createTimeline", ...clt("r", 8) },
       {
@@ -137,7 +158,7 @@ describe("break labels", () => {
     );
 
   it("sits at the bottom of the break by default and at the top above", () => {
-    expect(byId(blockOf(document("Fine")), "r/break/0/label")).toEqual({
+    expect(byId(blockOf(breakManifest("Fine")), "r/break/0/label")).toEqual({
       kind: "label",
       id: "r/break/0/label",
       timeline: "r",
@@ -146,7 +167,7 @@ describe("break labels", () => {
       text: "Fine",
       colour: "#000000",
     });
-    const above = blockOf(document("Fine"), {
+    const above = blockOf(breakManifest("Fine"), {
       styles: [{ select: { element: "break" }, set: { side: "above" } }],
     });
     expect(byId(above, "r/break/0/label")).toMatchObject({
@@ -156,7 +177,7 @@ describe("break labels", () => {
   });
 
   it("is absent when the break has no label", () => {
-    expect(byId(blockOf(document(null)), "r/break/0/label")).toBeUndefined();
+    expect(byId(blockOf(breakManifest(null)), "r/break/0/label")).toBeUndefined();
   });
 });
 
@@ -210,7 +231,7 @@ describe("rows", () => {
 });
 
 describe("the cascade on drawn components", () => {
-  const document = () =>
+  const nestedManifest = () =>
     build(
       { type: "createTimeline", ...clt("r", 8, "Root") },
       { type: "addChild", parent: "r", offset: quarters(0), child: clt("a", 8) },
@@ -218,7 +239,7 @@ describe("the cascade on drawn components", () => {
     );
 
   it("hides the root but keeps row 0", () => {
-    const block = blockOf(document(), {
+    const block = blockOf(nestedManifest(), {
       styles: [{ select: { element: "timeline" }, set: { visible: false } }],
     });
     expect(byId(block, "r")).toBeUndefined();
@@ -228,7 +249,7 @@ describe("the cascade on drawn components", () => {
   });
 
   it("moves the children of a hidden child down to its parent's next row", () => {
-    const block = blockOf(document(), {
+    const block = blockOf(nestedManifest(), {
       styles: [{ select: { ids: ["a"] }, set: { visible: false } }],
     });
     expect(ofKind(block, "child").map((item) => [item.id, item.row])).toEqual([["b", 1]]);
@@ -236,14 +257,14 @@ describe("the cascade on drawn components", () => {
   });
 
   it("ignores a property the selected kind does not read", () => {
-    const block = blockOf(document(), {
+    const block = blockOf(nestedManifest(), {
       styles: [{ select: { element: "wedge" }, set: { show_length: true } }],
     });
     expect(primitives(block).filter((item) => String(item.id).endsWith("/length"))).toEqual([]);
   });
 
-  it("applies a container's rules to its subtree only, over the document's", () => {
-    const block = blockOf(document(), {
+  it("applies a container's rules to its subtree only, over the manifest's", () => {
+    const block = blockOf(nestedManifest(), {
       styles: [{ select: { element: "child" }, set: { colour: "#000001" } }],
       timelines: { a: [{ select: { domain: "logical" }, set: { colour: "#000002" } }] },
     });
@@ -255,14 +276,14 @@ describe("the cascade on drawn components", () => {
   });
 
   it("selects nothing through a container of an unknown timeline", () => {
-    const block = blockOf(document(), {
+    const block = blockOf(nestedManifest(), {
       timelines: { ghost: [{ select: {}, set: { visible: false } }] },
     });
     expect(ofKind(block, "child").map((item) => item.id)).toEqual(["a", "b"]);
   });
 
   it("draws a child on the side a rule gives it, and its child beyond it", () => {
-    const block = blockOf(document(), {
+    const block = blockOf(nestedManifest(), {
       styles: [{ select: { element: "child" }, set: { side: "below" } }],
     });
     expect(ofKind(block, "child").map((item) => [item.id, item.row])).toEqual([

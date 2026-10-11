@@ -1,10 +1,10 @@
 /**
- * `writeTikz(geometry, options)`: the TikZ profile of the geometry
+ * `writeTikz(block, options)`: the TikZ profile of one geometry block
  * specification (`docs/geometry.md` in timeskeleton, section 8.5).
  */
 
 import type { JsonObject, Rational } from "@timetoalign/tilie-core";
-import type { LosslessGeometry } from "@timetoalign/tilie-layout";
+import type { LosslessBlock } from "@timetoalign/tilie-layout";
 import {
   exact,
   fmt,
@@ -17,9 +17,9 @@ import {
 } from "./page.ts";
 import { arc, brace, type Point } from "./svg.ts";
 
-/** The TikZ options: the page, and whether to write a complete LuaLaTeX document. */
+/** The TikZ options: the page, and whether to write a complete LuaLaTeX file. */
 export interface TikzOptions extends PageOptions {
-  /** A complete `standalone` document (default), or the `tikzpicture` alone. */
+  /** A complete `standalone` file (default), or the `tikzpicture` alone. */
   readonly standalone?: boolean;
 }
 
@@ -127,14 +127,12 @@ function command(item: JsonObject, block: PlacedBlock): string | undefined {
   }
 }
 
-/** Write a geometry as TikZ text. */
-export function writeTikz(geometry: LosslessGeometry, options: TikzOptions = {}): string {
-  const placed = page(geometry, options, true);
+/** Write one block as TikZ text. */
+export function writeTikz(block: LosslessBlock, options: TikzOptions = {}): string {
+  const placed = page(block, options, true);
   const colours = new Set<string>();
-  for (const block of placed.blocks) {
-    colours.add(block.block.background as string);
-    for (const item of block.primitives) colours.add(item.colour as string);
-  }
+  colours.add(placed.block.block.background as string);
+  for (const item of placed.block.primitives) colours.add(item.colour as string);
   const lines = [
     "\\begin{tikzpicture}[x=1pt,y=1pt,line width=0.8pt,inner sep=2pt,font=\\sffamily\\fontsize{7}{8.4}\\selectfont]",
     ...[...colours]
@@ -142,16 +140,19 @@ export function writeTikz(geometry: LosslessGeometry, options: TikzOptions = {})
       .sort()
       .map((hex) => `\\definecolor{ts${hex}}{HTML}{${hex}}`),
   ];
-  for (const block of placed.blocks) {
-    lines.push(
-      `\\fill[${colourName(block.block.background as string)}] (0,${fmt(block.bottom)}) rectangle (${fmt(placed.width)},${fmt(block.top)});`,
-    );
-    for (const item of block.primitives) {
-      const line = command(item, block);
-      if (line !== undefined) lines.push(line);
-    }
+  const current = placed.block;
+  lines.push(
+    `\\fill[${colourName(current.block.background as string)}] (0,${fmt(current.bottom)}) rectangle (${fmt(placed.width)},${fmt(current.top)});`,
+  );
+  for (const item of current.primitives) {
+    const line = command(item, current);
+    if (line !== undefined) lines.push(line);
   }
   lines.push("\\end{tikzpicture}");
   const standalone = options.standalone ?? true;
-  return `${[...(standalone ? PREAMBLE : []), ...lines, ...(standalone ? ["\\end{document}"] : [])].join("\n")}\n`;
+  return `${[
+    ...(standalone ? PREAMBLE : []),
+    ...lines,
+    ...(standalone ? ["\\end{document}"] : []),
+  ].join("\n")}\n`;
 }
