@@ -27,12 +27,10 @@ TiLiE keeps a small browser editing core and treats the local Python server as a
 
 ## Development
 
-Clone the repository, then install and validate the application workspace. Until timeskeleton publishes schema 0.4.0, the application packages link a timeskeleton checkout beside this repository, so clone both side by side and build its JavaScript package first (see [CONTRIBUTING.md](CONTRIBUTING.md#setup)):
+Clone the repository, then install and validate the application workspace (see [CONTRIBUTING.md](CONTRIBUTING.md#setup)):
 
 ```bash
-git clone https://github.com/TimeToAlign/timeskeleton.git
 git clone https://github.com/TimeToAlign/TimeLineEditor.git
-(cd timeskeleton/js && pnpm install && pnpm build)
 cd TimeLineEditor/app
 pnpm install
 pnpm lint

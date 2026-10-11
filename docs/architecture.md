@@ -96,7 +96,7 @@ Yjs merges concurrent edits from other replicas without the reducers, so a merge
 
 ## The schema contract
 
-`@timetoalign/timeskeleton` supplies the generated types, 0.4.0 validator, canonical writer, drawing font and font metrics. The schema repository, not TiLiE, is the source of truth. The `timetoalign` library proves conformance in its own tests. TiLiE consumes that contract, preserving exact values and invoking validation at the manifest boundaries. Until timeskeleton publishes schema 0.4.0, the packages link the JavaScript package of a timeskeleton checkout beside this repository (`link:../../../../timeskeleton/js` in their `package.json`); see [CONTRIBUTING](../CONTRIBUTING.md#setup).
+`@timetoalign/timeskeleton` supplies the generated types, 0.4.0 validator, canonical writer, drawing font and font metrics. The schema repository, not TiLiE, is the source of truth. The `timetoalign` library proves conformance in its own tests. TiLiE consumes that contract, preserving exact values and invoking validation at the manifest boundaries.
 
 ## Layout and writers
 

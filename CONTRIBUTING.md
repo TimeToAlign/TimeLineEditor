@@ -6,10 +6,9 @@ TiLiE is a pnpm TypeScript workspace with a Svelte 5 application and a separate 
 
 Install Node.js 22.18 or newer, pnpm 12.10.1, Python 3.11 or newer, and uv.
 
-The application packages consume schema 0.4.0 of `@timetoalign/timeskeleton`, which is not published yet, so they link the JavaScript package of a timeskeleton checkout beside this repository (`link:../../../../timeskeleton/js` in `core`, `layout` and `writers`). Clone it next to TimeLineEditor and build its package before installing; when 0.4.0 is published, the link is replaced by a registry range. Then prepare both parts of the repository:
+The application packages `core`, `layout` and `writers` take schema 0.4.0 from the published `@timetoalign/timeskeleton` package (`^0.4.0`). To try a change to timeskeleton itself, point their dependency at a built local checkout's `js/` package with a `link:` path, and never commit the link. Prepare both parts of the repository:
 
 ```bash
-(cd ../timeskeleton/js && pnpm install && pnpm build)
 cd app
 pnpm install
 cd ../server
