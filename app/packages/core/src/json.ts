@@ -44,3 +44,14 @@ export function showJson(value: unknown): string {
 export function jsonEqual(left: unknown, right: unknown): boolean {
   return left === right || canonicalText(left) === canonicalText(right);
 }
+
+/** `-1`, `0` or `1` by Unicode code points, not by UTF-16 units as JavaScript's `<` compares. */
+export function compareCodePoints(left: string, right: string): number {
+  const a = Array.from(left, (character) => character.codePointAt(0) as number);
+  const b = Array.from(right, (character) => character.codePointAt(0) as number);
+  for (let index = 0; index < Math.min(a.length, b.length); index += 1) {
+    const difference = (a[index] as number) - (b[index] as number);
+    if (difference !== 0) return Math.sign(difference);
+  }
+  return Math.sign(a.length - b.length);
+}

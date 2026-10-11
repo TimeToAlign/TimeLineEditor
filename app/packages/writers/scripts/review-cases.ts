@@ -42,8 +42,8 @@ export interface ReviewCase {
   readonly name: string;
   readonly manifest: string;
   readonly placement: Placement;
-  /** The placer's layers, above the defaults and the manifest's own `graphical`. */
-  readonly overrides: readonly Graphical[];
+  /** The application's layers, between the defaults and the manifest's own `graphical`. */
+  readonly settings: readonly Graphical[];
   readonly layers: readonly (Graphical | undefined)[];
   readonly scale: number;
   readonly drawing: Drawing;
@@ -60,16 +60,12 @@ export function reviewCases(): ReviewCase[] {
     extra: readonly Graphical[] = [],
   ) => {
     const manifest = loadFixture(manifestName);
-    const layers = [
-      DEFAULT_LAYER,
-      ...(manifest.graphical === undefined ? [] : [manifest.graphical]),
-      ...extra,
-    ];
+    const layers = [DEFAULT_LAYER, ...extra, manifest.graphical];
     cases.push({
       name,
       manifest: manifestName,
       placement,
-      overrides: extra,
+      settings: extra,
       layers,
       scale,
       drawing: draw(manifest, placement, layers, metrics),
@@ -93,7 +89,7 @@ export function reviewCases(): ReviewCase[] {
     at({ order: ["flow", "regions", "children"] }),
   );
   add("map__child-map-below", "map", DEFAULT_PLACEMENT, 1, [
-    { statements: [{ select: { ids: ["phrase/map/ticks"] }, set: { side: "below" } }] },
+    { statements: [{ select: { ids: ["ticks"] }, set: { side: "below" } }] },
   ]);
   return cases;
 }
@@ -105,6 +101,6 @@ export function inputsText(item: ReviewCase): string {
     manifest: `${item.manifest}.json`,
     placement: { length, spacing, width, height, order },
     scale: item.scale,
-    layers: item.overrides,
+    layers: item.settings,
   });
 }

@@ -20,7 +20,7 @@ describe("the page", () => {
 
   it("bounds several placed boxes", () => {
     const sheet = page(placed);
-    expect([sheet.width, sheet.height]).toEqual([948.70263671875, 187.953125]);
+    expect([sheet.width, sheet.height]).toEqual([950.38916015625, 187.953125]);
     expect(sheet.drawings.map((item) => [item.pageX, item.pageY])).toEqual([
       [56, 31],
       [16, 16],
@@ -29,7 +29,7 @@ describe("the page", () => {
 
   it("places each drawing in SVG and TikZ", () => {
     const svg = writeSvg(placed).split("\n");
-    expect(svg[0]).toContain('width="948.7026" height="187.9531" viewBox="0 0 948.7026 187.9531"');
+    expect(svg[0]).toContain('width="950.3892" height="187.9531" viewBox="0 0 950.3892 187.9531"');
     expect(svg.filter((line) => line.startsWith("<g "))).toEqual([
       '<g transform="translate(56 31)">',
       '<g transform="translate(16 16) scale(2)">',

@@ -1,31 +1,33 @@
 /**
- * Manifest commands generated against a current manifest.
+ * Commands generated against a current view.
  *
  * A seed (a command kind and a few natural numbers) becomes a concrete
- * command once the manifest is known, so a sequence of seeds stays valid
- * input whatever the earlier commands did. Addresses are drawn from what the
- * manifest holds plus unknown ones; coordinates on the axis, off it (another
- * unit, another number type, past int64), negative and past the end;
- * payloads include ones the schema refuses. Every refusal a reducer can
- * produce is reachable.
+ * command once the view is known, so a sequence of seeds stays valid input
+ * whatever the earlier commands did. Targets are drawn from what the view
+ * holds plus unknown and malformed addresses; properties from the target's
+ * table, another kind's table and unknown names; coordinates on the axis, off
+ * it (another unit, another number type, past int64), negative and past the
+ * end; payloads include ones the schema refuses. Every refusal the commands
+ * produce on these targets is reachable.
  */
 
 import { JsonFloat } from "@timetoalign/timeskeleton";
 import fc from "fast-check";
-import type { Manifest, TimelineManifest } from "../src/index.ts";
-import { MANIFEST_COMMAND_TYPES } from "../src/index.ts";
+import type { Manifest, TimelineManifest, View } from "../src/index.ts";
 
 export interface Seed {
   readonly kind: number;
   readonly picks: readonly number[];
 }
 
+const KINDS = 11;
+
 export const seedArbitrary: fc.Arbitrary<Seed> = fc.record({
-  kind: fc.nat({ max: MANIFEST_COMMAND_TYPES.length - 1 }),
+  kind: fc.nat({ max: KINDS - 1 }),
   picks: fc.array(fc.nat({ max: 1_000_000 }), { minLength: 8, maxLength: 8 }),
 });
 
-export const sequenceArbitrary = fc.array(seedArbitrary, { maxLength: 50, size: "max" });
+export const sequenceArbitrary = fc.array(seedArbitrary, { maxLength: 30, size: "max" });
 
 const pick = <T>(items: readonly T[], n: number): T => items[n % items.length] as T;
 
@@ -103,7 +105,9 @@ function newTimeline(id: string, picks: readonly number[], like: Axis | undefine
   let axis: readonly [string, string, string];
   if (a % 6 === 0) {
     const random = pick(AXES, b);
-    axis = [random[0], pick(AXES, c)[1], pick(["int", "float", "fraction"], a)];
+    // A random class and number type on the parent's unit, or on a random one.
+    const unit = like !== undefined && c % 2 === 0 ? like.unit : pick(AXES, c)[1];
+    axis = [random[0], unit, pick(["int", "float", "fraction"], a)];
   } else if (like !== undefined && a % 6 > 1) {
     const match = AXES.find(
       ([, unit, numberType]) => unit === like.unit && numberType === like.number_type,
@@ -120,15 +124,48 @@ function newTimeline(id: string, picks: readonly number[], like: Axis | undefine
   );
   return {
     id,
+    name: c % 3 === 0 ? null : `T${c}`,
     class: cls,
     unit,
     number_type: numberType,
     length,
-    name: c % 3 === 0 ? null : `T${c}`,
+    locked: c % 11 !== 0,
+    meta: {},
+    children: {},
+    conversion_maps: [],
+    regions: [],
+    flow_control: { breaks: [], jumps: [], markers: [] },
+    measure_map: null,
+    metric_hierarchy: null,
   };
 }
 
-function flowEntry(kind: "break" | "jump", axis: Axis, picks: readonly number[]): object {
+function conversionMap(id: string, axis: Axis, picks: readonly number[]): object {
+  const [a = 0, b = 0, c = 0] = picks;
+  const map = {
+    type: "LinearMap",
+    id,
+    name: null,
+    source_unit: pick([axis.unit, null, axis.unit === "seconds" ? "quarters" : "seconds"], a),
+    target_unit: null,
+    scalar: [1 + (b % 3), 2],
+    offset: b % 2 === 0 ? 0.5 : 0n,
+  };
+  if (c % 9 === 0) {
+    const { scalar: _, ...withoutScalar } = map;
+    return withoutScalar;
+  }
+  return map;
+}
+
+/** A region, break, jump or marker on `axis`, sometimes off it or malformed. */
+function flowElement(
+  kind: string,
+  id: string,
+  axis: Axis,
+  picks: readonly number[],
+  markers: readonly string[],
+): object {
   const [a = 0, b = 0, c = 0, d = 0] = picks;
   const common = {
     control_type:
@@ -138,111 +175,205 @@ function flowEntry(kind: "break" | "jump", axis: Axis, picks: readonly number[])
     label: d % 2 === 0 ? null : "L",
     meta: {},
   };
-  if (kind === "break") return { coordinate: coordinate(axis, a, b), ...common, name: null };
+  const at = coordinate(axis, a, b);
+  if (kind === "region") {
+    return {
+      id,
+      name: c % 2 === 0 ? null : "R",
+      start: at,
+      end: coordinate(axis, 3 + (d % 9), c),
+      meta: {},
+    };
+  }
+  if (kind === "marker") return { id, name: null, coordinate: at };
+  if (kind === "break") return { id, coordinate: at, ...common, name: null };
   return {
-    from_coordinate: coordinate(axis, a, b),
+    id,
+    from_coordinate: at,
     to_coordinate: coordinate(axis, 3 + (d % 9), c),
     ...common,
-    target_name: null,
+    target: pick([null, ...markers, "nothing"], b),
   };
 }
 
-/** The concrete command a seed stands for in `manifest`. */
-export function commandFor(manifest: Manifest, seed: Seed): object {
-  const type = MANIFEST_COMMAND_TYPES[seed.kind] as (typeof MANIFEST_COMMAND_TYPES)[number];
-  const [p0 = 0, p1 = 0, p2 = 0, p3 = 0, p4 = 0, p5 = 0] = seed.picks;
-  const all = places(manifest);
-  const ids = [...all.map((place) => place.timeline.id), "ghost"];
-  const id = pick(ids, p0);
+/** A canvas number: mostly a plain one, sometimes zero, negative, not finite or not a number. */
+function canvas(n: number): unknown {
+  return pick([n % 640, 0.5 + (n % 7), 0, -(n % 9) - 1, Number.NaN, "1", null], Math.floor(n / 7));
+}
+
+/** The concrete command a seed stands for in `view`, whose blocks are `blocks`. */
+export function commandFor(view: View, blocks: readonly string[], seed: Seed): object {
+  const [p0 = 0, p1 = 0, p2 = 0, p3 = 0, p4 = 0, p5 = 0, p6 = 0, p7 = 0] = seed.picks;
+  const block = pick([...blocks, ...blocks, ...blocks, "0000000009"], p0);
+  const manifest = view.blocks[block]?.manifest;
+  const all = manifest === undefined ? [] : places(manifest);
+  const maps = all.flatMap((place) => place.timeline.conversion_maps.map((map) => map.id));
+  const elements = all.flatMap(({ timeline }) =>
+    [
+      timeline.regions,
+      timeline.flow_control.breaks,
+      timeline.flow_control.jumps,
+      timeline.flow_control.markers,
+    ].flatMap((list) => list.map((item) => item.id)),
+  );
+  const markers = all.flatMap(({ timeline }) =>
+    timeline.flow_control.markers.map((marker) => marker.id),
+  );
+  const known = all.map((place) => place.timeline.id);
+  const ids = [...known, ...known, ...known, "ghost"];
+  const id = pick(ids, p1);
   const place = all.find((item) => item.timeline.id === id);
-  const target: Axis = place?.timeline ?? {
+  const axis: Axis = place?.timeline ?? {
     unit: "quarters",
     number_type: "fraction",
     length: { unit: "quarters", number_type: "fraction", value: [8n, 1n] },
   };
-  const regions = [...(place?.timeline.regions.map((region) => region.name) ?? []), "r0", "r1"];
-  const markers = [...Object.keys(place?.timeline.flow_control.markers ?? {}), "m0", "m1"];
-  const maps = [...(place?.timeline.conversion_maps.map((map) => map.id) ?? []), "map0"];
-  switch (type) {
-    case "removeChild":
-      return { type, id };
-    case "setName":
-      return { type, id, name: p1 % 3 === 0 ? null : `name ${p1 % 5}` };
-    case "setLength":
-      return { type, id, length: coordinate(target, p1, p2) };
-    case "addChild": {
-      const child = newTimeline(`c${p2 % 7}`, seed.picks.slice(3), target);
-      return { type, parent: id, offset: coordinate(target, p4, p5), child };
+  const element = `${block}/${id}`;
+  const set = (target: string, properties: object) => ({
+    type: "set",
+    changes: [{ target, values: properties }],
+  });
+  switch (seed.kind) {
+    case 0: {
+      const property = pick(["name", "length", "locked", "meta", "offset", "offset"], p2);
+      const value =
+        property === "name"
+          ? pick([null, `name ${p3 % 5}`, 3], p3)
+          : property === "length"
+            ? coordinate(axis, p3, p4)
+            : property === "locked"
+              ? pick([true, false, "yes"], p3)
+              : property === "meta"
+                ? pick([{ k: BigInt(p3 % 3) }, [], { k: Number.NaN }], p3)
+                : coordinate(place?.parent ?? axis, p3, p4);
+      return set(element, { [property]: value });
     }
-    case "setChildOffset":
-      return { type, id, offset: coordinate(place?.parent ?? target, p1, p2) };
-    case "addRegion":
-    case "setRegion": {
-      const name = pick(regions, p1);
-      const start = coordinate(target, p2, p3);
-      const end = coordinate(target, p4 % 12 < 3 ? p4 : p2 + 3, p3 + (p5 % 5));
-      const meta = { k: BigInt(p5 % 3) };
-      if (type === "addRegion") return { type, timeline: id, name, start, end, meta };
-      const mask = 1 + (p5 % 7);
-      return {
-        type,
-        timeline: id,
-        name,
-        ...(mask & 1 ? { start } : {}),
-        ...(mask & 2 ? { end } : {}),
-        ...(mask & 4 ? { meta } : {}),
-      };
-    }
-    case "removeRegion":
-      return { type, timeline: id, name: pick(regions, p1) };
-    case "addBreak":
-    case "removeBreak": {
-      const existing = place?.timeline.flow_control.breaks ?? [];
-      const entry =
-        type === "removeBreak" && existing.length > 0 && p1 % 3 !== 0
-          ? pick(existing, p2)
-          : flowEntry("break", target, seed.picks.slice(2));
-      return { type, timeline: id, break: entry };
-    }
-    case "addJump":
-    case "removeJump": {
-      const existing = place?.timeline.flow_control.jumps ?? [];
-      const entry =
-        type === "removeJump" && existing.length > 0 && p1 % 3 !== 0
-          ? pick(existing, p2)
-          : flowEntry("jump", target, seed.picks.slice(2));
-      return { type, timeline: id, jump: entry };
-    }
-    case "setMarker":
-      return {
-        type,
-        timeline: id,
-        name: pick(markers, p1),
-        coordinate: coordinate(target, p2, p3),
-      };
-    case "removeMarker":
-      return { type, timeline: id, name: pick(markers, p1) };
-    case "addConversionMap": {
-      const sourceUnit = pick(
-        [target.unit, null, target.unit === "seconds" ? "quarters" : "seconds"],
+    case 1: {
+      const property = pick(
+        ["x", "y", "scale", "length", "spacing", "width", "height", "order", "index", "index"],
         p2,
       );
-      const map = {
-        type: "LinearMap",
-        id: pick(maps, p1),
-        name: null,
-        source_unit: sourceUnit,
-        target_unit: null,
-        scalar: [1 + (p3 % 3), 2],
-        offset: p3 % 2 === 0 ? 0.5 : 0n,
-      };
-      if (p4 % 9 === 0) {
-        const { scalar: _, ...withoutScalar } = map;
-        return { type, timeline: id, map: withoutScalar };
-      }
-      return { type, timeline: id, map };
+      const value =
+        property === "order"
+          ? pick(
+              [
+                ["flow", "regions", "children"],
+                ["children", "children", "flow"],
+              ],
+              p3,
+            )
+          : property === "index"
+            ? pick([...Object.values(view.blocks).map((item) => item.index), "Zz", "a00"], p3)
+            : canvas(p3);
+      return set(block, { [property]: value });
     }
-    case "removeConversionMap":
-      return { type, timeline: id, map_id: pick(maps, p1) };
+    case 2: {
+      const member = pick(["grid", "blockDefaults", "graphical"], p2);
+      const value =
+        member === "grid"
+          ? pick([{ size: canvas(p3) }, { snap: p3 % 2 === 0 }, { colour: 1 }], p4)
+          : member === "blockDefaults"
+            ? pick([{ length: canvas(p3) }, { order: ["regions", "flow", "children"] }], p4)
+            : pick([{}, { statements: [{ select: {}, set: { stroke: "red" } }] }], p4);
+      return set("workspace", { [member]: value });
+    }
+    case 3: {
+      const fresh = `c${p2 % 7}`;
+      const child = newTimeline(
+        pick([fresh, fresh, fresh, ...known], p3),
+        seed.picks.slice(4),
+        axis,
+      );
+      return {
+        type: "add",
+        into: pick([element, element, element, element, block, "workspace"], p7 >> 4),
+        child: { offset: coordinate(axis, p7, p2 * 7 + p3), timeline: child },
+      };
+    }
+    case 4:
+      return {
+        type: "add",
+        into: pick([element, element, element, "workspace"], p6),
+        map: conversionMap(pick([`m${p2 % 5}`, ...ids, ...maps], p3), axis, seed.picks.slice(4)),
+      };
+    case 5: {
+      const targets = [
+        ...ids.map((item) => `${block}/${item}`),
+        ...maps.map((item) => `${block}/${item}`),
+        ...elements.map((item) => `${block}/${item}`),
+        "workspace",
+        blocks[1] ?? block,
+      ];
+      return {
+        type: "remove",
+        targets: [pick(targets, p2), ...(p3 % 4 === 0 ? [pick(targets, p4)] : [])],
+      };
+    }
+    case 6: {
+      const select = pick(
+        [{ element: "map" }, { element: "timeline" }, { within: id }, { ids: [id] }, {}],
+        p2,
+      );
+      const value = pick(
+        [{ stroke: "#C00000" }, { stroke: null }, { "stroke-width": 2 }, { opacity: 2 }],
+        p3,
+      );
+      return {
+        type: "style",
+        select,
+        set: value,
+        ...(p4 % 3 === 0 ? { name: pick(["a", "b"], p5) } : {}),
+        ...(p4 % 5 === 0 ? { blocks: [block] } : {}),
+      };
+    }
+    case 7: {
+      const map = pick([...maps, "ghost"], p2);
+      const payload = conversionMap(pick([map, map, "other"], p3), axis, seed.picks.slice(4));
+      return set(`${block}/${map}`, { map: payload });
+    }
+    case 9: {
+      const kind = pick(["region", "break", "jump", "marker"], p2);
+      return {
+        type: "add",
+        into: pick([element, element, element, "workspace"], p7 >> 4),
+        [kind]: flowElement(
+          kind,
+          pick([`e${p3 % 5}`, ...ids, "a/b"], p3),
+          axis,
+          seed.picks.slice(4),
+          markers,
+        ),
+      };
+    }
+    case 10: {
+      const target = pick([...elements, "ghost"], p2);
+      const property = pick(
+        [
+          "name",
+          "start",
+          "end",
+          "coordinate",
+          "from_coordinate",
+          "label",
+          "control_type",
+          "meta",
+          "target",
+        ],
+        p3,
+      );
+      const value =
+        property.includes("coordinate") || property === "start" || property === "end"
+          ? coordinate(axis, p4, p5)
+          : property === "meta"
+            ? { k: 1 }
+            : property === "target"
+              ? pick([null, ...markers, "nothing"], p4)
+              : pick(["x", null, "nonsense", 3], p4);
+      return set(`${block}/${target}`, { [property]: value });
+    }
+    default:
+      return set(pick([element, block, "workspace", "short", `${block}/`], p2), {
+        [pick(["id", "colour", "x", "grid", "offset", "map"], p3)]: 1,
+      });
   }
 }

@@ -1,7 +1,8 @@
+import { manifestElements } from "@timetoalign/tilie-core";
 import type { Graphical, Selector } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
 import { Cascade, DEFAULT_PLACEMENT, draw, type ElementKey, INITIAL_STYLE } from "../src/index.ts";
-import { drawFixture, element, load, metrics } from "./support.ts";
+import { drawFixture, element, load, manifestNames, metrics } from "./support.ts";
 
 // A child `c` of a root `r`: the key of its line.
 const ancestry = new Map<string, readonly string[]>([
@@ -151,11 +152,11 @@ describe("inheritance", () => {
     const drawing = draw(
       load("nested"),
       DEFAULT_PLACEMENT,
-      [{ statements: [{ select: { ids: ["tl:24"] }, set: { stroke: "#123456" } }] }],
+      [{ statements: [{ select: { ids: ["clt_1"] }, set: { stroke: "#123456" } }] }],
       metrics,
     );
-    expect(element(drawing, "tl:23").style.stroke).toBe("#123456");
-    expect(element(drawing, "tl:22").style.stroke).toBe("#123456");
+    expect(element(drawing, "clt_3").style.stroke).toBe("#123456");
+    expect(element(drawing, "clt_2").style.stroke).toBe("#123456");
   });
 
   it("passes a timeline's stroke width to its map, which has no name", () => {
@@ -165,8 +166,8 @@ describe("inheritance", () => {
       [{ statements: [{ select: { ids: ["melody"] }, set: { "stroke-width": 7 } }] }],
       metrics,
     );
-    expect(element(drawing, "melody/map/tempo").style["stroke-width"]).toBe(7);
-    expect(drawing.elements.some((item) => item.address === "melody/map/tempo/name")).toBe(false);
+    expect(element(drawing, "tempo").style["stroke-width"]).toBe(7);
+    expect(drawing.elements.some((item) => item.address === "tempo/name")).toBe(false);
   });
 
   it("passes a region's font size to its label", () => {
@@ -176,25 +177,24 @@ describe("inheritance", () => {
       [{ statements: [{ select: { element: "region" }, set: { "font-size": 13 } }] }],
       metrics,
     );
-    expect(element(drawing, "tl:19/region/0/label").style["font-size"]).toBe(13);
+    expect(element(drawing, "region_1/label").style["font-size"]).toBe(13);
   });
 });
 
 describe("maps by target unit", () => {
   const name = "conversion_maps__maps_quarters";
-  const map = (id: string) => `maps:quarters/map/map:${id}`;
 
   it("draws a map in the domain and modality it converts to", () => {
     const drawing = drawFixture(name);
-    expect(element(drawing, map("LinearMap_1")).style).toMatchObject({
+    expect(element(drawing, "lmap_1").style).toMatchObject({
       stroke: "#0050EF",
       "stroke-dasharray": "none",
     });
-    expect(element(drawing, map("QuartersToTicks_1")).style).toMatchObject({
+    expect(element(drawing, "cmap_11").style).toMatchObject({
       stroke: "#00CC00",
       "stroke-dasharray": "1 1",
     });
-    expect(element(drawing, map("QuartersToFloatingMeasures_1")).style).toMatchObject({
+    expect(element(drawing, "tmap_1").style).toMatchObject({
       stroke: "#00CC00",
       "stroke-dasharray": "none",
     });
@@ -204,8 +204,8 @@ describe("maps by target unit", () => {
     const drawing = drawFixture(name, [
       { statements: [{ select: { ids: ["maps:quarters"] }, set: { stroke: "#ABCDEF" } }] },
     ]);
-    expect(element(drawing, map("FloorMap_1")).style.stroke).toBe("#ABCDEF");
-    expect(element(drawing, map("LinearMap_1")).style.stroke).toBe("#0050EF");
+    expect(element(drawing, "cmap_6").style.stroke).toBe("#ABCDEF");
+    expect(element(drawing, "lmap_1").style.stroke).toBe("#0050EF");
   });
 
   it("gives a map its type as class", () => {
@@ -215,6 +215,16 @@ describe("maps by target unit", () => {
     const reached = drawing.elements
       .filter((item) => item.type === "map" && item.style.stroke === "#FEDCBA")
       .map((item) => item.address);
-    expect(reached).toEqual([map("FloorMap_1")]);
+    expect(reached).toEqual(["cmap_6"]);
+  });
+});
+
+describe("the elements core enumerates", () => {
+  it.each(manifestNames())("include every drawn element of %s with its key", (name) => {
+    const keys = new Map(manifestElements(load(name)).map((key) => [key.address, key]));
+    for (const item of drawFixture(name).elements) {
+      if (item.type === "block") continue;
+      expect(keys.get(item.address)?.type, item.address).toBe(item.type);
+    }
   });
 });

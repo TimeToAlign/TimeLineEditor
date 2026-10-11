@@ -11,7 +11,7 @@ import {
 } from "@timetoalign/timeskeleton";
 import type { LoadError, Problem } from "../errors.ts";
 import { ErrorCode, InvalidManifestError, problem } from "../errors.ts";
-import { checkManifest } from "./invariants.ts";
+import { checkManifest, checkOrdered } from "./invariants.ts";
 import type { Manifest } from "./types.ts";
 
 export function schemaProblems(value: unknown): Problem[] {
@@ -51,9 +51,20 @@ export function loadManifest(text: string): Manifest | LoadError {
     }
     return refuse(problem(ErrorCode.invalidJson, (error as Error).message, []));
   }
-  const problems = manifestProblems(parsed);
+  return readManifestValue(parsed);
+}
+
+/**
+ * A manifest from a value read losslessly (`parseJson`): every schema or
+ * invariant problem refuses it; an accepted one is put in canonical order and
+ * its missing styles completed.
+ */
+export function readManifestValue(value: unknown): Manifest | LoadError {
+  const schema = schemaProblems(value);
+  if (schema.length > 0) return refuse(...schema);
+  const ordered = canonicalOrder(value as Manifest) as Manifest;
+  const problems = checkOrdered(ordered);
   if (problems.length > 0) return refuse(...problems);
-  const ordered = canonicalOrder(parsed as Manifest) as Manifest;
   if (ordered.graphical === undefined) return ordered;
   // completeStyles issues the one warning naming every missing style.
   const { graphical } = completeStyles(ordered.graphical);

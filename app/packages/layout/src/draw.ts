@@ -5,22 +5,20 @@
 
 import {
   type BandGroup,
+  BLOCK_KEY,
   type ConversionMap,
-  compareReal,
+  type ElementKey,
+  elementKey,
   type Manifest,
+  orderedChildren,
   type Real,
   type TimelineManifest,
+  textKey,
+  timelineAncestry,
 } from "@timetoalign/tilie-core";
 import type { ElementType, FontMetrics, Graphical, TimeUnit } from "@timetoalign/timeskeleton";
 import { canonicalOrder } from "@timetoalign/timeskeleton";
-import {
-  Cascade,
-  classDomain,
-  type ElementKey,
-  type Side,
-  type Style,
-  unitDomain,
-} from "./cascade.ts";
+import { Cascade, type Side, type Style } from "./cascade.ts";
 import { cleanText, TextMeasure } from "./metrics.ts";
 import {
   add,
@@ -184,16 +182,6 @@ class Rows {
   }
 }
 
-function compareCodePoints(left: string, right: string): number {
-  const a = Array.from(left, (character) => character.codePointAt(0) as number);
-  const b = Array.from(right, (character) => character.codePointAt(0) as number);
-  for (let index = 0; index < Math.min(a.length, b.length); index += 1) {
-    const difference = (a[index] as number) - (b[index] as number);
-    if (difference !== 0) return difference;
-  }
-  return a.length - b.length;
-}
-
 interface Styled {
   readonly address: string;
   readonly style: Style;
@@ -252,47 +240,18 @@ export function draw(
   const a = (size: number) => measure.ascent(size);
   const d = (size: number) => measure.descent(size);
 
-  const ancestry = new Map<string, readonly string[]>();
-  const collect = (timeline: TimelineManifest, path: readonly string[]) => {
-    const own = [...path, timeline.id];
-    ancestry.set(timeline.id, own);
-    for (const child of Object.values(timeline.children)) collect(child.timeline, own);
-  };
-  collect(root, []);
-  const cascade = new Cascade(layers, ancestry);
-  const blockStyle = cascade.resolve(
-    { type: "block", address: null, timeline: null, domain: null, modality: null, class: null },
-    undefined,
-  );
-  const keyOf = (
-    type: ElementType,
-    address: string,
-    timeline: TimelineManifest,
-    map?: ConversionMap,
-  ): ElementKey => {
-    const [domain, modality] =
-      map === undefined
-        ? classDomain(timeline.class)
-        : (unitDomain(map.target_unit as string | null) ?? [null, null]);
-    return {
-      type,
-      address,
-      timeline: timeline.id,
-      domain,
-      modality,
-      class: map === undefined ? timeline.class : map.type,
-    };
-  };
+  const cascade = new Cascade(layers, timelineAncestry(ordered));
+  const blockStyle = cascade.resolve(BLOCK_KEY, undefined);
   const styled = (key: ElementKey, parent: Style): Styled => ({
     address: key.address as string,
     style: cascade.resolve(key, parent),
   });
   const textOf = (owner: ElementKey, ownerStyle: Style, kind: "name" | "label"): Styled =>
-    styled({ ...owner, type: kind, address: `${owner.address}/${kind}` }, ownerStyle);
+    styled(textKey(owner, kind), ownerStyle);
 
   const entries: Entry[] = [];
   const visit = (timeline: TimelineManifest, parent: Entry | undefined, start: Real) => {
-    const key = keyOf(parent === undefined ? "timeline" : "child", timeline.id, timeline);
+    const key = elementKey(parent === undefined ? "timeline" : "child", timeline.id, timeline);
     const style = cascade.resolve(key, parent === undefined ? blockStyle : parent.style);
     const entry: Entry = {
       manifest: timeline,
@@ -303,12 +262,7 @@ export function draw(
       name: textOf(key, style, "name"),
     };
     entries.push(entry);
-    const children = Object.entries(timeline.children).sort(
-      (left, right) =>
-        compareReal(coordinateValue(left[1].offset), coordinateValue(right[1].offset)) ||
-        compareCodePoints(left[0], right[0]),
-    );
-    for (const [, child] of children) {
+    for (const child of orderedChildren(timeline)) {
       visit(child.timeline, entry, add(start, coordinateValue(child.offset)));
     }
   };
@@ -326,42 +280,42 @@ export function draw(
     parent: Style,
     map?: ConversionMap,
   ): Owned => {
-    const key = keyOf(type, address, entry.manifest, map);
+    const key = elementKey(type, address, entry.manifest, map);
     const style = cascade.resolve(key, parent);
     return { address, style, entry, side: style.side, label: textOf(key, style, "label") };
   };
   const maps: Owned[] = [];
-  const regions: (Owned & { start: Real; end: Real; text: string })[] = [];
+  const regions: (Owned & { start: Real; end: Real; text: string | null })[] = [];
   const breaks: (Owned & { at: Real; text: string | null })[] = [];
   const jumps: (Owned & { from: Real; to: Real; text: string })[] = [];
   for (const entry of entries) {
     const timeline = entry.manifest;
     for (const map of timeline.conversion_maps) {
-      maps.push(owned("map", `${timeline.id}/map/${map.id}`, entry, entry.style, map));
+      maps.push(owned("map", map.id, entry, entry.style, map));
     }
-    timeline.regions.forEach((region, index) => {
+    for (const region of timeline.regions) {
       regions.push({
-        ...owned("region", `${timeline.id}/region/${index}`, entry, entry.style),
+        ...owned("region", region.id, entry, entry.style),
         start: add(entry.start, coordinateValue(region.start)),
         end: add(entry.start, coordinateValue(region.end)),
         text: region.name,
       });
-    });
-    timeline.flow_control.breaks.forEach((item, index) => {
+    }
+    for (const item of timeline.flow_control.breaks) {
       breaks.push({
-        ...owned("break", `${timeline.id}/break/${index}`, entry, entry.style),
+        ...owned("break", item.id, entry, entry.style),
         at: add(entry.start, coordinateValue(item.coordinate)),
         text: item.label,
       });
-    });
-    timeline.flow_control.jumps.forEach((item, index) => {
+    }
+    for (const item of timeline.flow_control.jumps) {
       jumps.push({
-        ...owned("jump", `${timeline.id}/jump/${index}`, entry, entry.style),
+        ...owned("jump", item.id, entry, entry.style),
         from: add(entry.start, coordinateValue(item.from_coordinate)),
         to: add(entry.start, coordinateValue(item.to_coordinate)),
         text: item.label ?? item.control_type,
       });
-    });
+    }
   }
 
   interface Marker extends Owned {
@@ -385,10 +339,10 @@ export function draw(
   const drawnRegions = regions.filter((region) => shown(region.style));
   const regionLabels = new Map(
     drawnRegions
-      .filter((region) => shown(region.label.style))
+      .filter((region) => region.text !== null && shown(region.label.style))
       .map((region) => [
         region,
-        { ...label(region, region.text), at: midpoint(region.start, region.end) },
+        { ...label(region, region.text as string), at: midpoint(region.start, region.end) },
       ]),
   );
   const drawnJumps = jumps.filter((jump) => shown(jump.style));

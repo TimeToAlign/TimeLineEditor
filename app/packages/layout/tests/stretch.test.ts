@@ -37,9 +37,9 @@ describe("stretch", () => {
 
   it("moves along time by length", () => {
     const short = drawFixture("nested", [], { ...DEFAULT_PLACEMENT, length: 200 });
-    expect(short.elements.find((item) => item.address === "tl:24")).toMatchObject({
-      xs: 41.072265625,
-      xe: 241.072265625,
+    expect(short.elements.find((item) => item.address === "clt_1")).toMatchObject({
+      xs: 41.91552734375,
+      xe: 241.91552734375,
       y: 43,
     });
   });
@@ -56,7 +56,7 @@ describe("stretch", () => {
         const line = drawing.elements.find((item) => item.address === address);
         return line?.type === "timeline" || line?.type === "child" ? line.y : Number.NaN;
       };
-      const [root, first, second] = [y("tl:24"), y("tl:23"), y("tl:22")];
+      const [root, first, second] = [y("clt_1"), y("clt_3"), y("clt_2")];
       expect([root, first, second], `${spacing}`).toEqual(expected);
       expect(root - first).toBe(first - second);
     }

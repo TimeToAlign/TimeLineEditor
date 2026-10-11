@@ -41,3 +41,53 @@ and the document emptied after each test.
 Type-checking of the component and the test is done by `svelte-check` with
 `--fail-on-warnings` under `pnpm typecheck`; that gate also catches the
 compiler's accessibility warnings.
+
+## Autosave (`autosave.test.ts`)
+
+`src/autosave.ts` keeps the text of each open workspace in IndexedDB: the
+database `tilie-autosave` (version 1) with one object store, `workspaces`,
+holding one slot per workspace key. The text is whatever the caller passes,
+normally the output of `writeWorkspace`; the module stores and returns it
+unchanged and never parses it. Every test installs its own empty
+`IDBFactory` from `fake-indexeddb` as `globalThis.indexedDB`, so no test sees
+another's database. Writes are counted by a spy on the factory's
+`IDBObjectStore.prototype.put`, which records each written value and key.
+Vitest's fake timers replace only `setTimeout` and `clearTimeout`, because
+`fake-indexeddb` delivers its events through `setImmediate`.
+
+1. **Only the last text within the delay is written.** With
+   `createAutosave({key: "w", delayMs: 100})`: `flush()` before anything was
+   scheduled writes nothing (0 puts). Then `schedule("a")` at 0 ms,
+   `schedule("b")` at 50 ms and `schedule("c")` at 120 ms; each call restarts
+   the delay, so nothing is due before 220 ms. The clock is advanced to
+   219 ms and then by 1 ms; `flush()` (nothing is pending any more, it only
+   waits for the write) leaves exactly one put, `("c", "w")`. If any earlier
+   call had fired, the count would be higher at this point or below.
+2. **`flush()` writes the pending text at once and cancels its timer.**
+   Continuing: `schedule("d")`, the clock advanced by 99 ms, `flush()`: the
+   puts are exactly `[("c", "w"), ("d", "w")]`. Advancing the clock by
+   1,000 ms and flushing again adds no put, so the cancelled timer never
+   fires.
+3. **Recovery returns the last written text byte for byte.** A text mixing
+   ASCII, `C♯`, the astral `𝄞` (a surrogate pair), a CRLF line end, a lone
+   surrogate `\uD800`, and trailing spaces is scheduled and flushed after an
+   earlier text was flushed under the same key; `recoverWorkspace("w")`
+   returns a string `===` to it (equal UTF-16 code units). A key never
+   written recovers `null`.
+4. **Slots are isolated by key.** Two autosaves, keys `w1` and `w2`, flush
+   `one` and `two`; each key recovers its own text. After `clear("w1")`,
+   `w1` recovers `null` and `w2` still recovers `two`.
+5. **A failure of IndexedDB is a rejected promise, never swallowed.** The
+   database `tilie-autosave` is first created at version 2 directly through
+   the factory, so the module's open at version 1 fails with the
+   IndexedDB `VersionError`. Then:
+   - `schedule("x")` and `flush()` reject with an `AutosaveError` whose
+     `code` is `indexeddb_failed`, `key` is `w` and `cause.name` is
+     `VersionError`; `recoverWorkspace("w")` and `clear("w")` reject with
+     the same `code`, `key` and cause name.
+   - a write started by the timer (schedule, then the clock advanced past
+     the delay) has no caller to reject; its failure rejects the next
+     `flush()` with that same error shape, and a further `flush()` with
+     nothing pending resolves, so each failure is reported exactly once.
+   - with `globalThis.indexedDB` undefined, `recoverWorkspace("w")` rejects
+     with an `AutosaveError` of `code` `indexeddb_unavailable` and `key` `w`.

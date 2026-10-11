@@ -175,55 +175,6 @@ describe("the package ladder", () => {
     expect(status).toBe(1);
   });
 
-  describe("Yjs stays behind core's yjs entry point", () => {
-    function writeYjsEntry(source: string): void {
-      const dir = path.join(scratch, "packages/core/src/yjs");
-      mkdirSync(dir, { recursive: true });
-      writeFileSync(path.join(dir, "index.ts"), source);
-    }
-
-    it("accepts Yjs in the yjs entry point", () => {
-      writeYjsEntry('import "yjs";\n');
-      expect(cruise(scratch)).toEqual({ violations: [], status: 0 });
-    });
-
-    it("rejects Yjs in the root export of core", () => {
-      writePackage(scratch, "core", 'import "yjs";\n');
-      const { violations, status } = cruise(scratch);
-      expect(violations).toEqual([
-        {
-          rule: { name: "yjs-only-in-core-yjs-entry", severity: "error" },
-          from: "packages/core/src/index.ts",
-          to: "yjs",
-        },
-      ]);
-      expect(status).toBe(1);
-    });
-
-    it("rejects the root export reaching the yjs entry point", () => {
-      writeYjsEntry('import "yjs";\n');
-      writePackage(scratch, "core", 'import "./yjs/index.ts";\n');
-      const { violations, status } = cruise(scratch);
-      expect(violations).toEqual([
-        {
-          rule: { name: "core-root-export-without-yjs", severity: "error" },
-          from: "packages/core/src/index.ts",
-          to: "packages/core/src/yjs/index.ts",
-        },
-      ]);
-      expect(status).toBe(1);
-    });
-
-    it("rejects Yjs in another package", () => {
-      writePackage(scratch, "layout", 'import "yjs/dist/yjs.mjs";\n');
-      const { violations, status } = cruise(scratch);
-      expect(violations.map((v) => `${v.rule.name}: ${v.from}`)).toEqual([
-        "yjs-only-in-core-yjs-entry: packages/layout/src/index.ts",
-      ]);
-      expect(status).toBe(1);
-    });
-  });
-
   it("rejects circular imports within a package", () => {
     writePackage(scratch, "core", 'import "./other.ts";\n');
     writeFileSync(path.join(scratch, "packages/core/src/other.ts"), 'import "./index.ts";\n');

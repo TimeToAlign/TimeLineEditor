@@ -21,17 +21,18 @@ Only arranger and editor may import `svelte`. Add a package only for a present n
 
 - Add no dependency without an ADR in `decisions/`. Use the MADR structure, weigh writing it ourselves, record the audited version and a review date.
 - Write the relevant `tests/README.md` before tests. State validation logic and exact expected values; tests follow that file.
-- TypeScript is strict ESM. Use Svelte 5 runes. Name commands `verbNoun`.
+- TypeScript is strict ESM. Use Svelte 5 runes.
+- The workspace changes only through four commands, `add`, `set`, `remove` and `style`, each aimed at addresses: `workspace`, a block id, or `<block id>/<element id>`. The kind of the target decides what a command does; never infer it from the shape of the arguments, and add no other command.
 - A float never constructs a coordinate; page arithmetic in the writers may read a float's exact binary value (`fromFloat`), never an approximation of it. A coordinate is atomic: `{ unit, number_type, value }`, where `value` is a JSON integer, a JSON number or a `[numerator, denominator]` Fraction pair as `number_type` selects (the BOPP core primitives).
 - `draw(manifest, placement, layers, metrics)`, `toDescriptors(drawing)`, `writeSvg(placed)` and `writeTikz(placed, options)` implement timeskeleton's drawing specification (`docs/drawing.md` there) and nothing beyond it. A rule the code applies that the specification does not state is a defect, fixed in the specification first. The specification and the SVG and TikZ fixtures of a version pin the drawing; there is no drawing schema, and a drawing's JSON form is internal to an implementation.
-- Keep the three layers apart: a manifest knows nothing about the canvas, a block adds placement to one manifest, and the workspace holds records. Name each layer by its own word only: manifest, block, workspace.
+- Keep the three layers apart: a manifest knows nothing about the canvas, a block adds placement to one manifest, and the workspace holds blocks. A block's styling is its manifest's `graphical`; the block has no style layer of its own. Name each layer by its own word only: manifest, block, workspace.
 - Commands are serializable and validated. Return typed, machine-readable errors rather than display-oriented strings.
 - Python uses type hints and Google-style docstrings.
 - Server security is invariant: bind only `127.0.0.1`; generate a token for each run; hand the token to the editor only in the URL fragment (`/#token=…`), never in a path or query, so it never reaches the server or its access log, and have the editor remove it from the address bar with `history.replaceState`; reject foreign Host and Origin headers; require exact `Authorization: Bearer <token>` for every `/api/` route; send `Referrer-Policy: no-referrer` with every response.
 
 ## Dependency Policy
 
-- Runtime and peer dependencies declare compatible ranges in every package manifest: `server/pyproject.toml` (for example `fastapi>=0.141,<1`) and each `app/**/package.json` (for example the optional peer `yjs` `^13.6.33` of `core`).
+- Runtime and peer dependencies declare compatible ranges in every package manifest: `server/pyproject.toml` (for example `fastapi>=0.141,<1`) and each `app/**/package.json` (for example `svelte` `^5.57.1` in `editor`).
 - Development dependencies are pinned exactly: the npm `devDependencies` and the server's `dev` group.
 - The lockfiles, `server/uv.lock` and `app/pnpm-lock.yaml`, pin every resolved version. A version enters a lockfile only once it has been released for at least 14 days (`minimumReleaseAge` in `app/pnpm-workspace.yaml`).
 - The one exception to that window is this project's own schema package, `@timetoalign/timeskeleton`, listed in `minimumReleaseAgeExclude`, so that a schema release can be consumed as soon as it is published.

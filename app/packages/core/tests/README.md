@@ -1,18 +1,20 @@
 # `@timetoalign/tilie-core` tests
 
 `core` holds exact coordinates, one TimeSkeleton manifest (`{meta, timeline,
-graphical?}`, timeskeleton 0.4.0), the command vocabulary as pure reducers,
-an immutable workspace view of records, and the Yjs binding of one manifest
-(`@timetoalign/tilie-core/yjs`). This file states what proves each part
-works; a test that cannot be traced to a paragraph here does not belong in the
-suite.
+graphical?}`, timeskeleton 0.5.0), the elements a selector can match, the
+immutable workspace view of blocks, the four commands `add`, `set`, `remove`
+and `style` over addresses, the store with its command journal, and the
+workspace file. This file states what proves each part works; a test that
+cannot be traced to a paragraph here does not belong in the suite.
 
 General rules: exact values only (`toEqual`/`toBe` against literal expectations
-or against a value reached by another path); no thresholds; no network;
-nothing written outside temporary state. Manifests come from the fixtures
-shipped by the installed `@timetoalign/timeskeleton` package
-(`fixtures/0.4.0/`, 23 files) or are built through commands; a manifest
-literal appears only where a rejection is asserted.
+or against a value reached by another path); no thresholds except the budgets,
+which are stated as the requirement they test; no network; nothing written
+outside temporary state. Manifests come from the fixtures shipped by the
+installed `@timetoalign/timeskeleton` package (`fixtures/0.5.0/`, 23 files) or
+are built through commands; a manifest literal appears only where a rejection
+is asserted. Block ids in examples are `A = "0000000000"`, `B = "0000000001"`,
+`C = "0000000002"`.
 
 ## Package name (`name.test.ts`)
 
@@ -86,13 +88,16 @@ nothing is lost. In a loaded manifest every number is a `JsonNumber`: a plain
 number for a safe integer or a float with a fractional part, a `bigint` beyond
 2^53, a `JsonFloat` for an integral float (`600.0`).
 
-1. **Fixture round trip.** There are exactly 23 files in `fixtures/0.4.0/`.
+1. **Fixture round trip.** There are exactly 23 files in `fixtures/0.5.0/`.
    For each, `saveManifest(loadManifest(text))` equals `text` byte for byte.
    No skip, no normalization in the comparison.
-2. **Shared rejections.** For every case in `fixtures/rejections/0.4.0/`, the
+2. **Shared rejections.** For every case in `fixtures/rejections/0.5.0/`, the
    rejected manifest, written as JSON text, is refused by `loadManifest` with
-   exactly one problem whose `path` equals the case's `path`.
-3. **Schema version.** `bare.json` with `"schema_version": "0.4.0"` replaced
+   exactly one problem whose `path` equals the case's `path`. These include
+   timeskeleton's identity rules: an id repeated across kinds and a jump
+   target naming no marker are `schema_violation`s from its `validate`, so
+   `core` checks neither again.
+3. **Schema version.** `bare.json` with `"schema_version": "0.5.0"` replaced
    by `"0.0.0"` is refused with exactly one problem
    `{code: "schema_violation", path: ["meta", "schema_version"]}`.
 4. **Missing styles are completed.** A graphical statement naming each of
@@ -106,29 +111,31 @@ number for a safe integer or a float with a fractional part, a `bigint` beyond
    byte-identically; `continuous_logical.json` with its length Fraction
    numerator `12` replaced by `9007199254740993` loads as
    `[9007199254740993n, 2]` and saves byte-identically.
-6. **Save goes through the canonical order.** Markers named `"\u{1F3B5}"` (a
-   surrogate pair in UTF-16) and `"～"`, set in that order by commands, are
-   written with `"～"` first: code-point order, the reverse of JavaScript's
+6. **Save goes through the canonical order.** `bare.json` given two markers
+   at the same coordinate with the ids `"\u{1F3B5}"` (a surrogate pair in
+   UTF-16) and `"～"`, in that order, is written with `"～"` first: markers
+   by coordinate, then id in code-point order, the reverse of JavaScript's
    default sort.
 7. **A child of another number type** (a float child of a Fraction parent,
    length `4.0`) loads and saves byte for byte.
 8. **Invariant refusal lists every violation.** `with_region.json` changed to
    break three invariants at once (an unlocked child, a conversion map whose
-   `source_unit` is `seconds` on a `quarters` timeline, a duplicated region)
-   is refused with exactly `child_not_locked`, `map_source_unit_mismatch` and
-   `duplicate_region`, in traversal order, each at its exact path, and
+   `source_unit` is `seconds` on a `quarters` timeline, a region ending
+   before it starts) is refused with exactly `child_not_locked`,
+   `map_source_unit_mismatch` and `region_end_before_start`, in traversal
+   order, each at its exact path, and
    `saveManifest` of the same value throws `InvalidManifestError`.
 8. **Each invariant at load.** For each of `unit_not_allowed`,
    `number_type_not_allowed`, `invalid_coordinate`, `off_axis`,
    `child_unit_mismatch`, `negative_offset`, `child_exceeds_parent`,
-   `region_end_before_start`, `duplicate_map`,
-   `metric_hierarchy_without_measure_map` and `duplicate_timeline`, one copy
+   `region_end_before_start` and `metric_hierarchy_without_measure_map`, one
+   copy
    of `with_region.json` changed in exactly that respect is refused with
    exactly one problem: that code at the exact path.
 9. **A child's key is its id.** `nested.json` holds its first child under the
-   key `tl:23`. With that child's `id` changed to `tl:99`, both
+   key `clt_3`. With that child's `id` changed to `clt_9`, both
    `checkManifest` and `loadManifest` report exactly one problem,
-   `{code: "key_mismatch", path: ["timeline", "children", "tl:23", "timeline",
+   `{code: "key_mismatch", path: ["timeline", "children", "clt_3", "timeline",
    "id"]}`.
 10. **Malformed text** is refused with code `invalid_json` at path `[]`.
 
@@ -140,15 +147,13 @@ well as by deep equality.
 ## Invariants (the catalogue)
 
 Every invariant below is checked twice: by `checkManifest` over a whole loaded
-manifest, and by the command reducer before an edit applies. The `Source`
-column names the public timetoalign API that enforces the same rule. Five rows
+manifest, and by every command over the manifest it would leave. The `Source`
+column names the public timetoalign API that enforces the same rule. Four rows
 are marked **Editor's own rule**: where the library accepts a manifest and
 normalizes it on load (or never meets the case), the editor refuses, because
 every manifest the library writes already satisfies the rule and an editor
 manifest must save as it was read:
 
-- timeline ids unique across the whole manifest (commands address a timeline
-  by id);
 - a child stored under its own id as key;
 - every loaded child locked (the library writes every child locked);
 - region and flow-control coordinates already on the axis's number type;
@@ -162,18 +167,19 @@ manifest must save as it was read:
 | `off_axis` | The length, every child offset, every region start and end, every break, jump and marker coordinate carries the timeline's unit and number type | **Editor's own rule.** length and offsets: `Timeline.from_dict`; flow-control units: `timetoalign.timelines.flowcontrol.FlowControlRegistry._on_axis`; region units: `timetoalign.timelines.engines.regions.RegionsMixin._add_existing_region` and `create_region`. Number type of regions and flow coordinates: the library stores every coordinate on its axis, so its manifests never carry an off-axis one; its re-expression of a coordinate given to `add_break` or `create_region` is a convenience of its API, not a manifest form, and is refused here |
 | `child_unit_mismatch` | A child has its parent's unit | `timetoalign.timelines.engines.children.ChildrenMixin.validate_child` |
 | `negative_offset` | A child offset is not negative | `validate_child` |
-| `child_exceeds_parent` | A child ends within its parent (offset + child length ≤ parent length, compared across number types as in section 1.6). A command placing a child past the end of an unlocked parent lengthens the parent to the child's end; a locked parent refuses. The parent grows only to a value its own number type holds exactly (an int parent cannot grow to 9/2, a float parent cannot grow to 1/3); otherwise the command is refused with this code, since a stored value is never re-expressed. The library is inconsistent in that case: with timetoalign at the time of writing, an unlocked int parent of length 4 given a Fraction child of length 3/2 at offset 3 (ending at 9/2) kept its length 4, and setting the length of an int parent below a Fraction child's end of 5/2 raised `ValueError` instead of the length refusal | **Editor's own rule.** `ChildrenMixin.add_child` through `EventsMixin._ensure_capacity` (`timetoalign.timelines.engines.events`); `addChild` and `setChildOffset` both apply this rule (the library has no offset setter; moving a child is re-adding it) |
+| `child_exceeds_parent` | A child ends within its parent (offset + child length ≤ parent length, compared across number types as in section 1.6). A command placing a child past the end of an unlocked parent lengthens the parent to the child's end; a locked parent refuses. The parent grows only to a value its own number type holds exactly (an int parent cannot grow to 9/2, a float parent cannot grow to 1/3); otherwise the command is refused with this code, since a stored value is never re-expressed. The library is inconsistent in that case: with timetoalign at the time of writing, an unlocked int parent of length 4 given a Fraction child of length 3/2 at offset 3 (ending at 9/2) kept its length 4, and setting the length of an int parent below a Fraction child's end of 5/2 raised `ValueError` instead of the length refusal | **Editor's own rule.** `ChildrenMixin.add_child` through `EventsMixin._ensure_capacity` (`timetoalign.timelines.engines.events`); adding a child and setting a child's `offset` both apply this rule (the library has no offset setter; moving a child is re-adding it) |
 | `child_not_locked` | Every child is locked | **Editor's own rule.** `add_child` locks every child it embeds, so the library writes every child locked; its `from_dict` locks an unlocked child silently, the editor refuses it |
-| `locked` | A locked timeline's length cannot be set | `timetoalign.timelines.base.Timeline._check_not_locked`, called by the `length` setter |
-| `length_below_content` | A length is not below the end of any child (and so never negative when set) | `Timeline.length` setter with `ChildrenMixin._get_max_content_coordinate` |
-| `negative_length` | A new timeline's length is not negative | the schema's `CoordinateNonnegative` (the library constructor accepts it; its output would not validate) |
-| `duplicate_region` | Region names are unique on a timeline | `RegionsMixin.create_region`, `_add_existing_region` |
+| `locked` | A locked timeline's length cannot be set (a rule of `set`; a manifest cannot break it) | `timetoalign.timelines.base.Timeline._check_not_locked`, called by the `length` setter |
+| `length_below_content` | A length is not set below the end of any child (and so never negative; a rule of `set`) | `Timeline.length` setter with `ChildrenMixin._get_max_content_coordinate` |
 | `region_end_before_start` | A region's end is not before its start | `timetoalign.timelines.regions.Region.__post_init__` |
-| `duplicate_map` | Conversion-map ids are unique on a timeline | `timetoalign.timelines.engines.conversion.ConversionMapsMixin.add_conversion_map` |
 | `map_source_unit_mismatch` | A conversion map's `source_unit`, when not null, is the timeline's unit | `add_conversion_map` |
 | `metric_hierarchy_without_measure_map` | A metric hierarchy requires a measure map | `Timeline.add_metric_hierarchy`, `Timeline.from_dict` |
-| `duplicate_timeline` | Timeline ids are unique across the whole manifest | **Editor's own rule.** per parent: `validate_child`; per group: `timetoalign.timelines.groups.TimelineGroup.add_timeline`; across a manifest: the editor's addressing rule, which every library manifest satisfies |
 | `key_mismatch` | A timeline stored under a key of `children` has that key as its `id` | **Editor's own rule.** `Timeline.to_dict` keys `children` by the child's id; the library's `from_dict` re-keys silently; the editor refuses, as a manifest that differs from its own re-emission |
+
+Ids unique across the whole manifest, whatever the kinds of the elements
+carrying them, and a jump's `target` naming a marker of its timeline, are
+timeskeleton's identity rules, checked by its `validate` as part of the
+schema check; region names, now display names, may repeat.
 
 Rules the library does **not** enforce and this package therefore does not
 invent: a child may have another number type than its parent; a region may
@@ -185,98 +191,95 @@ conversion-map payloads are carried verbatim: their rules beyond the schema
 (`MeasureMap.from_dict`, `ConversionMap.from_dict`) are the server's to
 check, not the editor's.
 
-## Manifest commands (`commands.test.ts`)
+## Elements and selectors (`elements.test.ts`)
 
-The 16 manifest commands are `setName`, `setLength`, `addChild`,
-`setChildOffset`, `removeChild`, `addRegion`, `setRegion`, `removeRegion`,
-`addBreak`, `removeBreak`, `addJump`, `removeJump`, `setMarker`,
-`removeMarker`, `addConversionMap`, and `removeConversionMap`. Every command
-carries a valid ten-character `block` id. `applyToManifest(manifest, command)`
-is pure: the input is never mutated (every test deep-freezes its input first,
-so a mutation throws), and a refusal returns a `CommandError`
-`{code, message, path}` and nothing else. `parseCommand(unknown)` refuses
-malformed input with code `invalid_command` at the path of the offending
-member.
+A `style` command needs to know which blocks hold an element a selector
+matches, and `layout` resolves the cascade with the same test, so both use
+one enumeration and one matcher in `core`: `manifestElements(manifest)` lists
+every element of the drawing specification's tree (section 2.1) as an
+`ElementKey` `{type, address, timeline, domain, modality, class}`, and
+`selectorMatches(select, key, ancestry)` tests one key, `ancestry` mapping each
+timeline id to the ids from the root down to it (`timelineAncestry`).
 
-For every command there is one exact example per accept path, asserting the
-complete resulting timeline against an expectation built by hand from the
-command's specified effect, and one example per refusal code the command can
-produce, asserting the exact `{code, path}`. The accept paths:
+1. **The enumeration of `map.json`** is exactly, in this order (type,
+   address, timeline, domain, modality, class; `CLT` stands for
+   `ContinuousLogicalTimeline`): `block` with every other member `null`;
+   `timeline`, `melody`, `melody`, logical, continuous, CLT; `name`,
+   `melody/name`, the same; `map`, `tempo`, `melody`, physical, continuous,
+   `ScalarMap`; `wedge`, `melody/start`, then its `label`,
+   `melody/start/label`; `wedge`, `melody/end`, then `label`,
+   `melody/end/label` (all four `melody`, logical, continuous, CLT); `child`,
+   `phrase`, `phrase`, logical, continuous, CLT; `name`, `phrase/name`, the
+   same; `map`, `ticks`, `phrase`, logical, discrete, `QuartersToTicks`. The
+   order is: the block, then per timeline in pre-order (children by offset,
+   then id, never by key order) its line, its name, its maps, its regions,
+   breaks and jumps each followed by its label, and after the root's own
+   elements its two wedges with their labels. A map has no name and no label;
+   a map whose `target_unit` is null has domain and modality `null`.
+   Addresses are flat (the drawing specification, section 2.2): an element's
+   own id, a part as `<address>/<word>`.
+2. **Regions, breaks and jumps** are addressed by their ids:
+   `with_region.json` has exactly the region `region_1`; `flow_control.json`
+   the break `break_1` and the jump `jump_1`, and its labels are exactly
+   `break_1/label`, `jump_1/label`, `flow:quarters/start/label`,
+   `flow:quarters/end/label`. Markers are not drawn and are not elements.
+   Every address `draw` gives an element of a fixture is an address of this
+   enumeration with the same type (`layout`'s cascade tests check it for
+   every fixture).
+3. **Matching.** Over `map.json`: `{}` matches all eleven keys; `{element:
+   "map", domain: "physical"}` only `tempo`; `{within: "phrase"}` exactly
+   `phrase`, `phrase/name`, `ticks`; `{ids: ["tempo"]}` only that map;
+   `{class: "QuartersToTicks"}` only `ticks`; `{modality: "discrete"}` only
+   `ticks`; a selector naming the block's address never matches (the block
+   has none).
 
-- `setName`: a string, and `null`.
-- `setLength`: lengthening, shortening down to the end of the last child.
-- `addChild`: a new child, locked, at an exact offset (`[2, 4]` is stored as
-  `1/2`); a child ending past an unlocked parent lengthens it to the child's
-  end exactly (offset `15/2` plus length 1 gives `17/2`); a child of another
-  number type (int, Fraction, float parents) is compared and grows its parent
-  as Python does. `addChild` accepts only a new timeline.
-- `setChildOffset`, `removeChild` (the subtree disappears).
-- `addRegion`, `setRegion` (each of start, end, meta; a `setRegion` naming
-  none of them is malformed), `removeRegion`.
-- `addBreak`, `removeBreak` (of two equal entries the first is removed and one
-  remains), `addJump`, `removeJump`.
-- `setMarker` (new and replaced), `removeMarker`.
-- `addConversionMap` (payload carried verbatim, kept in id order),
-  `removeConversionMap`.
+## Workspace view, ids, addresses and order (`workspace.test.ts`, `workspace-ids-order.test.ts`)
 
-The refusal codes the commands produce are the manifest invariants above plus
-`invalid_coordinate`, `schema_violation`, `not_a_child` and the addressing
-codes `unknown_timeline`, `unknown_region`, `unknown_break`, `unknown_jump`,
-`unknown_marker` and `unknown_map`.
+The view is `{meta, settings, blocks}`. `createView()` returns exactly
+`{meta: {format: "tilie-workspace", version: 1}, settings: DEFAULT_SETTINGS,
+blocks: {}}` and `createView(settings)` the same with those settings.
+`DEFAULT_SETTINGS` is exactly `{grid: {size: 8, snap: true}, blockDefaults:
+{scale: 1, length: 400, spacing: 1, width: null, height: null, order:
+["children", "regions", "flow"]}, graphical: {}}`: the drawing
+specification's placement defaults plus the block's scale.
 
-Edits keep member order: renaming the deepest timeline of `nested.json` and
-renaming it back saves to the fixture's exact bytes (an edit that moved a
-replaced member to the end of its object would change them), and after a
-rename and after a `removeChild` every timeline has exactly the members of
-`TIMELINE_KEYS` in that order.
+A block has exactly the members `id`, `blockKind`, `parent`, `index`, `x`,
+`y`, `scale`, `length`, `spacing`, `width`, `height`, `order` and `manifest`;
+the test lists the keys of an added block.
 
-Coordinates in commands are normalized as the library normalizes them; a
-coordinate on another unit or number type is refused with `off_axis`, never
-converted. `parseCommand` rejects malformed block ids, unknown or extra
-members, non-finite canvas numbers, unsafe numeric integers, and a plain
-fractional JS number in a coordinate's `value`; a safe integer stays an
-integer and a float coordinate stays a float.
+`checkWorkspace` runs by block id and pins exact codes and paths, each under
+`["blocks", <id>, …]`: `parent_cycle` at `parent` and `invalid_index` at
+`index` for two blocks naming each other as parent; `key_mismatch` and
+`invalid_block_id` at `id` for a block `bad` stored under `C`;
+`unknown_parent` at `parent`; a later `duplicate_index` at `index`;
+`non_finite_number` at `x`; `non_positive_number` at `scale`, `length`,
+`spacing` and `width` (a block's `width` and `height` are positive or null;
+`height: null` passes); `invalid_order` at `order` for `["children",
+"children", "flow"]`; `block_kind_mismatch` at `blockKind` for a block of
+kind `"group"` holding a timeline manifest; a block-manifest problem
+prefixed, `region_end_before_start` at `["blocks", A, "manifest",
+"timeline", "regions", 0, "end"]` for `with_region.json` with its region's
+end set to 0.
 
-## Properties (`properties.test.ts`, fast-check)
-
-Manifest commands are generated from the whole vocabulary against the current
-manifest: addresses are drawn from the ids, names and entries present plus
-unknown ones; coordinates are drawn on the axis, off the axis (another unit or
-number type), negative and past the end; payloads include invalid ones. So
-every refusal code is reachable and sequences mix accepted and refused
-commands.
-
-1. From every manifest fixture, every sequence of up to 50 generated commands
-   leaves a manifest with no problem from `manifestProblems`, whose
-   `saveManifest` text equals the text read back through the Yjs binding, and
-   that `loadManifest` reads back deep-equal. Deep equality ignores the order
-   of an object's members, so after every accepted command every timeline, at
-   every depth, is also checked to have exactly the members of `TIMELINE_KEYS`
-   in that order.
-2. Every refused command leaves the manifest deep-equal to the one before.
-3. The generator reaches every refusal: over a fixed sample (seed `20261010`,
-   40 sequences per fixture) the set of refusal codes observed is exactly
-   these 23: `child_exceeds_parent`, `child_unit_mismatch`, `duplicate_map`,
-   `duplicate_region`, `duplicate_timeline`, `invalid_coordinate`,
-   `length_below_content`, `locked`, `map_source_unit_mismatch`,
-   `negative_length`, `negative_offset`, `not_a_child`,
-   `number_type_not_allowed`, `off_axis`, `region_end_before_start`,
-   `schema_violation`, `unit_not_allowed`, `unknown_break`, `unknown_jump`,
-   `unknown_map`, `unknown_marker`, `unknown_region`, `unknown_timeline`.
-
-## Workspace ids, addresses and order (`workspace-ids-order.test.ts`)
-
-`mintRecordId` consumes one byte per attempt, rejects bytes 252 through 255,
+`mintBlockId` consumes one byte per attempt, rejects bytes 252 through 255,
 and maps accepted bytes through `0123456789abcdefghijklmnopqrstuvwxyz`; fixed
-byte streams pin the exact ten-character result. Record ids match
-`^[0-9a-z]{10}$`.
+byte streams pin the exact ten-character result. Block ids match
+`^[0-9a-z]{10}$` (`BLOCK_ID`).
 
-Timeline prefixes are exactly `clt`, `dlt`, `cpt`, `dpt`, `cgt`, and `dgt`.
-`mintTimelineId` returns the smallest free positive suffix across the root and
-all descendants. Addresses split at the first slash; pinned cases cover a
-record alone, a record plus element, further slashes in the element, malformed
-record ids (`short`) and empty elements (`0123456789/`). Formatting reverses
-every accepted parse.
+Timeline prefixes (`TIMELINE_PREFIX`) are exactly `clt`, `dlt`, `cpt`, `dpt`,
+`cgt` and `dgt`. `nextId(view, block, prefix)` returns the smallest
+`{prefix}_{N}`, `N` from 1, that no id in that block's manifest carries,
+whatever the kind of the element carrying it: on a block of `bare.json` it is
+`clt_1`; after children `clt_1` and `clt_3` are added it is `clt_2`; after a
+conversion map `map_1` is added, `nextId(view, A, "map")` is `map_2`. On a
+block that does not exist it is `{prefix}_1`.
+
+Addresses (`parseAddress`, `formatAddress`): `workspace` is `{block: null,
+element: null}`; `0000000000` is `{block: A, element: null}`;
+`0000000000/clt_1` is `{block: A, element: "clt_1"}`;
+`0000000000/clt_1/start` splits at the first slash only, element
+`clt_1/start`; `short` and `0000000000/` are refused with `invalid_address`
+at `[<the text>]`. Formatting reverses every accepted parse.
 
 Fractional indices (`indexBetween`, `indicesBetween`, `isIndex`) are
 compatible with `fractional-indexing` 4.0.0 on the fixed base-62 alphabet:
@@ -285,114 +288,293 @@ unordered bounds are refused. Generated keys are valid and strictly between
 valid bounds; generated batches have exactly the requested length and are
 strictly increasing.
 
-## Workspace view and commands (`workspace.test.ts`, `workspace-properties.test.ts`)
+## Commands (`commands.test.ts`)
 
-`createView` returns exactly the supplied metadata, `DEFAULT_SETTINGS`, and an
-empty record map. `DEFAULT_SETTINGS.blockDefaults` is exactly the drawing
-specification's placement defaults plus the block's scale: `{scale: 1,
-length: 400, spacing: 1, width: null, height: null, order: ["children",
-"regions", "flow"]}`. `checkWorkspace` runs by record id and pins exact codes
-and paths: `parent_cycle` and `invalid_index` at `["records", A, "parent"]`
-and `["records", A, "index"]`, `key_mismatch` and `invalid_record_id` at
-`["records", C, "id"]`, `unknown_parent`, a later `duplicate_index` at
-`["records", C, "index"]`, `non_finite_number` at `["records", A, "x"]`,
-`non_positive_number` at `["records", A, "scale"]`, `["records", A,
-"length"]`, `["records", A, "spacing"]` and `["records", A, "width"]` (a
-block's `width` and `height` are positive or null; `height: null` passes),
-`invalid_order` at `["records", A, "order"]` for `["children", "children",
-"flow"]`, and a block-manifest problem prefixed as `["records", A,
-"manifest", "timeline", "regions", 1, "name"]`.
+There are four commands. Each is aimed at **addresses**, and what it does is
+decided by the **kind of its target**, resolved from the address alone, never
+by the shape of its other members:
 
-The eight record commands are `createBlock`, `moveRecords`, `resizeRecord`,
-`setRecordProperties`, `setIndex`, `deleteRecords`, `setSettings`, and
-`setBlockManifest`. Together with the 16 manifest commands, `COMMAND_TYPES`
-has exactly 24 entries in the exported order.
+- `add {into, <kind>: value}` with exactly one kind member;
+- `set {changes: [{target, values: {…properties}}, …]}`, one change per
+  target, at least one change, at least one property in each `values`; the
+  properties are a member of their own, so no property (a jump's `target`
+  among them) can collide with the change's `target`;
+- `remove {targets: [address, …]}`, at least one target;
+- `style {select, set, name?, blocks?}`.
 
-A block record holds `x`, `y`, the drawing inputs `scale`, `length`,
-`spacing`, `width`, `height` and `order`, `overrides` and `manifest`, and
-nothing else (no other key). `resizeRecord` is one of three modes, each
-changing only its own inputs: `{mode: "scale", scale}`, `{mode: "box",
-width, height}` (each positive or null), `{mode: "stretch", length?,
-spacing?}` (at least one). `setRecordProperties` sets only `order` and
-`overrides`.
+`apply(view, command)` is pure (every test deep-freezes its input view, so a
+mutation throws) and returns the new view or a `CommandError` `{code,
+message, path}`. A command is **atomic**: a refusal of any change, target or
+block refuses the whole command. Ids are never settable. There is no resize
+command: scaling, sizing the box and stretching are gestures that `set`
+different block properties.
 
-Every command is checked for purity by deep-freezing the input view. Accepted
-commands pin the complete resulting records and settings: `createBlock` takes
-its defaults from `settings.blockDefaults` and an index after the greatest
-root index, and accepts any of `scale`, `length`, `spacing`, `width`,
-`height` and `order` to replace a default; a manifest declaring
-`"schema_version": "0.0.0"` is refused by `createBlock` with
-`schema_violation` at `["records", <id>, "manifest", "meta",
-"schema_version"]`. A sequence of `resizeRecord` scale 2, box 120 by null,
-stretch length 800, stretch spacing 2, `setRecordProperties` order
-`["flow", "regions", "children"]` and overrides gives exactly those values
-with `x`, `y` unchanged; `setSettings` with `blockDefaults: {length: 640}`
-changes that default only. Deleting a parent deletes every descendant and
-no unrelated record. Refusals pin exact codes and paths: a malformed id
-(`invalid_record_id`), a non-finite `x` (`non_finite_number`), a zero
-`scale` in scale mode (`non_positive_number` at `["scale"]`), a negative box
-`width` (`non_positive_number` at `["width"]`), a stretch with neither
-member (`invalid_command` at `[]`), an unknown mode (`invalid_command` at
-`["mode"]`), a member of another mode (`invalid_command` at `["length"]` for
-a scale resize), an order that is not a permutation of the three groups
-(`invalid_order` at `["properties", "order"]`), a removed property
-(`invalid_command` at `["properties", "zoom"]`), a malformed index, a
-non-finite grid size (`non_finite_number` at `["settings", "grid",
-"size"]`), and an unknown record against a non-block record
-(`unknown_record` against `not_a_block`).
+### The targets, one table per kind
 
-**A command error's path points into the view the command was applied to.**
-A record command reports `["records", <id>, ...]`: `moveRecords` of an absent
-record `B` is refused with `unknown_record` at `["records", B]`, and `setIndex`
-of an absent record `B` likewise. A manifest command reports
-`["records", <block id>, "manifest", ...]` followed by the member of the
-command at fault: `removeRegion` of a missing region on block `A` is refused
-with `unknown_region` at `["records", A, "manifest", "name"]`. A command that
-`parseCommand` rejects as malformed has no view location; its path names the
-malformed member of the rejected value (`invalid_index` at `["index"]` for the key `a00`).
+| Kind | Address | `set` (value) | `add` into it | `remove` |
+|---|---|---|---|---|
+| workspace | `workspace` | `grid`: an object of `size` (positive, finite) and `snap` (boolean), the members given replacing those members; `blockDefaults`: an object of any of `scale`, `length`, `spacing` (positive, finite), `width`, `height` (positive, finite, or null), `order` (the three band groups once each), the members given replacing those members; `graphical`: a `graphical` block, whole | `block` | `not_removable` |
+| block | `<block>` | `x`, `y` (finite); `index` (a fractional index no sibling of the same `parent` holds); `scale`, `length`, `spacing` (positive, finite); `width`, `height` (positive, finite, or null); `order`; `manifest` (a manifest, whole) | none | yes, with every block whose `parent` chain reaches it |
+| timeline, the root | `<block>/<id>` | `name` (string or null); `length` (a coordinate); `locked` (boolean); `meta` (an object) | `child`, `map`, `region`, `break`, `jump`, `marker` | `not_removable` (remove the block) |
+| timeline, a child | `<block>/<id>` | as the root, and `offset` (a coordinate) | as the root | yes, with its subtree |
+| conversion map | `<block>/<id>` | `map` (the payload, whole, its `id` unchanged) | none | yes |
+| region | `<block>/<id>` | `name` (string or null); `start`, `end` (coordinates); `meta` (an object) | none | yes |
+| break | `<block>/<id>` | `coordinate` (a coordinate); `control_type`, `condition` (strings the schema checks); `repeat_count` (an integer); `label`, `name` (string or null); `meta` (an object) | none | yes |
+| jump | `<block>/<id>` | `from_coordinate`, `to_coordinate` (coordinates); `control_type`, `condition`, `repeat_count`, `label`, `meta` as a break's; `target` (a marker id of the same timeline, or null) | none | yes |
+| marker | `<block>/<id>` | `name` (string or null); `coordinate` (a coordinate) | none | yes |
 
-Generated command sequences from every 0.4.0 fixture prove that accepted
-commands leave `checkWorkspace` empty, block manifests save and reload to deep
-equality and identical text, and refused commands leave the view unchanged.
+A coordinate is read on the axis of the timeline holding the element
+(`invalid_coordinate`, `off_axis` at `[address, property, …]`) and stored
+normalized.
 
-## Yjs manifest binding (`yjs.test.ts`)
+The values of an `add`: a `block` is `{id, manifest, x, y}` plus any of
+`index`, `scale`, `length`, `spacing`, `width` `height` and `order`, the
+others taken from `settings.blockDefaults`, `blockKind` from the manifest's
+top-level member, `parent` null, and `index` after the greatest index among
+the blocks without parent unless given. A `child` is a manifest's child entry
+`{offset, timeline}`, the timeline whole; a `map`, `region`, `break`,
+`jump` or `marker` is the element as its timeline stores it. The value
+carries its id (a block's `id`, a child's `timeline.id`, any other's `id`);
+the caller mints it (`mintBlockId`, `nextId`).
 
-`manifestMap`, `readManifest`, and `syncManifest` are the whole binding: one
-manifest in one `Y.Map`. The caller owns undo.
+### What every accept path must leave (exact, against an expectation built from the fixture by hand)
 
-1. **Round trip.** For every 0.4.0 fixture, `readManifest(manifestMap(m))`
-   deep-equals `m` and saves to the fixture's exact bytes: deep equality
-   ignores the order of an object's members, the text does not, so this proves
-   that a value keeps its members' order through Yjs. The fixtures carrying a
-   `graphical` member prove the same for that member, held as one atom.
-2. **Same result as the reducer.** For every generated sequence from every
-   fixture, after each accepted command `syncManifest` makes `readManifest`
-   deep-equal `applyToManifest`'s result and save to the same text.
-3. **Granularity.** Updates touch only changed nested maps: after a
-   `setName`, the `timeline` map and its `children` map of `nested.json` are
-   the same objects as before. Graphical values, coordinates, map payloads,
-   regions, measure maps and metric hierarchies are atomic; breaks and jumps
-   are keyed maps.
-4. **Undo and redo over every intermediate manifest.** With a
-   `Y.UndoManager` the caller owns, tracking one origin with
-   `captureTimeout: 0`, each accepted command that changes the manifest is one
-   undo step. After n steps, undoing k times restores the (n − k)-th
-   manifest, and redoing k times restores the n-th; each restored manifest is
-   compared by deep equality and by its saved text, for every fixture.
-5. **Redo removes only the selected break.** Add breaks at 1, 2 and 3, then
-   remove the one at 2; after undoing all five steps and redoing them the
-   breaks are exactly `[]`, `[1]`, `[1, 2]`, `[1, 2, 3]`, `[1, 3]`. (Yjs 13.6
-   redoes the removal of an item of a `Y.Array` whose parent was re-created by
-   an earlier redo by deleting the merged neighbour too; the binding therefore
-   keys breaks and jumps in a `Y.Map`.)
-6. **Replicas converge.** Two replicas created from the same fixture, each
-   given its own generated sequence, exchange their updates in both
-   directions and then materialize to deep-equal manifests. Merged edits
-   bypass the reducer, so the merged manifest may break an invariant; that is
-   reported by `checkManifest` and on save, and is not asserted here.
-7. **The root export is isolated from Yjs.** `src/index.ts` and everything it
-   imports never import `yjs`; `.dependency-cruiser.cjs` encodes this and
-   `tests/ladder.test.ts` at the workspace root proves the rule fires.
+1. `add` a block `{id: A, manifest: bare, x: 0, y: 0}` to `createView()`:
+   the block is exactly `{id: A, blockKind: "timeline", parent: null, index:
+   "a0", x: 0, y: 0, scale: 1, length: 400, spacing: 1, width: null, height:
+   null, order: ["children", "regions", "flow"], manifest: <bare.json>}`; a
+   second block `B` given `scale: 2` has index `a1` and scale 2; a block
+   given `index: "Zz"` keeps it.
+2. One `set` with the changes `{target: A, values: {x: 128, y: 64}}` and
+   `{target: B, values: {x: 1, y: 2}}` moves both and changes nothing else.
+3. One `set` change on `A` with `scale: 2, width: 120, height: null, length:
+   800, spacing: 2, order: ["flow", "regions", "children"]` gives exactly
+   those values; `x`, `y` and the manifest are unchanged.
+4. `set` on `workspace`: `blockDefaults: {length: 640}` changes that default
+   only; `grid: {snap: false}` changes `snap` only; `graphical` replaces the
+   settings' block whole.
+5. `set` on `A` with `manifest: <nested.json>` makes `A`'s manifest equal the
+   loaded `nested.json`.
+6. Timelines, on a block of `nested.json` (root `clt_1` of length 16, child
+   `clt_3` at 4 of length 8, its child `clt_2` at 3/2 of length 2):
+   `name: "Score"` on the root; `meta: {composer: "Anon"}` on the root;
+   root `length` 12 (the end of `clt_3`) is accepted; `clt_3`'s `offset` 6
+   gives offset 6 and leaves the root at 16; `offset` 10 grows the unlocked
+   root to exactly 18.
+7. `add` a child into the root `bare` of `bare.json` (length 8): the entry
+   `{offset: [2, 4], timeline: <bare's root with id "clt_1" and locked true>}` is stored
+   under `clt_1` with the offset normalized to `[1, 2]`, and the root grows to
+   exactly `[17, 2]`.
+8. `add` the map `tempo` of `map.json` into the root of `bare.json`, then its
+   map `ticks`: the root's `conversion_maps` are exactly `[tempo, ticks]`
+   verbatim, kept in id order whichever is added first.
+9. `set` on the map `tempo` (block of `map.json`) with its payload changed to
+   `scalar: [1, 4]` stores exactly that payload.
+10. `remove` on a block of `map.json`: `A/phrase` removes the child with its
+    map; `A/tempo` removes that map; `[A, B]` removes both blocks; a block
+    whose `parent` is a removed block goes with it.
+11. Regions, breaks, jumps and markers. Into the root of `bare.json`, `add`
+    the region `{id: "region_1", name: "A", start: 2, end: 4, meta: {}}`:
+    the root's regions are exactly that one; `set` it `end` 6 and `name`
+    null: exactly those values. On a block of `flow_control.json` (root
+    `flow:quarters`; break `break_1` at 12; jump `jump_1` from 8 to 2
+    targeting the marker `marker_1` at 2): `add` the marker `{id:
+    "marker_2", name: "fine", coordinate: 12}`, then `set` `jump_1`'s
+    `target` to `marker_2`: the jump targets `marker_2` and the markers are
+    exactly `[marker_1, marker_2]`; `add` a copy of `break_1` with the id
+    `break_2` at 3 and `remove` `break_1`: the breaks are exactly that copy;
+    `remove` `jump_1`: no jump remains; `set` `marker_1`'s `coordinate` to 1
+    stores `[1, 1]`.
+12. `style` over blocks `A` (`map.json`) and `B` (`bare.json`), no `blocks`:
+    `{select: {element: "map"}, set: {stroke: "#C00000"}}` gives `A` exactly
+    `graphical: {styles: {}, statements: [{select: {element: "map"}, set:
+    {stroke: "#C00000"}}]}` and leaves `B` unchanged (it has no map). Then
+    `{select: {element: "map"}, set: {"stroke-width": 2}}` merges into that
+    statement, `set: {stroke: "#C00000", "stroke-width": 2}`; the selector
+    `{domain: "physical", element: "map"}` is a different statement, and a
+    selector equal in canonical JSON (members in another order) merges. `set:
+    {stroke: null}` removes `stroke`; removing the last property drops the
+    statement (`statements: []`). With `blocks: [B]` and `name: "green"`,
+    `{select: {element: "timeline"}, set: {stroke: "#00CC00"}}` gives `B`
+    `graphical: {styles: {green: {stroke: "#00CC00"}}, statements: [{select:
+    {element: "timeline"}, set: "green"}]}`. Without `name`, a merge into a
+    statement whose `set` names a style turns it into a declaration: the
+    style's properties with the new ones over them; the style itself is
+    unchanged. With `name`, the properties are merged into that style (`null`
+    removes) and the statement's `set` becomes the name; a style emptied by
+    `null` is deleted with every statement naming it.
+
+### Refusals: exact code and path
+
+A refusal's path points at an **address** followed by the property or kind
+at fault, or at a **manifest location** below a block: `[<block id>,
+"manifest", …]`, after the block's manifest as the command would leave it
+fails the schema or an invariant (the first problem). It never names a member
+of the command, except where a command is malformed and so has no target.
+
+- Malformed (`parseCommand`, `invalid_command` at the malformed member): an
+  unknown `type` at `["type"]`; an `add` with no kind or two kinds at `[]`; an
+  empty `changes` at `["changes"]`; a change whose `target` is not a string at
+  `["changes", 0, "target"]`; a change without `values`, or with empty
+  `values`, at `["changes", 0, "values"]`; a property outside `values` at
+  `["changes", 0, "x"]`;
+  an empty `targets` at `["targets"]`; a `style` without `select` at
+  `["select"]`; a `blocks` entry that is not a string at `["blocks", 0]`. A
+  `select` or a `set` (with `null` values removed) that the schema's
+  `Selector` or `Declaration` refuses: `schema_violation` at `["select", …]`
+  or `["set", …]`, e.g. `["set", "stroke"]` for `stroke: "red"`.
+- Addresses: `invalid_address` at `["short"]`; `unknown_target` at
+  `["0000000009"]` and at `[A + "/nothing"]`.
+- `set`: `id_not_settable` at `[A + "/clt_1", "id"]`; `unknown_property`
+  at `[A, "colour"]`; `wrong_target_kind` at `["workspace", "x"]`, at `[A,
+  "grid"]`, at `[A + "/clt_1", "offset"]` (the root has no offset), at
+  `[A + "/tempo", "name"]` and at `[A + "/region_1", "coordinate"]`; value refusals at `[address, property, …]`:
+  `invalid_value` for `x: "1"`, `non_finite_number` for `x: Infinity`,
+  `non_positive_number` for `scale: 0` and for `width: -5`, `invalid_order`
+  for `["children", "children", "flow"]`, `invalid_index` for `a00`,
+  `duplicate_index` for `B`'s index given to `A`, `non_positive_number` at
+  `["workspace", "grid", "size"]` for size 0, `invalid_coordinate` at `[A +
+  "/clt_1", "length", "value"]` for a fraction value `0.5`, `off_axis` at
+  `[A + "/clt_1", "length"]` for a length in seconds and at `[A +
+  "/break_1", "coordinate"]` for a break in seconds, `locked` at `[A +
+  "/clt_3", "length"]`, `length_below_content` at `[A + "/clt_1",
+  "length"]` for 23/2, `schema_violation` at `["workspace", "graphical", …]`
+  and `[A, "manifest", "meta", "schema_version"]` for a manifest declaring
+  `0.0.0`, `id_not_settable` at `[A + "/tempo", "map", "id"]` for a payload
+  with another id. Manifest locations: `child_not_locked` at `[A,
+  "manifest", "timeline", "children", "clt_3", "timeline", "locked"]` for
+  `locked: false` on `clt_3`; `child_exceeds_parent` at `[A, "manifest",
+  "timeline", "children", "clt_3", "timeline", "children", "clt_2",
+  "offset"]` for `clt_2`'s offset 7 (its parent is locked);
+  `region_end_before_start` at `[A, "manifest", "timeline", "regions", 0,
+  "end"]` for `region_1`'s end 0 (`with_region.json`); `schema_violation` at
+  `[A, "manifest", "timeline", "flow_control", "jumps", 0, "target"]` for
+  `jump_1`'s target `nothing` and when `marker_1`, which `jump_1` targets,
+  is removed (`flow_control.json`).
+- `add`: `wrong_target_kind` at `[A + "/tempo", "child"]` (a map holds no
+  child) and at `["workspace", "child"]`; `invalid_block_id` at
+  `["workspace", "block", "id"]` for `BAD`; `duplicate_id` at `[A]` for an
+  existing block and at `[A + "/bare"]` for a child, map or region carrying
+  the root's id; `schema_violation` at `[A, "manifest", "timeline",
+  "regions", 0, "id"]` for a region id holding `/`; `unknown_property` at `[B, "overrides"]` for a block value with
+  that member; `invalid_value` at `[B, "x"]` when `x` is missing;
+  `map_source_unit_mismatch` at `[A, "manifest", "timeline",
+  "conversion_maps", 0, "source_unit"]` for a map from seconds.
+- `remove`: `not_removable` at `["workspace"]` and at `[A + "/melody"]`;
+  `unknown_target` at `[B]`.
+- `style`: `unknown_target` at `[C]` for `blocks: [C]`.
+- Atomicity: `set` with `{target: A, values: {x: 1}}` and `{target:
+  "0000000009", values: {x: 2}}` is refused with `unknown_target` at `["0000000009"]`; `remove [A,
+  C]` with `C` absent is refused; in both the frozen input is unchanged.
+
+## The store and the journal (`store.test.ts`)
+
+`createStore(workspace, {author?, clock?})` holds a `Workspace = {view,
+journal}`. Every `Entry` is `{command, author, time}`: the command as
+`parseCommand` normalizes it, the author (default `"Gerhardt"`, changed by
+`setAuthor`), and `clock().toISOString()` (ISO 8601 UTC with milliseconds).
+The tests inject a clock returning `2026-10-11T14:03:12.418Z` plus one second
+per call.
+
+1. **Stamping.** Three accepted dispatches give exactly three entries with
+   authors `Gerhardt`, `Gerhardt`, `Ada` (after `setAuthor("Ada")`) and
+   times `…12.418Z`, `…13.418Z`, `…14.418Z`; `dispatch` returns `null`.
+2. **Refusal.** A refused dispatch returns its `CommandError`, consumes no
+   clock tick, leaves `view` the same object and `journal` unchanged, and
+   calls no listener.
+3. **Undo and redo.** After n dispatches, undoing k times gives views that
+   are the same objects as after the (n − k)-th dispatch, the journal's
+   first n − k entries, and the undone entries on the redo stack; `redo`
+   restores the same objects and entries; `canUndo` and `canRedo` follow
+   exactly; undo and redo with nothing to do change nothing. A new dispatch
+   after an undo clears the redo stack (`canRedo` false).
+4. **Undo past the session's start.** A store created from a workspace whose
+   journal holds three entries (written by another store) undoes three
+   times; each view deep-equals the other store's view after the same
+   prefix, and the last equals `createView()`; redo then restores the
+   original view, deep-equal.
+5. **Listeners.** `subscribe(listener)` calls the listener once with the new
+   view after every accepted dispatch, undo and redo; the returned function
+   unsubscribes.
+
+## The workspace file (`file.test.ts`)
+
+`writeWorkspace(workspace)` is timeskeleton's `dumps` of `{meta, settings,
+blocks, journal}`; `readWorkspace(text)` reads with timeskeleton's
+`parseJson` (lossless; `parse` validates a manifest and does not apply to the
+workspace) and returns a `Workspace` or a `LoadError`.
+
+1. **Round trip.** A workspace built by a store (blocks of `bare.json` and
+   `map.json`, a move, a style, an undone command excluded) is written; the
+   text read back deep-equals the workspace, and writing it again gives the
+   same bytes. Its members are exactly `blocks`, `journal`, `meta`,
+   `settings`; `meta` is exactly `{format: "tilie-workspace", version: 1}`.
+2. **Replay.** Replaying the read journal from `createView()` gives exactly
+   the read `settings` and `blocks`.
+3. **Refusals**, each exactly one problem `{code, path}`: text `{` →
+   `invalid_json` at `[]`; `format: "other"` → `unsupported_format` at
+   `["meta", "format"]`; `version: 2` → `unsupported_version` at `["meta",
+   "version"]`; a top-level member `extra` → `unknown_member` at
+   `["extra"]`; `meta.created` → `unknown_member` at `["meta", "created"]`;
+   `settings.styles` → `unknown_member` at `["settings", "styles"]`; a
+   block's `overrides` → `unknown_member` at `["blocks", A, "overrides"]`; a
+   journal entry's `note` → `unknown_member` at `["journal", 0, "note"]`; no
+   `journal` → `missing_member` at `["journal"]`; a block's `x` given as
+   `"0"` → `invalid_value` at `["blocks", A, "x"]`; a block manifest
+   declaring `0.0.0` → `schema_violation` at `["blocks", A, "manifest",
+   "meta", "schema_version"]`; a block manifest with an unlocked child →
+   `child_not_locked` at its path below `["blocks", A, "manifest"]`; an
+   entry time `yesterday` → `invalid_value` at `["journal", 0, "time"]`; an
+   entry command of type `move` → `invalid_command` at `["journal", 0,
+   "command", "type"]`.
+
+## Properties (`properties.test.ts`, fast-check)
+
+Commands of every kind, over every target kind (regions, breaks, jumps and
+markers included), are generated against the current view from seeds (a
+command kind and natural numbers), so a sequence stays valid input whatever the earlier
+commands did. Targets are drawn from what the view holds plus unknown and
+malformed addresses; properties from the target's table, another kind's
+table and unknown names; coordinates on the axis, off it, negative and past
+the end; payloads include ones the schema refuses. Each fixture starts as
+block `A` beside a block `B` of `bare.json`, in a store with an injected
+clock.
+
+1. After every accepted command `checkWorkspace` is empty, and every block's
+   manifest saves and reloads deep-equal with identical text.
+2. A refused command leaves the view the same object.
+3. Undoing every entry restores every intermediate view (the same objects),
+   and redoing every entry restores them again.
+4. Replaying the journal from `createView()` gives `settings` and `blocks`
+   deep-equal to the store's.
+5. Every entry carries the author and the injected clock's time.
+6. `writeWorkspace(readWorkspace(text))` equals `text` byte for byte, and the
+   read workspace deep-equals the store's.
+7. The generator reaches every refusal the commands produce on these
+   targets: over a fixed sample (seed `20261011`, 100 sequences per fixture)
+   the set of codes observed is exactly `child_exceeds_parent`,
+   `child_not_locked`, `child_unit_mismatch`, `duplicate_id`,
+   `duplicate_index`, `id_not_settable`, `invalid_address`,
+   `invalid_coordinate`, `invalid_index`, `invalid_order`, `invalid_value`,
+   `length_below_content`, `locked`, `map_source_unit_mismatch`,
+   `negative_offset`, `non_finite_number`, `non_positive_number`,
+   `not_removable`, `number_type_not_allowed`, `off_axis`,
+   `region_end_before_start`, `schema_violation`, `unit_not_allowed`,
+   `unknown_property`, `unknown_target`, `wrong_target_kind`.
+
+## Budgets (`budget.test.ts`)
+
+A generated workspace of 300 blocks (the 23 fixtures in turn) with a journal
+of 1,000 entries (300 `add`, 700 `set` moves): `readWorkspace` of its text,
+validation included, takes at most 250 ms; `writeWorkspace` at most 250 ms;
+one `dispatch` of a move at most 1 ms (the limits and the figures behind them
+are in `decisions/0019-workspace-store-and-journal.md`). Each figure is the minimum of 5 runs after
+one warm-up run, so it measures the code rather than the load of the
+machine (the suite runs test files in parallel). A budget that
+fails is reported, never loosened. With `TILIE_MEASURE=<file>` the test also
+builds 10,000 blocks (10,000 entries) and writes the figures of both sizes,
+with the text's size, into that file; the store's decision
+(`decisions/0019-workspace-store-and-journal.md`) cites them.
 
 ## External gates
 

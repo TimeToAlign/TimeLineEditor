@@ -1,53 +1,41 @@
 /**
  * The framework-free TiLiE core has three distinct layers: a workspace view
- * holds records, a block record adds canvas placement and properties, and its
- * manifest holds one TimeSkeleton timeline without canvas knowledge.
+ * holds blocks, a block adds canvas placement to its own manifest, and the
+ * manifest holds one TimeSkeleton timeline without canvas knowledge. The
+ * workspace changes only through the four commands `add`, `set`, `remove` and
+ * `style`, journalled by the store.
  */
 
 export const name = "@timetoalign/tilie-core" as const;
 
-export { applyToManifest } from "./commands/apply.ts";
+export { apply, applyParsed, embedStatement } from "./commands/apply.ts";
 export { parseCommand } from "./commands/parse.ts";
 export type {
-  AddBreak,
-  AddChild,
-  AddConversionMap,
-  AddJump,
-  AddRegion,
-  BlockProperties,
+  AddCommand,
+  AddKind,
+  Change,
   Command,
   CommandType,
-  CreateBlock,
-  DeleteRecords,
-  ManifestCommand,
-  MoveRecords,
-  NewTimeline,
-  RecordCommand,
-  RemoveBreak,
-  RemoveChild,
-  RemoveConversionMap,
-  RemoveJump,
-  RemoveMarker,
-  RemoveRegion,
-  ResizeRecord,
-  SetBlockManifest,
-  SetChildOffset,
-  SetIndex,
-  SetLength,
-  SetMarker,
-  SetName,
-  SetRecordProperties,
-  SetRegion,
-  SetSettings,
+  RemoveCommand,
+  SetCommand,
+  StyleCommand,
 } from "./commands/types.ts";
-export {
-  COMMAND_TYPES,
-  MANIFEST_COMMAND_TYPES,
-  RECORD_COMMAND_TYPES,
-} from "./commands/types.ts";
+export { ADD_KINDS, COMMAND_TYPES } from "./commands/types.ts";
 export type { CommandError, LoadError, Problem } from "./errors.ts";
 export { ErrorCode, InvalidManifestError, isCommandError, isLoadError } from "./errors.ts";
 export type { Json, JsonArray, JsonObject, PathSegment } from "./json.ts";
+export type { Domain, ElementKey, Modality } from "./manifest/elements.ts";
+export {
+  BLOCK_KEY,
+  classDomain,
+  elementKey,
+  manifestElements,
+  orderedChildren,
+  selectorMatches,
+  textKey,
+  timelineAncestry,
+  unitDomain,
+} from "./manifest/elements.ts";
 export {
   allowedNumberTypes,
   axisProblems,
@@ -61,6 +49,7 @@ export {
 export {
   loadManifest,
   manifestProblems,
+  readManifestValue,
   saveManifest,
   schemaProblems,
 } from "./manifest/io.ts";
@@ -75,7 +64,6 @@ export type {
   Region,
   TimelineManifest,
 } from "./manifest/types.ts";
-export { TIMELINE_KEYS } from "./manifest/types.ts";
 export type { Coordinate, CoordinateDict, CoordinateValue } from "./number/coordinate.ts";
 export {
   AxisMismatchError,
@@ -91,39 +79,27 @@ export type { IntegerInput, RationalInput } from "./number/rational.ts";
 export { Rational } from "./number/rational.ts";
 export type { Real } from "./number/real.ts";
 export { addReal, compareReal, fromFloat, realOf, toFloat } from "./number/real.ts";
-export { apply } from "./workspace/commands.ts";
-export type { Address, TimelinePrefix } from "./workspace/ids.ts";
+export { isBandOrder } from "./values.ts";
+export type { BandGroup, Block, BlockId, BlockKind, BlockPlacement } from "./workspace/blocks.ts";
+export { BAND_GROUPS, BLOCK_ID } from "./workspace/blocks.ts";
+export { readWorkspace, writeWorkspace } from "./workspace/file.ts";
+export type { Address, ParsedAddress, TimelinePrefix } from "./workspace/ids.ts";
 export {
   formatAddress,
-  mintRecordId,
-  mintTimelineId,
+  manifestIds,
+  mintBlockId,
+  nextId,
   parseAddress,
-  RECORD_ID,
   TIMELINE_PREFIX,
+  WORKSPACE,
 } from "./workspace/ids.ts";
 export { indexBetween, indicesBetween, isIndex } from "./workspace/order.ts";
-export type {
-  BandGroup,
-  BlockPlacement,
-  BlockRecord,
-  CanvasStyle,
-  ConnectorEnd,
-  ConnectorRecord,
-  GroupRecord,
-  ImageRecord,
-  LockEnd,
-  LockRecord,
-  RecordBase,
-  RecordId,
-  RecordKind,
-  ShapeRecord,
-  TextRecord,
-  WorkspaceRecord,
-} from "./workspace/records.ts";
-export { BAND_GROUPS } from "./workspace/records.ts";
-export type {
-  View,
-  WorkspaceMeta,
-  WorkspaceSettings,
+export type { Entry, Store, StoreOptions, Workspace } from "./workspace/store.ts";
+export { createStore, DEFAULT_AUTHOR, replay } from "./workspace/store.ts";
+export type { View, WorkspaceMeta, WorkspaceSettings } from "./workspace/view.ts";
+export {
+  checkWorkspace,
+  createView,
+  DEFAULT_SETTINGS,
+  WORKSPACE_META,
 } from "./workspace/view.ts";
-export { checkWorkspace, createView, DEFAULT_SETTINGS, isBandOrder } from "./workspace/view.ts";

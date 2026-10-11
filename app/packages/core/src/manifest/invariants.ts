@@ -113,21 +113,8 @@ export function contentEnd(timeline: TimelineManifest): Real {
 function checkTimeline(
   timeline: TimelineManifest,
   path: readonly PathSegment[],
-  seen: Map<string, readonly PathSegment[]>,
   problems: Problem[],
 ): void {
-  const previous = seen.get(timeline.id);
-  if (previous !== undefined) {
-    problems.push(
-      problem(
-        ErrorCode.duplicateTimeline,
-        `timeline id ${timeline.id} is already used at ${previous.join("/")}`,
-        [...path, "id"],
-      ),
-    );
-  } else {
-    seen.set(timeline.id, path);
-  }
   problems.push(...axisProblems(timeline, path));
   const report = (value: Coordinate | Problem): Coordinate | undefined => {
     if (isProblem(value)) {
@@ -188,21 +175,11 @@ function checkTimeline(
         }
       }
     }
-    checkTimeline(child, childPath, seen, problems);
+    checkTimeline(child, childPath, problems);
   }
 
-  const mapIds = new Set<string>();
   timeline.conversion_maps.forEach((map, index) => {
     const mapPath = [...path, "conversion_maps", index];
-    if (mapIds.has(map.id)) {
-      problems.push(
-        problem(ErrorCode.duplicateMap, `conversion map id ${map.id} is repeated`, [
-          ...mapPath,
-          "id",
-        ]),
-      );
-    }
-    mapIds.add(map.id);
     if (map.source_unit !== null && map.source_unit !== timeline.unit) {
       problems.push(
         problem(
@@ -214,23 +191,13 @@ function checkTimeline(
     }
   });
 
-  const regionNames = new Set<string>();
   timeline.regions.forEach((region, index) => {
     const regionPath = [...path, "regions", index];
-    if (regionNames.has(region.name)) {
-      problems.push(
-        problem(ErrorCode.duplicateRegion, `region ${region.name} is repeated`, [
-          ...regionPath,
-          "name",
-        ]),
-      );
-    }
-    regionNames.add(region.name);
     const start = report(readOnAxis(region.start, timeline, [...regionPath, "start"]));
     const end = report(readOnAxis(region.end, timeline, [...regionPath, "end"]));
     if (start !== undefined && end !== undefined && compareCoordinates(end, start) < 0) {
       problems.push(
-        problem(ErrorCode.regionEndBeforeStart, `region ${region.name} ends before it starts`, [
+        problem(ErrorCode.regionEndBeforeStart, `region ${region.id} ends before it starts`, [
           ...regionPath,
           "end",
         ]),
@@ -247,9 +214,9 @@ function checkTimeline(
     report(readOnAxis(entry.from_coordinate, timeline, [...jumpPath, "from_coordinate"]));
     report(readOnAxis(entry.to_coordinate, timeline, [...jumpPath, "to_coordinate"]));
   });
-  for (const [name, dict] of Object.entries(timeline.flow_control.markers)) {
-    report(readOnAxis(dict, timeline, [...flowPath, "markers", name]));
-  }
+  timeline.flow_control.markers.forEach((marker, index) => {
+    report(readOnAxis(marker.coordinate, timeline, [...flowPath, "markers", index, "coordinate"]));
+  });
 
   if (timeline.metric_hierarchy !== null && timeline.measure_map === null) {
     problems.push(
@@ -264,8 +231,12 @@ function checkTimeline(
 
 /** Every invariant violation in canonical traversal order. */
 export function checkManifest(manifest: Manifest): Problem[] {
+  return checkOrdered(canonicalOrder(manifest));
+}
+
+/** `checkManifest` of a manifest already in canonical order. */
+export function checkOrdered(manifest: Manifest): Problem[] {
   const problems: Problem[] = [];
-  const ordered = canonicalOrder(manifest);
-  checkTimeline(ordered.timeline, ["timeline"], new Map(), problems);
+  checkTimeline(manifest.timeline, ["timeline"], problems);
   return problems;
 }

@@ -86,54 +86,54 @@ describe("bare", () => {
 describe("nested", () => {
   it("draws the hand-derived geometry", () => {
     const drawing = drawFixture("nested");
-    const x0 = 41.072265625;
+    const x0 = 41.91552734375;
     expect(geometry(drawing)).toEqual([
-      { type: "block", address: null, width: 458.351318359375, height: 77.9765625 },
-      { type: "timeline", address: "tl:24", xs: x0, xe: 441.072265625, y: 43, locked: false },
+      { type: "block", address: null, width: 459.194580078125, height: 77.9765625 },
+      { type: "timeline", address: "clt_1", xs: x0, xe: 441.91552734375, y: 43, locked: false },
       {
         type: "child",
-        address: "tl:23",
-        xs: 141.072265625,
-        xe: 341.072265625,
+        address: "clt_3",
+        xs: 141.91552734375,
+        xe: 341.91552734375,
         y: 29,
         locked: true,
       },
       {
         type: "child",
-        address: "tl:22",
-        xs: 178.572265625,
-        xe: 228.572265625,
+        address: "clt_2",
+        xs: 179.41552734375,
+        xe: 229.41552734375,
         y: 15,
         locked: true,
       },
-      ...wedges(x0, 441.072265625, "tl:24").map((item) => ({ ...item, yt: 44.5, yb: 57.5 })),
+      ...wedges(x0, 441.91552734375, "clt_1").map((item) => ({ ...item, yt: 44.5, yb: 57.5 })),
       {
         type: "name",
-        address: "tl:22/name",
+        address: "clt_2/name",
         x: 8,
         baseline: 18.80810546875,
         anchor: "start",
-        text: "tl:22",
+        text: "clt_2",
       },
       {
         type: "name",
-        address: "tl:23/name",
+        address: "clt_3/name",
         x: 8,
         baseline: 32.80810546875,
         anchor: "start",
-        text: "tl:23",
+        text: "clt_3",
       },
       {
         type: "name",
-        address: "tl:24/name",
+        address: "clt_1/name",
         x: 8,
         baseline: 46.80810546875,
         anchor: "start",
-        text: "tl:24",
+        text: "clt_1",
       },
       {
         type: "label",
-        address: "tl:24/start/label",
+        address: "clt_1/start/label",
         x: x0,
         baseline: 67.85400390625,
         anchor: "middle",
@@ -142,8 +142,8 @@ describe("nested", () => {
       },
       {
         type: "label",
-        address: "tl:24/end/label",
-        x: 441.072265625,
+        address: "clt_1/end/label",
+        x: 441.91552734375,
         baseline: 67.85400390625,
         anchor: "middle",
         text: "16 ♩",
@@ -162,10 +162,10 @@ describe("flow_control", () => {
     const yc = 66.52213541666667;
     expect(geometry(drawing)).toEqual([
       { type: "block", address: null, width: 500.256591796875, height: 84.33203125 },
-      { type: "break", address: "flow:quarters/break/0", x: 382.9775390625, y1: yf, y2: 8 },
+      { type: "break", address: "break_1", x: 382.9775390625, y1: yf, y2: 8 },
       {
         type: "jump",
-        address: "flow:quarters/jump/0",
+        address: "jump_1",
         start: [282.9775390625, yf],
         c1: [245.4775390625, yc],
         c2: [170.4775390625, yc],
@@ -217,7 +217,7 @@ describe("flow_control", () => {
       },
       {
         type: "label",
-        address: "flow:quarters/jump/0/label",
+        address: "jump_1/label",
         x: 207.9775390625,
         baseline: 74.20947265625,
         anchor: "middle",
@@ -225,7 +225,7 @@ describe("flow_control", () => {
       },
       {
         type: "label",
-        address: "flow:quarters/break/0/label",
+        address: "break_1/label",
         x: 385.9775390625,
         baseline: 53.73291015625,
         anchor: "start",
@@ -241,10 +241,10 @@ describe("map", () => {
     const x0 = 55.53662109375;
     expect(geometry(drawing)).toEqual([
       { type: "block", address: null, width: 472.53662109375, height: 67.4765625 },
-      { type: "map", address: "melody/map/tempo", xs: x0, xe: 455.53662109375, yc: 27 },
+      { type: "map", address: "tempo", xs: x0, xe: 455.53662109375, yc: 27 },
       {
         type: "map",
-        address: "phrase/map/ticks",
+        address: "ticks",
         xs: 155.53662109375,
         xe: 355.53662109375,
         yc: 9.5,
@@ -294,12 +294,12 @@ describe("map", () => {
         coordinate: q(8),
       },
     ]);
-    expect(element(drawing, "melody/map/tempo").style).toMatchObject({
+    expect(element(drawing, "tempo").style).toMatchObject({
       stroke: "#0050EF",
       "stroke-width": 1,
       "stroke-dasharray": "none",
     });
-    expect(element(drawing, "phrase/map/ticks").style).toMatchObject({
+    expect(element(drawing, "ticks").style).toMatchObject({
       stroke: "#00CC00",
       "stroke-width": 1,
       "stroke-dasharray": "1 1",
@@ -310,50 +310,50 @@ describe("map", () => {
 describe("with_region", () => {
   it("draws the hand-derived geometry", () => {
     const drawing = drawFixture("with_region");
-    const x0 = 41.072265625;
+    const x0 = 41.91552734375;
     const x = (u: number) => x0 + 400 * u;
     expect(geometry(drawing)).toEqual([
-      { type: "block", address: null, width: 458.351318359375, height: 100.453125 },
+      { type: "block", address: null, width: 459.194580078125, height: 100.453125 },
       {
         type: "region",
-        address: "tl:19/region/0",
+        address: "region_1",
         x1: x(1 / 6),
-        x2: 241.072265625,
-        xm: 174.40559895833331,
+        x2: 241.91552734375,
+        xm: 175.24886067708331,
         yb: 73.9765625,
         ya: 79.9765625,
       },
-      { type: "timeline", address: "tl:19", xs: x0, xe: 441.072265625, y: 43, locked: false },
-      { type: "child", address: "tl:20", xs: x(1 / 36), xe: x(13 / 36), y: 29, locked: true },
-      { type: "child", address: "tl:21", xs: x(1 / 6), xe: x(5 / 12), y: 15, locked: true },
-      ...wedges(x0, 441.072265625, "tl:19").map((item) => ({ ...item, yt: 44.5, yb: 57.5 })),
+      { type: "timeline", address: "clt_1", xs: x0, xe: 441.91552734375, y: 43, locked: false },
+      { type: "child", address: "clt_2", xs: x(1 / 36), xe: x(13 / 36), y: 29, locked: true },
+      { type: "child", address: "clt_3", xs: x(1 / 6), xe: x(5 / 12), y: 15, locked: true },
+      ...wedges(x0, 441.91552734375, "clt_1").map((item) => ({ ...item, yt: 44.5, yb: 57.5 })),
       {
         type: "name",
-        address: "tl:21/name",
+        address: "clt_3/name",
         x: 8,
         baseline: 18.80810546875,
         anchor: "start",
-        text: "tl:21",
+        text: "clt_3",
       },
       {
         type: "name",
-        address: "tl:20/name",
+        address: "clt_2/name",
         x: 8,
         baseline: 32.80810546875,
         anchor: "start",
-        text: "tl:20",
+        text: "clt_2",
       },
       {
         type: "name",
-        address: "tl:19/name",
+        address: "clt_1/name",
         x: 8,
         baseline: 46.80810546875,
         anchor: "start",
-        text: "tl:19",
+        text: "clt_1",
       },
       {
         type: "label",
-        address: "tl:19/start/label",
+        address: "clt_1/start/label",
         x: x0,
         baseline: 67.85400390625,
         anchor: "middle",
@@ -362,8 +362,8 @@ describe("with_region", () => {
       },
       {
         type: "label",
-        address: "tl:19/end/label",
-        x: 441.072265625,
+        address: "clt_1/end/label",
+        x: 441.91552734375,
         baseline: 67.85400390625,
         anchor: "middle",
         text: "12 ♩",
@@ -371,8 +371,8 @@ describe("with_region", () => {
       },
       {
         type: "label",
-        address: "tl:19/region/0/label",
-        x: 174.40559895833331,
+        address: "region_1/label",
+        x: 175.24886067708331,
         baseline: 90.33056640625,
         anchor: "middle",
         text: "theme",

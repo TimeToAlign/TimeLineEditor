@@ -6,14 +6,14 @@ TimeSkeleton manifest as timeskeleton's drawing specification defines it
 below, sections 1 to 6). The tests prove it from the specification, never
 from the code's own output: every expected number below is derived here by
 hand from the specification's formulas and the font's advance widths, and
-the arithmetic is written out. Manifests are loaded from the 0.4.0 fixtures
-of the installed schema package or built through core's commands; none is
-written by hand. The metrics are the package's
+the arithmetic is written out. Manifests are loaded from the 0.5.0 fixtures
+of the installed schema package or built through core's commands; none is written by hand. The metrics are the package's
 `fonts/dejavu-sans-2.37.metrics.json`. All comparisons are exact (`toBe`,
 `toEqual`); no tolerance anywhere.
 
 "The default layers" means `[DEFAULT_LAYER]`, plus the manifest's own
-`graphical` block when it has one; "the default placement" is
+`graphical` block when it has one; an "extra layer" is an application's
+layer, placed between the two, since no layer lies above the manifest's own; "the default placement" is
 `{length: 400, spacing: 1, width: null, height: null, order: ["children",
 "regions", "flow"]}`.
 
@@ -35,7 +35,7 @@ From the metrics file (`units_per_em` 2048, `ascender` 1901, `descender`
   `h(9) = 2384 × 9 / 2048 = 10.4765625`, `h(11) = 12.8046875`.
 - Every text width in the drawings below equals `A × s / 2048` for the sum
   `A` of its advances, recomputed in the test from the metrics file, for
-  every name and label of every 0.4.0 fixture at the default placement.
+  every name and label of every 0.5.0 fixture at the default placement.
 
 ## The default layer (`defaults.test.ts`)
 
@@ -89,25 +89,25 @@ below the root band holds the two wedges and no map, `Eb = 26.9765625`,
 
 ### `nested`
 
-Root `tl:24` length 16; child `tl:23` at 4, length 8 (4 to 12); its child
-`tl:22` at 3/2, length 2 (11/2 to 15/2 on the root's axis). Names
-`tl:2x` have `A = 803 + 569 + 690 + 1303 + 1303 = 4668`, width
-`25.072265625`. `x0 = 8 + 25.072265625 + 8 = 41.072265625` (the `16 ♩`
+Root `clt_1` length 16; child `clt_3` at 4, length 8 (4 to 12); its child
+`clt_2` at 3/2, length 2 (11/2 to 15/2 on the root's axis). Names
+`clt_x` have `A = 1126 + 569 + 803 + 1024 + 1303 = 4825`, width
+`25.91552734375`. `x0 = 8 + 25.91552734375 + 8 = 41.91552734375` (the `16 ♩`
 label, 18.55810546875 wide, at u 1 asks nothing), `x(t) = x0 + 25 t`.
-`tl:23` takes above row 1 (minimum `0 + 1`); `tl:22` row 2 (minimum `1 + 1`).
+`clt_3` takes above row 1 (minimum `0 + 1`); `clt_2` row 2 (minimum `1 + 1`).
 Above there is no root band, so the children band is the first and starts at
 `max(0, p0 / 2) = 7`; `p = 14`, both rows have halves 7 and 7, the band is
 `7 + 7 + 7 + 7 = 28` wide: row 1's line lies `7 + 7 = 14` out, row 2's
 `14 + 7 + 7 = 28` out, `Ea = 7 + 28 = 35`, `y_root = 8 + 35 = 43`. So the
-root's row and the two child rows lie one pitch, 14, apart. `tl:23`: xs
-141.072265625, xe 341.072265625, y `43 − 14 = 29`; `tl:22`: xs
-178.572265625, xe 228.572265625, y `43 − 28 = 15`. `Hc = 43 + 26.9765625 +
+root's row and the two child rows lie one pitch, 14, apart. `clt_3`: xs
+141.91552734375, xe 341.91552734375, y `43 − 14 = 29`; `clt_2`: xs
+179.41552734375, xe 229.41552734375, y `43 − 28 = 15`. `Hc = 43 + 26.9765625 +
 8 = 77.9765625`. Wedges: tip 44.5, base 57.5; labels' baseline `43 + 16.5
-+ 8.35400390625 = 67.85400390625`. Name descriptors run top-down: `tl:22`
-at baseline 18.80810546875, `tl:23` at 32.80810546875 and `tl:24` at
-46.80810546875. The `16 ♩` label reaches `441.072265625 + 9.279052734375 =
-450.351318359375`, beyond the arrowhead's tip 450.072265625, so `Wc =
-458.351318359375`.
++ 8.35400390625 = 67.85400390625`. Name descriptors run top-down: `clt_2`
+at baseline 18.80810546875, `clt_3` at 32.80810546875 and `clt_1` at
+46.80810546875. The `16 ♩` label reaches `441.91552734375 + 9.279052734375
+= 451.194580078125`, beyond the arrowhead's tip 450.91552734375, so `Wc =
+459.194580078125`.
 
 ### `flow_control`
 
@@ -176,27 +176,29 @@ maps are drawn before the lines, in traversal order (`tempo`, `ticks`).
 
 ### `with_region`
 
-Root `tl:19` length 12; children `tl:20` at 1/3 length 4 and `tl:21` at 2
-length 3; region `theme` from 2 to 6 below (`A = 6616`, width 29.07421875).
-`x0 = 41.072265625`; a position `t` has `x = x0 + 400 × u` with `u` the
-double nearest `t / 12`. `tl:20` takes row 1; `tl:21` starts at x(2),
-before `tl:20`'s end x(13/3), so row 2: as in `nested`, the rows lie 14 and
+Root `clt_1` length 12; children `clt_2` at 1/3 length 4 and `clt_3` at 2
+length 3; region `region_1`, named `theme`, from 2 to 6 below (`A = 6616`,
+width 29.07421875). The names `clt_x` give `x0 = 41.91552734375` as in
+`nested`; a position `t` has `x = x0 + 400 × u` with `u` the double nearest
+`t / 12`. `clt_2` takes row 1; `clt_3` starts at x(2), before `clt_2`'s end
+x(13/3), so row 2: as in `nested`, the rows lie 14 and
 28 out, `Ea = 35`, `y_root = 43`, and the child rows lie at 29 and 15.
 Below: root band to 26.9765625, region band from 30.9765625, one row,
 width `(6 + 2 + 10.4765625 + 4) − 4 = 18.4765625`, `Eb = 49.453125`,
 `Hc = 43 + 49.453125 + 8 = 100.453125`. Brace: `x1 = x0 + 400 × (1/6)`,
-`x2 = x0 + 400 × (1/2) = 241.072265625`, arms `43 + 30.9765625 =
-73.9765625`, tip 79.9765625, and exact midpoint x 174.40559895833331. Its
+`x2 = x0 + 400 × (1/2) = 241.91552734375`, arms `43 + 30.9765625 =
+73.9765625`, tip 79.9765625, and exact midpoint x `x0 + 400 × u(4/12) =
+175.24886067708331`. Its
 label has baseline `79.9765625 + 2 + 8.35400390625 = 90.33056640625`. The
-`12 ♩` label (`A = 4223`, as `16 ♩`) reaches 450.351318359375, so
-`Wc = 458.351318359375`.
+`12 ♩` label (`A = 4223`, as `16 ♩`) reaches 451.194580078125, so
+`Wc = 459.194580078125`.
 
 ## Jumps of `corpus_score_ms3` (`placement.test.ts`)
 
-Root `clt1` (no name), quarters, length 37, map `ScalarMap` to ticks above;
+Root `clt_1` (no name), quarters, length 37, map `ScalarMap` to ticks above;
 children `controls` and `notes`, each from 0 to 37, so in rows 1 and 2
 above. Names at 11: `controls` `A = 8211`, 44.10205078125 (the widest),
-`notes` 30.51318359375, `clt1` 20.41552734375; `x0 = 8 + 44.10205078125 +
+`notes` 30.51318359375, `clt_1` (`A = 4825`) 25.91552734375; `x0 = 8 + 44.10205078125 +
 8 = 60.10205078125` (no centred label asks more: `0 ♩` asks `8 +
 6.416015625`, `MC 3 → MC 1` (`A = 13320`, 58.53515625) at `u = 3/37` asks
 `8 + 29.267578125 − 32.432432432432435`). Above: the root band is the
@@ -205,14 +207,15 @@ two rows of 14, `Ea = 38.5`, `y_root = 46.5`.
 
 Below: the wedges reach 26.9765625. The flow band starts at 30.9765625 with
 one break-label tier (`fine at MC 7`), so the flow row lies `41.453125` out
-and `yf = 87.953125`. Jumps in canonical order (by from): 0 `6→0`, 1
-`9→6`, 2 `28→16`, 3 `37→0`, spans 6, 3, 12, 37: placement order 1, 0, 2,
-3. Extents from `x0` (`400 × u`, `u` the double nearest `t / 37`): jump 1
+and `yf = 87.953125`. Jumps in canonical order (by from): `jump_1` `6→0`,
+`jump_2` `9→6`, `jump_3` `28→16`, `jump_4` `37→0`, spans 6, 3, 12, 37:
+placement order `jump_2`, `jump_1`, `jump_3`, `jump_4`. Extents from `x0`
+(`400 × u`, `u` the double nearest `t / 37`): `jump_2`
 `[64.86486486486487, 97.2972972972973]`, widened by its label `MC 5 → MC 4`
 (58.53515625, centred at `x(15/2) − x0 = 81.08108108108108`) to
-`[50.81350295608108, 111.34865920608108]`, level 1; jump 0 `[0,
-64.86486486486487]` (its label inside) conflicts, level 2; jump 2
-`[172.97297297297297, 302.7027027027027]`, level 1; jump 3 `[0, 400]`,
+`[50.81350295608108, 111.34865920608108]`, level 1; `jump_1` `[0,
+64.86486486486487]` (its label inside) conflicts, level 2; `jump_3`
+`[172.97297297297297, 302.7027027027027]`, level 1; `jump_4` `[0, 400]`,
 level 3. With `pj = 20.4765625` the apexes lie `41.453125 + 8 = 49.453125`,
 69.9296875 and 90.40625 out, at 95.953125, 116.4296875 and 136.90625. The
 band is `10.4765625 + 8 + 2 × 20.4765625 + 2 + 10.4765625 = 71.90625`
@@ -279,7 +282,7 @@ built through `addChild` and `addConversionMap`. Names `r` (`A = 842`) and
   46.37890625`, both between `c` and the root. `Eb = 30.9765625 + 18.5 =
   49.4765625`, `Hc = 14.40234375 + 49.4765625 + 8 = 71.87890625`.
 
-**`map` with `tempo` below** (`{ids: [melody/map/tempo]} side below`): the
+**`map` with `tempo` below** (`{ids: [tempo]} side below`): the
 root band below holds the wedges (26.9765625) and a one-map stack (6.5) and
 reaches `max(26.9765625, 6.5) = 26.9765625`. Above, no root band: the
 children band starts at 7, `phrase` 14 out, `Ea = 21`, `y_root = 29`;
@@ -294,13 +297,14 @@ band (no wedge, no drawn root map): the children band starts at 7,
 `phrase` 14 out, `Ea = 21`, `y_root = 29`; `phrase` at 15, `ticks` at 9.5.
 The wedges, displayed on their own, still reach 26.9765625 below:
 `Hc = 29 + 26.9765625 + 8 = 63.9765625`. The drawing holds no `melody` and
-no `melody/map/tempo` element.
+no `tempo` element.
 
 **`conversion_maps__maps_quarters`** (one root, 18 maps, all displayed):
 above, a stack of 18 maps reaches `1.5 + 18 × 5 = 91.5`, `y_root = 99.5`;
-map `j` (canonical order, by id) is centred `1.5 + 5j − 1` above:
-`map:BeatInMeasureMap_2` (`j = 1`) at 94 and `map:TableMap_1` (`j = 18`)
-at `99.5 − 90.5 = 9`. `Hc = 99.5 + 26.9765625 + 8 = 134.4765625`. With
+map `j` (canonical order, by id in code-point order, so `cmap_1`,
+`cmap_10`, …, `cmap_14`, `cmap_2`, …, `tmap_2`) is centred `1.5 + 5j − 1`
+above: `cmap_1` (`j = 1`) at 94 and `tmap_2` (`j = 18`) at `99.5 − 90.5 =
+9`. `Hc = 99.5 + 26.9765625 + 8 = 134.4765625`. With
 every map moved below, the root band below holds the wedges (26.9765625)
 and the stack (91.5) and reaches 91.5: `Ea = 0`, `y_root = 14.40234375`,
 `Hc = 14.40234375 + 91.5 + 8 = 113.90234375`, `j = 1` at
@@ -330,14 +334,14 @@ At spacing `v`, `nested` has `p0 = p = max(14v, 12.8046875)`; with no map
 stack, row 1's line lies `p0 / 2 + p / 2 = p` out and row 2's `2p` out, so
 the root-to-child gap equals the child-to-grandchild gap:
 
-| `v` | `p` | root `y_root` | `tl:23` y | `tl:22` y |
+| `v` | `p` | root `y_root` | `clt_3` y | `clt_2` y |
 |---|---|---|---|---|
 | 0.5 | 12.8046875 | `8 + 6.40234375 + 4 × 6.40234375 = 40.01171875` | 27.20703125 | 14.40234375 |
 | 1 | 14 | 43 | 29 | 15 |
 | 2 | 28 | `8 + 14 + 56 = 78` | 50 | 22 |
 
-At length 200 and spacing 1 the root of `nested` runs from 41.072265625 to
-`41.072265625 + 200 = 241.072265625` at `y_root = 43`: length moves x only.
+At length 200 and spacing 1 the root of `nested` runs from 41.91552734375 to
+`41.91552734375 + 200 = 241.91552734375` at `y_root = 43`: length moves x only.
 
 ## The cascade (`cascade.test.ts`)
 
@@ -356,6 +360,11 @@ lose) and the loser names every lower-ranking member:
    `{modality}` beats `{}`;
 7. position: of two equal statements the later wins.
 
+Selectors are matched by `core`'s `selectorMatches` against element keys,
+and `core`'s `manifestElements` enumerates the same keys for the `style`
+command: for every manifest fixture, every drawn element but the block has
+an address that `manifestElements` lists, with the same type.
+
 A style name sets its declaration; a name the layer's `styles` lacks sets
 nothing, so a lower statement wins. A `within` naming an id outside the
 manifest matches nothing.
@@ -369,11 +378,11 @@ Inheritance, through `draw` on fixtures with explicit layers:
 - block → root: `[{select: {element: block}, set: {fill: #111111, opacity:
   0.5, rx: 4}}]` gives the root fill `#111111` (inherited) and opacity 1,
   rx 0 (not inherited);
-- root → child, child → its child (`nested`): `{ids: [tl:24]}` stroke
-  `#123456` reaches `tl:23` and `tl:22`;
+- root → child, child → its child (`nested`): `{ids: [clt_1]}` stroke
+  `#123456` reaches `clt_3` and `clt_2`;
 - root → map (`map`): `{ids: [melody]}` stroke-width 7 reaches
-  `melody/map/tempo` when no statement sets it; a map has no name, so no
-  element `melody/map/tempo/name` is drawn;
+  `tempo` when no statement sets it; a map has no name, so no element
+  `tempo/name` is drawn;
 - region → label (`with_region`): `{element: region}` font-size 13 gives
   the region label font-size 13;
 - map domain and modality from `target_unit` (`conversion_maps__maps_quarters`
@@ -381,7 +390,7 @@ Inheritance, through `draw` on fixtures with explicit layers:
   `QuartersToTicks_1` (ticks) is `#00CC00` with dash `1 1`;
   `QuartersToFloatingMeasures_1` (floating_measures) `#00CC00`, no dash;
 - a null `target_unit` (`FloorMap_1`) matches no domain selector and
-  inherits its timeline's stroke: with the extra top layer
+  inherits its timeline's stroke: with the extra layer
   `{ids: [maps:quarters]} stroke #ABCDEF`, `FloorMap_1` is `#ABCDEF` while
   `LinearMap_1` stays `#0050EF`; its class is its type, so
   `{class: FloorMap} stroke #FEDCBA` reaches it and no other map.
@@ -400,8 +409,8 @@ size, `W = Wc` and `H = Hc`.
 ## First fit (`properties.test.ts`, fast-check)
 
 For generated manifests (a root of length 1 to 64 quarters with 1 to 8
-children of random offset and length inside it, built through `createBlock`
-and `addChild`), no two wedge labels with the same baseline on one side have
+children of random offset and length inside it, built through `add`
+commands of a block and of its children), no two wedge labels with the same baseline on one side have
 conflicting extents `[x − w/2 − 1, x + w/2 + 1]` (section 6.3), and no two
 children in one row have conflicting extents `[Xs − x0, Xe − x0]`.
 Changing name widths changes `x0` but never changes those rows.
@@ -443,17 +452,18 @@ expected ordinates, rows, texts and descriptor order derived from sections
 3 and 6.
 
 **Four jumps.** Root `r`, quarters, length 16, `x(t) = x0 + 25 t`, with
-jumps 4→6 `one`, 8→10 `two`, 3→11 `three` and 2→12 `four`. Canonical order
-sorts jumps by `from`, so their indices are `2→12` 0, `3→11` 1, `4→6` 2 and
-`8→10` 3; their spans are 10, 8, 2 and 2, and the stable sort by span gives
-the placement order 2, 3, 1, 0, which the jump descriptors and their labels
-follow. Extents from `x0`: jump 2 `[100, 150]`, label `one` (`A = 3811`,
-16.74755859375 wide) centred at 125 inside it; jump 3 `[200, 250]`, `two`
-(`A = 3731`, 16.39599609375) centred at 225; jump 1 `[75, 275]`, `three`
-(`A = 5463`, 24.00732421875) centred at 175; jump 0 `[50, 300]`, `four`
-(`A = 4114`, 18.0791015625) centred at 175. No label widens its extent.
-First fit: jump 2 level 1, jump 3 level 1 (150 < 200), jump 1 level 2 (it
-conflicts with both), jump 0 level 3. Above, no band: `y_root = max(8,
+jumps 4→6 `one`, 8→10 `two`, 3→11 `three` and 2→12 `four`, each added by an
+`add` command with its label as its id. Canonical order
+sorts jumps by `from`: `four` (`2→12`), `three` (`3→11`), `one` (`4→6`),
+`two` (`8→10`); their spans are 10, 8, 2 and 2, and the stable sort by span
+gives the placement order `one`, `two`, `three`, `four`, which the jump
+descriptors and their labels follow. Extents from `x0`: `one` `[100, 150]`,
+label `one` (`A = 3811`, 16.74755859375 wide) centred at 125 inside it;
+`two` `[200, 250]`, label (`A = 3731`, 16.39599609375) centred at 225;
+`three` `[75, 275]`, label (`A = 5463`, 24.00732421875) centred at 175;
+`four` `[50, 300]`, label (`A = 4114`, 18.0791015625) centred at 175. No
+label widens its extent. First fit: `one` level 1, `two` level 1 (150 <
+200), `three` level 2 (it conflicts with both), `four` level 3. Above, no band: `y_root = max(8,
 8 + 12.8046875 / 2) = 14.40234375`. Below, the root band to 26.9765625,
 the flow row at `f0 = 26.9765625 + 4 = 30.9765625`, so every
 `yf = 14.40234375 + 30.9765625 = 45.37890625`. With `pj = 10 + 10.4765625
@@ -465,20 +475,20 @@ tier, and the flow row is the start of the flow band. `yc = yf + 4/3 ×
 (ya − yf)` in binary64: `45.37890625 + (4/3) × 8`, `45.37890625 + (4/3) ×
 28.4765625` and `45.37890625 + (4/3) × 48.953125`.
 
-**Float axis.** `continuous_physical`: root `tl:7`, seconds, `float`,
-length 12.5; children `tl:8` at 0.5, length 4.25, and `tl:9` at 6.0,
+**Float axis.** `continuous_physical`: root `cpt_1`, seconds, `float`,
+length 12.5; children `cpt_2` at 0.5, length 4.25, and `cpt_3` at 6.0,
 length 3.0, both in child row 1 (`[x(0.5), x(4.75)]` and `[x(6.0), x(9.0)]`
 do not conflict). No name is set, so the names are the ids; the row's
-joined name `tl:8, tl:9` has `A = 2 × (803 + 569 + 690 + 1303) + 651 + 651
-= 8032`, `N = 8032 × 11 / 2048 = 43.140625`, wider than `tl:7` (`A = 3365`,
-18.07373046875). The label `0.0 s` (`A = 1303 + 651 + 1303 + 651 + 1067 =
+joined name `cpt_2, cpt_3` has `A = 2 × (1126 + 1300 + 803 + 1024 + 1303) +
+651 + 651 = 12414`, `N = 12414 × 11 / 2048 = 66.6767578125`, wider than
+`cpt_1` (`A = 5556`, 29.841796875). The label `0.0 s` (`A = 1303 + 651 + 1303 + 651 + 1067 =
 4975`, 21.86279296875 wide) at u 0 asks `8 + 10.931396484375`, and `12.5 s`
-at u 1 nothing, so `x0 = 8 + 43.140625 + 8 = 59.140625` and the root runs
-to `59.140625 + 400 = 459.140625`. The proportions are binary64 quotients:
+at u 1 nothing, so `x0 = 8 + 66.6767578125 + 8 = 82.6767578125` and the
+root runs to `82.6767578125 + 400 = 482.6767578125`. The proportions are binary64 quotients:
 `0.5 / 12.5` is the double nearest 0.04, and `400 ×` it rounds to 16, so
-`tl:8` starts at 75.140625; its end `0.5 + 4.25 = 4.75` gives `4.75 / 12.5`,
-the double nearest 0.38, and `400 ×` it rounds to 152, so it ends at
-211.140625. The labels show the floats as Python writes them: `0.0 s` and
+`cpt_2` starts at 98.6767578125; its end `0.5 + 4.25 = 4.75` gives `4.75 /
+12.5`, the double nearest 0.38, and `400 ×` it rounds to 152, so it ends at
+234.6767578125. The labels show the floats as Python writes them: `0.0 s` and
 `12.5 s`.
 
 **Band order.** `with_region` with its region moved above (`{element:
@@ -486,14 +496,14 @@ region} side above`), so the children and region bands share the above
 side. The region band has `pr = 6 + 2 + 10.4765625 + 4 = 22.4765625` and
 is `22.4765625 − 4 = 18.4765625` wide. At the default order the children
 band comes first, from 7, its rows 14 and 28 out, to 35; the region band
-starts at `35 + 4 = 39`, to 57.4765625; `y_root = 65.4765625`: `tl:20` at
-`65.4765625 − 14 = 51.4765625`, `tl:21` at 37.4765625, the brace's arms at
+starts at `35 + 4 = 39`, to 57.4765625; `y_root = 65.4765625`: `clt_2` at
+`65.4765625 − 14 = 51.4765625`, `clt_3` at 37.4765625, the brace's arms at
 `65.4765625 − 39 = 26.4765625` and its tip at 20.4765625. With
 `["flow", "regions", "children"]` the region band is the first, from 0 to
 18.4765625 (arms at the root's line, `yb = y_root`); the children band
 starts at `max(18.4765625 + 4, 7) = 22.4765625`, rows `22.4765625 + 7 =
 29.4765625` and `43.4765625` out, to `22.4765625 + 28 = 50.4765625`, so
-`y_root = 58.4765625`, `tl:20` at 29, `tl:21` at 15, arms 58.4765625 and
+`y_root = 58.4765625`, `clt_2` at 29, `clt_3` at 15, arms 58.4765625 and
 tip 52.4765625. Below, the wedges reach 26.9765625 in both, so `Hc` is
 `65.4765625 + 26.9765625 + 8 = 100.453125` and `93.453125`. The child rows
 and map centres of `map` do not change when the name content widens `x0`.

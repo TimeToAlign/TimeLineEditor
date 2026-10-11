@@ -1,5 +1,5 @@
 /**
- * One schema-0.4.0 TimeSkeleton manifest, held losslessly member by member.
+ * One schema-0.5.0 TimeSkeleton manifest, held losslessly member by member.
  */
 
 import type {
@@ -13,13 +13,15 @@ import type { JsonObject } from "../json.ts";
 import type { CoordinateDict } from "../number/coordinate.ts";
 
 export type Region = {
-  readonly name: string;
+  readonly id: string;
+  readonly name: string | null;
   readonly start: CoordinateDict;
   readonly end: CoordinateDict;
   readonly meta: JsonObject;
 };
 
 export type Break = {
+  readonly id: string;
   readonly coordinate: CoordinateDict;
   readonly control_type: string;
   readonly condition: string;
@@ -30,20 +32,28 @@ export type Break = {
 };
 
 export type Jump = {
+  readonly id: string;
   readonly from_coordinate: CoordinateDict;
   readonly to_coordinate: CoordinateDict;
   readonly control_type: string;
   readonly condition: string;
   readonly repeat_count: JsonNumber;
-  readonly target_name: string | null;
+  /** The id of a marker of the same timeline, or null. */
+  readonly target: string | null;
   readonly label: string | null;
   readonly meta: JsonObject;
+};
+
+export type Marker = {
+  readonly id: string;
+  readonly name: string | null;
+  readonly coordinate: CoordinateDict;
 };
 
 export type FlowControl = {
   readonly breaks: readonly Break[];
   readonly jumps: readonly Jump[];
-  readonly markers: { readonly [name: string]: CoordinateDict };
+  readonly markers: readonly Marker[];
 };
 
 /** A conversion map payload, carried verbatim. */
@@ -86,21 +96,3 @@ export type Manifest = {
   /** Styling owned by this manifest's elements, never by the canvas. */
   readonly graphical?: Graphical;
 };
-
-/** The members of a timeline manifest, in the order timetoalign writes them. */
-export const TIMELINE_KEYS = [
-  "id",
-  "name",
-  "class",
-  "unit",
-  "number_type",
-  "length",
-  "locked",
-  "meta",
-  "children",
-  "conversion_maps",
-  "regions",
-  "flow_control",
-  "measure_map",
-  "metric_hierarchy",
-] as const satisfies readonly (keyof TimelineManifest)[];

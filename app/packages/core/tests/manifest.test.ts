@@ -1,19 +1,15 @@
-import { dumps, JsonFloat, parse } from "@timetoalign/timeskeleton";
+import { dumps, JsonFloat, parse, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
 import { describe, expect, it, vi } from "vitest";
 import type { LoadError, Manifest } from "../src/index.ts";
 import {
-  applyToManifest,
   checkManifest,
   InvalidManifestError,
-  isCommandError,
   isLoadError,
   loadManifest,
   saveManifest,
 } from "../src/index.ts";
 import type { JsonObject } from "../src/json.ts";
 import { load, manifestFixtures, rejections } from "./support.ts";
-
-const BLOCK = "0000000000";
 
 function loaded(text: string): Manifest {
   const manifest = loadManifest(text);
@@ -47,7 +43,7 @@ describe("schema version", () => {
   it("refuses a manifest declaring any version but the installed one", () => {
     const fixture = manifestFixtures.find((item) => item.name === "bare.json");
     const text = (fixture?.text ?? "").replace(
-      '"schema_version": "0.4.0"',
+      `"schema_version": "${SCHEMA_VERSION}"`,
       '"schema_version": "0.0.0"',
     );
     expect(refused(text).problems.map(({ code, path }) => ({ code, path }))).toEqual([
@@ -99,22 +95,24 @@ describe("lossless numbers", () => {
 });
 
 describe("canonical order", () => {
-  it("orders marker names by code point", () => {
-    const names = ["\u{1F3B5}", "～"];
-    let manifest = load("bare.json");
-    for (const name of names) {
-      const result = applyToManifest(manifest, {
-        type: "setMarker",
-        block: BLOCK,
-        timeline: manifest.timeline.id,
-        name,
-        coordinate: { unit: "quarters", number_type: "fraction", value: [1, 1] },
-      });
-      if (isCommandError(result)) throw new Error(result.message);
-      manifest = result;
-    }
+  it("orders markers at one coordinate by id in code-point order", () => {
+    const coordinate = { unit: "quarters", number_type: "fraction", value: [1, 1] } as const;
+    const bare = load("bare.json");
+    const manifest = {
+      ...bare,
+      timeline: {
+        ...bare.timeline,
+        flow_control: {
+          ...bare.timeline.flow_control,
+          markers: ["\u{1F3B5}", "～"].map((id) => ({ id, name: null, coordinate })),
+        },
+      },
+    };
     const saved = parse(saveManifest(manifest)) as unknown as Manifest;
-    expect(Object.keys(saved.timeline.flow_control.markers)).toEqual(["\uFF5E", "\u{1F3B5}"]);
+    expect(saved.timeline.flow_control.markers.map((marker) => marker.id)).toEqual([
+      "\uFF5E",
+      "\u{1F3B5}",
+    ]);
   });
 });
 
@@ -125,7 +123,7 @@ describe("invariants", () => {
   const source = manifestFixtures.find((item) => item.name === "with_region.json")?.text ?? "";
   const base = parse(source) as unknown as JsonObject;
   const rootPath = ["timeline"];
-  const [first = "", second = ""] = Object.keys(node(base, ...rootPath, "children"));
+  const [first = ""] = Object.keys(node(base, ...rootPath, "children"));
   const childPath = [...rootPath, "children", first];
   const float = (value: number) => ({
     unit: "quarters",
@@ -137,7 +135,6 @@ describe("invariants", () => {
     number_type: "fraction",
     value: [numerator, 1],
   });
-  const shift = { type: "ShiftMap", id: "s", name: null, source_unit: null, target_unit: null };
 
   it("lists three violations in traversal order", () => {
     const value = parse(source) as unknown as Node;
@@ -157,7 +154,7 @@ describe("invariants", () => {
           offset: 0,
         },
       ],
-      regions: [region, region],
+      regions: [{ ...region, end: quarters(0) }],
     });
     const text = dumps(value);
     expect(refused(text).problems.map(({ code, path }) => ({ code, path }))).toEqual([
@@ -166,7 +163,7 @@ describe("invariants", () => {
         code: "map_source_unit_mismatch",
         path: [...rootPath, "conversion_maps", 0, "source_unit"],
       },
-      { code: "duplicate_region", path: [...rootPath, "regions", 1, "name"] },
+      { code: "region_end_before_start", path: [...rootPath, "regions", 0, "end"] },
     ]);
     expect(() => saveManifest(parse(text) as unknown as Manifest)).toThrow(InvalidManifestError);
   });
@@ -218,31 +215,9 @@ describe("invariants", () => {
       [...rootPath, "regions", 0, "end"],
     ],
     [
-      "duplicate_map",
-      (manifest) =>
-        Object.assign(node(manifest, ...rootPath), {
-          conversion_maps: [
-            { ...shift, offset: 1 },
-            { ...shift, offset: 2 },
-          ],
-        }),
-      [...rootPath, "conversion_maps", 1, "id"],
-    ],
-    [
       "metric_hierarchy_without_measure_map",
       (manifest) => Object.assign(node(manifest, ...rootPath), { metric_hierarchy: {} }),
       [...rootPath, "metric_hierarchy"],
-    ],
-    [
-      "duplicate_timeline",
-      (manifest) => {
-        const nested = {
-          offset: quarters(0),
-          timeline: node(manifest, ...rootPath, "children", second, "timeline"),
-        };
-        Object.assign(node(manifest, ...childPath, "timeline"), { children: { [second]: nested } });
-      },
-      [...rootPath, "children", second, "timeline", "id"],
     ],
     [
       "number_type_not_allowed",
@@ -281,10 +256,10 @@ describe("invariants", () => {
   it("refuses a child whose id differs from its key in children, in check and load", () => {
     const nested = manifestFixtures.find((item) => item.name === "nested.json")?.text ?? "";
     const value = parse(nested) as unknown as Node;
-    expect(Object.keys(node(value, "timeline", "children"))).toEqual(["tl:23"]);
-    Object.assign(node(value, "timeline", "children", "tl:23", "timeline"), { id: "tl:99" });
+    expect(Object.keys(node(value, "timeline", "children"))).toEqual(["clt_3"]);
+    Object.assign(node(value, "timeline", "children", "clt_3", "timeline"), { id: "clt_9" });
     const expected = [
-      { code: "key_mismatch", path: ["timeline", "children", "tl:23", "timeline", "id"] },
+      { code: "key_mismatch", path: ["timeline", "children", "clt_3", "timeline", "id"] },
     ];
     const text = dumps(value);
     expect(refused(text).problems.map(({ code, path }) => ({ code, path }))).toEqual(expected);

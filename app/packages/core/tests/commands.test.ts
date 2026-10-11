@@ -1,737 +1,518 @@
 import { JsonFloat } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
-import type { Command, Manifest, ManifestCommand, TimelineManifest } from "../src/index.ts";
-import {
-  applyToManifest,
-  isCommandError,
-  parseCommand as parse,
-  saveManifest,
-  TIMELINE_KEYS,
-} from "../src/index.ts";
-import { deepFreeze, load, manifestFixtures, manifestKeyOrders } from "./support.ts";
+import type { Manifest, View } from "../src/index.ts";
+import { apply, createView, DEFAULT_SETTINGS, parseCommand } from "../src/index.ts";
+import { A, addBlock, B, block, C, changed, deepFreeze, load, refusal, viewOf } from "./support.ts";
 
-/** A coordinate dict on the quarters/fraction axis. */
-const q = (numerator: number, denominator = 1) => ({
+const quarters = (numerator: number, denominator = 1) => ({
   unit: "quarters",
   number_type: "fraction",
   value: [numerator, denominator],
 });
-/** The same coordinate as `apply` stores it (safe integers are plain numbers). */
-const Q = (numerator: bigint, denominator = 1n) => ({
-  unit: "quarters",
-  number_type: "fraction",
-  value: [Number(numerator), Number(denominator)],
+const at = (element: string) => `${A}/${element}`;
+const set = (target: string, properties: object) => ({
+  type: "set",
+  changes: [{ target, values: properties }],
 });
-const seconds = (value: number) => ({ unit: "seconds", number_type: "float", value });
+const frozen = (...blocks: (readonly [string, string])[]): View => deepFreeze(viewOf(...blocks));
+const tempo = () => load("map.json").timeline.conversion_maps[0] as object;
+const ticks = () =>
+  (load("map.json").timeline.children.phrase?.timeline.conversion_maps[0] ?? {}) as object;
 
-/** A new timeline on the quarters/fraction axis. */
-const spec = (id: string, length: object = q(8)) => ({
-  id,
-  class: "ContinuousLogicalTimeline",
-  unit: "quarters",
-  number_type: "fraction",
-  length,
-});
-const BLOCK = "0000000000";
-
-function contextual(command: object): ManifestCommand {
-  const value = { ...command } as Record<string, unknown>;
-  for (const key of ["id", "parent", "timeline"] as const) {
-    if (value[key] === "a") value[key] = "bare";
-  }
-  return { block: BLOCK, ...value } as ManifestCommand;
+/** The value of `apply`, the input view having been deep-frozen first. */
+function applied(view: View, command: object): View {
+  return changed(deepFreeze(view), command);
 }
 
-const parseCommand = (command: unknown) =>
-  parse(typeof command === "object" && command !== null ? contextual(command as object) : command);
-const apply = (manifest: Manifest, command: Command) =>
-  applyToManifest(manifest, contextual(command));
-
-/** Apply commands in turn; each must be accepted. Inputs are frozen first. */
-function run(manifest: Manifest, ...commands: object[]): Manifest {
-  let current = deepFreeze(manifest);
-  for (const command of commands) {
-    const result = apply(current, command as Command);
-    if (isCommandError(result)) throw new Error(`${JSON.stringify(command)}: ${result.message}`);
-    current = deepFreeze(result);
-  }
-  return current;
+function rejected(view: View, command: object) {
+  return refusal(apply(deepFreeze(view), command));
 }
 
-/** The refusal of a command: its code and path; the frozen input proves nothing changed. */
-function refusal(manifest: Manifest, command: object) {
-  const result = apply(deepFreeze(manifest), command as Command);
-  if (!isCommandError(result)) throw new Error("the command was accepted");
-  return { code: result.code, path: result.path };
+function manifest(view: View, id = A): Manifest {
+  return block(view, id).manifest;
 }
 
-function timeline(manifest: Manifest, id: string): TimelineManifest {
-  const wanted = id === "a" ? "bare" : id;
-  const search = (item: TimelineManifest): TimelineManifest | undefined =>
-    item.id === wanted
-      ? item
-      : Object.values(item.children)
-          .map((entry) => search(entry.timeline))
-          .find((found) => found !== undefined);
-  const found = search(manifest.timeline);
-  if (found !== undefined) return found;
-  throw new Error(`no timeline ${id}`);
-}
+describe("add", () => {
+  it("adds a block with the defaults and an index after the others", () => {
+    const view = applied(createView(), addBlock(A, "bare.json"));
+    expect(block(view)).toEqual({
+      id: A,
+      blockKind: "timeline",
+      parent: null,
+      index: "a0",
+      x: 0,
+      y: 0,
+      scale: 1,
+      length: 400,
+      spacing: 1,
+      width: null,
+      height: null,
+      order: ["children", "regions", "flow"],
+      manifest: load("bare.json"),
+    });
+    const second = applied(view, {
+      type: "add",
+      into: "workspace",
+      block: { id: B, manifest: load("bare.json"), x: 0, y: 0, scale: 2 },
+    });
+    expect([block(second, B).index, block(second, B).scale]).toEqual(["a1", 2]);
+    const given = applied(view, {
+      type: "add",
+      into: "workspace",
+      block: { id: C, manifest: load("bare.json"), x: 0, y: 0, index: "Zz" },
+    });
+    expect(block(given, C).index).toBe("Zz");
+  });
 
-const empty = () => load("bare.json");
-const numberRoot = (numberType: "int" | "float" | "fraction", value: unknown): Manifest => {
-  const manifest = empty();
-  return {
-    ...manifest,
-    timeline: {
-      ...manifest.timeline,
-      id: "p",
-      class: "ContinuousLogicalTimeline",
-      unit: "number",
-      number_type: numberType,
-      length: { unit: "number", number_type: numberType, value } as never,
-      children: {},
-      conversion_maps: [],
-      regions: [],
-      flow_control: { breaks: [], jumps: [], markers: {} },
-      measure_map: null,
-      metric_hierarchy: null,
-    },
-  };
-};
-/** Root `a` (length 8) with child `b` (length 2) at offset 1 holding `c` (length 1) at 0. */
-const tree = () =>
-  run(
-    empty(),
-    { type: "addChild", parent: "a", offset: q(1), child: spec("b", q(2)) },
-    { type: "addChild", parent: "b", offset: q(0), child: spec("c", q(1)) },
-  );
+  it("adds a locked child, normalizing its offset and growing the unlocked root", () => {
+    const bare = load("bare.json");
+    const view = applied(viewOf([A, "bare.json"]), {
+      type: "add",
+      into: at("bare"),
+      child: { offset: quarters(2, 4), timeline: { ...bare.timeline, id: "clt_1", locked: true } },
+    });
+    const root = manifest(view).timeline;
+    expect(root.length).toEqual({ unit: "quarters", number_type: "fraction", value: [17, 2] });
+    expect(root.children).toEqual({
+      clt_1: {
+        offset: quarters(1, 2),
+        timeline: { ...bare.timeline, id: "clt_1", locked: true },
+      },
+    });
+  });
 
-const fresh = {
-  name: null,
-  class: "ContinuousLogicalTimeline",
-  unit: "quarters",
-  number_type: "fraction",
-  locked: false,
-  meta: {},
-  children: {},
-  conversion_maps: [],
-  regions: [],
-  flow_control: { breaks: [], jumps: [], markers: {} },
-  measure_map: null,
-  metric_hierarchy: null,
-};
-
-describe("edits keep member order", () => {
-  it("renaming the deepest timeline of nested.json and back saves the fixture's bytes", () => {
-    const fixture = manifestFixtures.find((item) => item.name === "nested.json");
-    let deepest = load("nested.json").timeline;
-    while (Object.keys(deepest.children).length > 0) {
-      deepest = (Object.values(deepest.children)[0] as { timeline: TimelineManifest }).timeline;
-    }
-    const renamed = run(load("nested.json"), { type: "setName", id: deepest.id, name: "x" });
-    const back = run(renamed, { type: "setName", id: deepest.id, name: deepest.name });
-    expect(saveManifest(back)).toBe(fixture?.text);
-    for (const manifest of [
-      renamed,
-      run(load("nested.json"), { type: "removeChild", id: deepest.id }),
+  it("adds conversion maps verbatim, in id order whichever comes first", () => {
+    for (const order of [
+      [tempo(), ticks()],
+      [ticks(), tempo()],
     ]) {
-      const orders = manifestKeyOrders(manifest);
-      expect(orders).toEqual(orders.map(() => [...TIMELINE_KEYS]));
+      let view = viewOf([A, "bare.json"]);
+      for (const map of order) view = applied(view, { type: "add", into: at("bare"), map });
+      expect(manifest(view).timeline.conversion_maps).toEqual([tempo(), ticks()]);
     }
   });
-});
 
-describe("setName", () => {
-  it("sets a name and clears it", () => {
-    const named = run(tree(), { type: "setName", id: "c", name: "Coda" });
-    expect(timeline(named, "c").name).toBe("Coda");
-    expect(timeline(run(named, { type: "setName", id: "c", name: null }), "c").name).toBe(null);
-  });
-
-  it("refuses", () => {
-    expect(refusal(tree(), { type: "setName", id: "q", name: "x" })).toEqual({
-      code: "unknown_timeline",
-      path: ["id"],
+  it("refuses with the exact code and path", () => {
+    const view = viewOf([A, "map.json"]);
+    const bare = load("bare.json");
+    expect(rejected(view, { type: "add", into: at("tempo"), child: {} })).toEqual({
+      code: "wrong_target_kind",
+      path: [at("tempo"), "child"],
     });
-  });
-});
-
-describe("setLength", () => {
-  it("lengthens, and shortens down to the end of the furthest child", () => {
-    expect(
-      timeline(run(tree(), { type: "setLength", id: "a", length: q(20) }), "a").length,
-    ).toEqual(Q(20n));
-    expect(timeline(run(tree(), { type: "setLength", id: "a", length: q(3) }), "a").length).toEqual(
-      Q(3n),
-    );
-  });
-
-  it("refuses", () => {
-    expect(refusal(tree(), { type: "setLength", id: "q", length: q(3) })).toEqual({
-      code: "unknown_timeline",
-      path: ["id"],
+    expect(rejected(view, { type: "add", into: "workspace", child: {} })).toEqual({
+      code: "wrong_target_kind",
+      path: ["workspace", "child"],
     });
-    expect(refusal(tree(), { type: "setLength", id: "b", length: q(3) })).toEqual({
-      code: "locked",
-      path: ["id"],
+    const blockValue = (value: object) => ({ type: "add", into: "workspace", block: value });
+    expect(rejected(view, blockValue({ id: "BAD", manifest: bare, x: 0, y: 0 }))).toEqual({
+      code: "invalid_block_id",
+      path: ["workspace", "block", "id"],
     });
-    expect(refusal(tree(), { type: "setLength", id: "a", length: seconds(3) })).toEqual({
-      code: "off_axis",
-      path: ["length"],
-    });
-    expect(refusal(tree(), { type: "setLength", id: "a", length: q(5, 2) })).toEqual({
-      code: "length_below_content",
-      path: ["length"],
-    });
-  });
-});
-
-describe("addChild", () => {
-  it("nests a new timeline, locked, at an exact offset", () => {
-    const manifest = run(empty(), {
-      type: "addChild",
-      parent: "a",
-      offset: q(2, 4),
-      child: spec("b", q(2)),
-    });
-    expect(timeline(manifest, "a").children).toEqual({
-      b: { offset: Q(1n, 2n), timeline: { ...fresh, id: "b", length: Q(2n), locked: true } },
-    });
-  });
-
-  it("lengthens an unlocked parent to the end of the child", () => {
-    const manifest = run(empty(), {
-      type: "addChild",
-      parent: "a",
-      offset: q(15, 2),
-      child: spec("b", q(1)),
-    });
-    expect(timeline(manifest, "a").length).toEqual(Q(17n, 2n));
-  });
-
-  it("nests a child of another number type, comparing and growing as Python does", () => {
-    const axis = (numberType: string, value: unknown) => ({
-      unit: "number",
-      number_type: numberType,
-      value,
-    });
-    const make = (id: string, numberType: string, length: unknown) => ({
-      ...spec(id, axis(numberType, length)),
-      unit: "number",
-      number_type: numberType,
-    });
-    const grow = (parent: [string, unknown], offset: unknown, child: [string, unknown]) => {
-      const manifest = run(numberRoot(parent[0] as never, parent[1]), {
-        type: "addChild",
-        parent: "p",
-        offset: axis(parent[0], offset),
-        child: make("c", ...child),
-      });
-      return timeline(manifest, "p").length;
-    };
-    // int parent, Fraction child ending at 5: grows to the int 5.
-    expect(grow(["int", 4], 3, ["fraction", [2, 1]])).toEqual({
-      unit: "number",
-      number_type: "int",
-      value: 5,
-    });
-    // Fraction parent, int child ending at 11/2.
-    expect(grow(["fraction", [9, 2]], [7, 2], ["int", 2])).toEqual({
-      unit: "number",
-      number_type: "fraction",
-      value: [11, 2],
-    });
-    // float parent, int child ending at 5.5.
-    expect(grow(["float", 4.5], 3.5, ["int", 2])).toEqual({
-      unit: "number",
-      number_type: "float",
-      value: 5.5,
-    });
-    // A child within its parent leaves the parent's length as stored.
-    expect(grow(["float", 9.5], 3.5, ["int", 2])).toEqual({
-      unit: "number",
-      number_type: "float",
-      value: 9.5,
-    });
-  });
-
-  it("refuses", () => {
-    const base = tree();
-    const add = (child: unknown, offset: object = q(0), parent = "a") => ({
-      type: "addChild",
-      parent,
-      offset,
-      child,
-    });
-    const other = {
-      id: "x",
-      class: "ContinuousPhysicalTimeline",
-      unit: "seconds",
-      number_type: "float",
-      length: seconds(1),
-    };
-    expect(refusal(base, add(spec("x"), q(0), "q"))).toEqual({
-      code: "unknown_timeline",
-      path: ["parent"],
-    });
-    expect(refusal(base, add(spec("x"), seconds(0)))).toEqual({
-      code: "off_axis",
-      path: ["offset"],
-    });
-    expect(refusal(base, add("q"))).toEqual({ code: "invalid_command", path: ["child"] });
-    expect(refusal(base, add(spec("c")))).toEqual({
-      code: "duplicate_timeline",
-      path: ["child", "id"],
+    expect(rejected(view, blockValue({ id: A, manifest: bare, x: 0, y: 0 }))).toEqual({
+      code: "duplicate_id",
+      path: [A],
     });
     expect(
-      refusal(base, add({ ...spec("x"), unit: "ticks", length: { ...q(1), unit: "ticks" } })),
+      rejected(view, blockValue({ id: B, manifest: bare, x: 0, y: 0, overrides: {} })),
+    ).toEqual({ code: "unknown_property", path: [B, "overrides"] });
+    expect(rejected(view, blockValue({ id: B, manifest: bare, y: 0 }))).toEqual({
+      code: "invalid_value",
+      path: [B, "x"],
+    });
+    const root = viewOf([A, "bare.json"]);
+    expect(
+      rejected(root, {
+        type: "add",
+        into: at("bare"),
+        child: { offset: quarters(0), timeline: { ...bare.timeline, locked: true } },
+      }),
+    ).toEqual({ code: "duplicate_id", path: [at("bare")] });
+    expect(
+      rejected(root, { type: "add", into: at("bare"), map: { ...tempo(), id: "bare" } }),
+    ).toEqual({ code: "duplicate_id", path: [at("bare")] });
+    expect(
+      rejected(root, {
+        type: "add",
+        into: at("bare"),
+        map: { ...tempo(), source_unit: "seconds" },
+      }),
     ).toEqual({
-      code: "unit_not_allowed",
-      path: ["child", "unit"],
-    });
-    expect(refusal(base, add(spec("x", q(-1))))).toEqual({
-      code: "negative_length",
-      path: ["child", "length"],
-    });
-    expect(refusal(base, add(other))).toEqual({
-      code: "child_unit_mismatch",
-      path: ["child", "unit"],
-    });
-    const counted = numberRoot("int", 4);
-    const half = { unit: "number", number_type: "fraction", value: [3, 2] };
-    expect(
-      refusal(counted, {
-        type: "addChild",
-        parent: "p",
-        offset: { unit: "number", number_type: "int", value: 3 },
-        child: { ...spec("h", half), unit: "number", number_type: "fraction" },
-      }),
-    ).toEqual({ code: "child_exceeds_parent", path: ["offset"] });
-    expect(refusal(base, add(spec("r"), q(-1)))).toEqual({
-      code: "negative_offset",
-      path: ["offset"],
-    });
-    expect(refusal(base, add(spec("r"), q(2), "b"))).toEqual({
-      code: "child_exceeds_parent",
-      path: ["offset"],
+      code: "map_source_unit_mismatch",
+      path: [A, "manifest", "timeline", "conversion_maps", 0, "source_unit"],
     });
   });
 });
 
-describe("setChildOffset", () => {
-  it("moves a child, lengthening an unlocked parent", () => {
-    const moved = run(tree(), { type: "setChildOffset", id: "b", offset: q(5, 2) });
-    expect(timeline(moved, "a").children.b?.offset).toEqual(Q(5n, 2n));
-    expect(timeline(moved, "a").length).toEqual(Q(8n));
-    const past = run(tree(), { type: "setChildOffset", id: "b", offset: q(7) });
-    expect(timeline(past, "a").length).toEqual(Q(9n));
+describe("set", () => {
+  it("moves two blocks in one command and changes nothing else", () => {
+    const view = frozen([A, "bare.json"], [B, "map.json"]);
+    const moved = applied(view, {
+      type: "set",
+      changes: [
+        { target: A, values: { x: 128, y: 64 } },
+        { target: B, values: { x: 1, y: 2 } },
+      ],
+    });
+    expect(block(moved)).toEqual({ ...block(view), x: 128, y: 64 });
+    expect(block(moved, B)).toEqual({ ...block(view, B), x: 1, y: 2 });
   });
 
-  it("refuses", () => {
-    expect(refusal(tree(), { type: "setChildOffset", id: "q", offset: q(0) })).toEqual({
-      code: "unknown_timeline",
-      path: ["id"],
+  it("sets the placement of a block", () => {
+    const view = frozen([A, "bare.json"]);
+    const placement = {
+      scale: 2,
+      width: 120,
+      height: null,
+      length: 800,
+      spacing: 2,
+      order: ["flow", "regions", "children"],
+    };
+    expect(block(applied(view, set(A, placement)))).toEqual({ ...block(view), ...placement });
+  });
+
+  it("sets the workspace settings member by member, graphical whole", () => {
+    const view = frozen([A, "bare.json"]);
+    const defaults = applied(view, set("workspace", { blockDefaults: { length: 640 } }));
+    expect(defaults.settings).toEqual({
+      ...DEFAULT_SETTINGS,
+      blockDefaults: { ...DEFAULT_SETTINGS.blockDefaults, length: 640 },
     });
-    expect(refusal(tree(), { type: "setChildOffset", id: "a", offset: q(0) })).toEqual({
-      code: "not_a_child",
-      path: ["id"],
+    const grid = applied(view, set("workspace", { grid: { snap: false } }));
+    expect(grid.settings.grid).toEqual({ size: 8, snap: false });
+    const graphical = { statements: [{ select: { element: "map" }, set: { stroke: "#C00000" } }] };
+    expect(applied(view, set("workspace", { graphical })).settings.graphical).toEqual(graphical);
+  });
+
+  it("replaces a block's manifest whole", () => {
+    const view = applied(viewOf([A, "bare.json"]), set(A, { manifest: load("nested.json") }));
+    expect(manifest(view)).toEqual(load("nested.json"));
+  });
+
+  it("sets timeline members, growing the unlocked root for a child's offset", () => {
+    const view = frozen([A, "nested.json"]);
+    const root = manifest(view).timeline;
+    expect(manifest(applied(view, set(at("clt_1"), { name: "Score" }))).timeline).toEqual({
+      ...root,
+      name: "Score",
     });
-    expect(refusal(tree(), { type: "setChildOffset", id: "c", offset: seconds(0) })).toEqual({
+    expect(
+      manifest(applied(view, set(at("clt_1"), { meta: { composer: "Anon" } }))).timeline.meta,
+    ).toEqual({ composer: "Anon" });
+    expect(
+      manifest(applied(view, set(at("clt_1"), { length: quarters(12) }))).timeline.length,
+    ).toEqual(quarters(12));
+    const moved = manifest(applied(view, set(at("clt_3"), { offset: quarters(6) }))).timeline;
+    expect([moved.children.clt_3?.offset, moved.length]).toEqual([quarters(6), quarters(16)]);
+    const grown = manifest(applied(view, set(at("clt_3"), { offset: quarters(10) }))).timeline;
+    expect([grown.children.clt_3?.offset, grown.length]).toEqual([quarters(10), quarters(18)]);
+  });
+
+  it("replaces a conversion map's payload, keeping its id", () => {
+    const view = frozen([A, "map.json"]);
+    const payload = { ...tempo(), scalar: [1, 4] };
+    expect(
+      manifest(applied(view, set(at("tempo"), { map: payload }))).timeline.conversion_maps,
+    ).toEqual([payload]);
+  });
+
+  it("refuses by the target's kind with the exact code and path", () => {
+    const view = viewOf([A, "nested.json"], [B, "bare.json"]);
+    const cases: [object, string, (string | number)[]][] = [
+      [set(at("clt_1"), { id: "x" }), "id_not_settable", [at("clt_1"), "id"]],
+      [set(A, { colour: 1 }), "unknown_property", [A, "colour"]],
+      [set("workspace", { x: 1 }), "wrong_target_kind", ["workspace", "x"]],
+      [set(A, { grid: { size: 4 } }), "wrong_target_kind", [A, "grid"]],
+      [set(at("clt_1"), { offset: quarters(0) }), "wrong_target_kind", [at("clt_1"), "offset"]],
+      [set(A, { x: "1" }), "invalid_value", [A, "x"]],
+      [set(A, { x: Number.POSITIVE_INFINITY }), "non_finite_number", [A, "x"]],
+      [set(A, { scale: 0 }), "non_positive_number", [A, "scale"]],
+      [set(A, { width: -5 }), "non_positive_number", [A, "width"]],
+      [set(A, { order: ["children", "children", "flow"] }), "invalid_order", [A, "order"]],
+      [set(A, { index: "a00" }), "invalid_index", [A, "index"]],
+      [set(A, { index: "a1" }), "duplicate_index", [A, "index"]],
+      [
+        set("workspace", { grid: { size: 0 } }),
+        "non_positive_number",
+        ["workspace", "grid", "size"],
+      ],
+      [
+        set("workspace", { graphical: { statements: [{ select: {}, set: { stroke: "red" } }] } }),
+        "schema_violation",
+        ["workspace", "graphical", "statements", 0, "set", "stroke"],
+      ],
+      [
+        set(at("clt_1"), { length: { ...quarters(1), value: 0.5 } }),
+        "invalid_coordinate",
+        [at("clt_1"), "length", "value"],
+      ],
+      [
+        set(at("clt_1"), { length: { unit: "seconds", number_type: "float", value: 1.5 } }),
+        "off_axis",
+        [at("clt_1"), "length"],
+      ],
+      [set(at("clt_3"), { length: quarters(4) }), "locked", [at("clt_3"), "length"]],
+      [
+        set(at("clt_1"), { length: quarters(23, 2) }),
+        "length_below_content",
+        [at("clt_1"), "length"],
+      ],
+      [
+        set(A, {
+          manifest: { ...load("bare.json"), meta: { schema_version: "0.0.0" } },
+        }),
+        "schema_violation",
+        [A, "manifest", "meta", "schema_version"],
+      ],
+      [
+        set(at("clt_3"), { locked: false }),
+        "child_not_locked",
+        [A, "manifest", "timeline", "children", "clt_3", "timeline", "locked"],
+      ],
+      [
+        set(at("clt_2"), { offset: quarters(7) }),
+        "child_exceeds_parent",
+        [A, "manifest", "timeline", "children", "clt_3", "timeline", "children", "clt_2", "offset"],
+      ],
+      [set("short", { x: 1 }), "invalid_address", ["short"]],
+      [set("0000000009", { x: 1 }), "unknown_target", ["0000000009"]],
+      [set(at("nothing"), { name: null }), "unknown_target", [at("nothing")]],
+    ];
+    for (const [command, code, path] of cases)
+      expect(rejected(view, command)).toEqual({ code, path });
+    const maps = viewOf([A, "map.json"]);
+    expect(rejected(maps, set(at("tempo"), { name: "x" }))).toEqual({
+      code: "wrong_target_kind",
+      path: [at("tempo"), "name"],
+    });
+    expect(rejected(maps, set(at("tempo"), { map: { ...tempo(), id: "other" } }))).toEqual({
+      code: "id_not_settable",
+      path: [at("tempo"), "map", "id"],
+    });
+  });
+
+  it("is atomic", () => {
+    const view = frozen([A, "bare.json"]);
+    expect(
+      rejected(view, {
+        type: "set",
+        changes: [
+          { target: A, values: { x: 1 } },
+          { target: "0000000009", values: { x: 2 } },
+        ],
+      }),
+    ).toEqual({ code: "unknown_target", path: ["0000000009"] });
+    expect(block(view).x).toBe(0);
+  });
+});
+
+describe("regions, breaks, jumps and markers", () => {
+  const into = (kind: string, value: object) => ({ type: "add", into: at("bare"), [kind]: value });
+  const region = { id: "region_1", name: "A", start: quarters(2), end: quarters(4), meta: {} };
+
+  it("adds and sets a region", () => {
+    const added = applied(viewOf([A, "bare.json"]), into("region", region));
+    expect(manifest(added).timeline.regions).toEqual([region]);
+    const changed = applied(added, set(at("region_1"), { end: quarters(6), name: null }));
+    expect(manifest(changed).timeline.regions).toEqual([
+      { ...region, end: quarters(6), name: null },
+    ]);
+  });
+
+  it("adds, sets and removes markers, breaks and jumps", () => {
+    const view = frozen([A, "flow_control.json"]);
+    const flow = manifest(view).timeline.flow_control;
+    const marker = { id: "marker_2", name: "fine", coordinate: quarters(12) };
+    const retargeted = applied(
+      applied(view, { type: "add", into: at("flow:quarters"), marker }),
+      set(at("jump_1"), { target: "marker_2" }),
+    );
+    const moved = manifest(retargeted).timeline.flow_control;
+    expect(moved.jumps).toEqual([{ ...flow.jumps[0], target: "marker_2" }]);
+    expect(moved.markers).toEqual([flow.markers[0], marker]);
+    const copy = { ...flow.breaks[0], id: "break_2", coordinate: quarters(3) };
+    const swapped = applied(
+      applied(view, { type: "add", into: at("flow:quarters"), break: copy }),
+      { type: "remove", targets: [at("break_1")] },
+    );
+    expect(manifest(swapped).timeline.flow_control.breaks).toEqual([copy]);
+    const unjumped = applied(view, { type: "remove", targets: [at("jump_1")] });
+    expect(manifest(unjumped).timeline.flow_control.jumps).toEqual([]);
+    const shifted = applied(view, set(at("marker_1"), { coordinate: quarters(1) }));
+    expect(manifest(shifted).timeline.flow_control.markers).toEqual([
+      { ...flow.markers[0], coordinate: quarters(1) },
+    ]);
+  });
+
+  it("refuses with the exact code and path", () => {
+    const flow = viewOf([A, "flow_control.json"]);
+    const jumpTarget = [A, "manifest", "timeline", "flow_control", "jumps", 0, "target"];
+    expect(rejected(flow, set(at("jump_1"), { target: "nothing" }))).toEqual({
+      code: "schema_violation",
+      path: jumpTarget,
+    });
+    expect(rejected(flow, { type: "remove", targets: [at("marker_1")] })).toEqual({
+      code: "schema_violation",
+      path: jumpTarget,
+    });
+    const seconds = { unit: "seconds", number_type: "float", value: 1.5 };
+    expect(rejected(flow, set(at("break_1"), { coordinate: seconds }))).toEqual({
       code: "off_axis",
-      path: ["offset"],
+      path: [at("break_1"), "coordinate"],
     });
-    expect(refusal(tree(), { type: "setChildOffset", id: "c", offset: q(-1, 2) })).toEqual({
-      code: "negative_offset",
-      path: ["offset"],
+    const regions = viewOf([A, "with_region.json"]);
+    expect(rejected(regions, set(at("region_1"), { end: quarters(0) }))).toEqual({
+      code: "region_end_before_start",
+      path: [A, "manifest", "timeline", "regions", 0, "end"],
     });
-    expect(refusal(tree(), { type: "setChildOffset", id: "c", offset: q(3, 2) })).toEqual({
-      code: "child_exceeds_parent",
-      path: ["offset"],
+    expect(rejected(regions, set(at("region_1"), { coordinate: quarters(0) }))).toEqual({
+      code: "wrong_target_kind",
+      path: [at("region_1"), "coordinate"],
     });
-  });
-});
-
-describe("removeChild", () => {
-  it("removes a nested timeline and its subtree", () => {
-    const manifest = run(tree(), { type: "removeChild", id: "b" });
-    expect(timeline(manifest, "a").children).toEqual({});
-  });
-
-  it("refuses", () => {
-    expect(refusal(tree(), { type: "removeChild", id: "q" })).toEqual({
-      code: "unknown_timeline",
-      path: ["id"],
+    const bare = viewOf([A, "bare.json"]);
+    expect(rejected(bare, into("region", { ...region, id: "bare" }))).toEqual({
+      code: "duplicate_id",
+      path: [at("bare")],
     });
-    expect(refusal(tree(), { type: "removeChild", id: "a" })).toEqual({
-      code: "not_a_child",
-      path: ["id"],
+    expect(rejected(bare, into("region", { ...region, id: "a/b" }))).toEqual({
+      code: "schema_violation",
+      path: [A, "manifest", "timeline", "regions", 0, "id"],
     });
   });
 });
 
-describe("regions", () => {
-  const withRegions = () =>
-    run(
-      tree(),
-      { type: "addRegion", timeline: "a", name: "late", start: q(4), end: q(6) },
-      { type: "addRegion", timeline: "a", name: "early", start: q(0), end: q(2), meta: { n: 1 } },
+describe("remove", () => {
+  it("removes children, maps and blocks", () => {
+    const view = frozen([A, "map.json"], [B, "bare.json"]);
+    const withoutChild = manifest(applied(view, { type: "remove", targets: [at("phrase")] }));
+    expect(withoutChild.timeline.children).toEqual({});
+    const withoutMap = manifest(applied(view, { type: "remove", targets: [at("tempo")] }));
+    expect(withoutMap.timeline.conversion_maps).toEqual([]);
+    expect(applied(view, { type: "remove", targets: [A, B] }).blocks).toEqual({});
+    const nested = {
+      ...view,
+      blocks: { ...view.blocks, [B]: { ...block(view, B), parent: A } },
+    };
+    expect(applied(nested, { type: "remove", targets: [A] }).blocks).toEqual({});
+  });
+
+  it("refuses the workspace, a root and an unknown target, atomically", () => {
+    const view = frozen([A, "map.json"]);
+    expect(rejected(view, { type: "remove", targets: ["workspace"] })).toEqual({
+      code: "not_removable",
+      path: ["workspace"],
+    });
+    expect(rejected(view, { type: "remove", targets: [at("melody")] })).toEqual({
+      code: "not_removable",
+      path: [at("melody")],
+    });
+    expect(rejected(view, { type: "remove", targets: [A, C] })).toEqual({
+      code: "unknown_target",
+      path: [C],
+    });
+    expect(Object.keys(view.blocks)).toEqual([A]);
+  });
+});
+
+describe("style", () => {
+  const red = { stroke: "#C00000" };
+  const style = (properties: object) => ({ type: "style", ...properties });
+
+  it("embeds a statement in every manifest it concerns and merges equal selectors", () => {
+    let view = frozen([A, "map.json"], [B, "bare.json"]);
+    view = applied(view, style({ select: { element: "map" }, set: red }));
+    expect(manifest(view).graphical).toEqual({
+      styles: {},
+      statements: [{ select: { element: "map" }, set: red }],
+    });
+    expect(manifest(view, B)).toEqual(load("bare.json"));
+    view = applied(view, style({ select: { element: "map" }, set: { "stroke-width": 2 } }));
+    expect(manifest(view).graphical?.statements).toEqual([
+      { select: { element: "map" }, set: { ...red, "stroke-width": 2 } },
+    ]);
+    const other = applied(
+      view,
+      style({ select: { domain: "physical", element: "map" }, set: { opacity: 0.5 } }),
     );
-
-  it("adds regions in canonical order", () => {
-    expect(timeline(withRegions(), "a").regions).toEqual([
-      { name: "early", start: Q(0n), end: Q(2n), meta: { n: 1 } },
-      { name: "late", start: Q(4n), end: Q(6n), meta: {} },
-    ]);
-  });
-
-  it("sets each of start, end and meta", () => {
-    const base = withRegions();
-    const set = (change: object) =>
-      timeline(run(base, { type: "setRegion", timeline: "a", name: "late", ...change }), "a")
-        .regions[1];
-    expect(set({ start: q(5) })).toEqual({ name: "late", start: Q(5n), end: Q(6n), meta: {} });
-    expect(set({ end: q(9) })).toEqual({ name: "late", start: Q(4n), end: Q(9n), meta: {} });
-    expect(set({ meta: { a: "b" } })).toEqual({
-      name: "late",
-      start: Q(4n),
-      end: Q(6n),
-      meta: { a: "b" },
-    });
-  });
-
-  it("removes a region", () => {
-    const manifest = run(withRegions(), { type: "removeRegion", timeline: "a", name: "early" });
-    expect(timeline(manifest, "a").regions.map((region) => region.name)).toEqual(["late"]);
-  });
-
-  it("refuses", () => {
-    const base = withRegions();
-    const add = { type: "addRegion", timeline: "a", name: "x", start: q(1), end: q(2) };
-    expect(refusal(base, { ...add, timeline: "q" })).toEqual({
-      code: "unknown_timeline",
-      path: ["timeline"],
-    });
-    expect(refusal(base, { ...add, name: "late" })).toEqual({
-      code: "duplicate_region",
-      path: ["name"],
-    });
-    expect(refusal(base, { ...add, end: seconds(2) })).toEqual({ code: "off_axis", path: ["end"] });
-    expect(refusal(base, { ...add, end: q(1, 2) })).toEqual({
-      code: "region_end_before_start",
-      path: ["end"],
-    });
-    const set = { type: "setRegion", timeline: "a", name: "late" };
-    expect(refusal(base, { ...set, timeline: "q", meta: {} })).toEqual({
-      code: "unknown_timeline",
-      path: ["timeline"],
-    });
-    expect(refusal(base, { ...set, name: "x", meta: {} })).toEqual({
-      code: "unknown_region",
-      path: ["name"],
-    });
-    expect(refusal(base, { ...set, start: seconds(1) })).toEqual({
-      code: "off_axis",
-      path: ["start"],
-    });
-    expect(refusal(base, { ...set, start: q(7) })).toEqual({
-      code: "region_end_before_start",
-      path: ["start"],
-    });
-    expect(refusal(base, { ...set, end: q(3) })).toEqual({
-      code: "region_end_before_start",
-      path: ["end"],
-    });
-    const remove = { type: "removeRegion", timeline: "a", name: "x" };
-    expect(refusal(base, { ...remove, timeline: "q" })).toEqual({
-      code: "unknown_timeline",
-      path: ["timeline"],
-    });
-    expect(refusal(base, remove)).toEqual({ code: "unknown_region", path: ["name"] });
-  });
-});
-
-describe("breaks and jumps", () => {
-  const fine = {
-    coordinate: q(12),
-    control_type: "fine",
-    condition: "after_dc_ds",
-    repeat_count: 1,
-    label: "Fine",
-    name: "fine",
-    meta: { source: "synthetic" },
-  };
-  const section = { ...fine, coordinate: q(4), control_type: "section_break", label: null };
-  const repeat = {
-    from_coordinate: q(8),
-    to_coordinate: q(2),
-    control_type: "repeat_end",
-    condition: "first_n",
-    repeat_count: 2,
-    target_name: "repeat-start",
-    label: "Repeat",
-    meta: { source: "synthetic" },
-  };
-  const flow = () => load("flow_control.json");
-  const id = () => flow().timeline.id;
-  // Entries are stored as given; their coordinates are already normalized.
-  const stored = (entry: object, _keys: string[]) => entry;
-
-  it("adds breaks in canonical order and removes the first equal one", () => {
-    const twice = run(
-      flow(),
-      { type: "addBreak", timeline: id(), break: section },
-      { type: "addBreak", timeline: id(), break: fine },
+    expect(manifest(other).graphical?.statements?.length).toBe(2);
+    const merged = applied(
+      other,
+      style({ select: { element: "map", domain: "physical" }, set: { opacity: 1 } }),
     );
-    expect(timeline(twice, id()).flow_control.breaks).toEqual([
-      stored(section, ["coordinate"]),
-      stored(fine, ["coordinate"]),
-      stored(fine, ["coordinate"]),
-    ]);
-    const once = run(twice, { type: "removeBreak", timeline: id(), break: fine });
-    expect(timeline(once, id()).flow_control.breaks).toEqual([
-      stored(section, ["coordinate"]),
-      stored(fine, ["coordinate"]),
-    ]);
-  });
-
-  it("adds and removes jumps", () => {
-    const keys = ["from_coordinate", "to_coordinate"];
-    const back = { ...repeat, from_coordinate: q(4), to_coordinate: q(0) };
-    const added = run(flow(), { type: "addJump", timeline: id(), jump: back });
-    expect(timeline(added, id()).flow_control.jumps).toEqual([
-      stored(back, keys),
-      stored(repeat, keys),
-    ]);
-    const removed = run(added, { type: "removeJump", timeline: id(), jump: repeat });
-    expect(timeline(removed, id()).flow_control.jumps).toEqual([stored(back, keys)]);
-  });
-
-  it("refuses", () => {
-    const base = flow();
-    expect(refusal(base, { type: "addBreak", timeline: "q", break: fine })).toEqual({
-      code: "unknown_timeline",
-      path: ["timeline"],
+    expect(manifest(merged).graphical?.statements?.[1]).toEqual({
+      select: { domain: "physical", element: "map" },
+      set: { opacity: 1 },
     });
-    expect(
-      refusal(base, {
-        type: "addBreak",
-        timeline: id(),
-        break: { ...fine, coordinate: seconds(1) },
+    view = applied(view, style({ select: { element: "map" }, set: { stroke: null } }));
+    expect(manifest(view).graphical?.statements).toEqual([
+      { select: { element: "map" }, set: { "stroke-width": 2 } },
+    ]);
+    view = applied(view, style({ select: { element: "map" }, set: { "stroke-width": null } }));
+    expect(manifest(view).graphical).toEqual({ styles: {}, statements: [] });
+  });
+
+  it("names a style in the listed blocks only", () => {
+    const view = frozen([A, "map.json"], [B, "bare.json"]);
+    const named = applied(
+      view,
+      style({
+        select: { element: "timeline" },
+        set: { stroke: "#00CC00" },
+        name: "green",
+        blocks: [B],
       }),
-    ).toEqual({ code: "off_axis", path: ["break", "coordinate"] });
-    expect(refusal(base, { type: "removeBreak", timeline: id(), break: section })).toEqual({
-      code: "unknown_break",
-      path: ["break"],
-    });
-    expect(
-      refusal(base, {
-        type: "addJump",
-        timeline: id(),
-        jump: { ...repeat, to_coordinate: seconds(1) },
-      }),
-    ).toEqual({ code: "off_axis", path: ["jump", "to_coordinate"] });
-    expect(
-      refusal(base, { type: "removeJump", timeline: id(), jump: { ...repeat, repeat_count: 3 } }),
-    ).toEqual({ code: "unknown_jump", path: ["jump"] });
-  });
-});
-
-describe("markers", () => {
-  const base = () =>
-    run(tree(), { type: "setMarker", timeline: "a", name: "segno", coordinate: q(2) });
-
-  it("adds, replaces and removes a marker", () => {
-    expect(timeline(base(), "a").flow_control.markers).toEqual({ segno: Q(2n) });
-    const moved = run(base(), {
-      type: "setMarker",
-      timeline: "a",
-      name: "segno",
-      coordinate: q(3),
-    });
-    expect(timeline(moved, "a").flow_control.markers).toEqual({ segno: Q(3n) });
-    const removed = run(base(), { type: "removeMarker", timeline: "a", name: "segno" });
-    expect(timeline(removed, "a").flow_control.markers).toEqual({});
-  });
-
-  it("refuses", () => {
-    expect(
-      refusal(base(), { type: "setMarker", timeline: "q", name: "coda", coordinate: q(1) }),
-    ).toEqual({ code: "unknown_timeline", path: ["timeline"] });
-    expect(
-      refusal(base(), { type: "setMarker", timeline: "a", name: "coda", coordinate: seconds(1) }),
-    ).toEqual({ code: "off_axis", path: ["coordinate"] });
-    expect(refusal(base(), { type: "removeMarker", timeline: "a", name: "coda" })).toEqual({
-      code: "unknown_marker",
-      path: ["name"],
-    });
-  });
-});
-
-describe("conversion maps", () => {
-  const linear = (id: string, sourceUnit: string | null = "quarters") => ({
-    type: "LinearMap",
-    id,
-    name: null,
-    source_unit: sourceUnit,
-    target_unit: "seconds",
-    scalar: [1, 2],
-    offset: 0.5,
-  });
-
-  it("adds a payload verbatim, in id order, and removes it", () => {
-    const manifest = run(
-      tree(),
-      { type: "addConversionMap", timeline: "a", map: linear("z") },
-      { type: "addConversionMap", timeline: "a", map: linear("m", null) },
     );
-    const stored = (id: string, sourceUnit: string | null) => ({
-      ...linear(id, sourceUnit),
-      scalar: [1, 2],
+    expect(manifest(named, B).graphical).toEqual({
+      styles: { green: { stroke: "#00CC00" } },
+      statements: [{ select: { element: "timeline" }, set: "green" }],
     });
-    expect(timeline(manifest, "a").conversion_maps).toEqual([
-      stored("m", null),
-      stored("z", "quarters"),
-    ]);
-    const removed = run(manifest, { type: "removeConversionMap", timeline: "a", map_id: "z" });
-    expect(timeline(removed, "a").conversion_maps).toEqual([stored("m", null)]);
+    expect(manifest(named)).toEqual(manifest(view));
+    const inline = applied(
+      named,
+      style({ select: { element: "timeline" }, set: { opacity: 0.5 }, blocks: [B] }),
+    );
+    expect(manifest(inline, B).graphical).toEqual({
+      styles: { green: { stroke: "#00CC00" } },
+      statements: [{ select: { element: "timeline" }, set: { stroke: "#00CC00", opacity: 0.5 } }],
+    });
+    const emptied = applied(
+      named,
+      style({ select: { element: "timeline" }, set: { stroke: null }, name: "green", blocks: [B] }),
+    );
+    expect(manifest(emptied, B).graphical).toEqual({ styles: {}, statements: [] });
   });
 
-  it("refuses", () => {
-    const base = run(tree(), { type: "addConversionMap", timeline: "a", map: linear("z") });
-    expect(refusal(base, { type: "addConversionMap", timeline: "q", map: linear("y") })).toEqual({
-      code: "unknown_timeline",
-      path: ["timeline"],
+  it("refuses an unknown block and a malformed statement", () => {
+    const view = viewOf([A, "map.json"]);
+    expect(rejected(view, style({ select: {}, set: red, blocks: [C] }))).toEqual({
+      code: "unknown_target",
+      path: [C],
     });
-    expect(refusal(base, { type: "addConversionMap", timeline: "a", map: linear("z") })).toEqual({
-      code: "duplicate_map",
-      path: ["map", "id"],
-    });
-    expect(
-      refusal(base, { type: "addConversionMap", timeline: "a", map: linear("y", "seconds") }),
-    ).toEqual({ code: "map_source_unit_mismatch", path: ["map", "source_unit"] });
-    expect(refusal(base, { type: "removeConversionMap", timeline: "a", map_id: "y" })).toEqual({
-      code: "unknown_map",
-      path: ["map_id"],
+    expect(rejected(view, style({ select: {}, set: { stroke: "red" } }))).toEqual({
+      code: "schema_violation",
+      path: ["set", "stroke"],
     });
   });
 });
 
-describe("parseCommand refuses malformed commands", () => {
-  const cases: [string, unknown, string, (string | number)[]][] = [
-    ["not an object", null, "invalid_command", []],
-    ["an unknown type", { type: "moveTimeline" }, "invalid_command", ["type"]],
-    ["a missing member", { type: "setName", id: "a" }, "invalid_command", ["name"]],
-    ["an unknown member", { type: "removeChild", id: "a", at: 1 }, "invalid_command", ["at"]],
-    ["a wrong type", { type: "removeChild", id: 3 }, "invalid_command", ["id"]],
-    [
-      "an unknown class",
-      { type: "addChild", parent: "a", offset: q(0), child: { ...spec("x"), class: "Timeline" } },
-      "invalid_command",
-      ["child", "class"],
-    ],
-    [
-      "an unknown unit",
-      { type: "addChild", parent: "a", offset: q(0), child: { ...spec("x"), unit: "bars" } },
-      "invalid_command",
-      ["child", "unit"],
-    ],
-    [
-      "an unknown number type",
-      { type: "addChild", parent: "a", offset: q(0), child: { ...spec("x"), number_type: "real" } },
-      "invalid_command",
-      ["child", "number_type"],
-    ],
-    [
-      "an extra coordinate member",
-      { type: "setLength", id: "a", length: { ...q(1), id: "x" } },
-      "invalid_command",
-      ["length", "id"],
-    ],
-    [
-      "an unreadable coordinate",
-      { type: "setLength", id: "a", length: { ...q(1), value: [1, 0] } },
-      "invalid_coordinate",
-      ["length", "value"],
-    ],
-    [
-      "a non-finite number",
-      {
-        type: "addRegion",
-        timeline: "a",
-        name: "r",
-        start: q(0),
-        end: q(1),
-        meta: { x: Infinity },
-      },
-      "invalid_command",
-      ["meta", "x"],
-    ],
-    [
-      "a non-plain object",
-      { type: "addRegion", timeline: "a", name: "r", start: q(0), end: q(1), meta: new Date(0) },
-      "invalid_command",
-      ["meta"],
-    ],
-    ["an empty setRegion", { type: "setRegion", timeline: "a", name: "r" }, "invalid_command", []],
-    [
-      "a break off the schema",
-      { type: "addBreak", timeline: "a", break: { coordinate: q(1), control_type: "fine" } },
-      "schema_violation",
-      ["break"],
-    ],
-    [
-      "a break with an unknown condition",
-      {
-        type: "addBreak",
-        timeline: "a",
-        break: {
-          coordinate: q(1),
-          control_type: "fine",
-          condition: "sometimes",
-          repeat_count: 1,
-          label: null,
-          name: null,
-          meta: {},
-        },
-      },
-      "schema_violation",
-      ["break", "condition"],
-    ],
-    [
-      "a map of an unknown type",
-      { type: "addConversionMap", timeline: "a", map: { type: "WarpMap", id: "w" } },
-      "schema_violation",
-      ["map"],
-    ],
-  ];
-
-  it.each(cases)("%s", (_, input, code, path) => {
-    const result = parseCommand(input);
-    expect(isCommandError(result) ? { code: result.code, path: result.path } : result).toEqual({
-      code,
-      path,
-    });
-    expect(
-      isCommandError(apply(empty(), input as Command)) &&
-        (apply(empty(), input as Command) as { code: string }).code,
-    ).toBe(code);
+describe("malformed commands", () => {
+  it.each([
+    [{ type: "move" }, ["type"]],
+    [{ type: "add", into: "workspace" }, []],
+    [{ type: "add", into: "workspace", block: {}, map: {} }, []],
+    [{ type: "set", changes: [] }, ["changes"]],
+    [{ type: "set", changes: [{ target: 1, values: { x: 1 } }] }, ["changes", 0, "target"]],
+    [{ type: "set", changes: [{ target: A }] }, ["changes", 0, "values"]],
+    [{ type: "set", changes: [{ target: A, values: {} }] }, ["changes", 0, "values"]],
+    [{ type: "set", changes: [{ target: A, x: 1 }] }, ["changes", 0, "x"]],
+    [{ type: "remove", targets: [] }, ["targets"]],
+    [{ type: "style", set: {} }, ["select"]],
+    [{ type: "style", select: {}, set: {}, blocks: [1] }, ["blocks", 0]],
+  ] as [object, (string | number)[]][])("refuses %j at %j", (command, path) => {
+    expect(refusal(parseCommand(command))).toEqual({ code: "invalid_command", path });
   });
 
-  it("normalizes numbers: safe integers as integers, a float coordinate as a float", () => {
-    expect(
-      parseCommand({ type: "setLength", id: "a", length: { ...seconds(0), value: 3 } }),
-    ).toEqual({
-      type: "setLength",
-      block: BLOCK,
-      id: "bare",
-      length: { unit: "seconds", number_type: "float", value: new JsonFloat(3) },
-    });
-    expect(parseCommand({ type: "setLength", id: "a", length: q(6, 4) })).toEqual({
-      type: "setLength",
-      block: BLOCK,
-      id: "bare",
-      length: Q(3n, 2n),
-    });
+  it("keeps integral floats as floats", () => {
+    const value = new JsonFloat(2);
+    expect(parseCommand(set(A, { x: value }))).toEqual(set(A, { x: value }));
   });
 });

@@ -1,222 +1,66 @@
-/** Every serializable command understood by the workspace reducer. */
+/**
+ * The four commands over a workspace. Each is aimed at addresses; the kind of
+ * the target, resolved from the address, decides what it does.
+ */
 
-import type { Graphical, NumberType, TimelineClass, TimeUnit } from "@timetoalign/timeskeleton";
-import type { JsonObject } from "../json.ts";
-import type { Break, ConversionMap, Jump, Manifest } from "../manifest/types.ts";
-import type { CoordinateDict } from "../number/coordinate.ts";
-import type { BlockPlacement, RecordId } from "../workspace/records.ts";
-import type { WorkspaceSettings } from "../workspace/view.ts";
+import type { Declaration, Selector } from "@timetoalign/timeskeleton";
+import type { BlockId } from "../workspace/blocks.ts";
+import type { Address } from "../workspace/ids.ts";
 
-export type NewTimeline = {
-  readonly id: string;
-  readonly class: TimelineClass;
-  readonly unit: TimeUnit;
-  readonly number_type: NumberType;
-  readonly length: CoordinateDict;
-  readonly name?: string | null;
-};
+/** What `add` can put into a target, by the member naming it. */
+export const ADD_KINDS = ["block", "child", "map", "region", "break", "jump", "marker"] as const;
+export type AddKind = (typeof ADD_KINDS)[number];
 
-interface InBlock {
-  readonly block: RecordId;
-}
+/**
+ * Add one thing `into` a target: a `block` into `workspace`; a `child`,
+ * `map`, `region`, `break`, `jump` or `marker` into a timeline. The value is the thing as its container stores it,
+ * carrying its own id.
+ */
+export type AddCommand = {
+  readonly type: "add";
+  readonly into: Address;
+} & { readonly [kind in AddKind]?: unknown };
 
-export type SetName = InBlock & {
-  readonly type: "setName";
-  readonly id: string;
-  readonly name: string | null;
-};
-export type SetLength = InBlock & {
-  readonly type: "setLength";
-  readonly id: string;
-  readonly length: CoordinateDict;
-};
-export type AddChild = InBlock & {
-  readonly type: "addChild";
-  readonly parent: string;
-  readonly offset: CoordinateDict;
-  readonly child: NewTimeline;
-};
-export type SetChildOffset = InBlock & {
-  readonly type: "setChildOffset";
-  readonly id: string;
-  readonly offset: CoordinateDict;
-};
-export type RemoveChild = InBlock & { readonly type: "removeChild"; readonly id: string };
-export type AddRegion = InBlock & {
-  readonly type: "addRegion";
-  readonly timeline: string;
-  readonly name: string;
-  readonly start: CoordinateDict;
-  readonly end: CoordinateDict;
-  readonly meta?: JsonObject;
-};
-export type SetRegion = InBlock & {
-  readonly type: "setRegion";
-  readonly timeline: string;
-  readonly name: string;
-  readonly start?: CoordinateDict;
-  readonly end?: CoordinateDict;
-  readonly meta?: JsonObject;
-};
-export type RemoveRegion = InBlock & {
-  readonly type: "removeRegion";
-  readonly timeline: string;
-  readonly name: string;
-};
-export type AddBreak = InBlock & {
-  readonly type: "addBreak";
-  readonly timeline: string;
-  readonly break: Break;
-};
-export type RemoveBreak = InBlock & {
-  readonly type: "removeBreak";
-  readonly timeline: string;
-  readonly break: Break;
-};
-export type AddJump = InBlock & {
-  readonly type: "addJump";
-  readonly timeline: string;
-  readonly jump: Jump;
-};
-export type RemoveJump = InBlock & {
-  readonly type: "removeJump";
-  readonly timeline: string;
-  readonly jump: Jump;
-};
-export type SetMarker = InBlock & {
-  readonly type: "setMarker";
-  readonly timeline: string;
-  readonly name: string;
-  readonly coordinate: CoordinateDict;
-};
-export type RemoveMarker = InBlock & {
-  readonly type: "removeMarker";
-  readonly timeline: string;
-  readonly name: string;
-};
-export type AddConversionMap = InBlock & {
-  readonly type: "addConversionMap";
-  readonly timeline: string;
-  readonly map: ConversionMap;
-};
-export type RemoveConversionMap = InBlock & {
-  readonly type: "removeConversionMap";
-  readonly timeline: string;
-  readonly map_id: string;
+/**
+ * One target and the properties a `set` gives it. The properties are their
+ * own member, so no property of any element can collide with `target`.
+ */
+export type Change = {
+  readonly target: Address;
+  readonly values: { readonly [property: string]: unknown };
 };
 
-export type ManifestCommand =
-  | SetName
-  | SetLength
-  | AddChild
-  | SetChildOffset
-  | RemoveChild
-  | AddRegion
-  | SetRegion
-  | RemoveRegion
-  | AddBreak
-  | RemoveBreak
-  | AddJump
-  | RemoveJump
-  | SetMarker
-  | RemoveMarker
-  | AddConversionMap
-  | RemoveConversionMap;
-
-export type CreateBlock = {
-  readonly type: "createBlock";
-  readonly id: RecordId;
-  readonly manifest: Manifest;
-  readonly x: number;
-  readonly y: number;
-} & Partial<BlockPlacement>;
-export type MoveRecords = {
-  readonly type: "moveRecords";
-  readonly moves: readonly { readonly id: RecordId; readonly x: number; readonly y: number }[];
-};
-/** Resize a block one way: scale it, set its box, or stretch its distances. */
-export type ResizeRecord = { readonly type: "resizeRecord"; readonly id: RecordId } & (
-  | { readonly mode: "scale"; readonly scale: number }
-  | { readonly mode: "box"; readonly width: number | null; readonly height: number | null }
-  | { readonly mode: "stretch"; readonly length?: number; readonly spacing?: number }
-);
-export type SetRecordProperties = {
-  readonly type: "setRecordProperties";
-  readonly id: RecordId;
-  readonly properties: {
-    readonly order?: BlockPlacement["order"];
-    readonly overrides?: Graphical;
-  };
-};
-export type SetIndex = {
-  readonly type: "setIndex";
-  readonly id: RecordId;
-  readonly index: string;
-};
-export type DeleteRecords = {
-  readonly type: "deleteRecords";
-  readonly ids: readonly RecordId[];
-};
-export type SetSettings = {
-  readonly type: "setSettings";
-  readonly settings: {
-    readonly styles?: Graphical;
-    readonly blockDefaults?: Partial<WorkspaceSettings["blockDefaults"]>;
-    readonly grid?: Partial<WorkspaceSettings["grid"]>;
-  };
-};
-export type SetBlockManifest = {
-  readonly type: "setBlockManifest";
-  readonly block: RecordId;
-  readonly manifest: Manifest;
+/** Set properties of one or more targets: one gesture, one command. */
+export type SetCommand = {
+  readonly type: "set";
+  readonly changes: readonly Change[];
 };
 
-export type RecordCommand =
-  | CreateBlock
-  | MoveRecords
-  | ResizeRecord
-  | SetRecordProperties
-  | SetIndex
-  | DeleteRecords
-  | SetSettings
-  | SetBlockManifest;
+/** Remove blocks and elements, mixed. */
+export type RemoveCommand = {
+  readonly type: "remove";
+  readonly targets: readonly Address[];
+};
 
-export type Command = RecordCommand | ManifestCommand;
+/**
+ * Embed one statement in block manifests: those of `blocks`, or of every
+ * block holding an element `select` matches. A `null` property removes it;
+ * with `name`, the declaration becomes a named style of each manifest.
+ */
+export type StyleCommand = {
+  readonly type: "style";
+  readonly select: Selector;
+  readonly set: { readonly [property in keyof Declaration]?: Declaration[property] | null };
+  readonly name?: string;
+  readonly blocks?: readonly BlockId[];
+};
+
+export type Command = AddCommand | SetCommand | RemoveCommand | StyleCommand;
 export type CommandType = Command["type"];
 
-export const RECORD_COMMAND_TYPES = [
-  "createBlock",
-  "moveRecords",
-  "resizeRecord",
-  "setRecordProperties",
-  "setIndex",
-  "deleteRecords",
-  "setSettings",
-  "setBlockManifest",
-] as const satisfies readonly RecordCommand["type"][];
-
-export const MANIFEST_COMMAND_TYPES = [
-  "setName",
-  "setLength",
-  "addChild",
-  "setChildOffset",
-  "removeChild",
-  "addRegion",
-  "setRegion",
-  "removeRegion",
-  "addBreak",
-  "removeBreak",
-  "addJump",
-  "removeJump",
-  "setMarker",
-  "removeMarker",
-  "addConversionMap",
-  "removeConversionMap",
-] as const satisfies readonly ManifestCommand["type"][];
-
 export const COMMAND_TYPES = [
-  ...RECORD_COMMAND_TYPES,
-  ...MANIFEST_COMMAND_TYPES,
+  "add",
+  "set",
+  "remove",
+  "style",
 ] as const satisfies readonly CommandType[];
-
-export type BlockProperties = SetRecordProperties["properties"];

@@ -22,11 +22,11 @@ ten-thousandths) is `0.0312`, `0.09375` is `0.0938`, `-0.03125` is
 
 One drawing at `(0, 0)`, scale 1, has page size `W + 32` by `H + 32` and lies
 at `(16, 16)`. For `bare` (`W = 455.9931640625`, `H = 49.37890625`) and
-`nested` (`W = 458.351318359375`, `H = 77.9765625`) placed at `(10, 20)`
+`nested` (`W = 459.194580078125`, `H = 77.9765625`) placed at `(10, 20)`
 scale 1 and `(−30, 5)` scale 2: the bounding box runs from `x = −30` to
-`max(10 + 458.5771484375, −30 + 916.70263671875) = 886.70263671875` and
+`max(10 + 458.5771484375, −30 + 918.38916015625) = 888.38916015625` and
 from `y = 5` to `max(20 + 49.37890625, 5 + 155.953125) = 160.953125`, so
-the page is `886.70263671875 + 30 + 32 = 948.70263671875` by
+the page is `888.38916015625 + 30 + 32 = 950.38916015625` by
 `160.953125 − 5 + 32 = 187.953125`; `bare` lies at `(56, 31)`, `nested` at
 `(16, 16)`. The SVG writes `<g transform="translate(56 31)">` for `bare`
 and `<g transform="translate(16 16) scale(2)">` for `nested`; the TikZ
@@ -117,8 +117,8 @@ manifest):
   and the filled arrowhead `50,20 46,23 50,25` (tip first, then the corners
   in order); in TikZ (`H = 30`) the shaft is `(10,10) .. controls (20,-10)
   and (40,-10) .. (48,6)`;
-- for every jump of `flow_control` and `corpus_score_ms3`, read back from
-  the descriptors, the shaft's end tangent continues the head's axis and the
+- for every jump of `flow_control` and `corpus_score_ms3` (the paths whose
+  address is a jump's), read back from the descriptors, the shaft's end tangent continues the head's axis and the
   base is perpendicular to it, exactly at the written precision: the unit
   vector from `C2` to the path's last point and the unit vector from that
   point to the polygon's first point (the tip) are written alike by the
@@ -134,7 +134,7 @@ manifest):
   `20 ∓ 1.5 × 2`), fill only; a locked root draws the diamond exactly as a
   locked child does;
 - a map with `xs 10`, `xe 50`, `yc 20`, stroke `#00CC00`, dash `1 1`, is one
-  closed outline at `yc ∓ d / 2 = 19, 21`: `<polygon data-address="r/map/m"
+  closed outline at `yc ∓ d / 2 = 19, 21`: `<polygon data-address="m"
   points="10,19 50,19 50,21 10,21" fill="none" stroke="#00CC00"
   stroke-width="1" stroke-dasharray="1 1"/>`; in TikZ (`H = 30`)
   `\path[draw=ts00CC00,line width=1pt,dash pattern=on 1pt off 1pt] (10,11)
@@ -157,7 +157,7 @@ manifest):
   `\path[line width=1pt] (10,25) -- (10,5);`;
 - every descriptor without text is self-closing.
 
-For every review drawing (every 0.4.0 fixture and the resized and restyled
+For every review drawing (every 0.5.0 fixture and the resized and restyled
 drawings of the review sheet), `writeSvg` writes exactly one line per
 descriptor between `<g …>` and `</g>`, in order, each starting with
 `<{tag} ` and carrying the descriptor's `data-address`; `writeTikz` writes
@@ -174,10 +174,11 @@ read from the installed `@timetoalign/timeskeleton` package, like the
 manifests and the font) are the contract between
 implementations of the specification: each directory holds `inputs.json`
 (the manifest's file name, the placement with all five members, the scale
-and the placer's style layers) and the expected `figure.svg` and
+and the application's style layers) and the expected `figure.svg` and
 `figure.tex`. For every directory the test reads `inputs.json` alone, loads
 the named manifest, draws it with the layers `[DEFAULT_LAYER,
-manifest.graphical, ...inputs.layers]` and the bundled font metrics, writes
+...inputs.layers, manifest.graphical]` (no layer lies above the manifest's
+own) and the bundled font metrics, writes
 the drawing placed at `(0, 0)` with the scale (`writeTikz` with its default
 font directory `.`), and requires both texts to equal the files byte for
 byte.

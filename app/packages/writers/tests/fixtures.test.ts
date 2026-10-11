@@ -50,11 +50,7 @@ function written(name: string): { svg: string; tex: string } {
     readFileSync(path.join(fixturesDirectory, inputs.manifest), "utf8"),
   );
   if (isLoadError(manifest)) throw new Error(`${name}: ${manifest.problems[0]?.message}`);
-  const layers = [
-    DEFAULT_LAYER,
-    ...(manifest.graphical === undefined ? [] : [manifest.graphical]),
-    ...inputs.layers,
-  ];
+  const layers = [DEFAULT_LAYER, ...inputs.layers, manifest.graphical];
   const drawing = draw(manifest, inputs.placement, layers, fontMetrics);
   const placed = [{ drawing, x: 0, y: 0, scale: inputs.scale }];
   return { svg: writeSvg(placed), tex: writeTikz(placed) };

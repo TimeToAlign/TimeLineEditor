@@ -39,15 +39,5 @@ every allowed and forbidden edge of the six-package ladder. A circular pair
 inside core must fire `no-circular` even though both files share a package.
 The installed-Svelte case links the real package into the scratch workspace.
 
-Yjs isolation: `core`'s root export must load without Yjs. Four controls
-prove the two rules that encode it. Writing `import "yjs"` into
-`packages/core/src/yjs/index.ts` reports zero violations (the entry point
-may import it). The same import in `packages/core/src/index.ts` reports
-exactly one violation, `yjs-only-in-core-yjs-entry`, from that file to
-`yjs`. Importing `./yjs/index.ts` from `packages/core/src/index.ts` reports
-exactly one violation, `core-root-export-without-yjs`, so the root cannot
-reach Yjs through its own entry point. A Yjs subpath imported by `layout`
-reports `yjs-only-in-core-yjs-entry` from `packages/layout/src/index.ts`.
-
 Exact values only: rule names and exit statuses are compared against the
 expected results; the full edge table is independent of the configuration.

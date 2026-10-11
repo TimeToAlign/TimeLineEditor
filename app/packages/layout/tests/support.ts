@@ -5,7 +5,6 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import {
   apply,
-  type Command,
   type CoordinateDict,
   createView,
   isCommandError,
@@ -49,19 +48,17 @@ export function load(name: string): Manifest {
   return result;
 }
 
-/** The default layers of a manifest: the defaults, then its own `graphical` block. */
-export function defaultLayers(manifest: Manifest): Graphical[] {
-  return manifest.graphical === undefined ? [DEFAULT_LAYER] : [DEFAULT_LAYER, manifest.graphical];
-}
-
-/** Draw a fixture with the default layers plus `extra`, at a placement. */
+/**
+ * Draw a fixture with the default layer, the application's layers `extra`
+ * and the manifest's own `graphical` block, at a placement.
+ */
 export function drawFixture(
   name: string,
   extra: readonly Graphical[] = [],
   placement: Placement = DEFAULT_PLACEMENT,
 ): Drawing {
   const manifest = load(name);
-  return draw(manifest, placement, [...defaultLayers(manifest), ...extra], metrics);
+  return draw(manifest, placement, [DEFAULT_LAYER, ...extra, manifest.graphical], metrics);
 }
 
 export function element(drawing: Drawing, address: string | null, index = 0): DrawnElement {
@@ -74,38 +71,27 @@ export function quarters(numerator: number, denominator = 1): CoordinateDict {
   return { unit: "quarters", number_type: "fraction", value: [numerator, denominator] };
 }
 
-/** A block view holding `manifest`, validated by `createBlock`. */
-function blockView(manifest: Manifest) {
-  const view = createView({ created: "2026-10-11T00:00:00Z", generator: "layout-tests" });
-  const created = apply(view, { type: "createBlock", id: BLOCK, manifest, x: 0, y: 0 });
-  if (isCommandError(created)) throw new Error(`${created.code}: ${created.message}`);
-  return created;
-}
-
-function blockManifest(view: ReturnType<typeof blockView>): Manifest {
-  const record = view.records[BLOCK];
-  if (record?.kind !== "block") throw new Error("the test block is missing");
-  return record.manifest;
-}
-
-/** A manifest built through commands: a quarters root, then manifest commands on it. */
+/** A manifest built through commands: a quarters root, then commands on its block. */
 export function build(rootId: string, length: number, ...commands: object[]): Manifest {
   const source = load("bare");
   const timeline = { ...source.timeline, id: rootId, name: null, length: quarters(length) };
-  let view = blockView({ meta: source.meta, timeline });
-  for (const command of commands) {
-    const changed = apply(view, { block: BLOCK, ...command } as Command);
-    if (isCommandError(changed)) throw new Error(`${changed.code}: ${changed.message}`);
-    view = changed;
+  let view = apply(createView(), {
+    type: "add",
+    into: "workspace",
+    block: { id: BLOCK, manifest: { meta: source.meta, timeline }, x: 0, y: 0 },
+  });
+  for (const command of [...commands]) {
+    if (isCommandError(view)) break;
+    view = apply(view, command);
   }
-  return blockManifest(view);
+  if (isCommandError(view)) throw new Error(`${view.code}: ${view.message}`);
+  return (view.blocks[BLOCK] as { readonly manifest: Manifest }).manifest;
 }
 
 /**
  * The manifest with the `locked` flags of the named timelines replaced,
- * validated again against the schema. No command changes `locked`, and
- * core's invariants refuse an unlocked child, which the schema admits and
- * the drawing specification draws.
+ * validated again against the schema. Core's invariants refuse an unlocked
+ * child, which the schema admits and the drawing specification draws.
  */
 export function withLocked(
   manifest: Manifest,
@@ -126,11 +112,11 @@ export function withLocked(
   return relocked;
 }
 
-/** The `addConversionMap` command for a ScalarMap from quarters to seconds. */
+/** The `add` command for a ScalarMap from quarters to seconds. */
 export function scalarMap(timeline: string, id: string): object {
   return {
-    type: "addConversionMap",
-    timeline,
+    type: "add",
+    into: `${BLOCK}/${timeline}`,
     map: {
       type: "ScalarMap",
       id,
@@ -142,18 +128,15 @@ export function scalarMap(timeline: string, id: string): object {
   };
 }
 
-/** The `addChild` command for a quarters child. */
+/** The `add` command for a locked quarters child. */
 export function child(parent: string, id: string, offset: number, length: number): object {
+  const { timeline } = load("bare");
   return {
-    type: "addChild",
-    parent,
-    offset: quarters(offset),
+    type: "add",
+    into: `${BLOCK}/${parent}`,
     child: {
-      id,
-      class: "ContinuousLogicalTimeline",
-      unit: "quarters",
-      number_type: "fraction",
-      length: quarters(length),
+      offset: quarters(offset),
+      timeline: { ...timeline, id, name: null, length: quarters(length), locked: true },
     },
   };
 }

@@ -1,5 +1,6 @@
 /**
- * Machine-readable problems from manifest boundaries and command reducers.
+ * Machine-readable problems from manifest and workspace boundaries and from
+ * commands.
  */
 
 import type { PathSegment } from "./json.ts";
@@ -19,33 +20,31 @@ export const ErrorCode = {
   childNotLocked: "child_not_locked",
   locked: "locked",
   lengthBelowContent: "length_below_content",
-  negativeLength: "negative_length",
-  duplicateRegion: "duplicate_region",
   regionEndBeforeStart: "region_end_before_start",
-  duplicateMap: "duplicate_map",
   mapSourceUnitMismatch: "map_source_unit_mismatch",
   metricHierarchyWithoutMeasureMap: "metric_hierarchy_without_measure_map",
-  duplicateTimeline: "duplicate_timeline",
+  duplicateId: "duplicate_id",
   keyMismatch: "key_mismatch",
-  unknownRecord: "unknown_record",
-  duplicateRecord: "duplicate_record",
-  invalidRecordId: "invalid_record_id",
-  notABlock: "not_a_block",
+  invalidBlockId: "invalid_block_id",
+  blockKindMismatch: "block_kind_mismatch",
   unknownParent: "unknown_parent",
   parentCycle: "parent_cycle",
   invalidIndex: "invalid_index",
   duplicateIndex: "duplicate_index",
   invalidAddress: "invalid_address",
+  unknownTarget: "unknown_target",
+  unknownProperty: "unknown_property",
+  wrongTargetKind: "wrong_target_kind",
+  idNotSettable: "id_not_settable",
+  notRemovable: "not_removable",
+  invalidValue: "invalid_value",
   nonFiniteNumber: "non_finite_number",
   nonPositiveNumber: "non_positive_number",
   invalidOrder: "invalid_order",
-  unknownTimeline: "unknown_timeline",
-  notAChild: "not_a_child",
-  unknownRegion: "unknown_region",
-  unknownBreak: "unknown_break",
-  unknownJump: "unknown_jump",
-  unknownMarker: "unknown_marker",
-  unknownMap: "unknown_map",
+  unsupportedFormat: "unsupported_format",
+  unsupportedVersion: "unsupported_version",
+  unknownMember: "unknown_member",
+  missingMember: "missing_member",
 } as const;
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
@@ -54,14 +53,13 @@ export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
  * One problem: a code from `ErrorCode`, a description, and the path of the
  * offending value.
  *
- * For a load, the path points into the manifest. For a command applied to a
- * view, the path points into that view: `["records", <id>, ...]` for a record
- * command (`["records", <id>, "index"]` names the record's index), and
- * `["records", <block id>, "manifest", ...]` for a manifest command, where the
- * rest names the member of the command at fault, since a refused value is not
- * in the view. `applyToManifest`, which has no view, reports that member
- * alone. A command that `parseCommand` rejects as malformed has no view
- * location; its path names the malformed member of the rejected value.
+ * For a load, the path points into the text read: into the manifest, or into
+ * the workspace file (`["blocks", <id>, "manifest", ...]`). For a command,
+ * it starts with the address of the target at fault, followed by the
+ * property or kind at fault (`[<address>, "length"]`), or by `"manifest"`
+ * and a location in the manifest the command would leave (`[<block id>,
+ * "manifest", "timeline", ...]`). Only a malformed command, which has no
+ * target, names the malformed member of the command itself.
  */
 export interface Problem {
   readonly code: ErrorCode;
@@ -72,7 +70,7 @@ export interface Problem {
 /** Why a command was refused. */
 export type CommandError = Problem;
 
-/** Why manifest text was refused: every problem found. */
+/** Why manifest or workspace text was refused: every problem found. */
 export interface LoadError {
   readonly problems: readonly Problem[];
 }
@@ -81,7 +79,7 @@ export function problem(code: ErrorCode, message: string, path: readonly PathSeg
   return { code, message, path };
 }
 
-/** Whether a result of `apply` or `parseCommand` is a refusal. */
+/** Whether a result of `apply`, `dispatch` or `parseCommand` is a refusal. */
 export function isCommandError(value: unknown): value is CommandError {
   return (
     typeof value === "object" &&
@@ -91,7 +89,7 @@ export function isCommandError(value: unknown): value is CommandError {
   );
 }
 
-/** Whether a manifest load result is a refusal. */
+/** Whether a manifest or workspace load result is a refusal. */
 export function isLoadError(value: unknown): value is LoadError {
   return (
     typeof value === "object" &&
