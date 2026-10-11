@@ -1,7 +1,5 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
-import { dumps, JsonFloat, parse, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
-import { describe, expect, it } from "vitest";
+import { dumps, JsonFloat, parse } from "@timetoalign/timeskeleton";
+import { describe, expect, it, vi } from "vitest";
 import type { LoadError, Manifest } from "../src/index.ts";
 import {
   applyToManifest,
@@ -13,7 +11,7 @@ import {
   saveManifest,
 } from "../src/index.ts";
 import type { JsonObject } from "../src/json.ts";
-import { fixtureRoot, load, manifestFixtures, migrationPairs, rejections } from "./support.ts";
+import { load, manifestFixtures, rejections } from "./support.ts";
 
 const BLOCK = "0000000000";
 
@@ -45,27 +43,39 @@ describe("shared rejections", () => {
   });
 });
 
-describe("migrations", () => {
-  const latest = migrationPairs.filter((pair) => pair.target === SCHEMA_VERSION);
-
-  it("ships one pair ending at the installed version", () => {
-    expect(latest.map((pair) => pair.name)).toEqual(["0.3.0-to-0.4.0"]);
-  });
-
-  it.each(latest.map((pair) => [pair.name, pair]))("%s: before saves as after", (_, pair) => {
-    expect(saveManifest(loaded(pair.before))).toBe(pair.after);
-  });
-
-  it("refuses a two-root 0.3.0 envelope with a message naming split", () => {
-    const text = readFileSync(
-      path.join(fixtureRoot, "migrations", "split", "0.3.0", "before.json"),
-      "utf8",
+describe("schema version", () => {
+  it("refuses a manifest declaring any version but the installed one", () => {
+    const fixture = manifestFixtures.find((item) => item.name === "bare.json");
+    const text = (fixture?.text ?? "").replace(
+      '"schema_version": "0.4.0"',
+      '"schema_version": "0.0.0"',
     );
-    const errors = refused(text).problems;
-    expect(errors.map(({ code, path }) => ({ code, path }))).toEqual([
-      { code: "migration_failed", path: ["manifest", "timelines"] },
+    expect(refused(text).problems.map(({ code, path }) => ({ code, path }))).toEqual([
+      { code: "schema_violation", path: ["meta", "schema_version"] },
     ]);
-    expect(errors[0]?.message.includes("split")).toBe(true);
+  });
+});
+
+describe("graphical styles", () => {
+  it("warns once and completes every missing named style", () => {
+    const fixture = manifestFixtures.find((item) => item.name === "bare.json")?.text ?? "";
+    const value = parse(fixture) as unknown as Manifest;
+    const graphical = {
+      styles: { kept: { fill: "#ABCDEF" } },
+      statements: [
+        { select: {}, set: "z" },
+        { select: {}, set: "a" },
+        { select: {}, set: "z" },
+        { select: {}, set: "kept" },
+      ],
+    };
+    const text = dumps({ ...value, graphical });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const manifest = loaded(text);
+    expect(warn).toHaveBeenCalledExactlyOnceWith("missing graphical styles: a, z");
+    expect(manifest.graphical?.styles).toEqual({ kept: { fill: "#ABCDEF" }, a: {}, z: {} });
+    expect(graphical.styles).toEqual({ kept: { fill: "#ABCDEF" } });
+    warn.mockRestore();
   });
 });
 
@@ -281,20 +291,6 @@ describe("invariants", () => {
     expect(
       checkManifest(value as unknown as Manifest).map(({ code, path }) => ({ code, path })),
     ).toEqual(expected);
-  });
-
-  it("reports migration failure at the source path", () => {
-    const pair = migrationPairs.find((item) => item.target === "0.2.0");
-    const text = (pair?.before ?? "").replace('"class": "RegularMeasure"', '"class": "Bar"');
-    const id = Object.keys(
-      ((parse(text) as JsonObject).manifest as JsonObject).timelines as JsonObject,
-    )[0];
-    expect(refused(text).problems.map(({ code, path }) => ({ code, path }))).toEqual([
-      {
-        code: "migration_failed",
-        path: ["manifest", "timelines", id, "measure_map", "measures", 1, "class"],
-      },
-    ]);
   });
 
   it("refuses malformed text", () => {

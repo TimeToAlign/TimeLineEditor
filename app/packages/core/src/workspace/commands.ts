@@ -108,7 +108,7 @@ function createBlock(view: View, command: CreateBlock): View | CommandError {
     margins: { ...defaults.margins },
     background: defaults.background,
     nameColumn: { ...defaults.nameColumn, width: [...defaults.nameColumn.width] },
-    overrides: [],
+    overrides: {},
     manifest,
   };
   return replaceRecord(view, record);

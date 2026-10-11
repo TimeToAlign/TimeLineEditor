@@ -40,9 +40,17 @@ uv run tilie --check --no-browser
 
 Build the application before building a distributable server wheel. The server build hook copies `app/packages/editor/dist` into the wheel; the CI workflow verifies this and runs the installed wheel's self-check. For a development build, run `uv run tilie --check --static-dir ../app/packages/editor/dist` from `server/`.
 
-The writers' compile test runs each of the 16 TikZ fixtures that `figures.test.ts` reproduces through `lualatex`, which needs TikZ, the `standalone` class, `fontspec` and the DejaVu Sans font (on Ubuntu: `texlive-luatex`, `texlive-latex-recommended`, `texlive-latex-extra`, `texlive-pictures`, `fonts-dejavu-core`). Without `lualatex` the test is skipped; set `TILIE_REQUIRE_LUALATEX=1` to make its absence a failure, as the `tikz` CI job does.
+The writers' compile test runs every review drawing through `lualatex`, which needs TikZ, the `standalone` class, and `fontspec` (on Ubuntu: `texlive-luatex`, `texlive-latex-recommended`, `texlive-latex-extra`, and `texlive-pictures`). It uses the DejaVu Sans file bundled by timeskeleton. Without `lualatex` the test is skipped; set `TILIE_REQUIRE_LUALATEX=1` to make its absence a failure, as the `tikz` CI job does.
 
-The SVG and TikZ fixtures that pin the drawing belong to timeskeleton; there is no geometry schema from 0.4.0 on, and the geometry JSON is internal to TiLiE. After a change to `layout` or the writers that the geometry specification calls for, write them from `app/packages/writers/` with `node scripts/emit-geometry.ts /path/to/timeskeleton` and review the diff there. The script writes `figure.svg` and `figure.tex` of every manifest under `fixtures/<version>/drawings/<name>/`, and nothing unless `layout` reproduces each hand-derived SVG that `fixtures/<version>/drawings/README.md` lists; it refuses a version without that README, a version whose tag exists, and 0.3.0, whose fixtures are frozen. timeskeleton has no drawings for 0.4.0 yet, so today the script writes nothing.
+The SVG and TikZ fixtures that pin a drawing belong to timeskeleton. There is no drawing schema, and a drawing's JSON form is internal to TiLiE. The source of truth for layout and writer behavior is timeskeleton's [drawing specification](https://github.com/TimeToAlign/timeskeleton/blob/main/docs/drawing.md).
+
+Review drawing changes with `rsvg-convert` installed:
+
+```bash
+pnpm -C app/packages/writers review
+```
+
+The command draws every 0.4.0 manifest fixture, together with resized and restyled cases, writes their SVG and PNG files under `app/packages/writers/review/`, and lists them in `review/index.html`. It rasterizes at zoom 2 with fontconfig restricted to timeskeleton's bundled `DejaVuSans.ttf`, and refuses to continue if another font is visible or `rsvg-convert` fails.
 
 Each package and the server has a `tests/README.md`. Update the appropriate readme first with the validation logic and exact expected values, then write the test.
 

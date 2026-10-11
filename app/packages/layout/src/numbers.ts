@@ -1,42 +1,19 @@
 /**
- * Numbers of the geometry: positions on the root's axis, heights in rows and
- * the text of a coordinate (`docs/geometry.md` in timeskeleton, sections 3
- * and 5).
+ * Positions on the root's axis, the one step from an exact value to a double,
+ * and the text of a coordinate (`docs/drawing.md` in timeskeleton, sections
+ * 3 and 5.2).
  */
 
-import { addReal, type CoordinateDict, Rational, type Real } from "@timetoalign/tilie-core";
+import {
+  addReal,
+  type CoordinateDict,
+  fromFloat,
+  Rational,
+  type Real,
+  toFloat,
+} from "@timetoalign/tilie-core";
 import type { NumberType, TimeUnit } from "@timetoalign/timeskeleton";
-import { compactJson, isJsonFloat, JsonFloat, type JsonNumber } from "@timetoalign/timeskeleton";
-
-/** A number of the geometry as the standard writer writes it: an integer, a float or a pair. */
-export type GeometryNumber = JsonNumber | readonly [number | bigint, number | bigint];
-
-const SAFE = BigInt(Number.MAX_SAFE_INTEGER);
-
-/** An integer as `parseJson` represents it: a plain number when safe, a bigint beyond. */
-export function jsonInteger(value: bigint): number | bigint {
-  return value >= -SAFE && value <= SAFE ? Number(value) : value;
-}
-
-/** A float as `parseJson` represents it: a `JsonFloat` when integral, a plain number otherwise. */
-export function jsonFloat(value: number): JsonFloat | number {
-  return Number.isInteger(value) || Object.is(value, -0) ? new JsonFloat(value) : value;
-}
-
-/** A rational as a Fraction pair in lowest terms. */
-export function pair(value: Rational): readonly [number | bigint, number | bigint] {
-  return [jsonInteger(value.numerator), jsonInteger(value.denominator)];
-}
-
-/**
- * A position on the root's axis in the JSON number forms: a float as a float;
- * an exact value as an integer on an `int` root when it is one, else as a pair.
- */
-export function position(value: Real, rootNumberType: NumberType): GeometryNumber {
-  if (typeof value === "number") return jsonFloat(value);
-  if (rootNumberType === "int" && value.denominator === 1n) return jsonInteger(value.numerator);
-  return pair(value);
-}
+import { compactJson, isJsonFloat, JsonFloat } from "@timetoalign/timeskeleton";
 
 /**
  * The value of a coordinate dict as Python's numeric tower holds it: a
@@ -67,16 +44,33 @@ export function midpoint(left: Real, right: Real): Real {
   return typeof sum === "number" ? sum / 2 : sum.multiply(Rational.of([1n, 2n]));
 }
 
-/** The text of a JSON number form: `96`, `3/2` (or `3` for `[3, 1]`), `1.5`, `6.0`. */
-export function numberText(value: GeometryNumber | readonly unknown[]): string {
-  if (Array.isArray(value)) {
-    const [numerator, denominator] = value as unknown as readonly [
-      number | bigint,
-      number | bigint,
-    ];
-    return BigInt(denominator) === 1n ? `${numerator}` : `${numerator}/${denominator}`;
-  }
-  return compactJson(value as JsonNumber);
+/** `|left − right|` exactly, a float read as its exact binary value. */
+export function exactDistance(left: Real, right: Real): Rational {
+  const a = typeof left === "number" ? fromFloat(left) : left;
+  const b = typeof right === "number" ? fromFloat(right) : right;
+  const difference = a.subtract(b);
+  return difference.numerator < 0n ? Rational.of(0n).subtract(difference) : difference;
+}
+
+/**
+ * The proportion `u = t / λ`: an exact quotient rounded once to the nearest
+ * double, a binary64 division when either is a float, 0 when `λ` is 0.
+ */
+export function proportion(t: Real, length: Real): number {
+  const isZero = typeof length === "number" ? length === 0 : length.numerator === 0n;
+  if (isZero) return 0;
+  if (t instanceof Rational && length instanceof Rational) return toFloat(t.divide(length));
+  const a = t instanceof Rational ? toFloat(t) : t;
+  const b = length instanceof Rational ? toFloat(length) : length;
+  return a / b;
+}
+
+/** The text of a value: `96`, `3/2`, `3` for 3/1; a float as Python's `repr` (`1.5`, `6.0`). */
+export function valueText(value: Real): string {
+  if (value instanceof Rational) return value.toString();
+  return compactJson(
+    Number.isInteger(value) || Object.is(value, -0) ? new JsonFloat(value) : value,
+  );
 }
 
 const UNIT_SYMBOLS: Partial<Readonly<Record<TimeUnit, string>>> = {
@@ -88,6 +82,6 @@ const UNIT_SYMBOLS: Partial<Readonly<Record<TimeUnit, string>>> = {
 };
 
 /** A coordinate label: the value's text, a space and the unit's symbol. */
-export function coordinateText(value: GeometryNumber | readonly unknown[], unit: TimeUnit): string {
-  return `${numberText(value)} ${UNIT_SYMBOLS[unit] ?? unit}`;
+export function coordinateText(value: Real, unit: TimeUnit): string {
+  return `${valueText(value)} ${UNIT_SYMBOLS[unit] ?? unit}`;
 }

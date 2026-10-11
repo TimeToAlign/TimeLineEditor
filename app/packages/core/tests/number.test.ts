@@ -12,7 +12,14 @@ import {
   Rational,
   subtractCoordinates,
 } from "../src/index.ts";
-import { addReal, compareReal, exactCoordinate, fromFloat, realOf } from "../src/number/real.ts";
+import {
+  addReal,
+  compareReal,
+  exactCoordinate,
+  fromFloat,
+  realOf,
+  toFloat,
+} from "../src/number/real.ts";
 
 const parts = (value: Rational) => [value.numerator, value.denominator];
 
@@ -82,6 +89,22 @@ describe("Rational", () => {
   it("gives a float's exact binary value", () => {
     expect(fromFloat(0.1).toFraction()).toEqual([3602879701896397n, 2n ** 55n]);
     expect(fromFloat(-2.5).toFraction()).toEqual([-5n, 2n]);
+  });
+
+  it("rounds every rational directly to binary64", () => {
+    const power = (exponent: number) =>
+      exponent >= 0
+        ? Rational.of(2n ** BigInt(exponent))
+        : Rational.of([1n, 2n ** BigInt(-exponent)]);
+    expect(toFloat(power(-1074))).toBe(Number.MIN_VALUE);
+    expect(toFloat(power(-1075))).toBe(0);
+    expect(toFloat(Rational.of([3n, 2n ** 1075n]))).toBe(2 * Number.MIN_VALUE);
+    expect(Object.is(toFloat(Rational.of([-1n, 2n ** 1075n])), -0)).toBe(true);
+    expect(toFloat(Rational.of([(2n ** 52n - 1n) * 2n + 1n, 2n ** 1075n]))).toBe(2 ** -1022);
+    const one = 2n ** 53n;
+    expect(toFloat(Rational.of([one + 1n, one]))).toBe(1);
+    expect(toFloat(Rational.of([one + 3n, one]))).toBe(1 + 2 ** -51);
+    expect(toFloat(Rational.of(-((2n ** 62n + 1n) / 3n)))).toBe(Number(-((2n ** 62n + 1n) / 3n)));
   });
 });
 

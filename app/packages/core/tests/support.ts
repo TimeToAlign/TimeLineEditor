@@ -15,7 +15,6 @@ const packageDir = path.dirname(
   createRequire(import.meta.url).resolve("@timetoalign/timeskeleton/package.json"),
 );
 const fixturesDir = path.join(packageDir, "fixtures");
-export const fixtureRoot = fixturesDir;
 
 export interface Fixture {
   readonly name: string;
@@ -57,28 +56,6 @@ export const rejections: readonly Rejection[] = readdirSync(path.join(fixturesDi
         path: entry.path as (string | number)[],
       };
     });
-  });
-
-export interface MigrationPair {
-  readonly name: string;
-  readonly target: string;
-  readonly before: string;
-  readonly after: string;
-}
-
-export const migrationPairs: readonly MigrationPair[] = readdirSync(
-  path.join(fixturesDir, "migrations"),
-)
-  .filter((name) => name !== "split")
-  .sort()
-  .map((name) => {
-    const dir = path.join(fixturesDir, "migrations", name);
-    return {
-      name,
-      target: name.split("-to-")[1] as string,
-      before: readFileSync(path.join(dir, "before.json"), "utf8"),
-      after: readFileSync(path.join(dir, "after.json"), "utf8"),
-    };
   });
 
 /** Load a manifest fixture, failing loudly if it is refused. */

@@ -1,9 +1,11 @@
 /** Record shapes. Only blocks have commands in this version; the other kinds are stable extension points. */
 
-import type { Colour, LinePattern, StyleRules } from "@timetoalign/timeskeleton";
+import type { Graphical } from "@timetoalign/timeskeleton";
 import type { Manifest } from "../manifest/types.ts";
 import type { CoordinateDict } from "../number/coordinate.ts";
 
+/** A colour as `#RRGGBB` with upper-case hexadecimal digits. */
+export type Colour = string;
 export type RecordId = string;
 export type Address = string;
 export type RecordKind = "block" | "text" | "connector" | "lock" | "group" | "shape" | "image";
@@ -37,7 +39,8 @@ export interface BlockRecord extends RecordBase {
   readonly margins: Margins;
   readonly background: Colour | null;
   readonly nameColumn: NameColumn;
-  readonly overrides: StyleRules;
+  /** The style layer of whoever places the block, above the manifest's own. */
+  readonly overrides: Graphical;
   readonly manifest: Manifest;
 }
 
@@ -46,7 +49,7 @@ export interface CanvasStyle {
   readonly fill?: Colour | null;
   readonly thickness?: number;
   readonly opacity?: number;
-  readonly line_pattern?: LinePattern;
+  readonly line_pattern?: "solid" | "dotted" | "dashed";
 }
 
 export type ConnectorEnd =

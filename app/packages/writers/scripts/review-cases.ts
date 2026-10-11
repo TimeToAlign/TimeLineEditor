@@ -1,0 +1,89 @@
+/**
+ * The drawings of the review sheet: every manifest fixture of the installed
+ * schema package at the default placement, plus resized and restyled
+ * drawings of `nested` and `styled__score`.
+ */
+
+import { readdirSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import path from "node:path";
+import { isLoadError, loadManifest, type Manifest } from "@timetoalign/tilie-core";
+import {
+  DEFAULT_LAYER,
+  DEFAULT_PLACEMENT,
+  type Drawing,
+  draw,
+  type Placement,
+} from "@timetoalign/tilie-layout";
+import type { Graphical } from "@timetoalign/timeskeleton";
+import { fontMetrics as metrics, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
+
+const require = createRequire(import.meta.url);
+const packageDir = path.dirname(require.resolve("@timetoalign/timeskeleton/package.json"));
+
+/** The manifest fixtures of the installed schema version. */
+export const fixturesDirectory = path.join(packageDir, "fixtures", SCHEMA_VERSION);
+
+/** timeskeleton's own `fonts/` directory, holding the drawing font `DejaVuSans.ttf`. */
+export const fontDirectory = path.join(packageDir, "..", "fonts");
+
+export function loadFixture(name: string): Manifest {
+  const manifest = loadManifest(readFileSync(path.join(fixturesDirectory, `${name}.json`), "utf8"));
+  if (isLoadError(manifest)) throw new Error(`${name}: ${manifest.problems[0]?.message}`);
+  return manifest;
+}
+
+export interface ReviewCase {
+  /** The file name, without extension. */
+  readonly name: string;
+  readonly manifest: string;
+  readonly placement: Placement;
+  readonly layers: readonly (Graphical | undefined)[];
+  readonly zoom: number;
+  readonly drawing: Drawing;
+}
+
+/** Every review drawing, in the order the sheet lists them. */
+export function reviewCases(): ReviewCase[] {
+  const cases: ReviewCase[] = [];
+  const add = (
+    name: string,
+    manifestName: string,
+    placement: Placement,
+    zoom = 1,
+    extra: readonly Graphical[] = [],
+  ) => {
+    const manifest = loadFixture(manifestName);
+    const layers = [
+      DEFAULT_LAYER,
+      ...(manifest.graphical === undefined ? [] : [manifest.graphical]),
+      ...extra,
+    ];
+    cases.push({
+      name,
+      manifest: manifestName,
+      placement,
+      layers,
+      zoom,
+      drawing: draw(manifest, placement, layers, metrics),
+    });
+  };
+  const names = readdirSync(fixturesDirectory)
+    .filter((file) => file.endsWith(".json"))
+    .map((file) => file.slice(0, -5))
+    .sort();
+  for (const name of names) add(name, name, DEFAULT_PLACEMENT);
+  const at = (changes: Partial<Placement>): Placement => ({ ...DEFAULT_PLACEMENT, ...changes });
+  for (const length of [200, 400, 800]) add(`nested__length-${length}`, "nested", at({ length }));
+  for (const spacing of [0.5, 1, 2]) add(`nested__spacing-${spacing}`, "nested", at({ spacing }));
+  add("nested__length-800-spacing-2", "nested", at({ length: 800, spacing: 2 }));
+  const natural = draw(loadFixture("nested"), DEFAULT_PLACEMENT, [DEFAULT_LAYER], metrics);
+  add("nested__box", "nested", at({ width: natural.width + 120, height: natural.height + 60 }));
+  add("nested__zoom-2", "nested", DEFAULT_PLACEMENT, 2);
+  add(
+    "nested__order-flow-regions-maps-children",
+    "nested",
+    at({ order: ["flow", "regions", "maps", "children"] }),
+  );
+  return cases;
+}

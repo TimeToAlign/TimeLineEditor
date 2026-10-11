@@ -10,7 +10,8 @@
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json && tsc -p tests/tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "review": "node scripts/review-sheet.ts"
   },
   "dependencies": {
     "@timetoalign/tilie-core": "workspace:*",

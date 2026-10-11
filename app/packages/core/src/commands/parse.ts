@@ -280,15 +280,11 @@ function recordId(value: unknown, path: readonly PathSegment[]): string | Comman
   return value;
 }
 
+/** A style layer: a value of the shape of a manifest's `graphical` block. */
 function styles(value: unknown, path: readonly PathSegment[]): Json | CommandError {
   const converted = toJson(value, path);
   if (isCommandError(converted)) return converted;
-  const refused = schemaMember(
-    converted,
-    host({}, { styles: converted }),
-    ["graphical", "styles"],
-    path,
-  );
+  const refused = schemaMember(converted, host({}, converted), ["graphical"], path);
   return refused ?? converted;
 }
 

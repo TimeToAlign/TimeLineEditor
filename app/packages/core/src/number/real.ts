@@ -25,20 +25,52 @@ function bitLength(value: bigint): number {
   return value === 0n ? 0 : (value < 0n ? -value : value).toString(2).length;
 }
 
+function floorLog2Ratio(numerator: bigint, denominator: bigint): number {
+  let exponent = bitLength(numerator) - bitLength(denominator);
+  const below =
+    exponent >= 0
+      ? numerator < denominator * 2n ** BigInt(exponent)
+      : numerator * 2n ** BigInt(-exponent) < denominator;
+  if (below) exponent -= 1;
+  return exponent;
+}
+
+/** Round `numerator / denominator × 2^shift` to an integer, ties to even. */
+function roundedScaled(numerator: bigint, denominator: bigint, shift: number): bigint {
+  const scaledNumerator = shift >= 0 ? numerator * 2n ** BigInt(shift) : numerator;
+  const scaledDenominator = shift < 0 ? denominator * 2n ** BigInt(-shift) : denominator;
+  let quotient = scaledNumerator / scaledDenominator;
+  const remainder = scaledNumerator % scaledDenominator;
+  const twice = 2n * remainder;
+  if (twice > scaledDenominator || (twice === scaledDenominator && quotient % 2n !== 0n)) {
+    quotient += 1n;
+  }
+  return quotient;
+}
+
 /** The double nearest to an exact value, ties to even, as Python's `float(Fraction)`. */
 export function toFloat(value: Rational): number {
   const { numerator, denominator } = value;
-  if (denominator === 1n) return Number(numerator);
-  // Scale so the integer quotient carries at least 66 significant bits, and
-  // fold a non-zero remainder into its lowest bit: Number() then rounds the
-  // quotient exactly as the infinitely precise value would round.
-  const magnitude = numerator < 0n ? -numerator : numerator;
-  const shift = Math.max(0, 66 - (bitLength(magnitude) - bitLength(denominator)));
-  const scaled = magnitude * 2n ** BigInt(shift);
-  let quotient = scaled / denominator;
-  if (scaled % denominator !== 0n) quotient |= 1n;
-  const result = Number(quotient) * 2 ** -shift;
-  return numerator < 0n ? -result : result;
+  if (numerator === 0n) return 0;
+  const negative = numerator < 0n;
+  const magnitude = negative ? -numerator : numerator;
+  let exponent = floorLog2Ratio(magnitude, denominator);
+  let result: number;
+  if (exponent < -1022) {
+    if (exponent < -1075) result = 0;
+    else result = Number(roundedScaled(magnitude, denominator, 1074)) * 2 ** -1074;
+  } else if (exponent > 1023) {
+    result = Number.POSITIVE_INFINITY;
+  } else {
+    let significand = roundedScaled(magnitude, denominator, 52 - exponent);
+    if (significand === 2n ** 53n) {
+      significand = 2n ** 52n;
+      exponent += 1;
+    }
+    result =
+      exponent > 1023 ? Number.POSITIVE_INFINITY : Number(significand) * 2 ** (exponent - 52);
+  }
+  return negative ? -result : result;
 }
 
 /**

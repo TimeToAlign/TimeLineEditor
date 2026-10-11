@@ -8,7 +8,7 @@ These rules apply to every contributor, whether human or automated.
 
 | Package | May depend on | Must never contain |
 | --- | --- | --- |
-| `tilie-core` | no workspace package | Svelte, DOM code, rendering, transport code, or mutable canvas geometry |
+| `tilie-core` | no workspace package | Svelte, DOM code, rendering, transport code, or mutable drawing data |
 | `tilie-layout` | core | Svelte, DOM interaction, transport code, or writers |
 | `tilie-writers` | layout and core | Svelte, DOM interaction, or application state |
 | `tilie-arranger` | writers, layout and core | workspace or manifest mutations outside commands, or client transport |
@@ -23,7 +23,7 @@ Only arranger and editor may import `svelte`. Add a package only for a present n
 - Write the relevant `tests/README.md` before tests. State validation logic and exact expected values; tests follow that file.
 - TypeScript is strict ESM. Use Svelte 5 runes. Name commands `verbNoun`.
 - A float never constructs a coordinate; page arithmetic in the writers may read a float's exact binary value (`fromFloat`), never an approximation of it. A coordinate is atomic: `{ unit, number_type, value }`, where `value` is a JSON integer, a JSON number or a `[numerator, denominator]` Fraction pair as `number_type` selects (the BOPP core primitives).
-- Called with no block overrides and default options, layout and the writers implement timeskeleton's geometry specification (`docs/geometry.md` there) and nothing beyond it: a rule the code applies there that the specification does not state is a defect, fixed in the specification first. What TiLiE adds around it (block overrides and default rules as cascade levels, name-column options, `writeBlockSvg`) must leave that drawing unchanged and is described in `docs/architecture.md`. The specification and the SVG and TikZ fixtures of a version pin the drawing; there is no geometry schema from 0.4.0 on, and the geometry JSON is internal to TiLiE. The fixtures live in timeskeleton; write them only with `app/packages/writers/scripts/emit-geometry.ts`, which writes nothing unless `layout` and `writeSvg` reproduce the hand-derived SVGs listed in `fixtures/<version>/drawings/README.md`, and refuses a version whose tag exists.
+- `draw(manifest, placement, layers, metrics)`, `toDescriptors(drawing)`, `writeSvg(placed)` and `writeTikz(placed, options)` implement timeskeleton's drawing specification (`docs/drawing.md` there) and nothing beyond it. A rule the code applies that the specification does not state is a defect, fixed in the specification first. The specification and the SVG and TikZ fixtures of a version pin the drawing; there is no drawing schema, and a drawing's JSON form is internal to an implementation.
 - Keep the three layers apart: a manifest knows nothing about the canvas, a block adds placement to one manifest, and the workspace holds records. Name each layer by its own word only: manifest, block, workspace.
 - Commands are serializable and validated. Return typed, machine-readable errors rather than display-oriented strings.
 - Python uses type hints and Google-style docstrings.
@@ -52,8 +52,8 @@ Run each command from the stated directory.
 | `app/` | `pnpm test` | Run Vitest. |
 | `app/` | `pnpm build` | Build the editor bundle. |
 | `app/` | `pnpm dev` | Start the editor development server. |
-| `app/` | `TILIE_REQUIRE_LUALATEX=1 pnpm vitest run --project writers packages/writers/tests/compile.test.ts` | Compile the TikZ fixtures the writers reproduce, failing when `lualatex` is missing. |
-| `app/packages/writers/` | `node scripts/emit-geometry.ts /path/to/timeskeleton` | Write the SVG and TikZ fixtures of a version into a timeskeleton checkout. |
+| `app/` | `TILIE_REQUIRE_LUALATEX=1 pnpm vitest run --project writers packages/writers/tests/compile.test.ts` | Parse every review SVG and compile every review TikZ document, failing when `lualatex` is missing. |
+| repository root | `pnpm -C app/packages/writers review` | Render the writer review sheet into `app/packages/writers/review/` with `rsvg-convert`. |
 | `server/` | `uv sync` | Create or update the locked environment. |
 | `server/` | `uv run ruff check .` | Run Python lint checks. |
 | `server/` | `uv run ruff format --check .` | Check Python formatting. |

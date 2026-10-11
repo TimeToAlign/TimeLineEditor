@@ -1,126 +1,151 @@
 # `@timetoalign/tilie-writers` tests
 
-`writeSvg(block, options)` and `writeTikz(block, options)` implement the page,
-the number formatting rule and the two output profiles of the timeskeleton
-geometry specification (`docs/geometry.md`, section 8). Both take one block
-laid out by `layout(manifest)`, with width 400 and row height 32 by default.
-`writeSvg` adds a 16-unit margin on every side of the page, so the page of a
-one-row block is 432 by 64; `writeTikz` adds no margin, and its coordinates
-start at the block's own top-left corner (specification section 8.1).
-`writeBlockSvg` writes the block alone as a group.
+`toDescriptors(drawing)`, `writeSvg(placed)` and `writeTikz(placed,
+options)` implement section 7 of timeskeleton's drawing specification
+(`docs/drawing.md`, "the specification" below): the element descriptors,
+the page, the number format and the SVG and TikZ profiles. `placed` is a
+list of `{drawing, x, y, zoom}`. Every expected text below is derived here
+by hand from the specification and from the drawing of `bare` derived in
+`packages/layout/tests/README.md`; none is copied from output. All
+comparisons are exact string or value equality.
 
-## 0.3.0 figures, byte for byte (`figures.test.ts`)
+## Number format (`format.test.ts`)
 
-There are exactly 16 specimens whose 0.4.0 manifest equals the single root of
-a 0.3.0 envelope: `bare`, `contiguous`, the six continuous and discrete class
-manifests, `corpus_audio_audio`, `corpus_midi_score_midi`, `corpus_score_ms3`,
-`corpus_supra_iiif`, `flow_control`, `map`, `nested` and `with_region`. For
-each, `writeSvg(layout(manifest))` equals the `figure.svg`, and
-`writeTikz(layout(manifest))` equals the `figure.tex`, of
-`fixtures/0.3.0/geometry/<name>/` in timeskeleton, byte for byte, with the
-default options. The column of several blocks that the specification defines
-for an envelope with several top-level timelines is not drawn: a manifest is
-always one block.
+`formatNumber` rounds the exact value of a double to the nearest multiple of
+1/10000, ties to the even multiple: `0.03125` (= 1/32, exactly 312.5
+ten-thousandths) is `0.0312`, `0.09375` is `0.0938`, `-0.03125` is
+`-0.0312`; `41.5771484375` is `41.5771`; `14.40234375` is `14.4023`; `3` is
+`3`; `0.5` is `0.5`; `-0.00001` and `-0` are `0`; `1e21` is
+`1000000000000000000000` (no exponent). A non-finite value is refused.
 
-## Embedded SVG (`figures.test.ts`)
+## Page (`page.test.ts`)
 
-`writeBlockSvg(block)` returns `<g>`, a newline, the block's SVG elements, and
-`</g>` with a final newline. The group carries no transform: the block's
-top-left corner is the group's origin. For every specimen, let `B` be the
-exact lines between the opening `<svg …>` tag and the closing `</svg>` of
-`writeSvg`; then `writeBlockSvg` is exactly `<g>\n` + `B` + `\n</g>\n`, so the
-page margin stays in the outer SVG's view box (`-16 -16 …`) and not in the
-group. For `bare`, the first line is `<g>`, the second is the page's first
-element, the last two are `</g>` and the empty string, and the text contains
-no `transform`. The comparison is of strings, without XML normalization.
+One drawing at `(0, 0)`, zoom 1, has page size `W + 32` by `H + 32` and lies
+at `(16, 16)`. For `bare` (`W = 455.9931640625`, `H = 49.37890625`) and
+`nested` (`W = 458.351318359375`, `H = 77.37890625`) placed at `(10, 20)`
+zoom 1 and `(−30, 5)` zoom 2: the bounding box runs from `x = −30` to
+`max(10 + 455.9931640625, −30 + 916.70263671875) = 886.70263671875` and
+from `y = 5` to `max(20 + 49.37890625, 5 + 154.7578125) = 159.7578125`, so
+the page is `886.70263671875 + 30 + 32 = 948.70263671875` by
+`159.7578125 − 5 + 32 = 186.7578125`; `bare` lies at `(56, 31)`, `nested` at
+`(16, 16)`. The SVG writes `<g transform="translate(56 31)">` for `bare`
+and `<g transform="translate(16 16) scale(2)">` for `nested`; the TikZ
+scopes are shifted to `(56, 186.7578125 − 31 − 49.37890625 = 106.37890625)`
+and `(16, 186.7578125 − 16 − 154.7578125 = 16)` with `,scale=2,transform
+shape` on the second.
 
-## Hand-derived values (`examples.test.ts`)
+## `bare`, byte for byte (`bare.test.ts`)
 
-Computed from the specification in the test, on `bare`, `flow_control` and
-literal numbers:
+From the layout README: `x0 = 41.5771484375`, `Xe = 441.5771484375`,
+`y_root = 14.40234375`, `W = 455.9931640625`, `H = 49.37890625`. Page
+`487.9931640625 × 81.37890625` → `487.9932 × 81.3789`. The root's line ends
+at `Xe − 3w = 432.5771484375`; the arrowhead's base is at `y ∓ 4.5`
+(9.90234375, 18.90234375). Wedges: tip 15.90234375, base 28.90234375, at
+`x ∓ 3`; a wedge carries only its fill attributes. Name
+baseline 18.21044921875, label baseline 39.25634765625. The SVG is exactly:
 
-- **Number formatting** (four decimal places, ties to even): `80`, `12.5`,
-  `1/3` → `0.3333`, `2/3` → `0.6667`, `-6`, `-1/3` → `-0.3333`, `1/40000` →
-  `0` (and `-1/40000` → `0`, never `-0`), `0.00025` → `0.0002` and `0.00035` →
-  `0.0004` (ties to even), `0.99995` → `1` and `1.00005` → `1` (ties to even
-  at the integer), the float `0.1` (exactly 3602879701896397/2^55) → `0.1`,
-  the integer `123456789012345678` unchanged.
-- **The page of `bare`**: frame 10, so a root position `x` lies at
-  `(2 + x) × 400 / 10`. The SVG opens `width="432" height="64" viewBox="-16
-  -16 432 64"`, the background rectangle is `x=0 y=0 width=400 height=32`
-  filled `#BAC8D3`; the line runs from 80 to 396 at SVG ordinate 16 (`0 + (0 +
-  1/2 − 0) × 32`), and in TikZ from `(80,16)` to `(400,16)` (ordinate `32 − 0
-  − 32 + (0 − 0 + 1/2) × 32 = 16`); the end wedge is `M400 16L397 20L403 20Z`
-  (base at row `-1/8`, ordinate `16 + 4 = 20`); the wedge label `8 ♩` has its
-  SVG baseline at `20 + 7.25 = 27.25` and its TikZ node at `(400,12)`; the
-  name label is at `x = 0 + 2`, baseline `17.75`.
-- **`flow_control`**: frame 20, rows −1 to 0, height 64; the break at 12 lies
-  at `(4 + 12) × 20 = 320`, from SVG ordinate 0 to 64; the jump from 8 (240) to
-  2 (120) has its ends at row −1/2 (SVG 32), its controls at row `−1/2 + 4/3 ×
-  (−7/8 + 1/2) = −1` (SVG 48), the path `M240 32C240 48 120 48 120 32`, and its
-  stealth `M120 32L118 38L120 36L122 38Z` pointing up.
-- **The name column ellipsis**: with `width` 100 the name column of `bare`
-  (frame `[5, 1]`, names `[1, 1]`) is 20 wide, so `⌊(20 − 4) / 4.2⌋ = 3` code
-  points fit: `Bare` becomes `Ba…`; with `width` 40 the column is 8 wide and no
-  code point fits, so the label is not written.
-- **Escaping**: a label `a<b&c<TAB>d` is written `a&lt;b&amp;c d` in SVG (the
-  tab becomes a space), and a label `50% #1 {x}_y \ ~ ^ $ &` as `50\% \#1
-  \{x\}\_y \textbackslash{} \textasciitilde{} \textasciicircum{} \$ \&` in
-  TikZ.
-- **Rotation**: a label with `rotate` 90 is written in SVG with
-  `transform="rotate(-90 400 20)"` about its point, and in TikZ as
-  `\node[anchor=north,rotate=90,text=ts000000] at (400,12)`; a float `45.0` is
-  written `rotate=45,`.
-- **Unknown kinds** are skipped: a block with an extra primitive of kind
-  `strip` writes the same SVG and the same TikZ as without it.
-- **TikZ without the preamble** (`standalone: false`) is the `tikzpicture`
-  environment alone: the lines of the full file after its six-line preamble and
-  before `\end{document}`, with the final newline. The full file begins with
-  `\documentclass{standalone}` and `\begin{document}` and ends with
-  `\end{document}`.
+```
+<svg xmlns="http://www.w3.org/2000/svg" width="487.9932" height="81.3789" viewBox="0 0 487.9932 81.3789" font-family="DejaVu Sans" style="font-kerning:none;font-variant-ligatures:none">
+<g transform="translate(16 16)">
+<rect x="0" y="0" width="455.9932" height="49.3789" rx="10" fill="#F3F4F6"/>
+<line data-address="bare" x1="41.5771" y1="14.4023" x2="432.5771" y2="14.4023" stroke="#00CC00" stroke-width="3"/>
+<circle data-address="bare" cx="41.5771" cy="14.4023" r="3" fill="#00CC00"/>
+<polygon data-address="bare" points="441.5771,14.4023 432.5771,9.9023 432.5771,18.9023" fill="#00CC00"/>
+<polygon data-address="bare/start" points="41.5771,15.9023 38.5771,28.9023 44.5771,28.9023" fill="#000000"/>
+<polygon data-address="bare/end" points="441.5771,15.9023 438.5771,28.9023 444.5771,28.9023" fill="#000000"/>
+<text data-address="bare/name" x="8" y="18.2104" text-anchor="start" font-size="11" fill="#000000">Bare</text>
+<text data-address="bare/start/label" x="41.5771" y="39.2563" text-anchor="middle" font-size="9" fill="#000000">0 ♩</text>
+<text data-address="bare/end/label" x="441.5771" y="39.2563" text-anchor="middle" font-size="9" fill="#000000">8 ♩</text>
+</g>
+</svg>
+```
 
-## The SVG parses, the TikZ compiles (`compile.test.ts`)
+In TikZ every ordinate becomes `H − y`: 34.9765625 (root), 39.4765625 and
+30.4765625 (arrowhead), 33.4765625 and 20.4765625 (wedges), 31.16845703125
+(name), 10.12255859375 (labels); `h(11) = 12.8046875`, `h(9) = 10.4765625`.
+The single scope is shifted to `(16, 81.37890625 − 16 − 49.37890625 = 16)`.
+Colours used: `000000`, `00CC00`, `F3F4F6`. With `fontDirectory`
+`/fonts` the TikZ is exactly:
 
-- Every 0.3.0 `figure.svg` of the 16 specimens is parsed by Python's
-  `xml.etree.ElementTree` (run with `python3`, no package added), and its root
-  is the SVG element.
-- Every 0.3.0 `figure.tex` of the 16 specimens is compiled by `lualatex` and
-  must exit 0. Where `lualatex` is absent the test is skipped with that
-  reason, unless `TILIE_REQUIRE_LUALATEX` is set, as the CI job installing
-  TeX Live sets it: then its absence fails.
+```
+\documentclass{standalone}
+\usepackage{fontspec}
+\setsansfont{DejaVuSans.ttf}[Path=/fonts/,Kerning=Off,Ligatures={TeXOff,NoCommon}]
+\usepackage{tikz}
+\begin{document}
+\begin{tikzpicture}[x=1pt,y=1pt,miter limit=4,font=\sffamily]
+\definecolor{ts000000}{HTML}{000000}
+\definecolor{ts00CC00}{HTML}{00CC00}
+\definecolor{tsF3F4F6}{HTML}{F3F4F6}
+\begin{scope}[shift={(16,16)}]
+\path[rounded corners=10pt,fill=tsF3F4F6] (0,0) rectangle (455.9932,49.3789);
+\path[draw=ts00CC00,line width=3pt] (41.5771,34.9766) -- (432.5771,34.9766);
+\path[fill=ts00CC00] (41.5771,34.9766) circle[radius=3];
+\path[fill=ts00CC00] (441.5771,34.9766) -- (432.5771,39.4766) -- (432.5771,30.4766) -- cycle;
+\path[fill=ts000000] (41.5771,33.4766) -- (38.5771,20.4766) -- (44.5771,20.4766) -- cycle;
+\path[fill=ts000000] (441.5771,33.4766) -- (438.5771,20.4766) -- (444.5771,20.4766) -- cycle;
+\node[anchor=base west,inner sep=0,font=\sffamily\fontsize{11}{12.8047}\selectfont,text=ts000000] at (8,31.1685) {Bare};
+\node[anchor=base,inner sep=0,font=\sffamily\fontsize{9}{10.4766}\selectfont,text=ts000000] at (41.5771,10.1226) {0 ♩};
+\node[anchor=base,inner sep=0,font=\sffamily\fontsize{9}{10.4766}\selectfont,text=ts000000] at (441.5771,10.1226) {8 ♩};
+\end{scope}
+\end{tikzpicture}
+\end{document}
+```
 
-## The figure emitter (`emit.test.ts`)
+With `standalone: false` the output is the lines from `\begin{tikzpicture}`
+to `\end{tikzpicture}` alone; the default font directory is `.`
+(`Path=./`).
 
-`scripts/emit-geometry.ts` writes the drawings of a timeskeleton checkout for
-the schema version this workspace depends on. For each manifest
-`fixtures/<version>/<name>.json` it writes only `figure.svg`
-(`writeSvg(layout(manifest))`) and `figure.tex` (`writeTikz(layout(manifest))`)
-into `fixtures/<version>/drawings/<name>/`; it writes no geometry JSON. The
-hand-derived specimens are the SVG files that
-`fixtures/<version>/drawings/README.md` lists, each as the code span
-`<name>/figure.svg`. For a README that mentions `nested/figure.svg`,
-`bare/figure.svg`, `nested/figure.svg` again, `bare/figure.tex` and a plain
-`figure.svg`, `handDerived` returns exactly `["nested", "bare"]`: each name
-once, in order of first mention.
+## Descriptors and commands (`descriptors.test.ts`)
 
-Over a temporary checkout holding the manifests `bare` and `nested`:
+On synthetic drawings built in the test (a drawing is a derived value, not a
+manifest):
 
-- without `drawings/README.md`, `emit` throws `no hand-derived drawings for
-  0.4.0` and writes nothing;
-- with a README listing nothing, it returns `["bare", "nested"]` and each
-  directory holds exactly `figure.svg` and `figure.tex`, equal to the writers'
-  output;
-- when the README lists `bare/figure.svg` and that file is exactly
-  `writeSvg(layout(bare))`, it succeeds and also writes `nested`;
-- when that file is `<svg/>`, it throws `bare: layout disagrees with the
-  hand-derived figure.svg`, and nothing is written: `bare` still holds only the
-  hand-derived file and `nested` has no directory;
-- when the tag `v0.4.0` exists, it throws `v0.4.0 is released; its drawings
-  are frozen` and writes nothing;
-- for version `0.3.0` it throws `fixtures/0.3.0 is released and is never
-  written`.
+- a brace from `x1 = 0` to `x2 = 20`, arms at 10, tip at 16 has `ym = 13`,
+  `k = 3`, `xm = 10` and the path `M0 10Q0 13 3 13L7 13Q10 13 10 16Q10 13 13
+  13L17 13Q20 13 20 10`. In TikZ (`H = 30`) each `Q C P` from `P0` becomes
+  the cubic with controls `P0 + 2/3 (C − P0)` and `P + 2/3 (C − P)`:
+  `(0,20) .. controls (0,18) and (1,17) .. (3,17) -- (7,17) .. controls
+  (9,17) and (10,16) .. (10,14) .. controls (10,16) and (11,17) .. (13,17)
+  -- (17,17) .. controls (19,17) and (20,18) .. (20,20)`;
+- a jump from x 10 to 50, `yf = 20`, `yc = 40`, `yo = 26`, width 1.5: path
+  `M10 20C10 40 50 40 50 20` and the filled arrowhead `50,20 47,26 53,26`;
+- a child line `xs 10`, `xe 50`, `y 20`, width 2: line to `47`, circle
+  `r 2`, diamond `47,20 50,17.6 53,20 50,22.4` with `fill="none"`, its
+  stroke, width 1 and no dash even when the child's dash is `3 3`;
+- a map at `y 20` writes two lines at 18.5 and 21.5;
+- opacity 0.5 is written last, as `opacity="0.5"` and `opacity=0.5`;
+- stroke-dasharray `2` is `dash pattern=on 2pt off 2pt` and `1 2 3` is
+  `dash pattern=on 1pt off 2pt on 3pt off 1pt on 2pt off 3pt`;
+- each dash number is formatted by the number rule: `1.50 0.00001` is
+  written `stroke-dasharray="1.5 0"` and `dash pattern=on 1.5pt off 0pt`
+  (0.00001 is a tenth of 1/10000, so it rounds to the multiple 0);
+- text escaping: SVG writes `a&b<c>` as `a&amp;b&lt;c&gt;`, and attribute
+  values escape `&`, `<`, `>` and `"`; TikZ writes `\~^#$%&_{}` as
+  `\textbackslash{}\textasciitilde{}\textasciicircum{}\#\$\%\&\_\{\}`.
+  A space at the start or end or following another space is written `\ `;
+- wedges, circles and root and jump arrowheads are fill-only; the child
+  diamond is stroke-only. `fill="none"` and `stroke="none"` add no TikZ
+  paint option: a break line `x 10`, `y1 5`, `y2 25` stroked `none` is
+  `\path[line width=1pt] (10,25) -- (10,5);`;
+- every descriptor without text is self-closing.
 
-## Gates outside Vitest
+For every review drawing (every 0.4.0 fixture and the resized and restyled
+drawings of the review sheet), `writeSvg` writes exactly one line per
+descriptor between `<g …>` and `</g>`, in order, each starting with
+`<{tag} ` and carrying the descriptor's `data-address`; `writeTikz` writes
+exactly one command per descriptor between `\begin{scope}` and
+`\end{scope}`, in the same order, of the kind its tag selects (`rectangle`
+for a rect, two points joined by `--` for a line, `circle[radius=` for a
+circle, `-- cycle;` for a polygon, `.. controls` for a path, `\node` for a
+text).
 
-`pnpm typecheck` (which also checks the emitter) and `pnpm lint`, whose
-dependency-cruiser rule keeps this package on layout and core.
+## Validity (`compile.test.ts`)
+
+Every review drawing's SVG parses as XML with an SVG root (Python's
+ElementTree). Every review drawing's TikZ, written with `fontDirectory`
+timeskeleton's `fonts/` directory, compiles under LuaLaTeX, and its log holds
+no fontspec warning and no `Missing character` line: every text, `♩`
+included, is set in the bundled DejaVu Sans, because each node's `font`
+option restates `\sffamily`. The test is skipped where `lualatex` is absent
+and fails without it when `TILIE_REQUIRE_LUALATEX` is set.

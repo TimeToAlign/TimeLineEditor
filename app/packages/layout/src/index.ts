@@ -1,15 +1,31 @@
 /**
- * @timetoalign/tilie-layout: the geometry block of one TimeSkeleton manifest.
+ * @timetoalign/tilie-layout: the drawing of one TimeSkeleton manifest.
  *
- * `layout(manifest)` implements the geometry specification of timeskeleton:
- * rows and primitives in exact numbers, pure
- * and deterministic. The style cascade is exported on its own.
+ * `draw(manifest, placement, layers, metrics)` implements timeskeleton's
+ * drawing specification (`docs/drawing.md`, sections 1 to 6): the cascade of
+ * style layers, exact positions, text measured from the font's advance
+ * widths, and the layout of bands and rows. Pure and deterministic.
  */
 
 export const name = "@timetoalign/tilie-layout" as const;
 
-export type { Domain, DrawnElement, Modality, ScopedRule, Style } from "./cascade.ts";
-export { defaultStyle, matches, rank, resolveStyle, scopedRules } from "./cascade.ts";
-export type { LayoutOptions, LosslessBlock } from "./layout.ts";
-export { layout } from "./layout.ts";
-export type { GeometryNumber } from "./numbers.ts";
+export type { Domain, ElementKey, Modality, Side, Style } from "./cascade.ts";
+export { Cascade, INITIAL_STYLE } from "./cascade.ts";
+export { DEFAULT_LAYER } from "./defaults.ts";
+export type {
+  BandGroup,
+  BlockElement,
+  BreakElement,
+  Drawing,
+  DrawnElement,
+  JumpElement,
+  LineElement,
+  MapElement,
+  MarkerElement,
+  Placement,
+  RegionElement,
+  ShownCoordinate,
+  TextElement,
+} from "./draw.ts";
+export { DEFAULT_PLACEMENT, draw, MAP_SPACING, MARKER_BASE } from "./draw.ts";
+export { cleanText, TextMeasure } from "./metrics.ts";

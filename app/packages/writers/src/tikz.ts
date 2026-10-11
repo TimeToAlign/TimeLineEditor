@@ -1,38 +1,24 @@
 /**
- * `writeTikz(block, options)`: the TikZ profile of one geometry block
- * specification (`docs/geometry.md` in timeskeleton, section 8.5).
+ * `writeTikz(placed, options)`: the TikZ profile (`docs/drawing.md` in
+ * timeskeleton, section 7.4).
  */
 
-import type { JsonObject, Rational } from "@timetoalign/tilie-core";
-import type { LosslessBlock } from "@timetoalign/tilie-layout";
 import {
-  exact,
-  fmt,
-  labelPoint,
-  labelText,
-  type PageOptions,
-  type PlacedBlock,
-  page,
-  q,
-} from "./page.ts";
-import { arc, brace, type Point } from "./svg.ts";
+  type AttributeValue,
+  type Descriptor,
+  type PathCommand,
+  type Point,
+  toDescriptors,
+} from "./descriptors.ts";
+import { formatNumber, type Placed, page } from "./page.ts";
 
-/** The TikZ options: the page, and whether to write a complete LuaLaTeX file. */
-export interface TikzOptions extends PageOptions {
-  /** A complete `standalone` file (default), or the `tikzpicture` alone. */
+/** The TikZ options. */
+export interface TikzOptions {
+  /** A complete LuaLaTeX document (default), or the `tikzpicture` environment alone. */
   readonly standalone?: boolean;
+  /** The directory holding `DejaVuSans.ttf`, `.` by default. */
+  readonly fontDirectory?: string;
 }
-
-const PREAMBLE = [
-  "\\documentclass{standalone}",
-  "\\usepackage{fontspec}",
-  "\\setsansfont{DejaVu Sans}",
-  "\\usepackage{tikz}",
-  "\\usetikzlibrary{arrows.meta}",
-  "\\begin{document}",
-];
-
-const STEALTH = "Stealth[length=6pt,width=4pt,inset=2pt]";
 
 const SPECIAL: Readonly<Record<string, string>> = {
   "\\": "\\textbackslash{}",
@@ -48,111 +34,153 @@ const SPECIAL: Readonly<Record<string, string>> = {
 };
 
 function escapeTex(text: string): string {
-  return Array.from(text, (character) => SPECIAL[character] ?? character).join("");
+  const characters = Array.from(text);
+  return characters
+    .map((character, index) => {
+      if (
+        character === " " &&
+        (index === 0 || index === characters.length - 1 || characters[index - 1] === " ")
+      ) {
+        return "\\ ";
+      }
+      return SPECIAL[character] ?? character;
+    })
+    .join("");
 }
 
 const colourName = (colour: string): string => `ts${colour.slice(1)}`;
+const isColour = (value: AttributeValue): value is string =>
+  typeof value === "string" && value.startsWith("#");
 
-const point = ([x, y]: Point): string => `(${fmt(x)},${fmt(y)})`;
+/** `h(s)`, the line height of the drawing font at size `s`. */
+const lineHeight = (size: number): number => (2384 * size) / 2048;
 
-function pattern(value: unknown): string {
-  return value === "dotted" ? ",densely dotted" : value === "dashed" ? ",dashed" : "";
+function dashPattern(value: string): string {
+  const parts = value.split(" ");
+  const list = parts.length % 2 === 1 ? [...parts, ...parts] : parts;
+  return list
+    .map((part, index) => `${index % 2 === 0 ? "on" : "off"} ${formatNumber(Number(part))}pt`)
+    .join(" ");
 }
 
-/** The command of one primitive, or none. */
-function command(item: JsonObject, block: PlacedBlock): string | undefined {
-  const c = colourName(item.colour as string);
-  const style = `${c}${pattern(item.line_pattern)}`;
-  switch (item.kind) {
-    case "timeline":
-    case "child": {
-      const y = block.y([item.row, 1]);
-      const from = point([block.rootX(item.start), y]);
-      const to = point([block.rootX(item.end), y]);
-      const tips =
-        item.kind === "timeline"
-          ? `{Circle[length=4pt]}-{${STEALTH}},shorten <=-2pt`
-          : "{Circle[length=4pt]}-{Diamond[open,length=6pt,width=4pt]},shorten <=-2pt,shorten >=-3pt";
-      return `\\draw[${style},${tips}] ${from} -- ${to};`;
+/** The options of a command, in the order of the descriptor's attributes. */
+function options({ tag, attrs }: Descriptor): string[] {
+  const result: string[] = [];
+  for (const [name, value] of attrs) {
+    if (name === "rx") result.push(`rounded corners=${formatNumber(value as number)}pt`);
+    else if (name === "font-size") {
+      const size = value as number;
+      result.push(
+        `font=\\sffamily\\fontsize{${formatNumber(size)}}{${formatNumber(lineHeight(size))}}\\selectfont`,
+      );
+    } else if (name === "fill" && isColour(value)) {
+      result.push(`${tag === "text" ? "text" : "fill"}=${colourName(value)}`);
+    } else if (name === "stroke" && isColour(value)) result.push(`draw=${colourName(value)}`);
+    else if (name === "stroke-width") result.push(`line width=${formatNumber(value as number)}pt`);
+    else if (name === "stroke-dasharray")
+      result.push(`dash pattern=${dashPattern(value as string)}`);
+    else if (name === "opacity") result.push(`opacity=${formatNumber(value as number)}`);
+  }
+  return result;
+}
+
+function attribute(descriptor: Descriptor, name: string): AttributeValue {
+  const found = descriptor.attrs.find(([key]) => key === name);
+  if (found === undefined) throw new Error(`a ${descriptor.tag} without ${name}`);
+  return found[1];
+}
+
+/** One descriptor as one TikZ command, `height` the drawing's height. */
+function command(descriptor: Descriptor, height: number): string {
+  const num = (name: string): number => attribute(descriptor, name) as number;
+  const point = ([x, y]: Point): string => `(${formatNumber(x)},${formatNumber(height - y)})`;
+  const path = (text: string) => `\\path[${options(descriptor).join(",")}] ${text};`;
+  switch (descriptor.tag) {
+    case "rect":
+      return path(`(0,0) rectangle (${formatNumber(num("width"))},${formatNumber(num("height"))})`);
+    case "line":
+      return path(`${point([num("x1"), num("y1")])} -- ${point([num("x2"), num("y2")])}`);
+    case "circle":
+      return path(`${point([num("cx"), num("cy")])} circle[radius=${formatNumber(num("r"))}]`);
+    case "polygon": {
+      const points = attribute(descriptor, "points") as readonly Point[];
+      return path(`${points.map(point).join(" -- ")} -- cycle`);
     }
-    case "map": {
-      const y = block.y([item.row, 1]);
-      return `\\draw[${style}] ${point([block.rootX(item.start), y.subtract(q(2))])} rectangle ${point([block.rootX(item.end), y.add(q(2))])};`;
-    }
-    case "region": {
-      const [start, ...segments] = brace(item, block);
-      let current = start;
-      const parts = [point(start)];
-      for (const segment of segments) {
-        if (segment[0] === "L") {
-          parts.push(`-- ${point(segment[1])}`);
-          current = segment[1];
+    case "path": {
+      const commands = attribute(descriptor, "d") as readonly PathCommand[];
+      const parts: string[] = [];
+      let current: Point = [0, 0];
+      for (const { command: letter, points } of commands) {
+        if (letter === "M") {
+          current = points[0] as Point;
+          parts.push(point(current));
+        } else if (letter === "L") {
+          current = points[0] as Point;
+          parts.push(`-- ${point(current)}`);
+        } else if (letter === "C") {
+          const [c1, c2, end] = points as readonly [Point, Point, Point];
+          parts.push(`.. controls ${point(c1)} and ${point(c2)} .. ${point(end)}`);
+          current = end;
         } else {
-          const [, control, end] = segment;
-          const twoThirds = q(2, 3n);
-          const toward = (from: Point): Point => [
-            from[0].add(control[0].subtract(from[0]).multiply(twoThirds)),
-            from[1].add(control[1].subtract(from[1]).multiply(twoThirds)),
+          const [control, end] = points as readonly [Point, Point];
+          const c1: Point = [
+            current[0] + (2 / 3) * (control[0] - current[0]),
+            current[1] + (2 / 3) * (control[1] - current[1]),
           ];
-          parts.push(
-            `.. controls ${point(toward(current))} and ${point(toward(end))} .. ${point(end)}`,
-          );
+          const c2: Point = [
+            end[0] + (2 / 3) * (control[0] - end[0]),
+            end[1] + (2 / 3) * (control[1] - end[1]),
+          ];
+          parts.push(`.. controls ${point(c1)} and ${point(c2)} .. ${point(end)}`);
           current = end;
         }
       }
-      return `\\draw[${style}] ${parts.join(" ")};`;
+      return path(parts.join(" "));
     }
-    case "jump": {
-      const { start, first, second, end } = arc(item, block);
-      return `\\draw[${style},-{${STEALTH}}] ${point(start)} .. controls ${point(first)} and ${point(second)} .. ${point(end)};`;
+    case "text": {
+      const anchor = attribute(descriptor, "text-anchor") === "start" ? "base west" : "base";
+      return `\\node[anchor=${anchor},inner sep=0,${options(descriptor).join(",")}] at ${point([num("x"), num("y")])} {${escapeTex(descriptor.text ?? "")}};`;
     }
-    case "break": {
-      const x = block.rootX(item.at);
-      return `\\draw[${style}] ${point([x, block.y(item.bottom)])} -- ${point([x, block.y(item.top)])};`;
-    }
-    case "wedge": {
-      const x = block.rootX(item.at);
-      const base = block.y(item.base);
-      return `\\fill[${c}] ${point([x, block.y(item.tip)])} -- ${point([x.subtract(q(3)), base])} -- ${point([x.add(q(3)), base])} -- cycle;`;
-    }
-    case "label": {
-      const text = labelText(item, block);
-      if (text === undefined) return undefined;
-      const rotate =
-        item.rotate === undefined ? "" : `,rotate=${fmt(exact(item.rotate) as Rational)}`;
-      return `\\node[anchor=${item.anchor as string}${rotate},text=${c}] at ${point(labelPoint(item, block))} {${escapeTex(text)}};`;
-    }
-    default:
-      return undefined;
   }
 }
 
-/** Write one block as TikZ text. */
-export function writeTikz(block: LosslessBlock, options: TikzOptions = {}): string {
-  const placed = page(block, options, true);
+/** Write placed drawings as TikZ. */
+export function writeTikz(placed: readonly Placed[], options_: TikzOptions = {}): string {
+  const { standalone = true, fontDirectory = "." } = options_;
+  const sheet = page(placed);
+  const scopes = sheet.drawings.map((item) => ({ item, descriptors: toDescriptors(item.drawing) }));
   const colours = new Set<string>();
-  colours.add(placed.block.block.background as string);
-  for (const item of placed.block.primitives) colours.add(item.colour as string);
+  for (const { descriptors } of scopes) {
+    for (const descriptor of descriptors) {
+      for (const [name, value] of descriptor.attrs) {
+        if ((name === "fill" || name === "stroke") && isColour(value)) colours.add(value.slice(1));
+      }
+    }
+  }
   const lines = [
-    "\\begin{tikzpicture}[x=1pt,y=1pt,line width=0.8pt,inner sep=2pt,font=\\sffamily\\fontsize{7}{8.4}\\selectfont]",
-    ...[...colours]
-      .map((colour) => colour.slice(1))
-      .sort()
-      .map((hex) => `\\definecolor{ts${hex}}{HTML}{${hex}}`),
+    "\\begin{tikzpicture}[x=1pt,y=1pt,miter limit=4,font=\\sffamily]",
+    ...[...colours].sort().map((digits) => `\\definecolor{ts${digits}}{HTML}{${digits}}`),
   ];
-  const current = placed.block;
-  lines.push(
-    `\\fill[${colourName(current.block.background as string)}] (0,${fmt(current.bottom)}) rectangle (${fmt(placed.width)},${fmt(current.top)});`,
-  );
-  for (const item of current.primitives) {
-    const line = command(item, current);
-    if (line !== undefined) lines.push(line);
+  for (const { item, descriptors } of scopes) {
+    const y = sheet.height - item.pageY - item.drawing.height * item.zoom;
+    const scale = item.zoom === 1 ? "" : `,scale=${formatNumber(item.zoom)},transform shape`;
+    lines.push(
+      `\\begin{scope}[shift={(${formatNumber(item.pageX)},${formatNumber(y)})}${scale}]`,
+      ...descriptors.map((descriptor) => command(descriptor, item.drawing.height)),
+      "\\end{scope}",
+    );
   }
   lines.push("\\end{tikzpicture}");
-  const standalone = options.standalone ?? true;
-  return `${[
-    ...(standalone ? PREAMBLE : []),
-    ...lines,
-    ...(standalone ? ["\\end{document}"] : []),
-  ].join("\n")}\n`;
+  const body = standalone
+    ? [
+        "\\documentclass{standalone}",
+        "\\usepackage{fontspec}",
+        `\\setsansfont{DejaVuSans.ttf}[Path=${fontDirectory}/,Kerning=Off,Ligatures={TeXOff,NoCommon}]`,
+        "\\usepackage{tikz}",
+        "\\begin{document}",
+        ...lines,
+        "\\end{document}",
+      ]
+    : lines;
+  return `${body.join("\n")}\n`;
 }

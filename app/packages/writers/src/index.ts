@@ -1,15 +1,24 @@
 /**
- * @timetoalign/tilie-writers: SVG and TikZ text from a geometry.
+ * @timetoalign/tilie-writers: SVG and TikZ text from drawings.
  *
- * Both writers implement the page, number formatting and output profiles of
- * the timeskeleton geometry specification (`docs/geometry.md`), so another
- * implementation of it writes the same bytes.
+ * `toDescriptors`, `writeSvg` and `writeTikz` implement the element
+ * descriptors, the page, the number format and the two output profiles of
+ * timeskeleton's drawing specification (`docs/drawing.md`, section 7), so
+ * another implementation of it writes the same bytes.
  */
 
 export const name = "@timetoalign/tilie-writers" as const;
 
-export type { PageOptions } from "./page.ts";
-export { formatNumber } from "./page.ts";
-export { writeBlockSvg, writeSvg } from "./svg.ts";
+export type {
+  AttributeValue,
+  Descriptor,
+  PathCommand,
+  Point,
+  Tag,
+} from "./descriptors.ts";
+export { toDescriptors } from "./descriptors.ts";
+export type { OnPage, Page, Placed } from "./page.ts";
+export { formatNumber, MARGIN, page } from "./page.ts";
+export { attributeText, descriptorSvg, writeSvg } from "./svg.ts";
 export type { TikzOptions } from "./tikz.ts";
 export { writeTikz } from "./tikz.ts";

@@ -1,266 +1,227 @@
-/**
- * The cascade: one example per rank of the specification, the container
- * lists, and properties over arbitrary rule lists against a reference that
- * reads the specification directly.
- */
-
-import type { StyleRule } from "@timetoalign/timeskeleton";
-import fc from "fast-check";
+import type { Graphical, Selector } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
 import {
-  type DrawnElement,
-  defaultStyle,
-  resolveStyle,
-  type ScopedRule,
-  scopedRules,
+  Cascade,
+  DEFAULT_LAYER,
+  DEFAULT_PLACEMENT,
+  draw,
+  type ElementKey,
+  INITIAL_STYLE,
 } from "../src/index.ts";
+import { build, child, drawFixture, element, load, metrics } from "./support.ts";
 
-const wedge: DrawnElement = {
-  element: "wedge",
-  id: "a/start",
+// A child `c` of a root `r`: the key of its line.
+const ancestry = new Map<string, readonly string[]>([
+  ["r", ["r"]],
+  ["c", ["r", "c"]],
+]);
+const key: ElementKey = {
+  type: "child",
+  address: "c",
+  timeline: "c",
+  domain: "logical",
+  modality: "continuous",
+  class: "ContinuousLogicalTimeline",
+};
+const ALL: Selector = {
+  ids: ["c"],
+  within: "c",
+  class: "ContinuousLogicalTimeline",
+  element: "child",
   domain: "logical",
   modality: "continuous",
 };
 
-const at = (depth: number, rule: StyleRule, level = 2): ScopedRule => ({ ...rule, level, depth });
-
-describe("defaults", () => {
-  it("follow the table of the specification", () => {
-    expect(defaultStyle(wedge)).toEqual({
-      colour: "#00CC00",
-      line_pattern: "solid",
-      visible: true,
-      side: "below",
-      show_length: false,
-      show_projected_coordinates: false,
-    });
-    const discrete: DrawnElement = {
-      ...wedge,
-      element: "child",
-      domain: "physical",
-      modality: "discrete",
-    };
-    expect(defaultStyle(discrete)).toMatchObject({
-      colour: "#0050EF",
-      line_pattern: "dotted",
-      side: "above",
-    });
-    expect(defaultStyle({ ...wedge, element: "label", domain: "graphical" })).toMatchObject({
-      colour: "#000000",
-      side: "above",
-    });
-    expect(defaultStyle({ ...wedge, element: "jump" })).toMatchObject({ line_pattern: "dotted" });
-    expect(defaultStyle({ ...wedge, element: "break" })).toMatchObject({
-      line_pattern: "solid",
-      side: "below",
-    });
-    expect(defaultStyle({ ...wedge, element: "map", modality: "discrete" })).toMatchObject({
-      line_pattern: "solid",
-      side: "above",
-    });
-  });
-});
-
-describe("one rank after another", () => {
-  const colour = (rules: ScopedRule[]) => resolveStyle(rules, wedge).colour;
-
-  it("lets a rule naming the element's id win over every container", () => {
-    const deep = at(3, {
-      select: { element: "wedge", domain: "logical" },
-      set: { colour: "#000001" },
-    });
-    const id = at(0, { select: { ids: ["x", "a/start"] }, set: { colour: "#000002" } });
-    expect(colour([id, deep])).toBe("#000002");
-  });
-
-  it("lets the nearest container win over the ones enclosing it", () => {
-    const outer = at(1, {
-      select: { element: "wedge", domain: "logical" },
-      set: { colour: "#000001" },
-    });
-    const inner = at(2, { select: {}, set: { colour: "#000002" } });
-    expect(colour([outer, inner])).toBe("#000002");
-    expect(colour([inner, outer])).toBe("#000002");
-  });
-
-  it("lets the element type win over domain and modality within one container", () => {
-    const named = at(1, { select: { element: "wedge" }, set: { colour: "#000001" } });
-    const both = at(1, {
-      select: { domain: "logical", modality: "continuous" },
-      set: { colour: "#000002" },
-    });
-    expect(colour([named, both])).toBe("#000001");
-    expect(colour([both, named])).toBe("#000001");
-  });
-
-  it("lets more named members win at the same level", () => {
-    const type = at(1, { select: { element: "wedge" }, set: { colour: "#000001" } });
-    const typeDomain = at(1, {
-      select: { element: "wedge", domain: "logical" },
-      set: { colour: "#000002" },
-    });
-    expect(colour([typeDomain, type])).toBe("#000002");
-    const domain = at(1, { select: { domain: "logical" }, set: { colour: "#000003" } });
-    const domainModality = at(1, {
-      select: { domain: "logical", modality: "continuous" },
-      set: { colour: "#000004" },
-    });
-    expect(colour([domainModality, domain])).toBe("#000004");
-    const empty = at(1, { select: {}, set: { colour: "#000005" } });
-    expect(colour([domain, empty])).toBe("#000003");
-  });
-
-  it("gives a tie to the later rule", () => {
-    const first = at(1, { select: { element: "wedge" }, set: { colour: "#000001" } });
-    const second = at(1, { select: { element: "wedge" }, set: { colour: "#000002" } });
-    expect(colour([first, second])).toBe("#000002");
-    expect(colour([second, first])).toBe("#000001");
-  });
-
-  it("resolves each property on its own, falling through to outer containers", () => {
-    const outer = at(1, {
-      select: { element: "wedge" },
-      set: { side: "above", colour: "#000001" },
-    });
-    const inner = at(2, { select: {}, set: { colour: "#000002" } });
-    expect(resolveStyle([outer, inner], wedge)).toMatchObject({ colour: "#000002", side: "above" });
-  });
-
-  it("ignores a rule that does not match every member", () => {
-    expect(
-      colour([
-        at(2, { select: { element: "wedge", modality: "discrete" }, set: { colour: "#000001" } }),
-      ]),
-    ).toBe("#00CC00");
-  });
-
-  it("lets a block override beat a manifest id rule", () => {
-    const manifest = at(0, { select: { ids: ["a/start"] }, set: { colour: "#000001" } });
-    const override = at(0, { select: {}, set: { colour: "#000002" } }, 3);
-    expect(colour([manifest, override])).toBe("#000002");
-  });
-
-  it("lets a manifest type rule beat a defaults rule", () => {
-    const defaults = at(0, { select: { ids: ["a/start"] }, set: { colour: "#000001" } }, 1);
-    const manifest = at(0, { select: { element: "wedge" }, set: { colour: "#000002" } });
-    expect(colour([defaults, manifest])).toBe("#000002");
-  });
-
-  it("lets options defaults beat only the built-in defaults", () => {
-    const defaults = at(0, { select: {}, set: { colour: "#000001" } }, 1);
-    expect(colour([defaults])).toBe("#000001");
-    expect(colour([])).toBe("#00CC00");
-  });
-});
-
-describe("scopedRules", () => {
-  it("lists the manifest's rules, then each container on the path, with their depths", () => {
-    const rule = (colour: string): StyleRule => ({ select: {}, set: { colour } });
-    const graphical = {
-      styles: [rule("#000001")],
-      timelines: { r: [rule("#000002")], c: [rule("#000003")], other: [rule("#000004")] },
-    };
-    expect(
-      scopedRules(graphical, ["r", "b", "c"]).map((item) => [item.set.colour, item.depth]),
-    ).toEqual([
-      ["#000001", 0],
-      ["#000002", 1],
-      ["#000003", 3],
-    ]);
-    expect(scopedRules(undefined, ["r"])).toEqual([]);
-  });
-});
-
-const TYPES = ["timeline", "child", "map", "region", "break", "jump", "wedge", "label"] as const;
-
-const elementArbitrary: fc.Arbitrary<DrawnElement> = fc.record({
-  element: fc.constantFrom(...TYPES),
-  id: fc.constantFrom("a", "b", "a/start"),
-  domain: fc.constantFrom("graphical", "logical", "physical"),
-  modality: fc.constantFrom("continuous", "discrete"),
-});
-
-const ruleArbitrary: fc.Arbitrary<ScopedRule> = fc.record({
-  level: fc.integer({ min: 1, max: 3 }),
-  depth: fc.integer({ min: 0, max: 3 }),
-  select: fc.record(
-    {
-      element: fc.constantFrom(...TYPES),
-      domain: fc.constantFrom("graphical", "logical", "physical"),
-      modality: fc.constantFrom("continuous", "discrete"),
-      ids: fc.subarray(["a", "b", "a/start"], { minLength: 1 }),
-    },
-    { requiredKeys: [] },
-  ),
-  set: fc.record(
-    {
-      colour: fc.constantFrom("#111111", "#222222", "#333333"),
-      visible: fc.boolean(),
-      side: fc.constantFrom("above", "below"),
-    },
-    { requiredKeys: [] },
-  ),
-}) as fc.Arbitrary<ScopedRule>;
-
-type Property = "colour" | "visible" | "side";
-
-/**
- * The reference, read from the specification (section 2.5) without the
- * implementation's helpers: among the matching rules that set the property,
- * the greatest (level, names the id, container depth, names the type, number of
- * domain and modality named), the later of equals; else the default.
- */
-function reference(rules: readonly ScopedRule[], element: DrawnElement, property: Property) {
-  let best: ScopedRule | undefined;
-  let bestKey: number[] = [];
-  for (const rule of rules) {
-    const { select } = rule;
-    const matching =
-      rule.set[property] !== undefined &&
-      (select.element === undefined || select.element === element.element) &&
-      (select.domain === undefined || select.domain === element.domain) &&
-      (select.modality === undefined || select.modality === element.modality) &&
-      (select.ids === undefined || select.ids.includes(element.id));
-    if (!matching) continue;
-    const key = [
-      rule.level,
-      select.ids === undefined ? 0 : 1,
-      rule.depth,
-      select.element === undefined ? 0 : 1,
-      Number(select.domain !== undefined) + Number(select.modality !== undefined),
-    ];
-    const index = key.findIndex((value, position) => value !== bestKey[position]);
-    if (best === undefined || index === -1 || (key[index] as number) > (bestKey[index] as number)) {
-      best = rule;
-      bestKey = key;
-    }
-  }
-  return best === undefined ? defaultStyle(element)[property] : best.set[property];
+function stroke(layers: Graphical[]): string {
+  return new Cascade(layers, ancestry).resolve(key, undefined).stroke;
 }
+const statement = (select: Selector, colour: string) => ({ select, set: { stroke: colour } });
+const winnerFirst = (winner: Selector, loser: Selector): Graphical[] => [
+  { statements: [statement(winner, "#111111"), statement(loser, "#222222")] },
+];
 
-/** Rules in the order scopedRules lists them: by container depth, each list in its order. */
-const ordered = (rules: ScopedRule[]) => [...rules].sort((left, right) => left.depth - right.depth);
-
-describe("the cascade, by properties", () => {
-  it("equals the reference reading for every property", () => {
-    fc.assert(
-      fc.property(fc.array(ruleArbitrary, { maxLength: 8 }), elementArbitrary, (rules, element) => {
-        const sorted = ordered(rules);
-        const style = resolveStyle(sorted, element);
-        for (const property of ["colour", "visible", "side"] as const) {
-          expect(style[property]).toEqual(reference(sorted, element, property));
-        }
-      }),
-    );
+describe("rank", () => {
+  it("1. a later layer outranks every statement of an earlier one", () => {
+    expect(
+      stroke([
+        { statements: [statement(ALL, "#222222")] },
+        { statements: [statement({}, "#111111")] },
+      ]),
+    ).toBe("#111111");
   });
 
-  it("ignores a rule that matches nothing", () => {
-    fc.assert(
-      fc.property(fc.array(ruleArbitrary, { maxLength: 8 }), elementArbitrary, (rules, element) => {
-        const none = at(3, { select: { ids: ["no such element"] }, set: { colour: "#444444" } });
-        const sorted = ordered(rules);
-        expect(resolveStyle([...sorted, none], element)).toEqual(resolveStyle(sorted, element));
-      }),
+  it("2. ids outrank within, class, element, domain and modality", () => {
+    const { ids: _, ...rest } = ALL;
+    expect(stroke(winnerFirst({ ids: ["c"] }, rest))).toBe("#111111");
+  });
+
+  it("3. a deeper within outranks a shallower one with every lower member", () => {
+    const { ids: _, within: __, ...rest } = ALL;
+    expect(stroke(winnerFirst({ within: "c" }, { ...rest, within: "r" }))).toBe("#111111");
+  });
+
+  it("4. class outranks element, domain and modality", () => {
+    expect(
+      stroke(
+        winnerFirst(
+          { class: "ContinuousLogicalTimeline" },
+          { element: "child", domain: "logical", modality: "continuous" },
+        ),
+      ),
+    ).toBe("#111111");
+  });
+
+  it("5. element outranks domain and modality", () => {
+    expect(
+      stroke(winnerFirst({ element: "child" }, { domain: "logical", modality: "continuous" })),
+    ).toBe("#111111");
+  });
+
+  it("6. more of domain and modality outranks fewer", () => {
+    expect(
+      stroke(winnerFirst({ domain: "logical", modality: "continuous" }, { domain: "logical" })),
+    ).toBe("#111111");
+    expect(stroke(winnerFirst({ modality: "continuous" }, {}))).toBe("#111111");
+  });
+
+  it("7. of two equal statements the later wins", () => {
+    expect(stroke(winnerFirst({ element: "child" }, { element: "child" }))).toBe("#222222");
+  });
+
+  it("sets a named style, and nothing for a missing name", () => {
+    const layer: Graphical = {
+      styles: { mine: { stroke: "#333333" } },
+      statements: [
+        { select: {}, set: { stroke: "#111111" } },
+        { select: { element: "child" }, set: "mine" },
+        { select: { ids: ["c"] }, set: "missing" },
+      ],
+    };
+    expect(stroke([layer])).toBe("#333333");
+  });
+
+  it("matches nothing with a within outside the manifest", () => {
+    expect(stroke([{ statements: [statement({ within: "elsewhere" }, "#111111")] }])).toBe("none");
+  });
+
+  it("never matches the block with domain, class, ids or within", () => {
+    const block: ElementKey = {
+      type: "block",
+      address: null,
+      timeline: null,
+      domain: null,
+      modality: null,
+      class: null,
+    };
+    const cascade = new Cascade(
+      [
+        {
+          statements: [
+            statement({ domain: "logical" }, "#111111"),
+            statement({ ids: ["c"] }, "#111111"),
+            statement({ within: "r" }, "#111111"),
+            statement({ class: "ContinuousLogicalTimeline" }, "#111111"),
+          ],
+        },
+      ],
+      ancestry,
     );
+    expect(cascade.resolve(block, undefined).stroke).toBe("none");
+  });
+});
+
+describe("inheritance", () => {
+  it("gives every element the initial values without layers", () => {
+    const drawing = draw(load("with_region"), DEFAULT_PLACEMENT, [], metrics);
+    for (const item of drawing.elements)
+      expect(item.style, String(item.address)).toEqual(INITIAL_STYLE);
+  });
+
+  it("inherits fill from the block, never opacity or rx", () => {
+    const drawing = draw(
+      load("bare"),
+      DEFAULT_PLACEMENT,
+      [
+        {
+          statements: [
+            { select: { element: "block" }, set: { fill: "#111111", opacity: 0.5, rx: 4 } },
+          ],
+        },
+      ],
+      metrics,
+    );
+    expect(element(drawing, null).style).toMatchObject({ fill: "#111111", opacity: 0.5, rx: 4 });
+    expect(element(drawing, "bare").style).toMatchObject({ fill: "#111111", opacity: 1, rx: 0 });
+  });
+
+  it("passes a root's stroke to its child and grandchild", () => {
+    const drawing = draw(
+      load("nested"),
+      DEFAULT_PLACEMENT,
+      [{ statements: [{ select: { ids: ["tl:24"] }, set: { stroke: "#123456" } }] }],
+      metrics,
+    );
+    expect(element(drawing, "tl:23").style.stroke).toBe("#123456");
+    expect(element(drawing, "tl:22").style.stroke).toBe("#123456");
+  });
+
+  it("passes a timeline's stroke width to its map and the map's name", () => {
+    const drawing = draw(
+      load("map"),
+      DEFAULT_PLACEMENT,
+      [{ statements: [{ select: { ids: ["melody"] }, set: { "stroke-width": 7 } }] }],
+      metrics,
+    );
+    expect(element(drawing, "melody/map/tempo").style["stroke-width"]).toBe(7);
+    expect(element(drawing, "melody/map/tempo/name").style["stroke-width"]).toBe(7);
+  });
+
+  it("passes a region's font size to its label", () => {
+    const drawing = draw(
+      load("with_region"),
+      DEFAULT_PLACEMENT,
+      [{ statements: [{ select: { element: "region" }, set: { "font-size": 13 } }] }],
+      metrics,
+    );
+    expect(element(drawing, "tl:19/region/0/label").style["font-size"]).toBe(13);
+  });
+});
+
+describe("maps by target unit", () => {
+  const name = "conversion_maps__maps_quarters";
+  const map = (id: string) => `maps:quarters/map/map:${id}`;
+
+  it("draws a map in the domain and modality it converts to", () => {
+    const drawing = drawFixture(name);
+    expect(element(drawing, map("LinearMap_1")).style).toMatchObject({
+      stroke: "#0050EF",
+      "stroke-dasharray": "none",
+    });
+    expect(element(drawing, map("QuartersToTicks_1")).style).toMatchObject({
+      stroke: "#00CC00",
+      "stroke-dasharray": "3 3",
+    });
+    expect(element(drawing, map("QuartersToFloatingMeasures_1")).style).toMatchObject({
+      stroke: "#00CC00",
+      "stroke-dasharray": "none",
+    });
+  });
+
+  it("lets a map with a null target inherit its timeline's stroke", () => {
+    const drawing = drawFixture(name, [
+      { statements: [{ select: { ids: ["maps:quarters"] }, set: { stroke: "#ABCDEF" } }] },
+    ]);
+    expect(element(drawing, map("FloorMap_1")).style.stroke).toBe("#ABCDEF");
+    expect(element(drawing, map("LinearMap_1")).style.stroke).toBe("#0050EF");
+  });
+
+  it("gives a map its type as class", () => {
+    const drawing = drawFixture(name, [
+      { statements: [{ select: { class: "FloorMap" }, set: { stroke: "#FEDCBA" } }] },
+    ]);
+    const reached = drawing.elements
+      .filter((item) => item.type === "map" && item.style.stroke === "#FEDCBA")
+      .map((item) => item.address);
+    expect(reached).toEqual([map("FloorMap_1")]);
   });
 });

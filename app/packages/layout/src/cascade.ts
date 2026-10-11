@@ -1,108 +1,115 @@
 /**
- * The style cascade of the TimeSkeleton geometry specification
- * (`docs/geometry.md` in timeskeleton, sections 2 and 4).
- *
- * Style rules are held by containers: the manifest, and every timeline with
- * its subtree. A rule selects elements of its container by type, domain,
- * modality or id and sets display properties on them. Each property is
- * resolved on its own: among the matching rules that set it, the highest
- * level wins (block overrides 3, the manifest's own rules 2, option defaults
- * 1), then a rule naming the element's id, then the nearest container, then
- * a rule naming the element type, then the one naming more of domain and
- * modality, then the later rule; a property no rule sets takes its default.
- * `visible: false` is the filter.
+ * Selectors and the cascade of the `graphical` layers
+ * (`docs/drawing.md` in timeskeleton, sections 2.1 to 2.5).
  */
 
 import type {
+  Declaration,
   ElementType,
   Graphical,
-  LinePattern,
-  Side,
-  StyleProperties,
-  StyleRule,
-  StyleSelector,
+  Selector,
+  TimeUnit,
 } from "@timetoalign/timeskeleton";
 
 export type Domain = "graphical" | "logical" | "physical";
 export type Modality = "continuous" | "discrete";
+export type Side = "above" | "below";
 
-/** What a selector can match a drawn element by. */
-export interface DrawnElement {
-  readonly element: ElementType;
-  readonly id: string;
-  readonly domain: Domain;
-  readonly modality: Modality;
-}
-
-/** A rule with the depth of its container: 0 for the manifest, then its timelines. */
-export interface ScopedRule extends StyleRule {
-  /** Cascade level: defaults 1, manifest 2, block overrides 3. */
-  readonly level: number;
-  readonly depth: number;
-}
-
-/** Every style property, resolved. */
+/** The cascaded value of every property on one element. */
 export interface Style {
-  readonly colour: string;
-  readonly line_pattern: LinePattern;
-  readonly visible: boolean;
+  readonly stroke: string;
+  readonly "stroke-width": number;
+  readonly "stroke-dasharray": string;
+  readonly fill: string;
+  readonly opacity: number;
+  readonly "font-size": number;
+  readonly rx: number;
+  readonly display: "inline" | "none";
   readonly side: Side;
-  readonly show_length: boolean;
-  readonly show_projected_coordinates: boolean;
+  readonly content: string;
+  readonly "max-width": number | "none";
 }
 
-const DOMAIN_COLOURS: Readonly<Record<Domain, string>> = {
-  graphical: "#FF0000",
-  logical: "#00CC00",
-  physical: "#0050EF",
+type Property = keyof Style;
+
+export const INITIAL_STYLE: Style = {
+  stroke: "none",
+  "stroke-width": 1,
+  "stroke-dasharray": "none",
+  fill: "none",
+  opacity: 1,
+  "font-size": 9,
+  rx: 0,
+  display: "inline",
+  side: "below",
+  content: "none",
+  "max-width": "none",
 };
 
-/** The style an element has when no rule sets anything on it. */
-export function defaultStyle(element: DrawnElement): Style {
-  const type = element.element;
-  const line = type === "timeline" || type === "child";
-  return {
-    colour: type === "label" ? "#000000" : DOMAIN_COLOURS[element.domain],
-    line_pattern: type === "jump" || (line && element.modality === "discrete") ? "dotted" : "solid",
-    visible: true,
-    side: type === "child" || type === "map" || type === "label" ? "above" : "below",
-    show_length: false,
-    show_projected_coordinates: false,
-  };
+const INHERITED: ReadonlySet<Property> = new Set([
+  "stroke",
+  "stroke-width",
+  "stroke-dasharray",
+  "fill",
+  "font-size",
+]);
+
+const PROPERTIES = Object.keys(INITIAL_STYLE) as Property[];
+
+/** What a selector can test on an element. */
+export interface ElementKey {
+  readonly type: ElementType;
+  /** `null` for the block. */
+  readonly address: string | null;
+  /** The timeline it belongs to; `null` for the block. */
+  readonly timeline: string | null;
+  readonly domain: Domain | null;
+  readonly modality: Modality | null;
+  readonly class: string | null;
 }
 
-/** Whether an element matches every member a selector has. */
-export function matches(selector: StyleSelector, element: DrawnElement): boolean {
-  return (
-    (selector.element === undefined || selector.element === element.element) &&
-    (selector.domain === undefined || selector.domain === element.domain) &&
-    (selector.modality === undefined || selector.modality === element.modality) &&
-    (selector.ids === undefined || selector.ids.includes(element.id))
-  );
+const UNIT_DOMAINS: Readonly<Partial<Record<TimeUnit, readonly [Domain, Modality]>>> = {
+  floating_measures: ["logical", "continuous"],
+  whole_note: ["logical", "continuous"],
+  quarters: ["logical", "continuous"],
+  ticks: ["logical", "discrete"],
+  milliseconds: ["physical", "continuous"],
+  seconds: ["physical", "continuous"],
+  minutes: ["physical", "continuous"],
+  samples: ["physical", "discrete"],
+  frames: ["physical", "discrete"],
+  pixels: ["graphical", "discrete"],
+  meters: ["graphical", "continuous"],
+  centimeters: ["graphical", "continuous"],
+  millimeters: ["graphical", "continuous"],
+  inches: ["graphical", "continuous"],
+  points: ["graphical", "continuous"],
+};
+
+/** The domain and modality of a map's `target_unit`, or `null` for none. */
+export function unitDomain(unit: string | null | undefined): readonly [Domain, Modality] | null {
+  if (unit === null || unit === undefined || !Object.hasOwn(UNIT_DOMAINS, unit)) return null;
+  return UNIT_DOMAINS[unit as TimeUnit] ?? null;
 }
 
-/**
- * The rank of a rule: its level (block overrides 3, the manifest's own rules
- * 2, option defaults 1), whether it names ids, the depth of its container,
- * whether it names the element type, and how many of domain and modality it
- * names; compared in that order.
- */
-export function rank(rule: ScopedRule): readonly [number, number, number, number, number] {
-  const { select } = rule;
-  return [
-    rule.level,
-    select.ids === undefined ? 0 : 1,
-    rule.depth,
-    select.element === undefined ? 0 : 1,
-    (select.domain === undefined ? 0 : 1) + (select.modality === undefined ? 0 : 1),
-  ];
+/** The domain and modality of a timeline class. */
+export function classDomain(name: string): readonly [Domain, Modality] {
+  const domain: Domain = name.includes("Graphical")
+    ? "graphical"
+    : name.includes("Physical")
+      ? "physical"
+      : "logical";
+  return [domain, name.startsWith("Discrete") ? "discrete" : "continuous"];
 }
 
-function compareRanks(
-  left: readonly [number, number, number, number, number],
-  right: readonly [number, number, number, number, number],
-): number {
-  for (let index = 0; index < 5; index += 1) {
+interface Ranked {
+  readonly select: Selector;
+  readonly set: Declaration;
+  readonly rank: readonly number[];
+}
+
+function compareRanks(left: readonly number[], right: readonly number[]): number {
+  for (let index = 0; index < left.length; index += 1) {
     const difference = (left[index] as number) - (right[index] as number);
     if (difference !== 0) return difference;
   }
@@ -110,56 +117,83 @@ function compareRanks(
 }
 
 /**
- * The rules that apply to the elements of one timeline: the manifest's
- * (depth 0), then those of each container on the path from the root down to
- * the timeline (`ancestry`, root first; depth 1, 2, ...), each list in order.
+ * The statements of every layer, lowest rank first. `ancestry` maps every
+ * timeline id to the ids from the root down to it, so its length is the
+ * timeline's depth (the root 1).
  */
-export function scopedRules(
-  graphical: Graphical | undefined,
-  ancestry: readonly string[],
-  level = 2,
-): ScopedRule[] {
-  const rules: ScopedRule[] = (graphical?.styles ?? []).map((rule) => ({
-    ...rule,
-    level,
-    depth: 0,
-  }));
-  ancestry.forEach((id, index) => {
-    const own = graphical?.timelines?.[id];
-    if (own !== undefined) {
-      for (const rule of own) rules.push({ ...rule, level, depth: index + 1 });
+export class Cascade {
+  readonly #statements: readonly Ranked[];
+  readonly #ancestry: ReadonlyMap<string, readonly string[]>;
+
+  constructor(
+    layers: readonly (Graphical | undefined)[],
+    ancestry: ReadonlyMap<string, readonly string[]>,
+  ) {
+    this.#ancestry = ancestry;
+    const ranked: Ranked[] = [];
+    layers.forEach((layer, level) => {
+      (layer?.statements ?? []).forEach((statement, position) => {
+        const set =
+          typeof statement.set === "string"
+            ? layer?.styles !== undefined && Object.hasOwn(layer.styles, statement.set)
+              ? layer.styles[statement.set]
+              : undefined
+            : statement.set;
+        // A style name the layer's `styles` does not hold sets nothing.
+        if (set === undefined) return;
+        const select = statement.select;
+        const within = select.within === undefined ? 0 : (ancestry.get(select.within)?.length ?? 0);
+        ranked.push({
+          select,
+          set,
+          rank: [
+            level,
+            select.ids === undefined ? 0 : 1,
+            within,
+            select.class === undefined ? 0 : 1,
+            select.element === undefined ? 0 : 1,
+            (select.domain === undefined ? 0 : 1) + (select.modality === undefined ? 0 : 1),
+            position,
+          ],
+        });
+      });
+    });
+    this.#statements = ranked.sort((a, b) => compareRanks(a.rank, b.rank));
+  }
+
+  /** Whether an element matches every member present in a selector. */
+  matches(select: Selector, element: ElementKey): boolean {
+    if (select.element !== undefined && select.element !== element.type) return false;
+    if (select.ids !== undefined) {
+      if (element.address === null || !select.ids.includes(element.address)) return false;
     }
-  });
-  return rules;
-}
+    if (select.domain !== undefined && select.domain !== element.domain) return false;
+    if (select.modality !== undefined && select.modality !== element.modality) return false;
+    if (select.class !== undefined && select.class !== element.class) return false;
+    if (select.within !== undefined) {
+      if (element.timeline === null) return false;
+      if (!(this.#ancestry.get(element.timeline) ?? []).includes(select.within)) return false;
+    }
+    return true;
+  }
 
-const PROPERTIES = [
-  "colour",
-  "line_pattern",
-  "visible",
-  "side",
-  "show_length",
-  "show_projected_coordinates",
-] as const satisfies readonly (keyof StyleProperties & keyof Style)[];
-
-/**
- * The style of an element under the rules of its containers, as
- * `scopedRules` lists them: within one container in list order, so the later
- * of two rules of equal rank wins.
- */
-export function resolveStyle(rules: readonly ScopedRule[], element: DrawnElement): Style {
-  const style: Record<string, unknown> = { ...defaultStyle(element) };
-  for (const property of PROPERTIES) {
-    let best: readonly [number, number, number, number, number] | undefined;
-    for (const rule of rules) {
-      const value = rule.set[property];
-      if (value === undefined || !matches(rule.select, element)) continue;
-      const current = rank(rule);
-      if (best === undefined || compareRanks(current, best) >= 0) {
-        best = current;
-        style[property] = value;
+  /** The cascaded style of an element whose parent in the tree has `parent` (none for the block). */
+  resolve(element: ElementKey, parent: Style | undefined): Style {
+    const set: Partial<Record<Property, unknown>> = {};
+    for (const statement of this.#statements) {
+      if (!this.matches(statement.select, element)) continue;
+      for (const property of PROPERTIES) {
+        if (Object.hasOwn(statement.set, property)) set[property] = statement.set[property];
       }
     }
+    const style: Record<string, unknown> = {};
+    for (const property of PROPERTIES) {
+      style[property] = Object.hasOwn(set, property)
+        ? set[property]
+        : INHERITED.has(property) && parent !== undefined
+          ? parent[property]
+          : INITIAL_STYLE[property];
+    }
+    return style as unknown as Style;
   }
-  return style as unknown as Style;
 }

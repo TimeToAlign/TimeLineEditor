@@ -2,12 +2,9 @@
 
 import {
   canonicalOrder,
-  declaredVersion,
+  completeStyles,
   dumps,
-  MigrationError,
-  migrate,
   parse,
-  SCHEMA_VERSION,
   SchemaValidationError,
   UnsupportedVersionError,
   validate,
@@ -54,25 +51,16 @@ export function loadManifest(text: string): Manifest | LoadError {
     }
     return refuse(problem(ErrorCode.invalidJson, (error as Error).message, []));
   }
-  let current = parsed;
-  if (declaredVersion(parsed) !== SCHEMA_VERSION) {
-    try {
-      current = migrate(parsed);
-    } catch (error) {
-      if (error instanceof MigrationError) {
-        return refuse(problem(ErrorCode.migrationFailed, error.detail, error.path));
-      }
-      if (error instanceof UnsupportedVersionError) {
-        return refuse(
-          problem(ErrorCode.schemaViolation, error.message, ["meta", "schema_version"]),
-        );
-      }
-      throw error;
-    }
-  }
-  const problems = manifestProblems(current);
+  const problems = manifestProblems(parsed);
   if (problems.length > 0) return refuse(...problems);
-  return canonicalOrder(current as Manifest);
+  const ordered = canonicalOrder(parsed as Manifest) as Manifest;
+  if (ordered.graphical === undefined) return ordered;
+  const { graphical, missing } = completeStyles(ordered.graphical);
+  if (missing.length > 0) {
+    const consoleLike = (globalThis as { console?: { warn(message: string): void } }).console;
+    consoleLike?.warn(`missing graphical styles: ${missing.join(", ")}`);
+  }
+  return { ...ordered, graphical };
 }
 
 export function saveManifest(manifest: Manifest): string {

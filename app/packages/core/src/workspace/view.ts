@@ -1,12 +1,19 @@
 /** The immutable plain-JavaScript workspace view and its checks. */
 
-import type { Colour, StyleRules } from "@timetoalign/timeskeleton";
+import type { Graphical } from "@timetoalign/timeskeleton";
 import type { Problem } from "../errors.ts";
 import { ErrorCode, problem } from "../errors.ts";
 import { manifestProblems } from "../manifest/io.ts";
 import { RECORD_ID } from "./ids.ts";
 import { isIndex } from "./order.ts";
-import type { BlockRecord, Margins, NameColumn, RecordId, WorkspaceRecord } from "./records.ts";
+import type {
+  BlockRecord,
+  Colour,
+  Margins,
+  NameColumn,
+  RecordId,
+  WorkspaceRecord,
+} from "./records.ts";
 
 export interface WorkspaceMeta {
   readonly format: "tilie-workspace";
@@ -24,7 +31,8 @@ export interface BlockDefaults {
 }
 
 export interface WorkspaceSettings {
-  readonly styles: StyleRules;
+  /** The application's style layer, between the defaults and a manifest's own. */
+  readonly styles: Graphical;
   readonly blockDefaults: BlockDefaults;
   readonly grid: { readonly size: number; readonly snap: boolean };
 }
@@ -36,7 +44,7 @@ export interface View {
 }
 
 export const DEFAULT_SETTINGS: WorkspaceSettings = {
-  styles: [],
+  styles: {},
   blockDefaults: {
     scale: 40,
     zoom: 1,

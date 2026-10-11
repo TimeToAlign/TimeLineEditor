@@ -1,6 +1,4 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
-import { parseJson } from "@timetoalign/timeskeleton";
+import { dumps, parseJson } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
 import type { BlockRecord, Command, TextRecord, View, WorkspaceRecord } from "../src/index.ts";
 import {
@@ -12,7 +10,7 @@ import {
   isCommandError,
   parseCommand,
 } from "../src/index.ts";
-import { deepFreeze, fixtureRoot, load } from "./support.ts";
+import { deepFreeze, load } from "./support.ts";
 
 const A = "0000000000";
 const B = "0000000001";
@@ -162,7 +160,7 @@ describe("workspace commands", () => {
       margins: { top: 16, right: 16, bottom: 16, left: 16 },
       background: null,
       nameColumn: { visible: true, width: [1, 4] },
-      overrides: [],
+      overrides: {},
     });
     expect(record(view, B)).toMatchObject({ index: "a1", x: 3, y: 4, scale: 50, zoom: 2 });
     expect(checkWorkspace(view)).toEqual([]);
@@ -180,7 +178,7 @@ describe("workspace commands", () => {
         margins: { top: 1, right: 2, bottom: 3, left: 4 },
         background: "#ABCDEF",
         nameColumn: { visible: false, width: [2, 5] },
-        overrides: [{ select: {}, set: { colour: "#123456" } }],
+        overrides: { statements: [{ select: {}, set: { stroke: "#123456" } }] },
       },
     });
     view = changed(view, { type: "setIndex", id: A, index: "a2" });
@@ -204,7 +202,7 @@ describe("workspace commands", () => {
       margins: { top: 1, right: 2, bottom: 3, left: 4 },
       background: "#ABCDEF",
       nameColumn: { visible: false, width: [2, 5] },
-      overrides: [{ select: {}, set: { colour: "#123456" } }],
+      overrides: { statements: [{ select: {}, set: { stroke: "#123456" } }] },
     });
     expect(record(view).manifest.timeline.name).toBe("Changed");
     expect(view.settings.blockDefaults.scale).toBe(64);
@@ -213,19 +211,21 @@ describe("workspace commands", () => {
     expect(checkWorkspace(view)).toEqual([]);
   });
 
-  it("accepts an older single-root manifest through createBlock", () => {
-    const before = readFileSync(
-      path.join(fixtureRoot, "migrations", "0.3.0-to-0.4.0", "before.json"),
-      "utf8",
+  it("refuses a manifest of another schema version through createBlock", () => {
+    const manifest = parseJson(
+      dumps(load("bare.json")).replace('"schema_version": "0.4.0"', '"schema_version": "0.0.0"'),
     );
-    const view = changed(empty(), {
+    const result = apply(empty(), {
       type: "createBlock",
       id: A,
-      manifest: parseJson(before) as never,
+      manifest: manifest as never,
       x: 0,
       y: 0,
     });
-    expect(record(view).manifest.meta.schema_version).toBe("0.4.0");
+    expect(isCommandError(result) ? { code: result.code, path: result.path } : result).toEqual({
+      code: "schema_violation",
+      path: ["records", A, "manifest", "meta", "schema_version"],
+    });
   });
 
   it("deletes descendants and leaves unrelated records", () => {

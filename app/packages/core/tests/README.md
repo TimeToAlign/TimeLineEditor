@@ -39,7 +39,13 @@ package does; the editor shell lists the names it links.
    and `0` for `1/3`. `fromFloat` gives a float's exact binary value, as
    Python's `Fraction(float)`: `0.1` is `3602879701896397/2^55`, `-2.5` is
    `-5/2`; it serves exact arithmetic on a float (a writer's page), never a
-   stored coordinate.
+   stored coordinate. `toFloat` rounds every rational directly to binary64,
+   including the subnormal range: `2^-1074` is the least positive double,
+   `2^-1075` ties to even zero, `3 × 2^-1075` ties to the even second
+   subnormal, and the corresponding negative values preserve their sign
+   (including negative zero). Values on both sides of a normal rounding
+   midpoint and the boundary between the largest subnormal and the least
+   normal are pinned exactly.
 4. **Coordinates mirror the library.** `coordinateFromDict` and
    `coordinateToDict` follow `timetoalign.core.retrieval.coordinate_from_dict`
    / `coordinate_to_dict` and `timetoalign.core.time.number_from_json` /
@@ -83,29 +89,28 @@ number for a safe integer or a float with a fractional part, a `bigint` beyond
 1. **Fixture round trip.** There are exactly 34 files in `fixtures/0.4.0/`.
    For each, `saveManifest(loadManifest(text))` equals `text` byte for byte.
    No skip, no normalization in the comparison.
-2. **Shared rejections.** For every case in `fixtures/rejections/*/`, the
+2. **Shared rejections.** For every case in `fixtures/rejections/0.4.0/`, the
    rejected manifest, written as JSON text, is refused by `loadManifest` with
    exactly one problem whose `path` equals the case's `path`.
-3. **Migration.** The only migration pair ending at 0.4.0 is `0.3.0-to-0.4.0`;
-   its `before.json` loads and saves as its `after.json` byte for byte. The
-   `split` fixture, a 0.3.0 envelope with two top-level timelines, is refused
-   with exactly `{code: "migration_failed", path: ["manifest", "timelines"]}`
-   and a message containing `split`. A 0.2.0 file whose measure has the class
-   `Bar` instead of `RegularMeasure` is refused with `migration_failed` at the
-   path of that class, `["manifest", "timelines", <id>, "measure_map",
-   "measures", 1, "class"]`.
-4. **Exact integers.** `discrete_logical.json` with its length value `480`
+3. **Schema version.** `bare.json` with `"schema_version": "0.4.0"` replaced
+   by `"0.0.0"` is refused with exactly one problem
+   `{code: "schema_violation", path: ["meta", "schema_version"]}`.
+4. **Missing styles are completed.** A graphical statement naming each of
+   two absent styles produces one warning naming both, and the loaded
+   manifest contains an empty declaration for each. The input object is not
+   mutated and a declaration already present is preserved.
+5. **Exact integers.** `discrete_logical.json` with its length value `480`
    replaced by `9007199254740993` (2^53 + 1) loads as the `bigint` and saves
    byte-identically; `continuous_logical.json` with its length Fraction
    numerator `12` replaced by `9007199254740993` loads as
    `[9007199254740993n, 2]` and saves byte-identically.
-5. **Save goes through the canonical order.** Markers named `"\u{1F3B5}"` (a
+6. **Save goes through the canonical order.** Markers named `"\u{1F3B5}"` (a
    surrogate pair in UTF-16) and `"～"`, set in that order by commands, are
    written with `"～"` first: code-point order, the reverse of JavaScript's
    default sort.
-6. **A child of another number type** (a float child of a Fraction parent,
+7. **A child of another number type** (a float child of a Fraction parent,
    length `4.0`) loads and saves byte for byte.
-7. **Invariant refusal lists every violation.** `with_region.json` changed to
+8. **Invariant refusal lists every violation.** `with_region.json` changed to
    break three invariants at once (an unlocked child, a conversion map whose
    `source_unit` is `seconds` on a `quarters` timeline, a duplicated region)
    is refused with exactly `child_not_locked`, `map_source_unit_mismatch` and
@@ -298,8 +303,9 @@ has exactly 24 entries in the exported order.
 Every command is checked for purity by deep-freezing the input view. Accepted
 commands pin the complete resulting records and settings: `createBlock` takes
 its defaults from `settings.blockDefaults` and an index after the greatest
-root index; a 0.3.0 single-root manifest is accepted through `createBlock` and
-stored with `meta.schema_version` `"0.4.0"`. Deleting a parent deletes every descendant and
+root index; a manifest declaring `"schema_version": "0.0.0"` is refused by
+`createBlock` with `schema_violation` at `["records", <id>, "manifest",
+"meta", "schema_version"]`. Deleting a parent deletes every descendant and
 no unrelated record. Refusals pin exact codes and paths: a malformed id
 (`invalid_record_id`), a non-finite `x` (`non_finite_number`), a zero `scale`
 (`non_positive_number`), a malformed index, an invalid member of

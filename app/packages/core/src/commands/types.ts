@@ -1,16 +1,10 @@
 /** Every serializable command understood by the workspace reducer. */
 
-import type {
-  Colour,
-  NumberType,
-  StyleRules,
-  TimelineClass,
-  TimeUnit,
-} from "@timetoalign/timeskeleton";
+import type { Graphical, NumberType, TimelineClass, TimeUnit } from "@timetoalign/timeskeleton";
 import type { JsonObject } from "../json.ts";
 import type { Break, ConversionMap, Jump, Manifest } from "../manifest/types.ts";
 import type { CoordinateDict } from "../number/coordinate.ts";
-import type { Margins, NameColumn, RecordId } from "../workspace/records.ts";
+import type { Colour, Margins, NameColumn, RecordId } from "../workspace/records.ts";
 import type { WorkspaceSettings } from "../workspace/view.ts";
 
 export type NewTimeline = {
@@ -155,7 +149,7 @@ export type SetRecordProperties = {
     readonly margins?: Margins;
     readonly background?: Colour | null;
     readonly nameColumn?: NameColumn;
-    readonly overrides?: StyleRules;
+    readonly overrides?: Graphical;
   };
 };
 export type SetIndex = {
@@ -170,7 +164,7 @@ export type DeleteRecords = {
 export type SetSettings = {
   readonly type: "setSettings";
   readonly settings: {
-    readonly styles?: StyleRules;
+    readonly styles?: Graphical;
     readonly blockDefaults?: Partial<WorkspaceSettings["blockDefaults"]>;
     readonly grid?: Partial<WorkspaceSettings["grid"]>;
   };

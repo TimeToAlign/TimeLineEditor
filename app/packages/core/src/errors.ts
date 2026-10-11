@@ -8,7 +8,6 @@ import type { PathSegment } from "./json.ts";
 export const ErrorCode = {
   invalidJson: "invalid_json",
   schemaViolation: "schema_violation",
-  migrationFailed: "migration_failed",
   invalidCommand: "invalid_command",
   invalidCoordinate: "invalid_coordinate",
   unitNotAllowed: "unit_not_allowed",

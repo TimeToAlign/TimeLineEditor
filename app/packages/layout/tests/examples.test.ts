@@ -1,294 +1,376 @@
-/**
- * Examples per component and per cascade level, each manifest built through
- * core's commands and each expected value derived from the specification.
- */
+/** Hand-derived drawings; every number is derived in tests/README.md. */
 
-import type { Manifest } from "@timetoalign/tilie-core";
-import { JsonFloat, validateGeometry } from "@timetoalign/timeskeleton";
+import { Rational } from "@timetoalign/tilie-core";
 import { describe, expect, it } from "vitest";
-import { layout } from "../src/index.ts";
-import { build, clt, quarters } from "./support.ts";
+import type { Drawing } from "../src/index.ts";
+import { drawFixture, element } from "./support.ts";
 
-type Item = Record<string, unknown>;
-
-function blockOf(manifest: Manifest, graphical: object = {}): Item {
-  const block = layout({ ...manifest, graphical } as Manifest);
-  validateGeometry({ meta: { schema_version: "0.3.0" }, blocks: [block] });
-  return block as unknown as Item;
+/** The elements without their styles, for comparison with hand-derived geometry. */
+function geometry(drawing: Drawing): unknown[] {
+  return drawing.elements.map(({ style: _, ...rest }) => rest);
 }
 
-const primitives = (block: Item): Item[] => block.primitives as Item[];
-const ofKind = (block: Item, kind: string): Item[] =>
-  primitives(block).filter((item) => item.kind === kind);
-const byId = (block: Item, id: string): Item | undefined =>
-  primitives(block).find((item) => item.id === id);
+const q = (value: number) => ({ unit: "quarters", value: Rational.of(value) });
+const wedges = (x0: number, xe: number, root: string) => [
+  { type: "wedge", address: `${root}/start`, x: x0, yt: 0, yb: 0 },
+  { type: "wedge", address: `${root}/end`, x: xe, yt: 0, yb: 0 },
+];
 
-describe("the frame", () => {
-  it("holds Fraction pairs for an int root: plot 6, names 6/4, frame 15/2", () => {
-    const block = blockOf(
-      build({
-        type: "createTimeline",
-        id: "t",
-        class: "DiscreteLogicalTimeline",
-        unit: "ticks",
-        number_type: "int",
-        length: { unit: "ticks", number_type: "int", value: 6 },
-      }),
-    );
-    expect(block.frame).toEqual({
-      length: [15, 2],
-      names: { offset: [0, 1], length: [3, 2] },
-      plot: { offset: [3, 2], length: [6, 1] },
-    });
-    expect(byId(block, "t")).toMatchObject({ start: 0, end: 6 });
-  });
-
-  it("holds floats, names 1.0, for a float root of length 0.0", () => {
-    const block = blockOf(
-      build({
-        type: "createTimeline",
-        id: "t",
-        class: "ContinuousPhysicalTimeline",
-        unit: "seconds",
-        number_type: "float",
-        length: { unit: "seconds", number_type: "float", value: new JsonFloat(0) },
-      }),
-    );
-    expect(block.frame).toEqual({
-      length: new JsonFloat(1),
-      names: { offset: new JsonFloat(0), length: new JsonFloat(1) },
-      plot: { offset: new JsonFloat(1), length: new JsonFloat(0) },
-    });
-    expect(block.placement).toMatchObject({ scalar: new JsonFloat(1), offset: new JsonFloat(0) });
-    expect(byId(block, "t")).toMatchObject({ start: new JsonFloat(0), end: new JsonFloat(0) });
-  });
-
-  it("uses an exact one-half name column", () => {
-    const manifest = build({ type: "createTimeline", ...clt("r", 8, "Root") });
-    const block = layout(manifest, [], { nameColumn: { width: [1, 2] } }) as unknown as Item;
-    expect(block.frame).toEqual({
-      length: [12, 1],
-      names: { offset: [0, 1], length: [4, 1] },
-      plot: { offset: [4, 1], length: [8, 1] },
-    });
-  });
-
-  it("uses no name column or name label when hidden", () => {
-    const manifest = build({ type: "createTimeline", ...clt("r", 8, "Root") });
-    const block = layout(manifest, [], { nameColumn: { visible: false } }) as unknown as Item;
-    expect(block.frame).toEqual({
-      length: [8, 1],
-      names: { offset: [0, 1], length: [0, 1] },
-      plot: { offset: [0, 1], length: [8, 1] },
-    });
-    expect(byId(block, "r/name")).toBeUndefined();
-  });
-});
-
-describe("mixed number types", () => {
-  it("turns a Fraction offset plus a float length into a float end", () => {
-    const block = blockOf(
-      build(
-        { type: "createTimeline", ...clt("r", 4) },
-        {
-          type: "addChild",
-          parent: "r",
-          offset: quarters(1, 2),
-          child: {
-            id: "f",
-            class: "ContinuousLogicalTimeline",
-            unit: "quarters",
-            number_type: "float",
-            length: { unit: "quarters", number_type: "float", value: 0.25 },
-          },
-        },
-      ),
-    );
-    expect(byId(block, "f")).toMatchObject({ start: [1, 2], end: 0.75 });
-    expect(byId(block, "f/end/label")).toMatchObject({ text: "0.25 ♩" });
-  });
-
-  it("writes a non-integral exact position on an int root as a pair", () => {
-    const block = blockOf(
-      build(
-        {
-          type: "createTimeline",
-          id: "r",
-          class: "ContinuousLogicalTimeline",
-          unit: "number",
-          number_type: "int",
-          length: { unit: "number", number_type: "int", value: 8 },
-        },
-        {
-          type: "addChild",
-          parent: "r",
-          offset: { unit: "number", number_type: "int", value: 3 },
-          child: {
-            id: "c",
-            class: "ContinuousLogicalTimeline",
-            unit: "number",
-            number_type: "fraction",
-            length: { unit: "number", number_type: "fraction", value: [1, 2] },
-          },
-        },
-      ),
-    );
-    expect(byId(block, "c")).toMatchObject({ start: 3, end: [7, 2] });
-    expect(byId(block, "c/end/label")).toMatchObject({ text: "1/2 number" });
-  });
-});
-
-describe("break labels", () => {
-  const breakManifest = (label: string | null) =>
-    build(
-      { type: "createTimeline", ...clt("r", 8) },
+describe("bare", () => {
+  const drawing = drawFixture("bare");
+  it("draws the hand-derived geometry", () => {
+    const x0 = 41.5771484375;
+    const xe = 441.5771484375;
+    const tips = wedges(x0, xe, "bare").map((item) => ({
+      ...item,
+      yt: 15.90234375,
+      yb: 28.90234375,
+    }));
+    expect(geometry(drawing)).toEqual([
+      { type: "block", address: null, width: 455.9931640625, height: 49.37890625 },
+      { type: "timeline", address: "bare", xs: x0, xe, y: 14.40234375 },
+      ...tips,
       {
-        type: "addBreak",
-        timeline: "r",
-        break: {
-          coordinate: quarters(4),
-          control_type: "fine",
-          condition: "always",
-          repeat_count: 1,
-          label,
-          name: null,
-          meta: {},
-        },
+        type: "name",
+        address: "bare/name",
+        x: 8,
+        baseline: 18.21044921875,
+        anchor: "start",
+        text: "Bare",
       },
-    );
-
-  it("sits at the bottom of the break by default and at the top above", () => {
-    expect(byId(blockOf(breakManifest("Fine")), "r/break/0/label")).toEqual({
-      kind: "label",
-      id: "r/break/0/label",
-      timeline: "r",
-      at: { space: "root", x: [4, 1], y: [-1, 2] },
-      anchor: "north",
-      text: "Fine",
-      colour: "#000000",
-    });
-    const above = blockOf(breakManifest("Fine"), {
-      styles: [{ select: { element: "break" }, set: { side: "above" } }],
-    });
-    expect(byId(above, "r/break/0/label")).toMatchObject({
-      at: { space: "root", x: [4, 1], y: [1, 2] },
-      anchor: "south",
-    });
+      {
+        type: "label",
+        address: "bare/start/label",
+        x: x0,
+        baseline: 39.25634765625,
+        anchor: "middle",
+        text: "0 ♩",
+        coordinate: q(0),
+      },
+      {
+        type: "label",
+        address: "bare/end/label",
+        x: xe,
+        baseline: 39.25634765625,
+        anchor: "middle",
+        text: "8 ♩",
+        coordinate: q(8),
+      },
+    ]);
+    expect(drawing.width).toBe(455.9931640625);
+    expect(drawing.height).toBe(49.37890625);
+    expect(drawing.unmapped).toEqual([]);
   });
 
-  it("is absent when the break has no label", () => {
-    expect(byId(blockOf(breakManifest(null)), "r/break/0/label")).toBeUndefined();
+  it("styles with the default layer", () => {
+    expect(element(drawing, null).style).toMatchObject({ fill: "#F3F4F6", rx: 10 });
+    expect(element(drawing, "bare").style).toMatchObject({
+      stroke: "#00CC00",
+      fill: "#00CC00",
+      "stroke-width": 3,
+      "stroke-dasharray": "none",
+    });
+    expect(element(drawing, "bare/start").style).toMatchObject({
+      fill: "#000000",
+      stroke: "#00CC00",
+      "stroke-width": 3,
+    });
+    expect(element(drawing, "bare/name").style).toMatchObject({ fill: "#000000", "font-size": 11 });
+    expect(element(drawing, "bare/end/label").style).toMatchObject({
+      fill: "#000000",
+      "font-size": 9,
+    });
   });
 });
 
-describe("rows", () => {
-  it("separate two children starting at one point and join one ending where another starts", () => {
-    const block = blockOf(
-      build(
-        { type: "createTimeline", ...clt("r", 8) },
-        { type: "addChild", parent: "r", offset: quarters(2), child: clt("y", 0) },
-        { type: "addChild", parent: "r", offset: quarters(2), child: clt("z", 0) },
-        { type: "addChild", parent: "r", offset: quarters(0), child: clt("c", 2) },
-      ),
-    );
-    expect(ofKind(block, "child").map((item) => [item.id, item.row])).toEqual([
-      ["c", 1],
-      ["y", 1],
-      ["z", 2],
-    ]);
-  });
-
-  it("nest jumps by span", () => {
-    const jump = (from: number, to: number) => ({
-      type: "addJump",
-      timeline: "r",
-      jump: {
-        from_coordinate: quarters(from),
-        to_coordinate: quarters(to),
-        control_type: "repeat_end",
-        condition: "always",
-        repeat_count: 1,
-        target_name: null,
-        label: null,
-        meta: {},
+describe("nested", () => {
+  it("draws the hand-derived geometry", () => {
+    const drawing = drawFixture("nested");
+    const x0 = 41.072265625;
+    expect(geometry(drawing)).toEqual([
+      { type: "block", address: null, width: 458.351318359375, height: 77.37890625 },
+      { type: "timeline", address: "tl:24", xs: x0, xe: 441.072265625, y: 42.40234375 },
+      { type: "child", address: "tl:23", xs: 141.072265625, xe: 341.072265625, y: 29 },
+      { type: "child", address: "tl:22", xs: 178.572265625, xe: 228.572265625, y: 15 },
+      ...wedges(x0, 441.072265625, "tl:24").map((item) => ({
+        ...item,
+        yt: 43.90234375,
+        yb: 56.90234375,
+      })),
+      {
+        type: "name",
+        address: "tl:22/name",
+        x: 8,
+        baseline: 18.80810546875,
+        anchor: "start",
+        text: "tl:22",
       },
-    });
-    const block = blockOf(
-      build({ type: "createTimeline", ...clt("r", 8) }, jump(0, 8), jump(2, 4), jump(5, 6)),
-    );
-    expect(ofKind(block, "jump").map((item) => [item.id, item.row, item.base])).toEqual([
-      ["r/jump/2", -1, [-1, 2]],
-      ["r/jump/1", -1, [-1, 2]],
-      ["r/jump/0", -2, [-1, 2]],
+      {
+        type: "name",
+        address: "tl:23/name",
+        x: 8,
+        baseline: 32.80810546875,
+        anchor: "start",
+        text: "tl:23",
+      },
+      {
+        type: "name",
+        address: "tl:24/name",
+        x: 8,
+        baseline: 46.21044921875,
+        anchor: "start",
+        text: "tl:24",
+      },
+      {
+        type: "label",
+        address: "tl:24/start/label",
+        x: x0,
+        baseline: 67.25634765625,
+        anchor: "middle",
+        text: "0 ♩",
+        coordinate: q(0),
+      },
+      {
+        type: "label",
+        address: "tl:24/end/label",
+        x: 441.072265625,
+        baseline: 67.25634765625,
+        anchor: "middle",
+        text: "16 ♩",
+        coordinate: q(16),
+      },
     ]);
-    expect(byId(block, "r/jump/0/label")).toMatchObject({
-      at: { space: "root", x: [4, 1], y: [-15, 8] },
-      anchor: "north",
-      text: "repeat_end",
-    });
-    expect(block.rows).toEqual({ min: -2, max: 0 });
   });
 });
 
-describe("the cascade on drawn components", () => {
-  const nestedManifest = () =>
-    build(
-      { type: "createTimeline", ...clt("r", 8, "Root") },
-      { type: "addChild", parent: "r", offset: quarters(0), child: clt("a", 8) },
-      { type: "addChild", parent: "a", offset: quarters(1), child: clt("b", 2) },
-    );
-
-  it("hides the root but keeps row 0", () => {
-    const block = blockOf(nestedManifest(), {
-      styles: [{ select: { element: "timeline" }, set: { visible: false } }],
-    });
-    expect(byId(block, "r")).toBeUndefined();
-    expect(byId(block, "r/start")).toBeUndefined();
-    expect(byId(block, "r/name")).toBeUndefined();
-    expect(block.rows).toEqual({ min: 0, max: 2 });
+describe("flow_control", () => {
+  it("draws the hand-derived geometry", () => {
+    const drawing = drawFixture("flow_control");
+    const x0 = 82.9775390625;
+    const yRoot = 18.4765625;
+    expect(geometry(drawing)).toEqual([
+      { type: "block", address: null, width: 500.256591796875, height: 77.9296875 },
+      { type: "break", address: "flow:quarters/break/0", x: 382.9775390625, y1: 49.453125, y2: 8 },
+      {
+        type: "jump",
+        address: "flow:quarters/jump/0",
+        xFrom: 282.9775390625,
+        xTo: 132.9775390625,
+        yf: 49.453125,
+        yc: 49.453125 + (4 / 3) * 8,
+        yo: 55.453125,
+      },
+      { type: "timeline", address: "flow:quarters", xs: x0, xe: 482.9775390625, y: yRoot },
+      ...wedges(x0, 482.9775390625, "flow:quarters").map((item) => ({
+        ...item,
+        yt: 19.9765625,
+        yb: 32.9765625,
+      })),
+      {
+        type: "name",
+        address: "flow:quarters/name",
+        x: 8,
+        baseline: 22.28466796875,
+        anchor: "start",
+        text: "Flow control",
+      },
+      {
+        type: "label",
+        address: "flow:quarters/start/label",
+        x: x0,
+        baseline: 43.33056640625,
+        anchor: "middle",
+        text: "0 ♩",
+        coordinate: q(0),
+      },
+      {
+        type: "label",
+        address: "flow:quarters/end/label",
+        x: 482.9775390625,
+        baseline: 43.33056640625,
+        anchor: "middle",
+        text: "16 ♩",
+        coordinate: q(16),
+      },
+      {
+        type: "label",
+        address: "flow:quarters/jump/0/label",
+        x: 207.9775390625,
+        baseline: 67.80712890625,
+        anchor: "middle",
+        text: "Repeat",
+      },
+      {
+        type: "label",
+        address: "flow:quarters/break/0/label",
+        x: 385.9775390625,
+        baseline: 16.35400390625,
+        anchor: "start",
+        text: "Fine",
+      },
+    ]);
   });
+});
 
-  it("moves the children of a hidden child down to its parent's next row", () => {
-    const block = blockOf(nestedManifest(), {
-      styles: [{ select: { ids: ["a"] }, set: { visible: false } }],
+describe("map", () => {
+  it("draws the hand-derived geometry", () => {
+    const drawing = drawFixture("map");
+    const x0 = 55.53662109375;
+    expect(geometry(drawing)).toEqual([
+      { type: "block", address: null, width: 469.95263671875, height: 93.37890625 },
+      { type: "map", address: "melody/map/tempo", xs: x0, xe: 455.53662109375, y: 27.5 },
+      {
+        type: "map",
+        address: "phrase/map/ticks",
+        xs: 155.53662109375,
+        xe: 355.53662109375,
+        y: 14.5,
+      },
+      { type: "timeline", address: "melody", xs: x0, xe: 455.53662109375, y: 58.40234375 },
+      { type: "child", address: "phrase", xs: 155.53662109375, xe: 355.53662109375, y: 45 },
+      ...wedges(x0, 455.53662109375, "melody").map((item) => ({
+        ...item,
+        yt: 59.90234375,
+        yb: 72.90234375,
+      })),
+      {
+        type: "name",
+        address: "phrase/map/ticks/name",
+        x: 8,
+        baseline: 18.30810546875,
+        anchor: "start",
+        text: "Ticks",
+      },
+      {
+        type: "name",
+        address: "melody/map/tempo/name",
+        x: 8,
+        baseline: 31.30810546875,
+        anchor: "start",
+        text: "Tempo",
+      },
+      {
+        type: "name",
+        address: "phrase/name",
+        x: 8,
+        baseline: 48.80810546875,
+        anchor: "start",
+        text: "Phrase",
+      },
+      {
+        type: "name",
+        address: "melody/name",
+        x: 8,
+        baseline: 62.21044921875,
+        anchor: "start",
+        text: "Melody",
+      },
+      {
+        type: "label",
+        address: "melody/start/label",
+        x: x0,
+        baseline: 83.25634765625,
+        anchor: "middle",
+        text: "0 ♩",
+        coordinate: q(0),
+      },
+      {
+        type: "label",
+        address: "melody/end/label",
+        x: 455.53662109375,
+        baseline: 83.25634765625,
+        anchor: "middle",
+        text: "8 ♩",
+        coordinate: q(8),
+      },
+    ]);
+    expect(element(drawing, "melody/map/tempo").style).toMatchObject({
+      stroke: "#0050EF",
+      "stroke-width": 1,
+      "stroke-dasharray": "none",
     });
-    expect(ofKind(block, "child").map((item) => [item.id, item.row])).toEqual([["b", 1]]);
-    expect(block.rows).toEqual({ min: 0, max: 1 });
+    expect(element(drawing, "phrase/map/ticks").style).toMatchObject({
+      stroke: "#00CC00",
+      "stroke-width": 1,
+      "stroke-dasharray": "3 3",
+    });
   });
+});
 
-  it("ignores a property the selected kind does not read", () => {
-    const block = blockOf(nestedManifest(), {
-      styles: [{ select: { element: "wedge" }, set: { show_length: true } }],
-    });
-    expect(primitives(block).filter((item) => String(item.id).endsWith("/length"))).toEqual([]);
-  });
-
-  it("applies a container's rules to its subtree only, over the manifest's", () => {
-    const block = blockOf(nestedManifest(), {
-      styles: [{ select: { element: "child" }, set: { colour: "#000001" } }],
-      timelines: { a: [{ select: { domain: "logical" }, set: { colour: "#000002" } }] },
-    });
-    expect(byId(block, "r")).toMatchObject({ colour: "#00CC00" });
-    expect(byId(block, "a")).toMatchObject({ colour: "#000002" });
-    expect(byId(block, "b")).toMatchObject({ colour: "#000002" });
-    expect(byId(block, "r/start")).toMatchObject({ colour: "#00CC00" });
-    expect(byId(block, "b/start")).toMatchObject({ colour: "#000002" });
-  });
-
-  it("selects nothing through a container of an unknown timeline", () => {
-    const block = blockOf(nestedManifest(), {
-      timelines: { ghost: [{ select: {}, set: { visible: false } }] },
-    });
-    expect(ofKind(block, "child").map((item) => item.id)).toEqual(["a", "b"]);
-  });
-
-  it("draws a child on the side a rule gives it, and its child beyond it", () => {
-    const block = blockOf(nestedManifest(), {
-      styles: [{ select: { element: "child" }, set: { side: "below" } }],
-    });
-    expect(ofKind(block, "child").map((item) => [item.id, item.row])).toEqual([
-      ["a", -1],
-      ["b", -2],
+describe("with_region", () => {
+  it("draws the hand-derived geometry", () => {
+    const drawing = drawFixture("with_region");
+    const x0 = 41.072265625;
+    const x = (u: number) => x0 + 400 * u;
+    expect(geometry(drawing)).toEqual([
+      { type: "block", address: null, width: 458.351318359375, height: 99.85546875 },
+      {
+        type: "region",
+        address: "tl:19/region/0",
+        x1: x(1 / 6),
+        x2: 241.072265625,
+        xm: 174.40559895833331,
+        yb: 73.37890625,
+        ya: 79.37890625,
+      },
+      { type: "timeline", address: "tl:19", xs: x0, xe: 441.072265625, y: 42.40234375 },
+      { type: "child", address: "tl:20", xs: x(1 / 36), xe: x(13 / 36), y: 29 },
+      { type: "child", address: "tl:21", xs: x(1 / 6), xe: x(5 / 12), y: 15 },
+      ...wedges(x0, 441.072265625, "tl:19").map((item) => ({
+        ...item,
+        yt: 43.90234375,
+        yb: 56.90234375,
+      })),
+      {
+        type: "name",
+        address: "tl:21/name",
+        x: 8,
+        baseline: 18.80810546875,
+        anchor: "start",
+        text: "tl:21",
+      },
+      {
+        type: "name",
+        address: "tl:20/name",
+        x: 8,
+        baseline: 32.80810546875,
+        anchor: "start",
+        text: "tl:20",
+      },
+      {
+        type: "name",
+        address: "tl:19/name",
+        x: 8,
+        baseline: 46.21044921875,
+        anchor: "start",
+        text: "tl:19",
+      },
+      {
+        type: "label",
+        address: "tl:19/start/label",
+        x: x0,
+        baseline: 67.25634765625,
+        anchor: "middle",
+        text: "0 ♩",
+        coordinate: q(0),
+      },
+      {
+        type: "label",
+        address: "tl:19/end/label",
+        x: 441.072265625,
+        baseline: 67.25634765625,
+        anchor: "middle",
+        text: "12 ♩",
+        coordinate: q(12),
+      },
+      {
+        type: "label",
+        address: "tl:19/region/0/label",
+        x: 174.40559895833331,
+        baseline: 89.73291015625,
+        anchor: "middle",
+        text: "theme",
+      },
     ]);
   });
 });
