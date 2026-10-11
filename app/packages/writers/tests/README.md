@@ -167,11 +167,43 @@ for a rect, two points joined by `--` for a line, `circle[radius=` for a
 circle, `-- cycle;` for a polygon, `.. controls` for a path, `\node` for a
 text).
 
+## Drawing fixtures (`fixtures.test.ts`)
+
+The drawing fixtures of timeskeleton (`fixtures/<version>/drawings/<name>/`,
+read from the installed `@timetoalign/timeskeleton` package, like the
+manifests and the font) are the contract between
+implementations of the specification: each directory holds `inputs.json`
+(the manifest's file name, the placement with all five members, the scale
+and the placer's style layers) and the expected `figure.svg` and
+`figure.tex`. For every directory the test reads `inputs.json` alone, loads
+the named manifest, draws it with the layers `[DEFAULT_LAYER,
+manifest.graphical, ...inputs.layers]` and the bundled font metrics, writes
+the drawing placed at `(0, 0)` with the scale (`writeTikz` with its default
+font directory `.`), and requires both texts to equal the files byte for
+byte.
+
+Seven SVGs (`bare`, `nested`, `map`, `flow_control`, `with_region`,
+`styled__score`, `nested__length-800-spacing-2`) are derived by hand from
+the specification alone, never from this writer's output; their equality
+with the writer proves the specification complete for what they show. A
+missing hand-derived file is a failure, never a skip. Every other figure is
+emitted by `pnpm emit-drawings --into <timeskeleton checkout>` from the
+writer and pins the implementation against regression. With a local
+`link:` dependency the package's `fixtures/` and `fonts/` are the copies
+that `pnpm build` in the checkout's `js/` makes: rebuild there after
+emitting or changing fixtures, or the tests read the previous copy.
+
+The fixtures and the review drawings cannot drift apart: the set of
+directories equals the set of `reviewCases()` names exactly, and each
+case's inputs, written with timeskeleton's `dumps`, equal its `inputs.json`
+text.
+
 ## Validity (`compile.test.ts`)
 
-Every review drawing's SVG parses as XML with an SVG root (Python's
-ElementTree). Every review drawing's TikZ, written with `fontDirectory`
-timeskeleton's `fonts/` directory, compiles under LuaLaTeX, and its log holds
+Every drawing fixture's `figure.svg` parses as XML with an SVG root
+(Python's ElementTree). Every drawing fixture's `figure.tex`, compiled in a
+directory holding a copy of the package's `fonts/DejaVuSans.ttf` (the
+fixtures name the font directory `.`), compiles under LuaLaTeX, and its log holds
 no fontspec warning and no `Missing character` line: every text, `♩`
 included, is set in the bundled DejaVu Sans, because each node's `font`
 option restates `\sffamily`. The test is skipped where `lualatex` is absent

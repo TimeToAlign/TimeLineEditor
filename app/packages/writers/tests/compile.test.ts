@@ -1,17 +1,20 @@
 /**
- * The review drawings' SVG parses as XML (Python's ElementTree) and their
- * TikZ compiles under LuaLaTeX with the bundled font.
+ * The drawing fixtures' `figure.svg` parses as XML (Python's ElementTree) and
+ * their `figure.tex` compiles under LuaLaTeX with the bundled font.
+ * `fixtures.test.ts` pins both files to the writers' output.
  */
 
 import { spawn, spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { writeSvg, writeTikz } from "../src/index.ts";
-import { fontDirectory, reviewCases } from "./support.ts";
+import { drawingsDirectory, fontDirectory } from "./support.ts";
 
-const cases = reviewCases();
+const names = readdirSync(drawingsDirectory, { withFileTypes: true })
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => entry.name)
+  .sort();
 
 const PARSE = `
 import sys, xml.etree.ElementTree as tree
@@ -21,21 +24,12 @@ for path in sys.argv[1:]:
 print(len(sys.argv) - 1)
 `;
 
-describe("the review SVG", () => {
+describe("the fixture SVG", () => {
   it("parses as XML with an SVG root, every drawing", () => {
-    const directory = mkdtempSync(path.join(tmpdir(), "tilie-svg-"));
-    try {
-      const files = cases.map((item) => {
-        const file = path.join(directory, `${item.name}.svg`);
-        writeFileSync(file, writeSvg([{ drawing: item.drawing, x: 0, y: 0, scale: item.scale }]));
-        return file;
-      });
-      const result = spawnSync("python3", ["-c", PARSE, ...files], { encoding: "utf8" });
-      expect(result.stderr).toBe("");
-      expect(result.stdout).toBe(`${files.length}\n`);
-    } finally {
-      rmSync(directory, { recursive: true, force: true });
-    }
+    const files = names.map((name) => path.join(drawingsDirectory, name, "figure.svg"));
+    const result = spawnSync("python3", ["-c", PARSE, ...files], { encoding: "utf8" });
+    expect(result.stderr).toBe("");
+    expect(result.stdout).toBe(`${files.length}\n`);
   });
 });
 
@@ -60,7 +54,7 @@ function compile(directory: string, name: string): Promise<{ status: number | nu
   });
 }
 
-describe("the review TikZ", () => {
+describe("the fixture TikZ", () => {
   it.runIf(required)("needs lualatex where it is required", () => {
     expect(available).toBe(true);
   });
@@ -71,24 +65,27 @@ describe("the review TikZ", () => {
     async () => {
       const directory = mkdtempSync(path.join(tmpdir(), "tilie-tikz-"));
       try {
-        for (const item of cases) {
-          writeFileSync(
-            path.join(directory, `${item.name}.tex`),
-            writeTikz([{ drawing: item.drawing, x: 0, y: 0, scale: item.scale }], {
-              fontDirectory,
-            }),
+        // The fixtures name the font directory `.`: the font sits beside each document.
+        copyFileSync(
+          path.join(fontDirectory, "DejaVuSans.ttf"),
+          path.join(directory, "DejaVuSans.ttf"),
+        );
+        for (const name of names) {
+          copyFileSync(
+            path.join(drawingsDirectory, name, "figure.tex"),
+            path.join(directory, `${name}.tex`),
           );
         }
         // The first run builds the font cache; the others run four at a time.
-        const results = [await compile(directory, (cases[0] as (typeof cases)[number]).name)];
-        const rest = cases.slice(1).map((item) => item.name);
+        const results = [await compile(directory, names[0] as string)];
+        const rest = names.slice(1);
         while (rest.length > 0) {
           results.push(
             ...(await Promise.all(rest.splice(0, 4).map((name) => compile(directory, name)))),
           );
         }
         results.forEach((result, index) => {
-          const name = (cases[index] as (typeof cases)[number]).name;
+          const name = names[index] as string;
           expect(result.status, `${name}: ${result.log.slice(-2000)}`).toBe(0);
           expect(result.log.match(/^Package fontspec Warning.*$/m), name).toBe(null);
           expect(result.log.match(/^Missing character.*$/m), name).toBe(null);

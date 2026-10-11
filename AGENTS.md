@@ -52,7 +52,8 @@ Run each command from the stated directory.
 | `app/` | `pnpm test` | Run Vitest. |
 | `app/` | `pnpm build` | Build the editor bundle. |
 | `app/` | `pnpm dev` | Start the editor development server. |
-| `app/` | `TILIE_REQUIRE_LUALATEX=1 pnpm vitest run --project writers packages/writers/tests/compile.test.ts` | Parse every review SVG and compile every review TikZ document, failing when `lualatex` is missing. |
+| `app/` | `TILIE_REQUIRE_LUALATEX=1 pnpm vitest run --project writers packages/writers/tests/compile.test.ts` | Parse every drawing fixture's `figure.svg` and compile every `figure.tex`, failing when `lualatex` is missing. |
+| repository root | `pnpm -C app/packages/writers emit-drawings --into <timeskeleton checkout>` | Write the drawing fixtures into a timeskeleton checkout; never rewrites the hand-derived figures. |
 | repository root | `pnpm -C app/packages/writers review` | Render the writer review sheet into `app/packages/writers/review/` with `rsvg-convert`. |
 | `server/` | `uv sync` | Create or update the locked environment. |
 | `server/` | `uv run ruff check .` | Run Python lint checks. |

@@ -1,7 +1,8 @@
 /**
  * The drawings of the review sheet: every manifest fixture of the installed
  * schema package at the default placement, plus resized drawings of
- * `nested` and `map` with its child's map moved below the child.
+ * `nested` and `map` with its child's map moved below the child. Each is
+ * also a drawing fixture of the schema package (`fixtures/<version>/drawings/`).
  */
 
 import { readdirSync, readFileSync } from "node:fs";
@@ -16,7 +17,7 @@ import {
   type Placement,
 } from "@timetoalign/tilie-layout";
 import type { Graphical } from "@timetoalign/timeskeleton";
-import { fontMetrics as metrics, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
+import { dumps, fontMetrics as metrics, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
 
 const require = createRequire(import.meta.url);
 const packageDir = path.dirname(require.resolve("@timetoalign/timeskeleton/package.json"));
@@ -24,8 +25,11 @@ const packageDir = path.dirname(require.resolve("@timetoalign/timeskeleton/packa
 /** The manifest fixtures of the installed schema version. */
 export const fixturesDirectory = path.join(packageDir, "fixtures", SCHEMA_VERSION);
 
-/** timeskeleton's own `fonts/` directory, holding the drawing font `DejaVuSans.ttf`. */
-export const fontDirectory = path.join(packageDir, "..", "fonts");
+/** The drawing fixtures of the installed schema version, one directory per review case. */
+export const drawingsDirectory = path.join(fixturesDirectory, "drawings");
+
+/** The installed package's `fonts/` directory, holding the drawing font `DejaVuSans.ttf`. */
+export const fontDirectory = path.join(packageDir, "fonts");
 
 export function loadFixture(name: string): Manifest {
   const manifest = loadManifest(readFileSync(path.join(fixturesDirectory, `${name}.json`), "utf8"));
@@ -38,6 +42,8 @@ export interface ReviewCase {
   readonly name: string;
   readonly manifest: string;
   readonly placement: Placement;
+  /** The placer's layers, above the defaults and the manifest's own `graphical`. */
+  readonly overrides: readonly Graphical[];
   readonly layers: readonly (Graphical | undefined)[];
   readonly scale: number;
   readonly drawing: Drawing;
@@ -63,6 +69,7 @@ export function reviewCases(): ReviewCase[] {
       name,
       manifest: manifestName,
       placement,
+      overrides: extra,
       layers,
       scale,
       drawing: draw(manifest, placement, layers, metrics),
@@ -89,4 +96,15 @@ export function reviewCases(): ReviewCase[] {
     { statements: [{ select: { ids: ["phrase/map/ticks"] }, set: { side: "below" } }] },
   ]);
   return cases;
+}
+
+/** The text of a case's `inputs.json`: everything `draw` and the writers need besides the files. */
+export function inputsText(item: ReviewCase): string {
+  const { length, spacing, width, height, order } = item.placement;
+  return dumps({
+    manifest: `${item.manifest}.json`,
+    placement: { length, spacing, width, height, order },
+    scale: item.scale,
+    layers: item.overrides,
+  });
 }

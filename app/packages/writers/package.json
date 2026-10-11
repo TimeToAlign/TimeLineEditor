@@ -11,7 +11,8 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json && tsc -p tests/tsconfig.json",
     "test": "vitest run",
-    "review": "node scripts/review-sheet.ts"
+    "review": "node scripts/review-sheet.ts",
+    "emit-drawings": "node scripts/emit-drawings.ts"
   },
   "dependencies": {
     "@timetoalign/tilie-core": "workspace:*",

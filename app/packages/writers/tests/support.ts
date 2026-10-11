@@ -7,7 +7,14 @@ import {
   type Style,
 } from "@timetoalign/tilie-layout";
 
-export { fontDirectory, loadFixture, reviewCases } from "../scripts/review-cases.ts";
+export {
+  drawingsDirectory,
+  fixturesDirectory,
+  fontDirectory,
+  inputsText,
+  loadFixture,
+  reviewCases,
+} from "../scripts/review-cases.ts";
 
 export function style(changes: Partial<Style> = {}): Style {
   return { ...INITIAL_STYLE, ...changes };
