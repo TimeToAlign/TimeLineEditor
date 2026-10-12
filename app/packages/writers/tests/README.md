@@ -47,7 +47,7 @@ locked: its line runs to `Xe`; the arrowhead's base lies on `Xe` from
 baseline 18.21044921875, label baseline 39.25634765625. The SVG is exactly:
 
 ```
-<svg xmlns="http://www.w3.org/2000/svg" width="490.5771" height="81.3789" viewBox="0 0 490.5771 81.3789" font-family="DejaVu Sans" style="font-kerning:none;font-variant-ligatures:none">
+<svg xmlns="http://www.w3.org/2000/svg" width="490.5771" height="81.3789" viewBox="0 0 490.5771 81.3789" font-family="DejaVu Sans" text-rendering="geometricPrecision" style="font-kerning:none;font-variant-ligatures:none">
 <g transform="translate(16 16)">
 <rect x="0" y="0" width="458.5771" height="49.3789" rx="10" fill="#F3F4F6"/>
 <line data-address="bare" x1="41.5771" y1="14.4023" x2="441.5771" y2="14.4023" stroke="#00CC00" stroke-width="3"/>
@@ -157,7 +157,7 @@ manifest):
   `\path[line width=1pt] (10,25) -- (10,5);`;
 - every descriptor without text is self-closing.
 
-For every review drawing (every 0.5.0 fixture and the resized and restyled
+For every review drawing (every manifest fixture and the resized and restyled
 drawings of the review sheet), `writeSvg` writes exactly one line per
 descriptor between `<g …>` and `</g>`, in order, each starting with
 `<{tag} ` and carrying the descriptor's `data-address`; `writeTikz` writes

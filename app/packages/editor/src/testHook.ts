@@ -8,6 +8,13 @@
 import type { ResizeMode } from "@timetoalign/tilie-arranger";
 import type { Problem, Store } from "@timetoalign/tilie-core";
 
+/** The body of `GET /api/health`. */
+export interface Health {
+  readonly name: string;
+  readonly version: string;
+  readonly timetoalign: string;
+}
+
 export interface ViewportValue {
   readonly x: number;
   readonly y: number;
@@ -25,6 +32,10 @@ export interface TestHook {
   setViewport(viewport: ViewportValue): void;
   locked(): boolean;
   mode(): ResizeMode;
+  /** The server's health response, or `null` until one arrives or when the check failed. */
+  health(): Health | null;
+  /** The open workspace as Save writes it: `writeWorkspace` of the store's view and journal. */
+  text(): string;
 }
 
 declare global {

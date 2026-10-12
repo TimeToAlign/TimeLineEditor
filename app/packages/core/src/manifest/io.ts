@@ -4,6 +4,7 @@ import {
   canonicalOrder,
   completeStyles,
   dumps,
+  migrate,
   parse,
   SchemaValidationError,
   UnsupportedVersionError,
@@ -56,13 +57,14 @@ export function loadManifest(text: string): Manifest | LoadError {
 
 /**
  * A manifest from a value read losslessly (`parseJson`): every schema or
- * invariant problem refuses it; an accepted one is put in canonical order and
- * its missing styles completed.
+ * invariant problem refuses it; an accepted one, of any version timeskeleton
+ * supports, is migrated to the latest version, put in canonical order and its
+ * missing styles completed.
  */
 export function readManifestValue(value: unknown): Manifest | LoadError {
   const schema = schemaProblems(value);
   if (schema.length > 0) return refuse(...schema);
-  const ordered = canonicalOrder(value as Manifest) as Manifest;
+  const ordered = canonicalOrder(migrate(value as Manifest)) as Manifest;
   const problems = checkOrdered(ordered);
   if (problems.length > 0) return refuse(...problems);
   if (ordered.graphical === undefined) return ordered;

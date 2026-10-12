@@ -1,7 +1,8 @@
 /** The selection: a set of addresses, and the click that changes it. */
 
-import type { BlockId } from "@timetoalign/tilie-core";
-import { isCommandError, parseAddress } from "@timetoalign/tilie-core";
+import type { BlockId, View } from "@timetoalign/tilie-core";
+import { isCommandError, manifestIds, parseAddress } from "@timetoalign/tilie-core";
+import { ownerOf } from "./affected.ts";
 
 /** Block ids and `<block>/<element id>` addresses. */
 export type Selection = ReadonlySet<string>;
@@ -26,4 +27,22 @@ export function click(selection: Selection, address: string, additive: boolean):
   if (next.has(address)) next.delete(address);
   else next.add(address);
   return next;
+}
+
+/**
+ * The addresses of `selection` that still name something in `view`: a block
+ * that exists, or an element (or a part of one) whose block holds it. The
+ * selection itself when nothing is gone, so an unchanged selection keeps its
+ * identity.
+ */
+export function existing(view: View, selection: Selection): Selection {
+  const kept = [...selection].filter((address) => {
+    const block = view.blocks[blockOf(address)];
+    if (block === undefined) return false;
+    return (
+      address === block.id ||
+      manifestIds(block.manifest).has(ownerOf(address.slice(block.id.length + 1)))
+    );
+  });
+  return kept.length === selection.size ? selection : new Set(kept);
 }

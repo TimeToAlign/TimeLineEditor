@@ -15,7 +15,7 @@ import { flushSync, mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App.svelte";
 import { WorkspaceRefusedError } from "../src/testHook.ts";
-import { stubLayout } from "./dom.ts";
+import { stubEditor } from "./dom.ts";
 
 const A = "0000000000";
 const B = "0000000001";
@@ -52,7 +52,7 @@ describe("the test hook", () => {
 
   beforeEach(() => {
     window.history.replaceState({}, "", "/");
-    stubLayout();
+    stubEditor();
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => Response.json({ name: "tilie-server", version: "0", timetoalign: "0" })),
@@ -99,6 +99,7 @@ describe("the test hook", () => {
     expect(writeWorkspace({ view: hook().store().view, journal: hook().store().journal })).toBe(
       text,
     );
+    expect(hook().text()).toBe(text);
     expect(hook().selection()).toEqual([]);
   });
 

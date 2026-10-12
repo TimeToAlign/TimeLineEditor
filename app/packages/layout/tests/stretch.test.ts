@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_PLACEMENT, type DrawnElement, type Placement } from "../src/index.ts";
-import { drawFixture } from "./support.ts";
+import { drawFixture, element } from "./support.ts";
 
 const NAMES = ["nested", "map", "flow_control", "with_region"] as const;
 
@@ -46,9 +46,9 @@ describe("stretch", () => {
 
   it("spaces the root's row and every child row one pitch apart", () => {
     const rows: [number, [number, number, number]][] = [
-      [0.5, [40.01171875, 27.20703125, 14.40234375]],
+      [0.5, [36.01171875, 23.20703125, 10.40234375]],
       [1, [43, 29, 15]],
-      [2, [78, 50, 22]],
+      [2, [86, 58, 30]],
     ];
     for (const [spacing, expected] of rows) {
       const drawing = drawFixture("nested", [], { ...DEFAULT_PLACEMENT, spacing });
@@ -60,6 +60,46 @@ describe("stretch", () => {
       expect([root, first, second], `${spacing}`).toEqual(expected);
       expect(root - first).toBe(first - second);
     }
+  });
+});
+
+describe("vertical padding", () => {
+  it("grows a root alone by the padding above and below it", () => {
+    const rows: [number, number, number][] = [
+      [0.5, 10.40234375, 41.37890625],
+      [1, 14.40234375, 49.37890625],
+      [2, 22.40234375, 65.37890625],
+    ];
+    for (const [spacing, yRoot, height] of rows) {
+      const drawing = drawFixture("bare", [], { ...DEFAULT_PLACEMENT, spacing });
+      expect(element(drawing, "bare"), `${spacing}`).toMatchObject({ y: yRoot });
+      expect([drawing.width, drawing.height], `${spacing}`).toEqual([458.5771484375, height]);
+      expect(drawing.height - 49.37890625).toBe(2 * 8 * (spacing - 1));
+    }
+  });
+
+  it("ends a break line at the stretched padding below", () => {
+    const drawing = drawFixture("flow_control", [], { ...DEFAULT_PLACEMENT, spacing: 2 });
+    expect(drawing.height).toBe(112.33203125);
+    expect(element(drawing, "flow:quarters")).toMatchObject({ y: 22.40234375 });
+    expect(drawing.elements.find((item) => item.type === "break")).toMatchObject({
+      y1: 67.85546875,
+      y2: 16,
+    });
+  });
+
+  it("ends a break line moved above at the stretched padding", () => {
+    const drawing = drawFixture(
+      "flow_control",
+      [{ statements: [{ select: { element: "break" }, set: { side: "above" } }] }],
+      { ...DEFAULT_PLACEMENT, spacing: 2 },
+    );
+    expect(drawing.height).toBe(105.9296875);
+    expect(element(drawing, "flow:quarters")).toMatchObject({ y: 26.4765625 });
+    expect(drawing.elements.find((item) => item.type === "break")).toMatchObject({
+      y1: 16,
+      y2: 89.9296875,
+    });
   });
 });
 

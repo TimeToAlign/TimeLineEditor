@@ -1,4 +1,11 @@
-import { dumps, JsonFloat, parse, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
+import {
+  dumps,
+  JsonFloat,
+  parse,
+  parseJson,
+  SCHEMA_VERSION,
+  SUPPORTED_VERSIONS,
+} from "@timetoalign/timeskeleton";
 import { describe, expect, it, vi } from "vitest";
 import type { LoadError, Manifest } from "../src/index.ts";
 import {
@@ -6,6 +13,7 @@ import {
   InvalidManifestError,
   isLoadError,
   loadManifest,
+  readManifestValue,
   saveManifest,
 } from "../src/index.ts";
 import type { JsonObject } from "../src/json.ts";
@@ -49,6 +57,32 @@ describe("schema version", () => {
     expect(refused(text).problems.map(({ code, path }) => ({ code, path }))).toEqual([
       { code: "schema_violation", path: ["meta", "schema_version"] },
     ]);
+  });
+
+  const declaring = (text: string, version: string) =>
+    text.replace(`"schema_version": "${SCHEMA_VERSION}"`, `"schema_version": "${version}"`);
+
+  describe.each(SUPPORTED_VERSIONS)("reads a manifest declaring %s", (version) => {
+    it.each(manifestFixtures.map((fixture) => [fixture.name, fixture.text]))(
+      "%s, migrated to the latest version",
+      (_, text) => {
+        const older = declaring(text, version);
+        expect(older.includes(`"schema_version": "${version}"`)).toBe(true);
+        const manifest = loaded(older);
+        expect(manifest.meta.schema_version).toBe(SCHEMA_VERSION);
+        expect(saveManifest(manifest)).toBe(text);
+      },
+    );
+
+    it("leaves the value it reads unchanged", () => {
+      const fixture = manifestFixtures.find((item) => item.name === "bare.json")?.text ?? "";
+      const value = parseJson(declaring(fixture, version)) as unknown as Manifest;
+      const manifest = readManifestValue(value);
+      expect(isLoadError(manifest) ? manifest.problems : manifest.meta.schema_version).toBe(
+        SCHEMA_VERSION,
+      );
+      expect(value.meta.schema_version).toBe(version);
+    });
   });
 });
 

@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { writeSvg, writeTikz } from "../src/index.ts";
 import { loadFixture } from "./support.ts";
 
-const SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="490.5771" height="81.3789" viewBox="0 0 490.5771 81.3789" font-family="DejaVu Sans" style="font-kerning:none;font-variant-ligatures:none">
+const SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="490.5771" height="81.3789" viewBox="0 0 490.5771 81.3789" font-family="DejaVu Sans" text-rendering="geometricPrecision" style="font-kerning:none;font-variant-ligatures:none">
 <g transform="translate(16 16)">
 <rect x="0" y="0" width="458.5771" height="49.3789" rx="10" fill="#F3F4F6"/>
 <line data-address="bare" x1="41.5771" y1="14.4023" x2="441.5771" y2="14.4023" stroke="#00CC00" stroke-width="3"/>

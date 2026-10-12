@@ -45,6 +45,38 @@ test("axe-core reports no violation with an element selected", async ({ page }) 
   expect(results.violations).toEqual([]);
 });
 
+test("axe-core reports no violation with the inspector drawer open", async ({ page }) => {
+  await page.getByRole("button", { name: "Open inspector" }).click();
+  await expect(page.locator("#inspector")).toBeVisible();
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
+});
+
+test("axe-core reports no violation with the File menu open", async ({ page }) => {
+  await page.getByRole("button", { name: "File" }).click();
+  await expect(page.getByRole("menu")).toBeVisible();
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
+});
+
+test("axe-core reports no violation with the About dialog open", async ({ page }) => {
+  await page.getByRole("button", { name: "About" }).click();
+  await expect(page.getByRole("dialog", { name: "About TimeLineEditor" })).toBeVisible();
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
+});
+
+test("axe-core reports no violation with the discard question open", async ({ page }) => {
+  await page.evaluate((id) => {
+    window.__tilie.store().dispatch({ type: "set", changes: [{ target: id, values: { x: 8 } }] });
+  }, SMALL.bare);
+  await page.getByRole("button", { name: "File" }).click();
+  await page.getByRole("menuitem", { name: "New workspace" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
+});
+
 test("Tab focuses the nodes in z-order, Enter selects, Escape clears", async ({ page }) => {
   expect(await tabToNode(page)).toBe(SMALL.bare);
   await page.keyboard.press("Enter");

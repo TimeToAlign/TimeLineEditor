@@ -12,13 +12,15 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@decimalturn/toml-patch": "^3.3.0",
     "@timetoalign/tilie-arranger": "workspace:*",
     "@timetoalign/tilie-client": "workspace:*",
     "@timetoalign/tilie-core": "workspace:*",
     "@timetoalign/tilie-layout": "workspace:*",
     "@timetoalign/tilie-writers": "workspace:*",
-    "@timetoalign/timeskeleton": "^0.5.0",
-    "svelte": "^5.57.1"
+    "@timetoalign/timeskeleton": "link:../../../../timeskeleton/js",
+    "svelte": "^5.57.1",
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "7.3.1",

@@ -2,12 +2,13 @@
 import type { Block, Store, View } from "@timetoalign/tilie-core";
 import type { FontMetrics } from "@timetoalign/timeskeleton";
 import type { Viewport } from "@xyflow/svelte";
-import { SelectionMode, SvelteFlow, SvelteFlowProvider } from "@xyflow/svelte";
+import { SelectionMode, SvelteFlow } from "@xyflow/svelte";
 import "@xyflow/svelte/dist/style.css";
 import { untrack } from "svelte";
 import type { Attachment } from "svelte/attachments";
 import BlockNode from "./BlockNode.svelte";
 import CanvasToolbar from "./CanvasToolbar.svelte";
+import type { Visible } from "./commands.ts";
 import { moveCommand, nudgeCommand, removeCommand, zOrderCommand } from "./commands.ts";
 import { descriptorsOf, drawingOf } from "./drawing.ts";
 import type { BlockNode as BlockNodeType } from "./project.ts";
@@ -113,10 +114,22 @@ export function setViewport(next: Viewport): void {
   toolbar?.setViewport(next);
 }
 
-// A newly opened workspace is fitted into view.
+/** Whether the open workspace holds any block. */
+function hasBlocks(): boolean {
+  return Object.keys(view.blocks).length > 0;
+}
+
+/**
+ * A newly opened workspace is fitted into view once the flow exists, and
+ * only then: an empty one is not, since Svelte Flow would hold the fit until
+ * the first block appears and move the view when a block is added.
+ */
 $effect(() => {
-  void store;
-  untrack(() => toolbar?.fit());
+  const current = store;
+  const flow = toolbar;
+  untrack(() => {
+    if (flow !== undefined && Object.keys(current.view.blocks).length > 0) flow.fit();
+  });
 });
 
 /** The block being resized and its previewed values; shown, never stored, until release. */
@@ -370,11 +383,6 @@ const MODE_KEYS: { readonly [key: string]: ResizeMode } = { 1: "scale", 2: "box"
 function handleKey(event: KeyboardEvent): boolean {
   const { key, shiftKey } = event;
   if (event.altKey) return false;
-  if ((event.ctrlKey || event.metaKey) && (key === "z" || key === "Z")) {
-    if (shiftKey) store.redo();
-    else store.undo();
-    return true;
-  }
   if (!onCanvas(event.target)) return false;
   // Arrows move between a toolbar's buttons there.
   if (event.target instanceof Element && event.target.closest('[role="toolbar"]') !== null) {
@@ -440,7 +448,7 @@ function handleKey(event: KeyboardEvent): boolean {
       toolbar?.zoomOut();
       return true;
     case "0":
-      toolbar?.fit();
+      if (hasBlocks()) toolbar?.fit();
       return true;
     case "l":
     case "L":
@@ -454,25 +462,48 @@ function handleKey(event: KeyboardEvent): boolean {
   }
 }
 
-/** The canvas's root element: its toolbars, the flow and the nodes. */
+/** The canvas's root element, the arranger: the flow, its toolbars and the nodes. */
 let root: HTMLElement | undefined = $state();
 
 /**
- * Whether a key belongs to the canvas: focus is inside it (a node, the flow,
- * a toolbar) or on nothing at all (the page body), as after a click on the
- * canvas background or a selection made programmatically. Keys pressed
- * anywhere else on the page, the inspector included, are not the canvas's.
+ * Whether a key belongs to the canvas: focus is on the arranger or inside it
+ * (a node, a toolbar). Keys pressed anywhere else on the page, the page body
+ * and the inspector included, are not the canvas's.
  */
 function onCanvas(target: EventTarget | null): boolean {
-  if (target === document.body || target === document.documentElement) return true;
   return target instanceof Node && root !== undefined && root.contains(target);
 }
 
+/** What the canvas shows: the viewport and the arranger's size in screen pixels. */
+export function visible(): Visible {
+  return {
+    x: viewport.x,
+    y: viewport.y,
+    zoom: viewport.zoom,
+    width: root?.clientWidth ?? 0,
+    height: root?.clientHeight ?? 0,
+  };
+}
+
+/** Give the arranger the focus, so the canvas keys apply. */
+export function focus(): void {
+  root?.focus({ preventScroll: true });
+}
+
 /**
- * Undo and redo apply wherever focus is, except in a text input. The other
- * keys are read before Svelte Flow sees them, so its own handling of the
- * same keys (arrow moves of selected nodes, Enter and Escape on a focused
- * node) never applies a second time.
+ * A press anywhere on the canvas gives it the focus, unless the focus is
+ * already inside it: the pane is no focusable element, and WebKit focuses
+ * no button on a click.
+ */
+function onpointerdowncapture() {
+  if (root !== undefined && !root.contains(document.activeElement)) focus();
+}
+
+/**
+ * The canvas keys, read before Svelte Flow sees them, so its own handling
+ * of the same keys (arrow moves of selected nodes, Enter and Escape on a
+ * focused node) never applies a second time. Undo and redo are the page's,
+ * not the canvas's.
  */
 function onkeydowncapture(event: KeyboardEvent) {
   if (event.defaultPrevented || isTextInput(event.target)) return;
@@ -485,86 +516,88 @@ function onkeydowncapture(event: KeyboardEvent) {
 <svelte:window {onkeydowncapture} />
 
 <!--
-  The provider lets the toolbar sit above the flow rather than over it, so it
-  never covers a block or the empty canvas a gesture starts on.
+  The arranger is one tab stop with keys of its own, an ARIA application;
+  Svelte counts that role as non-interactive, so its tab stop is allowed here.
 -->
-<SvelteFlowProvider>
-  <div class="canvas" bind:this={root}>
-    <CanvasToolbar bind:this={toolbar} bind:locked bind:marquee />
-    <div class="flow" {@attach shiftWheel}>
-      {#await fontLoaded}
-        <p class="font-state">Loading the font…</p>
-      {:then}
-        <SvelteFlow
-          bind:nodes
-          bind:viewport
-          edges={[]}
-          {nodeTypes}
-          fitView
-          minZoom={0.05}
-          {translateExtent}
-          {...snapping}
-          elevateNodesOnSelect={false}
-          onlyRenderVisibleElements={Object.keys(view.blocks).length > CULLING_THRESHOLD}
-          deleteKey={NO_KEYS}
-          selectionKey="Shift"
-          selectionMode={SelectionMode.Full}
-          selectionOnDrag={marquee}
-          panOnDrag={!marquee}
-          panOnScroll
-          panOnScrollSpeed={PAN_SPEED}
-          zoomOnScroll={false}
-          zoomActivationKey={ZOOM_KEYS}
-          nodesDraggable={!locked}
-          nodesConnectable={false}
-          proOptions={{ hideAttribution: true }}
-          {onnodeclick}
-          {onpaneclick}
-          {onselectionend}
-          {onnodedragstart}
-          {onnodedrag}
-          {onnodedragstop}
-        >
-          {#if resizable !== undefined && resizableBox !== undefined}
-            <ResizeToolbar
-              block={resizable}
-              box={resizableBox}
-              settings={view.settings}
-              {metrics}
-              zoom={viewport.zoom}
-              {locked}
-              bind:mode
-              {onresize}
-              {onresizeend}
-              {onresizecancel}
-            />
-          {/if}
-          <SnapGuides {guides} zoom={viewport.zoom} />
-        </SvelteFlow>
-      {:catch error}
-        <p class="font-state" role="status">
-          The canvas cannot be shown: its font, DejaVu Sans, did not load ({error instanceof Error
-            ? error.message
-            : String(error)}).
-        </p>
-      {/await}
-      <p class="hint" data-testid="hint" role="status" aria-live="polite">{hint}</p>
-    </div>
-  </div>
-</SvelteFlowProvider>
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+<div
+  class="canvas"
+  role="application"
+  aria-label="Arranger"
+  tabindex="0"
+  bind:this={root}
+  {onpointerdowncapture}
+  {@attach shiftWheel}
+>
+  {#await fontLoaded}
+    <p class="font-state">Loading the font…</p>
+  {:then}
+    <SvelteFlow
+      bind:nodes
+      bind:viewport
+      edges={[]}
+      {nodeTypes}
+      minZoom={0.05}
+      {translateExtent}
+      {...snapping}
+      elevateNodesOnSelect={false}
+      onlyRenderVisibleElements={Object.keys(view.blocks).length > CULLING_THRESHOLD}
+      deleteKey={NO_KEYS}
+      selectionKey="Shift"
+      selectionMode={SelectionMode.Full}
+      selectionOnDrag={marquee}
+      panOnDrag={!marquee}
+      panOnScroll
+      panOnScrollSpeed={PAN_SPEED}
+      zoomOnScroll={false}
+      zoomActivationKey={ZOOM_KEYS}
+      nodesDraggable={!locked}
+      nodesConnectable={false}
+      proOptions={{ hideAttribution: true }}
+      {onnodeclick}
+      {onpaneclick}
+      {onselectionend}
+      {onnodedragstart}
+      {onnodedrag}
+      {onnodedragstop}
+    >
+      {#if resizable !== undefined && resizableBox !== undefined}
+        <ResizeToolbar
+          block={resizable}
+          box={resizableBox}
+          settings={view.settings}
+          {metrics}
+          zoom={viewport.zoom}
+          {locked}
+          bind:mode
+          {onresize}
+          {onresizeend}
+          {onresizecancel}
+        />
+      {/if}
+      <SnapGuides {guides} zoom={viewport.zoom} />
+      <CanvasToolbar bind:this={toolbar} bind:locked bind:marquee />
+    </SvelteFlow>
+  {:catch error}
+    <p class="font-state" role="status">
+      The canvas cannot be shown: its font, DejaVu Sans, did not load ({error instanceof Error
+        ? error.message
+        : String(error)}).
+    </p>
+  {/await}
+  <p class="hint" data-testid="hint" role="status" aria-live="polite">{hint}</p>
+</div>
 
 <style>
   .canvas {
-    display: flex;
-    flex-direction: column;
+    position: relative;
     width: 100%;
     height: 100%;
   }
 
-  .flow {
-    position: relative;
-    flex: 1;
-    min-height: 0;
+  .canvas:focus-visible {
+    outline: 2px solid #0a84ff;
+    outline-offset: -2px;
   }
 
   .font-state {
@@ -573,9 +606,10 @@ function onkeydowncapture(event: KeyboardEvent) {
     color: #555;
   }
 
+  /* Beside the controls panel (15 px margin, 26 px wide). */
   .hint {
     position: absolute;
-    left: 0.5rem;
+    left: 3.5rem;
     bottom: 0.5rem;
     margin: 0;
     font-size: 0.85rem;

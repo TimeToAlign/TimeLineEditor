@@ -1,5 +1,6 @@
 /**
- * One schema-0.5.0 TimeSkeleton manifest, held losslessly member by member.
+ * One TimeSkeleton manifest of the latest schema version, held losslessly
+ * member by member.
  */
 
 import type {

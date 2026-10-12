@@ -39,6 +39,8 @@ export interface TilieHook {
   setViewport(viewport: Viewport): void;
   locked(): boolean;
   mode(): ResizeMode;
+  /** `writeWorkspace` of the store's view and journal. */
+  text(): string;
 }
 
 declare global {

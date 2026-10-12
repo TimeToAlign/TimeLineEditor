@@ -502,15 +502,11 @@ test.describe("keyboard", () => {
     await page.mouse.click(point.x, point.y);
     expect(await selection(page)).toEqual([SMALL.map]);
     const mode = await page.evaluate(() => window.__tilie.mode());
-    // The focus goes to the inspector pane. It holds no control yet, so the
-    // pane itself is made focusable; the body would count as the canvas's.
-    await page.locator("section.inspector").evaluate((pane) => {
-      pane.setAttribute("tabindex", "-1");
-      (pane as HTMLElement).focus();
-    });
+    // The focus goes to the inspector's tab, a control outside the arranger.
+    await page.getByRole("button", { name: "Open inspector" }).focus();
     expect(
-      await page.evaluate(() => document.activeElement?.matches("section.inspector") ?? false),
-    ).toBe(true);
+      await page.evaluate(() => document.activeElement?.getAttribute("aria-label") ?? null),
+    ).toBe("Open inspector");
     for (const key of [
       "ArrowRight",
       "Shift+ArrowDown",
@@ -535,6 +531,25 @@ test.describe("keyboard", () => {
     await page.mouse.click(point.x, point.y);
     await page.keyboard.press("ArrowRight");
     expect(await position(page, SMALL.map)).toEqual({ x: 8, y: 320 });
+
+    // The page body is not the arranger.
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    expect(await page.evaluate(() => document.activeElement === document.body)).toBe(true);
+    await page.keyboard.press("ArrowRight");
+    expect(await position(page, SMALL.map)).toEqual({ x: 8, y: 320 });
+
+    // A click on the empty canvas focuses the arranger.
+    const empty = await emptyPoint(page, -20, 200);
+    await page.mouse.click(empty.x, empty.y);
+    expect(
+      await page.evaluate(
+        () =>
+          document.activeElement?.matches('[role="application"][aria-label="Arranger"]') ?? false,
+      ),
+    ).toBe(true);
+    await page.evaluate((id) => window.__tilie.select([id]), SMALL.map);
+    await page.keyboard.press("ArrowRight");
+    expect(await position(page, SMALL.map)).toEqual({ x: 16, y: 320 });
   });
 
   test("arrow keys move the focus between toolbar buttons and nudge nothing", async ({ page }) => {
@@ -546,13 +561,17 @@ test.describe("keyboard", () => {
           document.activeElement?.getAttribute("aria-label") ??
           null,
       );
-    await page.locator('[data-testid="lock"]').focus();
+    await page.getByRole("button", { name: "Zoom in" }).focus();
+    const visited: (string | null)[] = [];
+    for (let n = 0; n < 5; n += 1) {
+      await page.keyboard.press("ArrowDown");
+      visited.push(await focused());
+    }
+    expect(visited).toEqual(["Zoom out", "Fit to view", "lock", "marquee", "Zoom in"]);
+    await page.keyboard.press("ArrowUp");
+    await page.keyboard.press("ArrowUp");
+    expect(await focused()).toBe("lock");
     await page.keyboard.press("ArrowRight");
-    expect(await focused()).toBe("marquee");
-    await page.keyboard.press("ArrowRight");
-    expect(await focused()).toBe("Zoom in");
-    await page.keyboard.press("ArrowLeft");
-    await page.keyboard.press("ArrowLeft");
     expect(await focused()).toBe("lock");
 
     await page.locator('[data-testid="mode-scale"]').focus();
@@ -639,5 +658,142 @@ test.describe("keyboard", () => {
     expect(await journalLength(page)).toBe(START);
     for (let n = 0; n < 4; n += 1) await page.keyboard.press("ControlOrMeta+Shift+z");
     expect(await position(page, SMALL.map)).toEqual({ x: -56, y: 376 });
+  });
+});
+
+test.describe("shell", () => {
+  /** The left, top, right and bottom edges of a locator's box. */
+  async function edges(locator: import("@playwright/test").Locator) {
+    const box = await locator.boundingBox();
+    if (box === null) throw new Error("not displayed");
+    return { left: box.x, top: box.y, right: box.x + box.width, bottom: box.y + box.height };
+  }
+
+  test("the canvas controls sit bottom-left in the pane with our five buttons", async ({
+    page,
+  }) => {
+    expect(
+      await page.evaluate(
+        () =>
+          document.activeElement?.matches('[role="application"][aria-label="Arranger"]') ?? false,
+      ),
+    ).toBe(true);
+    const controls = page.locator(".svelte-flow__controls");
+    await expect(controls).toHaveCount(1);
+    await expect(pane(page).locator(".svelte-flow__controls")).toHaveCount(1);
+    expect(await controls.evaluate((panel) => [...panel.classList].sort())).toEqual(
+      expect.arrayContaining(["bottom", "left"]),
+    );
+    const outer = await edges(pane(page));
+    const inner = await edges(controls);
+    expect(inner.left >= outer.left && inner.right <= (outer.left + outer.right) / 2).toBe(true);
+    expect(inner.bottom <= outer.bottom && inner.top >= (outer.top + outer.bottom) / 2).toBe(true);
+    expect(
+      await controls
+        .locator("button")
+        .evaluateAll((buttons) =>
+          buttons.map((button) => [
+            button.getAttribute("data-testid"),
+            button.getAttribute("aria-label"),
+            button.getAttribute("title"),
+          ]),
+        ),
+    ).toEqual([
+      [null, "Zoom in", "Zoom in (+)"],
+      [null, "Zoom out", "Zoom out (-)"],
+      [null, "Fit to view", "Fit to view (0)"],
+      ["lock", "Lock the canvas", "Lock the canvas: dragging pans instead of moving blocks (L)"],
+      [
+        "marquee",
+        "Add to selection (marquee)",
+        "Add to selection: dragging on the canvas draws a marquee, and clicks and marquees add to the selection",
+      ],
+    ]);
+    await expect(page.locator(".svelte-flow__controls-interactive")).toHaveCount(0);
+  });
+
+  test("lock and marquee toggle by click, lock also by L", async ({ page }) => {
+    const lock = page.locator('[data-testid="lock"]');
+    const marquee = page.locator('[data-testid="marquee"]');
+    const locked = () => page.evaluate(() => window.__tilie.locked());
+    await lock.click();
+    await expect(lock).toHaveAttribute("aria-pressed", "true");
+    expect(await locked()).toBe(true);
+    await lock.click();
+    await expect(lock).toHaveAttribute("aria-pressed", "false");
+    expect(await locked()).toBe(false);
+    await page.keyboard.press("l");
+    await expect(lock).toHaveAttribute("aria-pressed", "true");
+    expect(await locked()).toBe(true);
+    await page.keyboard.press("l");
+    await expect(lock).toHaveAttribute("aria-pressed", "false");
+    expect(await locked()).toBe(false);
+    await marquee.click();
+    await expect(marquee).toHaveAttribute("aria-pressed", "true");
+    await marquee.click();
+    await expect(marquee).toHaveAttribute("aria-pressed", "false");
+  });
+
+  test("the zoom and fit buttons and keys change the viewport", async ({ page }) => {
+    const zoom = async () => (await viewportOf(page)).zoom;
+    await page.getByRole("button", { name: "Zoom in" }).click();
+    await expect.poll(zoom).not.toBe(1);
+    const zoomedIn = await zoom();
+    expect(zoomedIn > 1).toBe(true);
+    await page.getByRole("button", { name: "Zoom out" }).click();
+    await expect.poll(zoom).not.toBe(zoomedIn);
+    const zoomedOut = await zoom();
+    expect(zoomedOut < zoomedIn).toBe(true);
+    await page.keyboard.press("+");
+    await expect.poll(zoom).not.toBe(zoomedOut);
+    const keyedIn = await zoom();
+    expect(keyedIn > zoomedOut).toBe(true);
+    await page.keyboard.press("-");
+    await expect.poll(zoom).not.toBe(keyedIn);
+    expect((await zoom()) < keyedIn).toBe(true);
+
+    const away = { x: 500, y: 500, zoom: 1 };
+    await setViewport(page, away);
+    await page.getByRole("button", { name: "Fit to view" }).click();
+    await expect.poll(() => viewportOf(page)).not.toEqual(away);
+    const fitted = await viewportOf(page);
+    await setViewport(page, away);
+    await page.keyboard.press("0");
+    await expect.poll(() => viewportOf(page)).toEqual(fitted);
+  });
+
+  test("the inspector drawer is closed on load and opens without moving the canvas", async ({
+    page,
+  }) => {
+    const drawer = page.locator("#inspector");
+    const tab = page.getByRole("button", { name: "Open inspector" });
+    await expect(drawer).toBeHidden();
+    await expect(tab).toBeVisible();
+    await expect(tab).toHaveText("«");
+    const width = await page.evaluate(() => document.documentElement.clientWidth);
+    expect((await edges(tab)).right).toBe((await edges(pane(page))).right);
+    expect((await edges(pane(page))).right).toBe(width);
+
+    await tab.click();
+    await expect(drawer).toBeVisible();
+    await expect(drawer.locator("h2")).toHaveText("Inspector");
+    const close = page.getByRole("button", { name: "Close inspector" });
+    await expect(close).toHaveText("»");
+    await expect(close).toHaveAttribute("aria-expanded", "true");
+    expect((await edges(pane(page))).right).toBe((await edges(drawer)).left);
+    expect(await viewportOf(page)).toEqual(VIEW);
+
+    await page.reload();
+    await page.waitForFunction(() => window.__tilie !== undefined);
+    await expect(drawer).toBeVisible();
+
+    await open(page, "small");
+    await setViewport(page, VIEW);
+    await page.getByRole("button", { name: "Close inspector" }).click();
+    await expect(drawer).toBeHidden();
+    expect(await viewportOf(page)).toEqual(VIEW);
+    await page.reload();
+    await page.waitForFunction(() => window.__tilie !== undefined);
+    await expect(drawer).toBeHidden();
   });
 });

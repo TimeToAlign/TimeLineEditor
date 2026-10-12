@@ -164,8 +164,9 @@ const ROWS: readonly Row[] = [
   [SMALL.bare, "stretch", "right", 20, 0, { length: 420, spacing: 1, x: 40 }],
   [SMALL.bare, "stretch", "left", -21, 0, { length: 421, x: 19 }],
   [SMALL.bare, "stretch", "right", -500, 0, { length: 8, x: 40 }],
-  [SMALL.nested, "stretch", "bottom", 0, 35, { spacing: 2, length: 400, y: 240 }],
-  [SMALL.nested, "stretch", "bottom-right", 200, 35, { length: 600, spacing: 2, x: 40, y: 240 }],
+  [SMALL.bare, "stretch", "bottom", 0, 32, { spacing: 3, length: 400, y: 80 }],
+  [SMALL.nested, "stretch", "bottom", 0, 51, { spacing: 2, length: 400, y: 240 }],
+  [SMALL.nested, "stretch", "bottom-right", 200, 51, { length: 600, spacing: 2, x: 40, y: 240 }],
 ];
 
 test.describe("dragging a handle", () => {
@@ -196,23 +197,25 @@ test.describe("dragging a handle", () => {
     expect(await node(page, SMALL.bare).boundingBox()).toEqual(content);
   });
 
-  test("stretch: a shrink onto the flat piece and a grow back solve exactly", async ({ page }) => {
+  test("stretch: a shrink to the floor and a grow across the kink solve exactly", async ({
+    page,
+  }) => {
     await page.evaluate((id) => window.__tilie.select([id]), SMALL.nested);
     await chooseMode(page, "stretch");
-    // Below spacing 0.9146… nested's height is flat at 74.98828125: a target
-    // of 77.9765625 − 40 lies below it, so the solve stops at the knee,
-    // 12.8046875 / 14 = 0.91462…, as the largest multiple of 1/2048 below it.
+    // nested's height is 58.98828125 + 16 v below spacing 0.9146… and
+    // 26.9765625 + 51 v above it: a target of 77.9765625 − 40 lies below the
+    // height at the floor 1/4 (62.98828125), so the solve stops at the floor.
     await resizeBy(page, SMALL.nested, "bottom", 0, -40);
     expect(await stored(page, SMALL.nested, { spacing: 0, y: 0 })).toEqual({
-      spacing: 1873 / 2048,
+      spacing: 1 / 4,
       y: 240,
     });
-    // From the flat piece, 74.98828125 + 35 = 42.9765625 + 35 v gives
-    // v = 67.01171875 / 35 = 1.9146205…; the largest multiple of 1/2048 whose
-    // height stays within the pointer is 3921/2048.
+    // From there, 62.98828125 + 35 = 26.9765625 + 51 v gives
+    // v = 71.01171875 / 51 = 1.392386…; the largest multiple of 1/2048 whose
+    // height stays within the pointer is 2851/2048.
     await resizeBy(page, SMALL.nested, "bottom", 0, 35);
     expect(await stored(page, SMALL.nested, { spacing: 0, y: 0 })).toEqual({
-      spacing: 3921 / 2048,
+      spacing: 2851 / 2048,
       y: 240,
     });
   });

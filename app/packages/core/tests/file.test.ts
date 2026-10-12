@@ -1,4 +1,4 @@
-import { dumps, parseJson } from "@timetoalign/timeskeleton";
+import { dumps, parseJson, SCHEMA_VERSION, SUPPORTED_VERSIONS } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
 import type { Workspace } from "../src/index.ts";
 import {
@@ -148,6 +148,21 @@ describe("the workspace file", () => {
       [code, path],
     ]);
   });
+
+  it.each(SUPPORTED_VERSIONS.filter((version) => version !== SCHEMA_VERSION))(
+    "migrates every block manifest declaring %s",
+    (version) => {
+      const older = edited((value) => {
+        for (const block of Object.values(value.blocks as Value)) {
+          Object.assign(((block as Value).manifest as Value).meta as Value, {
+            schema_version: version,
+          });
+        }
+      });
+      expect(older).not.toBe(text);
+      expect(read(older)).toEqual(read(text));
+    },
+  );
 
   it("refuses a manifest invariant at its location in the file", () => {
     const value = parseJson(writeWorkspace(built())) as Value;

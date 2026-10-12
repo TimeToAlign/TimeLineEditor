@@ -11,6 +11,7 @@
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import type { Manifest, Store } from "../../packages/core/src/index.ts";
 import {
   createStore,
@@ -22,16 +23,18 @@ import {
 
 const here = import.meta.dirname;
 
-/** The manifest fixtures of the timeskeleton package that `core` depends on. */
-const manifestDir = path.join(
-  path.dirname(
-    createRequire(path.join(here, "../../packages/core/package.json")).resolve(
-      "@timetoalign/timeskeleton/package.json",
-    ),
+/** The timeskeleton package that `core` depends on. */
+const packageDir = path.dirname(
+  createRequire(path.join(here, "../../packages/core/package.json")).resolve(
+    "@timetoalign/timeskeleton/package.json",
   ),
-  "fixtures",
-  "0.5.0",
 );
+const { SCHEMA_VERSION } = (await import(
+  pathToFileURL(path.join(packageDir, "dist", "index.js")).href
+)) as { readonly SCHEMA_VERSION: string };
+
+/** The manifest fixtures of that package's schema version. */
+const manifestDir = path.join(packageDir, "fixtures", SCHEMA_VERSION);
 
 /** The author of every journal entry. */
 export const AUTHOR = "Fixture Generator";

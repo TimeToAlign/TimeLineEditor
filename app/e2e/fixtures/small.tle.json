@@ -8,8 +8,8 @@
       "length": 400,
       "manifest": {
         "meta": {
-          "generator": "timetoalign 1.2.0 (f0a58ce1)",
-          "schema_version": "0.5.0"
+          "generator": "timetoalign 1.2.0 (9a728128)",
+          "schema_version": "0.6.0"
         },
         "timeline": {
           "children": {},
@@ -59,8 +59,8 @@
       "length": 400,
       "manifest": {
         "meta": {
-          "generator": "timetoalign 1.2.0 (f0a58ce1)",
-          "schema_version": "0.5.0"
+          "generator": "timetoalign 1.2.0 (9a728128)",
+          "schema_version": "0.6.0"
         },
         "timeline": {
           "children": {},
@@ -171,8 +171,8 @@
       "length": 400,
       "manifest": {
         "meta": {
-          "generator": "timetoalign 1.2.0 (f0a58ce1)",
-          "schema_version": "0.5.0"
+          "generator": "timetoalign 1.2.0 (9a728128)",
+          "schema_version": "0.6.0"
         },
         "timeline": {
           "children": {
@@ -282,8 +282,8 @@
       "length": 400,
       "manifest": {
         "meta": {
-          "generator": "timetoalign 1.2.0 (f0a58ce1)",
-          "schema_version": "0.5.0"
+          "generator": "timetoalign 1.2.0 (9a728128)",
+          "schema_version": "0.6.0"
         },
         "timeline": {
           "children": {
@@ -620,8 +620,8 @@
           }
         },
         "meta": {
-          "generator": "timetoalign 1.2.0 (f0a58ce1)",
-          "schema_version": "0.5.0"
+          "generator": "timetoalign 1.2.0 (9a728128)",
+          "schema_version": "0.6.0"
         },
         "timeline": {
           "children": {
@@ -805,8 +805,8 @@
           "id": "bare000000",
           "manifest": {
             "meta": {
-              "generator": "timetoalign 1.2.0 (f0a58ce1)",
-              "schema_version": "0.5.0"
+              "generator": "timetoalign 1.2.0 (9a728128)",
+              "schema_version": "0.6.0"
             },
             "timeline": {
               "children": {},
@@ -851,8 +851,8 @@
           "id": "nested0000",
           "manifest": {
             "meta": {
-              "generator": "timetoalign 1.2.0 (f0a58ce1)",
-              "schema_version": "0.5.0"
+              "generator": "timetoalign 1.2.0 (9a728128)",
+              "schema_version": "0.6.0"
             },
             "timeline": {
               "children": {
@@ -973,8 +973,8 @@
           "id": "map0000000",
           "manifest": {
             "meta": {
-              "generator": "timetoalign 1.2.0 (f0a58ce1)",
-              "schema_version": "0.5.0"
+              "generator": "timetoalign 1.2.0 (9a728128)",
+              "schema_version": "0.6.0"
             },
             "timeline": {
               "children": {
@@ -1079,8 +1079,8 @@
           "id": "flow000000",
           "manifest": {
             "meta": {
-              "generator": "timetoalign 1.2.0 (f0a58ce1)",
-              "schema_version": "0.5.0"
+              "generator": "timetoalign 1.2.0 (9a728128)",
+              "schema_version": "0.6.0"
             },
             "timeline": {
               "children": {},
@@ -1397,8 +1397,8 @@
               }
             },
             "meta": {
-              "generator": "timetoalign 1.2.0 (f0a58ce1)",
-              "schema_version": "0.5.0"
+              "generator": "timetoalign 1.2.0 (9a728128)",
+              "schema_version": "0.6.0"
             },
             "timeline": {
               "children": {

@@ -1,12 +1,12 @@
 # Contributing to TiLiE
 
-TiLiE is a pnpm TypeScript workspace with a Svelte 5 application and a separate Python server. The application is an early alpha whose canvas arranges blocks but cannot yet open or save a file, so contributions should preserve the package boundaries and document exactly what a new behavior proves.
+TiLiE is a pnpm TypeScript workspace with a Svelte 5 application and a separate Python server. The application is an early alpha that arranges, inspects, opens and saves workspaces but does not yet load sources through the server, so contributions should preserve the package boundaries and document exactly what a new behavior proves.
 
 ## Setup
 
 Install Node.js 22.18 or newer, pnpm 12.10.1, Python 3.11 or newer, and uv.
 
-The application packages `core`, `layout` and `writers` take schema 0.5.0 from the published `@timetoalign/timeskeleton` package (`^0.5.0`). To try a change to timeskeleton itself, point their dependency at a built local checkout's `js/` package with a `link:` path, and never commit the link. Prepare both parts of the repository:
+The application packages `core`, `layout` and `writers` take schema 0.6.0 from the `@timetoalign/timeskeleton` package. To try a change to timeskeleton itself, point their dependency at a built local checkout's `js/` package with a `link:` path, and never commit the link. Prepare both parts of the repository:
 
 ```bash
 cd app
@@ -52,7 +52,7 @@ Review drawing changes with `rsvg-convert` installed:
 pnpm -C app/packages/writers review
 ```
 
-The command draws every 0.5.0 manifest fixture, together with resized and restyled cases, writes their SVG and PNG files under `app/packages/writers/review/`, and lists them in `review/index.html`. It rasterizes at twice the size (`rsvg-convert --zoom 2`) with fontconfig restricted to timeskeleton's bundled `DejaVuSans.ttf`, and refuses to continue if another font is visible or `rsvg-convert` fails.
+The command draws every 0.6.0 manifest fixture, together with resized and restyled cases, writes their SVG and PNG files under `app/packages/writers/review/`, and lists them in `review/index.html`. It rasterizes at twice the size (`rsvg-convert --zoom 2`) with fontconfig restricted to timeskeleton's bundled `DejaVuSans.ttf`, and refuses to continue if another font is visible or `rsvg-convert` fails.
 
 ### End-to-end tests
 
@@ -85,7 +85,7 @@ When adding a package, first establish a present need. Add its permitted edges t
 
 ## Known Limitations
 
-The editor component test mounts the shell and checks its headings, health request, and displayed result. It covers the token taken from the URL fragment and cleared from the address bar, and the absent token (no fragment, so an empty bearer header is sent). It does not verify CSS grid layout, mobile rendering, or a fragment that carries an empty token (`#token=`). The server static-file tests do not exercise traversal behavior. Treat these gaps as test coverage to improve when their behavior is changed.
+The editor component test mounts the shell and checks its headings, the focus on the canvas, the health request with the offline mark, and the inspector drawer with its remembered state. It covers the token taken from the URL fragment and cleared from the address bar, and the absent token (no fragment, so an empty bearer header is sent). It does not verify CSS layout (the drawer's and the tab's positions are checked end to end), mobile rendering, or a fragment that carries an empty token (`#token=`). The File System Access path is tested against stubbed pickers only; the end-to-end tests remove the pickers and take the file-input and download path in every engine. The server static-file tests do not exercise traversal behavior. Treat these gaps as test coverage to improve when their behavior is changed.
 
 ## Release
 

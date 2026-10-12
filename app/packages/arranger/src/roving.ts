@@ -1,17 +1,32 @@
 /**
- * The keyboard behaviour of a horizontal toolbar (WAI-ARIA Authoring
- * Practices, "Toolbar"): the toolbar is one tab stop, the button last
- * focused; Left and Right move focus to the previous and next enabled
- * button, wrapping around, and Home and End to the first and last.
+ * The keyboard behaviour of a toolbar (WAI-ARIA Authoring Practices,
+ * "Toolbar"): the toolbar is one tab stop, the button last focused; Left and
+ * Right (Up and Down in a toolbar with `aria-orientation="vertical"`) move
+ * focus to the previous and next enabled button, wrapping around, and Home
+ * and End to the first and last.
  */
 
 import type { Attachment } from "svelte/attachments";
 
-const STEPS: { readonly [key: string]: (index: number, count: number) => number } = {
-  ArrowLeft: (index, count) => (index - 1 + count) % count,
-  ArrowRight: (index, count) => (index + 1) % count,
-  Home: () => 0,
-  End: (_index, count) => count - 1,
+type Step = (index: number, count: number) => number;
+
+const previous: Step = (index, count) => (index - 1 + count) % count;
+const next: Step = (index, count) => (index + 1) % count;
+const first: Step = () => 0;
+const last: Step = (_index, count) => count - 1;
+
+const HORIZONTAL: { readonly [key: string]: Step } = {
+  ArrowLeft: previous,
+  ArrowRight: next,
+  Home: first,
+  End: last,
+};
+
+const VERTICAL: { readonly [key: string]: Step } = {
+  ArrowUp: previous,
+  ArrowDown: next,
+  Home: first,
+  End: last,
 };
 
 export const roving: Attachment<HTMLElement> = (toolbar) => {
@@ -35,7 +50,8 @@ export const roving: Attachment<HTMLElement> = (toolbar) => {
   }
 
   function onkeydown(event: KeyboardEvent): void {
-    const step = STEPS[event.key];
+    const steps = toolbar.getAttribute("aria-orientation") === "vertical" ? VERTICAL : HORIZONTAL;
+    const step = steps[event.key];
     if (step === undefined || event.altKey || event.ctrlKey || event.metaKey) return;
     const buttons = enabled();
     const index = current === null ? -1 : buttons.indexOf(current);

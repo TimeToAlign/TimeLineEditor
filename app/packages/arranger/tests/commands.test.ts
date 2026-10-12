@@ -2,8 +2,14 @@ import type { View } from "@timetoalign/tilie-core";
 import { isIndex, manifestIds } from "@timetoalign/tilie-core";
 import { describe, expect, it } from "vitest";
 import type { ZOrderAction } from "../src/index.ts";
-import { moveCommand, nudgeCommand, removeCommand, zOrderCommand } from "../src/index.ts";
-import { A, B, blockIn, C, changed, viewOf, withGrid } from "./support.ts";
+import {
+  addCommand,
+  moveCommand,
+  nudgeCommand,
+  removeCommand,
+  zOrderCommand,
+} from "../src/index.ts";
+import { A, B, blockIn, C, changed, load, viewOf, withGrid } from "./support.ts";
 
 describe("moveCommand", () => {
   const view = viewOf({ id: A, fixture: "bare", x: 40, y: 80 }, { id: B, fixture: "nested" });
@@ -147,5 +153,52 @@ describe("removeCommand", () => {
   it("is accepted by apply", () => {
     const after = changed(nested, removeCommand(nested, new Set([`${A}/clt_3`])));
     expect(manifestIds(blockIn(after, A).manifest)).toEqual(new Set(["clt_1"]));
+  });
+});
+
+describe("addCommand", () => {
+  const view = viewOf({ id: A, fixture: "bare", x: 40, y: 80 });
+  const bare = load("bare");
+  const visible = { x: 100, y: 50, zoom: 2, width: 1000, height: 600 };
+
+  it("places the block's top-left at the centre of the view, snapped to the grid", () => {
+    expect(addCommand(view, C, bare, visible)).toEqual({
+      type: "add",
+      into: "workspace",
+      block: { id: C, manifest: bare, x: 200, y: 128 },
+    });
+  });
+
+  it("quantizes to 1/2048 when the grid does not snap", () => {
+    const free = withGrid(view, 8, false);
+    expect(addCommand(free, C, bare, visible).block).toEqual({
+      id: C,
+      manifest: bare,
+      x: 200,
+      y: 125,
+    });
+    const odd = { x: 0, y: 0, zoom: 3, width: 1001, height: 1 };
+    expect(addCommand(free, C, bare, odd).block).toEqual({
+      id: C,
+      manifest: bare,
+      x: 166.83349609375,
+      y: 0.16650390625,
+    });
+  });
+
+  it("is accepted by apply, giving the block the workspace's defaults", () => {
+    const after = changed(view, addCommand(view, C, bare, visible));
+    const block = blockIn(after, C);
+    const { scale, length, spacing, width, height, order } = view.settings.blockDefaults;
+    expect([block.x, block.y, block.scale, block.length, block.spacing]).toEqual([
+      200,
+      128,
+      scale,
+      length,
+      spacing,
+    ]);
+    expect([block.width, block.height, block.order]).toEqual([width, height, order]);
+    expect(block.manifest).toEqual(bare);
+    expect(block.index > blockIn(after, A).index).toBe(true);
   });
 });

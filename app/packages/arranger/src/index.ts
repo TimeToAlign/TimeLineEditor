@@ -11,8 +11,14 @@ export { affectedBy } from "./affected.ts";
 export { default as BlockNodeComponent } from "./BlockNode.svelte";
 export { default as Canvas } from "./Canvas.svelte";
 export { default as CanvasToolbar } from "./CanvasToolbar.svelte";
-export type { Move, ZOrderAction } from "./commands.ts";
-export { moveCommand, nudgeCommand, removeCommand, zOrderCommand } from "./commands.ts";
+export type { Move, Visible, ZOrderAction } from "./commands.ts";
+export {
+  addCommand,
+  moveCommand,
+  nudgeCommand,
+  removeCommand,
+  zOrderCommand,
+} from "./commands.ts";
 export { descriptorsOf, drawingOf } from "./drawing.ts";
 export { GRID_FREE, MIN_LENGTH, MIN_SCALE, MIN_SPACING, quantize } from "./numbers.ts";
 export type { BlockNode, BlockNodeData } from "./project.ts";
@@ -22,6 +28,6 @@ export type { Delta, Handle, ResizeMode } from "./resize.ts";
 export { handlesFor, resize, resizeCommand } from "./resize.ts";
 export { default as SnapGuides } from "./SnapGuides.svelte";
 export type { Selection } from "./selection.ts";
-export { blockOf, click } from "./selection.ts";
+export { blockOf, click, existing } from "./selection.ts";
 export type { Box, Guide } from "./snap.ts";
 export { snap } from "./snap.ts";

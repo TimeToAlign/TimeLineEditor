@@ -1,9 +1,11 @@
 /** Gestures as commands: every completed gesture is one `set` or one `remove`. */
 
 import type {
+  AddCommand,
   Block,
   BlockId,
   Change,
+  Manifest,
   RemoveCommand,
   SetCommand,
   View,
@@ -69,6 +71,32 @@ export function nudgeCommand(
     moves.push({ id, x: block.x + dx * grid.size, y: block.y + dy * grid.size });
   }
   return placing(view, moves, positionStep(grid));
+}
+
+/** The visible part of the canvas: Svelte Flow's transform and the pane's size in screen pixels. */
+export interface Visible {
+  readonly x: number;
+  readonly y: number;
+  readonly zoom: number;
+  readonly width: number;
+  readonly height: number;
+}
+
+/**
+ * One `add` of a new block `id` holding `manifest`, its top-left at the
+ * centre of what `visible` shows, quantized as a move under the view's grid
+ * is. Its other placement members are the workspace's block defaults.
+ */
+export function addCommand(
+  view: View,
+  id: BlockId,
+  manifest: Manifest,
+  visible: Visible,
+): AddCommand {
+  const step = positionStep(view.settings.grid);
+  const x = quantize((visible.width / 2 - visible.x) / visible.zoom, step);
+  const y = quantize((visible.height / 2 - visible.y) / visible.zoom, step);
+  return { type: "add", into: "workspace", block: { id, manifest, x, y } };
 }
 
 export type ZOrderAction = "front" | "back" | "forward" | "backward";

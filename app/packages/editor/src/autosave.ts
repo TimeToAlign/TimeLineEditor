@@ -1,9 +1,11 @@
 /**
- * Autosave of workspace text to IndexedDB: one object store, one slot per
- * workspace key. The text is stored and returned exactly as given (normally
- * what `writeWorkspace` returns); this module never parses or builds it.
+ * Autosave of workspace snapshots to IndexedDB: one object store, one slot
+ * per workspace key. A snapshot is the workspace's text, stored and returned
+ * exactly as given (normally what `writeWorkspace` returns; this module never
+ * parses or builds it), and the name of the file it belongs to. A caller may
+ * pass a function giving the snapshot instead, so the text is written out
+ * only when it is due, not on every change.
  */
-
 const DATABASE = "tilie-autosave";
 const VERSION = 1;
 const STORE = "workspaces";
@@ -26,54 +28,84 @@ export class AutosaveError extends Error {
 export interface AutosaveOptions {
   /** The workspace's slot. */
   readonly key: string;
-  /** How long `schedule` waits for a later text before writing. */
+  /** How long `schedule` waits for a later snapshot before writing. */
   readonly delayMs: number;
+  /**
+   * Told of a failure no caller waits for (a write the timer started, a
+   * `discard`); without it, the failure is held and rejects the next `flush()`.
+   */
+  readonly onError?: (error: unknown) => void;
 }
 
+/** What a slot holds: a workspace's text and the name of its file. */
+export interface Snapshot {
+  readonly text: string;
+  readonly name: string;
+}
+
+/** A snapshot, or a function giving it when the write is due. */
+export type Pending = Snapshot | (() => Snapshot);
+
 export interface Autosave {
-  /** Write `text` once no further text was scheduled for `delayMs`. */
-  schedule(text: string): void;
+  /** Write `snapshot` once no further snapshot was scheduled for `delayMs`. */
+  schedule(snapshot: Pending): void;
+  /** Drop the pending snapshot and empty the slot, after every write already started. */
+  discard(): void;
   /**
-   * Write the pending text now and wait for every write. Rejects with the
-   * first failure since the previous flush, including writes the timer started.
+   * Write the pending snapshot now and wait for every write. Rejects with
+   * the first failure since the previous flush that no caller waited for.
    */
   flush(): Promise<void>;
 }
 
-export function createAutosave({ key, delayMs }: AutosaveOptions): Autosave {
-  let pending: { readonly text: string } | undefined;
+export function createAutosave({ key, delayMs, onError }: AutosaveOptions): Autosave {
+  let pending: { readonly snapshot: Pending } | undefined;
   let timer: ReturnType<typeof setTimeout> | undefined;
   // Writes run one after another; the queue itself never rejects.
   let queue: Promise<void> = Promise.resolve();
   let failure: { readonly error: unknown } | undefined;
 
-  function writePending(): void {
+  function stopTimer(): void {
     if (timer !== undefined) {
       clearTimeout(timer);
       timer = undefined;
     }
+  }
+
+  /** Run `work` after every queued request; `unattended` when no caller waits for it. */
+  function enqueue(work: () => Promise<void>, unattended: boolean): void {
+    queue = queue.then(work).catch((error: unknown) => {
+      if (unattended && onError !== undefined) onError(error);
+      else failure ??= { error };
+    });
+  }
+
+  function writePending(byTimer: boolean): void {
+    stopTimer();
     if (pending === undefined) {
       return;
     }
-    const { text } = pending;
+    const { snapshot } = pending;
     pending = undefined;
-    queue = queue
-      .then(() => putText(key, text))
-      .catch((error: unknown) => {
-        failure ??= { error };
-      });
+    enqueue(
+      () => putSnapshot(key, typeof snapshot === "function" ? snapshot() : snapshot),
+      byTimer,
+    );
   }
 
   return {
-    schedule(text) {
-      pending = { text };
-      if (timer !== undefined) {
-        clearTimeout(timer);
-      }
-      timer = setTimeout(writePending, delayMs);
+    schedule(snapshot) {
+      pending = { snapshot };
+      stopTimer();
+      timer = setTimeout(() => writePending(true), delayMs);
+    },
+    discard() {
+      stopTimer();
+      pending = undefined;
+      enqueue(() => clear(key), true);
     },
     async flush() {
-      writePending();
+      writePending(false);
       await queue;
       if (failure !== undefined) {
         const { error } = failure;
@@ -84,10 +116,12 @@ export function createAutosave({ key, delayMs }: AutosaveOptions): Autosave {
   };
 }
 
-/** The text last written under `key`, or `null` when there is none. */
-export async function recoverWorkspace(key: string): Promise<string | null> {
-  const value = await inStore(key, "readonly", (store) => store.get(key));
-  return typeof value === "string" ? value : null;
+/** The snapshot last written under `key`, or `null` when the slot holds none. */
+export async function recoverWorkspace(key: string): Promise<Snapshot | null> {
+  const value: unknown = await inStore(key, "readonly", (store) => store.get(key));
+  if (typeof value !== "object" || value === null) return null;
+  const { text, name } = value as Record<string, unknown>;
+  return typeof text === "string" && typeof name === "string" ? { text, name } : null;
 }
 
 /** Remove the slot of `key`. */
@@ -95,8 +129,8 @@ export async function clear(key: string): Promise<void> {
   await inStore(key, "readwrite", (store) => store.delete(key));
 }
 
-async function putText(key: string, text: string): Promise<void> {
-  await inStore(key, "readwrite", (store) => store.put(text, key));
+async function putSnapshot(key: string, { text, name }: Snapshot): Promise<void> {
+  await inStore(key, "readwrite", (store) => store.put({ text, name }, key));
 }
 
 /** Run one request in its own transaction and resolve once the transaction completes. */

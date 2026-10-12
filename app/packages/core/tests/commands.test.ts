@@ -1,4 +1,4 @@
-import { JsonFloat } from "@timetoalign/timeskeleton";
+import { JsonFloat, SCHEMA_VERSION, SUPPORTED_VERSIONS } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
 import type { Manifest, View } from "../src/index.ts";
 import { apply, createView, DEFAULT_SETTINGS, parseCommand } from "../src/index.ts";
@@ -186,6 +186,14 @@ describe("set", () => {
   it("replaces a block's manifest whole", () => {
     const view = applied(viewOf([A, "bare.json"]), set(A, { manifest: load("nested.json") }));
     expect(manifest(view)).toEqual(load("nested.json"));
+  });
+
+  it.each(SUPPORTED_VERSIONS)("stores a manifest declaring %s at the latest version", (version) => {
+    const latest = load("nested.json");
+    const older = { ...latest, meta: { ...latest.meta, schema_version: version } };
+    const view = applied(viewOf([A, "bare.json"]), set(A, { manifest: older }));
+    expect(manifest(view).meta.schema_version).toBe(SCHEMA_VERSION);
+    expect(manifest(view)).toEqual(latest);
   });
 
   it("sets timeline members, growing the unlocked root for a child's offset", () => {

@@ -17,8 +17,9 @@ belong in the suite.
 - **The DOM** for what the contract says is rendered: nodes
   `.svelte-flow__node[data-id="<block id>"]`, drawn elements
   `[data-address="<element id>"]` inside their node, `[data-selected]`,
-  `[data-contains-selection]`, the toolbar buttons `[data-testid="mode-scale"
-  | "mode-box" | "mode-stretch" | "lock" | "marquee"]` with `aria-pressed`,
+  `[data-contains-selection]`, the mode buttons `[data-testid="mode-scale"
+  | "mode-box" | "mode-stretch"]` and the canvas controls' `[data-testid="lock"
+  | "marquee"]` with `aria-pressed`,
   handles `[data-testid="handle-<handle>"]`, guides
   `[data-testid="snap-guide"]` and the refusal hint `[data-testid="hint"]`.
 - **Pixels** only in `visual.spec.ts`, tagged `@visual`.
@@ -48,7 +49,8 @@ viewport through the hook first; at zoom 1 a pixel is a canvas unit.
 
 `fixtures/generate.ts` builds every workspace through `createStore` and the
 `add` command from the manifest fixtures of the installed
-`@timetoalign/timeskeleton` 0.5.0 and writes it with `writeWorkspace`. The
+`@timetoalign/timeskeleton` (its `SCHEMA_VERSION`) and writes it with
+`writeWorkspace`. The
 journal is deterministic: author `"Fixture Generator"`, entry times from
 `2026-10-12T09:00:00.000Z`, one second apart. Each `add` gives only `id`,
 `manifest`, `x` and `y`, so every other placement member is the workspace
@@ -83,9 +85,10 @@ font's advances (they equal the `rect` of the upstream drawing fixtures):
 | `styled__score` | 510.080078125 | 118.921875 | 90.080078125 |
 
 For every one, `width = origin + length + 17`, so a stretch of the length moves
-the right edge by exactly the length change. `nested`'s height is
-`42.9765625 + 35 × spacing` for `spacing ≥ 0.9146…`; `bare`'s height has no
-spacing term.
+the right edge by exactly the length change. The vertical padding is
+`8 × spacing` above and below (drawing.md section 6.5), so `bare`'s height
+is `33.37890625 + 16 × spacing` and `nested`'s is `26.9765625 + 51 ×
+spacing` for `spacing ≥ 0.9146…` and `58.98828125 + 16 × spacing` below.
 
 ## The gesture rules the values follow
 
@@ -253,15 +256,22 @@ spacing term.
     whose only change targets `bare000000` with the single property `index`,
     and the nodes' computed `z-index` rises strictly along the order.
 12. **Keys need the focus in the arranger.** `map0000000` selected by a click
-    on its background, then the focus moves to the inspector pane
-    (`section.inspector`, made focusable by the test because it holds no
-    control yet; the body counts as the canvas's own focus): →, Shift+↓, Ctrl/Cmd+Shift+], 1, 2,
+    on its background, then the focus moves to the inspector's tab (the
+    button "Open inspector", outside the arranger): →, Shift+↓, Ctrl/Cmd+Shift+], 1, 2,
     3, L, Delete, Backspace and Escape journal nothing and leave the block at
     (0, 320), the selection [map0000000], the mode and the lock unchanged.
     A click on the block again and → moves it to (8, 320), so the keys are
-    live when the focus is back.
-13. **Toolbars move the focus with arrows** (roving focus): from the focused
-    lock button → reaches `marquee`, → "Zoom in", ← ← `lock` again; from
+    live when the focus is back. With the focus on the page body (the
+    arranger blurred by the test), → moves nothing either: the body is not
+    the arranger. A click on the empty canvas (canvas point (−20, 200))
+    then focuses the arranger itself (`[role="application"][aria-label=
+    "Arranger"]` is the active element; the click also clears the
+    selection), and with `map0000000` selected again through the hook, →
+    moves it to (16, 320).
+13. **Toolbars move the focus with arrows** (roving focus): the canvas
+    controls are a vertical toolbar, so from the focused "Zoom in" button ↓
+    reaches "Zoom out", ↓ "Fit to view", ↓ `lock`, ↓ `marquee`, ↓ wraps to
+    "Zoom in", ↑ ↑ `lock` again, and → leaves the focus on `lock`; from
     `mode-scale` → `mode-box`, → `mode-stretch`, ← `mode-box`. With
     `map0000000` selected throughout, nothing is journalled and the block
     stays at (0, 320).
@@ -269,6 +279,39 @@ spacing term.
     320), Shift+↓ (8, 384), ↑ (8, 376), Shift+← (−56, 376); four `set`
     commands, each on `map0000000` only. Four undos restore (0, 320) and the
     journal to 5; four redos (−56, 376).
+
+15. **The canvas controls.** On load the arranger holds the focus (opening
+    a workspace through the hook focuses it too). Exactly one Svelte Flow
+    controls panel (`.svelte-flow__controls`) exists, inside the pane
+    (`.svelte-flow`), with the classes `bottom` and `left`, and its box lies
+    inside the pane's box in its lower-left quarter. Its buttons, in DOM
+    order, are exactly: "Zoom in", "Zoom out", "Fit to view" (their
+    `aria-label`s, `title`s "Zoom in (+)", "Zoom out (-)", "Fit to view
+    (0)"), `lock` (`aria-label` "Lock the canvas", `title` "Lock the
+    canvas: dragging pans instead of moving blocks (L)") and `marquee`
+    (`aria-label` "Add to selection (marquee)"); Svelte Flow's own lock
+    button (`.svelte-flow__controls-interactive`) is absent and no other
+    button is in the panel. A click on `lock` sets `aria-pressed="true"` and
+    `locked()` true, a second click false; L toggles it the same way.
+    A click on `marquee` sets its `aria-pressed="true"`, a second click
+    `false`. From viewport (40, 40) zoom 1: "Zoom in" raises the zoom,
+    "Zoom out" then lowers it below the zoomed-in value, + raises it again
+    and − lowers it (the step sizes are Svelte Flow's and not pinned); "Fit
+    to view" and 0 each change the viewport away from a set (500, 500)
+    zoom 1, and both give the same viewport.
+16. **The inspector drawer.** On load (empty `localStorage`) the drawer
+    `#inspector` is hidden and the tab "Open inspector" (text «) is visible
+    at the right edge of the arranger: its right edge equals the pane's
+    right edge, and the pane's right edge equals the page's width (the
+    canvas takes the full width). With the viewport set to (40, 40) zoom 1,
+    a click on the tab shows the drawer, whose heading reads `Inspector`
+    and whose close button "Close inspector" (text ») has
+    `aria-expanded="true"`; the pane's right edge now equals the drawer's
+    left edge, and the viewport is still exactly (40, 40) zoom 1, so
+    opening re-fits nothing. A reload keeps the drawer open (the state is
+    in `localStorage` under `tilie.inspector.open`). A click on the close
+    button hides it again, the viewport is still (40, 40) zoom 1, and
+    after a reload the drawer is closed.
 
 ## `resize.spec.ts` (Chromium, Firefox, WebKit)
 
@@ -300,18 +343,19 @@ spacing term.
 | bare | stretch | right | (20, 0) | length 420, spacing 1 | width = origin + length + 17, so length + 20 |
 | bare | stretch | left | (−21, 0) | length 421, x 19 | edge 19 (no grid), width + 21 |
 | bare | stretch | right | (−500, 0) | length 8 | floor `MIN_LENGTH` |
-| nested | stretch | bottom | (0, 35) | spacing 2, length 400, y 240 | 77.9765625 + 35 = 112.9765625 = 42.9765625 + 35 × 2 |
-| nested | stretch | bottom-right | (200, 35) | length 600, spacing 2 | both at once; the pointer ends at pane x 999, clear of the auto-pan zone |
+| bare | stretch | bottom | (0, 32) | spacing 3, length 400, y 80 | a single timeline stretches through its padding: 49.37890625 + 32 = 81.37890625 = 33.37890625 + 16 × 3 |
+| nested | stretch | bottom | (0, 51) | spacing 2, length 400, y 240 | 77.9765625 + 51 = 128.9765625 = 26.9765625 + 51 × 2 |
+| nested | stretch | bottom-right | (200, 51) | length 600, spacing 2 | both at once; the pointer ends at pane x 999, clear of the auto-pan zone |
 
-4. **Stretch across the flat piece.** `nested`'s height is flat at 74.98828125
-   below the knee v = 12.8046875 / 14 = 0.91462… and `42.9765625 + 35 v`
-   above it. Stretch stores the largest multiple of 1/2048 (at or above the
-   floor) whose height does not pass the pointer. The bottom handle dragged
-   by (0, −40) asks for 37.9765625, below the flat piece, so the solve stops
-   at the knee: 1873/2048 = 0.91455078125 (y stays 240). Dragged by (0, 35)
-   from there, the target is 74.98828125 + 35 = 109.98828125, so v ≤
-   67.01171875 / 35 = 1.9146205…, i.e. 3921/2048 = 1.91455078125: the solve
-   leaves the flat piece instead of staying on it.
+4. **Stretch to the floor and across the kink.** `nested`'s height is
+   `58.98828125 + 16 v` below the kink v = 12.8046875 / 14 = 0.91462… and
+   `26.9765625 + 51 v` above it; the padding leaves it no flat piece.
+   Stretch stores the largest multiple of 1/2048 (at or above the floor)
+   whose height does not pass the pointer. The bottom handle dragged by
+   (0, −40) asks for 37.9765625, below the height at the floor 1/4
+   (62.98828125), so the solve stops at the floor (y stays 240). Dragged by
+   (0, 35) from there, the target is 97.98828125, above the kink, so v ≤
+   71.01171875 / 51 = 1.392386…, i.e. 2851/2048 = 1.39208984375.
 4b. **A resize held in the edge zone pans and follows the pointer.** In box
    mode, `bare`'s right handle is pressed at screen x s₀ and moved to screen
    x s₁ = pane right − 20, inside the right edge zone, both whole pixels
@@ -363,11 +407,84 @@ mouse, Svelte Flow measures a node drag from the move that starts it).
    exactly {bare000000} (bare ends at x 458.58, flow starts at 640, nested at
    y 160) and leaves the viewport where it was.
 
+## `files.spec.ts` (Chromium, Firefox, WebKit)
+
+The pickers of the File System Access API are deleted from the page before
+it loads, so every engine takes the fallback path: a file input answered
+through Playwright's file chooser, and a download. Page 1280 × 800: the
+header is 32 px high and the inspector closed, so the arranger measures
+1280 × 768 (asserted).
+
+1. **The gate: save, reopen, save.** File → New workspace (journal 0); the
+   viewport set to (100, 50), zoom 1. File → Import manifest… with the
+   installed package's `fixtures/<SCHEMA_VERSION>/bare.json`: one `add`
+   (journal 1), the new block selected, its top-left at the centre of the
+   view, `((1280 / 2 − 100) / 1, (768 / 2 − 50) / 1) = (540, 334)` snapped
+   to the grid of 8: `(544, 336)`, scale 1 and length 400 (the defaults).
+   An import never moves the view: two frames later the viewport is still
+   exactly (100, 50), zoom 1 (only opening a workspace that holds blocks
+   fits it into view). Dragged by (40, 24): one `set`, `(584, 360)`. In stretch mode its right
+   handle dragged by (20, 0): one `set`, length 420, spacing 1 (as
+   `resize.spec.ts` derives for `bare`). The header shows `• untitled.tle.json`.
+   Ctrl/Cmd+S downloads `untitled.tle.json` whose text equals the hook's
+   `text()` (`writeWorkspace` of the store), and the mark goes. File →
+   Open… with that text clears the selection (a new store), keeps the
+   journal at 3 and gives `text()` equal to the saved text; Ctrl/Cmd+S
+   again downloads `untitled.tle.json` byte-identical to the first save.
+1b. **An opened workspace is fitted, an import into it is not.** `small`
+   opened through the hook (journal 5) is fitted once its nodes are
+   measured: polled until all five nodes' boxes lie inside the pane
+   `.svelte-flow`. Its viewport then, two frames later, is read; File →
+   Import manifest… with `bare.json` journals one `add` (6), and two frames
+   later the viewport equals the fitted one exactly.
+2. **A refused file.** File → Open… with `{` (`broken.tle.json`) shows one
+   message containing `broken.tle.json is not a workspace file` whose first
+   problem code is `invalid_json`; the journal stays 0; Dismiss removes it.
+3. **About.** The About button opens the dialog named `About
+   TimeLineEditor`; its packages are exactly `@timetoalign/tilie-core`,
+   `-layout`, `-writers`, `-arranger`, `-client`; the server line starts
+   `offline: The server did not answer the health check (` (the preview
+   server runs no `tilie-server`; the reason's text differs by engine); its
+   link `THIRD_PARTY_NOTICES.txt` resolves against the page to a file the
+   server answers with status 200, starting `TimeLineEditor: third-party
+   notices` (the build wrote it); Escape closes it.
+
+## `inspector.spec.ts` (Chromium, Firefox, WebKit)
+
+The inspector drawer on `small` at zoom 1 (viewport `{x: 40, y: 40, zoom:
+1}`), with `bare000000` selected through the hook and the drawer opened by
+its "Open inspector" button. The text is read from the textarea labelled
+"Manifest (…)", the format chosen by the radio labelled "YAML".
+
+1. **A YAML edit reaches the canvas as one command, and Undo restores it.**
+   The YAML text's line `  name: Bare` becomes `  name: Renamed`; Apply
+   adds exactly one journal entry (5 → 6), a `set` whose only change
+   targets `bare000000` with the single value `manifest`; the drawn name
+   `[data-address="bare/name"]` of the block reads `Renamed` and the
+   stored manifest's `timeline.name` is `Renamed`. After `undo()` through
+   the hook the drawn name reads `Bare` again and the textarea, which holds
+   no unapplied edit, shows `  name: Bare` again.
+2. **A refused edit shows its exact path and keeps the text.** `  locked:
+   false` becomes `  locked: yes` (a string in YAML 1.2); Apply leaves the
+   journal at 5, the problem list holds exactly one item reading
+   `schema_violation must be boolean at /timeline/locked`, and the textarea
+   still holds the edited text.
+3. **The properties form moves the block by the exact amount.** The field
+   `x` (initially `0`) is filled with `37.5` and Enter pressed: the journal
+   grows by one `set` `{target: "bare000000", values: {x: 37.5}}`, the
+   stored `x` is `37.5`, and the node's bounding box has moved right by
+   exactly 37.5 px (zoom 1) with its `y` unchanged.
+4. **axe-core reports no violation with the drawer open and the manifest
+   shown** (YAML chosen, `bare000000` selected).
+
 ## `a11y.spec.ts`
 
 axe-core (`@axe-core/playwright`) on the page with `small` open reports an
-empty `violations` list, and again with the element `styled0000/intro`
-selected. Tab is pressed until a node holds the focus: the first is
+empty `violations` list, again with the element `styled0000/intro`
+selected, with the inspector drawer open, with the File menu open, with the
+About dialog open, and with the question "… has unsaved changes. Discard
+them?" open (a `set` makes the workspace unsaved, then File → New
+workspace). Tab is pressed until a node holds the focus: the first is
 `bare000000` (nodes follow the z-order). Enter selects exactly it, Escape
 clears the selection, the next Tab focuses `nested0000` and Enter selects it.
 

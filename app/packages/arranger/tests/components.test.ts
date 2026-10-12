@@ -225,9 +225,10 @@ describe("BlockNode", () => {
 
 describe("roving", () => {
   /** A toolbar of buttons `a`, `b` (disabled) and `c`, with `roving` attached. */
-  function toolbar() {
+  function toolbar(orientation?: "vertical") {
     const element = document.createElement("div");
     element.setAttribute("role", "toolbar");
+    if (orientation !== undefined) element.setAttribute("aria-orientation", orientation);
     for (const name of ["a", "b", "c"]) {
       const button = document.createElement("button");
       button.textContent = name;
@@ -263,6 +264,21 @@ describe("roving", () => {
     press("End");
     expect(document.activeElement).toBe(c);
     expect(document.activeElement).not.toBe(b);
+  });
+
+  it("moves by ArrowDown and ArrowUp in a vertical toolbar, not by ArrowRight and ArrowLeft", () => {
+    const { a, c } = toolbar("vertical");
+    a.focus();
+    press("ArrowDown");
+    expect(document.activeElement).toBe(c);
+    press("ArrowDown");
+    expect(document.activeElement).toBe(a);
+    press("ArrowUp");
+    expect(document.activeElement).toBe(c);
+    press("ArrowRight");
+    expect(document.activeElement).toBe(c);
+    press("ArrowLeft");
+    expect(document.activeElement).toBe(c);
   });
 
   it("hands the tab stop on when its button is disabled, and lets go when detached", async () => {

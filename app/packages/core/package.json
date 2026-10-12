@@ -13,7 +13,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@timetoalign/timeskeleton": "^0.5.0"
+    "@timetoalign/timeskeleton": "link:../../../../timeskeleton/js"
   },
   "devDependencies": {
     "fast-check": "4.10.2"

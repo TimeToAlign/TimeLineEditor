@@ -1,7 +1,7 @@
 # `@timetoalign/tilie-core` tests
 
 `core` holds exact coordinates, one TimeSkeleton manifest (`{meta, timeline,
-graphical?}`, timeskeleton 0.5.0), the elements a selector can match, the
+graphical?}`, timeskeleton's `SCHEMA_VERSION`), the elements a selector can match, the
 immutable workspace view of blocks, the four commands `add`, `set`, `remove`
 and `style` over addresses, the store with its command journal, and the
 workspace file. This file states what proves each part works; a test that
@@ -11,7 +11,7 @@ General rules: exact values only (`toEqual`/`toBe` against literal expectations
 or against a value reached by another path); no thresholds except the budgets,
 which are stated as the requirement they test; no network; nothing written
 outside temporary state. Manifests come from the fixtures shipped by the
-installed `@timetoalign/timeskeleton` package (`fixtures/0.5.0/`, 23 files) or
+installed `@timetoalign/timeskeleton` package (`fixtures/<SCHEMA_VERSION>/`, 23 files) or
 are built through commands; a manifest literal appears only where a rejection
 is asserted. Block ids in examples are `A = "0000000000"`, `B = "0000000001"`,
 `C = "0000000002"`.
@@ -88,18 +88,29 @@ nothing is lost. In a loaded manifest every number is a `JsonNumber`: a plain
 number for a safe integer or a float with a fractional part, a `bigint` beyond
 2^53, a `JsonFloat` for an integral float (`600.0`).
 
-1. **Fixture round trip.** There are exactly 23 files in `fixtures/0.5.0/`.
+1. **Fixture round trip.** There are exactly 23 files in
+   `fixtures/<SCHEMA_VERSION>/`.
    For each, `saveManifest(loadManifest(text))` equals `text` byte for byte.
    No skip, no normalization in the comparison.
-2. **Shared rejections.** For every case in `fixtures/rejections/0.5.0/`, the
+2. **Shared rejections.** For every case in every `fixtures/rejections/<version>/`, the
    rejected manifest, written as JSON text, is refused by `loadManifest` with
    exactly one problem whose `path` equals the case's `path`. These include
    timeskeleton's identity rules: an id repeated across kinds and a jump
    target naming no marker are `schema_violation`s from its `validate`, so
    `core` checks neither again.
-3. **Schema version.** `bare.json` with `"schema_version": "0.5.0"` replaced
+3. **Schema version.** `bare.json` with its `"schema_version"` replaced
    by `"0.0.0"` is refused with exactly one problem
-   `{code: "schema_violation", path: ["meta", "schema_version"]}`.
+   `{code: "schema_violation", path: ["meta", "schema_version"]}`. Every
+   version in timeskeleton's `SUPPORTED_VERSIONS` is read by migrating it
+   to `SCHEMA_VERSION` through timeskeleton's `migrate` (core has no
+   migration of its own): for each supported version and each of the 23
+   fixtures, the fixture text with its `schema_version` replaced by that
+   version loads, the loaded manifest declares `SCHEMA_VERSION`, and
+   `saveManifest` writes the fixture text byte for byte. So a migration
+   loses nothing and the version is the only member it changes (the
+   supported versions differ in nothing else today). `readManifestValue`
+   leaves the value it is given unchanged: it still declares the older
+   version afterwards.
 4. **Missing styles are completed.** A graphical statement naming each of
    two absent styles produces exactly one warning naming both, the one
    timeskeleton's `completeStyles` issues (`Missing graphical styles: 'a',
@@ -440,7 +451,8 @@ of the command, except where a command is malformed and so has no target.
   "/clt_3", "length"]`, `length_below_content` at `[A + "/clt_1",
   "length"]` for 23/2, `schema_violation` at `["workspace", "graphical", …]`
   and `[A, "manifest", "meta", "schema_version"]` for a manifest declaring
-  `0.0.0`, `id_not_settable` at `[A + "/tempo", "map", "id"]` for a payload
+  `0.0.0` (a manifest declaring an older supported version is accepted and
+  stored at `SCHEMA_VERSION`, equal to the latest fixture), `id_not_settable` at `[A + "/tempo", "map", "id"]` for a payload
   with another id. Manifest locations: `child_not_locked` at `[A,
   "manifest", "timeline", "children", "clt_3", "timeline", "locked"]` for
   `locked: false` on `clt_3`; `child_exceeds_parent` at `[A, "manifest",
@@ -527,6 +539,10 @@ workspace) and returns a `Workspace` or a `LoadError`.
    entry time `yesterday` → `invalid_value` at `["journal", 0, "time"]`; an
    entry command of type `move` → `invalid_command` at `["journal", 0,
    "command", "type"]`.
+4. **Older manifests are migrated.** The round-trip workspace's text with
+   every block manifest's `schema_version` replaced by an older version of
+   `SUPPORTED_VERSIONS` reads as a workspace deep-equal to the one read from
+   the original text: its manifests declare `SCHEMA_VERSION`.
 
 ## Properties (`properties.test.ts`, fast-check)
 

@@ -6,8 +6,8 @@ TimeSkeleton manifest as timeskeleton's drawing specification defines it
 below, sections 1 to 6). The tests prove it from the specification, never
 from the code's own output: every expected number below is derived here by
 hand from the specification's formulas and the font's advance widths, and
-the arithmetic is written out. Manifests are loaded from the 0.5.0 fixtures
-of the installed schema package or built through core's commands; none is written by hand. The metrics are the package's
+the arithmetic is written out. Manifests are loaded from the fixtures of the
+installed schema package's version or built through core's commands; none is written by hand. The metrics are the package's
 `fonts/dejavu-sans-2.37.metrics.json`. All comparisons are exact (`toBe`,
 `toEqual`); no tolerance anywhere.
 
@@ -35,7 +35,7 @@ From the metrics file (`units_per_em` 2048, `ascender` 1901, `descender`
   `h(9) = 2384 × 9 / 2048 = 10.4765625`, `h(11) = 12.8046875`.
 - Every text width in the drawings below equals `A × s / 2048` for the sum
   `A` of its advances, recomputed in the test from the metrics file, for
-  every name and label of every 0.5.0 fixture at the default placement.
+  every name and label of every manifest fixture at the default placement.
 
 ## The default layer (`defaults.test.ts`)
 
@@ -331,13 +331,46 @@ and `y_root = 29` (as above, no stack). The `8 ♩` label reaches `422.047851562
 
 At spacing `v`, `nested` has `p0 = p = max(14v, 12.8046875)`; with no map
 stack, row 1's line lies `p0 / 2 + p / 2 = p` out and row 2's `2p` out, so
-the root-to-child gap equals the child-to-grandchild gap:
+the root-to-child gap equals the child-to-grandchild gap. The vertical
+padding is `P × v` (section 6.5), so `y_root = 8v + Ea`:
 
 | `v` | `p` | root `y_root` | `clt_3` y | `clt_2` y |
 |---|---|---|---|---|
-| 0.5 | 12.8046875 | `8 + 6.40234375 + 4 × 6.40234375 = 40.01171875` | 27.20703125 | 14.40234375 |
+| 0.5 | 12.8046875 | `4 + 6.40234375 + 4 × 6.40234375 = 36.01171875` | 23.20703125 | 10.40234375 |
 | 1 | 14 | 43 | 29 | 15 |
-| 2 | 28 | `8 + 14 + 56 = 78` | 50 | 22 |
+| 2 | 28 | `16 + 14 + 56 = 86` | 58 | 30 |
+
+## Vertical padding (`stretch.test.ts`)
+
+Section 6.5 multiplies the padding above and below the content by `v`:
+`y_root = max(P v + Ea, P v + h(s) / 2)`, `Hc = y_root + max(Eb, h(s) / 2)
++ P v`, and a break line ends `P v` from the box's edge. This is what lets a
+vertical stretch grow a single timeline, which has no rows to spread. The
+horizontal padding (`x0`, `Wc`, section 6.7) is not stretched.
+
+- **`bare` (a root alone).** No band above (`Ea = 0`); below, the wedges
+  reach `26.9765625` at every `v` (wedge and label sizes are fixed). At
+  `v = 2`: `y_root = max(16, 16 + 6.40234375) = 22.40234375`, `Hc =
+  22.40234375 + 26.9765625 + 16 = 65.37890625`. At `v = 0.5`: `y_root =
+  4 + 6.40234375 = 10.40234375`, `Hc = 10.40234375 + 26.9765625 + 4 =
+  41.37890625`. At `v = 1` the drawing is the hand-derived one (`y_root =
+  14.40234375`, `Hc = 49.37890625`). The width stays `458.5771484375` at every
+  `v`, and the height grows by exactly `2 × 8 × (v − 1)`.
+- **`flow_control` at `v = 2`, break below.** `y_root = 22.40234375`. Below:
+  the root band to 26.9765625, the flow band from `26.9765625 + 4 × 2 =
+  34.9765625`, one break-label tier, so the flow row lies `34.9765625 +
+  10.4765625 = 45.453125` out, `yf = 67.85546875`; one jump level, the band
+  `10.4765625 + 16 + 0 + 2 + 10.4765625 = 38.953125` wide, `Eb =
+  73.9296875`, `Hc = 22.40234375 + 73.9296875 + 16 = 112.33203125`. The
+  break line runs from `y1 = 67.85546875` to the top padding `y2 = 16`.
+- **`flow_control` at `v = 2`, break moved above** (`{element: break} side
+  above`). Above: the flow band holds the break-label tier alone, 10.4765625
+  wide, `Ea = 10.4765625`, `y_root = max(16 + 10.4765625, 22.40234375) =
+  26.4765625`. Below: the root band to 26.9765625 and the flow band (the
+  jump, no break label) from 34.9765625, `16 + 0 + 2 + 10.4765625 =
+  28.4765625` wide, `Eb = 63.453125`, `Hc = 26.4765625 + 63.453125 + 16 =
+  105.9296875`. The break line runs from `y1 = 26.4765625 − 10.4765625 =
+  16` to `y2 = Hc − 16 = 89.9296875`: padding to padding.
 
 At length 200 and spacing 1 the root of `nested` runs from 41.91552734375 to
 `41.91552734375 + 200 = 241.91552734375` at `y_root = 43`: length moves x only.

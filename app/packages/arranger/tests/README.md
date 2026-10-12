@@ -27,23 +27,28 @@ spacing 1, no box request) and the default style layer.
     458.5771484375`. This holds as long as the root's arrowhead stays
     rightmost, which is true for every `L ≥ 8` because the end label is
     narrower than `2 × 9`.
-  - The height, `H = 49.37890625` (the `rect` of `drawings/bare/figure.svg`),
-    has no term in `v`. The bare root has only its below-side wedges, so
-    `Ea = 0` and the root band does not scale (section 6.4). Stretching
-    vertically therefore cannot move its edge.
+  - Height (sections 6.4, 6.5): the bare root has only its below-side
+    wedges, so `Ea = 0`, the root band does not scale, and the padding
+    `P v = 8v` lies above and below: `y_root = 8v + h(11) / 2` and `H =
+    8v + 6.40234375 + 26.9765625 + 8v = 33.37890625 + 16v`, affine at every
+    `v`, with `H(1) = 49.37890625` (the `rect` of
+    `drawings/bare/figure.svg`) and `H(1/4) = 37.37890625`. A single
+    timeline stretches vertically through its padding alone.
 - **`nested`**: the root `clt_1`, child `clt_3`, grandchild `clt_2`, both
   rows on the above side. `x0 = 41.91552734375` (pinned by layout's stretch
   test), so `W = 59.91552734375 + L`, and `W(400) = 459.194580078125`.
   - Height (sections 6.2, 6.4, 6.5): with `p = max(14v, h(11))` and
     `h(11) = 12.8046875`, the children band starts at `p0 / 2` and holds two
-    rows of halves `p / 2`. So `Ea = 2.5p`, `y_root = 8 + 2.5p`, and the
-    below side is the wedge reach `1.5 + 13 + 2 + h(9) = 26.9765625`.
-  - Hence `H = 42.9765625 + 35v` for `v ≥ h(11) / 14 = 0.914620535…`, and
-    `H = 74.98828125` below that. This gives `H(1) = 77.9765625`,
-    `H(1.5) = 95.4765625`, `H(2) = 112.9765625`, which are the heights of
-    `drawings/nested__spacing-1`, the 1.5 interpolation and
-    `drawings/nested__spacing-2`. **Height is not affine in spacing**: it is
-    piecewise linear, flat below the knee and of slope 35 above it.
+    rows of halves `p / 2`. So `Ea = 2.5p`, `y_root = 8v + 2.5p`, and the
+    below side is the wedge reach `1.5 + 13 + 2 + h(9) = 26.9765625`, plus
+    the padding `8v`.
+  - Hence `H = 26.9765625 + 51v` for `v ≥ h(11) / 14 = 0.914620535…`, and
+    `H = 58.98828125 + 16v` below that (`2.5 h(11) = 32.01171875`). This
+    gives `H(1) = 77.9765625`, `H(1.5) = 103.4765625`, `H(2) =
+    128.9765625`, which are the heights of `drawings/nested__spacing-1`, the
+    1.5 interpolation and `drawings/nested__spacing-2`, and `H(1/4) =
+    62.98828125`. **Height is not affine in spacing**: it is piecewise
+    linear, of slope 16 below the kink and 51 above it.
 - **`flow_control`**: the root `flow:quarters` with `break_1` and `jump_1`.
   **`with_region`**: the root `clt_1` with `region_1`.
 
@@ -141,6 +146,30 @@ View: A holds `bare` at (40, 80), B holds `nested` at (0, 0).
   such moves give `null`.
 - The command is accepted by `apply`; the moved blocks carry the values
   above.
+
+## `addCommand`
+
+`addCommand(view, id, manifest, visible)` places a new block (an imported
+manifest) with its top-left at the centre of what the canvas shows,
+quantized as a move is (to the grid when it snaps, else to `GRID_FREE`).
+`visible` is Svelte Flow's transform `{x, y, zoom}` (screen = canvas ×
+zoom + translation) and the pane's size in screen pixels, so the centre in
+canvas units is `((width / 2 − x) / zoom, (height / 2 − y) / zoom)`.
+
+- With `visible = {x: 100, y: 50, zoom: 2, width: 1000, height: 600}` the
+  centre is `(200, 125)`; under the default grid (8, snapping) the command
+  is exactly `{type: "add", into: "workspace", block: {id: C, manifest:
+  bare, x: 200, y: 128}}` (125 / 8 = 15.625 rounds to 16).
+- With the grid's `snap` false, the same `visible` gives `(200, 125)`,
+  both multiples of 1/2048; with `visible = {x: 0, y: 0, zoom: 3, width:
+  1001, height: 1}` (centre `(166.8333…, 0.1666…)`) it gives
+  `x = 341675 / 2048 = 166.83349609375` and `y = 341 / 2048 =
+  0.16650390625` (`round(166.8333… × 2048) = round(341674.67) = 341675`;
+  `round(341.33) = 341`).
+- Applying the snapping command to a view holding A gives a block C at
+  `(200, 128)` whose `scale`, `length`, `spacing`, `width`, `height` and
+  `order` are the workspace's `blockDefaults`, its manifest equal to the
+  fixture, and whose index lies above A's.
 
 ## `snap`
 
@@ -240,8 +269,9 @@ corner). How the inverse is derived:
   and slope 1 once the root's arrowhead or that label leads (the `audio`
   rows below).
 - By sections 6.2 to 6.5, the content's height for a fixed `L` is a sum of
-  maxima of affine terms in `v`. So `Hc(v)` is non-decreasing and piecewise
-  linear, flat below a knee where a font height outgrows a pitch (`nested`).
+  maxima of affine terms in `v`, the padding `2Pv` among them. So `Hc(v)`
+  is increasing and piecewise linear, with a kink where a font height
+  outgrows a pitch (`nested`); the padding leaves it no flat piece.
 - `resize` stores **the largest multiple of 1/2048, at least the floor,
   whose extent does not pass the target**. The search is over that
   lattice:
@@ -255,8 +285,9 @@ corner). How the inverse is derived:
   raised to that extent. A shrink past a flat piece therefore stops at the
   piece's knee: the largest lattice value that still draws the flat
   extent, never the floor. Every value below the knee draws the same and
-  would be invisible state. An extent that never grows past the target
-  (bare's height has no `v` term) leaves the value as it is.
+  would be invisible state (widths have such pieces: `audio` below). An
+  extent that never grows past the target leaves the value as it is; no
+  drawing's width or height is such an extent.
 - The target is the content's extent moved by the pointer:
   `content + (target box − box)`. When the box has no request, the content
   and the box coincide, so the edge ends under the pointer. When a box
@@ -281,32 +312,44 @@ Its labels are "0.0 s", whose advances sum to 4975, so `w0 =
 | bare, scale 2 | right | (20, 0) | `{length: 410}` |
 | bare | left | (−21, 0) | `{length: 421, x: 19}` |
 | bare | right | (−500, 0) | `{length: 8}` (`MIN_LENGTH`; bare's width has no flat piece) |
-| bare | bottom | (0, 30) | `{spacing: 1}` (height has no `v` term) |
-| nested | bottom | (0, 35) | `{spacing: 2}` (77.98 → 112.98, as `nested__spacing-2`) |
-| nested | bottom | (0, 17.5) | `{spacing: 1.5}` |
-| nested | bottom-right | (400, 35) | `{length: 800, spacing: 2}` |
-| nested | top | (0, −35) | `{spacing: 2, y: 45}` |
-| nested | bottom | (0, −40) | `{spacing: 0.91455078125}` (the knee) |
-| nested, spacing 1/4 | bottom | (0, 35) | `{spacing: 1.91455078125}` |
-| nested, at the knee | bottom | (0, 35) | `{spacing: 1.91455078125}` |
+| bare | bottom | (0, 30) | `{spacing: 2.875}` (49.38 → 79.38) |
+| bare | top | (0, −16) | `{spacing: 2, y: 64}` |
+| bare | bottom | (0, −8) | `{spacing: 0.5}` |
+| bare | bottom | (0, −40) | `{spacing: 0.25}` (`MIN_SPACING`) |
+| nested | bottom | (0, 51) | `{spacing: 2}` (77.98 → 128.98, as `nested__spacing-2`) |
+| nested | bottom | (0, 25.5) | `{spacing: 1.5}` |
+| nested | bottom-right | (400, 51) | `{length: 800, spacing: 2}` |
+| nested | top | (0, −51) | `{spacing: 2, y: 29}` |
+| nested | bottom | (0, −40) | `{spacing: 0.25}` (`MIN_SPACING`) |
+| nested, spacing 1/4 | bottom | (0, 35) | `{spacing: 1.39208984375}` |
+| nested, spacing 1873/2048 | bottom | (0, 35) | `{spacing: 1.6005859375}` |
 | audio | right | (−500, 0) | `{length: 40.08251953125}` (the knee) |
 | audio, length 8 | right | (50, 0) | `{length: 90.08251953125}` |
 | audio, at the knee | right | (100, 0) | `{length: 140.08251953125}` |
 
 How each row is derived:
 
-- **`nested` top:** the edge 45 is kept, so the target height is
-  `157.9765625 − 45 = 112.9765625 = H(2)`. Hence `v = 2` and `y = 157.9765625
-  − 112.9765625 = 45`.
-- **`nested` bottom −40:** the target lies below the flat 74.98828125. The
-  knee is `v* = (74.98828125 − 42.9765625)/35 = 0.914620535…`, and
-  `floor(v* × 2048) = 1873` gives `0.91455078125`. There
-  `14v = 12.8037109375 < h(11)`, so the height is still the flat
-  74.98828125.
-- **Shrink, then grow by 35** (from spacing 1/4 or from the knee, both at the
-  flat 74.98828125): the target is 109.98828125, so `v ≤ 67.01171875/35 =
-  1.914620535…`, and `floor(× 2048) = 3921` gives `1.91455078125`. These are
-  the regression rows for the stall.
+- **`bare` bottom +30:** the target is `79.37890625 = 33.37890625 + 16v`,
+  so `v = 46/16 = 2.875`. **`bare` top −16:** the edge 129.37890625 is
+  kept, the target height is `65.37890625 = H(2)`, so `v = 2` and `y =
+  129.37890625 − 65.37890625 = 64`. **`bare` bottom −8:** `41.37890625 =
+  H(0.5)`. **`bare` bottom −40:** the target 9.37890625 lies below
+  `H(1/4)`, so the spacing stops at the floor.
+- **`nested` top:** the bottom edge `80 + 77.9765625 = 157.9765625` is
+  kept and the top goes to `80 − 51 = 29`, so the target height is
+  `128.9765625 = H(2)`. Hence `v = 2` and `y = 157.9765625 − 128.9765625 =
+  29`.
+- **`nested` bottom −40:** the target 37.9765625 lies below `H(1/4) =
+  62.98828125`, so the spacing stops at the floor.
+- **Grow by 35 across the kink** (regression rows for a start on the lower
+  piece): from spacing 1/4 (`H = 62.98828125`) the target is
+  `97.98828125`, above the kink's 73.62…, so `v ≤ 71.01171875 / 51 =
+  1.392386…`; `floor(× 2048) = 2851` gives `1.39208984375` (`H =
+  97.97314453125`; 2852 would draw `98.0029296875`). From spacing
+  `1873/2048 = 0.91455078125`, just below the kink (`H = 58.98828125 +
+  14.6328125 = 73.62109375`), the target is `108.62109375`, so `v ≤
+  81.64453125 / 51 = 1.600873…`; `floor(× 2048) = 3278` gives
+  `1.6005859375` (`H = 108.6064453125`; 3279 would draw `108.63134765625`).
 - **`audio` right −500:** the target is below the flat 118.02783203125, so
   the length stops at the knee `L* = 40.08251953125` (169/2048 past 40).
 - **`audio` from length 8, right +50:** the target is `118.02783203125 + 50`,
@@ -431,6 +474,17 @@ This compares the rule against core's own removal, not against itself.
 - `blockOf("A/clt_3/name")` is `A`, and `blockOf("A")` is `A`.
   `blockOf("workspace")` throws `RangeError`.
 
+`existing(view, selection)` keeps the addresses that still name something
+after an undo or redo. View: A holds `nested` (elements `clt_1`, `clt_3`,
+`clt_2`), B does not exist.
+
+- `existing(view, {A, A/clt_3, A/clt_3/name, A/clt_9, A/clt_9/name, B,
+  B/clt_1})` is `{A, A/clt_3, A/clt_3/name}` in that order: a part stands
+  or falls with its element, everything in a missing block goes.
+- A selection whose addresses all exist is returned as the same object
+  (`toBe`), so an unchanged selection does not re-render the canvas; the
+  empty selection likewise.
+
 ## Gesture commands are accepted (fast-check)
 
 For any view built by adding 1–5 blocks from the fixtures `bare`, `nested`,
@@ -468,8 +522,7 @@ against the views recorded before each dispatch).
 ## Components
 
 The Svelte components render what the pure functions above compute; their
-interaction (drag, snap, resize, marquee, keys, undo through the keyboard,
-culling, touch) is proven end to end by the Playwright suite against the
+interaction (drag, snap, resize, marquee, keys, culling, touch) is proven end to end by the Playwright suite against the
 running editor, not here. One property is cheap to prove in a DOM and would
 be expensive to prove in a browser: the block node draws exactly what the
 SVG writer exports.
@@ -483,7 +536,7 @@ renders, which draws nothing).
 
 1. **Screen equals export, for every drawing fixture.** For each directory
    of the installed `@timetoalign/timeskeleton` package's
-   `fixtures/0.5.0/drawings/` (34 cases), the drawing is made from its
+   `fixtures/<SCHEMA_VERSION>/drawings/` (34 cases), the drawing is made from its
    `inputs.json` alone (its manifest fixture, placement and layers, exactly
    as the writers' fixture test makes it) and its `toDescriptors` are
    rendered by the node at the case's scale. The node's `<svg>` is in the
@@ -515,20 +568,23 @@ renders, which draws nothing).
    parsed as markup.
 
 4. **The toolbars follow the toolbar pattern.** `roving` (attached to the
-   canvas toolbar and the resize-mode toolbar) is tested on a plain toolbar
+   canvas controls, a vertical toolbar, and to the horizontal resize-mode
+   toolbar) is tested on a plain toolbar
    of buttons `a`, `b` (disabled) and `c`: the tab stop starts on `a`
    (`tabIndex` 0, `c` −1); from `a`, ArrowRight focuses `c`, skipping the
    disabled `b`, and moves the tab stop to it; ArrowRight again wraps to
    `a`, ArrowLeft wraps back to `c`, Home focuses `a` and End `c`. When the
    button holding the tab stop is disabled, the stop passes to the first
    enabled button (after the mutation is observed); once detached, arrows
-   no longer move focus.
+   no longer move focus. The same toolbar with `aria-orientation="vertical"`
+   moves by ArrowDown (`a` → `c`, then wrapping to `a`) and ArrowUp (wrapping
+   back to `c`), while ArrowRight and ArrowLeft leave the focus where it is.
 
 `BlockNode.svelte` has no style of its own (the canvas styles it), so
 Svelte adds no scoping class to a drawn element and the trees compare
 attribute for attribute. The bundled font is declared by the canvas's
 stylesheet, which jsdom does not apply, so the font is not exercised here.
 
-Which keys reach the canvas (focus inside it or on the page body; undo and
-redo everywhere outside text inputs), and that arrows inside a toolbar move
+Which keys reach the canvas (focus inside the arranger, which is itself
+focusable; undo and redo are the editor's page-wide keys), and that arrows inside a toolbar move
 focus rather than nudge, need a browser and are not tested here.

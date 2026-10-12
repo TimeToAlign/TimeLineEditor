@@ -1,3 +1,4 @@
+import { IDBFactory } from "fake-indexeddb";
 import { vi } from "vitest";
 
 /**
@@ -28,4 +29,25 @@ export function stubLayout(): void {
       disconnect() {}
     },
   );
+}
+
+/**
+ * Stub what the editor needs besides the layout: a fresh IndexedDB (the
+ * autosave's) and a modal `<dialog>`, which jsdom lacks: `showModal` sets
+ * `open`, `close` removes it and fires `close` (installed once; jsdom's
+ * dialog has neither method). The IndexedDB is undone by
+ * `vi.unstubAllGlobals()`.
+ */
+export function stubEditor(): void {
+  stubLayout();
+  vi.stubGlobal("indexedDB", new IDBFactory());
+  const dialog = HTMLDialogElement.prototype as Partial<HTMLDialogElement>;
+  dialog.showModal ??= function (this: HTMLDialogElement) {
+    this.open = true;
+  };
+  dialog.close ??= function (this: HTMLDialogElement) {
+    if (!this.open) return;
+    this.open = false;
+    this.dispatchEvent(new Event("close"));
+  };
 }

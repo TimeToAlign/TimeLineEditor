@@ -609,8 +609,10 @@ export function draw(
   const below = bands("below");
   const band = (side: Side) => (side === "above" ? above : below);
 
-  const yRoot = Math.max(P + above.edge, P + h(rootNameSize) / 2);
-  const Hc = yRoot + Math.max(below.edge, h(rootNameSize) / 2) + P;
+  // The vertical padding stretches with the rows, so a lone root grows too.
+  const Pv = P * v;
+  const yRoot = Math.max(Pv + above.edge, Pv + h(rootNameSize) / 2);
+  const Hc = yRoot + Math.max(below.edge, h(rootNameSize) / 2) + Pv;
   const yAt = (side: Side, outwards: number) =>
     side === "above" ? yRoot - outwards : yRoot + outwards;
   const beyond = (side: Side, y: number, size: number) =>
@@ -628,7 +630,7 @@ export function draw(
       style: item.style,
       x: x(item.at),
       y1: yAt(item.side, band(item.side).flow),
-      y2: item.side === "below" ? P : Hc - P,
+      y2: item.side === "below" ? Pv : Hc - Pv,
     });
   }
   for (const map of drawnMaps) {

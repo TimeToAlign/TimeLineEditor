@@ -54,7 +54,7 @@ export function writeSvg(placed: readonly Placed[]): string {
   const width = formatNumber(sheet.width);
   const height = formatNumber(sheet.height);
   const lines = [
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" font-family="DejaVu Sans" style="font-kerning:none;font-variant-ligatures:none">`,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" font-family="DejaVu Sans" text-rendering="geometricPrecision" style="font-kerning:none;font-variant-ligatures:none">`,
   ];
   for (const item of sheet.drawings) {
     const scale = item.scale === 1 ? "" : ` scale(${formatNumber(item.scale)})`;

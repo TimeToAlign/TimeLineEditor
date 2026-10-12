@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { blockOf, click } from "../src/index.ts";
-import { A, B, C } from "./support.ts";
+import { blockOf, click, existing } from "../src/index.ts";
+import { A, B, C, viewOf } from "./support.ts";
 
 describe("click", () => {
   it("selects the element only", () => {
@@ -29,5 +29,29 @@ describe("blockOf", () => {
 
   it("refuses the workspace", () => {
     expect(() => blockOf("workspace")).toThrow(RangeError);
+  });
+});
+
+describe("existing", () => {
+  const view = viewOf({ id: A, fixture: "nested" });
+
+  it("drops addresses whose block or element is gone, parts with their element", () => {
+    const selection = new Set([
+      A,
+      `${A}/clt_3`,
+      `${A}/clt_3/name`,
+      `${A}/clt_9`,
+      `${A}/clt_9/name`,
+      B,
+      `${B}/clt_1`,
+    ]);
+    expect([...existing(view, selection)]).toEqual([A, `${A}/clt_3`, `${A}/clt_3/name`]);
+  });
+
+  it("returns the selection itself when everything exists", () => {
+    const selection = new Set([A, `${A}/clt_2`]);
+    expect(existing(view, selection)).toBe(selection);
+    const none = new Set<string>();
+    expect(existing(view, none)).toBe(none);
   });
 });
