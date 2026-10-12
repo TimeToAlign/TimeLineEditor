@@ -146,6 +146,46 @@ export function follow(source: Text["source"], manifest: Json, showStyling: bool
 export const PROPERTIES = ["x", "y", "scale", "length", "spacing", "width", "height"] as const;
 export type Property = (typeof PROPERTIES)[number];
 
+/**
+ * A property's value as the form shows it: rounded to at most two decimals
+ * (the exact double, as `toFixed` rounds it), trailing zeros trimmed, an
+ * empty text for null. Only shown: commands are built from stored values
+ * and typed text, never from this.
+ */
+export function shownValue(value: number | null): string {
+  if (value === null) return "";
+  // `String` shows the negative zero of `Number("-0.00")` as "0".
+  return String(Number(value.toFixed(2)));
+}
+
+/** The step of each property's spin buttons, stepping keys and wheel. */
+export const STEPS: { readonly [property in Property]: number } = {
+  x: 1,
+  y: 1,
+  scale: 0.1,
+  length: 1,
+  spacing: 0.1,
+  width: 1,
+  height: 1,
+};
+
+/** The decimals of a number's shortest spelling (`1e-7` has 7). */
+function decimals(value: number): number {
+  const [mantissa = "", exponent = "0"] = String(Math.abs(value)).split("e");
+  return Math.max(0, (mantissa.split(".")[1] ?? "").length - Number(exponent));
+}
+
+/**
+ * The value `direction` steps of `step` from `value` (null counts as 0),
+ * rounded to the decimals of the value and the step, so 1 − 0.1 is 0.9
+ * and 0.7 + 0.1 is 0.8, never the neighbouring double plain arithmetic gives.
+ */
+export function stepValue(value: number | null, direction: 1 | -1, step: number): number {
+  const base = value ?? 0;
+  const places = Math.min(100, Math.max(decimals(base), decimals(step)));
+  return Number((base + direction * step).toFixed(places));
+}
+
 /** Properties that take an empty field as null. */
 const NULLABLE: ReadonlySet<Property> = new Set(["width", "height"]);
 

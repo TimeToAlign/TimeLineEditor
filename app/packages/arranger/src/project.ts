@@ -23,6 +23,12 @@ export type BlockNodeData = {
 
 export type BlockNode = Node<BlockNodeData, "block">;
 
+/** A block's placement as the canvas shows it during a gesture, before anything is stored. */
+export type LivePlacement = Pick<
+  Block,
+  "id" | "x" | "y" | "scale" | "length" | "spacing" | "width" | "height"
+>;
+
 const NO_ELEMENTS: ReadonlySet<string> = new Set();
 
 /** The blocks of a view by their parent, then their index (ids break ties). */
@@ -119,4 +125,26 @@ export function project(
       },
     };
   });
+}
+
+/**
+ * The placement of `block` as a gesture shows it: the previewed `values`
+ * over the stored ones, and `x`, `y` where the canvas has the node.
+ */
+export function livePlacement(
+  block: Block,
+  position: { readonly x: number; readonly y: number },
+  values: Partial<Block>,
+): LivePlacement {
+  const shown = { ...block, ...values };
+  return {
+    id: block.id,
+    x: position.x,
+    y: position.y,
+    scale: shown.scale,
+    length: shown.length,
+    spacing: shown.spacing,
+    width: shown.width,
+    height: shown.height,
+  };
 }

@@ -8,10 +8,13 @@ import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import {
+  backgroundPoint,
   commandsFrom,
+  dragStart,
   element,
   journalLength,
   node,
+  nodeDragStart,
   open,
   placement,
   SMALL,
@@ -120,4 +123,107 @@ test("axe-core reports no violation with the manifest shown", async ({ page }) =
   await expect(manifestText(page)).toHaveValue(/^meta:\n/);
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations).toEqual([]);
+});
+
+/** The text of the properties form's field `name`. */
+function field(page: Page, name: string) {
+  return page.getByLabel(name, { exact: true });
+}
+
+test("the form follows a drag live, then shows the stored values", async ({ page }) => {
+  await nodeDragStart(page, await backgroundPoint(page, SMALL.bare), 101, 37);
+  await expect(field(page, "x")).toHaveValue("104");
+  await expect(field(page, "y")).toHaveValue("40");
+  expect(await journalLength(page)).toBe(5);
+  const held = await placement(page, SMALL.bare);
+  expect([held.x, held.y]).toEqual([0, 0]);
+  await page.mouse.up();
+  await expect.poll(() => journalLength(page)).toBe(6);
+  expect(await commandsFrom(page, 5)).toEqual([
+    { type: "set", changes: [{ target: SMALL.bare, values: { x: 104, y: 40 } }] },
+  ]);
+  await expect(field(page, "x")).toHaveValue("104");
+  await expect(field(page, "y")).toHaveValue("40");
+});
+
+test("the form follows a resize live, rounded to two decimals", async ({ page }) => {
+  await page.locator('[data-testid="mode-box"]').click();
+  const grip = await page.locator('[data-testid="handle-right"]').boundingBox();
+  if (grip === null) throw new Error("the right handle is not displayed");
+  await dragStart(page, { x: grip.x + grip.width / 2, y: grip.y + grip.height / 2 }, 20, 0);
+  await expect(field(page, "width")).toHaveValue("478.58");
+  expect(await journalLength(page)).toBe(5);
+  expect((await placement(page, SMALL.bare)).width).toBe(null);
+  await page.mouse.up();
+  await expect.poll(() => journalLength(page)).toBe(6);
+  expect((await placement(page, SMALL.bare)).width).toBe(478.5771484375);
+  await expect(field(page, "width")).toHaveValue("478.58");
+});
+
+test("a step applies at once as one command, from the stored value", async ({ page }) => {
+  const refused = await page.evaluate(
+    (id) =>
+      window.__tilie
+        .store()
+        .dispatch({ type: "set", changes: [{ target: id, values: { x: 10.123 } }] }),
+    SMALL.bare,
+  );
+  expect(refused).toBe(null);
+  const x = field(page, "x");
+  await expect(x).toHaveValue("10.12");
+  await x.focus();
+  await x.press("ArrowUp");
+  await expect.poll(() => journalLength(page)).toBe(7);
+  expect(await commandsFrom(page, 6)).toEqual([
+    { type: "set", changes: [{ target: SMALL.bare, values: { x: 11.123 } }] },
+  ]);
+  await expect(x).toHaveValue("11.12");
+  await x.press("ArrowDown");
+  await expect.poll(() => journalLength(page)).toBe(8);
+  expect(await commandsFrom(page, 7)).toEqual([
+    { type: "set", changes: [{ target: SMALL.bare, values: { x: 10.123 } }] },
+  ]);
+  await expect(x).toHaveValue("10.12");
+
+  // The upper spin button: 8 px from the right edge (past border and padding), upper half.
+  const box = await x.boundingBox();
+  if (box === null) throw new Error("the field is not displayed");
+  await page.mouse.click(box.x + box.width - 8, box.y + box.height / 4);
+  await expect.poll(() => journalLength(page)).toBe(9);
+  expect(await commandsFrom(page, 8)).toEqual([
+    { type: "set", changes: [{ target: SMALL.bare, values: { x: 11.123 } }] },
+  ]);
+  await expect(x).toHaveValue("11.12");
+  await page.evaluate(() => window.__tilie.store().undo());
+  expect(await journalLength(page)).toBe(8);
+  expect((await placement(page, SMALL.bare)).x).toBe(10.123);
+
+  await x.focus();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.wheel(0, -100);
+  await expect.poll(() => journalLength(page)).toBe(9);
+  expect(await commandsFrom(page, 8)).toEqual([
+    { type: "set", changes: [{ target: SMALL.bare, values: { x: 11.123 } }] },
+  ]);
+  await expect(x).toHaveValue("11.12");
+
+  await x.press("End");
+  await x.press("5");
+  expect(await journalLength(page)).toBe(9);
+});
+
+test("Escape cancels a resize and the form shows the stored values again", async ({ page }) => {
+  await page.locator('[data-testid="mode-box"]').click();
+  const before = await node(page, SMALL.bare).boundingBox();
+  const grip = await page.locator('[data-testid="handle-right"]').boundingBox();
+  if (grip === null) throw new Error("the right handle is not displayed");
+  await dragStart(page, { x: grip.x + grip.width / 2, y: grip.y + grip.height / 2 }, 20, 0);
+  await expect(field(page, "width")).toHaveValue("478.58");
+  await page.keyboard.press("Escape");
+  await expect(field(page, "width")).toHaveValue("");
+  await expect.poll(() => node(page, SMALL.bare).boundingBox()).toEqual(before);
+  expect(await page.evaluate(() => window.__tilie.selection())).toEqual([SMALL.bare]);
+  await page.mouse.up();
+  expect(await journalLength(page)).toBe(5);
+  expect((await placement(page, SMALL.bare)).width).toBe(null);
 });

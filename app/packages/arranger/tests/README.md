@@ -120,6 +120,26 @@ What proves the projection is complete and stable:
   - A `previous` node whose position differs from its block (a preview
     Svelte Flow wrote during a drag) is not reused, so an abandoned drag
     never sticks.
+  - **The selection is the only authority over `selected`.** A `previous`
+    node whose `selected` flag differs from the selection (Svelte Flow
+    clears every node's flag on a click on the empty canvas and sets one on
+    a click on a node) is not reused: with selection `{A, B/clt_3}` and a
+    `previous` whose A node is that node with `selected: false` and whose B
+    node has `selected: true`, the result has A `selected: true` and B
+    `selected: false`, both new objects, and for every node `selected`
+    equals whether the selection holds its block id; an element address
+    never selects its block's node.
+- **Live placement.** `livePlacement(block, position, values)` is what the
+  inspector shows during a gesture: the block's `id`, `scale`, `length`,
+  `spacing`, `width` and `height` overridden by the previewed `values`, and
+  `x`, `y` from the node's `position` (where Svelte Flow has the dragged or
+  previewed node). For A (`bare` at (40, 80), defaults) with `position`
+  (104, 40) and no values it is exactly `{id: A, x: 104, y: 40, scale: 1,
+  length: 400, spacing: 1, width: null, height: null}`; with `values`
+  `{width: 478.5771484375}` and `position` (40, 80) it is the same with
+  `x: 40, y: 80, width: 478.5771484375`; with `values` `{x: 19, scale: 2}`
+  and `position` (19, 80) it has `x: 19, scale: 2` (the position wins over
+  a previewed `x`, and they agree whenever the canvas shows a preview).
 - **Property (fast-check).** For any sequence of accepted move, z-order and
   remove commands drawn from the gesture functions below, projecting the
   resulting view twice (the second time with the first result as

@@ -15,7 +15,8 @@ belong in the suite.
   `viewport()`, `locked()` and `mode()`. A stored number is compared with
   `toEqual`/`toBe` against a literal; nothing is read back from pixels.
 - **The DOM** for what the contract says is rendered: nodes
-  `.svelte-flow__node[data-id="<block id>"]`, drawn elements
+  `.svelte-flow__node[data-id="<block id>"]` (a selected block's node
+  carries Svelte Flow's class `selected`), drawn elements
   `[data-address="<element id>"]` inside their node, `[data-selected]`,
   `[data-contains-selection]`, the mode buttons `[data-testid="mode-scale"
   | "mode-box" | "mode-stretch"]` and the canvas controls' `[data-testid="lock"
@@ -206,6 +207,36 @@ spacing` for `spacing ≥ 0.9146…` and `58.98828125 + 16 × spacing` below.
      `flow000000` whole → {bare000000, flow000000, nested0000/clt_2}; a
      click on `bare`'s background again removes it → {flow000000,
      nested0000/clt_2}.
+   - **A click on the empty canvas clears the selection in every mode;
+     Shift+click there keeps it.** The selection Svelte Flow shows (the
+     nodes with class `selected`) always equals the selection's block ids,
+     and the elements marked `data-selected` equal its element addresses;
+     both are checked after every step below, as is the journal (never
+     changed). With the toggle on: a click on `bare`'s background and on
+     `nested0000`'s `clt_2` → {bare000000, nested0000/clt_2}; a click on
+     the empty canvas at canvas (400, 120) → {} (no node `selected`, no
+     `data-selected`); a click on `flow000000`'s background → {flow000000}
+     alone (a stale selection would bring back bare and clt_2). Then a
+     click on `bare`'s background → {bare000000, flow000000}, and
+     Shift+click on the empty canvas at (400, 120) keeps exactly that, both
+     nodes still `selected` (Svelte Flow itself clears its flags on a pane
+     click, so the projection must restore them); the next click, on
+     `map0000000`'s background, gives {bare000000, flow000000, map0000000}.
+     With the toggle off the same holds: from {bare000000, flow000000,
+     map0000000}, Shift+click on the empty canvas keeps all three, a plain
+     click there gives {}, a click on `nested0000`'s `clt_2` then gives
+     exactly {nested0000/clt_2}. A marquee that ends is no click: the
+     marquee step of the previous case already adds without clearing.
+   - **A click whose pointer moves a little is still a click.** Svelte
+     Flow starts a marquee once the pointer moves more than
+     `paneClickDistance` (4 here), or any distance while Shift is held; a
+     marquee ending within 4 px of its start counts as a click on what it
+     started on. Each step presses at canvas (400, 120), moves 2 px to the
+     right in two moves and releases. With the toggle on, from
+     {bare000000, flow000000}: Shift → unchanged; without Shift → {}. With
+     the toggle off, from {bare000000, flow000000}: Shift → unchanged;
+     without Shift → {} (the 2 px also pan the view, which is not
+     checked). The canvas shows the selection after every step, as above.
 8b. **A marquee ending in the edge zone pans.** Svelte Flow pans while the
    pointer of a marquee rests within 40 px of the pane's edge, and keeps the
    marquee's start fixed in canvas units (`selectionRect.startX/Y`), its end
@@ -476,6 +507,38 @@ its "Open inspector" button. The text is read from the textarea labelled
    exactly 37.5 px (zoom 1) with its `y` unchanged.
 4. **axe-core reports no violation with the drawer open and the manifest
    shown** (YAML chosen, `bare000000` selected).
+5. **The form follows a drag live.** `bare000000` (at (0, 0)) is pressed
+   on its background and moved by (101, 37) with the button held: Svelte
+   Flow has it at the grid point (104, 40) (no other left edge or origin
+   lies within 6 of 104 or of its origin 145.58), so the fields `x` and
+   `y` show exactly `104` and `40` while the journal stays at 5 and the
+   stored placement is still (0, 0). The release adds exactly one `set`
+   `{x: 104, y: 40}`, and the fields show the stored `104` and `40`.
+6. **The form follows a resize live, rounded to two decimals.** In box
+   mode the `right` handle of `bare000000` is moved by (20, 0) with the
+   button held: the field `width` shows exactly `478.58` (the preview's
+   458.5771484375 + 20 = 478.5771484375), the journal stays at 5 and the
+   stored `width` is still `null`. The release adds one `set` and stores
+   `width` 478.5771484375, which the field shows as `478.58`.
+7. **A step applies at once, from the stored value.** After a `set` of
+   `x` to 10.123 through the hook (journal 6) the field `x` shows `10.12`.
+   ArrowUp in the field adds exactly one entry, `{type: "set", changes:
+   [{target: "bare000000", values: {x: 11.123}}]}`, and the field shows
+   `11.12`; ArrowDown adds one more with `x` 10.123. A click on the field's
+   upper spin button (8 px left of its right edge, past the border and
+   padding, a quarter of its height from the top; all three engines show
+   spin buttons there) adds exactly one entry with `x` 11.123 and the field shows
+   `11.12`; undo through the hook restores `x` 10.123 and the journal to
+   8 entries, so every step is a command of its own. One wheel notch up
+   (`deltaY` −100) over the focused field adds exactly one entry with `x`
+   11.123 (from the stored 10.123, never from the shown text). Typed text
+   still waits for Enter: typing `5` dispatches nothing.
+8. **Escape cancels a resize.** In box mode the `right` handle of
+   `bare000000` is moved by (20, 0) with the button held, and the field
+   `width` shows `478.58`; Escape ends the gesture: the field shows the
+   stored value again (empty, `width` null), the node's bounding box equals
+   the one before the gesture, the selection still holds `bare000000`,
+   and after the release the journal is still 5.
 
 ## `a11y.spec.ts`
 

@@ -17,6 +17,7 @@ import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it } from "vitest";
 import { loadCodec, writeText } from "../src/inspector/formats.ts";
 import Inspector from "../src/inspector/Inspector.svelte";
+import { liveHolder } from "./live.svelte.ts";
 
 const A = "0000000000";
 const B = "0000000001";
@@ -49,11 +50,22 @@ function storeOf(): Store {
 
 let app: ReturnType<typeof mount> | undefined;
 
-function show(store: Store, selection: string[]): void {
+function show(store: Store, selection: string[], live = liveHolder()): void {
   app = mount(Inspector, {
     target: document.body,
-    props: { store, selection: new Set(selection) },
+    props: {
+      store,
+      selection: new Set(selection),
+      get live() {
+        return live.value;
+      },
+    },
   });
+  flushSync();
+}
+
+function press(element: HTMLElement, key: string): void {
+  element.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
   flushSync();
 }
 
@@ -194,5 +206,74 @@ describe("the inspector component", () => {
       changes: [{ target: A, values: { x: 25 } }],
     });
     expect(x.value).toBe("25");
+  });
+
+  it("steps from the stored value, one set per step", () => {
+    const store = storeOf();
+    store.dispatch({ type: "set", changes: [{ target: A, values: { x: 10.123 } }] });
+    show(store, [A]);
+    const x = document.querySelector('input[name="x"]') as HTMLInputElement;
+    expect(x.value).toBe("10.12");
+    press(x, "ArrowUp");
+    expect(store.journal).toHaveLength(4);
+    expect(store.journal[3]?.command).toEqual({
+      type: "set",
+      changes: [{ target: A, values: { x: 11.123 } }],
+    });
+    expect(x.value).toBe("11.12");
+    press(x, "ArrowDown");
+    expect(store.journal).toHaveLength(5);
+    expect(store.journal[4]?.command).toEqual({
+      type: "set",
+      changes: [{ target: A, values: { x: 10.123 } }],
+    });
+    type(x, "20");
+    press(x, "ArrowUp");
+    expect(store.journal).toHaveLength(6);
+    expect(store.journal[5]?.command).toEqual({
+      type: "set",
+      changes: [{ target: A, values: { x: 21 } }],
+    });
+    expect(x.value).toBe("21");
+    const scale = document.querySelector('input[name="scale"]') as HTMLInputElement;
+    press(scale, "ArrowDown");
+    expect(store.journal).toHaveLength(7);
+    expect(store.journal[6]?.command).toEqual({
+      type: "set",
+      changes: [{ target: A, values: { scale: 0.9 } }],
+    });
+    expect(scale.value).toBe("0.9");
+  });
+
+  it("shows live values of its block, never over a draft", () => {
+    const store = storeOf();
+    const live = liveHolder();
+    show(store, [A], live);
+    const field = (name: string) =>
+      document.querySelector(`input[name="${name}"]`) as HTMLInputElement;
+    const placement = {
+      id: A,
+      x: 5.556,
+      y: 0,
+      scale: 1,
+      length: 400,
+      spacing: 1,
+      width: null,
+      height: null,
+    };
+    live.value = placement;
+    flushSync();
+    expect(field("x").value).toBe("5.56");
+    type(field("y"), "33");
+    live.value = { ...placement, y: 7 };
+    flushSync();
+    expect(field("y").value).toBe("33");
+    live.value = { ...placement, id: B, x: 99 };
+    flushSync();
+    expect(field("x").value).toBe("0");
+    live.value = null;
+    flushSync();
+    expect(field("x").value).toBe("0");
+    expect(store.journal).toHaveLength(2);
   });
 });

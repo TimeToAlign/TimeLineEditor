@@ -157,6 +157,13 @@ export function selectedAddresses(page: Page): Promise<string[]> {
     );
 }
 
+/** The ids of the nodes Svelte Flow shows as selected (class `selected`), sorted. */
+export function selectedNodes(page: Page): Promise<string[]> {
+  return page
+    .locator(".svelte-flow__node.selected")
+    .evaluateAll((items) => items.map((item) => item.getAttribute("data-id") ?? "").sort());
+}
+
 export function placement(page: Page, id: string): Promise<Placement> {
   return page.evaluate((block) => {
     const found = window.__tilie.store().view.blocks[block];

@@ -2,7 +2,7 @@ import { indexBetween } from "@timetoalign/tilie-core";
 import { toDescriptors } from "@timetoalign/tilie-writers";
 import { describe, expect, it } from "vitest";
 import type { BlockNode } from "../src/index.ts";
-import { project } from "../src/index.ts";
+import { livePlacement, project } from "../src/index.ts";
 import { A, B, blockIn, changed, metrics, viewOf } from "./support.ts";
 
 const view = viewOf(
@@ -68,6 +68,18 @@ describe("project", () => {
     ]);
   });
 
+  it("restores the selected flags Svelte Flow changed", () => {
+    const tampered = nodes.map((item) => ({ ...item, selected: item.id !== A }));
+    const again = project(view, selection, tampered, metrics);
+    expect(node(again, A).selected).toBe(true);
+    expect(node(again, B).selected).toBe(false);
+    expect(node(again, A)).not.toBe(node(tampered, A));
+    expect(node(again, B)).not.toBe(node(tampered, B));
+    expect(again.map((item) => [item.id, item.selected])).toEqual(
+      again.map((item) => [item.id, selection.has(item.id)]),
+    );
+  });
+
   it("returns the identical nodes for an unchanged view", () => {
     const again = project(view, selection, nodes, metrics);
     expect(again).toHaveLength(2);
@@ -98,5 +110,33 @@ describe("project", () => {
     const again = project(view, selection, dragged, metrics);
     expect(node(again, A).position).toEqual({ x: 40, y: 80 });
     expect(node(again, B)).toBe(node(nodes, B));
+  });
+});
+
+describe("livePlacement", () => {
+  const block = blockIn(view, A);
+  const stored = { id: A, scale: 1, length: 400, spacing: 1, width: null, height: null };
+
+  it("takes the position from the node", () => {
+    expect(livePlacement(block, { x: 104, y: 40 }, {})).toStrictEqual({
+      ...stored,
+      x: 104,
+      y: 40,
+    });
+  });
+
+  it("takes previewed values over stored ones", () => {
+    expect(livePlacement(block, { x: 40, y: 80 }, { width: 478.5771484375 })).toStrictEqual({
+      ...stored,
+      x: 40,
+      y: 80,
+      width: 478.5771484375,
+    });
+    expect(livePlacement(block, { x: 19, y: 80 }, { x: 19, scale: 2 })).toStrictEqual({
+      ...stored,
+      x: 19,
+      y: 80,
+      scale: 2,
+    });
   });
 });

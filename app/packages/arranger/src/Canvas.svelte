@@ -11,8 +11,8 @@ import CanvasToolbar from "./CanvasToolbar.svelte";
 import type { Visible } from "./commands.ts";
 import { moveCommand, nudgeCommand, removeCommand, zOrderCommand } from "./commands.ts";
 import { descriptorsOf, drawingOf } from "./drawing.ts";
-import type { BlockNode as BlockNodeType } from "./project.ts";
-import { project } from "./project.ts";
+import type { BlockNode as BlockNodeType, LivePlacement } from "./project.ts";
+import { livePlacement, project } from "./project.ts";
 import ResizeToolbar from "./ResizeToolbar.svelte";
 import type { ResizeMode } from "./resize.ts";
 import { resizeCommand } from "./resize.ts";
@@ -32,6 +32,12 @@ interface Props {
   locked: boolean;
   mode: ResizeMode;
   viewport: Viewport;
+  /**
+   * Called with the placement of the block a drag or a resize changes, as
+   * the canvas shows it before release, whenever it changes; with `null`
+   * once the gesture ends. Only a gesture on a single block reports one.
+   */
+  onlive?: (placement: LivePlacement | null) => void;
 }
 
 let {
@@ -41,19 +47,28 @@ let {
   locked = $bindable(),
   mode = $bindable(),
   viewport = $bindable(),
+  onlive,
 }: Props = $props();
 
 /** Above this many blocks only the blocks in view are mounted. */
 const CULLING_THRESHOLD = 500;
 /** How close, in screen pixels, a dragged block snaps to another block's edge or origin. */
 const SNAP_TOLERANCE = 6;
+/**
+ * How far, in screen pixels, a pointer may move between press and release
+ * and still click (touch and trackpads wobble). Svelte Flow starts a
+ * marquee past this distance, or past any distance while Shift is held, so
+ * a marquee ending within it counts as a click too.
+ */
+const CLICK_DISTANCE = 4;
 /** Arrow keys move by one grid step; with Shift by this many. */
 const LARGE_STEP = 8;
 
 const nodeTypes = { block: BlockNode };
 /**
  * Delete and Backspace are ours (`removeCommand`), so Svelte Flow binds no
- * delete key. An empty list rather than `null`: Svelte Flow turns `null`
+ * delete key; Shift+click is ours (`click`), so it binds no multi-selection
+ * key either. An empty list rather than `null`: Svelte Flow turns `null`
  * into an empty shortcut, which its shortcut library warns about.
  */
 const NO_KEYS: string[] = [];
@@ -108,6 +123,7 @@ $effect(() => {
 });
 
 let toolbar: ReturnType<typeof CanvasToolbar> | undefined = $state();
+let resizer: ReturnType<typeof ResizeToolbar> | undefined = $state();
 
 /** Show the canvas at `next`; see `CanvasToolbar.setViewport`. */
 export function setViewport(next: Viewport): void {
@@ -136,6 +152,14 @@ $effect(() => {
 let preview: { readonly id: string; readonly values: Partial<Block> } | null = $state.raw(null);
 let guides: readonly Guide[] = $state.raw([]);
 let marquee = $state(false);
+/** The ids of the blocks under drag, from the drag's start to its end. */
+let dragging: readonly string[] | null = $state.raw(null);
+/**
+ * Bumped to project the view again although neither the view nor the
+ * selection changed: after Svelte Flow has set its nodes' `selected` flags
+ * itself (see `reassert`).
+ */
+let resync = $state(0);
 /** The last refusal, announced in the status region. */
 let hint = $state("");
 
@@ -170,6 +194,7 @@ let projected: BlockNodeType[] = [];
  * the selection replaces them with the projection again.
  */
 let nodes: BlockNodeType[] = $derived.by(() => {
+  void resync;
   projected = project(view, selection, projected, metrics);
   return preview === null ? projected : withPreview(projected, preview.id, preview.values);
 });
@@ -198,6 +223,19 @@ function withPreview(
       : node,
   );
 }
+
+/** The block a gesture on a single block changes, as the canvas shows it; `null` without one. */
+const live: LivePlacement | null = $derived.by(() => {
+  const id = preview?.id ?? (dragging?.length === 1 ? dragging[0] : undefined);
+  const block = id === undefined ? undefined : view.blocks[id];
+  const node = block === undefined ? undefined : nodes.find((item) => item.id === block.id);
+  if (block === undefined || node === undefined) return null;
+  return livePlacement(block, node.position, preview?.id === block.id ? preview.values : {});
+});
+
+$effect(() => {
+  onlive?.(live);
+});
 
 /** The single selected block, the one the resize toolbar acts on. */
 const resizable = $derived.by(() => {
@@ -239,7 +277,20 @@ function dispatch(command: unknown): boolean {
 
 // --- Selection -------------------------------------------------------------
 
-/** A click selects the element under the pointer, or the block when it hits its background. */
+/**
+ * The selection decides which nodes are selected, never Svelte Flow. Svelte
+ * Flow sets its nodes' `selected` flags itself on a click (a click on the
+ * empty canvas clears them all, a click on a node selects that node) after
+ * or before calling the handlers below, and writes those nodes back through
+ * `bind:nodes`. Once its handling is over, the view is projected again, so
+ * the flags show the selection even when the selection did not change.
+ */
+function reassert(): void {
+  queueMicrotask(() => {
+    resync += 1;
+  });
+}
+
 /**
  * Whether a click adds to the selection (or removes an item already in it):
  * with Shift, and always while the marquee toggle is on.
@@ -248,15 +299,53 @@ function additive(event: { shiftKey: boolean }): boolean {
   return event.shiftKey || marquee;
 }
 
-function onnodeclick({ node, event }: { node: BlockNodeType; event: MouseEvent | TouchEvent }) {
-  const target = event.target instanceof Element ? event.target : null;
-  const element = target?.closest("[data-address]")?.getAttribute("data-address");
-  const address = element == null ? node.id : `${node.id}/${element}`;
-  selection = click(selection, address, additive(event));
+/** The address a press on `target` inside block `id` names: the element under it, or the block. */
+function addressAt(id: string, target: EventTarget | null): string {
+  const element =
+    target instanceof Element
+      ? target.closest("[data-address]")?.getAttribute("data-address")
+      : undefined;
+  return element == null ? id : `${id}/${element}`;
 }
 
+function onnodeclick({ node, event }: { node: BlockNodeType; event: MouseEvent | TouchEvent }) {
+  selection = click(selection, addressAt(node.id, event.target), additive(event));
+  reassert();
+}
+
+/** Where and on what the last primary press on the canvas landed. */
+let press: { readonly x: number; readonly y: number; readonly target: EventTarget | null } | null =
+  null;
+
+function isClick(from: { x: number; y: number }, to: { clientX: number; clientY: number }) {
+  return Math.hypot(to.clientX - from.x, to.clientY - from.y) <= CLICK_DISTANCE;
+}
+
+/**
+ * A marquee that ended within the click distance, as the click it was: on
+ * a block, a click on that block or element; elsewhere a click on the
+ * empty canvas.
+ */
+function clickAt(target: EventTarget | null, event: PointerEvent): void {
+  const id =
+    target instanceof Element
+      ? target.closest(".svelte-flow__node[data-id]")?.getAttribute("data-id")
+      : undefined;
+  if (id != null && Object.hasOwn(view.blocks, id)) {
+    selection = click(selection, addressAt(id, target), additive(event));
+  } else if (!event.shiftKey) {
+    selection = new Set();
+  }
+}
+
+/**
+ * A click on the empty canvas clears the selection in every mode, the
+ * marquee mode included; with Shift it leaves the selection as it is.
+ * Svelte Flow reports no click at the end of a marquee.
+ */
 function onpaneclick({ event }: { event: MouseEvent }) {
-  if (!additive(event)) selection = new Set();
+  if (!event.shiftKey) selection = new Set();
+  reassert();
 }
 
 /**
@@ -264,9 +353,15 @@ function onpaneclick({ event }: { event: MouseEvent }) {
  * drawn. A Shift+drag marquee replaces the selection; while the marquee
  * toggle is on, the result is added to it.
  */
-function onselectionend() {
+function onselectionend(event: PointerEvent) {
+  if (press !== null && isClick(press, event)) {
+    clickAt(press.target, event);
+    reassert();
+    return;
+  }
   const marked = nodes.filter((node) => node.selected).map((node) => node.id);
   selection = new Set(marquee ? [...selection, ...marked] : marked);
+  reassert();
 }
 
 // --- Drag ------------------------------------------------------------------
@@ -301,6 +396,7 @@ type DragEvent = { targetNode: BlockNodeType | null; nodes: BlockNodeType[] };
 
 function onnodedragstart({ targetNode, nodes: dragged }: DragEvent) {
   const ids = new Set(dragged.map(({ id }) => id));
+  dragging = [...ids];
   anchors = projected.filter(({ id }) => !ids.has(id)).map((node) => boxOf(node));
   // Dragging a block that is not selected selects it, unless the selection is inside it.
   if (targetNode !== null && !selection.has(targetNode.id)) {
@@ -325,6 +421,7 @@ function onnodedrag({ targetNode, nodes: dragged }: DragEvent) {
 
 function onnodedragstop({ targetNode, nodes: dragged }: DragEvent) {
   guides = [];
+  dragging = null;
   const lead = targetNode ?? dragged[0];
   if (lead === undefined) return;
   const { dx, dy } = snapOffset(lead);
@@ -455,7 +552,8 @@ function handleKey(event: KeyboardEvent): boolean {
       locked = !locked;
       return true;
     case "Escape":
-      selection = new Set();
+      // Escape first ends a resize in progress, and only then clears the selection.
+      if (resizer?.abort() !== true) selection = new Set();
       return true;
     default:
       return false;
@@ -495,7 +593,10 @@ export function focus(): void {
  * already inside it: the pane is no focusable element, and WebKit focuses
  * no button on a click.
  */
-function onpointerdowncapture() {
+function onpointerdowncapture(event: PointerEvent) {
+  if (event.isPrimary && event.button === 0) {
+    press = { x: event.clientX, y: event.clientY, target: event.target };
+  }
   if (root !== undefined && !root.contains(document.activeElement)) focus();
 }
 
@@ -544,6 +645,8 @@ function onkeydowncapture(event: KeyboardEvent) {
       onlyRenderVisibleElements={Object.keys(view.blocks).length > CULLING_THRESHOLD}
       deleteKey={NO_KEYS}
       selectionKey="Shift"
+      multiSelectionKey={NO_KEYS}
+      paneClickDistance={CLICK_DISTANCE}
       selectionMode={SelectionMode.Full}
       selectionOnDrag={marquee}
       panOnDrag={!marquee}
@@ -563,6 +666,7 @@ function onkeydowncapture(event: KeyboardEvent) {
     >
       {#if resizable !== undefined && resizableBox !== undefined}
         <ResizeToolbar
+          bind:this={resizer}
           block={resizable}
           box={resizableBox}
           settings={view.settings}

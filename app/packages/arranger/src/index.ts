@@ -21,8 +21,8 @@ export {
 } from "./commands.ts";
 export { descriptorsOf, drawingOf } from "./drawing.ts";
 export { GRID_FREE, MIN_LENGTH, MIN_SCALE, MIN_SPACING, quantize } from "./numbers.ts";
-export type { BlockNode, BlockNodeData } from "./project.ts";
-export { project } from "./project.ts";
+export type { BlockNode, BlockNodeData, LivePlacement } from "./project.ts";
+export { livePlacement, project } from "./project.ts";
 export { default as ResizeToolbar } from "./ResizeToolbar.svelte";
 export type { Delta, Handle, ResizeMode } from "./resize.ts";
 export { handlesFor, resize, resizeCommand } from "./resize.ts";

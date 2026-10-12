@@ -25,6 +25,7 @@ import {
   SMALL,
   SMALL_ORDER,
   selectedAddresses,
+  selectedNodes,
   selection,
   setViewport,
   textsNotInFace,
@@ -347,6 +348,103 @@ test.describe("marquee", () => {
     expect(await viewportOf(page)).toEqual(MARQUEE);
     expect(await journalLength(page)).toBe(START);
   });
+});
+
+/**
+ * The selection is exactly `expected`, and the canvas shows exactly that:
+ * the selected nodes are its block ids, the marked elements its element ids.
+ */
+async function shows(page: import("@playwright/test").Page, expected: readonly string[]) {
+  const sorted = [...expected].sort();
+  expect(await selection(page)).toEqual(sorted);
+  const blocks = sorted.filter((address) => !address.includes("/"));
+  const elements = sorted
+    .filter((address) => address.includes("/"))
+    .map((address) => address.slice(address.indexOf("/") + 1))
+    .sort();
+  await expect.poll(() => selectedNodes(page)).toEqual(blocks);
+  await expect.poll(() => selectedAddresses(page)).toEqual(elements);
+}
+
+async function clickBackground(page: import("@playwright/test").Page, id: string) {
+  const point = await backgroundPoint(page, id);
+  await page.mouse.click(point.x, point.y);
+}
+
+async function clickEmpty(page: import("@playwright/test").Page, shift = false) {
+  const point = await emptyPoint(page, 400, 120);
+  if (shift) await page.keyboard.down("Shift");
+  await page.mouse.click(point.x, point.y);
+  if (shift) await page.keyboard.up("Shift");
+}
+
+/** Press on the empty canvas at (400, 120), move 2 px right in two moves, release. */
+async function wobbleEmpty(page: import("@playwright/test").Page, shift = false) {
+  const point = await emptyPoint(page, 400, 120);
+  if (shift) await page.keyboard.down("Shift");
+  await page.mouse.move(point.x, point.y);
+  await page.mouse.down();
+  await page.mouse.move(point.x + 2, point.y, { steps: 2 });
+  await page.mouse.up();
+  if (shift) await page.keyboard.up("Shift");
+}
+
+test("a click whose pointer moves 2 px is still a click on the empty canvas", async ({ page }) => {
+  await setViewport(page, { x: 100, y: 100, zoom: 0.5 });
+  const toggle = page.locator('[data-testid="marquee"]');
+  const both = async () => {
+    await page.evaluate((ids) => window.__tilie.select(ids), [SMALL.bare, SMALL.flow]);
+    await shows(page, [SMALL.bare, SMALL.flow]);
+  };
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  await both();
+  await wobbleEmpty(page, true);
+  await shows(page, [SMALL.bare, SMALL.flow]);
+  await wobbleEmpty(page);
+  await shows(page, []);
+
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  await setViewport(page, { x: 100, y: 100, zoom: 0.5 });
+  await both();
+  await wobbleEmpty(page, true);
+  await shows(page, [SMALL.bare, SMALL.flow]);
+  await wobbleEmpty(page);
+  await shows(page, []);
+  expect(await journalLength(page)).toBe(START);
+});
+
+test("a click on the empty canvas clears the selection in every mode, Shift+click keeps it", async ({
+  page,
+}) => {
+  await setViewport(page, { x: 100, y: 100, zoom: 0.5 });
+  const toggle = page.locator('[data-testid="marquee"]');
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  await clickBackground(page, SMALL.bare);
+  await clickPart(page, SMALL.nested, "clt_2");
+  await shows(page, [SMALL.bare, `${SMALL.nested}/clt_2`]);
+  await clickEmpty(page);
+  await shows(page, []);
+  await clickBackground(page, SMALL.flow);
+  await shows(page, [SMALL.flow]);
+  await clickBackground(page, SMALL.bare);
+  await shows(page, [SMALL.bare, SMALL.flow]);
+  await clickEmpty(page, true);
+  await shows(page, [SMALL.bare, SMALL.flow]);
+  await clickBackground(page, SMALL.map);
+  await shows(page, [SMALL.bare, SMALL.flow, SMALL.map]);
+
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  await clickEmpty(page, true);
+  await shows(page, [SMALL.bare, SMALL.flow, SMALL.map]);
+  await clickEmpty(page);
+  await shows(page, []);
+  await clickPart(page, SMALL.nested, "clt_2");
+  await shows(page, [`${SMALL.nested}/clt_2`]);
+  expect(await journalLength(page)).toBe(START);
 });
 
 test.describe("click", () => {

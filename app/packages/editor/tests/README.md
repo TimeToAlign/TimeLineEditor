@@ -218,7 +218,9 @@ The About pane lists what the bundle ships from others, and the build
 writes their full licence texts into `THIRD_PARTY_NOTICES.txt` beside
 `index.html` (`notices.ts`, a Vite plugin of ours), so the wheel ships it.
 The test builds the editor with Vite into a temporary directory, with
-source maps, and collects the package of every bundled source: the nearest
+source maps, as a production build (`NODE_ENV` set to `production` for the
+build, since Vitest's `test` would make it a development build carrying the
+test hook and the end-to-end fixture files), and collects the package of every bundled source: the nearest
 `package.json` with a `name` above the source's real path, so an installed
 package and one linked from outside `node_modules` are found alike, and the
 workspace's own `@timetoalign/tilie-*` packages are left out (`packageOf`,
@@ -245,6 +247,22 @@ shared with the plugin); this set is the reference.
    @xyflow/svelte <version>`, MIT, the text of `@xyflow/svelte`'s licence
    file) and the font (licence `FONT_LICENCE`, the text of timeskeleton's
    `fonts/LICENSE`).
+4. **No chunk reaches Vite's warning limit.** Every `.js` file the build
+   writes into `assets/` is smaller than 500,000 bytes (Vite warns above
+   500 kB, counted in thousands of bytes); the limit itself is never
+   raised, so the vendor split is what keeps the chunks below it.
+5. **The codecs stay lazy.** `index.html` preloads chunks with `<link
+   rel="modulepreload">`, and no such link names a file whose name starts
+   with `yaml-` or `toml-`: a vendor group that took the YAML or TOML
+   package would make the main chunk import it at start.
+6. **The development server may read the schema package.** The config's
+   `server.fs.allow` holds the real directory (symbolic links resolved) of
+   the installed `@timetoalign/timeskeleton/package.json`, where its font
+   lies; while the package is linked from a sibling checkout that
+   directory lies outside the workspace, and without it `pnpm dev` refuses
+   the font with 403. Its other entry is the workspace root found from the
+   config file's own directory, `app/` (whose `pnpm-workspace.yaml` marks
+   it), not from the directory the server was started in.
 
 ## Autosave (`autosave.test.ts`)
 
@@ -463,6 +481,23 @@ What would prove it works, and the exact values each test pins:
    and `"12.5"`, `{width: null}` for `width` and an empty field, and refuses
    `invalid_value` for `x` with an empty field and for `abc`. Dispatching
    `scale` `0` is refused by the store (`non_positive_number`).
+   A step (`stepValue(value, direction, step)`) is computed exactly: the
+   sum is rounded to as many decimals as the value and the step have
+   (shortest spellings), so float noise never reaches the store; an empty
+   (null) value counts as 0. `STEPS` is 1 for `x`, `y`, `width`, `height`
+   and `length`, 0.1 for `scale` and `spacing`. Pinned: `10.123` up by 1 →
+   `11.123`; `1` down by 0.1 → `0.9` (plain arithmetic gives the same here,
+   and `0.9` down → `0.8`); `0.7` up by 0.1 → `0.8` (plain arithmetic:
+   0.7999999999999999); `1e-7` up by 0.1 → `0.1000001` (plain:
+   0.10000010000000001); `-0.05` up by 0.1 → `0.05`; `null` up by 1 → `1`.
+   `shownValue` is what a field shows: at most two decimals, the exact
+   double rounded as `toFixed(2)` rounds it, trailing zeros trimmed, an
+   empty text for null. Pinned: `12.5` → `12.5`, `12.3449` → `12.34`, `7` →
+   `7`, `10.123` → `10.12`, `2.999` → `3`, `478.5771484375` → `478.58`,
+   `1.49951171875` → `1.5`, `0.125` → `0.13` (exactly halfway, the larger
+   neighbour), `1.005` → `1` (the double is 1.00499999999999989…, below
+   the half), `-0.001` → `0` (no negative zero), `null` → empty. The value
+   is only shown: no command is built from the shown text.
 
 10. **The codecs load on demand, once.** In a fresh module graph
    (`inspector-codecs.test.ts`) `isLoaded` is `[true, false, false]` for
@@ -489,7 +524,20 @@ Revert to see it", and Revert shows the new manifest; the refused text of
 case 5 lists one problem reading `schema_violation`, `must be boolean`,
 `/timeline/locked` and keeps the edit; typing `25` into `x` and pressing
 Enter adds one journal entry whose command is `{type: "set", changes:
-[{target: "0000000000", values: {x: 25}}]}`.
+[{target: "0000000000", values: {x: 25}}]}`. A step steps from the stored value,
+not from the shown one: after a `set` of `x` to `10.123` the field shows
+`10.12`; ArrowUp in it adds exactly one journal entry `{type: "set",
+changes: [{target: "0000000000", values: {x: 11.123}}]}` and the field
+shows `11.12`; ArrowDown adds one more entry with `x` `10.123` (a step from
+the shown `10.12` would store `11.12` and `9.12`). ArrowDown in `scale`
+(stored 1) adds one entry with `scale` `0.9` (the step there is 0.1). A typed draft is
+stepped instead: with `20` typed and not committed, ArrowUp commits `x`
+`21`. A live value given to the component (`live`, the block as a canvas
+gesture shows it) is shown instead of the stored one for that block,
+rounded the same way, but never over a draft: with `live` holding `x`
+`5.556` the field shows `5.56`, and with `33` typed it keeps `33`; with
+`live` back to `null` the field shows the stored value again. Live values
+of another block are ignored.
 `Inspector-load.test.ts` replaces `toml.ts` with a module whose import
 fails (`vi.mock` with a throwing factory): choosing TOML shows one
 `role="alert"` paragraph reading exactly `TOML could not be loaded (<the

@@ -180,6 +180,14 @@ function end(event: PointerEvent): void {
   else onresizeend(result);
 }
 
+/** End a resize in progress without a command; `false` when none is in progress. */
+export function abort(): boolean {
+  if (gesture === null) return false;
+  stop();
+  onresizecancel();
+  return true;
+}
+
 function cancel(event: PointerEvent): void {
   if (gesture === null || event.pointerId !== gesture.pointer) return;
   stop();

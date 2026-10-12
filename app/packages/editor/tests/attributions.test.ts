@@ -1,6 +1,6 @@
 // @vitest-environment node
 /// <reference types="node" />
-import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -8,6 +8,7 @@ import { build } from "vite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { licenceFile, NOTICES_FILE, packageOf, RULE, SUBRULE } from "../notices.ts";
 import { ATTRIBUTIONS, FONT_LICENCE } from "../src/attributions.ts";
+import config from "../vite.config.ts";
 
 const editor = path.join(import.meta.dirname, "..");
 let outDir: string;
@@ -15,18 +16,27 @@ let outDir: string;
 const bundled = new Map<string, string>();
 let assets: string[];
 let noticesText: string;
+let indexHtml: string;
 
 beforeAll(async () => {
   outDir = mkdtempSync(path.join(tmpdir(), "tilie-attributions-"));
+  // Vitest sets NODE_ENV to "test", which Vite reads as a development
+  // build (with the test hook and the fixture files); the bundle checked
+  // here is the production one, as `pnpm build` writes it for the wheel.
+  const environment = process.env.NODE_ENV;
+  process.env.NODE_ENV = "production";
   await build({
     root: editor,
     configFile: path.join(editor, "vite.config.ts"),
     logLevel: "silent",
     build: { outDir, emptyOutDir: true, sourcemap: true },
+  }).finally(() => {
+    process.env.NODE_ENV = environment;
   });
   const directory = path.join(outDir, "assets");
   assets = readdirSync(directory);
   noticesText = readFileSync(path.join(outDir, NOTICES_FILE), "utf8");
+  indexHtml = readFileSync(path.join(outDir, "index.html"), "utf8");
   for (const file of assets.filter((name) => name.endsWith(".js.map"))) {
     const map = JSON.parse(readFileSync(path.join(directory, file), "utf8")) as {
       sources: string[];
@@ -135,6 +145,35 @@ describe("the attributions", () => {
         licence: `License: ${FONT_LICENCE}`,
         text: font.endsWith("\n") ? font : `${font}\n`,
       },
+    ]);
+  });
+});
+
+describe("the build", () => {
+  it("writes no chunk of 500 kB or more", () => {
+    const directory = path.join(outDir, "assets");
+    const sizes = assets
+      .filter((name) => name.endsWith(".js"))
+      .map((name) => [name, statSync(path.join(directory, name)).size] as const);
+    expect(sizes.length > 0).toBe(true);
+    expect(sizes.filter(([, size]) => size >= 500_000)).toEqual([]);
+  });
+
+  it("preloads neither the YAML nor the TOML codec", () => {
+    const preloaded = [...indexHtml.matchAll(/<link rel="modulepreload"[^>]*href="([^"]+)"/g)].map(
+      (match) => path.basename(match[1] as string),
+    );
+    expect(preloaded.length > 0).toBe(true);
+    expect(preloaded.filter((name) => /^(yaml|toml)-/.test(name))).toEqual([]);
+  });
+
+  it("lets the development server read the schema package", () => {
+    const manifest = createRequire(import.meta.url).resolve(
+      "@timetoalign/timeskeleton/package.json",
+    );
+    expect(config.server?.fs?.allow).toEqual([
+      path.join(editor, "..", ".."),
+      path.dirname(realpathSync(manifest)),
     ]);
   });
 });

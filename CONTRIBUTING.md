@@ -6,7 +6,7 @@ TiLiE is a pnpm TypeScript workspace with a Svelte 5 application and a separate 
 
 Install Node.js 22.18 or newer, pnpm 12.10.1, Python 3.11 or newer, and uv.
 
-The application packages `core`, `layout` and `writers` take schema 0.6.0 from the `@timetoalign/timeskeleton` package. To try a change to timeskeleton itself, point their dependency at a built local checkout's `js/` package with a `link:` path, and never commit the link. Prepare both parts of the repository:
+The application packages `core`, `layout` and `writers` take schema 0.6.0 from the `@timetoalign/timeskeleton` package. To try a change to timeskeleton itself, point their dependency at a built local checkout's `js/` package with a `link:` path, and never commit the link. `pnpm dev` may read the linked package's directory, so the editor still loads its bundled font. Prepare both parts of the repository:
 
 ```bash
 cd app

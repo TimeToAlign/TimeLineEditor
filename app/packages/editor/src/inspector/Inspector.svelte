@@ -1,6 +1,8 @@
 <script lang="ts">
+import type { LivePlacement } from "@timetoalign/tilie-arranger";
 import type { Block, BlockId, Json, Store, View } from "@timetoalign/tilie-core";
 import { untrack } from "svelte";
+import type { Attachment } from "svelte/attachments";
 import type { Property } from "./edit.ts";
 import {
   applyText,
@@ -10,13 +12,25 @@ import {
   PROPERTIES,
   problemPointer,
   propertyCommand,
+  STEPS,
   selectedBlock,
+  shownValue,
+  stepValue,
 } from "./edit.ts";
 import type { Format, Source } from "./formats.ts";
 import { FORMATS, isLoaded, loadCodec } from "./formats.ts";
 import type { InspectorProblem } from "./problems.ts";
 
-let { store, selection }: { store: Store; selection: ReadonlySet<string> } = $props();
+let {
+  store,
+  selection,
+  live = null,
+}: {
+  store: Store;
+  selection: ReadonlySet<string>;
+  /** The placement a canvas gesture shows before release; the form shows it for its block. */
+  live?: LivePlacement | null;
+} = $props();
 
 const FORMAT_LABELS: { readonly [format in Format]: string } = {
   json: "JSON",
@@ -181,11 +195,12 @@ function onTextKey(event: KeyboardEvent): void {
 let drafts: { [property in Property]?: string } = $state({});
 let propertyProblems: { [property in Property]?: string } = $state({});
 
+/** What a field shows: its draft, else the live or stored value rounded to two decimals. */
 function fieldValue(property: Property): string {
   const draft = drafts[property];
   if (draft !== undefined) return draft;
-  const value = block?.[property];
-  return value === null || value === undefined ? "" : String(value);
+  if (block === null) return "";
+  return shownValue((live !== null && live.id === block.id ? live : block)[property]);
 }
 
 function commitProperty(property: Property): void {
@@ -201,8 +216,68 @@ function commitProperty(property: Property): void {
   delete propertyProblems[property];
 }
 
+/**
+ * Commit one step of the property's `STEPS` (`direction` ±1) at once: from
+ * the draft when there is one, else from the stored value (never from the
+ * rounded text the field shows); an empty field counts as 0. A draft that
+ * is no number is not stepped.
+ */
+function step(property: Property, direction: 1 | -1): void {
+  if (block === null) return;
+  const draft = drafts[property]?.trim();
+  const base = draft === undefined ? block[property] : draft === "" ? null : Number(draft);
+  if (base !== null && !Number.isFinite(base)) return;
+  drafts[property] = String(stepValue(base, direction, STEPS[property]));
+  commitProperty(property);
+}
+
+/**
+ * The field a pointer is pressed on. An input while it is pressed, of a
+ * kind spin buttons send (Chromium and WebKit no `inputType`, Firefox
+ * `insertReplacementText`), comes from the field's spin buttons; typing
+ * needs no press, and a paste or a drop with the pointer has a kind of its own.
+ */
+let pressed: EventTarget | null = null;
+
+const SPIN_INPUTS: ReadonlySet<string> = new Set(["", "insertReplacementText"]);
+
+/**
+ * A wheel turn over the focused field steps it, as a stepping key does.
+ * Listened to actively: Svelte's own wheel listeners are passive, and the
+ * browser's own wheel stepping would start from the shown text.
+ */
+function wheelSteps(property: Property): Attachment<HTMLInputElement> {
+  return (input) => {
+    const onwheel = (event: WheelEvent) => {
+      if (document.activeElement !== input || event.deltaY === 0) return;
+      event.preventDefault();
+      step(property, event.deltaY < 0 ? 1 : -1);
+    };
+    input.addEventListener("wheel", onwheel, { passive: false });
+    return () => input.removeEventListener("wheel", onwheel);
+  };
+}
+
+function onPropertyInput(event: Event & { currentTarget: HTMLInputElement }, property: Property) {
+  const input = event.currentTarget;
+  const kind = event instanceof InputEvent ? event.inputType : "";
+  if (pressed === input && SPIN_INPUTS.has(kind)) {
+    // The browser stepped from the shown text; the step is applied to the exact value instead.
+    const direction = Math.sign(Number(input.value) - Number(fieldValue(property)));
+    if (direction === 1 || direction === -1) {
+      step(property, direction);
+      input.value = fieldValue(property);
+      return;
+    }
+  }
+  drafts[property] = input.value;
+}
+
 function onPropertyKey(event: KeyboardEvent, property: Property): void {
-  if (event.key === "Enter") {
+  if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+    event.preventDefault();
+    step(property, event.key === "ArrowUp" ? 1 : -1);
+  } else if (event.key === "Enter") {
     event.preventDefault();
     commitProperty(property);
   } else if (event.key === "Escape") {
@@ -230,6 +305,8 @@ function position(problem: InspectorProblem): string {
 }
 </script>
 
+<svelte:window onpointerup={() => (pressed = null)} onpointercancel={() => (pressed = null)} />
+
 {#if shown === null && block === null}
   <p class="hint">Select a block to inspect its manifest.</p>
 {:else}
@@ -249,9 +326,9 @@ function position(problem: InspectorProblem): string {
               aria-describedby={propertyProblems[property] !== undefined
                 ? `property-problem-${property}`
                 : undefined}
-              oninput={(event) => {
-                drafts[property] = event.currentTarget.value;
-              }}
+              onpointerdown={(event) => (pressed = event.currentTarget)}
+              oninput={(event) => onPropertyInput(event, property)}
+              {@attach wheelSteps(property)}
               onkeydown={(event) => onPropertyKey(event, property)}
               onblur={() => commitProperty(property)}
             />

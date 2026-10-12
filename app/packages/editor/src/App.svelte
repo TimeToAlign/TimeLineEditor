@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { ResizeMode, Selection } from "@timetoalign/tilie-arranger";
+import type { LivePlacement, ResizeMode, Selection } from "@timetoalign/tilie-arranger";
 import { addCommand, blockOf, Canvas, existing } from "@timetoalign/tilie-arranger";
 import type { Problem, Store, View, Workspace } from "@timetoalign/tilie-core";
 import {
@@ -62,6 +62,8 @@ const dirty = $derived(view !== savedView);
 
 // The viewer's own state: never written to the workspace.
 let selection: Selection = $state.raw(new Set());
+/** The placement a drag or resize on the canvas shows before release, for the inspector. */
+let live: LivePlacement | null = $state.raw(null);
 let locked = $state(false);
 let mode: ResizeMode = $state("scale");
 let viewport: ViewportValue = $state.raw({ x: 0, y: 0, zoom: 1 });
@@ -540,6 +542,7 @@ onMount(async () => {
       bind:locked
       bind:mode
       bind:viewport
+      onlive={(placement) => (live = placement)}
     />
     <MessageArea
       {messages}
@@ -571,7 +574,7 @@ onMount(async () => {
         onclick={() => showInspector(false)}>»</button
       >
     </div>
-    <Inspector {store} {selection} />
+    <Inspector {store} {selection} {live} />
   </aside>
 </main>
 

@@ -22,7 +22,10 @@ import {
   manifestText,
   problemPointer,
   propertyCommand,
+  STEPS,
   selectedBlock,
+  shownValue,
+  stepValue,
 } from "../src/inspector/edit.ts";
 import type { Format } from "../src/inspector/formats.ts";
 import { FORMATS, loadCodec, readText, writeText } from "../src/inspector/formats.ts";
@@ -441,5 +444,38 @@ describe("the properties form", () => {
     if (!scale.ok) throw new Error("refused");
     expect(store.dispatch(scale.value)?.code).toBe("non_positive_number");
     expect(store.journal).toHaveLength(1);
+  });
+
+  it("steps exactly, by 1 or by 0.1", () => {
+    expect(STEPS).toEqual({ x: 1, y: 1, scale: 0.1, length: 1, spacing: 0.1, width: 1, height: 1 });
+    const cases: [number | null, 1 | -1, number, number][] = [
+      [10.123, 1, 1, 11.123],
+      [1, -1, 0.1, 0.9],
+      [0.9, -1, 0.1, 0.8],
+      [0.7, 1, 0.1, 0.8],
+      [1e-7, 1, 0.1, 0.1000001],
+      [-0.05, 1, 0.1, 0.05],
+      [null, 1, 1, 1],
+    ];
+    expect(cases.map(([value, direction, step]) => stepValue(value, direction, step))).toEqual(
+      cases.map(([, , , result]) => result),
+    );
+  });
+
+  it("shows a value with at most two decimals", () => {
+    const cases: [number | null, string][] = [
+      [12.5, "12.5"],
+      [12.3449, "12.34"],
+      [7, "7"],
+      [10.123, "10.12"],
+      [2.999, "3"],
+      [478.5771484375, "478.58"],
+      [1.49951171875, "1.5"],
+      [0.125, "0.13"],
+      [1.005, "1"],
+      [-0.001, "0"],
+      [null, ""],
+    ];
+    expect(cases.map(([value]) => shownValue(value))).toEqual(cases.map(([, shown]) => shown));
   });
 });
