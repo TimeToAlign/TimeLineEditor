@@ -10,16 +10,24 @@
     "node": ">=22.18"
   },
   "scripts": {
-    "lint": "biome ci . && depcruise --config .dependency-cruiser.cjs packages/*/src packages/*/tests tests",
+    "lint": "biome ci . && depcruise --config .dependency-cruiser.cjs packages/*/src packages/*/tests tests e2e",
     "format": "biome check --write .",
-    "typecheck": "tsc -p tests/tsconfig.json && pnpm -r --workspace-concurrency=1 run typecheck",
+    "typecheck": "tsc -p tests/tsconfig.json && tsc -p e2e/tsconfig.json && pnpm -r --workspace-concurrency=1 run typecheck",
     "test": "vitest run",
     "test:budget": "vitest run --config packages/core/vitest.budget.config.ts",
+    "e2e": "node e2e/run.ts --project=chromium --project=firefox --project=webkit --project=touch",
+    "e2e:budget": "node e2e/run.ts --project=budget",
+    "e2e:visual": "node e2e/run.ts --project=visual",
+    "e2e:visual:update": "node e2e/run.ts --project=visual --update-snapshots",
+    "e2e:fixtures": "node e2e/fixtures/generate.ts",
+    "e2e:fixtures:check": "node e2e/fixtures/generate.ts --check",
     "build": "pnpm --filter @timetoalign/tilie-editor run build",
     "dev": "pnpm --filter @timetoalign/tilie-editor run dev"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
     "@biomejs/biome": "2.5.14",
+    "@playwright/test": "1.63.0",
     "@types/node": "22.20.4",
     "dependency-cruiser": "18.4.0",
     "typescript": "6.0.3",

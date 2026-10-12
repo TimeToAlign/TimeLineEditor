@@ -1,10 +1,22 @@
 <script lang="ts">
-import { name as arranger } from "@timetoalign/tilie-arranger";
+import type { ResizeMode, Selection } from "@timetoalign/tilie-arranger";
+import { name as arranger, Canvas } from "@timetoalign/tilie-arranger";
 import { name as client } from "@timetoalign/tilie-client";
-import { name as core } from "@timetoalign/tilie-core";
+import type { Store } from "@timetoalign/tilie-core";
+import {
+  name as core,
+  createStore,
+  createView,
+  isLoadError,
+  readWorkspace,
+} from "@timetoalign/tilie-core";
 import { name as layout } from "@timetoalign/tilie-layout";
 import { name as writers } from "@timetoalign/tilie-writers";
+import { fontMetrics } from "@timetoalign/timeskeleton";
 import { onMount } from "svelte";
+import { FIXTURES } from "./fixtures.ts";
+import type { TestHook, ViewportValue } from "./testHook.ts";
+import { installTestHook, TEST_HOOK, WorkspaceRefusedError } from "./testHook.ts";
 
 /** The body of `GET /api/health`. */
 type Health = { name: string; version: string; timetoalign: string };
@@ -12,6 +24,59 @@ type Health = { name: string; version: string; timetoalign: string };
 const packages = [core, layout, writers, arranger, client];
 
 let status = $state("connecting to the server");
+
+/** The open workspace. */
+let store: Store = $state.raw(createStore({ view: createView(), journal: [] }));
+
+// The viewer's own state: never written to the workspace.
+let selection: Selection = $state.raw(new Set());
+let locked = $state(false);
+let mode: ResizeMode = $state("scale");
+let viewport: ViewportValue = $state.raw({ x: 0, y: 0, zoom: 1 });
+
+let canvas: ReturnType<typeof Canvas> | undefined = $state();
+
+/** Open the workspace file `text` in a new store; throws when the file is refused. */
+function openWorkspace(text: string): void {
+  const workspace = readWorkspace(text);
+  if (isLoadError(workspace)) throw new WorkspaceRefusedError(workspace.problems);
+  selection = new Set();
+  store = createStore(workspace);
+}
+
+let fixture = $state(FIXTURES[0]?.name ?? "");
+let fixtureProblem = $state("");
+
+/** Open the fixture chosen in the header's menu. */
+async function loadFixture(): Promise<void> {
+  const chosen = FIXTURES.find(({ name }) => name === fixture);
+  if (chosen === undefined) return;
+  try {
+    openWorkspace(await chosen.text());
+    fixtureProblem = "";
+  } catch (error) {
+    fixtureProblem = error instanceof Error ? error.message : String(error);
+  }
+}
+
+if (TEST_HOOK) {
+  /** What the end-to-end tests drive the editor through (`window.__tilie`). */
+  const hook: TestHook = {
+    load: openWorkspace,
+    store: () => store,
+    selection: () => [...selection],
+    select(addresses) {
+      selection = new Set(addresses);
+    },
+    viewport: () => ({ x: viewport.x, y: viewport.y, zoom: viewport.zoom }),
+    setViewport(next) {
+      canvas?.setViewport(next);
+    },
+    locked: () => locked,
+    mode: () => mode,
+  };
+  $effect(() => installTestHook(hook));
+}
 
 /**
  * Take the run's token from the fragment `tilie` opens the editor with
@@ -48,11 +113,36 @@ onMount(async () => {
 <header>
   <h1>TimeLineEditor</h1>
   <p class="status" aria-live="polite">{status}</p>
+  {#if TEST_HOOK && FIXTURES.length > 0}
+    <div class="fixtures">
+      <label>
+        Fixture
+        <select data-testid="fixture-select" bind:value={fixture}>
+          {#each FIXTURES as item (item.name)}
+            <option value={item.name}>{item.name}</option>
+          {/each}
+        </select>
+      </label>
+      <button type="button" data-testid="fixture-load" onclick={loadFixture}>Load</button>
+      <span class="problem" role="status">{fixtureProblem}</span>
+    </div>
+  {/if}
 </header>
 
 <main>
   <section class="pane arranger">
     <h2>Arranger</h2>
+    <div class="canvas">
+      <Canvas
+        bind:this={canvas}
+        {store}
+        metrics={fontMetrics}
+        bind:selection
+        bind:locked
+        bind:mode
+        bind:viewport
+      />
+    </div>
   </section>
   <section class="pane inspector">
     <h2>Inspector</h2>
@@ -94,6 +184,14 @@ onMount(async () => {
     color: #555;
   }
 
+  .fixtures {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin-left: auto;
+    font-size: 0.9rem;
+  }
+
   h1 {
     margin: 0;
     font-size: 1.1rem;
@@ -129,11 +227,20 @@ onMount(async () => {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: #777;
+    color: #666;
   }
 
   .arranger {
     grid-area: arranger;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .canvas {
+    flex: 1;
+    min-height: 0;
+    margin: 0.5rem -1rem -0.5rem;
   }
 
   .inspector {

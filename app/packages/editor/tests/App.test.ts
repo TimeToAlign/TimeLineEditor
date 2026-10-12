@@ -1,6 +1,7 @@
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App.svelte";
+import { stubLayout } from "./dom.ts";
 
 const health = { name: "tilie-server", version: "0.1.0", timetoalign: "1.2.0" };
 
@@ -29,6 +30,7 @@ describe("App", () => {
 
   beforeEach(() => {
     window.history.replaceState({}, "", "/");
+    stubLayout();
   });
 
   afterEach(() => {

@@ -103,6 +103,26 @@ describe("the package ladder", () => {
     expect(status).toBe(1);
   });
 
+  const engine = 'import "@xyflow/svelte";\nimport "@xyflow/system";\n';
+
+  it("accepts the canvas engine in the arranger", () => {
+    writePackage(scratch, "arranger", engine);
+    expect(cruise(scratch)).toEqual({ violations: [], status: 0 });
+  });
+
+  it.each(["layout", "editor"])("rejects the canvas engine in %s", (name) => {
+    writePackage(scratch, name, engine);
+    const { violations, status } = cruise(scratch);
+    expect(violations).toEqual(
+      ["@xyflow/svelte", "@xyflow/system"].map((to) => ({
+        rule: { name: "no-xyflow-outside-arranger", severity: "error" },
+        from: `packages/${name}/src/index.ts`,
+        to,
+      })),
+    );
+    expect(status).toBe(2);
+  });
+
   it.each(["index.ts", "missing.ts"])("rejects a relative workspace import to %s", (file) => {
     writePackage(scratch, "core", `import "../../layout/src/${file}";\n`);
     const { violations, status } = cruise(scratch);

@@ -37,6 +37,10 @@ things, each with exact values:
 The network is never touched: `fetch` is replaced by a stub for the duration
 of each test and restored afterwards, and the mounted component is unmounted
 and the document emptied after each test.
+The arranger pane mounts the canvas, which needs two browser interfaces
+jsdom lacks; `dom.ts` stubs them for each test: `matchMedia` (no query
+matches) and a `ResizeObserver` that never reports, since jsdom lays nothing
+out. What the canvas shows is proven in a browser by the Playwright suite.
 
 Type-checking of the component and the test is done by `svelte-check` with
 `--fail-on-warnings` under `pnpm typecheck`; that gate also catches the
@@ -91,3 +95,48 @@ Vitest's fake timers replace only `setTimeout` and `clearTimeout`, because
      nothing pending resolves, so each failure is reported exactly once.
    - with `globalThis.indexedDB` undefined, `recoverWorkspace("w")` rejects
      with an `AutosaveError` of `code` `indexeddb_unavailable` and `key` `w`.
+
+## The test hook (`hook.test.ts`)
+
+`src/testHook.ts` defines `window.__tilie`, through which the end-to-end
+tests open workspaces and read the viewer's state: `load(text)`, `store()`,
+`selection()`, `select(addresses)`, `viewport()`, `setViewport(v)`,
+`locked()` and `mode()`. `App.svelte` installs it only when
+`import.meta.env.DEV` is true or the build sets `VITE_TILIE_TEST_HOOK=1`;
+both are constants of the build, so a production build carries none of the
+hook. Vitest runs
+in development mode, so the hook is installed in these tests. Each test
+mounts `App.svelte` with `fetch` and the layout interfaces stubbed, as
+`App.test.ts` does.
+
+The workspace file used below is written, never hand-made: an empty
+`createStore` receives two `add` commands placing the manifest fixtures
+`bare` (block `0000000000` at x 0) and `nested` (block `0000000001` at
+x 800) of the installed `@timetoalign/timeskeleton`, and `writeWorkspace`
+writes its view and journal.
+
+1. **The editor starts empty.** Before any load, `store().view` equals
+   `createView()`, the journal is `[]`, `selection()` is `[]`, `locked()`
+   is `false` and `mode()` is `"scale"`.
+2. **`load` opens the file in a new store.** After `select` of two
+   addresses (read back exactly by `selection()`), `load(text)` replaces the
+   store: the new store is not the old one, its view and journal equal
+   `readWorkspace(text)`'s, and writing them again gives `text` byte for
+   byte. The selection is `[]`, since it addressed the previous workspace.
+3. **A refused file throws and changes nothing.** After loading the file,
+   `load("{")` throws a `WorkspaceRefusedError` whose problems' codes are
+   exactly `["invalid_json"]`, and `store()` is still the open store.
+4. **The header offers the end-to-end workspaces.** In the same builds the
+   header carries a select labelled "Fixture" (`fixture-select`) whose
+   options are exactly `grid-300`, `grid-900`, `small` (the base names of
+   `app/e2e/fixtures/*.tle.json`, sorted), and a Load button
+   (`fixture-load`). Choosing `small` and pressing Load opens it the way
+   `load` does: the store's view and journal equal `readWorkspace` of that
+   file's text, and the selection is `[]`. A production build contains
+   neither the menu nor the files (checked on `pnpm build`'s output, not
+   here).
+5. **The hook leaves with the editor.** Unmounting `App.svelte` removes
+   `window.__tilie`.
+
+The viewport functions talk to Svelte Flow, which needs a laid-out page;
+they and everything the canvas does are proven by the Playwright suite.

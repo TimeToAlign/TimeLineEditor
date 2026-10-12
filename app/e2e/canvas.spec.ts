@@ -1,0 +1,643 @@
+/**
+ * The canvas with the mouse and the keyboard on `small`. The expected values
+ * are derived in `README.md` ("canvas.spec.ts").
+ */
+
+import { expect, test } from "@playwright/test";
+import {
+  backgroundPoint,
+  blockOrder,
+  clickPart,
+  commandsFrom,
+  drag,
+  dragBlock,
+  element,
+  emptyPoint,
+  journalLength,
+  node,
+  nodeDragStart,
+  OPENED_JOURNAL,
+  open,
+  pane,
+  part,
+  partCentre,
+  placement,
+  SMALL,
+  SMALL_ORDER,
+  selectedAddresses,
+  selection,
+  setViewport,
+  textsNotInFace,
+  viewportOf,
+} from "./support.ts";
+
+const START = OPENED_JOURNAL.small;
+const VIEW = { x: 40, y: 40, zoom: 1 };
+
+/**
+ * Where the styled block lands when its plot origin (90.080078125 right of its
+ * left edge) is dragged to within 6 px of the flow block's plot origin, 640 +
+ * 82.9775390625: 722.9775390625 - 90.080078125 = 632.8974609375, a multiple
+ * of 1/2048, so the alignment is stored bit-exact.
+ */
+const ORIGIN_SNAP_X = 632.8974609375;
+
+/** The blocks of `small` as canvas boxes `[x, y, width, height]` (the drawing table of the README). */
+const BOXES: Record<string, readonly [number, number, number, number]> = {
+  [SMALL.bare]: [0, 0, 458.5771484375, 49.37890625],
+  [SMALL.nested]: [0, 160, 459.194580078125, 77.9765625],
+  [SMALL.map]: [0, 320, 472.53662109375, 67.4765625],
+  [SMALL.flow]: [640, 0, 500.256591796875, 84.33203125],
+  [SMALL.styled]: [640, 160, 510.080078125, 118.921875],
+};
+
+/** The `x`, `y` of a block as stored. */
+async function position(page: import("@playwright/test").Page, id: string) {
+  const { x, y } = await placement(page, id);
+  return { x, y };
+}
+
+/** Changes sorted by target, so a multi-block command compares regardless of order. */
+function byTarget<T extends { target: string }>(changes: readonly T[]): T[] {
+  return [...changes].sort((a, b) => (a.target < b.target ? -1 : 1));
+}
+
+test.use({ viewport: { width: 1600, height: 1000 } });
+
+test.beforeEach(async ({ page }) => {
+  await open(page, "small");
+  await setViewport(page, VIEW);
+});
+
+test("opening shows one node per block", async ({ page }) => {
+  await expect(page.locator(".svelte-flow__node")).toHaveCount(5);
+  for (const id of SMALL_ORDER) await expect(node(page, id)).toHaveCount(1);
+  await expect(part(page, SMALL.styled, "intro")).toBeAttached();
+  await expect(part(page, SMALL.styled, "da-capo")).toBeAttached();
+  await expect(part(page, SMALL.styled, "ticks")).toBeAttached();
+});
+
+test("the fixture menu loads small", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('[data-testid="fixture-select"]').selectOption("small");
+  await page.locator('[data-testid="fixture-load"]').click();
+  await expect(page.locator(".svelte-flow__node")).toHaveCount(5);
+  for (const id of SMALL_ORDER) await expect(node(page, id)).toHaveCount(1);
+  expect(await journalLength(page)).toBe(START);
+});
+
+test("every drawn text is laid out in the bundled face", async ({ page, browserName }) => {
+  expect(await textsNotInFace(page, browserName)).toEqual([]);
+});
+
+test.describe("drag", () => {
+  test("a drag is one set command at the grid-snapped position; undo and redo keys restore it", async ({
+    page,
+  }) => {
+    await dragBlock(page, SMALL.map, 101, 37);
+    expect(await position(page, SMALL.map)).toEqual({ x: 104, y: 360 });
+    expect(await commandsFrom(page, START)).toEqual([
+      { type: "set", changes: [{ target: SMALL.map, values: { x: 104, y: 360 } }] },
+    ]);
+
+    await page.keyboard.press("ControlOrMeta+z");
+    expect(await position(page, SMALL.map)).toEqual({ x: 0, y: 320 });
+    expect(await journalLength(page)).toBe(START);
+
+    await page.keyboard.press("ControlOrMeta+Shift+z");
+    expect(await position(page, SMALL.map)).toEqual({ x: 104, y: 360 });
+    expect(await journalLength(page)).toBe(START + 1);
+  });
+
+  test("dragging two selected blocks is one command with two changes", async ({ page }) => {
+    await page.evaluate((ids) => window.__tilie.select(ids), [SMALL.bare, SMALL.nested]);
+    await dragBlock(page, SMALL.bare, 21, 13);
+    expect(await position(page, SMALL.bare)).toEqual({ x: 24, y: 16 });
+    expect(await position(page, SMALL.nested)).toEqual({ x: 24, y: 176 });
+    const commands = await commandsFrom(page, START);
+    expect(commands).toHaveLength(1);
+    const [command] = commands;
+    expect(command?.type).toBe("set");
+    expect(byTarget(command?.type === "set" ? command.changes : [])).toEqual([
+      { target: SMALL.bare, values: { x: 24, y: 16 } },
+      { target: SMALL.nested, values: { x: 24, y: 176 } },
+    ]);
+  });
+
+  test("a block snaps to another block's left edge and shows a guide", async ({ page }) => {
+    // Put the flow block's left edge off the grid, at 515, through a command.
+    const moved = await page.evaluate((id) => {
+      const refused = window.__tilie.store().dispatch({
+        type: "set",
+        changes: [{ target: id, values: { x: 515 } }],
+      });
+      return refused === null;
+    }, SMALL.flow);
+    expect(moved).toBe(true);
+
+    await nodeDragStart(page, await backgroundPoint(page, SMALL.nested), 512, 0);
+    await expect(page.locator('[data-testid="snap-guide"]')).toHaveCount(1);
+    await expect(page.locator('[data-testid="snap-guide"]')).toBeVisible();
+    await page.mouse.up();
+    expect(await position(page, SMALL.nested)).toEqual({ x: 515, y: 160 });
+    await expect(page.locator('[data-testid="snap-guide"]')).toHaveCount(0);
+  });
+
+  test("a block snaps its plot origin to another block's plot origin and shows a guide", async ({
+    page,
+  }) => {
+    await nodeDragStart(page, await backgroundPoint(page, SMALL.styled), -8, 160);
+    await expect(page.locator('[data-testid="snap-guide"]')).toHaveCount(1);
+    await page.mouse.up();
+    expect(await position(page, SMALL.styled)).toEqual({ x: ORIGIN_SNAP_X, y: 320 });
+  });
+
+  test("with the canvas locked a drag on a block pans by exactly the drag", async ({ page }) => {
+    await page.locator('[data-testid="lock"]').click();
+    await expect(page.locator('[data-testid="lock"]')).toHaveAttribute("aria-pressed", "true");
+    expect(await page.evaluate(() => window.__tilie.locked())).toBe(true);
+
+    await drag(page, await backgroundPoint(page, SMALL.bare), 50, 30);
+    expect(await viewportOf(page)).toEqual({ x: 90, y: 70, zoom: 1 });
+    expect(await position(page, SMALL.bare)).toEqual({ x: 0, y: 0 });
+    expect(await journalLength(page)).toBe(START);
+
+    await page.keyboard.press("l");
+    expect(await page.evaluate(() => window.__tilie.locked())).toBe(false);
+    await expect(page.locator('[data-testid="lock"]')).toHaveAttribute("aria-pressed", "false");
+  });
+
+  test("a locked canvas allows no move, nudge or resize and hides the handles", async ({
+    page,
+  }) => {
+    await page.evaluate((id) => window.__tilie.select([id]), SMALL.bare);
+    await page.keyboard.press("2");
+    await expect(page.locator('[data-testid^="handle-"]')).toHaveCount(8);
+    await page.keyboard.press("l");
+    expect(await page.evaluate(() => window.__tilie.locked())).toBe(true);
+    await expect(page.locator('[data-testid^="handle-"]')).toHaveCount(0);
+    for (const key of ["ArrowRight", "Shift+ArrowDown", "ArrowUp", "Shift+ArrowLeft"]) {
+      await page.keyboard.press(key);
+    }
+    expect(await position(page, SMALL.bare)).toEqual({ x: 0, y: 0 });
+    expect(await journalLength(page)).toBe(START);
+  });
+
+  test("a plain drag on the empty canvas pans", async ({ page }) => {
+    await drag(page, await emptyPoint(page, -20, 200), 30, 25);
+    expect(await viewportOf(page)).toEqual({ x: 70, y: 65, zoom: 1 });
+    expect(await journalLength(page)).toBe(START);
+    expect(await selection(page)).toEqual([]);
+  });
+});
+
+test.describe("wheel", () => {
+  /** Whether the page's user agent names a Mac, as Svelte Flow's `isMacOs` tests it. */
+  function macUserAgent(page: import("@playwright/test").Page): Promise<boolean> {
+    return page.evaluate(() => navigator.userAgent.indexOf("Mac") >= 0);
+  }
+
+  /** Dispatch one wheel event over the empty canvas point (-20, 200) with `modifier` held. */
+  async function wheel(
+    page: import("@playwright/test").Page,
+    deltaX: number,
+    deltaY: number,
+    modifier?: string,
+  ) {
+    const at = await emptyPoint(page, -20, 200);
+    await page.mouse.move(at.x, at.y);
+    if (modifier !== undefined) await page.keyboard.down(modifier);
+    await page.mouse.wheel(deltaX, deltaY);
+    if (modifier !== undefined) await page.keyboard.up(modifier);
+    return at;
+  }
+
+  test("the wheel pans vertically by half its delta at zoom 1", async ({ page }) => {
+    await wheel(page, 0, 100);
+    await expect.poll(() => viewportOf(page)).toEqual({ x: 40, y: -10, zoom: 1 });
+    expect(await journalLength(page)).toBe(START);
+  });
+
+  // A browser may report a Shift+wheel as the vertical delta it was or as a
+  // horizontal one; both pan horizontally by the same distance.
+  for (const [form, deltaX, deltaY] of [
+    ["deltaY", 0, 100],
+    ["deltaX", 100, 0],
+  ] as const) {
+    test(`Shift+wheel pans horizontally (${form} only)`, async ({ page }) => {
+      // macOS reports a Shift+wheel as horizontal itself, and Svelte Flow then
+      // swaps nothing; an engine with a Mac user agent gets only that form.
+      test.skip(
+        form === "deltaY" && (await macUserAgent(page)),
+        "a Mac reports a Shift+wheel as deltaX",
+      );
+      await wheel(page, deltaX, deltaY, "Shift");
+      await expect.poll(() => viewportOf(page)).toEqual({ x: -10, y: 40, zoom: 1 });
+      expect(await journalLength(page)).toBe(START);
+    });
+  }
+
+  test("Ctrl+wheel zooms about the pointer", async ({ page }) => {
+    // Svelte Flow's pinch zoom: 2 ** (-deltaY × 0.002 × factor), the factor 10
+    // under a Mac user agent (a trackpad pinch reports small deltas there).
+    const factor = (await macUserAgent(page)) ? 10 : 1;
+    const at = await wheel(page, 0, -10, "Control");
+    const box = await pane(page).boundingBox();
+    if (box === null) throw new Error("the canvas is not displayed");
+    const zoom = 2 ** (10 * 0.002 * factor);
+    // The pane point under the pointer keeps its canvas point.
+    const px = at.x - box.x;
+    const py = at.y - box.y;
+    await expect
+      .poll(() => viewportOf(page))
+      .toEqual({ x: px - (px - VIEW.x) * zoom, y: py - (py - VIEW.y) * zoom, zoom });
+    expect(await journalLength(page)).toBe(START);
+  });
+});
+
+test.describe("marquee", () => {
+  // Zoom 1/2 at (100, 100), so the gesture stays clear of the 40 px edge zone
+  // in which Svelte Flow pans while a marquee is drawn: the rectangle from canvas (-40, -40) to (1160, 200)
+  // holds the bare and flow blocks whole and the nested and styled blocks in
+  // part; only whole blocks are selected, and the result replaces the
+  // selection held before (the map block).
+  const MARQUEE = { x: 100, y: 100, zoom: 0.5 };
+  const SPAN = { dx: 600, dy: 120 };
+
+  test("Shift+drag selects exactly the blocks wholly inside, replacing the selection", async ({
+    page,
+  }) => {
+    await setViewport(page, MARQUEE);
+    await page.evaluate((id) => window.__tilie.select([id]), SMALL.map);
+    const from = await emptyPoint(page, -40, -40);
+    await page.keyboard.down("Shift");
+    await drag(page, from, SPAN.dx, SPAN.dy);
+    await page.keyboard.up("Shift");
+    expect(await selection(page)).toEqual([SMALL.bare, SMALL.flow]);
+    expect(await viewportOf(page)).toEqual(MARQUEE);
+  });
+
+  test("a marquee ending in the edge zone pans, keeps its start and selects what it holds", async ({
+    page,
+  }) => {
+    await setViewport(page, MARQUEE);
+    const box = await pane(page).boundingBox();
+    if (box === null) throw new Error("the canvas is not displayed");
+    const from = await emptyPoint(page, -40, -40);
+    const end = { x: box.width - 20, y: 170 };
+    await page.keyboard.down("Shift");
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down();
+    await page.mouse.move(box.x + end.x, box.y + end.y, { steps: 10 });
+    // Hold in the zone until Svelte Flow has panned.
+    await expect.poll(async () => (await viewportOf(page)).x).not.toBe(MARQUEE.x);
+    await page.mouse.up();
+    await page.keyboard.up("Shift");
+    const v = await viewportOf(page);
+    expect(v.y).toBe(MARQUEE.y);
+    expect(v.zoom).toBe(MARQUEE.zoom);
+    const right = (end.x - v.x) / v.zoom;
+    const bottom = (end.y - v.y) / v.zoom;
+    expect(bottom).toBe(140);
+    expect(right > 1150.080078125).toBe(true);
+    const inside = Object.entries(BOXES)
+      .filter(([, [x, y, w, h]]) => x >= -40 && y >= -40 && x + w <= right && y + h <= bottom)
+      .map(([id]) => id)
+      .sort();
+    expect(inside).toEqual([SMALL.bare, SMALL.flow]);
+    expect(await selection(page)).toEqual(inside);
+  });
+
+  test("the marquee toggle turns a plain drag into an additive marquee until toggled off", async ({
+    page,
+  }) => {
+    await setViewport(page, MARQUEE);
+    await page.evaluate((id) => window.__tilie.select([id]), SMALL.map);
+    const toggle = page.locator('[data-testid="marquee"]');
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-pressed", "true");
+    await drag(page, await emptyPoint(page, -40, -40), SPAN.dx, SPAN.dy);
+    // In marquee mode a marquee adds to the selection.
+    expect(await selection(page)).toEqual([SMALL.bare, SMALL.flow, SMALL.map]);
+    expect(await viewportOf(page)).toEqual(MARQUEE);
+
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await page.keyboard.press("Escape");
+    await drag(page, await emptyPoint(page, -40, -40), SPAN.dx, SPAN.dy);
+    expect(await selection(page)).toEqual([]);
+    expect(await viewportOf(page)).toEqual({ x: 700, y: 220, zoom: 0.5 });
+  });
+
+  test("in marquee mode clicks and marquees add, a click on a selected item removes it", async ({
+    page,
+  }) => {
+    await setViewport(page, MARQUEE);
+    await page.locator('[data-testid="marquee"]').click();
+    const bare = await backgroundPoint(page, SMALL.bare);
+    await page.mouse.click(bare.x, bare.y);
+    expect(await selection(page)).toEqual([SMALL.bare]);
+    await clickPart(page, SMALL.nested, "clt_2");
+    expect(await selection(page)).toEqual([SMALL.bare, `${SMALL.nested}/clt_2`]);
+    // Canvas (600, -40) to (1160, 140): the flow block whole, nothing else.
+    await drag(page, await emptyPoint(page, 600, -40), 280, 90);
+    expect(await selection(page)).toEqual([SMALL.bare, SMALL.flow, `${SMALL.nested}/clt_2`]);
+    await page.mouse.click(bare.x, bare.y);
+    expect(await selection(page)).toEqual([SMALL.flow, `${SMALL.nested}/clt_2`]);
+    expect(await viewportOf(page)).toEqual(MARQUEE);
+    expect(await journalLength(page)).toBe(START);
+  });
+});
+
+test.describe("click", () => {
+  test("a click on an element selects that element only and outlines its block", async ({
+    page,
+  }) => {
+    await clickPart(page, SMALL.nested, "clt_2");
+    expect(await selection(page)).toEqual([`${SMALL.nested}/clt_2`]);
+    await expect(part(page, SMALL.nested, "clt_2")).toHaveAttribute("data-selected");
+    expect(await selectedAddresses(page)).toEqual(["clt_2"]);
+    await expect(node(page, SMALL.nested).locator("[data-contains-selection]")).toHaveCount(1);
+    await expect(page.locator("[data-contains-selection]")).toHaveCount(1);
+  });
+
+  test("a click on a block's background selects the block", async ({ page }) => {
+    await clickPart(page, SMALL.nested, "clt_2");
+    const point = await backgroundPoint(page, SMALL.map);
+    await page.mouse.click(point.x, point.y);
+    expect(await selection(page)).toEqual([SMALL.map]);
+    await expect(page.locator("[data-contains-selection]")).toHaveCount(0);
+    await expect(page.locator("[data-selected]")).toHaveCount(0);
+  });
+
+  test("Shift+click adds and removes", async ({ page }) => {
+    await clickPart(page, SMALL.nested, "clt_2");
+    await clickPart(page, SMALL.styled, "score", true);
+    expect(await selection(page)).toEqual([`${SMALL.nested}/clt_2`, `${SMALL.styled}/score`]);
+    await expect(page.locator("[data-contains-selection]")).toHaveCount(2);
+
+    const point = await backgroundPoint(page, SMALL.bare);
+    await page.keyboard.down("Shift");
+    await page.mouse.click(point.x, point.y);
+    await page.keyboard.up("Shift");
+    expect(await selection(page)).toEqual([
+      SMALL.bare,
+      `${SMALL.nested}/clt_2`,
+      `${SMALL.styled}/score`,
+    ]);
+
+    await clickPart(page, SMALL.nested, "clt_2", true);
+    expect(await selection(page)).toEqual([SMALL.bare, `${SMALL.styled}/score`]);
+  });
+
+  test("a drag that starts on an element moves the block", async ({ page }) => {
+    await nodeDragStart(page, await partCentre(page, SMALL.nested, "clt_2"), 101, 37);
+    await page.mouse.up();
+    expect(await position(page, SMALL.nested)).toEqual({ x: 104, y: 200 });
+    expect(await journalLength(page)).toBe(START + 1);
+  });
+
+  test("Escape clears the selection", async ({ page }) => {
+    await clickPart(page, SMALL.nested, "clt_2");
+    await page.keyboard.press("Escape");
+    expect(await selection(page)).toEqual([]);
+  });
+});
+
+test.describe("Delete", () => {
+  test("Delete removes the selected element as one remove; undo restores it", async ({ page }) => {
+    await page.evaluate((address) => window.__tilie.select([address]), `${SMALL.styled}/intro`);
+    await page.keyboard.press("Delete");
+    expect(await commandsFrom(page, START)).toEqual([
+      { type: "remove", targets: [`${SMALL.styled}/intro`] },
+    ]);
+    const regions = () =>
+      page.evaluate(
+        (id) =>
+          window.__tilie.store().view.blocks[id]?.manifest.timeline.regions.map((r) => r.id) ?? [],
+        SMALL.styled,
+      );
+    expect(await regions()).toEqual([]);
+    await expect(element(page, SMALL.styled, "intro")).toHaveCount(0);
+
+    await page.keyboard.press("ControlOrMeta+z");
+    expect(await regions()).toEqual(["intro"]);
+    await expect(part(page, SMALL.styled, "intro")).toBeAttached();
+  });
+
+  test("a selected timeline marks its descendants; Delete removes the subtree in one entry", async ({
+    page,
+  }) => {
+    const timelines = () =>
+      page.evaluate((id) => {
+        const ids: string[] = [];
+        type Tree = { id: string; children: { [key: string]: { timeline: Tree } } };
+        const walk = (timeline: Tree) => {
+          ids.push(timeline.id);
+          for (const child of Object.values(timeline.children)) walk(child.timeline);
+        };
+        const root = window.__tilie.store().view.blocks[id]?.manifest.timeline;
+        if (root !== undefined) walk(root as unknown as Tree);
+        return ids.sort();
+      }, SMALL.nested);
+    await page.evaluate((address) => window.__tilie.select([address]), `${SMALL.nested}/clt_3`);
+    const affected = await page
+      .locator("[data-affected]")
+      .evaluateAll((items) =>
+        [
+          ...new Set(
+            items.map(
+              (item) =>
+                `${item.closest(".svelte-flow__node")?.getAttribute("data-id")}/${item.getAttribute("data-address")}`,
+            ),
+          ),
+        ].sort(),
+      );
+    expect(affected).toEqual([`${SMALL.nested}/clt_2`, `${SMALL.nested}/clt_2/name`]);
+
+    await page.keyboard.press("Delete");
+    expect(await commandsFrom(page, START)).toEqual([
+      { type: "remove", targets: [`${SMALL.nested}/clt_3`] },
+    ]);
+    expect(await timelines()).toEqual(["clt_1"]);
+    await page.keyboard.press("ControlOrMeta+z");
+    expect(await timelines()).toEqual(["clt_1", "clt_2", "clt_3"]);
+  });
+
+  test("Backspace removes a selected block and its node", async ({ page }) => {
+    await page.evaluate((id) => window.__tilie.select([id]), SMALL.map);
+    await page.keyboard.press("Backspace");
+    expect(await commandsFrom(page, START)).toEqual([{ type: "remove", targets: [SMALL.map] }]);
+    await expect(node(page, SMALL.map)).toHaveCount(0);
+    expect(await blockOrder(page)).toEqual([SMALL.bare, SMALL.nested, SMALL.flow, SMALL.styled]);
+  });
+
+  test("a selection holding a root timeline is refused whole with the hint", async ({ page }) => {
+    const before = await page.evaluate(() => {
+      const { view } = window.__tilie.store();
+      return JSON.stringify(Object.keys(view.blocks).map((id) => [id, view.blocks[id]?.manifest]));
+    });
+    await page.evaluate(
+      (addresses) => window.__tilie.select(addresses),
+      [`${SMALL.bare}/bare`, `${SMALL.styled}/intro`],
+    );
+    await page.keyboard.press("Delete");
+    await expect(page.locator('[data-testid="hint"]')).toBeVisible();
+    await expect(page.locator('[data-testid="hint"]')).toContainText(
+      "select the block to delete it",
+    );
+    expect(await journalLength(page)).toBe(START);
+    const after = await page.evaluate(() => {
+      const { view } = window.__tilie.store();
+      return JSON.stringify(Object.keys(view.blocks).map((id) => [id, view.blocks[id]?.manifest]));
+    });
+    expect(after).toBe(before);
+    await expect(part(page, SMALL.styled, "intro")).toBeAttached();
+  });
+});
+
+test.describe("keyboard", () => {
+  test("keys pressed while the focus is outside the arranger change nothing", async ({ page }) => {
+    const point = await backgroundPoint(page, SMALL.map);
+    await page.mouse.click(point.x, point.y);
+    expect(await selection(page)).toEqual([SMALL.map]);
+    const mode = await page.evaluate(() => window.__tilie.mode());
+    // The focus goes to the inspector pane. It holds no control yet, so the
+    // pane itself is made focusable; the body would count as the canvas's.
+    await page.locator("section.inspector").evaluate((pane) => {
+      pane.setAttribute("tabindex", "-1");
+      (pane as HTMLElement).focus();
+    });
+    expect(
+      await page.evaluate(() => document.activeElement?.matches("section.inspector") ?? false),
+    ).toBe(true);
+    for (const key of [
+      "ArrowRight",
+      "Shift+ArrowDown",
+      "ControlOrMeta+Shift+BracketRight",
+      "1",
+      "2",
+      "3",
+      "l",
+      "Delete",
+      "Backspace",
+      "Escape",
+    ]) {
+      await page.keyboard.press(key);
+    }
+    expect(await journalLength(page)).toBe(START);
+    expect(await position(page, SMALL.map)).toEqual({ x: 0, y: 320 });
+    expect(await selection(page)).toEqual([SMALL.map]);
+    expect(await page.evaluate(() => window.__tilie.mode())).toBe(mode);
+    expect(await page.evaluate(() => window.__tilie.locked())).toBe(false);
+
+    // The same key with the focus back on the canvas acts.
+    await page.mouse.click(point.x, point.y);
+    await page.keyboard.press("ArrowRight");
+    expect(await position(page, SMALL.map)).toEqual({ x: 8, y: 320 });
+  });
+
+  test("arrow keys move the focus between toolbar buttons and nudge nothing", async ({ page }) => {
+    await page.evaluate((id) => window.__tilie.select([id]), SMALL.map);
+    const focused = () =>
+      page.evaluate(
+        () =>
+          document.activeElement?.getAttribute("data-testid") ??
+          document.activeElement?.getAttribute("aria-label") ??
+          null,
+      );
+    await page.locator('[data-testid="lock"]').focus();
+    await page.keyboard.press("ArrowRight");
+    expect(await focused()).toBe("marquee");
+    await page.keyboard.press("ArrowRight");
+    expect(await focused()).toBe("Zoom in");
+    await page.keyboard.press("ArrowLeft");
+    await page.keyboard.press("ArrowLeft");
+    expect(await focused()).toBe("lock");
+
+    await page.locator('[data-testid="mode-scale"]').focus();
+    await page.keyboard.press("ArrowRight");
+    expect(await focused()).toBe("mode-box");
+    await page.keyboard.press("ArrowRight");
+    expect(await focused()).toBe("mode-stretch");
+    await page.keyboard.press("ArrowLeft");
+    expect(await focused()).toBe("mode-box");
+
+    expect(await journalLength(page)).toBe(START);
+    expect(await position(page, SMALL.map)).toEqual({ x: 0, y: 320 });
+  });
+
+  /** The z-order keys: one `set` of `index` on the selected block each. */
+  test("z-order keys reorder the blocks, one command each", async ({ page }) => {
+    await page.evaluate((id) => window.__tilie.select([id]), SMALL.bare);
+    const steps: [string, string[]][] = [
+      [
+        "ControlOrMeta+Shift+BracketRight",
+        [SMALL.nested, SMALL.map, SMALL.flow, SMALL.styled, SMALL.bare],
+      ],
+      [
+        "ControlOrMeta+BracketLeft",
+        [SMALL.nested, SMALL.map, SMALL.flow, SMALL.bare, SMALL.styled],
+      ],
+      [
+        "ControlOrMeta+Shift+BracketLeft",
+        [SMALL.bare, SMALL.nested, SMALL.map, SMALL.flow, SMALL.styled],
+      ],
+      [
+        "ControlOrMeta+BracketRight",
+        [SMALL.nested, SMALL.bare, SMALL.map, SMALL.flow, SMALL.styled],
+      ],
+    ];
+    for (const [count, [key, order]] of steps.entries()) {
+      await page.keyboard.press(key);
+      expect(await blockOrder(page), key).toEqual(order);
+      const commands = await commandsFrom(page, START + count);
+      expect(commands).toHaveLength(1);
+      const [command] = commands;
+      expect(command?.type === "set" && command.changes.map((change) => change.target)).toEqual([
+        SMALL.bare,
+      ]);
+      expect(command?.type === "set" && Object.keys(command.changes[0]?.values ?? {})).toEqual([
+        "index",
+      ]);
+      // The nodes stack in the same order: z-index rises with the index.
+      const stacked = await page.evaluate(
+        (ids) =>
+          ids.map((id) => {
+            const found = document.querySelector(`.svelte-flow__node[data-id="${id}"]`);
+            return found === null ? Number.NaN : Number(getComputedStyle(found).zIndex);
+          }),
+        order,
+      );
+      expect(
+        stacked.every((z, i) => i === 0 || z > (stacked[i - 1] as number)),
+        key,
+      ).toBe(true);
+    }
+  });
+
+  test("arrows nudge by one grid step, Shift+arrows by eight; undo restores", async ({ page }) => {
+    const point = await backgroundPoint(page, SMALL.map);
+    await page.mouse.click(point.x, point.y);
+    expect(await selection(page)).toEqual([SMALL.map]);
+
+    await page.keyboard.press("ArrowRight");
+    expect(await position(page, SMALL.map)).toEqual({ x: 8, y: 320 });
+    await page.keyboard.press("Shift+ArrowDown");
+    expect(await position(page, SMALL.map)).toEqual({ x: 8, y: 384 });
+    await page.keyboard.press("ArrowUp");
+    expect(await position(page, SMALL.map)).toEqual({ x: 8, y: 376 });
+    await page.keyboard.press("Shift+ArrowLeft");
+    expect(await position(page, SMALL.map)).toEqual({ x: -56, y: 376 });
+    const commands = await commandsFrom(page, START);
+    expect(
+      commands.map((command) => command.type === "set" && command.changes.map((c) => c.target)),
+    ).toEqual([[SMALL.map], [SMALL.map], [SMALL.map], [SMALL.map]]);
+
+    for (let n = 0; n < 4; n += 1) await page.keyboard.press("ControlOrMeta+z");
+    expect(await position(page, SMALL.map)).toEqual({ x: 0, y: 320 });
+    expect(await journalLength(page)).toBe(START);
+    for (let n = 0; n < 4; n += 1) await page.keyboard.press("ControlOrMeta+Shift+z");
+    expect(await position(page, SMALL.map)).toEqual({ x: -56, y: 376 });
+  });
+});

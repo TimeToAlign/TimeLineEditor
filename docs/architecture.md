@@ -12,17 +12,110 @@ TiLiE is local-first from the start: the browser communicates with a local Pytho
 
 ## What exists today and what is planned
 
-The executable product today is intentionally small. `tilie-server` starts a FastAPI server on loopback, serves the built browser shell, and answers authenticated `GET /api/health`. The Svelte shell has three empty fixed panes, Arranger, Inspector, and Diagnostics, plus a health readout.
+The executable product today is intentionally small. `tilie-server` starts a FastAPI server on loopback, serves the built browser shell, and answers authenticated `GET /api/health`. The Svelte shell has three fixed panes, Arranger, Inspector, and Diagnostics, plus a health readout; the Arranger pane holds the canvas, and the other two are empty.
 
-Of the six workspace packages, `core` implements the three layers: exact numbers, validated 0.5.0 manifest load and save, the immutable workspace view with its blocks, ids and order, the four commands over addresses, a store with its command journal, and the workspace file ([The core package](#the-core-package)). `editor` autosaves a workspace's text in IndexedDB ([Autosave](#autosave)). `layout` derives a drawing from a manifest, placement, style layers, and font metrics; `writers` turns a drawing into element descriptors and writes placed drawings as SVG or TikZ ([Layout and writers](#layout-and-writers)). The other three establish exports, strict type checks, dependency boundaries, and tests, rather than editing behavior, and the editor shell uses none of these packages yet.
+Of the six workspace packages, `core` implements the three layers: exact numbers, validated 0.5.0 manifest load and save, the immutable workspace view with its blocks, ids and order, the four commands over addresses, a store with its command journal, and the workspace file ([The core package](#the-core-package)). `layout` derives a drawing from a manifest, placement, style layers, and font metrics; `writers` turns a drawing into element descriptors and writes placed drawings as SVG or TikZ ([Layout and writers](#layout-and-writers)). `arranger` shows a workspace on a canvas and turns every completed gesture into one command ([The canvas](#the-canvas)). `editor` mounts the canvas on one store and autosaves a workspace's text in IndexedDB ([Autosave](#autosave)). `client` only establishes its export, strict type checks, dependency boundaries, and tests.
 
-On-screen rendering and interaction, opening and saving a workspace file from the editor, loading through the server, raster exports, generated API clients, collaboration over a network, and automation endpoints are not implemented. Except for the core, layout and writers packages and the autosave, the remaining sections describe the intended architecture so additions have explicit boundaries; they do not describe current behavior as available functionality.
+Opening and saving a workspace file from the editor (a workspace reaches the canvas only through the fixture menu and the test hook of development and test builds), an inspector, loading through the server, raster exports, generated API clients, collaboration over a network, and automation endpoints are not implemented. Except for the packages and the canvas described as built, the remaining sections describe the intended architecture so additions have explicit boundaries; they do not describe current behavior as available functionality.
 
 ## The canvas
 
-The canvas is a data-driven renderer rather than a diagram engine. It has two levels. At the workspace level, blocks are placed freely; interaction includes drag, snap, selection, pan, and zoom. A block draws one manifest, which today describes one timeline with its children; later versions of the schema may let a manifest describe a group of timelines or an alignment bundle instead.
+The canvas is a data-driven renderer hosted by a diagram engine. It has two levels. At the workspace level, blocks are placed freely: drag, snap, selection, pan, zoom, resize and z-order. A block draws one manifest, which today describes one timeline with its children; later versions of the schema may let a manifest describe a group of timelines or an alignment bundle instead.
 
 At the block level, the drawing comes from the manifest rather than from an editable drawing surface. `draw` maps time to x through the placement's graphical length, applies its vertical spacing and requested box size, lays out children, regions and flow control in bands and rows in the placement's band order, and stacks each timeline's conversion maps against its own line. A placed drawing has a canvas position and a uniform scale. A person edits the underlying manifest through commands, never by dragging an arrow endpoint. This preserves the meaning of a musical relation independently of a particular display.
+
+`@timetoalign/tilie-arranger` builds the workspace level on [Svelte Flow](https://svelteflow.dev) (`@xyflow/svelte`), which supplies pan and zoom, node dragging, the selection rectangle, keyboard focus and culling ([decisions/0020](../decisions/0020-svelte-flow.md)). No other package imports it. The arranger's plain TypeScript (`project`, `snap`, `resize` and the gesture commands) holds every rule below and is tested without a browser; its Svelte components (`Canvas`, `BlockNode`, `CanvasToolbar`, `ResizeToolbar`, `SnapGuides`) connect those functions to Svelte Flow.
+
+### One node per block
+
+`project(view, selection, previous, metrics)` returns one Svelte Flow node per block, in index order. A node's id is the block id; its `position` is the block's `x` and `y`; its `width` and `height` are the drawing's box times the block's scale, given again as `measured`, with `handles: []`, so the node is complete and Svelte Flow never measures it. A node that Svelte Flow has to measure is mounted even when it lies outside the view, which would defeat culling. `selected` says whether the block id is in the selection, `zIndex` is the block's rank among its siblings by `index`, and `data` carries the block, its drawing, the drawing's descriptors, the ids of its selected elements and whether it holds any. A node of `previous` whose block, drawing, position, rank and selection are unchanged is returned as the same object, and Svelte Flow skips an object it has already adopted; a change to one block re-renders one node.
+
+`drawingOf(block, settings, metrics)` draws a block with the layers `DEFAULT_LAYER`, the workspace's `graphical` and the manifest's own `graphical`. Blocks are immutable, so the drawing is memoized per block object and recomputed only when the settings or the metrics change identity; the descriptors are memoized per drawing. Neither is stored in the workspace or the file.
+
+`BlockNode` renders the descriptors as Svelte elements inside one `<svg>` per node, whose `viewBox` is the drawing's box and whose size is that box times the scale. Every attribute is the text the SVG writer writes, so the node's element tree equals the exported SVG's, element for element. Text is rendered as text, never parsed as markup: names and labels are user data. Every drawn element carries its address in `data-address`. The drawings use the DejaVu Sans file bundled by timeskeleton, declared under a family name of its own so that a system copy never stands in for it, and they are mounted only once that face has loaded.
+
+### Preview during a gesture, one command at its end
+
+The canvas follows the store with a `$state.raw` view refreshed by the store's `subscribe`. Its nodes are a writable `$derived` of the view, the selection and the resize preview, bound to Svelte Flow with `bind:nodes`. During a drag Svelte Flow writes the dragged positions into that value, and nothing else runs. On release the arranger builds one command, the store applies it, and the view's change derives the nodes again, replacing the preview with the stored positions. A gesture that stores nothing restores the projection. Undo and redo are exact, because the canvas shows nothing between two commands that the next command does not either store or discard.
+
+- A drag of n blocks is one `set` with n changes `{x, y}`.
+- A keyboard move (an arrow key moves the selected blocks one grid step, Shift and an arrow key eight) is one `set`.
+- A resize is one `set` on its block.
+- A change of order is one `set` of `index` (see below).
+- Delete is one `remove`.
+
+### Numbers on the canvas
+
+Canvas numbers are doubles, and the positions Svelte Flow reports carry binary noise. Before a number is stored it is quantized: a position to the grid when the workspace snaps to its grid, every other number (and every position when the grid does not snap) to 1/2048 unit. 2048 is the bundled font's units per em, so at an integral font size and scale every text-derived edge and plot origin is a multiple of 1/2048, and a position aligned to one is stored exactly.
+
+While a block is dragged, Svelte Flow snaps it to the grid (`snapGrid`). The arranger then aligns the dragged block horizontally: its left edge or its plot origin (the canvas x of the start of its root's line) moves onto the nearest left edge or plot origin of another block lying within 6 screen pixels, and a vertical guide line is drawn there for as long as the alignment holds. The other dragged blocks move by the same offset. Svelte Flow has no alignment guides of its own.
+
+### Resizing
+
+A block is resized in one of three modes, each changing a different input of its drawing:
+
+- **Scale** sets `scale`: everything grows or shrinks with its proportions, text included. Only the four corner handles are offered; the new scale is the larger of the two axis ratios, never below 1/8.
+- **Box** sets `width` and `height`: the box changes and the content keeps its place at the top left. A request at or below the content's own extent stores `null`, so the box follows the content when it later grows.
+- **Stretch** sets `length` from the left and right handles, `spacing` from the top and bottom ones and both from a corner: lengths and distances stretch, while markers, line widths and text keep their size. The content's width grows with `length` and its height with `spacing` in piecewise-linear steps, as timeskeleton's drawing specification derives them, so the values that put the dragged edge under the pointer are solved for numerically. The floors are 8 for `length` and 1/4 for `spacing`.
+
+In every mode the dragged edge ends under the pointer, the opposite edge stays put, and a left or top handle also stores the block's new `x` or `y`. While the pointer is down, the block is drawn at the previewed values, so the preview is exactly what the command will store.
+
+When exactly one block is selected, a toolbar above it (Svelte Flow's `NodeToolbar`) offers the modes as three buttons, Scale, Box and Stretch; the keys 1, 2 and 3 choose them too. The pressed button shows its mode's handles: four corners for Scale, eight handles for Box and Stretch. The mode is the viewer's own and stays when the selection changes. The handles are the arranger's own elements rather than Svelte Flow's resize controls, because a block's size during a resize is whatever its drawing measures at the previewed placement; the pointer only provides a distance in canvas units.
+
+### Selection, marquee and deletion
+
+The selection is a set of addresses: block ids and `<block>/<element id>`.
+
+- A click on a drawn element selects that element only, found by the nearest `data-address` around the click. Its block then shows a dashed outline.
+- A click on a block's background selects the block.
+- Shift and a click add the address to the selection, or remove it when it is selected.
+- A click on the empty canvas clears the selection, as Escape does.
+- A focused block is selected with Enter or Space.
+- A drag that starts anywhere on a block, on one of its elements included, moves the block. A drag on a block that is not selected, and holds no selected element, first selects that block alone.
+
+A plain drag on the empty canvas pans. Shift and a drag draw a selection rectangle instead, which replaces the selection with exactly the blocks lying wholly inside it.
+
+The Marquee button of the canvas toolbar (accessible name "Add to selection (marquee)") switches to an additive mode, which is also how a touch screen selects several items. While it is pressed, a drag on the empty canvas draws a selection rectangle instead of panning, and the blocks wholly inside it are added to the selection. Every click, Enter or Space adds its address, or removes it when it is already selected, as Shift does outside the mode. A click on the empty canvas keeps the selection, and Escape still clears it.
+
+Delete or Backspace removes exactly the selected addresses as one `remove`, blocks and elements mixed. A selected part of an element, such as its name or its label, stands for the element. A selection that holds a block's root timeline is refused whole, because a root goes only with its block; the canvas shows why, with the advice to select the block, in a status region that screen readers announce.
+
+### Order
+
+The order of blocks is their `index`, a fractional index among siblings, and it is projected as the nodes' `zIndex`; selecting a block does not raise it. Ctrl and `]` (Cmd on macOS) move the selected blocks one place forward past the next unselected block, Ctrl and `[` one place backward, and with Shift to the front or the back. Only the moved blocks receive new indices, each between its new neighbours.
+
+### Keys
+
+The canvas reads its keys before Svelte Flow does, so that a key is handled once; keys typed into a text field are left alone.
+
+| Key | Action |
+| --- | --- |
+| Tab, Enter or Space | Focus a block, select the focused block |
+| Wheel, Shift and the wheel | Pan vertically, pan horizontally |
+| Ctrl and the wheel (Cmd on macOS), a pinch | Zoom |
+| Arrow keys, Shift and an arrow key | Move the selected blocks one grid step, eight grid steps |
+| Delete, Backspace | Remove the selected addresses |
+| `+`, `-`, `0` | Zoom in, zoom out, fit every block into view |
+| Ctrl+Z, Ctrl+Shift+Z (Cmd on macOS) | Undo, redo |
+| Ctrl+`]`, Ctrl+`[`, with Shift | Forward, backward; front, back |
+| 1, 2, 3 | Resize mode Scale, Box, Stretch |
+| L | Lock or unlock the canvas |
+| Escape | Clear the selection |
+
+Svelte Flow pans on the wheel (`panOnScroll`) and zooms only with Ctrl or Cmd held (`zoomActivationKey`); a touchpad pinch, which browsers report as a wheel event with Ctrl, zooms too, and so does a two-finger pinch on a touch screen. Outside macOS, Chromium and Firefox already report a Shift wheel as horizontal travel, which Svelte Flow would discard while converting vertical travel; the canvas pans such an event horizontally itself, at Svelte Flow's speed (half a pixel per pixel of travel, a line counted as 20 pixels).
+
+### The lock
+
+The Lock button of the canvas toolbar, or L, locks the canvas. A locked canvas changes no placement: a drag on a block pans the canvas instead of moving the block, the arrow keys move nothing, the resize handles are hidden and the mode buttons are disabled. Selecting, deleting, reordering, panning and zooming stay available.
+
+### Overlays and culling
+
+The resize handles and the alignment guides lie in one overlay layer, Svelte Flow's viewport portal in front of the nodes, stacked above any block; they scale inversely with the zoom so that they keep their screen size. The canvas toolbar (Lock, Marquee, zoom in, zoom out, fit) is a row above the canvas, so it never covers a block or the empty canvas a gesture starts on.
+
+Above 500 blocks only the blocks in view are mounted (Svelte Flow's `onlyRenderVisibleElements`); a block partly in view is mounted whole. Below that count culling costs more than it saves, as the measurements in [Performance](#performance) show.
+
+### Per-viewer state
+
+The selection, the viewport, the lock and the resize mode belong to the person viewing the canvas: the editor holds them, and they are never stored in the workspace or its file, so a text diff of two workspace files shows only real changes. A newly opened workspace is fitted into view. Svelte Flow's attribution link is hidden (`proOptions.hideAttribution`, which its MIT licence permits); the editor is to credit Svelte Flow in an About pane instead, which does not exist yet.
 
 ## Exact values and commands
 
@@ -128,7 +221,7 @@ The style cascade is represented by `Cascade`, `INITIAL_STYLE`, and `DEFAULT_LAY
 
 `pnpm -C app/packages/writers review`, run from the repository root, draws every 0.5.0 manifest fixture and the additional resize and style cases, then writes SVG and PNG files plus `index.html` under `app/packages/writers/review/`. It rasterizes the SVG files at twice their size with `rsvg-convert --zoom 2`. A temporary fontconfig configuration exposes only timeskeleton's bundled `DejaVuSans.ttf`; the command refuses to render if another font is visible or the rasterizer fails. This review workflow is recorded in [the rasterizer decision](../decisions/0017-rsvg-convert-for-review-renders.md).
 
-The drawing is computed per block and can be cached by the inputs to `draw`. The review command rasterizes writer output for inspection; the application does not expose PNG, JPG, PDF, or `.drawio` export.
+The canvas memoizes the drawing per block ([One node per block](#one-node-per-block)). The review command rasterizes writer output for inspection; the application does not expose PNG, JPG, PDF, or `.drawio` export.
 
 ## The server
 
@@ -145,21 +238,25 @@ The TypeScript workspace is a one-way ladder enforced by [dependency-cruiser](..
 | `@timetoalign/tilie-core` | The workspace view, blocks, ids and order keys; the manifest value with its load, save and invariants; the commands, the store and the workspace file; rationals and coordinates; framework-free. | None |
 | `@timetoalign/tilie-layout` | `draw`, drawing types, the style cascade, defaults, and font measurement. | core |
 | `@timetoalign/tilie-writers` | Element descriptors, page placement, and SVG and TikZ writers over drawings. | layout, core |
-| `@timetoalign/tilie-arranger` | Svelte rendering of the workspace canvas and its interaction behavior; it may embed a block written by the writers. | writers, layout, core |
+| `@timetoalign/tilie-arranger` | The canvas: the projection of a workspace onto Svelte Flow nodes, the block node rendering the writers' descriptors, and the gestures as commands. The only package importing `@xyflow/svelte`. | writers, layout, core |
 | `@timetoalign/tilie-client` | OpenAPI client and Arrow helpers. | core |
 | `@timetoalign/tilie-editor` | The Svelte application shell, its Arranger, Inspector, and Diagnostics panes, and the autosave. | all workspace packages |
 
-Packages for views and embedding are added only when a concrete need appears. Apart from `core`, `layout` and `writers`, the packages have minimal exports, and the ladder keeps `core` free of the browser.
+Packages for views and embedding are added only when a concrete need appears. `client` has a minimal export, and the ladder keeps `core` free of the browser.
 
 ## Testing and quality
 
-Tests are README-first: every `tests/README.md` states the validation logic, and tests follow it. Expected values are exact. Fixtures flow from Python to TypeScript so both sides work from the same examples: `core` loads and saves every 0.5.0 manifest fixture of the schema package byte for byte and refuses every shared rejection at its pinned path. Property tests with fast-check run generated command sequences from every 0.5.0 manifest fixture and check that accepted commands keep the workspace and every block's manifest valid, that refused ones leave the view unchanged, that undo and redo restore every intermediate view, that replaying the journal equals the snapshot, that every journal entry carries its author and the injected clock's time, and that a workspace file reads and writes back to its own bytes. Budgets bound reading and writing a 300-block workspace with a 1,000-entry journal (250 ms each) and dispatching one command (1 ms); the store's decision record holds the figures, 10,000 blocks included. `layout` tests derive exact expected drawings from the drawing specification and cover defaults, the cascade, text metrics, side placement, map stacks and end markers, stretch, requested box size, and representative fixtures. Writer tests derive descriptors and serialized text from the same specification, check multi-drawing page placement and number formatting, parse every review SVG as XML, and compile every review TikZ document under LuaLaTeX with the bundled font. Current gates include Biome, Vitest, fast-check, dependency-cruiser, LuaLaTeX, Ruff, and pytest. Playwright end-to-end testing and axe-core accessibility checks are intended additions.
+Tests are README-first: every `tests/README.md` states the validation logic, and tests follow it. Expected values are exact. Fixtures flow from Python to TypeScript so both sides work from the same examples: `core` loads and saves every 0.5.0 manifest fixture of the schema package byte for byte and refuses every shared rejection at its pinned path. Property tests with fast-check run generated command sequences from every 0.5.0 manifest fixture and check that accepted commands keep the workspace and every block's manifest valid, that refused ones leave the view unchanged, that undo and redo restore every intermediate view, that replaying the journal equals the snapshot, that every journal entry carries its author and the injected clock's time, and that a workspace file reads and writes back to its own bytes. Budgets bound reading and writing a 300-block workspace with a 1,000-entry journal (250 ms each) and dispatching one command (1 ms); the store's decision record holds the figures, 10,000 blocks included. `layout` tests derive exact expected drawings from the drawing specification and cover defaults, the cascade, text metrics, side placement, map stacks and end markers, stretch, requested box size, and representative fixtures. Writer tests derive descriptors and serialized text from the same specification, check multi-drawing page placement and number formatting, parse every review SVG as XML, and compile every review TikZ document under LuaLaTeX with the bundled font. `arranger` tests derive the projection, snapping, the resize values of every mode and handle, and the gesture commands from the drawing specification by hand; fast-check properties check that a projection of an unchanged view returns the identical node objects, that every gesture yields a command the store accepts, and that undo restores every placement exactly. A component test renders the block node for every drawing fixture of the schema package and compares its element tree with the fixture's SVG.
+
+The canvas itself is tested end to end with Playwright in Chromium, Firefox and WebKit and on an emulated touch screen ([decisions/0021](../decisions/0021-playwright.md)): opening, dragging with snapping and guides, the lock, panning, the selection rectangle, clicks, deletion, order, keyboard moves, undo and redo by keys, resizing in every mode, culling counts at 300 and 900 blocks, and touch drag, pinch and taps. Expected values come from the store, read through a test hook, never from pixels. The hook, `window.__tilie` (`load`, `store`, `selection`, `select`, `viewport`, `setViewport`, `locked`, `mode`), exists only in development builds and in builds made with `VITE_TILIE_TEST_HOOK=1`. The same builds show a Fixture menu in the editor's header, listing the end-to-end workspaces of `app/e2e/fixtures/` with a Load button that opens the chosen one, so a person can try the canvas before the editor opens files. A production build, and so the wheel, contains neither the hook nor the menu nor the fixture files. The workspaces the suite opens are written by a generator script through the store's commands from the schema package's manifest fixtures, never by hand. axe-core checks the page for accessibility violations ([decisions/0022](../decisions/0022-axe-core.md)). Screenshots of the block nodes are compared with zero tolerance, only inside the pinned Playwright container image, where their baselines are made. Current gates include Biome, Vitest, fast-check, dependency-cruiser, svelte-check, Playwright, axe-core, LuaLaTeX, Ruff, and pytest.
 
 The editor shell test covers the token handoff through the fragment and the absent token; it does not currently cover its CSS grid layout, mobile rendering, or a fragment carrying an empty token. The server static-file tests do not currently cover traversal behavior. These limits are documented coverage gaps rather than claims of behavior.
 
-## Performance principles
+## Performance
 
-A derived drawing can be memoized from its manifest, placement, style layers, and metrics. Viewport culling and semantic zoom keep the amount of rendered detail proportional to what can be seen. Heavy data stays out of the DOM, using WebGL panes and columnar tables where appropriate. Parsing and rendering work that can block interaction belongs in workers, and server calls do not occur for every keystroke. CI budgets will make these expectations measurable.
+A drag costs script time on every pointer move in proportion to the total number of nodes, culled or not, because Svelte Flow re-adopts its whole node list on each move. Measured in headless Chromium: about 1.2 ms per move at 100 blocks, 2.4 ms at 300 and 5 ms at 900. Culling reduces what is mounted (42 of 300 nodes in a zoomed view) but adds its own cost to pan and zoom (3.1 ms per wheel event at 300 blocks with culling against 0.4 ms without), so it starts above 500 blocks. One node per block, a complete projection, reused node objects and memoized drawings keep a gesture from doing any work of TiLiE's own until it ends.
+
+The budgets, for a workspace of 300 blocks in Chromium, are checked by `pnpm e2e:budget` from the DevTools Protocol's script time: dragging a block at most 3 ms of script per pointer move; panning and wheel zoom at most 1 ms per move or event; one command at most 1 ms; one block's re-drawing within one frame (16.7 ms). Heavy data is intended to stay out of the DOM, in WebGL panes and columnar tables, with parsing that could block interaction in workers; server calls do not occur for every keystroke.
 
 ## Automation
 
@@ -167,7 +264,7 @@ The command layer (`parseCommand` and `apply` over a workspace view) and the ser
 
 ## Dependencies and ADRs
 
-Each dependency requires an ADR under [`decisions/`](../decisions/). The records use MADR headings, weigh writing the component ourselves, record maintenance and exit costs, name audited versions, and include review dates. See [the ADR convention](../decisions/0001-record-architecture-decisions.md), [the TypeScript choice](../decisions/0002-typescript.md), [the Svelte and Vite choice](../decisions/0003-svelte-5-with-vite.md), [the pnpm workspace choice](../decisions/0004-pnpm-workspaces.md), [the Biome choice](../decisions/0005-biome.md), [the Vitest choice](../decisions/0006-vitest.md), [the dependency-cruiser choice](../decisions/0007-dependency-cruiser.md), [the FastAPI and uvicorn choice](../decisions/0008-fastapi-and-uvicorn.md), [the Python tooling choice](../decisions/0009-uv-hatchling-ruff.md), [the wheel bundling decision](../decisions/0010-wheel-bundles-the-built-app.md), [the exact rationals written in core](../decisions/0011-exact-rationals-written-in-core.md), [the schema package](../decisions/0012-timeskeleton-package.md), [the fast-check choice](../decisions/0014-fast-check.md), [TeX Live for the TikZ checks](../decisions/0015-tex-live-for-tikz-checks.md), [the fractional indices written in core](../decisions/0016-fractional-indexing.md), [rsvg-convert for review renders](../decisions/0017-rsvg-convert-for-review-renders.md), [the autosave written in `editor`](../decisions/0018-indexeddb-autosave.md), and [the workspace store and its journal](../decisions/0019-workspace-store-and-journal.md).
+Each dependency requires an ADR under [`decisions/`](../decisions/). The records use MADR headings, weigh writing the component ourselves, record maintenance and exit costs, name audited versions, and include review dates. See [the ADR convention](../decisions/0001-record-architecture-decisions.md), [the TypeScript choice](../decisions/0002-typescript.md), [the Svelte and Vite choice](../decisions/0003-svelte-5-with-vite.md), [the pnpm workspace choice](../decisions/0004-pnpm-workspaces.md), [the Biome choice](../decisions/0005-biome.md), [the Vitest choice](../decisions/0006-vitest.md), [the dependency-cruiser choice](../decisions/0007-dependency-cruiser.md), [the FastAPI and uvicorn choice](../decisions/0008-fastapi-and-uvicorn.md), [the Python tooling choice](../decisions/0009-uv-hatchling-ruff.md), [the wheel bundling decision](../decisions/0010-wheel-bundles-the-built-app.md), [the exact rationals written in core](../decisions/0011-exact-rationals-written-in-core.md), [the schema package](../decisions/0012-timeskeleton-package.md), [the fast-check choice](../decisions/0014-fast-check.md), [TeX Live for the TikZ checks](../decisions/0015-tex-live-for-tikz-checks.md), [the fractional indices written in core](../decisions/0016-fractional-indexing.md), [rsvg-convert for review renders](../decisions/0017-rsvg-convert-for-review-renders.md), [the autosave written in `editor`](../decisions/0018-indexeddb-autosave.md), [the workspace store and its journal](../decisions/0019-workspace-store-and-journal.md), [Svelte Flow for the canvas](../decisions/0020-svelte-flow.md), [Playwright for the end-to-end tests](../decisions/0021-playwright.md), and [axe-core for accessibility checks](../decisions/0022-axe-core.md).
 
 Package manifests (`package.json`, `pyproject.toml`) declare compatible ranges for runtime and peer dependencies, such as `fastapi>=0.141,<1` in the server and `svelte` `^5.57.1` in `editor`; development dependencies, the npm `devDependencies` and the server's `dev` group, are pinned exactly. Lockfiles pin every resolved version: `server/uv.lock` for Python and `app/pnpm-lock.yaml` for the application. A version must have been released at least 14 days before it enters a lockfile, and the ADR identifies the audited version. The one exception to that window is this project's own schema package, `@timetoalign/timeskeleton` (`minimumReleaseAgeExclude` in `app/pnpm-workspace.yaml`), so that a schema release can be consumed as soon as it is published. This policy deliberately separates compatibility declarations from reproducible resolutions.
 

@@ -35,6 +35,41 @@ jobs:
           path: app/packages/editor/dist
           if-no-files-found: error
 
+  e2e:
+    name: End-to-end tests in Chromium, Firefox, WebKit and on touch
+    runs-on: ubuntu-24.04
+    # The image of the locked @playwright/test version; screenshot tests are
+    # not run here.
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --ipc=host
+    env:
+      HOME: /root
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: app/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm e2e:fixtures:check
+      - run: pnpm e2e
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: e2e-report
+          path: |
+            app/playwright-report
+            app/e2e/test-results
+          if-no-files-found: ignore
+
   tikz:
     name: TikZ figures compile under LuaLaTeX
     runs-on: ubuntu-24.04
@@ -93,3 +128,9 @@ jobs:
           /tmp/clean/bin/tilie --check --no-browser
       - name: The wheel bundles the built editor
         run: unzip -l dist/*.whl | grep tilie_server/static/index.html
+      - name: The wheel carries no test hook
+        run: |
+          if unzip -p dist/*.whl | grep -a -q __tilie; then
+            echo "the wheel contains the end-to-end test hook (__tilie)" >&2
+            exit 1
+          fi

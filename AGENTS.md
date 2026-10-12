@@ -15,7 +15,7 @@ These rules apply to every contributor, whether human or automated.
 | `tilie-client` | core | Svelte, layout, rendering, or editor state |
 | `tilie-editor` | every workspace package | reusable domain behavior that belongs lower in the ladder |
 
-Only arranger and editor may import `svelte`. Add a package only for a present need, and update the dependency-cruiser rules and their tests with any allowed edge.
+Only arranger and editor may import `svelte`, and only arranger may import the canvas engine, `@xyflow/svelte` and `@xyflow/system`; the editor uses the canvas through arranger's components. Add a package only for a present need, and update the dependency-cruiser rules and their tests with any allowed edge.
 
 ## Design Rules
 
@@ -26,6 +26,7 @@ Only arranger and editor may import `svelte`. Add a package only for a present n
 - A float never constructs a coordinate; page arithmetic in the writers may read a float's exact binary value (`fromFloat`), never an approximation of it. A coordinate is atomic: `{ unit, number_type, value }`, where `value` is a JSON integer, a JSON number or a `[numerator, denominator]` Fraction pair as `number_type` selects (the BOPP core primitives).
 - `draw(manifest, placement, layers, metrics)`, `toDescriptors(drawing)`, `writeSvg(placed)` and `writeTikz(placed, options)` implement timeskeleton's drawing specification (`docs/drawing.md` there) and nothing beyond it. A rule the code applies that the specification does not state is a defect, fixed in the specification first. The specification and the SVG and TikZ fixtures of a version pin the drawing; there is no drawing schema, and a drawing's JSON form is internal to an implementation.
 - Keep the three layers apart: a manifest knows nothing about the canvas, a block adds placement to one manifest, and the workspace holds blocks. A block's styling is its manifest's `graphical`; the block has no style layer of its own. Name each layer by its own word only: manifest, block, workspace.
+- The test hook `window.__tilie` and the header's Fixture menu (the end-to-end workspaces with a Load button) exist only in development builds and in builds made with `VITE_TILIE_TEST_HOOK=1` (the Playwright web server's build); a production build, and so the wheel, must contain neither, nor the fixture files. End-to-end tests read state through it and never from pixels, except the screenshot tests.
 - Commands are serializable and validated. Return typed, machine-readable errors rather than display-oriented strings.
 - Python uses type hints and Google-style docstrings.
 - Server security is invariant: bind only `127.0.0.1`; generate a token for each run; hand the token to the editor only in the URL fragment (`/#token=…`), never in a path or query, so it never reaches the server or its access log, and have the editor remove it from the address bar with `history.replaceState`; reject foreign Host and Origin headers; require exact `Authorization: Bearer <token>` for every `/api/` route; send `Referrer-Policy: no-referrer` with every response.
@@ -54,6 +55,12 @@ Run each command from the stated directory.
 | `app/` | `pnpm test:budget` | Run the workspace store's timing budgets alone, one file at a time (excluded from `pnpm test`). |
 | `app/` | `pnpm build` | Build the editor bundle. |
 | `app/` | `pnpm dev` | Start the editor development server. |
+| `app/` | `pnpm e2e` | Run the Playwright suite in Chromium, Firefox, WebKit and the touch project, inside the pinned Playwright image through rootless podman (directly when already inside the image, as in CI). |
+| `app/` | `pnpm e2e:budget` | Run the canvas timing budgets in Chromium, inside the image through podman. |
+| `app/` | `pnpm e2e:visual` | Compare the zero-tolerance screenshots with their baselines; only inside the image through podman, never in CI. |
+| `app/` | `pnpm e2e:visual:update` | Re-create the screenshot baselines inside the image through podman; review every changed image before committing it. |
+| `app/` | `pnpm e2e:fixtures` | Write the end-to-end workspaces in `e2e/fixtures/` from the schema package's manifest fixtures through the store's commands; never edit them by hand. |
+| `app/` | `pnpm e2e:fixtures:check` | Fail unless every committed end-to-end workspace equals the generator's output byte for byte. |
 | `app/` | `TILIE_REQUIRE_LUALATEX=1 pnpm vitest run --project writers packages/writers/tests/compile.test.ts` | Parse every drawing fixture's `figure.svg` and compile every `figure.tex`, failing when `lualatex` is missing. |
 | repository root | `pnpm -C app/packages/writers emit-drawings --into <timeskeleton checkout>` | Write the drawing fixtures into a timeskeleton checkout; never rewrites the hand-derived figures. |
 | repository root | `pnpm -C app/packages/writers review` | Render the writer review sheet into `app/packages/writers/review/` with `rsvg-convert`. |
@@ -64,3 +71,5 @@ Run each command from the stated directory.
 | `server/` | `uv build` | Build the source distribution and wheel. |
 | `server/` | `uv run tilie --check --no-browser` | Verify the installed server and bundled app. |
 | repository root | `python3 scripts/check_versions.py --tag vX.Y.Z` | Check a release tag against declared versions. |
+
+Playwright runs share one port (4317) and one output folder (`app/e2e/test-results/`), so run them one at a time. Every run builds the editor with the test hook into `app/packages/editor/dist-e2e`, never into `dist`, the folder the wheel bundles; CI fails the server job if the wheel contains `__tilie`.

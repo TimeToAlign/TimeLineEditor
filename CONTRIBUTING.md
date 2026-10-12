@@ -1,6 +1,6 @@
 # Contributing to TiLiE
 
-TiLiE is a pnpm TypeScript workspace with a Svelte 5 application and a separate Python server. The application is currently a shell, so contributions should preserve the package boundaries and document exactly what a new behavior proves.
+TiLiE is a pnpm TypeScript workspace with a Svelte 5 application and a separate Python server. The application is an early alpha whose canvas arranges blocks but cannot yet open or save a file, so contributions should preserve the package boundaries and document exactly what a new behavior proves.
 
 ## Setup
 
@@ -53,6 +53,21 @@ pnpm -C app/packages/writers review
 ```
 
 The command draws every 0.5.0 manifest fixture, together with resized and restyled cases, writes their SVG and PNG files under `app/packages/writers/review/`, and lists them in `review/index.html`. It rasterizes at twice the size (`rsvg-convert --zoom 2`) with fontconfig restricted to timeskeleton's bundled `DejaVuSans.ttf`, and refuses to continue if another font is visible or `rsvg-convert` fails.
+
+### End-to-end tests
+
+The canvas is tested in real browsers with Playwright. Every run happens inside the official Playwright image of the locked `@playwright/test` version (`mcr.microsoft.com/playwright:v<version>-noble`), which carries Chromium, Firefox and WebKit with their system libraries and fonts, so the browsers are the same on every machine. Locally, `e2e/run.ts` starts that image through rootless [podman](https://podman.io) with the `app/` directory mounted and the host network; install podman and pull the image once. In CI the job already runs inside the image, and the script starts Playwright directly.
+
+```bash
+cd app
+pnpm e2e                  # Chromium, Firefox, WebKit and the touch project
+pnpm e2e:budget           # the canvas timing budgets, Chromium only
+pnpm e2e:visual           # the zero-tolerance screenshots; local only, never in CI
+pnpm e2e:visual:update    # re-create the screenshot baselines
+pnpm e2e:fixtures:check   # the committed test workspaces equal their generator's output
+```
+
+Each run builds the editor with the test hook (`VITE_TILIE_TEST_HOOK=1`) into `app/packages/editor/dist-e2e`, never into the `dist` folder the wheel bundles, and serves it on `127.0.0.1:4317`. Runs share that port and the output folder `app/e2e/test-results/`, so run one at a time. Screenshot baselines are valid only when made inside the image; review every changed image before committing it. When a schema release changes the manifest fixtures, regenerate the test workspaces with `pnpm e2e:fixtures`; never edit them by hand. For debugging, Chromium and Firefox also run natively with `pnpm exec playwright test --project=chromium --headed` after `pnpm exec playwright install chromium`; WebKit's Linux build needs the image's libraries on hosts other than Ubuntu and Debian. In `pnpm dev` the header's Fixture menu opens any of these workspaces with Load, for trying the canvas by hand. `app/e2e/README.md` states what each spec proves and the exact values it expects.
 
 Each package and the server has a `tests/README.md`. Update the appropriate readme first with the validation logic and exact expected values, then write the test.
 

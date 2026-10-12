@@ -25,6 +25,14 @@ What proves it:
 3. The forbidden import is replaced by `import "svelte"`. The run reports
    exactly one violation, `no-svelte-outside-arranger-and-editor`, and the
    process exits with a non-zero status.
+4. The canvas engine belongs to the arranger alone. A scratch `arranger`
+   package importing `@xyflow/svelte` and `@xyflow/system` reports **zero**
+   violations. The same two imports written into `layout` instead report
+   exactly two violations, both `no-xyflow-outside-arranger`, from
+   `packages/layout/src/index.ts` to `@xyflow/svelte` and to
+   `@xyflow/system`, and the process exits with status 2. A package outside
+   the ladder's rows is covered too: the same imports from `editor` report
+   the same two violations.
 
 The check runs the real `depcruise` executable as a subprocess with the
 scratch directory as its working directory. The JSON reporter supplies named

@@ -8,7 +8,22 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc -p tsconfig.json",
+    "typecheck": "svelte-check --tsconfig ./tsconfig.json --fail-on-warnings",
     "test": "vitest run"
+  },
+  "dependencies": {
+    "@timetoalign/tilie-core": "workspace:*",
+    "@timetoalign/tilie-layout": "workspace:*",
+    "@timetoalign/tilie-writers": "workspace:*",
+    "@timetoalign/timeskeleton": "^0.5.0",
+    "@xyflow/svelte": "^1.7.0",
+    "@xyflow/system": "^0.0.83",
+    "svelte": "^5.57.1"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "7.3.1",
+    "fast-check": "4.10.2",
+    "jsdom": "30.1.1",
+    "svelte-check": "4.7.6"
   }
 }

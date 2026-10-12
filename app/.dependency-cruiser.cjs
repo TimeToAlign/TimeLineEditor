@@ -10,6 +10,9 @@
  *   client    -> core
  *   editor    -> any workspace package (may import svelte)
  *
+ * The canvas engine, `@xyflow/svelte` with its core `@xyflow/system`, is
+ * imported by the arranger alone.
+ *
  * A dependency is matched both by its resolved path (`packages/<name>/...`,
  * which pnpm's workspace links resolve to) and by its bare specifier
  * (`@timetoalign/tilie-<name>`), so a forbidden import is reported even when
@@ -86,6 +89,13 @@ module.exports = {
         "Only the two UI packages may depend on the framework; everything below is framework-free.",
       from: { path: "^(packages/|tests/)", pathNot: "^packages/(arranger|editor)/" },
       to: { path: "^(svelte($|/)|node_modules/svelte/|.*/node_modules/svelte/)" },
+    },
+    {
+      name: "no-xyflow-outside-arranger",
+      severity: "error",
+      comment: "The canvas engine is an implementation detail of the arranger (decisions/0020).",
+      from: { pathNot: "^packages/arranger/" },
+      to: { path: "^@xyflow/(svelte|system)($|/)|(^|/)node_modules/@xyflow/(svelte|system)/" },
     },
   ],
   options: {

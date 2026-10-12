@@ -4,8 +4,11 @@ node_modules/
 
 # Build outputs
 dist/
+dist-e2e/
 .vite/
 server/src/tilie_server/static/
+app/e2e/test-results/
+playwright-report/
 
 # Python caches
 __pycache__/
