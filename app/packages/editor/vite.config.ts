@@ -41,9 +41,10 @@ const VENDOR_CHUNKS: readonly (readonly [string, (name: string) => boolean])[] =
  *
  * During `pnpm dev`, API calls are proxied to a locally running server
  * (`tilie --port <port> --no-browser`); set `TILIE_PORT` to its port. The
- * development server may also read the schema package's real directory,
- * which lies outside the workspace while the package is linked from a
- * sibling checkout, so that the bundled font is served.
+ * development server may also read the schema package's real directory, so
+ * that the bundled font is served: installed from npm it lies inside the
+ * workspace anyway, but a local timeskeleton checkout linked in to try a
+ * schema change lies outside it.
  */
 export default defineConfig({
   base: "./",

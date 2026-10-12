@@ -258,9 +258,10 @@ shared with the plugin); this set is the reference.
 6. **The development server may read the schema package.** The config's
    `server.fs.allow` holds the real directory (symbolic links resolved) of
    the installed `@timetoalign/timeskeleton/package.json`, where its font
-   lies; while the package is linked from a sibling checkout that
-   directory lies outside the workspace, and without it `pnpm dev` refuses
-   the font with 403. Its other entry is the workspace root found from the
+   lies. Installed from npm that directory is inside `app/node_modules`;
+   with a local checkout linked in to try a schema change it lies outside
+   the workspace, and without the entry `pnpm dev` refuses the font with
+   403. Its other entry is the workspace root found from the
    config file's own directory, `app/` (whose `pnpm-workspace.yaml` marks
    it), not from the directory the server was started in.
 

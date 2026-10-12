@@ -15,7 +15,7 @@
     "@timetoalign/tilie-core": "workspace:*",
     "@timetoalign/tilie-layout": "workspace:*",
     "@timetoalign/tilie-writers": "workspace:*",
-    "@timetoalign/timeskeleton": "link:../../../../timeskeleton/js",
+    "@timetoalign/timeskeleton": "^0.6.0",
     "@xyflow/svelte": "^1.7.0",
     "@xyflow/system": "^0.0.83",
     "svelte": "^5.57.1"
