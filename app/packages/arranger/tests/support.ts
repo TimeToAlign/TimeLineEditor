@@ -67,6 +67,25 @@ export function blockIn(view: View, id: string): Block {
   return found;
 }
 
+/** The fixture paths of the group and bundle files the tests use. */
+export const NUMBERS = "groups/group_number_types";
+export const CHILD_MEMBER = "groups/group_child_member";
+export const MPM = "bundles/corpus_mpm";
+
+/**
+ * Block `id` holding `group_number_types` with `region_1` (2 to 4 quarters,
+ * named "A") added to its root `score`, as the README's `numbers`.
+ */
+export function numbersView(id: string = A): View {
+  const quarters = (n: number) => ({ unit: "quarters", number_type: "fraction", value: [n, 1] });
+  const region = { id: "region_1", name: "A", start: quarters(2), end: quarters(4), meta: {} };
+  return changed(viewOf({ id, fixture: NUMBERS }), {
+    type: "add",
+    into: `${id}/score`,
+    region,
+  });
+}
+
 /** The view with the grid set. */
 export function withGrid(view: View, size: number, snap: boolean): View {
   return changed(view, {

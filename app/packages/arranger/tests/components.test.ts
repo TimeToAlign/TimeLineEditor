@@ -192,6 +192,20 @@ describe("BlockNode", () => {
     expect(trees(svg.children, ["data-selected", "data-affected"])).toEqual(exported(text));
   });
 
+  it("marks every descriptor carrying a selected address", () => {
+    const { drawing, scale, svg: text } = fixture("bundle__bundle_shared_parent");
+    const selected = new Set(["score", "exposition/start"]);
+    const svg = render(toDescriptors(drawing), { ...drawing, scale }, selected);
+
+    const marked = Array.from(svg.querySelectorAll("[data-selected]"), (element) =>
+      element.getAttribute("data-address"),
+    );
+    const score = Array(4).fill("score");
+    expect(marked).toEqual([...score, "exposition/start", "exposition/start", ...score]);
+    expect(trees(svg.children, ["data-selected"])).toEqual(exported(text));
+    expect(document.querySelectorAll("[data-contains-selection]").length).toBe(1);
+  });
+
   it("renders text and attribute values as text, never as markup", () => {
     const name = '<b id="x">C♯ & D♭</b>';
     const svg = render(

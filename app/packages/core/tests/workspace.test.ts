@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Block, View } from "../src/index.ts";
+import type { Block, TimelineFile, View } from "../src/index.ts";
 import { checkWorkspace, createView, DEFAULT_SETTINGS } from "../src/index.ts";
 import { A, B, block, C, viewOf } from "./support.ts";
 
@@ -96,7 +96,8 @@ describe("workspace checks", () => {
 
   it("reports the kind, the placement and prefixed manifest problems exactly", () => {
     const region = block(viewOf([A, "with_region.json"]));
-    const [first] = region.manifest.timeline.regions;
+    const { timeline } = region.manifest as TimelineFile;
+    const [first] = timeline.regions;
     const end = { unit: "quarters", number_type: "fraction", value: [0, 1] } as const;
     const invalid = {
       ...region,
@@ -110,7 +111,7 @@ describe("workspace checks", () => {
       order: ["children", "children", "flow"],
       manifest: {
         ...region.manifest,
-        timeline: { ...region.manifest.timeline, regions: [{ ...first, end }] },
+        timeline: { ...timeline, regions: [{ ...first, end }] },
       },
     } as unknown as Block;
     expect(found(viewWith(invalid))).toEqual([

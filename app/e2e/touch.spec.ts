@@ -8,7 +8,7 @@
 import type { CDPSession, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import {
-  backgroundPoint,
+  cardPoint,
   commandsFrom,
   emptyPoint,
   OPENED_JOURNAL,
@@ -34,7 +34,7 @@ const TOUCH_LEAD = 20;
 const VIEW = { x: 20, y: 20, zoom: 1 };
 /**
  * Chromium moves a tap onto a nearby clickable element (touch adjustment), so
- * a tap meant for a block's background lands at least this far from any
+ * a tap meant for a block's card lands at least this far from any other
  * drawn element.
  */
 const FINGER = 14;
@@ -90,9 +90,11 @@ test.beforeEach(async ({ page, browserName }) => {
   await setViewport(page, VIEW);
 });
 
-test("a tap selects a block, a tap on an element selects the element", async ({ page }) => {
-  await tap(page, await backgroundPoint(page, SMALL.map, FINGER));
-  expect(await selection(page)).toEqual([SMALL.map]);
+test("a tap on a card selects its timeline, a tap on an element selects the element", async ({
+  page,
+}) => {
+  await tap(page, await cardPoint(page, SMALL.map, FINGER));
+  expect(await selection(page)).toEqual([`${SMALL.map}/melody`]);
   await tap(page, await partCentre(page, SMALL.nested, "clt_2"));
   expect(await selection(page)).toEqual([`${SMALL.nested}/clt_2`]);
 });
@@ -101,12 +103,7 @@ test("a one-finger drag moves a block by the drag in canvas units, grid-snapped"
   page,
 }) => {
   const cdp = await page.context().newCDPSession(page);
-  await gesture(
-    cdp,
-    [await backgroundPoint(page, SMALL.map, FINGER)],
-    [{ x: 101, y: 37 }],
-    TOUCH_LEAD,
-  );
+  await gesture(cdp, [await cardPoint(page, SMALL.map, FINGER)], [{ x: 101, y: 37 }], TOUCH_LEAD);
   const { x, y } = await placement(page, SMALL.map);
   expect({ x, y }).toEqual({ x: 104, y: 360 });
   expect(await commandsFrom(page, START)).toEqual([
@@ -140,7 +137,8 @@ test("a pinch changes the zoom", async ({ page }) => {
 });
 
 test("the resize mode buttons respond to taps and show their handles", async ({ page }) => {
-  await tap(page, await backgroundPoint(page, SMALL.map, FINGER));
+  // The block's margin is narrower than a finger, so the block is selected through the hook.
+  await page.evaluate((id) => window.__tilie.select([id]), SMALL.map);
   for (const [mode, handles] of [
     ["box", 8],
     ["stretch", 8],

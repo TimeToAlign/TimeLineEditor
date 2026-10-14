@@ -1,5 +1,17 @@
+import {
+  DEFAULT_LAYER,
+  DEFAULT_PLACEMENT,
+  type Drawing,
+  draw,
+  type LineEnd,
+  type LineStart,
+  manifestLayer,
+  type Style,
+} from "@timetoalign/tilie-layout";
+import { fontMetrics } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
 import {
+  type Descriptor,
   descriptorSvg,
   formatNumber,
   type PathCommand,
@@ -8,13 +20,13 @@ import {
   writeSvg,
   writeTikz,
 } from "../src/index.ts";
-import { reviewCases, style, synthetic } from "./support.ts";
+import { boxed, everything, loadFixture, reviewCases, style, synthetic } from "./support.ts";
 
-const svgBody = (drawing: ReturnType<typeof synthetic>) =>
+const svgBody = (drawing: Drawing) =>
   writeSvg([{ drawing, x: 0, y: 0, scale: 1 }])
     .split("\n")
     .slice(3, -3);
-const tikzBody = (drawing: ReturnType<typeof synthetic>) => {
+const tikzBody = (drawing: Drawing) => {
   const lines = writeTikz([{ drawing, x: 0, y: 0, scale: 1 }], { standalone: false }).split("\n");
   return lines.slice(lines.findIndex((line) => line.startsWith("\\begin{scope}")) + 2, -3);
 };
@@ -38,6 +50,117 @@ describe("descriptors", () => {
     expect(tikzBody(drawing)).toEqual([
       "\\path[draw=ts000000,line width=1pt] (0,20) .. controls (0,18) and (1,17) .. (3,17) -- (7,17) .. controls (9,17) and (10,16) .. (10,14) .. controls (10,16) and (11,17) .. (13,17) -- (17,17) .. controls (19,17) and (20,18) .. (20,20);",
     ]);
+  });
+
+  it("writes the background as its template and then opacity, without an address", () => {
+    const drawing = boxed(60, 30, style({ opacity: 0.5 }));
+    const svg = writeSvg([{ drawing, x: 0, y: 0, scale: 1 }]).split("\n");
+    expect(svg[2]).toBe(
+      '<rect x="0" y="0" width="60" height="30" rx="0" fill="none" opacity="0.5"/>',
+    );
+    const tikz = writeTikz([{ drawing, x: 0, y: 0, scale: 1 }], { standalone: false }).split("\n");
+    expect(tikz[2]).toBe("\\path[rounded corners=0pt,opacity=0.5] (0,0) rectangle (60,30);");
+  });
+
+  it("writes a group's frame as a rect with rx after its coordinates", () => {
+    const drawing = synthetic({
+      type: "group",
+      address: "g",
+      style: style({ fill: "#FFFFFF", stroke: "#D1D5DB", "stroke-width": 1, rx: 6 }),
+      x: 8,
+      y: 4,
+      width: 40,
+      height: 20,
+    });
+    expect(svgBody(drawing)).toEqual([
+      '<rect data-address="g" x="8" y="4" width="40" height="20" rx="6" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="1"/>',
+    ]);
+    expect(tikzBody(drawing)).toEqual([
+      "\\path[rounded corners=6pt,fill=tsFFFFFF,draw=tsD1D5DB,line width=1pt] (8,6) rectangle (48,26);",
+    ]);
+  });
+
+  const card = (changes: Partial<Style> = {}) =>
+    synthetic({
+      type: "card",
+      address: "m/card",
+      style: style({
+        fill: "#FFFFFF",
+        stroke: "#C4C9D1",
+        "stroke-width": 0.75,
+        rx: 5,
+        shadow: "#B8BEC8",
+        ...changes,
+      }),
+      x: 8,
+      y: 4,
+      width: 40,
+      height: 20,
+    });
+
+  it("writes a card's shadow, fill alone, before the card", () => {
+    const own =
+      '<rect data-address="m/card" x="8" y="4" width="40" height="20" rx="5" fill="#FFFFFF" stroke="#C4C9D1" stroke-width="0.75"/>';
+    expect(svgBody(card())).toEqual([
+      '<rect data-address="m/card" x="10" y="6" width="40" height="20" rx="5" fill="#B8BEC8"/>',
+      own,
+    ]);
+    expect(tikzBody(card())).toEqual([
+      "\\path[rounded corners=5pt,fill=tsB8BEC8] (10,4) rectangle (50,24);",
+      "\\path[rounded corners=5pt,fill=tsFFFFFF,draw=tsC4C9D1,line width=0.75pt] (8,6) rectangle (48,26);",
+    ]);
+    expect(svgBody(card({ shadow: "none" }))).toEqual([own]);
+  });
+
+  it("writes a card's dash and opacity, and the opacity on its shadow", () => {
+    expect(svgBody(card({ "stroke-dasharray": "2 1", opacity: 0.5 }))).toEqual([
+      '<rect data-address="m/card" x="10" y="6" width="40" height="20" rx="5" fill="#B8BEC8" opacity="0.5"/>',
+      '<rect data-address="m/card" x="8" y="4" width="40" height="20" rx="5" fill="#FFFFFF" stroke="#C4C9D1" stroke-width="0.75" stroke-dasharray="2 1" opacity="0.5"/>',
+    ]);
+  });
+
+  it("draws no shadow for a group's frame", () => {
+    const drawing = synthetic({
+      type: "group",
+      address: "g",
+      style: style({ fill: "#FFFFFF", stroke: "#D1D5DB", rx: 6, shadow: "#B8BEC8" }),
+      x: 8,
+      y: 4,
+      width: 40,
+      height: 20,
+    });
+    expect(svgBody(drawing)).toEqual([
+      '<rect data-address="g" x="8" y="4" width="40" height="20" rx="6" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="1"/>',
+    ]);
+  });
+
+  it("writes a wedge with its fill alone", () => {
+    const drawing = synthetic({
+      type: "wedge",
+      address: "w",
+      style: style({ fill: "#000000", stroke: "#FF0000" }),
+      x: 10,
+      yt: 5,
+      yb: 18,
+    });
+    expect(svgBody(drawing)).toEqual([
+      '<polygon data-address="w" points="10,5 7,18 13,18" fill="#000000"/>',
+    ]);
+  });
+
+  it("writes a boundary as a line", () => {
+    const drawing = synthetic({
+      type: "boundary",
+      address: "b/start",
+      style: BLACK,
+      x: 10,
+      y1: 12,
+      y2: 18,
+    });
+    expect(svgBody(drawing)).toEqual([
+      '<line data-address="b/start" x1="10" y1="12" x2="10" y2="18" stroke="#000000" stroke-width="1"/>',
+    ]);
+    expect(tikzBody(drawing)).toEqual(["\\path[draw=ts000000,line width=1pt] (10,18) -- (10,12);"]);
   });
 
   it("ends a jump's shaft at its filled arrowhead's base", () => {
@@ -69,10 +192,12 @@ describe("descriptors", () => {
     ["corpus_score_ms3", 4],
   ] as const) {
     it(`continues each shaft of ${name} along its head's axis`, () => {
-      const item = reviewCases().find((each) => each.name === name);
-      const descriptors = toDescriptors(item?.drawing as ReturnType<typeof synthetic>);
+      const manifest = loadFixture(name);
+      const layers = [DEFAULT_LAYER, manifestLayer(manifest)];
+      const drawing = draw(manifest, DEFAULT_PLACEMENT, layers, fontMetrics);
+      const descriptors = toDescriptors(drawing);
       const jumps = new Set(
-        item?.drawing.elements.filter((each) => each.type === "jump").map((each) => each.address),
+        drawing.elements.filter((each) => each.type === "jump").map((each) => each.address),
       );
       const paths = descriptors.filter(
         (each) => each.tag === "path" && jumps.has(String(each.attrs[0]?.[1])),
@@ -100,7 +225,12 @@ describe("descriptors", () => {
     });
   }
 
-  const line = (type: "timeline" | "child", locked: boolean) =>
+  const line = (
+    type: "timeline" | "child" | "ancestor",
+    start: LineStart,
+    end: LineEnd,
+    changes: Partial<Style> = {},
+  ) =>
     synthetic({
       type,
       address: "c",
@@ -109,31 +239,73 @@ describe("descriptors", () => {
         fill: "#00CC00",
         "stroke-width": 2,
         "stroke-dasharray": "3 3",
+        ...changes,
       }),
       xs: 10,
       xe: 50,
       y: 20,
-      locked,
+      start,
+      end,
     });
-  const diamond = [
-    '<line data-address="c" x1="10" y1="20" x2="47" y2="20" stroke="#00CC00" stroke-width="2" stroke-dasharray="3 3"/>',
-    '<circle data-address="c" cx="10" cy="20" r="2" fill="#00CC00"/>',
-    '<polygon data-address="c" points="47,20 50,17.6 53,20 50,22.4" fill="none" stroke="#00CC00" stroke-width="1"/>',
-  ];
+  const lineTo = (stop: number) =>
+    `<line data-address="c" x1="10" y1="20" x2="${stop}" y2="20" stroke="#00CC00" stroke-width="2" stroke-dasharray="3 3"/>`;
+  const startCircle = '<circle data-address="c" cx="10" cy="20" r="2" fill="#00CC00"/>';
 
-  it("ends a locked child or root with an open diamond stroked at half width and no dash", () => {
-    expect(svgBody(line("child", true))).toEqual(diamond);
-    expect(svgBody(line("timeline", true))).toEqual(diamond);
-  });
+  for (const type of ["timeline", "child", "ancestor"] as const) {
+    it(`ends a ${type} line with each end of section 6.6`, () => {
+      expect(svgBody(line(type, "circle", "arrowhead"))).toEqual([
+        lineTo(50),
+        startCircle,
+        '<polygon data-address="c" points="56,20 50,17 50,23" fill="#00CC00"/>',
+      ]);
+      expect(svgBody(line(type, "circle", "open"))).toEqual([
+        lineTo(50),
+        startCircle,
+        '<polygon data-address="c" points="56,20 50,17 50,23" fill="none" stroke="#00CC00" stroke-width="1"/>',
+      ]);
+      expect(svgBody(line(type, "circle", "circle"))).toEqual([
+        lineTo(50),
+        startCircle,
+        '<circle data-address="c" cx="50" cy="20" r="2" fill="#00CC00"/>',
+      ]);
+      expect(svgBody(line(type, "circle", "diamond"))).toEqual([
+        lineTo(47),
+        startCircle,
+        '<polygon data-address="c" points="47,20 50,17.6 53,20 50,22.4" fill="none" stroke="#00CC00" stroke-width="1"/>',
+      ]);
+    });
+  }
 
-  it("ends an unlocked child or root with a filled arrowhead beyond its end", () => {
-    const arrow = [
-      '<line data-address="c" x1="10" y1="20" x2="50" y2="20" stroke="#00CC00" stroke-width="2" stroke-dasharray="3 3"/>',
-      '<circle data-address="c" cx="10" cy="20" r="2" fill="#00CC00"/>',
-      '<polygon data-address="c" points="56,20 50,17 50,23" fill="#00CC00"/>',
-    ];
-    expect(svgBody(line("child", false))).toEqual(arrow);
-    expect(svgBody(line("timeline", false))).toEqual(arrow);
+  it("runs an ancestor line on at both sides in double chevrons, inner first", () => {
+    const drawing = synthetic({
+      type: "ancestor",
+      address: "a",
+      style: style({
+        stroke: "#00CC00",
+        fill: "#00CC00",
+        "stroke-width": 2,
+        "stroke-dasharray": "3 3",
+        opacity: 0.35,
+      }),
+      xs: 20,
+      xe: 40,
+      y: 20,
+      start: "chevrons",
+      end: "chevrons",
+    });
+    const chevron = (points: string) =>
+      `<polyline data-address="a" points="${points}" fill="none" stroke="#00CC00" stroke-width="1" opacity="0.35"/>`;
+    expect(svgBody(drawing)).toEqual([
+      '<line data-address="a" x1="20" y1="20" x2="40" y2="20" stroke="#00CC00" stroke-width="2" stroke-dasharray="3 3" opacity="0.35"/>',
+      chevron("18,17 15,20 18,23"),
+      chevron("15,17 12,20 15,23"),
+      chevron("42,17 45,20 42,23"),
+      chevron("45,17 48,20 45,23"),
+    ]);
+    expect(tikzBody(drawing).slice(0, 2)).toEqual([
+      "\\path[draw=ts00CC00,line width=2pt,dash pattern=on 3pt off 3pt,opacity=0.35] (20,10) -- (40,10);",
+      "\\path[draw=ts00CC00,line width=1pt,opacity=0.35] (18,13) -- (15,10) -- (18,7);",
+    ]);
   });
 
   it("draws a map as one closed, stroked outline whose dash starts at its first corner", () => {
@@ -242,37 +414,49 @@ describe("descriptors", () => {
 });
 
 const KIND: Readonly<Record<string, RegExp>> = {
-  rect: /^\\path\[[^\]]*\] \(0,0\) rectangle \([^)]*\);$/,
+  rect: /^\\path\[[^\]]*\] \([^)]*\) rectangle \([^)]*\);$/,
   line: /^\\path\[[^\]]*\] \([^)]*\) -- \([^)]*\);$/,
   circle: /^\\path\[[^\]]*\] \([^)]*\) circle\[radius=[^\]]*\];$/,
   polygon: /^\\path\[[^\]]*\] (\([^)]*\) -- )+cycle;$/,
+  polyline: /^\\path\[[^\]]*\] \([^)]*\) -- \([^)]*\) -- \([^)]*\);$/,
   path: /^\\path\[[^\]]*\] \([^)]*\) \.\. controls /,
   text: /^\\node\[anchor=base( west)?,inner sep=0,/,
 };
 
+/** One SVG line and one TikZ command per descriptor, in order, of the kind its tag selects. */
+function oneCommandPerDescriptor(drawing: Drawing, scale: number): Descriptor[] {
+  const descriptors = toDescriptors(drawing);
+  const placed = [{ drawing, x: 0, y: 0, scale }];
+  const svg = writeSvg(placed).split("\n");
+  expect(svg.slice(2, -3)).toEqual(descriptors.map(descriptorSvg));
+  descriptors.forEach((descriptor, index) => {
+    const line = svg[index + 2] as string;
+    const address = descriptor.attrs.find(([name]) => name === "data-address")?.[1];
+    expect(address === undefined).toBe(index === 0);
+    const head = address === undefined ? "" : `data-address="${address}" `;
+    expect(line.startsWith(`<${descriptor.tag} ${head}`)).toBe(true);
+  });
+  const tikz = writeTikz(placed).split("\n");
+  const begin = tikz.findIndex((line) => line.startsWith("\\begin{scope}"));
+  const end = tikz.indexOf("\\end{scope}");
+  const commands = tikz.slice(begin + 1, end);
+  expect(commands.length).toBe(descriptors.length);
+  commands.forEach((command, index) => {
+    expect(command).toMatch(KIND[(descriptors[index] as Descriptor).tag] as RegExp);
+  });
+  return descriptors;
+}
+
 describe("one command per descriptor", () => {
+  it("everything", () => {
+    const descriptors = oneCommandPerDescriptor(everything(), 1);
+    expect(descriptors.length).toBe(30);
+    expect(new Set(descriptors.map((each) => each.tag))).toEqual(new Set(Object.keys(KIND)));
+  });
+
   for (const item of reviewCases()) {
     it(item.name, () => {
-      const descriptors = toDescriptors(item.drawing);
-      const placed = [{ drawing: item.drawing, x: 0, y: 0, scale: item.scale }];
-      const svg = writeSvg(placed).split("\n");
-      expect(svg.slice(2, -3)).toEqual(descriptors.map(descriptorSvg));
-      descriptors.forEach((descriptor, index) => {
-        const line = svg[index + 2] as string;
-        expect(line.startsWith(`<${descriptor.tag} `)).toBe(true);
-        if (descriptor.tag !== "rect") {
-          const address = descriptor.attrs.find(([name]) => name === "data-address")?.[1];
-          expect(line.startsWith(`<${descriptor.tag} data-address="${address}" `)).toBe(true);
-        }
-      });
-      const tikz = writeTikz(placed).split("\n");
-      const begin = tikz.findIndex((line) => line.startsWith("\\begin{scope}"));
-      const end = tikz.indexOf("\\end{scope}");
-      const commands = tikz.slice(begin + 1, end);
-      expect(commands.length).toBe(descriptors.length);
-      commands.forEach((command, index) => {
-        expect(command).toMatch(KIND[(descriptors[index] as { tag: string }).tag] as RegExp);
-      });
+      oneCommandPerDescriptor(item.drawing, item.scale);
     });
   }
 });

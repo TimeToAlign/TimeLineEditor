@@ -49,3 +49,31 @@ The installed-Svelte case links the real package into the scratch workspace.
 
 Exact values only: rule names and exit statuses are compared against the
 expected results; the full edge table is independent of the configuration.
+
+## The end-to-end container sees the schema package (`container.ts`)
+
+`e2e/run.ts` starts Playwright in a podman container that mounts only
+`app/`. The packages resolve `@timetoalign/timeskeleton` either from the
+registry (its real directory then lies in `app/node_modules/.pnpm`, inside
+the mount) or from a schema package linked from a sibling checkout, whose
+real directory lies outside `app/` and would be missing in the container.
+`podmanArguments` (`e2e/container.ts`) builds the `podman run` arguments
+from the app directory, that real directory, the image, the CI flag and the
+Playwright arguments; it is a pure function, so both cases are pinned
+without starting a container.
+
+What proves it, with app directory `/w/app` and image `img`:
+
+1. **Package inside `app/`** (`/w/app/node_modules/.pnpm/x/node_modules/y`):
+   the arguments are exactly `run --rm --init --network=host --ipc=host
+   --volume=/w/app:/w/app:z --workdir=/w/app img node e2e/run.ts
+   --project=chromium`, the command line `run.ts` built before the schema
+   package could be linked; with CI, `--env=CI` follows `--workdir`.
+2. **Package outside `app/`** (`/w/timeskeleton/js`): the same list with
+   exactly one more member, `--volume=/w/timeskeleton/js:/w/timeskeleton/js:ro,z`,
+   right after the app's volume: read-only, at the identical absolute path,
+   so the links in `node_modules` resolve unchanged, and relabelled for the
+   container (`z`) as the app's volume is, so that a host enforcing SELinux
+   lets the container read it.
+3. **A sibling whose name extends the app directory's** (`/w/app-schema`)
+   is outside `app/` and is mounted; a prefix test on strings would miss it.

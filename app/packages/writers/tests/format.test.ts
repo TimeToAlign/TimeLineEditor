@@ -2,10 +2,20 @@ import { describe, expect, it } from "vitest";
 import { formatNumber } from "../src/index.ts";
 
 describe("formatNumber", () => {
-  it("rounds to the nearest 1/10000, ties to even", () => {
+  it("rounds an exact tie to the even multiple of 1/10000", () => {
     expect(formatNumber(0.03125)).toBe("0.0312");
     expect(formatNumber(0.09375)).toBe("0.0938");
     expect(formatNumber(-0.03125)).toBe("-0.0312");
+  });
+
+  it("rounds the double's exact value, not its decimal spelling, near a tie", () => {
+    expect(formatNumber(100.00495)).toBe("100.0049");
+    expect(formatNumber(100.00705)).toBe("100.0071");
+    expect(formatNumber(-100.00495)).toBe("-100.0049");
+    expect(formatNumber(1.00005)).toBe("1.0001");
+  });
+
+  it("rounds exact dyadic values to the nearest multiple", () => {
     expect(formatNumber(41.5771484375)).toBe("41.5771");
     expect(formatNumber(14.40234375)).toBe("14.4023");
   });

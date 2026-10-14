@@ -4,9 +4,10 @@
  */
 
 import { expect, test } from "@playwright/test";
+import type { TimelineFile } from "../packages/core/src/index.ts";
 import {
-  backgroundPoint,
   blockOrder,
+  cardPoint,
   clickPart,
   commandsFrom,
   drag,
@@ -14,6 +15,7 @@ import {
   element,
   emptyPoint,
   journalLength,
+  marginPoint,
   node,
   nodeDragStart,
   OPENED_JOURNAL,
@@ -36,20 +38,20 @@ const START = OPENED_JOURNAL.small;
 const VIEW = { x: 40, y: 40, zoom: 1 };
 
 /**
- * Where the styled block lands when its plot origin (90.080078125 right of its
+ * Where the styled block lands when its plot origin (98.080078125 right of its
  * left edge) is dragged to within 6 px of the flow block's plot origin, 640 +
- * 82.9775390625: 722.9775390625 - 90.080078125 = 632.8974609375, a multiple
+ * 90.9775390625: 730.9775390625 - 98.080078125 = 632.8974609375, a multiple
  * of 1/2048, so the alignment is stored bit-exact.
  */
 const ORIGIN_SNAP_X = 632.8974609375;
 
 /** The blocks of `small` as canvas boxes `[x, y, width, height]` (the drawing table of the README). */
 const BOXES: Record<string, readonly [number, number, number, number]> = {
-  [SMALL.bare]: [0, 0, 458.5771484375, 49.37890625],
-  [SMALL.nested]: [0, 160, 459.194580078125, 77.9765625],
-  [SMALL.map]: [0, 320, 472.53662109375, 67.4765625],
-  [SMALL.flow]: [640, 0, 500.256591796875, 84.33203125],
-  [SMALL.styled]: [640, 160, 510.080078125, 118.921875],
+  [SMALL.bare]: [0, 0, 476.5771484375, 67.37890625],
+  [SMALL.nested]: [0, 160, 477.194580078125, 95.9765625],
+  [SMALL.map]: [0, 320, 490.53662109375, 85.4765625],
+  [SMALL.flow]: [640, 0, 518.256591796875, 102.33203125],
+  [SMALL.styled]: [640, 160, 528.080078125, 136.921875],
 };
 
 /** The `x`, `y` of a block as stored. */
@@ -136,7 +138,7 @@ test.describe("drag", () => {
     }, SMALL.flow);
     expect(moved).toBe(true);
 
-    await nodeDragStart(page, await backgroundPoint(page, SMALL.nested), 512, 0);
+    await nodeDragStart(page, await cardPoint(page, SMALL.nested), 512, 0);
     await expect(page.locator('[data-testid="snap-guide"]')).toHaveCount(1);
     await expect(page.locator('[data-testid="snap-guide"]')).toBeVisible();
     await page.mouse.up();
@@ -147,7 +149,7 @@ test.describe("drag", () => {
   test("a block snaps its plot origin to another block's plot origin and shows a guide", async ({
     page,
   }) => {
-    await nodeDragStart(page, await backgroundPoint(page, SMALL.styled), -8, 160);
+    await nodeDragStart(page, await cardPoint(page, SMALL.styled), -8, 160);
     await expect(page.locator('[data-testid="snap-guide"]')).toHaveCount(1);
     await page.mouse.up();
     expect(await position(page, SMALL.styled)).toEqual({ x: ORIGIN_SNAP_X, y: 320 });
@@ -158,7 +160,7 @@ test.describe("drag", () => {
     await expect(page.locator('[data-testid="lock"]')).toHaveAttribute("aria-pressed", "true");
     expect(await page.evaluate(() => window.__tilie.locked())).toBe(true);
 
-    await drag(page, await backgroundPoint(page, SMALL.bare), 50, 30);
+    await drag(page, await cardPoint(page, SMALL.bare), 50, 30);
     expect(await viewportOf(page)).toEqual({ x: 90, y: 70, zoom: 1 });
     expect(await position(page, SMALL.bare)).toEqual({ x: 0, y: 0 });
     expect(await journalLength(page)).toBe(START);
@@ -300,7 +302,7 @@ test.describe("marquee", () => {
     const right = (end.x - v.x) / v.zoom;
     const bottom = (end.y - v.y) / v.zoom;
     expect(bottom).toBe(140);
-    expect(right > 1150.080078125).toBe(true);
+    expect(right > 1158.256591796875).toBe(true);
     const inside = Object.entries(BOXES)
       .filter(([, [x, y, w, h]]) => x >= -40 && y >= -40 && x + w <= right && y + h <= bottom)
       .map(([id]) => id)
@@ -335,7 +337,7 @@ test.describe("marquee", () => {
   }) => {
     await setViewport(page, MARQUEE);
     await page.locator('[data-testid="marquee"]').click();
-    const bare = await backgroundPoint(page, SMALL.bare);
+    const bare = await marginPoint(page, SMALL.bare);
     await page.mouse.click(bare.x, bare.y);
     expect(await selection(page)).toEqual([SMALL.bare]);
     await clickPart(page, SMALL.nested, "clt_2");
@@ -366,8 +368,8 @@ async function shows(page: import("@playwright/test").Page, expected: readonly s
   await expect.poll(() => selectedAddresses(page)).toEqual(elements);
 }
 
-async function clickBackground(page: import("@playwright/test").Page, id: string) {
-  const point = await backgroundPoint(page, id);
+async function clickMargin(page: import("@playwright/test").Page, id: string) {
+  const point = await marginPoint(page, id);
   await page.mouse.click(point.x, point.y);
 }
 
@@ -422,18 +424,18 @@ test("a click on the empty canvas clears the selection in every mode, Shift+clic
   const toggle = page.locator('[data-testid="marquee"]');
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-pressed", "true");
-  await clickBackground(page, SMALL.bare);
+  await clickMargin(page, SMALL.bare);
   await clickPart(page, SMALL.nested, "clt_2");
   await shows(page, [SMALL.bare, `${SMALL.nested}/clt_2`]);
   await clickEmpty(page);
   await shows(page, []);
-  await clickBackground(page, SMALL.flow);
+  await clickMargin(page, SMALL.flow);
   await shows(page, [SMALL.flow]);
-  await clickBackground(page, SMALL.bare);
+  await clickMargin(page, SMALL.bare);
   await shows(page, [SMALL.bare, SMALL.flow]);
   await clickEmpty(page, true);
   await shows(page, [SMALL.bare, SMALL.flow]);
-  await clickBackground(page, SMALL.map);
+  await clickMargin(page, SMALL.map);
   await shows(page, [SMALL.bare, SMALL.flow, SMALL.map]);
 
   await toggle.click();
@@ -459,9 +461,15 @@ test.describe("click", () => {
     await expect(page.locator("[data-contains-selection]")).toHaveCount(1);
   });
 
-  test("a click on a block's background selects the block", async ({ page }) => {
+  test("a click on a card selects its timeline, a click on the margin the block", async ({
+    page,
+  }) => {
     await clickPart(page, SMALL.nested, "clt_2");
-    const point = await backgroundPoint(page, SMALL.map);
+    const card = await cardPoint(page, SMALL.map);
+    await page.mouse.click(card.x, card.y);
+    expect(await selection(page)).toEqual([`${SMALL.map}/melody`]);
+    await expect(element(page, SMALL.map, "melody").first()).toHaveAttribute("data-selected", "");
+    const point = await marginPoint(page, SMALL.map);
     await page.mouse.click(point.x, point.y);
     expect(await selection(page)).toEqual([SMALL.map]);
     await expect(page.locator("[data-contains-selection]")).toHaveCount(0);
@@ -474,7 +482,7 @@ test.describe("click", () => {
     expect(await selection(page)).toEqual([`${SMALL.nested}/clt_2`, `${SMALL.styled}/score`]);
     await expect(page.locator("[data-contains-selection]")).toHaveCount(2);
 
-    const point = await backgroundPoint(page, SMALL.bare);
+    const point = await marginPoint(page, SMALL.bare);
     await page.keyboard.down("Shift");
     await page.mouse.click(point.x, point.y);
     await page.keyboard.up("Shift");
@@ -512,7 +520,9 @@ test.describe("Delete", () => {
     const regions = () =>
       page.evaluate(
         (id) =>
-          window.__tilie.store().view.blocks[id]?.manifest.timeline.regions.map((r) => r.id) ?? [],
+          (
+            window.__tilie.store().view.blocks[id]?.manifest as TimelineFile | undefined
+          )?.timeline.regions.map((r) => r.id) ?? [],
         SMALL.styled,
       );
     expect(await regions()).toEqual([]);
@@ -534,7 +544,8 @@ test.describe("Delete", () => {
           ids.push(timeline.id);
           for (const child of Object.values(timeline.children)) walk(child.timeline);
         };
-        const root = window.__tilie.store().view.blocks[id]?.manifest.timeline;
+        const root = (window.__tilie.store().view.blocks[id]?.manifest as TimelineFile | undefined)
+          ?.timeline;
         if (root !== undefined) walk(root as unknown as Tree);
         return ids.sort();
       }, SMALL.nested);
@@ -596,7 +607,7 @@ test.describe("Delete", () => {
 
 test.describe("keyboard", () => {
   test("keys pressed while the focus is outside the arranger change nothing", async ({ page }) => {
-    const point = await backgroundPoint(page, SMALL.map);
+    const point = await marginPoint(page, SMALL.map);
     await page.mouse.click(point.x, point.y);
     expect(await selection(page)).toEqual([SMALL.map]);
     const mode = await page.evaluate(() => window.__tilie.mode());
@@ -734,7 +745,7 @@ test.describe("keyboard", () => {
   });
 
   test("arrows nudge by one grid step, Shift+arrows by eight; undo restores", async ({ page }) => {
-    const point = await backgroundPoint(page, SMALL.map);
+    const point = await marginPoint(page, SMALL.map);
     await page.mouse.click(point.x, point.y);
     expect(await selection(page)).toEqual([SMALL.map]);
 

@@ -1,8 +1,20 @@
 import { JsonFloat, SCHEMA_VERSION, SUPPORTED_VERSIONS } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
-import type { Manifest, View } from "../src/index.ts";
+import type { TimelineFile, View } from "../src/index.ts";
 import { apply, createView, DEFAULT_SETTINGS, parseCommand } from "../src/index.ts";
-import { A, addBlock, B, block, C, changed, deepFreeze, load, refusal, viewOf } from "./support.ts";
+import {
+  A,
+  addBlock,
+  asVersion,
+  B,
+  block,
+  C,
+  changed,
+  deepFreeze,
+  load,
+  refusal,
+  viewOf,
+} from "./support.ts";
 
 const quarters = (numerator: number, denominator = 1) => ({
   unit: "quarters",
@@ -28,8 +40,9 @@ function rejected(view: View, command: object) {
   return refusal(apply(deepFreeze(view), command));
 }
 
-function manifest(view: View, id = A): Manifest {
-  return block(view, id).manifest;
+/** The manifest of a timeline block. */
+function manifest(view: View, id = A): TimelineFile {
+  return block(view, id).manifest as TimelineFile;
 }
 
 describe("add", () => {
@@ -190,7 +203,7 @@ describe("set", () => {
 
   it.each(SUPPORTED_VERSIONS)("stores a manifest declaring %s at the latest version", (version) => {
     const latest = load("nested.json");
-    const older = { ...latest, meta: { ...latest.meta, schema_version: version } };
+    const older = asVersion(latest, version);
     const view = applied(viewOf([A, "bare.json"]), set(A, { manifest: older }));
     expect(manifest(view).meta.schema_version).toBe(SCHEMA_VERSION);
     expect(manifest(view)).toEqual(latest);

@@ -2,8 +2,8 @@ import { indexBetween } from "@timetoalign/tilie-core";
 import { toDescriptors } from "@timetoalign/tilie-writers";
 import { describe, expect, it } from "vitest";
 import type { BlockNode } from "../src/index.ts";
-import { livePlacement, project } from "../src/index.ts";
-import { A, B, blockIn, changed, metrics, viewOf } from "./support.ts";
+import { drawingOf, livePlacement, project } from "../src/index.ts";
+import { A, B, blockIn, changed, metrics, numbersView, viewOf } from "./support.ts";
 
 const view = viewOf(
   { id: A, fixture: "bare", x: 40, y: 80 },
@@ -26,9 +26,9 @@ describe("project", () => {
       id: A,
       type: "block",
       position: { x: 40, y: 80 },
-      width: 458.5771484375,
-      height: 49.37890625,
-      measured: { width: 458.5771484375, height: 49.37890625 },
+      width: 476.5771484375,
+      height: 67.37890625,
+      measured: { width: 476.5771484375, height: 67.37890625 },
       handles: [],
       selected: true,
       zIndex: 0,
@@ -41,9 +41,9 @@ describe("project", () => {
       id: B,
       type: "block",
       position: { x: 0, y: 0 },
-      width: 918.38916015625,
-      height: 155.953125,
-      measured: { width: 918.38916015625, height: 155.953125 },
+      width: 954.38916015625,
+      height: 191.953125,
+      measured: { width: 954.38916015625, height: 191.953125 },
       handles: [],
       selected: false,
       zIndex: 1,
@@ -54,6 +54,15 @@ describe("project", () => {
     expect(dataA.affectedElements).toEqual(new Set());
     expect(dataB.descriptors).toEqual(toDescriptors(dataB.drawing));
     expect("draggable" in node(nodes, A)).toBe(false);
+  });
+
+  it("projects a group block through the same drawing, with root-qualified selections", () => {
+    const numbers = numbersView();
+    const [only] = project(numbers, new Set([`${A}/score/region_1/label`]), [], metrics);
+    expect(only?.data.selectedElements).toEqual(new Set(["score/region_1/label"]));
+    expect(only?.data.containsSelection).toBe(true);
+    expect(only?.data.affectedElements).toEqual(new Set(["score/region_1"]));
+    expect(only?.data.drawing).toBe(drawingOf(blockIn(numbers, A), numbers.settings, metrics));
   });
 
   it("orders nodes by index and ranks them", () => {

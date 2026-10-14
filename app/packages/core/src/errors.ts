@@ -37,6 +37,7 @@ export const ErrorCode = {
   wrongTargetKind: "wrong_target_kind",
   idNotSettable: "id_not_settable",
   notRemovable: "not_removable",
+  unsupportedTarget: "unsupported_target",
   invalidValue: "invalid_value",
   nonFiniteNumber: "non_finite_number",
   nonPositiveNumber: "non_positive_number",

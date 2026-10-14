@@ -3,7 +3,8 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { parseJson } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
-import { DEFAULT_LAYER } from "../src/index.ts";
+import { DEFAULT_LAYER, DEFAULT_PLACEMENT, type Drawing, draw, type Style } from "../src/index.ts";
+import { loadFile, metrics } from "./support.ts";
 
 /** The drawing specification the installed timeskeleton package ships. */
 const specification = path.join(
@@ -23,5 +24,52 @@ function specifiedDefaults(file: string): unknown {
 describe("DEFAULT_LAYER", () => {
   it("equals the JSON block of the specification", () => {
     expect(DEFAULT_LAYER).toEqual(specifiedDefaults(specification));
+  });
+});
+
+describe("the default layer resolved", () => {
+  const drawn = (name: string): Drawing =>
+    draw(loadFile(name), DEFAULT_PLACEMENT, [DEFAULT_LAYER], metrics);
+  /** The listed properties of every drawing of `address`, in drawing order. */
+  const styles = (drawing: Drawing, address: string | null, properties: (keyof Style)[]) =>
+    drawing.elements
+      .filter((item) => item.address === address)
+      .map((item) => properties.map((property) => item.style[property]));
+
+  it("draws bare's block and card", () => {
+    const drawing = drawn("bare");
+    expect(styles(drawing, null, ["fill", "rx", "shadow"])).toEqual([["#F3F4F6", 10, "none"]]);
+    expect(
+      styles(drawing, "bare/card", ["fill", "stroke", "stroke-width", "rx", "shadow", "opacity"]),
+    ).toEqual([["#FFFFFF", "#C4C9D1", 0.75, 5, "#B8BEC8", 1]]);
+    expect(styles(drawing, "bare", ["rx", "shadow"])).toEqual([[0, "none"]]);
+  });
+
+  it("fades an ancestor line, its marks and their labels, not its name", () => {
+    const drawing = drawn("groups/group_child_member");
+    expect(styles(drawing, "group_1", ["fill", "stroke", "stroke-width", "rx"])).toEqual([
+      ["#FFFFFF", "#D1D5DB", 1, 6],
+    ]);
+    expect(
+      styles(drawing, "piece", ["stroke", "stroke-width", "stroke-dasharray", "opacity"]),
+    ).toEqual([["#00CC00", 3, "none", 0.35]]);
+    expect(styles(drawing, "piece/name", ["fill", "font-size", "opacity"])).toEqual([
+      ["#6B7280", 9, 1],
+    ]);
+    expect(
+      styles(drawing, "second-half/name", ["fill", "font-size", "max-width", "opacity"]),
+    ).toEqual([["#000000", 11, 160, 1]]);
+    for (const end of ["start", "end"]) {
+      const wedges = styles(drawing, `second-half/${end}`, ["fill", "opacity"]);
+      expect(wedges.toSorted((a, b) => (a[1] as number) - (b[1] as number))).toEqual([
+        ["#000000", 0.35],
+        ["#000000", 1],
+      ]);
+      const labels = styles(drawing, `second-half/${end}/label`, ["fill", "font-size", "opacity"]);
+      expect(labels.toSorted((a, b) => (a[2] as number) - (b[2] as number))).toEqual([
+        ["#000000", 9, 0.35],
+        ["#000000", 9, 1],
+      ]);
+    }
   });
 });

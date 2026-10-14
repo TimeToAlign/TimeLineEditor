@@ -8,14 +8,18 @@
  * is started directly; elsewhere the same command is re-run through rootless
  * podman with the app directory mounted at its own path, the host network
  * (the preview server and the browsers share it) and the host IPC namespace
- * (Chromium's shared memory).
+ * (Chromium's shared memory). A schema package linked from a sibling
+ * checkout lies outside the app directory; it is mounted read-only at its
+ * own path as well (`container.ts`).
  *
  * Usage: `node e2e/run.ts [playwright test arguments]`.
  */
 
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
+import { podmanArguments } from "./container.ts";
 
 const appRoot = path.resolve(import.meta.dirname, "..");
 const cli = path.join(appRoot, "node_modules", "@playwright", "test", "cli.js");
@@ -25,25 +29,21 @@ const { version } = JSON.parse(
 const image = `mcr.microsoft.com/playwright:v${version}-noble`;
 const args = process.argv.slice(2);
 
+/** The real directory of the `@timetoalign/timeskeleton` the packages resolve. */
+const schemaPackage = realpathSync(
+  path.dirname(
+    createRequire(path.join(appRoot, "packages", "core", "package.json")).resolve(
+      "@timetoalign/timeskeleton/package.json",
+    ),
+  ),
+);
+
 const inImage = process.env.PLAYWRIGHT_BROWSERS_PATH === "/ms-playwright";
 const run = inImage
   ? spawnSync(process.execPath, [cli, "test", ...args], { cwd: appRoot, stdio: "inherit" })
   : spawnSync(
       "podman",
-      [
-        "run",
-        "--rm",
-        "--init",
-        "--network=host",
-        "--ipc=host",
-        `--volume=${appRoot}:${appRoot}:z`,
-        `--workdir=${appRoot}`,
-        ...(process.env.CI ? ["--env=CI"] : []),
-        image,
-        "node",
-        "e2e/run.ts",
-        ...args,
-      ],
+      podmanArguments({ appRoot, schemaPackage, image, ci: !!process.env.CI, args }),
       { stdio: "inherit" },
     );
 

@@ -783,6 +783,18 @@ function onkeydowncapture(event: KeyboardEvent) {
       filter: drop-shadow(0 0 1.5px #0a84ff) drop-shadow(0 0 1.5px #0a84ff);
     }
 
+    /*
+     * The card under the pointer, the timeline edited on its own: quieter
+     * than a selection; a boundary under the pointer takes the accent.
+     */
+    .tilie-block rect[data-hovered] {
+      filter: drop-shadow(0 0 2px #9cc8ff) drop-shadow(0 0 2px #9cc8ff);
+    }
+
+    .tilie-block line[data-hovered] {
+      stroke: #0a84ff;
+    }
+
     .tilie-block[data-contains-selection] {
       outline: 2px dashed #0a84ff;
       outline-offset: 2px;

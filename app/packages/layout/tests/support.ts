@@ -11,6 +11,8 @@ import {
   isLoadError,
   loadManifest,
   type Manifest,
+  manifestKind,
+  type TimelineFile,
   type TimelineManifest,
 } from "@timetoalign/tilie-core";
 import {
@@ -25,6 +27,7 @@ import {
   type Drawing,
   type DrawnElement,
   draw,
+  manifestLayer,
   type Placement,
 } from "../src/index.ts";
 
@@ -35,30 +38,41 @@ export const fixturesDir = path.join(packageDir, "fixtures", SCHEMA_VERSION);
 export { fontMetrics as metrics } from "@timetoalign/timeskeleton";
 export const BLOCK = "0000000000";
 
+/** The timeline fixtures by name, then the group and bundle fixtures as `groups/…`, `bundles/…`. */
 export function manifestNames(): string[] {
-  return readdirSync(fixturesDir)
-    .filter((name) => name.endsWith(".json"))
-    .map((name) => name.slice(0, -5))
-    .sort();
+  return ["", "groups/", "bundles/"].flatMap((prefix) =>
+    readdirSync(path.join(fixturesDir, prefix))
+      .filter((name) => name.endsWith(".json"))
+      .map((name) => `${prefix}${name.slice(0, -5)}`)
+      .sort(),
+  );
 }
 
-export function load(name: string): Manifest {
+/** A fixture of any kind by its path below the fixtures directory (`groups/…`), without `.json`. */
+export function loadFile(name: string): Manifest {
   const result = loadManifest(readFileSync(path.join(fixturesDir, `${name}.json`), "utf8"));
   if (isLoadError(result)) throw new Error(`${name}: ${result.problems[0]?.message}`);
   return result;
 }
 
+/** A timeline-file fixture by name. */
+export function load(name: string): TimelineFile {
+  const manifest = loadFile(name);
+  if (manifestKind(manifest) !== "timeline") throw new Error(`${name} is no timeline file`);
+  return manifest as TimelineFile;
+}
+
 /**
- * Draw a fixture with the default layer, the application's layers `extra`
- * and the manifest's own `graphical` block, at a placement.
+ * Draw a fixture of any kind with the default layer, the application's
+ * layers `extra` and the manifest's own layer, at a placement.
  */
 export function drawFixture(
   name: string,
   extra: readonly Graphical[] = [],
   placement: Placement = DEFAULT_PLACEMENT,
 ): Drawing {
-  const manifest = load(name);
-  return draw(manifest, placement, [DEFAULT_LAYER, ...extra, manifest.graphical], metrics);
+  const manifest = loadFile(name);
+  return draw(manifest, placement, [DEFAULT_LAYER, ...extra, manifestLayer(manifest)], metrics);
 }
 
 export function element(drawing: Drawing, address: string | null, index = 0): DrawnElement {
@@ -72,7 +86,7 @@ export function quarters(numerator: number, denominator = 1): CoordinateDict {
 }
 
 /** A manifest built through commands: a quarters root, then commands on its block. */
-export function build(rootId: string, length: number, ...commands: object[]): Manifest {
+export function build(rootId: string, length: number, ...commands: object[]): TimelineFile {
   const source = load("bare");
   const timeline = { ...source.timeline, id: rootId, name: null, length: quarters(length) };
   let view = apply(createView(), {
@@ -85,7 +99,7 @@ export function build(rootId: string, length: number, ...commands: object[]): Ma
     view = apply(view, command);
   }
   if (isCommandError(view)) throw new Error(`${view.code}: ${view.message}`);
-  return (view.blocks[BLOCK] as { readonly manifest: Manifest }).manifest;
+  return (view.blocks[BLOCK] as { readonly manifest: TimelineFile }).manifest;
 }
 
 /**
@@ -94,9 +108,9 @@ export function build(rootId: string, length: number, ...commands: object[]): Ma
  * child, which the schema admits and the drawing specification draws.
  */
 export function withLocked(
-  manifest: Manifest,
+  manifest: TimelineFile,
   locked: Readonly<Record<string, boolean>>,
-): Manifest {
+): TimelineFile {
   const relock = (timeline: TimelineManifest): TimelineManifest => ({
     ...timeline,
     locked: Object.hasOwn(locked, timeline.id) ? (locked[timeline.id] as boolean) : timeline.locked,

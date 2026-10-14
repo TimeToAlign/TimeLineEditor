@@ -42,13 +42,13 @@ test.use({ viewport: { width: 1600, height: 1000 } });
 test.beforeEach(async ({ page }) => {
   await open(page, "small");
   // The bare block at (40, 80) as in the arranger's own tables, the nested
-  // block clear of every other block at (40, 240), above the map block.
+  // block clear of every other block at (40, 224), above the map block.
   const refused = await page.evaluate(
     ([bare, nested]) => {
       const store = window.__tilie.store();
       return [
         store.dispatch({ type: "set", changes: [{ target: bare, values: { x: 40, y: 80 } }] }),
-        store.dispatch({ type: "set", changes: [{ target: nested, values: { x: 40, y: 240 } }] }),
+        store.dispatch({ type: "set", changes: [{ target: nested, values: { x: 40, y: 224 } }] }),
       ];
     },
     [SMALL.bare, SMALL.nested],
@@ -140,33 +140,33 @@ test.describe("choosing the mode", () => {
 type Row = readonly [string, ResizeMode, Handle, number, number, Partial<Placement>];
 
 const ROWS: readonly Row[] = [
-  [SMALL.bare, "box", "right", 20, 0, { width: 478.5771484375, height: null, x: 40, y: 80 }],
-  [SMALL.bare, "box", "left", -21, 0, { width: 479.5771484375, x: 19, y: 80 }],
+  [SMALL.bare, "box", "right", 20, 0, { width: 496.5771484375, height: null, x: 40, y: 80 }],
+  [SMALL.bare, "box", "left", -21, 0, { width: 497.5771484375, x: 19, y: 80 }],
   [
     SMALL.bare,
     "box",
     "bottom-right",
     20,
     11,
-    { width: 478.5771484375, height: 60.37890625, x: 40, y: 80 },
+    { width: 496.5771484375, height: 78.37890625, x: 40, y: 80 },
   ],
-  [SMALL.bare, "box", "top", 0, -16, { height: 65.37890625, y: 64, x: 40 }],
-  [SMALL.bare, "scale", "bottom-right", 229, 0, { scale: 1.49951171875, x: 40, y: 80 }],
+  [SMALL.bare, "box", "top", 0, -16, { height: 83.37890625, y: 64, x: 40 }],
+  [SMALL.bare, "scale", "bottom-right", 229, 0, { scale: 1.48046875, x: 40, y: 80 }],
   [
     SMALL.bare,
     "scale",
     "top-left",
     -229,
     0,
-    { scale: 1.49951171875, x: -189.064453125, y: 55.33447265625 },
+    { scale: 1.48046875, x: -188.98046875, y: 47.62646484375 },
   ],
-  [SMALL.bare, "scale", "bottom-right", -440, -49, { scale: 0.125, x: 40, y: 80 }],
+  [SMALL.bare, "scale", "bottom-right", -440, -60, { scale: 0.125, x: 40, y: 80 }],
   [SMALL.bare, "stretch", "right", 20, 0, { length: 420, spacing: 1, x: 40 }],
   [SMALL.bare, "stretch", "left", -21, 0, { length: 421, x: 19 }],
   [SMALL.bare, "stretch", "right", -500, 0, { length: 8, x: 40 }],
   [SMALL.bare, "stretch", "bottom", 0, 32, { spacing: 3, length: 400, y: 80 }],
-  [SMALL.nested, "stretch", "bottom", 0, 51, { spacing: 2, length: 400, y: 240 }],
-  [SMALL.nested, "stretch", "bottom-right", 200, 51, { length: 600, spacing: 2, x: 40, y: 240 }],
+  [SMALL.nested, "stretch", "bottom", 0, 51, { spacing: 2, length: 400, y: 224 }],
+  [SMALL.nested, "stretch", "bottom-right", 200, 51, { length: 600, spacing: 2, x: 40, y: 224 }],
 ];
 
 test.describe("dragging a handle", () => {
@@ -202,21 +202,21 @@ test.describe("dragging a handle", () => {
   }) => {
     await page.evaluate((id) => window.__tilie.select([id]), SMALL.nested);
     await chooseMode(page, "stretch");
-    // nested's height is 58.98828125 + 16 v below spacing 0.9146… and
-    // 26.9765625 + 51 v above it: a target of 77.9765625 − 40 lies below the
-    // height at the floor 1/4 (62.98828125), so the solve stops at the floor.
+    // nested's height is 76.98828125 + 16 v below spacing 0.9146… and
+    // 44.9765625 + 51 v above it: a target of 95.9765625 − 40 lies below the
+    // height at the floor 1/4 (80.98828125), so the solve stops at the floor.
     await resizeBy(page, SMALL.nested, "bottom", 0, -40);
     expect(await stored(page, SMALL.nested, { spacing: 0, y: 0 })).toEqual({
       spacing: 1 / 4,
-      y: 240,
+      y: 224,
     });
-    // From there, 62.98828125 + 35 = 26.9765625 + 51 v gives
+    // From there, 80.98828125 + 35 = 44.9765625 + 51 v gives
     // v = 71.01171875 / 51 = 1.392386…; the largest multiple of 1/2048 whose
     // height stays within the pointer is 2851/2048.
     await resizeBy(page, SMALL.nested, "bottom", 0, 35);
     expect(await stored(page, SMALL.nested, { spacing: 0, y: 0 })).toEqual({
       spacing: 2851 / 2048,
-      y: 240,
+      y: 224,
     });
   });
 
@@ -242,7 +242,7 @@ test.describe("dragging a handle", () => {
     expect(v1.zoom).toBe(1);
     // The pointer's travel in canvas units: its screen travel minus the pan.
     const travel = endX - start.x - (v1.x - v0.x);
-    const width = Math.round((458.5771484375 + travel) * 2048) / 2048;
+    const width = Math.round((476.5771484375 + travel) * 2048) / 2048;
     expect(await stored(page, SMALL.bare, { width: 0, x: 0 })).toEqual({ width, x: 40 });
     expect(await journalLength(page)).toBe(START + 1);
   });

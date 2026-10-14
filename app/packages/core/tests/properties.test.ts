@@ -15,7 +15,7 @@ import {
   writeWorkspace,
 } from "../src/index.ts";
 import { commandFor, sequenceArbitrary } from "./generate.ts";
-import { A, addBlock, B, changed, manifestFixtures, testClock } from "./support.ts";
+import { A, addBlock, allFixtures, B, changed, testClock } from "./support.ts";
 
 const BLOCKS = [A, B];
 
@@ -30,61 +30,58 @@ function started(fixture: string): Store {
 const time = (call: number) => new Date(Date.UTC(2026, 9, 11, 14, 3, 12 + call, 418)).toISOString();
 
 describe("generated command sequences", () => {
-  it.each(manifestFixtures.map((fixture) => fixture.name))(
-    "keep every invariant from %s",
-    (name) => {
-      fc.assert(
-        fc.property(sequenceArbitrary, (seeds) => {
-          const store = started(name);
-          const views: View[] = [store.view];
-          for (const seed of seeds) {
-            const before = store.view;
-            const refused = store.dispatch(commandFor(before, BLOCKS, seed));
-            if (refused !== null) {
-              expect(store.view).toBe(before);
-              continue;
-            }
-            const view = store.view;
-            expect(checkWorkspace(view)).toEqual([]);
-            for (const block of Object.values(view.blocks)) {
-              const text = saveManifest(block.manifest);
-              const loaded = loadManifest(text);
-              expect(loaded).toEqual(block.manifest);
-              if (!isLoadError(loaded)) expect(saveManifest(loaded)).toBe(text);
-            }
-            views.push(view);
+  it.each(allFixtures.map((fixture) => fixture.name))("keep every invariant from %s", (name) => {
+    fc.assert(
+      fc.property(sequenceArbitrary, (seeds) => {
+        const store = started(name);
+        const views: View[] = [store.view];
+        for (const seed of seeds) {
+          const before = store.view;
+          const refused = store.dispatch(commandFor(before, BLOCKS, seed));
+          if (refused !== null) {
+            expect(store.view).toBe(before);
+            continue;
           }
-          const { journal } = store;
-          expect(journal.map(({ author, time: at }) => [author, at])).toEqual(
-            journal.map((_, index) => ["Gerhardt", time(index)]),
-          );
-          const replayed = replay(journal).at(-1) as View;
-          expect(replayed.settings).toEqual(store.view.settings);
-          expect(replayed.blocks).toEqual(store.view.blocks);
-          const text = writeWorkspace({ view: store.view, journal });
-          const read = readWorkspace(text);
-          expect(read).toEqual({ view: store.view, journal });
-          if (!isLoadError(read)) expect(writeWorkspace(read)).toBe(text);
-          const last = views.length - 1;
-          for (let k = last - 1; k >= 0; k -= 1) {
-            store.undo();
-            expect(store.view).toBe(views[k]);
+          const view = store.view;
+          expect(checkWorkspace(view)).toEqual([]);
+          for (const block of Object.values(view.blocks)) {
+            const text = saveManifest(block.manifest);
+            const loaded = loadManifest(text);
+            expect(loaded).toEqual(block.manifest);
+            if (!isLoadError(loaded)) expect(saveManifest(loaded)).toBe(text);
           }
-          for (let k = 1; k <= last; k += 1) {
-            store.redo();
-            expect(store.view).toBe(views[k]);
-          }
-        }),
-        { numRuns: 10 },
-      );
-    },
-  );
+          views.push(view);
+        }
+        const { journal } = store;
+        expect(journal.map(({ author, time: at }) => [author, at])).toEqual(
+          journal.map((_, index) => ["Gerhardt", time(index)]),
+        );
+        const replayed = replay(journal).at(-1) as View;
+        expect(replayed.settings).toEqual(store.view.settings);
+        expect(replayed.blocks).toEqual(store.view.blocks);
+        const text = writeWorkspace({ view: store.view, journal });
+        const read = readWorkspace(text);
+        expect(read).toEqual({ view: store.view, journal });
+        if (!isLoadError(read)) expect(writeWorkspace(read)).toBe(text);
+        const last = views.length - 1;
+        for (let k = last - 1; k >= 0; k -= 1) {
+          store.undo();
+          expect(store.view).toBe(views[k]);
+        }
+        for (let k = 1; k <= last; k += 1) {
+          store.redo();
+          expect(store.view).toBe(views[k]);
+        }
+      }),
+      { numRuns: 10 },
+    );
+  });
 });
 
 describe("the generator reaches the refusal catalogue", () => {
   it("over every manifest fixture", () => {
     const seen = new Set<string>();
-    for (const fixture of manifestFixtures) {
+    for (const fixture of allFixtures) {
       const start = changed(
         changed(createView(), addBlock(A, fixture.name)),
         addBlock(B, "bare.json"),
@@ -125,6 +122,7 @@ describe("the generator reaches the refusal catalogue", () => {
         "unit_not_allowed",
         "unknown_property",
         "unknown_target",
+        "unsupported_target",
         "wrong_target_kind",
       ].sort(),
     );

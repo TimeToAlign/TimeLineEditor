@@ -4,6 +4,7 @@ import type { Graphical } from "@timetoalign/timeskeleton";
 import type { Problem } from "../errors.ts";
 import { ErrorCode, isCommandError, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";
+import { manifestKind } from "../manifest/files.ts";
 import { manifestProblems } from "../manifest/io.ts";
 import { readFinite, readIndex, readOrder, readPositive } from "../values.ts";
 import type { Block, BlockId, BlockPlacement } from "./blocks.ts";
@@ -45,11 +46,6 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
 /** An empty workspace with the given settings. */
 export function createView(settings: WorkspaceSettings = DEFAULT_SETTINGS): View {
   return { meta: WORKSPACE_META, settings, blocks: {} };
-}
-
-/** The block kind a manifest calls for: its top-level member. */
-export function manifestKind(manifest: object): string | undefined {
-  return ["timeline"].find((member) => Object.hasOwn(manifest, member));
 }
 
 function formsParentCycle(view: View, start: BlockId): boolean {

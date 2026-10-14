@@ -3,10 +3,11 @@
  *
  * - A member the schema **requires** and whose value **may be null** is
  *   left out of the TOML text when it is null, and put back as null when
- *   the text is read. In schema 0.6.0 these are `name`, `measure_map` and
+ *   the text is read. In schema 0.7.0 these are `name`, `measure_map` and
  *   `metric_hierarchy` of every timeline; `name`, `source_unit` and
  *   `target_unit` of every conversion map; `name` of a region and of a
- *   marker; `name` and `label` of a break; `target` and `label` of a jump.
+ *   marker; `name` and `label` of a break; `target` and `label` of a jump;
+ *   `name` of a group and of a bundle.
  * - Any other null cannot be shown: an optional member that may be null (a
  *   measure-map row's `nominal_length`, where absent and null mean different
  *   things) or a null array item. Such a manifest is refused for TOML, with
@@ -15,7 +16,8 @@
  *   the schema check then refuses the manifest at that member.
  *
  * Which schema object governs a JSON object is found by walking the schema
- * along the value: `$ref`s are followed, a discriminated `oneOf` contributes
+ * of the value's file kind along the value: `$ref`s are followed, into the
+ * version's other documents too, a discriminated `oneOf` contributes
  * the branch whose tag matches, any other `oneOf` or `anyOf` every branch the
  * value's JSON type admits; `if`/`then`/`else` only narrow and are skipped.
  */
@@ -23,10 +25,11 @@
 import type { Json, PathSegment } from "@timetoalign/tilie-core";
 import {
   declaredVersion,
+  fileKind,
   isJsonFloat,
   isJsonObject,
   SCHEMA_VERSION,
-  schemas,
+  schemaDocuments,
 } from "@timetoalign/timeskeleton";
 import { InspectorCode, ProblemError } from "./problems.ts";
 
@@ -35,11 +38,42 @@ type Schema = { readonly [keyword: string]: unknown };
 
 type JsonObject = { readonly [key: string]: Json };
 
-/** The schema of the version `value` declares, else of the latest version. */
-export function schemaFor(value: unknown): Schema {
-  const version = declaredVersion(value);
-  const all = schemas as { readonly [version: string]: Schema };
-  return all[version ?? SCHEMA_VERSION] ?? (all[SCHEMA_VERSION] as Schema);
+/**
+ * A schema object and the document it lies in: its `$ref`s are resolved
+ * against that document's `$id`, so a relative reference may name another
+ * document of the same version (`core.schema.json#/$defs/Id`).
+ */
+export interface Located {
+  readonly document: Schema;
+  readonly schema: Schema;
+}
+
+/** The documents of one schema version, by `$id`. */
+export type Documents = ReadonlyMap<string, Schema>;
+
+/** Every version's documents by name: `timeline`, and from 0.7.0 on `core`, `group` and `bundle`. */
+const VERSIONS = schemaDocuments as unknown as {
+  readonly [version: string]: { readonly [name: string]: Schema };
+};
+
+/** The documents of one schema version (the latest for an unknown one), by `$id`. */
+export function documentsOf(version: string): Documents {
+  const named = VERSIONS[version] ?? (VERSIONS[SCHEMA_VERSION] as Record<string, Schema>);
+  return new Map(Object.values(named).map((document) => [String(document.$id), document]));
+}
+
+/**
+ * The documents of the version `value` declares (else of the latest version)
+ * and the document of its file kind (`timeline`, `group` or `bundle`; a
+ * value of no single kind is read as a timeline file).
+ */
+export function schemaFor(value: unknown): { documents: Documents; root: Located } {
+  const declared = declaredVersion(value);
+  const version =
+    declared !== null && Object.hasOwn(VERSIONS, declared) ? declared : SCHEMA_VERSION;
+  const named = VERSIONS[version] as Record<string, Schema>;
+  const document = (named[fileKind(value) ?? "timeline"] ?? named.timeline) as Schema;
+  return { documents: documentsOf(version), root: { document, schema: document } };
 }
 
 function asSchema(value: unknown): Schema | null {
@@ -48,36 +82,56 @@ function asSchema(value: unknown): Schema | null {
     : null;
 }
 
-/** `node` with its `$ref` (a local `#/…` pointer) followed, repeatedly. */
-function resolve(root: Schema, node: Schema): Schema {
+/** A schema object of the same document as `at`. */
+function within(at: Located, schema: Schema): Located {
+  return { document: at.document, schema };
+}
+
+/**
+ * `node` with its `$ref` followed, repeatedly: the reference is resolved
+ * against its document's `$id`, the document found among `documents`, and
+ * the fragment read as a JSON pointer into it.
+ */
+function resolve(documents: Documents, node: Located): Located {
   let current = node;
-  while (typeof current.$ref === "string") {
-    const pointer = current.$ref;
-    if (!pointer.startsWith("#/")) throw new RangeError(`unsupported $ref ${pointer}`);
-    let target: unknown = root;
-    for (const part of pointer.slice(2).split("/")) {
+  while (typeof current.schema.$ref === "string") {
+    const reference = current.schema.$ref;
+    const url = new URL(reference, String(current.document.$id));
+    const pointer = decodeURIComponent(url.hash.slice(1));
+    url.hash = "";
+    const document = documents.get(url.href);
+    if (document === undefined || (pointer !== "" && !pointer.startsWith("/"))) {
+      throw new RangeError(`unsupported $ref ${reference}`);
+    }
+    let target: unknown = document;
+    for (const part of pointer === "" ? [] : pointer.slice(1).split("/")) {
       target = asSchema(target)?.[part.replaceAll("~1", "/").replaceAll("~0", "~")];
     }
     const next = asSchema(target);
-    if (next === null) throw new RangeError(`unresolved $ref ${pointer}`);
-    current = next;
+    if (next === null) throw new RangeError(`unresolved $ref ${reference}`);
+    current = { document, schema: next };
   }
   return current;
 }
 
-function branches(node: Schema, keyword: "oneOf" | "anyOf"): Schema[] {
-  const list = node[keyword];
-  return Array.isArray(list) ? list.map(asSchema).filter((item) => item !== null) : [];
+function branches(node: Located, keyword: "oneOf" | "anyOf"): Located[] {
+  const list = node.schema[keyword];
+  return Array.isArray(list)
+    ? list
+        .map(asSchema)
+        .filter((item) => item !== null)
+        .map((item) => within(node, item))
+    : [];
 }
 
 /** Whether a schema admits `null`. */
-export function admitsNull(root: Schema, node: Schema): boolean {
-  const resolved = resolve(root, node);
-  const type = resolved.type;
+export function admitsNull(documents: Documents, node: Located): boolean {
+  const resolved = resolve(documents, node);
+  const type = resolved.schema.type;
   if (type === "null" || (Array.isArray(type) && type.includes("null"))) return true;
-  if (resolved.const === null) return true;
+  if (resolved.schema.const === null) return true;
   return [...branches(resolved, "oneOf"), ...branches(resolved, "anyOf")].some((branch) =>
-    admitsNull(root, branch),
+    admitsNull(documents, branch),
   );
 }
 
@@ -102,88 +156,87 @@ function typeAdmits(node: Schema, value: Json): boolean {
 }
 
 /** Every resolved schema object that applies to `value` at `node`. */
-function applicable(root: Schema, node: Schema, value: Json): Schema[] {
-  const resolved = resolve(root, node);
-  if (!typeAdmits(resolved, value)) return [];
+function applicable(documents: Documents, node: Located, value: Json): Located[] {
+  const resolved = resolve(documents, node);
+  if (!typeAdmits(resolved.schema, value)) return [];
   const found = [resolved];
-  const discriminator = asSchema(resolved.discriminator);
+  const discriminator = asSchema(resolved.schema.discriminator);
   const tag = discriminator?.propertyName;
   for (const keyword of ["oneOf", "anyOf"] as const) {
     for (const branch of branches(resolved, keyword)) {
       if (typeof tag === "string" && keyword === "oneOf") {
-        const candidate = resolve(root, branch);
+        const candidate = resolve(documents, branch).schema;
         const tagSchema = asSchema(asSchema(candidate.properties)?.[tag]);
         const own = isJsonObject(value) ? (value as JsonObject)[tag] : undefined;
         if (tagSchema?.const !== own) continue;
       }
-      found.push(...applicable(root, branch, value));
+      found.push(...applicable(documents, branch, value));
     }
   }
   return found;
 }
 
 /** The members of a schema object that are required and may be null, sorted. */
-export function nullableRequired(root: Schema, node: Schema): string[] {
-  const resolved = resolve(root, node);
-  const properties = asSchema(resolved.properties) ?? {};
-  const required = Array.isArray(resolved.required) ? (resolved.required as string[]) : [];
+export function nullableRequired(documents: Documents, node: Located): string[] {
+  const resolved = resolve(documents, node);
+  const properties = asSchema(resolved.schema.properties) ?? {};
+  const required = Array.isArray(resolved.schema.required)
+    ? (resolved.schema.required as string[])
+    : [];
   return required
     .filter((name) => {
       const member = asSchema(properties[name]);
-      return member !== null && admitsNull(root, member);
+      return member !== null && admitsNull(documents, within(resolved, member));
     })
     .sort();
 }
 
 /** The schemas of member `key` (or of item `index`) under the applicable `nodes`. */
-function memberSchemas(nodes: readonly Schema[], key: string | number): Schema[] {
-  const found: Schema[] = [];
+function memberSchemas(nodes: readonly Located[], key: string | number): Located[] {
+  const found: Located[] = [];
   for (const node of nodes) {
+    const { schema } = node;
     if (typeof key === "string") {
-      const property = asSchema(asSchema(node.properties)?.[key]);
-      const additional = asSchema(node.additionalProperties);
-      if (property !== null) found.push(property);
-      else if (additional !== null) found.push(additional);
+      const property = asSchema(asSchema(schema.properties)?.[key]);
+      const additional = asSchema(schema.additionalProperties);
+      if (property !== null) found.push(within(node, property));
+      else if (additional !== null) found.push(within(node, additional));
     } else {
-      const prefix = Array.isArray(node.prefixItems) ? node.prefixItems : [];
-      const item = asSchema(key < prefix.length ? prefix[key] : node.items);
-      if (item !== null) found.push(item);
+      const prefix = Array.isArray(schema.prefixItems) ? schema.prefixItems : [];
+      const item = asSchema(key < prefix.length ? prefix[key] : schema.items);
+      if (item !== null) found.push(within(node, item));
     }
   }
   return found;
 }
 
 /**
- * Rewrite `value` along the schema: at each object, `object(nodes, value,
- * path)` gives the object's own members (its children are then rewritten);
- * a null that `object` keeps is passed to `onNull`.
+ * Rewrite `value` along the schema: at each object, `object(nodes, value)`
+ * gives the object's own members, whose values are then rewritten in turn.
  */
 function rewrite(
-  root: Schema,
-  nodes: readonly Schema[],
+  documents: Documents,
+  nodes: readonly Located[],
   value: Json,
-  path: readonly PathSegment[],
-  object: (nodes: readonly Schema[], value: JsonObject) => JsonObject,
+  object: (nodes: readonly Located[], value: JsonObject) => JsonObject,
 ): Json {
-  const here = nodes.flatMap((node) => applicable(root, node, value));
+  const here = nodes.flatMap((node) => applicable(documents, node, value));
   if (Array.isArray(value)) {
-    return value.map((item, index) =>
-      rewrite(root, memberSchemas(here, index), item, [...path, index], object),
-    );
+    return value.map((item, index) => rewrite(documents, memberSchemas(here, index), item, object));
   }
   if (!isJsonObject(value)) return value;
   const own = object(here, value as JsonObject);
   return Object.fromEntries(
     Object.entries(own).map(([key, item]) => [
       key,
-      rewrite(root, memberSchemas(here, key), item, [...path, key], object),
+      rewrite(documents, memberSchemas(here, key), item, object),
     ]),
   );
 }
 
 /** The members of `value` that may be omitted when null, by the applicable schemas. */
-function omissible(root: Schema, nodes: readonly Schema[]): Set<string> {
-  return new Set(nodes.flatMap((node) => nullableRequired(root, node)));
+function omissible(documents: Documents, nodes: readonly Located[]): Set<string> {
+  return new Set(nodes.flatMap((node) => nullableRequired(documents, node)));
 }
 
 /**
@@ -193,7 +246,7 @@ function omissible(root: Schema, nodes: readonly Schema[]): Set<string> {
  * @throws {ProblemError} `not_representable` at the first other null.
  */
 export function omitNulls(value: Json): Json {
-  const root = schemaFor(value);
+  const { documents, root } = schemaFor(value);
   const check = (item: Json, path: readonly PathSegment[]): void => {
     if (item === null) {
       throw new ProblemError({
@@ -208,8 +261,8 @@ export function omitNulls(value: Json): Json {
       for (const [key, entry] of Object.entries(item as JsonObject)) check(entry, [...path, key]);
     }
   };
-  const omitted = rewrite(root, [root], value, [], (nodes, object) => {
-    const allowed = omissible(root, nodes);
+  const omitted = rewrite(documents, [root], value, (nodes, object) => {
+    const allowed = omissible(documents, nodes);
     return Object.fromEntries(
       Object.entries(object).filter(([key, item]) => !(item === null && allowed.has(key))),
     );
@@ -220,9 +273,9 @@ export function omitNulls(value: Json): Json {
 
 /** The manifest read from TOML: every missing member the schema requires and admits as null set to null. */
 export function restoreNulls(value: Json): Json {
-  const root = schemaFor(value);
-  return rewrite(root, [root], value, [], (nodes, object) => {
-    const missing = [...omissible(root, nodes)].filter((key) => !Object.hasOwn(object, key));
+  const { documents, root } = schemaFor(value);
+  return rewrite(documents, [root], value, (nodes, object) => {
+    const missing = [...omissible(documents, nodes)].filter((key) => !Object.hasOwn(object, key));
     return { ...object, ...Object.fromEntries(missing.map((key) => [key, null])) };
   });
 }

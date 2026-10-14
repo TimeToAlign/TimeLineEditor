@@ -14,6 +14,7 @@
 import { JsonFloat } from "@timetoalign/timeskeleton";
 import fc from "fast-check";
 import type { Manifest, TimelineManifest, View } from "../src/index.ts";
+import { elementAddress, manifestKind, manifestRoots } from "../src/index.ts";
 
 export interface Seed {
   readonly kind: number;
@@ -34,15 +35,19 @@ const pick = <T>(items: readonly T[], n: number): T => items[n % items.length] a
 interface Place {
   readonly timeline: TimelineManifest;
   readonly parent: TimelineManifest | undefined;
+  /** The root qualifying the addresses of its other elements; null in a timeline file. */
+  readonly root: string | null;
 }
 
+/** Every timeline of every root of a manifest. */
 function places(manifest: Manifest): Place[] {
   const found: Place[] = [];
-  const walk = (timeline: TimelineManifest, parent: TimelineManifest | undefined) => {
-    found.push({ timeline, parent });
-    for (const entry of Object.values(timeline.children)) walk(entry.timeline, timeline);
+  const qualified = manifestKind(manifest) !== "timeline";
+  const walk = (timeline: TimelineManifest, parent: TimelineManifest | undefined, root: string) => {
+    found.push({ timeline, parent, root: qualified ? root : null });
+    for (const entry of Object.values(timeline.children)) walk(entry.timeline, timeline, root);
   };
-  walk(manifest.timeline, undefined);
+  for (const root of manifestRoots(manifest)) walk(root, undefined, root.id);
   return found;
 }
 
@@ -135,6 +140,7 @@ function newTimeline(id: string, picks: readonly number[], like: Axis | undefine
     conversion_maps: [],
     regions: [],
     flow_control: { breaks: [], jumps: [], markers: [] },
+    is_segment_line: false,
     measure_map: null,
     metric_hierarchy: null,
   };
@@ -207,14 +213,18 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
   const block = pick([...blocks, ...blocks, ...blocks, "0000000009"], p0);
   const manifest = view.blocks[block]?.manifest;
   const all = manifest === undefined ? [] : places(manifest);
-  const maps = all.flatMap((place) => place.timeline.conversion_maps.map((map) => map.id));
-  const elements = all.flatMap(({ timeline }) =>
+  // Maps as [address within the block, id]; the other elements by address.
+  const maps = all.flatMap((place) =>
+    place.timeline.conversion_maps.map((map) => [elementAddress(place.root, map.id), map.id]),
+  );
+  const mapIds = maps.map(([, mapId]) => mapId as string);
+  const elements = all.flatMap(({ timeline, root }) =>
     [
       timeline.regions,
       timeline.flow_control.breaks,
       timeline.flow_control.jumps,
       timeline.flow_control.markers,
-    ].flatMap((list) => list.map((item) => item.id)),
+    ].flatMap((list) => list.map((item) => elementAddress(root, item.id))),
   );
   const markers = all.flatMap(({ timeline }) =>
     timeline.flow_control.markers.map((marker) => marker.id),
@@ -294,12 +304,12 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
       return {
         type: "add",
         into: pick([element, element, element, "workspace"], p6),
-        map: conversionMap(pick([`m${p2 % 5}`, ...ids, ...maps], p3), axis, seed.picks.slice(4)),
+        map: conversionMap(pick([`m${p2 % 5}`, ...ids, ...mapIds], p3), axis, seed.picks.slice(4)),
       };
     case 5: {
       const targets = [
         ...ids.map((item) => `${block}/${item}`),
-        ...maps.map((item) => `${block}/${item}`),
+        ...maps.map(([address]) => `${block}/${address}`),
         ...elements.map((item) => `${block}/${item}`),
         "workspace",
         blocks[1] ?? block,
@@ -327,9 +337,9 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
       };
     }
     case 7: {
-      const map = pick([...maps, "ghost"], p2);
-      const payload = conversionMap(pick([map, map, "other"], p3), axis, seed.picks.slice(4));
-      return set(`${block}/${map}`, { map: payload });
+      const [address, mapId] = pick([...maps, ["ghost", "ghost"]], p2) as [string, string];
+      const payload = conversionMap(pick([mapId, mapId, "other"], p3), axis, seed.picks.slice(4));
+      return set(`${block}/${address}`, { map: payload });
     }
     case 9: {
       const kind = pick(["region", "break", "jump", "marker"], p2);

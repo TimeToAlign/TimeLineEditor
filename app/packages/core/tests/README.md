@@ -1,7 +1,10 @@
 # `@timetoalign/tilie-core` tests
 
-`core` holds exact coordinates, one TimeSkeleton manifest (`{meta, timeline,
-graphical?}`, timeskeleton's `SCHEMA_VERSION`), the elements a selector can match, the
+`core` holds exact coordinates, one TimeSkeleton manifest of
+timeskeleton's `SCHEMA_VERSION` in each of its three file kinds (a timeline
+file `{meta, timeline, graphical?}`, a group file `{meta, timelines, group,
+graphical?}`, a bundle file `{meta, timelines, bundle, graphical?}`), the
+elements a selector can match, the
 immutable workspace view of blocks, the four commands `add`, `set`, `remove`
 and `style` over addresses, the store with its command journal, and the
 workspace file. This file states what proves each part works; a test that
@@ -11,8 +14,10 @@ General rules: exact values only (`toEqual`/`toBe` against literal expectations
 or against a value reached by another path); no thresholds except the budgets,
 which are stated as the requirement they test; no network; nothing written
 outside temporary state. Manifests come from the fixtures shipped by the
-installed `@timetoalign/timeskeleton` package (`fixtures/<SCHEMA_VERSION>/`, 23 files) or
-are built through commands; a manifest literal appears only where a rejection
+installed `@timetoalign/timeskeleton` package (`fixtures/<SCHEMA_VERSION>/`: 29
+timeline files directly in it, 9 group files in `groups/`, 9 bundle files in
+`bundles/`; the timeline files of the earlier versions in
+`fixtures/<version>/`) or are built through commands; a manifest literal appears only where a rejection
 is asserted. Block ids in examples are `A = "0000000000"`, `B = "0000000001"`,
 `C = "0000000002"`.
 
@@ -88,10 +93,11 @@ nothing is lost. In a loaded manifest every number is a `JsonNumber`: a plain
 number for a safe integer or a float with a fractional part, a `bigint` beyond
 2^53, a `JsonFloat` for an integral float (`600.0`).
 
-1. **Fixture round trip.** There are exactly 23 files in
-   `fixtures/<SCHEMA_VERSION>/`.
-   For each, `saveManifest(loadManifest(text))` equals `text` byte for byte.
-   No skip, no normalization in the comparison.
+1. **Fixture round trip.** There are exactly 29 timeline files in
+   `fixtures/<SCHEMA_VERSION>/`, 9 group files in its `groups/` and 9 bundle
+   files in its `bundles/`. For each of the 47,
+   `saveManifest(loadManifest(text))` equals `text` byte for byte. No skip,
+   no normalization in the comparison.
 2. **Shared rejections.** For every case in every `fixtures/rejections/<version>/`, the
    rejected manifest, written as JSON text, is refused by `loadManifest` with
    exactly one problem whose `path` equals the case's `path`. These include
@@ -102,15 +108,18 @@ number for a safe integer or a float with a fractional part, a `bigint` beyond
    by `"0.0.0"` is refused with exactly one problem
    `{code: "schema_violation", path: ["meta", "schema_version"]}`. Every
    version in timeskeleton's `SUPPORTED_VERSIONS` is read by migrating it
-   to `SCHEMA_VERSION` through timeskeleton's `migrate` (core has no
-   migration of its own): for each supported version and each of the 23
-   fixtures, the fixture text with its `schema_version` replaced by that
-   version loads, the loaded manifest declares `SCHEMA_VERSION`, and
-   `saveManifest` writes the fixture text byte for byte. So a migration
-   loses nothing and the version is the only member it changes (the
-   supported versions differ in nothing else today). `readManifestValue`
-   leaves the value it is given unchanged: it still declares the older
-   version afterwards.
+   to `SCHEMA_VERSION` through timeskeleton's `migrate`; core has no
+   migration of its own. For each earlier supported version and each of its
+   23 timeline fixtures (`fixtures/<version>/`), the loaded manifest
+   declares `SCHEMA_VERSION` and `saveManifest` writes exactly
+   `dumps(migrate(parseJson(text)))`, the text timeskeleton's migration
+   gives (the fixtures are in canonical order). The migration pair
+   `fixtures/migrations/0.6.0-to-0.7.0/` pins the step with values
+   timeskeleton wrote by hand: its `before.json` loads and saves as its
+   `after.json` byte for byte; the pair `0.5.0-to-0.6.0` loads its
+   `before.json` and its `after.json` to equal texts. `readManifestValue`
+   leaves the value it is given unchanged: each earlier version's
+   `bare.json` still declares that version afterwards.
 4. **Missing styles are completed.** A graphical statement naming each of
    two absent styles produces exactly one warning naming both, the one
    timeskeleton's `completeStyles` issues (`Missing graphical styles: 'a',
@@ -151,7 +160,8 @@ number for a safe integer or a float with a fractional part, a `bigint` beyond
 10. **Malformed text** is refused with code `invalid_json` at path `[]`.
 
 `checkManifest` reports all invariant violations in traversal order with paths
-starting at `timeline`. `saveManifest` throws `InvalidManifestError` carrying
+starting at `timeline`, in a group or bundle file root by root with paths
+starting at `["timelines", <index>]` (`files.test.ts`). `saveManifest` throws `InvalidManifestError` carrying
 the complete exact problem list. Canonical member order is checked in text as
 well as by deep equality.
 
@@ -207,42 +217,93 @@ check, not the editor's.
 A `style` command needs to know which blocks hold an element a selector
 matches, and `layout` resolves the cascade with the same test, so both use
 one enumeration and one matcher in `core`: `manifestElements(manifest)` lists
-every element of the drawing specification's tree (section 2.1) as an
-`ElementKey` `{type, address, timeline, domain, modality, class}`, and
-`selectorMatches(select, key, ancestry)` tests one key, `ancestry` mapping each
-timeline id to the ids from the root down to it (`timelineAncestry`).
+every element of the drawing specification's tree (sections 2.1 and 8.1) as
+an `ElementKey` `{type, address, timeline, domain, modality, class,
+inside}`, and `selectorMatches(select, key, ancestry)` tests one key,
+`ancestry` mapping each timeline id to the ids from the root down to it
+(`timelineAncestry`). `inside` is the key's **holder chain**: the types of
+the elements holding it in the tree, outermost first. A key is made by
+`elementKey`, `textKey` or `unownedKey` from its holder's key, never written
+by hand, so the chain is the holder's chain followed by the holder's own
+type; a segment that is not a segment line (type `null`) adds nothing to
+the chains of what it holds. Two drawings of one address are two keys with
+the same address and different chains, so `inside` is the only member that
+can tell them apart.
 
 1. **The enumeration of `map.json`** is exactly, in this order (type,
-   address, timeline, domain, modality, class; `CLT` stands for
-   `ContinuousLogicalTimeline`): `block` with every other member `null`;
-   `timeline`, `melody`, `melody`, logical, continuous, CLT; `name`,
-   `melody/name`, the same; `map`, `tempo`, `melody`, physical, continuous,
-   `ScalarMap`; `wedge`, `melody/start`, then its `label`,
-   `melody/start/label`; `wedge`, `melody/end`, then `label`,
-   `melody/end/label` (all four `melody`, logical, continuous, CLT); `child`,
-   `phrase`, `phrase`, logical, continuous, CLT; `name`, `phrase/name`, the
-   same; `map`, `ticks`, `phrase`, logical, discrete, `QuartersToTicks`. The
-   order is: the block, then per timeline in pre-order (children by offset,
-   then id, never by key order) its line, its name, its maps, its regions,
-   breaks and jumps each followed by its label, and after the root's own
-   elements its two wedges with their labels. A map has no name and no label;
-   a map whose `target_unit` is null has domain and modality `null`.
-   Addresses are flat (the drawing specification, section 2.2): an element's
-   own id, a part as `<address>/<word>`.
+   address, timeline, domain, modality, class, inside; `CLT` stands for
+   `ContinuousLogicalTimeline`): `block`, every other member `null`, inside
+   `[]`; `card`, `melody/card`, `melody`, logical, continuous, CLT,
+   `[block]`; `timeline`, `melody`, the same, `[block]`; `name`,
+   `melody/name`, the same, `[block, timeline]`; `map`, `tempo`, `melody`,
+   physical, continuous, `ScalarMap`, `[block, timeline]`; `wedge`,
+   `melody/start`, `[block, timeline]`, then its `label`,
+   `melody/start/label`, `[block, timeline, wedge]`; `wedge`, `melody/end`
+   and its `label` `melody/end/label` the same way (all four `melody`,
+   logical, continuous, CLT); `child`, `phrase`, `phrase`, logical,
+   continuous, CLT, `[block, timeline]`; `name`, `phrase/name`, the same,
+   `[block, timeline, child]`; `map`, `ticks`, `phrase`, logical, discrete,
+   `QuartersToTicks`, `[block, timeline, child]`. The order is: the block,
+   the root's card (a card has its timeline's domain, modality and class,
+   and is held by the block beside the root's line, holding nothing), then
+   per timeline in pre-order (children by offset, then id, never by key
+   order) its line, its name, its maps, its regions, breaks and jumps each
+   followed by its label, and after the root's own elements its two wedges
+   with their labels. A map has no name and no label; a map whose
+   `target_unit` is null has domain and modality `null`. Addresses are flat
+   (the drawing specification, section 2.2): an element's own id, a part as
+   `<address>/<word>`.
 2. **Regions, breaks and jumps** are addressed by their ids:
    `with_region.json` has exactly the region `region_1`; `flow_control.json`
    the break `break_1` and the jump `jump_1`, and its labels are exactly
    `break_1/label`, `jump_1/label`, `flow:quarters/start/label`,
    `flow:quarters/end/label`. Markers are not drawn and are not elements.
-   Every address `draw` gives an element of a fixture is an address of this
-   enumeration with the same type (`layout`'s cascade tests check it for
-   every fixture).
-3. **Matching.** Over `map.json`: `{}` matches all eleven keys; `{element:
+   Every address of a timeline fixture's enumeration is distinct (a timeline
+   file draws every element once).
+3. **Matching.** Over `map.json`: `{}` matches all twelve keys; `{element:
    "map", domain: "physical"}` only `tempo`; `{within: "phrase"}` exactly
    `phrase`, `phrase/name`, `ticks`; `{ids: ["tempo"]}` only that map;
    `{class: "QuartersToTicks"}` only `ticks`; `{modality: "discrete"}` only
-   `ticks`; a selector naming the block's address never matches (the block
-   has none).
+   `ticks`; `{element: "card"}` only `melody/card`, and `{element: "card",
+   domain: "logical"}` the same; a selector naming the block's address never
+   matches (the block has none).
+4. **`inside`** matches an element held at any depth by an element of the
+   named type, never the holder itself. Over `map.json`: `{inside: "child"}`
+   exactly `phrase/name`, `ticks`; `{inside: "timeline"}` exactly
+   `melody/name`, `tempo`, `melody/start`, `melody/start/label`,
+   `melody/end`, `melody/end/label`, `phrase`, `phrase/name`, `ticks`;
+   `{inside: "wedge"}` exactly the two wedge labels; `{inside: "block"}`
+   every key but the block; `{inside: "card"}` and `{inside: "map"}`
+   nothing (a card and a map hold nothing); `{element: "name", inside:
+   "child"}` only `phrase/name`. A key built by hand with `inside:
+   ["block", "group", "timeline", "ancestor"]` matches `{inside: "group"}`
+   and `{inside: "ancestor"}` and not `{inside: "child"}`: the matcher reads
+   the chain and nothing else.
+5. **Segment lines** (`segment_line.json`: root `form`, segments `a`, `b`,
+   `c`, each a segment line; `a` holds `a1`, `b` holds `b1` and `b2`, `c`
+   holds `c1`, none of these a segment line). A segment that is a segment
+   line is drawn as a child line without a name (its name is its label), so
+   its node has type `child`; a segment that is not a segment line has no
+   line and no name, its node has type `null`, so no selector naming
+   `element` matches it. A segment that is not the first of its segment line
+   (canonical order) has a `boundary` `<id>/start`, and every segment a
+   `label` `<id>/label`, all three belonging to the segment, and boundary and
+   label are held by the segment. The (type, address) list is exactly:
+   `block`; `card form/card`; `timeline form`, `name form/name`, the wedges
+   `form/start`, `form/start/label`, `form/end`, `form/end/label`; then in
+   pre-order `child a`, `label a/label`; `null a1`, `label a1/label`; `child
+   b`, `boundary b/start`, `label b/label`; `null b1`, `label b1/label`;
+   `null b2`, `boundary b2/start`, `label b2/label`; `child c`, `boundary
+   c/start`, `label c/label`; `null c1`, `label c1/label`. The boundary
+   `b/start` is exactly `{type: "boundary", address: "b/start", timeline:
+   "b", domain: "logical", modality: "continuous", class: CLT, inside:
+   ["block", "timeline", "child"]}`, and `b2/start` has the same chain (the
+   `null` node `b2` adds nothing). `{element: "boundary"}` matches exactly
+   `b/start`, `b2/start`, `c/start`; `{element: "child"}` exactly `a`, `b`,
+   `c`; `{ids: ["b"]}` the node `b`; `{within: "b"}` exactly `b`,
+   `b/start`, `b/label`, `b1`, `b1/label`, `b2`, `b2/start`, `b2/label`.
+
+The elements of group and bundle files are in `files.test.ts`.
 
 ## Workspace view, ids, addresses and order (`workspace.test.ts`, `workspace-ids-order.test.ts`)
 
@@ -278,12 +339,13 @@ byte streams pin the exact ten-character result. Block ids match
 `^[0-9a-z]{10}$` (`BLOCK_ID`).
 
 Timeline prefixes (`TIMELINE_PREFIX`) are exactly `clt`, `dlt`, `cpt`, `dpt`,
-`cgt` and `dgt`. `nextId(view, block, prefix)` returns the smallest
-`{prefix}_{N}`, `N` from 1, that no id in that block's manifest carries,
-whatever the kind of the element carrying it: on a block of `bare.json` it is
-`clt_1`; after children `clt_1` and `clt_3` are added it is `clt_2`; after a
-conversion map `map_1` is added, `nextId(view, A, "map")` is `map_2`. On a
-block that does not exist it is `{prefix}_1`.
+`cgt` and `dgt`. `nextId(view, block, prefix, into?)` on a timeline block
+returns the smallest `{prefix}_{N}`, `N` from 1, that no id in that block's
+manifest carries, whatever the kind of the element carrying it and whatever
+`into` names: on a block of `bare.json` it is `clt_1`; after children `clt_1`
+and `clt_3` are added it is `clt_2`; after a conversion map `map_1` is added,
+`nextId(view, A, "map")` is `map_2`. On a block that does not exist it is
+`{prefix}_1`. Its scoping in group and bundle blocks is in `files.test.ts`.
 
 Addresses (`parseAddress`, `formatAddress`): `workspace` is `{block: null,
 element: null}`; `0000000000` is `{block: A, element: null}`;
@@ -337,6 +399,12 @@ different block properties.
 A coordinate is read on the axis of the timeline holding the element
 (`invalid_coordinate`, `off_axis` at `[address, property, …]`) and stored
 normalized.
+
+In a group or bundle block the same tables apply with the element addresses
+of that file kind (`files.test.ts`): a timeline at any depth is
+`<block>/<timeline id>`, every map, region, break, jump and marker
+`<block>/<root id>/<id>`; a group or the bundle is no target; and `remove`
+refuses every timeline, root or child, with `unsupported_target`.
 
 The values of an `add`: a `block` is `{id, manifest, x, y}` plus any of
 `index`, `scale`, `length`, `spacing`, `width` `height` and `order`, the
@@ -451,8 +519,9 @@ of the command, except where a command is malformed and so has no target.
   "/clt_3", "length"]`, `length_below_content` at `[A + "/clt_1",
   "length"]` for 23/2, `schema_violation` at `["workspace", "graphical", …]`
   and `[A, "manifest", "meta", "schema_version"]` for a manifest declaring
-  `0.0.0` (a manifest declaring an older supported version is accepted and
-  stored at `SCHEMA_VERSION`, equal to the latest fixture), `id_not_settable` at `[A + "/tempo", "map", "id"]` for a payload
+  `0.0.0` (the latest fixture written as an older supported version
+  declares it, without `is_segment_line`, is accepted and stored at
+  `SCHEMA_VERSION`, equal to the latest fixture), `id_not_settable` at `[A + "/tempo", "map", "id"]` for a payload
   with another id. Manifest locations: `child_not_locked` at `[A,
   "manifest", "timeline", "children", "clt_3", "timeline", "locked"]` for
   `locked: false` on `clt_3`; `child_exceeds_parent` at `[A, "manifest",
@@ -478,6 +547,165 @@ of the command, except where a command is malformed and so has no target.
 - Atomicity: `set` with `{target: A, values: {x: 1}}` and `{target:
   "0000000009", values: {x: 2}}` is refused with `unknown_target` at `["0000000009"]`; `remove [A,
   C]` with `C` absent is refused; in both the frozen input is unchanged.
+
+## Group and bundle files (`files.test.ts`)
+
+A group or bundle file holds several root timelines (`timelines`), so what
+core does for one root it does for each, and its element addresses are
+those of the drawing specification, section 2.2: a timeline, a group or the
+bundle by its bare id (timeline ids are unique across the file), every other
+element (map, region, break, jump, marker) by `<root id>/<element id>`
+(those ids are unique only within a root's tree), parts appended. Fixtures:
+`groups/group_child_member.json` (group `group_1` "Second half", display
+order `second-half`, `recording`; root `piece` holds the member
+`second-half` at offset 8; root `recording`), `groups/group_number_types.json`
+(group `group_1` "Edition", roots `page`, `performance`, `score`, display
+order `score`, `page`, `performance`), `groups/group_styled.json` (the same
+with `graphical` styles and statements beside its `order`) and
+`bundles/bundle_mixed.json` (bundle `bundle_1`; groups `group_1`
+"Performance", order `score`, `performance`, and `group_2` "Facsimile",
+order `page`, `excerpt`; `excerpt` a child of root `recording`; root
+`annotations` ungrouped).
+
+1. **The file kind.** `manifestKind` is `timeline` for `bare.json`, `group`
+   for `group_child_member.json` and `bundle` for `bundle_mixed.json`;
+   `manifestRoots` gives the ids `["bare"]`, `["piece", "recording"]` and
+   `["annotations", "page", "performance", "recording", "score"]`.
+2. **Blocks.** Adding a block of each kind gives `blockKind` `group` and
+   `bundle`; `set` of `manifest: <bare.json>` on the group block is refused
+   with `block_kind_mismatch` at `[A, "manifest"]`; a view whose block of
+   `group_child_member.json` claims `blockKind: "timeline"` gives
+   `checkWorkspace` exactly one problem, `block_kind_mismatch` at
+   `["blocks", A, "blockKind"]`. A workspace holding blocks of all three
+   kinds writes and reads back deep-equal, and writes again to the same
+   bytes; its file format stays version 1.
+3. **Invariants root by root.** `group_child_member.json` with
+   `second-half` unlocked is refused with exactly `child_not_locked` at
+   `["timelines", 0, "children", "second-half", "timeline", "locked"]`.
+4. **Elements of a group file.** `manifestElements(group_child_member)` is
+   exactly (type, address, timeline, domain, modality, class, inside; `CLT`
+   and `CPT` the continuous logical and physical classes; `B`, `G`, `T`,
+   `A`, `W` stand for `block`, `group`, `timeline`, `ancestor`, `wedge` in
+   the chains): `block`, all null, `[]`; `group group_1`, `[B]`, and `name
+   group_1/name`, `[B, G]`, the timeline, domain, modality and class null (a
+   frame and a title belong to no timeline); then the member `second-half`
+   (display order first): `card second-half/card` (`second-half`, logical,
+   continuous, CLT), `[B, G]`; its ancestor line `ancestor piece`, `[B, G,
+   T]`, and `name piece/name`, `[B, G, T, A]` (`piece`, logical,
+   continuous, CLT); the marks on it, `wedge second-half/start`, `[B, G, T,
+   A]`, `label second-half/start/label`, `[B, G, T, A, W]`, `wedge
+   second-half/end` and `label second-half/end/label` the same; then
+   `timeline second-half`, `[B, G]`, `name second-half/name`, `wedge
+   second-half/start`, `wedge second-half/end`, `[B, G, T]`, each wedge
+   followed by its label, `[B, G, T, W]` (all `second-half`, logical,
+   continuous, CLT); then `recording` the same way without ancestors
+   (`recording`, physical, continuous, CPT). So a member's drawing lists its
+   card, its ancestor lines, each with its name and its two marks, each
+   mark with its label, and then its own line as a root's. A member that is
+   a child in `timelines` is a `timeline` element in its drawing. The
+   addresses `second-half/start`, `second-half/end` and their labels occur
+   twice, once on the ancestor line and once on the member's own line.
+   `{within: "piece"}` matches exactly `second-half/card`, the `piece`
+   ancestor, its name, the four mark keys and every element of the line
+   `second-half` (thirteen keys); `{element: "group"}` only the frame;
+   `{element: "card"}` exactly `second-half/card`, `recording/card`;
+   `{inside: "ancestor"}` exactly `piece/name` and the four mark keys, each
+   with the chain above (so the wedges on the member's own line are not
+   among them); `{element: "wedge", inside: "ancestor"}` the two marks;
+   `{element: "name", inside: "ancestor"}` only `piece/name`; `{inside:
+   "group"}` every key but the block and the frame.
+5. **Elements of a bundle file.** The addresses of
+   `manifestElements(bundle_mixed)` are exactly: the block (null);
+   `bundle_1/name`; `group_1`, `group_1/name`; `score/card`, then `score`
+   with its name, wedges and wedge labels; `performance` the same;
+   `group_2`, `group_2/name`; `page` the same; `excerpt/card`, `recording`
+   (type `ancestor`), `recording/name`, the marks `excerpt/start`,
+   `excerpt/start/label`, `excerpt/end`, `excerpt/end/label`, then `excerpt`
+   with its name, wedges and wedge labels; then the ungrouped root
+   `annotations` with its card, name, wedges and wedge labels. The bundle's
+   title, `annotations/card` and the line `annotations` are held by the
+   block alone (chain `[block]`), the line's name by the block and the line
+   (`[block, timeline]`). `memberDrawings`
+   gives the frames `group_1` (`score`, `performance`) and `group_2`
+   (`page`, `excerpt`, the latter with the one ancestor `recording`, offset
+   its offset there) and the ungrouped roots `["annotations"]`.
+6. **Addresses.** In a block of `group_number_types.json`, adding the region
+   `region_1` (2 to 4 quarters) into `A/score` stores it in
+   `timelines[2].regions`; `manifestIds` then holds exactly `group_1`,
+   `page`, `performance`, `score` and `score/region_1`. `elementOf` of
+   `score/region_1/label` is `score/region_1`, of `score/end/label`,
+   `score/start` and `score/card` is `score`, of `group_1/name` is
+   `group_1`. `score/start` is never an element: adding a region with the
+   id `start` into `A/score` is refused, `schema_violation` at `[A,
+   "manifest", "timelines", 2, "regions", 0, "id"]` (timeskeleton reserves
+   the part words there), and so is a region with the id `card`, at the
+   same path; and a
+   `set` aimed at `A/score/start` is refused with `unknown_target` at `[A +
+   "/score/start"]`, as a part is in a timeline block. `unknown_target` also
+   for `A/region_1` (an entry needs its root), `A/page/region_1` (not in
+   page's tree), `A/group_1` (a group is no target) and `A/score/region_1/x`.
+7. **Commands.** `set` reaches a timeline at any depth: `name: "Late"` on
+   `A/second-half` of `group_child_member.json` changes exactly
+   `timelines[0].children["second-half"].timeline.name`, and `name: "Intro"`
+   on `A/score/region_1` that region's name. `add` a child `clt_1` (bare's
+   root, locked, length 8 quarters, offset 0) into `A/score` of
+   `group_number_types.json`: it is stored under `timelines[2].children`.
+   `duplicate_id` is scoped like the ids: a child carrying `page` (a
+   timeline of another root) at `[A + "/page"]`; a second `region_1` into
+   `A/score` at `[A + "/score/region_1"]`; but `region_1` into `A/page`,
+   another tree, is accepted. `remove` refuses `A/score` (a root) and
+   `A/second-half` (a child) with `unsupported_target` at the address and
+   removes `A/score/region_1`. `style` with `blocks: [A]` on
+   `group_styled.json`, `{select: {element: "ancestor"}, set: {opacity:
+   0.5}}`, adds that statement after the file's three and keeps `styles` and
+   `order`. The expected block is written out literally, copied from the
+   fixture, so the test does not read what it checks: `order` exactly
+   `["score", "page", "performance"]`, `styles` exactly
+   `{"frame-highlight": {stroke: "#7F00FF"}}`, and `statements` exactly
+   `{select: {element: "group"}, set: "frame-highlight"}`,
+   `{select: {element: "name", ids: ["group_1/name"]}, set: {fill:
+   "#7F00FF"}}`, `{select: {element: "card", inside: "group"}, set: {rx: 2,
+   shadow: "#C4B5FD"}}`, then the new one. The three must come out unchanged
+   and in this order: statements cascade (a later one wins), so a reordered,
+   merged or rewritten statement would draw differently, and the string `set`
+   names a style that must still resolve. Without `blocks`,
+   `{select: {element: "group"}, set: {stroke: "#C00000"}}` reaches a group
+   and a bundle block and not a timeline block beside them.
+8. **Ids for new elements** (`nextId(view, block, prefix, into?)`), on a
+   block of `group_number_types.json` with `region_1` in `score`: `region`
+   into `score` is `region_2`, into `page` `region_1`, without `into`
+   `region_2`; after adding a region `clt_1` into `page`, `clt` into
+   `score` is `clt_1` (a region of another tree does not count) and into
+   `page` `clt_2`; after adding the child `clt_1` into `score`, `clt` into
+   `page` is `clt_2` and into `performance` `clt_2` (timeline ids are unique
+   across the file); `group` without `into` is `group_2` (group and bundle
+   ids are always taken).
+9. **What can be removed** (`isRemovable(manifest, element)`, the one rule
+   `remove` refuses through, which the arranger's delete preview and
+   refusal hint read too). Exact cases, each with what `remove` of
+   `A/<element>` gives:
+   - `nested.json` (timeline file): `clt_1` is not removable, and `remove`
+     refuses it with `not_removable`, message `root cannot be removed`;
+     `clt_3` and `clt_2` are removable, and `remove` accepts them.
+   - `group_child_member.json`: `piece`, `second-half` and `recording` (a
+     root, a member that is a child timeline, a member that is a root) are
+     not removable, and `remove` refuses each with `unsupported_target`,
+     message `removing a timeline from a group or bundle file is not
+     supported yet`; `group_1` is not removable, and `remove` finds nothing
+     (`unknown_target`, message `<address> names nothing`).
+   - `group_number_types.json` with `region_1` in `score`: `score`, `page`
+     and `performance` as above (`unsupported_target`), `group_1` as above
+     (`unknown_target`); `score/region_1` is removable, and `remove`
+     accepts it.
+   - `bundle_mixed.json`: `annotations`, `page`, `performance`,
+     `recording`, `excerpt` and `score` as above (`unsupported_target`);
+     `bundle_1`, `group_1` and `group_2` as above (`unknown_target`).
+   - `nobody`, in each of the four, is removable: the rule refuses by kind,
+     and `remove` refuses it as naming nothing (`unknown_target`).
+
+   `isRemovableIn(manifest)` and `elementOfIn(manifest)` give the same
+   answers as `isRemovable` and `elementOf` for every case above and every
+   path of item 6; they read the file's kind and ids once for many calls.
 
 ## The store and the journal (`store.test.ts`)
 
@@ -540,9 +768,10 @@ workspace) and returns a `Workspace` or a `LoadError`.
    entry command of type `move` → `invalid_command` at `["journal", 0,
    "command", "type"]`.
 4. **Older manifests are migrated.** The round-trip workspace's text with
-   every block manifest's `schema_version` replaced by an older version of
-   `SUPPORTED_VERSIONS` reads as a workspace deep-equal to the one read from
-   the original text: its manifests declare `SCHEMA_VERSION`.
+   every block manifest written as an older version of `SUPPORTED_VERSIONS`
+   declares it (the declaration changed, `is_segment_line` removed) reads as
+   a workspace deep-equal to the one read from the original text: its
+   manifests declare `SCHEMA_VERSION`.
 
 ## Properties (`properties.test.ts`, fast-check)
 
@@ -554,7 +783,10 @@ malformed addresses; properties from the target's table, another kind's
 table and unknown names; coordinates on the axis, off it, negative and past
 the end; payloads include ones the schema refuses. Each fixture starts as
 block `A` beside a block `B` of `bare.json`, in a store with an injected
-clock.
+clock. The fixtures are every timeline, group and bundle file; in a group
+or bundle block the generator draws timelines by their bare ids and the
+other elements by `<root id>/<id>`, and adds into the tree of the timeline
+it targets.
 
 1. After every accepted command `checkWorkspace` is empty, and every block's
    manifest saves and reloads deep-equal with identical text.
@@ -576,7 +808,8 @@ clock.
    `negative_offset`, `non_finite_number`, `non_positive_number`,
    `not_removable`, `number_type_not_allowed`, `off_axis`,
    `region_end_before_start`, `schema_violation`, `unit_not_allowed`,
-   `unknown_property`, `unknown_target`, `wrong_target_kind`.
+   `unknown_property`, `unknown_target`, `unsupported_target`,
+   `wrong_target_kind`.
 
 ## Budgets (`budget.test.ts`)
 
@@ -585,7 +818,7 @@ files run in parallel with each other: `pnpm test` excludes this file and
 `pnpm test:budget` (in `app/`) runs it alone, one file at a time
 (`packages/core/vitest.budget.config.ts`).
 
-A generated workspace of 300 blocks (the 23 fixtures in turn) with a journal
+A generated workspace of 300 blocks (the 29 timeline fixtures in turn) with a journal
 of 1,000 entries (300 `add`, 700 `set` moves): `readWorkspace` of its text,
 validation included, takes at most 250 ms; `writeWorkspace` at most 250 ms;
 one `dispatch` of a move at most 1 ms (the limits and the figures behind them

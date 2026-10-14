@@ -5,7 +5,8 @@
  * `null`, never an error.
  */
 
-import type { Entry, Manifest } from "@timetoalign/tilie-core";
+import type { BundleFile, Entry, GroupFile, Manifest, TimelineFile } from "@timetoalign/tilie-core";
+import { manifestKind } from "@timetoalign/tilie-core";
 
 /** What a picker offers: a description and the one extension it filters on. */
 export interface FileKind {
@@ -138,9 +139,20 @@ function download(text: string, name: string): void {
   setTimeout(() => URL.revokeObjectURL(url));
 }
 
-/** The file name a manifest is exported under: its root timeline's id, `.json`. */
+/**
+ * The file name a manifest is exported under: the id of what the file holds
+ * (a timeline file's root timeline, a group file's group, a bundle file's
+ * bundle), `.json`.
+ */
 export function manifestFileName(manifest: Manifest): string {
-  return `${manifest.timeline.id.replace(/[^A-Za-z0-9_-]/g, "_")}.json`;
+  const kind = manifestKind(manifest);
+  const id =
+    kind === "timeline"
+      ? (manifest as TimelineFile).timeline.id
+      : kind === "group"
+        ? (manifest as GroupFile).group.id
+        : (manifest as BundleFile).bundle.id;
+  return `${id.replace(/[^A-Za-z0-9_-]/g, "_")}.json`;
 }
 
 /**

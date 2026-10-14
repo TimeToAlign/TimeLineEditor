@@ -6,8 +6,8 @@ import type { Manifest } from "../manifest/types.ts";
 export type BlockId = string;
 export const BLOCK_ID = /^[0-9a-z]{10}$/;
 
-/** Which object a block's manifest describes: its manifest's top-level member. */
-export type BlockKind = "timeline";
+/** Which object a block's manifest describes: its manifest's file kind, the top-level member. */
+export type BlockKind = "timeline" | "group" | "bundle";
 
 /** A group of bands, laid outwards from the root in a block's `order`. */
 export type BandGroup = "children" | "regions" | "flow";

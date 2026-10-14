@@ -1,6 +1,28 @@
 /**
  * Selectors and the cascade of the `graphical` layers
  * (`docs/drawing.md` in timeskeleton, sections 2.1 to 2.5).
+ *
+ * The cascade runs on each drawing of an element at its own place in the
+ * tree of sections 2.1 and 8.1, and the drawing code supplies that place:
+ * for every drawing it calls `cascade.resolve(key, parent)` once, with
+ *
+ * - `key`, the drawing's `ElementKey`, built by core from the key of the
+ *   element holding it: `BLOCK_KEY` for the block, `unownedKey(type,
+ *   address, holder)` for a frame or a title, `elementKey(type, address,
+ *   timeline, holder, map?)` for every element of a timeline (a card, a
+ *   line, an ancestor line, a mark, a map, a region, a segment's node, …),
+ *   `textKey(owner, "name" | "label")` for an element's own text. Its
+ *   `inside` is the **holder chain**, the types of every element holding it,
+ *   outermost first, and it is the only thing the selector member `inside`
+ *   reads;
+ * - `parent`, the style `resolve` gave the drawing of its holder (the
+ *   element its key was built from), or `undefined` for the block.
+ *
+ * Drawings that share an address (a timeline drawn as an ancestor line and
+ * as a line of its own, a member's start marked on its own line and on an
+ * ancestor line) are keyed separately: they match the same `ids`, `within`
+ * and `element`, but each inherits from its own `parent` and matches
+ * `inside` by its own chain.
  */
 
 import { type ElementKey, selectorMatches } from "@timetoalign/tilie-core";
@@ -17,6 +39,7 @@ export interface Style {
   readonly opacity: number;
   readonly "font-size": number;
   readonly rx: number;
+  readonly shadow: string;
   readonly display: "inline" | "none";
   readonly side: Side;
   readonly content: string;
@@ -33,6 +56,7 @@ export const INITIAL_STYLE: Style = {
   opacity: 1,
   "font-size": 9,
   rx: 0,
+  shadow: "none",
   display: "inline",
   side: "below",
   content: "none",
@@ -64,9 +88,11 @@ function compareRanks(left: readonly number[], right: readonly number[]): number
 }
 
 /**
- * The statements of every layer, lowest rank first. `ancestry` maps every
- * timeline id to the ids from the root down to it, so its length is the
- * timeline's depth (the root 1).
+ * The statements of every layer, lowest rank first (section 2.5: layer,
+ * `ids`, `within` depth, `class`, `element`, `inside`, the count of `domain`
+ * and `modality`, position). `ancestry` maps every timeline id to the ids
+ * from its root down to it, so its length is the timeline's depth (the
+ * roots 1).
  */
 export class Cascade {
   readonly #statements: readonly Ranked[];
@@ -99,6 +125,7 @@ export class Cascade {
             within,
             select.class === undefined ? 0 : 1,
             select.element === undefined ? 0 : 1,
+            select.inside === undefined ? 0 : 1,
             (select.domain === undefined ? 0 : 1) + (select.modality === undefined ? 0 : 1),
             position,
           ],
@@ -113,7 +140,11 @@ export class Cascade {
     return selectorMatches(select, element, this.#ancestry);
   }
 
-  /** The cascaded style of an element whose parent in the tree has `parent` (none for the block). */
+  /**
+   * The cascaded style of one drawing of an element: `element` its key, with
+   * its holder chain; `parent` the cascaded style of its holder's drawing,
+   * `undefined` for the block (section 2.5).
+   */
   resolve(element: ElementKey, parent: Style | undefined): Style {
     const set: Partial<Record<Property, unknown>> = {};
     for (const statement of this.#statements) {

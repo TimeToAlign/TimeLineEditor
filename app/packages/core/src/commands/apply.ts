@@ -12,6 +12,7 @@ import { ErrorCode, isCommandError, isLoadError, problem } from "../errors.ts";
 import type { JsonObject, PathSegment } from "../json.ts";
 import { canonicalText } from "../json.ts";
 import { manifestElements, selectorMatches, timelineAncestry } from "../manifest/elements.ts";
+import { elementAddress, isRemovable, manifestKind, rootPaths } from "../manifest/files.ts";
 import { checkOrdered, childEnd, contentEnd, readOnAxis } from "../manifest/invariants.ts";
 import { readManifestValue, schemaProblems } from "../manifest/io.ts";
 import type { ChildEntry, Manifest, TimelineManifest } from "../manifest/types.ts";
@@ -34,10 +35,9 @@ import {
 import type { Block, BlockId, BlockPlacement } from "../workspace/blocks.ts";
 import { BLOCK_ID } from "../workspace/blocks.ts";
 import type { Address } from "../workspace/ids.ts";
-import { manifestIds, parseAddress, WORKSPACE } from "../workspace/ids.ts";
+import { parseAddress, takenIds, WORKSPACE } from "../workspace/ids.ts";
 import { indexBetween } from "../workspace/order.ts";
 import type { View, WorkspaceSettings } from "../workspace/view.ts";
-import { manifestKind } from "../workspace/view.ts";
 import { parseCommand } from "./parse.ts";
 import type {
   AddCommand,
@@ -51,11 +51,16 @@ import { ADD_KINDS } from "./types.ts";
 
 // ---------------------------------------------------------------- targets
 
-/** A timeline inside a manifest: its value, its path from the manifest root, its parent. */
+/** A timeline inside a manifest: its value, its path from the manifest's top, its parent. */
 interface Located {
   readonly timeline: TimelineManifest;
-  readonly path: readonly string[];
+  readonly path: readonly PathSegment[];
   readonly parent: Located | undefined;
+}
+
+/** The root timeline of the tree a located timeline lies in. */
+function rootOf(at: Located): TimelineManifest {
+  return at.parent === undefined ? at.timeline : rootOf(at.parent);
 }
 
 /** The kinds of the elements a timeline holds in a list, and where the list lies. */
@@ -110,29 +115,54 @@ function withEntries(
   return setIn(timeline as unknown as Tree, LISTS[kind], list) as unknown as TimelineManifest;
 }
 
-/** Find the element carrying `id` in a manifest: a timeline or an entry of one of its lists. */
-function findElement(
-  manifest: Manifest,
-  id: string,
-): { readonly at: Located; readonly kind?: EntryKind; readonly index?: number } | undefined {
-  const search = (
-    timeline: TimelineManifest,
-    path: readonly string[],
-    parent: Located | undefined,
-  ): { readonly at: Located; readonly kind?: EntryKind; readonly index?: number } | undefined => {
-    const here: Located = { timeline, path, parent };
-    if (timeline.id === id) return { at: here };
+/** A timeline found in a manifest, or an entry of one of its lists. */
+type Found = { readonly at: Located; readonly kind?: EntryKind; readonly index?: number };
+
+/** Search a tree for the timeline (with `timelines`) or the entry (with `lists`) carrying `id`. */
+function search(here: Located, id: string, timelines: boolean, lists: boolean): Found | undefined {
+  const { timeline, path } = here;
+  if (timelines && timeline.id === id) return { at: here };
+  if (lists) {
     for (const kind of ENTRY_KINDS) {
       const index = entries(timeline, kind).findIndex((item) => item.id === id);
       if (index >= 0) return { at: here, kind, index };
     }
-    for (const [key, entry] of Object.entries(timeline.children)) {
-      const found = search(entry.timeline, [...path, "children", key, "timeline"], here);
+  }
+  for (const [key, entry] of Object.entries(timeline.children)) {
+    const child = {
+      timeline: entry.timeline,
+      path: [...path, "children", key, "timeline"],
+      parent: here,
+    };
+    const found = search(child, id, timelines, lists);
+    if (found !== undefined) return found;
+  }
+  return undefined;
+}
+
+/**
+ * Find the element an element address names in a manifest: in a timeline
+ * file the timeline or entry carrying that id; in a group or bundle file the
+ * timeline carrying a bare id, or the entry `<id>` of root `<root>`'s tree
+ * for `<root>/<id>`.
+ */
+function findElement(manifest: Manifest, element: string): Found | undefined {
+  const roots = rootPaths(manifest).map(
+    (root): Located => ({ timeline: root.timeline, path: root.path, parent: undefined }),
+  );
+  if (manifestKind(manifest) === "timeline")
+    return search(roots[0] as Located, element, true, true);
+  const [first = "", id, ...rest] = element.split("/");
+  if (rest.length > 0) return undefined;
+  if (id === undefined) {
+    for (const root of roots) {
+      const found = search(root, first, true, false);
       if (found !== undefined) return found;
     }
     return undefined;
-  };
-  return search(manifest.timeline, ["timeline"], undefined);
+  }
+  const root = roots.find((item) => item.timeline.id === first);
+  return root === undefined ? undefined : search(root, id, false, true);
 }
 
 function resolve(view: View, address: Address): Target | CommandError {
@@ -155,14 +185,20 @@ function resolve(view: View, address: Address): Target | CommandError {
 
 type Tree = { readonly [key: string]: unknown };
 
-/** `root` with the value at `path` replaced, or removed when `value` is `undefined`. */
-function setIn(root: Tree, path: readonly string[], value: unknown): Tree {
-  const [key, ...rest] = path as [string, ...string[]];
-  const next = rest.length === 0 ? value : setIn(root[key] as Tree, rest, value);
+/**
+ * `root` with the value at `path` replaced, or, in an object, removed when
+ * `value` is `undefined`.
+ */
+function setIn(root: Tree, path: readonly PathSegment[], value: unknown): Tree {
+  const [key, ...rest] = path as [PathSegment, ...PathSegment[]];
+  const next = rest.length === 0 ? value : setIn((root as Tree)[key] as Tree, rest, value);
+  if (Array.isArray(root)) {
+    return root.map((item, index) => (index === key ? next : item)) as unknown as Tree;
+  }
   const entries = Object.entries(root).flatMap(([name, item]): [string, unknown][] =>
     name !== key ? [[name, item]] : next === undefined ? [] : [[name, next]],
   );
-  if (next !== undefined && !Object.hasOwn(root, key)) entries.push([key, next]);
+  if (next !== undefined && !Object.hasOwn(root, key)) entries.push([String(key), next]);
   return Object.fromEntries(entries);
 }
 
@@ -606,9 +642,12 @@ function addElement(
   if (typeof id !== "string") {
     return problem(ErrorCode.invalidValue, `the ${kind} carries no id`, [target.address, kind]);
   }
-  if (manifestIds(target.block.manifest).has(id)) {
+  const { manifest } = target.block;
+  const root = rootOf(target.at).id;
+  if (takenIds(manifest, kind === "child", root).has(id)) {
+    const qualified = kind === "child" || manifestKind(manifest) === "timeline" ? null : root;
     return problem(ErrorCode.duplicateId, `${id} is already an id of the manifest`, [
-      `${target.block.id}/${id}`,
+      `${target.block.id}/${elementAddress(qualified, id)}`,
     ]);
   }
   const { timeline } = target.at;
@@ -682,8 +721,19 @@ function applyRemove(
   for (const address of command.targets) {
     const target = resolve(view, address);
     if (isCommandError(target)) return target;
-    if (target.kind === "workspace" || target.kind === "root") {
+    if (target.kind === "workspace") {
       return problem(ErrorCode.notRemovable, `${target.kind} cannot be removed`, [address]);
+    }
+    if (target.kind === "block") continue;
+    const { manifest } = target.block;
+    if (!isRemovable(manifest, address.slice(target.block.id.length + 1))) {
+      return manifestKind(manifest) === "timeline"
+        ? problem(ErrorCode.notRemovable, `${target.kind} cannot be removed`, [address])
+        : problem(
+            ErrorCode.unsupportedTarget,
+            "removing a timeline from a group or bundle file is not supported yet",
+            [address],
+          );
     }
   }
   let current = view;
@@ -714,13 +764,16 @@ function merged(base: Properties, set: Properties): Properties {
 
 const isEmpty = (value: Properties): boolean => Object.keys(value).length === 0;
 
-/** A `graphical` block with the statement embedded (see `StyleCommand`). */
-export function embedStatement(
-  graphical: Graphical | undefined,
+/**
+ * A `graphical` block with the statement embedded (see `StyleCommand`); its
+ * other members, such as a group or bundle file's `order`, are kept.
+ */
+export function embedStatement<T extends Graphical>(
+  graphical: T | undefined,
   select: Selector,
   set: Properties,
   name?: string,
-): Graphical {
+): T {
   const styles: { [name: string]: Declaration } = { ...(graphical?.styles ?? {}) };
   let statements: Statement[] = [...(graphical?.statements ?? [])];
   const key = canonicalText(select);
@@ -739,7 +792,7 @@ export function embedStatement(
       styles[name] = style as Declaration;
       place({ select: existing?.select ?? select, set: name });
     }
-    return { styles, statements };
+    return { ...graphical, styles, statements } as T;
   }
   const base =
     existing === undefined
@@ -750,7 +803,7 @@ export function embedStatement(
   const declaration = merged(base as Properties, set);
   if (!isEmpty(declaration)) place({ select: existing?.select ?? select, set: declaration });
   else if (index >= 0) statements.splice(index, 1);
-  return { styles, statements };
+  return { ...graphical, styles, statements } as T;
 }
 
 function applyStyle(view: View, command: StyleCommand, touched: Set<BlockId>): View | CommandError {
@@ -774,14 +827,15 @@ function applyStyle(view: View, command: StyleCommand, touched: Set<BlockId>): V
   }
   let current = view;
   for (const block of blocks) {
-    const graphical = embedStatement(
+    const graphical = embedStatement<Graphical>(
       block.manifest.graphical,
       command.select,
       command.set,
       command.name,
     );
     touched.add(block.id);
-    current = withBlock(current, { ...block, manifest: { ...block.manifest, graphical } });
+    const manifest = { ...block.manifest, graphical } as Manifest;
+    current = withBlock(current, { ...block, manifest });
   }
   return current;
 }

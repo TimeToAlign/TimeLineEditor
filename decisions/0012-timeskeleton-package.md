@@ -19,7 +19,7 @@ A TiLiE document is a TimeSkeleton document. Its JSON Schema, the validator, the
 
 Depend on `@timetoalign/timeskeleton` with a manifest range (0.3.0 audited). `core` writes no JSON and no ordering of its own: it reads documents with the package's `parse` (lossless, and checked against the declared schema version), migrates them with `migrate`, validates with `validate`, writes them with `dumps` (canonical order, the standard text that the Python writer also produces), keeps the canonical order of edited timelines with `canonicalOrder`, and builds its coordinates on the package's `JsonNumber` and `JsonFloat`. Its tests read `fixtures/<version>/`, `fixtures/rejections/` and `fixtures/migrations/` from the installed package.
 
-The workspace depends on the released range, `^0.3.0`, in `core`, `layout` and `writers`.
+Every package that uses the schema, `core`, `layout`, `writers`, `arranger` and `editor`, depends on it in the same form. While TiLiE is built against a schema version that is not yet released, that form is a committed `link:` to the `js/` directory of a timeskeleton checkout beside this repository (`link:../../../../timeskeleton/js`), and the repository is not published in that state. Once that schema version is released, the `link:` is replaced by a compatible range from npm.
 
 The package is exempted from the fourteen-day release-age window (`minimumReleaseAgeExclude` in `app/pnpm-workspace.yaml`): it is the contract this project and the library publish together, and TiLiE must be able to consume a schema release as soon as it exists. Every other dependency keeps the window.
 

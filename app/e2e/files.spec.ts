@@ -8,14 +8,16 @@ import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import type { Download, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import {
+  chooseItem,
+  downloaded,
   dragBlock,
   fixtureText,
   frames,
   journalLength,
   OPENED_JOURNAL,
+  pick,
   placement,
   selection,
   setViewport,
@@ -41,24 +43,6 @@ test.beforeEach(async ({ page }) => {
   await page.goto("/");
   await page.waitForFunction(() => window.__tilie !== undefined);
 });
-
-async function chooseItem(page: Page, label: string): Promise<void> {
-  await page.getByRole("button", { name: "File" }).click();
-  await page.getByRole("menuitem", { name: label }).click();
-}
-
-/** Choose `label` in the File menu and answer the file chooser with `name` holding `text`. */
-async function pick(page: Page, label: string, name: string, text: string): Promise<void> {
-  const chooser = page.waitForEvent("filechooser");
-  await chooseItem(page, label);
-  await (await chooser).setFiles({ name, mimeType: "application/json", buffer: Buffer.from(text) });
-}
-
-async function downloaded(download: Promise<Download>): Promise<[string, string]> {
-  const done = await download;
-  const file = await done.path();
-  return [done.suggestedFilename(), readFileSync(file, "utf8")];
-}
 
 test("a workspace survives save, reopen and save byte for byte", async ({ page }) => {
   await chooseItem(page, "New workspace");

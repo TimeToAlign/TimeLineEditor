@@ -4,6 +4,7 @@ import { mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync 
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { SCHEMA_VERSION } from "@timetoalign/timeskeleton";
 import { build } from "vite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { licenceFile, NOTICES_FILE, packageOf, RULE, SUBRULE } from "../notices.ts";
@@ -165,6 +166,33 @@ describe("the build", () => {
     );
     expect(preloaded.length > 0).toBe(true);
     expect(preloaded.filter((name) => /^(yaml|toml)-/.test(name))).toEqual([]);
+  });
+
+  it("carries no fixture and no code building fixture workspaces", () => {
+    const bare = readFileSync(
+      path.join(
+        path.dirname(
+          createRequire(import.meta.url).resolve("@timetoalign/timeskeleton/package.json"),
+        ),
+        "fixtures",
+        SCHEMA_VERSION,
+        "bare.json",
+      ),
+      "utf8",
+    );
+    const generator = (JSON.parse(bare) as { meta: { generator: string } }).meta.generator;
+    expect(generator.startsWith("timetoalign ")).toBe(true);
+    // Source maps hold every module's source text, the dead branch included, and are not shipped.
+    const written = readdirSync(outDir, { recursive: true, encoding: "utf8" })
+      .filter((name) => !name.endsWith(".map"))
+      .map((name) => path.join(outDir, name))
+      .filter((file) => statSync(file).isFile());
+    const found = written.filter((file) => {
+      const text = readFileSync(file, "latin1");
+      return text.includes(generator) || text.includes("Fixture Generator");
+    });
+    expect(written.length > 0).toBe(true);
+    expect(found).toEqual([]);
   });
 
   it("lets the development server read the schema package", () => {

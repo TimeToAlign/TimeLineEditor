@@ -3,6 +3,7 @@
  * timeskeleton, section 7.4).
  */
 
+import { times } from "@timetoalign/tilie-layout";
 import {
   type AttributeValue,
   type Descriptor,
@@ -55,12 +56,11 @@ const isColour = (value: AttributeValue): value is string =>
 /** `h(s)`, the line height of the drawing font at size `s`. */
 const lineHeight = (size: number): number => (2384 * size) / 2048;
 
+/** A `stroke-dasharray`, its numbers already written by the number rule, as a dash pattern. */
 function dashPattern(value: string): string {
   const parts = value.split(" ");
   const list = parts.length % 2 === 1 ? [...parts, ...parts] : parts;
-  return list
-    .map((part, index) => `${index % 2 === 0 ? "on" : "off"} ${formatNumber(Number(part))}pt`)
-    .join(" ");
+  return list.map((part, index) => `${index % 2 === 0 ? "on" : "off"} ${part}pt`).join(" ");
 }
 
 /** The options of a command, in the order of the descriptor's attributes. */
@@ -96,8 +96,12 @@ function command(descriptor: Descriptor, height: number): string {
   const point = ([x, y]: Point): string => `(${formatNumber(x)},${formatNumber(height - y)})`;
   const path = (text: string) => `\\path[${options(descriptor).join(",")}] ${text};`;
   switch (descriptor.tag) {
-    case "rect":
-      return path(`(0,0) rectangle (${formatNumber(num("width"))},${formatNumber(num("height"))})`);
+    case "rect": {
+      const [x, y, w, h] = [num("x"), num("y"), num("width"), num("height")];
+      return path(
+        `(${formatNumber(x)},${formatNumber(height - y - h)}) rectangle (${formatNumber(x + w)},${formatNumber(height - y)})`,
+      );
+    }
     case "line":
       return path(`${point([num("x1"), num("y1")])} -- ${point([num("x2"), num("y2")])}`);
     case "circle":
@@ -105,6 +109,10 @@ function command(descriptor: Descriptor, height: number): string {
     case "polygon": {
       const points = attribute(descriptor, "points") as readonly Point[];
       return path(`${points.map(point).join(" -- ")} -- cycle`);
+    }
+    case "polyline": {
+      const points = attribute(descriptor, "points") as readonly Point[];
+      return path(points.map(point).join(" -- "));
     }
     case "path": {
       const commands = attribute(descriptor, "d") as readonly PathCommand[];
@@ -122,15 +130,13 @@ function command(descriptor: Descriptor, height: number): string {
           parts.push(`.. controls ${point(c1)} and ${point(c2)} .. ${point(end)}`);
           current = end;
         } else {
+          // `P0 + 2/3 × (C − P0)` and `P + 2/3 × (C − P)`, 2/3 formed before it multiplies.
           const [control, end] = points as readonly [Point, Point];
-          const c1: Point = [
-            current[0] + (2 / 3) * (control[0] - current[0]),
-            current[1] + (2 / 3) * (control[1] - current[1]),
+          const toward = ([x, y]: Point): Point => [
+            x + times(2n, 3n, control[0] - x),
+            y + times(2n, 3n, control[1] - y),
           ];
-          const c2: Point = [
-            end[0] + (2 / 3) * (control[0] - end[0]),
-            end[1] + (2 / 3) * (control[1] - end[1]),
-          ];
+          const [c1, c2] = [toward(current), toward(end)];
           parts.push(`.. controls ${point(c1)} and ${point(c2)} .. ${point(end)}`);
           current = end;
         }

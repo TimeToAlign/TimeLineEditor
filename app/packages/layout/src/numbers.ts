@@ -38,6 +38,11 @@ export function zero(numberType: NumberType): Real {
 
 export const add = addReal;
 
+/** `−value` in the tower: exact for an exact value, a float's negation for a float. */
+export function negate(value: Real): Real {
+  return typeof value === "number" ? -value : Rational.of(0n).subtract(value);
+}
+
 /** `(left + right) / 2` in the tower: the sum, then an exact halving. */
 export function midpoint(left: Real, right: Real): Real {
   const sum = addReal(left, right);
@@ -66,7 +71,7 @@ export function proportion(t: Real, length: Real): number {
 }
 
 /** The text of a value: `96`, `3/2`, `3` for 3/1; a float as Python's `repr` (`1.5`, `6.0`). */
-export function valueText(value: Real): string {
+function valueText(value: Real): string {
   if (value instanceof Rational) return value.toString();
   return compactJson(
     Number.isInteger(value) || Object.is(value, -0) ? new JsonFloat(value) : value,
@@ -84,4 +89,18 @@ const UNIT_SYMBOLS: Partial<Readonly<Record<TimeUnit, string>>> = {
 /** A coordinate label: the value's text, a space and the unit's symbol. */
 export function coordinateText(value: Real, unit: TimeUnit): string {
   return `${valueText(value)} ${UNIT_SYMBOLS[unit] ?? unit}`;
+}
+
+/**
+ * A constant factor `n/d` formed before it multiplies (section 3.3): the
+ * double nearest the exact product of `n/d` and the double `value`, so
+ * `1.2w` is the double nearest 6/5 × w, never the binary64 product `1.2 * w`.
+ */
+export function times(numerator: bigint, denominator: bigint, value: number): number {
+  return toFloat(Rational.fromParts(numerator, denominator).multiply(fromFloat(value)));
+}
+
+/** The name of a timeline, group or bundle without its own: its id after the last `:` (section 5.3). */
+export function unscoped(id: string): string {
+  return id.slice(id.lastIndexOf(":") + 1);
 }

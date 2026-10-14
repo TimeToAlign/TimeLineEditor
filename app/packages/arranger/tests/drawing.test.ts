@@ -15,7 +15,7 @@ describe("drawingOf", () => {
       metrics,
     );
     expect(drawingOf(block, view.settings, metrics)).toEqual(expected);
-    expect(expected.width).toBe(458.5771484375);
+    expect(expected.width).toBe(476.5771484375);
   });
 
   it("memoizes by block and settings", () => {
@@ -43,7 +43,7 @@ describe("drawingOf", () => {
 
   it("draws a preview without caching it", () => {
     const memoized = drawingOf(block, view.settings, metrics);
-    expect(drawingOf(block, view.settings, metrics, { length: 800 }).width).toBe(858.5771484375);
+    expect(drawingOf(block, view.settings, metrics, { length: 800 }).width).toBe(876.5771484375);
     expect(drawingOf(block, view.settings, metrics)).toBe(memoized);
   });
 });

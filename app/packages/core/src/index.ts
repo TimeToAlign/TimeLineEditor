@@ -1,7 +1,8 @@
 /**
  * The framework-free TiLiE core has three distinct layers: a workspace view
  * holds blocks, a block adds canvas placement to its own manifest, and the
- * manifest holds one TimeSkeleton timeline without canvas knowledge. The
+ * manifest is one TimeSkeleton file (a timeline, group or bundle file)
+ * without canvas knowledge. The
  * workspace changes only through the four commands `add`, `set`, `remove` and
  * `style`, journalled by the store.
  */
@@ -35,7 +36,21 @@ export {
   textKey,
   timelineAncestry,
   unitDomain,
+  unownedKey,
 } from "./manifest/elements.ts";
+export type { Ancestor, GroupFrame, MemberDrawing, MemberDrawings } from "./manifest/files.ts";
+export {
+  elementAddress,
+  elementOf,
+  elementOfIn,
+  isRemovable,
+  isRemovableIn,
+  manifestGroups,
+  manifestKind,
+  manifestRoots,
+  memberDrawings,
+  PART_WORDS,
+} from "./manifest/files.ts";
 export {
   allowedNumberTypes,
   axisProblems,
@@ -55,13 +70,16 @@ export {
 } from "./manifest/io.ts";
 export type {
   Break,
+  BundleFile,
   ChildEntry,
   ConversionMap,
   FlowControl,
+  GroupFile,
   Jump,
   Manifest,
   ManifestMeta,
   Region,
+  TimelineFile,
   TimelineManifest,
 } from "./manifest/types.ts";
 export type { Coordinate, CoordinateDict, CoordinateValue } from "./number/coordinate.ts";

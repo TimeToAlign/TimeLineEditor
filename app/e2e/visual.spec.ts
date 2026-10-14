@@ -1,6 +1,6 @@
 /**
- * Screenshots of `small`: each block's node and the whole canvas at a fixed
- * viewport, compared with zero differing pixels. They run only in the pinned
+ * Screenshots of `small` (each block's node and the whole canvas) and of the
+ * canvas with `groups` at a fixed viewport, compared with zero differing pixels. They run only in the pinned
  * Playwright container, where their baselines are made.
  * Derivation in `README.md` ("visual.spec.ts").
  */
@@ -56,5 +56,15 @@ test.describe("screenshots of small", { tag: "@visual" }, () => {
 
   test("the whole canvas", async ({ page }) => {
     await expect(pane(page)).toHaveScreenshot("canvas.png", SHOT);
+  });
+});
+
+test.describe("screenshot of groups", { tag: "@visual" }, () => {
+  test("groups", async ({ page, browserName }) => {
+    await open(page, "groups");
+    await setViewport(page, { x: 40, y: 40, zoom: 1 });
+    await fontsSettled(page);
+    expect(await textsNotInFace(page, browserName)).toEqual([]);
+    await expect(pane(page)).toHaveScreenshot("groups.png", SHOT);
   });
 });

@@ -8,7 +8,7 @@
  */
 
 import type { JsonNumber, NumberType, TimeUnit } from "@timetoalign/timeskeleton";
-import { JsonFloat, schema } from "@timetoalign/timeskeleton";
+import { JsonFloat, SCHEMA_VERSION, schemaDocuments } from "@timetoalign/timeskeleton";
 import type { PathSegment } from "../json.ts";
 import { isJsonObject, showJson } from "../json.ts";
 import { Rational } from "./rational.ts";
@@ -29,8 +29,9 @@ export type CoordinateDict = {
   readonly value: JsonNumber | readonly [number | bigint, number | bigint];
 };
 
-export const TIME_UNITS: readonly TimeUnit[] = schema.$defs.TimeUnit.enum;
-export const NUMBER_TYPES: readonly NumberType[] = schema.$defs.NumberType.enum;
+const { $defs } = schemaDocuments[SCHEMA_VERSION].core;
+export const TIME_UNITS: readonly TimeUnit[] = $defs.TimeUnit.enum;
+export const NUMBER_TYPES: readonly NumberType[] = $defs.NumberType.enum;
 
 const INT64_MIN = -(2n ** 63n);
 const INT64_MAX = 2n ** 63n - 1n;

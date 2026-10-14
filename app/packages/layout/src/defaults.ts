@@ -1,5 +1,6 @@
-/** The default style layer (`docs/drawing.md` in timeskeleton, section 4). */
+/** The default style layer (`docs/drawing.md` in timeskeleton, section 4) and a manifest's own. */
 
+import type { Manifest } from "@timetoalign/tilie-core";
 import type { Graphical } from "@timetoalign/timeskeleton";
 
 /** The lowest layer of every drawing. */
@@ -37,19 +38,68 @@ export const DEFAULT_LAYER: Graphical = {
     },
     { select: { element: "map", modality: "discrete" }, set: { "stroke-dasharray": "1 1" } },
     { select: { element: "wedge" }, set: { fill: "#000000" } },
-    { select: { element: "region" }, set: { stroke: "#000000", "stroke-width": 1 } },
+    {
+      select: { element: "region" },
+      set: { stroke: "#000000", "stroke-width": 1, "stroke-dasharray": "none" },
+    },
     {
       select: { element: "jump" },
-      set: { stroke: "#000000", fill: "#000000", "stroke-width": 1.5 },
+      set: { stroke: "#000000", fill: "#000000", "stroke-width": 1, "stroke-dasharray": "1 1" },
     },
     {
       select: { element: "break" },
       set: { stroke: "#FF0000", "stroke-width": 1.5, "stroke-dasharray": "2 2" },
     },
+    {
+      select: { element: "boundary" },
+      set: { stroke: "#000000", "stroke-width": 1, "stroke-dasharray": "none" },
+    },
+    { select: { element: "ancestor" }, set: { "stroke-width": 3, opacity: 0.35 } },
+    {
+      select: { element: "ancestor", modality: "continuous" },
+      set: { "stroke-dasharray": "none" },
+    },
+    {
+      select: { element: "ancestor", modality: "discrete" },
+      set: { "stroke-dasharray": "3 3" },
+    },
+    {
+      select: { element: "group" },
+      set: { fill: "#FFFFFF", stroke: "#D1D5DB", "stroke-width": 1, rx: 6 },
+    },
+    {
+      select: { element: "card" },
+      set: {
+        fill: "#FFFFFF",
+        stroke: "#C4C9D1",
+        "stroke-width": 0.75,
+        rx: 5,
+        shadow: "#B8BEC8",
+      },
+    },
+    { select: { inside: "ancestor" }, set: { opacity: 0.35 } },
     { select: { element: "label" }, set: { fill: "#000000", "font-size": 9 } },
     {
       select: { element: "name" },
       set: { fill: "#000000", "font-size": 11, "max-width": 160 },
     },
+    {
+      select: { element: "name", inside: "ancestor" },
+      set: { fill: "#6B7280", "font-size": 9, opacity: 1 },
+    },
   ],
 };
+
+/**
+ * A manifest's own layer, the highest of its drawing (section 1): its
+ * `graphical` block's `styles` and `statements`, without a group or bundle
+ * file's member `order`; `undefined` without a block.
+ */
+export function manifestLayer(manifest: Manifest): Graphical | undefined {
+  if (manifest.graphical === undefined) return undefined;
+  const { styles, statements } = manifest.graphical;
+  return {
+    ...(styles === undefined ? {} : { styles }),
+    ...(statements === undefined ? {} : { statements }),
+  };
+}

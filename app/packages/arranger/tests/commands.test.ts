@@ -9,7 +9,19 @@ import {
   removeCommand,
   zOrderCommand,
 } from "../src/index.ts";
-import { A, B, blockIn, C, changed, load, viewOf, withGrid } from "./support.ts";
+import {
+  A,
+  B,
+  blockIn,
+  C,
+  CHILD_MEMBER,
+  changed,
+  load,
+  MPM,
+  numbersView,
+  viewOf,
+  withGrid,
+} from "./support.ts";
 
 describe("moveCommand", () => {
   const view = viewOf({ id: A, fixture: "bare", x: 40, y: 80 }, { id: B, fixture: "nested" });
@@ -153,6 +165,44 @@ describe("removeCommand", () => {
   it("is accepted by apply", () => {
     const after = changed(nested, removeCommand(nested, new Set([`${A}/clt_3`])));
     expect(manifestIds(blockIn(after, A).manifest)).toEqual(new Set(["clt_1"]));
+  });
+
+  describe("in a group or bundle block", () => {
+    const numbers = numbersView();
+    const refusal = (element: string) => ({
+      refused: `Block ${A}: removing ${element} from a group or bundle block is not supported yet.`,
+    });
+
+    it("removes an element of a root's tree by its root-qualified address", () => {
+      const command = removeCommand(numbers, new Set([`${A}/score/region_1/label`]));
+      expect(command).toEqual({ type: "remove", targets: [`${A}/score/region_1`] });
+      expect(
+        manifestIds(blockIn(changed(numbers, command), A).manifest).has("score/region_1"),
+      ).toBe(false);
+      expect(
+        removeCommand(numbers, new Set([`${A}/score/region_1`, `${A}/score/region_1/label`])),
+      ).toEqual({ type: "remove", targets: [`${A}/score/region_1`] });
+      const mpm = viewOf({ id: A, fixture: MPM });
+      const map = removeCommand(mpm, new Set([`${A}/score:clt_1/tmap_1`]));
+      expect(map).toEqual({ type: "remove", targets: [`${A}/score:clt_1/tmap_1`] });
+      expect(manifestIds(blockIn(changed(mpm, map), A).manifest).has("score:clt_1/tmap_1")).toBe(
+        false,
+      );
+    });
+
+    it("refuses a selection holding a timeline, a group or the bundle whole", () => {
+      expect(removeCommand(numbers, new Set([`${A}/score`]))).toEqual(refusal("score"));
+      expect(removeCommand(numbers, new Set([`${A}/score/region_1`, `${A}/page/name`]))).toEqual(
+        refusal("page"),
+      );
+      const child = viewOf({ id: A, fixture: CHILD_MEMBER });
+      expect(removeCommand(child, new Set([`${A}/second-half/start`]))).toEqual(
+        refusal("second-half"),
+      );
+      expect(removeCommand(numbers, new Set([`${A}/group_1/name`]))).toEqual(refusal("group_1"));
+      const mpm = viewOf({ id: A, fixture: MPM });
+      expect(removeCommand(mpm, new Set([`${A}/bundle_1/name`]))).toEqual(refusal("bundle_1"));
+    });
   });
 });
 

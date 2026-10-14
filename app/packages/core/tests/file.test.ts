@@ -1,6 +1,6 @@
 import { dumps, parseJson, SCHEMA_VERSION, SUPPORTED_VERSIONS } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
-import type { Workspace } from "../src/index.ts";
+import type { TimelineFile, Workspace } from "../src/index.ts";
 import {
   createStore,
   createView,
@@ -9,7 +9,7 @@ import {
   replay,
   writeWorkspace,
 } from "../src/index.ts";
-import { A, addBlock, B, testClock } from "./support.ts";
+import { A, addBlock, asVersion, B, testClock } from "./support.ts";
 
 function built(): Workspace {
   const store = createStore({ view: createView(), journal: [] }, { clock: testClock() });
@@ -154,9 +154,8 @@ describe("the workspace file", () => {
     (version) => {
       const older = edited((value) => {
         for (const block of Object.values(value.blocks as Value)) {
-          Object.assign(((block as Value).manifest as Value).meta as Value, {
-            schema_version: version,
-          });
+          const manifest = (block as Value).manifest as TimelineFile;
+          (block as Value).manifest = asVersion(manifest, version);
         }
       });
       expect(older).not.toBe(text);

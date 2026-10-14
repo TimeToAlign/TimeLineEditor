@@ -8,7 +8,7 @@ import { GRID_PITCH, GRIDS } from "./fixtures/generate.ts";
 import { open, pane, setViewport } from "./support.ts";
 
 /** The drawing box of the `bare` manifest at the default placement, scale 1. */
-const BLOCK = { width: 458.5771484375, height: 49.37890625 };
+const BLOCK = { width: 476.5771484375, height: 67.37890625 };
 
 /**
  * The grid blocks a pane of `width` × `height` pixels shows under `view`:
@@ -58,5 +58,5 @@ test("900 blocks: culling on, exactly the nodes the viewport touches are mounted
   // The pane is a whole number of pixels; the count is exact for that pane.
   await expect(page.locator(".svelte-flow__node")).toHaveCount(expected);
   // The worked example of the README pins the formula itself.
-  expect(visible(blocks, columns, view, 1000, 600)).toBe(16);
+  expect(visible(blocks, columns, view, 1000, 600)).toBe(24);
 });

@@ -9,7 +9,7 @@ import type { CDPSession, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import { GRID_PITCH } from "./fixtures/generate.ts";
 import {
-  backgroundPoint,
+  cardPoint,
   drag,
   emptyPoint,
   frames,
@@ -52,7 +52,7 @@ test.describe("budgets at 300 blocks", { tag: "@budget" }, () => {
     const cdp = await page.context().newCDPSession(page);
     await cdp.send("Performance.enable");
     const id = "g000000021";
-    const start = await backgroundPoint(page, id);
+    const start = await cardPoint(page, id);
     const ms = await perMove(page, cdp, () => drag(page, start, GRID_PITCH.x / 2, 120, MOVES));
     console.log(`drag: ${ms.toFixed(3)} ms of script per pointer move`);
     await expect(node(page, id)).toHaveCount(1);

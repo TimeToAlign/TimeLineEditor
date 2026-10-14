@@ -18,39 +18,90 @@ literal. `support.ts` reads the fixtures from the installed
 All values are in canvas units, for the default placement (length 400,
 spacing 1, no box request) and the default style layer.
 
+- **Every file is drawn as a bundle** (section 8). A timeline file is an
+  anonymous bundle without title or frame, its root drawn in its card
+  `T/card`. The name column starts at `xn = P + K = 16`; the card spans `x
+  = P` to `R + K`, `R` the member drawing's largest right edge (section
+  6.7), and is `Hm` high from `y = P`, `Hm` the member drawing's height
+  (section 6.5, its padding `P v` inside the card); the card's shadow lies
+  2 to the right and 2 below. The box is `P` plus the shadow's right and
+  bottom edges, so `W = R + K + 2 + P = R + 18` and `H = P + Hm + 2 + P =
+  Hm + 18`. The box's padding `P` is not stretched by `v`. A drawing
+  fixture's page is the box plus 16 on every side (section 7.1), so `W =
+  PW − 32` and `H = PH − 32` of its `figure.svg`.
 - **`bare`**: the root `bare`, named "Bare" at font size 11. The DejaVu Sans
   advances of B, a, r, e are 1405, 1255, 842, 1260, which sum to 4762, so
   the name is `N = 4762 × 11 / 2048 = 25.5771484375` wide.
-  - Section 6.7: the line starts at `x0 = P + N + G = 41.5771484375`. The
+  - Section 8.2: the line starts at `x0 = xn + N + G' = 49.5771484375`. The
     rightmost element is the arrowhead's tip at `x0 + L + 3w` (w = 3), so
-    `W = x0 + L + 9 + P = 58.5771484375 + L`, giving `W(400) =
-    458.5771484375`. This holds as long as the root's arrowhead stays
-    rightmost, which is true for every `L ≥ 8` because the end label is
-    narrower than `2 × 9`.
-  - Height (sections 6.4, 6.5): the bare root has only its below-side
+    `R = 58.5771484375 + L` and `W = R + 18 = 76.5771484375 + L`, giving
+    `W(400) = 476.5771484375`: the page of `drawings/bare/figure.svg` is
+    `PW = 508.5771` wide, `W + 32` written to four decimals. This holds as
+    long as the root's arrowhead stays rightmost, which is true for every
+    `L ≥ 8` because the end label is narrower than `2 × 9`.
+  - Height (sections 6.4, 6.5, 8.4): the bare root has only its below-side
     wedges, so `Ea = 0`, the root band does not scale, and the padding
-    `P v = 8v` lies above and below: `y_root = 8v + h(11) / 2` and `H =
-    8v + 6.40234375 + 26.9765625 + 8v = 33.37890625 + 16v`, affine at every
-    `v`, with `H(1) = 49.37890625` (the `rect` of
-    `drawings/bare/figure.svg`) and `H(1/4) = 37.37890625`. A single
-    timeline stretches vertically through its padding alone.
+    `P v = 8v` lies above and below: `y_root = 8v + h(11) / 2` and `Hm =
+    8v + 6.40234375 + 26.9765625 + 8v = 33.37890625 + 16v`, so `H = Hm + 18
+    = 51.37890625 + 16v`, affine at every `v`, with `H(1) = 67.37890625`
+    (the page of `drawings/bare/figure.svg` is `PH = 99.3789` high),
+    `H(1/4) = 55.37890625`, `H(1/2) = 59.37890625` and `H(2) =
+    83.37890625`. A single timeline stretches vertically through its
+    padding alone.
 - **`nested`**: the root `clt_1`, child `clt_3`, grandchild `clt_2`, both
-  rows on the above side. `x0 = 41.91552734375` (pinned by layout's stretch
-  test), so `W = 59.91552734375 + L`, and `W(400) = 459.194580078125`.
+  rows on the above side. `x0 = 49.91552734375` (pinned by layout's
+  examples test) and `W = 77.194580078125 + L`, so `W(400) =
+  477.194580078125`: the pages of `drawings/nested__length-200`, `-400` and
+  `-800` are `PW = 309.1946`, `509.1946` and `909.1946` wide, slope 1 in
+  `L`.
   - Height (sections 6.2, 6.4, 6.5): with `p = max(14v, h(11))` and
     `h(11) = 12.8046875`, the children band starts at `p0 / 2` and holds two
     rows of halves `p / 2`. So `Ea = 2.5p`, `y_root = 8v + 2.5p`, and the
     below side is the wedge reach `1.5 + 13 + 2 + h(9) = 26.9765625`, plus
     the padding `8v`.
-  - Hence `H = 26.9765625 + 51v` for `v ≥ h(11) / 14 = 0.914620535…`, and
-    `H = 58.98828125 + 16v` below that (`2.5 h(11) = 32.01171875`). This
-    gives `H(1) = 77.9765625`, `H(1.5) = 103.4765625`, `H(2) =
-    128.9765625`, which are the heights of `drawings/nested__spacing-1`, the
-    1.5 interpolation and `drawings/nested__spacing-2`, and `H(1/4) =
-    62.98828125`. **Height is not affine in spacing**: it is piecewise
-    linear, of slope 16 below the kink and 51 above it.
+  - Hence `Hm = 26.9765625 + 51v` for `v ≥ h(11) / 14 = 0.914620535…`, and
+    `Hm = 58.98828125 + 16v` below that (`2.5 h(11) = 32.01171875`), and
+    `H = Hm + 18`: `H = 44.9765625 + 51v` above the kink and `H =
+    76.98828125 + 16v` below it. This gives `H(1) = 95.9765625`, `H(1.5) =
+    121.4765625`, `H(2) = 146.9765625` (the pages of
+    `drawings/nested__spacing-1` and `drawings/nested__spacing-2` are `PH =
+    127.9766` and `178.9766` high; 1.5 interpolates), `H(1/2) =
+    84.98828125` (`drawings/nested__spacing-0.5`, `PH = 116.9883`) and
+    `H(1/4) = 80.98828125`. **Height is not affine in spacing**: it is
+    piecewise linear, of slope 16 below the kink and 51 above it.
 - **`flow_control`**: the root `flow:quarters` with `break_1` and `jump_1`.
   **`with_region`**: the root `clt_1` with `region_1`.
+- **Group and bundle files** (drawing.md sections 2.2 and 8). Their
+  timelines, groups and bundle are addressed by their bare ids; every other
+  element by its root's id, `/` and its own id (`score:clt_1/tmap_1`), and
+  a part follows the element's address (`score/region_1/label`). Core reads
+  such an address with `elementOf`, which the arranger uses wherever it
+  folds a part into its element. Core refuses to remove any timeline of a
+  group or bundle file (`unsupported_target`) and knows no group or bundle
+  as a remove target.
+  - **`group_number_types`** (group file): group `group_1` "Edition", roots
+    (all three members, none with entries) `page`, `performance`, `score`.
+    `numbers` below is this file with `region_1` (2 to 4 quarters, named
+    "A") added to `score` through an `add` into `<block>/score`, so its
+    address is `score/region_1` and its label's `score/region_1/label`.
+  - **`group_child_member`** (group file): roots `piece` ⊃ `second-half`
+    and `recording`; the members are `second-half` and `recording`, so
+    `piece` is drawn as `second-half`'s ancestor line.
+  - **`corpus_mpm`** (bundle file): groups `group_1` (`score:clt_1`,
+    `score:dlt_1`) and `group_2` (`perf:cpt_1`, `perf:dgt_1`,
+    `perf:dpt_1`), bundle `bundle_1`; the root `score:clt_1` carries the map
+    `tmap_1`, addressed `score:clt_1/tmap_1`.
+  - **`bundle_shared_parent`** (bundle file): `score` (0 to 32 quarters) ⊃
+    `exposition` (offset 0, 12 quarters, a member of `group_1`) and
+    `recapitulation` (offset 20, 12 quarters, a member of `group_2`). So
+    `score` is drawn twice, as the ancestor line of each member (section
+    8.3), four descriptors addressed `score` in each card: in
+    `exposition`'s its line, its start dot (they start together) and two
+    chevrons at the right (it runs on past `exposition`'s end); in
+    `recapitulation`'s its line, two chevrons at the left and its
+    arrowhead (they end together). `exposition`'s start is marked twice
+    with the address `exposition/start`: on the ancestor line and on its
+    own line (section 2.2).
 
 Block ids in the tests are `A = "0000000000"`, `B = "0000000001"` and
 `C = "0000000002"`. Block A holds `bare` at `(40, 80)` unless stated
@@ -92,7 +143,7 @@ and are stored bit-exact. The other constants are `MIN_SCALE = 1/8`, `MIN_LENGTH
   set: {fill: "#FFFFFF"}}` statement turns the block element's fill to
   `#FFFFFF`.
 - With `preview` (`{length: 800}`), the drawing has the preview's width,
-  `W(800) = 858.5771484375` for `bare`. It is never cached: the memoized
+  `W(800) = 876.5771484375` for `bare`. It is never cached: the memoized
   drawing is still the length-400 one afterwards.
 
 ## `project`
@@ -103,13 +154,20 @@ What proves the projection is complete and stable:
   (`nested`, added second, at (0, 0)) set to scale 2. With selection
   `{A, B/clt_3}`:
   - `A` gives `{id: A, type: "block", position: {x: 40, y: 80}, width:
-    458.5771484375, height: 49.37890625, measured: {same}, handles: [],
+    476.5771484375, height: 67.37890625, measured: {same}, handles: [],
     selected: true, zIndex: 0}`.
-  - `B` has `width: 918.38916015625`, `height: 155.953125` (the drawing ×
-    2), `selected: false`, `zIndex: 1`, `data.selectedElements = {clt_3}`
+  - `B` has `width: 954.38916015625`, `height: 191.953125` (the drawing's
+    477.194580078125 × 95.9765625, × 2), `selected: false`, `zIndex: 1`,
+    `data.selectedElements = {clt_3}`
     and `data.containsSelection: true`.
   - Neither node has a `draggable` member. `data.descriptors` equals
     `toDescriptors(data.drawing)`.
+- **Group and bundle blocks.** A block holding `numbers` with selection
+  `{A/score/region_1/label}` has `data.selectedElements =
+  {score/region_1/label}` (everything after the block id, slashes kept),
+  `containsSelection: true` and `affectedElements = {score/region_1}`; its
+  `data.drawing` equals `drawingOf(block, …)`, so every file kind is drawn
+  through the one path.
 - **Index order and rank.** Setting B's index below A's (core's
   `indexBetween(null, A.index)`) returns `[B, A]` with zIndex 0 and 1.
 - **Reuse.** Projecting a second time with the first result as `previous`
@@ -195,7 +253,7 @@ canvas units is `((width / 2 − x) / zoom, (height / 2 − y) / zoom)`.
 
 Hand-built boxes, grid `{8, true}`, tolerance 6. The moving box is `{x:
 101, y: 203, origin: 142.5771484375}`, so its origin lies 41.5771484375 to
-the right of its left edge, as `bare`'s does.
+the right of its left edge.
 
 | others | result |
 |---|---|
@@ -235,25 +293,25 @@ The dragged edge ends under the pointer and the opposite edge stays exactly
 where it was. Every number, positions included, quantizes to `GRID_FREE`
 (1/2048) and never to the grid: the grid governs moves and nudges, not the
 anchoring of a resize. Snapping a left edge to the grid would shift the
-fixed right edge, for example from 498.577… to 498.552…. A left or top
+fixed right edge (516.5771484375 for block A below) off its place. A left or top
 handle quantizes the pointer's edge, the size follows from the fixed
 opposite edge, and the stored position is the opposite edge minus the
-achieved size. Block A holds `bare` at (40, 80), so `right =
-498.5771484375` and `bottom = 129.37890625`. Bare's extents are multiples
+achieved size. Block A holds `bare` at (40, 80), so `right = 40 + W =
+516.5771484375` and `bottom = 80 + H = 147.37890625`. Bare's extents are multiples
 of 1/2048, so every row below is exact.
 
 **Box** (sets `width`/`height`, plus `x`/`y` for left and top):
 
 | handle | delta | values |
 |---|---|---|
-| right | (20, 0) | `{width: 478.5771484375}` |
-| right | (−20, 0) | `{width: null}` (below the content's 458.577…) |
-| left | (−21, 0) | `{width: 479.5771484375, x: 19}` |
+| right | (20, 0) | `{width: 496.5771484375}` (`W + 20`) |
+| right | (−20, 0) | `{width: null}` (below the content's 476.577…) |
+| left | (−21, 0) | `{width: 497.5771484375, x: 19}` (`516.5771484375 − 19`) |
 | left | (100, 0) | `{width: null, x: 40}` (cannot shrink; the box stays) |
-| bottom | (0, 10.5) | `{height: 59.87890625}` |
-| top | (0, −16) | `{height: 65.37890625, y: 64}` |
-| bottom-right | (20, 10.5) | `{width: 478.5771484375, height: 59.87890625}` |
-| left, grid off | (−21, 0) | `{width: 479.5771484375, x: 19}` (the grid plays no part) |
+| bottom | (0, 10.5) | `{height: 77.87890625}` (`H + 10.5`) |
+| top | (0, −16) | `{height: 83.37890625, y: 64}` (`147.37890625 − 64`) |
+| bottom-right | (20, 10.5) | `{width: 496.5771484375, height: 77.87890625}` |
+| left, grid off | (−21, 0) | `{width: 497.5771484375, x: 19}` (the grid plays no part) |
 
 **Choice: a request at or below the content's extent stores `null`**, the
 content's own size, rather than the extent's number. Then a later edit that
@@ -267,17 +325,20 @@ quantized and floored at `MIN_SCALE`:
 
 | handle | delta | values |
 |---|---|---|
-| bottom-right | (229.28857421875, 0) | `{scale: 1.5}` |
-| top-left | (−229.28857421875, 0) | `{scale: 1.5, x: −189.28857421875, y: 55.310546875}` |
-| bottom-right | (−440, −49) | `{scale: 0.125}` (floored at `MIN_SCALE`) |
+| bottom-right | (238.28857421875, 0) | `{scale: 1.5}` |
+| top-left | (−238.28857421875, 0) | `{scale: 1.5, x: −198.28857421875, y: 46.310546875}` |
+| bottom-right | (−440, −60) | `{scale: 0.125}` (floored at `MIN_SCALE`) |
 | right | any | throws `RangeError` (no edge handles in scale mode) |
 
-For the top-left row: the left edge goes to `40 − 229.28857421875 =
-−189.28857421875`, so the target width is `687.86572265625 = 1.5 W`. The
-height's ratio is 1, so the scale is 1.5. Then `x = 498.5771484375 − 1.5 ×
-458.5771484375 = −189.28857421875` and `y = 129.37890625 − 1.5 ×
-49.37890625 = 55.310546875`. Both are multiples of 1/2048, so the right
-and bottom edges stay exactly where they were.
+The horizontal travel is `W / 2 = 238.28857421875`, so the target width
+is `714.86572265625 = 1.5 W` and, the height's ratio being 1, the scale is
+1.5. For the top-left row the left edge goes to `40 − 238.28857421875 =
+−198.28857421875`; then `x = 516.5771484375 − 1.5 × 476.5771484375 =
+−198.28857421875` and `y = 147.37890625 − 1.5 × 67.37890625 =
+46.310546875`. Both are multiples of 1/2048, so the right and bottom edges
+stay exactly where they were. In the last row both ratios lie below
+`MIN_SCALE`: `36.5771484375 / 476.5771484375` and `7.37890625 /
+67.37890625 = 0.1095…`, so the scale is the floor.
 
 **Stretch** (`length` from left/right, `spacing` from top/bottom, both from a
 corner). How the inverse is derived:
@@ -318,13 +379,13 @@ corner). How the inverse is derived:
 hiding every name (`{select: {element: "name"}, set: {display: "none"}}`).
 Its labels are "0.0 s", whose advances sum to 4975, so `w0 =
 21.86279296875` at size 9, and "231.0791836734694 s", whose advances sum to
-23217, so `we = 102.02783203125`. With no name column, section 6.7 gives
-`x0 = max(P + w0/2, P + we/2 − L)`:
+23217, so `we = 102.02783203125`. With no name drawn, section 8.2 gives
+`x0 = max(xn + w0/2, xn + we/2 − L)` with `xn = 16`, the end label's right
+edge `x0 + L + we/2` is `R`, and `W = R + 18`:
 
-- Below the knee `L* = (we − w0)/2 = 40.08251953125`, the end label's right
-  edge `x0 + L + we/2 = P + we` leads, so `Wc = 2P + we =
-  118.02783203125` is flat.
-- Above it, `Wc = 2P + (w0 + we)/2 + L = 77.9453125 + L`.
+- Below the knee `L* = (we − w0)/2 = 40.08251953125`, `R = xn + we`, so
+  `W = 34 + we = 136.02783203125` is flat.
+- Above it, `R = xn + (w0 + we)/2 + L`, so `W = 95.9453125 + L`.
 
 | fixture | handle | delta | values |
 |---|---|---|---|
@@ -332,11 +393,11 @@ Its labels are "0.0 s", whose advances sum to 4975, so `w0 =
 | bare, scale 2 | right | (20, 0) | `{length: 410}` |
 | bare | left | (−21, 0) | `{length: 421, x: 19}` |
 | bare | right | (−500, 0) | `{length: 8}` (`MIN_LENGTH`; bare's width has no flat piece) |
-| bare | bottom | (0, 30) | `{spacing: 2.875}` (49.38 → 79.38) |
+| bare | bottom | (0, 30) | `{spacing: 2.875}` (67.38 → 97.38) |
 | bare | top | (0, −16) | `{spacing: 2, y: 64}` |
 | bare | bottom | (0, −8) | `{spacing: 0.5}` |
 | bare | bottom | (0, −40) | `{spacing: 0.25}` (`MIN_SPACING`) |
-| nested | bottom | (0, 51) | `{spacing: 2}` (77.98 → 128.98, as `nested__spacing-2`) |
+| nested | bottom | (0, 51) | `{spacing: 2}` (95.98 → 146.98, as `nested__spacing-2`) |
 | nested | bottom | (0, 25.5) | `{spacing: 1.5}` |
 | nested | bottom-right | (400, 51) | `{length: 800, spacing: 2}` |
 | nested | top | (0, −51) | `{spacing: 2, y: 29}` |
@@ -349,31 +410,32 @@ Its labels are "0.0 s", whose advances sum to 4975, so `w0 =
 
 How each row is derived:
 
-- **`bare` bottom +30:** the target is `79.37890625 = 33.37890625 + 16v`,
-  so `v = 46/16 = 2.875`. **`bare` top −16:** the edge 129.37890625 is
-  kept, the target height is `65.37890625 = H(2)`, so `v = 2` and `y =
-  129.37890625 − 65.37890625 = 64`. **`bare` bottom −8:** `41.37890625 =
-  H(0.5)`. **`bare` bottom −40:** the target 9.37890625 lies below
-  `H(1/4)`, so the spacing stops at the floor.
-- **`nested` top:** the bottom edge `80 + 77.9765625 = 157.9765625` is
+- **`bare` bottom +30:** the target is `97.37890625 = 51.37890625 + 16v`,
+  so `v = 46/16 = 2.875`. **`bare` top −16:** the edge 147.37890625 is
+  kept, the target height is `83.37890625 = H(2)`, so `v = 2` and `y =
+  147.37890625 − 83.37890625 = 64`. **`bare` bottom −8:** `59.37890625 =
+  H(0.5)`. **`bare` bottom −40:** the target 27.37890625 lies below
+  `H(1/4) = 55.37890625`, so the spacing stops at the floor.
+- **`nested` top:** the bottom edge `80 + 95.9765625 = 175.9765625` is
   kept and the top goes to `80 − 51 = 29`, so the target height is
-  `128.9765625 = H(2)`. Hence `v = 2` and `y = 157.9765625 − 128.9765625 =
+  `146.9765625 = H(2)`. Hence `v = 2` and `y = 175.9765625 − 146.9765625 =
   29`.
-- **`nested` bottom −40:** the target 37.9765625 lies below `H(1/4) =
-  62.98828125`, so the spacing stops at the floor.
+- **`nested` bottom −40:** the target 55.9765625 lies below `H(1/4) =
+  80.98828125`, so the spacing stops at the floor.
 - **Grow by 35 across the kink** (regression rows for a start on the lower
-  piece): from spacing 1/4 (`H = 62.98828125`) the target is
-  `97.98828125`, above the kink's 73.62…, so `v ≤ 71.01171875 / 51 =
-  1.392386…`; `floor(× 2048) = 2851` gives `1.39208984375` (`H =
-  97.97314453125`; 2852 would draw `98.0029296875`). From spacing
-  `1873/2048 = 0.91455078125`, just below the kink (`H = 58.98828125 +
-  14.6328125 = 73.62109375`), the target is `108.62109375`, so `v ≤
-  81.64453125 / 51 = 1.600873…`; `floor(× 2048) = 3278` gives
-  `1.6005859375` (`H = 108.6064453125`; 3279 would draw `108.63134765625`).
-- **`audio` right −500:** the target is below the flat 118.02783203125, so
+  piece): from spacing 1/4 (`H = 80.98828125`) the target is
+  `115.98828125`, above the kink's 91.62…, so `v ≤ (115.98828125 −
+  44.9765625) / 51 = 71.01171875 / 51 = 1.392386…`; `floor(× 2048) = 2851`
+  gives `1.39208984375` (`H = 115.97314453125`; 2852 would draw
+  `115.998046875`). From spacing `1873/2048 = 0.91455078125`, just below
+  the kink (`H = 76.98828125 + 14.6328125 = 91.62109375`), the target is
+  `126.62109375`, so `v ≤ 81.64453125 / 51 = 1.600873…`; `floor(× 2048) =
+  3278` gives `1.6005859375` (`H = 126.6064453125`; 3279 would draw
+  `126.63134765625`).
+- **`audio` right −500:** the target is below the flat 136.02783203125, so
   the length stops at the knee `L* = 40.08251953125` (169/2048 past 40).
-- **`audio` from length 8, right +50:** the target is `118.02783203125 + 50`,
-  so `L = 168.02783203125 − 77.9453125 = 90.08251953125`.
+- **`audio` from length 8, right +50:** the target is `136.02783203125 + 50`,
+  so `L = 186.02783203125 − 95.9453125 = 90.08251953125`.
 - **`audio` from the knee, right +100:** `L = 140.08251953125`.
 
 `resizeCommand(block, values)` is `{type: "set", changes: [{target:
@@ -431,6 +493,22 @@ duplicates collapse in selection order.
 | A nested | {A/clt_1} | refused: `Block 0000000000: its root timeline clt_1 is removed only with the block; select the block to delete it.` |
 | A nested, B bare | {B, A/clt_1/start} | refused whole, with the same hint for A |
 | any | {} | refused: `Nothing is selected.` |
+| A numbers | {A/score/region_1/label} | targets [A/score/region_1]; afterwards `score` has no region |
+| A numbers | {A/score/region_1, A/score/region_1/label} | targets [A/score/region_1] |
+| A numbers | {A/score} | refused: `Block 0000000000: removing score from a group or bundle block is not supported yet.` |
+| A numbers | {A/score/region_1, A/page/name} | refused whole, with that hint for `page` (the region stays) |
+| A group_child_member | {A/second-half/start} | refused, with that hint for `second-half` (a member that is a child timeline, by a part) |
+| A numbers | {A/group_1/name} | refused, with that hint for `group_1` (a group's title stands for its group) |
+| A corpus_mpm | {A/bundle_1/name} | refused, with that hint for `bundle_1` |
+| A corpus_mpm | {A/score:clt_1/tmap_1} | targets [A/score:clt_1/tmap_1]; afterwards `score:clt_1` has no map |
+
+In a group or bundle block a selection holding any timeline, group or
+bundle, or a part of one, is refused whole. The rule is core's
+`isRemovable`, the one core's `remove` refuses through, so no command core
+would refuse for what it targets is sent: core refuses every timeline there
+(`unsupported_target`) and finds no group or bundle to remove
+(`unknown_target`). The hint names the first such element in selection
+order, in the style of the root's hint.
 
 Every non-refused command is accepted by `apply`, and the removed elements
 are gone from the manifest (`manifestIds`).
@@ -443,9 +521,12 @@ them. The selection is given as element ids and part addresses. The rule,
 using the manifest alone and core's traversal (`manifestElements`,
 `timelineAncestry`, `orderedChildren`):
 
-- **Owners:** each selected address folded into its element (`T/name`
-  → `T`), as `removeCommand` folds it. The root is dropped: removing it is
-  refused, so it takes nothing with it.
+- **Owners:** each selected address folded into its element with core's
+  `elementOf` (`T/name` → `T`, `score/region_1/label` → `score/region_1`),
+  as `removeCommand` folds it. What core's `isRemovable` refuses (the rule
+  `removeCommand` and core's `remove` refuse by) is dropped and takes
+  nothing with it: a timeline file's root, and every timeline, group and
+  bundle of a group or bundle file.
 - **Removed elements:** every non-root timeline that is an owner or has
   an owner among its ancestors. Then every map, region, break, jump and
   marker of those timelines, plus the owners themselves.
@@ -470,6 +551,18 @@ Pinned values (derived by hand from the fixtures' trees). `nested` is
 | map | {tempo} | ∅ |
 | with_region | {region_1/label} | {region_1} |
 | any | ∅ | ∅ |
+| numbers | {score/region_1/label} | {score/region_1} (folded by `elementOf`, never at the first slash) |
+| numbers | {score/region_1} | ∅ (its label is its own part) |
+| numbers | {score} | ∅ (no timeline of a group file is removable) |
+| group_child_member | {piece} | ∅ (an ancestor line, still a timeline) |
+| corpus_mpm | {score:clt_1} | ∅ (it carries `tmap_1`, which a removable timeline would take along) |
+| corpus_mpm | {group_1}, {group_1/name}, {bundle_1/name} | ∅ (frames and titles are not removable) |
+
+In a group or bundle file the rule is the same with core's
+`isRemovable`: no timeline, group or bundle is an owner, so only the
+root-qualified maps, regions, breaks, jumps and markers can take anything
+along, and none of them owns another element; what they affect is their
+own parts.
 
 `project` carries the set as `data.affectedElements`, computed per block
 from its `selectedElements`. A reused node keeps its identical set, since
@@ -477,11 +570,20 @@ it is only reused when the block and its selected elements are unchanged.
 In the `project` example, B with `{clt_3}` selected has `affectedElements
 = {clt_2, clt_2/name}`, and A has the empty set.
 
-**Property (fast-check):** take one block holding any of the five fixtures
-and any selection of its drawn addresses that `removeCommand` does not
-refuse. Then the element ids the `remove` actually deletes (`manifestIds`
-before minus after) equal `(owners ∪ affectedBy) ∩ manifestIds(before)`.
-This compares the rule against core's own removal, not against itself.
+**Property (fast-check):** take one block holding any of eight manifests:
+the five fixtures `bare`, `nested`, `flow_control`, `with_region` and
+`map`, the group file `group_child_member`, the bundle file `bundle_mixed`,
+and `numbers` (a group file with a root-qualified region), and any
+selection of the element and part addresses that core's `manifestElements`
+lists for it. `removeCommand` refuses the selection exactly when core
+refuses a `remove` of the selected elements (each folded by `elementOf`).
+When it does not, the element ids the `remove` actually deletes
+(`manifestIds` before minus after) equal `(owners ∪ affectedBy) ∩
+manifestIds(before)`, the owners folded by `elementOf`. This compares the
+rule against core's own removal, not against itself. In
+`group_child_member` and `bundle_mixed` every listed address is a timeline,
+a frame, a title or one of their parts, so every selection there is
+refused, and core must refuse it too.
 
 ## `click` and `blockOf`
 
@@ -491,6 +593,25 @@ This compares the rule against core's own removal, not against itself.
 - `click({A}, "B/clt_1", true)` is `{A, B/clt_1}`, and
   `click({A, B/clt_1}, "A", true)` is `{B/clt_1}`, so Shift toggles.
 - The input set is never mutated.
+- **A press on a timeline's card selects that timeline**: the card is what
+  shows a timeline selected and edited on its own (drawing.md section 2.2:
+  the card of a timeline `T` is `T/card` and belongs to `T`). An address
+  whose element part has more than one segment and ends in `/card` is
+  folded to the address without that part, so the card's shadow, which
+  carries the same address, does the same. In a timeline file `T` is the
+  root: `click(∅, "A/bare/card", false)` on a block holding `bare` is
+  `{A/bare}`. In `group_child_member` `click(∅, "A/recording/card", false)`
+  is `{A/recording}`, and with Shift `click({A/recording},
+  "A/recording/card", true)` is ∅ (the timeline is toggled, not its card).
+  Any other part is kept as pressed: `click(∅, "A/recording/start", false)`
+  is `{A/recording/start}`. An element part of one segment is never
+  folded, so an element whose id is `card` keeps its address: `click(∅,
+  "A/card", false)` is `{A/card}`, while `A/card/card` folds to `A/card`. The block stays selectable by its margin
+  outside the cards (`click(∅, "A", false)` is `{A}`), by Tab and by the
+  marquee; those paths and dragging are the canvas's and are not changed.
+  The pressed card and timeline addresses are real: core's
+  `manifestElements` lists `bare/card` and `bare` for `bare`, and
+  `recording/card` and `recording` for `group_child_member`.
 - `blockOf("A/clt_3/name")` is `A`, and `blockOf("A")` is `A`.
   `blockOf("workspace")` throws `RangeError`.
 
@@ -501,6 +622,15 @@ after an undo or redo. View: A holds `nested` (elements `clt_1`, `clt_3`,
 - `existing(view, {A, A/clt_3, A/clt_3/name, A/clt_9, A/clt_9/name, B,
   B/clt_1})` is `{A, A/clt_3, A/clt_3/name}` in that order: a part stands
   or falls with its element, everything in a missing block goes.
+- In a group or bundle block an address is read with core's `elementOf`.
+  View: A holds `numbers`. `existing(view, {A/score/region_1/label,
+  A/score/region_2/label, A/score/name, A/group_1/name, A/page/start,
+  A/nobody/region_1})` is `{A/score/region_1/label, A/score/name,
+  A/group_1/name, A/page/start}`: the region's label stays with its region,
+  a missing region's label goes, a root's part, the group's title and a
+  wedge stay, and an element of no root goes.
+- `blockOf("A/score/region_1/label")` is `A`: an address may hold several
+  slashes after its block.
 - A selection whose addresses all exist is returned as the same object
   (`toBe`), so an unchanged selection does not re-render the canvas; the
   empty selection likewise.
@@ -556,7 +686,8 @@ renders, which draws nothing).
 
 1. **Screen equals export, for every drawing fixture.** For each directory
    of the installed `@timetoalign/timeskeleton` package's
-   `fixtures/<SCHEMA_VERSION>/drawings/` (34 cases), the drawing is made from its
+   `fixtures/<SCHEMA_VERSION>/drawings/` (46 cases: the 34 timeline cases,
+   `segment_line`, 8 `group__…` and 3 `bundle__…` cases), the drawing is made from its
    `inputs.json` alone (its manifest fixture, placement and layers, exactly
    as the writers' fixture test makes it) and its `toDescriptors` are
    rendered by the node at the case's scale. The node's `<svg>` is in the
@@ -581,6 +712,19 @@ renders, which draws nothing).
    with both attributes left out equals `figure.svg`'s. Without a selection
    no element carries `data-affected`. Which elements are affected is
    decided by `project`; the node only marks them.
+   **A selected address marks every descriptor carrying it**, wherever and
+   however often it is drawn (drawing.md section 2.2: every drawing of an
+   element carries its address). On `bundle__bundle_shared_parent` with
+   `selectedElements = {"score", "exposition/start"}`, the elements
+   carrying `data-selected` are, in document order, the four `score`
+   descriptors of `exposition`'s ancestor line, the two `exposition/start`
+   marks (on that ancestor line and on `exposition`'s own line), and the
+   four `score` descriptors of `recapitulation`'s ancestor line: ten
+   elements, the tree with `data-selected` left out equals `figure.svg`'s,
+   and `data-contains-selection` is set once. No fixture draws a timeline
+   both as a member and as an ancestor line or child of another member
+   drawing; the node marks by the whole address alone, so that drawing
+   follows the same rule.
 3. **Text is text.** A text descriptor whose text is
    `<b id="x">C♯ & D♭</b>` and whose `data-address` is `a"<b>` renders one
    `<text>` element in the SVG namespace with exactly those attribute values
@@ -608,3 +752,108 @@ stylesheet, which jsdom does not apply, so the font is not exercised here.
 Which keys reach the canvas (focus inside the arranger, which is itself
 focusable; undo and redo are the editor's page-wide keys), and that arrows inside a toolbar move
 focus rather than nudge, need a browser and are not tested here.
+
+## Hover
+
+The pointer highlights two things in a block: the **card** it is over, which
+shows the timeline that is selected and edited on its own, and a
+**boundary** it is over. The block node marks each with `data-hovered`.
+
+A card spans its timeline's whole member drawing (drawing.md section 8.2:
+it reaches the largest right edge of every member drawing plus `K`, and is
+`Hm` high), cards are stacked `F` apart and never overlap (section 8.4), and
+every element of a member drawing is drawn inside its card. So the card the
+pointer is over is decided by the pointer's position alone: the drawn card
+whose rectangle holds it. This needs no descriptor-to-card mapping, which
+the descriptors cannot give: a card that is not displayed is not drawn,
+and its member's descriptors then follow the previous card's with nothing
+between them. `cardAt(drawing, x, y)` (in `hover.ts`) answers it in the
+drawing's units, edges included, with `null` outside every drawn card.
+`hoverablesOf(drawing, descriptors)` names the descriptors that carry the
+mark: `"card"` for a card's own rectangle, never its shadow, and
+`"boundary"` for a boundary's line. A card and its shadow carry the same
+address and are both `rect`s; drawing.md section 7.2 writes the shadow
+first (only when the card's `shadow` is not `none`) and the card after it,
+so the card's rectangle is the **last** `rect` carrying a card's address,
+whatever attributes either carries. `boundaryOf(drawing, tag, address)`
+names the boundary an element draws: its address when the element is a
+`line` whose address is a boundary element's (a wedge shares the `S/start`
+form but is a `polygon`), else `null`; `hoverablesOf` names a boundary's
+line by the same rule. Every other descriptor is absent from the map.
+
+`hover.test.ts`, block A at `(0, 0)`, default placement, values from the
+drawing itself (canvas units):
+
+1. **`segment_line`** (timeline file; root `form`, segments `a`, `b`, `c`,
+   `b` holding `b2`). Its one card `form/card` spans `x` 8 to
+   `469.573974609375`, `y` 8 to `103.9296875`. `cardAt` gives `form/card`
+   at the start of the root's line `(52.294921875, 68.953125)`, at the
+   middle of boundary `b2/start` `(227.294921875, 36.4765625)` and at the
+   card's two corners `(8, 8)` and `(469.573974609375, 103.9296875)`; it
+   gives `null` in the box's padding `(4, 4)`, just right of the card
+   `(470, 50)` and on its shadow's rim `(471, 105)`. The descriptors
+   `hoverableOf` names are, in order, exactly `form/card` (`"card"`, the
+   third descriptor; the second, the shadow with the same address, is
+   absent), `b/start`, `b2/start`, `c/start` (`"boundary"`). With the
+   workspace statement `{select: {element: "card"}, set: {shadow: "none"}}`
+   no shadow is written and the one `rect` addressed `form/card`, now the
+   second descriptor, is the card. `boundaryOf` gives `b2/start` for a
+   `line` addressed `b2/start`, and `null` for a `polygon` with that
+   address, a `line` addressed `form` (the root's line) and an element
+   without an address.
+2. **`group_child_member`** (group file; frame `group_1`, members
+   `second-half`, drawn under the ancestor line `piece`, and `recording`).
+   `cardAt` gives `second-half/card` at the start of the ancestor line
+   `piece` `(108.61962890625, 67.78125)`, at the start of `second-half`'s
+   own line `(120.61962890625, 81.78125)` and at the tip of the start mark
+   `second-half/start` on the ancestor line `(120.61962890625, 66.28125)`;
+   `recording/card` at the start of `recording`'s line
+   `(120.61962890625, 139.16015625)`; `null` inside the frame above the
+   first card `(12, 12)` and in the gap between the two cards `(100, 120)`
+   (the first card ends at `116.7578125`, the second starts at
+   `124.7578125`). `hoverableOf` names exactly `second-half/card` and
+   `recording/card` (`"card"`); the frame `group_1` is absent.
+3. **A hidden card holds no point.** With the workspace statement
+   `{select: {element: "card"}, set: {display: "none"}}`,
+   `group_child_member` draws no card: `cardAt` gives `null` at the start of
+   `recording`'s line, and `hoverableOf` names no descriptor.
+
+4. **The block node holds what is hovered by address, so the mark
+   survives a redraw.** `BlockNode.svelte` is mounted in jsdom on
+   `segment_line` (data as `project` makes it: the block, its drawing,
+   `descriptorsOf` the drawing, no selection), its props read through a
+   reactive `SvelteMap` so that a redraw can be passed in. jsdom does not
+   lay the `<svg>` out, so its bounding box is stubbed to the drawing's own
+   box at `(0, 0)` (scale 1: one client pixel is one canvas unit); the
+   conversion itself is proven in the browser. One `pointerover` handler
+   on the `<svg>` reads the event target's `data-address` through
+   `boundaryOf`; one `pointermove` handler reads the card through `cardAt`.
+   The events are dispatched as `MouseEvent`s of those types (bubbling,
+   except `pointerleave`), which carry `buttons`, `clientX` and `clientY`.
+   - A `pointerover` on the `line` addressed `b2/start` marks exactly that
+     line: the elements carrying `data-hovered` are `[line b2/start]`.
+   - A `pointermove` at `(52.294921875, 68.953125)` adds the card: the
+     marked elements are, in document order, `[rect form/card, line
+     b2/start]`, the `rect` being the third element (the shadow, the
+     second, is not marked).
+   - **Redraw.** The view is changed by the workspace statement
+     `{select: {element: "boundary"}, set: {stroke: "#FF0000"}}` and the
+     node is given the new block, drawing and descriptors, with no pointer
+     event. Every element is new (the `{#each}` is keyed by descriptor),
+     the boundary `line` addressed `b2/start` now has `stroke="#FF0000"`,
+     and the marked elements are still `[rect form/card, line b2/start]`.
+   - A `pointerover` whose target is the `<svg>` itself (the pointer on no
+     drawn element) unmarks the boundary and keeps the card:
+     `[rect form/card]`.
+   - **No hover work during a press.** With a button held
+     (`buttons: 1`), a `pointerover` on `b2/start` marks nothing new and a
+     `pointermove` at `(4, 4)` neither reads the bounding box (the stub is
+     called 0 times) nor moves the card mark: still `[rect form/card]`.
+     The same `pointermove` with no button held reads it once and clears
+     the card mark (`(4, 4)` is in the box's padding): `[]`.
+   - A `pointerleave` on the `<svg>` clears both marks: with `b2/start`
+     and the card marked, it leaves `[]`.
+
+That the client position is converted under zoom and scale, and that the
+mark follows a real pointer, is proven end to end, against
+`data-hovered`, by the Playwright suite.

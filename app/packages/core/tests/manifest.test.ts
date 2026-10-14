@@ -1,13 +1,14 @@
 import {
   dumps,
   JsonFloat,
+  migrate,
   parse,
   parseJson,
   SCHEMA_VERSION,
   SUPPORTED_VERSIONS,
 } from "@timetoalign/timeskeleton";
 import { describe, expect, it, vi } from "vitest";
-import type { LoadError, Manifest } from "../src/index.ts";
+import type { LoadError, Manifest, TimelineFile } from "../src/index.ts";
 import {
   checkManifest,
   InvalidManifestError,
@@ -17,7 +18,15 @@ import {
   saveManifest,
 } from "../src/index.ts";
 import type { JsonObject } from "../src/json.ts";
-import { load, manifestFixtures, rejections } from "./support.ts";
+import {
+  bundleFixtures,
+  groupFixtures,
+  load,
+  manifestFixtures,
+  migrationPairs,
+  olderFixtures,
+  rejections,
+} from "./support.ts";
 
 function loaded(text: string): Manifest {
   const manifest = loadManifest(text);
@@ -32,11 +41,18 @@ function refused(text: string): LoadError {
 }
 
 describe("fixture manifests round-trip byte for byte", () => {
-  it("has exactly 23 fixtures", () => {
-    expect(manifestFixtures.length).toBe(23);
+  it("has exactly 29 timeline, 9 group and 9 bundle files", () => {
+    expect([manifestFixtures.length, groupFixtures.length, bundleFixtures.length]).toEqual([
+      29, 9, 9,
+    ]);
   });
 
-  it.each(manifestFixtures.map((fixture) => [fixture.name, fixture.text]))("%s", (_, text) => {
+  it.each(
+    [...manifestFixtures, ...groupFixtures, ...bundleFixtures].map((fixture) => [
+      fixture.name,
+      fixture.text,
+    ]),
+  )("%s", (_, text) => {
     expect(saveManifest(loaded(text))).toBe(text);
   });
 });
@@ -59,30 +75,48 @@ describe("schema version", () => {
     ]);
   });
 
-  const declaring = (text: string, version: string) =>
-    text.replace(`"schema_version": "${SCHEMA_VERSION}"`, `"schema_version": "${version}"`);
+  const earlier = SUPPORTED_VERSIONS.filter((version) => version !== SCHEMA_VERSION);
 
-  describe.each(SUPPORTED_VERSIONS)("reads a manifest declaring %s", (version) => {
-    it.each(manifestFixtures.map((fixture) => [fixture.name, fixture.text]))(
-      "%s, migrated to the latest version",
+  it("knows two earlier versions", () => {
+    expect(earlier).toEqual(["0.5.0", "0.6.0"]);
+  });
+
+  describe.each(earlier)("reads a manifest declaring %s", (version) => {
+    const fixtures = olderFixtures(version);
+
+    it("has 23 timeline fixtures", () => {
+      expect(fixtures.length).toBe(23);
+    });
+
+    it.each(fixtures.map((fixture) => [fixture.name, fixture.text]))(
+      "%s, migrated by timeskeleton to the latest version",
       (_, text) => {
-        const older = declaring(text, version);
-        expect(older.includes(`"schema_version": "${version}"`)).toBe(true);
-        const manifest = loaded(older);
+        expect(text.includes(`"schema_version": "${version}"`)).toBe(true);
+        const manifest = loaded(text);
         expect(manifest.meta.schema_version).toBe(SCHEMA_VERSION);
-        expect(saveManifest(manifest)).toBe(text);
+        expect(saveManifest(manifest)).toBe(dumps(migrate(parseJson(text))));
       },
     );
 
     it("leaves the value it reads unchanged", () => {
-      const fixture = manifestFixtures.find((item) => item.name === "bare.json")?.text ?? "";
-      const value = parseJson(declaring(fixture, version)) as unknown as Manifest;
+      const fixture = fixtures.find((item) => item.name === "bare.json")?.text ?? "";
+      const value = parseJson(fixture) as unknown as Manifest;
       const manifest = readManifestValue(value);
       expect(isLoadError(manifest) ? manifest.problems : manifest.meta.schema_version).toBe(
         SCHEMA_VERSION,
       );
       expect(value.meta.schema_version).toBe(version);
     });
+  });
+
+  it("migrates 0.6.0-to-0.7.0/before.json to its after.json byte for byte", () => {
+    const pair = migrationPairs.find((item) => item.name === "0.6.0-to-0.7.0");
+    expect(saveManifest(loaded(pair?.before ?? ""))).toBe(pair?.after);
+  });
+
+  it("reads 0.5.0-to-0.6.0/before.json and after.json as equal manifests", () => {
+    const pair = migrationPairs.find((item) => item.name === "0.5.0-to-0.6.0");
+    expect(saveManifest(loaded(pair?.before ?? ""))).toBe(saveManifest(loaded(pair?.after ?? "")));
   });
 });
 
@@ -113,7 +147,7 @@ describe("lossless numbers", () => {
   it("keeps an int above 2^53", () => {
     const fixture = manifestFixtures.find((item) => item.name === "discrete_logical.json");
     const text = (fixture?.text ?? "").replace('"value": 480', '"value": 9007199254740993');
-    const manifest = loaded(text);
+    const manifest = loaded(text) as TimelineFile;
     expect(manifest.timeline.length.value).toBe(9007199254740993n);
     expect(saveManifest(manifest)).toBe(text);
   });
@@ -122,7 +156,7 @@ describe("lossless numbers", () => {
     const fixture = manifestFixtures.find((item) => item.name === "continuous_logical.json");
     const pattern = /"value": \[\n(\s+)12,\n(\s+)1\n/;
     const text = (fixture?.text ?? "").replace(pattern, '"value": [\n$19007199254740993,\n$22\n');
-    const manifest = loaded(text);
+    const manifest = loaded(text) as TimelineFile;
     expect(manifest.timeline.length.value).toEqual([9007199254740993n, 2]);
     expect(saveManifest(manifest)).toBe(text);
   });
@@ -142,7 +176,7 @@ describe("canonical order", () => {
         },
       },
     };
-    const saved = parse(saveManifest(manifest)) as unknown as Manifest;
+    const saved = parse(saveManifest(manifest)) as unknown as TimelineFile;
     expect(saved.timeline.flow_control.markers.map((marker) => marker.id)).toEqual([
       "\uFF5E",
       "\u{1F3B5}",

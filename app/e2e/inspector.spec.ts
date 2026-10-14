@@ -8,7 +8,7 @@ import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import {
-  backgroundPoint,
+  cardPoint,
   commandsFrom,
   dragStart,
   element,
@@ -131,7 +131,7 @@ function field(page: Page, name: string) {
 }
 
 test("the form follows a drag live, then shows the stored values", async ({ page }) => {
-  await nodeDragStart(page, await backgroundPoint(page, SMALL.bare), 101, 37);
+  await nodeDragStart(page, await cardPoint(page, SMALL.bare), 101, 37);
   await expect(field(page, "x")).toHaveValue("104");
   await expect(field(page, "y")).toHaveValue("40");
   expect(await journalLength(page)).toBe(5);
@@ -151,13 +151,13 @@ test("the form follows a resize live, rounded to two decimals", async ({ page })
   const grip = await page.locator('[data-testid="handle-right"]').boundingBox();
   if (grip === null) throw new Error("the right handle is not displayed");
   await dragStart(page, { x: grip.x + grip.width / 2, y: grip.y + grip.height / 2 }, 20, 0);
-  await expect(field(page, "width")).toHaveValue("478.58");
+  await expect(field(page, "width")).toHaveValue("496.58");
   expect(await journalLength(page)).toBe(5);
   expect((await placement(page, SMALL.bare)).width).toBe(null);
   await page.mouse.up();
   await expect.poll(() => journalLength(page)).toBe(6);
-  expect((await placement(page, SMALL.bare)).width).toBe(478.5771484375);
-  await expect(field(page, "width")).toHaveValue("478.58");
+  expect((await placement(page, SMALL.bare)).width).toBe(496.5771484375);
+  await expect(field(page, "width")).toHaveValue("496.58");
 });
 
 test("a step applies at once as one command, from the stored value", async ({ page }) => {
@@ -218,7 +218,7 @@ test("Escape cancels a resize and the form shows the stored values again", async
   const grip = await page.locator('[data-testid="handle-right"]').boundingBox();
   if (grip === null) throw new Error("the right handle is not displayed");
   await dragStart(page, { x: grip.x + grip.width / 2, y: grip.y + grip.height / 2 }, 20, 0);
-  await expect(field(page, "width")).toHaveValue("478.58");
+  await expect(field(page, "width")).toHaveValue("496.58");
   await page.keyboard.press("Escape");
   await expect(field(page, "width")).toHaveValue("");
   await expect.poll(() => node(page, SMALL.bare).boundingBox()).toEqual(before);

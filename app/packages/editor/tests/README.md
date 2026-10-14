@@ -92,9 +92,13 @@ hand-written, except the refused texts.
 
 `files.ts` alone:
 
-1. **`manifestFileName`** gives `bare.json` for `bare` and
-   `flow_quarters.json` for `flow_control` (root id `flow:quarters`, the
-   colon replaced); every character outside `[A-Za-z0-9_-]` becomes `_`.
+1. **`manifestFileName`** names a file after its root timeline's id in a
+   timeline file, its group's id in a group file and its bundle's id in a
+   bundle file: `bare.json` for `bare`, `flow_quarters.json` for
+   `flow_control` (root id `flow:quarters`, the colon replaced),
+   `tilia_Bruckner5_Scherzo.json` for the group file `corpus_tilia` (group
+   id `tilia:Bruckner5_Scherzo`) and `bundle_1.json` for the bundle file
+   `bundle_mixed`; every character outside `[A-Za-z0-9_-]` becomes `_`.
 2. **`lastChanged`** is `null` for `[]`; with `TZ=UTC` an entry at
    `2026-10-12T09:05:07.000Z` gives `2026-10-12 09:05` (the last entry's
    time, local, minutes truncated).
@@ -264,6 +268,13 @@ shared with the plugin); this set is the reference.
    403. Its other entry is the workspace root found from the
    config file's own directory, `app/` (whose `pnpm-workspace.yaml` marks
    it), not from the directory the server was started in.
+7. **No fixture reaches a production build.** Every manifest fixture the
+   fixture menu offers, and so every end-to-end workspace built from them,
+   carries the `meta.generator` of the installed package's fixtures (read
+   from its `bare.json`, e.g. `timetoalign 1.2.0 (98a6bb36)`), and the
+   workspaces the menu builds name the author `Fixture Generator`; no file
+   the production build writes contains either string, so neither the
+   fixture texts nor the code building workspaces from them is bundled.
 
 ## Autosave (`autosave.test.ts`)
 
@@ -369,16 +380,48 @@ writes its view and journal.
 3. **A refused file throws and changes nothing.** After loading the file,
    `load("{")` throws a `WorkspaceRefusedError` whose problems' codes are
    exactly `["invalid_json"]`, and `store()` is still the open store.
-4. **The header offers the end-to-end workspaces.** In the same builds the
-   header carries a select labelled "Fixture" (`fixture-select`) whose
-   options are exactly `grid-300`, `grid-900`, `small` (the base names of
-   `app/e2e/fixtures/*.tle.json`, sorted), and a Load button
-   (`fixture-load`). Choosing `small` and pressing Load opens it the way
-   `load` does: the store's view and journal equal `readWorkspace` of that
-   file's text, and the selection is `[]`. A production build contains
-   neither the menu nor the files (checked on `pnpm build`'s output, not
-   here).
-5. **The hook leaves with the editor.** Unmounting `App.svelte` removes
+4. **The header offers the end-to-end workspaces and one workspace per
+   synthetic group and bundle fixture.** In the same builds the header
+   carries a select labelled "Fixture" (`fixture-select`) and a Load
+   button (`fixture-load`). Its options are the base names of
+   `app/e2e/fixtures/*.tle.json` and of the installed timeskeleton's
+   `fixtures/<SCHEMA_VERSION>/groups/*.json` and `bundles/*.json` except
+   those starting `corpus_` (loader output, not drawings made to be
+   looked at), all in one list sorted by code point. The end-to-end
+   workspaces are the generator's output, pinned byte for byte by `pnpm
+   e2e:fixtures:check`, so the test lists that directory (and requires
+   `small` among them); the manifest entries are pinned exactly:
+   `bundle_mixed`, `bundle_shared_parent`, `bundle_ungrouped`,
+   `group_child_member`, `group_grandchild`, `group_number_types`,
+   `group_parent_both`, `group_parent_exact`, `group_parent_right`,
+   `group_parents_mixed`, `group_styled` (11; the installed 0.7.0 package
+   has 9 group and 9 bundle files, one and six of them `corpus_`).
+   Choosing `small` and pressing Load opens it the way `load` does: the store's view and journal equal `readWorkspace`
+   of that file's text, and the selection is `[]`. Choosing
+   `group_number_types` and pressing Load opens a workspace of one block
+   `fixture000` at x 0, y 0 whose manifest equals `loadManifest` of the
+   fixture file and whose `blockKind` is `group`, journalled as exactly
+   one `add` of that block by `Fixture Generator` at
+   `2026-10-12T09:00:00.000Z` (the end-to-end generator's author and first
+   time); `bundle_mixed` likewise gives one block of kind `bundle`. A
+   production build carries none of these workspaces (attributions case
+   7).
+5. **Delete of a timeline in a group or bundle block is refused and
+   removes nothing.** Core refuses to remove any timeline of a group or
+   bundle file, and the canvas refuses such a selection before asking
+   (arranger's `removeCommand`), showing its reason in the canvas's status
+   line (`data-testid="hint"`, `role="status"`). After the menu's
+   `group_child_member` is loaded and `fixture000/second-half` (a child
+   timeline that the group names as a member; in a timeline file a child
+   is removable) is selected, Delete on the canvas (`role="application"`,
+   where the canvas reads its keys) leaves the view the same
+   object and the journal at one entry, and the status line reads exactly
+   `Block fixture000: removing second-half from a group or bundle block is
+   not supported yet.`; after `bundle_mixed`, selecting the ungrouped root
+   `fixture000/annotations` and pressing Delete likewise changes nothing
+   and reads `Block fixture000: removing annotations from a group or bundle
+   block is not supported yet.` The selection is kept in both.
+6. **The hook leaves with the editor.** Unmounting `App.svelte` removes
    `window.__tilie`.
 
 The viewport functions talk to Svelte Flow, which needs a laid-out page;
@@ -399,13 +442,21 @@ loads both before its cases.
 What would prove it works, and the exact values each test pins:
 
 1. **Every manifest round-trips through every format, byte for byte.** For
-   each of the 23 manifest fixtures of the installed timeskeleton
-   (`fixtures/<SCHEMA_VERSION>/*.json`) and each format, the fixture's
-   lossless value (`parseJson`) is written as text and read back, and
-   `dumps` of what was read equals the fixture file's bytes. `dumps` sorts
-   keys and arrays, so only a lost or changed value, a changed number kind
-   (an integer that became a float or the reverse) or a dropped or added
-   member can make a case fail; 69 cases.
+   each manifest fixture of the installed timeskeleton's `SCHEMA_VERSION`
+   and each format, the fixture's lossless value (`parseJson`) is written
+   as text and read back, and `dumps` of what was read equals the fixture
+   file's bytes. `dumps` sorts keys and arrays, so only a lost or changed
+   value, a changed number kind (an integer that became a float or the
+   reverse) or a dropped or added member can make a case fail. The cases
+   are enumerated from the package's directories, so a first case pins
+   the set they come from: the installed 0.7.0 package holds 29 timeline
+   files (`fixtures/<SCHEMA_VERSION>/*.json`), 9 group files
+   (`groups/*.json`) and 9 bundle files (`bundles/*.json`), the counts
+   `ls` gives there; 47 fixtures in three formats are 141 cases. A
+   fixture added to or removed from the package fails that first case
+   until this file and the count are updated together.
+   The bundle `corpus_matchfile` has a null bundle `name`, so its TOML case
+   already exercises the null rule of case 3 across the schema's documents.
 2. **Numbers stay exact.** A store holds `discrete_logical` (an unlocked
    root of integer ticks) and `continuous_physical` (an unlocked root of
    float seconds). Through `set` commands the integer root's `length`
@@ -419,12 +470,47 @@ What would prove it works, and the exact values each test pins:
    `value: 9007199254740993` and `value: 10000000000000000.0`. A JavaScript
    number would round the integer to …992, and a float written as `1e16`
    without a point would read back as the integer.
-3. **The TOML null rule is the schema's.** `nullableRequired` over every
-   `$defs` entry of the latest schema lists exactly: `TimelineManifest`
-   `measure_map`, `metric_hierarchy`, `name`; each of the 21 conversion-map
-   definitions `name`, `source_unit`, `target_unit`; `Region` `name`;
-   `Break` `label`, `name`; `Jump` `label`, `target`; `Marker` `name`; and no
-   other definition has any. The TOML text of `bare` is pinned whole: it
+3. **The TOML null rule is the schema's.** From 0.7.0 on a version's
+   schema is four documents (`core`, `timeline`, `group`, `bundle`) that
+   refer to each other by relative `$ref`s such as
+   `core.schema.json#/$defs/Id`; each reference is resolved against its own
+   document's `$id` among the documents of the version the value declares,
+   and the walk starts at the document of the value's file kind. `nullableRequired` over every
+   `$defs` entry of every document of the latest version lists exactly, per
+   document: `timeline` `TimelineManifest` `measure_map`,
+   `metric_hierarchy`, `name`; each of its 21 conversion-map definitions
+   `name`, `source_unit`, `target_unit`; `Region` `name`; `Break` `label`,
+   `name`; `Jump` `label`, `target`; `Marker` `name`; `group` `Group`
+   `name`; `bundle` `Bundle` `name`; and no other definition of any of the
+   four documents has any (`core` none). The two schemas of 0.5.0 and
+   0.6.0, one document each, still give their own lists: `TimelineManifest`
+   of 0.6.0 lists `measure_map`, `metric_hierarchy`, `name`.
+
+   **Groups and bundles.** A group's and a bundle's `name` is required and
+   may be null, so it is omitted and restored:
+   - `group_number_types` with its group's `name` set to null: the TOML
+     text's `[group]` table is exactly `id = "group_1"` and `members = [
+     "page", "performance", "score" ]` (no `name` key), and reading it gives
+     the group's `name` null again; JSON and YAML write the null and read
+     it back. In all three formats `dumps` of what was read equals `dumps`
+     of the value written.
+   - `corpus_matchfile` (bundle `name` null, its one group named `score`):
+     the TOML text's `[bundle]` table is exactly `groups = [ { id =
+     "group_1", members = [ "score:clt_1" ], meta = {}, name = "score" } ]`
+     (the writer keeps an array of tables inline), `id = "bundle_1"` and
+     `support_policy = "omit"`, so the group keeps its name and the bundle
+     has none; reading it gives the bundle's `name` null and the group's
+     `score`; JSON and YAML likewise round-trip with `dumps` equal.
+   - `corpus_matchfile` with its one group's `name` set to null as well:
+     the null now lies at the far end of the walk from the `bundle`
+     document into `group.schema.json#/$defs/Group`. The TOML text's
+     `[bundle]` table is exactly `groups = [ { id = "group_1", members = [
+     "score:clt_1" ], meta = {} } ]`, `id = "bundle_1"` and
+     `support_policy = "omit"` (no `name` key at either level), and reading
+     it gives both the bundle's and the group's `name` null again; JSON and
+     YAML likewise round-trip with `dumps` equal.
+
+   The TOML text of `bare` is pinned whole: it
    omits the null `measure_map` and `metric_hierarchy` (so its `[timeline]`
    table has no such keys), and reading it gives both as null again (case 1
    covers the other nulls of every fixture). Two refusals:
@@ -454,8 +540,10 @@ What would prove it works, and the exact values each test pins:
    of the root changed to `"parsecs"` is refused "must be equal to one of the
    allowed values" at `/timeline/unit`. Syntax errors carry 1-based
    positions: the JSON text with `"locked": ,` gives `syntax_error` at line
-   24, column 15; the YAML text with `locked: [false` gives line 18,
-   column 3; the TOML text with `locked = ` gives line 10, column 1. No
+   25, column 15; the YAML text with `locked: [false` gives line 19,
+   column 3; the TOML text with `locked = ` gives line 11, column 1 (each
+   one line below where schema 0.6.0 put it: 0.7.0 adds the timeline's
+   `is_segment_line`, which sorts before `length` and `locked`). No
    refusal adds a journal entry.
 6. **Comments survive Apply and an external change.** With `bare`
    selected, the YAML text gets a comment line `  # shown on the canvas`

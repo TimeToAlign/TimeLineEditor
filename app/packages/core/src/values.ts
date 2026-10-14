@@ -159,6 +159,7 @@ function host(members: JsonObject, graphical?: Json): Json {
       ...axis,
       length: { ...axis, value: 0 },
       locked: false,
+      is_segment_line: false,
       meta: {},
       children: {},
       conversion_maps: [],

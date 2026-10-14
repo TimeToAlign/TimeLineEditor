@@ -21,6 +21,7 @@ import {
 import { Rational } from "../number/rational.ts";
 import type { Real } from "../number/real.ts";
 import { addReal, compareReal, realOf } from "../number/real.ts";
+import { rootPaths } from "./files.ts";
 import type { Manifest, TimelineManifest } from "./types.ts";
 
 export const CLASS_UNITS: { readonly [name in TimelineClass]: readonly TimeUnit[] } = {
@@ -229,7 +230,7 @@ function checkTimeline(
   }
 }
 
-/** Every invariant violation in canonical traversal order. */
+/** Every invariant violation in canonical traversal order, root by root. */
 export function checkManifest(manifest: Manifest): Problem[] {
   return checkOrdered(canonicalOrder(manifest));
 }
@@ -237,6 +238,6 @@ export function checkManifest(manifest: Manifest): Problem[] {
 /** `checkManifest` of a manifest already in canonical order. */
 export function checkOrdered(manifest: Manifest): Problem[] {
   const problems: Problem[] = [];
-  checkTimeline(manifest.timeline, ["timeline"], problems);
+  for (const root of rootPaths(manifest)) checkTimeline(root.timeline, root.path, problems);
   return problems;
 }

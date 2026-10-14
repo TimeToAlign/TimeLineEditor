@@ -3,7 +3,8 @@
 import type { TimelineClass } from "@timetoalign/timeskeleton";
 import type { Problem } from "../errors.ts";
 import { ErrorCode, problem } from "../errors.ts";
-import type { Manifest, TimelineManifest } from "../manifest/types.ts";
+import { elementAddress, manifestGroups, manifestKind, manifestRoots } from "../manifest/files.ts";
+import type { BundleFile, Manifest, TimelineManifest } from "../manifest/types.ts";
 import type { BlockId } from "./blocks.ts";
 import { BLOCK_ID } from "./blocks.ts";
 import type { View } from "./view.ts";
@@ -37,25 +38,72 @@ export const TIMELINE_PREFIX = {
 
 export type TimelinePrefix = (typeof TIMELINE_PREFIX)[TimelineClass];
 
-/** Every id a manifest's elements carry, whatever their kind. */
-export function manifestIds(manifest: Manifest): Set<string> {
-  const ids = new Set<string>();
-  const visit = (timeline: TimelineManifest): void => {
-    ids.add(timeline.id);
+/** Every id of a timeline tree, timelines and the elements they hold alike. */
+function treeIds(timeline: TimelineManifest, ids: Set<string>, timelinesOnly = false): Set<string> {
+  ids.add(timeline.id);
+  if (!timelinesOnly) {
     const { breaks, jumps, markers } = timeline.flow_control;
     for (const items of [timeline.conversion_maps, timeline.regions, breaks, jumps, markers]) {
       for (const item of items) ids.add(item.id);
     }
-    for (const child of Object.values(timeline.children)) visit(child.timeline);
-  };
-  visit(manifest.timeline);
+  }
+  for (const child of Object.values(timeline.children)) {
+    treeIds(child.timeline, ids, timelinesOnly);
+  }
   return ids;
 }
 
-/** The smallest `{prefix}_{N}`, `N` from 1, that no element of the block's manifest carries. */
-export function nextId(view: View, block: BlockId, prefix: string): string {
+/** The ids of a manifest's groups and of its bundle. */
+function frameIds(manifest: Manifest): string[] {
+  const ids = manifestGroups(manifest).map((group) => group.id);
+  if (manifestKind(manifest) === "bundle") ids.push((manifest as BundleFile).bundle.id);
+  return ids;
+}
+
+/**
+ * The address of every element a manifest carries (`elementAddress`): in a
+ * timeline file the ids of its timelines, maps, regions, breaks, jumps and
+ * markers; in a group or bundle file the ids of its timelines, groups and
+ * bundle, and `<root>/<id>` for every other element of a root's tree.
+ */
+export function manifestIds(manifest: Manifest): Set<string> {
+  const ids = new Set<string>();
+  const qualified = manifestKind(manifest) !== "timeline";
+  for (const timeline of manifestRoots(manifest)) {
+    const timelines = treeIds(timeline, new Set(), true);
+    for (const id of treeIds(timeline, new Set())) {
+      ids.add(timelines.has(id) || !qualified ? id : elementAddress(timeline.id, id));
+    }
+  }
+  for (const id of frameIds(manifest)) ids.add(id);
+  return ids;
+}
+
+/**
+ * The ids a new element of a manifest may not carry. In a timeline file,
+ * every id of any kind. In a group or bundle file, every id of the tree the
+ * element goes into (the tree holding the timeline `into`, or every tree when
+ * `into` is omitted) and every group and bundle id, and for a new timeline
+ * also every timeline id of the file.
+ */
+export function takenIds(manifest: Manifest, timeline: boolean, into?: string): Set<string> {
+  const ids = new Set<string>(frameIds(manifest));
+  const roots = manifestRoots(manifest);
+  const tree = roots.find((root) => into !== undefined && treeIds(root, new Set(), true).has(into));
+  for (const root of tree === undefined ? roots : [tree]) treeIds(root, ids);
+  if (timeline) for (const root of roots) treeIds(root, ids, true);
+  return ids;
+}
+
+/**
+ * The smallest `{prefix}_{N}`, `N` from 1, free for a new element of the
+ * block's manifest (`takenIds`): a timeline when `prefix` is one of
+ * `TIMELINE_PREFIX`, added into the tree of the timeline `into`.
+ */
+export function nextId(view: View, block: BlockId, prefix: string, into?: string): string {
   const manifest = view.blocks[block]?.manifest;
-  const ids = manifest === undefined ? new Set<string>() : manifestIds(manifest);
+  const timeline = (Object.values(TIMELINE_PREFIX) as string[]).includes(prefix);
+  const ids = manifest === undefined ? new Set<string>() : takenIds(manifest, timeline, into);
   let suffix = 1;
   while (ids.has(`${prefix}_${suffix}`)) suffix += 1;
   return `${prefix}_${suffix}`;
@@ -63,7 +111,9 @@ export function nextId(view: View, block: BlockId, prefix: string): string {
 
 /**
  * The workspace-wide name of what a command targets: `workspace`, a block
- * id, or `<block id>/<element id>`, split at the first slash.
+ * id, or `<block id>/<element address>`, split at the first slash; the
+ * element address is root-qualified in a group or bundle block
+ * (`elementAddress`).
  */
 export type Address = string;
 

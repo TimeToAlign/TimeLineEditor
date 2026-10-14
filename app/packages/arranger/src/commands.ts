@@ -10,8 +10,7 @@ import type {
   SetCommand,
   View,
 } from "@timetoalign/tilie-core";
-import { indicesBetween } from "@timetoalign/tilie-core";
-import { ownerOf } from "./affected.ts";
+import { elementOf, indicesBetween, isRemovable, manifestKind } from "@timetoalign/tilie-core";
 import { GRID_FREE, positionStep, quantize } from "./numbers.ts";
 import { blocksInOrder } from "./project.ts";
 import { blockOf, type Selection } from "./selection.ts";
@@ -188,30 +187,36 @@ export function zOrderCommand(
   return setOf(changes);
 }
 
-/** The element an element address names, as an address within its block. */
-function owner(address: string): string {
-  const block = blockOf(address);
-  return address === block ? address : `${block}/${ownerOf(address.slice(block.length + 1))}`;
-}
-
 /**
  * One `remove` of the selected addresses, an element's part standing for
- * the element. A selection holding a block's root timeline is refused
- * whole, with a hint naming the block: the root goes only with its block.
+ * the element (core's `elementOf`). A selection holding something core
+ * would not remove is refused whole, with a hint naming the block: a
+ * timeline file's root goes only with its block, and a group or bundle
+ * block's timelines, groups and bundle cannot be removed yet.
  */
 export function removeCommand(
   view: View,
   selection: Selection,
 ): RemoveCommand | { readonly refused: string } {
   if (selection.size === 0) return { refused: "Nothing is selected." };
-  const targets = [...new Set([...selection].map(owner))];
-  for (const target of targets) {
-    const block = view.blocks[blockOf(target)];
-    if (block !== undefined && target === `${block.id}/${block.manifest.timeline.id}`) {
+  const targets: string[] = [];
+  for (const address of selection) {
+    const block = view.blocks[blockOf(address)];
+    if (block === undefined || address === block.id) {
+      if (!targets.includes(address)) targets.push(address);
+      continue;
+    }
+    const element = elementOf(block.manifest, address.slice(block.id.length + 1));
+    if (!isRemovable(block.manifest, element)) {
       return {
-        refused: `Block ${block.id}: its root timeline ${block.manifest.timeline.id} is removed only with the block; select the block to delete it.`,
+        refused:
+          manifestKind(block.manifest) === "timeline"
+            ? `Block ${block.id}: its root timeline ${element} is removed only with the block; select the block to delete it.`
+            : `Block ${block.id}: removing ${element} from a group or bundle block is not supported yet.`,
       };
     }
+    const target = `${block.id}/${element}`;
+    if (!targets.includes(target)) targets.push(target);
   }
   return { type: "remove", targets };
 }

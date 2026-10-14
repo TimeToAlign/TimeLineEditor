@@ -8,8 +8,8 @@
       "length": 400,
       "manifest": {
         "meta": {
-          "generator": "timetoalign 1.2.0 (9a728128)",
-          "schema_version": "0.6.0"
+          "generator": "timetoalign 1.2.0 (98a6bb36)",
+          "schema_version": "0.7.0"
         },
         "timeline": {
           "children": {},
@@ -21,6 +21,7 @@
             "markers": []
           },
           "id": "bare",
+          "is_segment_line": false,
           "length": {
             "number_type": "fraction",
             "unit": "quarters",
@@ -59,8 +60,8 @@
       "length": 400,
       "manifest": {
         "meta": {
-          "generator": "timetoalign 1.2.0 (9a728128)",
-          "schema_version": "0.6.0"
+          "generator": "timetoalign 1.2.0 (98a6bb36)",
+          "schema_version": "0.7.0"
         },
         "timeline": {
           "children": {},
@@ -133,6 +134,7 @@
             ]
           },
           "id": "flow:quarters",
+          "is_segment_line": false,
           "length": {
             "number_type": "fraction",
             "unit": "quarters",
@@ -171,8 +173,8 @@
       "length": 400,
       "manifest": {
         "meta": {
-          "generator": "timetoalign 1.2.0 (9a728128)",
-          "schema_version": "0.6.0"
+          "generator": "timetoalign 1.2.0 (98a6bb36)",
+          "schema_version": "0.7.0"
         },
         "timeline": {
           "children": {
@@ -205,6 +207,7 @@
                   "markers": []
                 },
                 "id": "phrase",
+                "is_segment_line": false,
                 "length": {
                   "number_type": "fraction",
                   "unit": "quarters",
@@ -244,6 +247,7 @@
             "markers": []
           },
           "id": "melody",
+          "is_segment_line": false,
           "length": {
             "number_type": "fraction",
             "unit": "quarters",
@@ -282,8 +286,8 @@
       "length": 400,
       "manifest": {
         "meta": {
-          "generator": "timetoalign 1.2.0 (9a728128)",
-          "schema_version": "0.6.0"
+          "generator": "timetoalign 1.2.0 (98a6bb36)",
+          "schema_version": "0.7.0"
         },
         "timeline": {
           "children": {
@@ -317,6 +321,7 @@
                         "markers": []
                       },
                       "id": "clt_2",
+                      "is_segment_line": false,
                       "length": {
                         "number_type": "fraction",
                         "unit": "quarters",
@@ -344,6 +349,7 @@
                   "markers": []
                 },
                 "id": "clt_3",
+                "is_segment_line": false,
                 "length": {
                   "number_type": "fraction",
                   "unit": "quarters",
@@ -371,6 +377,7 @@
             "markers": []
           },
           "id": "clt_1",
+          "is_segment_line": false,
           "length": {
             "number_type": "fraction",
             "unit": "quarters",
@@ -620,8 +627,8 @@
           }
         },
         "meta": {
-          "generator": "timetoalign 1.2.0 (9a728128)",
-          "schema_version": "0.6.0"
+          "generator": "timetoalign 1.2.0 (98a6bb36)",
+          "schema_version": "0.7.0"
         },
         "timeline": {
           "children": {
@@ -644,6 +651,7 @@
                   "markers": []
                 },
                 "id": "a",
+                "is_segment_line": false,
                 "length": {
                   "number_type": "fraction",
                   "unit": "quarters",
@@ -681,6 +689,7 @@
                   "markers": []
                 },
                 "id": "b",
+                "is_segment_line": false,
                 "length": {
                   "number_type": "fraction",
                   "unit": "quarters",
@@ -744,6 +753,7 @@
             "markers": []
           },
           "id": "score",
+          "is_segment_line": false,
           "length": {
             "number_type": "fraction",
             "unit": "quarters",
@@ -805,8 +815,8 @@
           "id": "bare000000",
           "manifest": {
             "meta": {
-              "generator": "timetoalign 1.2.0 (9a728128)",
-              "schema_version": "0.6.0"
+              "generator": "timetoalign 1.2.0 (98a6bb36)",
+              "schema_version": "0.7.0"
             },
             "timeline": {
               "children": {},
@@ -818,6 +828,7 @@
                 "markers": []
               },
               "id": "bare",
+              "is_segment_line": false,
               "length": {
                 "number_type": "fraction",
                 "unit": "quarters",
@@ -851,8 +862,8 @@
           "id": "nested0000",
           "manifest": {
             "meta": {
-              "generator": "timetoalign 1.2.0 (9a728128)",
-              "schema_version": "0.6.0"
+              "generator": "timetoalign 1.2.0 (98a6bb36)",
+              "schema_version": "0.7.0"
             },
             "timeline": {
               "children": {
@@ -886,6 +897,7 @@
                             "markers": []
                           },
                           "id": "clt_2",
+                          "is_segment_line": false,
                           "length": {
                             "number_type": "fraction",
                             "unit": "quarters",
@@ -913,6 +925,7 @@
                       "markers": []
                     },
                     "id": "clt_3",
+                    "is_segment_line": false,
                     "length": {
                       "number_type": "fraction",
                       "unit": "quarters",
@@ -940,6 +953,7 @@
                 "markers": []
               },
               "id": "clt_1",
+              "is_segment_line": false,
               "length": {
                 "number_type": "fraction",
                 "unit": "quarters",
@@ -973,8 +987,8 @@
           "id": "map0000000",
           "manifest": {
             "meta": {
-              "generator": "timetoalign 1.2.0 (9a728128)",
-              "schema_version": "0.6.0"
+              "generator": "timetoalign 1.2.0 (98a6bb36)",
+              "schema_version": "0.7.0"
             },
             "timeline": {
               "children": {
@@ -1007,6 +1021,7 @@
                       "markers": []
                     },
                     "id": "phrase",
+                    "is_segment_line": false,
                     "length": {
                       "number_type": "fraction",
                       "unit": "quarters",
@@ -1046,6 +1061,7 @@
                 "markers": []
               },
               "id": "melody",
+              "is_segment_line": false,
               "length": {
                 "number_type": "fraction",
                 "unit": "quarters",
@@ -1079,8 +1095,8 @@
           "id": "flow000000",
           "manifest": {
             "meta": {
-              "generator": "timetoalign 1.2.0 (9a728128)",
-              "schema_version": "0.6.0"
+              "generator": "timetoalign 1.2.0 (98a6bb36)",
+              "schema_version": "0.7.0"
             },
             "timeline": {
               "children": {},
@@ -1153,6 +1169,7 @@
                 ]
               },
               "id": "flow:quarters",
+              "is_segment_line": false,
               "length": {
                 "number_type": "fraction",
                 "unit": "quarters",
@@ -1397,8 +1414,8 @@
               }
             },
             "meta": {
-              "generator": "timetoalign 1.2.0 (9a728128)",
-              "schema_version": "0.6.0"
+              "generator": "timetoalign 1.2.0 (98a6bb36)",
+              "schema_version": "0.7.0"
             },
             "timeline": {
               "children": {
@@ -1421,6 +1438,7 @@
                       "markers": []
                     },
                     "id": "a",
+                    "is_segment_line": false,
                     "length": {
                       "number_type": "fraction",
                       "unit": "quarters",
@@ -1458,6 +1476,7 @@
                       "markers": []
                     },
                     "id": "b",
+                    "is_segment_line": false,
                     "length": {
                       "number_type": "fraction",
                       "unit": "quarters",
@@ -1521,6 +1540,7 @@
                 "markers": []
               },
               "id": "score",
+              "is_segment_line": false,
               "length": {
                 "number_type": "fraction",
                 "unit": "quarters",

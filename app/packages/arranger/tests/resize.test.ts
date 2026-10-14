@@ -68,14 +68,14 @@ describe("handlesFor", () => {
 
 describe("resize: box", () => {
   it.each<Row>([
-    ["bare", "right", 20, 0, { width: 478.5771484375 }],
+    ["bare", "right", 20, 0, { width: 496.5771484375 }],
     ["bare", "right", -20, 0, { width: null }],
-    ["bare", "left", -21, 0, { width: 479.5771484375, x: 19 }],
+    ["bare", "left", -21, 0, { width: 497.5771484375, x: 19 }],
     ["bare", "left", 100, 0, { width: null, x: 40 }],
-    ["bare", "bottom", 0, 10.5, { height: 59.87890625 }],
-    ["bare", "top", 0, -16, { height: 65.37890625, y: 64 }],
-    ["bare", "bottom-right", 20, 10.5, { width: 478.5771484375, height: 59.87890625 }],
-    ["bare, grid off", "left", -21, 0, { width: 479.5771484375, x: 19 }],
+    ["bare", "bottom", 0, 10.5, { height: 77.87890625 }],
+    ["bare", "top", 0, -16, { height: 83.37890625, y: 64 }],
+    ["bare", "bottom-right", 20, 10.5, { width: 496.5771484375, height: 77.87890625 }],
+    ["bare, grid off", "left", -21, 0, { width: 497.5771484375, x: 19 }],
   ])("%s %s by (%d, %d)", (name, handle, dx, dy, expected) => {
     expect(check(views[name] as View, "box", handle, dx, dy)).toStrictEqual(expected);
   });
@@ -83,9 +83,9 @@ describe("resize: box", () => {
 
 describe("resize: scale", () => {
   it.each<Row>([
-    ["bare", "bottom-right", 229.28857421875, 0, { scale: 1.5 }],
-    ["bare", "top-left", -229.28857421875, 0, { scale: 1.5, x: -189.28857421875, y: 55.310546875 }],
-    ["bare", "bottom-right", -440, -49, { scale: 0.125 }],
+    ["bare", "bottom-right", 238.28857421875, 0, { scale: 1.5 }],
+    ["bare", "top-left", -238.28857421875, 0, { scale: 1.5, x: -198.28857421875, y: 46.310546875 }],
+    ["bare", "bottom-right", -440, -60, { scale: 0.125 }],
   ])("%s %s by (%d, %d)", (name, handle, dx, dy, expected) => {
     expect(check(views[name] as View, "scale", handle, dx, dy)).toStrictEqual(expected);
   });

@@ -2,7 +2,7 @@ import { manifestElements } from "@timetoalign/tilie-core";
 import type { Graphical, Selector } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
 import { Cascade, DEFAULT_PLACEMENT, draw, type ElementKey, INITIAL_STYLE } from "../src/index.ts";
-import { drawFixture, element, load, manifestNames, metrics } from "./support.ts";
+import { drawFixture, element, load, loadFile, manifestNames, metrics } from "./support.ts";
 
 // A child `c` of a root `r`: the key of its line.
 const ancestry = new Map<string, readonly string[]>([
@@ -16,12 +16,14 @@ const key: ElementKey = {
   domain: "logical",
   modality: "continuous",
   class: "ContinuousLogicalTimeline",
+  inside: ["block", "timeline"],
 };
 const ALL: Selector = {
   ids: ["c"],
   within: "c",
   class: "ContinuousLogicalTimeline",
   element: "child",
+  inside: "timeline",
   domain: "logical",
   modality: "continuous",
 };
@@ -44,7 +46,7 @@ describe("rank", () => {
     ).toBe("#111111");
   });
 
-  it("2. ids outrank within, class, element, domain and modality", () => {
+  it("2. ids outrank within, class, element, inside, domain and modality", () => {
     const { ids: _, ...rest } = ALL;
     expect(stroke(winnerFirst({ ids: ["c"] }, rest))).toBe("#111111");
   });
@@ -54,31 +56,42 @@ describe("rank", () => {
     expect(stroke(winnerFirst({ within: "c" }, { ...rest, within: "r" }))).toBe("#111111");
   });
 
-  it("4. class outranks element, domain and modality", () => {
+  it("4. class outranks element, inside, domain and modality", () => {
     expect(
       stroke(
         winnerFirst(
           { class: "ContinuousLogicalTimeline" },
-          { element: "child", domain: "logical", modality: "continuous" },
+          { element: "child", inside: "timeline", domain: "logical", modality: "continuous" },
         ),
       ),
     ).toBe("#111111");
   });
 
-  it("5. element outranks domain and modality", () => {
+  it("5. element outranks inside, domain and modality", () => {
     expect(
-      stroke(winnerFirst({ element: "child" }, { domain: "logical", modality: "continuous" })),
+      stroke(
+        winnerFirst(
+          { element: "child" },
+          { inside: "timeline", domain: "logical", modality: "continuous" },
+        ),
+      ),
     ).toBe("#111111");
   });
 
-  it("6. more of domain and modality outranks fewer", () => {
+  it("6. inside outranks domain and modality", () => {
+    expect(
+      stroke(winnerFirst({ inside: "timeline" }, { domain: "logical", modality: "continuous" })),
+    ).toBe("#111111");
+  });
+
+  it("7. more of domain and modality outranks fewer", () => {
     expect(
       stroke(winnerFirst({ domain: "logical", modality: "continuous" }, { domain: "logical" })),
     ).toBe("#111111");
     expect(stroke(winnerFirst({ modality: "continuous" }, {}))).toBe("#111111");
   });
 
-  it("7. of two equal statements the later wins", () => {
+  it("8. of two equal statements the later wins", () => {
     expect(stroke(winnerFirst({ element: "child" }, { element: "child" }))).toBe("#222222");
   });
 
@@ -106,6 +119,7 @@ describe("rank", () => {
       domain: null,
       modality: null,
       class: null,
+      inside: [],
     };
     const cascade = new Cascade(
       [
@@ -121,6 +135,106 @@ describe("rank", () => {
       ancestry,
     );
     expect(cascade.resolve(block, undefined).stroke).toBe("none");
+  });
+});
+
+describe("inside", () => {
+  it.each([
+    [{ inside: "timeline" }, "#111111"],
+    [{ inside: "block" }, "#111111"],
+    [{ inside: "child" }, "none"],
+    [{ inside: "ancestor" }, "none"],
+  ] as [Selector, string][])("%j on a child's line sets %s", (select, expected) => {
+    expect(stroke([{ statements: [statement(select, "#111111")] }])).toBe(expected);
+  });
+});
+
+describe("one address drawn twice", () => {
+  const drawingOf = (inside: ElementKey["inside"]): ElementKey => ({
+    type: "wedge",
+    address: "m/start",
+    timeline: "m",
+    domain: "logical",
+    modality: "continuous",
+    class: "ContinuousLogicalTimeline",
+    inside,
+  });
+
+  it("matches inside by each drawing's own holders and inherits from its own parent", () => {
+    const cascade = new Cascade(
+      [
+        {
+          statements: [
+            { select: { inside: "ancestor" }, set: { opacity: 0.5 } },
+            { select: { ids: ["m/start"] }, set: { fill: "#654321" } },
+          ],
+        },
+      ],
+      new Map([["m", ["m"]]]),
+    );
+    const parent = (colour: string) => ({ ...INITIAL_STYLE, stroke: colour });
+    const mark = cascade.resolve(
+      drawingOf(["block", "group", "timeline", "ancestor"]),
+      parent("#111111"),
+    );
+    const wedge = cascade.resolve(drawingOf(["block", "group", "timeline"]), parent("#222222"));
+    expect([mark.opacity, mark.fill, mark.stroke]).toEqual([0.5, "#654321", "#111111"]);
+    expect([wedge.opacity, wedge.fill, wedge.stroke]).toEqual([1, "#654321", "#222222"]);
+  });
+
+  it.each([
+    "second-half/start",
+    "second-half/end",
+    "second-half/start/label",
+    "second-half/end/label",
+  ])("draws %s on the ancestor line and on the member's own line", (address) => {
+    const drawing = draw(
+      loadFile("groups/group_child_member"),
+      DEFAULT_PLACEMENT,
+      [
+        {
+          statements: [
+            { select: { ids: ["piece"] }, set: { stroke: "#111111" } },
+            { select: { inside: "ancestor" }, set: { opacity: 0.5 } },
+          ],
+        },
+      ],
+      metrics,
+    );
+    const pairs = drawing.elements
+      .filter((item) => item.address === address)
+      .map((item) => [item.style.stroke, item.style.opacity])
+      .sort((a, b) => String(a[0]).localeCompare(String(b[0])));
+    expect(pairs).toEqual([
+      ["#111111", 0.5],
+      ["none", 1],
+    ]);
+  });
+});
+
+describe("shadow", () => {
+  it("is none initially and never inherited", () => {
+    const cascade = (layers: Graphical[]) => new Cascade(layers, ancestry);
+    const parent = { ...INITIAL_STYLE, shadow: "#123456" };
+    expect(cascade([]).resolve(key, parent).shadow).toBe("none");
+    expect(
+      cascade([
+        { statements: [{ select: { element: "child" }, set: { shadow: "#ABCDEF" } }] },
+      ]).resolve(key, parent).shadow,
+    ).toBe("#ABCDEF");
+  });
+
+  it("stays on the block it is set on, not on the card the block holds", () => {
+    const drawing = draw(
+      load("bare"),
+      DEFAULT_PLACEMENT,
+      [{ statements: [{ select: { element: "block" }, set: { shadow: "#123456" } }] }],
+      metrics,
+    );
+    expect([
+      element(drawing, null).style.shadow,
+      element(drawing, "bare/card").style.shadow,
+    ]).toEqual(["#123456", "none"]);
   });
 });
 
@@ -221,10 +335,20 @@ describe("maps by target unit", () => {
 
 describe("the elements core enumerates", () => {
   it.each(manifestNames())("include every drawn element of %s with its key", (name) => {
-    const keys = new Map(manifestElements(load(name)).map((key) => [key.address, key]));
+    const listed = new Map<string, string[]>();
+    for (const key of manifestElements(loadFile(name))) {
+      if (key.address === null || key.type === null) continue;
+      listed.set(key.address, [...(listed.get(key.address) ?? []), key.type]);
+    }
+    const drawn = new Map<string, string[]>();
     for (const item of drawFixture(name).elements) {
       if (item.type === "block") continue;
-      expect(keys.get(item.address)?.type, item.address).toBe(item.type);
+      drawn.set(item.address, [...(drawn.get(item.address) ?? []), item.type]);
+    }
+    for (const [address, types] of drawn) {
+      const keys = listed.get(address) ?? [];
+      expect([...new Set(types)], address).toEqual([...new Set(keys)]);
+      expect(types.length, address).toBeLessThanOrEqual(keys.length);
     }
   });
 });

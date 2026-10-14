@@ -6,6 +6,20 @@ and shows. This file states what proves each behaviour and the exact values
 the specs expect; a spec that cannot be traced to a paragraph here does not
 belong in the suite.
 
+## Running
+
+`node e2e/run.ts` (behind every `pnpm e2e*` script) runs Playwright inside
+the Playwright image of the installed version through rootless podman, with
+`app/` mounted at its own path. The packages may resolve
+`@timetoalign/timeskeleton` from a schema package linked from a sibling
+checkout instead of the registry; its real directory then lies outside
+`app/`, so `run.ts` mounts it as well, read-only and at its identical
+absolute path, where the links in `node_modules` find it. Like the app's
+volume it carries podman's `z` option, so on a host that enforces SELinux
+the sibling checkout is relabelled for the container to read. With the registry
+package (inside `app/node_modules`) the command line is unchanged. The
+arguments are built by `container.ts` and pinned in `tests/README.md`.
+
 ## How state is read
 
 - **The store** through the test hook, `window.__tilie` (present only in
@@ -18,7 +32,7 @@ belong in the suite.
   `.svelte-flow__node[data-id="<block id>"]` (a selected block's node
   carries Svelte Flow's class `selected`), drawn elements
   `[data-address="<element id>"]` inside their node, `[data-selected]`,
-  `[data-contains-selection]`, the mode buttons `[data-testid="mode-scale"
+  `[data-hovered]`, `[data-contains-selection]`, the mode buttons `[data-testid="mode-scale"
   | "mode-box" | "mode-stretch"]` and the canvas controls' `[data-testid="lock"
   | "marquee"]` with `aria-pressed`,
   handles `[data-testid="handle-<handle>"]`, guides
@@ -30,10 +44,17 @@ belong in the suite.
 
 Every wait waits on state (`expect.poll`, `toHaveCount`, the hook's values, a
 requested animation frame); no test sleeps. Pointer gestures move the mouse
-in steps (`support.ts`: `drag`, `dragStart`, `dragBlock`); a press on a block
-lands on its background, a whole-pixel point inside its node with no drawn
-element at it or at the eight points 6 px around it, found by hit-testing
-(`backgroundPoint`); a click on an element aims at the centre of its first
+in steps (`support.ts`: `drag`, `dragStart`, `dragBlock`). A press on a
+block's card selects the card's timeline (`<block>/<root>`), a click on its
+margin (the `P` = 8 canvas units outside the card, the block's own
+background) selects the block, and a drag from either moves the block. So a
+click meant to select a block lands on its margin, a whole-pixel point
+inside its node with no drawn element at it or at the eight points 1 px
+around it (`marginPoint`, searched pixel by pixel, since the margin is 8 px
+wide at zoom 1 and 4 px at zoom 1/2); a drag of a block starts on its card,
+a whole-pixel point whose hit element, there and at the eight points 6 px
+around it, is the block's card (`cardPoint`, found on a raster across the
+node); a click on an element aims at the centre of its first
 SVG part with the mouse (a horizontal line's box has no height, which
 Playwright's actionability checks treat as invisible). Svelte Flow starts a
 node drag on the first move past its 1 px threshold and measures the node's
@@ -50,8 +71,9 @@ viewport through the hook first; at zoom 1 a pixel is a canvas unit.
 
 `fixtures/generate.ts` builds every workspace through `createStore` and the
 `add` command from the manifest fixtures of the installed
-`@timetoalign/timeskeleton` (its `SCHEMA_VERSION`) and writes it with
-`writeWorkspace`. The
+`@timetoalign/timeskeleton` (its `SCHEMA_VERSION`: timeline files, and the
+synthetic group and bundle files of its `groups/` and `bundles/`, never a
+`corpus_*` one) and writes it with `writeWorkspace`. The
 journal is deterministic: author `"Fixture Generator"`, entry times from
 `2026-10-12T09:00:00.000Z`, one second apart. Each `add` gives only `id`,
 `manifest`, `x` and `y`, so every other placement member is the workspace
@@ -66,30 +88,58 @@ present. The files are never edited by hand.
 | File | Blocks |
 |---|---|
 | `small.tle.json` | `bare000000` (`bare`) at (0, 0), `nested0000` (`nested`) at (0, 160), `map0000000` (`map`) at (0, 320), `flow000000` (`flow_control`) at (640, 0), `styled0000` (`styled__score`: region `intro`, jump `da-capo`, C-Map `ticks`) at (640, 160) |
+| `groups.tle.json` | four group files: `gchild0000` (`groups/group_child_member`) at (0, 0), `ggrand0000` (`groups/group_grandchild`) at (0, 240), `gmixed0000` (`groups/group_parents_mixed`) at (640, 0), `gstyled000` (`groups/group_styled`) at (640, 424) |
+| `bundles.tle.json` | the three bundle files: `bmixed0000` (`bundles/bundle_mixed`) at (0, 0), `bshared000` (`bundles/bundle_shared_parent`) at (640, 0), `bungroup00` (`bundles/bundle_ungrouped`) at (0, 480) |
 | `grid-300.tle.json` | 300 `bare` blocks `g000000000` … `g000000299`, block `n` at (512 × (n mod 20), 80 × ⌊n / 20⌋) |
 | `grid-900.tle.json` | 900 `bare` blocks, block `n` at (512 × (n mod 30), 80 × ⌊n / 30⌋) |
 
-After opening, the journal holds one `add` per block (5, 300, 900); a gesture
+The group workspace takes one file of each shape the drawing distinguishes:
+a member that is a child (one ancestor line), a grandchild (two), members
+under three different roots beside a root member, and a styled frame; the
+boxes it draws (558.4140625 × 190.13671875, 559.70361328125 × 224.11328125,
+568.08642578125 × 374.04296875, 544.693603515625 × 212.94140625) do not
+overlap at those positions, and all four lie inside a 1600 × 1000 page at
+viewport (40, 40), zoom 1. The bundle workspace holds every synthetic bundle
+file (boxes 580.484619140625 × 417.8828125, 585.39013671875 ×
+452.45703125, 525.896728515625 × 217.015625).
+
+After opening, the journal holds one `add` per block (5, 4, 3, 300, 900); a gesture
 is proven to be one command by the journal growing by exactly one entry.
 
 ### Drawing facts the expected values rest on
 
+A timeline file is drawn as an anonymous bundle holding its root in a card
+(drawing.md section 8): the card spans `x = P = 8` to `R + K` and `y = 8` to
+`8 + Hm`, its shadow 2 further right and down, and the box adds `P` beyond
+the shadow, so every box is the root's own drawing (sections 3 to 6, the
+card's size) plus 18 each way, and its plot origin lies 8 further right.
 The boxes and plot origins of the default placement, from `draw` and the
-font's advances (they equal the `rect` of the upstream drawing fixtures):
+font's advances (they equal the background `rect` of the upstream drawing
+fixtures of the installed schema version):
 
-| Manifest | Width | Height | Plot origin (root line start, box-local) |
-|---|---|---|---|
-| `bare` | 458.5771484375 | 49.37890625 | 41.5771484375 |
-| `nested` | 459.194580078125 | 77.9765625 | 41.91552734375 |
-| `map` | 472.53662109375 | 67.4765625 | 55.53662109375 |
-| `flow_control` | 500.256591796875 | 84.33203125 | 82.9775390625 |
-| `styled__score` | 510.080078125 | 118.921875 | 90.080078125 |
+| Manifest | Width | Height | Plot origin (root line start, box-local) | Card (`x`, `y`, `width`, `height`) |
+|---|---|---|---|---|
+| `bare` | 476.5771484375 | 67.37890625 | 49.5771484375 | 8, 8, 458.5771484375, 49.37890625 |
+| `nested` | 477.194580078125 | 95.9765625 | 49.91552734375 | 8, 8, 459.194580078125, 77.9765625 |
+| `map` | 490.53662109375 | 85.4765625 | 63.53662109375 | 8, 8, 472.53662109375, 67.4765625 |
+| `flow_control` | 518.256591796875 | 102.33203125 | 90.9775390625 | 8, 8, 500.256591796875, 84.33203125 |
+| `styled__score` | 528.080078125 | 136.921875 | 98.080078125 | 8, 8, 510.080078125, 118.921875 |
 
-For every one, `width = origin + length + 17`, so a stretch of the length moves
-the right edge by exactly the length change. The vertical padding is
-`8 × spacing` above and below (drawing.md section 6.5), so `bare`'s height
-is `33.37890625 + 16 × spacing` and `nested`'s is `26.9765625 + 51 ×
-spacing` for `spacing ≥ 0.9146…` and `58.98828125 + 16 × spacing` below.
+`width − origin − length` is 27 for `bare` and `map` (the line's 17 to the
+card's right edge, `K` 8 and the shadow 2), 27.279052734375 for `nested` and
+`flow_control` and 30 for `styled__score`; for every one it does not depend
+on the length, so a stretch of the length moves the right edge by exactly
+the length change (checked at lengths 400, 420 and 600). The vertical
+padding is `8 × spacing` above and below inside the card (drawing.md
+sections 6.5 and 8.4) and the card's 18 is not stretched, so `bare`'s
+height is `51.37890625 + 16 × spacing` and `nested`'s is `44.9765625 + 51 ×
+spacing` for `spacing ≥ 0.9146…` and `76.98828125 + 16 × spacing` below
+(the kink 32.01171875 / 35 = 0.91462… is unchanged by the card).
+
+Every block's card rectangle and its shadow carry the address `<root>/card`
+(`bare/card`, `clt_1/card`, `melody/card`, `flow:quarters/card`,
+`score/card`); the drawn texts of `small` are still 23 (an anonymous bundle
+draws no title).
 
 ## The gesture rules the values follow
 
@@ -138,28 +188,28 @@ spacing` for `spacing ≥ 0.9146…` and `58.98828125 + 16 × spacing` below.
    journal of its 5 entries, as loading the file through the hook does.
 2. **Drag, undo, redo.** `map0000000` dragged by (101, 37): raw (101, 357),
    grid (104, 360). No other left edge or origin lies within 6 of 104 or of
-   its origin 159.53662109375 (the nearest, `bare`'s origin 41.58, is 62.4
-   away). Stored (104, 360); the journal gains exactly `{type: "set",
+   its origin 167.53662109375 (the nearest, `nested`'s origin
+   49.91552734375, is 54.08447265625 from 104). Stored (104, 360); the journal gains exactly `{type: "set",
    changes: [{target: map0000000, values: {x: 104, y: 360}}]}`. Ctrl/Cmd+Z
    restores (0, 320) exactly and the journal to 5 entries; Ctrl/Cmd+Shift+Z
    restores (104, 360) and 6 entries.
 3. **Multi-drag.** `bare000000` and `nested0000` selected, `bare` dragged by
    (21, 13): grid (24, 16); the nearest candidates (map's left edge 0 and
-   origin 55.54 against bare's left edge 24 and origin 65.58) are 10.04 or
-   more away. Stored bare (24, 16) and nested (24, 176); one `set` whose two
+   origin 63.54 against bare's left edge 24 and origin 73.58) are
+   10.04052734375 or more away. Stored bare (24, 16) and nested (24, 176); one `set` whose two
    changes, sorted by target, are exactly those values.
 4. **Snap to a left edge.** `flow000000` is first set to x 515 by a `set`
    command (off the grid). `nested0000` dragged by (512, 0): grid 512, 3 from
-   flow's left edge 515; its origin 553.92 is 44 from flow's origin 597.98.
+   flow's left edge 515; its origin 561.92 is 44.06 from flow's origin 605.98.
    While the button is down exactly one `snap-guide` is visible; after the
    release there is none and the block is stored at (515, 160).
 5. **Snap to a plot origin.** `styled0000` dragged by (−8, 160): grid
    (632, 320); its left edge is 8 from flow's left edge 640 (beyond 6); its
-   origin 722.080078125 is 0.8974609375 from flow's origin 722.9775390625.
-   Stored x = 722.9775390625 − 90.080078125 = 632.8974609375 (1296174/2048,
+   origin 730.080078125 is 0.8974609375 from flow's origin 730.9775390625.
+   Stored x = 730.9775390625 − 98.080078125 = 632.8974609375 (1296174/2048,
    so quantizing to 1/2048 leaves it exact), y 320; one guide during the drag.
 6. **Locked drag pans.** The lock button pressed (`aria-pressed="true"`,
-   `locked()` true); a drag of (50, 30) on `bare`'s background moves the
+   `locked()` true); a drag of (50, 30) on `bare`'s card moves the
    viewport from (40, 40) to (90, 70) at zoom 1 exactly, leaves `bare` at
    (0, 0) and the journal at 5. L unlocks.
    A locked canvas also allows no nudge or resize: with `bare000000` selected
@@ -191,8 +241,8 @@ spacing` for `spacing ≥ 0.9146…` and `58.98828125 + 16 × spacing` below.
 8. **Marquee.** Viewport (100, 100) zoom 1/2 (the gesture stays clear of the
    40 px edge zone), `map0000000` selected first; from canvas (−40, −40) by
    (600, 120) pixels, i.e. to canvas (1160, 200). The rectangle holds `bare`
-   (0…458.58 × 0…49.38) and `flow000000` (640…1140.26 × 0…84.33) whole, and
-   `nested` (y 160…237.98) and `styled` (640…1150.08 × 160…278.92) only in
+   (0…476.58 × 0…67.38) and `flow000000` (640…1158.26 × 0…102.33) whole, and
+   `nested` (y 160…255.98) and `styled` (640…1168.08 × 160…296.92) only in
    part. A marquee selects only blocks wholly inside.
    - **Shift+drag replaces** the selection: exactly {bare000000,
      flow000000} (a partial-overlap rule would add nested and styled, an
@@ -201,27 +251,27 @@ spacing` for `spacing ≥ 0.9146…` and `58.98828125 + 16 × spacing` below.
      gives {bare000000, flow000000, map0000000}, the viewport stays put. With
      the toggle off again the same drag pans to (700, 220).
    - **Clicks in marquee mode add and remove.** With nothing selected and the
-     toggle on: a click on `bare`'s background → {bare000000}; a click on
+     toggle on: a click on `bare`'s margin → {bare000000}; a click on
      `nested0000`'s `clt_2` → {bare000000, nested0000/clt_2}; a marquee from
      canvas (600, −40) by (280, 90) pixels, to (1160, 140), which holds only
      `flow000000` whole → {bare000000, flow000000, nested0000/clt_2}; a
-     click on `bare`'s background again removes it → {flow000000,
+     click on `bare`'s margin again removes it → {flow000000,
      nested0000/clt_2}.
    - **A click on the empty canvas clears the selection in every mode;
      Shift+click there keeps it.** The selection Svelte Flow shows (the
      nodes with class `selected`) always equals the selection's block ids,
      and the elements marked `data-selected` equal its element addresses;
      both are checked after every step below, as is the journal (never
-     changed). With the toggle on: a click on `bare`'s background and on
+     changed). With the toggle on: a click on `bare`'s margin and on
      `nested0000`'s `clt_2` → {bare000000, nested0000/clt_2}; a click on
      the empty canvas at canvas (400, 120) → {} (no node `selected`, no
-     `data-selected`); a click on `flow000000`'s background → {flow000000}
+     `data-selected`); a click on `flow000000`'s margin → {flow000000}
      alone (a stale selection would bring back bare and clt_2). Then a
-     click on `bare`'s background → {bare000000, flow000000}, and
+     click on `bare`'s margin → {bare000000, flow000000}, and
      Shift+click on the empty canvas at (400, 120) keeps exactly that, both
      nodes still `selected` (Svelte Flow itself clears its flags on a pane
      click, so the projection must restore them); the next click, on
-     `map0000000`'s background, gives {bare000000, flow000000, map0000000}.
+     `map0000000`'s margin, gives {bare000000, flow000000, map0000000}.
      With the toggle off the same holds: from {bare000000, flow000000,
      map0000000}, Shift+click on the empty canvas keeps all three, a plain
      click there gives {}, a click on `nested0000`'s `clt_2` then gives
@@ -247,16 +297,18 @@ spacing` for `spacing ≥ 0.9146…` and `58.98828125 + 16 × spacing` below.
    rectangle is canvas (−40, −40) to ((pane width − 20 − v.x) / ½,
    (170 − v.y) / ½), and the selection is exactly the blocks wholly inside
    it, computed from the block boxes of the fixture table: {bare000000,
-   flow000000} whenever the rectangle ends below y 160 and right of 1140.26,
-   which the spec also checks. The other marquee specs stay ≥ 80 px inside
+   flow000000} whenever the rectangle ends below y 160 and right of
+   1158.256591796875 (flow's right edge), which the spec also checks. The other marquee specs stay ≥ 80 px inside
    the pane, out of the zone.
 9. **Click (element, block, Shift).** A click on `nested0000`'s child line
    `clt_2` selects exactly `[nested0000/clt_2]`: that element carries
    `data-selected`, its node content `data-contains-selection`, and they are
-   the only ones. A click on `map0000000`'s background then selects exactly
-   `[map0000000]`, with no `data-selected` or `data-contains-selection` left.
+   the only ones. A click on `map0000000`'s card then selects exactly its
+   timeline `[map0000000/melody]` (the line `melody` carries `data-selected`),
+   and a click on its margin exactly `[map0000000]`, with no `data-selected`
+   or `data-contains-selection` left.
    Shift+click on `styled0000`'s root line adds `styled0000/score`, Shift+click
-   on `bare`'s background adds `bare000000`, Shift+click on `clt_2` again
+   on `bare`'s margin adds `bare000000`, Shift+click on `clt_2` again
    removes it: {bare000000, styled0000/score}. A drag that starts on `clt_2`
    moves `nested0000` by (101, 37) to (104, 200) as one command. Escape
    clears the selection.
@@ -287,7 +339,7 @@ spacing` for `spacing ≥ 0.9146…` and `58.98828125 + 16 × spacing` below.
     whose only change targets `bare000000` with the single property `index`,
     and the nodes' computed `z-index` rises strictly along the order.
 12. **Keys need the focus in the arranger.** `map0000000` selected by a click
-    on its background, then the focus moves to the inspector's tab (the
+    on its margin, then the focus moves to the inspector's tab (the
     button "Open inspector", outside the arranger): →, Shift+↓, Ctrl/Cmd+Shift+], 1, 2,
     3, L, Delete, Backspace and Escape journal nothing and leave the block at
     (0, 320), the selection [map0000000], the mode and the lock unchanged.
@@ -306,7 +358,7 @@ spacing` for `spacing ≥ 0.9146…` and `58.98828125 + 16 × spacing` below.
     `mode-scale` → `mode-box`, → `mode-stretch`, ← `mode-box`. With
     `map0000000` selected throughout, nothing is journalled and the block
     stays at (0, 320).
-14. **Nudges.** `map0000000` selected by a click on its background; → (8,
+14. **Nudges.** `map0000000` selected by a click on its margin; → (8,
     320), Shift+↓ (8, 384), ↑ (8, 376), Shift+← (−56, 376); four `set`
     commands, each on `map0000000` only. Four undos restore (0, 320) and the
     journal to 5; four redos (−56, 376).
@@ -346,9 +398,10 @@ spacing` for `spacing ≥ 0.9146…` and `58.98828125 + 16 × spacing` below.
 
 ## `resize.spec.ts` (Chromium, Firefox, WebKit)
 
-`small`, then `bare000000` set to (40, 80) and `nested0000` to (40, 240) (two
-`set` commands, journal 7); viewport (300, 40), zoom 1, page 1600 × 1000.
-`bare`'s box is then 40…498.5771484375 × 80…129.37890625.
+`small`, then `bare000000` set to (40, 80) and `nested0000` to (40, 224) (two
+`set` commands, journal 7), so `nested` (224…319.98) ends above `map` (from
+320) and clear of every other block; viewport (300, 40), zoom 1, page 1600 ×
+1000. `bare`'s box is then 40…516.5771484375 × 80…147.37890625.
 
 1. **Choosing the mode.** With `bare` selected, keys 1, 2, 3 and the buttons
    `mode-scale`, `mode-box`, `mode-stretch` set `mode()` to scale, box, stretch;
@@ -364,29 +417,30 @@ spacing` for `spacing ≥ 0.9146…` and `58.98828125 + 16 × spacing` below.
 
 | Block | Mode | Handle | Delta | Stored | Derivation |
 |---|---|---|---|---|---|
-| bare | box | right | (20, 0) | width 478.5771484375, height null, (40, 80) | 458.5771484375 + 20 = 980126/2048, exact |
-| bare | box | left | (−21, 0) | width 479.5771484375, x 19 | edge 19 (a resize never snaps to the grid); 498.5771484375 − 19 = 479.5771484375, x = right − width = 19, exact |
-| bare | box | bottom-right | (20, 11) | width 478.5771484375, height 60.37890625 | 49.37890625 + 11 = 60.37890625, exact |
-| bare | box | top | (0, −16) | height 65.37890625, y 64 | edge 64 on the grid; 129.37890625 − 64 = 65.37890625, exact; y = 129.37890625 − 65.37890625 = 64 |
-| bare | scale | bottom-right | (229, 0) | scale 1.49951171875, (40, 80) | max(687.577…/458.577…, 1) = 1.4993615… → round(3070.69) = 3071/2048 |
-| bare | scale | top-left | (−229, 0) | scale 1.49951171875, x −189.064453125, y 55.33447265625 | edge −189 (no grid); 687.577…/458.577… = 1.4993615… → 3071/2048; x = 498.5771484375 − 3071/2048 × 458.5771484375 and y = 129.37890625 − 3071/2048 × 49.37890625, each to 1/2048: the right and bottom edges stay exactly put |
-| bare | scale | bottom-right | (−440, −49) | scale 0.125 | max(18.58/458.58, 0.38/49.38) below 1/8 → floor |
-| bare | stretch | right | (20, 0) | length 420, spacing 1 | width = origin + length + 17, so length + 20 |
+| bare | box | right | (20, 0) | width 496.5771484375, height null, (40, 80) | 476.5771484375 + 20 = 1016990/2048, exact |
+| bare | box | left | (−21, 0) | width 497.5771484375, x 19 | edge 19 (a resize never snaps to the grid); 516.5771484375 − 19 = 497.5771484375, x = right − width = 19, exact |
+| bare | box | bottom-right | (20, 11) | width 496.5771484375, height 78.37890625 | 67.37890625 + 11 = 78.37890625, exact |
+| bare | box | top | (0, −16) | height 83.37890625, y 64 | edge 64 on the grid; 147.37890625 − 64 = 83.37890625, exact; y = 147.37890625 − 83.37890625 = 64 |
+| bare | scale | bottom-right | (229, 0) | scale 1.48046875, (40, 80) | max(705.577…/476.577…, 1) = 1.4805098… → round(3032.08) = 3032/2048 |
+| bare | scale | top-left | (−229, 0) | scale 1.48046875, x −188.98046875, y 47.62646484375 | edge −189 (no grid); 705.577…/476.577… = 1.4805098… → 3032/2048; x = 516.5771484375 − 3032/2048 × 476.5771484375 and y = 147.37890625 − 3032/2048 × 67.37890625, each to 1/2048: the right and bottom edges stay exactly put |
+| bare | scale | bottom-right | (−440, −60) | scale 0.125 | max(36.58/476.58, 7.38/67.38) = 0.1095… below 1/8 → floor (a rise of 49 no longer reaches it: 18.38/67.38 = 0.2728) |
+| bare | stretch | right | (20, 0) | length 420, spacing 1 | width = origin + length + 27, so length + 20 |
 | bare | stretch | left | (−21, 0) | length 421, x 19 | edge 19 (no grid), width + 21 |
 | bare | stretch | right | (−500, 0) | length 8 | floor `MIN_LENGTH` |
-| bare | stretch | bottom | (0, 32) | spacing 3, length 400, y 80 | a single timeline stretches through its padding: 49.37890625 + 32 = 81.37890625 = 33.37890625 + 16 × 3 |
-| nested | stretch | bottom | (0, 51) | spacing 2, length 400, y 240 | 77.9765625 + 51 = 128.9765625 = 26.9765625 + 51 × 2 |
-| nested | stretch | bottom-right | (200, 51) | length 600, spacing 2 | both at once; the pointer ends at pane x 999, clear of the auto-pan zone |
+| bare | stretch | bottom | (0, 32) | spacing 3, length 400, y 80 | a single timeline stretches through its padding: 67.37890625 + 32 = 99.37890625 = 51.37890625 + 16 × 3 |
+| nested | stretch | bottom | (0, 51) | spacing 2, length 400, y 224 | 95.9765625 + 51 = 146.9765625 = 44.9765625 + 51 × 2 |
+| nested | stretch | bottom-right | (200, 51) | length 600, spacing 2 | both at once; the pointer ends at pane x 300 + 40 + 477.19 + 200 = 1017.19, clear of the auto-pan zone |
 
 4. **Stretch to the floor and across the kink.** `nested`'s height is
-   `58.98828125 + 16 v` below the kink v = 12.8046875 / 14 = 0.91462… and
-   `26.9765625 + 51 v` above it; the padding leaves it no flat piece.
+   `76.98828125 + 16 v` below the kink v = 32.01171875 / 35 = 0.91462… and
+   `44.9765625 + 51 v` above it; the padding leaves it no flat piece.
    Stretch stores the largest multiple of 1/2048 (at or above the floor)
    whose height does not pass the pointer. The bottom handle dragged by
-   (0, −40) asks for 37.9765625, below the height at the floor 1/4
-   (62.98828125), so the solve stops at the floor (y stays 240). Dragged by
-   (0, 35) from there, the target is 97.98828125, above the kink, so v ≤
-   71.01171875 / 51 = 1.392386…, i.e. 2851/2048 = 1.39208984375.
+   (0, −40) asks for 55.9765625, below the height at the floor 1/4
+   (80.98828125), so the solve stops at the floor (y stays 224). Dragged by
+   (0, 35) from there, the target is 115.98828125, above the kink, so v ≤
+   (115.98828125 − 44.9765625) / 51 = 71.01171875 / 51 = 1.392386…, i.e.
+   2851/2048 = 1.39208984375.
 4b. **A resize held in the edge zone pans and follows the pointer.** In box
    mode, `bare`'s right handle is pressed at screen x s₀ and moved to screen
    x s₁ = pane right − 20, inside the right edge zone, both whole pixels
@@ -395,13 +449,13 @@ spacing` for `spacing ≥ 0.9146…` and `58.98828125 + 16 × spacing` below.
    released. The pointer's travel in canvas units is its screen travel minus
    the pan: d = (s₁ − s₀) − (v₁.x − v₀.x) at zoom 1, v₀ = (300, 40) and v₁
    the viewport read after the release. The stored width is
-   458.5771484375 + d rounded to 1/2048, with x 40 unchanged, as one `set`.
+   476.5771484375 + d rounded to 1/2048, with x 40 unchanged, as one `set`.
 5. **A no-op resize journals nothing.** In box mode `bare` (width null) has
    its right edge dragged 20 px left: the request is below the content, so
    width stays null, the value already stored; the journal stays at 7 and
    the placement is unchanged.
 6. **Box never below the content.** In box mode `bare` grown by 20, then the
-   right edge dragged 60 to the left (below the content's 458.58): `width`
+   right edge dragged 60 to the left (below the content's 476.58): `width`
    is stored `null` and the node's box equals the box it had before the
    growth, exactly.
 7. **Undo** after the scale top-left resize restores the whole placement
@@ -415,27 +469,29 @@ Touch points go through the Chrome DevTools Protocol
 a real screen, with one or two fingers; the spec skips on other engines.
 `small` at viewport (20, 20), zoom 1. Two properties of a real touch screen
 shape the gestures: Chromium moves a tap onto a nearby clickable element
-(touch adjustment), so a tap meant for a block's background lands 14 px or
-more from any drawn element; and it withholds the moves inside its touch
+(touch adjustment), so a tap meant for a block's card lands 14 px or
+more from any other drawn element; and it withholds the moves inside its touch
 slop (15 px) at the start of a gesture, so a one-finger node drag first
 travels 20 px to the right and its delta counts from there (as with the
 mouse, Svelte Flow measures a node drag from the move that starts it).
 
-1. A tap on `map0000000`'s background selects `[map0000000]`; a tap on
-   `nested0000`'s `clt_2` selects `[nested0000/clt_2]`.
-2. A one-finger drag of (101, 37) on `map0000000`: raw (101, 357) → grid
+1. A tap on `map0000000`'s card selects its timeline, `[map0000000/melody]`;
+   a tap on `nested0000`'s `clt_2` selects `[nested0000/clt_2]`. The margin,
+   8 px wide, is narrower than a finger's 14 px, so on a touch screen a
+   block is selected by the marquee (6).
+2. A one-finger drag of (101, 37) from `map0000000`'s card: raw (101, 357) → grid
    (104, 360), as with the mouse. Stored (104, 360) as exactly one `set`.
 3. A one-finger drag of (30, 40) on the empty canvas pans to (50, 60), zoom 1.
 4. A pinch (two fingers 40 px apart moved 120 px further apart) changes the
    zoom and journals nothing; the new zoom value is Svelte Flow's and not
    pinned.
 5. Taps on `mode-box`, `mode-stretch`, `mode-scale` with `map0000000` selected
-   set the mode, press the button and show 8, 8, 4 handles.
+   (through the hook, the margin being out of a finger's reach) set the mode, press the button and show 8, 8, 4 handles.
 6. With the `marquee` toggle tapped on, at viewport (60, 60), zoom 0.4 (the
    finger stays between pane points (48, 48) and (252, 116), clear of the
    40 px auto-pan zone of the phone's narrow pane), a one-finger drag from
    canvas (−30, −30) by (204, 68) pixels (to canvas (480, 140)) selects
-   exactly {bare000000} (bare ends at x 458.58, flow starts at 640, nested at
+   exactly {bare000000} (bare ends at x 476.58 and y 67.38, flow starts at 640, nested at
    y 160) and leaves the viewport where it was.
 
 ## `files.spec.ts` (Chromium, Firefox, WebKit)
@@ -508,18 +564,18 @@ its "Open inspector" button. The text is read from the textarea labelled
 4. **axe-core reports no violation with the drawer open and the manifest
    shown** (YAML chosen, `bare000000` selected).
 5. **The form follows a drag live.** `bare000000` (at (0, 0)) is pressed
-   on its background and moved by (101, 37) with the button held: Svelte
+   on its card and moved by (101, 37) with the button held: Svelte
    Flow has it at the grid point (104, 40) (no other left edge or origin
-   lies within 6 of 104 or of its origin 145.58), so the fields `x` and
+   lies within 6 of 104 or of its origin 153.58; the nearest, `map`'s origin 63.54, is 40.46 from 104), so the fields `x` and
    `y` show exactly `104` and `40` while the journal stays at 5 and the
    stored placement is still (0, 0). The release adds exactly one `set`
    `{x: 104, y: 40}`, and the fields show the stored `104` and `40`.
 6. **The form follows a resize live, rounded to two decimals.** In box
    mode the `right` handle of `bare000000` is moved by (20, 0) with the
-   button held: the field `width` shows exactly `478.58` (the preview's
-   458.5771484375 + 20 = 478.5771484375), the journal stays at 5 and the
+   button held: the field `width` shows exactly `496.58` (the preview's
+   476.5771484375 + 20 = 496.5771484375), the journal stays at 5 and the
    stored `width` is still `null`. The release adds one `set` and stores
-   `width` 478.5771484375, which the field shows as `478.58`.
+   `width` 496.5771484375, which the field shows as `496.58`.
 7. **A step applies at once, from the stored value.** After a `set` of
    `x` to 10.123 through the hook (journal 6) the field `x` shows `10.12`.
    ArrowUp in the field adds exactly one entry, `{type: "set", changes:
@@ -535,7 +591,7 @@ its "Open inspector" button. The text is read from the textarea labelled
    still waits for Enter: typing `5` dispatches nothing.
 8. **Escape cancels a resize.** In box mode the `right` handle of
    `bare000000` is moved by (20, 0) with the button held, and the field
-   `width` shows `478.58`; Escape ends the gesture: the field shows the
+   `width` shows `496.58`; Escape ends the gesture: the field shows the
    stored value again (empty, `width` null), the node's bounding box equals
    the one before the gesture, the selection still holds `bare000000`,
    and after the release the journal is still 5.
@@ -560,14 +616,141 @@ clears the selection, the next Tab focuses `nested0000` and Enter selects it.
   pane shows canvas `[2000, 2000 + pane width] × [100, 100 + pane height]`.
   Svelte Flow mounts a node when its box overlaps that rectangle by a
   positive area. Block `n` is (512 × (n mod 30), 80 × ⌊n / 30⌋) with box
-  458.5771484375 × 49.37890625, so the expected count is the number of grid
+  476.5771484375 × 67.37890625, so the expected count is the number of grid
   cells whose box overlaps; the spec counts them for the pane's actual
   `clientWidth` × `clientHeight` (the pane's size belongs to the editor's
   layout, not to this contract) and requires exactly that many
   `.svelte-flow__node`. Worked example, pinned in the spec as a check of the
-  formula itself: a 1000 × 600 pane shows columns with x in (1541.42, 3000),
-  i.e. 2048 and 2560 (1536 + 458.58 = 1994.58 ends before 2000), and rows
-  with y in (50.62, 700), i.e. 80 … 640, eight rows: 2 × 8 = 16 nodes.
+  formula itself: a 1000 × 600 pane shows columns with x in (1523.42, 3000),
+  i.e. 1536, 2048 and 2560 (1536 + 476.58 = 2012.58 passes 2000; 1024 +
+  476.58 = 1500.58 does not reach it), and rows with y in (32.62, 700), i.e.
+  80 … 640 (row 0 ends at 67.38, before 100), eight rows: 3 × 8 = 24 nodes.
+
+## `groups.spec.ts` (Chromium, Firefox, WebKit)
+
+Group and bundle files on the canvas: `groups` or `bundles` at viewport
+(40, 40), zoom 1, page 1600 × 1000, unless a test states otherwise. Every expected list below is the order
+of timeskeleton's `docs/drawing.md` section 8.5 (the bundle's title; per
+frame the frame, its title, then per member its card and its member
+drawing, ancestor lines just before the member's line; then each ungrouped
+root's card and drawing), applied to the fixture by hand.
+
+1. **A group workspace draws its frames, cards and lines.** Four nodes. In
+   each node, the distinct `data-address` values of the drawn parts, in DOM
+   order, kept only when they name a frame or a line (no `/`), a card (ending
+   `/card`) or a title (`group_<n>/name`, `bundle_<n>/name`), are exactly:
+   - `gchild0000`: group_1, group_1/name, second-half/card, piece,
+     second-half, recording/card, recording;
+   - `ggrand0000`: group_1, group_1/name, theme/card, score, movement,
+     theme, recording/card, recording;
+   - `gmixed0000`: group_1, group_1/name, exposition/card, sonata,
+     exposition, take/card, session, take, system/card, page, system,
+     audio/card, audio;
+   - `gstyled000`: group_1, group_1/name, score/card, score, page/card,
+     page, performance/card, performance.
+
+   So the cards follow the display order (`graphical.order`, not
+   `members`), and an ancestor line precedes its member. Each title reads
+   the group's `name`: "Second half", "Theme", "Exposition", "Edition".
+   Every card is two parts (shadow, card) carrying its address, every frame
+   one.
+2. **A bundle workspace draws the bundle's title, its frames, and its
+   ungrouped roots without a frame.** Three nodes:
+   - `bmixed0000`: bundle_1/name, group_1, group_1/name, score/card, score,
+     performance/card, performance, group_2, group_2/name, page/card, page,
+     excerpt/card, recording, excerpt, annotations/card, annotations
+     (titles "Mixed", "Performance", "Facsimile"; `annotations` is
+     ungrouped and follows the frames);
+   - `bshared000`: bundle_1/name, group_1, group_1/name, exposition/card,
+     score, exposition, take_1/card, take_1, group_2, group_2/name,
+     recapitulation/card, recapitulation, take_2/card, take_2, page/card,
+     page (titles "Sonata", "Exposition", "Recapitulation"; `score`, the
+     parent of both members, appears once in the list of distinct values
+     but is drawn in both frames);
+   - `bungroup00`: bundle_1/name, pages/card, pages, recording/card,
+     recording, score/card, score (title "Sketches"; no frame).
+3. **Selecting an element drawn twice marks every copy.** In `bshared000`
+   the ancestor line `score` is drawn once per frame: 8 parts carry
+   `data-address="score"`, 4 whose box centre lies inside `group_1`'s frame
+   (line, start circle, two chevrons running on to the right) and 4 inside
+   `group_2`'s (line, two chevrons running on to the left, arrowhead). A
+   click on the first part (the line in `group_1`) selects exactly
+   `[bshared000/score]`; all 8 parts, in both frames, carry
+   `data-selected`, and no other part does. In a group file the same holds
+   for a part drawn twice: `second-half/start` in `gchild0000` is the mark
+   of the member's start on `piece`'s ancestor line and its start wedge on
+   its own line; a click on the first of the two (the mark) selects exactly
+   `[gchild0000/second-half/start]`, both carry `data-selected`, and they
+   are the only marked parts.
+4. **Delete in a group file: timelines are refused, other elements go.** In
+   `gchild0000`, with `{gchild0000/recording}` selected (a member line),
+   Delete is refused: the hint is visible and contains `recording`, the
+   journal stays at 4 and every block's manifest is unchanged (JSON text
+   before and after identical). The same for `{gchild0000/piece}` (an
+   ancestor line, still a timeline). Then a region is added through the
+   hook with one `add` into `gchild0000/second-half` (`region_1`, name
+   `A`, from 2 to 6 quarters, number type `fraction`): journal 5, and the node shows the
+   part `piece/region_1` (in a group file a region is addressed by its
+   root, `piece`, and its id). With `{gchild0000/piece/region_1}` selected,
+   Delete journals exactly `{type: "remove", targets:
+   ["gchild0000/piece/region_1"]}`, the stored `second-half` has no region
+   and the part is gone; Ctrl/Cmd+Z brings both back.
+5. **Hover marks the card under the pointer and a boundary.** The pointer
+   anywhere inside a card marks that card: its own rectangle (the one with
+   a stroke), not its shadow, which carries the same address. The mouse
+   moved onto the centre of the first part of the member line `recording`
+   in `gchild0000` marks exactly one part in the page, the card of
+   `recording/card`. In `bungroup00` the segment line `pages` (segments
+   `page_1`, `page_2`, `page_3` from 0, 1754 and 3508 px) draws the
+   boundaries `page_2/start` and `page_3/start` (a segment starting at 0
+   has none); the mouse on `page_2/start` marks exactly, in DOM order, the
+   card of `pages/card` (the pointer is inside it) and `page_2/start`, not
+   `page_3/start`. With the mouse on the empty canvas no part carries
+   `data-hovered`.
+
+   The card is found from the pointer's client position read in the
+   drawing's units, `(client − box.left) × drawing.width / box.width` (and
+   the same vertically), where the box is the `<svg>`'s on screen; its size
+   is the drawing's times the block's `scale` times the zoom. Two tests
+   therefore move the pointer where that factor is not 1. In `gchild0000`'s
+   drawing (558.4140625 × 190.13671875) the card `second-half/card` spans
+   `x` 16 to 542.4140625, `y` 32.8046875 to 116.7578125, the card
+   `recording/card` `y` 124.7578125 to 174.13671875, and the first part of
+   `recording`, its line from (120.61962890625, 139.16015625) to
+   (520.61962890625, 139.16015625), has its centre at (320.61962890625,
+   139.16015625).
+   - **Zoom 1/2.** The viewport set to (40, 40), zoom 0.5; the mouse moved
+     onto the centre of `recording`'s first part marks exactly
+     `[gchild0000/recording/card]`. A conversion that left out the factor
+     (here 1/2) would read the drawing point (160.309814453125,
+     69.580078125), on `second-half/card`, and mark that card instead.
+   - **Scale 1.5.** One `set` through the hook, `{target: gchild0000,
+     values: {scale: 1.5}}`, is accepted (refusal `null`, journal 5) and the
+     node's `<svg>` is redrawn with `width` `837.62109375` (558.4140625 ×
+     1.5); at zoom 1 the line's centre lies near canvas (481, 209), clear of
+     `ggrand0000` (from `y` 240) and `gmixed0000` (from `x` 640). The mouse
+     moved onto it marks exactly `[gchild0000/recording/card]`. Without the
+     factor (here 1.5) the point read would be (480.929443359375,
+     208.740234375), below every card and below the drawing (height
+     190.13671875), and nothing would be marked.
+6. **Import and export of a group file and a bundle file.** As in
+   `files.spec.ts`, the File System Access pickers are deleted before the
+   page loads, so File → Import manifest… is answered through the file
+   chooser and File → Export manifest… downloads. On the fresh page (journal
+   0), File → Import manifest… with the installed package's
+   `fixtures/<SCHEMA_VERSION>/groups/group_styled.json` journals one `add`
+   (journal 1); the store holds exactly one new block, the selection is
+   exactly that block, its `blockKind` is `group`, and its manifest's JSON
+   text equals that of `loadManifest` of the file's text (run in the test,
+   outside the page). File → Export manifest… downloads a file named
+   `<group id>.json`, the group's id read from the fixture file
+   (`group_1.json`), whose text equals `dumps` of the loaded fixture (core's
+   `saveManifest`, the canonical form) and the fixture file's own text,
+   byte for byte (the fixtures are written in that form). Then the same
+   with `bundles/bundle_mixed.json`: journal 2, one block more, of
+   `blockKind` `bundle`, selected alone, its manifest that of `loadManifest`
+   of the file, exported as `<bundle id>.json` (`bundle_1.json`) with the
+   text of the fixture file.
 
 ## `budget.spec.ts` (`@budget`, Chromium only)
 
@@ -600,6 +783,9 @@ with `maxDiffPixels: 0` (animations disabled, caret hidden). Before the
 shots the drawing face is forced to load (`document.fonts.load`, then
 `ready` and `check`), two frames are rendered, and the face check of
 `canvas.spec.ts` must hold: a screenshot of text laid out with a stand-in
-font would otherwise become a baseline that only some runs reproduce. The
+font would otherwise become a baseline that only some runs reproduce. A
+seventh screenshot, `groups.png`, is of the pane with `groups` open at the
+same viewport, zoom and page, under the same font checks: frames, cards,
+titles, ancestor lines and the styled frame of `gstyled000`. The
 baselines are made and checked only in the pinned Playwright container
 (`pnpm e2e:visual:update`, `pnpm e2e:visual`).

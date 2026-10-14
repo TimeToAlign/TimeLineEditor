@@ -1,10 +1,14 @@
 /**
  * One TimeSkeleton manifest of the latest schema version, held losslessly
- * member by member.
+ * member by member: a timeline file, a group file or a bundle file.
  */
 
 import type {
+  Bundle,
+  BundleGraphical,
   Graphical,
+  Group,
+  GroupGraphical,
   JsonNumber,
   NumberType,
   TimelineClass,
@@ -77,6 +81,8 @@ export type TimelineManifest = {
   readonly number_type: NumberType;
   readonly length: CoordinateDict;
   readonly locked: boolean;
+  /** Whether its children are contiguous segments, drawn on its own line. */
+  readonly is_segment_line: boolean;
   readonly meta: JsonObject;
   readonly children: { readonly [id: string]: ChildEntry };
   readonly conversion_maps: readonly ConversionMap[];
@@ -91,9 +97,33 @@ export type ManifestMeta = {
   readonly generator?: string;
 };
 
-export type Manifest = {
+/** A timeline file: one timeline with all its descendants. */
+export type TimelineFile = {
   readonly meta: ManifestMeta;
   readonly timeline: TimelineManifest;
   /** Styling owned by this manifest's elements, never by the canvas. */
   readonly graphical?: Graphical;
 };
+
+/** A group file: one timeline group and the root timelines holding its members. */
+export type GroupFile = {
+  readonly meta: ManifestMeta;
+  /** The root timelines, sorted by id; each is a member or contains one. */
+  readonly timelines: readonly TimelineManifest[];
+  readonly group: Group;
+  /** The members' display order and the styling of the file's elements. */
+  readonly graphical?: GroupGraphical;
+};
+
+/** A bundle file: one alignment bundle, its groups and every root timeline. */
+export type BundleFile = {
+  readonly meta: ManifestMeta;
+  /** Every root timeline of the bundle, sorted by id. */
+  readonly timelines: readonly TimelineManifest[];
+  readonly bundle: Bundle;
+  /** Each group's display order and the styling of the file's elements. */
+  readonly graphical?: BundleGraphical;
+};
+
+/** A manifest of any of the three file kinds; `manifestKind` tells which. */
+export type Manifest = TimelineFile | GroupFile | BundleFile;

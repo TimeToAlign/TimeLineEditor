@@ -1,5 +1,5 @@
 /// <reference types="node" />
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import {
@@ -18,15 +18,22 @@ import { WorkspaceRefusedError } from "../src/testHook.ts";
 import { stubEditor } from "./dom.ts";
 
 const A = "0000000000";
+/** The end-to-end workspaces the fixture menu offers. */
+const E2E_FIXTURES = path.join(import.meta.dirname, "..", "..", "..", "e2e", "fixtures");
 const B = "0000000001";
 
-/** A workspace file of two blocks holding manifest fixtures, written through the store. */
-function workspaceText(): string {
-  const directory = path.join(
+/** The manifest fixtures of the installed schema package's version. */
+function fixtureDirectory(): string {
+  return path.join(
     path.dirname(createRequire(import.meta.url).resolve("@timetoalign/timeskeleton/package.json")),
     "fixtures",
     SCHEMA_VERSION,
   );
+}
+
+/** A workspace file of two blocks holding manifest fixtures, written through the store. */
+function workspaceText(): string {
+  const directory = fixtureDirectory();
   const manifest = (name: string) => {
     const loaded = loadManifest(readFileSync(path.join(directory, `${name}.json`), "utf8"));
     if (isLoadError(loaded)) throw new Error(`${name} refused`);
@@ -45,6 +52,27 @@ function workspaceText(): string {
     if (error !== null) throw new Error(error.message);
   }
   return writeWorkspace({ view: store.view, journal: store.journal });
+}
+
+/** The text of a group or bundle fixture of the installed schema package. */
+function manifestFixtureText(name: string): string {
+  const kind = name.startsWith("group_") ? "groups" : "bundles";
+  return readFileSync(path.join(fixtureDirectory(), kind, `${name}.json`), "utf8");
+}
+
+/** Choose `name` in the header's fixture menu, press Load and wait until a store holds it. */
+async function loadFromMenu(name: string): Promise<void> {
+  const select = document.querySelector<HTMLSelectElement>('[data-testid="fixture-select"]');
+  const load = document.querySelector<HTMLButtonElement>('[data-testid="fixture-load"]');
+  if (select === null || load === null) throw new Error("the fixture menu is missing");
+  const before = window.__tilie?.store();
+  select.value = name;
+  select.dispatchEvent(new Event("change"));
+  load.click();
+  await vi.waitFor(() => {
+    expect(window.__tilie?.store()).not.toBe(before);
+  });
+  flushSync();
 }
 
 describe("the test hook", () => {
@@ -124,17 +152,30 @@ describe("the test hook", () => {
     const select = document.querySelector<HTMLSelectElement>('[data-testid="fixture-select"]');
     const load = document.querySelector<HTMLButtonElement>('[data-testid="fixture-load"]');
     if (select === null || load === null) throw new Error("the fixture menu is missing");
-    expect(Array.from(select.options, (option) => option.value)).toEqual([
-      "grid-300",
-      "grid-900",
-      "small",
-    ]);
+    // The end-to-end workspaces are the generator's (`pnpm e2e:fixtures:check` pins them).
+    const workspaces = readdirSync(E2E_FIXTURES)
+      .filter((name) => name.endsWith(".tle.json"))
+      .map((name) => name.slice(0, -".tle.json".length));
+    const manifests = [
+      "bundle_mixed",
+      "bundle_shared_parent",
+      "bundle_ungrouped",
+      "group_child_member",
+      "group_grandchild",
+      "group_number_types",
+      "group_parent_both",
+      "group_parent_exact",
+      "group_parent_right",
+      "group_parents_mixed",
+      "group_styled",
+    ];
+    expect(workspaces.includes("small")).toBe(true);
+    expect(Array.from(select.options, (option) => option.value)).toEqual(
+      [...workspaces, ...manifests].sort(),
+    );
     expect(select.labels?.[0]?.textContent?.trim().startsWith("Fixture")).toBe(true);
 
-    const text = readFileSync(
-      path.join(import.meta.dirname, "..", "..", "..", "e2e", "fixtures", "small.tle.json"),
-      "utf8",
-    );
+    const text = readFileSync(path.join(E2E_FIXTURES, "small.tle.json"), "utf8");
     const expected = readWorkspace(text);
     if (isLoadError(expected)) throw new Error("small.tle.json is refused");
     hook().select([A]);
@@ -147,6 +188,48 @@ describe("the test hook", () => {
     });
     expect(hook().store().journal).toEqual(expected.journal);
     expect(hook().selection()).toEqual([]);
+  });
+
+  it("opens a group or bundle fixture as one block of its manifest", async () => {
+    for (const [name, kind] of [
+      ["group_number_types", "group"],
+      ["bundle_mixed", "bundle"],
+    ] as const) {
+      await loadFromMenu(name);
+      const manifest = loadManifest(manifestFixtureText(name));
+      if (isLoadError(manifest)) throw new Error(`${name} is refused`);
+      const block = hook().store().view.blocks.fixture000;
+      expect([block?.blockKind, block?.x, block?.y]).toEqual([kind, 0, 0]);
+      expect(block?.manifest).toEqual(manifest);
+      expect(Object.keys(hook().store().view.blocks)).toEqual(["fixture000"]);
+      expect(
+        hook()
+          .store()
+          .journal.map(({ command, author, time }) => [command.type, author, time]),
+      ).toEqual([["add", "Fixture Generator", "2026-10-12T09:00:00.000Z"]]);
+    }
+  });
+
+  it("refuses Delete of a timeline in a group or bundle block and removes nothing", async () => {
+    for (const [name, timeline] of [
+      ["group_child_member", "second-half"],
+      ["bundle_mixed", "annotations"],
+    ] as const) {
+      await loadFromMenu(name);
+      const view = hook().store().view;
+      hook().select([`fixture000/${timeline}`]);
+      flushSync();
+      const canvas = document.querySelector('[role="application"]');
+      if (canvas === null) throw new Error("the canvas is missing");
+      canvas.dispatchEvent(new KeyboardEvent("keydown", { key: "Delete", bubbles: true }));
+      flushSync();
+      expect(hook().store().view).toBe(view);
+      expect(hook().store().journal).toHaveLength(1);
+      expect(hook().selection()).toEqual([`fixture000/${timeline}`]);
+      expect(document.querySelector('[data-testid="hint"]')?.textContent).toBe(
+        `Block fixture000: removing ${timeline} from a group or bundle block is not supported yet.`,
+      );
+    }
   });
 
   it("is removed when the editor is unmounted", () => {

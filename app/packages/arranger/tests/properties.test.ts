@@ -3,7 +3,9 @@ import {
   apply,
   createStore,
   createView,
+  elementOf,
   isCommandError,
+  manifestElements,
   manifestIds,
 } from "@timetoalign/tilie-core";
 import fc from "fast-check";
@@ -21,9 +23,11 @@ import {
   resizeCommand,
   zOrderCommand,
 } from "../src/index.ts";
-import { changed, load, metrics } from "./support.ts";
+import { A, blockIn, CHILD_MEMBER, changed, load, metrics, numbersView } from "./support.ts";
 
 const FIXTURES = ["bare", "nested", "flow_control", "with_region", "map"] as const;
+/** The manifests of the removal property: `numbers` is a group file with a region. */
+const REMOVAL_FIXTURES = [...FIXTURES, CHILD_MEMBER, "bundles/bundle_mixed", "numbers"] as const;
 const MODES: readonly ResizeMode[] = ["scale", "box", "stretch"];
 const ACTIONS: readonly ZOrderAction[] = ["front", "back", "forward", "backward"];
 const PLACEMENT = ["x", "y", "index", "scale", "length", "spacing", "width", "height"] as const;
@@ -194,20 +198,22 @@ describe("affectedBy", () => {
   it("names exactly what a remove deletes besides the selection", () => {
     fc.assert(
       fc.property(
-        fc.constantFrom(...FIXTURES),
+        fc.constantFrom(...REMOVAL_FIXTURES),
         fc.array(fc.nat(), { minLength: 1, maxLength: 4 }),
         (fixture, picks) => {
-          const view = initial([{ fixture, x: 0, y: 0 }]);
-          const id = Object.keys(view.blocks)[0] as string;
-          const elements = addresses(view).filter((address) => address !== id);
-          const selected = new Set(picks.map((pick) => elements[pick % elements.length] as string));
-          const command = removeCommand(view, selected);
+          const view = fixture === "numbers" ? numbersView() : initial([{ fixture, x: 0, y: 0 }]);
+          const manifest = blockIn(view, A).manifest;
+          const elements = manifestElements(manifest).flatMap((key) =>
+            key.address === null ? [] : [key.address],
+          );
+          const local = new Set(picks.map((pick) => elements[pick % elements.length] as string));
+          const owners = [...local].map((address) => elementOf(manifest, address));
+          const command = removeCommand(view, new Set([...local].map((path) => `${A}/${path}`)));
+          const direct = apply(view, { type: "remove", targets: owners.map((o) => `${A}/${o}`) });
+          expect("refused" in command).toBe(isCommandError(direct));
           if ("refused" in command) return;
-          const manifest = (view.blocks[id] as Block).manifest;
           const before = manifestIds(manifest);
-          const after = manifestIds((changed(view, command).blocks[id] as Block).manifest);
-          const local = new Set([...selected].map((address) => address.slice(id.length + 1)));
-          const owners = [...local].map((address) => address.split("/")[0] as string);
+          const after = manifestIds(blockIn(changed(view, command), A).manifest);
           const expected = new Set(
             [...owners, ...affectedBy(manifest, local)].filter((item) => before.has(item)),
           );

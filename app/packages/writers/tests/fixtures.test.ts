@@ -7,7 +7,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { isLoadError, loadManifest } from "@timetoalign/tilie-core";
-import { DEFAULT_LAYER, draw, type Placement } from "@timetoalign/tilie-layout";
+import { DEFAULT_LAYER, draw, manifestLayer, type Placement } from "@timetoalign/tilie-layout";
 import {
   fontMetrics,
   type Graphical,
@@ -50,7 +50,7 @@ function written(name: string): { svg: string; tex: string } {
     readFileSync(path.join(fixturesDirectory, inputs.manifest), "utf8"),
   );
   if (isLoadError(manifest)) throw new Error(`${name}: ${manifest.problems[0]?.message}`);
-  const layers = [DEFAULT_LAYER, ...inputs.layers, manifest.graphical];
+  const layers = [DEFAULT_LAYER, ...inputs.layers, manifestLayer(manifest)];
   const drawing = draw(manifest, inputs.placement, layers, fontMetrics);
   const placed = [{ drawing, x: 0, y: 0, scale: inputs.scale }];
   return { svg: writeSvg(placed), tex: writeTikz(placed) };

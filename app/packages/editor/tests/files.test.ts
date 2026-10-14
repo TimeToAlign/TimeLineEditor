@@ -18,9 +18,11 @@ afterEach(() => {
 });
 
 describe("manifestFileName", () => {
-  it("is the root id with characters outside [A-Za-z0-9_-] replaced", () => {
+  it("is the root, group or bundle id with characters outside [A-Za-z0-9_-] replaced", () => {
     expect(manifestFileName(fixture("bare"))).toBe("bare.json");
     expect(manifestFileName(fixture("flow_control"))).toBe("flow_quarters.json");
+    expect(manifestFileName(fixture("groups/corpus_tilia"))).toBe("tilia_Bruckner5_Scherzo.json");
+    expect(manifestFileName(fixture("bundles/bundle_mixed"))).toBe("bundle_1.json");
   });
 });
 

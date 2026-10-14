@@ -1,0 +1,1380 @@
+{
+  "blocks": {
+    "bmixed0000": {
+      "blockKind": "bundle",
+      "height": null,
+      "id": "bmixed0000",
+      "index": "a0",
+      "length": 400,
+      "manifest": {
+        "bundle": {
+          "groups": [
+            {
+              "id": "group_1",
+              "members": [
+                "performance",
+                "score"
+              ],
+              "meta": {},
+              "name": "Performance"
+            },
+            {
+              "id": "group_2",
+              "members": [
+                "excerpt",
+                "page"
+              ],
+              "meta": {},
+              "name": "Facsimile"
+            }
+          ],
+          "id": "bundle_1",
+          "meta": {},
+          "name": "Mixed",
+          "support_policy": "omit"
+        },
+        "graphical": {
+          "order": {
+            "group_1": [
+              "score",
+              "performance"
+            ],
+            "group_2": [
+              "page",
+              "excerpt"
+            ]
+          }
+        },
+        "meta": {
+          "generator": "timetoalign 1.2.0 (98a6bb36)",
+          "schema_version": "0.7.0"
+        },
+        "timelines": [
+          {
+            "children": {},
+            "class": "ContinuousLogicalTimeline",
+            "conversion_maps": [],
+            "flow_control": {
+              "breaks": [],
+              "jumps": [],
+              "markers": []
+            },
+            "id": "annotations",
+            "is_segment_line": false,
+            "length": {
+              "number_type": "fraction",
+              "unit": "quarters",
+              "value": [
+                12,
+                1
+              ]
+            },
+            "locked": false,
+            "measure_map": null,
+            "meta": {},
+            "metric_hierarchy": null,
+            "name": "Annotations",
+            "number_type": "fraction",
+            "regions": [],
+            "unit": "quarters"
+          },
+          {
+            "children": {},
+            "class": "DiscreteGraphicalTimeline",
+            "conversion_maps": [],
+            "flow_control": {
+              "breaks": [],
+              "jumps": [],
+              "markers": []
+            },
+            "id": "page",
+            "is_segment_line": false,
+            "length": {
+              "number_type": "int",
+              "unit": "pixels",
+              "value": 1920
+            },
+            "locked": false,
+            "measure_map": null,
+            "meta": {},
+            "metric_hierarchy": null,
+            "name": "Page",
+            "number_type": "int",
+            "regions": [],
+            "unit": "pixels"
+          },
+          {
+            "children": {},
+            "class": "ContinuousPhysicalTimeline",
+            "conversion_maps": [],
+            "flow_control": {
+              "breaks": [],
+              "jumps": [],
+              "markers": []
+            },
+            "id": "performance",
+            "is_segment_line": false,
+            "length": {
+              "number_type": "float",
+              "unit": "seconds",
+              "value": 12.5
+            },
+            "locked": false,
+            "measure_map": null,
+            "meta": {},
+            "metric_hierarchy": null,
+            "name": "Performance",
+            "number_type": "float",
+            "regions": [],
+            "unit": "seconds"
+          },
+          {
+            "children": {
+              "excerpt": {
+                "offset": {
+                  "number_type": "int",
+                  "unit": "samples",
+                  "value": 44100
+                },
+                "timeline": {
+                  "children": {},
+                  "class": "DiscretePhysicalTimeline",
+                  "conversion_maps": [],
+                  "flow_control": {
+                    "breaks": [],
+                    "jumps": [],
+                    "markers": []
+                  },
+                  "id": "excerpt",
+                  "is_segment_line": false,
+                  "length": {
+                    "number_type": "int",
+                    "unit": "samples",
+                    "value": 88200
+                  },
+                  "locked": true,
+                  "measure_map": null,
+                  "meta": {},
+                  "metric_hierarchy": null,
+                  "name": "Excerpt",
+                  "number_type": "int",
+                  "regions": [],
+                  "unit": "samples"
+                }
+              }
+            },
+            "class": "DiscretePhysicalTimeline",
+            "conversion_maps": [],
+            "flow_control": {
+              "breaks": [],
+              "jumps": [],
+              "markers": []
+            },
+            "id": "recording",
+            "is_segment_line": false,
+            "length": {
+              "number_type": "int",
+              "unit": "samples",
+              "value": 441000
+            },
+            "locked": false,
+            "measure_map": null,
+            "meta": {},
+            "metric_hierarchy": null,
+            "name": "Recording",
+            "number_type": "int",
+            "regions": [],
+            "unit": "samples"
+          },
+          {
+            "children": {},
+            "class": "ContinuousLogicalTimeline",
+            "conversion_maps": [],
+            "flow_control": {
+              "breaks": [],
+              "jumps": [],
+              "markers": []
+            },
+            "id": "score",
+            "is_segment_line": false,
+            "length": {
+              "number_type": "fraction",
+              "unit": "quarters",
+              "value": [
+                12,
+                1
+              ]
+            },
+            "locked": false,
+            "measure_map": null,
+            "meta": {},
+            "metric_hierarchy": null,
+            "name": "Score",
+            "number_type": "fraction",
+            "regions": [],
+            "unit": "quarters"
+          }
+        ]
+      },
+      "order": [
+        "children",
+        "regions",
+        "flow"
+      ],
+      "parent": null,
+      "scale": 1,
+      "spacing": 1,
+      "width": null,
+      "x": 0,
+      "y": 0
+    },
+    "bshared000": {
+      "blockKind": "bundle",
+      "height": null,
+      "id": "bshared000",
+      "index": "a1",
+      "length": 400,
+      "manifest": {
+        "bundle": {
+          "groups": [
+            {
+              "id": "group_1",
+              "members": [
+                "exposition",
+                "take_1"
+              ],
+              "meta": {},
+              "name": "Exposition"
+            },
+            {
+              "id": "group_2",
+              "members": [
+                "recapitulation",
+                "take_2"
+              ],
+              "meta": {},
+              "name": "Recapitulation"
+            }
+          ],
+          "id": "bundle_1",
+          "meta": {},
+          "name": "Sonata",
+          "support_policy": "omit"
+        },
+        "graphical": {
+          "order": {
+            "group_1": [
+              "exposition",
+              "take_1"
+            ],
+            "group_2": [
+              "recapitulation",
+              "take_2"
+            ]
+          }
+        },
+        "meta": {
+          "generator": "timetoalign 1.2.0 (98a6bb36)",
+          "schema_version": "0.7.0"
+        },
+        "timelines": [
+          {
+            "children": {},
+            "class": "DiscreteGraphicalTimeline",
+            "conversion_maps": [],
+            "flow_control": {
+              "breaks": [],
+              "jumps": [],
+              "markers": []
+            },
+            "id": "page",
+            "is_segment_line": false,
+            "length": {
+              "number_type": "int",
+              "unit": "pixels",
+              "value": 1754
+            },
+            "locked": false,
+            "measure_map": null,
+            "meta": {},
+            "metric_hierarchy": null,
+            "name": "Page",
+            "number_type": "int",
+            "regions": [],
+            "unit": "pixels"
+          },
+          {
+            "children": {
+              "exposition": {
+                "offset": {
+                  "number_type": "fraction",
+                  "unit": "quarters",
+                  "value": [
+                    0,
+                    1
+                  ]
+                },
+                "timeline": {
+                  "children": {},
+                  "class": "ContinuousLogicalTimeline",
+                  "conversion_maps": [],
+                  "flow_control": {
+                    "breaks": [],
+                    "jumps": [],
+                    "markers": []
+                  },
+                  "id": "exposition",
+                  "is_segment_line": false,
+                  "length": {
+                    "number_type": "fraction",
+                    "unit": "quarters",
+                    "value": [
+                      12,
+                      1
+                    ]
+                  },
+                  "locked": true,
+                  "measure_map": null,
+                  "meta": {},
+                  "metric_hierarchy": null,
+                  "name": "Exposition",
+                  "number_type": "fraction",
+                  "regions": [],
+                  "unit": "quarters"
+                }
+              },
+              "recapitulation": {
+                "offset": {
+                  "number_type": "fraction",
+                  "unit": "quarters",
+                  "value": [
+                    20,
+                    1
+                  ]
+                },
+                "timeline": {
+                  "children": {},
+                  "class": "ContinuousLogicalTimeline",
+                  "conversion_maps": [],
+                  "flow_control": {
+                    "breaks": [],
+                    "jumps": [],
+                    "markers": []
+                  },
+                  "id": "recapitulation",
+                  "is_segment_line": false,
+                  "length": {
+                    "number_type": "fraction",
+                    "unit": "quarters",
+                    "value": [
+                      12,
+                      1
+                    ]
+                  },
+                  "locked": true,
+                  "measure_map": null,
+                  "meta": {},
+                  "metric_hierarchy": null,
+                  "name": "Recapitulation",
+                  "number_type": "fraction",
+                  "regions": [],
+                  "unit": "quarters"
+                }
+              }
+            },
+            "class": "ContinuousLogicalTimeline",
+            "conversion_maps": [],
+            "flow_control": {
+              "breaks": [],
+              "jumps": [],
+              "markers": []
+            },
+            "id": "score",
+            "is_segment_line": false,
+            "length": {
+              "number_type": "fraction",
+              "unit": "quarters",
+              "value": [
+                32,
+                1
+              ]
+            },
+            "locked": false,
+            "measure_map": null,
+            "meta": {},
+            "metric_hierarchy": null,
+            "name": "Score",
+            "number_type": "fraction",
+            "regions": [],
+            "unit": "quarters"
+          },
+          {
+            "children": {},
+            "class": "ContinuousPhysicalTimeline",
+            "conversion_maps": [],
+            "flow_control": {
+              "breaks": [],
+              "jumps": [],
+              "markers": []
+            },
+            "id": "take_1",
+            "is_segment_line": false,
+            "length": {
+              "number_type": "float",
+              "unit": "seconds",
+              "value": 30.0
+            },
+            "locked": false,
+            "measure_map": null,
+            "meta": {},
+            "metric_hierarchy": null,
+            "name": "Take 1",
+            "number_type": "float",
+            "regions": [],
+            "unit": "seconds"
+          },
+          {
+            "children": {},
+            "class": "ContinuousPhysicalTimeline",
+            "conversion_maps": [],
+            "flow_control": {
+              "breaks": [],
+              "jumps": [],
+              "markers": []
+            },
+            "id": "take_2",
+            "is_segment_line": false,
+            "length": {
+              "number_type": "float",
+              "unit": "seconds",
+              "value": 28.5
+            },
+            "locked": false,
+            "measure_map": null,
+            "meta": {},
+            "metric_hierarchy": null,
+            "name": "Take 2",
+            "number_type": "float",
+            "regions": [],
+            "unit": "seconds"
+          }
+        ]
+      },
+      "order": [
+        "children",
+        "regions",
+        "flow"
+      ],
+      "parent": null,
+      "scale": 1,
+      "spacing": 1,
+      "width": null,
+      "x": 640,
+      "y": 0
+    },
+    "bungroup00": {
+      "blockKind": "bundle",
+      "height": null,
+      "id": "bungroup00",
+      "index": "a2",
+      "length": 400,
+      "manifest": {
+        "bundle": {
+          "groups": [],
+          "id": "bundle_1",
+          "meta": {},
+          "name": "Sketches",
+          "support_policy": "omit"
+        },
+        "graphical": {
+          "order": {}
+        },
+        "meta": {
+          "generator": "timetoalign 1.2.0 (98a6bb36)",
+          "schema_version": "0.7.0"
+        },
+        "timelines": [
+          {
+            "children": {
+              "page_1": {
+                "offset": {
+                  "number_type": "int",
+                  "unit": "pixels",
+                  "value": 0
+                },
+                "timeline": {
+                  "children": {},
+                  "class": "DiscreteGraphicalTimeline",
+                  "conversion_maps": [],
+                  "flow_control": {
+                    "breaks": [],
+                    "jumps": [],
+                    "markers": []
+                  },
+                  "id": "page_1",
+                  "is_segment_line": false,
+                  "length": {
+                    "number_type": "int",
+                    "unit": "pixels",
+                    "value": 1754
+                  },
+                  "locked": true,
+                  "measure_map": null,
+                  "meta": {},
+                  "metric_hierarchy": null,
+                  "name": "Page 1",
+                  "number_type": "int",
+                  "regions": [],
+                  "unit": "pixels"
+                }
+              },
+              "page_2": {
+                "offset": {
+                  "number_type": "int",
+                  "unit": "pixels",
+                  "value": 1754
+                },
+                "timeline": {
+                  "children": {},
+                  "class": "DiscreteGraphicalTimeline",
+                  "conversion_maps": [],
+                  "flow_control": {
+                    "breaks": [],
+                    "jumps": [],
+                    "markers": []
+                  },
+                  "id": "page_2",
+                  "is_segment_line": false,
+                  "length": {
+                    "number_type": "int",
+                    "unit": "pixels",
+                    "value": 1754
+                  },
+                  "locked": true,
+                  "measure_map": null,
+                  "meta": {},
+                  "metric_hierarchy": null,
+                  "name": "Page 2",
+                  "number_type": "int",
+                  "regions": [],
+                  "unit": "pixels"
+                }
+              },
+              "page_3": {
+                "offset": {
+                  "number_type": "int",
+                  "unit": "pixels",
+                  "value": 3508
+                },
+                "timeline": {
+                  "children": {},
+                  "class": "DiscreteGraphicalTimeline",
+                  "conversion_maps": [],
+                  "flow_control": {
+                    "breaks": [],
+                    "jumps": [],
+                    "markers": []
+                  },
+                  "id": "page_3",
+                  "is_segment_line": false,
+                  "length": {
+                    "number_type": "int",
+                    "unit": "pixels",
+                    "value": 1754
+                  },
+                  "locked": true,
+                  "measure_map": null,
+                  "meta": {},
+                  "metric_hierarchy": null,
+                  "name": "Page 3",
+                  "number_type": "int",
+                  "regions": [],
+                  "unit": "pixels"
+                }
+              }
+            },
+            "class": "DiscreteGraphicalTimeline",
+            "conversion_maps": [],
+            "flow_control": {
+              "breaks": [],
+              "jumps": [],
+              "markers": []
+            },
+            "id": "pages",
+            "is_segment_line": true,
+            "length": {
+              "number_type": "int",
+              "unit": "pixels",
+              "value": 5262
+            },
+            "locked": false,
+            "measure_map": null,
+            "meta": {},
+            "metric_hierarchy": null,
+            "name": "Pages",
+            "number_type": "int",
+            "regions": [],
+            "unit": "pixels"
+          },
+          {
+            "children": {},
+            "class": "DiscretePhysicalTimeline",
+            "conversion_maps": [],
+            "flow_control": {
+              "breaks": [],
+              "jumps": [],
+              "markers": []
+            },
+            "id": "recording",
+            "is_segment_line": false,
+            "length": {
+              "number_type": "int",
+              "unit": "samples",
+              "value": 441000
+            },
+            "locked": false,
+            "measure_map": null,
+            "meta": {},
+            "metric_hierarchy": null,
+            "name": "Recording",
+            "number_type": "int",
+            "regions": [],
+            "unit": "samples"
+          },
+          {
+            "children": {},
+            "class": "ContinuousLogicalTimeline",
+            "conversion_maps": [],
+            "flow_control": {
+              "breaks": [],
+              "jumps": [],
+              "markers": []
+            },
+            "id": "score",
+            "is_segment_line": false,
+            "length": {
+              "number_type": "fraction",
+              "unit": "quarters",
+              "value": [
+                16,
+                1
+              ]
+            },
+            "locked": false,
+            "measure_map": null,
+            "meta": {},
+            "metric_hierarchy": null,
+            "name": "Score",
+            "number_type": "fraction",
+            "regions": [],
+            "unit": "quarters"
+          }
+        ]
+      },
+      "order": [
+        "children",
+        "regions",
+        "flow"
+      ],
+      "parent": null,
+      "scale": 1,
+      "spacing": 1,
+      "width": null,
+      "x": 0,
+      "y": 480
+    }
+  },
+  "journal": [
+    {
+      "author": "Fixture Generator",
+      "command": {
+        "block": {
+          "id": "bmixed0000",
+          "manifest": {
+            "bundle": {
+              "groups": [
+                {
+                  "id": "group_1",
+                  "members": [
+                    "performance",
+                    "score"
+                  ],
+                  "meta": {},
+                  "name": "Performance"
+                },
+                {
+                  "id": "group_2",
+                  "members": [
+                    "excerpt",
+                    "page"
+                  ],
+                  "meta": {},
+                  "name": "Facsimile"
+                }
+              ],
+              "id": "bundle_1",
+              "meta": {},
+              "name": "Mixed",
+              "support_policy": "omit"
+            },
+            "graphical": {
+              "order": {
+                "group_1": [
+                  "score",
+                  "performance"
+                ],
+                "group_2": [
+                  "page",
+                  "excerpt"
+                ]
+              }
+            },
+            "meta": {
+              "generator": "timetoalign 1.2.0 (98a6bb36)",
+              "schema_version": "0.7.0"
+            },
+            "timelines": [
+              {
+                "children": {},
+                "class": "ContinuousLogicalTimeline",
+                "conversion_maps": [],
+                "flow_control": {
+                  "breaks": [],
+                  "jumps": [],
+                  "markers": []
+                },
+                "id": "annotations",
+                "is_segment_line": false,
+                "length": {
+                  "number_type": "fraction",
+                  "unit": "quarters",
+                  "value": [
+                    12,
+                    1
+                  ]
+                },
+                "locked": false,
+                "measure_map": null,
+                "meta": {},
+                "metric_hierarchy": null,
+                "name": "Annotations",
+                "number_type": "fraction",
+                "regions": [],
+                "unit": "quarters"
+              },
+              {
+                "children": {},
+                "class": "DiscreteGraphicalTimeline",
+                "conversion_maps": [],
+                "flow_control": {
+                  "breaks": [],
+                  "jumps": [],
+                  "markers": []
+                },
+                "id": "page",
+                "is_segment_line": false,
+                "length": {
+                  "number_type": "int",
+                  "unit": "pixels",
+                  "value": 1920
+                },
+                "locked": false,
+                "measure_map": null,
+                "meta": {},
+                "metric_hierarchy": null,
+                "name": "Page",
+                "number_type": "int",
+                "regions": [],
+                "unit": "pixels"
+              },
+              {
+                "children": {},
+                "class": "ContinuousPhysicalTimeline",
+                "conversion_maps": [],
+                "flow_control": {
+                  "breaks": [],
+                  "jumps": [],
+                  "markers": []
+                },
+                "id": "performance",
+                "is_segment_line": false,
+                "length": {
+                  "number_type": "float",
+                  "unit": "seconds",
+                  "value": 12.5
+                },
+                "locked": false,
+                "measure_map": null,
+                "meta": {},
+                "metric_hierarchy": null,
+                "name": "Performance",
+                "number_type": "float",
+                "regions": [],
+                "unit": "seconds"
+              },
+              {
+                "children": {
+                  "excerpt": {
+                    "offset": {
+                      "number_type": "int",
+                      "unit": "samples",
+                      "value": 44100
+                    },
+                    "timeline": {
+                      "children": {},
+                      "class": "DiscretePhysicalTimeline",
+                      "conversion_maps": [],
+                      "flow_control": {
+                        "breaks": [],
+                        "jumps": [],
+                        "markers": []
+                      },
+                      "id": "excerpt",
+                      "is_segment_line": false,
+                      "length": {
+                        "number_type": "int",
+                        "unit": "samples",
+                        "value": 88200
+                      },
+                      "locked": true,
+                      "measure_map": null,
+                      "meta": {},
+                      "metric_hierarchy": null,
+                      "name": "Excerpt",
+                      "number_type": "int",
+                      "regions": [],
+                      "unit": "samples"
+                    }
+                  }
+                },
+                "class": "DiscretePhysicalTimeline",
+                "conversion_maps": [],
+                "flow_control": {
+                  "breaks": [],
+                  "jumps": [],
+                  "markers": []
+                },
+                "id": "recording",
+                "is_segment_line": false,
+                "length": {
+                  "number_type": "int",
+                  "unit": "samples",
+                  "value": 441000
+                },
+                "locked": false,
+                "measure_map": null,
+                "meta": {},
+                "metric_hierarchy": null,
+                "name": "Recording",
+                "number_type": "int",
+                "regions": [],
+                "unit": "samples"
+              },
+              {
+                "children": {},
+                "class": "ContinuousLogicalTimeline",
+                "conversion_maps": [],
+                "flow_control": {
+                  "breaks": [],
+                  "jumps": [],
+                  "markers": []
+                },
+                "id": "score",
+                "is_segment_line": false,
+                "length": {
+                  "number_type": "fraction",
+                  "unit": "quarters",
+                  "value": [
+                    12,
+                    1
+                  ]
+                },
+                "locked": false,
+                "measure_map": null,
+                "meta": {},
+                "metric_hierarchy": null,
+                "name": "Score",
+                "number_type": "fraction",
+                "regions": [],
+                "unit": "quarters"
+              }
+            ]
+          },
+          "x": 0,
+          "y": 0
+        },
+        "into": "workspace",
+        "type": "add"
+      },
+      "time": "2026-10-12T09:00:00.000Z"
+    },
+    {
+      "author": "Fixture Generator",
+      "command": {
+        "block": {
+          "id": "bshared000",
+          "manifest": {
+            "bundle": {
+              "groups": [
+                {
+                  "id": "group_1",
+                  "members": [
+                    "exposition",
+                    "take_1"
+                  ],
+                  "meta": {},
+                  "name": "Exposition"
+                },
+                {
+                  "id": "group_2",
+                  "members": [
+                    "recapitulation",
+                    "take_2"
+                  ],
+                  "meta": {},
+                  "name": "Recapitulation"
+                }
+              ],
+              "id": "bundle_1",
+              "meta": {},
+              "name": "Sonata",
+              "support_policy": "omit"
+            },
+            "graphical": {
+              "order": {
+                "group_1": [
+                  "exposition",
+                  "take_1"
+                ],
+                "group_2": [
+                  "recapitulation",
+                  "take_2"
+                ]
+              }
+            },
+            "meta": {
+              "generator": "timetoalign 1.2.0 (98a6bb36)",
+              "schema_version": "0.7.0"
+            },
+            "timelines": [
+              {
+                "children": {},
+                "class": "DiscreteGraphicalTimeline",
+                "conversion_maps": [],
+                "flow_control": {
+                  "breaks": [],
+                  "jumps": [],
+                  "markers": []
+                },
+                "id": "page",
+                "is_segment_line": false,
+                "length": {
+                  "number_type": "int",
+                  "unit": "pixels",
+                  "value": 1754
+                },
+                "locked": false,
+                "measure_map": null,
+                "meta": {},
+                "metric_hierarchy": null,
+                "name": "Page",
+                "number_type": "int",
+                "regions": [],
+                "unit": "pixels"
+              },
+              {
+                "children": {
+                  "exposition": {
+                    "offset": {
+                      "number_type": "fraction",
+                      "unit": "quarters",
+                      "value": [
+                        0,
+                        1
+                      ]
+                    },
+                    "timeline": {
+                      "children": {},
+                      "class": "ContinuousLogicalTimeline",
+                      "conversion_maps": [],
+                      "flow_control": {
+                        "breaks": [],
+                        "jumps": [],
+                        "markers": []
+                      },
+                      "id": "exposition",
+                      "is_segment_line": false,
+                      "length": {
+                        "number_type": "fraction",
+                        "unit": "quarters",
+                        "value": [
+                          12,
+                          1
+                        ]
+                      },
+                      "locked": true,
+                      "measure_map": null,
+                      "meta": {},
+                      "metric_hierarchy": null,
+                      "name": "Exposition",
+                      "number_type": "fraction",
+                      "regions": [],
+                      "unit": "quarters"
+                    }
+                  },
+                  "recapitulation": {
+                    "offset": {
+                      "number_type": "fraction",
+                      "unit": "quarters",
+                      "value": [
+                        20,
+                        1
+                      ]
+                    },
+                    "timeline": {
+                      "children": {},
+                      "class": "ContinuousLogicalTimeline",
+                      "conversion_maps": [],
+                      "flow_control": {
+                        "breaks": [],
+                        "jumps": [],
+                        "markers": []
+                      },
+                      "id": "recapitulation",
+                      "is_segment_line": false,
+                      "length": {
+                        "number_type": "fraction",
+                        "unit": "quarters",
+                        "value": [
+                          12,
+                          1
+                        ]
+                      },
+                      "locked": true,
+                      "measure_map": null,
+                      "meta": {},
+                      "metric_hierarchy": null,
+                      "name": "Recapitulation",
+                      "number_type": "fraction",
+                      "regions": [],
+                      "unit": "quarters"
+                    }
+                  }
+                },
+                "class": "ContinuousLogicalTimeline",
+                "conversion_maps": [],
+                "flow_control": {
+                  "breaks": [],
+                  "jumps": [],
+                  "markers": []
+                },
+                "id": "score",
+                "is_segment_line": false,
+                "length": {
+                  "number_type": "fraction",
+                  "unit": "quarters",
+                  "value": [
+                    32,
+                    1
+                  ]
+                },
+                "locked": false,
+                "measure_map": null,
+                "meta": {},
+                "metric_hierarchy": null,
+                "name": "Score",
+                "number_type": "fraction",
+                "regions": [],
+                "unit": "quarters"
+              },
+              {
+                "children": {},
+                "class": "ContinuousPhysicalTimeline",
+                "conversion_maps": [],
+                "flow_control": {
+                  "breaks": [],
+                  "jumps": [],
+                  "markers": []
+                },
+                "id": "take_1",
+                "is_segment_line": false,
+                "length": {
+                  "number_type": "float",
+                  "unit": "seconds",
+                  "value": 30.0
+                },
+                "locked": false,
+                "measure_map": null,
+                "meta": {},
+                "metric_hierarchy": null,
+                "name": "Take 1",
+                "number_type": "float",
+                "regions": [],
+                "unit": "seconds"
+              },
+              {
+                "children": {},
+                "class": "ContinuousPhysicalTimeline",
+                "conversion_maps": [],
+                "flow_control": {
+                  "breaks": [],
+                  "jumps": [],
+                  "markers": []
+                },
+                "id": "take_2",
+                "is_segment_line": false,
+                "length": {
+                  "number_type": "float",
+                  "unit": "seconds",
+                  "value": 28.5
+                },
+                "locked": false,
+                "measure_map": null,
+                "meta": {},
+                "metric_hierarchy": null,
+                "name": "Take 2",
+                "number_type": "float",
+                "regions": [],
+                "unit": "seconds"
+              }
+            ]
+          },
+          "x": 640,
+          "y": 0
+        },
+        "into": "workspace",
+        "type": "add"
+      },
+      "time": "2026-10-12T09:00:01.000Z"
+    },
+    {
+      "author": "Fixture Generator",
+      "command": {
+        "block": {
+          "id": "bungroup00",
+          "manifest": {
+            "bundle": {
+              "groups": [],
+              "id": "bundle_1",
+              "meta": {},
+              "name": "Sketches",
+              "support_policy": "omit"
+            },
+            "graphical": {
+              "order": {}
+            },
+            "meta": {
+              "generator": "timetoalign 1.2.0 (98a6bb36)",
+              "schema_version": "0.7.0"
+            },
+            "timelines": [
+              {
+                "children": {
+                  "page_1": {
+                    "offset": {
+                      "number_type": "int",
+                      "unit": "pixels",
+                      "value": 0
+                    },
+                    "timeline": {
+                      "children": {},
+                      "class": "DiscreteGraphicalTimeline",
+                      "conversion_maps": [],
+                      "flow_control": {
+                        "breaks": [],
+                        "jumps": [],
+                        "markers": []
+                      },
+                      "id": "page_1",
+                      "is_segment_line": false,
+                      "length": {
+                        "number_type": "int",
+                        "unit": "pixels",
+                        "value": 1754
+                      },
+                      "locked": true,
+                      "measure_map": null,
+                      "meta": {},
+                      "metric_hierarchy": null,
+                      "name": "Page 1",
+                      "number_type": "int",
+                      "regions": [],
+                      "unit": "pixels"
+                    }
+                  },
+                  "page_2": {
+                    "offset": {
+                      "number_type": "int",
+                      "unit": "pixels",
+                      "value": 1754
+                    },
+                    "timeline": {
+                      "children": {},
+                      "class": "DiscreteGraphicalTimeline",
+                      "conversion_maps": [],
+                      "flow_control": {
+                        "breaks": [],
+                        "jumps": [],
+                        "markers": []
+                      },
+                      "id": "page_2",
+                      "is_segment_line": false,
+                      "length": {
+                        "number_type": "int",
+                        "unit": "pixels",
+                        "value": 1754
+                      },
+                      "locked": true,
+                      "measure_map": null,
+                      "meta": {},
+                      "metric_hierarchy": null,
+                      "name": "Page 2",
+                      "number_type": "int",
+                      "regions": [],
+                      "unit": "pixels"
+                    }
+                  },
+                  "page_3": {
+                    "offset": {
+                      "number_type": "int",
+                      "unit": "pixels",
+                      "value": 3508
+                    },
+                    "timeline": {
+                      "children": {},
+                      "class": "DiscreteGraphicalTimeline",
+                      "conversion_maps": [],
+                      "flow_control": {
+                        "breaks": [],
+                        "jumps": [],
+                        "markers": []
+                      },
+                      "id": "page_3",
+                      "is_segment_line": false,
+                      "length": {
+                        "number_type": "int",
+                        "unit": "pixels",
+                        "value": 1754
+                      },
+                      "locked": true,
+                      "measure_map": null,
+                      "meta": {},
+                      "metric_hierarchy": null,
+                      "name": "Page 3",
+                      "number_type": "int",
+                      "regions": [],
+                      "unit": "pixels"
+                    }
+                  }
+                },
+                "class": "DiscreteGraphicalTimeline",
+                "conversion_maps": [],
+                "flow_control": {
+                  "breaks": [],
+                  "jumps": [],
+                  "markers": []
+                },
+                "id": "pages",
+                "is_segment_line": true,
+                "length": {
+                  "number_type": "int",
+                  "unit": "pixels",
+                  "value": 5262
+                },
+                "locked": false,
+                "measure_map": null,
+                "meta": {},
+                "metric_hierarchy": null,
+                "name": "Pages",
+                "number_type": "int",
+                "regions": [],
+                "unit": "pixels"
+              },
+              {
+                "children": {},
+                "class": "DiscretePhysicalTimeline",
+                "conversion_maps": [],
+                "flow_control": {
+                  "breaks": [],
+                  "jumps": [],
+                  "markers": []
+                },
+                "id": "recording",
+                "is_segment_line": false,
+                "length": {
+                  "number_type": "int",
+                  "unit": "samples",
+                  "value": 441000
+                },
+                "locked": false,
+                "measure_map": null,
+                "meta": {},
+                "metric_hierarchy": null,
+                "name": "Recording",
+                "number_type": "int",
+                "regions": [],
+                "unit": "samples"
+              },
+              {
+                "children": {},
+                "class": "ContinuousLogicalTimeline",
+                "conversion_maps": [],
+                "flow_control": {
+                  "breaks": [],
+                  "jumps": [],
+                  "markers": []
+                },
+                "id": "score",
+                "is_segment_line": false,
+                "length": {
+                  "number_type": "fraction",
+                  "unit": "quarters",
+                  "value": [
+                    16,
+                    1
+                  ]
+                },
+                "locked": false,
+                "measure_map": null,
+                "meta": {},
+                "metric_hierarchy": null,
+                "name": "Score",
+                "number_type": "fraction",
+                "regions": [],
+                "unit": "quarters"
+              }
+            ]
+          },
+          "x": 0,
+          "y": 480
+        },
+        "into": "workspace",
+        "type": "add"
+      },
+      "time": "2026-10-12T09:00:02.000Z"
+    }
+  ],
+  "meta": {
+    "format": "tilie-workspace",
+    "version": 1
+  },
+  "settings": {
+    "blockDefaults": {
+      "height": null,
+      "length": 400,
+      "order": [
+        "children",
+        "regions",
+        "flow"
+      ],
+      "scale": 1,
+      "spacing": 1,
+      "width": null
+    },
+    "graphical": {},
+    "grid": {
+      "size": 8,
+      "snap": true
+    }
+  }
+}

@@ -21,7 +21,13 @@ import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { SCHEMA_VERSION } from "@timetoalign/timeskeleton";
 import { writeSvg, writeTikz } from "../src/index.ts";
-import { fixturesDirectory, inputsText, reviewCases } from "./review-cases.ts";
+import {
+  fixturesDirectory,
+  inputsText,
+  MANIFEST_DIRECTORIES,
+  manifestFiles,
+  reviewCases,
+} from "./review-cases.ts";
 
 /** The cases whose `figure.svg` is derived by hand from the specification. */
 export const HAND_DERIVED: readonly string[] = [
@@ -32,6 +38,11 @@ export const HAND_DERIVED: readonly string[] = [
   "with_region",
   "styled__score",
   "nested__length-800-spacing-2",
+  "segment_line",
+  "segment_pages_accolades",
+  "group__group_child_member",
+  "group__group_parents_mixed",
+  "group__group_grandchild",
 ];
 
 /** Write `text` to `file` unless it already holds it; report whether it changed. */
@@ -50,12 +61,15 @@ function firstDifference(expected: string, actual: string): string {
   return `line ${line + 1}:\n  file:   ${left[line] ?? "(none)"}\n  writer: ${right[line] ?? "(none)"}`;
 }
 
-/** The manifest files directly under a fixture directory, by name. */
+/** The manifest files of a fixture directory and its `groups/` and `bundles/`, by path. */
 function manifests(directory: string): Map<string, string> {
   return new Map(
-    readdirSync(directory)
-      .filter((file) => file.endsWith(".json"))
-      .map((file) => [file, readFileSync(path.join(directory, file), "utf8")]),
+    MANIFEST_DIRECTORIES.flatMap((subdirectory) =>
+      manifestFiles(directory, subdirectory).map((file): [string, string] => {
+        const name = path.join(subdirectory, file);
+        return [name, readFileSync(path.join(directory, name), "utf8")];
+      }),
+    ),
   );
 }
 

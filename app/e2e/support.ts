@@ -8,7 +8,7 @@
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
-import type { Locator, Page } from "@playwright/test";
+import type { Download, Locator, Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 import type { Command, Store } from "../packages/core/src/index.ts";
 
@@ -61,7 +61,7 @@ export interface Placement {
   readonly height: number | null;
 }
 
-export type FixtureName = "small" | "grid-300" | "grid-900";
+export type FixtureName = "small" | "groups" | "bundles" | "grid-300" | "grid-900";
 
 export function fixtureText(name: FixtureName): string {
   return readFileSync(path.join(import.meta.dirname, "fixtures", `${name}.tle.json`), "utf8");
@@ -76,11 +76,32 @@ export const SMALL = {
   styled: "styled0000",
 } as const;
 
+/** The ids of `groups`' blocks, one group file each, in the order they were added. */
+export const GROUPS = {
+  child: "gchild0000",
+  grandchild: "ggrand0000",
+  mixed: "gmixed0000",
+  styled: "gstyled000",
+} as const;
+
+/** The ids of `bundles`' blocks, one bundle file each, in the order they were added. */
+export const BUNDLES = {
+  mixed: "bmixed0000",
+  shared: "bshared000",
+  ungrouped: "bungroup00",
+} as const;
+
 /** The block ids of `small` in index order. */
 export const SMALL_ORDER = [SMALL.bare, SMALL.nested, SMALL.map, SMALL.flow, SMALL.styled];
 
 /** The journal length right after a fixture is opened: one `add` per block. */
-export const OPENED_JOURNAL = { small: 5, "grid-300": 300, "grid-900": 900 } as const;
+export const OPENED_JOURNAL = {
+  small: 5,
+  groups: 4,
+  bundles: 3,
+  "grid-300": 300,
+  "grid-900": 900,
+} as const;
 
 /**
  * Open the editor, load a fixture through the hook and wait until the
@@ -93,6 +114,25 @@ export async function open(page: Page, name: FixtureName): Promise<void> {
   await expect
     .poll(() => page.evaluate(() => window.__tilie.store().journal.length))
     .toBe(OPENED_JOURNAL[name]);
+}
+
+/** Choose `label` in the File menu. */
+export async function chooseItem(page: Page, label: string): Promise<void> {
+  await page.getByRole("button", { name: "File" }).click();
+  await page.getByRole("menuitem", { name: label }).click();
+}
+
+/** Choose `label` in the File menu and answer the file chooser with `name` holding `text`. */
+export async function pick(page: Page, label: string, name: string, text: string): Promise<void> {
+  const chooser = page.waitForEvent("filechooser");
+  await chooseItem(page, label);
+  await (await chooser).setFiles({ name, mimeType: "application/json", buffer: Buffer.from(text) });
+}
+
+/** A finished download's suggested file name and its text. */
+export async function downloaded(download: Promise<Download>): Promise<[string, string]> {
+  const done = await download;
+  return [done.suggestedFilename(), readFileSync(await done.path(), "utf8")];
 }
 
 /** Set the viewport and wait until the canvas reports it. */
@@ -229,11 +269,13 @@ export async function toScreen(
 }
 
 /**
- * A whole-pixel screen point on block `id`'s background: inside its node, on no
- * drawn element and with none at the eight points `clearance` px around it, found by
- * hit-testing a raster of points across the node.
+ * A whole-pixel screen point on block `id`'s card, away from everything
+ * drawn on it: the element hit there and at the eight points `clearance` px
+ * around it is the card (`<root>/card`) of that block, found by hit-testing a
+ * raster of points across the node. A press there selects the card's
+ * timeline; a drag from there moves the block.
  */
-export async function backgroundPoint(
+export async function cardPoint(
   page: Page,
   id: string,
   clearance = 6,
@@ -242,13 +284,13 @@ export async function backgroundPoint(
   if (box === null) throw new Error(`block ${id} is not displayed`);
   const found = await page.evaluate(
     ({ block, clearance, left, top, width, height }) => {
-      // Background at a point and at the points `clearance` px around it, so neither
-      // pixel rounding nor a finger's contact area reaches a drawn element.
-      const background = (x: number, y: number) => {
+      // The card at a point and at the points `clearance` px around it, so neither
+      // pixel rounding nor a finger's contact area reaches another drawn element.
+      const card = (x: number, y: number) => {
         const hit = document.elementFromPoint(x, y);
         return (
           hit?.closest(".svelte-flow__node")?.getAttribute("data-id") === block &&
-          hit?.closest("[data-address]") === null
+          hit?.closest("[data-address]")?.getAttribute("data-address")?.endsWith("/card") === true
         );
       };
       const around = [-clearance, 0, clearance];
@@ -256,7 +298,7 @@ export async function backgroundPoint(
         for (let fx = 0.05; fx < 1; fx += 0.05) {
           const x = Math.round(left + width * fx);
           const y = Math.round(top + height * fy);
-          if (around.every((dx) => around.every((dy) => background(x + dx, y + dy)))) {
+          if (around.every((dx) => around.every((dy) => card(x + dx, y + dy)))) {
             return { x, y };
           }
         }
@@ -265,7 +307,51 @@ export async function backgroundPoint(
     },
     { block: id, clearance, left: box.x, top: box.y, width: box.width, height: box.height },
   );
-  if (found === null) throw new Error(`block ${id} shows no background point`);
+  if (found === null) throw new Error(`block ${id} shows no point on its card`);
+  return found;
+}
+
+/**
+ * A whole-pixel screen point on block `id`'s margin, the block's own
+ * background outside every card: inside its node, on no drawn element and
+ * with none at the eight points 1 px around it. The margin is `P` = 8 canvas
+ * units wide, so the points are searched pixel by pixel, rows from the
+ * node's vertical centre outwards, each from the left. A click there selects
+ * the block.
+ */
+export async function marginPoint(page: Page, id: string): Promise<{ x: number; y: number }> {
+  const box = await node(page, id).boundingBox();
+  if (box === null) throw new Error(`block ${id} is not displayed`);
+  const found = await page.evaluate(
+    ({ block, left, top, width, height }) => {
+      const margin = (x: number, y: number) => {
+        const hit = document.elementFromPoint(x, y);
+        return (
+          hit?.closest(".svelte-flow__node")?.getAttribute("data-id") === block &&
+          hit?.closest("[data-address]") === null
+        );
+      };
+      const around = [-1, 0, 1];
+      const x0 = Math.ceil(left) + 1;
+      const x1 = Math.floor(left + width) - 2;
+      const y0 = Math.ceil(top) + 1;
+      const y1 = Math.floor(top + height) - 2;
+      const centre = Math.round(top + height / 2);
+      for (let step = 0; step <= y1 - y0 + 1; step += 1) {
+        for (const y of step === 0 ? [centre] : [centre - step, centre + step]) {
+          if (y < y0 || y > y1) continue;
+          for (let x = x0; x <= x1; x += 1) {
+            if (around.every((dx) => around.every((dy) => margin(x + dx, y + dy)))) {
+              return { x, y };
+            }
+          }
+        }
+      }
+      return null;
+    },
+    { block: id, left: box.x, top: box.y, width: box.width, height: box.height },
+  );
+  if (found === null) throw new Error(`block ${id} shows no point on its margin`);
   return found;
 }
 
@@ -334,9 +420,9 @@ export async function drag(
   await page.mouse.up();
 }
 
-/** Drag block `id` by `(dx, dy)` screen pixels from a point on its background. */
+/** Drag block `id` by `(dx, dy)` screen pixels from a point on its card (a drag from anywhere moves the block). */
 export async function dragBlock(page: Page, id: string, dx: number, dy: number, steps = 10) {
-  await nodeDragStart(page, await backgroundPoint(page, id), dx, dy, steps);
+  await nodeDragStart(page, await cardPoint(page, id), dx, dy, steps);
   await page.mouse.up();
 }
 

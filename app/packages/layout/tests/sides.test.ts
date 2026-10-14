@@ -85,11 +85,11 @@ describe("side", () => {
       { statements: [{ select: { element: "break" }, set: { side: "above" } }] },
     ]);
     const line = drawing.elements.find((item) => item.type === "break");
-    expect(drawing.height).toBe(77.9296875);
-    expect(line).toMatchObject({ y1: 8, y2: 69.9296875 });
+    expect(drawing.height).toBe(95.9296875);
+    expect(line).toMatchObject({ y1: 16, y2: 77.9296875 });
     expect(drawing.elements.find((item) => item.address === "break_1/label")).toMatchObject({
-      x: 385.9775390625,
-      baseline: 16.35400390625,
+      x: 393.9775390625,
+      baseline: 24.35400390625,
     });
   });
 });
