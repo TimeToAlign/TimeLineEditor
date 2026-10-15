@@ -8,12 +8,14 @@ import {
   readWorkspace,
   writeWorkspace,
 } from "../src/index.ts";
-import { load, manifestFixtures, testClock } from "./support.ts";
+import { allFixtures, loadText, testClock } from "./support.ts";
 
-/** A store of `blocks` blocks (the fixtures in turn) whose journal holds `entries` entries. */
+/** A store of `blocks` blocks (the fixtures of one root in turn) whose journal holds `entries` entries. */
 function generated(blocks: number, entries: number): Store {
   const store = createStore({ view: createView(), journal: [] }, { clock: testClock() });
-  const manifests = manifestFixtures.map((fixture) => load(fixture.name));
+  const manifests = allFixtures
+    .filter((fixture) => !fixture.name.includes("/"))
+    .map((fixture) => loadText(fixture.text, fixture.name));
   const id = (n: number) => n.toString(36).padStart(10, "0");
   for (let n = 0; n < blocks; n += 1) {
     const manifest = manifests[n % manifests.length];

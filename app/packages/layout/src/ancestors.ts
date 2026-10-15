@@ -10,7 +10,7 @@ import { MARKER_HEIGHT } from "./constants.ts";
 import type { LineElement, LineEnd, MarkerElement, TextElement } from "./elements.ts";
 import { labelTiers, Rows } from "./fit.ts";
 import { type AncestorName, centredLabel, nameOf } from "./names.ts";
-import { add, coordinateText, coordinateValue, negate, zero } from "./numbers.ts";
+import { add, coordinateText, coordinateValue, lengthValue, negate, zero } from "./numbers.ts";
 import { markLabelOffset, markReach } from "./root.ts";
 import {
   endOf,
@@ -41,8 +41,10 @@ interface AncestorLine {
   readonly name: Styled;
   /** It runs on to the left: `ts < 0`. */
   readonly left: boolean;
-  /** It runs on to the right: `te > λ`. */
+  /** It runs on to the right: its length or the member's is not known, or `te > λ`. */
   readonly right: boolean;
+  /** Its end `te` on the member's axis where it does not run on. */
+  readonly te: Real;
   /** How it ends where it does not run on. */
   readonly end: LineEnd;
   /** Its drawn marks, start before end. */
@@ -59,16 +61,19 @@ export function ancestorLines(scope: Scope): AncestorLine[] {
   const { member, root, rootEntry, lambda, L, cascade, textOf, measured } = scope;
   const ancestors = member.ancestors.map((ancestor, index) => {
     const timeline = ancestor.timeline;
-    let below: Real = coordinateValue(ancestor.offset);
+    let below: Real = coordinateValue(ancestor.offset, timeline.number_type);
     for (const next of member.ancestors.slice(index + 1)) {
-      below = add(below, coordinateValue(next.offset));
+      below = add(below, coordinateValue(next.offset, next.timeline.number_type));
     }
     const start = negate(below);
-    const end = add(start, coordinateValue(timeline.length));
+    const length = lengthValue(timeline);
+    const end = length === null ? null : add(start, length);
     const key = elementKey("ancestor", timeline.id, timeline, rootEntry.key);
     const style = cascade.resolve(key, rootEntry.style);
     const line = { key, style };
-    const marks = (["start", "end"] as const).map((part) => {
+    // A member whose end is not known has no end to mark.
+    const parts = rootEntry.open ? (["start"] as const) : (["start", "end"] as const);
+    const marks = parts.map((part) => {
       const markKey = elementKey("wedge", `${root.id}/${part}`, root, key);
       const markStyle = cascade.resolve(markKey, style);
       const label = textOf({ key: markKey, style: markStyle }, "label");
@@ -89,7 +94,9 @@ export function ancestorLines(scope: Scope): AncestorLine[] {
       style,
       name: textOf(line, "name"),
       left: compareReal(start, zero(root.number_type)) < 0,
-      right: compareReal(end, lambda) > 0,
+      // Where either end is not known, the line never claims the ancestor ends with the member.
+      right: end === null || rootEntry.open || compareReal(end, lambda) > 0,
+      te: end ?? lambda,
       end: endOf(timeline, index === 0),
       marks,
     };
@@ -177,16 +184,18 @@ export function ancestorLineElements(
   distances: readonly number[],
   placed: Position,
 ): LineElement[] {
-  const { L } = scope;
-  const { x0 } = placed;
+  const { L, lambda } = scope;
+  const { x0, x } = placed;
   return ancestors.map((ancestor, index) => {
     const w = ancestor.style["stroke-width"];
+    // Short of the member's end (`te < λ`), the line ends at `x(te)` with its own end.
+    const end = compareReal(ancestor.te, lambda) < 0 ? x(ancestor.te) : x0 + L * 1;
     return {
       type: "ancestor",
       address: ancestor.address,
       style: ancestor.style,
       xs: ancestor.left ? x0 - 4 * w : x0 + L * 0,
-      xe: ancestor.right ? x0 + L + 4 * w : x0 + L * 1,
+      xe: ancestor.right ? x0 + L + 4 * w : end,
       y: ancestorY(ancestors, distances, placed, index),
       start: ancestor.left ? "chevrons" : "circle",
       end: ancestor.right ? "chevrons" : ancestor.end,

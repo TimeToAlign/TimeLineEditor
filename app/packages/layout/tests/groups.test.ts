@@ -5,7 +5,7 @@ import { element, loadFile, metrics } from "./support.ts";
 
 const only = (select: object, set: object): Graphical[] => [{ statements: [{ select, set }] }];
 
-describe("the tree of a group file", () => {
+describe("the tree of a manifest of one group", () => {
   const manifest = loadFile("groups/group_child_member");
 
   it("passes the frame's style to its title and members, a member's to its ancestors", () => {
@@ -45,7 +45,7 @@ describe("the tree of a group file", () => {
   });
 });
 
-describe("the tree of a bundle file", () => {
+describe("the tree of a titled manifest of groups and roots", () => {
   const manifest = loadFile("bundles/bundle_mixed");
   const stroke = (layers: Graphical[], address: string) =>
     element(draw(manifest, DEFAULT_PLACEMENT, layers, metrics), address).style.stroke;
@@ -53,9 +53,7 @@ describe("the tree of a bundle file", () => {
   it("passes the block's style to the title, the frames and the ungrouped cards and lines", () => {
     const layers = only({ element: "block" }, { stroke: "#111111" });
     expect(
-      ["bundle_1/name", "group_1", "annotations/card", "annotations"].map((at) =>
-        stroke(layers, at),
-      ),
+      ["name", "group_1", "annotations/card", "annotations"].map((at) => stroke(layers, at)),
     ).toEqual(["#111111", "#111111", "#111111", "#111111"]);
   });
 

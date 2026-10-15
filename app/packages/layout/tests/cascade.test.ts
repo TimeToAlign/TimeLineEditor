@@ -280,8 +280,8 @@ describe("inheritance", () => {
       [{ statements: [{ select: { ids: ["melody"] }, set: { "stroke-width": 7 } }] }],
       metrics,
     );
-    expect(element(drawing, "tempo").style["stroke-width"]).toBe(7);
-    expect(drawing.elements.some((item) => item.address === "tempo/name")).toBe(false);
+    expect(element(drawing, "melody/tempo").style["stroke-width"]).toBe(7);
+    expect(drawing.elements.some((item) => item.address === "melody/tempo/name")).toBe(false);
   });
 
   it("passes a region's font size to its label", () => {
@@ -291,7 +291,7 @@ describe("inheritance", () => {
       [{ statements: [{ select: { element: "region" }, set: { "font-size": 13 } }] }],
       metrics,
     );
-    expect(element(drawing, "region_1/label").style["font-size"]).toBe(13);
+    expect(element(drawing, "clt_1/region_1/label").style["font-size"]).toBe(13);
   });
 });
 
@@ -300,15 +300,15 @@ describe("maps by target unit", () => {
 
   it("draws a map in the domain and modality it converts to", () => {
     const drawing = drawFixture(name);
-    expect(element(drawing, "lmap_1").style).toMatchObject({
+    expect(element(drawing, "maps:quarters/lmap_1").style).toMatchObject({
       stroke: "#0050EF",
       "stroke-dasharray": "none",
     });
-    expect(element(drawing, "cmap_11").style).toMatchObject({
+    expect(element(drawing, "maps:quarters/cmap_11").style).toMatchObject({
       stroke: "#00CC00",
       "stroke-dasharray": "1 1",
     });
-    expect(element(drawing, "tmap_1").style).toMatchObject({
+    expect(element(drawing, "maps:quarters/tmap_1").style).toMatchObject({
       stroke: "#00CC00",
       "stroke-dasharray": "none",
     });
@@ -318,8 +318,8 @@ describe("maps by target unit", () => {
     const drawing = drawFixture(name, [
       { statements: [{ select: { ids: ["maps:quarters"] }, set: { stroke: "#ABCDEF" } }] },
     ]);
-    expect(element(drawing, "cmap_6").style.stroke).toBe("#ABCDEF");
-    expect(element(drawing, "lmap_1").style.stroke).toBe("#0050EF");
+    expect(element(drawing, "maps:quarters/cmap_6").style.stroke).toBe("#ABCDEF");
+    expect(element(drawing, "maps:quarters/lmap_1").style.stroke).toBe("#0050EF");
   });
 
   it("gives a map its type as class", () => {
@@ -329,7 +329,7 @@ describe("maps by target unit", () => {
     const reached = drawing.elements
       .filter((item) => item.type === "map" && item.style.stroke === "#FEDCBA")
       .map((item) => item.address);
-    expect(reached).toEqual(["cmap_6"]);
+    expect(reached).toEqual(["maps:quarters/cmap_6"]);
   });
 });
 

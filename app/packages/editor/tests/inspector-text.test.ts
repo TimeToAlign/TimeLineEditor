@@ -12,7 +12,6 @@ import {
   JsonFloat,
   parseJson,
   SCHEMA_VERSION,
-  schemaDocuments,
 } from "@timetoalign/timeskeleton";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
@@ -29,7 +28,7 @@ import {
 } from "../src/inspector/edit.ts";
 import type { Format } from "../src/inspector/formats.ts";
 import { FORMATS, loadCodec, readText, writeText } from "../src/inspector/formats.ts";
-import { documentsOf, nullableRequired } from "../src/inspector/nulls.ts";
+import { DOCUMENT, omissibleNulls } from "../src/inspector/nulls.ts";
 
 const A = "0000000000";
 const B = "0000000001";
@@ -39,10 +38,10 @@ const fixturesDirectory = path.join(
   "fixtures",
   SCHEMA_VERSION,
 );
-/** The manifest fixtures of one kind: `""` for timeline files, else `groups` or `bundles`. */
+/** The manifest fixtures of one directory, `""`, `groups` or `bundles`, without their minimal twins. */
 function fixturesOf(kind: "" | "groups" | "bundles"): string[] {
   return readdirSync(path.join(fixturesDirectory, kind))
-    .filter((name) => name.endsWith(".json"))
+    .filter((name) => name.endsWith(".json") && !name.endsWith(".minimal.json"))
     .sort()
     .map((name) => path.join(kind, name));
 }
@@ -106,12 +105,12 @@ beforeAll(async () => {
 });
 
 describe("format round trips", () => {
-  it("covers the 29 timeline, 9 group and 9 bundle fixtures", () => {
+  it("covers the 36, 10 and 9 fixtures of the top, groups/ and bundles/", () => {
     expect([
       fixturesOf("").length,
       fixturesOf("groups").length,
       fixturesOf("bundles").length,
-    ]).toEqual([29, 9, 9]);
+    ]).toEqual([36, 10, 9]);
   });
 
   for (const name of fixtureNames) {
@@ -130,62 +129,44 @@ describe("exact numbers", () => {
   const big = 9007199254740993n;
 
   it("keeps an integer beyond 2^53 in every format", () => {
-    setOrFail(store, `${A}/dlt_1`, {
-      length: { unit: "ticks", number_type: "int", value: big },
-    });
+    setOrFail(store, `${A}/dlt_1`, { length: big });
     const manifest = manifestIn(store, A);
     for (const format of FORMATS) {
       const read = readBack(format, written(format, manifest));
       expect(dumps(read)).toBe(dumps(manifest));
-      expect(at(read, "timeline", "length", "value")).toBe(big);
+      expect(at(read, "timelines", 0, "length")).toBe(big);
     }
-    expect(written("yaml", manifest)).toContain("    value: 9007199254740993\n");
+    expect(written("yaml", manifest)).toContain("    length: 9007199254740993\n");
   });
 
   it("keeps a 17-digit float and an integral float beyond 2^53 in every format", () => {
-    setOrFail(store, `${B}/cpt_1`, {
-      length: { unit: "seconds", number_type: "float", value: 12.500000000000002 },
-    });
+    setOrFail(store, `${B}/cpt_1`, { length: 12.500000000000002 });
     let manifest = manifestIn(store, B);
     for (const format of FORMATS) {
       const read = readBack(format, written(format, manifest));
       expect(dumps(read)).toBe(dumps(manifest));
-      expect(at(read, "timeline", "length", "value")).toBe(12.500000000000002);
+      expect(at(read, "timelines", 0, "length")).toBe(12.500000000000002);
     }
-    setOrFail(store, `${B}/cpt_1`, {
-      length: { unit: "seconds", number_type: "float", value: new JsonFloat(1e16) },
-    });
+    setOrFail(store, `${B}/cpt_1`, { length: new JsonFloat(1e16) });
     manifest = manifestIn(store, B);
     for (const format of FORMATS) {
       const read = readBack(format, written(format, manifest));
       expect(dumps(read)).toBe(dumps(manifest));
-      const value = at(read, "timeline", "length", "value");
+      const value = at(read, "timelines", 0, "length");
       expect(isJsonFloat(value)).toBe(true);
       expect((value as JsonFloat).value).toBe(1e16);
     }
-    expect(written("yaml", manifest)).toContain("    value: 10000000000000000.0\n");
+    expect(written("yaml", manifest)).toContain("    length: 10000000000000000.0\n");
   });
 });
 
 describe("the TOML null rule", () => {
-  it("omits exactly the required members that may be null", () => {
-    const documents = documentsOf(SCHEMA_VERSION);
-    const named = schemaDocuments[SCHEMA_VERSION as keyof typeof schemaDocuments] as Record<
-      string,
-      Record<string, unknown>
-    >;
+  it("omits exactly the members that may be null and are required or default to null", () => {
+    const definitions = DOCUMENT.$defs as Record<string, Record<string, unknown>>;
     const listed = Object.fromEntries(
-      Object.entries(named).map(([document, schema]) => [
-        document,
-        Object.fromEntries(
-          Object.entries(schema.$defs as Record<string, Record<string, unknown>>)
-            .map(
-              ([name, node]) =>
-                [name, nullableRequired(documents, { document: schema, schema: node })] as const,
-            )
-            .filter(([, members]) => members.length > 0),
-        ),
-      ]),
+      Object.entries(definitions)
+        .map(([name, node]) => [name, omissibleNulls(node)] as const)
+        .filter(([, members]) => members.length > 0),
     );
     const maps = [
       "BeatInMeasureMap",
@@ -212,145 +193,139 @@ describe("the TOML null rule", () => {
     ];
     expect(maps).toHaveLength(21);
     expect(listed).toEqual({
-      core: {},
-      timeline: {
-        TimelineManifest: ["measure_map", "metric_hierarchy", "name"],
-        ...Object.fromEntries(maps.map((name) => [name, ["name", "source_unit", "target_unit"]])),
-        Region: ["name"],
-        Break: ["label", "name"],
-        Jump: ["label", "target"],
-        Marker: ["name"],
-      },
-      group: { Group: ["name"] },
-      bundle: { Bundle: ["name"] },
+      TimeSkeleton: ["name"],
+      Timeline: ["length", "measure_map", "metric_hierarchy", "name"],
+      ...Object.fromEntries(maps.map((name) => [name, ["name", "source_unit", "target_unit"]])),
+      Region: ["name"],
+      Break: ["label", "name"],
+      Jump: ["label", "target"],
+      Marker: ["name"],
+      Group: ["name"],
     });
-    const single = schemaDocuments["0.6.0"].timeline as unknown as Record<string, unknown>;
-    const manifest = (single.$defs as Record<string, Record<string, unknown>>).TimelineManifest;
-    expect(
-      nullableRequired(documentsOf("0.6.0"), { document: single, schema: manifest as never }),
-    ).toEqual(["measure_map", "metric_hierarchy", "name"]);
   });
 
-  it("omits and restores a null group name and a null bundle name", () => {
-    const group = parseJson(fixtureText("groups/group_number_types")) as Record<string, Json>;
-    group.group = { ...(group.group as Record<string, Json>), name: null };
-    const bundle = parseJson(fixtureText("bundles/corpus_matchfile")) as Json;
-    expect(at(bundle, "bundle", "name")).toBe(null);
-    const nameless = parseJson(fixtureText("bundles/corpus_matchfile")) as Record<string, Json>;
-    const groups = at(nameless, "bundle", "groups") as Record<string, Json>[];
-    groups[0] = { ...(groups[0] as Record<string, Json>), name: null };
-    const section = (text: string, header: string): string[] => {
-      const lines = text.split("\n");
-      const start = lines.indexOf(header);
-      const end = lines.indexOf("", start);
-      return lines.slice(start + 1, end);
-    };
-    const groupText = written("toml", group);
-    expect(section(groupText, "[group]")).toEqual([
-      'id = "group_1"',
-      'members = [ "page", "performance", "score" ]',
-    ]);
-    const bundleText = written("toml", bundle);
-    expect(section(bundleText, "[bundle]")).toEqual([
-      'groups = [ { id = "group_1", members = [ "score:clt_1" ], meta = {}, name = "score" } ]',
-      'id = "bundle_1"',
-      'support_policy = "omit"',
-    ]);
-    expect(section(written("toml", nameless), "[bundle]")).toEqual([
-      'groups = [ { id = "group_1", members = [ "score:clt_1" ], meta = {} } ]',
-      'id = "bundle_1"',
-      'support_policy = "omit"',
-    ]);
-    for (const format of FORMATS) {
-      const groupRead = readBack(format, written(format, group));
-      expect(dumps(groupRead)).toBe(dumps(group));
-      expect(at(groupRead, "group", "name")).toBe(null);
-      const bundleRead = readBack(format, written(format, bundle));
-      expect(dumps(bundleRead)).toBe(dumps(bundle));
-      expect(at(bundleRead, "bundle", "name")).toBe(null);
-      expect(at(bundleRead, "bundle", "groups", 0, "name")).toBe("score");
-      const namelessRead = readBack(format, written(format, nameless));
-      expect(dumps(namelessRead)).toBe(dumps(nameless));
-      expect(at(namelessRead, "bundle", "name")).toBe(null);
-      expect(at(namelessRead, "bundle", "groups", 0, "name")).toBe(null);
-    }
-  });
+  /** A manifest of two roots, one of unknown length, and a group, every null written out. */
+  function nullable(): Json {
+    const manifest = loadManifest(
+      dumps({
+        timeskeleton: SCHEMA_VERSION,
+        timelines: [
+          { id: "score", unit: "quarters", length: [12, 1] },
+          { id: "page", unit: "pixels", length: null },
+        ],
+        groups: [{ id: "group_1", members: ["page", "score"] }],
+      }),
+    );
+    if (isLoadError(manifest)) throw new Error("the manifest is refused");
+    return manifest as unknown as Json;
+  }
 
-  it("writes bare without its nulls and reads them back", () => {
-    const manifest = manifestIn(storeOf("bare"), A);
-    const text = written("toml", manifest);
+  it("omits and restores the null members of the manifest, its timelines and its groups", () => {
+    const value = nullable();
+    const text = written("toml", value);
     expect(text).toBe(
       [
-        "[meta]",
-        'generator = "timetoalign 1.2.0 (98a6bb36)"',
-        'schema_version = "0.7.0"',
+        'timeskeleton = "0.7.0"',
         "",
-        "[timeline]",
-        'class = "ContinuousLogicalTimeline"',
-        "conversion_maps = []",
-        'id = "bare"',
-        "is_segment_line = false",
+        "[[groups]]",
+        'id = "group_1"',
+        'members = [ "page", "score" ]',
+        "",
+        "[groups.meta]",
+        "",
+        "[[timelines]]",
+        'id = "page"',
+        'unit = "pixels"',
         "locked = false",
-        'name = "Bare"',
-        'number_type = "fraction"',
+        "is_segment_line = false",
+        "children = []",
+        "conversion_maps = []",
         "regions = []",
-        'unit = "quarters"',
+        'number_type = "int"',
         "",
-        "[timeline.children]",
+        "[timelines.meta]",
         "",
-        "[timeline.flow_control]",
+        "[timelines.flow_control]",
         "breaks = []",
         "jumps = []",
         "markers = []",
         "",
-        "[timeline.length]",
-        'number_type = "fraction"',
+        "[[timelines]]",
+        'id = "score"',
+        "length = [ 12, 1 ]",
         'unit = "quarters"',
-        "value = [ 8, 1 ]",
+        "locked = false",
+        "is_segment_line = false",
+        "children = []",
+        "conversion_maps = []",
+        "regions = []",
+        'number_type = "fraction"',
         "",
-        "[timeline.meta]",
+        "[timelines.meta]",
+        "",
+        "[timelines.flow_control]",
+        "breaks = []",
+        "jumps = []",
+        "markers = []",
+        "",
+        "[meta]",
         "",
       ].join("\n"),
     );
-    const read = readBack("toml", text);
-    expect(at(read, "timeline", "measure_map")).toBe(null);
-    expect(at(read, "timeline", "metric_hierarchy")).toBe(null);
+    for (const format of FORMATS) {
+      const read = readBack(format, written(format, value));
+      expect(dumps(read)).toBe(dumps(value));
+      expect([
+        at(read, "name"),
+        at(read, "groups", 0, "name"),
+        at(read, "timelines", 0, "length"),
+        at(read, "timelines", 0, "name"),
+        at(read, "timelines", 1, "measure_map"),
+      ]).toEqual([null, null, null, null, null]);
+    }
   });
 
-  it("refuses a null the schema does not require", () => {
-    const value = parseJson(fixtureText("corpus_score_ms3")) as Record<string, Json>;
-    const rows = at(value, "timeline", "measure_map") as Record<string, Json>[];
-    rows[0] = { ...rows[0], nominal_length: null };
+  it("refuses a null the schema neither requires nor defaults to null", () => {
+    const value = parseJson(
+      dumps({
+        timeskeleton: SCHEMA_VERSION,
+        timelines: [
+          {
+            id: "score",
+            unit: "quarters",
+            length: [4, 1],
+            measure_map: [
+              { count: 1, qstamp: 0, number: 1, actual_length: 4, nominal_length: null },
+            ],
+          },
+        ],
+      }),
+    ) as Json;
     expect(writeText("toml", value)).toEqual({
       ok: false,
       problems: [
         {
           code: "not_representable",
-          message: "TOML has no null, and the schema does not require this member",
-          path: ["timeline", "measure_map", 0, "nominal_length"],
+          message:
+            "TOML has no null, and the schema neither requires this member nor defaults it to null",
+          path: ["timelines", 0, "measure_map", 0, "nominal_length"],
         },
       ],
     });
     for (const format of ["json", "yaml"] as const) {
       const read = readBack(format, written(format, value));
       expect(dumps(read)).toBe(dumps(value));
-      expect(at(read, "timeline", "measure_map", 0, "nominal_length")).toBe(null);
+      expect(at(read, "timelines", 0, "measure_map", 0, "nominal_length")).toBe(null);
     }
   });
 
   it("leaves a missing member that may not be null to the schema check", () => {
     const store = storeOf("bare");
     const text = written("toml", manifestIn(store, A)).replace('id = "bare"\n', "");
-    expect(applyText(store, A, "toml", text, true)).toEqual({
-      ok: false,
-      problems: [
-        {
-          code: "schema_violation",
-          message: "must have required property 'id'",
-          path: ["timeline"],
-        },
-      ],
-    });
+    const applied = applyText(store, A, "toml", text, true);
+    expect(applied.ok ? applied : applied.problems.map(({ code, path }) => [code, path])).toEqual([
+      ["schema_violation", ["timelines", 0]],
+    ]);
     expect(store.journal).toHaveLength(1);
   });
 });
@@ -388,21 +363,25 @@ describe("applying a text", () => {
     expect(locked).toEqual({
       ok: false,
       problems: [
-        { code: "schema_violation", message: "must be boolean", path: ["timeline", "locked"] },
+        {
+          code: "schema_violation",
+          message: "must be boolean",
+          path: ["timelines", 0, "locked"],
+        },
       ],
     });
     if (locked.ok) throw new Error("accepted");
-    expect(problemPointer(locked.problems[0] as never)).toBe("/timeline/locked");
+    expect(problemPointer(locked.problems[0] as never)).toBe("/timelines/0/locked");
     const unit = applyText(
       store,
       A,
       "json",
-      json.replace('"unit": "quarters"\n  }', '"unit": "parsecs"\n  }'),
+      json.replace('"unit": "quarters"', '"unit": "parsecs"'),
       true,
     );
     if (unit.ok) throw new Error("accepted");
     expect(unit.problems.map((item) => [item.message, problemPointer(item)])).toEqual([
-      ["must be equal to one of the allowed values", "/timeline/unit"],
+      ["must be equal to one of the allowed values", "/timelines/0/unit"],
     ]);
     const positions = (
       [
@@ -420,9 +399,9 @@ describe("applying a text", () => {
       return [problem?.code, problem?.line, problem?.column];
     });
     expect(positions).toEqual([
-      ["syntax_error", 25, 15],
-      ["syntax_error", 19, 3],
-      ["syntax_error", 11, 1],
+      ["syntax_error", 22, 17],
+      ["syntax_error", 16, 5],
+      ["syntax_error", 14, 1],
     ]);
     expect(store.journal).toHaveLength(1);
   });
@@ -430,7 +409,7 @@ describe("applying a text", () => {
 
 describe("comments", () => {
   for (const [format, nameLine, edited] of [
-    ["yaml", "  name: Bare\n", "  # shown on the canvas\n  name: Hello # was Bare\n"],
+    ["yaml", "    name: Bare\n", "    # shown on the canvas\n    name: Hello # was Bare\n"],
     ["toml", 'name = "Bare"\n', '# shown on the canvas\nname = "Hello" # was Bare\n'],
   ] as const) {
     it(`survive Apply and an external change in ${format.toUpperCase()}`, () => {
@@ -441,7 +420,7 @@ describe("comments", () => {
       const applied = applyText(store, A, format, text, true);
       if (!applied.ok) throw new Error(JSON.stringify(applied.problems));
       expect(applied.value.text).toBe(text);
-      expect(at(manifestIn(store, A), "timeline", "name")).toBe("Hello");
+      expect(at(manifestIn(store, A), "timelines", 0, "name")).toBe("Hello");
       setOrFail(store, `${A}/bare`, { name: "Bye" });
       const followed = follow(applied.value.source, manifestIn(store, A), true);
       if (!followed.ok) throw new Error(JSON.stringify(followed.problems));
@@ -459,17 +438,17 @@ describe("the styling toggle", () => {
       expect(written(format, manifestIn(store, A), true)).toMatch(/graphical/);
     }
     const hidden = written("yaml", manifestIn(store, A), false);
-    const name = at(manifestIn(store, A), "timeline", "name") as string;
+    const name = at(manifestIn(store, A), "timelines", 0, "name") as string;
     const applied = applyText(
       store,
       A,
       "yaml",
-      hidden.replace(`  name: ${name}\n`, "  name: Restyled\n"),
+      hidden.replace(`    name: ${name}\n`, "    name: Restyled\n"),
       false,
     );
     expect(applied.ok).toBe(true);
     expect(store.journal).toHaveLength(2);
-    expect(at(manifestIn(store, A), "timeline", "name")).toBe("Restyled");
+    expect(at(manifestIn(store, A), "timelines", 0, "name")).toBe("Restyled");
     expect(dumps(at(manifestIn(store, A), "graphical"))).toBe(graphical);
     const typed = applyText(store, A, "yaml", `${hidden}graphical: {}\n`, false);
     expect(typed).toEqual({

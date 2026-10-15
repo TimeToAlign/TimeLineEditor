@@ -5,12 +5,21 @@ import type {
   Block,
   BlockId,
   Change,
+  Gap,
+  GapOption,
   Manifest,
   RemoveCommand,
   SetCommand,
   View,
 } from "@timetoalign/tilie-core";
-import { elementOf, indicesBetween, isRemovable, manifestKind } from "@timetoalign/tilie-core";
+import {
+  elementOf,
+  indicesBetween,
+  isSegment,
+  removedBy,
+  segmentGaps,
+  TITLE_ADDRESS,
+} from "@timetoalign/tilie-core";
 import { GRID_FREE, positionStep, quantize } from "./numbers.ts";
 import { blocksInOrder } from "./project.ts";
 import { blockOf, type Selection } from "./selection.ts";
@@ -187,17 +196,54 @@ export function zOrderCommand(
   return setOf(changes);
 }
 
+/** A segment to delete, and the ways of closing its gap, of which one at least is permitted. */
+export interface SegmentDelete {
+  /** The segment's address, `<block>/<id>`. */
+  readonly segment: string;
+  readonly options: readonly GapOption[];
+}
+
+/** The way preselected for a segment's gap: the first permitted one, in the order of preference. */
+export function preferredGap(options: readonly GapOption[]): Gap | null {
+  return options.find((option) => option.refused === null)?.gap ?? null;
+}
+
+/**
+ * The segments among `targets` that leave a gap: those going neither with
+ * their block nor with another target of their block.
+ */
+function gapSegments(view: View, targets: readonly string[]): string[] {
+  const found: string[] = [];
+  for (const target of targets) {
+    const block = view.blocks[blockOf(target)];
+    if (block === undefined || target === block.id) continue;
+    const id = target.slice(block.id.length + 1);
+    if (!isSegment(block.manifest, id) || targets.includes(block.id)) continue;
+    const others = targets
+      .filter((other) => other !== target && blockOf(other) === block.id && other !== block.id)
+      .map((other) => other.slice(block.id.length + 1));
+    if (!removedBy(block.manifest, others).has(id)) found.push(target);
+  }
+  return found;
+}
+
 /**
  * One `remove` of the selected addresses, an element's part standing for
- * the element (core's `elementOf`). A selection holding something core
- * would not remove is refused whole, with a hint naming the block: a
- * timeline file's root goes only with its block, and a group or bundle
- * block's timelines, groups and bundle cannot be removed yet.
+ * the element (core's `elementOf`). Every element can be removed, timelines
+ * and groups included; a selection holding a manifest's title, which goes
+ * only with its block, is refused whole, with a hint naming the block.
+ *
+ * A segment leaves a gap in its segment line, closed as `gap` says. Without
+ * a `gap`, a selection of one segment alone gives the segment and the ways
+ * of closing its gap to choose from, or a refusal when no way is permitted;
+ * a segment selected with anything it does not go with is refused: one
+ * segment is deleted at a time.
  */
 export function removeCommand(
   view: View,
   selection: Selection,
-): RemoveCommand | { readonly refused: string } {
+  gap?: Gap,
+): RemoveCommand | SegmentDelete | { readonly refused: string } {
   if (selection.size === 0) return { refused: "Nothing is selected." };
   const targets: string[] = [];
   for (const address of selection) {
@@ -207,16 +253,25 @@ export function removeCommand(
       continue;
     }
     const element = elementOf(block.manifest, address.slice(block.id.length + 1));
-    if (!isRemovable(block.manifest, element)) {
+    if (element === TITLE_ADDRESS) {
       return {
-        refused:
-          manifestKind(block.manifest) === "timeline"
-            ? `Block ${block.id}: its root timeline ${element} is removed only with the block; select the block to delete it.`
-            : `Block ${block.id}: removing ${element} from a group or bundle block is not supported yet.`,
+        refused: `Block ${block.id}: its title is removed only with the block; select the block to delete it.`,
       };
     }
     const target = `${block.id}/${element}`;
     if (!targets.includes(target)) targets.push(target);
   }
-  return { type: "remove", targets };
+  const [segment] = gapSegments(view, targets);
+  if (segment === undefined) return { type: "remove", targets };
+  if (targets.length > 1) return { refused: "Delete one segment at a time." };
+  if (gap !== undefined) return { type: "remove", targets, gap };
+  const { manifest, id: block } = view.blocks[blockOf(segment)] as Block;
+  const id = segment.slice(block.length + 1);
+  const options = segmentGaps(manifest, id) ?? [];
+  if (options.every((option) => option.refused !== null)) {
+    return {
+      refused: `Segment ${id} cannot be deleted: no neighbour may extend and its segment line may not shift.`,
+    };
+  }
+  return { segment, options };
 }

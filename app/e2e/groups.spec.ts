@@ -1,7 +1,7 @@
 /**
- * Group and bundle files on the canvas: what they draw, selecting an element
- * drawn twice, Delete in a group file, hover, and import and export through
- * the File menu. The expected values are derived in `README.md`
+ * Manifests holding groups on the canvas: what they draw, selecting an element
+ * drawn twice, Delete of timelines and other elements, hover, a stretched box,
+ * and import and export through the File menu. The expected values are derived in `README.md`
  * ("groups.spec.ts").
  */
 
@@ -11,13 +11,15 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
-import type { BundleFile, GroupFile, Manifest } from "../packages/core/src/index.ts";
+import type { Manifest } from "../packages/core/src/index.ts";
 import { isLoadError, loadManifest, saveManifest } from "../packages/core/src/index.ts";
+import { manifestFileName } from "../packages/editor/src/files.ts";
 import {
   BUNDLES,
   chooseItem,
   commandsFrom,
   downloaded,
+  dragStart,
   element,
   emptyPoint,
   GROUPS,
@@ -28,6 +30,7 @@ import {
   part,
   partCentre,
   pick,
+  placement,
   selection,
   setViewport,
 } from "./support.ts";
@@ -38,7 +41,8 @@ const VIEW = { x: 40, y: 40, zoom: 1 };
 
 /**
  * The distinct `data-address` values drawn in a node, in DOM order, kept
- * when they name a frame or a line (no `/`), a card or a title.
+ * when they name a frame, a line or the manifest's title (no `/`), a card or
+ * a group's title.
  */
 function structure(page: Page, block: string): Promise<string[]> {
   return node(page, block)
@@ -48,16 +52,14 @@ function structure(page: Page, block: string): Promise<string[]> {
       for (const item of items) {
         const address = item.getAttribute("data-address") ?? "";
         const shown =
-          !address.includes("/") ||
-          address.endsWith("/card") ||
-          /^(group|bundle)_\d+\/name$/.test(address);
+          !address.includes("/") || address.endsWith("/card") || /^group_\d+\/name$/.test(address);
         if (shown && !kept.includes(address)) kept.push(address);
       }
       return kept;
     });
 }
 
-/** The text of each title in a node, by address. */
+/** The text of each title in a node (the manifest's `name`, a group's `G/name`), by address. */
 function titles(page: Page, block: string): Promise<Record<string, string>> {
   return node(page, block)
     .locator("[data-address]")
@@ -68,7 +70,7 @@ function titles(page: Page, block: string): Promise<Record<string, string>> {
             item.getAttribute("data-address") ?? "",
             item.textContent ?? "",
           ])
-          .filter(([address]) => /^(group|bundle)_\d+\/name$/.test(address)),
+          .filter(([address]) => /^(name|group_\d+\/name)$/.test(address)),
       ),
     );
 }
@@ -106,7 +108,7 @@ async function partsInside(
   ).length;
 }
 
-/** Every block's manifest as JSON text, to prove a refusal changed nothing. */
+/** Every block's manifest as JSON text, to prove that a refusal or an undo left nothing changed. */
 function manifests(page: Page): Promise<string> {
   return page.evaluate(() => {
     const { view } = window.__tilie.store();
@@ -191,18 +193,47 @@ test.describe("a group workspace", () => {
     ]);
   });
 
-  test("Delete refuses a timeline and removes a region", async ({ page }) => {
+  test("Delete removes a timeline with its subtree from the group, and a region", async ({
+    page,
+  }) => {
     const start = OPENED_JOURNAL.groups;
-    const hint = page.locator('[data-testid="hint"]');
     const before = await manifests(page);
-    for (const timeline of ["recording", "piece"]) {
+    /** The root ids, each with its children's ids, and every group's members. */
+    const contents = () =>
+      page.evaluate((block) => {
+        const manifest = window.__tilie.store().view.blocks[block]?.manifest as Manifest;
+        return {
+          roots: manifest.timelines.map((root) => [root.id, root.children.map(({ id }) => id)]),
+          members: manifest.groups.map((group) => [group.id, group.members]),
+        };
+      }, GROUPS.child);
+    // `piece` is drawn only as `second-half`'s ancestor line, so its card goes with `second-half`.
+    const removals = [
+      {
+        timeline: "recording",
+        card: "recording/card",
+        roots: [["piece", ["second-half"]]],
+        members: [["group_1", ["second-half"]]],
+      },
+      {
+        timeline: "piece",
+        card: "second-half/card",
+        roots: [["recording", []]],
+        members: [["group_1", ["recording"]]],
+      },
+    ];
+    for (const { timeline, card, roots, members } of removals) {
       await page.evaluate(
         (address) => window.__tilie.select([address]),
         `${GROUPS.child}/${timeline}`,
       );
       await page.keyboard.press("Delete");
-      await expect(hint).toBeVisible();
-      await expect(hint).toContainText(timeline);
+      expect(await commandsFrom(page, start)).toEqual([
+        { type: "remove", targets: [`${GROUPS.child}/${timeline}`] },
+      ]);
+      expect(await contents()).toEqual({ roots, members });
+      await expect(element(page, GROUPS.child, card)).toHaveCount(0);
+      await page.keyboard.press("ControlOrMeta+z");
       expect(await journalLength(page)).toBe(start);
       expect(await manifests(page)).toBe(before);
     }
@@ -215,8 +246,8 @@ test.describe("a group workspace", () => {
           region: {
             id: "region_1",
             name: "A",
-            start: { unit: "quarters", number_type: "fraction", value: [2, 1] },
-            end: { unit: "quarters", number_type: "fraction", value: [6, 1] },
+            start: [2, 1],
+            end: [6, 1],
             meta: {},
           },
         }),
@@ -228,9 +259,11 @@ test.describe("a group workspace", () => {
 
     const regions = () =>
       page.evaluate((block) => {
-        const manifest = window.__tilie.store().view.blocks[block]?.manifest as GroupFile;
+        const manifest = window.__tilie.store().view.blocks[block]?.manifest as Manifest;
         const piece = manifest.timelines.find((root) => root.id === "piece");
-        return piece?.children["second-half"]?.timeline.regions.map((region) => region.id);
+        return piece?.children
+          .find((child) => child.id === "second-half")
+          ?.regions.map((region) => region.id);
       }, GROUPS.child);
     expect(await regions()).toEqual(["region_1"]);
 
@@ -298,10 +331,10 @@ test.describe("a bundle workspace", () => {
     await setViewport(page, VIEW);
   });
 
-  test("draws the bundle's title, its frames and its ungrouped roots", async ({ page }) => {
+  test("draws the manifest's title, its frames and its ungrouped roots", async ({ page }) => {
     await expect(page.locator(".svelte-flow__node")).toHaveCount(3);
     expect(await structure(page, BUNDLES.mixed)).toEqual([
-      "bundle_1/name",
+      "name",
       "group_1",
       "group_1/name",
       "score/card",
@@ -319,7 +352,7 @@ test.describe("a bundle workspace", () => {
       "annotations",
     ]);
     expect(await structure(page, BUNDLES.shared)).toEqual([
-      "bundle_1/name",
+      "name",
       "group_1",
       "group_1/name",
       "exposition/card",
@@ -337,7 +370,7 @@ test.describe("a bundle workspace", () => {
       "page",
     ]);
     expect(await structure(page, BUNDLES.ungrouped)).toEqual([
-      "bundle_1/name",
+      "name",
       "pages/card",
       "pages",
       "recording/card",
@@ -346,16 +379,16 @@ test.describe("a bundle workspace", () => {
       "score",
     ]);
     expect(await titles(page, BUNDLES.mixed)).toEqual({
-      "bundle_1/name": "Mixed",
+      name: "Mixed",
       "group_1/name": "Performance",
       "group_2/name": "Facsimile",
     });
     expect(await titles(page, BUNDLES.shared)).toEqual({
-      "bundle_1/name": "Sonata",
+      name: "Sonata",
       "group_1/name": "Exposition",
       "group_2/name": "Recapitulation",
     });
-    expect(await titles(page, BUNDLES.ungrouped)).toEqual({ "bundle_1/name": "Sketches" });
+    expect(await titles(page, BUNDLES.ungrouped)).toEqual({ name: "Sketches" });
   });
 
   test("selecting an ancestor line drawn in two frames marks both", async ({ page }) => {
@@ -383,6 +416,61 @@ test.describe("a bundle workspace", () => {
     await page.mouse.move(empty.x, empty.y, { steps: 2 });
     await expect.poll(() => marked(page, "data-hovered")).toEqual([]);
   });
+
+  test("Delete refuses a selection holding the manifest's title whole", async ({ page }) => {
+    const before = await manifests(page);
+    await page.evaluate(
+      (addresses) => window.__tilie.select(addresses),
+      [`${BUNDLES.mixed}/annotations`, `${BUNDLES.mixed}/name`],
+    );
+    await page.keyboard.press("Delete");
+    const hint = page.locator('[data-testid="hint"]');
+    await expect(hint).toBeVisible();
+    await expect(hint).toContainText("select the block to delete it");
+    expect(await journalLength(page)).toBe(OPENED_JOURNAL.bundles);
+    expect(await manifests(page)).toBe(before);
+    await expect(part(page, BUNDLES.mixed, "annotations/card")).toBeAttached();
+  });
+
+  test("a stretch keeps the space a box resize added", async ({ page }) => {
+    const block = BUNDLES.ungrouped;
+    /** Drag a handle by whole pixels from a whole-pixel point; the release journals one `set`. */
+    const drag = async (handle: string, dx: number, dy: number) => {
+      const grip = await page.locator(`[data-testid="handle-${handle}"]`).boundingBox();
+      if (grip === null) throw new Error(`handle ${handle} is not displayed`);
+      const before = await journalLength(page);
+      const start = {
+        x: Math.round(grip.x + grip.width / 2),
+        y: Math.round(grip.y + grip.height / 2),
+      };
+      await dragStart(page, start, dx, dy);
+      await page.mouse.up();
+      expect(await journalLength(page)).toBe(before + 1);
+    };
+    await page.evaluate((id) => window.__tilie.select([id]), block);
+    await page.locator('[data-testid="mode-box"]').click();
+    await drag("bottom-right", 40, 30);
+    const boxed = await placement(page, block);
+    expect(boxed.width).toBe(565.89697265625);
+    expect(boxed.height).not.toBeNull();
+
+    await page.locator('[data-testid="mode-stretch"]').click();
+    expect(await page.evaluate(() => window.__tilie.mode())).toBe("stretch");
+    const before = await node(page, block).boundingBox();
+    await drag("right", 50, 0);
+    const after = await node(page, block).boundingBox();
+    const stretched = await placement(page, block);
+    expect({
+      x: stretched.x,
+      y: stretched.y,
+      length: stretched.length,
+      width: stretched.width,
+      height: stretched.height,
+    }).toEqual({ x: 0, y: 480, length: 450, width: 615.89697265625, height: boxed.height });
+    if (before === null || after === null) throw new Error(`${block} is not displayed`);
+    expect(after.x).toBe(before.x);
+    expect(after.x + after.width - (before.x + before.width)).toBe(50);
+  });
 });
 
 /** The timeskeleton package that `core` depends on, and its schema version's manifest fixtures. */
@@ -406,7 +494,7 @@ function loaded(text: string): Manifest {
   return manifest;
 }
 
-test.describe("group and bundle files through the File menu", () => {
+test.describe("manifests holding groups through the File menu", () => {
   test.beforeEach(async ({ page }) => {
     // The fallback path: without the pickers the editor uses a file input and a download.
     await page.addInitScript(() => {
@@ -417,21 +505,12 @@ test.describe("group and bundle files through the File menu", () => {
     await page.waitForFunction(() => window.__tilie !== undefined);
   });
 
-  test("import a group and a bundle file and export each byte for byte", async ({ page }) => {
+  test("import a manifest of one group and a named one and export each byte for byte", async ({
+    page,
+  }) => {
     expect(await journalLength(page)).toBe(0);
-    const cases = [
-      {
-        name: "groups/group_styled",
-        kind: "group",
-        id: (manifest: Manifest) => (manifest as GroupFile).group.id,
-      },
-      {
-        name: "bundles/bundle_mixed",
-        kind: "bundle",
-        id: (manifest: Manifest) => (manifest as BundleFile).bundle.id,
-      },
-    ];
-    for (const [entry, { name, kind, id }] of cases.entries()) {
+    const cases = ["groups/group_styled", "bundles/bundle_mixed"];
+    for (const [entry, name] of cases.entries()) {
       const text = fixtureFile(name);
       const manifest = loaded(text);
       const before = await page.evaluate(() => Object.keys(window.__tilie.store().view.blocks));
@@ -447,16 +526,16 @@ test.describe("group and bundle files through the File menu", () => {
       const [block] = added;
       if (block === undefined) throw new Error(`${name}.json added no block`);
       expect(await selection(page)).toEqual([block]);
-      const stored = await page.evaluate((target) => {
-        const found = window.__tilie.store().view.blocks[target];
-        return { blockKind: found?.blockKind, manifest: JSON.stringify(found?.manifest) };
-      }, block);
-      expect(stored).toEqual({ blockKind: kind, manifest: JSON.stringify(manifest) });
+      const stored = await page.evaluate(
+        (target) => JSON.stringify(window.__tilie.store().view.blocks[target]?.manifest),
+        block,
+      );
+      expect(stored).toEqual(JSON.stringify(manifest));
 
       const exported = downloaded(page.waitForEvent("download"));
       await chooseItem(page, "Export manifest…");
       const [fileName, written] = await exported;
-      expect(fileName).toBe(`${id(manifest)}.json`);
+      expect(fileName).toBe(manifestFileName(manifest));
       expect(written).toBe(saveManifest(manifest));
       expect(written).toBe(text);
     }

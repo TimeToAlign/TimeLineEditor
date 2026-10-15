@@ -1,8 +1,8 @@
 /**
  * The workspace file, `<name>.tle.json`: `{meta, settings, blocks, journal}`
  * written by timeskeleton's `dumps` and read losslessly by its `parseJson`.
- * Any other format or version, any unknown member and any invalid manifest
- * refuses the file.
+ * Any other format or version refuses the file before anything else is read;
+ * any unknown member and any invalid manifest refuses it too.
  */
 
 import { dumps, parseJson } from "@timetoalign/timeskeleton";
@@ -10,7 +10,7 @@ import { parseCommand } from "../commands/parse.ts";
 import type { LoadError, Problem } from "../errors.ts";
 import { ErrorCode, isCommandError, isLoadError, problem } from "../errors.ts";
 import type { JsonObject, PathSegment } from "../json.ts";
-import { isJsonObject } from "../json.ts";
+import { isJsonObject, showJson } from "../json.ts";
 import { readManifestValue } from "../manifest/io.ts";
 import type { Manifest } from "../manifest/types.ts";
 import {
@@ -107,7 +107,11 @@ const META: { readonly [member: string]: Reader } = {
   version: (value, path) =>
     value === WORKSPACE_META.version
       ? value
-      : problem(ErrorCode.unsupportedVersion, `version ${String(value)} is not 1`, path),
+      : problem(
+          ErrorCode.unsupportedVersion,
+          `workspace version ${showJson(value)} is not supported; this editor reads version ${WORKSPACE_META.version} only`,
+          path,
+        ),
 };
 
 function readSettings(problems: Problem[]): Reader {
@@ -138,7 +142,6 @@ function readBlock(problems: Problem[]): Reader {
   const readers: { [member: string]: Reader } = {
     ...PLACEMENT,
     id: readString,
-    blockKind: readString,
     parent: (value, path) => (value === null ? null : readString(value, path)),
     index: readString,
     x: readFinite,
@@ -186,6 +189,12 @@ export function readWorkspace(text: string): Workspace | LoadError {
     return { problems: [problem(ErrorCode.invalidJson, (error as Error).message, [])] };
   }
   const problems: Problem[] = [];
+  // A file of another format or version is refused for that alone: its other
+  // members follow rules this editor does not know.
+  if (isJsonObject(value) && isJsonObject(value.meta)) {
+    readExact(value.meta, ["meta"], META, problems);
+    if (problems.length > 0) return { problems };
+  }
   const blocks = collecting(problems, (items, path) => {
     if (!isJsonObject(items)) return problem(ErrorCode.invalidValue, "expected an object", path);
     const read = readBlock(problems);

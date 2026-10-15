@@ -4,15 +4,13 @@ import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import {
+  type AxisValue,
   apply,
-  type CoordinateDict,
   createView,
   isCommandError,
   isLoadError,
   loadManifest,
   type Manifest,
-  manifestKind,
-  type TimelineFile,
   type TimelineManifest,
 } from "@timetoalign/tilie-core";
 import {
@@ -38,28 +36,33 @@ export const fixturesDir = path.join(packageDir, "fixtures", SCHEMA_VERSION);
 export { fontMetrics as metrics } from "@timetoalign/timeskeleton";
 export const BLOCK = "0000000000";
 
-/** The timeline fixtures by name, then the group and bundle fixtures as `groups/…`, `bundles/…`. */
+/**
+ * The fixtures at the top by name, then those sorted into `groups/…` and
+ * `bundles/…`, without their minimal twins (`*.minimal.json`).
+ */
 export function manifestNames(): string[] {
   return ["", "groups/", "bundles/"].flatMap((prefix) =>
     readdirSync(path.join(fixturesDir, prefix))
-      .filter((name) => name.endsWith(".json"))
+      .filter((name) => name.endsWith(".json") && !name.endsWith(".minimal.json"))
       .map((name) => `${prefix}${name.slice(0, -5)}`)
       .sort(),
   );
 }
 
-/** A fixture of any kind by its path below the fixtures directory (`groups/…`), without `.json`. */
+/** A fixture by its path below the fixtures directory (`groups/…`), without `.json`. */
 export function loadFile(name: string): Manifest {
   const result = loadManifest(readFileSync(path.join(fixturesDir, `${name}.json`), "utf8"));
   if (isLoadError(result)) throw new Error(`${name}: ${result.problems[0]?.message}`);
   return result;
 }
 
-/** A timeline-file fixture by name. */
-export function load(name: string): TimelineFile {
+/** A fixture of one root and no group by name. */
+export function load(name: string): Manifest {
   const manifest = loadFile(name);
-  if (manifestKind(manifest) !== "timeline") throw new Error(`${name} is no timeline file`);
-  return manifest as TimelineFile;
+  if (manifest.timelines.length !== 1 || manifest.groups.length > 0) {
+    throw new Error(`${name} is no manifest of one root`);
+  }
+  return manifest;
 }
 
 /**
@@ -81,47 +84,63 @@ export function element(drawing: Drawing, address: string | null, index = 0): Dr
   return found;
 }
 
-export function quarters(numerator: number, denominator = 1): CoordinateDict {
-  return { unit: "quarters", number_type: "fraction", value: [numerator, denominator] };
+/** A bare value on a `fraction` axis. */
+export function quarters(numerator: number, denominator = 1): AxisValue {
+  return [numerator, denominator];
 }
 
 /** A manifest built through commands: a quarters root, then commands on its block. */
-export function build(rootId: string, length: number, ...commands: object[]): TimelineFile {
+export function build(rootId: string, length: number, ...commands: object[]): Manifest {
   const source = load("bare");
-  const timeline = { ...source.timeline, id: rootId, name: null, length: quarters(length) };
+  const [root] = source.timelines;
+  const timeline = { ...root, id: rootId, name: null, length: quarters(length) };
   let view = apply(createView(), {
     type: "add",
     into: "workspace",
-    block: { id: BLOCK, manifest: { meta: source.meta, timeline }, x: 0, y: 0 },
+    block: { id: BLOCK, manifest: { ...source, timelines: [timeline] }, x: 0, y: 0 },
   });
   for (const command of [...commands]) {
     if (isCommandError(view)) break;
     view = apply(view, command);
   }
   if (isCommandError(view)) throw new Error(`${view.code}: ${view.message}`);
-  return (view.blocks[BLOCK] as { readonly manifest: TimelineFile }).manifest;
+  return (view.blocks[BLOCK] as { readonly manifest: Manifest }).manifest;
+}
+
+/** A fixture by its path below the fixtures directory, changed by commands on its block. */
+export function edit(name: string, ...commands: object[]): Manifest {
+  let view = apply(createView(), {
+    type: "add",
+    into: "workspace",
+    block: { id: BLOCK, manifest: loadFile(name), x: 0, y: 0 },
+  });
+  for (const command of commands) {
+    if (isCommandError(view)) break;
+    view = apply(view, command);
+  }
+  if (isCommandError(view)) throw new Error(`${view.code}: ${view.message}`);
+  return (view.blocks[BLOCK] as { readonly manifest: Manifest }).manifest;
+}
+
+/** The `set` command of some properties of one element of the block. */
+export function set(address: string, values: object): object {
+  return { type: "set", changes: [{ target: `${BLOCK}/${address}`, values }] };
 }
 
 /**
  * The manifest with the `locked` flags of the named timelines replaced,
- * validated again against the schema. Core's invariants refuse an unlocked
- * child, which the schema admits and the drawing specification draws.
+ * validated again against the schema.
  */
 export function withLocked(
-  manifest: TimelineFile,
+  manifest: Manifest,
   locked: Readonly<Record<string, boolean>>,
-): TimelineFile {
+): Manifest {
   const relock = (timeline: TimelineManifest): TimelineManifest => ({
     ...timeline,
     locked: Object.hasOwn(locked, timeline.id) ? (locked[timeline.id] as boolean) : timeline.locked,
-    children: Object.fromEntries(
-      Object.entries(timeline.children).map(([key, item]) => [
-        key,
-        { ...item, timeline: relock(item.timeline) },
-      ]),
-    ),
+    children: timeline.children.map(relock),
   });
-  const relocked = { ...manifest, timeline: relock(manifest.timeline) };
+  const relocked = { ...manifest, timelines: manifest.timelines.map(relock) };
   validate(relocked);
   return relocked;
 }
@@ -144,13 +163,17 @@ export function scalarMap(timeline: string, id: string): object {
 
 /** The `add` command for a locked quarters child. */
 export function child(parent: string, id: string, offset: number, length: number): object {
-  const { timeline } = load("bare");
+  const [timeline] = load("bare").timelines;
   return {
     type: "add",
     into: `${BLOCK}/${parent}`,
     child: {
+      ...timeline,
+      id,
+      name: null,
       offset: quarters(offset),
-      timeline: { ...timeline, id, name: null, length: quarters(length), locked: true },
+      length: quarters(length),
+      locked: true,
     },
   };
 }

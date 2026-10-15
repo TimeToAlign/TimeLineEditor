@@ -92,13 +92,12 @@ hand-written, except the refused texts.
 
 `files.ts` alone:
 
-1. **`manifestFileName`** names a file after its root timeline's id in a
-   timeline file, its group's id in a group file and its bundle's id in a
-   bundle file: `bare.json` for `bare`, `flow_quarters.json` for
-   `flow_control` (root id `flow:quarters`, the colon replaced),
-   `tilia_Bruckner5_Scherzo.json` for the group file `corpus_tilia` (group
-   id `tilia:Bruckner5_Scherzo`) and `bundle_1.json` for the bundle file
-   `bundle_mixed`; every character outside `[A-Za-z0-9_-]` becomes `_`.
+1. **`manifestFileName`** names a file after the manifest's `id`, else
+   its `name`, else `manifest`, every character outside `[A-Za-z0-9_-]`
+   written `_`, then `.json`: a manifest of one root with the id
+   `flow:quarters` and the name "Flow" gives `flow_quarters.json`, one with
+   only the name "Eroica: II" `Eroica__II.json`, an anonymous one
+   `manifest.json`.
 2. **`lastChanged`** is `null` for `[]`; with `TZ=UTC` an entry at
    `2026-10-12T09:05:07.000Z` gives `2026-10-12 09:05` (the last entry's
    time, local, minutes truncated).
@@ -121,14 +120,14 @@ The shell:
    has `aria-haspopup="menu"` and `aria-expanded="false"`; the menu
    (`role="menu"`) is hidden and holds exactly the items `New workspace`,
    `Open…`, `Save`, `Save as…`, `Import manifest…`, `Export manifest…`,
-   with shortcuts `Ctrl+O`, `Ctrl+S`, `Ctrl+Shift+S` on the second to
+   `Export minimal manifest…`, with shortcuts `Ctrl+O`, `Ctrl+S`, `Ctrl+Shift+S` on the second to
    fourth (jsdom's user agent is not a Mac). ArrowDown on the button opens
    it (`aria-expanded="true"`) with the focus on `New workspace`; ArrowUp
-   from there wraps to `Export manifest…`, ArrowDown wraps back, End
-   focuses `Export manifest…`, Home `New workspace`; Escape hides the menu
-   and returns the focus to the button. ArrowUp on the closed button opens
-   it on `Export manifest…`. `Export manifest…` is `aria-disabled="true"`
-   while nothing is selected.
+   from there wraps to `Export minimal manifest…`, ArrowDown wraps back,
+   End focuses `Export minimal manifest…`, Home `New workspace`; Escape
+   hides the menu and returns the focus to the button. ArrowUp on the
+   closed button opens it on `Export minimal manifest…`. Both export items
+   are `aria-disabled="true"` while nothing is selected.
 7. **A refused workspace file leaves the open workspace.** After the hook
    loads a written workspace, choosing `Open…` and the file `{` shows one
    message whose text starts `bad.tle.json is not a workspace file` and
@@ -164,10 +163,13 @@ The shell:
     that id. The centre arithmetic itself is `addCommand`'s, tested with
     exact values in the arranger. A refused manifest (`{"meta": {}}`)
     shows a message and journals nothing.
-12. **Export writes the selected block's manifest.** With `{block}/clt_3`
-    of a `nested` block selected, `Export manifest…` downloads
-    `clt_1.json` whose text equals `saveManifest` of the block's manifest;
-    with two blocks selected the item is `aria-disabled`.
+12. **Export writes the selected block's manifest, complete or minimal.**
+    With `{block}/clt_3` of a `nested` block selected, `Export manifest…`
+    downloads a file named `manifestFileName` of the block's manifest whose
+    text equals `saveManifest` of it (the complete form), and `Export
+    minimal manifest…` one of the same name whose text equals
+    `saveManifest(manifest, {minimal: true})`; with two blocks selected
+    both items are `aria-disabled`.
 13. **Recovery is offered and honoured.** The slot `current` holds a
     snapshot `{text, name}` while, and only while, the open workspace is
     unsaved: it is emptied after a successful save, after Open (and the
@@ -387,40 +389,36 @@ writes its view and journal.
    `app/e2e/fixtures/*.tle.json` and of the installed timeskeleton's
    `fixtures/<SCHEMA_VERSION>/groups/*.json` and `bundles/*.json` except
    those starting `corpus_` (loader output, not drawings made to be
-   looked at), all in one list sorted by code point. The end-to-end
+   looked at) and the minimal twins `*.minimal.json`, all in one list
+   sorted by code point. The end-to-end
    workspaces are the generator's output, pinned byte for byte by `pnpm
    e2e:fixtures:check`, so the test lists that directory (and requires
    `small` among them); the manifest entries are pinned exactly:
    `bundle_mixed`, `bundle_shared_parent`, `bundle_ungrouped`,
    `group_child_member`, `group_grandchild`, `group_number_types`,
    `group_parent_both`, `group_parent_exact`, `group_parent_right`,
-   `group_parents_mixed`, `group_styled` (11; the installed 0.7.0 package
-   has 9 group and 9 bundle files, one and six of them `corpus_`).
+   `group_parents_mixed`, `group_styled`, `group_unknown_length` (12; the
+   installed 0.7.0 package has 10 group and 9 bundle fixtures, one and six
+   of them `corpus_`, and each its minimal twin, which the menu leaves
+   out).
    Choosing `small` and pressing Load opens it the way `load` does: the store's view and journal equal `readWorkspace`
    of that file's text, and the selection is `[]`. Choosing
    `group_number_types` and pressing Load opens a workspace of one block
    `fixture000` at x 0, y 0 whose manifest equals `loadManifest` of the
-   fixture file and whose `blockKind` is `group`, journalled as exactly
-   one `add` of that block by `Fixture Generator` at
-   `2026-10-12T09:00:00.000Z` (the end-to-end generator's author and first
-   time); `bundle_mixed` likewise gives one block of kind `bundle`. A
+   fixture file, journalled as exactly one `add` of that block by `Fixture
+   Generator` at `2026-10-12T09:00:00.000Z` (the end-to-end generator's
+   author and first time); `bundle_mixed` likewise gives one block. A
    production build carries none of these workspaces (attributions case
    7).
-5. **Delete of a timeline in a group or bundle block is refused and
-   removes nothing.** Core refuses to remove any timeline of a group or
-   bundle file, and the canvas refuses such a selection before asking
-   (arranger's `removeCommand`), showing its reason in the canvas's status
-   line (`data-testid="hint"`, `role="status"`). After the menu's
-   `group_child_member` is loaded and `fixture000/second-half` (a child
-   timeline that the group names as a member; in a timeline file a child
-   is removable) is selected, Delete on the canvas (`role="application"`,
-   where the canvas reads its keys) leaves the view the same
-   object and the journal at one entry, and the status line reads exactly
-   `Block fixture000: removing second-half from a group or bundle block is
-   not supported yet.`; after `bundle_mixed`, selecting the ungrouped root
-   `fixture000/annotations` and pressing Delete likewise changes nothing
-   and reads `Block fixture000: removing annotations from a group or bundle
-   block is not supported yet.` The selection is kept in both.
+5. **Delete removes a timeline of a group or bundle block.** Core removes
+   any element, timelines included. After the menu's `group_child_member`
+   is loaded and `fixture000/second-half` (a child timeline that the group
+   names as a member) is selected, Delete on the canvas
+   (`role="application"`, where the canvas reads its keys) journals exactly
+   one more entry, `{type: "remove", targets: ["fixture000/second-half"]}`;
+   the block's manifest no longer carries `second-half` (`manifestIds`) and
+   the selection is `[]`. After `bundle_mixed`, the ungrouped root
+   `fixture000/annotations` goes the same way.
 6. **The hook leaves with the editor.** Unmounting `App.svelte` removes
    `window.__tilie`.
 
@@ -449,14 +447,17 @@ What would prove it works, and the exact values each test pins:
    value, a changed number kind (an integer that became a float or the
    reverse) or a dropped or added member can make a case fail. The cases
    are enumerated from the package's directories, so a first case pins
-   the set they come from: the installed 0.7.0 package holds 29 timeline
-   files (`fixtures/<SCHEMA_VERSION>/*.json`), 9 group files
-   (`groups/*.json`) and 9 bundle files (`bundles/*.json`), the counts
-   `ls` gives there; 47 fixtures in three formats are 141 cases. A
+   the set they come from: the installed 0.7.0 package holds 36 manifests
+   directly in `fixtures/<SCHEMA_VERSION>/`, 10 sorted into `groups/` and 9
+   into `bundles/`, the counts `ls` gives there without the minimal twins
+   (`*.minimal.json`); 55 fixtures in three formats are 165 cases. A
    fixture added to or removed from the package fails that first case
-   until this file and the count are updated together.
-   The bundle `corpus_matchfile` has a null bundle `name`, so its TOML case
-   already exercises the null rule of case 3 across the schema's documents.
+   until this file and the count are updated together. Every fixture is
+   written in the complete form, the form the inspector always shows (it
+   writes the held manifest, which is complete), so every TOML case
+   exercises the null rule of case 3. The twins are no case: the TOML null
+   rule restores what a minimal twin leaves out, so a twin reads back as
+   its complete fixture, which is the case already there.
 2. **Numbers stay exact.** A store holds `discrete_logical` (an unlocked
    root of integer ticks) and `continuous_physical` (an unlocked root of
    float seconds). Through `set` commands the integer root's `length`
@@ -467,63 +468,40 @@ What would prove it works, and the exact values each test pins:
    three formats with `dumps` equal to `dumps` of the manifest, and the
    value read back is exactly `9007199254740993n`, `12.500000000000002`
    (a plain number) and a `JsonFloat` of `1e16`; the YAML text carries
-   `value: 9007199254740993` and `value: 10000000000000000.0`. A JavaScript
+   `length: 9007199254740993` and `length: 10000000000000000.0` (a length
+   is a bare value on its axis). A JavaScript
    number would round the integer to …992, and a float written as `1e16`
    without a point would read back as the integer.
-3. **The TOML null rule is the schema's.** From 0.7.0 on a version's
-   schema is four documents (`core`, `timeline`, `group`, `bundle`) that
-   refer to each other by relative `$ref`s such as
-   `core.schema.json#/$defs/Id`; each reference is resolved against its own
-   document's `$id` among the documents of the version the value declares,
-   and the walk starts at the document of the value's file kind. `nullableRequired` over every
-   `$defs` entry of every document of the latest version lists exactly, per
-   document: `timeline` `TimelineManifest` `measure_map`,
-   `metric_hierarchy`, `name`; each of its 21 conversion-map definitions
+3. **The TOML null rule is the schema's.** The schema is one document;
+   its `$ref`s point into its own `$defs`. A member is left out of the TOML
+   text when it is null and the schema either requires it and admits null,
+   or declares the default null; reading the text puts it back as null.
+   `omissibleNulls` over every `$defs` entry of the document lists exactly:
+   `TimeSkeleton` `name`; `Timeline` `length`, `measure_map`,
+   `metric_hierarchy`, `name`; each of the 21 conversion-map definitions
    `name`, `source_unit`, `target_unit`; `Region` `name`; `Break` `label`,
-   `name`; `Jump` `label`, `target`; `Marker` `name`; `group` `Group`
-   `name`; `bundle` `Bundle` `name`; and no other definition of any of the
-   four documents has any (`core` none). The two schemas of 0.5.0 and
-   0.6.0, one document each, still give their own lists: `TimelineManifest`
-   of 0.6.0 lists `measure_map`, `metric_hierarchy`, `name`.
+   `name`; `Jump` `label`, `target`; `Marker` `name`; `Group` `name`; and
+   no other definition has any.
 
-   **Groups and bundles.** A group's and a bundle's `name` is required and
-   may be null, so it is omitted and restored:
-   - `group_number_types` with its group's `name` set to null: the TOML
-     text's `[group]` table is exactly `id = "group_1"` and `members = [
-     "page", "performance", "score" ]` (no `name` key), and reading it gives
-     the group's `name` null again; JSON and YAML write the null and read
-     it back. In all three formats `dumps` of what was read equals `dumps`
-     of the value written.
-   - `corpus_matchfile` (bundle `name` null, its one group named `score`):
-     the TOML text's `[bundle]` table is exactly `groups = [ { id =
-     "group_1", members = [ "score:clt_1" ], meta = {}, name = "score" } ]`
-     (the writer keeps an array of tables inline), `id = "bundle_1"` and
-     `support_policy = "omit"`, so the group keeps its name and the bundle
-     has none; reading it gives the bundle's `name` null and the group's
-     `score`; JSON and YAML likewise round-trip with `dumps` equal.
-   - `corpus_matchfile` with its one group's `name` set to null as well:
-     the null now lies at the far end of the walk from the `bundle`
-     document into `group.schema.json#/$defs/Group`. The TOML text's
-     `[bundle]` table is exactly `groups = [ { id = "group_1", members = [
-     "score:clt_1" ], meta = {} } ]`, `id = "bundle_1"` and
-     `support_policy = "omit"` (no `name` key at either level), and reading
-     it gives both the bundle's and the group's `name` null again; JSON and
-     YAML likewise round-trip with `dumps` equal.
-
-   The TOML text of `bare` is pinned whole: it
-   omits the null `measure_map` and `metric_hierarchy` (so its `[timeline]`
-   table has no such keys), and reading it gives both as null again (case 1
-   covers the other nulls of every fixture). Two refusals:
-   - writing `corpus_score_ms3` with its first measure-map row's
-     `nominal_length` set to null (optional and nullable: absent and null
-     mean different things) is refused `not_representable` at
-     `["timeline", "measure_map", 0, "nominal_length"]`; this refusal is
-     final, not a gap: such a manifest is shown and edited as JSON or YAML,
-     and the same value writes and reads back through both (`dumps` equal);
+   **A manifest of two roots and a group**, written out in its complete
+   form (`loadManifest` of `{timeskeleton, timelines: [score (quarters,
+   [12, 1]), page (pixels, length null)], groups: [group_1 of both]}`):
+   its TOML text is pinned whole and holds no `name` (of the manifest,
+   the group or a timeline), no `measure_map`, no `metric_hierarchy` and
+   no `length` for `page`; reading it back in each of the three formats
+   gives `dumps` equal to `dumps` of the manifest and those members null.
+   Two refusals:
+   - writing a manifest whose measure-map row has `nominal_length: null`
+     (optional, no default null: absent and null mean different things) is
+     refused `not_representable` at `["timelines", 0, "measure_map", 0,
+     "nominal_length"]`, message `TOML has no null, and the schema neither
+     requires this member nor defaults it to null`; this refusal is final,
+     not a gap: such a manifest is shown and edited as JSON or YAML, and
+     the same value writes and reads back through both (`dumps` equal);
    - applying the TOML text of `bare` with its `id = "bare"` line removed
      (`id` is required and may not be null, so nothing restores it) is
-     refused by the store: `schema_violation` "must have required property
-     'id'" at `["timeline"]`, and the journal is unchanged.
+     refused by the store: `schema_violation` at `["timelines", 0]`, and
+     the journal is unchanged.
 4. **Apply dispatches exactly one `set`.** With `bare` in block
    `0000000000`, the JSON text with `"name": "Bare"` changed to
    `"name": "Renamed"` is applied: the journal grows by exactly one entry,
@@ -533,20 +511,19 @@ What would prove it works, and the exact values each test pins:
    dispatches nothing (the journal stays at that length).
 5. **A refusal is shown with its exact path, and the text is kept.** From
    the same JSON text, `"locked": false` changed to `"locked": "yes"` is
-   refused `schema_violation` "must be boolean" at `["timeline",
-   "locked"]` (the store's path `["0000000000", "manifest", "timeline",
+   refused `schema_violation` "must be boolean" at `["timelines", 0,
+   "locked"]` (the store's path `["0000000000", "manifest", "timelines", 0,
    "locked"]` loses its block prefix, so it points into the text), and
-   `problemPointer` renders it as `/timeline/locked`; `"unit": "quarters"`
-   of the root changed to `"parsecs"` is refused "must be equal to one of the
-   allowed values" at `/timeline/unit`. Syntax errors carry 1-based
-   positions: the JSON text with `"locked": ,` gives `syntax_error` at line
-   25, column 15; the YAML text with `locked: [false` gives line 19,
-   column 3; the TOML text with `locked = ` gives line 11, column 1 (each
-   one line below where schema 0.6.0 put it: 0.7.0 adds the timeline's
-   `is_segment_line`, which sorts before `length` and `locked`). No
-   refusal adds a journal entry.
+   `problemPointer` renders it as `/timelines/0/locked`; `"unit":
+   "quarters"` of the root changed to `"parsecs"` is refused "must be equal
+   to one of the allowed values" at `/timelines/0/unit`. Syntax errors
+   carry 1-based positions: the JSON text with `"locked": ,` gives
+   `syntax_error` at line 22, column 17; the YAML text with `locked:
+   [false` gives line 16, column 5 (the line after `locked`, where the
+   flow sequence is found unclosed); the TOML text with `locked = ` gives
+   line 14, column 1 (likewise the line after it). No refusal adds a journal entry.
 6. **Comments survive Apply and an external change.** With `bare`
-   selected, the YAML text gets a comment line `  # shown on the canvas`
+   selected, the YAML text gets a comment line `    # shown on the canvas`
    above `name` and an inline comment `# was Bare` after the name changed to
    `Hello`; after Apply the text is exactly the written text with those two
    edits (the document is patched, not rewritten). Then the store changes
@@ -611,7 +588,7 @@ textarea adds one journal entry and removes the hint; an edited, unapplied
 text survives an external `set` and shows exactly "The manifest changed;
 Revert to see it", and Revert shows the new manifest; the refused text of
 case 5 lists one problem reading `schema_violation`, `must be boolean`,
-`/timeline/locked` and keeps the edit; typing `25` into `x` and pressing
+`/timelines/0/locked` and keeps the edit; typing `25` into `x` and pressing
 Enter adds one journal entry whose command is `{type: "set", changes:
 [{target: "0000000000", values: {x: 25}}]}`. A step steps from the stored value,
 not from the shown one: after a `set` of `x` to `10.123` the field shows
@@ -627,6 +604,32 @@ rounded the same way, but never over a draft: with `live` holding `x`
 `5.556` the field shows `5.56`, and with `33` typed it keeps `33`; with
 `live` back to `null` the field shows the stored value again. Live values
 of another block are ignored.
+
+**Unknown keys are warnings.** A manifest may carry keys the schema does
+not declare; they are kept and reported by core's `unknownKeys` (the
+timeskeleton validator's), never refused, because a misspelt optional key
+would otherwise silently become its default. What proves the inspector
+shows them is the shared warning cases of the installed timeskeleton
+(`fixtures/warnings/<SCHEMA_VERSION>/*.json`, each a manifest with its
+expected `unknown_keys` list, one key at a depth of its own): each case's
+manifest is loaded into a block and selected, and the warning list
+(`#inspector-warnings`, labelled "Warnings") holds exactly one item per
+expected key, in the expected order, each showing the key and its path as
+a JSON pointer into the manifest (the case's `path` rendered as
+`problemPointer` renders a problem's, `the top level` for the empty path),
+for example `order` at `/groups/0` for `group_unknown_key`. The list is
+driven by the files' own expectations, so a case added to the package is
+covered without a change here. Warnings never stop editing: with the
+warnings shown, the textarea holds the manifest's text, the problem list
+is empty, and Apply of an edited text (its first `meta` given a member,
+which `meta` admits freely) adds one journal entry, after which the same warnings are still listed, since the
+unknown keys were kept. `bare`, which has no unknown key, shows no warning
+list at all. Every case loads in core: the validator refuses whatever
+core's invariants refuse, so a warning case carries only unknown keys, and
+a case core refused (listed with the code of its first problem) fails the
+test instead of dropping out of it. `several_depths.json`, with its
+sixteen keys from the manifest down to a declaration, is among the cases
+listed.
 `Inspector-load.test.ts` replaces `toml.ts` with a module whose import
 fails (`vi.mock` with a throwing factory): choosing TOML shows one
 `role="alert"` paragraph reading exactly `TOML could not be loaded (<the

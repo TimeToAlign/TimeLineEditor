@@ -1,7 +1,7 @@
 /**
  * The framework-free TiLiE core has three distinct layers: a workspace view
  * holds blocks, a block adds canvas placement to its own manifest, and the
- * manifest is one TimeSkeleton file (a timeline, group or bundle file)
+ * manifest is one TimeSkeleton manifest (root timelines, optionally grouped)
  * without canvas knowledge. The
  * workspace changes only through the four commands `add`, `set`, `remove` and
  * `style`, journalled by the store.
@@ -9,6 +9,8 @@
 
 export const name = "@timetoalign/tilie-core" as const;
 
+/** The keys of a manifest its schema does not declare, kept and written back, shown as warnings. */
+export { type UnknownKey, unknownKeys } from "@timetoalign/timeskeleton";
 export { apply, applyParsed, embedStatement } from "./commands/apply.ts";
 export { parseCommand } from "./commands/parse.ts";
 export type {
@@ -25,42 +27,47 @@ export { ADD_KINDS, COMMAND_TYPES } from "./commands/types.ts";
 export type { CommandError, LoadError, Problem } from "./errors.ts";
 export { ErrorCode, InvalidManifestError, isCommandError, isLoadError } from "./errors.ts";
 export type { Json, JsonArray, JsonObject, PathSegment } from "./json.ts";
-export type { Domain, ElementKey, Modality } from "./manifest/elements.ts";
+export type { Domain, ElementKey, Modality, TimelineClass } from "./manifest/elements.ts";
 export {
   BLOCK_KEY,
-  classDomain,
   elementKey,
   manifestElements,
   orderedChildren,
   selectorMatches,
   textKey,
   timelineAncestry,
+  timelineClass,
   unitDomain,
   unownedKey,
 } from "./manifest/elements.ts";
-export type { Ancestor, GroupFrame, MemberDrawing, MemberDrawings } from "./manifest/files.ts";
+export type {
+  Ancestor,
+  GroupFrame,
+  MemberDrawing,
+  MemberDrawings,
+  RootPath,
+} from "./manifest/files.ts";
 export {
   elementAddress,
   elementOf,
   elementOfIn,
-  isRemovable,
-  isRemovableIn,
-  manifestGroups,
-  manifestKind,
-  manifestRoots,
+  isNamed,
   memberDrawings,
   PART_WORDS,
+  rootPaths,
+  TITLE_ADDRESS,
 } from "./manifest/files.ts";
 export {
   allowedNumberTypes,
   axisProblems,
-  CLASS_UNITS,
   checkManifest,
   childEnd,
   contentEnd,
   isProblem,
+  lengthOf,
   readOnAxis,
 } from "./manifest/invariants.ts";
+export type { SaveOptions } from "./manifest/io.ts";
 export {
   loadManifest,
   manifestProblems,
@@ -68,37 +75,49 @@ export {
   saveManifest,
   schemaProblems,
 } from "./manifest/io.ts";
+export type { Gap, GapOption, GapSide, GapVerb } from "./manifest/remove.ts";
+export {
+  GAP_SIDES,
+  GAP_VERBS,
+  GAPS,
+  isSegment,
+  movedBy,
+  removedBy,
+  segmentGaps,
+  withoutElements,
+  withoutSegment,
+} from "./manifest/remove.ts";
 export type {
+  AxisValue,
   Break,
-  BundleFile,
-  ChildEntry,
   ConversionMap,
   FlowControl,
-  GroupFile,
+  Group,
   Jump,
   Manifest,
-  ManifestMeta,
+  ManifestGraphical,
+  Marker,
   Region,
-  TimelineFile,
   TimelineManifest,
 } from "./manifest/types.ts";
-export type { Coordinate, CoordinateDict, CoordinateValue } from "./number/coordinate.ts";
+export type { Coordinate, CoordinateValue } from "./number/coordinate.ts";
 export {
   AxisMismatchError,
   addCoordinates,
+  axisCoordinate,
   CoordinateError,
   compareCoordinates,
-  coordinateFromDict,
   coordinatesEqual,
-  coordinateToDict,
+  readAxisValue,
   subtractCoordinates,
+  toAxisValue,
 } from "./number/coordinate.ts";
 export type { IntegerInput, RationalInput } from "./number/rational.ts";
 export { Rational } from "./number/rational.ts";
 export type { Real } from "./number/real.ts";
 export { addReal, compareReal, fromFloat, realOf, toFloat } from "./number/real.ts";
 export { isBandOrder } from "./values.ts";
-export type { BandGroup, Block, BlockId, BlockKind, BlockPlacement } from "./workspace/blocks.ts";
+export type { BandGroup, Block, BlockId, BlockPlacement } from "./workspace/blocks.ts";
 export { BAND_GROUPS, BLOCK_ID } from "./workspace/blocks.ts";
 export { readWorkspace, writeWorkspace } from "./workspace/file.ts";
 export type { Address, ParsedAddress, TimelinePrefix } from "./workspace/ids.ts";

@@ -1,4 +1,5 @@
-import { type BundleFile, isLoadError, loadManifest } from "@timetoalign/tilie-core";
+import { isLoadError, loadManifest } from "@timetoalign/tilie-core";
+import { dumps } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_LAYER, DEFAULT_PLACEMENT, draw, type TextElement } from "../src/index.ts";
 import { build, child, loadFile, metrics } from "./support.ts";
@@ -57,22 +58,16 @@ describe("row names", () => {
     });
   });
 
-  /** A bundle file built from `bundle_mixed` without timelines or groups, at some layers. */
+  /** A manifest built from `bundle_mixed` without timelines or groups, at some layers. */
   const emptyBundle = (layers: Parameters<typeof draw>[2]) => {
-    const source = loadFile("bundles/bundle_mixed") as BundleFile;
-    const manifest = loadManifest(
-      JSON.stringify({
-        meta: source.meta,
-        timelines: [],
-        bundle: { ...source.bundle, groups: [] },
-      }),
-    );
+    const source = loadFile("bundles/bundle_mixed");
+    const manifest = loadManifest(dumps({ ...source, timelines: [], groups: [], graphical: {} }));
     if (isLoadError(manifest)) throw new Error(manifest.problems[0]?.message);
     return draw(manifest, DEFAULT_PLACEMENT, layers, metrics);
   };
 
-  it("sizes a box holding only the bundle's title by that title", () => {
-    // A bundle file without timelines or groups holds only its title "Mixed"
+  it("sizes a box holding only the manifest's title by that title", () => {
+    // A manifest without timelines or groups holds only its title "Mixed"
     // at font size 11, drawn from x = P = 8. Its advances are M 1767, i 569,
     // x 1212, e 1260, d 1300, summing to 6108 units of 2048 per em, so
     // w = 6108 * 11 / 2048 = 32.806640625 and its right edge is 8 +
@@ -84,17 +79,17 @@ describe("row names", () => {
     expect(drawing).toMatchObject({ width: 48.806640625, height: 28.8046875 });
     expect(drawing.elements.map((item) => [item.type, item.address])).toEqual([
       ["block", null],
-      ["name", "bundle_1/name"],
+      ["name", "name"],
     ]);
     expect(drawing.elements[0]).toMatchObject({ width: 48.806640625, height: 28.8046875 });
   });
 
   it("is P plus x0 wide and P high when the box holds no frame, no card and no title", () => {
-    // The same bundle with its title hidden: xn = P + K = 16, no row name,
+    // The same manifest with its title hidden: xn = P + K = 16, no row name,
     // so x0 = 16, the box P + x0 = 24 wide and P = 8 high.
     const drawing = emptyBundle([
       DEFAULT_LAYER,
-      { statements: [{ select: { ids: ["bundle_1/name"] }, set: { display: "none" } }] },
+      { statements: [{ select: { ids: ["name"] }, set: { display: "none" } }] },
     ]);
     expect(drawing).toMatchObject({ width: 24, height: 8 });
     expect(drawing.elements.map((item) => [item.type, item.address])).toEqual([["block", null]]);

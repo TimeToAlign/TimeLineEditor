@@ -76,7 +76,7 @@ export const SMALL = {
   styled: "styled0000",
 } as const;
 
-/** The ids of `groups`' blocks, one group file each, in the order they were added. */
+/** The ids of `groups`' blocks, one manifest of one group each, in the order they were added. */
 export const GROUPS = {
   child: "gchild0000",
   grandchild: "ggrand0000",
@@ -84,7 +84,7 @@ export const GROUPS = {
   styled: "gstyled000",
 } as const;
 
-/** The ids of `bundles`' blocks, one bundle file each, in the order they were added. */
+/** The ids of `bundles`' blocks, one named manifest each, in the order they were added. */
 export const BUNDLES = {
   mixed: "bmixed0000",
   shared: "bshared000",

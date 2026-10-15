@@ -92,8 +92,8 @@ export const DEFAULT_LAYER: Graphical = {
 
 /**
  * A manifest's own layer, the highest of its drawing (section 1): its
- * `graphical` block's `styles` and `statements`, without a group or bundle
- * file's member `order`; `undefined` without a block.
+ * `graphical` block's `styles` and `statements`, without its groups' member
+ * `order`; `undefined` without a block.
  */
 export function manifestLayer(manifest: Manifest): Graphical | undefined {
   if (manifest.graphical === undefined) return undefined;

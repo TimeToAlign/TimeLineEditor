@@ -303,11 +303,13 @@ const exportable = $derived.by(() => {
   return blocks.size === 1 && only !== undefined ? view.blocks[only] : undefined;
 });
 
-async function exportManifest(): Promise<void> {
+/** Export the selected block's manifest: the complete form, or every default left out. */
+async function exportManifest(minimal: boolean): Promise<void> {
   const block = exportable;
   if (block === undefined) return;
   try {
-    await saveFile(saveManifest(block.manifest), MANIFEST_FILE, manifestFileName(block.manifest));
+    const text = saveManifest(block.manifest, { minimal });
+    await saveFile(text, MANIFEST_FILE, manifestFileName(block.manifest));
   } catch (error) {
     say(`The manifest could not be exported: ${failure(error)}`);
   }
@@ -334,7 +336,16 @@ const fileItems: readonly MenuItem[] = $derived([
     run: () => save(true),
   },
   { label: "Import manifest…", run: importManifest },
-  { label: "Export manifest…", disabled: exportable === undefined, run: exportManifest },
+  {
+    label: "Export manifest…",
+    disabled: exportable === undefined,
+    run: () => exportManifest(false),
+  },
+  {
+    label: "Export minimal manifest…",
+    disabled: exportable === undefined,
+    run: () => exportManifest(true),
+  },
 ]);
 
 function isTextInput(target: EventTarget | null): boolean {

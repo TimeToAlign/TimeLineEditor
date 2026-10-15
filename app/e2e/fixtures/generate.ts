@@ -1,7 +1,6 @@
 /**
  * The workspaces the end-to-end suite opens, built through the store's
- * commands from timeskeleton's manifest fixtures (timeline, group and bundle
- * files) and written by
+ * commands from timeskeleton's manifest fixtures and written by
  * `writeWorkspace`. The `.tle.json` files beside this script are its output
  * and are never edited by hand.
  *
@@ -49,7 +48,7 @@ export const SMALL = [
   ["styled0000", "styled__score", 640, 160],
 ] as const;
 
-/** The blocks of `groups`: id, group-file fixture, x, y, in the order they are added. */
+/** The blocks of `groups`: id, fixture of one group, x, y, in the order they are added. */
 export const GROUPS = [
   ["gchild0000", "groups/group_child_member", 0, 0],
   ["ggrand0000", "groups/group_grandchild", 0, 240],
@@ -57,14 +56,14 @@ export const GROUPS = [
   ["gstyled000", "groups/group_styled", 640, 424],
 ] as const;
 
-/** The blocks of `bundles`: id, bundle-file fixture, x, y, in the order they are added. */
+/** The blocks of `bundles`: id, fixture of `bundles/`, x, y, in the order they are added. */
 export const BUNDLES = [
   ["bmixed0000", "bundles/bundle_mixed", 0, 0],
   ["bshared000", "bundles/bundle_shared_parent", 640, 0],
   ["bungroup00", "bundles/bundle_ungrouped", 0, 480],
 ] as const;
 
-/** The grid of single-timeline blocks: the pitch between block origins. */
+/** The grid of blocks of one timeline: the pitch between block origins. */
 export const GRID_PITCH = { x: 512, y: 80 } as const;
 
 /** The columns of each grid workspace; rows fill up to the block count. */

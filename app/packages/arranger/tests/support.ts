@@ -67,7 +67,7 @@ export function blockIn(view: View, id: string): Block {
   return found;
 }
 
-/** The fixture paths of the group and bundle files the tests use. */
+/** The fixture paths of the manifests with groups the tests use. */
 export const NUMBERS = "groups/group_number_types";
 export const CHILD_MEMBER = "groups/group_child_member";
 export const MPM = "bundles/corpus_mpm";
@@ -77,8 +77,7 @@ export const MPM = "bundles/corpus_mpm";
  * named "A") added to its root `score`, as the README's `numbers`.
  */
 export function numbersView(id: string = A): View {
-  const quarters = (n: number) => ({ unit: "quarters", number_type: "fraction", value: [n, 1] });
-  const region = { id: "region_1", name: "A", start: quarters(2), end: quarters(4), meta: {} };
+  const region = { id: "region_1", name: "A", start: [2, 1], end: [4, 1], meta: {} };
   return changed(viewOf({ id, fixture: NUMBERS }), {
     type: "add",
     into: `${id}/score`,

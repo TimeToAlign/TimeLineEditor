@@ -6,17 +6,33 @@
  */
 
 import type { Declaration, Graphical, Selector, Statement } from "@timetoalign/timeskeleton";
-import { canonicalOrder } from "@timetoalign/timeskeleton";
+import { canonicalOrder, complete, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
 import type { CommandError, Problem } from "../errors.ts";
 import { ErrorCode, isCommandError, isLoadError, problem } from "../errors.ts";
 import type { JsonObject, PathSegment } from "../json.ts";
 import { canonicalText } from "../json.ts";
-import { manifestElements, selectorMatches, timelineAncestry } from "../manifest/elements.ts";
-import { elementAddress, isRemovable, manifestKind, rootPaths } from "../manifest/files.ts";
-import { checkOrdered, childEnd, contentEnd, readOnAxis } from "../manifest/invariants.ts";
+import {
+  manifestElements,
+  orderedChildren,
+  selectorMatches,
+  timelineAncestry,
+} from "../manifest/elements.ts";
+import { elementAddress, rootPaths } from "../manifest/files.ts";
+import {
+  checkOrdered,
+  childEnd,
+  childReach,
+  contentEnd,
+  lengthOf,
+  readOnAxis,
+} from "../manifest/invariants.ts";
 import { readManifestValue, schemaProblems } from "../manifest/io.ts";
-import type { ChildEntry, Manifest, TimelineManifest } from "../manifest/types.ts";
-import { coordinateFromDict, coordinateToDict } from "../number/coordinate.ts";
+import type { Gap } from "../manifest/remove.ts";
+import { isSegment, removedBy, withoutElements, withoutSegment } from "../manifest/remove.ts";
+import type { Manifest, TimelineManifest } from "../manifest/types.ts";
+import type { Coordinate } from "../number/coordinate.ts";
+import { axisCoordinate, toAxisValue } from "../number/coordinate.ts";
+import type { Real } from "../number/real.ts";
 import { compareReal, exactCoordinate, realOf } from "../number/real.ts";
 import {
   readBoolean,
@@ -74,7 +90,7 @@ const LISTS = {
 type EntryKind = keyof typeof LISTS;
 const ENTRY_KINDS = Object.keys(LISTS) as EntryKind[];
 
-type TargetKind = "workspace" | "block" | "root" | "child" | EntryKind;
+type TargetKind = "workspace" | "block" | "group" | "root" | "child" | EntryKind;
 
 /** An element of a manifest's list: a conversion map, region, break, jump or marker. */
 type Entry = { readonly id: string; readonly [member: string]: unknown };
@@ -82,6 +98,7 @@ type Entry = { readonly id: string; readonly [member: string]: unknown };
 type Target =
   | { readonly kind: "workspace"; readonly address: Address }
   | { readonly kind: "block"; readonly address: Address; readonly block: Block }
+  | { readonly kind: "group"; readonly address: Address; readonly block: Block }
   | {
       readonly kind: "root" | "child";
       readonly address: Address;
@@ -128,12 +145,8 @@ function search(here: Located, id: string, timelines: boolean, lists: boolean): 
       if (index >= 0) return { at: here, kind, index };
     }
   }
-  for (const [key, entry] of Object.entries(timeline.children)) {
-    const child = {
-      timeline: entry.timeline,
-      path: [...path, "children", key, "timeline"],
-      parent: here,
-    };
+  for (const [index, timeline] of here.timeline.children.entries()) {
+    const child = { timeline, path: [...path, "children", index], parent: here };
     const found = search(child, id, timelines, lists);
     if (found !== undefined) return found;
   }
@@ -141,17 +154,14 @@ function search(here: Located, id: string, timelines: boolean, lists: boolean): 
 }
 
 /**
- * Find the element an element address names in a manifest: in a timeline
- * file the timeline or entry carrying that id; in a group or bundle file the
- * timeline carrying a bare id, or the entry `<id>` of root `<root>`'s tree
- * for `<root>/<id>`.
+ * Find the element an element address names in a manifest: the timeline
+ * carrying a bare id, or the entry `<id>` of root `<root>`'s tree for
+ * `<root>/<id>`. A group is found by `resolve`.
  */
 function findElement(manifest: Manifest, element: string): Found | undefined {
   const roots = rootPaths(manifest).map(
     (root): Located => ({ timeline: root.timeline, path: root.path, parent: undefined }),
   );
-  if (manifestKind(manifest) === "timeline")
-    return search(roots[0] as Located, element, true, true);
   const [first = "", id, ...rest] = element.split("/");
   if (rest.length > 0) return undefined;
   if (id === undefined) {
@@ -173,6 +183,9 @@ function resolve(view: View, address: Address): Target | CommandError {
   const unknown = problem(ErrorCode.unknownTarget, `${address} names nothing`, [address]);
   if (block === undefined) return unknown;
   if (parsed.element === null) return { kind: "block", address, block };
+  if (block.manifest.groups.some((group) => group.id === parsed.element)) {
+    return { kind: "group", address, block };
+  }
   const found = findElement(block.manifest, parsed.element);
   if (found === undefined) return unknown;
   if (found.kind !== undefined) {
@@ -212,30 +225,122 @@ function withTimeline(view: View, block: Block, at: Located, timeline: TimelineM
 }
 
 /**
- * Put a child entry under `parent`, growing an unlocked parent to the child's
- * end when the child would end after it and the parent's number type holds
- * that end exactly. Anything else is left for the manifest's invariants.
+ * A timeline given to `add`, its defaults supplied as for a manifest's root;
+ * the value as given when it is too malformed to complete, for the checks to
+ * refuse.
  */
-function placeChild(parent: TimelineManifest, id: string, entry: ChildEntry): TimelineManifest {
-  let length = parent.length;
-  const offset = readOnAxis(entry.offset, parent, []);
-  if (!isCommandError(offset)) {
-    entry = { ...entry, offset: coordinateToDict(offset) };
-    let childLength: ReturnType<typeof coordinateFromDict> | undefined;
-    try {
-      childLength = coordinateFromDict(entry.timeline.length);
-    } catch {
-      childLength = undefined;
-    }
-    if (childLength !== undefined && !parent.locked) {
-      const end = childEnd(offset, childLength);
-      if (compareReal(end, realOf(coordinateFromDict(parent.length))) > 0) {
-        const grown = exactCoordinate(end, parent.unit, parent.number_type);
-        if (grown !== undefined) length = coordinateToDict(grown);
+function completeTimeline(value: JsonObject): TimelineManifest {
+  try {
+    const host = { timeskeleton: SCHEMA_VERSION, timelines: [value] };
+    return (complete(host as never) as unknown as Manifest).timelines[0] as TimelineManifest;
+  } catch {
+    return value as unknown as TimelineManifest;
+  }
+}
+
+/** The refusal of a child reaching past its parent's known length. */
+function exceedsParent(
+  child: TimelineManifest,
+  parent: TimelineManifest,
+  path: readonly PathSegment[],
+): CommandError {
+  return problem(
+    ErrorCode.childExceedsParent,
+    child.length === null
+      ? `child ${child.id} starts after its parent ${parent.id} ends`
+      : `child ${child.id} ends after its parent ${parent.id}`,
+    path,
+  );
+}
+
+/**
+ * Why the timeline at `at` cannot take `length`, if it cannot. A length
+ * change never pushes a parent: the new end stays within the parent's known
+ * length. Segments fix ends, which keeps a segment within its line too: a
+ * segment ends where its successor starts, and the last one where its line
+ * ends while the line's length is known; a segment line ends where its last
+ * segment ends while that segment's length is known. A length of null is always taken: it bounds nothing, and a
+ * segment or line of unknown length ends where its neighbours say.
+ */
+function lengthProblem(
+  at: Located,
+  length: Coordinate | null,
+  path: readonly PathSegment[],
+): CommandError | undefined {
+  if (length === null) return undefined;
+  const { timeline } = at;
+  const parent = at.parent?.timeline;
+  if (parent !== undefined) {
+    const end = childEnd(axisCoordinate(timeline.offset, parent), length);
+    const parentLength = lengthOf(parent);
+    if (!parent.is_segment_line) {
+      if (parentLength !== null && compareReal(end, realOf(parentLength)) > 0) {
+        return exceedsParent({ ...timeline, length: toAxisValue(length) }, parent, path);
+      }
+    } else {
+      const segments = orderedChildren(parent);
+      const successor = segments[segments.findIndex((segment) => segment.id === timeline.id) + 1];
+      const fixed =
+        successor === undefined ? parentLength : axisCoordinate(successor.offset, parent);
+      if (fixed !== null && compareReal(end, realOf(fixed)) !== 0) {
+        const where =
+          successor === undefined
+            ? `its segment line ${parent.id} ends`
+            : `segment ${successor.id} starts`;
+        return problem(
+          ErrorCode.segmentEndFixed,
+          `segment ${timeline.id} ends where ${where}`,
+          path,
+        );
       }
     }
   }
-  return { ...parent, length, children: { ...parent.children, [id]: entry } };
+  const last = timeline.is_segment_line ? orderedChildren(timeline).at(-1) : undefined;
+  const lastLength = last === undefined ? null : lengthOf(last);
+  if (last !== undefined && lastLength !== null) {
+    const lastEnd = childEnd(axisCoordinate(last.offset, timeline), lastLength);
+    if (compareReal(realOf(length), lastEnd) !== 0) {
+      return problem(
+        ErrorCode.segmentEndFixed,
+        `segment line ${timeline.id} ends where its last segment ${last.id} ends`,
+        path,
+      );
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Put `child` under the timeline at `at` with its offset normalized. A child
+ * reaching past that timeline's known end (its end, or its offset when its
+ * length is not known) grows the timeline to that point when it is unlocked
+ * and its number type holds the point exactly, and is refused otherwise
+ * (`child_exceeds_parent` at `path`). Only that timeline grows: its new
+ * length must be one it may take (`lengthProblem`). A timeline of unknown
+ * length stays unknown. A malformed child is left for the schema to refuse.
+ */
+function placeChild(
+  at: Located,
+  child: TimelineManifest,
+  path: readonly PathSegment[],
+): TimelineManifest | CommandError {
+  const parent = at.timeline;
+  const offset = readOnAxis(child.offset, parent, []);
+  if (isCommandError(offset)) return { ...parent, children: [...parent.children, child] };
+  child = { ...child, offset: toAxisValue(offset) };
+  const placed = { ...parent, children: [...parent.children, child] };
+  let reach: Real;
+  try {
+    reach = childReach(offset, child);
+  } catch {
+    return placed;
+  }
+  const known = lengthOf(parent);
+  if (known === null || compareReal(reach, realOf(known)) <= 0) return placed;
+  const grown = parent.locked ? undefined : exactCoordinate(reach, parent.unit, parent.number_type);
+  if (grown === undefined) return exceedsParent(child, parent, path);
+  const refused = lengthProblem({ ...at, timeline: placed }, grown, path);
+  return refused ?? { ...placed, length: toAxisValue(grown) };
 }
 
 // ---------------------------------------------------------------- set
@@ -349,16 +454,9 @@ const BLOCK_SET: { readonly [property: string]: Setter<BlockTarget> } = {
   ...Object.fromEntries(
     Object.entries(PLACEMENT_READERS).map(([name, read]) => [name, blockValue(read)]),
   ),
-  manifest: (view, target, value, path) => {
+  manifest: (view, target, value) => {
     const manifest = readBlockManifest(value, target.block.id);
     if (isCommandError(manifest)) return manifest;
-    if (manifestKind(manifest) !== target.block.blockKind) {
-      return problem(
-        ErrorCode.blockKindMismatch,
-        `a ${target.block.blockKind} block needs a ${target.block.blockKind} manifest`,
-        path,
-      );
-    }
     return withBlock(view, { ...target.block, manifest });
   },
 };
@@ -384,6 +482,9 @@ const TIMELINE_SET: { readonly [property: string]: Setter<TimelineTarget> } = {
     if (timeline.locked) {
       return problem(ErrorCode.locked, `timeline ${timeline.id} is locked`, path);
     }
+    // A length of null means the length is not known; it bounds nothing.
+    if (value === null)
+      return withTimeline(view, target.block, target.at, { ...timeline, length: null });
     const json = toJson(value, path);
     if (isCommandError(json)) return json;
     const length = readOnAxis(json, timeline, path);
@@ -391,13 +492,15 @@ const TIMELINE_SET: { readonly [property: string]: Setter<TimelineTarget> } = {
     if (compareReal(realOf(length), contentEnd(timeline)) < 0) {
       return problem(
         ErrorCode.lengthBelowContent,
-        "the length cannot be less than the end of the furthest child",
+        "the length cannot be less than the farthest point a child reaches",
         path,
       );
     }
+    const refused = lengthProblem(target.at, length, path);
+    if (refused !== undefined) return refused;
     return withTimeline(view, target.block, target.at, {
       ...timeline,
-      length: coordinateToDict(length),
+      length: toAxisValue(length),
     });
   },
 };
@@ -410,14 +513,14 @@ const CHILD_SET: { readonly [property: string]: Setter<TimelineTarget> } = {
     if (isCommandError(json)) return json;
     const offset = readOnAxis(json, parent.timeline, path);
     if (isCommandError(offset)) return offset;
-    const id = target.at.path.at(-2) as string;
-    const children = { ...parent.timeline.children };
-    const entry = children[id] as ChildEntry;
-    delete children[id];
-    const placed = placeChild({ ...parent.timeline, children }, id, {
-      ...entry,
-      offset: coordinateToDict(offset),
-    });
+    const index = target.at.path.at(-1) as number;
+    const children = parent.timeline.children.filter((_, item) => item !== index);
+    const placed = placeChild(
+      { ...parent, timeline: { ...parent.timeline, children } },
+      { ...target.at.timeline, offset: toAxisValue(offset) },
+      path,
+    );
+    if (isCommandError(placed)) return placed;
     return withTimeline(view, target.block, parent, placed);
   },
 };
@@ -448,7 +551,7 @@ function entryValue(
   };
 }
 
-/** An entry member holding a coordinate on its timeline's axis. */
+/** An entry member holding a bare value on its timeline's axis. */
 const entryCoordinate: Setter<EntryTarget> = (view, target, value, path) => {
   const json = toJson(value, path);
   if (isCommandError(json)) return json;
@@ -456,7 +559,7 @@ const entryCoordinate: Setter<EntryTarget> = (view, target, value, path) => {
   if (isCommandError(read)) return read;
   return withEntry(view, target, {
     ...current(target),
-    [path.at(-1) as string]: coordinateToDict(read),
+    [path.at(-1) as string]: toAxisValue(read),
   });
 };
 
@@ -504,6 +607,7 @@ const SETTABLE: { readonly [kind in TargetKind]: { readonly [property: string]: 
   {
     workspace: WORKSPACE_SET,
     block: BLOCK_SET,
+    group: {},
     root: TIMELINE_SET,
     child: CHILD_SET,
     ...ENTRY_SET,
@@ -561,6 +665,7 @@ const INTO_TIMELINE: readonly AddKind[] = ["child", ...ENTRY_KINDS];
 const ADDABLE: { readonly [kind in TargetKind]: readonly AddKind[] } = {
   workspace: ["block"],
   block: [],
+  group: [],
   root: INTO_TIMELINE,
   child: INTO_TIMELINE,
   map: [],
@@ -603,7 +708,6 @@ function addBlock(view: View, value: unknown): View | CommandError {
     );
   const block: Block = {
     id,
-    blockKind: manifestKind(manifest) as Block["blockKind"],
     parent: null,
     index: indexBetween(greatest, null),
     x: 0,
@@ -621,15 +725,6 @@ function addBlock(view: View, value: unknown): View | CommandError {
   return current;
 }
 
-/** The id an added element carries: a child's `timeline.id`, any other's `id`. */
-function carriedId(kind: AddKind, value: JsonObject): unknown {
-  if (kind !== "child") return value.id;
-  const timeline = value.timeline;
-  return typeof timeline === "object" && timeline !== null && !Array.isArray(timeline)
-    ? (timeline as JsonObject).id
-    : undefined;
-}
-
 function addElement(
   view: View,
   target: TimelineTarget,
@@ -638,23 +733,24 @@ function addElement(
 ): View | CommandError {
   const object = readObject(value, [target.address, kind]);
   if (isCommandError(object)) return object;
-  const id = carriedId(kind, object);
+  const id = object.id;
   if (typeof id !== "string") {
     return problem(ErrorCode.invalidValue, `the ${kind} carries no id`, [target.address, kind]);
   }
   const { manifest } = target.block;
   const root = rootOf(target.at).id;
   if (takenIds(manifest, kind === "child", root).has(id)) {
-    const qualified = kind === "child" || manifestKind(manifest) === "timeline" ? null : root;
+    const address = kind === "child" ? id : elementAddress(root, id);
     return problem(ErrorCode.duplicateId, `${id} is already an id of the manifest`, [
-      `${target.block.id}/${elementAddress(qualified, id)}`,
+      `${target.block.id}/${address}`,
     ]);
   }
   const { timeline } = target.at;
   const changed =
     kind === "child"
-      ? placeChild(timeline, id, object as unknown as ChildEntry)
+      ? placeChild(target.at, completeTimeline(object), [target.address, kind])
       : withEntries(timeline, kind, [...entries(timeline, kind), object as Entry]);
+  if (isCommandError(changed)) return changed;
   return withTimeline(view, target.block, target.at, changed);
 }
 
@@ -675,76 +771,103 @@ function applyAdd(view: View, command: AddCommand, touched: Set<BlockId>): View 
 
 // ---------------------------------------------------------------- remove
 
-function removeTarget(view: View, target: Target): View {
-  switch (target.kind) {
-    case "block": {
-      const removed = new Set([target.block.id]);
-      let grown = true;
-      while (grown) {
-        grown = false;
-        for (const block of Object.values(view.blocks)) {
-          if (!removed.has(block.id) && block.parent !== null && removed.has(block.parent)) {
-            removed.add(block.id);
-            grown = true;
-          }
-        }
+/** The view without the blocks `removed` and every block whose `parent` chain reaches one. */
+function withoutBlocks(view: View, removed: Set<BlockId>): View {
+  let grown = true;
+  while (grown) {
+    grown = false;
+    for (const block of Object.values(view.blocks)) {
+      if (!removed.has(block.id) && block.parent !== null && removed.has(block.parent)) {
+        removed.add(block.id);
+        grown = true;
       }
-      return {
-        ...view,
-        blocks: Object.fromEntries(Object.entries(view.blocks).filter(([id]) => !removed.has(id))),
-      };
-    }
-    case "child": {
-      const manifest = setIn(
-        target.block.manifest as unknown as Tree,
-        target.at.path.slice(0, -1),
-        undefined,
-      );
-      return withBlock(view, { ...target.block, manifest: manifest as unknown as Manifest });
-    }
-    case "root":
-    case "workspace":
-      return view;
-    default: {
-      const { timeline } = target.at;
-      const list = entries(timeline, target.kind).filter((_, index) => index !== target.index);
-      return withTimeline(view, target.block, target.at, withEntries(timeline, target.kind, list));
     }
   }
+  return {
+    ...view,
+    blocks: Object.fromEntries(Object.entries(view.blocks).filter(([id]) => !removed.has(id))),
+  };
 }
 
+/** Remove the one segment a `remove` with a `gap` names, closing its gap as the gap says. */
+function removeSegment(
+  view: View,
+  command: RemoveCommand & { readonly gap: Gap },
+  touched: Set<BlockId>,
+): View | CommandError {
+  const [address] = command.targets as [Address];
+  const target = resolve(view, address);
+  if (isCommandError(target)) return target;
+  const path = [address, "gap"];
+  if (target.kind !== "child" || !isSegment(target.block.manifest, target.at.timeline.id)) {
+    return problem(ErrorCode.wrongTargetKind, "only a segment has a gap to close", path);
+  }
+  const { id } = target.at.timeline;
+  const manifest = withoutSegment(target.block.manifest, id, command.gap);
+  if (typeof manifest === "string") {
+    return problem(
+      ErrorCode.gapNotPermitted,
+      `segment ${id} cannot be removed closing its gap that way: ${manifest}`,
+      path,
+    );
+  }
+  touched.add(target.block.id);
+  return withBlock(view, { ...target.block, manifest });
+}
+
+/**
+ * Remove blocks and elements. Every element of a block's manifest can be
+ * removed, timelines and groups included; what goes with each is
+ * `withoutElements`'s. Every target is resolved before anything is removed,
+ * so a target that goes with another is not refused. A segment leaves a gap
+ * in its segment line, so removing one names how to close it (`gap`), unless
+ * it goes with its block or with another target.
+ */
 function applyRemove(
   view: View,
   command: RemoveCommand,
   touched: Set<BlockId>,
 ): View | CommandError {
+  if (command.gap !== undefined) {
+    return removeSegment(view, command as RemoveCommand & { readonly gap: Gap }, touched);
+  }
+  const blocks = new Set<BlockId>();
+  const elements = new Map<BlockId, string[]>();
   for (const address of command.targets) {
     const target = resolve(view, address);
     if (isCommandError(target)) return target;
     if (target.kind === "workspace") {
       return problem(ErrorCode.notRemovable, `${target.kind} cannot be removed`, [address]);
     }
-    if (target.kind === "block") continue;
-    const { manifest } = target.block;
-    if (!isRemovable(manifest, address.slice(target.block.id.length + 1))) {
-      return manifestKind(manifest) === "timeline"
-        ? problem(ErrorCode.notRemovable, `${target.kind} cannot be removed`, [address])
-        : problem(
-            ErrorCode.unsupportedTarget,
-            "removing a timeline from a group or bundle file is not supported yet",
-            [address],
-          );
+    if (target.kind === "block") {
+      blocks.add(target.block.id);
+      continue;
+    }
+    const list = elements.get(target.block.id) ?? [];
+    list.push(address.slice(target.block.id.length + 1));
+    elements.set(target.block.id, list);
+  }
+  for (const [id, list] of elements) {
+    if (blocks.has(id)) continue;
+    const { manifest } = view.blocks[id] as Block;
+    for (const [index, element] of list.entries()) {
+      if (!isSegment(manifest, element)) continue;
+      const others = list.filter((_, other) => other !== index);
+      if (removedBy(manifest, others).has(element)) continue;
+      return problem(
+        ErrorCode.gapRequired,
+        `removing segment ${element} leaves a gap: name how to close it with gap {side, verb}`,
+        [`${id}/${element}`],
+      );
     }
   }
   let current = view;
-  for (const address of command.targets) {
-    // A target already removed with its container is gone.
-    const target = resolve(current, address);
-    if (isCommandError(target)) continue;
-    const block = elementBlock(target);
-    if (block !== undefined) touched.add(block);
-    current = removeTarget(current, target);
+  for (const [id, list] of elements) {
+    const block = current.blocks[id] as Block;
+    touched.add(id);
+    current = withBlock(current, { ...block, manifest: withoutElements(block.manifest, list) });
   }
+  current = withoutBlocks(current, blocks);
   for (const id of touched) if (current.blocks[id] === undefined) touched.delete(id);
   return current;
 }
@@ -766,7 +889,7 @@ const isEmpty = (value: Properties): boolean => Object.keys(value).length === 0;
 
 /**
  * A `graphical` block with the statement embedded (see `StyleCommand`); its
- * other members, such as a group or bundle file's `order`, are kept.
+ * other members, such as the groups' display `order`, are kept.
  */
 export function embedStatement<T extends Graphical>(
   graphical: T | undefined,
@@ -842,13 +965,25 @@ function applyStyle(view: View, command: StyleCommand, touched: Set<BlockId>): V
 
 // ---------------------------------------------------------------- apply
 
-/** Put every edited manifest in canonical order and refuse the first problem it has. */
+/**
+ * Put every edited manifest in its complete form and canonical order (an
+ * added element may leave out what has a default) and refuse the first
+ * problem it has.
+ */
 function settle(view: View, touched: ReadonlySet<BlockId>): View | CommandError {
   let current = view;
   for (const id of touched) {
     const block = current.blocks[id] as Block;
-    const manifest = canonicalOrder(block.manifest as never) as unknown as Manifest;
-    const [first] = [...schemaProblems(manifest), ...checkOrdered(manifest)];
+    const full = complete(block.manifest as never) as unknown as Manifest;
+    let manifest = full;
+    try {
+      manifest = canonicalOrder(full);
+    } catch {
+      // A value the schema refuses cannot be ordered; the schema check reports it.
+    }
+    // The invariants read a manifest the schema accepts, so they run only then.
+    const schema = schemaProblems(manifest);
+    const [first] = schema.length > 0 ? schema : checkOrdered(manifest);
     if (first !== undefined) return { ...first, path: [id, "manifest", ...first.path] };
     current = withBlock(current, { ...block, manifest });
   }

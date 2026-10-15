@@ -13,6 +13,7 @@ import type { FontMetrics } from "@timetoalign/timeskeleton";
 import { NodeToolbar, useStore, ViewportPortal } from "@xyflow/svelte";
 import { calcAutoPan } from "@xyflow/system";
 import type { Handle, ResizeMode } from "./resize.ts";
+import "./menu.css";
 import { handlesFor, resize } from "./resize.ts";
 import { roving } from "./roving.ts";
 
@@ -196,10 +197,11 @@ function cancel(event: PointerEvent): void {
 </script>
 
 <NodeToolbar nodeId={block.id} isVisible>
-  <div class="modes" role="toolbar" aria-label="Resize mode" {@attach roving}>
+  <div class="tilie-menu" role="toolbar" aria-label="Resize mode" {@attach roving}>
     {#each MODES as item (item.mode)}
       <button
         type="button"
+        class="tilie-menu-item"
         data-testid="mode-{item.mode}"
         aria-pressed={mode === item.mode}
         title="{item.label}: {item.hint} ({item.key})"
@@ -236,47 +238,6 @@ function cancel(event: PointerEvent): void {
 {/if}
 
 <style>
-  .modes {
-    display: flex;
-    gap: 2px;
-    padding: 2px;
-    background: #fff;
-    border: 1px solid #d0d0d0;
-    border-radius: 4px;
-  }
-
-  button {
-    min-width: 32px;
-    min-height: 32px;
-    padding: 0 0.6rem;
-    border: 1px solid transparent;
-    border-radius: 3px;
-    background: none;
-    font: inherit;
-    font-size: 0.85rem;
-    color: inherit;
-    cursor: pointer;
-  }
-
-  button:hover {
-    background: #f0f0f0;
-  }
-
-  button:disabled {
-    cursor: default;
-    opacity: 0.5;
-  }
-
-  button[aria-pressed="true"] {
-    background: #dcebff;
-    border-color: #0a84ff;
-  }
-
-  button:focus-visible {
-    outline: 2px solid #0a84ff;
-    outline-offset: 1px;
-  }
-
   .handle {
     position: absolute;
     transform: translate(-50%, -50%);

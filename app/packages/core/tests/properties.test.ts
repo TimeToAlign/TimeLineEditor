@@ -15,13 +15,25 @@ import {
   writeWorkspace,
 } from "../src/index.ts";
 import { commandFor, sequenceArbitrary } from "./generate.ts";
-import { A, addBlock, allFixtures, B, changed, testClock } from "./support.ts";
+import { A, addBlock, allFixtures, B, changed, loadText, testClock } from "./support.ts";
 
 const BLOCKS = [A, B];
 
-function started(fixture: string): Store {
+/** Every manifest the sequences start from: the package's fixtures. */
+const SOURCES: readonly (readonly [string, string])[] = allFixtures.map(
+  (fixture) => [fixture.name, fixture.text] as const,
+);
+
+/** The `add` of block `A` holding the manifest of `text`. */
+const addText = (text: string) => ({
+  type: "add",
+  into: "workspace",
+  block: { id: A, manifest: loadText(text), x: 0, y: 0 },
+});
+
+function started(text: string): Store {
   const store = createStore({ view: createView(), journal: [] }, { clock: testClock() });
-  for (const command of [addBlock(A, fixture), addBlock(B, "bare.json")]) {
+  for (const command of [addText(text), addBlock(B, "bare.json")]) {
     expect(store.dispatch(command)).toBeNull();
   }
   return store;
@@ -30,10 +42,10 @@ function started(fixture: string): Store {
 const time = (call: number) => new Date(Date.UTC(2026, 9, 11, 14, 3, 12 + call, 418)).toISOString();
 
 describe("generated command sequences", () => {
-  it.each(allFixtures.map((fixture) => fixture.name))("keep every invariant from %s", (name) => {
+  it.each(SOURCES)("keep every invariant from %s", (_, source) => {
     fc.assert(
       fc.property(sequenceArbitrary, (seeds) => {
-        const store = started(name);
+        const store = started(source);
         const views: View[] = [store.view];
         for (const seed of seeds) {
           const before = store.view;
@@ -78,14 +90,14 @@ describe("generated command sequences", () => {
   });
 });
 
+/** The catalogue's sample takes 3.5 to 6.4 s on a loaded machine (tests/README.md, Properties 7). */
+const CATALOGUE_TIMEOUT = 20_000;
+
 describe("the generator reaches the refusal catalogue", () => {
-  it("over every manifest fixture", () => {
+  it("over every manifest", { timeout: CATALOGUE_TIMEOUT }, () => {
     const seen = new Set<string>();
-    for (const fixture of allFixtures) {
-      const start = changed(
-        changed(createView(), addBlock(A, fixture.name)),
-        addBlock(B, "bare.json"),
-      );
+    for (const [, source] of SOURCES) {
+      const start = changed(changed(createView(), addText(source)), addBlock(B, "bare.json"));
       for (const seeds of fc.sample(sequenceArbitrary, { numRuns: 100, seed: 20261011 })) {
         let view = start;
         for (const seed of seeds) {
@@ -98,10 +110,9 @@ describe("the generator reaches the refusal catalogue", () => {
     expect([...seen].sort()).toEqual(
       [
         "child_exceeds_parent",
-        "child_not_locked",
-        "child_unit_mismatch",
         "duplicate_id",
         "duplicate_index",
+        "gap_required",
         "id_not_settable",
         "invalid_address",
         "invalid_coordinate",
@@ -111,18 +122,14 @@ describe("the generator reaches the refusal catalogue", () => {
         "length_below_content",
         "locked",
         "map_source_unit_mismatch",
-        "negative_offset",
         "non_finite_number",
         "non_positive_number",
         "not_removable",
         "number_type_not_allowed",
-        "off_axis",
         "region_end_before_start",
         "schema_violation",
-        "unit_not_allowed",
         "unknown_property",
         "unknown_target",
-        "unsupported_target",
         "wrong_target_kind",
       ].sort(),
     );

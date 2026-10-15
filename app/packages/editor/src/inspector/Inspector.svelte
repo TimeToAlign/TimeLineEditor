@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { LivePlacement } from "@timetoalign/tilie-arranger";
 import type { Block, BlockId, Json, Store, View } from "@timetoalign/tilie-core";
+import { unknownKeys } from "@timetoalign/tilie-core";
 import { untrack } from "svelte";
 import type { Attachment } from "svelte/attachments";
 import type { Property } from "./edit.ts";
@@ -48,6 +49,9 @@ $effect(() => {
 });
 
 const block = $derived(selectedBlock(view, selection));
+
+/** The keys of the block's manifest no definition declares: warnings, which never stop editing. */
+const warnings = $derived(block === null ? [] : unknownKeys(manifestOf(block)));
 
 let format: Format = $state("json");
 let showStyling = $state(false);
@@ -422,6 +426,21 @@ function position(problem: InspectorProblem): string {
       {/each}
     </ul>
     {/if}
+
+    {#if warnings.length > 0}
+      <ul id="inspector-warnings" class="warnings" aria-label="Warnings">
+        {#each warnings as warning (`${problemPointer(warning)}\u0000${warning.key}`)}
+          {@const pointer = problemPointer(warning)}
+          <li>
+            Unknown key <code class="key">{warning.key}</code>
+            <span class="where"
+              >at {#if pointer === ""}the top level{:else}<code class="pointer">{pointer}</code
+                >{/if}</span
+            >
+          </li>
+        {/each}
+      </ul>
+    {/if}
   </div>
 {/if}
 
@@ -575,7 +594,21 @@ function position(problem: InspectorProblem): string {
   }
 
   .problems .code,
-  .problems .pointer {
+  .problems .pointer,
+  .warnings .key,
+  .warnings .pointer {
     font-family: ui-monospace, "DejaVu Sans Mono", Menlo, Consolas, monospace;
+  }
+
+  .warnings {
+    margin: 0;
+    padding: 0.25rem 0.5rem;
+    list-style: none;
+    border-left: 3px solid #8a6d00;
+    background: #fff8e1;
+  }
+
+  .warnings li + li {
+    margin-top: 0.25rem;
   }
 </style>

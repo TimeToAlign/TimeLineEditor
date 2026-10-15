@@ -273,6 +273,12 @@ describe("descriptors", () => {
         startCircle,
         '<polygon data-address="c" points="47,20 50,17.6 53,20 50,22.4" fill="none" stroke="#00CC00" stroke-width="1"/>',
       ]);
+      expect(svgBody(line(type, "circle", "chevrons"))).toEqual([
+        lineTo(50),
+        startCircle,
+        '<polyline data-address="c" points="52,17 55,20 52,23" fill="none" stroke="#00CC00" stroke-width="1"/>',
+        '<polyline data-address="c" points="55,17 58,20 55,23" fill="none" stroke="#00CC00" stroke-width="1"/>',
+      ]);
     });
   }
 

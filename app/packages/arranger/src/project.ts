@@ -1,11 +1,11 @@
 /** The projection of a workspace view onto Svelte Flow nodes: one node per block. */
 
-import type { Block, View } from "@timetoalign/tilie-core";
+import type { Block, Gap, View } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import type { Descriptor } from "@timetoalign/tilie-writers";
 import type { FontMetrics } from "@timetoalign/timeskeleton";
 import type { Node } from "@xyflow/svelte";
-import { affectedBy } from "./affected.ts";
+import { affectedBy, movedByGap } from "./affected.ts";
 import { descriptorsOf, drawingOf } from "./drawing.ts";
 import type { Selection } from "./selection.ts";
 
@@ -19,7 +19,15 @@ export type BlockNodeData = {
   readonly containsSelection: boolean;
   /** What removing the selected elements would also remove, highlighted with them. */
   readonly affectedElements: ReadonlySet<string>;
+  /** What closing the gap of a segment about to be deleted moves or resizes. */
+  readonly movedElements: ReadonlySet<string>;
 };
+
+/** A segment about to be deleted, `<block>/<id>`, and the way its gap is to be closed. */
+export interface GapPreview {
+  readonly segment: string;
+  readonly gap: Gap;
+}
 
 export type BlockNode = Node<BlockNodeData, "block">;
 
@@ -69,15 +77,17 @@ function elementsByBlock(selection: Selection): Map<string, Set<string>> {
  * One node per block of `view`, in index order. A node's box is the
  * drawing's box times the block's scale, given as `width`, `height` and
  * `measured` so Svelte Flow never measures it, and its `zIndex` is the
- * block's rank among its siblings. A node of `previous` whose block,
- * drawing, position, rank and selection are unchanged is returned as the
- * same object, so Svelte Flow skips it.
+ * block's rank among its siblings. With a `preview`, the block holding its
+ * segment marks what closing the gap moves. A node of `previous` whose
+ * block, drawing, position, rank, selection and marks are unchanged is
+ * returned as the same object, so Svelte Flow skips it.
  */
 export function project(
   view: View,
   selection: Selection,
   previous: readonly BlockNode[],
   metrics: FontMetrics,
+  preview: GapPreview | null = null,
 ): BlockNode[] {
   const before = new Map(previous.map((node) => [node.id, node]));
   const elements = elementsByBlock(selection);
@@ -89,6 +99,9 @@ export function project(
     const drawing = drawingOf(block, view.settings, metrics);
     const selected = selection.has(block.id);
     const selectedElements = elements.get(block.id) ?? NO_ELEMENTS;
+    const movedElements = preview?.segment.startsWith(`${block.id}/`)
+      ? movedByGap(block.manifest, preview.segment.slice(block.id.length + 1), preview.gap)
+      : NO_ELEMENTS;
     const prior = before.get(block.id);
     if (
       prior !== undefined &&
@@ -98,7 +111,8 @@ export function project(
       prior.zIndex === zIndex &&
       prior.position.x === block.x &&
       prior.position.y === block.y &&
-      sameMembers(prior.data.selectedElements, selectedElements)
+      sameMembers(prior.data.selectedElements, selectedElements) &&
+      sameMembers(prior.data.movedElements, movedElements)
     ) {
       return prior;
     }
@@ -122,6 +136,7 @@ export function project(
         containsSelection: selectedElements.size > 0,
         affectedElements:
           selectedElements.size === 0 ? NO_ELEMENTS : affectedBy(block.manifest, selectedElements),
+        movedElements,
       },
     };
   });

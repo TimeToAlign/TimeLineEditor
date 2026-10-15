@@ -42,21 +42,18 @@ describe("element ids", () => {
     });
   });
 
-  it("takes the smallest suffix no element of the block carries, of any kind", () => {
+  it("takes the smallest suffix no element of a one-root block carries, of any kind", () => {
     const bare = load("bare.json");
     const childOf = (id: string) => ({
       type: "add",
       into: `${A}/bare`,
-      child: {
-        offset: { unit: "quarters", number_type: "fraction", value: [0, 1] },
-        timeline: { ...bare.timeline, id, locked: true },
-      },
+      child: { ...bare.timelines[0], id, offset: [0, 1], locked: true },
     });
     let view = viewOf([A, "bare.json"]);
     expect(nextId(view, A, "clt")).toBe("clt_1");
     view = changed(changed(view, childOf("clt_1")), childOf("clt_3"));
     expect(nextId(view, A, "clt")).toBe("clt_2");
-    const tempo = load("map.json").timeline.conversion_maps[0];
+    const tempo = load("map.json").timelines[0]?.conversion_maps[0];
     view = changed(view, { type: "add", into: `${A}/bare`, map: { ...tempo, id: "map_1" } });
     expect(nextId(view, A, "map")).toBe("map_2");
     expect(nextId(view, B, "clt")).toBe("clt_1");

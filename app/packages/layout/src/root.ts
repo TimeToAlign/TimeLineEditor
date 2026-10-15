@@ -42,13 +42,16 @@ export const markReach = (scope: Scope, w: number, tiers: number, size: number):
 export const markLabelOffset = (scope: Scope, w: number, tier: number, size: number): number =>
   w / 2 + MARKER_HEIGHT + LABEL_GAP + (tier - 1) * scope.h(size);
 
-/** The root's wedges, their labels placed by first fit into each side's tiers. */
+/**
+ * The root's wedges, their labels placed by first fit into each side's
+ * tiers; a root whose end is open has its start wedge only.
+ */
 export function wedges(scope: Scope, segmentLabels: readonly SegmentLabel[]): Wedges {
   const { root, rootEntry, lambda, owned, measured, u, relativeX } = scope;
   const markers: Marker[] = [
     { ...owned("wedge", `${root.id}/start`, rootEntry), at: rootEntry.start },
-    { ...owned("wedge", `${root.id}/end`, rootEntry), at: lambda },
   ];
+  if (!rootEntry.open) markers.push({ ...owned("wedge", `${root.id}/end`, rootEntry), at: lambda });
   const markerLabels = markers
     .filter((marker) => shown(marker.style) && shown(marker.label.style))
     .map((marker) => ({
@@ -90,21 +93,22 @@ export function rootBand(
   return { width: Math.max(wedgeReach, rootReach), minimum: 0, at: () => undefined };
 }
 
-/** The root's line, when it is displayed. */
+/** The root's line, when it is displayed; an open end runs on `4w` into its chevrons. */
 export function rootLineElements(scope: Scope, placed: Position): LineElement[] {
   const { root, rootEntry, member } = scope;
-  const { x, yRoot } = placed;
+  const { x, xEnd, yRoot } = placed;
   if (!shown(rootEntry.style)) return [];
+  const w = rootEntry.style["stroke-width"];
   return [
     {
       type: "timeline",
       address: root.id,
       style: rootEntry.style,
       xs: x(rootEntry.start),
-      xe: x(rootEntry.end),
+      xe: rootEntry.open ? xEnd(rootEntry) + 4 * w : xEnd(rootEntry),
       y: yRoot,
       start: "circle",
-      end: endOf(root, member.ancestors.length === 0),
+      end: endOf(root, member.ancestors.length === 0, rootEntry.open),
     },
   ];
 }

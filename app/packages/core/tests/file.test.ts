@@ -1,6 +1,6 @@
-import { dumps, parseJson, SCHEMA_VERSION, SUPPORTED_VERSIONS } from "@timetoalign/timeskeleton";
+import { dumps, minimal, parseJson } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
-import type { TimelineFile, Workspace } from "../src/index.ts";
+import type { Workspace } from "../src/index.ts";
 import {
   createStore,
   createView,
@@ -9,7 +9,7 @@ import {
   replay,
   writeWorkspace,
 } from "../src/index.ts";
-import { A, addBlock, asVersion, B, testClock } from "./support.ts";
+import { A, addBlock, B, testClock } from "./support.ts";
 
 function built(): Workspace {
   const store = createStore({ view: createView(), journal: [] }, { clock: testClock() });
@@ -41,7 +41,7 @@ describe("the workspace file", () => {
     expect(writeWorkspace(again)).toBe(text);
     const value = parseJson(text) as { readonly [key: string]: unknown };
     expect(Object.keys(value).sort()).toEqual(["blocks", "journal", "meta", "settings"]);
-    expect(value.meta).toEqual({ format: "tilie-workspace", version: 1 });
+    expect(value.meta).toEqual({ format: "tilie-workspace", version: 2 });
     expect((value.journal as unknown[]).length).toBe(4);
   });
 
@@ -71,10 +71,16 @@ describe("the workspace file", () => {
       ["meta", "format"],
     ],
     [
-      "another version",
-      edited((value) => Object.assign(value.meta as Value, { version: 2 })),
+      "a later version",
+      edited((value) => Object.assign(value.meta as Value, { version: 3 })),
       "unsupported_version",
       ["meta", "version"],
+    ],
+    [
+      "a block's kind",
+      edited((value) => Object.assign(blockOf(value), { blockKind: "timeline" })),
+      "unknown_member",
+      ["blocks", A, "blockKind"],
     ],
     [
       "an unknown member",
@@ -122,13 +128,9 @@ describe("the workspace file", () => {
     ],
     [
       "a manifest of another schema version",
-      edited((value) =>
-        Object.assign((blockOf(value).manifest as Value).meta as Value, {
-          schema_version: "0.0.0",
-        }),
-      ),
+      edited((value) => Object.assign(blockOf(value).manifest as Value, { timeskeleton: "0.6.0" })),
       "schema_violation",
-      ["blocks", A, "manifest", "meta", "schema_version"],
+      ["blocks", A, "manifest", "timeskeleton"],
     ],
     [
       "an entry time without milliseconds",
@@ -149,37 +151,38 @@ describe("the workspace file", () => {
     ]);
   });
 
-  it.each(SUPPORTED_VERSIONS.filter((version) => version !== SCHEMA_VERSION))(
-    "migrates every block manifest declaring %s",
-    (version) => {
-      const older = edited((value) => {
-        for (const block of Object.values(value.blocks as Value)) {
-          const manifest = (block as Value).manifest as TimelineFile;
-          (block as Value).manifest = asVersion(manifest, version);
-        }
-      });
-      expect(older).not.toBe(text);
-      expect(read(older)).toEqual(read(text));
-    },
-  );
+  it("refuses a workspace of version 1 for its version alone", () => {
+    const older = edited((value) => {
+      Object.assign(value.meta as Value, { version: 1 });
+      Object.assign(blockOf(value), { blockKind: "timeline" });
+    });
+    const result = readWorkspace(older);
+    expect(isLoadError(result) && result.problems).toEqual([
+      {
+        code: "unsupported_version",
+        message: "workspace version 1 is not supported; this editor reads version 2 only",
+        path: ["meta", "version"],
+      },
+    ]);
+  });
+
+  it("reads block manifests written in the minimal form as the complete form", () => {
+    const short = edited((value) => {
+      for (const block of Object.values(value.blocks as Value)) {
+        (block as Value).manifest = minimal((block as Value).manifest);
+      }
+    });
+    expect(short).not.toBe(text);
+    expect(read(short)).toEqual(read(text));
+  });
 
   it("refuses a manifest invariant at its location in the file", () => {
     const value = parseJson(writeWorkspace(built())) as Value;
-    const manifest = (blockOf(value).manifest as Value).timeline as Value;
-    Object.assign(manifest, {
-      children: {
-        c: {
-          offset: { unit: "quarters", number_type: "fraction", value: [0, 1] },
-          timeline: { ...manifest, id: "c", children: {} },
-        },
-      },
-    });
+    const [root] = (blockOf(value).manifest as Value).timelines as Value[];
+    Object.assign(root as Value, { regions: [{ id: "region_1", start: [4, 1], end: [2, 1] }] });
     const result = readWorkspace(dumps(value as never));
     expect(isLoadError(result) && result.problems.map((item) => [item.code, item.path])).toEqual([
-      [
-        "child_not_locked",
-        ["blocks", A, "manifest", "timeline", "children", "c", "timeline", "locked"],
-      ],
+      ["region_end_before_start", ["blocks", A, "manifest", "timelines", 0, "regions", 0, "end"]],
     ]);
   });
 });

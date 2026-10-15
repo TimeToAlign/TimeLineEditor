@@ -1,35 +1,21 @@
-import { JsonFloat, SCHEMA_VERSION, SUPPORTED_VERSIONS } from "@timetoalign/timeskeleton";
+import { JsonFloat } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
-import type { TimelineFile, View } from "../src/index.ts";
+import type { Manifest, TimelineManifest, View } from "../src/index.ts";
 import { apply, createView, DEFAULT_SETTINGS, parseCommand } from "../src/index.ts";
-import {
-  A,
-  addBlock,
-  asVersion,
-  B,
-  block,
-  C,
-  changed,
-  deepFreeze,
-  load,
-  refusal,
-  viewOf,
-} from "./support.ts";
+import { A, addBlock, B, block, C, changed, deepFreeze, load, refusal, viewOf } from "./support.ts";
 
-const quarters = (numerator: number, denominator = 1) => ({
-  unit: "quarters",
-  number_type: "fraction",
-  value: [numerator, denominator],
-});
+/** A bare value on a `fraction` axis. */
+const quarters = (numerator: number, denominator = 1) => [numerator, denominator];
 const at = (element: string) => `${A}/${element}`;
 const set = (target: string, properties: object) => ({
   type: "set",
   changes: [{ target, values: properties }],
 });
 const frozen = (...blocks: (readonly [string, string])[]): View => deepFreeze(viewOf(...blocks));
-const tempo = () => load("map.json").timeline.conversion_maps[0] as object;
-const ticks = () =>
-  (load("map.json").timeline.children.phrase?.timeline.conversion_maps[0] ?? {}) as object;
+const tempo = () => load("map.json").timelines[0]?.conversion_maps[0] as object;
+const ticks = () => load("map.json").timelines[0]?.children[0]?.conversion_maps[0] as object;
+/** A `graphical` block as a settled manifest holds it: in its complete form. */
+const held = (graphical: object) => ({ order: {}, ...graphical });
 
 /** The value of `apply`, the input view having been deep-frozen first. */
 function applied(view: View, command: object): View {
@@ -40,9 +26,16 @@ function rejected(view: View, command: object) {
   return refusal(apply(deepFreeze(view), command));
 }
 
-/** The manifest of a timeline block. */
-function manifest(view: View, id = A): TimelineFile {
-  return block(view, id).manifest as TimelineFile;
+/** The manifest of a block. */
+function manifest(view: View, id = A): Manifest {
+  return block(view, id).manifest;
+}
+
+/** The first root timeline of a block's manifest. */
+function root(view: View, id = A): TimelineManifest {
+  const [first] = manifest(view, id).timelines;
+  if (first === undefined) throw new Error(`block ${id} has no root`);
+  return first;
 }
 
 describe("add", () => {
@@ -50,7 +43,6 @@ describe("add", () => {
     const view = applied(createView(), addBlock(A, "bare.json"));
     expect(block(view)).toEqual({
       id: A,
-      blockKind: "timeline",
       parent: null,
       index: "a0",
       x: 0,
@@ -77,21 +69,23 @@ describe("add", () => {
     expect(block(given, C).index).toBe("Zz");
   });
 
-  it("adds a locked child, normalizing its offset and growing the unlocked root", () => {
-    const bare = load("bare.json");
+  it("adds a child given in the minimal form, normalizing its offset and growing the root", () => {
     const view = applied(viewOf([A, "bare.json"]), {
       type: "add",
       into: at("bare"),
-      child: { offset: quarters(2, 4), timeline: { ...bare.timeline, id: "clt_1", locked: true } },
-    });
-    const root = manifest(view).timeline;
-    expect(root.length).toEqual({ unit: "quarters", number_type: "fraction", value: [17, 2] });
-    expect(root.children).toEqual({
-      clt_1: {
-        offset: quarters(1, 2),
-        timeline: { ...bare.timeline, id: "clt_1", locked: true },
+      child: {
+        id: "clt_1",
+        offset: quarters(2, 4),
+        unit: "quarters",
+        length: [8, 1],
+        locked: true,
       },
     });
+    const bare = load("bare.json").timelines[0] as TimelineManifest;
+    expect(root(view).length).toEqual([17, 2]);
+    expect(root(view).children).toEqual([
+      { ...bare, id: "clt_1", name: null, offset: quarters(1, 2), locked: true },
+    ]);
   });
 
   it("adds conversion maps verbatim, in id order whichever comes first", () => {
@@ -101,17 +95,24 @@ describe("add", () => {
     ]) {
       let view = viewOf([A, "bare.json"]);
       for (const map of order) view = applied(view, { type: "add", into: at("bare"), map });
-      expect(manifest(view).timeline.conversion_maps).toEqual([tempo(), ticks()]);
+      expect(root(view).conversion_maps).toEqual([tempo(), ticks()]);
     }
   });
 
   it("refuses with the exact code and path", () => {
     const view = viewOf([A, "map.json"]);
     const bare = load("bare.json");
-    expect(rejected(view, { type: "add", into: at("tempo"), child: {} })).toEqual({
+    expect(rejected(view, { type: "add", into: at("melody/tempo"), child: {} })).toEqual({
       code: "wrong_target_kind",
-      path: [at("tempo"), "child"],
+      path: [at("melody/tempo"), "child"],
     });
+    expect(
+      rejected(viewOf([A, "groups/group_number_types.json"]), {
+        type: "add",
+        into: at("group_1"),
+        region: { id: "region_1", start: [0, 1], end: [1, 1] },
+      }),
+    ).toEqual({ code: "wrong_target_kind", path: [at("group_1"), "region"] });
     expect(rejected(view, { type: "add", into: "workspace", child: {} })).toEqual({
       code: "wrong_target_kind",
       path: ["workspace", "child"],
@@ -132,27 +133,49 @@ describe("add", () => {
       code: "invalid_value",
       path: [B, "x"],
     });
-    const root = viewOf([A, "bare.json"]);
+    const one = viewOf([A, "bare.json"]);
     expect(
-      rejected(root, {
+      rejected(one, {
         type: "add",
         into: at("bare"),
-        child: { offset: quarters(0), timeline: { ...bare.timeline, locked: true } },
+        child: { ...bare.timelines[0], offset: quarters(0), locked: true },
       }),
     ).toEqual({ code: "duplicate_id", path: [at("bare")] });
     expect(
-      rejected(root, { type: "add", into: at("bare"), map: { ...tempo(), id: "bare" } }),
-    ).toEqual({ code: "duplicate_id", path: [at("bare")] });
+      rejected(one, { type: "add", into: at("bare"), map: { ...tempo(), id: "bare" } }),
+    ).toEqual({ code: "duplicate_id", path: [at("bare/bare")] });
     expect(
-      rejected(root, {
+      rejected(one, {
         type: "add",
         into: at("bare"),
         map: { ...tempo(), source_unit: "seconds" },
       }),
     ).toEqual({
       code: "map_source_unit_mismatch",
-      path: [A, "manifest", "timeline", "conversion_maps", 0, "source_unit"],
+      path: [A, "manifest", "timelines", 0, "conversion_maps", 0, "source_unit"],
     });
+    expect(
+      rejected(one, {
+        type: "add",
+        into: at("bare"),
+        child: { id: "clt_1", offset: quarters(0), unit: "seconds", length: null },
+      }),
+    ).toEqual({
+      code: "schema_violation",
+      path: [A, "manifest", "timelines", 0, "children", 0, "unit"],
+    });
+    const child = [A, "manifest", "timelines", 0, "children", 0];
+    for (const [member, path] of [
+      [{ children: 5 }, [...child, "children"]],
+      [{ children: [5] }, [...child, "children", 0]],
+      [{ flow_control: 5 }, [...child, "flow_control"]],
+    ] as const) {
+      const value = { id: "clt_1", offset: quarters(0), unit: "quarters", length: null, ...member };
+      expect(rejected(one, { type: "add", into: at("bare"), child: value })).toEqual({
+        code: "schema_violation",
+        path,
+      });
+    }
   });
 });
 
@@ -196,44 +219,37 @@ describe("set", () => {
     expect(applied(view, set("workspace", { graphical })).settings.graphical).toEqual(graphical);
   });
 
-  it("replaces a block's manifest whole", () => {
+  it("replaces a block's manifest whole, whatever it holds", () => {
     const view = applied(viewOf([A, "bare.json"]), set(A, { manifest: load("nested.json") }));
     expect(manifest(view)).toEqual(load("nested.json"));
-  });
-
-  it.each(SUPPORTED_VERSIONS)("stores a manifest declaring %s at the latest version", (version) => {
-    const latest = load("nested.json");
-    const older = asVersion(latest, version);
-    const view = applied(viewOf([A, "bare.json"]), set(A, { manifest: older }));
-    expect(manifest(view).meta.schema_version).toBe(SCHEMA_VERSION);
-    expect(manifest(view)).toEqual(latest);
+    const bundle = load("bundles/bundle_mixed.json");
+    expect(manifest(applied(view, set(A, { manifest: bundle })))).toEqual(bundle);
   });
 
   it("sets timeline members, growing the unlocked root for a child's offset", () => {
     const view = frozen([A, "nested.json"]);
-    const root = manifest(view).timeline;
-    expect(manifest(applied(view, set(at("clt_1"), { name: "Score" }))).timeline).toEqual({
-      ...root,
+    expect(root(applied(view, set(at("clt_1"), { name: "Score" })))).toEqual({
+      ...root(view),
       name: "Score",
     });
-    expect(
-      manifest(applied(view, set(at("clt_1"), { meta: { composer: "Anon" } }))).timeline.meta,
-    ).toEqual({ composer: "Anon" });
-    expect(
-      manifest(applied(view, set(at("clt_1"), { length: quarters(12) }))).timeline.length,
-    ).toEqual(quarters(12));
-    const moved = manifest(applied(view, set(at("clt_3"), { offset: quarters(6) }))).timeline;
-    expect([moved.children.clt_3?.offset, moved.length]).toEqual([quarters(6), quarters(16)]);
-    const grown = manifest(applied(view, set(at("clt_3"), { offset: quarters(10) }))).timeline;
-    expect([grown.children.clt_3?.offset, grown.length]).toEqual([quarters(10), quarters(18)]);
+    expect(root(applied(view, set(at("clt_1"), { meta: { composer: "Anon" } }))).meta).toEqual({
+      composer: "Anon",
+    });
+    expect(root(applied(view, set(at("clt_1"), { length: quarters(12) }))).length).toEqual(
+      quarters(12),
+    );
+    const moved = root(applied(view, set(at("clt_3"), { offset: quarters(6) })));
+    expect([moved.children[0]?.offset, moved.length]).toEqual([quarters(6), quarters(16)]);
+    const grown = root(applied(view, set(at("clt_3"), { offset: quarters(10) })));
+    expect([grown.children[0]?.offset, grown.length]).toEqual([quarters(10), quarters(18)]);
   });
 
   it("replaces a conversion map's payload, keeping its id", () => {
     const view = frozen([A, "map.json"]);
     const payload = { ...tempo(), scalar: [1, 4] };
-    expect(
-      manifest(applied(view, set(at("tempo"), { map: payload }))).timeline.conversion_maps,
-    ).toEqual([payload]);
+    expect(root(applied(view, set(at("melody/tempo"), { map: payload }))).conversion_maps).toEqual([
+      payload,
+    ]);
   });
 
   it("refuses by the target's kind with the exact code and path", () => {
@@ -261,16 +277,8 @@ describe("set", () => {
         "schema_violation",
         ["workspace", "graphical", "statements", 0, "set", "stroke"],
       ],
-      [
-        set(at("clt_1"), { length: { ...quarters(1), value: 0.5 } }),
-        "invalid_coordinate",
-        [at("clt_1"), "length", "value"],
-      ],
-      [
-        set(at("clt_1"), { length: { unit: "seconds", number_type: "float", value: 1.5 } }),
-        "off_axis",
-        [at("clt_1"), "length"],
-      ],
+      [set(at("clt_1"), { length: 0.5 }), "invalid_coordinate", [at("clt_1"), "length"]],
+      [set(at("clt_1"), { length: 8 }), "invalid_coordinate", [at("clt_1"), "length"]],
       [set(at("clt_3"), { length: quarters(4) }), "locked", [at("clt_3"), "length"]],
       [
         set(at("clt_1"), { length: quarters(23, 2) }),
@@ -278,21 +286,15 @@ describe("set", () => {
         [at("clt_1"), "length"],
       ],
       [
-        set(A, {
-          manifest: { ...load("bare.json"), meta: { schema_version: "0.0.0" } },
-        }),
+        set(A, { manifest: { ...load("bare.json"), timeskeleton: "0.6.0" } }),
         "schema_violation",
-        [A, "manifest", "meta", "schema_version"],
+        [A, "manifest", "timeskeleton"],
       ],
+      [set(at("clt_2"), { offset: quarters(7) }), "child_exceeds_parent", [at("clt_2"), "offset"]],
       [
-        set(at("clt_3"), { locked: false }),
-        "child_not_locked",
-        [A, "manifest", "timeline", "children", "clt_3", "timeline", "locked"],
-      ],
-      [
-        set(at("clt_2"), { offset: quarters(7) }),
-        "child_exceeds_parent",
-        [A, "manifest", "timeline", "children", "clt_3", "timeline", "children", "clt_2", "offset"],
+        set(at("clt_2"), { offset: quarters(-1) }),
+        "schema_violation",
+        [A, "manifest", "timelines", 0, "children", 0, "children", 0, "offset"],
       ],
       [set("short", { x: 1 }), "invalid_address", ["short"]],
       [set("0000000009", { x: 1 }), "unknown_target", ["0000000009"]],
@@ -301,13 +303,13 @@ describe("set", () => {
     for (const [command, code, path] of cases)
       expect(rejected(view, command)).toEqual({ code, path });
     const maps = viewOf([A, "map.json"]);
-    expect(rejected(maps, set(at("tempo"), { name: "x" }))).toEqual({
+    expect(rejected(maps, set(at("melody/tempo"), { name: "x" }))).toEqual({
       code: "wrong_target_kind",
-      path: [at("tempo"), "name"],
+      path: [at("melody/tempo"), "name"],
     });
-    expect(rejected(maps, set(at("tempo"), { map: { ...tempo(), id: "other" } }))).toEqual({
+    expect(rejected(maps, set(at("melody/tempo"), { map: { ...tempo(), id: "other" } }))).toEqual({
       code: "id_not_settable",
-      path: [at("tempo"), "map", "id"],
+      path: [at("melody/tempo"), "map", "id"],
     });
   });
 
@@ -328,86 +330,89 @@ describe("set", () => {
 
 describe("regions, breaks, jumps and markers", () => {
   const into = (kind: string, value: object) => ({ type: "add", into: at("bare"), [kind]: value });
-  const region = { id: "region_1", name: "A", start: quarters(2), end: quarters(4), meta: {} };
+  const region = { id: "region_1", name: "A", start: quarters(2), end: quarters(4) };
 
   it("adds and sets a region", () => {
     const added = applied(viewOf([A, "bare.json"]), into("region", region));
-    expect(manifest(added).timeline.regions).toEqual([region]);
-    const changed = applied(added, set(at("region_1"), { end: quarters(6), name: null }));
-    expect(manifest(changed).timeline.regions).toEqual([
-      { ...region, end: quarters(6), name: null },
-    ]);
+    expect(root(added).regions).toEqual([{ ...region, meta: {} }]);
+    const changed = applied(added, set(at("bare/region_1"), { end: quarters(6), name: null }));
+    expect(root(changed).regions).toEqual([{ ...region, meta: {}, end: quarters(6), name: null }]);
   });
 
   it("adds, sets and removes markers, breaks and jumps", () => {
     const view = frozen([A, "flow_control.json"]);
-    const flow = manifest(view).timeline.flow_control;
+    const flow = root(view).flow_control;
     const marker = { id: "marker_2", name: "fine", coordinate: quarters(12) };
     const retargeted = applied(
       applied(view, { type: "add", into: at("flow:quarters"), marker }),
-      set(at("jump_1"), { target: "marker_2" }),
+      set(at("flow:quarters/jump_1"), { target: "marker_2" }),
     );
-    const moved = manifest(retargeted).timeline.flow_control;
+    const moved = root(retargeted).flow_control;
     expect(moved.jumps).toEqual([{ ...flow.jumps[0], target: "marker_2" }]);
     expect(moved.markers).toEqual([flow.markers[0], marker]);
     const copy = { ...flow.breaks[0], id: "break_2", coordinate: quarters(3) };
     const swapped = applied(
       applied(view, { type: "add", into: at("flow:quarters"), break: copy }),
-      { type: "remove", targets: [at("break_1")] },
+      { type: "remove", targets: [at("flow:quarters/break_1")] },
     );
-    expect(manifest(swapped).timeline.flow_control.breaks).toEqual([copy]);
-    const unjumped = applied(view, { type: "remove", targets: [at("jump_1")] });
-    expect(manifest(unjumped).timeline.flow_control.jumps).toEqual([]);
-    const shifted = applied(view, set(at("marker_1"), { coordinate: quarters(1) }));
-    expect(manifest(shifted).timeline.flow_control.markers).toEqual([
+    expect(root(swapped).flow_control.breaks).toEqual([copy]);
+    const unjumped = applied(view, { type: "remove", targets: [at("flow:quarters/jump_1")] });
+    expect(root(unjumped).flow_control.jumps).toEqual([]);
+    const shifted = applied(
+      view,
+      set(at("flow:quarters/marker_1"), { coordinate: quarters(2, 2) }),
+    );
+    expect(root(shifted).flow_control.markers).toEqual([
       { ...flow.markers[0], coordinate: quarters(1) },
     ]);
   });
 
   it("refuses with the exact code and path", () => {
     const flow = viewOf([A, "flow_control.json"]);
-    const jumpTarget = [A, "manifest", "timeline", "flow_control", "jumps", 0, "target"];
-    expect(rejected(flow, set(at("jump_1"), { target: "nothing" }))).toEqual({
+    const jumpTarget = [A, "manifest", "timelines", 0, "flow_control", "jumps", 0, "target"];
+    expect(rejected(flow, set(at("flow:quarters/jump_1"), { target: "nothing" }))).toEqual({
       code: "schema_violation",
       path: jumpTarget,
     });
-    expect(rejected(flow, { type: "remove", targets: [at("marker_1")] })).toEqual({
+    expect(rejected(flow, { type: "remove", targets: [at("flow:quarters/marker_1")] })).toEqual({
       code: "schema_violation",
       path: jumpTarget,
     });
-    const seconds = { unit: "seconds", number_type: "float", value: 1.5 };
-    expect(rejected(flow, set(at("break_1"), { coordinate: seconds }))).toEqual({
-      code: "off_axis",
-      path: [at("break_1"), "coordinate"],
+    const dict = { unit: "quarters", number_type: "fraction", value: [1, 1] };
+    expect(rejected(flow, set(at("flow:quarters/break_1"), { coordinate: dict }))).toEqual({
+      code: "invalid_coordinate",
+      path: [at("flow:quarters/break_1"), "coordinate"],
     });
     const regions = viewOf([A, "with_region.json"]);
-    expect(rejected(regions, set(at("region_1"), { end: quarters(0) }))).toEqual({
+    expect(rejected(regions, set(at("clt_1/region_1"), { end: quarters(0) }))).toEqual({
       code: "region_end_before_start",
-      path: [A, "manifest", "timeline", "regions", 0, "end"],
+      path: [A, "manifest", "timelines", 0, "regions", 0, "end"],
     });
-    expect(rejected(regions, set(at("region_1"), { coordinate: quarters(0) }))).toEqual({
+    expect(rejected(regions, set(at("clt_1/region_1"), { coordinate: quarters(0) }))).toEqual({
       code: "wrong_target_kind",
-      path: [at("region_1"), "coordinate"],
+      path: [at("clt_1/region_1"), "coordinate"],
+    });
+    expect(rejected(regions, set(at("region_1"), { name: "x" }))).toEqual({
+      code: "unknown_target",
+      path: [at("region_1")],
     });
     const bare = viewOf([A, "bare.json"]);
-    expect(rejected(bare, into("region", { ...region, id: "bare" }))).toEqual({
-      code: "duplicate_id",
-      path: [at("bare")],
-    });
     expect(rejected(bare, into("region", { ...region, id: "a/b" }))).toEqual({
       code: "schema_violation",
-      path: [A, "manifest", "timeline", "regions", 0, "id"],
+      path: [A, "manifest", "timelines", 0, "regions", 0, "id"],
     });
   });
 });
 
 describe("remove", () => {
-  it("removes children, maps and blocks", () => {
+  it("removes children, maps, roots and blocks", () => {
     const view = frozen([A, "map.json"], [B, "bare.json"]);
-    const withoutChild = manifest(applied(view, { type: "remove", targets: [at("phrase")] }));
-    expect(withoutChild.timeline.children).toEqual({});
-    const withoutMap = manifest(applied(view, { type: "remove", targets: [at("tempo")] }));
-    expect(withoutMap.timeline.conversion_maps).toEqual([]);
+    const withoutChild = root(applied(view, { type: "remove", targets: [at("phrase")] }));
+    expect(withoutChild.children).toEqual([]);
+    const withoutMap = root(applied(view, { type: "remove", targets: [at("melody/tempo")] }));
+    expect(withoutMap.conversion_maps).toEqual([]);
+    const withoutRoot = applied(view, { type: "remove", targets: [at("melody")] });
+    expect(manifest(withoutRoot).timelines).toEqual([]);
     expect(applied(view, { type: "remove", targets: [A, B] }).blocks).toEqual({});
     const nested = {
       ...view,
@@ -416,15 +421,11 @@ describe("remove", () => {
     expect(applied(nested, { type: "remove", targets: [A] }).blocks).toEqual({});
   });
 
-  it("refuses the workspace, a root and an unknown target, atomically", () => {
+  it("refuses the workspace and an unknown target, atomically", () => {
     const view = frozen([A, "map.json"]);
     expect(rejected(view, { type: "remove", targets: ["workspace"] })).toEqual({
       code: "not_removable",
       path: ["workspace"],
-    });
-    expect(rejected(view, { type: "remove", targets: [at("melody")] })).toEqual({
-      code: "not_removable",
-      path: [at("melody")],
     });
     expect(rejected(view, { type: "remove", targets: [A, C] })).toEqual({
       code: "unknown_target",
@@ -441,10 +442,9 @@ describe("style", () => {
   it("embeds a statement in every manifest it concerns and merges equal selectors", () => {
     let view = frozen([A, "map.json"], [B, "bare.json"]);
     view = applied(view, style({ select: { element: "map" }, set: red }));
-    expect(manifest(view).graphical).toEqual({
-      styles: {},
-      statements: [{ select: { element: "map" }, set: red }],
-    });
+    expect(manifest(view).graphical).toEqual(
+      held({ styles: {}, statements: [{ select: { element: "map" }, set: red }] }),
+    );
     expect(manifest(view, B)).toEqual(load("bare.json"));
     view = applied(view, style({ select: { element: "map" }, set: { "stroke-width": 2 } }));
     expect(manifest(view).graphical?.statements).toEqual([
@@ -468,7 +468,7 @@ describe("style", () => {
       { select: { element: "map" }, set: { "stroke-width": 2 } },
     ]);
     view = applied(view, style({ select: { element: "map" }, set: { "stroke-width": null } }));
-    expect(manifest(view).graphical).toEqual({ styles: {}, statements: [] });
+    expect(manifest(view).graphical).toEqual(held({ styles: {}, statements: [] }));
   });
 
   it("names a style in the listed blocks only", () => {
@@ -482,24 +482,28 @@ describe("style", () => {
         blocks: [B],
       }),
     );
-    expect(manifest(named, B).graphical).toEqual({
-      styles: { green: { stroke: "#00CC00" } },
-      statements: [{ select: { element: "timeline" }, set: "green" }],
-    });
+    expect(manifest(named, B).graphical).toEqual(
+      held({
+        styles: { green: { stroke: "#00CC00" } },
+        statements: [{ select: { element: "timeline" }, set: "green" }],
+      }),
+    );
     expect(manifest(named)).toEqual(manifest(view));
     const inline = applied(
       named,
       style({ select: { element: "timeline" }, set: { opacity: 0.5 }, blocks: [B] }),
     );
-    expect(manifest(inline, B).graphical).toEqual({
-      styles: { green: { stroke: "#00CC00" } },
-      statements: [{ select: { element: "timeline" }, set: { stroke: "#00CC00", opacity: 0.5 } }],
-    });
+    expect(manifest(inline, B).graphical).toEqual(
+      held({
+        styles: { green: { stroke: "#00CC00" } },
+        statements: [{ select: { element: "timeline" }, set: { stroke: "#00CC00", opacity: 0.5 } }],
+      }),
+    );
     const emptied = applied(
       named,
       style({ select: { element: "timeline" }, set: { stroke: null }, name: "green", blocks: [B] }),
     );
-    expect(manifest(emptied, B).graphical).toEqual({ styles: {}, statements: [] });
+    expect(manifest(emptied, B).graphical).toEqual(held({ styles: {}, statements: [] }));
   });
 
   it("refuses an unknown block and a malformed statement", () => {

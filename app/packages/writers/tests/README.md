@@ -57,8 +57,8 @@ below) and a box `W = 100.25`, `H = 50` with only its background.
 
 ## `bare`, byte for byte (`bare.test.ts`)
 
-The drawing of the timeline file `bare` is built by hand from its
-derivation from the specification: an anonymous bundle with one ungrouped
+The drawing of the manifest `bare` is built by hand from its
+derivation from the specification: an anonymous box with one ungrouped
 root in its card. `W = 476.5771484375`, `H = 67.37890625`; the background
 `fill #F3F4F6`, `rx 10`; the card `bare/card` at `x = y = 8`, `458.5771484375`
 by `49.37890625`, `fill #FFFFFF`, `stroke #C4C9D1`, `stroke-width 0.75`, `rx
@@ -188,6 +188,13 @@ cx="10" cy="20" r="2" fill="#00CC00"/>`, then the end:
 - `diamond`: the line to `50 − 1.5 × 2 = 47`, then `<polygon
   data-address="c" points="47,20 50,17.6 53,20 50,22.4" fill="none"
   stroke="#00CC00" stroke-width="1"/>` (`1.2w = 2.4`);
+- `chevrons`, the open end of a timeline of unknown length (section 6.6),
+  `xe` being `Xr`, the point the line runs on to: the line to 50, then the
+  inner chevron `<polyline data-address="c" points="52,17 55,20 52,23"
+  fill="none" stroke="#00CC00" stroke-width="1"/>` (`Xr + w`, `Xr +
+  2.5w`) and the outer one through `55,17 58,20 55,23` (`Xr + 2.5w`, `Xr +
+  4w`), stroked at `w / 2`, no dash, and carrying the line's own address
+  `c`, so they hit the line;
 - each line is `<line data-address="c" x1="10" y1="20" x2="{stop}"
   y2="20" stroke="#00CC00" stroke-width="2" stroke-dasharray="3 3"/>`.
 
@@ -286,22 +293,25 @@ read from the installed `@timetoalign/timeskeleton` package, like the
 manifests and the font) are the contract between implementations of the
 specification: each directory holds `inputs.json` (the manifest's path
 below `fixtures/<version>/`, `groups/<file>` or `bundles/<file>` for a
-group or bundle file; the placement with all five members, the scale and
+manifest sorted there; the placement with all five members, the scale and
 the application's style layers) and the expected `figure.svg` and
 `figure.tex`. The manifest is the input with its whole `graphical` block,
 `order` included. For every directory the test reads `inputs.json` alone,
 loads the named manifest, draws it with the layers `[DEFAULT_LAYER,
 ...inputs.layers, manifestLayer(manifest)]` (the manifest's `styles` and
-`statements` without a group or bundle file's `order`; no layer lies above
+`statements` without the member `order`; no layer lies above
 the manifest's own) and the bundled font metrics, writes the drawing placed
 at `(0, 0)` with the scale (`writeTikz` with its default font directory
 `.`), and requires both texts to equal the files byte for byte.
 
-Twelve SVGs are derived by hand from the specification alone, never from
+Eighteen SVGs are derived by hand from the specification alone, never from
 this writer's output: `bare`, `nested`, `map`, `flow_control`,
 `with_region`, `styled__score`, `nested__length-800-spacing-2`,
 `segment_line`, `segment_pages_accolades`, `group__group_child_member`,
-`group__group_parents_mixed` and `group__group_grandchild` (`HAND_DERIVED`
+`group__group_parents_mixed`, `group__group_grandchild`, and the six
+timelines of unknown length `unknown_length`, `unknown_length_empty`,
+`unknown_length_locked`, `unknown_length_child`,
+`group__group_unknown_length` and `unknown_length_segments` (`HAND_DERIVED`
 in `scripts/emit-drawings.ts`). Their equality with the writer proves the
 specification complete for what they show. A missing hand-derived file is
 a failure, never a skip. Every other figure is emitted by `pnpm
@@ -314,13 +324,16 @@ or the tests read the previous copy.
 The fixtures and the review drawings cannot drift apart: the set of
 directories equals the set of `reviewCases()` names exactly, and each
 case's inputs, written with timeskeleton's `dumps`, equal its `inputs.json`
-text. The cases are, in this order: every timeline fixture of
-`SCHEMA_VERSION` but the `corpus_*` ones, under its file name (24); the ten
-resized `nested` drawings; `map__child-map-below`; `group__<file>` for each
-group fixture but the `corpus_*` ones (8); `bundle__<file>` for each bundle
-fixture but the `corpus_*` ones (3): 46. The manifest directories are read
-one by one (`fixtures/<version>/`, its `groups/` and its `bundles/`), never
-recursively.
+text. The cases are, in this order: every manifest fixture directly in
+`fixtures/<SCHEMA_VERSION>/` but the `corpus_*` ones, under its file name
+(31); the ten resized `nested` drawings; `map__child-map-below`, whose
+application layer selects the child's map by its address `melody/ticks`;
+`group__<file>` for each fixture in `groups/` but the `corpus_*` ones (9);
+`bundle__<file>` for each fixture in `bundles/` but the `corpus_*` ones
+(3): 54. The manifest directories are read one by one
+(`fixtures/<version>/`, its `groups/` and its `bundles/`), never
+recursively, and a fixture's minimal twin (`*.minimal.json`) is no case:
+it holds what its complete fixture holds and draws the same.
 
 ## Validity (`compile.test.ts`)
 

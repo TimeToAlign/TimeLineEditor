@@ -26,7 +26,7 @@ import {
 import { A, blockIn, CHILD_MEMBER, changed, load, metrics, numbersView } from "./support.ts";
 
 const FIXTURES = ["bare", "nested", "flow_control", "with_region", "map"] as const;
-/** The manifests of the removal property: `numbers` is a group file with a region. */
+/** The manifests of the removal property: `numbers` is a manifest with one group and a region. */
 const REMOVAL_FIXTURES = [...FIXTURES, CHILD_MEMBER, "bundles/bundle_mixed", "numbers"] as const;
 const MODES: readonly ResizeMode[] = ["scale", "box", "stretch"];
 const ACTIONS: readonly ZOrderAction[] = ["front", "back", "forward", "backward"];

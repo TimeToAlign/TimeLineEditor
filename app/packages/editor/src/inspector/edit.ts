@@ -87,7 +87,7 @@ export function asInspectorProblem(problem: Problem, block: BlockId): InspectorP
 }
 
 /** A problem's path as a JSON pointer (RFC 6901; `""` for the whole text). */
-export function problemPointer(problem: InspectorProblem): string {
+export function problemPointer(problem: Pick<InspectorProblem, "path">): string {
   return problem.path
     .map((segment) => `/${String(segment).replaceAll("~", "~0").replaceAll("/", "~1")}`)
     .join("");

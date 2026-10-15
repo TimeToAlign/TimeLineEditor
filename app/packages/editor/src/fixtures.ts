@@ -3,8 +3,9 @@
  * workspaces (`app/e2e/fixtures/*.tle.json`), and one workspace per group
  * and bundle fixture of the installed schema package's version, built from
  * the manifest fixture on first use. Fixtures named `corpus_*` are loader
- * output, not drawings made to be looked at, and are left out. A production
- * build contains neither the menu nor the files.
+ * output, not drawings made to be looked at, and are left out, as are the
+ * minimal twins (`*.minimal.json`), which hold what their complete fixtures
+ * hold. A production build contains neither the menu nor the files.
  */
 
 import { SCHEMA_VERSION } from "@timetoalign/timeskeleton";
@@ -26,7 +27,7 @@ function baseName(path: string, extension: string): string {
 
 /**
  * The menu's entries, sorted by name: every workspace file, and every
- * manifest fixture of `SCHEMA_VERSION` not named `corpus_*`.
+ * manifest fixture of `SCHEMA_VERSION` not named `corpus_*` and no minimal twin.
  */
 export function fixtures(workspaces: Files, manifests: Files): Fixture[] {
   const version = `/fixtures/${SCHEMA_VERSION}/`;
@@ -36,7 +37,9 @@ export function fixtures(workspaces: Files, manifests: Files): Fixture[] {
   }));
   for (const [path, text] of Object.entries(manifests)) {
     const name = baseName(path, ".json");
-    if (!path.includes(version) || name.startsWith("corpus_")) continue;
+    if (!path.includes(version) || name.startsWith("corpus_") || name.endsWith(".minimal")) {
+      continue;
+    }
     entries.push({ name, text: async () => manifestWorkspace(name, await text()) });
   }
   return entries.sort((left, right) =>
@@ -58,6 +61,7 @@ export const FIXTURES: readonly Fixture[] =
           [
             "../node_modules/@timetoalign/timeskeleton/fixtures/*/groups/*.json",
             "../node_modules/@timetoalign/timeskeleton/fixtures/*/bundles/*.json",
+            "!**/*.minimal.json",
           ],
           { query: "?raw", import: "default" },
         ),

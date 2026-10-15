@@ -56,7 +56,7 @@ Review drawing changes with `rsvg-convert` installed:
 pnpm -C app/packages/writers review
 ```
 
-The command draws every manifest fixture of the installed schema version (its timeline, group and bundle files), together with resized and restyled cases, writes their SVG and PNG files under `app/packages/writers/review/`, and lists them in `review/index.html`. It rasterizes at twice the size (`rsvg-convert --zoom 2`) with fontconfig restricted to timeskeleton's bundled `DejaVuSans.ttf`, and refuses to continue if another font is visible or `rsvg-convert` fails.
+The command draws every manifest fixture of the installed schema version except the corpus ones and the minimal twins, together with resized and restyled cases, writes their SVG and PNG files under `app/packages/writers/review/`, and lists them in `review/index.html`. It rasterizes at twice the size (`rsvg-convert --zoom 2`) with fontconfig restricted to timeskeleton's bundled `DejaVuSans.ttf`, and refuses to continue if another font is visible or `rsvg-convert` fails.
 
 ### End-to-end tests
 

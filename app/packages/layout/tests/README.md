@@ -3,8 +3,8 @@
 `draw(manifest, placement, layers, metrics)` returns the drawing of one
 TimeSkeleton manifest as timeskeleton's drawing specification defines it
 (`docs/drawing.md` in the timeskeleton repository, "the specification"
-below, sections 1 to 6 for a timeline file and section 8 for a group or
-bundle file). The tests prove it from the specification, never
+below, sections 1 to 6 for each timeline drawn as a root and section 8 for
+the box that holds them). The tests prove it from the specification, never
 from the code's own output: every expected number below is derived here by
 hand from the specification's formulas and the font's advance widths, and
 the arithmetic is written out. Manifests are loaded from the fixtures of the
@@ -14,10 +14,19 @@ installed schema package's version or built through core's commands; none is wri
 
 "The default layers" means `[DEFAULT_LAYER]`, plus the manifest's own layer
 when it has a `graphical` block (`manifestLayer`: its `styles` and
-`statements`, without a group or bundle file's `order`); an "extra layer" is an application's
+`statements`, without the member `order`); an "extra layer" is an application's
 layer, placed between the two, since no layer lies above the manifest's own; "the default placement" is
 `{length: 400, spacing: 1, width: null, height: null, order: ["children",
 "regions", "flow"]}`.
+
+Addresses follow section 2.2 in every manifest: a timeline or a group is
+addressed by its bare id, the manifest's title by `name`, and every other
+element with an id (a map, region, break, jump or marker) by the id of the
+root whose tree holds it, `/`, and its own id, so `map`'s map `tempo` is
+`melody/tempo` and `with_region`'s region is `clt_1/region_1`. The prose
+below names such elements by their id; selectors and expectations use the
+whole address. The fixtures' minimal twins (`*.minimal.json`) draw as their
+complete fixtures do and are left out of every list of fixtures.
 
 ## Font measures (`metrics.test.ts`)
 
@@ -70,9 +79,9 @@ each value read off section 4 and ranked by section 2.5:
 
 ## Hand-derived drawings (`examples.test.ts`)
 
-The five timeline files below are drawn at the default placement with the
-default layers. Each is an anonymous bundle with one ungrouped root in its
-card (section 8, "The box" below): the name column starts at `xn = P + K =
+The five manifests of one root below are drawn at the default placement
+with the default layers. Each is an anonymous box with one ungrouped root
+in its card (section 8, "The box" below): the name column starts at `xn = P + K =
 16`, the card's top lies at `P = 8`, so the root's line lies at `8 +
 y_root`; the card spans `P` to `R + K` and is `Hm = Hc` high, and its
 shadow, 2 further right and down, sets the box: `W = 8 + (R + K + 2)` and
@@ -464,7 +473,7 @@ Below, the root band holds the wedges only (26.9765625).
   49.4765625`, `Hc = 14.40234375 + 49.4765625 + 8 = 71.87890625`, `H =
   89.87890625`.
 
-**`map` with `tempo` below** (`{ids: [tempo]} side below`): the
+**`map` with `tempo` below** (`{ids: [melody/tempo]} side below`): the
 root band below holds the wedges (26.9765625) and a one-map stack (6.5) and
 reaches `max(26.9765625, 6.5) = 26.9765625`. Above, no root band: the
 children band starts at 7, `phrase` 14 out, `Ea = 21`, `y_root = 29`:
@@ -495,9 +504,9 @@ wedges (26.9765625) and the stack (91.5) and reaches 91.5: `Ea = 0`,
 27.90234375`, `j = 18` at `22.40234375 + 90.5 = 112.90234375`.
 
 **End markers.** `r` with `c` at 4, length 4, no maps, read with `locked`
-changed and validated again against the schema (no command changes
-`locked`, and core's invariants refuse an unlocked child, which the schema
-admits and section 6.6 draws). `r` lies at 37 and `c` at 23 (as above, no
+changed and validated again against the schema (a manifest value built
+directly, so the drawing alone is under test; section 6.6 draws every
+combination). `r` lies at 37 and `c` at 23 (as above, no
 stack). The `8 ♩` label reaches `430.0478515625 + 6.416015625 =
 436.4638671875`.
 
@@ -659,9 +668,10 @@ Inheritance, through `draw` on fixtures with explicit layers:
 
 ## The box (`box.test.ts`, `groups.test.ts`)
 
-Section 8: every file is drawn as a bundle (a timeline file as an anonymous
-bundle with one ungrouped root, a group file as an anonymous bundle holding
-its group; an anonymous bundle has no title), with frames, cards, titles,
+Section 8: every manifest is drawn as one box (a manifest of one root as a
+box holding it ungrouped, a manifest of one group as a box holding its
+frame; a manifest with neither a `name` nor an `id` has no title), with
+frames, cards, titles,
 the shared start `x0` and the box size. The tests prove that the box is
 built from the rules of sections 8.1, 8.2, 8.4 and 8.5 and nothing else:
 each expected number below is derived by hand from those formulas, the font's
@@ -681,8 +691,8 @@ and with its two wedges below in one label tier is `Hm = 14.40234375 +
 26.9765625 + 8 = 117.9296875`. Titles take the default `{element: name}`
 size 11.
 
-**`bare`** (a timeline file: an anonymous bundle, no title, no frame, one
-ungrouped root). `xn = P + K = 16`; `N = 25.5771484375` (`Bare`), so `x0 =
+**`bare`** (one root: an anonymous box, no title, no frame, one ungrouped
+root). `xn = P + K = 16`; `N = 25.5771484375` (`Bare`), so `x0 =
 16 + 25.5771484375 + 8 = 49.5771484375` (the labels ask at most
 22.416015625); the root runs from 49.5771484375 to 449.5771484375. `R` is the
 arrowhead tip `449.5771484375 + 9 = 458.5771484375`. The card `bare/card`
@@ -693,7 +703,7 @@ name at `x = 16`. `Wb = 8 + (466.5771484375 + 2) = 476.5771484375` and `Hb =
 order: block, `bare/card`, then the member drawing (`bare`, `bare/start`,
 `bare/end`, `bare/name`, `bare/start/label`, `bare/end/label`).
 
-**`group__group_child_member`** (a group file; frame `group_1` "Second
+**`group__group_child_member`** (one group; frame `group_1` "Second
 half", display order `second-half`, `recording`). `xn = P + Q + K = 24`; `N
 = 64.61962890625`; the ancestor `piece` runs on to the left with `wa = 3`,
 so `x0 = 24 + 64.61962890625 + 8 + 24 = 120.61962890625`. `R =
@@ -731,7 +741,7 @@ outer chevron tip of `score`, `x0 + L + 8w`). Cards `x = 16`, width
 543.70361328125, 208.11328125}`; root lines at 115.7578125 and
 173.13671875; `W = 559.70361328125`, `H = 224.11328125`.
 
-**`bundles/bundle_mixed`** (a bundle file "Mixed": groups `group_1`
+**`bundles/bundle_mixed`** (a manifest named "Mixed", without an `id`: groups `group_1`
 "Performance" with order `score`, `performance` and `group_2` "Facsimile"
 with order `page`, `excerpt`; `excerpt` is a child of `recording` at 44100
 samples, 88200 long, so `recording` holds a member and is drawn only as
@@ -748,7 +758,7 @@ mark label `44100 smp`, `A = 11528`, 50.66015625 wide, asks only
 the right chevron tip `x0 + 424 = 550.29150390625`; the titles end at `8 +
 32.806640625`, `16 + 70.29150390625` and `16 + 51.498046875`.
 
-- The bundle's title `bundle_1/name` "Mixed": `x = P = 8`, baseline `8 +
+- The manifest's title `name` "Mixed": `x = P = 8`, baseline `8 +
   a(11) = 18.21044921875`; the first frame starts at `P + h(11) + F =
   28.8046875`.
 - `group_1`: top 28.8046875, height `8 + 12.8046875 + 4 + 49.37890625 + 8 +
@@ -770,7 +780,7 @@ the right chevron tip `x0 + 424 = 550.29150390625`; the titles end at `8 +
 - `W = 8 + (570.484619140625 + 2) = 580.484619140625` and `H = 8 +
   (358.50390625 + 49.37890625 + 2) = 417.8828125`: the ungrouped card's
   shadow sets both, beyond the frames' edges.
-- Element order: block, `bundle_1/name`, `group_1`, `group_1/name`,
+- Element order: block, `name`, `group_1`, `group_1/name`,
   `score/card`, its member drawing, `performance/card`, its drawing,
   `group_2`, `group_2/name`, `page/card`, …, `excerpt/card`, …,
   `annotations/card`, `annotations`, ….
@@ -780,7 +790,7 @@ the right chevron tip `x0 + 424 = 550.29150390625`; the titles end at `8 +
 first card starts at `8 + 8 = 16`, the second at `16 + 83.953125 + 8 =
 107.953125`, the frame is `8 + 83.953125 + 8 + 49.37890625 + 8 =
 157.33203125` high and `H = 8 + 8 + 157.33203125 = 173.33203125`. With
-`{ids: ["bundle_1/name"]} display none` on `bundle_mixed`, the first frame
+`{ids: ["name"]} display none` on `bundle_mixed`, the first frame
 starts at `P = 8`, everything below moves up by `h(11) + F = 20.8046875`,
 and `H = 397.078125`.
 
@@ -820,9 +830,9 @@ own padding `P × v = 16` lies inside the card): `Hm = 22.40234375 +
 30.40234375`, `H = 8 + 8 + 65.37890625 + 2 = 83.37890625`, `W`
 unchanged at 476.5771484375.
 
-**Addresses (section 2.2).** In a group or bundle file an element with an
-id of its own is prefixed by the id of the root of `timelines` whose tree
-holds it: `corpus_mpm`'s map `tmap_1` on the root `score:clt_1` is
+**Addresses (section 2.2).** In every manifest an element with an id of
+its own other than a timeline or group is prefixed by the id of the root of
+`timelines` whose tree holds it: `corpus_mpm`'s map `tmap_1` on the root `score:clt_1` is
 `score:clt_1/tmap_1`. A region `region_1` (2 to 6 quarters, named `Theme`)
 added through `add` into the member `second-half` of `group_child_member`
 is `piece/region_1`, its label `piece/region_1/label`, although
@@ -844,9 +854,9 @@ nothing: `{inside: card} stroke #123456` reaches no element. In
    `piece/name` from the ancestor. With `{ids: [second-half]} {stroke:
    #654321}` instead, `piece` is `#654321` and `recording` keeps `none`;
    so does `second-half/card`, a sibling of the line and not its holder.
-2. **The block holds the bundle's title, the frames and the ungrouped
+2. **The block holds the manifest's title, the frames and the ungrouped
    cards and lines.** With `{element: block} {stroke: #111111}` on
-   `bundle_mixed`, `bundle_1/name`, `group_1`, `annotations/card` and
+   `bundle_mixed`, `name`, `group_1`, `annotations/card` and
    `annotations` take `#111111`; with `{ids: [annotations/card]} {stroke:
    #222222}` the line `annotations` keeps `none`.
 
@@ -1151,6 +1161,120 @@ and `{element: wedge, inside: ancestor} fill #123456`, the marks are
 `#123456` and the own wedges `#000000`; `{ids: [second-half/start]} fill
 #654321` reaches both drawings of that address.
 
+## Timelines of unknown length (`unknown.test.ts`)
+
+A `length` of null means the length is not known, and section 3.4 says how
+such a timeline is drawn: scaled to its **reach**, the farthest coordinate
+its content reaches on its own axis, and ended by the first of five rules,
+known or open. What proves the implementation is that every rule moves
+something a reader can see and that nothing else moves:
+
+- the reach is visible as the scale: a position `t` lands at `x0 + L ×
+  u(t)` with `u = t / λ`, `λ` the reach, so a child or region placed at the
+  reach lies at the end of the graphical length, and a reach taken from the
+  wrong content would move every position;
+- an open end draws the line `4w` past `Xe` to `Xr`, then the double
+  chevron, whose outer tip `Xr + 4w` is the line's right edge (section
+  6.7), and no end wedge and no end label; a known end keeps its arrowhead,
+  circle or diamond;
+- each end rule is shown by a case where the rules before it do not apply
+  and the result differs from what the next rule would give.
+
+The six fixtures below have hand-derived figures (two independent
+derivations from the specification alone, byte-equal to each other); the
+writers' fixture test compares the whole SVG. Here the layout values are
+checked, taken from those derivations, and the constructed cases add what
+the figures cannot show. Every value is a double that the arithmetic of
+section 3.3 produces exactly; with `w = 3` the line runs on `4w = 12` past
+`Xe` and the chevron tip lies `8w = 24` past it.
+
+- **`unknown_length`** (root `score` of unknown length; region 2 to 8,
+  marker at 6, locked child `coda` at 10, 4 long). The reach is 14, from
+  the child's end `10 + 4`, beyond the region's end 8 and the marker 6. `x0 =
+  16 + 29.798828125 + 8 = 53.798828125`. The root is open (rule 2): its
+  line runs from 53.798828125 to `Xr = x0 + 400 + 12 = 465.798828125` and
+  ends in chevrons; `coda` starts at `x(10) = x0 + 400 × 5/7 =
+  339.5131138392857` (`u = 0.7142857142857143`, the reach 14 and not the
+  region's 8 or the marker's 6) and ends known (rule 1) with its diamond at
+  `x(14) = 453.798828125`. Only `score/start` is drawn among the wedges and
+  only `0 ♩` among the labels; the box is `8 + (477.798828125 + 8 + 2) =
+  495.798828125` wide, the chevron tip setting `R`.
+- **`unknown_length_empty`** (no content). The reach is 0, so every `u` is
+  0, yet the line is drawn `L` long: `Xs = 53.798828125`, `Xr =
+  465.798828125` (`Xe = x0 + L` whatever the reach), chevrons.
+- **`unknown_length_locked`** (locked root, child `coda` at 12, 4 long). A
+  locked timeline of unknown length ends in chevrons, never the circle:
+  `end` is `chevrons` at 465.798828125, and `coda` starts at `x0 + 400 ×
+  3/4 = 353.798828125`.
+- **`unknown_length_child`** (root 32 long; child `movement` at 8 of unknown
+  length with a region 0 to 6). Rule 5: `movement` ends at `8 + 6 = 14`,
+  open. `x0 = 16 + 59.490234375 + 8 = 83.490234375`; `movement` runs from
+  `x(8) = 183.490234375` to `x(14) + 12 = 258.490234375 + 12 =
+  270.490234375`, chevrons; the root keeps its arrowhead at `x(32) =
+  483.490234375` and both wedges. **The chevrons take room in the row**:
+  `movement`'s first-fit extent is `[L × 1/4, L × 7/16 + 8w] = [100, 199]`.
+  A locked child `brief` added into `score` at 15, 2 long, has the extent
+  `[187.5, 212.5]`, which meets it, so `brief` goes to row 2, one pitch
+  (14) further out: its line lies 14 above `movement`'s. Without the `8w`
+  the extents `[100, 175]` and `[187.5, 212.5]` would share row 1. `brief`
+  at 16 instead (`[200, 225]`, starting past 199) shares row 1: both lines
+  at one ordinate.
+- **`groups/group_unknown_length`** (group `Edition`: `performance` in
+  seconds of unknown length with a region 0.0 to 9.5, and `score` 12
+  quarters). The float reach 9.5 is reached by the region's end, so the
+  region ends at the shared end `x0 + L = 502.640625` (`x0 = 24 + 70.640625
+  + 8 = 102.640625`), where `score` ends with its arrowhead too;
+  `performance` runs on to `514.640625` into its chevrons.
+- **`unknown_length_segments`** (segment line `form` of unknown length:
+  `a` at 0 of unknown length with a region 0 to 4, `b` at 8, 6 long, `c` at
+  14 of unknown length with a region 0 to 3). The reach is nested: `c`
+  contributes `14 + 3 = 17`, its own reach added to its offset, beyond `b`'s
+  `8 + 6 = 14` and `a`'s 4. `x0 = 16 + 25.84033203125 + 8 = 49.84033203125`;
+  `c`'s region ends at `x(17) = 449.84033203125`, the boundaries of `b` and
+  `c` lie at `x(8) = 238.07562614889704` and `x(14) = 379.2520967371323`;
+  `form` runs on to `461.84033203125`, chevrons. **Rules 3 and 4** show in
+  the segment labels: with the names `A`, `B`, `C` set on `a`, `b`, `c`
+  through `set`, each label is centred on the exact midpoint of its
+  segment's start and end. `a` ends where `b` starts (rule 3), so `A` lies
+  at `x(4) = 143.95797909007354`, not at `x(2)` as its own reach 4 would
+  give; `c` ends where `form` ends (rule 4), at the reach 17, so `C` lies
+  at `x(31/2) = 414.54621438419116`; `B` lies at `x(11) =
+  308.6638614430147`. The labels change no horizontal measure: none asks
+  for more than `x0`.
+- **The measure map counts.** `corpus_score_ms3` with its two children and
+  its jump 37→0 removed and its length set to null through commands keeps
+  a reach of 37 only through its last measure-map row, `qstamp` 34 plus
+  `actual_length` 3; its other content reaches 30 (a marker). Its break at
+  12 and its jumps therefore lie exactly where they lie at length 37: every
+  break and jump element of the two drawings is equal. Its root line ends
+  open, at `x0 + 400 + 12`, in chevrons; at length 37 it ends at `x0 + 400`
+  with its arrowhead.
+
+**Ancestor lines (section 8.3).** `x0` below is the member's own line start,
+the shared start of its box, and every expectation is formed from it as
+section 8.3 writes it:
+
+- `groups/group_child_member` with `second-half`'s length set to null
+  (unlocked, set to null, locked again, through commands) and a region 0
+  to 8 added into it, so its reach is `λ = 8`: the member's end is not
+  known, so the ancestor `piece` runs on to the right to `x0 + 400 + 12`
+  into chevrons although `te = −8 + 16 = 8 = λ` would otherwise end it at
+  `x0 + 400` with its arrowhead, and
+  only the mark `second-half/start` and its label `8 ♩` are drawn (no
+  `second-half/end`). The member's own line ends open, in chevrons at `x0 +
+  400 + 12`.
+- `groups/group_child_member` with `piece`'s length set to null: the
+  ancestor's end is not known, so `piece` runs on to the right into
+  chevrons at `x0 + 400 + 12` (and to the left, `ts = −8 < 0`), and both
+  marks are drawn, labelled `8 ♩` and `16 ♩` (`−ts` and `−ts + λ`).
+- `groups/group_grandchild` with `movement`'s length set to null and
+  `score`'s length set to 28: for `score`, `ts = −(16 + 8) = −24` and `te =
+  −24 + 28 = 4 < λ = 8`, which a manifest allows only because `movement`
+  between them has no length; `score` ends at `x(4) = x0 + 400 × 4/8 = x0 +
+  200` with its own end, the arrowhead of an unlocked top-level timeline.
+  `movement` runs on to the right, into chevrons at `x0 + 400 + 12`. Both
+  run on to the left (`ts < 0`).
+
 ## Stretch and box (`stretch.test.ts`)
 
 For `nested`, `map`, `flow_control` and `with_region`, at lengths 200, 400,
@@ -1295,13 +1419,13 @@ the background is drawn, yet the hidden card keeps its place (section 8.4):
 no name and no label, so `x0 = R = xn = 16`, the card spans 8 to `R + K =
 24`, `y_root = 8 + h(11) / 2 = 14.40234375`, `Hc = 14.40234375 +
 6.40234375 + 8 = 28.8046875`, and the box is `Wb = 8 + 24 = 32` wide and
-`Hb = 8 + 8 + 28.8046875 = 44.8046875` high. A bundle file with no
-timelines and no groups holds only its displayed title "Mixed" at size 11,
+`Hb = 8 + 8 + 28.8046875 = 44.8046875` high. A manifest named "Mixed"
+with no timelines and no groups holds only its displayed title at size 11,
 which enters the box like a card: its advances sum to `1767 + 569 + 1212 +
 1260 + 1300 = 6108` units, so `w = 6108 · 11 / 2048 = 32.806640625`, its
 right edge lies at `8 + 32.806640625 = 40.806640625` and its slot ends at
 `8 + h(11) = 20.8046875`; the box is `Wb = 8 + 40.806640625 =
 48.806640625` wide and `Hb = 8 + 20.8046875 = 28.8046875` high. The
 fallback `P + x0 = 24` wide and `P = 8` high applies only to a box that
-holds no frame, no card and no displayed title: the same bundle with its
+holds no frame, no card and no displayed title: the same manifest with its
 title at `display: none`.

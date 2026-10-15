@@ -5,6 +5,7 @@
  */
 
 import {
+  type AxisValue,
   type ConversionMap,
   type ElementKey,
   elementAddress,
@@ -19,7 +20,7 @@ import type { ElementType } from "@timetoalign/timeskeleton";
 import type { Cascade, Side, Style } from "./cascade.ts";
 import type { LineEnd, Placement } from "./elements.ts";
 import { cleanText, type TextMeasure } from "./metrics.ts";
-import { add, coordinateValue, proportion, zero } from "./numbers.ts";
+import { add, coordinateValue, lengthValue, proportion, reachOf, zero } from "./numbers.ts";
 
 export interface Styled {
   readonly address: string;
@@ -36,7 +37,12 @@ export interface Entry extends Holder {
   readonly manifest: TimelineManifest;
   readonly parent: Entry | undefined;
   readonly start: Real;
+  /** Where it ends on the root's axis (section 3.4). */
   readonly end: Real;
+  /** Its end is open: no length and nothing else fixes it (section 3.4). */
+  readonly open: boolean;
+  /** Its end is the open end of the root, drawn at `x0 + L` whatever the reach (section 3.4). */
+  readonly rootEnd: boolean;
   /** Its name: drawn for the root and a child, counted for a segment line among segments. */
   readonly name: Styled;
   /** A child of a segment line: it has a boundary unless it is the first, and a label. */
@@ -76,7 +82,7 @@ export interface Scope extends Context {
   /** Every timeline of its tree in traversal order, the root first. */
   readonly entries: readonly Entry[];
   readonly rootEntry: Entry;
-  /** The root's length `λ`. */
+  /** The root's length `λ`, or its reach when its length is not known. */
   readonly lambda: Real;
   /** The graphical length `L`. */
   readonly L: number;
@@ -86,6 +92,8 @@ export interface Scope extends Context {
   readonly u: (value: Real) => number;
   /** `L × u`: an exact position's distance from the root's start. */
   readonly relativeX: (value: Real) => number;
+  /** The distance of a timeline's end `Xe` from the root's start: `L` for the root's open end. */
+  readonly relativeEnd: (entry: Entry) => number;
   readonly h: (size: number) => number;
   readonly a: (size: number) => number;
   readonly d: (size: number) => number;
@@ -111,8 +119,9 @@ export const maxSize = (items: readonly Styled[], fallback = 9): number =>
 export const rowPitch = (scope: Scope, size: number): number =>
   Math.max(14 * scope.v, scope.h(size));
 
-/** How a timeline drawn up to its end ends (section 6.6). */
-export function endOf(timeline: TimelineManifest, topLevel: boolean): LineEnd {
+/** How a timeline drawn up to its end ends (section 6.6): an open end with the double chevron. */
+export function endOf(timeline: TimelineManifest, topLevel: boolean, open = false): LineEnd {
+  if (open) return "chevrons";
   if (!topLevel) return "diamond";
   if (timeline.locked) return "circle";
   return timeline.is_segment_line ? "open" : "arrowhead";
@@ -144,13 +153,36 @@ export function traverse(context: Context, member: MemberDrawing, holder: Holder
   };
 
   const entries: Entry[] = [];
+  const rootLength = lengthValue(root);
+  const lambda = rootLength ?? reachOf(root);
+  /**
+   * Where a timeline starting at `start` ends, by the first rule of section
+   * 3.4 that applies: its length; the root's reach; the next segment's
+   * start; its segment line's end; else its own reach, open.
+   */
+  const ending = (
+    timeline: TimelineManifest,
+    parent: Entry | undefined,
+    start: Real,
+    next: Real | undefined,
+  ): Pick<Entry, "end" | "open" | "rootEnd"> => {
+    const length = lengthValue(timeline);
+    if (length !== null) return { end: add(start, length), open: false, rootEnd: false };
+    if (parent === undefined) return { end: lambda, open: true, rootEnd: true };
+    if (parent.manifest.is_segment_line) {
+      if (next !== undefined) return { end: next, open: false, rootEnd: false };
+      return { end: parent.end, open: parent.open, rootEnd: parent.rootEnd };
+    }
+    return { end: add(start, reachOf(timeline)), open: true, rootEnd: false };
+  };
   const visit = (
     timeline: TimelineManifest,
     parent: Entry | undefined,
     start: Real,
-    segment: boolean,
+    next: Real | undefined,
     first: boolean,
   ) => {
+    const segment = parent?.manifest.is_segment_line === true;
     const line = !segment || timeline.is_segment_line;
     const type = parent === undefined ? "timeline" : line ? "child" : null;
     const outer = parent ?? holder;
@@ -160,7 +192,7 @@ export function traverse(context: Context, member: MemberDrawing, holder: Holder
       manifest: timeline,
       parent,
       start,
-      end: add(start, coordinateValue(timeline.length)),
+      ...ending(timeline, parent, start, next),
       key,
       style,
       name: textOf({ key, style }, "name"),
@@ -171,16 +203,19 @@ export function traverse(context: Context, member: MemberDrawing, holder: Holder
     };
     entry.holder = line ? entry : (parent as Entry).holder;
     entries.push(entry);
-    orderedChildren(timeline).forEach((child, index) => {
-      const offset = add(start, coordinateValue(child.offset));
-      visit(child.timeline, entry, offset, timeline.is_segment_line, index === 0);
+    const children = orderedChildren(timeline);
+    const starts = children.map((child) =>
+      add(start, coordinateValue(child.offset as AxisValue, timeline.number_type)),
+    );
+    children.forEach((child, index) => {
+      visit(child, entry, starts[index] as Real, starts[index + 1], index === 0);
     });
   };
-  visit(root, undefined, zero(root.number_type), false, false);
+  visit(root, undefined, zero(root.number_type), undefined, false);
   const rootEntry = entries[0] as Entry;
-  const lambda = coordinateValue(root.length);
   const u = (value: Real) => proportion(value, lambda);
   const relativeX = (value: Real) => L * u(value);
+  const relativeEnd = (entry: Entry) => (entry.rootEnd ? L : relativeX(entry.end));
 
   const owned = (
     type: ElementType,
@@ -213,6 +248,7 @@ export function traverse(context: Context, member: MemberDrawing, holder: Holder
     v,
     u,
     relativeX,
+    relativeEnd,
     h,
     a,
     d,

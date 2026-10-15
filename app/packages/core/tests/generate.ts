@@ -5,16 +5,17 @@
  * command once the view is known, so a sequence of seeds stays valid input
  * whatever the earlier commands did. Targets are drawn from what the view
  * holds plus unknown and malformed addresses; properties from the target's
- * table, another kind's table and unknown names; coordinates on the axis, off
- * it (another unit, another number type, past int64), negative and past the
- * end; payloads include ones the schema refuses. Every refusal the commands
- * produce on these targets is reachable.
+ * table, another kind's table and unknown names; own-axis values on the
+ * axis, off it (a coordinate dict, another number type's representation,
+ * past int64), negative and past the end, and lengths of null; payloads
+ * include ones the schema refuses. Every refusal the commands produce on
+ * these targets is reachable.
  */
 
 import { JsonFloat } from "@timetoalign/timeskeleton";
 import fc from "fast-check";
-import type { Manifest, TimelineManifest, View } from "../src/index.ts";
-import { elementAddress, manifestKind, manifestRoots } from "../src/index.ts";
+import type { AxisValue, Manifest, TimelineManifest, View } from "../src/index.ts";
+import { elementAddress } from "../src/index.ts";
 
 export interface Seed {
   readonly kind: number;
@@ -35,114 +36,97 @@ const pick = <T>(items: readonly T[], n: number): T => items[n % items.length] a
 interface Place {
   readonly timeline: TimelineManifest;
   readonly parent: TimelineManifest | undefined;
-  /** The root qualifying the addresses of its other elements; null in a timeline file. */
-  readonly root: string | null;
+  /** The root qualifying the addresses of its other elements. */
+  readonly root: string;
 }
 
 /** Every timeline of every root of a manifest. */
 function places(manifest: Manifest): Place[] {
   const found: Place[] = [];
-  const qualified = manifestKind(manifest) !== "timeline";
   const walk = (timeline: TimelineManifest, parent: TimelineManifest | undefined, root: string) => {
-    found.push({ timeline, parent, root: qualified ? root : null });
-    for (const entry of Object.values(timeline.children)) walk(entry.timeline, timeline, root);
+    found.push({ timeline, parent, root });
+    for (const child of timeline.children) walk(child, timeline, root);
   };
-  for (const root of manifestRoots(manifest)) walk(root, undefined, root.id);
+  for (const root of manifest.timelines) walk(root, undefined, root.id);
   return found;
 }
 
-/** Axes a timeline may be created on: class, unit, number type. */
+/** Axes a timeline may be created on: unit, number type. */
 const AXES = [
-  ["ContinuousLogicalTimeline", "quarters", "fraction"],
-  ["ContinuousLogicalTimeline", "quarters", "float"],
-  ["ContinuousLogicalTimeline", "number", "int"],
-  ["DiscreteLogicalTimeline", "ticks", "int"],
-  ["ContinuousPhysicalTimeline", "seconds", "float"],
-  ["DiscretePhysicalTimeline", "samples", "int"],
-  ["ContinuousGraphicalTimeline", "points", "fraction"],
-  ["DiscreteGraphicalTimeline", "pixels", "int"],
+  ["quarters", "fraction"],
+  ["quarters", "float"],
+  ["number", "int"],
+  ["ticks", "int"],
+  ["seconds", "float"],
+  ["samples", "int"],
+  ["points", "fraction"],
+  ["pixels", "int"],
 ] as const;
 
 type Axis = Pick<TimelineManifest, "unit" | "number_type" | "length">;
 
-/** An approximate size of an axis, to draw values around its length. */
+/** An approximate size of an axis, to draw values around its length (8 when it is not known). */
 function span(axis: Axis): number {
-  const { value } = axis.length;
+  const value: AxisValue = axis.length ?? 8;
   const size = Array.isArray(value)
     ? Number(value[0]) / Number(value[1])
     : Number(value instanceof JsonFloat ? value.value : value);
   return Math.min(Math.floor(size), 1_000_000) + 6;
 }
 
-/** A coordinate dict for `axis`, mostly on it, sometimes off it. */
-function coordinate(axis: Axis, a: number, b: number): object {
+/** A bare value for `axis`, mostly on it, sometimes a dict, another representation or too large. */
+function coordinate(
+  axis: Pick<Axis, "unit" | "number_type"> & Partial<Axis>,
+  a: number,
+  b: number,
+): unknown {
   const variant = a % 12;
-  const n = (b % span(axis)) - 2;
-  if (variant === 0) {
-    return axis.unit === "seconds"
-      ? { unit: "quarters", number_type: "fraction", value: [n, 1] }
-      : { unit: "seconds", number_type: "float", value: n + 0.5 };
-  }
-  if (variant === 1) {
-    const other = axis.number_type === "float" ? "fraction" : "float";
-    return { unit: axis.unit, number_type: other, value: other === "float" ? n + 0.5 : [n, 1] };
-  }
+  const n = (b % span({ length: null, ...axis })) - 2;
+  if (variant === 0) return { unit: axis.unit, number_type: axis.number_type, value: n };
+  if (variant === 1) return axis.number_type === "fraction" ? n + 0.5 : [n, 1];
   if (variant === 2) {
     const huge = 2n ** 63n;
-    const value =
-      axis.number_type === "fraction" ? [huge, 1n] : axis.number_type === "int" ? huge : 1;
-    return { unit: axis.unit, number_type: axis.number_type, value };
+    return axis.number_type === "fraction" ? [huge, 1n] : axis.number_type === "int" ? huge : 1;
   }
-  if (axis.number_type === "int") return { unit: axis.unit, number_type: "int", value: BigInt(n) };
-  if (axis.number_type === "float") {
-    return { unit: axis.unit, number_type: "float", value: b % 2 === 0 ? n : n + 0.5 };
-  }
+  if (axis.number_type === "int") return BigInt(n);
+  if (axis.number_type === "float") return b % 2 === 0 ? new JsonFloat(n) : n + 0.5;
   const denominator = 1 + (a % 3);
-  return {
-    unit: axis.unit,
-    number_type: "fraction",
-    value: [n * denominator + (b % denominator), denominator],
-  };
+  return [n * denominator + (b % denominator), denominator];
 }
 
 function newTimeline(id: string, picks: readonly number[], like: Axis | undefined): object {
   const [a = 0, b = 0, c = 0] = picks;
-  let axis: readonly [string, string, string];
+  let axis: readonly [string, string];
   if (a % 6 === 0) {
-    const random = pick(AXES, b);
-    // A random class and number type on the parent's unit, or on a random one.
-    const unit = like !== undefined && c % 2 === 0 ? like.unit : pick(AXES, c)[1];
-    axis = [random[0], unit, pick(["int", "float", "fraction"], a)];
+    // A random number type on the parent's unit, or on a random one.
+    const unit = like !== undefined && c % 2 === 0 ? like.unit : pick(AXES, c)[0];
+    axis = [unit, pick(["int", "float", "fraction"], a)];
   } else if (like !== undefined && a % 6 > 1) {
     const match = AXES.find(
-      ([, unit, numberType]) => unit === like.unit && numberType === like.number_type,
+      ([unit, numberType]) => unit === like.unit && numberType === like.number_type,
     );
     axis = match ?? pick(AXES, b);
   } else {
     axis = pick(AXES, b);
   }
-  const [cls, unit, numberType] = axis;
-  const length = coordinate(
-    { unit, number_type: numberType, length: { unit, number_type: "int", value: 4n } } as Axis,
-    a % 12 < 3 ? a : 3 + (c % 9),
-    c,
-  );
+  const [unit, numberType] = axis;
+  const length =
+    c % 13 === 0
+      ? null
+      : coordinate(
+          { unit, number_type: numberType, length: 4n } as Axis,
+          a % 12 < 3 ? a : 3 + (c % 9),
+          c,
+        );
+  // Mostly the minimal form, sometimes defaults written out.
   return {
     id,
-    name: c % 3 === 0 ? null : `T${c}`,
-    class: cls,
+    ...(c % 3 === 0 ? {} : { name: `T${c}` }),
     unit,
     number_type: numberType,
     length,
     locked: c % 11 !== 0,
-    meta: {},
-    children: {},
-    conversion_maps: [],
-    regions: [],
-    flow_control: { breaks: [], jumps: [], markers: [] },
-    is_segment_line: false,
-    measure_map: null,
-    metric_hierarchy: null,
+    ...(c % 2 === 0 ? { meta: {}, children: [], is_segment_line: false } : {}),
   };
 }
 
@@ -230,13 +214,14 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
     timeline.flow_control.markers.map((marker) => marker.id),
   );
   const known = all.map((place) => place.timeline.id);
+  const groups = manifest?.groups.map((group) => group.id) ?? [];
   const ids = [...known, ...known, ...known, "ghost"];
   const id = pick(ids, p1);
   const place = all.find((item) => item.timeline.id === id);
   const axis: Axis = place?.timeline ?? {
     unit: "quarters",
     number_type: "fraction",
-    length: { unit: "quarters", number_type: "fraction", value: [8n, 1n] },
+    length: [8n, 1n],
   };
   const element = `${block}/${id}`;
   const set = (target: string, properties: object) => ({
@@ -250,7 +235,9 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
         property === "name"
           ? pick([null, `name ${p3 % 5}`, 3], p3)
           : property === "length"
-            ? coordinate(axis, p3, p4)
+            ? p5 % 7 === 0
+              ? null
+              : coordinate(axis, p3, p4)
             : property === "locked"
               ? pick([true, false, "yes"], p3)
               : property === "meta"
@@ -297,7 +284,7 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
       return {
         type: "add",
         into: pick([element, element, element, element, block, "workspace"], p7 >> 4),
-        child: { offset: coordinate(axis, p7, p2 * 7 + p3), timeline: child },
+        child: { ...child, offset: coordinate(axis, p7, p2 * 7 + p3) },
       };
     }
     case 4:
@@ -309,6 +296,7 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
     case 5: {
       const targets = [
         ...ids.map((item) => `${block}/${item}`),
+        ...groups.map((item) => `${block}/${item}`),
         ...maps.map(([address]) => `${block}/${address}`),
         ...elements.map((item) => `${block}/${item}`),
         "workspace",

@@ -24,8 +24,8 @@ function ordinates(drawing: Drawing): Record<string, number> {
 
 const sides = (m1: "above" | "below", m2: "above" | "below"): Graphical => ({
   statements: [
-    { select: { ids: ["m1"] }, set: { side: m1 } },
-    { select: { ids: ["m2"] }, set: { side: m2 } },
+    { select: { ids: ["r/m1"] }, set: { side: m1 } },
+    { select: { ids: ["r/m2"] }, set: { side: m2 } },
   ],
 });
 
@@ -36,9 +36,9 @@ describe("a child's own map stack", () => {
 
   it("widens the row's outer half with two maps above", () => {
     const drawing = drawWith(sides("above", "above"));
-    expect(ordinates(drawing)).toEqual({ m1: 22, m2: 17, r: 41.5, c: 27.5 });
+    expect(ordinates(drawing)).toEqual({ "r/m1": 22, "r/m2": 17, r: 41.5, c: 27.5 });
     expect(drawing.height).toBe(86.4765625);
-    expect(element(drawing, "m1")).toMatchObject({
+    expect(element(drawing, "r/m1")).toMatchObject({
       xs: 230.0478515625,
       xe: 430.0478515625,
     });
@@ -46,8 +46,8 @@ describe("a child's own map stack", () => {
 
   it("widens the row's inner half with two maps below", () => {
     expect(ordinates(drawWith(sides("below", "below")))).toEqual({
-      m1: 28.5,
-      m2: 33.5,
+      "r/m1": 28.5,
+      "r/m2": 33.5,
       r: 41.5,
       c: 23,
     });
@@ -55,8 +55,8 @@ describe("a child's own map stack", () => {
 
   it("keeps the pitch when a one-map stack lies on each side", () => {
     expect(ordinates(drawWith(sides("above", "below")))).toEqual({
-      m1: 17.5,
-      m2: 28.5,
+      "r/m1": 17.5,
+      "r/m2": 28.5,
       r: 37,
       c: 23,
     });
@@ -65,8 +65,8 @@ describe("a child's own map stack", () => {
   it("draws above as up on a child below the root", () => {
     const drawing = drawWith({ statements: [{ select: { ids: ["c"] }, set: { side: "below" } }] });
     expect(ordinates(drawing)).toEqual({
-      m1: 59.37890625,
-      m2: 54.37890625,
+      "r/m1": 59.37890625,
+      "r/m2": 54.37890625,
       r: 22.40234375,
       c: 64.87890625,
     });
@@ -77,11 +77,11 @@ describe("a child's own map stack", () => {
 describe("the root band", () => {
   it("takes the wedges' reach over a smaller stack and draws the wedges over it", () => {
     const drawing = drawFixture("map", [
-      { statements: [{ select: { ids: ["tempo"] }, set: { side: "below" } }] },
+      { statements: [{ select: { ids: ["melody/tempo"] }, set: { side: "below" } }] },
     ]);
     expect(ordinates(drawing)).toEqual({
-      tempo: 42.5,
-      ticks: 17.5,
+      "melody/tempo": 42.5,
+      "melody/ticks": 17.5,
       melody: 37,
       phrase: 23,
     });
@@ -89,15 +89,15 @@ describe("the root band", () => {
     expect(element(drawing, "melody/start")).toMatchObject({ yt: 38.5, yb: 51.5 });
     const index = (address: string) =>
       drawing.elements.findIndex((item) => item.address === address);
-    expect(index("tempo")).toBeLessThan(index("melody/start"));
-    expect(index("tempo")).toBeLessThan(index("melody/end"));
+    expect(index("melody/tempo")).toBeLessThan(index("melody/start"));
+    expect(index("melody/tempo")).toBeLessThan(index("melody/end"));
   });
 
   it("draws no map of a hidden root and gives it no room", () => {
     const drawing = drawFixture("map", [
       { statements: [{ select: { ids: ["melody"] }, set: { display: "none" } }] },
     ]);
-    expect(ordinates(drawing)).toEqual({ ticks: 17.5, phrase: 23 });
+    expect(ordinates(drawing)).toEqual({ "melody/ticks": 17.5, phrase: 23 });
     expect(element(drawing, "melody/start")).toMatchObject({ yt: 38.5, yb: 51.5 });
     expect(drawing.height).toBe(81.9765625);
   });
@@ -106,17 +106,17 @@ describe("the root band", () => {
     const name = "conversion_maps__maps_quarters";
     const above = drawFixture(name);
     expect(element(above, "maps:quarters")).toMatchObject({ y: 107.5 });
-    expect(element(above, "cmap_1")).toMatchObject({ yc: 102 });
-    expect(element(above, "tmap_2")).toMatchObject({ yc: 17 });
+    expect(element(above, "maps:quarters/cmap_1")).toMatchObject({ yc: 102 });
+    expect(element(above, "maps:quarters/tmap_2")).toMatchObject({ yc: 17 });
     expect(above.height).toBe(152.4765625);
     const below = drawFixture(name, [
       { statements: [{ select: { element: "map" }, set: { side: "below" } }] },
     ]);
     expect(element(below, "maps:quarters")).toMatchObject({ y: 22.40234375 });
-    expect(element(below, "cmap_1")).toMatchObject({
+    expect(element(below, "maps:quarters/cmap_1")).toMatchObject({
       yc: 27.90234375,
     });
-    expect(element(below, "tmap_2")).toMatchObject({
+    expect(element(below, "maps:quarters/tmap_2")).toMatchObject({
       yc: 112.90234375,
     });
     expect(below.height).toBe(131.90234375);

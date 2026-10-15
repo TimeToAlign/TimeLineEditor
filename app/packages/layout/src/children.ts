@@ -22,7 +22,7 @@ interface ChildRows {
 
 /** Place every drawn line but the root's into its side's rows, beyond its parent's anchor. */
 export function childRows(scope: Scope): ChildRows {
-  const { entries, rootEntry, relativeX } = scope;
+  const { entries, rootEntry, relativeX, relativeEnd } = scope;
   const drawnChildren = entries.slice(1).filter((entry) => entry.line && shown(entry.style));
   const rows = { above: new Rows(), below: new Rows() };
   const rowLines: Record<Side, Entry[][]> = { above: [], below: [] };
@@ -35,7 +35,10 @@ export function childRows(scope: Scope): ChildRows {
       continue;
     }
     const side = entry.style.side;
-    const row = rows[side].place([relativeX(entry.start), relativeX(entry.end)], parent[side] + 1);
+    // An open end's chevrons take room in the row: the extent runs on 8w past its end.
+    const end = relativeEnd(entry);
+    const right = entry.open ? end + 8 * entry.style["stroke-width"] : end;
+    const row = rows[side].place([relativeX(entry.start), right], parent[side] + 1);
     childRow.set(entry, row);
     while (rowLines[side].length < row) rowLines[side].push([]);
     (rowLines[side][row - 1] as Entry[]).push(entry);
@@ -97,17 +100,17 @@ export function childrenBand(
   };
 }
 
-/** The child lines, each ending with the open diamond. */
+/** The child lines, each ending with the open diamond, or running on into chevrons where open. */
 export function childElements(children: ChildRows, placed: Position): LineElement[] {
-  const { x, lineY } = placed;
+  const { x, xEnd, lineY } = placed;
   return children.drawn.map((entry) => ({
     type: "child",
     address: entry.manifest.id,
     style: entry.style,
     xs: x(entry.start),
-    xe: x(entry.end),
+    xe: entry.open ? xEnd(entry) + 4 * entry.style["stroke-width"] : xEnd(entry),
     y: lineY(entry),
     start: "circle",
-    end: "diamond",
+    end: entry.open ? "chevrons" : "diamond",
   }));
 }

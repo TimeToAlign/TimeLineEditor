@@ -87,7 +87,9 @@ describe("side", () => {
     const line = drawing.elements.find((item) => item.type === "break");
     expect(drawing.height).toBe(95.9296875);
     expect(line).toMatchObject({ y1: 16, y2: 77.9296875 });
-    expect(drawing.elements.find((item) => item.address === "break_1/label")).toMatchObject({
+    expect(
+      drawing.elements.find((item) => item.address === "flow:quarters/break_1/label"),
+    ).toMatchObject({
       x: 393.9775390625,
       baseline: 24.35400390625,
     });

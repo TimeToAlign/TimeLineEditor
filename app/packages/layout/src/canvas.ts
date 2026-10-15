@@ -31,6 +31,8 @@ export interface Position {
   readonly yRoot: number;
   /** `x` of an exact position on the root's axis. */
   readonly x: (value: Real) => number;
+  /** `Xe`, `x` of a timeline's end: `x0 + L` for the root's open end (section 3.4). */
+  readonly xEnd: (entry: Entry) => number;
   /** The ordinate of a distance outwards from the root's line. */
   readonly yAt: (side: Side, outwards: number) => number;
   /** The baseline of a label beyond the ordinate `y` (section 6.6). */
@@ -52,11 +54,12 @@ export function position(
   top: number,
 ): Position {
   const x = (value: Real) => x0 + scope.relativeX(value);
+  const xEnd = (entry: Entry) => x0 + scope.relativeEnd(entry);
   const yRoot = top + yLocal;
   const yAt = (side: Side, outwards: number) => at(side, outwards)(yRoot);
   const beyond = (side: Side, y: number, size: number) =>
     side === "above" ? y - scope.d(size) : y + scope.a(size);
   const lineY = (line: Entry): number =>
     line === scope.rootEntry ? yRoot : yAt(line.style.side, distance(line));
-  return { x0, xn, top, yRoot, x, yAt, beyond, lineY };
+  return { x0, xn, top, yRoot, x, xEnd, yAt, beyond, lineY };
 }

@@ -1,0 +1,48 @@
+/*
+ * The canvas's small menus, the resize modes and the gap of a deleted
+ * segment: a white panel of text buttons, the chosen one in the accent.
+ */
+
+.tilie-menu {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  background: #fff;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+}
+
+.tilie-menu-item {
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0 0.6rem;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: none;
+  font: inherit;
+  font-size: 0.85rem;
+  color: inherit;
+  cursor: pointer;
+}
+
+.tilie-menu-item:hover {
+  background: #f0f0f0;
+}
+
+.tilie-menu-item:disabled,
+.tilie-menu-item:has(:disabled) {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.tilie-menu-item[aria-pressed="true"],
+.tilie-menu-item:has(:checked) {
+  background: #dcebff;
+  border-color: #0a84ff;
+}
+
+.tilie-menu-item:focus-visible,
+.tilie-menu-item:has(:focus-visible) {
+  outline: 2px solid #0a84ff;
+  outline-offset: 1px;
+}

@@ -1,19 +1,17 @@
 /**
  * `draw(manifest, placement, layers, metrics)`: the drawing of one
- * TimeSkeleton manifest (`docs/drawing.md` in timeskeleton). Every file is
- * drawn as a bundle (section 8): each timeline drawn as a root, a timeline
- * file's top-level timeline included, lies in its own card and is laid out
- * by sections 3 to 6.
+ * TimeSkeleton manifest (`docs/drawing.md` in timeskeleton). Every manifest
+ * is drawn as one box (section 8): each timeline drawn as a root lies in its
+ * own card and is laid out by sections 3 to 6.
  */
 
 import {
   BLOCK_KEY,
-  type BundleFile,
   elementKey,
   type Manifest,
   type MemberDrawing,
-  manifestKind,
   memberDrawings,
+  TITLE_ADDRESS,
   timelineAncestry,
   unownedKey,
 } from "@timetoalign/tilie-core";
@@ -112,9 +110,8 @@ function largestRightEdge(
 }
 
 /**
- * Draw one manifest as a bundle (section 8): a bundle file as itself, a
- * group file as an anonymous bundle holding its group, a timeline file as an
- * anonymous bundle holding its top-level timeline as an ungrouped root.
+ * Draw one manifest as one box (section 8): its title, its groups as frames
+ * and its ungrouped roots as cards.
  */
 export function draw(
   manifest: Manifest,
@@ -131,13 +128,13 @@ export function draw(
   const hasFrame = frames.length > 0;
   const xn = hasFrame ? P + Q + K : P + K;
 
-  /** A title (section 8.1): a name element with its group's or bundle's name, or its id. */
-  const title = (id: string, name: string | null, holder: Holder, x: number) => {
-    const style = cascade.resolve(unownedKey("name", `${id}/name`, holder.key), holder.style);
+  /** A title (section 8.1): a name element at `address` with its group's or manifest's name, or its id. */
+  const title = (address: string, id: string, name: string | null, holder: Holder, x: number) => {
+    const style = cascade.resolve(unownedKey("name", address, holder.key), holder.style);
     const size = style["font-size"];
     const source = style.content === "none" ? (name ?? unscoped(id)) : style.content;
     const text = cutText(measure, cleanText(source), size, style["max-width"]);
-    return { address: `${id}/name`, style, size, text, x, drawn: shown(style) };
+    return { address, style, size, text, x, drawn: shown(style) };
   };
   type Title = ReturnType<typeof title>;
   const titleElement = (item: Title, baseline: number): TextElement => ({
@@ -160,7 +157,7 @@ export function draw(
     return {
       address: frame.group.id,
       style: frameHolder.style,
-      title: title(frame.group.id, frame.group.name, frameHolder, P + Q),
+      title: title(`${frame.group.id}/name`, frame.group.id, frame.group.name, frameHolder, P + Q),
       members: frame.members.map((member) => ({
         card: card(member, frameHolder),
         layout: layoutMember(context, member, frameHolder),
@@ -176,15 +173,13 @@ export function draw(
     [...boxes.flatMap((box) => box.members), ...loose].map((item) => item.layout),
     placement.length,
   );
-  const bundle =
-    manifestKind(ordered) === "bundle"
-      ? (() => {
-          const { id, name } = (ordered as BundleFile).bundle;
-          return title(id, name, block, P);
-        })()
-      : undefined;
+  // The manifest's title: its name, else its id; a manifest with neither has none.
+  const heading =
+    ordered.name === null && ordered.id === undefined
+      ? undefined
+      : title(TITLE_ADDRESS, ordered.id ?? "", ordered.name, block, P);
 
-  // Vertical (section 8.4): the bundle's title, then the frames and ungrouped cards F apart.
+  // Vertical (section 8.4): the manifest's title, then the frames and ungrouped cards F apart.
   interface Placed {
     readonly card: { readonly address: string; readonly style: Style };
     readonly top: number;
@@ -193,11 +188,12 @@ export function draw(
   }
   const titles: TextElement[] = [];
   let next = P;
-  if (bundle?.drawn === true) {
-    titles.push(titleElement(bundle, P + measure.ascent(bundle.size)));
-    next = P + measure.lineHeight(bundle.size) + F;
+  let headingTitle: TextElement | undefined;
+  if (heading?.drawn === true) {
+    headingTitle = titleElement(heading, P + measure.ascent(heading.size));
+    titles.push(headingTitle);
+    next = P + measure.lineHeight(heading.size) + F;
   }
-  const bundleTitle = titles[0];
   const place = (item: (typeof loose)[number], top: number): Placed => ({
     card: item.card,
     top,
@@ -238,11 +234,11 @@ export function draw(
   const elements: DrawnElement[] = [];
   const rights: number[] = [];
   const bottoms: number[] = [];
-  // The bundle's displayed title takes room in the box, its slot ending at P + h(s).
-  if (bundle !== undefined && bundleTitle !== undefined) {
-    elements.push(bundleTitle);
-    rights.push(P + measure.width(bundleTitle.text, bundle.size));
-    bottoms.push(P + measure.lineHeight(bundle.size));
+  // The manifest's displayed title takes room in the box, its slot ending at P + h(s).
+  if (heading !== undefined && headingTitle !== undefined) {
+    elements.push(headingTitle);
+    rights.push(P + measure.width(headingTitle.text, heading.size));
+    bottoms.push(P + measure.lineHeight(heading.size));
   }
   // A frame or card takes room in the box whether displayed or not; a card's shadow only when drawn.
   const pushCard = (item: Placed, left: number, right: number) => {

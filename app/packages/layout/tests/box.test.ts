@@ -38,7 +38,7 @@ function line(drawing: Drawing, address: string): object {
 const size = (drawing: Drawing) => [drawing.width, drawing.height];
 const order = (drawing: Drawing) => drawing.elements.map((item) => item.address);
 
-describe("a timeline file: an anonymous bundle with one ungrouped root", () => {
+describe("a manifest of one root: an anonymous box with one ungrouped root", () => {
   const drawing = drawFixture("bare");
 
   it("lies in its card, from P to R + K, shadow included in the box", () => {
@@ -67,7 +67,7 @@ describe("a timeline file: an anonymous bundle with one ungrouped root", () => {
   });
 });
 
-describe("group files: an anonymous bundle holding its group", () => {
+describe("manifests of one group: an anonymous box holding its frame", () => {
   it("group_child_member", () => {
     const drawing = drawFixture("groups/group_child_member");
     expect(size(drawing)).toEqual([558.4140625, 190.13671875]);
@@ -181,12 +181,12 @@ describe("group files: an anonymous bundle holding its group", () => {
   });
 });
 
-describe("a bundle file with a title, two frames and an ungrouped root", () => {
+describe("a titled manifest with two frames and an ungrouped root", () => {
   const drawing = drawFixture("bundles/bundle_mixed");
 
   it("opens with its title, then the frames and the ungrouped card F apart", () => {
     expect(size(drawing)).toEqual([580.484619140625, 417.8828125]);
-    expect(title(drawing, "bundle_1/name")).toEqual({
+    expect(title(drawing, "name")).toEqual({
       x: 8,
       baseline: 18.21044921875,
       anchor: "start",
@@ -236,7 +236,7 @@ describe("a bundle file with a title, two frames and an ungrouped root", () => {
       .map((item) => item.address);
     expect(boxes).toEqual([
       null,
-      "bundle_1/name",
+      "name",
       "group_1",
       "group_1/name",
       "score/card",
@@ -258,7 +258,7 @@ describe("a bundle file with a title, two frames and an ungrouped root", () => {
 });
 
 const isTitle = (item: DrawnElement): boolean =>
-  item.type === "name" && /^(group_\d+|bundle_\d+)\/name$/.test(item.address as string);
+  item.type === "name" && /^(group_\d+\/name|name)$/.test(item.address as string);
 
 describe("hidden titles", () => {
   it("a frame without its title slot", () => {
@@ -270,9 +270,9 @@ describe("hidden titles", () => {
     expect(drawing.height).toBe(173.33203125);
   });
 
-  it("a bundle without its title", () => {
-    const drawing = drawFixture("bundles/bundle_mixed", [hide("bundle_1/name")]);
-    expect(drawing.elements.some((item) => item.address === "bundle_1/name")).toBe(false);
+  it("a manifest without its title", () => {
+    const drawing = drawFixture("bundles/bundle_mixed", [hide("name")]);
+    expect(drawing.elements.some((item) => item.address === "name")).toBe(false);
     expect(rect(drawing, "group_1")).toMatchObject({ y: 8 });
     expect(rect(drawing, "annotations/card")).toMatchObject({ y: 337.69921875 });
     expect(drawing.height).toBe(397.078125);
@@ -313,7 +313,7 @@ describe("the box size", () => {
   });
 });
 
-describe("addresses in group and bundle files", () => {
+describe("root-qualified addresses", () => {
   it("prefix a map with its root's id", () => {
     const drawing = drawFixture("bundles/corpus_mpm");
     expect(element(drawing, "score:clt_1/tmap_1").type).toBe("map");

@@ -1,38 +1,27 @@
-import {
-  dumps,
-  JsonFloat,
-  migrate,
-  parse,
-  parseJson,
-  SCHEMA_VERSION,
-  SUPPORTED_VERSIONS,
-} from "@timetoalign/timeskeleton";
+import { dumps, JsonFloat, parseJson, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
 import { describe, expect, it, vi } from "vitest";
-import type { LoadError, Manifest, TimelineFile } from "../src/index.ts";
+import type { LoadError, Manifest } from "../src/index.ts";
 import {
-  checkManifest,
+  apply,
+  createView,
   InvalidManifestError,
+  isCommandError,
   isLoadError,
   loadManifest,
-  readManifestValue,
   saveManifest,
+  unknownKeys,
 } from "../src/index.ts";
-import type { JsonObject } from "../src/json.ts";
 import {
-  bundleFixtures,
-  groupFixtures,
+  A,
+  allFixtures,
+  block,
+  changed,
+  fixture,
   load,
-  manifestFixtures,
-  migrationPairs,
-  olderFixtures,
+  loadText,
+  manifestValue,
   rejections,
 } from "./support.ts";
-
-function loaded(text: string): Manifest {
-  const manifest = loadManifest(text);
-  if (isLoadError(manifest)) throw new Error(dumps(manifest.problems));
-  return manifest;
-}
 
 function refused(text: string): LoadError {
   const result = loadManifest(text);
@@ -40,90 +29,127 @@ function refused(text: string): LoadError {
   return result;
 }
 
+const problems = (text: string) => refused(text).problems.map(({ code, path }) => ({ code, path }));
+
+type Node = Record<string, unknown>;
+const node = (value: unknown, ...keys: (string | number)[]): Node =>
+  keys.reduce<unknown>((current, key) => (current as Node)[key], value) as Node;
+
 describe("fixture manifests round-trip byte for byte", () => {
-  it("has exactly 29 timeline, 9 group and 9 bundle files", () => {
-    expect([manifestFixtures.length, groupFixtures.length, bundleFixtures.length]).toEqual([
-      29, 9, 9,
-    ]);
+  it.each(allFixtures.map((fixture) => [fixture.name, fixture.text]))("%s", (_, text) => {
+    expect(saveManifest(loadText(text))).toBe(text);
   });
 
-  it.each(
-    [...manifestFixtures, ...groupFixtures, ...bundleFixtures].map((fixture) => [
-      fixture.name,
-      fixture.text,
-    ]),
-  )("%s", (_, text) => {
-    expect(saveManifest(loaded(text))).toBe(text);
-  });
+  it.each(allFixtures.map((fixture) => [fixture.name, fixture.text, fixture.twin]))(
+    "the minimal twin of %s",
+    (_, text, twin) => {
+      const manifest = loadText(twin);
+      expect(saveManifest(manifest)).toBe(text);
+      expect(saveManifest(manifest, { minimal: true })).toBe(twin);
+    },
+  );
 });
 
 describe("shared rejections", () => {
-  it.each(rejections.map((item) => [item.name, item]))("%s", (_, item) => {
-    expect(refused(item.text).problems.map((entry) => entry.path)).toEqual([item.path]);
+  it.each(rejections.map((item) => [item.name, item.text, item.path]))("%s", (_, text, path) => {
+    expect(refused(text).problems.map((item) => item.path)).toEqual([path]);
   });
 });
 
-describe("schema version", () => {
-  it("refuses a manifest declaring any version but the installed one", () => {
-    const fixture = manifestFixtures.find((item) => item.name === "bare.json");
-    const text = (fixture?.text ?? "").replace(
-      `"schema_version": "${SCHEMA_VERSION}"`,
-      '"schema_version": "0.0.0"',
-    );
-    expect(refused(text).problems.map(({ code, path }) => ({ code, path }))).toEqual([
-      { code: "schema_violation", path: ["meta", "schema_version"] },
+describe("the version marker", () => {
+  it("refuses another version at the marker and a value without one at the top", () => {
+    const value = manifestValue("bare.json");
+    expect(problems(dumps({ ...value, timeskeleton: "0.6.0" }))).toEqual([
+      { code: "schema_violation", path: ["timeskeleton"] },
     ]);
+    const { timeskeleton: _, ...unmarked } = value;
+    expect(problems(dumps(unmarked))).toEqual([{ code: "schema_violation", path: [] }]);
   });
+});
 
-  const earlier = SUPPORTED_VERSIONS.filter((version) => version !== SCHEMA_VERSION);
-
-  it("knows two earlier versions", () => {
-    expect(earlier).toEqual(["0.5.0", "0.6.0"]);
-  });
-
-  describe.each(earlier)("reads a manifest declaring %s", (version) => {
-    const fixtures = olderFixtures(version);
-
-    it("has 23 timeline fixtures", () => {
-      expect(fixtures.length).toBe(23);
-    });
-
-    it.each(fixtures.map((fixture) => [fixture.name, fixture.text]))(
-      "%s, migrated by timeskeleton to the latest version",
-      (_, text) => {
-        expect(text.includes(`"schema_version": "${version}"`)).toBe(true);
-        const manifest = loaded(text);
-        expect(manifest.meta.schema_version).toBe(SCHEMA_VERSION);
-        expect(saveManifest(manifest)).toBe(dumps(migrate(parseJson(text))));
-      },
-    );
-
-    it("leaves the value it reads unchanged", () => {
-      const fixture = fixtures.find((item) => item.name === "bare.json")?.text ?? "";
-      const value = parseJson(fixture) as unknown as Manifest;
-      const manifest = readManifestValue(value);
-      expect(isLoadError(manifest) ? manifest.problems : manifest.meta.schema_version).toBe(
-        SCHEMA_VERSION,
-      );
-      expect(value.meta.schema_version).toBe(version);
+describe("the minimal form in, either form out", () => {
+  it("supplies every default of bare.json and adds no absent key", () => {
+    const root = {
+      id: "bare",
+      name: "Bare",
+      unit: "quarters",
+      number_type: "fraction",
+      length: [8, 1],
+      locked: false,
+      is_segment_line: false,
+      meta: {},
+      children: [],
+      conversion_maps: [],
+      regions: [],
+      flow_control: { breaks: [], jumps: [], markers: [] },
+      measure_map: null,
+      metric_hierarchy: null,
+    };
+    const { meta: _, ...twin } = parseJson(fixture("bare.json").twin) as Record<string, unknown>;
+    expect(loadText(dumps(twin as never))).toEqual({
+      timeskeleton: SCHEMA_VERSION,
+      name: null,
+      meta: {},
+      groups: [],
+      timelines: [root],
     });
   });
+});
 
-  it("migrates 0.6.0-to-0.7.0/before.json to its after.json byte for byte", () => {
-    const pair = migrationPairs.find((item) => item.name === "0.6.0-to-0.7.0");
-    expect(saveManifest(loaded(pair?.before ?? ""))).toBe(pair?.after);
-  });
-
-  it("reads 0.5.0-to-0.6.0/before.json and after.json as equal manifests", () => {
-    const pair = migrationPairs.find((item) => item.name === "0.5.0-to-0.6.0");
-    expect(saveManifest(loaded(pair?.before ?? ""))).toBe(saveManifest(loaded(pair?.after ?? "")));
+describe("unknown keys", () => {
+  it("are kept through loading, commands and saving, and listed", () => {
+    const value = manifestValue("bare.json");
+    const [root] = value.timelines as Node[];
+    const text = dumps({
+      ...value,
+      "x-top": 1,
+      timelines: [
+        {
+          ...root,
+          "x-root": { a: [1, 2] },
+          regions: [{ id: "region_1", start: [2, 1], end: [4, 1], "x-region": "kept" }],
+        },
+      ],
+    });
+    const manifest = loadText(text);
+    const kept = (held: Manifest) => [
+      node(held, "x-top"),
+      node(held, "timelines", 0, "x-root"),
+      node(held, "timelines", 0, "regions", 0, "x-region"),
+    ];
+    expect(kept(manifest)).toEqual([1, { a: [1, 2] }, "kept"]);
+    let view = changed(createView(), {
+      type: "add",
+      into: "workspace",
+      block: { id: A, manifest, x: 0, y: 0 },
+    });
+    view = changed(view, {
+      type: "set",
+      changes: [{ target: `${A}/bare`, values: { name: "B" } }],
+    });
+    view = changed(view, {
+      type: "add",
+      into: `${A}/bare`,
+      marker: { id: "marker_1", coordinate: [1, 1] },
+    });
+    const edited = block(view).manifest;
+    expect(kept(edited)).toEqual([1, { a: [1, 2] }, "kept"]);
+    expect(kept(parseJson(saveManifest(edited)) as unknown as Manifest)).toEqual([
+      1,
+      { a: [1, 2] },
+      "kept",
+    ]);
+    expect(unknownKeys(edited)).toEqual([
+      { path: [], key: "x-top" },
+      { path: ["timelines", 0], key: "x-root" },
+      { path: ["timelines", 0, "regions", 0], key: "x-region" },
+    ]);
   });
 });
 
 describe("graphical styles", () => {
   it("warns once and completes every missing named style", () => {
-    const fixture = manifestFixtures.find((item) => item.name === "bare.json")?.text ?? "";
-    const value = parse(fixture) as unknown as Manifest;
+    const value = manifestValue("bare.json");
     const graphical = {
       styles: { kept: { fill: "#ABCDEF" } },
       statements: [
@@ -135,7 +161,7 @@ describe("graphical styles", () => {
     };
     const text = dumps({ ...value, graphical });
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
-    const manifest = loaded(text);
+    const manifest = loadText(text);
     expect(warn).toHaveBeenCalledExactlyOnceWith("Missing graphical styles: 'a', 'z'");
     expect(manifest.graphical?.styles).toEqual({ kept: { fill: "#ABCDEF" }, a: {}, z: {} });
     expect(graphical.styles).toEqual({ kept: { fill: "#ABCDEF" } });
@@ -144,142 +170,82 @@ describe("graphical styles", () => {
 });
 
 describe("lossless numbers", () => {
+  /** A fixture's text with its first root's length replaced by `length`. */
+  const withLength = (name: string, length: unknown) => {
+    const value = manifestValue(name);
+    const [root, ...rest] = value.timelines as Record<string, unknown>[];
+    return dumps({ ...value, timelines: [{ ...root, length }, ...rest] } as never);
+  };
+
   it("keeps an int above 2^53", () => {
-    const fixture = manifestFixtures.find((item) => item.name === "discrete_logical.json");
-    const text = (fixture?.text ?? "").replace('"value": 480', '"value": 9007199254740993');
-    const manifest = loaded(text) as TimelineFile;
-    expect(manifest.timeline.length.value).toBe(9007199254740993n);
+    const text = withLength("discrete_logical.json", 9007199254740993n);
+    const manifest = loadText(text);
+    expect(manifest.timelines[0]?.length).toBe(9007199254740993n);
     expect(saveManifest(manifest)).toBe(text);
+    expect(saveManifest(manifest)).toContain('"length": 9007199254740993,');
   });
 
   it("keeps a Fraction component above 2^53", () => {
-    const fixture = manifestFixtures.find((item) => item.name === "continuous_logical.json");
-    const pattern = /"value": \[\n(\s+)12,\n(\s+)1\n/;
-    const text = (fixture?.text ?? "").replace(pattern, '"value": [\n$19007199254740993,\n$22\n');
-    const manifest = loaded(text) as TimelineFile;
-    expect(manifest.timeline.length.value).toEqual([9007199254740993n, 2]);
+    const text = withLength("continuous_logical.json", [9007199254740993n, 1]);
+    const manifest = loadText(text);
+    expect(manifest.timelines[0]?.length).toEqual([9007199254740993n, 1]);
     expect(saveManifest(manifest)).toBe(text);
   });
 });
 
 describe("canonical order", () => {
   it("orders markers at one coordinate by id in code-point order", () => {
-    const coordinate = { unit: "quarters", number_type: "fraction", value: [1, 1] } as const;
-    const bare = load("bare.json");
-    const manifest = {
-      ...bare,
-      timeline: {
-        ...bare.timeline,
-        flow_control: {
-          ...bare.timeline.flow_control,
-          markers: ["\u{1F3B5}", "～"].map((id) => ({ id, name: null, coordinate })),
-        },
-      },
-    };
-    const saved = parse(saveManifest(manifest)) as unknown as TimelineFile;
-    expect(saved.timeline.flow_control.markers.map((marker) => marker.id)).toEqual([
-      "\uFF5E",
+    const value = manifestValue("bare.json");
+    const [root] = value.timelines as Node[];
+    const markers = ["\u{1F3B5}", "～"].map((id) => ({ id, coordinate: [1, 1] }));
+    const text = dumps({ ...value, timelines: [{ ...root, flow_control: { markers } }] });
+    const saved = parseJson(saveManifest(loadText(text))) as unknown as Manifest;
+    expect(saved.timelines[0]?.flow_control.markers.map((marker) => marker.id)).toEqual([
+      "～",
       "\u{1F3B5}",
     ]);
   });
 });
 
 describe("invariants", () => {
-  type Node = Record<string, unknown>;
-  const node = (value: unknown, ...keys: (string | number)[]): Node =>
-    keys.reduce<unknown>((current, key) => (current as Node)[key], value) as Node;
-  const source = manifestFixtures.find((item) => item.name === "with_region.json")?.text ?? "";
-  const base = parse(source) as unknown as JsonObject;
-  const rootPath = ["timeline"];
-  const [first = ""] = Object.keys(node(base, ...rootPath, "children"));
-  const childPath = [...rootPath, "children", first];
-  const float = (value: number) => ({
-    unit: "quarters",
-    number_type: "float",
-    value: new JsonFloat(value),
-  });
-  const quarters = (numerator: number) => ({
-    unit: "quarters",
-    number_type: "fraction",
-    value: [numerator, 1],
-  });
+  const base = () => manifestValue("with_region.json");
+  const rootPath = ["timelines", 0];
+  const childPath = [...rootPath, "children", 0];
 
   it("lists three violations in traversal order", () => {
-    const value = parse(source) as unknown as Node;
-    const root = node(value, "timeline");
-    const child = node(value, ...childPath);
-    const [region] = root.regions as JsonObject[];
-    Object.assign(node(child, "timeline"), { locked: false });
+    const value = base();
+    const root = node(value, ...rootPath);
+    const [region] = root.regions as Node[];
+    Object.assign(node(value, ...childPath), { metric_hierarchy: {} });
     Object.assign(root, {
       conversion_maps: [
         {
           type: "LinearMap",
           id: "seconds",
-          name: null,
           source_unit: "seconds",
           target_unit: null,
           scalar: 2,
           offset: 0,
         },
       ],
-      regions: [{ ...region, end: quarters(0) }],
+      regions: [{ ...region, end: [0, 1] }],
     });
     const text = dumps(value);
-    expect(refused(text).problems.map(({ code, path }) => ({ code, path }))).toEqual([
-      { code: "child_not_locked", path: [...childPath, "timeline", "locked"] },
+    expect(problems(text)).toEqual([
+      { code: "metric_hierarchy_without_measure_map", path: [...childPath, "metric_hierarchy"] },
       {
         code: "map_source_unit_mismatch",
         path: [...rootPath, "conversion_maps", 0, "source_unit"],
       },
       { code: "region_end_before_start", path: [...rootPath, "regions", 0, "end"] },
     ]);
-    expect(() => saveManifest(parse(text) as unknown as Manifest)).toThrow(InvalidManifestError);
+    expect(() => saveManifest(value as unknown as Manifest)).toThrow(InvalidManifestError);
   });
 
   const cases: [string, (manifest: Node) => void, (string | number)[]][] = [
     [
-      "unit_not_allowed",
-      (manifest) =>
-        Object.assign(node(manifest, ...rootPath), { class: "DiscreteLogicalTimeline" }),
-      [...rootPath, "unit"],
-    ],
-    [
-      "child_unit_mismatch",
-      (manifest) => {
-        const child = node(manifest, ...childPath, "timeline");
-        Object.assign(child, {
-          unit: "whole_note",
-          length: { ...node(child, "length"), unit: "whole_note" },
-        });
-      },
-      [...childPath, "timeline", "unit"],
-    ],
-    [
-      "invalid_coordinate",
-      (manifest) => Object.assign(node(manifest, ...rootPath, "length"), { value: [2n ** 63n, 1] }),
-      [...rootPath, "length", "value"],
-    ],
-    [
-      "off_axis",
-      (manifest) => Object.assign(node(manifest, ...rootPath, "regions", 0), { start: float(2) }),
-      [...rootPath, "regions", 0, "start"],
-    ],
-    [
-      "negative_offset",
-      (manifest) =>
-        Object.assign(node(manifest, ...childPath), {
-          offset: { ...quarters(-1), value: [-1, 3] },
-        }),
-      [...childPath, "offset"],
-    ],
-    [
-      "child_exceeds_parent",
-      (manifest) => Object.assign(node(manifest, ...childPath), { offset: quarters(9) }),
-      [...childPath, "offset"],
-    ],
-    [
       "region_end_before_start",
-      (manifest) => Object.assign(node(manifest, ...rootPath, "regions", 0), { end: quarters(1) }),
+      (manifest) => Object.assign(node(manifest, ...rootPath, "regions", 0), { end: [1, 1] }),
       [...rootPath, "regions", 0, "end"],
     ],
     [
@@ -291,11 +257,10 @@ describe("invariants", () => {
       "number_type_not_allowed",
       (manifest) =>
         Object.assign(node(manifest, ...rootPath), {
-          class: "DiscreteLogicalTimeline",
           unit: "ticks",
           number_type: "fraction",
-          length: { unit: "ticks", number_type: "fraction", value: [1, 1] },
-          children: {},
+          length: [1, 1],
+          children: [],
           regions: [],
         }),
       [...rootPath, "number_type"],
@@ -303,42 +268,62 @@ describe("invariants", () => {
   ];
 
   it("accepts a child of another number type", () => {
-    const manifest = parse(dumps(base)) as unknown as Node;
-    Object.assign(node(manifest, ...childPath, "timeline"), {
-      number_type: "float",
-      length: float(4),
-    });
-    const text = dumps(manifest);
-    expect(text.includes('"value": 4.0')).toBe(true);
-    expect(saveManifest(loaded(text))).toBe(text);
+    const value = base();
+    Object.assign(node(value, ...childPath), { number_type: "float", length: new JsonFloat(4) });
+    const text = dumps(value);
+    expect(text.includes('"length": 4.0')).toBe(true);
+    expect(saveManifest(loadText(text))).toBe(text);
   });
 
   it.each(cases)("%s", (code, change, expectedPath) => {
-    const manifest = parse(dumps(base)) as unknown as Node;
-    change(manifest);
-    expect(
-      refused(dumps(manifest)).problems.map(({ code: found, path }) => ({ code: found, path })),
-    ).toEqual([{ code, path: expectedPath }]);
+    const value = base();
+    change(value);
+    expect(problems(dumps(value))).toEqual([{ code, path: expectedPath }]);
   });
 
-  it("refuses a child whose id differs from its key in children, in check and load", () => {
-    const nested = manifestFixtures.find((item) => item.name === "nested.json")?.text ?? "";
-    const value = parse(nested) as unknown as Node;
-    expect(Object.keys(node(value, "timeline", "children"))).toEqual(["clt_3"]);
-    Object.assign(node(value, "timeline", "children", "clt_3", "timeline"), { id: "clt_9" });
-    const expected = [
-      { code: "key_mismatch", path: ["timeline", "children", "clt_3", "timeline", "id"] },
-    ];
-    const text = dumps(value);
-    expect(refused(text).problems.map(({ code, path }) => ({ code, path }))).toEqual(expected);
-    expect(
-      checkManifest(value as unknown as Manifest).map(({ code, path }) => ({ code, path })),
-    ).toEqual(expected);
+  it.each([
+    [
+      "a child of another unit",
+      { unit: "whole_note" },
+      [...childPath, "unit"],
+      "child 'clt_2' has unit 'whole_note', its parent 'clt_1' has 'quarters'",
+    ],
+    [
+      "a negative child offset",
+      { offset: [-1, 3] },
+      [...childPath, "offset"],
+      "offset [-1, 3] of 'clt_2' is negative",
+    ],
+    [
+      // Placed at 9, the child comes after its sibling at 2 in canonical order.
+      "a child ending past its parent",
+      { offset: [9, 1] },
+      [...rootPath, "children", 1, "length"],
+      "child 'clt_2' ends at [13, 1], beyond the length [12, 1] of its parent 'clt_1'",
+    ],
+  ])("leaves %s to the schema", (_, change, path, message) => {
+    const value = base();
+    Object.assign(node(value, ...childPath), change);
+    expect(refused(dumps(value)).problems).toEqual([{ code: "schema_violation", message, path }]);
   });
 
   it("refuses malformed text", () => {
-    expect(refused('{"meta": ').problems.map(({ code, path }) => ({ code, path }))).toEqual([
-      { code: "invalid_json", path: [] },
+    expect(problems('{"timeskeleton": ')).toEqual([{ code: "invalid_json", path: [] }]);
+  });
+
+  it("checks commands with the same invariants", () => {
+    const view = changed(createView(), {
+      type: "add",
+      into: "workspace",
+      block: { id: A, manifest: load("with_region.json"), x: 0, y: 0 },
+    });
+    const result = apply(view, {
+      type: "set",
+      changes: [{ target: `${A}/clt_1/region_1`, values: { end: [0, 1] } }],
+    });
+    expect(isCommandError(result) ? [result.code, result.path] : result).toEqual([
+      "region_end_before_start",
+      [A, "manifest", ...rootPath, "regions", 0, "end"],
     ]);
   });
 });

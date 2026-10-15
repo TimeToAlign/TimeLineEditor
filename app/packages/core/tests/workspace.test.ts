@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Block, TimelineFile, View } from "../src/index.ts";
+import type { Block, View } from "../src/index.ts";
 import { checkWorkspace, createView, DEFAULT_SETTINGS } from "../src/index.ts";
 import { A, B, block, C, viewOf } from "./support.ts";
 
@@ -27,23 +27,22 @@ describe("workspace creation", () => {
 
   it("creates exactly the fixed metadata, the settings and no blocks", () => {
     expect(createView()).toEqual({
-      meta: { format: "tilie-workspace", version: 1 },
+      meta: { format: "tilie-workspace", version: 2 },
       settings: DEFAULT_SETTINGS,
       blocks: {},
     });
     const settings = { ...DEFAULT_SETTINGS, grid: { size: 4, snap: false } };
     expect(createView(settings)).toEqual({
-      meta: { format: "tilie-workspace", version: 1 },
+      meta: { format: "tilie-workspace", version: 2 },
       settings,
       blocks: {},
     });
   });
 
-  it("gives a block exactly its thirteen members", () => {
+  it("gives a block exactly its twelve members", () => {
     expect(Object.keys(block(viewOf([A, "bare.json"]))).sort()).toEqual(
       [
         "id",
-        "blockKind",
         "parent",
         "index",
         "x",
@@ -94,14 +93,12 @@ describe("workspace checks", () => {
     ]);
   });
 
-  it("reports the kind, the placement and prefixed manifest problems exactly", () => {
+  it("reports the placement and prefixed manifest problems exactly", () => {
     const region = block(viewOf([A, "with_region.json"]));
-    const { timeline } = region.manifest as TimelineFile;
-    const [first] = timeline.regions;
-    const end = { unit: "quarters", number_type: "fraction", value: [0, 1] } as const;
+    const [timeline] = region.manifest.timelines;
+    const [first] = timeline?.regions ?? [];
     const invalid = {
       ...region,
-      blockKind: "group",
       x: Number.POSITIVE_INFINITY,
       scale: 0,
       length: -1,
@@ -111,11 +108,10 @@ describe("workspace checks", () => {
       order: ["children", "children", "flow"],
       manifest: {
         ...region.manifest,
-        timeline: { ...timeline, regions: [{ ...first, end }] },
+        timelines: [{ ...timeline, regions: [{ ...first, end: [0, 1] }] }],
       },
     } as unknown as Block;
     expect(found(viewWith(invalid))).toEqual([
-      { code: "block_kind_mismatch", path: ["blocks", A, "blockKind"] },
       { code: "non_finite_number", path: ["blocks", A, "x"] },
       { code: "non_positive_number", path: ["blocks", A, "scale"] },
       { code: "non_positive_number", path: ["blocks", A, "length"] },
@@ -124,7 +120,7 @@ describe("workspace checks", () => {
       { code: "invalid_order", path: ["blocks", A, "order"] },
       {
         code: "region_end_before_start",
-        path: ["blocks", A, "manifest", "timeline", "regions", 0, "end"],
+        path: ["blocks", A, "manifest", "timelines", 0, "regions", 0, "end"],
       },
     ]);
   });

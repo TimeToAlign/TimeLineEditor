@@ -4,7 +4,6 @@ import type { Graphical } from "@timetoalign/timeskeleton";
 import type { Problem } from "../errors.ts";
 import { ErrorCode, isCommandError, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";
-import { manifestKind } from "../manifest/files.ts";
 import { manifestProblems } from "../manifest/io.ts";
 import { readFinite, readIndex, readOrder, readPositive } from "../values.ts";
 import type { Block, BlockId, BlockPlacement } from "./blocks.ts";
@@ -12,7 +11,7 @@ import { BLOCK_ID } from "./blocks.ts";
 
 export interface WorkspaceMeta {
   readonly format: "tilie-workspace";
-  readonly version: 1;
+  readonly version: 2;
 }
 
 export interface WorkspaceSettings {
@@ -28,7 +27,7 @@ export interface View {
   readonly blocks: { readonly [id: BlockId]: Block };
 }
 
-export const WORKSPACE_META: WorkspaceMeta = { format: "tilie-workspace", version: 1 };
+export const WORKSPACE_META: WorkspaceMeta = { format: "tilie-workspace", version: 2 };
 
 export const DEFAULT_SETTINGS: WorkspaceSettings = {
   grid: { size: 8, snap: true },
@@ -81,7 +80,7 @@ export function checkWorkspace(view: View): Problem[] {
 }
 
 /**
- * The problems of a view's blocks, in id order: their ids, kinds, parents,
+ * The problems of a view's blocks, in id order: their ids, parents,
  * indices and placement, and with `manifests` their manifests too.
  */
 export function structureProblems(view: View, manifests = false): Problem[] {
@@ -98,15 +97,6 @@ export function structureProblems(view: View, manifests = false): Problem[] {
     if (!BLOCK_ID.test(block.id)) {
       problems.push(
         problem(ErrorCode.invalidBlockId, `invalid block id ${block.id}`, [...path, "id"]),
-      );
-    }
-    if (block.blockKind !== manifestKind(block.manifest)) {
-      problems.push(
-        problem(
-          ErrorCode.blockKindMismatch,
-          `block kind ${block.blockKind} does not describe its manifest`,
-          [...path, "blockKind"],
-        ),
       );
     }
     if (block.parent !== null && view.blocks[block.parent] === undefined) {

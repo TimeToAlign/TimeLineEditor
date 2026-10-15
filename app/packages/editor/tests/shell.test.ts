@@ -15,6 +15,7 @@ import { flushSync, mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App.svelte";
 import { createAutosave, recoverWorkspace } from "../src/autosave.ts";
+import { manifestFileName } from "../src/files.ts";
 import { stubEditor } from "./dom.ts";
 import { fixture, fixtureText, interceptDownloads, pickFile } from "./support.ts";
 
@@ -153,18 +154,20 @@ describe("the File menu", () => {
       ["Save as…", "Ctrl+Shift+S"],
       ["Import manifest…", null],
       ["Export manifest…", null],
+      ["Export minimal manifest…", null],
     ]);
+    expect(item("Export minimal manifest…").getAttribute("aria-disabled")).toBe("true");
     expect(item("Export manifest…").getAttribute("aria-disabled")).toBe("true");
 
     key(button, { key: "ArrowDown" });
     await vi.waitFor(() => expect(focusedLabel()).toBe("New workspace"));
     expect([button.getAttribute("aria-expanded"), menu?.hidden]).toEqual(["true", false]);
     key(document.activeElement as Element, { key: "ArrowUp" });
-    expect(focusedLabel()).toBe("Export manifest…");
+    expect(focusedLabel()).toBe("Export minimal manifest…");
     key(document.activeElement as Element, { key: "ArrowDown" });
     expect(focusedLabel()).toBe("New workspace");
     key(document.activeElement as Element, { key: "End" });
-    expect(focusedLabel()).toBe("Export manifest…");
+    expect(focusedLabel()).toBe("Export minimal manifest…");
     key(document.activeElement as Element, { key: "Home" });
     expect(focusedLabel()).toBe("New workspace");
     key(document.activeElement as Element, { key: "Escape" });
@@ -172,7 +175,7 @@ describe("the File menu", () => {
     expect(document.activeElement).toBe(button);
 
     key(button, { key: "ArrowUp" });
-    await vi.waitFor(() => expect(focusedLabel()).toBe("Export manifest…"));
+    await vi.waitFor(() => expect(focusedLabel()).toBe("Export minimal manifest…"));
   });
 });
 
@@ -320,7 +323,7 @@ describe("manifests", () => {
     expect(hook().store().journal.length).toBe(1);
   });
 
-  it("exports the manifest of the block the selection lies in", async () => {
+  it("exports the manifest of the block the selection lies in, complete or minimal", async () => {
     start();
     const downloads = interceptDownloads();
     addBlock(hook().store(), A, "nested");
@@ -335,7 +338,16 @@ describe("manifests", () => {
     choose("Export manifest…");
     const manifest = hook().store().view.blocks[A]?.manifest;
     if (manifest === undefined) throw new Error("block A is missing");
-    await vi.waitFor(() => expect(downloads).toEqual([["clt_1.json", saveManifest(manifest)]]));
+    await vi.waitFor(() =>
+      expect(downloads).toEqual([[manifestFileName(manifest), saveManifest(manifest)]]),
+    );
+    expect(item("Export minimal manifest…").getAttribute("aria-disabled")).toBe(null);
+    choose("Export minimal manifest…");
+    await vi.waitFor(() => expect(downloads).toHaveLength(2));
+    expect(downloads[1]).toEqual([
+      manifestFileName(manifest),
+      saveManifest(manifest, { minimal: true }),
+    ]);
   });
 });
 

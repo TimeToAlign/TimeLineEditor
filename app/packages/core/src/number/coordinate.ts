@@ -1,16 +1,18 @@
 /**
  * Coordinates: a value on one axis, the axis being a unit and a number type.
  *
- * The dict form mirrors timetoalign's `coordinate_to_dict` /
- * `coordinate_from_dict` and `number_to_json` / `number_from_json`: an `int`
- * value is a JSON integer, a `float` value a JSON number, a `fraction` value
- * a `[numerator, denominator]` pair, and every integer is int64-bounded.
+ * A value on its timeline's own axis is written bare (`readAxisValue`,
+ * `toAxisValue`), following timetoalign's `number_to_json` /
+ * `number_from_json`: an `int` value is a JSON
+ * integer, a `float` value a JSON number, a `fraction` value a `[numerator,
+ * denominator]` pair, and every integer is int64-bounded.
  */
 
-import type { JsonNumber, NumberType, TimeUnit } from "@timetoalign/timeskeleton";
-import { JsonFloat, SCHEMA_VERSION, schemaDocuments } from "@timetoalign/timeskeleton";
+import type { NumberType, TimeUnit } from "@timetoalign/timeskeleton";
+import { JsonFloat } from "@timetoalign/timeskeleton";
 import type { PathSegment } from "../json.ts";
-import { isJsonObject, showJson } from "../json.ts";
+import { showJson } from "../json.ts";
+import type { AxisValue } from "../manifest/types.ts";
 import { Rational } from "./rational.ts";
 
 /** A coordinate's value: `bigint` for `int`, `number` for `float`, `Rational` for `fraction`. */
@@ -21,17 +23,6 @@ export interface Coordinate {
   readonly numberType: NumberType;
   readonly value: CoordinateValue;
 }
-
-/** The JSON form of a coordinate, its numbers as `parse` reads them. */
-export type CoordinateDict = {
-  readonly unit: TimeUnit;
-  readonly number_type: NumberType;
-  readonly value: JsonNumber | readonly [number | bigint, number | bigint];
-};
-
-const { $defs } = schemaDocuments[SCHEMA_VERSION].core;
-export const TIME_UNITS: readonly TimeUnit[] = $defs.TimeUnit.enum;
-export const NUMBER_TYPES: readonly NumberType[] = $defs.NumberType.enum;
 
 const INT64_MIN = -(2n ** 63n);
 const INT64_MAX = 2n ** 63n - 1n;
@@ -61,9 +52,9 @@ export class AxisMismatchError extends Error {
   }
 }
 
-function int64(value: bigint, label: string): bigint {
+function int64(value: bigint, label: string, path: readonly PathSegment[]): bigint {
   if (value < INT64_MIN || value > INT64_MAX) {
-    throw new CoordinateError(`${label} ${value} does not fit in int64`, ["value"]);
+    throw new CoordinateError(`${label} ${value} does not fit in int64`, path);
   }
   return value;
 }
@@ -86,49 +77,68 @@ function float(value: unknown): number | undefined {
   return undefined;
 }
 
-/** Read a coordinate value under its declared number type, as `number_from_json` does. */
-function readValue(data: unknown, numberType: NumberType): CoordinateValue {
+/**
+ * Read a value under its axis's number type, as `number_from_json` does: an
+ * `int` value reads a JSON integer, or an integral JSON number as that
+ * integer; a `float` value reads a JSON number, or an integer as the float it
+ * equals exactly; a `fraction` value reads only a pair of integers with a
+ * positive denominator.
+ *
+ * @throws {CoordinateError} at `path`.
+ */
+export function readAxisValue(
+  data: unknown,
+  numberType: NumberType,
+  path: readonly PathSegment[] = [],
+): CoordinateValue {
   const shown = showJson(data);
   const asInteger = integer(data);
   const asFloat = float(data);
   let read: CoordinateValue;
   if (asInteger !== undefined) {
-    read = int64(asInteger, "integer");
+    read = int64(asInteger, "integer", path);
   } else if (asFloat !== undefined) {
     read = asFloat;
   } else if (Array.isArray(data)) {
     if (data.length !== 2) {
-      throw new CoordinateError(`invalid JSON Fraction ${shown}: expected two items`, ["value"]);
+      throw new CoordinateError(`invalid JSON Fraction ${shown}: expected two items`, path);
     }
     const numerator = integer(data[0]);
     const denominator = integer(data[1]);
     if (numerator === undefined || denominator === undefined) {
-      throw new CoordinateError(`invalid JSON Fraction ${shown}: components must be integers`, [
-        "value",
-      ]);
+      throw new CoordinateError(
+        `invalid JSON Fraction ${shown}: components must be integers`,
+        path,
+      );
     }
     if (denominator <= 0n) {
       throw new CoordinateError(
         `invalid JSON Fraction ${shown}: denominator must be strictly positive`,
-        ["value"],
+        path,
       );
     }
-    read = Rational.fromParts(int64(numerator, "numerator"), int64(denominator, "denominator"));
+    read = Rational.fromParts(
+      int64(numerator, "numerator", path),
+      int64(denominator, "denominator", path),
+    );
   } else {
-    throw new CoordinateError(`invalid coordinate value ${shown}`, ["value"]);
+    throw new CoordinateError(`invalid coordinate value ${shown}`, path);
   }
   if (numberType === "int") {
     if (typeof read === "bigint") return read;
-    if (typeof read === "number" && Number.isInteger(read)) return int64(BigInt(read), "integer");
+    if (typeof read === "number" && Number.isInteger(read)) {
+      return int64(BigInt(read), "integer", path);
+    }
   } else if (numberType === "float") {
     if (typeof read === "number") return read;
     if (typeof read === "bigint" && BigInt(Number(read)) === read) return Number(read);
   } else if (read instanceof Rational) {
     return read;
   }
-  throw new CoordinateError(`coordinate value ${shown} is not a ${numberType} representation`, [
-    "value",
-  ]);
+  throw new CoordinateError(
+    `coordinate value ${shown} is not a ${numberType} representation`,
+    path,
+  );
 }
 
 /** An integer as `parse` represents it: a plain number when safe, a bigint beyond. */
@@ -142,45 +152,30 @@ export function jsonFloat(value: number): JsonFloat | number {
 }
 
 /**
- * Read a coordinate dict as timetoalign's `coordinate_from_dict` does.
+ * Read a bare value on an axis (`readAxisValue`) as a coordinate there.
  *
- * @throws {CoordinateError} with the path of the offending member.
+ * @throws {CoordinateError} at `path`.
  */
-export function coordinateFromDict(entry: unknown): Coordinate {
-  if (!isJsonObject(entry)) throw new CoordinateError("a coordinate must be an object", []);
-  for (const key of ["unit", "number_type", "value"]) {
-    if (!Object.hasOwn(entry, key)) throw new CoordinateError(`coordinate is missing ${key}`, []);
-  }
-  const unit = entry.unit;
-  if (typeof unit !== "string" || !(TIME_UNITS as readonly string[]).includes(unit)) {
-    throw new CoordinateError(`unknown coordinate unit ${showJson(unit)}`, ["unit"]);
-  }
-  const numberType = entry.number_type;
-  if (typeof numberType !== "string" || !(NUMBER_TYPES as readonly string[]).includes(numberType)) {
-    throw new CoordinateError(`unknown coordinate number type ${showJson(numberType)}`, [
-      "number_type",
-    ]);
-  }
+export function axisCoordinate(
+  value: unknown,
+  axis: { readonly unit: TimeUnit; readonly number_type: NumberType },
+  path: readonly PathSegment[] = [],
+): Coordinate {
   return {
-    unit: unit as TimeUnit,
-    numberType: numberType as NumberType,
-    value: readValue(entry.value, numberType as NumberType),
+    unit: axis.unit,
+    numberType: axis.number_type,
+    value: readAxisValue(value, axis.number_type, path),
   };
 }
 
-/** Write a coordinate as timetoalign's `coordinate_to_dict` does. */
-export function coordinateToDict(coordinate: Coordinate): CoordinateDict {
+/** A coordinate's bare value as a manifest writes it on its own axis, numbers as `parse` reads them. */
+export function toAxisValue(coordinate: Coordinate): AxisValue {
   const { value } = coordinate;
-  return {
-    unit: coordinate.unit,
-    number_type: coordinate.numberType,
-    value:
-      value instanceof Rational
-        ? [jsonInteger(value.numerator), jsonInteger(value.denominator)]
-        : typeof value === "bigint"
-          ? jsonInteger(value)
-          : jsonFloat(value),
-  };
+  return value instanceof Rational
+    ? [jsonInteger(value.numerator), jsonInteger(value.denominator)]
+    : typeof value === "bigint"
+      ? jsonInteger(value)
+      : jsonFloat(value);
 }
 
 /** Whether two coordinates share unit and number type. */
@@ -223,10 +218,4 @@ export function addCoordinates(left: Coordinate, right: Coordinate): Coordinate 
 
 export function subtractCoordinates(left: Coordinate, right: Coordinate): Coordinate {
   return combine(left, right, -1);
-}
-
-/** The origin of an axis. */
-export function zeroCoordinate(unit: TimeUnit, numberType: NumberType): Coordinate {
-  const value = numberType === "int" ? 0n : numberType === "float" ? 0 : Rational.of(0n);
-  return { unit, numberType, value };
 }

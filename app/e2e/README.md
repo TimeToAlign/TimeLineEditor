@@ -31,7 +31,10 @@ arguments are built by `container.ts` and pinned in `tests/README.md`.
 - **The DOM** for what the contract says is rendered: nodes
   `.svelte-flow__node[data-id="<block id>"]` (a selected block's node
   carries Svelte Flow's class `selected`), drawn elements
-  `[data-address="<element id>"]` inside their node, `[data-selected]`,
+  `[data-address="<address>"]` inside their node (one rule in every
+  manifest: a timeline or a group by its bare id, every other element by
+  `<root id>/<element id>`, the manifest's title by `name`; parts append
+  `/start`, `/end`, `/name`, `/label` or `/card`), `[data-selected]`,
   `[data-hovered]`, `[data-contains-selection]`, the mode buttons `[data-testid="mode-scale"
   | "mode-box" | "mode-stretch"]` and the canvas controls' `[data-testid="lock"
   | "marquee"]` with `aria-pressed`,
@@ -71,9 +74,9 @@ viewport through the hook first; at zoom 1 a pixel is a canvas unit.
 
 `fixtures/generate.ts` builds every workspace through `createStore` and the
 `add` command from the manifest fixtures of the installed
-`@timetoalign/timeskeleton` (its `SCHEMA_VERSION`: timeline files, and the
-synthetic group and bundle files of its `groups/` and `bundles/`, never a
-`corpus_*` one) and writes it with `writeWorkspace`. The
+`@timetoalign/timeskeleton` (its `SCHEMA_VERSION`: manifests of one root at
+the top, and the synthetic manifests holding groups in its `groups/` and
+`bundles/`, never a `corpus_*` one) and writes it with `writeWorkspace`. The
 journal is deterministic: author `"Fixture Generator"`, entry times from
 `2026-10-12T09:00:00.000Z`, one second apart. Each `add` gives only `id`,
 `manifest`, `x` and `y`, so every other placement member is the workspace
@@ -88,19 +91,19 @@ present. The files are never edited by hand.
 | File | Blocks |
 |---|---|
 | `small.tle.json` | `bare000000` (`bare`) at (0, 0), `nested0000` (`nested`) at (0, 160), `map0000000` (`map`) at (0, 320), `flow000000` (`flow_control`) at (640, 0), `styled0000` (`styled__score`: region `intro`, jump `da-capo`, C-Map `ticks`) at (640, 160) |
-| `groups.tle.json` | four group files: `gchild0000` (`groups/group_child_member`) at (0, 0), `ggrand0000` (`groups/group_grandchild`) at (0, 240), `gmixed0000` (`groups/group_parents_mixed`) at (640, 0), `gstyled000` (`groups/group_styled`) at (640, 424) |
-| `bundles.tle.json` | the three bundle files: `bmixed0000` (`bundles/bundle_mixed`) at (0, 0), `bshared000` (`bundles/bundle_shared_parent`) at (640, 0), `bungroup00` (`bundles/bundle_ungrouped`) at (0, 480) |
+| `groups.tle.json` | four manifests of one group each: `gchild0000` (`groups/group_child_member`) at (0, 0), `ggrand0000` (`groups/group_grandchild`) at (0, 240), `gmixed0000` (`groups/group_parents_mixed`) at (640, 0), `gstyled000` (`groups/group_styled`) at (640, 424) |
+| `bundles.tle.json` | the three named manifests of `bundles/`: `bmixed0000` (`bundles/bundle_mixed`) at (0, 0), `bshared000` (`bundles/bundle_shared_parent`) at (640, 0), `bungroup00` (`bundles/bundle_ungrouped`) at (0, 480) |
 | `grid-300.tle.json` | 300 `bare` blocks `g000000000` … `g000000299`, block `n` at (512 × (n mod 20), 80 × ⌊n / 20⌋) |
 | `grid-900.tle.json` | 900 `bare` blocks, block `n` at (512 × (n mod 30), 80 × ⌊n / 30⌋) |
 
-The group workspace takes one file of each shape the drawing distinguishes:
+The group workspace takes one manifest of each shape the drawing distinguishes:
 a member that is a child (one ancestor line), a grandchild (two), members
 under three different roots beside a root member, and a styled frame; the
 boxes it draws (558.4140625 × 190.13671875, 559.70361328125 × 224.11328125,
 568.08642578125 × 374.04296875, 544.693603515625 × 212.94140625) do not
 overlap at those positions, and all four lie inside a 1600 × 1000 page at
-viewport (40, 40), zoom 1. The bundle workspace holds every synthetic bundle
-file (boxes 580.484619140625 × 417.8828125, 585.39013671875 ×
+viewport (40, 40), zoom 1. The bundle workspace holds every synthetic manifest
+of `bundles/` (boxes 580.484619140625 × 417.8828125, 585.39013671875 ×
 452.45703125, 525.896728515625 × 217.015625).
 
 After opening, the journal holds one `add` per block (5, 4, 3, 300, 900); a gesture
@@ -108,8 +111,8 @@ is proven to be one command by the journal growing by exactly one entry.
 
 ### Drawing facts the expected values rest on
 
-A timeline file is drawn as an anonymous bundle holding its root in a card
-(drawing.md section 8): the card spans `x = P = 8` to `R + K` and `y = 8` to
+A manifest of one root with neither `name` nor `id` is drawn as a box without
+a title holding its root in a card (drawing.md section 8): the card spans `x = P = 8` to `R + K` and `y = 8` to
 `8 + Hm`, its shadow 2 further right and down, and the box adds `P` beyond
 the shadow, so every box is the root's own drawing (sections 3 to 6, the
 card's size) plus 18 each way, and its plot origin lies 8 further right.
@@ -138,8 +141,8 @@ spacing` for `spacing ≥ 0.9146…` and `76.98828125 + 16 × spacing` below
 
 Every block's card rectangle and its shadow carry the address `<root>/card`
 (`bare/card`, `clt_1/card`, `melody/card`, `flow:quarters/card`,
-`score/card`); the drawn texts of `small` are still 23 (an anonymous bundle
-draws no title).
+`score/card`); the drawn texts of `small` are still 23 (a manifest with neither
+`name` nor `id` draws no title).
 
 ## The gesture rules the values follow
 
@@ -166,7 +169,8 @@ draws no title).
 `small` at viewport (40, 40), zoom 1, page 1600 × 1000.
 
 1. **Opening.** Five nodes, one per block id; `styled0000` holds the elements
-   `intro`, `da-capo` and `ticks`. **Every drawn text is in the bundled
+   `score/intro`, `score/da-capo` and `score/ticks` (region, jump and C-Map,
+   each addressed by its root `score`). **Every drawn text is in the bundled
    face**: each `<text>` on the canvas has exactly the width the drawing
    defines for it. That width is the sum of the code points' advances in the
    bundled face's advance table times the font size over 2048 (kerning off),
@@ -312,16 +316,19 @@ draws no title).
    removes it: {bare000000, styled0000/score}. A drag that starts on `clt_2`
    moves `nested0000` by (101, 37) to (104, 200) as one command. Escape
    clears the selection.
-10. **Delete.** Selection {styled0000/intro}, Delete: the journal gains
-    exactly `{type: "remove", targets: ["styled0000/intro"]}`, the manifest's
-    region list is empty and the element `intro` is gone from the node;
-    Ctrl/Cmd+Z brings it back (`["intro"]`, one element). Selection
-    {map0000000}, Backspace: `{type: "remove", targets: ["map0000000"]}`, the
-    node gone, the order bare, nested, flow, styled. Selection
-    {bare000000/bare, styled0000/intro} (a root timeline and a region),
-    Delete: refused whole; the hint is visible and contains "select the block
-    to delete it", the journal stays at 5 and every manifest is unchanged
-    (their JSON text before and after is identical).
+10. **Delete.** Selection {styled0000/score/intro}, Delete: the journal gains
+    exactly `{type: "remove", targets: ["styled0000/score/intro"]}`, the
+    manifest's region list is empty and the element `score/intro` is gone
+    from the node; Ctrl/Cmd+Z brings it back (`["intro"]`, one element).
+    Selection {map0000000}, Backspace: `{type: "remove", targets:
+    ["map0000000"]}`, the node gone, the order bare, nested, flow, styled.
+    Selection {bare000000/bare, styled0000/score/intro} (a root timeline and
+    a region), Delete: exactly one `{type: "remove", targets:
+    ["bare000000/bare", "styled0000/score/intro"]}`, as a timeline is removed
+    like any other element; `bare000000`'s manifest holds no timeline, its
+    node stays (the empty box; the block goes only as a block) without the
+    card `bare/card`, and `score/intro` is gone. Ctrl/Cmd+Z restores every
+    manifest (their JSON text equals that before the Delete) and both parts.
 10b. **Selecting a timeline marks its descendants.** `nested`'s root `clt_1`
     holds `clt_3`, which holds `clt_2`; the drawing addresses `clt_2`'s line
     as `clt_2` and its name as `clt_2/name`. With {nested0000/clt_3}
@@ -544,17 +551,18 @@ its "Open inspector" button. The text is read from the textarea labelled
 "Manifest (…)", the format chosen by the radio labelled "YAML".
 
 1. **A YAML edit reaches the canvas as one command, and Undo restores it.**
-   The YAML text's line `  name: Bare` becomes `  name: Renamed`; Apply
+   The YAML text's line `    name: Bare` (the root's, inside the list
+   `timelines`) becomes `    name: Renamed`; Apply
    adds exactly one journal entry (5 → 6), a `set` whose only change
    targets `bare000000` with the single value `manifest`; the drawn name
    `[data-address="bare/name"]` of the block reads `Renamed` and the
-   stored manifest's `timeline.name` is `Renamed`. After `undo()` through
+   stored manifest's `timelines[0].name` is `Renamed`. After `undo()` through
    the hook the drawn name reads `Bare` again and the textarea, which holds
-   no unapplied edit, shows `  name: Bare` again.
-2. **A refused edit shows its exact path and keeps the text.** `  locked:
-   false` becomes `  locked: yes` (a string in YAML 1.2); Apply leaves the
+   no unapplied edit, shows `    name: Bare` again.
+2. **A refused edit shows its exact path and keeps the text.** `    locked:
+   false` becomes `    locked: yes` (a string in YAML 1.2); Apply leaves the
    journal at 5, the problem list holds exactly one item reading
-   `schema_violation must be boolean at /timeline/locked`, and the textarea
+   `schema_violation must be boolean at /timelines/0/locked`, and the textarea
    still holds the edited text.
 3. **The properties form moves the block by the exact amount.** The field
    `x` (initially `0`) is filled with `37.5` and Enter pressed: the journal
@@ -562,7 +570,8 @@ its "Open inspector" button. The text is read from the textarea labelled
    stored `x` is `37.5`, and the node's bounding box has moved right by
    exactly 37.5 px (zoom 1) with its `y` unchanged.
 4. **axe-core reports no violation with the drawer open and the manifest
-   shown** (YAML chosen, `bare000000` selected).
+   shown** (YAML chosen, the text beginning with its first key, `groups: []`;
+   `bare000000` selected).
 5. **The form follows a drag live.** `bare000000` (at (0, 0)) is pressed
    on its card and moved by (101, 37) with the button held: Svelte
    Flow has it at the grid point (104, 40) (no other left edge or origin
@@ -599,7 +608,7 @@ its "Open inspector" button. The text is read from the textarea labelled
 ## `a11y.spec.ts`
 
 axe-core (`@axe-core/playwright`) on the page with `small` open reports an
-empty `violations` list, again with the element `styled0000/intro`
+empty `violations` list, again with the element `styled0000/score/intro`
 selected, with the inspector drawer open, with the File menu open, with the
 About dialog open, and with the question "… has unsaved changes. Discard
 them?" open (a `set` makes the workspace unsaved, then File → New
@@ -628,17 +637,18 @@ clears the selection, the next Tab focuses `nested0000` and Enter selects it.
 
 ## `groups.spec.ts` (Chromium, Firefox, WebKit)
 
-Group and bundle files on the canvas: `groups` or `bundles` at viewport
+Manifests holding groups on the canvas: `groups` or `bundles` at viewport
 (40, 40), zoom 1, page 1600 × 1000, unless a test states otherwise. Every expected list below is the order
-of timeskeleton's `docs/drawing.md` section 8.5 (the bundle's title; per
+of timeskeleton's `docs/drawing.md` section 8.5 (the manifest's title; per
 frame the frame, its title, then per member its card and its member
 drawing, ancestor lines just before the member's line; then each ungrouped
 root's card and drawing), applied to the fixture by hand.
 
 1. **A group workspace draws its frames, cards and lines.** Four nodes. In
    each node, the distinct `data-address` values of the drawn parts, in DOM
-   order, kept only when they name a frame or a line (no `/`), a card (ending
-   `/card`) or a title (`group_<n>/name`, `bundle_<n>/name`), are exactly:
+   order, kept only when they name a frame, a line or the manifest's title
+   (no `/`; the title is `name`), a card (ending `/card`) or a group's title
+   (`group_<n>/name`), are exactly:
    - `gchild0000`: group_1, group_1/name, second-half/card, piece,
      second-half, recording/card, recording;
    - `ggrand0000`: group_1, group_1/name, theme/card, score, movement,
@@ -654,20 +664,20 @@ root's card and drawing), applied to the fixture by hand.
    the group's `name`: "Second half", "Theme", "Exposition", "Edition".
    Every card is two parts (shadow, card) carrying its address, every frame
    one.
-2. **A bundle workspace draws the bundle's title, its frames, and its
+2. **A bundle workspace draws the manifest's title, its frames, and its
    ungrouped roots without a frame.** Three nodes:
-   - `bmixed0000`: bundle_1/name, group_1, group_1/name, score/card, score,
+   - `bmixed0000`: name, group_1, group_1/name, score/card, score,
      performance/card, performance, group_2, group_2/name, page/card, page,
      excerpt/card, recording, excerpt, annotations/card, annotations
      (titles "Mixed", "Performance", "Facsimile"; `annotations` is
      ungrouped and follows the frames);
-   - `bshared000`: bundle_1/name, group_1, group_1/name, exposition/card,
+   - `bshared000`: name, group_1, group_1/name, exposition/card,
      score, exposition, take_1/card, take_1, group_2, group_2/name,
      recapitulation/card, recapitulation, take_2/card, take_2, page/card,
      page (titles "Sonata", "Exposition", "Recapitulation"; `score`, the
      parent of both members, appears once in the list of distinct values
      but is drawn in both frames);
-   - `bungroup00`: bundle_1/name, pages/card, pages, recording/card,
+   - `bungroup00`: name, pages/card, pages, recording/card,
      recording, score/card, score (title "Sketches"; no frame).
 3. **Selecting an element drawn twice marks every copy.** In `bshared000`
    the ancestor line `score` is drawn once per frame: 8 parts carry
@@ -676,25 +686,41 @@ root's card and drawing), applied to the fixture by hand.
    `group_2`'s (line, two chevrons running on to the left, arrowhead). A
    click on the first part (the line in `group_1`) selects exactly
    `[bshared000/score]`; all 8 parts, in both frames, carry
-   `data-selected`, and no other part does. In a group file the same holds
+   `data-selected`, and no other part does. In a manifest of one group the same holds
    for a part drawn twice: `second-half/start` in `gchild0000` is the mark
    of the member's start on `piece`'s ancestor line and its start wedge on
    its own line; a click on the first of the two (the mark) selects exactly
    `[gchild0000/second-half/start]`, both carry `data-selected`, and they
    are the only marked parts.
-4. **Delete in a group file: timelines are refused, other elements go.** In
-   `gchild0000`, with `{gchild0000/recording}` selected (a member line),
-   Delete is refused: the hint is visible and contains `recording`, the
-   journal stays at 4 and every block's manifest is unchanged (JSON text
-   before and after identical). The same for `{gchild0000/piece}` (an
-   ancestor line, still a timeline). Then a region is added through the
+4. **Delete removes a timeline with its subtree from its group, and a
+   region.** In `gchild0000` (roots `piece`, holding `second-half`, and
+   `recording`; `group_1` with members `recording`, `second-half`), with
+   `{gchild0000/recording}` selected (a member line), Delete journals
+   exactly `{type: "remove", targets: ["gchild0000/recording"]}`; the roots
+   are then `piece` with the child `second-half`, `group_1`'s members
+   `[second-half]`, and the card `recording/card` is gone. Ctrl/Cmd+Z
+   brings the journal back to 4 and every block's manifest to its JSON text
+   before the Delete. The same for `{gchild0000/piece}` (an ancestor line,
+   a root): one `remove` of `gchild0000/piece`, the roots `recording` alone
+   (the child `second-half` went with its parent), `group_1`'s members
+   `[recording]` (the group stays), and the card `second-half/card` gone
+   (`piece` is drawn only as the ancestor line inside that card); undo
+   again restores every manifest. Then a region is added through the
    hook with one `add` into `gchild0000/second-half` (`region_1`, name
-   `A`, from 2 to 6 quarters, number type `fraction`): journal 5, and the node shows the
-   part `piece/region_1` (in a group file a region is addressed by its
-   root, `piece`, and its id). With `{gchild0000/piece/region_1}` selected,
+   `A`, `start` `[2, 1]` and `end` `[6, 1]`, bare values on `second-half`'s
+   own `fraction` axis): journal 5, and the node shows the
+   part `piece/region_1` (a region is addressed by its root, `piece`, and
+   its id). With `{gchild0000/piece/region_1}` selected,
    Delete journals exactly `{type: "remove", targets:
    ["gchild0000/piece/region_1"]}`, the stored `second-half` has no region
    and the part is gone; Ctrl/Cmd+Z brings both back.
+4b. **Delete refuses a selection holding the manifest's title.** The title
+   is removed only with its block. In `bmixed0000`, with
+   `{bmixed0000/annotations, bmixed0000/name}` selected (a root and the
+   title), Delete is refused whole: the hint is visible and contains
+   "select the block to delete it", the journal stays at 3, every block's
+   manifest is unchanged (JSON text before and after identical) and the
+   card `annotations/card` is still drawn.
 5. **Hover marks the card under the pointer and a boundary.** The pointer
    anywhere inside a card marks that card: its own rectangle (the one with
    a stroke), not its shadow, which carries the same address. The mouse
@@ -733,24 +759,84 @@ root's card and drawing), applied to the fixture by hand.
      factor (here 1.5) the point read would be (480.929443359375,
      208.740234375), below every card and below the drawing (height
      190.13671875), and nothing would be marked.
-6. **Import and export of a group file and a bundle file.** As in
+5b. **A stretched bundle's box follows its content.** `bungroup00`
+   (`bundles/bundle_ungrouped` at (0, 480)) is drawn `Wc(L) = R + 18` wide
+   with `R` the end label `441000 smp` (12831 advance units at size 9,
+   56.38623046875 wide) centred at `x0 + L`, `x0 = 16 + w(Recording, 11) +
+   8 = 16 + 55.70361328125 + 8 = 79.70361328125` (the page of
+   `drawings/bundle__bundle_ungrouped` is 557.8967 = `Wc(400) + 32` wide).
+   Every right edge of the drawing is `x0 + L` plus a constant, so `Wc(L) =
+   125.896728515625 + L` and `Wc(400) = 525.896728515625`. Selected through
+   the hook, box mode, its bottom-right handle dragged by (40, 30): one
+   `set` with a `height` request and `width` 565.89697265625, `Wc(400) + 40`
+   quantized to 1/2048 (`Wc(400)` is an odd multiple of 1/4096, the half
+   label's, and the half rounds up), a margin of 40.000244140625. Then
+   stretch mode, its right handle dragged by (50, 0) from a whole-pixel
+   press point: one `set`, `length` 450 (the target content is
+   `565.89697265625 + 50 − 40.000244140625 = 575.896728515625 = Wc(450)`),
+   `width` 615.89697265625 (`Wc(450)` plus the margin: it is kept),
+   `height` as before, (0, 480) unchanged. The node's right edge on screen
+   moves by exactly the pointer's 50 and its left edge stays put: the box
+   follows the content. Without it the box would keep its 565.9 and the
+   content grow inside it.
+6. **Import and export of a manifest of one group and of a named one.** As in
    `files.spec.ts`, the File System Access pickers are deleted before the
    page loads, so File → Import manifest… is answered through the file
    chooser and File → Export manifest… downloads. On the fresh page (journal
    0), File → Import manifest… with the installed package's
    `fixtures/<SCHEMA_VERSION>/groups/group_styled.json` journals one `add`
    (journal 1); the store holds exactly one new block, the selection is
-   exactly that block, its `blockKind` is `group`, and its manifest's JSON
-   text equals that of `loadManifest` of the file's text (run in the test,
-   outside the page). File → Export manifest… downloads a file named
-   `<group id>.json`, the group's id read from the fixture file
-   (`group_1.json`), whose text equals `dumps` of the loaded fixture (core's
-   `saveManifest`, the canonical form) and the fixture file's own text,
-   byte for byte (the fixtures are written in that form). Then the same
-   with `bundles/bundle_mixed.json`: journal 2, one block more, of
-   `blockKind` `bundle`, selected alone, its manifest that of `loadManifest`
-   of the file, exported as `<bundle id>.json` (`bundle_1.json`) with the
-   text of the fixture file.
+   exactly that block, and its manifest's JSON text equals that of
+   `loadManifest` of the file's text (run in the test, outside the page).
+   File → Export manifest… downloads a file named as the editor's
+   `manifestFileName` names it, from the manifest's `id`, else its `name`,
+   else `manifest` (`manifest.json`: the fixture has neither), whose text
+   equals `dumps` of the loaded fixture (core's `saveManifest`, the
+   canonical form) and the fixture file's own text, byte for byte (the
+   fixtures are written in that form). Then the same with
+   `bundles/bundle_mixed.json`: journal 2, one block more, selected alone,
+   its manifest that of `loadManifest` of the file, exported as
+   `Mixed.json` (its `name`; it has no `id`) with the text of the fixture
+   file.
+
+## `segments.spec.ts` (Chromium, Firefox, WebKit)
+
+Deleting a segment asks how to close the gap it leaves in its segment line
+(core's `remove` with a `gap`; the rules and every refusal are proven in
+core's and arranger's unit tests). This spec drives the menu once in a
+browser, where the native radio groups, the focus and axe are real. The
+file chooser is answered as in `files.spec.ts` (the open picker deleted
+before the page loads).
+
+File → New workspace, then File → Import manifest… with the installed
+package's `fixtures/<SCHEMA_VERSION>/segment_line.json`: journal 1, the new
+block selected. Its root `form` (32 quarters, not locked) holds the
+segments `a` at 0, `b` at 8 and `c` at 20, each a locked segment line
+(`b` 12 long, `c` holding `c1`). With `<block>/b` selected through the hook
+and the arranger focused, Delete opens the menu and journals nothing.
+Of the four ways only right shift is permitted: left extend needs `a` to
+change its length (locked), right extend `c` (locked), left shift needs
+`form` to move in a parent (it is a root). So:
+
+- the radios `Left` and `Extend` are disabled, their labels titled `the
+  preceding segment a is locked; its segment line form is a root and has
+  no offset to move` and `the preceding segment a is locked; the following
+  segment c is locked`; `Right` and `Shift` are enabled, checked, and
+  `Right` has the focus;
+- the preview marks what right shift moves or resizes: the distinct
+  addresses carrying `[data-moved]`, sorted, are exactly `c`, `c/label`,
+  `c/start`, `form`, `form/card`, `form/end`, `form/end/label`,
+  `form/name`, `form/start`, `form/start/label` (`form` shortens, so all
+  its drawn parts; `c` moves back, its line, boundary and label; its
+  segment `c1` moves with it but, the first segment and unnamed, draws
+  neither boundary nor label);
+- axe-core, limited to the menu, reports no violation.
+
+Enter then journals exactly one command, `{type: "remove", targets:
+[<block>/b], gap: {side: "right", verb: "shift"}}`; the menu and every
+`[data-moved]` mark are gone, the selection is empty, and `form` is 20
+long holding `a` at `[0, 1]` and `c` at `[8, 1]` (`c` moved back by `b`'s
+12, `form` shortened by it).
 
 ## `budget.spec.ts` (`@budget`, Chromium only)
 

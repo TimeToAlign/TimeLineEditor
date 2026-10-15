@@ -4,6 +4,7 @@
  */
 
 import type { Declaration, Selector } from "@timetoalign/timeskeleton";
+import type { Gap } from "../manifest/remove.ts";
 import type { BlockId } from "../workspace/blocks.ts";
 import type { Address } from "../workspace/ids.ts";
 
@@ -36,10 +37,15 @@ export type SetCommand = {
   readonly changes: readonly Change[];
 };
 
-/** Remove blocks and elements, mixed. */
+/**
+ * Remove blocks and elements, mixed. Removing a segment leaves a gap in its
+ * segment line: `gap` says how it is closed, and the command then names that
+ * one segment alone.
+ */
 export type RemoveCommand = {
   readonly type: "remove";
   readonly targets: readonly Address[];
+  readonly gap?: Gap;
 };
 
 /**

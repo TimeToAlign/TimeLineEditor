@@ -18,8 +18,8 @@ literal. `support.ts` reads the fixtures from the installed
 All values are in canvas units, for the default placement (length 400,
 spacing 1, no box request) and the default style layer.
 
-- **Every file is drawn as a bundle** (section 8). A timeline file is an
-  anonymous bundle without title or frame, its root drawn in its card
+- **Every manifest is drawn as one box** (section 8). A manifest of one
+  root and no name has no title and no frame, its root drawn in its card
   `T/card`. The name column starts at `xn = P + K = 16`; the card spans `x
   = P` to `R + K`, `R` the member drawing's largest right edge (section
   6.7), and is `Hm` high from `y = P`, `Hm` the member drawing's height
@@ -71,27 +71,28 @@ spacing 1, no box request) and the default style layer.
     piecewise linear, of slope 16 below the kink and 51 above it.
 - **`flow_control`**: the root `flow:quarters` with `break_1` and `jump_1`.
   **`with_region`**: the root `clt_1` with `region_1`.
-- **Group and bundle files** (drawing.md sections 2.2 and 8). Their
-  timelines, groups and bundle are addressed by their bare ids; every other
-  element by its root's id, `/` and its own id (`score:clt_1/tmap_1`), and
-  a part follows the element's address (`score/region_1/label`). Core reads
+- **Addresses** (drawing.md section 2.2), in every manifest alike: a
+  timeline, a group or the manifest by its bare id; every other element by
+  its root's id, `/` and its own id (`melody/tempo`, `clt_1/region_1`,
+  `score:clt_1/tmap_1`); a part follows the element's address
+  (`score/region_1/label`); the manifest's title is `name`. Core reads
   such an address with `elementOf`, which the arranger uses wherever it
-  folds a part into its element. Core refuses to remove any timeline of a
-  group or bundle file (`unsupported_target`) and knows no group or bundle
-  as a remove target.
-  - **`group_number_types`** (group file): group `group_1` "Edition", roots
+  folds a part into its element. Core removes any element, timelines and
+  groups included (`removedBy` names what goes with it).
+- **Manifests of several roots and groups** (drawing.md section 8):
+  - **`group_number_types`** (one group): group `group_1` "Edition", roots
     (all three members, none with entries) `page`, `performance`, `score`.
     `numbers` below is this file with `region_1` (2 to 4 quarters, named
     "A") added to `score` through an `add` into `<block>/score`, so its
     address is `score/region_1` and its label's `score/region_1/label`.
-  - **`group_child_member`** (group file): roots `piece` ⊃ `second-half`
+  - **`group_child_member`** (one group): roots `piece` ⊃ `second-half`
     and `recording`; the members are `second-half` and `recording`, so
     `piece` is drawn as `second-half`'s ancestor line.
-  - **`corpus_mpm`** (bundle file): groups `group_1` (`score:clt_1`,
+  - **`corpus_mpm`** (two groups, named): groups `group_1` (`score:clt_1`,
     `score:dlt_1`) and `group_2` (`perf:cpt_1`, `perf:dgt_1`,
-    `perf:dpt_1`), bundle `bundle_1`; the root `score:clt_1` carries the map
+    `perf:dpt_1`); the root `score:clt_1` carries the map
     `tmap_1`, addressed `score:clt_1/tmap_1`.
-  - **`bundle_shared_parent`** (bundle file): `score` (0 to 32 quarters) ⊃
+  - **`bundle_shared_parent`** (two groups, named): `score` (0 to 32 quarters) ⊃
     `exposition` (offset 0, 12 quarters, a member of `group_1`) and
     `recapitulation` (offset 20, 12 quarters, a member of `group_2`). So
     `score` is drawn twice, as the ancestor line of each member (section
@@ -162,11 +163,11 @@ What proves the projection is complete and stable:
     and `data.containsSelection: true`.
   - Neither node has a `draggable` member. `data.descriptors` equals
     `toDescriptors(data.drawing)`.
-- **Group and bundle blocks.** A block holding `numbers` with selection
+- **Blocks of manifests with groups.** A block holding `numbers` with selection
   `{A/score/region_1/label}` has `data.selectedElements =
   {score/region_1/label}` (everything after the block id, slashes kept),
   `containsSelection: true` and `affectedElements = {score/region_1}`; its
-  `data.drawing` equals `drawingOf(block, …)`, so every file kind is drawn
+  `data.drawing` equals `drawingOf(block, …)`, so every manifest is drawn
   through the one path.
 - **Index order and rank.** Setting B's index below A's (core's
   `indexBetween(null, A.index)`) returns `[B, A]` with zIndex 0 and 1.
@@ -187,6 +188,12 @@ What proves the projection is complete and stable:
     `selected: false`, both new objects, and for every node `selected`
     equals whether the selection holds its block id; an element address
     never selects its block's node.
+- **The Delete preview** (`segments.test.ts`). With `preview = {segment:
+  A/t2, gap: right shift}` on a block A of theme unlocked, A's
+  `data.movedElements` is exactly `movedByGap`'s set for that segment and
+  gap, and without a preview it is empty. Projecting again with the same preview returns the
+  identical node; with the gap changed to left shift A's node is new and
+  carries the left-shift set.
 - **Live placement.** `livePlacement(block, position, values)` is what the
   inspector shows during a gesture: the block's `id`, `scale`, `length`,
   `spacing`, `width` and `height` overridden by the previewed `values`, and
@@ -371,9 +378,19 @@ corner). How the inverse is derived:
   drawing's width or height is such an extent.
 - The target is the content's extent moved by the pointer:
   `content + (target box − box)`. When the box has no request, the content
-  and the box coincide, so the edge ends under the pointer. When a box
-  request is larger than the content, the content stretches by the
-  pointer's travel inside the requested box.
+  and the box coincide, so the edge ends under the pointer.
+- **The box follows the content** (drawing.md section 1), on each axis on
+  its own, once `length` and `spacing` are solved. With `content` the
+  content's extent before the stretch, `content′` after it and `request`
+  the stored `width` (or `height`): a `null` request stays `null` and is
+  not written; a request larger than `content` keeps the space it adds,
+  `request′ = content′ + (request − content)` quantized to 1/2048, written
+  only when it differs from the stored one; a request at or below
+  `content` draws nothing and becomes `null`. The box is then
+  `max(content′, request′)`, so the dragged edge ends under the pointer
+  with or without a request, and the left or top anchoring uses that box.
+  This proves the margin is kept, not merely that the content moved: the
+  content's extent moves by the pointer's travel, and so must the box's.
 
 `audio` is `corpus_audio_audio` at (40, 80), with a workspace statement
 hiding every name (`{select: {element: "name"}, set: {display: "none"}}`).
@@ -407,6 +424,14 @@ edge `x0 + L + we/2` is `R`, and `W = R + 18`:
 | audio | right | (−500, 0) | `{length: 40.08251953125}` (the knee) |
 | audio, length 8 | right | (50, 0) | `{length: 90.08251953125}` |
 | audio, at the knee | right | (100, 0) | `{length: 140.08251953125}` |
+| bare, width 496.58 | right | (20, 0) | `{length: 420, width: 516.5771484375}` |
+| bare, width 496.58 | left | (−21, 0) | `{length: 421, width: 517.5771484375, x: 19}` |
+| bare, width 496.58 | bottom | (0, 30) | `{spacing: 2.875}` (the width's axis is unchanged) |
+| bare, height 77.88 | bottom | (0, 30) | `{spacing: 2.875, height: 107.87890625}` |
+| bare, height 77.88 | top | (0, −16) | `{spacing: 2, height: 93.87890625, y: 64}` |
+| bare, both requests | bottom-right | (20, 30) | `{length: 420, spacing: 2.875, width: 516.5771484375, height: 107.87890625}` |
+| bare, length 500, width 496.58 | right | (20, 0) | `{length: 520, width: null}` (a request the content has overtaken) |
+| child member, width 600 | right | (50, 0) | `{length: 450, width: 650}` |
 
 How each row is derived:
 
@@ -437,6 +462,53 @@ How each row is derived:
 - **`audio` from length 8, right +50:** the target is `136.02783203125 + 50`,
   so `L = 186.02783203125 − 95.9453125 = 90.08251953125`.
 - **`audio` from the knee, right +100:** `L = 140.08251953125`.
+
+The last eight rows store a box request first (one `set` on block A), the
+values of the box rows above: `width 496.58` is `width = W + 20 =
+496.5771484375`, `height 77.88` is `height = H + 10.5 = 77.87890625`,
+`both requests` both of them. With `Wc(L) = 76.5771484375 + L` and `Hc(v) =
+51.37890625 + 16v` from the fixture facts, the box is `max(Wc, width)` by
+`max(Hc, height)`:
+
+- **`width 496.58` right +20:** the box is 496.5771484375 wide, its right
+  edge `40 + 496.5771484375 = 536.5771484375`, so the target box is
+  516.5771484375 and the target content `516.5771484375 − (496.5771484375 −
+  476.5771484375) = 496.5771484375 = Wc(420)`: `L = 420`. The margin 20 is
+  kept: `width = Wc(420) + 20 = 516.5771484375`, so the right edge goes to
+  556.5771484375, the old one plus the pointer's 20.
+- **`width 496.58` left −21:** the left edge goes to 19 and the right edge
+  536.5771484375 stays, so the target box is 517.5771484375, the target
+  content 497.5771484375 and `L = 421`; `width = Wc(421) + 20 =
+  517.5771484375` and `x = 536.5771484375 − 517.5771484375 = 19`.
+- **`width 496.58` bottom +30:** the spacing solves as in `bare` bottom
+  +30 (no height request: 2.875). The width's content does not depend on
+  `v`, so `width′ = Wc(400) + 20` equals the stored request and is not
+  written.
+- **`height 77.88` bottom +30:** the box is 77.87890625 high, its bottom
+  edge 157.87890625, so the target box is 107.87890625 and the target
+  content `107.87890625 − 10.5 = 97.37890625 = Hc(2.875)`: `v = 2.875`,
+  `height = Hc(2.875) + 10.5 = 107.87890625`.
+- **`height 77.88` top −16:** the top edge goes to 64 and the bottom edge
+  157.87890625 stays, so the target box is 93.87890625, the target content
+  `83.37890625 = Hc(2)`: `v = 2`, `height = 93.87890625` and `y =
+  157.87890625 − 93.87890625 = 64`.
+- **`both requests` bottom-right (20, 30):** both axes as in the two rows
+  above with the bottom and right handles: `L = 420`, `v = 2.875`, `width =
+  516.5771484375`, `height = 107.87890625`.
+- **`length 500, width 496.58` right +20:** `Wc(500) = 576.5771484375`
+  already passes the request, which draws nothing: the box is the content.
+  The target content is `576.5771484375 + 20 = Wc(520)`, so `L = 520`, and
+  the request at or below the content becomes `width: null`.
+- **`child member, width 600` right +50:** `group_child_member` (a group
+  file: one frame of two cards) at (40, 80) with `width` 600. By the
+  timeskeleton drawing fixture `group__group_child_member`, `x0 =
+  120.61962890625` (the ancestor chevron term, independent of `L`), `R =
+  x0 + L + 13.79443359375` (the end label `10.0 s`; every right edge is
+  `x0 + L` plus a constant), and `W = 8 + R + 8 + 8`, so `Wc(L) =
+  158.4140625 + L` and `Wc(400) = 558.4140625`. The margin is `600 −
+  558.4140625 = 41.5859375`; the target box is 650 and the target content
+  `608.4140625 = Wc(450)`, so `L = 450` and `width = 608.4140625 +
+  41.5859375 = 650`.
 
 `resizeCommand(block, values)` is `{type: "set", changes: [{target:
 block.id, values}]}`. Every row's command is accepted by `apply`, and the
@@ -489,29 +561,69 @@ duplicates collapse in selection order.
 | A nested | {A} | `{type: "remove", targets: [A]}` |
 | A nested | {A/clt_3} | targets [A/clt_3] |
 | A nested | {A/clt_3/name, A/clt_3} | targets [A/clt_3] |
-| A with_region | {A/region_1/label} | targets [A/region_1]; afterwards the manifest's ids are `clt_1`, `clt_2`, `clt_3` |
-| A nested | {A/clt_1} | refused: `Block 0000000000: its root timeline clt_1 is removed only with the block; select the block to delete it.` |
-| A nested, B bare | {B, A/clt_1/start} | refused whole, with the same hint for A |
+| A with_region | {A/clt_1/region_1/label} | targets [A/clt_1/region_1]; afterwards the manifest's ids are `clt_1`, `clt_2`, `clt_3` |
+| A nested | {A/clt_1} | targets [A/clt_1]; afterwards the manifest has no root |
+| A nested, B bare | {B, A/clt_1/start} | targets [B, A/clt_1] |
 | any | {} | refused: `Nothing is selected.` |
 | A numbers | {A/score/region_1/label} | targets [A/score/region_1]; afterwards `score` has no region |
 | A numbers | {A/score/region_1, A/score/region_1/label} | targets [A/score/region_1] |
-| A numbers | {A/score} | refused: `Block 0000000000: removing score from a group or bundle block is not supported yet.` |
-| A numbers | {A/score/region_1, A/page/name} | refused whole, with that hint for `page` (the region stays) |
-| A group_child_member | {A/second-half/start} | refused, with that hint for `second-half` (a member that is a child timeline, by a part) |
-| A numbers | {A/group_1/name} | refused, with that hint for `group_1` (a group's title stands for its group) |
-| A corpus_mpm | {A/bundle_1/name} | refused, with that hint for `bundle_1` |
+| A numbers | {A/score} | targets [A/score] |
+| A group_child_member | {A/second-half/start} | targets [A/second-half] (a member that is a child timeline, by a part) |
+| A numbers | {A/group_1/name} | targets [A/group_1] (a group's title stands for its group) |
+| A corpus_mpm | {A/name} | refused: `Block 0000000000: its title is removed only with the block; select the block to delete it.` |
+| A corpus_mpm, B bare | {B, A/name} | refused whole, with the same hint for A |
 | A corpus_mpm | {A/score:clt_1/tmap_1} | targets [A/score:clt_1/tmap_1]; afterwards `score:clt_1` has no map |
 
-In a group or bundle block a selection holding any timeline, group or
-bundle, or a part of one, is refused whole. The rule is core's
-`isRemovable`, the one core's `remove` refuses through, so no command core
-would refuse for what it targets is sent: core refuses every timeline there
-(`unsupported_target`) and finds no group or bundle to remove
-(`unknown_target`). The hint names the first such element in selection
-order, in the style of the root's hint.
+Every element can be removed; a manifest's title, which goes only with its
+block, cannot, so a selection holding it is refused whole, and core would
+find nothing to remove there (`unknown_target`).
 
 Every non-refused command is accepted by `apply`, and the removed elements
 are gone from the manifest (`manifestIds`).
+
+**A segment** (`segments.test.ts`, like every value of this section and
+the next) leaves a gap in its segment line, and core asks how to close
+it. `segment_children` is root `piece` holding the segment line `theme` (at
+6, of 12) with the segments `t1`, `t2`, `t3` (each of 4) and the segment
+lines `intro` and `coda`, everything but `piece` locked; "theme unlocked"
+is that block after one `set {locked: false}` of `A/theme`.
+
+| view | selection | result |
+|---|---|---|
+| A segment_children | {A/t2/label} | refused: `Segment t2 cannot be deleted: no neighbour may extend and its segment line may not shift.` |
+| A theme unlocked | {A/t2/label} | `{segment: A/t2, options}`, the options' ways left extend, right extend, left shift, right shift with the refusals `the preceding segment t1 is locked`, `the following segment t3 is locked`, `null`, `null` |
+| A theme unlocked | {A/t2}, gap right shift | `{type: "remove", targets: [A/t2], gap: {side: "right", verb: "shift"}}`; afterwards `theme` holds `t1` and `t3` |
+| A theme unlocked | {A/t2, A/t3} | refused: `Delete one segment at a time.` |
+| A theme unlocked | {A/t2, A/coda/name} | refused the same (a segment with another element) |
+| A theme unlocked | {A/theme, A/t2} | targets [A/theme, A/t2] (the segment goes with its line, no gap) |
+| A theme unlocked | {A, A/t2} | targets [A, A/t2] (it goes with its block) |
+
+`preferredGap(options)` is the first permitted way in that order: left
+shift for the theme-unlocked options above, and `null` when none is
+permitted.
+
+## `movedByGap`
+
+`movedByGap(manifest, segment, gap)` gives the addresses the Delete preview
+marks as moving while the menu is open: every address `manifestElements`
+lists whose element (folded by `elementOf`) is a timeline whose start on its
+root's axis or whose length closing the gap changes (core's `movedBy`).
+The timelines follow from the rule by hand; the parts are those the drawing
+gives each timeline (a child its line and name, a segment its boundary when
+it is not the first and its label, a root its card, line, name, both ends
+and their labels).
+
+| manifest | segment, gap | moved |
+|---|---|---|
+| theme unlocked | t2, left shift | {theme, theme/name, t1, t1/label} (`theme` moves on and shortens, carrying `t1`; `t3` keeps its place) |
+| theme unlocked | t2, right shift | {theme, theme/name, t3, t3/start, t3/label} |
+| theme unlocked | t2, left extend | ∅ (not permitted: `t1` is locked) |
+| segment_line | b, right shift | {form/card, form, form/name, form/start, form/start/label, form/end, form/end/label, c, c/start, c/label, c1, c1/label} (`form` shortens, `c` moves back with its segment `c1`) |
+
+`segmentAnchor(drawing, id)`, where the menu opens, is the segment's label
+(its `x` and baseline), read here from the label's `<text>` descriptor
+(`x`, `y`) of the same drawing: `t2` of theme unlocked. A timeline drawn
+with neither label, boundary nor child line (`piece`, a root) gives `null`.
 
 ## `affectedBy`
 
@@ -523,13 +635,13 @@ using the manifest alone and core's traversal (`manifestElements`,
 
 - **Owners:** each selected address folded into its element with core's
   `elementOf` (`T/name` → `T`, `score/region_1/label` → `score/region_1`),
-  as `removeCommand` folds it. What core's `isRemovable` refuses (the rule
-  `removeCommand` and core's `remove` refuse by) is dropped and takes
-  nothing with it: a timeline file's root, and every timeline, group and
-  bundle of a group or bundle file.
-- **Removed elements:** every non-root timeline that is an owner or has
-  an owner among its ancestors. Then every map, region, break, jump and
-  marker of those timelines, plus the owners themselves.
+  as `removeCommand` folds it. The manifest's title `name` names no
+  element and takes nothing with it.
+- **Removed elements:** core's `removedBy` of the owners: every timeline
+  that is an owner or has an owner among its ancestors, every map, region,
+  break, jump and marker of those timelines, every conversion map naming a
+  removed timeline as `source_id` or `target_id`, and the owners
+  themselves (a group removes itself only).
 - **Result:** every address of a removed element and of its parts, as
   `manifestElements` lists them, plus marker ids, which are never drawn. It
   excludes the selected addresses and the parts of a directly selected
@@ -545,24 +657,19 @@ Pinned values (derived by hand from the fixtures' trees). `nested` is
 | nested | {clt_3} | {clt_2, clt_2/name} |
 | nested | {clt_2} | ∅ (a leaf without entries) |
 | nested | {clt_3/name} | {clt_3, clt_2, clt_2/name} (the name stands for its timeline) |
-| nested | {clt_1} | ∅ (the root is not removable) |
-| nested | {clt_1/start} | ∅ (a root part) |
-| map | {phrase} | {ticks} |
-| map | {tempo} | ∅ |
-| with_region | {region_1/label} | {region_1} |
+| nested | {clt_1} | {clt_3, clt_3/name, clt_2, clt_2/name} (its subtree; its own parts show as selected) |
+| nested | {clt_1/start} | {clt_1/card, clt_1, clt_1/name, clt_1/start/label, clt_1/end, clt_1/end/label, clt_3, clt_3/name, clt_2, clt_2/name} (a part stands for its root, whose other parts are affected) |
+| map | {phrase} | {melody/ticks} |
+| map | {melody/tempo} | ∅ |
+| with_region | {clt_1/region_1/label} | {clt_1/region_1} |
 | any | ∅ | ∅ |
 | numbers | {score/region_1/label} | {score/region_1} (folded by `elementOf`, never at the first slash) |
 | numbers | {score/region_1} | ∅ (its label is its own part) |
-| numbers | {score} | ∅ (no timeline of a group file is removable) |
-| group_child_member | {piece} | ∅ (an ancestor line, still a timeline) |
-| corpus_mpm | {score:clt_1} | ∅ (it carries `tmap_1`, which a removable timeline would take along) |
-| corpus_mpm | {group_1}, {group_1/name}, {bundle_1/name} | ∅ (frames and titles are not removable) |
-
-In a group or bundle file the rule is the same with core's
-`isRemovable`: no timeline, group or bundle is an owner, so only the
-root-qualified maps, regions, breaks, jumps and markers can take anything
-along, and none of them owns another element; what they affect is their
-own parts.
+| numbers | {score} | {score/region_1, score/region_1/label} |
+| group_child_member | {piece} | {second-half/card, second-half/start, second-half/start/label, second-half/end, second-half/end/label, second-half, second-half/name} (its child, a member, goes with it, at every place it is drawn) |
+| corpus_mpm | {group_1} | ∅ (a group removes itself only; its title shows as selected) |
+| corpus_mpm | {group_1/name} | {group_1} (the title stands for its frame) |
+| corpus_mpm | {name} | ∅ (the title names no element) |
 
 `project` carries the set as `data.affectedElements`, computed per block
 from its `selectedElements`. A reused node keeps its identical set, since
@@ -572,18 +679,16 @@ In the `project` example, B with `{clt_3}` selected has `affectedElements
 
 **Property (fast-check):** take one block holding any of eight manifests:
 the five fixtures `bare`, `nested`, `flow_control`, `with_region` and
-`map`, the group file `group_child_member`, the bundle file `bundle_mixed`,
-and `numbers` (a group file with a root-qualified region), and any
-selection of the element and part addresses that core's `manifestElements`
-lists for it. `removeCommand` refuses the selection exactly when core
-refuses a `remove` of the selected elements (each folded by `elementOf`).
-When it does not, the element ids the `remove` actually deletes
-(`manifestIds` before minus after) equal `(owners ∪ affectedBy) ∩
-manifestIds(before)`, the owners folded by `elementOf`. This compares the
-rule against core's own removal, not against itself. In
-`group_child_member` and `bundle_mixed` every listed address is a timeline,
-a frame, a title or one of their parts, so every selection there is
-refused, and core must refuse it too.
+`map`, the group manifest `group_child_member`, the named manifest
+`bundle_mixed`, and `numbers` (a group manifest with a root-qualified
+region), and any selection of the element and part addresses that core's
+`manifestElements` lists for it. `removeCommand` refuses the selection
+exactly when core refuses a `remove` of the selected elements (each folded
+by `elementOf`): when it holds the title of `bundle_mixed`. When it does
+not, the element ids the `remove` actually deletes (`manifestIds` before
+minus after) equal `(owners ∪ affectedBy) ∩ manifestIds(before)`, the
+owners folded by `elementOf`. This compares the rule against core's own
+removal, not against itself.
 
 ## `click` and `blockOf`
 
@@ -598,8 +703,8 @@ refused, and core must refuse it too.
   the card of a timeline `T` is `T/card` and belongs to `T`). An address
   whose element part has more than one segment and ends in `/card` is
   folded to the address without that part, so the card's shadow, which
-  carries the same address, does the same. In a timeline file `T` is the
-  root: `click(∅, "A/bare/card", false)` on a block holding `bare` is
+  carries the same address, does the same. On a block of one root `T` is
+  that root: `click(∅, "A/bare/card", false)` on a block holding `bare` is
   `{A/bare}`. In `group_child_member` `click(∅, "A/recording/card", false)`
   is `{A/recording}`, and with Shift `click({A/recording},
   "A/recording/card", true)` is ∅ (the timeline is toggled, not its card).
@@ -622,13 +727,16 @@ after an undo or redo. View: A holds `nested` (elements `clt_1`, `clt_3`,
 - `existing(view, {A, A/clt_3, A/clt_3/name, A/clt_9, A/clt_9/name, B,
   B/clt_1})` is `{A, A/clt_3, A/clt_3/name}` in that order: a part stands
   or falls with its element, everything in a missing block goes.
-- In a group or bundle block an address is read with core's `elementOf`.
-  View: A holds `numbers`. `existing(view, {A/score/region_1/label,
+- An address is read with core's `elementOf`. View: A holds `numbers`. `existing(view, {A/score/region_1/label,
   A/score/region_2/label, A/score/name, A/group_1/name, A/page/start,
   A/nobody/region_1})` is `{A/score/region_1/label, A/score/name,
   A/group_1/name, A/page/start}`: the region's label stays with its region,
   a missing region's label goes, a root's part, the group's title and a
   wedge stay, and an element of no root goes.
+- The title `name` stays while its manifest is named (an `id` or a
+  `name`): `existing` of `{A/name}` is `{A/name}` on a block of
+  `bundle_mixed` (named "Mixed", no id) and `∅` on a block of `nested`
+  (anonymous).
 - `blockOf("A/score/region_1/label")` is `A`: an address may hold several
   slashes after its block.
 - A selection whose addresses all exist is returned as the same object
@@ -686,8 +794,10 @@ renders, which draws nothing).
 
 1. **Screen equals export, for every drawing fixture.** For each directory
    of the installed `@timetoalign/timeskeleton` package's
-   `fixtures/<SCHEMA_VERSION>/drawings/` (46 cases: the 34 timeline cases,
-   `segment_line`, 8 `group__…` and 3 `bundle__…` cases), the drawing is made from its
+   `fixtures/<SCHEMA_VERSION>/drawings/` (54 cases: 42 drawn from the
+   fixtures directly in `fixtures/<SCHEMA_VERSION>/`, that is 31 fixtures,
+   the ten resized `nested` drawings and `map__child-map-below`, then 9
+   `group__…` and 3 `bundle__…` cases), the drawing is made from its
    `inputs.json` alone (its manifest fixture, placement and layers, exactly
    as the writers' fixture test makes it) and its `toDescriptors` are
    rendered by the node at the case's scale. The node's `<svg>` is in the
@@ -699,8 +809,9 @@ renders, which draws nothing).
    and polygon points, is the exported text, and no attribute or element is
    added or lost; `nested__scale-2` proves the scale is the viewBox's alone.
 2. **A selected element is marked, and nothing else changes.** With
-   `selectedElements = {"intro"}` on `styled__score`, the elements carrying
-   `data-selected` are exactly `["intro"]` (one descriptor carries that
+   `selectedElements = {"score/intro"}` on `styled__score` (the region
+   `intro` of its root `score`), the elements carrying `data-selected` are
+   exactly `["score/intro"]` (one descriptor carries that
    address), the element tree with `data-selected` left out still equals
    `figure.svg`'s, and exactly one element carries `data-contains-selection`.
    Without a selection, no element carries either attribute.
@@ -744,6 +855,27 @@ renders, which draws nothing).
    moves by ArrowDown (`a` → `c`, then wrapping to `a`) and ArrowUp (wrapping
    back to `c`), while ArrowRight and ArrowLeft leave the focus where it is.
 
+5. **The Delete menu of a segment** (`gap-menu.test.ts`: `GapMenu.svelte`,
+   mounted with the options of `removeCommand` and `gap` set to
+   `preferredGap(options)`).
+   With the theme-unlocked options of `t2` (only the two shifts
+   permitted): the side radios `Left` and `Right` are enabled; the verb
+   radio `Extend` is disabled with the title `the preceding segment t1 is
+   locked; the following segment t3 is locked` and `Shift` is enabled; the
+   checked radios are `Left` and `Shift` (the preselection), and the focus
+   is on `Left`. Choosing `Right` checks `Right` and `Shift`. Enter on a
+   radio calls `onconfirm` once with the checked way, `{side: "right",
+   verb: "shift"}`; Escape calls `oncancel` once; OK calls `onconfirm`,
+   Cancel `oncancel`. With options permitting only left extend and right
+   shift, every option is enabled and the preselection is `Left`,
+   `Extend`; choosing `Shift` switches the side to `Right` (left shift is
+   not permitted), and choosing `Left` then switches the verb back to
+   `Extend`. The menu is a form named `Delete segment t2` holding two
+   fieldsets with legends `Neighbour` and `Closes the gap by`. The arrow
+   keys inside a column are the native radio group's own, which jsdom does
+   not implement; the end-to-end suite opens the menu in a browser, checks
+   where the focus lands and runs axe on it.
+
 `BlockNode.svelte` has no style of its own (the canvas styles it), so
 Svelte adds no scoping class to a drawn element and the trees compare
 attribute for attribute. The bundled font is declared by the canvas's
@@ -784,7 +916,7 @@ line by the same rule. Every other descriptor is absent from the map.
 `hover.test.ts`, block A at `(0, 0)`, default placement, values from the
 drawing itself (canvas units):
 
-1. **`segment_line`** (timeline file; root `form`, segments `a`, `b`, `c`,
+1. **`segment_line`** (one root; root `form`, segments `a`, `b`, `c`,
    `b` holding `b2`). Its one card `form/card` spans `x` 8 to
    `469.573974609375`, `y` 8 to `103.9296875`. `cardAt` gives `form/card`
    at the start of the root's line `(52.294921875, 68.953125)`, at the
@@ -801,7 +933,7 @@ drawing itself (canvas units):
    `line` addressed `b2/start`, and `null` for a `polygon` with that
    address, a `line` addressed `form` (the root's line) and an element
    without an address.
-2. **`group_child_member`** (group file; frame `group_1`, members
+2. **`group_child_member`** (one group; frame `group_1`, members
    `second-half`, drawn under the ancestor line `piece`, and `recording`).
    `cardAt` gives `second-half/card` at the start of the ancestor line
    `piece` `(108.61962890625, 67.78125)`, at the start of `second-half`'s

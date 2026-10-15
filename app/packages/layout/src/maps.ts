@@ -43,7 +43,7 @@ export function mapStacks(scope: Scope): MapStacks {
 
 /** The maps' closed double lines, map `j` of a stack centred `w / 2 + j × (g + d) − d / 2` from its line. */
 export function mapElements(maps: MapStacks, placed: Position): MapElement[] {
-  const { x, lineY } = placed;
+  const { x, xEnd, lineY } = placed;
   return maps.drawn.map((map) => {
     const { entry, side } = map;
     const line = entry.holder;
@@ -55,7 +55,7 @@ export function mapElements(maps: MapStacks, placed: Position): MapElement[] {
       address: map.address,
       style: map.style,
       xs: x(entry.start),
-      xe: x(entry.end),
+      xe: xEnd(entry),
       yc: side === "above" ? y - centre : y + centre,
     };
   });

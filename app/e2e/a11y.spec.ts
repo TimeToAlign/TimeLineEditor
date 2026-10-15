@@ -39,7 +39,7 @@ test("axe-core reports no violation on the canvas page", async ({ page }) => {
 });
 
 test("axe-core reports no violation with an element selected", async ({ page }) => {
-  await page.evaluate((address) => window.__tilie.select([address]), `${SMALL.styled}/intro`);
+  await page.evaluate((address) => window.__tilie.select([address]), `${SMALL.styled}/score/intro`);
   await expect(page.locator("[data-contains-selection]")).toHaveCount(1);
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations).toEqual([]);

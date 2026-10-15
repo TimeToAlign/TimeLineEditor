@@ -2,11 +2,13 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
+import type { Manifest } from "@timetoalign/tilie-core";
 import {
   createStore,
   createView,
   isLoadError,
   loadManifest,
+  manifestIds,
   readWorkspace,
   writeWorkspace,
 } from "@timetoalign/tilie-core";
@@ -168,6 +170,7 @@ describe("the test hook", () => {
       "group_parent_right",
       "group_parents_mixed",
       "group_styled",
+      "group_unknown_length",
     ];
     expect(workspaces.includes("small")).toBe(true);
     expect(Array.from(select.options, (option) => option.value)).toEqual(
@@ -191,15 +194,12 @@ describe("the test hook", () => {
   });
 
   it("opens a group or bundle fixture as one block of its manifest", async () => {
-    for (const [name, kind] of [
-      ["group_number_types", "group"],
-      ["bundle_mixed", "bundle"],
-    ] as const) {
+    for (const name of ["group_number_types", "bundle_mixed"] as const) {
       await loadFromMenu(name);
       const manifest = loadManifest(manifestFixtureText(name));
       if (isLoadError(manifest)) throw new Error(`${name} is refused`);
       const block = hook().store().view.blocks.fixture000;
-      expect([block?.blockKind, block?.x, block?.y]).toEqual([kind, 0, 0]);
+      expect([block?.x, block?.y]).toEqual([0, 0]);
       expect(block?.manifest).toEqual(manifest);
       expect(Object.keys(hook().store().view.blocks)).toEqual(["fixture000"]);
       expect(
@@ -210,7 +210,7 @@ describe("the test hook", () => {
     }
   });
 
-  it("refuses Delete of a timeline in a group or bundle block and removes nothing", async () => {
+  it("removes a timeline of a group or bundle block on Delete", async () => {
     for (const [name, timeline] of [
       ["group_child_member", "second-half"],
       ["bundle_mixed", "annotations"],
@@ -223,12 +223,19 @@ describe("the test hook", () => {
       if (canvas === null) throw new Error("the canvas is missing");
       canvas.dispatchEvent(new KeyboardEvent("keydown", { key: "Delete", bubbles: true }));
       flushSync();
-      expect(hook().store().view).toBe(view);
-      expect(hook().store().journal).toHaveLength(1);
-      expect(hook().selection()).toEqual([`fixture000/${timeline}`]);
-      expect(document.querySelector('[data-testid="hint"]')?.textContent).toBe(
-        `Block fixture000: removing ${timeline} from a group or bundle block is not supported yet.`,
-      );
+      expect(hook().store().view).not.toBe(view);
+      expect(
+        hook()
+          .store()
+          .journal.map(({ command }) => command),
+      ).toEqual([
+        hook().store().journal[0]?.command,
+        { type: "remove", targets: [`fixture000/${timeline}`] },
+      ]);
+      expect(
+        manifestIds(hook().store().view.blocks.fixture000?.manifest as Manifest).has(timeline),
+      ).toBe(false);
+      expect(hook().selection()).toEqual([]);
     }
   });
 

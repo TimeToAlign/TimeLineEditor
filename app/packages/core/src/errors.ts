@@ -11,22 +11,17 @@ export const ErrorCode = {
   schemaViolation: "schema_violation",
   invalidCommand: "invalid_command",
   invalidCoordinate: "invalid_coordinate",
-  unitNotAllowed: "unit_not_allowed",
   numberTypeNotAllowed: "number_type_not_allowed",
-  offAxis: "off_axis",
-  childUnitMismatch: "child_unit_mismatch",
-  negativeOffset: "negative_offset",
   childExceedsParent: "child_exceeds_parent",
-  childNotLocked: "child_not_locked",
   locked: "locked",
   lengthBelowContent: "length_below_content",
+  segmentEndFixed: "segment_end_fixed",
   regionEndBeforeStart: "region_end_before_start",
   mapSourceUnitMismatch: "map_source_unit_mismatch",
   metricHierarchyWithoutMeasureMap: "metric_hierarchy_without_measure_map",
   duplicateId: "duplicate_id",
   keyMismatch: "key_mismatch",
   invalidBlockId: "invalid_block_id",
-  blockKindMismatch: "block_kind_mismatch",
   unknownParent: "unknown_parent",
   parentCycle: "parent_cycle",
   invalidIndex: "invalid_index",
@@ -37,7 +32,8 @@ export const ErrorCode = {
   wrongTargetKind: "wrong_target_kind",
   idNotSettable: "id_not_settable",
   notRemovable: "not_removable",
-  unsupportedTarget: "unsupported_target",
+  gapRequired: "gap_required",
+  gapNotPermitted: "gap_not_permitted",
   invalidValue: "invalid_value",
   nonFiniteNumber: "non_finite_number",
   nonPositiveNumber: "non_positive_number",
@@ -59,7 +55,7 @@ export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
  * it starts with the address of the target at fault, followed by the
  * property or kind at fault (`[<address>, "length"]`), or by `"manifest"`
  * and a location in the manifest the command would leave (`[<block id>,
- * "manifest", "timeline", ...]`). Only a malformed command, which has no
+ * "manifest", "timelines", 0, ...]`). Only a malformed command, which has no
  * target, names the malformed member of the command itself.
  */
 export interface Problem {

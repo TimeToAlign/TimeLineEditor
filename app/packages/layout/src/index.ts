@@ -5,7 +5,7 @@
  * drawing specification (`docs/drawing.md`, sections 1 to 6 and 8): the
  * cascade of style layers, exact positions, text measured from the font's
  * advance widths, the layout of bands and rows, and the box of section 8
- * that draws every file as a bundle, each root in its card. Pure and
+ * that holds every manifest, each root in its card. Pure and
  * deterministic.
  */
 

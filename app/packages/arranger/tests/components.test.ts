@@ -116,6 +116,7 @@ function render(
   box: { width: number; height: number; scale: number },
   selectedElements: ReadonlySet<string> = new Set(),
   affectedElements: ReadonlySet<string> = new Set(),
+  movedElements: ReadonlySet<string> = new Set(),
 ): SVGSVGElement {
   const drawing = { width: box.width, height: box.height, elements: [], unmapped: [] };
   const data = {
@@ -124,6 +125,7 @@ function render(
     descriptors,
     selectedElements,
     affectedElements,
+    movedElements,
     containsSelection: selectedElements.size > 0,
   };
   // The node reads only `data`; the other node props are Svelte Flow's.
@@ -149,16 +151,16 @@ describe("BlockNode", () => {
   it("marks exactly the selected element's descriptors and the block holding them", () => {
     const { drawing, scale, svg: text } = fixture("styled__score");
     const descriptors = toDescriptors(drawing);
-    const svg = render(descriptors, { ...drawing, scale }, new Set(["intro"]));
+    const svg = render(descriptors, { ...drawing, scale }, new Set(["score/intro"]));
 
     const marked = Array.from(svg.querySelectorAll("[data-selected]"), (element) =>
       element.getAttribute("data-address"),
     );
     const expected = descriptors.filter(({ attrs }) =>
-      attrs.some(([key, value]) => key === "data-address" && value === "intro"),
+      attrs.some(([key, value]) => key === "data-address" && value === "score/intro"),
     );
     expect(expected.length).toBe(1);
-    expect(marked).toEqual(["intro"]);
+    expect(marked).toEqual(["score/intro"]);
     // The mark is the only difference from the exported tree.
     expect(trees(svg.children, ["data-selected"])).toEqual(exported(text));
     expect(document.querySelectorAll("[data-contains-selection]").length).toBe(1);

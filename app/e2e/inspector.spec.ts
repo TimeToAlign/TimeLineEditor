@@ -7,6 +7,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
+import type { Manifest } from "../packages/core/src/index.ts";
 import {
   cardPoint,
   commandsFrom,
@@ -29,8 +30,8 @@ function manifestText(page: Page) {
 function storedName(page: Page, id: string): Promise<unknown> {
   return page.evaluate(
     (block) =>
-      (window.__tilie.store().view.blocks[block]?.manifest as { timeline?: { name: unknown } })
-        ?.timeline?.name,
+      (window.__tilie.store().view.blocks[block]?.manifest as Manifest | undefined)?.timelines[0]
+        ?.name,
     id,
   );
 }
@@ -65,9 +66,9 @@ test.beforeEach(async ({ page }) => {
 
 test("a YAML edit reaches the canvas as one command and Undo restores it", async ({ page }) => {
   await page.getByLabel("YAML").check();
-  await expect(manifestText(page)).toHaveValue(/\n {2}name: Bare\n/);
+  await expect(manifestText(page)).toHaveValue(/\n {4}name: Bare\n/);
   const text = await manifestText(page).inputValue();
-  await manifestText(page).fill(text.replace("\n  name: Bare\n", "\n  name: Renamed\n"));
+  await manifestText(page).fill(text.replace("\n    name: Bare\n", "\n    name: Renamed\n"));
   await page.getByRole("button", { name: "Apply" }).click();
   await expect.poll(() => journalLength(page)).toBe(6);
   expect(await changesFrom(page, 5)).toEqual([
@@ -78,22 +79,22 @@ test("a YAML edit reaches the canvas as one command and Undo restores it", async
 
   await page.evaluate(() => window.__tilie.store().undo());
   await expect(element(page, SMALL.bare, "bare/name")).toHaveText("Bare");
-  await expect(manifestText(page)).toHaveValue(/\n {2}name: Bare\n/);
+  await expect(manifestText(page)).toHaveValue(/\n {4}name: Bare\n/);
 });
 
 test("a refused edit shows its exact path and keeps the text", async ({ page }) => {
   await page.getByLabel("YAML").check();
-  await expect(manifestText(page)).toHaveValue(/\n {2}locked: false\n/);
+  await expect(manifestText(page)).toHaveValue(/\n {4}locked: false\n/);
   const edited = (await manifestText(page).inputValue()).replace(
-    "\n  locked: false\n",
-    "\n  locked: yes\n",
+    "\n    locked: false\n",
+    "\n    locked: yes\n",
   );
   await manifestText(page).fill(edited);
   await page.getByRole("button", { name: "Apply" }).click();
   const problems = page.locator("#inspector-problems li");
   await expect(problems).toHaveCount(1);
   await expect(problems).toHaveText(
-    /^\s*schema_violation\s+must be boolean\s+at\s+\/timeline\/locked\s*$/,
+    /^\s*schema_violation\s+must be boolean\s+at\s+\/timelines\/0\/locked\s*$/,
   );
   await expect(manifestText(page)).toHaveValue(edited);
   expect(await journalLength(page)).toBe(5);
@@ -120,7 +121,7 @@ test("the properties form moves the block by the exact amount", async ({ page })
 
 test("axe-core reports no violation with the manifest shown", async ({ page }) => {
   await page.getByLabel("YAML").check();
-  await expect(manifestText(page)).toHaveValue(/^meta:\n/);
+  await expect(manifestText(page)).toHaveValue(/^groups: \[\]\n/);
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations).toEqual([]);
 });

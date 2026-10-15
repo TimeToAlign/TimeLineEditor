@@ -61,3 +61,25 @@ export function descriptorsOf(drawing: Drawing): readonly Descriptor[] {
   }
   return found;
 }
+
+/**
+ * Where a segment is drawn, in drawing units, for a menu placed below it:
+ * its label (centred, at the baseline), else the foot of its boundary, else
+ * the middle of its line; `null` when the drawing shows none of them.
+ */
+export function segmentAnchor(drawing: Drawing, id: string): { x: number; y: number } | null {
+  let boundary: { x: number; y: number } | null = null;
+  let line: { x: number; y: number } | null = null;
+  for (const element of drawing.elements) {
+    if (element.type === "label" && element.address === `${id}/label`) {
+      return { x: element.x, y: element.baseline };
+    }
+    if (element.type === "boundary" && element.address === `${id}/start`) {
+      boundary = { x: element.x, y: element.y2 };
+    }
+    if (element.type === "child" && element.address === id) {
+      line = { x: (element.xs + element.xe) / 2, y: element.y };
+    }
+  }
+  return boundary ?? line;
+}

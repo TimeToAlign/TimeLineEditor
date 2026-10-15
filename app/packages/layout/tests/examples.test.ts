@@ -152,10 +152,10 @@ describe("flow_control", () => {
     const yc = 74.52213541666667;
     expect(geometry(drawing)).toEqual([
       ...box("flow:quarters", 518.256591796875, 102.33203125, 500.256591796875, 84.33203125),
-      { type: "break", address: "break_1", x: 390.9775390625, y1: yf, y2: 16 },
+      { type: "break", address: "flow:quarters/break_1", x: 390.9775390625, y1: yf, y2: 16 },
       {
         type: "jump",
-        address: "jump_1",
+        address: "flow:quarters/jump_1",
         start: [290.9775390625, yf],
         c1: [253.4775390625, yc],
         c2: [178.4775390625, yc],
@@ -200,7 +200,7 @@ describe("flow_control", () => {
       },
       {
         type: "label",
-        address: "jump_1/label",
+        address: "flow:quarters/jump_1/label",
         x: 215.9775390625,
         baseline: 82.20947265625,
         anchor: "middle",
@@ -208,14 +208,14 @@ describe("flow_control", () => {
       },
       {
         type: "label",
-        address: "break_1/label",
+        address: "flow:quarters/break_1/label",
         x: 393.9775390625,
         baseline: 61.73291015625,
         anchor: "start",
         text: "Fine",
       },
     ]);
-    expect(element(drawing, "jump_1").style).toMatchObject({
+    expect(element(drawing, "flow:quarters/jump_1").style).toMatchObject({
       stroke: "#000000",
       fill: "#000000",
       "stroke-width": 1,
@@ -231,8 +231,8 @@ describe("map", () => {
     const xe = 463.53662109375;
     expect(geometry(drawing)).toEqual([
       ...box("melody", 490.53662109375, 85.4765625, 472.53662109375, 67.4765625),
-      { type: "map", address: "tempo", xs: x0, xe, yc: 35 },
-      { type: "map", address: "ticks", xs: 163.53662109375, xe: 363.53662109375, yc: 17.5 },
+      { type: "map", address: "melody/tempo", xs: x0, xe, yc: 35 },
+      { type: "map", address: "melody/ticks", xs: 163.53662109375, xe: 363.53662109375, yc: 17.5 },
       { ...root, address: "melody", xs: x0, xe, y: 40.5 },
       { ...child, address: "phrase", xs: 163.53662109375, xe: 363.53662109375, y: 23 },
       ...wedges(x0, xe, "melody").map((item) => ({ ...item, yt: 42, yb: 55 })),
@@ -271,12 +271,12 @@ describe("map", () => {
         coordinate: q(8),
       },
     ]);
-    expect(element(drawing, "tempo").style).toMatchObject({
+    expect(element(drawing, "melody/tempo").style).toMatchObject({
       stroke: "#0050EF",
       "stroke-width": 1,
       "stroke-dasharray": "none",
     });
-    expect(element(drawing, "ticks").style).toMatchObject({
+    expect(element(drawing, "melody/ticks").style).toMatchObject({
       stroke: "#00CC00",
       "stroke-width": 1,
       "stroke-dasharray": "1 1",
@@ -294,7 +294,7 @@ describe("with_region", () => {
       ...box("clt_1", 477.194580078125, 118.453125, 459.194580078125, 100.453125),
       {
         type: "region",
-        address: "region_1",
+        address: "clt_1/region_1",
         x1: x(1 / 6),
         x2: 249.91552734375,
         xm: 183.24886067708331,
@@ -337,7 +337,7 @@ describe("with_region", () => {
       },
       {
         type: "label",
-        address: "region_1/label",
+        address: "clt_1/region_1/label",
         x: 183.24886067708331,
         baseline: 98.33056640625,
         anchor: "middle",

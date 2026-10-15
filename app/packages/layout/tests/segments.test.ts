@@ -1,6 +1,6 @@
 /** Segment lines: boundaries, segment labels and their tiers; every number is derived in tests/README.md. */
 
-import { apply, createView, isCommandError, type TimelineFile } from "@timetoalign/tilie-core";
+import { apply, createView, isCommandError, type Manifest } from "@timetoalign/tilie-core";
 import type { Graphical } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
 import {
@@ -309,17 +309,17 @@ describe("a line's reach", () => {
       if (!isCommandError(view)) view = apply(view, command);
     }
     if (isCommandError(view)) throw new Error(`${view.code}: ${view.message}`);
-    const manifest = (view.blocks[BLOCK] as { readonly manifest: TimelineFile }).manifest;
+    const manifest = (view.blocks[BLOCK] as { readonly manifest: Manifest }).manifest;
     const drawing = draw(manifest, DEFAULT_PLACEMENT, [DEFAULT_LAYER], metrics);
     expect(drawing.height).toBe(117.4296875);
     expect(element(drawing, "form")).toMatchObject({ y: 72.453125 });
     expect(element(drawing, "b")).toMatchObject({ y: 39.9765625 });
-    expect(element(drawing, "b_map")).toMatchObject({
+    expect(element(drawing, "form/b_map")).toMatchObject({
       xs: 152.294921875,
       xe: 302.294921875,
       yc: 34.4765625,
     });
-    expect(element(drawing, "b1_map")).toMatchObject({
+    expect(element(drawing, "form/b1_map")).toMatchObject({
       xs: 152.294921875,
       xe: 227.294921875,
       yc: 29.4765625,

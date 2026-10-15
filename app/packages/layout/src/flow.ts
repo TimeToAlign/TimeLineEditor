@@ -54,15 +54,15 @@ export function flow(scope: Scope): Flow {
     for (const item of entry.manifest.flow_control.breaks) {
       breaks.push({
         ...owned("break", address(item.id), entry),
-        at: add(entry.start, coordinateValue(item.coordinate)),
+        at: add(entry.start, coordinateValue(item.coordinate, entry.manifest.number_type)),
         text: item.label,
       });
     }
     for (const item of entry.manifest.flow_control.jumps) {
       jumps.push({
         ...owned("jump", address(item.id), entry),
-        from: add(entry.start, coordinateValue(item.from_coordinate)),
-        to: add(entry.start, coordinateValue(item.to_coordinate)),
+        from: add(entry.start, coordinateValue(item.from_coordinate, entry.manifest.number_type)),
+        to: add(entry.start, coordinateValue(item.to_coordinate, entry.manifest.number_type)),
         text: item.label ?? item.control_type,
       });
     }

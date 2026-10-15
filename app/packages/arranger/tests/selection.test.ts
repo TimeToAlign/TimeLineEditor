@@ -81,7 +81,15 @@ describe("existing", () => {
     expect(existing(view, none)).toBe(none);
   });
 
-  it("reads the addresses of a group or bundle block with elementOf", () => {
+  it("keeps the title of a named manifest only", () => {
+    const title = new Set([`${A}/name`]);
+    expect([...existing(viewOf({ id: A, fixture: "bundles/bundle_mixed" }), title)]).toEqual([
+      `${A}/name`,
+    ]);
+    expect([...existing(view, title)]).toEqual([]);
+  });
+
+  it("reads the addresses of a block of several roots with elementOf", () => {
     const selection = new Set([
       `${A}/score/region_1/label`,
       `${A}/score/region_2/label`,

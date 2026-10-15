@@ -4,13 +4,14 @@ import type { Coordinate } from "../src/index.ts";
 import {
   AxisMismatchError,
   addCoordinates,
+  axisCoordinate,
   CoordinateError,
   compareCoordinates,
-  coordinateFromDict,
   coordinatesEqual,
-  coordinateToDict,
   Rational,
+  readAxisValue,
   subtractCoordinates,
+  toAxisValue,
 } from "../src/index.ts";
 import {
   addReal,
@@ -108,9 +109,9 @@ describe("Rational", () => {
   });
 });
 
-describe("coordinate dicts mirror coordinate_from_dict and coordinate_to_dict", () => {
+describe("bare values mirror number_from_json and number_to_json", () => {
   const read = (unit: string, numberType: string, value: unknown) =>
-    coordinateFromDict({ unit, number_type: numberType, value });
+    axisCoordinate(value, { unit, number_type: numberType } as never);
 
   it("reads an int value from a JSON integer or an integral JSON number", () => {
     expect(read("ticks", "int", 480n)).toEqual({ unit: "ticks", numberType: "int", value: 480n });
@@ -157,48 +158,27 @@ describe("coordinate dicts mirror coordinate_from_dict and coordinate_to_dict", 
     expect(() => read("quarters", "fraction", [1n, 2n ** 63n])).toThrow(CoordinateError);
   });
 
-  it("refuses unknown units and number types at their member", () => {
-    const refusal = (entry: unknown) => {
+  it("refuses at the path given", () => {
+    const refused = (value: unknown, path?: string[]) => {
       try {
-        coordinateFromDict(entry);
+        readAxisValue(value, "fraction", path);
       } catch (error) {
         return [(error as CoordinateError).code, (error as CoordinateError).path];
       }
-      return undefined;
+      return "read";
     };
-    expect(refusal({ unit: "bars", number_type: "int", value: 1n })).toEqual([
-      "invalid_coordinate",
-      ["unit"],
-    ]);
-    expect(refusal({ unit: "ticks", number_type: "decimal", value: 1n })).toEqual([
-      "invalid_coordinate",
-      ["number_type"],
-    ]);
-    expect(refusal({ unit: "ticks", number_type: "int" })).toEqual(["invalid_coordinate", []]);
-    expect(refusal({ unit: "ticks", number_type: "int", value: "1" })).toEqual([
-      "invalid_coordinate",
-      ["value"],
-    ]);
+    expect(refused(8)).toEqual(["invalid_coordinate", []]);
+    expect(refused("1", ["length"])).toEqual(["invalid_coordinate", ["length"]]);
+    expect(readAxisValue(480, "int")).toBe(480n);
+    expect(readAxisValue(3, "float")).toBe(3);
   });
 
   it("writes a bigint, a number or a normalized pair", () => {
-    expect(coordinateToDict(read("ticks", "int", 480n))).toEqual({
-      unit: "ticks",
-      number_type: "int",
-      value: 480,
-    });
-    expect(coordinateToDict(read("ticks", "int", 2n ** 60n)).value).toBe(2n ** 60n);
-    expect(coordinateToDict(read("seconds", "float", 3n))).toEqual({
-      unit: "seconds",
-      number_type: "float",
-      value: new JsonFloat(3),
-    });
-    expect(coordinateToDict(read("seconds", "float", 2.5)).value).toBe(2.5);
-    expect(coordinateToDict(read("quarters", "fraction", [6n, 4n]))).toEqual({
-      unit: "quarters",
-      number_type: "fraction",
-      value: [3, 2],
-    });
+    expect(toAxisValue(read("ticks", "int", 480n))).toBe(480);
+    expect(toAxisValue(read("ticks", "int", 2n ** 60n))).toBe(2n ** 60n);
+    expect(toAxisValue(read("seconds", "float", 3n))).toEqual(new JsonFloat(3));
+    expect(toAxisValue(read("seconds", "float", 2.5))).toBe(2.5);
+    expect(toAxisValue(read("quarters", "fraction", [6n, 4n]))).toEqual([3, 2]);
   });
 });
 
@@ -210,10 +190,8 @@ describe("coordinate arithmetic stays on one axis", () => {
   });
 
   it("adds, subtracts and compares within an axis", () => {
-    expect(coordinateToDict(addCoordinates(fraction(1, 3), fraction(1, 6))).value).toEqual([1, 2]);
-    expect(coordinateToDict(subtractCoordinates(fraction(1, 2), fraction(3, 4))).value).toEqual([
-      -1, 4,
-    ]);
+    expect(toAxisValue(addCoordinates(fraction(1, 3), fraction(1, 6)))).toEqual([1, 2]);
+    expect(toAxisValue(subtractCoordinates(fraction(1, 2), fraction(3, 4)))).toEqual([-1, 4]);
     const ticks = (value: bigint): Coordinate => ({ unit: "ticks", numberType: "int", value });
     expect(addCoordinates(ticks(2n ** 62n), ticks(2n ** 62n)).value).toBe(2n ** 63n);
     const seconds = (value: number): Coordinate => ({
@@ -243,7 +221,7 @@ describe("coordinate arithmetic stays on one axis", () => {
 
 describe("a child's end compares across number types as Python compares it", () => {
   const on = (numberType: "int" | "float" | "fraction", value: unknown): Coordinate =>
-    coordinateFromDict({ unit: "number", number_type: numberType, value });
+    axisCoordinate(value, { unit: "number", number_type: numberType });
   const end = (offset: Coordinate, length: Coordinate) => addReal(realOf(offset), realOf(length));
   const show = (value: ReturnType<typeof addReal>) =>
     value instanceof Rational ? value.toFraction() : value;
@@ -285,7 +263,7 @@ describe("a child's end compares across number types as Python compares it", () 
 
   it("expresses a value on an axis only when the number type holds it exactly", () => {
     const shown = (coordinate: Coordinate | undefined) =>
-      coordinate === undefined ? undefined : coordinateToDict(coordinate).value;
+      coordinate === undefined ? undefined : toAxisValue(coordinate);
     expect(shown(exactCoordinate(Rational.of([9, 2]), "number", "int"))).toBe(undefined);
     expect(shown(exactCoordinate(Rational.of([8, 2]), "number", "int"))).toBe(4);
     expect(shown(exactCoordinate(Rational.of([9, 2]), "number", "fraction"))).toEqual([9, 2]);

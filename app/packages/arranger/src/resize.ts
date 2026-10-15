@@ -95,6 +95,16 @@ function solve(f: (x: number) => number, start: number, target: number, floor: n
 }
 
 /**
+ * The box request after a stretch that took the content from `content` to
+ * `stretched` on one axis: a request larger than the content keeps the
+ * space it adds, one at or below it draws nothing and becomes `null`.
+ */
+function kept(request: number | null, content: number, stretched: number): number | null {
+  if (request === null || request <= content) return null;
+  return quantize(stretched + request - content, GRID_FREE);
+}
+
+/**
  * The placement values that resize `block` by dragging `handle` by `delta`:
  * the dragged edge ends under the pointer and the opposite edge stays put.
  * Every number is quantized to `GRID_FREE`, never to the grid: for a left or
@@ -107,9 +117,13 @@ function solve(f: (x: number) => number, start: number, target: number, floor: n
  *   own extent stores `null`, the content's size.
  * - `stretch` sets `length` from a left or right handle and `spacing` from a
  *   top or bottom one: the largest value whose content extent does not pass
- *   the pointer. The content moves by the pointer's travel, so with no box
- *   request its edge ends under the pointer. Floored at `MIN_LENGTH` and
- *   `MIN_SPACING`, and a shrink past a flat piece stops at its knee.
+ *   the pointer, the content's extent moving by the pointer's travel.
+ *   Floored at `MIN_LENGTH` and `MIN_SPACING`, and a shrink past a flat
+ *   piece stops at its knee. The box follows the content on each axis: a
+ *   `width` or `height` larger than the content keeps the space it adds
+ *   (the stretched content plus the request minus the content before),
+ *   one at or below the content becomes `null`, and `null` stays. So the
+ *   edge ends under the pointer with or without a box request.
  */
 export function resize(
   block: Block,
@@ -169,8 +183,16 @@ export function resize(
         spacing = solve(height, spacing, wanted, MIN_SPACING);
         values.spacing = spacing;
       }
-      const stretched = drawingOf(block, settings, metrics, { length, spacing });
-      size = { ...size, width: stretched.width, height: stretched.height };
+      const stretched = drawingOf(block, settings, metrics, { ...free, length, spacing });
+      const width = kept(block.width, content.width, stretched.width);
+      const height = kept(block.height, content.height, stretched.height);
+      if (width !== block.width) values.width = width;
+      if (height !== block.height) values.height = height;
+      size = {
+        ...size,
+        width: Math.max(stretched.width, width ?? 0),
+        height: Math.max(stretched.height, height ?? 0),
+      };
     }
   }
   if (sx < 0) values.x = quantize(right - size.width * size.scale, GRID_FREE);

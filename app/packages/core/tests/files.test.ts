@@ -1,25 +1,20 @@
-import { dumps, parse } from "@timetoalign/timeskeleton";
+import { dumps, JsonFloat } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
-import type { BundleFile, GroupFile, Manifest, View } from "../src/index.ts";
+import type { Manifest, View } from "../src/index.ts";
 import {
   apply,
-  checkWorkspace,
   createStore,
   createView,
   elementOf,
   elementOfIn,
-  isCommandError,
   isLoadError,
-  isRemovable,
-  isRemovableIn,
   loadManifest,
   manifestElements,
   manifestIds,
-  manifestKind,
-  manifestRoots,
   memberDrawings,
   nextId,
   readWorkspace,
+  removedBy,
   selectorMatches,
   timelineAncestry,
   writeWorkspace,
@@ -33,7 +28,8 @@ import {
   changed,
   deepFreeze,
   load,
-  loadFile,
+  loadText,
+  manifestValue,
   refusal,
   testClock,
   viewOf,
@@ -46,15 +42,12 @@ const NUMBERS = "groups/group_number_types.json";
 const STYLED = "groups/group_styled.json";
 const BUNDLE = "bundles/bundle_mixed.json";
 
-const quarters = (numerator: number) => ({
-  unit: "quarters",
-  number_type: "fraction",
-  value: [numerator, 1],
-});
-const pixels = (value: number) => ({ unit: "pixels", number_type: "int", value });
+/** Bare values on a `fraction` and on an `int` axis. */
+const quarters = (numerator: number) => [numerator, 1];
+const pixels = (value: number) => value;
 const at = (element: string) => `${A}/${element}`;
 const set = (target: string, values: object) => ({ type: "set", changes: [{ target, values }] });
-const region = (id: string, start: object, end: object) => ({
+const region = (id: string, start: unknown, end: unknown) => ({
   id,
   name: "A",
   start,
@@ -63,10 +56,18 @@ const region = (id: string, start: object, end: object) => ({
 });
 const addRegion = (into: string, value: object) => ({ type: "add", into: at(into), region: value });
 
-/** The manifest of block `A`, a group or bundle file. */
-function file(view: View, id = A): GroupFile {
-  return block(view, id).manifest as GroupFile;
+/** The manifest of block `A`. */
+function file(view: View, id = A): Manifest {
+  return block(view, id).manifest;
 }
+
+/** A child timeline given to `add`: bare's root under another id, locked, at 0. */
+const childOf = (id: string) => ({
+  ...load("bare.json").timelines[0],
+  id,
+  offset: quarters(0),
+  locked: true,
+});
 
 /** A view of `group_number_types.json` in block `A` with `region_1` (2 to 4 ♩) in `score`. */
 function numbersWithRegion(): View {
@@ -80,36 +81,7 @@ function rejected(view: View, command: object) {
   return refusal(apply(deepFreeze(view), command));
 }
 
-describe("the file kind", () => {
-  it.each([
-    ["bare.json", "timeline", ["bare"]],
-    [GROUP, "group", ["piece", "recording"]],
-    [BUNDLE, "bundle", ["annotations", "page", "performance", "recording", "score"]],
-  ] as const)("%s is a %s file", (name, kind, roots) => {
-    const manifest = loadFile(name);
-    expect(manifestKind(manifest)).toBe(kind);
-    expect(manifestRoots(manifest).map((root) => root.id)).toEqual(roots);
-  });
-});
-
-describe("blocks of every kind", () => {
-  it("take their kind from the manifest", () => {
-    const view = viewOf([A, GROUP], [B, BUNDLE]);
-    expect([block(view, A).blockKind, block(view, B).blockKind]).toEqual(["group", "bundle"]);
-    expect(rejected(view, set(A, { manifest: load("bare.json") }))).toEqual({
-      code: "block_kind_mismatch",
-      path: [A, "manifest"],
-    });
-  });
-
-  it("refuse a kind that does not describe the manifest", () => {
-    const view = viewOf([A, GROUP]);
-    const wrong = { ...view, blocks: { [A]: { ...block(view), blockKind: "timeline" as const } } };
-    expect(checkWorkspace(wrong).map(({ code, path }) => ({ code, path }))).toEqual([
-      { code: "block_kind_mismatch", path: ["blocks", A, "blockKind"] },
-    ]);
-  });
-
+describe("blocks hold any manifest", () => {
   it("are written and read back by the workspace file", () => {
     const store = createStore({ view: createView(), journal: [] }, { clock: testClock() });
     for (const command of [addBlock(A, "bare.json"), addBlock(B, GROUP), addBlock(C, BUNDLE)]) {
@@ -120,35 +92,31 @@ describe("blocks of every kind", () => {
     const read = readWorkspace(text);
     expect(read).toEqual(workspace);
     if (!isLoadError(read)) {
-      expect(read.view.meta).toEqual({ format: "tilie-workspace", version: 1 });
+      expect(read.view.meta).toEqual({ format: "tilie-workspace", version: 2 });
       expect(writeWorkspace(read)).toBe(text);
     }
   });
 });
 
 describe("invariants root by root", () => {
-  it("refuses an unlocked child below timelines/<index>", () => {
-    const fixture = loadFile(GROUP);
-    const value = parse(dumps(fixture)) as unknown as {
-      timelines: { children: Record<string, { timeline: { locked: boolean } }> }[];
-    };
-    const child = value.timelines[0]?.children["second-half"]?.timeline;
+  it("refuses a child of another unit below timelines/<index>", () => {
+    const value = manifestValue(GROUP) as { timelines: { children: object[] }[] };
+    const child = value.timelines[0]?.children[0];
     if (child === undefined) throw new Error("second-half is missing");
-    child.locked = false;
-    const result = loadManifest(dumps(value as never));
-    expect(
-      isLoadError(result) ? result.problems.map(({ code, path }) => ({ code, path })) : result,
-    ).toEqual([
+    Object.assign(child, { unit: "seconds", number_type: "float", length: new JsonFloat(8) });
+    const result = loadManifest(dumps(value));
+    expect(isLoadError(result) ? result.problems : result).toEqual([
       {
-        code: "child_not_locked",
-        path: ["timelines", 0, "children", "second-half", "timeline", "locked"],
+        code: "schema_violation",
+        message: "child 'second-half' has unit 'seconds', its parent 'piece' has 'quarters'",
+        path: ["timelines", 0, "children", 0, "unit"],
       },
     ]);
   });
 });
 
-describe("the elements of a group file", () => {
-  const manifest = loadFile(GROUP);
+describe("the elements of a group manifest", () => {
+  const manifest = load(GROUP);
   const keys = manifestElements(manifest);
   const ancestry = timelineAncestry(manifest);
 
@@ -236,8 +204,8 @@ describe("the elements of a group file", () => {
   });
 });
 
-describe("the elements of a bundle file", () => {
-  const manifest = loadFile(BUNDLE);
+describe("the elements of a named manifest with two groups", () => {
+  const manifest = load(BUNDLE);
   const drawn = (id: string) => [
     id,
     `${id}/name`,
@@ -247,11 +215,11 @@ describe("the elements of a bundle file", () => {
     `${id}/end/label`,
   ];
 
-  it("list the bundle's title, the frames and the ungrouped roots", () => {
+  it("list the title, the frames and the ungrouped roots", () => {
     const keys = manifestElements(manifest);
     expect(keys.map((key) => key.address)).toEqual([
       null,
-      "bundle_1/name",
+      "name",
       "group_1",
       "group_1/name",
       "score/card",
@@ -277,7 +245,7 @@ describe("the elements of a bundle file", () => {
       keys.filter((key) => key.address === address).map((key) => key.inside);
     expect(keys.find((key) => key.address === "recording")?.type).toBe("ancestor");
     expect([
-      inside("bundle_1/name"),
+      inside("name"),
       inside("annotations/card"),
       inside("annotations"),
       inside("annotations/name"),
@@ -286,7 +254,7 @@ describe("the elements of a bundle file", () => {
 
   it("draw members in display order with their ancestors", () => {
     const { frames, ungrouped } = memberDrawings(manifest);
-    const recording = (manifest as BundleFile).timelines[3];
+    const recording = manifest.timelines[3];
     expect(
       frames.map((frame) => [
         frame.group.id,
@@ -308,7 +276,7 @@ describe("the elements of a bundle file", () => {
         "group_2",
         [
           ["page", "page", []],
-          ["excerpt", "recording", [["recording", recording?.children.excerpt?.offset]]],
+          ["excerpt", "recording", [["recording", recording?.children[0]?.offset]]],
         ],
       ],
     ]);
@@ -316,8 +284,46 @@ describe("the elements of a bundle file", () => {
   });
 });
 
-describe("addresses in a group block", () => {
-  it("qualify every element but timelines, groups and the bundle by its root", () => {
+describe("addresses in a one-root block", () => {
+  const view = viewOf([A, "map.json"]);
+
+  it("name timelines by their ids and every other element below its root", () => {
+    expect([...manifestIds(file(view))].sort()).toEqual([
+      "melody",
+      "melody/tempo",
+      "melody/ticks",
+      "phrase",
+    ]);
+  });
+
+  it.each([
+    ["melody/ticks", "melody/ticks"],
+    ["phrase/name", "phrase"],
+    ["melody/end/label", "melody"],
+    ["melody/card", "melody"],
+    ["name", "name"],
+  ])("%s is a part of %s", (path, element) => {
+    expect(elementOf(file(view), path)).toBe(element);
+  });
+
+  it("reach a map of a child through the root", () => {
+    const payload = { ...(file(view).timelines[0]?.children[0]?.conversion_maps[0] ?? {}) };
+    const changedMap = changed(view, set(at("melody/ticks"), { map: { ...payload, scalar: 960 } }));
+    expect(file(changedMap).timelines[0]?.children[0]?.conversion_maps[0]).toEqual({
+      ...payload,
+      scalar: 960,
+    });
+    for (const element of ["ticks", "phrase/ticks"]) {
+      expect(rejected(view, set(at(element), { name: "x" }))).toEqual({
+        code: "unknown_target",
+        path: [at(element)],
+      });
+    }
+  });
+});
+
+describe("addresses in a block of several roots", () => {
+  it("qualify every element but timelines and groups by its root", () => {
     const view = numbersWithRegion();
     expect(file(view).timelines[2]?.regions).toEqual([
       region("region_1", quarters(2), quarters(4)),
@@ -337,8 +343,9 @@ describe("addresses in a group block", () => {
     ["score/start", "score"],
     ["score/card", "score"],
     ["group_1/name", "group_1"],
-  ])("%s is a part of %s", (path, element) => {
-    expect(elementOf(file(numbersWithRegion()), path)).toBe(element);
+  ])("%s is a part of %s, read once or each time", (path, element) => {
+    const manifest = file(numbersWithRegion());
+    expect([elementOf(manifest, path), elementOfIn(manifest)(path)]).toEqual([element, element]);
   });
 
   it("never reads score/start as an element: a part word is no id", () => {
@@ -357,7 +364,7 @@ describe("addresses in a group block", () => {
     });
   });
 
-  it.each(["region_1", "page/region_1", "group_1", "score/region_1/x"])(
+  it.each(["region_1", "page/region_1", "score/region_1/x"])(
     "refuses %s as no target",
     (element) => {
       expect(rejected(numbersWithRegion(), set(at(element), { name: "x" }))).toEqual({
@@ -366,15 +373,22 @@ describe("addresses in a group block", () => {
       });
     },
   );
+
+  it("finds a group, which sets nothing", () => {
+    expect(rejected(numbersWithRegion(), set(at("group_1"), { name: "x" }))).toEqual({
+      code: "wrong_target_kind",
+      path: [at("group_1"), "name"],
+    });
+  });
 });
 
-describe("commands in group and bundle blocks", () => {
+describe("commands in blocks of several roots", () => {
   it("set a timeline at any depth and an element of a root's tree", () => {
     const group = viewOf([A, GROUP]);
     const late = file(changed(group, set(at("second-half"), { name: "Late" })));
     const before = file(group);
-    expect(late.timelines[0]?.children["second-half"]?.timeline).toEqual({
-      ...before.timelines[0]?.children["second-half"]?.timeline,
+    expect(late.timelines[0]?.children[0]).toEqual({
+      ...before.timelines[0]?.children[0],
       name: "Late",
     });
     expect(late.timelines[1]).toEqual(before.timelines[1]);
@@ -384,22 +398,18 @@ describe("commands in group and bundle blocks", () => {
     ]);
   });
 
-  it("add a child into a root of the file", () => {
-    const child = {
-      offset: quarters(0),
-      timeline: { ...load("bare.json").timeline, id: "clt_1", locked: true },
-    };
-    const view = changed(viewOf([A, NUMBERS]), { type: "add", into: at("score"), child });
-    expect(file(view).timelines[2]?.children).toEqual({ clt_1: child });
+  it("add a child into a root of the manifest", () => {
+    const view = changed(viewOf([A, NUMBERS]), {
+      type: "add",
+      into: at("score"),
+      child: childOf("clt_1"),
+    });
+    expect(file(view).timelines[2]?.children).toEqual([{ ...childOf("clt_1"), name: "Bare" }]);
   });
 
-  it("scope duplicate ids as the file scopes them", () => {
+  it("scope duplicate ids as the manifest scopes them", () => {
     const view = numbersWithRegion();
-    const child = {
-      offset: quarters(0),
-      timeline: { ...load("bare.json").timeline, id: "page", locked: true },
-    };
-    expect(rejected(view, { type: "add", into: at("score"), child })).toEqual({
+    expect(rejected(view, { type: "add", into: at("score"), child: childOf("page") })).toEqual({
       code: "duplicate_id",
       path: [at("page")],
     });
@@ -410,24 +420,7 @@ describe("commands in group and bundle blocks", () => {
     expect(file(page).timelines[0]?.regions).toEqual([region("region_1", pixels(2), pixels(4))]);
   });
 
-  it("refuse to remove a timeline and remove an element", () => {
-    for (const [fixture, timeline] of [
-      [NUMBERS, "score"],
-      [GROUP, "second-half"],
-    ] as const) {
-      expect(rejected(viewOf([A, fixture]), { type: "remove", targets: [at(timeline)] })).toEqual({
-        code: "unsupported_target",
-        path: [at(timeline)],
-      });
-    }
-    const removed = changed(numbersWithRegion(), {
-      type: "remove",
-      targets: [at("score/region_1")],
-    });
-    expect(file(removed).timelines[2]?.regions).toEqual([]);
-  });
-
-  it("style the file's graphical block, keeping its order", () => {
+  it("style the manifest's graphical block, keeping its order", () => {
     const styled = changed(viewOf([A, STYLED]), {
       type: "style",
       select: { element: "ancestor" },
@@ -435,7 +428,7 @@ describe("commands in group and bundle blocks", () => {
       blocks: [A],
     });
     expect(file(styled).graphical).toEqual({
-      order: ["score", "page", "performance"],
+      order: { group_1: ["score", "page", "performance"] },
       styles: { "frame-highlight": { stroke: "#7F00FF" } },
       statements: [
         { select: { element: "group" }, set: "frame-highlight" },
@@ -446,7 +439,7 @@ describe("commands in group and bundle blocks", () => {
     });
   });
 
-  it("style every group and bundle block holding a frame", () => {
+  it("style every block holding a group", () => {
     const view = viewOf([A, NUMBERS], [B, BUNDLE], [C, "bare.json"]);
     const styled = changed(view, {
       type: "style",
@@ -459,7 +452,7 @@ describe("commands in group and bundle blocks", () => {
       styles: {},
       statements: [statement],
     });
-    expect((block(styled, B).manifest as Manifest).graphical).toEqual({
+    expect(block(styled, B).manifest.graphical).toEqual({
       ...block(view, B).manifest.graphical,
       styles: {},
       statements: [statement],
@@ -468,99 +461,93 @@ describe("commands in group and bundle blocks", () => {
   });
 });
 
-describe("what can be removed", () => {
-  const ROOT = { code: "not_removable", message: "root cannot be removed" };
-  const TIMELINE = {
-    code: "unsupported_target",
-    message: "removing a timeline from a group or bundle file is not supported yet",
-  };
-  const NOTHING = { code: "unknown_target" };
-  const cases: [string, () => View, [string, boolean, object | null][]][] = [
-    [
-      "nested",
-      () => viewOf([A, "nested.json"]),
-      [
-        ["clt_1", false, ROOT],
-        ["clt_3", true, null],
-        ["clt_2", true, null],
-        ["nobody", true, NOTHING],
-      ],
-    ],
-    [
-      "group_child_member",
-      () => viewOf([A, GROUP]),
-      [
-        ["piece", false, TIMELINE],
-        ["second-half", false, TIMELINE],
-        ["recording", false, TIMELINE],
-        ["group_1", false, NOTHING],
-        ["nobody", true, NOTHING],
-      ],
-    ],
-    [
-      "numbers",
-      numbersWithRegion,
-      [
-        ["score", false, TIMELINE],
-        ["page", false, TIMELINE],
-        ["performance", false, TIMELINE],
-        ["group_1", false, NOTHING],
-        ["score/region_1", true, null],
-        ["nobody", true, NOTHING],
-      ],
-    ],
-    [
-      "bundle_mixed",
-      () => viewOf([A, BUNDLE]),
-      [
-        ["annotations", false, TIMELINE],
-        ["page", false, TIMELINE],
-        ["performance", false, TIMELINE],
-        ["recording", false, TIMELINE],
-        ["excerpt", false, TIMELINE],
-        ["score", false, TIMELINE],
-        ["bundle_1", false, NOTHING],
-        ["group_1", false, NOTHING],
-        ["group_2", false, NOTHING],
-        ["nobody", true, NOTHING],
-      ],
-    ],
-  ];
+describe("delete deletes", () => {
+  const remove = (view: View, ...targets: string[]) =>
+    file(changed(deepFreeze(view), { type: "remove", targets: targets.map(at) }));
+  const ids = (manifest: Manifest) => manifest.timelines.map((timeline) => timeline.id);
 
-  it.each(cases)("in %s is exactly what remove does not refuse by kind", (_, build, expected) => {
-    const view = build();
-    const { manifest } = block(view);
-    const removable = isRemovableIn(manifest);
-    for (const [element, answer, refused] of expected) {
-      expect([element, isRemovable(manifest, element)]).toEqual([element, answer]);
-      expect([element, removable(element)]).toEqual([element, answer]);
-      const result = apply(deepFreeze(view), { type: "remove", targets: [at(element)] });
-      if (refused === null) {
-        expect([element, isCommandError(result)]).toEqual([element, false]);
-      } else {
-        const message = "message" in refused ? refused.message : `${at(element)} names nothing`;
-        expect(result).toEqual({ ...refused, message, path: [at(element)] });
-      }
-    }
+  it("removes a subtree and its ids from every group and order", () => {
+    const view = viewOf([A, BUNDLE]);
+    const before = file(view);
+    const after = remove(view, "recording");
+    expect(ids(after)).toEqual(["annotations", "page", "performance", "score"]);
+    expect(after.groups).toEqual([before.groups[0], { ...before.groups[1], members: ["page"] }]);
+    expect(after.graphical?.order).toEqual({
+      group_1: ["score", "performance"],
+      group_2: ["page"],
+    });
+    expect(removedBy(before, ["recording"])).toEqual(new Set(["recording", "excerpt"]));
   });
 
-  it("has a precomputed elementOf giving elementOf's answers", () => {
-    const { manifest } = block(numbersWithRegion());
-    const element = elementOfIn(manifest);
-    for (const path of [
-      "score/region_1/label",
-      "score/end/label",
-      "score/start",
-      "score/card",
-      "group_1/name",
-    ]) {
-      expect(element(path)).toBe(elementOf(manifest, path));
-    }
+  it("removes a child from its parent and its group", () => {
+    const after = remove(viewOf([A, GROUP]), "second-half");
+    expect(after.timelines[0]?.children).toEqual([]);
+    expect(after.groups[0]?.members).toEqual(["recording"]);
+    expect(after.graphical?.order).toEqual({ group_1: ["recording"] });
+  });
+
+  it("removes the conversion maps naming a removed timeline", () => {
+    const warp = {
+      type: "InterpolationMap",
+      id: "warp",
+      source_id: "score",
+      target_id: "performance",
+      source_unit: "quarters",
+      target_unit: "seconds",
+      source_coords: [0, 12],
+      target_coords: [0, 12.5],
+    };
+    const view = changed(viewOf([A, NUMBERS]), { type: "add", into: at("score"), map: warp });
+    expect(file(view).timelines[2]?.conversion_maps).toEqual([{ ...warp, name: null }]);
+    expect(removedBy(file(view), ["performance"])).toEqual(new Set(["performance", "score/warp"]));
+    expect(remove(view, "performance").timelines[1]?.conversion_maps).toEqual([]);
+  });
+
+  it("removes the ids entries addressing a removed element, and a statement left without", () => {
+    const styled = [
+      { select: { ids: ["page", "score/card"] }, set: { opacity: 0.5 } },
+      { select: { ids: ["page/name"] }, set: { opacity: 0.4 } },
+    ].reduce(
+      (view, { select, set: properties }) =>
+        changed(view, { type: "style", select, set: properties, blocks: [A] }),
+      viewOf([A, STYLED]),
+    );
+    const own = file(viewOf([A, STYLED])).graphical?.statements ?? [];
+    expect(remove(styled, "page").graphical?.statements).toEqual([
+      ...own,
+      { select: { ids: ["score/card"] }, set: { opacity: 0.5 } },
+    ]);
+  });
+
+  it("keeps a group left without members and leaves no root", () => {
+    const after = remove(viewOf([A, NUMBERS]), "page", "performance", "score");
+    expect(after.timelines).toEqual([]);
+    expect(after.groups).toEqual([{ id: "group_1", name: "Edition", meta: {}, members: [] }]);
+    expect(after.graphical?.order).toEqual({ group_1: [] });
+  });
+
+  it("removes a group only, its members staying as ungrouped roots", () => {
+    const view = viewOf([A, BUNDLE]);
+    const before = file(view);
+    const after = remove(view, "group_1");
+    expect(after.timelines).toEqual(before.timelines);
+    expect(after.groups).toEqual([before.groups[1]]);
+    expect(after.graphical?.order).toEqual({ group_2: ["page", "excerpt"] });
+    expect(memberDrawings(after).ungrouped.map((member) => member.timeline.id)).toEqual([
+      "annotations",
+      "performance",
+      "score",
+    ]);
+  });
+
+  it("does not refuse a target that goes with another", () => {
+    const view = viewOf([A, BUNDLE]);
+    expect(remove(view, "recording", "excerpt")).toEqual(remove(view, "recording"));
   });
 });
 
-describe("ids for new elements of a group block", () => {
-  it("are unique within the tree, timelines across the file", () => {
+describe("ids for new elements of a block of several roots", () => {
+  it("are unique within the tree, timelines, groups and the manifest across it", () => {
     let view = numbersWithRegion();
     expect(nextId(view, A, "region", "score")).toBe("region_2");
     expect(nextId(view, A, "region", "page")).toBe("region_1");
@@ -568,13 +555,26 @@ describe("ids for new elements of a group block", () => {
     view = changed(view, addRegion("page", region("clt_1", pixels(2), pixels(4))));
     expect(nextId(view, A, "clt", "score")).toBe("clt_1");
     expect(nextId(view, A, "clt", "page")).toBe("clt_2");
-    const child = {
-      offset: quarters(0),
-      timeline: { ...load("bare.json").timeline, id: "clt_1", locked: true },
-    };
-    view = changed(view, { type: "add", into: at("score"), child });
+    view = changed(view, { type: "add", into: at("score"), child: childOf("clt_1") });
     expect(nextId(view, A, "clt", "page")).toBe("clt_2");
     expect(nextId(view, A, "clt", "performance")).toBe("clt_2");
-    expect(nextId(view, A, "group")).toBe("group_2");
+  });
+
+  it("leave a group's id and the manifest's id to everything but a timeline", () => {
+    const value = { ...manifestValue(BUNDLE), id: "edition" };
+    const view = changed(createView(), {
+      type: "add",
+      into: "workspace",
+      block: { id: A, manifest: loadText(dumps(value as never)), x: 0, y: 0 },
+    });
+    expect(nextId(view, A, "group", "score")).toBe("group_1");
+    for (const id of ["group_1", "edition"]) {
+      const added = changed(view, addRegion("score", region(id, quarters(2), quarters(4))));
+      expect(file(added).timelines[4]?.regions.map((item) => item.id)).toEqual([id]);
+      expect(rejected(view, { type: "add", into: at("score"), child: childOf(id) })).toEqual({
+        code: "duplicate_id",
+        path: [at(id)],
+      });
+    }
   });
 });

@@ -2,7 +2,7 @@ import type { Block, View } from "@timetoalign/tilie-core";
 import { describe, expect, it } from "vitest";
 import type { Handle, ResizeMode } from "../src/index.ts";
 import { handlesFor, resize, resizeCommand } from "../src/index.ts";
-import { A, blockIn, changed, metrics, viewOf, withGrid } from "./support.ts";
+import { A, blockIn, CHILD_MEMBER, changed, metrics, viewOf, withGrid } from "./support.ts";
 
 type Row = readonly [string, Handle, number, number, Partial<Block>];
 
@@ -46,6 +46,13 @@ const views: { readonly [name: string]: View } = {
   "audio, no names": audio,
   "audio, no names, length 8": placed(audio, { length: 8 }),
   "audio, no names, at the knee": placed(audio, { length: 40.08251953125 }),
+  "bare, width 496.58": placed(bare, { width: 496.5771484375 }),
+  "bare, height 77.88": placed(bare, { height: 77.87890625 }),
+  "bare, both requests": placed(bare, { width: 496.5771484375, height: 77.87890625 }),
+  "bare, length 500, width 496.58": placed(bare, { length: 500, width: 496.5771484375 }),
+  "child member, width 600": placed(viewOf({ id: A, fixture: CHILD_MEMBER, x: 40, y: 80 }), {
+    width: 600,
+  }),
 };
 
 describe("handlesFor", () => {
@@ -118,6 +125,20 @@ describe("resize: stretch", () => {
     ["audio, no names", "right", -500, 0, { length: 40.08251953125 }],
     ["audio, no names, length 8", "right", 50, 0, { length: 90.08251953125 }],
     ["audio, no names, at the knee", "right", 100, 0, { length: 140.08251953125 }],
+    ["bare, width 496.58", "right", 20, 0, { length: 420, width: 516.5771484375 }],
+    ["bare, width 496.58", "left", -21, 0, { length: 421, width: 517.5771484375, x: 19 }],
+    ["bare, width 496.58", "bottom", 0, 30, { spacing: 2.875 }],
+    ["bare, height 77.88", "bottom", 0, 30, { spacing: 2.875, height: 107.87890625 }],
+    ["bare, height 77.88", "top", 0, -16, { spacing: 2, height: 93.87890625, y: 64 }],
+    [
+      "bare, both requests",
+      "bottom-right",
+      20,
+      30,
+      { length: 420, spacing: 2.875, width: 516.5771484375, height: 107.87890625 },
+    ],
+    ["bare, length 500, width 496.58", "right", 20, 0, { length: 520, width: null }],
+    ["child member, width 600", "right", 50, 0, { length: 450, width: 650 }],
   ])("%s %s by (%d, %d)", (name, handle, dx, dy, expected) => {
     expect(check(views[name] as View, "stretch", handle, dx, dy)).toStrictEqual(expected);
   });

@@ -1,28 +1,15 @@
 /**
- * Fixtures shipped by the installed `@timetoalign/timeskeleton` package, read
- * from disk; nothing here writes files or reaches the network.
+ * The manifests the tests read: the fixtures shipped by the installed
+ * `@timetoalign/timeskeleton` package, read from disk; nothing here writes
+ * files or reaches the network.
  */
 
 import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { canonicalJson, parseJson, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
-import type {
-  Block,
-  Command,
-  Manifest,
-  TimelineFile,
-  TimelineManifest,
-  View,
-} from "../src/index.ts";
-import {
-  apply,
-  createView,
-  isCommandError,
-  isLoadError,
-  loadManifest,
-  manifestKind,
-} from "../src/index.ts";
+import type { Block, Command, Manifest, View } from "../src/index.ts";
+import { apply, createView, isCommandError, isLoadError, loadManifest } from "../src/index.ts";
 import type { JsonObject, PathSegment } from "../src/json.ts";
 
 const packageDir = path.dirname(
@@ -41,35 +28,30 @@ function jsonFiles(dir: string): string[] {
     .sort();
 }
 
+/** A fixture with the text of its minimal twin (`<name>.minimal.json`). */
+export interface FixtureWithTwin extends Fixture {
+  readonly twin: string;
+}
+
 /** The fixtures directly in `fixtures/<version>/<subdirectory>`, named by their path below `fixtures/<version>/`. */
-function fixturesIn(version: string, subdirectory = ""): Fixture[] {
-  const dir = path.join(fixturesDir, version, subdirectory);
-  return jsonFiles(dir).map((name) => ({
-    name: subdirectory === "" ? name : `${subdirectory}/${name}`,
-    text: readFileSync(path.join(dir, name), "utf8"),
-  }));
+function fixturesIn(subdirectory = ""): FixtureWithTwin[] {
+  const dir = path.join(fixturesDir, SCHEMA_VERSION, subdirectory);
+  const read = (name: string) => readFileSync(path.join(dir, name), "utf8");
+  return jsonFiles(dir)
+    .filter((name) => !name.endsWith(".minimal.json"))
+    .map((name) => ({
+      name: subdirectory === "" ? name : `${subdirectory}/${name}`,
+      text: read(name),
+      twin: read(name.replace(/\.json$/, ".minimal.json")),
+    }));
 }
 
-/** Every timeline-file fixture of the installed schema version. */
-export const manifestFixtures: readonly Fixture[] = fixturesIn(SCHEMA_VERSION);
-
-/** Every group-file fixture of the installed schema version, named `groups/<file>`. */
-export const groupFixtures: readonly Fixture[] = fixturesIn(SCHEMA_VERSION, "groups");
-
-/** Every bundle-file fixture of the installed schema version, named `bundles/<file>`. */
-export const bundleFixtures: readonly Fixture[] = fixturesIn(SCHEMA_VERSION, "bundles");
-
-/** The fixtures of every file kind. */
-export const allFixtures: readonly Fixture[] = [
-  ...manifestFixtures,
-  ...groupFixtures,
-  ...bundleFixtures,
+/** Every manifest fixture of the installed schema version, its own, `groups/…` and `bundles/…`, each with its twin. */
+export const allFixtures: readonly FixtureWithTwin[] = [
+  ...fixturesIn(),
+  ...fixturesIn("groups"),
+  ...fixturesIn("bundles"),
 ];
-
-/** The timeline-file fixtures of an earlier schema version. */
-export function olderFixtures(version: string): readonly Fixture[] {
-  return fixturesIn(version);
-}
 
 export interface Rejection {
   readonly name: string;
@@ -77,79 +59,48 @@ export interface Rejection {
   readonly path: readonly PathSegment[];
 }
 
-export interface MigrationPair {
-  readonly name: string;
-  readonly before: string;
-  readonly after: string;
+/** Every shared rejection case of the installed schema version, its value rendered as text. */
+export const rejections: readonly Rejection[] = (() => {
+  const dir = path.join(fixturesDir, "rejections", SCHEMA_VERSION);
+  return jsonFiles(dir).map((name) => {
+    const entry = parseJson(readFileSync(path.join(dir, name), "utf8")) as JsonObject;
+    // The rejected value may be anything; its compact text keeps every
+    // value and every array position, which is all a pinned path needs.
+    return {
+      name,
+      text: canonicalJson((entry.manifest ?? entry.document) as never),
+      path: entry.path as (string | number)[],
+    };
+  });
+})();
+
+/** The manifest fixture named by its path below `fixtures/<version>/`, e.g. `groups/group_styled.json`. */
+export function fixture(name: string): FixtureWithTwin {
+  const found = allFixtures.find((item) => item.name === name);
+  if (found === undefined) throw new Error(`no manifest fixture ${name}`);
+  return found;
 }
 
-/** Every migration pair `fixtures/migrations/<from>-to-<to>/`, its two texts. */
-export const migrationPairs: readonly MigrationPair[] = readdirSync(
-  path.join(fixturesDir, "migrations"),
-)
-  .sort()
-  .map((name) => {
-    const dir = path.join(fixturesDir, "migrations", name);
-    const read = (file: string) => readFileSync(path.join(dir, file), "utf8");
-    return { name, before: read("before.json"), after: read("after.json") };
-  });
+/** The text of a manifest fixture, in the complete form. */
+export function fixtureText(name: string): string {
+  return fixture(name).text;
+}
 
-/** Every shared rejection case, its value rendered as text. */
-export const rejections: readonly Rejection[] = readdirSync(path.join(fixturesDir, "rejections"))
-  .sort()
-  .flatMap((version) => {
-    const dir = path.join(fixturesDir, "rejections", version);
-    return jsonFiles(dir).map((name) => {
-      const entry = parseJson(readFileSync(path.join(dir, name), "utf8")) as JsonObject;
-      // The rejected value may be anything; its compact text keeps every
-      // value and every array position, which is all a pinned path needs.
-      return {
-        name: `${version}/${name}`,
-        text: canonicalJson((entry.manifest ?? entry.document) as never),
-        path: entry.path as (string | number)[],
-      };
-    });
-  });
-
-/** Load a fixture of any kind (`groups/…`, `bundles/…`), failing loudly if it is refused. */
-export function loadFile(name: string): Manifest {
-  const fixture = allFixtures.find((item) => item.name === name);
-  if (fixture === undefined) throw new Error(`no manifest fixture ${name}`);
-  const manifest = loadManifest(fixture.text);
+/** Load a manifest from its text, failing loudly if it is refused. */
+export function loadText(text: string, name = "the manifest"): Manifest {
+  const manifest = loadManifest(text);
   if (isLoadError(manifest)) throw new Error(`${name} refused: ${JSON.stringify(manifest)}`);
   return manifest;
 }
 
-/** Load a timeline-file fixture, failing loudly if it is refused or of another kind. */
-export function load(name: string): TimelineFile {
-  const manifest = loadFile(name);
-  if (manifestKind(manifest) !== "timeline") throw new Error(`${name} is no timeline file`);
-  return manifest as TimelineFile;
+/** Load a manifest fixture, failing loudly if it is refused. */
+export function load(name: string): Manifest {
+  return loadText(fixtureText(name), name);
 }
 
-/**
- * A timeline file of the latest version written as an earlier version
- * declares it: `is_segment_line` (0.7.0 on) removed from every timeline, the
- * declaration changed. Only for files without segment lines, whose migration
- * gives the latest file back.
- */
-export function asVersion(manifest: TimelineFile, version: string): object {
-  const older = (timeline: TimelineManifest): object => {
-    const { is_segment_line: _, ...rest } = timeline;
-    const children = Object.fromEntries(
-      Object.entries(timeline.children).map(([key, entry]) => [
-        key,
-        { ...entry, timeline: older(entry.timeline) },
-      ]),
-    );
-    return { ...rest, children };
-  };
-  if (version === SCHEMA_VERSION) return manifest;
-  return {
-    ...manifest,
-    meta: { ...manifest.meta, schema_version: version },
-    timeline: older(manifest.timeline),
-  };
+/** The value of a manifest fixture's text, losslessly, to change before loading it. */
+export function manifestValue(name: string): Record<string, unknown> {
+  return parseJson(fixtureText(name)) as Record<string, unknown>;
 }
 
 /** Freeze a value deeply, so any mutation of it throws in strict mode. */
@@ -172,14 +123,14 @@ export function changed(view: View, command: Command | object): View {
   return result;
 }
 
-/** The `add` command of a block holding a manifest fixture of any kind at (0, 0). */
-export function addBlock(id: string, fixture: string): Command {
-  return { type: "add", into: "workspace", block: { id, manifest: loadFile(fixture), x: 0, y: 0 } };
+/** The `add` command of a block holding a manifest fixture at (0, 0). */
+export function addBlock(id: string, name: string): Command {
+  return { type: "add", into: "workspace", block: { id, manifest: load(name), x: 0, y: 0 } };
 }
 
-/** An empty view with one block per `[id, fixture]` pair, added in that order. */
+/** An empty view with one block per `[id, name]` pair of a manifest fixture, added in that order. */
 export function viewOf(...blocks: (readonly [string, string])[]): View {
-  return blocks.reduce((view, [id, fixture]) => changed(view, addBlock(id, fixture)), createView());
+  return blocks.reduce((view, [id, name]) => changed(view, addBlock(id, name)), createView());
 }
 
 export function block(view: View, id = A): Block {

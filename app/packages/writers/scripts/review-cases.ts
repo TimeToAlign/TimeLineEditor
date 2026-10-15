@@ -1,7 +1,7 @@
 /**
- * The drawings of the review sheet: every timeline, group and bundle fixture
- * of the installed schema package but the corpus ones (`corpus_*`) at the
- * default placement, plus resized
+ * The drawings of the review sheet: every manifest fixture of the installed
+ * schema package but the corpus ones (`corpus_*`) at the default placement,
+ * plus resized
  * drawings of `nested` and `map` with its child's map moved below the child.
  * Each is also a drawing fixture of the schema package
  * (`fixtures/<version>/drawings/`).
@@ -25,16 +25,20 @@ import { dumps, fontMetrics as metrics, SCHEMA_VERSION } from "@timetoalign/time
 const require = createRequire(import.meta.url);
 const packageDir = path.dirname(require.resolve("@timetoalign/timeskeleton/package.json"));
 
-/** The manifest fixtures of the installed schema version: timeline files, `groups/`, `bundles/`. */
+/** The manifest fixtures of the installed schema version, sorted into the top, `groups/` and `bundles/`. */
 export const fixturesDirectory = path.join(packageDir, "fixtures", SCHEMA_VERSION);
 
 /** The directories of the manifest fixtures below `fixturesDirectory`, each read alone. */
 export const MANIFEST_DIRECTORIES = ["", "groups", "bundles"] as const;
 
-/** The names of the manifest files directly in one of `MANIFEST_DIRECTORIES`, sorted. */
+/**
+ * The names of the manifest files directly in one of `MANIFEST_DIRECTORIES`,
+ * sorted, without the minimal twins (`*.minimal.json`), which draw as their
+ * complete fixtures do.
+ */
 export function manifestFiles(directory: string, subdirectory = ""): string[] {
   return readdirSync(path.join(directory, subdirectory))
-    .filter((file) => file.endsWith(".json"))
+    .filter((file) => file.endsWith(".json") && !file.endsWith(".minimal.json"))
     .sort();
 }
 
@@ -105,7 +109,7 @@ export function reviewCases(): ReviewCase[] {
     at({ order: ["flow", "regions", "children"] }),
   );
   add("map__child-map-below", "map", DEFAULT_PLACEMENT, 1, [
-    { statements: [{ select: { ids: ["ticks"] }, set: { side: "below" } }] },
+    { statements: [{ select: { ids: ["melody/ticks"] }, set: { side: "below" } }] },
   ]);
   for (const kind of ["group", "bundle"] as const) {
     for (const stem of stems(`${kind}s`)) {

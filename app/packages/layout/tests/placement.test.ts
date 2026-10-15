@@ -41,7 +41,13 @@ describe("jump placement order and levels", () => {
     );
     const drawing = draw(manifest, DEFAULT_PLACEMENT, [DEFAULT_LAYER], metrics);
     const jumps = drawing.elements.filter((item): item is JumpElement => item.type === "jump");
-    expect(jumps.map((item) => item.address)).toEqual(["one", "two", "three", "four", "five"]);
+    expect(jumps.map((item) => item.address)).toEqual([
+      "r/one",
+      "r/two",
+      "r/three",
+      "r/four",
+      "r/five",
+    ]);
     const yf = 53.37890625;
     expect(jumps.map((item) => item.start[1])).toEqual([yf, yf, yf, yf, yf]);
     // The factor 4/3 is formed first: on level 4 the binary64 product would give 145.95182291666666.
@@ -55,7 +61,7 @@ describe("jump placement order and levels", () => {
             item.type === "label" && jumps.some((jump) => item.address === `${jump.address}/label`),
         )
         .map((item) => item.address),
-    ).toEqual(["one/label", "two/label", "three/label", "four/label", "five/label"]);
+    ).toEqual(["r/one/label", "r/two/label", "r/three/label", "r/four/label", "r/five/label"]);
   });
 });
 
@@ -72,14 +78,14 @@ describe("jumps of corpus_score_ms3", () => {
     expect(drawing.elements.find((item) => item.address === "clt_1")).toMatchObject({ y: 54.5 });
     expect(
       drawing.elements.filter((item) => item.type === "jump").map((item) => item.address),
-    ).toEqual(["jump_2", "jump_1", "jump_3", "jump_4"]);
-    expect(drawing.elements.find((item) => item.address === "break_1/label")).toMatchObject({
+    ).toEqual(["clt_1/jump_2", "clt_1/jump_1", "clt_1/jump_3", "clt_1/jump_4"]);
+    expect(drawing.elements.find((item) => item.address === "clt_1/break_1/label")).toMatchObject({
       baseline: 93.83056640625,
     });
   });
 
   it("arrives steeply on a short jump", () => {
-    expect(jump("jump_2")).toMatchObject({
+    expect(jump("clt_1/jump_2")).toMatchObject({
       start: [165.3993480785473, 95.953125],
       c1: [157.2912399704392, 106.61979166666667],
       c2: [141.07502375422297, 106.61979166666667],
@@ -93,7 +99,7 @@ describe("jumps of corpus_score_ms3", () => {
   });
 
   it("arrives flatly on a long jump", () => {
-    expect(jump("jump_4")).toMatchObject({
+    expect(jump("clt_1/jump_4")).toMatchObject({
       start: [468.10205078125, 95.953125],
       c1: [368.10205078125, 161.22395833333331],
       c2: [168.10205078125, 161.22395833333331],
@@ -139,14 +145,14 @@ describe("band order", () => {
       order: ["flow", "regions", "children"],
     });
     expect(geometry(normal)).toEqual([
-      ["region_1", 34.4765625, 28.4765625],
+      ["clt_1/region_1", 34.4765625, 28.4765625],
       ["clt_1", 73.4765625],
       ["clt_2", 59.4765625],
       ["clt_3", 45.4765625],
     ]);
     expect(normal.height).toBe(118.453125);
     expect(geometry(reversed)).toEqual([
-      ["region_1", 66.4765625, 60.4765625],
+      ["clt_1/region_1", 66.4765625, 60.4765625],
       ["clt_1", 66.4765625],
       ["clt_2", 37],
       ["clt_3", 23],

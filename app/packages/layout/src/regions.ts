@@ -85,8 +85,8 @@ export function regions(scope: Scope): Regions {
     for (const region of entry.manifest.regions) {
       regions.push({
         ...owned("region", address(region.id), entry),
-        start: add(entry.start, coordinateValue(region.start)),
-        end: add(entry.start, coordinateValue(region.end)),
+        start: add(entry.start, coordinateValue(region.start, entry.manifest.number_type)),
+        end: add(entry.start, coordinateValue(region.end, entry.manifest.number_type)),
         text: region.name,
       });
     }

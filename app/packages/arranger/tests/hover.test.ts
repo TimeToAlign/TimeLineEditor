@@ -39,7 +39,7 @@ function styled(view: View, statement: object): View {
   });
 }
 
-describe("hover in a timeline file", () => {
+describe("hover in a manifest of one root", () => {
   const drawing = drawingIn(viewOf({ id: A, fixture: "segment_line" }));
 
   it.each([
@@ -106,7 +106,7 @@ describe("hover in a timeline file", () => {
   });
 });
 
-describe("hover in a group file", () => {
+describe("hover in a manifest with one group", () => {
   const view = viewOf({ id: A, fixture: CHILD_MEMBER });
   const drawing = drawingIn(view);
 
@@ -167,6 +167,7 @@ describe("the block node's hover marks", () => {
       descriptors: descriptorsOf(drawing),
       selectedElements: new Set(),
       affectedElements: new Set(),
+      movedElements: new Set(),
       containsSelection: false,
     };
   }

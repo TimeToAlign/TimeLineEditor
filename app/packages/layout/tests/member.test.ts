@@ -70,10 +70,10 @@ describe("styled__score", () => {
   type JumpPoints = Record<"c1" | "c2" | "base" | "left" | "right", [number, number]>;
   /** The member drawing at spacing `v`, its ordinates given (README table). */
   const expected = (y: Ordinates, jump: JumpPoints) => [
-    { type: "map", address: "ticks", xs: x0, xe, yc: y.map },
+    { type: "map", address: "score/ticks", xs: x0, xe, yc: y.map },
     {
       type: "region",
-      address: "intro",
+      address: "score/intro",
       x1: x0,
       x2: 198.080078125,
       xm: 148.080078125,
@@ -82,7 +82,7 @@ describe("styled__score", () => {
     },
     {
       type: "jump",
-      address: "da-capo",
+      address: "score/da-capo",
       start: [xe, y.flow],
       c1: jump.c1,
       c2: jump.c2,
@@ -98,8 +98,8 @@ describe("styled__score", () => {
     name("score/name", y.scoreName, "Styled score"),
     { ...label("score/start/label", x0, y.wedgeLabel, "0 ♩"), coordinate: q(0) },
     { ...label("score/end/label", xe, y.wedgeLabel, "8 ♩"), coordinate: q(8) },
-    label("intro/label", 148.080078125, y.regionLabel, "intro"),
-    label("da-capo/label", 298.080078125, y.jumpLabel, "D.C."),
+    label("score/intro/label", 148.080078125, y.regionLabel, "intro"),
+    label("score/da-capo/label", 298.080078125, y.jumpLabel, "D.C."),
   ];
 
   it("draws the hand-derived member drawing", () => {

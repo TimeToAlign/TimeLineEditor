@@ -1,4 +1,6 @@
 /// <reference types="node" />
+import { isLoadError, loadManifest } from "@timetoalign/tilie-core";
+import { dumps, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   lastChanged,
@@ -8,7 +10,7 @@ import {
   saveFile,
   WORKSPACE_FILE,
 } from "../src/files.ts";
-import { fixture, interceptDownloads, pickFile } from "./support.ts";
+import { interceptDownloads, pickFile } from "./support.ts";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -18,11 +20,21 @@ afterEach(() => {
 });
 
 describe("manifestFileName", () => {
-  it("is the root, group or bundle id with characters outside [A-Za-z0-9_-] replaced", () => {
-    expect(manifestFileName(fixture("bare"))).toBe("bare.json");
-    expect(manifestFileName(fixture("flow_control"))).toBe("flow_quarters.json");
-    expect(manifestFileName(fixture("groups/corpus_tilia"))).toBe("tilia_Bruckner5_Scherzo.json");
-    expect(manifestFileName(fixture("bundles/bundle_mixed"))).toBe("bundle_1.json");
+  it("is the manifest's id, else its name, else manifest, outside [A-Za-z0-9_-] replaced", () => {
+    const named = (members: object) => {
+      const manifest = loadManifest(
+        dumps({
+          timeskeleton: SCHEMA_VERSION,
+          timelines: [{ id: "piece", unit: "quarters", length: [8, 1] }],
+          ...members,
+        }),
+      );
+      if (isLoadError(manifest)) throw new Error("the manifest is refused");
+      return manifestFileName(manifest);
+    };
+    expect(named({ id: "flow:quarters", name: "Flow" })).toBe("flow_quarters.json");
+    expect(named({ name: "Eroica: II" })).toBe("Eroica__II.json");
+    expect(named({})).toBe("manifest.json");
   });
 });
 

@@ -6,9 +6,6 @@ import type { Manifest } from "../manifest/types.ts";
 export type BlockId = string;
 export const BLOCK_ID = /^[0-9a-z]{10}$/;
 
-/** Which object a block's manifest describes: its manifest's file kind, the top-level member. */
-export type BlockKind = "timeline" | "group" | "bundle";
-
 /** A group of bands, laid outwards from the root in a block's `order`. */
 export type BandGroup = "children" | "regions" | "flow";
 export const BAND_GROUPS: readonly BandGroup[] = ["children", "regions", "flow"];
@@ -34,7 +31,6 @@ export interface BlockPlacement {
  */
 export interface Block extends BlockPlacement {
   readonly id: BlockId;
-  readonly blockKind: BlockKind;
   /** The canvas group holding the block; `null` in this version. */
   readonly parent: BlockId | null;
   /** The fractional index among the blocks of the same `parent`. */
@@ -47,7 +43,6 @@ export interface Block extends BlockPlacement {
 /** The members of a block, in the order a block is built. */
 export const BLOCK_MEMBERS = [
   "id",
-  "blockKind",
   "parent",
   "index",
   "x",

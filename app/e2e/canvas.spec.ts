@@ -4,7 +4,7 @@
  */
 
 import { expect, test } from "@playwright/test";
-import type { TimelineFile } from "../packages/core/src/index.ts";
+import type { Manifest } from "../packages/core/src/index.ts";
 import {
   blockOrder,
   cardPoint,
@@ -75,9 +75,9 @@ test.beforeEach(async ({ page }) => {
 test("opening shows one node per block", async ({ page }) => {
   await expect(page.locator(".svelte-flow__node")).toHaveCount(5);
   for (const id of SMALL_ORDER) await expect(node(page, id)).toHaveCount(1);
-  await expect(part(page, SMALL.styled, "intro")).toBeAttached();
-  await expect(part(page, SMALL.styled, "da-capo")).toBeAttached();
-  await expect(part(page, SMALL.styled, "ticks")).toBeAttached();
+  await expect(part(page, SMALL.styled, "score/intro")).toBeAttached();
+  await expect(part(page, SMALL.styled, "score/da-capo")).toBeAttached();
+  await expect(part(page, SMALL.styled, "score/ticks")).toBeAttached();
 });
 
 test("the fixture menu loads small", async ({ page }) => {
@@ -512,25 +512,28 @@ test.describe("click", () => {
 
 test.describe("Delete", () => {
   test("Delete removes the selected element as one remove; undo restores it", async ({ page }) => {
-    await page.evaluate((address) => window.__tilie.select([address]), `${SMALL.styled}/intro`);
+    await page.evaluate(
+      (address) => window.__tilie.select([address]),
+      `${SMALL.styled}/score/intro`,
+    );
     await page.keyboard.press("Delete");
     expect(await commandsFrom(page, START)).toEqual([
-      { type: "remove", targets: [`${SMALL.styled}/intro`] },
+      { type: "remove", targets: [`${SMALL.styled}/score/intro`] },
     ]);
     const regions = () =>
       page.evaluate(
         (id) =>
           (
-            window.__tilie.store().view.blocks[id]?.manifest as TimelineFile | undefined
-          )?.timeline.regions.map((r) => r.id) ?? [],
+            window.__tilie.store().view.blocks[id]?.manifest as Manifest | undefined
+          )?.timelines[0]?.regions.map((r) => r.id) ?? [],
         SMALL.styled,
       );
     expect(await regions()).toEqual([]);
-    await expect(element(page, SMALL.styled, "intro")).toHaveCount(0);
+    await expect(element(page, SMALL.styled, "score/intro")).toHaveCount(0);
 
     await page.keyboard.press("ControlOrMeta+z");
     expect(await regions()).toEqual(["intro"]);
-    await expect(part(page, SMALL.styled, "intro")).toBeAttached();
+    await expect(part(page, SMALL.styled, "score/intro")).toBeAttached();
   });
 
   test("a selected timeline marks its descendants; Delete removes the subtree in one entry", async ({
@@ -539,14 +542,14 @@ test.describe("Delete", () => {
     const timelines = () =>
       page.evaluate((id) => {
         const ids: string[] = [];
-        type Tree = { id: string; children: { [key: string]: { timeline: Tree } } };
+        type Tree = { id: string; children: readonly Tree[] };
         const walk = (timeline: Tree) => {
           ids.push(timeline.id);
-          for (const child of Object.values(timeline.children)) walk(child.timeline);
+          for (const child of timeline.children) walk(child);
         };
-        const root = (window.__tilie.store().view.blocks[id]?.manifest as TimelineFile | undefined)
-          ?.timeline;
-        if (root !== undefined) walk(root as unknown as Tree);
+        const root = (window.__tilie.store().view.blocks[id]?.manifest as Manifest | undefined)
+          ?.timelines[0];
+        if (root !== undefined) walk(root);
         return ids.sort();
       }, SMALL.nested);
     await page.evaluate((address) => window.__tilie.select([address]), `${SMALL.nested}/clt_3`);
@@ -581,27 +584,40 @@ test.describe("Delete", () => {
     expect(await blockOrder(page)).toEqual([SMALL.bare, SMALL.nested, SMALL.flow, SMALL.styled]);
   });
 
-  test("a selection holding a root timeline is refused whole with the hint", async ({ page }) => {
-    const before = await page.evaluate(() => {
-      const { view } = window.__tilie.store();
-      return JSON.stringify(Object.keys(view.blocks).map((id) => [id, view.blocks[id]?.manifest]));
-    });
+  test("Delete removes a root timeline with its card and a region as one remove", async ({
+    page,
+  }) => {
+    const manifests = () =>
+      page.evaluate(() => {
+        const { view } = window.__tilie.store();
+        return JSON.stringify(
+          Object.keys(view.blocks).map((id) => [id, view.blocks[id]?.manifest]),
+        );
+      });
+    const before = await manifests();
     await page.evaluate(
       (addresses) => window.__tilie.select(addresses),
-      [`${SMALL.bare}/bare`, `${SMALL.styled}/intro`],
+      [`${SMALL.bare}/bare`, `${SMALL.styled}/score/intro`],
     );
     await page.keyboard.press("Delete");
-    await expect(page.locator('[data-testid="hint"]')).toBeVisible();
-    await expect(page.locator('[data-testid="hint"]')).toContainText(
-      "select the block to delete it",
+    expect(await commandsFrom(page, START)).toEqual([
+      { type: "remove", targets: [`${SMALL.bare}/bare`, `${SMALL.styled}/score/intro`] },
+    ]);
+    const roots = await page.evaluate(
+      (id) =>
+        (window.__tilie.store().view.blocks[id]?.manifest as Manifest | undefined)?.timelines
+          .length,
+      SMALL.bare,
     );
-    expect(await journalLength(page)).toBe(START);
-    const after = await page.evaluate(() => {
-      const { view } = window.__tilie.store();
-      return JSON.stringify(Object.keys(view.blocks).map((id) => [id, view.blocks[id]?.manifest]));
-    });
-    expect(after).toBe(before);
-    await expect(part(page, SMALL.styled, "intro")).toBeAttached();
+    expect(roots).toBe(0);
+    await expect(node(page, SMALL.bare)).toHaveCount(1);
+    await expect(element(page, SMALL.bare, "bare/card")).toHaveCount(0);
+    await expect(element(page, SMALL.styled, "score/intro")).toHaveCount(0);
+
+    await page.keyboard.press("ControlOrMeta+z");
+    expect(await manifests()).toBe(before);
+    await expect(part(page, SMALL.bare, "bare/card")).toBeAttached();
+    await expect(part(page, SMALL.styled, "score/intro")).toBeAttached();
   });
 });
 

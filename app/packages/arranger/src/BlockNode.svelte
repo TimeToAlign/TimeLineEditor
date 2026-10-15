@@ -80,6 +80,12 @@ function isAffected(descriptor: Descriptor): boolean {
   const address = addressOf(descriptor);
   return address !== undefined && data.affectedElements.has(address);
 }
+
+/** Whether closing the gap of a segment about to be deleted moves or resizes the element. */
+function isMoved(descriptor: Descriptor): boolean {
+  const address = addressOf(descriptor);
+  return address !== undefined && data.movedElements.has(address);
+}
 </script>
 
 <div
@@ -105,6 +111,7 @@ function isAffected(descriptor: Descriptor): boolean {
         {...attributesOf(descriptor)}
         data-selected={isSelected(descriptor) ? "" : undefined}
         data-affected={isAffected(descriptor) ? "" : undefined}
+        data-moved={isMoved(descriptor) ? "" : undefined}
         data-hovered={isHovered(descriptor) ? "" : undefined}>{descriptor.text}</svelte:element
       >
     {/each}

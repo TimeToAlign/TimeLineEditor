@@ -43,6 +43,12 @@ export const HAND_DERIVED: readonly string[] = [
   "group__group_child_member",
   "group__group_parents_mixed",
   "group__group_grandchild",
+  "unknown_length",
+  "unknown_length_empty",
+  "unknown_length_locked",
+  "unknown_length_child",
+  "group__group_unknown_length",
+  "unknown_length_segments",
 ];
 
 /** Write `text` to `file` unless it already holds it; report whether it changed. */

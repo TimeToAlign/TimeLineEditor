@@ -147,30 +147,9 @@ export function readIndex(value: unknown, path: readonly PathSegment[]): string 
     : problem(ErrorCode.invalidIndex, `invalid fractional index ${showJson(value)}`, path);
 }
 
-/** A manifest of the current schema version holding nothing, to validate a fragment inside. */
-function host(members: JsonObject, graphical?: Json): Json {
-  const axis = { unit: "number", number_type: "int" } as const;
-  return {
-    meta: { schema_version: SCHEMA_VERSION },
-    timeline: {
-      id: "host",
-      name: null,
-      class: "ContinuousLogicalTimeline",
-      ...axis,
-      length: { ...axis, value: 0 },
-      locked: false,
-      is_segment_line: false,
-      meta: {},
-      children: {},
-      conversion_maps: [],
-      regions: [],
-      flow_control: { breaks: [], jumps: [], markers: [] },
-      measure_map: null,
-      metric_hierarchy: null,
-      ...members,
-    },
-    ...(graphical === undefined ? {} : { graphical }),
-  };
+/** A manifest of the current schema version holding nothing, to validate a `graphical` block inside. */
+function host(graphical: Json): Json {
+  return { timeskeleton: SCHEMA_VERSION, timelines: [], graphical };
 }
 
 /**
@@ -192,7 +171,7 @@ function fragmentProblem(
 export function readGraphical(value: unknown, path: readonly PathSegment[]): JsonObject | Problem {
   const read = readObject(value, path);
   if (isCommandError(read)) return read;
-  return fragmentProblem(host({}, read), ["graphical"], path) ?? read;
+  return fragmentProblem(host(read), ["graphical"], path) ?? read;
 }
 
 /** A selector and a declaration, checked as one statement of a `graphical` block. */
@@ -202,7 +181,7 @@ export function statementProblem(
   path: readonly PathSegment[],
 ): Problem | undefined {
   return fragmentProblem(
-    host({}, { statements: [{ select, set }] }),
+    host({ statements: [{ select, set }] }),
     ["graphical", "statements", 0],
     path,
   );

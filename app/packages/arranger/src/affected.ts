@@ -1,54 +1,24 @@
-/** What removing a selection takes away besides the selection itself. */
+/** What removing a selection takes away besides the selection itself, and what it moves. */
 
-import type { Manifest, TimelineManifest } from "@timetoalign/tilie-core";
-import {
-  elementAddress,
-  elementOfIn,
-  isRemovableIn,
-  manifestElements,
-  manifestKind,
-  manifestRoots,
-  orderedChildren,
-  timelineAncestry,
-} from "@timetoalign/tilie-core";
+import type { Gap, Manifest } from "@timetoalign/tilie-core";
+import { elementOfIn, manifestElements, movedBy, removedBy } from "@timetoalign/tilie-core";
 
 /**
  * The addresses that removing the selected elements of `manifest` would
- * also take away: every timeline below a selected one, every map, region,
- * break, jump and marker those timelines and the selected elements own, and
- * the parts of all of them. A selected part stands for its element (core's
- * `elementOf`); what core does not remove (core's `isRemovable`) takes
- * nothing with it. The selected addresses, and the parts of a selected
- * element, are left out: they show as selected.
+ * also take away (core's `removedBy`): every timeline below a selected one,
+ * every map, region, break, jump and marker those timelines and the selected
+ * elements own, every conversion map naming a removed timeline, and the
+ * parts of all of them. A selected part stands for its element (core's
+ * `elementOf`). The selected addresses, and the parts of a selected element,
+ * are left out: they show as selected.
  */
 export function affectedBy(
   manifest: Manifest,
   selectedElementIds: ReadonlySet<string>,
 ): ReadonlySet<string> {
   const element = elementOfIn(manifest);
-  const removable = isRemovableIn(manifest);
-  const owners = new Set([...selectedElementIds].map(element).filter(removable));
-  if (owners.size === 0) return new Set();
-  const removed = new Set(owners);
-  for (const [id, line] of timelineAncestry(manifest)) {
-    if (removable(id) && line.some((ancestor) => owners.has(ancestor))) {
-      removed.add(id);
-    }
-  }
-  const qualified = manifestKind(manifest) !== "timeline";
-  for (const root of manifestRoots(manifest)) {
-    const address = (id: string) => elementAddress(qualified ? root.id : null, id);
-    const visit = (timeline: TimelineManifest): void => {
-      if (removed.has(timeline.id)) {
-        const { breaks, jumps, markers } = timeline.flow_control;
-        for (const items of [timeline.conversion_maps, timeline.regions, breaks, jumps, markers]) {
-          for (const item of items) removed.add(address(item.id));
-        }
-      }
-      for (const child of orderedChildren(timeline)) visit(child.timeline);
-    };
-    visit(root);
-  }
+  const removed = removedBy(manifest, [...selectedElementIds].map(element));
+  if (removed.size === 0) return new Set();
   const addresses = [
     ...manifestElements(manifest).flatMap((key) => (key.address === null ? [] : [key.address])),
     ...removed,
@@ -59,6 +29,22 @@ export function affectedBy(
         removed.has(element(address)) &&
         !selectedElementIds.has(address) &&
         !selectedElementIds.has(element(address)),
+    ),
+  );
+}
+
+/**
+ * The addresses that closing the gap of segment `id` as `gap` moves or
+ * resizes (core's `movedBy`): the timelines whose place or length changes,
+ * and their parts.
+ */
+export function movedByGap(manifest: Manifest, id: string, gap: Gap): ReadonlySet<string> {
+  const moved = movedBy(manifest, id, gap);
+  if (moved.size === 0) return moved;
+  const element = elementOfIn(manifest);
+  return new Set(
+    manifestElements(manifest).flatMap((key) =>
+      key.address !== null && moved.has(element(key.address)) ? [key.address] : [],
     ),
   );
 }

@@ -5,30 +5,85 @@
  */
 
 import {
+  type AxisValue,
   addReal,
-  type CoordinateDict,
+  compareReal,
   fromFloat,
   Rational,
   type Real,
+  type TimelineManifest,
   toFloat,
 } from "@timetoalign/tilie-core";
 import type { NumberType, TimeUnit } from "@timetoalign/timeskeleton";
 import { compactJson, isJsonFloat, JsonFloat } from "@timetoalign/timeskeleton";
 
 /**
- * The value of a coordinate dict as Python's numeric tower holds it: a
- * `float` value as a float, an `int` or `fraction` value as an exact
- * rational. The dict is schema-valid, so its value has the form its number
- * type selects.
+ * A bare value on an axis of number type `numberType` as Python's numeric
+ * tower holds it: a `float` value as a float, an `int` or `fraction` value
+ * as an exact rational. The manifest is schema-valid, so the value has the
+ * form its number type selects.
  */
-export function coordinateValue(dict: CoordinateDict): Real {
-  const value: unknown = dict.value;
-  if (dict.number_type === "float") return isJsonFloat(value) ? value.value : Number(value);
+export function coordinateValue(value: AxisValue, numberType: NumberType): Real {
+  if (numberType === "float") return isJsonFloat(value) ? value.value : Number(value);
   // An integral JSON number counts as the integer it equals, as the library reads it.
   const integer = (item: unknown): bigint =>
     isJsonFloat(item) ? BigInt(item.value) : BigInt(item as number | bigint);
   if (Array.isArray(value)) return Rational.fromParts(integer(value[0]), integer(value[1]));
   return Rational.fromParts(integer(value), 1n);
+}
+
+/** A timeline's length on its own axis, or null when the length is not known. */
+export function lengthValue(timeline: TimelineManifest): Real | null {
+  return timeline.length === null ? null : coordinateValue(timeline.length, timeline.number_type);
+}
+
+/** A JSON number or fraction as the tower holds it: a float as a float, an integer or pair exactly. */
+function numberValue(value: AxisValue): Real {
+  if (isJsonFloat(value)) return value.value;
+  if (Array.isArray(value)) return Rational.fromParts(BigInt(value[0]), BigInt(value[1]));
+  return Rational.fromParts(BigInt(value as number | bigint), 1n);
+}
+
+/** The larger of two values, compared exactly; of two equal ones, an exact one before a float. */
+function larger(left: Real, right: Real): Real {
+  const order = compareReal(left, right);
+  if (order !== 0) return order > 0 ? left : right;
+  return typeof left === "number" ? right : left;
+}
+
+/**
+ * The reach of a timeline on its own axis (section 3.4): the largest of its
+ * number type's zero and every coordinate its content reaches, displayed or
+ * not. A child counts its offset plus its length, or plus its own reach when
+ * its length is not known; regions their start and end; breaks and markers
+ * their coordinate; jumps their from and to; and every measure-map row that
+ * holds both `qstamp` and `actual_length` their sum. Maps are not content.
+ */
+export function reachOf(timeline: TimelineManifest): Real {
+  const own = (value: AxisValue) => coordinateValue(value, timeline.number_type);
+  let reach = zero(timeline.number_type);
+  const take = (value: Real) => {
+    reach = larger(reach, value);
+  };
+  for (const child of timeline.children) {
+    take(add(own(child.offset as AxisValue), lengthValue(child) ?? reachOf(child)));
+  }
+  for (const region of timeline.regions) {
+    take(own(region.start));
+    take(own(region.end));
+  }
+  const { breaks, jumps, markers } = timeline.flow_control;
+  for (const item of [...breaks, ...markers]) take(own(item.coordinate));
+  for (const jump of jumps) {
+    take(own(jump.from_coordinate));
+    take(own(jump.to_coordinate));
+  }
+  for (const row of timeline.measure_map ?? []) {
+    if (row.qstamp !== undefined && row.actual_length !== undefined) {
+      take(add(numberValue(row.qstamp as AxisValue), numberValue(row.actual_length as AxisValue)));
+    }
+  }
+  return reach;
 }
 
 /** Zero in a number type: an exact 0, or the float 0.0. */
@@ -100,7 +155,7 @@ export function times(numerator: bigint, denominator: bigint, value: number): nu
   return toFloat(Rational.fromParts(numerator, denominator).multiply(fromFloat(value)));
 }
 
-/** The name of a timeline, group or bundle without its own: its id after the last `:` (section 5.3). */
+/** The name of a timeline, group or manifest without its own: its id after the last `:` (section 5.3). */
 export function unscoped(id: string): string {
   return id.slice(id.lastIndexOf(":") + 1);
 }

@@ -8,6 +8,7 @@ import type { CommandError } from "../errors.ts";
 import { ErrorCode, isCommandError, problem } from "../errors.ts";
 import type { Json, JsonObject, PathSegment } from "../json.ts";
 import { showJson } from "../json.ts";
+import { GAP_SIDES, GAP_VERBS } from "../manifest/remove.ts";
 import { statementProblem, toJson } from "../values.ts";
 import type { Command, CommandType } from "./types.ts";
 import { ADD_KINDS, COMMAND_TYPES } from "./types.ts";
@@ -27,7 +28,7 @@ function members(value: unknown): [string, unknown][] | undefined {
 const ALLOWED: { readonly [type in CommandType]: readonly string[] } = {
   add: ["type", "into", ...ADD_KINDS],
   set: ["type", "changes"],
-  remove: ["type", "targets"],
+  remove: ["type", "targets", "gap"],
   style: ["type", "select", "set", "name", "blocks"],
 };
 
@@ -79,7 +80,22 @@ function parseRemove(input: { readonly [key: string]: unknown }): JsonObject | C
   const targets = strings(input.targets, ["targets"]);
   if (isCommandError(targets)) return targets;
   if (targets.length === 0) return invalid("targets is a non-empty array", ["targets"]);
-  return { ...input, targets } as JsonObject;
+  if (input.gap === undefined) return { ...input, targets } as JsonObject;
+  const entries = members(input.gap);
+  if (entries === undefined) return invalid("gap is an object", ["gap"]);
+  const gap = Object.fromEntries(entries);
+  const extra = Object.keys(gap).find((key) => key !== "side" && key !== "verb");
+  if (extra !== undefined) return invalid(`unknown member ${extra}`, ["gap", extra]);
+  if (!(GAP_SIDES as readonly unknown[]).includes(gap.side)) {
+    return invalid(`side is one of ${GAP_SIDES.join(", ")}`, ["gap", "side"]);
+  }
+  if (!(GAP_VERBS as readonly unknown[]).includes(gap.verb)) {
+    return invalid(`verb is one of ${GAP_VERBS.join(", ")}`, ["gap", "verb"]);
+  }
+  if (targets.length !== 1) {
+    return invalid("a remove closing a gap names exactly one segment", ["targets"]);
+  }
+  return { ...input, targets, gap: { side: gap.side, verb: gap.verb } } as JsonObject;
 }
 
 function parseStyle(input: { readonly [key: string]: unknown }): JsonObject | CommandError {

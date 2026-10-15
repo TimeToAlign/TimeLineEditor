@@ -1,10 +1,10 @@
 /// <reference types="node" />
 /** The inspector component's wiring; the expected values are derived in `README.md` ("The inspector"). */
 
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
-import type { Store } from "@timetoalign/tilie-core";
+import type { Block, Store, UnknownKey } from "@timetoalign/tilie-core";
 import {
   createStore,
   createView,
@@ -12,9 +12,10 @@ import {
   loadManifest,
   saveManifest,
 } from "@timetoalign/tilie-core";
-import { SCHEMA_VERSION } from "@timetoalign/timeskeleton";
+import { dumps, parseJson, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it } from "vitest";
+import { manifestOf, manifestText, problemPointer } from "../src/inspector/edit.ts";
 import { loadCodec, writeText } from "../src/inspector/formats.ts";
 import Inspector from "../src/inspector/Inspector.svelte";
 import { liveHolder } from "./live.svelte.ts";
@@ -121,7 +122,9 @@ describe("the inspector component", () => {
     await loadCodec("yaml");
     flushSync();
     expect(document.querySelector(".loading")).toBe(null);
-    expect(textarea().value.startsWith("meta:\n")).toBe(true);
+    const yaml = writeText("yaml", store.view.blocks[A]?.manifest as never);
+    if (!yaml.ok) throw new Error("not written");
+    expect(textarea().value).toBe(yaml.value.text);
   });
 
   it("shows, switches, applies and follows the manifest", async () => {
@@ -184,10 +187,10 @@ describe("the inspector component", () => {
     flushSync();
     const items = [...document.querySelectorAll("#inspector-problems li")];
     expect(items.map((item) => item.textContent?.replace(/\s+/g, " ").trim())).toEqual([
-      "schema_violation must be boolean at /timeline/locked",
+      "schema_violation must be boolean at /timelines/0/locked",
     ]);
     expect(items[0]?.querySelector(".code")?.textContent).toBe("schema_violation");
-    expect(items[0]?.querySelector(".pointer")?.textContent).toBe("/timeline/locked");
+    expect(items[0]?.querySelector(".pointer")?.textContent).toBe("/timelines/0/locked");
     expect(textarea().value).toBe(edited);
     expect(store.journal).toHaveLength(2);
   });
@@ -275,5 +278,83 @@ describe("the inspector component", () => {
     flushSync();
     expect(field("x").value).toBe("0");
     expect(store.journal).toHaveLength(2);
+  });
+});
+
+describe("the inspector's warnings", () => {
+  const warningsDirectory = path.join(directory, "..", "warnings", SCHEMA_VERSION);
+  const cases = readdirSync(warningsDirectory)
+    .filter((name) => name.endsWith(".json"))
+    .sort();
+
+  /** A shared warning case's manifest, read by core, and the case's expectation. */
+  function read(name: string) {
+    const value = parseJson(
+      readFileSync(path.join(warningsDirectory, name), "utf8"),
+    ) as unknown as {
+      manifest: unknown;
+      unknown_keys: UnknownKey[];
+    };
+    return { manifest: loadManifest(dumps(value.manifest as never)), expected: value.unknown_keys };
+  }
+
+  /** A store holding the manifest of one shared warning case in block A, and the case's expectation. */
+  function warningCase(name: string): { store: Store; expected: readonly UnknownKey[] } {
+    const { manifest, expected } = read(name);
+    if (isLoadError(manifest)) throw new Error(`${name}: ${manifest.problems[0]?.message}`);
+    const store = createStore({ view: createView(), journal: [] });
+    const error = store.dispatch({
+      type: "add",
+      into: "workspace",
+      block: { id: A, manifest, x: 0, y: 0 },
+    });
+    if (error !== null) throw new Error(error.message);
+    return { store, expected };
+  }
+
+  /** Each listed warning as its key and its JSON pointer. */
+  const listed = () =>
+    [...document.querySelectorAll("#inspector-warnings li")].map((item) => [
+      item.querySelector(".key")?.textContent,
+      item.querySelector(".pointer")?.textContent ?? item.querySelector(".where")?.textContent,
+    ]);
+
+  it("loads every case in core", () => {
+    expect(
+      cases.flatMap((name) => {
+        const { manifest } = read(name);
+        return isLoadError(manifest) ? [[name, manifest.problems[0]?.code]] : [];
+      }),
+    ).toEqual([]);
+  });
+
+  for (const name of cases) {
+    it(`lists every unknown key of ${name} with its path, and editing continues`, () => {
+      const { store, expected } = warningCase(name);
+      show(store, [A]);
+      expect(document.querySelector("#inspector-warnings")?.getAttribute("aria-label")).toBe(
+        "Warnings",
+      );
+      expect(listed()).toEqual(
+        expected.map((item) => [
+          item.key,
+          item.path.length === 0 ? "at the top level" : problemPointer(item),
+        ]),
+      );
+      expect(document.querySelectorAll("#inspector-problems li")).toHaveLength(0);
+      const text = manifestText(manifestOf(store.view.blocks[A] as Block), "json", false);
+      if (!text.ok) throw new Error("not written");
+      expect(textarea().value).toBe(text.value.text);
+      type(textarea(), textarea().value.replace('"meta": {}', '"meta": {"note": "edited"}'));
+      button("Apply").click();
+      flushSync();
+      expect(store.journal).toHaveLength(2);
+      expect(listed()).toHaveLength(expected.length);
+    });
+  }
+
+  it("shows no warning list for a manifest without unknown keys", () => {
+    show(storeOf(), [A]);
+    expect(document.querySelector("#inspector-warnings")).toBe(null);
   });
 });

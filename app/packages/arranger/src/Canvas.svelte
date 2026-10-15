@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { Block, Store, View } from "@timetoalign/tilie-core";
+import type { Block, Gap, Store, View } from "@timetoalign/tilie-core";
 import type { FontMetrics } from "@timetoalign/timeskeleton";
 import type { Viewport } from "@xyflow/svelte";
 import { SelectionMode, SvelteFlow } from "@xyflow/svelte";
@@ -8,9 +8,16 @@ import { untrack } from "svelte";
 import type { Attachment } from "svelte/attachments";
 import BlockNode from "./BlockNode.svelte";
 import CanvasToolbar from "./CanvasToolbar.svelte";
-import type { Visible } from "./commands.ts";
-import { moveCommand, nudgeCommand, removeCommand, zOrderCommand } from "./commands.ts";
-import { descriptorsOf, drawingOf } from "./drawing.ts";
+import type { SegmentDelete, Visible } from "./commands.ts";
+import {
+  moveCommand,
+  nudgeCommand,
+  preferredGap,
+  removeCommand,
+  zOrderCommand,
+} from "./commands.ts";
+import { descriptorsOf, drawingOf, segmentAnchor } from "./drawing.ts";
+import GapMenu from "./GapMenu.svelte";
 import type { BlockNode as BlockNodeType, LivePlacement } from "./project.ts";
 import { livePlacement, project } from "./project.ts";
 import ResizeToolbar from "./ResizeToolbar.svelte";
@@ -18,7 +25,7 @@ import type { ResizeMode } from "./resize.ts";
 import { resizeCommand } from "./resize.ts";
 import SnapGuides from "./SnapGuides.svelte";
 import type { Selection } from "./selection.ts";
-import { click } from "./selection.ts";
+import { blockOf, click } from "./selection.ts";
 import type { Box, Guide } from "./snap.ts";
 import { snap } from "./snap.ts";
 
@@ -63,6 +70,8 @@ const SNAP_TOLERANCE = 6;
 const CLICK_DISTANCE = 4;
 /** Arrow keys move by one grid step; with Shift by this many. */
 const LARGE_STEP = 8;
+/** How far below a segment, in screen pixels, its Delete menu opens. */
+const MENU_GAP = 6;
 
 const nodeTypes = { block: BlockNode };
 /**
@@ -164,6 +173,25 @@ let resync = $state(0);
 let hint = $state("");
 
 /**
+ * The segment Delete asks about, with the view and the selection it was
+ * asked in: the menu shows while both are unchanged, so any other change
+ * (an undo, another selection) closes it.
+ */
+let deleting = $state.raw<{
+  readonly view: View;
+  readonly selection: Selection;
+  readonly asked: SegmentDelete;
+} | null>(null);
+/** The way the menu has chosen to close the segment's gap. */
+let gap = $state.raw<Gap | null>(null);
+
+const gapMenu = $derived(
+  deleting !== null && deleting.view === view && deleting.selection === selection
+    ? deleting.asked
+    : null,
+);
+
+/**
  * The canvas is mounted only once the bundled face has loaded. `draw`
  * measures text with this face's advance table, and Chromium keeps the
  * layout of SVG text drawn before a face arrives, so the canvas never paints
@@ -195,7 +223,13 @@ let projected: BlockNodeType[] = [];
  */
 let nodes: BlockNodeType[] = $derived.by(() => {
   void resync;
-  projected = project(view, selection, projected, metrics);
+  projected = project(
+    view,
+    selection,
+    projected,
+    metrics,
+    gapMenu === null || gap === null ? null : { segment: gapMenu.segment, gap },
+  );
   return preview === null ? projected : withPreview(projected, preview.id, preview.values);
 });
 
@@ -455,6 +489,53 @@ function onresizecancel() {
   preview = null;
 }
 
+// --- Delete ----------------------------------------------------------------
+
+/** Delete what is selected; a segment first asks how to close its gap. */
+function deleteSelection(): void {
+  const command = removeCommand(view, selection);
+  if ("refused" in command) {
+    hint = command.refused;
+  } else if ("segment" in command) {
+    hint = "";
+    gap = preferredGap(command.options);
+    deleting = { view, selection, asked: command };
+  } else if (dispatch(command)) {
+    selection = new Set();
+  }
+}
+
+function closeGap(chosen: Gap): void {
+  deleting = null;
+  const command = removeCommand(view, selection, chosen);
+  if ("refused" in command) hint = command.refused;
+  else if (!("segment" in command) && dispatch(command)) selection = new Set();
+  focus();
+}
+
+function keepSegment(): void {
+  deleting = null;
+  focus();
+}
+
+/** Where the menu opens, in pixels of the canvas: below the segment, or below its block. */
+const gapPoint = $derived.by(() => {
+  if (gapMenu === null) return null;
+  const id = blockOf(gapMenu.segment);
+  const node = nodes.find((item) => item.id === id);
+  if (node === undefined) return null;
+  const { drawing, block } = node.data;
+  const anchor = segmentAnchor(drawing, gapMenu.segment.slice(id.length + 1)) ?? {
+    x: drawing.width / 2,
+    y: drawing.height,
+  };
+  const { x, y, zoom } = viewport;
+  return {
+    x: x + (node.position.x + anchor.x * block.scale) * zoom,
+    y: y + (node.position.y + anchor.y * block.scale) * zoom + MENU_GAP,
+  };
+});
+
 // --- Keys ------------------------------------------------------------------
 
 function isTextInput(target: EventTarget | null): boolean {
@@ -481,6 +562,10 @@ function handleKey(event: KeyboardEvent): boolean {
   const { key, shiftKey } = event;
   if (event.altKey) return false;
   if (!onCanvas(event.target)) return false;
+  // The Delete menu reads its own keys.
+  if (event.target instanceof Element && event.target.closest("[data-gap-menu]") !== null) {
+    return false;
+  }
   // Arrows move between a toolbar's buttons there.
   if (event.target instanceof Element && event.target.closest('[role="toolbar"]') !== null) {
     if (key.startsWith("Arrow") || key === "Home" || key === "End") return false;
@@ -521,9 +606,7 @@ function handleKey(event: KeyboardEvent): boolean {
     case "Delete":
     case "Backspace": {
       if (selection.size === 0) return false;
-      const command = removeCommand(view, selection);
-      if ("refused" in command) hint = command.refused;
-      else if (dispatch(command)) selection = new Set();
+      deleteSelection();
       return true;
     }
     case "Enter":
@@ -689,6 +772,17 @@ function onkeydowncapture(event: KeyboardEvent) {
         : String(error)}).
     </p>
   {/await}
+  {#if gapMenu !== null && gap !== null && gapPoint !== null}
+    <GapMenu
+      segment={gapMenu.segment.slice(blockOf(gapMenu.segment).length + 1)}
+      options={gapMenu.options}
+      bind:gap
+      x={gapPoint.x}
+      y={gapPoint.y}
+      onconfirm={closeGap}
+      oncancel={keepSegment}
+    />
+  {/if}
   <p class="hint" data-testid="hint" role="status" aria-live="polite">{hint}</p>
 </div>
 
@@ -777,6 +871,11 @@ function onkeydowncapture(event: KeyboardEvent) {
     /* An element below a selected one: quieter than the selection itself. */
     .tilie-block [data-affected] {
       filter: drop-shadow(0 0 1px #9cc8ff);
+    }
+
+    /* What closing a deleted segment's gap moves or resizes. */
+    .tilie-block [data-moved] {
+      filter: drop-shadow(0 0 1.5px #e07b00) drop-shadow(0 0 1.5px #e07b00);
     }
 
     .tilie-block [data-selected] {

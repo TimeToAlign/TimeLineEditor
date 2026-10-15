@@ -2,10 +2,11 @@
 
 import {
   canonicalOrder,
+  complete,
   completeStyles,
   dumps,
-  migrate,
-  parse,
+  minimal,
+  parseJson,
   SchemaValidationError,
   UnsupportedVersionError,
   validate,
@@ -15,24 +16,32 @@ import { ErrorCode, InvalidManifestError, problem } from "../errors.ts";
 import { checkManifest, checkOrdered } from "./invariants.ts";
 import type { Manifest } from "./types.ts";
 
+/** The problem a schema refusal is reported as. */
+function schemaProblem(error: unknown): Problem {
+  if (error instanceof SchemaValidationError) {
+    return problem(ErrorCode.schemaViolation, error.detail, error.path);
+  }
+  if (error instanceof UnsupportedVersionError) {
+    return problem(ErrorCode.schemaViolation, error.message, ["timeskeleton"]);
+  }
+  throw error;
+}
+
 export function schemaProblems(value: unknown): Problem[] {
   try {
     validate(value);
     return [];
   } catch (error) {
-    if (error instanceof SchemaValidationError) {
-      return [problem(ErrorCode.schemaViolation, error.detail, error.path)];
-    }
-    if (error instanceof UnsupportedVersionError) {
-      return [problem(ErrorCode.schemaViolation, error.message, ["meta", "schema_version"])];
-    }
-    throw error;
+    return [schemaProblem(error)];
   }
 }
 
+/** The schema problem of a manifest value, else every invariant problem of its complete form. */
 export function manifestProblems(value: unknown): Problem[] {
   const schema = schemaProblems(value);
-  return schema.length > 0 ? schema : checkManifest(value as Manifest);
+  return schema.length > 0
+    ? schema
+    : checkManifest(complete(value as never) as unknown as Manifest);
 }
 
 function refuse(...problems: Problem[]): LoadError {
@@ -42,14 +51,8 @@ function refuse(...problems: Problem[]): LoadError {
 export function loadManifest(text: string): Manifest | LoadError {
   let parsed: unknown;
   try {
-    parsed = parse(text);
+    parsed = parseJson(text);
   } catch (error) {
-    if (error instanceof SchemaValidationError) {
-      return refuse(problem(ErrorCode.schemaViolation, error.detail, error.path));
-    }
-    if (error instanceof UnsupportedVersionError) {
-      return refuse(problem(ErrorCode.schemaViolation, error.message, ["meta", "schema_version"]));
-    }
     return refuse(problem(ErrorCode.invalidJson, (error as Error).message, []));
   }
   return readManifestValue(parsed);
@@ -57,14 +60,15 @@ export function loadManifest(text: string): Manifest | LoadError {
 
 /**
  * A manifest from a value read losslessly (`parseJson`): every schema or
- * invariant problem refuses it; an accepted one, of any version timeskeleton
- * supports, is migrated to the latest version, put in canonical order and its
- * missing styles completed.
+ * invariant problem refuses it; an accepted one, complete or minimal or
+ * anything between, is read in its complete form (every default written
+ * out), put in canonical order and its missing styles completed. Unknown
+ * keys are kept.
  */
 export function readManifestValue(value: unknown): Manifest | LoadError {
   const schema = schemaProblems(value);
   if (schema.length > 0) return refuse(...schema);
-  const ordered = canonicalOrder(migrate(value as Manifest)) as Manifest;
+  const ordered = canonicalOrder(complete(value as never)) as unknown as Manifest;
   const problems = checkOrdered(ordered);
   if (problems.length > 0) return refuse(...problems);
   if (ordered.graphical === undefined) return ordered;
@@ -73,8 +77,15 @@ export function readManifestValue(value: unknown): Manifest | LoadError {
   return { ...ordered, graphical };
 }
 
-export function saveManifest(manifest: Manifest): string {
+export interface SaveOptions {
+  /** Leave out every key whose value is its default; the complete form otherwise. */
+  readonly minimal?: boolean;
+}
+
+/** A manifest's text: the complete form, or with `minimal` the minimal one. */
+export function saveManifest(manifest: Manifest, options: SaveOptions = {}): string {
   const problems = manifestProblems(manifest);
   if (problems.length > 0) throw new InvalidManifestError(problems);
-  return dumps(manifest);
+  const form = options.minimal === true ? minimal(manifest as never) : complete(manifest as never);
+  return dumps(form as never);
 }
