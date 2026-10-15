@@ -14,6 +14,7 @@ import {
 import type { LoadError, Problem } from "../errors.ts";
 import { ErrorCode, InvalidManifestError, problem } from "../errors.ts";
 import { checkManifest, checkOrdered } from "./invariants.ts";
+import { withSegmentsUnlocked } from "./locks.ts";
 import type { Manifest } from "./types.ts";
 
 /** The problem a schema refusal is reported as. */
@@ -62,13 +63,17 @@ export function loadManifest(text: string): Manifest | LoadError {
  * A manifest from a value read losslessly (`parseJson`): every schema or
  * invariant problem refuses it; an accepted one, complete or minimal or
  * anything between, is read in its complete form (every default written
- * out), put in canonical order and its missing styles completed. Unknown
- * keys are kept.
+ * out), put in canonical order, its segments unlocked (a segment's own lock
+ * has no meaning: its segment line's governs it) and its missing styles
+ * completed. Every other lock is kept as the file states it. Unknown keys
+ * are kept.
  */
 export function readManifestValue(value: unknown): Manifest | LoadError {
   const schema = schemaProblems(value);
   if (schema.length > 0) return refuse(...schema);
-  const ordered = canonicalOrder(complete(value as never)) as unknown as Manifest;
+  const ordered = withSegmentsUnlocked(
+    canonicalOrder(complete(value as never)) as unknown as Manifest,
+  );
   const problems = checkOrdered(ordered);
   if (problems.length > 0) return refuse(...problems);
   if (ordered.graphical === undefined) return ordered;

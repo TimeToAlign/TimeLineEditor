@@ -54,8 +54,12 @@ export interface RectElement extends Addressed {
 /** How a line starts: with its circle, or running on in a double chevron (section 8.3). */
 export type LineStart = "circle" | "chevrons";
 
-/** How a line ends (sections 6.6 and 8.3). */
-export type LineEnd = "arrowhead" | "open" | "circle" | "diamond" | "chevrons";
+/**
+ * How a line ends (sections 6.6 and 8.3): `unknown`, three chevrons, where its
+ * own length is not known; `chevrons`, a double chevron, where an ancestor
+ * line runs on.
+ */
+export type LineEnd = "arrowhead" | "open" | "circle" | "diamond" | "unknown" | "chevrons";
 
 export interface LineElement extends Addressed {
   readonly type: "timeline" | "child" | "ancestor";

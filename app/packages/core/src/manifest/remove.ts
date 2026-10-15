@@ -259,6 +259,12 @@ function closedLine(at: SegmentAt, gap: Gap): TimelineManifest | string {
     if (neighbour === undefined) {
       return gap.side === "left" ? "no segment precedes it" : "no segment follows it";
     }
+    // A segment that is no segment line itself is never locked (reading a
+    // manifest unlocks it), so this refuses only a neighbour that is itself
+    // a segment line, which is locked. A plain segment is never locked, so
+    // its neighbours may always extend; a segment that is itself a segment
+    // line is locked, so a line of such segments extends only into a
+    // neighbour of unknown length.
     if (neighbour.locked && neighbour.length !== null) {
       return `the ${gap.side === "left" ? "preceding" : "following"} segment ${neighbour.id} is locked`;
     }
@@ -275,6 +281,10 @@ function closedLine(at: SegmentAt, gap: Gap): TimelineManifest | string {
     });
   } else {
     if (line.locked) return `its segment line ${line.id} is locked`;
+    // "Left shifts" names the neighbour that moves: the line's offset in its
+    // parent moves by the deleted length. Once deleting a segment is
+    // enabled, a root, which has no parent to move in, becomes shorter by
+    // the deleted length instead of refusing.
     if (gap.side === "left" && parent === undefined) {
       return `its segment line ${line.id} is a root and has no offset to move`;
     }
@@ -285,6 +295,9 @@ function closedLine(at: SegmentAt, gap: Gap): TimelineManifest | string {
         changed.set(later.id, { ...later, offset });
       }
       if (line.length !== null) {
+        // The shortened line is drawn at its full graphical length, so its
+        // remaining segments widen and fill the gap from both sides. This is
+        // the intended behaviour once deleting a segment is enabled.
         const shortened = placedOn(exactOn(line.length, line).subtract(length), line);
         if (shortened === undefined) return exactly(line, "length");
         changedLine = { ...changedLine, length: shortened };
@@ -329,10 +342,16 @@ function firstProblem(manifest: Manifest): string | undefined {
  * order of `GAPS`, each with why it is refused or `null` when it is
  * permitted; `undefined` when `id` is no segment. Extending needs a neighbour
  * on that side whose length may change (one not locked, or of unknown
- * length); shifting needs the segment line not locked, and shifting left
- * needs it to be a child. A way whose result the manifest's rules refuse
- * (a segment line that is itself a segment changing its length, a child
- * leaving its parent) is refused with that rule's message.
+ * length; a segment that is no segment line itself is never locked);
+ * shifting needs the segment line not locked, and shifting left needs it to
+ * be a child. A way whose result the manifest's rules refuse (a segment
+ * line that is itself a segment changing its length, a child leaving its
+ * parent) is refused with that rule's message.
+ *
+ * Deleting a segment is not enabled in the editor yet; these ways are kept
+ * for when it is. A way is named by the neighbour that moves: once enabled,
+ * "left shifts" moves the line's offset in its parent or, on a root,
+ * shortens the line by the deleted length.
  */
 export function segmentGaps(manifest: Manifest, id: string): readonly GapOption[] | undefined {
   if (segmentAt(manifest, id) === undefined) return undefined;

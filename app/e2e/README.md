@@ -48,7 +48,8 @@ arguments are built by `container.ts` and pinned in `tests/README.md`.
 Every wait waits on state (`expect.poll`, `toHaveCount`, the hook's values, a
 requested animation frame); no test sleeps. Pointer gestures move the mouse
 in steps (`support.ts`: `drag`, `dragStart`, `dragBlock`). A press on a
-block's card selects the card's timeline (`<block>/<root>`), a click on its
+block's card selects the card (`<block>/<root>/card`), a press on a group's
+frame the group (`<block>/<group>`), a click on its
 margin (the `P` = 8 canvas units outside the card, the block's own
 background) selects the block, and a drag from either moves the block. So a
 click meant to select a block lands on its margin, a whole-pixel point
@@ -307,10 +308,17 @@ Every block's card rectangle and its shadow carry the address `<root>/card`
 9. **Click (element, block, Shift).** A click on `nested0000`'s child line
    `clt_2` selects exactly `[nested0000/clt_2]`: that element carries
    `data-selected`, its node content `data-contains-selection`, and they are
-   the only ones. A click on `map0000000`'s card then selects exactly its
-   timeline `[map0000000/melody]` (the line `melody` carries `data-selected`),
-   and a click on its margin exactly `[map0000000]`, with no `data-selected`
-   or `data-contains-selection` left.
+   the only ones. A click on `map0000000`'s card then selects exactly the
+   card `[map0000000/melody/card]`. Of the two parts addressed
+   `melody/card`, the second (the card itself) carries `data-selected` and,
+   the pointer resting on it, `data-hovered`; the first (its shadow) carries
+   no `data-selected`, and `melody/card` is the only selected address drawn.
+   The card's computed `filter` holds the selection's colour
+   `rgb(10, 132, 255)` and not the hover's `rgb(156, 200, 255)`: a selected
+   card keeps the selection's glow under the pointer. The line `melody`
+   carries `data-affected` (Delete of a selected card removes its
+   timeline). A click on its margin then selects exactly `[map0000000]`,
+   with no `data-selected` or `data-contains-selection` left.
    Shift+click on `styled0000`'s root line adds `styled0000/score`, Shift+click
    on `bare`'s margin adds `bare000000`, Shift+click on `clt_2` again
    removes it: {bare000000, styled0000/score}. A drag that starts on `clt_2`
@@ -482,7 +490,7 @@ slop (15 px) at the start of a gesture, so a one-finger node drag first
 travels 20 px to the right and its delta counts from there (as with the
 mouse, Svelte Flow measures a node drag from the move that starts it).
 
-1. A tap on `map0000000`'s card selects its timeline, `[map0000000/melody]`;
+1. A tap on `map0000000`'s card selects the card, `[map0000000/melody/card]`;
    a tap on `nested0000`'s `clt_2` selects `[nested0000/clt_2]`. The margin,
    8 px wide, is narrower than a finger's 14 px, so on a touch screen a
    block is selected by the marquee (6).
@@ -604,6 +612,29 @@ its "Open inspector" button. The text is read from the textarea labelled
    stored value again (empty, `width` null), the node's bounding box equals
    the one before the gesture, the selection still holds `bare000000`,
    and after the release the journal is still 5.
+9. **A selected timeline shows its `locked` as a disabled checkbox.** With
+   the drawer open, `bundles` is loaded through the hook (journal 3) and
+   the root `score` of `bungroup00` is locked by a `set` of `locked`
+   `true` on `bungroup00/score` through the hook (accepted). Then three
+   addresses are selected through the hook, one at a time:
+   `bungroup00/score` (a root), `bungroup00/pages` (a root segment line,
+   no group member) and `bungroup00/page_1` (one of its plain segments).
+   Each shows exactly one checkbox named "Locked", disabled, with the
+   `title` and the accessible description "Locking and unlocking is not
+   available yet.", checked for `score` and not checked for `pages` and
+   `page_1`: a plain segment is never locked, and a root segment line
+   that is no group member keeps the `false` it was written with.
+   Selecting the block `bungroup00` itself shows no such checkbox.
+10. **A press on a card shows its timeline's checkbox.** The root `bare` of
+    `bare000000` is locked by a `set` of `locked` `true` on
+    `bare000000/bare` through the hook (accepted, journal 6). A press on
+    the block's card (`cardPoint`) selects exactly `bare000000/bare/card`,
+    and the drawer shows exactly one checkbox named "Locked", inside the
+    group named "Timeline bare", disabled and checked: the card stands for
+    its timeline and the value is the stored `true`, not the `false` the
+    fixture was written with. A press on the block's margin (`marginPoint`)
+    then selects exactly `bare000000` and the checkbox is gone. Neither
+    press adds a journal entry (still 6).
 
 ## `a11y.spec.ts`
 
@@ -721,12 +752,20 @@ root's card and drawing), applied to the fixture by hand.
    "select the block to delete it", the journal stays at 3, every block's
    manifest is unchanged (JSON text before and after identical) and the
    card `annotations/card` is still drawn.
-5. **Hover marks the card under the pointer and a boundary.** The pointer
-   anywhere inside a card marks that card: its own rectangle (the one with
-   a stroke), not its shadow, which carries the same address. The mouse
-   moved onto the centre of the first part of the member line `recording`
-   in `gchild0000` marks exactly one part in the page, the card of
-   `recording/card`. In `bungroup00` the segment line `pages` (segments
+5. **Hover marks the box under the pointer and a boundary; a press on a
+   frame selects its group.** The pointer anywhere inside a card marks that
+   card: its own rectangle (the one with a stroke), not its shadow, which
+   carries the same address, and not the frame around it (the card is the
+   innermost box). The mouse moved onto the centre of the first part of the
+   member line `recording` in `gchild0000` marks exactly one part in the
+   page, the card of `recording/card`. The pointer inside a frame and
+   outside its cards marks the frame: the mouse on a point of
+   `gchild0000`'s frame `group_1` clear of its cards and its title (the
+   element hit there and 6 px around is the frame, `framePoint`, found on
+   the same raster as `cardPoint`) marks exactly `[gchild0000/group_1]`. A
+   click there selects exactly `[gchild0000/group_1]`, the frame is the one
+   part carrying `data-selected`, and no part carries `data-affected` (a
+   group removes itself only). In `bungroup00` the segment line `pages` (segments
    `page_1`, `page_2`, `page_3` from 0, 1754 and 3508 px) draws the
    boundaries `page_2/start` and `page_3/start` (a segment starting at 0
    has none); the mouse on `page_2/start` marks exactly, in DOM order, the
@@ -790,7 +829,7 @@ root's card and drawing), applied to the fixture by hand.
    `loadManifest` of the file's text (run in the test, outside the page).
    File → Export manifest… downloads a file named as the editor's
    `manifestFileName` names it, from the manifest's `id`, else its `name`,
-   else `manifest` (`manifest.json`: the fixture has neither), whose text
+   else `bundle` (`bundle.json`: the fixture has neither), whose text
    equals `dumps` of the loaded fixture (core's `saveManifest`, the
    canonical form) and the fixture file's own text, byte for byte (the
    fixtures are written in that form). Then the same with
@@ -801,42 +840,34 @@ root's card and drawing), applied to the fixture by hand.
 
 ## `segments.spec.ts` (Chromium, Firefox, WebKit)
 
-Deleting a segment asks how to close the gap it leaves in its segment line
-(core's `remove` with a `gap`; the rules and every refusal are proven in
-core's and arranger's unit tests). This spec drives the menu once in a
-browser, where the native radio groups, the focus and axe are real. The
-file chooser is answered as in `files.spec.ts` (the open picker deleted
-before the page loads).
+Deleting a segment is not supported yet: Delete on a segment is refused
+in the canvas's status line and changes nothing (the refusal is
+`removeCommand`'s, proven in arranger's unit tests; the menu that will ask
+how to close the gap is proven there as a component and is not mounted).
+This spec checks the refusal in a browser, where the keys and the status
+line are real. The file chooser is answered as in `files.spec.ts` (the
+open picker deleted before the page loads).
 
 File → New workspace, then File → Import manifest… with the installed
 package's `fixtures/<SCHEMA_VERSION>/segment_line.json`: journal 1, the new
-block selected. Its root `form` (32 quarters, not locked) holds the
-segments `a` at 0, `b` at 8 and `c` at 20, each a locked segment line
-(`b` 12 long, `c` holding `c1`). With `<block>/b` selected through the hook
-and the arranger focused, Delete opens the menu and journals nothing.
-Of the four ways only right shift is permitted: left extend needs `a` to
-change its length (locked), right extend `c` (locked), left shift needs
-`form` to move in a parent (it is a root). So:
+block selected. Its root `form` (32 quarters) holds the segments `a` at 0,
+`b` at 8 and `c` at 20. With `<block>/b` selected through the hook and the
+arranger focused, Delete and then Backspace each:
 
-- the radios `Left` and `Extend` are disabled, their labels titled `the
-  preceding segment a is locked; its segment line form is a root and has
-  no offset to move` and `the preceding segment a is locked; the following
-  segment c is locked`; `Right` and `Shift` are enabled, checked, and
-  `Right` has the focus;
-- the preview marks what right shift moves or resizes: the distinct
-  addresses carrying `[data-moved]`, sorted, are exactly `c`, `c/label`,
-  `c/start`, `form`, `form/card`, `form/end`, `form/end/label`,
-  `form/name`, `form/start`, `form/start/label` (`form` shortens, so all
-  its drawn parts; `c` moves back, its line, boundary and label; its
-  segment `c1` moves with it but, the first segment and unnamed, draws
-  neither boundary nor label);
-- axe-core, limited to the menu, reports no violation.
+- show `Deleting a segment is not supported yet.` in the status line
+  (`data-testid="hint"`);
+- open no menu (`[data-testid="gap-menu"]` is absent) and mark nothing
+  `[data-moved]`;
+- journal nothing (the journal stays where it was before the key), keep
+  the selection `[<block>/b]`, and leave `form` 32 long holding `a` at
+  `[0, 1]`, `b` at `[8, 1]` and `c` at `[20, 1]`.
 
-Enter then journals exactly one command, `{type: "remove", targets:
-[<block>/b], gap: {side: "right", verb: "shift"}}`; the menu and every
-`[data-moved]` mark are gone, the selection is empty, and `form` is 20
-long holding `a` at `[0, 1]` and `c` at `[8, 1]` (`c` moved back by `b`'s
-12, `form` shortened by it).
+Between the two keys the hint is cleared, so that Backspace's hint is its
+own refusal and not Delete's left standing. The status line clears on the
+next command the canvas stores: with the block selected through the hook,
+ArrowRight nudges it (journal 2) and the status line is empty. Then
+`<block>/b` is selected again and Backspace is pressed; its journal stays at
+2.
 
 ## `budget.spec.ts` (`@budget`, Chromium only)
 

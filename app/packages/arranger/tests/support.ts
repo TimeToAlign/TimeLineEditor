@@ -15,7 +15,7 @@ import {
   isLoadError,
   loadManifest,
 } from "@timetoalign/tilie-core";
-import { fontMetrics, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
+import { dumps, fontMetrics, parseJson, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
 
 export const metrics = fontMetrics;
 
@@ -27,15 +27,35 @@ export const A = "0000000000";
 export const B = "0000000001";
 export const C = "0000000002";
 
-/** A manifest fixture of the installed schema version, failing loudly if it is refused. */
-export function load(name: string): Manifest {
-  const text = readFileSync(
-    path.join(packageDir, "fixtures", SCHEMA_VERSION, `${name}.json`),
-    "utf8",
-  );
+function fixtureText(name: string): string {
+  return readFileSync(path.join(packageDir, "fixtures", SCHEMA_VERSION, `${name}.json`), "utf8");
+}
+
+function loadText(text: string, name: string): Manifest {
   const manifest = loadManifest(text);
   if (isLoadError(manifest)) throw new Error(`${name} refused: ${manifest.problems[0]?.message}`);
   return manifest;
+}
+
+/** A manifest fixture of the installed schema version, failing loudly if it is refused. */
+export function load(name: string): Manifest {
+  return loadText(fixtureText(name), name);
+}
+
+/**
+ * A manifest fixture with the timelines `ids` stating `locked: false` in the
+ * file itself, before it is read: the way to unlock a segment line whose
+ * lock no command lifts (one that is a child, a segment or a group member).
+ */
+export function loadUnlocked(name: string, ...ids: string[]): Manifest {
+  const unlock = (timeline: Record<string, unknown>): Record<string, unknown> => ({
+    ...timeline,
+    ...(ids.includes(timeline.id as string) ? { locked: false } : {}),
+    children: ((timeline.children ?? []) as Record<string, unknown>[]).map(unlock),
+  });
+  const value = parseJson(fixtureText(name)) as Record<string, unknown>;
+  const timelines = (value.timelines as Record<string, unknown>[]).map(unlock);
+  return loadText(dumps({ ...value, timelines }), name);
 }
 
 /** The view a command leaves, failing loudly if it is refused. */

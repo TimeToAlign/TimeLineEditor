@@ -289,12 +289,6 @@ describe("invariants", () => {
       "child 'clt_2' has unit 'whole_note', its parent 'clt_1' has 'quarters'",
     ],
     [
-      "a negative child offset",
-      { offset: [-1, 3] },
-      [...childPath, "offset"],
-      "offset [-1, 3] of 'clt_2' is negative",
-    ],
-    [
       // Placed at 9, the child comes after its sibling at 2 in canonical order.
       "a child ending past its parent",
       { offset: [9, 1] },
@@ -306,6 +300,39 @@ describe("invariants", () => {
     Object.assign(node(value, ...childPath), change);
     expect(refused(dumps(value)).problems).toEqual([{ code: "schema_violation", message, path }]);
   });
+
+  it("refuses a negative child offset itself, which the schema accepts", () => {
+    const value = base();
+    Object.assign(node(value, ...childPath), { offset: [-1, 3] });
+    expect(refused(dumps(value)).problems).toEqual([
+      {
+        code: "negative_child_offset",
+        message: "A negative child offset is not supported yet: child 'clt_2' has offset [-1, 3].",
+        path: [...childPath, "offset"],
+      },
+    ]);
+  });
+
+  it.each([
+    ["an int", "ticks", 10, 2, -1, "-1"],
+    ["a float", "seconds", new JsonFloat(10), new JsonFloat(2), new JsonFloat(-1), "-1.0"],
+  ])(
+    "spells a negative child offset on %s axis as the file writes it",
+    (_, unit, length, part, offset, spelled) => {
+      const child = { id: "part", unit, length: part, offset };
+      const value = {
+        timeskeleton: SCHEMA_VERSION,
+        timelines: [{ id: "take", unit, length, children: [child] }],
+      };
+      expect(refused(dumps(value)).problems).toEqual([
+        {
+          code: "negative_child_offset",
+          message: `A negative child offset is not supported yet: child 'part' has offset ${spelled}.`,
+          path: ["timelines", 0, "children", 0, "offset"],
+        },
+      ]);
+    },
+  );
 
   it("refuses malformed text", () => {
     expect(problems('{"timeskeleton": ')).toEqual([{ code: "invalid_json", path: [] }]);
@@ -325,5 +352,71 @@ describe("invariants", () => {
       "region_end_before_start",
       [A, "manifest", ...rootPath, "regions", 0, "end"],
     ]);
+  });
+});
+
+describe("segments read unlocked", () => {
+  /** `segment_line.json` with the `locked` of some timelines stated, read. */
+  function read(stated: Record<string, boolean>): Manifest {
+    const state = (timeline: Node): Node => ({
+      ...timeline,
+      ...(Object.hasOwn(stated, timeline.id as string)
+        ? { locked: stated[timeline.id as string] }
+        : {}),
+      children: (timeline.children as Node[]).map(state),
+    });
+    const value = manifestValue("segment_line.json");
+    return loadText(dumps({ ...value, timelines: (value.timelines as Node[]).map(state) }));
+  }
+  /** Every timeline's `locked`, by id. */
+  function locks(manifest: Manifest): Record<string, unknown> {
+    const found: Record<string, unknown> = {};
+    const walk = (timeline: Node) => {
+      found[timeline.id as string] = timeline.locked;
+      for (const child of timeline.children as Node[]) walk(child);
+    };
+    for (const root of manifest.timelines) walk(root as unknown as Node);
+    return found;
+  }
+  const SEGMENTS = ["a1", "b1", "b2", "c1"];
+
+  it("unlocks every segment whatever its file states and keeps every other lock", () => {
+    const manifest = read({ b1: true, b2: false });
+    expect(locks(manifest)).toEqual({
+      form: false,
+      a: true,
+      a1: false,
+      b: true,
+      b1: false,
+      b2: false,
+      c: true,
+      c1: false,
+    });
+    expect(manifest).toEqual(read(Object.fromEntries(SEGMENTS.map((id) => [id, false]))));
+  });
+
+  it("keeps a stated unlock on a segment line that is a segment", () => {
+    expect(locks(read({ b: false })).b).toBe(false);
+  });
+
+  it("writes the segments unlocked", () => {
+    const manifest = read({ a1: true, b1: true, b2: true, c1: true });
+    const saved = locks(loadText(saveManifest(manifest)));
+    expect(SEGMENTS.map((id) => saved[id])).toEqual([false, false, false, false]);
+    const complete = parseJson(saveManifest(manifest));
+    const minimal = parseJson(saveManifest(manifest, { minimal: true }));
+    const stated = (value: unknown) => {
+      const found: Record<string, unknown> = {};
+      const walk = (timeline: Node) => {
+        found[timeline.id as string] = Object.hasOwn(timeline, "locked")
+          ? timeline.locked
+          : "absent";
+        for (const child of (timeline.children as Node[] | undefined) ?? []) walk(child);
+      };
+      for (const root of (value as Node).timelines as Node[]) walk(root);
+      return SEGMENTS.map((id) => found[id]);
+    };
+    expect(stated(complete)).toEqual([false, false, false, false]);
+    expect(stated(minimal)).toEqual(["absent", "absent", "absent", "absent"]);
   });
 });

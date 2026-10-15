@@ -98,16 +98,20 @@ function lineDescriptors(element: LineElement): Descriptor[] {
       ],
       filled,
     );
-  // A double chevron at `x`, pointing left (-1) or right (1), the inner one first.
-  const chevrons = (x: number, direction: -1 | 1): Descriptor[] => {
+  // `count` chevrons at `x`, pointing left (-1) or right (1), the inner one first: two where
+  // a line runs on, three where its length is not known.
+  const chevrons = (x: number, direction: -1 | 1, count: 2 | 3): Descriptor[] => {
     const at = (offset: number) => x + direction * offset;
     const half = 1.5 * w;
     return [
       [w, 2.5 * w],
       [2.5 * w, 4 * w],
-    ].map(([arm = 0, tip = 0]) =>
-      write("polyline", points([at(arm), y - half], [at(tip), y], [at(arm), y + half]), outline),
-    );
+      [4 * w, 5.5 * w],
+    ]
+      .slice(0, count)
+      .map(([arm = 0, tip = 0]) =>
+        write("polyline", points([at(arm), y - half], [at(tip), y], [at(arm), y + half]), outline),
+      );
   };
   const arrowhead = points([xe + 3 * w, y], [xe, y - 1.5 * w], [xe, y + 1.5 * w]);
   const stop = element.end === "diamond" ? xe - 1.5 * w : xe;
@@ -121,7 +125,7 @@ function lineDescriptors(element: LineElement): Descriptor[] {
     ],
     stroked,
   );
-  const start = element.start === "circle" ? [circle(xs)] : chevrons(xs, -1);
+  const start = element.start === "circle" ? [circle(xs)] : chevrons(xs, -1, 2);
   const end = (() => {
     switch (element.end) {
       case "arrowhead":
@@ -135,8 +139,10 @@ function lineDescriptors(element: LineElement): Descriptor[] {
         const diamond = points([stop, y], [xe, y - half], [xe + 1.5 * w, y], [xe, y + half]);
         return [write("polygon", diamond, outline)];
       }
+      case "unknown":
+        return chevrons(xe, 1, 3);
       case "chevrons":
-        return chevrons(xe, 1);
+        return chevrons(xe, 1, 2);
     }
   })();
   return [line, ...start, ...end];

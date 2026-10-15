@@ -1,7 +1,9 @@
 /**
  * The inspector drawer on `small`: the manifest as text, applied as one
- * command, refused with its path, and the block properties form. The
- * expected values are derived in `README.md` ("inspector.spec.ts").
+ * command, refused with its path, and the block properties form; and the
+ * disabled Locked checkbox of a selected timeline, on `bundles` and for a
+ * pressed card. The expected values are derived in `README.md`
+ * ("inspector.spec.ts").
  */
 
 import AxeBuilder from "@axe-core/playwright";
@@ -9,16 +11,21 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import type { Manifest } from "../packages/core/src/index.ts";
 import {
+  BUNDLES,
   cardPoint,
   commandsFrom,
   dragStart,
   element,
+  fixtureText,
   journalLength,
+  marginPoint,
   node,
   nodeDragStart,
+  OPENED_JOURNAL,
   open,
   placement,
   SMALL,
+  selection,
   setViewport,
 } from "./support.ts";
 
@@ -227,4 +234,63 @@ test("Escape cancels a resize and the form shows the stored values again", async
   await page.mouse.up();
   expect(await journalLength(page)).toBe(5);
   expect((await placement(page, SMALL.bare)).width).toBe(null);
+});
+
+test("a selected timeline shows its locked as a disabled checkbox", async ({ page }) => {
+  await page.evaluate((text) => window.__tilie.load(text), fixtureText("bundles"));
+  await expect.poll(() => journalLength(page)).toBe(OPENED_JOURNAL.bundles);
+  const refused = await page.evaluate(
+    (target) =>
+      window.__tilie
+        .store()
+        .dispatch({ type: "set", changes: [{ target, values: { locked: true } }] }),
+    `${BUNDLES.ungrouped}/score`,
+  );
+  expect(refused).toBe(null);
+  const locked = page.getByRole("checkbox", { name: "Locked", exact: true });
+  const unavailable = "Locking and unlocking is not available yet.";
+  for (const [id, checked] of [
+    ["score", true],
+    ["pages", false],
+    ["page_1", false],
+  ] as const) {
+    await page.evaluate(
+      (address) => window.__tilie.select([address]),
+      `${BUNDLES.ungrouped}/${id}`,
+    );
+    await expect(locked).toHaveCount(1);
+    await expect(locked).toBeDisabled();
+    await expect(locked, id).toBeChecked({ checked });
+    await expect(locked).toHaveAttribute("title", unavailable);
+    await expect(locked).toHaveAccessibleDescription(unavailable);
+  }
+  await page.evaluate((id) => window.__tilie.select([id]), BUNDLES.ungrouped);
+  await expect(locked).toHaveCount(0);
+});
+
+test("a press on a card shows its timeline's checkbox", async ({ page }) => {
+  const refused = await page.evaluate(
+    (target) =>
+      window.__tilie
+        .store()
+        .dispatch({ type: "set", changes: [{ target, values: { locked: true } }] }),
+    `${SMALL.bare}/bare`,
+  );
+  expect(refused).toBe(null);
+  await expect.poll(() => journalLength(page)).toBe(6);
+  const card = await cardPoint(page, SMALL.bare);
+  await page.mouse.click(card.x, card.y);
+  expect(await selection(page)).toEqual([`${SMALL.bare}/bare/card`]);
+  const locked = page.getByRole("checkbox", { name: "Locked", exact: true });
+  await expect(locked).toHaveCount(1);
+  await expect(
+    page.getByRole("group", { name: "Timeline bare", exact: true }).getByRole("checkbox"),
+  ).toHaveCount(1);
+  await expect(locked).toBeDisabled();
+  await expect(locked).toBeChecked();
+  const margin = await marginPoint(page, SMALL.bare);
+  await page.mouse.click(margin.x, margin.y);
+  expect(await selection(page)).toEqual([SMALL.bare]);
+  await expect(locked).toHaveCount(0);
+  expect(await journalLength(page)).toBe(6);
 });

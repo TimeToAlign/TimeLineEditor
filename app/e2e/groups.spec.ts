@@ -22,6 +22,7 @@ import {
   dragStart,
   element,
   emptyPoint,
+  framePoint,
   GROUPS,
   journalLength,
   node,
@@ -283,7 +284,7 @@ test.describe("a group workspace", () => {
     await expect(part(page, GROUPS.child, "piece/region_1")).toBeAttached();
   });
 
-  test("hovering a member's line marks its card, not the shadow", async ({ page }) => {
+  test("hovering a member's line marks its card, not its shadow or the frame", async ({ page }) => {
     const { x, y } = await partCentre(page, GROUPS.child, "recording");
     await page.mouse.move(x, y, { steps: 2 });
     await expect
@@ -292,6 +293,20 @@ test.describe("a group workspace", () => {
     const empty = await emptyPoint(page, 600, 200);
     await page.mouse.move(empty.x, empty.y, { steps: 2 });
     await expect.poll(() => marked(page, "data-hovered")).toEqual([]);
+  });
+
+  test("hovering a frame away from its cards marks the frame", async ({ page }) => {
+    const { x, y } = await framePoint(page, GROUPS.child, "group_1");
+    await page.mouse.move(x, y, { steps: 2 });
+    await expect.poll(() => marked(page, "data-hovered")).toEqual([`${GROUPS.child}/group_1`]);
+  });
+
+  test("a press on a frame selects the group", async ({ page }) => {
+    const { x, y } = await framePoint(page, GROUPS.child, "group_1");
+    await page.mouse.click(x, y);
+    expect(await selection(page)).toEqual([`${GROUPS.child}/group_1`]);
+    expect(await marked(page, "data-selected")).toEqual([`${GROUPS.child}/group_1`]);
+    expect(await marked(page, "data-affected")).toEqual([]);
   });
 
   test("hover at zoom 1/2 marks the card under the pointer", async ({ page }) => {

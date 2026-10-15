@@ -7,6 +7,7 @@ import {
   createView,
   elementOf,
   elementOfIn,
+  findTimeline,
   isLoadError,
   loadManifest,
   manifestElements,
@@ -379,6 +380,15 @@ describe("addresses in a block of several roots", () => {
       code: "wrong_target_kind",
       path: [at("group_1"), "name"],
     });
+  });
+
+  it("finds a timeline by its id in every root's tree, and nothing else", () => {
+    const manifest = load(BUNDLE);
+    expect(findTimeline(manifest, "annotations")).toBe(manifest.timelines[0]);
+    expect(findTimeline(manifest, "excerpt")).toBe(manifest.timelines[3]?.children[0]);
+    for (const id of ["group_1", "name", "recording/excerpt", "nothing"]) {
+      expect(findTimeline(manifest, id)).toBeUndefined();
+    }
   });
 });
 

@@ -142,7 +142,7 @@ describe("the inspector component", () => {
     expect(hint?.textContent).toBe("Apply or Revert to switch");
     const switches = [
       document.querySelector('[role="radiogroup"]'),
-      document.querySelector('input[type="checkbox"]'),
+      document.querySelector('.options input[type="checkbox"]'),
     ];
     expect(switches.map((item) => item?.getAttribute("aria-describedby"))).toEqual([
       "inspector-switch-hint",
@@ -151,7 +151,7 @@ describe("the inspector component", () => {
     expect(
       [
         ...document.querySelectorAll<HTMLInputElement>(
-          'input[type="radio"], input[type="checkbox"]',
+          '.options input[type="radio"], .options input[type="checkbox"]',
         ),
       ].map((item) => item.disabled),
     ).toEqual([true, true, true, true]);

@@ -17,6 +17,7 @@ import {
   viewOf as fixtureView,
   loadText,
   refusal,
+  unlockedView,
 } from "./support.ts";
 
 type Length = readonly [number, number] | null;
@@ -96,8 +97,8 @@ describe("checks that need an end run where the end is known", () => {
       const result = loadManifest(text(length, [["part", -1, null]]));
       expect(isLoadError(result) ? result.problems : result).toEqual([
         {
-          code: "schema_violation",
-          message: "offset [-1, 1] of 'part' is negative",
+          code: "negative_child_offset",
+          message: "A negative child offset is not supported yet: child 'part' has offset [-1, 1].",
           path: CHILD_OFFSET,
         },
       ]);
@@ -240,42 +241,42 @@ describe("a length change never pushes a parent", () => {
   });
 
   describe("on segment_line.json", () => {
+    // Segments read unlocked; a segment line that is a segment is unlocked
+    // by its value stating so, which no command can do yet.
     const lines = deepFreeze(fixtureView([A, "segment_line.json"]));
 
     it("keeps the last segment ending where its line of known length ends", () => {
-      const view = changed(lines, set({ b2: { locked: false } }));
       for (const length of [
         [8, 1],
         [4, 1],
       ]) {
-        expect(refusal(apply(view, set({ b2: { length } })))).toEqual({
+        expect(refusal(apply(lines, set({ b2: { length } })))).toEqual({
           code: "segment_end_fixed",
           path: [`${A}/b2`, "length"],
         });
       }
-      expect(lengths(changed(view, set({ b2: { length: [6, 1] } }))).b2).toEqual([6, 1]);
-      const unknown = lengths(changed(view, set({ b2: { length: null } })));
+      expect(lengths(changed(lines, set({ b2: { length: [6, 1] } }))).b2).toEqual([6, 1]);
+      const unknown = lengths(changed(lines, set({ b2: { length: null } })));
       expect([unknown.b2, unknown.b]).toEqual([null, [12, 1]]);
     });
 
     it("keeps a segment ending where its successor starts", () => {
-      const view = changed(lines, set({ b1: { locked: false } }));
-      expect(refusal(apply(view, set({ b1: { length: [4, 1] } })))).toEqual({
+      expect(refusal(apply(lines, set({ b1: { length: [4, 1] } })))).toEqual({
         code: "segment_end_fixed",
         path: [`${A}/b1`, "length"],
       });
-      expect(lengths(changed(view, set({ b1: { length: null } }))).b1).toBe(null);
+      expect(lengths(changed(lines, set({ b1: { length: null } }))).b1).toBe(null);
     });
 
     it("lets the last segment of a line of unknown length change", () => {
-      const view = changed(lines, set({ b: { locked: false }, b2: { locked: false } }));
+      const view = deepFreeze(unlockedView("segment_line.json", "b"));
       const open = changed(view, set({ b: { length: null } }));
       const grown = lengths(changed(open, set({ b2: { length: [8, 1] } })));
       expect([grown.b2, grown.b]).toEqual([[8, 1], null]);
     });
 
     it("keeps a segment line ending where its last segment of known length ends", () => {
-      const view = changed(lines, set({ form: { length: null }, c: { locked: false } }));
+      const view = changed(unlockedView("segment_line.json", "c"), set({ form: { length: null } }));
       expect(refusal(apply(view, set({ c: { length: [14, 1] } })))).toEqual({
         code: "segment_end_fixed",
         path: [`${A}/c`, "length"],
@@ -283,7 +284,7 @@ describe("a length change never pushes a parent", () => {
     });
 
     it("refuses a segment growing to hold a child while its line's length is known", () => {
-      const view = changed(lines, set({ c: { locked: false } }));
+      const view = deepFreeze(unlockedView("segment_line.json", "c"));
       expect(refusal(apply(view, add("c", child("c2", 12, 4))))).toEqual({
         code: "segment_end_fixed",
         path: [`${A}/c`, "child"],

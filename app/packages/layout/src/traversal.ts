@@ -119,9 +119,9 @@ export const maxSize = (items: readonly Styled[], fallback = 9): number =>
 export const rowPitch = (scope: Scope, size: number): number =>
   Math.max(14 * scope.v, scope.h(size));
 
-/** How a timeline drawn up to its end ends (section 6.6): an open end with the double chevron. */
+/** How a timeline drawn up to its end ends (section 6.6): an open end with three chevrons. */
 export function endOf(timeline: TimelineManifest, topLevel: boolean, open = false): LineEnd {
-  if (open) return "chevrons";
+  if (open) return "unknown";
   if (!topLevel) return "diamond";
   if (timeline.locked) return "circle";
   return timeline.is_segment_line ? "open" : "arrowhead";

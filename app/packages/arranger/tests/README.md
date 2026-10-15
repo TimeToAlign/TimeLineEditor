@@ -582,25 +582,37 @@ Every non-refused command is accepted by `apply`, and the removed elements
 are gone from the manifest (`manifestIds`).
 
 **A segment** (`segments.test.ts`, like every value of this section and
-the next) leaves a gap in its segment line, and core asks how to close
-it. `segment_children` is root `piece` holding the segment line `theme` (at
-6, of 12) with the segments `t1`, `t2`, `t3` (each of 4) and the segment
-lines `intro` and `coda`, everything but `piece` locked; "theme unlocked"
-is that block after one `set {locked: false}` of `A/theme`.
+the next) would leave a gap in its segment line. Deleting a segment is not
+supported yet: a selection holding a segment that leaves a gap is refused
+whole, with one message, before any way of closing the gap is looked up,
+so the refusal does not depend on which ways would be permitted. A
+segment that goes with its segment line or its block leaves no gap and is
+removed with it. `segment_children` is root `piece` holding the segment
+lines `intro`, `theme` (at 6, of 12) and `coda`, each locked, and `theme`
+holds the segments `t1`, `t2`, `t3` (each of 4). A segment is never
+locked, so reading gives the segments `locked: false` whatever the file
+states. "theme unlocked" is that fixture with `locked: false` stated on
+`theme` in the file before it is read (no command lifts the lock of a
+segment line that is a child).
 
 | view | selection | result |
 |---|---|---|
-| A segment_children | {A/t2/label} | refused: `Segment t2 cannot be deleted: no neighbour may extend and its segment line may not shift.` |
-| A theme unlocked | {A/t2/label} | `{segment: A/t2, options}`, the options' ways left extend, right extend, left shift, right shift with the refusals `the preceding segment t1 is locked`, `the following segment t3 is locked`, `null`, `null` |
-| A theme unlocked | {A/t2}, gap right shift | `{type: "remove", targets: [A/t2], gap: {side: "right", verb: "shift"}}`; afterwards `theme` holds `t1` and `t3` |
-| A theme unlocked | {A/t2, A/t3} | refused: `Delete one segment at a time.` |
+| A segment_children | {A/t2/label} | refused: `Deleting a segment is not supported yet.` (the two extends would be permitted) |
+| A theme unlocked | {A/t2} | refused the same (all four ways would be permitted) |
+| A theme unlocked | {A/t2, A/t3} | refused the same (two segments) |
 | A theme unlocked | {A/t2, A/coda/name} | refused the same (a segment with another element) |
 | A theme unlocked | {A/theme, A/t2} | targets [A/theme, A/t2] (the segment goes with its line, no gap) |
 | A theme unlocked | {A, A/t2} | targets [A, A/t2] (it goes with its block) |
 
-`preferredGap(options)` is the first permitted way in that order: left
-shift for the theme-unlocked options above, and `null` when none is
-permitted.
+What the Delete of a segment will use once it is enabled stays proven:
+core's `segmentGaps(manifest, "t2")` gives the four ways left extend,
+right extend, left shift, right shift in that order. For theme unlocked
+every refusal is `null`. For `segment_children` the extends are `null`
+(`t1` and `t3` are segments, never locked) and both shifts are refused,
+`its segment line theme is locked`. These are the options the menu below
+is mounted with. `preferredGap(options)` is the first permitted way in
+that order: left extend for both, and `null` when none is permitted. Removing a
+segment with a `gap` is core's `remove`, proven in core's tests.
 
 ## `movedByGap`
 
@@ -617,7 +629,8 @@ and their labels).
 |---|---|---|
 | theme unlocked | t2, left shift | {theme, theme/name, t1, t1/label} (`theme` moves on and shortens, carrying `t1`; `t3` keeps its place) |
 | theme unlocked | t2, right shift | {theme, theme/name, t3, t3/start, t3/label} |
-| theme unlocked | t2, left extend | ∅ (not permitted: `t1` is locked) |
+| theme unlocked | t2, left extend | {t1, t1/label} (`t1` grows; the first segment draws no boundary) |
+| theme unlocked | t2, right extend | {t3, t3/start, t3/label} (`t3` starts where `t2` started and grows) |
 | segment_line | b, right shift | {form/card, form, form/name, form/start, form/start/label, form/end, form/end/label, c, c/start, c/label, c1, c1/label} (`form` shortens, `c` moves back with its segment `c1`) |
 
 `segmentAnchor(drawing, id)`, where the menu opens, is the segment's label
@@ -667,6 +680,7 @@ Pinned values (derived by hand from the fixtures' trees). `nested` is
 | numbers | {score/region_1} | ∅ (its label is its own part) |
 | numbers | {score} | {score/region_1, score/region_1/label} |
 | group_child_member | {piece} | {second-half/card, second-half/start, second-half/start/label, second-half/end, second-half/end/label, second-half, second-half/name} (its child, a member, goes with it, at every place it is drawn) |
+| group_child_member | {recording/card} | {recording, recording/name, recording/start, recording/start/label, recording/end, recording/end/label} (a selected card stands for its timeline: Delete removes the timeline, so everything the card holds is affected; the card itself shows as selected) |
 | corpus_mpm | {group_1} | ∅ (a group removes itself only; its title shows as selected) |
 | corpus_mpm | {group_1/name} | {group_1} (the title stands for its frame) |
 | corpus_mpm | {name} | ∅ (the title names no element) |
@@ -698,25 +712,17 @@ removal, not against itself.
 - `click({A}, "B/clt_1", true)` is `{A, B/clt_1}`, and
   `click({A, B/clt_1}, "A", true)` is `{B/clt_1}`, so Shift toggles.
 - The input set is never mutated.
-- **A press on a timeline's card selects that timeline**: the card is what
-  shows a timeline selected and edited on its own (drawing.md section 2.2:
-  the card of a timeline `T` is `T/card` and belongs to `T`). An address
-  whose element part has more than one segment and ends in `/card` is
-  folded to the address without that part, so the card's shadow, which
-  carries the same address, does the same. On a block of one root `T` is
-  that root: `click(∅, "A/bare/card", false)` on a block holding `bare` is
-  `{A/bare}`. In `group_child_member` `click(∅, "A/recording/card", false)`
-  is `{A/recording}`, and with Shift `click({A/recording},
-  "A/recording/card", true)` is ∅ (the timeline is toggled, not its card).
-  Any other part is kept as pressed: `click(∅, "A/recording/start", false)`
-  is `{A/recording/start}`. An element part of one segment is never
-  folded, so an element whose id is `card` keeps its address: `click(∅,
-  "A/card", false)` is `{A/card}`, while `A/card/card` folds to `A/card`. The block stays selectable by its margin
-  outside the cards (`click(∅, "A", false)` is `{A}`), by Tab and by the
-  marquee; those paths and dragging are the canvas's and are not changed.
-  The pressed card and timeline addresses are real: core's
-  `manifestElements` lists `bare/card` and `bare` for `bare`, and
-  `recording/card` and `recording` for `group_child_member`.
+- **`click` takes the address a press selects as it is**: what a press
+  on the drawing selects is decided before, by `selectionOf` (section
+  "Boxes: selection and hover"), and `click` changes nothing in it. A
+  card's address stays the card's: `click(∅, "A/recording/card", false)` is
+  `{A/recording/card}`, and with Shift `click({A/recording/card},
+  "A/recording/card", true)` is ∅ (the card is toggled), while
+  `click({A/recording}, "A/recording/card", true)` is `{A/recording,
+  A/recording/card}` (the card and its timeline are two selections). The
+  addresses are real: core's `manifestElements` lists `bare/card` and
+  `bare` for `bare`, and `recording/card` and `recording` for
+  `group_child_member`.
 - `blockOf("A/clt_3/name")` is `A`, and `blockOf("A")` is `A`.
   `blockOf("workspace")` throws `RangeError`.
 
@@ -836,6 +842,14 @@ renders, which draws nothing).
    both as a member and as an ancestor line or child of another member
    drawing; the node marks by the whole address alone, so that drawing
    follows the same rule.
+   **A selected card glows on its own rectangle only.** On
+   `group__group_child_member`, drawn with its drawing's elements (so the
+   node knows its boxes), `selectedElements = {"recording/card"}` marks
+   exactly one element, the second `rect` addressed `recording/card` (the
+   card; the first, its shadow, carries the same address and is not
+   marked, section "Boxes: selection and hover"), the tree with
+   `data-selected` left out equals `figure.svg`'s, and
+   `data-contains-selection` is set once.
 3. **Text is text.** A text descriptor whose text is
    `<b id="x">C♯ & D♭</b>` and whose `data-address` is `a"<b>` renders one
    `<text>` element in the SVG namespace with exactly those attribute values
@@ -856,25 +870,42 @@ renders, which draws nothing).
    back to `c`), while ArrowRight and ArrowLeft leave the focus where it is.
 
 5. **The Delete menu of a segment** (`gap-menu.test.ts`: `GapMenu.svelte`,
-   mounted with the options of `removeCommand` and `gap` set to
-   `preferredGap(options)`).
-   With the theme-unlocked options of `t2` (only the two shifts
-   permitted): the side radios `Left` and `Right` are enabled; the verb
-   radio `Extend` is disabled with the title `the preceding segment t1 is
-   locked; the following segment t3 is locked` and `Shift` is enabled; the
-   checked radios are `Left` and `Shift` (the preselection), and the focus
-   is on `Left`. Choosing `Right` checks `Right` and `Shift`. Enter on a
-   radio calls `onconfirm` once with the checked way, `{side: "right",
-   verb: "shift"}`; Escape calls `oncancel` once; OK calls `onconfirm`,
+   mounted with the options of core's `segmentGaps` and `gap` set to
+   `preferredGap(options)`). The canvas does not mount it while deleting a
+   segment is not supported; the component stays exported and is proven
+   here. The menu is a form named `Delete segment t2` holding one fieldset
+   (legend `Closes the gap`) of four radios, in this order, each named by
+   the phrase saying which neighbour moves (its accessible name, through
+   `aria-labelledby`) and described by one line (its accessible
+   description, through `aria-describedby`):
+
+   | radio | name | description |
+   |---|---|---|
+   | `gap-left-extend` | `Left extends` | `The left neighbour grows into the gap.` |
+   | `gap-right-extend` | `Right extends` | `The right neighbour starts where the deleted segment started and grows into the gap.` |
+   | `gap-left-shift` | `Left shifts` | `The left neighbour and everything before it move right into the gap.` |
+   | `gap-right-shift` | `Right shifts` | `The right neighbour and everything after it move left into the gap.` |
+
+   Each radio's value is its way as `<side>-<verb>`, the `{side, verb}`
+   that `onconfirm` receives. With the `segment_children` options of `t2`
+   (`theme` locked, so only the extends are permitted): `Left extends` and
+   `Right extends` are enabled and carry no title, and both shifts are
+   disabled with the title `its segment line theme is locked`. With the
+   theme-unlocked options (all four permitted), every radio is enabled and
+   none carries a title; the one checked radio is `Left extends` (the
+   preselection), and the focus is on it. Choosing `Right shifts` checks
+   it alone. Enter on a radio calls `onconfirm` once with the checked way,
+   `{side: "right", verb: "shift"}`; Escape calls `oncancel` once; OK calls
+   `onconfirm` with the preselected `{side: "left", verb: "extend"}`,
    Cancel `oncancel`. With options permitting only left extend and right
-   shift, every option is enabled and the preselection is `Left`,
-   `Extend`; choosing `Shift` switches the side to `Right` (left shift is
-   not permitted), and choosing `Left` then switches the verb back to
-   `Extend`. The menu is a form named `Delete segment t2` holding two
-   fieldsets with legends `Neighbour` and `Closes the gap by`. The arrow
-   keys inside a column are the native radio group's own, which jsdom does
-   not implement; the end-to-end suite opens the menu in a browser, checks
-   where the focus lands and runs axe on it.
+   shift, `Right extends` and `Left shifts` are disabled with their own
+   refusals as titles (`the following segment c is locked`, `its segment
+   line is locked`), the preselection is `Left extends`, and choosing
+   `Right shifts` then Enter, and `Left extends` then Enter, confirms
+   `{side: "right", verb: "shift"}` then `{side: "left", verb: "extend"}`.
+   The arrow keys inside the fieldset are the native radio group's own,
+   which jsdom does not implement; they and axe are checked in a browser
+   once the canvas mounts the menu again.
 
 `BlockNode.svelte` has no style of its own (the canvas styles it), so
 Svelte adds no scoping class to a drawn element and the trees compare
@@ -885,107 +916,177 @@ Which keys reach the canvas (focus inside the arranger, which is itself
 focusable; undo and redo are the editor's page-wide keys), and that arrows inside a toolbar move
 focus rather than nudge, need a browser and are not tested here.
 
-## Hover
+## Boxes: selection and hover
 
-The pointer highlights two things in a block: the **card** it is over, which
-shows the timeline that is selected and edited on its own, and a
-**boundary** it is over. The block node marks each with `data-hovered`.
+A block's drawing shows three kinds of **box** (drawing.md section 8): the
+block's own box (its background, the drawing element of type `block`, which
+carries no address), a group's **frame** (type `group`, addressed by the
+bare group id `G`) and a timeline's **card** (type `card`, addressed
+`T/card`; when the card's `shadow` is not `none`, its shadow is a second
+`rect` with the same address, written just before the card, section 7.2).
+Every other drawn element (a line, a wedge, a map, a region, a jump, a
+break, a boundary, a name, a label) is an **element**. `boxes.ts` is the
+one place that maps a pointer target to what it hits, decides what a press
+selects and decides what the pointer highlights.
 
-A card spans its timeline's whole member drawing (drawing.md section 8.2:
-it reaches the largest right edge of every member drawing plus `K`, and is
-`Hm` high), cards are stacked `F` apart and never overlap (section 8.4), and
-every element of a member drawing is drawn inside its card. So the card the
-pointer is over is decided by the pointer's position alone: the drawn card
-whose rectangle holds it. This needs no descriptor-to-card mapping, which
-the descriptors cannot give: a card that is not displayed is not drawn,
-and its member's descriptors then follow the previous card's with nothing
-between them. `cardAt(drawing, x, y)` (in `hover.ts`) answers it in the
-drawing's units, edges included, with `null` outside every drawn card.
-`hoverablesOf(drawing, descriptors)` names the descriptors that carry the
-mark: `"card"` for a card's own rectangle, never its shadow, and
-`"boundary"` for a boundary's line. A card and its shadow carry the same
-address and are both `rect`s; drawing.md section 7.2 writes the shadow
-first (only when the card's `shadow` is not `none`) and the card after it,
-so the card's rectangle is the **last** `rect` carrying a card's address,
-whatever attributes either carries. `boundaryOf(drawing, tag, address)`
-names the boundary an element draws: its address when the element is a
-`line` whose address is a boundary element's (a wedge shares the `S/start`
-form but is a `polygon`), else `null`; `hoverablesOf` names a boundary's
-line by the same rule. Every other descriptor is absent from the map.
+**A hit is classified by the drawing's element types, never by the form of
+an address.** A frame's address `group_1` has the same form as a timeline
+line's `recording` (a bare id), so no rule on the string can tell them
+apart; the drawing's element of type `group` can. `hitOf(block, drawing,
+target, point?)` reads the `data-address` of the target (the element
+itself, or its nearest ancestor carrying one) and returns `{block, kind,
+address, boundary, within}`:
 
-`hover.test.ts`, block A at `(0, 0)`, default placement, values from the
-drawing itself (canvas units):
+- `kind`: `"card"` when the drawing holds an element of type `card` with
+  that address, `"group"` when it holds one of type `group`, `"element"`
+  otherwise; `"block"` when nothing carries an address (the background
+  `rect`, the `<svg>`, the node around it).
+- `address`: block-qualified, `<block>/<element address>`, or the block id
+  for `"block"`.
+- `boundary`: whether the target is a `line` and the drawing holds an
+  element of type `boundary` with that address. The tag matters: a wedge
+  may carry a boundary's `S/start` form, and it is a `polygon`.
+- `within`: the box under `point` (in the drawing's units), as its element
+  address: the last drawn card or frame whose rectangle holds the point,
+  edges included; `null` outside every drawn card and frame, and without a
+  point. A frame is drawn before its cards, and cards never overlap one
+  another (sections 8.4 and 8.5), so the last box holding the point is the
+  innermost one. A card or frame that is not displayed is not drawn and
+  holds no point.
 
-1. **`segment_line`** (one root; root `form`, segments `a`, `b`, `c`,
-   `b` holding `b2`). Its one card `form/card` spans `x` 8 to
-   `469.573974609375`, `y` 8 to `103.9296875`. `cardAt` gives `form/card`
-   at the start of the root's line `(52.294921875, 68.953125)`, at the
-   middle of boundary `b2/start` `(227.294921875, 36.4765625)` and at the
-   card's two corners `(8, 8)` and `(469.573974609375, 103.9296875)`; it
-   gives `null` in the box's padding `(4, 4)`, just right of the card
-   `(470, 50)` and on its shadow's rim `(471, 105)`. The descriptors
-   `hoverableOf` names are, in order, exactly `form/card` (`"card"`, the
-   third descriptor; the second, the shadow with the same address, is
-   absent), `b/start`, `b2/start`, `c/start` (`"boundary"`). With the
-   workspace statement `{select: {element: "card"}, set: {shadow: "none"}}`
-   no shadow is written and the one `rect` addressed `form/card`, now the
-   second descriptor, is the card. `boundaryOf` gives `b2/start` for a
-   `line` addressed `b2/start`, and `null` for a `polygon` with that
-   address, a `line` addressed `form` (the root's line) and an element
-   without an address.
-2. **`group_child_member`** (one group; frame `group_1`, members
-   `second-half`, drawn under the ancestor line `piece`, and `recording`).
-   `cardAt` gives `second-half/card` at the start of the ancestor line
-   `piece` `(108.61962890625, 67.78125)`, at the start of `second-half`'s
-   own line `(120.61962890625, 81.78125)` and at the tip of the start mark
-   `second-half/start` on the ancestor line `(120.61962890625, 66.28125)`;
-   `recording/card` at the start of `recording`'s line
-   `(120.61962890625, 139.16015625)`; `null` inside the frame above the
-   first card `(12, 12)` and in the gap between the two cards `(100, 120)`
-   (the first card ends at `116.7578125`, the second starts at
-   `124.7578125`). `hoverableOf` names exactly `second-half/card` and
-   `recording/card` (`"card"`); the frame `group_1` is absent.
-3. **A hidden card holds no point.** With the workspace statement
-   `{select: {element: "card"}, set: {display: "none"}}`,
-   `group_child_member` draws no card: `cardAt` gives `null` at the start of
-   `recording`'s line, and `hoverableOf` names no descriptor.
+`selectionOf(hit)`: **a press selects what it hit.** A card selects the
+card (`<block>/T/card`; its shadow carries the same address and does the
+same), a frame the group (`<block>/G`), the block's own box the block, any
+other element that element. `click` then applies Shift.
 
-4. **The block node holds what is hovered by address, so the mark
-   survives a redraw.** `BlockNode.svelte` is mounted in jsdom on
-   `segment_line` (data as `project` makes it: the block, its drawing,
-   `descriptorsOf` the drawing, no selection), its props read through a
-   reactive `SvelteMap` so that a redraw can be passed in. jsdom does not
-   lay the `<svg>` out, so its bounding box is stubbed to the drawing's own
-   box at `(0, 0)` (scale 1: one client pixel is one canvas unit); the
-   conversion itself is proven in the browser. One `pointerover` handler
-   on the `<svg>` reads the event target's `data-address` through
-   `boundaryOf`; one `pointermove` handler reads the card through `cardAt`.
-   The events are dispatched as `MouseEvent`s of those types (bubbling,
-   except `pointerleave`), which carry `buttons`, `clientX` and `clientY`.
-   - A `pointerover` on the `line` addressed `b2/start` marks exactly that
-     line: the elements carrying `data-hovered` are `[line b2/start]`.
-   - A `pointermove` at `(52.294921875, 68.953125)` adds the card: the
-     marked elements are, in document order, `[rect form/card, line
-     b2/start]`, the `rect` being the third element (the shadow, the
-     second, is not marked).
+`hoverOf(hit)` is `{box, boundary}`, element addresses as the descriptors
+carry them: `box` is `within` (a card or a frame; the block's own box is
+never marked, since the node shows its block), `boundary` the hit's element
+address when `boundary` is true, else `null`.
+
+`marksOf(drawing, descriptors)` names the descriptors that carry a box's or
+a boundary's mark: `"card"` for a card's own rectangle (the last `rect`
+carrying a card's address), `"shadow"` for the `rect` before it with the
+same address, `"group"` for a frame's `rect`, `"boundary"` for a
+boundary's `line`; every other descriptor is absent. The block node sets
+`data-selected` on every descriptor carrying a selected address except a
+card's shadow, so a selected card glows on its own rectangle only, and
+`data-hovered` on the `"card"` or `"group"` descriptor whose address is the
+hovered box and on the `"boundary"` line whose address is the hovered
+boundary.
+
+**A selected card elsewhere.** The card belongs to its timeline (drawing.md
+section 2.2), and every other reader folds it with core's `elementOf`, as
+it folds any part; nothing else changes:
+
+- `existing(view, {A/recording/card})` on a block of `group_child_member`
+  is the same set: the card stands with its timeline.
+- `removeCommand(view, {A/recording/card})` is `{type: "remove", targets:
+  ["A/recording"]}`: Delete of a selected card removes its timeline.
+- `affectedBy(manifest, {recording/card})` is the timeline's other
+  addresses (the `affectedBy` table): everything the card holds goes with
+  it on Delete, and shows as affected.
+
+`boxes.test.ts` (jsdom), block A at `(0, 0)`, default placement, values
+read from the drawings' elements (canvas units). A target is an SVG element
+of the descriptor's tag and `data-address`, built inside an `<svg>` inside a
+`div`, as the node draws it.
+
+1. **`segment_line`** (one root; root `form`, segments `a`, `b`, `c`, `b`
+   holding `b2`; card `form/card` from `x` 8 to `469.573974609375`, `y` 8 to
+   `103.9296875`).
+   - Hits: `rect form/card` is the card `A/form/card`; `line form` the
+     element `A/form`, no boundary; `line b2/start` the element
+     `A/b2/start`, a boundary; a `polygon` addressed `b2/start` and the
+     wedge `polygon form/start` elements, no boundary; a `rect` without an
+     address and the `<svg>` itself the block `A`.
+   - `within` is `form/card` at the start of the root's line
+     `(52.294921875, 68.953125)`, at the middle of boundary `b2/start`
+     `(227.294921875, 36.4765625)` and at the card's corners `(8, 8)` and
+     `(469.573974609375, 103.9296875)`; `null` in the box's padding
+     `(4, 4)`, just right of the card `(470, 50)`, on the shadow's rim
+     `(471, 105)`, and without a point.
+   - `marksOf` names, in order, the second descriptor `form/card`
+     `"shadow"`, the third `form/card` `"card"`, and `b/start`, `b2/start`,
+     `c/start` `"boundary"`. With the workspace statement `{select:
+     {element: "card"}, set: {shadow: "none"}}` the one `rect` addressed
+     `form/card`, the second descriptor, is `"card"` and no descriptor is
+     `"shadow"`.
+2. **`group_child_member`** (frame `group_1` from `x` 8 to `550.4140625`,
+   `y` 8 to `182.13671875`, its title `group_1/name`; cards from `x` 16 to
+   `542.4140625`: `second-half/card` `y` `32.8046875` to `116.7578125`,
+   `recording/card` `y` `124.7578125` to `174.13671875`).
+   - Hits: `rect group_1` is the group `A/group_1`, while `line recording`,
+     an address of the same form, is the element `A/recording`;
+     `rect recording/card` the card `A/recording/card`; `text group_1/name`
+     the element `A/group_1/name`.
+   - `within` is `group_1` inside the frame above the first card `(12, 12)`
+     and in the gap between the cards `(100, 120)`; `second-half/card` at
+     the start of the ancestor line `piece` `(108.61962890625, 67.78125)`;
+     `recording/card` at the start of `recording`'s line
+     `(120.61962890625, 139.16015625)` (inside the frame too: the card is
+     the innermost box); `null` in the box's padding `(4, 4)` and right of
+     the frame `(552, 100)`.
+   - `marksOf` names, in order, `group_1` `"group"`, `second-half/card`
+     `"shadow"` then `"card"`, `recording/card` `"shadow"` then `"card"`.
+   - With the workspace statement `{select: {element: "card"}, set:
+     {display: "none"}}` no card is drawn: `within` at `(120.61962890625,
+     139.16015625)` is `group_1`, and `marksOf` names `group_1` alone.
+3. **`selectionOf` and `hoverOf`.** On `group_child_member`: the card hit
+   selects `A/recording/card`, and so does its shadow (the first `rect`
+   addressed `recording/card`); the frame `A/group_1`; the background
+   `A`; the line `A/recording`; the wedge `polygon recording/start`
+   `A/recording/start`; the title `A/group_1/name`. Hover: the line
+   `recording` at `(120.61962890625, 139.16015625)` is `{box:
+   "recording/card", boundary: null}`; the frame at `(12, 12)` `{box:
+   "group_1", boundary: null}`; the `<svg>` at `(4, 4)` `{box: null,
+   boundary: null}`. On `segment_line`: the line `b2/start` at
+   `(227.294921875, 36.4765625)` is `{box: "form/card", boundary:
+   "b2/start"}`.
+4. **A selected card elsewhere**: the three values above, through
+   `existing`, `removeCommand` and `affectedBy` on a block of
+   `group_child_member`; and `click(∅, selectionOf(card hit), false)` is
+   `{A/recording/card}`.
+5. **The block node holds what is hovered by address, so the mark
+   survives a redraw.** `BlockNode.svelte` is mounted in jsdom (data as
+   `project` makes it: the block, its drawing, `descriptorsOf` the drawing,
+   no selection), its props read through a reactive `SvelteMap` so that a
+   redraw can be passed in. jsdom does not lay the `<svg>` out, so its
+   bounding box is stubbed to the drawing's own box at `(0, 0)` (scale 1:
+   one client pixel is one canvas unit); the conversion itself is proven
+   in the browser. One `pointermove` handler on the `<svg>` passes the
+   event's target and its point in the drawing's units to `hitOf`, and
+   marks what `hoverOf` gives. The events are dispatched as `MouseEvent`s
+   (bubbling, except `pointerleave`), which carry `buttons`, `clientX` and
+   `clientY`.
+   - On `segment_line`, a `pointermove` on the `line` addressed `b2/start`
+     at its middle `(227.294921875, 36.4765625)` marks, in document order,
+     `[rect form/card, line b2/start]`, the `rect` being the third element
+     (the shadow, the second, is not marked).
    - **Redraw.** The view is changed by the workspace statement
      `{select: {element: "boundary"}, set: {stroke: "#FF0000"}}` and the
      node is given the new block, drawing and descriptors, with no pointer
      event. Every element is new (the `{#each}` is keyed by descriptor),
      the boundary `line` addressed `b2/start` now has `stroke="#FF0000"`,
      and the marked elements are still `[rect form/card, line b2/start]`.
-   - A `pointerover` whose target is the `<svg>` itself (the pointer on no
-     drawn element) unmarks the boundary and keeps the card:
-     `[rect form/card]`.
-   - **No hover work during a press.** With a button held
-     (`buttons: 1`), a `pointerover` on `b2/start` marks nothing new and a
-     `pointermove` at `(4, 4)` neither reads the bounding box (the stub is
-     called 0 times) nor moves the card mark: still `[rect form/card]`.
-     The same `pointermove` with no button held reads it once and clears
-     the card mark (`(4, 4)` is in the box's padding): `[]`.
+   - A `pointermove` on the `<svg>` itself at `(52.294921875, 68.953125)`
+     (inside the card, on no drawn element) unmarks the boundary and keeps
+     the card: `[rect form/card]`.
+   - **No hover work during a press.** With a button held (`buttons: 1`),
+     a `pointermove` on `b2/start` at `(4, 4)` neither reads the bounding
+     box (the stub is called 0 times) nor changes a mark: still
+     `[rect form/card]`. The same `pointermove` on the `<svg>` with no
+     button held reads it once and clears the card mark (`(4, 4)` is in
+     the box's padding): `[]`.
    - A `pointerleave` on the `<svg>` clears both marks: with `b2/start`
      and the card marked, it leaves `[]`.
+   - On `group_child_member`, a `pointermove` on the frame `rect group_1`
+     at `(12, 12)` marks `[rect group_1]`, and one on `line recording` at
+     `(120.61962890625, 139.16015625)` marks `[rect recording/card]`, the
+     second `rect` addressed `recording/card`: the card, not the frame
+     around it, and not its shadow.
 
-That the client position is converted under zoom and scale, and that the
-mark follows a real pointer, is proven end to end, against
-`data-hovered`, by the Playwright suite.
+That the client position is converted under zoom and scale, that a press on
+a card or a frame selects it, and that a selected card glows in the
+selection's colour even under the pointer (the canvas's stylesheet, which
+jsdom does not apply) are proven end to end by the Playwright suite.

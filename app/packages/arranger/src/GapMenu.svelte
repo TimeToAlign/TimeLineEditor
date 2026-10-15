@@ -1,14 +1,13 @@
 <script lang="ts">
 /*
- * The menu Delete opens for a segment: which neighbour closes the gap the
- * segment leaves (left or right) and how (it extends, or the segments on
- * that side shift), then OK or Cancel. A way that is not permitted cannot be
- * chosen: an option no permitted way takes is disabled, its reasons as its
- * title, and choosing an option switches the other column to a way that is
- * permitted with it.
+ * The menu Delete opens for a segment: which neighbour moves to close the
+ * gap the segment leaves, one of four ways, then OK or Cancel. Each way is
+ * named after the neighbour that moves and what it does: the left or the
+ * right neighbour extends into the gap, or shifts into it. A way that is not
+ * permitted cannot be chosen: it is disabled, its reason as its title.
  */
 import type { Gap, GapOption, GapSide, GapVerb } from "@timetoalign/tilie-core";
-import { GAP_SIDES, GAP_VERBS } from "@timetoalign/tilie-core";
+import { GAPS } from "@timetoalign/tilie-core";
 import type { Attachment } from "svelte/attachments";
 import "./menu.css";
 
@@ -30,38 +29,31 @@ let { segment, options, gap = $bindable(), x, y, onconfirm, oncancel }: Props = 
 
 const uid = $props.id();
 
-const LABELS: { readonly [option in GapSide | GapVerb]: string } = {
-  left: "Left",
-  right: "Right",
-  extend: "Extend",
-  shift: "Shift",
+type Way = `${GapSide}-${GapVerb}`;
+
+/** Each way's name, saying which neighbour moves, and what it does. */
+const WAYS: { readonly [way in Way]: { readonly name: string; readonly description: string } } = {
+  "left-extend": { name: "Left extends", description: "The left neighbour grows into the gap." },
+  "right-extend": {
+    name: "Right extends",
+    description:
+      "The right neighbour starts where the deleted segment started and grows into the gap.",
+  },
+  "left-shift": {
+    name: "Left shifts",
+    description: "The left neighbour and everything before it move right into the gap.",
+  },
+  "right-shift": {
+    name: "Right shifts",
+    description: "The right neighbour and everything after it move left into the gap.",
+  },
 };
 
-function permitted(side: GapSide, verb: GapVerb): boolean {
-  return options.some(
-    (option) => option.gap.side === side && option.gap.verb === verb && option.refused === null,
-  );
-}
+const keyOf = (way: Gap): Way => `${way.side}-${way.verb}`;
 
-/** Why no permitted way takes `option`, or `null` when one does. */
-function refusal(option: GapSide | GapVerb): string | null {
-  const taking = options.filter((item) => item.gap.side === option || item.gap.verb === option);
-  if (taking.some((item) => item.refused === null)) return null;
-  return [...new Set(taking.map((item) => item.refused))].join("; ");
-}
-
-/** Choose a side or a verb, keeping the other column's choice when the way is permitted. */
-function choose(side: GapSide, verb: GapVerb, changed: "side" | "verb"): void {
-  if (permitted(side, verb)) {
-    gap = { side, verb };
-    return;
-  }
-  const other =
-    changed === "side"
-      ? GAP_VERBS.map((item) => ({ side, verb: item }))
-      : GAP_SIDES.map((item) => ({ side: item, verb }));
-  const found = other.find((item) => permitted(item.side, item.verb));
-  if (found !== undefined) gap = found;
+/** The option offered for `way`; a way not offered cannot be chosen. */
+function optionOf(way: Gap): GapOption | undefined {
+  return options.find((item) => keyOf(item.gap) === keyOf(way));
 }
 
 /** Enter is OK and Escape Cancel, except that Enter on a button presses that button. */
@@ -81,7 +73,7 @@ function onsubmit(event: SubmitEvent): void {
 }
 
 /**
- * The menu takes the focus when it opens, on the chosen side, and reads the
+ * The menu takes the focus when it opens, on the chosen way, and reads the
  * keys of every control in it.
  */
 const menu: Attachment<HTMLFormElement> = (form) => {
@@ -102,36 +94,24 @@ const menu: Attachment<HTMLFormElement> = (form) => {
   {@attach menu}
 >
   <fieldset>
-    <legend>Neighbour</legend>
-    {#each GAP_SIDES as side (side)}
-      {@const refused = refusal(side)}
-      <label class="tilie-menu-item" title={refused ?? undefined}>
+    <legend>Closes the gap</legend>
+    {#each GAPS as way (keyOf(way))}
+      {@const key = keyOf(way)}
+      {@const option = optionOf(way)}
+      <label class="tilie-menu-item" title={option?.refused ?? undefined}>
         <input
           type="radio"
-          name="{uid}-side"
-          value={side}
-          data-testid="gap-{side}"
-          checked={gap.side === side}
-          disabled={refused !== null}
-          onchange={() => choose(side, gap.verb, "side")}
-        />{LABELS[side]}
-      </label>
-    {/each}
-  </fieldset>
-  <fieldset>
-    <legend>Closes the gap by</legend>
-    {#each GAP_VERBS as verb (verb)}
-      {@const refused = refusal(verb)}
-      <label class="tilie-menu-item" title={refused ?? undefined}>
-        <input
-          type="radio"
-          name="{uid}-verb"
-          value={verb}
-          data-testid="gap-{verb}"
-          checked={gap.verb === verb}
-          disabled={refused !== null}
-          onchange={() => choose(gap.side, verb, "verb")}
-        />{LABELS[verb]}
+          name="{uid}-gap"
+          value={key}
+          data-testid="gap-{key}"
+          aria-labelledby="{uid}-{key}-name"
+          aria-describedby="{uid}-{key}-description"
+          checked={keyOf(gap) === key}
+          disabled={option?.refused !== null}
+          onchange={() => (gap = way)}
+        />
+        <span class="name" id="{uid}-{key}-name">{WAYS[key].name}</span>
+        <span class="description" id="{uid}-{key}-description">{WAYS[key].description}</span>
       </label>
     {/each}
   </fieldset>
@@ -161,7 +141,7 @@ const menu: Attachment<HTMLFormElement> = (form) => {
     border: 0;
   }
 
-  /* The legends name the columns for assistive technology only. */
+  /* The legend names the ways for assistive technology only. */
   legend {
     position: absolute;
     width: 1px;
@@ -171,12 +151,22 @@ const menu: Attachment<HTMLFormElement> = (form) => {
     white-space: nowrap;
   }
 
+  /* A way: its name, and below it what it does. */
   label {
     position: relative;
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    align-items: flex-start;
     justify-content: center;
     box-sizing: border-box;
+    max-width: 18rem;
+    padding-block: 0.25rem;
+    text-align: left;
+  }
+
+  .description {
+    font-size: 0.75rem;
+    color: #555;
   }
 
   /* The radio itself is not drawn: its label is the button. */

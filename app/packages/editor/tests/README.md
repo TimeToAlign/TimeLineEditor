@@ -93,11 +93,11 @@ hand-written, except the refused texts.
 `files.ts` alone:
 
 1. **`manifestFileName`** names a file after the manifest's `id`, else
-   its `name`, else `manifest`, every character outside `[A-Za-z0-9_-]`
-   written `_`, then `.json`: a manifest of one root with the id
-   `flow:quarters` and the name "Flow" gives `flow_quarters.json`, one with
-   only the name "Eroica: II" `Eroica__II.json`, an anonymous one
-   `manifest.json`.
+   its `name`, else `bundle` (a manifest without either is an anonymous
+   bundle), every character outside `[A-Za-z0-9_-]` written `_`, then
+   `.json`: a manifest of one root with the id `flow:quarters` and the name
+   "Flow" gives `flow_quarters.json`, one with only the name "Eroica: II"
+   `Eroica__II.json`, an anonymous one `bundle.json`.
 2. **`lastChanged`** is `null` for `[]`; with `TZ=UTC` an entry at
    `2026-10-12T09:05:07.000Z` gives `2026-10-12 09:05` (the last entry's
    time, local, minutes truncated).
@@ -425,7 +425,7 @@ writes its view and journal.
 The viewport functions talk to Svelte Flow, which needs a laid-out page;
 they and everything the canvas does are proven by the Playwright suite.
 
-## The inspector (`inspector-text.test.ts`, `inspector-codecs.test.ts`, `Inspector.test.ts`, `Inspector-load.test.ts`)
+## The inspector (`inspector-text.test.ts`, `inspector-codecs.test.ts`, `Inspector.test.ts`, `Inspector-load.test.ts`, `inspector-locked.test.ts`)
 
 The inspector shows the manifest of the block the selection lies in as JSON,
 YAML or TOML text and writes an edited text back as one `set` command
@@ -635,3 +635,58 @@ fails (`vi.mock` with a throwing factory): choosing TOML shows one
 `role="alert"` paragraph reading exactly `TOML could not be loaded (<the
 rejection's message>).` and no textarea; choosing JSON again removes the
 alert and shows the JSON text.
+
+**A selected timeline shows its `locked` as a disabled checkbox**
+(`inspector-locked.test.ts`). Only timelines carry `locked`. When the
+selection is exactly one address and that address names a timeline, or a
+part of one such as its card `<block>/T/card` (the element is read with
+core's `elementOf`, as the arranger reads it), the inspector shows a
+checkbox labelled "Locked" holding that timeline's own `locked` (the
+store holds the complete form, so an absent key reads `false`). Anything
+else shows no checkbox: no selection, a block, several addresses (even two
+naming one timeline), a group, a region or any other non-timeline element,
+an address naming nothing. Locking and unlocking is not available yet, so
+the checkbox is disabled for every timeline, with the `title` "Locking and
+unlocking is not available yet." and an accessible description
+(`aria-describedby`) reading the same. What proves it is a manifest
+written for the test, in block `0000000000`, whose `locked` values follow
+the rules a writer obeys, so that reading the manifest can never change
+them: a plain segment is unlocked, and a segment line that is a segment
+is locked. All its timelines are on `pixels`:
+
+- root `fixed`, length 300, locked, member of the group `group_1`, with the
+  child `take` (offset 20, length 100, unlocked);
+- root `free`, length 300, unlocked, with the region `region_1` (0 to 100);
+- root `pages`, length 300, a segment line, unlocked, with the segments
+  `page_1` (offset 0, length 100) and `page_2` (offset 100, length 200),
+  both locked and both segment lines (a segment line's segments share one
+  flag value), holding the plain segments `part_1` (offset 0, length 100)
+  and `part_2` (offset 0, length 200), both unlocked.
+
+`selectedTimeline(view, selection)` (`edit.ts`) gives the block, the
+command target `<block>/<timeline id>` and the timeline value: for
+`0000000000/fixed` the timeline `fixed` (locked `true`), for `…/free`
+`false`, for `…/take` `false` (the child's own value, not its locked
+parent's), for `…/pages` `false`, for `…/page_1` and `…/page_2` `true`,
+for `…/part_1` `false`; for the card `…/fixed/card` the timeline `fixed`
+with target `0000000000/fixed`, and for `…/take/card` the child `take`;
+any other part names its timeline the same way: `…/fixed/name` gives
+`fixed` (locked `true`) and `…/page_1/start` gives `page_1` (locked
+`true`), each with the target `<block>/<timeline id>`. It
+gives `null` for an empty selection, for `0000000000`, for `…/group_1`,
+for `…/free/region_1`, for `…/free/nothing`, for an address in a block
+that does not exist (`0000000001/fixed`), and for the two addresses
+`…/fixed` and `…/fixed/card` together.
+
+The component, mounted with that store, shows the checkbox for
+`…/fixed` (checked), `…/free`, `…/take`, `…/pages` (not checked),
+`…/page_1` (checked), `…/part_1` (not checked) and `…/fixed/card`
+(checked), each disabled, with that `title`, and with `aria-describedby`
+naming an element whose text is exactly "Locking and unlocking is not
+available yet."; there is exactly one checkbox labelled "Locked" then. For
+`0000000000`, for `…/group_1`, for `…/free/region_1` and for `…/fixed`
+with `…/free` there is none. The checkbox follows the store: with
+`…/free` shown, a `set` of `locked` `true` on `0000000000/free` dispatched
+to the store checks it. Two inspectors mounted at once, each showing
+`…/fixed`, describe their own checkboxes: the two `aria-describedby`
+values differ, and each names the note inside its own inspector.

@@ -6,6 +6,7 @@ import { canonicalOrder, type NumberType, type TimeUnit } from "@timetoalign/tim
 import type { Problem } from "../errors.ts";
 import { ErrorCode, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";
+import { showJson } from "../json.ts";
 import type { Coordinate } from "../number/coordinate.ts";
 import { axisCoordinate, CoordinateError, compareCoordinates } from "../number/coordinate.ts";
 import { Rational } from "../number/rational.ts";
@@ -93,11 +94,18 @@ export function contentEnd(timeline: TimelineManifest): Real {
   return end;
 }
 
+/** A bare value as a message spells it: a fraction pair as `[n, d]`. */
+function spelled(value: unknown): string {
+  return Array.isArray(value) ? `[${value.map(showJson).join(", ")}]` : showJson(value);
+}
+
 /**
  * The checks of one timeline and its subtree, on a manifest the schema
- * accepts: a child already shares its parent's unit, has no negative offset
- * and lies within its parent's known length (timeskeleton's `validate`
- * refuses all three).
+ * accepts: a child already shares its parent's unit and lies within its
+ * parent's known length (timeskeleton's `validate` refuses both). The
+ * schema accepts a child starting before its parent's origin; a negative
+ * child offset is refused here, as not supported yet. A root's offset may
+ * be negative.
  */
 function checkTimeline(
   timeline: TimelineManifest,
@@ -121,11 +129,20 @@ function checkTimeline(
   timeline.children.forEach((child, index) => {
     const childPath = [...path, "children", index];
     const offsetPath = [...childPath, "offset"];
-    report(
+    const offset = report(
       child.offset === undefined
         ? problem(ErrorCode.invalidCoordinate, "a child needs an offset", offsetPath)
         : readOnAxis(child.offset, timeline, offsetPath),
     );
+    if (offset !== undefined && compareReal(realOf(offset), Rational.of(0n)) < 0) {
+      problems.push(
+        problem(
+          ErrorCode.negativeChildOffset,
+          `A negative child offset is not supported yet: child '${child.id}' has offset ${spelled(child.offset)}.`,
+          offsetPath,
+        ),
+      );
+    }
     checkTimeline(child, childPath, problems);
   });
 

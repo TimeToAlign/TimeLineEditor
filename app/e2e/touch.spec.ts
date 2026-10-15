@@ -90,11 +90,11 @@ test.beforeEach(async ({ page, browserName }) => {
   await setViewport(page, VIEW);
 });
 
-test("a tap on a card selects its timeline, a tap on an element selects the element", async ({
+test("a tap on a card selects the card, a tap on an element selects the element", async ({
   page,
 }) => {
   await tap(page, await cardPoint(page, SMALL.map, FINGER));
-  expect(await selection(page)).toEqual([`${SMALL.map}/melody`]);
+  expect(await selection(page)).toEqual([`${SMALL.map}/melody/card`]);
   await tap(page, await partCentre(page, SMALL.nested, "clt_2"));
   expect(await selection(page)).toEqual([`${SMALL.nested}/clt_2`]);
 });

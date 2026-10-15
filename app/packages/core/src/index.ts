@@ -51,6 +51,7 @@ export {
   elementAddress,
   elementOf,
   elementOfIn,
+  findTimeline,
   isNamed,
   memberDrawings,
   PART_WORDS,

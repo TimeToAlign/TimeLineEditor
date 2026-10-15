@@ -41,7 +41,7 @@ describe("a root of unknown length", () => {
     expect(line(drawing, "score")).toEqual({
       xs: 53.798828125,
       xe: 465.798828125,
-      end: "chevrons",
+      end: "unknown",
     });
     expect(line(drawing, "coda")).toEqual({
       xs: 339.5131138392857,
@@ -50,28 +50,28 @@ describe("a root of unknown length", () => {
     });
   });
 
-  it("has its start wedge and the label 0 only, and the chevron tip sets the box", () => {
+  it("has its start wedge and the label 0 only, and the outer chevron's tip sets the box", () => {
     const drawing = drawFixture("unknown_length");
     expect(addresses(drawing, "wedge")).toEqual(["score/start"]);
     expect(texts(drawing)).toEqual(["0 ♩"]);
     expect(drawing.elements.some((item) => item.address?.startsWith("score/end"))).toBe(false);
-    expect(drawing.width).toBe(495.798828125);
+    expect(drawing.width).toBe(500.298828125);
   });
 
   it("is drawn L long with no content, its reach 0", () => {
     expect(line(drawFixture("unknown_length_empty"), "score")).toEqual({
       xs: 53.798828125,
       xe: 465.798828125,
-      end: "chevrons",
+      end: "unknown",
     });
   });
 
-  it("ends in chevrons when locked, never in the circle", () => {
+  it("ends in three chevrons when locked, never in the circle", () => {
     const drawing = drawFixture("unknown_length_locked");
     expect(line(drawing, "score")).toEqual({
       xs: 53.798828125,
       xe: 465.798828125,
-      end: "chevrons",
+      end: "unknown",
     });
     expect(line(drawing, "coda").xs).toBe(353.798828125);
   });
@@ -94,7 +94,7 @@ describe("a root of unknown length", () => {
     ]);
     const x0 = line(known, "clt_1").xs;
     expect(line(known, "clt_1")).toEqual({ xs: x0, xe: x0 + 400, end: "arrowhead" });
-    expect(line(unknown, "clt_1")).toEqual({ xs: x0, xe: x0 + 400 + 12, end: "chevrons" });
+    expect(line(unknown, "clt_1")).toEqual({ xs: x0, xe: x0 + 400 + 12, end: "unknown" });
   });
 });
 
@@ -104,7 +104,7 @@ describe("a child of unknown length in a known parent", () => {
     expect(line(drawing, "movement")).toEqual({
       xs: 183.490234375,
       xe: 270.490234375,
-      end: "chevrons",
+      end: "unknown",
     });
     expect(line(drawing, "score")).toEqual({
       xs: 83.490234375,
@@ -114,18 +114,21 @@ describe("a child of unknown length in a known parent", () => {
     expect(addresses(drawing, "wedge")).toEqual(["score/start", "score/end"]);
   });
 
-  it("takes room for its chevrons in its row: 8w past its end", () => {
+  it("takes room for its three chevrons in its row: 9.5w past its end", () => {
     const at = (offset: number) =>
       drawn(edit("unknown_length_child", child("score", "brief", offset, 2)));
     const meeting = at(15);
     expect(ordinate(meeting, "brief")).toBe(ordinate(meeting, "movement") - 14);
-    const past = at(16);
+    // Within the outer chevron (203.5), past the inner two (199).
+    const outer = at(16);
+    expect(ordinate(outer, "brief")).toBe(ordinate(outer, "movement") - 14);
+    const past = at(17);
     expect(ordinate(past, "brief")).toBe(ordinate(past, "movement"));
   });
 });
 
 describe("a group member of unknown length", () => {
-  it("is drawn with its reach at the shared end, running on into chevrons", () => {
+  it("is drawn with its reach at the shared end, running on into three chevrons", () => {
     const drawing = drawFixture("groups/group_unknown_length");
     const region = element(drawing, "performance/region_1");
     if (region.type !== "region") throw new Error("no region");
@@ -133,7 +136,7 @@ describe("a group member of unknown length", () => {
     expect(line(drawing, "performance")).toEqual({
       xs: 102.640625,
       xe: 514.640625,
-      end: "chevrons",
+      end: "unknown",
     });
     expect(line(drawing, "score")).toEqual({
       xs: 102.640625,
@@ -158,7 +161,7 @@ describe("a segment line whose segments are of unknown length", () => {
     expect(line(drawing, "form")).toEqual({
       xs: 49.84033203125,
       xe: 461.84033203125,
-      end: "chevrons",
+      end: "unknown",
     });
   });
 
@@ -199,10 +202,11 @@ describe("ancestor lines and unknown lengths", () => {
       ),
     );
     const x0 = line(drawing, "second-half").xs;
+    // The member's own unknown length in three chevrons, the ancestor running on in two.
     expect(line(drawing, "second-half")).toEqual({
       xs: x0,
       xe: x0 + 400 + 12,
-      end: "chevrons",
+      end: "unknown",
     });
     expect(line(drawing, "piece")).toEqual({ xs: x0 - 12, xe: x0 + 400 + 12, end: "chevrons" });
     expect(addresses(drawing, "wedge").filter((item) => item?.startsWith("second-half"))).toEqual([

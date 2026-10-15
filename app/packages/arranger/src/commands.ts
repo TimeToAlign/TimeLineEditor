@@ -17,7 +17,6 @@ import {
   indicesBetween,
   isSegment,
   removedBy,
-  segmentGaps,
   TITLE_ADDRESS,
 } from "@timetoalign/tilie-core";
 import { GRID_FREE, positionStep, quantize } from "./numbers.ts";
@@ -233,17 +232,15 @@ function gapSegments(view: View, targets: readonly string[]): string[] {
  * and groups included; a selection holding a manifest's title, which goes
  * only with its block, is refused whole, with a hint naming the block.
  *
- * A segment leaves a gap in its segment line, closed as `gap` says. Without
- * a `gap`, a selection of one segment alone gives the segment and the ways
- * of closing its gap to choose from, or a refusal when no way is permitted;
- * a segment selected with anything it does not go with is refused: one
- * segment is deleted at a time.
+ * A segment leaves a gap in its segment line. Deleting a segment is not
+ * supported yet: a selection holding a segment that leaves a gap is refused
+ * whole. A segment that goes with its segment line or its block leaves no
+ * gap and is removed with it.
  */
 export function removeCommand(
   view: View,
   selection: Selection,
-  gap?: Gap,
-): RemoveCommand | SegmentDelete | { readonly refused: string } {
+): RemoveCommand | { readonly refused: string } {
   if (selection.size === 0) return { refused: "Nothing is selected." };
   const targets: string[] = [];
   for (const address of selection) {
@@ -263,15 +260,28 @@ export function removeCommand(
   }
   const [segment] = gapSegments(view, targets);
   if (segment === undefined) return { type: "remove", targets };
-  if (targets.length > 1) return { refused: "Delete one segment at a time." };
-  if (gap !== undefined) return { type: "remove", targets, gap };
-  const { manifest, id: block } = view.blocks[blockOf(segment)] as Block;
-  const id = segment.slice(block.length + 1);
-  const options = segmentGaps(manifest, id) ?? [];
-  if (options.every((option) => option.refused !== null)) {
-    return {
-      refused: `Segment ${id} cannot be deleted: no neighbour may extend and its segment line may not shift.`,
-    };
-  }
-  return { segment, options };
+  // Deleting a segment is not enabled yet. Enabling it restores the
+  // parameter `gap?: Gap` after `selection`, `SegmentDelete` in the return
+  // type, core's `segmentGaps` among the imports, and the branch below in
+  // place of this refusal: with a `gap` the remove carries it, without one
+  // the segment and its options go to the canvas's menu. Before that,
+  // the options must follow the meaning of the ways: "left shifts" moves
+  // the left neighbour, so the segment line's offset in its parent moves
+  // or, on a root, the line becomes shorter by the deleted length; a plain
+  // segment is never locked, so its neighbours may always extend; a segment
+  // that is itself a segment line is locked, so a line of such segments
+  // extends only into a neighbour of unknown length; and the options of a
+  // segment line that is a root must be checked against those rules.
+  return { refused: "Deleting a segment is not supported yet." };
+  // if (targets.length > 1) return { refused: "Delete one segment at a time." };
+  // if (gap !== undefined) return { type: "remove", targets, gap };
+  // const { manifest, id: block } = view.blocks[blockOf(segment)] as Block;
+  // const id = segment.slice(block.length + 1);
+  // const options = segmentGaps(manifest, id) ?? [];
+  // if (options.every((option) => option.refused !== null)) {
+  //   return {
+  //     refused: `Segment ${id} cannot be deleted: no neighbour may extend and its segment line may not shift.`,
+  //   };
+  // }
+  // return { segment, options };
 }

@@ -138,16 +138,20 @@ function download(text: string, name: string): void {
   setTimeout(() => URL.revokeObjectURL(url));
 }
 
-/** The file name of a manifest that has neither an `id` nor a `name`, before `.json`. */
-export const ANONYMOUS_MANIFEST = "manifest";
+/**
+ * The file name of a manifest that has neither an `id` nor a `name`, before
+ * `.json`: every manifest is an alignment bundle, and this one an anonymous
+ * bundle.
+ */
+export const ANONYMOUS_BUNDLE = "bundle";
 
 /**
  * The file name a manifest is exported under: its `id`, else its `name`,
- * else `manifest`, each character outside `A–Z a–z 0–9 _ -` written `_`,
+ * else `bundle`, each character outside `A–Z a–z 0–9 _ -` written `_`,
  * then `.json`.
  */
 export function manifestFileName(manifest: Manifest): string {
-  const stem = manifest.id ?? manifest.name ?? ANONYMOUS_MANIFEST;
+  const stem = manifest.id ?? manifest.name ?? ANONYMOUS_BUNDLE;
   return `${stem.replace(/[^A-Za-z0-9_-]/g, "_")}.json`;
 }
 

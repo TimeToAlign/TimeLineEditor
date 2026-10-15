@@ -15,6 +15,7 @@ import {
   propertyCommand,
   STEPS,
   selectedBlock,
+  selectedTimeline,
   shownValue,
   stepValue,
 } from "./edit.ts";
@@ -49,6 +50,42 @@ $effect(() => {
 });
 
 const block = $derived(selectedBlock(view, selection));
+
+/** The one timeline selected, or one of its parts; its `locked` is shown. */
+const timeline = $derived(selectedTimeline(view, selection));
+
+/** Why the Locked checkbox is disabled. */
+const LOCKING_UNAVAILABLE = "Locking and unlocking is not available yet.";
+
+/** This inspector's prefix for the ids its markup pairs, unique among mounted inspectors. */
+const uid = $props.id();
+
+// The Locked checkbox only shows `locked` for now. When locking and unlocking
+// is enabled, what it may do depends on where the timeline stands:
+// - a plain segment (a child of a segment line that is no segment line
+//   itself, `isSegment(manifest, id) && !is_segment_line`) is never locked:
+//   its segment line's lock governs it, so its checkbox stays disabled and
+//   unchecked;
+// - a segment line that is a child, a segment or a group member is locked by
+//   default, and unlocking it is not supported yet: the store refuses it;
+// - every other timeline toggles through `set locked`.
+// The checkbox then loses `disabled` (but for a plain segment) and its
+// `title`, takes `onchange={(event) => toggleLocked(event.currentTarget)}`,
+// shows `lockedProblem` as the property fields show theirs, and this is
+// restored:
+//
+// let lockedProblem = $state("");
+//
+// function toggleLocked(input: HTMLInputElement): void {
+//   if (timeline === null) return;
+//   const refusal = store.dispatch({
+//     type: "set",
+//     changes: [{ target: timeline.address, values: { locked: input.checked } }],
+//   });
+//   lockedProblem = refusal === null ? "" : refusal.message;
+//   // A refused toggle shows the stored value again.
+//   if (refusal !== null) input.checked = timeline.timeline.locked;
+// }
 
 /** The keys of the block's manifest no definition declares: warnings, which never stop editing. */
 const warnings = $derived(block === null ? [] : unknownKeys(manifestOf(block)));
@@ -315,6 +352,23 @@ function position(problem: InspectorProblem): string {
   <p class="hint">Select a block to inspect its manifest.</p>
 {:else}
   <div class="inspector-body">
+    {#if timeline !== null}
+      <fieldset class="timeline">
+        <legend>Timeline <code>{timeline.timeline.id}</code></legend>
+        <label class="locked">
+          <input
+            type="checkbox"
+            checked={timeline.timeline.locked}
+            disabled
+            title={LOCKING_UNAVAILABLE}
+            aria-describedby="{uid}-locked-hint"
+          />
+          Locked
+        </label>
+        <p class="locked-hint" id="{uid}-locked-hint">{LOCKING_UNAVAILABLE}</p>
+      </fieldset>
+    {/if}
+
     {#if block !== null}
       <form class="properties" aria-label="Block properties" onsubmit={(event) => event.preventDefault()}>
         {#each PROPERTIES as property (property)}
@@ -457,6 +511,30 @@ function position(problem: InspectorProblem): string {
     gap: 0.5rem;
     padding: 0 0.75rem 0.75rem;
     font-size: 0.85rem;
+  }
+
+  .timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    margin: 0;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid #b0b0b0;
+    border-radius: 4px;
+  }
+
+  .timeline legend {
+    padding: 0 0.25rem;
+    color: #595959;
+  }
+
+  .timeline code {
+    font-family: ui-monospace, "DejaVu Sans Mono", Menlo, Consolas, monospace;
+  }
+
+  .locked-hint {
+    margin: 0;
+    color: #595959;
   }
 
   .properties {

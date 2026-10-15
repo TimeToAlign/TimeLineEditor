@@ -1173,10 +1173,15 @@ something a reader can see and that nothing else moves:
   u(t)` with `u = t / λ`, `λ` the reach, so a child or region placed at the
   reach lies at the end of the graphical length, and a reach taken from the
   wrong content would move every position;
-- an open end draws the line `4w` past `Xe` to `Xr`, then the double
-  chevron, whose outer tip `Xr + 4w` is the line's right edge (section
-  6.7), and no end wedge and no end label; a known end keeps its arrowhead,
-  circle or diamond;
+- an open end draws the line `4w` past `Xe` to `Xr`, then three
+  chevrons (the line's `end` is `unknown`), whose outer tip `Xr + 5.5w` is
+  the line's right edge (section 6.7), and no end wedge and no end label; a
+  known end keeps its arrowhead, circle or diamond;
+- an ancestor line that runs on keeps two chevrons (its `end`, or its
+  `start` on the left, is `chevrons`), also where the member's length or its
+  own is not known: three chevrons say that the line's own length is
+  unknown, two that the ancestor runs on beyond the member, and the two
+  values never stand in for each other;
 - each end rule is shown by a case where the rules before it do not apply
   and the result differs from what the next rule would give.
 
@@ -1186,45 +1191,50 @@ writers' fixture test compares the whole SVG. Here the layout values are
 checked, taken from those derivations, and the constructed cases add what
 the figures cannot show. Every value is a double that the arithmetic of
 section 3.3 produces exactly; with `w = 3` the line runs on `4w = 12` past
-`Xe` and the chevron tip lies `8w = 24` past it.
+`Xe` and the outer chevron's tip lies `9.5w = 28.5` past it (`Xr + 5.5w`).
 
 - **`unknown_length`** (root `score` of unknown length; region 2 to 8,
   marker at 6, locked child `coda` at 10, 4 long). The reach is 14, from
   the child's end `10 + 4`, beyond the region's end 8 and the marker 6. `x0 =
   16 + 29.798828125 + 8 = 53.798828125`. The root is open (rule 2): its
   line runs from 53.798828125 to `Xr = x0 + 400 + 12 = 465.798828125` and
-  ends in chevrons; `coda` starts at `x(10) = x0 + 400 × 5/7 =
+  ends in three chevrons (`unknown`); `coda` starts at `x(10) = x0 + 400 × 5/7 =
   339.5131138392857` (`u = 0.7142857142857143`, the reach 14 and not the
   region's 8 or the marker's 6) and ends known (rule 1) with its diamond at
   `x(14) = 453.798828125`. Only `score/start` is drawn among the wedges and
-  only `0 ♩` among the labels; the box is `8 + (477.798828125 + 8 + 2) =
-  495.798828125` wide, the chevron tip setting `R`.
+  only `0 ♩` among the labels; the box is `8 + (482.298828125 + 8 + 2) =
+  500.298828125` wide, the outer chevron's tip `Xr + 5.5w = 465.798828125 +
+  16.5 = 482.298828125` setting `R` (`Xr + 4w = 477.798828125`, the tip of
+  two chevrons, would give 495.798828125).
 - **`unknown_length_empty`** (no content). The reach is 0, so every `u` is
   0, yet the line is drawn `L` long: `Xs = 53.798828125`, `Xr =
-  465.798828125` (`Xe = x0 + L` whatever the reach), chevrons.
+  465.798828125` (`Xe = x0 + L` whatever the reach), three chevrons.
 - **`unknown_length_locked`** (locked root, child `coda` at 12, 4 long). A
-  locked timeline of unknown length ends in chevrons, never the circle:
-  `end` is `chevrons` at 465.798828125, and `coda` starts at `x0 + 400 ×
+  locked timeline of unknown length ends in three chevrons, never the
+  circle: `end` is `unknown` at 465.798828125, and `coda` starts at `x0 + 400 ×
   3/4 = 353.798828125`.
 - **`unknown_length_child`** (root 32 long; child `movement` at 8 of unknown
   length with a region 0 to 6). Rule 5: `movement` ends at `8 + 6 = 14`,
   open. `x0 = 16 + 59.490234375 + 8 = 83.490234375`; `movement` runs from
   `x(8) = 183.490234375` to `x(14) + 12 = 258.490234375 + 12 =
-  270.490234375`, chevrons; the root keeps its arrowhead at `x(32) =
+  270.490234375`, three chevrons; the root keeps its arrowhead at `x(32) =
   483.490234375` and both wedges. **The chevrons take room in the row**:
-  `movement`'s first-fit extent is `[L × 1/4, L × 7/16 + 8w] = [100, 199]`.
-  A locked child `brief` added into `score` at 15, 2 long, has the extent
-  `[187.5, 212.5]`, which meets it, so `brief` goes to row 2, one pitch
-  (14) further out: its line lies 14 above `movement`'s. Without the `8w`
-  the extents `[100, 175]` and `[187.5, 212.5]` would share row 1. `brief`
-  at 16 instead (`[200, 225]`, starting past 199) shares row 1: both lines
-  at one ordinate.
+  `movement`'s first-fit extent is `[L × 1/4, L × 7/16 + 9.5w] = [100,
+  203.5]`, up to the outer chevron's tip. A locked child `brief` added into
+  `score` at 15, 2 long, has the extent `[187.5, 212.5]`, which meets it,
+  so `brief` goes to row 2, one pitch (14) further out: its line lies 14
+  above `movement`'s. Without the chevrons' room the extents `[100, 175]`
+  and `[187.5, 212.5]` would share row 1. `brief` at 16 (`[200, 225]`)
+  starts before 203.5 and still goes to row 2, where an extent reaching
+  only the two chevrons' tip (`8w`, 199) would have let it share row 1;
+  `brief` at 17 (`[212.5, 237.5]`, starting past 203.5) shares row 1: both
+  lines at one ordinate.
 - **`groups/group_unknown_length`** (group `Edition`: `performance` in
   seconds of unknown length with a region 0.0 to 9.5, and `score` 12
   quarters). The float reach 9.5 is reached by the region's end, so the
   region ends at the shared end `x0 + L = 502.640625` (`x0 = 24 + 70.640625
   + 8 = 102.640625`), where `score` ends with its arrowhead too;
-  `performance` runs on to `514.640625` into its chevrons.
+  `performance` runs on to `514.640625` into its three chevrons.
 - **`unknown_length_segments`** (segment line `form` of unknown length:
   `a` at 0 of unknown length with a region 0 to 4, `b` at 8, 6 long, `c` at
   14 of unknown length with a region 0 to 3). The reach is nested: `c`
@@ -1232,7 +1242,7 @@ section 3.3 produces exactly; with `w = 3` the line runs on `4w = 12` past
   `8 + 6 = 14` and `a`'s 4. `x0 = 16 + 25.84033203125 + 8 = 49.84033203125`;
   `c`'s region ends at `x(17) = 449.84033203125`, the boundaries of `b` and
   `c` lie at `x(8) = 238.07562614889704` and `x(14) = 379.2520967371323`;
-  `form` runs on to `461.84033203125`, chevrons. **Rules 3 and 4** show in
+  `form` runs on to `461.84033203125`, three chevrons. **Rules 3 and 4** show in
   the segment labels: with the names `A`, `B`, `C` set on `a`, `b`, `c`
   through `set`, each label is centred on the exact midpoint of its
   segment's start and end. `a` ends where `b` starts (rule 3), so `A` lies
@@ -1247,7 +1257,7 @@ section 3.3 produces exactly; with `w = 3` the line runs on `4w = 12` past
   `actual_length` 3; its other content reaches 30 (a marker). Its break at
   12 and its jumps therefore lie exactly where they lie at length 37: every
   break and jump element of the two drawings is equal. Its root line ends
-  open, at `x0 + 400 + 12`, in chevrons; at length 37 it ends at `x0 + 400`
+  open, at `x0 + 400 + 12`, in three chevrons; at length 37 it ends at `x0 + 400`
   with its arrowhead.
 
 **Ancestor lines (section 8.3).** `x0` below is the member's own line start,
@@ -1258,21 +1268,23 @@ section 8.3 writes it:
   (unlocked, set to null, locked again, through commands) and a region 0
   to 8 added into it, so its reach is `λ = 8`: the member's end is not
   known, so the ancestor `piece` runs on to the right to `x0 + 400 + 12`
-  into chevrons although `te = −8 + 16 = 8 = λ` would otherwise end it at
+  into two chevrons (`chevrons`) although `te = −8 + 16 = 8 = λ` would otherwise end it at
   `x0 + 400` with its arrowhead, and
   only the mark `second-half/start` and its label `8 ♩` are drawn (no
-  `second-half/end`). The member's own line ends open, in chevrons at `x0 +
-  400 + 12`.
+  `second-half/end`). The member's own line ends open, in three chevrons
+  (`unknown`) at `x0 + 400 + 12`: the member's own unknown length and the
+  ancestor's running on are told apart in one drawing.
 - `groups/group_child_member` with `piece`'s length set to null: the
-  ancestor's end is not known, so `piece` runs on to the right into
-  chevrons at `x0 + 400 + 12` (and to the left, `ts = −8 < 0`), and both
+  ancestor's end is not known, so `piece` runs on to the right into two
+  chevrons (`chevrons`, never three) at `x0 + 400 + 12` (and to the left, `ts = −8 < 0`), and both
   marks are drawn, labelled `8 ♩` and `16 ♩` (`−ts` and `−ts + λ`).
 - `groups/group_grandchild` with `movement`'s length set to null and
   `score`'s length set to 28: for `score`, `ts = −(16 + 8) = −24` and `te =
   −24 + 28 = 4 < λ = 8`, which a manifest allows only because `movement`
   between them has no length; `score` ends at `x(4) = x0 + 400 × 4/8 = x0 +
   200` with its own end, the arrowhead of an unlocked top-level timeline.
-  `movement` runs on to the right, into chevrons at `x0 + 400 + 12`. Both
+  `movement` runs on to the right, into two chevrons (`chevrons`), although
+  its own length is not known, at `x0 + 400 + 12`. Both
   run on to the left (`ts < 0`).
 
 ## Stretch and box (`stretch.test.ts`)

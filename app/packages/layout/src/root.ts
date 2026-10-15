@@ -93,7 +93,7 @@ export function rootBand(
   return { width: Math.max(wedgeReach, rootReach), minimum: 0, at: () => undefined };
 }
 
-/** The root's line, when it is displayed; an open end runs on `4w` into its chevrons. */
+/** The root's line, when it is displayed; an open end runs on `4w` into its three chevrons. */
 export function rootLineElements(scope: Scope, placed: Position): LineElement[] {
   const { root, rootEntry, member } = scope;
   const { x, xEnd, yRoot } = placed;

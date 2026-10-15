@@ -461,14 +461,23 @@ test.describe("click", () => {
     await expect(page.locator("[data-contains-selection]")).toHaveCount(1);
   });
 
-  test("a click on a card selects its timeline, a click on the margin the block", async ({
-    page,
-  }) => {
+  test("a click on a card selects the card, a click on the margin the block", async ({ page }) => {
     await clickPart(page, SMALL.nested, "clt_2");
     const card = await cardPoint(page, SMALL.map);
     await page.mouse.click(card.x, card.y);
-    expect(await selection(page)).toEqual([`${SMALL.map}/melody`]);
-    await expect(element(page, SMALL.map, "melody").first()).toHaveAttribute("data-selected", "");
+    expect(await selection(page)).toEqual([`${SMALL.map}/melody/card`]);
+    // The card glows on its own rectangle, not on its shadow, in the selection's colour
+    // although the pointer is over it; its timeline goes with it on Delete.
+    const rects = element(page, SMALL.map, "melody/card");
+    await expect(rects).toHaveCount(2);
+    await expect(rects.nth(1)).toHaveAttribute("data-selected", "");
+    await expect(rects.nth(1)).toHaveAttribute("data-hovered", "");
+    await expect(rects.nth(0)).not.toHaveAttribute("data-selected");
+    expect(await selectedAddresses(page)).toEqual(["melody/card"]);
+    const glow = await rects.nth(1).evaluate((rect) => getComputedStyle(rect).filter);
+    expect(glow).toContain("rgb(10, 132, 255)");
+    expect(glow).not.toContain("rgb(156, 200, 255)");
+    await expect(element(page, SMALL.map, "melody").first()).toHaveAttribute("data-affected", "");
     const point = await marginPoint(page, SMALL.map);
     await page.mouse.click(point.x, point.y);
     expect(await selection(page)).toEqual([SMALL.map]);

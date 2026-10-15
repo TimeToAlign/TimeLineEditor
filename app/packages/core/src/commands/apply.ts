@@ -17,7 +17,8 @@ import {
   selectorMatches,
   timelineAncestry,
 } from "../manifest/elements.ts";
-import { elementAddress, rootPaths } from "../manifest/files.ts";
+import type { Located } from "../manifest/files.ts";
+import { elementAddress, locateTimeline, rootPaths, searchTree } from "../manifest/files.ts";
 import {
   checkOrdered,
   childEnd,
@@ -27,6 +28,7 @@ import {
   readOnAxis,
 } from "../manifest/invariants.ts";
 import { readManifestValue, schemaProblems } from "../manifest/io.ts";
+import { lockProblem, memberIds, statedLockProblem, withPlaceLocks } from "../manifest/locks.ts";
 import type { Gap } from "../manifest/remove.ts";
 import { isSegment, removedBy, withoutElements, withoutSegment } from "../manifest/remove.ts";
 import type { Manifest, TimelineManifest } from "../manifest/types.ts";
@@ -66,13 +68,6 @@ import type {
 import { ADD_KINDS } from "./types.ts";
 
 // ---------------------------------------------------------------- targets
-
-/** A timeline inside a manifest: its value, its path from the manifest's top, its parent. */
-interface Located {
-  readonly timeline: TimelineManifest;
-  readonly path: readonly PathSegment[];
-  readonly parent: Located | undefined;
-}
 
 /** The root timeline of the tree a located timeline lies in. */
 function rootOf(at: Located): TimelineManifest {
@@ -135,44 +130,27 @@ function withEntries(
 /** A timeline found in a manifest, or an entry of one of its lists. */
 type Found = { readonly at: Located; readonly kind?: EntryKind; readonly index?: number };
 
-/** Search a tree for the timeline (with `timelines`) or the entry (with `lists`) carrying `id`. */
-function search(here: Located, id: string, timelines: boolean, lists: boolean): Found | undefined {
-  const { timeline, path } = here;
-  if (timelines && timeline.id === id) return { at: here };
-  if (lists) {
-    for (const kind of ENTRY_KINDS) {
-      const index = entries(timeline, kind).findIndex((item) => item.id === id);
-      if (index >= 0) return { at: here, kind, index };
-    }
-  }
-  for (const [index, timeline] of here.timeline.children.entries()) {
-    const child = { timeline, path: [...path, "children", index], parent: here };
-    const found = search(child, id, timelines, lists);
-    if (found !== undefined) return found;
-  }
-  return undefined;
-}
-
 /**
  * Find the element an element address names in a manifest: the timeline
  * carrying a bare id, or the entry `<id>` of root `<root>`'s tree for
  * `<root>/<id>`. A group is found by `resolve`.
  */
 function findElement(manifest: Manifest, element: string): Found | undefined {
-  const roots = rootPaths(manifest).map(
-    (root): Located => ({ timeline: root.timeline, path: root.path, parent: undefined }),
-  );
   const [first = "", id, ...rest] = element.split("/");
   if (rest.length > 0) return undefined;
   if (id === undefined) {
-    for (const root of roots) {
-      const found = search(root, first, true, false);
-      if (found !== undefined) return found;
+    const at = locateTimeline(manifest, first);
+    return at === undefined ? undefined : { at };
+  }
+  const root = rootPaths(manifest).find((item) => item.timeline.id === first);
+  if (root === undefined) return undefined;
+  return searchTree({ ...root, parent: undefined }, (at): Found | undefined => {
+    for (const kind of ENTRY_KINDS) {
+      const index = entries(at.timeline, kind).findIndex((item) => item.id === id);
+      if (index >= 0) return { at, kind, index };
     }
     return undefined;
-  }
-  const root = roots.find((item) => item.timeline.id === first);
-  return root === undefined ? undefined : search(root, id, false, true);
+  });
 }
 
 function resolve(view: View, address: Address): Target | CommandError {
@@ -225,17 +203,21 @@ function withTimeline(view: View, block: Block, at: Located, timeline: TimelineM
 }
 
 /**
- * A timeline given to `add`, its defaults supplied as for a manifest's root;
+ * A timeline given to `add` under `parent`, its defaults supplied as for a
+ * manifest's root, then each timeline of its subtree given the lock its
+ * place decides (`withPlaceLocks`; a new timeline is no group member yet);
  * the value as given when it is too malformed to complete, for the checks to
  * refuse.
  */
-function completeTimeline(value: JsonObject): TimelineManifest {
+function completeTimeline(value: JsonObject, parent: TimelineManifest): TimelineManifest {
+  let timeline: TimelineManifest;
   try {
     const host = { timeskeleton: SCHEMA_VERSION, timelines: [value] };
-    return (complete(host as never) as unknown as Manifest).timelines[0] as TimelineManifest;
+    timeline = (complete(host as never) as unknown as Manifest).timelines[0] as TimelineManifest;
   } catch {
     return value as unknown as TimelineManifest;
   }
+  return withPlaceLocks(timeline, parent, new Set());
 }
 
 /** The refusal of a child reaching past its parent's known length. */
@@ -476,7 +458,15 @@ function timelineValue(
 const TIMELINE_SET: { readonly [property: string]: Setter<TimelineTarget> } = {
   name: timelineValue(readNullableString),
   meta: timelineValue(readObject),
-  locked: timelineValue(readBoolean),
+  locked: (view, target, value, path) => {
+    const locked = readBoolean(value, path);
+    if (isCommandError(locked)) return locked;
+    const { timeline, parent } = target.at;
+    const member = memberIds(target.block.manifest).has(timeline.id);
+    const refused = lockProblem(locked, timeline.locked, timeline, parent?.timeline, member, path);
+    if (refused !== undefined) return refused;
+    return withTimeline(view, target.block, target.at, { ...timeline, locked });
+  },
   length: (view, target, value, path) => {
     const { timeline } = target.at;
     if (timeline.locked) {
@@ -746,9 +736,14 @@ function addElement(
     ]);
   }
   const { timeline } = target.at;
+  const path = [target.address, kind];
+  if (kind === "child") {
+    const refused = statedLockProblem(object, timeline, path);
+    if (refused !== undefined) return refused;
+  }
   const changed =
     kind === "child"
-      ? placeChild(target.at, completeTimeline(object), [target.address, kind])
+      ? placeChild(target.at, completeTimeline(object, timeline), path)
       : withEntries(timeline, kind, [...entries(timeline, kind), object as Entry]);
   if (isCommandError(changed)) return changed;
   return withTimeline(view, target.block, target.at, changed);
@@ -789,7 +784,11 @@ function withoutBlocks(view: View, removed: Set<BlockId>): View {
   };
 }
 
-/** Remove the one segment a `remove` with a `gap` names, closing its gap as the gap says. */
+/**
+ * Remove the one segment a `remove` with a `gap` names, closing its gap as
+ * the gap says. Deleting a segment is not enabled in the editor yet; this
+ * command is kept for when it is.
+ */
 function removeSegment(
   view: View,
   command: RemoveCommand & { readonly gap: Gap },
@@ -828,6 +827,8 @@ function applyRemove(
   command: RemoveCommand,
   touched: Set<BlockId>,
 ): View | CommandError {
+  // Deleting a segment is not enabled in the editor yet; the gap of a
+  // segment's removal is kept for when it is.
   if (command.gap !== undefined) {
     return removeSegment(view, command as RemoveCommand & { readonly gap: Gap }, touched);
   }
@@ -854,6 +855,7 @@ function applyRemove(
       if (!isSegment(manifest, element)) continue;
       const others = list.filter((_, other) => other !== index);
       if (removedBy(manifest, others).has(element)) continue;
+      // Kept, with the gap, for when deleting a segment is enabled.
       return problem(
         ErrorCode.gapRequired,
         `removing segment ${element} leaves a gap: name how to close it with gap {side, verb}`,

@@ -2,7 +2,16 @@
 import type { AttributeValue, Descriptor } from "@timetoalign/tilie-writers";
 import { attributeText } from "@timetoalign/tilie-writers";
 import type { NodeProps } from "@xyflow/svelte";
-import { boundaryOf, cardAt, hoverablesOf } from "./hover.ts";
+import type { Hover } from "./boxes.ts";
+import {
+  addressOf,
+  hitOf,
+  hoverOf,
+  marksOf,
+  NO_HOVER,
+  showsHover,
+  showsSelection,
+} from "./boxes.ts";
 import type { BlockNode as BlockNodeType } from "./project.ts";
 
 let { data }: NodeProps<BlockNodeType> = $props();
@@ -23,68 +32,54 @@ function attributesOf(descriptor: Descriptor): Record<string, string> {
   return Object.fromEntries(descriptor.attrs.map(([name, value]) => [name, domValue(value)]));
 }
 
-function addressOf(descriptor: Descriptor): string | undefined {
-  const value = descriptor.attrs.find(([name]) => name === "data-address")?.[1];
-  return typeof value === "string" ? value : undefined;
-}
+/** The drawn boxes' and boundaries' descriptors. */
+const marks = $derived(marksOf(data.drawing, data.descriptors));
 
 function isSelected(descriptor: Descriptor): boolean {
-  const address = addressOf(descriptor);
-  return address !== undefined && data.selectedElements.has(address);
+  return showsSelection(marks.get(descriptor), addressOf(descriptor), data.selectedElements);
 }
 
-/** The card the pointer is over, by its address; `null` while it is over none. */
-let hoveredCard: string | null = $state(null);
-/** The boundary the pointer is over, by its address, so a redraw keeps the mark. */
-let hoveredBoundary: string | null = $state(null);
+/** What the pointer highlights, held by address so that a redraw keeps the marks. */
+let hover: Hover = $state.raw(NO_HOVER);
 
-const hoverables = $derived(hoverablesOf(data.drawing, data.descriptors));
+function show(next: Hover): void {
+  if (next.box !== hover.box || next.boundary !== hover.boundary) hover = next;
+}
 
 /**
- * The card under the pointer, its client position read in the drawing's
- * units. Nothing is read while a button is held: a drag, a pan or a marquee.
+ * What the pointer is over: its target and its client position read in the
+ * drawing's units. Nothing is read while a button is held: a drag, a pan or
+ * a marquee.
  */
 function onpointermove(event: PointerEvent & { currentTarget: SVGSVGElement }) {
   if (event.buttons !== 0) return;
   const box = event.currentTarget.getBoundingClientRect();
   if (box.width === 0 || box.height === 0) return;
-  const x = ((event.clientX - box.left) * data.drawing.width) / box.width;
-  const y = ((event.clientY - box.top) * data.drawing.height) / box.height;
-  hoveredCard = cardAt(data.drawing, x, y);
-}
-
-/** The boundary whose line the pointer has entered, or none. */
-function onpointerover({ buttons, target }: PointerEvent) {
-  if (buttons !== 0 || !(target instanceof Element)) return;
-  hoveredBoundary = boundaryOf(data.drawing, target.localName, target.getAttribute("data-address"));
+  const point = {
+    x: ((event.clientX - box.left) * data.drawing.width) / box.width,
+    y: ((event.clientY - box.top) * data.drawing.height) / box.height,
+  };
+  show(hoverOf(hitOf(data.block.id, data.drawing, event.target, point)));
 }
 
 function onpointerleave() {
-  hoveredCard = null;
-  hoveredBoundary = null;
+  show(NO_HOVER);
 }
 
 function isHovered(descriptor: Descriptor): boolean {
-  switch (hoverables.get(descriptor)) {
-    case "card":
-      return addressOf(descriptor) === hoveredCard;
-    case "boundary":
-      return addressOf(descriptor) === hoveredBoundary;
-    case undefined:
-      return false;
-  }
+  return showsHover(marks.get(descriptor), addressOf(descriptor), hover);
 }
 
 /** Whether the element lies under a selected one, and so goes with it on Delete. */
 function isAffected(descriptor: Descriptor): boolean {
   const address = addressOf(descriptor);
-  return address !== undefined && data.affectedElements.has(address);
+  return address !== null && data.affectedElements.has(address);
 }
 
 /** Whether closing the gap of a segment about to be deleted moves or resizes the element. */
 function isMoved(descriptor: Descriptor): boolean {
   const address = addressOf(descriptor);
-  return address !== undefined && data.movedElements.has(address);
+  return address !== null && data.movedElements.has(address);
 }
 </script>
 
@@ -93,7 +88,7 @@ function isMoved(descriptor: Descriptor): boolean {
   data-contains-selection={data.containsSelection ? "" : undefined}
 >
   <!--
-    The pointer handlers only show which card or boundary the pointer is
+    The pointer handlers only show which box or boundary the pointer is
     over; they act on nothing, so the drawing keeps its own role.
   -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -102,7 +97,6 @@ function isMoved(descriptor: Descriptor): boolean {
     {height}
     viewBox="0 0 {data.drawing.width} {data.drawing.height}"
     {onpointermove}
-    {onpointerover}
     {onpointerleave}
   >
     {#each data.descriptors as descriptor (descriptor)}

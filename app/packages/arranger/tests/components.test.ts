@@ -10,7 +10,7 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import type { Block } from "@timetoalign/tilie-core";
 import { isLoadError, loadManifest } from "@timetoalign/tilie-core";
-import type { Placement } from "@timetoalign/tilie-layout";
+import type { Drawing, Placement } from "@timetoalign/tilie-layout";
 import { DEFAULT_LAYER, draw } from "@timetoalign/tilie-layout";
 import type { Descriptor } from "@timetoalign/tilie-writers";
 import { toDescriptors } from "@timetoalign/tilie-writers";
@@ -111,14 +111,28 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
+/**
+ * The node mounted on `descriptors`, in a box of the given size and scale,
+ * with the drawing's elements when given (they tell the node its boxes).
+ */
 function render(
   descriptors: readonly Descriptor[],
-  box: { width: number; height: number; scale: number },
+  box: {
+    width: number;
+    height: number;
+    scale: number;
+    elements?: Drawing["elements"];
+  },
   selectedElements: ReadonlySet<string> = new Set(),
   affectedElements: ReadonlySet<string> = new Set(),
   movedElements: ReadonlySet<string> = new Set(),
 ): SVGSVGElement {
-  const drawing = { width: box.width, height: box.height, elements: [], unmapped: [] };
+  const drawing = {
+    width: box.width,
+    height: box.height,
+    elements: box.elements ?? [],
+    unmapped: [],
+  };
   const data = {
     block: { scale: box.scale } as Block,
     drawing,
@@ -204,6 +218,17 @@ describe("BlockNode", () => {
     );
     const score = Array(4).fill("score");
     expect(marked).toEqual([...score, "exposition/start", "exposition/start", ...score]);
+    expect(trees(svg.children, ["data-selected"])).toEqual(exported(text));
+    expect(document.querySelectorAll("[data-contains-selection]").length).toBe(1);
+  });
+
+  it("marks a selected card on its own rectangle, not on its shadow", () => {
+    const { drawing, scale, svg: text } = fixture("group__group_child_member");
+    const svg = render(toDescriptors(drawing), { ...drawing, scale }, new Set(["recording/card"]));
+
+    const cards = Array.from(svg.querySelectorAll('rect[data-address="recording/card"]'));
+    expect(cards.length).toBe(2);
+    expect(Array.from(svg.querySelectorAll("[data-selected]"))).toEqual([cards[1]]);
     expect(trees(svg.children, ["data-selected"])).toEqual(exported(text));
     expect(document.querySelectorAll("[data-contains-selection]").length).toBe(1);
   });

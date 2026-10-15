@@ -1,8 +1,20 @@
 import { JsonFloat } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
 import type { Manifest, TimelineManifest, View } from "../src/index.ts";
-import { apply, createView, DEFAULT_SETTINGS, parseCommand } from "../src/index.ts";
-import { A, addBlock, B, block, C, changed, deepFreeze, load, refusal, viewOf } from "./support.ts";
+import { apply, createView, DEFAULT_SETTINGS, findTimeline, parseCommand } from "../src/index.ts";
+import {
+  A,
+  addBlock,
+  B,
+  block,
+  C,
+  changed,
+  deepFreeze,
+  load,
+  refusal,
+  unlockedView,
+  viewOf,
+} from "./support.ts";
 
 /** A bare value on a `fraction` axis. */
 const quarters = (numerator: number, denominator = 1) => [numerator, denominator];
@@ -164,6 +176,16 @@ describe("add", () => {
       code: "schema_violation",
       path: [A, "manifest", "timelines", 0, "children", 0, "unit"],
     });
+    expect(
+      rejected(one, {
+        type: "add",
+        into: at("bare"),
+        child: { id: "clt_1", offset: quarters(-1), unit: "quarters", length: quarters(4) },
+      }),
+    ).toEqual({
+      code: "negative_child_offset",
+      path: [A, "manifest", "timelines", 0, "children", 0, "offset"],
+    });
     const child = [A, "manifest", "timelines", 0, "children", 0];
     for (const [member, path] of [
       [{ children: 5 }, [...child, "children"]],
@@ -293,7 +315,7 @@ describe("set", () => {
       [set(at("clt_2"), { offset: quarters(7) }), "child_exceeds_parent", [at("clt_2"), "offset"]],
       [
         set(at("clt_2"), { offset: quarters(-1) }),
-        "schema_violation",
+        "negative_child_offset",
         [A, "manifest", "timelines", 0, "children", 0, "children", 0, "offset"],
       ],
       [set("short", { x: 1 }), "invalid_address", ["short"]],
@@ -325,6 +347,110 @@ describe("set", () => {
       }),
     ).toEqual({ code: "unknown_target", path: ["0000000009"] });
     expect(block(view).x).toBe(0);
+  });
+});
+
+describe("locks by place", () => {
+  const SEGMENT = "A segment is never locked: lock its segment line '%s' instead.";
+  const UNLOCKING =
+    "Unlocking a segment line that is a child, a segment or a group member is not supported yet.";
+  /** The exact refusal of a command on a deep-frozen view, which a mutation would throw on. */
+  const refusedWith = (view: View, command: object) => apply(deepFreeze(view), command);
+  /** The `locked` of timeline `id` in block `A`. */
+  function lockOf(view: View, id: string): unknown {
+    return findTimeline(manifest(view), id)?.locked;
+  }
+
+  it("refuses to lock a segment and accepts its unlock", () => {
+    const view = frozen([A, "segment_line.json"]);
+    expect(refusedWith(view, set(at("b1"), { locked: true }))).toEqual({
+      code: "segment_never_locked",
+      message: SEGMENT.replace("%s", "b"),
+      path: [at("b1"), "locked"],
+    });
+    expect(lockOf(applied(view, set(at("b1"), { locked: false })), "b1")).toBe(false);
+  });
+
+  it("refuses to unlock a segment line that is a child, a segment or a group member", () => {
+    for (const [fixture, id] of [
+      ["segment_line.json", "b"],
+      ["segment_children.json", "intro"],
+      ["bundles/corpus_ieee1599.json", "original_score:dgt_1"],
+    ] as const) {
+      const view = frozen([A, fixture]);
+      expect(refusedWith(view, set(at(id), { locked: false }))).toEqual({
+        code: "unlocking_not_supported",
+        message: UNLOCKING,
+        path: [at(id), "locked"],
+      });
+      expect(lockOf(applied(view, set(at(id), { locked: true })), id)).toBe(true);
+    }
+  });
+
+  it("accepts setting the lock a timeline has, even where the opposite is refused", () => {
+    // The file states `b` unlocked, which reading keeps: only segments are unlocked.
+    const view = deepFreeze(unlockedView("segment_line.json", "b"));
+    const kept = applied(view, set(at("b"), { locked: false }));
+    expect(lockOf(kept, "b")).toBe(false);
+    expect(manifest(kept)).toEqual(manifest(view));
+    const locked = applied(kept, set(at("b"), { locked: true }));
+    expect(lockOf(locked, "b")).toBe(true);
+    expect(refusedWith(locked, set(at("b"), { locked: false }))).toEqual({
+      code: "unlocking_not_supported",
+      message: UNLOCKING,
+      path: [at("b"), "locked"],
+    });
+  });
+
+  it("lets a root segment line outside a group take either lock", () => {
+    const locked = applied(frozen([A, "segment_line.json"]), set(at("form"), { locked: true }));
+    expect(lockOf(locked, "form")).toBe(true);
+    expect(lockOf(applied(locked, set(at("form"), { locked: false })), "form")).toBe(false);
+  });
+
+  it("adds into a segment line with the lock the place decides", () => {
+    const add = (child: object) => ({ type: "add", into: at("form"), child });
+    // A segment line's segments are all segment lines or none.
+    const plain = frozen([A, "unknown_length_segments.json"]);
+    const lines = frozen([A, "segment_line.json"]);
+    const d = { id: "d", unit: "quarters", offset: quarters(20), length: quarters(4) };
+    const e = { ...d, id: "e", offset: quarters(32), length: null, is_segment_line: true };
+    expect(lockOf(applied(plain, add(d)), "d")).toBe(false);
+    expect(lockOf(applied(lines, add(e)), "e")).toBe(true);
+    expect(refusedWith(plain, add({ ...d, locked: true }))).toEqual({
+      code: "segment_never_locked",
+      message: SEGMENT.replace("%s", "form"),
+      path: [at("form"), "child"],
+    });
+    expect(refusedWith(lines, add({ ...e, locked: false }))).toEqual({
+      code: "unlocking_not_supported",
+      message: UNLOCKING,
+      path: [at("form"), "child"],
+    });
+  });
+
+  it("gives every timeline of an added subtree the lock its place decides", () => {
+    const view = frozen([A, "bare.json"]);
+    const segment = { id: "s1", unit: "quarters", offset: quarters(0), length: quarters(4) };
+    const line = (s1: object) => ({
+      type: "add",
+      into: at("bare"),
+      child: {
+        id: "sl",
+        unit: "quarters",
+        offset: quarters(0),
+        length: quarters(4),
+        is_segment_line: true,
+        children: [s1],
+      },
+    });
+    const added = applied(view, line(segment));
+    expect([lockOf(added, "sl"), lockOf(added, "s1")]).toEqual([true, false]);
+    expect(refusedWith(view, line({ ...segment, locked: true }))).toEqual({
+      code: "segment_never_locked",
+      message: SEGMENT.replace("%s", "sl"),
+      path: [at("bare"), "child"],
+    });
   });
 });
 

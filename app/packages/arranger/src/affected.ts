@@ -9,8 +9,9 @@ import { elementOfIn, manifestElements, movedBy, removedBy } from "@timetoalign/
  * every map, region, break, jump and marker those timelines and the selected
  * elements own, every conversion map naming a removed timeline, and the
  * parts of all of them. A selected part stands for its element (core's
- * `elementOf`). The selected addresses, and the parts of a selected element,
- * are left out: they show as selected.
+ * `elementOf`), a selected card `T/card` for its timeline `T`, so everything
+ * the card holds is affected. The selected addresses, and the parts of a
+ * selected element, are left out: they show as selected.
  */
 export function affectedBy(
   manifest: Manifest,

@@ -1,11 +1,11 @@
 import type { Gap, View } from "@timetoalign/tilie-core";
-import { manifestIds } from "@timetoalign/tilie-core";
+import { createView, manifestIds, segmentGaps } from "@timetoalign/tilie-core";
 import { describe, expect, it } from "vitest";
 import { movedByGap } from "../src/affected.ts";
 import { preferredGap, removeCommand } from "../src/commands.ts";
 import { descriptorsOf, drawingOf, segmentAnchor } from "../src/drawing.ts";
 import { project } from "../src/project.ts";
-import { A, blockIn, changed, metrics, viewOf } from "./support.ts";
+import { A, blockIn, changed, loadUnlocked, metrics, viewOf } from "./support.ts";
 
 const LEFT_EXTEND: Gap = { side: "left", verb: "extend" };
 const RIGHT_EXTEND: Gap = { side: "right", verb: "extend" };
@@ -15,47 +15,26 @@ const RIGHT_SHIFT: Gap = { side: "right", verb: "shift" };
 const at = (element: string) => `${A}/${element}`;
 const segmentChildren = () => viewOf({ id: A, fixture: "segment_children" });
 
-/** `segment_children` with its segment line `theme` unlocked. */
+/** `segment_children` with its segment line `theme` unlocked in the file. */
 function themeUnlocked(): View {
-  return changed(segmentChildren(), {
-    type: "set",
-    changes: [{ target: at("theme"), values: { locked: false } }],
+  const manifest = loadUnlocked("segment_children", "theme");
+  return changed(createView(), {
+    type: "add",
+    into: "workspace",
+    block: { id: A, manifest, x: 0, y: 0 },
   });
 }
 
 describe("removeCommand of a segment", () => {
-  it("refuses a segment whose gap no way closes", () => {
-    expect(removeCommand(segmentChildren(), new Set([at("t2/label")]))).toEqual({
-      refused:
-        "Segment t2 cannot be deleted: no neighbour may extend and its segment line may not shift.",
-    });
+  const refused = { refused: "Deleting a segment is not supported yet." };
+
+  it("refuses a segment that leaves a gap, whatever ways would close it", () => {
+    expect(removeCommand(segmentChildren(), new Set([at("t2/label")]))).toEqual(refused);
+    expect(removeCommand(themeUnlocked(), new Set([at("t2")]))).toEqual(refused);
   });
 
-  it("gives the segment and the ways of closing its gap", () => {
-    expect(removeCommand(themeUnlocked(), new Set([at("t2/label")]))).toEqual({
-      segment: at("t2"),
-      options: [
-        { gap: LEFT_EXTEND, refused: "the preceding segment t1 is locked" },
-        { gap: RIGHT_EXTEND, refused: "the following segment t3 is locked" },
-        { gap: LEFT_SHIFT, refused: null },
-        { gap: RIGHT_SHIFT, refused: null },
-      ],
-    });
-  });
-
-  it("removes the segment closing its gap as chosen", () => {
+  it("refuses a segment with anything it does not go with", () => {
     const view = themeUnlocked();
-    const command = removeCommand(view, new Set([at("t2")]), RIGHT_SHIFT);
-    expect(command).toEqual({ type: "remove", targets: [at("t2")], gap: RIGHT_SHIFT });
-    const theme = blockIn(changed(view, command), A).manifest.timelines[0]?.children.find(
-      (child) => child.id === "theme",
-    );
-    expect(theme?.children.map((child) => child.id)).toEqual(["t1", "t3"]);
-  });
-
-  it("deletes one segment at a time", () => {
-    const view = themeUnlocked();
-    const refused = { refused: "Delete one segment at a time." };
     expect(removeCommand(view, new Set([at("t2"), at("t3")]))).toEqual(refused);
     expect(removeCommand(view, new Set([at("t2"), at("coda/name")]))).toEqual(refused);
   });
@@ -71,12 +50,27 @@ describe("removeCommand of a segment", () => {
       targets: [A, at("t2")],
     });
   });
+});
 
-  it("preselects the first permitted way", () => {
-    const asked = removeCommand(themeUnlocked(), new Set([at("t2")]));
-    if (!("segment" in asked)) throw new Error("expected the segment's ways");
-    expect(preferredGap(asked.options)).toEqual(LEFT_SHIFT);
-    expect(preferredGap(asked.options.map((option) => ({ ...option, refused: "no" })))).toBeNull();
+describe("the ways of closing a segment's gap", () => {
+  it("are core's options, of which the first permitted one is preselected", () => {
+    const unlocked = segmentGaps(blockIn(themeUnlocked(), A).manifest, "t2") ?? [];
+    expect(unlocked).toEqual([
+      { gap: LEFT_EXTEND, refused: null },
+      { gap: RIGHT_EXTEND, refused: null },
+      { gap: LEFT_SHIFT, refused: null },
+      { gap: RIGHT_SHIFT, refused: null },
+    ]);
+    const locked = segmentGaps(blockIn(segmentChildren(), A).manifest, "t2") ?? [];
+    expect(locked).toEqual([
+      { gap: LEFT_EXTEND, refused: null },
+      { gap: RIGHT_EXTEND, refused: null },
+      { gap: LEFT_SHIFT, refused: "its segment line theme is locked" },
+      { gap: RIGHT_SHIFT, refused: "its segment line theme is locked" },
+    ]);
+    expect(preferredGap(unlocked)).toEqual(LEFT_EXTEND);
+    expect(preferredGap(locked)).toEqual(LEFT_EXTEND);
+    expect(preferredGap(unlocked.map((option) => ({ ...option, refused: "no" })))).toBeNull();
   });
 });
 
@@ -89,7 +83,10 @@ describe("movedByGap", () => {
     expect(movedByGap(manifest, "t2", RIGHT_SHIFT)).toEqual(
       new Set(["theme", "theme/name", "t3", "t3/start", "t3/label"]),
     );
-    expect(movedByGap(manifest, "t2", LEFT_EXTEND)).toEqual(new Set());
+    expect(movedByGap(manifest, "t2", LEFT_EXTEND)).toEqual(new Set(["t1", "t1/label"]));
+    expect(movedByGap(manifest, "t2", RIGHT_EXTEND)).toEqual(
+      new Set(["t3", "t3/start", "t3/label"]),
+    );
     const line = blockIn(viewOf({ id: A, fixture: "segment_line" }), A).manifest;
     expect(movedByGap(line, "b", RIGHT_SHIFT)).toEqual(
       new Set([

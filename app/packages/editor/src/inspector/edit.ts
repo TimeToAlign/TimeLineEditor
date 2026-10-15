@@ -11,9 +11,16 @@ import type {
   Problem,
   SetCommand,
   Store,
+  TimelineManifest,
   View,
 } from "@timetoalign/tilie-core";
-import { ErrorCode, isCommandError, parseAddress } from "@timetoalign/tilie-core";
+import {
+  ErrorCode,
+  elementOf,
+  findTimeline,
+  isCommandError,
+  parseAddress,
+} from "@timetoalign/tilie-core";
 import { dumps, isJsonObject } from "@timetoalign/timeskeleton";
 import type { Format, Text } from "./formats.ts";
 import { readText, writeText } from "./formats.ts";
@@ -33,6 +40,31 @@ export function selectedBlock(view: View, selection: Iterable<string>): Block | 
     found = parsed.block;
   }
   return found === null ? null : (view.blocks[found] ?? null);
+}
+
+/** A timeline the inspector shows: the block it lies in, its address and its value. */
+export interface SelectedTimeline {
+  readonly block: Block;
+  /** `<block>/<timeline id>`, the target of a command on the timeline. */
+  readonly address: string;
+  readonly timeline: TimelineManifest;
+}
+
+/**
+ * The timeline the selection names when it is exactly one address naming a
+ * timeline or a part of one, such as its card `<block>/T/card` (the element
+ * read with core's `elementOf`); else `null`: no selection, a block, several
+ * addresses, a group, the title or any other element.
+ */
+export function selectedTimeline(view: View, selection: Iterable<string>): SelectedTimeline | null {
+  const [address, ...others] = selection;
+  if (address === undefined || others.length > 0) return null;
+  const parsed = parseAddress(address);
+  if (isCommandError(parsed) || parsed.block === null || parsed.element === null) return null;
+  const block = view.blocks[parsed.block];
+  if (block === undefined) return null;
+  const timeline = findTimeline(block.manifest, elementOf(block.manifest, parsed.element));
+  return timeline === undefined ? null : { block, address: `${block.id}/${timeline.id}`, timeline };
 }
 
 /** A block's manifest as the JSON value it is. */

@@ -2,7 +2,7 @@ import { canonicalJson } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
 import type { Gap, Manifest, TimelineManifest, View } from "../src/index.ts";
 import { apply, createStore, movedBy, segmentGaps } from "../src/index.ts";
-import { A, block, changed, deepFreeze, refusal, viewOf } from "./support.ts";
+import { A, block, changed, deepFreeze, refusal, unlockedView, viewOf } from "./support.ts";
 
 const CHILDREN = "segment_children.json";
 const UNKNOWN = "unknown_length_segments.json";
@@ -14,12 +14,12 @@ const RIGHT_EXTEND: Gap = { side: "right", verb: "extend" };
 const LEFT_SHIFT: Gap = { side: "left", verb: "shift" };
 const RIGHT_SHIFT: Gap = { side: "right", verb: "shift" };
 
-/** Block `A` holding a manifest fixture, the timelines `unlocked` set unlocked by one `set`. */
+/**
+ * Block `A` holding a manifest fixture, the segment lines `unlocked` stating
+ * `locked: false` before it is read; its segments read unlocked.
+ */
 function viewWith(fixture: string, ...unlocked: string[]): View {
-  const view = viewOf([A, fixture]);
-  if (unlocked.length === 0) return deepFreeze(view);
-  const changes = unlocked.map((id) => ({ target: at(id), values: { locked: false } }));
-  return deepFreeze(changed(view, { type: "set", changes }));
+  return deepFreeze(unlockedView(fixture, ...unlocked));
 }
 
 const remove = (segment: string, gap?: Gap) => ({
@@ -46,7 +46,7 @@ const childIds = (view: View, id: string) =>
   timeline(block(view).manifest, id).children.map((child) => child.id);
 
 describe("deleting a segment of known length", () => {
-  const view = viewWith(CHILDREN, "theme", "t1", "t3");
+  const view = viewWith(CHILDREN, "theme");
 
   it("left extend grows the preceding segment", () => {
     const result = changed(view, remove("t2", LEFT_EXTEND));
@@ -105,7 +105,7 @@ describe("deleting a segment of unknown length", () => {
   });
 
   it("closes the gap of the last segment, whose length is not known", () => {
-    const view = viewWith(UNKNOWN, "b");
+    const view = viewWith(UNKNOWN);
     expect(place(changed(view, remove("c", LEFT_EXTEND)), "b")).toEqual({
       offset: [8, 1],
       length: null,
@@ -135,9 +135,10 @@ describe("the permitted ways", () => {
       LEFT_SHIFT,
       RIGHT_SHIFT,
     ]);
+    // Its neighbours are segments, which are never locked.
     expect(reasons(view, "t2")).toEqual([
-      "the preceding segment t1 is locked",
-      "the following segment t3 is locked",
+      null,
+      null,
       "its segment line theme is locked",
       "its segment line theme is locked",
     ]);
@@ -146,7 +147,7 @@ describe("the permitted ways", () => {
     expect(segmentGaps(block(view).manifest, "theme")).toBeUndefined();
   });
 
-  it("lets a neighbour of unknown length extend though it is locked", () => {
+  it("lets neighbours of unknown length extend and keeps a root from shifting left", () => {
     expect(reasons(viewWith(UNKNOWN), "b")).toEqual([
       null,
       null,
@@ -177,7 +178,7 @@ describe("refusals", () => {
       code: "gap_required",
       path: [at("t2")],
     });
-    expect(rejected(view, remove("t2", LEFT_EXTEND))).toEqual({
+    expect(rejected(view, remove("t2", LEFT_SHIFT))).toEqual({
       code: "gap_not_permitted",
       path: [at("t2"), "gap"],
     });

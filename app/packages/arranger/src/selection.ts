@@ -26,30 +26,17 @@ export function blockOf(address: string): BlockId {
   return parsed.block;
 }
 
-const CARD = "/card";
-
 /**
- * What a press on `address` selects: a timeline's card (`<block>/T/card`,
- * and its shadow, which carries the same address) selects the timeline
- * `<block>/T`; every other address itself.
- */
-function pressed(address: string): string {
-  const element = address.slice(blockOf(address).length + 1);
-  return element.includes("/") && element.endsWith(CARD) ? address.slice(0, -CARD.length) : address;
-}
-
-/**
- * The selection after a click on `address`: what it selects alone, or, when
- * `additive`, the selection with that toggled. A click on an element
- * selects the element only, never its block; a click on a timeline's card
- * selects the timeline.
+ * The selection after a click that selects `address` (what a press hit
+ * selects is `boxes.ts`'s `selectionOf`): that address alone, or, when
+ * `additive`, the selection with that address toggled. A click on an element
+ * selects the element only, never its block.
  */
 export function click(selection: Selection, address: string, additive: boolean): Selection {
-  const target = pressed(address);
-  if (!additive) return new Set([target]);
+  if (!additive) return new Set([address]);
   const next = new Set(selection);
-  if (next.has(target)) next.delete(target);
-  else next.add(target);
+  if (next.has(address)) next.delete(address);
+  else next.add(address);
   return next;
 }
 

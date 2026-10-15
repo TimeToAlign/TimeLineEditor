@@ -18,8 +18,10 @@ outside temporary state. Block ids in examples are `A = "0000000000"`, `B =
 **Where manifests come from.** The installed package's fixtures
 (`fixtures/<SCHEMA_VERSION>/`, its `groups/` and `bundles/`, each in the
 complete form with its minimal twin, and `fixtures/rejections/<SCHEMA_VERSION>/`),
-read by `support.ts`: `fixture(name)`, `fixtureText(name)`, `load(name)` and
-`manifestValue(name)` by the path below `fixtures/<SCHEMA_VERSION>/`, and
+read by `support.ts`: `fixture(name)`, `fixtureText(name)`, `load(name)`,
+`manifestValue(name)` and `unlockedView(name, ...ids)` (block `A` holding
+the fixture whose timelines `ids` state `locked: false` before it is read)
+by the path below `fixtures/<SCHEMA_VERSION>/`, and
 `allFixtures` for the suites iterating every fixture (the round trip, the
 properties and the budgets). Tests that need a particular manifest name one:
 `bare.json` (root `bare` "Bare", 8 quarters), `nested.json` (root `clt_1` of
@@ -185,24 +187,51 @@ every key with a default is present.
     refused with exactly one problem: that code at the exact path.
     `invalid_coordinate` is reached through commands only (a value the
     schema's representation check would refuse at load).
-12. **A child's unit, offset and extent are the schema's.** timeskeleton's
-    `validate` refuses a child whose unit differs from its parent's, a
-    negative child offset and a child reaching past its parent's known
-    length, so core holds no check of its own for any of them. One copy of
-    `with_region.json` with `clt_2`'s unit `whole_note` is refused with
-    exactly one problem, `schema_violation` at `["timelines", 0,
-    "children", 0, "unit"]` with the validator's message `child 'clt_2' has
-    unit 'whole_note', its parent 'clt_1' has 'quarters'`; one with
-    `clt_2`'s offset `[-1, 3]` with exactly `schema_violation` at
-    `["timelines", 0, "children", 0, "offset"]`, message `offset [-1, 3] of
-    'clt_2' is negative`; one with `clt_2`'s offset `[9, 1]` (length 4, in a
-    parent of 12) with exactly `schema_violation` at `["timelines", 0,
-    "children", 1, "length"]` (placed at 9, it comes after its sibling at 2
-    in canonical order), message `child 'clt_2' ends at [13, 1],
-    beyond the length [12, 1] of its parent 'clt_1'`. The message is the
-    validator's text, passed on unchanged, so a test pinning it fails if
-    core rewrites or replaces it.
-13. **Malformed text** is refused with code `invalid_json` at path `[]`.
+12. **A child's unit and extent are the schema's.** timeskeleton's
+    `validate` refuses a child whose unit differs from its parent's and a
+    child reaching past its parent's known length, so core holds no check
+    of its own for either. One copy of `with_region.json` with `clt_2`'s
+    unit `whole_note` is refused with exactly one problem,
+    `schema_violation` at `["timelines", 0, "children", 0, "unit"]` with
+    the validator's message `child 'clt_2' has unit 'whole_note', its
+    parent 'clt_1' has 'quarters'`; one with `clt_2`'s offset `[9, 1]`
+    (length 4, in a parent of 12) with exactly `schema_violation` at
+    `["timelines", 0, "children", 1, "length"]` (placed at 9, it comes
+    after its sibling at 2 in canonical order), message `child 'clt_2' ends
+    at [13, 1], beyond the length [12, 1] of its parent 'clt_1'`. The
+    message is the validator's text, passed on unchanged, so a test pinning
+    it fails if core rewrites or replaces it.
+13. **A negative child offset is core's to refuse.** The schema accepts a
+    child starting before its parent's origin; core does not support it
+    yet. One copy of `with_region.json` with `clt_2`'s offset `[-1, 3]` is
+    refused with exactly one problem, `negative_child_offset` at
+    `["timelines", 0, "children", 0, "offset"]`, message `A negative child
+    offset is not supported yet: child 'clt_2' has offset [-1, 3].` (the
+    offset spelled as timeskeleton's writer writes the number: a pair as
+    `[n, d]`, an int as an integer, a float with its fraction digits). The
+    same refusal on an `int` and on a `float` axis: a root `take` of 10
+    `ticks` whose child `part` of 2 lies at `-1` gives `... child 'part'
+    has offset -1.`, and a root `take` of `10.0` `seconds` whose child
+    `part` of `2.0` lies at `-1.0` gives `... child 'part' has offset
+    -1.0.`, each at `["timelines", 0, "children", 0, "offset"]`. A root's offset may be
+    negative: `negative_offset.json` (root `recording` at `-2.5`) is in the
+    round trip of item 1.
+14. **Segments read unlocked.** A segment (a child of a segment line that
+    is no segment line itself) is never locked: its segment line's lock
+    governs it, so reading a manifest unlocks every segment whatever the
+    file states. `segment_line.json` with `b1`'s `locked` stated `true`
+    and `b2`'s stated `false` loads with `locked: false` on each of `a1`,
+    `b1`, `b2` and `c1`, and with the stated value on every other
+    timeline: `true` on `a`, `b` and `c` (segments that are segment lines
+    themselves), `false` on the root `form`. A segment line that is a
+    child, a segment or a group member is locked when it is placed there,
+    but a file stating otherwise is kept on reading: the same file with
+    `b`'s `locked` stated `false` loads with `b` at `false`. The loaded
+    manifest saves with `"locked": false` on each segment, and its
+    minimal form leaves `locked` out of each segment. Nothing else of
+    the manifest changes: it deep-equals the manifest read from the same
+    file with the four segments all stating `false`.
+15. **Malformed text** is refused with code `invalid_json` at path `[]`.
 
 `checkManifest` reports all invariant violations in traversal order, root by
 root, with paths starting at `["timelines", <index>]` and a child at
@@ -227,10 +256,11 @@ the only thing that varies:
    "children", 0, "offset"]`, message `offset [20, 1] of 'part' is beyond
    the length [16, 1] of its parent 'score'` (its start lies past the
    parent's known end); a child of length null at
-   −1 is refused by the schema whatever the parent's length (a root of 16
-   and a root of length null both refuse it): exactly `schema_violation` at
-   the same path, message `offset [-1, 1] of 'part' is negative`. The
-   offset check needs no end, so a length of null cannot switch it off.
+   −1 is refused by core whatever the parent's length (a root of 16
+   and a root of length null both refuse it): exactly `negative_child_offset`
+   at the same path, message `A negative child offset is not supported
+   yet: child 'part' has offset [-1, 1].` The sign check needs no end, so a
+   length of null cannot switch it off.
 3. **`set length` to and from null.** On an unlocked root of 16 holding a
    child of 8 at 4: `length: null` stores null; `length: [12, 1]` on the
    result stores `[12, 1]` (12 = the child's end); `[23, 2]` is
@@ -253,8 +283,11 @@ child grew, locked or not. Content or a child added into an unlocked
 timeline grows that timeline only. A segment ends where its successor
 starts, and the last one where its line ends while the line's length is
 known, so a segment's length moves neither. What proves it: each case
-starts from a fixture whose locks are lifted by a `set locked` command, so
-the only rule in play is the one under test, and checks the exact length of
+starts from a fixture whose locks are lifted, so the only rule in play is
+the one under test: by a `set locked` command where a command may lift
+them, and, for a segment line that is a segment, by the fixture's value
+stating `locked: false` before it is read (no command lifts that lock yet;
+segments themselves read unlocked). Each case checks the exact length of
 the edited timeline and of its parent afterwards, or the exact code and
 path of the refusal. A refusal the command sees coming carries its own
 code; none of these cases reaches `schema_violation`.
@@ -277,25 +310,26 @@ On `nested.json` (root `clt_1` of 16, unlocked; `clt_3` at 4 of 8 and
 
 On `segment_line.json` (root `form` of 32, unlocked; segments `a` 0–8, `b`
 8–20, `c` 20–32, each a locked segment line; `b` holds `b1` 0–6 and `b2`
-6–12, `c` holds `c1` 0–12):
+6–12, `c` holds `c1` 0–12, segments read unlocked):
 
-5. **The last segment of a line of known length.** With `b2` unlocked,
+5. **The last segment of a line of known length.** On `b2`,
    its length `[8, 1]` and `[4, 1]` are each `segment_end_fixed` at `[A +
    "/b2", "length"]`; `[6, 1]` (its own) is accepted; `null` is accepted
    and leaves `b` at `[12, 1]`.
-6. **A segment with a successor.** With `b1` unlocked, `[4, 1]` is
+6. **A segment with a successor.** On `b1`, `[4, 1]` is
    `segment_end_fixed` at `[A + "/b1", "length"]` (`b2` starts at 6);
    `null` is accepted.
-7. **A line of unknown length.** With `b` and `b2` unlocked and `b`'s
+7. **A line of unknown length.** With `b` stating `locked: false` and `b`'s
    length set to null, `b2` length `[8, 1]` is accepted and `b` stays null.
    The other way round, a segment line ends where its last segment of
-   known length ends: with `form`'s length set to null and `c` unlocked,
-   `c` length `[14, 1]` is `segment_end_fixed` at `[A + "/c", "length"]`
-   (`c1` ends at 12).
-8. **A segment grown by what is added.** With `c` unlocked, adding `c2` of
-   4 at 12 into `c` would grow it to 16 and is `segment_end_fixed` at `[A
-   + "/c", "child"]`; after `form`'s length is set to null the same `add`
-   grows `c` to exactly `[16, 1]` and `form` stays null.
+   known length ends: with `c` stating `locked: false` and `form`'s length
+   set to null, `c` length `[14, 1]` is `segment_end_fixed` at `[A + "/c",
+   "length"]` (`c1` ends at 12).
+8. **A segment grown by what is added.** With `c` stating `locked: false`,
+   adding `c2` of 4 at 12 into `c` would grow it to 16 and is
+   `segment_end_fixed` at `[A + "/c", "child"]`; after `form`'s length is
+   set to null the same `add` grows `c` to exactly `[16, 1]` and `form`
+   stays null.
 
 ## Invariants (the catalogue)
 
@@ -320,6 +354,9 @@ whether a timeline's length is fixed and binds no child to it.
 | `child_exceeds_parent` | A command never leaves a child starting past its parent's known length (offset ≤ parent length) or, where its own length is known too, ending past it (offset + child length ≤ parent length, compared across number types as in section 1.6). A command placing a child past the known end of an unlocked parent lengthens the parent to the child's end (to its offset when the child's length is not known); a locked parent refuses. The parent grows only to a value its own number type holds exactly (an int parent cannot grow to 9/2, a float parent cannot grow to 1/3); otherwise the command is refused with this code, since a stored value is never re-expressed. The grown parent stays within its own parent's known length, and a child's length set past its parent's known end is refused, locked parent or not: a parent never grows because a child grew. Refused at the command's own path (`[address, "length"]`, `[address, "offset"]`, `[into, "child"]`); a manifest cannot break it (timeskeleton's `validate` refuses such a child) | **Editor's own rule** for the growth. `ChildrenMixin.add_child` through `EventsMixin._ensure_capacity` (`timetoalign.timelines.engines.events`); adding a child and setting a child's `offset` both apply this rule |
 | `segment_end_fixed` | A segment's new length, set or grown to hold a child added into it, keeps its end where its successor starts, or, for the last segment, where its line ends while the line's length is known; a segment line's new length keeps its end where its last segment ends while that segment's length is known; a length of null is always accepted (a rule of `set` and `add`, checked before the schema's segment contiguity would refuse the manifest) | the segment line's contiguity in `timetoalign.timelines.types` |
 | `locked` | A locked timeline's length cannot be set, to a value or to null (a rule of `set`; a manifest cannot break it) | `timetoalign.timelines.base.Timeline._check_not_locked`, called by the `length` setter |
+| `negative_child_offset` | A child's offset is not negative. The schema accepts a child starting before its parent's origin, but neither the editor nor the library supports it yet; a root's offset may be negative | `ChildrenMixin.validate_child`, called by `add_child` |
+| `segment_never_locked` | A segment (a child of a segment line that is no segment line itself) is never locked: its segment line's lock governs it. Reading a manifest unlocks every segment; `set locked: true` on a segment, and an `add` whose value states `locked: true` on a timeline it places as a segment, are refused (a rule of `set` and `add`; a manifest cannot break it) | `Timeline.lock` and `ChildrenMixin.add_child` refuse to lock a segment |
+| `unlocking_not_supported` | A segment line that is a child, a segment or a group member is locked: an `add` placing one locks it, and `set locked: false` on one, or an `add` whose value states `locked: false` on one, is refused, since lifting that lock is not supported yet. Reading a manifest keeps a lock its file states on such a line (a rule of `set` and `add`) | a lock cannot be lifted (`Timeline.lock`); `ChildrenMixin.add_child` and `TimelineGroup.add_timeline` lock a segment line that joins |
 | `length_below_content` | A length is not set below the farthest point a child reaches: its end, or its offset when its length is not known (and so never negative; a rule of `set`) | `Timeline.length` setter with `ChildrenMixin._get_max_content_coordinate` |
 | `region_end_before_start` | A region's end is not before its start | `timetoalign.timelines.regions.Region.__post_init__` |
 | `map_source_unit_mismatch` | A conversion map's `source_unit`, when not null, is the timeline's unit | `add_conversion_map` |
@@ -327,9 +364,8 @@ whether a timeline's length is fixed and binds no child to it.
 
 Id uniqueness in its scopes, part words refused as ids, a group's members
 naming timelines of the manifest, a jump's `target` naming a marker of its
-timeline, a child sharing its parent's unit, a child offset that is not
-negative (a root's offset may be; both rules are
-`timetoalign.timelines.engines.children.ChildrenMixin.validate_child` in the
+timeline, a child sharing its parent's unit
+(`timetoalign.timelines.engines.children.ChildrenMixin.validate_child` in the
 library), segment contiguity and the representation of every own-axis value
 are timeskeleton's rules, checked by its `validate` as part of the schema
 check; names may repeat.
@@ -397,7 +433,7 @@ can tell them apart.
    `target_unit` is null has domain and modality `null`. Addresses follow
    the drawing specification, section 2.2: a timeline by its id, a map,
    region, break, jump or marker by `<root id>/<id>`, a part as
-   `<address>/<word>`; an anonymous manifest has no title.
+   `<address>/<word>`; an anonymous bundle has no title.
 2. **Regions, breaks and jumps** are addressed below their root:
    `with_region.json` has exactly the region `clt_1/region_1`;
    `flow_control.json` the break `flow:quarters/break_1` and the jump
@@ -680,10 +716,10 @@ of the command, except where a command is malformed and so has no target.
   `schema_violation` at `["workspace", "graphical", …]` and `[A, "manifest",
   "timeskeleton"]` for a manifest declaring `0.6.0`, `id_not_settable` at
   `[A + "/melody/tempo", "map", "id"]` for a payload with another id.
-  Manifest locations: `schema_violation` at `[A, "manifest", "timelines",
-  0, "children", 0, "children", 0, "offset"]` for `clt_2`'s offset `[-1,
-  1]` (no command checks the sign itself; the schema check of the manifest
-  it would leave refuses it);
+  Manifest locations: `negative_child_offset` at `[A, "manifest",
+  "timelines", 0, "children", 0, "children", 0, "offset"]` for `clt_2`'s
+  offset `[-1, 1]` (no command checks the sign itself; the invariant check
+  of the manifest it would leave refuses it);
   `region_end_before_start`
   at `[A, "manifest", "timelines", 0, "regions", 0, "end"]` for
   `clt_1/region_1`'s end `[0, 1]` (`with_region.json`); `schema_violation`
@@ -709,12 +745,73 @@ of the command, except where a command is malformed and so has no target.
   `[B, "overrides"]` for a block value with that member; `invalid_value` at
   `[B, "x"]` when `x` is missing; `map_source_unit_mismatch` at `[A,
   "manifest", "timelines", 0, "conversion_maps", 0, "source_unit"]` for a
-  map from seconds.
+  map from seconds; `negative_child_offset` at `[A, "manifest",
+  "timelines", 0, "children", 0, "offset"]` for a child of 4 at `[-1, 1]`
+  added to the root of `bare.json`.
 - `remove`: `not_removable` at `["workspace"]`; `unknown_target` at `[B]`.
 - `style`: `unknown_target` at `[C]` for `blocks: [C]`.
 - Atomicity: `set` with `{target: A, values: {x: 1}}` and `{target:
   "0000000009", values: {x: 2}}` is refused with `unknown_target` at `["0000000009"]`; `remove [A,
   C]` with `C` absent is refused; in both the frozen input is unchanged.
+
+### Locks by place
+
+A timeline's place decides its lock where it is a segment or a segment
+line placed inside something: a segment (a child of a segment line that is
+no segment line itself) is never locked, its segment line's lock governing
+it; a segment line that is a child, a segment or a group member is locked,
+and lifting that lock is not supported yet. Every other timeline keeps its
+own `locked`. `set locked` and `add child` follow the one rule: a value that
+contradicts the place is refused, and an `add` places each timeline of the
+value it adds with the lock its place decides. A `set locked` to the value
+the timeline already has changes nothing and is accepted, even where the
+opposite value would be refused. What proves it: each case
+names a timeline whose place is one of these, and checks the exact `locked`
+afterwards, or the exact code, path and message of the refusal, the view
+unchanged (deep-frozen, so a mutation would throw).
+
+1. **`set locked` on a segment.** In a block of `segment_line.json`,
+   `locked: true` on `b1` is `segment_never_locked` at `[A + "/b1",
+   "locked"]`, message `A segment is never locked: lock its segment line
+   'b' instead.`; `locked: false` on `b1` is accepted and leaves it
+   `false`.
+2. **`set locked` on a segment line placed inside something.** In the
+   same block, `locked: false` on `b` (a segment that is a segment line) is
+   `unlocking_not_supported` at `[A + "/b", "locked"]`, message `Unlocking
+   a segment line that is a child, a segment or a group member is not
+   supported yet.`; `locked: true` on `b` is accepted. The same refusal for
+   `intro` of `segment_children.json` (a segment line that is a child of
+   `piece`, no segment) and for the root `original_score:dgt_1` of
+   `bundles/corpus_ieee1599.json` (a segment line that is a group member),
+   whose `locked: true` is accepted and leaves it `true`.
+3. **`set locked` to the value a timeline has.** In a block of
+   `segment_line.json` whose file states `locked: false` on `b` (kept on
+   reading, as only segments are unlocked), `locked: false` on `b` is
+   accepted and leaves `b` `false` and the manifest equal to the one before;
+   `locked: true` on `b` is accepted and leaves it `true`. Unlocking it again
+   is then `unlocking_not_supported` at `[A + "/b", "locked"]`, as in case 2,
+   so the acceptance is the no-op's and no lifted rule's.
+4. **`set locked` elsewhere.** On the root `form` of `segment_line.json`
+   (a segment line, neither a child nor a member) `locked: true` and then
+   `locked: false` are both accepted, leaving `true` and then `false`.
+5. **`add child` into a segment line.** Neither value stating `locked`
+   (a segment line's segments are all segment lines or none): into the
+   root `form` of `unknown_length_segments.json` (its length unknown), a
+   child `d` of 4 at 20 holds `locked: false`; into the root `form` of
+   `segment_line.json`, a child `e` of unknown length at 32 that is a
+   segment line holding no segment holds `locked: true`. The same `d` stating `locked:
+   true` is `segment_never_locked` at `[A + "/form", "child"]`, message `A
+   segment is never locked: lock its segment line 'form' instead.`; the
+   same `e` stating `locked: false` is `unlocking_not_supported` at the
+   same path.
+6. **`add child` of a subtree.** Into the root `bare` of `bare.json` (not
+   a segment line), a child `sl` of 4 at 0 that is a segment line holding
+   the segment `s1` of 4 at 0, neither stating `locked`, is added with
+   `sl` locked and `s1` unlocked. The same value with `s1` stating `locked:
+   true` is `segment_never_locked` at `[A + "/bare", "child"]`, message
+   naming the line `sl`. A child that is no segment line added into a
+   timeline that is no segment line keeps the lock it states (the accept
+   paths above add `bare`'s root, locked, as a child).
 
 ## Several roots and groups (`files.test.ts`)
 
@@ -815,7 +912,13 @@ beside its `order`) and `bundles/bundle_mixed.json` (no id, name
    "/score/start"]`. `unknown_target` also for `A/region_1` (an entry needs
    its root), `A/page/region_1` (not in page's tree) and
    `A/score/region_1/x`; `A/group_1` is a target, a group, which `set`
-   refuses by kind (`wrong_target_kind` for `name`).
+   refuses by kind (`wrong_target_kind` for `name`). `findTimeline`, the
+   one reader of a timeline by id, searches every root's tree: in
+   `bundle_mixed.json` it gives for `annotations` the object at
+   `timelines[0]` and for `excerpt` the object at `timelines[3].children[0]`
+   (the child of `recording`; the very objects, not copies), and
+   `undefined` for `group_1` (a group), `name` (the title), `recording/excerpt`
+   (an element address, not an id) and `nothing` (no element).
 6. **Commands.** `set` reaches a timeline at any depth: `name: "Late"` on
    `A/second-half` of `group_child_member.json` changes exactly
    `timelines[0].children[0].name`, and `name: "Intro"` on `A/score/region_1`
@@ -915,13 +1018,16 @@ its expectation from `withoutSegment` would restate the code, so none does.
 
 Manifests: `segment_children.json` (root `piece`, 32 quarters, not a segment
 line; its child segment line `theme` at 6 of length 12 holds `t1` at 0, `t2`
-at 4 and `t3` at 8, each of length 4; every segment and segment line is
-locked) and `unknown_length_segments.json` (root segment line `form` of
-unknown length, not locked; `a` at 0 of unknown length, `b` at 8 of length
-6, `c` at 14 of unknown length, all locked), each in block `A`, unlocked
-where a case says so by one `set {locked: false}`.
+at 4 and `t3` at 8, each of length 4; every segment line is locked) and
+`unknown_length_segments.json` (root segment line `form` of unknown length,
+not locked; `a` at 0 of unknown length, `b` at 8 of length 6, `c` at 14 of
+unknown length), each in block `A`. Their segments are no segment lines
+and read unlocked (a segment's own lock has no meaning: its line's governs
+it), so no neighbour's lock refuses an extend. A segment line that is a child is unlocked where a case
+says so by its value stating `locked: false` before it is read: no command
+lifts that lock yet, and these cases prove the gap rules for when one does.
 
-1. **Known lengths**, `theme`, `t1` and `t3` unlocked, `remove A/t2` (l = 4)
+1. **Known lengths**, `theme` unlocked, `remove A/t2` (l = 4)
    with each gap; `theme`'s children are then exactly `t1` and `t3`:
    - left extend: `t1` at `[0, 1]` of `[8, 1]`, `t3` at `[8, 1]` of
      `[4, 1]`, `theme` at `[6, 1]` of `[12, 1]`;
@@ -935,28 +1041,27 @@ where a case says so by one `set {locked: false}`.
    `{t1}`, `{t3}`, `{theme, t3}` and `{theme, t1}` in that order: under
    left shift `t3` keeps its place in `piece` (14) although its offset
    changes.
-2. **Unknown lengths**, `unknown_length_segments.json`, nothing unlocked,
+2. **Unknown lengths**, `unknown_length_segments.json`,
    `remove A/b` (l = 6): left extend leaves `a` at `[0, 1]` of `null` and
    `c` at `[14, 1]` of `null`; right extend gives `c` at `[8, 1]` of
    `null`; right shift gives `c` at `[8, 1]` of `null`; `form`'s length
-   stays `null` in all three. With `b` unlocked, `remove A/c` (the last
+   stays `null` in all three. `remove A/c` (the last
    segment, its length not known, nor its line's): left extend gives `b` a
    length of `null`; right shift leaves `b` at `[8, 1]` of `[6, 1]`.
    `remove A/a` (its length is `b`'s offset, 8) right shift gives `b` at
    `[0, 1]` and `c` at `[6, 1]`.
 3. **The permitted ways** (`segmentGaps`, in the order left extend, right
    extend, left shift, right shift, `null` where permitted):
-   - `t2` with nothing unlocked: `the preceding segment t1 is locked`, `the
-     following segment t3 is locked`, `its segment line theme is locked`,
-     `its segment line theme is locked`;
+   - `t2` with `theme` locked: `null`, `null` (its neighbours are
+     segments, never locked), `its segment line theme is locked`, `its
+     segment line theme is locked`;
    - `t1`, the first segment: `no segment precedes it` first; `t3`, the last:
      `no segment follows it` second;
    - `b` of `form`: `null`, `null`, `its segment line form is a root and has
-     no offset to move`, `null` (a neighbour of unknown length extends
-     though it is locked);
+     no offset to move`, `null` (neighbours of unknown length extend);
    - a refusal by the manifest's rules: `segment_line.json` with `b`
-     unlocked, `b1` (a segment of `b`, itself a segment of `form`): left
-     shift `segment "b" of segment line "form" does not start where the one
+     stating `locked: false`, `b1` (a segment of `b`, itself a segment of
+     `form`): left shift `segment "b" of segment line "form" does not start where the one
      before it ends`, right shift `segment "c" of segment line "form" does
      not start where the one before it ends` (the segment line cannot change
      its length inside `form`);
@@ -964,14 +1069,14 @@ where a case says so by one `set {locked: false}`.
      `undefined`.
 4. **Refusals**, each exact code and path, the view unchanged:
    `remove A/t2` without a gap → `gap_required` at `[A/t2]`; `remove
-   [A/t2, A/t3]` → `gap_required` at `[A/t2]`; with nothing unlocked,
-   left extend → `gap_not_permitted` at `[A/t2, "gap"]`; a gap on `A/intro`
+   [A/t2, A/t3]` → `gap_required` at `[A/t2]`; with `theme` locked, left
+   shift → `gap_not_permitted` at `[A/t2, "gap"]`; a gap on `A/intro`
    (a child of `piece`, no segment) and on `A/piece` (a root) →
    `wrong_target_kind` at `[<address>, "gap"]`; a gap with two targets →
    `invalid_command` at `["targets"]`; side `up` → `invalid_command` at
    `["gap", "side"]`; verb `grow` → at `["gap", "verb"]`; a member `by` → at
-   `["gap", "by"]`; `segment_line.json` with `b` unlocked, `remove A/b1`
-   right shift → `schema_violation` at `[A, "manifest", "timelines", 0,
+   `["gap", "by"]`; `segment_line.json` with `b` stating `locked: false`,
+   `remove A/b1` right shift → `schema_violation` at `[A, "manifest", "timelines", 0,
    "children", 2, "offset"]`.
 5. **What needs no gap**: a segment that goes with another target. `remove
    [A/theme, A/t2]` removes `theme` with its segments, and `remove [A,
@@ -1089,12 +1194,13 @@ of the timeline it targets.
    `id_not_settable`, `invalid_address`, `invalid_coordinate`,
    `invalid_index`, `invalid_order`, `invalid_value`,
    `length_below_content`, `locked`, `map_source_unit_mismatch`,
-   `non_finite_number`, `non_positive_number`,
+   `negative_child_offset`, `non_finite_number`, `non_positive_number`,
    `not_removable`, `number_type_not_allowed`, `region_end_before_start`,
-   `schema_violation`, `unknown_property`, `unknown_target`,
-   `wrong_target_kind`. `segment_end_fixed` is not among them: the sample
-   never gives an unlocked segment a new length of a value, and the length
-   tests pin that code instead. The sample runs every fixture's 100 sequences in
+   `schema_violation`, `segment_end_fixed`, `segment_never_locked`,
+   `unknown_property`, `unknown_target`, `wrong_target_kind`.
+   `unlocking_not_supported` is not among them: the sample never sets
+   `locked: false` on a segment line that is a child, a segment or a group
+   member, and the command tests pin that code instead. The sample runs every fixture's 100 sequences in
    one test, measured at 3.5 to 6.4 s with the load averages of 3 to 8 of
    a full suite run beside other work, above Vitest's default 5 s; the test
    therefore carries an explicit timeout of 20 s, about three times the

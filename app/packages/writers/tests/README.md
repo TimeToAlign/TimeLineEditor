@@ -188,13 +188,18 @@ cx="10" cy="20" r="2" fill="#00CC00"/>`, then the end:
 - `diamond`: the line to `50 − 1.5 × 2 = 47`, then `<polygon
   data-address="c" points="47,20 50,17.6 53,20 50,22.4" fill="none"
   stroke="#00CC00" stroke-width="1"/>` (`1.2w = 2.4`);
-- `chevrons`, the open end of a timeline of unknown length (section 6.6),
-  `xe` being `Xr`, the point the line runs on to: the line to 50, then the
-  inner chevron `<polyline data-address="c" points="52,17 55,20 52,23"
-  fill="none" stroke="#00CC00" stroke-width="1"/>` (`Xr + w`, `Xr +
-  2.5w`) and the outer one through `55,17 58,20 55,23` (`Xr + 2.5w`, `Xr +
-  4w`), stroked at `w / 2`, no dash, and carrying the line's own address
-  `c`, so they hit the line;
+- `unknown`, the open end of a timeline of unknown length (section 6.6),
+  `xe` being `Xr`, the point the line runs on to: the line to 50, then
+  three chevrons, the inner one `<polyline data-address="c" points="52,17
+  55,20 52,23" fill="none" stroke="#00CC00" stroke-width="1"/>` (`Xr + w`,
+  `Xr + 2.5w`), the middle one through `55,17 58,20 55,23` (`Xr + 2.5w`,
+  `Xr + 4w`) and the outer one through `58,17 61,20 58,23` (`Xr + 4w`, `Xr
+  + 5.5w`), stroked at `w / 2`, no dash, and carrying the line's own
+  address `c`, so they hit the line;
+- `chevrons`, a line running on (section 8.3): the line to 50, then only
+  the inner and the middle of those three, `52,17 55,20 52,23` and `55,17
+  58,20 55,23`: two chevrons, never three, so the two ends differ in the
+  outer chevron alone;
 - each line is `<line data-address="c" x1="10" y1="20" x2="{stop}"
   y2="20" stroke="#00CC00" stroke-width="2" stroke-dasharray="3 3"/>`.
 
@@ -211,6 +216,26 @@ pattern=on 3pt off 3pt,opacity=0.35] (20,10) -- (40,10);` and the inner
 left chevron `\path[draw=ts00CC00,line width=1pt,opacity=0.35] (18,13) --
 (15,10) -- (18,7);`, open, without `cycle`. An ancestor with a start circle
 and a diamond end is written exactly as a child with them.
+
+**Three chevrons and two in real drawings** (`w = 3`, section 6.6 and
+8.3). The writer is checked on the layout's own output, every point formed
+as `Xr` (or `Xa`) plus its constant multiple of `w`:
+
+- `unknown_length`: the open root `score` (`Xr = 465.798828125`, `y = 37`)
+  writes exactly three polylines with its address, inner, middle, outer:
+  `(468.798828125, 32.5) (473.298828125, 37) (468.798828125, 41.5)`, then
+  `(473.298828125, 32.5) (477.798828125, 37) (473.298828125, 41.5)`, then
+  `(477.798828125, 32.5) (482.298828125, 37) (477.798828125, 41.5)`, the
+  outer tip `Xr + 5.5w`, 28.5 past `Xe`; in TikZ, three `\path` commands.
+- `groups/group_grandchild`: the ancestor `score` runs on at both sides
+  (`Xa = 99.70361328125`, `Xr = 523.70361328125`, `y = 67.78125`) and
+  writes exactly four polylines, two on each side: left `(96.70361328125,
+  63.28125) (92.20361328125, 67.78125) (96.70361328125, 72.28125)` and
+  `(92.20361328125, 63.28125) (87.70361328125, 67.78125) (92.20361328125,
+  72.28125)`; right `(526.70361328125, 63.28125) (531.20361328125,
+  67.78125) (526.70361328125, 72.28125)` and `(531.20361328125, 63.28125)
+  (535.70361328125, 67.78125) (531.20361328125, 72.28125)`, the outer tip
+  `Xr + 4w`, never `Xr + 5.5w`.
 
 **Other elements.**
 

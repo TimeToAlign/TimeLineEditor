@@ -105,7 +105,7 @@ export type ManifestGraphical = Graphical;
 
 /**
  * A TimeSkeleton manifest: its root timelines, optionally grouped. With an
- * `id` or a `name` it is named, without both anonymous.
+ * `id` or a `name` it is named, without both an anonymous bundle.
  */
 export type Manifest = Complete<
   Omit<Lossless<TimeSkeleton>, "timelines" | "groups" | "graphical">,

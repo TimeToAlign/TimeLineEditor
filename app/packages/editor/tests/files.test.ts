@@ -34,7 +34,7 @@ describe("manifestFileName", () => {
     };
     expect(named({ id: "flow:quarters", name: "Flow" })).toBe("flow_quarters.json");
     expect(named({ name: "Eroica: II" })).toBe("Eroica__II.json");
-    expect(named({})).toBe("manifest.json");
+    expect(named({})).toBe("bundle.json");
   });
 });
 

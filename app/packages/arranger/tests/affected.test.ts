@@ -43,6 +43,7 @@ describe("affectedBy", () => {
       ["piece"],
       ["second-half/card", ...marks("second-half"), "second-half", "second-half/name"],
     ],
+    [CHILD_MEMBER, ["recording/card"], ["recording", "recording/name", ...marks("recording")]],
     [MPM, ["group_1"], []],
     [MPM, ["group_1/name"], ["group_1"]],
     [MPM, ["name"], []],

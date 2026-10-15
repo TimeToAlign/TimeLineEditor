@@ -9,6 +9,8 @@ export const name = "@timetoalign/tilie-arranger" as const;
 export { affectedBy, movedByGap } from "./affected.ts";
 // Components
 export { default as BlockNodeComponent } from "./BlockNode.svelte";
+export type { BoxKind, DrawingPoint, Hit, Hover } from "./boxes.ts";
+export { hitOf, hoverOf, selectionOf } from "./boxes.ts";
 export { default as Canvas } from "./Canvas.svelte";
 export { default as CanvasToolbar } from "./CanvasToolbar.svelte";
 export type { Move, SegmentDelete, Visible, ZOrderAction } from "./commands.ts";

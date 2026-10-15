@@ -7,7 +7,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
-import { canonicalJson, parseJson, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
+import { canonicalJson, dumps, parseJson, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
 import type { Block, Command, Manifest, View } from "../src/index.ts";
 import { apply, createView, isCommandError, isLoadError, loadManifest } from "../src/index.ts";
 import type { JsonObject, PathSegment } from "../src/json.ts";
@@ -131,6 +131,30 @@ export function addBlock(id: string, name: string): Command {
 /** An empty view with one block per `[id, name]` pair of a manifest fixture, added in that order. */
 export function viewOf(...blocks: (readonly [string, string])[]): View {
   return blocks.reduce((view, [id, name]) => changed(view, addBlock(id, name)), createView());
+}
+
+/**
+ * A view with block `A` holding a manifest fixture whose timelines `ids`
+ * state `locked: false` before it is read, which reading keeps where no
+ * command could lift the lock (a segment line that is a child, a segment or
+ * a group member).
+ */
+export function unlockedView(name: string, ...ids: string[]): View {
+  const unlock = (timeline: Record<string, unknown>): Record<string, unknown> => ({
+    ...timeline,
+    ...(ids.includes(timeline.id as string) ? { locked: false } : {}),
+    children: (timeline.children as Record<string, unknown>[]).map(unlock),
+  });
+  const value = manifestValue(name);
+  const manifest = loadText(
+    dumps({ ...value, timelines: (value.timelines as Record<string, unknown>[]).map(unlock) }),
+    name,
+  );
+  return changed(createView(), {
+    type: "add",
+    into: "workspace",
+    block: { id: A, manifest, x: 0, y: 0 },
+  });
 }
 
 export function block(view: View, id = A): Block {

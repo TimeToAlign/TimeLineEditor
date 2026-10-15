@@ -273,6 +273,13 @@ describe("descriptors", () => {
         startCircle,
         '<polygon data-address="c" points="47,20 50,17.6 53,20 50,22.4" fill="none" stroke="#00CC00" stroke-width="1"/>',
       ]);
+      expect(svgBody(line(type, "circle", "unknown"))).toEqual([
+        lineTo(50),
+        startCircle,
+        '<polyline data-address="c" points="52,17 55,20 52,23" fill="none" stroke="#00CC00" stroke-width="1"/>',
+        '<polyline data-address="c" points="55,17 58,20 55,23" fill="none" stroke="#00CC00" stroke-width="1"/>',
+        '<polyline data-address="c" points="58,17 61,20 58,23" fill="none" stroke="#00CC00" stroke-width="1"/>',
+      ]);
       expect(svgBody(line(type, "circle", "chevrons"))).toEqual([
         lineTo(50),
         startCircle,
@@ -281,6 +288,75 @@ describe("descriptors", () => {
       ]);
     });
   }
+
+  /** The points of the polylines a fixture's drawing writes for one address, in order. */
+  const chevronsOf = (name: string, address: string) => {
+    const manifest = loadFixture(name);
+    const drawing = draw(
+      manifest,
+      DEFAULT_PLACEMENT,
+      [DEFAULT_LAYER, manifestLayer(manifest)],
+      fontMetrics,
+    );
+    const polylines = toDescriptors(drawing).filter(
+      (each) => each.tag === "polyline" && each.attrs[0]?.[1] === address,
+    );
+    return {
+      points: polylines.map((each) => each.attrs.find(([key]) => key === "points")?.[1]),
+      // Every open path of three points the TikZ writer writes: a chevron.
+      chevronPaths: tikzBody(drawing).filter((each) =>
+        /^\\path\[[^\]]*\] \([^)]*\) -- \([^)]*\) -- \([^)]*\);$/.test(each),
+      ).length,
+    };
+  };
+
+  it("ends an open line in three chevrons, its outer tip 9.5w past its end", () => {
+    const { points, chevronPaths } = chevronsOf("unknown_length", "score");
+    expect(chevronPaths).toBe(3);
+    expect(points).toEqual([
+      [
+        [468.798828125, 32.5],
+        [473.298828125, 37],
+        [468.798828125, 41.5],
+      ],
+      [
+        [473.298828125, 32.5],
+        [477.798828125, 37],
+        [473.298828125, 41.5],
+      ],
+      [
+        [477.798828125, 32.5],
+        [482.298828125, 37],
+        [477.798828125, 41.5],
+      ],
+    ]);
+  });
+
+  it("runs an ancestor line on in two chevrons on each side, never three", () => {
+    const { points } = chevronsOf("groups/group_grandchild", "score");
+    expect(points).toEqual([
+      [
+        [96.70361328125, 63.28125],
+        [92.20361328125, 67.78125],
+        [96.70361328125, 72.28125],
+      ],
+      [
+        [92.20361328125, 63.28125],
+        [87.70361328125, 67.78125],
+        [92.20361328125, 72.28125],
+      ],
+      [
+        [526.70361328125, 63.28125],
+        [531.20361328125, 67.78125],
+        [526.70361328125, 72.28125],
+      ],
+      [
+        [531.20361328125, 63.28125],
+        [535.70361328125, 67.78125],
+        [531.20361328125, 72.28125],
+      ],
+    ]);
+  });
 
   it("runs an ancestor line on at both sides in double chevrons, inner first", () => {
     const drawing = synthetic({

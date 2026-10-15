@@ -35,9 +35,10 @@ export function childRows(scope: Scope): ChildRows {
       continue;
     }
     const side = entry.style.side;
-    // An open end's chevrons take room in the row: the extent runs on 8w past its end.
+    // An open end's three chevrons take room in the row: the extent runs on to the outer
+    // chevron's tip, 9.5w past its end.
     const end = relativeEnd(entry);
-    const right = entry.open ? end + 8 * entry.style["stroke-width"] : end;
+    const right = entry.open ? end + 9.5 * entry.style["stroke-width"] : end;
     const row = rows[side].place([relativeX(entry.start), right], parent[side] + 1);
     childRow.set(entry, row);
     while (rowLines[side].length < row) rowLines[side].push([]);
@@ -100,7 +101,7 @@ export function childrenBand(
   };
 }
 
-/** The child lines, each ending with the open diamond, or running on into chevrons where open. */
+/** The child lines, each ending with the open diamond, or running on into three chevrons where open. */
 export function childElements(children: ChildRows, placed: Position): LineElement[] {
   const { x, xEnd, lineY } = placed;
   return children.drawn.map((entry) => ({
@@ -111,6 +112,6 @@ export function childElements(children: ChildRows, placed: Position): LineElemen
     xe: entry.open ? xEnd(entry) + 4 * entry.style["stroke-width"] : xEnd(entry),
     y: lineY(entry),
     start: "circle",
-    end: entry.open ? "chevrons" : "diamond",
+    end: entry.open ? "unknown" : "diamond",
   }));
 }

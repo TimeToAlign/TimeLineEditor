@@ -62,6 +62,7 @@ function rightEdge(element: DrawnElement, measure: TextMeasure): number | undefi
         open: element.xe + 3 * w,
         circle: element.xe + w,
         diamond: element.xe + 1.5 * w,
+        unknown: element.xe + 5.5 * w,
         chevrons: element.xe + 4 * w,
       }[element.end];
       return element.start === "circle" ? Math.max(element.xs + w, end) : end;

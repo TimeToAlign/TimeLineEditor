@@ -21,20 +21,16 @@ describe("click", () => {
     expect(added).toEqual(new Set([A, `${B}/clt_1`]));
   });
 
-  it("selects a timeline by a press on its card, and every other part as pressed", () => {
-    expect(click(new Set(), `${A}/bare/card`, false)).toEqual(new Set([`${A}/bare`]));
-    const recording = click(new Set(), `${A}/recording/card`, false);
-    expect(recording).toEqual(new Set([`${A}/recording`]));
-    expect(click(recording, `${A}/recording/card`, true)).toEqual(new Set());
-    expect(click(new Set(), `${A}/recording/start`, false)).toEqual(
-      new Set([`${A}/recording/start`]),
+  it("keeps a card's address: the card and its timeline are two selections", () => {
+    const card = click(new Set(), `${A}/recording/card`, false);
+    expect(card).toEqual(new Set([`${A}/recording/card`]));
+    expect(click(card, `${A}/recording/card`, true)).toEqual(new Set());
+    expect(click(new Set([`${A}/recording`]), `${A}/recording/card`, true)).toEqual(
+      new Set([`${A}/recording`, `${A}/recording/card`]),
     );
-    expect(click(new Set(), `${A}/card`, false)).toEqual(new Set([`${A}/card`]));
-    expect(click(new Set(), `${A}/card/card`, false)).toEqual(new Set([`${A}/card`]));
-    expect(click(new Set(), A, false)).toEqual(new Set([A]));
   });
 
-  it("presses addresses the drawings carry", () => {
+  it("selects addresses the drawings carry", () => {
     for (const [fixture, card, timeline] of [
       ["bare", "bare/card", "bare"],
       [CHILD_MEMBER, "recording/card", "recording"],

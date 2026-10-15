@@ -271,26 +271,53 @@ export async function toScreen(
 /**
  * A whole-pixel screen point on block `id`'s card, away from everything
  * drawn on it: the element hit there and at the eight points `clearance` px
- * around it is the card (`<root>/card`) of that block, found by hit-testing a
- * raster of points across the node. A press there selects the card's
- * timeline; a drag from there moves the block.
+ * around it is a card (`<root>/card`) of that block, found by hit-testing a
+ * raster of points across the node. A press there selects that card; a drag
+ * from there moves the block.
  */
-export async function cardPoint(
+export function cardPoint(
   page: Page,
   id: string,
   clearance = 6,
 ): Promise<{ x: number; y: number }> {
+  return boxPoint(page, id, null, clearance);
+}
+
+/**
+ * A whole-pixel screen point on the frame of group `group` in block `id`,
+ * away from its cards and its title, found as `cardPoint` finds a card: the
+ * element hit there and at the eight points `clearance` px around it is the
+ * frame (`data-address` the group id). A press there selects the group.
+ */
+export function framePoint(
+  page: Page,
+  id: string,
+  group: string,
+  clearance = 6,
+): Promise<{ x: number; y: number }> {
+  return boxPoint(page, id, group, clearance);
+}
+
+/** A point whose hit, there and `clearance` px around, is the box `address`, or any card for `null`. */
+async function boxPoint(
+  page: Page,
+  id: string,
+  address: string | null,
+  clearance: number,
+): Promise<{ x: number; y: number }> {
   const box = await node(page, id).boundingBox();
   if (box === null) throw new Error(`block ${id} is not displayed`);
   const found = await page.evaluate(
-    ({ block, clearance, left, top, width, height }) => {
-      // The card at a point and at the points `clearance` px around it, so neither
+    ({ block, address, clearance, left, top, width, height }) => {
+      // The box at a point and at the points `clearance` px around it, so neither
       // pixel rounding nor a finger's contact area reaches another drawn element.
-      const card = (x: number, y: number) => {
+      const inside = (x: number, y: number) => {
         const hit = document.elementFromPoint(x, y);
+        const at = hit?.closest("[data-address]")?.getAttribute("data-address");
         return (
           hit?.closest(".svelte-flow__node")?.getAttribute("data-id") === block &&
-          hit?.closest("[data-address]")?.getAttribute("data-address")?.endsWith("/card") === true
+          at != null &&
+          (address === null ? at.endsWith("/card") : at === address)
         );
       };
       const around = [-clearance, 0, clearance];
@@ -298,16 +325,24 @@ export async function cardPoint(
         for (let fx = 0.05; fx < 1; fx += 0.05) {
           const x = Math.round(left + width * fx);
           const y = Math.round(top + height * fy);
-          if (around.every((dx) => around.every((dy) => card(x + dx, y + dy)))) {
+          if (around.every((dx) => around.every((dy) => inside(x + dx, y + dy)))) {
             return { x, y };
           }
         }
       }
       return null;
     },
-    { block: id, clearance, left: box.x, top: box.y, width: box.width, height: box.height },
+    {
+      block: id,
+      address,
+      clearance,
+      left: box.x,
+      top: box.y,
+      width: box.width,
+      height: box.height,
+    },
   );
-  if (found === null) throw new Error(`block ${id} shows no point on its card`);
+  if (found === null) throw new Error(`block ${id} shows no point on ${address ?? "its card"}`);
   return found;
 }
 
