@@ -560,11 +560,17 @@ header is 32 px high and the inspector closed, so the arranger measures
 
 The inspector drawer on `small` at zoom 1 (viewport `{x: 40, y: 40, zoom:
 1}`), with `bare000000` selected through the hook and the drawer opened by
-its "Open inspector" button. The text is read from the textarea labelled
-"Manifest (…)", the format chosen by the radio labelled "YAML".
+its "Open inspector" button. The drawer holds two tabs, "Properties" and
+"Manifest", in the tab list "Inspector sections"; every case starts with
+"Properties" selected (`aria-selected="true"`, "Manifest" `"false"`) and
+the textarea out of the accessibility tree (its panel is `hidden`). A
+case about the manifest text first presses the tab "Manifest". The text
+is read from the textarea labelled "Manifest (…)", the format chosen by
+the radio labelled "YAML", the options by the checkboxes "Include
+styling" and "Minimal", and the buttons are "Apply" and "Revert".
 
 1. **A YAML edit reaches the canvas as one command, and Undo restores it.**
-   The YAML text's line `    name: Bare` (the root's, inside the list
+   On the Manifest tab, the YAML text's line `    name: Bare` (the root's, inside the list
    `timelines`) becomes `    name: Renamed`; Apply
    adds exactly one journal entry (5 → 6), a `set` whose only change
    targets `bare000000` with the single value `manifest`; the drawn name
@@ -572,19 +578,31 @@ its "Open inspector" button. The text is read from the textarea labelled
    stored manifest's `timelines[0].name` is `Renamed`. After `undo()` through
    the hook the drawn name reads `Bare` again and the textarea, which holds
    no unapplied edit, shows `    name: Bare` again.
-2. **A refused edit shows its exact path and keeps the text.** `    locked:
+2. **A refused edit shows its exact path and keeps the text.** On the
+   Manifest tab, `    locked:
    false` becomes `    locked: yes` (a string in YAML 1.2); Apply leaves the
    journal at 5, the problem list holds exactly one item reading
-   `schema_violation must be boolean at /timelines/0/locked`, and the textarea
-   still holds the edited text.
-3. **The properties form moves the block by the exact amount.** The field
+   `schema_violation must be boolean at /timelines/0/locked`, the textarea
+   still holds the edited text, and Apply and Revert stay enabled (the text
+   still differs from the one shown).
+3. **The properties form moves the block by the exact amount.** On the
+   Properties tab, the field
    `x` (initially `0`) is filled with `37.5` and Enter pressed: the journal
    grows by one `set` `{target: "bare000000", values: {x: 37.5}}`, the
    stored `x` is `37.5`, and the node's bounding box has moved right by
    exactly 37.5 px (zoom 1) with its `y` unchanged.
-4. **axe-core reports no violation with the drawer open and the manifest
-   shown** (YAML chosen, the text beginning with its first key, `groups: []`;
-   `bare000000` selected).
+4. **The tabs follow the keyboard.** The tab list "Inspector sections"
+   holds exactly the tabs "Properties" (id `inspector-tab-properties`,
+   `aria-controls` `inspector-panel-properties`) and "Manifest"
+   (`inspector-tab-manifest`, `aria-controls` `inspector-panel-manifest`);
+   each panel has `role="tabpanel"` and `aria-labelledby` its tab. With the
+   focus on "Properties", each key below selects and focuses the tab
+   named, and afterwards exactly that tab has `aria-selected="true"` and
+   `tabindex="0"`, the other `"false"` and `"-1"`, its panel is visible
+   and the other panel hidden: ArrowRight → Manifest, ArrowLeft →
+   Properties, ArrowLeft → Manifest (wrapping), ArrowRight → Properties
+   (wrapping), End → Manifest, Home → Properties. No key adds a journal
+   entry (still 5). (axe-core on both tabs is in `a11y.spec.ts`.)
 5. **The form follows a drag live.** `bare000000` (at (0, 0)) is pressed
    on its card and moved by (101, 37) with the button held: Svelte
    Flow has it at the grid point (104, 40) (no other left edge or origin
@@ -651,12 +669,68 @@ its "Open inspector" button. The text is read from the textarea labelled
     gone and the subject reads exactly "Anonymous bundle" (the manifest
     has neither `id` nor `name`). Neither press adds a journal entry
     (still 6).
+11. **Apply and Revert are enabled exactly while the text is edited, in
+    each of the four modes.** One case per mode: the complete or the
+    minimal form (the checkbox "Minimal"), each with the styling excluded
+    or included (the checkbox "Include styling"). The block is
+    `styled0000`, whose manifest is timeskeleton's fixture
+    `styled__score.json` as stored (it has `graphical`, and its minimal
+    form, the fixture `styled__score.minimal.json`, leaves out many
+    defaulted keys), with its root `styled0000/score` selected through the
+    hook, so the subject beside the heading reads "Timeline Score". The
+    text is JSON, timeskeleton's `dumps`. The expected text of a mode is
+    derived from the fixture files alone, never from the editor: the
+    complete form is `styled__score.json` byte for byte, the minimal form
+    `styled__score.minimal.json` byte for byte (the schema package's JS
+    `dumps(minimal(…))` of the complete fixture writes exactly that file),
+    and with the styling excluded each is `dumps` of that file's value read
+    by `parseJson` without its `graphical` member. Each case:
+    1. on the Manifest tab both checkboxes are unchecked; the case checks
+       the mode's ones, and the textarea then equals the mode's expected
+       text exactly; Apply and Revert are disabled;
+    2. one character typed into the textarea enables both buttons, disables
+       the checkboxes "Minimal" and "Include styling", and shows "Apply or
+       Revert to switch"; Backspace restores the text character for
+       character: the textarea equals the expected text again, both buttons
+       are disabled and the hint is gone;
+    3. the text with `"name": "Score"` (once in every mode's text: the
+       root's name; the conversion map's is "Ticks", the region's "intro")
+       replaced by `"name": "Draft"` enables both; Revert makes the textarea
+       equal the expected text again and disables both; the journal is
+       still 5;
+    4. the text with `"name": "Score"` replaced by `"name": "Renamed"`;
+       Apply adds exactly one journal entry (5 → 6), a `set` whose only
+       change targets `styled0000` with the single value `manifest`. The
+       whole stored manifest then equals in value (deep equality; the
+       store keeps the key order of the text applied, which no writer
+       shows) `loadManifest` of `styled__score.json` with that one
+       replacement: the complete form with `graphical` exactly as before
+       in every mode, also when the text did not show it. Both sides pass
+       through `JSON.stringify` on their way out of the page, which is
+       exact here: `styled__score` holds no integral float and no
+       `bigint`. The textarea equals the mode's expected text with the
+       same replacement byte for byte, so it still pins the order the user
+       sees (minimal: no defaulted key reappears; excluded: no
+       `graphical`); both buttons are disabled, and the tab
+       "Manifest" is still the selected one;
+    5. on the Properties tab the subject reads "Timeline Renamed", the
+       Locked checkbox of `score` is unchecked (its stored `false`) and the
+       fields `x` and `y` show the block's `640` and `160`.
+12. **An unapplied text survives a visit to Properties.** On the Manifest
+    tab the JSON text of `bare000000` with `"name": "Bare"` replaced by
+    `"name": "Kept"` is typed in; Apply and Revert are enabled. The tab
+    "Properties" is pressed, then the tab "Manifest": the textarea still
+    holds the edited text, Apply and Revert are still enabled, and the
+    journal is still 5.
 
 ## `a11y.spec.ts`
 
 axe-core (`@axe-core/playwright`) on the page with `small` open reports an
 empty `violations` list, again with the element `styled0000/score/intro`
-selected, with the inspector drawer open, with the File menu open, with the
+selected, with the inspector drawer open (nothing selected, so it shows
+only its hint), with the drawer inspecting the timeline `styled0000/score`
+on its default Properties tab and again on its Manifest tab (the
+textarea visible), with the File menu open, with the
 About dialog open, and with the question "… has unsaved changes. Discard
 them?" open (a `set` makes the workspace unsaved, then File → New
 workspace). Tab is pressed until a node holds the focus: the first is

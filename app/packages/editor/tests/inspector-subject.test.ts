@@ -181,4 +181,35 @@ describe("the subject beside the inspector's heading", () => {
     expect(shown([])).toEqual([undefined, null]);
     expect(drawer?.hasAttribute("aria-describedby")).toBe(false);
   });
+
+  it("follows an applied manifest without a change of selection", () => {
+    window.history.replaceState({}, "", "/");
+    stubEditor();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ name: "tilie-server", version: "0", timetoalign: "0" })),
+    );
+    app = mount(App, { target: document.body });
+    flushSync();
+    const hook = window.__tilie;
+    if (hook === undefined) throw new Error("window.__tilie is not installed");
+    hook.load(workspaceText("bundles"));
+    flushSync();
+    hook.select(["bmixed0000/score"]);
+    flushSync();
+    const subject = () => document.getElementById("inspector-subject")?.textContent;
+    expect(subject()).toBe("Timeline Score");
+    (document.getElementById("inspector-tab-manifest") as HTMLElement).click();
+    flushSync();
+    const area = document.querySelector("#inspector textarea") as HTMLTextAreaElement;
+    area.value = area.value.replace('"name": "Score"', '"name": "Scores"');
+    area.dispatchEvent(new Event("input", { bubbles: true }));
+    flushSync();
+    const apply = [...document.querySelectorAll("#inspector button")].find(
+      (item) => item.textContent?.trim() === "Apply",
+    ) as HTMLButtonElement;
+    apply.click();
+    flushSync();
+    expect(subject()).toBe("Timeline Scores");
+  });
 });

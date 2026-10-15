@@ -4,7 +4,7 @@ import type { Block, BlockId, Json, Store, View } from "@timetoalign/tilie-core"
 import { unknownKeys } from "@timetoalign/tilie-core";
 import { untrack } from "svelte";
 import type { Attachment } from "svelte/attachments";
-import type { Property } from "./edit.ts";
+import type { Property, TextOptions } from "./edit.ts";
 import {
   applyText,
   follow,
@@ -39,6 +39,44 @@ const FORMAT_LABELS: { readonly [format in Format]: string } = {
   yaml: "YAML",
   toml: "TOML",
 };
+
+/** The inspector's two sections, in tab order. */
+const TABS = ["properties", "manifest"] as const;
+type Tab = (typeof TABS)[number];
+
+const TAB_LABELS: { readonly [tab in Tab]: string } = {
+  properties: "Properties",
+  manifest: "Manifest",
+};
+
+/** The section shown: Properties whenever the inspector is mounted, then kept while the selection changes. */
+let tab: Tab = $state("properties");
+
+/** The tab buttons, to move the focus with the keys. */
+const tabButtons: { [tab in Tab]?: HTMLButtonElement } = {};
+
+/**
+ * The keys of a tab list: the arrows move to the other tab (wrapping), Home and End to the first
+ * and last. A key held with Alt, Ctrl or Meta is left to the browser (Alt+ArrowLeft goes back).
+ */
+function onTabKey(event: KeyboardEvent, from: Tab): void {
+  if (event.altKey || event.ctrlKey || event.metaKey) return;
+  const at = TABS.indexOf(from);
+  const next =
+    event.key === "ArrowRight"
+      ? TABS[(at + 1) % TABS.length]
+      : event.key === "ArrowLeft"
+        ? TABS[(at + TABS.length - 1) % TABS.length]
+        : event.key === "Home"
+          ? TABS[0]
+          : event.key === "End"
+            ? TABS[TABS.length - 1]
+            : undefined;
+  if (next === undefined) return;
+  event.preventDefault();
+  tab = next;
+  tabButtons[next]?.focus();
+}
 
 /** The store's view, followed through `subscribe`. */
 let view: View = $state.raw(untrack(() => store.view));
@@ -88,21 +126,38 @@ const LOCKING_UNAVAILABLE = "Locking and unlocking is not available yet.";
 const warnings = $derived(block === null ? [] : unknownKeys(manifestOf(block)));
 
 let format: Format = $state("json");
-let showStyling = $state(false);
+let includeStyling = $state(false);
+let minimal = $state(false);
+
+/** What a text is written in: its format and its options. */
+interface Choice extends TextOptions {
+  readonly format: Format;
+}
+
+const choice: Choice = $derived({ format, includeStyling, minimal });
+
+function sameChoice(left: Choice, right: Choice): boolean {
+  return (
+    left.format === right.format &&
+    left.includeStyling === right.includeStyling &&
+    left.minimal === right.minimal
+  );
+}
 
 /** The text in the editor, and the text as last written from the manifest. */
 let text = $state("");
 let shownText = $state("");
-/** Which block, manifest and options the shown text was written from; `null` while it shows nothing. */
-let shown: {
-  block: BlockId;
-  manifest: Json;
-  format: Format;
-  showStyling: boolean;
-} | null = $state.raw(null);
+/** Which block, manifest, format and options the shown text was written from; `null` while it shows nothing. */
+let shown: (Choice & { readonly block: BlockId; readonly manifest: Json }) | null =
+  $state.raw(null);
 /** The parsed document behind the shown text, patched in place so its comments survive. */
 let source: Source | null = null;
 let problems: readonly InspectorProblem[] = $state.raw([]);
+/**
+ * Whether the listed problems are a refused Apply's, which belong to the text applied; otherwise
+ * they are writing the manifest's, which belong to the manifest.
+ */
+let refused = false;
 /** The manifest changed while the text held unapplied edits. */
 let stale = $state(false);
 
@@ -129,24 +184,28 @@ function ensureCodec(wanted: Format): void {
   );
 }
 
+/** Whether the text differs from the text last written from the manifest; Apply and Revert act only then. */
 const dirty = $derived(text !== shownText);
-/** Whether there is a text to apply: a written manifest, or an edit. */
-const canApply = $derived(shown !== null && (dirty || shownText !== ""));
 
-/** Show the manifest of `id` in the text, patching the current document when it already shows that block. */
+/**
+ * Show the manifest of `id` in the text, patching the current document when
+ * it already shows that block in the same format and options.
+ */
 function show(id: BlockId, manifest: Json): void {
+  const current = choice;
+  const options: TextOptions = {
+    includeStyling: current.includeStyling,
+    minimal: current.minimal,
+  };
   const patchable =
-    source !== null &&
-    shown !== null &&
-    shown.block === id &&
-    shown.format === format &&
-    shown.showStyling === showStyling;
+    source !== null && shown !== null && shown.block === id && sameChoice(shown, current);
   const written =
     patchable && source !== null
-      ? follow(source, manifest, showStyling)
-      : manifestText(manifest, format, showStyling);
-  shown = { block: id, manifest, format, showStyling };
+      ? follow(source, manifest, options)
+      : manifestText(manifest, current.format, options);
+  shown = { ...current, block: id, manifest };
   stale = false;
+  refused = false;
   if (written.ok) {
     source = written.value.source;
     text = shownText = written.value.text;
@@ -158,29 +217,36 @@ function show(id: BlockId, manifest: Json): void {
   }
 }
 
-// Follow the selection, the manifest and the options while the text holds no unapplied edit.
+// Follow the selection, the manifest and the options while the text holds no unapplied edit;
+// a text that becomes clean again (typed back to the shown text) follows at once.
 $effect(() => {
   const id = block?.id ?? null;
   const manifest = block === null ? null : manifestOf(block);
-  const options = { format, showStyling };
+  const wanted = choice;
   const codecReady = ready;
+  const edited = dirty;
   untrack(() => {
     if (!codecReady) {
-      ensureCodec(options.format);
+      ensureCodec(wanted.format);
       return;
     }
     const current = shown;
-    if (
+    const followed =
       current !== null &&
       current.block === id &&
       current.manifest === manifest &&
-      current.format === options.format &&
-      current.showStyling === options.showStyling
-    ) {
+      sameChoice(current, wanted);
+    if (edited) {
+      if (!followed) stale = true;
       return;
     }
-    if (dirty) {
-      stale = true;
+    if (followed) {
+      // The text was typed back to the shown text: what was refused or stale about it is gone.
+      stale = false;
+      if (refused) {
+        problems = [];
+        refused = false;
+      }
       return;
     }
     if (id === null || manifest === null) {
@@ -188,6 +254,7 @@ $effect(() => {
       source = null;
       text = shownText = "";
       problems = [];
+      refused = false;
       stale = false;
       return;
     }
@@ -198,16 +265,26 @@ $effect(() => {
 function apply(): void {
   if (shown === null) return;
   const id = shown.block;
-  const result = applyText(store, id, shown.format, text, shown.showStyling);
+  const result = applyText(store, id, shown.format, text, {
+    includeStyling: shown.includeStyling,
+    minimal: shown.minimal,
+  });
   if (!result.ok) {
     problems = result.problems;
+    refused = true;
     return;
   }
   source = result.value.source;
   text = shownText = result.value.text;
   shown = { ...shown, manifest: manifestOf(store.view.blocks[id] as Block) };
   problems = [];
+  refused = false;
   stale = false;
+  // The properties show the applied manifest: what was typed for the block before is dropped.
+  if (block?.id === id) {
+    drafts = {};
+    propertyProblems = {};
+  }
 }
 
 function revert(): void {
@@ -217,6 +294,7 @@ function revert(): void {
   if (block === null) {
     text = shownText = "";
     problems = [];
+    refused = false;
     return;
   }
   show(block.id, manifestOf(block));
@@ -225,7 +303,7 @@ function revert(): void {
 function onTextKey(event: KeyboardEvent): void {
   if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
     event.preventDefault();
-    apply();
+    if (dirty) apply();
   }
 }
 
@@ -349,144 +427,185 @@ function position(problem: InspectorProblem): string {
   <p class="hint">Select a block to inspect its manifest.</p>
 {:else}
   <div class="inspector-body">
-    {#if block !== null}
-      <form class="properties" aria-label="Block properties" onsubmit={(event) => event.preventDefault()}>
-        {#each PROPERTIES as property (property)}
-          <label>
-            <span>{property}</span>
-            <input
-              type="number"
-              step="any"
-              name={property}
-              value={fieldValue(property)}
-              placeholder={property === "width" || property === "height" ? "auto" : undefined}
-              aria-invalid={propertyProblems[property] !== undefined}
-              aria-describedby={propertyProblems[property] !== undefined
-                ? `property-problem-${property}`
-                : undefined}
-              onpointerdown={(event) => (pressed = event.currentTarget)}
-              oninput={(event) => onPropertyInput(event, property)}
-              {@attach wheelSteps(property)}
-              onkeydown={(event) => onPropertyKey(event, property)}
-              onblur={() => commitProperty(property)}
-            />
-          </label>
-          {#if property === "height" && timeline !== null}
-            <!-- The cell right of height. -->
-            <label class="locked">
-              <input
-                type="checkbox"
-                checked={timeline.timeline.locked}
-                disabled
-                title={LOCKING_UNAVAILABLE}
-              />
-              Locked
-            </label>
-          {/if}
-          {#if propertyProblems[property] !== undefined}
-            <p class="problem" id={`property-problem-${property}`}>{propertyProblems[property]}</p>
-          {/if}
-        {/each}
-      </form>
-    {/if}
-
-    <div class="options">
-      <div
-        class="formats"
-        role="radiogroup"
-        aria-label="Manifest format"
-        aria-describedby={dirty ? "inspector-switch-hint" : undefined}
-      >
-        {#each FORMATS as item (item)}
-          <label class={["segment", { checked: format === item }]}>
-            <input
-              type="radio"
-              name="inspector-format"
-              value={item}
-              bind:group={format}
-              disabled={dirty}
-            />
-            {FORMAT_LABELS[item]}
-          </label>
-        {/each}
-      </div>
-      <label class="styling">
-        <input
-          type="checkbox"
-          bind:checked={showStyling}
-          disabled={dirty}
-          aria-describedby={dirty ? "inspector-switch-hint" : undefined}
-        />
-        Show styling
-      </label>
-      {#if dirty}
-        <p class="switch-hint" id="inspector-switch-hint">Apply or Revert to switch</p>
-      {/if}
-    </div>
-
-    {#if stale}
-      <p class="notice" role="status">The manifest changed; Revert to see it</p>
-    {/if}
-
-    {#if !ready}
-      {#if loadFailure}
-        <p class="load-failure" role="alert">{loadFailure}</p>
-      {:else}
-        <p class="loading" role="status">Loading {FORMAT_LABELS[format]}…</p>
-      {/if}
-    {:else}
-    <label class="manifest-label" for="inspector-text">Manifest ({FORMAT_LABELS[format]})</label>
-    <textarea
-      id="inspector-text"
-      spellcheck="false"
-      autocomplete="off"
-      rows="20"
-      bind:value={text}
-      onkeydown={onTextKey}
-      aria-invalid={problems.length > 0}
-      aria-describedby={problems.length > 0 ? "inspector-problems" : undefined}
-    ></textarea>
-
-    <div class="actions">
-      <button type="button" onclick={apply} disabled={!canApply}>Apply</button>
-      <button type="button" onclick={revert} disabled={!dirty && !stale && problems.length === 0}
-        >Revert</button
-      >
-    </div>
-
-    <ul id="inspector-problems" class="problems" aria-live="polite">
-      {#each problems as problem, index (index)}
-        <li>
-          <code class="code">{problem.code}</code>
-          {problem.message}
-          {#if problem.line !== undefined}
-            <span class="where">at {position(problem)}</span>
-          {:else}
-            <span class="where"
-              >at {#if problemPointer(problem) === ""}the top level{:else}<code class="pointer"
-                  >{problemPointer(problem)}</code
-                >{/if}</span
-            >
-          {/if}
-        </li>
+    <div class="tabs" role="tablist" aria-label="Inspector sections">
+      {#each TABS as item (item)}
+        <button
+          type="button"
+          role="tab"
+          id={`inspector-tab-${item}`}
+          aria-controls={`inspector-panel-${item}`}
+          aria-selected={tab === item}
+          tabindex={tab === item ? 0 : -1}
+          bind:this={tabButtons[item]}
+          onclick={() => (tab = item)}
+          onkeydown={(event) => onTabKey(event, item)}>{TAB_LABELS[item]}</button
+        >
       {/each}
-    </ul>
-    {/if}
+    </div>
 
-    {#if warnings.length > 0}
-      <ul id="inspector-warnings" class="warnings" aria-label="Warnings">
-        {#each warnings as warning (`${problemPointer(warning)}\u0000${warning.key}`)}
-          {@const pointer = problemPointer(warning)}
-          <li>
-            Unknown key <code class="key">{warning.key}</code>
-            <span class="where"
-              >at {#if pointer === ""}the top level{:else}<code class="pointer">{pointer}</code
-                >{/if}</span
-            >
-          </li>
-        {/each}
-      </ul>
-    {/if}
+    <div
+      class="panel"
+      role="tabpanel"
+      id="inspector-panel-properties"
+      aria-labelledby="inspector-tab-properties"
+      hidden={tab !== "properties"}
+    >
+      {#if block !== null}
+        <form class="properties" aria-label="Block properties" onsubmit={(event) => event.preventDefault()}>
+          {#each PROPERTIES as property (property)}
+            <label>
+              <span>{property}</span>
+              <input
+                type="number"
+                step="any"
+                name={property}
+                value={fieldValue(property)}
+                placeholder={property === "width" || property === "height" ? "auto" : undefined}
+                aria-invalid={propertyProblems[property] !== undefined}
+                aria-describedby={propertyProblems[property] !== undefined
+                  ? `property-problem-${property}`
+                  : undefined}
+                onpointerdown={(event) => (pressed = event.currentTarget)}
+                oninput={(event) => onPropertyInput(event, property)}
+                {@attach wheelSteps(property)}
+                onkeydown={(event) => onPropertyKey(event, property)}
+                onblur={() => commitProperty(property)}
+              />
+            </label>
+            {#if property === "height" && timeline !== null}
+              <!-- The cell right of height. -->
+              <label class="locked">
+                <input
+                  type="checkbox"
+                  checked={timeline.timeline.locked}
+                  disabled
+                  title={LOCKING_UNAVAILABLE}
+                />
+                Locked
+              </label>
+            {/if}
+            {#if propertyProblems[property] !== undefined}
+              <p class="problem" id={`property-problem-${property}`}>{propertyProblems[property]}</p>
+            {/if}
+          {/each}
+        </form>
+      {/if}
+    </div>
+
+    <div
+      class="panel"
+      role="tabpanel"
+      id="inspector-panel-manifest"
+      aria-labelledby="inspector-tab-manifest"
+      hidden={tab !== "manifest"}
+    >
+      <div class="options">
+        <div
+          class="formats"
+          role="radiogroup"
+          aria-label="Manifest format"
+          aria-describedby={dirty ? "inspector-switch-hint" : undefined}
+        >
+          {#each FORMATS as item (item)}
+            <label class={["segment", { checked: format === item }]}>
+              <input
+                type="radio"
+                name="inspector-format"
+                value={item}
+                bind:group={format}
+                disabled={dirty}
+              />
+              {FORMAT_LABELS[item]}
+            </label>
+          {/each}
+        </div>
+        <div class="toggles">
+          <label>
+            <input
+              type="checkbox"
+              bind:checked={includeStyling}
+              disabled={dirty}
+              aria-describedby={dirty ? "inspector-switch-hint" : undefined}
+            />
+            Include styling
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              bind:checked={minimal}
+              disabled={dirty}
+              aria-describedby={dirty ? "inspector-switch-hint" : undefined}
+            />
+            Minimal
+          </label>
+        </div>
+        {#if dirty}
+          <p class="switch-hint" id="inspector-switch-hint">Apply or Revert to switch</p>
+        {/if}
+      </div>
+
+      {#if stale}
+        <p class="notice" role="status">The manifest changed; Revert to see it</p>
+      {/if}
+
+      {#if !ready}
+        {#if loadFailure}
+          <p class="load-failure" role="alert">{loadFailure}</p>
+        {:else}
+          <p class="loading" role="status">Loading {FORMAT_LABELS[format]}…</p>
+        {/if}
+      {:else}
+        <label class="manifest-label" for="inspector-text">Manifest ({FORMAT_LABELS[format]})</label>
+        <textarea
+          id="inspector-text"
+          spellcheck="false"
+          autocomplete="off"
+          rows="20"
+          bind:value={text}
+          onkeydown={onTextKey}
+          aria-invalid={problems.length > 0}
+          aria-describedby={problems.length > 0 ? "inspector-problems" : undefined}
+        ></textarea>
+
+        <div class="actions">
+          <button type="button" onclick={apply} disabled={!dirty}>Apply</button>
+          <button type="button" onclick={revert} disabled={!dirty}>Revert</button>
+        </div>
+
+        <ul id="inspector-problems" class="problems" aria-live="polite">
+          {#each problems as problem, index (index)}
+            <li>
+              <code class="code">{problem.code}</code>
+              {problem.message}
+              {#if problem.line !== undefined}
+                <span class="where">at {position(problem)}</span>
+              {:else}
+                <span class="where"
+                  >at {#if problemPointer(problem) === ""}the top level{:else}<code class="pointer"
+                      >{problemPointer(problem)}</code
+                    >{/if}</span
+                >
+              {/if}
+            </li>
+          {/each}
+        </ul>
+      {/if}
+
+      {#if warnings.length > 0}
+        <ul id="inspector-warnings" class="warnings" aria-label="Warnings">
+          {#each warnings as warning (`${problemPointer(warning)}\u0000${warning.key}`)}
+            {@const pointer = problemPointer(warning)}
+            <li>
+              Unknown key <code class="key">{warning.key}</code>
+              <span class="where"
+                >at {#if pointer === ""}the top level{:else}<code class="pointer">{pointer}</code
+                  >{/if}</span
+              >
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    </div>
   </div>
 {/if}
 
@@ -503,6 +622,44 @@ function position(problem: InspectorProblem): string {
     gap: 0.5rem;
     padding: 0 0.75rem 0.75rem;
     font-size: 0.85rem;
+  }
+
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid #b0b0b0;
+  }
+
+  .tabs button {
+    margin-bottom: -1px;
+    padding: 0.2rem 0.75rem;
+    border: 1px solid transparent;
+    border-radius: 4px 4px 0 0;
+    background: none;
+    color: #595959;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .tabs button[aria-selected="true"] {
+    border-color: #b0b0b0 #b0b0b0 #fff;
+    background: #fff;
+    color: #1a1a1a;
+  }
+
+  .tabs button:focus-visible {
+    outline: 2px solid #0a84ff;
+    outline-offset: -2px;
+  }
+
+  .panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  /* `display` above would otherwise show the panel the tabs hide. */
+  .panel[hidden] {
+    display: none;
   }
 
   .properties {
@@ -615,7 +772,32 @@ function position(problem: InspectorProblem): string {
     outline-offset: -2px;
   }
 
+  /* Disabled while the text holds an edit: greyed like the checkboxes beside
+     it, the checked format still filled. */
+  .formats:has(input:disabled),
+  .formats:has(input:disabled) .segment + .segment {
+    border-color: #d0d0d0;
+  }
+
   .segment:has(input:disabled) {
+    color: #595959;
+    cursor: not-allowed;
+  }
+
+  .segment.checked:has(input:disabled) {
+    background: #595959;
+    color: #fff;
+  }
+
+  .toggles {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  /* Disabled while the text holds an edit: the label greys with its box. */
+  .toggles label:has(input:disabled),
+  .toggles input:disabled {
+    color: #595959;
     cursor: not-allowed;
   }
 

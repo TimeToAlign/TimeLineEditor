@@ -12,7 +12,7 @@ export const InspectorCode = {
   invalidValue: "invalid_value",
   /** A value the chosen text format cannot show (a null TOML cannot omit). */
   notRepresentable: "not_representable",
-  /** The text names a member the inspector hides (`graphical` without "Show styling"). */
+  /** The text names a member it excludes (`graphical` while "Include styling" is unchecked). */
   hiddenMember: "hidden_member",
 } as const;
 

@@ -508,7 +508,11 @@ What would prove it works, and the exact values each test pins:
    whose command is `{type: "set", changes: [{target: "0000000000",
    values: {manifest: <the parsed value>}}]}`, and `dumps` of the block's
    manifest equals `dumps` of the parsed value. Applying the unchanged text
-   dispatches nothing (the journal stays at that length).
+   dispatches nothing (the journal stays at that length). That comparison
+   is the inspector's to make, because the store journals every accepted
+   command: the `set` of the block's `manifest` to the very value it holds,
+   dispatched to the store directly, is accepted and adds one entry (the
+   journal grows from 2 to 3) while `dumps` of the manifest stays the same.
 5. **A refusal is shown with its exact path, and the text is kept.** From
    the same JSON text, `"locked": false` changed to `"locked": "yes"` is
    refused `schema_violation` "must be boolean" at `["timelines", 0,
@@ -522,22 +526,78 @@ What would prove it works, and the exact values each test pins:
    [false` gives line 16, column 5 (the line after `locked`, where the
    flow sequence is found unclosed); the TOML text with `locked = ` gives
    line 14, column 1 (likewise the line after it). No refusal adds a journal entry.
-6. **Comments survive Apply and an external change.** With `bare`
-   selected, the YAML text gets a comment line `    # shown on the canvas`
-   above `name` and an inline comment `# was Bare` after the name changed to
-   `Hello`; after Apply the text is exactly the written text with those two
-   edits (the document is patched, not rewritten). Then the store changes
-   the root's `name` to `Bye` through a `set` on `0000000000/bare`, and
-   following the manifest gives exactly the same text with `Hello` replaced
-   by `Bye`, both comments in place. The same for TOML with `# shown on
-   the canvas` and `# was Bare`.
-7. **The styling toggle hides `graphical` and keeps it.** With
-   `styled__score` in a block, the text written with the styling hidden has
-   no `graphical` key in any format; applying it with the root's name
-   changed leaves `dumps` of the block's `graphical` equal to what it was. A
-   hidden text that names `graphical` is refused `hidden_member` at
-   `["graphical"]`, journal unchanged. With the styling shown, the text
-   carries `graphical` and round-trips as in case 1.
+6. **Comments survive Apply and an external change, in every mode.** With
+   the styled `bare` of case 7 selected, in each of the four modes, the
+   YAML text gets a comment line `    # shown on the canvas` above `name`
+   and an inline comment `# was Bare` after the name changed to `Hello`;
+   after Apply the text is exactly the written text with those two edits
+   (the document is patched with the value the mode shows, not rewritten).
+   Then the store changes the root's `name` to `Bye` through a `set` on
+   `0000000000/bare`, and following the manifest in the same mode gives
+   exactly the same text with `Hello` replaced by `Bye`, both comments in
+   place. The same for TOML with `# shown on the canvas` and `# was Bare`.
+7. **The four text modes.** A text is written in one of four modes, the
+   `TextOptions` `{includeStyling, minimal}`: the complete or the minimal
+   form, each with the styling excluded or included. `visibleManifest`
+   leaves `graphical` out unless `includeStyling`, then takes
+   timeskeleton's `minimal` of the rest when `minimal`. Cases 1 to 5 write
+   and apply in the complete mode with the styling included, the form of a
+   fixture file. What proves the modes is one manifest whose complete and
+   minimal forms differ and which has a `graphical`: `bare` in block
+   `0000000000`, styled by one `style` command `{select: {element:
+   "timeline"}, set: {stroke: "#800000"}, blocks: ["0000000000"]}` (the
+   journal then holds 2 entries). The store holds the complete form, whose
+   `graphical` is `{order: {}, statements: [{select: {element:
+   "timeline"}, set: {stroke: "#800000"}}], styles: {}}`; its minimal form
+   leaves out `groups`, `name`, the timeline's `children`,
+   `conversion_maps`, `flow_control`, `is_segment_line`, `locked`,
+   `measure_map`, `meta`, `metric_hierarchy`, `number_type` and `regions`,
+   and the `graphical`'s `order` and `styles`.
+   - *The shown text.* The JSON text of each mode is pinned whole. Without
+     the styling, the complete text is byte for byte the fixture file
+     `bare.json` and the minimal text `bare.minimal.json` (the `style`
+     command changed nothing but `graphical`); with the styling, each is
+     that text with the `graphical` member first (keys are sorted), the
+     complete one with `order` and `styles`, the minimal one with
+     `statements` only. The YAML and TOML texts of each mode read back to
+     the JSON text's value (`dumps` equal), with the one difference the
+     TOML null rule (case 3) makes: a minimal TOML text reads back with
+     the null members it leaves out restored, here the manifest's `name`
+     and the timeline's `measure_map` and `metric_hierarchy`, and the
+     minimal form of that value is the shown one. No text without the
+     styling contains `graphical`.
+   - *Apply of one edit.* In each mode and format, the timeline's name
+     changed from `Bare` to `Renamed` (`"name": "Bare"`, `name: Bare`,
+     `name = "Bare"`) and applied adds one journal entry (2 to 3), and
+     `dumps` of the whole stored manifest equals `dumps` of the complete
+     JSON text with the styling and that one edit: `graphical` is kept when
+     the text leaves it out, and every default a minimal text leaves out is
+     completed. The text returned equals the text `manifestText` writes
+     from the stored manifest in the same mode and format, so nothing in it
+     is left unapplied.
+   - *A no-op Apply.* Applying is decided by `dumps` of the complete form:
+     `complete` of the value read, with the stored `graphical` put back
+     when the styling is excluded, against the stored manifest. In each
+     mode and format the shown text, applied, dispatches nothing (the
+     journal stays at 2) and returns the shown text. Nor do, in each mode,
+     the JSON text with every line break and the indentation after it
+     removed, and the compact JSON text (`compactJson`) of the shown value
+     with the keys of every object in reverse order: `dumps` sorts keys
+     and ignores layout. In both minimal modes the JSON text that spells
+     out the timeline's default `"locked": false` dispatches nothing either
+     and returns the shown text, without it.
+   - *The styling replaced.* In both modes with the styling, the JSON
+     text with `"#800000"` replaced by `"#008000"` and applied adds one
+     journal entry (2 to 3), and the stored `graphical` is, by `dumps`,
+     exactly `{order: {}, statements: [{select: {element: "timeline"},
+     set: {stroke: "#008000"}}], styles: {}}`: the typed `graphical` is
+     dispatched rather than the stored one, and the minimal one (without
+     `order` and `styles`) is completed.
+   - *Styling typed into a text that excludes it.* In the complete and in
+     the minimal mode without the styling, the YAML text with `graphical:
+     {}` appended is refused `hidden_member` at `["graphical"]`, message
+     exactly "the styling is excluded; check Include styling to edit
+     graphical", and the journal is unchanged.
 8. **The selection decides the block.** `selectedBlock` gives `null` for an
    empty selection, the block for its id or for `<id>/<element>`, the same
    block for several addresses in it, and `null` for addresses in two
@@ -574,19 +634,23 @@ What would prove it works, and the exact values each test pins:
 
 The component test mounts `Inspector.svelte` with a store holding `bare`
 (block `0000000000`) and `styled__score` (block `0000000001`), and proves
-the wiring: choosing YAML before its codec is loaded shows exactly
+the wiring. Every case that reads or edits the manifest text opens the
+Manifest tab first, as a user must. Choosing YAML before its codec is loaded shows exactly
 "Loading YAML…" and no textarea, and once `loadCodec("yaml")` resolves the
 YAML text; with nothing selected and with both blocks selected it shows
 exactly the hint "Select a block to inspect its manifest."; with
 `0000000000` selected the textarea holds `saveManifest` of its manifest;
 choosing YAML shows exactly `writeText("yaml", manifest)`; while the text holds an unapplied edit
-the three format radios and "Show styling" are disabled and a hint reading
+the three format radios and the checkboxes "Include styling" and "Minimal"
+are disabled and a hint reading
 exactly "Apply or Revert to switch" (`#inspector-switch-hint`) is shown and
-named by `aria-describedby` on the radio group and the checkbox; without an
+named by `aria-describedby` on the radio group and both checkboxes; without an
 edit there is no hint; the edited text applied with Ctrl+Enter in the
 textarea adds one journal entry and removes the hint; an edited, unapplied
 text survives an external `set` and shows exactly "The manifest changed;
-Revert to see it", and Revert shows the new manifest; the refused text of
+Revert to see it", and Revert shows exactly the newer manifest
+(`writeText("yaml", …)` of the stored manifest, written afresh, with
+`name: Bye`), removes the notice and disables both Apply and Revert; the refused text of
 case 5 lists one problem reading `schema_violation`, `must be boolean`,
 `/timelines/0/locked` and keeps the edit; typing `25` into `x` and pressing
 Enter adds one journal entry whose command is `{type: "set", changes:
@@ -604,6 +668,119 @@ rounded the same way, but never over a draft: with `live` holding `x`
 `5.556` the field shows `5.56`, and with `33` typed it keeps `33`; with
 `live` back to `null` the field shows the stored value again. Live values
 of another block are ignored.
+
+**The inspector has two tabs** (`Inspector.test.ts`). With a block
+selected it shows a tab list (`role="tablist"`, `aria-label` "Inspector
+sections") of two `button`s with `role="tab"`, "Properties"
+(`#inspector-tab-properties`) and "Manifest" (`#inspector-tab-manifest`),
+each naming its panel by `aria-controls` (`inspector-panel-properties`,
+`inspector-panel-manifest`), and two `role="tabpanel"` elements with those
+ids, each `aria-labelledby` its tab and without a `tabindex`: both panels
+hold focusable controls, so a panel is no tab stop of its own. What proves the
+pattern is the state after each action, read as `aria-selected` and
+`tabindex` of both tabs and `hidden` of both panels: at mount "Properties"
+is selected (`true`, `0`; `false`, `-1`; the Properties panel shown, the
+Manifest panel hidden); the form "Block properties" lies in the Properties
+panel, and the format radio group, both checkboxes and the textarea in the
+Manifest panel; a click on "Manifest" swaps all of it. On a focused tab
+ArrowRight and ArrowLeft select the other tab (with two tabs, each
+wraps), Home selects "Properties" and End "Manifest", and the selected tab
+has the focus after each key: from "Properties", ArrowRight gives
+Manifest, ArrowRight Properties, ArrowLeft Manifest, Home Properties, End
+Manifest. A key held with a modifier is left to the browser (Alt+ArrowLeft
+goes back): ArrowRight with Alt, with Ctrl and with Meta on the focused
+"Properties" each leaves "Properties" selected and focused, and the event
+is not prevented. The Manifest panel holds the manifest's parts in the
+order the user reads them: with a shared warning case
+(`timeline_class.json`) in `0000000000`, its JSON text edited (the first
+`meta` given a member) and the root renamed `Bye` by a `set`, so the hint
+and the stale notice are shown, the panel's controls are exactly, in
+document order, the radios JSON, YAML and TOML, the checkboxes "Include
+styling" and "Minimal", the textarea "Manifest (JSON)", and the buttons
+Apply and Revert; the radio group, both checkboxes, the textarea, Apply,
+Revert, the problem list `#inspector-problems` and the warning list
+`#inspector-warnings` follow one another in that document order; those
+eight, the hint `#inspector-switch-hint` and the stale notice all lie in
+the Manifest panel and none in the Properties panel. The tab is the component's own state: with "Manifest" chosen,
+the `selection` prop changed from `0000000000` to `0000000001`, then to
+nothing (only the hint is shown, no tab list) and back to `0000000001`
+keeps "Manifest" selected; mounted again, the inspector selects
+"Properties". Both panels stay mounted, so an unapplied text survives a
+visit to Properties: with the JSON text edited (`"Bare"` → `"Bared"`),
+clicking Properties and then Manifest shows the same edited text, Apply
+and Revert still enabled.
+
+**Apply and Revert are enabled exactly while the text is edited, in each
+of the four modes** (`Inspector.test.ts`). A mode is complete or minimal,
+with the styling excluded or included. The case runs once per mode on
+`styled__score` (block `0000000001`), whose minimal and complete forms
+differ and which carries `graphical`, after checking "Minimal" and
+"Include styling" as the mode asks (both are unchecked at mount). Each step
+pins the text and both buttons' `disabled`:
+
+1. Shown: the textarea holds exactly `manifestText(manifest, "json",
+   {includeStyling, minimal})` of the stored manifest; it contains
+   `"graphical"` exactly when the styling is included and
+   `"is_segment_line"` exactly in the complete form (the minimal form drops
+   it at its default `false`), so the component passes both options; both
+   buttons disabled.
+2. One character typed (`"name": "Score"` becomes `"name": "Scores"`): both
+   enabled.
+3. That character deleted again, so the text equals the shown text
+   character for character: both disabled.
+4. The character typed again, then Revert: the text is exactly the shown
+   text, both disabled, and the journal still holds only its two `add`s.
+5. The shown text without its final `}` (invalid JSON), then Apply:
+   refused with exactly one problem, `syntax_error`; the text is kept, both
+   enabled, the journal unchanged.
+6. The edit of step 2 written over it, then Apply: the journal grows to
+   three entries, the root's stored `name` is "Scores", the text is exactly
+   `manifestText` of the stored manifest in the same options, no problem is
+   listed, both disabled.
+
+**A clean text always follows the store** (`Inspector.test.ts`), so
+nothing the inspector lists asks for a button that is disabled. The listed
+problems come from one of two sources, kept apart by the component rather
+than read from the texts: a refused Apply (they belong to the text applied,
+and go once the text is clean) or writing the manifest (they belong to the
+manifest, and stay while it is shown).
+- Stale, typed back: with `0000000000` selected, the JSON text edited
+  (`"Bare"` → `"Bared"`) and the root renamed `Bye` by a `set` on
+  `0000000000/bare`, the notice "The manifest changed; Revert to see it"
+  is shown and the edit kept; typing the text back to the shown text
+  removes the notice at once, the textarea holds exactly `manifestText` of
+  the stored manifest (JSON, both options off, with `"name": "Bye"`), both
+  buttons are disabled, and the journal holds the two `add`s and that
+  `set` only.
+- Refused, typed back: with `0000000000` selected, the shown JSON text
+  without its final `}` applied is refused with exactly one problem,
+  `syntax_error`, both buttons enabled; typing the text back to the shown
+  text leaves no problem listed, the textarea `aria-invalid` `false`, both
+  buttons disabled, and the journal at its two `add`s.
+- A writing problem stays: a store holding, in block `0000000000`,
+  `loadManifest` of one `quarters` timeline `score` (length `[4, 1]`)
+  whose measure-map row has `nominal_length: null` (case 3's refusal),
+  with TOML chosen, shows an empty textarea and exactly one problem,
+  `not_representable` at
+  `/timelines/0/measure_map/0/nominal_length`, both buttons disabled;
+  typing `x` enables both, and deleting it again (the text and the shown
+  text both empty) disables both and still lists exactly that one problem.
+  Ctrl+Enter in that clean, empty textarea applies nothing: the problem
+  list is still exactly that one `not_representable`, and the journal
+  still holds only its `add` (an Apply of the empty text would replace it
+  with the problems of reading that text).
+
+**Apply reloads the properties.** After an accepted Apply the Properties
+panel shows the stored manifest, and the tab stays "Manifest".
+- Drafts are discarded (`Inspector.test.ts`): with `0000000000` selected,
+  `0` typed into `scale` and Enter is refused by the store
+  (`non_positive_number`), so the field keeps `0` and
+  `#property-problem-scale` is shown; on the Manifest tab the name edited
+  (`"Bare"` → `"Bared"`) and applied grows the journal to three entries,
+  "Manifest" stays selected, and on Properties `scale` shows `1` and no
+  problem is shown.
+- The Locked checkbox follows (`inspector-locked.test.ts`, below).
+- The inspected name follows (`inspector-subject.test.ts`, below).
 
 **Unknown keys are warnings.** A manifest may carry keys the schema does
 not declare; they are kept and reported by core's `unknownKeys` (the
@@ -692,7 +869,15 @@ For `0000000000`, for `…/group_1`, for `…/free/region_1` and for
 `…/fixed` with `…/free` there is none, and the form's last cell is the
 label of `height`, as before. The checkbox follows the store: with
 `…/free` shown, a `set` of `locked` `true` on `0000000000/free`
-dispatched to the store checks it.
+dispatched to the store checks it. It follows an applied manifest text the
+same way, without a change of selection: with `…/free` selected and the
+Manifest tab open, the text replaced by `manifestText` (JSON, both options
+off) of the stored manifest with `free`'s `locked` set to `true`, and
+applied, the journal grows by one entry, "Manifest" stays selected, and
+the Locked checkbox in the Properties panel is checked, before and after
+clicking "Properties". `free` is chosen because the store accepts that
+value through a manifest as through `set locked`: a root that is no
+segment and no group member keeps its own `locked`.
 
 **The editor names what the selection names beside the drawer's heading**
 (`inspector-subject.test.ts`). Next to the `h2` "Inspector" (whose
@@ -762,4 +947,8 @@ sibling of the `h2` in the drawer's head, the drawer `#inspector` has
 `groups.tle.json`, `gchild0000` gives exactly "Anonymous bundle" and no
 `code`. With `small.tle.json`, `styled0000/a` gives "Timeline a" with
 `code` "a". Selecting nothing removes the element and the drawer's
-`aria-describedby`.
+`aria-describedby`. The name follows an applied manifest text: with
+`bundles.tle.json` loaded and `bmixed0000/score` selected ("Timeline
+Score"), the inspector's Manifest tab opened and its JSON text edited from
+`"name": "Score"` to `"name": "Scores"`, Apply makes `#inspector-subject`
+read exactly "Timeline Scores" with no change of selection.

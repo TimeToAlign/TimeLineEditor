@@ -3,11 +3,11 @@
  * derived in `README.md` ("The inspector").
  */
 
-import type { Store } from "@timetoalign/tilie-core";
+import type { Block, Json, Store } from "@timetoalign/tilie-core";
 import { createStore, createView, isLoadError, loadManifest } from "@timetoalign/tilie-core";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it } from "vitest";
-import { selectedTimeline } from "../src/inspector/edit.ts";
+import { manifestText, selectedTimeline } from "../src/inspector/edit.ts";
 import Inspector from "../src/inspector/Inspector.svelte";
 
 const A = "0000000000";
@@ -191,6 +191,42 @@ describe("the Locked checkbox", () => {
       changes: [{ target: `${A}/free`, values: { locked: true } }],
     });
     expect(refusal).toBe(null);
+    flushSync();
+    expect(checkboxes()[0]?.checked).toBe(true);
+  });
+
+  it("follows an applied manifest without a change of selection", () => {
+    const store = storeOf();
+    show(store, [`${A}/free`]);
+    const tab = (name: string) => document.getElementById(`inspector-tab-${name}`) as HTMLElement;
+    tab("manifest").click();
+    flushSync();
+    const stored = (store.view.blocks[A] as Block).manifest;
+    const edited = {
+      ...stored,
+      timelines: stored.timelines.map((item) =>
+        item.id === "free" ? { ...item, locked: true } : item,
+      ),
+    } as unknown as Json;
+    const written = manifestText(edited, "json", { includeStyling: false, minimal: false });
+    if (!written.ok) throw new Error("not written");
+    const area = document.querySelector("textarea") as HTMLTextAreaElement;
+    area.value = written.value.text;
+    area.dispatchEvent(new Event("input", { bubbles: true }));
+    flushSync();
+    expect(checkboxes()[0]?.checked).toBe(false);
+    const apply = [...document.querySelectorAll("button")].find(
+      (item) => item.textContent?.trim() === "Apply",
+    );
+    apply?.click();
+    flushSync();
+    expect(store.journal).toHaveLength(2);
+    expect(
+      store.view.blocks[A]?.manifest.timelines.find((item) => item.id === "free")?.locked,
+    ).toBe(true);
+    expect(tab("manifest").getAttribute("aria-selected")).toBe("true");
+    expect(checkboxes()[0]?.checked).toBe(true);
+    tab("properties").click();
     flushSync();
     expect(checkboxes()[0]?.checked).toBe(true);
   });

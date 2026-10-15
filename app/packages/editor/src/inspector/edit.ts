@@ -25,13 +25,13 @@ import {
   parseAddress,
   TITLE_ADDRESS,
 } from "@timetoalign/tilie-core";
-import { dumps, isJsonObject } from "@timetoalign/timeskeleton";
+import { complete, dumps, isJsonObject, minimal } from "@timetoalign/timeskeleton";
 import type { Format, Text } from "./formats.ts";
 import { readText, writeText } from "./formats.ts";
 import type { InspectorProblem, Result } from "./problems.ts";
 import { InspectorCode, refused } from "./problems.ts";
 
-/** The member the styling toggle hides. */
+/** The member a text leaves out unless it includes the styling. */
 export const STYLING = "graphical";
 
 /** The block every selected address lies in, when it is exactly one; else `null`. */
@@ -170,29 +170,44 @@ export function manifestOf(block: Block): Json {
   return block.manifest as unknown as Json;
 }
 
-/** The manifest as the text shows it: without its styling unless `showStyling`. */
-export function visibleManifest(manifest: Json, showStyling: boolean): Json {
-  if (showStyling || !isJsonObject(manifest)) return manifest;
-  const { [STYLING]: _hidden, ...rest } = manifest as { readonly [key: string]: Json };
-  return rest;
-}
-
-/** The text of a block's manifest in `format`. */
-export function manifestText(manifest: Json, format: Format, showStyling: boolean): Result<Text> {
-  return writeText(format, visibleManifest(manifest, showStyling));
+/**
+ * How a text shows a manifest: with or without its styling (`graphical`),
+ * and in the complete form (every default written out) or the minimal one.
+ */
+export interface TextOptions {
+  readonly includeStyling: boolean;
+  readonly minimal: boolean;
 }
 
 /**
- * The manifest the text stands for: with the styling hidden, the block's
- * current `graphical` is put back (or stays absent); a `graphical` typed in
- * the hidden text is refused rather than silently dropped.
+ * The manifest as the text shows it: without its styling unless
+ * `includeStyling`, then in the minimal form when `minimal`.
  */
-function withHidden(edited: Json, current: Json, showStyling: boolean): Result<Json> {
-  if (showStyling || !isJsonObject(edited)) return { ok: true, value: edited };
+export function visibleManifest(manifest: Json, options: TextOptions): Json {
+  let visible = manifest;
+  if (!options.includeStyling && isJsonObject(manifest)) {
+    const { [STYLING]: _excluded, ...rest } = manifest as { readonly [key: string]: Json };
+    visible = rest;
+  }
+  return options.minimal ? minimal(visible) : visible;
+}
+
+/** The text of a block's manifest in `format`. */
+export function manifestText(manifest: Json, format: Format, options: TextOptions): Result<Text> {
+  return writeText(format, visibleManifest(manifest, options));
+}
+
+/**
+ * The manifest the text stands for: with the styling excluded, the block's
+ * current `graphical` is put back (or stays absent); a `graphical` typed in
+ * a text that excludes it is refused rather than silently dropped.
+ */
+function withExcluded(edited: Json, current: Json, options: TextOptions): Result<Json> {
+  if (options.includeStyling || !isJsonObject(edited)) return { ok: true, value: edited };
   if (Object.hasOwn(edited, STYLING)) {
     return refused(
       InspectorCode.hiddenMember,
-      "the styling is hidden; check Show styling to edit graphical",
+      "the styling is excluded; check Include styling to edit graphical",
       [STYLING],
     );
   }
@@ -228,18 +243,20 @@ export type Applied = Result<Text>;
 
 /**
  * Read `text` in `format` and dispatch ONE `set` replacing the block's
- * manifest. On acceptance the read document is patched with the manifest
- * the store now holds (which may differ in order or completed styles), so
- * the text keeps the user's comments; on refusal nothing is dispatched or the
- * store's single problem is returned. A text equal to the current manifest
- * dispatches nothing.
+ * manifest with the value read (the store completes it). On acceptance the
+ * read document is patched with the manifest the store now holds, as
+ * `options` show it (it may differ in order, completed defaults or styles),
+ * so the text keeps the user's comments; on refusal nothing is dispatched or
+ * the store's single problem is returned. A text whose complete form equals
+ * the current manifest dispatches nothing: the store would journal even a
+ * `set` that changes nothing.
  */
 export function applyText(
   store: Store,
   block: BlockId,
   format: Format,
   text: string,
-  showStyling: boolean,
+  options: TextOptions,
 ): Applied {
   const current = store.view.blocks[block];
   if (current === undefined) {
@@ -247,28 +264,35 @@ export function applyText(
   }
   const read = readText(format, text);
   if (!read.ok) return read;
-  const manifest = withHidden(read.value.value, manifestOf(current), showStyling);
+  const manifest = withExcluded(read.value.value, manifestOf(current), options);
   if (!manifest.ok) return manifest;
-  if (sameText(manifest.value, manifestOf(current))) {
-    return follow(read.value.source, manifestOf(current), showStyling);
+  if (sameManifest(manifest.value, manifestOf(current))) {
+    return follow(read.value.source, manifestOf(current), options);
   }
   const refusal = store.dispatch(manifestCommand(block, manifest.value));
   if (refusal !== null) return { ok: false, problems: [asInspectorProblem(refusal, block)] };
-  return follow(read.value.source, manifestOf(store.view.blocks[block] as Block), showStyling);
+  return follow(read.value.source, manifestOf(store.view.blocks[block] as Block), options);
 }
 
-/** Whether two values have the same standard text; a value `dumps` refuses equals nothing. */
-function sameText(left: Json, right: Json): boolean {
+/**
+ * Whether an edited value is the stored manifest: its complete form has the
+ * stored manifest's standard text. A value `complete` or `dumps` refuses
+ * equals nothing; the store's checks report it.
+ */
+function sameManifest(edited: Json, stored: Json): boolean {
   try {
-    return dumps(left) === dumps(right);
+    return dumps(complete(edited)) === dumps(stored);
   } catch {
     return false;
   }
 }
 
-/** The text after the manifest changed: the document patched in place, so its comments survive. */
-export function follow(source: Text["source"], manifest: Json, showStyling: boolean): Applied {
-  const patched = source.patch(visibleManifest(manifest, showStyling));
+/**
+ * The text after the manifest changed: the document patched in place with
+ * the manifest as `options` show it, so its comments survive.
+ */
+export function follow(source: Text["source"], manifest: Json, options: TextOptions): Applied {
+  const patched = source.patch(visibleManifest(manifest, options));
   return patched.ok ? { ok: true, value: { text: patched.value, source } } : patched;
 }
 

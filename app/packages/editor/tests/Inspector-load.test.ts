@@ -43,6 +43,8 @@ it("shows a failed codec import as an alert and keeps JSON working", async () =>
     props: { store, selection: new Set([id]) },
   });
   flushSync();
+  (document.getElementById("inspector-tab-manifest") as HTMLElement).click();
+  flushSync();
   (document.querySelector('input[value="toml"]') as HTMLInputElement).click();
   flushSync();
   const failure = await loadCodec("toml").then(

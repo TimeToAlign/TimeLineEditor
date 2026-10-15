@@ -1,6 +1,7 @@
 /**
  * Accessibility of the canvas page with `small` open: axe-core reports no
- * violation, and the keyboard reaches, selects and releases the blocks.
+ * violation, with the inspector on either of its tabs too, and the keyboard
+ * reaches, selects and releases the blocks.
  * Derivation in `README.md` ("a11y.spec.ts").
  */
 
@@ -52,6 +53,23 @@ test("axe-core reports no violation with the inspector drawer open", async ({ pa
   await expect(page.locator("#inspector")).toBeVisible();
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations).toEqual([]);
+});
+
+test("axe-core reports no violation on either tab of the inspector", async ({ page }) => {
+  await page.evaluate((address) => window.__tilie.select([address]), `${SMALL.styled}/score`);
+  await page.getByRole("button", { name: "Open inspector" }).click();
+  const properties = page.getByRole("tab", { name: "Properties", exact: true });
+  await expect(properties).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("checkbox", { name: "Locked", exact: true })).toBeVisible();
+  const onProperties = await new AxeBuilder({ page }).analyze();
+  expect(onProperties.violations).toEqual([]);
+
+  const manifest = page.getByRole("tab", { name: "Manifest", exact: true });
+  await manifest.click();
+  await expect(manifest).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByLabel(/^Manifest \(/)).toBeVisible();
+  const onManifest = await new AxeBuilder({ page }).analyze();
+  expect(onManifest.violations).toEqual([]);
 });
 
 test("axe-core reports no violation with the File menu open", async ({ page }) => {
