@@ -932,6 +932,16 @@ function onkeydowncapture(event: KeyboardEvent) {
       outline: 2px dashed #0a84ff;
       outline-offset: 2px;
     }
+
+    /*
+     * A frame holding part of the selection takes the block's dashed mark on
+     * its own stroke; a selected frame shows the selection's glow instead.
+     */
+    .tilie-block rect[data-contains-selection]:not([data-selected]) {
+      stroke: #0a84ff;
+      stroke-width: 2px;
+      stroke-dasharray: 6 4;
+    }
   }
 
   .canvas :global(.svelte-flow__node-block.selected) {

@@ -30,6 +30,7 @@ import {
   WORKSPACE_FILE,
 } from "./files.ts";
 import { FIXTURES } from "./fixtures.ts";
+import { selectedTimeline } from "./inspector/edit.ts";
 import Inspector from "./inspector/Inspector.svelte";
 import type { Message } from "./MessageArea.svelte";
 import MessageArea from "./MessageArea.svelte";
@@ -418,6 +419,8 @@ function rememberedInspector(): boolean {
 let inspectorOpen = $state(rememberedInspector());
 let inspectorTab: HTMLButtonElement | undefined = $state();
 let inspectorClose: HTMLButtonElement | undefined = $state();
+/** The timeline the inspector shows, named beside its heading. */
+const inspected = $derived(selectedTimeline(view, selection));
 
 /** Open or close the inspector, remember the choice, and move the focus to the control that undoes it. */
 async function showInspector(open: boolean): Promise<void> {
@@ -572,9 +575,22 @@ onMount(async () => {
       >
     {/if}
   </div>
-  <aside id="inspector" class="inspector" aria-labelledby="inspector-heading" hidden={!inspectorOpen}>
+  <aside
+    id="inspector"
+    class="inspector"
+    aria-labelledby="inspector-heading"
+    aria-describedby={inspected === null ? undefined : "inspector-subject"}
+    hidden={!inspectorOpen}
+  >
     <div class="inspector-head">
-      <h2 id="inspector-heading">Inspector</h2>
+      <div class="inspector-title">
+        <h2 id="inspector-heading">Inspector</h2>
+        {#if inspected !== null}
+          <p id="inspector-subject" class="inspector-subject">
+            Timeline <code>{inspected.timeline.id}</code>
+          </p>
+        {/if}
+      </div>
       <button
         type="button"
         aria-expanded={inspectorOpen}
@@ -728,13 +744,35 @@ onMount(async () => {
     padding: 0.25rem 0.5rem 0.25rem 0.75rem;
   }
 
+  /* The heading, and beside it what is being inspected. */
+  .inspector-title {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+
   .inspector-head h2 {
+    flex: none;
     margin: 0;
     font-size: 0.85rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: #595959;
+  }
+
+  .inspector-subject {
+    margin: 0;
+    overflow: hidden;
+    font-size: 0.8rem;
+    color: #1a1a1a;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .inspector-subject code {
+    font-family: ui-monospace, "DejaVu Sans Mono", Menlo, Consolas, monospace;
   }
 
   .inspector-head button {

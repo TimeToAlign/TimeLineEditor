@@ -620,21 +620,27 @@ its "Open inspector" button. The text is read from the textarea labelled
    `bungroup00/score` (a root), `bungroup00/pages` (a root segment line,
    no group member) and `bungroup00/page_1` (one of its plain segments).
    Each shows exactly one checkbox named "Locked", disabled, with the
-   `title` and the accessible description "Locking and unlocking is not
-   available yet.", checked for `score` and not checked for `pages` and
-   `page_1`: a plain segment is never locked, and a root segment line
-   that is no group member keeps the `false` it was written with.
-   Selecting the block `bungroup00` itself shows no such checkbox.
+   `title` "Locking and unlocking is not available yet." (which is also
+   its accessible description, there being no other), checked for
+   `score` and not checked for `pages` and `page_1`: a plain segment is
+   never locked, and a root segment line that is no group member keeps
+   the `false` it was written with. Each also names the timeline beside
+   the drawer's heading: `#inspector-subject` reads exactly "Timeline
+   score", "Timeline pages", "Timeline page_1", and the drawer's heading
+   is still exactly "Inspector". Selecting the block `bungroup00` itself
+   shows no such checkbox and no subject.
 10. **A press on a card shows its timeline's checkbox.** The root `bare` of
     `bare000000` is locked by a `set` of `locked` `true` on
     `bare000000/bare` through the hook (accepted, journal 6). A press on
     the block's card (`cardPoint`) selects exactly `bare000000/bare/card`,
-    and the drawer shows exactly one checkbox named "Locked", inside the
-    group named "Timeline bare", disabled and checked: the card stands for
+    and the drawer shows exactly one checkbox named "Locked", disabled and
+    checked, in the cell of the form "Block properties" right after the
+    `height` field's label, with no `fieldset` in the drawer; the subject
+    beside the heading reads exactly "Timeline bare": the card stands for
     its timeline and the value is the stored `true`, not the `false` the
     fixture was written with. A press on the block's margin (`marginPoint`)
-    then selects exactly `bare000000` and the checkbox is gone. Neither
-    press adds a journal entry (still 6).
+    then selects exactly `bare000000` and the checkbox and the subject are
+    gone. Neither press adds a journal entry (still 6).
 
 ## `a11y.spec.ts`
 
@@ -723,6 +729,17 @@ root's card and drawing), applied to the fixture by hand.
    its own line; a click on the first of the two (the mark) selects exactly
    `[gchild0000/second-half/start]`, both carry `data-selected`, and they
    are the only marked parts.
+3b. **A frame holding the selection is drawn dashed.** In `bmixed0000` no
+   frame carries `data-contains-selection`. A click on the first part of
+   the member line `score` (in `group_1`) selects exactly
+   `[bmixed0000/score]`; then exactly one `rect` of the node carries
+   `data-contains-selection`, the frame `group_1`, drawn with the block's
+   dashed mark: computed `stroke` `rgb(10, 132, 255)` and
+   `stroke-dasharray` `6px, 4px`. The other frame, `group_2`, keeps its own
+   stroke `rgb(209, 213, 219)` (`#D1D5DB`, the default frame stroke) and no
+   dashes (`none`). Which selections mark which frames is proven in
+   arranger's unit tests; this proves the attribute reaches the page and
+   the stylesheet draws it.
 4. **Delete removes a timeline with its subtree from its group, and a
    region.** In `gchild0000` (roots `piece`, holding `second-half`, and
    `recording`; `group_1` with members `recording`, `second-half`), with

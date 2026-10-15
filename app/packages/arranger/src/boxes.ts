@@ -6,15 +6,17 @@
  *
  * This module is the one place that maps a pointer target to what it hits,
  * a box of one of those kinds or an element, with its address; that decides
- * what a press selects; and that decides what the pointer highlights. A
- * double-click on a box will dispatch from here to that box's editor.
+ * what a press selects; that decides what the pointer highlights; and that
+ * decides which frames hold part of the selection. A double-click on a box
+ * will dispatch from here to that box's editor.
  *
  * A hit is classified by the drawing's element types, never by the form of
  * an address: a frame is addressed by its bare group id, exactly like a
  * timeline's line.
  */
 
-import type { BlockId } from "@timetoalign/tilie-core";
+import type { BlockId, Manifest, TimelineManifest } from "@timetoalign/tilie-core";
+import { elementOfIn, manifestElements, memberDrawings } from "@timetoalign/tilie-core";
 import type { Drawing, RectElement } from "@timetoalign/tilie-layout";
 import type { Descriptor } from "@timetoalign/tilie-writers";
 
@@ -66,7 +68,16 @@ interface Boxes {
   readonly boundaries: ReadonlySet<string>;
 }
 
+interface Frames {
+  /** The timeline each element address belongs to, `null` for a frame, its title and the manifest's title. */
+  readonly owners: ReadonlyMap<string, string | null>;
+  /** The frames each timeline is drawn in as a member or below one, by group id. */
+  readonly frames: ReadonlyMap<string, readonly string[]>;
+  readonly element: (path: string) => string;
+}
+
 const boxes = new WeakMap<Drawing, Boxes>();
+const frames = new WeakMap<Manifest, Frames>();
 const marks = new WeakMap<readonly Descriptor[], ReadonlyMap<Descriptor, Mark>>();
 
 function boxesOf(drawing: Drawing): Boxes {
@@ -185,6 +196,54 @@ export function marksOf(
   return found;
 }
 
+function framesOf(manifest: Manifest): Frames {
+  let found = frames.get(manifest);
+  if (found === undefined) {
+    const owners = new Map<string, string | null>();
+    for (const key of manifestElements(manifest)) {
+      if (key.address !== null && !owners.has(key.address)) owners.set(key.address, key.timeline);
+    }
+    const held = new Map<string, string[]>();
+    const visit = (timeline: TimelineManifest, group: string) => {
+      const groups = held.get(timeline.id) ?? [];
+      if (!groups.includes(group)) groups.push(group);
+      held.set(timeline.id, groups);
+      for (const child of timeline.children) visit(child, group);
+    };
+    for (const frame of memberDrawings(manifest).frames) {
+      for (const member of frame.members) visit(member.timeline, frame.group.id);
+    }
+    found = { owners, frames: held, element: elementOfIn(manifest) };
+    frames.set(manifest, found);
+  }
+  return found;
+}
+
+/**
+ * The frames of `manifest` holding part of the selection `selected`
+ * (element addresses), by group id: a frame holds its members, every
+ * timeline below them, and every element and part of those, the members'
+ * cards included. A part stands for its element (core's `elementOf`), and
+ * an element for the timeline it belongs to; a selected group, its title
+ * and the manifest's title belong to no timeline, so a selected frame holds
+ * nothing by itself being selected. A timeline drawn below a member of one
+ * group and as a member of another is held by both frames.
+ */
+export function framesHolding(
+  manifest: Manifest,
+  selected: ReadonlySet<string>,
+): ReadonlySet<string> {
+  const holding = new Set<string>();
+  if (selected.size === 0) return holding;
+  const { owners, frames: held, element } = framesOf(manifest);
+  for (const address of selected) {
+    const owner = owners.get(element(address));
+    if (owner === undefined || owner === null) continue;
+    for (const group of held.get(owner) ?? []) holding.add(group);
+  }
+  return holding;
+}
+
 /** A descriptor's `data-address`, or `null`. */
 export function addressOf(descriptor: Descriptor): string | null {
   const value = descriptor.attrs.find(([name]) => name === "data-address")?.[1];
@@ -201,6 +260,18 @@ export function showsSelection(
   selected: ReadonlySet<string>,
 ): boolean {
   return address !== null && mark !== "shadow" && selected.has(address);
+}
+
+/**
+ * Whether a descriptor shows that its frame holds part of the selection: a
+ * frame's `rect` whose group is among `holding` (`framesHolding`).
+ */
+export function showsContainedSelection(
+  mark: Mark | undefined,
+  address: string | null,
+  holding: ReadonlySet<string>,
+): boolean {
+  return mark === "group" && address !== null && holding.has(address);
 }
 
 /** Whether a descriptor shows the hover: the hovered box's own rectangle, or the hovered boundary. */

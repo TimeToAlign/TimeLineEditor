@@ -1,11 +1,23 @@
-/** The Locked checkbox of a selected timeline; the expected values are derived in `README.md` ("The inspector"). */
+/**
+ * The Locked checkbox of a selected timeline, and the timeline named beside
+ * the inspector's heading; the expected values are derived in `README.md`
+ * ("The inspector").
+ */
 
 import type { Store } from "@timetoalign/tilie-core";
-import { createStore, createView, isLoadError, loadManifest } from "@timetoalign/tilie-core";
+import {
+  createStore,
+  createView,
+  isLoadError,
+  loadManifest,
+  writeWorkspace,
+} from "@timetoalign/tilie-core";
 import { flushSync, mount, unmount } from "svelte";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import App from "../src/App.svelte";
 import { selectedTimeline } from "../src/inspector/edit.ts";
 import Inspector from "../src/inspector/Inspector.svelte";
+import { stubEditor } from "./dom.ts";
 
 const A = "0000000000";
 const UNAVAILABLE = "Locking and unlocking is not available yet.";
@@ -132,6 +144,10 @@ describe("the Locked checkbox", () => {
     flushSync();
   }
 
+  function form(): HTMLFormElement | null {
+    return document.querySelector<HTMLFormElement>('form[aria-label="Block properties"]');
+  }
+
   function checkboxes(): HTMLInputElement[] {
     return [...document.querySelectorAll<HTMLInputElement>("input[type=checkbox]")].filter(
       (input) => input.closest("label")?.textContent?.trim() === "Locked",
@@ -154,8 +170,14 @@ describe("the Locked checkbox", () => {
     expect(checkbox.checked).toBe(locked);
     expect(checkbox.disabled).toBe(true);
     expect(checkbox.title).toBe(UNAVAILABLE);
-    const description = document.getElementById(checkbox.getAttribute("aria-describedby") ?? "");
-    expect(description?.textContent).toBe(UNAVAILABLE);
+    const cell = checkbox.closest("label");
+    expect(cell?.parentElement).toBe(form());
+    expect(cell?.previousElementSibling?.querySelector("input[name=height]")).not.toBe(null);
+    expect(document.querySelectorAll("fieldset, legend, .locked-hint")).toHaveLength(0);
+    const notes = [...document.querySelectorAll("*")].filter(
+      (node) => node.textContent === UNAVAILABLE,
+    );
+    expect(notes).toHaveLength(0);
   });
 
   it.each([
@@ -166,6 +188,7 @@ describe("the Locked checkbox", () => {
   ])("is absent for %s", (_case, selection) => {
     show(storeOf(), selection);
     expect(checkboxes()).toHaveLength(0);
+    expect(form()?.lastElementChild?.querySelector("input[name=height]")).not.toBe(null);
   });
 
   it("follows the store", () => {
@@ -180,23 +203,47 @@ describe("the Locked checkbox", () => {
     flushSync();
     expect(checkboxes()[0]?.checked).toBe(true);
   });
+});
 
-  it("pairs each inspector's checkbox with its own note", () => {
-    const store = storeOf();
-    const targets = [document.createElement("div"), document.createElement("div")];
-    const apps = targets.map((target) => {
-      document.body.append(target);
-      return mount(Inspector, { target, props: { store, selection: new Set([`${A}/fixed`]) } });
-    });
+describe("the inspected timeline beside the heading", () => {
+  let app: ReturnType<typeof mount> | undefined;
+
+  afterEach(() => {
+    if (app !== undefined) unmount(app);
+    app = undefined;
+    document.body.innerHTML = "";
+    vi.unstubAllGlobals();
+  });
+
+  it("names the selected timeline and nothing for a block", () => {
+    window.history.replaceState({}, "", "/");
+    stubEditor();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json({ name: "tilie-server", version: "0", timetoalign: "0" })),
+    );
+    app = mount(App, { target: document.body });
     flushSync();
-    const described = checkboxes().map((input) => input.getAttribute("aria-describedby"));
-    expect(described).toHaveLength(2);
-    expect(described[0]).not.toBe(described[1]);
-    targets.forEach((target, index) => {
-      const note = document.getElementById(described[index] ?? "");
-      expect(note !== null && target.contains(note)).toBe(true);
-      expect(note?.textContent).toBe(UNAVAILABLE);
-    });
-    for (const mounted of apps) unmount(mounted);
+    const hook = window.__tilie;
+    if (hook === undefined) throw new Error("window.__tilie is not installed");
+    const { view, journal } = storeOf();
+    hook.load(writeWorkspace({ view, journal }));
+    flushSync();
+    const drawer = document.getElementById("inspector");
+    const heading = document.getElementById("inspector-heading");
+
+    hook.select([`${A}/take/card`]);
+    flushSync();
+    const subject = document.getElementById("inspector-subject");
+    expect(subject?.textContent).toBe("Timeline take");
+    expect(subject?.querySelector("code")?.textContent).toBe("take");
+    expect(subject?.parentElement).toBe(heading?.parentElement);
+    expect(drawer?.getAttribute("aria-describedby")).toBe("inspector-subject");
+    expect(heading?.textContent).toBe("Inspector");
+
+    hook.select([A]);
+    flushSync();
+    expect(document.getElementById("inspector-subject")).toBe(null);
+    expect(drawer?.hasAttribute("aria-describedby")).toBe(false);
   });
 });

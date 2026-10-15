@@ -372,3 +372,90 @@ describe("the block node's hover marks", () => {
     expect(svg.children[23]?.hasAttribute("data-hovered")).toBe(true);
   });
 });
+
+describe("the frames holding part of the selection", () => {
+  let mounted: ReturnType<typeof mount> | undefined;
+
+  afterEach(() => {
+    if (mounted !== undefined) unmount(mounted);
+    mounted = undefined;
+    document.body.innerHTML = "";
+  });
+
+  /** `bundle_mixed` with the child `dlt_1` below the member `excerpt`, holding a region. */
+  const view = [
+    {
+      type: "add",
+      into: `${A}/excerpt`,
+      child: { id: "dlt_1", offset: 0, unit: "samples", length: 100 },
+    },
+    {
+      type: "add",
+      into: `${A}/dlt_1`,
+      region: { id: "region_1", name: "A", start: 0, end: 10 },
+    },
+  ].reduce(changed, viewOf({ id: A, fixture: "bundles/bundle_mixed" }));
+
+  /** The node mounted with `selected` as its selection, as `project` gives it. */
+  function mountWith(selected: readonly string[]): HTMLElement {
+    const block = blockIn(view, A);
+    const drawing = drawingOf(block, view.settings, metrics);
+    const selectedElements = new Set(selected);
+    const data: BlockNodeData = {
+      block,
+      drawing,
+      descriptors: descriptorsOf(drawing),
+      selectedElements,
+      affectedElements: new Set(),
+      movedElements: new Set(),
+      containsSelection: selectedElements.size > 0,
+    };
+    mounted = mount(BlockNode, { target: document.body, props: { data } as never });
+    flushSync();
+    const node = document.querySelector<HTMLElement>(".tilie-block");
+    if (node === null) throw new Error("the block node rendered no block");
+    return node;
+  }
+
+  /** The elements inside the `<svg>` carrying `attribute`, as `<tag> <address>`, in document order. */
+  function carrying(node: HTMLElement, attribute: string): string[] {
+    return Array.from(
+      node.querySelectorAll(`svg [${attribute}]`),
+      (element) => `${element.localName} ${element.getAttribute("data-address")}`,
+    );
+  }
+
+  it.each([
+    ["a member", ["score"], ["rect group_1"]],
+    ["a child of a member", ["dlt_1"], ["rect group_2"]],
+    ["a region's label below a member", ["recording/region_1/label"], ["rect group_2"]],
+    ["a member's card", ["page/card"], ["rect group_2"]],
+    ["a member's start", ["score/start"], ["rect group_1"]],
+    ["a member that is a child", ["excerpt"], ["rect group_2"]],
+    ["the group itself", ["group_1"], []],
+    ["the group's title", ["group_1/name"], []],
+    ["a root outside every frame", ["annotations"], []],
+    ["the card of a root outside every frame", ["annotations/card"], []],
+    ["the ancestor line on a member's card", ["recording"], []],
+    ["a member of each group", ["score", "page"], ["rect group_1", "rect group_2"]],
+  ])("with %s (%j) selected marks exactly its frames", (_, selected, expected) => {
+    const node = mountWith(selected);
+    expect(carrying(node, "data-contains-selection")).toEqual(expected);
+    expect(node.hasAttribute("data-contains-selection")).toBe(true);
+  });
+
+  it("marks a selected frame holding a selected member as both", () => {
+    const node = mountWith(["group_1", "score"]);
+    expect(carrying(node, "data-contains-selection")).toEqual(["rect group_1"]);
+    expect(carrying(node, "data-selected").filter((part) => part.startsWith("rect "))).toEqual([
+      "rect group_1",
+    ]);
+  });
+
+  it("marks nothing without a selection", () => {
+    const node = mountWith([]);
+    expect(carrying(node, "data-contains-selection")).toEqual([]);
+    expect(node.querySelector('text[data-address="recording/region_1/label"]')).not.toBeNull();
+    expect(node.hasAttribute("data-contains-selection")).toBe(false);
+  });
+});

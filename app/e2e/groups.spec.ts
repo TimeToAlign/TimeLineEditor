@@ -418,6 +418,26 @@ test.describe("a bundle workspace", () => {
     );
   });
 
+  test("a click on a member's line marks its frame dashed, not the other frame", async ({
+    page,
+  }) => {
+    const frames = node(page, BUNDLES.mixed).locator("rect[data-contains-selection]");
+    await expect(frames).toHaveCount(0);
+    const { x, y } = await partCentre(page, BUNDLES.mixed, "score");
+    await page.mouse.click(x, y);
+    expect(await selection(page)).toEqual([`${BUNDLES.mixed}/score`]);
+    expect(
+      await frames.evaluateAll((items) => items.map((item) => item.getAttribute("data-address"))),
+    ).toEqual(["group_1"]);
+    const look = (frame: string) =>
+      part(page, BUNDLES.mixed, frame).evaluate((item) => {
+        const style = getComputedStyle(item);
+        return [style.stroke, style.strokeDasharray];
+      });
+    expect(await look("group_1")).toEqual(["rgb(10, 132, 255)", "6px, 4px"]);
+    expect(await look("group_2")).toEqual(["rgb(209, 213, 219)", "none"]);
+  });
+
   test("hovering a segment boundary marks that boundary and its card", async ({ page }) => {
     await expect(element(page, BUNDLES.ungrouped, "page_2/start")).toHaveCount(1);
     await expect(element(page, BUNDLES.ungrouped, "page_3/start")).toHaveCount(1);

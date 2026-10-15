@@ -5,10 +5,12 @@ import type { NodeProps } from "@xyflow/svelte";
 import type { Hover } from "./boxes.ts";
 import {
   addressOf,
+  framesHolding,
   hitOf,
   hoverOf,
   marksOf,
   NO_HOVER,
+  showsContainedSelection,
   showsHover,
   showsSelection,
 } from "./boxes.ts";
@@ -37,6 +39,13 @@ const marks = $derived(marksOf(data.drawing, data.descriptors));
 
 function isSelected(descriptor: Descriptor): boolean {
   return showsSelection(marks.get(descriptor), addressOf(descriptor), data.selectedElements);
+}
+
+/** The frames holding part of the selection, by group id. */
+const holding = $derived(framesHolding(data.block.manifest, data.selectedElements));
+
+function holdsSelection(descriptor: Descriptor): boolean {
+  return showsContainedSelection(marks.get(descriptor), addressOf(descriptor), holding);
 }
 
 /** What the pointer highlights, held by address so that a redraw keeps the marks. */
@@ -104,6 +113,7 @@ function isMoved(descriptor: Descriptor): boolean {
         this={descriptor.tag}
         {...attributesOf(descriptor)}
         data-selected={isSelected(descriptor) ? "" : undefined}
+        data-contains-selection={holdsSelection(descriptor) ? "" : undefined}
         data-affected={isAffected(descriptor) ? "" : undefined}
         data-moved={isMoved(descriptor) ? "" : undefined}
         data-hovered={isHovered(descriptor) ? "" : undefined}>{descriptor.text}</svelte:element

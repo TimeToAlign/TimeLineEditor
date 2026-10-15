@@ -1,9 +1,9 @@
 /**
  * The inspector drawer on `small`: the manifest as text, applied as one
  * command, refused with its path, and the block properties form; and the
- * disabled Locked checkbox of a selected timeline, on `bundles` and for a
- * pressed card. The expected values are derived in `README.md`
- * ("inspector.spec.ts").
+ * disabled Locked checkbox of a selected timeline and its name beside the
+ * heading, on `bundles` and for a pressed card. The expected values are
+ * derived in `README.md` ("inspector.spec.ts").
  */
 
 import AxeBuilder from "@axe-core/playwright";
@@ -138,6 +138,11 @@ function field(page: Page, name: string) {
   return page.getByLabel(name, { exact: true });
 }
 
+/** What the inspector shows, named beside its heading. */
+function subject(page: Page) {
+  return page.locator("#inspector-subject");
+}
+
 test("the form follows a drag live, then shows the stored values", async ({ page }) => {
   await nodeDragStart(page, await cardPoint(page, SMALL.bare), 101, 37);
   await expect(field(page, "x")).toHaveValue("104");
@@ -263,9 +268,12 @@ test("a selected timeline shows its locked as a disabled checkbox", async ({ pag
     await expect(locked, id).toBeChecked({ checked });
     await expect(locked).toHaveAttribute("title", unavailable);
     await expect(locked).toHaveAccessibleDescription(unavailable);
+    await expect(subject(page)).toHaveText(`Timeline ${id}`);
+    await expect(page.locator("#inspector-heading")).toHaveText("Inspector");
   }
   await page.evaluate((id) => window.__tilie.select([id]), BUNDLES.ungrouped);
   await expect(locked).toHaveCount(0);
+  await expect(subject(page)).toHaveCount(0);
 });
 
 test("a press on a card shows its timeline's checkbox", async ({ page }) => {
@@ -283,14 +291,21 @@ test("a press on a card shows its timeline's checkbox", async ({ page }) => {
   expect(await selection(page)).toEqual([`${SMALL.bare}/bare/card`]);
   const locked = page.getByRole("checkbox", { name: "Locked", exact: true });
   await expect(locked).toHaveCount(1);
+  // The cell right after the height field's.
   await expect(
-    page.getByRole("group", { name: "Timeline bare", exact: true }).getByRole("checkbox"),
+    page
+      .getByRole("form", { name: "Block properties" })
+      .locator("label:has(input[name=height]) + label")
+      .getByRole("checkbox", { name: "Locked", exact: true }),
   ).toHaveCount(1);
+  await expect(page.locator("#inspector fieldset")).toHaveCount(0);
   await expect(locked).toBeDisabled();
   await expect(locked).toBeChecked();
+  await expect(subject(page)).toHaveText("Timeline bare");
   const margin = await marginPoint(page, SMALL.bare);
   await page.mouse.click(margin.x, margin.y);
   expect(await selection(page)).toEqual([SMALL.bare]);
   await expect(locked).toHaveCount(0);
+  await expect(subject(page)).toHaveCount(0);
   expect(await journalLength(page)).toBe(6);
 });

@@ -642,13 +642,20 @@ selection is exactly one address and that address names a timeline, or a
 part of one such as its card `<block>/T/card` (the element is read with
 core's `elementOf`, as the arranger reads it), the inspector shows a
 checkbox labelled "Locked" holding that timeline's own `locked` (the
-store holds the complete form, so an absent key reads `false`). Anything
+store holds the complete form, so an absent key reads `false`). It is one
+more cell of the block properties form, the one right after `height`
+(right of height, under width), a plain label around the input: there is
+no fieldset, no legend and no hint text in the inspector. Anything
 else shows no checkbox: no selection, a block, several addresses (even two
 naming one timeline), a group, a region or any other non-timeline element,
 an address naming nothing. Locking and unlocking is not available yet, so
 the checkbox is disabled for every timeline, with the `title` "Locking and
-unlocking is not available yet." and an accessible description
-(`aria-describedby`) reading the same. What proves it is a manifest
+unlocking is not available yet." on the input. The editor names the
+timeline beside the drawer's heading: next to the `h2` "Inspector" (whose
+accessible name stays exactly "Inspector") an element `#inspector-subject`
+reads "Timeline <id>", the id in a `code` element, and the drawer's
+`aria-describedby` names it; with no timeline selected there is no such
+element and no description. What proves it is a manifest
 written for the test, in block `0000000000`, whose `locked` values follow
 the rules a writer obeys, so that reading the manifest can never change
 them: a plain segment is unlocked, and a segment line that is a segment
@@ -681,12 +688,22 @@ that does not exist (`0000000001/fixed`), and for the two addresses
 The component, mounted with that store, shows the checkbox for
 `…/fixed` (checked), `…/free`, `…/take`, `…/pages` (not checked),
 `…/page_1` (checked), `…/part_1` (not checked) and `…/fixed/card`
-(checked), each disabled, with that `title`, and with `aria-describedby`
-naming an element whose text is exactly "Locking and unlocking is not
-available yet."; there is exactly one checkbox labelled "Locked" then. For
-`0000000000`, for `…/group_1`, for `…/free/region_1` and for `…/fixed`
-with `…/free` there is none. The checkbox follows the store: with
-`…/free` shown, a `set` of `locked` `true` on `0000000000/free` dispatched
-to the store checks it. Two inspectors mounted at once, each showing
-`…/fixed`, describe their own checkboxes: the two `aria-describedby`
-values differ, and each names the note inside its own inspector.
+(checked), each disabled, with that `title`; there is exactly one
+checkbox labelled "Locked" then, its label is a cell of the form
+"Block properties" directly after the label holding the field `height`
+(the next element sibling), and the inspector holds no `fieldset`,
+`legend` or `.locked-hint`, and no element whose text is the `title`'s.
+For `0000000000`, for `…/group_1`, for `…/free/region_1` and for
+`…/fixed` with `…/free` there is none, and the form's last cell is the
+label of `height`, as before. The checkbox follows the store: with
+`…/free` shown, a `set` of `locked` `true` on `0000000000/free`
+dispatched to the store checks it.
+
+The editor, mounted with the same manifest loaded through the test hook
+(a workspace written from that store), shows the subject beside the
+heading: selecting `…/take/card` gives `#inspector-subject` the text
+exactly "Timeline take" with `code` "take", a sibling of the `h2` in the
+drawer's head, and the drawer `#inspector` has `aria-describedby`
+`inspector-subject` while its `h2` reads exactly "Inspector"; selecting
+`0000000000` (a block only) removes the element and the drawer's
+`aria-describedby`.

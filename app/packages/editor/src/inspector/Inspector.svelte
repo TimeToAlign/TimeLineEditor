@@ -57,9 +57,6 @@ const timeline = $derived(selectedTimeline(view, selection));
 /** Why the Locked checkbox is disabled. */
 const LOCKING_UNAVAILABLE = "Locking and unlocking is not available yet.";
 
-/** This inspector's prefix for the ids its markup pairs, unique among mounted inspectors. */
-const uid = $props.id();
-
 // The Locked checkbox only shows `locked` for now. When locking and unlocking
 // is enabled, what it may do depends on where the timeline stands:
 // - a plain segment (a child of a segment line that is no segment line
@@ -352,23 +349,6 @@ function position(problem: InspectorProblem): string {
   <p class="hint">Select a block to inspect its manifest.</p>
 {:else}
   <div class="inspector-body">
-    {#if timeline !== null}
-      <fieldset class="timeline">
-        <legend>Timeline <code>{timeline.timeline.id}</code></legend>
-        <label class="locked">
-          <input
-            type="checkbox"
-            checked={timeline.timeline.locked}
-            disabled
-            title={LOCKING_UNAVAILABLE}
-            aria-describedby="{uid}-locked-hint"
-          />
-          Locked
-        </label>
-        <p class="locked-hint" id="{uid}-locked-hint">{LOCKING_UNAVAILABLE}</p>
-      </fieldset>
-    {/if}
-
     {#if block !== null}
       <form class="properties" aria-label="Block properties" onsubmit={(event) => event.preventDefault()}>
         {#each PROPERTIES as property (property)}
@@ -391,6 +371,18 @@ function position(problem: InspectorProblem): string {
               onblur={() => commitProperty(property)}
             />
           </label>
+          {#if property === "height" && timeline !== null}
+            <!-- The cell right of height. -->
+            <label class="locked">
+              <input
+                type="checkbox"
+                checked={timeline.timeline.locked}
+                disabled
+                title={LOCKING_UNAVAILABLE}
+              />
+              Locked
+            </label>
+          {/if}
           {#if propertyProblems[property] !== undefined}
             <p class="problem" id={`property-problem-${property}`}>{propertyProblems[property]}</p>
           {/if}
@@ -513,30 +505,6 @@ function position(problem: InspectorProblem): string {
     font-size: 0.85rem;
   }
 
-  .timeline {
-    display: flex;
-    flex-direction: column;
-    gap: 0.1rem;
-    margin: 0;
-    padding: 0.25rem 0.5rem;
-    border: 1px solid #b0b0b0;
-    border-radius: 4px;
-  }
-
-  .timeline legend {
-    padding: 0 0.25rem;
-    color: #595959;
-  }
-
-  .timeline code {
-    font-family: ui-monospace, "DejaVu Sans Mono", Menlo, Consolas, monospace;
-  }
-
-  .locked-hint {
-    margin: 0;
-    color: #595959;
-  }
-
   .properties {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -556,6 +524,45 @@ function position(problem: InspectorProblem): string {
   .properties input {
     min-width: 0;
     font: inherit;
+  }
+
+  /* Greyed out: the checkbox only shows the value for now. */
+  .properties .locked {
+    flex-direction: row;
+    align-items: center;
+    align-self: end;
+    gap: 0.25rem;
+    color: #595959;
+    cursor: not-allowed;
+  }
+
+  /* Drawn here rather than by the browser, whose disabled checkbox shows its
+     tick too faintly to read: grey, but checked and unchecked stay distinct. */
+  .properties .locked input {
+    appearance: none;
+    display: inline-grid;
+    place-content: center;
+    width: 0.9rem;
+    height: 0.9rem;
+    margin: 0;
+    border: 1px solid #595959;
+    border-radius: 2px;
+    background: #ffffff;
+    cursor: not-allowed;
+  }
+
+  .properties .locked input:checked {
+    background: #595959;
+  }
+
+  .properties .locked input:checked::before {
+    content: "";
+    width: 0.3rem;
+    height: 0.55rem;
+    margin-top: -0.1rem;
+    border: solid #ffffff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
   }
 
   .properties .problem {
