@@ -7,7 +7,7 @@
  * This module is the one place that maps a pointer target to what it hits,
  * a box of one of those kinds or an element, with its address; that decides
  * what a press selects; that decides what the pointer highlights; and that
- * decides which frames hold part of the selection. A double-click on a box
+ * decides which boxes hold part of the selection. A double-click on a box
  * will dispatch from here to that box's editor.
  *
  * A hit is classified by the drawing's element types, never by the form of
@@ -15,9 +15,8 @@
  * timeline's line.
  */
 
-import type { BlockId, Manifest, TimelineManifest } from "@timetoalign/tilie-core";
-import { elementOfIn, manifestElements, memberDrawings } from "@timetoalign/tilie-core";
-import type { Drawing, RectElement } from "@timetoalign/tilie-layout";
+import type { BlockId } from "@timetoalign/tilie-core";
+import type { Drawing, DrawnElement, RectElement } from "@timetoalign/tilie-layout";
 import type { Descriptor } from "@timetoalign/tilie-writers";
 
 /** The kinds of box a drawing shows: the block's own box, a group's frame, a timeline's card. */
@@ -55,10 +54,11 @@ export interface Hover {
 export const NO_HOVER: Hover = { box: null, boundary: null };
 
 /**
- * A descriptor that carries a box's or a boundary's mark: a card's own
- * rectangle, the card's shadow, a frame, a boundary's line.
+ * A descriptor that carries a box's or a boundary's mark: the block's
+ * background, a card's own rectangle, the card's shadow, a frame, a
+ * boundary's line.
  */
-export type Mark = "card" | "shadow" | "group" | "boundary";
+export type Mark = "block" | "card" | "shadow" | "group" | "boundary";
 
 interface Boxes {
   /** The kind of every drawn card and frame, by address. */
@@ -66,18 +66,20 @@ interface Boxes {
   /** The drawn cards and frames, in drawing order. */
   readonly rects: readonly RectElement[];
   readonly boundaries: ReadonlySet<string>;
+  /**
+   * Every drawn address, with the cards and frames holding an element
+   * that carries it, by their addresses; a box does not hold itself.
+   */
+  readonly holders: ReadonlyMap<string, ReadonlySet<string>>;
 }
 
-interface Frames {
-  /** The timeline each element address belongs to, `null` for a frame, its title and the manifest's title. */
-  readonly owners: ReadonlyMap<string, string | null>;
-  /** The frames each timeline is drawn in as a member or below one, by group id. */
-  readonly frames: ReadonlyMap<string, readonly string[]>;
-  readonly element: (path: string) => string;
+/** The boxes holding part of a selection: the block's own box, and its cards and frames by address. */
+export interface Holding {
+  readonly block: boolean;
+  readonly boxes: ReadonlySet<string>;
 }
 
 const boxes = new WeakMap<Drawing, Boxes>();
-const frames = new WeakMap<Manifest, Frames>();
 const marks = new WeakMap<readonly Descriptor[], ReadonlyMap<Descriptor, Mark>>();
 
 function boxesOf(drawing: Drawing): Boxes {
@@ -94,7 +96,17 @@ function boxesOf(drawing: Drawing): Boxes {
         boundaries.add(element.address);
       }
     }
-    found = { kinds, rects, boundaries };
+    const holders = new Map<string, Set<string>>();
+    for (const element of drawing.elements) {
+      if (element.type === "block") continue;
+      const points = pointsIn(element);
+      const held = holders.get(element.address) ?? new Set<string>();
+      for (const rect of rects) {
+        if (rect !== element && points.every((point) => holds(rect, point))) held.add(rect.address);
+      }
+      holders.set(element.address, held);
+    }
+    found = { kinds, rects, boundaries, holders };
     boxes.set(drawing, found);
   }
   return found;
@@ -102,6 +114,44 @@ function boxesOf(drawing: Drawing): Boxes {
 
 function holds(rect: RectElement, { x, y }: DrawingPoint): boolean {
   return rect.x <= x && x <= rect.x + rect.width && rect.y <= y && y <= rect.y + rect.height;
+}
+
+/**
+ * The points a box must hold to hold a drawn element. A card or frame is
+ * held by a box holding both its corners: a card lies wholly inside its
+ * frame (section 8.4), and a frame inside no card. Any other element lies
+ * wholly inside its member drawing, and so inside its card, and no two
+ * cards and no two frames overlap, so one point of it decides: the middle
+ * of a line or map, the middle of a region's span, a jump's start, the
+ * middle of a break, boundary or wedge, a text's anchor on its baseline.
+ */
+function pointsIn(element: Exclude<DrawnElement, { readonly type: "block" }>): DrawingPoint[] {
+  switch (element.type) {
+    case "group":
+    case "card":
+      return [
+        { x: element.x, y: element.y },
+        { x: element.x + element.width, y: element.y + element.height },
+      ];
+    case "timeline":
+    case "child":
+    case "ancestor":
+      return [{ x: (element.xs + element.xe) / 2, y: element.y }];
+    case "map":
+      return [{ x: (element.xs + element.xe) / 2, y: element.yc }];
+    case "region":
+      return [{ x: element.xm, y: (element.yb + element.ya) / 2 }];
+    case "jump":
+      return [{ x: element.start[0], y: element.start[1] }];
+    case "break":
+    case "boundary":
+      return [{ x: element.x, y: (element.y1 + element.y2) / 2 }];
+    case "wedge":
+      return [{ x: element.x, y: (element.yt + element.yb) / 2 }];
+    case "name":
+    case "label":
+      return [{ x: element.x, y: element.baseline }];
+  }
 }
 
 /**
@@ -163,8 +213,9 @@ export function hoverOf(hit: Hit): Hover {
  * memoized by the descriptor list. A card and its shadow are both `rect`s
  * carrying the card's address; the shadow is written first (section 7.2),
  * so the card is the last `rect` carrying its address and any `rect`
- * before it with that address is its shadow. Every other descriptor is
- * absent.
+ * before it with that address is its shadow. The block's background is
+ * the first descriptor, a `rect` with no address (section 8.5). Every
+ * other descriptor is absent.
  */
 export function marksOf(
   drawing: Drawing,
@@ -175,6 +226,10 @@ export function marksOf(
     const { kinds, boundaries } = boxesOf(drawing);
     const cards = new Map<string, Descriptor>();
     const named = new Map<Descriptor, Mark>();
+    const [background] = descriptors;
+    if (background?.tag === "rect" && addressOf(background) === null) {
+      named.set(background, "block");
+    }
     for (const descriptor of descriptors) {
       const address = addressOf(descriptor);
       if (address === null) continue;
@@ -196,52 +251,28 @@ export function marksOf(
   return found;
 }
 
-function framesOf(manifest: Manifest): Frames {
-  let found = frames.get(manifest);
-  if (found === undefined) {
-    const owners = new Map<string, string | null>();
-    for (const key of manifestElements(manifest)) {
-      if (key.address !== null && !owners.has(key.address)) owners.set(key.address, key.timeline);
-    }
-    const held = new Map<string, string[]>();
-    const visit = (timeline: TimelineManifest, group: string) => {
-      const groups = held.get(timeline.id) ?? [];
-      if (!groups.includes(group)) groups.push(group);
-      held.set(timeline.id, groups);
-      for (const child of timeline.children) visit(child, group);
-    };
-    for (const frame of memberDrawings(manifest).frames) {
-      for (const member of frame.members) visit(member.timeline, frame.group.id);
-    }
-    found = { owners, frames: held, element: elementOfIn(manifest) };
-    frames.set(manifest, found);
-  }
-  return found;
-}
-
 /**
- * The frames of `manifest` holding part of the selection `selected`
- * (element addresses), by group id: a frame holds its members, every
- * timeline below them, and every element and part of those, the members'
- * cards included. A part stands for its element (core's `elementOf`), and
- * an element for the timeline it belongs to; a selected group, its title
- * and the manifest's title belong to no timeline, so a selected frame holds
- * nothing by itself being selected. A timeline drawn below a member of one
- * group and as a member of another is held by both frames.
+ * The boxes of `drawing` holding part of the selection `selected` (element
+ * addresses, as the descriptors carry them): a box holds the selection when
+ * an element drawn inside it carries a selected address, the box itself
+ * excepted. So a selected card marks its frame and the block but not
+ * itself; a line marks its card, that card's frame and the block; and an
+ * address drawn in several cards, such as an ancestor line, marks each of
+ * them. The block's own box holds every drawn element; an address that is
+ * not drawn marks nothing.
  */
-export function framesHolding(
-  manifest: Manifest,
-  selected: ReadonlySet<string>,
-): ReadonlySet<string> {
-  const holding = new Set<string>();
-  if (selected.size === 0) return holding;
-  const { owners, frames: held, element } = framesOf(manifest);
+export function holdingOf(drawing: Drawing, selected: ReadonlySet<string>): Holding {
+  const held = new Set<string>();
+  let block = false;
+  if (selected.size === 0) return { block, boxes: held };
+  const { holders } = boxesOf(drawing);
   for (const address of selected) {
-    const owner = owners.get(element(address));
-    if (owner === undefined || owner === null) continue;
-    for (const group of held.get(owner) ?? []) holding.add(group);
+    const holding = holders.get(address);
+    if (holding === undefined) continue;
+    block = true;
+    for (const box of holding) held.add(box);
   }
-  return holding;
+  return { block, boxes: held };
 }
 
 /** A descriptor's `data-address`, or `null`. */
@@ -263,15 +294,16 @@ export function showsSelection(
 }
 
 /**
- * Whether a descriptor shows that its frame holds part of the selection: a
- * frame's `rect` whose group is among `holding` (`framesHolding`).
+ * Whether a descriptor shows that its box holds part of the selection: a
+ * card's or a frame's own `rect` whose address is among `holding`
+ * (`holdingOf`), never a card's shadow.
  */
 export function showsContainedSelection(
   mark: Mark | undefined,
   address: string | null,
   holding: ReadonlySet<string>,
 ): boolean {
-  return mark === "group" && address !== null && holding.has(address);
+  return (mark === "card" || mark === "group") && address !== null && holding.has(address);
 }
 
 /** Whether a descriptor shows the hover: the hovered box's own rectangle, or the hovered boundary. */

@@ -1,23 +1,14 @@
 /**
- * The Locked checkbox of a selected timeline, and the timeline named beside
- * the inspector's heading; the expected values are derived in `README.md`
- * ("The inspector").
+ * The Locked checkbox of a selected timeline; the expected values are
+ * derived in `README.md` ("The inspector").
  */
 
 import type { Store } from "@timetoalign/tilie-core";
-import {
-  createStore,
-  createView,
-  isLoadError,
-  loadManifest,
-  writeWorkspace,
-} from "@timetoalign/tilie-core";
+import { createStore, createView, isLoadError, loadManifest } from "@timetoalign/tilie-core";
 import { flushSync, mount, unmount } from "svelte";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import App from "../src/App.svelte";
+import { afterEach, describe, expect, it } from "vitest";
 import { selectedTimeline } from "../src/inspector/edit.ts";
 import Inspector from "../src/inspector/Inspector.svelte";
-import { stubEditor } from "./dom.ts";
 
 const A = "0000000000";
 const UNAVAILABLE = "Locking and unlocking is not available yet.";
@@ -202,48 +193,5 @@ describe("the Locked checkbox", () => {
     expect(refusal).toBe(null);
     flushSync();
     expect(checkboxes()[0]?.checked).toBe(true);
-  });
-});
-
-describe("the inspected timeline beside the heading", () => {
-  let app: ReturnType<typeof mount> | undefined;
-
-  afterEach(() => {
-    if (app !== undefined) unmount(app);
-    app = undefined;
-    document.body.innerHTML = "";
-    vi.unstubAllGlobals();
-  });
-
-  it("names the selected timeline and nothing for a block", () => {
-    window.history.replaceState({}, "", "/");
-    stubEditor();
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => Response.json({ name: "tilie-server", version: "0", timetoalign: "0" })),
-    );
-    app = mount(App, { target: document.body });
-    flushSync();
-    const hook = window.__tilie;
-    if (hook === undefined) throw new Error("window.__tilie is not installed");
-    const { view, journal } = storeOf();
-    hook.load(writeWorkspace({ view, journal }));
-    flushSync();
-    const drawer = document.getElementById("inspector");
-    const heading = document.getElementById("inspector-heading");
-
-    hook.select([`${A}/take/card`]);
-    flushSync();
-    const subject = document.getElementById("inspector-subject");
-    expect(subject?.textContent).toBe("Timeline take");
-    expect(subject?.querySelector("code")?.textContent).toBe("take");
-    expect(subject?.parentElement).toBe(heading?.parentElement);
-    expect(drawer?.getAttribute("aria-describedby")).toBe("inspector-subject");
-    expect(heading?.textContent).toBe("Inspector");
-
-    hook.select([A]);
-    flushSync();
-    expect(document.getElementById("inspector-subject")).toBe(null);
-    expect(drawer?.hasAttribute("aria-describedby")).toBe(false);
   });
 });

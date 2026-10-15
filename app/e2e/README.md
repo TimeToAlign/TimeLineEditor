@@ -307,9 +307,12 @@ Every block's card rectangle and its shadow carry the address `<root>/card`
    the pane, out of the zone.
 9. **Click (element, block, Shift).** A click on `nested0000`'s child line
    `clt_2` selects exactly `[nested0000/clt_2]`: that element carries
-   `data-selected`, its node content `data-contains-selection`, and they are
-   the only ones. A click on `map0000000`'s card then selects exactly the
-   card `[map0000000/melody/card]`. Of the two parts addressed
+   `data-selected` and its node's `.tilie-block` `data-contains-selection`,
+   the only block on the page that does; the card `clt_1/card` holding the
+   line has the page's only dashed card mark
+   `rect.tilie-holding[data-box=card]`, and no frame mark (`data-box=group`)
+   is drawn. A click on `map0000000`'s card then selects exactly the card
+   `[map0000000/melody/card]`. Of the two parts addressed
    `melody/card`, the second (the card itself) carries `data-selected` and,
    the pointer resting on it, `data-hovered`; the first (its shadow) carries
    no `data-selected`, and `melody/card` is the only selected address drawn.
@@ -319,7 +322,9 @@ Every block's card rectangle and its shadow carry the address `<root>/card`
    carries `data-affected` (Delete of a selected card removes its
    timeline). A click on its margin then selects exactly `[map0000000]`,
    with no `data-selected` or `data-contains-selection` left.
-   Shift+click on `styled0000`'s root line adds `styled0000/score`, Shift+click
+   Shift+click on `styled0000`'s root line adds `styled0000/score`: then
+   exactly two `.tilie-block`s carry `data-contains-selection` and two card
+   marks are drawn (`clt_1/card` and `score/card`), no frame mark. Shift+click
    on `bare`'s margin adds `bare000000`, Shift+click on `clt_2` again
    removes it: {bare000000, styled0000/score}. A drag that starts on `clt_2`
    moves `nested0000` by (101, 37) to (104, 200) as one command. Escape
@@ -625,10 +630,13 @@ its "Open inspector" button. The text is read from the textarea labelled
    `score` and not checked for `pages` and `page_1`: a plain segment is
    never locked, and a root segment line that is no group member keeps
    the `false` it was written with. Each also names the timeline beside
-   the drawer's heading: `#inspector-subject` reads exactly "Timeline
-   score", "Timeline pages", "Timeline page_1", and the drawer's heading
-   is still exactly "Inspector". Selecting the block `bungroup00` itself
-   shows no such checkbox and no subject.
+   the drawer's heading by its name: `#inspector-subject` reads exactly
+   "Timeline Score", "Timeline Pages", "Timeline Page 1", and the drawer's
+   heading is still exactly "Inspector". Selecting the block `bungroup00`
+   itself shows no such checkbox, and the subject reads exactly "Bundle
+   Sketches" (the manifest's name); selecting the group
+   `bmixed0000/group_1` shows no checkbox and the subject "Group
+   Performance"; selecting nothing removes the subject.
 10. **A press on a card shows its timeline's checkbox.** The root `bare` of
     `bare000000` is locked by a `set` of `locked` `true` on
     `bare000000/bare` through the hook (accepted, journal 6). A press on
@@ -636,11 +644,13 @@ its "Open inspector" button. The text is read from the textarea labelled
     and the drawer shows exactly one checkbox named "Locked", disabled and
     checked, in the cell of the form "Block properties" right after the
     `height` field's label, with no `fieldset` in the drawer; the subject
-    beside the heading reads exactly "Timeline bare": the card stands for
-    its timeline and the value is the stored `true`, not the `false` the
-    fixture was written with. A press on the block's margin (`marginPoint`)
-    then selects exactly `bare000000` and the checkbox and the subject are
-    gone. Neither press adds a journal entry (still 6).
+    beside the heading reads exactly "Card of timeline Bare": the card
+    stands for its timeline and the value is the stored `true`, not the
+    `false` the fixture was written with. A press on the block's margin
+    (`marginPoint`) then selects exactly `bare000000`: the checkbox is
+    gone and the subject reads exactly "Anonymous bundle" (the manifest
+    has neither `id` nor `name`). Neither press adds a journal entry
+    (still 6).
 
 ## `a11y.spec.ts`
 
@@ -729,17 +739,29 @@ root's card and drawing), applied to the fixture by hand.
    its own line; a click on the first of the two (the mark) selects exactly
    `[gchild0000/second-half/start]`, both carry `data-selected`, and they
    are the only marked parts.
-3b. **A frame holding the selection is drawn dashed.** In `bmixed0000` no
-   frame carries `data-contains-selection`. A click on the first part of
-   the member line `score` (in `group_1`) selects exactly
-   `[bmixed0000/score]`; then exactly one `rect` of the node carries
-   `data-contains-selection`, the frame `group_1`, drawn with the block's
-   dashed mark: computed `stroke` `rgb(10, 132, 255)` and
-   `stroke-dasharray` `6px, 4px`. The other frame, `group_2`, keeps its own
-   stroke `rgb(209, 213, 219)` (`#D1D5DB`, the default frame stroke) and no
-   dashes (`none`). Which selections mark which frames is proven in
-   arranger's unit tests; this proves the attribute reaches the page and
-   the stylesheet draws it.
+3b. **A card and its frame holding the selection are drawn dashed, the
+   block dotted.** In `bmixed0000` nothing carries
+   `data-contains-selection` and no mark `rect.tilie-holding` is drawn. A
+   click on the first part of the member line `score` (in `group_1`)
+   selects exactly `[bmixed0000/score]`; then exactly two `rect`s of the
+   node carry `data-contains-selection`, the frame `group_1` and the card
+   `score/card`, and so does the node's `.tilie-block`: three on the page.
+   At zoom 1 the marks are, in order, `[block, rgb(10, 132, 255), 1px,
+   1px, 2px, non-scaling-stroke, none]`, `[group, …, 2px, 6px, 4px, …]`
+   and `[card, …, 3px, 6px, 4px, …]` (`data-box`, `stroke`,
+   `stroke-width`, `stroke-dasharray`, `vector-effect`, `fill`): thinner
+   outward, the block dotted. Only the block's mark has `shape-rendering`
+   `crispedges` (the others `auto`): it lies on the node's edge, between
+   two device pixels at a pixel ratio of 1, and is drawn as one pixel of
+   the full colour per dot instead of two pale ones. At zoom 2 every width and dash is halved
+   (`0.5px` with `0.5px, 1px`; `1px` and `1.5px` with `3px, 2px`), so that
+   on screen, where the zoom doubles them, they stay 1, 2 and 3 pixels;
+   `non-scaling-stroke` keeps them from scaling with the block. The frame
+   and the card keep their own strokes under the marks: `rgb(209, 213,
+   219)` (`#D1D5DB`) and `rgb(196, 201, 209)` (`#C4C9D1`, the card's own
+   `rect`, not its shadow). Which selections mark which boxes is proven in
+   arranger's unit tests; this proves the attributes reach the page and
+   the stylesheet draws them.
 4. **Delete removes a timeline with its subtree from its group, and a
    region.** In `gchild0000` (roots `piece`, holding `second-half`, and
    `recording`; `group_1` with members `recording`, `second-half`), with

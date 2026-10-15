@@ -159,14 +159,13 @@ What proves the projection is complete and stable:
     selected: true, zIndex: 0}`.
   - `B` has `width: 954.38916015625`, `height: 191.953125` (the drawing's
     477.194580078125 × 95.9765625, × 2), `selected: false`, `zIndex: 1`,
-    `data.selectedElements = {clt_3}`
-    and `data.containsSelection: true`.
+    and `data.selectedElements = {clt_3}`.
   - Neither node has a `draggable` member. `data.descriptors` equals
     `toDescriptors(data.drawing)`.
 - **Blocks of manifests with groups.** A block holding `numbers` with selection
   `{A/score/region_1/label}` has `data.selectedElements =
-  {score/region_1/label}` (everything after the block id, slashes kept),
-  `containsSelection: true` and `affectedElements = {score/region_1}`; its
+  {score/region_1/label}` (everything after the block id, slashes kept)
+  and `affectedElements = {score/region_1}`; its
   `data.drawing` equals `drawingOf(block, …)`, so every manifest is drawn
   through the one path.
 - **Index order and rank.** Setting B's index below A's (core's
@@ -818,15 +817,22 @@ renders, which draws nothing).
    `selectedElements = {"score/intro"}` on `styled__score` (the region
    `intro` of its root `score`), the elements carrying `data-selected` are
    exactly `["score/intro"]` (one descriptor carries that
-   address), the element tree with `data-selected` left out still equals
-   `figure.svg`'s, and exactly one element carries `data-contains-selection`.
-   Without a selection, no element carries either attribute.
+   address). Inside the `<svg>` exactly `rect score/card` carries
+   `data-contains-selection` (the region is drawn on that card, section
+   "Boxes: selection and hover"), and so does the node's `div`; two marks
+   are drawn after the drawing's elements, `data-box` `block` then `card`,
+   and the element tree without the marks and with `data-selected` and
+   `data-contains-selection` left out still equals `figure.svg`'s.
+   Without a selection, no element carries either attribute and no mark
+   is drawn.
    An element that goes with a selected one on Delete is marked apart:
    with `selectedElements = {"clt_3"}` and `affectedElements = {"clt_2"}`
    on `nested`, the elements carrying `data-affected` are exactly the three
    descriptors addressed `clt_2` (its line, start dot and end marker), those
-   carrying `data-selected` exactly those addressed `clt_3`, and the tree
-   with both attributes left out equals `figure.svg`'s. Without a selection
+   carrying `data-selected` exactly those addressed `clt_3`, exactly `rect
+   clt_1/card` (the root's card, on which `clt_3` is drawn) carries
+   `data-contains-selection`, and the tree without the marks and with those attributes and
+   `data-contains-selection` left out equals `figure.svg`'s. Without a selection
    no element carries `data-affected`. Which elements are affected is
    decided by `project`; the node only marks them.
    **A selected address marks every descriptor carrying it**, wherever and
@@ -837,10 +843,11 @@ renders, which draws nothing).
    descriptors of `exposition`'s ancestor line, the two `exposition/start`
    marks (on that ancestor line and on `exposition`'s own line), and the
    four `score` descriptors of `recapitulation`'s ancestor line: ten
-   elements; the node is given the block's manifest, so `exposition/start`
-   (a part of the member `exposition`) marks its frame: inside the `<svg>`
-   exactly `rect group_1` carries `data-contains-selection` (section "Boxes:
-   selection and hover"), the tree with `data-selected` and
+   elements. The ancestor line `score` is drawn on both members' cards, so
+   inside the `<svg>` exactly `rect group_1`, `rect exposition/card`,
+   `rect group_2` and `rect recapitulation/card` carry
+   `data-contains-selection` (section "Boxes: selection and hover"), the
+   tree without the marks and with `data-selected` and
    `data-contains-selection` left out equals `figure.svg`'s, and the node's
    `div` carries `data-contains-selection` too. No fixture draws a timeline
    both as a member and as an ancestor line or child of another member
@@ -851,11 +858,12 @@ renders, which draws nothing).
    node knows its boxes), `selectedElements = {"recording/card"}` marks
    exactly one element, the second `rect` addressed `recording/card` (the
    card; the first, its shadow, carries the same address and is not
-   marked, section "Boxes: selection and hover"); given the block's
-   manifest, the card of the member `recording` marks its frame, exactly
-   `rect group_1` inside the `<svg>`; the tree with `data-selected` and
-   `data-contains-selection` left out equals `figure.svg`'s, and the node's
-   `div` carries `data-contains-selection` too.
+   marked, section "Boxes: selection and hover"); the card is drawn inside
+   its frame, so exactly `rect group_1` inside the `<svg>` carries
+   `data-contains-selection`; the tree without the marks and with
+   `data-selected` and `data-contains-selection` left out equals
+   `figure.svg`'s, and the node's `div` carries `data-contains-selection`
+   too.
 3. **Text is text.** A text descriptor whose text is
    `<b id="x">C♯ & D♭</b>` and whose `data-address` is `a"<b>` renders one
    `<text>` element in the SVG namespace with exactly those attribute values
@@ -971,7 +979,8 @@ never marked, since the node shows its block), `boundary` the hit's element
 address when `boundary` is true, else `null`.
 
 `marksOf(drawing, descriptors)` names the descriptors that carry a box's or
-a boundary's mark: `"card"` for a card's own rectangle (the last `rect`
+a boundary's mark: `"block"` for the block's background (the first
+descriptor, a `rect` with no address), `"card"` for a card's own rectangle (the last `rect`
 carrying a card's address), `"shadow"` for the `rect` before it with the
 same address, `"group"` for a frame's `rect`, `"boundary"` for a
 boundary's `line`; every other descriptor is absent. The block node sets
@@ -1012,12 +1021,12 @@ of the descriptor's tag and `data-address`, built inside an `<svg>` inside a
      `(469.573974609375, 103.9296875)`; `null` in the box's padding
      `(4, 4)`, just right of the card `(470, 50)`, on the shadow's rim
      `(471, 105)`, and without a point.
-   - `marksOf` names, in order, the second descriptor `form/card`
-     `"shadow"`, the third `form/card` `"card"`, and `b/start`, `b2/start`,
+   - `marksOf` names, in order, the first descriptor (the background, no
+     address) `"block"`, the second descriptor `form/card` `"shadow"`, the third `form/card` `"card"`, and `b/start`, `b2/start`,
      `c/start` `"boundary"`. With the workspace statement `{select:
      {element: "card"}, set: {shadow: "none"}}` the one `rect` addressed
-     `form/card`, the second descriptor, is `"card"` and no descriptor is
-     `"shadow"`.
+     `form/card`, the second descriptor, is `"card"`, after the background's
+     `"block"`, and no descriptor is `"shadow"`.
 2. **`group_child_member`** (frame `group_1` from `x` 8 to `550.4140625`,
    `y` 8 to `182.13671875`, its title `group_1/name`; cards from `x` 16 to
    `542.4140625`: `second-half/card` `y` `32.8046875` to `116.7578125`,
@@ -1033,11 +1042,13 @@ of the descriptor's tag and `data-address`, built inside an `<svg>` inside a
      `(120.61962890625, 139.16015625)` (inside the frame too: the card is
      the innermost box); `null` in the box's padding `(4, 4)` and right of
      the frame `(552, 100)`.
-   - `marksOf` names, in order, `group_1` `"group"`, `second-half/card`
+   - `marksOf` names, in order, the background `"block"`, `group_1`
+     `"group"`, `second-half/card`
      `"shadow"` then `"card"`, `recording/card` `"shadow"` then `"card"`.
    - With the workspace statement `{select: {element: "card"}, set:
      {display: "none"}}` no card is drawn: `within` at `(120.61962890625,
-     139.16015625)` is `group_1`, and `marksOf` names `group_1` alone.
+     139.16015625)` is `group_1`, and `marksOf` names the background and
+     `group_1` alone.
 3. **`selectionOf` and `hoverOf`.** On `group_child_member`: the card hit
    selects `A/recording/card`, and so does its shadow (the first `rect`
    addressed `recording/card`); the frame `A/group_1`; the background
@@ -1092,69 +1103,92 @@ of the descriptor's tag and `data-address`, built inside an `<svg>` inside a
      second `rect` addressed `recording/card`: the card, not the frame
      around it, and not its shadow.
 
-**A frame holding part of the selection.** The block node marks a block
-holding a selection with `data-contains-selection` on its own `div`; a
-group's frame inside it carries the same attribute, on its `rect`, exactly
-when the selection holds something drawn on the frame's member cards.
-`framesHolding(manifest, selected)` (element addresses, as the node holds
-them) gives those frames by group id, resolved from the manifest's tree and
-groups through core's readers, never from the form of an address: a
-selected address is folded to its element (`elementOf`), the element to
-the timeline it belongs to (the `timeline` of its key in
-`manifestElements`), and a timeline is held by every frame among whose
-members it is or below one of whose members it lies (`memberDrawings`).
-So a frame holds:
+**The boxes holding part of the selection.** One rule marks every box: the
+block's own box, a group's frame and a timeline's card each carry
+`data-contains-selection` (the block on its node's `div`, a frame or card
+on its own `rect`, never on a card's shadow) exactly when an element drawn
+inside the box carries a selected address, the box itself excepted.
+`holdingOf(drawing, selected)` (element addresses, as the node holds
+them) decides it from the drawing alone, never from the manifest's tree
+or the form of an address: a card or frame holds another box when its
+rectangle holds both of that box's corners, and any other element when it
+holds one point of it (the middle of a line, a text's anchor on its
+baseline; a card lies wholly inside its frame and a member drawing wholly
+inside its card, drawing.md section 8.4); the block's own box holds every
+drawn element. So:
 
-- a member timeline;
-- every timeline in a member's subtree;
-- every element and part of those: a member's card `T/card`, a line's
-  start and end `T/start`, a region of a timeline below a member
-  (`<root>/region_1`) and its label.
+- a line, a part of it and a region's label mark the card they are drawn
+  in, that card's frame and the block;
+- an ancestor line marks every card it is drawn in, and their frames;
+- a selected card marks its frame and the block, not itself;
+- a group's title marks its frame; a selected group marks only the block;
+- the manifest's title marks only the block;
+- an address that is not drawn marks nothing.
 
-A selected group, its title `G/name` and the manifest's title `name`
-belong to no timeline: selecting the group alone leaves its frame
-unmarked (it shows the selection's glow instead), and so does a timeline
-drawn outside every frame. An ancestor line drawn on a member's card
-(a timeline above a member, not inside any member's subtree) holds no
-frame either. `showsContainedSelection(mark, address, holding)` is true
-for a `"group"` descriptor whose address is among them, and the node
-sets `data-contains-selection` on exactly those descriptors.
+`showsContainedSelection(mark, address, holding)` is true for a card's or
+a frame's own `rect` whose address is among the holding boxes. The node
+draws each mark as a `rect.tilie-holding` after the drawing's elements,
+with its box's `x`, `y`, `width`, `height` and `rx` and `data-box` the
+box's mark (`marksOf`): `block` (a copy of the background) when the block
+holds part of the selection, and `group` or `card` for a holding frame or
+card that is not selected, a selected box keeping the selection's glow
+instead. The canvas's stylesheet draws the marks in the selection's colour
+`#0a84ff`, thinner outward: a card 3 px dashed, a frame 2 px dashed (both
+dashes of 6 and gaps of 4), the block 1 px dotted (dots of 1, gaps of 2,
+with crisp edges, since it lies on the node's edge), all in screen pixels
+at any block scale and any zoom; this is proven end to end.
 
-6. **`boxes.test.ts`, the frames' mark.** On `bundles/bundle_mixed`
-   (groups `group_1`, members `performance` and `score`, and `group_2`,
-   members `excerpt`, a child of the root `recording`, and `page`; the
-   root `annotations` drawn outside every frame), extended through two
-   `add`s: the child `dlt_1` (`samples`, offset 0, length 100) into
-   `excerpt`, and the region `region_1` (name `A`, start 0, end 10) into `dlt_1`,
+6. **`boxes.test.ts`, the boxes' marks.** On `bundles/bundle_mixed`
+   (groups `group_1`, members `performance` and `score`, drawn in the order
+   `score`, `performance`, and `group_2`, members `excerpt`, a child of the
+   root `recording`, and `page`, drawn `page`, `excerpt`; the root
+   `annotations` drawn outside every frame), extended through two `add`s:
+   the child `dlt_1` (`samples`, offset 0, length 100) into `excerpt`, and
+   the region `region_1` (name `A`, start 0, end 10) into `dlt_1`,
    addressed `recording/region_1` (a region is addressed by its root).
-   `BlockNode.svelte` is mounted with the selection as `selectedElements`
-   and `containsSelection` as `project` sets it (any selection); the
-   expected value is every element inside the `<svg>` carrying
-   `data-contains-selection`, as `<tag> <address>` in document order:
+   `recording` is drawn only as the ancestor line on `excerpt`'s card.
+   `BlockNode.svelte` is mounted with the selection as `selectedElements`;
+   the expected value is every element inside the `<svg>` carrying
+   `data-contains-selection`, as `<tag> <address>` in document order (the
+   frames and cards are drawn `group_1`, `score/card`, `performance/card`,
+   `group_2`, `page/card`, `excerpt/card`, `annotations/card`):
 
    | selected | marked |
    |---|---|
-   | `score` (a member) | `rect group_1` |
-   | `dlt_1` (a child of the member `excerpt`) | `rect group_2` |
-   | `recording/region_1/label` (a region's label on `dlt_1`) | `rect group_2` |
+   | `score` (a member's line) | `rect group_1`, `rect score/card` |
+   | `score/start` (a member's start) | `rect group_1`, `rect score/card` |
+   | `dlt_1` (a child's line on `excerpt`'s card) | `rect group_2`, `rect excerpt/card` |
+   | `recording/region_1/label` (a region's label on `dlt_1`) | `rect group_2`, `rect excerpt/card` |
+   | `excerpt` (a member that is a child) | `rect group_2`, `rect excerpt/card` |
+   | `recording` (the ancestor line on `excerpt`'s card) | `rect group_2`, `rect excerpt/card` |
    | `page/card` (a member's card) | `rect group_2` |
-   | `score/start` (a member's start) | `rect group_1` |
-   | `excerpt` (a member that is a child) | `rect group_2` |
    | `group_1` (the group itself) | none |
-   | `group_1/name` (the group's title) | none |
-   | `annotations` (outside every frame) | none |
+   | `group_1/name` (the group's title) | `rect group_1` |
+   | `name` (the manifest's title) | none |
+   | `annotations` (a root outside every frame) | `rect annotations/card` |
    | `annotations/card` | none |
-   | `recording` (the ancestor line on `excerpt`'s card) | none |
-   | `score`, `page` | `rect group_1`, `rect group_2` |
+   | `score`, `page` | `rect group_1`, `rect score/card`, `rect group_2`, `rect page/card` |
 
-   With `group_1` and `score` selected both apply: the frame `rect
-   group_1` carries `data-selected` and `data-contains-selection`, and the
-   stylesheet lets the glow win. With nothing selected nothing inside the
-   `<svg>` carries the attribute, and neither does the node's `div`; with
-   any selection the `div` carries it.
+   In every row the node's `div` carries `data-contains-selection`, and
+   the marks drawn are one `rect.tilie-holding` for the block, then one per
+   marked box in the same order, its `data-box` the box's kind (`block`,
+   then `group` for a frame, `card` for a card) and its `x`, `y`, `width`,
+   `height` and `rx` those of the background (the `<svg>`'s first child)
+   and of each box's own `rect`. With `group_1` and `score` selected the
+   frame carries both `data-selected` and `data-contains-selection` and
+   `score/card` carries `data-contains-selection`, but the frame has no
+   mark: `[block, card]`. With nothing selected nothing carries the
+   attribute, neither the node's `div`, and no mark is drawn.
+
+   On `bundles/bundle_ungrouped` (roots `pages`, `recording` and `score`,
+   no group, so every card lies on the block's own box), `recording` marks
+   exactly `rect recording/card`, and the boundary `page_2/start` drawn on
+   `pages`'s line exactly `rect pages/card`; the `div` carries the
+   attribute both times.
 
 That the client position is converted under zoom and scale, that a press on
-a card or a frame selects it, that a frame holding the selection is drawn
-dashed, and that a selected card glows in the
-selection's colour even under the pointer (the canvas's stylesheet, which
-jsdom does not apply) are proven end to end by the Playwright suite.
+a card or a frame selects it, that a card and its frame holding the
+selection are drawn dashed and the block dotted, with those widths, and
+that a selected card glows in the selection's colour even under the
+pointer (the canvas's stylesheet, which jsdom does not apply) are proven
+end to end by the Playwright suite.

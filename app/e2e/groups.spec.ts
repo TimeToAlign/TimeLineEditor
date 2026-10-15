@@ -418,24 +418,59 @@ test.describe("a bundle workspace", () => {
     );
   });
 
-  test("a click on a member's line marks its frame dashed, not the other frame", async ({
+  test("a click on a member's line marks its card and its frame dashed and the block dotted", async ({
     page,
   }) => {
-    const frames = node(page, BUNDLES.mixed).locator("rect[data-contains-selection]");
-    await expect(frames).toHaveCount(0);
+    const block = node(page, BUNDLES.mixed).locator(".tilie-block");
+    const boxes = node(page, BUNDLES.mixed).locator("rect[data-contains-selection]");
+    const dashed = node(page, BUNDLES.mixed).locator("rect.tilie-holding");
+    await expect(page.locator("[data-contains-selection]")).toHaveCount(0);
+    await expect(dashed).toHaveCount(0);
     const { x, y } = await partCentre(page, BUNDLES.mixed, "score");
     await page.mouse.click(x, y);
     expect(await selection(page)).toEqual([`${BUNDLES.mixed}/score`]);
     expect(
-      await frames.evaluateAll((items) => items.map((item) => item.getAttribute("data-address"))),
-    ).toEqual(["group_1"]);
-    const look = (frame: string) =>
-      part(page, BUNDLES.mixed, frame).evaluate((item) => {
-        const style = getComputedStyle(item);
-        return [style.stroke, style.strokeDasharray];
-      });
-    expect(await look("group_1")).toEqual(["rgb(10, 132, 255)", "6px, 4px"]);
-    expect(await look("group_2")).toEqual(["rgb(209, 213, 219)", "none"]);
+      await boxes.evaluateAll((items) => items.map((item) => item.getAttribute("data-address"))),
+    ).toEqual(["group_1", "score/card"]);
+    await expect(block).toHaveAttribute("data-contains-selection", "");
+    await expect(page.locator("[data-contains-selection]")).toHaveCount(3);
+    const looks = () =>
+      dashed.evaluateAll((items) =>
+        items.map((item) => {
+          const style = getComputedStyle(item);
+          return [
+            item.getAttribute("data-box"),
+            style.stroke,
+            style.strokeWidth,
+            style.strokeDasharray,
+            style.vectorEffect,
+            style.fill,
+          ];
+        }),
+      );
+    const blue = "rgb(10, 132, 255)";
+    expect(await looks()).toEqual([
+      ["block", blue, "1px", "1px, 2px", "non-scaling-stroke", "none"],
+      ["group", blue, "2px", "6px, 4px", "non-scaling-stroke", "none"],
+      ["card", blue, "3px", "6px, 4px", "non-scaling-stroke", "none"],
+    ]);
+    expect(
+      await dashed.evaluateAll((items) =>
+        items.map((item) => getComputedStyle(item).shapeRendering),
+      ),
+    ).toEqual(["crispedges", "auto", "auto"]);
+    await setViewport(page, { ...VIEW, zoom: 2 });
+    expect(await looks()).toEqual([
+      ["block", blue, "0.5px", "0.5px, 1px", "non-scaling-stroke", "none"],
+      ["group", blue, "1px", "3px, 2px", "non-scaling-stroke", "none"],
+      ["card", blue, "1.5px", "3px, 2px", "non-scaling-stroke", "none"],
+    ]);
+    const stroke = (address: string) =>
+      element(page, BUNDLES.mixed, address)
+        .last()
+        .evaluate((item) => getComputedStyle(item).stroke);
+    expect(await stroke("group_1")).toBe("rgb(209, 213, 219)");
+    expect(await stroke("score/card")).toBe("rgb(196, 201, 209)");
   });
 
   test("hovering a segment boundary marks that boundary and its card", async ({ page }) => {

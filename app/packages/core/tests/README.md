@@ -919,6 +919,19 @@ beside its `order`) and `bundles/bundle_mixed.json` (no id, name
    (the child of `recording`; the very objects, not copies), and
    `undefined` for `group_1` (a group), `name` (the title), `recording/excerpt`
    (an element address, not an id) and `nothing` (no element).
+   `findEntry`, the one reader of a map, region, break, jump or marker by
+   its address `<root>/<id>`, gives the kind and the very object: in
+   `map.json` `melody/tempo` the map `timelines[0].conversion_maps[0]` and
+   `melody/ticks` the map `timelines[0].children[0].conversion_maps[0]`
+   (the child `phrase`'s, qualified by the root), both kind `map`; in
+   `flow_control.json` `flow:quarters/break_1`, `…/jump_1` and
+   `…/marker_1` the objects `flow_control.breaks[0]`, `jumps[0]` and
+   `markers[0]` of `timelines[0]`, kinds `break`, `jump`, `marker`; in the
+   view of `group_number_types.json` with `region_1`, `score/region_1` the
+   object `timelines[2].regions[0]`, kind `region`. It gives `undefined`
+   for `score` (a timeline), `group_1` (a group), `name` (the title),
+   `region_1` (no root), `page/region_1` (not in page's tree),
+   `score/region_1/label` (a part) and `score/nothing`.
 6. **Commands.** `set` reaches a timeline at any depth: `name: "Late"` on
    `A/second-half` of `group_child_member.json` changes exactly
    `timelines[0].children[0].name`, and `name: "Intro"` on `A/score/region_1`

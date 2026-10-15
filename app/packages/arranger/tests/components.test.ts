@@ -8,7 +8,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
-import type { Block, Manifest } from "@timetoalign/tilie-core";
+import type { Block } from "@timetoalign/tilie-core";
 import { isLoadError, loadManifest } from "@timetoalign/tilie-core";
 import type { Drawing, Placement } from "@timetoalign/tilie-layout";
 import { DEFAULT_LAYER, draw } from "@timetoalign/tilie-layout";
@@ -70,7 +70,7 @@ function fixture(name: string) {
   if (isLoadError(manifest)) throw new Error(`${name}: ${manifest.problems[0]?.message}`);
   const layers = [DEFAULT_LAYER, ...inputs.layers, manifest.graphical];
   const drawing = draw(manifest, inputs.placement, layers, fontMetrics);
-  return { drawing, manifest, scale: inputs.scale, svg: read("figure.svg") };
+  return { drawing, scale: inputs.scale, svg: read("figure.svg") };
 }
 
 interface Tree {
@@ -113,9 +113,7 @@ afterEach(() => {
 
 /**
  * The node mounted on `descriptors`, in a box of the given size and scale,
- * with the drawing's elements when given (they tell the node its boxes) and
- * the block's manifest when given (it tells the node which frames hold the
- * selection).
+ * with the drawing's elements when given (they tell the node its boxes).
  */
 function render(
   descriptors: readonly Descriptor[],
@@ -124,7 +122,6 @@ function render(
     height: number;
     scale: number;
     elements?: Drawing["elements"];
-    manifest?: Manifest;
   },
   selectedElements: ReadonlySet<string> = new Set(),
   affectedElements: ReadonlySet<string> = new Set(),
@@ -137,13 +134,12 @@ function render(
     unmapped: [],
   };
   const data = {
-    block: { scale: box.scale, manifest: box.manifest } as Block,
+    block: { scale: box.scale } as Block,
     drawing,
     descriptors,
     selectedElements,
     affectedElements,
     movedElements,
-    containsSelection: selectedElements.size > 0,
   };
   // The node reads only `data`; the other node props are Svelte Flow's.
   mounted = mount(BlockNode, { target: document.body, props: { data } as never });
@@ -151,6 +147,11 @@ function render(
   const svg = document.querySelector("svg");
   if (svg === null) throw new Error("the block node rendered no svg");
   return svg;
+}
+
+/** The drawing's elements as the node renders them: the children of `svg` but the boxes' marks. */
+function drawn(svg: SVGSVGElement): Element[] {
+  return Array.from(svg.children).filter((element) => !element.classList.contains("tilie-holding"));
 }
 
 /** The elements inside `svg` carrying `data-contains-selection`, as `<tag> <address>`. */
@@ -174,9 +175,9 @@ describe("BlockNode", () => {
   });
 
   it("marks exactly the selected element's descriptors and the block holding them", () => {
-    const { drawing, manifest, scale, svg: text } = fixture("styled__score");
+    const { drawing, scale, svg: text } = fixture("styled__score");
     const descriptors = toDescriptors(drawing);
-    const svg = render(descriptors, { ...drawing, scale, manifest }, new Set(["score/intro"]));
+    const svg = render(descriptors, { ...drawing, scale }, new Set(["score/intro"]));
 
     const marked = Array.from(svg.querySelectorAll("[data-selected]"), (element) =>
       element.getAttribute("data-address"),
@@ -187,8 +188,12 @@ describe("BlockNode", () => {
     expect(expected.length).toBe(1);
     expect(marked).toEqual(["score/intro"]);
     // The mark is the only difference from the exported tree.
-    expect(trees(svg.children, ["data-selected"])).toEqual(exported(text));
-    expect(document.querySelectorAll("[data-contains-selection]").length).toBe(1);
+    expect(trees(drawn(svg), ["data-selected", "data-contains-selection"])).toEqual(exported(text));
+    expect(containing(svg)).toEqual(["rect score/card"]);
+    expect(
+      Array.from(svg.querySelectorAll(".tilie-holding"), (mark) => mark.getAttribute("data-box")),
+    ).toEqual(["block", "card"]);
+    expect(document.querySelectorAll(".tilie-block[data-contains-selection]").length).toBe(1);
   });
 
   it("marks nothing without a selection", () => {
@@ -198,17 +203,13 @@ describe("BlockNode", () => {
     expect(document.querySelectorAll("[data-selected]").length).toBe(0);
     expect(document.querySelectorAll("[data-affected]").length).toBe(0);
     expect(document.querySelectorAll("[data-contains-selection]").length).toBe(0);
+    expect(document.querySelectorAll(".tilie-holding").length).toBe(0);
   });
 
   it("marks exactly the affected elements' descriptors, apart from the selected one", () => {
-    const { drawing, manifest, scale, svg: text } = fixture("nested");
+    const { drawing, scale, svg: text } = fixture("nested");
     const descriptors = toDescriptors(drawing);
-    const svg = render(
-      descriptors,
-      { ...drawing, scale, manifest },
-      new Set(["clt_3"]),
-      new Set(["clt_2"]),
-    );
+    const svg = render(descriptors, { ...drawing, scale }, new Set(["clt_3"]), new Set(["clt_2"]));
 
     const addressed = (id: string) =>
       descriptors.filter(({ attrs }) =>
@@ -221,40 +222,40 @@ describe("BlockNode", () => {
     expect(marks("data-affected")).toEqual(Array(addressed("clt_2")).fill("clt_2"));
     expect(marks("data-selected")).toEqual(Array(addressed("clt_3")).fill("clt_3"));
     expect(addressed("clt_2")).toBe(3);
-    expect(trees(svg.children, ["data-selected", "data-affected"])).toEqual(exported(text));
+    expect(containing(svg)).toEqual(["rect clt_1/card"]);
+    expect(
+      trees(drawn(svg), ["data-selected", "data-affected", "data-contains-selection"]),
+    ).toEqual(exported(text));
   });
 
   it("marks every descriptor carrying a selected address", () => {
-    const { drawing, manifest, scale, svg: text } = fixture("bundle__bundle_shared_parent");
+    const { drawing, scale, svg: text } = fixture("bundle__bundle_shared_parent");
     const selected = new Set(["score", "exposition/start"]);
-    const svg = render(toDescriptors(drawing), { ...drawing, scale, manifest }, selected);
+    const svg = render(toDescriptors(drawing), { ...drawing, scale }, selected);
 
     const marked = Array.from(svg.querySelectorAll("[data-selected]"), (element) =>
       element.getAttribute("data-address"),
     );
     const score = Array(4).fill("score");
     expect(marked).toEqual([...score, "exposition/start", "exposition/start", ...score]);
-    expect(trees(svg.children, ["data-selected", "data-contains-selection"])).toEqual(
-      exported(text),
-    );
-    expect(containing(svg)).toEqual(["rect group_1"]);
+    expect(trees(drawn(svg), ["data-selected", "data-contains-selection"])).toEqual(exported(text));
+    expect(containing(svg)).toEqual([
+      "rect group_1",
+      "rect exposition/card",
+      "rect group_2",
+      "rect recapitulation/card",
+    ]);
     expect(document.querySelectorAll(".tilie-block[data-contains-selection]").length).toBe(1);
   });
 
   it("marks a selected card on its own rectangle, not on its shadow", () => {
-    const { drawing, manifest, scale, svg: text } = fixture("group__group_child_member");
-    const svg = render(
-      toDescriptors(drawing),
-      { ...drawing, scale, manifest },
-      new Set(["recording/card"]),
-    );
+    const { drawing, scale, svg: text } = fixture("group__group_child_member");
+    const svg = render(toDescriptors(drawing), { ...drawing, scale }, new Set(["recording/card"]));
 
     const cards = Array.from(svg.querySelectorAll('rect[data-address="recording/card"]'));
     expect(cards.length).toBe(2);
     expect(Array.from(svg.querySelectorAll("[data-selected]"))).toEqual([cards[1]]);
-    expect(trees(svg.children, ["data-selected", "data-contains-selection"])).toEqual(
-      exported(text),
-    );
+    expect(trees(drawn(svg), ["data-selected", "data-contains-selection"])).toEqual(exported(text));
     expect(containing(svg)).toEqual(["rect group_1"]);
     expect(document.querySelectorAll(".tilie-block[data-contains-selection]").length).toBe(1);
   });

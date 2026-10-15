@@ -16,7 +16,6 @@ export type BlockNodeData = {
   readonly descriptors: readonly Descriptor[];
   /** The ids of the block's selected elements. */
   readonly selectedElements: ReadonlySet<string>;
-  readonly containsSelection: boolean;
   /** What removing the selected elements would also remove, highlighted with them. */
   readonly affectedElements: ReadonlySet<string>;
   /** What closing the gap of a segment about to be deleted moves or resizes. */
@@ -133,7 +132,6 @@ export function project(
         drawing,
         descriptors: descriptorsOf(drawing),
         selectedElements,
-        containsSelection: selectedElements.size > 0,
         affectedElements:
           selectedElements.size === 0 ? NO_ELEMENTS : affectedBy(block.manifest, selectedElements),
         movedElements,

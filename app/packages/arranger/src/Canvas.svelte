@@ -736,6 +736,7 @@ function onkeydowncapture(event: KeyboardEvent) {
   aria-label="Arranger"
   tabindex="0"
   bind:this={root}
+  style:--tilie-zoom={viewport.zoom}
   {onpointerdowncapture}
   {@attach shiftWheel}
 >
@@ -928,19 +929,43 @@ function onkeydowncapture(event: KeyboardEvent) {
       stroke: #0a84ff;
     }
 
-    .tilie-block[data-contains-selection] {
-      outline: 2px dashed #0a84ff;
-      outline-offset: 2px;
+    /*
+     * A box holding part of the selection is marked in the selection's
+     * colour, more thinly the further out it lies: a card 3 px dashed, a
+     * frame 2 px dashed, the block 1 px dotted. Each mark is a copy of its
+     * box's outline drawn over the drawing (`BlockNode`). Its stroke does
+     * not scale with the block, and its widths and dashes are divided by
+     * the canvas zoom (`--tilie-zoom`, set on the canvas), so they are
+     * screen pixels at any block scale and any zoom.
+     */
+    .tilie-block .tilie-holding {
+      --dash: calc(6px / var(--tilie-zoom, 1));
+      --gap: calc(4px / var(--tilie-zoom, 1));
+      fill: none;
+      stroke: #0a84ff;
+      stroke-dasharray: var(--dash) var(--gap);
+      vector-effect: non-scaling-stroke;
+      pointer-events: none;
+    }
+
+    .tilie-block .tilie-holding[data-box="card"] {
+      stroke-width: calc(3px / var(--tilie-zoom, 1));
+    }
+
+    .tilie-block .tilie-holding[data-box="group"] {
+      stroke-width: calc(2px / var(--tilie-zoom, 1));
     }
 
     /*
-     * A frame holding part of the selection takes the block's dashed mark on
-     * its own stroke; a selected frame shows the selection's glow instead.
+     * The block's mark lies on the node's edge, between two device pixels
+     * at a pixel ratio of 1; crisp edges keep its dots one pixel of the
+     * full colour instead of two pale ones.
      */
-    .tilie-block rect[data-contains-selection]:not([data-selected]) {
-      stroke: #0a84ff;
-      stroke-width: 2px;
-      stroke-dasharray: 6 4;
+    .tilie-block .tilie-holding[data-box="block"] {
+      --dash: calc(1px / var(--tilie-zoom, 1));
+      --gap: calc(2px / var(--tilie-zoom, 1));
+      stroke-width: calc(1px / var(--tilie-zoom, 1));
+      shape-rendering: crispEdges;
     }
   }
 

@@ -5,8 +5,8 @@ import type { NodeProps } from "@xyflow/svelte";
 import type { Hover } from "./boxes.ts";
 import {
   addressOf,
-  framesHolding,
   hitOf,
+  holdingOf,
   hoverOf,
   marksOf,
   NO_HOVER,
@@ -41,11 +41,36 @@ function isSelected(descriptor: Descriptor): boolean {
   return showsSelection(marks.get(descriptor), addressOf(descriptor), data.selectedElements);
 }
 
-/** The frames holding part of the selection, by group id. */
-const holding = $derived(framesHolding(data.block.manifest, data.selectedElements));
+/** The block's own box, and its cards and frames, holding part of the selection. */
+const holding = $derived(holdingOf(data.drawing, data.selectedElements));
 
 function holdsSelection(descriptor: Descriptor): boolean {
-  return showsContainedSelection(marks.get(descriptor), addressOf(descriptor), holding);
+  return showsContainedSelection(marks.get(descriptor), addressOf(descriptor), holding.boxes);
+}
+
+/**
+ * The boxes whose mark is drawn: the block's background when the block
+ * holds part of the selection, and the cards and frames holding part of it
+ * that are not selected themselves, a selected box showing the selection's
+ * glow instead. Each mark is drawn over the drawing as a copy of its box's
+ * outline, so the box keeps its own stroke and shadow under it.
+ */
+const boxMarks = $derived(
+  data.descriptors.filter((descriptor) =>
+    marks.get(descriptor) === "block"
+      ? holding.block
+      : holdsSelection(descriptor) && !isSelected(descriptor),
+  ),
+);
+
+/** A mark's outline: its box's rectangle and corner radius. */
+function outlineOf(descriptor: Descriptor): Record<string, string> {
+  const outline = ["x", "y", "width", "height", "rx"];
+  return Object.fromEntries(
+    descriptor.attrs
+      .filter(([name]) => outline.includes(name))
+      .map(([name, value]) => [name, domValue(value)]),
+  );
 }
 
 /** What the pointer highlights, held by address so that a redraw keeps the marks. */
@@ -94,7 +119,7 @@ function isMoved(descriptor: Descriptor): boolean {
 
 <div
   class="tilie-block"
-  data-contains-selection={data.containsSelection ? "" : undefined}
+  data-contains-selection={holding.block ? "" : undefined}
 >
   <!--
     The pointer handlers only show which box or boundary the pointer is
@@ -118,6 +143,14 @@ function isMoved(descriptor: Descriptor): boolean {
         data-moved={isMoved(descriptor) ? "" : undefined}
         data-hovered={isHovered(descriptor) ? "" : undefined}>{descriptor.text}</svelte:element
       >
+    {/each}
+    {#each boxMarks as descriptor (descriptor)}
+      <rect
+        class="tilie-holding"
+        data-box={marks.get(descriptor)}
+        {...outlineOf(descriptor)}
+        aria-hidden="true"
+      />
     {/each}
   </svg>
 </div>

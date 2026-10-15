@@ -425,7 +425,7 @@ writes its view and journal.
 The viewport functions talk to Svelte Flow, which needs a laid-out page;
 they and everything the canvas does are proven by the Playwright suite.
 
-## The inspector (`inspector-text.test.ts`, `inspector-codecs.test.ts`, `Inspector.test.ts`, `Inspector-load.test.ts`, `inspector-locked.test.ts`)
+## The inspector (`inspector-text.test.ts`, `inspector-codecs.test.ts`, `Inspector.test.ts`, `Inspector-load.test.ts`, `inspector-locked.test.ts`, `inspector-subject.test.ts`)
 
 The inspector shows the manifest of the block the selection lies in as JSON,
 YAML or TOML text and writes an edited text back as one `set` command
@@ -650,12 +650,7 @@ else shows no checkbox: no selection, a block, several addresses (even two
 naming one timeline), a group, a region or any other non-timeline element,
 an address naming nothing. Locking and unlocking is not available yet, so
 the checkbox is disabled for every timeline, with the `title` "Locking and
-unlocking is not available yet." on the input. The editor names the
-timeline beside the drawer's heading: next to the `h2` "Inspector" (whose
-accessible name stays exactly "Inspector") an element `#inspector-subject`
-reads "Timeline <id>", the id in a `code` element, and the drawer's
-`aria-describedby` names it; with no timeline selected there is no such
-element and no description. What proves it is a manifest
+unlocking is not available yet." on the input. What proves it is a manifest
 written for the test, in block `0000000000`, whose `locked` values follow
 the rules a writer obeys, so that reading the manifest can never change
 them: a plain segment is unlocked, and a segment line that is a segment
@@ -699,11 +694,72 @@ label of `height`, as before. The checkbox follows the store: with
 `…/free` shown, a `set` of `locked` `true` on `0000000000/free`
 dispatched to the store checks it.
 
-The editor, mounted with the same manifest loaded through the test hook
-(a workspace written from that store), shows the subject beside the
-heading: selecting `…/take/card` gives `#inspector-subject` the text
-exactly "Timeline take" with `code` "take", a sibling of the `h2` in the
-drawer's head, and the drawer `#inspector` has `aria-describedby`
-`inspector-subject` while its `h2` reads exactly "Inspector"; selecting
-`0000000000` (a block only) removes the element and the drawer's
+**The editor names what the selection names beside the drawer's heading**
+(`inspector-subject.test.ts`). Next to the `h2` "Inspector" (whose
+accessible name stays exactly "Inspector") an element `#inspector-subject`
+shows `inspectedSubject(view, selection)` (`edit.ts`): the words for the
+kind of element, then the element's name as text when it has one, else its
+id in a `code` element; the drawer's `aria-describedby` names the element
+while it is shown. The kind word comes from what the address resolves to
+in the block's manifest, through core's `parseAddress`, `elementOf`,
+`findTimeline` and `findEntry`, never from the address's shape: the block
+and the manifest's own id name the manifest, every manifest being an
+alignment bundle ("Bundle", or "Anonymous bundle" without `id` and
+`name`); `name` its title; a group's id the group; a timeline's id the
+timeline (a segment line and a segment too); `<root>/<id>` the conversion
+map, region, break, jump or marker it names. Each part the address appends
+comes before the kind as "<Part> of", innermost first, the part `name`
+reading "Title" on the bundle and a group and "Name" on a timeline. The
+function gives `{words, name, id}`, `id` only when `name` is `null`. What
+proves it is the committed end-to-end workspaces (the generator's output,
+read with `readWorkspace`), whose blocks hold every kind:
+
+- `bundles.tle.json`, block `bmixed0000` (named "Mixed", no id; groups
+  `group_1` "Performance" and `group_2` "Facsimile"; the child `excerpt`
+  "Excerpt" of `recording`): `bmixed0000` gives "Bundle" with name
+  "Mixed"; `…/name` "Title of bundle", "Mixed"; `…/group_1` "Group",
+  "Performance"; `…/group_1/name` "Title of group", "Performance";
+  `…/score` "Timeline", "Score"; `…/score/card` "Card of timeline",
+  "Score"; `…/score/start` "Start of timeline", `…/score/end` "End of
+  timeline", `…/score/name` "Name of timeline", each "Score";
+  `…/score/end/label` "Label of end of timeline", "Score"; `…/excerpt`
+  "Timeline", "Excerpt". Block `bungroup00`: the segment line `…/pages`
+  "Timeline", "Pages"; its segment `…/page_1` "Timeline", "Page 1";
+  `…/page_2/label` "Label of timeline", "Page 2".
+- `groups.tle.json`, block `gchild0000` (no id, no name; group `group_1`
+  "Second half"): `gchild0000` gives "Anonymous bundle" with neither name
+  nor id; `…/name` "Title of anonymous bundle"; `…/group_1` "Group",
+  "Second half"; `…/second-half` "Timeline", "Second half". The same
+  block's manifest given the id `takes` by one `set` of the block's
+  `manifest` (the loaded manifest spread with `id: "takes"`) gives
+  "Bundle" with id `takes` for `gchild0000` and for `…/takes`, and
+  "Title of bundle" with id `takes` for `…/name`; `bmixed0000`'s manifest
+  given the id `mixed` the same way still gives "Bundle" with name "Mixed"
+  and no id.
+- `small.tle.json`: in `map0000000`, `…/melody/tempo` "Conversion map",
+  "Tempo", and `…/melody/ticks` (a map of the child `phrase`, addressed by
+  its root) "Conversion map", "Ticks"; in `flow000000`,
+  `…/flow:quarters/break_1` "Break", "fine", `…/flow:quarters/break_1/label`
+  "Label of break", "fine", `…/flow:quarters/jump_1` "Jump" with id
+  `jump_1` (a jump has no name), `…/flow:quarters/marker_1` "Marker",
+  "repeat-start"; in `styled0000`, `…/score/intro` "Region", "intro",
+  `…/score/intro/label` "Label of region", "intro", `…/score/da-capo`
+  "Jump" with id `da-capo`, `…/a` (a child without a name) "Timeline"
+  with id `a` and `…/a/card` "Card of timeline" with id `a`.
+- Several addresses give their count with neither name nor id:
+  `bmixed0000` with `…/score` "2 selected", and with `…/group_1` as well
+  "3 selected". `null` for an empty selection, for `…/nothing`, for
+  `…/score/x` (no part `x`), for `…/score/region_x` (no such entry) and for
+  a block that does not exist (`0000000009`).
+
+The editor, mounted, with a workspace loaded through the test hook shows
+it: with `bundles.tle.json`, selecting `bmixed0000` gives
+`#inspector-subject` the text exactly "Bundle Mixed" and no `code`, a
+sibling of the `h2` in the drawer's head, the drawer `#inspector` has
+`aria-describedby` `inspector-subject`, and its `h2` reads exactly
+"Inspector"; `bmixed0000/group_1` "Group Performance"; `bmixed0000/score`
+"Timeline Score"; `bmixed0000/score/card` "Card of timeline Score". With
+`groups.tle.json`, `gchild0000` gives exactly "Anonymous bundle" and no
+`code`. With `small.tle.json`, `styled0000/a` gives "Timeline a" with
+`code` "a". Selecting nothing removes the element and the drawer's
 `aria-describedby`.

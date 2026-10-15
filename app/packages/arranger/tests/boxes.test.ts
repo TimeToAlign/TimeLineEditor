@@ -129,6 +129,7 @@ describe("boxes in a manifest of one root", () => {
 
   it("marks the card, its shadow and the boundaries", () => {
     expect(marked(drawing)).toEqual([
+      [0, undefined, "block"],
       [1, "form/card", "shadow"],
       [2, "form/card", "card"],
       [15, "b/start", "boundary"],
@@ -140,6 +141,7 @@ describe("boxes in a manifest of one root", () => {
   it("marks the one rect of a card without a shadow as the card", () => {
     const plain = drawingIn(styled(view, { select: { element: "card" }, set: { shadow: "none" } }));
     expect(marked(plain)).toEqual([
+      [0, undefined, "block"],
       [1, "form/card", "card"],
       [14, "b/start", "boundary"],
       [15, "b2/start", "boundary"],
@@ -194,6 +196,7 @@ describe("boxes in a manifest with one group", () => {
 
   it("marks the frame, each card and each shadow", () => {
     expect(marked(drawing)).toEqual([
+      [0, undefined, "block"],
       [1, "group_1", "group"],
       [3, "second-half/card", "shadow"],
       [4, "second-half/card", "card"],
@@ -205,7 +208,10 @@ describe("boxes in a manifest with one group", () => {
   it("finds the frame where a hidden card would be", () => {
     const hidden = drawingIn(styled(view, HIDDEN_CARDS));
     expect(hitOf(A, hidden, null, { x: 120.61962890625, y: 139.16015625 }).within).toBe("group_1");
-    expect(marked(hidden)).toEqual([[1, "group_1", "group"]]);
+    expect(marked(hidden)).toEqual([
+      [0, undefined, "block"],
+      [1, "group_1", "group"],
+    ]);
   });
 
   it("selects what a press hit", () => {
@@ -270,7 +276,6 @@ describe("the block node's hover marks", () => {
       selectedElements: new Set(),
       affectedElements: new Set(),
       movedElements: new Set(),
-      containsSelection: false,
     };
   }
 
@@ -373,7 +378,7 @@ describe("the block node's hover marks", () => {
   });
 });
 
-describe("the frames holding part of the selection", () => {
+describe("the boxes holding part of the selection", () => {
   let mounted: ReturnType<typeof mount> | undefined;
 
   afterEach(() => {
@@ -383,7 +388,7 @@ describe("the frames holding part of the selection", () => {
   });
 
   /** `bundle_mixed` with the child `dlt_1` below the member `excerpt`, holding a region. */
-  const view = [
+  const mixed = [
     {
       type: "add",
       into: `${A}/excerpt`,
@@ -396,19 +401,17 @@ describe("the frames holding part of the selection", () => {
     },
   ].reduce(changed, viewOf({ id: A, fixture: "bundles/bundle_mixed" }));
 
-  /** The node mounted with `selected` as its selection, as `project` gives it. */
-  function mountWith(selected: readonly string[]): HTMLElement {
+  /** The node mounted on `view` with `selected` as its selection, as `project` gives it. */
+  function mountWith(selected: readonly string[], view: View = mixed): HTMLElement {
     const block = blockIn(view, A);
     const drawing = drawingOf(block, view.settings, metrics);
-    const selectedElements = new Set(selected);
     const data: BlockNodeData = {
       block,
       drawing,
       descriptors: descriptorsOf(drawing),
-      selectedElements,
+      selectedElements: new Set(selected),
       affectedElements: new Set(),
       movedElements: new Set(),
-      containsSelection: selectedElements.size > 0,
     };
     mounted = mount(BlockNode, { target: document.body, props: { data } as never });
     flushSync();
@@ -425,31 +428,52 @@ describe("the frames holding part of the selection", () => {
     );
   }
 
+  /** The geometry of an outline: its `x`, `y`, `width`, `height` and `rx`. */
+  function outline(element: Element): (string | null)[] {
+    return ["x", "y", "width", "height", "rx"].map((name) => element.getAttribute(name));
+  }
+
   it.each([
-    ["a member", ["score"], ["rect group_1"]],
-    ["a child of a member", ["dlt_1"], ["rect group_2"]],
-    ["a region's label below a member", ["recording/region_1/label"], ["rect group_2"]],
+    ["a member's line", ["score"], ["rect group_1", "rect score/card"]],
+    ["a member's start", ["score/start"], ["rect group_1", "rect score/card"]],
+    ["a child's line", ["dlt_1"], ["rect group_2", "rect excerpt/card"]],
+    ["a region's label", ["recording/region_1/label"], ["rect group_2", "rect excerpt/card"]],
+    ["a member that is a child", ["excerpt"], ["rect group_2", "rect excerpt/card"]],
+    ["the ancestor line on a member's card", ["recording"], ["rect group_2", "rect excerpt/card"]],
     ["a member's card", ["page/card"], ["rect group_2"]],
-    ["a member's start", ["score/start"], ["rect group_1"]],
-    ["a member that is a child", ["excerpt"], ["rect group_2"]],
     ["the group itself", ["group_1"], []],
-    ["the group's title", ["group_1/name"], []],
-    ["a root outside every frame", ["annotations"], []],
+    ["the group's title", ["group_1/name"], ["rect group_1"]],
+    ["the manifest's title", ["name"], []],
+    ["a root outside every frame", ["annotations"], ["rect annotations/card"]],
     ["the card of a root outside every frame", ["annotations/card"], []],
-    ["the ancestor line on a member's card", ["recording"], []],
-    ["a member of each group", ["score", "page"], ["rect group_1", "rect group_2"]],
-  ])("with %s (%j) selected marks exactly its frames", (_, selected, expected) => {
+    [
+      "a member of each group",
+      ["score", "page"],
+      ["rect group_1", "rect score/card", "rect group_2", "rect page/card"],
+    ],
+  ])("with %s (%j) selected marks exactly its boxes", (_, selected, expected) => {
     const node = mountWith(selected);
     expect(carrying(node, "data-contains-selection")).toEqual(expected);
     expect(node.hasAttribute("data-contains-selection")).toBe(true);
+    const dashed = Array.from(node.querySelectorAll("svg rect.tilie-holding"));
+    expect(dashed.map((mark) => mark.getAttribute("data-box"))).toEqual([
+      "block",
+      ...expected.map((box) => (box.endsWith("/card") ? "card" : "group")),
+    ]);
+    const background = node.querySelector("svg")?.children[0];
+    if (background === undefined) throw new Error("the block node drew no background");
+    const boxes = [background, ...node.querySelectorAll("svg [data-contains-selection]")];
+    expect(dashed.map(outline)).toEqual(boxes.map(outline));
   });
 
-  it("marks a selected frame holding a selected member as both", () => {
+  it("marks a selected frame holding a selected member as both, and draws no mark on it", () => {
     const node = mountWith(["group_1", "score"]);
-    expect(carrying(node, "data-contains-selection")).toEqual(["rect group_1"]);
+    expect(carrying(node, "data-contains-selection")).toEqual(["rect group_1", "rect score/card"]);
     expect(carrying(node, "data-selected").filter((part) => part.startsWith("rect "))).toEqual([
       "rect group_1",
     ]);
+    const dashed = Array.from(node.querySelectorAll("svg rect.tilie-holding"));
+    expect(dashed.map((mark) => mark.getAttribute("data-box"))).toEqual(["block", "card"]);
   });
 
   it("marks nothing without a selection", () => {
@@ -457,5 +481,15 @@ describe("the frames holding part of the selection", () => {
     expect(carrying(node, "data-contains-selection")).toEqual([]);
     expect(node.querySelector('text[data-address="recording/region_1/label"]')).not.toBeNull();
     expect(node.hasAttribute("data-contains-selection")).toBe(false);
+    expect(node.querySelectorAll(".tilie-holding").length).toBe(0);
+  });
+
+  it.each([
+    ["a root's line", ["recording"], ["rect recording/card"]],
+    ["a boundary on a root's line", ["page_2/start"], ["rect pages/card"]],
+  ])("without groups, with %s (%j) selected marks exactly its card", (_, selected, expected) => {
+    const node = mountWith(selected, viewOf({ id: A, fixture: "bundles/bundle_ungrouped" }));
+    expect(carrying(node, "data-contains-selection")).toEqual(expected);
+    expect(node.hasAttribute("data-contains-selection")).toBe(true);
   });
 });

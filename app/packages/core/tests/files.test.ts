@@ -7,6 +7,7 @@ import {
   createView,
   elementOf,
   elementOfIn,
+  findEntry,
   findTimeline,
   isLoadError,
   loadManifest,
@@ -388,6 +389,40 @@ describe("addresses in a block of several roots", () => {
     expect(findTimeline(manifest, "excerpt")).toBe(manifest.timelines[3]?.children[0]);
     for (const id of ["group_1", "name", "recording/excerpt", "nothing"]) {
       expect(findTimeline(manifest, id)).toBeUndefined();
+    }
+  });
+
+  it("finds a map, region, break, jump or marker by its address, and nothing else", () => {
+    const maps = load("map.json");
+    const melody = maps.timelines[0];
+    expect(findEntry(maps, "melody/tempo")?.kind).toBe("map");
+    expect(findEntry(maps, "melody/tempo")?.entry).toBe(melody?.conversion_maps[0]);
+    expect(findEntry(maps, "melody/ticks")?.kind).toBe("map");
+    expect(findEntry(maps, "melody/ticks")?.entry).toBe(melody?.children[0]?.conversion_maps[0]);
+    const flow = load("flow_control.json");
+    const control = flow.timelines[0]?.flow_control;
+    for (const [id, kind, entry] of [
+      ["break_1", "break", control?.breaks[0]],
+      ["jump_1", "jump", control?.jumps[0]],
+      ["marker_1", "marker", control?.markers[0]],
+    ] as const) {
+      const found = findEntry(flow, `flow:quarters/${id}`);
+      expect(found?.kind).toBe(kind);
+      expect(found?.entry).toBe(entry);
+    }
+    const numbers = file(numbersWithRegion());
+    expect(findEntry(numbers, "score/region_1")?.kind).toBe("region");
+    expect(findEntry(numbers, "score/region_1")?.entry).toBe(numbers.timelines[2]?.regions[0]);
+    for (const address of [
+      "score",
+      "group_1",
+      "name",
+      "region_1",
+      "page/region_1",
+      "score/region_1/label",
+      "score/nothing",
+    ]) {
+      expect(findEntry(numbers, address)).toBeUndefined();
     }
   });
 });

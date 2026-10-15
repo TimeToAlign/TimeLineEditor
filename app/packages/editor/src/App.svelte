@@ -30,7 +30,7 @@ import {
   WORKSPACE_FILE,
 } from "./files.ts";
 import { FIXTURES } from "./fixtures.ts";
-import { selectedTimeline } from "./inspector/edit.ts";
+import { inspectedSubject } from "./inspector/edit.ts";
 import Inspector from "./inspector/Inspector.svelte";
 import type { Message } from "./MessageArea.svelte";
 import MessageArea from "./MessageArea.svelte";
@@ -419,8 +419,8 @@ function rememberedInspector(): boolean {
 let inspectorOpen = $state(rememberedInspector());
 let inspectorTab: HTMLButtonElement | undefined = $state();
 let inspectorClose: HTMLButtonElement | undefined = $state();
-/** The timeline the inspector shows, named beside its heading. */
-const inspected = $derived(selectedTimeline(view, selection));
+/** What the selection names, shown beside the inspector's heading. */
+const subject = $derived(inspectedSubject(view, selection));
 
 /** Open or close the inspector, remember the choice, and move the focus to the control that undoes it. */
 async function showInspector(open: boolean): Promise<void> {
@@ -579,15 +579,21 @@ onMount(async () => {
     id="inspector"
     class="inspector"
     aria-labelledby="inspector-heading"
-    aria-describedby={inspected === null ? undefined : "inspector-subject"}
+    aria-describedby={subject === null ? undefined : "inspector-subject"}
     hidden={!inspectorOpen}
   >
     <div class="inspector-head">
       <div class="inspector-title">
         <h2 id="inspector-heading">Inspector</h2>
-        {#if inspected !== null}
+        {#if subject !== null}
           <p id="inspector-subject" class="inspector-subject">
-            Timeline <code>{inspected.timeline.id}</code>
+            {#if subject.name !== null}
+              {subject.words} {subject.name}
+            {:else if subject.id !== null}
+              {subject.words} <code>{subject.id}</code>
+            {:else}
+              {subject.words}
+            {/if}
           </p>
         {/if}
       </div>

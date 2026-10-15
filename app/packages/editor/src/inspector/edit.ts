@@ -7,6 +7,7 @@
 import type {
   Block,
   BlockId,
+  EntryKind,
   Json,
   Problem,
   SetCommand,
@@ -17,9 +18,12 @@ import type {
 import {
   ErrorCode,
   elementOf,
+  findEntry,
   findTimeline,
   isCommandError,
+  PART_WORDS,
   parseAddress,
+  TITLE_ADDRESS,
 } from "@timetoalign/tilie-core";
 import { dumps, isJsonObject } from "@timetoalign/timeskeleton";
 import type { Format, Text } from "./formats.ts";
@@ -65,6 +69,100 @@ export function selectedTimeline(view: View, selection: Iterable<string>): Selec
   if (block === undefined) return null;
   const timeline = findTimeline(block.manifest, elementOf(block.manifest, parsed.element));
   return timeline === undefined ? null : { block, address: `${block.id}/${timeline.id}`, timeline };
+}
+
+/**
+ * What the inspector names beside its heading: the words for the kind of
+ * element (and the part of it) the selection names, then the element's
+ * name, or its id when it has no name. An anonymous bundle and several
+ * selected elements have neither.
+ */
+export interface InspectedSubject {
+  /** `Bundle`, `Card of timeline`, `Anonymous bundle`, `2 selected`, … */
+  readonly words: string;
+  /** The element's name; `null` when it has none. */
+  readonly name: string | null;
+  /** The element's id when it has no name; else `null`. */
+  readonly id: string | null;
+}
+
+/** The word of each kind of element a timeline holds in a list. */
+const ENTRY_WORDS: Readonly<Record<EntryKind, string>> = {
+  map: "conversion map",
+  region: "region",
+  break: "break",
+  jump: "jump",
+  marker: "marker",
+};
+
+/** The word of each part an address appends to its element; a title for a bundle or a group. */
+function partWord(part: string, titled: boolean): string {
+  return part === "name" && titled ? "title" : part;
+}
+
+/**
+ * The subject the selection names: for one address, what it resolves to in
+ * its block's manifest (the manifest itself for the block, a group, a
+ * timeline, a map, region, break, jump or marker), read through core's
+ * `parseAddress`, `elementOf`, `findTimeline` and `findEntry`, each part
+ * the address appends prefixed (`Card of timeline`, `Label of end of
+ * timeline`); for several addresses their count; `null` for no selection,
+ * an address naming nothing or a part no element has.
+ */
+export function inspectedSubject(view: View, selection: Iterable<string>): InspectedSubject | null {
+  const addresses = [...selection];
+  const [address] = addresses;
+  if (address === undefined) return null;
+  if (addresses.length > 1) return { words: `${addresses.length} selected`, name: null, id: null };
+  const parsed = parseAddress(address);
+  if (isCommandError(parsed) || parsed.block === null) return null;
+  const block = view.blocks[parsed.block];
+  if (block === undefined) return null;
+  const { manifest } = block;
+  const path = parsed.element ?? "";
+  const element = elementOf(manifest, path);
+  const bundle = { kind: "bundle", name: manifest.name, id: manifest.id ?? null, titled: true };
+  // The title is the bundle's part `name`, addressed without the bundle's id.
+  const [found, parts] =
+    element === TITLE_ADDRESS
+      ? [bundle, ["name"]]
+      : [
+          parsed.element === null || element === manifest.id ? bundle : resolved(manifest, element),
+          path === element ? [] : path.slice(element.length + 1).split("/"),
+        ];
+  if (found === undefined || parts.some((part) => !PART_WORDS.includes(part))) return null;
+  const owner = found.name === null && found.id === null ? `anonymous ${found.kind}` : found.kind;
+  const words = [...parts.toReversed().map((part) => partWord(part, found.titled)), owner].join(
+    " of ",
+  );
+  return {
+    words: words.charAt(0).toUpperCase() + words.slice(1),
+    name: found.name,
+    id: found.name === null ? found.id : null,
+  };
+}
+
+/** What a subject names: its kind word, name and id, and whether its part `name` is a title. */
+interface Named {
+  readonly kind: string;
+  readonly name: string | null;
+  readonly id: string | null;
+  readonly titled: boolean;
+}
+
+/** The kind, name and id of the group, timeline or listed element `element` of a manifest. */
+function resolved(manifest: Block["manifest"], element: string): Named | undefined {
+  const group = manifest.groups.find((item) => item.id === element);
+  if (group !== undefined) return { kind: "group", name: group.name, id: group.id, titled: true };
+  const timeline = findTimeline(manifest, element);
+  if (timeline !== undefined) {
+    return { kind: "timeline", name: timeline.name, id: timeline.id, titled: false };
+  }
+  const listed = findEntry(manifest, element);
+  if (listed === undefined) return undefined;
+  const { entry } = listed;
+  const name = "name" in entry ? entry.name : null;
+  return { kind: ENTRY_WORDS[listed.kind], name, id: entry.id, titled: false };
 }
 
 /** A block's manifest as the JSON value it is. */

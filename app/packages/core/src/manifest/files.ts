@@ -5,7 +5,17 @@
 
 import type { PathSegment } from "../json.ts";
 import { compareCodePoints } from "../json.ts";
-import type { AxisValue, Group, Manifest, TimelineManifest } from "./types.ts";
+import type {
+  AxisValue,
+  Break,
+  ConversionMap,
+  Group,
+  Jump,
+  Manifest,
+  Marker,
+  Region,
+  TimelineManifest,
+} from "./types.ts";
 
 /** A root timeline of a manifest and its path from the manifest's top. */
 export interface RootPath {
@@ -56,6 +66,77 @@ export function locateTimeline(manifest: Manifest, id: string): Located | undefi
  */
 export function findTimeline(manifest: Manifest, id: string): TimelineManifest | undefined {
   return locateTimeline(manifest, id)?.timeline;
+}
+
+/** The kinds of the elements a timeline holds in a list, and where each list lies. */
+export const ENTRY_LISTS = {
+  map: ["conversion_maps"],
+  region: ["regions"],
+  break: ["flow_control", "breaks"],
+  jump: ["flow_control", "jumps"],
+  marker: ["flow_control", "markers"],
+} as const;
+
+/** The kind of an element a timeline holds in a list. */
+export type EntryKind = keyof typeof ENTRY_LISTS;
+
+export const ENTRY_KINDS = Object.keys(ENTRY_LISTS) as EntryKind[];
+
+/** An element a timeline holds in a list: a conversion map, region, break, jump or marker. */
+export type ListedElement = ConversionMap | Region | Break | Jump | Marker;
+
+/** The list of entries of one kind in a timeline. */
+export function entriesOf(timeline: TimelineManifest, kind: EntryKind): readonly ListedElement[] {
+  const [first, second] = ENTRY_LISTS[kind] as readonly string[];
+  const holder = timeline as unknown as { readonly [key: string]: unknown };
+  const list =
+    second === undefined
+      ? holder[first as string]
+      : (holder[first as string] as typeof holder)[second];
+  return list as readonly ListedElement[];
+}
+
+/** An entry inside a manifest: the timeline holding it, its kind and its index in that list. */
+export interface LocatedEntry {
+  readonly at: Located;
+  readonly kind: EntryKind;
+  readonly index: number;
+}
+
+/**
+ * The entry an element address `<root>/<id>` names: the map, region, break,
+ * jump or marker `<id>` of root `<root>`'s tree, located; `undefined` for
+ * any other address.
+ */
+export function locateEntry(manifest: Manifest, address: string): LocatedEntry | undefined {
+  const [first = "", id, ...rest] = address.split("/");
+  if (id === undefined || rest.length > 0) return undefined;
+  const root = rootPaths(manifest).find((item) => item.timeline.id === first);
+  if (root === undefined) return undefined;
+  return searchTree({ ...root, parent: undefined }, (at): LocatedEntry | undefined => {
+    for (const kind of ENTRY_KINDS) {
+      const index = entriesOf(at.timeline, kind).findIndex((item) => item.id === id);
+      if (index >= 0) return { at, kind, index };
+    }
+    return undefined;
+  });
+}
+
+/**
+ * The entry an element address `<root>/<id>` names, with its kind; the one
+ * reader of a map, region, break, jump or marker by address (`undefined` for
+ * a timeline, a group, the title or an unknown address).
+ */
+export function findEntry(
+  manifest: Manifest,
+  address: string,
+): { readonly kind: EntryKind; readonly entry: ListedElement } | undefined {
+  const found = locateEntry(manifest, address);
+  if (found === undefined) return undefined;
+  return {
+    kind: found.kind,
+    entry: entriesOf(found.at.timeline, found.kind)[found.index] as ListedElement,
+  };
 }
 
 /** Whether a manifest is named: it has an `id` or a `name`, and so a title. */

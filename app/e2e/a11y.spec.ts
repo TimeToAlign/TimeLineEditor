@@ -40,7 +40,9 @@ test("axe-core reports no violation on the canvas page", async ({ page }) => {
 
 test("axe-core reports no violation with an element selected", async ({ page }) => {
   await page.evaluate((address) => window.__tilie.select([address]), `${SMALL.styled}/score/intro`);
-  await expect(page.locator("[data-contains-selection]")).toHaveCount(1);
+  await expect(page.locator(".tilie-block[data-contains-selection]")).toHaveCount(1);
+  await expect(page.locator('rect.tilie-holding[data-box="card"]')).toHaveCount(1);
+  await expect(page.locator('rect.tilie-holding[data-box="group"]')).toHaveCount(0);
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations).toEqual([]);
 });

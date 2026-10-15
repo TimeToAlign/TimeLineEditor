@@ -17,8 +17,15 @@ import {
   selectorMatches,
   timelineAncestry,
 } from "../manifest/elements.ts";
-import type { Located } from "../manifest/files.ts";
-import { elementAddress, locateTimeline, rootPaths, searchTree } from "../manifest/files.ts";
+import type { EntryKind, Located } from "../manifest/files.ts";
+import {
+  ENTRY_KINDS,
+  ENTRY_LISTS,
+  elementAddress,
+  entriesOf,
+  locateEntry,
+  locateTimeline,
+} from "../manifest/files.ts";
 import {
   checkOrdered,
   childEnd,
@@ -74,17 +81,6 @@ function rootOf(at: Located): TimelineManifest {
   return at.parent === undefined ? at.timeline : rootOf(at.parent);
 }
 
-/** The kinds of the elements a timeline holds in a list, and where the list lies. */
-const LISTS = {
-  map: ["conversion_maps"],
-  region: ["regions"],
-  break: ["flow_control", "breaks"],
-  jump: ["flow_control", "jumps"],
-  marker: ["flow_control", "markers"],
-} as const;
-type EntryKind = keyof typeof LISTS;
-const ENTRY_KINDS = Object.keys(LISTS) as EntryKind[];
-
 type TargetKind = "workspace" | "block" | "group" | "root" | "child" | EntryKind;
 
 /** An element of a manifest's list: a conversion map, region, break, jump or marker. */
@@ -109,13 +105,9 @@ type Target =
       readonly index: number;
     };
 
-/** The list of entries of one kind in a timeline. */
+/** The list of entries of one kind in a timeline, as the setters read them. */
 function entries(timeline: TimelineManifest, kind: EntryKind): readonly Entry[] {
-  const [first, second] = LISTS[kind] as readonly string[];
-  const holder = timeline as unknown as Tree;
-  return (
-    second === undefined ? holder[first as string] : (holder[first as string] as Tree)[second]
-  ) as Entry[];
+  return entriesOf(timeline, kind) as unknown as readonly Entry[];
 }
 
 /** A timeline with the list of entries of one kind replaced. */
@@ -124,33 +116,23 @@ function withEntries(
   kind: EntryKind,
   list: readonly Entry[],
 ): TimelineManifest {
-  return setIn(timeline as unknown as Tree, LISTS[kind], list) as unknown as TimelineManifest;
+  return setIn(timeline as unknown as Tree, ENTRY_LISTS[kind], list) as unknown as TimelineManifest;
 }
-
-/** A timeline found in a manifest, or an entry of one of its lists. */
-type Found = { readonly at: Located; readonly kind?: EntryKind; readonly index?: number };
 
 /**
  * Find the element an element address names in a manifest: the timeline
  * carrying a bare id, or the entry `<id>` of root `<root>`'s tree for
  * `<root>/<id>`. A group is found by `resolve`.
  */
-function findElement(manifest: Manifest, element: string): Found | undefined {
-  const [first = "", id, ...rest] = element.split("/");
-  if (rest.length > 0) return undefined;
-  if (id === undefined) {
-    const at = locateTimeline(manifest, first);
+function findElement(
+  manifest: Manifest,
+  element: string,
+): { readonly at: Located; readonly kind?: EntryKind; readonly index?: number } | undefined {
+  if (!element.includes("/")) {
+    const at = locateTimeline(manifest, element);
     return at === undefined ? undefined : { at };
   }
-  const root = rootPaths(manifest).find((item) => item.timeline.id === first);
-  if (root === undefined) return undefined;
-  return searchTree({ ...root, parent: undefined }, (at): Found | undefined => {
-    for (const kind of ENTRY_KINDS) {
-      const index = entries(at.timeline, kind).findIndex((item) => item.id === id);
-      if (index >= 0) return { at, kind, index };
-    }
-    return undefined;
-  });
+  return locateEntry(manifest, element);
 }
 
 function resolve(view: View, address: Address): Target | CommandError {

@@ -42,7 +42,9 @@ export {
 } from "./manifest/elements.ts";
 export type {
   Ancestor,
+  EntryKind,
   GroupFrame,
+  ListedElement,
   MemberDrawing,
   MemberDrawings,
   RootPath,
@@ -51,6 +53,7 @@ export {
   elementAddress,
   elementOf,
   elementOfIn,
+  findEntry,
   findTimeline,
   isNamed,
   memberDrawings,

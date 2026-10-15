@@ -457,8 +457,12 @@ test.describe("click", () => {
     expect(await selection(page)).toEqual([`${SMALL.nested}/clt_2`]);
     await expect(part(page, SMALL.nested, "clt_2")).toHaveAttribute("data-selected");
     expect(await selectedAddresses(page)).toEqual(["clt_2"]);
-    await expect(node(page, SMALL.nested).locator("[data-contains-selection]")).toHaveCount(1);
-    await expect(page.locator("[data-contains-selection]")).toHaveCount(1);
+    const nested = node(page, SMALL.nested);
+    await expect(nested.locator(".tilie-block[data-contains-selection]")).toHaveCount(1);
+    await expect(nested.locator('rect.tilie-holding[data-box="card"]')).toHaveCount(1);
+    await expect(page.locator(".tilie-block[data-contains-selection]")).toHaveCount(1);
+    await expect(page.locator('rect.tilie-holding[data-box="card"]')).toHaveCount(1);
+    await expect(page.locator('rect.tilie-holding[data-box="group"]')).toHaveCount(0);
   });
 
   test("a click on a card selects the card, a click on the margin the block", async ({ page }) => {
@@ -489,7 +493,9 @@ test.describe("click", () => {
     await clickPart(page, SMALL.nested, "clt_2");
     await clickPart(page, SMALL.styled, "score", true);
     expect(await selection(page)).toEqual([`${SMALL.nested}/clt_2`, `${SMALL.styled}/score`]);
-    await expect(page.locator("[data-contains-selection]")).toHaveCount(2);
+    await expect(page.locator(".tilie-block[data-contains-selection]")).toHaveCount(2);
+    await expect(page.locator('rect.tilie-holding[data-box="card"]')).toHaveCount(2);
+    await expect(page.locator('rect.tilie-holding[data-box="group"]')).toHaveCount(0);
 
     const point = await marginPoint(page, SMALL.bare);
     await page.keyboard.down("Shift");

@@ -1,8 +1,9 @@
 /**
  * The inspector drawer on `small`: the manifest as text, applied as one
  * command, refused with its path, and the block properties form; and the
- * disabled Locked checkbox of a selected timeline and its name beside the
- * heading, on `bundles` and for a pressed card. The expected values are
+ * disabled Locked checkbox of a selected timeline, and what the selection
+ * names beside the heading (a bundle, a group, a timeline, a card), on
+ * `bundles` and for a pressed card. The expected values are
  * derived in `README.md` ("inspector.spec.ts").
  */
 
@@ -254,10 +255,10 @@ test("a selected timeline shows its locked as a disabled checkbox", async ({ pag
   expect(refused).toBe(null);
   const locked = page.getByRole("checkbox", { name: "Locked", exact: true });
   const unavailable = "Locking and unlocking is not available yet.";
-  for (const [id, checked] of [
-    ["score", true],
-    ["pages", false],
-    ["page_1", false],
+  for (const [id, checked, name] of [
+    ["score", true, "Score"],
+    ["pages", false, "Pages"],
+    ["page_1", false, "Page 1"],
   ] as const) {
     await page.evaluate(
       (address) => window.__tilie.select([address]),
@@ -268,11 +269,16 @@ test("a selected timeline shows its locked as a disabled checkbox", async ({ pag
     await expect(locked, id).toBeChecked({ checked });
     await expect(locked).toHaveAttribute("title", unavailable);
     await expect(locked).toHaveAccessibleDescription(unavailable);
-    await expect(subject(page)).toHaveText(`Timeline ${id}`);
+    await expect(subject(page)).toHaveText(`Timeline ${name}`);
     await expect(page.locator("#inspector-heading")).toHaveText("Inspector");
   }
   await page.evaluate((id) => window.__tilie.select([id]), BUNDLES.ungrouped);
   await expect(locked).toHaveCount(0);
+  await expect(subject(page)).toHaveText("Bundle Sketches");
+  await page.evaluate((address) => window.__tilie.select([address]), `${BUNDLES.mixed}/group_1`);
+  await expect(locked).toHaveCount(0);
+  await expect(subject(page)).toHaveText("Group Performance");
+  await page.evaluate(() => window.__tilie.select([]));
   await expect(subject(page)).toHaveCount(0);
 });
 
@@ -301,11 +307,11 @@ test("a press on a card shows its timeline's checkbox", async ({ page }) => {
   await expect(page.locator("#inspector fieldset")).toHaveCount(0);
   await expect(locked).toBeDisabled();
   await expect(locked).toBeChecked();
-  await expect(subject(page)).toHaveText("Timeline bare");
+  await expect(subject(page)).toHaveText("Card of timeline Bare");
   const margin = await marginPoint(page, SMALL.bare);
   await page.mouse.click(margin.x, margin.y);
   expect(await selection(page)).toEqual([SMALL.bare]);
   await expect(locked).toHaveCount(0);
-  await expect(subject(page)).toHaveCount(0);
+  await expect(subject(page)).toHaveText("Anonymous bundle");
   expect(await journalLength(page)).toBe(6);
 });

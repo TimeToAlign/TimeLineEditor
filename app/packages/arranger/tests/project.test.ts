@@ -35,7 +35,6 @@ describe("project", () => {
     });
     expect(dataA.block).toBe(blockIn(view, A));
     expect(dataA.selectedElements).toEqual(new Set());
-    expect(dataA.containsSelection).toBe(false);
     const { data: dataB, ...b } = node(nodes, B);
     expect(b).toStrictEqual({
       id: B,
@@ -49,7 +48,6 @@ describe("project", () => {
       zIndex: 1,
     });
     expect(dataB.selectedElements).toEqual(new Set(["clt_3"]));
-    expect(dataB.containsSelection).toBe(true);
     expect(dataB.affectedElements).toEqual(new Set(["clt_2", "clt_2/name"]));
     expect(dataA.affectedElements).toEqual(new Set());
     expect(dataB.descriptors).toEqual(toDescriptors(dataB.drawing));
@@ -60,7 +58,6 @@ describe("project", () => {
     const numbers = numbersView();
     const [only] = project(numbers, new Set([`${A}/score/region_1/label`]), [], metrics);
     expect(only?.data.selectedElements).toEqual(new Set(["score/region_1/label"]));
-    expect(only?.data.containsSelection).toBe(true);
     expect(only?.data.affectedElements).toEqual(new Set(["score/region_1"]));
     expect(only?.data.drawing).toBe(drawingOf(blockIn(numbers, A), numbers.settings, metrics));
   });
