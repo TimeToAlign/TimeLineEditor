@@ -28,7 +28,7 @@ arguments are built by `container.ts` and pinned in `tests/README.md`.
   `store().journal` for the commands a gesture produced, `selection()`,
   `viewport()`, `locked()` and `mode()`. A stored number is compared with
   `toEqual`/`toBe` against a literal; nothing is read back from pixels.
-- **The DOM** for what the contract says is rendered: nodes
+- **The DOM** for what the editor renders: nodes
   `.svelte-flow__node[data-id="<block id>"]` (a selected block's node
   carries Svelte Flow's class `selected`), drawn elements
   `[data-address="<address>"]` inside their node (one rule in every
@@ -58,7 +58,11 @@ around it (`marginPoint`, searched pixel by pixel, since the margin is 8 px
 wide at zoom 1 and 4 px at zoom 1/2); a drag of a block starts on its card,
 a whole-pixel point whose hit element, there and at the eight points 6 px
 around it, is the block's card (`cardPoint`, found on a raster across the
-node); a click on an element aims at the centre of its first
+node, tenths down and twentieths across, and when no raster point is clear,
+every second pixel, rows from the top; `framePoint` searches a named box,
+a frame or a card, the same way: a frame's title row, the frame's only
+clear strip once its cards cover the rest, may lie between the raster's
+rows); a click on an element aims at the centre of its first
 SVG part with the mouse (a horizontal line's box has no height, which
 Playwright's actionability checks treat as invisible). Svelte Flow starts a
 node drag on the first move past its 1 px threshold and measures the node's
@@ -513,6 +517,12 @@ mouse, Svelte Flow measures a node drag from the move that starts it).
    canvas (−30, −30) by (204, 68) pixels (to canvas (480, 140)) selects
    exactly {bare000000} (bare ends at x 476.58 and y 67.38, flow starts at 640, nested at
    y 160) and leaves the viewport where it was.
+7. A double tap (two taps at one point, well within 300 ms and 10 px) on
+   `map0000000`'s card opens the timeline editor of its root: the store's
+   `editing` is exactly `[{target: "map0000000/melody", kind:
+   "timeline"}]` (read as `{target, kind}`), one editor, even where the
+   engine also reports the two taps as a double-click (a second opening
+   of the same target is refused).
 
 ## `files.spec.ts` (Chromium, Firefox, WebKit)
 
@@ -560,10 +570,11 @@ header is 32 px high and the inspector closed, so the arranger measures
 
 The inspector drawer on `small` at zoom 1 (viewport `{x: 40, y: 40, zoom:
 1}`), with `bare000000` selected through the hook and the drawer opened by
-its "Open inspector" button. The drawer holds two tabs, "Properties" and
-"Manifest", in the tab list "Inspector sections"; every case starts with
-"Properties" selected (`aria-selected="true"`, "Manifest" `"false"`) and
-the textarea out of the accessibility tree (its panel is `hidden`). A
+its "Open inspector" button. With no editor open the drawer holds three
+tabs, "Properties", "Manifest" and "Journal", in the tab list "Inspector
+sections"; every case starts with "Properties" selected
+(`aria-selected="true"`, "Manifest" and "Journal" `"false"`) and the
+textarea out of the accessibility tree (its panel is `hidden`). A
 case about the manifest text first presses the tab "Manifest". The text
 is read from the textarea labelled "Manifest (…)", the format chosen by
 the radio labelled "YAML", the options by the checkboxes "Include
@@ -593,16 +604,26 @@ styling" and "Minimal", and the buttons are "Apply" and "Revert".
    exactly 37.5 px (zoom 1) with its `y` unchanged.
 4. **The tabs follow the keyboard.** The tab list "Inspector sections"
    holds exactly the tabs "Properties" (id `inspector-tab-properties`,
-   `aria-controls` `inspector-panel-properties`) and "Manifest"
-   (`inspector-tab-manifest`, `aria-controls` `inspector-panel-manifest`);
-   each panel has `role="tabpanel"` and `aria-labelledby` its tab. With the
+   `aria-controls` `inspector-panel-properties`), "Manifest"
+   (`inspector-tab-manifest`, `inspector-panel-manifest`) and "Journal"
+   (`inspector-tab-journal`, `inspector-panel-journal`), in that order;
+   each panel has `role="tabpanel"` and `aria-labelledby` its tab. The keys
+   move over the tabs present, the arrows wrapping at either end. With the
    focus on "Properties", each key below selects and focuses the tab
    named, and afterwards exactly that tab has `aria-selected="true"` and
-   `tabindex="0"`, the other `"false"` and `"-1"`, its panel is visible
-   and the other panel hidden: ArrowRight → Manifest, ArrowLeft →
-   Properties, ArrowLeft → Manifest (wrapping), ArrowRight → Properties
-   (wrapping), End → Manifest, Home → Properties. No key adds a journal
-   entry (still 5). (axe-core on both tabs is in `a11y.spec.ts`.)
+   `tabindex="0"`, every other present tab `"false"` and `"-1"`, its panel
+   is visible and the other panels hidden: ArrowRight → Manifest,
+   ArrowRight → Journal, ArrowRight → Properties (wrapping), ArrowLeft →
+   Journal (wrapping), ArrowLeft → Manifest, End → Journal, Home →
+   Properties. Then the bundle editor of `bare000000` is opened through the
+   hook (`open("bare000000")` returns `null`): the list holds exactly
+   "Editor" (`inspector-tab-editor`, `inspector-panel-editor`),
+   "Properties", "Manifest", "Journal", with "Editor" selected. With the
+   focus on "Editor", the same rule over the four tabs: ArrowLeft → Journal
+   (wrapping), ArrowRight → Editor (wrapping), ArrowRight → Properties,
+   End → Journal, Home → Editor. No key and no opening adds a journal
+   entry (still 5). (axe-core on the Properties and Manifest tabs is in
+   `a11y.spec.ts`.)
 5. **The form follows a drag live.** `bare000000` (at (0, 0)) is pressed
    on its card and moved by (101, 37) with the button held: Svelte
    Flow has it at the grid point (104, 40) (no other left edge or origin
@@ -749,7 +770,7 @@ clears the selection, the next Tab focuses `nested0000` and Enter selects it.
   476.5771484375 × 67.37890625, so the expected count is the number of grid
   cells whose box overlaps; the spec counts them for the pane's actual
   `clientWidth` × `clientHeight` (the pane's size belongs to the editor's
-  layout, not to this contract) and requires exactly that many
+  layout, not to this file) and requires exactly that many
   `.svelte-flow__node`. Worked example, pinned in the spec as a check of the
   formula itself: a 1000 × 600 pane shows columns with x in (1523.42, 3000),
   i.e. 1536, 2048 and 2560 (1536 + 476.58 = 2012.58 passes 2000; 1024 +
@@ -981,6 +1002,215 @@ next command the canvas stores: with the block selected through the hook,
 ArrowRight nudges it (journal 2) and the status line is empty. Then
 `<block>/b` is selected again and Backspace is pressed; its journal stays at
 2.
+
+## `editors.spec.ts` (Chromium, Firefox, WebKit)
+
+The editors: the bundle editor on a block, the group editor on a group, the
+timeline editor on a root or a child timeline, each a mode of the arranger
+on the same canvas. `bundles` (and, for the reorder, `groups`) at viewport
+(40, 40), zoom 1, page 1600 × 1000, with `prefers-reduced-motion: reduce`
+emulated for the whole file: the viewport's move to an opened editor and
+back then takes 0 ms, so every viewport is compared exactly as soon as the
+canvas reports it, never after a wait for the one-second animation. The
+drawer starts closed, as on a fresh page.
+
+The editing path is read through the hook: `editing()` lists the open
+editors, outermost first, and each is compared as `{target, kind}` (its
+session id is random; `earlier` is proven in core's unit tests). `open(address)`
+opens an editor the way a double-click would and returns the store's
+refusal or `null`; `done()` and `cancel()` close the innermost one. A case
+that is not about entering opens its editor through `open` and, once the
+viewport has left (40, 40, 1), sets it back to (40, 40, 1) through the hook,
+so that pointer positions are counted at zoom 1 (Done returns to the
+viewport the editor was opened at, which is then (40, 40, 1) as well).
+Commands made inside an editor are read from `store().entries` (the open
+session's), the main journal from `store().journal`. A view or a journal
+is compared as its JSON text, read in the page. Names come from the
+fixture: the manifest of `bmixed0000` is named "Mixed", its `group_1`
+"Performance", its `group_2` "Facsimile", its ungrouped root `annotations`
+"Annotations"; `gchild0000`'s `group_1` has the display order
+`[second-half, recording]`.
+
+1. **A double-click on a box opens its editor.** One case per box kind,
+   each from the arranger with the drawer closed (no tab list shown):
+   - on `bmixed0000`'s margin (`marginPoint`): `editing()` is exactly
+     `[{target: "bmixed0000", kind: "bundle"}]`; the Editor panel reads
+     "Bundle editor: Mixed";
+   - on `group_1`'s frame (`framePoint`): `[{target: "bmixed0000/group_1",
+     kind: "group"}]`, "Group editor: Performance";
+   - on `annotations`' card (`framePoint`'s point search, on the box
+     `annotations/card`): `[{target: "bmixed0000/annotations", kind:
+     "timeline"}]`, "Timeline editor: Annotations".
+
+   Each time the drawer opens, the tab list "Inspector sections" holds
+   exactly the tabs "Editor", "Properties", "Manifest", "Journal" in that
+   order, "Editor" is selected (`aria-selected="true"`), its panel
+   `#inspector-panel-editor` reads exactly the text above, and the path
+   `<ol aria-label="Editing path">` holds one item, the name. The journal
+   stays at 3: opening is not a command.
+2. **Enter opens the editor of the one selected box.** With
+   `[bmixed0000/group_2]` selected through the hook and the arranger
+   (`[role="application"][aria-label="Arranger"]`) focused, Enter opens
+   exactly `[{target: "bmixed0000/group_2", kind: "group"}]`.
+3. **The viewport moves to the editor and back.** Before the double-click
+   on `bmixed0000`'s margin the viewport is (40, 40, 1); once the editor is
+   open it is a different value (the focus on the box, whose exact value
+   depends on the pane's and the drawer's sizes, which belong to the
+   layout); after Done it equals (40, 40, 1) exactly. With two editors
+   (case 5) the inner Done returns to the viewport the inner one was opened
+   at.
+4. **Outside the edited element everything is faded and inert.** In the
+   group editor of `bmixed0000/group_1`:
+   - in `bmixed0000`, of the drawn parts kept as `groups.spec.ts` case 1
+     keeps them (frames, lines, the title, cards, group titles), exactly
+     these carry no `data-outside`: group_1, group_1/name, score/card,
+     score, performance/card, performance (the group, its title, its
+     members and their cards); exactly these carry it on every part: name,
+     group_2, group_2/name, page/card, page, excerpt/card, recording,
+     excerpt, annotations/card, annotations. No address has parts of both
+     kinds;
+   - `bshared000` and `bungroup00` are faded and inert as a whole, through
+     their nodes, not element by element: each node carries the class
+     `tilie-outside` and neither `selectable` nor `draggable` (Svelte
+     Flow's classes), its computed `opacity` is `0.3` and its
+     `pointer-events` `none`, and no element inside it carries
+     `data-outside` (nothing is faded twice). With the mouse moved to the
+     centre of the node's first card, the element hit there is the pane
+     (`.svelte-flow__pane`) and no element of the node carries
+     `data-hovered`;
+   - with `[bmixed0000/score]` selected through the hook, a click on the
+     centre of `bshared000`'s `take_1/card` and one on `bmixed0000`'s
+     `annotations/card` leave the selection `[bmixed0000/score]` and
+     `editing()` unchanged: a click on a faded element changes nothing,
+     although the faded element lets the pointer through to the pane;
+   - a click on the empty pane itself (canvas (−20, 450), left of every
+     block) clears the selection (`[]`) as it does on the arranger, and
+     `editing()` is unchanged;
+   - a double-click on the empty pane (canvas (−20, 450), left of every
+     block), on the centre of `bshared000`'s `group_1`, on the centre of
+     `bmixed0000`'s `group_2` (faded surroundings) and on `group_1`'s own
+     frame (the edited element) opens nothing: `editing()` is still the one
+     group editor, and the pane's double-click leaves the viewport at
+     (40, 40, 1) (the canvas does not zoom on a double-click).
+5. **Editors nest, inside the innermost only.** In the bundle editor of
+   `bmixed0000` (opened by a double-click on its margin), a double-click on
+   `group_1`'s frame opens a second editor: `editing()` is exactly
+   `[{target: "bmixed0000", kind: "bundle"}, {target: "bmixed0000/group_1",
+   kind: "group"}]` and the path's items read exactly "Mixed",
+   "Performance". Then `open("bmixed0000/group_2")` returns the refusal
+   `not_inside` with the path `["bmixed0000/group_2"]` and `editing()` is
+   unchanged. Done closes the group editor (one editor left, path "Mixed"),
+   Done again the bundle editor (`[]`).
+6. **Done folds the session into one entry.** In the group editor of
+   `bmixed0000/group_1`, two commands through the hook's store are
+   accepted: `set bmixed0000/group_1 place {length: 300}` and `set
+   bmixed0000/score name "S"` (both inside the group). `entries` holds 2,
+   the main journal still 3. The button "Done" of the group "Editing"
+   closes the editor (`editing()` is `[]`); the main journal holds exactly
+   4 entries, the last a session entry (it has `session`, no `command`)
+   whose session in `store().sessions` has the target
+   `bmixed0000/group_1` and 2 entries. Ctrl/Cmd+Z on the arranger brings
+   the main journal back to 3 and the view's JSON text back to the one
+   before the editor was opened.
+7. **Cancel asks before it discards, and only then.**
+   - With no change, the button "Cancel" closes the editor at once
+     (`editing()` `[]`) and no dialog is shown.
+   - After `set bmixed0000/group_1 place {length: 300}` (`changes` 1),
+     "Cancel" opens a dialog holding exactly the text "Are you sure you
+     want to discard 1 change?" and the buttons "Yes" and "No". "No"
+     closes it and keeps the editor (`editing()` still the one editor,
+     `entries` still 1); so does Escape, and so does a click on the
+     backdrop (a page point outside the dialog's box).
+   - After a second `set` (`set bmixed0000/score name "S"`, `changes` 2)
+     the question reads "Are you sure you want to discard 2 changes?";
+     "Yes" closes the editor, and the view's, the journal's and the
+     sessions' JSON texts equal those read just before the editor was
+     opened.
+8. **Escape: first the gesture, then the selection, then Done.** In the
+   bundle editor of `bmixed0000` with `[bmixed0000/group_2]` selected
+   through the hook, `group_2`'s frame is pressed and moved by (40, 24)
+   with the button held; Escape aborts the move: `places` is still `{}`,
+   the selection still `[bmixed0000/group_2]`, the editor still open, and
+   after the release `entries` is still empty. Escape on the focused
+   arranger then clears the selection (`[]`), the editor still open; Escape
+   again closes it (`editing()` `[]`), and with no entry nothing is
+   journalled (the main journal still 3).
+9. **An item move states every item's place.** The expected places come
+   from the editor's own drawing code run in the test, outside the page:
+   `drawingOf` (arranger's `drawing.ts`) of `bmixed0000` as `readWorkspace`
+   reads it from `bundles.tle.json`, with the workspace's settings and the
+   bundled face's metrics (the installed schema package's
+   `fonts/dejavu-sans-2.37.metrics.json`, the data the editor's
+   `fontMetrics` holds). Its `items` give each item's drawn `place` (`x`,
+   `y` from the place origin, defaults applied), for `group_1`, `group_2`
+   and `annotations`, all stating nothing. An item moves freely: by the
+   pointer's travel from the press in drawing units (pixels over zoom 1
+   and scale 1), with no grid; the moved item's drawn `x` and `y` are
+   multiples of 1/2048 (the spec checks this premise), so a quantization
+   to 1/2048 changes nothing and the sums below are exact.
+   - In the bundle editor, `group_1`'s frame (`framePoint`) is dragged by
+     (40, 24): one entry, a `set`; `places` is exactly `{group_1: {x:
+     x₁ + 40, y: y₁ + 24}, group_2: {x: x₂, y: y₂}, annotations: {x: xₐ,
+     y: yₐ}}`, each item not moved stating its drawn position, so it stays
+     put; the block's stored `x`, `y` stay (0, 0).
+   - `annotations`' card is dragged by (−40, 16): `places.annotations` is
+     `{x: xₐ − 40, y: yₐ + 16}` (with `xₐ = P = 8`, `x` −32: the card now
+     reaches left of the padding, and the box grows left by 40), `group_1`
+     and `group_2` state their drawn positions; the block's stored `x`, `y`
+     stay (0, 0), the node's left edge on screen moves left by exactly 40
+     px, and `group_1`'s frame rectangle, read from its `rect`'s `x`, `y`,
+     `width` and `height` in drawing units (block scale 1, so one unit is
+     one canvas unit), goes from `x` 8 to exactly 48 with `y`, `width` and
+     `height` unchanged: 40 further right in a node 40 further left, so its
+     place on the canvas is unchanged and a box growing left moves nothing
+     that is drawn. Its screen box is not compared: Chromium and WebKit lay
+     the node's `<svg>` out at their layout unit (1/64 px), so the wider
+     `<svg>` is scaled differently in the last digits (measured in Chromium:
+     the frame's screen `x` 47.503448486328125 before, 47.50290298461914
+     after).
+10. **A member card is reordered by drag and drop.** In the group editor of
+    `gchild0000/group_1` (display order `[second-half, recording]`; in its
+    drawing, which places do not change, `second-half/card` spans `y`
+    32.8046875 to 116.7578125 and `recording/card` 124.7578125 to
+    174.13671875, its middle at 149.453125), `second-half/card` is pressed
+    on a clear point in its upper half (drawing ordinate below its middle
+    74.78125, a premise the spec checks) and dropped at drawing ordinate
+    172 (canvas y 172, the block being at (0, 0)): no card's middle lies
+    below 172, so the dragged card goes last. The same holds when the drop
+    is read at the dragged card's own middle instead of the pointer: moved
+    by more than 172 − 74.78125, it lies below 172 > 149.453125. One
+    entry, exactly `{type: "set", changes:
+    [{target: "gchild0000/group_1", values: {order: null}}]}`: the new
+    order `[recording, second-half]` is the members' own order (`members`
+    is `[recording, second-half]`), and storage is minimal, so the command
+    deletes the group's display order rather than writing it out; the
+    manifest's `graphical.order` is then exactly `{}` (`group_1`'s entry,
+    its only one, is gone).
+11. **A change outside the edited element is refused.** In the group editor
+    of `bmixed0000/group_1`, `set bmixed0000/group_2 place {x: 10}` through
+    the hook's store returns the refusal `side_effect` with the path
+    `["bmixed0000/group_2"]`; `entries` stays empty and `places` `{}`. The
+    hook's store bypasses the canvas, so the status line is proven with a
+    key: in the group editor of `bmixed0000/group_2`, with
+    `[bmixed0000/excerpt]` (a member, a child of `recording`) selected
+    through the hook and the arranger focused, Delete asks to remove
+    `excerpt`, which would change its parent `recording`, outside the
+    group; the refusal's path is `["bmixed0000/recording"]`, and the status
+    line (`data-testid="hint"`) reads exactly "bmixed0000/recording lies
+    outside bmixed0000/group_2: an editor changes only what it edits";
+    `entries` stays empty and the manifest's JSON text is unchanged.
+12. **The Journal tab lists sessions on the arranger and greys undone
+    entries.** After case 6's two commands and Done, on the arranger the
+    Journal tab's panel `#inspector-panel-journal` shows the row text
+    "Edited group Performance (2 changes)". In a fresh group editor of
+    `bmixed0000/group_1` with the same two commands, one undo through the
+    hook's store leaves exactly one element `[data-undone]` in the panel,
+    which contains "Set name of bmixed0000/score" and the word "undone";
+    "Set place of bmixed0000/group_1" is shown and not inside it. A redo
+    leaves none.
+
+The double tap of a touch screen is in `touch.spec.ts` (case 7): the touch
+project runs only that file.
 
 ## `budget.spec.ts` (`@budget`, Chromium only)
 

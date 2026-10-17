@@ -33,9 +33,11 @@ export function stubLayout(): void {
 
 /**
  * Stub what the editor needs besides the layout: a fresh IndexedDB (the
- * autosave's) and a modal `<dialog>`, which jsdom lacks: `showModal` sets
- * `open`, `close` removes it and fires `close` (installed once; jsdom's
- * dialog has neither method). The IndexedDB is undone by
+ * autosave's), a modal `<dialog>`, which jsdom lacks: `showModal` sets
+ * `open`, `close` removes it and fires `close`, and `getAnimations`, which
+ * the canvas's animated elements call when they leave the drawing (jsdom
+ * has no Web Animations; none run, so none are listed). The prototype
+ * methods are installed once; the IndexedDB is undone by
  * `vi.unstubAllGlobals()`.
  */
 export function stubEditor(): void {
@@ -50,4 +52,5 @@ export function stubEditor(): void {
     this.open = false;
     this.dispatchEvent(new Event("close"));
   };
+  Element.prototype.getAnimations ??= () => [];
 }

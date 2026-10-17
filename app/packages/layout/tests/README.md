@@ -17,7 +17,7 @@ when it has a `graphical` block (`manifestLayer`: its `styles` and
 `statements`, without the member `order`); an "extra layer" is an application's
 layer, placed between the two, since no layer lies above the manifest's own; "the default placement" is
 `{length: 400, spacing: 1, width: null, height: null, order: ["children",
-"regions", "flow"]}`.
+"regions", "flow"], bands: {}, places: {}}`.
 
 Addresses follow section 2.2 in every manifest: a timeline or a group is
 addressed by its bare id, the manifest's title by `name`, and every other
@@ -748,15 +748,33 @@ samples, 88200 long, so `recording` holds a member and is drawn only as
 its ancestor line; `annotations` is the one ungrouped root). Names at 11:
 `Score` 31.05029296875, `Performance` (`A = 13087`) 70.29150390625, `Page`
 27.1240234375, `Excerpt` 42.09326171875, `Annotations` (`A = 12298`)
-66.0537109375; the ancestor name `Recording` at 9 45.57568359375. `N =
-70.29150390625`. `recording` starts at `ts = −44100 < 0` and ends at
-`te = 396900 > 88200`, so it runs on to both sides: `x0 = 24 +
-70.29150390625 + 8 + 24 = 126.29150390625` (the widest start label, the
-mark label `44100 smp`, `A = 11528`, 50.66015625 wide, asks only
-`24 + 25.330078125 = 49.330078125`). `R = x0 + 400 + 56.38623046875 / 2 =
-554.484619140625`, the end mark label `132300 smp` (`A = 12831`), beyond
-the right chevron tip `x0 + 424 = 550.29150390625`; the titles end at `8 +
-32.806640625`, `16 + 70.29150390625` and `16 + 51.498046875`.
+66.0537109375; the ancestor name `Recording` at 9 45.57568359375. Each item
+is laid out on its own (section 8.2), at its default place `x = P = 8`,
+with its own name column, start and right edge:
+
+- `group_1`: `xn = 8 + 8 + 8 = 24`, `N = 70.29150390625`, `x0 = 24 +
+  70.29150390625 + 8 = 102.29150390625` (the widest start label, `0.0 s`
+  21.86279296875 wide, asks only `24 + 10.931396484375`). `R` is the end
+  label `12.5 s` (27.5888671875 wide): `x0 + 400 + 13.79443359375 =
+  516.0859375`, beyond the arrowhead tips `x0 + 409 = 511.29150390625`, the
+  label `12 ♩` (`x0 + 400 + 9.279052734375`) and the title (`16 +
+  70.29150390625`).
+- `group_2`: `xn = 24`, `N = 45.57568359375` (`Recording`, wider than
+  `Excerpt` and `Page`). `recording` starts at `ts = −44100 < 0` and ends at
+  `te = 396900 > 88200`, so it runs on to both sides: `x0 = 24 +
+  45.57568359375 + 8 + 24 = 101.57568359375` (the widest start label, the
+  mark label `44100 smp`, `A = 11528`, 50.66015625 wide, asks only `24 +
+  25.330078125 = 49.330078125`). `R = x0 + 400 + 56.38623046875 / 2 =
+  529.768798828125`, the end mark label `132300 smp` (`A = 12831`), beyond
+  the right chevron tip `x0 + 424 = 525.57568359375`, the label `88200 smp`
+  (`x0 + 400 + 25.330078125`) and the title (`16 + 51.498046875`).
+- `annotations`: `xn = 8 + 8 = 16`, `N = 66.0537109375`, `x0 = 16 +
+  66.0537109375 + 8 = 90.0537109375`; `R` is its end label `12 ♩`: `x0 + 400
+  + 9.279052734375 = 499.332763671875`, beyond the arrowhead tip `x0 + 409 =
+  499.0537109375`.
+
+The manifest's title (`8 + 32.806640625`) is no longer part of any item's
+`R`: it counts only for the box.
 
 - The manifest's title `name` "Mixed": `x = P = 8`, baseline `8 +
   a(11) = 18.21044921875`; the first frame starts at `P + h(11) + F =
@@ -770,16 +788,20 @@ the right chevron tip `x0 + 424 = 550.29150390625`; the titles end at `8 +
   baseline 194.57763671875, cards `page/card` at 201.171875 and
   `excerpt/card` at 258.55078125 (height 83.953125).
 - The ungrouped card `annotations/card`: top `176.3671875 + 174.13671875 +
-  8 = 358.50390625`, height 49.37890625, spanning `P = 8` to `R + K + Q =
-  570.484619140625` (the box holds a frame), width 562.484619140625; frames
-  `{8, …, 562.484619140625, …}`; cards in frames `x = 16`, width
-  `562.484619140625 − 16 = 546.484619140625`.
-- Root lines: `score` 68.01171875, `performance` 125.390625, `page`
-  215.57421875, `excerpt` `258.55078125 + 48.9765625 = 307.52734375`,
-  `annotations` 372.90625.
-- `W = 8 + (570.484619140625 + 2) = 580.484619140625` and `H = 8 +
-  (358.50390625 + 49.37890625 + 2) = 417.8828125`: the ungrouped card's
-  shadow sets both, beyond the frames' edges.
+  8 = 358.50390625` (`F` below the largest bottom edge before it), height
+  49.37890625, spanning `8` to its own `R + K = 507.332763671875`, width
+  499.332763671875. `group_1` spans `8` to `R + K + Q = 532.0859375`, width
+  524.0859375, its cards `16` to `524.0859375`, width 508.0859375; `group_2`
+  spans `8` to `545.768798828125`, width 537.768798828125, its cards `16` to
+  `537.768798828125`, width 521.768798828125.
+- Root lines: `score` (102.29150390625, 68.01171875), `performance`
+  (102.29150390625, 125.390625), `page` (101.57568359375, 215.57421875),
+  `excerpt` (101.57568359375, `258.55078125 + 48.9765625 = 307.52734375`),
+  `annotations` (90.0537109375, 372.90625), as `(xs, y)`.
+- `W = 8 + 545.768798828125 = 553.768798828125`: `group_2`'s right edge,
+  beyond its cards' shadows (`539.768798828125`); `H = 8 + (358.50390625 +
+  49.37890625 + 2) = 417.8828125`, the ungrouped card's shadow. No item lies
+  left of or above the padding, so the place origin is `(0, 0)`.
 - Element order: block, `name`, `group_1`, `group_1/name`,
   `score/card`, its member drawing, `performance/card`, its drawing,
   `group_2`, `group_2/name`, `page/card`, …, `excerpt/card`, …,
@@ -859,6 +881,259 @@ nothing: `{inside: card} stroke #123456` reaches no element. In
    `bundle_mixed`, `name`, `group_1`, `annotations/card` and
    `annotations` take `#111111`; with `{ids: [annotations/card]} {stroke:
    #222222}` the line `annotations` keeps `none`.
+
+## Places and band orders (`places.test.ts`)
+
+Sections 1, 6.4, 8.2, 8.4 and 8.6: every item of the box (a group's frame
+or an ungrouped root's card) lies at its own place, laid out on its own; the
+box grows in every direction to hold the items, and the drawing reports the
+place origin `(Ox, Oy)` within the box; a member drawing's root takes the
+band order of its own id in `bands`, else that of its group, else `order`.
+The readings the arithmetic below follows: an item's default `y` lies `F`
+below the largest bottom edge `d` of the items before it (a height request
+included, no shadow), summed in place coordinates; `(Ox, Oy) = (0 − Xl, 0 −
+Yt)`, so a zero origin is `+0`; every position, the title's included, is
+summed in place coordinates as sections 6 and 8 write it, and `Ox` (`Oy`)
+is added to each finished position last; `Wb = (P + the largest right
+edge) − Xl` and `Hb = (P + the largest bottom edge) − Yt`, the edges in
+place coordinates, a card's shadow and the title included. The tests prove
+each rule from the specification's sums, never from the implementation's
+output, and they prove that the rules change nothing a drawing without
+`places` and `bands` showed before. Where the specification's order of
+sums matters only in the last bit, a case with a fractional place shows a
+value the other order would not give.
+
+**The band order cascade.** `bandOrderOf(placement, timeline, group)` is
+pure; with `D = ["children", "regions", "flow"]`, `F = ["flow", "regions",
+"children"]` and `T = ["regions", "children", "flow"]`:
+
+| `order` | `bands` | timeline, group | expected |
+|---|---|---|---|
+| `D` | `{}` | `score`, `null` | `D` |
+| `F` | `{}` | `score`, `group_1` | `F` (the block's) |
+| `D` | `{group_1: F}` | `score`, `group_1` | `F` (the group's over the block's) |
+| `D` | `{group_1: F}` | `score`, `null` | `D` (an ungrouped root has no group) |
+| `D` | `{group_1: F, score: T}` | `score`, `group_1` | `T` (the timeline's over the group's) |
+| `F` | `{score: T}` | `score`, `null` | `T` (the timeline's over the block's) |
+| `D` | `{}` | `toString`, `constructor` | `D` (only the object's own keys count, never inherited ones) |
+
+The cascade must also reach the drawing. `styled__score` has child `b`
+alone above, and region `intro` and jump `da-capo` below, so its drawing
+depends on whether regions or flow come first: at `order: F` its elements
+differ from those at `D` (the check that the cases below are not vacuous),
+and at `D` with `bands: {score: T}` they equal those at `D` (`T` also puts
+regions before flow). The drawings are compared whole (`toEqual` of
+`elements`):
+
+- `bands: {score: F}` draws exactly as `order: F`: the timeline's entry is
+  used;
+- `order: F` with `bands: {score: D}` draws exactly as the default: the
+  timeline's entry wins over the block's;
+- `styled__score` with its root made the one member of a group `group_1`
+  (the fixture plus `groups: [{id: "group_1", name: null, meta: {},
+  members: ["score"]}]`, validated against the schema): `bands: {group_1:
+  F}` draws exactly as `order: F`, and `bands: {group_1: F, score: D}`
+  exactly as the default (the timeline's over its group's);
+- a `bands` key naming nothing drawn (`{nothing: F}`) changes nothing,
+  and neither does one naming a timeline that is drawn but not as a root
+  in a card (`{b: F}`, the child `b`);
+- an absent band adds no `B`: `bands: {score: ["flow", "children",
+  "regions"]}` (the review case `styled__score__bands-timeline`) draws
+  exactly as `order: F`, since `styled__score` has no children band below,
+  so between its flow band and its region band no gap is added for it; and
+  it differs from the default, so the case is not vacuous;
+- no inheritance from an ancestor timeline: `styled__score`'s root made
+  the child of a new root `piece` (length 16 quarters, no regions, maps or
+  flow, the child at offset 0 and locked) and the one member of `group_1`,
+  validated against the schema. `bands: {piece: F}` draws exactly as the
+  default, although `piece` is `score`'s ancestor and its line is drawn in
+  `score`'s ancestor band; `bands: {score: F}` differs from the default and
+  draws exactly as `order: F`.
+
+**Defaults reproduce the stacked box.** With `places` empty, every item
+takes `x = P = 8`, the placement's `length`, sizes `null`, and `y` one
+under the other (section 8.6), which is the box the earlier sections of
+this file derive; those expectations stay unchanged. On top: `bare`'s
+drawing reports `origin {x: 0, y: 0}`, both zeros `+0` (`Object.is(…, 0)`,
+since `0 − 0` is `+0`), and one item `{key: "bare", kind:
+"card", address: "bare/card", place: {x: 8, y: 8, length: 400, width:
+458.5771484375, height: 49.37890625}, stated: {}}` (its card's rectangle);
+`group_child_member` one item `{key: "group_1", kind: "group", address:
+"group_1", place: {x: 8, y: 8, length: 400, width: 542.4140625, height:
+174.13671875}, stated: {}}`. Stating those defaults explicitly (`places:
+{bare: {x: 8, y: 8, length: 400}}`) draws the same `width`, `height`,
+`origin` and `elements`; only the item's `stated` becomes that object.
+
+**The default `y`** (section 8.6) is `F` below the largest bottom edge `d`
+of the items before it, a card's shadow not counted, and an item with a
+`height` request ends at its requested bottom. In `bundle_ungrouped` with
+`places` empty, `recording` lies at `28.8046875 + 63.453125 + 8 =
+100.2578125` below `pages` (not `+ 2` more for `pages`' shadow); with
+`places: {pages: {height: 100}}` it lies at `28.8046875 + 100 + 8 =
+136.8046875`, and `score` at `136.8046875 + 49.37890625 + 8 =
+194.18359375`.
+
+**Items order and `stated`.** `items` follows the drawing order of section
+8.5 (frames by group id, then ungrouped roots by id) and carries each
+place as `places` states it, `{}` where it states none: `bundle_mixed`
+with the places below gives the keys `group_1`, `group_2`, `annotations`,
+kinds `group`, `group`, `card`, addresses `group_1`, `group_2`,
+`annotations/card`, and `stated` `{}`, `{x: 40, y: 200, width: 700}`, `{x:
+−30, length: 300}`.
+
+**An item left of the padding, a width request and a length of its own**
+(`bundle_mixed` at `places: {group_2: {x: 40, y: 200, width: 700},
+annotations: {x: −30, length: 300}}`, the review case
+`bundle_mixed__places`). Measured from the place origin:
+
+- `group_1` keeps its default place and the layout derived for
+  `bundle_mixed` above: `x = 8`, `y = 28.8046875`, width 524.0859375,
+  height 139.5625, its lines from `x0 = 102.29150390625` to `x0 + 400`.
+- `group_2` at `x = 40`, `y = 200`: `xn = 40 + 8 + 8 = 56`, `x0 = 56 +
+  45.57568359375 + 8 + 24 = 133.57568359375`; its content's `R = x0 + 400 +
+  28.193115234375 = 561.768798828125`, the request `40 + 700 − 8 − 8 = 724`
+  is larger, so `R = 724`: the frame spans `40` to `724 + 8 + 8 = 740`,
+  width 700, the requested width exactly; its cards `48` to `732`, width
+  684. Height 174.13671875 as before, bottom `374.13671875`.
+- `annotations` at `x = −30`, `L = 300`, `y` its default: `F` below the
+  largest bottom edge of the items before it, `max(28.8046875 + 139.5625,
+  200 + 174.13671875) + 8 = 382.13671875`, although `group_2` was placed
+  by hand. `xn = −30 + 8 = −22`, `x0 = −22 + 66.0537109375 + 8 =
+  52.0537109375`, its line from `x0` to `x0 + 300 = 352.0537109375` (the
+  other items keep 400); `R = 352.0537109375 + 9.279052734375 =
+  361.332763671875` (its end label `12 ♩`), so the card spans `−30` to
+  `369.332763671875`, width 399.332763671875, height 49.37890625.
+- The origin (section 8.4): the smallest left edge is `−30`, so `Xl =
+  min(0, −30 − 8) = −38`; the smallest top is `28.8046875`, so `Yt =
+  min(0, 20.8046875) = 0`; `(Ox, Oy) = (0 − (−38), 0 − 0) = (38, 0)`.
+- The box, in place coordinates: the largest right edge is `group_2`'s
+  `740` (its cards' shadows reach `734`), so `Wb = (8 + 740) − (−38) =
+  786`; `Hb = (8 + (382.13671875 + 49.37890625 + 2)) − 0 = 441.515625`,
+  the card's shadow.
+- Every position is the place-coordinate value plus 38, added last (the
+  item edges `8 + 38 = 46`, `40 + 38 = 78`, `−30 + 38 = 8`): the title
+  `name` at `x = 46`,
+  baseline 18.21044921875; `group_1` `{46, 28.8046875, 524.0859375,
+  139.5625}`; `group_2` `{78, 200, 700, 174.13671875}`; `page/card` `{86,
+  224.8046875, 684, 49.37890625}` (`200 + 8 + 12.8046875 + 4`);
+  `annotations/card` `{8, 382.13671875, 399.332763671875, 49.37890625}`;
+  the lines `score` from `140.29150390625` to `540.29150390625` at `y =
+  68.01171875`, `page` from `171.57568359375` to `571.57568359375` at
+  `224.8046875 + 14.40234375 = 239.20703125`, `annotations` from
+  `90.0537109375` to `390.0537109375` at `382.13671875 + 14.40234375 =
+  396.5390625`.
+- The items report their places unshifted, with the drawn size:
+  `group_1 {x: 8, y: 28.8046875, length: 400, width: 524.0859375, height:
+  139.5625}`, `group_2 {x: 40, y: 200, length: 400, width: 700, height:
+  174.13671875}`, `annotations {x: −30, y: 382.13671875, length: 300,
+  width: 399.332763671875, height: 49.37890625}`.
+
+**An item left of and above the padding and a height request**
+(`bundle_ungrouped`, titled "Sketches", ungrouped roots `pages`,
+`recording`, `score`, at `places: {score: {x: −60, y: −150, height: 120}}`,
+the review case `bundle_ungrouped__places`). In place coordinates: `pages`
+lies at its default `(8, 8 + 12.8046875 + 8 = 28.8046875)`, height
+63.453125; `recording` at `(8, 28.8046875 + 63.453125 + 8 = 100.2578125)`,
+height 49.37890625, although `score`, last in drawing order, lies above
+both; `score` at `(−60, −150)`, its card `max(49.37890625, 120) = 120`
+high, its member drawing keeping its top.
+
+- The origin: `Xl = min(0, −60 − 8) = −68` and `Yt = min(0, −150 − 8) =
+  −158`, so `(Ox, Oy) = (0 − (−68), 0 − (−158)) = (68, 158)`.
+- In place coordinates: `score`: `xn = −60 + 8 = −52`, `x0 = −52 +
+  31.05029296875 + 8 = −12.94970703125`, `R = x0 + 400 + 9.279052734375 =
+  396.329345703125` (its end label, 18.55810546875 wide), its card from
+  `−60` to `404.329345703125`, width 464.329345703125, its line at `−150 +
+  14.40234375 = −135.59765625`. `pages`: `xn = 16`, `x0 = 16 +
+  32.85498046875 + 8 = 56.85498046875`, `R = x0 + 400 + 18.402099609375 =
+  475.257080078125` (its end label `5262 px`), width 475.257080078125.
+  `recording`: `x0 = 16 + 55.70361328125 + 8 = 79.70361328125`, `R = x0 +
+  400 + 28.193115234375 = 507.896728515625` (`441000 smp`), its card ending
+  at `515.896728515625`, its line at `100.2578125 + 14.40234375 =
+  114.66015625`.
+- In the box, each finished position plus the origin: `score/card` `{8, 8,
+  464.329345703125, 120}`, its line from `55.05029296875` at
+  `22.40234375`; `pages/card` `{76, 186.8046875, 475.257080078125,
+  63.453125}`, its line from `124.85498046875`; `recording/card` `{76,
+  258.2578125, 507.896728515625, 49.37890625}`, its line from
+  `147.70361328125` at `272.66015625`.
+- The title at `x = 8 + 68 = 76`, baseline `(8 + 10.21044921875) + 158 =
+  176.21044921875`, the sum first, then the shift (for this title every
+  order of the three gives the same value: its operands are short binary
+  fractions).
+- The box: `Wb = (8 + (515.896728515625 + 2)) − (−68) = 593.896728515625`
+  and `Hb = (8 + (100.2578125 + 49.37890625 + 2)) − (−158) =
+  317.63671875`, both from `recording`'s shadow.
+- The items report their places unshifted, with the drawn sizes: `pages
+  {8, 28.8046875, 400, 475.257080078125, 63.453125}`, `recording {8,
+  100.2578125, 400, 507.896728515625, 49.37890625}`, `score {−60, −150, 400,
+  464.329345703125, 120}` (as `{x, y, length, width, height}`).
+
+**A frame's own length and height request, a card's width request**
+(`bundle_mixed` at `places: {group_1: {length: 300, height: 200},
+annotations: {width: 600}}`). No item lies left of or above the padding,
+so the place origin is `(0, 0)` and box and place coordinates agree. Each
+value below would be different under a wrong rule: the placement's
+`length` for the frame, its own height for the next default `y`, or the
+frame's `x + width − K − Q` for the card.
+
+- `group_1` at its default place `(8, 28.8046875)` with `L = 300`: `xn =
+  24` and `x0 = 102.29150390625` as derived for `bundle_mixed` above (no
+  label sits at a fraction of the axis, so no centred label asks more at
+  the shorter length); the lines `score` and `performance` run from
+  `102.29150390625` to `102.29150390625 + 300 = 402.29150390625` (at 400
+  they would end at 502.29150390625), at `y = 68.01171875` and
+  125.390625. `R` is the end label `12.5 s`, `x0 + 300 + 13.79443359375 =
+  416.0859375`, so the frame spans `8` to `416.0859375 + 8 + 8 =
+  432.0859375`, width 424.0859375, and its cards `16` to `424.0859375`,
+  width 408.0859375. Its own height 139.5625 is smaller than the request,
+  so the frame is `max(139.5625, 200) = 200` high: `{8, 28.8046875,
+  424.0859375, 200}`; its cards keep their tops, `score/card` at
+  53.609375 and `performance/card` at 110.98828125.
+- `group_2` at its default `y`, `F` below the frame's requested bottom:
+  `28.8046875 + 200 + 8 = 236.8046875` (its own height would give
+  176.3671875); otherwise as derived above, `{8, 236.8046875,
+  537.768798828125, 174.13671875}`, `page/card` at `236.8046875 + 8 +
+  12.8046875 + 4 = 261.609375`.
+- `annotations` at `y = 236.8046875 + 174.13671875 + 8 = 418.94140625`,
+  `L = 400`, its line from `90.0537109375` to `490.0537109375` at
+  `418.94140625 + 14.40234375 = 433.34375`. Its content's `R =
+  499.332763671875` is smaller than the request `8 + 600 − 8 = 600`, so `R
+  = 600` and the card spans `8` to `600 + 8 = 608`, width 600, the
+  requested width exactly (the frame's rule `8 + 600 − 8 − 8 = 592` would
+  give width 592): `{8, 418.94140625, 600, 49.37890625}`.
+- The box: `Wb = (8 + (608 + 2)) − 0 = 618`, the card's shadow beyond
+  `group_2`'s `545.768798828125`; `Hb = (8 + (418.94140625 + 49.37890625 +
+  2)) − 0 = 478.3203125`.
+- The items: `group_1 {8, 28.8046875, 300, 424.0859375, 200}`, `group_2
+  {8, 236.8046875, 400, 537.768798828125, 174.13671875}`, `annotations {8,
+  418.94140625, 400, 600, 49.37890625}` (as `{x, y, length, width,
+  height}`).
+
+**A fractional place origin: the shift is added last.** All the values
+above are exact, so they cannot tell the order of sums apart. Two cases
+whose origin is not a short binary fraction can:
+
+- `bundle_ungrouped` at `places: {score: {x: −60.33, y: −150.33, height:
+  120}}`: `(Ox, Oy) = (0 − (−60.33 − 8), 0 − (−150.33 − 8)) = (68.33,
+  158.33)`. `pages`' card and `recording`'s keep their place-coordinate
+  widths 475.257080078125 and 507.896728515625, since `R + K − x` is taken
+  before the shift (laid out from the shifted `x = 76.33`, they would be
+  475.25708007812494 and 507.89672851562494); `pages/card` lies at `x = 8 +
+  68.33 = 76.33`, `y = 28.8046875 + 158.33 = 187.1346875`; `recording`'s
+  line at `(100.2578125 + 14.40234375) + 158.33 = 272.99015625000004`.
+  `Wb = (8 + 517.896728515625) − (−68.33) = 594.226728515625` (`8` plus the
+  largest right edge in box coordinates would give 594.2267285156249) and
+  `Hb = (8 + 151.63671875) − (−158.33) = 317.96671875000004`. The items
+  report `pages {8, 28.8046875, 400, 475.257080078125, 63.453125}`,
+  `recording {8, 100.2578125, 400, 507.896728515625, 49.37890625}`, `score
+  {−60.33, −150.33, 400, 464.329345703125, 120}`.
+- `bundle_mixed` at `places: {group_1: {y: 10.01}, annotations: {x: 560,
+  y: −40.1}}`: `annotations` sets the origin, `Oy = 0 − (−40.1 − 8) =
+  48.1`; `group_2`'s default `y` is summed in place coordinates, `(10.01 +
+  139.5625) + 8 = 157.5725`, and drawn at `157.5725 + 48.1 =
+  205.67249999999999` (summed from the shifted `group_1` top it would be
+  205.6725).
 
 ## Segment lines (`segments.test.ts`)
 

@@ -1,9 +1,10 @@
 <script lang="ts">
-import type { LivePlacement } from "@timetoalign/tilie-arranger";
-import type { Block, BlockId, Json, Store, View } from "@timetoalign/tilie-core";
+import type { LivePlacement, LiveStore } from "@timetoalign/tilie-arranger";
+import type { Block, BlockId, EditorKind, Json } from "@timetoalign/tilie-core";
 import { unknownKeys } from "@timetoalign/tilie-core";
 import { untrack } from "svelte";
 import type { Attachment } from "svelte/attachments";
+import EditingBar from "./EditingBar.svelte";
 import type { Property, TextOptions } from "./edit.ts";
 import {
   applyText,
@@ -21,17 +22,20 @@ import {
 } from "./edit.ts";
 import type { Format, Source } from "./formats.ts";
 import { FORMATS, isLoaded, loadCodec } from "./formats.ts";
+import JournalPanel from "./JournalPanel.svelte";
+import { editorName, journalRows } from "./journal.ts";
 import type { InspectorProblem } from "./problems.ts";
 
 let {
-  store,
+  live,
   selection,
-  live = null,
+  placement = null,
 }: {
-  store: Store;
+  /** The open workspace's store, read as Svelte state. */
+  live: LiveStore;
   selection: ReadonlySet<string>;
   /** The placement a canvas gesture shows before release; the form shows it for its block. */
-  live?: LivePlacement | null;
+  placement?: LivePlacement | null;
 } = $props();
 
 const FORMAT_LABELS: { readonly [format in Format]: string } = {
@@ -40,57 +44,108 @@ const FORMAT_LABELS: { readonly [format in Format]: string } = {
   toml: "TOML",
 };
 
-/** The inspector's two sections, in tab order. */
-const TABS = ["properties", "manifest"] as const;
+/** The inspector's sections, in tab order; Editor is there only while an editor is open. */
+const TABS = ["editor", "properties", "manifest", "journal"] as const;
 type Tab = (typeof TABS)[number];
 
 const TAB_LABELS: { readonly [tab in Tab]: string } = {
+  editor: "Editor",
   properties: "Properties",
   manifest: "Manifest",
+  journal: "Journal",
 };
 
-/** The section shown: Properties whenever the inspector is mounted, then kept while the selection changes. */
-let tab: Tab = $state("properties");
+const KIND_LABELS: { readonly [kind in EditorKind]: string } = {
+  bundle: "Bundle",
+  group: "Group",
+  timeline: "Timeline",
+};
+
+const view = $derived(live.view);
+const editing = $derived(live.editing);
+/** How many editors are open; it changes only when one opens or closes. */
+const depth = $derived(editing.length);
+
+/** The tabs present, in order. */
+const tabs: readonly Tab[] = $derived(depth > 0 ? TABS : TABS.filter((item) => item !== "editor"));
+
+/** The innermost open editor, which the Editor tab names. */
+const innermost = $derived(editing.at(-1));
+
+/** The block's own fields, which a group or timeline editor refuses to change (a side effect). */
+const BLOCK_FIELDS: ReadonlySet<Property> = new Set(["scale", "length", "spacing"]);
+
+/** Whether a field is offered: the block's own fields are not inside a group or timeline editor. */
+function offered(property: Property): boolean {
+  return innermost === undefined || innermost.kind === "bundle" || !BLOCK_FIELDS.has(property);
+}
+
+let depthSeen = untrack(() => depth);
+let openingsSeen = 0;
+/** How many editors were opened since mount, counted as the editing path grows. */
+const openings = $derived.by(() => {
+  if (depth > depthSeen) openingsSeen += 1;
+  depthSeen = depth;
+  return openingsSeen;
+});
+
+/** The tab last chosen, and how many editors had been opened then. */
+let picked: { readonly tab: Tab; readonly openings: number } = $state.raw({
+  tab: untrack(() => (depth > 0 ? "editor" : "properties")),
+  openings: 0,
+});
+
+/**
+ * The section shown: Editor while an editor is open at mount, else Properties; then Editor on
+ * every opening, Properties when the last editor closes with Editor shown, and otherwise the
+ * tab chosen, kept while the selection changes.
+ */
+const tab: Tab = $derived.by(() => {
+  const chosen = openings > picked.openings ? "editor" : picked.tab;
+  return depth === 0 && chosen === "editor" ? "properties" : chosen;
+});
+
+function choose(next: Tab): void {
+  picked = { tab: next, openings };
+}
+
+/** The Journal tab's rows; they read the store's levels, so they follow its every change. */
+const rows = $derived(journalRows(live, view));
 
 /** The tab buttons, to move the focus with the keys. */
 const tabButtons: { [tab in Tab]?: HTMLButtonElement } = {};
 
 /**
- * The keys of a tab list: the arrows move to the other tab (wrapping), Home and End to the first
- * and last. A key held with Alt, Ctrl or Meta is left to the browser (Alt+ArrowLeft goes back).
+ * The keys of a tab list: the arrows move to the next or previous tab present (wrapping), Home
+ * and End to the first and last. A key held with Alt, Ctrl or Meta is left to the browser
+ * (Alt+ArrowLeft goes back).
  */
 function onTabKey(event: KeyboardEvent, from: Tab): void {
   if (event.altKey || event.ctrlKey || event.metaKey) return;
-  const at = TABS.indexOf(from);
+  const at = tabs.indexOf(from);
   const next =
     event.key === "ArrowRight"
-      ? TABS[(at + 1) % TABS.length]
+      ? tabs[(at + 1) % tabs.length]
       : event.key === "ArrowLeft"
-        ? TABS[(at + TABS.length - 1) % TABS.length]
+        ? tabs[(at + tabs.length - 1) % tabs.length]
         : event.key === "Home"
-          ? TABS[0]
+          ? tabs[0]
           : event.key === "End"
-            ? TABS[TABS.length - 1]
+            ? tabs[tabs.length - 1]
             : undefined;
   if (next === undefined) return;
   event.preventDefault();
-  tab = next;
+  choose(next);
   tabButtons[next]?.focus();
 }
-
-/** The store's view, followed through `subscribe`. */
-let view: View = $state.raw(untrack(() => store.view));
-$effect(() => {
-  view = store.view;
-  return store.subscribe((next) => {
-    view = next;
-  });
-});
 
 const block = $derived(selectedBlock(view, selection));
 
 /** The one timeline selected, or one of its parts; its `locked` is shown. */
 const timeline = $derived(selectedTimeline(view, selection));
+
+/** What the Properties and Manifest tabs show while there is no block to inspect. */
+const HINT = "Select a block to inspect its manifest.";
 
 /** Why the Locked checkbox is disabled. */
 const LOCKING_UNAVAILABLE = "Locking and unlocking is not available yet.";
@@ -113,7 +168,7 @@ const LOCKING_UNAVAILABLE = "Locking and unlocking is not available yet.";
 //
 // function toggleLocked(input: HTMLInputElement): void {
 //   if (timeline === null) return;
-//   const refusal = store.dispatch({
+//   const refusal = live.store.dispatch({
 //     type: "set",
 //     changes: [{ target: timeline.address, values: { locked: input.checked } }],
 //   });
@@ -265,7 +320,7 @@ $effect(() => {
 function apply(): void {
   if (shown === null) return;
   const id = shown.block;
-  const result = applyText(store, id, shown.format, text, {
+  const result = applyText(live.store, id, shown.format, text, {
     includeStyling: shown.includeStyling,
     minimal: shown.minimal,
   });
@@ -276,7 +331,7 @@ function apply(): void {
   }
   source = result.value.source;
   text = shownText = result.value.text;
-  shown = { ...shown, manifest: manifestOf(store.view.blocks[id] as Block) };
+  shown = { ...shown, manifest: manifestOf(live.store.view.blocks[id] as Block) };
   problems = [];
   refused = false;
   stale = false;
@@ -316,14 +371,16 @@ function fieldValue(property: Property): string {
   const draft = drafts[property];
   if (draft !== undefined) return draft;
   if (block === null) return "";
-  return shownValue((live !== null && live.id === block.id ? live : block)[property]);
+  return shownValue(
+    (placement !== null && placement.id === block.id ? placement : block)[property],
+  );
 }
 
 function commitProperty(property: Property): void {
   const draft = drafts[property];
   if (block === null || draft === undefined) return;
   const command = propertyCommand(block.id, property, draft);
-  const refusal = command.ok ? store.dispatch(command.value) : command.problems[0];
+  const refusal = command.ok ? live.store.dispatch(command.value) : command.problems[0];
   if (refusal !== null && refusal !== undefined) {
     propertyProblems[property] = refusal.message;
     return;
@@ -423,82 +480,100 @@ function position(problem: InspectorProblem): string {
 
 <svelte:window onpointerup={() => (pressed = null)} onpointercancel={() => (pressed = null)} />
 
-{#if shown === null && block === null}
-  <p class="hint">Select a block to inspect its manifest.</p>
-{:else}
-  <div class="inspector-body">
-    <div class="tabs" role="tablist" aria-label="Inspector sections">
-      {#each TABS as item (item)}
-        <button
-          type="button"
-          role="tab"
-          id={`inspector-tab-${item}`}
-          aria-controls={`inspector-panel-${item}`}
-          aria-selected={tab === item}
-          tabindex={tab === item ? 0 : -1}
-          bind:this={tabButtons[item]}
-          onclick={() => (tab = item)}
-          onkeydown={(event) => onTabKey(event, item)}>{TAB_LABELS[item]}</button
-        >
-      {/each}
-    </div>
+<!-- Full width above the tabs, while an editor is open. -->
+<EditingBar {live} />
 
+<div class="inspector-body">
+  <div class="tabs" role="tablist" aria-label="Inspector sections">
+    {#each tabs as item (item)}
+      <button
+        type="button"
+        role="tab"
+        id={`inspector-tab-${item}`}
+        aria-controls={`inspector-panel-${item}`}
+        aria-selected={tab === item}
+        tabindex={tab === item ? 0 : -1}
+        bind:this={tabButtons[item]}
+        onclick={() => choose(item)}
+        onkeydown={(event) => onTabKey(event, item)}>{TAB_LABELS[item]}</button
+      >
+    {/each}
+  </div>
+
+  {#if innermost !== undefined}
     <div
       class="panel"
       role="tabpanel"
-      id="inspector-panel-properties"
-      aria-labelledby="inspector-tab-properties"
-      hidden={tab !== "properties"}
+      id="inspector-panel-editor"
+      aria-labelledby="inspector-tab-editor"
+      hidden={tab !== "editor"}
     >
-      {#if block !== null}
-        <form class="properties" aria-label="Block properties" onsubmit={(event) => event.preventDefault()}>
-          {#each PROPERTIES as property (property)}
-            <label>
-              <span>{property}</span>
+      <p class="editor">{KIND_LABELS[innermost.kind]} editor: {editorName(view, innermost.target)}</p>
+    </div>
+  {/if}
+
+  <div
+    class="panel"
+    role="tabpanel"
+    id="inspector-panel-properties"
+    aria-labelledby="inspector-tab-properties"
+    hidden={tab !== "properties"}
+  >
+    {#if shown === null && block === null}
+      <p class="hint">{HINT}</p>
+    {:else if block !== null}
+      <form class="properties" aria-label="Block properties" onsubmit={(event) => event.preventDefault()}>
+        {#each PROPERTIES as property (property)}
+          <label>
+            <span>{property}</span>
+            <input
+              type="number"
+              step="any"
+              name={property}
+              disabled={!offered(property)}
+              value={fieldValue(property)}
+              placeholder={property === "width" || property === "height" ? "auto" : undefined}
+              aria-invalid={propertyProblems[property] !== undefined}
+              aria-describedby={propertyProblems[property] !== undefined
+                ? `property-problem-${property}`
+                : undefined}
+              onpointerdown={(event) => (pressed = event.currentTarget)}
+              oninput={(event) => onPropertyInput(event, property)}
+              {@attach wheelSteps(property)}
+              onkeydown={(event) => onPropertyKey(event, property)}
+              onblur={() => commitProperty(property)}
+            />
+          </label>
+          {#if property === "height" && timeline !== null}
+            <!-- The cell right of height. -->
+            <label class="locked">
               <input
-                type="number"
-                step="any"
-                name={property}
-                value={fieldValue(property)}
-                placeholder={property === "width" || property === "height" ? "auto" : undefined}
-                aria-invalid={propertyProblems[property] !== undefined}
-                aria-describedby={propertyProblems[property] !== undefined
-                  ? `property-problem-${property}`
-                  : undefined}
-                onpointerdown={(event) => (pressed = event.currentTarget)}
-                oninput={(event) => onPropertyInput(event, property)}
-                {@attach wheelSteps(property)}
-                onkeydown={(event) => onPropertyKey(event, property)}
-                onblur={() => commitProperty(property)}
+                type="checkbox"
+                checked={timeline.timeline.locked}
+                disabled
+                title={LOCKING_UNAVAILABLE}
               />
+              Locked
             </label>
-            {#if property === "height" && timeline !== null}
-              <!-- The cell right of height. -->
-              <label class="locked">
-                <input
-                  type="checkbox"
-                  checked={timeline.timeline.locked}
-                  disabled
-                  title={LOCKING_UNAVAILABLE}
-                />
-                Locked
-              </label>
-            {/if}
-            {#if propertyProblems[property] !== undefined}
-              <p class="problem" id={`property-problem-${property}`}>{propertyProblems[property]}</p>
-            {/if}
-          {/each}
-        </form>
-      {/if}
-    </div>
+          {/if}
+          {#if propertyProblems[property] !== undefined}
+            <p class="problem" id={`property-problem-${property}`}>{propertyProblems[property]}</p>
+          {/if}
+        {/each}
+      </form>
+    {/if}
+  </div>
 
-    <div
-      class="panel"
-      role="tabpanel"
-      id="inspector-panel-manifest"
-      aria-labelledby="inspector-tab-manifest"
-      hidden={tab !== "manifest"}
-    >
+  <div
+    class="panel"
+    role="tabpanel"
+    id="inspector-panel-manifest"
+    aria-labelledby="inspector-tab-manifest"
+    hidden={tab !== "manifest"}
+  >
+    {#if shown === null && block === null}
+      <p class="hint">{HINT}</p>
+    {:else}
       <div class="options">
         <div
           class="formats"
@@ -605,15 +680,30 @@ function position(problem: InspectorProblem): string {
           {/each}
         </ul>
       {/if}
-    </div>
+    {/if}
   </div>
-{/if}
+
+  <div
+    class="panel"
+    role="tabpanel"
+    id="inspector-panel-journal"
+    aria-labelledby="inspector-tab-journal"
+    hidden={tab !== "journal"}
+  >
+    {#if tab === "journal"}
+      <JournalPanel {rows} />
+    {/if}
+  </div>
+</div>
 
 <style>
   .hint {
-    margin: 0.5rem 0.75rem;
-    font-size: 0.85rem;
+    margin: 0;
     color: #595959;
+  }
+
+  .editor {
+    margin: 0;
   }
 
   .inspector-body {

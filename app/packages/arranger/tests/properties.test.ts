@@ -97,9 +97,9 @@ function commandOf(view: View, item: Gesture): object | null {
   const one = (pick: number) => ids[pick % ids.length] as string;
   switch (item.kind) {
     case "move":
-      return moveCommand(view, [{ id: one(item.pick), x: item.x, y: item.y }]);
+      return moveCommand(view, [{ id: one(item.pick), x: item.x, y: item.y }], metrics);
     case "nudge":
-      return nudgeCommand(view, [one(item.pick)], item.dx, item.dy);
+      return nudgeCommand(view, [one(item.pick)], item.dx, item.dy, metrics);
     case "zOrder":
       return zOrderCommand(view, item.picks.map(one), item.action);
     case "resize": {
@@ -141,7 +141,7 @@ describe("gesture commands", () => {
   it("are undone exactly through the store", () => {
     fc.assert(
       fc.property(blocks, fc.array(gesture, { maxLength: 8 }), (specs, gestures) => {
-        const store = createStore({ view: initial(specs), journal: [] });
+        const store = createStore({ view: initial(specs), journal: [], sessions: {} });
         const before: View[] = [];
         for (const item of gestures) {
           const command = commandOf(store.view, item);
@@ -180,8 +180,8 @@ describe("projection", () => {
           const selection = new Set(
             all.length === 0 ? [] : picks.map((pick) => all[pick % all.length] as string),
           );
-          const first = project(view, selection, [], metrics);
-          const second = project(view, selection, first, metrics);
+          const first = project(view, selection, [], metrics, null);
+          const second = project(view, selection, first, metrics, null);
           expect(second).toHaveLength(Object.keys(view.blocks).length);
           for (const [index, node] of second.entries()) {
             expect(node).toBe(first[index]);

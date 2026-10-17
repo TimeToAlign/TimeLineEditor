@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import type { Store, View } from "../src/index.ts";
+import type { SessionEntry, Store, View, Workspace } from "../src/index.ts";
 import {
   apply,
   checkWorkspace,
@@ -8,13 +8,15 @@ import {
   createView,
   isCommandError,
   isLoadError,
+  isSessionEntry,
   loadManifest,
   readWorkspace,
   replay,
   saveManifest,
   writeWorkspace,
 } from "../src/index.ts";
-import { commandFor, sequenceArbitrary } from "./generate.ts";
+import type { Seed, Step } from "./generate.ts";
+import { commandFor, commandIn, editorFor, sequenceArbitrary, stepsArbitrary } from "./generate.ts";
 import { A, addBlock, allFixtures, B, changed, loadText, testClock } from "./support.ts";
 
 const BLOCKS = [A, B];
@@ -32,7 +34,10 @@ const addText = (text: string) => ({
 });
 
 function started(text: string): Store {
-  const store = createStore({ view: createView(), journal: [] }, { clock: testClock() });
+  const store = createStore(
+    { view: createView(), journal: [], sessions: {} },
+    { clock: testClock() },
+  );
   for (const command of [addText(text), addBlock(B, "bare.json")]) {
     expect(store.dispatch(command)).toBeNull();
   }
@@ -68,12 +73,12 @@ describe("generated command sequences", () => {
         expect(journal.map(({ author, time: at }) => [author, at])).toEqual(
           journal.map((_, index) => ["Gerhardt", time(index)]),
         );
-        const replayed = replay(journal).at(-1) as View;
+        const replayed = replay(journal, {}).at(-1) as View;
         expect(replayed.settings).toEqual(store.view.settings);
         expect(replayed.blocks).toEqual(store.view.blocks);
-        const text = writeWorkspace({ view: store.view, journal });
+        const text = writeWorkspace({ view: store.view, journal, sessions: {} });
         const read = readWorkspace(text);
-        expect(read).toEqual({ view: store.view, journal });
+        expect(read).toEqual({ view: store.view, journal, sessions: {} });
         if (!isLoadError(read)) expect(writeWorkspace(read)).toBe(text);
         const last = views.length - 1;
         for (let k = last - 1; k >= 0; k -= 1) {
@@ -83,6 +88,97 @@ describe("generated command sequences", () => {
         for (let k = 1; k <= last; k += 1) {
           store.redo();
           expect(store.view).toBe(views[k]);
+        }
+      }),
+      { numRuns: 10 },
+    );
+  });
+});
+
+/** Open the editor of a generated target, or reopen the latest session of the innermost level; whether it opened. */
+function open(store: Store, reopen: boolean, seed: Seed): boolean {
+  const latest = store.entries.findLast(isSessionEntry) as SessionEntry | undefined;
+  const target =
+    reopen && latest !== undefined
+      ? (store.sessions[latest.session]?.target as string)
+      : editorFor(store.view, BLOCKS, store.editing.at(-1)?.target ?? null, seed);
+  return store.open(target) === null;
+}
+
+/** Dispatch a generated command in the innermost open editor; whether it was accepted. */
+const command = (store: Store, seed: Seed): boolean =>
+  store.dispatch(commandIn(store.view, BLOCKS, store.editing.at(-1)?.target ?? null, seed)) ===
+  null;
+
+/**
+ * Run one step of an editing sequence; whether it changed the store. A
+ * session opens an editor, makes one or two commands in it and closes it
+ * with Done; an unfold reopens the latest session of the innermost level,
+ * undoes all of its entries or the last one, and closes it with Done. A step that changes nothing leaves the view and the editing
+ * path the same objects.
+ */
+function run(store: Store, { operation, seed }: Step): boolean {
+  const before = store.view;
+  const editing = store.editing;
+  let changed: boolean;
+  if (operation === "command") changed = command(store, seed);
+  else if (operation === "open" || operation === "reopen") {
+    changed = open(store, operation === "reopen", seed);
+  } else if (operation === "session") {
+    changed = open(store, false, seed);
+    if (changed) {
+      const [first = 0, second = 0] = seed.picks;
+      command(store, { kind: seed.kind, picks: seed.picks.map((pick) => pick + first) });
+      if (second % 2 === 0) {
+        command(store, { kind: seed.kind, picks: seed.picks.map((pick) => pick + second) });
+      }
+      store.done();
+    }
+  } else if (operation === "unfold") {
+    changed = open(store, true, seed);
+    if (changed) {
+      const undos = (seed.picks[0] ?? 0) % 2 === 0 ? store.entries.length : 1;
+      for (let count = 0; count < undos; count += 1) store.undo();
+      store.done();
+    }
+  } else {
+    changed =
+      operation === "undo"
+        ? store.canUndo
+        : operation === "redo"
+          ? store.canRedo
+          : editing.length > 0;
+    store[operation]();
+  }
+  if (!changed) {
+    expect(store.view).toBe(before);
+    expect(store.editing).toBe(editing);
+  }
+  return changed;
+}
+
+/** The journal of `store`, every open editor folded, replays to its view. */
+function replaysToView(store: Store): Workspace {
+  const snapshot = store.snapshot();
+  expect(replay(snapshot.journal, snapshot.sessions).at(-1)).toEqual(snapshot.view);
+  return snapshot;
+}
+
+describe("generated editing sequences", () => {
+  it.each(SOURCES)("keep the journal replaying to the view from %s", (_, source) => {
+    fc.assert(
+      fc.property(stepsArbitrary, (steps) => {
+        const store = started(source);
+        for (const step of steps) {
+          if (!run(store, step)) continue;
+          const snapshot = replaysToView(store);
+          expect(readWorkspace(writeWorkspace(snapshot))).toEqual(snapshot);
+          // What redo would bring back replays too: redo it all, then undo it again.
+          const undone = store.undone.length;
+          if (undone === 0) continue;
+          for (let count = 0; count < undone; count += 1) store.redo();
+          replaysToView(store);
+          for (let count = 0; count < undone; count += 1) store.undo();
         }
       }),
       { numRuns: 10 },
@@ -125,6 +221,7 @@ describe("the generator reaches the refusal catalogue", () => {
         "negative_child_offset",
         "non_finite_number",
         "non_positive_number",
+        "not_an_item",
         "not_removable",
         "number_type_not_allowed",
         "region_end_before_start",

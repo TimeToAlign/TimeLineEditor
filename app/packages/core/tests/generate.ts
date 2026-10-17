@@ -10,6 +10,11 @@
  * past int64), negative and past the end, and lengths of null; payloads
  * include ones the schema refuses. Every refusal the commands produce on
  * these targets is reachable.
+ *
+ * A step of an editing sequence is such a seed with an operation: a
+ * command (`commandIn` the innermost open editor), opening an editor
+ * (`editorFor`), reopening the latest session, a whole session, an unfold,
+ * Done, Cancel, undo or redo (the property test runs them).
  */
 
 import { JsonFloat } from "@timetoalign/timeskeleton";
@@ -22,7 +27,7 @@ export interface Seed {
   readonly picks: readonly number[];
 }
 
-const KINDS = 11;
+const KINDS = 12;
 
 export const seedArbitrary: fc.Arbitrary<Seed> = fc.record({
   kind: fc.nat({ max: KINDS - 1 }),
@@ -30,6 +35,36 @@ export const seedArbitrary: fc.Arbitrary<Seed> = fc.record({
 });
 
 export const sequenceArbitrary = fc.array(seedArbitrary, { maxLength: 30, size: "max" });
+
+/** What a step of an editing sequence does with its seed. */
+export const OPERATIONS = [
+  "command",
+  "command",
+  "command",
+  "command",
+  "open",
+  "session",
+  "reopen",
+  "unfold",
+  "done",
+  "done",
+  "cancel",
+  "undo",
+  "undo",
+  "redo",
+] as const;
+
+export type Operation = (typeof OPERATIONS)[number];
+
+export interface Step {
+  readonly operation: Operation;
+  readonly seed: Seed;
+}
+
+export const stepsArbitrary: fc.Arbitrary<Step[]> = fc.array(
+  fc.record({ operation: fc.constantFrom(...OPERATIONS), seed: seedArbitrary }),
+  { maxLength: 30, size: "max" },
+);
 
 const pick = <T>(items: readonly T[], n: number): T => items[n % items.length] as T;
 
@@ -189,6 +224,97 @@ function flowElement(
 /** A canvas number: mostly a plain one, sometimes zero, negative, not finite or not a number. */
 function canvas(n: number): unknown {
   return pick([n % 640, 0.5 + (n % 7), 0, -(n % 9) - 1, Number.NaN, "1", null], Math.floor(n / 7));
+}
+
+/** The ids of the timelines a group's members or a timeline hold, themselves included. */
+function heldBy(manifest: Manifest, element: string): string[] {
+  const group = manifest.groups.find((item) => item.id === element);
+  const tops = group === undefined ? [element] : group.members;
+  const held = places(manifest).filter(
+    (place) => tops.includes(place.timeline.id) || place.parent === undefined,
+  );
+  const ids: string[] = [];
+  const walk = (timeline: TimelineManifest, inside: boolean) => {
+    const now = inside || tops.includes(timeline.id);
+    if (now) ids.push(timeline.id);
+    for (const child of timeline.children) walk(child, now);
+  };
+  for (const place of held) if (place.parent === undefined) walk(place.timeline, false);
+  return ids;
+}
+
+/**
+ * The target of an editor to open in `view`, whose blocks are `blocks`,
+ * inside the editor of `within` (`null`: none is open): mostly a group or a
+ * timeline that editor holds (any block, group or timeline when none is
+ * open), sometimes any of those, what has no editor or what names nothing.
+ */
+export function editorFor(
+  view: View,
+  blocks: readonly string[],
+  within: string | null,
+  seed: Seed,
+): string {
+  const [p0 = 0, p1 = 0, p2 = 0] = seed.picks;
+  const [inner = "", element] = within?.split("/") ?? [];
+  const nested = within !== null && p2 % 4 !== 0;
+  const block = nested ? inner : pick(blocks, p0);
+  const manifest = view.blocks[block]?.manifest;
+  if (manifest === undefined || p2 % 8 === 1) {
+    return pick([`${block}/name`, `${block}/ghost`, "workspace"], p1);
+  }
+  const all = [
+    ...manifest.groups.map((group) => group.id),
+    ...places(manifest).map((place) => place.timeline.id),
+  ];
+  const held =
+    nested && element !== undefined
+      ? heldBy(manifest, element).filter((id) => id !== element)
+      : all;
+  const targets = held.map((id) => `${block}/${id}`);
+  return pick(nested || targets.length === 0 ? [...targets, block] : [block, ...targets], p1);
+}
+
+/**
+ * The command a seed stands for in the editor of `target` (`null`: no
+ * editor is open): mostly one that changes only what the editor edits (a
+ * name, a place, a band order or a display order of what it holds, or the
+ * box's width), sometimes any command of `commandFor`. In the bundle editor
+ * every command is `commandFor`'s on its block.
+ */
+export function commandIn(
+  view: View,
+  blocks: readonly string[],
+  target: string | null,
+  seed: Seed,
+): object {
+  const [block = "", element] = target?.split("/") ?? [];
+  const manifest = view.blocks[block]?.manifest;
+  const [, p1 = 0, p2 = 0, p3 = 0, , , , p7 = 0] = seed.picks;
+  if (target === null || manifest === undefined || p7 % 4 === 0) {
+    return commandFor(view, blocks, seed);
+  }
+  if (element === undefined) return commandFor(view, [block], seed);
+  const held = heldBy(manifest, element);
+  const members = manifest.groups.find((group) => group.id === element)?.members ?? [];
+  const turn = members.length === 0 ? 0 : p3 % members.length;
+  const changes = [
+    {
+      target: `${block}/${pick(held.length > 0 ? held : [element], p1)}`,
+      values: { name: `N${p3 % 7}` },
+    },
+    {
+      target: `${block}/${element}`,
+      values: { band_order: pick([["regions", "children", "flow"], null], p3) },
+    },
+    { target: `${block}/${element}`, values: { place: { x: (p3 % 64) - 8 } } },
+    {
+      target: `${block}/${element}`,
+      values: { order: [...members.slice(turn), ...members.slice(0, turn)] },
+    },
+    { target: block, values: { width: 100 + (p3 % 900) } },
+  ];
+  return { type: "set", changes: [pick(changes, p2)] };
 }
 
 /** The concrete command a seed stands for in `view`, whose blocks are `blocks`. */
@@ -368,6 +494,35 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
               ? pick([null, ...markers, "nothing"], p4)
               : pick(["x", null, "nonsense", 3], p4);
       return set(`${block}/${target}`, { [property]: value });
+    }
+    case 11: {
+      // What a group or timeline states for its drawing: its place, its
+      // band order and a group's display order, valid or not.
+      const target = pick([...groups, ...groups, ...known, "ghost", ""], p2);
+      const property = pick(["place", "place", "band_order", "order"], p3);
+      const members = manifest?.groups.find((group) => group.id === target)?.members ?? [];
+      const turn = members.length === 0 ? 0 : p5 % members.length;
+      const turned = [...members.slice(turn), ...members.slice(0, turn)];
+      const value =
+        property === "place"
+          ? pick(
+              [
+                { x: canvas(p4) },
+                { y: -(p4 % 50), length: 1 + (p4 % 400) },
+                { width: canvas(p4), height: 1 + (p4 % 90) },
+                { x: null, length: null },
+                {},
+                { depth: 1 },
+              ],
+              p5,
+            )
+          : property === "band_order"
+            ? pick(
+                [["regions", "children", "flow"], ["flow", "children", "regions"], null, ["flow"]],
+                p4,
+              )
+            : pick([turned, turned, null, members.slice(1)], p4);
+      return set(target === "" ? block : `${block}/${target}`, { [property]: value });
     }
     default:
       return set(pick([element, block, "workspace", "short", `${block}/`], p2), {

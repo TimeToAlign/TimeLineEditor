@@ -24,8 +24,8 @@ import {
 } from "@timetoalign/timeskeleton";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it } from "vitest";
-import BlockNode from "../src/BlockNode.svelte";
 import { roving } from "../src/roving.ts";
+import NodeHarness from "./NodeHarness.svelte";
 
 const SVG = "http://www.w3.org/2000/svg";
 
@@ -140,9 +140,11 @@ function render(
     selectedElements,
     affectedElements,
     movedElements,
+    editing: null,
+    // No editor is open: every drawn address lies inside.
+    inside: new Set(drawing.elements.flatMap(({ address }) => (address === null ? [] : [address]))),
   };
-  // The node reads only `data`; the other node props are Svelte Flow's.
-  mounted = mount(BlockNode, { target: document.body, props: { data } as never });
+  mounted = mount(NodeHarness, { target: document.body, props: { data: data as never } });
   flushSync();
   const svg = document.querySelector("svg");
   if (svg === null) throw new Error("the block node rendered no svg");

@@ -4,42 +4,62 @@
  * Svelte Flow's `NodeResizeControl`s: a resize control writes its own width
  * and height into the node, while the size of a block during a resize is
  * whatever its drawing at the previewed placement measures. With our own
- * handles the pointer only yields a delta in canvas units, `resize` turns it
- * into the block's new values, and the canvas draws the block at those
- * values, so the preview is exactly what the command will store.
+ * handles the pointer only yields a delta in canvas units, `resize` (for a
+ * block) or `itemResizeValues` (for an item) turns it into new values, and
+ * the canvas draws the block at those values, so the preview is exactly what
+ * the command will store.
  */
-import type { Block, WorkspaceSettings } from "@timetoalign/tilie-core";
+import type { Block, SetCommand, View } from "@timetoalign/tilie-core";
 import type { FontMetrics } from "@timetoalign/timeskeleton";
 import { NodeToolbar, useStore, ViewportPortal } from "@xyflow/svelte";
 import { calcAutoPan } from "@xyflow/system";
-import type { Handle, ResizeMode } from "./resize.ts";
+import type { Gestures } from "./editors.ts";
+import { GESTURES } from "./editors.ts";
+import type { ResizedItem } from "./gestures.svelte.ts";
+import { resizeModes } from "./gestures.svelte.ts";
+import { itemHandlesFor, itemResizeCommand, itemResizeValues, placesAfter } from "./items.ts";
+import type { Delta, Handle, ResizeMode } from "./resize.ts";
 import "./menu.css";
-import { handlesFor, resize } from "./resize.ts";
+import { handlesFor, resize, resizeCommand } from "./resize.ts";
 import { roving } from "./roving.ts";
 
 interface Props {
-  /** The selected block as stored. */
+  /** The selected block as stored, or the block of the item resized. */
   block: Block;
-  /** The block's box on the canvas as currently shown (the preview during a resize). */
+  /**
+   * The item resized in the open editor, a group's frame or an ungrouped
+   * root's card of the block's drawing; absent, the block itself is.
+   */
+  item?: ResizedItem | undefined;
+  /** What the open editor allows (`gesturesOf`); the arranger's gestures when absent. */
+  gestures?: Gestures;
+  /** The box resized on the canvas as currently shown (the preview during a resize). */
   box: { x: number; y: number; width: number; height: number };
-  settings: WorkspaceSettings;
+  /** The view the block lies in. */
+  view: View;
   metrics: FontMetrics;
   zoom: number;
   /** While the canvas is locked the mode buttons are disabled and no handle is shown. */
   locked: boolean;
+  /** The chosen mode; one the gestures do not offer shows as the first they do. */
   mode: ResizeMode;
   /** A new preview of the block's values during a resize. */
   onresize: (values: Partial<Block>) => void;
-  /** The resize is complete with these values. */
-  onresizeend: (values: Partial<Block>) => void;
+  /**
+   * The resize is complete: the block's values as previewed last, and the
+   * command storing them, `null` when it would change nothing.
+   */
+  onresizeend: (values: Partial<Block>, command: SetCommand | null) => void;
   /** The resize ended without a change. */
   onresizecancel: () => void;
 }
 
 let {
   block,
+  item,
+  gestures = GESTURES.arranger,
   box,
-  settings,
+  view,
   metrics,
   zoom,
   locked,
@@ -49,11 +69,28 @@ let {
   onresizecancel,
 }: Props = $props();
 
-const MODES: readonly { mode: ResizeMode; label: string; key: string; hint: string }[] = [
-  { mode: "scale", label: "Scale", key: "1", hint: "scale everything, proportions kept" },
-  { mode: "box", label: "Box", key: "2", hint: "resize the box, the content stays" },
-  { mode: "stretch", label: "Stretch", key: "3", hint: "stretch lengths and distances" },
+const MODES: readonly { mode: ResizeMode; label: string; key: string }[] = [
+  { mode: "scale", label: "Scale", key: "1" },
+  { mode: "box", label: "Box", key: "2" },
+  { mode: "stretch", label: "Stretch", key: "3" },
 ];
+
+/** What a mode does, said in its button's title; an item stretches its length alone. */
+function hintOf(chosen: ResizeMode): string {
+  if (chosen === "scale") return "scale everything, proportions kept";
+  if (chosen === "box") return "resize the box, the content stays";
+  return item === undefined ? "stretch lengths and distances" : "stretch the length";
+}
+
+/** The modes offered, in the order of `MODES`, and the one shown. */
+const offered = $derived(resizeModes(gestures, item === undefined ? "block" : "item"));
+const shown = $derived(offered.includes(mode) ? mode : offered[0]);
+
+/** The handles of `chosen` on the block or on the item. */
+function handlesOf(chosen: ResizeMode): readonly Handle[] {
+  if (item === undefined) return handlesFor(chosen);
+  return itemHandlesFor(chosen === "box" ? "box" : "stretch", item.editor);
+}
 
 const CURSORS: { readonly [handle in Handle]: string } = {
   "top-left": "nwse-resize",
@@ -98,15 +135,37 @@ let gesture: {
   frame: number;
 } | null = null;
 
-function values(): Partial<Block> {
-  if (gesture === null) return {};
+/** The values and the command of the resize in progress, the pointer where it is now. */
+function result(): { values: Partial<Block>; command: SetCommand | null } {
+  if (gesture === null) return { values: {}, command: null };
   const { mode: chosen, handle, start, client, pan } = gesture;
   const { x, y, zoom: z } = flow.viewport;
-  const delta = {
+  const delta: Delta = {
     dx: (client.x - start.x - (x - pan.x)) / z,
     dy: (client.y - start.y - (y - pan.y)) / z,
   };
-  return resize(block, settings, metrics, chosen, handle, delta).values;
+  if (item === undefined) {
+    const { values } = resize(block, view.settings, metrics, chosen, handle, delta);
+    // A resize that changes no stored value is no command, like a drag that ends where it began.
+    const changes = Object.entries(values).some(
+      ([member, value]) => block[member as keyof Block] !== value,
+    );
+    return { values, command: changes ? resizeCommand(block, values) : null };
+  }
+  const itemMode = chosen === "box" ? "box" : "stretch";
+  const { key, editor } = item;
+  const place = itemResizeValues(
+    block,
+    view.settings,
+    metrics,
+    editor,
+    key,
+    itemMode,
+    handle,
+    delta,
+  );
+  const command = itemResizeCommand(view, block.id, key, place, editor, metrics);
+  return { values: command === null ? {} : { places: placesAfter(block, command) }, command };
 }
 
 /**
@@ -126,7 +185,7 @@ function autoPan(): void {
     );
     if (x !== 0 || y !== 0) {
       void flow.panBy({ x, y }).then((panned) => {
-        if (panned && gesture === current) onresize(values());
+        if (panned && gesture === current) onresize(result().values);
       });
     }
   }
@@ -142,14 +201,14 @@ function stop(): void {
 $effect(() => stop);
 
 function start(event: PointerEvent, handle: Handle): void {
-  if (event.button !== 0) return;
+  if (event.button !== 0 || shown === undefined) return;
   event.stopPropagation();
   event.preventDefault();
   (event.currentTarget as Element).setPointerCapture(event.pointerId);
   const at = { x: event.clientX, y: event.clientY };
   gesture = {
     pointer: event.pointerId,
-    mode,
+    mode: shown,
     handle,
     start: at,
     client: at,
@@ -169,16 +228,16 @@ function move(event: PointerEvent): void {
     gesture.moved = true;
     gesture.frame = requestAnimationFrame(autoPan);
   }
-  onresize(values());
+  onresize(result().values);
 }
 
 function end(event: PointerEvent): void {
   if (gesture === null || event.pointerId !== gesture.pointer) return;
   gesture.client = { x: event.clientX, y: event.clientY };
-  const result = gesture.moved ? values() : null;
+  const ended = gesture.moved ? result() : null;
   stop();
-  if (result === null) onresizecancel();
-  else onresizeend(result);
+  if (ended === null) onresizecancel();
+  else onresizeend(ended.values, ended.command);
 }
 
 /** End a resize in progress without a command; `false` when none is in progress. */
@@ -196,17 +255,18 @@ function cancel(event: PointerEvent): void {
 }
 </script>
 
+{#if shown !== undefined}
 <NodeToolbar nodeId={block.id} isVisible>
   <div class="tilie-menu" role="toolbar" aria-label="Resize mode" {@attach roving}>
-    {#each MODES as item (item.mode)}
+    {#each MODES.filter((entry) => offered.includes(entry.mode)) as entry (entry.mode)}
       <button
         type="button"
         class="tilie-menu-item"
-        data-testid="mode-{item.mode}"
-        aria-pressed={mode === item.mode}
-        title="{item.label}: {item.hint} ({item.key})"
+        data-testid="mode-{entry.mode}"
+        aria-pressed={shown === entry.mode}
+        title="{entry.label}: {hintOf(entry.mode)} ({entry.key})"
         disabled={locked}
-        onclick={() => (mode = item.mode)}>{item.label}</button
+        onclick={() => (mode = entry.mode)}>{entry.label}</button
       >
     {/each}
   </div>
@@ -214,7 +274,7 @@ function cancel(event: PointerEvent): void {
 
 {#if !locked}
 <ViewportPortal target="front" class="tilie-overlay">
-  {#each handlesFor(mode) as handle (handle)}
+  {#each handlesOf(shown) as handle (handle)}
     {@const at = anchor(handle)}
     <div
       class="handle nodrag nopan nowheel"
@@ -235,6 +295,7 @@ function cancel(event: PointerEvent): void {
     ></div>
   {/each}
 </ViewportPortal>
+{/if}
 {/if}
 
 <style>

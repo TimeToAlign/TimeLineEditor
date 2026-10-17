@@ -2,11 +2,12 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
-import type { Manifest } from "@timetoalign/tilie-core";
+import type { CommandEntry, Manifest } from "@timetoalign/tilie-core";
 import {
   createStore,
   createView,
   isLoadError,
+  isSessionEntry,
   loadManifest,
   manifestIds,
   readWorkspace,
@@ -41,7 +42,7 @@ function workspaceText(): string {
     if (isLoadError(loaded)) throw new Error(`${name} refused`);
     return loaded;
   };
-  const store = createStore({ view: createView(), journal: [] });
+  const store = createStore({ view: createView(), journal: [], sessions: {} });
   for (const [id, name, x] of [
     [A, "bare", 0],
     [B, "nested", 800],
@@ -53,7 +54,7 @@ function workspaceText(): string {
     });
     if (error !== null) throw new Error(error.message);
   }
-  return writeWorkspace({ view: store.view, journal: store.journal });
+  return writeWorkspace({ view: store.view, journal: store.journal, sessions: store.sessions });
 }
 
 /** The text of a group or bundle fixture of the installed schema package. */
@@ -96,6 +97,7 @@ describe("the test hook", () => {
     app = undefined;
     document.body.innerHTML = "";
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
   function hook() {
@@ -126,9 +128,13 @@ describe("the test hook", () => {
     expect(hook().store()).not.toBe(before);
     expect(hook().store().view).toEqual(expected.view);
     expect(hook().store().journal).toEqual(expected.journal);
-    expect(writeWorkspace({ view: hook().store().view, journal: hook().store().journal })).toBe(
-      text,
-    );
+    expect(
+      writeWorkspace({
+        view: hook().store().view,
+        journal: hook().store().journal,
+        sessions: hook().store().sessions,
+      }),
+    ).toBe(text);
     expect(hook().text()).toBe(text);
     expect(hook().selection()).toEqual([]);
   });
@@ -205,7 +211,7 @@ describe("the test hook", () => {
       expect(
         hook()
           .store()
-          .journal.map(({ command, author, time }) => [command.type, author, time]),
+          .journal.map((entry) => [(entry as CommandEntry).command.type, entry.author, entry.time]),
       ).toEqual([["add", "Fixture Generator", "2026-10-12T09:00:00.000Z"]]);
     }
   });
@@ -227,9 +233,9 @@ describe("the test hook", () => {
       expect(
         hook()
           .store()
-          .journal.map(({ command }) => command),
+          .journal.map((entry) => (entry as CommandEntry).command),
       ).toEqual([
-        hook().store().journal[0]?.command,
+        (hook().store().journal[0] as CommandEntry | undefined)?.command,
         { type: "remove", targets: [`fixture000/${timeline}`] },
       ]);
       expect(
@@ -237,6 +243,49 @@ describe("the test hook", () => {
       ).toBe(false);
       expect(hook().selection()).toEqual([]);
     }
+  });
+
+  it("opens and closes editors and lists the editing path", () => {
+    const text = workspaceText();
+    hook().load(text);
+    flushSync();
+    const before = hook().store().view;
+    const target = `${B}/clt_1`;
+    const rename = () =>
+      hook()
+        .store()
+        .dispatch({ type: "set", changes: [{ target, values: { name: "N" } }] });
+
+    expect(hook().editing()).toEqual([]);
+    expect(hook().open(`${B}/nope`)?.code).toBe("unknown_target");
+    expect(hook().editing()).toEqual([]);
+
+    expect(hook().open(target)).toBeNull();
+    const editing = hook().editing();
+    expect(editing).toEqual([
+      { session: editing[0]?.session, target, kind: "timeline", earlier: null },
+    ]);
+    expect(/^[0-9a-z]{10}$/.test(editing[0]?.session ?? "")).toBe(true);
+    expect(editing).toEqual(hook().store().editing);
+    expect(editing).not.toBe(hook().store().editing);
+
+    const showModal = vi.spyOn(HTMLDialogElement.prototype, "showModal");
+    expect(rename()).toBeNull();
+    hook().cancel();
+    flushSync();
+    expect(showModal).not.toHaveBeenCalled();
+    expect(hook().editing()).toEqual([]);
+    expect(hook().store().view).toBe(before);
+
+    const length = hook().store().journal.length;
+    expect(hook().open(target)).toBeNull();
+    expect(rename()).toBeNull();
+    hook().done();
+    flushSync();
+    expect(hook().editing()).toEqual([]);
+    expect(hook().store().journal.length).toBe(length + 1);
+    const last = hook().store().journal.at(-1);
+    expect(last !== undefined && isSessionEntry(last)).toBe(true);
   });
 
   it("is removed when the editor is unmounted", () => {

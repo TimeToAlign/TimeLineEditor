@@ -1,5 +1,7 @@
 /** Blocks: the entries of a workspace's canvas, each placing one manifest. */
 
+import { timelineAncestry } from "../manifest/elements.ts";
+import { memberDrawings } from "../manifest/files.ts";
 import type { Manifest } from "../manifest/types.ts";
 
 /** A block id: ten characters of base 36, unique within the workspace. */
@@ -9,6 +11,32 @@ export const BLOCK_ID = /^[0-9a-z]{10}$/;
 /** A group of bands, laid outwards from the root in a block's `order`. */
 export type BandGroup = "children" | "regions" | "flow";
 export const BAND_GROUPS: readonly BandGroup[] = ["children", "regions", "flow"];
+
+/** A band order: a permutation of the three groups, laid outwards from the root. */
+export type BandOrder = readonly [BandGroup, BandGroup, BandGroup];
+
+/** A stated place of an item (drawing.md §8.6); a member left out takes its default. */
+export interface Place {
+  /** Finite. */
+  readonly x?: number;
+  /** Finite. */
+  readonly y?: number;
+  /** Positive. */
+  readonly length?: number;
+  /** Positive. */
+  readonly width?: number;
+  /** Positive. */
+  readonly height?: number;
+}
+
+/** The members of a place, in the order a place is written. */
+export const PLACE_MEMBERS = [
+  "x",
+  "y",
+  "length",
+  "width",
+  "height",
+] as const satisfies readonly (keyof Place)[];
 
 /** The inputs of a block's drawing besides its manifest and the style layers. */
 export interface BlockPlacement {
@@ -22,7 +50,7 @@ export interface BlockPlacement {
   readonly width: number | null;
   readonly height: number | null;
   /** The band order, a permutation of the three groups. */
-  readonly order: readonly [BandGroup, BandGroup, BandGroup];
+  readonly order: BandOrder;
 }
 
 /**
@@ -37,6 +65,10 @@ export interface Block extends BlockPlacement {
   readonly index: string;
   readonly x: number;
   readonly y: number;
+  /** The stated places of the manifest's items, by group id or ungrouped root id. */
+  readonly places: { readonly [key: string]: Place };
+  /** The band orders overriding `order`, by group id or timeline id at any depth. */
+  readonly bands: { readonly [key: string]: BandOrder };
   readonly manifest: Manifest;
 }
 
@@ -53,5 +85,28 @@ export const BLOCK_MEMBERS = [
   "width",
   "height",
   "order",
+  "places",
+  "bands",
   "manifest",
 ] as const satisfies readonly (keyof Block)[];
+
+/**
+ * The items of a manifest's box (drawing.md §8.1), the keys `places` may
+ * hold: its group ids and its ungrouped roots, the roots no group names as a
+ * member and that contain no member.
+ */
+export function itemKeys(manifest: Manifest): ReadonlySet<string> {
+  const { frames, ungrouped } = memberDrawings(manifest);
+  return new Set([
+    ...frames.map((frame) => frame.group.id),
+    ...ungrouped.map((member) => member.timeline.id),
+  ]);
+}
+
+/** The keys `bands` may hold: the manifest's group ids and its timeline ids at any depth. */
+export function bandKeys(manifest: Manifest): ReadonlySet<string> {
+  return new Set([
+    ...manifest.groups.map((group) => group.id),
+    ...timelineAncestry(manifest).keys(),
+  ]);
+}

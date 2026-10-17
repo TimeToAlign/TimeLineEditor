@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { LivePlacement, ResizeMode, Selection } from "@timetoalign/tilie-arranger";
-import { addCommand, blockOf, Canvas, existing } from "@timetoalign/tilie-arranger";
+import { addCommand, blockOf, Canvas, existing, liveStore } from "@timetoalign/tilie-arranger";
 import type { Problem, Store, View, Workspace } from "@timetoalign/tilie-core";
 import {
   createStore,
@@ -43,7 +43,7 @@ let health: Health | null = $state.raw(null);
 let offline = $state("");
 
 /** The empty workspace a new store starts from. */
-const EMPTY: Workspace = { view: createView(), journal: [] };
+const EMPTY: Workspace = { view: createView(), journal: [], sessions: {} };
 /** The autosave slot of the open workspace; one, whichever workspace is open. */
 const AUTOSAVE_KEY = "current";
 const AUTOSAVE_DELAY_MS = 1000;
@@ -51,8 +51,9 @@ const AUTOSAVE_DELAY_MS = 1000;
 const initial = createStore(EMPTY);
 /** The open workspace. */
 let store: Store = $state.raw(initial);
-/** The store's current view, followed through its subscription. */
-let view: View = $state.raw(initial.view);
+/** The open workspace's store as Svelte state, for the canvas and the inspector. */
+const live = $derived(liveStore(store));
+const view = $derived(live.view);
 /** The view as last opened or saved; `null` for a workspace never saved (a restored one). */
 let savedView: View | null = $state.raw(initial.view);
 /** The file the workspace was opened from or last saved to. */
@@ -64,7 +65,7 @@ const dirty = $derived(view !== savedView);
 // The viewer's own state: never written to the workspace.
 let selection: Selection = $state.raw(new Set());
 /** The placement a drag or resize on the canvas shows before release, for the inspector. */
-let live: LivePlacement | null = $state.raw(null);
+let placement: LivePlacement | null = $state.raw(null);
 let locked = $state(false);
 let mode: ResizeMode = $state("scale");
 let viewport: ViewportValue = $state.raw({ x: 0, y: 0, zoom: 1 });
@@ -139,7 +140,7 @@ function track(): void {
     autosave.discard();
     return;
   }
-  const workspace: Workspace = { view: current.view, journal: [...current.journal] };
+  const workspace = current.snapshot();
   const name = fileName;
   autosave.schedule(() => ({ text: writeWorkspace(workspace), name }));
 }
@@ -175,14 +176,36 @@ async function startAutosave(): Promise<void> {
   if (store.view !== savedView) track();
 }
 
-// `replace` sets the view of a new store; its later views arrive here.
+// Every change of the open store is autosaved, and the drawer and the selection follow its editors.
 $effect(() => {
-  const current = store;
-  return current.subscribe((next) => {
-    view = next;
+  const current = live.store;
+  /** How many editors were open at the store's last change. */
+  let depth = current.editing.length;
+  return current.subscribe(() => {
+    followEditing(current, depth);
+    depth = current.editing.length;
     track();
   });
 });
+
+/**
+ * Open the drawer when the first editor opens (the viewer may close it
+ * again while editing), and after an editor closes drop from the selection
+ * what no longer exists, giving the focus back to the arranger when it was
+ * on a control that went with the editor.
+ */
+function followEditing(current: Store, before: number): void {
+  const count = current.editing.length;
+  if (count > 0 && before === 0 && !inspectorOpen) setInspector(true);
+  if (count < before) {
+    selection = existing(current.view, selection);
+    void tick().then(() => {
+      if (document.activeElement === null || document.activeElement === document.body) {
+        canvas?.focus();
+      }
+    });
+  }
+}
 
 // --- Workspaces and files ---------------------------------------------------
 
@@ -196,7 +219,6 @@ function replace(
   const next = createStore(workspace);
   selection = new Set();
   store = next;
-  view = next.view;
   savedView = saved ? next.view : null;
   fileName = name;
   fileHandle = handle;
@@ -259,7 +281,7 @@ async function save(as: boolean): Promise<void> {
   if (saving) return;
   saving = true;
   const current = store.view;
-  const text = writeWorkspace({ view: current, journal: store.journal });
+  const text = writeWorkspace(store.snapshot());
   try {
     const saved = await saveFile(text, WORKSPACE_FILE, fileName, as ? null : fileHandle);
     if (saved === null) return;
@@ -422,14 +444,19 @@ let inspectorClose: HTMLButtonElement | undefined = $state();
 /** What the selection names, shown beside the inspector's heading. */
 const subject = $derived(inspectedSubject(view, selection));
 
-/** Open or close the inspector, remember the choice, and move the focus to the control that undoes it. */
-async function showInspector(open: boolean): Promise<void> {
+/** Open or close the inspector and remember the choice. */
+function setInspector(open: boolean): void {
   inspectorOpen = open;
   try {
     localStorage.setItem(INSPECTOR_KEY, String(open));
   } catch {
     // Without storage the choice holds until the page is left.
   }
+}
+
+/** Open or close the inspector, remember the choice, and move the focus to the control that undoes it. */
+async function showInspector(open: boolean): Promise<void> {
+  setInspector(open);
   await tick();
   (open ? inspectorClose : inspectorTab)?.focus();
 }
@@ -465,7 +492,11 @@ if (TEST_HOOK) {
     locked: () => locked,
     mode: () => mode,
     health: () => health,
-    text: () => writeWorkspace({ view: store.view, journal: store.journal }),
+    text: () => writeWorkspace(store.snapshot()),
+    editing: () => [...store.editing],
+    open: (address) => store.open(address),
+    done: () => store.done(),
+    cancel: () => store.cancel(),
   };
   $effect(() => installTestHook(hook));
 }
@@ -550,13 +581,13 @@ onMount(async () => {
   <div class="arranger">
     <Canvas
       bind:this={canvas}
-      {store}
+      {live}
       metrics={fontMetrics}
       bind:selection
       bind:locked
       bind:mode
       bind:viewport
-      onlive={(placement) => (live = placement)}
+      onlive={(next) => (placement = next)}
     />
     <MessageArea
       {messages}
@@ -607,7 +638,7 @@ onMount(async () => {
         onclick={() => showInspector(false)}>»</button
       >
     </div>
-    <Inspector {store} {selection} {live} />
+    <Inspector {live} {selection} {placement} />
   </aside>
 </main>
 

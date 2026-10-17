@@ -1,6 +1,7 @@
 {
   "blocks": {
     "bmixed0000": {
+      "bands": {},
       "height": null,
       "id": "bmixed0000",
       "index": "a0",
@@ -182,6 +183,7 @@
         "flow"
       ],
       "parent": null,
+      "places": {},
       "scale": 1,
       "spacing": 1,
       "width": null,
@@ -189,6 +191,7 @@
       "y": 0
     },
     "bshared000": {
+      "bands": {},
       "height": null,
       "id": "bshared000",
       "index": "a1",
@@ -380,6 +383,7 @@
         "flow"
       ],
       "parent": null,
+      "places": {},
       "scale": 1,
       "spacing": 1,
       "width": null,
@@ -387,6 +391,7 @@
       "y": 0
     },
     "bungroup00": {
+      "bands": {},
       "height": null,
       "id": "bungroup00",
       "index": "a2",
@@ -534,6 +539,7 @@
         "flow"
       ],
       "parent": null,
+      "places": {},
       "scale": 1,
       "spacing": 1,
       "width": null,
@@ -1073,8 +1079,9 @@
   ],
   "meta": {
     "format": "tilie-workspace",
-    "version": 2
+    "version": 3
   },
+  "sessions": {},
   "settings": {
     "blockDefaults": {
       "height": null,

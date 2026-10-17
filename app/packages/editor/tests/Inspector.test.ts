@@ -5,7 +5,8 @@ import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import type { LivePlacement } from "@timetoalign/tilie-arranger";
-import type { Block, Store, UnknownKey } from "@timetoalign/tilie-core";
+import { liveStore } from "@timetoalign/tilie-arranger";
+import type { Block, CommandEntry, Store, UnknownKey } from "@timetoalign/tilie-core";
 import {
   createStore,
   createView,
@@ -36,7 +37,7 @@ const directory = path.join(
 
 /** A store holding `bare` in block A and `styled__score` in block B. */
 function storeOf(): Store {
-  const store = createStore({ view: createView(), journal: [] });
+  const store = createStore({ view: createView(), journal: [], sessions: {} });
   for (const [id, name] of [
     [A, "bare"],
     [B, "styled__score"],
@@ -68,7 +69,7 @@ function read(name: string) {
 function warningCase(name: string): { store: Store; expected: readonly UnknownKey[] } {
   const { manifest, expected } = read(name);
   if (isLoadError(manifest)) throw new Error(`${name}: ${manifest.problems[0]?.message}`);
-  const store = createStore({ view: createView(), journal: [] });
+  const store = createStore({ view: createView(), journal: [], sessions: {} });
   const error = store.dispatch({
     type: "add",
     into: "workspace",
@@ -84,18 +85,18 @@ let app: ReturnType<typeof mount> | undefined;
 function show(
   store: Store,
   selection: string[],
-  live = holder<LivePlacement | null>(null),
+  placement = holder<LivePlacement | null>(null),
 ): { value: ReadonlySet<string> } {
   const selected = holder<ReadonlySet<string>>(new Set(selection));
   app = mount(Inspector, {
     target: document.body,
     props: {
-      store,
+      live: liveStore(store),
       get selection() {
         return selected.value;
       },
-      get live() {
-        return live.value;
+      get placement() {
+        return placement.value;
       },
     },
   });
@@ -111,6 +112,16 @@ function openTab(name: string): void {
   if (found === undefined) throw new Error(`no tab ${name}`);
   found.click();
   flushSync();
+}
+
+/** The texts of the Properties and Manifest panels, then the form and the textarea (null when absent). */
+function hinted(): unknown[] {
+  return [
+    document.getElementById("inspector-panel-properties")?.textContent?.trim(),
+    document.getElementById("inspector-panel-manifest")?.textContent?.trim(),
+    document.querySelector("form"),
+    document.querySelector("textarea"),
+  ];
 }
 
 function press(element: HTMLElement, key: string, modifiers: KeyboardEventInit = {}): void {
@@ -156,10 +167,10 @@ describe("the inspector component", () => {
   it("shows the hint without exactly one block", () => {
     const store = storeOf();
     show(store, []);
-    expect(document.body.textContent?.trim()).toBe(HINT);
+    expect(hinted()).toEqual([HINT, HINT, null, null]);
     unmount(app as never);
     show(store, [A, `${B}/score`]);
-    expect(document.body.textContent?.trim()).toBe(HINT);
+    expect(hinted()).toEqual([HINT, HINT, null, null]);
   });
 
   it("shows a loading state until the YAML codec is there", async () => {
@@ -262,7 +273,7 @@ describe("the inspector component", () => {
     x.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
     flushSync();
     expect(store.journal).toHaveLength(3);
-    expect(store.journal[2]?.command).toEqual({
+    expect((store.journal[2] as CommandEntry | undefined)?.command).toEqual({
       type: "set",
       changes: [{ target: A, values: { x: 25 } }],
     });
@@ -277,21 +288,21 @@ describe("the inspector component", () => {
     expect(x.value).toBe("10.12");
     press(x, "ArrowUp");
     expect(store.journal).toHaveLength(4);
-    expect(store.journal[3]?.command).toEqual({
+    expect((store.journal[3] as CommandEntry | undefined)?.command).toEqual({
       type: "set",
       changes: [{ target: A, values: { x: 11.123 } }],
     });
     expect(x.value).toBe("11.12");
     press(x, "ArrowDown");
     expect(store.journal).toHaveLength(5);
-    expect(store.journal[4]?.command).toEqual({
+    expect((store.journal[4] as CommandEntry | undefined)?.command).toEqual({
       type: "set",
       changes: [{ target: A, values: { x: 10.123 } }],
     });
     type(x, "20");
     press(x, "ArrowUp");
     expect(store.journal).toHaveLength(6);
-    expect(store.journal[5]?.command).toEqual({
+    expect((store.journal[5] as CommandEntry | undefined)?.command).toEqual({
       type: "set",
       changes: [{ target: A, values: { x: 21 } }],
     });
@@ -299,7 +310,7 @@ describe("the inspector component", () => {
     const scale = document.querySelector('input[name="scale"]') as HTMLInputElement;
     press(scale, "ArrowDown");
     expect(store.journal).toHaveLength(7);
-    expect(store.journal[6]?.command).toEqual({
+    expect((store.journal[6] as CommandEntry | undefined)?.command).toEqual({
       type: "set",
       changes: [{ target: A, values: { scale: 0.9 } }],
     });
@@ -308,8 +319,8 @@ describe("the inspector component", () => {
 
   it("shows live values of its block, never over a draft", () => {
     const store = storeOf();
-    const live = holder<LivePlacement | null>(null);
-    show(store, [A], live);
+    const gesture = holder<LivePlacement | null>(null);
+    show(store, [A], gesture);
     const field = (name: string) =>
       document.querySelector(`input[name="${name}"]`) as HTMLInputElement;
     const placement = {
@@ -322,17 +333,17 @@ describe("the inspector component", () => {
       width: null,
       height: null,
     };
-    live.value = placement;
+    gesture.value = placement;
     flushSync();
     expect(field("x").value).toBe("5.56");
     type(field("y"), "33");
-    live.value = { ...placement, y: 7 };
+    gesture.value = { ...placement, y: 7 };
     flushSync();
     expect(field("y").value).toBe("33");
-    live.value = { ...placement, id: B, x: 99 };
+    gesture.value = { ...placement, id: B, x: 99 };
     flushSync();
     expect(field("x").value).toBe("0");
-    live.value = null;
+    gesture.value = null;
     flushSync();
     expect(field("x").value).toBe("0");
     expect(store.journal).toHaveLength(2);
@@ -372,6 +383,7 @@ describe("the inspector's tabs", () => {
     ).toEqual([
       ["BUTTON", TABS[0], "Properties", PANELS[0]],
       ["BUTTON", TABS[1], "Manifest", PANELS[1]],
+      ["BUTTON", "inspector-tab-journal", "Journal", "inspector-panel-journal"],
     ]);
     expect(
       PANELS.map((id) => {
@@ -417,10 +429,10 @@ describe("the inspector's tabs", () => {
     show(storeOf(), [A]);
     const steps: [string, unknown[], string][] = [
       ["ArrowRight", MANIFEST, TABS[1] as string],
-      ["ArrowRight", PROPERTIES, TABS[0] as string],
-      ["ArrowLeft", MANIFEST, TABS[1] as string],
+      ["ArrowLeft", PROPERTIES, TABS[0] as string],
       ["Home", PROPERTIES, TABS[0] as string],
-      ["End", MANIFEST, TABS[1] as string],
+      ["ArrowRight", MANIFEST, TABS[1] as string],
+      ["ArrowLeft", PROPERTIES, TABS[0] as string],
     ];
     (document.getElementById(TABS[0] as string) as HTMLElement).focus();
     for (const [key, expected, focused] of steps) {
@@ -519,8 +531,8 @@ describe("the inspector's tabs", () => {
     expect(state()).toEqual(MANIFEST);
     selected.value = new Set();
     flushSync();
-    expect(document.body.textContent?.trim()).toBe(HINT);
-    expect(document.querySelector('[role="tablist"]')).toBe(null);
+    expect(hinted()).toEqual([HINT, HINT, null, null]);
+    expect(state()).toEqual(MANIFEST);
     selected.value = new Set([B]);
     flushSync();
     expect(state()).toEqual(MANIFEST);
@@ -673,7 +685,7 @@ describe("a clean text", () => {
   });
 
   it("keeps a problem of writing the manifest while the text is typed back", async () => {
-    const store = createStore({ view: createView(), journal: [] });
+    const store = createStore({ view: createView(), journal: [], sessions: {} });
     const manifest = loadManifest(
       dumps({
         timeskeleton: SCHEMA_VERSION,

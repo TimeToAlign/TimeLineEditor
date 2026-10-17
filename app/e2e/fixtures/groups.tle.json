@@ -1,6 +1,7 @@
 {
   "blocks": {
     "gchild0000": {
+      "bands": {},
       "height": null,
       "id": "gchild0000",
       "index": "a0",
@@ -112,6 +113,7 @@
         "flow"
       ],
       "parent": null,
+      "places": {},
       "scale": 1,
       "spacing": 1,
       "width": null,
@@ -119,6 +121,7 @@
       "y": 0
     },
     "ggrand0000": {
+      "bands": {},
       "height": null,
       "id": "ggrand0000",
       "index": "a1",
@@ -258,6 +261,7 @@
         "flow"
       ],
       "parent": null,
+      "places": {},
       "scale": 1,
       "spacing": 1,
       "width": null,
@@ -265,6 +269,7 @@
       "y": 240
     },
     "gmixed0000": {
+      "bands": {},
       "height": null,
       "id": "gmixed0000",
       "index": "a2",
@@ -464,6 +469,7 @@
         "flow"
       ],
       "parent": null,
+      "places": {},
       "scale": 1,
       "spacing": 1,
       "width": null,
@@ -471,6 +477,7 @@
       "y": 0
     },
     "gstyled000": {
+      "bands": {},
       "height": null,
       "id": "gstyled000",
       "index": "a3",
@@ -608,6 +615,7 @@
         "flow"
       ],
       "parent": null,
+      "places": {},
       "scale": 1,
       "spacing": 1,
       "width": null,
@@ -1217,8 +1225,9 @@
   ],
   "meta": {
     "format": "tilie-workspace",
-    "version": 2
+    "version": 3
   },
+  "sessions": {},
   "settings": {
     "blockDefaults": {
       "height": null,

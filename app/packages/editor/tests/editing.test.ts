@@ -1,0 +1,173 @@
+/** The shell while editing; the expected values are derived in `README.md` ("Editing"). */
+
+import type { Workspace } from "@timetoalign/tilie-core";
+import {
+  createStore,
+  createView,
+  isLoadError,
+  isSessionEntry,
+  readWorkspace,
+  writeWorkspace,
+} from "@timetoalign/tilie-core";
+import { flushSync, mount, tick, unmount } from "svelte";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import App from "../src/App.svelte";
+import { recoverWorkspace } from "../src/autosave.ts";
+import { stubEditor } from "./dom.ts";
+import { fixture, interceptDownloads } from "./support.ts";
+
+const A = "0000000000";
+const SCORE = `${A}/score`;
+
+let app: ReturnType<typeof mount> | undefined;
+
+beforeEach(() => {
+  window.history.replaceState({}, "", "/");
+  localStorage.clear();
+  stubEditor();
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => Response.json({ name: "tilie-server", version: "0", timetoalign: "0" })),
+  );
+  app = mount(App, { target: document.body });
+  flushSync();
+  hook().load(workspaceText());
+  flushSync();
+});
+
+afterEach(() => {
+  if (app !== undefined) unmount(app);
+  app = undefined;
+  document.body.innerHTML = "";
+  localStorage.clear();
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
+
+function hook() {
+  const installed = window.__tilie;
+  if (installed === undefined) throw new Error("window.__tilie is not installed");
+  return installed;
+}
+
+/** A written workspace holding `bundle_mixed` as block A. */
+function workspaceText(): string {
+  const store = createStore({ view: createView(), journal: [], sessions: {} });
+  const refusal = store.dispatch({
+    type: "add",
+    into: "workspace",
+    block: { id: A, manifest: fixture("bundles/bundle_mixed"), x: 0, y: 0 },
+  });
+  if (refusal !== null) throw new Error(refusal.message);
+  return writeWorkspace({ view: store.view, journal: store.journal, sessions: store.sessions });
+}
+
+function open(address: string): void {
+  const refusal = hook().open(address);
+  if (refusal !== null) throw new Error(refusal.message);
+  flushSync();
+}
+
+function rename(name: string): void {
+  const refusal = hook()
+    .store()
+    .dispatch({ type: "set", changes: [{ target: SCORE, values: { name } }] });
+  if (refusal !== null) throw new Error(refusal.message);
+  flushSync();
+}
+
+function drawer(): HTMLElement {
+  const element = document.getElementById("inspector");
+  if (element === null) throw new Error("the drawer is missing");
+  return element;
+}
+
+function arranger(): Element | null {
+  return document.querySelector('[role="application"][aria-label="Arranger"]');
+}
+
+function read(text: string): Workspace {
+  const workspace = readWorkspace(text);
+  if (isLoadError(workspace)) throw new Error("the written workspace is refused");
+  return workspace;
+}
+
+/** The folded form of an open editor holding `count` entries, the last renaming the score to `name`. */
+function expectFolded(workspace: Workspace, count: number, name: string): void {
+  const [session] = hook()
+    .editing()
+    .map((editor) => editor.session);
+  expect(workspace.journal.length).toBe(2);
+  const [added, folded] = workspace.journal;
+  expect(added !== undefined && !isSessionEntry(added) && added.command.type).toBe("add");
+  expect(folded !== undefined && isSessionEntry(folded) && folded.session).toBe(session);
+  expect(Object.keys(workspace.sessions)).toEqual([session]);
+  const stored = workspace.sessions[session as string];
+  expect(stored?.target).toBe(SCORE);
+  expect(stored?.entries.length).toBe(count);
+  expect(stored?.entries.at(-1)).toMatchObject({
+    command: { type: "set", changes: [{ target: SCORE, values: { name } }] },
+  });
+}
+
+describe("the shell while editing", () => {
+  it("opens the drawer when the first editor opens, and lets the viewer close it", async () => {
+    expect(drawer().hidden).toBe(true);
+    expect(document.activeElement).toBe(arranger());
+
+    open(A);
+    expect(drawer().hidden).toBe(false);
+    expect(localStorage.getItem("tilie.inspector.open")).toBe("true");
+    expect(document.activeElement).toBe(arranger());
+
+    document.querySelector<HTMLButtonElement>('button[aria-label="Close inspector"]')?.click();
+    flushSync();
+    await tick();
+    expect(drawer().hidden).toBe(true);
+    expect(hook().editing().length).toBe(1);
+
+    open(SCORE);
+    expect(drawer().hidden).toBe(true);
+
+    hook().done();
+    hook().done();
+    flushSync();
+    open(A);
+    expect(drawer().hidden).toBe(false);
+  });
+
+  it("saves and autosaves the open editor folded, leaving it open", async () => {
+    const downloads = interceptDownloads();
+    open(SCORE);
+    rename("S");
+
+    const event = new KeyboardEvent("keydown", {
+      key: "s",
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    document.body.dispatchEvent(event);
+    flushSync();
+    expect(event.defaultPrevented).toBe(true);
+    await vi.waitFor(() => expect(downloads.length).toBe(1));
+
+    const [[name, text] = ["", ""]] = downloads;
+    expect(name).toBe("untitled.tle.json");
+    expectFolded(read(text), 1, "S");
+    expect(hook().editing().length).toBe(1);
+    expect(document.querySelector('[data-testid="file-name"]')?.textContent).toBe(
+      "untitled.tle.json",
+    );
+    expectFolded(read(hook().text()), 1, "S");
+
+    rename("T");
+    vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
+    document.dispatchEvent(new Event("visibilitychange"));
+    await vi.waitFor(async () => {
+      const slot = await recoverWorkspace("current");
+      expect(slot).not.toBeNull();
+      expectFolded(read(slot?.text ?? ""), 2, "T");
+    });
+  });
+});

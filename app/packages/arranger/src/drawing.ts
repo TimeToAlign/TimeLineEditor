@@ -1,6 +1,6 @@
 /** A block's drawing, memoized by the identity of its inputs. */
 
-import type { Block, BlockPlacement, WorkspaceSettings } from "@timetoalign/tilie-core";
+import type { Block, WorkspaceSettings } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import { DEFAULT_LAYER, draw } from "@timetoalign/tilie-layout";
 import type { Descriptor } from "@timetoalign/tilie-writers";
@@ -21,13 +21,14 @@ const descriptors = new WeakMap<Drawing, readonly Descriptor[]>();
  * default layer, the workspace's statements and the manifest's own, from
  * lowest to highest. Blocks are immutable, so the drawing is memoized per
  * block and redrawn only when the settings or the metrics change identity.
- * A `preview` overrides placement members and is never memoized.
+ * A `preview` overrides members of the block, its places or its manifest (a
+ * reorder drawn before it is dropped) among them, and is never memoized.
  */
 export function drawingOf(
   block: Block,
   settings: WorkspaceSettings,
   metrics: FontMetrics,
-  preview?: Partial<BlockPlacement>,
+  preview?: Partial<Block>,
 ): Drawing {
   if (preview === undefined) {
     const memo = drawings.get(block);
@@ -37,15 +38,17 @@ export function drawingOf(
   }
   const placement = { ...block, ...preview };
   const drawing = draw(
-    block.manifest,
+    placement.manifest,
     {
       length: placement.length,
       spacing: placement.spacing,
       width: placement.width,
       height: placement.height,
       order: placement.order,
+      bands: placement.bands,
+      places: placement.places,
     },
-    [DEFAULT_LAYER, settings.graphical, block.manifest.graphical],
+    [DEFAULT_LAYER, settings.graphical, placement.manifest.graphical],
     metrics,
   );
   if (preview === undefined) drawings.set(block, { settings, metrics, drawing });

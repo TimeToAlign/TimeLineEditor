@@ -1,7 +1,7 @@
 import { DEFAULT_LAYER, draw } from "@timetoalign/tilie-layout";
 import { describe, expect, it } from "vitest";
-import { drawingOf } from "../src/index.ts";
-import { A, blockIn, changed, metrics, viewOf } from "./support.ts";
+import { drawingOf, withMemberOrder } from "../src/index.ts";
+import { A, blockIn, changed, metrics, mixedPlain, placed, viewOf } from "./support.ts";
 
 describe("drawingOf", () => {
   const view = viewOf({ id: A, fixture: "bare", x: 40, y: 80 });
@@ -10,7 +10,15 @@ describe("drawingOf", () => {
   it("draws with the default layer, the settings and the manifest, in that order", () => {
     const expected = draw(
       block.manifest,
-      { length: 400, spacing: 1, width: null, height: null, order: block.order },
+      {
+        length: 400,
+        spacing: 1,
+        width: null,
+        height: null,
+        order: block.order,
+        bands: {},
+        places: {},
+      },
       [DEFAULT_LAYER, view.settings.graphical, block.manifest.graphical],
       metrics,
     );
@@ -45,5 +53,42 @@ describe("drawingOf", () => {
     const memoized = drawingOf(block, view.settings, metrics);
     expect(drawingOf(block, view.settings, metrics, { length: 800 }).width).toBe(876.5771484375);
     expect(drawingOf(block, view.settings, metrics)).toBe(memoized);
+  });
+
+  it("draws a block's places and bands, and previews places and a manifest", () => {
+    const moved = placed(mixedPlain(), A, "annotations", { x: -30 });
+    const mixed = blockIn(moved, A);
+    const drawing = drawingOf(mixed, moved.settings, metrics);
+    expect(drawing).toEqual(
+      draw(
+        mixed.manifest,
+        {
+          length: 400,
+          spacing: 1,
+          width: null,
+          height: null,
+          order: mixed.order,
+          bands: {},
+          places: { annotations: { x: -30 } },
+        },
+        [DEFAULT_LAYER, moved.settings.graphical, mixed.manifest.graphical],
+        metrics,
+      ),
+    );
+    expect(drawing.origin).toEqual({ x: 38, y: 0 });
+    expect(drawingOf(mixed, moved.settings, metrics, { places: {} }).origin).toEqual({
+      x: 0,
+      y: 0,
+    });
+    const manifest = withMemberOrder(mixed.manifest, "group_1", ["performance", "score"]);
+    const reordered = drawingOf(mixed, moved.settings, metrics, { manifest });
+    const cards = reordered.elements.flatMap((element) =>
+      element.type === "card" ? [[element.address, element.y]] : [],
+    );
+    expect(cards.slice(0, 2)).toEqual([
+      ["performance/card", 53.609375],
+      ["score/card", 110.98828125],
+    ]);
+    expect(drawingOf(mixed, moved.settings, metrics)).toBe(drawing);
   });
 });

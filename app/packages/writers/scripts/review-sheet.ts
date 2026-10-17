@@ -46,8 +46,10 @@ try {
       encoding: "utf8",
     });
     if (result.status !== 0) throw new Error(`rsvg-convert failed on ${svg}: ${result.stderr}`);
-    const { length, spacing, width, height, order } = item.placement;
-    const placement = `length ${length}, spacing ${spacing}, width ${width}, height ${height}, order ${order.join(",")}, scale ${item.scale}`;
+    const { length, spacing, width, height, order, bands, places } = item.placement;
+    const stated = (label: string, value: object) =>
+      Object.keys(value).length === 0 ? "" : `, ${label} ${JSON.stringify(value)}`;
+    const placement = `length ${length}, spacing ${spacing}, width ${width}, height ${height}, order ${order.join(",")}${stated("bands", bands)}${stated("places", places)}, scale ${item.scale}`;
     const unmapped =
       item.drawing.unmapped.length === 0
         ? ""

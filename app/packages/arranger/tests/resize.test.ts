@@ -1,8 +1,25 @@
 import type { Block, View } from "@timetoalign/tilie-core";
 import { describe, expect, it } from "vitest";
 import type { Handle, ResizeMode } from "../src/index.ts";
-import { handlesFor, resize, resizeCommand } from "../src/index.ts";
-import { A, blockIn, CHILD_MEMBER, changed, metrics, viewOf, withGrid } from "./support.ts";
+import {
+  blockStretchPlaces,
+  drawingOf,
+  handlesFor,
+  project,
+  resize,
+  resizeCommand,
+} from "../src/index.ts";
+import {
+  A,
+  blockIn,
+  CHILD_MEMBER,
+  changed,
+  metrics,
+  mixedPlain,
+  placed as placedItem,
+  viewOf,
+  withGrid,
+} from "./support.ts";
 
 type Row = readonly [string, Handle, number, number, Partial<Block>];
 
@@ -149,6 +166,76 @@ describe("resizeCommand", () => {
     expect(resizeCommand(blockIn(bare, A), { width: 500 })).toEqual({
       type: "set",
       changes: [{ target: A, values: { width: 500 } }],
+    });
+  });
+});
+
+describe("resizing a block whose place origin lies inside its box", () => {
+  it("keeps the node's opposite edge, storing the place origin", () => {
+    const wide = placedItem(mixedPlain(), A, "group_2", { width: 600 });
+    const view = placedItem(wide, A, "annotations", { x: -30 });
+    const [before] = project(view, new Set(), [], metrics, null);
+    expect(before?.data.drawing.origin).toEqual({ x: 38, y: 0 });
+    expect([before?.position.x, before?.width]).toEqual([2, 654]);
+    const block = blockIn(view, A);
+    const { values } = resize(block, view.settings, metrics, "box", "left", { dx: -21, dy: 0 });
+    expect(values).toStrictEqual({ width: 675, x: 19 });
+    const after = changed(view, resizeCommand(block, values));
+    const [node] = project(after, new Set(), [], metrics, null);
+    expect(node?.position.x).toBe(-19);
+    expect((node?.position.x ?? 0) + (node?.width ?? 0)).toBe(656);
+  });
+});
+
+describe("blockStretchPlaces", () => {
+  const places = {
+    group_2: { x: 40, y: 200, width: 700 },
+    annotations: { x: -30, length: 300 },
+  };
+  const block = { length: 400, spacing: 1, places };
+
+  it("scales horizontal members by the lengths and vertical ones by the spacings", () => {
+    expect(blockStretchPlaces(block, 500, 1.5)).toStrictEqual({
+      group_2: { x: 50, y: 300, width: 875 },
+      annotations: { x: -37.5, length: 375 },
+    });
+    expect(
+      blockStretchPlaces({ ...block, places: { annotations: { x: 1, y: 1 } } }, 401, 1),
+    ).toStrictEqual({ annotations: { x: 1.00244140625, y: 1 } });
+  });
+
+  it("returns the block's own places when nothing changes", () => {
+    expect(blockStretchPlaces(block, 400, 1)).toBe(places);
+    const none = {};
+    expect(blockStretchPlaces({ ...block, places: none }, 800, 2)).toBe(none);
+  });
+});
+
+describe("stretching a block with placed items", () => {
+  const view = placedItem(mixedPlain(), A, "group_2", { x: 40, y: 200, width: 700 });
+  const block = blockIn(view, A);
+
+  it("stretches the places with the content and keeps the margin's edge under the pointer", () => {
+    expect(drawingOf(block, view.settings, metrics).width).toBe(748);
+    const { values } = resize(block, view.settings, metrics, "stretch", "right", { dx: 74, dy: 0 });
+    expect(values).toStrictEqual({
+      length: 440,
+      places: { group_2: { x: 44, y: 200, width: 770 } },
+    });
+    const command = resizeCommand(block, values);
+    expect(command).toEqual({
+      type: "set",
+      changes: [
+        { target: A, values: { length: 440 } },
+        { target: `${A}/group_2`, values: { place: { x: 44, y: 200, width: 770 } } },
+      ],
+    });
+    const after = changed(view, command);
+    const drawing = drawingOf(blockIn(after, A), after.settings, metrics);
+    expect(blockIn(after, A).x + drawing.width).toBe(862);
+    expect(drawing.items.find((item) => item.key === "group_2")?.place).toMatchObject({
+      x: 44,
+      width: 770,
     });
   });
 });

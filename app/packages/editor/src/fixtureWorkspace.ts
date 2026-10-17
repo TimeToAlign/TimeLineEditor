@@ -32,7 +32,7 @@ export type FixtureBlock = readonly [id: string, manifest: Manifest, x: number, 
 export function fixtureWorkspace(blocks: Iterable<FixtureBlock>): string {
   let calls = 0;
   const store = createStore(
-    { view: createView(), journal: [] },
+    { view: createView(), journal: [], sessions: {} },
     {
       author: FIXTURE_AUTHOR,
       clock: () => new Date(Date.parse(FIXTURE_TIME) + 1000 * calls++),
@@ -46,7 +46,7 @@ export function fixtureWorkspace(blocks: Iterable<FixtureBlock>): string {
     });
     if (refusal !== null) throw new Error(`adding ${id} is refused: ${refusal.code}`);
   }
-  return writeWorkspace({ view: store.view, journal: store.journal });
+  return writeWorkspace(store.snapshot());
 }
 
 /** The workspace text of one block `FIXTURE_BLOCK` at (0, 0) holding the manifest `text`. */

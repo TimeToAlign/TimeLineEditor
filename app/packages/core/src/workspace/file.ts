@@ -1,8 +1,9 @@
 /**
- * The workspace file, `<name>.tle.json`: `{meta, settings, blocks, journal}`
- * written by timeskeleton's `dumps` and read losslessly by its `parseJson`.
- * Any other format or version refuses the file before anything else is read;
- * any unknown member and any invalid manifest refuses it too.
+ * The workspace file, `<name>.tle.json`: `{meta, settings, blocks, journal,
+ * sessions}` written by timeskeleton's `dumps` and read losslessly by its
+ * `parseJson`. Any other format or version refuses the file before anything
+ * else is read; any unknown member and any invalid manifest refuses it too,
+ * and so does a session that the journal does not reach exactly once.
  */
 
 import { dumps, parseJson } from "@timetoalign/timeskeleton";
@@ -14,17 +15,22 @@ import { isJsonObject, showJson } from "../json.ts";
 import { readManifestValue } from "../manifest/io.ts";
 import type { Manifest } from "../manifest/types.ts";
 import {
+  readBands,
   readBoolean,
   readFinite,
   readGraphical,
   readNullablePositive,
   readOrder,
+  readPlaces,
   readPositive,
   readString,
 } from "../values.ts";
 import type { Block, BlockPlacement } from "./blocks.ts";
 import { BLOCK_MEMBERS } from "./blocks.ts";
-import type { Entry, Workspace } from "./store.ts";
+import { parseAddress } from "./ids.ts";
+import type { Entry, Session, SessionId, Sessions } from "./sessions.ts";
+import { isSessionEntry, reachedSessions, SESSION_ID } from "./sessions.ts";
+import type { Workspace } from "./store.ts";
 import type { View, WorkspaceSettings } from "./view.ts";
 import { structureProblems, WORKSPACE_META } from "./view.ts";
 
@@ -146,6 +152,8 @@ function readBlock(problems: Problem[]): Reader {
     index: readString,
     x: readFinite,
     y: readFinite,
+    places: readPlaces,
+    bands: readBands,
     manifest: (value, path) => {
       const manifest = readManifest(value, path);
       if (!Array.isArray(manifest)) return manifest;
@@ -160,24 +168,129 @@ function readBlock(problems: Problem[]): Reader {
   };
 }
 
+const readTime: Reader = (time, at) =>
+  typeof time === "string" && TIME.test(time)
+    ? time
+    : problem(ErrorCode.invalidValue, "time is ISO 8601 UTC with milliseconds", at);
+
+const readSessionId: Reader = (id, at) =>
+  typeof id === "string" && SESSION_ID.test(id)
+    ? id
+    : problem(ErrorCode.invalidValue, "a session id is ten characters of 0-9 and a-z", at);
+
+/** An entry: `{command, author, time}`, or `{session, author, time}` when it names a session. */
 function readEntry(problems: Problem[]): Reader {
+  const command: Reader = (value, at) => {
+    const parsed = parseCommand(value);
+    return isCommandError(parsed) ? { ...parsed, path: [...at, ...parsed.path] } : parsed;
+  };
   return (value, path) =>
     readExact(
       value,
       path,
+      isJsonObject(value) && Object.hasOwn(value, "session")
+        ? { session: readSessionId, author: readString, time: readTime }
+        : { command, author: readString, time: readTime },
+      problems,
+    );
+}
+
+/** A list of entries: the journal, or a session's entries. */
+function readEntries(problems: Problem[]): Reader {
+  return collecting(problems, (items, path) => {
+    if (!Array.isArray(items)) return problem(ErrorCode.invalidValue, "expected an array", path);
+    const read = readEntry(problems);
+    const result: Entry[] = [];
+    let complete = true;
+    for (const [index, item] of items.entries()) {
+      const entry = read(item, [...path, index]);
+      if (entry === undefined) complete = false;
+      else result.push(entry as Entry);
+    }
+    return complete ? result : undefined;
+  });
+}
+
+function readSessions(problems: Problem[]): Reader {
+  const session: Reader = (value, path) =>
+    readExact(
+      value,
+      path,
       {
-        command: (command, at) => {
-          const parsed = parseCommand(command);
-          return isCommandError(parsed) ? { ...parsed, path: [...at, ...parsed.path] } : parsed;
+        target: (target, at) => {
+          if (typeof target !== "string") return readString(target, at);
+          const parsed = parseAddress(target);
+          return isCommandError(parsed) ? { ...parsed, path: at } : target;
         },
-        author: readString,
-        time: (time, at) =>
-          typeof time === "string" && TIME.test(time)
-            ? time
-            : problem(ErrorCode.invalidValue, "time is ISO 8601 UTC with milliseconds", at),
+        entries: (entries, at) => {
+          // A session without entries is never closed with Done.
+          if (Array.isArray(entries) && entries.length === 0) {
+            return problem(ErrorCode.invalidValue, "a session holds at least one entry", at);
+          }
+          return readEntries(problems)(entries, at);
+        },
       },
       problems,
     );
+  return collecting(problems, (items, path) => {
+    if (!isJsonObject(items)) return problem(ErrorCode.invalidValue, "expected an object", path);
+    const result: { [id: SessionId]: Session } = {};
+    let complete = true;
+    for (const [id, item] of Object.entries(items as JsonObject)) {
+      const at = [...path, id];
+      const bad = readSessionId(id, at);
+      if (isCommandError(bad)) problems.push(bad);
+      const read = isCommandError(bad) ? undefined : session(item, at);
+      if (read === undefined) complete = false;
+      else result[id] = read as Session;
+    }
+    return complete ? result : undefined;
+  });
+}
+
+/**
+ * The problems of how a journal names its sessions: every session entry in
+ * turn, the journal's, then each session's, names a session no earlier
+ * entry named (else `unknown_session` or `session_referenced_twice`); then
+ * every session is reached from the journal (else `unreferenced_session`,
+ * also for sessions that only name each other).
+ */
+function sessionProblems(journal: readonly Entry[], sessions: Sessions): Problem[] {
+  const problems: Problem[] = [];
+  const named = new Set<SessionId>();
+  const check = (entries: readonly Entry[], path: readonly PathSegment[]) => {
+    for (const [index, entry] of entries.entries()) {
+      if (!isSessionEntry(entry)) continue;
+      const at = [...path, index, "session"];
+      if (!Object.hasOwn(sessions, entry.session)) {
+        problems.push(problem(ErrorCode.unknownSession, `${entry.session} names no session`, at));
+      } else if (named.has(entry.session)) {
+        problems.push(
+          problem(
+            ErrorCode.sessionReferencedTwice,
+            `session ${entry.session} is named by more than one entry`,
+            at,
+          ),
+        );
+      } else named.add(entry.session);
+    }
+  };
+  check(journal, ["journal"]);
+  for (const [id, session] of Object.entries(sessions)) {
+    check(session.entries, ["sessions", id, "entries"]);
+  }
+  const reached = reachedSessions(journal, sessions);
+  for (const id of Object.keys(sessions)) {
+    if (!Object.hasOwn(reached, id)) {
+      problems.push(
+        problem(ErrorCode.unreferencedSession, `session ${id} is reached from no journal entry`, [
+          "sessions",
+          id,
+        ]),
+      );
+    }
+  }
+  return problems;
 }
 
 /** Read a workspace file: the workspace, or every problem found. */
@@ -207,18 +320,6 @@ export function readWorkspace(text: string): Workspace | LoadError {
     }
     return complete ? result : undefined;
   });
-  const journal = collecting(problems, (items, path) => {
-    if (!Array.isArray(items)) return problem(ErrorCode.invalidValue, "expected an array", path);
-    const read = readEntry(problems);
-    const result: Entry[] = [];
-    let complete = true;
-    for (const [index, item] of items.entries()) {
-      const entry = read(item, [...path, index]);
-      if (entry === undefined) complete = false;
-      else result.push(entry as Entry);
-    }
-    return complete ? result : undefined;
-  });
   const top = readExact(
     value,
     [],
@@ -226,7 +327,8 @@ export function readWorkspace(text: string): Workspace | LoadError {
       meta: (meta, path) => readExact(meta, path, META, problems),
       settings: readSettings(problems),
       blocks,
-      journal,
+      journal: readEntries(problems),
+      sessions: readSessions(problems),
     },
     problems,
   );
@@ -238,11 +340,16 @@ export function readWorkspace(text: string): Workspace | LoadError {
   };
   const structure = structureProblems(view);
   if (structure.length > 0) return { problems: structure };
-  return { view, journal: top.journal as readonly Entry[] };
+  const journal = top.journal as readonly Entry[];
+  const sessions = top.sessions as Workspace["sessions"];
+  const named = sessionProblems(journal, sessions);
+  if (named.length > 0) return { problems: named };
+  return { view, journal, sessions };
 }
 
 /** The workspace file's text. */
 export function writeWorkspace(workspace: Workspace): string {
-  const { view, journal } = workspace;
-  return dumps({ meta: view.meta, settings: view.settings, blocks: view.blocks, journal } as never);
+  const { view, journal, sessions } = workspace;
+  const { meta, settings, blocks } = view;
+  return dumps({ meta, settings, blocks, journal, sessions } as never);
 }

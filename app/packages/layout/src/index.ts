@@ -22,6 +22,7 @@ export type {
   BreakElement,
   Drawing,
   DrawnElement,
+  DrawnItem,
   JumpElement,
   LineElement,
   LineEnd,
@@ -40,3 +41,4 @@ export { DEFAULT_PLACEMENT } from "./elements.ts";
 export { cleanText, TextMeasure } from "./metrics.ts";
 export { times } from "./numbers.ts";
 export { brace } from "./regions.ts";
+export { bandOrderOf } from "./sides.ts";

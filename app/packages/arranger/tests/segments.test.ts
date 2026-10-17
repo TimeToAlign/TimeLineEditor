@@ -127,13 +127,13 @@ describe("the Delete preview in the projection", () => {
     const view = themeUnlocked();
     const selection = new Set([at("t2")]);
     const { manifest } = blockIn(view, A);
-    const plain = project(view, selection, [], metrics);
+    const plain = project(view, selection, [], metrics, null);
     expect(plain[0]?.data.movedElements).toEqual(new Set());
     const preview = { segment: at("t2"), gap: RIGHT_SHIFT };
-    const first = project(view, selection, plain, metrics, preview);
+    const first = project(view, selection, plain, metrics, null, preview);
     expect(first[0]?.data.movedElements).toEqual(movedByGap(manifest, "t2", RIGHT_SHIFT));
-    expect(project(view, selection, first, metrics, preview)[0]).toBe(first[0]);
-    const other = project(view, selection, first, metrics, { ...preview, gap: LEFT_SHIFT });
+    expect(project(view, selection, first, metrics, null, preview)[0]).toBe(first[0]);
+    const other = project(view, selection, first, metrics, null, { ...preview, gap: LEFT_SHIFT });
     expect(other[0]).not.toBe(first[0]);
     expect(other[0]?.data.movedElements).toEqual(movedByGap(manifest, "t2", LEFT_SHIFT));
   });

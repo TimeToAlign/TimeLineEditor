@@ -7,15 +7,16 @@
  * This module is the one place that maps a pointer target to what it hits,
  * a box of one of those kinds or an element, with its address; that decides
  * what a press selects; that decides what the pointer highlights; and that
- * decides which boxes hold part of the selection. A double-click on a box
- * will dispatch from here to that box's editor.
+ * decides which boxes hold part of the selection. While an editor is open,
+ * only what lies inside the edited element is selected and highlighted. The
+ * editor a double-click on a hit opens is `editorTargetOf`'s (`editors.ts`).
  *
  * A hit is classified by the drawing's element types, never by the form of
  * an address: a frame is addressed by its bare group id, exactly like a
  * timeline's line.
  */
 
-import type { BlockId } from "@timetoalign/tilie-core";
+import type { Address, BlockId } from "@timetoalign/tilie-core";
 import type { Drawing, DrawnElement, RectElement } from "@timetoalign/tilie-layout";
 import type { Descriptor } from "@timetoalign/tilie-writers";
 
@@ -155,6 +156,24 @@ function pointsIn(element: Exclude<DrawnElement, { readonly type: "block" }>): D
 }
 
 /**
+ * The point of `drawing` under the client point `(x, y)`, the drawing shown
+ * in the screen rectangle `box` (its `<svg>`'s); `null` while it is shown at
+ * no size.
+ */
+export function drawingPointAt(
+  drawing: Drawing,
+  box: Pick<DOMRectReadOnly, "left" | "top" | "width" | "height">,
+  x: number,
+  y: number,
+): DrawingPoint | null {
+  if (box.width === 0 || box.height === 0) return null;
+  return {
+    x: ((x - box.left) * drawing.width) / box.width,
+    y: ((y - box.top) * drawing.height) / box.height,
+  };
+}
+
+/**
  * What `target` hits in block `block`, drawn as `drawing`: the element
  * carrying the nearest `data-address` at or above it, classified by the
  * drawing's element of that address (a card, a frame, else an element), or
@@ -189,12 +208,23 @@ export function hitOf(
 }
 
 /**
- * What a press selects: what it hit. A card selects the card (its shadow
- * carries the card's address and does the same), a frame its group, the
- * block's own box the block, any other element that element.
+ * What a press selects: what it hit, when it lies inside the edited element,
+ * else nothing (`null`). A card selects the card (its shadow carries the
+ * card's address and does the same), a frame its group, any other element
+ * that element, each when `inside` (the drawn addresses inside the edited
+ * element, `BlockNodeData.inside`) holds its element address; the block's own
+ * box selects the block on the arranger (`editing` null) and in the block's
+ * own bundle editor, never in another editor.
  */
-export function selectionOf(hit: Hit): string {
-  return hit.address;
+export function selectionOf(
+  hit: Hit,
+  editing: { readonly target: Address } | null,
+  inside: ReadonlySet<string>,
+): string | null {
+  if (hit.kind === "block") {
+    return editing === null || editing.target === hit.block ? hit.address : null;
+  }
+  return inside.has(hit.address.slice(hit.block.length + 1)) ? hit.address : null;
 }
 
 /**
@@ -306,8 +336,18 @@ export function showsContainedSelection(
   return (mark === "card" || mark === "group") && address !== null && holding.has(address);
 }
 
-/** Whether a descriptor shows the hover: the hovered box's own rectangle, or the hovered boundary. */
-export function showsHover(mark: Mark | undefined, address: string | null, hover: Hover): boolean {
+/**
+ * Whether a descriptor shows the hover: the hovered box's own rectangle, or
+ * the hovered boundary, when its address lies inside the edited element
+ * (`inside`, as for `selectionOf`).
+ */
+export function showsHover(
+  mark: Mark | undefined,
+  address: string | null,
+  hover: Hover,
+  inside: ReadonlySet<string>,
+): boolean {
+  if (address === null || !inside.has(address)) return false;
   switch (mark) {
     case "card":
     case "group":

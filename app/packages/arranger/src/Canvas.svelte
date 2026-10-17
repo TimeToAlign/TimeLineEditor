@@ -1,17 +1,27 @@
 <script lang="ts">
-import type { Block, Store, View } from "@timetoalign/tilie-core";
+import type { Address, Block, OpenEditor, SetCommand, Store } from "@timetoalign/tilie-core";
+import { TextMeasure } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timeskeleton";
 import type { Viewport } from "@xyflow/svelte";
 import { SelectionMode, SvelteFlow } from "@xyflow/svelte";
 import "@xyflow/svelte/dist/style.css";
-import { untrack } from "svelte";
+import { tick, untrack } from "svelte";
 import type { Attachment } from "svelte/attachments";
+import { MediaQuery } from "svelte/reactivity";
 import BlockNode from "./BlockNode.svelte";
-import { hitOf, selectionOf } from "./boxes.ts";
+import { drawingPointAt, hitOf, selectionOf } from "./boxes.ts";
 import CanvasToolbar from "./CanvasToolbar.svelte";
 import type { Visible } from "./commands.ts";
 import { moveCommand, nudgeCommand, removeCommand, zOrderCommand } from "./commands.ts";
 import { descriptorsOf, drawingOf } from "./drawing.ts";
+import type { Editing } from "./editors.ts";
+import { editedElement, editorTargetOf, gesturesOf } from "./editors.ts";
+import { FOCUS_DURATION, focusViewport, targetBounds } from "./focus.ts";
+import type { ResizedItem } from "./gestures.svelte.ts";
+import { abortDrag, CLICK_DISTANCE } from "./gestures.svelte.ts";
+import type { LiveStore } from "./liveStore.svelte.ts";
+import { elementsInRect } from "./marquee.ts";
+import { setNodeActions } from "./nodeActions.ts";
 // Deleting a segment is not enabled yet; enabling it restores these imports
 // (see "Deleting a segment" below for what else it must change):
 // import type { Gap } from "@timetoalign/tilie-core";
@@ -21,19 +31,21 @@ import { descriptorsOf, drawingOf } from "./drawing.ts";
 // import GapMenu from "./GapMenu.svelte";
 // import { blockOf } from "./selection.ts";
 import type { BlockNode as BlockNodeType, LivePlacement } from "./project.ts";
-import { livePlacement, project } from "./project.ts";
+import { insideOf, livePlacement, nodePosition, project } from "./project.ts";
 import ResizeToolbar from "./ResizeToolbar.svelte";
 import type { ResizeMode } from "./resize.ts";
-import { resizeCommand } from "./resize.ts";
 import SnapGuides from "./SnapGuides.svelte";
 import type { Selection } from "./selection.ts";
-import { click } from "./selection.ts";
+import { blockOf, click } from "./selection.ts";
 import type { Box, Guide } from "./snap.ts";
 import { snap } from "./snap.ts";
 
 interface Props {
-  /** The workspace store; replacing it shows the new workspace, fitted into view. */
-  store: Store;
+  /**
+   * The workspace store, read through `liveStore`; replacing it shows the
+   * new workspace, fitted into view.
+   */
+  live: LiveStore;
   metrics: FontMetrics;
   /** The selected addresses: block ids and `<block>/<element id>`. */
   selection: Selection;
@@ -50,7 +62,7 @@ interface Props {
 }
 
 let {
-  store,
+  live,
   metrics,
   selection = $bindable(),
   locked = $bindable(),
@@ -63,13 +75,16 @@ let {
 const CULLING_THRESHOLD = 500;
 /** How close, in screen pixels, a dragged block snaps to another block's edge or origin. */
 const SNAP_TOLERANCE = 6;
-/**
- * How far, in screen pixels, a pointer may move between press and release
- * and still click (touch and trackpads wobble). Svelte Flow starts a
- * marquee past this distance, or past any distance while Shift is held, so
- * a marquee ending within it counts as a click too.
+/*
+ * A pointer moving no further than `CLICK_DISTANCE` between press and
+ * release clicks (touch and trackpads wobble). Svelte Flow starts a marquee
+ * past this distance, or past any distance while Shift is held, so a marquee
+ * ending within it counts as a click too.
  */
-const CLICK_DISTANCE = 4;
+/** Two taps of a touch open an editor when the second follows the first within this many milliseconds… */
+const DOUBLE_TAP_MS = 300;
+/** …and this many screen pixels, on what opens the same editor. */
+const DOUBLE_TAP_DISTANCE = 10;
 /** Arrow keys move by one grid step; with Shift by this many. */
 const LARGE_STEP = 8;
 // Deleting a segment is not enabled yet; see "Deleting a segment" below for what
@@ -124,15 +139,25 @@ const translateExtent: [[number, number], [number, number]] = [
   [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY],
 ];
 
-/** The store's current view, refreshed through its subscription. */
-let view: View = $state.raw(untrack(() => store.view));
+/** The store the canvas shows and dispatches to. */
+const store: Store = $derived(live.store);
+/** The store's current view. */
+const view = $derived(live.view);
 
+/** The innermost open editor, `null` on the arranger. */
+const editing: Editing | null = $derived.by(() => {
+  const innermost = live.editing.at(-1);
+  return innermost === undefined ? null : { target: innermost.target, kind: innermost.kind };
+});
+
+/** What the canvas offers at its current level: the arranger's gestures or the editor's. */
+const gestures = $derived(gesturesOf(view, editing));
+
+// The view and the selection follow the store's editing path.
 $effect(() => {
   const current = store;
-  view = current.view;
-  return current.subscribe((next) => {
-    view = next;
-  });
+  const next = live.editing;
+  untrack(() => follow(current, next));
 });
 
 let toolbar: ReturnType<typeof CanvasToolbar> | undefined = $state();
@@ -140,7 +165,203 @@ let resizer: ReturnType<typeof ResizeToolbar> | undefined = $state();
 
 /** Show the canvas at `next`; see `CanvasToolbar.setViewport`. */
 export function setViewport(next: Viewport): void {
+  heading = null;
   toolbar?.setViewport(next);
+}
+
+// --- Editors ---------------------------------------------------------------
+
+/**
+ * The reader's preference for reduced motion, under which the view moves to
+ * and from an editor at once. Svelte's `prefersReducedMotion` is this query,
+ * made when its module loads; made here, it is made when the canvas mounts.
+ */
+const reducedMotion = new MediaQuery("(prefers-reduced-motion: reduce)");
+/**
+ * The viewport each open editor was entered from, outermost first: closing
+ * an editor moves the view back to where its level was.
+ */
+let returns: Viewport[] = [];
+/** Counts the moves to an editor, so a move asked for earlier never lands after a later one. */
+let focusing = 0;
+/** Where a smooth move of the view is heading while it is under way; `null` otherwise. */
+let heading: Viewport | null = null;
+/** The editing path the canvas last followed, and the store it belongs to. */
+let followed: { readonly store: Store; readonly editing: readonly OpenEditor[] } | null = null;
+
+/** Move the view to `next`, smoothly unless the reader prefers reduced motion. */
+function moveTo(next: Viewport): void {
+  const duration = reducedMotion.current ? 0 : FOCUS_DURATION;
+  heading = duration === 0 ? null : next;
+  toolbar?.setViewport(next, duration);
+  if (heading !== null) {
+    setTimeout(() => {
+      if (heading === next) heading = null;
+    }, duration);
+  }
+}
+
+/**
+ * Follow the store's editing path: an editor opening pushes the viewport,
+ * prunes the selection to what lies inside it and moves the view to the
+ * edited element; an editor closing pops the viewport its level was entered
+ * from and moves the view back there. A level entered while the view is
+ * still moving to the level below returns to where that move was heading,
+ * which is where the level below is shown. A store of its own starts with
+ * no viewports to go back to.
+ */
+function follow(current: Store, next: readonly OpenEditor[]): void {
+  const before = followed?.store === current ? followed.editing.length : null;
+  followed = { store: current, editing: next };
+  if (before === null) {
+    returns = [];
+    focusing += 1;
+    heading = null;
+  } else if (next.length > before) {
+    const { x, y, zoom } = heading ?? viewport;
+    for (let level = before; level < next.length; level += 1) returns.push({ x, y, zoom });
+    const innermost = next.at(-1);
+    if (innermost !== undefined) {
+      selection = insideSelection(innermost);
+      void focusOn(innermost.target);
+    }
+  } else if (next.length < before) {
+    focusing += 1;
+    const [back] = returns.splice(next.length);
+    if (back !== undefined) moveTo(back);
+  }
+}
+
+/**
+ * The selection kept when the editor `opened` opens: the addresses inside
+ * the edited element (`BlockNodeData.inside`), and in the bundle editor the
+ * block itself; never another block, nor the edited group or timeline
+ * itself (its card included), on which a gesture would be refused.
+ */
+function insideSelection(opened: OpenEditor): Selection {
+  const { block, element } = editedElement(opened.target);
+  const inside = nodes.find(({ id }) => id === block)?.data.inside ?? new Set<string>();
+  const own = element === null ? [] : [element, `${element}/card`];
+  const kept = [...selection].filter((address) =>
+    address === block
+      ? element === null
+      : blockOf(address) === block &&
+        inside.has(address.slice(block.length + 1)) &&
+        !own.includes(address.slice(block.length + 1)),
+  );
+  return kept.length === selection.size ? selection : new Set(kept);
+}
+
+/**
+ * Centre the edited element `target` in the canvas, once the page has
+ * settled: the inspector may open with the editor, and the canvas, which
+ * lies left of it, is measured after it has. Its width is therefore the
+ * area left of the drawer, and no drawer width is taken off. A target that
+ * is not drawn (a hidden element) leaves the view where it is.
+ */
+async function focusOn(target: Address): Promise<void> {
+  const asked = ++focusing;
+  await tick();
+  const node = nodes.find(({ id }) => id === blockOf(target));
+  if (asked !== focusing || node === undefined || root === undefined) return;
+  let bounds: ReturnType<typeof targetBounds>;
+  try {
+    bounds = targetBounds(node, target, metrics);
+  } catch (error) {
+    if (error instanceof RangeError) return;
+    throw error;
+  }
+  moveTo(focusViewport(bounds, { width: root.clientWidth, height: root.clientHeight }, 0));
+}
+
+/** Open the editor of `target`; a refusal is shown in the status region. */
+function openEditor(target: Address): void {
+  const error = store.open(target);
+  hint = error === null ? "" : error.message;
+}
+
+/**
+ * The editor target a double-click, a double tap or Enter on `target` opens
+ * (`editorTargetOf`): `null` off every block, outside the edited element,
+ * and on the edited element itself. A pointer gesture gives its client
+ * point, so that text or a region opens the innermost card or frame under
+ * it; Enter gives none, so a selected element in no box of its own opens
+ * nothing.
+ */
+function openableAt(target: EventTarget | null, client?: { x: number; y: number }): Address | null {
+  const node = nodeAt(target);
+  if (node === undefined) return null;
+  const svg = target instanceof Element ? target.closest("svg") : null;
+  const point =
+    svg === null || client === undefined
+      ? undefined
+      : (drawingPointAt(node.data.drawing, svg.getBoundingClientRect(), client.x, client.y) ??
+        undefined);
+  return editorTargetOf(view, hitOf(node.id, node.data.drawing, target, point), editing);
+}
+
+/** A double-click opens the editor of what it hit. */
+function ondblclick(event: MouseEvent): void {
+  const target = openableAt(event.target, { x: event.clientX, y: event.clientY });
+  if (target !== null) openEditor(target);
+}
+
+/** The last tap of a touch that could open an editor: where, when, and what it would open. */
+let tap: {
+  readonly x: number;
+  readonly y: number;
+  readonly time: number;
+  readonly target: Address;
+} | null = null;
+
+/**
+ * A double tap opens an editor, as a double-click does with a mouse: two
+ * taps within `DOUBLE_TAP_MS` and `DOUBLE_TAP_DISTANCE` of each other on
+ * what opens the same editor. A tap is a touch released within the click
+ * distance of its press.
+ */
+function onpointerupcapture(event: PointerEvent): void {
+  if (event.pointerType !== "touch" || !event.isPrimary) return;
+  const target =
+    press !== null && isClick(press, event)
+      ? openableAt(event.target, { x: event.clientX, y: event.clientY })
+      : null;
+  const previous = tap;
+  tap =
+    target === null ? null : { x: event.clientX, y: event.clientY, time: event.timeStamp, target };
+  if (
+    previous !== null &&
+    previous.target === target &&
+    event.timeStamp - previous.time <= DOUBLE_TAP_MS &&
+    Math.hypot(event.clientX - previous.x, event.clientY - previous.y) <= DOUBLE_TAP_DISTANCE
+  ) {
+    tap = null;
+    openEditor(previous.target);
+  }
+}
+
+/**
+ * The editor Enter opens: that of the single selected address, as a
+ * double-click on it would open, found through the drawn element carrying
+ * it (the block's node for a block); `null` when the selection is not one
+ * openable address.
+ */
+function openableSelection(): Address | null {
+  if (selection.size !== 1) return null;
+  const [address] = selection;
+  if (address === undefined) return null;
+  const id = blockOf(address);
+  const element = [...(root?.querySelectorAll(".svelte-flow__node[data-id]") ?? [])].find(
+    (found) => found.getAttribute("data-id") === id,
+  );
+  if (element === undefined) return null;
+  const drawn =
+    address === id
+      ? element
+      : [...element.querySelectorAll("[data-address]")].find(
+          (found) => found.getAttribute("data-address") === address.slice(id.length + 1),
+        );
+  return drawn === undefined ? null : openableAt(drawn);
 }
 
 /** Whether the open workspace holds any block. */
@@ -232,7 +453,7 @@ let nodes: BlockNodeType[] = $derived.by(() => {
   // Deleting a segment is not enabled yet; enabling it passes the gap's
   // preview again, as the fifth argument:
   // gapMenu === null || gap === null ? null : { segment: gapMenu.segment, gap },
-  projected = project(view, selection, projected, metrics);
+  projected = project(view, selection, projected, metrics, editing);
   return preview === null ? projected : withPreview(projected, preview.id, preview.values);
 });
 
@@ -251,7 +472,7 @@ function withPreview(
     node.id === id
       ? {
           ...node,
-          position: { x: shown.x, y: shown.y },
+          position: nodePosition(shown, drawing),
           width,
           height,
           measured: { width, height },
@@ -262,28 +483,55 @@ function withPreview(
 }
 
 /** The block a gesture on a single block changes, as the canvas shows it; `null` without one. */
-const live: LivePlacement | null = $derived.by(() => {
+const placement: LivePlacement | null = $derived.by(() => {
   const id = preview?.id ?? (dragging?.length === 1 ? dragging[0] : undefined);
   const block = id === undefined ? undefined : view.blocks[id];
   const node = block === undefined ? undefined : nodes.find((item) => item.id === block.id);
   if (block === undefined || node === undefined) return null;
-  return livePlacement(block, node.position, preview?.id === block.id ? preview.values : {});
+  return livePlacement(
+    block,
+    node.position,
+    preview?.id === block.id ? preview.values : {},
+    node.data.drawing.origin,
+  );
 });
 
 $effect(() => {
-  onlive?.(live);
+  onlive?.(placement);
 });
 
-/** The single selected block, the one the resize toolbar acts on. */
-const resizable = $derived.by(() => {
-  if (selection.size !== 1) return undefined;
-  const [address] = selection;
-  return address === undefined ? undefined : view.blocks[address];
-});
+/**
+ * What the resize toolbar acts on: the single selected block, or, in an
+ * editor, the single selected item (a group's frame or an ungrouped root's
+ * card) inside the edited element, with its key and the editor's kind. The
+ * toolbar offers only the modes the level allows.
+ */
+const resizable: { readonly block: Block; readonly item?: ResizedItem } | undefined = $derived.by(
+  () => {
+    if (selection.size !== 1) return undefined;
+    const [address] = selection;
+    if (address === undefined) return undefined;
+    const block = view.blocks[blockOf(address)];
+    if (block === undefined) return undefined;
+    if (address === block.id) return { block };
+    if (editing === null || editedElement(editing.target).block !== block.id) return undefined;
+    const element = address.slice(block.id.length + 1);
+    const drawing = drawingOf(block, view.settings, metrics);
+    const item = drawing.items.find((drawn) => drawn.address === element);
+    const inside = insideOf(block.manifest, drawing, editedElement(editing.target).element);
+    if (item === undefined || !inside.has(item.address)) return undefined;
+    return { block, item: { key: item.key, editor: editing.kind } };
+  },
+);
 
+/** The resized box on the canvas as shown: the block's node, or the item's frame or card. */
 const resizableBox = $derived.by(() => {
-  const node = resizable === undefined ? undefined : nodes.find(({ id }) => id === resizable.id);
-  if (node === undefined) return undefined;
+  const node =
+    resizable === undefined ? undefined : nodes.find(({ id }) => id === resizable.block.id);
+  if (node === undefined || resizable === undefined) return undefined;
+  if (resizable.item !== undefined) {
+    return targetBounds(node, `${node.id}/${resizable.item.key}`, metrics);
+  }
   return {
     x: node.position.x,
     y: node.position.y,
@@ -312,6 +560,28 @@ function dispatch(command: unknown): boolean {
   return false;
 }
 
+/** The text measure the block nodes' gestures lay drawings out with: the canvas's own metrics. */
+const measure = $derived(new TextMeasure(metrics));
+
+setNodeActions({
+  dispatch(command) {
+    dispatch(command);
+  },
+  reducedMotion: () => reducedMotion.current,
+  select(address) {
+    selection = new Set([address]);
+  },
+  preview(block, shown) {
+    if (shown !== null) preview = { id: block, values: shown };
+    else if (preview?.id === block) preview = null;
+  },
+  get metrics() {
+    return measure;
+  },
+  view: () => view,
+  zoom: () => viewport.zoom,
+});
+
 // --- Selection -------------------------------------------------------------
 
 /**
@@ -339,10 +609,15 @@ function additive(event: { shiftKey: boolean }): boolean {
 /**
  * What a press on `target` inside `node` selects (`boxes.ts`): the card, the
  * group's frame or the element it hit, or the block when it hit the block's
- * own box.
+ * own box; `null` outside the edited element, where a press changes nothing.
  */
-function pressedIn(node: BlockNodeType, target: EventTarget | null): string {
-  return selectionOf(hitOf(node.id, node.data.drawing, target));
+function pressedIn(node: BlockNodeType, target: EventTarget | null): string | null {
+  return selectionOf(hitOf(node.id, node.data.drawing, target), editing, node.data.inside);
+}
+
+/** The selection after a click on `address` (`click`); unchanged where the click selects nothing. */
+function clicked(address: string | null, event: { shiftKey: boolean }): Selection {
+  return address === null ? selection : click(selection, address, additive(event));
 }
 
 /** The block node an event target lies in, if any. */
@@ -355,13 +630,21 @@ function nodeAt(target: EventTarget | null): BlockNodeType | undefined {
 }
 
 function onnodeclick({ node, event }: { node: BlockNodeType; event: MouseEvent | TouchEvent }) {
-  selection = click(selection, pressedIn(node, event.target), additive(event));
+  selection = clicked(pressedIn(node, event.target), event);
   reassert();
 }
 
-/** Where and on what the last primary press on the canvas landed. */
-let press: { readonly x: number; readonly y: number; readonly target: EventTarget | null } | null =
-  null;
+/**
+ * Where and on what the last primary press on the canvas landed: in client
+ * pixels, and as the canvas point under it then (`at`), which stays where it
+ * is on the canvas when Svelte Flow pans during a marquee.
+ */
+let press: {
+  readonly x: number;
+  readonly y: number;
+  readonly at: { readonly x: number; readonly y: number } | null;
+  readonly target: EventTarget | null;
+} | null = null;
 
 function isClick(from: { x: number; y: number }, to: { clientX: number; clientY: number }) {
   return Math.hypot(to.clientX - from.x, to.clientY - from.y) <= CLICK_DISTANCE;
@@ -375,26 +658,50 @@ function isClick(from: { x: number; y: number }, to: { clientX: number; clientY:
 function clickAt(target: EventTarget | null, event: PointerEvent): void {
   const node = nodeAt(target);
   if (node !== undefined) {
-    selection = click(selection, pressedIn(node, target), additive(event));
-  } else if (!event.shiftKey) {
-    selection = new Set();
+    selection = clicked(pressedIn(node, target), event);
+  } else {
+    clearOnPane(event);
   }
 }
 
 /**
  * A click on the empty canvas clears the selection in every mode, the
- * marquee mode included; with Shift it leaves the selection as it is.
- * Svelte Flow reports no click at the end of a marquee.
+ * marquee mode included, on the arranger and in an editor alike; with Shift
+ * it leaves the selection as it is. In an editor a click on a faded block
+ * reaches the pane too, since the block takes no pointer, and changes
+ * nothing: the selection is cleared only where no block's box holds the
+ * click.
  */
+function clearOnPane(event: MouseEvent): void {
+  if (event.shiftKey) return;
+  if (editing !== null && onBlock(event)) return;
+  selection = new Set();
+}
+
+/** Whether a block's box on the canvas holds the client point of `event`, edges included. */
+function onBlock(event: MouseEvent): boolean {
+  if (toolbar === undefined) return false;
+  const at = toolbar.toCanvas({ x: event.clientX, y: event.clientY });
+  return nodes.some((node) => {
+    const box = boxOf(node);
+    return (
+      at.x >= box.x && at.x <= box.x + box.width && at.y >= box.y && at.y <= box.y + box.height
+    );
+  });
+}
+
+/** Svelte Flow reports no click at the end of a marquee. */
 function onpaneclick({ event }: { event: MouseEvent }) {
-  if (!event.shiftKey) selection = new Set();
+  clearOnPane(event);
   reassert();
 }
 
 /**
- * The marquee's result is the set of blocks Svelte Flow marked while it was
- * drawn. A Shift+drag marquee replaces the selection; while the marquee
- * toggle is on, the result is added to it.
+ * The marquee's result: on the arranger the blocks Svelte Flow marked while
+ * it was drawn; in an editor the elements inside the edited element that lie
+ * wholly in the rectangle from the press to the release (`elementsInRect`),
+ * never a box. A Shift+drag marquee replaces the selection; while the
+ * marquee toggle is on, the result is added to it.
  */
 function onselectionend(event: PointerEvent) {
   if (press !== null && isClick(press, event)) {
@@ -402,9 +709,28 @@ function onselectionend(event: PointerEvent) {
     reassert();
     return;
   }
-  const marked = nodes.filter((node) => node.selected).map((node) => node.id);
+  const marked = gestures.marquee === "blocks" ? markedBlocks() : markedElements(event);
   selection = new Set(marquee ? [...selection, ...marked] : marked);
   reassert();
+}
+
+function markedBlocks(): string[] {
+  return nodes.filter((node) => node.selected).map((node) => node.id);
+}
+
+function markedElements(event: PointerEvent): string[] {
+  const node =
+    editing === null ? undefined : nodes.find(({ id }) => id === blockOf(editing.target));
+  const from = press?.at;
+  if (node === undefined || from == null || toolbar === undefined) return [];
+  const to = toolbar.toCanvas({ x: event.clientX, y: event.clientY });
+  const rect = {
+    x: Math.min(from.x, to.x),
+    y: Math.min(from.y, to.y),
+    width: Math.abs(to.x - from.x),
+    height: Math.abs(to.y - from.y),
+  };
+  return elementsInRect(node, rect, node.data.inside, metrics);
 }
 
 // --- Drag ------------------------------------------------------------------
@@ -470,7 +796,7 @@ function onnodedragstop({ targetNode, nodes: dragged }: DragEvent) {
   const { dx, dy } = snapOffset(lead);
   anchors = [];
   const moves = dragged.map(({ id, position }) => ({ id, x: position.x + dx, y: position.y + dy }));
-  const command = moveCommand(view, moves);
+  const command = moveCommand(view, moves, metrics);
   if (command === null || !dispatch(command)) {
     // Nothing is stored: show the projection again instead of the dragged preview.
     nodes = projected;
@@ -480,18 +806,13 @@ function onnodedragstop({ targetNode, nodes: dragged }: DragEvent) {
 // --- Resize ----------------------------------------------------------------
 
 function onresize(values: Partial<Block>) {
-  if (resizable !== undefined) preview = { id: resizable.id, values };
+  if (resizable !== undefined) preview = { id: resizable.block.id, values };
 }
 
-function onresizeend(values: Partial<Block>) {
+/** A resize that changes no stored value has no command, like a drag that ends where it began. */
+function onresizeend(_values: Partial<Block>, command: SetCommand | null) {
   preview = null;
-  if (resizable === undefined || locked) return;
-  const block = resizable;
-  // A resize that changes no stored value is no command, like a drag that ends where it began.
-  const changes = Object.entries(values).some(
-    ([member, value]) => block[member as keyof Block] !== value,
-  );
-  if (changes) dispatch(resizeCommand(block, values));
+  if (command !== null && !locked) dispatch(command);
 }
 
 function onresizecancel() {
@@ -610,7 +931,8 @@ function handleKey(event: KeyboardEvent): boolean {
             ? "back"
             : "backward"
           : undefined;
-    if (action === undefined) return false;
+    // Bringing a block forward reorders blocks, which only the arranger does.
+    if (action === undefined || !gestures.moveBlocks) return false;
     const command = zOrderCommand(view, selectedBlocks(), action);
     if (command !== null) dispatch(command);
     return true;
@@ -618,9 +940,9 @@ function handleKey(event: KeyboardEvent): boolean {
   const arrow = ARROWS[key];
   if (arrow !== undefined) {
     const ids = selectedBlocks();
-    if (ids.length === 0 || locked) return false;
+    if (ids.length === 0 || locked || !gestures.moveBlocks) return false;
     const step = shiftKey ? LARGE_STEP : 1;
-    const command = nudgeCommand(view, ids, arrow[0] * step, arrow[1] * step);
+    const command = nudgeCommand(view, ids, arrow[0] * step, arrow[1] * step, metrics);
     if (command !== null) dispatch(command);
     return true;
   }
@@ -640,11 +962,17 @@ function handleKey(event: KeyboardEvent): boolean {
     }
     case "Enter":
     case " ": {
+      // Enter opens the editor of the single selected box or timeline.
+      const target = key === "Enter" ? openableSelection() : null;
+      if (target !== null) {
+        openEditor(target);
+        return true;
+      }
       // The focused block, reached by Tab, is selected as a click on its background would:
       // the node itself carries no address, so the press hits the block's own box.
       const node = nodeAt(event.target);
       if (node === undefined) return false;
-      selection = click(selection, pressedIn(node, event.target), additive(event));
+      selection = clicked(pressedIn(node, event.target), event);
       return true;
     }
     case "+":
@@ -661,8 +989,11 @@ function handleKey(event: KeyboardEvent): boolean {
       locked = !locked;
       return true;
     case "Escape":
-      // Escape first ends a resize in progress, and only then clears the selection.
-      if (resizer?.abort() !== true) selection = new Set();
+      // Escape first ends a resize or a drag inside a drawing in progress, then clears
+      // the selection, then closes the innermost editor.
+      if (resizer?.abort() === true || abortDrag()) return true;
+      if (selection.size > 0) selection = new Set();
+      else if (live.editing.length > 0) store.done();
       return true;
     default:
       return false;
@@ -704,7 +1035,8 @@ export function focus(): void {
  */
 function onpointerdowncapture(event: PointerEvent) {
   if (event.isPrimary && event.button === 0) {
-    press = { x: event.clientX, y: event.clientY, target: event.target };
+    const client = { x: event.clientX, y: event.clientY };
+    press = { ...client, at: toolbar?.toCanvas(client) ?? null, target: event.target };
   }
   if (root !== undefined && !root.contains(document.activeElement)) focus();
 }
@@ -738,6 +1070,8 @@ function onkeydowncapture(event: KeyboardEvent) {
   bind:this={root}
   style:--tilie-zoom={viewport.zoom}
   {onpointerdowncapture}
+  {onpointerupcapture}
+  {ondblclick}
   {@attach shiftWheel}
 >
   {#await fontLoaded}
@@ -763,6 +1097,7 @@ function onkeydowncapture(event: KeyboardEvent) {
       panOnScroll
       panOnScrollSpeed={PAN_SPEED}
       zoomOnScroll={false}
+      zoomOnDoubleClick={false}
       zoomActivationKey={ZOOM_KEYS}
       nodesDraggable={!locked}
       nodesConnectable={false}
@@ -777,9 +1112,11 @@ function onkeydowncapture(event: KeyboardEvent) {
       {#if resizable !== undefined && resizableBox !== undefined}
         <ResizeToolbar
           bind:this={resizer}
-          block={resizable}
+          block={resizable.block}
+          item={resizable.item}
+          {gestures}
           box={resizableBox}
-          settings={view.settings}
+          {view}
           {metrics}
           zoom={viewport.zoom}
           {locked}
@@ -927,6 +1264,18 @@ function onkeydowncapture(event: KeyboardEvent) {
 
     .tilie-block line[data-hovered] {
       stroke: #0a84ff;
+    }
+
+    /*
+     * In an editor, everything outside the edited element: other blocks as a
+     * whole, and the outside of the edited block element by element. It stays
+     * visible, so the edited element is seen in its surroundings, but takes no
+     * pointer: a press there reaches the pane, and a drag there pans.
+     */
+    .svelte-flow__node.tilie-outside,
+    .tilie-block [data-outside] {
+      opacity: 0.3;
+      pointer-events: none;
     }
 
     /*

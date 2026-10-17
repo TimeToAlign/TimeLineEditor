@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import type { View } from "../src/index.ts";
+import type { CommandEntry, View } from "../src/index.ts";
 import { createStore, createView } from "../src/index.ts";
 import { A, addBlock, B, testClock } from "./support.ts";
 
-const empty = () => ({ view: createView(), journal: [] });
+const empty = () => ({ view: createView(), journal: [], sessions: {} });
 const move = (target: string, x: number) => ({
   type: "set",
   changes: [{ target, values: { x, y: 0 } }],
@@ -21,7 +21,7 @@ describe("the store", () => {
       ["Gerhardt", "2026-10-11T14:03:13.418Z"],
       ["Ada", "2026-10-11T14:03:14.418Z"],
     ]);
-    expect(store.journal[1]?.command).toEqual(move(A, 8));
+    expect((store.journal[1] as CommandEntry).command).toEqual(move(A, 8));
   });
 
   it("journals nothing for a refused command and tells no listener", () => {
@@ -74,14 +74,14 @@ describe("the store", () => {
     expect(store.canRedo).toBe(false);
   });
 
-  it("undoes past the session's start by replaying the journal", () => {
+  it("undoes past the loaded view by replaying the journal", () => {
     const first = createStore(empty(), { clock: testClock() });
     const views: View[] = [first.view];
     for (const command of [addBlock(A, "bare.json"), move(A, 8), move(A, 16)]) {
       first.dispatch(command);
       views.push(first.view);
     }
-    const second = createStore({ view: first.view, journal: first.journal });
+    const second = createStore(first.snapshot());
     for (let k = 1; k <= 3; k += 1) {
       second.undo();
       expect(second.view).toEqual(views[3 - k]);

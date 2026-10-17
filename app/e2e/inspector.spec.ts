@@ -1,6 +1,6 @@
 /**
- * The inspector drawer on `small`: its Properties and Manifest tabs and
- * their keys; the manifest as text, applied as one command, refused with
+ * The inspector drawer on `small`: its tabs and their keys, with and
+ * without an editor open; the manifest as text, applied as one command, refused with
  * its path, and Apply and Revert enabled exactly while the text is edited,
  * in the complete and the minimal form with the styling excluded or
  * included; the block properties form; and the disabled Locked checkbox
@@ -40,7 +40,7 @@ function manifestText(page: Page) {
   return page.getByLabel(/^Manifest \(/);
 }
 
-type TabName = "Properties" | "Manifest";
+type TabName = "Editor" | "Properties" | "Manifest" | "Journal";
 
 /** The drawer's tab `name`. */
 function tab(page: Page, name: TabName) {
@@ -80,20 +80,24 @@ function storedName(page: Page, id: string): Promise<unknown> {
   );
 }
 
-/** The type, targets and value names of the journal entries from `from` on. */
+/** The type, targets and value names of the journal entries from `from` on, each a command entry. */
 function changesFrom(page: Page, from: number) {
   return page.evaluate(
     (start) =>
       window.__tilie
         .store()
         .journal.slice(start)
-        .map(({ command }) => ({
-          type: command.type,
-          changes:
-            command.type === "set"
-              ? command.changes.map(({ target, values }) => [target, Object.keys(values)])
-              : [],
-        })),
+        .map((entry, at) => {
+          if (!("command" in entry)) throw new Error(`journal entry ${start + at} is a session`);
+          const { command } = entry;
+          return {
+            type: command.type,
+            changes:
+              command.type === "set"
+                ? command.changes.map(({ target, values }) => [target, Object.keys(values)])
+                : [],
+          };
+        }),
     from,
   );
 }
@@ -107,6 +111,7 @@ test.beforeEach(async ({ page }) => {
   await page.getByRole("button", { name: "Open inspector" }).click();
   await expect(tab(page, "Properties")).toHaveAttribute("aria-selected", "true");
   await expect(tab(page, "Manifest")).toHaveAttribute("aria-selected", "false");
+  await expect(tab(page, "Journal")).toHaveAttribute("aria-selected", "false");
   await expect(manifestText(page)).toBeHidden();
 });
 
@@ -168,9 +173,9 @@ test("the properties form moves the block by the exact amount", async ({ page })
     .toEqual([37.5, 0]);
 });
 
-/** Exactly tab `name` is selected and focused, and only its panel is shown. */
-async function expectTab(page: Page, name: TabName): Promise<void> {
-  for (const each of ["Properties", "Manifest"] as const) {
+/** Of the tabs `present`, exactly `name` is selected and focused, and only its panel is shown. */
+async function expectTab(page: Page, name: TabName, present: readonly TabName[]): Promise<void> {
+  for (const each of present) {
     const chosen = each === name;
     const panel = page.locator(`#inspector-panel-${each.toLowerCase()}`);
     await expect(tab(page, each)).toHaveAttribute("aria-selected", String(chosen));
@@ -184,31 +189,52 @@ async function expectTab(page: Page, name: TabName): Promise<void> {
   }
 }
 
-test("the tabs follow the keyboard", async ({ page }) => {
+/** The tab list holds exactly the tabs `present`, in order, each with its id and its panel. */
+async function expectTabIds(page: Page, present: readonly TabName[]): Promise<void> {
   await expect(
     page.getByRole("tablist", { name: "Inspector sections" }).getByRole("tab"),
-  ).toHaveText(["Properties", "Manifest"]);
-  for (const [name, id] of [
-    ["Properties", "properties"],
-    ["Manifest", "manifest"],
-  ] as const) {
+  ).toHaveText([...present]);
+  for (const name of present) {
+    const id = name.toLowerCase();
     await expect(tab(page, name)).toHaveAttribute("id", `inspector-tab-${id}`);
     await expect(tab(page, name)).toHaveAttribute("aria-controls", `inspector-panel-${id}`);
     const panel = page.locator(`#inspector-panel-${id}`);
     await expect(panel).toHaveAttribute("role", "tabpanel");
     await expect(panel).toHaveAttribute("aria-labelledby", `inspector-tab-${id}`);
   }
+}
+
+test("the tabs follow the keyboard", async ({ page }) => {
+  const arranging = ["Properties", "Manifest", "Journal"] as const;
+  await expectTabIds(page, arranging);
   await tab(page, "Properties").focus();
   for (const [key, name] of [
     ["ArrowRight", "Manifest"],
-    ["ArrowLeft", "Properties"],
-    ["ArrowLeft", "Manifest"],
+    ["ArrowRight", "Journal"],
     ["ArrowRight", "Properties"],
-    ["End", "Manifest"],
+    ["ArrowLeft", "Journal"],
+    ["ArrowLeft", "Manifest"],
+    ["End", "Journal"],
     ["Home", "Properties"],
   ] as const) {
     await page.keyboard.press(key);
-    await expectTab(page, name);
+    await expectTab(page, name, arranging);
+  }
+
+  expect(await page.evaluate((id) => window.__tilie.open(id), SMALL.bare)).toBeNull();
+  const editing = ["Editor", "Properties", "Manifest", "Journal"] as const;
+  await expectTabIds(page, editing);
+  await expect(tab(page, "Editor")).toHaveAttribute("aria-selected", "true");
+  await tab(page, "Editor").focus();
+  for (const [key, name] of [
+    ["ArrowLeft", "Journal"],
+    ["ArrowRight", "Editor"],
+    ["ArrowRight", "Properties"],
+    ["End", "Journal"],
+    ["Home", "Editor"],
+  ] as const) {
+    await page.keyboard.press(key);
+    await expectTab(page, name, editing);
   }
   expect(await journalLength(page)).toBe(5);
 });

@@ -6,7 +6,7 @@
  */
 
 import type { ResizeMode } from "@timetoalign/tilie-arranger";
-import type { Problem, Store } from "@timetoalign/tilie-core";
+import type { Address, CommandError, OpenEditor, Problem, Store } from "@timetoalign/tilie-core";
 
 /** The body of `GET /api/health`. */
 export interface Health {
@@ -34,8 +34,16 @@ export interface TestHook {
   mode(): ResizeMode;
   /** The server's health response, or `null` until one arrives or when the check failed. */
   health(): Health | null;
-  /** The open workspace as Save writes it: `writeWorkspace` of the store's view and journal. */
+  /** The open workspace as Save writes it: `writeWorkspace` of the store's snapshot, every open editor folded. */
   text(): string;
+  /** The editing path: a copy of the store's open editors, outermost first. */
+  editing(): OpenEditor[];
+  /** Open the editor of `address` inside the innermost open one; the refusal, or `null` when it opened. */
+  open(address: Address): CommandError | null;
+  /** Close the innermost editor, keeping its changes. */
+  done(): void;
+  /** Close the innermost editor, discarding its changes, without the editing bar's question. */
+  cancel(): void;
 }
 
 declare global {

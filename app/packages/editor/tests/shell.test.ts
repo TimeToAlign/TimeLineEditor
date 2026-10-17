@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import type { Store } from "@timetoalign/tilie-core";
+import type { CommandEntry, Store } from "@timetoalign/tilie-core";
 import {
   createStore,
   createView,
@@ -22,7 +22,7 @@ import { fixture, fixtureText, interceptDownloads, pickFile } from "./support.ts
 const A = "0000000000";
 const B = "0000000001";
 const health = { name: "tilie-server", version: "0.1.0", timetoalign: "1.2.0" };
-const EMPTY_TEXT = writeWorkspace({ view: createView(), journal: [] });
+const EMPTY_TEXT = writeWorkspace({ view: createView(), journal: [], sessions: {} });
 
 let app: ReturnType<typeof mount> | undefined;
 
@@ -130,9 +130,9 @@ function answer(label: string): void {
 
 /** A written workspace holding `bare` as block A. */
 function workspaceText(): string {
-  const store = createStore({ view: createView(), journal: [] });
+  const store = createStore({ view: createView(), journal: [], sessions: {} });
   addBlock(store, A);
-  return writeWorkspace({ view: store.view, journal: store.journal });
+  return writeWorkspace({ view: store.view, journal: store.journal, sessions: store.sessions });
 }
 
 describe("the File menu", () => {
@@ -239,7 +239,10 @@ describe("opening and saving", () => {
     const store = hook().store();
     await vi.waitFor(() =>
       expect(downloads).toEqual([
-        ["untitled.tle.json", writeWorkspace({ view: store.view, journal: store.journal })],
+        [
+          "untitled.tle.json",
+          writeWorkspace({ view: store.view, journal: store.journal, sessions: store.sessions }),
+        ],
       ]),
     );
     expect(fileName()).toBe("untitled.tle.json");
@@ -300,7 +303,7 @@ describe("manifests", () => {
     choose("Import manifest…");
     await vi.waitFor(() => pickFile("nested.json", fixtureText("nested")));
     await vi.waitFor(() => expect(hook().store().journal.length).toBe(1));
-    const command = hook().store().journal[0]?.command as {
+    const command = (hook().store().journal[0] as CommandEntry | undefined)?.command as {
       type: string;
       into: string;
       block: { id: string; x: number; y: number };
@@ -355,11 +358,11 @@ describe("autosave and recovery", () => {
   /** A written workspace whose one entry is at 2026-10-12T09:05:07Z. */
   function recoverable(): string {
     const store = createStore(
-      { view: createView(), journal: [] },
+      { view: createView(), journal: [], sessions: {} },
       { clock: () => new Date("2026-10-12T09:05:07.000Z") },
     );
     addBlock(store, A);
-    return writeWorkspace({ view: store.view, journal: store.journal });
+    return writeWorkspace({ view: store.view, journal: store.journal, sessions: store.sessions });
   }
 
   async function keep(text: string, name = "untitled.tle.json"): Promise<void> {
@@ -387,7 +390,11 @@ describe("autosave and recovery", () => {
   }
 
   function written(): string {
-    return writeWorkspace({ view: hook().store().view, journal: hook().store().journal });
+    return writeWorkspace({
+      view: hook().store().view,
+      journal: hook().store().journal,
+      sessions: hook().store().sessions,
+    });
   }
 
   const question = {

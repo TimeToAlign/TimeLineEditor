@@ -4,7 +4,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
-import type { Json, Manifest, Store } from "@timetoalign/tilie-core";
+import type { CommandEntry, Json, Manifest, Store } from "@timetoalign/tilie-core";
 import { createStore, createView, isLoadError, loadManifest } from "@timetoalign/tilie-core";
 import {
   compactJson,
@@ -65,7 +65,7 @@ function fixture(name: string): Manifest {
 
 /** A store holding the named fixtures in blocks `A`, `B`, … */
 function storeOf(...names: string[]): Store {
-  const store = createStore({ view: createView(), journal: [] });
+  const store = createStore({ view: createView(), journal: [], sessions: {} });
   names.forEach((name, index) => {
     const id = String(index).padStart(10, "0");
     const error = store.dispatch({
@@ -371,7 +371,7 @@ describe("applying a text", () => {
     const applied = applyText(store, A, "json", text, FILE_FORM);
     expect(applied.ok).toBe(true);
     expect(store.journal).toHaveLength(2);
-    expect(store.journal[1]?.command).toEqual({
+    expect((store.journal[1] as CommandEntry | undefined)?.command).toEqual({
       type: "set",
       changes: [{ target: A, values: { manifest: parsed } }],
     });

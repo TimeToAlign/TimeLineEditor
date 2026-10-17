@@ -10,8 +10,8 @@ import type { Json, JsonObject, PathSegment } from "./json.ts";
 import { isJsonObject, showJson } from "./json.ts";
 import { schemaProblems } from "./manifest/io.ts";
 import { jsonInteger } from "./number/coordinate.ts";
-import type { BlockPlacement } from "./workspace/blocks.ts";
-import { BAND_GROUPS } from "./workspace/blocks.ts";
+import type { BandOrder, Place } from "./workspace/blocks.ts";
+import { BAND_GROUPS, PLACE_MEMBERS } from "./workspace/blocks.ts";
 import { isIndex } from "./workspace/order.ts";
 
 function invalid(message: string, path: readonly PathSegment[]): Problem {
@@ -124,7 +124,7 @@ export function readNullablePositive(
 }
 
 /** Whether a value is a permutation of the three band groups. */
-export function isBandOrder(value: unknown): value is BlockPlacement["order"] {
+export function isBandOrder(value: unknown): value is BandOrder {
   return (
     Array.isArray(value) &&
     value.length === BAND_GROUPS.length &&
@@ -132,13 +132,70 @@ export function isBandOrder(value: unknown): value is BlockPlacement["order"] {
   );
 }
 
-export function readOrder(
+export function readOrder(value: unknown, path: readonly PathSegment[]): BandOrder | Problem {
+  return isBandOrder(value)
+    ? ([...value] as unknown as BandOrder)
+    : problem(ErrorCode.invalidOrder, "order must hold children, regions and flow once each", path);
+}
+
+/** The rule of each member of a place: a position is finite, a size positive. */
+export const PLACE_READERS = {
+  x: readFinite,
+  y: readFinite,
+  length: readPositive,
+  width: readPositive,
+  height: readPositive,
+} as const satisfies { readonly [member in keyof Place]-?: unknown };
+
+/** A place: an object of only the place members, at least one, each by its rule. */
+export function readPlace(value: unknown, path: readonly PathSegment[]): Place | Problem {
+  const object = readObject(value, path);
+  if (isCommandError(object)) return object;
+  const extra = unknownMember(object, PLACE_MEMBERS, path);
+  if (extra !== undefined) return extra;
+  const place: { [member: string]: number } = {};
+  for (const member of PLACE_MEMBERS) {
+    if (!Object.hasOwn(object, member)) continue;
+    const read = PLACE_READERS[member](object[member], [...path, member]);
+    if (isCommandError(read)) return read;
+    place[member] = read;
+  }
+  return Object.keys(place).length > 0
+    ? place
+    : invalid("a place states at least one member", path);
+}
+
+/** An object of values each read by `read` at its key, keys any string. */
+function readKeyed<T>(
   value: unknown,
   path: readonly PathSegment[],
-): BlockPlacement["order"] | Problem {
-  return isBandOrder(value)
-    ? ([...value] as unknown as BlockPlacement["order"])
-    : problem(ErrorCode.invalidOrder, "order must hold children, regions and flow once each", path);
+  read: (item: unknown, at: readonly PathSegment[]) => T | Problem,
+): { readonly [key: string]: T } | Problem {
+  const object = readObject(value, path);
+  if (isCommandError(object)) return object;
+  const result: { [key: string]: T } = {};
+  for (const [key, item] of Object.entries(object)) {
+    const found = read(item, [...path, key]);
+    if (isCommandError(found)) return found;
+    result[key] = found;
+  }
+  return result;
+}
+
+/** A block's places: an object of places, keys any string. */
+export function readPlaces(
+  value: unknown,
+  path: readonly PathSegment[],
+): { readonly [key: string]: Place } | Problem {
+  return readKeyed(value, path, readPlace);
+}
+
+/** A block's band orders: an object of band orders, keys any string. */
+export function readBands(
+  value: unknown,
+  path: readonly PathSegment[],
+): { readonly [key: string]: BandOrder } | Problem {
+  return readKeyed(value, path, readOrder);
 }
 
 export function readIndex(value: unknown, path: readonly PathSegment[]): string | Problem {

@@ -45,6 +45,15 @@ export const ErrorCode = {
   unsupportedVersion: "unsupported_version",
   unknownMember: "unknown_member",
   missingMember: "missing_member",
+  notAnItem: "not_an_item",
+  unknownPlace: "unknown_place",
+  unknownBandKey: "unknown_band_key",
+  noEditor: "no_editor",
+  notInside: "not_inside",
+  sideEffect: "side_effect",
+  unknownSession: "unknown_session",
+  unreferencedSession: "unreferenced_session",
+  sessionReferencedTwice: "session_referenced_twice",
 } as const;
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];

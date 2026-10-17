@@ -19,28 +19,45 @@ import {
   removedBy,
   TITLE_ADDRESS,
 } from "@timetoalign/tilie-core";
+import type { FontMetrics } from "@timetoalign/timeskeleton";
+import { drawingOf } from "./drawing.ts";
 import { GRID_FREE, positionStep, quantize } from "./numbers.ts";
-import { blocksInOrder } from "./project.ts";
+import { blocksInOrder, nodePosition } from "./project.ts";
 import { blockOf, type Selection } from "./selection.ts";
 
-/** A block's position after a gesture, before quantization. */
+/** A block's node position after a gesture, before quantization. */
 export interface Move {
   readonly id: BlockId;
   readonly x: number;
   readonly y: number;
 }
 
+const NO_ORIGIN = { x: 0, y: 0 } as const;
+
 function setOf(changes: readonly Change[]): SetCommand | null {
   return changes.length === 0 ? null : { type: "set", changes };
 }
 
-/** One `set` of `{x, y}` per block, leaving out a block whose position is its stored one. */
-function placing(view: View, moves: readonly Move[], step: number): SetCommand | null {
+/**
+ * One `set` of `{x, y}` per block: each node position quantized to `step`,
+ * then turned into the position of the block's place origin (`nodePosition`
+ * inverted) quantized to `GRID_FREE`, leaving out a block whose position is
+ * its stored one.
+ */
+function placing(
+  view: View,
+  moves: readonly Move[],
+  step: number,
+  metrics: FontMetrics,
+): SetCommand | null {
   const changes: Change[] = [];
   for (const move of moves) {
-    const x = quantize(move.x, step);
-    const y = quantize(move.y, step);
     const block = view.blocks[move.id];
+    const origin =
+      block === undefined ? NO_ORIGIN : drawingOf(block, view.settings, metrics).origin;
+    const scale = block?.scale ?? 1;
+    const x = quantize(quantize(move.x, step) + origin.x * scale, GRID_FREE);
+    const y = quantize(quantize(move.y, step) + origin.y * scale, GRID_FREE);
     if (block !== undefined && block.x === x && block.y === y) continue;
     changes.push({ target: move.id, values: { x, y } });
   }
@@ -48,26 +65,34 @@ function placing(view: View, moves: readonly Move[], step: number): SetCommand |
 }
 
 /**
- * One `set` placing every moved block at its position quantized to
- * `GRID_FREE`, in the order of `moves`; a block whose quantized position is
- * its stored one is left out, and `null` is returned when nothing is left.
- * Snapping is `snap`'s job: the caller passes the dragged block's snapped
- * position, and the other blocks of the drag moved by the same delta.
+ * One `set` placing every moved block where its node is dropped, `moves`
+ * holding node positions (the box's top-left corner, `nodePosition`): each
+ * quantized to `GRID_FREE` and stored as the position of the block's place
+ * origin, in the order of `moves`; a block whose stored position does not
+ * change is left out, and `null` is returned when nothing is left. Snapping
+ * is `snap`'s job: the caller passes the dragged node's snapped position,
+ * and the other nodes of the drag moved by the same delta.
  */
-export function moveCommand(view: View, moves: readonly Move[]): SetCommand | null {
-  return placing(view, moves, GRID_FREE);
+export function moveCommand(
+  view: View,
+  moves: readonly Move[],
+  metrics: FontMetrics,
+): SetCommand | null {
+  return placing(view, moves, GRID_FREE, metrics);
 }
 
 /**
- * One `set` moving the blocks `ids` by `dx`, `dy` grid steps, quantized to
- * the grid when it snaps, otherwise to `GRID_FREE`. `null` when nothing
- * moves.
+ * One `set` moving the blocks `ids` by `dx`, `dy` grid steps: each node's
+ * position moved and quantized to the grid when it snaps, otherwise to
+ * `GRID_FREE`, then stored as the position of its place origin. `null` when
+ * nothing moves.
  */
 export function nudgeCommand(
   view: View,
   ids: readonly BlockId[],
   dx: number,
   dy: number,
+  metrics: FontMetrics,
 ): SetCommand | null {
   if (dx === 0 && dy === 0) return null;
   const { grid } = view.settings;
@@ -75,9 +100,10 @@ export function nudgeCommand(
   for (const id of ids) {
     const block = view.blocks[id];
     if (block === undefined) continue;
-    moves.push({ id, x: block.x + dx * grid.size, y: block.y + dy * grid.size });
+    const node = nodePosition(block, drawingOf(block, view.settings, metrics));
+    moves.push({ id, x: node.x + dx * grid.size, y: node.y + dy * grid.size });
   }
-  return placing(view, moves, positionStep(grid));
+  return placing(view, moves, positionStep(grid), metrics);
 }
 
 /** The visible part of the canvas: Svelte Flow's transform and the pane's size in screen pixels. */

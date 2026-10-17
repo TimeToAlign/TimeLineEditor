@@ -12,7 +12,10 @@ import { allFixtures, loadText, testClock } from "./support.ts";
 
 /** A store of `blocks` blocks (the fixtures of one root in turn) whose journal holds `entries` entries. */
 function generated(blocks: number, entries: number): Store {
-  const store = createStore({ view: createView(), journal: [] }, { clock: testClock() });
+  const store = createStore(
+    { view: createView(), journal: [], sessions: {} },
+    { clock: testClock() },
+  );
   const manifests = allFixtures
     .filter((fixture) => !fixture.name.includes("/"))
     .map((fixture) => loadText(fixture.text, fixture.name));
@@ -46,7 +49,7 @@ function fastest(run: () => void): number {
 
 function measure(blocks: number, entries: number) {
   const store = generated(blocks, entries);
-  const workspace = { view: store.view, journal: store.journal };
+  const workspace = store.snapshot();
   const text = writeWorkspace(workspace);
   let moves = 0;
   return {

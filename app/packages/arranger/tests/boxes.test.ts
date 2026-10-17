@@ -10,9 +10,8 @@ import type { Drawing } from "@timetoalign/tilie-layout";
 import { flushSync, mount, unmount } from "svelte";
 import { SvelteMap } from "svelte/reactivity";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import BlockNode from "../src/BlockNode.svelte";
 import type { Hit } from "../src/boxes.ts";
-import { marksOf } from "../src/boxes.ts";
+import { marksOf, showsHover } from "../src/boxes.ts";
 import {
   affectedBy,
   click,
@@ -21,11 +20,13 @@ import {
   existing,
   hitOf,
   hoverOf,
+  insideOf,
   removeCommand,
   selectionOf,
 } from "../src/index.ts";
 import type { BlockNodeData } from "../src/project.ts";
-import { A, blockIn, CHILD_MEMBER, changed, metrics, viewOf } from "./support.ts";
+import NodeHarness from "./NodeHarness.svelte";
+import { A, B, blockIn, CHILD_MEMBER, changed, metrics, mixedPlain, viewOf } from "./support.ts";
 
 const SVG = "http://www.w3.org/2000/svg";
 
@@ -215,7 +216,8 @@ describe("boxes in a manifest with one group", () => {
   });
 
   it("selects what a press hit", () => {
-    const pressed = (element: Element) => selectionOf(hitOf(A, drawing, element));
+    const inside = insideOf(blockIn(view, A).manifest, drawing, null);
+    const pressed = (element: Element) => selectionOf(hitOf(A, drawing, element), null, inside);
     expect(pressed(target("rect", "recording/card"))).toBe(`${A}/recording/card`);
     expect(pressed(target("rect", "group_1"))).toBe(`${A}/group_1`);
     expect(pressed(target("rect"))).toBe(A);
@@ -237,7 +239,8 @@ describe("boxes in a manifest with one group", () => {
 
   it("lets every other reader fold a selected card into its timeline", () => {
     const card = hitOf(A, drawing, target("rect", "recording/card"));
-    const selection = click(new Set(), selectionOf(card), false);
+    const inside = insideOf(blockIn(view, A).manifest, drawing, null);
+    const selection = click(new Set(), selectionOf(card, null, inside) as string, false);
     expect(selection).toEqual(new Set([`${A}/recording/card`]));
     expect(existing(view, selection)).toBe(selection);
     expect(removeCommand(view, selection)).toEqual({
@@ -276,6 +279,8 @@ describe("the block node's hover marks", () => {
       selectedElements: new Set(),
       affectedElements: new Set(),
       movedElements: new Set(),
+      editing: null,
+      inside: insideOf(block.manifest, drawing, null),
     };
   }
 
@@ -299,14 +304,13 @@ describe("the block node's hover marks", () => {
    */
   function mountOn(view: View) {
     const props = new SvelteMap([["data", dataOf(view)]]);
-    // The node reads only `data`; the other node props are Svelte Flow's.
-    mounted = mount(BlockNode, {
+    mounted = mount(NodeHarness, {
       target: document.body,
       props: {
         get data() {
-          return props.get("data");
+          return props.get("data") as BlockNodeData;
         },
-      } as never,
+      },
     });
     flushSync();
     const svg = document.querySelector("svg");
@@ -342,7 +346,10 @@ describe("the block node's hover marks", () => {
       dataOf(styled(view, { select: { element: "boundary" }, set: { stroke: "#FF0000" } })),
     );
     flushSync();
-    expect(Array.from(svg.children).filter((element) => before.includes(element))).toEqual([]);
+    expect(Array.from(svg.children)).toEqual(before);
+    expect(Array.from(svg.children).every((element, index) => element === before[index])).toBe(
+      true,
+    );
     expect(boundary().getAttribute("stroke")).toBe("#FF0000");
     expect(hovered()).toEqual(["rect form/card", "line b2/start"]);
 
@@ -412,8 +419,10 @@ describe("the boxes holding part of the selection", () => {
       selectedElements: new Set(selected),
       affectedElements: new Set(),
       movedElements: new Set(),
+      editing: null,
+      inside: insideOf(block.manifest, drawing, null),
     };
-    mounted = mount(BlockNode, { target: document.body, props: { data } as never });
+    mounted = mount(NodeHarness, { target: document.body, props: { data } });
     flushSync();
     const node = document.querySelector<HTMLElement>(".tilie-block");
     if (node === null) throw new Error("the block node rendered no block");
@@ -491,5 +500,46 @@ describe("the boxes holding part of the selection", () => {
     const node = mountWith(selected, viewOf({ id: A, fixture: "bundles/bundle_ungrouped" }));
     expect(carrying(node, "data-contains-selection")).toEqual(expected);
     expect(node.hasAttribute("data-contains-selection")).toBe(true);
+  });
+});
+
+describe("selection and hover inside an editor", () => {
+  const view = mixedPlain();
+  const block = blockIn(view, A);
+  const drawing = drawingOf(block, view.settings, metrics);
+  const group = insideOf(block.manifest, drawing, "group_1");
+  const every = insideOf(block.manifest, drawing, null);
+  const hit = (kind: Hit["kind"], element: string | null): Hit => ({
+    block: A,
+    kind,
+    address: element === null ? A : `${A}/${element}`,
+    boundary: false,
+    within: null,
+  });
+
+  it("selects only what lies inside the edited element", () => {
+    const editing = { target: `${A}/group_1` };
+    expect(selectionOf(hit("card", "score/card"), editing, group)).toBe(`${A}/score/card`);
+    expect(selectionOf(hit("group", "group_1"), editing, group)).toBe(`${A}/group_1`);
+    expect(selectionOf(hit("element", "score"), editing, group)).toBe(`${A}/score`);
+    expect(selectionOf(hit("card", "page/card"), editing, group)).toBeNull();
+    expect(selectionOf(hit("element", "annotations"), editing, group)).toBeNull();
+    expect(selectionOf(hit("element", "name"), editing, group)).toBeNull();
+    expect(selectionOf(hit("block", null), editing, group)).toBeNull();
+  });
+
+  it("selects the block's own box on the arranger and in its own bundle editor only", () => {
+    expect(selectionOf(hit("block", null), null, every)).toBe(A);
+    expect(selectionOf(hit("block", null), { target: A }, every)).toBe(A);
+    expect(selectionOf(hit("block", null), { target: B }, new Set())).toBeNull();
+  });
+
+  it("highlights only what lies inside the edited element", () => {
+    const hover = (box: string) => ({ box, boundary: null });
+    expect(showsHover("card", "score/card", hover("score/card"), group)).toBe(true);
+    expect(showsHover("card", "page/card", hover("page/card"), group)).toBe(false);
+    expect(showsHover("group", "group_2", hover("group_2"), group)).toBe(false);
+    expect(showsHover("card", "page/card", hover("page/card"), every)).toBe(true);
+    expect(showsHover("group", "group_2", hover("group_2"), every)).toBe(true);
   });
 });

@@ -49,6 +49,8 @@ export const HAND_DERIVED: readonly string[] = [
   "unknown_length_child",
   "group__group_unknown_length",
   "unknown_length_segments",
+  "bundle_ungrouped__places",
+  "styled__score__bands-timeline",
 ];
 
 /** Write `text` to `file` unless it already holds it; report whether it changed. */

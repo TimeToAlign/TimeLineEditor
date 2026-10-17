@@ -18,10 +18,17 @@ import {
   changed,
   load,
   MPM,
+  metrics,
+  mixedPlain,
   numbersView,
+  placed,
   viewOf,
   withGrid,
 } from "./support.ts";
+
+/** `bundle_mixed` at (40, 80) with `annotations` at `{x: −30, y: −20}`: the origin (38, 28). */
+const shifted = placed(mixedPlain(), A, "annotations", { x: -30, y: -20 });
+const doubled = changed(shifted, { type: "set", changes: [{ target: A, values: { scale: 2 } }] });
 
 describe("moveCommand", () => {
   const view = viewOf({ id: A, fixture: "bare", x: 40, y: 80 }, { id: B, fixture: "nested" });
@@ -31,7 +38,7 @@ describe("moveCommand", () => {
   ];
 
   it("quantizes to 1/2048, in the order of the moves", () => {
-    expect(moveCommand(view, moves)).toEqual({
+    expect(moveCommand(view, moves, metrics)).toEqual({
       type: "set",
       changes: [
         { target: A, values: { x: 41.5771484375, y: 203 } },
@@ -41,16 +48,28 @@ describe("moveCommand", () => {
   });
 
   it("leaves out a block that did not move, and gives null when none moved", () => {
-    expect(moveCommand(view, [])).toBeNull();
-    expect(moveCommand(view, [{ id: A, x: 40.0001, y: 79.9999 }])).toBeNull();
-    expect(moveCommand(view, [{ id: A, x: 40.0001, y: 79.9999 }, ...moves.slice(1)])).toEqual({
+    expect(moveCommand(view, [], metrics)).toBeNull();
+    expect(moveCommand(view, [{ id: A, x: 40.0001, y: 79.9999 }], metrics)).toBeNull();
+    expect(
+      moveCommand(view, [{ id: A, x: 40.0001, y: 79.9999 }, ...moves.slice(1)], metrics),
+    ).toEqual({
       type: "set",
       changes: [{ target: B, values: { x: 20, y: 0 } }],
     });
   });
 
+  it("stores the place origin of the dropped node", () => {
+    expect(moveCommand(shifted, [{ id: A, x: 10, y: 60 }], metrics)?.changes).toEqual([
+      { target: A, values: { x: 48, y: 88 } },
+    ]);
+    expect(moveCommand(doubled, [{ id: A, x: 10, y: 60 }], metrics)?.changes).toEqual([
+      { target: A, values: { x: 86, y: 116 } },
+    ]);
+    expect(moveCommand(shifted, [{ id: A, x: 2, y: 52 }], metrics)).toBeNull();
+  });
+
   it("is accepted by apply", () => {
-    const after = changed(view, moveCommand(view, moves));
+    const after = changed(view, moveCommand(view, moves, metrics));
     expect([blockIn(after, A).x, blockIn(after, A).y, blockIn(after, B).x]).toEqual([
       41.5771484375, 203, 20,
     ]);
@@ -62,28 +81,37 @@ describe("nudgeCommand", () => {
   const offGrid = viewOf({ id: A, fixture: "bare", x: 41, y: 80 });
 
   it("moves by grid steps", () => {
-    expect(nudgeCommand(view, [A], 1, 0)).toEqual({
+    expect(nudgeCommand(view, [A], 1, 0, metrics)).toEqual({
       type: "set",
       changes: [{ target: A, values: { x: 48, y: 80 } }],
     });
-    expect(nudgeCommand(view, [A], -8, 2)).toEqual({
+    expect(nudgeCommand(view, [A], -8, 2, metrics)).toEqual({
       type: "set",
       changes: [{ target: A, values: { x: -24, y: 96 } }],
     });
   });
 
   it("snaps an off-grid block, and steps by the grid size without snapping", () => {
-    expect(nudgeCommand(offGrid, [A], 1, 0)?.changes).toEqual([
+    expect(nudgeCommand(offGrid, [A], 1, 0, metrics)?.changes).toEqual([
       { target: A, values: { x: 48, y: 80 } },
     ]);
-    expect(nudgeCommand(withGrid(offGrid, 8, false), [A], 1, 0)?.changes).toEqual([
+    expect(nudgeCommand(withGrid(offGrid, 8, false), [A], 1, 0, metrics)?.changes).toEqual([
       { target: A, values: { x: 49, y: 80 } },
     ]);
   });
 
+  it("moves and snaps the node, and stores its place origin", () => {
+    expect(nudgeCommand(shifted, [A], 1, 0, metrics)?.changes).toEqual([
+      { target: A, values: { x: 46, y: 84 } },
+    ]);
+    expect(nudgeCommand(withGrid(shifted, 8, false), [A], 1, 0, metrics)?.changes).toEqual([
+      { target: A, values: { x: 48, y: 80 } },
+    ]);
+  });
+
   it("gives null for no block or no step", () => {
-    expect(nudgeCommand(view, [], 1, 0)).toBeNull();
-    expect(nudgeCommand(offGrid, [A], 0, 0)).toBeNull();
+    expect(nudgeCommand(view, [], 1, 0, metrics)).toBeNull();
+    expect(nudgeCommand(offGrid, [A], 0, 0, metrics)).toBeNull();
   });
 });
 

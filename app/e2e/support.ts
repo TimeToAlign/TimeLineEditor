@@ -10,7 +10,7 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import type { Download, Locator, Page } from "@playwright/test";
 import { expect } from "@playwright/test";
-import type { Command, Store } from "../packages/core/src/index.ts";
+import type { Command, CommandError, OpenEditor, Store } from "../packages/core/src/index.ts";
 
 export type ResizeMode = "scale" | "box" | "stretch";
 export type Handle =
@@ -39,8 +39,16 @@ export interface TilieHook {
   setViewport(viewport: Viewport): void;
   locked(): boolean;
   mode(): ResizeMode;
-  /** `writeWorkspace` of the store's view and journal. */
+  /** The open workspace as Save writes it: `writeWorkspace` of the store's snapshot, every open editor folded. */
   text(): string;
+  /** The editing path: the open editors, outermost first. */
+  editing(): OpenEditor[];
+  /** Open the editor of `address` inside the innermost open one; the refusal, or `null` when it opened. */
+  open(address: string): CommandError | null;
+  /** Close the innermost editor, keeping its changes. */
+  done(): void;
+  /** Close the innermost editor, discarding its changes, without the editing bar's question. */
+  cancel(): void;
 }
 
 declare global {
@@ -227,9 +235,11 @@ export function journalLength(page: Page): Promise<number> {
 }
 
 /**
- * The commands journalled from entry `from` on. Only `set` and `remove`
- * commands are returned whole; an `add` carries a manifest whose numbers do
- * not survive the trip out of the page, so it is reduced to its type.
+ * The commands journalled from entry `from` on, each of which must be a
+ * command entry (a closed editor's session entry throws). Only `set` and
+ * `remove` commands are returned whole; an `add` carries a manifest whose
+ * numbers do not survive the trip out of the page, so it is reduced to its
+ * type.
  */
 export function commandsFrom(page: Page, from: number): Promise<Command[]> {
   return page.evaluate(
@@ -237,11 +247,13 @@ export function commandsFrom(page: Page, from: number): Promise<Command[]> {
       window.__tilie
         .store()
         .journal.slice(start)
-        .map(({ command }) =>
-          command.type === "set" || command.type === "remove"
+        .map((entry, at) => {
+          if (!("command" in entry)) throw new Error(`journal entry ${start + at} is a session`);
+          const { command } = entry;
+          return command.type === "set" || command.type === "remove"
             ? (JSON.parse(JSON.stringify(command)) as Command)
-            : ({ type: command.type } as Command),
-        ),
+            : ({ type: command.type } as Command);
+        }),
     from,
   );
 }
@@ -272,8 +284,9 @@ export async function toScreen(
  * A whole-pixel screen point on block `id`'s card, away from everything
  * drawn on it: the element hit there and at the eight points `clearance` px
  * around it is a card (`<root>/card`) of that block, found by hit-testing a
- * raster of points across the node. A press there selects that card; a drag
- * from there moves the block.
+ * raster of points across the node (tenths down, twentieths across), and
+ * when none of them is clear, every second pixel. A press there selects
+ * that card; a drag from there moves the block.
  */
 export function cardPoint(
   page: Page,
@@ -284,18 +297,19 @@ export function cardPoint(
 }
 
 /**
- * A whole-pixel screen point on the frame of group `group` in block `id`,
- * away from its cards and its title, found as `cardPoint` finds a card: the
- * element hit there and at the eight points `clearance` px around it is the
- * frame (`data-address` the group id). A press there selects the group.
+ * A whole-pixel screen point on the drawn box `address` in block `id` (a
+ * group's frame, by the group id, or a card, `<root>/card`), away from what
+ * lies on it, found as `cardPoint` finds a card: the element hit there and
+ * at the eight points `clearance` px around it carries `data-address`
+ * `address`. A press there selects that box.
  */
 export function framePoint(
   page: Page,
   id: string,
-  group: string,
+  address: string,
   clearance = 6,
 ): Promise<{ x: number; y: number }> {
-  return boxPoint(page, id, group, clearance);
+  return boxPoint(page, id, address, clearance);
 }
 
 /** A point whose hit, there and `clearance` px around, is the box `address`, or any card for `null`. */
@@ -321,13 +335,20 @@ async function boxPoint(
         );
       };
       const around = [-clearance, 0, clearance];
+      const clear = (x: number, y: number) =>
+        around.every((dx) => around.every((dy) => inside(x + dx, y + dy)));
       for (let fy = 0.1; fy < 1; fy += 0.1) {
         for (let fx = 0.05; fx < 1; fx += 0.05) {
           const x = Math.round(left + width * fx);
           const y = Math.round(top + height * fy);
-          if (around.every((dx) => around.every((dy) => inside(x + dx, y + dy)))) {
-            return { x, y };
-          }
+          if (clear(x, y)) return { x, y };
+        }
+      }
+      // A box clear only in a strip between the raster's rows or columns (a
+      // frame's title row): every second pixel, rows from the top.
+      for (let y = Math.ceil(top); y <= top + height; y += 2) {
+        for (let x = Math.ceil(left); x <= left + width; x += 2) {
+          if (clear(x, y)) return { x, y };
         }
       }
       return null;

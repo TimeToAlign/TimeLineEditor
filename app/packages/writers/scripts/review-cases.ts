@@ -2,7 +2,9 @@
  * The drawings of the review sheet: every manifest fixture of the installed
  * schema package but the corpus ones (`corpus_*`) at the default placement,
  * plus resized
- * drawings of `nested` and `map` with its child's map moved below the child.
+ * drawings of `nested` and `map` with its child's map moved below the child,
+ * two bundles with items at stated places, and `styled__score` in band
+ * orders stated for the block, for its timeline, and for both.
  * Each is also a drawing fixture of the schema package
  * (`fixtures/<version>/drawings/`).
  */
@@ -116,15 +118,45 @@ export function reviewCases(): ReviewCase[] {
       add(`${kind}__${stem}`, `${kind}s/${stem}`, DEFAULT_PLACEMENT);
     }
   }
+  add(
+    "bundle_mixed__places",
+    "bundles/bundle_mixed",
+    at({
+      places: { group_2: { x: 40, y: 200, width: 700 }, annotations: { x: -30, length: 300 } },
+    }),
+  );
+  add(
+    "bundle_ungrouped__places",
+    "bundles/bundle_ungrouped",
+    at({ places: { score: { x: -60, y: -150, height: 120 } } }),
+  );
+  add(
+    "styled__score__bands-block",
+    "styled__score",
+    at({ order: ["flow", "regions", "children"] }),
+  );
+  add(
+    "styled__score__bands-timeline",
+    "styled__score",
+    at({ bands: { score: ["flow", "children", "regions"] } }),
+  );
+  add(
+    "styled__score__bands-both",
+    "styled__score",
+    at({
+      order: ["flow", "regions", "children"],
+      bands: { score: ["regions", "children", "flow"] },
+    }),
+  );
   return cases;
 }
 
 /** The text of a case's `inputs.json`: everything `draw` and the writers need besides the files. */
 export function inputsText(item: ReviewCase): string {
-  const { length, spacing, width, height, order } = item.placement;
+  const { length, spacing, width, height, order, bands, places } = item.placement;
   return dumps({
     manifest: `${item.manifest}.json`,
-    placement: { length, spacing, width, height, order },
+    placement: { length, spacing, width, height, order, bands, places },
     scale: item.scale,
     layers: item.settings,
   });

@@ -85,16 +85,19 @@ function rejected(view: View, command: object) {
 
 describe("blocks hold any manifest", () => {
   it("are written and read back by the workspace file", () => {
-    const store = createStore({ view: createView(), journal: [] }, { clock: testClock() });
+    const store = createStore(
+      { view: createView(), journal: [], sessions: {} },
+      { clock: testClock() },
+    );
     for (const command of [addBlock(A, "bare.json"), addBlock(B, GROUP), addBlock(C, BUNDLE)]) {
       expect(store.dispatch(command)).toBeNull();
     }
-    const workspace = { view: store.view, journal: store.journal };
+    const workspace = store.snapshot();
     const text = writeWorkspace(workspace);
     const read = readWorkspace(text);
     expect(read).toEqual(workspace);
     if (!isLoadError(read)) {
-      expect(read.view.meta).toEqual({ format: "tilie-workspace", version: 2 });
+      expect(read.view.meta).toEqual({ format: "tilie-workspace", version: 3 });
       expect(writeWorkspace(read)).toBe(text);
     }
   });

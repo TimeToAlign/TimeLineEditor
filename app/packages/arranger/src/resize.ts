@@ -3,10 +3,12 @@
  * around the content, or stretch the content's lengths and distances.
  */
 
-import type { Block, SetCommand, WorkspaceSettings } from "@timetoalign/tilie-core";
+import type { Block, Change, Place, SetCommand, WorkspaceSettings } from "@timetoalign/tilie-core";
+import { PLACE_MEMBERS } from "@timetoalign/tilie-core";
 import type { FontMetrics } from "@timetoalign/timeskeleton";
 import { drawingOf } from "./drawing.ts";
 import { GRID_FREE, MIN_LENGTH, MIN_SCALE, MIN_SPACING, quantize } from "./numbers.ts";
+import { nodePosition } from "./project.ts";
 
 export type ResizeMode = "scale" | "box" | "stretch";
 
@@ -21,7 +23,7 @@ export type Handle =
   | "left";
 
 /** Each handle's horizontal and vertical side: −1 left or top, 1 right or bottom, 0 neither. */
-const SIDES: { readonly [handle in Handle]: readonly [-1 | 0 | 1, -1 | 0 | 1] } = {
+export const SIDES: { readonly [handle in Handle]: readonly [-1 | 0 | 1, -1 | 0 | 1] } = {
   "top-left": [-1, -1],
   top: [0, -1],
   "top-right": [1, -1],
@@ -32,7 +34,7 @@ const SIDES: { readonly [handle in Handle]: readonly [-1 | 0 | 1, -1 | 0 | 1] } 
   left: [-1, 0],
 };
 
-const ALL_HANDLES = Object.keys(SIDES) as readonly Handle[];
+export const ALL_HANDLES = Object.keys(SIDES) as readonly Handle[];
 const CORNERS: readonly Handle[] = ["top-left", "top-right", "bottom-right", "bottom-left"];
 
 /** The handles a mode offers: the corners to scale, all eight to size or stretch. */
@@ -65,7 +67,12 @@ const REACH = 2 ** 20;
  * then bisection between the largest value known to fit and the smallest
  * known not to.
  */
-function solve(f: (x: number) => number, start: number, target: number, floor: number): number {
+export function solve(
+  f: (x: number) => number,
+  start: number,
+  target: number,
+  floor: number,
+): number {
   const at = (k: number) => f(k * GRID_FREE);
   const first = Math.ceil(floor / GRID_FREE);
   const goal = Math.max(target, at(first)) + NOISE;
@@ -99,17 +106,18 @@ function solve(f: (x: number) => number, start: number, target: number, floor: n
  * `stretched` on one axis: a request larger than the content keeps the
  * space it adds, one at or below it draws nothing and becomes `null`.
  */
-function kept(request: number | null, content: number, stretched: number): number | null {
+export function kept(request: number | null, content: number, stretched: number): number | null {
   if (request === null || request <= content) return null;
   return quantize(stretched + request - content, GRID_FREE);
 }
 
 /**
  * The placement values that resize `block` by dragging `handle` by `delta`:
- * the dragged edge ends under the pointer and the opposite edge stays put.
- * Every number is quantized to `GRID_FREE`, never to the grid: for a left or
- * top handle the stored `x` or `y` is the opposite edge less the achieved
- * size.
+ * the dragged edge of its node ends under the pointer and the opposite edge
+ * stays put. Every number is quantized to `GRID_FREE`, never to the grid:
+ * for a left or top handle the node's new left or top edge is the opposite
+ * edge less the achieved size, and the stored `x` or `y` is that edge's
+ * place origin (`nodePosition` inverted, with the resized drawing's origin).
  *
  * - `scale` (corners only) sets `scale` to the larger of the two axis
  *   ratios, floored at `MIN_SCALE`.
@@ -123,7 +131,9 @@ function kept(request: number | null, content: number, stretched: number): numbe
  *   `width` or `height` larger than the content keeps the space it adds
  *   (the stretched content plus the request minus the content before),
  *   one at or below the content becomes `null`, and `null` stays. So the
- *   edge ends under the pointer with or without a box request.
+ *   edge ends under the pointer with or without a box request. The stated
+ *   places stretch with the content (`blockStretchPlaces`), so the items
+ *   keep their arrangement; `places` is set when they change.
  */
 export function resize(
   block: Block,
@@ -139,14 +149,16 @@ export function resize(
   }
   const drawing = drawingOf(block, settings, metrics);
   const z = block.scale;
-  const right = block.x + drawing.width * z;
-  const bottom = block.y + drawing.height * z;
-  const left = sx < 0 ? quantize(block.x + delta.dx, GRID_FREE) : block.x;
-  const top = sy < 0 ? quantize(block.y + delta.dy, GRID_FREE) : block.y;
+  const node = nodePosition(block, drawing);
+  const right = node.x + drawing.width * z;
+  const bottom = node.y + drawing.height * z;
+  const left = sx < 0 ? quantize(node.x + delta.dx, GRID_FREE) : node.x;
+  const top = sy < 0 ? quantize(node.y + delta.dy, GRID_FREE) : node.y;
   const targetWidth = (sx > 0 ? right + delta.dx : right) - left;
   const targetHeight = (sy > 0 ? bottom + delta.dy : bottom) - top;
   const values: Values = {};
   let size = { width: drawing.width, height: drawing.height, scale: z };
+  let { origin } = drawing;
 
   if (mode === "scale") {
     const ratio = Math.max(targetWidth / drawing.width, targetHeight / drawing.height);
@@ -169,21 +181,27 @@ export function resize(
       }
     } else {
       let { length, spacing } = block;
+      const stretch = (lengthTo: number, spacingTo: number) =>
+        drawingOf(block, settings, metrics, {
+          ...free,
+          length: lengthTo,
+          spacing: spacingTo,
+          places: blockStretchPlaces(block, lengthTo, spacingTo),
+        });
       if (sx !== 0) {
         const wanted = targetWidth / z - (drawing.width - content.width);
-        const width = (value: number) =>
-          drawingOf(block, settings, metrics, { ...free, length: value }).width;
-        length = solve(width, length, wanted, MIN_LENGTH);
+        length = solve((value) => stretch(value, spacing).width, length, wanted, MIN_LENGTH);
         values.length = length;
       }
       if (sy !== 0) {
         const wanted = targetHeight / z - (drawing.height - content.height);
-        const height = (value: number) =>
-          drawingOf(block, settings, metrics, { ...free, length, spacing: value }).height;
-        spacing = solve(height, spacing, wanted, MIN_SPACING);
+        spacing = solve((value) => stretch(length, value).height, spacing, wanted, MIN_SPACING);
         values.spacing = spacing;
       }
-      const stretched = drawingOf(block, settings, metrics, { ...free, length, spacing });
+      const stretched = stretch(length, spacing);
+      const places = blockStretchPlaces(block, length, spacing);
+      if (places !== block.places) values.places = places;
+      origin = stretched.origin;
       const width = kept(block.width, content.width, stretched.width);
       const height = kept(block.height, content.height, stretched.height);
       if (width !== block.width) values.width = width;
@@ -195,12 +213,61 @@ export function resize(
       };
     }
   }
-  if (sx < 0) values.x = quantize(right - size.width * size.scale, GRID_FREE);
-  if (sy < 0) values.y = quantize(bottom - size.height * size.scale, GRID_FREE);
+  if (sx < 0) {
+    values.x = quantize(right - (size.width - origin.x) * size.scale, GRID_FREE);
+  }
+  if (sy < 0) {
+    values.y = quantize(bottom - (size.height - origin.y) * size.scale, GRID_FREE);
+  }
   return { values };
 }
 
-/** The `set` storing a resize's values on its block. */
+/**
+ * The places of `block` stretched to `length` and `spacing`: every stated
+ * `x`, `length` and `width` scaled by the ratio of the lengths, every stated
+ * `y` and `height` by the ratio of the spacings, quantized to `GRID_FREE`,
+ * so a stretch scales the items' sizes and distances and keeps their
+ * arrangement. The block's own `places` object when nothing changes.
+ */
+export function blockStretchPlaces(
+  block: Pick<Block, "length" | "spacing" | "places">,
+  length: number,
+  spacing: number,
+): Block["places"] {
+  const horizontal = length / block.length;
+  const vertical = spacing / block.spacing;
+  const ratios = {
+    x: horizontal,
+    length: horizontal,
+    width: horizontal,
+    y: vertical,
+    height: vertical,
+  };
+  let changed = false;
+  const places: { [key: string]: Place } = {};
+  for (const [key, place] of Object.entries(block.places)) {
+    const scaled: { -readonly [member in keyof Place]: number } = {};
+    for (const member of PLACE_MEMBERS) {
+      const value = place[member];
+      if (value === undefined) continue;
+      scaled[member] = quantize(value * ratios[member], GRID_FREE);
+      if (scaled[member] !== value) changed = true;
+    }
+    places[key] = scaled;
+  }
+  return changed ? places : block.places;
+}
+
+/**
+ * The `set` storing a resize's values on its block: the block's own members
+ * in one change, then the place of every item in `values.places` in one
+ * change each, aimed at the item.
+ */
 export function resizeCommand(block: Block, values: Partial<Block>): SetCommand {
-  return { type: "set", changes: [{ target: block.id, values }] };
+  const { places, ...own } = values;
+  const changes: Change[] = [{ target: block.id, values: own }];
+  for (const [key, place] of Object.entries(places ?? {})) {
+    changes.push({ target: `${block.id}/${key}`, values: { place } });
+  }
+  return { type: "set", changes };
 }

@@ -1,0 +1,320 @@
+import type { Statement } from "@timetoalign/timeskeleton";
+import { describe, expect, it } from "vitest";
+import type { Block, Manifest, View } from "../src/index.ts";
+import { sideEffect } from "../src/index.ts";
+import { statementInside } from "../src/workspace/guard.ts";
+import { A, addBlock, B, block, changed, deepFreeze, viewOf } from "./support.ts";
+
+const BUNDLE = "bundle0001";
+const G1 = `${BUNDLE}/group_1`;
+const MIXED = "bundles/bundle_mixed.json";
+const RED = { stroke: "#FF0000" };
+const TIMELINES = { element: "timeline" } as const;
+const SCORE = { ids: ["score"] } as const;
+const BANDS = ["flow", "regions", "children"] as const;
+
+const before = deepFreeze(viewOf([BUNDLE, MIXED]));
+/** `before` with a second block, `A`, holding `bare.json`. */
+const two = deepFreeze(viewOf([BUNDLE, MIXED], [A, "bare.json"]));
+
+/** `view` with members of the bundle's block replaced. */
+const withBlock = (view: View, values: Partial<Block>): View => ({
+  ...view,
+  blocks: { ...view.blocks, [BUNDLE]: { ...block(view, BUNDLE), ...values } },
+});
+
+/** `view` with members of the bundle's manifest replaced. */
+const withManifest = (view: View, values: object): View =>
+  withBlock(view, { manifest: { ...block(view, BUNDLE).manifest, ...values } as Manifest });
+
+const withGrid = (view: View): View => ({
+  ...view,
+  settings: { ...view.settings, grid: { size: 16, snap: true } },
+});
+
+const set = (target: string, values: object) => ({
+  type: "set",
+  changes: [{ target, values }],
+});
+
+const named = (id: string, name: string) => set(`${BUNDLE}/${id}`, { name });
+
+const outside = (what: string, path: readonly (string | number)[], target = G1) => ({
+  code: "side_effect",
+  message: `${what} lies outside ${target}: an editor changes only what it edits`,
+  path,
+});
+
+describe("sideEffect, the exact cases", () => {
+  it("accepts a place of the edited group", () => {
+    const after = withBlock(before, { places: { group_1: { length: 300 } } });
+    expect(sideEffect(before, after, G1)).toBeNull();
+  });
+
+  it("refuses a place of another group", () => {
+    const after = withBlock(before, { places: { group_2: { x: 10 } } });
+    expect(sideEffect(before, after, G1)).toEqual(
+      outside("the place of bundle0001/group_2", ["bundle0001/group_2"]),
+    );
+  });
+
+  it("accepts a member's name and refuses an ungrouped root's", () => {
+    expect(sideEffect(before, changed(before, named("score", "S")), G1)).toBeNull();
+    expect(sideEffect(before, changed(before, named("annotations", "A")), G1)).toEqual(
+      outside("bundle0001/annotations", ["bundle0001/annotations"]),
+    );
+  });
+
+  it("refuses the block's length and accepts the box adapting", () => {
+    expect(sideEffect(before, changed(before, set(BUNDLE, { length: 500 })), G1)).toEqual(
+      outside("the length of block bundle0001", [BUNDLE, "length"]),
+    );
+    const box = set(BUNDLE, { x: 40, y: -8, width: 900, height: 300 });
+    expect(sideEffect(before, changed(before, box), G1)).toBeNull();
+  });
+
+  it("refuses a statement reaching outside and accepts one reaching only inside", () => {
+    const wide = changed(before, { type: "style", select: TIMELINES, set: RED });
+    expect(sideEffect(before, wide, G1)).toEqual(
+      outside("the graphical statements of block bundle0001", [
+        BUNDLE,
+        "manifest",
+        "graphical",
+        "statements",
+      ]),
+    );
+    const narrow = changed(before, { type: "style", select: SCORE, set: RED });
+    expect(sideEffect(before, narrow, G1)).toBeNull();
+  });
+});
+
+describe("sideEffect, each rule's path", () => {
+  it("refuses a workspace setting in every editor", () => {
+    const after = withGrid(before);
+    expect(sideEffect(before, after, G1)).toEqual(
+      outside("the workspace setting grid", ["workspace", "grid"]),
+    );
+    expect(sideEffect(before, after, BUNDLE)).toEqual(
+      outside("the workspace setting grid", ["workspace", "grid"], BUNDLE),
+    );
+  });
+
+  it("refuses another block changing, appearing or going", () => {
+    const moved = changed(two, set(A, { x: 50 }));
+    expect(sideEffect(two, moved, G1)).toEqual(outside(`block ${A}`, [A]));
+    expect(sideEffect(two, changed(two, addBlock(B, "bare.json")), G1)).toEqual(
+      outside(`block ${B}`, [B]),
+    );
+    expect(sideEffect(two, changed(two, { type: "remove", targets: [A] }), G1)).toEqual(
+      outside(`block ${A}`, [A]),
+    );
+    expect(sideEffect(two, moved, BUNDLE)).toEqual(outside(`block ${A}`, [A], BUNDLE));
+  });
+
+  it("refuses a band order of a key outside and accepts one inside", () => {
+    expect(sideEffect(before, withBlock(before, { bands: { annotations: BANDS } }), G1)).toEqual(
+      outside("the band order of bundle0001/annotations", ["bundle0001/annotations"]),
+    );
+    expect(sideEffect(before, withBlock(before, { bands: { score: BANDS } }), G1)).toBeNull();
+    const group2 = `${BUNDLE}/group_2`;
+    expect(sideEffect(before, withBlock(before, { bands: { recording: BANDS } }), group2)).toEqual(
+      outside("the band order of bundle0001/recording", ["bundle0001/recording"], group2),
+    );
+  });
+
+  it("refuses a top-level member of the manifest", () => {
+    expect(sideEffect(before, withManifest(before, { name: "Other" }), G1)).toEqual(
+      outside("the manifest's name in block bundle0001", [BUNDLE, "manifest", "name"]),
+    );
+  });
+
+  it("compares a named style only where an outside statement uses it", () => {
+    const styled = (select: object, stroke: string) => ({
+      type: "style",
+      select,
+      set: { stroke },
+      name: "accent",
+    });
+    const wide = changed(before, styled(TIMELINES, "#FF0000"));
+    expect(sideEffect(wide, changed(wide, styled(TIMELINES, "#00FF00")), G1)).toEqual(
+      outside("the graphical styles of block bundle0001", [
+        BUNDLE,
+        "manifest",
+        "graphical",
+        "styles",
+      ]),
+    );
+    const narrow = changed(before, styled(SCORE, "#FF0000"));
+    expect(sideEffect(narrow, changed(narrow, styled(SCORE, "#00FF00")), G1)).toBeNull();
+  });
+
+  it("hides the edited group's display order, not another editor's", () => {
+    const graphical = block(before, BUNDLE).manifest.graphical ?? {};
+    const after = withManifest(before, {
+      graphical: { ...graphical, order: { ...graphical.order, group_1: ["performance", "score"] } },
+    });
+    expect(sideEffect(before, after, G1)).toBeNull();
+    const score = `${BUNDLE}/score`;
+    expect(sideEffect(before, after, score)).toEqual(
+      outside(
+        "the graphical order of block bundle0001",
+        [BUNDLE, "manifest", "graphical", "order"],
+        score,
+      ),
+    );
+  });
+
+  it("refuses removing the edited element or its block", () => {
+    const removal = outside("the removal of bundle0001/group_1", [G1]);
+    expect(sideEffect(before, changed(before, { type: "remove", targets: [G1] }), G1)).toEqual(
+      removal,
+    );
+    expect(sideEffect(before, changed(before, { type: "remove", targets: [BUNDLE] }), G1)).toEqual(
+      removal,
+    );
+    const annotations = `${BUNDLE}/annotations`;
+    expect(
+      sideEffect(before, changed(before, { type: "remove", targets: [annotations] }), annotations),
+    ).toEqual(outside(`the removal of ${annotations}`, [annotations], annotations));
+    expect(
+      sideEffect(before, changed(before, { type: "remove", targets: [BUNDLE] }), BUNDLE),
+    ).toEqual(outside(`the removal of ${BUNDLE}`, [BUNDLE], BUNDLE));
+  });
+});
+
+describe("sideEffect, the order of the rules", () => {
+  it("reports another block before the manifest", () => {
+    const after = changed(two, { type: "style", select: TIMELINES, set: RED });
+    expect(sideEffect(two, after, G1)).toEqual(outside(`block ${A}`, [A]));
+  });
+
+  it("reports the first rule that applies", () => {
+    const renamed = changed(before, named("annotations", "A"));
+    const placed = withBlock(renamed, { places: { group_2: { x: 10 } } });
+    const longer = withBlock(placed, { length: 500 });
+    expect(sideEffect(before, withGrid(longer), G1)).toEqual(
+      outside("the workspace setting grid", ["workspace", "grid"]),
+    );
+    expect(sideEffect(before, longer, G1)).toEqual(
+      outside("the length of block bundle0001", [BUNDLE, "length"]),
+    );
+    expect(sideEffect(before, placed, G1)).toEqual(
+      outside("the place of bundle0001/group_2", ["bundle0001/group_2"]),
+    );
+    expect(sideEffect(before, renamed, G1)).toEqual(
+      outside("bundle0001/annotations", ["bundle0001/annotations"]),
+    );
+  });
+});
+
+describe("statements inside and outside", () => {
+  const was = block(before, BUNDLE).manifest;
+  const { group_1: _, ...order } = was.graphical?.order ?? {};
+  const shrunk = withManifest(before, {
+    groups: was.groups.map((group) =>
+      group.id === "group_1" ? { ...group, members: ["performance"] } : group,
+    ),
+    graphical: { ...was.graphical, order },
+  });
+  const now = block(shrunk, BUNDLE).manifest;
+  const statement = (select: object): Statement => ({ select, set: RED }) as unknown as Statement;
+
+  it("is inside only when every element it matches in each manifest is contained", () => {
+    expect(statementInside([was], "group_1")(statement(SCORE))).toBe(true);
+    expect(statementInside([was, now], "group_1")(statement(SCORE))).toBe(false);
+    expect(statementInside([was], "group_1")(statement(TIMELINES))).toBe(false);
+    expect(statementInside([was, now], "group_1")(statement({ ids: ["nothing"] }))).toBe(true);
+  });
+
+  it("is moved across the boundary only by a change the projection shows", () => {
+    expect(sideEffect(before, shrunk, G1)).toEqual(
+      outside("bundle0001/score", ["bundle0001/score"]),
+    );
+  });
+});
+
+describe("the editors of a timeline and of the bundle", () => {
+  it("lets a child's editor change the child and never its parent", () => {
+    const excerpt = `${BUNDLE}/excerpt`;
+    expect(sideEffect(before, changed(before, named("recording", "R")), excerpt)).toEqual(
+      outside("bundle0001/recording", ["bundle0001/recording"], excerpt),
+    );
+    expect(sideEffect(before, changed(before, named("excerpt", "E")), excerpt)).toBeNull();
+  });
+
+  it("lets the bundle editor change anything in its own block", () => {
+    for (const after of [
+      changed(before, named("annotations", "A")),
+      changed(before, set(BUNDLE, { length: 500 })),
+      changed(before, { type: "style", select: TIMELINES, set: RED }),
+      withBlock(before, { places: { group_2: { x: 10 } } }),
+    ]) {
+      expect(sideEffect(before, after, BUNDLE)).toBeNull();
+    }
+  });
+});
+
+describe("the element a manifest refusal names", () => {
+  const remove = (element: string) => ({ type: "remove", targets: [`${BUNDLE}/${element}`] });
+
+  it("names a removed member's parent, not the member its group contains", () => {
+    const group2 = `${BUNDLE}/group_2`;
+    expect(sideEffect(before, changed(before, remove("excerpt")), group2)).toEqual(
+      outside("bundle0001/recording", ["bundle0001/recording"], group2),
+    );
+  });
+
+  it("lets a timeline's editor change its subtree and names what lies outside", () => {
+    const recording = `${BUNDLE}/recording`;
+    expect(sideEffect(before, changed(before, named("excerpt", "E")), recording)).toBeNull();
+    expect(sideEffect(before, changed(before, remove("excerpt")), recording)).toEqual(
+      outside("bundle0001/group_2", ["bundle0001/group_2"], recording),
+    );
+    const excerpt = `${BUNDLE}/excerpt`;
+    const both = {
+      type: "set",
+      changes: [
+        { target: excerpt, values: { name: "E" } },
+        { target: recording, values: { name: "R" } },
+      ],
+    };
+    expect(sideEffect(before, changed(before, both), excerpt)).toEqual(
+      outside("bundle0001/recording", ["bundle0001/recording"], excerpt),
+    );
+  });
+});
+
+describe("removals inside the target", () => {
+  const group2 = `${BUNDLE}/group_2`;
+  const remove = (element: string) => ({ type: "remove", targets: [`${BUNDLE}/${element}`] });
+
+  it("lets a group's editor remove a root member", () => {
+    const after = changed(before, remove("page"));
+    expect(sideEffect(before, after, group2)).toBeNull();
+    const { manifest } = block(after, BUNDLE);
+    expect(manifest.timelines.map((timeline) => timeline.id)).toEqual([
+      "annotations",
+      "performance",
+      "recording",
+      "score",
+    ]);
+    expect(manifest.groups.find((group) => group.id === "group_2")?.members).toEqual(["excerpt"]);
+    expect(manifest.graphical?.order?.group_2).toEqual(["excerpt"]);
+  });
+
+  it("refuses a member's removal or departure that reaches outside", () => {
+    expect(sideEffect(before, changed(before, remove("excerpt")), group2)).toEqual(
+      outside("bundle0001/recording", ["bundle0001/recording"], group2),
+    );
+    const was = block(before, BUNDLE).manifest;
+    const left = withManifest(before, {
+      groups: was.groups.map((group) =>
+        group.id === "group_2" ? { ...group, members: ["excerpt"] } : group,
+      ),
+      graphical: { ...was.graphical, order: { ...was.graphical?.order, group_2: ["excerpt"] } },
+    });
+    expect(sideEffect(before, left, group2)).toEqual(
+      outside("bundle0001/page", ["bundle0001/page"], group2),
+    );
+  });
+});

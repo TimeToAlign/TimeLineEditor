@@ -1,14 +1,31 @@
 /**
  * The sides of the root: each filled outwards from the root's line in bands,
- * the root band first, then the three groups in the placement's order, and
+ * the root band first, then the three groups in the root's band order, and
  * above, last, the ancestor band (`docs/drawing.md` in timeskeleton,
- * sections 6.4 and 8.3).
+ * sections 1, 6.4 and 8.3).
  */
 
-import type { BandGroup } from "@timetoalign/tilie-core";
+import type { BandGroup, BandOrder } from "@timetoalign/tilie-core";
 import type { Band } from "./canvas.ts";
+import type { Placement } from "./elements.ts";
 import type { FlowBand } from "./flow.ts";
 import type { RegionBand } from "./regions.ts";
+
+/**
+ * The band order of a member drawing's root `timeline` (section 1): its own
+ * entry in `bands`, else that of `group`, the group whose frame holds it
+ * (`null` for an ungrouped root), else the placement's `order`.
+ */
+export function bandOrderOf(
+  placement: Placement,
+  timeline: string,
+  group: string | null,
+): BandOrder {
+  const { bands } = placement;
+  if (Object.hasOwn(bands, timeline)) return bands[timeline] as BandOrder;
+  if (group !== null && Object.hasOwn(bands, group)) return bands[group] as BandOrder;
+  return placement.order;
+}
 
 /** The bands present on one side, `undefined` for a band the side does not hold. */
 interface SideBands {

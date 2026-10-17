@@ -112,3 +112,31 @@ export function withGrid(view: View, size: number, snap: boolean): View {
     changes: [{ target: "workspace", values: { grid: { size, snap } } }],
   });
 }
+
+/** The fixture path of the bundle of two groups and an ungrouped root the editors' tests use. */
+export const MIXED = "bundles/bundle_mixed";
+
+/** The view with the place of item `key` of block `block` merged with `place`. */
+export function placed(view: View, block: string, key: string, place: object): View {
+  return changed(view, {
+    type: "set",
+    changes: [{ target: `${block}/${key}`, values: { place } }],
+  });
+}
+
+/** Block A holding `bundle_mixed` at (40, 80). */
+export function mixedPlain(): View {
+  return viewOf({ id: A, fixture: MIXED, x: 40, y: 80 });
+}
+
+/**
+ * The README's `mixed`: block A holding `bundle_mixed` at (40, 80) with the
+ * child `dlt_1` (samples, offset 0, length 44100) added to `excerpt`.
+ */
+export function mixedView(): View {
+  return changed(mixedPlain(), {
+    type: "add",
+    into: `${A}/excerpt`,
+    child: { id: "dlt_1", offset: 0, unit: "samples", length: 44100 },
+  });
+}

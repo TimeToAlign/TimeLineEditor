@@ -27,6 +27,7 @@ export { ADD_KINDS, COMMAND_TYPES } from "./commands/types.ts";
 export type { CommandError, LoadError, Problem } from "./errors.ts";
 export { ErrorCode, InvalidManifestError, isCommandError, isLoadError } from "./errors.ts";
 export type { Json, JsonArray, JsonObject, PathSegment } from "./json.ts";
+export { contains } from "./manifest/contains.ts";
 export type { Domain, ElementKey, Modality, TimelineClass } from "./manifest/elements.ts";
 export {
   BLOCK_KEY,
@@ -121,9 +122,17 @@ export { Rational } from "./number/rational.ts";
 export type { Real } from "./number/real.ts";
 export { addReal, compareReal, fromFloat, realOf, toFloat } from "./number/real.ts";
 export { isBandOrder } from "./values.ts";
-export type { BandGroup, Block, BlockId, BlockPlacement } from "./workspace/blocks.ts";
-export { BAND_GROUPS, BLOCK_ID } from "./workspace/blocks.ts";
+export type {
+  BandGroup,
+  BandOrder,
+  Block,
+  BlockId,
+  BlockPlacement,
+  Place,
+} from "./workspace/blocks.ts";
+export { BAND_GROUPS, BLOCK_ID, PLACE_MEMBERS } from "./workspace/blocks.ts";
 export { readWorkspace, writeWorkspace } from "./workspace/file.ts";
+export { sideEffect } from "./workspace/guard.ts";
 export type { Address, ParsedAddress, TimelinePrefix } from "./workspace/ids.ts";
 export {
   formatAddress,
@@ -135,7 +144,17 @@ export {
   WORKSPACE,
 } from "./workspace/ids.ts";
 export { indexBetween, indicesBetween, isIndex } from "./workspace/order.ts";
-export type { Entry, Store, StoreOptions, Workspace } from "./workspace/store.ts";
+export type {
+  CommandEntry,
+  EditorKind,
+  Entry,
+  OpenEditor,
+  Session,
+  SessionEntry,
+  SessionId,
+} from "./workspace/sessions.ts";
+export { editorKindOf, isSessionEntry, mintSessionId } from "./workspace/sessions.ts";
+export type { Store, StoreOptions, Workspace } from "./workspace/store.ts";
 export { createStore, DEFAULT_AUTHOR, replay } from "./workspace/store.ts";
 export type { View, WorkspaceMeta, WorkspaceSettings } from "./workspace/view.ts";
 export {

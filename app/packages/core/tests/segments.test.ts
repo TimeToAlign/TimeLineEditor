@@ -1,6 +1,6 @@
 import { canonicalJson } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
-import type { Gap, Manifest, TimelineManifest, View } from "../src/index.ts";
+import type { CommandEntry, Gap, Manifest, TimelineManifest, View } from "../src/index.ts";
 import { apply, createStore, movedBy, segmentGaps } from "../src/index.ts";
 import { A, block, changed, deepFreeze, refusal, unlockedView, viewOf } from "./support.ts";
 
@@ -234,11 +234,11 @@ describe("what needs no gap", () => {
 
 describe("undo", () => {
   it("journals the gap and undoes the removal", () => {
-    const store = createStore({ view: viewWith(CHILDREN, "theme"), journal: [] });
+    const store = createStore({ view: viewWith(CHILDREN, "theme"), journal: [], sessions: {} });
     const before = store.view;
     expect(store.dispatch(remove("t2", RIGHT_SHIFT))).toBeNull();
     const after = store.view;
-    expect(store.journal.at(-1)?.command).toEqual({
+    expect((store.journal.at(-1) as CommandEntry).command).toEqual({
       type: "remove",
       targets: [at("t2")],
       gap: { side: "right", verb: "shift" },

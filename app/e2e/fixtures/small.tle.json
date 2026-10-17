@@ -1,6 +1,7 @@
 {
   "blocks": {
     "bare000000": {
+      "bands": {},
       "height": null,
       "id": "bare000000",
       "index": "a0",
@@ -44,6 +45,7 @@
         "flow"
       ],
       "parent": null,
+      "places": {},
       "scale": 1,
       "spacing": 1,
       "width": null,
@@ -51,6 +53,7 @@
       "y": 0
     },
     "flow000000": {
+      "bands": {},
       "height": null,
       "id": "flow000000",
       "index": "a3",
@@ -139,6 +142,7 @@
         "flow"
       ],
       "parent": null,
+      "places": {},
       "scale": 1,
       "spacing": 1,
       "width": null,
@@ -146,6 +150,7 @@
       "y": 0
     },
     "map0000000": {
+      "bands": {},
       "height": null,
       "id": "map0000000",
       "index": "a2",
@@ -239,6 +244,7 @@
         "flow"
       ],
       "parent": null,
+      "places": {},
       "scale": 1,
       "spacing": 1,
       "width": null,
@@ -246,6 +252,7 @@
       "y": 320
     },
     "nested0000": {
+      "bands": {},
       "height": null,
       "id": "nested0000",
       "index": "a1",
@@ -345,6 +352,7 @@
         "flow"
       ],
       "parent": null,
+      "places": {},
       "scale": 1,
       "spacing": 1,
       "width": null,
@@ -352,6 +360,7 @@
       "y": 160
     },
     "styled0000": {
+      "bands": {},
       "height": null,
       "id": "styled0000",
       "index": "a4",
@@ -704,6 +713,7 @@
         "flow"
       ],
       "parent": null,
+      "places": {},
       "scale": 1,
       "spacing": 1,
       "width": null,
@@ -1405,8 +1415,9 @@
   ],
   "meta": {
     "format": "tilie-workspace",
-    "version": 2
+    "version": 3
   },
+  "sessions": {},
   "settings": {
     "blockDefaults": {
       "height": null,

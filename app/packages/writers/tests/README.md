@@ -318,7 +318,7 @@ read from the installed `@timetoalign/timeskeleton` package, like the
 manifests and the font) are the contract between implementations of the
 specification: each directory holds `inputs.json` (the manifest's path
 below `fixtures/<version>/`, `groups/<file>` or `bundles/<file>` for a
-manifest sorted there; the placement with all five members, the scale and
+manifest sorted there; the placement with all seven members, the scale and
 the application's style layers) and the expected `figure.svg` and
 `figure.tex`. The manifest is the input with its whole `graphical` block,
 `order` included. For every directory the test reads `inputs.json` alone,
@@ -329,15 +329,17 @@ the manifest's own) and the bundled font metrics, writes the drawing placed
 at `(0, 0)` with the scale (`writeTikz` with its default font directory
 `.`), and requires both texts to equal the files byte for byte.
 
-Eighteen SVGs are derived by hand from the specification alone, never from
+Twenty SVGs are derived by hand from the specification alone, never from
 this writer's output: `bare`, `nested`, `map`, `flow_control`,
 `with_region`, `styled__score`, `nested__length-800-spacing-2`,
 `segment_line`, `segment_pages_accolades`, `group__group_child_member`,
 `group__group_parents_mixed`, `group__group_grandchild`, and the six
 timelines of unknown length `unknown_length`, `unknown_length_empty`,
 `unknown_length_locked`, `unknown_length_child`,
-`group__group_unknown_length` and `unknown_length_segments` (`HAND_DERIVED`
-in `scripts/emit-drawings.ts`). Their equality with the writer proves the
+`group__group_unknown_length` and `unknown_length_segments`, the bundle
+with a card placed left of and above the padding `bundle_ungrouped__places`, and
+`styled__score__bands-timeline`, a band order stated for one timeline
+(`HAND_DERIVED` in `scripts/emit-drawings.ts`). Their equality with the writer proves the
 specification complete for what they show. A missing hand-derived file is
 a failure, never a skip. Every other figure is emitted by `pnpm
 emit-drawings --into <timeskeleton checkout>` from the writer and pins the
@@ -355,7 +357,14 @@ text. The cases are, in this order: every manifest fixture directly in
 application layer selects the child's map by its address `melody/ticks`;
 `group__<file>` for each fixture in `groups/` but the `corpus_*` ones (9);
 `bundle__<file>` for each fixture in `bundles/` but the `corpus_*` ones
-(3): 54. The manifest directories are read one by one
+(3); `bundle_mixed__places` (`places` `{group_2: {x: 40, y: 200, width:
+700}, annotations: {x: -30, length: 300}}`) and `bundle_ungrouped__places`
+(`{score: {x: -60, y: -150, height: 120}}`); `styled__score__bands-block` (`order`
+`["flow", "regions", "children"]`), `styled__score__bands-timeline`
+(`bands` `{score: ["flow", "children", "regions"]}`) and
+`styled__score__bands-both` (`order` `["flow", "regions", "children"]` and
+`bands` `{score: ["regions", "children", "flow"]}`, the timeline's band
+order winning): 59. The manifest directories are read one by one
 (`fixtures/<version>/`, its `groups/` and its `bundles/`), never
 recursively, and a fixture's minimal twin (`*.minimal.json`) is no case:
 it holds what its complete fixture holds and draws the same.

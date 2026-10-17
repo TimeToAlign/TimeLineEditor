@@ -3,6 +3,7 @@
  * derived in `README.md` ("The inspector").
  */
 
+import { liveStore } from "@timetoalign/tilie-arranger";
 import type { Block, Json, Store } from "@timetoalign/tilie-core";
 import { createStore, createView, isLoadError, loadManifest } from "@timetoalign/tilie-core";
 import { flushSync, mount, unmount } from "svelte";
@@ -72,7 +73,7 @@ function storeOf(): Store {
   if (isLoadError(manifest)) {
     throw new Error(`refused: ${manifest.problems.map((item) => item.message).join("; ")}`);
   }
-  const store = createStore({ view: createView(), journal: [] });
+  const store = createStore({ view: createView(), journal: [], sessions: {} });
   const error = store.dispatch({
     type: "add",
     into: "workspace",
@@ -130,7 +131,7 @@ describe("the Locked checkbox", () => {
   function show(store: Store, selection: string[]): void {
     app = mount(Inspector, {
       target: document.body,
-      props: { store, selection: new Set(selection) },
+      props: { live: liveStore(store), selection: new Set(selection) },
     });
     flushSync();
   }

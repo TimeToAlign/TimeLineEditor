@@ -1,11 +1,13 @@
 /**
- * Distances outwards from the root's line, the bands that fill a side, and
- * the canvas positions of a member drawing once it is placed
- * (`docs/drawing.md` in timeskeleton, sections 3.3, 6.4 and 8.4).
+ * Distances outwards from the root's line, the bands that fill a side, the
+ * canvas positions of a member drawing once it is placed, and an element
+ * shifted from the place origin into the box (`docs/drawing.md` in
+ * timeskeleton, sections 3.3, 6.4 and 8.4).
  */
 
 import type { Real } from "@timetoalign/tilie-core";
 import type { Side } from "./cascade.ts";
+import type { DrawnElement, Point } from "./elements.ts";
 import type { Entry, Scope } from "./traversal.ts";
 
 /** The ordinate of a distance `o` outwards from the root's line: `y_root − o` above, `y_root + o` below. */
@@ -62,4 +64,52 @@ export function position(
   const lineY = (line: Entry): number =>
     line === scope.rootEntry ? yRoot : yAt(line.style.side, distance(line));
   return { x0, xn, top, yRoot, x, xEnd, yAt, beyond, lineY };
+}
+
+/**
+ * An element drawn shifted by `(dx, dy)`: each finished position measured
+ * from the place origin becomes a position in the box (section 8.4).
+ */
+export function shifted(element: DrawnElement, dx: number, dy: number): DrawnElement {
+  const point = ([x, y]: Point): Point => [x + dx, y + dy];
+  switch (element.type) {
+    case "block":
+      return element;
+    case "group":
+    case "card":
+      return { ...element, x: element.x + dx, y: element.y + dy };
+    case "timeline":
+    case "child":
+    case "ancestor":
+      return { ...element, xs: element.xs + dx, xe: element.xe + dx, y: element.y + dy };
+    case "map":
+      return { ...element, xs: element.xs + dx, xe: element.xe + dx, yc: element.yc + dy };
+    case "region":
+      return {
+        ...element,
+        x1: element.x1 + dx,
+        x2: element.x2 + dx,
+        xm: element.xm + dx,
+        yb: element.yb + dy,
+        ya: element.ya + dy,
+      };
+    case "jump":
+      return {
+        ...element,
+        start: point(element.start),
+        c1: point(element.c1),
+        c2: point(element.c2),
+        tip: point(element.tip),
+        base: point(element.base),
+        corners: [point(element.corners[0]), point(element.corners[1])],
+      };
+    case "break":
+    case "boundary":
+      return { ...element, x: element.x + dx, y1: element.y1 + dy, y2: element.y2 + dy };
+    case "wedge":
+      return { ...element, x: element.x + dx, yt: element.yt + dy, yb: element.yb + dy };
+    case "name":
+    case "label":
+      return { ...element, x: element.x + dx, baseline: element.baseline + dy };
+  }
 }

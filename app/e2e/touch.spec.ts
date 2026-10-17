@@ -2,7 +2,7 @@
  * The canvas on a touch screen. Touch points are dispatched through the
  * Chrome DevTools Protocol, which produces the touch and pointer events of a
  * real screen, one or two fingers; Playwright's own touchscreen only taps.
- * Derivation in `README.md` ("touch.spec.ts").
+ * A double tap opens an editor. Derivation in `README.md` ("touch.spec.ts").
  */
 
 import type { CDPSession, Page } from "@playwright/test";
@@ -164,6 +164,19 @@ test("the marquee toggle turns a one-finger drag into a marquee", async ({ page 
   await gesture(cdp, [await emptyPoint(page, -30, -30)], [{ x: 204, y: 68 }]);
   expect(await selection(page)).toEqual([SMALL.bare]);
   expect(await viewportOf(page)).toEqual(half);
+});
+
+test("a double tap on a card opens its timeline editor", async ({ page }) => {
+  const point = await cardPoint(page, SMALL.map, FINGER);
+  await tap(page, point);
+  await tap(page, point);
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        window.__tilie.store().editing.map(({ target, kind }) => ({ target, kind })),
+      ),
+    )
+    .toEqual([{ target: `${SMALL.map}/melody`, kind: "timeline" }]);
 });
 
 async function centre(locator: import("@playwright/test").Locator): Promise<Point> {

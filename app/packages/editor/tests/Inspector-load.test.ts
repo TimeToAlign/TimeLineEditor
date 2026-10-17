@@ -4,6 +4,7 @@
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
+import { liveStore } from "@timetoalign/tilie-arranger";
 import { createStore, createView, isLoadError, loadManifest } from "@timetoalign/tilie-core";
 import { SCHEMA_VERSION } from "@timetoalign/timeskeleton";
 import { flushSync, mount, tick, unmount } from "svelte";
@@ -30,7 +31,7 @@ it("shows a failed codec import as an alert and keeps JSON working", async () =>
     ),
   );
   if (isLoadError(manifest)) throw new Error("bare refused");
-  const store = createStore({ view: createView(), journal: [] });
+  const store = createStore({ view: createView(), journal: [], sessions: {} });
   const id = "0000000000";
   const error = store.dispatch({
     type: "add",
@@ -40,7 +41,7 @@ it("shows a failed codec import as an alert and keeps JSON working", async () =>
   expect(error).toBe(null);
   const app = mount(Inspector, {
     target: document.body,
-    props: { store, selection: new Set([id]) },
+    props: { live: liveStore(store), selection: new Set([id]) },
   });
   flushSync();
   (document.getElementById("inspector-tab-manifest") as HTMLElement).click();

@@ -495,7 +495,7 @@ The elements of manifests with several roots and groups are in `files.test.ts`.
 ## Workspace view, ids, addresses and order (`workspace.test.ts`, `workspace-ids-order.test.ts`)
 
 The view is `{meta, settings, blocks}`. `createView()` returns exactly
-`{meta: {format: "tilie-workspace", version: 2}, settings: DEFAULT_SETTINGS,
+`{meta: {format: "tilie-workspace", version: 3}, settings: DEFAULT_SETTINGS,
 blocks: {}}` and `createView(settings)` the same with those settings.
 `DEFAULT_SETTINGS` is exactly `{grid: {size: 8, snap: true}, blockDefaults:
 {scale: 1, length: 400, spacing: 1, width: null, height: null, order:
@@ -503,8 +503,9 @@ blocks: {}}` and `createView(settings)` the same with those settings.
 specification's placement defaults plus the block's scale.
 
 A block has exactly the members `id`, `parent`, `index`, `x`, `y`, `scale`,
-`length`, `spacing`, `width`, `height`, `order` and `manifest`; the test
-lists the keys of an added block. A block holds a manifest of the one shape
+`length`, `spacing`, `width`, `height`, `order`, `places`, `bands` and
+`manifest`; the test lists the keys of an added block. Its `places` and
+`bands` are checked in their own section below. A block holds a manifest of the one shape
 and records no kind of its own.
 
 `checkWorkspace` runs by block id and pins exact codes and paths, each under
@@ -576,9 +577,9 @@ different block properties.
 |---|---|---|---|---|
 | workspace | `workspace` | `grid`: an object of `size` (positive, finite) and `snap` (boolean), the members given replacing those members; `blockDefaults`: an object of any of `scale`, `length`, `spacing` (positive, finite), `width`, `height` (positive, finite, or null), `order` (the three band groups once each), the members given replacing those members; `graphical`: a `graphical` block, whole | `block` | `not_removable` |
 | block | `<block>` | `x`, `y` (finite); `index` (a fractional index no sibling of the same `parent` holds); `scale`, `length`, `spacing` (positive, finite); `width`, `height` (positive, finite, or null); `order`; `manifest` (a manifest, whole) | none | yes, with every block whose `parent` chain reaches it |
-| group | `<block>/<group id>` | nothing | none | yes, the group only (see `files.test.ts`) |
-| timeline, a root | `<block>/<id>` | `name` (string or null); `length` (a bare value on its axis, or null: not known); `locked` (boolean); `meta` (an object) | `child`, `map`, `region`, `break`, `jump`, `marker` | yes, with its subtree and what goes with it (see `files.test.ts`) |
-| timeline, a child | `<block>/<id>` | as a root, and `offset` (a bare value on its parent's axis) | as a root | as a root |
+| group | `<block>/<group id>` | `order` (its display order, or null); `place`; `band_order` (see `places.test.ts`) | none | yes, the group only (see `files.test.ts`) |
+| timeline, a root | `<block>/<id>` | `name` (string or null); `length` (a bare value on its axis, or null: not known); `locked` (boolean); `meta` (an object); `place` (an ungrouped root only), `band_order` (see `places.test.ts`) | `child`, `map`, `region`, `break`, `jump`, `marker` | yes, with its subtree and what goes with it (see `files.test.ts`) |
+| timeline, a child | `<block>/<id>` | as a root without `place`, and `offset` (a bare value on its parent's axis) | as a root | as a root |
 | conversion map | `<block>/<root>/<id>` | `map` (the payload, whole, its `id` unchanged) | none | yes |
 | region | `<block>/<root>/<id>` | `name` (string or null); `start`, `end` (bare values); `meta` (an object) | none | yes |
 | break | `<block>/<root>/<id>` | `coordinate` (a bare value); `control_type`, `condition` (strings the schema checks); `repeat_count` (an integer); `label`, `name` (string or null); `meta` (an object) | none | yes |
@@ -594,8 +595,9 @@ not read, and stored normalized (`[2, 4]` as `[1, 2]`, an integer on a
 
 The values of an `add`: a `block` is `{id, manifest, x, y}` plus any of
 `index`, `scale`, `length`, `spacing`, `width` `height` and `order`, the
-others taken from `settings.blockDefaults`, `parent` null, and `index` after
-the greatest index among the blocks without parent unless given. A `child`
+others taken from `settings.blockDefaults`, `parent` null, `places` and
+`bands` given or `{}`, and `index` after the greatest index among the blocks
+without parent unless given. A `child`
 is a timeline carrying its `offset`; a `map`, `region`, `break`, `jump` or
 `marker` is the element as its timeline stores it. Each may leave out what
 has a default: the edited manifest is put in its complete form. The value
@@ -835,7 +837,7 @@ beside its `order`) and `bundles/bundle_mixed.json` (no id, name
 1. **Blocks hold any manifest.** A workspace holding blocks of `bare.json`,
    `group_child_member.json` and `bundle_mixed.json` writes and reads back
    deep-equal, and writes again to the same bytes; its file format is
-   version 2.
+   version 3.
 2. **Invariants root by root.** `group_child_member.json` with
    `second-half`'s unit changed to `seconds` (its length written `8.0`, as
    the `float` axis of seconds represents it) is refused with exactly
@@ -1009,6 +1011,126 @@ beside its `order`) and `bundles/bundle_mixed.json` (no id, name
    or `edition` added into `score` is `duplicate_id` at `[A + "/group_1"]`
    and `[A + "/edition"]`.
 
+## Places, band orders and display orders (`places.test.ts`)
+
+A block stores two drawing inputs beside its placement (drawing.md §1):
+`places`, the stated places of its box's **items**, and `bands`, the band
+orders overriding its `order`. An item is a group's frame or an ungrouped
+root's card (drawing.md §8.1: a root no group names as a member and that
+contains no member), so a key of `places` is a group id or an ungrouped
+root's id; a key of `bands` is a group id or a timeline id at any depth. A
+place is `{x?, y?, length?, width?, height?}`, `x` and `y` finite, the
+sizes positive, at least one member stated and none null: a place without
+members is no place, so it is never stored. These are proved by what a
+stored block holds after commands and by what `checkWorkspace` reports for a
+view built as a read file would be (a stale or invented key must never
+reach a saved file, or the file would be refused on reading).
+
+Block `bundle0001` holds `bundles/bundle_mixed.json` (groups `group_1`
+[performance, score], display order score, performance, and `group_2`
+[excerpt, page], display order page, excerpt; ungrouped root
+`annotations`; root `recording` holds the member `excerpt`, so it is no
+item; `page`, `performance` and `score` are members). The items are
+exactly `group_1`, `group_2` and `annotations`. Every view is deep-frozen.
+
+**The three properties, accepted** (expected values exact):
+
+1. `set group_1 place {length: 300}`: `places` is `{group_1: {length:
+   300}}`, and nothing else in the block changes (the block equals the one
+   before with only `places` replaced).
+2. Then `place {length: null, x: 12}`: `{group_1: {x: 12}}`: a value states
+   a member, `null` unstates it, unnamed members are kept.
+3. Then `place {x: null}`: `places` is `{}`: the emptied place is deleted,
+   never stored as `{}`.
+4. `set annotations place {x: -30, y: 4.5, width: 700, height: 120}`
+   (an ungrouped root, negative and fractional positions allowed): exactly
+   that place under `annotations`.
+5. `set group_1 order ["performance", "score"]`: `graphical.order` of the
+   manifest is `{group_1: ["performance", "score"], group_2: ["page",
+   "excerpt"]}`; `set group_1 order ["score", "performance"]` (the order
+   the fixture already states) gives `group_1: ["score", "performance"]`;
+   `order: null` deletes the entry, `graphical.order` becoming exactly
+   `{group_2: ["page", "excerpt"]}`, so `memberDrawings` then lists
+   `group_1`'s members as `members` states them, `performance`, `score`.
+6. `set excerpt band_order ["flow", "regions", "children"]` (a child, at
+   depth 2), `set annotations band_order ["regions", "children",
+   "flow"]` (a root) and `set group_2 band_order ["regions", "flow",
+   "children"]`: `bands` holds exactly those three; `band_order: null` on
+   `annotations` leaves the other two.
+
+**Refusals** (exact code, path and, where one is fixed, message):
+
+7. `set score place {x: 1}` (a member): `not_an_item` at
+   `["bundle0001/score", "place"]`, message "score is not drawn in a card
+   of its own"; `set recording place {x: 1}` (holds a member):
+   `not_an_item` at `["bundle0001/recording", "place"]`. The refusal comes
+   before the value is read: `set score place {x: "a"}` is `not_an_item`
+   too.
+8. `set group_1 order ["score"]` (a member missing), `["score", "score"]`
+   (a duplicate id), `["score", "performance", "score"]`, `["score",
+   "annotations"]` and `"score"`: each `invalid_order` at
+   `["bundle0001/group_1", "order"]`, message "order must list every
+   member of group_1 once".
+9. Place values at `[address, "place", member]`: `{x: "1"}` `invalid_value`,
+   `{y: Infinity}` `non_finite_number`, `{length: 0}` and `{width: -1}`
+   `non_positive_number`, `{depth: 1}` `unknown_property` (as every `set`
+   object value names an unknown member); `place: 5` `invalid_value` at
+   `[address, "place"]`; `place: {}` `invalid_value` at `[address,
+   "place"]`, message "a place value states at least one member" (an empty
+   value would journal a command that changes nothing, which Cancel would
+   then count as a change).
+10. `band_order ["flow"]` on `excerpt`: `invalid_order` at
+    `["bundle0001/excerpt", "band_order"]`.
+11. The target's kind: `place` on the child `excerpt` is `wrong_target_kind`
+    at `["bundle0001/excerpt", "place"]`; `place` and `band_order` on the
+    block, `wrong_target_kind` at `["bundle0001", "place"]` /
+    `["bundle0001", "band_order"]`; `order` on the root `annotations`,
+    `wrong_target_kind`; a group keeps refusing every other property:
+    `locked` on `group_1`, `wrong_target_kind` at `["bundle0001/group_1",
+    "locked"]`.
+
+**Pruning.** After every command, the blocks it touched keep only the
+`places` keys that still name an item and the `bands` keys that still name a
+group or timeline; nothing else is dropped.
+
+12. With `group_2` placed (`{x: 10}`) and band-ordered, and `excerpt`
+    band-ordered `["flow", "regions", "children"]`, `remove group_2`:
+    `places` is `{}`, `bands` is exactly `{excerpt: ["flow", "regions",
+    "children"]}` (`excerpt` is still a timeline). `recording` now holds no
+    member, so it is an item: `set recording place {x: 1}` is accepted.
+13. A root becoming a member: with `annotations` placed and band-ordered,
+    `set bundle0001 manifest` to `bundle_mixed.json` with `annotations`
+    added to `group_1`'s `members` and display order: `places` is `{}`
+    and `bands` keeps `annotations` (a timeline still).
+14. `remove annotations` with `annotations` placed and band-ordered: both
+    lose the key.
+
+**A block's `places` and `bands` as stored** (`checkWorkspace`, on a view
+built as a file is, codes and paths under `["blocks", "bundle0001", …]`):
+
+15. Readers: `places: []` `invalid_value` at `[…, "places"]`; a place
+    `{}` and a place `null` `invalid_value` at `[…, "places", "group_1"]`;
+    `{x: null}` `invalid_value` at `[…, "places", "group_1", "x"]`;
+    `{x: Infinity}` `non_finite_number` and `{height: 0}`
+    `non_positive_number` at the member; `{depth: 1}` `unknown_member` at
+    `[…, "places", "group_1", "depth"]`; `bands: {score: ["flow"]}`
+    `invalid_order` at `[…, "bands", "score"]`.
+16. Keys, in code-point order, `places` before `bands`: places `{score:
+    …, nowhere: …, group_1: …}` and bands `{nowhere: …, excerpt: …}` give
+    exactly `unknown_place` at `[…, "places", "nowhere"]` ("nowhere is no
+    group and no ungrouped root of block bundle0001"), `unknown_place` at
+    `[…, "places", "score"]`, and `unknown_band_key` at `[…, "bands",
+    "nowhere"]` ("nowhere is no group and no timeline of block
+    bundle0001"). Keys are checked only once `places` and `bands` read.
+17. `add` a block with `places: {annotations: {y: 8}}, bands: {score:
+    ["flow", "regions", "children"]}` stores both as given; without them,
+    both are `{}`; with `places: {score: {x: 1}}`, `unknown_place` at
+    `["bundle0001", "places", "score"]`, with `bands: {nowhere: […]}`
+    `unknown_band_key` at `["bundle0001", "bands", "nowhere"]`, with
+    `places: {group_1: {}}` `invalid_value` at `["bundle0001", "places",
+    "group_1"]`: an `add` states its keys, so a key it gets wrong is
+    refused, never dropped.
+
 ## Deleting a segment (`segments.test.ts`)
 
 Removing a segment S from its segment line Λ leaves a gap, and the `remove`
@@ -1108,11 +1230,12 @@ lifts that lock yet, and these cases prove the gap rules for when one does.
 ## The store and the journal (`store.test.ts`)
 
 `createStore(workspace, {author?, clock?})` holds a `Workspace = {view,
-journal}`. Every `Entry` is `{command, author, time}`: the command as
-`parseCommand` normalizes it, the author (default `"Gerhardt"`, changed by
-`setAuthor`), and `clock().toISOString()` (ISO 8601 UTC with milliseconds).
-The tests inject a clock returning `2026-10-11T14:03:12.418Z` plus one second
-per call.
+journal, sessions}`. An `Entry` of a journal is a `CommandEntry` `{command,
+author, time}` (the command as `parseCommand` normalizes it) or a
+`SessionEntry` `{session, author, time}` (a closed editor session, below);
+the author is `"Gerhardt"` by default, changed by `setAuthor`, and the time
+`clock().toISOString()` (ISO 8601 UTC with milliseconds). The tests inject a
+clock returning `2026-10-11T14:03:12.418Z` plus one second per call.
 
 1. **Stamping.** Three accepted dispatches give exactly three entries with
    authors `Gerhardt`, `Gerhardt`, `Ada` (after `setAuthor("Ada")`) and
@@ -1126,7 +1249,7 @@ per call.
    restores the same objects and entries; `canUndo` and `canRedo` follow
    exactly; undo and redo with nothing to do change nothing. A new dispatch
    after an undo clears the redo stack (`canRedo` false).
-4. **Undo past the session's start.** A store created from a workspace whose
+4. **Undo past the loaded view.** A store created from a workspace whose
    journal holds three entries (written by another store) undoes three
    times; each view deep-equals the other store's view after the same
    prefix, and the last equals `createView()`; redo then restores the
@@ -1135,42 +1258,442 @@ per call.
    view after every accepted dispatch, undo and redo; the returned function
    unsubscribes.
 
+## Editor sessions (`sessions.test.ts`)
+
+An editor is opened on an element with `store.open(target)`; the commands
+made in it until `done()` or `cancel()` are its **session**. Opening, Done
+and Cancel are store operations, never commands. The open editors are the
+store's `editing` path, outermost first, each `{session, target, kind,
+earlier}`. Every level (the main journal, then one per open editor) keeps
+its own entries and redo stack; `entries`, `undone`, `canUndo` and
+`canRedo` show the innermost level only. A closed session is stored once,
+`sessions[id] = {target, entries}`, and journalled on the level below as
+one `SessionEntry` naming it: the target is never repeated in the entry.
+Undoing that entry reverts the whole session.
+
+The cases run on block `bundle0001` holding `bundles/bundle_mixed.json`
+(groups `group_1` [performance, score] and `group_2` [excerpt, page], the
+ungrouped root `annotations`), added by the store's first dispatch. "A
+`set`" in an editor of `group_1` is `set bundle0001/score name` or
+`set bundle0001/performance name`, both inside the group.
+
+1. **Ids and kinds.** `mintSessionId(fill)` draws bytes from `fill` exactly
+   as `mintBlockId` does (a byte below 252 gives the digit `byte % 36` of
+   `0-9a-z`, others are skipped): bytes 0, 1, 35, 36, 252, 255, 71, 2, 3,
+   4, 5, 6 give exactly `01z0z23456`; without `fill` the id matches
+   `^[0-9a-z]{10}$`. `editorKindOf(view, address)`:
+   `bundle0001` → `bundle`; `bundle0001/group_1` → `group`;
+   `bundle0001/annotations` (a root) and `bundle0001/excerpt` (a child) →
+   `timeline`; `workspace`, `bundle0001/name` (the title),
+   `bundle0001/group_1/name`, `bundle0001/score/card` and an entry address
+   of the manifest → `no_editor` "<address> has no editor" at
+   `[<address>]`; `bundle0001/nothing` and `0000000009` → `unknown_target`
+   at `[<address>]`.
+2. **Done.** `open bundle0001/group_1` gives `editing` exactly one
+   editor `{session: <ten characters>, target: "bundle0001/group_1", kind:
+   "group", earlier: null}`, `entries` `[]`, `canUndo` false, the view
+   unchanged (the same object). Two `set`s give `entries.length` 2 and an
+   unchanged `journal` (the `add` only). `done()` leaves `editing` empty;
+   the journal is the `add` plus `{session: <that id>, author: "Gerhardt",
+   time: <the clock's next tick>}`; `sessions` is exactly `{<id>: {target:
+   "bundle0001/group_1", entries: <the two command entries>}}`; the view is
+   the one after both sets (the same object). `undo()` gives the view at
+   opening (the same object) and `undone` that one `SessionEntry`; `redo()`
+   gives the view after both sets again (the same object).
+3. **Undo inside a session stops at its start.** In 2's editor after one
+   `set`, two `undo`s leave `entries` `[]`, `undone` the one entry, the
+   view at opening and the main journal untouched (the `add` alone).
+4. **Cancel and its count.** Open, two `set`s, one `undo`:
+   `changes` is 1 (a fresh session: `o = []`, `c` one entry). `cancel()`:
+   `editing` empty, the view the object at opening, the journal and
+   `sessions` deep-equal to those at opening, `undone` and `canRedo` as at
+   opening. With no editor open `changes` is 0.
+5. **Reopen while it is the latest entry: unfolded.** After 2's
+   Done, `open bundle0001/group_1` again: `editing[0]` has 2's session id
+   and `earlier` null; `entries` are 2's two entries (the same objects),
+   `canUndo` true, `changes` 0, the journal is the `add` alone and
+   `sessions` is `{}` (the open session is not closed). Two `undo`s give
+   the view before 2's sets (deep-equal to the view after the `add`) and
+   `changes` 2; `done()` records nothing: the journal is the `add` alone,
+   one entry shorter than after 2, and `sessions` is `{}`.
+6. **Unfolded, then cancelled.** After 2's Done, reopening and one `undo`
+   give `changes` 1 (`o` two entries, `c` the first of them, common prefix
+   1); `cancel()` restores the journal (the `add` and the very same
+   `SessionEntry` object), `sessions` deep-equal to after 2, and the view
+   after both sets (the same object).
+7. **Changes by common prefix.** In 5's unfolded editor, one `undo` and a
+   new `set` give `changes` 2 (`o` two entries, `c` the first and a new
+   one, common prefix 1: one discarded, one added).
+8. **Reopen after a later entry: fresh.** After 2's Done, a
+   main-level `set bundle0001 x 40`, then `open bundle0001/group_1`: a new
+   session id (not 2's), `earlier` 2's id, `entries` `[]`, `canUndo` false,
+   the journal three entries (the `add`, the session, the `set`). Opening
+   `bundle0001/group_2` after 2's Done gives `earlier` null (no session of
+   that target).
+9. **Nested sessions.** `open bundle0001` (the bundle editor, kind
+   `bundle`), one `set bundle0001/annotations name "A"`, `open
+   bundle0001/group_1`, one `set`, `done()`: the bundle editor's `entries`
+   are the command and one `SessionEntry` of the inner session; `done()`
+   again: the journal is the `add` and one `SessionEntry` of the bundle
+   session, whose `entries` are the command and the inner `SessionEntry`;
+   `sessions` holds both. `replay(journal, sessions).at(-1)` deep-equals
+   the store's view, and `replay` gives one view per entry of `journal`
+   (length 3). `undo()` once on the main level gives the view after the
+   `add`.
+10. **Cancel of a nested editor.** In 9, after the inner `set`, `cancel()`
+    closes only the inner editor: `editing` is the bundle editor alone,
+    `entries` its one command, the view the one after it (the same object);
+    `done()` then journals a session of one entry.
+11. **Opening refusals.** `open workspace` → `no_editor`; `open
+    bundle0001/nothing` → `unknown_target`; inside `open bundle0001/group_1`:
+    `open bundle0001/group_1` (the target itself) → `not_inside`
+    "bundle0001/group_1 does not lie inside bundle0001/group_1" at
+    `["bundle0001/group_1"]`; inside `open bundle0001`: `open bundle0001`
+    → `not_inside`; a refused open changes neither `editing` nor the
+    listeners' count. Done and Cancel with no editor open change nothing.
+12. **Snapshot.** Open `bundle0001/group_1`, one `set`;
+    `snapshot()` gives the view, a journal ending with a `SessionEntry`
+    whose session (in the snapshot's `sessions`) is `{target:
+    "bundle0001/group_1", entries: [<the set>]}`; `editing` still has one
+    editor and `entries` still one. `readWorkspace(writeWorkspace(snapshot))`
+    gives the same journal and sessions (deep-equal). Nested: in 9 before
+    either Done, `snapshot()` folds the inner editor into the bundle
+    session first; its journal is the `add` and one `SessionEntry`
+    (`isSessionEntry` holds for its second entry) naming the bundle
+    editor's session, whose entries end with a `SessionEntry` naming the
+    inner editor's session, and `replay` of its journal and sessions
+    deep-equals the view. With no
+    editor open, `snapshot()` holds only the sessions its journal reaches:
+    after 2's Done and an `undo`, `sessions` is `{}`.
+13. **Listeners.** Each of `open`, a dispatch inside an editor, `undo`,
+    `redo`, `done` and `cancel` calls the listener exactly once.
+14. **The side-effect guard through the store.** In the editor
+    of `bundle0001/group_1`: `set group_1 place {length: 300}` accepted;
+    `set group_2 place {x: 10}` → `side_effect` at
+    `["bundle0001/group_2"]`; `set score name "S"` accepted; `set
+    annotations name "A"` → `side_effect` at `["bundle0001/annotations"]`;
+    `set bundle0001 length 500` → `side_effect` at `["bundle0001",
+    "length"]`, `width 900` accepted; `style {select: {element:
+    "timeline"}, set: {stroke: "#FF0000"}}` → `side_effect` at
+    `["bundle0001", "manifest", "graphical", "statements"]`, with `select:
+    {ids: ["score"]}` accepted; `open bundle0001/group_2` → `not_inside`.
+    A refused command journals nothing in the editor. In the editor of
+    `bundle0001/group_2`, `remove excerpt` → `side_effect` at
+    `["bundle0001/recording"]`, message "bundle0001/recording lies
+    outside bundle0001/group_2: an editor changes only what it edits"
+    (the member's parent, never the member, guard case 24), and the
+    editor's `entries` stay `[]`; `remove page`, a root member, is
+    accepted (guard case 26): the editor's `entries` hold that one
+    `remove`, and the view's manifest has no timeline `page`, `group_2`'s
+    `members` are `["excerpt"]` and `graphical.order.group_2` is
+    `["excerpt"]`. In the bundle editor
+    (`open bundle0001`), `remove bundle0001` → `side_effect` at
+    `["bundle0001"]`, message "the removal of bundle0001 lies outside
+    bundle0001: an editor changes only what it edits"; `editing` is still
+    that one editor and its `entries` still `[]`.
+15. **Done on an emptied unfolded session clears the redo stack below.**
+    After the `add`, `open bundle0001/group_1`, `set score name "S"`,
+    `done()` (the journal is the `add` and the session); a main-level `set
+    bundle0001 x 40` and its `undo` (the redo stack holds that `set`,
+    whose view was computed with the session applied); `open
+    bundle0001/group_1` unfolds the session, `undo` empties it and `done()`
+    records nothing. Taking the session off the main level changed that
+    level, so `canRedo` is false, and `redo()` changes nothing: the journal
+    is the `add` alone, the view deep-equals the view after the `add`
+    (score named "Score"), and `replay(snapshot().journal,
+    snapshot().sessions).at(-1)` deep-equals `snapshot().view`. Were the
+    stale `set` redone, the view would keep score named "S" while its
+    journal replays to "Score".
+
+## Containment and the side-effect guard (`contains.test.ts`, `guard.test.ts`)
+
+An editor changes only the element it edits and what that element holds;
+the block's box adapting to it is no side effect. Two pure functions
+decide it, and the store calls the second on every command made in an
+editor, with the innermost editor's target.
+
+`contains(manifest, container, element)` says whether an element address
+(a part allowed) lies inside a timeline or a group. What it must get right
+is the boundary drawing.md §2.2 draws with "Belongs to": a timeline holds
+everything belonging to it or to a descendant, parts included, while an
+ancestor line, drawn inside a member's card, carries the ancestor's
+address and so belongs to the ancestor; a group holds its frame, its title
+and what its members hold, never what their ancestors hold. The proof is
+the exact list of contained addresses over a whole enumeration, which
+catches an element wrongly in as well as one wrongly out.
+
+`sideEffect(before, after, target)` returns the first change outside the
+target as `side_effect`, message `<what> lies outside <target>: an editor
+changes only what it edits`, or `null`. The rules are checked in a fixed
+order and the first hit decides the path, so each rule is proved once by
+its path, and the order by changes that hit several rules at once. The
+manifest is compared on a projection that hides the edited element's own
+object (a group's object and each member's), the group's display order,
+and the statements and styles that reach only inside elements; a test
+that changes exactly one hidden thing must be accepted and a test that
+changes exactly one visible thing must be refused at that thing's
+address. An element the target contains in `before` and that no longer
+exists in `after` is removed inside the target, never a difference. A
+refusal and an acceptance are asserted as the whole result (`toEqual` on
+the problem, `toBeNull`).
+
+Block `bundle0001` holds `bundles/bundle_mixed.json` (groups `group_1`
+[performance, score], display order score, performance, and `group_2`
+[excerpt, page], display order page, excerpt; ungrouped root
+`annotations`; root `recording` holds the member `excerpt` and is drawn
+only as its ancestor line). `before` is the view of that block alone,
+added by `add`; `after` is reached by `apply` where the command exists,
+otherwise built by replacing one member of `before`'s block (each case
+says which). `G1` is `bundle0001/group_1`.
+
+**`contains`** (`contains.test.ts`):
+
+1. **A group.** Of the addresses of `manifestElements(bundle_mixed)`, in
+   that order, `group_2` contains exactly `group_2`, `group_2/name`,
+   `page/card`, `page`, `page/name`, `page/start`, `page/start/label`,
+   `page/end`, `page/end/label`, `excerpt/card`, `excerpt/start`,
+   `excerpt/start/label`, `excerpt/end`, `excerpt/end/label`, `excerpt`,
+   `excerpt/name`, `excerpt/start`, `excerpt/start/label`, `excerpt/end`,
+   `excerpt/end/label`: never the ancestor line `recording` or its name.
+   `group_1` contains neither `group_2` nor `annotations/card`.
+2. **A root holding a member.** `recording` contains exactly the elements
+   of `excerpt`'s card: `excerpt/card`, `recording`, `recording/name`,
+   `excerpt/start`, `excerpt/start/label`, `excerpt/end`,
+   `excerpt/end/label`, `excerpt`, `excerpt/name`, `excerpt/start`,
+   `excerpt/start/label`, `excerpt/end`, `excerpt/end/label`.
+3. **A child.** `excerpt` contains exactly 2's list without `recording`
+   and `recording/name`.
+4. **Entries belong to the timeline holding them.** In `map.json`,
+   `phrase` contains `melody/ticks` (its map) and not `melody/tempo`;
+   `melody` contains both and `phrase/name`.
+5. **Anything else contains nothing.** The title `name`, the map
+   `melody/tempo`, the card `melody/card` and the unknown `nothing`
+   contain not even themselves; no container contains the title or an
+   unknown address; `group_1` does not contain `group_2` (an editor of
+   `group_1` cannot open `group_2`'s).
+
+**`sideEffect`, the exact cases** (`guard.test.ts`), each in the editor of
+`G1` unless named:
+
+6. `set group_1 place {length: 300}` (`places` replaced) → `null`.
+7. `set group_2 place {x: 10}` (`places` replaced) → `side_effect` at
+   `["bundle0001/group_2"]`, message `the place of bundle0001/group_2 lies
+   outside bundle0001/group_1: an editor changes only what it edits`.
+8. `set score name "S"` (`apply`) → `null`.
+9. `set annotations name "A"` (`apply`) → `side_effect` at
+   `["bundle0001/annotations"]`, message `bundle0001/annotations lies
+   outside bundle0001/group_1: …`: the first element of the enumeration
+   that differs is `annotations/card`, reported as its element.
+10. `set bundle0001 length 500` (`apply`) → at `["bundle0001", "length"]`;
+    `set bundle0001 {x: 40, y: -8, width: 900, height: 300}` (`apply`) →
+    `null`.
+11. `style {select: {element: "timeline"}, set: {stroke: "#FF0000"}}`
+    (`apply`) → at `["bundle0001", "manifest", "graphical",
+    "statements"]`; the same with `select: {ids: ["score"]}` → `null`.
+
+**Each rule's path, once:**
+
+12. **Settings.** `grid` replaced by `{size: 16, snap: true}` → at
+    `["workspace", "grid"]`, message `the workspace setting grid lies
+    outside …`, in `G1`'s editor and in the bundle editor `bundle0001`
+    alike.
+13. **Another block.** With a second block `0000000000` holding
+    `bare.json`: `set 0000000000 x 50`, `add` of block `0000000001`
+    (`bare.json`) and `remove 0000000000` (all `apply`) → at
+    `["0000000000"]`, `["0000000001"]`, `["0000000000"]`, message `block
+    0000000000 lies outside …`; the bundle editor refuses the move alike.
+14. **Band orders.** `bands` replaced by `{annotations: ["flow",
+    "regions", "children"]}` → at `["bundle0001/annotations"]`, message
+    `the band order of bundle0001/annotations lies outside …`; by
+    `{score: …}` → `null` (a member); in the editor of
+    `bundle0001/group_2`, by `{recording: …}` → at
+    `["bundle0001/recording"]` (an ancestor of a member is outside).
+15. **A top-level member.** The manifest's `name` replaced by `"Other"` →
+    at `["bundle0001", "manifest", "name"]`.
+16. **A named style.** After `style {select: {element: "timeline"}, set:
+    {stroke: "#FF0000"}, name: "accent"}`, the same with `stroke:
+    "#00FF00"` (`apply`, the statement unchanged) → at `["bundle0001",
+    "manifest", "graphical", "styles"]`; with `select: {ids: ["score"]}`
+    for both, the style is used only by an inside statement → `null`.
+17. **A display order.** `graphical.order.group_1` replaced by
+    `["performance", "score"]` → `null` in `G1`'s editor; at
+    `["bundle0001", "manifest", "graphical", "order"]` in the editor of
+    `bundle0001/score`.
+18. **The edited element removed.** `remove G1` (`apply`) → at
+    `["bundle0001/group_1"]`, message `the removal of bundle0001/group_1
+    lies outside …`; the block removed (`remove bundle0001`) → the same.
+    In the editor of the root `bundle0001/annotations`, `remove annotations`
+    → at `["bundle0001/annotations"]`, message `the removal of
+    bundle0001/annotations lies outside bundle0001/annotations: …`. In
+    the bundle editor `bundle0001`, `remove bundle0001` → at
+    `["bundle0001"]`, message `the removal of bundle0001 lies outside
+    bundle0001: …`: an editor never removes the element it edits, whatever
+    its kind.
+
+**The order of the rules:**
+
+19. With the second block of 13, the `style` of 11 without `blocks`
+    touches both blocks and is refused at `["0000000000"]` (another
+    block), not at the statements (the manifest).
+20. One `after` with `grid` replaced, the block's `length` 500, `places`
+    `{group_2: {x: 10}}` and the name of `annotations` "A" → at
+    `["workspace", "grid"]`; without the grid → at `["bundle0001",
+    "length"]`; without the length too → at `["bundle0001/group_2"]`;
+    with the name alone → at `["bundle0001/annotations"]`.
+
+**Statements, inside and outside:**
+
+21. **Inside in both manifests.** `statementInside(manifests, element)`
+    (from `workspace/guard.ts`) holds for a statement when every element
+    it matches in each manifest is contained there. With `after`'s
+    manifest built with `group_1`'s members `[performance]` (its display
+    order removed), `{select: {ids: ["score"]}}` is inside `group_1` over
+    `[before]` and outside over `[before, after]`; `{select: {element:
+    "timeline"}}` is outside over `[before]`; `{select: {ids:
+    ["nothing"]}}` matches nothing and is inside. Through `sideEffect`
+    such an `after` is refused already at `["bundle0001/score"]`, since
+    `score`'s object stands as `{id}` only while it is a member: a
+    statement can move across the boundary only with a change the
+    projection shows, so the rule is pinned on the helper.
+
+**Editors of a timeline and of the bundle:**
+
+22. **A child's editor.** In the editor of `bundle0001/excerpt`, `set
+    recording name "R"` (`apply`) → at `["bundle0001/recording"]`; `set
+    excerpt name "E"` → `null`.
+23. **The bundle editor.** In the editor of `bundle0001`, `set
+    annotations name "A"`, `set bundle0001 length 500`, the `style` of
+    11, and `places` replaced by `{group_2: {x: 10}}` each → `null`; only
+    rules 1 and 2 and its own removal (18) apply to it.
+
+**The element a manifest refusal names:**
+
+A refusal names a change outside the target, so of the differing
+elements it names the first, in the enumeration's order, that the target
+contains neither in `before` nor in `after`. A differing element the
+target contains on one side only (a member joining or leaving its group)
+is named only when nothing outside differs, as in 21.
+
+24. **A member removed in its group's editor.** In the editor of
+    `bundle0001/group_2`, `remove excerpt` (`apply`) → `side_effect` at
+    `["bundle0001/recording"]`, message `bundle0001/recording lies
+    outside bundle0001/group_2: an editor changes only what it edits`.
+    The enumeration meets `excerpt/card` first, and `excerpt`'s stand-in
+    does disappear, but that is a removal inside `group_2`; what lies
+    outside is its parent `recording`, whose `children` lose it.
+25. **A timeline's editor.** In the editor of `bundle0001/recording`,
+    `set excerpt name "E"` (`apply`) differs only inside its subtree →
+    `null`, while `remove excerpt` reaches `group_2`, which names it as a
+    member → at `["bundle0001/group_2"]`, message `bundle0001/group_2
+    lies outside bundle0001/recording: …`. In the editor of
+    `bundle0001/excerpt`, one `set` naming `excerpt` "E" and `recording`
+    "R" (`apply`) → at `["bundle0001/recording"]`, message
+    `bundle0001/recording lies outside bundle0001/excerpt: …`: the
+    change reaching the parent names the parent.
+
+**Removals inside the target:**
+
+A group's editor may remove a member that is a root: the member's
+object and the group's `members` and display order all lie inside the
+group, and nothing outside it names the member. A timeline's editor
+hides its whole subtree, so removing a descendant shows nothing at all
+in its projection; only what names the descendant from outside (a
+group, 25) is refused. The proof is the manifest after the removal,
+which must have lost the member everywhere the group held it, next to
+the two removals that do reach outside.
+
+26. **A root member removed in its group's editor.** In the editor of
+    `bundle0001/group_2`, `remove page` (`apply`) → `null`; the manifest
+    after has no timeline `page`, `group_2`'s `members` are
+    `["excerpt"]` and `graphical.order.group_2` is `["excerpt"]`.
+27. **Removals that reach outside stay refused.** In the same editor,
+    `remove excerpt` → at `["bundle0001/recording"]` (24); `page` leaving
+    `group_2` while it stays an ungrouped root (`after` built with
+    `group_2`'s `members` `["excerpt"]` and its display order
+    `["excerpt"]`) → `side_effect` at `["bundle0001/page"]`, message
+    `bundle0001/page lies outside bundle0001/group_2: an editor changes
+    only what it edits`: `page` then lies outside, its whole object
+    standing where its stand-in stood.
+
 ## The workspace file (`file.test.ts`)
 
-`writeWorkspace(workspace)` is timeskeleton's `dumps` of `{meta, settings,
-blocks, journal}`; `readWorkspace(text)` reads with timeskeleton's
-`parseJson` (lossless; `parse` validates a manifest and does not apply to the
-workspace) and returns a `Workspace` or a `LoadError`.
+`writeWorkspace(workspace)` is timeskeleton's `dumps` (keys sorted) of
+`{meta, settings, blocks, journal, sessions}`, format version 3;
+`readWorkspace(text)` reads with timeskeleton's `parseJson` (lossless;
+`parse` validates a manifest and does not apply to the workspace) and
+returns a `Workspace` or a `LoadError`. An entry is exactly `{command,
+author, time}` or `{session, author, time}` (chosen by the presence of
+`session`); a session is exactly `{target, entries}`, its target an
+address, its entries entries, at least one (Done never closes a session
+without entries); a session id is ten characters of `0-9a-z`, as a key of
+`sessions` and in an entry. Every session is reached exactly once from
+`journal` through session entries.
 
 1. **Round trip.** A workspace built by a store (blocks of `bare.json` and
    `map.json`, a move, a style, an undone command excluded) is written; the
    text read back deep-equals the workspace, and writing it again gives the
    same bytes. Its members are exactly `blocks`, `journal`, `meta`,
-   `settings`; `meta` is exactly `{format: "tilie-workspace", version: 2}`.
+   `sessions`, `settings`; `meta` is exactly `{format: "tilie-workspace",
+   version: 3}`; `sessions` is `{}`.
 2. **Replay.** Replaying the read journal from `createView()` gives exactly
    the read `settings` and `blocks`.
 3. **Refusals**, each exactly one problem `{code, path}`: text `{` →
    `invalid_json` at `[]`; `format: "other"` → `unsupported_format` at
-   `["meta", "format"]`; `version: 1` (with the blocks of that version's
-   form, each carrying a `blockKind`) → exactly one problem,
-   `unsupported_version` at `["meta", "version"]`, message `workspace
-   version 1 is not supported; this editor reads version 2 only`, nothing
-   else of the file read; `version: 3` the same; a top-level member `extra` → `unknown_member` at
+   `["meta", "format"]`; `version: 4` → `unsupported_version` at `["meta",
+   "version"]`; a top-level member `extra` → `unknown_member` at
    `["extra"]`; `meta.created` → `unknown_member` at `["meta", "created"]`;
    `settings.styles` → `unknown_member` at `["settings", "styles"]`; a
    block's `overrides` → `unknown_member` at `["blocks", A, "overrides"]`; a
    journal entry's `note` → `unknown_member` at `["journal", 0, "note"]`; no
-   `journal` → `missing_member` at `["journal"]`; a block's `x` given as
-   `"0"` → `invalid_value` at `["blocks", A, "x"]`; a block's `blockKind`
-   → `unknown_member` at `["blocks", A, "blockKind"]`; a block manifest
+   `journal` → `missing_member` at `["journal"]`; no `sessions` →
+   `missing_member` at `["sessions"]`; a block's `x` given as `"0"` →
+   `invalid_value` at `["blocks", A, "x"]`; a block's `blockKind` →
+   `unknown_member` at `["blocks", A, "blockKind"]`; a block manifest
    declaring `0.6.0` → `schema_violation` at `["blocks", A, "manifest",
    "timeskeleton"]`; a block manifest with a region ending before it starts
    → `region_end_before_start` at its path below `["blocks", A,
-   "manifest"]`; an
-   entry time `yesterday` → `invalid_value` at `["journal", 0, "time"]`; an
-   entry command of type `move` → `invalid_command` at `["journal", 0,
-   "command", "type"]`.
-4. **Block manifests in either form.** The round-trip workspace's text with
+   "manifest"]`; an entry time `yesterday` → `invalid_value` at
+   `["journal", 0, "time"]`; an entry command of type `move` →
+   `invalid_command` at `["journal", 0, "command", "type"]`.
+4. **Version 2.** A version-2 file (the round trip's text with
+   `version: 2` and without `sessions`) is refused for its version alone:
+   exactly one problem, `unsupported_version` at `["meta", "version"]`,
+   message `workspace version 2 is not supported; this editor reads version
+   3 only`.
+5. **Sessions in the file.** On the text of a workspace whose journal is
+   the `add` of block `A` holding `bundles/bundle_mixed.json` and one entry
+   naming session `s = "session001"`, `{target: "<A>/group_1", entries:
+   [<set A/score name "S">]}` (a store's two entries written, the second
+   then moved into the session by editing the text, so the file is read
+   without any editor), each change gives exactly the problems listed, `{code,
+   path}` in this order (first every session entry in turn, the journal's,
+   then each session's in key order: one naming no session is
+   `unknown_session`, one naming a session an earlier entry named is
+   `session_referenced_twice`; then every session not reached from the
+   journal, in key order, `unreferenced_session`; nothing of this is
+   checked while another problem stands): the journal entry naming
+   `0000000099` instead of `s` → `unknown_session` at `["journal", 1,
+   "session"]` and `unreferenced_session` at `["sessions", s]`; an extra session
+   `0000000098` (holding `s`'s entries) that nothing names →
+   `unreferenced_session` at `["sessions", "0000000098"]`; two sessions `0000000097` and
+   `0000000098` naming each other and nothing else naming them →
+   `unreferenced_session` at `["sessions", "0000000097"]` and at
+   `["sessions", "0000000098"]` (exactly these two); `s`'s entries gaining
+   a second entry naming `s` itself → `session_referenced_twice` at
+   `["sessions", s, "entries", 1, "session"]`; an entry with both
+   `command` and `session` → `unknown_member` at `["journal", 1,
+   "command"]`; a session's `note` → `unknown_member` at `["sessions", s,
+   "note"]`; a session without `target` → `missing_member` at
+   `["sessions", s, "target"]`; a session target `nowhere` →
+   `invalid_address` at `["sessions", s, "target"]`; the entry naming
+   `Session001` (upper case)
+   → `invalid_value` at `["journal", 1, "session"]`; a key `bad` of
+   `sessions` → `invalid_value` at `["sessions", "bad"]`; `s`'s entries
+   `[]` → `invalid_value` at `["sessions", s, "entries"]`, message "a
+   session holds at least one entry". The unchanged
+   text reads back to a workspace whose `replay(journal, sessions).at(-1)`
+   deep-equals its view.
+6. **Block manifests in either form.** The round-trip workspace's text with
    every block manifest written in its minimal form reads as a workspace
    deep-equal to the one read from the original text: a block holds the
    complete form.
@@ -1188,7 +1711,12 @@ Each fixture starts as block `A` beside a block `B` of `bare.json`, in a
 store with an injected clock. The fixtures are every manifest fixture of
 the installed package; the generator draws timelines and groups by their
 bare ids and the other elements by `<root id>/<id>`, and adds into the tree
-of the timeline it targets.
+of the timeline it targets. Among the commands are a group's or timeline's
+`place` (members stated, unstated with null, empty, unknown), `band_order`
+(valid, null, too short) and a group's display `order` (its members turned,
+null, one missing), on groups, timelines, the block and unknown targets, so
+every saved file also proves that no stale `places` or `bands` key survives
+a command.
 
 1. After every accepted command `checkWorkspace` is empty, and every block's
    manifest saves and reloads deep-equal with identical text.
@@ -1208,7 +1736,7 @@ of the timeline it targets.
    `invalid_index`, `invalid_order`, `invalid_value`,
    `length_below_content`, `locked`, `map_source_unit_mismatch`,
    `negative_child_offset`, `non_finite_number`, `non_positive_number`,
-   `not_removable`, `number_type_not_allowed`, `region_end_before_start`,
+   `not_an_item`, `not_removable`, `number_type_not_allowed`, `region_end_before_start`,
    `schema_violation`, `segment_end_fixed`, `segment_never_locked`,
    `unknown_property`, `unknown_target`, `wrong_target_kind`.
    `unlocking_not_supported` is not among them: the sample never sets
@@ -1219,6 +1747,38 @@ of the timeline it targets.
    therefore carries an explicit timeout of 20 s, about three times the
    slowest measurement. The sample is kept whole rather than cut down: a
    smaller one would reach the catalogue only by the luck of the seed.
+   The catalogue holds the codes of commands applied to a view; the
+   refusals of the store's editors (`no_editor`, `not_inside`,
+   `side_effect`) are pinned by the session and guard tests.
+
+**Editing sequences.** The same fixtures, in the same store, run sequences
+of up to 30 steps, each a seed with an operation: a command, opening an
+editor, a reopen (the target of the latest session of the innermost
+level, so the reopen rule unfolds it), a whole session (open, one or two
+commands, Done), an unfold (reopen, undo all of its entries or the last
+one, Done), Done, Cancel, undo and redo. A command in an open editor is
+mostly one that stays inside it (a name of what it holds, its place, band
+order or display order, the box's width), sometimes any generated command,
+so the guard both accepts and refuses; a target to open is mostly one the
+innermost editor holds, so editors nest, sometimes one outside it, one
+without an editor or one naming nothing. Ten sequences per fixture.
+
+8. A step that changes nothing (a refused command or opening, undo or redo
+   with nothing to do, Done or Cancel with no editor open) leaves the view
+   and the editing path the same objects.
+9. After every other step, `replay(snapshot().journal,
+   snapshot().sessions).at(-1)` deep-equals `snapshot().view`, and
+   `readWorkspace(writeWorkspace(snapshot()))` deep-equals the snapshot
+   (view, journal and sessions).
+10. After every such step, redoing every undone entry of the innermost
+    level gives a snapshot whose journal replays to its view too; the
+    entries are then undone again. A redo stack kept across a change of
+    the level below it (a Done that took a session off it) fails here.
+    The two property tests take about the same time per fixture: measured
+    in one run with a load average of 7, the command sequences 6.9 s and
+    the editing sequences 7.4 s over all fixtures (about 13 ms per
+    sequence each); steps that change nothing are not checked again, since
+    8 proves they leave the store as it was.
 
 ## Budgets (`budget.test.ts`)
 

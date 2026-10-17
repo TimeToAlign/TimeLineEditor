@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { Viewport } from "@xyflow/svelte";
+import type { Viewport, XYPosition } from "@xyflow/svelte";
 import { ControlButton, Controls, useSvelteFlow } from "@xyflow/svelte";
 import { roving } from "./roving.ts";
 
@@ -33,11 +33,17 @@ function fitBlocks(): void {
 }
 
 /**
- * Show the canvas at `viewport`. Svelte Flow keeps its own pan and zoom
+ * Show the canvas at `viewport`, moving there smoothly over `duration`
+ * milliseconds (at once by default). Svelte Flow keeps its own pan and zoom
  * state, so a viewport is set through it rather than by writing the bound value.
  */
-export function setViewport(viewport: Viewport): void {
-  void flow.setViewport(viewport);
+export function setViewport(viewport: Viewport, duration = 0): void {
+  void flow.setViewport(viewport, { duration, interpolate: "smooth" });
+}
+
+/** The canvas point under the screen point `client` (client pixels), never snapped to the grid. */
+export function toCanvas(client: XYPosition): XYPosition {
+  return flow.screenToFlowPosition(client, { snapToGrid: false });
 }
 </script>
 

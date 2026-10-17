@@ -137,7 +137,7 @@ describe("setting a length to and from null", () => {
   });
 
   it("is undone like any other command", () => {
-    const store = createStore({ view: viewOf([16, 1]), journal: [] });
+    const store = createStore({ view: viewOf([16, 1]), journal: [], sessions: {} });
     const before = store.view;
     expect(store.dispatch(setLength(null))).toBeNull();
     expect(root(store.view).length).toBe(null);

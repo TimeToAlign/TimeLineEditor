@@ -3,7 +3,7 @@
  * (`docs/drawing.md` in timeskeleton, sections 1, 6.6 and 8).
  */
 
-import type { BandGroup, Real } from "@timetoalign/tilie-core";
+import type { BandOrder, Place, Real } from "@timetoalign/tilie-core";
 import type { TimeUnit } from "@timetoalign/timeskeleton";
 import type { Style } from "./cascade.ts";
 
@@ -13,7 +13,11 @@ export interface Placement {
   readonly spacing: number;
   readonly width: number | null;
   readonly height: number | null;
-  readonly order: readonly [BandGroup, BandGroup, BandGroup];
+  readonly order: BandOrder;
+  /** Band orders of groups and timelines, overriding `order` (sections 1 and 6.4). */
+  readonly bands: { readonly [key: string]: BandOrder };
+  /** The places of the box's items, by group id or ungrouped root id (section 8.6). */
+  readonly places: { readonly [key: string]: Place };
 }
 
 export const DEFAULT_PLACEMENT: Placement = {
@@ -22,6 +26,8 @@ export const DEFAULT_PLACEMENT: Placement = {
   width: null,
   height: null,
   order: ["children", "regions", "flow"],
+  bands: {},
+  places: {},
 };
 
 export interface ShownCoordinate {
@@ -147,9 +153,25 @@ export type DrawnElement =
   | MarkerElement
   | TextElement;
 
+/** One item of a box (section 8): a group's frame or an ungrouped root's card. */
+export interface DrawnItem {
+  /** The group id or the ungrouped root's id. */
+  readonly key: string;
+  readonly kind: "group" | "card";
+  /** `G` for a group's frame, `U/card` for an ungrouped root's card. */
+  readonly address: string;
+  /** The place with every default applied; `width` and `height` are the drawn size. */
+  readonly place: Required<Place>;
+  /** The place as the placement states it; `{}` when it states none. */
+  readonly stated: Place;
+}
+
 export interface Drawing {
   readonly width: number;
   readonly height: number;
+  /** The place origin within the box (section 8.4). */
+  readonly origin: { readonly x: number; readonly y: number };
+  readonly items: readonly DrawnItem[];
   readonly elements: readonly DrawnElement[];
   readonly unmapped: readonly number[];
 }

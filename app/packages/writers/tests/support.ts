@@ -31,6 +31,8 @@ export function boxed(
   return {
     width,
     height,
+    origin: { x: 0, y: 0 },
+    items: [],
     elements: [{ type: "block", address: null, style: background, width, height }, ...elements],
     unmapped: [],
   };

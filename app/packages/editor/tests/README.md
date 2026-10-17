@@ -77,6 +77,105 @@ Type-checking of the component and the test is done by `svelte-check` with
 `--fail-on-warnings` under `pnpm typecheck`; that gate also catches the
 compiler's accessibility warnings.
 
+## Editing (`EditingBar.test.ts`, `editing.test.ts`)
+
+An editor is a mode of the arranger on one element: the bundle editor on a
+block, the group editor on a group, the timeline editor on a root or child
+timeline. The store opens and closes them (`open`, `done`, `cancel`) and
+lists the open ones, outermost first, as `editing`, the editing path; its
+own tests prove what opening, Done and Cancel do to the view, the journal
+and the sessions. These tests prove the shell's part: the bar that shows
+the path and closes the innermost editor, the drawer opening on entering,
+and that Save and autosave write the workspace with every open editor
+folded.
+
+The store holds blocks written through `add` commands from the installed
+timeskeleton fixtures: `bundle_mixed` in block `A` (`0000000000`; the
+manifest's `name` `Mixed`, its group `group_1` named `Performance` with the
+member `score` named `Score`), `nested` in block `B` (`0000000001`; no `id`
+and no `name`, the root `clt_1` holding the child `clt_3`, neither named),
+and in block `C` (`0000000002`) `bundle_mixed` loaded after deleting its
+`name` and its group `group_2`'s `name` and setting its `id` to `mixed`, the
+one manifest no fixture provides (a bundle and a group known only by id).
+`dom.ts`'s `showModal` stub stands in for the browser's modal dialog.
+
+`EditingBar.svelte` alone (mounted with the arranger's `liveStore` of a
+store, which follows the store's `subscribe`; the inspector and the canvas
+read the same one, made once by the shell):
+
+1. **Nothing is shown while no editor is open.** With `editing` empty the
+   component renders no element.
+2. **The bar's controls, in order.** After `open(A)` there is exactly one
+   element with `role="group"` and `aria-label="Editing"`; its buttons'
+   texts are exactly `["Done", "Cancel"]` in that order (`Done` carries the
+   class `done`, `Cancel` the class `cancel`: green and red), followed by
+   the text `Editing:` and an `<ol aria-label="Editing path">`.
+3. **The path names each open editor, outermost first.** The list items'
+   texts are exactly:
+   - after `open(A)`: `["Mixed"]` (the manifest's `name`); after
+     `open(A/group_1)`: `["Mixed", "Performance"]` (the group's `name`);
+     after `open(A/score)`: `["Mixed", "Performance", "Score"]` (the
+     timeline's `name`);
+   - after `set A/score name "S"` in that editor: `["Mixed", "Performance",
+     "S"]`: the names follow the view;
+   - after `open(B)`, `open(B/clt_1)`, `open(B/clt_3)`: `["Anonymous
+     bundle", "clt_1", "clt_3"]` (no name and no id; timelines known only
+     by id);
+   - after `open(C)`, `open(C/group_2)`: `["mixed", "group_2"]` (a bundle
+     and a group known only by id).
+   The " > " between the names is drawn by CSS (`li + li::before`), which
+   jsdom does not render; the list items hold the names alone, so the path
+   reads as a list to assistive technology. The names are
+   `editorName(view, target)` of `inspector/journal.ts`, which the Editor
+   tab and the Journal tab use too (tested with the journal).
+4. **Done closes the innermost editor.** With the three editors of `A`
+   open, each click on `Done` leaves `editing` one shorter (2, 1, 0), and
+   after the last no element is rendered.
+5. **Cancel without changes closes at once.** After `open(A/score)` and no
+   command, `Cancel` closes the editor (`editing` empty) and no dialog was
+   opened (`showModal` never called).
+6. **Cancel with changes asks first.** After `open(A/score)` and `set
+   A/score name "S"`, `Cancel` opens the modal dialog: `open` is true, its
+   question reads exactly `Are you sure you want to discard 1 change?`, its
+   buttons are exactly `["Yes", "No"]`, and `No` holds the focus. Each of
+   these keeps the editor: `No`; Escape (as the browser handles it: a
+   cancelable `cancel` event on the dialog, then `close()`, since jsdom
+   implements no Escape); a click whose target is the dialog element itself
+   (the backdrop: the dialog has no padding, its content fills it). After
+   each the dialog is closed, `editing` still has one editor, `changes` is
+   still 1 and the timeline is still named `S`. A click on the question
+   text leaves the dialog open. `Yes` closes the dialog and the editor:
+   `editing` is empty, the view is the very object it was before `open`
+   and the journal is as long as it was then.
+7. **The count is the store's.** After a second `set` (`A/score name
+   "T"`), the question reads exactly `Are you sure you want to discard 2
+   changes?`.
+
+`App.svelte` (`editing.test.ts`, mounted as in `hook.test.ts`, the
+workspace of block `A` loaded through the hook):
+
+8. **The drawer opens on entering an editor.** With nothing remembered
+   (the drawer closed), `open(A)` shows the drawer, stores exactly `"true"`
+   in `localStorage["tilie.inspector.open"]`, and leaves the focus on the
+   arranger. Closing the drawer while editing is allowed: the drawer is
+   hidden and the editor stays open. Opening a further editor inside
+   (`A/score`) leaves the closed drawer closed: the drawer opens when the
+   editing path becomes non-empty, not on every opening. After Done twice
+   and `open(A)` again, the drawer opens again.
+9. **Save and autosave write the open editors folded.** After
+   `open(A/score)` and `set A/score name "S"`, Ctrl+S downloads
+   `untitled.tle.json` whose text, read by `readWorkspace`, has a journal
+   of exactly two entries, the `add` of `A` and a session entry naming the
+   open editor's session id, and a `sessions` member holding exactly that
+   session, with target `0000000000/score` and one entry whose command is
+   that `set`. The editor is still open afterwards (`editing` has one
+   editor) and the unsaved mark is gone. The autosave slot, filled when the
+   page turns hidden after a second `set`, holds a text of the same form:
+   two journal entries, the session holding two entries. The hook's
+   `text()` is what Save writes; each folding stamps its session entry
+   with the time of the folding, so texts written at different moments
+   are compared by their content, not byte for byte.
+
 ## Files, history and About (`shell.test.ts`, `files.test.ts`)
 
 These mount `App.svelte` as above. jsdom has neither IndexedDB nor a modal
@@ -143,13 +242,15 @@ The shell:
    then opens the dialog `untitled.tle.json has unsaved changes. Discard
    them?` with `Discard` and `Cancel`; Cancel keeps the store; Discard
    gives a new empty store with no mark.
-9. **Save writes `writeWorkspace` of the store and clears the mark.** A
+9. **Save writes `writeWorkspace` of the store's snapshot and clears the mark.** A
    save requested while one is under way is ignored: with a save picker
    whose file only closes when the test lets it, a second Ctrl+S and a
    Ctrl+Shift+S meanwhile call the picker no second time and write once,
    and the name becomes the picked `w.tle.json`.
    Ctrl+S (fallback path) downloads `untitled.tle.json` whose text equals
-   `writeWorkspace` of the store's view and journal, and the mark is gone.
+   `writeWorkspace` of the store's view, journal and sessions (with no editor
+   open, the snapshot is exactly these), and the mark is gone. With an editor
+   open, Save writes it folded (case 9 of "Editing").
 10. **Undo keys belong to text inputs there.** With the focus in a
     `<textarea>` on the page, Ctrl+Z dispatches no undo (the journal keeps
     its length) and the event's default is not prevented; on the page body
@@ -355,8 +456,11 @@ Vitest's fake timers replace only `setTimeout` and `clearTimeout`, because
 tests open workspaces and read the viewer's state: `load(text)`, `store()`,
 `selection()`, `select(addresses)`, `viewport()`, `setViewport(v)`,
 `locked()`, `mode()`, `health()` (the parsed health response, or
-`null`) and `text()` (`writeWorkspace` of the store's view and journal, what
-Save writes). `App.svelte` installs it only when
+`null`), `text()` (`writeWorkspace` of the store's snapshot, what
+Save writes: every open editor folded as Done would fold it), and the
+editing path: `editing()` (a copy of the store's `editing`), `open(address)`
+(the store's `open`, returning its refusal or `null`), `done()` and
+`cancel()` (the store's, without the bar's question). `App.svelte` installs it only when
 `import.meta.env.DEV` is true or the build sets `VITE_TILIE_TEST_HOOK=1`;
 both are constants of the build, so a production build carries none of the
 hook. Vitest runs
@@ -368,7 +472,7 @@ The workspace file used below is written, never hand-made: an empty
 `createStore` receives two `add` commands placing the manifest fixtures
 `bare` (block `0000000000` at x 0) and `nested` (block `0000000001` at
 x 800) of the installed `@timetoalign/timeskeleton`, and `writeWorkspace`
-writes its view and journal.
+writes its snapshot.
 
 1. **The editor starts empty.** Before any load, `store().view` equals
    `createView()`, the journal is `[]`, `selection()` is `[]`, `locked()`
@@ -421,6 +525,18 @@ writes its view and journal.
    `fixture000/annotations` goes the same way.
 6. **The hook leaves with the editor.** Unmounting `App.svelte` removes
    `window.__tilie`.
+7. **The editing path through the hook.** After `load(text)`, `editing()`
+   is `[]`; `open("0000000001/nope")` returns a refusal with the code
+   `unknown_target` and `editing()` is still `[]`.
+   `open("0000000001/clt_1")` returns `null`, and `editing()` is then
+   exactly one editor `{session, target: "0000000001/clt_1", kind:
+   "timeline", earlier: null}` whose `session` is ten characters of
+   `0-9a-z`; it equals the store's `editing` but is not the same array.
+   After `set
+   0000000001/clt_1 name "N"`, `cancel()` closes the editor without asking
+   (no dialog opens): `editing()` is `[]` and the view is the one before
+   `open`. Opening it again, the same `set` and `done()` leave `editing()`
+   empty and the journal one entry longer, its last entry a session entry.
 
 The viewport functions talk to Svelte Flow, which needs a laid-out page;
 they and everything the canvas does are proven by the Playwright suite.
@@ -637,8 +753,10 @@ The component test mounts `Inspector.svelte` with a store holding `bare`
 the wiring. Every case that reads or edits the manifest text opens the
 Manifest tab first, as a user must. Choosing YAML before its codec is loaded shows exactly
 "Loading YAML…" and no textarea, and once `loadCodec("yaml")` resolves the
-YAML text; with nothing selected and with both blocks selected it shows
-exactly the hint "Select a block to inspect its manifest."; with
+YAML text; with nothing selected and with both blocks selected the
+Properties panel and the Manifest panel each read exactly the hint "Select
+a block to inspect its manifest." and hold no form and no textarea (the
+tab list stays, since the Journal tab is always there); with
 `0000000000` selected the textarea holds `saveManifest` of its manifest;
 choosing YAML shows exactly `writeText("yaml", manifest)`; while the text holds an unapplied edit
 the three format radios and the checkboxes "Include styling" and "Minimal"
@@ -662,32 +780,34 @@ shows `11.12`; ArrowDown adds one more entry with `x` `10.123` (a step from
 the shown `10.12` would store `11.12` and `9.12`). ArrowDown in `scale`
 (stored 1) adds one entry with `scale` `0.9` (the step there is 0.1). A typed draft is
 stepped instead: with `20` typed and not committed, ArrowUp commits `x`
-`21`. A live value given to the component (`live`, the block as a canvas
-gesture shows it) is shown instead of the stored one for that block,
-rounded the same way, but never over a draft: with `live` holding `x`
+`21`. A live value given to the component (`placement`, the block as a
+canvas gesture shows it) is shown instead of the stored one for that block,
+rounded the same way, but never over a draft: with `placement` holding `x`
 `5.556` the field shows `5.56`, and with `33` typed it keeps `33`; with
-`live` back to `null` the field shows the stored value again. Live values
+`placement` back to `null` the field shows the stored value again. Live values
 of another block are ignored.
 
-**The inspector has two tabs** (`Inspector.test.ts`). With a block
-selected it shows a tab list (`role="tablist"`, `aria-label` "Inspector
-sections") of two `button`s with `role="tab"`, "Properties"
-(`#inspector-tab-properties`) and "Manifest" (`#inspector-tab-manifest`),
+**The Properties and Manifest tabs** (`Inspector.test.ts`). With a block
+selected and no editor open it shows a tab list (`role="tablist"`,
+`aria-label` "Inspector sections") of three `button`s with `role="tab"`,
+"Properties" (`#inspector-tab-properties`), "Manifest"
+(`#inspector-tab-manifest`) and "Journal" (`#inspector-tab-journal`, below),
 each naming its panel by `aria-controls` (`inspector-panel-properties`,
-`inspector-panel-manifest`), and two `role="tabpanel"` elements with those
-ids, each `aria-labelledby` its tab and without a `tabindex`: both panels
-hold focusable controls, so a panel is no tab stop of its own. What proves the
+`inspector-panel-manifest`, `inspector-panel-journal`), and `role="tabpanel"`
+elements with those ids, each `aria-labelledby` its tab and without a
+`tabindex`: the panels hold focusable controls, so a panel is no tab stop of
+its own. What proves the
 pattern is the state after each action, read as `aria-selected` and
-`tabindex` of both tabs and `hidden` of both panels: at mount "Properties"
+`tabindex` of the first two tabs and `hidden` of their panels: at mount "Properties"
 is selected (`true`, `0`; `false`, `-1`; the Properties panel shown, the
 Manifest panel hidden); the form "Block properties" lies in the Properties
 panel, and the format radio group, both checkboxes and the textarea in the
 Manifest panel; a click on "Manifest" swaps all of it. On a focused tab
-ArrowRight and ArrowLeft select the other tab (with two tabs, each
-wraps), Home selects "Properties" and End "Manifest", and the selected tab
-has the focus after each key: from "Properties", ArrowRight gives
-Manifest, ArrowRight Properties, ArrowLeft Manifest, Home Properties, End
-Manifest. A key held with a modifier is left to the browser (Alt+ArrowLeft
+ArrowRight and ArrowLeft select the next and the previous tab, wrapping,
+Home selects the first tab and End the last, and the selected tab has the
+focus after each key: from "Properties", ArrowRight gives Manifest,
+ArrowLeft Properties, Home Properties, ArrowRight Manifest, ArrowLeft
+Properties (the Journal tab's place among them is pinned below). A key held with a modifier is left to the browser (Alt+ArrowLeft
 goes back): ArrowRight with Alt, with Ctrl and with Meta on the focused
 "Properties" each leaves "Properties" selected and focused, and the event
 is not prevented. The Manifest panel holds the manifest's parts in the
@@ -703,7 +823,7 @@ Revert, the problem list `#inspector-problems` and the warning list
 eight, the hint `#inspector-switch-hint` and the stale notice all lie in
 the Manifest panel and none in the Properties panel. The tab is the component's own state: with "Manifest" chosen,
 the `selection` prop changed from `0000000000` to `0000000001`, then to
-nothing (only the hint is shown, no tab list) and back to `0000000001`
+nothing (both panels read the hint, the tab list stays) and back to `0000000001`
 keeps "Manifest" selected; mounted again, the inspector selects
 "Properties". Both panels stay mounted, so an unapplied text survives a
 visit to Properties: with the JSON text edited (`"Bare"` → `"Bared"`),
@@ -952,3 +1072,168 @@ sibling of the `h2` in the drawer's head, the drawer `#inspector` has
 Score"), the inspector's Manifest tab opened and its JSON text edited from
 `"name": "Score"` to `"name": "Scores"`, Apply makes `#inspector-subject`
 read exactly "Timeline Scores" with no change of selection.
+
+## The Editor and Journal tabs (`journal.test.ts`, `inspector-tabs.test.ts`)
+
+While an editor is open the inspector gains a first tab, "Editor", naming
+the innermost editor; the "Journal" tab, last, is always there and lists
+the entries of the level the user works on. The rows are plain TypeScript
+(`src/inspector/journal.ts`), so their texts are pinned without a DOM; the
+component only places them. What would prove it works, and the exact
+values each test pins:
+
+1. **Names follow the manifest, never the address's shape alone**
+   (`journal.test.ts`). The view holds the bundle fixture `bundle_mixed`
+   three times, through the store's `add`: `0000000000` as it is (title
+   "Mixed", no id; group `group_1` "Performance"; root `score` "Score";
+   child `excerpt` "Excerpt"), `0000000001` with the title dropped, the id
+   `mixed` given, `group_2`'s name and `score`'s name dropped, and
+   `0000000002` with the title dropped and no id. `editorName(view,
+   target)` gives: `0000000000` "Mixed"; `0000000001` "mixed" (the id when
+   there is no title); `0000000002` "Anonymous bundle"; `0000000000/group_1`
+   "Performance"; `0000000001/group_2` "group_2"; `0000000000/excerpt`
+   "Excerpt" (a child timeline); `0000000001/score` "score"; and, for what
+   the view does not hold, the address itself: `0000000000/gone`
+   "0000000000/gone", `0000000009/score` "0000000009/score", `0000000009`
+   "0000000009". The editing bar names the editing path with the same
+   function.
+2. **Each command reads as one sentence** (`journal.test.ts`). On the
+   arranger (`editing` empty) each entry below, alone in `entries`, gives
+   exactly one row `{entry, time, author, text, undone: false, earlier:
+   false}`, `entry` being the entry itself (the panel keeps one item per
+   entry, case 6),
+   `time` being characters 11 to 19 of the entry's UTC time
+   (`2026-10-17T08:05:09.123Z` gives `08:05:09`, `2026-10-17T23:59:58.999Z`
+   gives `23:59:58`) and `author` the entry's:
+   - `add` of the block `0000000003` into `workspace`: "Added block
+     0000000003 to workspace"; `add` of the region `region_1` into
+     `0000000000/score`: "Added region region_1 to 0000000000/score";
+   - `set` of `x` and `y` of `0000000000`: "Set x, y of 0000000000"; with a
+     second change on `0000000001`: "Set x, y of 0000000000 and 1 more";
+     `place` on `0000000000/group_1`, `0000000000/group_2` and
+     `0000000000/annotations`: "Set place of 0000000000/group_1 and 2
+     more";
+   - `remove` of `0000000000/group_2` and `0000000001`: "Removed
+     0000000000/group_2, 0000000001";
+   - `style` selecting `{ids: ["score"]}`: `Styled {"ids":["score"]}`;
+     selecting `{element: "timeline"}`: `Styled {"element":"timeline"}`;
+   - a session entry, its session in `sessions`: of `0000000000/group_1`
+     with one entry, "Edited group Performance (1 change)"; of
+     `0000000001/score` with two, "Edited timeline score (2 changes)"; of
+     `0000000000/excerpt` with one, "Edited timeline Excerpt (1 change)";
+     of `0000000002` with three, "Edited bundle Anonymous bundle (3
+     changes)". The kind word is the editor kind of the target in the
+     view (`editorKindOf`): a block a bundle, a group a group, a root or
+     child timeline a timeline. A target the view no longer holds has no
+     kind word, because what it was is not read back from earlier views:
+     through a real store (case 1's three blocks), `open` of
+     `0000000000/group_1`, a `set` of `score`'s name, Done, and then a
+     `remove` of `0000000000/group_1` on the arranger give, before the
+     remove, the session row "Edited group Performance (1 change)" and,
+     after it, "Edited 0000000000/group_1 (1 change)" (the name falls back
+     to the address, as in case 1), followed by "Removed
+     0000000000/group_1". The word "timeline" for the removed group would
+     be a guess.
+3. **Rows run in the order the entries were made, undone ones last**
+   (`journal.test.ts`). The store reports `undone` with the next to redo
+   first, which is the earliest undone entry, so appending it keeps the
+   order of making. With four distinct `set` entries `e1`, `e2`, `u1`,
+   `u2` (texts "Set x of 0000000000" … told apart by their targets):
+   - on the arranger with `entries` `[e1, e2]` and `undone` `[u1, u2]`, the
+     rows are `e1`, `e2`, `u1`, `u2`, `undone` exactly `[false, false,
+     true, true]`, `earlier` all `false`;
+   - in an editor whose `earlier` is `null`, with `entries` `[e1]` and
+     `undone` `[u1]`: `e1`, `u1` (`undone` `[false, true]`);
+   - in an editor whose `earlier` is `s0`, a session holding `[u2, e2]`:
+     `u2`, `e2`, `e1`, `u1`, `earlier` exactly `[true, true, false, false]`
+     and `undone` `[false, false, false, true]`;
+   - with two editors open, the outer one with `earlier` `s0` and the inner
+     one with `earlier` `null`: only `entries` and `undone` (the earlier
+     session belongs to the outer level);
+   - nothing anywhere: no row.
+4. **The tab set follows the editing path** (`inspector-tabs.test.ts`).
+   The component reads the editing path from the store whenever the store
+   reports a change, so the cases drive a store whose `editing` (and, for
+   case 6, `entries`, `undone`, `sessions`) are set by the test and
+   announced through `subscribe`, over a real store holding the three
+   blocks of case 1; this pins the inspector's part independently of how
+   the store opens and closes editors. The tabs are read as `[id, text,
+   aria-selected, tabindex]` and the panels as `[id, hidden]`:
+   - no editor, `0000000000` selected: the tabs Properties, Manifest,
+     Journal, "Properties" selected; no `#inspector-tab-editor` and no
+     `#inspector-panel-editor`;
+   - nothing selected: the same three tabs; the Properties and Manifest
+     panels each read exactly the hint; a click on "Journal" shows the
+     Journal panel with one row per `add`;
+   - an editor opened on `0000000000/group_1` (kind group) while
+     "Properties" is selected: the tabs Editor, Properties, Manifest,
+     Journal, "Editor" selected (`true`, `0`, every other `false`, `-1`),
+     its panel `#inspector-panel-editor` (`aria-labelledby`
+     `inspector-tab-editor`) shown, reading exactly "Group editor:
+     Performance", every other panel hidden;
+   - with "Journal" then selected, a second editor opened inside it on
+     `0000000000/score` (kind timeline): "Editor" selected again, reading
+     "Timeline editor: Score";
+   - that inner editor closed with "Editor" selected: "Editor" stays
+     selected and reads "Group editor: Performance";
+   - the last editor closed with "Editor" selected: the Editor tab and its
+     panel are gone and "Properties" is selected and shown; closed with
+     "Manifest" selected instead: "Manifest" stays selected;
+   - the inspector mounted while an editor on `0000000000` (kind bundle)
+     is open: "Editor" selected, reading "Bundle editor: Mixed";
+   - the editing bar (`role="group"`, "Editing") is absent without an
+     editor and precedes the tab list with one;
+   - through the real store, end to end: `open` of `0000000000/group_1`
+     selects "Editor" reading "Group editor: Performance"; a `set` of
+     `score`'s name and Done select "Properties", and the Journal panel's
+     texts are exactly the three `add`s and "Edited group Performance (1
+     change)".
+5. **The keys move over the tabs present** (`inspector-tabs.test.ts`).
+   The selected tab has the focus after each key. With an editor open,
+   from "Editor": ArrowRight Properties, ArrowRight Manifest, ArrowRight
+   Journal, ArrowRight Editor (wrapping), ArrowLeft Journal (wrapping),
+   Home Editor, End Journal. Without one, from "Properties": ArrowLeft
+   Journal (wrapping), ArrowRight Properties, End Journal, Home Properties.
+6. **The Journal panel lists the rows** (`inspector-tabs.test.ts`). With a
+   real store whose clock is fixed at `2026-10-17T08:05:09.123Z`, holding
+   the three `add`s of case 1, a `set` of `x` 25 on `0000000000` and then an
+   undo, the Journal panel holds an ordered list (`ol`, `aria-label`
+   "Journal") of four items, each with its time, author and text in
+   elements of their own (`08:05:09`, `Gerhardt`, the row's text); the
+   last, "Set x of 0000000000", carries `data-undone` and a visually hidden
+   word "undone", the other three neither. The list follows the store: a
+   `set` of `y` 7 on `0000000000` replaces the undone item (four items, the
+   last "Set y of 0000000000", none `data-undone`). With the earlier
+   session of case 3 (the store of case 4 set to an editor whose `earlier`
+   is `s0`, its session holding one `set` of `order` on `0000000000/group_1` by "Ada" at `07:00:01`, and `entries` the three `add`s), its item comes first and carries `data-earlier`, the three `add`s after it without.
+   The items are kept per entry, never per position (an entry is listed
+   once: in the earlier session, the open level's entries or its undone
+   ones): with the same editor first open without an earlier session and
+   the Journal tab selected, the three `add`s' items are the very same
+   elements after the earlier session's item has been put in front of
+   them, which items kept per position would not be.
+   A level with no rows says so instead of showing an empty list, which
+   would have no size and so not be seen at all: with the store of case 4
+   set to an editor on `0000000000/group_1` whose `earlier` is `null`,
+   `entries` and `undone` empty (a fresh editor), and the Journal tab
+   selected, the panel's text is exactly "No changes yet." and it holds no
+   `ol`; with `entries` then one `set` of `x` on `0000000000`, it holds the
+   list of exactly one item, "Set x of 0000000000", and the text "No
+   changes yet." is gone.
+7. **A group or timeline editor offers no block field it would refuse**
+   (`inspector-tabs.test.ts`). Inside a group or timeline editor the store
+   refuses every change of the block's `scale`, `length` and `spacing` (a
+   change of the whole block is a side effect of editing one element), so
+   the Properties form disables exactly these three fields there and
+   leaves `x`, `y`, `width` and `height` as they are. Through the real
+   store of case 1 with `0000000000/group_1`'s editor open, a `set` of
+   `scale` 2 on `0000000000` is refused (`side_effect`), which is why the
+   fields go. With the store of case 4 and `0000000000` selected, the
+   fields read as `[name, disabled]` in form order:
+   - no editor: all seven enabled;
+   - an editor on `0000000000` (kind bundle): all seven enabled (the
+     bundle editor changes the block itself);
+   - an editor on `0000000000/group_1` (kind group): `scale`, `length`,
+     `spacing` disabled, `x`, `y`, `width`, `height` enabled;
+   - a timeline editor on `0000000000/score` inside it: the same;
+   - both closed: all seven enabled again.

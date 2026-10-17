@@ -65,6 +65,8 @@ describe("add", () => {
       width: null,
       height: null,
       order: ["children", "regions", "flow"],
+      places: {},
+      bands: {},
       manifest: load("bare.json"),
     });
     const second = applied(view, {

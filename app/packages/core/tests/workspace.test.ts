@@ -27,19 +27,19 @@ describe("workspace creation", () => {
 
   it("creates exactly the fixed metadata, the settings and no blocks", () => {
     expect(createView()).toEqual({
-      meta: { format: "tilie-workspace", version: 2 },
+      meta: { format: "tilie-workspace", version: 3 },
       settings: DEFAULT_SETTINGS,
       blocks: {},
     });
     const settings = { ...DEFAULT_SETTINGS, grid: { size: 4, snap: false } };
     expect(createView(settings)).toEqual({
-      meta: { format: "tilie-workspace", version: 2 },
+      meta: { format: "tilie-workspace", version: 3 },
       settings,
       blocks: {},
     });
   });
 
-  it("gives a block exactly its twelve members", () => {
+  it("gives a block exactly its fourteen members", () => {
     expect(Object.keys(block(viewOf([A, "bare.json"]))).sort()).toEqual(
       [
         "id",
@@ -53,6 +53,8 @@ describe("workspace creation", () => {
         "width",
         "height",
         "order",
+        "places",
+        "bands",
         "manifest",
       ].sort(),
     );
