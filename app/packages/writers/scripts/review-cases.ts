@@ -5,8 +5,8 @@
  * drawings of `nested` and `map` with its child's map moved below the child,
  * two bundles with items at stated places, `styled__score` in band
  * orders stated for the block, for its timeline, and for both, then a
- * bundle with a scaled card and one with a scaled frame whose member's card
- * requests a size.
+ * bundle with a scaled card, one with a scaled frame whose member's card
+ * requests a size, and one with a vertically stretched card.
  * Each is also a drawing fixture of the schema package
  * (`fixtures/<version>/drawings/`).
  */
@@ -159,6 +159,11 @@ export function reviewCases(): ReviewCase[] {
     "bundle_mixed__cards",
     "bundles/bundle_mixed",
     at({ places: { group_1: { scale: 1.25 }, performance: { width: 650, height: 120 } } }),
+  );
+  add(
+    "bundle_ungrouped__spacing",
+    "bundles/bundle_ungrouped",
+    at({ places: { recording: { spacing: 2 } } }),
   );
   return cases;
 }

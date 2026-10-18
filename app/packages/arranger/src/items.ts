@@ -21,29 +21,33 @@ import { drawingOf } from "./drawing.ts";
 import type { Level } from "./editors.ts";
 import { RESIZING } from "./editors.ts";
 import type { ResizedItem } from "./gestures.svelte.ts";
-import { GRID_FREE, MIN_LENGTH, MIN_SCALE, quantize } from "./numbers.ts";
+import { GRID_FREE, MIN_LENGTH, MIN_SCALE, MIN_SPACING, quantize } from "./numbers.ts";
 import type { Delta, Handle, ResizeMode } from "./resize.ts";
-import { handlesFor, kept, SIDES, solve } from "./resize.ts";
+import { ALL_HANDLES, handlesFor, kept, SIDES, solve } from "./resize.ts";
 
 /** Members of a place to set: a number states the member, `null` unstates it. */
 export type PlaceValues = { -readonly [member in keyof Place]?: number | null };
 
-const STRETCH_HANDLES: readonly Handle[] = ["right", "left"];
-const RIGHT: readonly Handle[] = ["right"];
+/** The places a gesture sets: each key of `places` with its values, in order. */
+export type PlaceChanges = ReadonlyMap<string, PlaceValues>;
+
+const BELOW_RIGHT: readonly Handle[] = ["right", "bottom-right", "bottom"];
 const MEMBER_HANDLES: { readonly [mode in ResizeMode]: readonly Handle[] } = {
   scale: ["bottom-right"],
-  box: ["right", "bottom-right", "bottom"],
-  stretch: RIGHT,
+  box: BELOW_RIGHT,
+  stretch: BELOW_RIGHT,
 };
+/** Every handle but the left edge and the left corners. */
+const NOT_LEFT: readonly Handle[] = ALL_HANDLES.filter((handle) => SIDES[handle][0] >= 0);
 
 /**
  * The handles a box of kind `kind` offers in `mode` at `level`. A frame or
  * an ungrouped card offers a block's: the corners to scale, all eight to size
- * its box, and its left and right edges to stretch, its right edge alone in
- * the group editor, where the frame stays where it is. A member's card never
- * moves its top left corner, which its frame decides: it scales from its
- * bottom right corner, sizes its box from its right and bottom edges, and
- * stretches from its right edge.
+ * or stretch its box; in the group editor, where the frame does not grow
+ * along time, its stretch leaves out the left edge and the left corners. A
+ * member's card never moves its top left corner, which its frame decides: it
+ * scales from its bottom right corner, and sizes and stretches its box from
+ * its right and bottom edges.
  */
 export function itemHandlesFor(
   mode: ResizeMode,
@@ -51,8 +55,8 @@ export function itemHandlesFor(
   level: Level,
 ): readonly Handle[] {
   if (kind === "member") return MEMBER_HANDLES[mode];
-  if (mode !== "stretch") return handlesFor(mode);
-  return level === "group" ? RIGHT : STRETCH_HANDLES;
+  if (mode === "stretch" && level === "group") return NOT_LEFT;
+  return handlesFor(mode);
 }
 
 /**
@@ -70,9 +74,9 @@ export function resizedItemOf(drawing: Drawing, element: string): ResizedItem | 
   return card === undefined ? undefined : { kind: "member", key: card.key, item: card.group };
 }
 
-/** The key of `places` a resize of `resized` in `mode` sets: the item's, or the member card's own. */
-export function placeKeyOf(resized: ResizedItem, mode: ResizeMode): string {
-  return RESIZING[resized.kind].writes[mode] === "card" ? resized.key : resized.item;
+/** The key of `places` a change of `resized` written as `written` (`RESIZING`) sets. */
+function keyOf(resized: ResizedItem, written: "scale" | "box" | "length" | "spacing"): string {
+  return RESIZING[resized.kind].writes[written] === "card" ? resized.key : resized.item;
 }
 
 /** The drawn item `key` of `drawing`. */
@@ -194,27 +198,28 @@ export function itemMoveCommand(
 }
 
 /**
- * The `set` storing a resize's `values` (`itemResizeValues`) on the place of
- * `key` (`placeKeyOf`), made at `level`, stating the drawn position of every
- * other item that states none where `keepsItems(level)` (`placeCommand`).
- * `null` when every value is the one the place states already.
+ * The `set` storing a resize's places (`itemResizeValues`), made at
+ * `level`, stating the drawn position of every other item that states none
+ * where `keepsItems(level)` (`placeCommand`). `null` when every value is the
+ * one its place states already.
  */
 export function itemResizeCommand(
   view: View,
   block: BlockId,
-  key: string,
-  values: PlaceValues,
+  places: PlaceChanges,
   level: Level,
   metrics: FontMetrics,
 ): SetCommand | null {
   const found = blockIn(view, block);
-  const stated = found.places[key] ?? {};
-  const changes = PLACE_MEMBERS.some(
-    (member) => values[member] !== undefined && values[member] !== (stated[member] ?? null),
-  );
+  const changes = [...places].some(([key, values]) => {
+    const stated = found.places[key] ?? {};
+    return PLACE_MEMBERS.some(
+      (member) => values[member] !== undefined && values[member] !== (stated[member] ?? null),
+    );
+  });
   if (!changes) return null;
   const drawing = drawingOf(found, view.settings, metrics);
-  return placeCommand(block, drawing, new Map([[key, values]]), keepsItems(level));
+  return placeCommand(block, drawing, places, keepsItems(level));
 }
 
 /** The drawn corner of member `key`'s card, bottom right, in place coordinates. */
@@ -228,44 +233,189 @@ function cardCorner(drawing: Drawing, key: string): { x: number; y: number } {
   return { x: card.x + card.width - ox, y: card.y + card.height - oy };
 }
 
-/** The content width of item `key` of `block` at each length: its place's size requests left out. */
-function contentWidthAt(
+/** A stretch's axis: the member of a place it sets and the size that follows the content. */
+interface Axis {
+  readonly factor: "length" | "spacing";
+  readonly size: "width" | "height";
+}
+
+const HORIZONTAL: Axis = { factor: "length", size: "width" };
+const VERTICAL: Axis = { factor: "spacing", size: "height" };
+
+/** The boxes a stretch on one axis acts on. */
+interface Scope {
+  /** The key of `places` whose `length` or `spacing` the stretch sets. */
+  readonly key: string;
+  /** The item of the drawing holding the boxes. */
+  readonly item: string;
+  /** The members' cards whose stated size follows their content. */
+  readonly cards: readonly string[];
+  /** The box the pointer drags: the item's key, or a member's. */
+  readonly dragged: string;
+}
+
+/** The stretch at one value of its factor. */
+interface Stretched {
+  readonly changes: Map<string, PlaceValues>;
+  /** The places of the block with the changes merged. */
+  readonly places: Block["places"];
+  /** The item's content, its own stated size left out, on the axis. */
+  readonly content: number;
+  /** The dragged box's drawn size on the axis. */
+  readonly drawn: number;
+}
+
+/**
+ * The stretch of `scope` on `axis` within `block` as a function of the
+ * factor's value: the factor stated on the scope's key, and every stated
+ * size of the scope's cards, then of its item, following its own content
+ * (`kept`), the cards first since the item's content holds them. A `pinned`
+ * item size is stated as given instead (the group editor's frame). Sizes
+ * are in item coordinates.
+ */
+function stretching(
   block: Block,
   settings: WorkspaceSettings,
   metrics: FontMetrics,
-  key: string,
-): (length: number) => number {
-  return (length) => {
-    const places = placesWith(block.places, key, { length, width: null, height: null });
-    return itemOf(drawingOf(block, settings, metrics, { places }), key).place.width;
+  axis: Axis,
+  scope: Scope,
+  pinned: number | null,
+): (value: number) => Stretched {
+  const { factor, size } = axis;
+  const base = block.places;
+  const draw = (places: Block["places"]) => drawingOf(block, settings, metrics, { places });
+  const unstated = (places: Block["places"], keys: readonly string[]) =>
+    keys.reduce((held, key) => placesWith(held, key, { [size]: null }), places);
+  const sizeOf = (drawing: Drawing, key: string) =>
+    key === scope.item
+      ? itemOf(drawing, key).place[size]
+      : cardOf(drawing, key, scope.item).size[size];
+  const stated = (key: string) => base[key]?.[size] ?? null;
+  const requests = scope.cards.filter((key) => stated(key) !== null);
+  const itemRequest = pinned === null ? stated(scope.item) : null;
+  // The cards' own contents: a frame's width would widen them.
+  const own = [...requests, scope.item];
+  const before = draw(unstated(base, own));
+  const contents = new Map(requests.map((key) => [key, sizeOf(before, key)]));
+  const itemContent =
+    itemRequest === null ? 0 : sizeOf(draw(unstated(base, [scope.item])), scope.item);
+
+  return (value) => {
+    const changes = new Map<string, PlaceValues>();
+    let places = base;
+    const set = (key: string, values: PlaceValues) => {
+      changes.set(key, { ...changes.get(key), ...values });
+      places = placesWith(places, key, values);
+    };
+    set(scope.key, { [factor]: value });
+    if (requests.length > 0) {
+      const free = draw(unstated(places, own));
+      for (const key of requests) {
+        const request = kept(stated(key), contents.get(key) ?? 0, sizeOf(free, key));
+        if (request !== stated(key)) set(key, { [size]: request });
+      }
+    }
+    if (pinned !== null) set(scope.item, { [size]: pinned });
+    const sized = draw(unstated(places, [scope.item]));
+    const content = sizeOf(sized, scope.item);
+    if (itemRequest !== null) {
+      const request = kept(itemRequest, itemContent, content);
+      if (request !== itemRequest) set(scope.item, { [size]: request });
+    }
+    // A frame's width widens its cards, so the dragged box is measured with every request.
+    const bare = requests.length === 0 && itemRequest === null && pinned === null;
+    const dragged = sizeOf(bare ? sized : draw(places), scope.dragged);
+    return { changes, places, content, drawn: dragged };
   };
 }
 
-/**
- * The group editor's values for the length `length` of the members of group
- * `key` of `block`, stretched or typed: the frame does not adapt, so `width`
- * is pinned at the frame's drawn width and the length capped at the largest
- * whose cards do not pass the frame.
- */
-export function cappedLength(
-  block: Block,
-  settings: WorkspaceSettings,
-  metrics: FontMetrics,
-  key: string,
-  length: number,
-): PlaceValues {
-  const { place } = itemOf(drawingOf(block, settings, metrics), key);
-  const pinned = quantize(place.width, GRID_FREE);
-  const widthAt = contentWidthAt(block, settings, metrics, key);
-  if (widthAt(length) <= pinned) return { length, width: pinned };
-  const cap = solve(widthAt, place.length, pinned, MIN_LENGTH);
-  return { length: Math.min(length, cap), width: pinned };
+/** A stretch of one box on one axis. */
+interface Stretch {
+  /** The stretch at each value of its factor. */
+  readonly at: (value: number) => Stretched;
+  /** The factor's value before the stretch. */
+  readonly start: number;
+  /** The frame's width the group editor pins along time; else `null`. */
+  readonly pinned: number | null;
 }
 
 /**
- * The place values that resize the box `resized` of `block` by dragging
- * `handle` by `delta` (canvas units, as for a block) at `level`, for the
- * place of `placeKeyOf(resized, mode)`. Every position is in the drawing's
+ * The stretch of the box `resized` of `block` on `axis` at `level`: its
+ * factor on the key `RESIZING` names, and the stated sizes following their
+ * content, along time those of the item and of every member's card it
+ * holds; vertically the same for a frame or an ungrouped card, and for a
+ * member's card those of the card and of its frame. In the group editor the
+ * frame's width is pinned along time at its drawn width.
+ */
+function stretchOf(
+  block: Block,
+  settings: WorkspaceSettings,
+  metrics: FontMetrics,
+  level: Level,
+  resized: ResizedItem,
+  axis: Axis,
+): Stretch {
+  const drawing = drawingOf(block, settings, metrics);
+  const item = itemOf(drawing, resized.item);
+  const member = resized.kind === "member";
+  const key = keyOf(resized, axis.factor);
+  const cards =
+    member && axis === VERTICAL
+      ? [key]
+      : drawing.cards.filter((card) => card.group === item.key).map((card) => card.key);
+  const scope = { key, item: item.key, cards, dragged: member ? resized.key : item.key };
+  const pinned =
+    axis === HORIZONTAL && level === "group" ? quantize(item.place.width, GRID_FREE) : null;
+  const start = axis === HORIZONTAL ? item.place.length : (block.places[key]?.spacing ?? 1);
+  return { at: stretching(block, settings, metrics, axis, scope, pinned), start, pinned };
+}
+
+/**
+ * The places a Stretch of the box `resized` of `block` at `level` writes
+ * once its `factor`, `length` or `spacing`, is `value`: the factor on its
+ * key (a member's card stretches its group's `length` and its own
+ * `spacing`), then every stated size the stretch changes the content of
+ * following that content in proportion (`kept`): along time the widths of
+ * the item and of the members' cards it holds, so the members' lines keep
+ * one length and every margin stretches with them; vertically the heights
+ * of a frame and its members' cards, or of a member's card and its frame.
+ * In the group editor the frame does not grow along time: its `width` is
+ * pinned at its drawn width and the length capped at the largest whose
+ * content, the cards' widths following, does not pass it. The Stretch
+ * gesture and a typed length or spacing both write these places.
+ */
+export function stretchChanges(
+  block: Block,
+  settings: WorkspaceSettings,
+  metrics: FontMetrics,
+  level: Level,
+  resized: ResizedItem,
+  factor: "length" | "spacing",
+  value: number,
+): PlaceChanges {
+  const axis = factor === "length" ? HORIZONTAL : VERTICAL;
+  const { at, start, pinned } = stretchOf(block, settings, metrics, level, resized, axis);
+  if (pinned === null) return at(value).changes;
+  const content = (length: number) => at(length).content;
+  const capped =
+    content(value) > pinned ? Math.min(value, solve(content, start, pinned, MIN_LENGTH)) : value;
+  return at(capped).changes;
+}
+
+/** `changes` with `more` merged in, key by key, in order. */
+function merged(
+  changes: ReadonlyMap<string, PlaceValues>,
+  more: ReadonlyMap<string, PlaceValues>,
+): Map<string, PlaceValues> {
+  const all = new Map(changes);
+  for (const [key, values] of more) all.set(key, { ...all.get(key), ...values });
+  return all;
+}
+
+/**
+ * The places that resize the box `resized` of `block` by dragging `handle`
+ * by `delta` (canvas units, as for a block) at `level`: each key of
+ * `places` with its values, in order. Every position is in the drawing's
  * units, measured from the place origin; every size in the item's own
  * coordinates, before its scale, so the pointer's travel is divided by the
  * block's scale and the item's; every number is quantized to `GRID_FREE`.
@@ -273,7 +423,7 @@ export function cappedLength(
  * stays exactly where it is drawn: for a left or top handle the stated `x`
  * or `y` is the opposite edge less the achieved drawn size.
  *
- * - `scale` (corners only) sets `scale` to the item's scale times the
+ * - `scale` (corners only) sets the item's `scale` to its scale times the
  *   larger of the two axis ratios of the dragged corner's distance from the
  *   fixed corner after and before the drag, floored at `MIN_SCALE`; scale 1,
  *   the default, unstates it. On a member's card the fixed corner is its
@@ -281,17 +431,22 @@ export function cappedLength(
  *   scale is the group's.
  * - `box` sets `width` and `height`; a request at or below the box's own
  *   content stores `null`. On a member's card they are the card's own.
- * - `stretch` (left and right only) sets `length`: the largest value whose
- *   content does not pass the pointer, floored at `MIN_LENGTH`, the width
- *   following the content as a block's does (a request larger than the
- *   content keeps the space it adds, one at or below it becomes `null`). On
- *   a member's card it is its group's length alone, stretched from the
- *   frame's right edge: a stated width, the frame's or the card's, stays,
- *   and the frame grows once its content passes it.
- * - In the group editor the frame does not adapt: a stretch (right only, of
- *   the frame or a member's card) gives `cappedLength`'s values, the group's
- *   `length` capped where the cards would pass the frame and its `width`
- *   pinned at the frame's drawn width.
+ * - `stretch` sets `length` from a left or right handle and `spacing` from
+ *   a top or bottom one, both from a corner: the largest value whose box
+ *   does not pass the pointer, floored at `MIN_LENGTH` and `MIN_SPACING`.
+ *   Every stated size of the boxes stretched follows its own content by
+ *   `kept`, keeping its proportion to it: along time the item's and, for a
+ *   group, every member's card's width, so the members' lines keep one
+ *   length and every margin stretches with them; vertically the item's and
+ *   its members' cards' heights. A member's card stretches its group along
+ *   time, the card's own box following the pointer, and only its own card's
+ *   `spacing` vertically, the card's and its frame's heights following.
+ *   The places are `stretchChanges` at the value found.
+ * - In the group editor the frame does not grow along time: a horizontal
+ *   stretch states the frame's `width` at its drawn width and caps the
+ *   group's `length` where its content, the cards' widths following, would
+ *   pass it; the frame's content follows the pointer, whichever box is
+ *   dragged. Vertically the frame adapts.
  */
 export function itemResizeValues(
   block: Block,
@@ -302,7 +457,7 @@ export function itemResizeValues(
   mode: ResizeMode,
   handle: Handle,
   delta: Delta,
-): PlaceValues {
+): PlaceChanges {
   const [sx, sy] = SIDES[handle];
   if (!itemHandlesFor(mode, resized.kind, level).includes(handle)) {
     throw new RangeError(`a ${resized.kind} does not ${mode} from ${handle} at the ${level} level`);
@@ -340,7 +495,7 @@ export function itemResizeValues(
       if (sx < 0) values.x = quantize(right - next * size.width, GRID_FREE);
       if (sy < 0) values.y = quantize(bottom - next * size.height, GRID_FREE);
     }
-    return values;
+    return new Map([[keyOf(resized, "scale"), values]]);
   }
 
   if (mode === "box" && resized.kind === "member") {
@@ -355,11 +510,11 @@ export function itemResizeValues(
       const request = quantize(card.height + dy / scale, GRID_FREE);
       values.height = request > content.height ? request : null;
     }
-    return values;
+    return new Map([[keyOf(resized, "box"), values]]);
   }
 
-  const content = placed({ width: null, height: null });
   if (mode === "box") {
+    const content = placed({ width: null, height: null });
     let achieved = { width, height };
     if (sx !== 0) {
       const request = quantize(((sx > 0 ? right + dx : right) - left) / scale, GRID_FREE);
@@ -373,24 +528,57 @@ export function itemResizeValues(
     }
     if (sx < 0) values.x = quantize(right - scale * achieved.width, GRID_FREE);
     if (sy < 0) values.y = quantize(bottom - scale * achieved.height, GRID_FREE);
-    return values;
+    return new Map([[keyOf(resized, "box"), values]]);
   }
 
-  const widthAt = contentWidthAt(block, settings, metrics, item.key);
-  if (level === "group") {
-    const length = solve(widthAt, item.place.length, content.width + dx / scale, MIN_LENGTH);
-    return cappedLength(block, settings, metrics, item.key, length);
+  const member = resized.kind === "member";
+  /** The dragged box's drawn size on an axis in `of`, in item coordinates. */
+  const sizeIn = (of: Drawing, axis: Axis) =>
+    member
+      ? cardOf(of, resized.key, item.key).size[axis.size]
+      : itemOf(of, item.key).place[axis.size];
+  let stretched = block;
+  let changes: PlaceChanges = new Map();
+  const stretchTo = (factor: Axis["factor"], value: number) => {
+    const more = stretchChanges(stretched, settings, metrics, level, resized, factor, value);
+    changes = merged(changes, more);
+    let places = stretched.places;
+    for (const [key, values] of more) places = placesWith(places, key, values);
+    stretched = { ...stretched, places };
+  };
+
+  if (sx !== 0) {
+    const { at, start, pinned } = stretchOf(block, settings, metrics, level, resized, HORIZONTAL);
+    if (pinned === null) {
+      const target = member
+        ? sizeIn(drawing, HORIZONTAL) + dx / scale
+        : ((sx > 0 ? right + dx : right) - left) / scale;
+      stretchTo(
+        "length",
+        solve((value) => at(value).drawn, start, target, MIN_LENGTH),
+      );
+    } else {
+      // The frame is pinned, so the frame's content follows the pointer, whichever box is dragged.
+      const content = (value: number) => at(value).content;
+      stretchTo("length", solve(content, start, content(start) + dx / scale, MIN_LENGTH));
+    }
   }
-  const wanted = ((sx > 0 ? right + dx : right) - left) / scale - (width - content.width);
-  const length = solve(widthAt, item.place.length, wanted, MIN_LENGTH);
-  values.length = length;
-  if (resized.kind === "member") return values;
-  const stretched = widthAt(length);
-  const stated = item.stated.width ?? null;
-  const request = kept(stated, content.width, stretched);
-  if (request !== stated) values.width = request;
-  if (sx < 0) {
-    values.x = quantize(right - scale * Math.max(stretched, request ?? 0), GRID_FREE);
+
+  if (sy !== 0) {
+    const { at, start } = stretchOf(stretched, settings, metrics, level, resized, VERTICAL);
+    const target = member
+      ? sizeIn(drawing, VERTICAL) + dy / scale
+      : ((sy > 0 ? bottom + dy : bottom) - top) / scale;
+    stretchTo(
+      "spacing",
+      solve((value) => at(value).drawn, start, target, MIN_SPACING),
+    );
   }
-  return values;
+
+  if (sx >= 0 && sy >= 0) return changes;
+  const after = drawingOf(stretched, settings, metrics);
+  const own: PlaceValues = {};
+  if (sx < 0) own.x = quantize(right - scale * sizeIn(after, HORIZONTAL), GRID_FREE);
+  if (sy < 0) own.y = quantize(bottom - scale * sizeIn(after, VERTICAL), GRID_FREE);
+  return merged(changes, new Map([[item.key, own]]));
 }

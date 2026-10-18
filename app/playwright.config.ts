@@ -10,11 +10,24 @@ import { defineConfig, devices } from "@playwright/test";
  * `@budget` tests only in `budget`; both are excluded from the engine
  * projects. `touch.spec.ts` runs only in `touch`, and the desktop specs only
  * in the three engine projects.
+ *
+ * `TILIE_E2E_WORKERS`, a positive integer, sets the number of workers
+ * (default 4).
  */
 
 const PORT = 4317;
 const SPECIAL = /@visual|@budget/;
 const desktop = { viewport: { width: 1280, height: 800 } };
+
+/** The worker count from `TILIE_E2E_WORKERS`, 4 when it is unset or empty. */
+function workers(): number {
+  const value = process.env.TILIE_E2E_WORKERS;
+  if (!value) return 4;
+  if (!/^[1-9][0-9]*$/.test(value)) {
+    throw new Error(`TILIE_E2E_WORKERS must be a positive integer, not ${JSON.stringify(value)}`);
+  }
+  return Number(value);
+}
 
 export default defineConfig({
   testDir: "e2e",
@@ -24,7 +37,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: 0,
-  workers: 2,
+  workers: workers(),
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
   use: {
     baseURL: `http://127.0.0.1:${PORT}/`,

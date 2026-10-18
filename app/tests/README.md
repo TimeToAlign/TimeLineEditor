@@ -58,9 +58,10 @@ registry (its real directory then lies in `app/node_modules/.pnpm`, inside
 the mount) or from a schema package linked from a sibling checkout, whose
 real directory lies outside `app/` and would be missing in the container.
 `podmanArguments` (`e2e/container.ts`) builds the `podman run` arguments
-from the app directory, that real directory, the image, the CI flag and the
-Playwright arguments; it is a pure function, so both cases are pinned
-without starting a container.
+from the app directory, that real directory, the image, the names of the
+host variables to pass into the container (`CI` and `TILIE_E2E_WORKERS`,
+each only when set) and the Playwright arguments; it is a pure function, so
+every case is pinned without starting a container.
 
 What proves it, with app directory `/w/app` and image `img`:
 
@@ -68,7 +69,13 @@ What proves it, with app directory `/w/app` and image `img`:
    the arguments are exactly `run --rm --init --network=host --ipc=host
    --volume=/w/app:/w/app:z --workdir=/w/app img node e2e/run.ts
    --project=chromium`, the command line `run.ts` built before the schema
-   package could be linked; with CI, `--env=CI` follows `--workdir`.
+   package could be linked. Each passed variable adds exactly one member
+   `--env=<name>` (the name alone, so podman copies the host's value),
+   right after `--workdir`, in the order given: with `CI` and
+   `TILIE_E2E_WORKERS`, `--env=CI --env=TILIE_E2E_WORKERS`; with
+   `TILIE_E2E_WORKERS` alone, only `--env=TILIE_E2E_WORKERS`, so a worker
+   count set on the host reaches Playwright inside the container without CI
+   being claimed.
 2. **Package outside `app/`** (`/w/timeskeleton/js`): the same list with
    exactly one more member, `--volume=/w/timeskeleton/js:/w/timeskeleton/js:ro,z`,
    right after the app's volume: read-only, at the identical absolute path,

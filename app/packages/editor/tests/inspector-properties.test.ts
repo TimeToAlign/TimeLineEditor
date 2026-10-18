@@ -34,6 +34,14 @@ const GEOMETRY_HINT = "Select a block, a frame or a card to edit its geometry.";
 const G2 = { target: `${M}/group_2`, values: { place: { x: 8, y: 176.3671875 } } };
 const AN = { target: `${M}/annotations`, values: { place: { x: 8, y: 358.50390625 } } };
 
+/** `G2` and `AN` for `group_2` and `annotations` drawn at `y` `group2` and `annotations`. */
+function positions(group2: number, annotations: number) {
+  return [
+    { target: `${M}/group_2`, values: { place: { x: 8, y: group2 } } },
+    { target: `${M}/annotations`, values: { place: { x: 8, y: annotations } } },
+  ];
+}
+
 /** `group_1`'s drawn width, 562.484619140625, quantized to 1/2048: the group editor pins it. */
 const PINNED = 562.48486328125;
 
@@ -120,6 +128,7 @@ describe("geometryOf", () => {
           y: place?.y,
           scale: 1,
           length: 400,
+          spacing: 1,
           width: place?.width,
           height: place?.height,
         },
@@ -144,7 +153,7 @@ describe("geometryOf", () => {
       {
         target: `${M}/score`,
         group: `${M}/group_1`,
-        values: { scale: 1, length: 400, width: size?.width, height: size?.height },
+        values: { scale: 1, length: 400, spacing: 1, width: size?.width, height: size?.height },
       },
     ]);
     expect(geometry(store, "excerpt/card").elements.map((item) => item.group)).toEqual([
@@ -176,12 +185,19 @@ describe("geometryOf", () => {
 
   it("shows stated values over drawn ones", () => {
     const store = storeOf();
-    dispatch(store, `${M}/group_1`, { place: { length: 300, scale: 1.5 } });
-    dispatch(store, `${M}/score`, { place: { width: 650 } });
+    dispatch(store, `${M}/group_1`, { place: { length: 300, scale: 1.5, spacing: 2 } });
+    dispatch(store, `${M}/score`, { place: { width: 650, spacing: 1.25 } });
     const [frame] = geometry(store, "group_1").elements;
-    expect([frame?.values.length, frame?.values.scale]).toEqual([300, 1.5]);
+    expect([frame?.values.length, frame?.values.scale, frame?.values.spacing]).toEqual([
+      300, 1.5, 2,
+    ]);
     const [card] = geometry(store, "score/card").elements;
-    expect([card?.values.scale, card?.values.length, card?.values.width]).toEqual([1.5, 300, 650]);
+    expect([
+      card?.values.scale,
+      card?.values.length,
+      card?.values.width,
+      card?.values.spacing,
+    ]).toEqual([1.5, 300, 650, 1.25]);
   });
 });
 
@@ -215,6 +231,25 @@ describe("the commands", () => {
     expect(
       refused.ok ? null : refused.problems.map((item) => [item.code, item.message, item.path]),
     ).toEqual([["invalid_value", "length needs a number", [`${M}/score`, "length"]]]);
+  });
+
+  it("states spacing on the frame's place and on the member card's own", () => {
+    const store = storeOf();
+    expect(changes(propertyCommand(geometry(store, "group_1"), "spacing", "1.5"))).toEqual([
+      { target: `${M}/group_1`, values: { place: { spacing: 1.5 } } },
+      G2,
+      AN,
+    ]);
+    const card = geometry(store, "score/card");
+    expect(changes(propertyCommand(card, "spacing", "1.5"))).toEqual([
+      { target: `${M}/score`, values: { place: { spacing: 1.5 } } },
+      G2,
+      AN,
+    ]);
+    const refused = propertyCommand(card, "spacing", "");
+    expect(
+      refused.ok ? null : refused.problems.map((item) => [item.code, item.message, item.path]),
+    ).toEqual([["invalid_value", "spacing needs a number", [`${M}/score`, "spacing"]]]);
   });
 
   it("changes several elements in one set, each target once", () => {
@@ -270,11 +305,46 @@ describe("the commands", () => {
     expect(
       changes(propertyCommand(geometryAt(store, "timeline", "score/card"), "width", "650")),
     ).toEqual([{ target: `${M}/score`, values: { place: { width: 650 } } }]);
+    const spaced = [{ target: `${M}/score`, values: { place: { spacing: 1.5 } } }];
+    for (const level of ["group", "timeline"] as const) {
+      expect(
+        changes(propertyCommand(geometryAt(store, level, "score/card"), "spacing", "1.5")),
+      ).toEqual(spaced);
+    }
     dispatch(store, `${M}/group_2`, { place: { y: 200 } });
     expect(changes(propertyCommand(geometry(store, "group_1"), "scale", "1.5"))).toEqual([
       ...scaled,
       { target: `${M}/group_2`, values: { place: { x: 8 } } },
       { target: `${M}/annotations`, values: { place: { x: 8, y: 382.13671875 } } },
+    ]);
+  });
+
+  it("writes a typed length or spacing as a stretch to it, stated sizes in proportion", () => {
+    const wide = storeOf();
+    dispatch(wide, `${M}/performance`, { place: { width: 1092.96923828125 } });
+    const widened = [
+      { target: `${M}/group_1`, values: { place: { length: 430 } } },
+      { target: `${M}/performance`, values: { place: { width: 1152.96923828125 } } },
+      G2,
+      AN,
+    ];
+    expect(changes(propertyCommand(geometry(wide, "score/card"), "length", "430"))).toEqual(
+      widened,
+    );
+    expect(changes(propertyCommand(geometry(wide, "group_1"), "length", "430"))).toEqual(widened);
+    const tallCard = storeOf();
+    dispatch(tallCard, `${M}/performance`, { place: { height: 98.7578125 } });
+    expect(changes(propertyCommand(geometry(tallCard, "group_1"), "spacing", "2"))).toEqual([
+      { target: `${M}/group_1`, values: { place: { spacing: 2 } } },
+      { target: `${M}/performance`, values: { place: { height: 130.7578125 } } },
+      ...positions(225.74609375, 407.8828125),
+    ]);
+    const tallFrame = storeOf();
+    dispatch(tallFrame, `${M}/group_1`, { place: { height: 279.125 } });
+    expect(changes(propertyCommand(geometry(tallFrame, "score/card"), "spacing", "2"))).toEqual([
+      { target: `${M}/score`, values: { place: { spacing: 2 } } },
+      { target: `${M}/group_1`, values: { place: { height: 311.125 } } },
+      ...positions(315.9296875, 498.06640625),
     ]);
   });
 
@@ -301,6 +371,14 @@ describe("the commands", () => {
     expect(
       changes(propertyCommand(geometryAt(store, "group", "group_1"), "length", "500")),
     ).toEqual(capped(437.51513671875, 600));
+    const wide = storeOf();
+    dispatch(wide, `${M}/performance`, { place: { width: 1092.96923828125 } });
+    expect(
+      changes(propertyCommand(geometryAt(wide, "group", "score/card"), "length", "350")),
+    ).toEqual([
+      { target: `${M}/group_1`, values: { place: { length: 350, width: 1108.96923828125 } } },
+      { target: `${M}/performance`, values: { place: { width: 992.96923828125 } } },
+    ]);
   });
 
   it("offers an item's position in the bundle editor only", () => {
@@ -309,7 +387,7 @@ describe("the commands", () => {
       const found = geometryAt(store, level, element);
       return FIELDS[found.kind].filter((property) => offered(found, property));
     };
-    const sized = ["scale", "length", "width", "height"];
+    const sized = ["scale", "length", "spacing", "width", "height"];
     for (const level of ["arranger", "group", "timeline"] as const) {
       expect(offers(level, "group_1")).toEqual(sized);
       expect(offers(level, "annotations/card")).toEqual(sized);
@@ -318,14 +396,7 @@ describe("the commands", () => {
     for (const level of ["arranger", "bundle", "group", "timeline"] as const) {
       expect(offers(level, "score/card")).toEqual(sized);
     }
-    expect(offers("arranger", "")).toEqual([
-      "x",
-      "y",
-      ...sized.slice(0, 2),
-      "spacing",
-      "width",
-      "height",
-    ]);
+    expect(offers("arranger", "")).toEqual(["x", "y", ...sized]);
     expect(offers("group", "")).toEqual(["x", "y", "width", "height"]);
     expect(offered(null, "x")).toBe(true);
   });
@@ -342,14 +413,19 @@ describe("the commands", () => {
     expect(values("score/card", live)).toEqual([460, 606.484619140625]);
     expect(values("group_1", { ...live, id: "bshared000" })).toEqual([400, 562.484619140625]);
     expect(values("group_1", null)).toEqual([400, 562.484619140625]);
+    const spaced = livePlacementOf(store, { group_1: { spacing: 2 }, score: { spacing: 1.5 } });
+    const spacing = (element: string, placement: LivePlacement | null) =>
+      geometryOf(store.view, [`${M}/${element}`], "bundle", placement)?.elements[0]?.values.spacing;
+    expect([spacing("group_1", spaced), spacing("score/card", spaced)]).toEqual([2, 1.5]);
+    expect([spacing("group_1", null), spacing("score/card", null)]).toEqual([1, 1]);
   });
 
   it("labels a card's shared fields as the group's", () => {
     expect(
-      (["scale", "length", "width", "height"] as const).map((property) =>
+      (["scale", "length", "spacing", "width", "height"] as const).map((property) =>
         fieldLabel("card", property),
       ),
-    ).toEqual(["group scale", "group length", "width", "height"]);
+    ).toEqual(["group scale", "group length", "spacing", "width", "height"]);
     expect(fieldLabel("item", "scale")).toBe("scale");
   });
 });
@@ -430,8 +506,12 @@ describe("the Properties form", () => {
     const store = storeOf();
     show(store, ["group_1"]);
     expect(forms()).toEqual(["Frame properties"]);
-    expect(fields()).toEqual(["x", "y", "scale", "length", "width", "height"]);
-    expect([field("length").value, field("scale").value]).toEqual(["400", "1"]);
+    expect(fields()).toEqual(["x", "y", "scale", "length", "spacing", "width", "height"]);
+    expect([field("length").value, field("scale").value, field("spacing").value]).toEqual([
+      "400",
+      "1",
+      "1",
+    ]);
     const before = store.journal.length;
     enter("length", "300");
     expect(store.journal).toHaveLength(before + 1);
@@ -441,16 +521,25 @@ describe("the Properties form", () => {
     });
     expect(store.view.blocks[M]?.length).toBe(400);
     expect(field("length").value).toBe("300");
+    enter("spacing", "1.5");
+    expect(store.journal).toHaveLength(before + 2);
+    expect(lastCommand(store)).toEqual({
+      type: "set",
+      changes: [{ target: `${M}/group_1`, values: { place: { spacing: 1.5 } } }],
+    });
+    expect(store.view.blocks[M]?.spacing).toBe(1);
+    expect(field("spacing").value).toBe("1.5");
   });
 
   it("edits a member's card: its group's scale, its own size", () => {
     const store = storeOf();
     show(store, ["score/card"]);
     expect(forms()).toEqual(["Card properties"]);
-    expect(fields()).toEqual(["scale", "length", "width", "height"]);
+    expect(fields()).toEqual(["scale", "length", "spacing", "width", "height"]);
     expect(
       [...panel().querySelectorAll("form label span")].map((span) => span.textContent),
-    ).toEqual(["group scale", "group length", "width", "height"]);
+    ).toEqual(["group scale", "group length", "spacing", "width", "height"]);
+    expect(field("spacing").value).toBe("1");
     enter("scale", "1.5");
     expect(lastCommand(store)).toEqual({
       type: "set",
@@ -467,6 +556,14 @@ describe("the Properties form", () => {
       changes: [{ target: `${M}/score`, values: { place: { width: null } } }],
     });
     expect(Object.hasOwn(store.view.blocks[M]?.places ?? {}, "score")).toBe(false);
+    enter("spacing", "1.5");
+    expect(lastCommand(store)).toEqual({
+      type: "set",
+      changes: [{ target: `${M}/score`, values: { place: { spacing: 1.5 } } }],
+    });
+    const places = store.view.blocks[M]?.places;
+    expect([places?.score, places?.group_1?.spacing]).toEqual([{ spacing: 1.5 }, undefined]);
+    expect(field("spacing").value).toBe("1.5");
   });
 
   it("edits several frames together", () => {
@@ -538,8 +635,10 @@ describe("the Properties form", () => {
 
   it("disables an item's x and y outside the bundle editor", () => {
     const disabled = () =>
-      ["x", "y", "scale", "length", "width", "height"].map((name) => field(name).disabled);
-    const outside = [true, true, false, false, false, false];
+      ["x", "y", "scale", "length", "spacing", "width", "height"].map(
+        (name) => field(name).disabled,
+      );
+    const outside = [true, true, false, false, false, false, false];
     show(storeOf(), ["group_1"]);
     expect(disabled()).toEqual(outside);
     clear();
@@ -548,7 +647,7 @@ describe("the Properties form", () => {
     open(bundle, M);
     show(bundle, ["group_1"]);
     properties();
-    expect(disabled()).toEqual([false, false, false, false, false, false]);
+    expect(disabled()).toEqual([false, false, false, false, false, false, false]);
     clear();
 
     const group = storeOf();

@@ -167,6 +167,7 @@ describe("the live placement of a gesture inside a block", () => {
       y: 28.8046875,
       length: 460,
       scale: 1,
+      spacing: 1,
       width: 622.484619140625,
       height: 139.5625,
     });

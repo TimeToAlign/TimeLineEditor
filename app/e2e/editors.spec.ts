@@ -833,9 +833,11 @@ test.describe("resizing in an editor", () => {
     await page.evaluate((address) => window.__tilie.select([address]), `${MIXED}/score/card`);
     await page.locator('[data-testid="mode-stretch"]').click();
     const handles = page.locator('[data-testid^="handle-"]');
-    await expect(handles).toHaveCount(1);
-    await expect(handles).toHaveAttribute("data-testid", "handle-right");
-    const grip = await handles.boundingBox();
+    await expect(handles).toHaveCount(3);
+    expect(
+      await handles.evaluateAll((items) => items.map((item) => item.getAttribute("data-testid"))),
+    ).toEqual(["handle-right", "handle-bottom-right", "handle-bottom"]);
+    const grip = await page.locator('[data-testid="handle-right"]').boundingBox();
     if (grip === null) throw new Error("handle right is not displayed");
     await drag(page, { x: grip.x + grip.width / 2, y: grip.y + grip.height / 2 }, 20, 0);
     await expect.poll(() => entriesLength(page)).toBe(1);

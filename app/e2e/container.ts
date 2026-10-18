@@ -12,8 +12,8 @@ export interface ContainerOptions {
   readonly schemaPackage: string;
   /** The Playwright image. */
   readonly image: string;
-  /** Whether the run is a CI run (`CI` is passed into the container). */
-  readonly ci: boolean;
+  /** The names of the host variables passed into the container, with their host values. */
+  readonly env: readonly string[];
   /** The `playwright test` arguments. */
   readonly args: readonly string[];
 }
@@ -29,14 +29,16 @@ function isInside(root: string, directory: string): boolean {
 
 /**
  * The arguments of `podman run`: the app directory mounted at its own path,
- * the host network and IPC namespace, and the same `node e2e/run.ts` inside
- * the image. A schema package linked from a sibling checkout lies outside
- * `app/` and so is invisible in the container; it is added as one read-only
- * volume at its own absolute path, where the links in `node_modules` find it,
- * relabelled (`z`) as the app's volume is, for hosts that enforce SELinux.
+ * the host network and IPC namespace, each variable of `env` by its name
+ * alone (podman copies the host's value), and the same `node e2e/run.ts`
+ * inside the image. A schema package linked from a sibling checkout lies
+ * outside `app/` and so is invisible in the container; it is added as one
+ * read-only volume at its own absolute path, where the links in
+ * `node_modules` find it, relabelled (`z`) as the app's volume is, for hosts
+ * that enforce SELinux.
  */
 export function podmanArguments(options: ContainerOptions): string[] {
-  const { appRoot, schemaPackage, image, ci, args } = options;
+  const { appRoot, schemaPackage, image, env, args } = options;
   return [
     "run",
     "--rm",
@@ -48,7 +50,7 @@ export function podmanArguments(options: ContainerOptions): string[] {
       ? []
       : [`--volume=${schemaPackage}:${schemaPackage}:ro,z`]),
     `--workdir=${appRoot}`,
-    ...(ci ? ["--env=CI"] : []),
+    ...env.map((name) => `--env=${name}`),
     image,
     "node",
     "e2e/run.ts",

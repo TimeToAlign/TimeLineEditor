@@ -323,6 +323,15 @@ describe("geometry in the editors", () => {
   const score = `${BUNDLE}/score`;
   const place = (id: string, values: object) => set(`${BUNDLE}/${id}`, { place: values });
 
+  /** One `set` of each `[id, place]` in turn. */
+  const places = (...changes: [string, object][]) => ({
+    type: "set",
+    changes: changes.map(([id, values]) => ({
+      target: `${BUNDLE}/${id}`,
+      values: { place: values },
+    })),
+  });
+
   it("lets a member's editor change its group's length and scale and its own card", () => {
     const all = {
       type: "set",
@@ -336,6 +345,7 @@ describe("geometry in the editors", () => {
       place("group_1", { length: 500 }),
       place("group_1", { scale: 1.5 }),
       place("score", { width: 650 }),
+      place("score", { spacing: 1.5, height: 120 }),
       all,
     ]) {
       expect(sideEffect(before, changed(before, command), score)).toBeNull();
@@ -344,16 +354,48 @@ describe("geometry in the editors", () => {
     expect(sideEffect(moved, changed(moved, place("group_1", { length: 500 })), score)).toBeNull();
   });
 
+  it("lets a member's editor keep the group's size and its siblings' widths in proportion", () => {
+    const stretch = places(
+      ["group_1", { length: 500, width: 900 }],
+      ["performance", { width: 650 }],
+    );
+    expect(sideEffect(before, changed(before, stretch), score)).toBeNull();
+    for (const command of [
+      place("group_1", { height: 300 }),
+      places(["group_1", { height: 300 }], ["score", { spacing: 2 }]),
+    ]) {
+      expect(sideEffect(before, changed(before, command), score)).toBeNull();
+    }
+    const sized = deepFreeze(
+      changed(before, place("performance", { width: 650, height: 120, spacing: 1.5 })),
+    );
+    const unsized = changed(sized, place("performance", { width: null }));
+    expect(sideEffect(sized, unsized, score)).toBeNull();
+  });
+
   it("refuses a member's editor every other place", () => {
-    expect(sideEffect(before, changed(before, place("group_1", { x: 10 })), score)).toEqual(
-      outside("the place of bundle0001/group_1", [G1], score),
+    const performance = outside(
+      "the place of bundle0001/performance",
+      [`${BUNDLE}/performance`],
+      score,
     );
-    expect(
-      sideEffect(before, changed(before, place("performance", { width: 650 })), score),
-    ).toEqual(outside("the place of bundle0001/performance", [`${BUNDLE}/performance`], score));
-    expect(sideEffect(before, changed(before, place("group_2", { length: 500 })), score)).toEqual(
-      outside("the place of bundle0001/group_2", [`${BUNDLE}/group_2`], score),
-    );
+    const group2 = outside("the place of bundle0001/group_2", [`${BUNDLE}/group_2`], score);
+    for (const [command, refusal] of [
+      [place("group_1", { x: 10 }), outside("the place of bundle0001/group_1", [G1], score)],
+      [place("group_1", { spacing: 1.5 }), outside("the place of bundle0001/group_1", [G1], score)],
+      [place("performance", { spacing: 1.5 }), performance],
+      [place("performance", { height: 120 }), performance],
+      [places(["group_1", { length: 500 }], ["performance", { spacing: 1.5 }]), performance],
+      [places(["group_1", { length: 500 }], ["performance", { height: 120 }]), performance],
+      [place("group_2", { length: 500 }), group2],
+      [place("group_2", { width: 900 }), group2],
+      [
+        place("page", { width: 650 }),
+        outside("the place of bundle0001/page", [`${BUNDLE}/page`], score),
+      ],
+    ] as const) {
+      expect(sideEffect(before, changed(before, command), score)).toEqual(refusal);
+    }
   });
 
   it("lets a child member's editor change its group's length, not its parent's editor", () => {
@@ -365,9 +407,11 @@ describe("geometry in the editors", () => {
     );
   });
 
-  it("lets a group's editor size its members' cards", () => {
-    const sized = changed(before, place("score", { width: 650, height: 120 }));
+  it("lets a group's editor size and stretch its frame and its members' cards", () => {
+    const sized = changed(before, place("score", { width: 650, height: 120, spacing: 1.5 }));
     expect(sideEffect(before, sized, G1)).toBeNull();
+    const stretched = changed(before, place("group_1", { spacing: 1.5 }));
+    expect(sideEffect(before, stretched, G1)).toBeNull();
   });
 
   it("lets an ungrouped root's editor change its whole place", () => {

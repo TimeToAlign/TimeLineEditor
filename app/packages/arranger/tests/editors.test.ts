@@ -132,17 +132,17 @@ describe("GESTURES and gesturesOf", () => {
 
 describe("RESIZING and resizes", () => {
   it("is one table by box kind: where each kind resizes and what each mode writes", () => {
-    const item = { scale: "item", box: "item", stretch: "item" };
+    const item = { scale: "item", box: "item", length: "item", spacing: "item" };
     expect(RESIZING).toStrictEqual({
       block: {
         levels: { arranger: "inside", bundle: "edited" },
-        writes: { scale: "block", box: "block", stretch: "block" },
+        writes: { scale: "block", box: "block", length: "block", spacing: "block" },
       },
       frame: { levels: { arranger: "inside", bundle: "inside", group: "edited" }, writes: item },
       card: { levels: { arranger: "inside", bundle: "inside", timeline: "edited" }, writes: item },
       member: {
         levels: { arranger: "inside", bundle: "inside", group: "inside", timeline: "edited" },
-        writes: { scale: "item", box: "card", stretch: "item" },
+        writes: { scale: "item", box: "card", length: "item", spacing: "card" },
       },
     });
   });

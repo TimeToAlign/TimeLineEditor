@@ -313,7 +313,12 @@ export function commandIn(
     },
     {
       target: `${block}/${element}`,
-      values: { place: pick([{ x: (p3 % 64) - 8 }, { scale }, { width: 100 + (p3 % 900) }], p1) },
+      values: {
+        place: pick(
+          [{ x: (p3 % 64) - 8 }, { scale }, { spacing: scale }, { width: 100 + (p3 % 900) }],
+          p1,
+        ),
+      },
     },
     {
       target: `${block}/${element}`,
@@ -523,6 +528,7 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
                 { y: -(p4 % 50), length: 1 + (p4 % 400) },
                 { width: canvas(p4), height: 1 + (p4 % 90) },
                 { scale: canvas(p4) },
+                { spacing: canvas(p4) },
                 { width: 1 + (p4 % 700) },
                 { x: null, length: null },
                 {},

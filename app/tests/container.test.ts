@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { podmanArguments } from "../e2e/container.ts";
 
-const common = { appRoot: "/w/app", image: "img", ci: false, args: ["--project=chromium"] };
+const common = { appRoot: "/w/app", image: "img", env: [], args: ["--project=chromium"] };
 
 const BEFORE = [
   "run",
@@ -21,9 +21,16 @@ describe("podmanArguments", () => {
   it("adds nothing for a schema package inside the app directory", () => {
     const schemaPackage = "/w/app/node_modules/.pnpm/x/node_modules/y";
     expect(podmanArguments({ ...common, schemaPackage })).toEqual(BEFORE);
-    expect(podmanArguments({ ...common, schemaPackage, ci: true })).toEqual([
+  });
+
+  it("passes each named variable by its name alone, after the working directory, in order", () => {
+    const schemaPackage = "/w/app/node_modules/.pnpm/x/node_modules/y";
+    expect(podmanArguments({ ...common, schemaPackage, env: ["CI", "TILIE_E2E_WORKERS"] })).toEqual(
+      [...BEFORE.slice(0, 7), "--env=CI", "--env=TILIE_E2E_WORKERS", ...BEFORE.slice(7)],
+    );
+    expect(podmanArguments({ ...common, schemaPackage, env: ["TILIE_E2E_WORKERS"] })).toEqual([
       ...BEFORE.slice(0, 7),
-      "--env=CI",
+      "--env=TILIE_E2E_WORKERS",
       ...BEFORE.slice(7),
     ]);
   });

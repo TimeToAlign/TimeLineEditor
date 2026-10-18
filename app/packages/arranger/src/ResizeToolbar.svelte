@@ -16,13 +16,7 @@ import { calcAutoPan, getNodeToolbarTransform, Position } from "@xyflow/system";
 import type { Level } from "./editors.ts";
 import type { ResizedItem } from "./gestures.svelte.ts";
 import { resizeModes } from "./gestures.svelte.ts";
-import {
-  itemHandlesFor,
-  itemResizeCommand,
-  itemResizeValues,
-  placeKeyOf,
-  placesAfter,
-} from "./items.ts";
+import { itemHandlesFor, itemResizeCommand, itemResizeValues, placesAfter } from "./items.ts";
 import type { Delta, Handle, ResizeMode } from "./resize.ts";
 import "./menu.css";
 import { handlesFor, resize, resizeCommand } from "./resize.ts";
@@ -81,16 +75,18 @@ const MODES: readonly { mode: ResizeMode; label: string; key: string }[] = [
 ];
 
 /**
- * What a mode does, said in its button's title: an item stretches its length
- * alone, and a member's card scales and stretches its whole group.
+ * What a mode does, said in its button's title: a member's card scales its
+ * whole group and stretches every member along time, its own card alone
+ * vertically.
  */
 function hintOf(chosen: ResizeMode): string {
   const member = item?.kind === "member";
   if (chosen === "scale")
     return member ? "scale the whole group" : "scale everything, proportions kept";
   if (chosen === "box") return "resize the box, the content stays";
-  if (item === undefined) return "stretch lengths and distances";
-  return member ? "stretch every member" : "stretch the length";
+  return member
+    ? "stretch every member's length, this card's distances"
+    : "stretch lengths and distances";
 }
 
 /** The modes offered, in the order of `MODES`, and the one shown. */
@@ -176,15 +172,17 @@ function result(): { values: Partial<Block>; command: SetCommand | null } {
     );
     return { values, command: changes ? resizeCommand(block, values) : null };
   }
-  const place = itemResizeValues(block, view.settings, metrics, level, item, chosen, handle, delta);
-  const command = itemResizeCommand(
-    view,
-    block.id,
-    placeKeyOf(item, chosen),
-    place,
-    level,
+  const places = itemResizeValues(
+    block,
+    view.settings,
     metrics,
+    level,
+    item,
+    chosen,
+    handle,
+    delta,
   );
+  const command = itemResizeCommand(view, block.id, places, level, metrics);
   return { values: command === null ? {} : { places: placesAfter(block, command) }, command };
 }
 

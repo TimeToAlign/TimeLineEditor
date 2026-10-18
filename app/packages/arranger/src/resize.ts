@@ -103,12 +103,14 @@ export function solve(
 
 /**
  * The box request after a stretch that took the content from `content` to
- * `stretched` on one axis: a request larger than the content keeps the
- * space it adds, one at or below it draws nothing and becomes `null`.
+ * `stretched` on one axis: a request larger than the content keeps its
+ * proportion to the content, `request × stretched ÷ content` (multiplied
+ * first), so every margin it adds stretches with the content; one at or
+ * below the content draws nothing and becomes `null`.
  */
 export function kept(request: number | null, content: number, stretched: number): number | null {
   if (request === null || request <= content) return null;
-  return quantize(stretched + request - content, GRID_FREE);
+  return quantize((request * stretched) / content, GRID_FREE);
 }
 
 /**
@@ -124,16 +126,15 @@ export function kept(request: number | null, content: number, stretched: number)
  * - `box` sets `width` and `height`; a request at or below the content's
  *   own extent stores `null`, the content's size.
  * - `stretch` sets `length` from a left or right handle and `spacing` from a
- *   top or bottom one: the largest value whose content extent does not pass
- *   the pointer, the content's extent moving by the pointer's travel.
- *   Floored at `MIN_LENGTH` and `MIN_SPACING`, and a shrink past a flat
- *   piece stops at its knee. The box follows the content on each axis: a
- *   `width` or `height` larger than the content keeps the space it adds
- *   (the stretched content plus the request minus the content before),
- *   one at or below the content becomes `null`, and `null` stays. So the
- *   edge ends under the pointer with or without a box request. The stated
- *   places stretch with the content (`blockStretchPlaces`), so the items
- *   keep their arrangement; `places` is set when they change.
+ *   top or bottom one: the largest value whose box does not pass the
+ *   pointer, floored at `MIN_LENGTH` and `MIN_SPACING`; a shrink past a
+ *   flat piece stops at its knee. The box follows the content on each axis
+ *   (`kept`): a `width` or `height` larger than the content keeps its
+ *   proportion to it, one at or below the content becomes `null`, and
+ *   `null` stays. So the edge ends under the pointer with or without a box
+ *   request, and a pointer moved back always finds a smaller value. The
+ *   stated places stretch with the content (`blockStretchPlaces`), so the
+ *   items keep their arrangement; `places` is set when they change.
  */
 export function resize(
   block: Block,
@@ -188,14 +189,19 @@ export function resize(
           spacing: spacingTo,
           places: blockStretchPlaces(block, lengthTo, spacingTo),
         });
+      /** The box's extent at a content extent: the larger of it and the request following it. */
+      const boxed = (request: number | null, before: number, extent: number) =>
+        Math.max(extent, kept(request, before, extent) ?? 0);
       if (sx !== 0) {
-        const wanted = targetWidth / z - (drawing.width - content.width);
-        length = solve((value) => stretch(value, spacing).width, length, wanted, MIN_LENGTH);
+        const width = (value: number) =>
+          boxed(block.width, content.width, stretch(value, spacing).width);
+        length = solve(width, length, targetWidth / z, MIN_LENGTH);
         values.length = length;
       }
       if (sy !== 0) {
-        const wanted = targetHeight / z - (drawing.height - content.height);
-        spacing = solve((value) => stretch(length, value).height, spacing, wanted, MIN_SPACING);
+        const height = (value: number) =>
+          boxed(block.height, content.height, stretch(length, value).height);
+        spacing = solve(height, spacing, targetHeight / z, MIN_SPACING);
         values.spacing = spacing;
       }
       const stretched = stretch(length, spacing);
@@ -226,8 +232,9 @@ export function resize(
  * The places of `block` stretched to `length` and `spacing`: every stated
  * `x`, `length` and `width` scaled by the ratio of the lengths, every stated
  * `y` and `height` by the ratio of the spacings, quantized to `GRID_FREE`,
- * and every stated `scale` kept, so a stretch scales the items' and cards'
- * sizes and distances and keeps their arrangement. The block's own `places`
+ * and every stated `scale` and `spacing` kept (an item's `spacing` is a
+ * factor of the block's), so a stretch scales the items' and cards' sizes
+ * and distances and keeps their arrangement. The block's own `places`
  * object when nothing changes.
  */
 export function blockStretchPlaces(
@@ -244,6 +251,7 @@ export function blockStretchPlaces(
     y: vertical,
     height: vertical,
     scale: 1,
+    spacing: 1,
   };
   let changed = false;
   const places: { [key: string]: Place } = {};

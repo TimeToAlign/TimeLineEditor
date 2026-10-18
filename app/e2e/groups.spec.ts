@@ -502,7 +502,7 @@ test.describe("a bundle workspace", () => {
     await expect(part(page, BUNDLES.mixed, "annotations/card")).toBeAttached();
   });
 
-  test("a stretch keeps the space a box resize added", async ({ page }) => {
+  test("a stretch keeps the margin a box resize added in proportion", async ({ page }) => {
     const block = BUNDLES.ungrouped;
     /** Drag a handle by whole pixels from a whole-pixel point; the release journals one `set`. */
     const drag = async (handle: string, dx: number, dy: number) => {
@@ -536,7 +536,13 @@ test.describe("a bundle workspace", () => {
       length: stretched.length,
       width: stretched.width,
       height: stretched.height,
-    }).toEqual({ x: 0, y: 480, length: 450, width: 615.89697265625, height: boxed.height });
+    }).toEqual({
+      x: 0,
+      y: 480,
+      length: 446.4658203125,
+      width: 615.89697265625,
+      height: boxed.height,
+    });
     if (before === null || after === null) throw new Error(`${block} is not displayed`);
     expect(after.x).toBe(before.x);
     expect(after.x + after.width - (before.x + before.width)).toBe(50);

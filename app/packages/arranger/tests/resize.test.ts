@@ -5,6 +5,7 @@ import {
   blockStretchPlaces,
   drawingOf,
   handlesFor,
+  kept,
   project,
   resize,
   resizeCommand,
@@ -63,9 +64,9 @@ const views: { readonly [name: string]: View } = {
   "audio, no names": audio,
   "audio, no names, length 8": placed(audio, { length: 8 }),
   "audio, no names, at the knee": placed(audio, { length: 40.08251953125 }),
-  "bare, width 496.58": placed(bare, { width: 496.5771484375 }),
-  "bare, height 77.88": placed(bare, { height: 77.87890625 }),
-  "bare, both requests": placed(bare, { width: 496.5771484375, height: 77.87890625 }),
+  "bare, width 953.15": placed(bare, { width: 953.154296875 }),
+  "bare, height 134.76": placed(bare, { height: 134.7578125 }),
+  "bare, both requests": placed(bare, { width: 953.154296875, height: 134.7578125 }),
   "bare, length 500, width 496.58": placed(bare, { length: 500, width: 496.5771484375 }),
   "child member, width 600": placed(viewOf({ id: A, fixture: CHILD_MEMBER, x: 40, y: 80 }), {
     width: 600,
@@ -142,22 +143,54 @@ describe("resize: stretch", () => {
     ["audio, no names", "right", -500, 0, { length: 40.08251953125 }],
     ["audio, no names, length 8", "right", 50, 0, { length: 90.08251953125 }],
     ["audio, no names, at the knee", "right", 100, 0, { length: 140.08251953125 }],
-    ["bare, width 496.58", "right", 20, 0, { length: 420, width: 516.5771484375 }],
-    ["bare, width 496.58", "left", -21, 0, { length: 421, width: 517.5771484375, x: 19 }],
-    ["bare, width 496.58", "bottom", 0, 30, { spacing: 2.875 }],
-    ["bare, height 77.88", "bottom", 0, 30, { spacing: 2.875, height: 107.87890625 }],
-    ["bare, height 77.88", "top", 0, -16, { spacing: 2, height: 93.87890625, y: 64 }],
+    ["bare, width 953.15", "right", 40, 0, { length: 420, width: 993.154296875 }],
+    ["bare, width 953.15", "left", -42, 0, { length: 421, width: 995.154296875, x: -2 }],
+    ["bare, width 953.15", "bottom", 0, 30, { spacing: 2.875 }],
+    ["bare, height 134.76", "bottom", 0, 32, { spacing: 2, height: 166.7578125 }],
+    ["bare, height 134.76", "top", 0, -32, { spacing: 2, height: 166.7578125, y: 48 }],
     [
       "bare, both requests",
       "bottom-right",
-      20,
-      30,
-      { length: 420, spacing: 2.875, width: 516.5771484375, height: 107.87890625 },
+      40,
+      32,
+      { length: 420, spacing: 2, width: 993.154296875, height: 166.7578125 },
     ],
     ["bare, length 500, width 496.58", "right", 20, 0, { length: 520, width: null }],
-    ["child member, width 600", "right", 50, 0, { length: 450, width: 650 }],
+    ["child member, width 600", "right", 50, 0, { length: 446.53466796875, width: 650 }],
   ])("%s %s by (%d, %d)", (name, handle, dx, dy, expected) => {
     expect(check(views[name] as View, "stretch", handle, dx, dy)).toStrictEqual(expected);
+  });
+});
+
+describe("kept", () => {
+  it.each([
+    [700, 553, 691.25, 875],
+    [700, 553, 600, 759.49365234375],
+    [700, 553, 553, 700],
+    [553, 553, 600, null],
+    [500, 553, 600, null],
+    [null, 553, 600, null],
+  ] as const)("keeps %s over %d in proportion at %d", (request, content, stretched, expected) => {
+    expect(kept(request, content, stretched)).toBe(expected);
+  });
+});
+
+describe("the shortening lock, through the block", () => {
+  it("keeps a box request in proportion and shrinks the box again", () => {
+    const shared = viewOf({ id: A, fixture: "bundles/bundle_shared_parent", x: 40, y: 80 });
+    expect(check(shared, "box", "right", 585.39013671875, 0)).toStrictEqual({
+      width: 1170.7802734375,
+    });
+    const boxed = placed(shared, { width: 1170.7802734375 });
+    expect(check(boxed, "stretch", "right", 100, 0)).toStrictEqual({
+      length: 450,
+      width: 1270.7802734375,
+    });
+    const longer = placed(boxed, { length: 450, width: 1270.7802734375 });
+    expect(check(longer, "stretch", "right", -200, 0)).toStrictEqual({
+      length: 350,
+      width: 1070.7802734375,
+    });
   });
 });
 

@@ -131,7 +131,7 @@ describe("ResizeToolbar", () => {
     expect(titles()).toEqual([
       "Scale: scale everything, proportions kept (1)",
       "Box: resize the box, the content stays (2)",
-      "Stretch: stretch the length (3)",
+      "Stretch: stretch lengths and distances (3)",
     ]);
   });
 
@@ -146,14 +146,20 @@ describe("ResizeToolbar", () => {
       buttons: THREE,
       pressed: ["Stretch"],
       disabled: [],
-      handles: ["right", "left"],
+      handles: EIGHT,
     });
   });
 
   it("offers the edited frame and its members' cards every mode in the group editor", () => {
     expect(show("group", "box", FRAME).buttons).toEqual(THREE);
     expect(show("group", "box", FRAME).handles).toEqual(EIGHT);
-    expect(show("group", "stretch", FRAME).handles).toEqual(["right"]);
+    expect(show("group", "stretch", FRAME).handles).toEqual([
+      "top",
+      "top-right",
+      "right",
+      "bottom-right",
+      "bottom",
+    ]);
     expect(show("group", "scale", PERFORMANCE)).toEqual({
       buttons: THREE,
       pressed: ["Scale"],
@@ -163,10 +169,14 @@ describe("ResizeToolbar", () => {
     expect(titles()).toEqual([
       "Scale: scale the whole group (1)",
       "Box: resize the box, the content stays (2)",
-      "Stretch: stretch every member (3)",
+      "Stretch: stretch every member's length, this card's distances (3)",
     ]);
     expect(show("group", "box", PERFORMANCE).handles).toEqual(["right", "bottom-right", "bottom"]);
-    expect(show("group", "stretch", PERFORMANCE).handles).toEqual(["right"]);
+    expect(show("group", "stretch", PERFORMANCE).handles).toEqual([
+      "right",
+      "bottom-right",
+      "bottom",
+    ]);
   });
 
   it("offers the edited card every mode in the timeline editor", () => {
@@ -180,7 +190,7 @@ describe("ResizeToolbar", () => {
       buttons: THREE,
       pressed: ["Stretch"],
       disabled: [],
-      handles: ["right"],
+      handles: ["right", "bottom-right", "bottom"],
     });
   });
 

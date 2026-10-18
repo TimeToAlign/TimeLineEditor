@@ -80,6 +80,20 @@ describe("places, band orders and display orders, accepted", () => {
     expect(block(child, ID).places).toEqual({ "second-half": { width: 650, height: 120 } });
   });
 
+  it("states a spacing on a group, an ungrouped root and a member's card", () => {
+    const group = after(mixed(), set("group_1", { place: { spacing: 1.5 } }));
+    expect(block(group, ID).places).toEqual({ group_1: { spacing: 1.5 } });
+    const root = after(mixed(), set("annotations", { place: { spacing: 1.5 } }));
+    expect(block(root, ID).places).toEqual({ annotations: { spacing: 1.5 } });
+    const card = after(mixed(), set("score", { place: { spacing: 1.5 } }));
+    expect(block(card, ID).places).toEqual({ score: { spacing: 1.5 } });
+    const sized = after(card, set("score", { place: { width: 650 } }));
+    expect(block(sized, ID).places).toEqual({ score: { spacing: 1.5, width: 650 } });
+    expect(block(after(sized, set("score", { place: { spacing: null } })), ID).places).toEqual({
+      score: { width: 650 },
+    });
+  });
+
   it("writes a group's display order, and null deletes it", () => {
     const start = mixed();
     const swapped = after(start, set("group_1", { order: ["performance", "score"] }));
@@ -134,8 +148,8 @@ describe("places, band orders and display orders, refused", () => {
     ).toEqual({ code: "not_an_item", path: [`${ID}/piece`, "place"] });
   });
 
-  it("refuses a member's card anything but its size", () => {
-    const card = "score is a member: its card takes only width and height";
+  it("refuses a member's card anything but its size and spacing", () => {
+    const card = "score is a member: its card takes only width, height and spacing";
     expect(refused(view, set("score", { place: { x: 1 } }))).toEqual({
       code: "not_an_item",
       path: [`${ID}/score`, "place", "x"],
@@ -154,7 +168,7 @@ describe("places, band orders and display orders, refused", () => {
     expect(refused(mixed({}, CHILD_MEMBER), set("second-half", { place: { x: 10 } }))).toEqual({
       code: "not_an_item",
       path: [`${ID}/second-half`, "place", "x"],
-      message: "second-half is a member: its card takes only width and height",
+      message: "second-half is a member: its card takes only width, height and spacing",
     });
   });
 
@@ -179,6 +193,8 @@ describe("places, band orders and display orders, refused", () => {
     [{ width: -1 }, "non_positive_number", ["width"]],
     [{ scale: 0 }, "non_positive_number", ["scale"]],
     [{ scale: -1 }, "non_positive_number", ["scale"]],
+    [{ spacing: 0 }, "non_positive_number", ["spacing"]],
+    [{ spacing: -1 }, "non_positive_number", ["spacing"]],
     [{ depth: 1 }, "unknown_property", ["depth"]],
     [5, "invalid_value", []],
   ])("refuses the place value %j", (place, code, inside) => {
@@ -238,7 +254,7 @@ describe("pruning stale keys", () => {
     expect(block(placed, ID).places).toEqual({ page: { width: 650 }, recording: { x: 1 } });
   });
 
-  it("cuts the place of a root that becomes a group member to its card's size", () => {
+  it("cuts the place of a root that becomes a group member to what its card takes", () => {
     const value = manifestValue(BUNDLE) as {
       groups: { id: string; members: string[] }[];
       graphical: { order: { [group: string]: string[] } };
@@ -268,10 +284,10 @@ describe("pruning stale keys", () => {
     ]);
     const sized = after(
       mixed(),
-      set("annotations", { place: { x: 1, scale: 2, width: 700 } }),
+      set("annotations", { place: { x: 1, scale: 2, spacing: 1.5, width: 700 } }),
       set("", { manifest: grouped }),
     );
-    expect(block(sized, ID).places).toEqual({ annotations: { width: 700 } });
+    expect(block(sized, ID).places).toEqual({ annotations: { spacing: 1.5, width: 700 } });
   });
 
   it("drops a removed timeline's keys", () => {
@@ -309,6 +325,11 @@ describe("a block's places and band orders as stored", () => {
     ],
     [{ places: { group_1: { scale: 0 } } }, "non_positive_number", ["places", "group_1", "scale"]],
     [
+      { places: { group_1: { spacing: 0 } } },
+      "non_positive_number",
+      ["places", "group_1", "spacing"],
+    ],
+    [
       { places: { score: { height: 2, scale: 1 } } },
       "unknown_member",
       ["places", "score", "scale"],
@@ -326,7 +347,7 @@ describe("a block's places and band orders as stored", () => {
     ]);
   });
 
-  it("refuses keys naming no item, member, group or timeline, and a card beyond its size", () => {
+  it("refuses keys naming no item, member, group or timeline, and a card beyond what it takes", () => {
     expect(
       found({
         places: {
@@ -335,6 +356,7 @@ describe("a block's places and band orders as stored", () => {
           group_1: { x: 3 },
           recording: { x: 4 },
           page: { width: 650 },
+          performance: { spacing: 1.5 },
         },
         bands: { nowhere: FLOW_FIRST, excerpt: FLOW_FIRST },
       }),
@@ -352,7 +374,7 @@ describe("a block's places and band orders as stored", () => {
       {
         code: "unknown_member",
         path: at("places", "score", "x"),
-        message: "score is a member: its card takes only width and height",
+        message: "score is a member: its card takes only width, height and spacing",
       },
       {
         code: "unknown_band_key",

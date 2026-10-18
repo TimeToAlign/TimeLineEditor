@@ -50,9 +50,8 @@ export type {
   ResizedItem,
 } from "./gestures.svelte.ts";
 export { CLICK_DISTANCE, itemDrag, listen, memberDrag, resizeModes } from "./gestures.svelte.ts";
-export type { PlaceValues } from "./items.ts";
+export type { PlaceChanges, PlaceValues } from "./items.ts";
 export {
-  cappedLength,
   itemHandlesFor,
   itemMoveCommand,
   itemOf,
@@ -60,10 +59,10 @@ export {
   itemResizeValues,
   keepsItems,
   placeCommand,
-  placeKeyOf,
   placesAfter,
   placesWith,
   resizedItemOf,
+  stretchChanges,
 } from "./items.ts";
 export type { LiveStore } from "./liveStore.svelte.ts";
 export { liveStore } from "./liveStore.svelte.ts";
@@ -79,7 +78,7 @@ export { insideOf, livePlacement, nodePosition, project } from "./project.ts";
 export { default as ResizeToolbar } from "./ResizeToolbar.svelte";
 export { memberOrderAt, reorderCommand, withMemberOrder } from "./reorder.ts";
 export type { Delta, Handle, ResizeMode } from "./resize.ts";
-export { blockStretchPlaces, handlesFor, resize, resizeCommand } from "./resize.ts";
+export { blockStretchPlaces, handlesFor, kept, resize, resizeCommand } from "./resize.ts";
 export { default as SnapGuides } from "./SnapGuides.svelte";
 export type { Selection } from "./selection.ts";
 export { blockOf, click, existing } from "./selection.ts";

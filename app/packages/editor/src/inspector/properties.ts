@@ -3,16 +3,23 @@
  * offers, the values they show and the one `set` an edit dispatches. A block
  * edits its placement; an item (a group's frame or an ungrouped root's card)
  * the place its block states for it; a group member's card its group's
- * shared scale and length and its own card size. Values are read from the
+ * shared scale and length and its own card size and vertical stretch. Values are read from the
  * block's drawing, the one the canvas shows (`drawingOf`, memoized per
  * block, or during a gesture the drawing the gesture shows), so a field shows
  * what is drawn where nothing is stated. An edit of a place follows the rule
- * of the canvas's gestures at the same level (`keepsItems`, `cappedLength`),
- * and a field is offered only where the level edits it (`offered`).
+ * of the canvas's gestures at the same level (`keepsItems`), a typed length or
+ * spacing writing what a Stretch to it writes (`stretchChanges`), and a field
+ * is offered only where the level edits it (`offered`).
  */
 
-import type { Level, LivePlacement, PlaceValues } from "@timetoalign/tilie-arranger";
-import { cappedLength, drawingOf, keepsItems, placeCommand } from "@timetoalign/tilie-arranger";
+import type { Level, LivePlacement, PlaceValues, ResizedItem } from "@timetoalign/tilie-arranger";
+import {
+  drawingOf,
+  keepsItems,
+  placeCommand,
+  placesWith,
+  stretchChanges,
+} from "@timetoalign/tilie-arranger";
 import type { Block, Place, SetCommand, View, WorkspaceSettings } from "@timetoalign/tilie-core";
 import { elementOf, isCommandError, parseAddress } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
@@ -36,6 +43,7 @@ const ITEM_FIELDS = [
   "y",
   "scale",
   "length",
+  "spacing",
   "width",
   "height",
 ] as const satisfies readonly (keyof Place & Property)[];
@@ -44,11 +52,16 @@ const ITEM_FIELDS = [
 export const FIELDS: { readonly [kind in GeometryKind]: readonly Property[] } = {
   block: PROPERTIES,
   item: ITEM_FIELDS,
-  card: ["scale", "length", "width", "height"],
+  card: ["scale", "length", "spacing", "width", "height"],
 };
 
 /** The fields of a member's card that edit its group's place: the members share them. */
 const SHARED: ReadonlySet<Property> = new Set(["scale", "length"]);
+
+/** Whether a Stretch sets `property`: a typed value then writes what a Stretch to it writes. */
+function stretched(property: Property): property is "length" | "spacing" {
+  return property === "length" || property === "spacing";
+}
 
 /** The block's own fields, which a group or timeline editor refuses to change (a side effect). */
 const BLOCK_FIELDS: ReadonlySet<Property> = new Set(["scale", "length", "spacing"]);
@@ -189,6 +202,7 @@ function classify(block: Block, drawing: Drawing, element: string | null): Class
     values: {
       scale: frame.stated.scale ?? frame.place.scale,
       length: frame.stated.length ?? frame.place.length,
+      spacing: card.spacing,
       width: card.stated.width ?? card.size.width,
       height: card.stated.height ?? card.size.height,
     },
@@ -259,13 +273,17 @@ export function stepValue(value: number | null, direction: 1 | -1, step: number)
  * The one `set` giving `property` of every element the value `valueFor`
  * gives it: a block's own property, else a member of a place (`place:
  * {[property]: value}`), on the group's place for the scale and length of a
- * member's card. Elements sharing a target (two cards of one group) change
- * it once, with the first one's value. A place edit follows the canvas's
- * gestures at the geometry's level (`placeCommand`): on the arranger and in
- * the bundle editor the same `set` states, once, the drawn `x`, `y` of every
- * other item that states none, so nothing else moves; in the group editor,
- * where the frame does not adapt, a `length` is capped and the frame's
- * width pinned as by a stretch (`cappedLength`).
+ * member's card and on the card's own place for its size and spacing.
+ * Elements sharing a target (two cards of one group) change it once, with
+ * the first one's value. A place edit follows the canvas's gestures at the
+ * geometry's level (`placeCommand`): on the arranger and in the bundle
+ * editor the same `set` states, once, the drawn `x`, `y` of every other item
+ * that states none, so nothing else moves. A `length` or `spacing` writes
+ * what a Stretch to that value writes (`stretchChanges`): every stated width
+ * or height it changes the content of keeps its proportion to it, and in the
+ * group editor, where the frame does not adapt, a `length` is capped and the
+ * frame's width pinned. Each element's stretch starts from the places the
+ * ones before it wrote.
  */
 export function geometryCommand(
   geometry: Geometry,
@@ -283,20 +301,48 @@ export function geometryCommand(
     };
   }
   const places = new Map<string, PlaceValues>();
+  const written = new Set<string>();
+  let edited = block;
   for (const element of geometry.elements) {
     const shared = kind === "card" && SHARED.has(property);
     const target = shared && element.group !== null ? element.group : element.target;
-    const key = target.slice(block.id.length + 1);
-    if (places.has(key)) continue;
+    const key = keyIn(block, target);
+    if (written.has(key)) continue;
+    written.add(key);
     const value = valueFor(element);
-    places.set(
-      key,
-      geometry.level === "group" && property === "length" && value !== null
-        ? cappedLength(block, geometry.settings, fontMetrics, key, value)
-        : { [property]: value },
-    );
+    const changes =
+      stretched(property) && value !== null
+        ? stretchChanges(
+            edited,
+            geometry.settings,
+            fontMetrics,
+            geometry.level,
+            resizedOf(geometry, element),
+            property,
+            value,
+          )
+        : new Map([[key, { [property]: value }]]);
+    for (const [changed, values] of changes) {
+      places.set(changed, { ...places.get(changed), ...values });
+      edited = { ...edited, places: placesWith(edited.places, changed, values) };
+    }
   }
   return placeCommand(block.id, geometry.drawing, places, keepsItems(geometry.level));
+}
+
+/** The key of `places` that `target`, `<block>/<key>`, names. */
+function keyIn(block: Block, target: string): string {
+  return target.slice(block.id.length + 1);
+}
+
+/** The box of the drawing that `element` names, as the canvas's resize gestures name it. */
+function resizedOf(geometry: Geometry, element: Edited): ResizedItem {
+  const key = keyIn(geometry.block, element.target);
+  if (element.group !== null) {
+    return { kind: "member", key, item: keyIn(geometry.block, element.group) };
+  }
+  const grouped = geometry.drawing.items.some((item) => item.key === key && item.kind === "group");
+  return { kind: grouped ? "frame" : "card", key, item: key };
 }
 
 /**

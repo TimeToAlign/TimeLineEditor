@@ -112,37 +112,46 @@ export type ResizedKind = "block" | "frame" | "card" | "member";
 export type Reach = "inside" | "edited";
 
 /**
- * What a resize mode changes: the block's own placement, the place of the
- * item holding the box (the group, for a member's card), or the member's
- * own card size.
+ * What a resize changes: the block's own placement, the place of the item
+ * holding the box (the group, for a member's card), or the member's own
+ * card.
  */
 export type Written = "block" | "item" | "card";
 
 /** How a kind of box resizes: the levels where it does, and what each mode changes. */
 export interface Resizing {
   readonly levels: { readonly [level in Level]?: Reach };
-  /** By resize mode (`ResizeMode` of `resize.ts`). */
-  readonly writes: { readonly scale: Written; readonly box: Written; readonly stretch: Written };
+  /**
+   * By resize mode (`ResizeMode` of `resize.ts`), a stretch by its axis:
+   * `length` along time, `spacing` vertically.
+   */
+  readonly writes: {
+    readonly scale: Written;
+    readonly box: Written;
+    readonly length: Written;
+    readonly spacing: Written;
+  };
 }
 
-const ITEM: Resizing["writes"] = { scale: "item", box: "item", stretch: "item" };
+const ITEM: Resizing["writes"] = { scale: "item", box: "item", length: "item", spacing: "item" };
 
 /**
  * How every kind of box resizes, one row per kind, so a later editor adds a
  * level to the rows and never a branch. Every box resizes in all three modes
  * wherever it resizes. The members of a group share its length and scale, so
- * a member's card scales and stretches its group and sizes only its own box.
+ * a member's card scales its group and stretches it along time, and sizes
+ * and stretches vertically only its own card.
  */
 export const RESIZING: { readonly [kind in ResizedKind]: Resizing } = {
   block: {
     levels: { arranger: "inside", bundle: "edited" },
-    writes: { scale: "block", box: "block", stretch: "block" },
+    writes: { scale: "block", box: "block", length: "block", spacing: "block" },
   },
   frame: { levels: { arranger: "inside", bundle: "inside", group: "edited" }, writes: ITEM },
   card: { levels: { arranger: "inside", bundle: "inside", timeline: "edited" }, writes: ITEM },
   member: {
     levels: { arranger: "inside", bundle: "inside", group: "inside", timeline: "edited" },
-    writes: { scale: "item", box: "card", stretch: "item" },
+    writes: { scale: "item", box: "card", length: "item", spacing: "card" },
   },
 };
 

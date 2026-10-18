@@ -461,10 +461,11 @@ const NULLABLE_PLACE_READERS = Object.fromEntries(
 );
 
 /**
- * Merge members into the place of an item, or into the size of a member's
- * card: a value states the member, null unstates it, and a place left
- * without members is no place. A member's card takes only its size; the
- * length and scale it is drawn with are its group's.
+ * Merge members into the place of an item, or into the size and vertical
+ * stretch of a member's card: a value states the member, null unstates it,
+ * and a place left without members is no place. A member's card takes only
+ * its size and vertical stretch; the length and scale it is drawn with are
+ * its group's.
  */
 const setPlace: Setter<KeyedTarget> = (view, target, value, path) => {
   const key = keyOf(target);
@@ -1125,8 +1126,9 @@ function settle(view: View, touched: ReadonlySet<BlockId>): View | CommandError 
 
 /**
  * `places` with only the keys naming an item or a member's card, a card's
- * place cut to its size and dropped when nothing is left (a root that became
- * a member keeps its requested size); `places` itself when nothing goes.
+ * place cut to its size and vertical stretch and dropped when nothing is
+ * left (a root that became a member keeps its requested size and vertical
+ * stretch); `places` itself when nothing goes.
  */
 function keptPlaces(places: Block["places"], manifest: Manifest): Block["places"] {
   const items = itemKeys(manifest);
@@ -1134,10 +1136,10 @@ function keptPlaces(places: Block["places"], manifest: Manifest): Block["places"
   const entries = Object.entries(places).flatMap(([key, place]): [string, Place][] => {
     if (items.has(key)) return [[key, place]];
     if (!cards.has(key)) return [];
-    const size = CARD_MEMBERS.filter((member) => place[member] !== undefined);
-    if (size.length === Object.keys(place).length) return [[key, place]];
-    if (size.length === 0) return [];
-    return [[key, Object.fromEntries(size.map((member) => [member, place[member]]))]];
+    const card = CARD_MEMBERS.filter((member) => place[member] !== undefined);
+    if (card.length === Object.keys(place).length) return [[key, place]];
+    if (card.length === 0) return [];
+    return [[key, Object.fromEntries(card.map((member) => [member, place[member]]))]];
   });
   const same = entries.every(([key, place]) => places[key] === place);
   return same && entries.length === Object.keys(places).length

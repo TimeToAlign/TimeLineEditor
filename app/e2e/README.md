@@ -20,6 +20,13 @@ the sibling checkout is relabelled for the container to read. With the registry
 package (inside `app/node_modules`) the command line is unchanged. The
 arguments are built by `container.ts` and pinned in `tests/README.md`.
 
+`pnpm e2e` runs the `chromium` project only; `pnpm e2e:all` runs
+`chromium`, `firefox`, `webkit` and `touch`, as CI does. A spec file name
+after either runs that spec alone (`pnpm e2e resize.spec.ts`; with `--`
+before it, Playwright ignores the filter and runs every spec).
+`TILIE_E2E_WORKERS`, a positive integer, sets the number of workers
+(default 4); `run.ts` passes it, and `CI`, into the container when set.
+
 ## How state is read
 
 - **The store** through the test hook, `window.__tilie` (present only in
@@ -426,7 +433,7 @@ Every block's card rectangle and its shadow carry the address `<root>/card`
 `set` commands, journal 7), so `nested` (224…319.98) ends above `map` (from
 320) and clear of every other block; viewport (300, 40), zoom 1, page 1600 ×
 1000. `bare`'s box is then 40…516.5771484375 × 80…147.37890625. Cases 1 to 7
-run on these blocks of `small`; case 8 opens `bundles` instead.
+run on these blocks of `small`; cases 8 and 9 open `bundles` instead.
 
 1. **Choosing the mode.** With `bare` selected, keys 1, 2, 3 and the buttons
    `mode-scale`, `mode-box`, `mode-stretch` set `mode()` to scale, box, stretch;
@@ -499,6 +506,36 @@ run on these blocks of `small`; case 8 opens `bundles` instead.
    the stored `places` are exactly `{group_1: {scale: 2341/2048}, group_2:
    {x: 8, y: 176.3671875}, annotations: {x: 8, y: 358.50390625}}`: the
    other items' drawn positions are stated with it, so nothing else moves.
+9. **A member card's margin stretches with its group, and the group
+   shortens again.** `bundles` at viewport (40, 40), zoom 1, nothing open;
+   the block `bshared000` (`bundle_shared_parent`), whose group `group_1`
+   "Exposition" holds the cards of `exposition` and `take_1`. Every
+   member's card is `Wc(L) = 151.39013671875 + L` wide and the frame
+   `16 + ` its widest card (the arranger's test README, fixture facts).
+   One gesture after the other, each journalling one `set`:
+   - `bshared000/exposition/card` selected, Box, `handle-right` dragged by
+     (100, 0): `places.exposition` is `{width: 651.39013671875}`
+     (551.39013671875 + 100), so the card is longer than `take_1`'s.
+   - Stretch: the card offers `handle-right`, `handle-bottom-right` and
+     `handle-bottom`. `handle-right` dragged by (60, 0): the card's box,
+     its request following its content, `q(651.39013671875 × Wc(L) /
+     551.39013671875)`, may reach 711.39013671875. The largest lattice
+     length is `L1 = 923216 / 2048 = 450.7890625` (the box is then exactly
+     711.39013671875; one step more draws 711.39111328125), so
+     `places.group_1` is `{length: 450.7890625}` and `places.exposition`
+     `{width: 711.39013671875}`. `take_1`'s card is drawn `Wc(L1) =
+     602.17919921875` wide: the margin is kept in proportion, not
+     removed, and the lines keep one length.
+   - The frame `bshared000/group_1` selected, Stretch, `handle-right`
+     dragged by (−120, 0): the frame is `16 + q(711.39013671875 × Wc(L) /
+     602.17919921875)` wide and must shrink from 727.39013671875 to
+     607.39013671875. The largest lattice length is `L2 = 715184 / 2048 =
+     349.2109375` (frame 607.3896484375; one step more 607.390625), so
+     `places.group_1` is `{length: 349.2109375}` and `places.exposition`
+     `{width: 591.3896484375}`: the group is shorter than when it started.
+   The final `places` are exactly those two plus the drawn positions the
+   arranger states for the other items, `group_2` at (8, 210.94140625) and
+   `page` at (8, 393.078125).
 
 ## `touch.spec.ts` (the touch project)
 
@@ -771,8 +808,8 @@ styling" and "Minimal", and the buttons are "Apply" and "Revert".
 13. **The form edits the selected frame's and card's places, never the
     block's.** With the drawer open, `bundles` is loaded through the hook
     (journal 3) and `bmixed0000/group_1` selected: the form "Frame
-    properties" shows `length` `400` and `scale` `1`, has no `spacing`
-    field, and its `x` and `y` fields are disabled (items are moved in the
+    properties" shows `length` `400`, `scale` `1` and `spacing` `1` (the
+    default, nothing stated), and its `x` and `y` fields are disabled (items are moved in the
     bundle editor only). `length` filled with `300` and Enter adds exactly one entry,
     `{type: "set", changes: [{target: "bmixed0000/group_1", values:
     {place: {length: 300}}}, {target: "bmixed0000/group_2", values:
@@ -1003,13 +1040,22 @@ root's card and drawing), applied to the fixture by hand.
    quantized to 1/2048 (`Wc(400)` is an odd multiple of 1/4096, the half
    label's, and the half rounds up), a margin of 40.000244140625. Then
    stretch mode, its right handle dragged by (50, 0) from a whole-pixel
-   press point: one `set`, `length` 450 (the target content is
-   `565.89697265625 + 50 − 40.000244140625 = 575.896728515625 = Wc(450)`),
-   `width` 615.89697265625 (`Wc(450)` plus the margin: it is kept),
-   `height` as before, (0, 480) unchanged. The node's right edge on screen
-   moves by exactly the pointer's 50 and its left edge stays put: the box
-   follows the content. Without it the box would keep its 565.9 and the
-   content grow inside it.
+   press point: one `set`. The request keeps its proportion to the content
+   (the arranger's `kept`): at a length `L` the box is `q(565.89697265625 ×
+   Wc(L) ÷ 525.896728515625)`, `q` rounding to 1/2048, and the box must end
+   under the pointer, at `565.89697265625 + 50 = 615.89697265625`. A
+   quantized value is at most that while the product is below
+   `615.89697265625 + 1/4096`, so `Wc(L) < 572.36272…` and `L < 446.46599…`
+   (914362.35 steps of 1/2048): `length` 446.4658203125 = 914362 / 2048
+   (914363 steps would draw 615.8974609375). Then `Wc(L) =
+   572.362548828125` and `565.89697265625 × 572.362548828125 ÷
+   525.896728515625 = 615.89703…` rounds to `width` 615.89697265625: the
+   margin grows with the content, so the content grows by less than the
+   pointer's 50. `height` as before, (0, 480) unchanged. The node's right
+   edge on screen moves by exactly the pointer's 50 and its left edge stays
+   put: the box follows the content. Without it the box would keep its
+   565.9 and the content grow inside it; were the margin kept as a fixed
+   space instead, the length would be 450.
 6. **Import and export of a manifest of one group and of a named one.** As in
    `files.spec.ts`, the File System Access pickers are deleted before the
    page loads, so File → Import manifest… is answered through the file
@@ -1341,8 +1387,10 @@ fixture: the manifest of `bmixed0000` is named "Mixed", its `group_1`
 17. **A member's card stretched in its timeline editor stretches every
     member.** `bundles` at (40, 40), zoom 1; the timeline editor of
     `bmixed0000/score` (a member of `group_1`) entered, `score/card`
-    selected and Stretch chosen: the only handle is `handle-right` (a
-    member's card stretches from its right edge). Dragged by (20, 0), one
+    selected and Stretch chosen: the handles are `handle-right`,
+    `handle-bottom-right` and `handle-bottom` (a member's card never moves
+    its top left corner, which its frame decides). `handle-right` dragged
+    by (20, 0), one
     entry is recorded in the session and the block's `places` are exactly
     `{group_1: {length: 420}}`: the group's shared length, which the
     member's editor may change, 400 + 20 since the frame's width grows by

@@ -91,8 +91,8 @@ function placementProblems(block: Block, path: readonly PathSegment[]): Problem[
 
 /**
  * The first member, in place order, that a member's card place states
- * beyond its size, as a problem of `code` at `path` followed by that
- * member; `undefined` when it states only its size.
+ * beyond its size and vertical stretch, as a problem of `code` at `path`
+ * followed by that member; `undefined` when it states only those.
  */
 export function cardMemberProblem(
   key: string,
@@ -106,12 +106,15 @@ export function cardMemberProblem(
   );
   return extra === undefined
     ? undefined
-    : problem(code, `${key} is a member: its card takes only width and height`, [...path, extra]);
+    : problem(code, `${key} is a member: its card takes only width, height and spacing`, [
+        ...path,
+        extra,
+      ]);
 }
 
 /**
  * The keys of a block's `places` naming no item and no member of its
- * manifest, or naming a member and stating more than its card's size, and
+ * manifest, or naming a member and stating more than its card takes, and
  * of its `bands` naming no group or timeline, in that order and each in
  * code-point order of its keys, each at `path` followed by `places` or
  * `bands` and the key (and for a card the member it may not state).

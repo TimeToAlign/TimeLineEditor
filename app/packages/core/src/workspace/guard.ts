@@ -33,9 +33,19 @@ const FIXED_MEMBERS = ["scale", "length", "spacing", "order", "index", "parent"]
 
 /**
  * The members of a group's place that the editor of one of its members
- * changes: the length and scale the members share are each member's own.
+ * changes: the length and scale the members share are each member's own,
+ * a horizontal stretch keeps the frame's requested width in proportion,
+ * and a member card's vertical stretch keeps the frame's requested height
+ * in proportion.
  */
-const SHARED_MEMBERS: readonly string[] = ["length", "scale"];
+const SHARED_MEMBERS: readonly string[] = ["length", "scale", "width", "height"];
+
+/**
+ * The members of a sibling card's place that the editor of a member
+ * changes: a horizontal stretch of the group keeps every card's requested
+ * width in proportion.
+ */
+const SIBLING_MEMBERS: readonly string[] = ["width"];
 
 /** The manifest members compared first, in this order; the others follow by code point. */
 const TOP_MEMBERS = ["id", "name", "meta"];
@@ -278,14 +288,25 @@ function blockChange(
     manifest.groups.find((group) => group.members.includes(element))?.id;
   const sharing =
     groupOf(was.manifest) === groupOf(now.manifest) ? groupOf(was.manifest) : undefined;
-  const unshared = (place: Place | undefined) =>
-    place === undefined
-      ? {}
-      : Object.fromEntries(
-          Object.entries(place).filter(([member]) => !SHARED_MEMBERS.includes(member)),
-        );
-  const placeInside = (key: string) =>
-    inside(key) || (key === sharing && same(unshared(was.places[key]), unshared(now.places[key])));
+  // The members of a key's place that the edited element shares: the group's, its siblings'.
+  const membersOf = (manifest: Manifest) =>
+    manifest.groups.find((group) => group.id === sharing)?.members ?? [];
+  const shared = (key: string): readonly string[] =>
+    key === sharing
+      ? SHARED_MEMBERS
+      : membersOf(was.manifest).includes(key) && membersOf(now.manifest).includes(key)
+        ? SIBLING_MEMBERS
+        : [];
+  const unshared = (place: Place | undefined, members: readonly string[]) =>
+    Object.fromEntries(Object.entries(place ?? {}).filter(([member]) => !members.includes(member)));
+  const placeInside = (key: string) => {
+    const members = shared(key);
+    return (
+      inside(key) ||
+      (members.length > 0 &&
+        same(unshared(was.places[key], members), unshared(now.places[key], members)))
+    );
+  };
   for (const [name, word, within] of [
     ["places", "place", placeInside],
     ["bands", "band order", inside],
@@ -304,10 +325,10 @@ function blockChange(
  * every change lies inside it. In this order: a workspace setting; another
  * block; for an element's editor, its block's scale, length, spacing, band
  * order, index or parent, a place or band order of a key the element does
- * not contain (a group member's editor also changes its group's length and
- * scale), and the manifest outside the element (the element removed
- * included). A block's editor changes anything in its own block but its
- * removal.
+ * not contain (a group member's editor also changes its group's length,
+ * scale and width and its siblings' card widths), and the manifest outside
+ * the element (the element removed included). A block's editor changes
+ * anything in its own block but its removal.
  */
 export function sideEffect(before: View, after: View, target: Address): CommandError | null {
   const parsed = parseAddress(target);

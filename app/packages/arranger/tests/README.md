@@ -103,6 +103,21 @@ spacing 1, no box request) and the default style layer.
     arrowhead (they end together). `exposition`'s start is marked twice
     with the address `exposition/start`: on the ancestor line and on its
     own line (section 2.2).
+  - Its items, in the order of the box: the frames `group_1`
+    "Exposition" (members `exposition`, `take_1`) and `group_2`
+    "Recapitulation" (`recapitulation`, `take_2`), then the ungrouped root
+    `page`, at `x = 8` and `y` 28.8046875, 210.94140625 and 393.078125
+    (each frame 174.13671875 high, `F = 8` apart). Every item is the
+    timeskeleton drawing fixture `bundle__bundle_shared_parent`'s
+    567.3901 wide, `Wf = 2324030 / 4096 = 567.39013671875` (the only
+    multiple of 1/4096 that rounds to it), and every member's card
+    551.3901, `Wf − 16`. Every term of `s0` and `Mr` is a constant offset
+    from the start or the shared end (the ancestor line's chevrons, the
+    names, the labels of marks at a member's start and end), so each grows
+    by exactly the length: `Wf(L) = 167.39013671875 + L` for a frame or
+    the ungrouped card, `Wc(L) = 151.39013671875 + L` for a member's card
+    (spanning `Q = 8` to `Ri + K`), and the box `Wb(L) = Wf(L) + 18 =
+    185.39013671875 + L` (585.3901 at 400, the fixture's box).
 
 - **`bundle_mixed`, item by item** (drawing.md section 8.6): groups
   `group_1` "Performance" (members `performance`, `score`, displayed
@@ -502,21 +517,38 @@ corner). How the inverse is derived:
   would be invisible state (widths have such pieces: `audio` below). An
   extent that never grows past the target leaves the value as it is; no
   drawing's width or height is such an extent.
-- The target is the content's extent moved by the pointer:
-  `content + (target box − box)`. When the box has no request, the content
-  and the box coincide, so the edge ends under the pointer.
+- The target is the box's extent at the pointer: the stretch stores the
+  largest value whose box, the content together with the request that
+  follows it (below), does not pass the pointer. When the box has no
+  request, the box is the content, so the edge ends under the pointer.
 - **The box follows the content** (drawing.md section 1), on each axis on
-  its own, once `length` and `spacing` are solved. With `content` the
-  content's extent before the stretch, `content′` after it and `request`
+  its own, at every value the search tries. With `content` the content's
+  extent before the stretch, `content′` at the value tried and `request`
   the stored `width` (or `height`): a `null` request stays `null` and is
-  not written; a request larger than `content` keeps the space it adds,
-  `request′ = content′ + (request − content)` quantized to 1/2048, written
-  only when it differs from the stored one; a request at or below
-  `content` draws nothing and becomes `null`. The box is then
-  `max(content′, request′)`, so the dragged edge ends under the pointer
-  with or without a request, and the left or top anchoring uses that box.
-  This proves the margin is kept, not merely that the content moved: the
-  content's extent moves by the pointer's travel, and so must the box's.
+  not written; a request larger than `content` keeps its proportion to
+  the content, `request′ = request × content′ ÷ content` (multiplied
+  first, in binary64) quantized to 1/2048, written only when it differs
+  from the stored one; a request at or below `content` draws nothing and
+  becomes `null`. The box is `max(content′, request′)`, so the dragged
+  edge ends under the pointer with or without a request, and the left or
+  top anchoring uses that box. Since `request′` grows with `content′`, the
+  box's extent is non-decreasing in the value on every piece where the
+  content's is, so the search stays monotone: a pointer moved back always
+  finds a smaller value, never the knee of a flat piece a request would
+  otherwise draw. This proves every margin stretches with its content,
+  not merely that the content moved.
+
+`kept(request, content, stretched)` is that rule, the one helper of the
+block's stretch and of every item's and card's (section "Items"):
+
+| request | content | stretched | result |
+|---|---|---|---|
+| 700 | 553 | 691.25 | 875 (`700 × 691.25 = 483875`, ÷ 553 = 875 exactly) |
+| 700 | 553 | 600 | 759.49365234375 (`420000 / 553 = 759.4936708…`, 1555443.04 steps, rounded) |
+| 700 | 553 | 553 | 700 (no stretch, no change) |
+| 553 | 553 | 600 | `null` (at the content: it draws nothing) |
+| 500 | 553 | 600 | `null` |
+| `null` | 553 | 600 | `null` |
 
 `audio` is `corpus_audio_audio` at (40, 80), with a workspace statement
 hiding every name (`{select: {element: "name"}, set: {display: "none"}}`).
@@ -550,14 +582,14 @@ edge `x0 + L + we/2` is `R`, and `W = R + 18`:
 | audio | right | (−500, 0) | `{length: 40.08251953125}` (the knee) |
 | audio, length 8 | right | (50, 0) | `{length: 90.08251953125}` |
 | audio, at the knee | right | (100, 0) | `{length: 140.08251953125}` |
-| bare, width 496.58 | right | (20, 0) | `{length: 420, width: 516.5771484375}` |
-| bare, width 496.58 | left | (−21, 0) | `{length: 421, width: 517.5771484375, x: 19}` |
-| bare, width 496.58 | bottom | (0, 30) | `{spacing: 2.875}` (the width's axis is unchanged) |
-| bare, height 77.88 | bottom | (0, 30) | `{spacing: 2.875, height: 107.87890625}` |
-| bare, height 77.88 | top | (0, −16) | `{spacing: 2, height: 93.87890625, y: 64}` |
-| bare, both requests | bottom-right | (20, 30) | `{length: 420, spacing: 2.875, width: 516.5771484375, height: 107.87890625}` |
+| bare, width 953.15 | right | (40, 0) | `{length: 420, width: 993.154296875}` |
+| bare, width 953.15 | left | (−42, 0) | `{length: 421, width: 995.154296875, x: −2}` |
+| bare, width 953.15 | bottom | (0, 30) | `{spacing: 2.875}` (the width's axis is unchanged) |
+| bare, height 134.76 | bottom | (0, 32) | `{spacing: 2, height: 166.7578125}` |
+| bare, height 134.76 | top | (0, −32) | `{spacing: 2, height: 166.7578125, y: 48}` |
+| bare, both requests | bottom-right | (40, 32) | `{length: 420, spacing: 2, width: 993.154296875, height: 166.7578125}` |
 | bare, length 500, width 496.58 | right | (20, 0) | `{length: 520, width: null}` (a request the content has overtaken) |
-| child member, width 600 | right | (50, 0) | `{length: 450, width: 650}` |
+| child member, width 600 | right | (50, 0) | `{length: 446.53466796875, width: 650}` |
 
 How each row is derived:
 
@@ -589,52 +621,64 @@ How each row is derived:
   so `L = 186.02783203125 − 95.9453125 = 90.08251953125`.
 - **`audio` from the knee, right +100:** `L = 140.08251953125`.
 
-The last eight rows store a box request first (one `set` on block A), the
-values of the box rows above: `width 496.58` is `width = W + 20 =
-496.5771484375`, `height 77.88` is `height = H + 10.5 = 77.87890625`,
-`both requests` both of them. With `Wc(L) = 76.5771484375 + L` and `Hc(v) =
-51.37890625 + 16v` from the fixture facts, the box is `max(Wc, width)` by
-`max(Hc, height)`:
+The last eight rows store a box request first (one `set` on block A):
+`width 953.15` is twice the content's width, `width = 2 Wc(400) =
+953.154296875`, `height 134.76` twice its height, `height = 2 Hc(1) =
+134.7578125`, `both requests` both of them, and `width 496.58` is `W + 20
+= 496.5771484375`. With `Wc(L) = 76.5771484375 + L` and `Hc(v) =
+51.37890625 + 16v` from the fixture facts, a request twice the content
+stays twice the content, `request′ = 2 × content′` exactly (every factor
+is a short multiple of 1/2048, so the binary64 product and quotient are
+exact), and the box is `2 Wc` by `2 Hc`:
 
-- **`width 496.58` right +20:** the box is 496.5771484375 wide, its right
-  edge `40 + 496.5771484375 = 536.5771484375`, so the target box is
-  516.5771484375 and the target content `516.5771484375 − (496.5771484375 −
-  476.5771484375) = 496.5771484375 = Wc(420)`: `L = 420`. The margin 20 is
-  kept: `width = Wc(420) + 20 = 516.5771484375`, so the right edge goes to
-  556.5771484375, the old one plus the pointer's 20.
-- **`width 496.58` left −21:** the left edge goes to 19 and the right edge
-  536.5771484375 stays, so the target box is 517.5771484375, the target
-  content 497.5771484375 and `L = 421`; `width = Wc(421) + 20 =
-  517.5771484375` and `x = 536.5771484375 − 517.5771484375 = 19`.
-- **`width 496.58` bottom +30:** the spacing solves as in `bare` bottom
+- **`width 953.15` right +40:** the right edge `40 + 953.154296875` goes
+  40 further, so the box must be at most `993.154296875 = 2 Wc(L)`: `Wc(L)
+  = 496.5771484375`, `L = 420`, `width = 993.154296875`. The margin, as
+  wide as the content before, is as wide as the content after.
+- **`width 953.15` left −42:** the left edge goes to −2 and the right edge
+  `993.154296875` stays, so `2 Wc(L) ≤ 995.154296875`: `L = 421`, `width =
+  995.154296875` and `x = 993.154296875 − 995.154296875 = −2`.
+- **`width 953.15` bottom +30:** the spacing solves as in `bare` bottom
   +30 (no height request: 2.875). The width's content does not depend on
-  `v`, so `width′ = Wc(400) + 20` equals the stored request and is not
-  written.
-- **`height 77.88` bottom +30:** the box is 77.87890625 high, its bottom
-  edge 157.87890625, so the target box is 107.87890625 and the target
-  content `107.87890625 − 10.5 = 97.37890625 = Hc(2.875)`: `v = 2.875`,
-  `height = Hc(2.875) + 10.5 = 107.87890625`.
-- **`height 77.88` top −16:** the top edge goes to 64 and the bottom edge
-  157.87890625 stays, so the target box is 93.87890625, the target content
-  `83.37890625 = Hc(2)`: `v = 2`, `height = 93.87890625` and `y =
-  157.87890625 − 93.87890625 = 64`.
-- **`both requests` bottom-right (20, 30):** both axes as in the two rows
-  above with the bottom and right handles: `L = 420`, `v = 2.875`, `width =
-  516.5771484375`, `height = 107.87890625`.
+  `v`, so `width′ = width × Wc(400) ÷ Wc(400)` equals the stored request
+  and is not written.
+- **`height 134.76` bottom +32:** `2 Hc(v) ≤ 134.7578125 + 32 =
+  166.7578125` gives `Hc(v) = 83.37890625 = Hc(2)`: `v = 2`, `height =
+  166.7578125`.
+- **`height 134.76` top −32:** the top edge goes to 48 and the bottom edge
+  `80 + 134.7578125 = 214.7578125` stays: `v = 2`, `height = 166.7578125`
+  and `y = 214.7578125 − 166.7578125 = 48`.
+- **`both requests` bottom-right (40, 32):** both axes as in the rows
+  above: `L = 420`, `v = 2`, `width = 993.154296875`, `height =
+  166.7578125`.
 - **`length 500, width 496.58` right +20:** `Wc(500) = 576.5771484375`
   already passes the request, which draws nothing: the box is the content.
-  The target content is `576.5771484375 + 20 = Wc(520)`, so `L = 520`, and
-  the request at or below the content becomes `width: null`.
+  The target is `576.5771484375 + 20 = Wc(520)`, so `L = 520`, and the
+  request at or below the content becomes `width: null`.
 - **`child member, width 600` right +50:** `group_child_member` (a group
   file: one frame of two cards) at (40, 80) with `width` 600. By the
   timeskeleton drawing fixture `group__group_child_member`, `x0 =
   120.61962890625` (the ancestor chevron term, independent of `L`), `R =
   x0 + L + 13.79443359375` (the end label `10.0 s`; every right edge is
   `x0 + L` plus a constant), and `W = 8 + R + 8 + 8`, so `Wc(L) =
-  158.4140625 + L` and `Wc(400) = 558.4140625`. The margin is `600 −
-  558.4140625 = 41.5859375`; the target box is 650 and the target content
-  `608.4140625 = Wc(450)`, so `L = 450` and `width = 608.4140625 +
-  41.5859375 = 650`.
+  158.4140625 + L` and `Wc(400) = 558.4140625`. The box is `q(600 ×
+  Wc(L) ÷ 558.4140625)` and must be at most 650. A quantized value is at
+  most 650 while the product is below `650 + 1/4096`, so `Wc(L) < (650 +
+  1/4096) × 558.4140625 / 600 = 604.94879…`, `L < 446.53473…`: the largest
+  lattice length is `914503 / 2048 = 446.53466796875` (914504 steps would
+  draw 650.00048828125). Then `600 × 604.94873046875 / 558.4140625 =
+  649.99987…` rounds to `width = 650`: the margin grows with the line, so
+  the line grows by less than the pointer's 50.
+
+**The shortening lock, through the block.** A stretch back must shrink
+the box. On `bundle_shared_parent` at (40, 80) (fixture facts: its box
+`Wb(L) = 185.39013671875 + L`), Box right by (585.39013671875, 0) gives
+`{width: 1170.7802734375}`, twice the content. Stretch right by (100, 0)
+then gives `{length: 450, width: 1270.7802734375}` (`2 Wb(L) ≤ 1270.78…`,
+`Wb(450) = 635.39013671875`), and from there Stretch right by (−200, 0)
+gives `{length: 350, width: 1070.7802734375}`: the length goes down by
+the travel's half, since the box is twice the content, and the request
+stays twice the content each time.
 
 `resizeCommand(block, values)` is `{type: "set", changes: [{target:
 block.id, values}]}`. Every row's command is accepted by `apply`, and the
@@ -994,7 +1038,8 @@ row per level, each member stated:
 kind's row otherwise (`toBe` the table's row).
 
 **What resizes** is one table by box kind, `RESIZING`: for each kind the
-levels where it resizes and what each mode writes. What proves it is the
+levels where it resizes and what each mode writes, a stretch by its axis
+(`length` along time, `spacing` vertically). What proves it is the
 table itself, compared whole (`toStrictEqual`), and `resizes(kind, level,
 own)` checked for every kind, level and `own` (4 × 4 × 2 cases): a box
 resizes where its reach is `"inside"` whatever `own` says, where it is
@@ -1002,20 +1047,21 @@ resizes where its reach is `"inside"` whatever `own` says, where it is
 Every box offers the three modes wherever it resizes, so there is no
 per-mode permission. The rows (`·` no entry):
 
-| kind | arranger | bundle | group | timeline | scale writes | box writes | stretch writes |
-|---|---|---|---|---|---|---|---|
-| `block` | inside | edited | · | · | block | block | block |
-| `frame` | inside | inside | edited | · | item | item | item |
-| `card` (ungrouped) | inside | inside | · | edited | item | item | item |
-| `member` (a member's card) | inside | inside | inside | edited | item | card | item |
+| kind | arranger | bundle | group | timeline | scale | box | length | spacing |
+|---|---|---|---|---|---|---|---|---|
+| `block` | inside | edited | · | · | block | block | block | block |
+| `frame` | inside | inside | edited | · | item | item | item | item |
+| `card` (ungrouped) | inside | inside | · | edited | item | item | item | item |
+| `member` (a member's card) | inside | inside | inside | edited | item | card | item | card |
 
 So on the arranger every block, frame and card resizes; in the bundle
 editor the edited block itself and every frame and card in it; in the group
 editor the edited frame itself and its members' cards; in the timeline
 editor only the edited card itself (a child timeline has no box). A
-member's card scales and stretches its group ("item": the group's place)
-and sizes its own box ("card": the member's own place); every other box
-writes its own item's place.
+member's card scales its group and stretches it along time ("item": the
+group's place), and sizes its own box and stretches its own card
+vertically ("card": the member's own place); every other box writes its
+own item's place.
 
 ## Items: moving and resizing frames and cards
 
@@ -1069,30 +1115,43 @@ group_1}`, `annotations/card` `{kind: "card", key: annotations, item:
 annotations}`, `performance/card` `{kind: "member", key: performance,
 item: group_1}`, `excerpt/card` (a child member) `{kind: "member", key:
 excerpt, item: group_2}`; a line (`score`) or a title (`group_1/name`) is
-none (`undefined`). `placeKeyOf(resized, mode)` is the place a mode sets
-(`RESIZING`'s writes): for `performance` `group_1` to scale, `performance`
-to size its box, `group_1` to stretch; for a frame or an ungrouped card
-its own key in every mode.
+none (`undefined`).
 
 `itemHandlesFor(mode, kind, level)`: a frame or an ungrouped card offers a
-block's handles at every level, the four corners to scale and all eight to
-size its box, and to stretch `["right", "left"]`, `["right"]` in the group
-editor (the frame stays where it is). A member's card, whose top left
-corner its frame decides, offers at every level `["bottom-right"]` to
-scale, `["right", "bottom-right", "bottom"]` to size its box and
-`["right"]` to stretch.
+block's handles, the four corners to scale and all eight to size its box
+or stretch it; in the group editor its Stretch leaves out the left edge
+and the left corners, `["top", "top-right", "right", "bottom-right",
+"bottom"]` (the frame does not grow along time there, so its left edge
+stays; vertically it adapts). A member's card, whose top left corner its
+frame decides, offers at every level `["bottom-right"]` to scale and
+`["right", "bottom-right", "bottom"]` to size its box and to stretch.
 
 `itemResizeValues(block, settings, metrics, level, resized, mode, handle,
-delta)`, `delta` in canvas units as for a block, positions in drawing units
-from the place origin and sizes in item coordinates (before the item's
-scale). Every value is quantized to 1/2048, as a block's are; a handle the
-box does not offer throws `RangeError`.
+delta)`, `delta` in canvas units as for a block, gives the places to set,
+a map from each key of `places` to its values in order; positions are in
+drawing units from the place origin and sizes in item coordinates (before
+the item's scale). Every value is quantized to 1/2048, as a block's are;
+a handle the box does not offer throws `RangeError`. Below, a map is
+written as an object, keys in order.
+
+Heights as functions of a vertical stretch, from the fixture facts: every
+root card of `bundle_mixed` (`score`, `performance`, `page`, `annotations`)
+draws its line with the below-side wedges only, as `bare` does, so its
+card is `Hm(v) = 33.37890625 + 16v` high at the member drawing's
+vertical stretch `v` (49.37890625 at 1). By drawing.md section 8.6, `v`
+is the placement's `spacing` times the item's `spacing` times, for a
+member, its card's `spacing`, and only the member drawings stretch: the
+frame's title slot 24.8046875 above the first card, the gap 8 between
+cards and the 8 below the last are not stretched. So `group_1`'s frame is
+`H(s) = 24.8046875 + 2 Hm(s) + 16 = 107.5625 + 32s` high at its own
+`spacing` `s` (139.5625 at 1).
 
 **Scale** sets the item's `scale` to its scale times the larger of the two
 axis ratios of the dragged corner's distance from the fixed corner, after
 the drag over before (a block's rule, section `resize`), floored at 1/8;
 scale 1 unstates it. On `annotations`'s card (left 8, top 358.50390625,
-right 570.484619140625, bottom 407.8828125) on the arranger:
+right 570.484619140625, bottom 407.8828125) on the arranger, for the key
+`annotations`:
 
 | case | handle | delta | values |
 |---|---|---|---|
@@ -1106,13 +1165,14 @@ On `performance`'s card the scale is its group's: the fixed corner is
 `group_1`'s top left (8, 28.8046875) and the dragged one the card's bottom
 right (562.484619140625, 160.3671875); by (40, 20), `max(594.484619140625 /
 554.484619140625, 151.5625 / 131.5625) = 1.15201900…`, 2359.33 steps, so
-`{scale: 1.15185546875}` for `group_1`. A right handle on a card, and a
+`{group_1: {scale: 1.15185546875}}`. A right handle on a card, and a
 top-left one on a member's card, throw `RangeError`.
 
 **Box** sets `width` and `height`; a request at or below the box's own
 content stores `null`. On `group_2` with `width` 580 stated (left edge 8,
 right edge 588, top 176.3671875, bottom 350.50390625; its content is
-562.484619140625 wide and 174.13671875 high) in the bundle editor:
+562.484619140625 wide and 174.13671875 high) in the bundle editor, for
+the key `group_2`:
 
 | handle | delta | values |
 |---|---|---|
@@ -1130,112 +1190,251 @@ the node to x `40 − 21 = 19`, and `group_2`'s right edge stays at canvas x
 `19 + 21 + (−13) + 601 = 628 = 40 + 588`, where it was; `group_1` and
 `annotations` keep their drawn places.
 
-On a member's card Box sets the card's own size, in item coordinates: with
-`group_1` at `scale` 1.25, `performance`'s card is still 546.484619140625 ×
-49.37890625 before the scale, so bottom-right by (50, 30) on the arranger
-gives `{width: 586.48486328125, height: 73.37890625}` (`546.484619140625 +
-50 / 1.25`, 1201120.5 steps rounded up, and `49.37890625 + 30 / 1.25`);
-right by (−50, 0) asks for less than the card's content, `{width: null}`;
-a left handle throws `RangeError`.
+On a member's card Box sets the card's own size, in item coordinates, for
+the member's key: with `group_1` at `scale` 1.25, `performance`'s card is
+still 546.484619140625 × 49.37890625 before the scale, so bottom-right by
+(50, 30) on the arranger gives `{performance: {width: 586.48486328125,
+height: 73.37890625}}` (`546.484619140625 + 50 / 1.25`, 1201120.5 steps
+rounded up, and `49.37890625 + 30 / 1.25`); right by (−50, 0) asks for
+less than the card's content, `{performance: {width: null}}`; a left
+handle throws `RangeError`.
 
-**Stretch** sets `length` (left and right handles only; a top handle
-throws `RangeError`). On the card of `annotations` (`W(L) =
-162.484619140625 + L`, left edge 8, right edge 570.484619140625) in the
-bundle editor:
+**Stretch** sets `length` from a left or right handle and `spacing` from
+a top or bottom one, both from a corner, by a block's rule (section
+`resize`): the largest value whose box, its content with its requests
+following it, does not pass the pointer, floored at `MIN_LENGTH` and
+`MIN_SPACING`; every stated size of the stretched boxes follows its own
+content by `kept`. On the card of `annotations` (`W(L) =
+162.484619140625 + L`, `Hm(s)` high, left edge 8, right edge
+570.484619140625, top 358.50390625, bottom 407.8828125) in the bundle
+editor, for the key `annotations`:
 
 | case | handle | delta | values |
 |---|---|---|---|
 | | right | (20, 0) | `{length: 420}` |
 | | left | (−21, 0) | `{length: 421, x: −13}` (`570.484619140625 − W(421)`) |
 | | right | (−500, 0) | `{length: 8}` (`MIN_LENGTH`) |
-| `width` 580 stated | right | (20, 0) | `{length: 420, width: 600}` |
+| | bottom | (0, 16) | `{spacing: 2}` (`Hm(2) = 65.37890625`) |
+| | top | (0, −16) | `{spacing: 2, y: 342.50390625}` (`407.8828125 − Hm(2)`) |
+| | bottom-right | (20, 16) | `{length: 420, spacing: 2}` |
+| | bottom | (0, −8) | `{spacing: 0.5}` (`Hm(1/2) = 41.37890625`) |
+| | bottom | (0, −40) | `{spacing: 0.25}` (`MIN_SPACING`) |
+| `width` 1124.97 stated | right | (40, 0) | `{length: 420, width: 1164.96923828125}` |
+| `width` 1124.97 stated | left | (−42, 0) | `{length: 421, width: 1166.96923828125, x: −34}` |
+| `height` 98.76 stated | bottom | (0, 32) | `{spacing: 2, height: 130.7578125}` |
 
-The stated width adds `580 − W(400) = 17.515380859375`, which the card
-keeps, as a block's box does: the target content is `600 −
-17.515380859375 = W(420)` and the width `W(420) + 17.515380859375 = 600`.
+`width` 1124.97 is twice the card's content, `2 W(400) =
+1124.96923828125`, and stays twice it: right +40 needs `2 W(L) ≤
+1164.96923828125`, so `L = 420`; left −42 keeps the right edge `8 +
+1124.96923828125 = 1132.96923828125` and moves the left one to −34, so `2
+W(L) ≤ 1166.96923828125`, `L = 421` and `x = 1132.96923828125 −
+1166.96923828125 = −34`. `height` 98.76 is twice the card's height, `2
+Hm(1) = 98.7578125`: bottom +32 needs `2 Hm(s) ≤ 130.7578125`, so `s =
+2` and the height `2 Hm(2)`. (Every product and quotient of these rows is
+exact in binary64.)
 
-A member's card stretches its group's length from the frame's right edge,
-in the member's timeline editor too: on `score`'s card in `A/score`'s
-timeline editor, right by (20, 0) gives `{length: 420}` (for `group_1`,
-`W(420)` reaching 20 further), a left handle throws `RangeError`, and the
-command `itemResizeCommand(view, A, "group_1", {length: 420}, "timeline",
-metrics)` dispatched to a store with that editor open is accepted (the
-group's shared length is the member's own), leaving `places` exactly
-`{group_1: {length: 420}}`.
+**A frame stretches its members' cards with it.** On `group_1` in the
+bundle editor, for the key `group_1` unless named:
 
-A member's Stretch writes the group's `length` **alone**, at every level
-but the group editor: a stated width, the frame's or the card's, stays as
-stated, and the frame grows once its content passes it. What proves it is
-a frame whose stated width exceeds its content: a frame's or ungrouped
-card's own Stretch keeps the margin such a request adds (the
-`width` 580 row above), so a member's Stretch that did the same would
-write the group's `width`, which the member's timeline editor refuses
-(only the group's `length` and `scale` are the member's own). View
-`framed`: `group_1` states `{width: 600}`. On `score`'s card, right by
-(30, 0) gives exactly `{length: 430}` (`W(430) = 592.484619140625`, still
-inside the stated 600, which stays) on the arranger, in `A`'s bundle
-editor and in `A/score`'s timeline editor, never `{length: 430, width:
-630}`. Each level's `itemResizeCommand`, dispatched to a store with that
-editor open (none on the arranger), is accepted; `places.group_1` is then
-exactly `{width: 600, length: 430}` at every level, the other items
-stating their drawn positions on the arranger and in the bundle editor
-(`group_2` at (8, 176.3671875), `annotations` at (8, 358.50390625)) and
-nothing else in the timeline editor.
+| case | handle | delta | values |
+|---|---|---|---|
+| | bottom | (0, 32) | `{group_1: {spacing: 2}}` (`H(2) = 171.5625`) |
+| | top | (0, −32) | `{group_1: {spacing: 2, y: −3.1953125}}` (`28.8046875 − 32`) |
+| `performance` `height` 98.76 | bottom | (0, 48) | `{group_1: {spacing: 2}, performance: {height: 130.7578125}}` |
 
-**The group editor's stretch** (right handle only, on the frame or on a
-member's card, with the same values) changes the members' common `length`
-with the frame pinned: `width` is stated at the frame's drawn width,
-quantized (562.484619140625 rounds up to 562.48486328125), and the length
-stops where the cards would pass it. On `group_1` (`Wn(L) =
-162.484619140625 + L`):
+With `performance`'s card stating twice its height, the frame is
+`24.8046875 + Hm(s) + 2 Hm(s) + 16 = 140.94140625 + 48s` high (188.94140625
+at 1); the pointer's 48 needs `s = 2`, and the card's request follows its
+content to `2 Hm(2) = 130.7578125`. Every card of the frame is stretched
+by `s`, so every stated card height follows its own content.
 
-| case | delta | values |
-|---|---|---|
-| | (20, 0) | `{length: 400, width: 562.48486328125}` (capped: the frame does not grow; 400 + 1/4096 is no lattice step) |
-| | (−100, 0) | `{length: 300, width: 562.48486328125}` |
-| `width` 600 stated | (30, 0) | `{length: 430, width: 600}` |
-| `width` 600 stated | (200, 0) | `{length: 437.51513671875, width: 600}` (`600 − 162.484619140625 = 437.515380859375`, floored to the lattice) |
+**A member's card** stretches its group's `length` (horizontally, from
+the card's right edge: the dragged card's drawn width follows the
+pointer) and its own `spacing` (vertically), in the member's timeline
+editor too. A horizontal stretch keeps every stated width of the frame
+and of the group's members' cards in proportion to its own content, so the
+members' lines keep one length and every margin stretches with them; a
+vertical one sets only that card's `spacing`, and the stated heights of the
+card and of its frame follow their content (drawing.md section 1: a
+vertical Stretch of a card rescales its own requested height and its
+frame's). On `bundle_mixed` (every card `Wc(L) = 146.484619140625 + L`
+wide):
 
-A left handle there throws `RangeError`.
+| case | card | handle | delta | values |
+|---|---|---|---|---|
+| | `score` | right | (20, 0) | `{group_1: {length: 420}}` |
+| | `performance` | bottom | (0, 16) | `{performance: {spacing: 2}}` |
+| | `performance` | bottom-right | (20, 16) | `{group_1: {length: 420}, performance: {spacing: 2}}` |
+| `performance` `height` 98.76 | `performance` | bottom | (0, 32) | `{performance: {spacing: 2, height: 130.7578125}}` |
+| `group_1` `height` 279.125 | `performance` | bottom | (0, 16) | `{performance: {spacing: 2}, group_1: {height: 311.125}}` |
+| `group_1` `width` 1124.97 | `score` | right | (30, 0) | `{group_1: {length: 415, width: 1154.96923828125}}` |
+| `performance` `width` 1092.97 | `score` | right | (30, 0) | `{group_1: {length: 430}, performance: {width: 1152.96923828125}}` |
+| `performance` `width` 1092.97 | `performance` | right | (60, 0) | `{group_1: {length: 430}, performance: {width: 1152.96923828125}}` |
 
-The cap is one helper, `cappedLength(block, settings, metrics, key,
-length)`, which the inspector's form shares for a `length` typed in the
-group editor: the group editor's values for the members' length `length`,
-`width` pinned at the frame's drawn width (quantized) and the length the
-smaller of `length` and the largest lattice length whose cards do not pass
-the frame. The stretch's values are `cappedLength` of the length the
-stretch reaches uncapped (the largest lattice length not passing the
-pointer); since that search is monotone, the table above holds unchanged.
-On `group_1`:
+`group_1` `height` 279.125 is twice the frame's height `H(1) =
+139.5625`. With `performance`'s card at `spacing` `c` the frame's content
+is `24.8046875 + Hm(1) + Hm(c) + 16 = 123.5625 + 16c` high; the pointer's
+16 brings the card to `Hm(c) = 65.37890625`, so `c = 2`, the content to
+155.5625 and the frame's request to `279.125 × 155.5625 ÷ 139.5625 =
+311.125`, still twice it (exact in binary64). The card's spacing is set
+first, then the frame's height, which holds the card.
 
-| case | length | values |
-|---|---|---|
-| | 500 | `{length: 400, width: 562.48486328125}` (`W(400)` is the frame's width) |
-| | 300 | `{length: 300, width: 562.48486328125}` |
-| `width` 600 stated | 430 | `{length: 430, width: 600}` |
-| `width` 600 stated | 500 | `{length: 437.51513671875, width: 600}` |
+`group_1` `width` 1124.97 is twice the frame's content `W(400)`. A
+frame's width widens its cards, which end at one x inside it (drawing.md
+section 8.6: `Ri` is taken as the larger of its `Ri` and `width − K −
+Q`), so `score`'s card is drawn `2 W(L) − 16` wide, 1108.96923828125 at
+400; the pointer's 30 needs `2 W(L) − 16 ≤ 1138.96923828125`, `W(L) ≤
+577.484619140625`, so `L = 415` and the frame's request `2 W(415) =
+1154.96923828125`: the dragged card's edge follows the pointer, and the
+group's lines grow by half the travel, the margin being as wide as the
+content. `performance` `width` 1092.97 is twice that
+card's content, `2 Wc(400) = 1092.96923828125`: dragging `score`'s card
+(no request) by 30 gives `L = 430` and the request `2 Wc(430)`; dragging
+`performance`'s own card, twice its content, by 60 needs `2 Wc(L) ≤
+1152.96923828125`, the same `L = 430`. A left handle on a member's card
+throws `RangeError`. Each row's `itemResizeCommand`, dispatched to a
+store with the member's timeline editor open, is accepted (the group's
+`length`, `scale`, `width` and `height` and its members' card widths are
+shared by the members, the card's own place is the member's), and so on
+the arranger and in the bundle editor.
 
-`itemResizeCommand(view, block, key, values, level, metrics)` is the `set`
-of the place of `key`; on the arranger and in the bundle editor it also
-states the drawn position of every other item without one, as a move
-does: for `group_2`'s left row, at both levels, `[{target: A/group_2,
-values: {place: {width: 601, x: −13}}}, {target: A/group_1, values:
-{place: {x: 8, y: 28.8046875}}}, {target: A/annotations, values: {place:
-{x: 8, y: 358.50390625}}}]`; in the group editor, for the first
-group-editor row, `[{target: A/group_1, values: {place: {length: 400,
-width: 562.48486328125}}}]` alone, and in the timeline editor, for
-`annotations`'s first stretch row, `[{target: A/annotations, values:
-{place: {length: 420}}}]` alone (the group and timeline editors change
-only their element, the container adapting). A member card's box on the
-arranger is the `set` of the member's own place followed by the drawn
-position of every item but the frame holding the card, whose top left
-corner a card's size never moves: `[{target: A/performance, values:
-{place: {width: 586.48486328125, height: 73.37890625}}}, {target:
-A/group_2, …}, {target: A/annotations, …}]` with the positions above
-(`group_2` at (8, 176.3671875)), never a change of `A/group_1`; applied,
-`places.performance` is exactly that size and `group_1` states no place. Values that are all stated already give `null`:
-`{width: null}` on `group_2` and `{scale: null}` on `annotations`, which
-state neither.
+**The shortening lock**: a
+member's card widened by Box, then the group stretched, must keep its
+margin in proportion, and a stretch back must shorten the group again. On
+`bundle_shared_parent` at (40, 80) on the arranger (fixture facts: every
+member's card `Wc(L) = 151.39013671875 + L`, every frame `Wf(L) =
+167.39013671875 + L`), one gesture after the other, each command applied:
+
+1. Box on `exposition`'s card, right by (551.39013671875, 0): `{exposition:
+   {width: 1102.7802734375}}`, twice its content. The frame spans to the
+   card's right edge plus 8, `16 + 1102.7802734375 = 1118.7802734375`
+   wide; `take_1`'s card stays 551.39013671875.
+2. Stretch on `exposition`'s card, right by (100, 0): its box is `2
+   Wc(L)` and must reach `1202.7802734375`, so `{group_1: {length: 450},
+   exposition: {width: 1202.7802734375}}`. Drawn: `take_1`'s card
+   `Wc(450) = 601.39013671875`, `exposition`'s twice that, the frame
+   1218.7802734375. The members' lines keep one length.
+3. Stretch on the frame `group_1`, right by (−200, 0): the frame is `16 + 2
+   Wc(L)` and must shrink to 1018.7802734375, so `{group_1: {length: 350},
+   exposition: {width: 1002.7802734375}}`: the group is shorter than at
+   the start.
+4. Stretch on `exposition`'s card, right by (−50, 0): `2 Wc(L) ≤
+   952.7802734375`, so `{group_1: {length: 325}, exposition: {width:
+   952.7802734375}}`.
+
+At each step the card's width is exactly twice its content, the margin
+kept in proportion, and each length is smaller than the one before from
+step 2 on.
+
+A card's content is its own, never the width its frame lends it: a
+frame's stated width widens its cards (drawing.md section 8.6), so a card
+measured with the frame's request in place would read the frame's width
+as its content. With `group_1` at `width` `2 Wf(400) = 1134.7802734375`
+and `exposition`'s card at `3 Wc(400) = 1654.17041015625`, the frame's
+content before the stretch is `16 + 1654.17041015625 = 1670.17041015625`,
+past its request, which becomes `null`; Stretch on `exposition`'s card,
+right by (90, 0), needs `3 Wc(L) ≤ 1744.17041015625`, so `{group_1:
+{length: 430, width: null}, exposition: {width: 1744.17041015625}}`. Read
+with the frame's request, the card's content would be `1134.7802734375 −
+16 = 1118.7802734375` and its request would not stay three times its
+content.
+
+**The group editor's stretch** changes the members' common `length` with
+the frame pinned horizontally: `width` is stated at the frame's drawn
+width, quantized (562.484619140625 rounds up to 562.48486328125), and the
+length stops where the cards would pass it; the members' cards' stated
+widths follow their content as above. Vertically the frame adapts, as on
+the arranger. The frame is pinned, so neither its edge nor a card's can
+follow the pointer past it: the frame's content (its own width left out,
+its cards' widths following) is what follows the pointer, and a stretch
+of the frame and one of a member's card give the same values. On
+`group_1` (`Wn(L) = 162.484619140625 + L`):
+
+| case | box | handle | delta | values |
+|---|---|---|---|---|
+| | frame or `score` | right | (20, 0) | `{group_1: {length: 400, width: 562.48486328125}}` (capped: the frame does not grow; 400 + 1/4096 is no lattice step) |
+| | frame or `score` | right | (−100, 0) | `{group_1: {length: 300, width: 562.48486328125}}` |
+| `width` 600 stated | frame or `score` | right | (30, 0) | `{group_1: {length: 430, width: 600}}` |
+| `width` 600 stated | frame or `score` | right | (200, 0) | `{group_1: {length: 437.51513671875, width: 600}}` (`600 − 162.484619140625 = 437.515380859375`, floored to the lattice) |
+| | frame | bottom | (0, 32) | `{group_1: {spacing: 2}}` |
+| | frame | bottom-right | (20, 32) | `{group_1: {length: 400, width: 562.48486328125, spacing: 2}}` |
+| `performance` `width` 1092.97 | frame or `score` | right | (20, 0) | `{group_1: {length: 400, width: 1108.96923828125}}` |
+| `performance` `width` 1092.97 | frame or `score` | right | (−100, 0) | `{group_1: {length: 350, width: 1108.96923828125}, performance: {width: 992.96923828125}}` |
+
+With `performance`'s card at twice its content, the frame is drawn `16 +
+1092.96923828125 = 1108.96923828125` wide, its pinned width, and its
+content is `16 + 2 Wc(L)`. The frame's right +20 asks for a content of
+1128.96923828125, `L = 410`, capped at 400 where the content reaches the
+pin. Its right −100 asks for 1008.96923828125, `2 Wc(L) =
+992.96923828125`, `L = 350`, `performance`'s request `2 Wc(350)`. A left
+handle on the frame there throws `RangeError`.
+
+**A typed length or spacing is a stretch to that value.** One helper,
+`stretchChanges(block, settings, metrics, level, resized, factor, value)`,
+gives the places a Stretch of the box `resized` at `level` writes once its
+`length` (`factor` `"length"`) or `spacing` (`"spacing"`) is `value`: the
+factor on its key (`RESIZING`'s `writes`), then every stated width (or
+height) in scope following its own content by `kept`, and in the group
+editor, horizontally, the frame's `width` pinned at its drawn width and
+the length capped at the largest lattice length whose content, the
+cards' widths following, does not pass it. The Stretch above solves the
+value from the pointer and calls it; the inspector's form calls it with a
+typed or stepped value. So a typed value writes exactly what a Stretch to
+that value writes. Every row is checked through a frame and, where a
+member's card is named, through that card too, with the same values. On
+`bundle_mixed`:
+
+| case | box | level | factor | values |
+|---|---|---|---|---|
+| | `group_1` or `score` | arranger | `length` 300 | `{group_1: {length: 300}}` |
+| `performance` `width` 1092.97 | `group_1` or `score` | arranger | `length` 430 | `{group_1: {length: 430}, performance: {width: 1152.96923828125}}` |
+| `annotations` `width` 1124.97 | `annotations` | bundle | `length` 420 | `{annotations: {length: 420, width: 1164.96923828125}}` |
+| | `group_1` or `score` | group | `length` 500 | `{group_1: {length: 400, width: 562.48486328125}}` |
+| | `group_1` or `score` | group | `length` 300 | `{group_1: {length: 300, width: 562.48486328125}}` |
+| `group_1` `width` 600 | `group_1` or `score` | group | `length` 430 | `{group_1: {length: 430, width: 600}}` |
+| `group_1` `width` 600 | `group_1` or `score` | group | `length` 500 | `{group_1: {length: 437.51513671875, width: 600}}` |
+| `performance` `width` 1092.97 | `group_1` or `score` | group | `length` 350 | `{group_1: {length: 350, width: 1108.96923828125}, performance: {width: 992.96923828125}}` |
+| `performance` `width` 1092.97 | `group_1` or `score` | group | `length` 500 | `{group_1: {length: 400, width: 1108.96923828125}}` |
+| `performance` `height` 98.76 | `group_1` | bundle | `spacing` 2 | `{group_1: {spacing: 2}, performance: {height: 130.7578125}}` |
+| `group_1` `height` 279.125 | `performance` | arranger | `spacing` 2 | `{performance: {spacing: 2}, group_1: {height: 311.125}}` |
+
+The rows follow from the Stretch rows above: the card's request `2
+Wc(430)`; the ungrouped card's `2 W(420)`; in the group editor `W(400)`
+already fills the frame (562.484619140625, pinned as 562.48486328125, so
+500 is capped at 400 and 300 stays), with `width` 600 the content `W(L)`
+reaches 600 at `L = 437.515380859375`, floored to the lattice, and 430
+fits; with `performance`'s card at twice its content the frame is drawn
+1108.96923828125 wide, its content `16 + 2 Wc(L)`, so 350 fits and the
+request follows to `2 Wc(350) = 992.96923828125`, while 500 is capped at
+400, where `performance`'s request stays its stated `2 Wc(400)` and is not
+written. The two `spacing` rows are the frame's and the member card's
+vertical Stretch rows at `s = 2` and `c = 2`.
+
+`itemResizeCommand(view, block, places, level, metrics)` is the `set` of
+each key's place in the map's order; on the arranger and in the bundle
+editor it also states the drawn position of every other item without
+one, as a move does (never the frame holding an edited member's card): for
+`group_2`'s left Box row, at both levels, `[{target: A/group_2, values:
+{place: {width: 601, x: −13}}}, {target: A/group_1, values: {place: {x: 8,
+y: 28.8046875}}}, {target: A/annotations, values: {place: {x: 8, y:
+358.50390625}}}]`; in the group editor, for the first group-editor row,
+`[{target: A/group_1, values: {place: {length: 400, width:
+562.48486328125}}}]` alone, and in the timeline editor, for `annotations`'s
+first stretch row, `[{target: A/annotations, values: {place: {length:
+420}}}]` alone (the group and timeline editors change only their element,
+the container adapting). A member card's box on the arranger is the `set`
+of the member's own place followed by the drawn position of every item
+but the frame holding the card, whose top left corner a card's size never
+moves: `[{target: A/performance, values: {place: {width: 586.48486328125,
+height: 73.37890625}}}, {target: A/group_2, …}, {target: A/annotations,
+…}]` with the positions above (`group_2` at (8, 176.3671875)), never a
+change of `A/group_1`; applied, `places.performance` is exactly that size
+and `group_1` states no place. A member's horizontal stretch writing
+`{group_1: {length: 430}, performance: {width: 1152.96923828125}}` on the
+arranger is those two changes, in that order, followed by `group_2`'s and
+`annotations`'s positions. Values that are all stated already give
+`null`: `{group_2: {width: null}}` and `{annotations: {scale: null}}`,
+which state neither.
 
 ## Reordering a group's members
 
@@ -1341,19 +1540,54 @@ cards of a root member and of a child member, an ungrouped card), any
 sequence of moves (arbitrary finite doubles), nudges, z-order actions,
 resizes (any mode, a valid handle for it, any delta in ±1000), resizes of
 a frame or card on the arranger (any of the drawing's items and members'
-cards, any mode, a valid handle of `itemHandlesFor` for it, any delta in
-±1000, the command `itemResizeCommand` builds for `placeKeyOf`'s key) and
-removals produces commands that `apply` accepts.
+cards, any mode, a valid handle of `itemHandlesFor` for it, so vertical
+and corner stretches included, any delta in ±1000, the command
+`itemResizeCommand` builds from the places `itemResizeValues` gives),
+stated box requests (a `set` of any item's or member card's `width` and
+`height`, each absent or any multiple of 1/2048 in [1, 2000], so later
+stretches meet requests above, at and below their content) and removals
+produces commands that `apply` accepts.
 
-A member's Stretch at any level but the group editor: for `bundle_mixed`
-at (40, 80) with any stated width of the group (none, or any multiple of
-1/2048 in [1, 2000]), any member's card of either group (`score`,
-`performance`, `page`, `excerpt`), any level among the arranger, the bundle editor
-and the member's own timeline editor, and any delta in ±1000 from the right
-handle, `itemResizeValues` gives an object whose only key is `length`, and
-its `itemResizeCommand`, dispatched to a store with that level's editor
-open, is accepted, leaving the group's stated width exactly as it was. A removal selects any subset of what a click can select: block ids
-and the addresses of the drawn elements and their parts.
+A member's horizontal Stretch at any level but the group editor: for
+`bundle_mixed` at (40, 80) with any stated width of the group and of one
+of its members' cards (each none, or any multiple of 1/2048 in [1, 2000]),
+any member's card of either group (`score`, `performance`, `page`,
+`excerpt`), any level among the arranger, the bundle editor and the
+member's own timeline editor, and any delta in ±1000 from the right
+handle, `itemResizeValues` sets only the group's place and its members'
+cards' places, the group's with `length` and at most `width`, each card's
+with `width` alone; a group or card width that was not stated stays not
+stated; and its `itemResizeCommand`, dispatched to a store with that
+level's editor open, is accepted.
+
+**A stretch follows the pointer, and a stretch back returns.** For
+`bare`, `nested` and `bundle_mixed` at (40, 80), the block, any of its
+items (a frame or the ungrouped card) or any member's card (whose
+horizontal stretch is its group's length, and whose extent is the card's
+own), with its width and height requests each absent or the multiple of
+1/2048 at or just above any ratio in [1, 3] of its drawn size, stretched
+from the right handle by any travel in [−200, 400] (or from the bottom
+handle by any travel in [−8, 200]), and each stretch applied:
+
+- (a) **Monotone.** From the same view, two travels `d1 ≤ d2` give
+  lengths (spacings) `value(d1) ≤ value(d2)` (`toBeLessThanOrEqual`):
+  a shorter pointer never finds a longer length. This is the sentence
+  that rules out the shortening lock directly: were a member card's
+  stated width to stay as stated, it would pin its frame, the box would
+  stay flat below it, and a pointer shortened past that knee would stop
+  there instead of shortening the group.
+- (b) **Back.** After a first stretch by `d`, a second stretch from the
+  same handle that brings the pointer back to where the first began (its
+  travel is the original edge less the edge drawn after the first
+  stretch) gives `value(twice) ≤ value(once)` when `d > 0` and
+  `value(twice) ≥ value(once)` when `d < 0`: the way back never moves
+  further away.
+- (c) **Exact restoration.** When the box states no request, the
+  stretch back gives exactly the original length (spacing), `toBe`.
+  With a request, each request is quantized to the lattice twice on the
+  way, so the box drawn at the original length may differ from the
+  original edge by less than a step; (a) and (b) hold there exactly,
+  and no closeness bound is asserted.
 
 Markers are not drawn, so a click never selects one. Core rightly refuses
 removing a marker that a jump targets (`schema_violation`). `removeCommand`
@@ -2243,11 +2477,12 @@ elsewhere, checked for all 4 × 4 pairs:
 in order, the pressed and the disabled ones, the handles' names in order,
 and the buttons' titles. The handles are `handlesFor`'s for a block and
 `itemHandlesFor`'s for an item, so a frame and an ungrouped card offer a
-block's (the corners to scale, all eight to size the box, the left and
-right edges to stretch, the right edge alone in the group editor, whose
-frame stays put), and a member's card, whose top left corner its frame
-decides, offers its bottom right corner to scale, its right, bottom right
-and bottom handles to size its box, and its right edge to stretch:
+block's (the corners to scale, all eight to size the box or stretch it,
+in the group editor every stretch handle but the left edge and the left
+corners, the frame not growing along time there), and a member's card,
+whose top left corner its frame decides, offers its bottom right corner
+to scale and its right, bottom right and bottom handles to size its box
+or stretch it:
 
 | level | subject | bound mode | buttons | pressed | handles |
 |---|---|---|---|---|---|
@@ -2256,20 +2491,20 @@ and bottom handles to size its box, and its right edge to stretch:
 | `arranger`, locked | the block | box | the three, all disabled | Box | none |
 | `arranger` | frame `group_1` | scale | Scale, Box, Stretch | Scale | the four corners |
 | `bundle` | the block (the edited one) | box | Scale, Box, Stretch | Box | all eight |
-| `bundle` | card `annotations` | stretch | Scale, Box, Stretch | Stretch | right, left |
-| `group` | frame `group_1` | box / stretch | Scale, Box, Stretch | | all eight / right |
-| `group` | member card `performance` | scale / box / stretch | Scale, Box, Stretch | | bottom-right / right, bottom-right, bottom / right |
+| `bundle` | card `annotations` | stretch | Scale, Box, Stretch | Stretch | all eight |
+| `group` | frame `group_1` | box / stretch | Scale, Box, Stretch | | all eight / top, top-right, right, bottom-right, bottom |
+| `group` | member card `performance` | scale / box / stretch | Scale, Box, Stretch | | bottom-right / right, bottom-right, bottom / right, bottom-right, bottom |
 | `timeline` | card `annotations` | box | Scale, Box, Stretch | Box | all eight |
-| `timeline` | member card `score` | stretch | Scale, Box, Stretch | Stretch | right |
+| `timeline` | member card `score` | stretch | Scale, Box, Stretch | Stretch | right, bottom-right, bottom |
 | `group` | the block | box | none | | none |
 | `timeline` | frame `group_1` | box | none | | none |
 
 The titles say what each mode does: for a frame (and an ungrouped card)
 "Scale: scale everything, proportions kept (1)", "Box: resize the box,
-the content stays (2)", "Stretch: stretch the length (3)"; for a member's
-card the Scale and Stretch titles name the whole group, "Scale: scale the
-whole group (1)" and "Stretch: stretch every member (3)"; for a block
-Stretch is "Stretch: stretch lengths and distances (3)".
+the content stays (2)", "Stretch: stretch lengths and distances (3)", as
+for a block; for a member's card the Scale and Stretch titles name the
+whole group, "Scale: scale the whole group (1)" and "Stretch: stretch
+every member's length, this card's distances (3)".
 
 The values of an item resize are `itemResizeValues`'s and its command
 `itemResizeCommand`'s (their own sections); a drag on a handle, which
@@ -2472,8 +2707,8 @@ so the reported `x`, `y` are the block's 40, 80.
    drawn positions, the bundle editor's rule, section "Items"). The
    placement reported before release has `drawing` `toStrictEqual` to the
    block's drawing with those stored `places`; its `group_1` item's place is
-   exactly `{x: 8, y: 28.8046875, length: 460, scale: 1, width:
-   622.484619140625, height: 139.5625}`, and `group_2`'s and
+   exactly `{x: 8, y: 28.8046875, length: 460, scale: 1, spacing: 1,
+   width: 622.484619140625, height: 139.5625}`, and `group_2`'s and
    `annotations`'s places equal the stored drawing's.
 2. **An item drag.** `A/group_2` selected; its frame pressed at (100,
    200) and moved to (140, 224), the drawing's screen matrix the identity.

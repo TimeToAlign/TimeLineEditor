@@ -20,7 +20,6 @@ import {
   itemResizeValues,
   moveCommand,
   nudgeCommand,
-  placeKeyOf,
   project,
   removeCommand,
   resize,
@@ -87,6 +86,13 @@ const gesture = fc.oneof(
     handle: fc.nat(),
     dx: delta,
     dy: delta,
+  }),
+  fc.record({
+    kind: fc.constant("request" as const),
+    pick: fc.nat(),
+    box: fc.nat(),
+    width: fc.option(fc.integer({ min: 2048, max: 2000 * 2048 }), { nil: undefined }),
+    height: fc.option(fc.integer({ min: 2048, max: 2000 * 2048 }), { nil: undefined }),
   }),
   fc.record({ kind: fc.constant("remove" as const), picks: fc.array(fc.nat(), { maxLength: 3 }) }),
 );
@@ -162,8 +168,20 @@ function commandOf(view: View, item: Gesture): object | null {
         handle,
         item,
       );
-      const key = placeKeyOf(resized, item.mode);
-      return itemResizeCommand(view, block.id, key, values, "arranger", metrics);
+      return itemResizeCommand(view, block.id, values, "arranger", metrics);
+    }
+    case "request": {
+      const block = view.blocks[one(item.pick)];
+      if (block === undefined) return null;
+      const drawing = drawingOf(block, view.settings, metrics);
+      const keys = [...drawing.items, ...drawing.cards].map((drawn) => drawn.key);
+      if (keys.length === 0 || (item.width === undefined && item.height === undefined)) return null;
+      const place = {
+        ...(item.width === undefined ? {} : { width: item.width / 2048 }),
+        ...(item.height === undefined ? {} : { height: item.height / 2048 }),
+      };
+      const key = keys[item.box % keys.length] as string;
+      return { type: "set", changes: [{ target: `${block.id}/${key}`, values: { place } }] };
     }
     case "remove": {
       const all = addresses(view);
@@ -220,21 +238,28 @@ describe("gesture commands", () => {
 });
 
 describe("a member's Stretch", () => {
-  it("states only its group's length at every level outside the group editor", () => {
+  it("sets only its group's length and width and its members' card widths", () => {
     const view = mixedPlain();
     const { cards } = drawingOf(blockIn(view, A), view.settings, metrics);
+    const width = fc.option(fc.integer({ min: 2048, max: 2000 * 2048 }), { nil: null });
     fc.assert(
       fc.property(
         fc.constantFrom(...cards),
-        fc.option(fc.integer({ min: 2048, max: 2000 * 2048 }), { nil: null }),
+        width,
+        fc.constantFrom(...cards),
+        width,
         fc.constantFrom(...(["arranger", "bundle", "timeline"] as const)),
         delta,
-        (card, steps, level, dx) => {
-          const width = steps === null ? null : steps / 2048;
-          const framed = width === null ? view : placed(view, A, card.group, { width });
+        (card, frameSteps, sized, cardSteps, level, dx) => {
+          let framed = view;
+          if (frameSteps !== null) {
+            framed = placed(framed, A, card.group, { width: frameSteps / 2048 });
+          }
+          if (cardSteps !== null)
+            framed = placed(framed, A, sized.key, { width: cardSteps / 2048 });
           const resized = { kind: "member", key: card.key, item: card.group } as const;
           const block = blockIn(framed, A);
-          const at = { dx, dy: 0 };
+          const members = new Set(cards.filter((c) => c.group === card.group).map((c) => c.key));
           const values = itemResizeValues(
             block,
             framed.settings,
@@ -243,20 +268,181 @@ describe("a member's Stretch", () => {
             resized,
             "stretch",
             "right",
-            at,
+            { dx, dy: 0 },
           );
-          expect(Object.keys(values)).toEqual(["length"]);
+          for (const [key, place] of values) {
+            if (key === card.group) {
+              expect(
+                Object.keys(place).every((member) => ["length", "width"].includes(member)),
+              ).toBe(true);
+              expect(place.length).toBeTypeOf("number");
+            } else {
+              expect(members.has(key)).toBe(true);
+              expect(Object.keys(place)).toEqual(["width"]);
+            }
+            if (block.places[key]?.width === undefined) expect(place.width).toBeUndefined();
+          }
           const store = createStore({ view: framed, journal: [], sessions: {} });
           const editor = { arranger: null, bundle: A, timeline: `${A}/${card.key}` }[level];
           if (editor !== null) expect(store.open(editor)).toBeNull();
-          const command = itemResizeCommand(framed, A, card.group, values, level, metrics);
+          const command = itemResizeCommand(framed, A, values, level, metrics);
           if (command !== null) expect(store.dispatch(command)).toBeNull();
-          expect(blockIn(store.view, A).places[card.group]?.width).toBe(width ?? undefined);
         },
       ),
       { numRuns: 60 },
     );
   });
+});
+
+/** The fixtures of the round trip: widths and heights without flat pieces. */
+const ROUND_TRIP_FIXTURES = ["bare", "nested", "bundles/bundle_mixed"] as const;
+
+/** A stretched box of `fixture` at (40, 80), its requests, and how to stretch and read it. */
+function stretchCase(
+  fixture: (typeof ROUND_TRIP_FIXTURES)[number],
+  pick: number,
+  vertical: boolean,
+  widthRatio: number | null,
+  heightRatio: number | null,
+) {
+  const start = initial([{ fixture, x: 40, y: 80 }]);
+  const drawing = drawingOf(blockIn(start, A), start.settings, metrics);
+  // The block itself (null), an item, or a member's card.
+  const boxes = [null, ...drawing.items, ...drawing.cards];
+  const box = boxes[pick % boxes.length] ?? null;
+  const handle = vertical ? "bottom" : "right";
+  /** The request at `ratio` times `content`, on the lattice, or none. */
+  const request = (ratio: number | null, content: number) =>
+    ratio === null ? null : Math.ceil(ratio * content * 2048) / 2048;
+  const size = box === null ? drawing : "place" in box ? box.place : box.size;
+  const width = request(widthRatio, size.width);
+  const height = request(heightRatio, size.height);
+  const target = box === null ? A : `${A}/${box.key}`;
+  const values = box === null ? { width, height } : { place: { width, height } };
+  const view = changed(start, { type: "set", changes: [{ target, values }] });
+  const resized = box === null ? undefined : resizedItemOf(drawing, box.address);
+  /** The stretched value, and the dragged box's extent on the stretched axis. */
+  const state = (of: View) => {
+    const block = blockIn(of, A);
+    const drawn = drawingOf(block, of.settings, metrics);
+    if (box === null) {
+      return {
+        value: vertical ? block.spacing : block.length,
+        edge: vertical ? drawn.height : drawn.width,
+      };
+    }
+    const card = drawn.cards.find((it) => it.key === box.key);
+    const item = drawn.items.find((it) => it.key === (card?.group ?? box.key));
+    if (item === undefined) throw new Error(`no item for ${box.key}`);
+    const extent = card === undefined ? item.place : card.size;
+    return {
+      value: vertical ? (block.places[box.key]?.spacing ?? 1) : item.place.length,
+      edge: vertical ? extent.height : extent.width,
+    };
+  };
+  const stretch = (of: View, by: number) => {
+    const block = blockIn(of, A);
+    const at = vertical ? { dx: 0, dy: by } : { dx: by, dy: 0 };
+    if (resized === undefined) {
+      const { values } = resize(block, of.settings, metrics, "stretch", handle, at);
+      return changed(of, resizeCommand(block, values));
+    }
+    const places = itemResizeValues(
+      block,
+      of.settings,
+      metrics,
+      "arranger",
+      resized,
+      "stretch",
+      handle,
+      at,
+    );
+    return changed(of, itemResizeCommand(of, A, places, "arranger", metrics));
+  };
+  /** A travel in [−200, 400] along time, [−8, 200] vertically, from `t` in [0, 1]. */
+  const travel = (t: number) => (vertical ? -8 + t * 208 : -200 + t * 600);
+  return { view, state, stretch, travel };
+}
+
+const ratio = fc.option(fc.double({ min: 1, max: 3, noNaN: true }), { nil: null });
+const unit = fc.double({ min: 0, max: 1, noNaN: true });
+
+describe("a stretch", () => {
+  it("never finds a longer length or spacing for a shorter pointer", () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom(...ROUND_TRIP_FIXTURES),
+        fc.nat(),
+        fc.boolean(),
+        ratio,
+        ratio,
+        unit,
+        unit,
+        (fixture, pick, vertical, widthRatio, heightRatio, first, second) => {
+          const { view, state, stretch, travel } = stretchCase(
+            fixture,
+            pick,
+            vertical,
+            widthRatio,
+            heightRatio,
+          );
+          const d1 = travel(Math.min(first, second));
+          const d2 = travel(Math.max(first, second));
+          expect(state(stretch(view, d1)).value).toBeLessThanOrEqual(
+            state(stretch(view, d2)).value,
+          );
+        },
+      ),
+      { numRuns: 100 },
+    );
+  }, 60_000);
+
+  it("back to where it began never moves further away", () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom(...ROUND_TRIP_FIXTURES),
+        fc.nat(),
+        fc.boolean(),
+        ratio,
+        ratio,
+        unit,
+        (fixture, pick, vertical, widthRatio, heightRatio, t) => {
+          const { view, state, stretch, travel } = stretchCase(
+            fixture,
+            pick,
+            vertical,
+            widthRatio,
+            heightRatio,
+          );
+          const d = travel(t);
+          const before = state(view);
+          const once = stretch(view, d);
+          const back = state(stretch(once, before.edge - state(once).edge)).value;
+          if (d > 0) expect(back).toBeLessThanOrEqual(state(once).value);
+          if (d < 0) expect(back).toBeGreaterThanOrEqual(state(once).value);
+        },
+      ),
+      { numRuns: 100 },
+    );
+  }, 60_000);
+
+  it("back to where it began restores the length or spacing of a box without a request", () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom(...ROUND_TRIP_FIXTURES),
+        fc.nat(),
+        fc.boolean(),
+        unit,
+        (fixture, pick, vertical, t) => {
+          const { view, state, stretch, travel } = stretchCase(fixture, pick, vertical, null, null);
+          const before = state(view);
+          const once = stretch(view, travel(t));
+          expect(state(stretch(once, before.edge - state(once).edge)).value).toBe(before.value);
+        },
+      ),
+      { numRuns: 100 },
+    );
+  }, 60_000);
 });
 
 describe("projection", () => {

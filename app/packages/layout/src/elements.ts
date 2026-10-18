@@ -188,8 +188,10 @@ export interface DrawnCard {
   readonly address: string;
   /** The drawn size in item coordinates, before the group's scale. */
   readonly size: { readonly width: number; readonly height: number };
-  /** The card size `places` states for the member; `{}` when none. */
-  readonly stated: Pick<Place, "width" | "height">;
+  /** The card's own vertical stretch, its stated `spacing`, else 1. */
+  readonly spacing: number;
+  /** What `places` states for the member's card; `{}` when it states nothing. */
+  readonly stated: Pick<Place, "width" | "height" | "spacing">;
 }
 
 export interface Drawing {

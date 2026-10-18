@@ -16,8 +16,8 @@ export const BAND_GROUPS: readonly BandGroup[] = ["children", "regions", "flow"]
 export type BandOrder = readonly [BandGroup, BandGroup, BandGroup];
 
 /**
- * A stated place of an item, or the stated size of a member's card
- * (drawing.md §8.6); a member left out takes its default.
+ * A stated place of an item, or the stated size and vertical stretch of a
+ * member's card (drawing.md §8.6); a member left out takes its default.
  */
 export interface Place {
   /** Finite. */
@@ -28,6 +28,8 @@ export interface Place {
   readonly length?: number;
   /** Positive. */
   readonly scale?: number;
+  /** The vertical stretch, a factor on the placement's; positive. */
+  readonly spacing?: number;
   /** Positive. */
   readonly width?: number;
   /** Positive. */
@@ -40,12 +42,17 @@ export const PLACE_MEMBERS = [
   "y",
   "length",
   "scale",
+  "spacing",
   "width",
   "height",
 ] as const satisfies readonly (keyof Place)[];
 
-/** The members of a place a member's card takes: its size only. */
-export const CARD_MEMBERS = ["width", "height"] as const satisfies readonly (keyof Place)[];
+/** The members of a place a member's card takes: its size and its vertical stretch. */
+export const CARD_MEMBERS = [
+  "width",
+  "height",
+  "spacing",
+] as const satisfies readonly (keyof Place)[];
 
 /** The inputs of a block's drawing besides its manifest and the style layers. */
 export interface BlockPlacement {
@@ -76,7 +83,8 @@ export interface Block extends BlockPlacement {
   readonly y: number;
   /**
    * The stated places of the manifest's items, by group id or ungrouped root
-   * id, and the stated sizes of its members' cards, by member id.
+   * id, and the stated sizes and vertical stretches of its members' cards, by
+   * member id.
    */
   readonly places: { readonly [key: string]: Place };
   /** The band orders overriding `order`, by group id or timeline id at any depth. */

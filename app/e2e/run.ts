@@ -8,9 +8,10 @@
  * is started directly; elsewhere the same command is re-run through rootless
  * podman with the app directory mounted at its own path, the host network
  * (the preview server and the browsers share it) and the host IPC namespace
- * (Chromium's shared memory). A schema package linked from a sibling
- * checkout lies outside the app directory; it is mounted read-only at its
- * own path as well (`container.ts`).
+ * (Chromium's shared memory), and `CI` and `TILIE_E2E_WORKERS` passed in
+ * when set. A schema package linked from a sibling checkout lies outside the
+ * app directory; it is mounted read-only at its own path as well
+ * (`container.ts`).
  *
  * Usage: `node e2e/run.ts [playwright test arguments]`.
  */
@@ -28,6 +29,8 @@ const { version } = JSON.parse(
 ) as { version: string };
 const image = `mcr.microsoft.com/playwright:v${version}-noble`;
 const args = process.argv.slice(2);
+/** The variables the configuration reads, passed into the container when set. */
+const env = ["CI", "TILIE_E2E_WORKERS"].filter((name) => process.env[name]);
 
 /** The real directory of the `@timetoalign/timeskeleton` the packages resolve. */
 const schemaPackage = realpathSync(
@@ -41,11 +44,9 @@ const schemaPackage = realpathSync(
 const inImage = process.env.PLAYWRIGHT_BROWSERS_PATH === "/ms-playwright";
 const run = inImage
   ? spawnSync(process.execPath, [cli, "test", ...args], { cwd: appRoot, stdio: "inherit" })
-  : spawnSync(
-      "podman",
-      podmanArguments({ appRoot, schemaPackage, image, ci: !!process.env.CI, args }),
-      { stdio: "inherit" },
-    );
+  : spawnSync("podman", podmanArguments({ appRoot, schemaPackage, image, env, args }), {
+      stdio: "inherit",
+    });
 
 if (run.error) throw run.error;
 process.exit(run.status ?? 1);

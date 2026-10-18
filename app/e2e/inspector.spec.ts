@@ -433,7 +433,7 @@ test("the form edits the selected frame's and card's places, never the block's",
   const length = frame.getByLabel("length", { exact: true });
   await expect(length).toHaveValue("400");
   await expect(frame.getByLabel("scale", { exact: true })).toHaveValue("1");
-  await expect(frame.getByLabel("spacing", { exact: true })).toHaveCount(0);
+  await expect(frame.getByLabel("spacing", { exact: true })).toHaveValue("1");
   await expect(frame.getByLabel("x", { exact: true })).toBeDisabled();
   await expect(frame.getByLabel("y", { exact: true })).toBeDisabled();
   await length.fill("300");

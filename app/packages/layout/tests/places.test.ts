@@ -125,7 +125,15 @@ describe("default places reproduce the stacked box", () => {
         key: "bare",
         kind: "card",
         address: "bare/card",
-        place: { x: 8, y: 8, length: 400, scale: 1, width: 458.5771484375, height: 49.37890625 },
+        place: {
+          x: 8,
+          y: 8,
+          length: 400,
+          scale: 1,
+          spacing: 1,
+          width: 458.5771484375,
+          height: 49.37890625,
+        },
         stated: {},
       },
     ]);
@@ -139,7 +147,15 @@ describe("default places reproduce the stacked box", () => {
         key: "group_1",
         kind: "group",
         address: "group_1",
-        place: { x: 8, y: 8, length: 400, scale: 1, width: 542.4140625, height: 174.13671875 },
+        place: {
+          x: 8,
+          y: 8,
+          length: 400,
+          scale: 1,
+          spacing: 1,
+          width: 542.4140625,
+          height: 174.13671875,
+        },
         stated: {},
       },
     ]);
@@ -203,13 +219,22 @@ describe("an item left of the padding, a width request and a length of its own",
 
   it("reports each place from the place origin, with the drawn size", () => {
     expect(drawing.items.map((item) => item.place)).toEqual([
-      { x: 8, y: 28.8046875, length: 400, scale: 1, width: 562.484619140625, height: 139.5625 },
-      { x: 40, y: 200, length: 400, scale: 1, width: 700, height: 174.13671875 },
+      {
+        x: 8,
+        y: 28.8046875,
+        length: 400,
+        scale: 1,
+        spacing: 1,
+        width: 562.484619140625,
+        height: 139.5625,
+      },
+      { x: 40, y: 200, length: 400, scale: 1, spacing: 1, width: 700, height: 174.13671875 },
       {
         x: -30,
         y: 382.13671875,
         length: 300,
         scale: 1,
+        spacing: 1,
         width: 462.484619140625,
         height: 49.37890625,
       },
@@ -277,16 +302,25 @@ describe("an item left of and above the padding and a height request", () => {
 
   it("stacks the other items by default, whatever lies above them", () => {
     expect(drawing.items.map((item) => item.place)).toEqual([
-      { x: 8, y: 28.8046875, length: 400, scale: 1, width: 507.896728515625, height: 63.453125 },
+      {
+        x: 8,
+        y: 28.8046875,
+        length: 400,
+        scale: 1,
+        spacing: 1,
+        width: 507.896728515625,
+        height: 63.453125,
+      },
       {
         x: 8,
         y: 100.2578125,
         length: 400,
         scale: 1,
+        spacing: 1,
         width: 507.896728515625,
         height: 49.37890625,
       },
-      { x: -60, y: -150, length: 400, scale: 1, width: 507.896728515625, height: 120 },
+      { x: -60, y: -150, length: 400, scale: 1, spacing: 1, width: 507.896728515625, height: 120 },
     ]);
   });
 
@@ -386,16 +420,25 @@ describe("a frame's own length and height request, a card's width request", () =
       { x: 0, y: 0 },
     ]);
     expect(drawing.items.map((item) => item.place)).toEqual([
-      { x: 8, y: 28.8046875, length: 300, scale: 1, width: 462.484619140625, height: 200 },
+      {
+        x: 8,
+        y: 28.8046875,
+        length: 300,
+        scale: 1,
+        spacing: 1,
+        width: 462.484619140625,
+        height: 200,
+      },
       {
         x: 8,
         y: 236.8046875,
         length: 400,
         scale: 1,
+        spacing: 1,
         width: 562.484619140625,
         height: 174.13671875,
       },
-      { x: 8, y: 418.94140625, length: 400, scale: 1, width: 600, height: 49.37890625 },
+      { x: 8, y: 418.94140625, length: 400, scale: 1, spacing: 1, width: 600, height: 49.37890625 },
     ]);
   });
 });
@@ -421,16 +464,33 @@ describe("a fractional place origin: the shift is added last", () => {
     expect(rect(drawing, "recording/card")).toMatchObject({ width: 507.896728515625 });
     expect(line(drawing, "recording")).toMatchObject({ y: 293.79484375000004 });
     expect(drawing.items.map((item) => item.place)).toEqual([
-      { x: 8, y: 28.8046875, length: 400, scale: 1, width: 507.896728515625, height: 63.453125 },
+      {
+        x: 8,
+        y: 28.8046875,
+        length: 400,
+        scale: 1,
+        spacing: 1,
+        width: 507.896728515625,
+        height: 63.453125,
+      },
       {
         x: 8,
         y: 100.2578125,
         length: 400,
         scale: 1,
+        spacing: 1,
         width: 507.896728515625,
         height: 49.37890625,
       },
-      { x: -60.33, y: -150.33, length: 400, scale: 1, width: 507.896728515625, height: 120 },
+      {
+        x: -60.33,
+        y: -150.33,
+        length: 400,
+        scale: 1,
+        spacing: 1,
+        width: 507.896728515625,
+        height: 120,
+      },
     ]);
   });
 

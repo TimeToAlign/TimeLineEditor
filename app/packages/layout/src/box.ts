@@ -175,11 +175,20 @@ export function draw(
     return { address: key.address as string, style: cascade.resolve(key, holder.style) };
   };
   type Card = ReturnType<typeof card>;
-  /** A member drawing at its item's graphical length `L`, in its root's band order (section 6.4). */
-  const layout = (member: MemberDrawing, holder: Holder, group: string | null, L: number) => {
+  /**
+   * A member drawing at its item's graphical length `L` and its vertical stretch `v`, in its
+   * root's band order (section 6.4).
+   */
+  const layout = (
+    member: MemberDrawing,
+    holder: Holder,
+    group: string | null,
+    L: number,
+    v: number,
+  ) => {
     const order = bandOrderOf(placement, member.timeline.id, group);
     return layoutMember(
-      { placement: { ...placement, length: L, order }, cascade, measure },
+      { placement: { ...placement, length: L, spacing: v, order }, cascade, measure },
       member,
       holder,
     );
@@ -187,12 +196,13 @@ export function draw(
   /** What `places` states under `key`, `{}` when it states nothing. */
   const statedOf = (key: string): Place =>
     Object.hasOwn(placement.places, key) ? (placement.places[key] as Place) : {};
-  /** The size `places` states for a member's card: its `width` and `height`, nothing else. */
-  const requestOf = (key: string): Pick<Place, "width" | "height"> => {
-    const { width, height } = statedOf(key);
+  /** What `places` states for a member's card: its `width`, `height` and `spacing`, nothing else. */
+  const requestOf = (key: string): Pick<Place, "width" | "height" | "spacing"> => {
+    const { width, height, spacing } = statedOf(key);
     return {
       ...(width === undefined ? {} : { width }),
       ...(height === undefined ? {} : { height }),
+      ...(spacing === undefined ? {} : { spacing }),
     };
   };
 
@@ -212,43 +222,55 @@ export function draw(
   const itemBottoms: number[] = [];
   const nextTop = () => (itemBottoms.length === 0 ? Pt : Math.max(...itemBottoms) + F);
   /**
-   * The place of the item `key`, its content laid out at the item's length `L`: its height the
-   * larger of the content's and the requested one, its drawn bottom edge, after its scale,
-   * recorded for the next default top.
+   * The place of the item `key`, its content laid out at the item's length `L` and its vertical
+   * stretch `v`, the placement's `spacing` times the item's: its height the larger of the
+   * content's and the requested one, its drawn bottom edge, after its scale, recorded for the
+   * next default top.
    */
   const placeItem = <C extends { readonly height: number }>(
     key: string,
-    content: (L: number) => C,
+    content: (L: number, v: number) => C,
   ) => {
     const stated = statedOf(key);
     const L = stated.length ?? placement.length;
     const scale = stated.scale ?? 1;
-    const laid = content(L);
+    const spacing = stated.spacing ?? 1;
+    const laid = content(L, placement.spacing * spacing);
     const height = stated.height === undefined ? laid.height : Math.max(laid.height, stated.height);
     const x = stated.x ?? P;
     const y = stated.y ?? nextTop();
     itemBottoms.push(y + scale * height);
-    return { ...laid, key, stated, L, scale, x, y, height };
+    return { ...laid, key, stated, L, scale, spacing, x, y, height };
   };
   const framed = frames.map((frame) => {
     const id = frame.group.id;
     const key = unownedKey("group", id, BLOCK_KEY);
     const holder: Holder = { key, style: cascade.resolve(key, block.style) };
-    return placeItem(id, (L) => {
+    return placeItem(id, (L, v) => {
       const frameTitle = title(`${id}/name`, id, frame.group.name, holder);
       // Vertical (section 8.4): the title's slot, then the cards F apart, each the larger of its
-      // member drawing's height and the height its own request asks (section 8.6).
+      // member drawing's height and the height its own request asks (section 8.6). Each member
+      // drawing is stretched by the frame's `v` times its card's own `spacing`.
       let top = Q;
       if (frameTitle.drawn) top = top + measure.lineHeight(frameTitle.size) + TITLE_GAP;
       const members = frame.members.map((member, index) => {
-        const memberLayout = layout(member, holder, id, L);
         const stated = requestOf(member.timeline.id);
+        const spacing = stated.spacing ?? 1;
+        const memberLayout = layout(member, holder, id, L, v * spacing);
         const height =
           stated.height === undefined
             ? memberLayout.height
             : Math.max(memberLayout.height, stated.height);
         if (index > 0) top = top + F;
-        const item = { member, card: card(member, holder), memberLayout, stated, top, height };
+        const item = {
+          member,
+          card: card(member, holder),
+          memberLayout,
+          stated,
+          spacing,
+          top,
+          height,
+        };
         top = top + height;
         return item;
       });
@@ -256,8 +278,8 @@ export function draw(
     });
   });
   const loose = ungrouped.map((member) =>
-    placeItem(member.timeline.id, (L) => {
-      const memberLayout = layout(member, block, null, L);
+    placeItem(member.timeline.id, (L, v) => {
+      const memberLayout = layout(member, block, null, L, v);
       return { card: card(member, block), memberLayout, height: memberLayout.height };
     }),
   );
@@ -371,7 +393,7 @@ export function draw(
   };
 
   for (const frame of framedDrawn) {
-    const { key: id, holder, stated, L, scale, x, y, members, frameTitle, height } = frame;
+    const { key: id, holder, stated, L, scale, spacing, x, y, members, frameTitle, height } = frame;
     const local: Local = { elements: [], rights: [], bottoms: [] };
     const titleText = frameTitle.drawn
       ? titleElement(frameTitle, Q, Q + measure.ascent(frameTitle.size))
@@ -406,6 +428,7 @@ export function draw(
         group: id,
         address: item.card.address,
         size: { width: cardRight - Q, height: item.height },
+        spacing: item.spacing,
         stated: item.stated,
       });
     });
@@ -413,7 +436,7 @@ export function draw(
       key: id,
       kind: "group",
       address: id,
-      place: { x, y, length: L, scale, width: right, height },
+      place: { x, y, length: L, scale, spacing, width: right, height },
       stated,
     });
     drawItem(frame, local);
@@ -422,7 +445,7 @@ export function draw(
   // holds a frame.
   const inset = framed.length > 0 ? Q : 0;
   for (const item of looseDrawn) {
-    const { key, stated, L, scale, x, y, height } = item;
+    const { key, stated, L, scale, spacing, x, y, height } = item;
     const local: Local = { elements: [], rights: [], bottoms: [] };
     let R = rightOf(L, undefined);
     if (stated.width !== undefined) R = Math.max(R, stated.width - K - inset);
@@ -432,7 +455,7 @@ export function draw(
       key,
       kind: "card",
       address: item.card.address,
-      place: { x, y, length: L, scale, width: right, height },
+      place: { x, y, length: L, scale, spacing, width: right, height },
       stated,
     });
     drawItem(item, local);

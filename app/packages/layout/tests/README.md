@@ -840,7 +840,7 @@ pinned by the writers' `fixtures.test.ts`).
 - `Drawing.cards`, one per member card in drawing order: `score` and
   `performance` in `group_1`, `page` and `excerpt` in `group_2`, addresses
   `M/card`, sizes `{546.484619140625, 49.37890625}` (three) and
-  `{546.484619140625, 83.953125}` for `excerpt`, `stated` `{}` each; the
+  `{546.484619140625, 83.953125}` for `excerpt`, `spacing` 1 and `stated` `{}` each; the
   ungrouped card is an item, not a member card.
 - Element order: block, `name`, `group_1`, `group_1/name`,
   `score/card`, its member drawing, `performance/card`, its drawing,
@@ -1002,10 +1002,13 @@ this file derive; those expectations stay unchanged. On top: `bare`'s
 drawing reports `origin {x: 0, y: 0}`, both zeros `+0` (`Object.is(…, 0)`,
 since `0 − 0` is `+0`), and one item `{key: "bare", kind:
 "card", address: "bare/card", place: {x: 8, y: 8, length: 400, scale: 1,
-width: 458.5771484375, height: 49.37890625}, stated: {}}` (its card's
-rectangle; the default scale 1); `group_child_member` one item `{key:
-"group_1", kind: "group", address: "group_1", place: {x: 8, y: 8, length:
-400, scale: 1, width: 542.4140625, height: 174.13671875}, stated: {}}`. Stating those defaults explicitly (`places:
+spacing: 1, width: 458.5771484375, height: 49.37890625}, stated: {}}` (its
+card's rectangle; the default scale 1 and spacing 1); `group_child_member`
+one item `{key: "group_1", kind: "group", address: "group_1", place: {x: 8,
+y: 8, length: 400, scale: 1, spacing: 1, width: 542.4140625, height:
+174.13671875}, stated: {}}`. Every reported place carries its `spacing`, 1
+unless `places` states it; the places listed below leave it out where it
+is 1. Stating those defaults explicitly (`places:
 {bare: {x: 8, y: 8, length: 400}}`) draws the same `width`, `height`,
 `origin` and `elements`; only the item's `stated` becomes that object.
 
@@ -1183,15 +1186,17 @@ whose origin is not a short binary fraction can:
   + 68.9046875 = 226.47718749999999` (summed from the shifted `group_1` top
   it would be 226.4771875).
 
-## One layout, item scales and card sizes (`items.test.ts`)
+## One layout, item scales, card sizes and vertical stretches (`items.test.ts`)
 
 Sections 8.2, 8.4 and 8.6 as one horizontal layout for the whole box, the
-scale of an item and the size a member's card requests. The tests prove
-that the name column, the start and the right margin are found once over
-every item, that an item's scale scales every position and length of it
-about its top left corner and nothing else, and that a member's card
-request widens and heightens that card and its frame, each from the
-specification's sums. The quantities of `bundle_ungrouped` ("Sketches",
+scale of an item, the size a member's card requests and the vertical
+stretch of an item and of a member's card. The tests prove that the name
+column, the start and the right margin are found once over every item,
+that an item's scale scales every position and length of it about its top
+left corner and nothing else, that a member's card request widens and
+heightens that card and its frame, and that a member drawing's vertical
+stretch `v` is the product of the placement's, its item's and its card's
+`spacing`, each from the specification's sums. The quantities of `bundle_ungrouped` ("Sketches",
 ungrouped roots `pages`, `recording`, `score`, no frame) are those of
 "Places and band orders": `n = K = 8`, `s0 = 71.70361328125`, `Mr =
 28.193115234375`, every card `Ri + K = 507.896728515625` wide, `Pt =
@@ -1288,8 +1293,9 @@ left: `recording/card` `{16, 124.7578125, 650, 120}`, its line still at
 260.7578125`. `Drawing.cards` is `[{key: "second-half", group: "group_1",
 address: "second-half/card", size: {526.4140625, 83.953125}, stated: {}},
 {key: "recording", group: "group_1", address: "recording/card", size: {650,
-120}, stated: {width: 650, height: 120}}]` and the item `{8, 8, 400, 1, 666,
-244.7578125}`. A member's entry is used for `width` and `height` alone:
+120}, spacing: 1, stated: {width: 650, height: 120}}]` (`second-half`'s
+`spacing: 1` too) and the item `{8, 8, 400, 1, 666, 244.7578125}`. A
+member's entry is used for `width`, `height` and `spacing` alone:
 `{recording: {x: 50, y: 50, length: 100, scale: 3, width: 650}}` draws
 exactly as `{recording: {width: 650}}`, and its card's `stated` is `{width:
 650}`. A request no larger than the card (`{width: 100, height: 10}`)
@@ -1299,6 +1305,74 @@ item coordinates: at `places: {group_1: {scale: 2}, recording: {width:
 241.515625)`, `2 × 650 = 1300` wide and `2 × 49.37890625 = 98.7578125`
 high, the frame `2 × 666 = 1332` wide, and `Drawing.cards` still gives
 `recording` the size `{650, 49.37890625}`.
+
+**An item's vertical stretch** (section 8.6: a member drawing's `v` is the
+placement's `spacing` times its item's, and for a member that product
+times its card's, in that order). The vertical stretch of a member drawing
+is section 6.5's: its padding above and below is `P × v`, its bands lie
+`B = 4 × v` apart and a row's pitch is `max(14 v, h(s))`; the root band
+(the wedges and their labels) and every horizontal quantity do not depend
+on `v`, so `n`, `s0`, `Mr` and every card's width are those at `v = 1`. A
+root alone with its wedges below in one label tier (`bare`'s shape:
+`Ea = 0`, `Eb = 26.9765625`) has `y_root = max(8 v, 8 v + 6.40234375) = 8
+v + 6.40234375` and `Hm = y_root + 26.9765625 + 8 v`; its wedge tips lie
+1.5 below its line, their bases `1.5 + 13 = 14.5` below, and its labels'
+baseline `16.5 + a(9) = 24.85400390625` below.
+
+- **An ungrouped card at spacing 2** (`bundle_ungrouped` at `places:
+  {recording: {spacing: 2}}`, the review case `bundle_ungrouped__spacing`;
+  the block at spacing 1, so `v = 2` for `recording` and 1 for `pages` and
+  `score`). `recording`: `y_root = 16 + 6.40234375 = 22.40234375`, `Hm =
+  22.40234375 + 26.9765625 + 16 = 65.37890625`. `recording/card` is `{8,
+  100.2578125, 507.896728515625, 65.37890625}` (16 higher than at spacing
+  1, the padding `8 × (2 − 1)` above and below); its line runs from
+  79.70361328125 to 479.70361328125 at `100.2578125 + 22.40234375 =
+  122.66015625`; its wedge `recording/start` has its tip at `122.66015625 +
+  1.5 = 124.16015625` and its base at `122.66015625 + 14.5 =
+  137.16015625`, its start label's baseline at `122.66015625 +
+  24.85400390625 = 147.51416015625`. `pages/card` keeps `{8, 28.8046875,
+  507.896728515625, 63.453125}`; `score/card` lies at `(100.2578125 +
+  65.37890625) + 8 = 173.63671875` (157.63671875 at spacing 1). `W =
+  525.896728515625` unchanged, `H = 8 + (173.63671875 + 49.37890625 + 2) =
+  233.015625`. The item `recording` is `{x: 8, y: 100.2578125, length: 400,
+  scale: 1, spacing: 2, width: 507.896728515625, height: 65.37890625}`,
+  `stated: {spacing: 2}`; `Drawing.cards` is empty (an ungrouped card is
+  an item).
+- **A member's card at spacing 1.5 under a frame at spacing 2**
+  (`group_child_member` at `places: {group_1: {spacing: 2}, recording:
+  {spacing: 1.5}}`, the block at spacing 1): `v = (1 × 2) × 1.5 = 3` for
+  `recording` and `1 × 2 = 2` for `second-half`. The frame's padding `Q`,
+  its title's slot and the gap `F` between cards are the frame's, not a
+  member drawing's, and are not stretched.
+  - `second-half` (`v = 2`): `p0 = max(28, 12.8046875) = 28`; above, the
+    ancestor band alone starts at `p0 / 2 = 14`; the ancestor row `piece`
+    (name size 9) has `q = max(28, 10.4765625) = 28`, inner half 14, outer
+    half `max(14, 26.9765625) = 26.9765625`, so `piece`'s line lies `14 +
+    14 = 28` out and `Ea = 14 + 14 + 26.9765625 = 54.9765625`; `y_root =
+    16 + 54.9765625 = 70.9765625`, `Hm = 70.9765625 + 26.9765625 + 16 =
+    113.953125`.
+  - `recording` (`v = 3`): `y_root = 24 + 6.40234375 = 30.40234375`, `Hm =
+    30.40234375 + 26.9765625 + 24 = 81.37890625`.
+  - `second-half/card` `{16, 32.8046875, 526.4140625, 113.953125}`, its
+    line at `32.8046875 + 70.9765625 = 103.78125`, `piece`'s at `103.78125
+    − 28 = 75.78125`; `recording/card` `{16, 32.8046875 + 113.953125 + 8 =
+    154.7578125, 526.4140625, 81.37890625}`, its line at `154.7578125 +
+    30.40234375 = 185.16015625`. The frame `{8, 8, 542.4140625, 8 +
+    12.8046875 + 4 + 113.953125 + 8 + 81.37890625 + 8 = 236.13671875}`, `W
+    = 558.4140625` unchanged, `H = 8 + (8 + 236.13671875) = 252.13671875`.
+  - `Drawing.cards`: `second-half` `{size: {526.4140625, 113.953125},
+    spacing: 1, stated: {}}`, `recording` `{size: {526.4140625,
+    81.37890625}, spacing: 1.5, stated: {spacing: 1.5}}`; the item
+    `group_1` `{x: 8, y: 8, length: 400, scale: 1, spacing: 2, width:
+    542.4140625, height: 236.13671875}`, `stated: {spacing: 2}`.
+- **The placement's spacing multiplies too.** `group_child_member` at
+  `spacing: 1.5` with `places: {group_1: {spacing: 2}}`: `v = 1.5 × 2 = 3`
+  for both members. `recording` is again 81.37890625 high; `second-half`
+  has `p0 = 42`, the ancestor band from 21, `q = 42`, inner half 21, outer
+  half `max(21, 26.9765625) = 26.9765625`, `Ea = 21 + 21 + 26.9765625 =
+  68.9765625`, `y_root = 24 + 68.9765625 = 92.9765625`, `Hm = 92.9765625 +
+  26.9765625 + 24 = 143.953125`. `Drawing.cards` gives both `spacing: 1`
+  (the card's own factor), the item `group_1` `spacing: 2` (its own).
 
 ## Segment lines (`segments.test.ts`)
 

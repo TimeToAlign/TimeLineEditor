@@ -78,6 +78,13 @@ CI runs `pnpm e2e` in a job whose container is the same image; the `visual`
 project is not run in CI. Vitest's include patterns (`tests/**/*.test.ts`)
 never select `*.spec.ts`.
 
+Update 2026-10-18: `pnpm e2e` runs the `chromium` project only, the quick
+local run; the new `pnpm e2e:all` runs `chromium`, `firefox`, `webkit` and
+`touch` (the former `pnpm e2e`), and CI runs `pnpm e2e:all`. The number of
+workers comes from `TILIE_E2E_WORKERS` (a positive integer, default 4)
+instead of the fixed 2; `run.ts` passes the variable into the container when
+it is set.
+
 Why everything runs in the image: on hosts other than Ubuntu and Debian,
 Playwright's WebKit build lacks system libraries (on an Arch-based host
 1.63.0 reports missing `libicu74`, `libxml2` and `libflite1` and refuses to

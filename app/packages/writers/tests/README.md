@@ -336,7 +336,7 @@ the manifest's own) and the bundled font metrics, writes the drawing placed
 at `(0, 0)` with the scale (`writeTikz` with its default font directory
 `.`), and requires both texts to equal the files byte for byte.
 
-Twenty-one SVGs are derived by hand from the specification alone, never from
+Twenty-two SVGs are derived by hand from the specification alone, never from
 this writer's output: `bare`, `nested`, `map`, `flow_control`,
 `with_region`, `styled__score`, `nested__length-800-spacing-2`,
 `segment_line`, `segment_pages_accolades`, `group__group_child_member`,
@@ -345,8 +345,10 @@ timelines of unknown length `unknown_length`, `unknown_length_empty`,
 `unknown_length_locked`, `unknown_length_child`,
 `group__group_unknown_length` and `unknown_length_segments`, the bundle
 with a card placed left of and above the padding `bundle_ungrouped__places`,
-`styled__score__bands-timeline`, a band order stated for one timeline, and
-`bundle_ungrouped__scale`, a card drawn at scale 1.5 (`HAND_DERIVED` in
+`styled__score__bands-timeline`, a band order stated for one timeline,
+`bundle_ungrouped__scale`, a card drawn at scale 1.5, and
+`bundle_ungrouped__spacing`, a card stretched vertically at spacing 2
+(`HAND_DERIVED` in
 `scripts/emit-drawings.ts`). Their equality with the writer proves the
 specification complete for what they show. A missing hand-derived file is
 a failure, never a skip. Every other figure is emitted by `pnpm
@@ -375,7 +377,8 @@ application layer selects the child's map by its address `melody/ticks`;
 order winning); `bundle_ungrouped__scale` (`places` `{recording: {scale:
 1.5}}`) and `bundle_mixed__cards` (`{group_1: {scale: 1.25}, performance:
 {width: 650, height: 120}}`, a scaled frame whose second member's card
-requests a size): 61. The manifest directories are read one by one
+requests a size); `bundle_ungrouped__spacing` (`{recording: {spacing:
+2}}`): 62. The manifest directories are read one by one
 (`fixtures/<version>/`, its `groups/` and its `bundles/`), never
 recursively, and a fixture's minimal twin (`*.minimal.json`) is no case:
 it holds what its complete fixture holds and draws the same.

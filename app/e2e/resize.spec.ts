@@ -2,7 +2,9 @@
  * The three resize modes on `small`: choosing the mode by button and by key,
  * the handles each mode shows, and the stored values after dragging one
  * corner and one edge handle in each mode; and on `bundles`, a group's frame
- * scaled on the arranger. Derivation in `README.md` ("resize.spec.ts").
+ * scaled on the arranger, and a member card's margin kept in proportion by
+ * stretches that lengthen and shorten its group. Derivation in `README.md`
+ * ("resize.spec.ts").
  */
 
 import type { Page } from "@playwright/test";
@@ -307,6 +309,58 @@ test.describe("a frame on the arranger", () => {
       group_1: { scale: 2341 / 2048 },
       group_2: { x: 8, y: 176.3671875 },
       annotations: { x: 8, y: 358.50390625 },
+    });
+  });
+});
+
+test.describe("a member's card in a group", () => {
+  test("keeps its margin in proportion, and its group shortens again", async ({ page }) => {
+    await open(page, "bundles");
+    await setViewport(page, { x: 40, y: 40, zoom: 1 });
+    const block = BUNDLES.shared;
+    const places = () =>
+      page.evaluate(
+        (id) => JSON.parse(JSON.stringify(window.__tilie.store().view.blocks[id]?.places)),
+        block,
+      );
+    /** Drag `handle` of the selected box by `dx`, journalling one command. */
+    const drag = async (handle: Handle, dx: number) => {
+      const before = await journalLength(page);
+      const grip = await page.locator(`[data-testid="handle-${handle}"]`).boundingBox();
+      if (grip === null) throw new Error(`handle ${handle} is not displayed`);
+      await dragStart(page, { x: grip.x + grip.width / 2, y: grip.y + grip.height / 2 }, dx, 0);
+      await page.mouse.up();
+      expect(await journalLength(page)).toBe(before + 1);
+    };
+    const others = { group_2: { x: 8, y: 210.94140625 }, page: { x: 8, y: 393.078125 } };
+
+    await page.evaluate((address) => window.__tilie.select([address]), `${block}/exposition/card`);
+    await chooseMode(page, "box");
+    await drag("right", 100);
+    expect(await places()).toEqual({ exposition: { width: 651.39013671875 }, ...others });
+
+    await chooseMode(page, "stretch");
+    expect((await shownHandles(page)).sort()).toEqual(
+      ["handle-bottom", "handle-bottom-right", "handle-right"].sort(),
+    );
+    await drag("right", 60);
+    expect(await places()).toEqual({
+      exposition: { width: 711.39013671875 },
+      group_1: { length: 450.7890625 },
+      ...others,
+    });
+    const take = await node(page, block)
+      .locator('[data-address="take_1/card"]')
+      .last()
+      .getAttribute("width");
+    expect(take).toBe("602.1792");
+
+    await page.evaluate((address) => window.__tilie.select([address]), `${block}/group_1`);
+    await drag("right", -120);
+    expect(await places()).toEqual({
+      exposition: { width: 591.3896484375 },
+      group_1: { length: 349.2109375 },
+      ...others,
     });
   });
 });

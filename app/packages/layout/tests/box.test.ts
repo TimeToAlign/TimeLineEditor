@@ -263,6 +263,7 @@ describe("a titled manifest with two frames and an ungrouped root", () => {
       group,
       address: `${key}/card`,
       size: { width: 546.484619140625, height },
+      spacing: 1,
       stated: {},
     });
     expect(drawing.cards).toEqual([

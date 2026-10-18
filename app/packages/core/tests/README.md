@@ -1014,22 +1014,23 @@ beside its `order`) and `bundles/bundle_mixed.json` (no id, name
 ## Places, band orders and display orders (`places.test.ts`)
 
 A block stores two drawing inputs beside its placement (drawing.md §1):
-`places`, the stated places of its box's **items** and the stated sizes of
-its members' **cards**, and `bands`, the band orders overriding its
+`places`, the stated places of its box's **items** and the stated sizes
+and vertical stretches of its members' **cards**, and `bands`, the band orders overriding its
 `order`. An item is a group's frame or an ungrouped root's card
 (drawing.md §8.1: a root no group names as a member and that contains no
 member); a card key is the id of a group member, a root or a child
 timeline. So a key of `places` is a group id, an ungrouped root's id or a
 member's id; a key of `bands` is a group id or a timeline id at any depth.
-A place is `{x?, y?, length?, scale?, width?, height?}`, `x` and `y`
-finite, `length`, `scale` and the sizes positive, at least one member
-stated and none null: a place without members is no place, so it is never
-stored. A card's place states only `width` and `height` (drawing.md §8.6:
-the length and scale a member is drawn with are its group's, stated in the
-group's place). These are proved by what a stored block holds after
+A place is `{x?, y?, length?, scale?, spacing?, width?, height?}`, `x`
+and `y` finite, `length`, `scale`, `spacing` and the sizes positive, at
+least one member stated and none null: a place without members is no
+place, so it is never stored. A card's place states only `width`, `height`
+and `spacing` (drawing.md §8.6: the length and scale a member is drawn
+with are its group's, stated in the group's place, while its vertical
+stretch is its own). These are proved by what a stored block holds after
 commands and by what `checkWorkspace` reports for a view built as a read
 file would be (a stale or invented key, or a card stating more than its
-size, must never reach a saved file, or the file would be refused on
+size and vertical stretch, must never reach a saved file, or the file would be refused on
 reading).
 
 Block `bundle0001` holds `bundles/bundle_mixed.json` (groups `group_1`
@@ -1064,6 +1065,13 @@ item), its block is `bundle0001` too. Every view is deep-frozen.
    `group_child_member.json`, `set second-half place {width: 650, height:
    120}` (a member that is a child timeline): exactly `{"second-half":
    {width: 650, height: 120}}`.
+4c. **Spacing, on every kind of key.** `set group_1 place {spacing:
+   1.5}` (a group): exactly `{group_1: {spacing: 1.5}}`; `set annotations
+   place {spacing: 1.5}` (an ungrouped root): exactly `{annotations:
+   {spacing: 1.5}}`; `set score place {spacing: 1.5}` (a member's card):
+   exactly `{score: {spacing: 1.5}}`, then `place {width: 650}`: `{score:
+   {spacing: 1.5, width: 650}}`, then `place {spacing: null}`: `{score:
+   {width: 650}}`.
 5. `set group_1 order ["performance", "score"]`: `graphical.order` of the
    manifest is `{group_1: ["performance", "score"], group_2: ["page",
    "excerpt"]}`; `set group_1 order ["score", "performance"]` (the order
@@ -1085,8 +1093,8 @@ item), its block is `bundle0001` too. Every view is deep-frozen.
    `group_child_member.json`, `set piece place {width: 650}` the same at
    `["bundle0001/piece", "place"]`. A member's card states only its size:
    `set score place {x: 1}` is `not_an_item` at `["bundle0001/score",
-   "place", "x"]`, message "score is a member: its card takes only width
-   and height"; `{width: 650, length: 300}` at `[…, "place", "length"]`,
+   "place", "x"]`, message "score is a member: its card takes only width,
+   height and spacing"; `{width: 650, length: 300}` at `[…, "place", "length"]`,
    `{scale: 2}` at `[…, "place", "scale"]`, and in
    `group_child_member.json` `set second-half place {x: 10}` at
    `["bundle0001/second-half", "place", "x"]`. Both refusals come before
@@ -1099,7 +1107,8 @@ item), its block is `bundle0001` too. Every view is deep-frozen.
    member of group_1 once".
 9. Place values at `[address, "place", member]`: `{x: "1"}` `invalid_value`,
    `{y: Infinity}` `non_finite_number`, `{length: 0}`, `{width: -1}`,
-   `{scale: 0}` and `{scale: -1}` `non_positive_number`, `{depth: 1}` `unknown_property` (as every `set`
+   `{scale: 0}`, `{scale: -1}`, `{spacing: 0}` and `{spacing: -1}`
+   `non_positive_number`, `{depth: 1}` `unknown_property` (as every `set`
    object value names an unknown member); `place: 5` `invalid_value` at
    `[address, "place"]`; `place: {}` `invalid_value` at `[address,
    "place"]`, message "a place value states at least one member" (an empty
@@ -1115,7 +1124,7 @@ item), its block is `bundle0001` too. Every view is deep-frozen.
 
 **Pruning.** After every command, the blocks it touched keep only the
 `places` keys that still name an item or a member, a member's place cut to
-its `width` and `height` (dropped when nothing is left), and the `bands`
+its `width`, `height` and `spacing` (dropped when nothing is left), and the `bands`
 keys that still name a group or timeline; nothing else is dropped.
 
 12. With `group_2` placed (`{x: 10}`) and band-ordered, `excerpt`
@@ -1130,9 +1139,10 @@ keys that still name a group or timeline; nothing else is dropped.
     band-ordered, `set bundle0001 manifest` to `bundle_mixed.json` with
     `annotations` added to `group_1`'s `members` and display order:
     `places` is `{}` and `bands` keeps `annotations` (a timeline still).
-    The same with `annotations` placed `{x: 1, scale: 2, width: 700}`:
-    `places` is exactly `{annotations: {width: 700}}`, the card keeping
-    its requested size and nothing else.
+    The same with `annotations` placed `{x: 1, scale: 2, spacing: 1.5,
+    width: 700}`: `places` is exactly `{annotations: {spacing: 1.5, width:
+    700}}`, the card keeping its requested size and vertical stretch and
+    nothing else.
 14. `remove annotations` with `annotations` placed and band-ordered: both
     lose the key.
 
@@ -1142,8 +1152,8 @@ built as a file is, codes and paths under `["blocks", "bundle0001", …]`):
 15. Readers: `places: []` `invalid_value` at `[…, "places"]`; a place
     `{}` and a place `null` `invalid_value` at `[…, "places", "group_1"]`;
     `{x: null}` `invalid_value` at `[…, "places", "group_1", "x"]`;
-    `{x: Infinity}` `non_finite_number`, `{height: 0}` and `{scale: 0}`
-    `non_positive_number` at the member; `{depth: 1}` `unknown_member` at
+    `{x: Infinity}` `non_finite_number`, `{height: 0}`, `{scale: 0}` and
+    `{spacing: 0}` `non_positive_number` at the member; `{depth: 1}` `unknown_member` at
     `[…, "places", "group_1", "depth"]`; `bands: {score: ["flow"]}`
     `invalid_order` at `[…, "bands", "score"]`.
 16. Keys, in code-point order, `places` before `bands`: places `{score:
@@ -1153,12 +1163,12 @@ built as a file is, codes and paths under `["blocks", "bundle0001", …]`):
     no ungrouped root and no member of block bundle0001"),
     `unknown_place` at `[…, "places", "recording"]`, `unknown_member` at
     `[…, "places", "score", "x"]` ("score is a member: its card takes only
-    width and height", the code and path of a member a place does not
-    know), and `unknown_band_key` at `[…, "bands", "nowhere"]` ("nowhere
+    width, height and spacing", the code and path of a member a place does
+    not know), and `unknown_band_key` at `[…, "bands", "nowhere"]` ("nowhere
     is no group and no timeline of block bundle0001"); `page`'s card size
-    is no problem. A card place `{height: 2, scale: 1}` is refused at its
-    `scale` and `{length: 3, width: 2}` at its `length`: the first member
-    in place order. Keys are checked only once `places` and `bands` read.
+    is no problem, and neither is a card place `{spacing: 1.5}`. A card
+    place `{height: 2, scale: 1}` is refused at its `scale` and `{length:
+    3, width: 2}` at its `length`: the first member in place order. Keys are checked only once `places` and `bands` read.
 17. `add` a block with `places: {annotations: {y: 8}, score: {width:
     650}}, bands: {score: ["flow", "regions", "children"]}` stores both as
     given; without them, both are `{}`; with `places: {score: {x: 1}}`,
@@ -1756,32 +1766,52 @@ the two removals that do reach outside.
 
 A box's geometry inside an editor is what the editor edits. A member is
 drawn with its group's length and scale (drawing.md §8.6), so these two
-members of the group's place are the member's own, and its card's size is
-its own place; a group's editor holds its frame's place and its members'
-card sizes; an ungrouped root's editor its whole place. What proves the
-exception is narrow is a refusal beside every acceptance: another member
-of the group's place, a sibling's card, another group's place, and the
-group's place in the editor of a timeline that holds a member without
-being one.
+members of the group's place are the member's own, and its card's place
+(size and vertical stretch) is its own. A horizontal stretch of the group
+from a member's card keeps every requested width of the frame and of its
+members' cards in proportion to its content (drawing.md §1), so the
+group's `width` and every sibling card's `width` are the member's too. A
+vertical stretch of the member's card keeps the frame's requested height in
+proportion in the same way, so the group's `height` is the member's; the
+group's `spacing`, and a sibling's `height` and `spacing`, are not. A group's editor holds its
+frame's place and its members' card places; an ungrouped root's editor its
+whole place. What proves the exception is narrow is a refusal beside every
+acceptance: another member of the group's place, another member of a
+sibling's card, another group's place, and the group's place in the editor
+of a timeline that holds a member without being one.
 
 28. **A member's editor.** In the editor of `bundle0001/score` (a member
     of `group_1`): `set group_1 place {length: 500}`, `set group_1 place
-    {scale: 1.5}`, `set score place {width: 650}` and one `set` of all
-    three → `null` each; with `group_1` placed `{x: 10}` before, `set
-    group_1 place {length: 500}` → `null` (the members it may not change
-    are unchanged). `set group_1 place {x: 10}` → `side_effect` at
+    {scale: 1.5}`, `set score place {width: 650}`, `set score place
+    {spacing: 1.5, height: 120}` and one `set` of the first three → `null`
+    each; with `group_1` placed `{x: 10}` before, `set group_1 place
+    {length: 500}` → `null` (the members it may not change are
+    unchanged). One `set` of `group_1` `place {length: 500, width: 900}`
+    and `performance` `place {width: 650}` (the stretch with its
+    proportional widths) → `null`; `set group_1 place {height: 300}` and
+    one `set` of `group_1` `place {height: 300}` and `score` `place
+    {spacing: 2}` (the card's vertical stretch with the frame's
+    proportional height) → `null` each; with `performance` placed `{width: 650,
+    height: 120, spacing: 1.5}` before, `set performance place {width:
+    null}` → `null`. `set group_1 place {x: 10}` → `side_effect` at
     `["bundle0001/group_1"]`, message `the place of bundle0001/group_1
     lies outside bundle0001/score: an editor changes only what it edits`;
-    `set performance place {width: 650}` (a sibling's card) → at
+    `set group_1 place {spacing: 1.5}` → the same; `set performance place
+    {spacing: 1.5}` and `set performance place {height: 120}` (another
+    member of a sibling's card), and either beside the stretch's `set` of
+    `group_1` `{length: 500}` in one command → at
     `["bundle0001/performance"]`, message `the place of
     bundle0001/performance lies outside bundle0001/score: …`; `set group_2
-    place {length: 500}` → at `["bundle0001/group_2"]`.
+    place {length: 500}` and `set group_2 place {width: 900}` → at
+    `["bundle0001/group_2"]`; `set page place {width: 650}` (a card of
+    another group) → at `["bundle0001/page"]`.
 29. **A child member's editor.** In the editor of `bundle0001/excerpt` (a
     child, a member of `group_2`): `set group_2 place {length: 500}` →
     `null`. In the editor of `bundle0001/recording`, which holds `excerpt`
     but is no member: the same `set` → at `["bundle0001/group_2"]`.
 30. **A group's editor.** In `G1`'s editor, `set score place {width: 650,
-    height: 120}` → `null`.
+    height: 120, spacing: 1.5}` and `set group_1 place {spacing: 1.5}` →
+    `null` each.
 31. **An ungrouped root's editor.** In the editor of
     `bundle0001/annotations`, `set annotations place {scale: 1.5, width:
     700}` → `null`.
@@ -1872,13 +1902,16 @@ without entries); a session id is ten characters of `0-9a-z`, as a key of
    complete form.
 7. **Places in the file.** A store's workspace of block `A` holding
    `bundles/bundle_mixed.json` with `set A/group_1 place {length: 300,
-   scale: 1.25}` and `set A/score place {width: 650}` is written; the text
-   reads back deep-equal and writes the same bytes, `places` exactly
-   `{group_1: {length: 300, scale: 1.25}, score: {width: 650}}`. That text
-   with `length: 300` added to `score`'s place is refused with exactly one
-   problem, `unknown_member` at `["blocks", A, "places", "score",
-   "length"]` (the code and path of a member a place does not know),
-   message `score is a member: its card takes only width and height`;
+   scale: 1.25, spacing: 2}` and `set A/score place {width: 650, spacing:
+   1.5}` is written; the text reads back deep-equal and writes the same
+   bytes, `places` exactly `{group_1: {length: 300, scale: 1.25, spacing:
+   2}, score: {width: 650, spacing: 1.5}}`. That text with `length: 300`
+   added to `score`'s place is refused with exactly one problem,
+   `unknown_member` at `["blocks", A, "places", "score", "length"]` (the
+   code and path of a member a place does not know), message `score is a
+   member: its card takes only width, height and spacing`; with `score`'s
+   `spacing` `0`, `non_positive_number` at `["blocks", A, "places",
+   "score", "spacing"]`;
    with `group_1`'s `scale` `0`, `non_positive_number` at `["blocks", A,
    "places", "group_1", "scale"]`.
 
@@ -1896,8 +1929,9 @@ store with an injected clock. The fixtures are every manifest fixture of
 the installed package; the generator draws timelines and groups by their
 bare ids and the other elements by `<root id>/<id>`, and adds into the tree
 of the timeline it targets. Among the commands are a group's or timeline's
-`place` (members stated, a scale and a lone width among them, so a
-member's card size too, unstated with null, empty, unknown), `band_order`
+`place` (members stated, a scale, a lone width and a lone spacing among
+them, so a member's card size and vertical stretch too, unstated with
+null, empty, unknown), `band_order`
 (valid, null, too short) and a group's display `order` (its members turned,
 null, one missing), on groups, timelines, the block and unknown targets, so
 every saved file also proves that no stale `places` or `bands` key survives
@@ -1943,8 +1977,8 @@ level, so the reopen rule unfolds it), a whole session (open, one or two
 commands, Done), an unfold (reopen, undo all of its changes or the last
 one, Done), Done, Cancel, undo and redo. A command in an open editor is
 mostly one that stays inside it (a name of what it holds, its place's `x`,
-`scale` or `width`, band order or display order, for a member its group's
-`length` and `scale`, the box's width), sometimes any generated command,
+`scale`, `spacing` or `width`, band order or display order, for a member
+its group's `length` and `scale`, the box's width), sometimes any generated command,
 so the guard both accepts and refuses; a target to open is mostly one the
 innermost editor holds, so editors nest, sometimes one outside it, one
 without an editor or one naming nothing. Ten sequences per fixture.

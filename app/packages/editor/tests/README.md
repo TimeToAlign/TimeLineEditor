@@ -797,12 +797,14 @@ What would prove it works, and the exact values each test pins:
      scale: 1, length: 400, spacing: 1, width: null, height: null}}`.
      `bmixed0000/group_1` and its title `bmixed0000/group_1/name` each give
      kind `item`, label "Frame properties", one element with target
-     `bmixed0000/group_1`, group `null`, `length` 400 and `scale` 1, and
+     `bmixed0000/group_1`, group `null`, `length` 400, `scale` 1 and
+     `spacing` 1 (the default), and
      `x`, `y`, `width`, `height` the drawn place's. `bmixed0000/annotations/card`
      and the line `bmixed0000/annotations` each give kind `item`, label "Card
      properties", target `bmixed0000/annotations`. `bmixed0000/score/card`
      gives kind `card`, label "Card properties", target `bmixed0000/score`,
-     group `bmixed0000/group_1`, `scale` 1, `length` 400 (the group's) and
+     group `bmixed0000/group_1`, `scale` 1, `length` 400 (the group's),
+     `spacing` 1 (the card's own vertical stretch, its default) and
      `width`, `height` the drawn card's size; `bmixed0000/excerpt/card`
      gives group `bmixed0000/group_2` (a child member has a card). Two
      frames give one `item` geometry with the elements `group_1`, `group_2`
@@ -813,9 +815,11 @@ What would prove it works, and the exact values each test pins:
      `group_1`, the title `bmixed0000/name`, `bmixed0000/recording`, and
      `bmixed0000/group_1` with `bshared000/group_1` (two blocks).
    - *Stated values win.* After `set` of `bmixed0000/group_1` `place
-     {length: 300, scale: 1.5}` and of `bmixed0000/score` `place {width:
-     650}`, `group_1` shows `length` 300 and `scale` 1.5, and the card of
-     `score` `scale` 1.5, `length` 300, `width` 650.
+     {length: 300, scale: 1.5, spacing: 2}` and of `bmixed0000/score`
+     `place {width: 650, spacing: 1.25}`, `group_1` shows `length` 300,
+     `scale` 1.5 and `spacing` 2, and the card of `score` `scale` 1.5,
+     `length` 300, `width` 650 and `spacing` 1.25 (its own, never the
+     frame's 2).
    - *Commands.* An edit of a place follows the rule of the canvas's
      gestures at the same level (the arranger's `keepsItems` and
      `placeCommand`, one helper for both): on the arranger and in the
@@ -843,7 +847,15 @@ What would prove it works, and the exact values each test pins:
      `"350"` give one `set`, `group_1` then `group_2`, then `AN`. Two cards
      of one group (`performance/card`, `score/card`) and `scale` `"2"` give
      one change on `bmixed0000/group_1`, then `G2`, `AN`; `width` `"500"`
-     gives `bmixed0000/performance`, `bmixed0000/score`, then `G2`, `AN`. With `group_1`'s length stated 300, a step up of `length` on
+     gives `bmixed0000/performance`, `bmixed0000/score`, then `G2`, `AN`.
+     `spacing` is a member of each place, a member's card's included: for
+     `group_1`, `spacing` `"1.5"` gives exactly `[{target:
+     "bmixed0000/group_1", values: {place: {spacing: 1.5}}}, G2, AN]`; for
+     `score/card` `[{target: "bmixed0000/score", values: {place: {spacing:
+     1.5}}}, G2, AN]` (the card's own place, never its group's: the members
+     share only the horizontal length and scale); `spacing` `""` is refused
+     `invalid_value` "spacing needs a number" at `["bmixed0000/score",
+     "spacing"]`. With `group_1`'s length stated 300, a step up of `length` on
      both frames gives one `set` with `group_1` 301, `group_2` 401 (each
      element steps from its own exact value; `group_2` draws the block's
      length, 400), then `AN`.
@@ -855,16 +867,49 @@ What would prove it works, and the exact values each test pins:
      states `{x: 8, y: 382.13671875}` (`200 + 174.13671875 + 8`). In the bundle editor (`level` `"bundle"`) the same
      edit gives the same three changes. In the group editor (`"group"`) the
      `scale` `"1.5"` of `score/card` gives only `[{target:
-     "bmixed0000/group_1", values: {place: {scale: 1.5}}}]`, and in the
-     timeline editor (`"timeline"`) its `width` `"650"` only `[{target:
-     "bmixed0000/score", values: {place: {width: 650}}}]`.
+     "bmixed0000/group_1", values: {place: {scale: 1.5}}}]` and its
+     `spacing` `"1.5"` only `[{target: "bmixed0000/score", values: {place:
+     {spacing: 1.5}}}]` (no cap: the frame adapts to a vertical stretch),
+     and in the timeline editor (`"timeline"`) its `width` `"650"` only
+     `[{target: "bmixed0000/score", values: {place: {width: 650}}}]` and
+     its `spacing` `"1.5"` only `[{target: "bmixed0000/score", values:
+     {place: {spacing: 1.5}}}]`.
+   - *A typed length or spacing is a stretch.* A typed or stepped
+     `length` or `spacing` of a frame, an ungrouped card or a member's card
+     writes what a Stretch to that value writes, through the one helper the
+     canvas's Stretch uses (arranger's `stretchChanges`, whose values the
+     arranger's tests README derives in "A typed length or spacing is a
+     stretch"): every stated width (for `length`) or height (for `spacing`)
+     of the box and of the cards it holds keeps its proportion to its own
+     content. On the arranger, with `performance` stating `{width:
+     1092.96923828125}` (twice its content, `2 Wc(400)`, `Wc(L) =
+     146.484619140625 + L`) first, `score/card` `length` `"430"` gives
+     exactly `[{target: "bmixed0000/group_1", values: {place: {length:
+     430}}}, {target: "bmixed0000/performance", values: {place: {width:
+     1152.96923828125}}}, G2, AN]` (`2 Wc(430)`), and `group_1` `length`
+     `"430"` the same; with `performance` stating `{height: 98.7578125}`
+     (twice its card's height, `Hm(v) = 33.37890625 + 16v`) first,
+     `group_1` `spacing` `"2"` gives `[{target: "bmixed0000/group_1",
+     values: {place: {spacing: 2}}}, {target: "bmixed0000/performance",
+     values: {place: {height: 130.7578125}}}, …]` (`2 Hm(2)`), followed by
+     the drawn positions of `group_2` and `annotations`, which the taller
+     card moves down by its extra 49.37890625: `{x: 8, y: 225.74609375}`
+     and `{x: 8, y: 407.8828125}`; with `group_1` stating `{height:
+     279.125}` (twice its height 139.5625) first, `score/card` `spacing`
+     `"2"` gives `[{target: "bmixed0000/score", values: {place: {spacing:
+     2}}}, {target: "bmixed0000/group_1", values: {place: {height:
+     311.125}}}, …]` (the frame's content `123.5625 + 16 × 2`, its request
+     twice it), followed by `group_2` at `{x: 8, y: 315.9296875}`
+     (`28.8046875 + 279.125 + 8`) and `annotations` at `{x: 8, y:
+     498.06640625}` (`315.9296875 + 174.13671875 + 8`).
+     Without stated sizes a typed length or spacing writes the factor
+     alone, as the cases above show.
    - *The group editor's length.* In the group editor the frame does not
-     adapt, so a typed or stepped `length` of the edited frame or of a
-     member's card gives the group editor's stretch values, through the one
-     helper the stretch uses (arranger's `cappedLength`, whose values the
-     arranger's tests README derives in "The group editor's stretch"): the
-     length capped where the cards would pass the frame and `width` pinned
-     at the frame's drawn width quantized to 1/2048, `562.48486328125`
+     adapt, so the same helper caps a typed or stepped `length` of the
+     edited frame or of a member's card as the group editor's stretch
+     does: the length capped where the content, the cards' widths
+     following, would pass the frame and `width` pinned at the frame's
+     drawn width quantized to 1/2048, `562.48486328125`
      (562.484619140625 rounds up). At level `"group"`: `group_1` `length`
      `"500"` gives exactly `[{target: "bmixed0000/group_1", values: {place:
      {length: 400, width: 562.48486328125}}}]` (`W(400)` already fills the
@@ -875,7 +920,12 @@ What would prove it works, and the exact values each test pins:
      stating `{width: 600}` first, `group_1` `length` `"500"` gives
      `{length: 437.51513671875, width: 600}` (`600 − 162.484619140625`
      floored to the lattice). On the arranger the same `"500"` is the
-     uncapped `{length: 500}` with `G2`, `AN`.
+     uncapped `{length: 500}` with `G2`, `AN`. With `performance` stating
+     `{width: 1092.96923828125}` first (the frame drawn 1108.96923828125
+     wide), `score/card` `length` `"350"` gives exactly `[{target:
+     "bmixed0000/group_1", values: {place: {length: 350, width:
+     1108.96923828125}}}, {target: "bmixed0000/performance", values:
+     {place: {width: 992.96923828125}}}]` (`2 Wc(350)`).
    - *Positions are the bundle editor's.* `offered(geometry, property)`
      (the predicate the form's `disabled` reads) withholds what the level
      does not edit: for a block, `scale`, `length` and `spacing` in a group
@@ -884,40 +934,53 @@ What would prove it works, and the exact values each test pins:
      typed value never moves an item where no gesture moves it. For
      `group_1`: on the arranger, in the group editor (`"group"`) and, for
      `annotations/card`, in the timeline editor (`"timeline"`), `x` and `y`
-     are not offered and `scale`, `length`, `width`, `height` are; in the
-     bundle editor all six are. A member's card has no `x`, `y` and offers
-     its four fields at every level; for the block the rule is unchanged
-     (`x`, `y`, `width`, `height` offered at every level).
+     are not offered and `scale`, `length`, `spacing`, `width`, `height`
+     are; in the bundle editor all seven are. A member's card has no `x`,
+     `y` and offers its five fields at every level; for the block the rule
+     is unchanged (`x`, `y`, `width`, `height` offered at every level).
    - *Live values.* `geometryOf(view, selection, level, placement)` with a
      `placement` of `bmixed0000` whose drawing is the block's drawing with
      `places` `{group_1: {length: 460}}` (a Stretch preview) reads the items
      and cards from that drawing: `group_1`'s `length` 460 and `width`
      622.484619140625 (562.484619140625 + 60), `score/card`'s `length` 460
      and `width` 606.484619140625; a placement of another block, or none,
-     gives the stored 400 and 562.484619140625.
+     gives the stored 400 and 562.484619140625. A placement whose drawing
+     has `places` `{group_1: {spacing: 2}, score: {spacing: 1.5}}` (a
+     vertical Stretch preview of the frame, then of the card) gives
+     `group_1`'s `spacing` 2 and `score/card`'s 1.5; none gives 1 and 1.
    - *Shown values.* `commonValue` gives the value every element shares,
      `undefined` when they differ (300 and 400). `fieldLabel` names a
      card's `scale` and `length` "group scale" and "group length" and every
-     other field by its property.
+     other field by its property (a card's `spacing` is "spacing", its
+     own).
 
    The component (same file) is mounted with a store reading the
    `bundles` workspace:
    - `bmixed0000/group_1`: the Properties panel holds one form, "Frame
      properties", whose fields are exactly `x`, `y`, `scale`, `length`,
-     `width`, `height` (no `spacing`); `length` shows `400` and `scale`
-     `1`. `300` typed into `length` and Enter adds one journal entry whose
+     `spacing`, `width`, `height`; `length` shows `400`, `scale` `1` and
+     `spacing` `1` (the default, nothing stated). `300` typed into `length` and Enter adds one journal entry whose
      command is exactly the one above (with `G2` and `AN`); the block's own
-     `length` stays 400 and the field shows `300`.
+     `length` stays 400 and the field shows `300`. `1.5` typed into
+     `spacing` and Enter then adds one entry, exactly `[{target:
+     "bmixed0000/group_1", values: {place: {spacing: 1.5}}}]` (`group_2`
+     and `annotations` state their positions now); the block's own
+     `spacing` stays 1 and the field shows `1.5`.
    - `bmixed0000/score/card`: one form, "Card properties", fields exactly
-     `scale`, `length`, `width`, `height`, labelled "group scale", "group
-     length", "width", "height". `1.5` typed into `scale` and Enter
-     dispatches `[{target: "bmixed0000/group_1", values: {place: {scale:
-     1.5}}}, G2, AN]`; `650` into `width` then only `[{target:
+     `scale`, `length`, `spacing`, `width`, `height`, labelled "group
+     scale", "group length", "spacing", "width", "height"; `spacing` shows
+     `1` (the card's default, nothing stated). `1.5` typed into `scale` and
+     Enter dispatches `[{target: "bmixed0000/group_1", values: {place:
+     {scale: 1.5}}}, G2, AN]`; `650` into `width` then only `[{target:
      "bmixed0000/score", values: {place: {width: 650}}}]` (`group_2` and
      `annotations` state their positions now, and the frame holding the
      card is given none); the field then emptied
      and Enter, only `[{target: "bmixed0000/score", values: {place:
-     {width: null}}}]`, after which the block's `places` hold no `score`.
+     {width: null}}}]`, after which the block's `places` hold no `score`;
+     `1.5` typed into `spacing` and Enter then only `[{target:
+     "bmixed0000/score", values: {place: {spacing: 1.5}}}]` (the card's own
+     place), after which `score`'s place is exactly `{spacing: 1.5}`,
+     `group_1`'s states no `spacing` and the field shows `1.5`.
    - `group_1` and `group_2`: `350` typed into `length` and Enter adds one
      entry with the two frames' changes and `AN`; both frames' places then
      state `length` 350. With `group_1`'s length stated 300 first, `length`
@@ -934,7 +997,7 @@ What would prove it works, and the exact values each test pins:
      with `1.5` typed into `scale` dispatches the three changes of the
      arranger.
    - `group_1` on the arranger: its `x` and `y` fields are `disabled` and
-     its other four enabled; in the bundle editor of `bmixed0000` all six
+     its other five enabled; in the bundle editor of `bmixed0000` all seven
      are enabled; in the group editor of `bmixed0000/group_1`, `x` and `y`
      are disabled again.
    - *Following a gesture live.* In the bundle editor of `bmixed0000`,

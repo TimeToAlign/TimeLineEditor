@@ -204,7 +204,7 @@ describe("the workspace file", () => {
     ]);
   });
 
-  it("reads places with a scale and a member's card size, and refuses a card beyond its size", () => {
+  it("reads places with a scale and spacing and a member's card, and refuses a card beyond it", () => {
     const store = createStore(
       { view: createView(), journal: [], sessions: {} },
       { clock: testClock() },
@@ -213,9 +213,14 @@ describe("the workspace file", () => {
       addBlock(A, "bundles/bundle_mixed.json"),
       {
         type: "set",
-        changes: [{ target: `${A}/group_1`, values: { place: { length: 300, scale: 1.25 } } }],
+        changes: [
+          { target: `${A}/group_1`, values: { place: { length: 300, scale: 1.25, spacing: 2 } } },
+        ],
       },
-      { type: "set", changes: [{ target: `${A}/score`, values: { place: { width: 650 } } }] },
+      {
+        type: "set",
+        changes: [{ target: `${A}/score`, values: { place: { width: 650, spacing: 1.5 } } }],
+      },
     ]) {
       expect(store.dispatch(command)).toBeNull();
     }
@@ -224,8 +229,8 @@ describe("the workspace file", () => {
     expect(again).toEqual(store.snapshot());
     expect(writeWorkspace(again)).toBe(placed);
     expect(again.view.blocks[A]?.places).toEqual({
-      group_1: { length: 300, scale: 1.25 },
-      score: { width: 650 },
+      group_1: { length: 300, scale: 1.25, spacing: 2 },
+      score: { width: 650, spacing: 1.5 },
     });
     const changedPlace = (key: string, values: Value) => {
       const value = parseJson(placed) as Value;
@@ -236,15 +241,20 @@ describe("the workspace file", () => {
       problems: [
         {
           code: "unknown_member",
-          message: "score is a member: its card takes only width and height",
+          message: "score is a member: its card takes only width, height and spacing",
           path: ["blocks", A, "places", "score", "length"],
         },
       ],
     });
-    const zero = changedPlace("group_1", { scale: 0 });
-    expect(isLoadError(zero) && zero.problems.map((item) => [item.code, item.path])).toEqual([
-      ["non_positive_number", ["blocks", A, "places", "group_1", "scale"]],
-    ]);
+    for (const [key, member] of [
+      ["score", "spacing"],
+      ["group_1", "scale"],
+    ] as const) {
+      const zero = changedPlace(key, { [member]: 0 });
+      expect(isLoadError(zero) && zero.problems.map((item) => [item.code, item.path])).toEqual([
+        ["non_positive_number", ["blocks", A, "places", key, member]],
+      ]);
+    }
   });
 
   describe("with sessions", () => {
