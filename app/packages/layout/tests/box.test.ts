@@ -126,12 +126,12 @@ describe("manifests of one group: an anonymous box holding its frame", () => {
 
   it("group_parents_mixed", () => {
     const drawing = drawFixture("groups/group_parents_mixed");
-    expect(size(drawing)).toEqual([568.08642578125, 374.04296875]);
+    expect(size(drawing)).toEqual([568.08642578125, 377.640625]);
     expect(rect(drawing, "group_1")).toEqual({
       x: 8,
       y: 8,
       width: 552.08642578125,
-      height: 358.04296875,
+      height: 361.640625,
     });
     expect(title(drawing, "group_1/name")).toMatchObject({ x: 16, text: "Exposition" });
     const cards = ["exposition", "take", "system", "audio"].map((id) =>
@@ -139,15 +139,15 @@ describe("manifests of one group: an anonymous box holding its frame", () => {
     );
     expect(cards).toEqual([
       { x: 16, y: 32.8046875, width: 536.08642578125, height: 83.953125 },
-      { x: 16, y: 124.7578125, width: 536.08642578125, height: 83.953125 },
-      { x: 16, y: 216.7109375, width: 536.08642578125, height: 83.953125 },
-      { x: 16, y: 308.6640625, width: 536.08642578125, height: 49.37890625 },
+      { x: 16, y: 124.7578125, width: 536.08642578125, height: 87.453125 },
+      { x: 16, y: 220.2109375, width: 536.08642578125, height: 83.953125 },
+      { x: 16, y: 312.1640625, width: 536.08642578125, height: 49.4765625 },
     ]);
     expect(["exposition", "take", "system", "audio"].map((id) => line(drawing, id))).toEqual([
       { xs: 113.0302734375, y: 81.78125 },
-      { xs: 113.0302734375, y: 173.734375 },
-      { xs: 113.0302734375, y: 265.6875 },
-      { xs: 113.0302734375, y: 323.06640625 },
+      { xs: 113.0302734375, y: 177.234375 },
+      { xs: 113.0302734375, y: 269.1875 },
+      { xs: 113.0302734375, y: 326.6640625 },
     ]);
   });
 
@@ -185,7 +185,7 @@ describe("a titled manifest with two frames and an ungrouped root", () => {
   const drawing = drawFixture("bundles/bundle_mixed");
 
   it("opens with its title, then the frames and the ungrouped card F apart", () => {
-    expect(size(drawing)).toEqual([580.484619140625, 417.8828125]);
+    expect(size(drawing)).toEqual([580.484619140625, 473.62890625]);
     expect(drawing.origin).toEqual({ x: 0, y: 0 });
     expect(title(drawing, "name")).toEqual({
       x: 8,
@@ -197,37 +197,37 @@ describe("a titled manifest with two frames and an ungrouped root", () => {
       x: 8,
       y: 28.8046875,
       width: 562.484619140625,
-      height: 139.5625,
+      height: 169.234375,
     });
     expect(rect(drawing, "group_2")).toEqual({
       x: 8,
-      y: 176.3671875,
+      y: 206.0390625,
       width: 562.484619140625,
-      height: 174.13671875,
+      height: 177.734375,
     });
     expect([title(drawing, "group_1/name"), title(drawing, "group_2/name")]).toEqual([
       { x: 16, baseline: 47.01513671875, anchor: "start", text: "Performance" },
-      { x: 16, baseline: 194.57763671875, anchor: "start", text: "Facsimile" },
+      { x: 16, baseline: 224.24951171875, anchor: "start", text: "Facsimile" },
     ]);
     expect(
       ["score", "performance", "page", "excerpt", "annotations"].map((id) =>
         rect(drawing, `${id}/card`),
       ),
     ).toEqual([
-      { x: 16, y: 53.609375, width: 546.484619140625, height: 49.37890625 },
-      { x: 16, y: 110.98828125, width: 546.484619140625, height: 49.37890625 },
-      { x: 16, y: 201.171875, width: 546.484619140625, height: 49.37890625 },
-      { x: 16, y: 258.55078125, width: 546.484619140625, height: 83.953125 },
-      { x: 8, y: 358.50390625, width: 562.484619140625, height: 49.37890625 },
+      { x: 16, y: 53.609375, width: 546.484619140625, height: 78.953125 },
+      { x: 16, y: 140.5625, width: 546.484619140625, height: 49.4765625 },
+      { x: 16, y: 230.84375, width: 546.484619140625, height: 49.4765625 },
+      { x: 16, y: 288.3203125, width: 546.484619140625, height: 87.453125 },
+      { x: 8, y: 391.7734375, width: 562.484619140625, height: 71.85546875 },
     ]);
     expect(
       ["score", "performance", "page", "excerpt", "annotations"].map((id) => line(drawing, id)),
     ).toEqual([
-      { xs: 126.29150390625, y: 68.01171875 },
-      { xs: 126.29150390625, y: 125.390625 },
-      { xs: 126.29150390625, y: 215.57421875 },
-      { xs: 126.29150390625, y: 307.52734375 },
-      { xs: 126.29150390625, y: 372.90625 },
+      { xs: 126.29150390625, y: 73.109375 },
+      { xs: 126.29150390625, y: 155.0625 },
+      { xs: 126.29150390625, y: 245.34375 },
+      { xs: 126.29150390625, y: 340.796875 },
+      { xs: 126.29150390625, y: 406.17578125 },
     ]);
   });
 
@@ -248,12 +248,20 @@ describe("a titled manifest with two frames and an ungrouped root", () => {
       "excerpt/card",
       "annotations/card",
     ]);
-    // Each card comes right before its member drawing, and the drawing before the next card.
+    // Each card comes right before its member drawing, which opens with its maps, regions and
+    // jumps, and the drawing before the next card; an ancestor line lies just before its member's.
     const addresses = order(drawing);
-    for (const id of ["score", "performance", "page", "annotations"]) {
-      expect(addresses[addresses.indexOf(`${id}/card`) + 1], id).toBe(id);
+    const opening = {
+      score: ["score/cmap_1", "score/cmap_2", "score/jump_1", "score"],
+      performance: ["performance/cmap_1", "performance"],
+      page: ["page/cmap_1", "page"],
+      excerpt: ["recording/cmap_2", "recording", "excerpt"],
+      annotations: ["annotations/region_1", "annotations/region_2", "annotations"],
+    };
+    for (const [id, first] of Object.entries(opening)) {
+      const at = addresses.indexOf(`${id}/card`) + 1;
+      expect(addresses.slice(at, at + first.length), id).toEqual(first);
     }
-    expect(addresses[addresses.indexOf("excerpt/card") + 1]).toBe("recording");
     expect(addresses.indexOf("performance/name")).toBeLessThan(addresses.indexOf("group_2"));
   });
 
@@ -267,10 +275,10 @@ describe("a titled manifest with two frames and an ungrouped root", () => {
       stated: {},
     });
     expect(drawing.cards).toEqual([
-      sized("score", "group_1", 49.37890625),
-      sized("performance", "group_1", 49.37890625),
-      sized("page", "group_2", 49.37890625),
-      sized("excerpt", "group_2", 83.953125),
+      sized("score", "group_1", 78.953125),
+      sized("performance", "group_1", 49.4765625),
+      sized("page", "group_2", 49.4765625),
+      sized("excerpt", "group_2", 87.453125),
     ]);
   });
 });
@@ -292,8 +300,8 @@ describe("hidden titles", () => {
     const drawing = drawFixture("bundles/bundle_mixed", [hide("name")]);
     expect(drawing.elements.some((item) => item.address === "name")).toBe(false);
     expect(rect(drawing, "group_1")).toMatchObject({ y: 8 });
-    expect(rect(drawing, "annotations/card")).toMatchObject({ y: 337.69921875 });
-    expect(drawing.height).toBe(397.078125);
+    expect(rect(drawing, "annotations/card")).toMatchObject({ y: 370.96875 });
+    expect(drawing.height).toBe(452.82421875);
   });
 });
 

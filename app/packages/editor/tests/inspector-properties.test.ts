@@ -31,8 +31,8 @@ const M = "bmixed0000";
 const GEOMETRY_HINT = "Select a block, a frame or a card to edit its geometry.";
 
 /** The changes stating the drawn position of an item that states none. */
-const G2 = { target: `${M}/group_2`, values: { place: { x: 8, y: 176.3671875 } } };
-const AN = { target: `${M}/annotations`, values: { place: { x: 8, y: 358.50390625 } } };
+const G2 = { target: `${M}/group_2`, values: { place: { x: 8, y: 206.0390625 } } };
+const AN = { target: `${M}/annotations`, values: { place: { x: 8, y: 391.7734375 } } };
 
 /** `G2` and `AN` for `group_2` and `annotations` drawn at `y` `group2` and `annotations`. */
 function positions(group2: number, annotations: number) {
@@ -48,8 +48,8 @@ const PINNED = 562.48486328125;
 /** The places a Stretch of `group_1` by 60 previews, and stores on release, in the bundle editor. */
 const STRETCHED = {
   group_1: { length: 460 },
-  group_2: { x: 8, y: 176.3671875 },
-  annotations: { x: 8, y: 358.50390625 },
+  group_2: { x: 8, y: 206.0390625 },
+  annotations: { x: 8, y: 391.7734375 },
 };
 
 /** A store reading the end-to-end `bundles` workspace, the generator's output. */
@@ -315,7 +315,7 @@ describe("the commands", () => {
     expect(changes(propertyCommand(geometry(store, "group_1"), "scale", "1.5"))).toEqual([
       ...scaled,
       { target: `${M}/group_2`, values: { place: { x: 8 } } },
-      { target: `${M}/annotations`, values: { place: { x: 8, y: 382.13671875 } } },
+      { target: `${M}/annotations`, values: { place: { x: 8, y: 385.734375 } } },
     ]);
   });
 
@@ -333,18 +333,18 @@ describe("the commands", () => {
     );
     expect(changes(propertyCommand(geometry(wide, "group_1"), "length", "430"))).toEqual(widened);
     const tallCard = storeOf();
-    dispatch(tallCard, `${M}/performance`, { place: { height: 98.7578125 } });
+    dispatch(tallCard, `${M}/performance`, { place: { height: 98.953125 } });
     expect(changes(propertyCommand(geometry(tallCard, "group_1"), "spacing", "2"))).toEqual([
       { target: `${M}/group_1`, values: { place: { spacing: 2 } } },
-      { target: `${M}/performance`, values: { place: { height: 130.7578125 } } },
-      ...positions(225.74609375, 407.8828125),
+      { target: `${M}/performance`, values: { place: { height: 130.953125 } } },
+      ...positions(255.515625, 441.25),
     ]);
     const tallFrame = storeOf();
-    dispatch(tallFrame, `${M}/group_1`, { place: { height: 279.125 } });
+    dispatch(tallFrame, `${M}/group_1`, { place: { height: 338.46875 } });
     expect(changes(propertyCommand(geometry(tallFrame, "score/card"), "spacing", "2"))).toEqual([
       { target: `${M}/score`, values: { place: { spacing: 2 } } },
-      { target: `${M}/group_1`, values: { place: { height: 311.125 } } },
-      ...positions(315.9296875, 498.06640625),
+      { target: `${M}/group_1`, values: { place: { height: 394.46875 } } },
+      ...positions(375.2734375, 561.0078125),
     ]);
   });
 

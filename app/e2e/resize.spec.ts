@@ -306,9 +306,9 @@ test.describe("a frame on the arranger", () => {
         block,
       ),
     ).toEqual({
-      group_1: { scale: 2341 / 2048 },
-      group_2: { x: 8, y: 176.3671875 },
-      annotations: { x: 8, y: 358.50390625 },
+      group_1: { scale: 2290 / 2048 },
+      group_2: { x: 8, y: 206.0390625 },
+      annotations: { x: 8, y: 391.7734375 },
     });
   });
 });
@@ -332,7 +332,7 @@ test.describe("a member's card in a group", () => {
       await page.mouse.up();
       expect(await journalLength(page)).toBe(before + 1);
     };
-    const others = { group_2: { x: 8, y: 210.94140625 }, page: { x: 8, y: 393.078125 } };
+    const others = { group_2: { x: 8, y: 245.9921875 }, page: { x: 8, y: 478.08203125 } };
 
     await page.evaluate((address) => window.__tilie.select([address]), `${block}/exposition/card`);
     await chooseMode(page, "box");

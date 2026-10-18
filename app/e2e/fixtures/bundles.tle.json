@@ -66,12 +66,51 @@
             "metric_hierarchy": null,
             "name": "Annotations",
             "number_type": "fraction",
-            "regions": [],
+            "regions": [
+              {
+                "end": [
+                  4,
+                  1
+                ],
+                "id": "region_1",
+                "meta": {},
+                "name": "Verse",
+                "start": [
+                  0,
+                  1
+                ]
+              },
+              {
+                "end": [
+                  12,
+                  1
+                ],
+                "id": "region_2",
+                "meta": {},
+                "name": "Chorus",
+                "start": [
+                  4,
+                  1
+                ]
+              }
+            ],
             "unit": "quarters"
           },
           {
             "children": [],
-            "conversion_maps": [],
+            "conversion_maps": [
+              {
+                "id": "cmap_1",
+                "name": null,
+                "scalar": [
+                  3,
+                  4
+                ],
+                "source_unit": "pixels",
+                "target_unit": "points",
+                "type": "ScalarMap"
+              }
+            ],
             "flow_control": {
               "breaks": [],
               "jumps": [],
@@ -91,7 +130,17 @@
           },
           {
             "children": [],
-            "conversion_maps": [],
+            "conversion_maps": [
+              {
+                "id": "cmap_1",
+                "name": null,
+                "sample_rate": 44100,
+                "scalar": 44100,
+                "source_unit": "seconds",
+                "target_unit": "samples",
+                "type": "SecondsToSamples"
+              }
+            ],
             "flow_control": {
               "breaks": [],
               "jumps": [],
@@ -113,7 +162,20 @@
             "children": [
               {
                 "children": [],
-                "conversion_maps": [],
+                "conversion_maps": [
+                  {
+                    "id": "cmap_2",
+                    "name": null,
+                    "sample_rate": 44100,
+                    "scalar": [
+                      1,
+                      44100
+                    ],
+                    "source_unit": "samples",
+                    "target_unit": "seconds",
+                    "type": "SamplesToSeconds"
+                  }
+                ],
                 "flow_control": {
                   "breaks": [],
                   "jumps": [],
@@ -133,7 +195,20 @@
                 "unit": "samples"
               }
             ],
-            "conversion_maps": [],
+            "conversion_maps": [
+              {
+                "id": "cmap_1",
+                "name": null,
+                "sample_rate": 44100,
+                "scalar": [
+                  1,
+                  44100
+                ],
+                "source_unit": "samples",
+                "target_unit": "seconds",
+                "type": "SamplesToSeconds"
+              }
+            ],
             "flow_control": {
               "breaks": [],
               "jumps": [],
@@ -153,10 +228,49 @@
           },
           {
             "children": [],
-            "conversion_maps": [],
+            "conversion_maps": [
+              {
+                "id": "cmap_1",
+                "name": null,
+                "ppq": 480,
+                "scalar": 480,
+                "source_unit": "quarters",
+                "target_unit": "ticks",
+                "type": "QuartersToTicks"
+              },
+              {
+                "id": "cmap_2",
+                "name": null,
+                "scalar": [
+                  1,
+                  2
+                ],
+                "source_unit": "quarters",
+                "target_unit": "seconds",
+                "type": "ScalarMap"
+              }
+            ],
             "flow_control": {
               "breaks": [],
-              "jumps": [],
+              "jumps": [
+                {
+                  "condition": "first_n",
+                  "control_type": "repeat_end",
+                  "from_coordinate": [
+                    8,
+                    1
+                  ],
+                  "id": "jump_1",
+                  "label": "Repeat",
+                  "meta": {},
+                  "repeat_count": 1,
+                  "target": null,
+                  "to_coordinate": [
+                    0,
+                    1
+                  ]
+                }
+              ],
               "markers": []
             },
             "id": "score",
@@ -259,15 +373,92 @@
           {
             "children": [
               {
-                "children": [],
-                "conversion_maps": [],
+                "children": [
+                  {
+                    "children": [],
+                    "conversion_maps": [],
+                    "flow_control": {
+                      "breaks": [],
+                      "jumps": [],
+                      "markers": []
+                    },
+                    "id": "exposition_first",
+                    "is_segment_line": false,
+                    "length": [
+                      6,
+                      1
+                    ],
+                    "locked": false,
+                    "measure_map": null,
+                    "meta": {},
+                    "metric_hierarchy": null,
+                    "name": "First theme",
+                    "number_type": "fraction",
+                    "offset": [
+                      0,
+                      1
+                    ],
+                    "regions": [],
+                    "unit": "quarters"
+                  },
+                  {
+                    "children": [],
+                    "conversion_maps": [
+                      {
+                        "id": "cmap_3",
+                        "name": null,
+                        "scalar": [
+                          1,
+                          2
+                        ],
+                        "source_unit": "quarters",
+                        "target_unit": "seconds",
+                        "type": "ScalarMap"
+                      }
+                    ],
+                    "flow_control": {
+                      "breaks": [],
+                      "jumps": [],
+                      "markers": []
+                    },
+                    "id": "exposition_second",
+                    "is_segment_line": false,
+                    "length": [
+                      6,
+                      1
+                    ],
+                    "locked": false,
+                    "measure_map": null,
+                    "meta": {},
+                    "metric_hierarchy": null,
+                    "name": "Second theme",
+                    "number_type": "fraction",
+                    "offset": [
+                      6,
+                      1
+                    ],
+                    "regions": [],
+                    "unit": "quarters"
+                  }
+                ],
+                "conversion_maps": [
+                  {
+                    "id": "cmap_2",
+                    "name": null,
+                    "ppq": 480,
+                    "scalar": 480,
+                    "source_unit": "quarters",
+                    "target_unit": "ticks",
+                    "type": "QuartersToTicks"
+                  }
+                ],
                 "flow_control": {
                   "breaks": [],
                   "jumps": [],
                   "markers": []
                 },
                 "id": "exposition",
-                "is_segment_line": false,
+                "is_segment_line": true,
                 "length": [
                   12,
                   1
@@ -286,7 +477,182 @@
                 "unit": "quarters"
               },
               {
-                "children": [],
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "conversion_maps": [],
+                        "flow_control": {
+                          "breaks": [],
+                          "jumps": [],
+                          "markers": []
+                        },
+                        "id": "recapitulation_first_1",
+                        "is_segment_line": false,
+                        "length": [
+                          3,
+                          1
+                        ],
+                        "locked": false,
+                        "measure_map": null,
+                        "meta": {},
+                        "metric_hierarchy": null,
+                        "name": "Phrase 1",
+                        "number_type": "fraction",
+                        "offset": [
+                          0,
+                          1
+                        ],
+                        "regions": [],
+                        "unit": "quarters"
+                      },
+                      {
+                        "children": [],
+                        "conversion_maps": [],
+                        "flow_control": {
+                          "breaks": [],
+                          "jumps": [],
+                          "markers": []
+                        },
+                        "id": "recapitulation_first_2",
+                        "is_segment_line": false,
+                        "length": [
+                          3,
+                          1
+                        ],
+                        "locked": false,
+                        "measure_map": null,
+                        "meta": {},
+                        "metric_hierarchy": null,
+                        "name": "Phrase 2",
+                        "number_type": "fraction",
+                        "offset": [
+                          3,
+                          1
+                        ],
+                        "regions": [],
+                        "unit": "quarters"
+                      }
+                    ],
+                    "conversion_maps": [],
+                    "flow_control": {
+                      "breaks": [],
+                      "jumps": [],
+                      "markers": []
+                    },
+                    "id": "recapitulation_first",
+                    "is_segment_line": true,
+                    "length": [
+                      6,
+                      1
+                    ],
+                    "locked": true,
+                    "measure_map": null,
+                    "meta": {},
+                    "metric_hierarchy": null,
+                    "name": "First theme",
+                    "number_type": "fraction",
+                    "offset": [
+                      0,
+                      1
+                    ],
+                    "regions": [],
+                    "unit": "quarters"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "conversion_maps": [],
+                        "flow_control": {
+                          "breaks": [],
+                          "jumps": [],
+                          "markers": []
+                        },
+                        "id": "recapitulation_second_1",
+                        "is_segment_line": false,
+                        "length": [
+                          3,
+                          1
+                        ],
+                        "locked": false,
+                        "measure_map": null,
+                        "meta": {},
+                        "metric_hierarchy": null,
+                        "name": "Phrase 1",
+                        "number_type": "fraction",
+                        "offset": [
+                          0,
+                          1
+                        ],
+                        "regions": [],
+                        "unit": "quarters"
+                      },
+                      {
+                        "children": [],
+                        "conversion_maps": [],
+                        "flow_control": {
+                          "breaks": [],
+                          "jumps": [],
+                          "markers": []
+                        },
+                        "id": "recapitulation_second_2",
+                        "is_segment_line": false,
+                        "length": [
+                          3,
+                          1
+                        ],
+                        "locked": false,
+                        "measure_map": null,
+                        "meta": {},
+                        "metric_hierarchy": null,
+                        "name": "Phrase 2",
+                        "number_type": "fraction",
+                        "offset": [
+                          3,
+                          1
+                        ],
+                        "regions": [],
+                        "unit": "quarters"
+                      }
+                    ],
+                    "conversion_maps": [
+                      {
+                        "id": "cmap_4",
+                        "name": null,
+                        "ppq": 480,
+                        "scalar": 480,
+                        "source_unit": "quarters",
+                        "target_unit": "ticks",
+                        "type": "QuartersToTicks"
+                      }
+                    ],
+                    "flow_control": {
+                      "breaks": [],
+                      "jumps": [],
+                      "markers": []
+                    },
+                    "id": "recapitulation_second",
+                    "is_segment_line": true,
+                    "length": [
+                      6,
+                      1
+                    ],
+                    "locked": true,
+                    "measure_map": null,
+                    "meta": {},
+                    "metric_hierarchy": null,
+                    "name": "Second theme",
+                    "number_type": "fraction",
+                    "offset": [
+                      6,
+                      1
+                    ],
+                    "regions": [],
+                    "unit": "quarters"
+                  }
+                ],
                 "conversion_maps": [],
                 "flow_control": {
                   "breaks": [],
@@ -294,7 +660,7 @@
                   "markers": []
                 },
                 "id": "recapitulation",
-                "is_segment_line": false,
+                "is_segment_line": true,
                 "length": [
                   12,
                   1
@@ -313,10 +679,38 @@
                 "unit": "quarters"
               }
             ],
-            "conversion_maps": [],
+            "conversion_maps": [
+              {
+                "id": "cmap_1",
+                "name": null,
+                "ppq": 480,
+                "scalar": 480,
+                "source_unit": "quarters",
+                "target_unit": "ticks",
+                "type": "QuartersToTicks"
+              }
+            ],
             "flow_control": {
               "breaks": [],
-              "jumps": [],
+              "jumps": [
+                {
+                  "condition": "first_n",
+                  "control_type": "repeat_end",
+                  "from_coordinate": [
+                    12,
+                    1
+                  ],
+                  "id": "jump_1",
+                  "label": "Repeat",
+                  "meta": {},
+                  "repeat_count": 1,
+                  "target": null,
+                  "to_coordinate": [
+                    0,
+                    1
+                  ]
+                }
+              ],
               "markers": []
             },
             "id": "score",
@@ -331,21 +725,88 @@
             "metric_hierarchy": null,
             "name": "Score",
             "number_type": "fraction",
-            "regions": [],
+            "regions": [
+              {
+                "end": [
+                  20,
+                  1
+                ],
+                "id": "region_1",
+                "meta": {},
+                "name": "Development",
+                "start": [
+                  12,
+                  1
+                ]
+              }
+            ],
             "unit": "quarters"
           },
           {
-            "children": [],
-            "conversion_maps": [],
+            "children": [
+              {
+                "children": [],
+                "conversion_maps": [],
+                "flow_control": {
+                  "breaks": [],
+                  "jumps": [],
+                  "markers": []
+                },
+                "id": "take_1_first",
+                "is_segment_line": false,
+                "length": 14.0,
+                "locked": false,
+                "measure_map": null,
+                "meta": {},
+                "metric_hierarchy": null,
+                "name": "First theme",
+                "number_type": "float",
+                "offset": 0.0,
+                "regions": [],
+                "unit": "seconds"
+              },
+              {
+                "children": [],
+                "conversion_maps": [],
+                "flow_control": {
+                  "breaks": [],
+                  "jumps": [],
+                  "markers": []
+                },
+                "id": "take_1_second",
+                "is_segment_line": false,
+                "length": 16.0,
+                "locked": false,
+                "measure_map": null,
+                "meta": {},
+                "metric_hierarchy": null,
+                "name": "Second theme",
+                "number_type": "float",
+                "offset": 14.0,
+                "regions": [],
+                "unit": "seconds"
+              }
+            ],
+            "conversion_maps": [
+              {
+                "id": "cmap_1",
+                "name": null,
+                "sample_rate": 44100,
+                "scalar": 44100,
+                "source_unit": "seconds",
+                "target_unit": "samples",
+                "type": "SecondsToSamples"
+              }
+            ],
             "flow_control": {
               "breaks": [],
               "jumps": [],
               "markers": []
             },
             "id": "take_1",
-            "is_segment_line": false,
+            "is_segment_line": true,
             "length": 30.0,
-            "locked": false,
+            "locked": true,
             "measure_map": null,
             "meta": {},
             "metric_hierarchy": null,
@@ -469,7 +930,19 @@
                 "unit": "pixels"
               }
             ],
-            "conversion_maps": [],
+            "conversion_maps": [
+              {
+                "id": "cmap_1",
+                "name": null,
+                "scalar": [
+                  3,
+                  4
+                ],
+                "source_unit": "pixels",
+                "target_unit": "points",
+                "type": "ScalarMap"
+              }
+            ],
             "flow_control": {
               "breaks": [],
               "jumps": [],
@@ -489,7 +962,20 @@
           },
           {
             "children": [],
-            "conversion_maps": [],
+            "conversion_maps": [
+              {
+                "id": "cmap_1",
+                "name": null,
+                "sample_rate": 44100,
+                "scalar": [
+                  1,
+                  44100
+                ],
+                "source_unit": "samples",
+                "target_unit": "seconds",
+                "type": "SamplesToSeconds"
+              }
+            ],
             "flow_control": {
               "breaks": [],
               "jumps": [],
@@ -509,10 +995,52 @@
           },
           {
             "children": [],
-            "conversion_maps": [],
+            "conversion_maps": [
+              {
+                "id": "cmap_1",
+                "name": null,
+                "ppq": 480,
+                "scalar": 480,
+                "source_unit": "quarters",
+                "target_unit": "ticks",
+                "type": "QuartersToTicks"
+              }
+            ],
             "flow_control": {
-              "breaks": [],
-              "jumps": [],
+              "breaks": [
+                {
+                  "condition": "after_dc_ds",
+                  "control_type": "fine",
+                  "coordinate": [
+                    8,
+                    1
+                  ],
+                  "id": "break_1",
+                  "label": "Fine",
+                  "meta": {},
+                  "name": null,
+                  "repeat_count": 1
+                }
+              ],
+              "jumps": [
+                {
+                  "condition": "after_first",
+                  "control_type": "da_capo_al_fine",
+                  "from_coordinate": [
+                    16,
+                    1
+                  ],
+                  "id": "jump_1",
+                  "label": "D.C. al Fine",
+                  "meta": {},
+                  "repeat_count": 1,
+                  "target": null,
+                  "to_coordinate": [
+                    0,
+                    1
+                  ]
+                }
+              ],
               "markers": []
             },
             "id": "score",
@@ -613,12 +1141,51 @@
                 "metric_hierarchy": null,
                 "name": "Annotations",
                 "number_type": "fraction",
-                "regions": [],
+                "regions": [
+                  {
+                    "end": [
+                      4,
+                      1
+                    ],
+                    "id": "region_1",
+                    "meta": {},
+                    "name": "Verse",
+                    "start": [
+                      0,
+                      1
+                    ]
+                  },
+                  {
+                    "end": [
+                      12,
+                      1
+                    ],
+                    "id": "region_2",
+                    "meta": {},
+                    "name": "Chorus",
+                    "start": [
+                      4,
+                      1
+                    ]
+                  }
+                ],
                 "unit": "quarters"
               },
               {
                 "children": [],
-                "conversion_maps": [],
+                "conversion_maps": [
+                  {
+                    "id": "cmap_1",
+                    "name": null,
+                    "scalar": [
+                      3,
+                      4
+                    ],
+                    "source_unit": "pixels",
+                    "target_unit": "points",
+                    "type": "ScalarMap"
+                  }
+                ],
                 "flow_control": {
                   "breaks": [],
                   "jumps": [],
@@ -638,7 +1205,17 @@
               },
               {
                 "children": [],
-                "conversion_maps": [],
+                "conversion_maps": [
+                  {
+                    "id": "cmap_1",
+                    "name": null,
+                    "sample_rate": 44100,
+                    "scalar": 44100,
+                    "source_unit": "seconds",
+                    "target_unit": "samples",
+                    "type": "SecondsToSamples"
+                  }
+                ],
                 "flow_control": {
                   "breaks": [],
                   "jumps": [],
@@ -660,7 +1237,20 @@
                 "children": [
                   {
                     "children": [],
-                    "conversion_maps": [],
+                    "conversion_maps": [
+                      {
+                        "id": "cmap_2",
+                        "name": null,
+                        "sample_rate": 44100,
+                        "scalar": [
+                          1,
+                          44100
+                        ],
+                        "source_unit": "samples",
+                        "target_unit": "seconds",
+                        "type": "SamplesToSeconds"
+                      }
+                    ],
                     "flow_control": {
                       "breaks": [],
                       "jumps": [],
@@ -680,7 +1270,20 @@
                     "unit": "samples"
                   }
                 ],
-                "conversion_maps": [],
+                "conversion_maps": [
+                  {
+                    "id": "cmap_1",
+                    "name": null,
+                    "sample_rate": 44100,
+                    "scalar": [
+                      1,
+                      44100
+                    ],
+                    "source_unit": "samples",
+                    "target_unit": "seconds",
+                    "type": "SamplesToSeconds"
+                  }
+                ],
                 "flow_control": {
                   "breaks": [],
                   "jumps": [],
@@ -700,10 +1303,49 @@
               },
               {
                 "children": [],
-                "conversion_maps": [],
+                "conversion_maps": [
+                  {
+                    "id": "cmap_1",
+                    "name": null,
+                    "ppq": 480,
+                    "scalar": 480,
+                    "source_unit": "quarters",
+                    "target_unit": "ticks",
+                    "type": "QuartersToTicks"
+                  },
+                  {
+                    "id": "cmap_2",
+                    "name": null,
+                    "scalar": [
+                      1,
+                      2
+                    ],
+                    "source_unit": "quarters",
+                    "target_unit": "seconds",
+                    "type": "ScalarMap"
+                  }
+                ],
                 "flow_control": {
                   "breaks": [],
-                  "jumps": [],
+                  "jumps": [
+                    {
+                      "condition": "first_n",
+                      "control_type": "repeat_end",
+                      "from_coordinate": [
+                        8,
+                        1
+                      ],
+                      "id": "jump_1",
+                      "label": "Repeat",
+                      "meta": {},
+                      "repeat_count": 1,
+                      "target": null,
+                      "to_coordinate": [
+                        0,
+                        1
+                      ]
+                    }
+                  ],
                   "markers": []
                 },
                 "id": "score",
@@ -800,15 +1442,92 @@
               {
                 "children": [
                   {
-                    "children": [],
-                    "conversion_maps": [],
+                    "children": [
+                      {
+                        "children": [],
+                        "conversion_maps": [],
+                        "flow_control": {
+                          "breaks": [],
+                          "jumps": [],
+                          "markers": []
+                        },
+                        "id": "exposition_first",
+                        "is_segment_line": false,
+                        "length": [
+                          6,
+                          1
+                        ],
+                        "locked": false,
+                        "measure_map": null,
+                        "meta": {},
+                        "metric_hierarchy": null,
+                        "name": "First theme",
+                        "number_type": "fraction",
+                        "offset": [
+                          0,
+                          1
+                        ],
+                        "regions": [],
+                        "unit": "quarters"
+                      },
+                      {
+                        "children": [],
+                        "conversion_maps": [
+                          {
+                            "id": "cmap_3",
+                            "name": null,
+                            "scalar": [
+                              1,
+                              2
+                            ],
+                            "source_unit": "quarters",
+                            "target_unit": "seconds",
+                            "type": "ScalarMap"
+                          }
+                        ],
+                        "flow_control": {
+                          "breaks": [],
+                          "jumps": [],
+                          "markers": []
+                        },
+                        "id": "exposition_second",
+                        "is_segment_line": false,
+                        "length": [
+                          6,
+                          1
+                        ],
+                        "locked": false,
+                        "measure_map": null,
+                        "meta": {},
+                        "metric_hierarchy": null,
+                        "name": "Second theme",
+                        "number_type": "fraction",
+                        "offset": [
+                          6,
+                          1
+                        ],
+                        "regions": [],
+                        "unit": "quarters"
+                      }
+                    ],
+                    "conversion_maps": [
+                      {
+                        "id": "cmap_2",
+                        "name": null,
+                        "ppq": 480,
+                        "scalar": 480,
+                        "source_unit": "quarters",
+                        "target_unit": "ticks",
+                        "type": "QuartersToTicks"
+                      }
+                    ],
                     "flow_control": {
                       "breaks": [],
                       "jumps": [],
                       "markers": []
                     },
                     "id": "exposition",
-                    "is_segment_line": false,
+                    "is_segment_line": true,
                     "length": [
                       12,
                       1
@@ -827,7 +1546,182 @@
                     "unit": "quarters"
                   },
                   {
-                    "children": [],
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "conversion_maps": [],
+                            "flow_control": {
+                              "breaks": [],
+                              "jumps": [],
+                              "markers": []
+                            },
+                            "id": "recapitulation_first_1",
+                            "is_segment_line": false,
+                            "length": [
+                              3,
+                              1
+                            ],
+                            "locked": false,
+                            "measure_map": null,
+                            "meta": {},
+                            "metric_hierarchy": null,
+                            "name": "Phrase 1",
+                            "number_type": "fraction",
+                            "offset": [
+                              0,
+                              1
+                            ],
+                            "regions": [],
+                            "unit": "quarters"
+                          },
+                          {
+                            "children": [],
+                            "conversion_maps": [],
+                            "flow_control": {
+                              "breaks": [],
+                              "jumps": [],
+                              "markers": []
+                            },
+                            "id": "recapitulation_first_2",
+                            "is_segment_line": false,
+                            "length": [
+                              3,
+                              1
+                            ],
+                            "locked": false,
+                            "measure_map": null,
+                            "meta": {},
+                            "metric_hierarchy": null,
+                            "name": "Phrase 2",
+                            "number_type": "fraction",
+                            "offset": [
+                              3,
+                              1
+                            ],
+                            "regions": [],
+                            "unit": "quarters"
+                          }
+                        ],
+                        "conversion_maps": [],
+                        "flow_control": {
+                          "breaks": [],
+                          "jumps": [],
+                          "markers": []
+                        },
+                        "id": "recapitulation_first",
+                        "is_segment_line": true,
+                        "length": [
+                          6,
+                          1
+                        ],
+                        "locked": true,
+                        "measure_map": null,
+                        "meta": {},
+                        "metric_hierarchy": null,
+                        "name": "First theme",
+                        "number_type": "fraction",
+                        "offset": [
+                          0,
+                          1
+                        ],
+                        "regions": [],
+                        "unit": "quarters"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "conversion_maps": [],
+                            "flow_control": {
+                              "breaks": [],
+                              "jumps": [],
+                              "markers": []
+                            },
+                            "id": "recapitulation_second_1",
+                            "is_segment_line": false,
+                            "length": [
+                              3,
+                              1
+                            ],
+                            "locked": false,
+                            "measure_map": null,
+                            "meta": {},
+                            "metric_hierarchy": null,
+                            "name": "Phrase 1",
+                            "number_type": "fraction",
+                            "offset": [
+                              0,
+                              1
+                            ],
+                            "regions": [],
+                            "unit": "quarters"
+                          },
+                          {
+                            "children": [],
+                            "conversion_maps": [],
+                            "flow_control": {
+                              "breaks": [],
+                              "jumps": [],
+                              "markers": []
+                            },
+                            "id": "recapitulation_second_2",
+                            "is_segment_line": false,
+                            "length": [
+                              3,
+                              1
+                            ],
+                            "locked": false,
+                            "measure_map": null,
+                            "meta": {},
+                            "metric_hierarchy": null,
+                            "name": "Phrase 2",
+                            "number_type": "fraction",
+                            "offset": [
+                              3,
+                              1
+                            ],
+                            "regions": [],
+                            "unit": "quarters"
+                          }
+                        ],
+                        "conversion_maps": [
+                          {
+                            "id": "cmap_4",
+                            "name": null,
+                            "ppq": 480,
+                            "scalar": 480,
+                            "source_unit": "quarters",
+                            "target_unit": "ticks",
+                            "type": "QuartersToTicks"
+                          }
+                        ],
+                        "flow_control": {
+                          "breaks": [],
+                          "jumps": [],
+                          "markers": []
+                        },
+                        "id": "recapitulation_second",
+                        "is_segment_line": true,
+                        "length": [
+                          6,
+                          1
+                        ],
+                        "locked": true,
+                        "measure_map": null,
+                        "meta": {},
+                        "metric_hierarchy": null,
+                        "name": "Second theme",
+                        "number_type": "fraction",
+                        "offset": [
+                          6,
+                          1
+                        ],
+                        "regions": [],
+                        "unit": "quarters"
+                      }
+                    ],
                     "conversion_maps": [],
                     "flow_control": {
                       "breaks": [],
@@ -835,7 +1729,7 @@
                       "markers": []
                     },
                     "id": "recapitulation",
-                    "is_segment_line": false,
+                    "is_segment_line": true,
                     "length": [
                       12,
                       1
@@ -854,10 +1748,38 @@
                     "unit": "quarters"
                   }
                 ],
-                "conversion_maps": [],
+                "conversion_maps": [
+                  {
+                    "id": "cmap_1",
+                    "name": null,
+                    "ppq": 480,
+                    "scalar": 480,
+                    "source_unit": "quarters",
+                    "target_unit": "ticks",
+                    "type": "QuartersToTicks"
+                  }
+                ],
                 "flow_control": {
                   "breaks": [],
-                  "jumps": [],
+                  "jumps": [
+                    {
+                      "condition": "first_n",
+                      "control_type": "repeat_end",
+                      "from_coordinate": [
+                        12,
+                        1
+                      ],
+                      "id": "jump_1",
+                      "label": "Repeat",
+                      "meta": {},
+                      "repeat_count": 1,
+                      "target": null,
+                      "to_coordinate": [
+                        0,
+                        1
+                      ]
+                    }
+                  ],
                   "markers": []
                 },
                 "id": "score",
@@ -872,21 +1794,88 @@
                 "metric_hierarchy": null,
                 "name": "Score",
                 "number_type": "fraction",
-                "regions": [],
+                "regions": [
+                  {
+                    "end": [
+                      20,
+                      1
+                    ],
+                    "id": "region_1",
+                    "meta": {},
+                    "name": "Development",
+                    "start": [
+                      12,
+                      1
+                    ]
+                  }
+                ],
                 "unit": "quarters"
               },
               {
-                "children": [],
-                "conversion_maps": [],
+                "children": [
+                  {
+                    "children": [],
+                    "conversion_maps": [],
+                    "flow_control": {
+                      "breaks": [],
+                      "jumps": [],
+                      "markers": []
+                    },
+                    "id": "take_1_first",
+                    "is_segment_line": false,
+                    "length": 14.0,
+                    "locked": false,
+                    "measure_map": null,
+                    "meta": {},
+                    "metric_hierarchy": null,
+                    "name": "First theme",
+                    "number_type": "float",
+                    "offset": 0.0,
+                    "regions": [],
+                    "unit": "seconds"
+                  },
+                  {
+                    "children": [],
+                    "conversion_maps": [],
+                    "flow_control": {
+                      "breaks": [],
+                      "jumps": [],
+                      "markers": []
+                    },
+                    "id": "take_1_second",
+                    "is_segment_line": false,
+                    "length": 16.0,
+                    "locked": false,
+                    "measure_map": null,
+                    "meta": {},
+                    "metric_hierarchy": null,
+                    "name": "Second theme",
+                    "number_type": "float",
+                    "offset": 14.0,
+                    "regions": [],
+                    "unit": "seconds"
+                  }
+                ],
+                "conversion_maps": [
+                  {
+                    "id": "cmap_1",
+                    "name": null,
+                    "sample_rate": 44100,
+                    "scalar": 44100,
+                    "source_unit": "seconds",
+                    "target_unit": "samples",
+                    "type": "SecondsToSamples"
+                  }
+                ],
                 "flow_control": {
                   "breaks": [],
                   "jumps": [],
                   "markers": []
                 },
                 "id": "take_1",
-                "is_segment_line": false,
+                "is_segment_line": true,
                 "length": 30.0,
-                "locked": false,
+                "locked": true,
                 "measure_map": null,
                 "meta": {},
                 "metric_hierarchy": null,
@@ -1004,7 +1993,19 @@
                     "unit": "pixels"
                   }
                 ],
-                "conversion_maps": [],
+                "conversion_maps": [
+                  {
+                    "id": "cmap_1",
+                    "name": null,
+                    "scalar": [
+                      3,
+                      4
+                    ],
+                    "source_unit": "pixels",
+                    "target_unit": "points",
+                    "type": "ScalarMap"
+                  }
+                ],
                 "flow_control": {
                   "breaks": [],
                   "jumps": [],
@@ -1024,7 +2025,20 @@
               },
               {
                 "children": [],
-                "conversion_maps": [],
+                "conversion_maps": [
+                  {
+                    "id": "cmap_1",
+                    "name": null,
+                    "sample_rate": 44100,
+                    "scalar": [
+                      1,
+                      44100
+                    ],
+                    "source_unit": "samples",
+                    "target_unit": "seconds",
+                    "type": "SamplesToSeconds"
+                  }
+                ],
                 "flow_control": {
                   "breaks": [],
                   "jumps": [],
@@ -1044,10 +2058,52 @@
               },
               {
                 "children": [],
-                "conversion_maps": [],
+                "conversion_maps": [
+                  {
+                    "id": "cmap_1",
+                    "name": null,
+                    "ppq": 480,
+                    "scalar": 480,
+                    "source_unit": "quarters",
+                    "target_unit": "ticks",
+                    "type": "QuartersToTicks"
+                  }
+                ],
                 "flow_control": {
-                  "breaks": [],
-                  "jumps": [],
+                  "breaks": [
+                    {
+                      "condition": "after_dc_ds",
+                      "control_type": "fine",
+                      "coordinate": [
+                        8,
+                        1
+                      ],
+                      "id": "break_1",
+                      "label": "Fine",
+                      "meta": {},
+                      "name": null,
+                      "repeat_count": 1
+                    }
+                  ],
+                  "jumps": [
+                    {
+                      "condition": "after_first",
+                      "control_type": "da_capo_al_fine",
+                      "from_coordinate": [
+                        16,
+                        1
+                      ],
+                      "id": "jump_1",
+                      "label": "D.C. al Fine",
+                      "meta": {},
+                      "repeat_count": 1,
+                      "target": null,
+                      "to_coordinate": [
+                        0,
+                        1
+                      ]
+                    }
+                  ],
                   "markers": []
                 },
                 "id": "score",

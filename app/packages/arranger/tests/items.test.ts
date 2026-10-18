@@ -21,8 +21,8 @@ const view = mixedPlain();
 const at = (key: string) => `${A}/${key}`;
 const DRAWN = {
   group_1: { x: 8, y: 28.8046875 },
-  group_2: { x: 8, y: 176.3671875 },
-  annotations: { x: 8, y: 358.50390625 },
+  group_2: { x: 8, y: 206.0390625 },
+  annotations: { x: 8, y: 391.7734375 },
 };
 
 function items(of: View): readonly DrawnItem[] {
@@ -64,7 +64,7 @@ describe("itemMoveCommand", () => {
     expect(itemMoveCommand(view, A, "group_2", 40.0001, 200, metrics)).toEqual(
       itemMoveCommand(view, A, "group_2", 40, 200, metrics),
     );
-    expect(itemMoveCommand(view, A, "group_2", 8, 176.3671875, metrics)).toBeNull();
+    expect(itemMoveCommand(view, A, "group_2", 8, 206.0390625, metrics)).toBeNull();
     expect(() => itemMoveCommand(view, A, "score", 0, 0, metrics)).toThrow(RangeError);
   });
 });
@@ -224,15 +224,15 @@ function one(key: string, place: PlaceValues): ReadonlyMap<string, PlaceValues> 
 
 describe("itemResizeValues, scale", () => {
   it.each([
-    [view, "bottom-right", 40, 20, { scale: 1.4052734375 }],
-    [view, "top-left", -40, -20, { scale: 1.4052734375, x: -219.9599609375, y: 338.4921875 }],
+    [view, "bottom-right", 40, 20, { scale: 1.2783203125 }],
+    [view, "top-left", -40, -20, { scale: 1.2783203125, x: -148.55078125, y: 371.7744140625 }],
     [view, "bottom-right", -1000, -1000, { scale: 0.125 }],
-    [doubled(view), "bottom-right", 80, 40, { scale: 1.4052734375 }],
+    [doubled(view), "bottom-right", 80, 40, { scale: 1.2783203125 }],
     [
       placed(view, A, "annotations", { scale: 2 }),
       "bottom-right",
       -562.484619140625,
-      -49.37890625,
+      -71.85546875,
       { scale: null },
     ],
   ] as const)("annotations, case %#", (of, handle, dx, dy, expected) => {
@@ -243,7 +243,7 @@ describe("itemResizeValues, scale", () => {
 
   it("scales a member's group from the frame's top left to the card's bottom right corner", () => {
     expect(values(view, "arranger", PERFORMANCE, "scale", "bottom-right", 40, 20)).toStrictEqual({
-      group_1: { scale: 1.15185546875 },
+      group_1: { scale: 1.1240234375 },
     });
   });
 
@@ -265,8 +265,8 @@ describe("itemResizeValues, box", () => {
     ["right", -20, 0, { width: null }],
     ["left", -21, 0, { width: 601, x: -13 }],
     ["left", 100, 0, { width: null, x: 25.515625 }],
-    ["bottom", 0, 10.5, { height: 184.63671875 }],
-    ["top", 0, -16, { height: 190.13671875, y: 160.3671875 }],
+    ["bottom", 0, 10.5, { height: 188.234375 }],
+    ["top", 0, -16, { height: 193.734375, y: 190.0390625 }],
   ] as const)("group_2 %s by (%d, %d)", (handle, dx, dy, expected) => {
     expect(values(wide, "bundle", FRAME_2, "box", handle, dx, dy)).toStrictEqual({
       group_2: expected,
@@ -293,7 +293,7 @@ describe("itemResizeValues, box", () => {
   it("sizes a member's own card, in item coordinates under its group's scale", () => {
     const scaled = placed(view, A, "group_1", { scale: 1.25 });
     expect(values(scaled, "arranger", PERFORMANCE, "box", "bottom-right", 50, 30)).toStrictEqual({
-      performance: { width: 586.48486328125, height: 73.37890625 },
+      performance: { width: 586.48486328125, height: 73.4765625 },
     });
     expect(values(scaled, "arranger", PERFORMANCE, "box", "right", -50, 0)).toStrictEqual({
       performance: { width: null },
@@ -308,27 +308,29 @@ describe("itemResizeValues, box", () => {
 const TWICE_ITEM = 1124.96923828125;
 /** Twice the content of every member's card of `bundle_mixed` at length 400, `2 Wc(400)`. */
 const TWICE_CARD = 1092.96923828125;
-/** Twice the height of every root card of `bundle_mixed` at spacing 1, `2 Hm(1)`. */
-const TWICE_HEIGHT = 98.7578125;
+/** Twice the height of `annotations`'s card at spacing 1, `2 Ha(1)`. */
+const TWICE_ANNOTATIONS = 143.7109375;
+/** Twice the height of `performance`'s card at spacing 1, `2 Hp(1)`. */
+const TWICE_PERFORMANCE = 98.953125;
 /** Twice `group_1`'s frame height, `2 H(1)`. */
-const TWICE_FRAME = 279.125;
+const TWICE_FRAME = 338.46875;
 
 describe("itemResizeValues, stretch", () => {
   const wide = placed(view, A, "annotations", { width: TWICE_ITEM });
-  const tall = placed(view, A, "annotations", { height: TWICE_HEIGHT });
+  const tall = placed(view, A, "annotations", { height: TWICE_ANNOTATIONS });
 
   it.each([
     [view, "right", 20, 0, { length: 420 }],
     [view, "left", -21, 0, { length: 421, x: -13 }],
     [view, "right", -500, 0, { length: 8 }],
-    [view, "bottom", 0, 16, { spacing: 2 }],
-    [view, "top", 0, -16, { spacing: 2, y: 342.50390625 }],
-    [view, "bottom-right", 20, 16, { length: 420, spacing: 2 }],
-    [view, "bottom", 0, -8, { spacing: 0.5 }],
+    [view, "bottom", 0, 20, { spacing: 2 }],
+    [view, "top", 0, -20, { spacing: 2, y: 371.7734375 }],
+    [view, "bottom-right", 20, 20, { length: 420, spacing: 2 }],
+    [view, "bottom", 0, -10, { spacing: 0.5 }],
     [view, "bottom", 0, -40, { spacing: 0.25 }],
     [wide, "right", 40, 0, { length: 420, width: 1164.96923828125 }],
     [wide, "left", -42, 0, { length: 421, width: 1166.96923828125, x: -34 }],
-    [tall, "bottom", 0, 32, { spacing: 2, height: 130.7578125 }],
+    [tall, "bottom", 0, 40, { spacing: 2, height: 183.7109375 }],
   ] as const)("annotations, case %#", (of, handle, dx, dy, expected) => {
     expect(values(of, "bundle", ANNOTATIONS, "stretch", handle, dx, dy)).toStrictEqual({
       annotations: expected,
@@ -336,18 +338,18 @@ describe("itemResizeValues, stretch", () => {
   });
 
   it("stretches a frame's members' cards vertically with it", () => {
-    expect(values(view, "bundle", FRAME_1, "stretch", "bottom", 0, 32)).toStrictEqual({
+    expect(values(view, "bundle", FRAME_1, "stretch", "bottom", 0, 44)).toStrictEqual({
       group_1: { spacing: 2 },
     });
-    expect(values(view, "bundle", FRAME_1, "stretch", "top", 0, -32)).toStrictEqual({
-      group_1: { spacing: 2, y: -3.1953125 },
+    expect(values(view, "bundle", FRAME_1, "stretch", "top", 0, -44)).toStrictEqual({
+      group_1: { spacing: 2, y: -15.1953125 },
     });
-    const tallCard = placed(view, A, "performance", { height: TWICE_HEIGHT });
-    expect(values(tallCard, "bundle", FRAME_1, "stretch", "bottom", 0, 48)).toStrictEqual({
+    const tallCard = placed(view, A, "performance", { height: TWICE_PERFORMANCE });
+    expect(values(tallCard, "bundle", FRAME_1, "stretch", "bottom", 0, 60)).toStrictEqual({
       group_1: { spacing: 2 },
-      performance: { height: 130.7578125 },
+      performance: { height: 130.953125 },
     });
-    expect(keys(tallCard, "bundle", FRAME_1, "stretch", "bottom", 0, 48)).toEqual([
+    expect(keys(tallCard, "bundle", FRAME_1, "stretch", "bottom", 0, 60)).toEqual([
       "group_1",
       "performance",
     ]);
@@ -355,7 +357,7 @@ describe("itemResizeValues, stretch", () => {
 
   const framed = placed(view, A, "group_1", { width: TWICE_ITEM });
   const wideCard = placed(view, A, "performance", { width: TWICE_CARD });
-  const tallCard = placed(view, A, "performance", { height: TWICE_HEIGHT });
+  const tallCard = placed(view, A, "performance", { height: TWICE_PERFORMANCE });
   const tallFrame = placed(view, A, "group_1", { height: TWICE_FRAME });
 
   it.each([
@@ -369,14 +371,14 @@ describe("itemResizeValues, stretch", () => {
       16,
       { group_1: { length: 420 }, performance: { spacing: 2 } },
     ],
-    [tallCard, PERFORMANCE, "bottom", 0, 32, { performance: { spacing: 2, height: 130.7578125 } }],
+    [tallCard, PERFORMANCE, "bottom", 0, 32, { performance: { spacing: 2, height: 130.953125 } }],
     [
       tallFrame,
       PERFORMANCE,
       "bottom",
       0,
       16,
-      { performance: { spacing: 2 }, group_1: { height: 311.125 } },
+      { performance: { spacing: 2 }, group_1: { height: 370.46875 } },
     ],
     [framed, SCORE, "right", 30, 0, { group_1: { length: 415, width: 1154.96923828125 } }],
     [
@@ -507,10 +509,10 @@ describe("itemResizeValues, the group editor's stretch", () => {
   });
 
   it("lets the frame adapt vertically", () => {
-    expect(values(view, "group", FRAME_1, "stretch", "bottom", 0, 32)).toStrictEqual({
+    expect(values(view, "group", FRAME_1, "stretch", "bottom", 0, 44)).toStrictEqual({
       group_1: { spacing: 2 },
     });
-    expect(values(view, "group", FRAME_1, "stretch", "bottom-right", 20, 32)).toStrictEqual({
+    expect(values(view, "group", FRAME_1, "stretch", "bottom-right", 20, 44)).toStrictEqual({
       group_1: { length: 400, width: PINNED, spacing: 2 },
     });
   });
@@ -539,7 +541,7 @@ describe("stretchChanges", () => {
   const framed = placed(view, A, "group_1", { width: 600 });
   const wideCard = placed(view, A, "performance", { width: TWICE_CARD });
   const wideAnnotations = placed(view, A, "annotations", { width: TWICE_ITEM });
-  const tallCard = placed(view, A, "performance", { height: TWICE_HEIGHT });
+  const tallCard = placed(view, A, "performance", { height: TWICE_PERFORMANCE });
   const tallFrame = placed(view, A, "group_1", { height: TWICE_FRAME });
   const stretchedTo = (
     of: View,
@@ -591,7 +593,7 @@ describe("stretchChanges", () => {
   it("a frame's spacing and a member card's, the heights in scope following", () => {
     expect(stretchedTo(tallCard, "bundle", FRAME_1, "spacing", 2)).toStrictEqual({
       group_1: { spacing: 2 },
-      performance: { height: 130.7578125 },
+      performance: { height: 130.953125 },
     });
     const card = stretchChanges(
       blockIn(tallFrame, A),
@@ -604,7 +606,7 @@ describe("stretchChanges", () => {
     );
     expect([...card]).toStrictEqual([
       ["performance", { spacing: 2 }],
-      ["group_1", { height: 311.125 }],
+      ["group_1", { height: 370.46875 }],
     ]);
   });
 });
@@ -633,7 +635,7 @@ describe("itemResizeCommand", () => {
   });
 
   it("sizes a member's card on its own key, stating every other item's position but its frame's", () => {
-    const size = { width: 586.48486328125, height: 73.37890625 };
+    const size = { width: 586.48486328125, height: 73.4765625 };
     const command = itemResizeCommand(view, A, one("performance", size), "arranger", metrics);
     expect(command?.changes).toEqual([
       { target: at("performance"), values: { place: size } },

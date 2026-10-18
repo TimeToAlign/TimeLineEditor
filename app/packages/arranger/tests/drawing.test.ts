@@ -87,7 +87,7 @@ describe("drawingOf", () => {
     );
     expect(cards.slice(0, 2)).toEqual([
       ["performance/card", 53.609375],
-      ["score/card", 110.98828125],
+      ["score/card", 111.0859375],
     ]);
     expect(drawingOf(mixed, moved.settings, metrics)).toBe(drawing);
   });

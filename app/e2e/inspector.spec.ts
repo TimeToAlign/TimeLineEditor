@@ -444,8 +444,8 @@ test("the form edits the selected frame's and card's places, never the block's",
       type: "set",
       changes: [
         { target: `${BUNDLES.mixed}/group_1`, values: { place: { length: 300 } } },
-        { target: `${BUNDLES.mixed}/group_2`, values: { place: { x: 8, y: 176.3671875 } } },
-        { target: `${BUNDLES.mixed}/annotations`, values: { place: { x: 8, y: 358.50390625 } } },
+        { target: `${BUNDLES.mixed}/group_2`, values: { place: { x: 8, y: 206.0390625 } } },
+        { target: `${BUNDLES.mixed}/annotations`, values: { place: { x: 8, y: 391.7734375 } } },
       ],
     },
   ]);
@@ -499,8 +499,8 @@ test("the form follows a frame's Stretch live in the bundle editor", async ({ pa
     ),
   ).toEqual({
     group_1: { length: 420 },
-    group_2: { x: 8, y: 176.3671875 },
-    annotations: { x: 8, y: 358.50390625 },
+    group_2: { x: 8, y: 206.0390625 },
+    annotations: { x: 8, y: 391.7734375 },
   });
   await expect(length).toHaveValue("420");
   await expect(width).toHaveValue("582.48");

@@ -21,11 +21,13 @@ describe("contains", () => {
       "page/card",
       "page",
       "page/name",
+      "page/cmap_1",
       ...wedges("page"),
       "excerpt/card",
       ...wedges("excerpt"),
       "excerpt",
       "excerpt/name",
+      "recording/cmap_2",
       ...wedges("excerpt"),
     ]);
     expect(contains(mixed, "group_1", "group_2")).toBe(false);
@@ -40,18 +42,22 @@ describe("contains", () => {
       ...wedges("excerpt"),
       "excerpt",
       "excerpt/name",
+      "recording/cmap_2",
       ...wedges("excerpt"),
     ]);
   });
 
-  it("leaves an ancestor line outside a child", () => {
+  it("leaves an ancestor line and the ancestor's own map outside a child", () => {
     expect(containedBy("excerpt")).toEqual([
       "excerpt/card",
       ...wedges("excerpt"),
       "excerpt",
       "excerpt/name",
+      "recording/cmap_2",
       ...wedges("excerpt"),
     ]);
+    expect(contains(mixed, "excerpt", "recording/cmap_1")).toBe(false);
+    expect(contains(mixed, "recording", "recording/cmap_1")).toBe(true);
   });
 
   it("gives an entry to the timeline holding it", () => {

@@ -786,12 +786,33 @@ What would prove it works, and the exact values each test pins:
    `places`; groups `group_1` with members `performance`, `score` and
    `group_2` with `excerpt` (a child of `recording`) and `page`; the
    ungrouped root `annotations`; `recording`, which holds a member, is drawn
-   only as `excerpt`'s ancestor and has no card of its own). Its items are
-   drawn at `group_1` (8, 28.8046875), `group_2` (8, 176.3671875) and
-   `annotations` (8, 358.50390625), each 562.484619140625 wide, `group_1`
-   139.5625 high, every member's card 546.484619140625 wide, and a width
+   only as `excerpt`'s ancestor and has no card of its own; `score` holds
+   two maps and a jump, `performance`, `page` and `excerpt` a map each,
+   `annotations` two regions). Its items are
+   drawn at `group_1` (8, 28.8046875), `group_2` (8, 206.0390625) and
+   `annotations` (8, 391.7734375), each 562.484619140625 wide, `group_1`
+   169.234375 high, every member's card 546.484619140625 wide, and a width
    grows by exactly the length added (the arranger's tests README, sections
-   "Fixture facts" and "Items").
+   "Fixture facts" and "Items"). The heights follow from timeskeleton's
+   drawing.md, sections 6.4, 6.5, 8.3 and 8.4, at a vertical stretch `v`:
+   the maps lie above the line, a stack of `J` maps reaching `1.5 + 5J`;
+   the wedges, regions and flow lie below, the wedges' band reaching `1.5 +
+   13 + 2 + h(9) = 26.9765625` (one tier of labels); `h(11) / 2 =
+   6.40234375` is less than the reach of a stack of one map, so the line
+   lies at `8v` plus the stack's reach. So a card with one map is
+   `Hm(v) = (8v + 6.5) + 26.9765625 + 8v = 33.4765625 + 16v` high
+   (`performance`, `page`: 49.4765625). `score` has two maps above and,
+   below, the flow band of its one jump, `4v` after the wedges' band and
+   `8v + 2 + h(9)` wide: `(8v + 11.5) + (26.9765625 + 4v + 8v +
+   12.4765625) + 8v = 50.953125 + 28v` (78.953125). `excerpt`'s ancestor
+   band starts after its map stack, at `max(14 / 2, 6.5 + 4) = 10.5`, and
+   is `7 + 26.9765625` wide, so its card is `(8 + 44.4765625) + 26.9765625
+   + 8 = 87.453125` high. A frame is `8 + h(11) + 4 + Hm1 + 8 + Hm2 + 8`
+   high: `group_1` `141.234375 + 28v` with `score` at `v` (169.234375),
+   `group_2` 177.734375; each item lies 8 below the one before:
+   `28.8046875 + 169.234375 + 8 = 206.0390625` and `206.0390625 +
+   177.734375 + 8 = 391.7734375`. A Stretch along time changes none of
+   these: no label tier or region row changes with the length.
    - *Kinds.* `bmixed0000` gives kind `block`, label "Block properties",
      one element `{target: "bmixed0000", group: null, values: {x: 0, y: 0,
      scale: 1, length: 400, spacing: 1, width: null, height: null}}`.
@@ -828,9 +849,9 @@ What would prove it works, and the exact values each test pins:
      (the drawing's `items` order: `group_1`, `group_2`, `annotations`), so
      nothing else moves; in the group and timeline editors it states only
      the edited places. Below, `G2` is the change `{target:
-     "bmixed0000/group_2", values: {place: {x: 8, y: 176.3671875}}}` and
+     "bmixed0000/group_2", values: {place: {x: 8, y: 206.0390625}}}` and
      `AN` `{target: "bmixed0000/annotations", values: {place: {x: 8, y:
-     358.50390625}}}`; every geometry is taken on the
+     391.7734375}}}`; every geometry is taken on the
      arranger (`geometryOf(view, selection)`, the level's default) unless
      stated. For `group_1`, `length` `"300"` gives exactly `{type: "set",
      changes: [{target: "bmixed0000/group_1", values: {place: {length:
@@ -864,7 +885,7 @@ What would prove it works, and the exact values each test pins:
      {place: {scale: 1.5}}}, G2, AN]`; with `group_2` stating `{y: 200}`
      first, `G2` becomes `{place: {x: 8}}` (an item stating one member gets
      only the other) and `annotations`, drawn below `group_2`'s bottom edge,
-     states `{x: 8, y: 382.13671875}` (`200 + 174.13671875 + 8`). In the bundle editor (`level` `"bundle"`) the same
+     states `{x: 8, y: 385.734375}` (`200 + 177.734375 + 8`). In the bundle editor (`level` `"bundle"`) the same
      edit gives the same three changes. In the group editor (`"group"`) the
      `scale` `"1.5"` of `score/card` gives only `[{target:
      "bmixed0000/group_1", values: {place: {scale: 1.5}}}]` and its
@@ -887,21 +908,21 @@ What would prove it works, and the exact values each test pins:
      exactly `[{target: "bmixed0000/group_1", values: {place: {length:
      430}}}, {target: "bmixed0000/performance", values: {place: {width:
      1152.96923828125}}}, G2, AN]` (`2 Wc(430)`), and `group_1` `length`
-     `"430"` the same; with `performance` stating `{height: 98.7578125}`
-     (twice its card's height, `Hm(v) = 33.37890625 + 16v`) first,
+     `"430"` the same; with `performance` stating `{height: 98.953125}`
+     (twice its card's height, `Hm(v) = 33.4765625 + 16v` above) first,
      `group_1` `spacing` `"2"` gives `[{target: "bmixed0000/group_1",
      values: {place: {spacing: 2}}}, {target: "bmixed0000/performance",
-     values: {place: {height: 130.7578125}}}, …]` (`2 Hm(2)`), followed by
+     values: {place: {height: 130.953125}}}, …]` (`2 Hm(2)`), followed by
      the drawn positions of `group_2` and `annotations`, which the taller
-     card moves down by its extra 49.37890625: `{x: 8, y: 225.74609375}`
-     and `{x: 8, y: 407.8828125}`; with `group_1` stating `{height:
-     279.125}` (twice its height 139.5625) first, `score/card` `spacing`
+     card moves down by its extra 49.4765625: `{x: 8, y: 255.515625}`
+     and `{x: 8, y: 441.25}`; with `group_1` stating `{height:
+     338.46875}` (twice its height 169.234375) first, `score/card` `spacing`
      `"2"` gives `[{target: "bmixed0000/score", values: {place: {spacing:
      2}}}, {target: "bmixed0000/group_1", values: {place: {height:
-     311.125}}}, …]` (the frame's content `123.5625 + 16 × 2`, its request
-     twice it), followed by `group_2` at `{x: 8, y: 315.9296875}`
-     (`28.8046875 + 279.125 + 8`) and `annotations` at `{x: 8, y:
-     498.06640625}` (`315.9296875 + 174.13671875 + 8`).
+     394.46875}}}, …]` (the frame's content `141.234375 + 28 × 2`, its request
+     twice it), followed by `group_2` at `{x: 8, y: 375.2734375}`
+     (`28.8046875 + 338.46875 + 8`) and `annotations` at `{x: 8, y:
+     561.0078125}` (`375.2734375 + 177.734375 + 8`).
      Without stated sizes a typed length or spacing writes the factor
      alone, as the cases above show.
    - *The group editor's length.* In the group editor the frame does not
@@ -1003,8 +1024,8 @@ What would prove it works, and the exact values each test pins:
    - *Following a gesture live.* In the bundle editor of `bmixed0000`,
      `group_1` selected and the `placement` prop (held reactive) set to a
      placement of `bmixed0000` whose drawing has `places` `{group_1:
-     {length: 460}, group_2: {x: 8, y: 176.3671875}, annotations: {x: 8,
-     y: 358.50390625}}` (what a Stretch by 60 previews): `length` shows
+     {length: 460}, group_2: {x: 8, y: 206.0390625}, annotations: {x: 8,
+     y: 391.7734375}}` (what a Stretch by 60 previews): `length` shows
      `460` and `width` `622.48` while nothing is dispatched; `placement`
      `null` again (the release refused, nothing stored): `400` and
      `562.48`. With `score/card` selected and the same placement, "group

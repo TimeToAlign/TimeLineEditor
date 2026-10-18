@@ -26,11 +26,19 @@ const BUNDLE: Editing = { target: A, kind: "bundle" };
 const GROUP: Editing = { target: `${A}/group_1`, kind: "group" };
 const TIMELINE: Editing = { target: `${A}/score`, kind: "timeline" };
 
-/** The 10 elements of a member drawing of `bundle_mixed`, as `<tag> <address>`. */
-function memberElements(member: string): string[] {
+/**
+ * The elements of a root member drawing of `bundle_mixed` with the maps `maps`
+ * and the jumps `jumps`, as `<tag> <address>` in drawing order: the card's
+ * shadow and card, the maps, each jump's shaft and arrowhead, the line, its
+ * start dot and arrowhead, the start and end wedges, the name, the two
+ * wedge labels and the jumps' labels.
+ */
+function memberElements(member: string, maps: string[], jumps: string[] = []): string[] {
   return [
     `rect ${member}/card`,
     `rect ${member}/card`,
+    ...maps.map((map) => `polygon ${member}/${map}`),
+    ...jumps.flatMap((jump) => [`path ${member}/${jump}`, `polygon ${member}/${jump}`]),
     `line ${member}`,
     `circle ${member}`,
     `polygon ${member}`,
@@ -39,6 +47,7 @@ function memberElements(member: string): string[] {
     `text ${member}/name`,
     `text ${member}/start/label`,
     `text ${member}/end/label`,
+    ...jumps.map((jump) => `text ${member}/${jump}/label`),
   ];
 }
 
@@ -153,8 +162,8 @@ function pointer(target: Element, type: string, x: number, y: number): void {
   flushSync();
 }
 
-const SCORE = memberElements("score");
-const PERFORMANCE = memberElements("performance");
+const SCORE = memberElements("score", ["cmap_1", "cmap_2"], ["jump_1"]);
+const PERFORMANCE = memberElements("performance", ["cmap_1"]);
 
 describe("data-outside", () => {
   it("marks nothing on the arranger and in the bundle editor", () => {
@@ -169,7 +178,7 @@ describe("data-outside", () => {
     const { svg } = mountOn(VIEW, A, GROUP);
     const inside = ["rect group_1", "text group_1/name", ...SCORE, ...PERFORMANCE];
     expect(marked(svg, "data-outside", false)).toEqual(inside);
-    expect(marked(svg, "data-outside").length).toBe(drawn(svg).length - 22);
+    expect(marked(svg, "data-outside").length).toBe(drawn(svg).length - 28);
     expect(drawn(svg)[0]?.hasAttribute("data-outside")).toBe(true);
   });
 
@@ -260,15 +269,15 @@ describe("the member drag", () => {
     const dragged = () => svg.querySelectorAll("g.tilie-dragged");
     expect(dragged().length).toBe(1);
     expect(dragged()[0]?.getAttribute("transform")).toBe("translate(0 6)");
-    pointer(card, "pointermove", 110, 150);
-    expect(dragged()[0]?.getAttribute("transform")).toBe("translate(10 80)");
+    pointer(card, "pointermove", 110, 170);
+    expect(dragged()[0]?.getAttribute("transform")).toBe("translate(10 100)");
     const copy = Array.from((dragged()[0] as Element).children);
     expect(copy.map((element) => element.localName)).toEqual(
       SCORE.map((element) => element.split(" ")[0]),
     );
     expect(copy.some((element) => element.hasAttribute("data-address"))).toBe(false);
     expect(marked(svg, "visibility")).toEqual(SCORE);
-    pointer(card, "pointerup", 110, 150);
+    pointer(card, "pointerup", 110, 170);
 
     expect(calls.map((call) => Object.keys(call)[0])).toEqual([
       "select",
@@ -314,15 +323,15 @@ describe("the item drag", () => {
     const frame = addressed(svg, "group_2")[0] as Element;
     placed(frame);
     pointer(frame, "pointerdown", 100, 200);
-    pointer(frame, "pointermove", 132, 223.6328125);
+    pointer(frame, "pointermove", 132, 193.9609375);
     expect(svg.querySelectorAll("g.tilie-dragged").length).toBe(0);
-    pointer(frame, "pointerup", 132, 223.6328125);
+    pointer(frame, "pointerup", 132, 193.9609375);
     const command: Command = {
       type: "set",
       changes: [
         { target: `${A}/group_2`, values: { place: { x: 40, y: 200 } } },
         { target: `${A}/group_1`, values: { place: { x: 8, y: 28.8046875 } } },
-        { target: `${A}/annotations`, values: { place: { x: 8, y: 358.50390625 } } },
+        { target: `${A}/annotations`, values: { place: { x: 8, y: 391.7734375 } } },
       ],
     };
     expect(calls).toEqual([
@@ -333,7 +342,7 @@ describe("the item drag", () => {
           places: {
             group_2: { x: 40, y: 200 },
             group_1: { x: 8, y: 28.8046875 },
-            annotations: { x: 8, y: 358.50390625 },
+            annotations: { x: 8, y: 391.7734375 },
           },
         },
       },
@@ -349,14 +358,14 @@ describe("the item drag", () => {
     const frame = addressed(svg, "group_2")[0] as Element;
     placed(frame);
     pointer(frame, "pointerdown", 100, 200);
-    pointer(frame, "pointerup", 180, 259.08203125);
+    pointer(frame, "pointerup", 180, 184.90234375);
     expect(calls.at(-2)).toEqual({
       dispatch: {
         type: "set",
         changes: [
           { target: `${A}/group_2`, values: { place: { x: 40, y: 200 } } },
           { target: `${A}/group_1`, values: { place: { x: 8, y: 28.8046875 } } },
-          { target: `${A}/annotations`, values: { place: { x: 8, y: 358.50390625 } } },
+          { target: `${A}/annotations`, values: { place: { x: 8, y: 391.7734375 } } },
         ],
       },
     });
@@ -407,7 +416,7 @@ describe("the slide of a reorder", () => {
     const card = addressed(svg, "score/card")[1] as Element;
     placed(card);
     pointer(card, "pointerdown", 100, 70);
-    pointer(card, "pointermove", 110, 150);
+    pointer(card, "pointermove", 110, 170);
     redraw(REORDERED);
     await tick();
     return animate.mock.calls.length;

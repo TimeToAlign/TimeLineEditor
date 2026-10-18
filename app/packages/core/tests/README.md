@@ -832,7 +832,11 @@ root `piece` holds the member `second-half` at offset 8; root `recording`),
 beside its `order`) and `bundles/bundle_mixed.json` (no id, name
 "Mixed"; groups `group_1` "Performance", order `score`, `performance`, and
 `group_2` "Facsimile", order `page`, `excerpt`; `excerpt` a child of root
-`recording`; root `annotations` ungrouped).
+`recording`; root `annotations` ungrouped; `score` holds the maps `cmap_1`,
+`cmap_2` and the jump `jump_1` labelled "Repeat", `performance`, `page`
+and `recording` the map `cmap_1` each, `excerpt` the map `cmap_2` (an id
+of `recording`'s tree), and `annotations` the regions `region_1` "Verse"
+and `region_2` "Chorus").
 
 1. **Blocks hold any manifest.** A workspace holding blocks of `bare.json`,
    `group_child_member.json` and `bundle_mixed.json` writes and reads back
@@ -880,12 +884,22 @@ beside its `order`) and `bundles/bundle_mixed.json` (no id, name
    `manifestElements(bundle_mixed)` are exactly: the block (null); the
    title `name` (the manifest is named "Mixed" and has no id; a title is
    addressed `name` either way); `group_1`, `group_1/name`; `score/card`, then `score`
-   with its name, wedges and wedge labels; `performance` the same;
-   `group_2`, `group_2/name`; `page` the same; `excerpt/card`, `recording`
+   with its name, its maps `score/cmap_1`, `score/cmap_2`, its jump
+   `score/jump_1` and the jump's label `score/jump_1/label`, its wedges and
+   wedge labels; `performance/card`, `performance` the same with the one
+   map `performance/cmap_1`; `group_2`, `group_2/name`; `page/card`,
+   `page` the same with `page/cmap_1`; `excerpt/card`, `recording`
    (type `ancestor`), `recording/name`, the marks `excerpt/start`,
    `excerpt/start/label`, `excerpt/end`, `excerpt/end/label`, then `excerpt`
-   with its name, wedges and wedge labels; then the ungrouped root
-   `annotations` with its card, name, wedges and wedge labels. The
+   with its name, its map `recording/cmap_2` (addressed by the root whose
+   tree holds it), its wedges and wedge labels, and nothing of
+   `recording`'s own (`recording/cmap_1` is not drawn on an ancestor line,
+   drawing.md §8.3); then the ungrouped root `annotations` with its card,
+   name, the regions `annotations/region_1`, `annotations/region_1/label`,
+   `annotations/region_2`, `annotations/region_2/label`, its wedges and
+   wedge labels. A line's elements come in the order of item 1 of
+   "Elements and selectors": its name, maps, regions, breaks and jumps,
+   then its wedges. The
    title, `annotations/card` and the line `annotations` are held by the
    block alone (chain `[block]`), the line's name by the block and the line
    (`[block, timeline]`). `memberDrawings`
@@ -966,7 +980,9 @@ beside its `order`) and `bundles/bundle_mixed.json` (no id, name
      `remove A/recording`: the roots are `annotations`, `page`,
      `performance`, `score`; `group_2`'s members are `["page"]` and its
      order `["page"]`; `group_1` and its order are unchanged. `removedBy`
-     of `["recording"]` is exactly `{recording, excerpt}`.
+     of `["recording"]` is exactly `{recording, excerpt,
+     recording/cmap_1, recording/cmap_2}`: the subtree and the maps it
+     holds, `recording`'s and `excerpt`'s.
    - **A child.** `group_child_member.json`, `remove A/second-half`:
      `piece` has no children; `group_1`'s members and order are
      `["recording"]`.
@@ -1588,7 +1604,12 @@ Block `bundle0001` holds `bundles/bundle_mixed.json` (groups `group_1`
 [performance, score], display order score, performance, and `group_2`
 [excerpt, page], display order page, excerpt; ungrouped root
 `annotations`; root `recording` holds the member `excerpt` and is drawn
-only as its ancestor line). `before` is the view of that block alone,
+only as its ancestor line; the conversion maps `score/cmap_1`,
+`score/cmap_2`, `performance/cmap_1`, `page/cmap_1`, `recording/cmap_1`
+on `recording` and `recording/cmap_2` on `excerpt`, which the root's tree
+addresses, the jump `score/jump_1` "Repeat" and the regions
+`annotations/region_1` "Verse" and `annotations/region_2` "Chorus").
+`before` is the view of that block alone,
 added by `add`; `after` is reached by `apply` where the command exists,
 otherwise built by replacing one member of `before`'s block (each case
 says which). `G1` is `bundle0001/group_1`.
@@ -1597,19 +1618,31 @@ says which). `G1` is `bundle0001/group_1`.
 
 1. **A group.** Of the addresses of `manifestElements(bundle_mixed)`, in
    that order, `group_2` contains exactly `group_2`, `group_2/name`,
-   `page/card`, `page`, `page/name`, `page/start`, `page/start/label`,
-   `page/end`, `page/end/label`, `excerpt/card`, `excerpt/start`,
-   `excerpt/start/label`, `excerpt/end`, `excerpt/end/label`, `excerpt`,
-   `excerpt/name`, `excerpt/start`, `excerpt/start/label`, `excerpt/end`,
+   `page/card`, `page`, `page/name`, `page/cmap_1`, `page/start`,
+   `page/start/label`, `page/end`, `page/end/label`, `excerpt/card`,
+   `excerpt/start`, `excerpt/start/label`, `excerpt/end`,
+   `excerpt/end/label`, `excerpt`, `excerpt/name`, `recording/cmap_2`,
+   `excerpt/start`, `excerpt/start/label`, `excerpt/end`,
    `excerpt/end/label`: never the ancestor line `recording` or its name.
-   `group_1` contains neither `group_2` nor `annotations/card`.
+   `recording/cmap_2` is in although its address names `recording`: an
+   address names the root whose tree holds a map, and the map belongs to
+   `excerpt` (drawing.md §2.2); `recording`'s own map is not drawn on an
+   ancestor line (§8.3) and so is not in the enumeration. `group_1`
+   contains neither `group_2` nor `annotations/card`.
 2. **A root holding a member.** `recording` contains exactly the elements
    of `excerpt`'s card: `excerpt/card`, `recording`, `recording/name`,
    `excerpt/start`, `excerpt/start/label`, `excerpt/end`,
-   `excerpt/end/label`, `excerpt`, `excerpt/name`, `excerpt/start`,
-   `excerpt/start/label`, `excerpt/end`, `excerpt/end/label`.
+   `excerpt/end/label`, `excerpt`, `excerpt/name`, `recording/cmap_2`,
+   `excerpt/start`, `excerpt/start/label`, `excerpt/end`,
+   `excerpt/end/label`.
 3. **A child.** `excerpt` contains exactly 2's list without `recording`
-   and `recording/name`.
+   and `recording/name`, its own map `recording/cmap_2` included. The
+   ancestor's own map `recording/cmap_1` lies outside it too: `excerpt`
+   does not contain it and `recording` does. The map belongs to
+   `recording` (§2.2) but is not drawn in `excerpt`'s card (§8.3), so the
+   enumeration lists above cannot show it; the second answer proves that
+   the first is the boundary's, not that of an address `contains` does
+   not know.
 4. **Entries belong to the timeline holding them.** In `map.json`,
    `phrase` contains `melody/ticks` (its map) and not `melody/tempo`;
    `melody` contains both and `phrase/name`.
@@ -1957,10 +1990,14 @@ a command.
    `negative_child_offset`, `non_finite_number`, `non_positive_number`,
    `not_an_item`, `not_removable`, `number_type_not_allowed`, `region_end_before_start`,
    `schema_violation`, `segment_end_fixed`, `segment_never_locked`,
-   `unknown_property`, `unknown_target`, `wrong_target_kind`.
-   `unlocking_not_supported` is not among them: the sample never sets
-   `locked: false` on a segment line that is a child, a segment or a group
-   member, and the command tests pin that code instead. The sample runs every fixture's 100 sequences in
+   `unknown_property`, `unknown_target`, `unlocking_not_supported`,
+   `wrong_target_kind`. `unlocking_not_supported` is reached in
+   `bundles/bundle_shared_parent.json`, whose `exposition` and
+   `recapitulation` are segment lines that are children of `score` and
+   group members, locked by their place: the sample's `set {locked:
+   false}` on each is refused, as the locks by place require (a value
+   contradicting a segment line's place is refused, never its current
+   one). The sample runs every fixture's 100 sequences in
    one test, measured at 3.5 to 6.4 s with the load averages of 3 to 8 of
    a full suite run beside other work, above Vitest's default 5 s; the test
    therefore carries an explicit timeout of 20 s, about three times the

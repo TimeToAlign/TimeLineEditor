@@ -182,7 +182,7 @@ describe("the default top", () => {
     expect(tops(drawFixture("bundles/bundle_ungrouped"))).toEqual([
       ["pages", 28.8046875],
       ["recording", 100.2578125],
-      ["score", 157.63671875],
+      ["score", 157.734375],
     ]);
   });
 
@@ -195,7 +195,7 @@ describe("the default top", () => {
     expect(tops(drawing)).toEqual([
       ["pages", 28.8046875],
       ["recording", 136.8046875],
-      ["score", 194.18359375],
+      ["score", 194.28125],
     ]);
   });
 });
@@ -226,23 +226,23 @@ describe("an item left of the padding, a width request and a length of its own",
         scale: 1,
         spacing: 1,
         width: 562.484619140625,
-        height: 139.5625,
+        height: 169.234375,
       },
-      { x: 40, y: 200, length: 400, scale: 1, spacing: 1, width: 700, height: 174.13671875 },
+      { x: 40, y: 200, length: 400, scale: 1, spacing: 1, width: 700, height: 177.734375 },
       {
         x: -30,
-        y: 382.13671875,
+        y: 385.734375,
         length: 300,
         scale: 1,
         spacing: 1,
         width: 462.484619140625,
-        height: 49.37890625,
+        height: 71.85546875,
       },
     ]);
   });
 
   it("grows the box to the left and moves the place origin", () => {
-    expect([drawing.width, drawing.height]).toEqual([786, 441.515625]);
+    expect([drawing.width, drawing.height]).toEqual([786, 467.58984375]);
     expect(drawing.origin).toEqual({ x: 38, y: 0 });
   });
 
@@ -252,20 +252,20 @@ describe("an item left of the padding, a width request and a length of its own",
       x: 46,
       y: 28.8046875,
       width: 562.484619140625,
-      height: 139.5625,
+      height: 169.234375,
     });
-    expect(rect(drawing, "group_2")).toEqual({ x: 78, y: 200, width: 700, height: 174.13671875 });
+    expect(rect(drawing, "group_2")).toEqual({ x: 78, y: 200, width: 700, height: 177.734375 });
     expect(rect(drawing, "page/card")).toEqual({
       x: 86,
       y: 224.8046875,
       width: 684,
-      height: 49.37890625,
+      height: 49.4765625,
     });
     expect(rect(drawing, "annotations/card")).toEqual({
       x: 8,
-      y: 382.13671875,
+      y: 385.734375,
       width: 462.484619140625,
-      height: 49.37890625,
+      height: 71.85546875,
     });
   });
 
@@ -273,17 +273,17 @@ describe("an item left of the padding, a width request and a length of its own",
     expect(line(drawing, "score")).toEqual({
       xs: 164.29150390625,
       xe: 564.29150390625,
-      y: 68.01171875,
+      y: 73.109375,
     });
     expect(line(drawing, "page")).toEqual({
       xs: 196.29150390625,
       xe: 596.29150390625,
-      y: 239.20703125,
+      y: 239.3046875,
     });
     expect(line(drawing, "annotations")).toEqual({
       xs: 126.29150390625,
       xe: 426.29150390625,
-      y: 396.5390625,
+      y: 400.13671875,
     });
   });
 });
@@ -296,7 +296,7 @@ describe("an item left of and above the padding and a height request", () => {
   );
 
   it("grows the box left and up and moves the place origin", () => {
-    expect([drawing.width, drawing.height]).toEqual([593.896728515625, 338.44140625]);
+    expect([drawing.width, drawing.height]).toEqual([593.896728515625, 338.5390625]);
     expect(drawing.origin).toEqual({ x: 68, y: 178.8046875 });
   });
 
@@ -318,7 +318,7 @@ describe("an item left of and above the padding and a height request", () => {
         scale: 1,
         spacing: 1,
         width: 507.896728515625,
-        height: 49.37890625,
+        height: 49.4765625,
       },
       { x: -60, y: -150, length: 400, scale: 1, spacing: 1, width: 507.896728515625, height: 120 },
     ]);
@@ -331,7 +331,7 @@ describe("an item left of and above the padding and a height request", () => {
       width: 507.896728515625,
       height: 120,
     });
-    expect(line(drawing, "score")).toMatchObject({ xs: 79.70361328125, y: 43.20703125 });
+    expect(line(drawing, "score")).toMatchObject({ xs: 79.70361328125, y: 43.3046875 });
   });
 
   it("draws every position from the place origin plus the origin", () => {
@@ -346,9 +346,9 @@ describe("an item left of and above the padding and a height request", () => {
       x: 76,
       y: 279.0625,
       width: 507.896728515625,
-      height: 49.37890625,
+      height: 49.4765625,
     });
-    expect(line(drawing, "recording")).toMatchObject({ xs: 147.70361328125, y: 293.46484375 });
+    expect(line(drawing, "recording")).toMatchObject({ xs: 147.70361328125, y: 293.5625 });
   });
 
   it("keeps the manifest's title at the box's top left, F above the highest item", () => {
@@ -367,12 +367,12 @@ describe("a frame's own length and height request, a card's width request", () =
     expect(line(drawing, "score")).toEqual({
       xs: 126.29150390625,
       xe: 426.29150390625,
-      y: 68.01171875,
+      y: 73.109375,
     });
     expect(line(drawing, "performance")).toEqual({
       xs: 126.29150390625,
       xe: 426.29150390625,
-      y: 125.390625,
+      y: 155.0625,
     });
     expect(rect(drawing, "group_1")).toEqual({
       x: 8,
@@ -384,9 +384,9 @@ describe("a frame's own length and height request, a card's width request", () =
       x: 16,
       y: 53.609375,
       width: 446.484619140625,
-      height: 49.37890625,
+      height: 78.953125,
     });
-    expect(rect(drawing, "performance/card")).toMatchObject({ y: 110.98828125 });
+    expect(rect(drawing, "performance/card")).toMatchObject({ y: 140.5625 });
   });
 
   it("puts the next item's default top F below the requested bottom", () => {
@@ -394,7 +394,7 @@ describe("a frame's own length and height request, a card's width request", () =
       x: 8,
       y: 236.8046875,
       width: 562.484619140625,
-      height: 174.13671875,
+      height: 177.734375,
     });
     expect(rect(drawing, "page/card")).toMatchObject({ y: 261.609375 });
   });
@@ -402,21 +402,21 @@ describe("a frame's own length and height request, a card's width request", () =
   it("widens the card to the requested width, its inset in a box of frames included", () => {
     expect(rect(drawing, "annotations/card")).toEqual({
       x: 8,
-      y: 418.94140625,
+      y: 422.5390625,
       width: 600,
-      height: 49.37890625,
+      height: 71.85546875,
     });
     expect(line(drawing, "annotations")).toEqual({
       xs: 126.29150390625,
       xe: 526.29150390625,
-      y: 433.34375,
+      y: 436.94140625,
     });
   });
 
   it("sizes the box and reports the places", () => {
     expect([drawing.width, drawing.height, drawing.origin]).toEqual([
       618,
-      478.3203125,
+      504.39453125,
       { x: 0, y: 0 },
     ]);
     expect(drawing.items.map((item) => item.place)).toEqual([
@@ -436,9 +436,9 @@ describe("a frame's own length and height request, a card's width request", () =
         scale: 1,
         spacing: 1,
         width: 562.484619140625,
-        height: 174.13671875,
+        height: 177.734375,
       },
-      { x: 8, y: 418.94140625, length: 400, scale: 1, spacing: 1, width: 600, height: 49.37890625 },
+      { x: 8, y: 422.5390625, length: 400, scale: 1, spacing: 1, width: 600, height: 71.85546875 },
     ]);
   });
 });
@@ -462,7 +462,7 @@ describe("a fractional place origin: the shift is added last", () => {
       height: 63.453125,
     });
     expect(rect(drawing, "recording/card")).toMatchObject({ width: 507.896728515625 });
-    expect(line(drawing, "recording")).toMatchObject({ y: 293.79484375000004 });
+    expect(line(drawing, "recording")).toMatchObject({ y: 293.89250000000004 });
     expect(drawing.items.map((item) => item.place)).toEqual([
       {
         x: 8,
@@ -480,7 +480,7 @@ describe("a fractional place origin: the shift is added last", () => {
         scale: 1,
         spacing: 1,
         width: 507.896728515625,
-        height: 49.37890625,
+        height: 49.4765625,
       },
       {
         x: -60.33,
@@ -495,17 +495,17 @@ describe("a fractional place origin: the shift is added last", () => {
   });
 
   it("measures the box in place coordinates, less its left and top", () => {
-    expect([drawing.width, drawing.height]).toEqual([594.226728515625, 338.77140625000004]);
+    expect([drawing.width, drawing.height]).toEqual([594.226728515625, 338.86906250000004]);
   });
 
   it("sums a default top in place coordinates", () => {
     const mixed = drawFixture(
       "bundles/bundle_mixed",
       [],
-      at({ places: { group_1: { y: 10.01 }, annotations: { x: 560, y: -40.1 } } }),
+      at({ places: { group_1: { y: 10.11 }, annotations: { x: 560, y: -40.1 } } }),
     );
     expect(mixed.origin.y).toBe(68.9046875);
-    expect(mixed.items[1]?.place.y).toBe(157.5725);
-    expect(rect(mixed, "group_2")).toMatchObject({ y: 226.47718749999999 });
+    expect(mixed.items[1]?.place.y).toBe(187.344375);
+    expect(rect(mixed, "group_2")).toMatchObject({ y: 256.24906250000004 });
   });
 });

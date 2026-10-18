@@ -211,9 +211,11 @@ describe("the elements of a group manifest", () => {
 
 describe("the elements of a named manifest with two groups", () => {
   const manifest = load(BUNDLE);
-  const drawn = (id: string) => [
+  /** A line drawn as a root: its name, then `held` (its maps, regions, breaks and jumps), then its wedges. */
+  const drawn = (id: string, ...held: string[]) => [
     id,
     `${id}/name`,
+    ...held,
     `${id}/start`,
     `${id}/start/label`,
     `${id}/end`,
@@ -228,13 +230,13 @@ describe("the elements of a named manifest with two groups", () => {
       "group_1",
       "group_1/name",
       "score/card",
-      ...drawn("score"),
+      ...drawn("score", "score/cmap_1", "score/cmap_2", "score/jump_1", "score/jump_1/label"),
       "performance/card",
-      ...drawn("performance"),
+      ...drawn("performance", "performance/cmap_1"),
       "group_2",
       "group_2/name",
       "page/card",
-      ...drawn("page"),
+      ...drawn("page", "page/cmap_1"),
       "excerpt/card",
       "recording",
       "recording/name",
@@ -242,9 +244,15 @@ describe("the elements of a named manifest with two groups", () => {
       "excerpt/start/label",
       "excerpt/end",
       "excerpt/end/label",
-      ...drawn("excerpt"),
+      ...drawn("excerpt", "recording/cmap_2"),
       "annotations/card",
-      ...drawn("annotations"),
+      ...drawn(
+        "annotations",
+        "annotations/region_1",
+        "annotations/region_1/label",
+        "annotations/region_2",
+        "annotations/region_2/label",
+      ),
     ]);
     const inside = (address: string) =>
       keys.filter((key) => key.address === address).map((key) => key.inside);
@@ -524,7 +532,9 @@ describe("delete deletes", () => {
       group_1: ["score", "performance"],
       group_2: ["page"],
     });
-    expect(removedBy(before, ["recording"])).toEqual(new Set(["recording", "excerpt"]));
+    expect(removedBy(before, ["recording"])).toEqual(
+      new Set(["recording", "excerpt", "recording/cmap_1", "recording/cmap_2"]),
+    );
   });
 
   it("removes a child from its parent and its group", () => {

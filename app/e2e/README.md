@@ -112,11 +112,11 @@ The group workspace takes one manifest of each shape the drawing distinguishes:
 a member that is a child (one ancestor line), a grandchild (two), members
 under three different roots beside a root member, and a styled frame; the
 boxes it draws (558.4140625 × 190.13671875, 559.70361328125 × 224.11328125,
-568.08642578125 × 374.04296875, 544.693603515625 × 212.94140625) do not
+568.08642578125 × 377.640625, 544.693603515625 × 260.1875) do not
 overlap at those positions, and all four lie inside a 1600 × 1000 page at
 viewport (40, 40), zoom 1. The bundle workspace holds every synthetic manifest
-of `bundles/` (boxes 580.484619140625 × 417.8828125, 585.39013671875 ×
-452.45703125, 525.896728515625 × 217.015625).
+of `bundles/` (boxes 580.484619140625 × 473.62890625, 585.39013671875 ×
+537.4609375, 525.896728515625 × 252.1640625).
 
 After opening, the journal holds one `add` per block (5, 4, 3, 300, 900); a gesture
 is proven to be one command by the journal growing by exactly one entry.
@@ -155,6 +155,59 @@ Every block's card rectangle and its shadow carry the address `<root>/card`
 (`bare/card`, `clt_1/card`, `melody/card`, `flow:quarters/card`,
 `score/card`); the drawn texts of `small` are still 23 (a manifest with neither
 `name` nor `id` draws no title).
+
+The items of the two bundles with frames lie at their default places
+(drawing.md sections 6.4, 6.5, 8.4 and 8.6, `v = 1`), derived from the
+fixture and the font alone. A member drawing is `Hm = y_root + max(Eb,
+h(11) / 2) + 8` high, `y_root = max(8 + Ea, 8 + h(11) / 2)`, with `h(11) =
+12.8046875` and `h(9) = 10.4765625`. Below every line lie its wedges with
+one tier of labels, `1.5 + 13 + 2 + h(9) = 26.9765625` (a boundary's 8 is
+less); a stack of `J` maps reaches `1.5 + 5J` above, the maps of a
+segment line's plain segments joining its stack after its own (drawing.md
+section 6.4); a line with a boundary and one tier of segment labels reaches
+`max(1.5 + 5J, 8) + 2 + h(9)` above, 20.4765625 for `J` 0 or 1 and
+23.9765625 for `J = 2`; an ancestor row is `7 + 26.9765625 =
+33.9765625` wide (its marks' labels fill one tier) and starts at the larger
+of `p0 / 2 = 7` and the band before it plus `B = 4`. A frame is `8 + h(11)
++ 4 + Hm1 + 8 + … + 8 + Hmn + 8` high; the first item lies at `Pt = 8 +
+h(11) + 8 = 28.8046875` below the title, each further one 8 below the one
+before, all at `x = 8`.
+
+- `bmixed0000`: `score` (two maps, `Ea = 11.5`; below the wedges, 4 and a
+  flow band of one jump level, `8 + 2 + h(9)`, so `Eb = 51.453125`)
+  78.953125; `performance` and `page` (one map each) 49.4765625; `excerpt`
+  (one map, then `recording`'s ancestor row from 10.5, `Ea = 44.4765625`)
+  87.453125; `annotations` (both regions in one row, a band `6 + 2 + h(9)
+  + 4 − 4 = 18.4765625` wide, 4 beyond the wedges) 71.85546875. So
+  `group_1` is 169.234375 high at `y` 28.8046875, `group_2` 177.734375 at
+  206.0390625, and `annotations/card` lies at 391.7734375; the box is `8 +
+  (391.7734375 + 71.85546875 + 2) = 473.62890625` high.
+- `bshared000`: `exposition` (two maps, its own `cmap_2` and then its
+  segment `exposition_second`'s `cmap_3`, and the boundary of
+  `exposition_second`: a root band of 23.9765625 above; `score`'s row from
+  27.9765625, `Ea = 61.953125`) 104.9296875; `take_1` (one map and a
+  boundary, a root band of 20.4765625, no ancestor) 63.453125;
+  `recapitulation` (no map, the boundary of `recapitulation_second`: a
+  root band of 20.4765625; its children band
+  from 24.4765625 holds the segment lines `recapitulation_first` and
+  `recapitulation_second` in one row, its inner half 8 (their boundaries)
+  and its outer half 20.4765625 (a boundary, `recapitulation_second`'s map
+  and one tier of phrase labels), so it ends at 52.953125; `score`'s row
+  from 56.953125, `Ea = 90.9296875`) 133.90625; `take_2` (plain)
+  49.37890625. So `group_1` is 209.1875 high at `y` 28.8046875, `group_2`
+  224.08984375 at 245.9921875, and `page/card` lies at 478.08203125; the
+  box is `8 + (478.08203125 + 49.37890625 + 2) = 537.4609375` high.
+
+Their widths are those of the names, the ancestor lines' chevrons and the
+labels at the lines' ends: maps span their lines (a plain segment's map its
+segment, inside its line), and every label the bands add (segment,
+phrase, region and jump labels) is centred at least 43
+inside either end of its line at every length these tests use, against
+half-widths of at most 32.53, so neither the start nor the right margin of
+the one horizontal layout (drawing.md section 8.2) moves. Every item of
+`bmixed0000` is `162.484619140625 + L` wide (562.484619140625 at 400); in
+`bshared000` every member's card is `Wc(L) = 151.39013671875 + L` wide and
+every frame and the ungrouped card `16 + Wc(L)`.
 
 ## The gesture rules the values follow
 
@@ -496,22 +549,23 @@ run on these blocks of `small`; cases 8 and 9 open `bundles` instead.
 8. **A frame scales on the arranger.** `bundles` at viewport (40, 40), zoom
    1, nothing open. A click on `group_1`'s frame of `bmixed0000`
    (`framePoint`) selects `bmixed0000/group_1`; Scale shows exactly the
-   four corner handles. The frame is drawn 562.484619140625 × 139.5625 at
-   its default place (8, 28.8046875) (the box's one horizontal layout:
-   every item of `bundle_mixed` is 562.484619140625 wide). Its
+   four corner handles. The frame is drawn 562.484619140625 × 169.234375 at
+   its default place (8, 28.8046875) (section "Drawing facts": the box's
+   one horizontal layout makes every item of `bundle_mixed`
+   562.484619140625 wide). Its
    `handle-bottom-right` dragged by (40, 20) scales it by the larger axis
    ratio about its fixed top left corner, `max(602.484619140625 /
-   562.484619140625, 159.5625 / 139.5625) = 1.14330497…`, 2341.49 steps,
-   so 2341/2048 = 1.14306640625. One `set` is journalled (journal 4), and
-   the stored `places` are exactly `{group_1: {scale: 2341/2048}, group_2:
-   {x: 8, y: 176.3671875}, annotations: {x: 8, y: 358.50390625}}`: the
+   562.484619140625, 189.234375 / 169.234375) = 1.11817930…`, 2290.03 steps,
+   so 2290/2048 = 1.1181640625. One `set` is journalled (journal 4), and
+   the stored `places` are exactly `{group_1: {scale: 2290/2048}, group_2:
+   {x: 8, y: 206.0390625}, annotations: {x: 8, y: 391.7734375}}`: the
    other items' drawn positions are stated with it, so nothing else moves.
 9. **A member card's margin stretches with its group, and the group
    shortens again.** `bundles` at viewport (40, 40), zoom 1, nothing open;
    the block `bshared000` (`bundle_shared_parent`), whose group `group_1`
    "Exposition" holds the cards of `exposition` and `take_1`. Every
    member's card is `Wc(L) = 151.39013671875 + L` wide and the frame
-   `16 + ` its widest card (the arranger's test README, fixture facts).
+   `16 + ` its widest card (section "Drawing facts").
    One gesture after the other, each journalling one `set`:
    - `bshared000/exposition/card` selected, Box, `handle-right` dragged by
      (100, 0): `places.exposition` is `{width: 651.39013671875}`
@@ -533,9 +587,11 @@ run on these blocks of `small`; cases 8 and 9 open `bundles` instead.
      349.2109375` (frame 607.3896484375; one step more 607.390625), so
      `places.group_1` is `{length: 349.2109375}` and `places.exposition`
      `{width: 591.3896484375}`: the group is shorter than when it started.
-   The final `places` are exactly those two plus the drawn positions the
-   arranger states for the other items, `group_2` at (8, 210.94140625) and
-   `page` at (8, 393.078125).
+   After each gesture, `places` holds exactly the values stated above for
+   it plus the drawn positions the arranger states for the other items
+   with the first gesture,
+   `group_2` at (8, 245.9921875) and `page` at (8, 478.08203125) (section
+   "Drawing facts").
 
 ## `touch.spec.ts` (the touch project)
 
@@ -813,11 +869,11 @@ styling" and "Minimal", and the buttons are "Apply" and "Revert".
     bundle editor only). `length` filled with `300` and Enter adds exactly one entry,
     `{type: "set", changes: [{target: "bmixed0000/group_1", values:
     {place: {length: 300}}}, {target: "bmixed0000/group_2", values:
-    {place: {x: 8, y: 176.3671875}}}, {target: "bmixed0000/annotations",
-    values: {place: {x: 8, y: 358.50390625}}}]}`: on the arranger a form
+    {place: {x: 8, y: 206.0390625}}}, {target: "bmixed0000/annotations",
+    values: {place: {x: 8, y: 391.7734375}}}]}`: on the arranger a form
     edit, like a gesture, states the drawn position of every other item
-    that states none (the items' drawn places as in the arranger's tests
-    README, "Fixture facts"); the block's stored `length` stays 400 and the
+    that states none (the items' default places, section "Drawing
+    facts"); the block's stored `length` stays 400 and the
     field shows `300`. Then `bmixed0000/score/card` is selected: the form
     "Card properties" shows the group's length, `group length` `300`;
     `width` filled with `650` and Enter adds exactly one entry, `[{target:
@@ -836,7 +892,7 @@ styling" and "Minimal", and the buttons are "Apply" and "Revert".
     block scale 1, 20 px are 20 units) and the editor's session holds no
     entry yet. Released, the session holds exactly one entry, the block's
     places are exactly `{group_1: {length: 420}, group_2: {x: 8, y:
-    176.3671875}, annotations: {x: 8, y: 358.50390625}}`, and the form
+    206.0390625}, annotations: {x: 8, y: 391.7734375}}`, and the form
     still shows `420` and `582.48`.
 
 ## `a11y.spec.ts`
@@ -910,12 +966,23 @@ root's card and drawing), applied to the fixture by hand.
      ungrouped and follows the frames);
    - `bshared000`: name, group_1, group_1/name, exposition/card,
      score, exposition, take_1/card, take_1, group_2, group_2/name,
-     recapitulation/card, recapitulation, take_2/card, take_2, page/card,
+     recapitulation/card, recapitulation, recapitulation_first,
+     recapitulation_second, take_2/card, take_2, page/card,
      page (titles "Sonata", "Exposition", "Recapitulation"; `score`, the
      parent of both members, appears once in the list of distinct values
      but is drawn in both frames);
    - `bungroup00`: name, pages/card, pages, recording/card,
      recording, score/card, score (title "Sketches"; no frame).
+
+   A segment that is itself a segment line is drawn as a child line
+   (drawing.md sections 2.1 and 6.1), addressed by its bare id and drawn
+   after its root, in traversal order (section 7.2): so `recapitulation`'s
+   segments `recapitulation_first` and `recapitulation_second` follow it.
+   A segment that is no segment line (`exposition_first`, `take_1_first`,
+   `page_1`, `recapitulation_first_1`, …) draws no line, only its label
+   `S/label` and, unless it is its line's first segment, its boundary
+   `S/start`; the list leaves these out, as it leaves out every map,
+   region and jump (`<root>/<id>`).
 3. **Selecting an element drawn twice marks every copy.** In `bshared000`
    the ancestor line `score` is drawn once per frame: 8 parts carry
    `data-address="score"`, 4 whose box centre lies inside `group_1`'s frame

@@ -9,11 +9,11 @@ const drawing = drawingOf(block, view.settings, metrics);
 describe("memberOrderAt", () => {
   it.each([
     ["group_1", "score", 100, ["score", "performance"]],
-    ["group_1", "score", 140, ["performance", "score"]],
-    ["group_1", "score", 135.677734375, ["performance", "score"]],
+    ["group_1", "score", 170, ["performance", "score"]],
+    ["group_1", "score", 165.30078125, ["performance", "score"]],
     ["group_1", "performance", 50, ["performance", "score"]],
-    ["group_1", "performance", 78.298828125, ["score", "performance"]],
-    ["group_2", "page", 400, ["excerpt", "page"]],
+    ["group_1", "performance", 93.0859375, ["score", "performance"]],
+    ["group_2", "page", 440, ["excerpt", "page"]],
   ] as const)("%s, %s dropped at %d", (group, dragged, y, order) => {
     expect(memberOrderAt(drawing, group, dragged, y)).toEqual(order);
   });
@@ -37,7 +37,7 @@ describe("withMemberOrder", () => {
     );
     expect(cards.slice(0, 2)).toEqual([
       ["performance/card", 53.609375],
-      ["score/card", 110.98828125],
+      ["score/card", 111.0859375],
     ]);
   });
 });

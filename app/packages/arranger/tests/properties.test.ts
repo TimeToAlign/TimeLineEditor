@@ -57,6 +57,12 @@ const PLACEMENT = ["x", "y", "index", "scale", "length", "spacing", "width", "he
 const coordinate = fc.double({ min: -2000, max: 2000, noNaN: true });
 const delta = fc.double({ min: -1000, max: 1000, noNaN: true });
 
+/**
+ * Drawing properties take up to 13.2 s under load
+ * (tests/README.md, "The drawing properties' timeout").
+ */
+const DRAWING_TIMEOUT = 40_000;
+
 const gesture = fc.oneof(
   fc.record({ kind: fc.constant("move" as const), pick: fc.nat(), x: coordinate, y: coordinate }),
   fc.record({
@@ -195,7 +201,7 @@ function commandOf(view: View, item: Gesture): object | null {
 }
 
 describe("gesture commands", () => {
-  it("are accepted by apply", () => {
+  it("are accepted by apply", { timeout: DRAWING_TIMEOUT }, () => {
     fc.assert(
       fc.property(blocks, fc.array(gesture, { maxLength: 8 }), (specs, gestures) => {
         let view = initial(specs);
@@ -211,7 +217,7 @@ describe("gesture commands", () => {
     );
   });
 
-  it("are undone exactly through the store", () => {
+  it("are undone exactly through the store", { timeout: DRAWING_TIMEOUT }, () => {
     fc.assert(
       fc.property(blocks, fc.array(gesture, { maxLength: 8 }), (specs, gestures) => {
         const store = createStore({ view: initial(specs), journal: [], sessions: {} });
@@ -238,7 +244,9 @@ describe("gesture commands", () => {
 });
 
 describe("a member's Stretch", () => {
-  it("sets only its group's length and width and its members' card widths", () => {
+  it("sets only its group's length and width and its members' card widths", {
+    timeout: DRAWING_TIMEOUT,
+  }, () => {
     const view = mixedPlain();
     const { cards } = drawingOf(blockIn(view, A), view.settings, metrics);
     const width = fc.option(fc.integer({ min: 2048, max: 2000 * 2048 }), { nil: null });
@@ -368,7 +376,9 @@ const ratio = fc.option(fc.double({ min: 1, max: 3, noNaN: true }), { nil: null 
 const unit = fc.double({ min: 0, max: 1, noNaN: true });
 
 describe("a stretch", () => {
-  it("never finds a longer length or spacing for a shorter pointer", () => {
+  it("never finds a longer length or spacing for a shorter pointer", {
+    timeout: DRAWING_TIMEOUT,
+  }, () => {
     fc.assert(
       fc.property(
         fc.constantFrom(...ROUND_TRIP_FIXTURES),
@@ -395,9 +405,9 @@ describe("a stretch", () => {
       ),
       { numRuns: 100 },
     );
-  }, 60_000);
+  });
 
-  it("back to where it began never moves further away", () => {
+  it("back to where it began never moves further away", { timeout: DRAWING_TIMEOUT }, () => {
     fc.assert(
       fc.property(
         fc.constantFrom(...ROUND_TRIP_FIXTURES),
@@ -424,9 +434,11 @@ describe("a stretch", () => {
       ),
       { numRuns: 100 },
     );
-  }, 60_000);
+  });
 
-  it("back to where it began restores the length or spacing of a box without a request", () => {
+  it("back to where it began restores the length or spacing of a box without a request", {
+    timeout: DRAWING_TIMEOUT,
+  }, () => {
     fc.assert(
       fc.property(
         fc.constantFrom(...ROUND_TRIP_FIXTURES),
@@ -442,11 +454,11 @@ describe("a stretch", () => {
       ),
       { numRuns: 100 },
     );
-  }, 60_000);
+  });
 });
 
 describe("projection", () => {
-  it("returns the identical nodes for an unchanged view", () => {
+  it("returns the identical nodes for an unchanged view", { timeout: DRAWING_TIMEOUT }, () => {
     fc.assert(
       fc.property(
         blocks,

@@ -254,6 +254,7 @@ describe("the generator reaches the refusal catalogue", () => {
         "segment_never_locked",
         "unknown_property",
         "unknown_target",
+        "unlocking_not_supported",
         "wrong_target_kind",
       ].sort(),
     );

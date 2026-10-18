@@ -222,10 +222,12 @@ describe("group_parents_mixed: ancestors of three number types", () => {
       start: "chevrons",
       end: "chevrons",
     });
+    // take's map stack precedes its ancestor band: session lies 10.5 + 7 above take.
+    expect(element(drawing, "take")).toMatchObject({ y: 177.234375 });
     expect(element(drawing, "page")).toMatchObject({
       xs: 113.0302734375,
       xe: 525.0302734375,
-      y: 251.6875,
+      y: 255.1875,
       start: "circle",
       end: "chevrons",
     });
@@ -248,14 +250,14 @@ describe("group_parents_mixed: ancestors of three number types", () => {
       ["55.5 s", 141.11181640625],
     ]);
     expect(labels("system")).toEqual([
-      ["0 px", 233.06494140625],
-      ["600 px", 233.06494140625],
+      ["0 px", 236.56494140625],
+      ["600 px", 236.56494140625],
     ]);
     expect(
       ["sonata", "session", "page"].map(
         (id) => (element(drawing, `${id}/name`) as { baseline: number }).baseline,
       ),
-    ).toEqual([70.89697265625, 162.85009765625, 254.80322265625]);
+    ).toEqual([70.89697265625, 162.85009765625, 258.30322265625]);
   });
 });
 

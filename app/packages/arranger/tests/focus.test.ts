@@ -19,26 +19,26 @@ describe("targetBounds", () => {
       x: 40,
       y: 80,
       width: 580.484619140625,
-      height: 435.8828125,
+      height: 491.62890625,
     });
     expect(targetBounds(node, at("group_1"), metrics)).toEqual({
       x: 48,
       y: 108.8046875,
       width: 562.484619140625,
-      height: 139.5625,
+      height: 169.234375,
     });
     expect(targetBounds(node, at("annotations"), metrics)).toEqual({
       x: 48,
-      y: 456.50390625,
+      y: 489.7734375,
       width: 562.484619140625,
-      height: 49.37890625,
+      height: 71.85546875,
     });
   });
 
   it("spans a child's drawn elements, its line and its name", () => {
     expect(targetBounds(node, at("dlt_1"), metrics)).toEqual({
       x: 64,
-      y: 385.125,
+      y: 414.89453125,
       width: 302.29150390625,
       height: 12.8046875,
     });
@@ -49,7 +49,7 @@ describe("targetBounds", () => {
       x: 56,
       y: 137.609375,
       width: 1124.96923828125,
-      height: 279.125,
+      height: 338.46875,
     });
   });
 

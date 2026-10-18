@@ -379,6 +379,8 @@ test.describe("a bundle workspace", () => {
       "group_2/name",
       "recapitulation/card",
       "recapitulation",
+      "recapitulation_first",
+      "recapitulation_second",
       "take_2/card",
       "take_2",
       "page/card",

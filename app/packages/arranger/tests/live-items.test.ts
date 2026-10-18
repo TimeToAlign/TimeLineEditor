@@ -158,8 +158,8 @@ describe("the live placement of a gesture inside a block", () => {
     expect(last()).toBe(null);
     expect(stored().places).toStrictEqual({
       group_1: { length: 460 },
-      group_2: { x: 8, y: 176.3671875 },
-      annotations: { x: 8, y: 358.50390625 },
+      group_2: { x: 8, y: 206.0390625 },
+      annotations: { x: 8, y: 391.7734375 },
     });
     expect(shown).toStrictEqual(drawnWith(before, stored().places));
     expect(itemOf(shown, "group_1").place).toStrictEqual({
@@ -169,7 +169,7 @@ describe("the live placement of a gesture inside a block", () => {
       scale: 1,
       spacing: 1,
       width: 622.484619140625,
-      height: 139.5625,
+      height: 169.234375,
     });
     for (const key of ["group_2", "annotations"]) {
       expect(itemOf(shown, key).place).toStrictEqual(itemOf(drawing, key).place);
@@ -196,12 +196,12 @@ describe("the live placement of a gesture inside a block", () => {
     await settle();
     expect(last()).toBe(null);
     expect(stored().places).toStrictEqual({
-      group_2: { x: 48, y: 200.3671875 },
+      group_2: { x: 48, y: 230.0390625 },
       group_1: { x: 8, y: 28.8046875 },
-      annotations: { x: 8, y: 358.50390625 },
+      annotations: { x: 8, y: 391.7734375 },
     });
     expect(live.drawing).toStrictEqual(drawnWith(before, stored().places));
     const { x, y } = itemOf(live.drawing, "group_2").place;
-    expect([x, y]).toEqual([48, 200.3671875]);
+    expect([x, y]).toEqual([48, 230.0390625]);
   });
 });

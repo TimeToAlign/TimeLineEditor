@@ -52,7 +52,7 @@ describe("one horizontal layout for the box", () => {
       { x: 16 },
       { x: 16 },
     ]);
-    expect([drawing.width, drawing.height]).toEqual([525.896728515625, 159.63671875]);
+    expect([drawing.width, drawing.height]).toEqual([525.896728515625, 159.734375]);
   });
 
   it("draws two items of one length equally wide wherever they lie", () => {
@@ -61,7 +61,7 @@ describe("one horizontal layout for the box", () => {
       x: 100,
       y: 100.2578125,
       width: 507.896728515625,
-      height: 49.37890625,
+      height: 49.4765625,
     });
     expect(rect(drawing, "pages/card")).toEqual({
       x: 8,
@@ -95,8 +95,8 @@ describe("the manifest's title", () => {
     expect(drawing.origin).toEqual({ x: 0, y: 8.8046875 });
     expect(element(drawing, "name")).toMatchObject({ x: 8, baseline: 18.21044921875 });
     expect(rect(drawing, "pages/card")).toMatchObject({ y: 28.8046875 });
-    expect(drawing.items.map((item) => item.place.y)).toEqual([20, 91.453125, 148.83203125]);
-    expect(drawing.height).toBe(217.015625);
+    expect(drawing.items.map((item) => item.place.y)).toEqual([20, 91.453125, 148.9296875]);
+    expect(drawing.height).toBe(252.1640625);
   });
 });
 
@@ -137,9 +137,9 @@ describe("the scale of an item", () => {
       x: 8,
       y: 100.2578125,
       width: 761.8450927734375,
-      height: 74.068359375,
+      height: 74.21484375,
     });
-    expect(drawing.items[2]?.place.y).toBe(182.326171875);
+    expect(drawing.items[2]?.place.y).toBe(182.47265625);
     expect(element(ungrouped({}), "recording").style["stroke-dasharray"]).toBe("3 3");
     expect(element(drawing, "recording").style["stroke-dasharray"]).toBe("4.5 4.5");
     expect(element(drawing, "recording/name").style["font-size"]).toBe(16.5);
@@ -151,7 +151,7 @@ describe("the scale of an item", () => {
       scale: 1.5,
       spacing: 1,
       width: 507.896728515625,
-      height: 49.37890625,
+      height: 49.4765625,
     });
   });
 });
@@ -237,23 +237,23 @@ describe("an item's vertical stretch", () => {
         x: 8,
         y: 100.2578125,
         width: 507.896728515625,
-        height: 65.37890625,
+        height: 65.4765625,
       });
       expect(line(drawing, "recording")).toEqual({
         xs: 79.70361328125,
         xe: 479.70361328125,
-        y: 122.66015625,
+        y: 122.7578125,
       });
     });
 
     it("keeps the root band's distances from the line", () => {
       expect(element(drawing, "recording/start")).toMatchObject({
         type: "wedge",
-        yt: 124.16015625,
-        yb: 137.16015625,
+        yt: 124.2578125,
+        yb: 137.2578125,
       });
       expect(element(drawing, "recording/start/label")).toMatchObject({
-        baseline: 147.51416015625,
+        baseline: 147.61181640625,
       });
     });
 
@@ -264,8 +264,8 @@ describe("an item's vertical stretch", () => {
         width: 507.896728515625,
         height: 63.453125,
       });
-      expect(rect(drawing, "score/card")).toMatchObject({ y: 173.63671875 });
-      expect([drawing.width, drawing.height]).toEqual([525.896728515625, 233.015625]);
+      expect(rect(drawing, "score/card")).toMatchObject({ y: 173.734375 });
+      expect([drawing.width, drawing.height]).toEqual([525.896728515625, 268.1640625]);
     });
 
     it("reports the item's spacing", () => {
@@ -278,7 +278,7 @@ describe("an item's vertical stretch", () => {
           scale: 1,
           spacing: 2,
           width: 507.896728515625,
-          height: 65.37890625,
+          height: 65.4765625,
         },
         stated: { spacing: 2 },
       });

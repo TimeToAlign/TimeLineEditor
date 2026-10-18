@@ -412,7 +412,7 @@ describe("a double-click outside the edited element", () => {
     await settle();
     measure(10000, 10000);
     await doubleClick(drawn("group_1"));
-    expect(viewport()).toEqual({ x: 3683.03076171875, y: 4285.65625, zoom: 4 });
+    expect(viewport()).toEqual({ x: 3683.03076171875, y: 4226.3125, zoom: 4 });
     await doubleClick(pane());
     expect(path()).toEqual([]);
     expect(viewport()).toEqual({ x: 12, y: -34, zoom: 0.5 });
@@ -505,13 +505,13 @@ describe("the canvas leaves editors", () => {
     await settle();
     measure(10000, 10000);
     await doubleClick(drawn("group_1"));
-    expect(viewport()).toEqual({ x: 3683.03076171875, y: 4285.65625, zoom: 4 });
+    expect(viewport()).toEqual({ x: 3683.03076171875, y: 4226.3125, zoom: 4 });
     await doubleClick(drawn("score/card"));
     expect(path().map(({ target }) => target)).toEqual([`${A}/group_1`, `${A}/score`]);
-    expect(viewport()).toEqual({ x: 3683.03076171875, y: 4366.8046875, zoom: 4 });
+    expect(viewport()).toEqual({ x: 3683.03076171875, y: 4307.65625, zoom: 4 });
     await press("Escape");
     expect(path().map(({ target }) => target)).toEqual([`${A}/group_1`]);
-    expect(viewport()).toEqual({ x: 3683.03076171875, y: 4285.65625, zoom: 4 });
+    expect(viewport()).toEqual({ x: 3683.03076171875, y: 4226.3125, zoom: 4 });
     await press("Escape");
     expect(path()).toEqual([]);
     expect(viewport()).toEqual({ x: 12, y: -34, zoom: 0.5 });
@@ -574,7 +574,7 @@ describe("the surroundings of an editor", () => {
     await show(withRegion());
     open(`${A}/dlt_1`);
     await atZoomOne();
-    await marqueeFrom(40, 380, 640, 463);
+    await marqueeFrom(40, 410, 640, 496.25);
     expect(selected()).toEqual([
       `${A}/recording/region_1`,
       `${A}/dlt_1`,
@@ -584,7 +584,7 @@ describe("the surroundings of an editor", () => {
     store.done();
     open(`${A}/group_1`);
     await atZoomOne();
-    await marqueeFrom(40, 380, 640, 463);
+    await marqueeFrom(40, 410, 640, 496.25);
     expect(selected()).toEqual([]);
   });
 
@@ -651,11 +651,11 @@ describe("the view while it moves", () => {
     await doubleClick(drawn("score/card"));
     expect(path().map(({ target }) => target)).toEqual([`${A}/group_1`, `${A}/score`]);
     await wait(1100);
-    expect(viewport()).toEqual({ x: 3683.03076171875, y: 4366.8046875, zoom: 4 });
+    expect(viewport()).toEqual({ x: 3683.03076171875, y: 4307.65625, zoom: 4 });
     await press("Escape");
     await wait(1100);
     expect(path().map(({ target }) => target)).toEqual([`${A}/group_1`]);
-    expect(viewport()).toEqual({ x: 3683.03076171875, y: 4285.65625, zoom: 4 });
+    expect(viewport()).toEqual({ x: 3683.03076171875, y: 4226.3125, zoom: 4 });
   });
 });
 
@@ -666,15 +666,15 @@ describe("the view when the canvas changes size", () => {
     await settle();
     measure(10000, 10000);
     await doubleClick(drawn("group_1"));
-    expect(viewport()).toEqual({ x: 3683.03076171875, y: 4285.65625, zoom: 4 });
+    expect(viewport()).toEqual({ x: 3683.03076171875, y: 4226.3125, zoom: 4 });
     await resizeArranger(6000, 10000);
-    expect(viewport()).toEqual({ x: 1683.03076171875, y: 4285.65625, zoom: 4 });
+    expect(viewport()).toEqual({ x: 1683.03076171875, y: 4226.3125, zoom: 4 });
     harness.showAt({ x: 5, y: 6, zoom: 1 });
     await settle();
     await resizeArranger(6000, 10000);
     expect(viewport()).toEqual({ x: 5, y: 6, zoom: 1 });
     await resizeArranger(10000, 10000);
-    expect(viewport()).toEqual({ x: 3683.03076171875, y: 4285.65625, zoom: 4 });
+    expect(viewport()).toEqual({ x: 3683.03076171875, y: 4226.3125, zoom: 4 });
     await press("Escape");
     expect(path()).toEqual([]);
     expect(viewport()).toEqual({ x: 12, y: -34, zoom: 0.5 });

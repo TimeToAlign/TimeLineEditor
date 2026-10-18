@@ -13,19 +13,31 @@ if (node === undefined) throw new Error("no node");
 const { manifest } = blockIn(view, A);
 const every = insideOf(manifest, node.data.drawing, null);
 const at = (...elements: string[]) => elements.map((element) => `${A}/${element}`);
-const bottom = { x: 40, y: 380, width: 600, height: 82.98046875 };
+const bottom = { x: 40, y: 410, width: 600, height: 86.25 };
 
 describe("elementsInRect", () => {
   it("selects the elements wholly inside, never a box", () => {
-    const card = { x: 56, y: 133.609375, width: 546.484619140625, height: 49.37890625 };
+    const card = { x: 56, y: 133.609375, width: 546.484619140625, height: 78.953125 };
     expect(elementsInRect(node, card, every, metrics)).toEqual(
-      at("score", "score/start", "score/end", "score/name", "score/start/label", "score/end/label"),
+      at(
+        "score/cmap_1",
+        "score/cmap_2",
+        "score/jump_1",
+        "score",
+        "score/start",
+        "score/end",
+        "score/name",
+        "score/start/label",
+        "score/end/label",
+        "score/jump_1/label",
+      ),
     );
   });
 
   it("takes an address drawn twice only when both drawings lie inside", () => {
     expect(elementsInRect(node, bottom, every, metrics)).toEqual(
       at(
+        "recording/cmap_2",
         "recording/region_1",
         "excerpt",
         "dlt_1",

@@ -179,11 +179,11 @@ describe("the node of a block placed by its place origin", () => {
     const [only] = project(moved, new Set(), [], metrics, null);
     expect(only?.data.drawing.origin).toEqual({ x: 38, y: 48.8046875 });
     expect(only?.position).toEqual({ x: 2, y: 31.1953125 });
-    expect([only?.width, only?.height]).toEqual([616.484619140625, 407.30859375]);
+    expect([only?.width, only?.height]).toEqual([616.484619140625, 440.578125]);
     const doubled = changed(moved, { type: "set", changes: [{ target: A, values: { scale: 2 } }] });
     const [large] = project(doubled, new Set(), [], metrics, null);
     expect(large?.position).toEqual({ x: -36, y: -17.609375 });
-    expect([large?.width, large?.height]).toEqual([1232.96923828125, 814.6171875]);
+    expect([large?.width, large?.height]).toEqual([1232.96923828125, 881.15625]);
     const block = blockIn(doubled, A);
     expect(nodePosition(block, drawingOf(block, doubled.settings, metrics))).toEqual({
       x: -36,
@@ -239,13 +239,18 @@ describe("the projection under an editor", () => {
       "group_1",
       "group_1/name",
       "score/card",
+      "score/cmap_1",
+      "score/cmap_2",
+      "score/jump_1",
       "score",
       "score/start",
       "score/end",
       "score/name",
       "score/start/label",
       "score/end/label",
+      "score/jump_1/label",
       "performance/card",
+      "performance/cmap_1",
       "performance",
       "performance/start",
       "performance/end",
@@ -257,12 +262,16 @@ describe("the projection under an editor", () => {
     const timeline = project(view, none, [], metrics, editing);
     expect([...node(timeline, A).data.inside]).toEqual([
       "annotations/card",
+      "annotations/region_1",
+      "annotations/region_2",
       "annotations",
       "annotations/start",
       "annotations/end",
       "annotations/name",
       "annotations/start/label",
       "annotations/end/label",
+      "annotations/region_1/label",
+      "annotations/region_2/label",
     ]);
     expect(node(timeline, A).draggable).toBe(false);
   });

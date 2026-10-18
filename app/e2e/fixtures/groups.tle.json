@@ -307,7 +307,20 @@
         "timelines": [
           {
             "children": [],
-            "conversion_maps": [],
+            "conversion_maps": [
+              {
+                "id": "cmap_1",
+                "name": null,
+                "sample_rate": 44100,
+                "scalar": [
+                  1,
+                  44100
+                ],
+                "source_unit": "samples",
+                "target_unit": "seconds",
+                "type": "SamplesToSeconds"
+              }
+            ],
             "flow_control": {
               "breaks": [],
               "jumps": [],
@@ -371,7 +384,17 @@
             "children": [
               {
                 "children": [],
-                "conversion_maps": [],
+                "conversion_maps": [
+                  {
+                    "id": "cmap_1",
+                    "name": null,
+                    "sample_rate": 44100,
+                    "scalar": 44100,
+                    "source_unit": "seconds",
+                    "target_unit": "samples",
+                    "type": "SecondsToSamples"
+                  }
+                ],
                 "flow_control": {
                   "breaks": [],
                   "jumps": [],
@@ -545,7 +568,19 @@
         "timelines": [
           {
             "children": [],
-            "conversion_maps": [],
+            "conversion_maps": [
+              {
+                "id": "cmap_1",
+                "name": null,
+                "scalar": [
+                  3,
+                  4
+                ],
+                "source_unit": "pixels",
+                "target_unit": "points",
+                "type": "ScalarMap"
+              }
+            ],
             "flow_control": {
               "breaks": [],
               "jumps": [],
@@ -565,7 +600,17 @@
           },
           {
             "children": [],
-            "conversion_maps": [],
+            "conversion_maps": [
+              {
+                "id": "cmap_1",
+                "name": null,
+                "sample_rate": 44100,
+                "scalar": 44100,
+                "source_unit": "seconds",
+                "target_unit": "samples",
+                "type": "SecondsToSamples"
+              }
+            ],
             "flow_control": {
               "breaks": [],
               "jumps": [],
@@ -585,10 +630,38 @@
           },
           {
             "children": [],
-            "conversion_maps": [],
+            "conversion_maps": [
+              {
+                "id": "cmap_1",
+                "name": null,
+                "ppq": 480,
+                "scalar": 480,
+                "source_unit": "quarters",
+                "target_unit": "ticks",
+                "type": "QuartersToTicks"
+              }
+            ],
             "flow_control": {
               "breaks": [],
-              "jumps": [],
+              "jumps": [
+                {
+                  "condition": "first_n",
+                  "control_type": "repeat_end",
+                  "from_coordinate": [
+                    8,
+                    1
+                  ],
+                  "id": "jump_1",
+                  "label": "Repeat",
+                  "meta": {},
+                  "repeat_count": 1,
+                  "target": null,
+                  "to_coordinate": [
+                    0,
+                    1
+                  ]
+                }
+              ],
               "markers": []
             },
             "id": "score",
@@ -603,7 +676,21 @@
             "metric_hierarchy": null,
             "name": "Score",
             "number_type": "fraction",
-            "regions": [],
+            "regions": [
+              {
+                "end": [
+                  8,
+                  1
+                ],
+                "id": "region_1",
+                "meta": {},
+                "name": "Theme",
+                "start": [
+                  0,
+                  1
+                ]
+              }
+            ],
             "unit": "quarters"
           }
         ],
@@ -918,7 +1005,20 @@
             "timelines": [
               {
                 "children": [],
-                "conversion_maps": [],
+                "conversion_maps": [
+                  {
+                    "id": "cmap_1",
+                    "name": null,
+                    "sample_rate": 44100,
+                    "scalar": [
+                      1,
+                      44100
+                    ],
+                    "source_unit": "samples",
+                    "target_unit": "seconds",
+                    "type": "SamplesToSeconds"
+                  }
+                ],
                 "flow_control": {
                   "breaks": [],
                   "jumps": [],
@@ -982,7 +1082,17 @@
                 "children": [
                   {
                     "children": [],
-                    "conversion_maps": [],
+                    "conversion_maps": [
+                      {
+                        "id": "cmap_1",
+                        "name": null,
+                        "sample_rate": 44100,
+                        "scalar": 44100,
+                        "source_unit": "seconds",
+                        "target_unit": "samples",
+                        "type": "SecondsToSamples"
+                      }
+                    ],
                     "flow_control": {
                       "breaks": [],
                       "jumps": [],
@@ -1150,7 +1260,19 @@
             "timelines": [
               {
                 "children": [],
-                "conversion_maps": [],
+                "conversion_maps": [
+                  {
+                    "id": "cmap_1",
+                    "name": null,
+                    "scalar": [
+                      3,
+                      4
+                    ],
+                    "source_unit": "pixels",
+                    "target_unit": "points",
+                    "type": "ScalarMap"
+                  }
+                ],
                 "flow_control": {
                   "breaks": [],
                   "jumps": [],
@@ -1170,7 +1292,17 @@
               },
               {
                 "children": [],
-                "conversion_maps": [],
+                "conversion_maps": [
+                  {
+                    "id": "cmap_1",
+                    "name": null,
+                    "sample_rate": 44100,
+                    "scalar": 44100,
+                    "source_unit": "seconds",
+                    "target_unit": "samples",
+                    "type": "SecondsToSamples"
+                  }
+                ],
                 "flow_control": {
                   "breaks": [],
                   "jumps": [],
@@ -1190,10 +1322,38 @@
               },
               {
                 "children": [],
-                "conversion_maps": [],
+                "conversion_maps": [
+                  {
+                    "id": "cmap_1",
+                    "name": null,
+                    "ppq": 480,
+                    "scalar": 480,
+                    "source_unit": "quarters",
+                    "target_unit": "ticks",
+                    "type": "QuartersToTicks"
+                  }
+                ],
                 "flow_control": {
                   "breaks": [],
-                  "jumps": [],
+                  "jumps": [
+                    {
+                      "condition": "first_n",
+                      "control_type": "repeat_end",
+                      "from_coordinate": [
+                        8,
+                        1
+                      ],
+                      "id": "jump_1",
+                      "label": "Repeat",
+                      "meta": {},
+                      "repeat_count": 1,
+                      "target": null,
+                      "to_coordinate": [
+                        0,
+                        1
+                      ]
+                    }
+                  ],
                   "markers": []
                 },
                 "id": "score",
@@ -1208,7 +1368,21 @@
                 "metric_hierarchy": null,
                 "name": "Score",
                 "number_type": "fraction",
-                "regions": [],
+                "regions": [
+                  {
+                    "end": [
+                      8,
+                      1
+                    ],
+                    "id": "region_1",
+                    "meta": {},
+                    "name": "Theme",
+                    "start": [
+                      0,
+                      1
+                    ]
+                  }
+                ],
                 "unit": "quarters"
               }
             ],
