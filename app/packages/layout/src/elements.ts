@@ -162,6 +162,17 @@ export type DrawnElement =
   | MarkerElement
   | TextElement;
 
+/**
+ * The half-open range `[start, end)` of `Drawing.elements` that a frame or
+ * card emitted: its own rectangle when displayed, then everything drawn as
+ * part of it, in drawing order (section 8.5). A box that is not displayed
+ * keeps its range over what it still emits.
+ */
+export interface ElementRange {
+  readonly start: number;
+  readonly end: number;
+}
+
 /** One item of a box (section 8): a group's frame or an ungrouped root's card. */
 export interface DrawnItem {
   /** The group id or the ungrouped root's id. */
@@ -176,6 +187,11 @@ export interface DrawnItem {
   readonly place: Required<Place>;
   /** The place as the placement states it; `{}` when it states none. */
   readonly stated: Place;
+  /**
+   * The elements it drew: a frame, its title and its cards with their member drawings, or an
+   * ungrouped root's card and its member drawing.
+   */
+  readonly range: ElementRange;
 }
 
 /** The card of a group's member (sections 8.4 and 8.6). */
@@ -192,6 +208,8 @@ export interface DrawnCard {
   readonly spacing: number;
   /** What `places` states for the member's card; `{}` when it states nothing. */
   readonly stated: Pick<Place, "width" | "height" | "spacing">;
+  /** The elements it drew: the card and its member drawing. */
+  readonly range: ElementRange;
 }
 
 export interface Drawing {

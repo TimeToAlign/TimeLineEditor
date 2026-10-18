@@ -1056,8 +1056,9 @@ child timeline. What proves the dispatch is that the target comes from the
 kind of box that was hit, never from what the box holds, and that inside an
 editor nothing outside the edited element, nor the element itself, opens.
 Anything drawn that is neither a box nor a timeline's line (a name, a
-label, a region, a boundary) opens the innermost card or frame holding it,
-`within`, which `hitOf` reads from the pointer's point; a hit without a
+label, a region, a boundary) opens the last drawn card or frame holding it,
+the innermost where none overlap, `within`, which `hitOf` reads from the
+pointer's point (section "Boxes"); a hit without a
 point (Enter on a selected element) has `within` null and opens nothing.
 Hits are written as `boxes.ts` makes them (`{block, kind, address,
 boundary, within}`), `within` null unless a row names it, so the cases do
@@ -1159,8 +1160,9 @@ the shared start and end.
 562.484619140625 is an odd multiple of 1/4096, so a width quantized to
 1/2048 from it rounds half up.
 
-`itemMoveCommand(view, block, key, x, y, metrics)` (`x`, `y` in drawing
-units from the place origin, quantized to 1/2048):
+`itemMoveCommand(view, block, key, x, y, metrics, together = [])` (`x`,
+`y` in drawing units from the place origin, quantized to 1/2048;
+`together` the keys of the other items that move with `key`):
 
 - `group_2` to (40, 200) gives exactly `{type: "set", changes: [{target:
   A/group_2, values: {place: {x: 40, y: 200}}}, {target: A/group_1,
@@ -1175,6 +1177,100 @@ units from the place origin, quantized to 1/2048):
 - To (40.0001, 200) it is the same command (`40.0001 × 2048 = 81920.2`
   steps); to its drawn place (8, 206.0390625) it is `null`. A key that is
   no item (`score`, a member) throws `RangeError`.
+- **Several items move by one travel.** The pressed item's place is
+  quantized as above, and every item of `together` moves by exactly the
+  travel that gave it, so it keeps its offset to the pressed item. With
+  `together` `[annotations]`, `group_2` to (40, 200) travels `(40 − 8, 200
+  − 206.0390625) = (32, −6.0390625)`, so `annotations` goes from its drawn
+  (8, 391.7734375) to (40, 385.734375), its offset to `group_2` staying
+  `(0, 185.734375)` (`391.7734375 − 206.0390625` before, `385.734375 −
+  200` after). The command is exactly `{type: "set", changes: [{target:
+  A/group_2, values: {place: {x: 40, y: 200}}}, {target: A/annotations,
+  values: {place: {x: 40, y: 385.734375}}}, {target: A/group_1, values:
+  {place: {x: 8, y: 28.8046875}}}]}`: the pressed item, then the items
+  moving with it in the order given, then every other item stating its
+  drawn position. Applied, the three items are drawn at exactly those
+  places. Every number is a multiple of 1/2048, so the sums are exact.
+- With `together` `[group_1, annotations]`, the same move takes every
+  item: `group_1` from (8, 28.8046875) to (40, 22.765625), `annotations` to
+  (40, 385.734375). The command holds exactly three changes, `group_2`'s,
+  `group_1`'s and `annotations`', each `{x, y}` as named, and no other;
+  applied, the items are drawn there.
+- With `together` `[annotations]`, `group_2` to its drawn place (8,
+  206.0390625) is `null`: no item travels. A key of `together` that is no
+  item (`score`) throws `RangeError`.
+
+`itemsMovedWith(manifest, drawing, selected, key)` decides what a drag of
+the item `key` does with the selection, given as the element addresses
+selected in the block (`BlockNodeData.selectedElements`). Each selected
+address puts items in the selection. A box's address, a frame `G`, an
+ungrouped root's card `U/card` or a member's card `M/card`, puts there
+only the item that draws the box, as the drawing records it: the item
+whose `address` it is, or for a member's card the item of the frame
+holding it (`Drawing.cards`, its `group`). Every other address puts there
+every item containing it by core's `contains`, the item's key naming the
+container: every element the group or the root holds by address (core's
+README, "Containment"). Where an item lies plays no part. When `key` is in
+the selection, the result is every other item in it, in the drawing's
+item order (`group_1`, `group_2`, `annotations`), possibly none: the drag
+moves them all with `key` and keeps the selection, however many items it
+holds. When `key` is not in it, the result is `null`: the drag selects
+`key` alone and moves it alone. What would prove this is a case of each
+kind, cases where where things lie and the addresses disagree, so that a
+rule of rectangles would give another answer, and a case where a selected
+card is drawn in one frame while two groups contain it by address. On
+`bundle_mixed`'s drawing:
+
+- `{group_2, annotations/card}`: for `group_2` `[annotations]`, for
+  `annotations` `[group_2]`, for `group_1`, which is not in the
+  selection, `null`.
+- `{group_1, group_2, annotations/card}`: for `annotations` `[group_1,
+  group_2]`, in the drawing's order.
+- `{score, annotations/name}`, two elements and no box: `group_1` contains
+  its member `score`, `annotations` its own name, so both items are in
+  the selection: for `group_1` `[annotations]`, for `annotations`
+  `[group_1]`, for `group_2` `null`.
+- `{group_2, page, excerpt/card}`: `group_2` contains its member `page`'s
+  line and its member `excerpt`'s card, so the selection holds one item:
+  for `group_2` `[]`, a drag that keeps the selection; for `group_1` and
+  `annotations` `null`.
+- `{name, group_2}`: the manifest's title lies in no item: for `group_2`
+  `[]`, for `group_1` `null`.
+- `{recording}`: the ancestor line drawn on `excerpt`'s card inside
+  `group_2`'s frame carries the address of the root `recording`, which no
+  group and no ungrouped root contains (core's `contains`, case 1, lists
+  `group_2`'s addresses without it): for `group_2` `null`, although the
+  line is drawn inside its frame.
+- The empty selection gives `null` for every key.
+- **A card over a frame.** The view `over` is `view` after
+  `itemMoveCommand(view, A, annotations, 8, 60, metrics)` applied: one `set`
+  stating `annotations` at (8, 60) and `group_1` and `group_2` at their
+  drawn (8, 28.8046875) and (8, 206.0390625), so every item states both
+  `x` and `y`. `annotations`' card, 562.484619140625 by 71.85546875, then
+  spans x 8 to 570.484619140625 and y 60 to 131.85546875, wholly inside
+  `group_1`'s frame (x 8 to 570.484619140625, y 28.8046875 to
+  `28.8046875 + 169.234375 = 198.0390625`), so everything drawn on the
+  card, its name included, is drawn inside that frame too. With
+  `{annotations/name, group_2}`: for `group_2` `[annotations]`, never
+  `group_1`; for `annotations` `[group_2]`; for `group_1`, which contains
+  neither address, `null`.
+- **A member's card drawn in one frame, contained by two groups.** The
+  view `twice` is `view` with `recording` made a member of `group_1`, as
+  in section "Boxes", case 6, "A copy hidden in one drawing only" (one
+  `set` of the block's `manifest`). `group_1` then holds `recording` and,
+  a timeline holding its descendants with their parts, its child
+  `excerpt` with the card `excerpt/card`; `group_2` holds its member
+  `excerpt` and that card too. Yet the card is drawn once, in `group_2`'s
+  frame: `recording`'s card draws `excerpt` as a child line, with no card
+  (`Drawing.cards` holds `excerpt/card` once, its `group` `group_2`). With
+  `{excerpt/card}`: for `group_1` `null`, so a drag on `group_1` selects
+  it and moves it alone; for `group_2` `[]`, so a drag on `group_2` keeps
+  the selection and moves `group_2` alone. The test asserts both premises,
+  the one card in `group_2` and `contains` holding for both groups: by
+  `contains` alone both groups would be in the selection, `group_1`
+  giving `[group_2]` and `group_2` `[group_1]`. With `{excerpt}`, the
+  child's line, an element, `contains` decides: for `group_1`
+  `[group_2]`, for `group_2` `[group_1]`.
 
 `placesWith(places, key, values)` merges like core's `place`:
 `placesWith({group_1: {x: 12, length: 300}}, "group_1", {length: null})`
@@ -1539,8 +1635,11 @@ which state neither.
 ## Reordering a group's members
 
 `memberOrderAt(drawing, group, dragged, y)` reads only the drawing: the
-member cards of a frame are the cards drawn after it and before the next
-item. On `bundle_mixed`'s drawing (section "Fixture facts"),
+member cards of a frame are the cards layout records for its group
+(`Drawing.cards` with that `group`, in drawing order), each displayed
+card's rectangle the first element of its range. Neither the frame's
+rectangle nor the next item decides, so a frame that is not displayed
+still orders its cards. On `bundle_mixed`'s drawing (section "Fixture facts"),
 `score/card`'s middle lies at `53.609375 + 78.953125 / 2 = 93.0859375`,
 `performance/card`'s at `140.5625 + 49.4765625 / 2 = 165.30078125`,
 `page/card`'s at `230.84375 + 49.4765625 / 2 = 255.58203125`,
@@ -1557,7 +1656,24 @@ card of `annotations` (no member) has its middle at `391.7734375 +
 | `group_1` | `performance` | 93.0859375 | `[score, performance]` |
 | `group_2` | `page` | 440 | `[excerpt, page]` (below the middle of `annotations`'s card, which is no member) |
 
-A group that is not drawn throws `RangeError`.
+**A hidden frame.** On `group_child_member` (block A at (0, 0)) with the
+workspace statement `{select: {element: group}, set: {display: none}}`,
+no frame is drawn, and every other element is the one drawn with the
+frame displayed (layout's README, "Hidden cards and frames"), so the
+cards keep the places of section "Boxes", case 2: `second-half/card`'s
+middle lies at `32.8046875 + (116.7578125 − 32.8046875) / 2 = 74.78125`
+and `recording/card`'s at `124.7578125 + (174.13671875 − 124.7578125) /
+2 = 149.447265625`. A rule reading the cards drawn after the frame's
+rectangle would find no rectangle to start from. Each order is the same
+with the frame displayed, and the test asserts it on both drawings:
+
+| group | dragged | y | order |
+|---|---|---|---|
+| `group_1` | `second-half` | 100 | `[second-half, recording]` |
+| `group_1` | `second-half` | 160 | `[recording, second-half]` |
+| `group_1` | `recording` | 50 | `[recording, second-half]` |
+
+A group the drawing has no item of (`group_9`) throws `RangeError`.
 
 `withMemberOrder(manifest, "group_1", ["performance", "score"])` is the
 manifest with `graphical.order` `{group_1: [performance, score], group_2:
@@ -1828,12 +1944,13 @@ renders, which draws nothing).
    drawing; the node marks by the whole address alone, so that drawing
    follows the same rule.
    **A selected card glows on its own rectangle only.** On
-   `group__group_child_member`, drawn with its drawing's elements (so the
-   node knows its boxes), `selectedElements = {"recording/card"}` marks
-   exactly one element, the second `rect` addressed `recording/card` (the
-   card; the first, its shadow, carries the same address and is not
-   marked, section "Boxes: selection and hover"); the card is drawn inside
-   its frame, so exactly `rect group_1` inside the `<svg>` carries
+   `group__group_child_member`, drawn with its drawing's elements, items
+   and cards (so the node knows its boxes and what each drew),
+   `selectedElements = {"recording/card"}` marks exactly one element, the
+   second `rect` addressed `recording/card` (the card; the first, its
+   shadow, carries the same address and is not marked, section "Boxes:
+   selection and hover"); the card is drawn as
+   part of its frame, so exactly `rect group_1` inside the `<svg>` carries
    `data-contains-selection`; the tree without the marks and with
    `data-selected` and `data-contains-selection` left out equals
    `figure.svg`'s, and the node's `div` carries `data-contains-selection`
@@ -2218,10 +2335,13 @@ address, boundary, within}`:
 - `within`: the box under `point` (in the drawing's units), as its element
   address: the last drawn card or frame whose rectangle holds the point,
   edges included; `null` outside every drawn card and frame, and without a
-  point. A frame is drawn before its cards, and cards never overlap one
-  another (sections 8.4 and 8.5), so the last box holding the point is the
-  innermost one. A card or frame that is not displayed is not drawn and
-  holds no point.
+  point. The last box holding the point is the one drawn on top: a frame
+  is drawn before its cards (section 8.5), and items that overlap, as a
+  free move in the bundle editor allows, are drawn in item order. On the
+  view `over` of case 6, the middle of `score`'s line lies inside
+  `score`'s card and inside `annotations`' card, drawn after it, and
+  `within` there is `annotations/card`. A card or frame that is not
+  displayed is not drawn and holds no point.
 
 `selectionOf(hit, editing, inside)`: **a press selects what it hit.** A
 card selects the card (`<block>/T/card`; its shadow carries the same
@@ -2312,8 +2432,9 @@ of the descriptor's tag and `data-address`, built inside an `<svg>` inside a
      and in the gap between the cards `(100, 120)`; `second-half/card` at
      the start of the ancestor line `piece` `(108.61962890625, 67.78125)`;
      `recording/card` at the start of `recording`'s line
-     `(120.61962890625, 139.16015625)` (inside the frame too: the card is
-     the innermost box); `null` in the box's padding `(4, 4)` and right of
+     `(120.61962890625, 139.16015625)` (inside the frame too: the card,
+     drawn after its frame, is the last drawn box there); `null` in the
+     box's padding `(4, 4)` and right of
      the frame `(552, 100)`.
    - `marksOf` names, in order, the background `"block"`, `group_1`
      `"group"`, `second-half/card`
@@ -2381,15 +2502,18 @@ of the descriptor's tag and `data-address`, built inside an `<svg>` inside a
 block's own box, a group's frame and a timeline's card each carry
 `data-contains-selection` (the block on its node's `div`, a frame or card
 on its own `rect`, never on a card's shadow) exactly when an element drawn
-inside the box carries a selected address, the box itself excepted.
+as part of the box carries a selected address, the box itself excepted.
 `holdingOf(drawing, selected)` (element addresses, as the node holds
-them) decides it from the drawing alone, never from the manifest's tree
-or the form of an address: a card or frame holds another box when its
-rectangle holds both of that box's corners, and any other element when it
-holds one point of it (the middle of a line, a text's anchor on its
-baseline; a card lies wholly inside its frame and a member drawing wholly
-inside its card, drawing.md section 8.4); the block's own box holds every
-drawn element. So:
+them) decides it from the drawing alone, never from where a box lies, the
+manifest's tree or the form of an address. Every item and member card of
+the drawing reports the range of `drawing.elements` it emitted (layout's
+`range`): its own rectangle when displayed, then everything drawn as part
+of it. So a card holds the elements of its member drawing (its timeline
+and everything drawn with it, ancestor lines included), a frame holds its
+title, its members' cards and what they hold, and the block's own box
+holds every drawn element. Only a displayed card or frame holds anything:
+the elements of a hidden card are held by its frame. Items that overlap,
+which a free move in the bundle editor allows, change no answer. So:
 
 - a line, a part of it and a region's label mark the card they are drawn
   in, that card's frame and the block;
@@ -2459,6 +2583,86 @@ at any block scale and any zoom; this is proven end to end.
    exactly `rect recording/card`, and the boundary `page_2/start` drawn on
    `pages`'s line exactly `rect pages/card`; the `div` carries the
    attribute both times.
+
+   **A hidden box holds nothing.** On `mixed` with one workspace
+   statement hiding every box of a kind (`{select: {element: card}, set:
+   {display: none}}` or `{select: {element: group}, set: {display:
+   none}}`), the hidden boxes are not drawn while what they hold still is,
+   their ranges kept (layout's README, "Hidden cards and frames"). With
+   the cards hidden, `score`'s line is drawn as part of `group_1`'s frame
+   and of no displayed card, so it marks the frame alone. With the frames
+   hidden, it is drawn as part of `score`'s card, which it marks alone,
+   and the title `group_1/name`, still drawn as part of the hidden frame,
+   is drawn as part of no displayed box and marks only the block. The
+   `<svg>` cannot show a mark on a box it does not draw, so each row also
+   asserts `holdingOf(drawing, selected)` itself, where a hidden box would
+   still appear:
+
+   | hidden | selected | marked | `holdingOf` |
+   |---|---|---|---|
+   | cards | `score` | `rect group_1` | block, `{group_1}` |
+   | frames | `score` | `rect score/card` | block, `{score/card}` |
+   | frames | `group_1/name` | none | block, `{}` |
+
+   The node's `div` carries the attribute in every row.
+
+   **Overlapping items change nothing.** On the view `over` of section
+   "Items" (`annotations`' card moved to (8, 60), every item stating its
+   place), `annotations`' card spans x 8 to 570.484619140625 and y 60 to
+   131.85546875, inside `group_1`'s frame (x 8 to 570.484619140625, y
+   28.8046875 to 198.0390625), and lies over `score`'s card (x 16 to
+   562.484619140625, y 53.609375 to `53.609375 + 78.953125 = 132.5625`,
+   section "Fixture facts"). Each card's member drawing lies inside the
+   other card's rectangle. `score`'s line runs from x 126.29150390625 to
+   526.29150390625, at least the padding 8 below its card's top and the
+   padding and the wedges' reach `8 + 26.9765625` above its bottom, so
+   between y 61.609375 and 97.5859375, inside `annotations`' card. The
+   name `annotations/name` is anchored at x `8 + n = 24` on its baseline,
+   within `h(11) / 2 = 6.40234375` of its line, which lies between y `60
+   + 8 = 68` and `131.85546875 − 34.9765625 = 96.87890625`, so inside
+   `score`'s card. The test asserts the three rectangles exactly and that
+   the line's middle and the name's anchor lie inside the other card. Each
+   element marks the boxes it is drawn as part of, and nothing else:
+
+   | selected | marked |
+   |---|---|
+   | `annotations/name` | `rect annotations/card` |
+   | `score` | `rect group_1`, `rect score/card` |
+   | `annotations/card` | none |
+
+   The node's `div` carries the attribute in every row. A rule of
+   rectangles would mark `group_1` and `score/card` for the name as well,
+   `annotations/card` for the line, and `group_1` for the card.
+
+   **A copy hidden in one drawing only.** `bundle_mixed` with `recording`
+   made a member of `group_1` (one `set` of the block's `manifest`: the
+   fixture's manifest with `group_1`'s `members` `[performance, recording,
+   score]` and display order `[score, performance, recording]`; a member
+   may not nest with another member of its own group, so `recording` and
+   its child `excerpt` lie in different groups). `recording` is then drawn
+   on a card of its own in `group_1`'s frame, its whole tree with it: its
+   child `excerpt` as a child line carrying `excerpt`'s map
+   `recording/cmap_2`. `excerpt` stays a member of `group_2`, its map on
+   its own line. So `recording/cmap_2` is drawn twice, a `map` on each of
+   the two cards. The workspace statement `{select: {element: map,
+   inside: child}, set: {display: none}}` hides the copy on `recording`'s
+   card only: there the map belongs to the child line `excerpt`, its
+   holder chain `block, group, timeline, child`; on `excerpt`'s card it
+   belongs to the member's own line, `block, group, timeline`. With
+   `recording/cmap_2` selected (the frames and cards are drawn `group_1`,
+   `score/card`, `performance/card`, `recording/card`, `group_2`,
+   `page/card`, `excerpt/card`, `annotations/card`):
+
+   | statement | marked |
+   |---|---|
+   | none | `rect group_1`, `rect recording/card`, `rect group_2`, `rect excerpt/card` |
+   | the map hidden inside a child line | `rect group_2`, `rect excerpt/card` |
+
+   The node's `div` carries the attribute both times. A box is marked
+   only for a copy it draws: a rule asking only whether the drawing draws
+   a map of that address anywhere, and where the manifest's tree puts
+   each one, would mark `recording/card` and `group_1` in the second row
+   too.
 
 That the client position is converted under zoom and scale, that a press on
 a card or a frame selects it, that a card and its frame holding the
@@ -2667,7 +2871,8 @@ harness with actions that do nothing.
 
 `block-node.test.ts` (jsdom). View: A holds `bundle_mixed` at (40, 80) and B
 holds `bare` at (2000, 0). Each node's data is `project`'s for that view
-with the given editor, so the node gets exactly what the canvas gives it.
+with the given editor and selection (empty unless a case names one), so
+the node gets exactly what the canvas gives it.
 The element order is the order of `bundle__bundle_mixed`'s `figure.svg`:
 the block's background (no address), the title `name`, the frame `group_1`
 and its name, the members `score` and `performance`, then the frame
@@ -2757,6 +2962,47 @@ jump `jump_1`, has 15 elements, and `performance`, with the map `cmap_1`,
    (180, 184.90234375) dispatches exactly the command above: the travel
    `(80, −15.09765625)` is `(32, −6.0390625)` drawing units (an item's place
    is in drawing units whatever the scale).
+   **Two selected items move together, the selection kept.** With
+   `A/group_2` and `A/annotations/card` selected (the node's data is
+   `project`'s for that selection), the same press, move and release on
+   `group_2`'s frame make exactly three calls: `preview("A", {places:
+   {group_2: {x: 40, y: 200}, annotations: {x: 40, y: 385.734375},
+   group_1: {x: 8, y: 28.8046875}}})`, the places of `itemMoveCommand`'s
+   command with `together` `[annotations]` (section "Items"); `dispatch`
+   with exactly that command, one `set` for both; `preview("A", null)`. No
+   `select`: the selection is left as it was.
+   **A pressed item outside the selection moves alone.** With `A/group_1`
+   and `A/annotations/card` selected, the same drag of `group_2` makes
+   exactly the four calls of the first case, `select("A/group_2")` first.
+   **One item in the selection moves alone and keeps it.** With
+   `A/group_2` and `A/page` selected (the frame and a member's line it
+   contains), the same drag of `group_2` makes exactly the first case's
+   calls without its `select`: the single-item preview, its dispatch,
+   `preview("A", null)`. The node changes the selection only through
+   `select`, so after the move the selection is the one before it.
+   **A frame under a card stays where it is.** On the view `over` of
+   section "Items" (`annotations`' card drawn at (8, 60), over `group_1`'s
+   frame), with `A/annotations/name` and `A/group_2` selected, the same
+   press, move and release on `group_2`'s frame make exactly three calls:
+   `preview("A", {places: {annotations: {x: 40, y: 53.9609375}, group_1:
+   {x: 8, y: 28.8046875}, group_2: {x: 40, y: 200}}})`, `annotations`
+   moved from (8, 60) by the travel `(32, −6.0390625)` and `group_1` as
+   the block states it; `dispatch({type: "set", changes: [{target:
+   "A/group_2", values: {place: {x: 40, y: 200}}}, {target:
+   "A/annotations", values: {place: {x: 40, y: 53.9609375}}}]})`, with no
+   change for `group_1`, which states its whole position already;
+   `preview("A", null)`. No `select`. The frame underneath does not move:
+   under a rule of where things are drawn, `group_1` would hold the card's
+   name and travel with it to (40, 22.765625).
+   **Escape withdraws the whole preview; a drag back to its start stores
+   nothing.** With the two items selected, a press on `group_2`'s frame,
+   a move to (132, 193.9609375) and Escape (a `keydown` on the window)
+   make exactly the moved preview above and `preview("A", null)`; the
+   release that follows calls nothing. A press, a move to (132,
+   193.9609375), a move back to (100, 200) and the release there make
+   exactly the moved preview, `preview("A", {places: {}})` (back at its
+   drawn place the move gives `null`, so the block's own places, which
+   state nothing, are shown) and `preview("A", null)`, and no `dispatch`.
 6. **The elements slide only while a member drag previews an order.**
    Svelte's `animate:` measures every element of the keyed each on every
    redraw and animates each whose screen rectangle changed, so `slide`'s

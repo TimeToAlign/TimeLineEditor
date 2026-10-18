@@ -1338,20 +1338,30 @@ one `SessionEntry` naming it: the target is never repeated in the entry.
 
 A **change** is one command entry at any depth: an entry of a level, or an
 entry of a session that a level's session entry names, recursively. A
-session entry is never itself a change. Undo reverts the latest applied
-change of the innermost level, redo re-applies its earliest undone one, so
-on any level the undone changes are the last ones in order. `entries` (and
+session entry is never itself a change. A change's **owner** is the
+innermost session whose own entries hold it. Undo and redo move by
+**steps**: a change the level owns itself (a command of the open editor's
+session, or of the main journal on the arranger) is a step of its own; a
+change inside a closed session, at any depth, goes with the changes next
+to it that the same session owns, a step being a maximal run of
+consecutive changes owned by one closed session. Undo reverts the latest
+applied step of the innermost level, redo re-applies its earliest undone
+one, so redo mirrors undo step for step and on any level the undone
+changes are the last ones in order. `entries` (and
 `journal`, the main level's) are the entries holding at least one applied
 change, a partly undone session by its unchanged entry; `listed` is every
 entry of the level, undone ones included, each as `{entry, changes,
 applied, children}`: how many changes it holds, how many of them are
 applied, and for a session entry its own entries listed the same way. A
 session entry is applied, partly undone or undone as `applied` equals
-`changes`, lies between, or is 0. What would prove change-wise undo works
-is that each undo restores the very view object the store held before that
-change was made (never a replay's copy, never the view before a whole
-session), that a new command keeps exactly the applied changes at every
-depth under the same ids, and that the file then replays to the view.
+`changes`, lies between, or is 0. What would prove step-wise undo works
+is that each undo restores the very view object the store held before the
+step's first change was made (never a replay's copy), that the view between
+two changes of one run is never shown while the view between two of the
+open level's own changes is, that a session's own changes split by an
+embedded session give one step per run, newest first, that a new command
+keeps exactly the applied changes at every depth under the same ids, and
+that the file then replays to the view.
 
 The cases run on block `bundle0001` holding `bundles/bundle_mixed.json`
 (groups `group_1` [performance, score] and `group_2` [excerpt, page], the
@@ -1379,15 +1389,15 @@ ungrouped root `annotations`), added by the store's first dispatch. "A
    the journal is the `add` plus `{session: <that id>, author: "Gerhardt",
    time: <the clock's next tick>}`; `sessions` is exactly `{<id>: {target:
    "bundle0001/group_1", entries: <the two command entries>}}`; the view is
-   the one after both sets (the same object). `undo()` reverts the second
-   `set` only: the view after the first (the same object), the journal
-   still the `add` and the session, and `listed` the `add` `{changes: 1,
-   applied: 1}` and the session `{changes: 2, applied: 1}` whose children
-   are the first `set` applied (1 of 1) and the second undone (0 of 1). A
-   second `undo()` gives the view at opening (the same object), `journal`
-   the `add` alone and the session listed with `applied` 0; `redo()` twice
-   gives the view after the first and then after both sets again (the same
-   objects).
+   the one after both sets (the same object). The two `set`s are
+   consecutive changes owned by the closed session, one run: `undo()`
+   reverts both at once, giving the view at opening (the same object;
+   the view after the first `set` is never shown), `journal` the `add`
+   alone, `canUndo` true (the `add` precedes), and `listed` the `add`
+   `{changes: 1, applied: 1}` and the session `{changes: 2, applied: 0}`
+   whose children are both `set`s undone (0 of 1 each). `redo()` re-applies
+   both: the view after both sets (the same object), the session listed 2
+   of 2, `canRedo` false.
 3. **Undo inside a session stops at its start.** In 2's editor after one
    `set`, two `undo`s leave `entries` `[]`, `listed` that one entry
    undone (`{changes: 1, applied: 0, children: []}`), the view at opening
@@ -1401,10 +1411,13 @@ ungrouped root `annotations`), added by the store's first dispatch. "A
    Done, `open bundle0001/group_1` again: `editing[0]` has 2's session id
    and `earlier` null; `entries` are 2's two entries (the same objects),
    `canUndo` true, `changes` 0, the journal is the `add` alone and
-   `sessions` is `{}` (the open session is not closed). Two `undo`s give
-   the view before 2's sets (deep-equal to the view after the `add`) and
-   `changes` 2; `done()` records nothing: the journal is the `add` alone,
-   one entry shorter than after 2, and `sessions` is `{}`.
+   `sessions` is `{}` (the open session is not closed). The reopened
+   session's own changes are again the open level's, one step each: the
+   first `undo` gives the view after 2's first `set` (the same object 2
+   held) and `changes` 1, the second the view after the `add` (the same
+   object) and `changes` 2, where on the arranger one `undo` reverted both
+   (case 2); `done()` records nothing: the journal is the `add` alone, one
+   entry shorter than after 2, and `sessions` is `{}`.
 6. **Unfolded, then cancelled.** After 2's Done, reopening and one `undo`
    give `changes` 1 (`o` two entries, `c` the first of them, common prefix
    1); `cancel()` restores the journal (the `add` and the very same
@@ -1430,7 +1443,8 @@ ungrouped root `annotations`), added by the store's first dispatch. "A
    (length 3). On the main level the first `undo()` reverts the inner
    `set` only (the view after `set annotations`, the same object the
    bundle editor held before it opened the inner editor), the second the
-   bundle's `set`, giving the view after the `add`.
+   bundle's `set`, giving the view after the `add`: the two are owned by
+   different sessions, so each is a run of its own.
 10. **Cancel of a nested editor.** In 9, after the inner `set`, `cancel()`
     closes only the inner editor: `editing` is the bundle editor alone,
     `entries` its one command, the view the one after it (the same object);
@@ -1455,9 +1469,10 @@ ungrouped root `annotations`), added by the store's first dispatch. "A
     inner editor's session, and `replay` of its journal and sessions
     deep-equals the view. With no
     editor open, `snapshot()` writes only applied changes: after 2's Done
-    and one `undo` its journal is the `add` and the session entry, the
-    session holding only the first `set`; after a second `undo` its
-    journal is the `add` alone and its `sessions` `{}`.
+    and one `undo` (the session's one run) its journal is the `add` alone
+    and its `sessions` `{}`, while the store's `sessions` still holds the
+    session, to redo; a partly undone session is written with its applied
+    changes only (case 24).
 13. **Listeners.** Each of `open`, a dispatch inside an editor, `undo`,
     `redo`, `done` and `cancel` calls the listener exactly once.
 14. **The side-effect guard through the store.** In the editor
@@ -1498,31 +1513,31 @@ ungrouped root `annotations`), added by the store's first dispatch. "A
     stale `set` redone, the view would keep score named "S" while its
     journal replays to "Score".
 
-**Undo one change at a time through nested sessions.** Cases 16 to 22 run
-the scenario of three nested editors: `A` is the bundle editor of
-`bundle0001`, `B` the group editor of `bundle0001/group_1`, `C` the
-timeline editor of `bundle0001/score` (a member of `group_1`). Open `A`,
-`B`, `C`; in `C` the change `c` = `set score name "c-name"`, Done; in `B`
-the change `b` = `set performance name "b-name"`, Done; in `A` the change
-`a` = `set annotations name "a-name"`, Done. The views right after `c`,
-`b` and `a` are kept as `Vc`, `Vb`, `Va`, the view after the `add` as
-`V0`. The main journal is then the `add` and one session entry `SA`,
-`sessions[SA].entries` `[SB, a]`, `sessions[SB].entries` `[SC, b]`,
-`sessions[SC].entries` `[c]` (`SB`, `SC` the session entries of `B`'s and
-`C`'s sessions), three changes in all. "A new command" on the arranger is
-`set bundle0001 x 40`.
+**Three nested sessions.** Cases 16 to 22 run the scenario of
+three nested editors: `A` is the bundle editor of `bundle0001`, `B` the
+group editor of `bundle0001/group_1`, `C` the timeline editor of
+`bundle0001/score` (a member of `group_1`). Open `A`, `B`, `C`; in `C` the
+change `c` = `set score name "c-name"`, Done; in `B` the change `b` = `set
+performance name "b-name"`, Done; in `A` the change `a` = `set annotations
+name "a-name"`, Done. The views right after `c`, `b` and `a` are kept as
+`Vc`, `Vb`, `Va`, the view after the `add` as `V0`. The main journal is
+then the `add` and one session entry `SA`, `sessions[SA].entries` `[SB,
+a]`, `sessions[SB].entries` `[SC, b]`, `sessions[SC].entries` `[c]` (`SB`,
+`SC` the session entries of `B`'s and `C`'s sessions), three changes in
+all, each the one change its session owns, so each run is one change. "A
+new command" on the arranger is `set bundle0001 x 40`.
 
-16. **Each undo reverts one change, the latest first.** On the arranger,
-    `listed` is the `add` (1 of 1) and `SA` `{changes: 3, applied: 3}`.
-    `undo()` reverts `a`: the view is `Vb` (the same object), the
-    journal still `[add, SA]`, `SA` listed `{changes: 3, applied: 2}` with
-    children `SB` (2 of 2: `SC` 1 of 1, `b` 1 of 1) and `a` (0 of 1);
-    the next `undo()` gives `Vc` (`SA` 1 of 3, `SB` 1 of 2, `b` 0 of 1),
-    the next `V0` (`SA` 0 of 3, `journal` the `add` alone), every one the
-    same object. `canUndo` is still true there, since the `add` precedes;
-    a fourth `undo()` reverts the `add` and `canUndo` is false. Four
-    `redo()`s give `V0`, then `Vc`, `Vb`, `Va` (the same objects; `c`
-    first, then `b`, then `a`), `canRedo` false.
+16. **Three undos, the latest session first.** On the arranger, `listed`
+    is the `add` (1 of 1) and `SA` `{changes: 3, applied: 3}`. `undo()`
+    reverts `a`: the view is `Vb` (the same object), the journal still
+    `[add, SA]`, `SA` listed `{changes: 3, applied: 2}` with children `SB`
+    (2 of 2: `SC` 1 of 1, `b` 1 of 1) and `a` (0 of 1); the next `undo()`
+    gives `Vc` (`SA` 1 of 3, `SB` 1 of 2, `b` 0 of 1), the next `V0` (`SA`
+    0 of 3, `journal` the `add` alone), every one the same object.
+    `canUndo` is still true there, since the `add` precedes; a fourth
+    `undo()` reverts the `add` and `canUndo` is false. Four `redo()`s give
+    `V0`, then `Vc`, `Vb`, `Va` (the same objects; `c` first, then `b`,
+    then `a`), `canRedo` false.
 17. **A new command keeps the applied changes, at every depth, under the
     same ids.** After one `undo()` (`a` undone), a new command: the
     journal is `[add, SA, <the set>]` with `SA` the same entry object;
@@ -1549,24 +1564,118 @@ the change `b` = `set performance name "b-name"`, Done; in `A` the change
     same entry, `SA` listed 2 of 3, `canRedo` true, `sessions` deep-equal
     to before `open`, the view `Vb` (the same object); a `redo()` then
     gives `Va`.
-21. **Undo inside an editor steps into a folded session and stops at the
-    opening.** `open bundle0001`, `open bundle0001/group_1`, `set score
-    name "S"`, `set performance name "P"`, Done: the bundle editor's
-    `entries` are `[SB]`. `undo()` gives the view after the first `set`
-    (the same object) with `SB` listed 1 of 2 and the entries still
-    `[SB]`; `undo()` gives the view at the bundle editor's opening (the
-    same object), `entries` `[]`, `canUndo` false; a third `undo()`
-    changes nothing (the same view, the main journal the `add` alone).
+21. **Inside an editor a closed sub-session undoes by its run and undo
+    stops at the opening.** `open bundle0001`, `open bundle0001/group_1`,
+    `set score name "S"`, `set performance name "P"`, Done: the bundle
+    editor's `entries` are `[SB]`, whose two `set`s are one run of the
+    closed `SB`. `undo()` reverts both: the view at the bundle editor's
+    opening (the same object), `entries` `[]`, `SB` listed 0 of 2,
+    `canUndo` false; a second `undo()` changes nothing (the same view, the
+    main journal the `add` alone); `redo()` gives the view after both
+    `set`s (the same object the group editor held), `SB` 2 of 2, `canRedo`
+    false.
 22. **Cancel's count counts changes.** The scenario without `a` (`A`
     closed with Done holding only `SB`): reopening `A` unfolds it with
-    `changes` 0; one `undo()` reverts the nested `b` and gives `changes`
-    1 (`[c, b]` at opening, `[c]` now); a new command in `A` (`set
-    annotations name "z"`) discards `b`, rebuilds `SB`'s session as `[SC]`
-    under the same id and gives `changes` 2 (`[c, b]` against `[c, z]`,
-    common prefix 1): the comparison is by the command entries, which the
-    rebuilt session keeps, never by the session objects. The bundle
-    session's journal text counts nested changes: on the arranger the
-    full scenario's `SA` is listed `{changes: 3}`.
+    `changes` 0; one `undo()` reverts the nested `b` (the run `[b]` of
+    `SB`; `c` is `SC`'s) and gives `changes` 1 (`[c, b]` at opening, `[c]`
+    now); a new command in `A` (`set annotations name "z"`) discards `b`,
+    rebuilds `SB`'s session as `[SC]` under the same id and gives
+    `changes` 2 (`[c, b]` against `[c, z]`, common prefix 1): the
+    comparison is by the command entries, which the rebuilt session keeps,
+    never by the session objects. The bundle session's journal text counts
+    nested changes: on the arranger the full scenario's `SA` is listed
+    `{changes: 3}`.
+
+**The interleaved scenario.** Cases 23 to 27 split a session's own changes
+by an embedded session. With the editors `A`, `B` and `C` above: open `A`,
+`a1` = `set annotations name "name-a1"`; open `B`, `b1` = `set performance
+name "name-b1"`; open `C`, `c1` = `set score name "name-c1"`, `c2` = `set
+score name "name-c2"`, Done; `b2` = `set performance name "name-b2"`,
+Done; `a2` = `set annotations name "name-a2"`, then Done unless a case
+keeps `A` open. The views right after each change are `Va1`, `Vb1`, `Vc1`,
+`Vc2`, `Vb2` and `Va2`; `V0`, the view after the `add`, is also `A`'s
+opening view. The six changes in order, `a1 b1 c1 c2 b2 a2`, are owned by
+`SA SB SC SC SB SA`, so the runs are `[a1] [b1] [c1 c2] [b2] [a2]`. With
+`A` closed the main journal is `[add, SA]`, `sessions[SA].entries` `[a1,
+SB, a2]`, `sessions[SB].entries` `[b1, SC, b2]` and `sessions[SC].entries`
+`[c1, c2]`. The names hold a hyphen, so a search of a file's text for one
+never matches a session id (`[0-9a-z]` only).
+
+23. **Five undos on the arranger: `a2`, `b2`, `c1 c2`, `b1`, `a1`.**
+    `listed` is the `add` (1 of 1) and `SA` 6 of 6, its children `a1`,
+    `SB` (4 of 4: `b1`, `SC` 2 of 2 holding `c1` and `c2`, `b2`) and `a2`.
+    Each `undo()` gives, every view the same object: `Vb2` (`SA` 5 of 6,
+    `a2` 0 of 1); `Vc2` (`SA` 4 of 6, `SB` 3 of 4, `b2` 0 of 1); `Vb1`
+    (`SA` 2 of 6, `SB` 1 of 4, `SC` 0 of 2: `c1` and `c2` undone by the
+    one undo, `Vc1` never shown); `Va1` (`SA` 1 of 6, `SB` 0 of 4); `V0`
+    (`SA` 0 of 6). The journal is `[add, SA]` until the fifth, then the
+    `add` alone; `canUndo` is still true (the `add` precedes) and a sixth
+    `undo()` reverts the `add`. Redo mirrors undo: six `redo()`s give `V0`,
+    `Va1`, `Vb1`, `Vc2`, `Vb2`, `Va2` (the same objects), `listed` after
+    each deep-equal to `listed` before the matching undo, and then
+    `canRedo` is false.
+24. **A new command after undoing a run discards the whole run.** After
+    three `undo()`s (`a2`, `b2`, then `c1` and `c2` together),
+    `snapshot()` writes only the applied changes: its journal `[add,
+    SA]`, its `sessions` exactly `SA` `[a1, SB]` and `SB` `[b1]`, no `SC`,
+    replaying to the view, while the store's `sessions` still holds all
+    three, to redo. A new command: the journal is `[add, SA, <the set>]`
+    with `SA` the same entry object; `sessions` has exactly the keys of
+    `SA` and `SB`, `sessions[SA].entries` `[a1, SB]` and
+    `sessions[SB].entries` `[b1]` (the same entry objects); `canRedo` is
+    false. The snapshot replays to the view, its written file contains
+    `name-a1` and `name-b1` and none of `name-c1`, `name-c2`, `name-b2` and
+    `name-a2`, and it reads back deep-equal. Loaded into a new store
+    (`createStore` of the workspace read back), it keeps the owners: the
+    next `undo()`s revert the move, then `b1` alone (`SB`'s run), then
+    `a1` alone (`SA`'s), giving views deep-equal to `Vb1`, `Va1` and `V0`
+    (the new store builds its own views, so not the same objects), with
+    `canUndo` still true, since the `add` precedes. A load that gave a
+    nested change the outermost session as its owner, rather than the
+    innermost, would merge `a1` and `b1` into one step.
+25. **In the open editor its own changes undo one at a time, a closed
+    sub-session by its runs.** The scenario with `A` kept open and `a3` =
+    `set annotations name "name-a3"` made after `a2` (view `Va3`): `A`'s
+    `entries` are `[a1, SB, a2, a3]`; `a2` and `a3` are consecutive like
+    `c1` and `c2`, but owned by the open level. Each `undo()` gives, the
+    same objects: `Va2` (`a3`), `Vb2` (`a2`), `Vc2` (`b2`), `Vb1` (`c1`
+    and `c2`), `Va1` (`b1`), then `V0` (`a1`) with `entries` `[]` and
+    `canUndo` false; a seventh `undo()` changes nothing, and the main
+    journal is the `add` alone throughout. Six `redo()`s mirror them:
+    `Va1`, `Vb1`, `Vc2`, `Vb2`, `Va2`, `Va3`. Cancel is unchanged: after
+    two more `undo()`s (`a3`, `a2`), `changes` is 5 (a fresh
+    session: `o` none, `c` `[a1, b1, c1, c2, b2]`), and `cancel()` leaves
+    `editing` `[]`, the view `V0` (the same object), the journal `[add]`,
+    `sessions` `{}` and `listed` deep-equal to those before `A` opened.
+26. **Reopened, a session's own changes are the open level's again; its
+    closed sub-sessions keep their runs.** After the scenario (`A` closed)
+    and one `undo()` on the arranger (`a2`), `open bundle0001` unfolds
+    `SA`: `editing` is one editor with `SA`'s id and `earlier` null,
+    `entries` `[a1, SB]`, `listed` `a1` (1 of 1), `SB` (4 of 4) and `a2`
+    (0 of 1), `canRedo` true, `changes` 0, the view `Vb2` (the same
+    object), the main journal the `add` alone. `redo()` re-applies `a2`
+    alone (`Va2`, `changes` 1); each `undo()` then gives, the same
+    objects, `Vb2` (`a2`), `Vc2` (`b2`), `Vb1` (`c1` and `c2`), `Va1`
+    (`b1`) and `V0` (`a1`), `canUndo` false and `changes` 5 (`o` `[a1, b1,
+    c1, c2, b2]`, `c` none). `cancel()` restores the main level exactly:
+    the journal `[add, SA]` with the very same entry, `SA` listed 5 of 6,
+    `canRedo` true, `sessions` deep-equal to before `open`, the view `Vb2`
+    (the same object); a `redo()` then gives `Va2`.
+27. **Loaded from its file, the scenario keeps its runs.** The scenario's
+    written file (`A` closed, nothing undone), read back deep-equal to the
+    snapshot and loaded into a new store (`createStore`), shows a view
+    deep-equal to `Va2`. Each `undo()` then gives a view deep-equal to
+    `Vb2` (`a2`), `Vc2` (`b2`), `Vb1` (`c1` and `c2` together, `Vc1`
+    never shown), `Va1` (`b1`) and `V0` (`a1`); the new store builds its
+    own views, so they are not the same objects. `canUndo` is still true
+    there, since the `add` precedes. The file states no owner: the load
+    derives each change's owner from the sessions, the innermost one
+    whose own entries hold it. A load that gave every change no owner
+    (`null`, as a command of the main journal has) would make each change
+    a step of its own, and the third `undo()` would show `Vc1`. A load
+    that gave a nested change the outermost session `SA` would revert all
+    six at the first `undo()`. Case 24's reload catches only the second,
+    since no run of two changes is left in the file it loads.
 
 ## Containment and the side-effect guard (`contains.test.ts`, `guard.test.ts`)
 
@@ -2011,8 +2120,8 @@ a command.
 of up to 30 steps, each a seed with an operation: a command, opening an
 editor, a reopen (the target of the latest session of the innermost
 level, so the reopen rule unfolds it), a whole session (open, one or two
-commands, Done), an unfold (reopen, undo all of its changes or the last
-one, Done), Done, Cancel, undo and redo. A command in an open editor is
+commands, Done), an unfold (reopen, undo until nothing is left to undo or
+one step, Done), Done, Cancel, undo and redo. A command in an open editor is
 mostly one that stays inside it (a name of what it holds, its place's `x`,
 `scale`, `spacing` or `width`, band order or display order, for a member
 its group's `length` and `scale`, the box's width), sometimes any generated command,
@@ -2027,14 +2136,15 @@ without an editor or one naming nothing. Ten sequences per fixture.
    snapshot().sessions).at(-1)` deep-equals `snapshot().view`, and
    `readWorkspace(writeWorkspace(snapshot()))` deep-equals the snapshot
    (view, journal and sessions).
-10. After every such step, redoing every undone change of the innermost
-    level (as long as `canRedo` holds) gives a snapshot whose journal
-    replays to its view too; the changes are then undone again. Undone
-    changes kept across a change of the level below them (a Done that took
-    a session off it), or a partly undone session written with its undone
-    changes, fail here. Once undone again, the view is the very object
-    (`toBe`) the step left: undo returns to the level's recorded views,
-    never to a rebuilt copy.
+10. After every such step, redoing step by step on the innermost level as
+    long as `canRedo` holds gives a snapshot whose journal replays to its
+    view too; as many undos as there were redos then undo them again.
+    Undone changes kept across a change of the level below them (a Done
+    that took a session off it), or a partly undone session written with
+    its undone changes, fail here. Once undone again, the view is the very
+    object (`toBe`) the step left: undo returns to the level's recorded
+    views, never to a rebuilt copy, and redo mirrors undo step for step, so
+    a redo step other than the undo step it mirrors would stop elsewhere.
 11. Cancel is exact. At every opening (an `open` or a `reopen` that opens
     an editor) the store's `view`, `journal`, `sessions` and `listed` are
     recorded, and a Done that closes an editor forgets the innermost
@@ -2043,11 +2153,19 @@ without an editor or one naming nothing. Ten sequences per fixture.
     deep-equal, after any nesting, unfold or partial undo in between. A
     Cancel that left behind the undone changes of an unfolded session, or a
     Done's fold of a nested editor, fails here.
-    The two property tests take about the same time per fixture: measured
-    in one run with a load average of 7, the command sequences 6.9 s and
-    the editing sequences 7.4 s over all fixtures (about 13 ms per
-    sequence each); steps that change nothing are not checked again, since
-    8 proves they leave the store as it was.
+12. Undo and redo never split a run. After every step, in `listed` (the
+    innermost level's entries), no session entry at any depth holds two
+    adjacent command entries of which one is applied and the other undone:
+    the consecutive changes one closed session owns are applied or undone
+    together. The level's own entries are not checked, since they undo one
+    at a time. An undo or redo moving by one change inside a closed session
+    fails here as soon as it stops between two commands of one session.
+
+Steps that change nothing are not checked again, since 8 proves they
+leave the store as it was. The two property tests take about the same
+time per fixture: measured in one run with a load average of 15, the
+command sequences 18.4 s and the editing sequences 18.5 s over all
+fixtures (about 33 ms per sequence each).
 
 ## Budgets (`budget.test.ts`)
 

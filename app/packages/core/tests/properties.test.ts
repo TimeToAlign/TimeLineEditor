@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import type { SessionEntry, Store, View, Workspace } from "../src/index.ts";
+import type { ListedEntry, SessionEntry, Store, View, Workspace } from "../src/index.ts";
 import {
   apply,
   checkWorkspace,
@@ -122,8 +122,9 @@ interface Opening {
  * Run one step of an editing sequence; whether it changed the store. A
  * session opens an editor, makes one or two commands in it and closes it
  * with Done; an unfold reopens the latest session of the innermost level,
- * undoes all of its changes or the last one, and closes it with Done. A step that changes nothing leaves the view and the editing
- * path the same objects. `openings` holds what the store held at each open
+ * undoes until nothing is left to undo or one step, and closes it with
+ * Done. A step that changes nothing leaves the view and the editing path
+ * the same objects. `openings` holds what the store held at each open
  * editor's opening, outermost first: an open pushes it, Done pops it, and
  * Cancel pops it and finds the store exactly as it was.
  */
@@ -178,6 +179,23 @@ function run(store: Store, { operation, seed }: Step, openings: Opening[]): bool
   return changed;
 }
 
+/**
+ * No session entry in `listed`, at any depth, holds two adjacent commands of
+ * which one is applied and the other undone: a closed session's run is
+ * applied or undone whole. The level's own entries are not checked.
+ */
+function keepsRuns(listed: readonly ListedEntry[]): void {
+  for (const item of listed) {
+    const { children } = item;
+    for (const [index, child] of children.entries()) {
+      const next = children[index + 1];
+      if (next === undefined || isSessionEntry(child.entry) || isSessionEntry(next.entry)) continue;
+      expect([child.applied, next.applied]).not.toEqual([1, 0]);
+    }
+    keepsRuns(children);
+  }
+}
+
 /** The journal of `store`, every open editor folded, replays to its view. */
 function replaysToView(store: Store): Workspace {
   const snapshot = store.snapshot();
@@ -193,15 +211,17 @@ describe("generated editing sequences", () => {
         const openings: Opening[] = [];
         for (const step of steps) {
           if (!run(store, step, openings)) continue;
+          keepsRuns(store.listed);
           const snapshot = replaysToView(store);
           expect(readWorkspace(writeWorkspace(snapshot))).toEqual(snapshot);
-          // What redo would bring back replays too: redo it all, then undo it again.
+          // What redo would bring back replays too: redo it all step by step,
+          // then undo as many steps, which redo mirrors.
           const left = store.view;
-          let undone = 0;
-          for (; store.canRedo; undone += 1) store.redo();
-          if (undone === 0) continue;
+          let steps = 0;
+          for (; store.canRedo; steps += 1) store.redo();
+          if (steps === 0) continue;
           replaysToView(store);
-          for (let count = 0; count < undone; count += 1) store.undo();
+          for (let count = 0; count < steps; count += 1) store.undo();
           expect(store.view).toBe(left);
         }
       }),

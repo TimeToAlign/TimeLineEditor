@@ -1423,8 +1423,8 @@ values each test pins:
      changes)"; of `0000000000` holding one command and the session of
      `0000000000/group_1` holding two, "Edited bundle Mixed (3 changes)":
      the count is of changes (commands at every depth), never of entries,
-     so a bundle session holding a group session reads like the user's
-     three changes. The kind word is the editor kind of the target in the
+     so a bundle session holding a group session reads as three changes.
+     The kind word is the editor kind of the target in the
      view (`editorKindOf`): a block a bundle, a group a group, a root or
      child timeline a timeline. A target the view no longer holds has no
      kind word, because what it was is not read back from earlier views:
@@ -1546,21 +1546,26 @@ values each test pins:
    `listed` then one applied `set` of `x` on `0000000000`, it holds the
    list of exactly one item, "Set x of 0000000000", and the text "No
    changes yet." is gone.
-   **A session row discloses its changes.** Through the real store, `open
-   0000000000`, `open 0000000000/group_1`, `set score name "S"`, `set
-   performance name "P"`, Done, Done, then one undo on the arranger: the
-   first item reads "Edited bundle Mixed (2 changes, 1 undone)" and holds
-   a native `button` (`type="button"`) before its time, with
-   `aria-expanded` `"false"`, no `aria-controls` and no nested list in the
-   item (a collapsed row's changes are not in the page, so neither the
-   eye nor a query finds them); the button's accessible name is the row's
-   text (`aria-labelledby` the text's element). A click sets
-   `aria-expanded` `"true"`, puts the nested `ol` into the item and
-   `aria-controls` names it: one item "Edited
-   group Performance (2 changes, 1 undone)", itself holding a collapsed
-   button; expanding it shows "Set name of 0000000000/performance" with
-   `data-undone` and the hidden word "undone", then "Set name of
-   0000000000/score" without (newest first). A second click on the outer
+   **A session row discloses its changes, and a run greys at once.**
+   Through the real store, `open 0000000000`, `open 0000000000/group_1`,
+   `set performance name "P"`, `open 0000000000/score`, `set score name
+   "S"`, `set score name "T"`, Done, Done, Done, then one undo on the
+   arranger, which reverts the timeline session's two changes together
+   (one run of a closed session): the first item reads "Edited bundle
+   Mixed (3 changes, 2 undone)" and holds a native `button`
+   (`type="button"`) before its time, with `aria-expanded` `"false"`, no
+   `aria-controls` and no nested list in the item (a collapsed row's
+   changes are not in the page, so neither the eye nor a query finds
+   them); the button's accessible name is the row's text
+   (`aria-labelledby` the text's element). A click sets `aria-expanded`
+   `"true"`, puts the nested `ol` into the item and `aria-controls` names
+   it: one item "Edited group Performance (3 changes, 2 undone)", itself
+   holding a collapsed button; expanding it shows, newest first, "Edited
+   timeline Score (2 changes)" with `data-undone`, the hidden word
+   "undone" and a button of its own, then "Set name of
+   0000000000/performance" without either; expanding the timeline row
+   shows its two "Set name of 0000000000/score" rows, both with
+   `data-undone` and the hidden word "undone". A second click on the outer
    button sets `aria-expanded` back to `"false"` and takes the nested
    list out again. A command row has no button. Expansion is view state of the
    panel: nothing of it reaches the store (the journal and `listed` are

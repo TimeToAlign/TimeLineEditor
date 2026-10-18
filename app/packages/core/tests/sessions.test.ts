@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Entry, Session, SessionEntry, Store, View } from "../src/index.ts";
+import type { Entry, ListedEntry, Session, SessionEntry, Store, View } from "../src/index.ts";
 import {
   createStore,
   createView,
@@ -41,10 +41,11 @@ function doneStore() {
   expect(store.open(G1)).toBeNull();
   const session = store.editing[0]?.session as string;
   expect(store.dispatch(rename("score", "S"))).toBeNull();
+  const afterFirst = store.view;
   expect(store.dispatch(rename("performance", "P"))).toBeNull();
   const entries = [...store.entries];
   store.done();
-  return { store, afterAdd, session, entries, after: store.view };
+  return { store, afterAdd, afterFirst, session, entries, after: store.view };
 }
 
 describe("editor ids and kinds", () => {
@@ -123,24 +124,22 @@ describe("editor sessions", () => {
     const [first, second] = entries as [Entry, Entry];
     const applied = (entry: Entry) => ({ entry, changes: 1, applied: 1, children: [] });
     const undone = (entry: Entry) => ({ entry, changes: 1, applied: 0, children: [] });
-    store.undo();
-    expect(store.view).toBe(afterFirst);
-    expect(store.journal).toEqual([add, closed]);
-    expect(store.listed).toEqual([
-      applied(add),
-      { entry: closed, changes: 2, applied: 1, children: [applied(first), undone(second)] },
-    ]);
+    // Both sets are one run of the closed session: one undo reverts both.
     store.undo();
     expect(store.view).toBe(opening);
-    expect(store.journal).toEqual([add]);
+    expect(store.view).not.toBe(afterFirst);
+    expect([store.journal, store.canUndo]).toEqual([[add], true]);
     expect(store.listed).toEqual([
       applied(add),
       { entry: closed, changes: 2, applied: 0, children: [undone(first), undone(second)] },
     ]);
     store.redo();
-    expect(store.view).toBe(afterFirst);
-    store.redo();
     expect(store.view).toBe(after);
+    expect(store.listed).toEqual([
+      applied(add),
+      { entry: closed, changes: 2, applied: 2, children: [applied(first), applied(second)] },
+    ]);
+    expect(store.canRedo).toBe(false);
   });
 
   it("stops undo at the start of a session", () => {
@@ -181,7 +180,7 @@ describe("editor sessions", () => {
   });
 
   it("unfolds a reopened session that is the latest entry of its level", () => {
-    const { store, afterAdd, session, entries } = doneStore();
+    const { store, afterAdd, afterFirst, session, entries } = doneStore();
     expect(store.open(G1)).toBeNull();
     expect(store.editing).toEqual([{ session, target: G1, kind: "group", earlier: null }]);
     expect(store.entries).toEqual(entries);
@@ -189,9 +188,12 @@ describe("editor sessions", () => {
     expect(store.entries[1]).toBe(entries[1]);
     expect([store.canUndo, store.changes, store.journal.length]).toEqual([true, 0, 1]);
     expect(store.sessions).toEqual({});
+    // Its own changes are the open level's again: one at a time.
     store.undo();
+    expect(store.view).toBe(afterFirst);
+    expect(store.changes).toBe(1);
     store.undo();
-    expect(store.view).toEqual(afterAdd);
+    expect(store.view).toBe(afterAdd);
     expect(store.changes).toBe(2);
     store.done();
     expect(store.journal.length).toBe(1);
@@ -351,16 +353,12 @@ describe("editor sessions", () => {
   });
 
   it("snapshots only applied changes", () => {
-    const { store, session, entries } = doneStore();
+    const { store, session } = doneStore();
     store.undo();
-    const partly = store.snapshot();
-    expect(partly.journal).toEqual(store.journal);
-    expect(partly.sessions).toEqual({ [session]: { target: G1, entries: [entries[0]] } });
-    expect(replay(partly.journal, partly.sessions).at(-1)).toEqual(store.view);
-    store.undo();
-    expect(Object.keys(store.sessions).length).toBe(1);
+    expect(Object.keys(store.sessions)).toEqual([session]);
     const snapshot = store.snapshot();
-    expect([snapshot.journal.length, snapshot.sessions]).toEqual([1, {}]);
+    expect([snapshot.journal, snapshot.sessions]).toEqual([store.journal, {}]);
+    expect(snapshot.journal.length).toBe(1);
   });
 
   it("clears the redo stack below when an unfolded session closes without entries", () => {
@@ -446,8 +444,8 @@ function nestedStore(withA = true) {
 /** A new command on the arranger. */
 const MOVE = set(BUNDLE, { x: 40 });
 
-describe("undo one change at a time through nested sessions", () => {
-  it("reverts the latest change first and redoes the earliest undone first", () => {
+describe("undo by runs through three nested sessions", () => {
+  it("reverts the latest session's run first and redoes the earliest undone first", () => {
     const { store, v0, vc, vb, va, add, sa, sb, sc, a, b, c } = nestedStore();
     expect(store.journal).toEqual([add, sa]);
     expect(store.sessions[sa.session]?.entries).toEqual([sb, a]);
@@ -575,30 +573,33 @@ describe("undo one change at a time through nested sessions", () => {
     expect(store.view).toBe(va);
   });
 
-  it("steps into a folded session inside an editor and stops at the opening", () => {
+  it("undoes a closed sub-session inside an editor by its run and stops at the opening", () => {
     const store = mixedStore();
     const add = store.journal;
     expect(store.open(BUNDLE)).toBeNull();
     const opening = store.view;
     expect(store.open(G1)).toBeNull();
     store.dispatch(rename("score", "S"));
-    const first = store.view;
     store.dispatch(rename("performance", "P"));
+    const both = store.view;
     store.done();
     const [inner] = store.entries as [SessionEntry];
     expect(store.entries).toEqual([inner]);
     store.undo();
-    expect(store.view).toBe(first);
-    expect(store.entries).toEqual([inner]);
+    expect(store.view).toBe(opening);
+    expect([store.entries, store.canUndo]).toEqual([[], false]);
     expect(store.listed).toEqual([
-      expect.objectContaining({ entry: inner, changes: 2, applied: 1 }),
+      expect.objectContaining({ entry: inner, changes: 2, applied: 0 }),
     ]);
     store.undo();
     expect(store.view).toBe(opening);
-    expect([store.entries, store.canUndo]).toEqual([[], false]);
-    store.undo();
-    expect(store.view).toBe(opening);
     expect(store.journal).toEqual(add);
+    store.redo();
+    expect(store.view).toBe(both);
+    expect(store.listed).toEqual([
+      expect.objectContaining({ entry: inner, changes: 2, applied: 2 }),
+    ]);
+    expect(store.canRedo).toBe(false);
   });
 
   it("counts Cancel's changes as changes, by the command entries", () => {
@@ -620,6 +621,233 @@ describe("undo one change at a time through nested sessions", () => {
   it("counts a session's changes at every depth", () => {
     const { store, sa } = nestedStore();
     expect(store.listed[1]).toEqual(expect.objectContaining({ entry: sa, changes: 3, applied: 3 }));
+  });
+});
+
+/** A session entry listed with its children, its counts summed from them. */
+const node = (entry: Entry, children: ListedEntry[]): ListedEntry => ({
+  entry,
+  changes: children.reduce((sum, child) => sum + child.changes, 0),
+  applied: children.reduce((sum, child) => sum + child.applied, 0),
+  children,
+});
+
+/**
+ * The interleaved scenario: in `A`, `a1`; in `B`, `b1`; in `C`, `c1` and
+ * `c2`, Done; `b2`, Done; `a2`, and Done unless `close` is false. The six
+ * changes' runs are `[a1] [b1] [c1 c2] [b2] [a2]`. Each change is kept as
+ * its entry and the view right after it.
+ */
+function interleavedStore(close = true) {
+  const store = mixedStore();
+  const v0 = store.view;
+  const [add] = store.journal as [Entry];
+  const beforeA = { journal: store.journal, sessions: store.sessions, listed: store.listed };
+  const change = (id: string, name: string) => {
+    expect(store.dispatch(rename(id, name))).toBeNull();
+    return { entry: store.entries.at(-1) as Entry, view: store.view };
+  };
+  expect(store.open(BUNDLE)).toBeNull();
+  const a1 = change("annotations", "name-a1");
+  expect(store.open(G1)).toBeNull();
+  const b1 = change("performance", "name-b1");
+  expect(store.open(SCORE)).toBeNull();
+  const c1 = change("score", "name-c1");
+  const c2 = change("score", "name-c2");
+  store.done();
+  const sc = store.entries.at(-1) as SessionEntry;
+  const b2 = change("performance", "name-b2");
+  store.done();
+  const sb = store.entries.at(-1) as SessionEntry;
+  const a2 = change("annotations", "name-a2");
+  if (close) store.done();
+  /** `SB` listed with its first `k` changes (`b1 c1 c2 b2`) applied. */
+  const listedSB = (k: number) =>
+    node(sb, [
+      leaf(b1.entry, k > 0 ? 1 : 0),
+      node(sc, [leaf(c1.entry, k > 1 ? 1 : 0), leaf(c2.entry, k > 2 ? 1 : 0)]),
+      leaf(b2.entry, k > 3 ? 1 : 0),
+    ]);
+  return { store, v0, add, beforeA, a1, b1, c1, c2, b2, a2, sb, sc, listedSB };
+}
+
+describe("undo by runs through an interleaved session", () => {
+  it("undoes a2, b2, c1 with c2, b1, a1 on the arranger and redoes in mirror", () => {
+    const { store, v0, add, a1, b1, c1, c2, b2, a2, sb, sc, listedSB } = interleavedStore();
+    const sa = store.journal[1] as SessionEntry;
+    expect(store.journal).toEqual([add, sa]);
+    expect(store.sessions[sa.session]?.entries).toEqual([a1.entry, sb, a2.entry]);
+    expect(store.sessions[sb.session]?.entries).toEqual([b1.entry, sc, b2.entry]);
+    expect(store.sessions[sc.session]?.entries).toEqual([c1.entry, c2.entry]);
+    /** The arranger's `listed` with the first `k` of the six changes applied. */
+    const tree = (k: number) => [
+      leaf(add, 1),
+      node(sa, [leaf(a1.entry, k > 0 ? 1 : 0), listedSB(k - 1), leaf(a2.entry, k > 5 ? 1 : 0)]),
+    ];
+    expect(store.listed).toEqual(tree(6));
+    const before: { view: View; listed: unknown }[] = [];
+    const steps: [View, number, Entry[]][] = [
+      [b2.view, 5, [add, sa]],
+      [c2.view, 4, [add, sa]],
+      [b1.view, 2, [add, sa]],
+      [a1.view, 1, [add, sa]],
+      [v0, 0, [add]],
+    ];
+    for (const [view, applied, journal] of steps) {
+      before.push({ view: store.view, listed: store.listed });
+      store.undo();
+      expect(store.view).toBe(view);
+      expect(store.listed).toEqual(tree(applied));
+      expect(store.listed[1]?.applied).toBe(applied);
+      expect(store.journal).toEqual(journal);
+    }
+    expect(store.listed[1]?.children[1]?.children[1]).toEqual(
+      node(sc, [leaf(c1.entry, 0), leaf(c2.entry, 0)]),
+    );
+    expect(store.canUndo).toBe(true);
+    before.push({ view: store.view, listed: store.listed });
+    store.undo();
+    expect(store.canUndo).toBe(false);
+    const redone: View[] = [];
+    for (const expected of before.reverse()) {
+      store.redo();
+      redone.push(store.view);
+      expect(store.listed).toEqual(expected.listed);
+    }
+    for (const [index, view] of [v0, a1.view, b1.view, c2.view, b2.view, a2.view].entries()) {
+      expect(redone[index]).toBe(view);
+    }
+    expect(redone).not.toContain(c1.view);
+    expect(store.canRedo).toBe(false);
+  });
+
+  it("discards a whole undone run when a command follows", () => {
+    const { store, v0, add, a1, b1, sb, sc } = interleavedStore();
+    const sa = store.journal[1] as SessionEntry;
+    for (let step = 0; step < 3; step += 1) store.undo();
+    const partly = store.snapshot();
+    expect(partly.journal).toEqual([add, sa]);
+    expect(partly.sessions).toEqual({
+      [sa.session]: { target: BUNDLE, entries: [a1.entry, sb] },
+      [sb.session]: { target: G1, entries: [b1.entry] },
+    });
+    expect(replay(partly.journal, partly.sessions).at(-1)).toEqual(store.view);
+    expect(Object.keys(store.sessions).sort()).toEqual([sa.session, sb.session, sc.session].sort());
+    expect(store.dispatch(MOVE)).toBeNull();
+    expect(store.journal.length).toBe(3);
+    expect(store.journal[0]).toBe(add);
+    expect(store.journal[1]).toBe(sa);
+    expect(commandOf(store.journal[2] as Entry)).toEqual(MOVE);
+    expect(Object.keys(store.sessions).sort()).toEqual([sa.session, sb.session].sort());
+    const [first, second] = store.sessions[sa.session]?.entries ?? [];
+    expect([first, second]).toEqual([a1.entry, sb]);
+    expect(first).toBe(a1.entry);
+    expect(second).toBe(sb);
+    expect(store.sessions[sb.session]?.entries).toEqual([b1.entry]);
+    expect(store.sessions[sb.session]?.entries[0]).toBe(b1.entry);
+    expect(store.canRedo).toBe(false);
+    const snapshot = store.snapshot();
+    expect(replay(snapshot.journal, snapshot.sessions).at(-1)).toEqual(store.view);
+    const text = writeWorkspace(snapshot);
+    expect(
+      ["a1", "b1", "c1", "c2", "b2", "a2"].map((name) => text.includes(`name-${name}`)),
+    ).toEqual([true, true, false, false, false, false]);
+    const read = readWorkspace(text);
+    if (isLoadError(read)) throw new Error(JSON.stringify(read.problems));
+    expect(read).toEqual(snapshot);
+    const reloaded = createStore(read, { clock: testClock() });
+    for (const view of [b1.view, a1.view, v0]) {
+      reloaded.undo();
+      expect(reloaded.view).toEqual(view);
+    }
+    expect(reloaded.canUndo).toBe(true);
+  });
+
+  it("undoes the open editor's own changes one at a time and a closed sub-session by its runs", () => {
+    const { store, v0, add, beforeA, a1, b1, c2, b2, a2, sb } = interleavedStore(false);
+    expect(store.dispatch(rename("annotations", "name-a3"))).toBeNull();
+    const a3 = { entry: store.entries.at(-1) as Entry, view: store.view };
+    expect(store.entries).toEqual([a1.entry, sb, a2.entry, a3.entry]);
+    for (const view of [a2.view, b2.view, c2.view, b1.view, a1.view, v0]) {
+      expect(store.canUndo).toBe(true);
+      store.undo();
+      expect(store.view).toBe(view);
+      expect(store.journal).toEqual([add]);
+    }
+    expect([store.entries, store.canUndo]).toEqual([[], false]);
+    store.undo();
+    expect(store.view).toBe(v0);
+    expect(store.journal).toEqual([add]);
+    for (const view of [a1.view, b1.view, c2.view, b2.view, a2.view, a3.view]) {
+      store.redo();
+      expect(store.view).toBe(view);
+    }
+    expect(store.canRedo).toBe(false);
+    store.undo();
+    store.undo();
+    expect(store.view).toBe(b2.view);
+    expect(store.changes).toBe(5);
+    store.cancel();
+    expect(store.editing).toEqual([]);
+    expect(store.view).toBe(v0);
+    expect([store.journal, store.sessions, store.listed]).toEqual([
+      beforeA.journal,
+      beforeA.sessions,
+      beforeA.listed,
+    ]);
+    expect(store.journal).toEqual([add]);
+    expect(store.sessions).toEqual({});
+  });
+
+  it("unfolds a reopened session whose own changes step alone and whose sub-sessions keep their runs", () => {
+    const { store, v0, add, a1, b1, c2, b2, a2, sb, listedSB } = interleavedStore();
+    const sa = store.journal[1] as SessionEntry;
+    store.undo();
+    expect(store.view).toBe(b2.view);
+    const sessions = store.sessions;
+    expect(store.open(BUNDLE)).toBeNull();
+    expect(store.editing).toEqual([
+      { session: sa.session, target: BUNDLE, kind: "bundle", earlier: null },
+    ]);
+    expect(store.entries).toEqual([a1.entry, sb]);
+    expect(store.listed).toEqual([leaf(a1.entry, 1), listedSB(4), leaf(a2.entry, 0)]);
+    expect([store.canRedo, store.changes, store.journal]).toEqual([true, 0, [add]]);
+    expect(store.view).toBe(b2.view);
+    store.redo();
+    expect(store.view).toBe(a2.view);
+    expect(store.changes).toBe(1);
+    for (const view of [b2.view, c2.view, b1.view, a1.view, v0]) {
+      store.undo();
+      expect(store.view).toBe(view);
+    }
+    expect([store.canUndo, store.changes]).toEqual([false, 5]);
+    store.cancel();
+    expect(store.journal).toEqual([add, sa]);
+    expect(store.journal[1]).toBe(sa);
+    expect(store.listed[1]).toEqual(expect.objectContaining({ entry: sa, changes: 6, applied: 5 }));
+    expect(store.canRedo).toBe(true);
+    expect(store.sessions).toEqual(sessions);
+    expect(store.view).toBe(b2.view);
+    store.redo();
+    expect(store.view).toBe(a2.view);
+  });
+
+  it("keeps the runs of the scenario loaded from its file into a new store", () => {
+    const { store, v0, a1, b1, c1, c2, b2, a2 } = interleavedStore();
+    const snapshot = store.snapshot();
+    const read = readWorkspace(writeWorkspace(snapshot));
+    if (isLoadError(read)) throw new Error(JSON.stringify(read.problems));
+    expect(read).toEqual(snapshot);
+    const reloaded = createStore(read, { clock: testClock() });
+    expect(reloaded.view).toEqual(a2.view);
+    const shown: View[] = [];
+    for (const view of [b2.view, c2.view, b1.view, a1.view, v0]) {
+      reloaded.undo();
+      shown.push(reloaded.view);
+      expect(reloaded.view).toEqual(view);
+    }
+    expect(shown).not.toContainEqual(c1.view);
+    expect(reloaded.canUndo).toBe(true);
   });
 });
 

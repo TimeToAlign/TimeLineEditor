@@ -308,9 +308,9 @@ function openEditor(target: Address): void {
  * The editor target a double-click, a double tap or Enter on `target` opens
  * (`editorTargetOf`): `null` off every block, outside the edited element,
  * and on the edited element itself. A pointer gesture gives its client
- * point, so that text or a region opens the innermost card or frame under
- * it; Enter gives none, so a selected element in no box of its own opens
- * nothing.
+ * point, so that text or a region opens the last drawn card or frame under
+ * it, the innermost where none overlap; Enter gives none, so a selected
+ * element in no box of its own opens nothing.
  */
 function openableAt(target: EventTarget | null, client?: { x: number; y: number }): Address | null {
   const node = nodeAt(target);

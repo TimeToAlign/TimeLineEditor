@@ -57,6 +57,7 @@ export {
   itemOf,
   itemResizeCommand,
   itemResizeValues,
+  itemsMovedWith,
   keepsItems,
   placeCommand,
   placesAfter,

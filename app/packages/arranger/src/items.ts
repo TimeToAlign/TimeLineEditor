@@ -9,12 +9,13 @@ import type {
   Block,
   BlockId,
   Change,
+  Manifest,
   Place,
   SetCommand,
   View,
   WorkspaceSettings,
 } from "@timetoalign/tilie-core";
-import { PLACE_MEMBERS } from "@timetoalign/tilie-core";
+import { contains, PLACE_MEMBERS } from "@timetoalign/tilie-core";
 import type { Drawing, DrawnCard, DrawnItem, RectElement } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timeskeleton";
 import { drawingOf } from "./drawing.ts";
@@ -175,11 +176,45 @@ function blockIn(view: View, id: BlockId): Block {
 }
 
 /**
+ * The other items of `drawing`, the drawing of `manifest`, that a drag of
+ * the item `key` moves with it: every other item in the selection
+ * `selected` (the block's selected element addresses), in the drawing's
+ * order and possibly none, when `key` is in it; `null` when it is not. A
+ * selected frame or card puts in the selection only the item that draws
+ * it, as the drawing records it (the item's `address`, a member card's
+ * `group`); any other selected address puts there every item containing
+ * it by core's `contains`, its key naming the group or the ungrouped root,
+ * wherever the address is drawn.
+ */
+export function itemsMovedWith(
+  manifest: Manifest,
+  drawing: Drawing,
+  selected: ReadonlySet<string>,
+  key: string,
+): string[] | null {
+  const drawnBy = new Map<string, string[]>();
+  for (const item of drawing.items) drawnBy.set(item.address, [item.key]);
+  for (const card of drawing.cards) {
+    drawnBy.set(card.address, [...(drawnBy.get(card.address) ?? []), card.group]);
+  }
+  const keys = drawing.items
+    .filter((item) =>
+      [...selected].some(
+        (address) =>
+          drawnBy.get(address)?.includes(item.key) ?? contains(manifest, item.key, address),
+      ),
+    )
+    .map((item) => item.key);
+  return keys.includes(key) ? keys.filter((other) => other !== key) : null;
+}
+
+/**
  * The `set` that moves the item `key` of block `block` to the place
  * position `x`, `y` (in the drawing's units, measured from the place origin,
- * quantized to `GRID_FREE`), stating the drawn position of every other item
- * that states none (the bundle editor's rule, `placeCommand`). `null` when
- * the item would stay where it is drawn.
+ * quantized to `GRID_FREE`) and every item of `together` by the same travel,
+ * so that each keeps its offset to `key`, stating the drawn position of
+ * every other item that states none (the bundle editor's rule,
+ * `placeCommand`). `null` when the item would stay where it is drawn.
  */
 export function itemMoveCommand(
   view: View,
@@ -188,13 +223,19 @@ export function itemMoveCommand(
   x: number,
   y: number,
   metrics: FontMetrics,
+  together: readonly string[] = [],
 ): SetCommand | null {
   const found = blockIn(view, block);
   const drawing = drawingOf(found, view.settings, metrics);
   const { place } = itemOf(drawing, key);
   const to = { x: quantize(x, GRID_FREE), y: quantize(y, GRID_FREE) };
   if (to.x === place.x && to.y === place.y) return null;
-  return placeCommand(block, drawing, new Map([[key, to]]), true);
+  const places = new Map<string, PlaceValues>([[key, to]]);
+  for (const other of together) {
+    const at = itemOf(drawing, other).place;
+    places.set(other, { x: to.x + (at.x - place.x), y: to.y + (at.y - place.y) });
+  }
+  return placeCommand(block, drawing, places, true);
 }
 
 /**

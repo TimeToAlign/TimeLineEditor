@@ -379,6 +379,14 @@ export function draw(
     local.elements.push(...drawn);
   };
   /**
+   * The range of `drawing.elements` that the elements `from` to `to` of an item's local list
+   * take once the item is drawn: after the elements drawn before it and the block, element 0.
+   */
+  const rangeOf = (from: number, to: number) => ({
+    start: 1 + elements.length + from,
+    end: 1 + elements.length + to,
+  });
+  /**
    * Draw an item at its place (section 8.6): each element and edge it draws in item
    * coordinates taken to its place at its scale.
    */
@@ -422,6 +430,7 @@ export function draw(
     if (titleText !== undefined) local.elements.push(titleText);
     members.forEach((item, index) => {
       const cardRight = cardRights[index] as number;
+      const from = local.elements.length;
       pushCard(local, item.card, Q, cardRight, item.top, item.height, item.elements);
       cards.push({
         key: item.member.timeline.id,
@@ -430,6 +439,7 @@ export function draw(
         size: { width: cardRight - Q, height: item.height },
         spacing: item.spacing,
         stated: item.stated,
+        range: rangeOf(from, local.elements.length),
       });
     });
     items.push({
@@ -438,6 +448,7 @@ export function draw(
       address: id,
       place: { x, y, length: L, scale, spacing, width: right, height },
       stated,
+      range: rangeOf(0, local.elements.length),
     });
     drawItem(frame, local);
   }
@@ -457,6 +468,7 @@ export function draw(
       address: item.card.address,
       place: { x, y, length: L, scale, spacing, width: right, height },
       stated,
+      range: rangeOf(0, local.elements.length),
     });
     drawItem(item, local);
   }

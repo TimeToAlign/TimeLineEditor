@@ -1,5 +1,5 @@
 import type { View } from "@timetoalign/tilie-core";
-import { createStore } from "@timetoalign/tilie-core";
+import { contains, createStore } from "@timetoalign/tilie-core";
 import type { DrawnItem } from "@timetoalign/tilie-layout";
 import { describe, expect, it } from "vitest";
 import type { Handle, Level, PlaceValues, ResizedItem, ResizeMode } from "../src/index.ts";
@@ -9,13 +9,23 @@ import {
   itemMoveCommand,
   itemResizeCommand,
   itemResizeValues,
+  itemsMovedWith,
   placesAfter,
   placesWith,
   project,
   resizedItemOf,
   stretchChanges,
 } from "../src/index.ts";
-import { A, blockIn, changed, metrics, mixedPlain, placed, viewOf } from "./support.ts";
+import {
+  A,
+  blockIn,
+  changed,
+  metrics,
+  mixedPlain,
+  placed,
+  recordingInGroup1,
+  viewOf,
+} from "./support.ts";
 
 const view = mixedPlain();
 const at = (key: string) => `${A}/${key}`;
@@ -66,6 +76,133 @@ describe("itemMoveCommand", () => {
     );
     expect(itemMoveCommand(view, A, "group_2", 8, 206.0390625, metrics)).toBeNull();
     expect(() => itemMoveCommand(view, A, "score", 0, 0, metrics)).toThrow(RangeError);
+  });
+
+  it("moves the items together by the pressed item's travel, each keeping its offset", () => {
+    const command = itemMoveCommand(view, A, "group_2", 40, 200, metrics, ["annotations"]);
+    expect(command).toEqual({
+      type: "set",
+      changes: [
+        { target: at("group_2"), values: { place: { x: 40, y: 200 } } },
+        { target: at("annotations"), values: { place: { x: 40, y: 385.734375 } } },
+        { target: at("group_1"), values: { place: DRAWN.group_1 } },
+      ],
+    });
+    const after = changed(view, command);
+    expect(placeOf(after, "group_2")).toMatchObject({ x: 40, y: 200 });
+    expect(placeOf(after, "annotations")).toMatchObject({ x: 40, y: 385.734375 });
+    expect(placeOf(after, "group_1")).toMatchObject(DRAWN.group_1);
+  });
+
+  it("moves every item when every other one goes with the pressed one", () => {
+    const command = itemMoveCommand(view, A, "group_2", 40, 200, metrics, [
+      "group_1",
+      "annotations",
+    ]);
+    expect(command).toEqual({
+      type: "set",
+      changes: [
+        { target: at("group_2"), values: { place: { x: 40, y: 200 } } },
+        { target: at("group_1"), values: { place: { x: 40, y: 22.765625 } } },
+        { target: at("annotations"), values: { place: { x: 40, y: 385.734375 } } },
+      ],
+    });
+    const after = changed(view, command);
+    expect(placeOf(after, "group_2")).toMatchObject({ x: 40, y: 200 });
+    expect(placeOf(after, "group_1")).toMatchObject({ x: 40, y: 22.765625 });
+    expect(placeOf(after, "annotations")).toMatchObject({ x: 40, y: 385.734375 });
+  });
+
+  it("gives null when no item travels, and refuses a key of together that is no item", () => {
+    expect(
+      itemMoveCommand(view, A, "group_2", 8, 206.0390625, metrics, ["annotations"]),
+    ).toBeNull();
+    expect(() => itemMoveCommand(view, A, "group_2", 40, 200, metrics, ["score"])).toThrow(
+      RangeError,
+    );
+  });
+});
+
+describe("itemsMovedWith", () => {
+  const { manifest } = blockIn(view, A);
+  const drawing = drawingOf(blockIn(view, A), view.settings, metrics);
+  const movedWith = (selected: string[], key: string) =>
+    itemsMovedWith(manifest, drawing, new Set(selected), key);
+
+  it("names the other items in the selection when the pressed one is among them", () => {
+    const frameAndCard = ["group_2", "annotations/card"];
+    expect(movedWith(frameAndCard, "group_2")).toEqual(["annotations"]);
+    expect(movedWith(frameAndCard, "annotations")).toEqual(["group_2"]);
+    expect(movedWith(frameAndCard, "group_1")).toBeNull();
+    expect(movedWith(["group_1", "group_2", "annotations/card"], "annotations")).toEqual([
+      "group_1",
+      "group_2",
+    ]);
+  });
+
+  it("counts an item containing a selected element as in the selection", () => {
+    const elements = ["score", "annotations/name"];
+    expect(movedWith(elements, "group_1")).toEqual(["annotations"]);
+    expect(movedWith(elements, "annotations")).toEqual(["group_1"]);
+    expect(movedWith(elements, "group_2")).toBeNull();
+  });
+
+  it("names none for the one item in the selection, null for an item outside it", () => {
+    const oneItem = ["group_2", "page", "excerpt/card"];
+    expect(movedWith(oneItem, "group_2")).toEqual([]);
+    expect(movedWith(oneItem, "group_1")).toBeNull();
+    expect(movedWith(oneItem, "annotations")).toBeNull();
+    expect(movedWith(["name", "group_2"], "group_2")).toEqual([]);
+    expect(movedWith(["name", "group_2"], "group_1")).toBeNull();
+    for (const key of ["group_1", "group_2", "annotations"]) {
+      expect(movedWith([], key)).toBeNull();
+    }
+  });
+
+  it("decides by address, not by where things are drawn", () => {
+    // The ancestor line `recording` is drawn inside `group_2`'s frame; no item contains it.
+    expect(movedWith(["recording"], "group_2")).toBeNull();
+    // `annotations`' card drawn over `group_1`'s frame.
+    const over = changed(view, itemMoveCommand(view, A, "annotations", 8, 60, metrics));
+    const width = 562.484619140625;
+    expect(placeOf(over, "annotations")).toMatchObject({ x: 8, y: 60, width, height: 71.85546875 });
+    expect(placeOf(over, "group_1")).toMatchObject({
+      x: 8,
+      y: 28.8046875,
+      width,
+      height: 169.234375,
+    });
+    const block = blockIn(over, A);
+    const overDrawing = drawingOf(block, over.settings, metrics);
+    const selected = new Set(["annotations/name", "group_2"]);
+    expect(itemsMovedWith(block.manifest, overDrawing, selected, "group_2")).toEqual([
+      "annotations",
+    ]);
+    expect(itemsMovedWith(block.manifest, overDrawing, selected, "annotations")).toEqual([
+      "group_2",
+    ]);
+    expect(itemsMovedWith(block.manifest, overDrawing, selected, "group_1")).toBeNull();
+  });
+
+  it("puts a selected card in the selection only through the frame drawing it", () => {
+    // `recording` a member of `group_1`, its child `excerpt` a member of `group_2`.
+    const twice = recordingInGroup1(view);
+    const block = blockIn(twice, A);
+    const twiceDrawing = drawingOf(block, twice.settings, metrics);
+    expect(
+      twiceDrawing.cards
+        .filter((card) => card.address === "excerpt/card")
+        .map((card) => card.group),
+    ).toEqual(["group_2"]);
+    for (const group of ["group_1", "group_2"]) {
+      expect(contains(block.manifest, group, "excerpt/card")).toBe(true);
+    }
+    const movedIn = (selected: string, key: string) =>
+      itemsMovedWith(block.manifest, twiceDrawing, new Set([selected]), key);
+    expect(movedIn("excerpt/card", "group_1")).toBeNull();
+    expect(movedIn("excerpt/card", "group_2")).toEqual([]);
+    expect(movedIn("excerpt", "group_1")).toEqual(["group_2"]);
+    expect(movedIn("excerpt", "group_2")).toEqual(["group_1"]);
   });
 });
 

@@ -410,7 +410,7 @@ describe("the Journal panel", () => {
     expect(panel.textContent).not.toContain("No changes yet.");
   });
 
-  it("discloses a session's changes with a button, newest first, as view state only", () => {
+  it("discloses a session's changes with a button, newest first, a run greyed at once", () => {
     const store = mixedStore({ clock: () => new Date("2026-10-17T08:05:09.123Z") });
     const rename = (id: string, name: string) => ({
       type: "set",
@@ -418,10 +418,14 @@ describe("the Journal panel", () => {
     });
     expect(store.open(A)).toBe(null);
     expect(store.open(`${A}/group_1`)).toBe(null);
-    expect(store.dispatch(rename("score", "S"))).toBe(null);
     expect(store.dispatch(rename("performance", "P"))).toBe(null);
+    expect(store.open(`${A}/score`)).toBe(null);
+    expect(store.dispatch(rename("score", "S"))).toBe(null);
+    expect(store.dispatch(rename("score", "T"))).toBe(null);
     store.done();
     store.done();
+    store.done();
+    // One undo reverts the timeline session's run: both of its changes.
     store.undo();
     show(store);
     click("journal");
@@ -429,7 +433,7 @@ describe("the Journal panel", () => {
     const first = panel.querySelector(":scope > ol > li") as HTMLElement;
     const button = () => first.querySelector(":scope > .row > button") as HTMLButtonElement;
     const text = first.querySelector(":scope > .row > .text") as HTMLElement;
-    expect(text.textContent).toBe("Edited bundle Mixed (2 changes, 1 undone)");
+    expect(text.textContent).toBe("Edited bundle Mixed (3 changes, 2 undone)");
     expect(button().getAttribute("type")).toBe("button");
     expect(button().nextElementSibling?.className).toContain("time");
     expect([
@@ -448,22 +452,30 @@ describe("the Journal panel", () => {
     const inner = nested.querySelector(":scope > li") as HTMLElement;
     expect(nested.querySelectorAll(":scope > li")).toHaveLength(1);
     expect(inner.querySelector(".text")?.textContent).toBe(
-      "Edited group Performance (2 changes, 1 undone)",
+      "Edited group Performance (3 changes, 2 undone)",
     );
     const innerButton = inner.querySelector("button") as HTMLButtonElement;
     expect(innerButton.getAttribute("aria-expanded")).toBe("false");
     innerButton.click();
     flushSync();
-    expect(
-      [...inner.querySelectorAll(":scope > ol > li")].map((item) => [
-        item.querySelector(".text")?.textContent,
+    /** Each item directly in `list` as [text, data-undone, its hidden word, whether its row has a button]. */
+    const rows = (list: Element) =>
+      [...list.querySelectorAll(":scope > ol > li")].map((item) => [
+        item.querySelector(":scope > .row > .text")?.textContent,
         item.hasAttribute("data-undone"),
-        item.querySelector(".visually-hidden")?.textContent ?? null,
-        item.querySelector("button"),
-      ]),
-    ).toEqual([
-      [`Set name of ${A}/performance`, true, "undone", null],
-      [`Set name of ${A}/score`, false, null, null],
+        item.querySelector(":scope > .row .visually-hidden")?.textContent ?? null,
+        item.querySelector(":scope > .row > button") !== null,
+      ]);
+    expect(rows(inner)).toEqual([
+      ["Edited timeline Score (2 changes)", true, "undone", true],
+      [`Set name of ${A}/performance`, false, null, false],
+    ]);
+    const timeline = inner.querySelector(":scope > ol > li") as HTMLElement;
+    (timeline.querySelector(":scope > .row > button") as HTMLButtonElement).click();
+    flushSync();
+    expect(rows(timeline)).toEqual([
+      [`Set name of ${A}/score`, true, "undone", false],
+      [`Set name of ${A}/score`, true, "undone", false],
     ]);
     button().click();
     flushSync();

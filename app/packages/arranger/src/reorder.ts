@@ -9,23 +9,21 @@ import type { Block, Manifest, SetCommand } from "@timetoalign/tilie-core";
 import type { Drawing, RectElement } from "@timetoalign/tilie-layout";
 
 /**
- * The member cards of `group`'s frame in drawing order, the group's display
- * order: the cards drawn after the frame and before the next item, another
- * frame or an ungrouped root's card (section 8.5). Items may overlap, so
- * the frame's rectangle does not decide.
+ * The displayed member cards of `group`'s frame in drawing order, the
+ * group's display order, as layout records them (`Drawing.cards`): each
+ * card's rectangle is the first element of its range, and a card that is
+ * not displayed has none. Neither the frame's rectangle nor where the
+ * cards lie decides, so a hidden frame and overlapping items change
+ * nothing (section 8.5).
  */
 function memberCards(drawing: Drawing, group: string): RectElement[] {
-  const start = drawing.elements.findIndex(
-    (element) => element.type === "group" && element.address === group,
-  );
-  if (start < 0) throw new RangeError(`${group} is no frame of the drawing`);
-  const items = new Set(drawing.items.map((item) => item.address));
-  const cards: RectElement[] = [];
-  for (const element of drawing.elements.slice(start + 1)) {
-    if (element.address !== null && items.has(element.address)) break;
-    if (element.type === "card") cards.push(element);
+  if (!drawing.items.some((item) => item.kind === "group" && item.key === group)) {
+    throw new RangeError(`${group} is no group of the drawing`);
   }
-  return cards;
+  return drawing.cards.flatMap((card) => {
+    const element = card.group === group ? drawing.elements[card.range.start] : undefined;
+    return element?.type === "card" && element.address === card.address ? [element] : [];
+  });
 }
 
 /**

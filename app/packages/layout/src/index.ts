@@ -23,6 +23,7 @@ export type {
   DrawnCard,
   DrawnElement,
   DrawnItem,
+  ElementRange,
   JumpElement,
   LineElement,
   LineEnd,

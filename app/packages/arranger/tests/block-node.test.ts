@@ -13,6 +13,7 @@ import { flushSync, mount, tick, unmount } from "svelte";
 import { SvelteMap } from "svelte/reactivity";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Editing } from "../src/editors.ts";
+import { itemMoveCommand } from "../src/items.ts";
 import type { NodeActions, NodePreview } from "../src/nodeActions.ts";
 import type { BlockNodeData } from "../src/project.ts";
 import { project } from "../src/project.ts";
@@ -66,20 +67,32 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-/** The data `project` gives block `id` of `view` under `editing`. */
-function dataOf(view: View, id: string, editing: Editing | null): BlockNodeData {
-  const node = project(view, new Set(), [], metrics, editing).find((found) => found.id === id);
+/** The data `project` gives block `id` of `view` under `editing` with `selection`. */
+function dataOf(
+  view: View,
+  id: string,
+  editing: Editing | null,
+  selection: ReadonlySet<string> = new Set(),
+): BlockNodeData {
+  const node = project(view, selection, [], metrics, editing).find((found) => found.id === id);
   if (node === undefined) throw new Error(`no node for ${id}`);
   return node.data;
 }
 
 /**
- * The node of block `id` mounted on `view` under `editing`, its data read
- * through a reactive map so a redraw can be passed in, with actions that
- * record every call.
+ * The node of block `id` mounted on `view` under `editing` with `selection`,
+ * its data read through a reactive map so a redraw can be passed in, with
+ * actions that record every call.
  */
-function mountOn(view: View, id: string, editing: Editing | null, reducedMotion = false, zoom = 1) {
-  const props = new SvelteMap([["data", dataOf(view, id, editing)]]);
+function mountOn(
+  view: View,
+  id: string,
+  editing: Editing | null,
+  reducedMotion = false,
+  zoom = 1,
+  selection: ReadonlySet<string> = new Set(),
+) {
+  const props = new SvelteMap([["data", dataOf(view, id, editing, selection)]]);
   const calls: Call[] = [];
   const actions: NodeActions = {
     dispatch: (command) => calls.push({ dispatch: command }),
@@ -106,7 +119,7 @@ function mountOn(view: View, id: string, editing: Editing | null, reducedMotion 
     svg,
     calls,
     redraw(next: View) {
-      props.set("data", dataOf(next, id, editing));
+      props.set("data", dataOf(next, id, editing, selection));
       flushSync();
     },
   };
@@ -347,6 +360,141 @@ describe("the item drag", () => {
         },
       },
       { dispatch: command },
+      { preview: A, with: null },
+    ]);
+  });
+
+  /**
+   * The node of A on `view` in A's bundle editor with `selected` (element
+   * addresses of A), `group_2`'s frame pressed at (100, 200).
+   */
+  function pressedWith(selected: string[], view: View = VIEW) {
+    const node = mountOn(view, A, BUNDLE, false, 1, new Set(selected.map((at) => `${A}/${at}`)));
+    const frame = addressed(node.svg, "group_2")[0] as Element;
+    placed(frame);
+    pointer(frame, "pointerdown", 100, 200);
+    return { ...node, frame };
+  }
+
+  /** The calls of `group_2` moved alone to (40, 200): preview, dispatch, withdrawal. */
+  const MOVED_ALONE: Call[] = [
+    {
+      preview: A,
+      with: {
+        places: {
+          group_2: { x: 40, y: 200 },
+          group_1: { x: 8, y: 28.8046875 },
+          annotations: { x: 8, y: 391.7734375 },
+        },
+      },
+    },
+    {
+      dispatch: {
+        type: "set",
+        changes: [
+          { target: `${A}/group_2`, values: { place: { x: 40, y: 200 } } },
+          { target: `${A}/group_1`, values: { place: { x: 8, y: 28.8046875 } } },
+          { target: `${A}/annotations`, values: { place: { x: 8, y: 391.7734375 } } },
+        ],
+      },
+    },
+    { preview: A, with: null },
+  ];
+
+  /** The preview of `group_2` moved to (40, 200) with `annotations` by the same travel. */
+  const BOTH_MOVED: Call = {
+    preview: A,
+    with: {
+      places: {
+        group_2: { x: 40, y: 200 },
+        annotations: { x: 40, y: 385.734375 },
+        group_1: { x: 8, y: 28.8046875 },
+      },
+    },
+  };
+
+  it("moves two selected items together in one set and leaves the selection", () => {
+    const { calls, frame } = pressedWith(["group_2", "annotations/card"]);
+    pointer(frame, "pointermove", 132, 193.9609375);
+    pointer(frame, "pointerup", 132, 193.9609375);
+    expect(calls).toEqual([
+      BOTH_MOVED,
+      {
+        dispatch: {
+          type: "set",
+          changes: [
+            { target: `${A}/group_2`, values: { place: { x: 40, y: 200 } } },
+            { target: `${A}/annotations`, values: { place: { x: 40, y: 385.734375 } } },
+            { target: `${A}/group_1`, values: { place: { x: 8, y: 28.8046875 } } },
+          ],
+        },
+      },
+      { preview: A, with: null },
+    ]);
+  });
+
+  it("moves a pressed item outside the selection alone, selecting it", () => {
+    const { calls, frame } = pressedWith(["group_1", "annotations/card"]);
+    pointer(frame, "pointermove", 132, 193.9609375);
+    pointer(frame, "pointerup", 132, 193.9609375);
+    expect(calls).toEqual([{ select: `${A}/group_2` }, ...MOVED_ALONE]);
+  });
+
+  it("moves the one item in the selection alone and leaves the selection", () => {
+    const { calls, frame } = pressedWith(["group_2", "page"]);
+    pointer(frame, "pointermove", 132, 193.9609375);
+    pointer(frame, "pointerup", 132, 193.9609375);
+    expect(calls).toEqual(MOVED_ALONE);
+  });
+
+  it("leaves a frame under a moved card where it is", () => {
+    // `annotations`' card drawn at (8, 60), over `group_1`'s frame; every item states its place.
+    const over = changed(VIEW, itemMoveCommand(VIEW, A, "annotations", 8, 60, metrics));
+    const { calls, frame } = pressedWith(["annotations/name", "group_2"], over);
+    pointer(frame, "pointermove", 132, 193.9609375);
+    pointer(frame, "pointerup", 132, 193.9609375);
+    expect(calls).toEqual([
+      {
+        preview: A,
+        with: {
+          places: {
+            annotations: { x: 40, y: 53.9609375 },
+            group_1: { x: 8, y: 28.8046875 },
+            group_2: { x: 40, y: 200 },
+          },
+        },
+      },
+      {
+        dispatch: {
+          type: "set",
+          changes: [
+            { target: `${A}/group_2`, values: { place: { x: 40, y: 200 } } },
+            { target: `${A}/annotations`, values: { place: { x: 40, y: 53.9609375 } } },
+          ],
+        },
+      },
+      { preview: A, with: null },
+    ]);
+  });
+
+  it("withdraws the whole preview on Escape and stores nothing for a drag back to its start", () => {
+    const escaped = pressedWith(["group_2", "annotations/card"]);
+    pointer(escaped.frame, "pointermove", 132, 193.9609375);
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    flushSync();
+    pointer(escaped.frame, "pointerup", 132, 193.9609375);
+    expect(escaped.calls).toEqual([BOTH_MOVED, { preview: A, with: null }]);
+    unmount(mounted as ReturnType<typeof mount>);
+    mounted = undefined;
+    document.body.innerHTML = "";
+
+    const back = pressedWith(["group_2", "annotations/card"]);
+    pointer(back.frame, "pointermove", 132, 193.9609375);
+    pointer(back.frame, "pointermove", 100, 200);
+    pointer(back.frame, "pointerup", 100, 200);
+    expect(back.calls).toEqual([
+      BOTH_MOVED,
+      { preview: A, with: { places: {} } },
       { preview: A, with: null },
     ]);
   });

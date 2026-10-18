@@ -9,10 +9,14 @@
  * that level, the sessions and the view exactly as they were at the
  * opening.
  *
- * Undo and redo step one change at a time on the innermost level, a change
- * being one command at any depth: undo reverts the level's latest applied
- * change, inside a closed session if that is where it lies, and stops at
- * the level's start; redo re-applies the earliest undone one. The undone
+ * Undo and redo move by steps on the innermost level, a change being one
+ * command at any depth and its owner the innermost session whose own
+ * entries hold it. A change the level owns itself (a command of the open
+ * editor's session, or of the main journal) is a step of its own; the
+ * changes of a closed session go in runs, a step being a maximal run of
+ * consecutive changes owned by one closed session. Undo reverts the level's
+ * latest applied step and stops at the level's start; redo re-applies the
+ * earliest undone one, so redo mirrors undo step for step. The undone
  * changes of a level are always its last ones, and a new entry on the level
  * discards them, keeping a partly undone session with its applied changes.
  */
@@ -32,6 +36,7 @@ import type {
   Entry,
   ListedEntry,
   OpenEditor,
+  OwnedChange,
   Session,
   SessionEntry,
   SessionId,
@@ -84,7 +89,9 @@ export interface Store {
   readonly canRedo: boolean;
   /** Apply a command and journal it; `null` when it was accepted. */
   dispatch(command: unknown): CommandError | null;
+  /** Revert the innermost level's latest applied step: one change of its own, or a closed session's run. */
   undo(): void;
+  /** Re-apply the innermost level's earliest undone step. */
   redo(): void;
   /** Open the editor of `target` inside the innermost open editor; `null` when it opened. */
   open(target: Address): CommandError | null;
@@ -136,8 +143,12 @@ interface Level {
   readonly editor: OpenEditor | null;
   /** The level's entries in order, its undone ones included. */
   entries: Entry[];
-  /** The level's changes in order (`changesOf(entries)`), the undone ones last. */
-  readonly changes: CommandEntry[];
+  /**
+   * The level's changes in order (`changesOf(entries)`), the undone ones
+   * last; the level's own are owned by its session, or by none on the main
+   * journal.
+   */
+  readonly changes: OwnedChange[];
   /** How many of `changes` are applied. */
   applied: number;
   /**
@@ -146,8 +157,8 @@ interface Level {
    * `views[0]` on an editor's level. `viewAt` fills the gaps.
    */
   readonly views: View[];
-  /** The applied changes at the opening, which Cancel's count compares by identity. */
-  readonly opening: readonly CommandEntry[];
+  /** The applied changes at the opening, which Cancel's count compares by their command entries. */
+  readonly opening: readonly OwnedChange[];
   /** Whether the opening took a session entry off the level below. */
   readonly unfolded: boolean;
   /** The level below as it was at the opening, which Cancel puts back. */
@@ -220,14 +231,27 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
     if (level.views[known] === undefined) level.views[known] = createView();
     for (let next = known + 1; next <= k; next += 1) {
       if (level.views[next] !== undefined) continue;
-      const change = level.changes[next - 1] as CommandEntry;
-      const view = applyParsed(level.views[next - 1] as View, change.command);
+      const change = level.changes[next - 1] as OwnedChange;
+      const view = applyParsed(level.views[next - 1] as View, change.entry.command);
       if (isCommandError(view)) {
         throw new Error(`change ${next - 1} is refused: ${view.code} ${view.message}`);
       }
       level.views[next] = view;
     }
     return level.views[k] as View;
+  };
+
+  /**
+   * Whether the level's changes `k − 1` and `k` belong to one step: both
+   * owned by the same closed session, never by the level itself.
+   */
+  const joined = (level: Level, k: number): boolean => {
+    const owner = level.changes[k - 1]?.owner;
+    return (
+      owner !== undefined &&
+      owner !== (level.editor?.session ?? null) &&
+      level.changes[k]?.owner === owner
+    );
   };
 
   /** How many changes an entry holds. */
@@ -307,7 +331,11 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
       if (level.editor === null) return 0;
       const { opening, changes, applied } = level;
       let common = 0;
-      while (common < opening.length && common < applied && opening[common] === changes[common]) {
+      while (
+        common < opening.length &&
+        common < applied &&
+        opening[common]?.entry === changes[common]?.entry
+      ) {
         common += 1;
       }
       return opening.length - common + (applied - common);
@@ -335,7 +363,7 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
       const entry: CommandEntry = { command: stored, ...stamp() };
       discard(level);
       level.entries.push(entry);
-      level.changes.push(entry);
+      level.changes.push({ entry, owner: level.editor?.session ?? null });
       level.applied += 1;
       level.views[level.applied] = next;
       notify();
@@ -344,14 +372,18 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
     undo() {
       const level = top();
       if (level.applied === 0) return;
-      level.applied -= 1;
+      do {
+        level.applied -= 1;
+      } while (joined(level, level.applied));
       viewAt(level, level.applied);
       notify();
     },
     redo() {
       const level = top();
       if (level.applied === level.changes.length) return;
-      level.applied += 1;
+      do {
+        level.applied += 1;
+      } while (joined(level, level.applied));
       viewAt(level, level.applied);
       notify();
     },
@@ -380,7 +412,8 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
       ) {
         // The level's last entry holding an applied change is a session of the
         // same target: it is unfolded, its applied changes the editor's
-        // entries, its undone ones the editor's to redo.
+        // entries, its undone ones the editor's to redo. Its own changes keep
+        // their owner, now the open level's, so they step one at a time.
         const { index, start } = last;
         const total = count(entry);
         viewAt(below, start);
@@ -439,8 +472,9 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
         const { session, target } = level.editor;
         sessions = { ...sessions, [session]: { target, entries: level.entries } };
         below.entries.push({ session, ...stamp() });
+        // The session's own changes, owned by it, now go in runs below.
         for (let k = 1; k <= level.applied; k += 1) {
-          below.changes.push(level.changes[k - 1] as CommandEntry);
+          below.changes.push(level.changes[k - 1] as OwnedChange);
           const view = level.views[k];
           if (view !== undefined) below.views[below.applied + k] = view;
         }

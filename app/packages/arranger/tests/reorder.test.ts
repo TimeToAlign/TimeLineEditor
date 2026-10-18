@@ -1,6 +1,16 @@
+import type { View } from "@timetoalign/tilie-core";
 import { describe, expect, it } from "vitest";
 import { drawingOf, memberOrderAt, reorderCommand, withMemberOrder } from "../src/index.ts";
-import { A, blockIn, changed, metrics, mixedPlain, NUMBERS, viewOf } from "./support.ts";
+import {
+  A,
+  blockIn,
+  CHILD_MEMBER,
+  changed,
+  metrics,
+  mixedPlain,
+  NUMBERS,
+  viewOf,
+} from "./support.ts";
 
 const view = mixedPlain();
 const block = blockIn(view, A);
@@ -16,6 +26,37 @@ describe("memberOrderAt", () => {
     ["group_2", "page", 440, ["excerpt", "page"]],
   ] as const)("%s, %s dropped at %d", (group, dragged, y, order) => {
     expect(memberOrderAt(drawing, group, dragged, y)).toEqual(order);
+  });
+
+  describe("with the frame hidden", () => {
+    const shown = viewOf({ id: A, fixture: CHILD_MEMBER });
+    const hidden = changed(shown, {
+      type: "set",
+      changes: [
+        {
+          target: "workspace",
+          values: {
+            graphical: {
+              statements: [{ select: { element: "group" }, set: { display: "none" } }],
+            },
+          },
+        },
+      ],
+    });
+    const drawn = (of: View) => drawingOf(blockIn(of, A), of.settings, metrics);
+
+    it("draws no frame", () => {
+      expect(drawn(hidden).elements.filter((element) => element.type === "group")).toEqual([]);
+    });
+
+    it.each([
+      ["second-half", 100, ["second-half", "recording"]],
+      ["second-half", 160, ["recording", "second-half"]],
+      ["recording", 50, ["recording", "second-half"]],
+    ] as const)("orders %s dropped at %d as with the frame displayed", (dragged, y, order) => {
+      expect(memberOrderAt(drawn(hidden), "group_1", dragged, y)).toEqual(order);
+      expect(memberOrderAt(drawn(shown), "group_1", dragged, y)).toEqual(order);
+    });
   });
 
   it("refuses a group that is not drawn", () => {

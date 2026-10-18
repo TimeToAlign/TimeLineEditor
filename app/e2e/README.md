@@ -1269,8 +1269,8 @@ fixture: the manifest of `bmixed0000` is named "Mixed", its `group_1`
    `not_inside` with the path `["bmixed0000/group_2"]` and `editing()` is
    unchanged. Done closes the group editor (one editor left, path "Mixed"),
    Done again the bundle editor (`[]`).
-6. **Done folds the session into one entry, undone one change at a
-   time.** In the group editor of
+6. **Done folds the session into one entry, undone as one step.** In the
+   group editor of
    `bmixed0000/group_1`, two commands through the hook's store are
    accepted: `set bmixed0000/group_1 place {length: 300}` and `set
    bmixed0000/score name "S"` (both inside the group). `entries` holds 2,
@@ -1278,12 +1278,13 @@ fixture: the manifest of `bmixed0000` is named "Mixed", its `group_1`
    closes the editor (`editing()` is `[]`); the main journal holds exactly
    4 entries, the last a session entry (it has `session`, no `command`)
    whose session in `store().sessions` has the target
-   `bmixed0000/group_1` and 2 entries. Ctrl/Cmd+Z on the arranger reverts
-   the name only: the main journal still holds 4 entries (the session
-   partly undone stays in place) and the view's JSON text is the one
-   after the place alone; a second Ctrl/Cmd+Z brings the main journal
-   back to 3 and the view's JSON text back to the one before the editor
-   was opened.
+   `bmixed0000/group_1` and 2 entries. The two commands are consecutive
+   changes of the closed session, one run: Ctrl/Cmd+Z on the arranger
+   reverts both, bringing the main journal back to 3 and the view's JSON
+   text back to the one before the editor was opened (one change at a
+   time would leave the place applied and the journal at 4).
+   Ctrl/Cmd+Shift+Z re-applies both: the journal holds 4 again and the
+   view's JSON text is the one after both commands.
 7. **Cancel asks before it discards, and only then.**
    - With no change, the button "Cancel" closes the editor at once
      (`editing()` `[]`) and no dialog is shown.
@@ -1340,6 +1341,25 @@ fixture: the manifest of `bmixed0000` is named "Mixed", its `group_1`
      `<svg>` is scaled differently in the last digits (measured in Chromium:
      the frame's screen `x` 47.503448486328125 before, 47.50290298461914
      after).
+   - **Two selected items move together.** In the bundle editor, a click
+     on `group_1`'s frame (`framePoint`) and a Shift+click on
+     `annotations`' card (`framePoint` on `annotations/card`), the way a
+     user selects two items, select exactly `[bmixed0000/annotations/card,
+     bmixed0000/group_1]` (sorted). `group_1`'s frame is pressed again and
+     moved by (40, 24), the button held: the preview draws both moved,
+     `group_1`'s frame `rect` (its first part) and `annotations`' card
+     `rect` (its second; the first is the card's shadow) each at `x` 48
+     (8 + 40 in drawing units; nothing reaches left of the padding, so the
+     drawing's origin stays). Released: one entry, exactly `{type: "set",
+     changes: [{target: bmixed0000/group_1, values: {place: {x: x₁ + 40,
+     y: y₁ + 24}}}, {target: bmixed0000/annotations, values: {place: {x:
+     xₐ + 40, y: yₐ + 24}}}, {target: bmixed0000/group_2, values: {place:
+     {x: x₂, y: y₂}}}]}`: the pressed item, the item moved with it by the
+     same travel, then the item left in place stating its drawn position,
+     so `places` is exactly those three places; the selection is still
+     exactly the two addresses. Ctrl/Cmd+Z on the focused arranger undoes
+     the move as one: `places` is `{}` again and the view's JSON text is
+     the one read before the first click.
 10. **A member card is reordered by drag and drop.** In the group editor of
     `gchild0000/group_1` (display order `[second-half, recording]`; in its
     drawing, which places do not change, `second-half/card` spans `y`
@@ -1381,30 +1401,60 @@ fixture: the manifest of `bmixed0000` is named "Mixed", its `group_1`
     "undone"; "Set place of bmixed0000/group_1" is shown and not inside
     it, and the panel's row texts are exactly the name and then the
     place (newest first). A redo leaves none.
-13. **Three nested sessions undo one change at a time.** The user's
-    scenario, from the fixture's names "Score", "Performance" and
-    "Annotations" of the roots `score`, `performance` and `annotations`:
-    through the hook, `open` of `bmixed0000`, then
-    `bmixed0000/group_1`, then `bmixed0000/score`; in the timeline editor
-    `set bmixed0000/score name "c"`, Done; in the group editor `set
-    bmixed0000/performance name "b"`, Done; in the bundle editor `set
-    bmixed0000/annotations name "a"`, Done. The main journal holds 4
-    entries (the three `add`s and one session) and the Journal tab's
-    first row reads "Edited bundle Mixed (3 changes)". Ctrl/Cmd+Z on the
-    arranger reverts `a` only: the journal still holds 4 entries, the
-    first row reads "Edited bundle Mixed (3 changes, 1 undone)", and the
-    names of `score`, `performance` and `annotations` in the view are
-    "c", "b" and "Annotations". Its disclosure button (`aria-expanded`
-    `"false"`) expanded (`"true"`) shows, newest first, "Set name of
-    bmixed0000/annotations" (greyed, `data-undone`) and "Edited group
-    Performance (2 changes)" (only the first `data-undone`). The next
-    Ctrl/Cmd+Z reverts `b` (score "c", performance "Performance"), the
-    next `c`, after which the view's JSON text is the one before the first
-    `open` and the store's journal (its entries holding an applied change)
-    is back at 3 entries, while the Journal tab still lists the session,
-    every change undone: its row carries `data-undone` and reads "Edited
-    bundle Mixed (3 changes)". Ctrl/Cmd+Shift+Z three times re-applies
-    `c`, `b`, `a` in that order (the three names after each).
+13. **Nested sessions undo by runs.** A step of undo on the arranger is a
+    maximal run of consecutive changes owned by one closed session (the
+    innermost session whose own entries hold the command); redo mirrors
+    it. Names are read from the view as those of the roots `score`,
+    `performance` and `annotations`, in that order, the fixture's being
+    "Score", "Performance" and "Annotations". Every edit goes through the
+    hook (`open`, the store's `dispatch`, `done`), every undo and redo
+    through the keys on the focused arranger.
+    - **Three nested sessions, one change each,** so each run is one
+      change: `open` of `bmixed0000`, then
+      `bmixed0000/group_1`, then `bmixed0000/score`; in the timeline
+      editor `set bmixed0000/score name "c"`, Done; in the group editor
+      `set bmixed0000/performance name "b"`, Done; in the bundle editor
+      `set bmixed0000/annotations name "a"`, Done. The main journal holds
+      4 entries (the three `add`s and one session) and the Journal tab's
+      first row reads "Edited bundle Mixed (3 changes)". Ctrl/Cmd+Z
+      reverts `a` only: the journal still holds 4 entries, the first row
+      reads "Edited bundle Mixed (3 changes, 1 undone)", and the names are
+      "c", "b" and "Annotations". Its disclosure button (`aria-expanded`
+      `"false"`) expanded (`"true"`) shows, newest first, "Set name of
+      bmixed0000/annotations" (greyed, `data-undone`) and "Edited group
+      Performance (2 changes)" (only the first `data-undone`). The next
+      Ctrl/Cmd+Z reverts `b` (score "c", performance "Performance"), the
+      next `c`, after which the view's JSON text is the one before the
+      first `open` and the store's journal (its entries holding an applied
+      change) is back at 3 entries, while the Journal tab still lists the
+      session, every change undone: its row carries `data-undone` and
+      reads "Edited bundle Mixed (3 changes)". Ctrl/Cmd+Shift+Z three
+      times re-applies `c`, `b`, `a` in that order (the three names after
+      each).
+    - **An interleaved session,** a session's own changes split by an
+      embedded one: `open` of `bmixed0000`, `set
+      annotations name "a1"`; `open` of `bmixed0000/group_1`, `set
+      performance name "b1"`; `open` of `bmixed0000/score`, `set score
+      name "c1"`, `set score name "c2"`, Done; `set performance name
+      "b2"`, Done; `set annotations name "a2"`, Done. The runs are `a1`,
+      `b1`, `c1 c2`, `b2`, `a2`. The names are "c2", "b2", "a2", the
+      journal holds 4 entries and the first row reads "Edited bundle Mixed
+      (6 changes)". Five Ctrl/Cmd+Z give, as names and first row:
+      "c2", "b2", "a1", "(6 changes, 1 undone)"; "c2", "b1", "a1", "(6
+      changes, 2 undone)"; "Score", "b1", "a1", "(6 changes, 4 undone)"
+      (both of the timeline session's changes by one key press, never
+      "c1"); "Score", "Performance", "a1", "(6 changes, 5 undone)"; and
+      the fixture's names with "(6 changes)" on a row carrying
+      `data-undone`, the journal back at 3 and the view's JSON text the
+      one before the first `open`. After the third, the bundle row
+      expanded lists, newest first, "Set name of bmixed0000/annotations"
+      (`data-undone`), "Edited group Performance (4 changes, 3 undone)"
+      (not) and "Set name of bmixed0000/annotations" (not); the group row
+      expanded lists "Set name of bmixed0000/performance" (`data-undone`),
+      "Edited timeline Score (2 changes)" (`data-undone`) and "Set name of
+      bmixed0000/performance" (not). Five Ctrl/Cmd+Shift+Z mirror the
+      undos: the names after each are those before the matching undo, in
+      reverse order, ending at "c2", "b2", "a2".
 
 14. **A double-click outside the edited element is Done.** Outside is
     where a press selects nothing: the empty pane, a faded block (its node

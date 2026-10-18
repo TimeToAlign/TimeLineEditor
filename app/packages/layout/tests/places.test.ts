@@ -135,6 +135,7 @@ describe("default places reproduce the stacked box", () => {
           height: 49.37890625,
         },
         stated: {},
+        range: { start: 1, end: 8 },
       },
     ]);
   });
@@ -157,6 +158,7 @@ describe("default places reproduce the stacked box", () => {
           height: 174.13671875,
         },
         stated: {},
+        range: { start: 1, end: 23 },
       },
     ]);
   });

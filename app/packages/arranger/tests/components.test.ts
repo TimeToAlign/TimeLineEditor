@@ -122,6 +122,8 @@ function render(
     height: number;
     scale: number;
     elements?: Drawing["elements"];
+    items?: Drawing["items"];
+    cards?: Drawing["cards"];
   },
   selectedElements: ReadonlySet<string> = new Set(),
   affectedElements: ReadonlySet<string> = new Set(),
@@ -131,6 +133,8 @@ function render(
     width: box.width,
     height: box.height,
     elements: box.elements ?? [],
+    items: box.items ?? [],
+    cards: box.cards ?? [],
     unmapped: [],
   };
   const data = {

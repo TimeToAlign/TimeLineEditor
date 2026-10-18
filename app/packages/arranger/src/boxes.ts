@@ -7,7 +7,8 @@
  * This module is the one place that maps a pointer target to what it hits,
  * a box of one of those kinds or an element, with its address; that decides
  * what a press selects; that decides what the pointer highlights; and that
- * decides which boxes hold part of the selection. While an editor is open,
+ * decides which boxes hold part of the selection, by what each box draws,
+ * never by where it lies. While an editor is open,
  * only what lies inside the edited element is selected and highlighted. The
  * editor a double-click on a hit opens is `editorTargetOf`'s (`editors.ts`).
  *
@@ -17,7 +18,7 @@
  */
 
 import type { Address, BlockId } from "@timetoalign/tilie-core";
-import type { Drawing, DrawnElement, RectElement } from "@timetoalign/tilie-layout";
+import type { Drawing, RectElement } from "@timetoalign/tilie-layout";
 import type { Descriptor } from "@timetoalign/tilie-writers";
 
 /** The kinds of box a drawing shows: the block's own box, a group's frame, a timeline's card. */
@@ -39,8 +40,8 @@ export interface Hit {
   /** Whether the target is a segment's boundary line. */
   readonly boundary: boolean;
   /**
-   * The innermost drawn card or frame holding the point, by its element
-   * address; `null` outside every one, or when no point was given.
+   * The drawn card or frame on top at the point, by its element address;
+   * `null` outside every one, or when no point was given.
    */
   readonly within: string | null;
 }
@@ -68,8 +69,8 @@ interface Boxes {
   readonly rects: readonly RectElement[];
   readonly boundaries: ReadonlySet<string>;
   /**
-   * Every drawn address, with the cards and frames holding an element
-   * that carries it, by their addresses; a box does not hold itself.
+   * Every drawn address, with the drawn cards and frames it is drawn as
+   * part of, by their addresses; a box is not part of itself.
    */
   readonly holders: ReadonlyMap<string, ReadonlySet<string>>;
 }
@@ -97,17 +98,7 @@ function boxesOf(drawing: Drawing): Boxes {
         boundaries.add(element.address);
       }
     }
-    const holders = new Map<string, Set<string>>();
-    for (const element of drawing.elements) {
-      if (element.type === "block") continue;
-      const points = pointsIn(element);
-      const held = holders.get(element.address) ?? new Set<string>();
-      for (const rect of rects) {
-        if (rect !== element && points.every((point) => holds(rect, point))) held.add(rect.address);
-      }
-      holders.set(element.address, held);
-    }
-    found = { kinds, rects, boundaries, holders };
+    found = { kinds, rects, boundaries, holders: holdersOf(drawing, kinds) };
     boxes.set(drawing, found);
   }
   return found;
@@ -118,41 +109,28 @@ function holds(rect: RectElement, { x, y }: DrawingPoint): boolean {
 }
 
 /**
- * The points a box must hold to hold a drawn element. A card or frame is
- * held by a box holding both its corners: a card lies wholly inside its
- * frame (section 8.4), and a frame inside no card. Any other element lies
- * wholly inside its member drawing, and so inside its card, and no two
- * cards and no two frames overlap, so one point of it decides: the middle
- * of a line or map, the middle of a region's span, a jump's start, the
- * middle of a break, boundary or wedge, a text's anchor on its baseline.
+ * Every address `drawing` draws, with the drawn cards and frames (`kinds`)
+ * it is drawn as part of: those whose range of elements (`DrawnItem` and
+ * `DrawnCard` in layout) holds an element carrying it, the box's own
+ * rectangle excepted. A frame's range holds its title, its cards and their
+ * member drawings, a card's its member drawing, ancestor lines included,
+ * so the answer depends on what each box drew, never on where it lies.
  */
-function pointsIn(element: Exclude<DrawnElement, { readonly type: "block" }>): DrawingPoint[] {
-  switch (element.type) {
-    case "group":
-    case "card":
-      return [
-        { x: element.x, y: element.y },
-        { x: element.x + element.width, y: element.y + element.height },
-      ];
-    case "timeline":
-    case "child":
-    case "ancestor":
-      return [{ x: (element.xs + element.xe) / 2, y: element.y }];
-    case "map":
-      return [{ x: (element.xs + element.xe) / 2, y: element.yc }];
-    case "region":
-      return [{ x: element.xm, y: (element.yb + element.ya) / 2 }];
-    case "jump":
-      return [{ x: element.start[0], y: element.start[1] }];
-    case "break":
-    case "boundary":
-      return [{ x: element.x, y: (element.y1 + element.y2) / 2 }];
-    case "wedge":
-      return [{ x: element.x, y: (element.yt + element.yb) / 2 }];
-    case "name":
-    case "label":
-      return [{ x: element.x, y: element.baseline }];
+function holdersOf(
+  drawing: Drawing,
+  kinds: ReadonlyMap<string, "group" | "card">,
+): ReadonlyMap<string, ReadonlySet<string>> {
+  const holders = new Map<string, Set<string>>();
+  for (const { address } of drawing.elements) {
+    if (address !== null && !holders.has(address)) holders.set(address, new Set());
   }
+  for (const { address, range } of [...drawing.items, ...drawing.cards]) {
+    if (!kinds.has(address)) continue;
+    for (const { address: part } of drawing.elements.slice(range.start, range.end)) {
+      if (part !== null && part !== address) holders.get(part)?.add(address);
+    }
+  }
+  return holders;
 }
 
 /**
@@ -179,9 +157,10 @@ export function drawingPointAt(
  * drawing's element of that address (a card, a frame, else an element), or
  * the block's own box when nothing there carries an address. With `point`
  * (in the drawing's units), also the box under it: the last drawn card or
- * frame whose rectangle holds it, edges included. A frame is drawn before
- * its cards and cards never overlap, so that box is the innermost; a box
- * that is not displayed is not drawn and holds no point.
+ * frame whose rectangle holds it, edges included, which is the one drawn
+ * on top: a frame is drawn before its cards, and items that overlap are
+ * drawn in item order. A box that is not displayed is not drawn and holds
+ * no point.
  */
 export function hitOf(
   block: BlockId,
@@ -284,12 +263,15 @@ export function marksOf(
 /**
  * The boxes of `drawing` holding part of the selection `selected` (element
  * addresses, as the descriptors carry them): a box holds the selection when
- * an element drawn inside it carries a selected address, the box itself
- * excepted. So a selected card marks its frame and the block but not
- * itself; a line marks its card, that card's frame and the block; and an
- * address drawn in several cards, such as an ancestor line, marks each of
- * them. The block's own box holds every drawn element; an address that is
- * not drawn marks nothing.
+ * an element drawn as part of it carries a selected address, the box itself
+ * excepted. A card holds its member drawing, its timeline and everything
+ * drawn with it; a frame its title, its members' cards and what they hold;
+ * the block's own box every drawn element. Where a box lies plays no part,
+ * so items that overlap change nothing. So a selected card marks its frame
+ * and the block but not itself; a line marks its card, that card's frame
+ * and the block; and an address drawn in several cards, such as an
+ * ancestor line, marks each of them. An address that is not drawn marks
+ * nothing.
  */
 export function holdingOf(drawing: Drawing, selected: ReadonlySet<string>): Holding {
   const held = new Set<string>();

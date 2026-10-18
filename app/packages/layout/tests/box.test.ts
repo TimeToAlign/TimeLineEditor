@@ -266,20 +266,30 @@ describe("a titled manifest with two frames and an ungrouped root", () => {
   });
 
   it("reports every member's card in drawing order, the ungrouped card as an item", () => {
-    const sized = (key: string, group: string, height: number) => ({
+    const sized = (key: string, group: string, height: number, start: number, end: number) => ({
       key,
       group,
       address: `${key}/card`,
       size: { width: 546.484619140625, height },
       spacing: 1,
       stated: {},
+      range: { start, end },
     });
     expect(drawing.cards).toEqual([
-      sized("score", "group_1", 78.953125),
-      sized("performance", "group_1", 49.4765625),
-      sized("page", "group_2", 49.4765625),
-      sized("excerpt", "group_2", 87.453125),
+      sized("score", "group_1", 78.953125, 4, 15),
+      sized("performance", "group_1", 49.4765625, 15, 23),
+      sized("page", "group_2", 49.4765625, 25, 33),
+      sized("excerpt", "group_2", 87.453125, 33, 47),
     ]);
+  });
+
+  it("reports the elements each item drew", () => {
+    expect(drawing.items.map((item) => [item.key, item.range])).toEqual([
+      ["group_1", { start: 2, end: 23 }],
+      ["group_2", { start: 23, end: 47 }],
+      ["annotations", { start: 47, end: 58 }],
+    ]);
+    expect(drawing.elements.length).toBe(58);
   });
 });
 
@@ -412,6 +422,7 @@ describe("hidden cards and frames keep their place", () => {
     expect(size(drawing)).toEqual([474.5771484375, 65.37890625]);
     expect(element(drawing, null)).toMatchObject({ width: 474.5771484375, height: 65.37890625 });
     expect(without(drawing, ["block"])).toEqual(without(natural, ["block", "card"]));
+    expect(drawing.items[0]?.range).toEqual({ start: 1, end: 7 });
   });
 
   it("group_child_member: the frame still sets the box", () => {
@@ -420,6 +431,11 @@ describe("hidden cards and frames keep their place", () => {
     expect(drawn(drawing, "card")).toEqual([]);
     expect(size(drawing)).toEqual([558.4140625, 190.13671875]);
     expect(without(drawing, [])).toEqual(without(natural, ["card"]));
+    expect(drawing.cards.map((card) => card.range)).toEqual([
+      { start: 3, end: 15 },
+      { start: 15, end: 21 },
+    ]);
+    expect(drawing.items[0]?.range).toEqual({ start: 1, end: 21 });
   });
 
   it("group_child_member: a hidden frame keeps xn and the box", () => {
@@ -430,5 +446,10 @@ describe("hidden cards and frames keep their place", () => {
     expect(rect(drawing, "second-half/card")).toMatchObject({ x: 16 });
     expect(size(drawing)).toEqual([558.4140625, 190.13671875]);
     expect(without(drawing, [])).toEqual(without(natural, ["group"]));
+    expect(drawing.cards.map((card) => card.range)).toEqual([
+      { start: 2, end: 15 },
+      { start: 15, end: 22 },
+    ]);
+    expect(drawing.items[0]?.range).toEqual({ start: 1, end: 22 });
   });
 });

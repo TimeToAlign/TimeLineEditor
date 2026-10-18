@@ -33,11 +33,11 @@ export function editedElement(target: Address): { block: BlockId; element: strin
  * timeline, and a timeline's line, wherever it is drawn, that timeline (the
  * timeline editor), so a root's line opens the root and a child's line the
  * child. Anything else drawn (a name, a label, a region, a boundary) opens
- * the innermost card or frame holding it (`hit.within`), and nothing
- * (`null`) when none holds it. With an editor open, only a
- * target inside the edited element opens, never the edited element itself:
- * any target of its block in the bundle editor, else one the edited group or
- * timeline contains (core's `contains`).
+ * the last drawn card or frame holding it, the innermost where none overlap
+ * (`hit.within`), and nothing (`null`) when none holds it. With an editor
+ * open, only a target inside the edited element opens, never the edited
+ * element itself: any target of its block in the bundle editor, else one the
+ * edited group or timeline contains (core's `contains`).
  */
 export function editorTargetOf(view: View, hit: Hit, editing: Editing | null): Address | null {
   const block = view.blocks[hit.block];

@@ -899,8 +899,10 @@ pinned by the writers' `fixtures.test.ts`).
 - `Drawing.cards`, one per member card in drawing order: `score` and
   `performance` in `group_1`, `page` and `excerpt` in `group_2`, addresses
   `M/card`, sizes `{546.484619140625, h}` with `h` 78.953125, 49.4765625,
-  49.4765625 and 87.453125, `spacing` 1 and `stated` `{}` each; the
-  ungrouped card is an item, not a member card.
+  49.4765625 and 87.453125, `spacing` 1 and `stated` `{}` each, and the
+  ranges `[4, 15)`, `[15, 23)`, `[25, 33)` and `[33, 47)` of paragraph
+  "What each box drew" below; the ungrouped card is an item, not a member
+  card.
 - Element order (sections 7.2 and 8.5: a member drawing opens with its
   breaks, maps, regions and jumps, its ancestor lines lie just before its
   line): block, `name`, `group_1`, `group_1/name`, `score/card`,
@@ -910,6 +912,38 @@ pinned by the writers' `fixtures.test.ts`).
   `recording/cmap_2`, `recording` (the ancestor line), `excerpt`, …,
   `annotations/card`, `annotations/region_1`, `annotations/region_2`,
   `annotations`, ….
+
+**What each box drew (`range`).** Every item and every member card reports
+the half-open range `[start, end)` of `drawing.elements` that it emitted,
+as `range: {start, end}`:
+its own frame or card when displayed, then everything drawn as part of it
+in drawing order (section 8.5): a frame its title and its member cards
+with their member drawings, a card its member drawing. The block is
+element 0, so a range starts at 1 at the earliest. A box that is not
+displayed keeps its range over what it still emits, only its own
+rectangle is missing, so the ranges tell every box's elements apart
+whatever is displayed. A member drawing emits, in the order of section
+7.2, its breaks, maps, regions, jumps, ancestor lines, its line, children,
+boundaries, ancestor marks, wedges, names, mark labels, wedge labels,
+segment labels, region, jump and break labels. A root with its two wedges
+and nothing else emits 6 elements (its line, two wedges, its name, two
+wedge labels); each map adds 1, each region or jump 2 (with its label),
+each ancestor row 6 (the ancestor line, its marks of the member's start
+and end, its name, the two mark labels).
+
+- `bare`: the card at 1 and 6 elements, the item `bare` `[1, 8)`.
+- `group_child_member`: the frame at 1, its title at 2;
+  `second-half/card` at 3 with `6 + 6 = 12` (one ancestor row), `[3, 16)`;
+  `recording/card` at 16 with 6, `[16, 23)`; the item `group_1` `[1, 23)`,
+  23 elements in all.
+- `bundle_mixed`: the title `name` at 1; `group_1` at 2, its title at 3,
+  `score/card` at 4 with `6 + 2 + 2 = 10` (two maps, the jump and its
+  label), `[4, 15)`, `performance/card` at 15 with `6 + 1 = 7`, `[15,
+  23)`, the item `group_1` `[2, 23)`; `group_2` at 23, its title at 24,
+  `page/card` at 25 with 7, `[25, 33)`, `excerpt/card` at 33 with `6 + 6 +
+  1 = 13`, `[33, 47)`, the item `group_2` `[23, 47)`; `annotations/card` at
+  47 with `6 + 2 × 2 = 10` (two regions), the item `annotations` `[47,
+  58)`; 58 elements in all.
 
 **Hidden titles.** With `{ids: ["group_1/name"]} display none` on
 `group_child_member`, no title is drawn and the frame loses its slot: the
@@ -934,18 +968,24 @@ checked against the edges above, never against that fallback.
   466.5771484375 = 474.5771484375` and `Hb = 8 + 57.37890625 =
   65.37890625`, the displayed `W` and `H` less the shadow's 2, since the
   shadow set both. Every element but the block and `bare/card` equals its
-  displayed counterpart.
+  displayed counterpart. The item `bare` is `[1, 7)`: its 6 elements
+  without the card.
 - `group_child_member` with `{element: card} display none`: no `card`
   element is drawn. The frame set both edges, beyond the cards' shadows
   (`544.4140625 < 550.4140625`, `176.13671875 < 182.13671875`), so `W =
   558.4140625` and `H = 190.13671875` are unchanged, and every element but
   `second-half/card` and `recording/card` equals its displayed counterpart.
+  The ranges still part the two member drawings: `second-half` `[3, 15)`,
+  its 12 elements, `recording` `[15, 21)`, its 6, the item `group_1` `[1,
+  21)`.
 - `group_child_member` with `{element: group} display none`: no `group`
   element is drawn, yet the frame keeps its place: `xn = P + Q + K = 24`
   (`piece/name` at `x = 24`), the cards at `x = 16`, and `W =
   558.4140625`, `H = 190.13671875` from the frame's edges, not `8 +
   544.4140625` and `8 + 176.13671875` from the cards' shadows. Every
-  element but `group_1` equals its displayed counterpart.
+  element but `group_1` equals its displayed counterpart. The title moves
+  to 1: `second-half` is `[2, 15)`, `recording` `[15, 22)`, the item
+  `group_1` `[1, 22)`.
 
 **The box size.** `W = max(Wb, width)`, `H = max(Hb, height)`, `Wb` and
 `Hb` when null. `bare` at `width` 600, `height` 100 gives `W = 600`, `H =
@@ -1067,11 +1107,12 @@ this file derive; those expectations stay unchanged. On top: `bare`'s
 drawing reports `origin {x: 0, y: 0}`, both zeros `+0` (`Object.is(…, 0)`,
 since `0 − 0` is `+0`), and one item `{key: "bare", kind:
 "card", address: "bare/card", place: {x: 8, y: 8, length: 400, scale: 1,
-spacing: 1, width: 458.5771484375, height: 49.37890625}, stated: {}}` (its
-card's rectangle; the default scale 1 and spacing 1); `group_child_member`
-one item `{key: "group_1", kind: "group", address: "group_1", place: {x: 8,
-y: 8, length: 400, scale: 1, spacing: 1, width: 542.4140625, height:
-174.13671875}, stated: {}}`. Every reported place carries its `spacing`, 1
+spacing: 1, width: 458.5771484375, height: 49.37890625}, stated: {}, range:
+{start: 1, end: 8}}` (its card's rectangle; the default scale 1 and
+spacing 1; the range of section "The box"); `group_child_member` one item
+`{key: "group_1", kind: "group", address: "group_1", place: {x: 8, y: 8,
+length: 400, scale: 1, spacing: 1, width: 542.4140625, height:
+174.13671875}, stated: {}, range: {start: 1, end: 23}}`. Every reported place carries its `spacing`, 1
 unless `places` states it; the places listed below leave it out where it
 is 1. Stating those defaults explicitly (`places:
 {bare: {x: 8, y: 8, length: 400}}`) draws the same `width`, `height`,
@@ -1390,10 +1431,12 @@ left: `recording/card` `{16, 124.7578125, 650, 120}`, its line still at
 + 4 + 83.953125 + 8 + 120 + 8 = 244.7578125` high: `{8, 8, 666,
 244.7578125}`, `W = 8 + (8 + 666) = 682`, `H = 8 + (8 + 244.7578125) =
 260.7578125`. `Drawing.cards` is `[{key: "second-half", group: "group_1",
-address: "second-half/card", size: {526.4140625, 83.953125}, stated: {}},
-{key: "recording", group: "group_1", address: "recording/card", size: {650,
-120}, spacing: 1, stated: {width: 650, height: 120}}]` (`second-half`'s
-`spacing: 1` too) and the item `{8, 8, 400, 1, 666, 244.7578125}`. A
+address: "second-half/card", size: {526.4140625, 83.953125}, stated: {},
+range: {start: 3, end: 16}}, {key: "recording", group: "group_1", address:
+"recording/card", size: {650, 120}, spacing: 1, stated: {width: 650,
+height: 120}, range: {start: 16, end: 23}}]` (`second-half`'s `spacing: 1` too; a size
+changes no element, so the ranges are those of section "The box") and the
+item `{8, 8, 400, 1, 666, 244.7578125}`. A
 member's entry is used for `width`, `height` and `spacing` alone:
 `{recording: {x: 50, y: 50, length: 100, scale: 3, width: 650}}` draws
 exactly as `{recording: {width: 650}}`, and its card's `stated` is `{width:
@@ -1464,8 +1507,10 @@ bases `1.5 + 13 = 14.5` below, and its labels' baseline `16.5 + a(9) =
     12.8046875 + 4 + 113.953125 + 8 + 81.37890625 + 8 = 236.13671875}`, `W
     = 558.4140625` unchanged, `H = 8 + (8 + 236.13671875) = 252.13671875`.
   - `Drawing.cards`: `second-half` `{size: {526.4140625, 113.953125},
-    spacing: 1, stated: {}}`, `recording` `{size: {526.4140625,
-    81.37890625}, spacing: 1.5, stated: {spacing: 1.5}}`; the item
+    spacing: 1, stated: {}, range: {start: 3, end: 16}}`, `recording`
+    `{size: {526.4140625, 81.37890625}, spacing: 1.5, stated: {spacing:
+    1.5}, range: {start: 16, end: 23}}` (a stretch changes no element);
+    the item
     `group_1` `{x: 8, y: 8, length: 400, scale: 1, spacing: 2, width:
     542.4140625, height: 236.13671875}`, `stated: {spacing: 2}`.
 - **The placement's spacing multiplies too.** `group_child_member` at

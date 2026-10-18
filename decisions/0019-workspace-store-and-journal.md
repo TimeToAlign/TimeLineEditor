@@ -55,9 +55,14 @@ refuses another `format` or `version`, any unknown or missing member and any
 invalid manifest, and reads every block's manifest through
 `readManifestValue`. Writing what was read gives the same bytes.
 
-**Superseded in part (2026-10-18).** Undo and redo now step one change at
-a time, a change being one command at any depth, inside closed sessions
-too. The store keeps a count of applied changes per level instead of a
+**Superseded in part (2026-10-18).** Undo and redo now move by steps. A
+change is one command at any depth, owned by the innermost editor session
+whose own entries hold it. A change the level in view owns itself, a
+command of the open editor's session or, with no editor open, of the main
+journal, is one step; a maximal run of consecutive changes owned by one
+closed session is one step, so undo reaches into a closed session run by
+run. Redo re-applies the earliest undone step, so it mirrors undo step for
+step. The store keeps a count of applied changes per level instead of a
 redo stack, a new command discards the undone changes, and an undo past
 the views the store holds applies the changes from the latest view it
 holds, or from the empty workspace at the start of a loaded journal. The

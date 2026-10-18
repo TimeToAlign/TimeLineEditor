@@ -6,12 +6,18 @@
  */
 
 import type { View } from "@timetoalign/tilie-core";
-import type { Drawing } from "@timetoalign/tilie-layout";
+import type {
+  Drawing,
+  DrawnElement,
+  LineElement,
+  RectElement,
+  TextElement,
+} from "@timetoalign/tilie-layout";
 import { flushSync, mount, unmount } from "svelte";
 import { SvelteMap } from "svelte/reactivity";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Hit } from "../src/boxes.ts";
-import { marksOf, showsHover } from "../src/boxes.ts";
+import { holdingOf, marksOf, showsHover } from "../src/boxes.ts";
 import {
   affectedBy,
   click,
@@ -21,12 +27,24 @@ import {
   hitOf,
   hoverOf,
   insideOf,
+  itemMoveCommand,
   removeCommand,
   selectionOf,
 } from "../src/index.ts";
 import type { BlockNodeData } from "../src/project.ts";
 import NodeHarness from "./NodeHarness.svelte";
-import { A, B, blockIn, CHILD_MEMBER, changed, metrics, mixedPlain, viewOf } from "./support.ts";
+import {
+  A,
+  B,
+  blockIn,
+  CHILD_MEMBER,
+  changed,
+  MIXED,
+  metrics,
+  mixedPlain,
+  recordingInGroup1,
+  viewOf,
+} from "./support.ts";
 
 const SVG = "http://www.w3.org/2000/svg";
 
@@ -43,6 +61,7 @@ function styled(view: View, statement: object): View {
 }
 
 const HIDDEN_CARDS = { select: { element: "card" }, set: { display: "none" } };
+const HIDDEN_FRAMES = { select: { element: "group" }, set: { display: "none" } };
 
 /** An SVG element of `tag`, carrying `address` when given, inside an `<svg>` inside a `div`. */
 function target(tag: string, address: string | null = null): Element {
@@ -500,6 +519,106 @@ describe("the boxes holding part of the selection", () => {
     const node = mountWith(selected, viewOf({ id: A, fixture: "bundles/bundle_ungrouped" }));
     expect(carrying(node, "data-contains-selection")).toEqual(expected);
     expect(node.hasAttribute("data-contains-selection")).toBe(true);
+  });
+
+  it.each([
+    ["cards", "score", HIDDEN_CARDS, ["rect group_1"], ["group_1"]],
+    ["frames", "score", HIDDEN_FRAMES, ["rect score/card"], ["score/card"]],
+    ["frames", "group_1/name", HIDDEN_FRAMES, [], []],
+  ])(
+    "with the %s hidden, %s marks only displayed boxes",
+    (_, selected, statement, marked, boxes) => {
+      const view = styled(mixed, statement);
+      const node = mountWith([selected], view);
+      expect(carrying(node, "data-contains-selection")).toEqual(marked);
+      expect(node.hasAttribute("data-contains-selection")).toBe(true);
+      expect(holdingOf(drawingIn(view), new Set([selected]))).toEqual({
+        block: true,
+        boxes: new Set(boxes),
+      });
+    },
+  );
+
+  describe("with an item over another", () => {
+    // The README's view `over`: `annotations`' card moved to (8, 60), over `group_1`'s frame.
+    const plain = mixedPlain();
+    const over = changed(plain, itemMoveCommand(plain, A, "annotations", 8, 60, metrics));
+
+    /** The drawn element of `type` addressed `address`. */
+    function drawnIn(type: DrawnElement["type"], address: string): DrawnElement {
+      const found = drawingIn(over).elements.find(
+        (element) => element.type === type && element.address === address,
+      );
+      if (found === undefined) throw new Error(`no ${type} ${address}`);
+      return found;
+    }
+
+    const inside = (rect: RectElement, x: number, y: number) =>
+      rect.x <= x && x <= rect.x + rect.width && rect.y <= y && y <= rect.y + rect.height;
+
+    it("draws each card's member drawing inside the other card", () => {
+      const width = 562.484619140625;
+      const box = ({ x, y, width, height }: RectElement) => ({ x, y, width, height });
+      const annotations = drawnIn("card", "annotations/card") as RectElement;
+      const score = drawnIn("card", "score/card") as RectElement;
+      expect(box(annotations)).toEqual({ x: 8, y: 60, width, height: 71.85546875 });
+      expect(box(drawnIn("group", "group_1") as RectElement)).toEqual({
+        x: 8,
+        y: 28.8046875,
+        width,
+        height: 169.234375,
+      });
+      expect(box(score)).toEqual({
+        x: 16,
+        y: 53.609375,
+        width: 546.484619140625,
+        height: 78.953125,
+      });
+      const line = drawnIn("timeline", "score") as LineElement;
+      expect([line.xs, line.xe]).toEqual([126.29150390625, 526.29150390625]);
+      expect(inside(annotations, (line.xs + line.xe) / 2, line.y)).toBe(true);
+      const name = drawnIn("name", "annotations/name") as TextElement;
+      expect(name.x).toBe(24);
+      expect(inside(score, name.x, name.baseline)).toBe(true);
+    });
+
+    it("gives the card drawn on top as the box under a point both cards hold", () => {
+      const line = drawnIn("timeline", "score") as LineElement;
+      const point = { x: (line.xs + line.xe) / 2, y: line.y };
+      expect(hitOf(A, drawingIn(over), null, point).within).toBe("annotations/card");
+    });
+
+    it.each([
+      ["the name of the card on top", ["annotations/name"], ["rect annotations/card"]],
+      ["the line of the card underneath", ["score"], ["rect group_1", "rect score/card"]],
+      ["the card on top", ["annotations/card"], []],
+    ])("with %s (%j) selected marks only the boxes it is drawn in", (_, selected, expected) => {
+      const node = mountWith(selected, over);
+      expect(carrying(node, "data-contains-selection")).toEqual(expected);
+      expect(node.hasAttribute("data-contains-selection")).toBe(true);
+    });
+  });
+
+  describe("with an element drawn twice and hidden once", () => {
+    // `recording` made a member of `group_1`: its card draws its child `excerpt` with its map.
+    const twice = recordingInGroup1(viewOf({ id: A, fixture: MIXED }));
+    const hidden = styled(twice, {
+      select: { element: "map", inside: "child" },
+      set: { display: "none" },
+    });
+
+    it.each([
+      [
+        "drawn on both cards",
+        twice,
+        ["rect group_1", "rect recording/card", "rect group_2", "rect excerpt/card"],
+      ],
+      ["hidden on the card of `recording`", hidden, ["rect group_2", "rect excerpt/card"]],
+    ])("marks the boxes of each copy drawn, %s", (_, view, expected) => {
+      const node = mountWith(["recording/cmap_2"], view);
+      expect(carrying(node, "data-contains-selection")).toEqual(expected);
+      expect(node.hasAttribute("data-contains-selection")).toBe(true);
+    });
   });
 });
 

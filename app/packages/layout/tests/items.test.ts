@@ -192,6 +192,7 @@ describe("a member's card size", () => {
         size: { width: 526.4140625, height: 83.953125 },
         spacing: 1,
         stated: {},
+        range: { start: 3, end: 16 },
       },
       {
         key: "recording",
@@ -200,6 +201,7 @@ describe("a member's card size", () => {
         size: { width: 650, height: 120 },
         spacing: 1,
         stated: { width: 650, height: 120 },
+        range: { start: 16, end: 23 },
       },
     ]);
   });
@@ -329,6 +331,7 @@ describe("an item's vertical stretch", () => {
           size: { width: 526.4140625, height: 113.953125 },
           spacing: 1,
           stated: {},
+          range: { start: 3, end: 16 },
         },
         {
           key: "recording",
@@ -337,6 +340,7 @@ describe("an item's vertical stretch", () => {
           size: { width: 526.4140625, height: 81.37890625 },
           spacing: 1.5,
           stated: { spacing: 1.5 },
+          range: { start: 16, end: 23 },
         },
       ]);
       expect(drawing.items.map((item) => [item.place, item.stated])).toEqual([

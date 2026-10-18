@@ -130,6 +130,41 @@ export function mixedPlain(): View {
 }
 
 /**
+ * `view` with `recording` made a member of `group_1` in block A's
+ * `bundle_mixed`, by one `set` of the block's `manifest`: `group_1`'s
+ * members `[performance, recording, score]`, displayed `[score,
+ * performance, recording]`. `recording`'s card then draws its child
+ * `excerpt`, which stays a member of `group_2`, as a child line.
+ */
+export function recordingInGroup1(view: View): View {
+  const { manifest } = blockIn(view, A);
+  const members = ["performance", "recording", "score"];
+  return changed(view, {
+    type: "set",
+    changes: [
+      {
+        target: A,
+        values: {
+          manifest: {
+            ...manifest,
+            groups: manifest.groups.map((group) =>
+              group.id === "group_1" ? { ...group, members } : group,
+            ),
+            graphical: {
+              ...manifest.graphical,
+              order: {
+                ...manifest.graphical?.order,
+                group_1: ["score", "performance", "recording"],
+              },
+            },
+          },
+        },
+      },
+    ],
+  });
+}
+
+/**
  * The README's `mixed`: block A holding `bundle_mixed` at (40, 80) with the
  * child `dlt_1` (samples, offset 0, length 44100) added to `excerpt`.
  */

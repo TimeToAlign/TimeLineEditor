@@ -102,16 +102,28 @@ export interface ListedEntry {
   readonly children: readonly ListedEntry[];
 }
 
-/** The changes of `entries` in order: their commands, a session's expanded from `sessions` recursively. */
-export function changesOf(entries: readonly Entry[], sessions: Sessions): CommandEntry[] {
-  const changes: CommandEntry[] = [];
-  const visit = (from: readonly Entry[]) => {
+/** One change: a command entry at any depth, and the session that owns it. */
+export interface OwnedChange {
+  readonly entry: CommandEntry;
+  /** The innermost session whose own entries hold the command; null for the main journal's own. */
+  readonly owner: SessionId | null;
+}
+
+/**
+ * The changes of `entries` in order: their commands, a session's expanded
+ * from `sessions` recursively, each with its owner (null for a command of
+ * `entries` itself).
+ */
+export function changesOf(entries: readonly Entry[], sessions: Sessions): OwnedChange[] {
+  const changes: OwnedChange[] = [];
+  const visit = (from: readonly Entry[], owner: SessionId | null) => {
     for (const entry of from) {
-      if (isSessionEntry(entry)) visit((sessions[entry.session] as Session).entries);
-      else changes.push(entry);
+      if (isSessionEntry(entry)) {
+        visit((sessions[entry.session] as Session).entries, entry.session);
+      } else changes.push({ entry, owner });
     }
   };
-  visit(entries);
+  visit(entries, null);
   return changes;
 }
 

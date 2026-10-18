@@ -1,10 +1,10 @@
 /**
  * The editors on the canvas: entering by double-click and Enter, the
  * viewport's move there and back, the faded and inert surroundings, nested
- * editors, Done folding a session into one journal entry undone one change
- * at a time, Cancel and its
- * question, Escape, moving an item in the bundle editor, reordering a
- * group's members in the group editor, the refusal of a change outside the
+ * editors, Done folding a session into one journal entry undone by runs of
+ * its closed sessions, Cancel and its question, Escape, moving one item or several
+ * selected ones in the bundle editor, reordering a group's members in the
+ * group editor, the refusal of a change outside the
  * edited element, the Journal tab, and a member's card stretching its group
  * in its timeline editor. The expected values are derived in
  * `README.md` ("editors.spec.ts"); the double tap is in `touch.spec.ts`.
@@ -156,6 +156,27 @@ const SET_NAME = {
   type: "set",
   changes: [{ target: `${MIXED}/score`, values: { name: "S" } }],
 };
+
+/** The `set` of the name of `bmixed0000`'s timeline `id`. */
+const rename = (id: string, name: string) => ({
+  type: "set",
+  changes: [{ target: `${MIXED}/${id}`, values: { name } }],
+});
+
+/** The names of `bmixed0000`'s roots `score`, `performance` and `annotations` in the view. */
+function rootNames(page: Page): Promise<(string | null)[]> {
+  return page.evaluate((block) => {
+    const timelines = window.__tilie.store().view.blocks[block]?.manifest.timelines ?? [];
+    return ["score", "performance", "annotations"].map(
+      (id) => timelines.find((timeline) => timeline.id === id)?.name ?? null,
+    );
+  }, MIXED);
+}
+
+/** Close the innermost editor through the hook, as Done does. */
+function doneByHook(page: Page): Promise<void> {
+  return page.evaluate(() => window.__tilie.done());
+}
 
 function tabs(page: Page) {
   return page.getByRole("tablist", { name: "Inspector sections" });
@@ -367,14 +388,12 @@ test.describe("on bundles", () => {
     await expect.poll(() => editing(page)).toEqual([]);
   });
 
-  test("Done folds the session into one journal entry, undone one change at a time", async ({
-    page,
-  }) => {
+  test("Done folds the session into one journal entry, undone as one step", async ({ page }) => {
     const view = await storeText(page, "view");
     await enter(page, `${MIXED}/group_1`);
     expect(await dispatch(page, SET_PLACE)).toBeNull();
-    const placed = await storeText(page, "view");
     expect(await dispatch(page, SET_NAME)).toBeNull();
+    const after = await storeText(page, "view");
     expect(await entriesLength(page)).toBe(2);
     expect(await journalLength(page)).toBe(START);
 
@@ -394,13 +413,14 @@ test.describe("on bundles", () => {
       }),
     ).toEqual({ command: false, target: `${MIXED}/group_1`, entries: 2 });
 
+    // The two commands are one run of the closed session: one undo reverts both.
     await arranger(page).focus();
-    await page.keyboard.press("ControlOrMeta+z");
-    await expect.poll(() => storeText(page, "view")).toBe(placed);
-    expect(await journalLength(page)).toBe(START + 1);
     await page.keyboard.press("ControlOrMeta+z");
     await expect.poll(() => journalLength(page)).toBe(START);
     expect(await storeText(page, "view")).toBe(view);
+    await page.keyboard.press("ControlOrMeta+Shift+z");
+    await expect.poll(() => journalLength(page)).toBe(START + 1);
+    expect(await storeText(page, "view")).toBe(after);
   });
 
   test("Cancel without a change closes at once", async ({ page }) => {
@@ -555,6 +575,66 @@ test.describe("on bundles", () => {
     expect(await frameRect(page)).toEqual({ ...frameBefore, x: frameBefore.x + 40 });
   });
 
+  test("two selected items move together, the selection kept, undone as one", async ({ page }) => {
+    const { group_1: first, group_2: second, annotations } = drawnPlaces(MIXED);
+    if (first === undefined || second === undefined || annotations === undefined) {
+      throw new Error("an item of bmixed0000 is not drawn");
+    }
+    expect([first.x, first.y, annotations.x, annotations.y].every(onFreeGrid)).toBe(true);
+    expect([first.x, annotations.x]).toEqual([8, 8]);
+
+    await enter(page, MIXED);
+    const view = await storeText(page, "view");
+    const frame = await framePoint(page, MIXED, "group_1");
+    const card = await framePoint(page, MIXED, "annotations/card");
+    await page.mouse.click(frame.x, frame.y);
+    await page.keyboard.down("Shift");
+    await page.mouse.click(card.x, card.y);
+    await page.keyboard.up("Shift");
+    const both = [`${MIXED}/annotations/card`, `${MIXED}/group_1`];
+    await expect.poll(() => selection(page)).toEqual(both);
+
+    /** The `x` attribute of the `index`-th `rect` of `address`, in drawing units. */
+    const rectX = (address: string, index: number) =>
+      node(page, MIXED)
+        .locator(`rect[data-address="${address}"]`)
+        .nth(index)
+        .evaluate((rect) => Number(rect.getAttribute("x")));
+    await dragStart(page, frame, 40, 24);
+    await expect.poll(() => rectX("group_1", 0)).toBe(48);
+    expect(await rectX("annotations/card", 1)).toBe(48);
+    await page.mouse.up();
+
+    await expect.poll(() => entriesLength(page)).toBe(1);
+    expect(
+      await page.evaluate(() => {
+        const [entry] = window.__tilie.store().entries;
+        return entry !== undefined && "command" in entry ? entry.command : null;
+      }),
+    ).toEqual({
+      type: "set",
+      changes: [
+        { target: `${MIXED}/group_1`, values: { place: { x: first.x + 40, y: first.y + 24 } } },
+        {
+          target: `${MIXED}/annotations`,
+          values: { place: { x: annotations.x + 40, y: annotations.y + 24 } },
+        },
+        { target: `${MIXED}/group_2`, values: { place: { x: second.x, y: second.y } } },
+      ],
+    });
+    expect(await places(page, MIXED)).toEqual({
+      group_1: { x: first.x + 40, y: first.y + 24 },
+      group_2: { x: second.x, y: second.y },
+      annotations: { x: annotations.x + 40, y: annotations.y + 24 },
+    });
+    expect(await selection(page)).toEqual(both);
+
+    await arranger(page).focus();
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect.poll(() => places(page, MIXED)).toEqual({});
+    expect(await storeText(page, "view")).toBe(view);
+  });
+
   test("a change outside the edited element is refused", async ({ page }) => {
     await enter(page, `${MIXED}/group_1`);
     const refusal = await dispatch(page, {
@@ -617,20 +697,12 @@ test.describe("on bundles", () => {
     await expect(undone).toHaveCount(0);
   });
 
-  test("three nested sessions undo one change at a time", async ({ page }) => {
+  test("three nested sessions with one change each undo one session at a time", async ({
+    page,
+  }) => {
     const view = await storeText(page, "view");
-    const rename = (id: string, name: string) => ({
-      type: "set",
-      changes: [{ target: `${MIXED}/${id}`, values: { name } }],
-    });
-    const done = () => page.evaluate(() => window.__tilie.done());
-    const names = () =>
-      page.evaluate((block) => {
-        const timelines = window.__tilie.store().view.blocks[block]?.manifest.timelines ?? [];
-        return ["score", "performance", "annotations"].map(
-          (id) => timelines.find((timeline) => timeline.id === id)?.name ?? null,
-        );
-      }, MIXED);
+    const done = () => doneByHook(page);
+    const names = () => rootNames(page);
     const original = await names();
     expect(original).toEqual(["Score", "Performance", "Annotations"]);
     await enter(page, MIXED);
@@ -683,6 +755,82 @@ test.describe("on bundles", () => {
     await expect.poll(names).toEqual(["c", "b", original[2]]);
     await page.keyboard.press("ControlOrMeta+Shift+z");
     await expect.poll(names).toEqual(["c", "b", "a"]);
+  });
+
+  test("an interleaved session undoes by runs, newest first, and redoes in mirror", async ({
+    page,
+  }) => {
+    const view = await storeText(page, "view");
+    expect(await rootNames(page)).toEqual(["Score", "Performance", "Annotations"]);
+    await enter(page, MIXED);
+    expect(await dispatch(page, rename("annotations", "a1"))).toBeNull();
+    await enter(page, `${MIXED}/group_1`);
+    expect(await dispatch(page, rename("performance", "b1"))).toBeNull();
+    await enter(page, `${MIXED}/score`);
+    expect(await dispatch(page, rename("score", "c1"))).toBeNull();
+    expect(await dispatch(page, rename("score", "c2"))).toBeNull();
+    await doneByHook(page);
+    expect(await dispatch(page, rename("performance", "b2"))).toBeNull();
+    await doneByHook(page);
+    expect(await dispatch(page, rename("annotations", "a2"))).toBeNull();
+    await doneByHook(page);
+    await expect.poll(() => editing(page)).toEqual([]);
+    expect(await journalLength(page)).toBe(START + 1);
+    await tab(page, "Journal").click();
+    const first = page.locator("#inspector-panel-journal > ol > li").first();
+    const firstText = first.locator(":scope > .row > .text");
+    /** Whether each item carries `data-undone`. */
+    const undone = (items: ReturnType<Page["locator"]>) =>
+      items.evaluateAll((all) => all.map((item) => item.hasAttribute("data-undone")));
+
+    // The names and the bundle session's row before each undo; the runs are
+    // a1, b1, c1 c2, b2, a2, undone newest first.
+    const states: [(string | null)[], string][] = [
+      [["c2", "b2", "a2"], "Edited bundle Mixed (6 changes)"],
+      [["c2", "b2", "a1"], "Edited bundle Mixed (6 changes, 1 undone)"],
+      [["c2", "b1", "a1"], "Edited bundle Mixed (6 changes, 2 undone)"],
+      [["Score", "b1", "a1"], "Edited bundle Mixed (6 changes, 4 undone)"],
+      [["Score", "Performance", "a1"], "Edited bundle Mixed (6 changes, 5 undone)"],
+      [["Score", "Performance", "Annotations"], "Edited bundle Mixed (6 changes)"],
+    ];
+    await expect(firstText).toHaveText("Edited bundle Mixed (6 changes)");
+    for (const [index, [names, text]] of states.entries()) {
+      if (index === 0) continue;
+      await arranger(page).focus();
+      await page.keyboard.press("ControlOrMeta+z");
+      await expect.poll(() => rootNames(page)).toEqual(names);
+      await expect(firstText).toHaveText(text);
+      if (index !== 3) continue;
+      // Both of the timeline session's changes went with one key press.
+      await first.locator(":scope > .row > button").click();
+      const children = first.locator(":scope > ol > li");
+      await expect(children.locator(":scope > .row > .text")).toHaveText([
+        "Set name of bmixed0000/annotations",
+        "Edited group Performance (4 changes, 3 undone)",
+        "Set name of bmixed0000/annotations",
+      ]);
+      expect(await undone(children)).toEqual([true, false, false]);
+      const group = children.nth(1);
+      await group.locator(":scope > .row > button").click();
+      const members = group.locator(":scope > ol > li");
+      await expect(members.locator(":scope > .row > .text")).toHaveText([
+        "Set name of bmixed0000/performance",
+        "Edited timeline Score (2 changes)",
+        "Set name of bmixed0000/performance",
+      ]);
+      expect(await undone(members)).toEqual([true, true, false]);
+    }
+    await expect(first).toHaveAttribute("data-undone");
+    expect(await journalLength(page)).toBe(START);
+    expect(await storeText(page, "view")).toBe(view);
+
+    for (const [names, text] of states.slice(0, -1).reverse()) {
+      await arranger(page).focus();
+      await page.keyboard.press("ControlOrMeta+Shift+z");
+      await expect.poll(() => rootNames(page)).toEqual(names);
+      await expect(firstText).toHaveText(text);
+    }
+    await expect(first).not.toHaveAttribute("data-undone");
   });
 });
 

@@ -22,7 +22,7 @@ import {
 import { editedElement, GESTURES } from "./editors.ts";
 import type { Point } from "./gestures.svelte.ts";
 import { itemDrag, listen, memberDrag } from "./gestures.svelte.ts";
-import { itemMoveCommand, itemOf, placesAfter } from "./items.ts";
+import { itemMoveCommand, itemOf, itemsMovedWith, placesAfter } from "./items.ts";
 import { drawingMatrix, pointIn, slide } from "./motion.ts";
 import { getNodeActions } from "./nodeActions.ts";
 import type { BlockNode as BlockNodeType } from "./project.ts";
@@ -186,14 +186,19 @@ function storedBlock(): Block {
   return actions.view().blocks[data.block.id] ?? data.block;
 }
 
-/** The preview callback of a drag that selects `address` once the press has become a drag. */
-function selecting<T>(address: string, preview: (value: T | null) => void) {
+/** Select the element `address` of this block alone. */
+function select(address: string): void {
+  actions.select(`${data.block.id}/${address}`);
+}
+
+/** The preview callback of a drag that calls `start` once the press has become a drag. */
+function starting<T>(start: () => void, preview: (value: T | null) => void) {
   let dragging = false;
   return (value: T | null) => {
     if (value === null) dragging = false;
     else if (!dragging) {
       dragging = true;
-      actions.select(`${data.block.id}/${address}`);
+      start();
     }
     preview(value);
   };
@@ -215,8 +220,26 @@ function made(key: string, make: () => Attachment<SVGElement>): Attachment<SVGEl
   return found;
 }
 
-/** Move the item `key` drawn at `address` (a frame, or an ungrouped root's card) in the bundle editor. */
+/**
+ * Move the item `key` drawn at `address` (a frame, or an ungrouped root's
+ * card) in the bundle editor. When the press becomes a drag, an item in the
+ * selection moves with every other item in it by the same travel and
+ * leaves the selection as it is (`itemsMovedWith`); an item outside it
+ * moves alone and is selected.
+ */
 function itemGesture(key: string, address: string): Attachment<SVGElement> {
+  /** The other items the drag in progress moves, read from the selection as it starts. */
+  let together: readonly string[] = [];
+  const command = (place: Point) =>
+    itemMoveCommand(
+      actions.view(),
+      data.block.id,
+      key,
+      place.x,
+      place.y,
+      actions.metrics.metrics,
+      together,
+    );
   return itemDrag({
     place: () => {
       const { x, y } = itemOf(data.drawing, key).place;
@@ -224,31 +247,23 @@ function itemGesture(key: string, address: string): Attachment<SVGElement> {
     },
     zoom: () => actions.zoom(),
     scale: () => data.block.scale,
-    preview: selecting<Point>(address, (place) => {
-      if (place === null) return actions.preview(data.block.id, null);
-      const block = storedBlock();
-      const command = itemMoveCommand(
-        actions.view(),
-        block.id,
-        key,
-        place.x,
-        place.y,
-        actions.metrics.metrics,
-      );
-      actions.preview(block.id, {
-        places: command === null ? block.places : placesAfter(block, command),
-      });
-    }),
-    command: (place) =>
-      itemMoveCommand(
-        actions.view(),
-        data.block.id,
-        key,
-        place.x,
-        place.y,
-        actions.metrics.metrics,
-      ),
-    dispatch: (command) => actions.dispatch(command),
+    preview: starting<Point>(
+      () => {
+        const moved = itemsMovedWith(data.block.manifest, data.drawing, data.selectedElements, key);
+        together = moved ?? [];
+        if (moved === null) select(address);
+      },
+      (place) => {
+        if (place === null) return actions.preview(data.block.id, null);
+        const block = storedBlock();
+        const moved = command(place);
+        actions.preview(block.id, {
+          places: moved === null ? block.places : placesAfter(block, moved),
+        });
+      },
+    ),
+    command,
+    dispatch: (moved) => actions.dispatch(moved),
   });
 }
 
@@ -307,22 +322,25 @@ function memberGesture(group: string, member: string): Attachment<SVGElement> {
   let offset: Point = { x: 0, y: 0 };
   const drag = memberDrag({
     order: (y) => (press === null ? [] : memberOrderAt(press.drawing, group, member, y)),
-    preview: selecting<readonly string[]>(`${member}/card`, (order) => {
-      if (order === null || press === null) {
-        dragged = null;
-        actions.preview(data.block.id, null);
-        // The drop's or the abort's redraw still slides; the next one does not.
-        void tick().then(() => {
-          sliding = dragged !== null;
+    preview: starting<readonly string[]>(
+      () => select(`${member}/card`),
+      (order) => {
+        if (order === null || press === null) {
+          dragged = null;
+          actions.preview(data.block.id, null);
+          // The drop's or the abort's redraw still slides; the next one does not.
+          void tick().then(() => {
+            sliding = dragged !== null;
+          });
+          return;
+        }
+        sliding = true;
+        dragged ??= { member, ghost: press.ghost, offset };
+        actions.preview(data.block.id, {
+          manifest: withMemberOrder(press.block.manifest, group, order),
         });
-        return;
-      }
-      sliding = true;
-      dragged ??= { member, ghost: press.ghost, offset };
-      actions.preview(data.block.id, {
-        manifest: withMemberOrder(press.block.manifest, group, order),
-      });
-    }),
+      },
+    ),
     command: (order) => (press === null ? null : reorderCommand(press.block, group, order)),
     dispatch: (command) => actions.dispatch(command),
   });
