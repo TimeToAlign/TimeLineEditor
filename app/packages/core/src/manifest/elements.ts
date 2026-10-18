@@ -9,6 +9,8 @@ import { canonicalOrder } from "@timetoalign/timeskeleton";
 import { compareCodePoints } from "../json.ts";
 import { axisCoordinate } from "../number/coordinate.ts";
 import { compareReal, realOf } from "../number/real.ts";
+import type { BandKind } from "./bands.ts";
+import { BAND_KINDS, bandAddress } from "./bands.ts";
 import type { MemberDrawing } from "./files.ts";
 import { elementAddress, isNamed, memberDrawings, TITLE_ADDRESS } from "./files.ts";
 import type { ConversionMap, Manifest, TimelineManifest } from "./types.ts";
@@ -24,16 +26,19 @@ export interface ElementKey {
   readonly address: string | null;
   /** The timeline it belongs to; `null` for the block, a group's frame and a title. */
   readonly timeline: string | null;
+  /** `null` for what belongs to no timeline, a band, and a map whose `target_unit` is null. */
   readonly domain: Domain | null;
   readonly modality: Modality | null;
+  /** Its timeline's class, a map's `type` or a band's kind; `null` for what belongs to no timeline. */
   readonly class: string | null;
   /**
    * Its holder chain: the types of the elements holding it in the tree
    * (sections 2.1 and 8.1), outermost first, which the selector member
    * `inside` tests. A key's chain is its holder's chain followed by the
-   * holder's type, so build keys with `elementKey`, `textKey` and
-   * `unownedKey` from the holder's key; a segment that is not a segment line
-   * (type `null`) adds nothing. Two drawings of one address differ here only.
+   * holder's type, so build keys with `elementKey`, `textKey`, `bandKey`
+   * and `unownedKey` from the holder's key; a segment that is not a segment
+   * line (type `null`) adds nothing. Two drawings of one address differ here
+   * only.
    */
   readonly inside: readonly ElementType[];
 }
@@ -130,6 +135,23 @@ export function textKey(owner: ElementKey, type: "name" | "label"): ElementKey {
 }
 
 /**
+ * The key of the band of `kind` of the timeline `timeline`, held by `holder`,
+ * that timeline's line or node: it belongs to the timeline, has no domain
+ * and no modality, and its class is its kind.
+ */
+export function bandKey(timeline: string, kind: BandKind, holder: ElementKey): ElementKey {
+  return {
+    type: "band",
+    address: bandAddress(timeline, kind),
+    timeline,
+    domain: null,
+    modality: null,
+    class: kind,
+    inside: holdersOf(holder),
+  };
+}
+
+/**
  * Every timeline id mapped to the ids from its root down to it, for every
  * root of the manifest; the length of the list is the timeline's depth.
  */
@@ -144,7 +166,10 @@ export function timelineAncestry(manifest: Manifest): Map<string, readonly strin
   return ancestry;
 }
 
-/** Whether an element matches every member present in a selector. */
+/**
+ * Whether an element matches every member present in a selector; `class`
+ * matches a timeline's class, a map's type or a band's kind alike.
+ */
 export function selectorMatches(
   select: Selector,
   element: ElementKey,
@@ -175,14 +200,17 @@ export function orderedChildren(timeline: TimelineManifest): TimelineManifest[] 
 }
 
 /**
- * The elements of one member drawing (section 8.1) held by `holder`, the block or a frame: its card; its ancestor
- * lines, each with its name and its marks of the member's start and end,
- * each mark with its label; then per timeline in pre-order, children by
- * offset then id: its line and name, or for a segment its node (its line
- * and no name when it is a segment line), its boundary when it is not the
- * first segment and its label; its maps; its regions, breaks and jumps each
- * followed by its label; and after the member's own elements its two wedges
- * with their labels.
+ * The elements of one member drawing (section 8.1) held by `holder`, the
+ * block or a frame: its card; its ancestor lines, each with its name and its
+ * marks of the member's start and end, each mark with its label; then per
+ * timeline in pre-order its line and name, or for a segment its node (its
+ * line and no name when it is a segment line), then its five bands in the
+ * order of `BAND_KINDS`, each followed by what it holds: the children band
+ * its children by offset then id, each segment with its boundary when it is
+ * not the first segment and its label, which its segment line holds
+ * directly; the conversion maps band its maps; the markers band the
+ * member's two wedges with their labels; the regions band its regions, and
+ * the flow control band its breaks, then its jumps, each with its label.
  */
 function memberElements(member: MemberDrawing, holder: ElementKey, keys: ElementKey[]): void {
   const address = (id: string) => elementAddress(member.root, id);
@@ -198,38 +226,51 @@ function memberElements(member: MemberDrawing, holder: ElementKey, keys: Element
     }
   }
   const visit = (key: ElementKey, timeline: TimelineManifest) => {
-    for (const map of timeline.conversion_maps) {
-      keys.push(elementKey("map", address(map.id), timeline, key, map));
-    }
-    const labelled = (type: ElementType, at: string) => {
-      const owned = elementKey(type, at, timeline, key);
+    const labelled = (type: ElementType, at: string, band: ElementKey) => {
+      const owned = elementKey(type, at, timeline, band);
       keys.push(owned, textKey(owned, "label"));
     };
-    const { breaks, jumps } = timeline.flow_control;
-    for (const [type, entries] of [
-      ["region", timeline.regions],
-      ["break", breaks],
-      ["jump", jumps],
-    ] as const) {
-      for (const entry of entries) labelled(type, address(entry.id));
+    const held: { readonly [kind in BandKind]: (band: ElementKey) => void } = {
+      children: (band) => {
+        orderedChildren(timeline).forEach((own, index) => {
+          if (timeline.is_segment_line) {
+            const node = elementKey(own.is_segment_line ? "child" : null, own.id, own, band);
+            keys.push(node);
+            // A segment's boundary and label are parts of its segment line's line, in no band.
+            if (index > 0) keys.push(elementKey("boundary", `${own.id}/start`, own, key));
+            keys.push(elementKey("label", `${own.id}/label`, own, key));
+            visit(node, own);
+          } else {
+            const node = elementKey("child", own.id, own, band);
+            keys.push(node, textKey(node, "name"));
+            visit(node, own);
+          }
+        });
+      },
+      conversion_maps: (band) => {
+        for (const map of timeline.conversion_maps) {
+          keys.push(elementKey("map", address(map.id), timeline, band, map));
+        }
+      },
+      markers: (band) => {
+        if (timeline !== root) return;
+        labelled("wedge", `${timeline.id}/start`, band);
+        labelled("wedge", `${timeline.id}/end`, band);
+      },
+      regions: (band) => {
+        for (const region of timeline.regions) labelled("region", address(region.id), band);
+      },
+      flow_control: (band) => {
+        const { breaks, jumps } = timeline.flow_control;
+        for (const item of breaks) labelled("break", address(item.id), band);
+        for (const item of jumps) labelled("jump", address(item.id), band);
+      },
+    };
+    for (const kind of BAND_KINDS) {
+      const band = bandKey(timeline.id, kind, key);
+      keys.push(band);
+      held[kind](band);
     }
-    if (timeline === root) {
-      labelled("wedge", `${timeline.id}/start`);
-      labelled("wedge", `${timeline.id}/end`);
-    }
-    orderedChildren(timeline).forEach((own, index) => {
-      if (timeline.is_segment_line) {
-        const node = elementKey(own.is_segment_line ? "child" : null, own.id, own, key);
-        keys.push(node);
-        if (index > 0) keys.push(elementKey("boundary", `${own.id}/start`, own, node));
-        keys.push(textKey(node, "label"));
-        visit(node, own);
-      } else {
-        const node = elementKey("child", own.id, own, key);
-        keys.push(node, textKey(node, "name"));
-        visit(node, own);
-      }
-    });
   };
   keys.push(line, textKey(line, "name"));
   visit(line, root);

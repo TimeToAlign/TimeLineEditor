@@ -1,117 +1,76 @@
 /**
- * The children band: the child lines placed by first fit into rows beyond
- * their parents' (`docs/drawing.md` in timeskeleton, sections 6.4 and 6.6).
+ * The children band's first fit: each child line placed as a whole, by the
+ * extent of its whole drawing, into the rows of its parent's children band,
+ * and the first pass over a member drawing (`docs/drawing.md` in
+ * timeskeleton, sections 6.3 and 6.4, Children).
  */
 
-import type { Band, Position } from "./canvas.ts";
-import type { Side } from "./cascade.ts";
-import type { LineElement } from "./elements.ts";
-import { Rows } from "./fit.ts";
-import type { LineReach } from "./segments.ts";
-import { type Entry, opposite, rowPitch, type Scope, shown } from "./traversal.ts";
+import { type Extent, Rows } from "./fit.ts";
+import { type PreparedTimeline, prepareTimeline, wholeExtent } from "./timeline.ts";
+import type { Entry, Scope } from "./traversal.ts";
 
-interface ChildRows {
-  /** Every line but the root's, in traversal order: the children and the segment lines among segments. */
-  readonly drawn: readonly Entry[];
-  readonly rows: Record<Side, Rows>;
-  /** The lines of each child row, in traversal order. */
-  readonly lines: Record<Side, Entry[][]>;
-  /** The row of each drawn line on its side. */
+/** The first fit of one children band (sections 6.3 and 6.4, Children). */
+export interface ChildrenFit {
+  /** The row of each child line the band places, from 1. */
   readonly row: ReadonlyMap<Entry, number>;
+  /** The number `C` of rows its children fill; 0 for an absent band. */
+  readonly count: number;
 }
 
-/** Place every drawn line but the root's into its side's rows, beyond its parent's anchor. */
-export function childRows(scope: Scope): ChildRows {
-  const { entries, rootEntry, relativeX, relativeEnd } = scope;
-  const drawnChildren = entries.slice(1).filter((entry) => entry.line && shown(entry.style));
-  const rows = { above: new Rows(), below: new Rows() };
-  const rowLines: Record<Side, Entry[][]> = { above: [], below: [] };
-  const childRow = new Map<Entry, number>();
-  const anchors = new Map<Entry, Record<Side, number>>([[rootEntry, { above: 0, below: 0 }]]);
-  for (const entry of entries.slice(1)) {
-    const parent = anchors.get(entry.parent as Entry) as Record<Side, number>;
-    if (!entry.line || !shown(entry.style)) {
-      anchors.set(entry, { ...parent });
-      continue;
-    }
-    const side = entry.style.side;
-    // An open end's three chevrons take room in the row: the extent runs on to the outer
-    // chevron's tip, 9.5w past its end.
-    const end = relativeEnd(entry);
-    const right = entry.open ? end + 9.5 * entry.style["stroke-width"] : end;
-    const row = rows[side].place([relativeX(entry.start), right], parent[side] + 1);
-    childRow.set(entry, row);
-    while (rowLines[side].length < row) rowLines[side].push([]);
-    (rowLines[side][row - 1] as Entry[]).push(entry);
-    anchors.set(entry, { ...parent, [side]: row });
-  }
-  return { drawn: drawnChildren, rows, lines: rowLines, row: childRow };
+/** One timeline drawn with a line of its own after the first pass (section 6.4). */
+export interface Fitted {
+  readonly prepared: PreparedTimeline;
+  /**
+   * Its extent (section 6.4, Children), from the root's start: the smallest interval holding its
+   * own extent and the extent of every child its children band places, at any depth
+   * (`wholeExtent`). Its parent's first fit places it by this, and its band records span it.
+   */
+  readonly extent: Extent;
+  /** Its children band's first fit. */
+  readonly fit: ChildrenFit;
 }
 
 /**
- * The name size of a children band (section 6.2): the largest of its rows'
- * names, displayed or not; a row of segment lines counts its first line's.
+ * The first fit of a children band (section 6.4, Children): the child lines
+ * `lines`, in the order `PreparedTimeline.children` gives them, each placed
+ * as a whole by its extent from `extents` into the lowest row holding no
+ * child whose extent conflicts with it (section 6.3). Each band fills its
+ * own rows, from 1, whatever the rows of its timeline's parent.
  */
-const nameBandSize = (children: ChildRows, side: Side): number =>
-  Math.max(
-    ...children.lines[side].map((lines) => {
-      const counted = lines.some((line) => !line.segment)
-        ? lines.filter((line) => !line.segment)
-        : lines.slice(0, 1);
-      return Math.max(...counted.map((line) => line.name.style["font-size"]));
-    }),
-  );
+export function fitChildren(
+  lines: readonly Entry[],
+  extents: ReadonlyMap<Entry, Extent>,
+): ChildrenFit {
+  const rows = new Rows();
+  const row = new Map(lines.map((line) => [line, rows.place(extents.get(line) as Extent)]));
+  return { row, count: rows.count };
+}
 
 /**
- * The children band of a side, starting no nearer than `p0 / 2`: the
- * distance of each row's line from the root's line, row 1 first.
+ * The first pass of a member drawing (section 6.4): every timeline drawn with
+ * a line of its own, from the root down through `PreparedTimeline.children`,
+ * prepared (`prepareTimeline`), then, from the deepest up, its extent
+ * (`wholeExtent` of its own extent and its children's) and its children
+ * band's first fit (`fitChildren`). Keyed by each line's entry, the root's
+ * included; uses no distance.
  */
-export function childrenBand(
-  scope: Scope,
-  children: ChildRows,
-  reach: LineReach,
-  side: Side,
-  p0: number,
-): Band<number[]> | undefined {
-  if (children.rows[side].count === 0) return undefined;
-  const p = rowPitch(scope, nameBandSize(children, side));
-  const halves = (half: Side) =>
-    children.lines[side].map((lines) =>
-      Math.max(p / 2, ...lines.map((line) => reach.reach(line, half))),
-    );
-  const inner = halves(opposite(side));
-  const outer = halves(side);
-  let width = 0;
-  inner.forEach((half, index) => {
-    width = width + half + (outer[index] as number);
-  });
-  return {
-    width,
-    minimum: p0 / 2,
-    at: (c0) => {
-      const rows: number[] = [];
-      let line = c0 + (inner[0] as number);
-      rows.push(line);
-      for (let index = 1; index < inner.length; index += 1) {
-        line = line + ((outer[index - 1] as number) + (inner[index] as number));
-        rows.push(line);
-      }
-      return rows;
-    },
+export function fitTimelines(scope: Scope): ReadonlyMap<Entry, Fitted> {
+  const fitted = new Map<Entry, Fitted>();
+  const visit = (line: Entry): Fitted => {
+    const prepared = prepareTimeline(scope, line);
+    const children = prepared.children.map(visit);
+    const extents = new Map(children.map((child) => [child.prepared.line, child.extent]));
+    const result: Fitted = {
+      prepared,
+      extent: wholeExtent(
+        prepared.extent,
+        children.map((child) => child.extent),
+      ),
+      fit: fitChildren(prepared.children, extents),
+    };
+    fitted.set(line, result);
+    return result;
   };
-}
-
-/** The child lines, each ending with the open diamond, or running on into three chevrons where open. */
-export function childElements(children: ChildRows, placed: Position): LineElement[] {
-  const { x, xEnd, lineY } = placed;
-  return children.drawn.map((entry) => ({
-    type: "child",
-    address: entry.manifest.id,
-    style: entry.style,
-    xs: x(entry.start),
-    xe: entry.open ? xEnd(entry) + 4 * entry.style["stroke-width"] : xEnd(entry),
-    y: lineY(entry),
-    start: "circle",
-    end: entry.open ? "unknown" : "diamond",
-  }));
+  visit(scope.rootEntry);
+  return fitted;
 }

@@ -9,7 +9,8 @@
 import type { Command } from "../commands/types.ts";
 import type { CommandError } from "../errors.ts";
 import { ErrorCode, isCommandError, problem } from "../errors.ts";
-import { elementOf, findTimeline, TITLE_ADDRESS } from "../manifest/files.ts";
+import { elementOf, TITLE_ADDRESS } from "../manifest/files.ts";
+import { findTimeline } from "../manifest/tree.ts";
 import { BLOCK_ID } from "./blocks.ts";
 import type { Address } from "./ids.ts";
 import { manifestIds, mintBlockId, parseAddress } from "./ids.ts";

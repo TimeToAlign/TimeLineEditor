@@ -10,7 +10,17 @@ import {
   type DrawnElement,
   draw,
 } from "../src/index.ts";
-import { BLOCK, drawFixture, element, load, metrics, scalarMap } from "./support.ts";
+import {
+  BLOCK,
+  bandOrder,
+  drawFixture,
+  edit,
+  element,
+  load,
+  metrics,
+  scalarMap,
+  set as setOf,
+} from "./support.ts";
 
 const set = (select: object, declaration: object): Graphical => ({
   statements: [{ select, set: declaration }],
@@ -222,7 +232,7 @@ describe("segment lines among ordinary children (segment_children)", () => {
 });
 
 describe("a segment line whose segments are no lines", () => {
-  it("keeps its segments on the root's line, in the root band", () => {
+  it("keeps its segments on the root's line, with no children band", () => {
     const drawing = drawFixture("segment_pages");
     expect(drawing.height).toBe(81.453125);
     expect(lines(drawing)).toEqual([
@@ -329,7 +339,17 @@ describe("a line's reach", () => {
   });
 
   it("keeps segment labels above a line below the root", () => {
-    const drawing = drawFixture("segment_line", [set({ element: "child" }, { side: "below" })]);
+    const manifest = edit(
+      "segment_line",
+      setOf("form", {
+        order: bandOrder(
+          "form",
+          ["conversion_maps"],
+          ["markers", "children", "regions", "flow_control"],
+        ),
+      }),
+    );
+    const drawing = draw(manifest, DEFAULT_PLACEMENT, [DEFAULT_LAYER], metrics);
     expect(drawing.height).toBe(113.9296875);
     expect(element(drawing, "form")).toMatchObject({ y: 36.4765625 });
     expect(element(drawing, "b")).toMatchObject({ y: 87.9296875 });
@@ -381,15 +401,25 @@ describe("a segment that is no line", () => {
     ]);
   });
 
-  it("holds its boundary and label in the tree", () => {
+  it("leaves its boundary and label to its segment line, which holds them", () => {
     expect(strokes(set({ ids: ["page_2"] }, { stroke: "#123456" }))).toEqual([
+      "none",
+      "none",
+      "none",
+    ]);
+    expect(strokes(set({ ids: ["pages"] }, { stroke: "#123456" }))).toEqual([
+      "#123456",
+      "#123456",
+      "#123456",
+    ]);
+    expect(strokes(set({ within: "page_2" }, { stroke: "#123456" }))).toEqual([
       "#123456",
       "#123456",
       "none",
     ]);
   });
 
-  it("passes a segment line's style to its boundary, its segments' boundaries and labels", () => {
+  it("passes a segment line's style to its segments' boundaries and labels, not its own", () => {
     const drawing = draw(
       load("segment_line"),
       DEFAULT_PLACEMENT,
@@ -400,6 +430,65 @@ describe("a segment that is no line", () => {
       ["b/start", "b2/start", "b1/label", "c/start"].map(
         (address) => element(drawing, address).style.stroke,
       ),
-    ).toEqual(["#123456", "#123456", "#123456", "none"]);
+    ).toEqual(["none", "#123456", "#123456", "none"]);
+  });
+});
+
+describe("a markers band at level 1 above a segment line", () => {
+  it("lies against the line, the segment labels beyond it", () => {
+    const manifest = edit(
+      "segment_pages",
+      setOf("pages", {
+        order: bandOrder(
+          "pages",
+          ["children", "conversion_maps", "markers"],
+          ["regions", "flow_control"],
+        ),
+      }),
+    );
+    const drawing = draw(manifest, DEFAULT_PLACEMENT, [DEFAULT_LAYER], metrics);
+    expect(drawing.height).toBe(81.453125);
+    expect(element(drawing, "pages")).toMatchObject({ y: 55.453125 });
+    expect(segmentLabels(drawing).map((item) => item[2])).toEqual([
+      24.35400390625, 24.35400390625, 24.35400390625, 24.35400390625,
+    ]);
+    expect(element(drawing, "pages/start")).toMatchObject({ yt: 53.953125, yb: 40.953125 });
+    expect(element(drawing, "pages/end/label")).toMatchObject({ baseline: 36.83056640625 });
+    expect(element(drawing, "page_2/start")).toMatchObject({ y1: 47.453125, y2: 63.453125 });
+  });
+});
+
+describe("the regions of segments without a line", () => {
+  it("join their segment line's regions band when shown", () => {
+    const drawing = drawFixture("unknown_length_segments", [
+      set({ element: "band", class: "regions" }, { display: "inline" }),
+    ]);
+    expect(drawing.height).toBe(91.453125);
+    expect(
+      ofType(drawing, "region").flatMap((item) =>
+        item.type === "region" ? [[item.address, item.x1, item.x2, item.xm, item.yb, item.ya]] : [],
+      ),
+    ).toEqual([
+      [
+        "form/region_1",
+        49.84033203125,
+        143.95797909007354,
+        96.89915556066177,
+        54.9765625,
+        60.9765625,
+      ],
+      [
+        "form/region_2",
+        379.2520967371323,
+        449.84033203125,
+        414.54621438419116,
+        54.9765625,
+        60.9765625,
+      ],
+    ]);
+  });
+
+  it("are hidden by default with the bands of every timeline held by a band", () => {
+    expect(ofType(drawFixture("unknown_length_segments"), "region")).toEqual([]);
   });
 });

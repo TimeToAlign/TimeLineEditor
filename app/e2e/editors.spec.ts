@@ -18,18 +18,24 @@ import { expect, test } from "@playwright/test";
 import { drawingOf } from "../packages/arranger/src/drawing.ts";
 import { focusViewport } from "../packages/arranger/src/focus.ts";
 import { nodePosition } from "../packages/arranger/src/project.ts";
-import type { CommandError } from "../packages/core/src/index.ts";
 import { isLoadError, readWorkspace } from "../packages/core/src/index.ts";
 import {
+  arranger,
   BUNDLES,
+  dispatch,
   drag,
   dragStart,
+  editing,
   emptyPoint,
+  enter,
+  entriesLength,
   fixtureText,
   framePoint,
   GROUPS,
+  graphicalOrder,
   journalLength,
   marginPoint,
+  newestCommand,
   node,
   OPENED_JOURNAL,
   open,
@@ -37,6 +43,7 @@ import {
   placement,
   selection,
   setViewport,
+  storeText,
   toScreen,
   viewportOf,
 } from "./support.ts";
@@ -100,52 +107,12 @@ function frameRect(page: Page): Promise<{ x: number; y: number; width: number; h
     });
 }
 
-/** The open editors, each as `{target, kind}`. */
-function editing(page: Page): Promise<{ target: string; kind: string }[]> {
-  return page.evaluate(() =>
-    window.__tilie.editing().map(({ target, kind }) => ({ target, kind })),
-  );
-}
-
-/**
- * Open the editor of `address` through the hook, wait until the canvas has
- * moved to it, and set the viewport back to `VIEW`, so that pointer
- * positions count at zoom 1.
- */
-async function enter(page: Page, address: string): Promise<void> {
-  const before = (await editing(page)).length;
-  expect(await page.evaluate((target) => window.__tilie.open(target), address)).toBeNull();
-  expect((await editing(page)).length).toBe(before + 1);
-  await expect.poll(() => viewportOf(page)).not.toEqual(VIEW);
-  await setViewport(page, VIEW);
-}
-
-/** The JSON text of a member of the store, read in the page (a `bigint` written as its digits). */
-function storeText(page: Page, member: "view" | "journal" | "sessions"): Promise<string> {
-  return page.evaluate(
-    (name) =>
-      JSON.stringify(window.__tilie.store()[name], (_, value) =>
-        typeof value === "bigint" ? value.toString() : value,
-      ),
-    member,
-  );
-}
-
-function entriesLength(page: Page): Promise<number> {
-  return page.evaluate(() => window.__tilie.store().entries.length);
-}
-
 /** Block `id`'s stored places. */
 function places(page: Page, id: string): Promise<unknown> {
   return page.evaluate(
     (block) => JSON.parse(JSON.stringify(window.__tilie.store().view.blocks[block]?.places)),
     id,
   );
-}
-
-/** Dispatch `command` through the hook's store; its refusal or `null`. */
-function dispatch(page: Page, command: unknown): Promise<CommandError | null> {
-  return page.evaluate((sent) => window.__tilie.store().dispatch(sent), command);
 }
 
 const SET_PLACE = {
@@ -192,10 +159,6 @@ function editingBar(page: Page) {
 
 function editingPath(page: Page) {
   return page.getByRole("list", { name: "Editing path" }).getByRole("listitem");
-}
-
-function arranger(page: Page) {
-  return page.locator('[role="application"][aria-label="Arranger"]');
 }
 
 /**
@@ -291,7 +254,7 @@ test.describe("on bundles", () => {
   });
 
   test("outside the edited element everything is faded and inert", async ({ page }) => {
-    await enter(page, `${MIXED}/group_1`);
+    await enter(page, `${MIXED}/group_1`, VIEW);
     const group = [{ target: `${MIXED}/group_1`, kind: "group" }];
     expect(await outside(page, MIXED)).toEqual({
       name: true,
@@ -390,7 +353,7 @@ test.describe("on bundles", () => {
 
   test("Done folds the session into one journal entry, undone as one step", async ({ page }) => {
     const view = await storeText(page, "view");
-    await enter(page, `${MIXED}/group_1`);
+    await enter(page, `${MIXED}/group_1`, VIEW);
     expect(await dispatch(page, SET_PLACE)).toBeNull();
     expect(await dispatch(page, SET_NAME)).toBeNull();
     const after = await storeText(page, "view");
@@ -424,7 +387,7 @@ test.describe("on bundles", () => {
   });
 
   test("Cancel without a change closes at once", async ({ page }) => {
-    await enter(page, `${MIXED}/group_1`);
+    await enter(page, `${MIXED}/group_1`, VIEW);
     await editingBar(page).getByRole("button", { name: "Cancel", exact: true }).click();
     await expect.poll(() => editing(page)).toEqual([]);
     await expect(page.getByRole("dialog")).toHaveCount(0);
@@ -438,7 +401,7 @@ test.describe("on bundles", () => {
       journal: await storeText(page, "journal"),
       sessions: await storeText(page, "sessions"),
     };
-    await enter(page, `${MIXED}/group_1`);
+    await enter(page, `${MIXED}/group_1`, VIEW);
     const group = [{ target: `${MIXED}/group_1`, kind: "group" }];
     const cancel = editingBar(page).getByRole("button", { name: "Cancel", exact: true });
     const dialog = page.getByRole("dialog");
@@ -494,7 +457,7 @@ test.describe("on bundles", () => {
   test("Escape aborts the gesture, then clears the selection, then acts as Done", async ({
     page,
   }) => {
-    await enter(page, MIXED);
+    await enter(page, MIXED, VIEW);
     const bundle = [{ target: MIXED, kind: "bundle" }];
     await page.evaluate((address) => window.__tilie.select([address]), `${MIXED}/group_2`);
     await dragStart(page, await framePoint(page, MIXED, "group_2"), 40, 24);
@@ -524,15 +487,10 @@ test.describe("on bundles", () => {
     }
     expect([first.x, first.y].every(onFreeGrid)).toBe(true);
 
-    await enter(page, MIXED);
+    await enter(page, MIXED, VIEW);
     await drag(page, await framePoint(page, MIXED, "group_1"), 40, 24);
     await expect.poll(() => entriesLength(page)).toBe(1);
-    expect(
-      await page.evaluate(() => {
-        const [entry] = window.__tilie.store().entries;
-        return entry !== undefined && "command" in entry ? entry.command.type : null;
-      }),
-    ).toBe("set");
+    expect(await newestCommand(page)).toMatchObject({ type: "set" });
     expect(await places(page, MIXED)).toEqual({
       group_1: { x: first.x + 40, y: first.y + 24 },
       group_2: { x: second.x, y: second.y },
@@ -553,7 +511,7 @@ test.describe("on bundles", () => {
     expect(annotations.x).toBe(8);
     expect([annotations.x, annotations.y].every(onFreeGrid)).toBe(true);
 
-    await enter(page, MIXED);
+    await enter(page, MIXED, VIEW);
     const nodeBefore = await node(page, MIXED).boundingBox();
     if (nodeBefore === null) throw new Error("bmixed0000 is not displayed");
     const frameBefore = await frameRect(page);
@@ -583,7 +541,7 @@ test.describe("on bundles", () => {
     expect([first.x, first.y, annotations.x, annotations.y].every(onFreeGrid)).toBe(true);
     expect([first.x, annotations.x]).toEqual([8, 8]);
 
-    await enter(page, MIXED);
+    await enter(page, MIXED, VIEW);
     const view = await storeText(page, "view");
     const frame = await framePoint(page, MIXED, "group_1");
     const card = await framePoint(page, MIXED, "annotations/card");
@@ -606,12 +564,7 @@ test.describe("on bundles", () => {
     await page.mouse.up();
 
     await expect.poll(() => entriesLength(page)).toBe(1);
-    expect(
-      await page.evaluate(() => {
-        const [entry] = window.__tilie.store().entries;
-        return entry !== undefined && "command" in entry ? entry.command : null;
-      }),
-    ).toEqual({
+    expect(await newestCommand(page)).toEqual({
       type: "set",
       changes: [
         { target: `${MIXED}/group_1`, values: { place: { x: first.x + 40, y: first.y + 24 } } },
@@ -636,7 +589,7 @@ test.describe("on bundles", () => {
   });
 
   test("a change outside the edited element is refused", async ({ page }) => {
-    await enter(page, `${MIXED}/group_1`);
+    await enter(page, `${MIXED}/group_1`, VIEW);
     const refusal = await dispatch(page, {
       type: "set",
       changes: [{ target: `${MIXED}/group_2`, values: { place: { x: 10 } } }],
@@ -650,7 +603,7 @@ test.describe("on bundles", () => {
   test("a refused Delete in the group editor shows the refusal in the status line", async ({
     page,
   }) => {
-    await enter(page, `${MIXED}/group_2`);
+    await enter(page, `${MIXED}/group_2`, VIEW);
     const view = await storeText(page, "view");
     await page.evaluate((address) => window.__tilie.select([address]), `${MIXED}/excerpt`);
     await arranger(page).focus();
@@ -663,7 +616,7 @@ test.describe("on bundles", () => {
   });
 
   test("the Journal tab shows a closed session as one row on the arranger", async ({ page }) => {
-    await enter(page, `${MIXED}/group_1`);
+    await enter(page, `${MIXED}/group_1`, VIEW);
     expect(await dispatch(page, SET_PLACE)).toBeNull();
     expect(await dispatch(page, SET_NAME)).toBeNull();
     await editingBar(page).getByRole("button", { name: "Done", exact: true }).click();
@@ -677,7 +630,7 @@ test.describe("on bundles", () => {
   });
 
   test("the Journal tab keeps an undone entry listed, greyed, until redone", async ({ page }) => {
-    await enter(page, `${MIXED}/group_1`);
+    await enter(page, `${MIXED}/group_1`, VIEW);
     expect(await dispatch(page, SET_PLACE)).toBeNull();
     expect(await dispatch(page, SET_NAME)).toBeNull();
     await page.evaluate(() => window.__tilie.store().undo());
@@ -705,9 +658,9 @@ test.describe("on bundles", () => {
     const names = () => rootNames(page);
     const original = await names();
     expect(original).toEqual(["Score", "Performance", "Annotations"]);
-    await enter(page, MIXED);
-    await enter(page, `${MIXED}/group_1`);
-    await enter(page, `${MIXED}/score`);
+    await enter(page, MIXED, VIEW);
+    await enter(page, `${MIXED}/group_1`, VIEW);
+    await enter(page, `${MIXED}/score`, VIEW);
     expect(await dispatch(page, rename("score", "c"))).toBeNull();
     await done();
     expect(await dispatch(page, rename("performance", "b"))).toBeNull();
@@ -762,11 +715,11 @@ test.describe("on bundles", () => {
   }) => {
     const view = await storeText(page, "view");
     expect(await rootNames(page)).toEqual(["Score", "Performance", "Annotations"]);
-    await enter(page, MIXED);
+    await enter(page, MIXED, VIEW);
     expect(await dispatch(page, rename("annotations", "a1"))).toBeNull();
-    await enter(page, `${MIXED}/group_1`);
+    await enter(page, `${MIXED}/group_1`, VIEW);
     expect(await dispatch(page, rename("performance", "b1"))).toBeNull();
-    await enter(page, `${MIXED}/score`);
+    await enter(page, `${MIXED}/score`, VIEW);
     expect(await dispatch(page, rename("score", "c1"))).toBeNull();
     expect(await dispatch(page, rename("score", "c2"))).toBeNull();
     await doneByHook(page);
@@ -842,7 +795,7 @@ test.describe("on groups", () => {
 
   test("a member card dragged below its sibling reorders the group", async ({ page }) => {
     const group = `${GROUPS.child}/group_1`;
-    await enter(page, group);
+    await enter(page, group, VIEW);
     const from = await framePoint(page, GROUPS.child, "second-half/card");
     // The block lies at (0, 0) at scale 1, so a drawing ordinate is the canvas y.
     const origin = await toScreen(page, 0, 0);
@@ -851,27 +804,12 @@ test.describe("on groups", () => {
     const to = await toScreen(page, 0, 172);
     await drag(page, from, 0, to.y - from.y);
     await expect.poll(() => entriesLength(page)).toBe(1);
-    expect(
-      await page.evaluate(() => {
-        const [entry] = window.__tilie.store().entries;
-        return entry !== undefined && "command" in entry
-          ? JSON.parse(JSON.stringify(entry.command))
-          : null;
-      }),
-    ).toEqual({
+    expect(await newestCommand(page)).toEqual({
       type: "set",
       changes: [{ target: group, values: { order: null } }],
     });
     // The new order is the members' own, so the group's entry is deleted, not written out.
-    expect(
-      await page.evaluate(
-        (block) =>
-          JSON.parse(
-            JSON.stringify(window.__tilie.store().view.blocks[block]?.manifest.graphical?.order),
-          ),
-        GROUPS.child,
-      ),
-    ).toEqual({});
+    expect(await graphicalOrder(page, GROUPS.child)).toEqual({});
   });
 });
 
@@ -886,21 +824,21 @@ test.describe("leaving by a double-click, and the view when the canvas changes s
   }) => {
     const bundle = [{ target: MIXED, kind: "bundle" }];
     const group = [{ target: `${MIXED}/group_1`, kind: "group" }];
-    await enter(page, MIXED);
-    await enter(page, `${MIXED}/group_1`);
+    await enter(page, MIXED, VIEW);
+    await enter(page, `${MIXED}/group_1`, VIEW);
     const pane = await emptyPoint(page, -20, 450);
     await page.mouse.dblclick(pane.x, pane.y);
     await expect.poll(() => editing(page)).toEqual(bundle);
     await expect.poll(() => viewportOf(page)).toEqual(VIEW);
 
-    await enter(page, `${MIXED}/group_1`);
+    await enter(page, `${MIXED}/group_1`, VIEW);
     const other = await partCentre(page, BUNDLES.shared, "group_1");
     await page.mouse.dblclick(other.x, other.y);
     await expect.poll(() => editing(page)).toEqual(bundle);
     await page.mouse.dblclick(other.x, other.y);
     await expect.poll(() => editing(page)).toEqual([]);
 
-    await enter(page, `${MIXED}/group_1`);
+    await enter(page, `${MIXED}/group_1`, VIEW);
     const own = await framePoint(page, MIXED, "group_1");
     await page.mouse.dblclick(own.x, own.y);
     expect(await editing(page)).toEqual(group);
@@ -911,7 +849,7 @@ test.describe("leaving by a double-click, and the view when the canvas changes s
   });
 
   test("a double-click on a box inside the edited element opens its editor", async ({ page }) => {
-    await enter(page, `${MIXED}/group_1`);
+    await enter(page, `${MIXED}/group_1`, VIEW);
     const card = await framePoint(page, MIXED, "score/card");
     await page.mouse.dblclick(card.x, card.y);
     await expect
@@ -977,7 +915,7 @@ test.describe("resizing in an editor", () => {
   test("a member's card stretched in its timeline editor stretches every member", async ({
     page,
   }) => {
-    await enter(page, `${MIXED}/score`);
+    await enter(page, `${MIXED}/score`, VIEW);
     await page.evaluate((address) => window.__tilie.select([address]), `${MIXED}/score/card`);
     await page.locator('[data-testid="mode-stretch"]').click();
     const handles = page.locator('[data-testid^="handle-"]');

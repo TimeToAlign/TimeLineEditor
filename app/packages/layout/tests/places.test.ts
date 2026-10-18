@@ -1,20 +1,6 @@
-import type { BandOrder, Manifest } from "@timetoalign/tilie-core";
-import { validate } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
-import {
-  bandOrderOf,
-  DEFAULT_LAYER,
-  DEFAULT_PLACEMENT,
-  type Drawing,
-  draw,
-  manifestLayer,
-  type Placement,
-} from "../src/index.ts";
-import { drawFixture, element, loadFile, metrics } from "./support.ts";
-
-const D: BandOrder = ["children", "regions", "flow"];
-const F: BandOrder = ["flow", "regions", "children"];
-const T: BandOrder = ["regions", "children", "flow"];
+import { DEFAULT_PLACEMENT, type Drawing, type Placement } from "../src/index.ts";
+import { drawFixture, element } from "./support.ts";
 
 const at = (changes: Partial<Placement>): Placement => ({ ...DEFAULT_PLACEMENT, ...changes });
 
@@ -31,89 +17,6 @@ function line(drawing: Drawing, address: string): object {
   if (found.type !== "timeline") throw new Error(`${address} is no member line`);
   return { xs: found.xs, xe: found.xe, y: found.y };
 }
-
-describe("the band order cascade", () => {
-  it.each([
-    [D, {}, "score", null, D],
-    [F, {}, "score", "group_1", F],
-    [D, { group_1: F }, "score", "group_1", F],
-    [D, { group_1: F }, "score", null, D],
-    [D, { group_1: F, score: T }, "score", "group_1", T],
-    [F, { score: T }, "score", null, T],
-    [D, {}, "toString", "constructor", D],
-  ] as const)(
-    "order %j, bands %j: %s in %s takes %j",
-    (order, bands, timeline, group, expected) => {
-      expect(bandOrderOf(at({ order, bands }), timeline, group)).toEqual(expected);
-    },
-  );
-
-  const styled = loadFile("styled__score");
-  const drawn = (manifest: Manifest, placement: Placement) =>
-    draw(manifest, placement, [DEFAULT_LAYER, manifestLayer(manifest)], metrics).elements;
-  const natural = drawn(styled, DEFAULT_PLACEMENT);
-  const flowFirst = drawn(styled, at({ order: F }));
-
-  it("matters for styled__score, whose regions and flow share a side", () => {
-    expect(flowFirst).not.toEqual(natural);
-    expect(drawn(styled, at({ bands: { score: T } }))).toEqual(natural);
-  });
-
-  it("uses a timeline's own band order, over the block's", () => {
-    expect(drawn(styled, at({ bands: { score: F } }))).toEqual(flowFirst);
-    expect(drawn(styled, at({ order: F, bands: { score: D } }))).toEqual(natural);
-  });
-
-  it("uses the band order of the group whose frame holds the root, below its own", () => {
-    const grouped: Manifest = {
-      ...styled,
-      groups: [{ id: "group_1", name: null, meta: {}, members: ["score"] }],
-    };
-    validate(grouped);
-    expect(drawn(grouped, at({ bands: { group_1: F } }))).toEqual(drawn(grouped, at({ order: F })));
-    expect(drawn(grouped, at({ bands: { group_1: F, score: D } }))).toEqual(
-      drawn(grouped, DEFAULT_PLACEMENT),
-    );
-  });
-
-  it("ignores a key naming nothing drawn, or a timeline not drawn as a root in a card", () => {
-    expect(drawn(styled, at({ bands: { nothing: F } }))).toEqual(natural);
-    expect(drawn(styled, at({ bands: { b: F } }))).toEqual(natural);
-  });
-
-  it("adds no gap for an absent band", () => {
-    const timeline = drawn(styled, at({ bands: { score: ["flow", "children", "regions"] } }));
-    expect(timeline).not.toEqual(natural);
-    expect(timeline).toEqual(flowFirst);
-  });
-
-  it("takes no band order from an ancestor timeline", () => {
-    const [score] = styled.timelines;
-    if (score === undefined) throw new Error("styled__score has no root");
-    const nested = {
-      ...styled,
-      timelines: [
-        {
-          ...score,
-          id: "piece",
-          name: "Piece",
-          length: [16, 1],
-          regions: [],
-          conversion_maps: [],
-          flow_control: { breaks: [], jumps: [], markers: [] },
-          children: [{ ...score, offset: [0, 1], locked: true }],
-        },
-      ],
-      groups: [{ id: "group_1", name: null, meta: {}, members: ["score"] }],
-    } as Manifest;
-    validate(nested);
-    const natural = drawn(nested, DEFAULT_PLACEMENT);
-    expect(natural.some((item) => item.type === "ancestor")).toBe(true);
-    expect(drawn(nested, at({ bands: { piece: F } }))).toEqual(natural);
-    expect(drawn(nested, at({ bands: { score: F } }))).not.toEqual(natural);
-    expect(drawn(nested, at({ bands: { score: F } }))).toEqual(drawn(nested, at({ order: F })));
-  });
-});
 
 describe("default places reproduce the stacked box", () => {
   it("bare: one card at (8, 8), the place origin at (+0, +0)", () => {

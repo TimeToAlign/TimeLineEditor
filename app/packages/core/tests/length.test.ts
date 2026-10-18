@@ -255,7 +255,11 @@ describe("a length change never pushes a parent", () => {
           path: [`${A}/b2`, "length"],
         });
       }
-      expect(lengths(changed(lines, set({ b2: { length: [6, 1] } }))).b2).toEqual([6, 1]);
+      expect(apply(lines, set({ b2: { length: [6, 1] } }))).toEqual({
+        code: "invalid_value",
+        message: "the command changes nothing",
+        path: [`${A}/b2`, "length"],
+      });
       const unknown = lengths(changed(lines, set({ b2: { length: null } })));
       expect([unknown.b2, unknown.b]).toEqual([null, [12, 1]]);
     });

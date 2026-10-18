@@ -1,14 +1,31 @@
+<script lang="ts" module>
+import { BLOCK_KEY } from "@timetoalign/tilie-core";
+import { Cascade, DEFAULT_LAYER } from "@timetoalign/tilie-layout";
+
+/**
+ * The corner radius of the band marks, in drawing units: a card's, as
+ * layout's default layer styles it, so the marks follow that statement.
+ */
+const BAND_RADIUS = new Cascade([DEFAULT_LAYER], new Map()).resolve(
+  { ...BLOCK_KEY, type: "card", inside: ["block"] },
+  undefined,
+).rx;
+</script>
+
 <script lang="ts">
-import type { Block } from "@timetoalign/tilie-core";
-import type { Drawing } from "@timetoalign/tilie-layout";
+import type { Block, Manifest, View } from "@timetoalign/tilie-core";
+import { apply, bandOrderOf, isCommandError } from "@timetoalign/tilie-core";
+import type { Drawing, DrawnBand } from "@timetoalign/tilie-layout";
 import type { AttributeValue, Descriptor } from "@timetoalign/tilie-writers";
 import { attributeText } from "@timetoalign/tilie-writers";
 import type { NodeProps } from "@xyflow/svelte";
 import { tick } from "svelte";
 import type { Attachment } from "svelte/attachments";
+import { bandDrop, bandMoveCommand, offeredBands } from "./bands.ts";
 import type { Hover, Mark } from "./boxes.ts";
 import {
   addressOf,
+  bandTimelineOf,
   drawingPointAt,
   hitOf,
   holdingOf,
@@ -21,7 +38,7 @@ import {
 } from "./boxes.ts";
 import { editedElement, GESTURES } from "./editors.ts";
 import type { Point } from "./gestures.svelte.ts";
-import { itemDrag, listen, memberDrag } from "./gestures.svelte.ts";
+import { bandDrag, itemDrag, listen, memberDrag } from "./gestures.svelte.ts";
 import { itemMoveCommand, itemOf, itemsMovedWith, placesAfter } from "./items.ts";
 import { drawingMatrix, pointIn, slide } from "./motion.ts";
 import { getNodeActions } from "./nodeActions.ts";
@@ -91,7 +108,9 @@ function outlineOf(descriptor: Descriptor): Record<string, string> {
 let hover: Hover = $state.raw(NO_HOVER);
 
 function show(next: Hover): void {
-  if (next.box !== hover.box || next.boundary !== hover.boundary) hover = next;
+  if (next.box !== hover.box || next.boundary !== hover.boundary || next.band !== hover.band) {
+    hover = next;
+  }
 }
 
 /**
@@ -104,7 +123,7 @@ function onpointermove(event: PointerEvent & { currentTarget: SVGSVGElement }) {
   const box = event.currentTarget.getBoundingClientRect();
   const point = drawingPointAt(data.drawing, box, event.clientX, event.clientY);
   if (point === null) return;
-  show(hoverOf(hitOf(data.block.id, data.drawing, event.target, point)));
+  show(hoverOf(hitOf(data.block.id, data.drawing, event.target, point, data.editing)));
 }
 
 function onpointerleave() {
@@ -180,6 +199,30 @@ function isOutside(descriptor: Descriptor): boolean {
   const address = addressOf(descriptor);
   return address === null || !data.inside.has(address);
 }
+
+/** The timeline whose bands this block offers (`bandTimelineOf`), else `null`. */
+const bandTimeline = $derived(bandTimelineOf(data.block.id, data.editing));
+
+/** A band marked over the drawing, with the selection's mark or the hover's. */
+interface BandMark {
+  readonly band: DrawnBand;
+  readonly mark: "selection" | "hover";
+}
+
+/**
+ * The bands marked over the drawing, as drawn: every selected band and the
+ * band under the pointer among those this block offers, a selected band
+ * showing the selection's mark under the pointer too. A band draws nothing
+ * of its own; only its mark shows it.
+ */
+const bandMarks: readonly BandMark[] = $derived(
+  bandTimeline === null
+    ? []
+    : offeredBands(data.drawing, bandTimeline).flatMap((band): BandMark[] => {
+        if (data.selectedElements.has(band.address)) return [{ band, mark: "selection" }];
+        return band.address === hover.band ? [{ band, mark: "hover" }] : [];
+      }),
+);
 
 /** The block as stored, which every command reads; a preview draws `data.block` otherwise. */
 function storedBlock(): Block {
@@ -328,10 +371,7 @@ function memberGesture(group: string, member: string): Attachment<SVGElement> {
         if (order === null || press === null) {
           dragged = null;
           actions.preview(data.block.id, null);
-          // The drop's or the abort's redraw still slides; the next one does not.
-          void tick().then(() => {
-            sliding = dragged !== null;
-          });
+          slideLast();
           return;
         }
         sliding = true;
@@ -401,6 +441,108 @@ function memberGesture(group: string, member: string): Attachment<SVGElement> {
 }
 
 /**
+ * After a drag's last preview: the redraw of its drop or abort still slides,
+ * the one after it does not, unless a member drag has started again.
+ */
+function slideLast(): void {
+  void tick().then(() => {
+    sliding = dragged !== null;
+  });
+}
+
+/** What a press on a band reads: the view, the band as drawn and its timeline's band order. */
+interface BandPress {
+  /** The view at the press, which the band's command is built on. */
+  readonly view: View;
+  readonly timeline: string;
+  /** The drawing at the press, which every drop is read against, never a preview's. */
+  readonly drawing: Drawing;
+  readonly band: DrawnBand;
+  /** The timeline's band order as drawn at the press (core's `bandOrderOf`). */
+  readonly order: readonly string[];
+}
+
+/**
+ * What a press `event` at the drawing point `point` reads for a band drag:
+ * `null` unless it hits an offered band (`hitOf`, whose hit carries the
+ * band's record; an element drawn there is hit first) where the open
+ * editor moves bands, on a canvas that is not
+ * locked, without Shift, which starts a marquee over the edited block. A
+ * press refused here is the canvas's: on a locked canvas a drag on a band
+ * pans, and a click selects it.
+ */
+function bandPressAt(event: PointerEvent, point: Point): BandPress | null {
+  const editing = data.editing;
+  if (editing === null || event.shiftKey) return null;
+  if (!GESTURES[editing.kind].moveBands || actions.locked()) return null;
+  const { band } = hitOf(data.block.id, data.drawing, event.target, point, editing);
+  if (band === null) return null;
+  const { timeline } = band;
+  const view = actions.view();
+  const { manifest } = view.blocks[data.block.id] ?? data.block;
+  return { view, timeline, drawing: data.drawing, band, order: bandOrderOf(manifest, timeline) };
+}
+
+/** Whether `order` is the band order at the press: a drop in place, which stores nothing. */
+function inPlace(press: BandPress, order: readonly string[]): boolean {
+  return (
+    order.length === press.order.length && order.every((id, index) => id === press.order[index])
+  );
+}
+
+/** The block's manifest as the band move to `order` would store it, which the preview draws. */
+function movedManifest(press: BandPress, order: readonly string[]): Manifest {
+  const command = bandMoveCommand(press.view, data.block.id, press.timeline, order);
+  const after = apply(press.view, command);
+  const block = isCommandError(after) ? undefined : after.blocks[data.block.id];
+  return (block ?? storedBlock()).manifest;
+}
+
+/**
+ * Move a band of the edited timeline in its timeline editor by dragging it
+ * across the bands and the line: on the drawing's `<svg>`, since a band
+ * draws nothing to attach to, taking only a press on an offered band
+ * (`bandPressAt`). The press that becomes a drag selects the band, which
+ * stays selected. The order follows the pointer through the drawing as it
+ * was at the press (`bandDrop`), its preview drawn by the canvas while the
+ * elements slide apart as a member reorder's do; the release stores it in
+ * one `set` (`bandMoveCommand`), nothing for a release in place.
+ */
+function bandGesture(): Attachment<SVGElement> {
+  let press: BandPress | null = null;
+  return bandDrag({
+    takes(event, point) {
+      press = bandPressAt(event, point);
+      return press !== null;
+    },
+    order: (y) =>
+      press === null ? [] : (bandDrop(press.drawing, press.band, y, press.order) ?? press.order),
+    preview: starting<readonly string[]>(
+      () => {
+        if (press !== null) select(press.band.address);
+      },
+      (order) => {
+        if (order === null || press === null) {
+          actions.preview(data.block.id, null);
+          slideLast();
+          return;
+        }
+        sliding = true;
+        actions.preview(data.block.id, { manifest: movedManifest(press, order) });
+      },
+    ),
+    command: (order) =>
+      press === null || inPlace(press, order)
+        ? null
+        : bandMoveCommand(press.view, data.block.id, press.timeline, order),
+    dispatch: (command) => actions.dispatch(command),
+  });
+}
+
+/** The band drag, made once: the `<svg>` it is attached to outlives every redraw. */
+const bandMoves = bandGesture();
+
+/**
  * The gesture a descriptor carries, by the editor open on this block: the
  * item drag on a frame's or an ungrouped root's card's `rect` in the bundle
  * editor, the member drag on a member's card in the group editor of its
@@ -441,8 +583,8 @@ function ghostAttributesOf(descriptor: Descriptor): Record<string, string> {
   data-contains-selection={holding.block ? "" : undefined}
 >
   <!--
-    The pointer handlers only show which box or boundary the pointer is
-    over; they act on nothing, so the drawing keeps its own role.
+    The pointer handlers only show which box, boundary or band the pointer
+    is over; they act on nothing, so the drawing keeps its own role.
   -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <svg
@@ -451,6 +593,7 @@ function ghostAttributesOf(descriptor: Descriptor): Record<string, string> {
     viewBox="0 0 {data.drawing.width} {data.drawing.height}"
     {onpointermove}
     {onpointerleave}
+    {@attach bandMoves}
   >
     {#each entries as { descriptor, key } (key)}
       <svelte:element
@@ -472,6 +615,19 @@ function ghostAttributesOf(descriptor: Descriptor): Record<string, string> {
         class="tilie-holding"
         data-box={marks.get(descriptor)}
         {...outlineOf(descriptor)}
+        aria-hidden="true"
+      />
+    {/each}
+    {#each bandMarks as { band, mark } (band)}
+      <rect
+        class="tilie-band"
+        data-band={band.address}
+        data-mark={mark}
+        x={band.x}
+        y={band.y}
+        width={band.width}
+        height={band.height}
+        rx={BAND_RADIUS}
         aria-hidden="true"
       />
     {/each}

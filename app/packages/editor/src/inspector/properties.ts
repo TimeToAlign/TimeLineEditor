@@ -9,7 +9,8 @@
  * what is drawn where nothing is stated. An edit of a place follows the rule
  * of the canvas's gestures at the same level (`keepsItems`), a typed length or
  * spacing writing what a Stretch to it writes (`stretchChanges`), and a field
- * is offered only where the level edits it (`offered`).
+ * is offered only where the level edits it (`offered`). A band selected alone
+ * shows read-only rows instead (`bandRows`).
  */
 
 import type { Level, LivePlacement, PlaceValues, ResizedItem } from "@timetoalign/tilie-arranger";
@@ -18,12 +19,14 @@ import {
   keepsItems,
   placeCommand,
   placesWith,
+  selectedBand,
   stretchChanges,
 } from "@timetoalign/tilie-arranger";
 import type { Block, Place, SetCommand, View, WorkspaceSettings } from "@timetoalign/tilie-core";
-import { elementOf, isCommandError, parseAddress } from "@timetoalign/tilie-core";
+import { bandAddress, elementOf, isCommandError, parseAddress } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import { fontMetrics } from "@timetoalign/timeskeleton";
+import { BAND_WORDS, withoutBands } from "./edit.ts";
 import type { Result } from "./problems.ts";
 import { InspectorCode, refused } from "./problems.ts";
 
@@ -124,9 +127,10 @@ interface Classified extends Edited {
  * card or any other part, names that card. `null` for no selection,
  * addresses in several blocks, elements of different kinds, or an element
  * with no geometry of its own (a child drawn in no card of its own, a
- * region, a map, the title). While `placement`, a canvas gesture, shows the
- * block, the values of its items and cards are read from the drawing the
- * gesture shows; `level` decides what an edit states besides its values.
+ * region, a map, the title). Bands are left out (`withoutBands`). While
+ * `placement`, a canvas gesture, shows the block, the values of its items
+ * and cards are read from the drawing the gesture shows; `level` decides
+ * what an edit states besides its values.
  */
 export function geometryOf(
   view: View,
@@ -136,15 +140,13 @@ export function geometryOf(
 ): Geometry | null {
   let block: Block | undefined;
   const found = new Map<string, Classified>();
-  for (const address of selection) {
+  for (const address of withoutBands(selection)) {
     const parsed = parseAddress(address);
     if (isCommandError(parsed) || parsed.block === null) return null;
     if (block !== undefined && block.id !== parsed.block) return null;
     block = view.blocks[parsed.block];
     if (block === undefined) return null;
-    const shown =
-      placement?.id === block.id ? placement.drawing : drawingOf(block, view.settings, fontMetrics);
-    const element = classify(block, shown, parsed.element);
+    const element = classify(block, shownDrawing(view, block, placement), parsed.element);
     if (element === undefined) return null;
     found.set(element.target, element);
   }
@@ -163,6 +165,50 @@ export function geometryOf(
     label,
     elements: elements.map(({ target, group, values }) => ({ target, group, values })),
   };
+}
+
+/** The drawing the canvas shows for `block`: `placement`'s during a gesture on it, else the stored one. */
+function shownDrawing(view: View, block: Block, placement: LivePlacement | null): Drawing {
+  return placement?.id === block.id
+    ? placement.drawing
+    : drawingOf(block, view.settings, fontMetrics);
+}
+
+/** One read-only row of the Properties tab: what it names and the value it shows. */
+export interface PropertyRow {
+  readonly label: string;
+  readonly value: string;
+}
+
+/**
+ * The read-only rows of the band the selection names when it is exactly one
+ * band (arranger's `selectedBand`) whose block's drawing records it, read
+ * from the drawing the canvas shows as `geometryOf` reads it: "Band", its
+ * kind's word (`BAND_WORDS`); "Level", signed, a negative one written with
+ * U+2212 MINUS SIGN; "Elements", the displayed elements it holds directly.
+ * A timeline drawn with two lines in one drawing has two records under one
+ * address; the first, in drawing order, is shown. `null` for any other
+ * selection: a band among other addresses is left out (`geometryOf`).
+ */
+export function bandRows(
+  view: View,
+  selection: Iterable<string>,
+  placement: LivePlacement | null = null,
+): readonly PropertyRow[] | null {
+  const [address, ...others] = selection;
+  const band = address === undefined || others.length > 0 ? null : selectedBand(address);
+  const block = band === null ? undefined : view.blocks[band.block];
+  if (band === null || block === undefined) return null;
+  const drawn = shownDrawing(view, block, placement).bands.find(
+    (record) => record.address === bandAddress(band.timeline, band.kind),
+  );
+  if (drawn === undefined) return null;
+  const { level, elements } = drawn;
+  return [
+    { label: "Band", value: BAND_WORDS[band.kind] },
+    { label: "Level", value: level < 0 ? `−${-level}` : String(level) },
+    { label: "Elements", value: String(elements) },
+  ];
 }
 
 /** What `element` (an element address, `null` for the block itself) names in `block`, drawn as `drawing`. */
@@ -304,9 +350,7 @@ export function geometryCommand(
   const written = new Set<string>();
   let edited = block;
   for (const element of geometry.elements) {
-    const shared = kind === "card" && SHARED.has(property);
-    const target = shared && element.group !== null ? element.group : element.target;
-    const key = keyIn(block, target);
+    const key = keyIn(block, placeTarget(kind, element, property));
     if (written.has(key)) continue;
     written.add(key);
     const value = valueFor(element);
@@ -330,9 +374,26 @@ export function geometryCommand(
   return placeCommand(block.id, geometry.drawing, places, keepsItems(geometry.level));
 }
 
+/** The target whose place an edit of `property` sets: a member card's group for its shared fields. */
+function placeTarget(kind: GeometryKind, element: Edited, property: Property): string {
+  const shared = kind === "card" && SHARED.has(property);
+  return shared && element.group !== null ? element.group : element.target;
+}
+
 /** The key of `places` that `target`, `<block>/<key>`, names. */
 function keyIn(block: Block, target: string): string {
   return target.slice(block.id.length + 1);
+}
+
+/**
+ * What `element` stores for `property`: the block's own member for the
+ * block, else the member of the place an edit of it sets, `null` where that
+ * place states none. A drawn value the form shows is not stored.
+ */
+function storedValue(geometry: Geometry, element: Edited, property: Property): number | null {
+  const { block, kind } = geometry;
+  if (kind === "block") return block[property];
+  return block.places[keyIn(block, placeTarget(kind, element, property))]?.[property] ?? null;
 }
 
 /** The box of the drawing that `element` names, as the canvas's resize gestures name it. */
@@ -349,14 +410,16 @@ function resizedOf(geometry: Geometry, element: Edited): ResizedItem {
  * The command setting one property of every element from the field's text:
  * a number, or null for an empty `width` or `height` (a block's size left
  * to its content, a place's size unstated); anything else is refused before
- * dispatch, at `[<first target>, property]`. The store's checks decide
- * everything else.
+ * dispatch, at `[<first target>, property]`. `null` when every element
+ * stores that value already (compared exactly, as `commonValue` compares):
+ * the commit changes nothing, and the store refuses a `set` that changes
+ * nothing. The store's checks decide everything else.
  */
 export function propertyCommand(
   geometry: Geometry,
   property: Property,
   input: string,
-): Result<SetCommand> {
+): Result<SetCommand | null> {
   const path = [geometry.elements[0]?.target ?? geometry.block.id, property];
   const trimmed = input.trim();
   let value: number | null;
@@ -370,6 +433,9 @@ export function propertyCommand(
     if (!Number.isFinite(value)) {
       return refused(InspectorCode.invalidValue, `${trimmed} is not a number`, path);
     }
+  }
+  if (geometry.elements.every((element) => storedValue(geometry, element, property) === value)) {
+    return { ok: true, value: null };
   }
   return { ok: true, value: geometryCommand(geometry, property, () => value) };
 }

@@ -68,6 +68,26 @@ export const stepsArbitrary: fc.Arbitrary<Step[]> = fc.array(
 
 const pick = <T>(items: readonly T[], n: number): T => items[n % items.length] as T;
 
+/** `items` turned by `n` places: the item at `n` first. */
+const turned = <T>(items: readonly T[], n: number): T[] => {
+  const turn = items.length === 0 ? 0 : n % items.length;
+  return [...items.slice(turn), ...items.slice(0, turn)];
+};
+
+/** The default band order of the timeline `id`, turned by `n` places, a band order of it. */
+const bandOrder = (id: string, n: number): string[] =>
+  turned(
+    [
+      `${id}/children_1`,
+      `${id}/conversion_maps_1`,
+      id,
+      `${id}/markers_1`,
+      `${id}/regions_1`,
+      `${id}/flow_control_1`,
+    ],
+    n,
+  );
+
 interface Place {
   readonly timeline: TimelineManifest;
   readonly parent: TimelineManifest | undefined;
@@ -278,9 +298,9 @@ export function editorFor(
 /**
  * The command a seed stands for in the editor of `target` (`null`: no
  * editor is open): mostly one that changes only what the editor edits (a
- * name, a place, a band order or a display order of what it holds, a
- * member's group length and scale, or the box's width), sometimes any
- * command of `commandFor`. In the bundle editor
+ * name or a band order of a timeline it holds, its place, a group's
+ * display order, a member's group length and scale, or the box's width),
+ * sometimes any command of `commandFor`. In the bundle editor
  * every command is `commandFor`'s on its block.
  */
 export function commandIn(
@@ -297,19 +317,16 @@ export function commandIn(
   }
   if (element === undefined) return commandFor(view, [block], seed);
   const held = heldBy(manifest, element);
+  const timeline = pick(held.length > 0 ? held : [element], p1);
   const members = manifest.groups.find((group) => group.id === element)?.members ?? [];
-  const turn = members.length === 0 ? 0 : p3 % members.length;
   // A member's editor also resizes its group's frame: the length and scale the members share.
   const sharing = manifest.groups.find((group) => group.members.includes(element))?.id;
   const scale = 0.5 + (p3 % 4) / 2;
   const changes = [
+    { target: `${block}/${timeline}`, values: { name: `N${p3 % 7}` } },
     {
-      target: `${block}/${pick(held.length > 0 ? held : [element], p1)}`,
-      values: { name: `N${p3 % 7}` },
-    },
-    {
-      target: `${block}/${element}`,
-      values: { band_order: pick([["regions", "children", "flow"], null], p3) },
+      target: `${block}/${timeline}`,
+      values: { order: pick([bandOrder(timeline, p3), null], p3 >> 3) },
     },
     {
       target: `${block}/${element}`,
@@ -320,10 +337,7 @@ export function commandIn(
         ),
       },
     },
-    {
-      target: `${block}/${element}`,
-      values: { order: [...members.slice(turn), ...members.slice(0, turn)] },
-    },
+    { target: `${block}/${element}`, values: { order: turned(members, p3) } },
     { target: block, values: { width: 100 + (p3 % 900) } },
     ...(sharing === undefined
       ? []
@@ -390,21 +404,13 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
     }
     case 1: {
       const property = pick(
-        ["x", "y", "scale", "length", "spacing", "width", "height", "order", "index", "index"],
+        ["x", "y", "scale", "length", "spacing", "width", "height", "index", "index"],
         p2,
       );
       const value =
-        property === "order"
-          ? pick(
-              [
-                ["flow", "regions", "children"],
-                ["children", "children", "flow"],
-              ],
-              p3,
-            )
-          : property === "index"
-            ? pick([...Object.values(view.blocks).map((item) => item.index), "Zz", "a00"], p3)
-            : canvas(p3);
+        property === "index"
+          ? pick([...Object.values(view.blocks).map((item) => item.index), "Zz", "a00"], p3)
+          : canvas(p3);
       return set(block, { [property]: value });
     }
     case 2: {
@@ -413,7 +419,7 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
         member === "grid"
           ? pick([{ size: canvas(p3) }, { snap: p3 % 2 === 0 }, { colour: 1 }], p4)
           : member === "blockDefaults"
-            ? pick([{ length: canvas(p3) }, { order: ["regions", "flow", "children"] }], p4)
+            ? pick([{ length: canvas(p3) }, { width: canvas(p3) }], p4)
             : pick([{}, { statements: [{ select: {}, set: { stroke: "red" } }] }], p4);
       return set("workspace", { [member]: value });
     }
@@ -513,13 +519,13 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
       return set(`${block}/${target}`, { [property]: value });
     }
     case 11: {
-      // What a group or timeline states for its drawing: its place, its
-      // band order and a group's display order, valid or not.
+      // What a group or timeline states for its drawing: its place and its
+      // order, a group's display order or a timeline's band order, valid or not.
       const target = pick([...groups, ...groups, ...known, "ghost", ""], p2);
-      const property = pick(["place", "place", "band_order", "order"], p3);
-      const members = manifest?.groups.find((group) => group.id === target)?.members ?? [];
-      const turn = members.length === 0 ? 0 : p5 % members.length;
-      const turned = [...members.slice(turn), ...members.slice(0, turn)];
+      const property = pick(["place", "place", "order", "order"], p3);
+      const group = manifest?.groups.find((item) => item.id === target);
+      const members = group?.members ?? [];
+      const bands = bandOrder(target, p5);
       const value =
         property === "place"
           ? pick(
@@ -536,12 +542,21 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
               ],
               p5,
             )
-          : property === "band_order"
-            ? pick(
-                [["regions", "children", "flow"], ["flow", "children", "regions"], null, ["flow"]],
+          : group !== undefined
+            ? pick([turned(members, p5), turned(members, p5), null, members.slice(1)], p4)
+            : pick(
+                [
+                  bands,
+                  bands,
+                  null,
+                  bands.slice(1),
+                  bands.map((entry) =>
+                    entry === `${target}/regions_1` ? `${id}/regions_1` : entry,
+                  ),
+                  target,
+                ],
                 p4,
-              )
-            : pick([turned, turned, null, members.slice(1)], p4);
+              );
       return set(target === "" ? block : `${block}/${target}`, { [property]: value });
     }
     default:

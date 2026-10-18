@@ -6,7 +6,19 @@
  */
 
 import type { ResizeMode } from "@timetoalign/tilie-arranger";
-import type { Address, CommandError, OpenEditor, Problem, Store } from "@timetoalign/tilie-core";
+import { drawingOf } from "@timetoalign/tilie-arranger";
+import type {
+  Address,
+  BandKind,
+  BlockId,
+  CommandError,
+  OpenEditor,
+  Problem,
+  Store,
+  View,
+} from "@timetoalign/tilie-core";
+import type { Drawing } from "@timetoalign/tilie-layout";
+import { fontMetrics } from "@timetoalign/timeskeleton";
 
 /** The body of `GET /api/health`. */
 export interface Health {
@@ -19,6 +31,34 @@ export interface ViewportValue {
   readonly x: number;
   readonly y: number;
   readonly zoom: number;
+}
+
+/** A rectangle in client pixels, left and top as `getBoundingClientRect` gives them. */
+export interface ClientRectangle {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+}
+
+/** A band of a block's drawing (`Drawing.bands`), as the hook's `bands` reports it. */
+export interface HookBand {
+  /** `T/<kind>_1`. */
+  readonly address: string;
+  /** The id of its timeline. */
+  readonly timeline: string;
+  readonly kind: BandKind;
+  /** Signed and never 0: 1, 2, … above its timeline's line, −1, −2, … below. */
+  readonly level: number;
+  /**
+   * The ordinate of its timeline's line on the screen, in client pixels; it tells apart the
+   * records of a timeline drawn with two lines in one drawing.
+   */
+  readonly line: number;
+  /** The displayed elements it holds directly (`DrawnBand.elements`). */
+  readonly elements: number;
+  /** Where its rectangle lies on the screen. */
+  readonly rect: ClientRectangle;
 }
 
 export interface TestHook {
@@ -44,6 +84,8 @@ export interface TestHook {
   done(): void;
   /** Close the innermost editor, discarding its changes, without the editing bar's question. */
   cancel(): void;
+  /** The drawn bands of block `block`, in `Drawing.bands` order, placed on the screen (`bandsOf`). */
+  bands(block: BlockId): HookBand[];
 }
 
 declare global {
@@ -64,6 +106,55 @@ export class WorkspaceRefusedError extends Error {
     this.name = "WorkspaceRefusedError";
     this.problems = problems;
   }
+}
+
+/** A screen rectangle, as `getBoundingClientRect` gives one. */
+export type ClientBox = Pick<DOMRectReadOnly, "left" | "top" | "width" | "height">;
+
+/**
+ * The bands of `drawing`, shown in the client rectangle `box` (its `<svg>`'s):
+ * each record's line ordinate and rectangle mapped from the drawing's units
+ * into client pixels as the canvas maps a pointer into the drawing
+ * (arranger's `drawingPointAt`), the other way round. Nothing is clipped: a
+ * drawing off screen gives what this computes.
+ */
+export function hookBands(drawing: Drawing, box: ClientBox): HookBand[] {
+  const sx = box.width / drawing.width;
+  const sy = box.height / drawing.height;
+  return drawing.bands.map(({ address, timeline, kind, level, line, elements, ...rect }) => ({
+    address,
+    timeline,
+    kind,
+    level,
+    line: box.top + line * sy,
+    elements,
+    rect: {
+      x: box.left + rect.x * sx,
+      y: box.top + rect.y * sy,
+      width: rect.width * sx,
+      height: rect.height * sy,
+    },
+  }));
+}
+
+/**
+ * The drawn bands of block `block` of `view`, in `Drawing.bands` order: the
+ * drawing the canvas shows for that block (arranger's `drawingOf`), placed
+ * through the block's drawing `<svg>` on the page (`hookBands`). Throws a
+ * `RangeError` for a block `view` does not hold, and an `Error` while the
+ * block's drawing is not on the page, since nothing places it then.
+ */
+export function bandsOf(view: View, block: BlockId): HookBand[] {
+  const found = view.blocks[block];
+  if (found === undefined) throw new RangeError(`${block} is no block of the open workspace`);
+  const node = [...document.querySelectorAll(".svelte-flow__node[data-id]")].find(
+    (element) => element.getAttribute("data-id") === block,
+  );
+  const svg = node?.querySelector(".tilie-block > svg");
+  if (svg === null || svg === undefined) {
+    throw new Error(`the drawing of block ${block} is not on the page`);
+  }
+  return hookBands(drawingOf(found, view.settings, fontMetrics), svg.getBoundingClientRect());
 }
 
 /** Whether this build carries the test hook. */

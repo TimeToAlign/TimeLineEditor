@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { Address, Block, OpenEditor, SetCommand, Store } from "@timetoalign/tilie-core";
+import { bandAddress, bandOrderOf } from "@timetoalign/tilie-core";
 import { TextMeasure } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timeskeleton";
 import type { Viewport } from "@xyflow/svelte";
@@ -9,6 +10,9 @@ import { tick, untrack } from "svelte";
 import type { Attachment } from "svelte/attachments";
 import { MediaQuery } from "svelte/reactivity";
 import BlockNode from "./BlockNode.svelte";
+import type { BandDirection } from "./bands.ts";
+import { bandMoveCommand, bandStep, offeredBands } from "./bands.ts";
+import type { DrawingPoint } from "./boxes.ts";
 import { drawingPointAt, hitOf, selectionOf } from "./boxes.ts";
 import CanvasToolbar from "./CanvasToolbar.svelte";
 import type { Visible } from "./commands.ts";
@@ -37,7 +41,7 @@ import ResizeToolbar from "./ResizeToolbar.svelte";
 import type { ResizeMode } from "./resize.ts";
 import SnapGuides from "./SnapGuides.svelte";
 import type { Selection } from "./selection.ts";
-import { blockOf, click } from "./selection.ts";
+import { blockOf, click, offersBand, type SelectedBand, selectedBand } from "./selection.ts";
 import type { Box, Guide } from "./snap.ts";
 import { snap } from "./snap.ts";
 
@@ -241,21 +245,24 @@ function follow(current: Store, next: readonly OpenEditor[]): void {
 
 /**
  * The selection kept when the editor `opened` opens: the addresses inside
- * the edited element (`BlockNodeData.inside`), and in the bundle editor the
- * block itself; never another block, nor the edited group or timeline
- * itself (its card included), on which a gesture would be refused.
+ * the edited element (`BlockNodeData.inside`), the bands the view offers
+ * under it (`offersBand`, the opened timeline editor's own; a band draws
+ * nothing, so it is never inside), and in the bundle editor the block
+ * itself; never another block, nor the edited group or timeline itself
+ * (its card included), on which a gesture would be refused.
  */
 function insideSelection(opened: OpenEditor): Selection {
   const { block, element } = editedElement(opened.target);
   const inside = nodes.find(({ id }) => id === block)?.data.inside ?? new Set<string>();
   const own = element === null ? [] : [element, `${element}/card`];
-  const kept = [...selection].filter((address) =>
-    address === block
-      ? element === null
-      : blockOf(address) === block &&
-        inside.has(address.slice(block.length + 1)) &&
-        !own.includes(address.slice(block.length + 1)),
-  );
+  const kept = [...selection].filter((address) => {
+    if (address === block) return element === null;
+    if (blockOf(address) !== block) return false;
+    const band = selectedBand(address);
+    if (band !== null) return offersBand(view, band, opened);
+    const local = address.slice(block.length + 1);
+    return inside.has(local) && !own.includes(local);
+  });
   return kept.length === selection.size ? selection : new Set(kept);
 }
 
@@ -304,41 +311,64 @@ function openEditor(target: Address): void {
   hint = error === null ? "" : error.message;
 }
 
+/** A point on the screen, in client pixels. */
+type Client = { readonly x: number; readonly y: number };
+
+/**
+ * The point of `node`'s drawing under the client point `client`, read
+ * through the `<svg>` holding `target`; none without a client point (a key)
+ * or where no drawing is shown.
+ */
+function drawingPointIn(
+  node: BlockNodeType,
+  target: EventTarget | null,
+  client?: Client,
+): DrawingPoint | undefined {
+  const svg = target instanceof Element ? target.closest("svg") : null;
+  if (svg === null || client === undefined) return undefined;
+  return (
+    drawingPointAt(node.data.drawing, svg.getBoundingClientRect(), client.x, client.y) ?? undefined
+  );
+}
+
+/**
+ * What `target` at the client point `client` hits in `node` (`hitOf`): a
+ * band only with a client point, where an offered band lies under it.
+ */
+function hitIn(node: BlockNodeType, target: EventTarget | null, client?: Client) {
+  return hitOf(node.id, node.data.drawing, target, drawingPointIn(node, target, client), editing);
+}
+
 /**
  * The editor target a double-click, a double tap or Enter on `target` opens
- * (`editorTargetOf`): `null` off every block, outside the edited element,
- * and on the edited element itself. A pointer gesture gives its client
- * point, so that text or a region opens the last drawn card or frame under
- * it, the innermost where none overlap; Enter gives none, so a selected
- * element in no box of its own opens nothing.
+ * (`editorTargetOf`): `null` off every block, outside the edited element, on
+ * the edited element itself and on a band. A pointer gesture gives its
+ * client point, so that text or a region opens the last drawn card or frame
+ * under it, the innermost where none overlap; Enter gives none, so a
+ * selected element in no box of its own opens nothing.
  */
-function openableAt(target: EventTarget | null, client?: { x: number; y: number }): Address | null {
+function openableAt(target: EventTarget | null, client?: Client): Address | null {
   const node = nodeAt(target);
   if (node === undefined) return null;
-  const svg = target instanceof Element ? target.closest("svg") : null;
-  const point =
-    svg === null || client === undefined
-      ? undefined
-      : (drawingPointAt(node.data.drawing, svg.getBoundingClientRect(), client.x, client.y) ??
-        undefined);
-  return editorTargetOf(view, hitOf(node.id, node.data.drawing, target, point), editing);
+  return editorTargetOf(view, hitIn(node, target, client), editing);
 }
 
 /** What a double-click outside the edited element does: close the innermost editor, as Done does. */
 const DONE = Symbol("done");
 
 /**
- * Whether `target` lies outside the edited element: the empty pane (which a
- * faded block, taking no pointer, lets a press through to), or a part of a
- * block where a press selects nothing (`pressedIn`, the inside test that
- * also fades and prunes). Nothing lies outside on the arranger; the canvas's
- * own controls (toolbars, handles) lie in no block and are not the pane.
+ * Whether `target` at the client point `client` lies outside the edited
+ * element: the empty pane (which a faded block, taking no pointer, lets a
+ * press through to), or a part of a block where a press selects nothing
+ * (`pressedIn`, the inside test that also fades and prunes), so never an
+ * offered band. Nothing lies outside on the arranger; the canvas's own
+ * controls (toolbars, handles) lie in no block and are not the pane.
  */
-function isOutside(target: EventTarget | null): boolean {
+function isOutside(target: EventTarget | null, client: Client): boolean {
   if (editing === null) return false;
   if (target instanceof Element && target.classList.contains("svelte-flow__pane")) return true;
   const node = nodeAt(target);
-  return node !== undefined && pressedIn(node, target) === null;
+  return node !== undefined && pressedIn(node, target, client) === null;
 }
 
 /**
@@ -346,11 +376,8 @@ function isOutside(target: EventTarget | null): boolean {
  * the edited element it closes the innermost editor (`DONE`), else it opens
  * the editor `openableAt` names, or does nothing (`null`).
  */
-function doubleClickAt(
-  target: EventTarget | null,
-  client: { x: number; y: number },
-): Address | typeof DONE | null {
-  return isOutside(target) ? DONE : openableAt(target, client);
+function doubleClickAt(target: EventTarget | null, client: Client): Address | typeof DONE | null {
+  return isOutside(target, client) ? DONE : openableAt(target, client);
 }
 
 /** Close the innermost editor, or open the editor of `target`. */
@@ -643,6 +670,7 @@ setNodeActions({
   dispatch(command) {
     dispatch(command);
   },
+  locked: () => locked,
   reducedMotion: () => reducedMotion.current,
   select(address) {
     selection = new Set([address]);
@@ -683,12 +711,18 @@ function additive(event: { shiftKey: boolean }): boolean {
 }
 
 /**
- * What a press on `target` inside `node` selects (`boxes.ts`): the card, the
- * group's frame or the element it hit, or the block when it hit the block's
- * own box; `null` outside the edited element, where a press changes nothing.
+ * What a press on `target` inside `node` at the client point `client`
+ * selects (`boxes.ts`): the card, the group's frame, the band or the element
+ * it hit, or the block when it hit the block's own box; `null` outside the
+ * edited element, where a press changes nothing. A band is hit only with a
+ * client point: a key selects none.
  */
-function pressedIn(node: BlockNodeType, target: EventTarget | null): string | null {
-  return selectionOf(hitOf(node.id, node.data.drawing, target), editing, node.data.inside);
+function pressedIn(
+  node: BlockNodeType,
+  target: EventTarget | null,
+  client?: Client,
+): string | null {
+  return selectionOf(hitIn(node, target, client), editing, node.data.inside);
 }
 
 /** The selection after a click on `address` (`click`); unchanged where the click selects nothing. */
@@ -706,7 +740,8 @@ function nodeAt(target: EventTarget | null): BlockNodeType | undefined {
 }
 
 function onnodeclick({ node, event }: { node: BlockNodeType; event: MouseEvent | TouchEvent }) {
-  selection = clicked(pressedIn(node, event.target), event);
+  const client = "clientX" in event ? { x: event.clientX, y: event.clientY } : undefined;
+  selection = clicked(pressedIn(node, event.target, client), event);
   reassert();
 }
 
@@ -730,13 +765,13 @@ function isClick(from: { x: number; y: number }, to: { clientX: number; clientY:
 
 /**
  * A marquee that ended within the click distance, as the click it was: on
- * a block, a click on that block or element; elsewhere a click on the
- * empty canvas.
+ * a block, a click on that block, band or element where it was pressed;
+ * elsewhere a click on the empty canvas.
  */
-function clickAt(target: EventTarget | null, event: PointerEvent): void {
+function clickAt(target: EventTarget | null, client: Client, event: PointerEvent): void {
   const node = nodeAt(target);
   if (node !== undefined) {
-    selection = clicked(pressedIn(node, target), event);
+    selection = clicked(pressedIn(node, target, client), event);
   } else {
     clearOnPane(event);
   }
@@ -783,7 +818,7 @@ function onpaneclick({ event }: { event: MouseEvent }) {
  */
 function onselectionend(event: PointerEvent) {
   if (press !== null && isClick(press, event)) {
-    clickAt(press.target, event);
+    clickAt(press.target, press, event);
     reassert();
     return;
   }
@@ -984,6 +1019,33 @@ const ARROWS: { readonly [key: string]: readonly [number, number] } = {
 
 const MODE_KEYS: { readonly [key: string]: ResizeMode } = { 1: "scale", 2: "box", 3: "stretch" };
 
+/** The bands in the selection. */
+function selectedBands(): SelectedBand[] {
+  return [...selection].flatMap((address) => {
+    const band = selectedBand(address);
+    return band === null ? [] : [band];
+  });
+}
+
+/**
+ * Step the selected `band` past the next band or line drawn in `direction`
+ * (`bandStep`), in one `set` (`bandMoveCommand`): only where the open
+ * editor moves bands and offers the band (`offersBand`), on a canvas that
+ * is not locked, and while the band is drawn; nothing at the top or the
+ * bottom.
+ */
+function stepBand(band: SelectedBand, direction: BandDirection): void {
+  if (locked || !gestures.moveBands || !offersBand(view, band, editing)) return;
+  const block = view.blocks[band.block];
+  if (block === undefined) return;
+  const drawing = drawingOf(block, view.settings, metrics);
+  const address = bandAddress(band.timeline, band.kind);
+  const drawn = offeredBands(drawing, band.timeline).find((record) => record.address === address);
+  if (drawn === undefined) return;
+  const order = bandStep(drawing, drawn, direction, bandOrderOf(block.manifest, band.timeline));
+  if (order !== null) dispatch(bandMoveCommand(view, block.id, band.timeline, order));
+}
+
 /** Run the action a key stands for; `false` when the key means nothing here. */
 function handleKey(event: KeyboardEvent): boolean {
   const { key, shiftKey } = event;
@@ -999,6 +1061,16 @@ function handleKey(event: KeyboardEvent): boolean {
     if (key.startsWith("Arrow") || key === "Home" || key === "End") return false;
   }
   if (event.ctrlKey || event.metaKey) {
+    if (key === "ArrowUp" || key === "ArrowDown") {
+      // The key is the band's whenever a band is selected; it steps exactly one.
+      const bands = selectedBands();
+      if (bands.length === 0) return false;
+      const [band] = bands;
+      if (bands.length === 1 && band !== undefined) {
+        stepBand(band, key === "ArrowUp" ? "up" : "down");
+      }
+      return true;
+    }
     const action =
       event.code === "BracketRight"
         ? shiftKey
@@ -1331,20 +1403,41 @@ function onkeydowncapture(event: KeyboardEvent) {
     }
 
     /*
-     * The card or the group's frame under the pointer: quieter than a
-     * selection; a boundary under the pointer takes the accent.
+     * The card, the group's frame or the band under the pointer: quieter
+     * than a selection; a boundary under the pointer takes the accent.
      */
-    .tilie-block rect[data-hovered] {
+    .tilie-block rect[data-hovered],
+    .tilie-block .tilie-band[data-mark="hover"] {
       filter: drop-shadow(0 0 2px #9cc8ff) drop-shadow(0 0 2px #9cc8ff);
     }
 
     /*
-     * A selected element; listed for `rect` as well, so that a selected card
-     * or frame keeps the selection's glow under the pointer.
+     * A selected element or band; listed for `rect` as well, so that a
+     * selected card or frame keeps the selection's glow under the pointer.
      */
     .tilie-block [data-selected],
-    .tilie-block rect[data-selected] {
+    .tilie-block rect[data-selected],
+    .tilie-block .tilie-band[data-mark="selection"] {
       filter: drop-shadow(0 0 1.5px #0a84ff) drop-shadow(0 0 1.5px #0a84ff);
+    }
+
+    /*
+     * A band draws nothing, so its mark (`BlockNode`) is the outline of its
+     * rectangle drawn over the drawing, in the colour of its glow. Its stroke
+     * does not scale with the block, and its width is divided by the canvas
+     * zoom, as a holding mark's is, so it is a screen pixel at any block
+     * scale and any zoom.
+     */
+    .tilie-block .tilie-band {
+      fill: none;
+      stroke: #9cc8ff;
+      stroke-width: calc(1px / var(--tilie-zoom, 1));
+      vector-effect: non-scaling-stroke;
+      pointer-events: none;
+    }
+
+    .tilie-block .tilie-band[data-mark="selection"] {
+      stroke: #0a84ff;
     }
 
     .tilie-block line[data-hovered] {

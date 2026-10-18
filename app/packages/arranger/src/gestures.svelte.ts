@@ -1,11 +1,15 @@
 /**
  * The gestures of the editors: moving an item in the bundle editor,
- * reordering a group's member cards in the group editor, and the resize
- * modes each level offers.
+ * reordering a group's member cards in the group editor, moving a band of
+ * the edited timeline in the timeline editor, and the resize modes each
+ * level offers.
  *
  * Each drag is an attachment on the element pressed. It marks that element
  * `nodrag nopan`, so Svelte Flow neither drags the node nor pans the canvas
- * from it, and captures the pointer. A press released within `CLICK_DISTANCE` is a click
+ * from it, and captures the pointer. A band draws nothing, so the band drag
+ * is attached to the drawing's `<svg>` and takes only a press on a band: it
+ * marks the `<svg>` only while it holds such a press, and every other press
+ * and the wheel reach the canvas as before. A press released within `CLICK_DISTANCE` is a click
  * and stays one: nothing is previewed and the click selects as on any other
  * element. Past it, the drag previews through a callback while the pointer
  * moves and dispatches one command on release; Escape (on the canvas, through
@@ -13,9 +17,9 @@
  * preview withdrawn. The
  * click that follows a drag is not a selection. An item move converts the
  * pointer's travel into drawing units by the canvas zoom and the block's
- * scale, the exact factor the drawing is shown at; a reorder reads the
- * pointer's point through the screen CTM of the `<svg>` the element is drawn
- * in, never the element's own, which a sliding reorder moves.
+ * scale, the exact factor the drawing is shown at; a reorder and a band move
+ * read the pointer's point through the screen CTM of the `<svg>` the element
+ * is drawn in, never the element's own, which a sliding reorder moves.
  */
 
 import type { Command } from "@timetoalign/tilie-core";
@@ -46,6 +50,13 @@ export interface Point {
  * and end the drag.
  */
 interface DragOptions<T, S> {
+  /**
+   * Whether the drag takes the press `event` at the drawing point `point`,
+   * read at every press with the primary button; without it, the drag takes
+   * them all. A drag that refuses some presses leaves them to the canvas, so
+   * it marks its element only while it holds a press it took.
+   */
+  readonly takes?: (event: PointerEvent, point: Point) => boolean;
   /** What the drag reads from its element's state at the press. */
   readonly hold: () => S;
   /**
@@ -109,7 +120,9 @@ function drag<T, S>(options: DragOptions<T, S>): Attachment<SVGElement> {
     const marks = ["nodrag", "nopan"] as const;
     /** Svelte rewrites `class` when the element's own classes change; the marks are kept. */
     const mark = () => element.classList.add(...marks);
-    mark();
+    /** Whether the element is marked only while a press is held: its drag refuses some presses. */
+    const pressedOnly = options.takes !== undefined;
+    if (!pressedOnly) mark();
 
     let press: Press<S> | null = null;
     /** The last value previewed; `undefined` until the pointer passes the click distance. */
@@ -168,6 +181,7 @@ function drag<T, S>(options: DragOptions<T, S>): Attachment<SVGElement> {
       if (ended !== null && element.hasPointerCapture(ended.pointer)) {
         element.releasePointerCapture(ended.pointer);
       }
+      if (pressedOnly) element.classList.remove(...marks);
       const view = element.ownerDocument.defaultView;
       if (swallow && view !== null) swallowClick(view, released);
     }
@@ -251,7 +265,14 @@ function drag<T, S>(options: DragOptions<T, S>): Attachment<SVGElement> {
     const stopPress = listen(element, "pointerdown", (event: PointerEvent) => {
       if (event.button !== 0 || press !== null) return;
       const view = element.ownerDocument.defaultView;
-      if (view === null || drawingMatrix(element) === null) return;
+      const matrix = drawingMatrix(element);
+      if (view === null || matrix === null) return;
+      if (options.takes !== undefined) {
+        const point = pointIn(matrix, event.clientX, event.clientY);
+        if (point === null || !options.takes(event, point)) return;
+      }
+      // Before Svelte Flow reads the press (its pan and node drag start on `mousedown` and
+      // `touchstart`, which follow `pointerdown`), so neither starts.
       mark();
       unlisten();
       const { pointerId: pointer, clientX: x, clientY: y } = event;
@@ -335,6 +356,13 @@ export interface MemberDragOptions {
  * only when the order changes.
  */
 export function memberDrag(options: MemberDragOptions): Attachment<SVGElement> {
+  return orderDrag(options);
+}
+
+/** A drag whose value is an order read at the pointer's drawing ordinate: a member or band drag. */
+function orderDrag(
+  options: MemberDragOptions & Pick<DragOptions<readonly string[], null>, "takes">,
+): Attachment<SVGElement> {
   return drag<readonly string[], null>({
     ...options,
     hold: () => null,
@@ -344,6 +372,35 @@ export function memberDrag(options: MemberDragOptions): Attachment<SVGElement> {
     },
     same: (a, b) => a.length === b.length && a.every((id, index) => id === b[index]),
   });
+}
+
+/** What a band drag needs; see `bandDrag`. */
+export interface BandDragOptions {
+  /**
+   * Whether the press `event` at the drawing point `point` lies on a band
+   * the drag moves; read once at every press, before anything else. A press
+   * it refuses is the canvas's: a click, a pan or a marquee.
+   */
+  readonly takes: (event: PointerEvent, point: Point) => boolean;
+  /** The band order a drop at drawing ordinate `y` shows. */
+  readonly order: (y: number) => readonly string[];
+  /** Show the timeline with the band order `order`; `null` shows it as stored. */
+  readonly preview: (order: readonly string[] | null) => void;
+  /** The command that stores `order`; `null` when it changes nothing. */
+  readonly command: (order: readonly string[]) => Command | null;
+  readonly dispatch: (command: Command) => void;
+}
+
+/**
+ * Move a band of a timeline by dragging it, on the `<svg>` of the drawing:
+ * a band draws nothing of its own to attach to. Only a press the options
+ * take starts it, and the `<svg>` is marked `nodrag nopan` only while that
+ * press is held. The order follows the pointer as a member reorder's does,
+ * through the drawing's screen CTM at every move; the preview is called only
+ * when the order changes.
+ */
+export function bandDrag(options: BandDragOptions): Attachment<SVGElement> {
+  return orderDrag(options);
 }
 
 /** A box of a block's drawing that a resize acts on: a group's frame, an ungrouped root's card or a member's card. */

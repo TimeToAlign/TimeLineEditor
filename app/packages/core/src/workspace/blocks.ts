@@ -1,19 +1,11 @@
 /** Blocks: the entries of a workspace's canvas, each placing one manifest. */
 
-import { timelineAncestry } from "../manifest/elements.ts";
 import { memberDrawings } from "../manifest/files.ts";
 import type { Manifest } from "../manifest/types.ts";
 
 /** A block id: ten characters of base 36, unique within the workspace. */
 export type BlockId = string;
 export const BLOCK_ID = /^[0-9a-z]{10}$/;
-
-/** A group of bands, laid outwards from the root in a block's `order`. */
-export type BandGroup = "children" | "regions" | "flow";
-export const BAND_GROUPS: readonly BandGroup[] = ["children", "regions", "flow"];
-
-/** A band order: a permutation of the three groups, laid outwards from the root. */
-export type BandOrder = readonly [BandGroup, BandGroup, BandGroup];
 
 /**
  * A stated place of an item, or the stated size and vertical stretch of a
@@ -65,8 +57,6 @@ export interface BlockPlacement {
   /** The requested box size, positive, or null for the content's own size. */
   readonly width: number | null;
   readonly height: number | null;
-  /** The band order, a permutation of the three groups. */
-  readonly order: BandOrder;
 }
 
 /**
@@ -87,8 +77,6 @@ export interface Block extends BlockPlacement {
    * member id.
    */
   readonly places: { readonly [key: string]: Place };
-  /** The band orders overriding `order`, by group id or timeline id at any depth. */
-  readonly bands: { readonly [key: string]: BandOrder };
   readonly manifest: Manifest;
 }
 
@@ -104,9 +92,7 @@ export const BLOCK_MEMBERS = [
   "spacing",
   "width",
   "height",
-  "order",
   "places",
-  "bands",
   "manifest",
 ] as const satisfies readonly (keyof Block)[];
 
@@ -130,12 +116,4 @@ export function itemKeys(manifest: Manifest): ReadonlySet<string> {
  */
 export function cardKeys(manifest: Manifest): ReadonlySet<string> {
   return new Set(manifest.groups.flatMap((group) => group.members));
-}
-
-/** The keys `bands` may hold: the manifest's group ids and its timeline ids at any depth. */
-export function bandKeys(manifest: Manifest): ReadonlySet<string> {
-  return new Set([
-    ...manifest.groups.map((group) => group.id),
-    ...timelineAncestry(manifest).keys(),
-  ]);
 }

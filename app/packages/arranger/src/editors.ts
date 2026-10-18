@@ -32,12 +32,13 @@ export function editedElement(target: Address): { block: BlockId; element: strin
  * block (the bundle editor), a frame its group (the group editor), a card its
  * timeline, and a timeline's line, wherever it is drawn, that timeline (the
  * timeline editor), so a root's line opens the root and a child's line the
- * child. Anything else drawn (a name, a label, a region, a boundary) opens
- * the last drawn card or frame holding it, the innermost where none overlap
- * (`hit.within`), and nothing (`null`) when none holds it. With an editor
- * open, only a target inside the edited element opens, never the edited
- * element itself: any target of its block in the bundle editor, else one the
- * edited group or timeline contains (core's `contains`).
+ * child. A band opens nothing. Anything else drawn (a name, a label, a
+ * region, a boundary) opens the last drawn card or frame holding it, the
+ * innermost where none overlap (`hit.within`), and nothing (`null`) when
+ * none holds it. With an editor open, only a target inside the edited
+ * element opens, never the edited element itself: any target of its block
+ * in the bundle editor, else one the edited group or timeline contains
+ * (core's `contains`).
  */
 export function editorTargetOf(view: View, hit: Hit, editing: Editing | null): Address | null {
   const block = view.blocks[hit.block];
@@ -59,6 +60,8 @@ function openedBy(hit: Hit, isTimeline: (id: string) => boolean): Address | null
       return hit.address;
     case "card":
       return hit.address.slice(0, -"/card".length);
+    case "band":
+      return null;
     case "element": {
       if (isTimeline(hit.address.slice(hit.block.length + 1))) return hit.address;
       if (hit.within === null) return null;
@@ -79,18 +82,25 @@ export interface Gestures {
   readonly moveItems: boolean;
   /** Drag and drop a group's member cards into another order. */
   readonly reorderMembers: boolean;
+  /** Drag a band of the edited timeline elsewhere in its band order, or step it there by key. */
+  readonly moveBands: boolean;
   /** What a marquee selects: whole blocks, or the elements inside the edited element. */
   readonly marquee: "blocks" | "elements";
 }
 
-const NONE = { moveBlocks: false, moveItems: false, reorderMembers: false } as const;
+const NONE = {
+  moveBlocks: false,
+  moveItems: false,
+  reorderMembers: false,
+  moveBands: false,
+} as const;
 
 /** What each level allows, one row per level, so a later editor adds a row and never a branch. */
 export const GESTURES: { readonly [level in Level]: Gestures } = {
   arranger: { ...NONE, moveBlocks: true, marquee: "blocks" },
   bundle: { ...NONE, moveItems: true, marquee: "elements" },
   group: { ...NONE, reorderMembers: true, marquee: "elements" },
-  timeline: { ...NONE, marquee: "elements" },
+  timeline: { ...NONE, moveBands: true, marquee: "elements" },
 };
 
 /** The gestures the canvas offers under the innermost open editor `editing`; the arranger's without one. */

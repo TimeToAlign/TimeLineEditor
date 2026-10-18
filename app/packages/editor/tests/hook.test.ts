@@ -2,7 +2,8 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
-import type { CommandEntry, Manifest } from "@timetoalign/tilie-core";
+import { drawingOf } from "@timetoalign/tilie-arranger";
+import type { Block, CommandEntry, Manifest } from "@timetoalign/tilie-core";
 import {
   createStore,
   createView,
@@ -13,12 +14,18 @@ import {
   readWorkspace,
   writeWorkspace,
 } from "@timetoalign/tilie-core";
-import { SCHEMA_VERSION } from "@timetoalign/timeskeleton";
+import type { Drawing, DrawnBand } from "@timetoalign/tilie-layout";
+import { fontMetrics, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App.svelte";
-import { WorkspaceRefusedError } from "../src/testHook.ts";
+import { bandsOf, hookBands, WorkspaceRefusedError } from "../src/testHook.ts";
 import { stubEditor } from "./dom.ts";
+import { flushAutosaves } from "./support.ts";
+
+vi.mock("../src/autosave.ts", async (importOriginal) =>
+  (await import("./support.ts")).recordAutosaves(await importOriginal()),
+);
 
 const A = "0000000000";
 /** The end-to-end workspaces the fixture menu offers. */
@@ -35,7 +42,7 @@ function fixtureDirectory(): string {
 }
 
 /** A workspace file of two blocks holding manifest fixtures, written through the store. */
-function workspaceText(): string {
+function workspaceText(names: readonly [string, string] = ["bare", "nested"]): string {
   const directory = fixtureDirectory();
   const manifest = (name: string) => {
     const loaded = loadManifest(readFileSync(path.join(directory, `${name}.json`), "utf8"));
@@ -44,8 +51,8 @@ function workspaceText(): string {
   };
   const store = createStore({ view: createView(), journal: [], sessions: {} });
   for (const [id, name, x] of [
-    [A, "bare", 0],
-    [B, "nested", 800],
+    [A, names[0], 0],
+    [B, names[1], 800],
   ] as const) {
     const error = store.dispatch({
       type: "add",
@@ -57,11 +64,122 @@ function workspaceText(): string {
   return writeWorkspace({ view: store.view, journal: store.journal, sessions: store.sessions });
 }
 
+/** A record of the timeline `score` written for the mapping, its line at 30.5 (README, case 8). */
+function scoreBand(
+  kind: DrawnBand["kind"],
+  level: number,
+  elements: number,
+  y: number,
+  height: number,
+): DrawnBand {
+  const address = `score/${kind}_1`;
+  return {
+    address,
+    timeline: "score",
+    kind,
+    level,
+    line: 30.5,
+    elements,
+    x: 8.25,
+    y,
+    width: 300,
+    height,
+  };
+}
+
+/** A drawing of 400 × 200 holding three band records and nothing else (case 8). */
+const MAPPED: Drawing = {
+  width: 400,
+  height: 200,
+  origin: { x: 0, y: 0 },
+  items: [],
+  cards: [],
+  elements: [],
+  bands: [
+    scoreBand("conversion_maps", 1, 1, 24, 6.5),
+    scoreBand("markers", -1, 2, 30.5, 26.75),
+    scoreBand("flow_control", -2, 1, 61.25, 0),
+  ],
+  unmapped: [],
+};
+
+/** `MAPPED`'s bands as the hook reports them, at the line `line` with the rectangles `rects`. */
+function mapped(line: number, rects: readonly (readonly number[])[]) {
+  return MAPPED.bands.map(({ address, timeline, kind, level, elements }, at) => {
+    const [x, y, width, height] = rects[at] ?? [];
+    return { address, timeline, kind, level, line, elements, rect: { x, y, width, height } };
+  });
+}
+
+/** A band's identity as `[address, timeline, kind, level, elements]`. */
+function identity({
+  address,
+  timeline,
+  kind,
+  level,
+  elements,
+}: Pick<DrawnBand, "address" | "timeline" | "kind" | "level" | "elements">) {
+  return [address, timeline, kind, level, elements];
+}
+
+/**
+ * The bands of `map` (`phrase` at 1) and `map_child_band_order` (`phrase`
+ * at −1), derived in README case 8, as `identity` gives them.
+ */
+function mapBands(phrase: number) {
+  return [
+    ["melody/children_1", "melody", "children", 2, 1],
+    ["melody/conversion_maps_1", "melody", "conversion_maps", 1, 1],
+    ["melody/markers_1", "melody", "markers", -1, 2],
+    ["phrase/conversion_maps_1", "phrase", "conversion_maps", phrase, 1],
+  ];
+}
+
+describe("hookBands", () => {
+  it("places each record through the svg's client rectangle", () => {
+    expect(hookBands(MAPPED, { left: 100, top: 50, width: 800, height: 400 })).toEqual(
+      mapped(111, [
+        [116.5, 98, 600, 13],
+        [116.5, 111, 600, 53.5],
+        [116.5, 172.5, 600, 0],
+      ]),
+    );
+  });
+
+  it("reports a drawing off screen as computed", () => {
+    expect(hookBands(MAPPED, { left: -30, top: -20, width: 200, height: 100 })).toEqual(
+      mapped(-4.75, [
+        [-25.875, -8, 150, 3.25],
+        [-25.875, -4.75, 150, 13.375],
+        [-25.875, 10.625, 150, 0],
+      ]),
+    );
+  });
+});
+
+describe("bandsOf", () => {
+  it("cannot place a block whose drawing is not on the page", () => {
+    const text = workspaceText(["map", "map_child_band_order"]);
+    const read = readWorkspace(text);
+    if (isLoadError(read)) throw new Error("the written workspace is refused");
+    expect(() => bandsOf(read.view, A)).toThrow(
+      new Error(`the drawing of block ${A} is not on the page`),
+    );
+  });
+});
+
 /** The text of a group or bundle fixture of the installed schema package. */
 function manifestFixtureText(name: string): string {
   const kind = name.startsWith("group_") ? "groups" : "bundles";
   return readFileSync(path.join(fixtureDirectory(), kind, `${name}.json`), "utf8");
 }
+
+/**
+ * The limit of a wait for a load through the fixture menu and of each test
+ * holding one: about three times the slowest such test measured, 2.2 s on
+ * a loaded machine (tests/README.md, "The test hook").
+ */
+const FIXTURE_LOAD_TIMEOUT = 7_000;
 
 /** Choose `name` in the header's fixture menu, press Load and wait until a store holds it. */
 async function loadFromMenu(name: string): Promise<void> {
@@ -72,9 +190,12 @@ async function loadFromMenu(name: string): Promise<void> {
   select.value = name;
   select.dispatchEvent(new Event("change"));
   load.click();
-  await vi.waitFor(() => {
-    expect(window.__tilie?.store()).not.toBe(before);
-  });
+  await vi.waitFor(
+    () => {
+      expect(window.__tilie?.store()).not.toBe(before);
+    },
+    { timeout: FIXTURE_LOAD_TIMEOUT },
+  );
   flushSync();
 }
 
@@ -92,9 +213,10 @@ describe("the test hook", () => {
     flushSync();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     if (app !== undefined) unmount(app);
     app = undefined;
+    await flushAutosaves();
     document.body.innerHTML = "";
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
@@ -156,7 +278,9 @@ describe("the test hook", () => {
     expect(hook().store()).toBe(open);
   });
 
-  it("offers the end-to-end workspaces in the header and loads the chosen one", async () => {
+  it("offers the end-to-end workspaces in the header and loads the chosen one", {
+    timeout: FIXTURE_LOAD_TIMEOUT,
+  }, async () => {
     const select = document.querySelector<HTMLSelectElement>('[data-testid="fixture-select"]');
     const load = document.querySelector<HTMLButtonElement>('[data-testid="fixture-load"]');
     if (select === null || load === null) throw new Error("the fixture menu is missing");
@@ -192,14 +316,19 @@ describe("the test hook", () => {
     select.dispatchEvent(new Event("change"));
     load.click();
 
-    await vi.waitFor(() => {
-      expect(hook().store().view).toEqual(expected.view);
-    });
+    await vi.waitFor(
+      () => {
+        expect(hook().store().view).toEqual(expected.view);
+      },
+      { timeout: FIXTURE_LOAD_TIMEOUT },
+    );
     expect(hook().store().journal).toEqual(expected.journal);
     expect(hook().selection()).toEqual([]);
   });
 
-  it("opens a group or bundle fixture as one block of its manifest", async () => {
+  it("opens a group or bundle fixture as one block of its manifest", {
+    timeout: FIXTURE_LOAD_TIMEOUT,
+  }, async () => {
     for (const name of ["group_number_types", "bundle_mixed"] as const) {
       await loadFromMenu(name);
       const manifest = loadManifest(manifestFixtureText(name));
@@ -216,7 +345,9 @@ describe("the test hook", () => {
     }
   });
 
-  it("removes a timeline of a group or bundle block on Delete", async () => {
+  it("removes a timeline of a group or bundle block on Delete", {
+    timeout: FIXTURE_LOAD_TIMEOUT,
+  }, async () => {
     for (const [name, timeline] of [
       ["group_child_member", "second-half"],
       ["bundle_mixed", "annotations"],
@@ -286,6 +417,36 @@ describe("the test hook", () => {
     expect(hook().store().journal.length).toBe(length + 1);
     const last = hook().store().journal.at(-1);
     expect(last !== undefined && isSessionEntry(last)).toBe(true);
+  });
+
+  it("lists a block's drawn bands placed through its own drawing", () => {
+    hook().load(workspaceText(["map", "map_child_band_order"]));
+    flushSync();
+    const svg = document.querySelector(`.svelte-flow__node[data-id="${A}"] .tilie-block > svg`);
+    if (svg === null) throw new Error("the block's drawing is not rendered");
+    const [, , width = 0, height = 0] = (svg.getAttribute("viewBox") ?? "").split(" ").map(Number);
+    vi.spyOn(svg, "getBoundingClientRect").mockReturnValue(
+      DOMRect.fromRect({ x: 100, y: 50, width: 2 * width, height: 2 * height }),
+    );
+    const { view } = hook().store();
+    const recorded = drawingOf(view.blocks[A] as Block, view.settings, fontMetrics).bands;
+
+    const first = hook().bands(A);
+    expect(first.map(identity)).toEqual(mapBands(1));
+    expect(first.map(({ line, rect }) => ({ line, rect }))).toEqual(
+      recorded.map(({ line, x, y, width, height }) => ({
+        line: 50 + 2 * line,
+        rect: { x: 100 + 2 * x, y: 50 + 2 * y, width: 2 * width, height: 2 * height },
+      })),
+    );
+
+    const second = hook().bands(B);
+    expect(second.map(identity)).toEqual(mapBands(-1));
+    expect(second.map(({ line, rect }) => ({ line, rect }))).toEqual(
+      mapBands(-1).map(() => ({ line: 0, rect: { x: 0, y: 0, width: 0, height: 0 } })),
+    );
+
+    expect(() => hook().bands("0000000009")).toThrow(RangeError);
   });
 
   it("is removed when the editor is unmounted", () => {

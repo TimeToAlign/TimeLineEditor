@@ -3,15 +3,20 @@ import type { BlockNode } from "../src/index.ts";
 import { FOCUS_DURATION, focusViewport, project, targetBounds } from "../src/index.ts";
 import { A, changed, metrics, mixedView } from "./support.ts";
 
-function nodeOf(scale: number): BlockNode {
-  const view = changed(mixedView(), { type: "set", changes: [{ target: A, values: { scale } }] });
+/** The node of block A, at `scale` when one is given. */
+function nodeOf(scale?: number): BlockNode {
+  const mixed = mixedView();
+  const view =
+    scale === undefined
+      ? mixed
+      : changed(mixed, { type: "set", changes: [{ target: A, values: { scale } }] });
   const [node] = project(view, new Set(), [], metrics, null);
   if (node === undefined) throw new Error("no node");
   return node;
 }
 
 describe("targetBounds", () => {
-  const node = nodeOf(1);
+  const node = nodeOf();
   const at = (element: string) => `${A}/${element}`;
 
   it("is the block's box, a frame or a card on the canvas", () => {

@@ -148,7 +148,14 @@ describe("a group member of unknown length", () => {
 
 describe("a segment line whose segments are of unknown length", () => {
   it("reaches the last segment's offset plus its own reach", () => {
-    const drawing = drawFixture("unknown_length_segments");
+    // The defaults hide the regions band of a segment without a line of its own; shown, its
+    // regions join the segment line's regions band.
+    expect(addresses(drawFixture("unknown_length_segments"), "region")).toEqual([]);
+    const drawing = drawFixture("unknown_length_segments", [
+      {
+        statements: [{ select: { element: "band", class: "regions" }, set: { display: "inline" } }],
+      },
+    ]);
     const region = element(drawing, "form/region_2");
     if (region.type !== "region") throw new Error("no region");
     expect([region.x1, region.x2]).toEqual([379.2520967371323, 449.84033203125]);

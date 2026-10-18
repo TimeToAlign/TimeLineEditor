@@ -44,8 +44,6 @@ export function drawingOf(
       spacing: placement.spacing,
       width: placement.width,
       height: placement.height,
-      order: placement.order,
-      bands: placement.bands,
       places: placement.places,
     },
     [DEFAULT_LAYER, settings.graphical, placement.manifest.graphical],

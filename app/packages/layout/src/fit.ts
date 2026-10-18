@@ -12,8 +12,8 @@ function conflicts([a1, b1]: Extent, [a2, b2]: Extent): boolean {
 export class Rows {
   readonly rows: Extent[][] = [];
 
-  place(extent: Extent, minimum = 1): number {
-    let row = minimum;
+  place(extent: Extent): number {
+    let row = 1;
     while ((this.rows[row - 1] ?? []).some((other) => conflicts(extent, other))) row += 1;
     while (this.rows.length < row) this.rows.push([]);
     (this.rows[row - 1] as Extent[]).push(extent);
@@ -31,14 +31,14 @@ export const labelExtent = (centre: number, width: number): Extent => [
   centre + width / 2 + 1,
 ];
 
-/** First fit of centred labels, in order, each into its rows `rowsOf`: the tier of each. */
+/** First fit of centred labels, in order, into the tiers `rows`: the tier of each. */
 export function labelTiers<T extends { readonly width: number }>(
   labels: readonly T[],
   centre: (label: T) => number,
-  rowsOf: (label: T) => Rows,
+  rows: Rows,
 ): Map<T, number> {
   return new Map(
-    labels.map((label) => [label, rowsOf(label).place(labelExtent(centre(label), label.width))]),
+    labels.map((label) => [label, rows.place(labelExtent(centre(label), label.width))]),
   );
 }
 

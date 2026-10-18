@@ -13,6 +13,17 @@ const containedBy = (container: string) =>
 
 const wedges = (id: string) => [`${id}/start`, `${id}/start/label`, `${id}/end`, `${id}/end/label`];
 
+/** The five bands of the timeline `id`, each followed by what it holds: its maps, its wedges. */
+const bands = (id: string, maps: readonly string[]) => [
+  `${id}/children_1`,
+  `${id}/conversion_maps_1`,
+  ...maps,
+  `${id}/markers_1`,
+  ...wedges(id),
+  `${id}/regions_1`,
+  `${id}/flow_control_1`,
+];
+
 describe("contains", () => {
   it("holds a group's frame, title and what its members hold, never their ancestors", () => {
     expect(containedBy("group_2")).toEqual([
@@ -21,14 +32,12 @@ describe("contains", () => {
       "page/card",
       "page",
       "page/name",
-      "page/cmap_1",
-      ...wedges("page"),
+      ...bands("page", ["page/cmap_1"]),
       "excerpt/card",
       ...wedges("excerpt"),
       "excerpt",
       "excerpt/name",
-      "recording/cmap_2",
-      ...wedges("excerpt"),
+      ...bands("excerpt", ["recording/cmap_2"]),
     ]);
     expect(contains(mixed, "group_1", "group_2")).toBe(false);
     expect(contains(mixed, "group_1", "annotations/card")).toBe(false);
@@ -42,8 +51,7 @@ describe("contains", () => {
       ...wedges("excerpt"),
       "excerpt",
       "excerpt/name",
-      "recording/cmap_2",
-      ...wedges("excerpt"),
+      ...bands("excerpt", ["recording/cmap_2"]),
     ]);
   });
 
@@ -53,8 +61,7 @@ describe("contains", () => {
       ...wedges("excerpt"),
       "excerpt",
       "excerpt/name",
-      "recording/cmap_2",
-      ...wedges("excerpt"),
+      ...bands("excerpt", ["recording/cmap_2"]),
     ]);
     expect(contains(mixed, "excerpt", "recording/cmap_1")).toBe(false);
     expect(contains(mixed, "recording", "recording/cmap_1")).toBe(true);

@@ -15,8 +15,6 @@ describe("drawingOf", () => {
         spacing: 1,
         width: null,
         height: null,
-        order: block.order,
-        bands: {},
         places: {},
       },
       [DEFAULT_LAYER, view.settings.graphical, block.manifest.graphical],
@@ -55,7 +53,7 @@ describe("drawingOf", () => {
     expect(drawingOf(block, view.settings, metrics)).toBe(memoized);
   });
 
-  it("draws a block's places and bands, and previews places and a manifest", () => {
+  it("draws a block's places, and previews places and a manifest", () => {
     const moved = placed(mixedPlain(), A, "annotations", { x: -30 });
     const mixed = blockIn(moved, A);
     const drawing = drawingOf(mixed, moved.settings, metrics);
@@ -67,8 +65,6 @@ describe("drawingOf", () => {
           spacing: 1,
           width: null,
           height: null,
-          order: mixed.order,
-          bands: {},
           places: { annotations: { x: -30 } },
         },
         [DEFAULT_LAYER, moved.settings.graphical, mixed.manifest.graphical],

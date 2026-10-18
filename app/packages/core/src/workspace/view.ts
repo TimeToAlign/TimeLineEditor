@@ -6,20 +6,13 @@ import { ErrorCode, isCommandError, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";
 import { compareCodePoints } from "../json.ts";
 import { manifestProblems } from "../manifest/io.ts";
-import {
-  readBands,
-  readFinite,
-  readIndex,
-  readOrder,
-  readPlaces,
-  readPositive,
-} from "../values.ts";
+import { readFinite, readIndex, readPlaces, readPositive } from "../values.ts";
 import type { Block, BlockId, BlockPlacement } from "./blocks.ts";
-import { BLOCK_ID, bandKeys, CARD_MEMBERS, cardKeys, itemKeys, PLACE_MEMBERS } from "./blocks.ts";
+import { BLOCK_ID, CARD_MEMBERS, cardKeys, itemKeys, PLACE_MEMBERS } from "./blocks.ts";
 
 export interface WorkspaceMeta {
   readonly format: "tilie-workspace";
-  readonly version: 3;
+  readonly version: 4;
 }
 
 export interface WorkspaceSettings {
@@ -35,18 +28,11 @@ export interface View {
   readonly blocks: { readonly [id: BlockId]: Block };
 }
 
-export const WORKSPACE_META: WorkspaceMeta = { format: "tilie-workspace", version: 3 };
+export const WORKSPACE_META: WorkspaceMeta = { format: "tilie-workspace", version: 4 };
 
 export const DEFAULT_SETTINGS: WorkspaceSettings = {
   grid: { size: 8, snap: true },
-  blockDefaults: {
-    scale: 1,
-    length: 400,
-    spacing: 1,
-    width: null,
-    height: null,
-    order: ["children", "regions", "flow"],
-  },
+  blockDefaults: { scale: 1, length: 400, spacing: 1, width: null, height: null },
   graphical: {},
 };
 
@@ -78,14 +64,9 @@ function placementProblems(block: Block, path: readonly PathSegment[]): Problem[
     if (value === null && (name === "width" || name === "height")) continue;
     check(readPositive(value, [...path, name]));
   }
-  check(readOrder(block.order, [...path, "order"]));
   const places = readPlaces(block.places, [...path, "places"]);
-  const bands = readBands(block.bands, [...path, "bands"]);
-  check(places);
-  check(bands);
-  if (!isCommandError(places) && !isCommandError(bands)) {
-    problems.push(...keyProblems(block, path));
-  }
+  if (isCommandError(places)) problems.push(places);
+  else problems.push(...keyProblems(block, path));
   return problems;
 }
 
@@ -114,47 +95,33 @@ export function cardMemberProblem(
 
 /**
  * The keys of a block's `places` naming no item and no member of its
- * manifest, or naming a member and stating more than its card takes, and
- * of its `bands` naming no group or timeline, in that order and each in
- * code-point order of its keys, each at `path` followed by `places` or
- * `bands` and the key (and for a card the member it may not state).
+ * manifest, or naming a member and stating more than its card takes, in
+ * code-point order of its keys, each at `path` followed by `places` and the
+ * key (and for a card the member it may not state).
  */
 export function keyProblems(
-  block: Pick<Block, "id" | "places" | "bands" | "manifest">,
+  block: Pick<Block, "id" | "places" | "manifest">,
   path: readonly PathSegment[],
 ): Problem[] {
   const items = itemKeys(block.manifest);
   const cards = cardKeys(block.manifest);
-  const bands = bandKeys(block.manifest);
-  return [
-    ...Object.keys(block.places)
-      .sort(compareCodePoints)
-      .filter((key) => !items.has(key))
-      .flatMap((key) => {
-        const at = [...path, "places", key];
-        if (!cards.has(key)) {
-          return [
-            problem(
-              ErrorCode.unknownPlace,
-              `${key} is no group, no ungrouped root and no member of block ${block.id}`,
-              at,
-            ),
-          ];
-        }
-        const card = cardMemberProblem(key, block.places[key] as object, at);
-        return card === undefined ? [] : [card];
-      }),
-    ...Object.keys(block.bands)
-      .sort(compareCodePoints)
-      .filter((key) => !bands.has(key))
-      .map((key) =>
-        problem(
-          ErrorCode.unknownBandKey,
-          `${key} is no group and no timeline of block ${block.id}`,
-          [...path, "bands", key],
-        ),
-      ),
-  ];
+  return Object.keys(block.places)
+    .sort(compareCodePoints)
+    .filter((key) => !items.has(key))
+    .flatMap((key) => {
+      const at = [...path, "places", key];
+      if (!cards.has(key)) {
+        return [
+          problem(
+            ErrorCode.unknownPlace,
+            `${key} is no group, no ungrouped root and no member of block ${block.id}`,
+            at,
+          ),
+        ];
+      }
+      const card = cardMemberProblem(key, block.places[key] as object, at);
+      return card === undefined ? [] : [card];
+    });
 }
 
 /** Every problem of a view, block by block in id order, at its path in the view. */
@@ -164,7 +131,7 @@ export function checkWorkspace(view: View): Problem[] {
 
 /**
  * The problems of a view's blocks, in id order: their ids, parents,
- * indices and placement, the keys of their places and band orders, and with
+ * indices and placement, the keys of their places, and with
  * `manifests` their manifests too.
  */
 export function structureProblems(view: View, manifests = false): Problem[] {

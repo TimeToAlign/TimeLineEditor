@@ -7,6 +7,7 @@ import {
   isCommandError,
   manifestElements,
   manifestIds,
+  parseBand,
 } from "@timetoalign/tilie-core";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
@@ -187,6 +188,11 @@ function commandOf(view: View, item: Gesture): object | null {
         ...(item.height === undefined ? {} : { height: item.height / 2048 }),
       };
       const key = keys[item.box % keys.length] as string;
+      const stated = block.places[key];
+      // A request its place states already changes nothing, so it gives no command.
+      const same = ([member, value]: [string, number]) =>
+        stated?.[member as "width" | "height"] === value;
+      if (Object.entries(place).every(same)) return null;
       return { type: "set", changes: [{ target: `${block.id}/${key}`, values: { place } }] };
     }
     case "remove": {
@@ -306,6 +312,10 @@ describe("a member's Stretch", () => {
 const ROUND_TRIP_FIXTURES = ["bare", "nested", "bundles/bundle_mixed"] as const;
 
 /** A stretched box of `fixture` at (40, 80), its requests, and how to stretch and read it. */
+/** The view after a gesture's command, or `view` itself when the gesture gives none. */
+const gestured = (view: View, command: object | null): View =>
+  command === null ? view : changed(view, command);
+
 function stretchCase(
   fixture: (typeof ROUND_TRIP_FIXTURES)[number],
   pick: number,
@@ -327,7 +337,11 @@ function stretchCase(
   const height = request(heightRatio, size.height);
   const target = box === null ? A : `${A}/${box.key}`;
   const values = box === null ? { width, height } : { place: { width, height } };
-  const view = changed(start, { type: "set", changes: [{ target, values }] });
+  // Without a request the box is the view as added, which states none.
+  const view =
+    width === null && height === null
+      ? start
+      : changed(start, { type: "set", changes: [{ target, values }] });
   const resized = box === null ? undefined : resizedItemOf(drawing, box.address);
   /** The stretched value, and the dragged box's extent on the stretched axis. */
   const state = (of: View) => {
@@ -353,7 +367,7 @@ function stretchCase(
     const at = vertical ? { dx: 0, dy: by } : { dx: by, dy: 0 };
     if (resized === undefined) {
       const { values } = resize(block, of.settings, metrics, "stretch", handle, at);
-      return changed(of, resizeCommand(block, values));
+      return gestured(of, resizeCommand(block, values));
     }
     const places = itemResizeValues(
       block,
@@ -365,7 +379,7 @@ function stretchCase(
       handle,
       at,
     );
-    return changed(of, itemResizeCommand(of, A, places, "arranger", metrics));
+    return gestured(of, itemResizeCommand(of, A, places, "arranger", metrics));
   };
   /** A travel in [−200, 400] along time, [−8, 200] vertically, from `t` in [0, 1]. */
   const travel = (t: number) => (vertical ? -8 + t * 208 : -200 + t * 600);
@@ -501,8 +515,16 @@ describe("affectedBy", () => {
             key.address === null ? [] : [key.address],
           );
           const local = new Set(picks.map((pick) => elements[pick % elements.length] as string));
-          const owners = [...local].map((address) => elementOf(manifest, address));
+          const owners = [...local]
+            .filter((address) => parseBand(address) === null)
+            .map((address) => elementOf(manifest, address));
           const command = removeCommand(view, new Set([...local].map((path) => `${A}/${path}`)));
+          if (owners.length === 0) {
+            expect(command).toEqual({
+              refused: "A band is not deleted; select its elements to delete them.",
+            });
+            return;
+          }
           const direct = apply(view, { type: "remove", targets: owners.map((o) => `${A}/${o}`) });
           expect("refused" in command).toBe(isCommandError(direct));
           if ("refused" in command) return;

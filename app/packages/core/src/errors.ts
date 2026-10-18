@@ -47,7 +47,6 @@ export const ErrorCode = {
   missingMember: "missing_member",
   notAnItem: "not_an_item",
   unknownPlace: "unknown_place",
-  unknownBandKey: "unknown_band_key",
   noEditor: "no_editor",
   notInside: "not_inside",
   sideEffect: "side_effect",

@@ -271,9 +271,15 @@ export function blockStretchPlaces(
 /**
  * The `set` storing a resize's values on its block: the block's own members
  * in one change, then the place of every item in `values.places` in one
- * change each, aimed at the item.
+ * change each, aimed at the item. `null` when every value is the block's own
+ * (`places` its own object, as `blockStretchPlaces` keeps it): a resize that
+ * changes no stored value is no command, like a drag that ends where it began.
  */
-export function resizeCommand(block: Block, values: Partial<Block>): SetCommand {
+export function resizeCommand(block: Block, values: Partial<Block>): SetCommand | null {
+  const changed = Object.entries(values).some(
+    ([member, value]) => block[member as keyof Block] !== value,
+  );
+  if (!changed) return null;
   const { places, ...own } = values;
   const changes: Change[] = [{ target: block.id, values: own }];
   for (const [key, place] of Object.entries(places ?? {})) {

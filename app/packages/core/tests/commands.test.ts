@@ -28,6 +28,12 @@ const tempo = () => load("map.json").timelines[0]?.conversion_maps[0] as object;
 const ticks = () => load("map.json").timelines[0]?.children[0]?.conversion_maps[0] as object;
 /** A `graphical` block as a settled manifest holds it: in its complete form. */
 const held = (graphical: object) => ({ order: {}, ...graphical });
+/** The refusal of a `set` that changes nothing, at its first value. */
+const nothing = (target: string, property: string) => ({
+  code: "invalid_value",
+  message: "the command changes nothing",
+  path: [target, property],
+});
 
 /** The value of `apply`, the input view having been deep-frozen first. */
 function applied(view: View, command: object): View {
@@ -64,9 +70,7 @@ describe("add", () => {
       spacing: 1,
       width: null,
       height: null,
-      order: ["children", "regions", "flow"],
       places: {},
-      bands: {},
       manifest: load("bare.json"),
     });
     const second = applied(view, {
@@ -219,14 +223,7 @@ describe("set", () => {
 
   it("sets the placement of a block", () => {
     const view = frozen([A, "bare.json"]);
-    const placement = {
-      scale: 2,
-      width: 120,
-      height: null,
-      length: 800,
-      spacing: 2,
-      order: ["flow", "regions", "children"],
-    };
+    const placement = { scale: 2, width: 120, height: null, length: 800, spacing: 2 };
     expect(block(applied(view, set(A, placement)))).toEqual({ ...block(view), ...placement });
   });
 
@@ -288,7 +285,6 @@ describe("set", () => {
       [set(A, { x: Number.POSITIVE_INFINITY }), "non_finite_number", [A, "x"]],
       [set(A, { scale: 0 }), "non_positive_number", [A, "scale"]],
       [set(A, { width: -5 }), "non_positive_number", [A, "width"]],
-      [set(A, { order: ["children", "children", "flow"] }), "invalid_order", [A, "order"]],
       [set(A, { index: "a00" }), "invalid_index", [A, "index"]],
       [set(A, { index: "a1" }), "duplicate_index", [A, "index"]],
       [
@@ -350,6 +346,54 @@ describe("set", () => {
     ).toEqual({ code: "unknown_target", path: ["0000000009"] });
     expect(block(view).x).toBe(0);
   });
+
+  it("refuses a set that changes nothing, on every kind of target", () => {
+    const view = frozen([A, "nested.json"], [B, "bare.json"]);
+    const maps = frozen([A, "map.json"]);
+    const flow = frozen([A, "flow_control.json"]);
+    const cases: [View, string, object][] = [
+      [view, "workspace", { grid: { size: 8 } }],
+      [view, "workspace", { blockDefaults: { length: 400 } }],
+      [view, "workspace", { graphical: {} }],
+      [view, A, { x: 0 }],
+      [view, A, { index: "a0" }],
+      [view, A, { width: null }],
+      [view, A, { manifest: load("nested.json") }],
+      [view, at("clt_1"), { name: null }],
+      [view, at("clt_1"), { meta: {} }],
+      [view, at("clt_1"), { length: quarters(32, 2) }],
+      [view, at("clt_3"), { offset: quarters(4) }],
+      [maps, at("melody/tempo"), { map: tempo() }],
+      [flow, at("flow:quarters/marker_1"), { coordinate: quarters(4, 2) }],
+    ];
+    expect(cases.map(([start, target, values]) => apply(start, set(target, values)))).toEqual(
+      cases.map(([, target, values]) => nothing(target, Object.keys(values)[0] as string)),
+    );
+  });
+
+  it("judges the whole set, never one value", () => {
+    const view = frozen([A, "nested.json"], [B, "bare.json"]);
+    const moves = (a: number, b: number) => ({
+      type: "set",
+      changes: [
+        { target: A, values: { x: a } },
+        { target: B, values: { x: b } },
+      ],
+    });
+    const moved = applied(view, moves(0, 7));
+    expect([block(moved), block(moved, B)]).toEqual([block(view), { ...block(view, B), x: 7 }]);
+    expect(apply(view, moves(0, 0))).toEqual(nothing(A, "x"));
+    const nested = load("nested.json");
+    const named = { ...nested, timelines: nested.timelines.map((t) => ({ ...t, name: "Score" })) };
+    const undone = {
+      type: "set",
+      changes: [
+        { target: A, values: { manifest: named } },
+        { target: at("clt_1"), values: { name: null } },
+      ],
+    };
+    expect(apply(view, undone)).toEqual(nothing(A, "manifest"));
+  });
 });
 
 describe("locks by place", () => {
@@ -363,14 +407,16 @@ describe("locks by place", () => {
     return findTimeline(manifest(view), id)?.locked;
   }
 
-  it("refuses to lock a segment and accepts its unlock", () => {
+  it("refuses to lock a segment, whose unlock changes nothing", () => {
     const view = frozen([A, "segment_line.json"]);
     expect(refusedWith(view, set(at("b1"), { locked: true }))).toEqual({
       code: "segment_never_locked",
       message: SEGMENT.replace("%s", "b"),
       path: [at("b1"), "locked"],
     });
-    expect(lockOf(applied(view, set(at("b1"), { locked: false })), "b1")).toBe(false);
+    expect(refusedWith(view, set(at("b1"), { locked: false }))).toEqual(
+      nothing(at("b1"), "locked"),
+    );
   });
 
   it("refuses to unlock a segment line that is a child, a segment or a group member", () => {
@@ -385,17 +431,29 @@ describe("locks by place", () => {
         message: UNLOCKING,
         path: [at(id), "locked"],
       });
-      expect(lockOf(applied(view, set(at(id), { locked: true })), id)).toBe(true);
+      expect(lockOf(view, id)).toBe(true);
+      expect(refusedWith(view, set(at(id), { locked: true }))).toEqual(nothing(at(id), "locked"));
     }
   });
 
-  it("accepts setting the lock a timeline has, even where the opposite is refused", () => {
+  it("never refuses the lock a timeline has, even where the opposite is refused", () => {
     // The file states `b` unlocked, which reading keeps: only segments are unlocked.
     const view = deepFreeze(unlockedView("segment_line.json", "b"));
-    const kept = applied(view, set(at("b"), { locked: false }));
-    expect(lockOf(kept, "b")).toBe(false);
-    expect(manifest(kept)).toEqual(manifest(view));
-    const locked = applied(kept, set(at("b"), { locked: true }));
+    expect(refusedWith(view, set(at("b"), { locked: false }))).toEqual(nothing(at("b"), "locked"));
+    const kept = applied(view, set(at("b"), { locked: false, name: "Bridge" }));
+    expect([lockOf(kept, "b"), findTimeline(manifest(kept), "b")?.name]).toEqual([false, "Bridge"]);
+    expect(manifest(kept)).toEqual({
+      ...manifest(view),
+      timelines: [
+        {
+          ...root(view),
+          children: root(view).children.map((child) =>
+            child.id === "b" ? { ...child, name: "Bridge" } : child,
+          ),
+        },
+      ],
+    });
+    const locked = applied(view, set(at("b"), { locked: true }));
     expect(lockOf(locked, "b")).toBe(true);
     expect(refusedWith(locked, set(at("b"), { locked: false }))).toEqual({
       code: "unlocking_not_supported",

@@ -15,12 +15,10 @@ import { isJsonObject, showJson } from "../json.ts";
 import { readManifestValue } from "../manifest/io.ts";
 import type { Manifest } from "../manifest/types.ts";
 import {
-  readBands,
   readBoolean,
   readFinite,
   readGraphical,
   readNullablePositive,
-  readOrder,
   readPlaces,
   readPositive,
   readString,
@@ -102,7 +100,6 @@ const PLACEMENT: { readonly [member in keyof BlockPlacement]: Reader } = {
   spacing: readPositive,
   width: readNullablePositive,
   height: readNullablePositive,
-  order: readOrder,
 };
 
 const META: { readonly [member: string]: Reader } = {
@@ -153,7 +150,6 @@ function readBlock(problems: Problem[]): Reader {
     x: readFinite,
     y: readFinite,
     places: readPlaces,
-    bands: readBands,
     manifest: (value, path) => {
       const manifest = readManifest(value, path);
       if (!Array.isArray(manifest)) return manifest;

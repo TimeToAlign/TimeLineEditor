@@ -1,13 +1,12 @@
 /**
  * The drawings of the review sheet: every manifest fixture of the installed
  * schema package but the corpus ones (`corpus_*`) at the default placement,
- * plus resized
- * drawings of `nested` and `map` with its child's map moved below the child,
- * two bundles with items at stated places, `styled__score` in band
- * orders stated for the block, for its timeline, and for both, then a
- * bundle with a scaled card, one with a scaled frame whose member's card
- * requests a size, and one with a vertically stretched card.
- * Each is also a drawing fixture of the schema package
+ * plus resized drawings of `nested`, two bundles with items at stated
+ * places, a bundle with a scaled card, one with a scaled frame whose
+ * member's card requests a size, one with a vertically stretched card, and
+ * three manifests with bands the defaults hide shown by an application
+ * layer: a child's regions band, every regions band, and a child's flow
+ * control band. Each is also a drawing fixture of the schema package
  * (`fixtures/<version>/drawings/`).
  */
 
@@ -23,7 +22,7 @@ import {
   manifestLayer,
   type Placement,
 } from "@timetoalign/tilie-layout";
-import type { Graphical } from "@timetoalign/timeskeleton";
+import type { Graphical, Selector } from "@timetoalign/timeskeleton";
 import { dumps, fontMetrics as metrics, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
 
 const require = createRequire(import.meta.url);
@@ -107,14 +106,6 @@ export function reviewCases(): ReviewCase[] {
   const natural = draw(loadFixture("nested"), DEFAULT_PLACEMENT, [DEFAULT_LAYER], metrics);
   add("nested__box", "nested", at({ width: natural.width + 120, height: natural.height + 60 }));
   add("nested__scale-2", "nested", DEFAULT_PLACEMENT, 2);
-  add(
-    "nested__order-flow-regions-children",
-    "nested",
-    at({ order: ["flow", "regions", "children"] }),
-  );
-  add("map__child-map-below", "map", DEFAULT_PLACEMENT, 1, [
-    { statements: [{ select: { ids: ["melody/ticks"] }, set: { side: "below" } }] },
-  ]);
   for (const kind of ["group", "bundle"] as const) {
     for (const stem of stems(`${kind}s`)) {
       add(`${kind}__${stem}`, `${kind}s/${stem}`, DEFAULT_PLACEMENT);
@@ -133,24 +124,6 @@ export function reviewCases(): ReviewCase[] {
     at({ places: { score: { x: -60, y: -150, height: 120 } } }),
   );
   add(
-    "styled__score__bands-block",
-    "styled__score",
-    at({ order: ["flow", "regions", "children"] }),
-  );
-  add(
-    "styled__score__bands-timeline",
-    "styled__score",
-    at({ bands: { score: ["flow", "children", "regions"] } }),
-  );
-  add(
-    "styled__score__bands-both",
-    "styled__score",
-    at({
-      order: ["flow", "regions", "children"],
-      bands: { score: ["regions", "children", "flow"] },
-    }),
-  );
-  add(
     "bundle_ungrouped__scale",
     "bundles/bundle_ungrouped",
     at({ places: { recording: { scale: 1.5 } } }),
@@ -165,15 +138,39 @@ export function reviewCases(): ReviewCase[] {
     "bundles/bundle_ungrouped",
     at({ places: { recording: { spacing: 2 } } }),
   );
+  const shown = (select: Selector): Graphical[] => [
+    { statements: [{ select, set: { display: "inline" } }] },
+  ];
+  add(
+    "unknown_length_child__regions-shown",
+    "unknown_length_child",
+    DEFAULT_PLACEMENT,
+    1,
+    shown({ ids: ["movement/regions_1"] }),
+  );
+  add(
+    "unknown_length_segments__regions-shown",
+    "unknown_length_segments",
+    DEFAULT_PLACEMENT,
+    1,
+    shown({ element: "band", class: "regions" }),
+  );
+  add(
+    "child_flow_control__flow-shown",
+    "child_flow_control",
+    DEFAULT_PLACEMENT,
+    1,
+    shown({ ids: ["verse/flow_control_1"] }),
+  );
   return cases;
 }
 
 /** The text of a case's `inputs.json`: everything `draw` and the writers need besides the files. */
 export function inputsText(item: ReviewCase): string {
-  const { length, spacing, width, height, order, bands, places } = item.placement;
+  const { length, spacing, width, height, places } = item.placement;
   return dumps({
     manifest: `${item.manifest}.json`,
-    placement: { length, spacing, width, height, order, bands, places },
+    placement: { length, spacing, width, height, places },
     scale: item.scale,
     layers: item.settings,
   });

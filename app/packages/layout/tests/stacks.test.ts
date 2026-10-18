@@ -1,5 +1,6 @@
-/** Map stacks, the root band and the end marker; every number is derived in tests/README.md. */
+/** The markers band, the conversion maps band and the end marker; every number is derived in tests/README.md. */
 
+import type { Manifest } from "@timetoalign/tilie-core";
 import type { Graphical } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
 import {
@@ -8,8 +9,23 @@ import {
   type Drawing,
   draw,
   type LineElement,
+  manifestLayer,
 } from "../src/index.ts";
-import { build, child, drawFixture, element, metrics, scalarMap, withLocked } from "./support.ts";
+import {
+  bandOrder,
+  build,
+  child,
+  edit,
+  element,
+  load,
+  metrics,
+  scalarMap,
+  set,
+  withLocked,
+} from "./support.ts";
+
+const drawn = (manifest: Manifest, ...extra: Graphical[]): Drawing =>
+  draw(manifest, DEFAULT_PLACEMENT, [DEFAULT_LAYER, ...extra, manifestLayer(manifest)], metrics);
 
 /** The ordinate of every line and map of a drawing, by address. */
 function ordinates(drawing: Drawing): Record<string, number> {
@@ -22,20 +38,21 @@ function ordinates(drawing: Drawing): Record<string, number> {
   );
 }
 
-const sides = (m1: "above" | "below", m2: "above" | "below"): Graphical => ({
-  statements: [
-    { select: { ids: ["r/m1"] }, set: { side: m1 } },
-    { select: { ids: ["r/m2"] }, set: { side: m2 } },
-  ],
-});
+/** The wedges, as `[address, yt, yb]`, and the baselines of their labels. */
+const wedges = (drawing: Drawing) =>
+  drawing.elements.flatMap((item) => {
+    if (item.type === "wedge") return [[item.address, item.yt, item.yb]];
+    if (item.type === "label" && /\/(start|end)\/label$/.test(item.address)) {
+      return [[item.address, item.baseline]];
+    }
+    return [];
+  });
 
-describe("a child's own map stack", () => {
-  const manifest = build("r", 8, child("r", "c", 4, 4), scalarMap("c", "m1"), scalarMap("c", "m2"));
-  const drawWith = (...extra: Graphical[]) =>
-    draw(manifest, DEFAULT_PLACEMENT, [DEFAULT_LAYER, ...extra], metrics);
+describe("a child's conversion maps band", () => {
+  const commands = [child("r", "c", 4, 4), scalarMap("c", "m1"), scalarMap("c", "m2")];
 
-  it("widens the row's outer half with two maps above", () => {
-    const drawing = drawWith(sides("above", "above"));
+  it("lies above the child's own line by the default band order", () => {
+    const drawing = drawn(build("r", 8, ...commands));
     expect(ordinates(drawing)).toEqual({ "r/m1": 22, "r/m2": 17, r: 41.5, c: 27.5 });
     expect(drawing.height).toBe(86.4765625);
     expect(element(drawing, "r/m1")).toMatchObject({
@@ -44,26 +61,56 @@ describe("a child's own map stack", () => {
     });
   });
 
-  it("widens the row's inner half with two maps below", () => {
-    expect(ordinates(drawWith(sides("below", "below")))).toEqual({
-      "r/m1": 28.5,
-      "r/m2": 33.5,
-      r: 41.5,
-      c: 23,
-    });
+  it("lies below it by the child's own entry, or by its parent's, which it follows", () => {
+    const below = { r: 41.5, c: 23, "r/m1": 28.5, "r/m2": 33.5 };
+    const own = drawn(
+      build(
+        "r",
+        8,
+        ...commands,
+        set("c", {
+          order: bandOrder(
+            "c",
+            ["children"],
+            ["conversion_maps", "markers", "regions", "flow_control"],
+          ),
+        }),
+      ),
+    );
+    expect(ordinates(own)).toEqual(below);
+    const parent = drawn(
+      build(
+        "r",
+        8,
+        ...commands,
+        set("r", {
+          order: bandOrder(
+            "r",
+            ["children"],
+            ["conversion_maps", "markers", "regions", "flow_control"],
+          ),
+        }),
+      ),
+    );
+    expect(ordinates(parent)).toEqual(below);
+    expect(own.height).toBe(86.4765625);
   });
 
-  it("keeps the pitch when a one-map stack lies on each side", () => {
-    expect(ordinates(drawWith(sides("above", "below")))).toEqual({
-      "r/m1": 17.5,
-      "r/m2": 28.5,
-      r: 37,
-      c: 23,
-    });
-  });
-
-  it("draws above as up on a child below the root", () => {
-    const drawing = drawWith({ statements: [{ select: { ids: ["c"] }, set: { side: "below" } }] });
+  it("lies above the child's line, towards the root, when the child lies below the root", () => {
+    const drawing = drawn(
+      build(
+        "r",
+        8,
+        ...commands,
+        set("r", {
+          order: bandOrder(
+            "r",
+            ["conversion_maps"],
+            ["markers", "children", "regions", "flow_control"],
+          ),
+        }),
+      ),
+    );
     expect(ordinates(drawing)).toEqual({
       "r/m1": 59.37890625,
       "r/m2": 54.37890625,
@@ -74,52 +121,98 @@ describe("a child's own map stack", () => {
   });
 });
 
-describe("the root band", () => {
-  it("takes the wedges' reach over a smaller stack and draws the wedges over it", () => {
-    const drawing = drawFixture("map", [
-      { statements: [{ select: { ids: ["melody/tempo"] }, set: { side: "below" } }] },
+describe("the markers band alone", () => {
+  it("lies against the root's line below it by default", () => {
+    const drawing = drawn(load("bare"));
+    expect(element(drawing, "bare")).toMatchObject({ y: 22.40234375 });
+    expect(wedges(drawing)).toEqual([
+      ["bare/start", 23.90234375, 36.90234375],
+      ["bare/end", 23.90234375, 36.90234375],
+      ["bare/start/label", 47.25634765625],
+      ["bare/end/label", 47.25634765625],
     ]);
+    expect(drawing.height).toBe(67.37890625);
+  });
+
+  it("lies against it above when the band order puts it there", () => {
+    const drawing = drawn(
+      edit(
+        "bare",
+        set("bare", {
+          order: bandOrder(
+            "bare",
+            ["children", "conversion_maps", "markers"],
+            ["regions", "flow_control"],
+          ),
+        }),
+      ),
+    );
+    expect(element(drawing, "bare")).toMatchObject({ y: 42.9765625 });
+    expect(wedges(drawing)).toEqual([
+      ["bare/start", 41.4765625, 28.4765625],
+      ["bare/end", 41.4765625, 28.4765625],
+      ["bare/start/label", 24.35400390625],
+      ["bare/end/label", 24.35400390625],
+    ]);
+    expect(drawing.height).toBe(67.37890625);
+  });
+});
+
+describe("the conversion maps band", () => {
+  const name = "conversion_maps__maps_quarters";
+
+  it("lies against the root's line above it alone, a stack of 18 maps", () => {
+    const drawing = drawn(load(name));
+    expect(element(drawing, "maps:quarters")).toMatchObject({ y: 107.5 });
+    expect(element(drawing, "maps:quarters/cmap_1")).toMatchObject({ yc: 102 });
+    expect(element(drawing, "maps:quarters/tmap_2")).toMatchObject({ yc: 17 });
+    expect(drawing.height).toBe(152.4765625);
+  });
+
+  it("and the markers band lie at two levels B apart on one side", () => {
+    const drawing = drawn(
+      edit(
+        name,
+        set("maps:quarters", {
+          order: bandOrder(
+            "maps:quarters",
+            ["children"],
+            ["conversion_maps", "markers", "regions", "flow_control"],
+          ),
+        }),
+      ),
+    );
+    expect(element(drawing, "maps:quarters")).toMatchObject({ y: 22.40234375 });
+    expect(element(drawing, "maps:quarters/cmap_1")).toMatchObject({ yc: 27.90234375 });
+    expect(element(drawing, "maps:quarters/tmap_2")).toMatchObject({ yc: 112.90234375 });
+    expect(element(drawing, "maps:quarters/start")).toMatchObject({
+      yt: 119.40234375,
+      yb: 132.40234375,
+    });
+    expect(drawing.height).toBe(162.87890625);
+  });
+
+  it("lies beyond the markers band, leaving the line no stack, when ordered after it", () => {
+    const drawing = drawn(
+      edit(
+        "map",
+        set("melody", {
+          order: bandOrder(
+            "melody",
+            ["children"],
+            ["markers", "conversion_maps", "regions", "flow_control"],
+          ),
+        }),
+      ),
+    );
     expect(ordinates(drawing)).toEqual({
-      "melody/tempo": 42.5,
-      "melody/ticks": 17.5,
+      "melody/tempo": 73.4765625,
+      "melody/ticks": 28.5,
       melody: 37,
       phrase: 23,
     });
-    expect(drawing.height).toBe(81.9765625);
     expect(element(drawing, "melody/start")).toMatchObject({ yt: 38.5, yb: 51.5 });
-    const index = (address: string) =>
-      drawing.elements.findIndex((item) => item.address === address);
-    expect(index("melody/tempo")).toBeLessThan(index("melody/start"));
-    expect(index("melody/tempo")).toBeLessThan(index("melody/end"));
-  });
-
-  it("draws no map of a hidden root and gives it no room", () => {
-    const drawing = drawFixture("map", [
-      { statements: [{ select: { ids: ["melody"] }, set: { display: "none" } }] },
-    ]);
-    expect(ordinates(drawing)).toEqual({ "melody/ticks": 17.5, phrase: 23 });
-    expect(element(drawing, "melody/start")).toMatchObject({ yt: 38.5, yb: 51.5 });
-    expect(drawing.height).toBe(81.9765625);
-  });
-
-  it("takes a larger stack's reach, above and below", () => {
-    const name = "conversion_maps__maps_quarters";
-    const above = drawFixture(name);
-    expect(element(above, "maps:quarters")).toMatchObject({ y: 107.5 });
-    expect(element(above, "maps:quarters/cmap_1")).toMatchObject({ yc: 102 });
-    expect(element(above, "maps:quarters/tmap_2")).toMatchObject({ yc: 17 });
-    expect(above.height).toBe(152.4765625);
-    const below = drawFixture(name, [
-      { statements: [{ select: { element: "map" }, set: { side: "below" } }] },
-    ]);
-    expect(element(below, "maps:quarters")).toMatchObject({ y: 22.40234375 });
-    expect(element(below, "maps:quarters/cmap_1")).toMatchObject({
-      yc: 27.90234375,
-    });
-    expect(element(below, "maps:quarters/tmap_2")).toMatchObject({
-      yc: 112.90234375,
-    });
-    expect(below.height).toBe(131.90234375);
+    expect(drawing.height).toBe(92.4765625);
   });
 });
 

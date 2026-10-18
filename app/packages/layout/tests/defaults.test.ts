@@ -1,9 +1,17 @@
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
+import { manifestElements, timelineAncestry } from "@timetoalign/tilie-core";
 import { parseJson } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
-import { DEFAULT_LAYER, DEFAULT_PLACEMENT, type Drawing, draw, type Style } from "../src/index.ts";
+import {
+  Cascade,
+  DEFAULT_LAYER,
+  DEFAULT_PLACEMENT,
+  type Drawing,
+  draw,
+  type Style,
+} from "../src/index.ts";
 import { loadFile, metrics } from "./support.ts";
 
 /** The drawing specification the installed timeskeleton package ships. */
@@ -71,5 +79,31 @@ describe("the default layer resolved", () => {
         ["#000000", 9, 1],
       ]);
     }
+  });
+});
+
+describe("the default layer's bands", () => {
+  /** The bands of a fixture hidden by the default layer alone, by address. */
+  const hidden = (name: string) => {
+    const manifest = loadFile(name);
+    const cascade = new Cascade([DEFAULT_LAYER], timelineAncestry(manifest));
+    return manifestElements(manifest)
+      .filter((key) => key.type === "band" && cascade.resolve(key, undefined).display === "none")
+      .map((key) => key.address);
+  };
+  const three = (id: string) => [`${id}/markers_1`, `${id}/regions_1`, `${id}/flow_control_1`];
+
+  it("hide the markers, regions and flow control bands of every timeline held by a band", () => {
+    expect(hidden("with_region")).toEqual([...three("clt_2"), ...three("clt_3")]);
+    expect(hidden("unknown_length_segments")).toEqual([
+      ...three("a"),
+      ...three("b"),
+      ...three("c"),
+    ]);
+  });
+
+  it("show every band of a member drawing's root, a member that is a child included", () => {
+    expect(hidden("groups/group_child_member")).toEqual([]);
+    expect(hidden("bare")).toEqual([]);
   });
 });

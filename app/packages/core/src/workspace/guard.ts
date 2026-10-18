@@ -19,7 +19,6 @@ import {
 } from "../manifest/files.ts";
 import type { Manifest, TimelineManifest } from "../manifest/types.ts";
 import type { Block, BlockId, Place } from "./blocks.ts";
-import { bandKeys } from "./blocks.ts";
 import type { Address } from "./ids.ts";
 import { parseAddress } from "./ids.ts";
 import type { View } from "./view.ts";
@@ -27,9 +26,9 @@ import type { View } from "./view.ts";
 /**
  * The members of a block an element's editor never changes. `x`, `y`,
  * `width` and `height` are the box adapting to what it holds, and the
- * places, band orders and manifest are compared key by key.
+ * places and manifest are compared key by key.
  */
-const FIXED_MEMBERS = ["scale", "length", "spacing", "order", "index", "parent"] as const;
+const FIXED_MEMBERS = ["scale", "length", "spacing", "index", "parent"] as const;
 
 /**
  * The members of a group's place that the editor of one of its members
@@ -85,13 +84,19 @@ interface Scope {
 }
 
 function scopeOf(manifest: Manifest, element: string): Scope {
+  const ancestry = timelineAncestry(manifest);
   return {
     manifest,
     keys: manifestElements(manifest),
-    ancestry: timelineAncestry(manifest),
-    ids: bandKeys(manifest),
+    ancestry,
+    ids: new Set([...manifest.groups.map((group) => group.id), ...ancestry.keys()]),
     inside: containsIn(manifest, element),
   };
+}
+
+/** Whether a key naming a group or timeline lies inside: the edited element contains it in each manifest that has it. */
+function keyInside(scopes: readonly Scope[]): (key: string) => boolean {
+  return (key) => scopes.every((scope) => !scope.ids.has(key) || scope.inside(key));
 }
 
 const statementsOf = (manifest: Manifest): readonly Statement[] =>
@@ -124,9 +129,11 @@ export function statementInside(
  * the standard text of its value: per timeline (its lists reduced to their
  * ids), per map, region, break, jump and marker, per group; the top-level
  * members; the `graphical` members. The edited timeline's object, or the
- * edited group's and each of its members', stands as `{id}`; the group's
- * display order is left out; only the `statements` outside are kept, and of
- * the named styles only those they use.
+ * edited group's and each of its members', stands as `{id}`; the entries of
+ * `graphical.order` whose keys lie inside (the group's display order, the
+ * band orders of the timelines it holds) are left out; only the
+ * `statements` outside are kept, and of the named styles only those they
+ * use.
  */
 interface Projection {
   readonly elements: ReadonlyMap<string, string>;
@@ -143,6 +150,7 @@ const byId = <T extends { readonly id: string }>(list: readonly T[]): T[] =>
 function project(
   manifest: Manifest,
   element: string,
+  inside: (key: string) => boolean,
   statements: readonly Statement[],
   styles: readonly string[],
 ): Projection {
@@ -189,7 +197,7 @@ function project(
     if (!["timelines", "groups", "graphical"].includes(key)) top.set(key, dumps(value));
   }
   const { statements: _, styles: named = {}, order = {}, ...rest } = manifest.graphical ?? {};
-  const { [element]: __, ...orders } = order;
+  const orders = Object.fromEntries(Object.entries(order).filter(([key]) => !inside(key)));
   const graphical = new Map<string, string>([
     ["statements", dumps(statements)],
     [
@@ -223,8 +231,9 @@ function manifestChange(
   const styles = byCodePoint(
     new Set(outside.flat().flatMap((item) => (typeof item.set === "string" ? [item.set] : []))),
   );
+  const keys = keyInside(scopes);
   const [a, b] = scopes.map(({ manifest }, index) =>
-    project(manifest, element, outside[index] as Statement[], styles),
+    project(manifest, element, keys, outside[index] as Statement[], styles),
   ) as [Projection, Projection];
   // An element the target contains that is gone from `after` is removed inside the target.
   const differs = (address: string) =>
@@ -281,8 +290,7 @@ function blockChange(
   const member = FIXED_MEMBERS.find((name) => !same(was[name], now[name]));
   if (member !== undefined) return refuse(`the ${member} of block ${block}`, [block, member]);
   const scopes = [scopeOf(was.manifest, element), scopeOf(now.manifest, element)] as const;
-  // A key lies inside when the edited element contains it in each manifest that has it.
-  const inside = (key: string) => scopes.every((scope) => !scope.ids.has(key) || scope.inside(key));
+  const inside = keyInside(scopes);
   // The group the edited element is a member of in both manifests, whose shared members it changes.
   const groupOf = (manifest: Manifest) =>
     manifest.groups.find((group) => group.members.includes(element))?.id;
@@ -307,15 +315,10 @@ function blockChange(
         same(unshared(was.places[key], members), unshared(now.places[key], members)))
     );
   };
-  for (const [name, word, within] of [
-    ["places", "place", placeInside],
-    ["bands", "band order", inside],
-  ] as const) {
-    const left: { readonly [key: string]: unknown } = was[name];
-    const right: { readonly [key: string]: unknown } = now[name];
-    const key = keysOf(left, right).find((item) => !same(left[item], right[item]) && !within(item));
-    if (key !== undefined) return refuse(`the ${word} of ${block}/${key}`, [`${block}/${key}`]);
-  }
+  const key = keysOf(was.places, now.places).find(
+    (item) => !same(was.places[item], now.places[item]) && !placeInside(item),
+  );
+  if (key !== undefined) return refuse(`the place of ${block}/${key}`, [`${block}/${key}`]);
   return manifestChange(scopes, element, block, target, refuse);
 }
 
@@ -323,12 +326,13 @@ function blockChange(
  * The first change from `before` to `after` that lies outside `target`, the
  * innermost open editor's target, as a `side_effect` refusal; `null` when
  * every change lies inside it. In this order: a workspace setting; another
- * block; for an element's editor, its block's scale, length, spacing, band
- * order, index or parent, a place or band order of a key the element does
- * not contain (a group member's editor also changes its group's length,
- * scale and width and its siblings' card widths), and the manifest outside
- * the element (the element removed included). A block's editor changes
- * anything in its own block but its removal.
+ * block; for an element's editor, its block's scale, length, spacing,
+ * index or parent, a place of a key the element does not contain (a group
+ * member's editor also changes its group's length, scale and width and its
+ * siblings' card widths), and the manifest outside the element (the element
+ * removed included; a display or band order lies inside when the element
+ * contains its group or timeline). A block's editor changes anything in its
+ * own block but its removal.
  */
 export function sideEffect(before: View, after: View, target: Address): CommandError | null {
   const parsed = parseAddress(target);

@@ -14,15 +14,10 @@ import { SCHEMA_VERSION } from "@timetoalign/timeskeleton";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App.svelte";
-import {
-  type Autosave,
-  type AutosaveOptions,
-  createAutosave,
-  recoverWorkspace,
-} from "../src/autosave.ts";
+import { createAutosave, recoverWorkspace } from "../src/autosave.ts";
 import { manifestFileName } from "../src/files.ts";
 import { stubEditor } from "./dom.ts";
-import { fixture, fixtureText, interceptDownloads, pickFile } from "./support.ts";
+import { fixture, fixtureText, flushAutosaves, interceptDownloads, pickFile } from "./support.ts";
 
 const A = "0000000000";
 const B = "0000000001";
@@ -31,25 +26,9 @@ const EMPTY_TEXT = writeWorkspace({ view: createView(), journal: [], sessions: {
 
 let app: ReturnType<typeof mount> | undefined;
 
-/**
- * Every autosave created in the running test. Each test has its own
- * IndexedDB, but a write reaches whichever is installed when it runs, so
- * `afterEach` waits for every queued write, the one the unmount starts
- * included, before the next test installs its own.
- */
-const autosaves = vi.hoisted(() => new Set<Autosave>());
-
-vi.mock("../src/autosave.ts", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../src/autosave.ts")>();
-  return {
-    ...actual,
-    createAutosave(options: AutosaveOptions): Autosave {
-      const autosave = actual.createAutosave(options);
-      autosaves.add(autosave);
-      return autosave;
-    },
-  };
-});
+vi.mock("../src/autosave.ts", async (importOriginal) =>
+  (await import("./support.ts")).recordAutosaves(await importOriginal()),
+);
 
 function start(response: () => Response = () => Response.json(health)): void {
   vi.stubGlobal(
@@ -68,8 +47,7 @@ beforeEach(() => {
 afterEach(async () => {
   if (app !== undefined) unmount(app);
   app = undefined;
-  await Promise.all([...autosaves].map((autosave) => autosave.flush().catch(() => {})));
-  autosaves.clear();
+  await flushAutosaves();
   document.body.innerHTML = "";
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();

@@ -101,7 +101,8 @@ function holds(outer: Rect, inner: Rect): boolean {
  * in `rect`, edges included (`elementBounds`, on the canvas). An address
  * drawn in several places, such as an ancestor line in several cards, is
  * taken only when all of them lie inside. Frames and cards are boxes, which
- * a click selects, never a marquee.
+ * a click selects, never a marquee; a band, a box of its timeline's editor,
+ * draws nothing, so no marquee selects one either.
  */
 export function elementsInRect(
   node: BlockNode,

@@ -1,15 +1,9 @@
 /** Containment of a manifest's elements: what an editor on a timeline or a group edits. */
 
 import { timelineAncestry } from "./elements.ts";
-import type { Located } from "./files.ts";
-import {
-  ENTRY_KINDS,
-  elementAddress,
-  elementOfIn,
-  entriesOf,
-  rootPaths,
-  searchTree,
-} from "./files.ts";
+import { ENTRY_KINDS, elementAddress, elementOfIn, entriesOf } from "./files.ts";
+import type { Located } from "./tree.ts";
+import { rootPaths, searchTree } from "./tree.ts";
 import type { Manifest } from "./types.ts";
 
 /**

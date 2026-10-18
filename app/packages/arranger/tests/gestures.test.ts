@@ -14,6 +14,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { Point } from "../src/gestures.svelte.ts";
 import {
   abortDrag,
+  bandDrag,
   CLICK_DISTANCE,
   itemDrag,
   memberDrag,
@@ -325,22 +326,23 @@ describe("itemDrag", () => {
   });
 });
 
+const SCORE_FIRST = ["score", "performance"];
+const PERFORMANCE_FIRST = ["performance", "score"];
+
+/** A reorder's options recording their calls: `[score, performance]` above drawing `y` 50. */
+function memberOptions(calls: Call[]) {
+  return {
+    order: (y: number) => (y < 50 ? SCORE_FIRST : PERFORMANCE_FIRST),
+    preview: (order: readonly string[] | null) => calls.push({ preview: order }),
+    command: (order: readonly string[]) => {
+      calls.push({ command: order });
+      return COMMAND;
+    },
+    dispatch: (sent: Command) => calls.push({ dispatch: sent }),
+  };
+}
+
 describe("memberDrag", () => {
-  const SCORE_FIRST = ["score", "performance"];
-  const PERFORMANCE_FIRST = ["performance", "score"];
-
-  function memberOptions(calls: Call[]) {
-    return {
-      order: (y: number) => (y < 50 ? SCORE_FIRST : PERFORMANCE_FIRST),
-      preview: (order: readonly string[] | null) => calls.push({ preview: order }),
-      command: (order: readonly string[]) => {
-        calls.push({ command: order });
-        return COMMAND;
-      },
-      dispatch: (sent: Command) => calls.push({ dispatch: sent }),
-    };
-  }
-
   it("previews each new order and dispatches one command on release", () => {
     const { element } = stage();
     const calls: Call[] = [];
@@ -368,6 +370,65 @@ describe("memberDrag", () => {
     scene.matrix = { ...scene.matrix, f: 0 };
     pointer(scene.element, "pointermove", 30, 106);
     expect(calls).toEqual([{ preview: SCORE_FIRST }, { preview: PERFORMANCE_FIRST }]);
+  });
+});
+
+describe("bandDrag", () => {
+  it("takes only the presses it accepts and marks the svg only while it holds one", () => {
+    const { svg, element } = stage();
+    const captured: number[] = [];
+    const released: number[] = [];
+    const held = new Set<number>();
+    Object.assign(svg, {
+      setPointerCapture: (pointer: number) => {
+        held.add(pointer);
+        captured.push(pointer);
+      },
+      hasPointerCapture: (pointer: number) => held.has(pointer),
+      releasePointerCapture: (pointer: number) => {
+        held.delete(pointer);
+        released.push(pointer);
+      },
+    });
+    const calls: Call[] = [];
+    const asked: { target: EventTarget | null; point: Point }[] = [];
+    attach(
+      svg,
+      bandDrag({
+        ...memberOptions(calls),
+        takes: (event, point) => {
+          asked.push({ target: event.target, point });
+          return point.y < 50;
+        },
+      }),
+    );
+    expect([...svg.classList]).toEqual([]);
+
+    pointer(element, "pointerdown", 30, 130);
+    expect(asked).toEqual([{ target: element, point: { x: 10, y: 55 } }]);
+    expect([...svg.classList]).toEqual([]);
+    pointer(element, "pointermove", 30, 150);
+    pointer(element, "pointerup", 30, 150);
+    expect(captured).toEqual([]);
+    expect(calls).toEqual([]);
+
+    pointer(element, "pointerdown", 30, 110);
+    expect(asked).toHaveLength(2);
+    expect([...svg.classList]).toEqual(["nodrag", "nopan"]);
+    expect(captured).toEqual([1]);
+    pointer(element, "pointermove", 30, 116);
+    pointer(element, "pointermove", 30, 122);
+    expect([...svg.classList]).toEqual(["nodrag", "nopan"]);
+    pointer(element, "pointerup", 30, 122);
+    expect(calls).toEqual([
+      { preview: SCORE_FIRST },
+      { preview: PERFORMANCE_FIRST },
+      { command: PERFORMANCE_FIRST },
+      { dispatch: COMMAND },
+      { preview: null },
+    ]);
+    expect([...svg.classList]).toEqual([]);
+    expect(released).toEqual([1]);
   });
 });
 

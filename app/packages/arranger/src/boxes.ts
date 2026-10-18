@@ -2,7 +2,9 @@
  * The boxes of a block's drawing and what the pointer does with them. A
  * drawing shows three kinds of box (`docs/drawing.md` in timeskeleton,
  * section 8): the block's own box (its background), a group's frame and a
- * timeline's card. Every other drawn thing is an element.
+ * timeline's card. Every other drawn thing is an element. A timeline's
+ * editor adds a fourth kind, the bands of its timeline (section 6.4,
+ * `bands.ts`), which the drawing records and never draws.
  *
  * This module is the one place that maps a pointer target to what it hits,
  * a box of one of those kinds or an element, with its address; that decides
@@ -17,12 +19,18 @@
  * timeline's line.
  */
 
-import type { Address, BlockId } from "@timetoalign/tilie-core";
-import type { Drawing, RectElement } from "@timetoalign/tilie-layout";
+import type { Address, BlockId, EditorKind } from "@timetoalign/tilie-core";
+import { parseBand } from "@timetoalign/tilie-core";
+import type { Drawing, DrawnBand, RectElement } from "@timetoalign/tilie-layout";
 import type { Descriptor } from "@timetoalign/tilie-writers";
+import { bandAt } from "./bands.ts";
 
-/** The kinds of box a drawing shows: the block's own box, a group's frame, a timeline's card. */
-export type BoxKind = "block" | "group" | "card";
+/**
+ * The kinds of box: the three a drawing shows, the block's own box, a
+ * group's frame and a timeline's card, and a band of a timeline, which the
+ * drawing records but never draws.
+ */
+export type BoxKind = "block" | "group" | "card" | "band";
 
 /** A point in a drawing's own units. */
 export interface DrawingPoint {
@@ -35,7 +43,10 @@ export interface Hit {
   readonly block: BlockId;
   /** A box's kind, or `"element"` for anything else drawn. */
   readonly kind: BoxKind | "element";
-  /** Block-qualified: the block id for the block's own box, else `<block>/<element address>`. */
+  /**
+   * Block-qualified: the block id for the block's own box, else `<block>/<element address>`,
+   * a band's being `<block>/<timeline>/<kind>_1`.
+   */
   readonly address: string;
   /** Whether the target is a segment's boundary line. */
   readonly boundary: boolean;
@@ -44,6 +55,12 @@ export interface Hit {
    * `null` outside every one, or when no point was given.
    */
   readonly within: string | null;
+  /**
+   * The band hit, as the drawing records it (a timeline drawn with two lines
+   * has a record at each, and this is the one holding the point); `null`
+   * for every other hit.
+   */
+  readonly band: DrawnBand | null;
 }
 
 /** What the pointer highlights in a block, by element address as the descriptors carry it. */
@@ -51,9 +68,11 @@ export interface Hover {
   /** A card or a frame. The block's own box is never marked: its node shows it. */
   readonly box: string | null;
   readonly boundary: string | null;
+  /** A band of the edited timeline, `<timeline>/<kind>_1`. */
+  readonly band: string | null;
 }
 
-export const NO_HOVER: Hover = { box: null, boundary: null };
+export const NO_HOVER: Hover = { box: null, boundary: null, band: null };
 
 /**
  * A descriptor that carries a box's or a boundary's mark: the block's
@@ -152,6 +171,22 @@ export function drawingPointAt(
 }
 
 /**
+ * The timeline whose bands block `block` offers under `editing`, the
+ * innermost open editor: the edited timeline when `editing` is a timeline
+ * editor in this block, else `null` (on the arranger, in a bundle or group
+ * editor, and in another block's editor). Hitting a band, marking it,
+ * dragging it, stepping it by key and keeping it selected (`offersBand`)
+ * all ask this one rule.
+ */
+export function bandTimelineOf(
+  block: BlockId,
+  editing: { readonly target: Address; readonly kind: EditorKind } | null,
+): string | null {
+  if (editing?.kind !== "timeline" || !editing.target.startsWith(`${block}/`)) return null;
+  return editing.target.slice(block.length + 1);
+}
+
+/**
  * What `target` hits in block `block`, drawn as `drawing`: the element
  * carrying the nearest `data-address` at or above it, classified by the
  * drawing's element of that address (a card, a frame, else an element), or
@@ -161,28 +196,47 @@ export function drawingPointAt(
  * on top: a frame is drawn before its cards, and items that overlap are
  * drawn in item order. A box that is not displayed is not drawn and holds
  * no point.
+ *
+ * A band is hit only in the timeline editor of its timeline, when `editing`,
+ * the innermost open editor, is that editor in this block
+ * (`bandTimelineOf`): where the target is a box (the block's own, a frame,
+ * a card) or nothing, the band of the edited timeline whose rectangle holds
+ * `point` (`bandAt`) is hit instead, its record carried as `band`, so a
+ * drawn element is always hit before a band.
  */
 export function hitOf(
   block: BlockId,
   drawing: Drawing,
   target: EventTarget | null,
   point?: DrawingPoint,
+  editing: { readonly target: Address; readonly kind: EditorKind } | null = null,
 ): Hit {
   const { kinds, rects, boundaries } = boxesOf(drawing);
   const within =
     point === undefined ? null : (rects.findLast((rect) => holds(rect, point))?.address ?? null);
   const addressed = target instanceof Element ? target.closest("[data-address]") : null;
   const element = addressed?.getAttribute("data-address") ?? null;
+  const kind = element === null ? "block" : (kinds.get(element) ?? "element");
+  const timeline = bandTimelineOf(block, editing);
+  const band =
+    kind === "element" || point === undefined || timeline === null
+      ? null
+      : bandAt(drawing, timeline, point);
+  if (band !== null) {
+    const address = `${block}/${band.address}`;
+    return { block, kind: "band", address, boundary: false, within, band };
+  }
   if (addressed === null || element === null) {
-    return { block, kind: "block", address: block, boundary: false, within };
+    return { block, kind: "block", address: block, boundary: false, within, band: null };
   }
   return {
     block,
-    kind: kinds.get(element) ?? "element",
+    kind,
     address: `${block}/${element}`,
     // A wedge may carry a boundary's `S/start` form, but it is a polygon.
     boundary: addressed.localName === "line" && boundaries.has(element),
     within,
+    band: null,
   };
 }
 
@@ -193,13 +247,15 @@ export function hitOf(
  * that element, each when `inside` (the drawn addresses inside the edited
  * element, `BlockNodeData.inside`) holds its element address; the block's own
  * box selects the block on the arranger (`editing` null) and in the block's
- * own bundle editor, never in another editor.
+ * own bundle editor, never in another editor. A band selects itself: only a
+ * band of the edited timeline is hit.
  */
 export function selectionOf(
   hit: Hit,
   editing: { readonly target: Address } | null,
   inside: ReadonlySet<string>,
 ): string | null {
+  if (hit.kind === "band") return hit.address;
   if (hit.kind === "block") {
     return editing === null || editing.target === hit.block ? hit.address : null;
   }
@@ -207,13 +263,15 @@ export function selectionOf(
 }
 
 /**
- * What the pointer highlights: the box under it (a card or a frame), and the
- * boundary it is on.
+ * What the pointer highlights: the box under it (a card or a frame), the
+ * boundary it is on, and the band it is on.
  */
 export function hoverOf(hit: Hit): Hover {
+  const element = hit.address.slice(hit.block.length + 1);
   return {
     box: hit.within,
-    boundary: hit.boundary ? hit.address.slice(hit.block.length + 1) : null,
+    boundary: hit.boundary ? element : null,
+    band: hit.kind === "band" ? element : null,
   };
 }
 
@@ -271,7 +329,7 @@ export function marksOf(
  * and the block but not itself; a line marks its card, that card's frame
  * and the block; and an address drawn in several cards, such as an
  * ancestor line, marks each of them. An address that is not drawn marks
- * nothing.
+ * nothing. A band, which draws nothing, counts as its timeline's line.
  */
 export function holdingOf(drawing: Drawing, selected: ReadonlySet<string>): Holding {
   const held = new Set<string>();
@@ -279,7 +337,7 @@ export function holdingOf(drawing: Drawing, selected: ReadonlySet<string>): Hold
   if (selected.size === 0) return { block, boxes: held };
   const { holders } = boxesOf(drawing);
   for (const address of selected) {
-    const holding = holders.get(address);
+    const holding = holders.get(parseBand(address)?.timeline ?? address);
     if (holding === undefined) continue;
     block = true;
     for (const box of holding) held.add(box);

@@ -2,7 +2,8 @@
 /**
  * Fixtures and file stubs for the editor's tests: manifests from the
  * installed `@timetoalign/timeskeleton`, the fallback file input answered
- * with a chosen file, and downloads recorded instead of performed.
+ * with a chosen file, downloads recorded instead of performed, and the
+ * autosaves of mounted editors waited for between tests.
  */
 
 import { readFileSync } from "node:fs";
@@ -12,6 +13,7 @@ import type { Manifest } from "@timetoalign/tilie-core";
 import { isLoadError, loadManifest } from "@timetoalign/tilie-core";
 import { SCHEMA_VERSION } from "@timetoalign/timeskeleton";
 import { vi } from "vitest";
+import type { Autosave, AutosaveOptions } from "../src/autosave.ts";
 
 const directory = path.join(
   path.dirname(createRequire(import.meta.url).resolve("@timetoalign/timeskeleton/package.json")),
@@ -64,4 +66,37 @@ export function interceptDownloads(): [string, string][] {
     void blob.text().then((text) => downloads.push([name, text]));
   });
   return downloads;
+}
+
+/**
+ * Every autosave created since the last `flushAutosaves`. Each test has its
+ * own IndexedDB, but a write reaches whichever is installed when it runs.
+ */
+const autosaves = new Set<Autosave>();
+
+/**
+ * `src/autosave.ts` with every autosave `createAutosave` makes recorded, the
+ * module a test file's `vi.mock("../src/autosave.ts", …)` returns.
+ */
+export function recordAutosaves(
+  actual: typeof import("../src/autosave.ts"),
+): typeof import("../src/autosave.ts") {
+  return {
+    ...actual,
+    createAutosave(options: AutosaveOptions): Autosave {
+      const autosave = actual.createAutosave(options);
+      autosaves.add(autosave);
+      return autosave;
+    },
+  };
+}
+
+/**
+ * Wait for every queued write of the recorded autosaves, the one an unmount
+ * starts included, failures ignored, and forget them: `afterEach` awaits it
+ * before the next test installs its own IndexedDB.
+ */
+export async function flushAutosaves(): Promise<void> {
+  await Promise.all([...autosaves].map((autosave) => autosave.flush().catch(() => {})));
+  autosaves.clear();
 }

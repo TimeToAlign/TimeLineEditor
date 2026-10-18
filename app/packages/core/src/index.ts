@@ -27,10 +27,22 @@ export { ADD_KINDS, COMMAND_TYPES } from "./commands/types.ts";
 export type { CommandError, LoadError, Problem } from "./errors.ts";
 export { ErrorCode, InvalidManifestError, isCommandError, isLoadError } from "./errors.ts";
 export type { Json, JsonArray, JsonObject, PathSegment } from "./json.ts";
+export type { BandKind } from "./manifest/bands.ts";
+export {
+  BAND_ID_PATTERN,
+  BAND_KINDS,
+  bandAddress,
+  bandOrderOf,
+  bandOrderProblem,
+  defaultBandOrder,
+  inheritedBandOrder,
+  parseBand,
+} from "./manifest/bands.ts";
 export { contains } from "./manifest/contains.ts";
 export type { Domain, ElementKey, Modality, TimelineClass } from "./manifest/elements.ts";
 export {
   BLOCK_KEY,
+  bandKey,
   elementKey,
   manifestElements,
   orderedChildren,
@@ -48,18 +60,15 @@ export type {
   ListedElement,
   MemberDrawing,
   MemberDrawings,
-  RootPath,
 } from "./manifest/files.ts";
 export {
   elementAddress,
   elementOf,
   elementOfIn,
   findEntry,
-  findTimeline,
   isNamed,
+  isReservedId,
   memberDrawings,
-  PART_WORDS,
-  rootPaths,
   TITLE_ADDRESS,
 } from "./manifest/files.ts";
 export {
@@ -92,6 +101,8 @@ export {
   withoutElements,
   withoutSegment,
 } from "./manifest/remove.ts";
+export type { RootPath } from "./manifest/tree.ts";
+export { findTimeline, rootPaths } from "./manifest/tree.ts";
 export type {
   AxisValue,
   Break,
@@ -121,17 +132,8 @@ export type { IntegerInput, RationalInput } from "./number/rational.ts";
 export { Rational } from "./number/rational.ts";
 export type { Real } from "./number/real.ts";
 export { addReal, compareReal, fromFloat, realOf, toFloat } from "./number/real.ts";
-export { isBandOrder } from "./values.ts";
-export type {
-  BandGroup,
-  BandOrder,
-  Block,
-  BlockId,
-  BlockPlacement,
-  Place,
-} from "./workspace/blocks.ts";
+export type { Block, BlockId, BlockPlacement, Place } from "./workspace/blocks.ts";
 export {
-  BAND_GROUPS,
   BLOCK_ID,
   CARD_MEMBERS,
   cardKeys,

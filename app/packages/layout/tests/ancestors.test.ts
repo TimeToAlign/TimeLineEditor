@@ -10,7 +10,7 @@ import {
   manifestLayer,
   type Placement,
 } from "../src/index.ts";
-import { drawFixture, element, loadFile, metrics } from "./support.ts";
+import { bandOrder, drawFixture, edit, element, loadFile, metrics, set } from "./support.ts";
 
 const only = (select: object, set: object): Graphical[] => [{ statements: [{ select, set }] }];
 const drawGroup = (name: string, extra: Graphical[] = [], placement?: Placement) =>
@@ -269,8 +269,19 @@ describe("single changes to group_child_member", () => {
     height: card(drawing, "second-half").height,
   });
 
-  it("keeps the marks above whatever their side", () => {
-    const drawing = drawGroup("group_child_member", only({ element: "wedge" }, { side: "above" }));
+  it("keeps the marks above whatever the member's band order", () => {
+    const order = bandOrder(
+      "second-half",
+      ["children", "conversion_maps", "markers"],
+      ["regions", "flow_control"],
+    );
+    const manifest = edit("groups/group_child_member", set("second-half", { order }));
+    const drawing = draw(
+      manifest,
+      DEFAULT_PLACEMENT,
+      [DEFAULT_LAYER, manifestLayer(manifest)],
+      metrics,
+    );
     expect(member(drawing)).toEqual({
       x0: 120.61962890625,
       y: 105.7578125,
@@ -397,6 +408,47 @@ describe("single changes to group_child_member", () => {
     expect(xOf(drawing, "second-half")).toBe(96.61962890625);
     expect((element(drawing, "second-half") as { y: number }).y).toBe(47.20703125);
     expect(card(drawing, "second-half").height).toBe(49.37890625);
+  });
+
+  it("keeps the ancestor band of a member whose line is hidden, and nothing else", () => {
+    const drawing = drawGroup(
+      "group_child_member",
+      only({ ids: ["second-half"] }, { display: "none" }),
+    );
+    const range = drawing.cards.find((item) => item.key === "second-half")?.range;
+    expect(
+      drawing.elements.slice(range?.start, range?.end).map((item) => [item.type, item.address]),
+    ).toEqual([
+      ["card", "second-half/card"],
+      ["ancestor", "piece"],
+      ["wedge", "second-half/start"],
+      ["wedge", "second-half/end"],
+      ["name", "piece/name"],
+      ["label", "second-half/start/label"],
+      ["label", "second-half/end/label"],
+    ]);
+    expect(all(drawing, "second-half")).toEqual([]);
+    expect(drawing.bands.filter((band) => band.timeline === "second-half")).toEqual([]);
+    expect(card(drawing, "second-half")).toMatchObject({ y: 32.8046875, height: 63.37890625 });
+    expect(element(drawing, "piece")).toMatchObject({
+      type: "ancestor",
+      xs: 99.70361328125,
+      xe: 511.70361328125,
+      y: 67.78125,
+    });
+  });
+
+  it("keeps the ancestor band B beyond a wide member line's stroke", () => {
+    const drawing = drawGroup(
+      "group_child_member",
+      only({ ids: ["second-half"] }, { "stroke-width": 16 }),
+    );
+    expect(member(drawing)).toEqual({
+      x0: 120.61962890625,
+      y: 86.78125,
+      ya: 67.78125,
+      height: 95.453125,
+    });
   });
 });
 

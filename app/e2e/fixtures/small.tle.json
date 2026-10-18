@@ -1,7 +1,6 @@
 {
   "blocks": {
     "bare000000": {
-      "bands": {},
       "height": null,
       "id": "bare000000",
       "index": "a0",
@@ -9,7 +8,7 @@
       "manifest": {
         "groups": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (1d90e3ff)"
+          "generator": "timetoalign 1.2.0 (4aacfe8e)"
         },
         "name": null,
         "timelines": [
@@ -39,11 +38,6 @@
         ],
         "timeskeleton": "0.7.0"
       },
-      "order": [
-        "children",
-        "regions",
-        "flow"
-      ],
       "parent": null,
       "places": {},
       "scale": 1,
@@ -53,7 +47,6 @@
       "y": 0
     },
     "flow000000": {
-      "bands": {},
       "height": null,
       "id": "flow000000",
       "index": "a3",
@@ -61,7 +54,7 @@
       "manifest": {
         "groups": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (1d90e3ff)"
+          "generator": "timetoalign 1.2.0 (4aacfe8e)"
         },
         "name": null,
         "timelines": [
@@ -136,11 +129,6 @@
         ],
         "timeskeleton": "0.7.0"
       },
-      "order": [
-        "children",
-        "regions",
-        "flow"
-      ],
       "parent": null,
       "places": {},
       "scale": 1,
@@ -150,7 +138,6 @@
       "y": 0
     },
     "map0000000": {
-      "bands": {},
       "height": null,
       "id": "map0000000",
       "index": "a2",
@@ -158,7 +145,7 @@
       "manifest": {
         "groups": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (1d90e3ff)"
+          "generator": "timetoalign 1.2.0 (4aacfe8e)"
         },
         "name": null,
         "timelines": [
@@ -238,11 +225,6 @@
         ],
         "timeskeleton": "0.7.0"
       },
-      "order": [
-        "children",
-        "regions",
-        "flow"
-      ],
       "parent": null,
       "places": {},
       "scale": 1,
@@ -252,7 +234,6 @@
       "y": 320
     },
     "nested0000": {
-      "bands": {},
       "height": null,
       "id": "nested0000",
       "index": "a1",
@@ -260,7 +241,7 @@
       "manifest": {
         "groups": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (1d90e3ff)"
+          "generator": "timetoalign 1.2.0 (4aacfe8e)"
         },
         "name": null,
         "timelines": [
@@ -346,11 +327,6 @@
         ],
         "timeskeleton": "0.7.0"
       },
-      "order": [
-        "children",
-        "regions",
-        "flow"
-      ],
       "parent": null,
       "places": {},
       "scale": 1,
@@ -360,14 +336,22 @@
       "y": 160
     },
     "styled0000": {
-      "bands": {},
       "height": null,
       "id": "styled0000",
       "index": "a4",
       "length": 400,
       "manifest": {
         "graphical": {
-          "order": {},
+          "order": {
+            "score": [
+              "score/children_1",
+              "score/markers_1",
+              "score",
+              "score/conversion_maps_1",
+              "score/regions_1",
+              "score/flow_control_1"
+            ]
+          },
           "statements": [
             {
               "select": {
@@ -385,14 +369,6 @@
               "set": {
                 "fill": "#404040",
                 "stroke": "#404040"
-              }
-            },
-            {
-              "select": {
-                "element": "map"
-              },
-              "set": {
-                "side": "below"
               }
             },
             {
@@ -472,7 +448,6 @@
               },
               "set": {
                 "fill": "#65A30D",
-                "side": "above",
                 "stroke": "#65A30D"
               }
             },
@@ -580,7 +555,7 @@
         },
         "groups": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (1d90e3ff)"
+          "generator": "timetoalign 1.2.0 (4aacfe8e)"
         },
         "name": null,
         "timelines": [
@@ -707,11 +682,6 @@
         ],
         "timeskeleton": "0.7.0"
       },
-      "order": [
-        "children",
-        "regions",
-        "flow"
-      ],
       "parent": null,
       "places": {},
       "scale": 1,
@@ -730,7 +700,7 @@
           "manifest": {
             "groups": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (1d90e3ff)"
+              "generator": "timetoalign 1.2.0 (4aacfe8e)"
             },
             "name": null,
             "timelines": [
@@ -776,7 +746,7 @@
           "manifest": {
             "groups": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (1d90e3ff)"
+              "generator": "timetoalign 1.2.0 (4aacfe8e)"
             },
             "name": null,
             "timelines": [
@@ -878,7 +848,7 @@
           "manifest": {
             "groups": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (1d90e3ff)"
+              "generator": "timetoalign 1.2.0 (4aacfe8e)"
             },
             "name": null,
             "timelines": [
@@ -974,7 +944,7 @@
           "manifest": {
             "groups": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (1d90e3ff)"
+              "generator": "timetoalign 1.2.0 (4aacfe8e)"
             },
             "name": null,
             "timelines": [
@@ -1064,7 +1034,16 @@
           "id": "styled0000",
           "manifest": {
             "graphical": {
-              "order": {},
+              "order": {
+                "score": [
+                  "score/children_1",
+                  "score/markers_1",
+                  "score",
+                  "score/conversion_maps_1",
+                  "score/regions_1",
+                  "score/flow_control_1"
+                ]
+              },
               "statements": [
                 {
                   "select": {
@@ -1082,14 +1061,6 @@
                   "set": {
                     "fill": "#404040",
                     "stroke": "#404040"
-                  }
-                },
-                {
-                  "select": {
-                    "element": "map"
-                  },
-                  "set": {
-                    "side": "below"
                   }
                 },
                 {
@@ -1169,7 +1140,6 @@
                   },
                   "set": {
                     "fill": "#65A30D",
-                    "side": "above",
                     "stroke": "#65A30D"
                   }
                 },
@@ -1277,7 +1247,7 @@
             },
             "groups": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (1d90e3ff)"
+              "generator": "timetoalign 1.2.0 (4aacfe8e)"
             },
             "name": null,
             "timelines": [
@@ -1415,18 +1385,13 @@
   ],
   "meta": {
     "format": "tilie-workspace",
-    "version": 3
+    "version": 4
   },
   "sessions": {},
   "settings": {
     "blockDefaults": {
       "height": null,
       "length": 400,
-      "order": [
-        "children",
-        "regions",
-        "flow"
-      ],
       "scale": 1,
       "spacing": 1,
       "width": null

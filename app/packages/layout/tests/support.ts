@@ -6,6 +6,7 @@ import path from "node:path";
 import {
   type AxisValue,
   apply,
+  type BandKind,
   createView,
   isCommandError,
   isLoadError,
@@ -120,6 +121,20 @@ export function edit(name: string, ...commands: object[]): Manifest {
   }
   if (isCommandError(view)) throw new Error(`${view.code}: ${view.message}`);
   return (view.blocks[BLOCK] as { readonly manifest: Manifest }).manifest;
+}
+
+/**
+ * A band order of the timeline `id` (section 6.4): the bands of the kinds
+ * `above` from the top down, then `id`, then the bands of the kinds `below`
+ * from the line down.
+ */
+export function bandOrder(
+  id: string,
+  above: readonly BandKind[],
+  below: readonly BandKind[],
+): string[] {
+  const band = (kind: BandKind) => `${id}/${kind}_1`;
+  return [...above.map(band), id, ...below.map(band)];
 }
 
 /** The `set` command of some properties of one element of the block. */

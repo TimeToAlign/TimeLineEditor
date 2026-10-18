@@ -18,7 +18,7 @@ const view = changed(mixedView(), {
 });
 
 function hit(kind: Hit["kind"], address: string, block = A, within: string | null = null): Hit {
-  return { block, kind, address, boundary: false, within };
+  return { block, kind, address, boundary: false, within, band: null };
 }
 
 /** An element hit at a point that the card or frame `within` holds. */
@@ -85,6 +85,12 @@ describe("editorTargetOf", () => {
     expect(editorTargetOf(view, hit("element", at("dlt_1")), child)).toBeNull();
   });
 
+  it("opens nothing on a band", () => {
+    const band = hit("band", at("excerpt/children_1"));
+    expect(editorTargetOf(view, band, { target: at("excerpt"), kind: "timeline" })).toBeNull();
+    expect(editorTargetOf(view, band, null)).toBeNull();
+  });
+
   it("opens nothing in a block that does not exist", () => {
     expect(editorTargetOf(view, hit("block", "zzzzzzzzzz", "zzzzzzzzzz"), null)).toBeNull();
   });
@@ -112,13 +118,14 @@ describe("GESTURES and gesturesOf", () => {
       moveBlocks: boolean,
       moveItems: boolean,
       reorderMembers: boolean,
+      moveBands: boolean,
       marquee: "blocks" | "elements",
-    ) => ({ moveBlocks, moveItems, reorderMembers, marquee });
+    ) => ({ moveBlocks, moveItems, reorderMembers, moveBands, marquee });
     expect(GESTURES).toStrictEqual({
-      arranger: row(true, false, false, "blocks"),
-      bundle: row(false, true, false, "elements"),
-      group: row(false, false, true, "elements"),
-      timeline: row(false, false, false, "elements"),
+      arranger: row(true, false, false, false, "blocks"),
+      bundle: row(false, true, false, false, "elements"),
+      group: row(false, false, true, false, "elements"),
+      timeline: row(false, false, false, true, "elements"),
     });
   });
 

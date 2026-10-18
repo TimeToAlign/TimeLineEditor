@@ -248,7 +248,7 @@ describe("an item's vertical stretch", () => {
       });
     });
 
-    it("keeps the root band's distances from the line", () => {
+    it("keeps the markers band's distances from the line", () => {
       expect(element(drawing, "recording/start")).toMatchObject({
         type: "wedge",
         yt: 124.2578125,

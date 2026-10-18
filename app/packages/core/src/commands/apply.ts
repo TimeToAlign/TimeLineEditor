@@ -10,21 +10,21 @@ import { canonicalOrder, complete, SCHEMA_VERSION } from "@timetoalign/timeskele
 import type { CommandError, Problem } from "../errors.ts";
 import { ErrorCode, isCommandError, isLoadError, problem } from "../errors.ts";
 import type { JsonObject, PathSegment } from "../json.ts";
-import { canonicalText } from "../json.ts";
+import { canonicalText, jsonEqual } from "../json.ts";
+import { bandOrderProblem } from "../manifest/bands.ts";
 import {
   manifestElements,
   orderedChildren,
   selectorMatches,
   timelineAncestry,
 } from "../manifest/elements.ts";
-import type { EntryKind, Located } from "../manifest/files.ts";
+import type { EntryKind } from "../manifest/files.ts";
 import {
   ENTRY_KINDS,
   ENTRY_LISTS,
   elementAddress,
   entriesOf,
   locateEntry,
-  locateTimeline,
 } from "../manifest/files.ts";
 import {
   checkOrdered,
@@ -38,6 +38,8 @@ import { readManifestValue, schemaProblems } from "../manifest/io.ts";
 import { lockProblem, memberIds, statedLockProblem, withPlaceLocks } from "../manifest/locks.ts";
 import type { Gap } from "../manifest/remove.ts";
 import { isSegment, removedBy, withoutElements, withoutSegment } from "../manifest/remove.ts";
+import type { Located } from "../manifest/tree.ts";
+import { locateTimeline } from "../manifest/tree.ts";
 import type { Group, Manifest, TimelineManifest } from "../manifest/types.ts";
 import type { Coordinate } from "../number/coordinate.ts";
 import { axisCoordinate, toAxisValue } from "../number/coordinate.ts";
@@ -45,7 +47,6 @@ import type { Real } from "../number/real.ts";
 import { compareReal, exactCoordinate, realOf } from "../number/real.ts";
 import {
   PLACE_READERS,
-  readBands,
   readBoolean,
   readFinite,
   readGraphical,
@@ -53,7 +54,6 @@ import {
   readNullablePositive,
   readNullableString,
   readObject,
-  readOrder,
   readPlaces,
   readPositive,
   readString,
@@ -61,14 +61,7 @@ import {
   unknownMember,
 } from "../values.ts";
 import type { Block, BlockId, BlockPlacement, Place } from "../workspace/blocks.ts";
-import {
-  BLOCK_ID,
-  bandKeys,
-  CARD_MEMBERS,
-  cardKeys,
-  itemKeys,
-  PLACE_MEMBERS,
-} from "../workspace/blocks.ts";
+import { BLOCK_ID, CARD_MEMBERS, cardKeys, itemKeys, PLACE_MEMBERS } from "../workspace/blocks.ts";
 import type { Address } from "../workspace/ids.ts";
 import { parseAddress, takenIds, WORKSPACE } from "../workspace/ids.ts";
 import { indexBetween } from "../workspace/order.ts";
@@ -78,6 +71,7 @@ import { parseCommand } from "./parse.ts";
 import type {
   AddCommand,
   AddKind,
+  Change,
   Command,
   RemoveCommand,
   SetCommand,
@@ -367,7 +361,6 @@ const PLACEMENT_READERS = {
   spacing: readPositive,
   width: readNullablePositive,
   height: readNullablePositive,
-  order: readOrder,
 } as const;
 
 const WORKSPACE_SET: { readonly [property: string]: Setter<WorkspaceTarget> } = {
@@ -441,10 +434,10 @@ const BLOCK_SET: { readonly [property: string]: Setter<BlockTarget> } = {
 };
 
 type GroupTarget = Extract<Target, { kind: "group" }>;
-/** A target that `places` or `bands` may name: a group, a root or a child timeline. */
+/** A target that `places` and `graphical.order` may name: a group, a root or a child timeline. */
 type KeyedTarget = GroupTarget | TimelineTarget;
 
-/** The id a group or timeline target carries, the key it has in `places` and `bands`. */
+/** The id a group or timeline target carries, the key it has in `places` and `graphical.order`. */
 function keyOf(target: KeyedTarget): string {
   return target.kind === "group" ? target.group.id : target.at.timeline.id;
 }
@@ -494,20 +487,28 @@ const setPlace: Setter<KeyedTarget> = (view, target, value, path) => {
   return withBlock(view, { ...block, places: withKey(block.places, key, places) });
 };
 
-/** Set or, with null, delete the band order of a group or timeline. */
-const setBandOrder: Setter<KeyedTarget> = (view, target, value, path) => {
-  const order = value === null ? undefined : readOrder(value, path);
-  if (isCommandError(order)) return order;
-  const { block } = target;
-  return withBlock(view, { ...block, bands: withKey(block.bands, keyOf(target), order) });
-};
+/**
+ * Write the entry of a group or timeline in its manifest's `graphical.order`
+ * (a group's display order, a timeline's band order), or delete it with
+ * null. Deleting an entry that is not there leaves the view as it is, never
+ * with an empty `graphical` added.
+ */
+function withOrder(view: View, target: KeyedTarget, order: readonly string[] | null): View {
+  const { manifest } = target.block;
+  const graphical = manifest.graphical ?? {};
+  const key = keyOf(target);
+  if (order === null && !Object.hasOwn(graphical.order ?? {}, key)) return view;
+  const entries = withKey(graphical.order ?? {}, key, order === null ? undefined : [...order]);
+  return withBlock(view, {
+    ...target.block,
+    manifest: { ...manifest, graphical: { ...graphical, order: entries } },
+  });
+}
 
 const GROUP_SET: { readonly [property: string]: Setter<GroupTarget> } = {
-  band_order: setBandOrder,
-  /** The group's display order, written to `graphical.order`; null deletes its entry. */
+  /** The group's display order; null deletes its entry. */
   order: (view, target, value, path) => {
     const { id, members } = target.group;
-    const { manifest } = target.block;
     const listsMembers =
       Array.isArray(value) &&
       value.length === members.length &&
@@ -515,16 +516,7 @@ const GROUP_SET: { readonly [property: string]: Setter<GroupTarget> } = {
     if (value !== null && !listsMembers) {
       return problem(ErrorCode.invalidOrder, `order must list every member of ${id} once`, path);
     }
-    const graphical = manifest.graphical ?? {};
-    const order = withKey(
-      graphical.order ?? {},
-      id,
-      value === null ? undefined : [...(value as string[])],
-    );
-    return withBlock(view, {
-      ...target.block,
-      manifest: { ...manifest, graphical: { ...graphical, order } },
-    });
+    return withOrder(view, target, value as readonly string[] | null);
   },
   place: setPlace,
 };
@@ -552,7 +544,13 @@ function timelineValue(
 }
 
 const TIMELINE_SET: { readonly [property: string]: Setter<TimelineTarget> } = {
-  band_order: setBandOrder,
+  /** The timeline's band order; null deletes its entry, so it inherits again. */
+  order: (view, target, value, path) => {
+    if (value === null) return withOrder(view, target, null);
+    const refused = bandOrderProblem(target.block.manifest, target.at.timeline.id, value);
+    if (refused !== null) return problem(ErrorCode.invalidOrder, refused, path);
+    return withOrder(view, target, value as readonly string[]);
+  },
   name: timelineValue(readNullableString),
   meta: timelineValue(readObject),
   locked: (view, target, value, path) => {
@@ -742,7 +740,7 @@ function applySet(view: View, command: SetCommand, touched: Set<BlockId>): View 
     if (isCommandError(target)) return target;
     const block = elementBlock(target);
     if (block !== undefined) touched.add(block);
-    // A whole new manifest may no longer hold what the block's places and band orders name.
+    // A whole new manifest may no longer hold what the block's places name.
     else if (target.kind === "block" && Object.hasOwn(change.values, "manifest")) {
       touched.add(target.block.id);
     }
@@ -780,7 +778,6 @@ const BLOCK_VALUE = [
   "index",
   ...Object.keys(PLACEMENT_READERS),
   "places",
-  "bands",
 ];
 
 function addBlock(view: View, value: unknown): View | CommandError {
@@ -808,9 +805,7 @@ function addBlock(view: View, value: unknown): View | CommandError {
   if (isCommandError(manifest)) return manifest;
   const places = readPlaces(object.places ?? {}, [id, "places"]);
   if (isCommandError(places)) return places;
-  const bands = readBands(object.bands ?? {}, [id, "bands"]);
-  if (isCommandError(bands)) return bands;
-  const [stale] = keyProblems({ id, places, bands, manifest }, [id]);
+  const [stale] = keyProblems({ id, places, manifest }, [id]);
   if (stale !== undefined) return stale;
   const greatest = Object.values(view.blocks)
     .filter((block) => block.parent === null)
@@ -826,12 +821,11 @@ function addBlock(view: View, value: unknown): View | CommandError {
     y: 0,
     ...view.settings.blockDefaults,
     places,
-    bands,
     manifest,
   };
   let current = withBlock(view, block);
   for (const [member, item] of Object.entries(object)) {
-    if (["id", "manifest", "places", "bands"].includes(member)) continue;
+    if (["id", "manifest", "places"].includes(member)) continue;
     const next = setProperty(current, id, member, item);
     if (isCommandError(next)) return next;
     current = next;
@@ -1015,7 +1009,7 @@ const isEmpty = (value: Properties): boolean => Object.keys(value).length === 0;
 
 /**
  * A `graphical` block with the statement embedded (see `StyleCommand`); its
- * other members, such as the groups' display `order`, are kept.
+ * other members, such as the display and band orders in `order`, are kept.
  */
 export function embedStatement<T extends Graphical>(
   graphical: T | undefined,
@@ -1095,8 +1089,8 @@ function applyStyle(view: View, command: StyleCommand, touched: Set<BlockId>): V
  * Put every edited manifest in its complete form and canonical order (an
  * added element may leave out what has a default) and refuse the first
  * problem it has; then drop the block's places that no longer name an item
- * and its band orders that no longer name a group or timeline (a removed
- * group, a root that became a member), so no key ever goes stale.
+ * or a member (a removed group, a root that became a member), so no key
+ * ever goes stale.
  */
 function settle(view: View, touched: ReadonlySet<BlockId>): View | CommandError {
   let current = view;
@@ -1113,11 +1107,9 @@ function settle(view: View, touched: ReadonlySet<BlockId>): View | CommandError 
     const schema = schemaProblems(manifest);
     const [first] = schema.length > 0 ? schema : checkOrdered(manifest);
     if (first !== undefined) return { ...first, path: [id, "manifest", ...first.path] };
-    const keys = bandKeys(manifest);
     current = withBlock(current, {
       ...block,
       places: keptPlaces(block.places, manifest),
-      bands: kept(block.bands, keys),
       manifest,
     });
   }
@@ -1147,14 +1139,39 @@ function keptPlaces(places: Block["places"], manifest: Manifest): Block["places"
     : Object.fromEntries(entries);
 }
 
-/** `object` with only the keys `keep` holds; `object` itself when it holds no other. */
-function kept<T>(
-  object: { readonly [key: string]: T },
-  keep: ReadonlySet<string>,
-): { readonly [key: string]: T } {
-  const entries = Object.entries(object);
-  const staying = entries.filter(([key]) => keep.has(key));
-  return staying.length === entries.length ? object : Object.fromEntries(staying);
+/** Whether two objects hold the same members: shared ones by identity, the others as JSON. */
+function sameMembers(before: object | undefined, after: object): boolean {
+  if (before === after) return true;
+  if (before === undefined) return false;
+  const keys = Object.keys(after);
+  return (
+    keys.length === Object.keys(before).length &&
+    keys.every(
+      (key) => Object.hasOwn(before, key) && jsonEqual((before as Tree)[key], (after as Tree)[key]),
+    )
+  );
+}
+
+/** Whether a view holds exactly what `before` holds: its settings and each block, member by member. */
+function sameView(before: View, after: View): boolean {
+  const ids = Object.keys(after.blocks);
+  return (
+    sameMembers(before.settings, after.settings) &&
+    ids.length === Object.keys(before.blocks).length &&
+    ids.every((id) => sameMembers(before.blocks[id], after.blocks[id] as Block))
+  );
+}
+
+/**
+ * The refusal of a `set` that leaves the view as it was, at its first
+ * value: the store journals every command it accepts, and Cancel would
+ * count the entry as a change. A `set` of which only some values change
+ * nothing changes something, and is accepted.
+ */
+function changesNothing(command: SetCommand): CommandError {
+  const [{ target, values }] = command.changes as [Change];
+  const [property] = Object.keys(values) as [string];
+  return problem(ErrorCode.invalidValue, "the command changes nothing", [target, property]);
 }
 
 /** Apply one command to a view: the new view, or why the command was refused. */
@@ -1182,5 +1199,8 @@ export function applyParsed(view: View, command: Command): View | CommandError {
       result = applyStyle(view, command, touched);
       break;
   }
-  return isCommandError(result) ? result : settle(result, touched);
+  if (isCommandError(result)) return result;
+  const settled = settle(result, touched);
+  if (command.type !== "set" || isCommandError(settled) || !sameView(view, settled)) return settled;
+  return changesNothing(command);
 }

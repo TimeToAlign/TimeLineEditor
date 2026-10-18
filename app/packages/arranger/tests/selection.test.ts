@@ -67,22 +67,22 @@ describe("existing", () => {
       B,
       `${B}/clt_1`,
     ]);
-    expect([...existing(view, selection)]).toEqual([A, `${A}/clt_3`, `${A}/clt_3/name`]);
+    expect([...existing(view, selection, null)]).toEqual([A, `${A}/clt_3`, `${A}/clt_3/name`]);
   });
 
   it("returns the selection itself when everything exists", () => {
     const selection = new Set([A, `${A}/clt_2`]);
-    expect(existing(view, selection)).toBe(selection);
+    expect(existing(view, selection, null)).toBe(selection);
     const none = new Set<string>();
-    expect(existing(view, none)).toBe(none);
+    expect(existing(view, none, null)).toBe(none);
   });
 
   it("keeps the title of a named manifest only", () => {
     const title = new Set([`${A}/name`]);
-    expect([...existing(viewOf({ id: A, fixture: "bundles/bundle_mixed" }), title)]).toEqual([
+    expect([...existing(viewOf({ id: A, fixture: "bundles/bundle_mixed" }), title, null)]).toEqual([
       `${A}/name`,
     ]);
-    expect([...existing(view, title)]).toEqual([]);
+    expect([...existing(view, title, null)]).toEqual([]);
   });
 
   it("reads the addresses of a block of several roots with elementOf", () => {
@@ -94,7 +94,7 @@ describe("existing", () => {
       `${A}/page/start`,
       `${A}/nobody/region_1`,
     ]);
-    expect([...existing(numbersView(), selection)]).toEqual([
+    expect([...existing(numbersView(), selection, null)]).toEqual([
       `${A}/score/region_1/label`,
       `${A}/score/name`,
       `${A}/group_1/name`,

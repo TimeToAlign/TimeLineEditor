@@ -1,10 +1,14 @@
 /**
- * What a manifest holds: its root timelines, the addresses of its elements,
- * its title, and the timelines its drawing draws as roots (`docs/drawing.md` in timeskeleton, sections 2.2 and 8.1).
+ * What a manifest holds beyond its tree of timelines (`tree.ts`): the entries
+ * its timelines list, the addresses of its elements, its title, and the
+ * timelines its drawing draws as roots (`docs/drawing.md` in timeskeleton,
+ * sections 2.2 and 8.1).
  */
 
-import type { PathSegment } from "../json.ts";
 import { compareCodePoints } from "../json.ts";
+import { BAND_ID_PATTERN } from "./bands.ts";
+import type { Located } from "./tree.ts";
+import { rootPaths, searchTree } from "./tree.ts";
 import type {
   AxisValue,
   Break,
@@ -16,57 +20,6 @@ import type {
   Region,
   TimelineManifest,
 } from "./types.ts";
-
-/** A root timeline of a manifest and its path from the manifest's top. */
-export interface RootPath {
-  readonly timeline: TimelineManifest;
-  readonly path: readonly PathSegment[];
-}
-
-/** The root timelines of a manifest with their paths, `["timelines", <index>]`. */
-export function rootPaths(manifest: Manifest): RootPath[] {
-  return manifest.timelines.map((timeline, index) => ({ timeline, path: ["timelines", index] }));
-}
-
-/** A timeline inside a manifest: its value, its path from the manifest's top, its parent. */
-export interface Located extends RootPath {
-  readonly parent: Located | undefined;
-}
-
-/**
- * The first value `pick` gives for `here` or a timeline of its subtree,
- * searched depth first in `children` order.
- */
-export function searchTree<T>(here: Located, pick: (at: Located) => T | undefined): T | undefined {
-  const own = pick(here);
-  if (own !== undefined) return own;
-  for (const [index, timeline] of here.timeline.children.entries()) {
-    const child = { timeline, path: [...here.path, "children", index], parent: here };
-    const found = searchTree(child, pick);
-    if (found !== undefined) return found;
-  }
-  return undefined;
-}
-
-/** The timeline carrying `id` among a manifest's roots and their descendants, located. */
-export function locateTimeline(manifest: Manifest, id: string): Located | undefined {
-  for (const root of rootPaths(manifest)) {
-    const found = searchTree({ ...root, parent: undefined }, (at) =>
-      at.timeline.id === id ? at : undefined,
-    );
-    if (found !== undefined) return found;
-  }
-  return undefined;
-}
-
-/**
- * The timeline carrying `id` among a manifest's roots and their descendants;
- * `undefined` for an id no timeline carries, such as a group's, the
- * manifest's or an element address `<root>/<id>`.
- */
-export function findTimeline(manifest: Manifest, id: string): TimelineManifest | undefined {
-  return locateTimeline(manifest, id)?.timeline;
-}
 
 /** The kinds of the elements a timeline holds in a list, and where each list lies. */
 export const ENTRY_LISTS = {
@@ -145,7 +98,16 @@ export function isNamed(manifest: Manifest): boolean {
 }
 
 /** The words that follow an element's address to name one of its parts. */
-export const PART_WORDS: readonly string[] = ["start", "end", "name", "label", "card"];
+const PART_WORDS: readonly string[] = ["start", "end", "name", "label", "card"];
+
+/**
+ * Whether `id` is reserved, so that no id of a manifest may be it: a part
+ * word, which follows an element's address as one of its parts, or a band's
+ * id (`BAND_ID_PATTERN`), which follows a timeline's id as one of its bands.
+ */
+export function isReservedId(id: string): boolean {
+  return PART_WORDS.includes(id) || BAND_ID_PATTERN.test(id);
+}
 
 /** The address of a manifest's title, the top label of its box, named or not. */
 export const TITLE_ADDRESS = "name";
@@ -162,11 +124,12 @@ export function elementAddress(root: string, id: string): string {
 
 /**
  * The address of the element a path within a manifest names, its trailing
- * part words removed: `<root>/<id>` when the path starts with a root's id
- * followed by an id that is no part word, and the first segment otherwise.
- * So `score/end/label` names `score` and `score/region_1/label` names
- * `score/region_1`; ids that are part words are refused, so the two never
- * meet. The manifest's title is `name` itself.
+ * part words and band ids removed: `<root>/<id>` when the path starts with
+ * a root's id followed by an id that is not reserved (`isReservedId`), and
+ * the first segment otherwise. So `score/end/label` and `score/regions_1`
+ * (the regions band of `score`) name `score`, as `score/card` does, and
+ * `score/region_1/label` names `score/region_1`; reserved ids are refused as
+ * ids, so the two never meet. The manifest's title is `name` itself.
  */
 export function elementOf(manifest: Manifest, path: string): string {
   return elementOfIn(manifest)(path);
@@ -178,7 +141,7 @@ export function elementOfIn(manifest: Manifest): (path: string) => string {
   return (path) => {
     const [first = "", second] = path.split("/");
     if (second === undefined) return first;
-    return roots.has(first) && !PART_WORDS.includes(second) ? `${first}/${second}` : first;
+    return roots.has(first) && !isReservedId(second) ? `${first}/${second}` : first;
   };
 }
 

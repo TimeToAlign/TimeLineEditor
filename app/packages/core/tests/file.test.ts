@@ -50,7 +50,7 @@ describe("the workspace file", () => {
       "sessions",
       "settings",
     ]);
-    expect(value.meta).toEqual({ format: "tilie-workspace", version: 3 });
+    expect(value.meta).toEqual({ format: "tilie-workspace", version: 4 });
     expect((value.journal as unknown[]).length).toBe(4);
     expect(value.sessions).toEqual({});
   });
@@ -82,7 +82,7 @@ describe("the workspace file", () => {
     ],
     [
       "a later version",
-      edited((value) => Object.assign(value.meta as Value, { version: 4 })),
+      edited((value) => Object.assign(value.meta as Value, { version: 5 })),
       "unsupported_version",
       ["meta", "version"],
     ],
@@ -169,16 +169,20 @@ describe("the workspace file", () => {
     ]);
   });
 
-  it("refuses a workspace of version 2 for its version alone", () => {
+  it("refuses a workspace of version 3 for its version alone", () => {
+    const groups = ["children", "regions", "flow"];
     const older = edited((value) => {
-      Object.assign(value.meta as Value, { version: 2 });
-      delete value.sessions;
+      Object.assign(value.meta as Value, { version: 3 });
+      for (const block of Object.values(value.blocks as Value)) {
+        Object.assign(block as Value, { order: groups, bands: {} });
+      }
+      Object.assign((value.settings as Value).blockDefaults as Value, { order: groups });
     });
     const result = readWorkspace(older);
     expect(isLoadError(result) && result.problems).toEqual([
       {
         code: "unsupported_version",
-        message: "workspace version 2 is not supported; this editor reads version 3 only",
+        message: "workspace version 3 is not supported; this editor reads version 4 only",
         path: ["meta", "version"],
       },
     ]);

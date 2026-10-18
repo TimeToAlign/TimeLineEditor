@@ -2,12 +2,14 @@
 /**
  * The block node in the editors: what lies outside the edited element is
  * faded, the elements keep their keys across a reorder and slide only
- * while a member drag previews an order, and the item and member drags are
+ * while a member drag previews an order, the item and member drags are
  * attached where an editor allows them and reach the canvas through its
- * actions.
+ * actions, and in a timeline editor its timeline's bands are marked and
+ * moved.
  */
 
 import type { Command, View } from "@timetoalign/tilie-core";
+import type { DrawnBand } from "@timetoalign/tilie-layout";
 import { TextMeasure } from "@timetoalign/tilie-layout";
 import { flushSync, mount, tick, unmount } from "svelte";
 import { SvelteMap } from "svelte/reactivity";
@@ -60,10 +62,15 @@ type Call =
 
 let mounted: ReturnType<typeof mount> | undefined;
 
-afterEach(() => {
+/** Unmount the node mounted last, if any, and empty the page. */
+function clear(): void {
   if (mounted !== undefined) unmount(mounted);
   mounted = undefined;
   document.body.innerHTML = "";
+}
+
+afterEach(() => {
+  clear();
   vi.restoreAllMocks();
 });
 
@@ -79,10 +86,16 @@ function dataOf(
   return node.data;
 }
 
+/** `data` with its drawing's band records replaced by `bands`, when given. */
+function withBands(data: BlockNodeData, bands?: readonly DrawnBand[]): BlockNodeData {
+  return bands === undefined ? data : { ...data, drawing: { ...data.drawing, bands } };
+}
+
 /**
  * The node of block `id` mounted on `view` under `editing` with `selection`,
  * its data read through a reactive map so a redraw can be passed in, with
- * actions that record every call.
+ * actions that record every call; `bands` replaces the drawing's band
+ * records, `locked` says whether the canvas is locked.
  */
 function mountOn(
   view: View,
@@ -91,8 +104,9 @@ function mountOn(
   reducedMotion = false,
   zoom = 1,
   selection: ReadonlySet<string> = new Set(),
+  { bands, locked = false }: { bands?: readonly DrawnBand[]; locked?: boolean } = {},
 ) {
-  const props = new SvelteMap([["data", dataOf(view, id, editing, selection)]]);
+  const props = new SvelteMap([["data", withBands(dataOf(view, id, editing, selection), bands)]]);
   const calls: Call[] = [];
   const actions: NodeActions = {
     dispatch: (command) => calls.push({ dispatch: command }),
@@ -102,6 +116,7 @@ function mountOn(
     view: () => view,
     reducedMotion: () => reducedMotion,
     zoom: () => zoom,
+    locked: () => locked,
   };
   mounted = mount(NodeHarness, {
     target: document.body,
@@ -118,18 +133,20 @@ function mountOn(
   return {
     svg,
     calls,
-    redraw(next: View) {
-      props.set("data", dataOf(next, id, editing, selection));
+    redraw(next: View, redrawn: readonly DrawnBand[] | undefined = bands) {
+      props.set("data", withBands(dataOf(next, id, editing, selection), redrawn));
       flushSync();
     },
   };
 }
 
-/** The drawing's elements of `svg`, the boxes' marks and a dragged copy left out. */
+/** The drawing's elements of `svg`, the boxes' and bands' marks and a dragged copy left out. */
 function drawn(svg: SVGSVGElement): Element[] {
   return Array.from(svg.children).filter(
     (element) =>
-      !element.classList.contains("tilie-holding") && !element.classList.contains("tilie-dragged"),
+      !element.classList.contains("tilie-holding") &&
+      !element.classList.contains("tilie-band") &&
+      !element.classList.contains("tilie-dragged"),
   );
 }
 
@@ -181,9 +198,7 @@ const PERFORMANCE = memberElements("performance", ["cmap_1"]);
 describe("data-outside", () => {
   it("marks nothing on the arranger and in the bundle editor", () => {
     expect(marked(mountOn(VIEW, A, null).svg, "data-outside")).toEqual([]);
-    unmount(mounted as ReturnType<typeof mount>);
-    mounted = undefined;
-    document.body.innerHTML = "";
+    clear();
     expect(marked(mountOn(VIEW, A, BUNDLE).svg, "data-outside")).toEqual([]);
   });
 
@@ -259,9 +274,7 @@ describe("attachments", () => {
 
   it("are on no element in the timeline editor or in another block", () => {
     expect(attached(mountOn(VIEW, A, TIMELINE).svg)).toEqual([]);
-    unmount(mounted as ReturnType<typeof mount>);
-    mounted = undefined;
-    document.body.innerHTML = "";
+    clear();
     expect(attached(mountOn(VIEW, B, BUNDLE).svg)).toEqual([]);
   });
 });
@@ -484,9 +497,7 @@ describe("the item drag", () => {
     flushSync();
     pointer(escaped.frame, "pointerup", 132, 193.9609375);
     expect(escaped.calls).toEqual([BOTH_MOVED, { preview: A, with: null }]);
-    unmount(mounted as ReturnType<typeof mount>);
-    mounted = undefined;
-    document.body.innerHTML = "";
+    clear();
 
     const back = pressedWith(["group_2", "annotations/card"]);
     pointer(back.frame, "pointermove", 132, 193.9609375);
@@ -584,5 +595,260 @@ describe("the slide of a reorder", () => {
 
   it("does not slide under reduced motion", async () => {
     expect(await previewed(true)).toBe(0);
+  });
+});
+
+describe("bands in the timeline editor", () => {
+  /** A record of `score` on its line at 100, 540 wide from x 16 (README, "Stated records"). */
+  function band(
+    kind: DrawnBand["kind"],
+    level: number,
+    elements: number,
+    y: number,
+    height: number,
+  ) {
+    return {
+      address: `score/${kind}_1`,
+      timeline: "score",
+      kind,
+      level,
+      line: 100,
+      elements,
+      x: 16,
+      y,
+      width: 540,
+      height,
+    } satisfies DrawnBand;
+  }
+
+  const MAPS = band("conversion_maps", 1, 2, 60, 30);
+  const MARKERS = band("markers", -1, 2, 104, 12);
+  const FLOW = band("flow_control", -2, 1, 120, 8);
+  const BANDS = [MAPS, MARKERS, FLOW];
+
+  /** `score`'s order with its markers band moved just below its conversion maps band. */
+  const MOVED = [
+    "score/children_1",
+    "score/conversion_maps_1",
+    "score/markers_1",
+    "score",
+    "score/regions_1",
+    "score/flow_control_1",
+  ];
+  const STORED_ORDER = { group_1: ["score", "performance"], group_2: ["page", "excerpt"] };
+
+  /**
+   * The node of A on `VIEW` under `editing` with the stated records, its
+   * `<svg>` shown at client (0, 0) at the drawing's own size with the
+   * identity CTM and pointer capture, and `score`'s card to press on.
+   */
+  function shown(
+    editing: Editing | null,
+    { selected = [], locked = false }: { selected?: string[]; locked?: boolean } = {},
+  ) {
+    const selection = new Set(selected.map((address) => `${A}/${address}`));
+    const node = mountOn(VIEW, A, editing, false, 1, selection, { bands: BANDS, locked });
+    const { svg } = node;
+    const [, , width = 0, height = 0] = (svg.getAttribute("viewBox") ?? "").split(" ").map(Number);
+    const capture = new Set<number>();
+    Object.assign(svg, {
+      getBoundingClientRect: () => DOMRect.fromRect({ x: 0, y: 0, width, height }),
+      getScreenCTM: () => IDENTITY,
+      setPointerCapture: (pointer: number) => capture.add(pointer),
+      hasPointerCapture: (pointer: number) => capture.has(pointer),
+      releasePointerCapture: (pointer: number) => capture.delete(pointer),
+    });
+    return { ...node, card: addressed(svg, "score/card")[1] as Element };
+  }
+
+  /** The band marks of `svg` as `<data-band> <data-mark>`. */
+  function bandMarks(svg: SVGSVGElement): string[] {
+    return Array.from(
+      svg.querySelectorAll("rect.tilie-band"),
+      (mark) => `${mark.getAttribute("data-band")} ${mark.getAttribute("data-mark")}`,
+    );
+  }
+
+  function press(target: Element, type: string, x: number, y: number, shiftKey = false): void {
+    target.dispatchEvent(
+      new PointerEvent(type, {
+        pointerId: 1,
+        clientX: x,
+        clientY: y,
+        button: 0,
+        shiftKey,
+        bubbles: true,
+      }),
+    );
+    flushSync();
+  }
+
+  /** The `graphical.order` of the manifest a recorded preview draws. */
+  function previewedOrder(call: Call | undefined): unknown {
+    return call !== undefined && "preview" in call ? call.with?.manifest?.graphical?.order : null;
+  }
+
+  it("marks the hovered band, the selected ones, and a band both with the selection's mark", () => {
+    const hovered = shown(TIMELINE);
+    press(hovered.card, "pointermove", 200, 110);
+    const marks = hovered.svg.querySelectorAll("rect.tilie-band");
+    expect(marks).toHaveLength(1);
+    const mark = marks[0] as Element;
+    expect(hovered.svg.lastElementChild).toBe(mark);
+    expect(
+      Object.fromEntries(
+        Array.from(mark.attributes, (attribute) => [attribute.name, attribute.value]),
+      ),
+    ).toEqual({
+      class: "tilie-band",
+      "data-band": "score/markers_1",
+      "data-mark": "hover",
+      x: "16",
+      y: "104",
+      width: "540",
+      height: "12",
+      rx: "5",
+      "aria-hidden": "true",
+    });
+    clear();
+
+    const selected = shown(TIMELINE, { selected: ["score/markers_1"] });
+    expect(bandMarks(selected.svg)).toEqual(["score/markers_1 selection"]);
+    const children = Array.from(selected.svg.children);
+    const holding = children.filter((element) => element.classList.contains("tilie-holding"));
+    expect(holding.map((element) => element.getAttribute("data-box"))).toEqual([
+      "block",
+      "group",
+      "card",
+    ]);
+    const last = children.indexOf(holding.at(-1) as Element);
+    expect(children.indexOf(selected.svg.querySelector("rect.tilie-band") as Element)).toBe(
+      last + 1,
+    );
+    expect(selected.svg.querySelector("rect.tilie-band")?.getAttribute("y")).toBe("104");
+    press(selected.card, "pointermove", 200, 110);
+    expect(bandMarks(selected.svg)).toEqual(["score/markers_1 selection"]);
+    press(selected.card, "pointermove", 200, 75);
+    expect(bandMarks(selected.svg)).toEqual([
+      "score/conversion_maps_1 hover",
+      "score/markers_1 selection",
+    ]);
+    const maps = selected.svg.querySelector('rect.tilie-band[data-band="score/conversion_maps_1"]');
+    expect([maps?.getAttribute("y"), maps?.getAttribute("height")]).toEqual(["60", "30"]);
+    selected.svg.dispatchEvent(new PointerEvent("pointerleave"));
+    flushSync();
+    expect(bandMarks(selected.svg)).toEqual(["score/markers_1 selection"]);
+  });
+
+  it("selects, previews and stores one set for a drag past the click distance", () => {
+    const { svg, card, calls } = shown(TIMELINE);
+    press(card, "pointerdown", 200, 110);
+    expect(svg.classList.contains("nodrag") && svg.classList.contains("nopan")).toBe(true);
+    press(card, "pointermove", 200, 113);
+    expect(calls).toEqual([]);
+    press(card, "pointermove", 200, 90);
+    press(card, "pointerup", 200, 90);
+    expect(calls.map((call) => Object.keys(call)[0])).toEqual([
+      "select",
+      "preview",
+      "dispatch",
+      "preview",
+    ]);
+    expect(calls[0]).toEqual({ select: `${A}/score/markers_1` });
+    expect(calls[1]).toMatchObject({ preview: A });
+    expect(previewedOrder(calls[1])).toEqual({ ...STORED_ORDER, score: MOVED });
+    expect(calls[2]).toEqual({
+      dispatch: { type: "set", changes: [{ target: `${A}/score`, values: { order: MOVED } }] },
+    });
+    expect(calls[3]).toEqual({ preview: A, with: null });
+    expect(svg.classList.contains("nodrag") || svg.classList.contains("nopan")).toBe(false);
+  });
+
+  it("reads the drop against the drawing at the press, never the preview's", () => {
+    const { card, calls, redraw } = shown(TIMELINE);
+    press(card, "pointerdown", 200, 110);
+    press(card, "pointermove", 200, 90);
+    redraw(VIEW, [MAPS, { ...MARKERS, y: 86, height: 10 }, { ...FLOW, y: 104 }]);
+    press(card, "pointermove", 200, 112);
+    expect(calls).toHaveLength(3);
+    expect(previewedOrder(calls[2])).toEqual(STORED_ORDER);
+  });
+
+  it("stores nothing for a click, a release in place or Escape", () => {
+    const clicked = shown(TIMELINE);
+    press(clicked.card, "pointerdown", 200, 110);
+    press(clicked.card, "pointermove", 202, 112);
+    press(clicked.card, "pointerup", 202, 112);
+    expect(clicked.calls).toEqual([]);
+    clear();
+
+    const back = shown(TIMELINE);
+    press(back.card, "pointerdown", 200, 110);
+    press(back.card, "pointermove", 200, 90);
+    press(back.card, "pointermove", 200, 112);
+    press(back.card, "pointerup", 200, 112);
+    expect(back.calls.map((call) => Object.keys(call)[0])).toEqual([
+      "select",
+      "preview",
+      "preview",
+      "preview",
+    ]);
+    expect(previewedOrder(back.calls[1])).toEqual({ ...STORED_ORDER, score: MOVED });
+    expect(previewedOrder(back.calls[2])).toEqual(STORED_ORDER);
+    expect(back.calls[3]).toEqual({ preview: A, with: null });
+    clear();
+
+    const escaped = shown(TIMELINE);
+    press(escaped.card, "pointerdown", 200, 110);
+    press(escaped.card, "pointermove", 200, 90);
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    flushSync();
+    press(escaped.card, "pointerup", 200, 90);
+    expect(escaped.calls.map((call) => Object.keys(call)[0])).toEqual([
+      "select",
+      "preview",
+      "preview",
+    ]);
+    expect(escaped.calls[2]).toEqual({ preview: A, with: null });
+  });
+
+  /** A press on `target` of `node` at the markers band, moved and released: no call, no mark. */
+  function untaken(node: ReturnType<typeof shown>, target: Element, shiftKey = false): void {
+    const marked: boolean[] = [];
+    press(target, "pointerdown", 200, 110, shiftKey);
+    marked.push(node.svg.classList.contains("nodrag") || node.svg.classList.contains("nopan"));
+    press(target, "pointermove", 200, 90, shiftKey);
+    marked.push(node.svg.classList.contains("nodrag") || node.svg.classList.contains("nopan"));
+    press(target, "pointerup", 200, 90, shiftKey);
+    expect(node.calls).toEqual([]);
+    expect(marked).toEqual([false, false]);
+    clear();
+  }
+
+  it("starts no drag on a locked canvas, with Shift, or on an element over the band", () => {
+    const locked = shown(TIMELINE, { locked: true });
+    untaken(locked, locked.card);
+    const shifted = shown(TIMELINE);
+    untaken(shifted, shifted.card, true);
+    const wedge = shown(TIMELINE);
+    untaken(wedge, addressed(wedge.svg, "score/start")[0] as Element);
+  });
+
+  it("marks and moves no band outside its timeline's editor", () => {
+    const performance: Editing = { target: `${A}/performance`, kind: "timeline" };
+    const outside: [Editing | null, (node: ReturnType<typeof shown>) => Element][] = [
+      [null, (node) => node.card],
+      [BUNDLE, (node) => node.card],
+      [GROUP, (node) => addressed(node.svg, "group_1")[0] as Element],
+      [performance, (node) => node.card],
+    ];
+    for (const [editing, target] of outside) {
+      const marked = shown(editing, { selected: ["score/markers_1"] });
+      press(marked.card, "pointermove", 200, 110);
+      expect(bandMarks(marked.svg)).toEqual([]);
+      clear();
+      const node = shown(editing);
+      untaken(node, target(node));
+    }
   });
 });

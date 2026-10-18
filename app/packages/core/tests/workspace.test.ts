@@ -13,33 +13,26 @@ describe("workspace creation", () => {
   it("defaults blocks to the drawing's placement defaults and scale 1", () => {
     expect(DEFAULT_SETTINGS).toEqual({
       grid: { size: 8, snap: true },
-      blockDefaults: {
-        scale: 1,
-        length: 400,
-        spacing: 1,
-        width: null,
-        height: null,
-        order: ["children", "regions", "flow"],
-      },
+      blockDefaults: { scale: 1, length: 400, spacing: 1, width: null, height: null },
       graphical: {},
     });
   });
 
   it("creates exactly the fixed metadata, the settings and no blocks", () => {
     expect(createView()).toEqual({
-      meta: { format: "tilie-workspace", version: 3 },
+      meta: { format: "tilie-workspace", version: 4 },
       settings: DEFAULT_SETTINGS,
       blocks: {},
     });
     const settings = { ...DEFAULT_SETTINGS, grid: { size: 4, snap: false } };
     expect(createView(settings)).toEqual({
-      meta: { format: "tilie-workspace", version: 3 },
+      meta: { format: "tilie-workspace", version: 4 },
       settings,
       blocks: {},
     });
   });
 
-  it("gives a block exactly its fourteen members", () => {
+  it("gives a block exactly its twelve members", () => {
     expect(Object.keys(block(viewOf([A, "bare.json"]))).sort()).toEqual(
       [
         "id",
@@ -52,9 +45,7 @@ describe("workspace creation", () => {
         "spacing",
         "width",
         "height",
-        "order",
         "places",
-        "bands",
         "manifest",
       ].sort(),
     );
@@ -107,7 +98,6 @@ describe("workspace checks", () => {
       spacing: 0,
       width: -5,
       height: null,
-      order: ["children", "children", "flow"],
       manifest: {
         ...region.manifest,
         timelines: [{ ...timeline, regions: [{ ...first, end: [0, 1] }] }],
@@ -119,7 +109,6 @@ describe("workspace checks", () => {
       { code: "non_positive_number", path: ["blocks", A, "length"] },
       { code: "non_positive_number", path: ["blocks", A, "spacing"] },
       { code: "non_positive_number", path: ["blocks", A, "width"] },
-      { code: "invalid_order", path: ["blocks", A, "order"] },
       {
         code: "region_end_before_start",
         path: ["blocks", A, "manifest", "timelines", 0, "regions", 0, "end"],

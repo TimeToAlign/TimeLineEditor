@@ -19,6 +19,7 @@ const IDLE: NodeActions = {
   },
   reducedMotion: () => false,
   zoom: () => 1,
+  locked: () => false,
 };
 
 let { data, actions }: { data: BlockNodeData; actions?: NodeActions } = $props();
@@ -34,6 +35,7 @@ setNodeActions({
   view: () => (actions ?? IDLE).view(),
   reducedMotion: () => (actions ?? IDLE).reducedMotion(),
   zoom: () => (actions ?? IDLE).zoom(),
+  locked: () => (actions ?? IDLE).locked(),
 });
 
 // The node reads only `data`; the other node props are Svelte Flow's.

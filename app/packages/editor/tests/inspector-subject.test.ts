@@ -13,6 +13,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App.svelte";
 import { inspectedSubject } from "../src/inspector/edit.ts";
 import { stubEditor } from "./dom.ts";
+import { flushAutosaves } from "./support.ts";
+
+vi.mock("../src/autosave.ts", async (importOriginal) =>
+  (await import("./support.ts")).recordAutosaves(await importOriginal()),
+);
 
 /** The end-to-end workspaces, the generator's output. */
 const E2E_FIXTURES = path.join(import.meta.dirname, "..", "..", "..", "e2e", "fixtures");
@@ -109,6 +114,26 @@ describe("inspectedSubject", () => {
     expect(inspectedSubject(small, [address])).toEqual(subject);
   });
 
+  it.each([
+    ["map0000000/melody/conversion_maps_1", named("Conversion maps band of timeline", "Melody")],
+    ["map0000000/phrase/conversion_maps_1", named("Conversion maps band of timeline", "Phrase")],
+    ["styled0000/score/markers_1", named("Markers band of timeline", "Score")],
+    ["styled0000/score/regions_1", named("Regions band of timeline", "Score")],
+    [
+      "flow000000/flow:quarters/flow_control_1",
+      named("Flow control band of timeline", "Flow control"),
+    ],
+    ["styled0000/a/children_1", unnamed("Children band of timeline", "a")],
+  ])("names %s, a band of a timeline", (address, subject) => {
+    expect(inspectedSubject(small, [address])).toEqual(subject);
+  });
+
+  it("names a band of a segment without a line of its own", () => {
+    expect(inspectedSubject(bundles, ["bungroup00/page_1/regions_1"])).toEqual(
+      named("Regions band of timeline", "Page 1"),
+    );
+  });
+
   it("counts several selected elements", () => {
     expect(inspectedSubject(bundles, ["bmixed0000", "bmixed0000/score"])).toEqual(
       bare("2 selected"),
@@ -116,6 +141,9 @@ describe("inspectedSubject", () => {
     expect(
       inspectedSubject(bundles, ["bmixed0000", "bmixed0000/score", "bmixed0000/group_1"]),
     ).toEqual(bare("3 selected"));
+    expect(inspectedSubject(bundles, ["bmixed0000/score/markers_1", "bmixed0000/score"])).toEqual(
+      bare("2 selected"),
+    );
   });
 
   it.each([
@@ -124,6 +152,11 @@ describe("inspectedSubject", () => {
     ["a part no element has", ["bmixed0000/score/x"]],
     ["an entry that does not exist", ["bmixed0000/score/region_x"]],
     ["a block that does not exist", ["0000000009"]],
+    ["a band numbered 2", ["bmixed0000/score/regions_2"]],
+    ["a part of a band", ["bmixed0000/score/regions_1/label"]],
+    ["a band after a part", ["bmixed0000/score/card/regions_1"]],
+    ["a band of a group", ["bmixed0000/group_1/regions_1"]],
+    ["a band of a jump", ["bmixed0000/score/jump_1/flow_control_1"]],
   ])("gives null for %s", (_case, selection) => {
     expect(inspectedSubject(bundles, selection)).toBe(null);
   });
@@ -132,9 +165,10 @@ describe("inspectedSubject", () => {
 describe("the subject beside the inspector's heading", () => {
   let app: ReturnType<typeof mount> | undefined;
 
-  afterEach(() => {
+  afterEach(async () => {
     if (app !== undefined) unmount(app);
     app = undefined;
+    await flushAutosaves();
     document.body.innerHTML = "";
     vi.unstubAllGlobals();
   });
@@ -177,6 +211,11 @@ describe("the subject beside the inspector's heading", () => {
     hook.load(workspaceText("small"));
     flushSync();
     expect(shown(["styled0000/a"])).toEqual(["Timeline a", "a"]);
+    expect(shown(["styled0000/score/flow_control_1"])).toEqual([
+      "Flow control band of timeline Score",
+      null,
+    ]);
+    expect(shown(["styled0000/a/children_1"])).toEqual(["Children band of timeline a", "a"]);
 
     expect(shown([])).toEqual([undefined, null]);
     expect(drawer?.hasAttribute("aria-describedby")).toBe(false);

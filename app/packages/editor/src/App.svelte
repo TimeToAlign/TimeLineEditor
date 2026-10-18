@@ -35,7 +35,7 @@ import Inspector from "./inspector/Inspector.svelte";
 import type { Message } from "./MessageArea.svelte";
 import MessageArea from "./MessageArea.svelte";
 import type { Health, TestHook, ViewportValue } from "./testHook.ts";
-import { installTestHook, TEST_HOOK, WorkspaceRefusedError } from "./testHook.ts";
+import { bandsOf, installTestHook, TEST_HOOK, WorkspaceRefusedError } from "./testHook.ts";
 
 /** The server's health, kept for the About pane; `null` until it answers. */
 let health: Health | null = $state.raw(null);
@@ -202,15 +202,18 @@ $effect(() => {
 
 /**
  * Open the drawer when the first editor opens (the viewer may close it
- * again while editing), and after an editor closes drop from the selection
- * what no longer exists, giving the focus back to the arranger when it was
- * on a control that went with the editor.
+ * again while editing); when an editor opens or closes drop from the
+ * selection what no longer exists under the innermost one (a band but in
+ * its own timeline's editor), and after one closes give the focus back to
+ * the arranger when it was on a control that went with the editor.
  */
 function followEditing(current: Store, before: number): void {
   const count = current.editing.length;
   if (count > 0 && before === 0 && !inspectorOpen) setInspector(true);
+  if (count !== before) {
+    selection = existing(current.view, selection, current.editing.at(-1) ?? null);
+  }
   if (count < before) {
-    selection = existing(current.view, selection);
     void tick().then(() => {
       if (document.activeElement === null || document.activeElement === document.body) {
         canvas?.focus();
@@ -354,7 +357,7 @@ async function exportManifest(minimal: boolean): Promise<void> {
 function step(back: boolean): void {
   if (back) store.undo();
   else store.redo();
-  selection = existing(store.view, selection);
+  selection = existing(store.view, selection, store.editing.at(-1) ?? null);
 }
 
 const MAC = typeof navigator !== "undefined" && navigator.userAgent.includes("Mac");
@@ -510,6 +513,7 @@ if (TEST_HOOK) {
     open: (address) => store.open(address),
     done: () => store.done(),
     cancel: () => store.cancel(),
+    bands: (block) => bandsOf(store.view, block),
   };
   $effect(() => installTestHook(hook));
 }

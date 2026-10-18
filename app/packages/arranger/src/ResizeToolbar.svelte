@@ -166,11 +166,7 @@ function result(): { values: Partial<Block>; command: SetCommand | null } {
   };
   if (item === undefined) {
     const { values } = resize(block, view.settings, metrics, chosen, handle, delta);
-    // A resize that changes no stored value is no command, like a drag that ends where it began.
-    const changes = Object.entries(values).some(
-      ([member, value]) => block[member as keyof Block] !== value,
-    );
-    return { values, command: changes ? resizeCommand(block, values) : null };
+    return { values, command: resizeCommand(block, values) };
   }
   const places = itemResizeValues(
     block,

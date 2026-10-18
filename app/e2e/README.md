@@ -33,7 +33,8 @@ before it, Playwright ignores the filter and runs every spec).
   development builds and builds made with `VITE_TILIE_TEST_HOOK=1`):
   `store().view` for placements, manifests and block order,
   `store().journal` for the commands a gesture produced, `selection()`,
-  `viewport()`, `locked()` and `mode()`. A stored number is compared with
+  `viewport()`, `locked()`, `mode()` and `bands(block)`, the bands drawn
+  in a block (`bands.spec.ts`). A stored number is compared with
   `toEqual`/`toBe` against a literal; nothing is read back from pixels.
 - **The DOM** for what the editor renders: nodes
   `.svelte-flow__node[data-id="<block id>"]` (a selected block's node
@@ -46,7 +47,9 @@ before it, Playwright ignores the filter and runs every spec).
   | "mode-box" | "mode-stretch"]` and the canvas controls' `[data-testid="lock"
   | "marquee"]` with `aria-pressed`,
   handles `[data-testid="handle-<handle>"]`, guides
-  `[data-testid="snap-guide"]` and the refusal hint `[data-testid="hint"]`.
+  `[data-testid="snap-guide"]`, the refusal hint `[data-testid="hint"]` and
+  the marks of a hovered or selected band,
+  `rect.tilie-band[data-band="<band address>"]` inside the block's node.
 - **Pixels** only in `visual.spec.ts`, tagged `@visual`.
 - **Time** only in `budget.spec.ts`, tagged `@budget`; its `≤` comparisons are
   budgets by definition and the only inequalities on measured values in the
@@ -174,27 +177,31 @@ h(11) + 8 = 28.8046875` below the title, each further one 8 below the one
 before, all at `x = 8`.
 
 - `bmixed0000`: `score` (two maps, `Ea = 11.5`; below the wedges, 4 and a
-  flow band of one jump level, `8 + 2 + h(9)`, so `Eb = 51.453125`)
+  flow control band of one jump row, `8 + 2 + h(9)`, so `Eb = 51.453125`)
   78.953125; `performance` and `page` (one map each) 49.4765625; `excerpt`
   (one map, then `recording`'s ancestor row from 10.5, `Ea = 44.4765625`)
-  87.453125; `annotations` (both regions in one row, a band `6 + 2 + h(9)
-  + 4 − 4 = 18.4765625` wide, 4 beyond the wedges) 71.85546875. So
+  87.453125; `annotations` (both regions in one row, a regions band `6 + 2
+  + h(9) + 4 − 4 = 18.4765625` wide, 4 beyond the wedges) 71.85546875. So
   `group_1` is 169.234375 high at `y` 28.8046875, `group_2` 177.734375 at
   206.0390625, and `annotations/card` lies at 391.7734375; the box is `8 +
   (391.7734375 + 71.85546875 + 2) = 473.62890625` high.
 - `bshared000`: `exposition` (two maps, its own `cmap_2` and then its
   segment `exposition_second`'s `cmap_3`, and the boundary of
-  `exposition_second`: a root band of 23.9765625 above; `score`'s row from
-  27.9765625, `Ea = 61.953125`) 104.9296875; `take_1` (one map and a
-  boundary, a root band of 20.4765625, no ancestor) 63.453125;
-  `recapitulation` (no map, the boundary of `recapitulation_second`: a
-  root band of 20.4765625; its children band
-  from 24.4765625 holds the segment lines `recapitulation_first` and
-  `recapitulation_second` in one row, its inner half 8 (their boundaries)
-  and its outer half 20.4765625 (a boundary, `recapitulation_second`'s map
-  and one tier of phrase labels), so it ends at 52.953125; `score`'s row
-  from 56.953125, `Ea = 90.9296875`) 133.90625; `take_2` (plain)
-  49.37890625. So `group_1` is 209.1875 high at `y` 28.8046875, `group_2`
+  `exposition_second`: its line reaches `11.5 + 2 + h(9) = 23.9765625`
+  above, its maps and one tier of segment labels, and its conversion maps
+  band at level 1 shares that room; `score`'s row from 27.9765625, `Ea =
+  61.953125`) 104.9296875; `take_1` (one map and a boundary: its line
+  reaches `8 + 2 + h(9) = 20.4765625` above, its boundary and one tier of
+  segment labels, its conversion maps band sharing that room; no
+  ancestor) 63.453125; `recapitulation` (no map, so no conversion maps
+  band; the boundary of `recapitulation_second` and one tier of segment
+  labels: its line reaches 20.4765625 above, and its children band, at
+  level 1, starts `B` beyond, at 24.4765625; it holds the segment lines
+  `recapitulation_first` and `recapitulation_second` in one row, its inner
+  half 8 (their boundaries) and its outer half 20.4765625 (a boundary,
+  `recapitulation_second`'s map and one tier of phrase labels), so it ends
+  at 52.953125; `score`'s row from 56.953125, `Ea = 90.9296875`)
+  133.90625; `take_2` (plain) 49.37890625. So `group_1` is 209.1875 high at `y` 28.8046875, `group_2`
   224.08984375 at 245.9921875, and `page/card` lies at 478.08203125; the
   box is `8 + (478.08203125 + 49.37890625 + 2) = 537.4609375` high.
 
@@ -633,13 +640,39 @@ mouse, Svelte Flow measures a node drag from the move that starts it).
    follows a touch press).
 8. **A double tap outside the edited element closes the innermost editor,
    once.** With `prefers-reduced-motion: reduce` emulated for the case, the
-   bundle editor of `map0000000` and the timeline editor of
-   `map0000000/melody` opened through the hook, and the viewport set back
-   to (20, 20), zoom 1, a double tap on the empty pane at canvas (−20,
+   bundle editor of `map0000000` and then the timeline editor of
+   `map0000000/melody` opened through the hook (`enter`: each time, once
+   the canvas has moved to the editor, the viewport is set back to (20,
+   20), zoom 1), a double tap on the empty pane at canvas (−20,
    100) (left of every block, clear of any element for the touch
    adjustment) leaves exactly `[{target: "map0000000", kind: "bundle"}]`,
    and two frames later still that one editor: the double-click the engine
    may derive from the two taps closes nothing more.
+9. **A band moves with one finger.** With `prefers-reduced-motion: reduce`
+   emulated for the case, `bundles` loaded through the hook in place of
+   `small` (journal 3), the viewport set to (20, 20), zoom 1, and the
+   timeline editor of `bmixed0000/score` opened through the hook. The
+   editor opens the drawer, 22rem wide, which leaves the phone's arranger
+   about 60 px; a tap on "Close inspector" closes it, and the canvas
+   recentres the edited card for the wider arranger (the viewport changes
+   once more). Then `score/flow_control_1` is centred at zoom 2
+   (`focusBand`, as in `bands.spec.ts`), where it is 40.953125 px high, so
+   the finger lands at `bandPoint` with clearance `FINGER` (14): a point
+   whose hit, and the hits 14 px around it, are the card or the block's
+   background, right of the jump. The finger first travels `TOUCH_LEAD` to
+   the right (the touch slop, as for a node drag), then straight up to a
+   release one band height (the flow control band's, in pixels) above the
+   middle of `score/conversion_maps_1`. No visible entry of `score` other
+   than the dragged band lies above that, so the band moves to just before
+   the first of them, `score/conversion_maps_1`: the new order is
+   `[score/children_1, score/flow_control_1, score/conversion_maps_1,
+   score, score/markers_1, score/regions_1]`, the order of `bands.spec.ts`
+   case 6 after its third Ctrl/Cmd+ArrowUp. Lifted: the session holds exactly one entry, the `set` of
+   `bmixed0000/score`'s `order` to that order; `score`'s bands are exactly
+   `score/flow_control_1` 2, 1; `score/conversion_maps_1` 1, 2;
+   `score/markers_1` −1, 2; the selection is exactly
+   `[bmixed0000/score/flow_control_1]`; and the viewport is still the one
+   `focusBand` set: a press on a band starts the band's drag and no pan.
 
 ## `files.spec.ts` (Chromium, Firefox, WebKit)
 
@@ -1190,9 +1223,10 @@ editors, outermost first, and each is compared as `{target, kind}` (its
 session id is random; `earlier` is proven in core's unit tests). `open(address)`
 opens an editor the way a double-click would and returns the store's
 refusal or `null`; `done()` and `cancel()` close the innermost one. A case
-that is not about entering opens its editor through `open` and, once the
-viewport has left (40, 40, 1), sets it back to (40, 40, 1) through the hook,
-so that pointer positions are counted at zoom 1 (Done returns to the
+that is not about entering opens its editor through `open` (`support.ts`'s
+`enter`) and, once the viewport has left the one before the opening, which
+is (40, 40, 1) in every such case, sets it back to (40, 40, 1) through the
+hook, so that pointer positions are counted at zoom 1 (Done returns to the
 viewport the editor was opened at, which is then (40, 40, 1) as well).
 Commands made inside an editor are read from `store().entries` (the open
 session's), the main journal from `store().journal`. A view or a journal
@@ -1518,6 +1552,281 @@ fixture: the manifest of `bmixed0000` is named "Mixed", its `group_1`
 
 The double tap of a touch screen is in `touch.spec.ts` (cases 7 and 8): the
 touch project runs only that file.
+
+## `bands.spec.ts` (Chromium, Firefox, WebKit)
+
+The bands of a timeline (drawing.md sections 2.1, 2.2 and 6.4) as boxes of
+its timeline editor. Every timeline has five bands, one of each kind,
+addressed `T/children_1`, `T/conversion_maps_1`, `T/markers_1`,
+`T/regions_1` and `T/flow_control_1`. A band is **present** when it draws an
+element; only a present band is recorded, offered, hovered and selected. A
+band is offered only in the timeline editor of its own timeline, while that
+editor is the innermost open editor of its block. A move of a band, by a
+drag or by Ctrl/Cmd+ArrowUp or ArrowDown, is one `set` of the timeline's
+`order` (its entry in the manifest's `graphical.order`, `null` when the new
+order equals the one it inherits): one command, one entry, one undo step.
+`bundles` at viewport (40, 40), zoom 1, page 1600 × 1000, with
+`prefers-reduced-motion: reduce` for the whole file, as `editors.spec.ts`.
+An editor is opened through the hook (`enter`: the viewport before the
+opening is read, the editor opened, the canvas's move to it awaited, and
+the viewport then set to a stated one), so pointer positions count from a
+known viewport.
+
+**What is read.** The hook's `bands(block)` lists the bands drawn in a
+block in the drawing's order (timelines in traversal order, each
+timeline's bands top to bottom), each `{address, timeline, kind, level,
+line, elements, rect}`: `level` is signed and never 0 (1, 2, … outwards
+above the line, −1, −2, … below), `elements` the number of displayed
+elements the band holds directly, `line` the client ordinate of its
+timeline's line, and `rect` its rectangle in client pixels, left and top
+edges then the size, as `getBoundingClientRect` gives them (both mapped
+from the drawing through the block's drawing `<svg>`, so a block off
+screen reports them unclipped, and one whose drawing is not on the page
+throws). The records
+are those of the stored view's drawing, never of a drag's preview. A
+timeline's bands are compared as `{address, kind, level, elements}`, in the
+hook's order; `line` and `rect` only aim the pointer. A selected band is
+`<block>/<band address>`. The marks of the hovered band and of the
+selected bands are read as the sorted `data-band` values of the
+`rect.tilie-band` marks in the block's node. A command is read from the
+newest entry of `store().entries` (the open session's, the journal's on
+the arranger) as JSON, a view as its JSON text.
+
+**Aiming at a band** (`support.ts`):
+- `focusBand(block, address, zoom)` centres the band's rectangle in the
+  pane at `zoom`: its canvas centre is its client centre less the pane's
+  origin and the viewport's offset, over the zoom, and the new viewport
+  puts that point at the pane's centre, rounded to whole pixels. A case
+  does this first, since at (40, 40) the right part of `bshared000` lies
+  behind the drawer that an editor opens.
+- `bandPoint(block, address, clearance)` is a whole-pixel point inside the
+  band's rectangle, at least `clearance` px inside its edges and inside the
+  pane, where the element hit there and at the eight points `clearance` px
+  around it lies in the block's node and carries no address but a card's
+  (`<root>/card`, or none: the block's background, or a part outside the
+  edited element, which takes no pointer). A press there meets no drawn
+  element, so in the band's timeline editor it hits the band, a drawn
+  element being hit before any band. Rows are searched from the band's
+  vertical middle outwards, each pixel by pixel from the left.
+- **Where a drop lands** (drawing.md section 6.4, The band order and
+  Levels). The **visible entries** of a timeline are its present bands and
+  its own id, top to bottom; a band's position is the middle of its
+  rectangle, the id's the line. The drop is read at the pointer's drawing
+  ordinate at the release, against the drawing at the press: of the visible
+  entries without the dragged band, `k` lie above it, and the band moves in
+  the timeline's band order to just after the `k`-th of them, or just
+  before the first when `k` is 0. So a release aims at an interval between
+  two positions, read from the hook before the press, and lands at its
+  middle; the spec checks the interval is not empty. Every drag is a mouse
+  drag in 10 moves from the press, beyond the click distance (4 px).
+- **A step** moves the band past the next visible entry in the arrow's
+  direction, the line included: up, to just before that entry in the
+  order; down, to just after it; nothing at the top or the bottom.
+
+**The bands, from the fixture.** No manifest of `bundles` has a statement,
+and `graphical.order` holds the groups' display orders only, so every
+timeline follows the default band order of drawing.md section 4,
+`[T/children_1, T/conversion_maps_1, T, T/markers_1, T/regions_1,
+T/flow_control_1]`, a child its parent's band by band (section 6.4). The
+defaults hide the markers, regions and flow control bands of every
+timeline a band holds, and only the root of a member drawing has wedges.
+The present bands, top to bottom, as `address level, elements`:
+
+- `bmixed0000/score` (a member of `group_1`; maps `cmap_1` and `cmap_2`,
+  the jump `jump_1`; no child, region or break): `score/conversion_maps_1`
+  1, 2; `score/markers_1` −1, 2 (its wedges); `score/flow_control_1` −2, 1.
+  Its children and regions bands are absent. With the line's stroke `w =
+  3`, the conversion maps band is `w / 2 + 2 × (g + d) = 11.5` wide from
+  the line, the markers band `w / 2 + 13 + 2 + h(9) = 26.9765625` (one
+  tier of wedge labels), and the flow control band starts `B = 4` beyond
+  that and is `8 + 2 + h(9) = 20.4765625` wide (one jump row). So the
+  middles lie 5.75 above the line and 13.48828125 and 41.21484375 below
+  it.
+- `bshared000/exposition` (a member of `group_1`, a child of `score`, a
+  segment line whose segments draw no line): `exposition/conversion_maps_1`
+  1, 2 (its own `cmap_2` and its segment `exposition_second`'s `cmap_3`,
+  which joins its band); `exposition/markers_1` −1, 2. Its children band
+  is absent: a segment that draws no line is no element.
+- `bshared000/recapitulation` (a member of `group_2`, a child of `score`,
+  whose segments are segment lines): `recapitulation/children_1` 1, 2 (the
+  child lines `recapitulation_first` and `recapitulation_second`);
+  `recapitulation/markers_1` −1, 2.
+- `bshared000/recapitulation_first`: no band. Its segments draw nothing,
+  and its markers band, held by `recapitulation`'s children band, is
+  hidden and holds no wedge.
+- `bshared000/recapitulation_second` (map `cmap_4`):
+  `recapitulation_second/conversion_maps_1` 1, 1. One map is `w / 2 + (g +
+  d) = 6.5` wide, but at level 1 the band shares its room with the line's
+  reach above, which is larger: the boundary of its second segment (`k =
+  8`) and one tier of segment labels, `8 + 2 + h(9) = 20.4765625`. So its
+  rectangle runs from the line to 20.4765625 above it, and holds, besides
+  the line's stroke and the map, the boundary and the two segment labels,
+  with empty room between them.
+- `bshared000/take_1` (a root, a segment line whose segments draw no
+  line, map `cmap_1`): `take_1/conversion_maps_1` 1, 1; `take_1/markers_1`
+  −1, 2.
+
+In cases 1 to 3 and 6 to 9, `C`, `M`, `K`, `R` and `F` stand for
+`score/children_1`, `score/conversion_maps_1`, `score/markers_1`,
+`score/regions_1` and `score/flow_control_1` of `bmixed0000`, so `score`'s
+inherited order is `[C, M, score, K, R, F]`, and `SCORE` for its three
+bands as listed above.
+
+1. **A band in its timeline editor is hovered and clicked.** The timeline
+   editor of `bmixed0000/score`, `F` centred at zoom 1. `score`'s bands are
+   exactly `SCORE`, and the node holds no band mark. The mouse moved to
+   `bandPoint` of `F` (clearance 2) gives exactly the marks `[F]`; the
+   selection is still `[]`. A click there selects exactly
+   `[bmixed0000/score/flow_control_1]`, and the marks are `[F]`, one band
+   being both hovered and selected. The mouse moved to `bandPoint` of `K`
+   gives the marks `[F, K]` (sorted) and leaves the selection; moved onto
+   the empty pane (canvas x −20, left of every block, at `K`'s canvas
+   ordinate), it leaves the selection's mark alone, `[F]`. Opening an
+   editor, hovering and selecting are no commands: the session holds no
+   entry.
+2. **A band dragged across the line into a gap, undone in one step and
+   redone.** The same editor, `F` centred at zoom 2, where the gap between
+   `M`'s middle and the line is 11.5 px. `F` is pressed at `bandPoint`
+   (clearance 2) and released at the middle of that gap. Of the visible
+   entries without it, `[M, score, K]`, one (`M`) lies above, so `F` moves
+   to just after `M`: `[C, M, F, score, K, R]`, not the inherited order.
+   One entry in the session, the main journal still 3, exactly `{type:
+   "set", changes: [{target: "bmixed0000/score", values: {order: [C, M,
+   F, score, K, R]}}]}`; the stored `graphical.order` is exactly `{group_1:
+   ["score", "performance"], group_2: ["page", "excerpt"], score: [C, M, F,
+   score, K, R]}`. `score`'s bands are exactly `M` 2, 2; `F` 1, 1; `K` −1,
+   2: the jump lies above the line, between the line and the maps. The
+   selection is exactly `[bmixed0000/score/flow_control_1]`: the release
+   keeps the moved band selected. Ctrl/Cmd+Z on the focused arranger undoes
+   it in one step: no entry, the view's JSON text the one before the drag
+   and `score`'s bands `SCORE`. Ctrl/Cmd+Shift+Z redoes it: one entry, the
+   view's JSON text the one after the drag.
+3. **A band dragged along its side.** The same editor, `F` centred at zoom
+   1, pressed at `bandPoint` (clearance 2) and released at the middle of
+   the 13.48828125 px between the line and `K`'s middle. Of `[M, score,
+   K]`, two lie above, so `F` moves to just after `score`: `[C, M, score,
+   F, K, R]`. One entry, exactly the `set` of `bmixed0000/score`'s `order`
+   `[C, M, score, F, K, R]`; `score`'s bands are exactly `M` 1, 2; `F` −1,
+   1; `K` −2, 2; the selection is exactly
+   `[bmixed0000/score/flow_control_1]`.
+4. **A child's band is offered in the child's editor and in no other.**
+   `bshared000`'s `recapitulation_second`, drawn as a child line in
+   `recapitulation`'s children band. The point is found once: in the bundle
+   editor of `bshared000`, with `recapitulation_second/conversion_maps_1`
+   centred at zoom 2, `bandPoint` (clearance 2). No part of the block is
+   outside the bundle editor's edited element, so every drawn element takes
+   the pointer there, and the point is clear of every drawn element of the
+   block. Every later editor is opened with the viewport set to that same
+   one, so the point is the same canvas point. At that point, the selection
+   cleared through the hook before each:
+   - in the bundle editor of `bshared000`, the mouse there shows no band
+     mark two frames later, and a click selects exactly
+     `[bshared000/recapitulation/card]` (a press on a card selects the
+     card), still with no mark;
+   - in the group editor of `bshared000/group_2`, the same;
+   - in the timeline editor of `bshared000/recapitulation`, the child's
+     parent, the point lies in `recapitulation/children_1`'s rectangle,
+     which holds the child's whole drawing (row 1's outer half is at least
+     the child's above side, its maps and its segment labels). That band is
+     the one offered: the marks are exactly
+     `[recapitulation/children_1]`, and a click selects exactly
+     `[bshared000/recapitulation/children_1]`;
+   - in the timeline editor of `bshared000/recapitulation_second`, opened
+     from the arranger, the child's bands are exactly
+     `recapitulation_second/conversion_maps_1` 1, 1; the marks are exactly
+     `[recapitulation_second/conversion_maps_1]`, and a click selects
+     exactly `[bshared000/recapitulation_second/conversion_maps_1]`;
+   - on the arranger, with no editor open, no mark, and a click selects
+     exactly `[bshared000/recapitulation/card]`.
+
+   Each editor is closed through the hook's `done`; no session held a
+   change, so the main journal is still 3.
+5. **A root's order change moves a child without an entry of its own.**
+   `bshared000`'s root `score` is drawn only as ancestor lines (its
+   children `exposition` and `recapitulation` are members), so no editor
+   offers its bands; its order is set through the hook's store on the
+   arranger, `{type: "set", changes: [{target: "bshared000/score", values:
+   {order: ["score/children_1", "score", "score/conversion_maps_1",
+   "score/markers_1", "score/regions_1", "score/flow_control_1"]}}]}`: the
+   maps below the line. It is accepted, and the journal holds 4 entries. No
+   other timeline has an entry, so `exposition`, `recapitulation` and,
+   through `recapitulation`, `recapitulation_second` follow it band by band:
+   - `exposition`: `exposition/conversion_maps_1` −1, 2;
+     `exposition/markers_1` −2, 2 (both below, the maps nearer the line);
+   - `recapitulation`: unchanged, `recapitulation/children_1` 1, 2;
+     `recapitulation/markers_1` −1, 2 (its conversion maps band is absent,
+     and its children band still comes before its id);
+   - `recapitulation_second`: `recapitulation_second/conversion_maps_1` −1,
+     1: the child's maps follow its grandparent's entry through its
+     parent, which has none;
+   - `recapitulation_first`: still no band; `take_1`, a root of its own,
+     unchanged.
+
+   Ctrl/Cmd+Z on the focused arranger undoes it: the journal holds 3
+   entries, the view's JSON text is the one before, and every band is as
+   before.
+6. **Ctrl/Cmd+ArrowUp and ArrowDown step a band past the next visible
+   entry.** The timeline editor of `bmixed0000/score`,
+   `[bmixed0000/score/flow_control_1]` selected through the hook, the
+   arranger focused. Each step that moves is one entry, the `set` of
+   `bmixed0000/score`'s `order` below; each keeps the selection exactly
+   `[bmixed0000/score/flow_control_1]`:
+   - Ctrl/Cmd+ArrowDown: `F` is the bottom visible entry, so nothing
+     happens: no entry, `score`'s bands `SCORE`;
+   - Ctrl/Cmd+ArrowUp: past `K`, `[C, M, score, F, K, R]`, 1 entry; `M` 1,
+     2; `F` −1, 1; `K` −2, 2;
+   - Ctrl/Cmd+ArrowUp: past the line, `[C, M, F, score, K, R]`, 2 entries;
+     `M` 2, 2; `F` 1, 1; `K` −1, 2;
+   - Ctrl/Cmd+ArrowUp: past `M`, `[C, F, M, score, K, R]`, 3 entries; `F`
+     2, 1; `M` 1, 2; `K` −1, 2;
+   - Ctrl/Cmd+ArrowUp: `F` is the top visible entry: still 3 entries;
+   - Ctrl/Cmd+ArrowDown: past `M`, `[C, M, F, score, K, R]`, 4 entries;
+     `M` 2, 2; `F` 1, 1; `K` −1, 2.
+
+   No step passes an absent band, so the step's two readings, before the
+   passed entry or after the visible entry beyond it, give one order.
+7. **Escape during a band's drag dispatches nothing.** The timeline editor
+   of `bmixed0000/score`, `F` centred at zoom 2,
+   `[bmixed0000/score/flow_control_1]` selected through the hook, and the
+   `points` attribute of the polygon of `score/start` (the start wedge, in
+   `K`) read, in drawing units. `F` is pressed at `bandPoint` and moved to
+   case 2's release with the button held. The preview draws case 2's
+   order: the line reaches nothing above, since `M` no longer lies against
+   it, so `F` at level 1 starts `B` beyond `w / 2`, at 5.5, and reaches
+   `5.5 + 20.4765625 = 25.9765625`; `M` at level 2 starts `B` beyond, at
+   29.9765625, and reaches `29.9765625 + 11.5 = 41.4765625`. So the outer
+   edge of `score`'s above side grows from 11.5 to 41.4765625, and the
+   line, with `K` against it below, lies 29.9765625 lower in the card: the
+   wedge's points differ from those read (the premise that a preview is
+   shown). Escape
+   withdraws the preview: the points equal those read, the selection is
+   still `[bmixed0000/score/flow_control_1]`, the timeline editor is still
+   open, and `score`'s bands are `SCORE`. After the release the session
+   holds no entry and the view's JSON text is the one before the press.
+   The maps are no witness: `M` is the outermost band above both before
+   and in the preview, so it lies against the card's top padding in both,
+   and `score/cmap_1`'s points do not change. No screen box is compared:
+   the preview makes the card taller and so the node's `<svg>` larger and
+   back, and Chromium and WebKit scale a resized `<svg>` differently in the
+   last digits (as for the frame in `editors.spec.ts`).
+8. **No band in the bundle or the group editor, nor on the arranger.** The
+   point is `bandPoint` of `bmixed0000`'s `F` (clearance 2), found in the
+   bundle editor of `bmixed0000` with `F` centred at zoom 1, where every
+   drawn element takes the pointer; every later editor is opened at that
+   viewport. The selection is cleared through the hook before each. In the
+   bundle editor, the mouse there shows no band mark two frames later, and
+   a click selects exactly `[bmixed0000/score/card]`, still with no mark.
+   The same in the group editor of `bmixed0000/group_1`, and on the
+   arranger with no editor open.
+9. **Delete with only a band selected removes nothing.** The timeline
+   editor of `bmixed0000/score`, `[bmixed0000/score/flow_control_1]`
+   selected through the hook, the arranger focused: Delete shows exactly
+   "A band is not deleted; select its elements to delete them." in the
+   status line (`data-testid="hint"`); the session holds no entry, the
+   view's JSON text is unchanged and the selection is still
+   `[bmixed0000/score/flow_control_1]`.
+
+The drag on a touch screen is in `touch.spec.ts` (case 9).
 
 ## `budget.spec.ts` (`@budget`, Chromium only)
 

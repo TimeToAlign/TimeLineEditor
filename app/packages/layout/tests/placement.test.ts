@@ -1,6 +1,6 @@
 /** Jump levels and order, a float axis, and the band order, at exact ordinates. */
 
-import type { Graphical } from "@timetoalign/timeskeleton";
+import type { BandKind } from "@timetoalign/tilie-core";
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_LAYER,
@@ -8,9 +8,20 @@ import {
   type Drawing,
   draw,
   type JumpElement,
+  manifestLayer,
   type TextElement,
 } from "../src/index.ts";
-import { BLOCK, build, drawFixture, load, metrics, quarters } from "./support.ts";
+import {
+  BLOCK,
+  bandOrder,
+  build,
+  drawFixture,
+  edit,
+  load,
+  metrics,
+  quarters,
+  set,
+} from "./support.ts";
 
 const jump = (from: number, to: number, label: string) => ({
   type: "add",
@@ -128,8 +139,11 @@ describe("float axis", () => {
 });
 
 describe("band order", () => {
-  const regionAbove: Graphical = {
-    statements: [{ select: { element: "region" }, set: { side: "above" } }],
+  /** `with_region` with the band order of its root `clt_1` holding `above` above its line. */
+  const ordered = (above: readonly BandKind[]) => {
+    const order = bandOrder("clt_1", above, ["markers", "flow_control"]);
+    const manifest = edit("with_region", set("clt_1", { order }));
+    return draw(manifest, DEFAULT_PLACEMENT, [DEFAULT_LAYER, manifestLayer(manifest)], metrics);
   };
   const geometry = (drawing: Drawing) =>
     drawing.elements.flatMap((item) => {
@@ -138,26 +152,23 @@ describe("band order", () => {
       return [];
     });
 
-  it("lays groups outward in the requested order", () => {
-    const normal = drawFixture("with_region", [regionAbove]);
-    const reversed = drawFixture("with_region", [regionAbove], {
-      ...DEFAULT_PLACEMENT,
-      order: ["flow", "regions", "children"],
-    });
-    expect(geometry(normal)).toEqual([
+  it("lays the bands of a side outward in the timeline's band order", () => {
+    const outer = ordered(["regions", "children", "conversion_maps"]);
+    const inner = ordered(["children", "regions", "conversion_maps"]);
+    expect(geometry(outer)).toEqual([
       ["clt_1/region_1", 34.4765625, 28.4765625],
       ["clt_1", 73.4765625],
       ["clt_2", 59.4765625],
       ["clt_3", 45.4765625],
     ]);
-    expect(normal.height).toBe(118.453125);
-    expect(geometry(reversed)).toEqual([
+    expect(outer.height).toBe(118.453125);
+    expect(geometry(inner)).toEqual([
       ["clt_1/region_1", 66.4765625, 60.4765625],
-      ["clt_1", 66.4765625],
+      ["clt_1", 71.9765625],
       ["clt_2", 37],
       ["clt_3", 23],
     ]);
-    expect(reversed.height).toBe(111.453125);
+    expect(inner.height).toBe(116.953125);
   });
 
   it("keeps first-fit rows independent of name width and x0", () => {

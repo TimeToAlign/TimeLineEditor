@@ -57,7 +57,13 @@ function writePackage(scratch: string, name: string, extraSource = ""): void {
   );
 }
 
-describe("the package ladder", () => {
+/**
+ * A case takes up to 5.7 s on a loaded machine
+ * (tests/README.md, "The package ladder is enforced").
+ */
+const CRUISE_TIMEOUT = 18_000;
+
+describe("the package ladder", { timeout: CRUISE_TIMEOUT }, () => {
   let scratch = "";
 
   beforeEach(() => {

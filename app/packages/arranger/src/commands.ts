@@ -23,7 +23,7 @@ import type { FontMetrics } from "@timetoalign/timeskeleton";
 import { drawingOf } from "./drawing.ts";
 import { GRID_FREE, positionStep, quantize } from "./numbers.ts";
 import { blocksInOrder, nodePosition } from "./project.ts";
-import { blockOf, type Selection } from "./selection.ts";
+import { blockOf, type Selection, selectedBand } from "./selection.ts";
 
 /** A block's node position after a gesture, before quantization. */
 export interface Move {
@@ -256,7 +256,9 @@ function gapSegments(view: View, targets: readonly string[]): string[] {
  * One `remove` of the selected addresses, an element's part standing for
  * the element (core's `elementOf`). Every element can be removed, timelines
  * and groups included; a selection holding a manifest's title, which goes
- * only with its block, is refused whole, with a hint naming the block.
+ * only with its block, is refused whole, with a hint naming the block. A
+ * band is never removed: its address is left out, and a selection of bands
+ * alone is refused with a hint.
  *
  * A segment leaves a gap in its segment line. Deleting a segment is not
  * supported yet: a selection holding a segment that leaves a gap is refused
@@ -268,8 +270,12 @@ export function removeCommand(
   selection: Selection,
 ): RemoveCommand | { readonly refused: string } {
   if (selection.size === 0) return { refused: "Nothing is selected." };
+  const addresses = [...selection].filter((address) => selectedBand(address) === null);
+  if (addresses.length === 0) {
+    return { refused: "A band is not deleted; select its elements to delete them." };
+  }
   const targets: string[] = [];
-  for (const address of selection) {
+  for (const address of addresses) {
     const block = view.blocks[blockOf(address)];
     if (block === undefined || address === block.id) {
       if (!targets.includes(address)) targets.push(address);

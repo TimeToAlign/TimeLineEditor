@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_PLACEMENT, type DrawnElement, type Placement } from "../src/index.ts";
-import { drawFixture, element } from "./support.ts";
+import {
+  DEFAULT_LAYER,
+  DEFAULT_PLACEMENT,
+  type DrawnElement,
+  draw,
+  manifestLayer,
+  type Placement,
+} from "../src/index.ts";
+import { bandOrder, drawFixture, edit, element, metrics, set } from "./support.ts";
 
 const NAMES = ["nested", "map", "flow_control", "with_region"] as const;
 
@@ -88,17 +95,24 @@ describe("vertical padding", () => {
     });
   });
 
-  it("ends a break line moved above at the stretched padding", () => {
-    const drawing = drawFixture(
-      "flow_control",
-      [{ statements: [{ select: { element: "break" }, set: { side: "above" } }] }],
-      { ...DEFAULT_PLACEMENT, spacing: 2 },
+  it("ends a break of a flow control band above the line at the stretched padding", () => {
+    const order = bandOrder(
+      "flow:quarters",
+      ["flow_control", "children", "conversion_maps"],
+      ["markers", "regions"],
     );
-    expect(drawing.height).toBe(123.9296875);
-    expect(element(drawing, "flow:quarters")).toMatchObject({ y: 34.4765625 });
+    const manifest = edit("flow_control", set("flow:quarters", { order }));
+    const drawing = draw(
+      manifest,
+      { ...DEFAULT_PLACEMENT, spacing: 2 },
+      [DEFAULT_LAYER, manifestLayer(manifest)],
+      metrics,
+    );
+    expect(drawing.height).toBe(125.4296875);
+    expect(element(drawing, "flow:quarters")).toMatchObject({ y: 72.453125 });
     expect(drawing.elements.find((item) => item.type === "break")).toMatchObject({
-      y1: 24,
-      y2: 97.9296875,
+      y1: 52.4765625,
+      y2: 99.4296875,
     });
   });
 });

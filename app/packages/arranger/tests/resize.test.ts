@@ -27,7 +27,9 @@ type Row = readonly [string, Handle, number, number, Partial<Block>];
 function check(view: View, mode: ResizeMode, handle: Handle, dx: number, dy: number) {
   const block = blockIn(view, A);
   const { values } = resize(block, view.settings, metrics, mode, handle, { dx, dy });
-  const after = blockIn(changed(view, resizeCommand(block, values)), A);
+  const command = resizeCommand(block, values);
+  // A resize that changes no stored value is no command: the block carries its values already.
+  const after = command === null ? block : blockIn(changed(view, command), A);
   for (const [member, value] of Object.entries(values)) {
     expect(after[member as keyof Block]).toBe(value);
   }
@@ -200,6 +202,15 @@ describe("resizeCommand", () => {
       type: "set",
       changes: [{ target: A, values: { width: 500 } }],
     });
+  });
+
+  it("is null when every value is the block's own", () => {
+    const block = blockIn(bare, A);
+    expect([
+      resizeCommand(block, { width: null }),
+      resizeCommand(block, { width: null, x: 40 }),
+      resizeCommand(block, { length: 400, places: block.places }),
+    ]).toEqual([null, null, null]);
   });
 });
 

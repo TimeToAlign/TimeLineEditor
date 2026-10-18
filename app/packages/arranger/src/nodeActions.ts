@@ -26,6 +26,8 @@ export interface NodeActions {
   view(): View;
   /** The canvas zoom: screen pixels per canvas unit. */
   zoom(): number;
+  /** Whether the canvas is locked: a press still selects, and nothing is moved. */
+  locked(): boolean;
   /** Whether the reader prefers reduced motion, under which nothing in a drawing slides. */
   reducedMotion(): boolean;
 }

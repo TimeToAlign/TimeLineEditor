@@ -8,16 +8,34 @@ the box that holds them). The tests prove it from the specification, never
 from the code's own output: every expected number below is derived here by
 hand from the specification's formulas and the font's advance widths, and
 the arithmetic is written out. Manifests are loaded from the fixtures of the
-installed schema package's version or built through core's commands; none is written by hand. The metrics are the package's
+installed schema package's version or built through core's commands; none is written by hand, except the
+`groups` of "A timeline drawn twice" (Band records). The metrics are the package's
 `fonts/dejavu-sans-2.37.metrics.json`. All comparisons are exact (`toBe`,
 `toEqual`); no tolerance anywhere.
 
 "The default layers" means `[DEFAULT_LAYER]`, plus the manifest's own layer
 when it has a `graphical` block (`manifestLayer`: its `styles` and
-`statements`, without the member `order`); an "extra layer" is an application's
+`statements`, without its `order`); an "extra layer" is an application's
 layer, placed between the two, since no layer lies above the manifest's own; "the default placement" is
-`{length: 400, spacing: 1, width: null, height: null, order: ["children",
-"regions", "flow"], bands: {}, places: {}}`.
+`{length: 400, spacing: 1, width: null, height: null, places: {}}`. A
+timeline's band order is its entry of the manifest's `graphical.order`
+(section 6.4), which the layout reads from the manifest itself; a test sets
+one through core's `set` of the property `order` on the timeline, written
+`bandOrder(T, above, below)`: the bands of the kinds `above` from the top
+down, `T`, then those of `below`.
+
+Every timeline drawn with a line of its own has its five bands at its own
+line (section 6.4). By the default band order (section 4) the conversion
+maps band lies above its line at level 1 and the children band beyond it,
+and the markers, regions and flow control bands lie below, in that order;
+the defaults hide the markers, regions and flow control bands of every
+timeline but a member drawing's root. Only a present band has a level and
+takes room. The band at level 1 or −1 starts at `c = 0` when it is the
+markers or the conversion maps band, and otherwise `B` beyond the larger of
+the line's reach on its side and `w / 2`: at `1.5 + 4 = 5.5` for a line of
+width 3 that reaches nothing there. A children band starts no nearer than
+`pl / 2`, half the pitch of the row its line lies in, so with no map it
+starts at `14 / 2 = 7`.
 
 Addresses follow section 2.2 in every manifest: a timeline or a group is
 addressed by its bare id, the manifest's title by `name`, and every other
@@ -77,6 +95,17 @@ each value read off section 4 and ranked by section 2.5:
   addresses, opacity 1; `second-half/name` fill `#000000`, font size 11,
   max width 160, opacity 1.
 
+The last three statements hide the markers, regions and flow control bands
+of every timeline held by a band (section 4), so with `[DEFAULT_LAYER]`
+alone, of the band keys core's `manifestElements` lists, exactly these
+resolve to `display: none`: in `with_region`, the three of each child,
+`clt_2` and `clt_3` (held by `clt_1/children_1`); in
+`unknown_length_segments`, the three of each segment without a line, `a`,
+`b` and `c` (held by `form/children_1`); in `bare` and in
+`groups/group_child_member`, none, since a member drawing's root, a member
+that is a child timeline included, is held by no band. Every conversion
+maps band and every children band stays shown.
+
 ## Hand-derived drawings (`examples.test.ts`)
 
 The five manifests of one root below are drawn at the default placement
@@ -114,8 +143,8 @@ Root `bare`, quarters, length 8, name `Bare` (`A = 1405 + 1255 + 842 + 1260
 `8 ♩` (u 1), each 12.83203125 wide, ask for at most `16 + 6.416015625` of
 `x0`, so `x0 = 16 + N + 8 = 49.5771484375`; `Xe = x0 + 400 = 449.5771484375`.
 No band above, so `y_root = max(8 + 0, 8 + 12.8046875 / 2) = 14.40234375`
-and the line lies at 22.40234375; below the root band holds the two wedges
-and no map, `Eb = 26.9765625`, `Hc = 14.40234375 + 26.9765625 + 8 =
+and the line lies at 22.40234375; below, the markers band at level −1 holds
+the two wedges, `Eb = 26.9765625`, `Hc = 14.40234375 + 26.9765625 + 8 =
 49.37890625`. Wedges: tip 23.90234375, base 36.90234375. Labels' baseline
 `(22.40234375 + 16.5) + 8.35400390625 = 47.25634765625`. Name baseline
 `22.40234375 + 3.80810546875 = 26.21044921875`. The rightmost drawn point
@@ -134,13 +163,16 @@ Root `clt_1` length 16; child `clt_3` at 4, length 8 (4 to 12); its child
 `clt_x` have `A = 1126 + 569 + 803 + 1024 + 1303 = 4825`, width
 `25.91552734375`. `x0 = 16 + 25.91552734375 + 8 = 49.91552734375` (the `16 ♩`
 label, 18.55810546875 wide, at u 1 asks nothing), `x(t) = x0 + 25 t`.
-`clt_3` takes above row 1 (minimum `0 + 1`); `clt_2` row 2 (minimum `1 + 1`).
-Above there is no root band, so the children band is the first and starts at
-`max(0, p0 / 2) = 7`; `p = 14`, both rows have halves 7 and 7, the band is
-`7 + 7 + 7 + 7 = 28` wide: row 1's line lies `7 + 7 = 14` out, row 2's
-`14 + (7 + 7) = 28` out, `Ea = 7 + 28 = 35`, `y_root = 8 + 35 = 43`, the
-root's line at 51. So the root's row and the two child rows lie one pitch,
-14, apart. `clt_3`: xs 149.91552734375, xe 349.91552734375, y `51 − 14 =
+`clt_3` takes row 1 of `clt_1`'s children band and `clt_2` row 1 of
+`clt_3`'s: the rows are `{clt_1}`, `{clt_3}` and `{clt_2}`, every pitch 14.
+Each children band lies above its line at level 1 and starts at 7. From the
+deepest row up: `clt_2`'s edges are 0, so the row `{clt_2}` has halves 7
+and 7, its line `7 + 7 = 14` above `clt_3`'s, and `clt_3`'s band is `7 + 7
+= 14` wide, `clt_3`'s above edge `7 + 14 = 21`; so the row `{clt_3}` has
+the inner half 7 and the outer half `max(7, 21) = 21`, its line `7 + 7 =
+14` above the root's, `clt_1`'s band is `7 + 21 = 28` wide, `Ea = 7 + 28 =
+35`, `y_root = 8 + 35 = 43`, the root's line at 51. So the root's row and
+the two child rows lie one pitch, 14, apart. `clt_3`: xs 149.91552734375, xe 349.91552734375, y `51 − 14 =
 37`; `clt_2`: xs 187.41552734375, xe 237.41552734375, y `51 − 28 = 23`.
 `Hc = 43 + 26.9765625 + 8 = 77.9765625`. Wedges: tip 52.5, base 65.5;
 labels' baseline `(51 + 16.5) + 8.35400390625 = 75.85400390625`. Name
@@ -157,8 +189,8 @@ Root `flow:quarters` length 16, name `Flow control` (`A = 12470`,
 (label `Fine`, `A = 4305`, width 18.91845703125), jump from 8 to 2 (label
 `Repeat`, `A = 7301`, width 32.08447265625), both below. Above nothing is
 drawn: `Ea = 0`, `y_root = 14.40234375`, the line at 22.40234375. Below:
-root band to 26.9765625; the flow band starts at `26.9765625 + 4 =
-30.9765625` with one break-label tier (`T = 1`, `10.4765625`), so the flow
+the markers band to 26.9765625; the flow control band starts at `26.9765625
++ 4 = 30.9765625` with one break-label tier (`T = 1`, `10.4765625`), so the flow
 row lies `30.9765625 + 10.4765625 = 41.453125` out, at `yf = 22.40234375 +
 41.453125 = 63.85546875`; one jump level: the band is `10.4765625 + 8 + 0 +
 2 + 10.4765625 = 30.953125` wide, `Eb = 30.9765625 + 30.953125 =
@@ -201,11 +233,12 @@ Root `melody` length 8 with map `tempo` (ScalarMap to seconds: physical,
 continuous); child `phrase` at 2, length 4, with map `ticks` (QuartersToTicks
 to ticks: logical, discrete). Maps have no names, so the widest name is
 `Melody` (`A = 7361`, `N = 39.53662109375`), `x0 = 63.53662109375`,
-`x(t) = x0 + 50 t`. Above: the root band holds `melody`'s stack, `tempo`
-alone, and no wedge, so it reaches 6.5; `tempo` is centred 5.5 above the
-root's line. The children band starts at `max(6.5 + 4, 7) = 10.5`; `p =
-14`; `phrase`'s stack above (outwards, its outer half) reaches 6.5, less
-than 7, so its row has halves 7 and 7: its line lies `10.5 + 7 = 17.5`
+`x(t) = x0 + 50 t`. Above: the conversion maps band at level 1 holds
+`melody`'s stack, `tempo` alone, and reaches 6.5; `tempo` is centred 5.5
+above the root's line. The children band starts at `max(6.5 + 4, 7) =
+10.5`; `p = 14`; `phrase`'s conversion maps band above (its above edge, on
+its row's outer half) reaches 6.5, less than 7, so its row has halves 7 and
+7: its line lies `10.5 + 7 = 17.5`
 out and `Ea = 10.5 + 14 = 24.5`, `y_root = 32.5`, the root's line at 40.5.
 `phrase` y `40.5 − 17.5 = 23`; `ticks` centred 5.5 above it, `yc = 17.5`;
 `tempo` `yc = 40.5 − 5.5 = 35`. `Hc = 32.5 + 26.9765625 + 8 = 67.4765625`.
@@ -230,8 +263,8 @@ width 29.07421875). The names `clt_x` give `x0 = 49.91552734375` as in
 `t / 12`. `clt_2` takes row 1; `clt_3`'s extent starts at `400 × u(2)`,
 before `clt_2`'s end `400 × u(13/3)`, so row 2: as in `nested`, the rows lie
 14 and 28 out, `Ea = 35`, `y_root = 43`, the root's line at 51 and the child
-rows at 37 and 23. Below: root band to 26.9765625, region band from
-30.9765625, one row, width `(6 + 2 + 10.4765625 + 4) − 4 = 18.4765625`, `Eb
+rows at 37 and 23. Below: the markers band to 26.9765625, the regions band
+from 30.9765625, one row, width `(6 + 2 + 10.4765625 + 4) − 4 = 18.4765625`, `Eb
 = 49.453125`, `Hc = 43 + 49.453125 + 8 = 100.453125`. Brace: `x1 = x0 + 400
 × u(2)`, `x2 = x0 + 400 × (1/2) = 249.91552734375`, arms `51 + 30.9765625 =
 81.9765625`, tip `51 + (30.9765625 + 6) = 87.9765625`, and exact midpoint x
@@ -279,24 +312,30 @@ concern. The rules the derivations follow:
 **`styled__score`** (the default placement; the default layer and the
 manifest's own). `score`: length 8, stroke width `w = 4`, its name's
 `content` `Styled score` at size 12 (`A = 12643`, 74.080078125); child `a`
-hidden (`display: none`, no row, no name); child `b` at 4, length 4, above;
-map `ticks` below; region `intro` 0 to 2 below; jump `da-capo` 8 → 0 below,
-`w = 2`; both wedges above. Every label is size 10, so the `9` of each band
+hidden (`display: none`, no row, no name); child `b` at 4, length 4; map
+`ticks`; region `intro` 0 to 2; jump `da-capo` 8 → 0, `w = 2`. Its band
+order lists `score/children_1`, `score/markers_1`, `score`,
+`score/conversion_maps_1`, `score/regions_1`, `score/flow_control_1`: above
+the line the markers band at level 1 and the children band at level 2,
+below it the conversion maps band at −1, the regions band at −2 and the
+flow control band at −3. Every label is size 10, so the `9` of each band
 is 10: `h(10) = 11.640625`, `a(10) = 9.2822265625`, `d(10) = 2.3583984375`;
 `h(12) = 13.96875`, `(a(12) − d(12)) / 2 = 4.154296875`. `x0 = 16 +
 74.080078125 + 8 = 98.080078125`, `Xe = 498.080078125`, `x(t) = x0 + 50 t`.
 
-- Above: the root band holds the wedges, labels `0 ♩` and `8 ♩` (14.2578125
-  wide) in tier 1 (extents `[−8.12890625, 8.12890625]` and `[391.87109375,
-  408.12890625]`): reach `4 / 2 + 13 + 2 + 1 × h(10) = 28.640625`. The
+- Above: the markers band holds the wedges, labels `0 ♩` and `8 ♩`
+  (14.2578125 wide) in tier 1 (extents `[−8.12890625, 8.12890625]` and
+  `[391.87109375, 408.12890625]`): from `c = 0` it is `4 / 2 + 13 + 2 + 1 ×
+  h(10) = 28.640625` wide. The
   children band starts at `c0 = max(28.640625 + 4, 13.96875 / 2) =
   32.640625`; `b`'s row has `p = 14` and halves 7: its line lies
   `39.640625` out, `Ea = 32.640625 + 14 = 46.640625`.
-- Below: the root band is `ticks`'s stack, `e = 2 + 5 = 7`, the map
-  centred `2 + 5 − 1 = 6` out. The region band starts at `7 + 4 = 11`,
+- Below: the conversion maps band is `ticks`'s stack, `e = 2 + 5 = 7` from
+  `c = 0`, the map centred `2 + 5 − 1 = 6` out. The regions band starts at
+  `7 + 4 = 11`,
   `pr = 6 + 2 + 11.640625 + 4 = 23.640625`, width `pr − 4 = 19.640625`,
   edge 30.640625; brace arms 11 out, tip `11 + 6 = 17`, label `11 + 6 + 2 =
-  19` out. The flow band starts at `34.640625`, no break label: the flow
+  19` out. The flow control band starts at `34.640625`, no break label: the flow
   row lies there, the apex `34.640625 + 8 + 0 × pj = 42.640625` out, the
   label `42.640625 + 2` out; width `0 + 8 + 0 + 2 + 11.640625 =
   21.640625`, `Eb = 56.28125`.
@@ -331,8 +370,9 @@ corners `Bh ∓ 4n` = `(105.6106918038466, 102.10720665334537)` and
 constant is a non-dyadic double (`8v`, `4v`, `14v`, `10v`), so the order of
 the additions shows in the result. The values follow the formulas above
 with `B = 4v`, `P × v = 8v`, `p0 = max(14v, 13.96875)`, `p = max(14v,
-12.8046875)`, `pr = 6 + 2 + 11.640625 + 4v`, `pj = 10v + 11.640625`, flow
-width `0 + 8v + 0 × pj + 2 + 11.640625`; `x` is unchanged.
+12.8046875)`, `pr = 6 + 2 + 11.640625 + 4v`, `pj = 10v + 11.640625`, the
+flow control band's width `0 + 8v + 0 × pj + 2 + 11.640625`; `x` is
+unchanged.
 
 | Quantity | v = 0.89 | v = 2.63 |
 |---|---|---|
@@ -360,9 +400,9 @@ added last (section 8.6): the arms at 0.89 are `8 + (52.1253125 + 10.56) =
 6 + 2)) + a(10)) = 139.82285156249998`.
 
 These values tell the written order from its alternatives: at 0.89 the
-region band's edge `r0 + (pr − 4v)` is 30.200625000000002 against `(r0 +
+regions band's edge `r0 + (pr − 4v)` is 30.200625000000002 against `(r0 +
 pr) − 4v = 30.200625`, `Eb` 54.52125000000001 against 54.52125 when the
-flow width is not summed first, the apex `8 + (y_root + (f0 + 8v))`
+flow control band's width is not summed first, the apex `8 + (y_root + (f0 + 8v))`
 101.0059375 against `8 + ((y_root + f0) + 8v) = 101.00593750000002`; at
 2.63 `Ea = c0 + (i1 + o1)` is 75.980625 against 75.98062499999999, and the
 region label 139.82285156249998 against 139.8228515625 when the card's top
@@ -402,12 +442,13 @@ above. Names at 11: `controls` `A = 8211`, 44.10205078125 (the widest),
 `notes` 30.51318359375, `clt_1` (`A = 4825`) 25.91552734375; `x0 = 16 +
 44.10205078125 + 8 = 68.10205078125` (no centred label asks more: `0 ♩`
 asks `16 + 6.416015625`, `MC 3 → MC 1` (`A = 13320`, 58.53515625) at `u =
-3/37` asks `16 + 29.267578125 − 32.432432432432435`). Above: the root band
-is the one-map stack (6.5), the children band starts at `max(6.5 + 4, 7) =
+3/37` asks `16 + 29.267578125 − 32.432432432432435`). Above: the conversion
+maps band is the one-map stack (6.5), the children band starts at `max(6.5 + 4, 7) =
 10.5`, two rows of 14, `Ea = 38.5`, `y_root = 46.5`; in the card (top 8)
 the root's line lies at 54.5.
 
-Below: the wedges reach 26.9765625. The flow band starts at 30.9765625 with
+Below: the markers band reaches 26.9765625. The flow control band starts at
+30.9765625 with
 one break-label tier (`fine at MC 7`), so the flow row lies `41.453125` out
 and `yf = 54.5 + 41.453125 = 95.953125`. Jumps in canonical order (by
 from): `jump_1` `6→0`, `jump_2` `9→6`, `jump_3` `28→16`, `jump_4` `37→0`,
@@ -454,79 +495,278 @@ coordinates (`x0 = 8 + 44.10205078125 + 8 = 60.10205078125`, `yf = 46.5 +
 shows it, `8 + 62.358510406526214 = 70.35851040652622` against
 70.35851040652621 summed from the card's left edge first.
 
-## Map stacks, the root band and the end marker (`stacks.test.ts`)
+## One timeline's bands (`timeline.test.ts`)
 
-Section 6.4 "Map stacks", "The root band" and "Children", and the end
-marker of section 6.6. The tests prove that a map is placed against its own
-timeline's line, that `above` means up and `below` down for a map whatever
-side of the root its timeline lies on, that a stack wider than `p / 2`
-widens exactly its half of the row, that the root band takes the larger of
-the wedge reach and the stack reach, and that `locked` alone chooses the
-end marker. Values use the common values of "Hand-derived drawings": each
+Section 6.4 for one timeline drawn with a line of its own, below the member
+drawing: the test traverses a member drawing (`traverse`, the default layer,
+the extra layer it names and the manifest's own), prepares one timeline
+(`prepareTimeline`, every first fit) and lays it out (`layoutTimeline`),
+with a children band given as its joint start `c0` and its width where the
+timeline has one, so no row of `rows.ts` is involved. A laid band is
+written `[kind, level, c, width, E, elements]`, top to bottom. Where it
+draws, the line lies at `PLACE`: `x0 = 0`, `yl = 100`, the row's name size
+11, the member drawing's top 0, `P × v = 8`, `Hc = 200`; so `x(t) = L ×
+u(t)` and an ordinate is `100 ∓` a distance. `w = 3`, `B = 4`, a map
+stack of `J` maps reaches `1.5 + 5J` (6.5 for one), the root's markers band
+with one label tier is `1.5 + 13 + 2 + h(9) = 26.9765625` wide, and a
+regions band of one row `(6 + 2 + h(9) + 4) − 4 = 18.4765625` wide.
+
+**The band order, sides and levels.**
+
+- `map` by the default band order: `melody`'s order is `bandOrder(melody,
+  [children, conversion_maps], [markers, regions, flow_control])`, the
+  children and conversion maps bands above, the other three below; its
+  present bands are the conversion maps (`tempo`), children (`phrase`) and
+  markers (the wedges) bands, so its levels are `above: [conversion_maps,
+  children]`, `below: [markers]`; `phrase`'s order is its parent's mapped
+  band by band (`bandOrder(phrase, …)` with the same kinds), and its only
+  present band is its conversion maps band (`ticks`; a child's markers
+  band draws nothing): `above: [conversion_maps]`, `below: []`.
+- `map_root_band_order` (`melody: bandOrder(melody, [children],
+  [conversion_maps, markers, regions, flow_control])`): `melody`'s levels
+  `above: [children]`, `below: [conversion_maps, markers]`; `phrase` has
+  no entry, its order is `bandOrder(phrase, [children], [conversion_maps,
+  markers, regions, flow_control])` and its levels `below:
+  [conversion_maps]`.
+- `map_child_band_order` (`phrase`'s entry alone): `melody` by default,
+  `phrase` by its own entry, `below: [conversion_maps]`.
+- `groups/group_child_member`, the member `second-half` (a child of
+  `piece`): by default its order is the default mapped from `piece`'s;
+  with `piece`'s entry `bandOrder(piece, [children], [conversion_maps,
+  markers, regions, flow_control])` it follows `piece`
+  (`bandOrder(second-half, [children], [conversion_maps, markers,
+  regions, flow_control])`), and its one present band, its markers band
+  (the member's own wedges), is at −1.
+
+**Where a band lies.**
+
+- `map`, `melody`: its line reaches 6.5 above (the conversion maps band at
+  level 1 is its stack) and 0 below. With the children band given at `c0 =
+  10.5`, 14 wide: `[children, 2, 10.5, 14, 24.5, 1]`, `[conversion_maps,
+  1, 0, 6.5, 6.5, 1]`, `[markers, −1, 0, 26.9765625, 26.9765625, 2]`.
+  `phrase` alone: one band, `phrase/conversion_maps_1` at 1, its edges 6.5
+  above and 0 below.
+- `map_root_band_order`, `melody`: it reaches 0 above and 6.5 below; with
+  the children band at 7, 14 wide: `[children, 1, 7, 14, 21, 1]`,
+  `[conversion_maps, −1, 0, 6.5, 6.5, 1]` and the markers band `B` beyond
+  it, `[markers, −2, 10.5, 26.9765625, 37.4765625, 2]`: two bands on one
+  side, never over each other.
+- `unknown_length_child`, `movement` with `{ids: [movement/regions_1]}
+  display inline`: it reaches 0 on both sides (no map, no boundary), and
+  its regions band at −1 starts `B` beyond `w / 2`: `[regions, −1, 5.5,
+  18.4765625, 23.9765625, 1]`; edges 0 above and 23.9765625 below.
+- `unknown_length_segments` with `bandOrder(form, [children,
+  conversion_maps, regions], [markers, flow_control])` and every regions
+  band shown: `form`'s boundaries reach `k = 8` both ways (no segment is
+  named), and its regions band at level 1, holding the regions of `a` and
+  `c` in one row, starts `B` beyond the reach: `[regions, 1, 12,
+  18.4765625, 30.4765625, 2]`, `[markers, −1, 0, 26.9765625, 26.9765625,
+  1]` (the start wedge alone: the end is open).
+- `with_region`, `clt_1`, the children band at 7, 28 wide: `[children, 1,
+  7, 28, 35, 2]`, `[markers, −1, 0, 26.9765625, 26.9765625, 2]`, and the
+  regions band `B` beyond the markers band: `[regions, −2, 30.9765625,
+  18.4765625, 49.453125, 1]`.
+- `segment_line`, `b`: no band is present (its segments `b1`, `b2` have no
+  line; nothing of theirs is shown by default), so each side's outer edge
+  is the line's reach: `8 + 2 + h(9) = 20.4765625` above, 8 below.
+- `segment_pages` with `bandOrder(pages, [children, conversion_maps,
+  markers], [regions, flow_control])`: the markers band at level 1 lies
+  against the line, and the line's `m` is the larger of the band's width
+  26.9765625 and `k = 8`, so the line reaches `26.9765625 + 2 + h(9) =
+  39.453125` above and 8 below, and the band's outer edge is `max(0 +
+  26.9765625, 39.453125) = 39.453125`: `[markers, 1, 0, 26.9765625,
+  39.453125, 2]`. Drawn at `PLACE`, every segment label has the baseline
+  `100 − (26.9765625 + 2) − d(9) = 68.90087890625`, beyond the band; the
+  wedges' tips at `100 − 1.5 = 98.5`, their bases at `100 − 14.5 =
+  85.5`.
+
+**`childrenStart`**, the own start of a children band: the larger of the
+rule's start and `pl / 2`.
+
+- `map`, `melody`, its children band at level 2: `6.5 + 4 = 10.5`; with
+  `pl = 14`, `max(10.5, 7) = 10.5`; with `pl = 30`, `max(10.5, 15) = 15`.
+- `segment_line`, `form`, at level 1: `B` beyond the line's reach above,
+  `20.4765625 + 4 = 24.4765625` (`pl = 14`).
+- `unknown_length_child`, `score`, at level 1 where the line reaches
+  nothing: `max(1.5 + 4, 7) = 7`.
+
+**Level 0.**
+
+- `map` with `bandOrder(melody, [children], [markers, conversion_maps,
+  regions, flow_control])`: the conversion maps band lies at −2, so the
+  line has no stack and reaches 0 on both sides; with the children band at
+  7, 14 wide: `[children, 1, 7, 14, 21, 1]`, `[markers, −1, 0, 26.9765625,
+  26.9765625, 2]`, `[conversion_maps, −2, 30.9765625, 6.5, 37.4765625,
+  1]`. Drawn: `tempo` from `x(0) = 0` to `x(8) = 400`, centred at `100 +
+  (30.9765625 + 1.5 + 5 − 1) = 136.4765625`.
+- `segment_line`, `b` (on `form`'s axis, 32 quarters: `x(t) = 12.5 t`):
+  it reaches 20.4765625 above and `k = 8` below. Drawn: its line, a
+  `child` at 100 ending in its diamond; the boundary `b2/start` at `x(14)
+  = 175`, from 92 to 108; the labels `b1` at `x(11) = 137.5` and `b2` at
+  `x(17) = 212.5`, baseline `100 − (8 + 2) − d(9) = 87.87744140625`,
+  above the line only.
+
+**Segments without a line** (`segment_line` with, through `add`, the
+regions `b_region` (0 to 2) into `b`, `b1_region` (1 to 3) into `b1` and
+`b2_region` (0 to 6) into `b2`, a ScalarMap `b1_map` into `b1`, the
+unlabelled break `b1_break` at 2 and the jump `b1_jump` from 4 to 1 into
+`b1`; `b` at 8, `b1` at 8 and `b2` at 14 on `form`'s axis).
+
+- With every regions and flow control band shown: `b`'s sources are `b`,
+  `b1`, `b2`; its bands hold `children 0`, `conversion_maps 1` (`b1_map`),
+  `markers 0`, `regions 3`, `flow_control 2` (the break and the jump).
+  Drawn: the regions `form/b_region`, `form/b1_region`, `form/b2_region`
+  in that order (`b`'s own first, then segment after segment); `b1_map`
+  from `x(8) = 100` to `x(14) = 175`, spanning `b1`; the break at `x(10) =
+  125`; the jump.
+- By default only the maps join: `conversion_maps 1`, everything else 0,
+  since the default layer hides the segments' regions and flow control
+  bands. With `{ids: [b1]} display none` as well, `b1` adds nothing: the
+  sources are `b`, `b2`, and the bands hold `conversion_maps 0`, `regions
+  2`, `flow_control 0`.
+- With `{ids: [b/regions_1]} display none` as well, `b`'s regions band
+  still draws `form/b1_region` and `form/b2_region`: it is present while
+  its own `display` is `none`, and each segment's bands are displayed on
+  their own.
+- `segment_line` with `b1_map` added into `b1` and `b1`'s own entry
+  `bandOrder(b1, [children], [conversion_maps, …])`: `b`'s levels stay
+  `above: [conversion_maps]`, `below: []`, since a segment's band order
+  places nothing.
+
+**Extents.**
+
+- `unknown_length_child`, `movement` at 8, open, ending at 14 (score 32
+  long): `[L × 8/32, L × 14/32 + 9.5w] = [100, 175 + 28.5] = [100,
+  203.5]`; its region is hidden by default and adds nothing.
+- `flow_control`, the root: from the start label's `−12.83203125 / 2 − 1
+  = −7.416015625` to the end label's `400 + 18.55810546875 / 2 + 1 =
+  410.279052734375`; its flow control band adds, in this order, the
+  break's position `[300, 300]`, the break label's `[300 + 3 − 1, 300 + 3
+  + 18.91845703125 + 1] = [302, 322.91845703125]` and the jump's `[50,
+  200]` (its label `Repeat`, centred at 125, lies inside).
+- `wholeExtent([0, 10], [[−5, 3], [8, 20]]) = [−5, 20]`: the smallest
+  interval holding its own extent and its children's.
+
+**Breaks.**
+
+- The root's (`flow_control`): its flow control band at −2, from
+  `26.9765625 + 4 = 30.9765625`, one break-label tier, so the flow row
+  lies `30.9765625 + 10.4765625 = 41.453125` below the line, at
+  141.453125, and the break ends at the padding of the opposite side, the
+  top plus `P × v`: 8. With `bandOrder(flow:quarters, [children,
+  conversion_maps, flow_control], [markers, regions])` the band lies at
+  level 1 from `1.5 + 4 = 5.5`, the flow row at `100 − (5.5 + 10.4765625)
+  = 84.0234375`, and the break ends at `Hc − P × v = 192`.
+- A child's (`child_flow_control`, `verse` with its flow control band
+  shown, at level −1): it ends `mb = max(E, h(s) / 2)` beyond `verse`'s
+  line on the far side, `E` the outer edge of the side opposite the band
+  and `s` the name size of `verse`'s row: `E = 0`, `s = 11`: `100 −
+  6.40234375 = 93.59765625`; with `s = 40`: `100 − h(40) / 2 = 100 −
+  23.28125 = 76.71875`; with `bandOrder(verse, [children,
+  conversion_maps, flow_control], [markers, regions])`, the band above,
+  `E` the below side's 0: `100 + 6.40234375 = 106.40234375`; with a
+  ScalarMap `verse_map` added into `verse`, its stack above reaches `E =
+  6.5 > 6.40234375`: `100 − 6.5 = 93.5`.
+
+## The markers band, the conversion maps band and the end marker (`stacks.test.ts`)
+
+Section 6.4 "Where a band lies", "Level 0", "Conversion maps" and
+"Markers", and the end marker of section 6.6. The tests prove that a map
+lies in its own timeline's conversion maps band, against that timeline's
+line, on the side its band order gives it ("above" is up whatever side of
+its parent's line the timeline lies on); that a stack wider than `p / 2`
+widens exactly its half of the row; that the markers band and the
+conversion maps band are two bands, the one at level 1 or −1 against the
+line, the other `B` beyond it; that a conversion maps band at any other
+level leaves the line no stack; and that `locked` alone chooses the end
+marker. Values use the common values of "Hand-derived drawings": each
 manifest is one card whose top lies at 8, so an ordinate in the box is `8`
 plus its distance from the member drawing's top (the root's line at `8 +
-y_root`), and the drawing is `H = Hc + 18` high and `W = R + 18` wide.
+y_root`), and the drawing is `H = Hc + 18` high and `W = R + 18` wide. A
+band order is set through `set {order}` on the timeline (`bandOrder`, see
+the introduction).
 
-**The constructed manifest.** `r`, quarters, length 8, with child `c` at 4,
-length 4, carrying the maps `m1` and `m2` (ScalarMap quarters to seconds),
-built through `add` commands. Names `r` (`A = 842`) and `c` (`A = 1126`,
-6.0478515625 wide) give `x0 = 16 + 6.0478515625 + 8 = 30.0478515625`; `c`
-runs from `x0 + 200 = 230.0478515625` to `x0 + 400 = 430.0478515625`.
-Below, the root band holds the wedges only (26.9765625).
+**A child's conversion maps band.** `r`, quarters, length 8, with child
+`c` at 4, length 4, carrying the maps `m1` and `m2` (ScalarMap quarters to
+seconds), built through `add` commands. Names `r` (`A = 842`) and `c` (`A
+= 1126`, 6.0478515625 wide) give `x0 = 16 + 6.0478515625 + 8 =
+30.0478515625`; `c` runs from `x0 + 200 = 230.0478515625` to `x0 + 400 =
+430.0478515625`, and so do its maps. `r` has no map, so its children band
+lies above it at level 1 from 7; below, its markers band holds the wedges
+(26.9765625). Two maps reach `1.5 + 2 × 5 = 11.5`.
 
-- Both maps above (`J = 2` on `c`'s outer half): row 1's halves are inner 7
-  and outer `max(7, 11.5) = 11.5`. The band starts at 7, `c`'s line lies
-  14 out, the band is `7 + 11.5 = 18.5` wide, `Ea = 25.5`, `y_root = 33.5`:
-  `r` at 41.5, `c` at `41.5 − 14 = 27.5`, `m1` at `27.5 − 5.5 = 22` (`j =
-  1`), `m2` at `27.5 − 10.5 = 17` (`j = 2`); `Hc = 33.5 + 26.9765625 + 8 =
-  68.4765625`, `H = 86.4765625`.
-- Both maps below (`J = 2` on the inner half): inner 11.5, outer 7; `c`'s
-  line lies `7 + 11.5 = 18.5` out, `Ea = 25.5`, `y_root = 33.5`: `r` at
-  41.5, `c` at 23, `m1` at `23 + 5.5 = 28.5`, `m2` at `23 + 10.5 = 33.5`.
-- `m1` above, `m2` below: each stack reaches 6.5 < 7, so the row keeps
-  halves 7 and 7: `c`'s line 14 out, `Ea = 21`, `y_root = 29`: `r` at 37,
-  `c` at 23, `m1` at `23 − 5.5 = 17.5`, `m2` at `23 + 5.5 = 28.5`. Both maps
-  are `j = 1` of their own stack.
-- `c` moved below the root, both maps left above: for a map `above` is still
-  up, which is now `c`'s inner half (towards the root), `J = 2`. Above
-  nothing is drawn, `Ea = 0`, `y_root = 14.40234375`, `r` at 22.40234375.
-  Below, the root band reaches 26.9765625; the children band starts at
-  `26.9765625 + 4 = 30.9765625` (more than 7), inner `11.5`, outer 7: `c`'s
-  line lies `30.9765625 + 11.5 = 42.4765625` out, at `64.87890625`; `m1` at
+- By the default band order `c`'s conversion maps band lies above `c`'s
+  line, on its row's outer half: inner half 7, outer `max(7, 11.5) =
+  11.5`. `c`'s line lies `7 + 7 = 14` out, the band is `7 + 11.5 = 18.5`
+  wide, `Ea = 25.5`, `y_root = 33.5`: `r` at 41.5, `c` at `41.5 − 14 =
+  27.5`, `m1` at `27.5 − 5.5 = 22` (`j = 1`), `m2` at `27.5 − 10.5 = 17`
+  (`j = 2`); `Hc = 33.5 + 26.9765625 + 8 = 68.4765625`, `H = 86.4765625`.
+- With `c`'s own entry `bandOrder(c, [children], [conversion_maps,
+  markers, regions, flow_control])` the band lies below `c`'s line, on the
+  inner half: inner 11.5, outer 7; `c`'s line lies `7 + 11.5 = 18.5` out,
+  `Ea = 25.5`, `y_root = 33.5`: `r` at 41.5, `c` at 23, `m1` at `23 + 5.5
+  = 28.5`, `m2` at `23 + 10.5 = 33.5`, `H = 86.4765625`. The same entry on
+  `r` instead (`bandOrder(r, [children], [conversion_maps, …])`) changes
+  nothing of `r`, which has no map, and `c`, without an entry, follows it
+  band by band id: the same ordinates.
+- With `bandOrder(r, [conversion_maps], [markers, children, regions,
+  flow_control])`, `c` lies below `r`, and `c`, following `r`, keeps its
+  maps above its own line, which is now towards `r`: its row's inner half,
+  `J = 2`. Above `r` nothing is drawn, `Ea = 0`, `y_root = 14.40234375`,
+  `r` at 22.40234375. Below, the markers band at level −1 reaches
+  26.9765625; the children band at −2 starts at `26.9765625 + 4 =
+  30.9765625` (more than 7), inner `11.5`, outer 7: `c`'s line lies
+  `30.9765625 + 11.5 = 42.4765625` out, at `64.87890625`; `m1` at
   `64.87890625 − 5.5 = 59.37890625`, `m2` at `64.87890625 − 10.5 =
   54.37890625`, both between `c` and the root. `Eb = 30.9765625 + 18.5 =
   49.4765625`, `Hc = 14.40234375 + 49.4765625 + 8 = 71.87890625`, `H =
   89.87890625`.
 
-**`map` with `tempo` below** (`{ids: [melody/tempo]} side below`): the
-root band below holds the wedges (26.9765625) and a one-map stack (6.5) and
-reaches `max(26.9765625, 6.5) = 26.9765625`. Above, no root band: the
-children band starts at 7, `phrase` 14 out, `Ea = 21`, `y_root = 29`:
-`melody` at 37, `phrase` at 23, `ticks` at 17.5, `tempo` at `37 + 5.5 =
-42.5`, `Hc = 29 + 26.9765625 + 8 = 63.9765625`, `H = 81.9765625`. The wedge
-tips lie at 38.5 and their bases at 51.5, over the map; the map's
-descriptor index precedes both wedges'.
+**The markers band alone.** `bare`, by the default band order: the markers
+band at level −1 against the line, as "Hand-derived drawings" derives it
+(the line at 22.40234375, tips 23.90234375, bases 36.90234375, labels'
+baseline 47.25634765625, `H = 67.37890625`). With `bandOrder(bare,
+[children, conversion_maps, markers], [regions, flow_control])` it lies at
+level 1, against the line above it, from `c = 0`, 26.9765625 wide; the line
+reaches `m = 26.9765625` above (the width of the markers band at level 1;
+no boundary, no segment label), so the band's outer edge is `max(0 +
+26.9765625, 26.9765625) = 26.9765625`: `Ea = 26.9765625`, `y_root =
+34.9765625`, the line at 42.9765625; tips `42.9765625 − 1.5 =
+41.4765625`, bases `42.9765625 − 14.5 = 28.4765625`, labels' baseline
+`(42.9765625 − 16.5) − d(9) = 24.35400390625`; below nothing, `Hc =
+34.9765625 + 6.40234375 + 8 = 49.37890625`, `H = 67.37890625`.
 
-**`map` with the root's line hidden** (`{ids: [melody]} display none`): a
-map is drawn only when its timeline's line is drawn, so `tempo` is not drawn
-and takes no room, although its own `display` is `inline`. Above, no root
-band (no wedge, no drawn root map): the children band starts at 7,
-`phrase` 14 out, `Ea = 21`, `y_root = 29`; `phrase` at 23, `ticks` at 17.5.
-The wedges, displayed on their own, still reach 26.9765625 below (tips at
-38.5, bases at 51.5): `Hc = 63.9765625`, `H = 81.9765625`. The drawing holds
-no `melody` and no `tempo` element.
+**The conversion maps band** (`conversion_maps__maps_quarters`, one root, 18
+maps, all displayed): above, at level 1, a stack of 18 maps reaches `1.5 +
+18 × 5 = 91.5`, `y_root = 99.5`, the root at 107.5; map `j` (canonical
+order, by id in code-point order, so `cmap_1`, `cmap_10`, …, `cmap_14`,
+`cmap_2`, …, `tmap_2`) is centred `1.5 + 5j − 1` above: `cmap_1` (`j = 1`)
+at 102 and `tmap_2` (`j = 18`) at `107.5 − 90.5 = 17`. `Hc = 99.5 +
+26.9765625 + 8 = 134.4765625`, `H = 152.4765625`.
 
-**`conversion_maps__maps_quarters`** (one root, 18 maps, all displayed):
-above, a stack of 18 maps reaches `1.5 + 18 × 5 = 91.5`, `y_root = 99.5`,
-the root at 107.5; map `j` (canonical order, by id in code-point order, so
-`cmap_1`, `cmap_10`, …, `cmap_14`, `cmap_2`, …, `tmap_2`) is centred `1.5
-+ 5j − 1` above: `cmap_1` (`j = 1`) at 102 and `tmap_2` (`j = 18`) at
-`107.5 − 90.5 = 17`. `Hc = 99.5 + 26.9765625 + 8 = 134.4765625`, `H =
-152.4765625`. With every map moved below, the root band below holds the
-wedges (26.9765625) and the stack (91.5) and reaches 91.5: `Ea = 0`,
-`y_root = 14.40234375`, the root at 22.40234375, `Hc = 14.40234375 + 91.5 +
-8 = 113.90234375`, `H = 131.90234375`, `j = 1` at `22.40234375 + 5.5 =
-27.90234375`, `j = 18` at `22.40234375 + 90.5 = 112.90234375`.
+- **Both bands on one side.** With `bandOrder(maps:quarters, [children],
+  [conversion_maps, markers, regions, flow_control])` the conversion maps
+  band lies at level −1 against the line, from 0 to 91.5, and the markers
+  band at level −2 starts `B` beyond it, at `91.5 + 4 = 95.5`: `Ea = 0`,
+  `y_root = 14.40234375`, the root at 22.40234375; `cmap_1` at `22.40234375
+  + 5.5 = 27.90234375`, `tmap_2` at `22.40234375 + 90.5 = 112.90234375`;
+  the start wedge's tip at `22.40234375 + (95.5 + 1.5) = 119.40234375`, its
+  base at `22.40234375 + (95.5 + 14.5) = 132.40234375`. `Eb = 95.5 +
+  26.9765625 = 122.4765625`, `Hc = 14.40234375 + 122.4765625 + 8 =
+  144.87890625`, `H = 162.87890625`.
+- **Beyond the markers band.** `map` with `bandOrder(melody, [children],
+  [markers, conversion_maps, regions, flow_control])`: the markers band
+  lies at level −1 against `melody`'s line and the conversion maps band at
+  −2, from `26.9765625 + 4 = 30.9765625`, so the line has no stack (Level
+  0): `tempo` at `30.9765625 + 1.5 + 5 − 1 = 36.4765625` below the line.
+  `phrase`, without an entry, follows band by band: its maps lie below its
+  line at level −1 (its markers band draws nothing), its below edge 6.5 <
+  7. Above `melody`, the children band starts at `max(1.5 + 4, 7) = 7`,
+  `phrase` 14 out, `Ea = 21`, `y_root = 29`: `melody` at 37, `phrase` at
+  23, `ticks` at `23 + 5.5 = 28.5`, `tempo` at `37 + 36.4765625 =
+  73.4765625`; the wedges' tips at 38.5, their bases at 51.5. `Eb =
+  30.9765625 + 6.5 = 37.4765625`, `Hc = 29 + 37.4765625 + 8 =
+  74.4765625`, `H = 92.4765625`.
 
 **End markers.** `r` with `c` at 4, length 4, no maps, read with `locked`
 changed and validated again against the schema (a manifest value built
@@ -546,9 +786,11 @@ stack). The `8 ♩` label reaches `430.0478515625 + 6.416015625 =
 
 ## Row spacing (`stretch.test.ts`)
 
-At spacing `v`, `nested` has `p0 = p = max(14v, 12.8046875)`; with no map
-stack, row 1's line lies `p0 / 2 + p / 2 = p` out and row 2's `2p` out, so
-the root-to-child gap equals the child-to-grandchild gap. The vertical
+At spacing `v`, `nested` has `p0 = p = max(14v, 12.8046875)`; with no map,
+each children band starts at `p / 2`, beyond `1.5 + 4v`, so `clt_3`'s line
+lies `p0 / 2 + p / 2 = p` above the root's and `clt_2`'s `p` above
+`clt_3`'s, `2p` out: the root-to-child gap equals the child-to-grandchild
+gap. The vertical
 padding is `P × v` (section 6.5), so `y_root = 8v + Ea`, and the box
 ordinate is `8 + y_root`:
 
@@ -568,8 +810,8 @@ timeline, which has no rows to spread. The horizontal padding (`xn`, `x0`,
 the card's span) is not stretched. Box ordinates are `8` plus the member
 drawing's, `H = Hc + 18`.
 
-- **`bare` (a root alone).** No band above (`Ea = 0`); below, the wedges
-  reach `26.9765625` at every `v` (wedge and label sizes are fixed). At
+- **`bare` (a root alone).** No band above (`Ea = 0`); below, the markers
+  band reaches `26.9765625` at every `v` (wedge and label sizes are fixed). At
   `v = 2`: `y_root = max(16, 16 + 6.40234375) = 22.40234375` (the line at
   30.40234375), `Hc = 22.40234375 + 26.9765625 + 16 = 65.37890625`, `H =
   83.37890625`. At `v = 0.5`: `y_root = 4 + 6.40234375 = 10.40234375` (at
@@ -578,22 +820,26 @@ drawing's, `H = Hc + 18`.
   22.40234375, `H = 67.37890625`). The width stays `476.5771484375` at
   every `v`, and the height grows by exactly `2 × 8 × (v − 1)`.
 - **`flow_control` at `v = 2`, break below.** `y_root = 22.40234375`, the
-  line at 30.40234375. Below: the root band to 26.9765625, the flow band
-  from `26.9765625 + 4 × 2 = 34.9765625`, one break-label tier, so the flow
+  line at 30.40234375. Below: the markers band to 26.9765625, the flow
+  control band from `26.9765625 + 4 × 2 = 34.9765625`, one break-label tier, so the flow
   row lies `34.9765625 + 10.4765625 = 45.453125` out, `yf = 75.85546875`;
   one jump level, the band `10.4765625 + 16 + 0 + 2 + 10.4765625 =
   38.953125` wide, `Eb = 73.9296875`, `Hc = 22.40234375 + 73.9296875 + 16 =
   112.33203125`, `H = 130.33203125`. The break line runs from `y1 =
   75.85546875` to `y2 = 8 + 16 = 24`.
-- **`flow_control` at `v = 2`, break moved above** (`{element: break} side
-  above`). Above: the flow band holds the break-label tier alone, 10.4765625
-  wide, `Ea = 10.4765625`, `y_root = max(16 + 10.4765625, 22.40234375) =
-  26.4765625`, the line at 34.4765625. Below: the root band to 26.9765625
-  and the flow band (the jump, no break label) from 34.9765625, `16 + 0 + 2
-  + 10.4765625 = 28.4765625` wide, `Eb = 63.453125`, `Hc = 26.4765625 +
-  63.453125 + 16 = 105.9296875`, `H = 123.9296875`. The break line runs
-  from `y1 = 34.4765625 − 10.4765625 = 24` to `y2 = 8 + (Hc − 16) =
-  97.9296875`: padding to padding.
+- **`flow_control` at `v = 2`, its flow control band above the line**
+  (`bandOrder(flow:quarters, [flow_control, children, conversion_maps],
+  [markers, regions])`). Above, the flow control band alone, at level 1:
+  the line reaches nothing there, so it starts `B = 8` beyond `w / 2`, at
+  `1.5 + 8 = 9.5`, and is `10.4765625 + 16 + 0 + 2 + 10.4765625 =
+  38.953125` wide (one break-label tier, one jump row), `Ea = 9.5 +
+  38.953125 = 48.453125`, `y_root = max(16 + 48.453125, 22.40234375) =
+  64.453125`, the line at 72.453125. Below, the markers band alone, `Eb =
+  26.9765625`, `Hc = 64.453125 + 26.9765625 + 16 = 107.4296875`, `H =
+  125.4296875`. The flow row lies `9.5 + 10.4765625 = 19.9765625` above
+  the line, at `8 + (64.453125 − 19.9765625) = 52.4765625`, where the
+  break line starts (`y1`); it ends at the padding below, `y2 = 8 + (Hc −
+  16) = 99.4296875`: across the whole member drawing.
 
 At length 200 and spacing 1 the root of `nested` runs from 49.91552734375 to
 `49.91552734375 + 200 = 249.91552734375` at 51: length moves x only.
@@ -605,8 +851,9 @@ parent)` gives the cascaded style of one drawing of an element, `key` its
 core `ElementKey` (with `inside`, the types of the elements holding it,
 outermost first) and `parent` the style of its holder's drawing. The unit
 tests use one key: the line of a child `c` of a root `r` (type `child`,
-logical, continuous, `ContinuousLogicalTimeline`), held by the block and
-the root's line (`inside: [block, timeline]`).
+logical, continuous, `ContinuousLogicalTimeline`), held by the block, the
+root's line and the root's children band (`inside: [block, timeline,
+band]`, section 2.1).
 
 Each rank level of section 2.5 is tested in isolation: a statement winning
 on that level is written *first* (so position alone would lose) and the
@@ -624,10 +871,56 @@ loser names every lower-ranking member:
    `{modality}` beats `{}`;
 8. position: of two equal statements the later wins.
 
-**`inside` (section 2.3).** On the key above, `{inside: timeline}` and
-`{inside: block}` match, `{inside: child}` (the element's own type, not a
-holder's) and `{inside: ancestor}` do not: a layer holding only
-`{inside: child} stroke #111111` leaves the stroke `none`.
+**`inside` (section 2.3).** On the key above, `{inside: timeline}`,
+`{inside: block}` and `{inside: band}` match, `{inside: child}` (the
+element's own type, not a holder's) and `{inside: ancestor}` do not: a
+layer holding only `{inside: child} stroke #111111` leaves the stroke
+`none`.
+
+**Bands (sections 2.1 to 2.4).** Two band keys, `bandKey`: `c/regions_1`,
+held by `c`'s line (so inside `[block, timeline, band, child]`), and
+`r/regions_1`, held by `r`'s line in the block (inside `[block,
+timeline]`), each resolved with no parent under one statement setting
+stroke `#111111`. A band is an element of type `band` whose class is its
+kind, with no domain and no modality, belonging to its timeline:
+
+| Selector | `c/regions_1` | `r/regions_1` |
+|---|---|---|
+| `{element: band}` | `#111111` | `#111111` |
+| `{element: band, class: regions}` | `#111111` | `#111111` |
+| `{element: band, class: markers}` | `none` | `none` |
+| `{inside: band}` | `#111111` | `none` |
+| `{inside: child}` | `#111111` | `none` |
+| `{domain: logical}` | `none` | `none` |
+| `{class: ContinuousLogicalTimeline}` | `none` | `none` |
+| `{within: c}` | `#111111` | `none` |
+| `{ids: [c/regions_1]}` | `#111111` | `none` |
+
+Through `draw` on `with_region` with one layer: `{ids: [clt_1]}` stroke
+`#111111` reaches the region `clt_1/region_1`, its label and the child
+`clt_2`, each through its band; `{ids: [clt_1/regions_1]}` reaches the
+region and its label and not `clt_2`; `{ids: [clt_1/children_1]}` reaches
+`clt_2` and neither the region nor its label (section 2.5: what a band
+holds inherits through it).
+
+**A band's display (sections 2.4 and 4).** `with_region` with a region
+`region_2` added into `clt_2` (0 to 2 on its axis), drawn with the default
+layers and an extra layer; the regions and child lines drawn, in order:
+
+- no extra statement: `clt_1/region_1`, `clt_2`, `clt_3` (`clt_2`'s
+  regions band is hidden by default, section 4);
+- `{ids: [clt_2/regions_1]} display inline`: `clt_1/region_1`,
+  `clt_1/region_2`, `clt_2`, `clt_3`;
+- that and `{ids: [clt_1/regions_1]} display none`: `clt_1/region_2`,
+  `clt_2`, `clt_3`: hiding the root's regions band hides the root's
+  regions alone;
+- `{ids: [clt_1/regions_1]} display inline` alone: as with no statement,
+  since a child's regions are drawn only when its own regions band is
+  displayed;
+- `{ids: [clt_2/regions_1]} display inline` and `{ids:
+  [clt_1/children_1]} display none`: `clt_1/region_1` alone: a hidden
+  children band hides its children, and with them everything their bands
+  hold.
 
 **One address drawn twice (section 2.5, last paragraph).** Two keys share
 the address `m/start` (type `wedge`, timeline `m`, logical, continuous):
@@ -669,8 +962,8 @@ Inheritance, through `draw` on fixtures with explicit layers:
 
 - with no layers at all every element has the initial values of
   section 2.5 (`stroke none`, width 1, dash `none`, `fill none`, opacity 1,
-  `font-size 9`, `rx 0`, `shadow none`, `display inline`, `side below`,
-  `content none`, `max-width none`);
+  `font-size 9`, `rx 0`, `shadow none`, `display inline`, `content none`,
+  `max-width none`);
 - block → root: `[{select: {element: block}, set: {fill: #111111, opacity:
   0.5, rx: 4}}]` gives the root fill `#111111` (inherited) and opacity 1,
   rx 0 (not inherited);
@@ -690,6 +983,335 @@ Inheritance, through `draw` on fixtures with explicit layers:
   `{ids: [maps:quarters]} stroke #ABCDEF`, `cmap_6` is `#ABCDEF` while
   `lmap_1` stays `#0050EF`; its class is its type, so
   `{class: FloorMap} stroke #FEDCBA` reaches it and no other map.
+
+## Rows and joint layouts (`rows.test.ts`)
+
+Sections 6.2, 6.4 (Children) and 6.6 (Names). The lines of a **row** lie at
+one ordinate: the root's row holds the root, and every other row is a row
+of children bands laid out together. The present children bands of the
+lines of one row that lie on one side of those lines are laid out
+**together**: they start at one distance `c0`, the largest of their own
+starts; their first fits stay their own, but their rows are numbered
+together, row `k` holding every child any of them places in its row `k`;
+row `k`'s inner and outer halves are each the larger of `p / 2` and the
+largest edge of row `k`'s children on that half's side, whichever band
+places them, the outer half on the bands' side; `l1 = c0 + i1`, `l(k + 1)
+= lk + (ok + i(k + 1))`; one name size `s`, the largest over all their
+rows, and one pitch `p = max(14v, h(s))`; each band is as wide as its own
+rows, `i1 + o1 + … + iC + oC`. A child is placed as a whole: its own
+children's room is in its edges. The name column draws one text per row,
+its lines' names joined by `, `, ordered from the top row down. What
+proves each rule is an ordinate that every other reading moves: a band laid
+out alone, a band as wide as all rows of its joint layout, a name size per
+row, a child placed by its line alone, or one name text per band.
+
+Every case is drawn at the default placement with the default layers (and
+the extra layer it names); every name has size 11 unless stated, so every
+pitch is `max(14, 12.8046875) = 14`, `(a(11) − d(11)) / 2 = 3.80810546875`,
+and with no map a children band at level 1 or −1 starts at `max(1.5 + 4,
+7) = 7`. Each root lies in its card at `(8, 8)`, so a drawn ordinate is `8
++` its member-drawing ordinate, and the root's markers band below reaches
+26.9765625, so `Hc = y_root + 26.9765625 + 8` and `H = 8 + (8 + Hc + 2)`.
+The built manifests are quarters roots `r` of length 8 (`build`), every
+child locked and named by its id, a position `t` at `x0 + 50 t`.
+
+**Joint rows at two depths** (`joint_rows`, the hand-derived drawing; a
+root `piece` of 16 quarters, `b` at 0 (6 long, one map) holding `b1` at 1
+(4) holding `b11` at 1 (2), and `d` at 8 (8) holding `d1` at 2 (4, two
+maps) holding `d11` at 1 (2, two maps)). The rows are `{piece}`, `{b, d}`
+(one band, `piece`'s), `{b1, d1}` (the bands of `b` and `d`, laid out
+together) and `{b11, d11}` (those of `b1` and `d1`, laid out together
+because `b1` and `d1` share a row). One map reaches 6.5, two 11.5. From the
+deepest row up:
+
+- row `{b11, d11}`: inner half 7, outer half `max(7, 11.5) = 11.5` (`d11`'s
+  maps; `b11` reaches nothing);
+- the bands of `b1` and `d1`: own starts 7 (`b1`, no map) and `max(11.5 +
+  4, 7) = 15.5` (`d1`, beyond its two maps), so `c0 = 15.5`, row 1 lies
+  `15.5 + 7 = 22.5` out, each band is `7 + 11.5 = 18.5` wide, and both
+  above edges are `15.5 + 18.5 = 34`;
+- row `{b1, d1}`: inner 7, outer 34; the bands of `b` and `d`: own starts
+  `max(6.5 + 4, 7) = 10.5` (`b`) and 7 (`d`), `c0 = 10.5`, row 1 at `10.5
+  + 7 = 17.5` out, each band `7 + 34 = 41` wide, both above edges 51.5;
+- row `{b, d}`: inner 7, outer 51.5; `piece`'s band starts at 7, row 1 at
+  14 out, `7 + 51.5 = 58.5` wide, `Ea = 65.5`;
+- `y_root = 8 + 65.5 = 73.5`, `Hm = 73.5 + 26.9765625 + 8 = 108.4765625`.
+
+Drawn: `piece` at 81.5, `b` and `d` at `81.5 − 14 = 67.5`, `b1` and `d1` at
+`67.5 − 17.5 = 50`, `b11` and `d11` at `50 − 22.5 = 27.5`. Laid out alone,
+`d`'s band would start at 7 and `d1` lie 14 above `d`, and `b1`'s too, so
+`b11` would lie 14 above `b1`; together they lie 17.5 and 22.5 above. The
+maps are centred `w / 2 + j × 5 − 1` out, in canonical order: `ticks_b` at
+`67.5 − 5.5 = 62`, `tempo_d1` and `ticks_d1` at 44.5 and 39.5, `tempo_d11`
+and `ticks_d11` at 22 and 17. One text per row, top down, each addressed by
+its first name and centred on its row: `B11, D11` (`b11/name`) at
+31.30810546875, `B1, D1` (`b1/name`) at 53.80810546875, `B, D` (`b/name`)
+at 71.30810546875, `Piece` at 85.30810546875. The widest text `B11, D11`
+is `N = 51.00390625` wide, so `x0 = 16 + 51.00390625 + 8 = 75.00390625`;
+the end label `16 ♩` gives `R = 475.00390625 + 9.279052734375 =
+484.282958984375`, so the box is `W = 8 + (10 + 484.282958984375) =
+502.282958984375` wide and `H = 8 + (10 + 108.4765625) = 126.4765625` high,
+the hand-derived figure's (page `534.283 × 158.4766`).
+
+**Children bands on both sides of one row.** `r` holds `a` at 0 (4 long)
+and `b` at 4 (4); `a` holds `a1` at 1 (2), `b` holds `b1` at 1 (2); `b`'s
+band order `bandOrder(b, [conversion_maps], [children, markers, regions,
+flow_control])` puts its children band below its line. `a` and `b` share
+row 1 (`[0, 200]` and `[200, 400]` meet). The row `{a, b}` has two joint
+layouts: `{a}` above (`{a1}` 14 above `a`, `a`'s above edge `7 + 14 =
+21`) and `{b}` below (`{b1}` 14 below `b`, `b`'s below edge 21). In `r`'s
+band above, the row's inner half is `max(7, 0, 21) = 21` (`b`'s room
+below) and its outer half `max(7, 21, 0) = 21`: row 1 lies `7 + 21 = 28`
+out, the band is 42 wide, `Ea = 49`, `y_root = 57`, `Hc = 91.9765625`, `H =
+109.9765625`. Drawn: `r` at 65, `a` and `b` at 37, `a1` at 23, `b1` at 51.
+One text per row, top down: `a1` at 26.80810546875, `a, b` (`a/name`) at
+40.80810546875, `b1` at 54.80810546875, `r` at 68.80810546875.
+
+**A band with fewer rows than its joint layout.** `r` holds `a` at 0 (4)
+and `b` at 4 (4); `a` holds `a1` at 0 (2) and `a2` at 1 (2), which
+conflict (`[0, 100]`, `[50, 150]`), `b` holds `b1` at 1 (2) and the region
+`region_1` from 0 to 4 on `b`'s axis, unnamed; `b`'s band order
+`bandOrder(b, [regions, children, conversion_maps], [markers,
+flow_control])` and the extra layer `{ids: [b/regions_1]} display inline`
+show it above `b`'s children band. The joint layout of `a`'s and `b`'s
+bands has the rows `{a1, b1}` and `{a2}`, halves 7, `c0 = 7`, rows 14 and
+28 out. `a`'s band fills both rows, `7 + 7 + 7 + 7 = 28` wide, `a`'s above
+edge 35; `b`'s fills only row 1, `7 + 7 = 14` wide, to 21, so `b`'s regions
+band starts at `21 + 4 = 25` and is `(6 + 2 + 10.4765625 + 4) − 4 =
+18.4765625` wide (the label room stays without a label), `b`'s above edge
+43.4765625. The row `{a, b}` has the outer half 43.4765625, `Ea = 7 + (7
++ 43.4765625) = 57.4765625`, `y_root = 65.4765625`, `Hc = 100.453125`, `H
+= 118.453125`. Drawn: `r` at 73.4765625, `a` and `b` at 59.4765625, `a1`
+and `b1` at 45.4765625, `a2` at 31.4765625, the brace's arms at
+`59.4765625 − 25 = 34.4765625` and its tip at `59.4765625 − 31 =
+28.4765625`. A band as wide as all rows of its layout would start the
+regions band at 39 and move every line. Names: `a1, b1` (`a1/name`) is one
+text for the row whose lines two bands place.
+
+**One name size per joint layout.** The same with `{ids: [a2/name]}
+font-size 20`: the joint layout's `s` is 20, the largest over both its
+rows, so both rows take `p = h(20) = 23.28125` and halves 11.640625,
+although the row `{a1, b1}` holds only size-11 names. `c0 = 7` (the own
+starts use the pitch 14 of the row `{a, b}`), row 1 lies `7 + 11.640625 =
+18.640625` out and row 2 `18.640625 + (11.640625 + 11.640625) =
+41.921875`; `a`'s band is `4 × 11.640625 = 46.5625` wide, its above edge
+53.5625; `b`'s band ends at `7 + 23.28125 = 30.28125`, its regions band
+from 34.28125 to 52.7578125. The row `{a, b}` has the outer half 53.5625,
+`Ea = 7 + (7 + 53.5625) = 67.5625`, `y_root = 75.5625`, `Hc =
+110.5390625`, `H = 128.5390625`. Drawn: `r` at 83.5625, `a` and `b` at
+69.5625, `a1` and `b1` at `69.5625 − 18.640625 = 50.921875`, `a2` at
+`69.5625 − 41.921875 = 27.640625`.
+
+**A nested child's room, and a hidden child.** `r` holds `a` at 0 (4) and
+`b` at 2 (4), which conflict, so `b` takes row 2 of `r`'s band; `a` holds
+`a1` at 1 (2). `a`'s band places `a1` 14 above `a`, so `a`'s above edge is
+21 and row 1's outer half 21: row 1 lies `7 + 7 = 14` out and row 2 `14 +
+(21 + 7) = 42` (28 if `a` were placed by its line alone), `Ea = 7 + 42 =
+49`, `y_root = 57`, `H = 8 + (8 + (57 + 26.9765625 + 8) + 2) =
+109.9765625`. Drawn: `r` at 65, `a` at 51, `a1` at 37, `b` at 23; names
+top down `b` 26.80810546875, `a1` 40.80810546875, `a` 54.80810546875, `r`
+68.80810546875. With `{ids: [a]} display none` `a` is not placed: no line,
+no name and nothing its bands hold (`a1` lies at `a`'s line, which is not
+drawn), and `b` takes row 1: `Ea = 7 + 14 = 21`, `y_root = 29`, `H =
+81.9765625`, `r` at 37 and `b` at 23, names `b` 26.80810546875 and `r`
+40.80810546875.
+
+**A joint row mixing segment lines and a child.** `r` holds `a` at 0 (4)
+and the locked segment line `s` at 4 (4), whose segments `s1` at 0 (2) and
+`s2` at 2 (2) are segment lines themselves, each with one unnamed segment
+of its whole length (a first segment: no boundary, and no label); `a`
+holds `a1` at 0 (2). `a` and `s` share row 1 of `r`'s band (`[0, 200]`
+and `[200, 400]` meet), and the bands of `a` and `s` are laid out together:
+`a`'s places `a1`, `s`'s places `s1` and `s2` (they meet), so their joint
+row 1 holds `a1`, `s1`, `s2`. `s1` and `s2` are segments and contribute no
+name (section 6.6), so the joint layout's `s` is `a1`'s name size alone
+(section 6.2): 11, `p = 14`. `s`'s line has the drawn boundary `s2/start`
+and so reaches `k = 8` on both sides; its children band at level 1 starts
+`B` beyond, at `8 + 4 = 12`, `a`'s at `max(1.5 + 4, 7) = 7`, so `c0 = 12`.
+The lines of the joint row reach nothing (`s1` and `s2` draw no boundary
+and no segment label): halves 7 and 7, row 1 at `12 + 7 =
+19` out, each band 14 wide, both above edges 26; `s`'s below edge is 8.
+The row `{a, s}` in `r`'s band: inner half `max(7, 0, 8) = 8`, outer
+`max(7, 26, 26) = 26`, its line `7 + 8 = 15` out, `Ea = 7 + (8 + 26) =
+41`, `y_root = 49`, `H = 8 + (8 + (49 + 26.9765625 + 8) + 2) =
+101.9765625`. Drawn: `r` at 57, `a` and `s` at 42, `a1`, `s1`, `s2` at
+23. Names, top down: `a1` at 26.80810546875, `a, s` (`a/name`) at
+45.80810546875, `r` at 60.80810546875. With `{ids: [s1/name]} font-size
+20` the drawing is unchanged: a segment's name counts for no row. With
+`{ids: [a1/name]} font-size 20` the joint layout takes `p = h(20) =
+23.28125`, halves 11.640625: row 1 lies `12 + 11.640625 = 23.640625` out,
+each band is 23.28125 wide, the above edges 35.28125; the row `{a, s}`
+keeps the pitch 14 (its own starts use it) and has the outer half 35.28125,
+`Ea = 7 + (8 + 35.28125) = 50.28125`, `y_root = 58.28125`, `H =
+111.2578125`; `r` at 66.28125, `a` and `s` at 51.28125, `a1`, `s1`, `s2`
+at 27.640625.
+
+## Band records (`records.test.ts`)
+
+`Drawing.bands` holds one record per present band (section 6.4, Levels) of
+every timeline drawn with a line of its own, the member drawings in drawing
+order (section 8.5), each one's timelines in traversal order, each
+timeline's bands top to bottom. A record carries the band's address
+`T/<kind>_1`, its timeline `T`, its kind, its signed level, `line`, the
+ordinate of its timeline's line, `elements`, the displayed elements it
+holds directly (wedges, maps, child lines, regions, breaks, jumps; no
+label), and its rectangle in the drawing's coordinates. Vertically the
+rectangle runs from the band's start `c` to its outer edge `E` (section
+6.4, Where a band lies): from `yl − E` to `yl − c` above its line, from `yl
++ c` to `yl + E` below it, `height` the bottom less the top. Horizontally
+it spans the extent of its timeline's drawing (section 6.4, Children: its
+line's extent, every item its own first fits place at any depth, wedge,
+region, jump and break labels included, and its breaks), from `x0 + a` to
+`x0 + b`, `width` the right less the left, for the root as for a child; the
+name column is no part of it. It is computed in item coordinates and drawn
+as a card is (section 8.6: `x + scale × u`, every length times `scale`),
+then shifted by the place origin. A band draws nothing, so no element and
+no descriptor stands for it: no drawn element's address is a band's (core's
+`parseBand` reads none of them as one). An absent band has no record.
+
+**A root with bands on both sides** (`styled__score`, "Member drawing
+arithmetic"; its card at `(8, 8)`, `x0 = 98.080078125`, the line drawn at
+62.640625). Its extent runs from the start label `0 ♩`'s left end
+`−8.12890625` to the end label `8 ♩`'s right end 408.12890625 (the line,
+`b`, the region and the jump lie within), so every record starts at `x =
+98.080078125 − 8.12890625 = 89.951171875`, `width = (98.080078125 +
+408.12890625) − 89.951171875 = 416.2578125`, and has `line` 62.640625:
+
+| address | level | elements | `c`, `E` | `y` | `height` |
+|---|---|---|---|---|---|
+| `score/children_1` | 2 | 1 (`b`; `a` is hidden) | 32.640625, 46.640625 | `62.640625 − 46.640625 = 16` | 14 |
+| `score/markers_1` | 1 | 2 | 0, 28.640625 | 34 | 28.640625 |
+| `score/conversion_maps_1` | −1 | 1 | 0, 7 | 62.640625 | 7 |
+| `score/regions_1` | −2 | 1 | 11, 30.640625 | 73.640625 | 19.640625 |
+| `score/flow_control_1` | −3 | 1 (the jump; no break) | 34.640625, 56.28125 | 97.28125 | 21.640625 |
+
+`b` has no present band: its markers band draws nothing, it holds no map
+or child, and its regions and flow control bands are empty and hidden.
+
+**A child's shown regions band.** `r` holds `c` at 2 (4 long) with the
+region `region_1` from 0 to 4 on `c`'s axis, unnamed. By default `c`'s
+regions band is hidden (section 4), so it is absent and takes no room
+(sections 2.4 and 6.4, Levels): `c` has no present band and its line
+reaches nothing, both its edges are 0, and its row in `r`'s band has the
+halves 7 and 7: `c` lies 14 above `r`, `Ea = 7 + 14 = 21`, `y_root = 8 +
+21 = 29`, drawn at 37. The records are `r/children_1` (level 1, one
+element) from `29 − 21 = 8` to `29 − 7 = 22`, drawn at `y` 16, height
+14, and `r/markers_1` (−1, two) from 29 to `29 + 26.9765625`, drawn at `y`
+37, height 26.9765625, both with `line` 37 and the `x` and width below
+(`c`'s extent lies inside `r`'s). With the extra layer `{ids:
+[c/regions_1]} display inline` the band lies below `c`'s line (its band
+order is `r`'s, mapped band by band), at level −1, where `c`'s line reaches
+nothing: it starts at `1.5 + 4 = 5.5` and is 18.4765625 wide, `c`'s below
+edge 23.9765625. In `r`'s band, `c`'s row has the inner half
+23.9765625 and the outer half 7: `c` lies `7 + 23.9765625 = 30.9765625`
+above `r`, `Ea = 7 + 30.9765625 = 37.9765625`, `y_root = 45.9765625`.
+In item coordinates `s0 = 8 + w(c, 11) + 8 = 8 + 6.0478515625 + 8 =
+22.0478515625` (the widest name `c`), so the drawn `x0` is 30.0478515625.
+The records, their ordinates in member-drawing coordinates (drawn at `8
++`), their `x` drawn:
+
+- `r/children_1`: level 1, line 45.9765625, from `45.9765625 − 37.9765625
+  = 8` to `45.9765625 − 7 = 38.9765625`, height 30.9765625; `r`'s extent
+  runs from the start label's `−7.416015625` to the end label's
+  407.416015625, so `x = 8 + (22.0478515625 − 7.416015625) =
+  22.6318359375` and `width = (22.0478515625 + 407.416015625) −
+  (22.0478515625 − 7.416015625) = 414.83203125`;
+- `r/markers_1`: level −1, from 45.9765625 to 72.953125, height 26.9765625,
+  the same `x` and width;
+- `c/regions_1`: level −1, one element, line `45.9765625 − 30.9765625 = 15`,
+  from `15 + 5.5 = 20.5` to `15 + 23.9765625 = 38.9765625`, height
+  18.4765625; `c`'s extent is its line's, `[L × u(2), L × u(6)] = [100,
+  300]` (the region spans the same), so `x = 8 + (22.0478515625 + 100) =
+  130.0478515625` and `width = 200`.
+
+Drawn: `r`'s records at `y` 16 and 53.9765625 with `line` 53.9765625,
+`x` 22.6318359375; `c/regions_1` at `y` 28.5, `line` 23, `x`
+130.0478515625.
+
+**A root whose line is hidden.** The same with `{ids: [r]} display none`
+as well. A line that is not displayed hides its timeline's whole drawing,
+the root's as a child's (section 2.4): its bands and everything they hold,
+so `r`'s wedges, and `c` in its children band with `c`'s regions band. No
+band of `r` or `c` is drawn, and the drawing records none: `bands` is
+empty. What is left of the member drawing is `r`'s card. The root's row
+has no drawn line, so it draws no name (section 6.6), and nothing else is
+drawn: `N = 0`, `G' = 0`, so `s0 = n = K = 8`, and with nothing drawn
+`R = s0 = 8` (section 8.2); the card spans 0 to `R + K = 16` in item
+coordinates. The root reaches nothing on either side, `Ea = Eb = 0`, so
+`y_root = max(8 + 0, 8 + h(11) / 2) = 14.40234375` and `Hm = 14.40234375
++ max(0, 6.40234375) + 8 = 28.8046875`. Drawn at `(8, 8)`, the card is 16
+wide and 28.8046875 high, and its shadow reaches `24 + 2 = 26` and `8 +
+28.8046875 + 2 = 38.8046875`, so the drawing is `8 + 26 = 34` wide and `8
++ 38.8046875 = 46.8046875` high. Its elements are the block and `r/card`
+alone.
+
+**At scale 2 and left of and above the padding.** The same at `places: {r:
+{x: −12, y: −20, scale: 2}}`: `Xl = min(0, −12 − 8) = −20`, `Yt = min(0,
+−20 − 8) = −28`, so the place origin is `(20, 28)`. `c/regions_1` is drawn
+at `x = 20 + (−12 + 2 × 122.0478515625) = 252.095703125`, `y = 28 + (−20 +
+2 × 20.5) = 49`, `width = 2 × 200 = 400`, `height = 2 × 18.4765625 =
+36.953125`, `line = 28 + (−20 + 2 × 15) = 38`, the ordinate of `c`'s drawn
+line.
+
+**A segment line's band holding its segments' content**
+(`unknown_length_segments`, the extra layer `{element: band, class:
+regions} display inline`; "Segment lines", case 14). `form`'s segments
+`a`, `b` and `c` have no line of their own; the regions of `a` and `c`
+join `form`'s regions band, which holds none of its own, so its record
+counts 2 elements; the markers band holds the start wedge alone (`form`'s
+end is open), 1 element, its label not counted. Nothing lies above:
+`form`'s line reaches `k = 8` there, `y_root = 16`, `line` 24. Below: the
+markers band from 0 to 26.9765625, drawn at `y` 24, height 26.9765625;
+the regions band from 30.9765625 to 49.453125, drawn at `y` 54.9765625,
+height 18.4765625. `form`'s extent runs from the start label's
+`−7.416015625` to its open end `L × 1 + 9.5w = 428.5` (the regions lie
+within), and `s0 = 8 + w(form, 11) + 8 = 41.84033203125`, so every record
+has `x = 8 + (41.84033203125 − 7.416015625) = 42.42431640625` and `width
+= (41.84033203125 + 428.5) − (41.84033203125 − 7.416015625) =
+435.916015625`.
+
+**A present band 0 high.** `r` with the break `fine` at 4, unlabelled: its
+flow control band holds no label tier and no jump, so it is `T × h(9) = 0`
+wide; it lies below at level −2, from `26.9765625 + 4 = 30.9765625`. Its
+record: one element, `y = 8 + (14.40234375 + 30.9765625) = 53.37890625`,
+`height` 0, `line` 22.40234375, `x = 8 + (20.5224609375 − 7.416015625) =
+21.1064453125` (`x0 = 16 + w(r, 11) + 8 = 28.5224609375`), width
+414.83203125 (the break's position 200 lies inside).
+
+**A timeline drawn twice.** `with_region` with the ScalarMap `tempo` added
+to `clt_2`, and the groups `g1` (member `clt_1`) and `g2` (member `clt_2`),
+validated against the schema: `clt_2` is a child line in `g1`'s card and a
+member in `g2`'s. The two groups are the one manifest value these tests
+write by hand, spread onto the built manifest, since core has no command
+that adds a group; the schema's `validate` accepts the result before it is
+drawn. The box holds frames, so `n = 16`; the widest name is
+`clt_x` (25.91552734375) and `clt_1`'s ancestor line in `g2` runs on to the
+left, so `s0 = 16 + 25.91552734375 + 8 + 24 = 73.91552734375`, every line
+starting at `8 + s0 = 81.91552734375`. Each frame's first card lies `8 +
+12.8046875 + 4 = 24.8046875` below its top.
+
+- In `g1` (at `(8, 8)`), `clt_1` is laid out as `with_region`'s root: its
+  map-less children band holds `clt_2` (one map, above edge 6.5 < 7) and
+  `clt_3` in rows 14 and 28 out, `y_root = 43`, `Hm = 100.453125`; `clt_1`
+  at `8 + (24.8046875 + 43) = 75.8046875`, `clt_2` at 61.8046875. The
+  frame is `((8 + 12.8046875) + 4 + 100.453125) + 8 = 133.2578125` high.
+- In `g2` (at `y = 8 + 133.2578125 + 8 = 149.2578125`), `clt_2` is the
+  root, its map above at level 1 (6.5), its wedges below; its ancestor
+  band starts at `max(7, 6.5 + 4) = 10.5`, `Ea = 10.5 + (7 + 26.9765625) =
+  44.4765625`, `y_root = 52.4765625`: `clt_2` at `149.2578125 + (24.8046875
+  + 52.4765625) = 226.5390625`.
+
+The records, in order, by address and `line`: `clt_1/children_1`,
+`clt_1/markers_1`, `clt_1/regions_1` at 75.8046875, `clt_2/conversion_maps_1`
+at 61.8046875, then `clt_2/conversion_maps_1` and `clt_2/markers_1` at
+226.5390625. The two records of `clt_2/conversion_maps_1` are level 1 with
+one element, 6.5 high: in `g1` at `y = 61.8046875 − 6.5 = 55.3046875`, `x
+= 8 + (73.91552734375 + 400 × u(1/3)) = 93.02663845486111` and `width =
+(s0 + 400 × u(13/3)) − (s0 + 400 × u(1/3)) = 133.33333333333331` (`u` the
+double nearest `t / 12`, `400 × u(1/3) = 11.11111111111111`, `400 ×
+u(13/3) = 144.44444444444443`); in `g2` at `y = 226.5390625 − 6.5 =
+220.0390625`, `x = 8 + (73.91552734375 − 7.416015625) = 74.49951171875`
+and `width = 414.83203125` (its wedge labels `0 ♩` and `4 ♩`).
 
 ## The box (`box.test.ts`, `groups.test.ts`)
 
@@ -727,9 +1349,9 @@ and with its two wedges below in one label tier is `Hm = 14.40234375 +
 26.9765625 + 8 = 117.9296875`. Titles take the default `{element: name}`
 size 11.
 
-Maps lie above their timeline (section 4, `side: above`). A root with a
-stack of `J` maps has a root band above reaching the stack's `e = 1.5 +
-5J` (section 6.4, `w / 2 + J × (g + d)`), so `y_root = max(8 + e, 8 +
+Maps lie above their timeline, in its conversion maps band at level 1
+(section 4). A root with a stack of `J` maps has that band reach `e = 1.5 +
+5J` above its line (section 6.4, `w / 2 + J × (g + d)`), so `y_root = max(8 + e, 8 +
 6.40234375)`: one map gives `e = 6.5`, `y_root = 14.5` and, with its
 wedges below, `Hm = 14.5 + 26.9765625 + 8 = 49.4765625`; two give `e =
 11.5`, `y_root = 19.5`. A map ends at its line's `Xe`, inside every right
@@ -808,8 +1430,9 @@ its ancestor line; `annotations` is the one ungrouped root). Its bands:
 its root; `recording`'s own map is not drawn, since an ancestor line draws
 nothing but its line, marks and name); `annotations` the regions
 `region_1` "Verse" (0 to 4 quarters) and `region_2` "Chorus" (4 to 12).
-Maps, regions and the jump lie in the default bands: maps above, regions
-and flow below the wedges. Names at 11:
+Maps, regions and the jump lie in the bands of the default band order: the
+conversion maps band above, the regions and flow control bands below the
+markers band. Names at 11:
 `Score` 31.05029296875, `Performance` (`A = 13087`) 70.29150390625, `Page`
 27.1240234375, `Excerpt` 42.09326171875, `Annotations` (`A = 12298`)
 66.0537109375; the ancestor name `Recording` at 9 45.57568359375. One
@@ -853,9 +1476,9 @@ pinned by the writers' `fixtures.test.ts`).
   first frame starts at `Pt = P + h(11) + F = 28.8046875`.
 - The member heights (section 6.5; one map and one ancestor row as in the
   common values above):
-  - `score`: two maps above, `y_root = 19.5`. Below, the wedges reach
-    26.9765625, and the flow band starts `B` beyond them, at `26.9765625
-    + 4 = 30.9765625`; it holds no break label (`T = 0`) and one jump
+  - `score`: two maps above, `y_root = 19.5`. Below, the markers band
+    reaches 26.9765625, and the flow control band starts `B` beyond it, at
+    `26.9765625 + 4 = 30.9765625`; it holds no break label (`T = 0`) and one jump
     level (`K = 1`), so it is `T × h(9) + 8 × v + (K − 1) × pj + 2 +
     h(9) = 8 + 2 + 10.4765625 = 20.4765625` wide (section 6.4), `Eb =
     30.9765625 + 20.4765625 = 51.453125` and `Hm = 19.5 + 51.453125 + 8 =
@@ -863,8 +1486,8 @@ pinned by the writers' `fixtures.test.ts`).
   - `performance` and `page`: one map each, `Hm = 49.4765625`.
   - `excerpt`: one map under one ancestor row, `Hm = 87.453125`; its
     ancestor line lies 17.5 above its line.
-  - `annotations`: no map, `y_root = 14.40234375`. Below the wedges, the
-    region band starts at 30.9765625. `Verse` spans `[0, L × u(4)]` and
+  - `annotations`: no map, `y_root = 14.40234375`. Below the markers band,
+    the regions band starts at 30.9765625. `Verse` spans `[0, L × u(4)]` and
     `Chorus` `[L × u(4), 400]` (`u(4)` the one double nearest 1/3), each
     label inside its span (`Verse` `[66.67 − 13.81, 66.67 + 13.81]`,
     `Chorus` `[266.67 − 16.79, 266.67 + 16.79]`), so the extents meet at
@@ -1027,14 +1650,12 @@ nothing: `{inside: card} stroke #123456` reaches no element. In
    `annotations` take `#111111`; with `{ids: [annotations/card]} {stroke:
    #222222}` the line `annotations` keeps `none`.
 
-## Places and band orders (`places.test.ts`)
+## Places (`places.test.ts`)
 
 Sections 1, 6.4, 8.2, 8.4 and 8.6: every item of the box (a group's frame
 or an ungrouped root's card) applies the box's one horizontal layout at its
 own place; the box grows in every direction to hold the items, and the
-drawing reports the place origin `(Ox, Oy)` within the box; a member
-drawing's root takes the band order of its own id in `bands`, else that of
-its group, else `order`. The readings the arithmetic below follows: an
+drawing reports the place origin `(Ox, Oy)` within the box. The readings the arithmetic below follows: an
 item is laid out in item coordinates (its left edge and top at 0) and each
 of its positions `u` is drawn at `x + u` (scale 1), so a width or height is
 taken in item coordinates; an item's default `y` lies `F` below the largest
@@ -1049,56 +1670,9 @@ in place coordinates, a card's shadow and the title (its right edge `Xl +
 P` plus its width, its slot ending at `Yt + P + h(s)`) included. The tests prove
 each rule from the specification's sums, never from the implementation's
 output, and they prove that the rules change nothing a drawing of one
-item without `places` and `bands` showed before. Where the specification's order of
+item without `places` showed before. Where the specification's order of
 sums matters only in the last bit, a case with a fractional place shows a
 value the other order would not give.
-
-**The band order cascade.** `bandOrderOf(placement, timeline, group)` is
-pure; with `D = ["children", "regions", "flow"]`, `F = ["flow", "regions",
-"children"]` and `T = ["regions", "children", "flow"]`:
-
-| `order` | `bands` | timeline, group | expected |
-|---|---|---|---|
-| `D` | `{}` | `score`, `null` | `D` |
-| `F` | `{}` | `score`, `group_1` | `F` (the block's) |
-| `D` | `{group_1: F}` | `score`, `group_1` | `F` (the group's over the block's) |
-| `D` | `{group_1: F}` | `score`, `null` | `D` (an ungrouped root has no group) |
-| `D` | `{group_1: F, score: T}` | `score`, `group_1` | `T` (the timeline's over the group's) |
-| `F` | `{score: T}` | `score`, `null` | `T` (the timeline's over the block's) |
-| `D` | `{}` | `toString`, `constructor` | `D` (only the object's own keys count, never inherited ones) |
-
-The cascade must also reach the drawing. `styled__score` has child `b`
-alone above, and region `intro` and jump `da-capo` below, so its drawing
-depends on whether regions or flow come first: at `order: F` its elements
-differ from those at `D` (the check that the cases below are not vacuous),
-and at `D` with `bands: {score: T}` they equal those at `D` (`T` also puts
-regions before flow). The drawings are compared whole (`toEqual` of
-`elements`):
-
-- `bands: {score: F}` draws exactly as `order: F`: the timeline's entry is
-  used;
-- `order: F` with `bands: {score: D}` draws exactly as the default: the
-  timeline's entry wins over the block's;
-- `styled__score` with its root made the one member of a group `group_1`
-  (the fixture plus `groups: [{id: "group_1", name: null, meta: {},
-  members: ["score"]}]`, validated against the schema): `bands: {group_1:
-  F}` draws exactly as `order: F`, and `bands: {group_1: F, score: D}`
-  exactly as the default (the timeline's over its group's);
-- a `bands` key naming nothing drawn (`{nothing: F}`) changes nothing,
-  and neither does one naming a timeline that is drawn but not as a root
-  in a card (`{b: F}`, the child `b`);
-- an absent band adds no `B`: `bands: {score: ["flow", "children",
-  "regions"]}` (the review case `styled__score__bands-timeline`) draws
-  exactly as `order: F`, since `styled__score` has no children band below,
-  so between its flow band and its region band no gap is added for it; and
-  it differs from the default, so the case is not vacuous;
-- no inheritance from an ancestor timeline: `styled__score`'s root made
-  the child of a new root `piece` (length 16 quarters, no regions, maps or
-  flow, the child at offset 0 and locked) and the one member of `group_1`,
-  validated against the schema. `bands: {piece: F}` draws exactly as the
-  default, although `piece` is `score`'s ancestor and its line is drawn in
-  `score`'s ancestor band; `bands: {score: F}` differs from the default and
-  draws exactly as `order: F`.
 
 **Defaults reproduce the stacked box.** With `places` empty, every item
 takes `x = P = 8`, the placement's `length`, sizes `null`, and `y` one
@@ -1204,18 +1778,19 @@ sixths of 400 in) and `score`'s jump label `D.C. al Fine` (a half) ask `8
 jump, from 16 back to 0, writes no point right of `x(16) = x0 + 400`, and
 its break label `Fine` runs from `x(8) + 3` to `x(8) + 3 +
 18.91845703125`, all inside the shared end. The heights (section 6.5;
-every map lies above its line, every other band below):
+by the default band order every conversion maps band lies above its line,
+every other present band below):
 
 - `pages`, a segment line: its map stack above reaches `e = 6.5`, within
   the boundaries' `k = 8`, so its line reaches above `max(6.5, 8) + 2 +
   h(9) = 20.4765625` with its one tier of segment labels (section 6.4),
   as without the map: `y_root = 8 + 20.4765625 = 28.4765625`; below, the
-  wedges `26.9765625` beyond the boundaries' 8: `Hm = 28.4765625 +
+  markers band reaches `26.9765625`, beyond the boundaries' 8: `Hm = 28.4765625 +
   26.9765625 + 8 = 63.453125`.
 - `recording`: one map above, `y_root = 14.5`, `Hm = 14.5 + 26.9765625 +
   8 = 49.4765625`.
-- `score`: one map above, `y_root = 14.5`. Below the wedges, the flow band
-  starts at `26.9765625 + 4 = 30.9765625` and holds one break-label tier
+- `score`: one map above, `y_root = 14.5`. Below the markers band, the
+  flow control band starts at `26.9765625 + 4 = 30.9765625` and holds one break-label tier
   (`Fine`, `T = 1`) and one jump level (`D.C. al Fine`, `K = 1`): `T ×
   h(9) + 8 × v + (K − 1) × pj + 2 + h(9) = 10.4765625 + 8 + 2 + 10.4765625
   = 30.953125` wide, `Eb = 30.9765625 + 30.953125 = 61.9296875`, `Hm =
@@ -1336,11 +1911,11 @@ heightens that card and its frame, and that a member drawing's vertical
 stretch `v` is the product of the placement's, its item's and its card's
 `spacing`, each from the specification's sums. The quantities of `bundle_ungrouped` ("Sketches",
 ungrouped roots `pages`, `recording`, `score`, no frame) are those of
-"Places and band orders": `n = K = 8`, `s0 = 71.70361328125`, `Mr =
+"Places": `n = K = 8`, `s0 = 71.70361328125`, `Mr =
 28.193115234375`, every card `Ri + K = 507.896728515625` wide, `Pt =
 28.8046875`; heights `pages` 63.453125, `recording` 49.4765625 (`y_root
 = 14.5` under its one map) and `score` 84.4296875 (`y_root = 14.5`, its
-flow band below).
+flow control band below).
 
 **The widest name and the right margin in the second item.**
 `bundle_ungrouped` with `score` removed (core's `remove`), so two items,
@@ -1381,8 +1956,8 @@ is drawn at `20 + 8.8046875 = 28.8046875`, `F` below the title's slot.
 = 252.1640625`, the height of the box without `places` (`8 + (157.734375
 + 84.4296875 + 2)`). Without `Pt` the item would lie under the title (`Yt
 = 0`, `H` 243.359375). The case of an
-item far above the title is `bundle_ungrouped__places` in "Places and band
-orders".
+item far above the title is `bundle_ungrouped__places` above ("An item
+left of and above the padding and a height request").
 
 **A scaled ungrouped card** (`bare` at `places: {bare: {scale: 2}}`; one
 item, so the layout is `bare`'s: `n = 8`, `s0 = 8 + 25.5771484375 + 8 =
@@ -1452,9 +2027,10 @@ high, the frame `2 × 666 = 1332` wide, and `Drawing.cards` still gives
 placement's `spacing` times its item's, and for a member that product
 times its card's, in that order). The vertical stretch of a member drawing
 is section 6.5's: its padding above and below is `P × v`, its bands lie
-`B = 4 × v` apart and a row's pitch is `max(14 v, h(s))`; the root band
-(the map stack, the wedges and their labels: the stroke width, `d`, `g`,
-the wedge and the label gap are fixed sizes, section 6.2) and every
+`B = 4 × v` apart and a row's pitch is `max(14 v, h(s))`; the markers and
+conversion maps bands at level 1 or −1 (the map stack, the wedges and their
+labels: the stroke width, `d`, `g`, the wedge and the label gap are fixed
+sizes, section 6.2) and every
 horizontal quantity do not depend on `v`, so `n`, `s0`, `Mr` and every
 card's width are those at `v = 1`. A root with its wedges below in one
 label tier and nothing above (`bare`'s shape: `Ea = 0`, `Eb =
@@ -1536,17 +2112,23 @@ take their values from those derivations. The common measures are `k = 8`,
 3.80810546875`, the root's stroke width 3 and the card's top at 8, so the
 box-local `y_root` is `8 + P × v + Ea`. Tier `n` of a line's segment labels
 has its baseline at `y − (m + 2 + (n − 1) × h(9)) − d(9)`, `y` the line's
-ordinate and `m` the larger of its stack's reach above and, when it has a
-drawn boundary, `k`; a label's first-fit extent is `[L × u − wi / 2 − 1,
-L × u + wi / 2 + 1]`. A line has the boundaries of its own segments; the
-boundary of a segment that is a segment line lies on its parent's line.
+ordinate and `m` the largest of its stack's reach above, the width of its
+markers band when that band lies at level 1, and, when it has a drawn
+boundary, `k`; a label's first-fit extent is `[L × u − wi / 2 − 1, L × u +
+wi / 2 + 1]`. A line therefore reaches `m + 2 + T × h(9)` above (`m` with
+no tier) and the larger of its stack's reach below and `k` below (section
+6.4, Level 0). A line has the boundaries of its own segments; the boundary
+of a segment that is a segment line lies on its parent's line. A segment
+that is no segment line has no line: what its displayed bands hold joins
+its segment line's bands.
 
 1. **`segment_line`, by its derivation.** Root `form` (quarters, length 32,
    a segment line, unlocked) with the segments `a` [0, 8], `b` [8, 20] and
    `c` [20, 32], each a segment line with the segments `a1`; `b1`, `b2`;
    `c1` (`a1` and `c1` unnamed). `x0 = 16 + w("Form", 11) + 8 =
-   52.294921875`, `x(t) = x0 + 12.5 t`. The root band above reaches `8 + 2
-   + h(9) = 20.4765625`, the children band starts at `24.4765625`; row 1
+   52.294921875`, `x(t) = x0 + 12.5 t`. `form`'s line reaches above `8 + 2
+   + h(9) = 20.4765625` (its boundaries and one tier of labels), so its
+   children band at level 1 starts `B` beyond, at `24.4765625`; row 1
    (`a`, `b`, `c`) has the outer half 20.4765625 (`b`'s reach above) and
    the inner half 8 (`b`'s boundary), so its line lies `32.4765625` out and
    `Ea = 52.953125`; `y_root = 68.953125`, row 1 at `36.4765625`, the
@@ -1607,9 +2189,10 @@ boundary of a segment that is a segment line lies on its parent's line.
    40.28466796875, `Intro, Coda` 68.76123046875, `Piece` 83.76123046875.
 4. **A segment line whose segments are no lines (`segment_pages` and
    `segment_pages_locked`).** The pages lie on the root's line only: no
-   `child` element, no children band. Above, the root band alone reaches
-   20.4765625, so `y_root = 36.4765625` and the height is `8 + 10 + 63.453125
-   = 81.453125`; the boundaries `page_2/start` … `page_4/start` span
+   `child` element, no children band. Above, no band is present and the
+   line alone reaches 20.4765625, so `y_root = 36.4765625` and the height is
+   `8 + 10 + 63.453125 = 81.453125`; the boundaries `page_2/start` …
+   `page_4/start` span
    `28.4765625` to `44.4765625`, the labels' baseline is
    24.35400390625. The unlocked root ends with the open arrowhead, the
    locked one with the end circle.
@@ -1634,7 +2217,8 @@ boundary of a segment that is a segment line lies on its parent's line.
    `67.953125`.
 7. **Maps on a segment line and its segment (section 6.4).** `segment_line`
    with a ScalarMap `b_map` added into `b` and `b1_map` into `b1` through
-   `add`: `b`'s stack above is `b_map` then `b1_map` (the segment line's own
+   `add`: `b1` has no line, so its map joins `b`'s conversion maps band at
+   level 1, `b`'s stack above: `b_map` then `b1_map` (the segment line's own
    maps first), spanning `b` (152.294921875 to 302.294921875) and `b1`
    (152.294921875 to 227.294921875). The stack reaches `1.5 + 2 × 5 =
    11.5 > k`, so `m = 11.5` and `b` reaches `11.5 + 2 + h(9) = 23.9765625`
@@ -1643,16 +2227,21 @@ boundary of a segment that is a segment line lies on its parent's line.
    10.5 above it (34.4765625, 29.4765625); `b1/label` at baseline
    `39.9765625 − 13.5 − d(9) = 24.35400390625`; `b2/start` spans
    31.9765625 to 47.9765625; height 117.4296875.
-8. **Children below.** `segment_line` with `{element: child} side below`:
-   `b`'s labels still lie above its line ("above is up"). Above, only the
-   root band, `Ea = 20.4765625`, `y_root = 36.4765625`; below, the root
-   band reaches 26.9765625 (the wedges), the children band starts at
+8. **Children below.** `segment_line` with `bandOrder(form,
+   [conversion_maps], [markers, children, regions, flow_control])`, so `b`,
+   following `form` band by band, lies below it, and its labels still lie
+   above its own line ("above is up"). Above, no band: the line reaches
+   20.4765625, `Ea = 20.4765625`, `y_root = 28.4765625`, `form` at
+   36.4765625; below, the markers band at level −1 reaches 26.9765625 (the
+   wedges, beyond the boundaries' 8), the children band at −2 starts at
    30.9765625, row 1's inner half (above) is 20.4765625 and its outer half
-   (below) 8, so its line lies `51.453125` out, at 87.9296875; `b1/label` at
-   baseline `87.9296875 − 10 − d(9) = 75.80712890625`, `b2/start` from
-   79.9296875 to 95.9296875, `A` at 24.35400390625, height 113.9296875.
-9. **Fixed `k`, stretched spacing.** `segment_line` at spacing 2: the root
-   band still reaches 20.4765625; the children band starts at
+   (below) 8, so its line lies `51.453125` out, at 87.9296875; `b1/label`
+   at baseline `87.9296875 − 10 − d(9) = 75.80712890625`, `b2/start` from
+   79.9296875 to 95.9296875, `A` at `36.4765625 − 10 − d(9) =
+   24.35400390625`; `Eb = 30.9765625 + 28.4765625 = 59.453125`, height
+   `8 + 10 + (28.4765625 + 59.453125 + 8) = 113.9296875`.
+9. **Fixed `k`, stretched spacing.** `segment_line` at spacing 2: `form`'s
+   line still reaches 20.4765625 above; the children band starts at
    `max(14, 20.4765625 + 8) = 28.4765625`, row 1's halves are
    `max(14, 20.4765625)` and `max(14, 8) = 14`, so its line is
    `42.4765625` out and `Ea = 62.953125`; `y_root = 8 + 16 + 62.953125 =
@@ -1665,15 +2254,20 @@ boundary of a segment that is a segment line lies on its parent's line.
     `y_root = 87.0390625`, row 1 at 39.28125, height 132.015625; `a/name`
     is still not drawn. The same statement on `b/name` (not the row's first
     line) leaves the drawing equal to the default one.
-11. **A segment that is no line has no element type (sections 2.1, 6.4).**
-    `segment_pages` with one layer and no defaults: `{element: "child"}
-    stroke #654321` reaches neither `page_2/start` nor `page_2/label`
-    (both keep `none`: their segment is no `child`, and their holder
+11. **A segment that is no line has no element type (sections 2.1, 2.2,
+    6.4).** A segment's boundary and label are held by its segment line,
+    directly and in no band, and belong to the segment. `segment_pages`
+    with one layer and no defaults, the strokes of `page_2/start`,
+    `page_2/label` and `page_3/start`: `{element: "child"} stroke #654321`
+    reaches none of them (their segment is no `child`, and their holder
     `pages` is a `timeline`); `{ids: ["page_2"]} stroke #123456` reaches
-    both, through the segment's node, and leaves `page_3/start` at `none`.
-    In `segment_line`, `{ids: ["b"]} stroke #123456` alone reaches
-    `b/start`, `b2/start` (a segment of `b`) and `b1/label`, and leaves
-    `c/start` at `none`.
+    none of them either (the segment's node holds neither, and their own
+    addresses differ); `{ids: ["pages"]}` reaches all three, through their
+    holder; `{within: "page_2"}` reaches `page_2/start` and `page_2/label`,
+    which belong to `page_2`, and not `page_3/start`. In `segment_line`,
+    `{ids: ["b"]} stroke #123456` alone reaches `b2/start` and `b1/label`
+    (held by `b`, the segment line of `b1` and `b2`), and leaves `b/start`
+    (held by `form`) and `c/start` at `none`.
 12. **A hidden segment line (section 6.1).** `segment_line` with `{ids:
     ["b"]} display none`: `b`'s line is not drawn, and neither are the
     boundary and labels on it (`b2/start`, `b1/label`, `b2/label`), which
@@ -1684,6 +2278,42 @@ boundary of a segment that is a segment line lies on its parent's line.
     `c/start` span `46.4765625` to `62.4765625`; `A`, `B`, `C` at baseline
     `54.4765625 − 10 − d(9) = 42.35400390625`; height `18 + 81.453125 =
     99.453125`, width 479.573974609375 as before.
+13. **A markers band at level 1 above a segment line (section 6.4,
+    Segment lines).** `segment_pages` with `bandOrder(pages, [children,
+    conversion_maps, markers], [regions, flow_control])`: no map and no
+    child, so the markers band is at level 1, from `c = 0`, `1.5 + 13 + 2 +
+    h(9) = 26.9765625` wide (labels `0 px` and `7016 px` in one tier). `m`
+    is the largest of 0 (no stack), 26.9765625 (the markers band at level
+    1) and `k = 8`: 26.9765625, so the segment labels lie beyond the band,
+    and the line reaches `26.9765625 + 2 + h(9) = 39.453125` above; the
+    band's outer edge is `max(0 + 26.9765625, 39.453125) = 39.453125`, `Ea`.
+    `y_root = 47.453125`, the line at 55.453125; below, no band, the line
+    reaches `k = 8`: `Hc = 47.453125 + 8 + 8 = 63.453125`, height
+    81.453125. Every segment label's baseline is `(55.453125 − (26.9765625
+    + 2)) − d(9) = 24.35400390625`; the start wedge's tip `55.453125 − 1.5
+    = 53.953125` and its base `55.453125 − 14.5 = 40.953125`; the end
+    label's baseline `(55.453125 − 16.5) − d(9) = 36.83056640625`;
+    `page_2/start` from `55.453125 − 8 = 47.453125` to 63.453125.
+14. **The regions of segments without a line** (`unknown_length_segments`,
+    section 6.4, Segments without a line; derived with "Timelines of
+    unknown length"). `a`, `b` and `c` have no line; the default layer
+    hides their regions bands, so the default drawing draws no region.
+    With the extra layer `{element: band, class: regions} display inline`
+    the regions of `a` (`region_1`, 0 to 4) and `c` (`region_2`, 0 to 3 on
+    `c`'s axis, 14 to 17 on `form`'s) join `form`'s regions band, after its
+    own (none), segment after segment. `x0 = 49.84033203125`, `x(t) = x0 +
+    400 × u(t)`, `u` the double nearest `t / 17`: `form/region_1` from
+    `x(0) = 49.84033203125` to `x(4) = 143.95797909007354`, its tip at
+    `x(2) = 96.89915556066177`; `form/region_2` from `x(14) =
+    379.2520967371323` to `x(17) = 449.84033203125`, its tip at `x(31/2) =
+    414.54621438419116`. They do not conflict: one row. Above, `form`'s
+    line reaches `k = 8` (boundaries, no named segment), `y_root = max(8 +
+    8, 8 + 6.40234375) = 16`, the line at 24; below, the markers band (the
+    start wedge alone, `form`'s end being open) to 26.9765625, the regions
+    band at level −2 from 30.9765625: arms at `24 + 30.9765625 =
+    54.9765625`, tips at 60.9765625; `Eb = 30.9765625 + 18.4765625 =
+    49.453125`, `Hc = 16 + 49.453125 + 8 = 73.453125`, height `8 + 10 +
+    73.453125 = 91.453125`.
 
 ## Ancestor lines (`ancestors.test.ts`)
 
@@ -1698,9 +2328,12 @@ quantities its rule names and nothing else. Common values: every line has
 the ancestor line; an ancestor name (font size 9) is centred on its row,
 baseline `ya + (a(9) − d(9)) / 2 = ya + 3.11572265625`; the box holds a
 frame, so `xn = 24` and the first card's top is `8 + 8 + h(11) + 4 =
-32.8046875`; the member's row pitch `p0 = 14`, so the ancestor band starts
-no nearer than 7, and an ancestor row (name size 9) has `q = 14`, inner half
-7, outer half `max(7, 26.9765625) = 26.9765625`.
+32.8046875`; the member's row pitch `p0 = 14`, and the ancestor band
+starts at `max(p0 / 2, max(Ea, wm / 2) + B)`, `Ea` the outer edge of the
+member's above side and `wm` the stroke width of the member's line (0 when
+that line is hidden): at `max(7, max(0, 1.5) + 4) = 7` when nothing lies
+above the member's line. An ancestor row (name size 9) has `q = 14`, inner
+half 7, outer half `max(7, 26.9765625) = 26.9765625`.
 
 **`group_child_member`.** Member `second-half` (quarters, length 8) at
 offset 8 in `piece` (length 16, unlocked). `ts = −8 < 0`: `piece` runs on to
@@ -1767,11 +2400,13 @@ its card are, by type and address: the ancestor lines `score`, `movement`
 `score/name`, `movement/name`, `theme/name`; the mark labels of `score`
 (start, end), of `movement`, then the own wedge labels.
 
-**Single changes to `group_child_member`**, each with one extra layer:
+**Single changes to `group_child_member`**, each with one extra layer or,
+for the first, a band order:
 
-1. *Marks ignore `side`.* `{element: wedge} side above` moves the member's
-   own wedges above, so its root band above reaches `26.9765625`; the
-   ancestor band starts at `max(7, 26.9765625 + 4) = 30.9765625`, its line
+1. *Marks ignore the member's band order.* `bandOrder(second-half,
+   [children, conversion_maps, markers], [regions, flow_control])` moves the
+   member's own markers band above its line, at level 1 from `c = 0`,
+   `26.9765625` wide, so `Ea = 26.9765625`; the ancestor band starts at `max(7, 26.9765625 + 4) = 30.9765625`, its line
    `37.9765625` out; `Ea = 30.9765625 + 33.9765625 = 64.953125`, `y_root =
    72.953125`, `Hm = 72.953125 + 6.40234375 + 8 = 87.35546875`. The member
    line lies at `105.7578125`, `piece` again at `67.78125`, its marks again
@@ -1820,6 +2455,33 @@ its card are, by type and address: the ancestor lines `score`, `movement`
    `Ea = 7 + 7 + 14.5 = 28.5`, `y_root = 36.5`, `Hm = 36.5 + 26.9765625 +
    8 = 71.4765625`; member line `69.3046875`, `piece` `55.3046875`, mark
    tips `53.8046875`, bases `40.8046875`. `x0` stays `120.61962890625`.
+9. *A hidden member line keeps its ancestor band* (sections 2.4 and 6.5).
+   `{ids: [second-half]} display none` hides the member's line and so its
+   timeline's whole drawing: its name, its own wedges, its bands, and in
+   `piece`'s card the child `second-half`, which is not placed. The member
+   drawing draws its ancestor line with its name, its marks and their
+   labels, and nothing else: its card holds, in order, the card, the
+   ancestor line `piece`, the marks `second-half/start` and
+   `second-half/end`, `piece/name`, and the mark labels
+   `second-half/start/label` and `second-half/end/label`; no band of
+   `second-half` is recorded. Its root reaches nothing (`Ea = Eb = 0`)
+   and its line's stroke takes no room (`wm = 0`), so the ancestor band
+   starts at `max(7, max(0, 0) + 4) = 7`, `piece` again `7 + 7 = 14` out,
+   `Ea = 40.9765625`, `y_root = 48.9765625`, `Hm = 48.9765625 + 6.40234375
+   + 8 = 63.37890625`, the card at `y = 32.8046875`; `piece` at
+   `(32.8046875 + 48.9765625) − 14 = 67.78125`. No name of `second-half` is
+   drawn, so the widest name is `w("Recording", 11) = 55.70361328125` and
+   `x0 = 24 + 55.70361328125 + 8 + 24 = 111.70361328125`: `piece` runs from
+   `Xa = 99.70361328125` to `x0 + 400 = 511.70361328125`.
+10. *The ancestor band keeps `B` from a wide member line* (section 8.3).
+   `{ids: [second-half]} stroke-width 16` (the ancestor line keeps the
+   default layer's 3): the band starts at `max(7, max(0, 16 / 2) + 4) =
+   12`, `piece` `12 + 7 = 19` out, `Ea = 12 + (7 + 26.9765625) =
+   45.9765625`, `y_root = 53.9765625`. The member's wedges below are `8 +
+   13 + 2 + 10.4765625 = 33.4765625` wide, `Hm = 53.9765625 + 33.4765625 +
+   8 = 95.453125`. The member line lies at `32.8046875 + 53.9765625 =
+   86.78125`, `piece` again at `86.78125 − 19 = 67.78125`. `x0` stays
+   `120.61962890625`.
 
 **The cascade per drawing (sections 2.5, 8.1).** Without the defaults, the
 one layer `{ids: [piece]} fill #112233` gives `piece`'s marks, their labels
@@ -1883,7 +2545,8 @@ section 3.3 produces exactly; with `w = 3` the line runs on `4w = 12` past
   3/4 = 353.798828125`.
 - **`unknown_length_child`** (root 32 long; child `movement` at 8 of unknown
   length with a region 0 to 6). Rule 5: `movement` ends at `8 + 6 = 14`,
-  open. `x0 = 16 + 59.490234375 + 8 = 83.490234375`; `movement` runs from
+  open; the region counts towards the reach although the defaults hide it
+  with `movement`'s regions band (sections 3.4 and 4). `x0 = 16 + 59.490234375 + 8 = 83.490234375`; `movement` runs from
   `x(8) = 183.490234375` to `x(14) + 12 = 258.490234375 + 12 =
   270.490234375`, three chevrons; the root keeps its arrowhead at `x(32) =
   483.490234375` and both wedges. **The chevrons take room in the row**:
@@ -1907,8 +2570,13 @@ section 3.3 produces exactly; with `w = 3` the line runs on `4w = 12` past
   `a` at 0 of unknown length with a region 0 to 4, `b` at 8, 6 long, `c` at
   14 of unknown length with a region 0 to 3). The reach is nested: `c`
   contributes `14 + 3 = 17`, its own reach added to its offset, beyond `b`'s
-  `8 + 6 = 14` and `a`'s 4. `x0 = 16 + 25.84033203125 + 8 = 49.84033203125`;
-  `c`'s region ends at `x(17) = 449.84033203125`, the boundaries of `b` and
+  `8 + 6 = 14` and `a`'s 4. `x0 = 16 + 25.84033203125 + 8 = 49.84033203125`.
+  `a` and `c` have no line of their own, so the defaults hide their regions
+  bands (section 4) and the default drawing draws no region; shown by the
+  extra layer `{element: band, class: regions} display inline` (the review
+  case `unknown_length_segments__regions-shown`), their regions join
+  `form`'s regions band, and `c`'s region ends at `x(17) =
+  449.84033203125`, the boundaries of `b` and
   `c` lie at `x(8) = 238.07562614889704` and `x(14) = 379.2520967371323`;
   `form` runs on to `461.84033203125`, three chevrons. **Rules 3 and 4** show in
   the segment labels: with the names `A`, `B`, `C` set on `a`, `b`, `c`
@@ -1970,43 +2638,118 @@ size, `W = Wb` and `H = Hb` (section 8.4).
 
 For generated manifests (a root of length 1 to 64 quarters with 1 to 8
 children of random offset and length inside it, built through `add`
-commands of a block and of its children), no two wedge labels with the same baseline on one side have
-conflicting extents `[x − w/2 − 1, x + w/2 + 1]` (section 6.3), and no two
-children in one row have conflicting extents `[Xs − x0, Xe − x0]`.
-Changing name widths changes `x0` but never changes those rows.
+commands of a block and of its children), no two wedge labels with the same
+baseline, which the markers band's first fit placed in one tier, have
+conflicting extents `[x − wi/2 − 1, x + wi/2 + 1]`, `wi` the label's width
+(section 6.3), and no two
+child lines drawn at one ordinate, which one children band's first fit
+placed in one row, have conflicting drawn extents `[Xs, Xe]`.
 
-## Sides (`sides.test.ts`)
+## Band orders (`order.test.ts`)
 
-For each of `child`, `map`, `region`, `jump`, `wedge` and `break`, a top
-layer `{element: T} side X` with X the opposite of its default puts every
-element of that type on the other side of its reference line. The
-reference line is the root's for every type but `map`, whose reference is
-its own timeline's line (section 6.4: for a map, `above` is up whatever
-side of the root its timeline lies on). A break's line then starts on the
-new side's flow row and ends at the other padding (`Hc − 8` instead of 8
-from the member drawing's top).
-Each case first checks how many elements of the type the fixture draws: in
-`map` 1 child, 2 maps (`tempo` on the root, `ticks` on `phrase`) and 2
-wedges; in `with_region` 1 region; in `flow_control` 1 jump and 1 break.
+Section 6.4, "The band order": a timeline's band order is its entry of
+`graphical.order`; without one, its parent's band order with each of the
+parent's bands replaced by its own band of the same id; for a root without
+one, the default of section 4. The bands listed before its id lie above its
+line, those after it below. The tests set an entry through `set {order}`
+on the timeline; `moved(T, kind)` is the default band order of `T` with the
+band of `kind` taken across `T`, next to it.
 
-The break of `flow_control` moved above: above, the flow band holds the
-break and its label, no jump: one break-label tier, so the band is
-`10.4765625` wide and is the first band, the flow row lies 10.4765625 out,
-`Ea = 10.4765625`, `y_root = 18.4765625`, the root's line at `8 + 18.4765625
-= 26.4765625` in the card. Below: the root band to 26.9765625 and the flow
-band (the jump, one level, no break label) from 30.9765625, `0 + 8 + 0 + 2 +
-10.4765625 = 20.4765625` wide, `Eb = 51.453125`. `Hc = 18.4765625 +
-51.453125 + 8 = 77.9296875`, and the drawing is `8 + (8 + 77.9296875 + 2) =
-95.9296875` high. The line runs from the above flow row, `y1 = 26.4765625 −
-10.4765625 = 16`, to `y2 = 8 + (Hc − 8) = 77.9296875`; its label starts at
-`x(12) + 3 = 393.9775390625` and its tier 1 touches the flow row on the
-root's side, baseline `16 + a(9) = 24.35400390625`.
+**Each kind across its line.** For each band kind, a fixture drawing that
+band's elements is drawn by the default band order and with the root's
+band of that kind moved across the root's line. The side of each element
+is the sign of an ordinate of it on its band's side less the ordinate of
+the line of the timeline whose band holds it: a child's line against its
+parent's, a map's centre, a region's tip, a jump's first control point, a
+wedge's base and a break's flow-row end against their own timeline's line.
+By default, in `map`, the one child (`phrase`) and the two maps (`tempo` on
+`melody`, `ticks` on `phrase`) lie above (sign −1) and the two wedges below
+(+1); in `with_region` the one region below; in `flow_control` the one jump
+and the one break below. Moved, every one of them lies on the other side:
+`phrase` has no entry and follows `melody` band by band, so its map moves
+with `melody`'s.
+
+**The root's break with its flow control band above** (`flow_control`,
+`moved(flow:quarters, flow_control)`, at `v = 1`). Above, the flow control
+band alone, at level 1, starts `B` beyond `w / 2` (the line reaches
+nothing there): `1.5 + 4 = 5.5`, and is `10.4765625 + 8 + 0 + 2 +
+10.4765625 = 30.953125` wide (one break-label tier, one jump row): `Ea =
+36.453125`, `y_root = 44.453125`, the line at 52.453125. Below, the markers
+band alone: `Hc = 44.453125 + 26.9765625 + 8 = 79.4296875`, `H =
+97.4296875`. The flow row lies `5.5 + 10.4765625 = 15.9765625` above the
+line, at `8 + (44.453125 − 15.9765625) = 36.4765625`, where the break
+(`y1`) and the jump (`start`, at `x(8) = 290.9775390625`) begin; the break
+ends at the padding below, `y2 = 8 + (Hc − 8) = 79.4296875`. The break
+label starts at `x(12) + 3 = 393.9775390625`, tier 1 touching the flow row
+on the line's side, below it: baseline `36.4765625 + a(9) =
+44.83056640625`.
+
+**A child following its parent, or not** (`map_root_band_order`,
+`map_child_band_order`: `map` with one entry each; `x0` as in `map`).
+
+- `map_root_band_order` holds `melody: bandOrder(melody, [children],
+  [conversion_maps, markers, regions, flow_control])`. Above `melody`,
+  the children band at level 1 starts at `max(1.5 + 4, 7) = 7`. `phrase`
+  has no entry and follows `melody`: its maps lie below its line, its
+  below edge 6.5 < 7, so its row's halves are 7 and 7: `phrase` 14 out,
+  `Ea = 21`, `y_root = 29`, `melody` at 37, `phrase` at 23, `ticks` at
+  `23 + 5.5 = 28.5`. Below `melody`, the conversion maps band at level −1
+  (`tempo` at `37 + 5.5 = 42.5`, edge 6.5) and the markers band at −2 from
+  `6.5 + 4 = 10.5`: the start wedge's tip at `37 + (10.5 + 1.5) = 49`, its
+  base at `37 + (10.5 + 14.5) = 62`; `Eb = 10.5 + 26.9765625 =
+  37.4765625`, `Hc = 29 + 37.4765625 + 8 = 74.4765625`, `H =
+  92.4765625`.
+- `map_child_band_order` holds `phrase: bandOrder(phrase, [children],
+  [conversion_maps, markers, regions, flow_control])` alone: `melody` keeps
+  the default, its map above at level 1 (6.5) and its children band at 2
+  from `max(6.5 + 4, 7) = 10.5`; `phrase`'s maps lie below its line, the
+  halves 7 and 7: `phrase` `10.5 + 7 = 17.5` out, `Ea = 24.5`, `y_root =
+  32.5`, `melody` at 40.5, `tempo` at 35, `phrase` at 23, `ticks` at 28.5;
+  `Hc = 32.5 + 26.9765625 + 8 = 67.4765625`, `H = 85.4765625`. A child's
+  own entry thus overrides its parent's band order.
+- `map_root_band_order` with `phrase`'s entry set to `bandOrder(phrase,
+  [children, conversion_maps], [markers, regions, flow_control])`:
+  `melody` as in the first case, `phrase` back to its maps above: its
+  above edge 6.5 < 7, `phrase` 14 out, `ticks` at `23 − 5.5 = 17.5`,
+  `tempo` 42.5, `melody` 37, `H = 92.4765625`.
+- `map_child_band_order` with `phrase`'s entry set to `null`: the entry is
+  deleted (`graphical.order` becomes `{}`), `phrase` follows `melody`'s
+  default again, and the drawing's elements equal those of `map`.
+
+**A child's break** (`child_flow_control` with `{ids:
+[verse/flow_control_1]} display inline`; the hand-derived figure
+`child_flow_control__flow-shown`). `piece` (16 quarters) holds `verse` at
+4, 8 long, which holds the break `fine` ("Fine") at 4 and the jump
+`da_capo_al_fine` ("D.C. al Fine") from 8 to 0, on `piece`'s axis at 8 and
+from 12 to 4. `x0 = 16 + w(Verse, 11) + 8 = 55.3134765625`, `x(t) = x0 +
+25 t`. `verse`'s flow control band is at level −1 (its markers and regions
+bands draw nothing), from `1.5 + 4 = 5.5`, one break-label tier and one
+jump row: 30.953125 wide, `verse`'s below edge 36.453125, its above edge 0.
+In `piece`'s band above: inner half `max(7, 36.453125) = 36.453125`,
+outer 7, `verse` `7 + 36.453125 = 43.453125` out, `Ea = 7 + (36.453125 +
+7) = 50.453125`, `y_root = 58.453125`, `piece` at 66.453125, `verse` at 23,
+`Hc = 58.453125 + 26.9765625 + 8 = 93.4296875`, `H = 111.4296875`. The
+flow row lies `5.5 + 10.4765625 = 15.9765625` below `verse`'s line, at
+38.9765625 (`y1`); the break crosses `verse`'s line and ends `mb = max(E,
+h(s) / 2)` beyond it on the far side, `E` the outer edge of `verse`'s above
+side (0) and `s` the name size 11 of its row: `mb = 6.40234375`, `y2 = 23 −
+6.40234375 = 16.59765625`. Its label starts at `x(8) + 3 =
+258.3134765625`, baseline `38.9765625 − d(9) = 36.85400390625`.
+
+With `verse`'s entry `moved(verse, flow_control)` the band lies above
+`verse`'s line at level 1, from 5.5: `verse`'s above edge 36.453125, its
+below edge 0. In `piece`'s band: inner half 7, outer 36.453125, `verse` `7
++ 7 = 14` out, `Ea = 50.453125` as before, `y_root = 58.453125`, `piece`
+at 66.453125, `verse` at 52.453125, `H = 111.4296875`. The flow row lies at
+`52.453125 − 15.9765625 = 36.4765625` (the break's `y1`, the jump's start
+at `x(12) = 355.3134765625`); the break ends `mb` below `verse`'s line, `E`
+now the outer edge of its below side (0): `y2 = 52.453125 + 6.40234375 =
+58.85546875`; its label's baseline `36.4765625 + a(9) = 44.83056640625`.
 
 ## Placement cases (`placement.test.ts`, `names.test.ts`)
 
 Exact tests cover several nested jump spans and levels, a root whose
-`number_type` is `float`, and both the default band order and
-`["flow", "regions", "children"]`. They also cover hidden names,
+`number_type` is `float`, and two band orders of one root. They also cover hidden names,
 mixed name sizes, name `content`, `max-width` truncation, empty drawings,
 per-band label sizes, the root-row clearance before a first children band,
 break-label tiers measured inward from the padding, and exact
@@ -2031,7 +2774,7 @@ label widens its extent. First fit: `one` level 1, `two` level 1 (150 <
 200), `three` level 2 (it conflicts with both), `four` level 3, `five`
 level 4. Above, no
 band: `y_root = max(8, 8 + 12.8046875 / 2) = 14.40234375`, the root's line
-at 22.40234375 in the card. Below, the root band to 26.9765625, the flow row
+at 22.40234375 in the card. Below, the markers band to 26.9765625, the flow row
 at `f0 = 26.9765625 + 4 = 30.9765625`, so every `yf = 22.40234375 +
 30.9765625 = 53.37890625`. With `pj = 10 + 10.4765625
 = 20.4765625`, the apex distances are `(f0 + 8) + 0 × pj = 38.9765625`,
@@ -2039,7 +2782,7 @@ at `f0 = 26.9765625 + 4 = 30.9765625`, so every `yf = 22.40234375 +
 79.9296875` and `38.9765625 + 3 × 20.4765625 = 100.40625`, so `apex − yf`
 is 8, 28.4765625, 48.953125 and `8 + 3 × 20.4765625 = 69.4296875` (all
 exact): no break, so no break-label tier, and the flow row is the start of
-the flow band. In `yc = yf + 4/3 × (ya − yf)` the factor 4/3 is formed
+the flow control band. In `yc = yf + 4/3 × (ya − yf)` the factor 4/3 is formed
 first (section 3.3): `4/3 × (ya − yf)` is the double nearest the exact
 product of 4/3 and the double `ya − yf`, never the binary64 product of the
 double `4 / 3` and `ya − yf`. The two readings agree on levels 1 to 3 and
@@ -2073,24 +2816,37 @@ root runs to `90.6767578125 + 400 = 490.6767578125`. The proportions are binary6
 242.6767578125. The labels show the floats as Python writes them: `0.0 s` and
 `12.5 s`.
 
-**Band order.** `with_region` with its region moved above (`{element:
-region} side above`), so the children and region bands share the above
-side. The region band has `pr = 6 + 2 + 10.4765625 + 4 = 22.4765625` and
-is `22.4765625 − 4 = 18.4765625` wide. At the default order the children
-band comes first, from 7, its rows 14 and 28 out, to 35; the region band
-starts at `35 + 4 = 39`, to 57.4765625; `y_root = 65.4765625`, the root's
-line at `8 + 65.4765625 = 73.4765625`: `clt_2` at `73.4765625 − 14 =
-59.4765625`, `clt_3` at 45.4765625, the brace's arms at `73.4765625 − 39 =
-34.4765625` and its tip at `73.4765625 − (39 + 6) = 28.4765625`. With
-`["flow", "regions", "children"]` the region band is the first, from 0 to
-18.4765625 (arms at the root's line); the children band starts at
-`max(18.4765625 + 4, 7) = 22.4765625`, rows `22.4765625 + 7 = 29.4765625`
-and `43.4765625` out, to `22.4765625 + 28 = 50.4765625`, so `y_root =
-58.4765625`, the root's line at 66.4765625, `clt_2` at 37, `clt_3` at 23,
-arms 66.4765625 and tip 60.4765625. Below, the wedges reach 26.9765625 in
-both, so `Hc` is `65.4765625 + 26.9765625 + 8 = 100.453125` and
-`93.453125`, the drawings 118.453125 and 111.453125 high. The child rows
-and map centres of `map` do not change when the name content widens `x0`.
+**Band order.** `with_region` with two band orders of its root `clt_1`,
+each holding the regions and the children bands above its line (no map, so
+the conversion maps band is absent) and the markers and flow control bands
+below. The regions band has `pr = 6 + 2 + 10.4765625 + 4 = 22.4765625` and
+is `22.4765625 − 4 = 18.4765625` wide; the children band's rows are 14
+apart (`clt_2` in row 1, `clt_3` in row 2, both with edges 0), so it is `7
++ 7 + 7 + 7 = 28` wide. Below, the markers band reaches 26.9765625 in both.
+
+- `bandOrder(clt_1, [regions, children, conversion_maps], [markers,
+  flow_control])`: the children band at level 1 starts at `max(1.5 + 4,
+  7) = 7`, its rows `7 + 7 = 14` and 28 out, to `7 + 28 = 35`; the regions
+  band at level 2 starts at `35 + 4 = 39`, to 57.4765625; `y_root =
+  65.4765625`, the root's line at `8 + 65.4765625 = 73.4765625`: `clt_2` at
+  `73.4765625 − 14 = 59.4765625`, `clt_3` at 45.4765625, the brace's arms
+  at `73.4765625 − 39 = 34.4765625` and its tip at `73.4765625 − (39 + 6)
+  = 28.4765625`; `Hc = 65.4765625 + 26.9765625 + 8 = 100.453125`, the
+  drawing `8 + (8 + 100.453125 + 2) = 118.453125` high.
+- `bandOrder(clt_1, [children, regions, conversion_maps], [markers,
+  flow_control])`: the regions band at level 1, where the line reaches
+  nothing, starts `B` beyond `w / 2`, at `1.5 + 4 = 5.5`, to `5.5 +
+  18.4765625 = 23.9765625`; the children band at level 2 starts at
+  `max(23.9765625 + 4, 7) = 27.9765625`, its rows `27.9765625 + 7 =
+  34.9765625` and `34.9765625 + 14 = 48.9765625` out, to `27.9765625 + 28
+  = 55.9765625`; `y_root = 63.9765625`, the root's line at 71.9765625:
+  `clt_2` at `71.9765625 − 34.9765625 = 37`, `clt_3` at 23, the arms at
+  `71.9765625 − 5.5 = 66.4765625` and the tip at `71.9765625 − (5.5 + 6) =
+  60.4765625`; `Hc = 63.9765625 + 26.9765625 + 8 = 98.953125`, the drawing
+  116.953125 high.
+
+The child rows and map centres of `map` do not change when the name content
+widens `x0`.
 
 `names.test.ts` pins the details: two non-overlapping children share row 1,
 whose joined name is replaced by `content: "AAAA"` on the first name and

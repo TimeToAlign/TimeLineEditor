@@ -1,7 +1,6 @@
 {
   "blocks": {
     "bmixed0000": {
-      "bands": {},
       "height": null,
       "id": "bmixed0000",
       "index": "a0",
@@ -42,7 +41,7 @@
           }
         ],
         "meta": {
-          "generator": "timetoalign 1.2.0 (1d90e3ff)"
+          "generator": "timetoalign 1.2.0 (4aacfe8e)"
         },
         "name": "Mixed",
         "timelines": [
@@ -291,11 +290,6 @@
         ],
         "timeskeleton": "0.7.0"
       },
-      "order": [
-        "children",
-        "regions",
-        "flow"
-      ],
       "parent": null,
       "places": {},
       "scale": 1,
@@ -305,7 +299,6 @@
       "y": 0
     },
     "bshared000": {
-      "bands": {},
       "height": null,
       "id": "bshared000",
       "index": "a1",
@@ -346,7 +339,7 @@
           }
         ],
         "meta": {
-          "generator": "timetoalign 1.2.0 (1d90e3ff)"
+          "generator": "timetoalign 1.2.0 (4aacfe8e)"
         },
         "name": "Sonata",
         "timelines": [
@@ -838,11 +831,6 @@
         ],
         "timeskeleton": "0.7.0"
       },
-      "order": [
-        "children",
-        "regions",
-        "flow"
-      ],
       "parent": null,
       "places": {},
       "scale": 1,
@@ -852,7 +840,6 @@
       "y": 0
     },
     "bungroup00": {
-      "bands": {},
       "height": null,
       "id": "bungroup00",
       "index": "a2",
@@ -860,7 +847,7 @@
       "manifest": {
         "groups": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (1d90e3ff)"
+          "generator": "timetoalign 1.2.0 (4aacfe8e)"
         },
         "name": "Sketches",
         "timelines": [
@@ -1061,11 +1048,6 @@
         ],
         "timeskeleton": "0.7.0"
       },
-      "order": [
-        "children",
-        "regions",
-        "flow"
-      ],
       "parent": null,
       "places": {},
       "scale": 1,
@@ -1117,7 +1099,7 @@
               }
             ],
             "meta": {
-              "generator": "timetoalign 1.2.0 (1d90e3ff)"
+              "generator": "timetoalign 1.2.0 (4aacfe8e)"
             },
             "name": "Mixed",
             "timelines": [
@@ -1415,7 +1397,7 @@
               }
             ],
             "meta": {
-              "generator": "timetoalign 1.2.0 (1d90e3ff)"
+              "generator": "timetoalign 1.2.0 (4aacfe8e)"
             },
             "name": "Sonata",
             "timelines": [
@@ -1923,7 +1905,7 @@
           "manifest": {
             "groups": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (1d90e3ff)"
+              "generator": "timetoalign 1.2.0 (4aacfe8e)"
             },
             "name": "Sketches",
             "timelines": [
@@ -2135,18 +2117,13 @@
   ],
   "meta": {
     "format": "tilie-workspace",
-    "version": 3
+    "version": 4
   },
   "sessions": {},
   "settings": {
     "blockDefaults": {
       "height": null,
       "length": 400,
-      "order": [
-        "children",
-        "regions",
-        "flow"
-      ],
       "scale": 1,
       "spacing": 1,
       "width": null

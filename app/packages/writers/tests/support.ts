@@ -35,6 +35,7 @@ export function boxed(
     items: [],
     cards: [],
     elements: [{ type: "block", address: null, style: background, width, height }, ...elements],
+    bands: [],
     unmapped: [],
   };
 }

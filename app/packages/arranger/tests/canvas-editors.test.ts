@@ -17,7 +17,7 @@ import { drawingOf } from "../src/drawing.ts";
 import { GRID_FREE, quantize } from "../src/numbers.ts";
 import type { Selection } from "../src/selection.ts";
 import Harness from "./CanvasHarness.svelte";
-import { A, B, changed, load, metrics, mixedView } from "./support.ts";
+import { A, B, changed, load, marqueeView, metrics, mixedView } from "./support.ts";
 
 interface Mounted {
   current(): { selection: Selection; viewport: Viewport };
@@ -92,15 +92,6 @@ function twoBlocks(): View {
     type: "add",
     into: "workspace",
     block: { id: B, manifest: load("bare"), x: 1000, y: 0 },
-  });
-}
-
-/** The view of section "Marquee inside an editor": `mixed` with `region_1` on `dlt_1`. */
-function withRegion(): View {
-  return changed(mixedView(), {
-    type: "add",
-    into: `${A}/dlt_1`,
-    region: { id: "region_1", name: "A", start: 0, end: 10 },
   });
 }
 
@@ -571,16 +562,11 @@ describe("the surroundings of an editor", () => {
   }
 
   it("select by marquee only the elements inside the edited element", async () => {
-    await show(withRegion());
+    await show(marqueeView());
     open(`${A}/dlt_1`);
     await atZoomOne();
     await marqueeFrom(40, 410, 640, 496.25);
-    expect(selected()).toEqual([
-      `${A}/recording/region_1`,
-      `${A}/dlt_1`,
-      `${A}/dlt_1/name`,
-      `${A}/recording/region_1/label`,
-    ]);
+    expect(selected()).toEqual([`${A}/recording/cmap_3`, `${A}/dlt_1`, `${A}/dlt_1/name`]);
     store.done();
     open(`${A}/group_1`);
     await atZoomOne();
@@ -637,6 +623,16 @@ describe("the selection when an editor opens", () => {
     expect(await opening(`${A}/score`, `${A}/score`, `${A}/score/name`)).toEqual([
       `${A}/score/name`,
     ]);
+    store.done();
+    open(`${A}/group_1`);
+    expect(
+      await opening(
+        `${A}/score`,
+        `${A}/score/conversion_maps_1`,
+        `${A}/performance/conversion_maps_1`,
+        `${A}/score/start`,
+      ),
+    ).toEqual([`${A}/score/conversion_maps_1`, `${A}/score/start`]);
   });
 });
 
@@ -897,5 +893,107 @@ describe("the resize toolbar in an editor", () => {
     const [, , width = 0] = (svg?.getAttribute("viewBox") ?? "").split(" ").map(Number);
     const scale = store.view.blocks[A]?.scale ?? 1;
     expect(menuTransform()).toBe(above({ ...nodePositionOf(A), width: width * scale }));
+  });
+});
+
+describe("the canvas and the bands of the edited timeline", () => {
+  /** `score`'s band order with its markers band moved just above its line. */
+  const MOVED = [
+    "score/children_1",
+    "score/conversion_maps_1",
+    "score/markers_1",
+    "score",
+    "score/regions_1",
+    "score/flow_control_1",
+  ];
+
+  /**
+   * `A/score`'s timeline editor open, A's `<svg>` shown at client (0, 0) at
+   * the drawing's own size, so a client point is a drawing point.
+   */
+  async function inScoresEditor(): Promise<void> {
+    await show();
+    open(`${A}/score`);
+    await settle();
+    const svg = nodeOf(A).querySelector("svg");
+    if (svg === null) throw new Error("no svg");
+    const [, , width = 0, height = 0] = (svg.getAttribute("viewBox") ?? "").split(" ").map(Number);
+    vi.spyOn(svg, "getBoundingClientRect").mockReturnValue(
+      DOMRect.fromRect({ x: 0, y: 0, width, height }),
+    );
+  }
+
+  /** The middle of the record of `score`'s band `address` in A's drawing as layout draws it. */
+  function middleOf(address: string): { x: number; y: number } {
+    const block = store.view.blocks[A];
+    if (block === undefined) throw new Error("no block A");
+    const band = drawingOf(block, store.view.settings, metrics).bands.find(
+      (record) => record.address === address,
+    );
+    if (band === undefined) throw new Error(`${address} is not drawn`);
+    return { x: band.x + band.width / 2, y: band.y + band.height / 2 };
+  }
+
+  /** A keydown with Ctrl (or with Meta, Cmd on macOS) on the arranger: whether it was consumed. */
+  async function stepped(key: "ArrowUp" | "ArrowDown", meta = false): Promise<boolean> {
+    const event = new KeyboardEvent("keydown", {
+      key,
+      ctrlKey: !meta,
+      metaKey: meta,
+      bubbles: true,
+      cancelable: true,
+    });
+    arranger().dispatchEvent(event);
+    await settle();
+    return event.defaultPrevented;
+  }
+
+  function scoreOrder(): unknown {
+    return store.view.blocks[A]?.manifest.graphical?.order?.score;
+  }
+
+  it("selects a band by a click, which opens and closes nothing, also on a locked canvas", async () => {
+    await inScoresEditor();
+    const { x, y } = middleOf("score/markers_1");
+    await clickOn(drawn("score/card"), x, y);
+    expect(selected()).toEqual([`${A}/score/markers_1`]);
+    await press("Enter");
+    expect(path()).toEqual([{ target: `${A}/score`, kind: "timeline" }]);
+    await doubleClick(drawn("score/card"), x, y);
+    expect(path()).toEqual([{ target: `${A}/score`, kind: "timeline" }]);
+    await select();
+    await press("l");
+    await clickOn(drawn("score/card"), x, y);
+    expect(selected()).toEqual([`${A}/score/markers_1`]);
+  });
+
+  it("steps the selected band past the next visible entry with Ctrl or Cmd and an arrow", async () => {
+    await inScoresEditor();
+    await select(`${A}/score/markers_1`);
+    expect(await stepped("ArrowUp")).toBe(true);
+    expect(store.entries).toHaveLength(1);
+    expect(scoreOrder()).toEqual(MOVED);
+    expect(await stepped("ArrowDown", true)).toBe(true);
+    expect(store.entries).toHaveLength(2);
+    expect(Object.hasOwn(store.view.blocks[A]?.manifest.graphical?.order ?? {}, "score")).toBe(
+      false,
+    );
+    expect(selected()).toEqual([`${A}/score/markers_1`]);
+  });
+
+  it("consumes the key whenever a band is selected, and stores nothing it cannot step", async () => {
+    await inScoresEditor();
+    await select(`${A}/score/conversion_maps_1`);
+    expect(await stepped("ArrowUp")).toBe(true);
+    await select(`${A}/score/markers_1`, `${A}/score/flow_control_1`);
+    expect(await stepped("ArrowUp")).toBe(true);
+    await select(`${A}/score/markers_1`);
+    await press("l");
+    expect(await stepped("ArrowUp")).toBe(true);
+    expect(store.entries).toEqual([]);
+    expect(scoreOrder()).toBeUndefined();
+    await press("l");
+    await select(`${A}/score/name`);
+    expect(await stepped("ArrowUp")).toBe(false);
   });
 });

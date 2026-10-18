@@ -2,17 +2,30 @@
  * The canvas on a touch screen. Touch points are dispatched through the
  * Chrome DevTools Protocol, which produces the touch and pointer events of a
  * real screen, one or two fingers; Playwright's own touchscreen only taps.
- * A double tap opens an editor, and outside the edited element closes it.
- * Derivation in `README.md` ("touch.spec.ts").
+ * A double tap opens an editor, and outside the edited element closes it;
+ * in a timeline editor a finger drags a band. Derivation in `README.md`
+ * ("touch.spec.ts").
  */
 
 import type { CDPSession, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import {
+  BUNDLES,
+  bandOf,
+  bandPoint,
+  bandsOf,
   cardPoint,
   commandsFrom,
+  editing,
   emptyPoint,
+  enter,
+  entriesLength,
+  fixtureText,
+  focusBand,
   frames,
+  journalLength,
+  middleOf,
+  newestCommand,
   OPENED_JOURNAL,
   open,
   partCentre,
@@ -135,7 +148,7 @@ test("a pinch changes the zoom", async ({ page }) => {
     ],
   );
   expect((await viewportOf(page)).zoom).not.toBe(before);
-  expect(await page.evaluate(() => window.__tilie.store().journal.length)).toBe(START);
+  expect(await journalLength(page)).toBe(START);
 });
 
 test("the resize mode buttons respond to taps and show their handles", async ({ page }) => {
@@ -173,11 +186,7 @@ test("a double tap on a card opens its timeline editor", async ({ page }) => {
   await tap(page, point);
   await tap(page, point);
   await expect
-    .poll(() =>
-      page.evaluate(() =>
-        window.__tilie.store().editing.map(({ target, kind }) => ({ target, kind })),
-      ),
-    )
+    .poll(() => editing(page))
     .toEqual([{ target: `${SMALL.map}/melody`, kind: "timeline" }]);
 });
 
@@ -187,23 +196,70 @@ test.describe("in an editor", () => {
   test("a double tap on the faded surroundings closes the innermost editor, once", async ({
     page,
   }) => {
-    const editing = () =>
-      page.evaluate(() =>
-        window.__tilie.store().editing.map(({ target, kind }) => ({ target, kind })),
-      );
-    for (const target of [SMALL.map, `${SMALL.map}/melody`]) {
-      expect(await page.evaluate((address) => window.__tilie.open(address), target)).toBeNull();
-    }
-    await expect.poll(() => viewportOf(page)).not.toEqual(VIEW);
-    await setViewport(page, VIEW);
+    await enter(page, SMALL.map, VIEW);
+    await enter(page, `${SMALL.map}/melody`, VIEW);
     const point = await emptyPoint(page, -20, 100);
     await tap(page, point);
     await tap(page, point);
     const bundle = [{ target: SMALL.map, kind: "bundle" }];
-    await expect.poll(editing).toEqual(bundle);
+    await expect.poll(() => editing(page)).toEqual(bundle);
     // A double-click the engine derives from the two taps closes nothing more.
     await frames(page);
-    expect(await editing()).toEqual(bundle);
+    expect(await editing(page)).toEqual(bundle);
+  });
+
+  test("a band dragged with one finger moves across the line", async ({ page }) => {
+    const block = BUNDLES.mixed;
+    const flowControl = "score/flow_control_1";
+    const conversionMaps = "score/conversion_maps_1";
+    await page.evaluate((text) => window.__tilie.load(text), fixtureText("bundles"));
+    await expect.poll(() => journalLength(page)).toBe(OPENED_JOURNAL.bundles);
+    await setViewport(page, VIEW);
+    expect(
+      await page.evaluate((address) => window.__tilie.open(address), `${block}/score`),
+    ).toBeNull();
+    await expect.poll(() => viewportOf(page)).not.toEqual(VIEW);
+    const opened = await viewportOf(page);
+    // The drawer leaves the phone's arranger too narrow; closed, the edited card is centred again.
+    await tap(page, await centre(page.getByRole("button", { name: "Close inspector" })));
+    await expect.poll(() => viewportOf(page)).not.toEqual(opened);
+    const focused = await focusBand(page, block, flowControl, 2);
+
+    const from = await bandPoint(page, block, flowControl, FINGER);
+    // No visible entry lies above the release: the band goes before the first,
+    // the conversion maps band.
+    const release =
+      middleOf(await bandOf(page, block, conversionMaps)) -
+      (await bandOf(page, block, flowControl)).rect.height;
+    const cdp = await page.context().newCDPSession(page);
+    await gesture(cdp, [from], [{ x: 0, y: release - from.y }], TOUCH_LEAD);
+
+    await expect.poll(() => entriesLength(page)).toBe(1);
+    expect(await newestCommand(page)).toEqual({
+      type: "set",
+      changes: [
+        {
+          target: `${block}/score`,
+          values: {
+            order: [
+              "score/children_1",
+              flowControl,
+              conversionMaps,
+              "score",
+              "score/markers_1",
+              "score/regions_1",
+            ],
+          },
+        },
+      ],
+    });
+    expect(await bandsOf(page, block, "score")).toEqual([
+      { address: flowControl, kind: "flow_control", level: 2, elements: 1 },
+      { address: conversionMaps, kind: "conversion_maps", level: 1, elements: 2 },
+      { address: "score/markers_1", kind: "markers", level: -1, elements: 2 },
+    ]);
+    expect(await selection(page)).toEqual([`${block}/${flowControl}`]);
+    expect(await viewportOf(page)).toEqual(focused);
   });
 });
 

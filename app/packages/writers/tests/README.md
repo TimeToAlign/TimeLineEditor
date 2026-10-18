@@ -325,19 +325,19 @@ read from the installed `@timetoalign/timeskeleton` package, like the
 manifests and the font) are the contract between implementations of the
 specification: each directory holds `inputs.json` (the manifest's path
 below `fixtures/<version>/`, `groups/<file>` or `bundles/<file>` for a
-manifest sorted there; the placement with all seven members, the scale and
+manifest sorted there; the placement with all five members, the scale and
 the application's style layers) and the expected `figure.svg` and
 `figure.tex`. The manifest is the input with its whole `graphical` block,
 `order` included. For every directory the test reads `inputs.json` alone,
 loads the named manifest, draws it with the layers `[DEFAULT_LAYER,
 ...inputs.layers, manifestLayer(manifest)]` (the manifest's `styles` and
-`statements` without the member `order`; no layer lies above
+`statements` without its `order`; no layer lies above
 the manifest's own) and the bundled font metrics, writes the drawing placed
 at `(0, 0)` with the scale (`writeTikz` with its default font directory
 `.`), and requires both texts to equal the files byte for byte.
 
-Twenty-two SVGs are derived by hand from the specification alone, never from
-this writer's output: `bare`, `nested`, `map`, `flow_control`,
+Twenty-eight SVGs are derived by hand from the specification alone, never
+from this writer's output: `bare`, `nested`, `map`, `flow_control`,
 `with_region`, `styled__score`, `nested__length-800-spacing-2`,
 `segment_line`, `segment_pages_accolades`, `group__group_child_member`,
 `group__group_parents_mixed`, `group__group_grandchild`, and the six
@@ -345,10 +345,17 @@ timelines of unknown length `unknown_length`, `unknown_length_empty`,
 `unknown_length_locked`, `unknown_length_child`,
 `group__group_unknown_length` and `unknown_length_segments`, the bundle
 with a card placed left of and above the padding `bundle_ungrouped__places`,
-`styled__score__bands-timeline`, a band order stated for one timeline,
 `bundle_ungrouped__scale`, a card drawn at scale 1.5, and
-`bundle_ungrouped__spacing`, a card stretched vertically at spacing 2
-(`HAND_DERIVED` in
+`bundle_ungrouped__spacing`, a card stretched vertically at spacing 2; the
+band orders a manifest states, for a root (`styled_score_flow_inner`, and
+`map_root_band_order`, whose child follows its root's order band by band)
+and for a child (`map_child_band_order`); `joint_rows`, the children bands
+of the lines of one row laid out together; and three bands the defaults
+hide, shown by an application layer: a child's regions band
+(`unknown_length_child__regions-shown`), every regions band, those of
+segments joining their segment line's
+(`unknown_length_segments__regions-shown`), and a child's flow control
+band (`child_flow_control__flow-shown`) (`HAND_DERIVED` in
 `scripts/emit-drawings.ts`). Their equality with the writer proves the
 specification complete for what they show. A missing hand-derived file is
 a failure, never a skip. Every other figure is emitted by `pnpm
@@ -363,22 +370,22 @@ directories equals the set of `reviewCases()` names exactly, and each
 case's inputs, written with timeskeleton's `dumps`, equal its `inputs.json`
 text. The cases are, in this order: every manifest fixture directly in
 `fixtures/<SCHEMA_VERSION>/` but the `corpus_*` ones, under its file name
-(31); the ten resized `nested` drawings; `map__child-map-below`, whose
-application layer selects the child's map by its address `melody/ticks`;
-`group__<file>` for each fixture in `groups/` but the `corpus_*` ones (9);
-`bundle__<file>` for each fixture in `bundles/` but the `corpus_*` ones
-(3); `bundle_mixed__places` (`places` `{group_2: {x: 40, y: 200, width:
-700}, annotations: {x: -30, length: 300}}`) and `bundle_ungrouped__places`
-(`{score: {x: -60, y: -150, height: 120}}`); `styled__score__bands-block` (`order`
-`["flow", "regions", "children"]`), `styled__score__bands-timeline`
-(`bands` `{score: ["flow", "children", "regions"]}`) and
-`styled__score__bands-both` (`order` `["flow", "regions", "children"]` and
-`bands` `{score: ["regions", "children", "flow"]}`, the timeline's band
-order winning); `bundle_ungrouped__scale` (`places` `{recording: {scale:
+(36); the nine resized `nested` drawings; `group__<file>` for each fixture
+in `groups/` but the `corpus_*` ones (9); `bundle__<file>` for each
+fixture in `bundles/` but the `corpus_*` ones (3); `bundle_mixed__places`
+(`places` `{group_2: {x: 40, y: 200, width: 700}, annotations: {x: -30,
+length: 300}}`) and `bundle_ungrouped__places` (`{score: {x: -60, y: -150,
+height: 120}}`); `bundle_ungrouped__scale` (`places` `{recording: {scale:
 1.5}}`) and `bundle_mixed__cards` (`{group_1: {scale: 1.25}, performance:
 {width: 650, height: 120}}`, a scaled frame whose second member's card
 requests a size); `bundle_ungrouped__spacing` (`{recording: {spacing:
-2}}`): 62. The manifest directories are read one by one
+2}}`); then three drawings at the default placement, each with one
+application layer of one statement setting `display` `inline`:
+`unknown_length_child__regions-shown` (`select` `{ids:
+["movement/regions_1"]}`), `unknown_length_segments__regions-shown`
+(`{element: "band", class: "regions"}`) and
+`child_flow_control__flow-shown` (`{ids: ["verse/flow_control_1"]}`): 65.
+The manifest directories are read one by one
 (`fixtures/<version>/`, its `groups/` and its `bundles/`), never
 recursively, and a fixture's minimal twin (`*.minimal.json`) is no case:
 it holds what its complete fixture holds and draws the same.

@@ -4,14 +4,13 @@
  */
 
 import { compareReal, elementKey, type Real, type TimelineManifest } from "@timetoalign/tilie-core";
-import type { Band, Position } from "./canvas.ts";
 import type { Style } from "./cascade.ts";
 import { MARKER_BASE, MARKER_HEIGHT } from "./constants.ts";
 import type { LineElement, LineEnd, MarkerElement, TextElement } from "./elements.ts";
 import { labelTiers, Rows } from "./fit.ts";
-import { type AncestorName, centredLabel, nameOf } from "./names.ts";
+import { markLabelOffset, markReach } from "./markers.ts";
+import { centredLabel, type NameItem, nameOf } from "./names.ts";
 import { add, coordinateText, coordinateValue, lengthValue, negate, zero } from "./numbers.ts";
-import { markLabelOffset, markReach } from "./root.ts";
 import {
   endOf,
   type Measured,
@@ -107,26 +106,36 @@ export function ancestorLines(scope: Scope): AncestorLine[] {
       const marks = ancestor.marks.filter((mark) => shown(mark.style));
       const labelled = marks.filter((mark) => shown(mark.label.style));
       const tiers = new Rows();
-      const tier = labelTiers(
-        labelled,
-        (mark) => L * mark.u,
-        () => tiers,
-      );
+      const tier = labelTiers(labelled, (mark) => L * mark.u, tiers);
       return { ...ancestor, marks, labelled, tiers: tiers.count, tier };
     });
 }
 
+/** The ancestor band laid out: where each ancestor's line lies, and the band's outer edge. */
+export interface AncestorBand {
+  /** The distance of each ancestor row's line from the root's line, the nearest ancestor's first. */
+  readonly distances: readonly number[];
+  /** Its outer edge: its start plus its width, the outer edge of the member drawing's above side. */
+  readonly edge: number;
+}
+
 /**
- * The ancestor band, the outermost of the above side, starting no nearer
- * than `p0 / 2`: the distance of each ancestor row's line from the root's
- * line, the nearest ancestor's first.
+ * The ancestor band (section 8.3), the outermost band of the above side,
+ * `Ea` the outer edge of the root's above side: it starts at `max(p0 / 2,
+ * max(Ea, wm / 2) + B)`, `wm` the stroke width of the member's line, or 0
+ * when that line is not displayed (section 6.5), and holds one row per
+ * drawn ancestor line, the nearest first, each with the pitch `qj` of its
+ * name's font size, an inner half `qj / 2` and an outer half the larger of
+ * `qj / 2` and its marks' reach. Without a drawn ancestor line there is no
+ * band, and the above side's edge stays `Ea`.
  */
 export function ancestorBand(
   scope: Scope,
   ancestors: readonly AncestorLine[],
   p0: number,
-): Band<number[]> | undefined {
-  if (ancestors.length === 0) return undefined;
+  Ea: number,
+): AncestorBand {
+  if (ancestors.length === 0) return { distances: [], edge: Ea };
   // One row per drawn ancestor line, the nearest first.
   const rows = [...ancestors].reverse().map((ancestor) => {
     const q = rowPitch(scope, ancestor.name.style["font-size"]);
@@ -135,57 +144,43 @@ export function ancestorBand(
     const reach = ancestor.marks.length === 0 ? q / 2 : Math.max(q / 2, marks);
     return { inner: q / 2, outer: reach };
   });
+  const { rootEntry, v } = scope;
+  const wm = rootEntry.drawn ? rootEntry.style["stroke-width"] : 0;
+  const c0 = Math.max(p0 / 2, Math.max(Ea, wm / 2) + 4 * v);
   let width = 0;
   for (const row of rows) width = width + row.inner + row.outer;
-  return {
-    width,
-    minimum: p0 / 2,
-    at: (c0) => {
-      const distances: number[] = [];
-      let line = c0 + (rows[0] as { inner: number }).inner;
-      distances.push(line);
-      for (let index = 1; index < rows.length; index += 1) {
-        line = line + ((rows[index - 1]?.outer as number) + (rows[index]?.inner as number));
-        distances.push(line);
-      }
-      return distances;
-    },
-  };
+  const distances: number[] = [];
+  let line = c0 + (rows[0] as { inner: number }).inner;
+  distances.push(line);
+  for (let index = 1; index < rows.length; index += 1) {
+    line = line + ((rows[index - 1]?.outer as number) + (rows[index]?.inner as number));
+    distances.push(line);
+  }
+  return { distances, edge: c0 + width };
 }
 
-/** The ancestors' rows of the name column, from A1 to Ak, given the band's distances (nearest first). */
-export function ancestorNames(
-  ancestors: readonly AncestorLine[],
-  distances: readonly number[],
-): AncestorName[] {
-  return ancestors.map((ancestor, index) => ({
-    name: ancestor.name,
-    text: nameOf(ancestor.timeline),
-    distance: distances[ancestors.length - 1 - index] as number,
-  }));
-}
+/** The ancestors' names, from A1 to Ak, each its own row of the name column. */
+export const ancestorNames = (ancestors: readonly AncestorLine[]): NameItem[] =>
+  ancestors.map((ancestor) => ({ name: ancestor.name, text: nameOf(ancestor.timeline) }));
+
+/** The ordinate of ancestor `index` (from A1), `yRoot` the root's line. */
+export const ancestorY = (band: AncestorBand, index: number, yRoot: number): number =>
+  yRoot - (band.distances[band.distances.length - 1 - index] as number);
 
 /** The stroke widths of the drawn ancestor lines that run on to the left. */
 export const chevrons = (ancestors: readonly AncestorLine[]): number[] =>
   ancestors.filter((ancestor) => ancestor.left).map((ancestor) => ancestor.style["stroke-width"]);
 
-/** The ordinate of ancestor `index` (from A1), given the band's distances (nearest first). */
-const ancestorY = (
-  ancestors: readonly AncestorLine[],
-  distances: readonly number[],
-  placed: Position,
-  index: number,
-) => placed.yAt("above", distances[ancestors.length - 1 - index] as number);
-
 /** The ancestor lines, from A1 to Ak, each running on in chevrons or ending at the member's ends. */
 export function ancestorLineElements(
   scope: Scope,
   ancestors: readonly AncestorLine[],
-  distances: readonly number[],
-  placed: Position,
+  band: AncestorBand,
+  x0: number,
+  yRoot: number,
 ): LineElement[] {
-  const { L, lambda } = scope;
-  const { x0, x } = placed;
+  const { L, lambda, relativeX } = scope;
+  const x = (value: Real) => x0 + relativeX(value);
   return ancestors.map((ancestor, index) => {
     const w = ancestor.style["stroke-width"];
     // Short of the member's end (`te < λ`), the line ends at `x(te)` with its own end.
@@ -196,7 +191,7 @@ export function ancestorLineElements(
       style: ancestor.style,
       xs: ancestor.left ? x0 - 4 * w : x0 + L * 0,
       xe: ancestor.right ? x0 + L + 4 * w : end,
-      y: ancestorY(ancestors, distances, placed, index),
+      y: ancestorY(band, index, yRoot),
       start: ancestor.left ? "chevrons" : "circle",
       end: ancestor.right ? "chevrons" : ancestor.end,
     };
@@ -207,13 +202,13 @@ export function ancestorLineElements(
 export function ancestorMarkElements(
   scope: Scope,
   ancestors: readonly AncestorLine[],
-  distances: readonly number[],
-  placed: Position,
+  band: AncestorBand,
+  x0: number,
+  yRoot: number,
 ): MarkerElement[] {
   const { L } = scope;
-  const { x0 } = placed;
   return ancestors.flatMap((ancestor, index) => {
-    const y = ancestorY(ancestors, distances, placed, index);
+    const y = ancestorY(band, index, yRoot);
     const w = ancestor.style["stroke-width"];
     return ancestor.marks.map((mark) => ({
       type: "wedge" as const,
@@ -231,13 +226,13 @@ export function ancestorMarkElements(
 export function ancestorLabelElements(
   scope: Scope,
   ancestors: readonly AncestorLine[],
-  distances: readonly number[],
-  placed: Position,
+  band: AncestorBand,
+  x0: number,
+  yRoot: number,
 ): TextElement[] {
   const { L, d } = scope;
-  const { x0 } = placed;
   return ancestors.flatMap((ancestor, index) => {
-    const y = ancestorY(ancestors, distances, placed, index);
+    const y = ancestorY(band, index, yRoot);
     const w = ancestor.style["stroke-width"];
     const size = maxSize(ancestor.labelled.map((mark) => mark.label));
     return ancestor.labelled.map((mark) => {

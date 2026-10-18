@@ -39,8 +39,9 @@ export function memberIds(manifest: Manifest): ReadonlySet<string> {
 /**
  * Why `locked` cannot be set on `timeline` in its place (`placeLock`), if it
  * cannot. `current` is the timeline's own `locked`, absent for a value given
- * to `add`: setting the value a timeline already has changes nothing and is
- * never refused.
+ * to `add`: the value a timeline already has is never refused here. A `set`
+ * that changes nothing else is refused as every `set` that changes nothing
+ * is; beside a value that changes something, it is accepted.
  */
 export function lockProblem(
   locked: boolean,

@@ -11,6 +11,7 @@
  *   address, holder)` for a frame or a title, `elementKey(type, address,
  *   timeline, holder, map?)` for every element of a timeline (a card, a
  *   line, an ancestor line, a mark, a map, a region, a segment's node, …),
+ *   `bandKey(timeline, kind, holder)` for one of a timeline's five bands,
  *   `textKey(owner, "name" | "label")` for an element's own text. Its
  *   `inside` is the **holder chain**, the types of every element holding it,
  *   outermost first, and it is the only thing the selector member `inside`
@@ -28,8 +29,6 @@
 import { type ElementKey, selectorMatches } from "@timetoalign/tilie-core";
 import type { Declaration, Graphical, Selector } from "@timetoalign/timeskeleton";
 
-export type Side = "above" | "below";
-
 /** The cascaded value of every property on one element. */
 export interface Style {
   readonly stroke: string;
@@ -41,7 +40,6 @@ export interface Style {
   readonly rx: number;
   readonly shadow: string;
   readonly display: "inline" | "none";
-  readonly side: Side;
   readonly content: string;
   readonly "max-width": number | "none";
 }
@@ -58,7 +56,6 @@ export const INITIAL_STYLE: Style = {
   rx: 0,
   shadow: "none",
   display: "inline",
-  side: "below",
   content: "none",
   "max-width": "none",
 };

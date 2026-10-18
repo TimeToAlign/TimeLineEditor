@@ -18,8 +18,10 @@ import { SvelteMap } from "svelte/reactivity";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Hit } from "../src/boxes.ts";
 import { holdingOf, marksOf, showsHover } from "../src/boxes.ts";
+import type { Editing } from "../src/editors.ts";
 import {
   affectedBy,
+  bandTimelineOf,
   click,
   descriptorsOf,
   drawingOf,
@@ -39,10 +41,12 @@ import {
   blockIn,
   CHILD_MEMBER,
   changed,
+  MAP_DRAWN,
   MIXED,
   metrics,
   mixedPlain,
   recordingInGroup1,
+  STYLED_DRAWN,
   viewOf,
 } from "./support.ts";
 
@@ -171,7 +175,7 @@ describe("boxes in a manifest of one root", () => {
 
   it("highlights the card and the boundary under the pointer", () => {
     const at = hitOf(A, drawing, target("line", "b2/start"), { x: 227.294921875, y: 36.4765625 });
-    expect(hoverOf(at)).toEqual({ box: "form/card", boundary: "b2/start" });
+    expect(hoverOf(at)).toEqual({ box: "form/card", boundary: "b2/start", band: null });
   });
 });
 
@@ -251,9 +255,18 @@ describe("boxes in a manifest with one group", () => {
     expect(hover(target("line", "recording"), 120.61962890625, 139.16015625)).toEqual({
       box: "recording/card",
       boundary: null,
+      band: null,
     });
-    expect(hover(target("rect", "group_1"), 12, 12)).toEqual({ box: "group_1", boundary: null });
-    expect(hover(target("rect").parentElement, 4, 4)).toEqual({ box: null, boundary: null });
+    expect(hover(target("rect", "group_1"), 12, 12)).toEqual({
+      box: "group_1",
+      boundary: null,
+      band: null,
+    });
+    expect(hover(target("rect").parentElement, 4, 4)).toEqual({
+      box: null,
+      boundary: null,
+      band: null,
+    });
   });
 
   it("lets every other reader fold a selected card into its timeline", () => {
@@ -261,7 +274,7 @@ describe("boxes in a manifest with one group", () => {
     const inside = insideOf(blockIn(view, A).manifest, drawing, null);
     const selection = click(new Set(), selectionOf(card, null, inside) as string, false);
     expect(selection).toEqual(new Set([`${A}/recording/card`]));
-    expect(existing(view, selection)).toBe(selection);
+    expect(existing(view, selection, null)).toBe(selection);
     expect(removeCommand(view, selection)).toEqual({
       type: "remove",
       targets: [`${A}/recording`],
@@ -413,7 +426,7 @@ describe("the boxes holding part of the selection", () => {
     document.body.innerHTML = "";
   });
 
-  /** `bundle_mixed` with the child `dlt_1` below the member `excerpt`, holding a region. */
+  /** `bundle_mixed` with the child `dlt_1` below the member `excerpt`, and a region on `excerpt`. */
   const mixed = [
     {
       type: "add",
@@ -422,7 +435,7 @@ describe("the boxes holding part of the selection", () => {
     },
     {
       type: "add",
-      into: `${A}/dlt_1`,
+      into: `${A}/excerpt`,
       region: { id: "region_1", name: "A", start: 0, end: 10 },
     },
   ].reduce(changed, viewOf({ id: A, fixture: "bundles/bundle_mixed" }));
@@ -634,6 +647,7 @@ describe("selection and hover inside an editor", () => {
     address: element === null ? A : `${A}/${element}`,
     boundary: false,
     within: null,
+    band: null,
   });
 
   it("selects only what lies inside the edited element", () => {
@@ -654,11 +668,106 @@ describe("selection and hover inside an editor", () => {
   });
 
   it("highlights only what lies inside the edited element", () => {
-    const hover = (box: string) => ({ box, boundary: null });
+    const hover = (box: string) => ({ box, boundary: null, band: null });
     expect(showsHover("card", "score/card", hover("score/card"), group)).toBe(true);
     expect(showsHover("card", "page/card", hover("page/card"), group)).toBe(false);
     expect(showsHover("group", "group_2", hover("group_2"), group)).toBe(false);
     expect(showsHover("card", "page/card", hover("page/card"), every)).toBe(true);
     expect(showsHover("group", "group_2", hover("group_2"), every)).toBe(true);
+  });
+});
+
+describe("the bands of the edited timeline", () => {
+  const scoreEditor = { target: `${A}/score`, kind: "timeline" } as const;
+  const card = () => target("rect", "score/card");
+  const at = (element: Element | null, x: number, y: number, editing?: Editing | null) =>
+    hitOf(A, STYLED_DRAWN, element, { x, y }, editing);
+  const band = (address: string): Hit => {
+    const record = STYLED_DRAWN.bands.find((drawn) => drawn.address === address);
+    if (record === undefined) throw new Error(`S records no band ${address}`);
+    return {
+      block: A,
+      kind: "band",
+      address: `${A}/${address}`,
+      boundary: false,
+      within: "score/card",
+      band: record,
+    };
+  };
+
+  it("offers the bands of the edited timeline of this block only", () => {
+    expect(bandTimelineOf(A, scoreEditor)).toBe("score");
+    expect(bandTimelineOf(A, { target: `${A}/phrase`, kind: "timeline" })).toBe("phrase");
+    expect(bandTimelineOf(A, { target: A, kind: "bundle" })).toBeNull();
+    expect(bandTimelineOf(A, { target: `${A}/group_1`, kind: "group" })).toBeNull();
+    expect(bandTimelineOf(A, { target: `${B}/score`, kind: "timeline" })).toBeNull();
+    expect(bandTimelineOf(A, null)).toBeNull();
+  });
+
+  it("hits the band where the target is a box or nothing", () => {
+    expect(at(card(), 150, 55, scoreEditor)).toEqual(band("score/children_1"));
+    expect(at(target("rect").parentElement, 150, 124, scoreEditor)).toEqual(
+      band("score/regions_1"),
+    );
+    expect(at(target("rect"), 150, 149, scoreEditor)).toEqual(band("score/flow_control_1"));
+  });
+
+  it("hits a drawn element inside a band before the band", () => {
+    expect(at(target("line", "b"), 350, 55, scoreEditor)).toEqual({
+      block: A,
+      kind: "element",
+      address: `${A}/b`,
+      boundary: false,
+      within: "score/card",
+      band: null,
+    });
+    expect(at(target("line", "score"), 150, 100, scoreEditor).address).toBe(`${A}/score`);
+  });
+
+  it("hits the card in a gap between bands and without a point", () => {
+    const onCard = { kind: "card", address: `${A}/score/card`, within: "score/card" };
+    expect(at(card(), 150, 75, scoreEditor)).toMatchObject(onCard);
+    expect(hitOf(A, STYLED_DRAWN, card(), undefined, scoreEditor)).toEqual({
+      block: A,
+      kind: "card",
+      address: `${A}/score/card`,
+      boundary: false,
+      within: null,
+      band: null,
+    });
+  });
+
+  it("hits no band of another timeline", () => {
+    const onCard = { kind: "card", address: `${A}/score/card` };
+    expect(at(card(), 150, 55, { target: `${A}/b`, kind: "timeline" })).toMatchObject(onCard);
+    const phrase = { target: `${A}/phrase`, kind: "timeline" } as const;
+    const melody = { target: `${A}/melody`, kind: "timeline" } as const;
+    const map = (x: number, y: number, editing: Editing) =>
+      hitOf(A, MAP_DRAWN, target("rect", "melody/card"), { x, y }, editing).address;
+    expect(map(150, 78, phrase)).toBe(`${A}/melody/card`);
+    expect(map(150, 18, phrase)).toBe(`${A}/melody/card`);
+    expect(map(300, 25, phrase)).toBe(`${A}/phrase/conversion_maps_1`);
+    expect(map(300, 25, melody)).toBe(`${A}/melody/children_1`);
+  });
+
+  it("hits no band outside a timeline editor of this block", () => {
+    const onCard = { kind: "card", address: `${A}/score/card` };
+    expect(at(card(), 150, 55, { target: A, kind: "bundle" })).toMatchObject(onCard);
+    expect(at(card(), 150, 55, { target: `${A}/group_1`, kind: "group" })).toMatchObject(onCard);
+    expect(at(card(), 150, 55, { target: `${B}/score`, kind: "timeline" })).toMatchObject(onCard);
+    expect(at(card(), 150, 55, null)).toMatchObject(onCard);
+    expect(at(card(), 150, 55)).toMatchObject(onCard);
+  });
+
+  it("hits no absent band", () => {
+    const melody = { target: `${A}/melody`, kind: "timeline" } as const;
+    const hit = hitOf(A, MAP_DRAWN, target("rect", "melody/card"), { x: 150, y: 95 }, melody);
+    expect(hit).toMatchObject({ kind: "card", address: `${A}/melody/card` });
+  });
+
+  it("selects and hovers a band by its address", () => {
+    const hit = at(card(), 150, 55, scoreEditor);
+    expect(selectionOf(hit, scoreEditor, new Set())).toBe(`${A}/score/children_1`);
+    expect(hoverOf(hit)).toEqual({ box: "score/card", boundary: null, band: "score/children_1" });
   });
 });

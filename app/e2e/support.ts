@@ -1,8 +1,9 @@
 /**
- * Shared helpers of the end-to-end suite: open a fixture workspace through
- * the test hook, read the store's view and journal, convert canvas units to
- * screen pixels, and drive pointer gestures in steps. Every wait waits on
- * state, never on time.
+ * Shared helpers of the end-to-end suite: open a fixture workspace and an
+ * editor through the test hook, read the store's view, journal and open
+ * session, convert between canvas units and screen pixels, aim at a band,
+ * and drive pointer gestures in steps. Every wait waits on state, never on
+ * time.
  */
 
 import { readFileSync } from "node:fs";
@@ -10,7 +11,13 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import type { Download, Locator, Page } from "@playwright/test";
 import { expect } from "@playwright/test";
-import type { Command, CommandError, OpenEditor, Store } from "../packages/core/src/index.ts";
+import type {
+  BandKind,
+  Command,
+  CommandError,
+  OpenEditor,
+  Store,
+} from "../packages/core/src/index.ts";
 
 export type ResizeMode = "scale" | "box" | "stretch";
 export type Handle =
@@ -49,7 +56,37 @@ export interface TilieHook {
   done(): void;
   /** Close the innermost editor, discarding its changes, without the editing bar's question. */
   cancel(): void;
+  /** The bands drawn in block `block`, in the drawing's order. */
+  bands(block: string): HookBand[];
 }
+
+/** A rectangle in client pixels, left and top as `getBoundingClientRect` gives them. */
+export interface ClientRectangle {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+}
+
+/** A band of a block's drawing (drawing.md section 6.4), as the hook's `bands` reports it. */
+export interface HookBand {
+  /** `T/<kind>_1`. */
+  readonly address: string;
+  /** The id of its timeline. */
+  readonly timeline: string;
+  readonly kind: BandKind;
+  /** Signed and never 0: 1, 2, … above its timeline's line, −1, −2, … below. */
+  readonly level: number;
+  /** The client ordinate of its timeline's line. */
+  readonly line: number;
+  /** The displayed elements it holds directly. */
+  readonly elements: number;
+  /** Where its rectangle lies on the screen. */
+  readonly rect: ClientRectangle;
+}
+
+/** A band as the specs compare it: what the drawing decides, without where the screen shows it. */
+export type BandRecord = Pick<HookBand, "address" | "kind" | "level" | "elements">;
 
 declare global {
   interface Window {
@@ -258,6 +295,79 @@ export function commandsFrom(page: Page, from: number): Promise<Command[]> {
   );
 }
 
+/** The open editors, outermost first, each as `{target, kind}`. */
+export function editing(page: Page): Promise<{ target: string; kind: string }[]> {
+  return page.evaluate(() =>
+    window.__tilie.editing().map(({ target, kind }) => ({ target, kind })),
+  );
+}
+
+/**
+ * Open the editor of `address` through the hook, wait until the canvas has
+ * moved away from the viewport it was opened at, and set the viewport to
+ * `view`, so that pointer positions count from a known viewport.
+ */
+export async function enter(page: Page, address: string, view: Viewport): Promise<void> {
+  const before = await viewportOf(page);
+  const open = (await editing(page)).length;
+  expect(await page.evaluate((target) => window.__tilie.open(target), address)).toBeNull();
+  expect((await editing(page)).length).toBe(open + 1);
+  await expect.poll(() => viewportOf(page)).not.toEqual(before);
+  await setViewport(page, view);
+}
+
+/** The JSON text of a member of the store, read in the page (a `bigint` written as its digits). */
+export function storeText(page: Page, member: "view" | "journal" | "sessions"): Promise<string> {
+  return page.evaluate(
+    (name) =>
+      JSON.stringify(window.__tilie.store()[name], (_, value) =>
+        typeof value === "bigint" ? value.toString() : value,
+      ),
+    member,
+  );
+}
+
+/** How many entries the open editor's session holds; the journal's with no editor open. */
+export function entriesLength(page: Page): Promise<number> {
+  return page.evaluate(() => window.__tilie.store().entries.length);
+}
+
+/**
+ * The command of the newest entry of the open editor's session (of the
+ * journal with no editor open), as JSON; `null` when there is none or it is
+ * a closed session.
+ */
+export function newestCommand(page: Page): Promise<unknown> {
+  return page.evaluate(() => {
+    const entry = window.__tilie.store().entries.at(-1);
+    return entry === undefined || !("command" in entry)
+      ? null
+      : JSON.parse(JSON.stringify(entry.command));
+  });
+}
+
+/** Dispatch `command` through the hook's store; its refusal or `null`. */
+export function dispatch(page: Page, command: unknown): Promise<CommandError | null> {
+  return page.evaluate((sent) => window.__tilie.store().dispatch(sent), command);
+}
+
+/**
+ * The `graphical.order` of block `id`'s stored manifest, as JSON: the
+ * groups' display orders and the timelines' band orders, `null` without one.
+ */
+export function graphicalOrder(page: Page, id: string): Promise<unknown> {
+  return page.evaluate((block) => {
+    const found = window.__tilie.store().view.blocks[block];
+    if (found === undefined) throw new Error(`block ${block} is missing`);
+    return JSON.parse(JSON.stringify(found.manifest.graphical?.order ?? null));
+  }, id);
+}
+
+/** The arranger, the canvas's root element: focused, it takes the canvas's keys. */
+export function arranger(page: Page): Locator {
+  return page.locator('[role="application"][aria-label="Arranger"]');
+}
+
 /** The selection, sorted, so comparisons ignore the order of additions. */
 export async function selection(page: Page): Promise<string[]> {
   return (await page.evaluate(() => window.__tilie.selection())).sort();
@@ -278,6 +388,18 @@ export async function toScreen(
   if (box === null) throw new Error("the canvas is not displayed");
   const view = await viewportOf(page);
   return { x: box.x + view.x + x * view.zoom, y: box.y + view.y + y * view.zoom };
+}
+
+/** The canvas point of screen point `(x, y)` under the current viewport, `toScreen` inverted. */
+export async function toCanvas(
+  page: Page,
+  x: number,
+  y: number,
+): Promise<{ x: number; y: number }> {
+  const box = await pane(page).boundingBox();
+  if (box === null) throw new Error("the canvas is not displayed");
+  const view = await viewportOf(page);
+  return { x: (x - box.x - view.x) / view.zoom, y: (y - box.y - view.y) / view.zoom };
 }
 
 /**
@@ -488,6 +610,130 @@ export function frames(page: Page): Promise<void> {
     () =>
       new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done()))),
   );
+}
+
+/** The bands of `timeline` drawn in block `block`, in the hook's order, as specs compare them. */
+export function bandsOf(page: Page, block: string, timeline: string): Promise<BandRecord[]> {
+  return page.evaluate(
+    ({ id, of }) =>
+      window.__tilie
+        .bands(id)
+        .filter((band) => band.timeline === of)
+        .map(({ address, kind, level, elements }) => ({ address, kind, level, elements })),
+    { id: block, of: timeline },
+  );
+}
+
+/** Band `address` of block `block` as the hook reports it, its line and rectangle included. */
+export async function bandOf(page: Page, block: string, address: string): Promise<HookBand> {
+  const found = await page.evaluate(
+    ({ id, wanted }) => window.__tilie.bands(id).find((band) => band.address === wanted) ?? null,
+    { id: block, wanted: address },
+  );
+  if (found === null) throw new Error(`block ${block} draws no band ${address}`);
+  return found;
+}
+
+/** The client ordinate of a band's middle: its position among its timeline's visible entries. */
+export function middleOf(band: HookBand): number {
+  return band.rect.y + band.rect.height / 2;
+}
+
+/** The band addresses of the band marks in block `id`'s node, sorted. */
+export function bandMarks(page: Page, id: string): Promise<string[]> {
+  return node(page, id)
+    .locator("rect.tilie-band")
+    .evaluateAll((marks) => marks.map((mark) => mark.getAttribute("data-band") ?? "").sort());
+}
+
+/**
+ * Centre band `address` of block `block` in the pane at `zoom`, the
+ * viewport's offset rounded to whole pixels, and wait until the canvas
+ * reports it; the viewport set.
+ */
+export async function focusBand(
+  page: Page,
+  block: string,
+  address: string,
+  zoom: number,
+): Promise<Viewport> {
+  const { rect } = await bandOf(page, block, address);
+  const centre = await toCanvas(page, rect.x + rect.width / 2, rect.y + rect.height / 2);
+  const box = await pane(page).boundingBox();
+  if (box === null) throw new Error("the canvas is not displayed");
+  const view = {
+    x: Math.round(box.width / 2 - centre.x * zoom),
+    y: Math.round(box.height / 2 - centre.y * zoom),
+    zoom,
+  };
+  await setViewport(page, view);
+  return view;
+}
+
+/**
+ * A whole-pixel screen point inside band `address` of block `block`, at
+ * least `clearance` px inside its edges and inside the pane, where the
+ * element hit there and at the eight points `clearance` px around it lies in
+ * the block's node and carries no address but a card's: the block's
+ * background, a card, or a part outside the edited element, which takes no
+ * pointer. A press there meets no drawn element, so in the band's timeline
+ * editor it hits the band. Rows are searched from the band's vertical
+ * middle outwards, each pixel by pixel from the left.
+ */
+export async function bandPoint(
+  page: Page,
+  block: string,
+  address: string,
+  clearance: number,
+): Promise<{ x: number; y: number }> {
+  const { rect } = await bandOf(page, block, address);
+  const box = await pane(page).boundingBox();
+  if (box === null) throw new Error("the canvas is not displayed");
+  const found = await page.evaluate(
+    ({ id, clearance, left, top, right, bottom }) => {
+      const empty = (x: number, y: number) => {
+        const hit = document.elementFromPoint(x, y);
+        if (hit?.closest(".svelte-flow__node")?.getAttribute("data-id") !== id) return false;
+        const at = hit.closest("[data-address]")?.getAttribute("data-address");
+        return at == null || at.endsWith("/card");
+      };
+      const around = [-clearance, 0, clearance];
+      const clear = (x: number, y: number) =>
+        around.every((dx) => around.every((dy) => empty(x + dx, y + dy)));
+      const x0 = Math.ceil(left + clearance);
+      const x1 = Math.floor(right - clearance);
+      const y0 = Math.ceil(top + clearance);
+      const y1 = Math.floor(bottom - clearance);
+      const middle = Math.min(y1, Math.max(y0, Math.round((top + bottom) / 2)));
+      for (let step = 0; step <= y1 - y0; step += 1) {
+        for (const y of step === 0 ? [middle] : [middle - step, middle + step]) {
+          if (y < y0 || y > y1) continue;
+          for (let x = x0; x <= x1; x += 1) if (clear(x, y)) return { x, y };
+        }
+      }
+      return null;
+    },
+    {
+      id: block,
+      clearance,
+      left: Math.max(rect.x, box.x),
+      top: Math.max(rect.y, box.y),
+      right: Math.min(rect.x + rect.width, box.x + box.width),
+      bottom: Math.min(rect.y + rect.height, box.y + box.height),
+    },
+  );
+  if (found === null) throw new Error(`band ${address} of ${block} shows no empty point`);
+  return found;
+}
+
+/**
+ * The middle of the client ordinates from `above` to `below`, where a drop
+ * must land; throws when the interval is empty, so a release is never aimed
+ * at nothing.
+ */
+export function between(above: number, below: number): number {
+  if (!(above < below)) throw new Error(`no room between ${above} and ${below}`);
+  return (above + below) / 2;
 }
 
 /** The family the canvas declares for drawn text: the bundled DejaVu Sans. */

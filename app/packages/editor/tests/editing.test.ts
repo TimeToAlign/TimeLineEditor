@@ -14,12 +14,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App.svelte";
 import { recoverWorkspace } from "../src/autosave.ts";
 import { stubEditor } from "./dom.ts";
-import { fixture, interceptDownloads } from "./support.ts";
+import { fixture, flushAutosaves, interceptDownloads } from "./support.ts";
 
 const A = "0000000000";
 const SCORE = `${A}/score`;
 
 let app: ReturnType<typeof mount> | undefined;
+
+vi.mock("../src/autosave.ts", async (importOriginal) =>
+  (await import("./support.ts")).recordAutosaves(await importOriginal()),
+);
 
 beforeEach(() => {
   window.history.replaceState({}, "", "/");
@@ -35,9 +39,10 @@ beforeEach(() => {
   flushSync();
 });
 
-afterEach(() => {
+afterEach(async () => {
   if (app !== undefined) unmount(app);
   app = undefined;
+  await flushAutosaves();
   document.body.innerHTML = "";
   localStorage.clear();
   vi.unstubAllGlobals();
@@ -169,5 +174,23 @@ describe("the shell while editing", () => {
       expect(slot).not.toBeNull();
       expectFolded(read(slot?.text ?? ""), 2, "T");
     });
+  });
+
+  it("drops every band but the edited timeline's when an editor opens or closes", () => {
+    open(A);
+    open(`${A}/group_1`);
+    hook().select([
+      `${SCORE}/conversion_maps_1`,
+      `${A}/performance/conversion_maps_1`,
+      `${SCORE}/start`,
+    ]);
+    flushSync();
+
+    open(SCORE);
+    expect(hook().selection()).toEqual([`${SCORE}/conversion_maps_1`, `${SCORE}/start`]);
+
+    hook().done();
+    flushSync();
+    expect(hook().selection()).toEqual([`${SCORE}/start`]);
   });
 });

@@ -5,7 +5,9 @@
  * form's edits are `properties.ts`'s.
  */
 
+import { selectedBand } from "@timetoalign/tilie-arranger";
 import type {
+  BandKind,
   Block,
   BlockId,
   EntryKind,
@@ -17,13 +19,15 @@ import type {
   View,
 } from "@timetoalign/tilie-core";
 import {
+  BAND_ID_PATTERN,
   ErrorCode,
   elementOf,
   findEntry,
   findTimeline,
   isCommandError,
-  PART_WORDS,
+  isReservedId,
   parseAddress,
+  parseBand,
   TITLE_ADDRESS,
 } from "@timetoalign/tilie-core";
 import { complete, dumps, isJsonObject, minimal } from "@timetoalign/timeskeleton";
@@ -47,6 +51,23 @@ export function selectedBlock(view: View, selection: Iterable<string>): Block | 
   return found === null ? null : (view.blocks[found] ?? null);
 }
 
+/** The word of each kind of band, in its heading and its rows. */
+export const BAND_WORDS: Readonly<Record<BandKind, string>> = {
+  markers: "Markers",
+  conversion_maps: "Conversion maps",
+  children: "Children",
+  regions: "Regions",
+  flow_control: "Flow control",
+};
+
+/**
+ * The selection without its bands (arranger's `selectedBand`), which have no
+ * geometry and no `locked`: what the Properties form and the Locked cell read.
+ */
+export function withoutBands(selection: Iterable<string>): string[] {
+  return [...selection].filter((address) => selectedBand(address) === null);
+}
+
 /** A timeline the inspector shows: the block it lies in, its address and its value. */
 export interface SelectedTimeline {
   readonly block: Block;
@@ -59,10 +80,11 @@ export interface SelectedTimeline {
  * The timeline the selection names when it is exactly one address naming a
  * timeline or a part of one, such as its card `<block>/T/card` (the element
  * read with core's `elementOf`); else `null`: no selection, a block, several
- * addresses, a group, the title or any other element.
+ * addresses, a group, the title or any other element. Bands are left out
+ * (`withoutBands`).
  */
 export function selectedTimeline(view: View, selection: Iterable<string>): SelectedTimeline | null {
-  const [address, ...others] = selection;
+  const [address, ...others] = withoutBands(selection);
   if (address === undefined || others.length > 0) return null;
   const parsed = parseAddress(address);
   if (isCommandError(parsed) || parsed.block === null || parsed.element === null) return null;
@@ -96,9 +118,21 @@ const ENTRY_WORDS: Readonly<Record<EntryKind, string>> = {
   marker: "marker",
 };
 
-/** The word of each part an address appends to its element; a title for a bundle or a group. */
-function partWord(part: string, titled: boolean): string {
-  return part === "name" && titled ? "title" : part;
+/**
+ * The words of the parts `path` appends to the element `found`, innermost
+ * first: a part word each (`label`, `end`; `name` reads `title` on a bundle
+ * or a group), or a timeline's band (`regions band`), its one part. `null`
+ * when a part is no reserved id (core's `isReservedId`), or a band's id
+ * stands anywhere but right after a timeline's.
+ */
+function partWords(found: Named, path: string, parts: readonly string[]): string[] | null {
+  if (parts.some((part) => !isReservedId(part))) return null;
+  const band = parseBand(path);
+  if (band !== null) {
+    return found.kind === "timeline" ? [`${BAND_WORDS[band.kind].toLowerCase()} band`] : null;
+  }
+  if (parts.some((part) => BAND_ID_PATTERN.test(part))) return null;
+  return parts.toReversed().map((part) => (part === "name" && found.titled ? "title" : part));
 }
 
 /**
@@ -107,8 +141,9 @@ function partWord(part: string, titled: boolean): string {
  * timeline, a map, region, break, jump or marker), read through core's
  * `parseAddress`, `elementOf`, `findTimeline` and `findEntry`, each part
  * the address appends prefixed (`Card of timeline`, `Label of end of
- * timeline`); for several addresses their count; `null` for no selection,
- * an address naming nothing or a part no element has.
+ * timeline`, `Regions band of timeline`); for several addresses their
+ * count; `null` for no selection, an address naming nothing or a part no
+ * element has.
  */
 export function inspectedSubject(view: View, selection: Iterable<string>): InspectedSubject | null {
   const addresses = [...selection];
@@ -131,11 +166,11 @@ export function inspectedSubject(view: View, selection: Iterable<string>): Inspe
           parsed.element === null || element === manifest.id ? bundle : resolved(manifest, element),
           path === element ? [] : path.slice(element.length + 1).split("/"),
         ];
-  if (found === undefined || parts.some((part) => !PART_WORDS.includes(part))) return null;
+  if (found === undefined) return null;
+  const prefix = partWords(found, path, parts);
+  if (prefix === null) return null;
   const owner = found.name === null && found.id === null ? `anonymous ${found.kind}` : found.kind;
-  const words = [...parts.toReversed().map((part) => partWord(part, found.titled)), owner].join(
-    " of ",
-  );
+  const words = [...prefix, owner].join(" of ");
   return {
     words: words.charAt(0).toUpperCase() + words.slice(1),
     name: found.name,
@@ -249,8 +284,8 @@ export type Applied = Result<Text>;
  * `options` show it (it may differ in order, completed defaults or styles),
  * so the text keeps the user's comments; on refusal nothing is dispatched or
  * the store's single problem is returned. A text whose complete form equals
- * the current manifest dispatches nothing: the store would journal even a
- * `set` that changes nothing.
+ * the current manifest dispatches nothing and is no refusal: the store
+ * refuses a `set` that changes nothing.
  */
 export function applyText(
   store: Store,

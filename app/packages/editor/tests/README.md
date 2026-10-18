@@ -98,6 +98,10 @@ and in block `C` (`0000000002`) `bundle_mixed` loaded after deleting its
 `name` and its group `group_2`'s `name` and setting its `id` to `mixed`, the
 one manifest no fixture provides (a bundle and a group known only by id).
 `dom.ts`'s `showModal` stub stands in for the browser's modal dialog.
+After each test the autosaves are flushed and waited for as in the shell
+tests below ("Files, history and About"): otherwise a write or clear the
+first test's editor queued, run late on a loaded machine, reaches the next
+test's IndexedDB and empties the slot item 9 waits for.
 
 `EditingBar.svelte` alone (mounted with the arranger's `liveStore` of a
 store, which follows the store's `subscribe`; the inspector and the canvas
@@ -175,6 +179,23 @@ workspace of block `A` loaded through the hook):
    `text()` is what Save writes; each folding stamps its session entry
    with the time of the folding, so texts written at different moments
    are compared by their content, not byte for byte.
+10. **Opening or closing an editor drops every band but those of the
+    timeline then edited.** A band is offered only in its own timeline's
+    editor, so the shell passes the innermost open editor to arranger's
+    `existing` whenever the editing path grows or shrinks (and after undo
+    and redo). With `open(A)` and `open(A/group_1)` (`score` and
+    `performance` are its members, each with a conversion maps band) and
+    the hook's `select` of `A/score/conversion_maps_1`,
+    `A/performance/conversion_maps_1` and `A/score/start`, `open(A/score)`
+    leaves the selection exactly `A/score/conversion_maps_1`,
+    `A/score/start`: the other timeline's band went, the edited timeline's
+    stayed, and the start of its line, which lies inside the opened editor,
+    stayed too (the canvas the shell mounts also prunes on opening, keeping
+    what lies inside and never the edited timeline itself or its card,
+    arranger README "The canvas in an editor" case 10, so the element
+    selected here is a part of `score`). `done()` then leaves exactly
+    `A/score/start`: under the group editor `existing` drops the band, and
+    closing an editor prunes nothing else.
 
 ## Files, history and About (`shell.test.ts`, `files.test.ts`)
 
@@ -188,7 +209,11 @@ link whose `click` the test intercepts (recording `download` and the
 blob's text). After each test the autosave each mounted editor created
 is flushed and its writes are waited for before the next test installs
 its own IndexedDB, since a write reaches whichever factory is installed
-when it runs. Workspaces and manifests come from the installed
+when it runs: the test file mocks `src/autosave.ts` with `support.ts`'s
+`recordAutosaves`, which records every autosave `createAutosave` makes,
+and its `afterEach` awaits `flushAutosaves` after the unmount, which
+flushes each recorded autosave (the write the unmount starts included,
+failures ignored) and forgets them. Workspaces and manifests come from the installed
 timeskeleton fixtures through `writeWorkspace` and `loadManifest`, never
 hand-written, except the refused texts.
 
@@ -476,7 +501,8 @@ tests open workspaces and read the viewer's state: `load(text)`, `store()`,
 Save writes: every open editor folded as Done would fold it), and the
 editing path: `editing()` (a copy of the store's `editing`), `open(address)`
 (the store's `open`, returning its refusal or `null`), `done()` and
-`cancel()` (the store's, without the bar's question). `App.svelte` installs it only when
+`cancel()` (the store's, without the bar's question), and a block's drawn
+bands, `bands(blockId)` (case 8). `App.svelte` installs it only when
 `import.meta.env.DEV` is true or the build sets `VITE_TILIE_TEST_HOOK=1`;
 both are constants of the build, so a production build carries none of the
 hook. Vitest runs
@@ -553,11 +579,112 @@ writes its snapshot.
    (no dialog opens): `editing()` is `[]` and the view is the one before
    `open`. Opening it again, the same `set` and `done()` leave `editing()`
    empty and the journal one entry longer, its last entry a session entry.
+8. **A block's drawn bands through the hook.** `bands(blockId)` reports
+   the bands layout records for the block's drawing (`Drawing.bands`, in
+   their order), read from the drawing the canvas shows (arranger's
+   `drawingOf` with the schema package's font metrics), each as
+   `{address, timeline, kind, level, line, elements, rect}`: `address`,
+   `timeline`, `kind`, `level` and `elements` are the record's; `line`
+   (the ordinate of the band's timeline's line) and `rect` (`{x, y,
+   width, height}`) are in client pixels, left and top as
+   `getBoundingClientRect` gives them. They are mapped through the block's
+   drawing `<svg>` the way the canvas maps a pointer into the drawing
+   (arranger's `drawingPointAt`), the other way round: with `box` the
+   svg's client rectangle, `D` the drawing, `sx = box.width / D.width`
+   and `sy = box.height / D.height`, a drawing abscissa `x` lies at
+   `box.left + x × sx` and an ordinate `y` at `box.top + y × sy`, and a
+   width and a height scale by `sx` and `sy`. Nothing is clipped: a block
+   off screen reports what this computes.
+   - The mapping alone (`hookBands(drawing, box)` in `src/testHook.ts`),
+     on a drawing written for the test, 400 × 200, holding three records
+     of the timeline `score`, its line at 30.5, each `x` 8.25 and `width`
+     300: `score/conversion_maps_1` (level 1, 1 element) at `y` 24,
+     height 6.5; `score/markers_1` (−1, 2) at `y` 30.5, height 26.75;
+     `score/flow_control_1` (−2, 1) at `y` 61.25, height 0 (a flow
+     control band holding only an unlabelled break is present and 0
+     high). With the svg at left 100, top 50, 800 × 400 (both factors
+     exactly 2): `line` 50 + 2 × 30.5 = 111 for each, and the rectangles
+     `{116.5, 98, 600, 13}`, `{116.5, 111, 600, 53.5}` and `{116.5,
+     172.5, 600, 0}`. With the svg off screen at left −30, top −20, 200 ×
+     100 (both factors exactly 0.5): `line` −20 + 15.25 = −4.75, and
+     `{−25.875, −8, 150, 3.25}`, `{−25.875, −4.75, 150, 13.375}` and
+     `{−25.875, 10.625, 150, 0}`. Every value is exact in binary.
+   - The hook on the mounted editor, after `load` of a workspace written
+     as above with two blocks: `map` in `0000000000` at x 0 and
+     `map_child_band_order` in `0000000001` at x 800. The bands follow
+     drawing.md §6.4 and the defaults of §4. In both, the root `melody`
+     ("Melody", length 8 quarters, the map `tempo`, the child `phrase`)
+     follows the default band order (children, conversion maps, the line,
+     markers, regions, flow control): its children band holds `phrase`,
+     its conversion maps band `tempo`, its markers band the two wedges of
+     its start and end (its length is known), and its regions and flow
+     control bands nothing, so they are absent. Levels count outwards
+     from the nearest present band: conversion maps 1, children 2,
+     markers −1. `phrase` holds the map `ticks` and no child; its markers
+     band draws nothing (only the root's start and end are marked) and
+     the defaults hide it anyway, so its one present band is its
+     conversion maps band: level 1 in `map`, where `phrase` inherits
+     `melody`'s order, and −1 in `map_child_band_order`, whose own entry
+     `[phrase/children_1, phrase, phrase/conversion_maps_1, …]` puts it
+     below. The records run timeline by timeline in traversal order, each
+     timeline's bands top to bottom, so each block gives `[address,
+     timeline, kind, level, elements]`:
+     `melody/children_1, melody, children, 2, 1`;
+     `melody/conversion_maps_1, melody, conversion_maps, 1, 1`;
+     `melody/markers_1, melody, markers, −1, 2`;
+     `phrase/conversion_maps_1, phrase, conversion_maps, ±1, 1` (1 in
+     `0000000000`, −1 in `0000000001`). With `0000000000`'s svg measured
+     at left 100, top 50 and twice its `viewBox` size (so `sx = sy = 2`
+     exactly), each of its bands
+     has `line` 50 + 2 × the record's `line` and `rect` `{100 + 2x, 50 +
+     2y, 2 width, 2 height}` of the record of the same index in
+     `drawingOf` of that block: the geometry is layout's to prove
+     (layout's tests); this proves the hook maps the drawing the canvas
+     shows through that block's own svg. `0000000001`'s svg, which jsdom
+     measures at no size and left and top 0, gives `line` 0 and `rect`
+     `{0, 0, 0, 0}` for each of its bands. This case reads real layout
+     output, so it passes only once layout records the bands.
+   - `bands("0000000009")` (no such block) throws a `RangeError`. A block
+     whose svg is not on the page (no editor mounted, or a block the
+     canvas does not render: above 500 blocks only those in view are)
+     cannot be measured: `bandsOf(view, "0000000000")` of that workspace
+     with no editor mounted throws exactly `Error("the drawing of block
+     0000000000 is not on the page")`.
 
 The viewport functions talk to Svelte Flow, which needs a laid-out page;
 they and everything the canvas does are proven by the Playwright suite.
 
-## The inspector (`inspector-text.test.ts`, `inspector-codecs.test.ts`, `Inspector.test.ts`, `Inspector-load.test.ts`, `inspector-locked.test.ts`, `inspector-subject.test.ts`)
+A load through the fixture menu is asynchronous (the chosen file is
+imported when Load is pressed), so cases 4 and 5 wait for its store with
+`vi.waitFor`, whose default limit of 1 s a load exceeded at load averages
+of 11 to 15 on 12 cores. A wait lasts no longer than its test, so the
+three tests that load through the menu bound it: measured alone, five
+times one after the other at load averages of about 2, they took 0.12 to
+0.14 s (case 4, the end-to-end workspace), 0.13 to 0.20 s (case 4, two
+manifest fixtures) and 0.58 to 0.64 s (case 5, two loads and a Delete
+each); inside two whole `pnpm test` runs, at load averages of 2 to 6.5,
+0.40 and 0.60 s, 0.39 and 0.36 s, and 1.69 and 2.22 s. At a load average
+of about 36, case 5 and other tests mounting the editor ran past
+Vitest's default limit of 5 s per test (a timeout, so no duration was
+measured) and passed alone. By the rule the other timeouts of the
+workspace follow, about three times the slowest measured duration, the
+limit is 7 s (`3 × 2.22 = 6.66`), and it holds both for the waits and
+for the tests: each wait carries the explicit timeout
+`FIXTURE_LOAD_TIMEOUT` of 7 s, and each of the three tests carries the
+same constant as its own test timeout, since a wait longer than its
+test's limit could not help, and Vitest's default 5 s would cut the test
+short first.
+
+Two of these tests change the store and so write the autosave slot when
+the editor is unmounted: case 5 (each Delete schedules a snapshot) and
+case 7 (the renamed timeline, in the editor it then closes with Done);
+every load clears it. As in the shell tests ("Files, history and
+About"), the test file mocks `src/autosave.ts` with `recordAutosaves` and
+its `afterEach` awaits `flushAutosaves` after the unmount, so no write or
+clear runs late into the next test's IndexedDB, where it would empty a
+slot or offer a recovery that test does not expect.
+
+## The inspector (`inspector-text.test.ts`, `inspector-codecs.test.ts`, `Inspector.test.ts`, `Inspector-load.test.ts`, `inspector-locked.test.ts`, `inspector-subject.test.ts`, `inspector-bands.test.ts`)
 
 The inspector shows the manifest of the block the selection lies in as JSON,
 YAML or TOML text and writes an edited text back as one `set` command
@@ -579,10 +706,10 @@ What would prove it works, and the exact values each test pins:
    value, a changed number kind (an integer that became a float or the
    reverse) or a dropped or added member can make a case fail. The cases
    are enumerated from the package's directories, so a first case pins
-   the set they come from: the installed 0.7.0 package holds 36 manifests
+   the set they come from: the installed 0.7.0 package holds 41 manifests
    directly in `fixtures/<SCHEMA_VERSION>/`, 10 sorted into `groups/` and 9
    into `bundles/`, the counts `ls` gives there without the minimal twins
-   (`*.minimal.json`); 55 fixtures in three formats are 165 cases. A
+   (`*.minimal.json`); 60 fixtures in three formats are 180 cases. A
    fixture added to or removed from the package fails that first case
    until this file and the count are updated together. Every fixture is
    written in the complete form, the form the inspector always shows (it
@@ -640,11 +767,15 @@ What would prove it works, and the exact values each test pins:
    whose command is `{type: "set", changes: [{target: "0000000000",
    values: {manifest: <the parsed value>}}]}`, and `dumps` of the block's
    manifest equals `dumps` of the parsed value. Applying the unchanged text
-   dispatches nothing (the journal stays at that length). That comparison
-   is the inspector's to make, because the store journals every accepted
-   command: the `set` of the block's `manifest` to the very value it holds,
-   dispatched to the store directly, is accepted and adds one entry (the
-   journal grows from 2 to 3) while `dumps` of the manifest stays the same.
+   dispatches nothing and is no refusal: `applyText` returns `ok` and the
+   journal stays at that length. That comparison is the inspector's to
+   make, because the store refuses a command that changes nothing: with the
+   styled `bare` of case 7 (two entries), the `set` of the block's
+   `manifest` to the very value it holds, dispatched to the store directly,
+   is refused exactly `{code: "invalid_value", message: "the command
+   changes nothing", path: ["0000000000", "manifest"]}` (core's tests
+   README, "A `set` that changes nothing writes nothing"), the journal
+   stays at 2 and `dumps` of the manifest stays the same.
 5. **A refusal is shown with its exact path, and the text is kept.** From
    the same JSON text, `"locked": false` changed to `"locked": "yes"` is
    refused `schema_violation` "must be boolean" at `["timelines", 0,
@@ -738,9 +869,12 @@ What would prove it works, and the exact values each test pins:
    of a selected block (`geometryOf`, `src/inspector/properties.ts`, case
    11) `propertyCommand`
    gives `{type: "set", changes: [{target, values: {x: 12.5}}]}` for `x`
-   and `"12.5"`, `{width: null}` for `width` and an empty field, and refuses
+   and `"12.5"`, `{width: null}` for `width` and an empty field once the
+   block's `width` is set to 300 (unset, an empty field is the value the
+   block stores and gives no command, case 11), and refuses
    `invalid_value` for `x` with an empty field and for `abc`. Dispatching
-   `scale` `0` is refused by the store (`non_positive_number`).
+   `scale` `0` is refused by the store (`non_positive_number`), and the
+   journal keeps its two entries (the `add` and the `width`).
    A step (`stepValue(value, direction, step)`) is computed exactly: the
    sum is rounded to as many decimals as the value and the step have
    (shortest spellings), so float noise never reaches the store; an empty
@@ -796,14 +930,15 @@ What would prove it works, and the exact values each test pins:
    "Fixture facts" and "Items"). The heights follow from timeskeleton's
    drawing.md, sections 6.4, 6.5, 8.3 and 8.4, at a vertical stretch `v`:
    the maps lie above the line, a stack of `J` maps reaching `1.5 + 5J`;
-   the wedges, regions and flow lie below, the wedges' band reaching `1.5 +
-   13 + 2 + h(9) = 26.9765625` (one tier of labels); `h(11) / 2 =
+   the wedges, regions and flow control lie below, the markers band (the
+   wedges) reaching `1.5 + 13 + 2 + h(9) = 26.9765625` (one tier of
+   labels); `h(11) / 2 =
    6.40234375` is less than the reach of a stack of one map, so the line
    lies at `8v` plus the stack's reach. So a card with one map is
    `Hm(v) = (8v + 6.5) + 26.9765625 + 8v = 33.4765625 + 16v` high
    (`performance`, `page`: 49.4765625). `score` has two maps above and,
-   below, the flow band of its one jump, `4v` after the wedges' band and
-   `8v + 2 + h(9)` wide: `(8v + 11.5) + (26.9765625 + 4v + 8v +
+   below, the flow control band of its one jump, `4v` after the markers
+   band and `8v + 2 + h(9)` wide: `(8v + 11.5) + (26.9765625 + 4v + 8v +
    12.4765625) + 8v = 50.953125 + 28v` (78.953125). `excerpt`'s ancestor
    band starts after its map stack, at `max(14 / 2, 6.5 + 4) = 10.5`, and
    is `7 + 26.9765625` wide, so its card is `(8 + 44.4765625) + 26.9765625
@@ -861,9 +996,11 @@ What would prove it works, and the exact values each test pins:
      whose place is edited states no position), `width` `"650"` the changes
      `[{target: "bmixed0000/score", values: {place: {width: 650}}}, G2,
      AN]` (the frame holding the card states no position either: a card's
-     size never moves its frame's top left corner) and `width`
-     `""` the same with `{place: {width: null}}` there
-     (unstated); `length` `""` is refused `invalid_value` "length needs a
+     size never moves its frame's top left corner); `width` `""` gives no
+     command while no place states a width (the next case), and with
+     `score` stating `{width: 650}` first the changes `[{target:
+     "bmixed0000/score", values: {place: {width: null}}}, G2, AN]`;
+     `length` `""` is refused `invalid_value` "length needs a
      number" at `["bmixed0000/score", "length"]`. Two frames and `length`
      `"350"` give one `set`, `group_1` then `group_2`, then `AN`. Two cards
      of one group (`performance/card`, `score/card`) and `scale` `"2"` give
@@ -880,6 +1017,33 @@ What would prove it works, and the exact values each test pins:
      both frames gives one `set` with `group_1` 301, `group_2` 401 (each
      element steps from its own exact value; `group_2` draws the block's
      length, 400), then `AN`.
+   - *A value already stored is no command.* The store refuses a `set`
+     that changes nothing (core's tests README, "A `set` that changes
+     nothing writes nothing"), so a typed value that every edited element
+     stores already is a commit that dispatches nothing: `propertyCommand`
+     gives `{ok: true, value: null}`. What an element stores is the
+     block's own member for the block, else the member of the place the
+     edit sets (its group's for a member card's `scale` and `length`),
+     `null` where that place states none; the typed value, read as the
+     command would carry it, is compared with it exactly (`===`, as
+     `commonValue` compares), never by its text. A drawn value is not
+     stored: typing the value a field shows where no place states one
+     states it. On the arranger unless stated:
+     - the block: `length` `"400"` and `"400.0"` (one number, two
+       spellings), `spacing` `"1"`, `x` `"0"` and `width` `""` (its
+       `width` is null) give `null`;
+     - `score/card`, nothing stated: `width` `""` gives `null` on the
+       arranger and in the timeline editor (`"timeline"`), where a
+       dispatched `{place: {width: null}}` would be the whole `set` and
+       refused; `width` `"546.484619140625"`, the drawn width the field
+       shows, gives `[{target: "bmixed0000/score", values: {place: {width:
+       546.484619140625}}}, G2, AN]`;
+     - with `group_1` stating `{length: 300}` first: `group_1` `length`
+       `"300"` and `score/card` "group length" `"300"` (its group's place)
+       give `null`; `group_1` with `group_2` and `length` `"300"` gives
+       `[{target: "bmixed0000/group_1", values: {place: {length: 300}}},
+       {target: "bmixed0000/group_2", values: {place: {length: 300}}},
+       AN]`, since `group_2` states none: the store judges the whole `set`.
    - *The gestures' rule, level by level.* A frame's `scale` `"1.5"` on
      the arranger gives exactly `[{target: "bmixed0000/group_1", values:
      {place: {scale: 1.5}}}, G2, AN]`; with `group_2` stating `{y: 200}`
@@ -987,6 +1151,20 @@ What would prove it works, and the exact values each test pins:
      "bmixed0000/group_1", values: {place: {spacing: 1.5}}}]` (`group_2`
      and `annotations` state their positions now); the block's own
      `spacing` stays 1 and the field shows `1.5`.
+   - *Enter on an unchanged field* dispatches nothing (the store's
+     `dispatch` is not called), shows no problem and keeps the journal, as
+     an unchanged Apply does. On `group_1`, after `300` typed into
+     `length` and Enter (one entry, `dispatch` called once), `300` and
+     then `300.0` typed and Enter each leave `dispatch` at one call and the
+     journal at one entry more than before; the field shows `300`, and the
+     panel holds no `.problem` and no field with `aria-invalid="true"`. On
+     `bmixed0000`, `0` typed into `scale` and Enter is refused by the store
+     (`non_positive_number`, `dispatch` called once), and
+     `#property-problem-scale` is shown; `1` typed (the stored scale) and
+     Enter then drops the draft and the problem: `dispatch` still called
+     once, the journal unchanged, the field shows `1` and no `.problem` is
+     left; the `width` field emptied (the block's `width` is null) and
+     Enter leaves all of that as it is.
    - `bmixed0000/score/card`: one form, "Card properties", fields exactly
      `scale`, `length`, `spacing`, `width`, `height`, labelled "group
      scale", "group length", "spacing", "width", "height"; `spacing` shows
@@ -1347,11 +1525,33 @@ read with `readWorkspace`), whose blocks hold every kind:
   `…/score/intro/label` "Label of region", "intro", `…/score/da-capo`
   "Jump" with id `da-capo`, `…/a` (a child without a name) "Timeline"
   with id `a` and `…/a/card` "Card of timeline" with id `a`.
+- A band, `<timeline>/<kind>_1` (drawing.md §2.2), is read by core's
+  `elementOf` as a part of its timeline, as a card is, and the part check
+  takes core's one predicate for reserved ids, `isReservedId`, so a band's
+  id is accepted after its timeline's: the words are "<Kind> band of
+  timeline", Kind one of `Markers`, `Conversion maps`, `Children`,
+  `Regions`, `Flow control`, then the timeline's name, or its id without
+  one, as a timeline's. In `small.tle.json`:
+  `map0000000/melody/conversion_maps_1` "Conversion maps band of
+  timeline", "Melody", and the child's `map0000000/phrase/conversion_maps_1`
+  the same words with "Phrase"; `styled0000/score/markers_1` "Markers band
+  of timeline", `styled0000/score/regions_1` "Regions band of timeline",
+  both "Score"; `flow000000/flow:quarters/flow_control_1` "Flow control
+  band of timeline", "Flow control"; `styled0000/a/children_1` "Children
+  band of timeline" with id `a`. In `bundles.tle.json` the band of a
+  segment without a line of its own, `bungroup00/page_1/regions_1`,
+  "Regions band of timeline", "Page 1". A band is one part of a timeline
+  and has no part of its own, so a reserved id anywhere else names
+  nothing: `null` for `bmixed0000/score/regions_2` (no band is numbered
+  2), `bmixed0000/score/regions_1/label`, `bmixed0000/score/card/regions_1`,
+  `bmixed0000/group_1/regions_1` (a group has no bands) and
+  `bmixed0000/score/jump_1/flow_control_1` (nor has a jump).
 - Several addresses give their count with neither name nor id:
   `bmixed0000` with `…/score` "2 selected", and with `…/group_1` as well
-  "3 selected". `null` for an empty selection, for `…/nothing`, for
-  `…/score/x` (no part `x`), for `…/score/region_x` (no such entry) and for
-  a block that does not exist (`0000000009`).
+  "3 selected"; a band counts as any address, `bmixed0000/score/markers_1`
+  with `bmixed0000/score` "2 selected". `null` for an empty selection, for
+  `…/nothing`, for `…/score/x` (no part `x`), for `…/score/region_x` (no
+  such entry) and for a block that does not exist (`0000000009`).
 
 The editor, mounted, with a workspace loaded through the test hook shows
 it: with `bundles.tle.json`, selecting `bmixed0000` gives
@@ -1362,12 +1562,99 @@ sibling of the `h2` in the drawer's head, the drawer `#inspector` has
 "Timeline Score"; `bmixed0000/score/card` "Card of timeline Score". With
 `groups.tle.json`, `gchild0000` gives exactly "Anonymous bundle" and no
 `code`. With `small.tle.json`, `styled0000/a` gives "Timeline a" with
-`code` "a". Selecting nothing removes the element and the drawer's
+`code` "a", `styled0000/score/flow_control_1` "Flow control band of
+timeline Score" with no `code`, and `styled0000/a/children_1` "Children
+band of timeline a" with `code` "a". Selecting nothing removes the element and the drawer's
 `aria-describedby`. The name follows an applied manifest text: with
 `bundles.tle.json` loaded and `bmixed0000/score` selected ("Timeline
 Score"), the inspector's Manifest tab opened and its JSON text edited from
 `"name": "Score"` to `"name": "Scores"`, Apply makes `#inspector-subject`
-read exactly "Timeline Scores" with no change of selection.
+read exactly "Timeline Scores" with no change of selection. That Apply
+changes the store, so the unmounted editor may write the autosave slot
+(once the tab has started autosaving, which happens after the mount); as
+in the shell tests ("Files, history and About"), the file mocks
+`src/autosave.ts` with `recordAutosaves` and the mounted editors' `afterEach`
+awaits `flushAutosaves` after the unmount. `App.test.ts` changes no store
+and so writes nothing to the slot (it only reads it, offering no
+recovery from an empty one), and needs no flush.
+
+**A selected band shows three read-only rows** (`inspector-bands.test.ts`).
+A band, `<block>/<timeline>/<kind>_1`, is an element of the selection like
+any other; it has no geometry to edit and no `locked`. One band alone
+shows, in the Properties panel, the rows of the band's record in the
+block's drawing (`Drawing.bands`, read from the drawing the canvas shows:
+arranger's `drawingOf` with the schema package's font metrics, or while a
+canvas gesture shows the block, the drawing the gesture shows, as the
+geometry's values are read): "Band", its kind (`Markers`, `Conversion
+maps`, `Children`, `Regions`, `Flow control`); "Level", signed, a negative
+level written with U+2212 MINUS SIGN and a positive one bare; "Elements",
+the record's `elements`. A band of a block whose drawing records none
+there (an absent band) has no rows. Every other reader of the selection
+leaves bands out and applies its own rule to the rest, so a mixed
+selection follows the existing rule for mixed selections: `geometryOf`
+(the form) and `selectedTimeline` (the Locked cell) read the selection
+without its bands; `selectedBlock` (the Manifest tab) and
+`inspectedSubject` (the heading) read every address. The store holds
+two blocks written by one `add` each: `map` in `0000000000` and
+`map_child_band_order` in `0000000001`, whose bands the test hook's case
+8 derives from drawing.md (`melody`'s conversion maps band 1 and 1
+element, children band 2 and 1, markers band −1 and 2; `phrase`'s
+conversion maps band 1 and 1 in `map`, −1 and 1 in
+`map_child_band_order`). What proves it:
+
+- `bandRows(view, selection, placement)` (`src/inspector/properties.ts`)
+  gives `[label, value]` rows, for `0000000000/melody/conversion_maps_1`
+  Conversion maps, 1, 1; `…/melody/children_1` Children, 2, 1;
+  `…/melody/markers_1` Markers, −1, 2; `…/phrase/conversion_maps_1` (a
+  child's band) Conversion maps, 1, 1; `0000000001/phrase/conversion_maps_1`
+  Conversion maps, −1, 1. It gives `null` for no selection, the block
+  `0000000000`, the map `0000000000/melody/tempo`, the card
+  `0000000000/melody/card`, the absent bands `0000000000/melody/regions_1`
+  and `0000000000/phrase/markers_1`, two bands
+  (`…/melody/markers_1` with `…/melody/conversion_maps_1`), a band with
+  an element (`…/melody/markers_1` with `…/melody/card`), and a band of a
+  block the workspace does not hold (`0000000009/melody/markers_1`).
+  These cases read real layout output, so they pass only once layout
+  records the bands.
+- The rows read the drawing a gesture shows: with a placement for
+  `0000000000` (its stored placement values) whose drawing is the stored
+  drawing with its bands replaced by three records written for the test,
+  `melody/markers_1` at level 1 with 3 elements, `melody/regions_1` at
+  −2 with 4 and `melody/flow_control_1` at −12 with 1 (each `line` 0 and
+  rectangle `{0, 0, 10, 10}`, which the rows never read), the rows are
+  Markers, 1, 3; Regions, −2, 4; Flow control, −12, 1. A placement for
+  `0000000001` is not read for `0000000000/melody/markers_1`, which has
+  the stored rows Markers, −1, 2.
+- The other readers. For `0000000000/melody/markers_1` alone
+  `geometryOf` and `selectedTimeline` give `null` and `selectedBlock` the
+  block `0000000000`. With `0000000000/melody/card` besides, both give
+  exactly what the card alone gives (the card's geometry, label "Card
+  properties", and the timeline `melody` with target
+  `0000000000/melody`); with the block `0000000000` besides, exactly what
+  the block alone gives ("Block properties", no timeline). With an
+  address of `0000000001` besides, `selectedBlock` gives `null`, as for
+  any two blocks.
+- The component, mounted on that store: with `0000000000/melody/markers_1`
+  selected the Properties panel holds exactly one description list (`dl`)
+  whose terms read `Band`, `Level`, `Elements` and whose details read
+  `Markers`, `−1`, `2`, and nothing that edits: no `form`, `input`,
+  `select`, `textarea` or `button`, and no hint; the Manifest tab shows
+  the block's manifest (`manifestText` of `0000000000`'s, JSON, both
+  options off). With `0000000000/melody/card` besides, the panel's
+  content is exactly the card's alone (the form "Card properties" with
+  its seven fields and the Locked cell, and no list). With the two bands
+  `…/melody/markers_1` and `…/melody/conversion_maps_1`, exactly the hint
+  "Select a block, a frame or a card to edit its geometry." and neither
+  form nor list.
+- A band's id is reserved, so no element may take one, and the Manifest
+  tab shows the store's refusal as it shows every other: with block
+  `0000000000` selected and its JSON text edited from `"id": "tempo"` to
+  `"id": "conversion_maps_1"` (the map's id), Apply lists exactly one
+  problem, code `schema_violation`, message `id "conversion_maps_1" is
+  reserved for the bands of a timeline` (timeskeleton's README,
+  "Identity", ids quoted as JSON as the TypeScript validator quotes them)
+  at the pointer `/timelines/0/conversion_maps/0/id`; the text keeps the
+  edit and the journal keeps its two entries (the two `add`s).
 
 ## The Editor and Journal tabs (`journal.test.ts`, `inspector-tabs.test.ts`)
 

@@ -97,7 +97,7 @@ describe("blocks hold any manifest", () => {
     const read = readWorkspace(text);
     expect(read).toEqual(workspace);
     if (!isLoadError(read)) {
-      expect(read.view.meta).toEqual({ format: "tilie-workspace", version: 3 });
+      expect(read.view.meta).toEqual({ format: "tilie-workspace", version: 4 });
       expect(writeWorkspace(read)).toBe(text);
     }
   });
@@ -133,6 +133,16 @@ describe("the elements of a group manifest", () => {
     const frame = ["block", "group"];
     const line = [...frame, "timeline"];
     const ancestor = [...line, "ancestor"];
+    const marker = [...line, "band"];
+    const band = (timeline: string, kind: string) => [
+      "band",
+      `${timeline}/${kind}_1`,
+      timeline,
+      null,
+      null,
+      kind,
+      line,
+    ];
     expect(
       keys.map((key) => [
         key.type,
@@ -156,17 +166,27 @@ describe("the elements of a group manifest", () => {
       ["label", "second-half/end/label", ...half, [...ancestor, "wedge"]],
       ["timeline", "second-half", ...half, frame],
       ["name", "second-half/name", ...half, line],
-      ["wedge", "second-half/start", ...half, line],
-      ["label", "second-half/start/label", ...half, [...line, "wedge"]],
-      ["wedge", "second-half/end", ...half, line],
-      ["label", "second-half/end/label", ...half, [...line, "wedge"]],
+      band("second-half", "children"),
+      band("second-half", "conversion_maps"),
+      band("second-half", "markers"),
+      ["wedge", "second-half/start", ...half, marker],
+      ["label", "second-half/start/label", ...half, [...marker, "wedge"]],
+      ["wedge", "second-half/end", ...half, marker],
+      ["label", "second-half/end/label", ...half, [...marker, "wedge"]],
+      band("second-half", "regions"),
+      band("second-half", "flow_control"),
       ["card", "recording/card", ...recording, frame],
       ["timeline", "recording", ...recording, frame],
       ["name", "recording/name", ...recording, line],
-      ["wedge", "recording/start", ...recording, line],
-      ["label", "recording/start/label", ...recording, [...line, "wedge"]],
-      ["wedge", "recording/end", ...recording, line],
-      ["label", "recording/end/label", ...recording, [...line, "wedge"]],
+      band("recording", "children"),
+      band("recording", "conversion_maps"),
+      band("recording", "markers"),
+      ["wedge", "recording/start", ...recording, marker],
+      ["label", "recording/start/label", ...recording, [...marker, "wedge"]],
+      ["wedge", "recording/end", ...recording, marker],
+      ["label", "recording/end/label", ...recording, [...marker, "wedge"]],
+      band("recording", "regions"),
+      band("recording", "flow_control"),
     ]);
   });
 
@@ -187,8 +207,14 @@ describe("the elements of a group manifest", () => {
       ...marks,
       "second-half",
       "second-half/name",
+      "second-half/children_1",
+      "second-half/conversion_maps_1",
+      "second-half/markers_1",
       ...marks,
+      "second-half/regions_1",
+      "second-half/flow_control_1",
     ]);
+    expect(matched({ within: "piece" }).length).toBe(18);
     expect(matched({ element: "group" })).toEqual(["group_1"]);
     expect(matched({ element: "card" })).toEqual(["second-half/card", "recording/card"]);
     expect(
@@ -211,15 +237,29 @@ describe("the elements of a group manifest", () => {
 
 describe("the elements of a named manifest with two groups", () => {
   const manifest = load(BUNDLE);
-  /** A line drawn as a root: its name, then `held` (its maps, regions, breaks and jumps), then its wedges. */
-  const drawn = (id: string, ...held: string[]) => [
+  /**
+   * A line drawn as a root: its name, then its five bands, each followed by
+   * what it holds (none of these lines draws a child): `maps`, its wedges,
+   * `regions` and `flow`.
+   */
+  const drawn = (
+    id: string,
+    { maps = [], regions = [], flow = [] }: { [band: string]: string[] } = {},
+  ) => [
     id,
     `${id}/name`,
-    ...held,
+    `${id}/children_1`,
+    `${id}/conversion_maps_1`,
+    ...maps,
+    `${id}/markers_1`,
     `${id}/start`,
     `${id}/start/label`,
     `${id}/end`,
     `${id}/end/label`,
+    `${id}/regions_1`,
+    ...regions,
+    `${id}/flow_control_1`,
+    ...flow,
   ];
 
   it("list the title, the frames and the ungrouped roots", () => {
@@ -230,13 +270,16 @@ describe("the elements of a named manifest with two groups", () => {
       "group_1",
       "group_1/name",
       "score/card",
-      ...drawn("score", "score/cmap_1", "score/cmap_2", "score/jump_1", "score/jump_1/label"),
+      ...drawn("score", {
+        maps: ["score/cmap_1", "score/cmap_2"],
+        flow: ["score/jump_1", "score/jump_1/label"],
+      }),
       "performance/card",
-      ...drawn("performance", "performance/cmap_1"),
+      ...drawn("performance", { maps: ["performance/cmap_1"] }),
       "group_2",
       "group_2/name",
       "page/card",
-      ...drawn("page", "page/cmap_1"),
+      ...drawn("page", { maps: ["page/cmap_1"] }),
       "excerpt/card",
       "recording",
       "recording/name",
@@ -244,15 +287,16 @@ describe("the elements of a named manifest with two groups", () => {
       "excerpt/start/label",
       "excerpt/end",
       "excerpt/end/label",
-      ...drawn("excerpt", "recording/cmap_2"),
+      ...drawn("excerpt", { maps: ["recording/cmap_2"] }),
       "annotations/card",
-      ...drawn(
-        "annotations",
-        "annotations/region_1",
-        "annotations/region_1/label",
-        "annotations/region_2",
-        "annotations/region_2/label",
-      ),
+      ...drawn("annotations", {
+        regions: [
+          "annotations/region_1",
+          "annotations/region_1/label",
+          "annotations/region_2",
+          "annotations/region_2/label",
+        ],
+      }),
     ]);
     const inside = (address: string) =>
       keys.filter((key) => key.address === address).map((key) => key.inside);

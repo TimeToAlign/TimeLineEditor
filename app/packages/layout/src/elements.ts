@@ -3,7 +3,7 @@
  * (`docs/drawing.md` in timeskeleton, sections 1, 6.6 and 8).
  */
 
-import type { BandOrder, Place, Real } from "@timetoalign/tilie-core";
+import type { BandKind, Place, Real } from "@timetoalign/tilie-core";
 import type { TimeUnit } from "@timetoalign/timeskeleton";
 import type { Style } from "./cascade.ts";
 
@@ -13,9 +13,6 @@ export interface Placement {
   readonly spacing: number;
   readonly width: number | null;
   readonly height: number | null;
-  readonly order: BandOrder;
-  /** Band orders of groups and timelines, overriding `order` (sections 1 and 6.4). */
-  readonly bands: { readonly [key: string]: BandOrder };
   /**
    * The places of the box's items, by group id or ungrouped root id, and the sizes of its
    * members' cards, by member id (section 8.6).
@@ -28,8 +25,6 @@ export const DEFAULT_PLACEMENT: Placement = {
   spacing: 1,
   width: null,
   height: null,
-  order: ["children", "regions", "flow"],
-  bands: {},
   places: {},
 };
 
@@ -212,6 +207,43 @@ export interface DrawnCard {
   readonly range: ElementRange;
 }
 
+/**
+ * A present band of a timeline drawn with a line of its own (section 6.4).
+ * A band draws nothing: it has no element and no descriptor, and no writer
+ * reads it.
+ */
+export interface DrawnBand {
+  /** `T/<kind>_1` (section 2.2). */
+  readonly address: string;
+  /** The id `T` of its timeline. */
+  readonly timeline: string;
+  readonly kind: BandKind;
+  /** Signed and never 0: 1, 2, … above its timeline's line, outwards; −1, −2, … below it. */
+  readonly level: number;
+  /**
+   * The number of displayed elements it holds directly, those a segment without a line of its
+   * own adds to it included; at least 1, since only a present band is drawn.
+   */
+  readonly elements: number;
+  /**
+   * The ordinate of its timeline's line, in the drawing's coordinates as the elements'. A
+   * timeline drawn twice in one drawing (a child in one card, a member in another) has two sets
+   * of bands under the same addresses, told apart by this.
+   */
+  readonly line: number;
+  /**
+   * Its rectangle, in the drawing's coordinates as the elements' (sections 8.4 and 8.6).
+   * Vertically it runs from the band's start `c` to its outer edge (section 6.4, Where a band
+   * lies). Horizontally it spans its timeline's drawing, the root's as a child's: its extent of
+   * section 6.4, Children, measured from the root's start, from `x0` plus its one end to `x0`
+   * plus its other; the name column is no part of it.
+   */
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+}
+
 export interface Drawing {
   readonly width: number;
   readonly height: number;
@@ -221,5 +253,11 @@ export interface Drawing {
   /** The members' cards, in drawing order. */
   readonly cards: readonly DrawnCard[];
   readonly elements: readonly DrawnElement[];
+  /**
+   * Every present band of every timeline drawn with a line of its own: the member drawings in
+   * drawing order (section 8.5), each one's timelines in traversal order, each timeline's bands
+   * top to bottom.
+   */
+  readonly bands: readonly DrawnBand[];
   readonly unmapped: readonly number[];
 }

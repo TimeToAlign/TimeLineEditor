@@ -22,6 +22,7 @@ import { editorName, journalRows } from "./journal.ts";
 import type { InspectorProblem } from "./problems.ts";
 import type { Property } from "./properties.ts";
 import {
+  bandRows,
   commonValue,
   FIELDS,
   fieldLabel,
@@ -153,6 +154,9 @@ const geometry = $derived(geometryOf(view, selection, innermost?.kind ?? "arrang
 
 /** The fields the form offers, in order: the geometry's kind's. */
 const fields = $derived(geometry === null ? [] : FIELDS[geometry.kind]);
+
+/** The read-only rows of the one band selected, read from the drawing the canvas shows; else `null`. */
+const band = $derived(bandRows(view, selection, placement));
 
 /** What the Properties and Manifest tabs show while there is no block to inspect. */
 const HINT = "Select a block to inspect its manifest.";
@@ -408,7 +412,12 @@ function commitProperty(property: Property): void {
   const draft = drafts[property];
   if (geometry === null || draft === undefined) return;
   const command = propertyCommand(geometry, property, draft);
-  const refusal = command.ok ? live.store.dispatch(command.value) : command.problems[0];
+  // A draft of the stored value is committed by dispatching nothing, as an unchanged Apply is.
+  const refusal = !command.ok
+    ? command.problems[0]
+    : command.value === null
+      ? null
+      : live.store.dispatch(command.value);
   if (refusal !== null && refusal !== undefined) {
     propertyProblems[property] = refusal.message;
     return;
@@ -568,7 +577,16 @@ function position(problem: InspectorProblem): string {
     {#if shown === null && block === null}
       <p class="hint">{HINT}</p>
     {:else if block !== null}
-      {#if geometry === null}
+      {#if band !== null}
+        <dl class="properties">
+          {#each band as row (row.label)}
+            <div>
+              <dt>{row.label}</dt>
+              <dd>{row.value}</dd>
+            </div>
+          {/each}
+        </dl>
+      {:else if geometry === null}
         <p class="hint">{GEOMETRY_HINT}</p>
       {/if}
       {#if geometry !== null || timeline !== null}
@@ -809,14 +827,22 @@ function position(problem: InspectorProblem): string {
     gap: 0.25rem 0.5rem;
   }
 
-  .properties label {
+  .properties label,
+  .properties > div {
     display: flex;
     flex-direction: column;
     gap: 0.1rem;
   }
 
-  .properties span {
+  .properties span,
+  .properties dt {
     color: #595959;
+  }
+
+  /* A band's rows, without the browser's margins of a description list. */
+  dl.properties,
+  .properties dd {
+    margin: 0;
   }
 
   .properties input {

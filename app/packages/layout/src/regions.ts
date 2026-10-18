@@ -1,39 +1,18 @@
 /**
- * The region band: the regions placed by first fit into rows, each drawn as
- * a brace with its label (`docs/drawing.md` in timeskeleton, sections 6.4,
- * 6.6 and 7.2).
+ * The regions band: a timeline's displayed regions and those of the
+ * segments that join it, placed by first fit into rows, each drawn as a
+ * brace with its label (`docs/drawing.md` in timeskeleton, sections 6.4, 6.6
+ * and 7.2).
  */
 
-import type { Real } from "@timetoalign/tilie-core";
-import type { Band, Position } from "./canvas.ts";
-import type { Side } from "./cascade.ts";
+import { bandAddress } from "@timetoalign/tilie-core";
+import type { PreparedBand } from "./bands.ts";
 import { BRACE, LABEL_GAP } from "./constants.ts";
-import type { PathCommand, RegionElement, TextElement } from "./elements.ts";
+import type { PathCommand } from "./elements.ts";
 import { type Extent, labelExtent, Rows, widen } from "./fit.ts";
 import { centredLabel } from "./names.ts";
 import { add, coordinateValue, midpoint } from "./numbers.ts";
-import { type Measured, maxSize, type Owned, type Scope, shown } from "./traversal.ts";
-
-interface Region extends Owned {
-  readonly start: Real;
-  readonly end: Real;
-  readonly text: string | null;
-}
-
-interface Regions {
-  /** The drawn regions, in traversal order and each timeline's in canonical order. */
-  readonly drawn: readonly Region[];
-  /** The drawn labels of the drawn regions, centred on their regions' midpoints. */
-  readonly labels: ReadonlyMap<Region, Measured & { readonly at: Real }>;
-  readonly rows: Record<Side, Rows>;
-  readonly row: ReadonlyMap<Region, number>;
-}
-
-/** Where a side's region band lies: its start `r0` and its row pitch `pr`. */
-export interface RegionBand {
-  readonly region: number;
-  readonly pr: number;
-}
+import { type Entry, maxSize, type Scope, shown } from "./traversal.ts";
 
 /**
  * The brace of a region from `x1` to `x2`, arms at `yb`, tip at `(xm, ya)`
@@ -77,118 +56,85 @@ export function brace(x1: number, x2: number, xm: number, yb: number, ya: number
   ];
 }
 
-/** The regions of every timeline, the drawn ones placed by first fit, widened to their labels. */
-export function regions(scope: Scope): Regions {
-  const { entries, address, owned, measured, relativeX } = scope;
-  const regions: Region[] = [];
-  for (const entry of entries) {
-    for (const region of entry.manifest.regions) {
-      regions.push({
-        ...owned("region", address(region.id), entry),
-        start: add(entry.start, coordinateValue(region.start, entry.manifest.number_type)),
-        end: add(entry.start, coordinateValue(region.end, entry.manifest.number_type)),
-        text: region.name,
-      });
-    }
-  }
-  const drawnRegions = regions.filter((region) => shown(region.style));
-  const regionLabels = new Map(
-    drawnRegions
-      .filter((region) => region.text !== null && shown(region.label.style))
-      .map((region) => [
-        region,
-        {
-          ...measured(region.label, region.text as string),
-          at: midpoint(region.start, region.end),
-        },
-      ]),
+/**
+ * The regions band of the timeline drawn with the line `line` (section 6.4,
+ * Regions and Segments without a line): the displayed regions of each
+ * timeline of `sources`, the line first and then each joined segment, each
+ * one's in canonical order, placed in that order by one first fit with the
+ * extent from the smaller to the larger of their start and end, widened to
+ * their drawn label's extent. `R` rows are `R × pr − 4 × v` wide, `pr = 6 +
+ * 2 + h(9) + 4 × v`, 9 the largest font size of the band's drawn labels.
+ * Drawn from its start `r0`, row `k` has its brace's arms `r0 + (k − 1) ×
+ * pr` out, the tip 6 further and the label's ordinate 2 further again, each
+ * distance summed whole first (section 6.6, Regions).
+ */
+export function regionsBand(scope: Scope, line: Entry, sources: readonly Entry[]): PreparedBand {
+  const { address, owned, measured, relativeX, u, v, h } = scope;
+  const regions = sources.flatMap((source) =>
+    shown(source.bands.regions.style)
+      ? source.manifest.regions
+          .map((region) => ({
+            ...owned("region", address(region.id), source, "regions"),
+            start: add(source.start, coordinateValue(region.start, source.manifest.number_type)),
+            end: add(source.start, coordinateValue(region.end, source.manifest.number_type)),
+            text: region.name,
+          }))
+          .filter((region) => shown(region.style))
+      : [],
   );
-  const regionRows = { above: new Rows(), below: new Rows() };
-  const regionRow = new Map<Region, number>();
-  for (const region of drawnRegions) {
+  const placed = regions.map((region) => {
+    const middle = midpoint(region.start, region.end);
+    const label =
+      region.text !== null && shown(region.label.style)
+        ? measured(region.label, region.text)
+        : undefined;
     const xs = relativeX(region.start);
     const xe = relativeX(region.end);
     let extent: Extent = [Math.min(xs, xe), Math.max(xs, xe)];
-    const text = regionLabels.get(region);
-    if (text !== undefined) extent = widen(extent, labelExtent(relativeX(text.at), text.width));
-    regionRow.set(region, regionRows[region.side].place(extent));
-  }
-  return { drawn: drawnRegions, labels: regionLabels, rows: regionRows, row: regionRow };
-}
-
-const regionLabelSize = (regions: Regions, side: Side) =>
-  maxSize(
-    [...regions.labels.keys()].filter((item) => item.side === side).map((item) => item.label),
-  );
-
-/** The region band of a side: `R × pr − 4 × v` wide for `R` rows. */
-export function regionBand(
-  scope: Scope,
-  regions: Regions,
-  side: Side,
-): Band<RegionBand> | undefined {
-  const { v, h } = scope;
-  if (regions.rows[side].count === 0) return undefined;
-  const pr = BRACE + LABEL_GAP + h(regionLabelSize(regions, side)) + 4 * v;
-  return {
-    width: regions.rows[side].count * pr - 4 * v,
-    minimum: 0,
-    at: (start) => ({ region: start, pr }),
-  };
-}
-
-/** The distance of a region's brace's arms from the root's line. */
-const regionArms = (regions: Regions, band: (side: Side) => RegionBand, region: Region) => {
-  const own = band(region.side);
-  return own.region + ((regions.row.get(region) as number) - 1) * own.pr;
-};
-
-/** The regions' braces, each opening towards the root. */
-export function regionElements(
-  regions: Regions,
-  band: (side: Side) => RegionBand,
-  placed: Position,
-): RegionElement[] {
-  const { x, yAt } = placed;
-  return regions.drawn.map((region) => {
-    const outwards = regionArms(regions, band, region);
-    return {
-      type: "region",
-      address: region.address,
-      style: region.style,
-      x1: x(region.start),
-      x2: x(region.end),
-      xm: x(midpoint(region.start, region.end)),
-      yb: yAt(region.side, outwards),
-      ya: yAt(region.side, outwards + BRACE),
-    };
+    if (label !== undefined) extent = widen(extent, labelExtent(relativeX(middle), label.width));
+    return { region, middle, label, extent };
   });
-}
-
-/** The region labels, each centred beyond its brace's tip. */
-export function regionLabelElements(
-  regions: Regions,
-  band: (side: Side) => RegionBand,
-  placed: Position,
-): TextElement[] {
-  const { x, yAt, beyond } = placed;
-  const drawn: TextElement[] = [];
-  for (const region of regions.drawn) {
-    const item = regions.labels.get(region);
-    if (item === undefined) continue;
-    const size = regionLabelSize(regions, region.side);
-    drawn.push(
-      centredLabel(
-        region.label,
-        x(item.at),
-        beyond(
-          region.side,
-          yAt(region.side, regionArms(regions, band, region) + BRACE + LABEL_GAP),
-          size,
+  const rows = new Rows();
+  const row = placed.map((item) => rows.place(item.extent));
+  const size = maxSize(
+    placed.flatMap((item) => (item.label === undefined ? [] : [item.region.label])),
+  );
+  const pr = BRACE + LABEL_GAP + h(size) + 4 * v;
+  return {
+    kind: "regions",
+    address: bandAddress(line.manifest.id, "regions"),
+    elements: regions.length,
+    width: rows.count === 0 ? 0 : rows.count * pr - 4 * v,
+    extents: placed.map((item) => item.extent),
+    centred: placed.flatMap((item) =>
+      item.label === undefined ? [] : [{ width: item.label.width, u: u(item.middle) }],
+    ),
+    draw: (start, side, at) => {
+      const arms = (index: number) => start + ((row[index] as number) - 1) * pr;
+      return {
+        regions: placed.map(({ region, middle }, index) => ({
+          type: "region",
+          address: region.address,
+          style: region.style,
+          x1: at.x(region.start),
+          x2: at.x(region.end),
+          xm: at.x(middle),
+          yb: at.yAt(side, arms(index)),
+          ya: at.yAt(side, arms(index) + BRACE),
+        })),
+        regionLabels: placed.flatMap(({ region, middle, label }, index) =>
+          label === undefined
+            ? []
+            : [
+                centredLabel(
+                  region.label,
+                  at.x(middle),
+                  at.beyond(side, at.yAt(side, arms(index) + BRACE + LABEL_GAP), size),
+                  label,
+                ),
+              ],
         ),
-        item,
-      ),
-    );
-  }
-  return drawn;
+      };
+    },
+  };
 }

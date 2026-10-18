@@ -1,10 +1,28 @@
-import { manifestElements } from "@timetoalign/tilie-core";
-import type { Graphical, Selector } from "@timetoalign/timeskeleton";
+import { bandKey, manifestElements } from "@timetoalign/tilie-core";
+import type { Graphical, Selector, Statement } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
-import { Cascade, DEFAULT_PLACEMENT, draw, type ElementKey, INITIAL_STYLE } from "../src/index.ts";
-import { drawFixture, element, load, loadFile, manifestNames, metrics } from "./support.ts";
+import {
+  Cascade,
+  DEFAULT_LAYER,
+  DEFAULT_PLACEMENT,
+  draw,
+  type ElementKey,
+  INITIAL_STYLE,
+  manifestLayer,
+} from "../src/index.ts";
+import {
+  BLOCK,
+  drawFixture,
+  edit,
+  element,
+  load,
+  loadFile,
+  manifestNames,
+  metrics,
+  quarters,
+} from "./support.ts";
 
-// A child `c` of a root `r`: the key of its line.
+// A child `c` of a root `r`: the key of its line, held by the children band of `r`.
 const ancestry = new Map<string, readonly string[]>([
   ["r", ["r"]],
   ["c", ["r", "c"]],
@@ -16,7 +34,7 @@ const key: ElementKey = {
   domain: "logical",
   modality: "continuous",
   class: "ContinuousLogicalTimeline",
-  inside: ["block", "timeline"],
+  inside: ["block", "timeline", "band"],
 };
 const ALL: Selector = {
   ids: ["c"],
@@ -142,10 +160,108 @@ describe("inside", () => {
   it.each([
     [{ inside: "timeline" }, "#111111"],
     [{ inside: "block" }, "#111111"],
+    [{ inside: "band" }, "#111111"],
     [{ inside: "child" }, "none"],
     [{ inside: "ancestor" }, "none"],
   ] as [Selector, string][])("%j on a child's line sets %s", (select, expected) => {
     expect(stroke([{ statements: [statement(select, "#111111")] }])).toBe(expected);
+  });
+});
+
+describe("bands", () => {
+  // The regions band of `c`, held by its line, and that of `r`, held by its line in the block.
+  const root: ElementKey = {
+    ...key,
+    type: "timeline",
+    address: "r",
+    timeline: "r",
+    inside: ["block"],
+  };
+  const bands = [bandKey("c", "regions", key), bandKey("r", "regions", root)];
+
+  it.each([
+    [{ element: "band" }, ["#111111", "#111111"]],
+    [{ element: "band", class: "regions" }, ["#111111", "#111111"]],
+    [{ element: "band", class: "markers" }, ["none", "none"]],
+    [{ inside: "band" }, ["#111111", "none"]],
+    [{ inside: "child" }, ["#111111", "none"]],
+    [{ domain: "logical" }, ["none", "none"]],
+    [{ class: "ContinuousLogicalTimeline" }, ["none", "none"]],
+    [{ within: "c" }, ["#111111", "none"]],
+    [{ ids: ["c/regions_1"] }, ["#111111", "none"]],
+  ] as [Selector, string[]][])("%j sets %j on the regions bands of c and r", (select, expected) => {
+    const cascade = new Cascade([{ statements: [statement(select, "#111111")] }], ancestry);
+    expect(bands.map((band) => cascade.resolve(band, undefined).stroke)).toEqual(expected);
+  });
+
+  it("passes its timeline's style through to what it holds, and its own", () => {
+    const strokes = (layer: Graphical) => {
+      const drawing = draw(load("with_region"), DEFAULT_PLACEMENT, [layer], metrics);
+      return ["clt_1/region_1", "clt_1/region_1/label", "clt_2"].map(
+        (address) => element(drawing, address).style.stroke,
+      );
+    };
+    expect(strokes({ statements: [statement({ ids: ["clt_1"] }, "#111111")] })).toEqual([
+      "#111111",
+      "#111111",
+      "#111111",
+    ]);
+    expect(strokes({ statements: [statement({ ids: ["clt_1/regions_1"] }, "#111111")] })).toEqual([
+      "#111111",
+      "#111111",
+      "none",
+    ]);
+    expect(strokes({ statements: [statement({ ids: ["clt_1/children_1"] }, "#111111")] })).toEqual([
+      "none",
+      "none",
+      "#111111",
+    ]);
+  });
+});
+
+describe("a band's display", () => {
+  // `with_region` with a region of its child `clt_2`.
+  const manifest = edit("with_region", {
+    type: "add",
+    into: `${BLOCK}/clt_2`,
+    region: { id: "region_2", name: null, start: quarters(0), end: quarters(2), meta: {} },
+  });
+  const display = (ids: [string, ...string[]], value: "inline" | "none"): Statement => ({
+    select: { ids },
+    set: { display: value },
+  });
+  const drawnWith = (...statements: Statement[]) =>
+    draw(
+      manifest,
+      DEFAULT_PLACEMENT,
+      [DEFAULT_LAYER, { statements }, manifestLayer(manifest)],
+      metrics,
+    ).elements.flatMap((item) =>
+      item.type === "region" || item.type === "child" ? [item.address] : [],
+    );
+
+  it("hides what the band holds, and nothing a band of another timeline holds", () => {
+    expect(drawnWith()).toEqual(["clt_1/region_1", "clt_2", "clt_3"]);
+    expect(drawnWith(display(["clt_2/regions_1"], "inline"))).toEqual([
+      "clt_1/region_1",
+      "clt_1/region_2",
+      "clt_2",
+      "clt_3",
+    ]);
+    expect(
+      drawnWith(display(["clt_2/regions_1"], "inline"), display(["clt_1/regions_1"], "none")),
+    ).toEqual(["clt_1/region_2", "clt_2", "clt_3"]);
+    expect(drawnWith(display(["clt_1/regions_1"], "inline"))).toEqual([
+      "clt_1/region_1",
+      "clt_2",
+      "clt_3",
+    ]);
+  });
+
+  it("hides the children it holds with everything their bands hold", () => {
+    expect(
+      drawnWith(display(["clt_2/regions_1"], "inline"), display(["clt_1/children_1"], "none")),
+    ).toEqual(["clt_1/region_1"]);
   });
 });
 

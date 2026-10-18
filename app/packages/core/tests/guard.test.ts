@@ -11,7 +11,46 @@ const MIXED = "bundles/bundle_mixed.json";
 const RED = { stroke: "#FF0000" };
 const TIMELINES = { element: "timeline" } as const;
 const SCORE = { ids: ["score"] } as const;
-const BANDS = ["flow", "regions", "children"] as const;
+
+/** The default band order of the timeline `id`. */
+const D = (id: string) => [
+  `${id}/children_1`,
+  `${id}/conversion_maps_1`,
+  id,
+  `${id}/markers_1`,
+  `${id}/regions_1`,
+  `${id}/flow_control_1`,
+];
+
+/** The root `recording`'s markers band at the top, its conversion maps band below its line. */
+const R = [
+  "recording/markers_1",
+  "recording/children_1",
+  "recording",
+  "recording/conversion_maps_1",
+  "recording/regions_1",
+  "recording/flow_control_1",
+];
+
+/** Every band of the child `excerpt` below its line. */
+const E = [
+  "excerpt",
+  "excerpt/children_1",
+  "excerpt/conversion_maps_1",
+  "excerpt/markers_1",
+  "excerpt/regions_1",
+  "excerpt/flow_control_1",
+];
+
+/** The member `score`'s line at the top, its bands below it in their default order. */
+const SCORE_LINE_FIRST = [
+  "score",
+  "score/children_1",
+  "score/conversion_maps_1",
+  "score/markers_1",
+  "score/regions_1",
+  "score/flow_control_1",
+];
 
 const before = deepFreeze(viewOf([BUNDLE, MIXED]));
 /** `before` with a second block, `A`, holding `bare.json`. */
@@ -111,15 +150,28 @@ describe("sideEffect, each rule's path", () => {
     expect(sideEffect(two, moved, BUNDLE)).toEqual(outside(`block ${A}`, [A], BUNDLE));
   });
 
-  it("refuses a band order of a key outside and accepts one inside", () => {
-    expect(sideEffect(before, withBlock(before, { bands: { annotations: BANDS } }), G1)).toEqual(
-      outside("the band order of bundle0001/annotations", ["bundle0001/annotations"]),
-    );
-    expect(sideEffect(before, withBlock(before, { bands: { score: BANDS } }), G1)).toBeNull();
+  it("accepts a band order in every editor holding its timeline, and refuses it elsewhere", () => {
+    const excerpt = `${BUNDLE}/excerpt`;
+    const recording = `${BUNDLE}/recording`;
     const group2 = `${BUNDLE}/group_2`;
-    expect(sideEffect(before, withBlock(before, { bands: { recording: BANDS } }), group2)).toEqual(
-      outside("the band order of bundle0001/recording", ["bundle0001/recording"], group2),
-    );
+    const order = (target: string) =>
+      outside(
+        "the graphical order of block bundle0001",
+        [BUNDLE, "manifest", "graphical", "order"],
+        target,
+      );
+    const child = changed(before, set(excerpt, { order: E }));
+    expect(sideEffect(before, child, excerpt)).toBeNull();
+    expect(sideEffect(before, child, recording)).toBeNull();
+    expect(sideEffect(before, child, group2)).toBeNull();
+    expect(sideEffect(child, changed(child, set(excerpt, { order: null })), excerpt)).toBeNull();
+    const parent = changed(before, set(recording, { order: R }));
+    expect(sideEffect(before, parent, excerpt)).toEqual(order(excerpt));
+    expect(sideEffect(before, parent, group2)).toEqual(order(group2));
+    const member = changed(before, set(`${BUNDLE}/score`, { order: SCORE_LINE_FIRST }));
+    expect(sideEffect(before, member, G1)).toBeNull();
+    const root = changed(before, set(`${BUNDLE}/annotations`, { order: D("annotations") }));
+    expect(sideEffect(before, root, G1)).toEqual(order(G1));
   });
 
   it("refuses a top-level member of the manifest", () => {
@@ -230,6 +282,32 @@ describe("statements inside and outside", () => {
     expect(sideEffect(before, shrunk, G1)).toEqual(
       outside("bundle0001/score", ["bundle0001/score"]),
     );
+  });
+
+  it("lies inside when every band it matches belongs to a timeline the editor holds", () => {
+    const inline = { display: "inline" };
+    const statements = (target: string) =>
+      outside(
+        "the graphical statements of block bundle0001",
+        [BUNDLE, "manifest", "graphical", "statements"],
+        target,
+      );
+    const one = changed(before, {
+      type: "style",
+      select: { ids: ["excerpt/regions_1"] },
+      set: inline,
+      blocks: [BUNDLE],
+    });
+    expect(sideEffect(before, one, `${BUNDLE}/excerpt`)).toBeNull();
+    expect(sideEffect(before, one, `${BUNDLE}/recording`)).toBeNull();
+    expect(sideEffect(before, one, `${BUNDLE}/score`)).toEqual(statements(`${BUNDLE}/score`));
+    const every = changed(before, {
+      type: "style",
+      select: { element: "band", class: "regions" },
+      set: inline,
+    });
+    expect(sideEffect(before, every, G1)).toEqual(statements(G1));
+    expect(sideEffect(before, every, BUNDLE)).toBeNull();
   });
 });
 

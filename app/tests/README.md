@@ -50,6 +50,15 @@ The installed-Svelte case links the real package into the scratch workspace.
 Exact values only: rule names and exit statuses are compared against the
 expected results; the full edge table is independent of the configuration.
 
+Each case runs `depcruise` twice as a subprocess, which a loaded machine
+slows past Vitest's default limit of 5 s. Measured alone, five times one
+after the other at load averages of 1 to 3 on 12 cores, a case took 1.6
+to 2.2 s; inside two whole `pnpm test` runs, at load averages of 2 to 6.5,
+2.0 to 3.3 s; alone at load averages of 10 to 14, one case took 5.7 s, and at
+load averages of 10 to 22 cases exceeded 5 s. The suite therefore gives
+every case the explicit timeout `CRUISE_TIMEOUT` of 18 s, about three
+times the slowest measurement.
+
 ## The end-to-end container sees the schema package (`container.ts`)
 
 `e2e/run.ts` starts Playwright in a podman container that mounts only

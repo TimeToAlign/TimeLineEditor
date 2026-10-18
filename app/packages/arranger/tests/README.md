@@ -40,7 +40,7 @@ spacing 1, no box request) and the default style layer.
     long as the root's arrowhead stays rightmost, which is true for every
     `L ≥ 8` because the end label is narrower than `2 × 9`.
   - Height (sections 6.4, 6.5, 8.4): the bare root has only its below-side
-    wedges, so `Ea = 0`, the root band does not scale, and the padding
+    wedges, so `Ea = 0`, its markers band does not scale, and the padding
     `P v = 8v` lies above and below: `y_root = 8v + h(11) / 2` and `Hm =
     8v + 6.40234375 + 26.9765625 + 8v = 33.37890625 + 16v`, so `H = Hm + 18
     = 51.37890625 + 16v`, affine at every `v`, with `H(1) = 67.37890625`
@@ -233,7 +233,7 @@ spacing 1, no box request) and the default style layer.
     drawn on `excerpt`'s card as the `child` line from x `8 + s0 =
     126.29150390625` to `8 + s0 + 400 × 1/2 = 326.29150390625`, in the
     children band above `excerpt`'s line (drawing.md section 6.4). That
-    band follows the root band of `excerpt`'s map (reach 6.5, above), so
+    band follows the conversion maps band of `excerpt`'s map (reach 6.5, above), so
     it starts at `max(p0 / 2, 6.5 + B) = 10.5`; its one row puts the line
     `10.5 + 7 = 17.5` above `excerpt`'s and ends the band at `10.5 + 14 =
     24.5`. The ancestor band, 33.9765625 wide as above, then starts at
@@ -293,8 +293,8 @@ and are stored bit-exact. The other constants are `MIN_SCALE = 1/8`, `MIN_LENGTH
 - With `preview` (`{length: 800}`), the drawing has the preview's width,
   `W(800) = 876.5771484375` for `bare`. It is never cached: the memoized
   drawing is still the length-400 one afterwards.
-- The placement carries all seven members, `bands` and `places` among
-  them: on `bundle_mixed` with `annotations` placed at `{x: −30}` the
+- The placement carries its five members, `places` among them: on
+  `bundle_mixed` with `annotations` placed at `{x: −30}` the
   drawing equals `draw` with `places: {annotations: {x: -30}}` and has the
   origin `(38, 0)`. A preview may replace the places and the manifest (a
   reorder drawn before its drop): with `{places: {}}` the origin is `(0,
@@ -466,9 +466,9 @@ canvas units is `((width / 2 − x) / zoom, (height / 2 − y) / zoom)`.
   0.16650390625` (`round(166.8333… × 2048) = round(341674.67) = 341675`;
   `round(341.33) = 341`).
 - Applying the snapping command to a view holding A gives a block C at
-  `(200, 128)` whose `scale`, `length`, `spacing`, `width`, `height` and
-  `order` are the workspace's `blockDefaults`, its manifest equal to the
-  fixture, and whose index lies above A's.
+  `(200, 128)` whose `scale`, `length`, `spacing`, `width` and `height`
+  are the workspace's `blockDefaults`, its manifest equal to the fixture,
+  and whose index lies above A's.
 
 ## `snap`
 
@@ -754,8 +754,16 @@ the travel's half, since the box is twice the content, and the request
 stays twice the content each time.
 
 `resizeCommand(block, values)` is `{type: "set", changes: [{target:
-block.id, values}]}`. Every row's command is accepted by `apply`, and the
-resulting block carries exactly the values.
+block.id, values}]}`, or `null` when every value is the block's own
+(`places` compared by identity, the object `blockStretchPlaces` returns
+when nothing changes): a resize that changes no stored value is no
+command, as a drag that ends where it began, and core refuses a `set`
+that changes nothing. Two Box rows give such values: `bare` right by
+(−20, 0), `{width: null}`, and left by (100, 0), `{width: null, x: 40}`,
+since `bare` at (40, 80) states no width; their command is `null`. Every
+other row's command is accepted by `apply`, and the resulting block
+carries exactly the values; for a `null` command the block already
+carries them.
 
 **The node's edges stay, not the place origin.** A block's `x`, `y` are
 its place origin's (section `project`), so the fixed opposite edge is the
@@ -875,7 +883,9 @@ duplicates collapse in selection order.
 
 Every element can be removed; a manifest's title, which goes only with its
 block, cannot, so a selection holding it is refused whole, and core would
-find nothing to remove there (`unknown_target`).
+find nothing to remove there (`unknown_target`). A band is never removed:
+its address is left out, and a selection of bands alone is refused
+(section "Bands: the boxes of a timeline editor").
 
 Every non-refused command is accepted by `apply`, and the removed elements
 are gone from the manifest (`manifestIds`).
@@ -958,6 +968,11 @@ using the manifest alone and core's traversal (`manifestElements`,
   `manifestElements` lists them, plus marker ids, which are never drawn. It
   excludes the selected addresses and the parts of a directly selected
   element: those show as selected, not as affected.
+- **Bands:** a band draws nothing, so no band address is affected, though
+  `manifestElements` lists every timeline's five bands (`clt_2/children_1`
+  and the rest below); and a band is never removed, so a selected band is
+  no owner and takes nothing away (section "Bands: the boxes of a timeline
+  editor"). `movedByGap` (above) leaves bands out by the same rule.
 
 Pinned values (derived by hand from the fixtures' trees). `nested` is
 `clt_1` ⊃ `clt_3` ⊃ `clt_2`, with no entries. `map` is `melody`, with map
@@ -994,14 +1009,18 @@ In the `project` example, B with `{clt_3}` selected has `affectedElements
 the five fixtures `bare`, `nested`, `flow_control`, `with_region` and
 `map`, the group manifest `group_child_member`, the named manifest
 `bundle_mixed`, and `numbers` (a group manifest with a root-qualified
-region), and any selection of the element and part addresses that core's
-`manifestElements` lists for it. `removeCommand` refuses the selection
-exactly when core refuses a `remove` of the selected elements (each folded
-by `elementOf`): when it holds the title of `bundle_mixed`. When it does
-not, the element ids the `remove` actually deletes (`manifestIds` before
-minus after) equal `(owners ∪ affectedBy) ∩ manifestIds(before)`, the
-owners folded by `elementOf`. This compares the rule against core's own
-removal, not against itself.
+region), and any selection of the element, part and band addresses that
+core's `manifestElements` lists for it. The **owners** are the selected
+addresses that are no band, each folded by `elementOf`. A selection of
+bands alone has none, and `removeCommand` refuses it with `A band is not
+deleted; select its elements to delete them.` Otherwise `removeCommand`
+refuses the selection exactly when core refuses a `remove` of the owners:
+when it holds the title of `bundle_mixed`. When it does not, the element
+ids the `remove` actually deletes (`manifestIds` before minus after) equal
+`(owners ∪ affectedBy) ∩ manifestIds(before)`, `affectedBy` given the
+whole selection, bands included. This compares the rule against core's own
+removal, not against itself: a band is never removed and takes nothing
+away, though core folds its address to its timeline.
 
 ## `click` and `blockOf`
 
@@ -1025,9 +1044,12 @@ removal, not against itself.
 - `blockOf("A/clt_3/name")` is `A`, and `blockOf("A")` is `A`.
   `blockOf("workspace")` throws `RangeError`.
 
-`existing(view, selection)` keeps the addresses that still name something
-after an undo or redo. View: A holds `nested` (elements `clt_1`, `clt_3`,
-`clt_2`), B does not exist.
+`existing(view, selection, editing)` keeps the addresses that still name
+something after an undo or redo, an editor's opening or its closing,
+`editing` being the innermost open editor (`null` here: the arranger; the
+bands it keeps only in their timeline's editor are in section "Bands: the
+boxes of a timeline editor"). View: A holds `nested` (elements `clt_1`,
+`clt_3`, `clt_2`), B does not exist.
 
 - `existing(view, {A, A/clt_3, A/clt_3/name, A/clt_9, A/clt_9/name, B,
   B/clt_1})` is `{A, A/clt_3, A/clt_3/name}` in that order: a part stands
@@ -1092,8 +1114,10 @@ holds `bare`.
 | timeline `A/excerpt` | element, `A/dlt_1` | `A/dlt_1` |
 | timeline `A/excerpt` | card, `A/excerpt/card` (itself); element, `A/recording` (its ancestor, outside) | `null` |
 | timeline `A/dlt_1` | element, `A/dlt_1` | `null` |
+| timeline `A/excerpt`; none | band, `A/excerpt/children_1` | `null` |
 
-An unknown block in the hit gives `null`. `sameEditing` is true for two
+An unknown block in the hit gives `null`. A band opens nothing, in its
+timeline's editor or on the arranger. `sameEditing` is true for two
 editors of equal target and kind and for two absent ones, false otherwise;
 `editedElement("A/group_1")` is `{block: A, element: "group_1"}`,
 `editedElement("A")` `{block: A, element: null}`.
@@ -1101,12 +1125,12 @@ editors of equal target and kind and for two absent ones, false otherwise;
 `GESTURES` is the permission table of the gestures besides resizing, one
 row per level, each member stated:
 
-| level | moveBlocks | moveItems | reorderMembers | marquee |
-|---|---|---|---|---|
-| `arranger` | true | false | false | `"blocks"` |
-| `bundle` | false | true | false | `"elements"` |
-| `group` | false | false | true | `"elements"` |
-| `timeline` | false | false | false | `"elements"` |
+| level | moveBlocks | moveItems | reorderMembers | moveBands | marquee |
+|---|---|---|---|---|---|
+| `arranger` | true | false | false | false | `"blocks"` |
+| `bundle` | false | true | false | false | `"elements"` |
+| `group` | false | false | true | false | `"elements"` |
+| `timeline` | false | false | false | true | `"elements"` |
 
 `gesturesOf(editing)` is the arranger's row without an editor and its
 kind's row otherwise (`toBe` the table's row).
@@ -1317,11 +1341,11 @@ h(9) = 26.9765625`, and its maps above, a stack of `J` maps reaching
   6.40234375`): `Hp(v) = 8v + 6.5 + 26.9765625 + 8v = 33.4765625 + 16v`
   (49.4765625 at 1);
 - `score`, two maps (11.5) and below the wedges, after the gap `B = 4v`,
-  the flow band of its one jump, `8v + 2 + h(9)` wide: `Hs(v) = 8v +
+  the flow control band of its one jump, `8v + 2 + h(9)` wide: `Hs(v) = 8v +
   11.5 + (26.9765625 + 4v + 8v + 12.4765625) + 8v = 50.953125 + 28v`
   (78.953125 at 1);
 - `annotations`, no map (`y_root = 8v + 6.40234375`) and below the
-  wedges, after `B`, its region band: "Verse" (0 to 4) and "Chorus" (4 to
+  wedges, after `B`, its regions band: "Verse" (0 to 4) and "Chorus" (4 to
   12) meet end to start and share one row (drawing.md section 6.3), so
   the band is `pr − 4v = 6 + 2 + h(9) = 18.4765625` wide: `Ha(v) =
   8v + 6.40234375 + (26.9765625 + 4v + 18.4765625) + 8v = 51.85546875 +
@@ -1694,6 +1718,331 @@ unchanged; drawn as a preview (`drawingOf` with `{manifest}`),
   `[performance, score, page]` `{order: [performance, score, page]}`.
   Applied, the manifest's `graphical.order.group_1` is that array.
 
+## Bands: the boxes of a timeline editor (`bands.test.ts`)
+
+Every timeline drawn with a line of its own has five **bands** (drawing.md
+section 6.4), addressed `T/children_1`, `T/conversion_maps_1`,
+`T/markers_1`, `T/regions_1` and `T/flow_control_1`. Its **band order**
+lists them and `T` itself, top to bottom: the bands before `T` lie above
+its line, those after it below. A band is **present** when it draws an
+element; the present bands above the line are the levels 1, 2, …
+outwards, those below −1, −2, …. A band draws nothing: layout records each
+present band of each line in `Drawing.bands` (`address`, `timeline`,
+`kind`, `level`, `line` the ordinate of its timeline's line, `elements`,
+and its rectangle `x`, `y`, `width`, `height`), and `bands.ts` is the one
+module that reads them. A band is **offered**, as a box that is hit,
+hovered, selected and moved, only in the timeline editor of its own
+timeline, when that editor is the innermost open editor of its block.
+
+A move writes the timeline's own band order, its entry in the manifest's
+`graphical.order`, through one `set` on the timeline: `{target:
+<block>/<timeline>, values: {order: X}}`. `X` is `null` when the new order
+equals the order the timeline inherits (a root the default band order of
+drawing.md section 4, a child its parent's, band by band id: core's
+`inheritedBandOrder`), so the entry goes.
+
+**What proves it.** Where a band lands depends only on the records'
+positions and the order, so the drop and the step are checked on records
+stated here, with exact orders derived from the rule by hand; the
+commands are checked on the manifest's band orders as core states them;
+and every command is dispatched through core's store with its timeline's
+editor open, so the side-effect guard accepts it. One case runs the
+functions on layout's own drawing of `styled__score`, its expected values
+derived from the band order and the present bands, never from geometry.
+
+### The records
+
+The drawings below are written by hand (a drawing literal, no manifest):
+each a background, one ungrouped root's card, a few drawn elements and the
+band records, the card's item spanning every element after the
+background. Their kinds and levels follow drawing.md section 6.4 from the
+manifest named; their rectangles are inputs, chosen here, not layout's
+numbers. Block A holds the manifest named.
+
+- **S**, `styled__score`, whose own band order is `E = [score/children_1,
+  score/markers_1, score, score/conversion_maps_1, score/regions_1,
+  score/flow_control_1]`. Every band of `score` is present: its children
+  band holds `b` (`a` is hidden), its markers band the two wedges, its
+  conversion maps band `ticks`, its regions band `intro`, its flow control
+  band `da-capo`. Drawing 600 × 200: the card `score/card` (8, 8, 584 ×
+  184), the child line `b` (x 300 to 500, y 55), the line `score` (x 100 to
+  500, y 100), the map `score/ticks` (x 100 to 500, centred on y 105). The
+  records, every one `line` 100, x 100, width 400:
+
+  | band | level | y | height | middle | elements |
+  |---|---|---|---|---|---|
+  | `score/children_1` | 2 | 40 | 30 | 55 | 1 |
+  | `score/markers_1` | 1 | 80 | 20 | 90 | 2 |
+  | `score/conversion_maps_1` | −1 | 100 | 10 | 105 | 1 |
+  | `score/regions_1` | −2 | 114 | 20 | 124 | 1 |
+  | `score/flow_control_1` | −3 | 138 | 22 | 149 | 1 |
+
+  So the visible entries of `score` are, top to bottom, its children band
+  at 55, its markers band at 90, the line at 100, its conversion maps band
+  at 105, its regions band at 124 and its flow control band at 149; the
+  gaps between the bands are y 70 to 80 above and 110 to 114, 134 to 138
+  below.
+- **M**, `map`: `melody` with the map `tempo` and the child `phrase`,
+  which has the map `ticks` (addressed `melody/ticks`). No band order is
+  stated, so `melody` has the default `D = [melody/children_1,
+  melody/conversion_maps_1, melody, melody/markers_1, melody/regions_1,
+  melody/flow_control_1]` and `phrase` the same band by band id,
+  `P = [phrase/children_1, phrase/conversion_maps_1, phrase,
+  phrase/markers_1, phrase/regions_1, phrase/flow_control_1]`. Present:
+  `melody`'s children band (`phrase`), conversion maps band (`tempo`) and
+  markers band (its wedges); its regions and flow control bands hold
+  nothing and are absent. `phrase`'s conversion maps band holds `ticks`;
+  its other bands are absent. Drawing 600 × 140: the card `melody/card`
+  (8, 8, 584 × 124), the map `melody/ticks` (x 200 to 400, centred on y
+  25), the child line `phrase` (x 200 to 400, y 30), the map
+  `melody/tempo` (x 100 to 500, centred on y 63), the line `melody` (x 100
+  to 500, y 70). The records, in this order (timelines in traversal
+  order):
+
+  | band | line | level | x | y | width | height | middle |
+  |---|---|---|---|---|---|---|---|
+  | `melody/children_1` | 70 | 2 | 100 | 16 | 400 | 20 | 26 |
+  | `melody/conversion_maps_1` | 70 | 1 | 100 | 56 | 400 | 14 | 63 |
+  | `melody/markers_1` | 70 | −1 | 100 | 70 | 400 | 16 | 78 |
+  | `phrase/conversion_maps_1` | 30 | 1 | 200 | 20 | 200 | 10 | 25 |
+
+  `phrase`'s band lies inside `melody`'s children band.
+- **T**, one timeline drawn with two lines in one drawing (a member's own
+  line, and a child line on another member's card), records only:
+  `excerpt`'s children band (level 2) and conversion maps band (level 1)
+  at each line, x 100, width 400, order the default
+  `[excerpt/children_1, excerpt/conversion_maps_1, excerpt, …]`:
+
+  | band | line | y | height | middle |
+  |---|---|---|---|---|
+  | `excerpt/children_1` | 50 | 10 | 14 | 17 |
+  | `excerpt/conversion_maps_1` | 50 | 36 | 14 | 43 |
+  | `excerpt/children_1` | 150 | 110 | 14 | 117 |
+  | `excerpt/conversion_maps_1` | 150 | 136 | 14 | 143 |
+
+Below, an order is written by its entries' short names (`children` for
+`score/children_1`, and so on), the timeline's id by its id.
+
+### The offered bands and the band under a point
+
+- `offeredBands(S, "score")` is the five records, in order;
+  `offeredBands(S, "b")` is empty (`b` has no present band).
+  `offeredBands(T, "excerpt")` is all four records.
+- `bandAt(S, "score", point)`: (150, 55) the children band; its corner
+  (100, 40) the children band and the flow control band's corner (500,
+  160) the flow control band (edges included); (150, 100), on the line,
+  which the markers band and the conversion maps band both hold, the
+  markers band (the first in order); (150, 75), in a gap, `null`; (99, 55)
+  and (501, 55), beside the bands, `null`. `bandAt(S, "b", (150, 55))` is
+  `null`.
+- A band 0 high (S with the flow control record's height 0) holds only
+  its edge: (150, 138) is that band, (150, 138.5) `null`.
+
+### Where a dragged band lands
+
+`bandDrop(drawing, band, y, order)`, `order` the timeline's effective band
+order. The visible entries of the band's line are its timeline's present
+bands at that line and its id, in `order`; a band's position is the middle
+of its rectangle, the id's the line. Of the visible entries without the
+dragged band, `k` lie above `y` (strictly); the band moves just after the
+`k`-th, or just before the first when `k` is 0, and the result is `null`
+when it already lies between those two neighbours in `order`, relative to
+them alone. On S with `E`:
+
+| | band | y | entries above `y` (`k`) | new order |
+|---|---|---|---|---|
+| 1 | conversion maps (outwards) | 140 | children, markers, score, regions (4) | `[children, markers, score, regions, conversion_maps, flow_control]` |
+| 1 | flow control (inwards) | 103 | children, markers, score (3) | `[children, markers, score, flow_control, conversion_maps, regions]` |
+| 1 | children (inwards) | 95 | markers (1) | `[markers, children, score, conversion_maps, regions, flow_control]` |
+| 1 | markers (outwards) | 30 | none (0) | `[markers, children, score, conversion_maps, regions, flow_control]` |
+| 2 | regions, across into the gap above | 75 | children (1) | `[children, regions, markers, score, conversion_maps, flow_control]` |
+| 2 | markers, across into the gap below | 112 | children, score, conversion maps (3) | `[children, score, conversion_maps, markers, regions, flow_control]` |
+| 2 | regions, on the line | 100 | children, markers (2): the line does not lie above itself | `[children, markers, regions, score, conversion_maps, flow_control]` |
+| 3 | regions, in place | 124 | children, markers, score, conversion maps (4) | `null` |
+| 3 | regions, in its slot | 108 | the same (4) | `null` |
+| 3 | children, in place | 10 | none (0) | `null` |
+| 3 | markers, in its slot | 99 | children (1) | `null` |
+| 4 | conversion maps, beyond the outermost band below | 170 | all five (5) | `[children, markers, score, regions, flow_control, conversion_maps]` |
+| 4 | flow control, beyond the outermost band above | 5 | none (0) | `[flow_control, children, markers, score, conversion_maps, regions]` |
+
+**A release in place with an absent band between the neighbours** (case
+3, on M): with `melody`'s order `[children, conversion_maps, melody,
+regions, markers, flow_control]` (the regions band absent, between the
+line and the markers band), the markers band released at its middle 78
+has the line above (`k` 3) and nothing below: it lies after `melody`, so
+`null`, where moving it "just after `melody`" would write `[children,
+conversion_maps, melody, markers, regions, flow_control]`, a change no one
+sees. With `[children, regions, conversion_maps, melody, markers,
+flow_control]` the children band released at 20 has nothing above and the
+conversion maps band below: `null`, where "just before" would write
+`[regions, children, …]`.
+
+**A child's band** (M, `P`): `phrase/conversion_maps_1` released at 33,
+below its own line 30, lands just after `phrase`: `[phrase/children_1,
+phrase, phrase/conversion_maps_1, phrase/markers_1, phrase/regions_1,
+phrase/flow_control_1]`.
+
+**Two lines of one timeline** (T, default order): the records of the
+dragged band's own `line` are its visible entries. The children band at
+line 50 released at 45 has the conversion maps band at 43 above it (`k`
+1) and lands after it: `[conversion_maps, children, excerpt, …]`. Read
+across both lines, the conversion maps band would be placed at 143 (the
+later record) and the release would be read as `null`. The same band
+steps down past the conversion maps band at its line to the same order.
+
+### The steps
+
+`bandStep(drawing, band, direction, order)` moves the band past the next
+visible entry in the arrow's direction (just before it going up, just
+after it going down), the line included, and is `null` at the top or the
+bottom. Every visible position of S with `E`:
+
+| band | up | down |
+|---|---|---|
+| children | `null` | `[markers, children, score, conversion_maps, regions, flow_control]` |
+| markers | `[markers, children, score, conversion_maps, regions, flow_control]` | `[children, score, markers, conversion_maps, regions, flow_control]` (across the line) |
+| conversion maps | `[children, markers, conversion_maps, score, regions, flow_control]` (across the line) | `[children, markers, score, regions, conversion_maps, flow_control]` |
+| regions | `[children, markers, score, regions, conversion_maps, flow_control]` | `[children, markers, score, conversion_maps, flow_control, regions]` |
+| flow control | `[children, markers, score, conversion_maps, flow_control, regions]` | `null` |
+
+On M with `D`, absent bands are passed over: `melody`'s children band
+steps up to `null` and down to `[conversion_maps, children, melody,
+markers, regions, flow_control]`; its conversion maps band up to the same
+order and down across the line to `[children, melody, conversion_maps,
+markers, regions, flow_control]`; its markers band up across the line to
+`[children, conversion_maps, markers, melody, regions, flow_control]` and
+down to `null`, though the regions and flow control bands follow it in
+`D`: they are absent. `phrase`'s conversion maps band (`P`) steps up to
+`null` and down to `[phrase/children_1, phrase, phrase/conversion_maps_1,
+…]`.
+
+### The command
+
+`bandMoveCommand(view, block, timeline, order)` is `{type: "set", changes:
+[{target: <block>/<timeline>, values: {order: X}}]}`. On
+`map_root_band_order`, whose `melody` states `R = [melody/children_1,
+melody, melody/conversion_maps_1, melody/markers_1, melody/regions_1,
+melody/flow_control_1]` and whose `phrase` states nothing, so inherits
+`R` band by band id, `Rp = [phrase/children_1, phrase,
+phrase/conversion_maps_1, phrase/markers_1, phrase/regions_1,
+phrase/flow_control_1]`:
+
+- the root `melody` at `D`, the default: `X` is `null`;
+- `melody` at `[melody/children_1, melody, melody/markers_1,
+  melody/conversion_maps_1, melody/regions_1, melody/flow_control_1]`:
+  `X` is that order;
+- the child `phrase` at `Rp`, its parent's: `X` is `null`;
+- `phrase` at `P`, the default band order mapped to `phrase`: `X` is `P`,
+  not `null`, since a child inherits its parent's order, not the default.
+
+Every new order of the drops and steps on S and M above gives `X` equal
+to it: each differs from its timeline's inherited order (`score`'s and
+`melody`'s the default band order, `phrase`'s `P`). A block the view does
+not hold throws `RangeError`.
+
+**The store accepts every command a move gives.** The command of each new
+order on S and M above (not `null`), and three of the four on
+`map_root_band_order` (`melody` at `D` and at its new order, `phrase` at
+`P`), is dispatched to a store holding block A with the manifest named
+and its timeline's editor open: `A/score` for `score`; `A/melody` for
+`melody`; `A/melody` then `A/phrase` for `phrase`. `dispatch` returns
+`null` every time, and the manifest's `graphical.order` then holds `X`
+under the timeline's id, or, for `X` `null`, no entry for it. The fourth,
+`phrase` at `Rp`, is the order `phrase` already has without an entry of
+its own, so its `null` would delete nothing, and core refuses a `set`
+that changes nothing (core's tests README, "A `set` that changes nothing
+writes nothing"): `dispatch` returns exactly `{code: "invalid_value",
+message: "the command changes nothing", path: ["A/phrase", "order"]}`,
+and the manifest still has no entry for `phrase` and `R` for `melody`. No
+move gives that command: a drop that leaves a band between the same
+neighbours and a step at the top or the bottom give `null` (above), so
+every order a move gives differs from the timeline's current one, which
+for a timeline without an entry is its inherited one.
+
+### On layout's drawing of `styled__score`
+
+Block A holds `styled__score` at (0, 0) with the default placement;
+`drawingOf` draws it. From `E` and the present bands (above):
+`offeredBands(drawing, "score")` lists `score/children_1` at level 2,
+`score/markers_1` at 1, `score/conversion_maps_1` at −1,
+`score/regions_1` at −2 and `score/flow_control_1` at −3, holding 1, 2, 1,
+1 and 1 elements, each with `line` equal to the `y` of the drawing's
+`timeline` element addressed `score`; `offeredBands(drawing, "b")` is
+empty. Every band steps as in the table of S; released at its own middle,
+every band gives `null`; the card hit at a band's centre with `score`'s
+editor innermost hits that band. The markers band's step down, dispatched
+with `A/score` open, is accepted.
+
+### The selection readers
+
+A band is selected by its address, `<block>/<timeline>/<kind>_1`, as any
+element. `selectedBand(address)` reads one: `selectedBand("A/melody/markers_1")`
+is `{block: A, timeline: melody, kind: markers}`, and it is `null` for
+`A`, `A/melody`, `A/melody/tempo` and `A/melody/start/label`. View: A
+holds `map`.
+
+- `existing(view, selection, editing)` keeps a band while its timeline
+  exists and its timeline's editor is `editing`, the innermost open
+  editor. With the selection `{A/melody/markers_1,
+  A/phrase/conversion_maps_1, A/melody, A/nobody/regions_1}`:
+
+  | `editing` | kept |
+  |---|---|
+  | timeline `A/melody` | `{A/melody/markers_1, A/melody}` |
+  | timeline `A/phrase` | `{A/phrase/conversion_maps_1, A/melody}` |
+  | timeline `A/nobody` | `{A/melody}` (no timeline `nobody`) |
+  | timeline `B/melody` (another block) | `{A/melody}` |
+  | bundle `A` | `{A/melody}` |
+  | none (the arranger) | `{A/melody}` |
+
+  With nothing gone (`{A/melody/markers_1}` in `melody`'s editor) it is
+  the selection itself.
+- `offersBand(view, band, editing)` is that rule for one band
+  (`selectedBand`'s record), and `existing` keeps a band exactly when it
+  holds; the canvas asks it as well, when an editor opens (section "The
+  canvas in an editor", case 10) and before Ctrl/Cmd+Arrow steps a band.
+  So its rows are the table's: of the three band addresses above it is
+  true for `A/melody/markers_1` alone in `melody`'s editor, for
+  `A/phrase/conversion_maps_1` alone in `phrase`'s, and for none in
+  `nobody`'s, in `B/melody`'s, in the bundle editor or on the arranger.
+  A band of a block the view does not hold (`B/melody/markers_1`, in
+  `B/melody`'s editor) is not offered either.
+- **Opening and closing an editor** prune every other band. Through a
+  store holding A: with `A/melody` open and `{A/melody/markers_1,
+  A/melody/tempo}` selected, `existing` under the innermost editor keeps
+  both; opening `A/phrase` inside it leaves `{A/melody/tempo}`; with
+  `{A/phrase/conversion_maps_1}` selected there, Done (back in `melody`'s
+  editor) leaves ∅, and so does Done once more with
+  `{A/melody/markers_1}` selected (back on the arranger).
+- `removeCommand` drops band addresses:
+
+  | selection | result |
+  |---|---|
+  | `{A/melody/markers_1}` | refused: `A band is not deleted; select its elements to delete them.` |
+  | `{A/melody/markers_1, A/phrase/conversion_maps_1}` | refused the same |
+  | `{A/melody/markers_1, A/melody/tempo}` | `{type: "remove", targets: [A/melody/tempo]}` |
+  | `{A/phrase/conversion_maps_1, A/phrase}` | targets `[A/phrase]` |
+  | `{}` | refused: `Nothing is selected.` |
+
+- `affectedBy` (section `affectedBy`): a selected band takes nothing
+  away. On `map`, `{melody/markers_1}` gives ∅,
+  `{phrase/conversion_maps_1, melody/tempo}` ∅ as `{melody/tempo}` does,
+  `{melody/children_1, phrase}` `{melody/ticks}` as `{phrase}` does.
+- `holdingOf` counts a selected band as its timeline's line: on S,
+  `{score/children_1}` marks the block and `score/card`; on M,
+  `{phrase/conversion_maps_1}` the block and `melody/card` (`phrase`'s
+  line is drawn on it); on S, `{a/conversion_maps_1}`, whose timeline's
+  line is not drawn (`a` is hidden), marks nothing.
+- **A marquee never selects a band**: on a node of S (block A at (0, 0),
+  scale 1) a rectangle over the whole drawing, with every drawn address
+  and every band address of `score` given as inside, selects `A/b`,
+  `A/score`, `A/score/ticks`: the drawn elements, in drawing order, and no
+  band, which draws nothing.
+
+The hit, the selection and the hover of a band are case 7 of section
+"Boxes: selection and hover"; that a band opens no editor, and the
+gesture table's `moveBands`, are in section "Editors".
+
 ## Focus: the editor's viewport
 
 `targetBounds(node, target, metrics)` is the canvas rectangle an editor
@@ -1735,8 +2084,11 @@ rectangle of the coordinates its drawing states, a text's from its
 measured width and the font's ascent and descent (`elementBounds`); an
 address drawn more than once is taken only when every drawing of it lies
 in the rectangle. On `mixed` with a region `region_1` (`A`, 0 to 10
-samples) added to `dlt_1` (so addressed `recording/region_1`), at (40,
-80), scale 1:
+samples) added to `excerpt` (so addressed `recording/region_1`, a region
+being addressed by its root) and a map `cmap_3` (SamplesToSeconds at
+44100, as `excerpt`'s own) added to `dlt_1` (so addressed
+`recording/cmap_3`, a map being addressed by its root too), at (40, 80),
+scale 1 (`marqueeView` of `support.ts`):
 
 - The rectangle of `score/card` on the canvas (`{x: 56, y: 133.609375,
   width: 546.484619140625, height: 78.953125}`) with every address inside
@@ -1747,27 +2099,58 @@ samples) added to `dlt_1` (so addressed `recording/region_1`), at (40,
   `A/score/end/label`, `A/score/jump_1/label`: the maps above the line
   and the jump and its label below it, everything drawn on the card, but
   not the card.
-- The region `region_1` lies in the region band below `excerpt`'s line
-  (section 6.4: the regions of every timeline of a member drawing share its
-  root's bands), which starts at `26.9765625 + B = 30.9765625` and is one
-  row, `pr − 4 = 18.4765625`, wide; so `excerpt`'s card is `70.4765625 +
-  49.453125 + 8 = 127.9296875` high (section "Fixture facts", `mixed`),
-  from y 288.3203125 to 416.25, its line at 358.796875. `{x: 40, y: 410,
-  width: 600, height: 86.25}` (drawing y 330 to 416.25, the bottom of
-  `excerpt`'s card) gives `A/recording/cmap_2`, `A/recording/region_1`,
+- The region `region_1` lies in `excerpt`'s regions band below its line
+  (drawing.md section 6.4: the default band order puts the regions band
+  after the markers band, so at level −2), which starts at the markers
+  band's outer edge plus `B`, `26.9765625 + B = 30.9765625`, and is one
+  row, `pr − 4 = 18.4765625`, wide.
+- The map `cmap_3` lies in `dlt_1`'s conversion maps band, which section
+  4's defaults show for every timeline: `dlt_1` has no band order of its
+  own, nor has `excerpt`, so both follow `recording`'s default one, which
+  lists the conversion maps band right before the timeline's id, and the
+  band lies at level 1, against `dlt_1`'s line above it (section 6.4,
+  "above" being up whichever side of its parent's line a child lies on).
+  With `dlt_1`'s stroke width `w = 3` (a child's) and `c = 0`, the map is
+  centred `w / 2 + (g + d) − d / 2 = 1.5 + 5 − 1 = 5.5` above `dlt_1`'s
+  line, at y `341.296875 − 5.5 = 335.796875`, and spans `dlt_1` from x
+  126.29150390625 to 326.29150390625. The band reaches `e = w / 2 + (g +
+  d) = 6.5` above `dlt_1`'s line, and nothing lies below it, so `dlt_1`'s
+  edges are 6.5 above and 0 below. Both are less than half the pitch of
+  its row, `p / 2 = max(14, h(11)) / 2 = 7`, so the row's halves stay 7
+  and 7, `excerpt`'s children band stays 14 wide and its ancestor band
+  starts at 28.5 as in `mixed`: the map moves nothing else.
+- So `excerpt`'s card is `70.4765625 + 49.453125 + 8 = 127.9296875` high
+  (section "Fixture facts", `mixed`), from y 288.3203125 to 416.25, its
+  line at 358.796875. `{x: 40, y: 410, width: 600, height: 86.25}`
+  (drawing y 330 to 416.25, the bottom of `excerpt`'s card) gives
+  `A/recording/cmap_2`, `A/recording/cmap_3`, `A/recording/region_1`,
   `A/excerpt`, `A/dlt_1`, `A/dlt_1/name`, `A/excerpt/name`,
-  `A/recording/region_1/label`: `excerpt`'s map, the region and its label
-  (y 389.7734375 to 408.25), the two lines and their names. `excerpt/start`,
+  `A/recording/region_1/label`: the two maps (drawing.md section 7.2
+  writes the maps one band after another, in the traversal order of the
+  bands' timelines, so `excerpt`'s before its child's), the region and
+  its label (y
+  389.7734375 to 408.25), the two lines and their names. `excerpt/start`,
   `excerpt/end` and their labels are drawn twice, on the ancestor line
   above (its wedges y 308.796875 to 321.796875) as well, and are left
   out; the ancestor line `recording` (y `358.796875 − 35.5 =
   323.296875`) and its name (down to 328.53515625) lie above the
   rectangle, whose top lies above `dlt_1`'s name (from 334.89453125).
 - The same rectangle with the timeline editor's `inside` of `dlt_1`
-  gives `A/recording/region_1`, `A/dlt_1`, `A/dlt_1/name`,
-  `A/recording/region_1/label`: `dlt_1`'s region lies inside it,
-  `excerpt`'s map `recording/cmap_2` does not; with the group editor's of
-  `group_1` nothing.
+  gives `A/recording/cmap_3`, `A/dlt_1`, `A/dlt_1/name`, in that order.
+  This is the positive half: `cmap_3` is addressed under the root
+  `recording`, as `excerpt`'s map is, yet it belongs to `dlt_1`, and core's
+  `contains` decides by what an element belongs to, never by the address's
+  prefix. `excerpt`'s map `recording/cmap_2`, its region and the region's
+  label, its line and its name lie in the rectangle but not inside
+  `dlt_1`: the negative half, addressed under the same root. With the
+  group editor's `inside` of `group_1`, nothing.
+- The region lies on `excerpt`, the root of its member drawing, because a
+  region of `dlt_1` would not be drawn: section 4's defaults hide the
+  regions band of every timeline a band holds, and `dlt_1` lies in
+  `excerpt`'s children band. A map of `dlt_1` is drawn, since the
+  conversion maps band is never hidden by them.
+- A band draws nothing, so no marquee selects one (section "Bands: the
+  boxes of a timeline editor").
 
 ## Gesture commands are accepted (fast-check)
 
@@ -1783,7 +2166,11 @@ and corner stretches included, any delta in ±1000, the command
 stated box requests (a `set` of any item's or member card's `width` and
 `height`, each absent or any multiple of 1/2048 in [1, 2000], so later
 stretches meet requests above, at and below their content) and removals
-produces commands that `apply` accepts.
+produces commands that `apply` accepts. A gesture that changes nothing
+gives no command, as on the canvas: the move, nudge, z-order and resize
+functions return `null` then, and a stated request whose values its
+place already states gives none either; core refuses a `set` that
+changes nothing.
 
 A member's horizontal Stretch at any level but the group editor: for
 `bundle_mixed` at (40, 80) with any stated width of the group and of one
@@ -1802,9 +2189,12 @@ level's editor open, is accepted.
 items (a frame or the ungrouped card) or any member's card (whose
 horizontal stretch is its group's length, and whose extent is the card's
 own), with its width and height requests each absent or the multiple of
-1/2048 at or just above any ratio in [1, 3] of its drawn size, stretched
+1/2048 at or just above any ratio in [1, 3] of its drawn size (with both
+absent, the view as added, which states none), stretched
 from the right handle by any travel in [−200, 400] (or from the bottom
-handle by any travel in [−8, 200]), and each stretch applied:
+handle by any travel in [−8, 200]), and each stretch applied (a stretch
+whose command is `null`, changing no stored value, leaves the view as it
+was):
 
 - (a) **Monotone.** From the same view, two travels `d1 ≤ d2` give
   lengths (spacings) `value(d1) ≤ value(d2)` (`toBeLessThanOrEqual`):
@@ -1889,15 +2279,23 @@ renders, which draws nothing).
 
 1. **Screen equals export, for every drawing fixture.** For each directory
    of the installed `@timetoalign/timeskeleton` package's
-   `fixtures/<SCHEMA_VERSION>/drawings/` (54 cases: 42 drawn from the
-   fixtures directly in `fixtures/<SCHEMA_VERSION>/`, that is 31 fixtures,
-   the ten resized `nested` drawings and `map__child-map-below`, then 9
-   `group__…` and 3 `bundle__…` cases), the drawing is made from its
-   `inputs.json` alone (its manifest fixture, placement and layers, exactly
-   as the writers' fixture test makes it) and its `toDescriptors` are
-   rendered by the node at the case's scale. The node's `<svg>` is in the
-   SVG namespace, its `width` and `height` are the drawing's box times the
-   scale (`String(width * scale)`), its `viewBox` is
+   `fixtures/<SCHEMA_VERSION>/drawings/` (65 cases, counted in the tree:
+   the 36 fixtures directly in `fixtures/<SCHEMA_VERSION>/`, every one
+   there but the five `corpus_…` manifests, 9 `group__…` and 3
+   `bundle__…` cases, and 17 variants of those inputs: the nine resized
+   `nested` drawings, the five `bundle_mixed__…` and `bundle_ungrouped__…`
+   cases with stated places (their cards' included), scale or spacing,
+   and the three cases whose layer displays a band the default layer
+   hides; 28 of the 65 `figure.svg` files are derived by hand, as the
+   table of the drawings' own README lists them, and are never written by
+   the writer, so for them the node is compared with a figure no
+   implementation produced), the drawing is made from its `inputs.json`
+   alone (its manifest fixture, placement and
+   layers, exactly as the writers' fixture test makes it) and its
+   `toDescriptors` are rendered by the node at the case's scale. The
+   node's `<svg>` is in the SVG namespace, its `width` and `height` are
+   the drawing's box times the scale (`String(width * scale)`), its
+   `viewBox` is
    `0 0 <drawing width> <drawing height>`, and its element tree equals the
    element tree of the one `<g>` of the case's `figure.svg` parsed by
    `DOMParser`. So every attribute value the node sets, including path data
@@ -2146,19 +2544,22 @@ it by a gesture.
    outside pans, and that the outside is drawn at opacity 0.3 without
    taking the pointer, needs a browser.
 7. **The marquee selects elements inside the editor.** The view of section
-   "Marquee inside an editor" (`mixed` with `region_1` added to `dlt_1`).
-   Once the editor is open, the viewport is set to `{x: 100, y: 100, zoom:
-   1}` and the pane measured 1000 × 1000 px, so the marquee lies outside
-   Svelte Flow's 40 px edge band and nothing pans while it is drawn. With
-   Shift held, a marquee on the pane between the canvas points (40, 410)
-   and (640, 496.25) (client (140, 510) and (740, 596.25)) selects, in
-   `A/dlt_1`'s timeline editor, exactly `[A/recording/region_1, A/dlt_1,
-   A/dlt_1/name, A/recording/region_1/label]` (in that order): the
-   rectangle of section "Marquee inside an editor", where `excerpt`'s map
-   `recording/cmap_2` also lies, outside `dlt_1`. In `A/group_1`'s group
-   editor it selects nothing (the selection becomes empty). The
-   rectangle's first corner is the canvas point under the press when it
-   was pressed, so a pan during the marquee does not move it.
+   "Marquee inside an editor" (`mixed` with `region_1` added to `excerpt`
+   and `cmap_3` to `dlt_1`). Once the editor is open, the viewport is set
+   to `{x: 100, y: 100, zoom: 1}` and the pane measured 1000 × 1000 px, so
+   the marquee lies outside Svelte Flow's 40 px edge band and nothing pans
+   while it is drawn. With Shift held, a marquee on the pane between the
+   canvas points (40, 410) and (640, 496.25) (client (140, 510) and (740,
+   596.25)) selects, in `A/dlt_1`'s timeline editor, exactly
+   `[A/recording/cmap_3, A/dlt_1, A/dlt_1/name]` (in that order): the
+   rectangle of section "Marquee inside an editor", where `dlt_1`'s own
+   map, addressed under the root `recording`, lies inside `dlt_1`, and
+   `excerpt`'s map `recording/cmap_2`, its region `recording/region_1`
+   with its label, its line and its name lie too, outside `dlt_1`. In
+   `A/group_1`'s group editor it selects nothing (the
+   selection becomes empty). The rectangle's first corner is the canvas
+   point under the press when it was pressed, so a pan during the marquee
+   does not move it.
 8. **A refusal reaches the status line.** In `A/group_1`'s group editor
    with the selection `{A/annotations}`, Delete is refused by the store:
    the status line (`data-testid="hint"`) reads exactly the message of the
@@ -2188,7 +2589,14 @@ it by a gesture.
     opening `A/score` on top with `{A/score/card, A/score/start,
     A/performance}` keeps `{A/score/start}` (the edited timeline's own
     card goes, as does a sibling); opening `A/score` from the arranger
-    with `{A/score, A/score/name}` keeps `{A/score/name}`.
+    with `{A/score, A/score/name}` keeps `{A/score/name}`. A band draws
+    nothing and so is never among the inside addresses, but the timeline
+    editor of its timeline offers it: opening `A/score` from `A/group_1`'s
+    group editor with `{A/score/conversion_maps_1,
+    A/performance/conversion_maps_1, A/score/start}` keeps
+    `{A/score/conversion_maps_1, A/score/start}` (the opened timeline's
+    band stays, another timeline's band goes), as arranger's `existing`
+    keeps them under that editor.
 11. **A level opened while the view is still moving returns to where that
     move was heading.** Here the `matchMedia` stub matches no query, so
     every move of the view takes `FOCUS_DURATION` (1000 ms) of real time.
@@ -2311,17 +2719,20 @@ bare group id `G`) and a timeline's **card** (type `card`, addressed
 `T/card`; when the card's `shadow` is not `none`, its shadow is a second
 `rect` with the same address, written just before the card, section 7.2).
 Every other drawn element (a line, a wedge, a map, a region, a jump, a
-break, a boundary, a name, a label) is an **element**. `boxes.ts` is the
-one place that maps a pointer target to what it hits, decides what a press
-selects and decides what the pointer highlights.
+break, a boundary, a name, a label) is an **element**. A timeline's editor
+adds a fourth kind of box, the **bands** of its timeline, which the drawing
+records and never draws (section "Bands: the boxes of a timeline editor").
+`boxes.ts` is the one place that maps a pointer target to what it hits,
+decides what a press selects and decides what the pointer highlights.
 
 **A hit is classified by the drawing's element types, never by the form of
 an address.** A frame's address `group_1` has the same form as a timeline
 line's `recording` (a bare id), so no rule on the string can tell them
 apart; the drawing's element of type `group` can. `hitOf(block, drawing,
-target, point?)` reads the `data-address` of the target (the element
-itself, or its nearest ancestor carrying one) and returns `{block, kind,
-address, boundary, within}`:
+target, point?, editing?)` reads the `data-address` of the target (the
+element itself, or its nearest ancestor carrying one) and returns `{block,
+kind, address, boundary, within}` (`editing`, the innermost open editor,
+decides only whether a band is hit, case 7):
 
 - `kind`: `"card"` when the drawing holds an element of type `card` with
   that address, `"group"` when it holds one of type `group`, `"element"`
@@ -2361,10 +2772,11 @@ With `editing` `{target: A}` and every address inside, the block's own box
 selects `A`; with `{target: B}` (another block's bundle editor) it selects
 `null`.
 
-`hoverOf(hit)` is `{box, boundary}`, element addresses as the descriptors
-carry them: `box` is `within` (a card or a frame; the block's own box is
-never marked, since the node shows its block), `boundary` the hit's element
-address when `boundary` is true, else `null`.
+`hoverOf(hit)` is `{box, boundary, band}`, element addresses as the
+descriptors carry them: `box` is `within` (a card or a frame; the block's
+own box is never marked, since the node shows its block), `boundary` the
+hit's element address when `boundary` is true, else `null`, and `band` a
+band hit's element address, else `null` (case 7).
 `showsHover(mark, address, hover, inside)` marks a descriptor only when
 `inside` holds its address: with `group_1`'s `inside`, the `"card"`
 descriptor `score/card` under the hover `{box: "score/card"}` is marked,
@@ -2449,11 +2861,11 @@ of the descriptor's tag and `data-address`, built inside an `<svg>` inside a
    `A`; the line `A/recording`; the wedge `polygon recording/start`
    `A/recording/start`; the title `A/group_1/name`. Hover: the line
    `recording` at `(120.61962890625, 139.16015625)` is `{box:
-   "recording/card", boundary: null}`; the frame at `(12, 12)` `{box:
-   "group_1", boundary: null}`; the `<svg>` at `(4, 4)` `{box: null,
-   boundary: null}`. On `segment_line`: the line `b2/start` at
-   `(227.294921875, 36.4765625)` is `{box: "form/card", boundary:
-   "b2/start"}`.
+   "recording/card", boundary: null, band: null}`; the frame at `(12, 12)`
+   `{box: "group_1", boundary: null, band: null}`; the `<svg>` at `(4, 4)`
+   `{box: null, boundary: null, band: null}`. On `segment_line`: the line
+   `b2/start` at `(227.294921875, 36.4765625)` is `{box: "form/card",
+   boundary: "b2/start", band: null}`.
 4. **A selected card elsewhere**: the three values above, through
    `existing`, `removeCommand` and `affectedBy` on a block of
    `group_child_member`; and `click(∅, selectionOf(card hit), false)` is
@@ -2521,7 +2933,9 @@ which a free move in the bundle editor allows, change no answer. So:
 - a selected card marks its frame and the block, not itself;
 - a group's title marks its frame; a selected group marks only the block;
 - the manifest's title marks only the block;
-- an address that is not drawn marks nothing.
+- an address that is not drawn marks nothing;
+- a band, which draws nothing, marks what its timeline's line marks
+  (section "Bands: the boxes of a timeline editor").
 
 `showsContainedSelection(mark, address, holding)` is true for a card's or
 a frame's own `rect` whose address is among the holding boxes. The node
@@ -2542,8 +2956,11 @@ at any block scale and any zoom; this is proven end to end.
    root `recording`, and `page`, drawn `page`, `excerpt`; the root
    `annotations` drawn outside every frame), extended through two `add`s:
    the child `dlt_1` (`samples`, offset 0, length 100) into `excerpt`, and
-   the region `region_1` (name `A`, start 0, end 10) into `dlt_1`,
-   addressed `recording/region_1` (a region is addressed by its root).
+   the region `region_1` (name `A`, start 0, end 10) into `excerpt`,
+   addressed `recording/region_1` (a region is addressed by its root),
+   drawn in `excerpt`'s regions band (a region of `dlt_1` would not be
+   drawn: drawing.md section 4 hides the regions band of a timeline that a
+   band holds).
    `recording` is drawn only as the ancestor line on `excerpt`'s card.
    `BlockNode.svelte` is mounted with the selection as `selectedElements`;
    the expected value is every element inside the `<svg>` carrying
@@ -2556,7 +2973,7 @@ at any block scale and any zoom; this is proven end to end.
    | `score` (a member's line) | `rect group_1`, `rect score/card` |
    | `score/start` (a member's start) | `rect group_1`, `rect score/card` |
    | `dlt_1` (a child's line on `excerpt`'s card) | `rect group_2`, `rect excerpt/card` |
-   | `recording/region_1/label` (a region's label on `dlt_1`) | `rect group_2`, `rect excerpt/card` |
+   | `recording/region_1/label` (a region's label on `excerpt`) | `rect group_2`, `rect excerpt/card` |
    | `excerpt` (a member that is a child) | `rect group_2`, `rect excerpt/card` |
    | `recording` (the ancestor line on `excerpt`'s card) | `rect group_2`, `rect excerpt/card` |
    | `page/card` (a member's card) | `rect group_2` |
@@ -2664,6 +3081,65 @@ at any block scale and any zoom; this is proven end to end.
    each one, would mark `recording/card` and `group_1` in the second row
    too.
 
+7. **Bands** (`boxes.test.ts`, on the drawings S and M of section "Bands:
+   the boxes of a timeline editor", block A). Which timeline's bands a
+   block offers is one rule, `bandTimelineOf(block, editing)`, which the
+   hit, the marks, the drag and the keys share: the edited timeline when
+   `editing`, the innermost open editor, is a timeline editor in this
+   block, else `null`. For block A it is `score` with `{target: A/score,
+   kind: timeline}` and `phrase` with `{target: A/phrase, kind:
+   timeline}`, and `null` with the bundle editor `{target: A, kind:
+   bundle}`, the group editor `{target: A/group_1, kind: group}`, another
+   block's timeline editor `{target: B/score, kind: timeline}`, and no
+   editor. A band is hit only in the
+   timeline editor of its timeline, when that editor is `editing`, the
+   innermost open editor, in this block, and only with a point: where the
+   target is a box (a card, a frame, the block's own) or nothing, the band
+   of the edited timeline whose rectangle holds the point (`bandAt`) is
+   hit, `{kind: "band", address: <block>/<band address>, boundary: false,
+   within, band}`, `within` as for any hit and `band` the band's record in
+   `Drawing.bands`, the very one `bandAt` found (a timeline drawn with two
+   lines has a record at each, under one address, so the address alone
+   could not name it); every other hit has `band: null`. The band drag
+   reads its band from this record and asks nothing else. A drawn element
+   is always hit before a band. With `score`'s editor (`{target: A/score,
+   kind: timeline}`) on S:
+   - **an empty band area hits the band**: the card `rect score/card` at
+     (150, 55) is `{block: A, kind: "band", address:
+     "A/score/children_1", boundary: false, within: "score/card", band}`,
+     `band` S's record of `score/children_1`; the `<svg>` at (150, 124)
+     the regions band `A/score/regions_1`, and the background `rect` (no
+     address) at (150, 149) the flow control band
+     `A/score/flow_control_1`, both within `score/card` and each with its
+     record;
+   - **a drawn element inside the band hits the element**: `line b` at
+     (350, 55), inside the children band, is the element `A/b` (`band:
+     null`); `line score` at (150, 100), which two bands hold, the element
+     `A/score`;
+   - the card in a gap between bands, (150, 75), is the card
+     `A/score/card`; so is the card at (150, 55) without a point (`within`
+     `null`, `band` `null`).
+   - **another timeline's band hits nothing**: in `b`'s editor the card at
+     (150, 55), in `score`'s children band, is the card. On M, in
+     `phrase`'s editor, the card at (150, 78), in `melody`'s markers band,
+     and at (150, 18), in `melody`'s children band beside `phrase`'s
+     band, is the card `A/melody/card`, and at (300, 25) the band
+     `A/phrase/conversion_maps_1`; in `melody`'s editor (300, 25) is
+     `melody`'s children band `A/melody/children_1`, which holds the point
+     (`phrase`'s band lies inside it, and is `phrase`'s).
+   - **a bundle or group editor hits no band**: the card at (150, 55) is
+     the card with `editing` the bundle editor `{target: A}`, the group
+     editor `{target: A/group_1}`, the timeline editor of another block
+     `{target: B/score}`, and with no editor.
+   - **an absent band hits nothing**: on M, in `melody`'s editor, the card
+     at (150, 95), below the markers band where an absent regions band
+     would lie, is the card.
+
+   The band hit at (150, 55) selects `A/score/children_1` (`selectionOf`
+   with `score`'s editor and no `inside`: a band is never among the drawn
+   addresses), and its hover is `{box: "score/card", boundary: null, band:
+   "score/children_1"}`.
+
 That the client position is converted under zoom and scale, that a press on
 a card or a frame selects it, that a card and its frame holding the
 selection are drawn dashed and the block dotted, with those widths, and
@@ -2673,8 +3149,8 @@ end to end by the Playwright suite.
 
 ## Drags inside a drawing, `slide`, and the resize toolbar's modes
 
-Moving an item and reordering a group's member cards happen inside a
-block's drawing, an SVG whose user units are drawing units shown at the
+Moving an item, reordering a group's member cards and moving a band
+happen inside a block's drawing, an SVG whose user units are drawing units shown at the
 block's scale times the canvas zoom. What would prove these work is that
 an item move's screen-pixel travel becomes exactly the travel divided by
 the canvas zoom and the block's scale, read at the press, and never by the
@@ -2801,6 +3277,26 @@ tell them apart:
    `css`. `drawingMatrix` of the `rect` is its `<svg>`'s CTM, and of an
    `<svg>` its own.
 
+10. **A band drag takes only the presses it accepts, and marks the
+    `<svg>` only while it holds one.** A band draws nothing, so
+    `bandDrag` is attached to the `<svg>` itself, which is given the
+    recorded pointer capture. Its `takes` records each call and accepts a
+    press whose drawing `y` is less than 50; its `order`, `preview`,
+    `command` and `dispatch` are the member drag's of case 6. Attached, the
+    `<svg>` has no class. A press on the `rect` at (30, 130) (drawing (10,
+    55)) calls `takes` once, with that press (its target the `rect`) and
+    the point (10, 55), and is refused: the `<svg>` has no class, nothing
+    is captured, and a move to (30, 150) and the release there call
+    nothing. A press at (30, 110) (drawing (10, 45)) is taken: from the
+    press on, the `<svg>`'s classes are `nodrag nopan` and it holds pointer
+    1; the moves to (30, 116) and (30, 122) and the release there make
+    case 6's calls (preview `[score, performance]`, preview `[performance,
+    score]`, command `[performance, score]`, dispatch, preview `null`), and
+    after the release the `<svg>` has no class and has let pointer 1 go.
+    Svelte Flow reads a press's `nopan` on the `mousedown` or `touchstart`
+    that follows the `pointerdown`, so marking at the press is in time; that
+    the canvas then pans from every other press needs a browser.
+
 **The resize toolbar's modes** (`resizeModes(level, kind)` in
 `gestures.test.ts`), read from `RESIZING`: all three, Scale, Box and
 Stretch, for every kind at every level where it resizes, and none
@@ -2864,7 +3360,8 @@ element survives a reorder, and that a drag simulated on a mounted node
 ends in exactly the calls the editor's command functions predict, with
 nothing but those calls reaching the canvas. The canvas's side of an edit
 is the `NodeActions` context (`nodeActions.ts`: `dispatch`, `select`,
-`preview`, `metrics`, `view`, `reducedMotion`), which the canvas sets. Here
+`preview`, `metrics`, `view`, `zoom`, `reducedMotion`, `locked`), which
+the canvas sets. Here
 `NodeHarness.svelte` sets it, with actions that record every call, and
 mounts the node. The other component tests mount the node through the same
 harness with actions that do nothing.
@@ -3025,6 +3522,167 @@ jump `jump_1`, has 15 elements, and `performance`, with the map `cmap_1`,
    The drop's own redraw slides too (it is still part of the reorder), and
    the redraw after it does not; jsdom cannot tell those two apart from
    the preview's, so they are seen in the browser.
+
+## Bands in the timeline editor: the marks, the drag and the keys
+
+A band draws nothing (drawing.md section 6.4): the drawing records it
+(`Drawing.bands`) and the timeline editor of its timeline offers it.
+`BlockNode.svelte` marks the offered bands that are hovered or selected and
+moves them by drag; `Canvas.svelte` selects them by click and steps them by
+Ctrl/Cmd+ArrowUp and ArrowDown. What proves this is that a mark is drawn
+exactly for an offered band under the pointer or in the selection, at its
+record's rectangle, and nowhere else; that a drag ends in exactly the calls
+the band order rules predict for the drawing at the press, while a click,
+a release in place, Escape, a locked canvas, Shift or an element over the
+band end in none; and that the keys reach the store with exactly the order
+those rules give. Every order below is derived from the rules of
+`bands.ts` (the section on `bands.ts`), never read from a run: the visible entries of a timeline are its present bands
+and its own id, top to bottom, a band at the middle of its rectangle and
+the id at its line; a dropped band moves to just after the last visible
+entry above the drop, or before the first, and a band already between
+those two neighbours stays (no command); a step passes the next visible
+entry, the line included; an order equal to the inherited one is written
+as `null`.
+
+**Stated records** (`block-node.test.ts`). The node's data is `project`'s
+for the view of "The block node in the editors" (A holds `bundle_mixed` at
+(40, 80)), its drawing's `bands` replaced by three records of `score`, so
+the rectangles are stated here rather than derived from layout, whose own
+tests pin the records. Every record has `timeline: score`, `line: 100`, `x:
+16` and `width: 540`:
+
+| address | kind | level | elements | `y` | `height` | middle |
+|---|---|---|---|---|---|---|
+| `score/conversion_maps_1` | `conversion_maps` | 1 | 2 | 60 | 30 | 75 |
+| `score/markers_1` | `markers` | −1 | 2 | 104 | 12 | 110 |
+| `score/flow_control_1` | `flow_control` | −2 | 1 | 120 | 8 | 124 |
+
+`score` is a root with no entry of its own in `graphical.order` (which
+holds `group_1: [score, performance]` and `group_2: [page, excerpt]`), so
+its band order is the default, `D = [score/children_1,
+score/conversion_maps_1, score, score/markers_1, score/regions_1,
+score/flow_control_1]`, and its visible entries are, top to bottom, the
+conversion maps band (75), the line (100), the markers band (110) and the
+flow control band (124). The `<svg>` is given the identity screen CTM, the
+recorded pointer capture, and the client rectangle at (0, 0) of the
+drawing's own width and height, so a client point is a drawing point.
+Pointer events are dispatched on `score`'s card (its second `rect
+score/card`): a box, so the band under the point is hit. The canvas is not
+locked (`NodeActions.locked()` false) unless a case says otherwise.
+
+1. **The marks.** In `A/score`'s timeline editor:
+   - a `pointermove` with no button held at (200, 110) draws exactly one
+     `rect.tilie-band`, the `<svg>`'s last child, after every descriptor
+     and every holding mark: `data-band="score/markers_1"`,
+     `data-mark="hover"`, `x="16"`, `y="104"`, `width="540"`,
+     `height="12"`, `rx="5"` (a card's corner radius in the default
+     styling, drawing.md section 4's `{"element": "card"}` statement, which
+     the mark reads from layout's default layer through its cascade rather
+     than restating), `aria-hidden="true"`; it carries no `data-address`, so it is
+     never hit, and no `data-selected` or `data-hovered`, which name drawn
+     elements;
+   - with `A/score/markers_1` selected and nothing hovered, one mark with
+     the same rectangle and `data-mark="selection"`, right after the
+     holding marks: a selected band counts as its timeline's line drawn in
+     the block (section "Boxes"), which marks the block, `group_1`'s frame
+     and `score`'s card, in that order (`data-box` `block`, `group`,
+     `card`);
+   - selected and hovered at (200, 110), still one mark, `selection`: a
+     band both hovered and selected shows the selection's mark;
+   - selected, and hovered at (200, 75): two marks in the records' order,
+     `score/conversion_maps_1` `hover` (`y="60"`, `height="30"`), then
+     `score/markers_1` `selection`; a `pointerleave` then leaves only the
+     selection's.
+2. **A drag stores one `set`.** A press at (200, 110), a move to (200,
+   113) (3 px, a click still), a move to (200, 90) and the release there.
+   At 90 the visible entries without the markers band are the conversion
+   maps band (75), the line (100) and the flow control band (124); one
+   lies above 90, so the band moves to just after
+   `score/conversion_maps_1`: `M = [score/children_1,
+   score/conversion_maps_1, score/markers_1, score, score/regions_1,
+   score/flow_control_1]`, which is not the default `score` inherits. The
+   calls are exactly, in order:
+   - `select("A/score/markers_1")`: the press that became a drag selects
+     the band;
+   - `preview("A", {manifest})`, the manifest's `graphical.order` being
+     `{group_1: [score, performance], group_2: [page, excerpt], score: M}`;
+   - `dispatch({type: "set", changes: [{target: "A/score", values: {order:
+     M}}]})`;
+   - `preview("A", null)`.
+
+   From the press to the release the `<svg>`'s classes include `nodrag`
+   and `nopan`; after it, neither. Nothing else changes the selection, so
+   the band stays selected.
+3. **The drop is read against the drawing at the press.** After the move
+   to (200, 90), the node is redrawn as the canvas draws the preview,
+   with the records the preview could show: the conversion maps band at
+   `y` 60 (middle 75), the markers band at `y` 86 and 10 high (middle 91),
+   the flow control band at `y` 104 and 8 high (middle 108). A move to
+   (200, 112) then reads the drawing at the press: the line (100) and the
+   conversion maps band lie above, the flow control band (124) below, so
+   the markers band lies between its neighbours and the drop is in place;
+   the third call is `preview("A", {manifest})` with `graphical.order`
+   `{group_1: [score, performance], group_2: [page, excerpt]}`, as stored.
+   Read against the redrawn records, three entries would lie above 112
+   and the order would end with the markers band.
+4. **No command without a move.** A press at (200, 110), a move to (202,
+   112) (√8 px) and the release there make no call. A press, a move to
+   (200, 90) and a move back to (200, 112) (in place, as in case 3) and
+   the release there make exactly `select`, the preview of `M`, the
+   preview of the stored order and `preview("A", null)`: a release in
+   place never writes. A press, a move to (200, 90) and Escape (a
+   `keydown` on the window) make exactly `select`, the preview of `M` and
+   `preview("A", null)`; the release after it calls nothing.
+5. **Where no band drag starts.** A press at (200, 110), a move to (200,
+   90) and the release there make no call, and the `<svg>` carries
+   neither `nodrag` nor `nopan` at any point:
+   - in `A/score`'s timeline editor on a locked canvas (`locked()` true):
+     in the browser Svelte Flow pans from a press not marked `nopan`;
+   - there with Shift held, which starts a marquee over the edited block;
+   - there pressed on `polygon score/start`, the start wedge, an element
+     drawn over the band: an element is hit before a band;
+   - on the arranger and in A's bundle editor, pressed on `score`'s card
+     (no item there carries a drag); in `A/group_1`'s group editor,
+     pressed on the frame `rect group_1` (only member cards carry the
+     member drag); in `A/performance`'s timeline editor, pressed on
+     `score`'s card. In each of these four, with `A/score/markers_1`
+     selected and a `pointermove` at (200, 110), no `rect.tilie-band` is
+     drawn: a band is marked only in its own timeline's editor.
+
+**The canvas** (`canvas-editors.test.ts`, the setup of "The canvas in an
+editor", the view `mixed`, the drawing as layout draws it). Which of
+`score`'s bands are present follows from its content alone: its conversion
+maps band holds `cmap_1` and `cmap_2`, its markers band its start and end
+wedges, its flow control band `jump_1`; it has no child and no region, so
+its children and regions bands are absent. In the default order its
+visible entries are, top to bottom, `score/conversion_maps_1`, `score`,
+`score/markers_1` and `score/flow_control_1`. A's `<svg>` is measured at
+client (0, 0) with the drawing's own size; a band's point is the middle of
+its record in `drawingOf(block, settings, metrics).bands`, where the
+records lie being layout's to derive and pin. `A/score`'s timeline editor
+is opened through `store.open`.
+
+6. **A click selects the band, which opens nothing.** A click on `rect
+   score/card` at the middle of `score/markers_1`'s record selects
+   exactly `{A/score/markers_1}`. Enter then leaves the path `[A/score]`,
+   and so does a `dblclick` at the same point: a band opens no editor and
+   is no outside, so it does not close one either. With the selection
+   emptied and the canvas locked (the key `l`), the same click again
+   selects exactly `{A/score/markers_1}`: a locked canvas moves nothing,
+   but a band is still hit and selected.
+7. **Ctrl/Cmd+ArrowUp and ArrowDown step the selected band.** With
+   `{A/score/markers_1}` selected, Ctrl+ArrowUp is consumed (its default
+   prevented) and stores one entry in the session (`store.entries` grows
+   to 1): the markers band passes the line, so `score`'s
+   `graphical.order` entry is `M` (case 2). Cmd+ArrowDown (`metaKey`)
+   then passes the line again: the order is `D`, which `score` inherits,
+   so the entry is deleted (`graphical.order` has no `score` key), a
+   second entry. The selection stays `{A/score/markers_1}`. Consumed and
+   storing nothing (`store.entries` unchanged): Ctrl+ArrowUp with
+   `{A/score/conversion_maps_1}` (the top: no visible entry lies above
+   it); with `{A/score/markers_1, A/score/flow_control_1}` (two bands);
+   and with `{A/score/markers_1}` on a locked canvas (the key `l` locks
+   it). Not consumed: Ctrl+ArrowUp with `{A/score/name}`, no band.
 
 ## The store as Svelte state
 

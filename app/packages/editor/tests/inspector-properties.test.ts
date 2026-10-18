@@ -13,9 +13,9 @@ import { createStore, isLoadError, readWorkspace } from "@timetoalign/tilie-core
 import type { Drawing } from "@timetoalign/tilie-layout";
 import { fontMetrics } from "@timetoalign/timeskeleton";
 import { flushSync, mount, unmount } from "svelte";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import Inspector from "../src/inspector/Inspector.svelte";
-import type { Geometry } from "../src/inspector/properties.ts";
+import type { Geometry, Property } from "../src/inspector/properties.ts";
 import {
   commonValue,
   FIELDS,
@@ -97,6 +97,7 @@ function geometryAt(store: Store, level: Level, ...elements: string[]): Geometry
 
 function changes(result: ReturnType<typeof propertyCommand>): unknown {
   if (!result.ok) throw new Error(result.problems[0]?.message);
+  if (result.value === null) throw new Error("no command");
   return result.value.changes;
 }
 
@@ -222,7 +223,9 @@ describe("the commands", () => {
       G2,
       AN,
     ]);
-    expect(changes(propertyCommand(card, "width", ""))).toEqual([
+    expect(propertyCommand(card, "width", "")).toEqual({ ok: true, value: null });
+    dispatch(store, `${M}/score`, { place: { width: 650 } });
+    expect(changes(propertyCommand(geometry(store, "score/card"), "width", ""))).toEqual([
       { target: `${M}/score`, values: { place: { width: null } } },
       G2,
       AN,
@@ -286,6 +289,37 @@ describe("the commands", () => {
     ]);
     expect(commonValue(frames, "length")).toBe(undefined);
     expect(commonValue(geometry(storeOf(), "group_1", "group_2"), "length")).toBe(400);
+  });
+
+  it("gives no command for a value every element stores already", () => {
+    const store = storeOf();
+    const none = { ok: true, value: null };
+    const block = geometry(store, "");
+    const unchanged: [Property, string][] = [
+      ["length", "400"],
+      ["length", "400.0"],
+      ["spacing", "1"],
+      ["x", "0"],
+      ["width", ""],
+    ];
+    expect(unchanged.map(([property, input]) => propertyCommand(block, property, input))).toEqual(
+      unchanged.map(() => none),
+    );
+    expect(propertyCommand(geometry(store, "score/card"), "width", "")).toEqual(none);
+    expect(propertyCommand(geometryAt(store, "timeline", "score/card"), "width", "")).toEqual(none);
+    expect(
+      changes(propertyCommand(geometry(store, "score/card"), "width", "546.484619140625")),
+    ).toEqual([{ target: `${M}/score`, values: { place: { width: 546.484619140625 } } }, G2, AN]);
+    dispatch(store, `${M}/group_1`, { place: { length: 300 } });
+    expect(propertyCommand(geometry(store, "group_1"), "length", "300")).toEqual(none);
+    expect(propertyCommand(geometry(store, "score/card"), "length", "300")).toEqual(none);
+    expect(
+      changes(propertyCommand(geometry(store, "group_1", "group_2"), "length", "300")),
+    ).toEqual([
+      { target: `${M}/group_1`, values: { place: { length: 300 } } },
+      { target: `${M}/group_2`, values: { place: { length: 300 } } },
+      AN,
+    ]);
   });
 
   it("follows the gestures' rule of each level", () => {
@@ -490,10 +524,15 @@ describe("the Properties form", () => {
     return panel().querySelector(`input[name="${name}"]`) as HTMLInputElement;
   }
 
+  /**
+   * Type `value` into the field `name`, then press Enter; the page updates
+   * between the two events, as a browser's does.
+   */
   function enter(name: string, value: string): void {
     const input = field(name);
     input.value = value;
     input.dispatchEvent(new Event("input", { bubbles: true }));
+    flushSync();
     input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
     flushSync();
   }
@@ -529,6 +568,37 @@ describe("the Properties form", () => {
     });
     expect(store.view.blocks[M]?.spacing).toBe(1);
     expect(field("spacing").value).toBe("1.5");
+  });
+
+  it("commits an unchanged field by dispatching nothing and showing nothing", () => {
+    /** The problems shown: every problem text and every field marked invalid. */
+    const shown = () => panel().querySelectorAll('.problem, [aria-invalid="true"]').length;
+    const frames = storeOf();
+    const framesDispatch = vi.spyOn(frames, "dispatch");
+    show(frames, ["group_1"]);
+    const entries = frames.journal.length;
+    enter("length", "300");
+    expect([framesDispatch.mock.calls.length, frames.journal.length]).toEqual([1, entries + 1]);
+    for (const input of ["300", "300.0"]) {
+      enter("length", input);
+      expect([framesDispatch.mock.calls.length, frames.journal.length]).toEqual([1, entries + 1]);
+    }
+    expect([field("length").value, shown()]).toEqual(["300", 0]);
+    clear();
+
+    const block = storeOf();
+    const blockDispatch = vi.spyOn(block, "dispatch");
+    show(block, [""]);
+    const before = block.journal.length;
+    enter("scale", "0");
+    expect(blockDispatch).toHaveBeenCalledTimes(1);
+    expect(document.getElementById("property-problem-scale")).not.toBe(null);
+    enter("scale", "1");
+    expect([blockDispatch.mock.calls.length, block.journal.length]).toEqual([1, before]);
+    expect([field("scale").value, shown()]).toEqual(["1", 0]);
+    enter("width", "");
+    expect([blockDispatch.mock.calls.length, block.journal.length]).toEqual([1, before]);
+    expect([field("width").value, shown()]).toEqual(["", 0]);
   });
 
   it("edits a member's card: its group's scale, its own size", () => {

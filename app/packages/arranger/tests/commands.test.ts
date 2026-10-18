@@ -278,7 +278,7 @@ describe("addCommand", () => {
   it("is accepted by apply, giving the block the workspace's defaults", () => {
     const after = changed(view, addCommand(view, C, bare, visible));
     const block = blockIn(after, C);
-    const { scale, length, spacing, width, height, order } = view.settings.blockDefaults;
+    const { scale, length, spacing, width, height } = view.settings.blockDefaults;
     expect([block.x, block.y, block.scale, block.length, block.spacing]).toEqual([
       200,
       128,
@@ -286,7 +286,7 @@ describe("addCommand", () => {
       length,
       spacing,
     ]);
-    expect([block.width, block.height, block.order]).toEqual([width, height, order]);
+    expect([block.width, block.height]).toEqual([width, height]);
     expect(block.manifest).toEqual(bare);
     expect(block.index > blockIn(after, A).index).toBe(true);
   });

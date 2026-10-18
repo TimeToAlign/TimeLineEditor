@@ -1,8 +1,17 @@
 import { dumps } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
-import type { Block, View } from "../src/index.ts";
-import { apply, checkWorkspace, createView, memberDrawings } from "../src/index.ts";
-import { block, changed, deepFreeze, load, loadText, manifestValue, refusal } from "./support.ts";
+import type { Block, Manifest, View } from "../src/index.ts";
+import { apply, checkWorkspace, createStore, createView, memberDrawings } from "../src/index.ts";
+import {
+  block,
+  changed,
+  deepFreeze,
+  load,
+  loadText,
+  manifestValue,
+  refusal,
+  testClock,
+} from "./support.ts";
 
 const ID = "bundle0001";
 const BUNDLE = "bundles/bundle_mixed.json";
@@ -36,9 +45,42 @@ function refused(view: View, command: object) {
   return { ...refusal(result), message: (result as { message: string }).message };
 }
 
-const FLOW_FIRST = ["flow", "regions", "children"];
+/** The default band order of the timeline `id`. */
+const defaultOrder = (id: string) => [
+  `${id}/children_1`,
+  `${id}/conversion_maps_1`,
+  id,
+  `${id}/markers_1`,
+  `${id}/regions_1`,
+  `${id}/flow_control_1`,
+];
 
-describe("places, band orders and display orders, accepted", () => {
+/** The root `recording`'s markers band at the top, its conversion maps band below its line. */
+const R = [
+  "recording/markers_1",
+  "recording/children_1",
+  "recording",
+  "recording/conversion_maps_1",
+  "recording/regions_1",
+  "recording/flow_control_1",
+];
+
+/** Every band of the child `excerpt` below its line. */
+const E = [
+  "excerpt",
+  "excerpt/children_1",
+  "excerpt/conversion_maps_1",
+  "excerpt/markers_1",
+  "excerpt/regions_1",
+  "excerpt/flow_control_1",
+];
+
+/** The display orders `bundle_mixed.json` states. */
+const DISPLAY = { group_1: ["score", "performance"], group_2: ["page", "excerpt"] };
+
+const orderOf = (view: View) => block(view, ID).manifest.graphical?.order;
+
+describe("places, display orders and band orders, accepted", () => {
   it("merges a place, unstates with null and deletes an emptied place", () => {
     const start = mixed();
     const one = after(start, set("group_1", { place: { length: 300 } }));
@@ -97,12 +139,10 @@ describe("places, band orders and display orders, accepted", () => {
   it("writes a group's display order, and null deletes it", () => {
     const start = mixed();
     const swapped = after(start, set("group_1", { order: ["performance", "score"] }));
-    expect(block(swapped, ID).manifest.graphical?.order).toEqual({
+    expect(orderOf(swapped)).toEqual({
       group_1: ["performance", "score"],
       group_2: ["page", "excerpt"],
     });
-    const same = after(start, set("group_1", { order: ["score", "performance"] }));
-    expect(block(same, ID).manifest.graphical?.order?.group_1).toEqual(["score", "performance"]);
     const deleted = after(start, set("group_1", { order: null }));
     const { manifest } = block(deleted, ID);
     expect(manifest.graphical?.order).toEqual({ group_2: ["page", "excerpt"] });
@@ -110,27 +150,81 @@ describe("places, band orders and display orders, accepted", () => {
     expect(frame?.members.map((member) => member.timeline.id)).toEqual(["performance", "score"]);
   });
 
-  it("sets and deletes band orders of a child, a root and a group", () => {
-    const view = after(
-      mixed(),
-      set("excerpt", { band_order: FLOW_FIRST }),
-      set("annotations", { band_order: ["regions", "children", "flow"] }),
-      set("group_2", { band_order: ["regions", "flow", "children"] }),
+  it("writes a root's and a child's band order, and null deletes each", () => {
+    const start = mixed();
+    const root = after(start, set("recording", { order: R }));
+    expect(orderOf(root)).toEqual({ ...DISPLAY, recording: R });
+    const manifest = block(start, ID).manifest;
+    expect(block(root, ID)).toEqual({
+      ...block(start, ID),
+      manifest: {
+        ...manifest,
+        graphical: { ...manifest.graphical, order: { ...DISPLAY, recording: R } },
+      },
+    });
+    const child = after(root, set("excerpt", { order: E }));
+    expect(orderOf(child)).toEqual({ ...DISPLAY, recording: R, excerpt: E });
+    const parentDeleted = after(child, set("recording", { order: null }));
+    expect(orderOf(parentDeleted)).toEqual({ ...DISPLAY, excerpt: E });
+    const childDeleted = after(parentDeleted, set("excerpt", { order: null }));
+    expect(orderOf(childDeleted)).toEqual(DISPLAY);
+  });
+
+  it("stores a band order equal to what the timeline inherits as an entry", () => {
+    const view = after(mixed(), set("annotations", { order: defaultOrder("annotations") }));
+    expect(orderOf(view)).toEqual({ ...DISPLAY, annotations: defaultOrder("annotations") });
+  });
+
+  it("writes a display order and a band order in one set", () => {
+    const view = after(mixed(), {
+      type: "set",
+      changes: [
+        { target: `${ID}/group_1`, values: { order: ["performance", "score"] } },
+        { target: `${ID}/recording`, values: { order: R } },
+      ],
+    });
+    expect(orderOf(view)).toEqual({
+      group_1: ["performance", "score"],
+      group_2: ["page", "excerpt"],
+      recording: R,
+    });
+    const stated = after(mixed(), {
+      type: "set",
+      changes: [
+        { target: `${ID}/group_1`, values: { order: DISPLAY.group_1 } },
+        { target: `${ID}/recording`, values: { order: R } },
+      ],
+    });
+    expect(orderOf(stated)).toEqual({ ...DISPLAY, recording: R });
+  });
+
+  it("journals a band order as one entry and undoes it in one step", () => {
+    const store = createStore(
+      { view: createView(), journal: [], sessions: {} },
+      { clock: testClock() },
     );
-    expect(block(view, ID).bands).toEqual({
-      excerpt: FLOW_FIRST,
-      annotations: ["regions", "children", "flow"],
-      group_2: ["regions", "flow", "children"],
-    });
-    const deleted = after(view, set("annotations", { band_order: null }));
-    expect(block(deleted, ID).bands).toEqual({
-      excerpt: FLOW_FIRST,
-      group_2: ["regions", "flow", "children"],
-    });
+    const add = {
+      type: "add",
+      into: "workspace",
+      block: { id: ID, manifest: load(BUNDLE), x: 0, y: 0 },
+    };
+    expect(store.dispatch(add)).toBeNull();
+    const before = store.view;
+    const command = set("excerpt", { order: E });
+    expect(store.dispatch(command)).toBeNull();
+    const done = store.view;
+    expect(store.journal.slice(1)).toEqual([
+      { command, author: "Gerhardt", time: "2026-10-11T14:03:13.418Z" },
+    ]);
+    store.undo();
+    expect(store.view).toBe(before);
+    store.redo();
+    expect(store.view).toBe(done);
+    expect(orderOf(done)?.excerpt).toEqual(E);
   });
 });
 
-describe("places, band orders and display orders, refused", () => {
+describe("places, display orders and band orders, refused", () => {
   const view = mixed();
 
   it("refuses a place for what is neither an item nor a member", () => {
@@ -212,18 +306,95 @@ describe("places, band orders and display orders, refused", () => {
     });
   });
 
-  it("refuses a band order that is none", () => {
-    expect(refusal(apply(view, set("excerpt", { band_order: ["flow"] })))).toEqual({
+  const without = (order: readonly string[], ...gone: string[]) =>
+    order.filter((entry) => !gone.includes(entry));
+
+  it.each([
+    [
+      E.map((entry) => (entry === "excerpt/flow_control_1" ? "recording/flow_control_1" : entry)),
+      '"recording/flow_control_1" is not "excerpt" or one of its bands',
+    ],
+    [
+      without(E, "excerpt/regions_1"),
+      '"excerpt/regions_1" is missing from the band order of "excerpt"',
+    ],
+    [without(E, "excerpt"), '"excerpt" is missing from the band order of "excerpt"'],
+    [
+      without(E, "excerpt/markers_1", "excerpt/children_1"),
+      '"excerpt/children_1" is missing from the band order of "excerpt"',
+    ],
+    [[...E, "excerpt/regions_2"], '"excerpt/regions_2" is not "excerpt" or one of its bands'],
+    [["score", "performance"], '"score" is not "excerpt" or one of its bands'],
+    [[...E, "excerpt"], '"excerpt" is repeated in the band order of "excerpt"'],
+    ["excerpt", 'the band order of "excerpt" is not an array of strings'],
+    [[1, 2], 'the band order of "excerpt" is not an array of strings'],
+  ])("refuses the band order %j of a child", (order, message) => {
+    expect(refused(view, set("excerpt", { order }))).toEqual({
       code: "invalid_order",
-      path: [`${ID}/excerpt`, "band_order"],
+      path: [`${ID}/excerpt`, "order"],
+      message,
     });
+  });
+
+  it("refuses a root's band order without its own id", () => {
+    expect(refused(view, set("recording", { order: without(R, "recording") }))).toEqual({
+      code: "invalid_order",
+      path: [`${ID}/recording`, "order"],
+      message: '"recording" is missing from the band order of "recording"',
+    });
+  });
+
+  it("refuses a place or an order that changes nothing", () => {
+    const sized = after(view, set("score", { place: { width: 650 } }));
+    const ordered = after(view, set("excerpt", { order: E }));
+    const deleted = after(view, set("group_1", { order: null }));
+    const bare = mixed({}, "map.json");
+    expect(block(bare, ID).manifest.graphical).toBeUndefined();
+    const cases: [View, string, object][] = [
+      [view, "annotations", { place: { x: null } }],
+      [sized, "score", { place: { width: 650 } }],
+      [view, "group_1", { order: DISPLAY.group_1 }],
+      [ordered, "excerpt", { order: E }],
+      [view, "recording", { order: null }],
+      [view, "excerpt", { order: null }],
+      [deleted, "group_1", { order: null }],
+      [bare, "melody", { order: null }],
+      [bare, "phrase", { order: null }],
+    ];
+    expect(cases.map(([start, id, values]) => refused(start, set(id, values)))).toEqual(
+      cases.map(([, id, values]) => ({
+        code: "invalid_value",
+        path: [`${ID}/${id}`, Object.keys(values)[0]],
+        message: "the command changes nothing",
+      })),
+    );
+  });
+
+  it("journals nothing for a set that changes nothing", () => {
+    const store = createStore(
+      { view: createView(), journal: [], sessions: {} },
+      { clock: testClock() },
+    );
+    const add = {
+      type: "add",
+      into: "workspace",
+      block: { id: ID, manifest: load("map.json"), x: 0, y: 0 },
+    };
+    expect(store.dispatch(add)).toBeNull();
+    const before = store.view;
+    expect(store.dispatch(set("phrase", { order: null }))).toEqual({
+      code: "invalid_value",
+      message: "the command changes nothing",
+      path: [`${ID}/phrase`, "order"],
+    });
+    expect(store.view).toBe(before);
+    expect(store.journal).toHaveLength(1);
   });
 
   it("refuses each property on a target of another kind", () => {
     const cases: [string, string][] = [
       ["", "place"],
-      ["", "band_order"],
-      ["annotations", "order"],
+      ["", "order"],
       ["group_1", "locked"],
     ];
     expect(
@@ -238,18 +409,15 @@ describe("places, band orders and display orders, refused", () => {
 });
 
 describe("pruning stale keys", () => {
-  it("drops a removed group's keys and keeps a timeline's", () => {
+  it("drops a removed group's keys and keeps a member's card", () => {
     const view = after(
       mixed(),
-      set("group_2", { place: { x: 10 }, band_order: ["regions", "flow", "children"] }),
-      set("excerpt", { band_order: FLOW_FIRST, place: { width: 650 } }),
+      set("group_2", { place: { x: 10 } }),
+      set("excerpt", { place: { width: 650 } }),
       set("page", { place: { width: 650 } }),
       { type: "remove", targets: [`${ID}/group_2`] },
     );
-    expect([block(view, ID).places, block(view, ID).bands]).toEqual([
-      { page: { width: 650 } },
-      { excerpt: FLOW_FIRST },
-    ]);
+    expect(block(view, ID).places).toEqual({ page: { width: 650 } });
     const placed = after(view, set("recording", { place: { x: 1 } }));
     expect(block(placed, ID).places).toEqual({ page: { width: 650 }, recording: { x: 1 } });
   });
@@ -275,13 +443,10 @@ describe("pruning stale keys", () => {
     );
     const view = after(
       mixed(),
-      set("annotations", { place: { x: 1 }, band_order: FLOW_FIRST }),
+      set("annotations", { place: { x: 1 } }),
       set("", { manifest: grouped }),
     );
-    expect([block(view, ID).places, block(view, ID).bands]).toEqual([
-      {},
-      { annotations: FLOW_FIRST },
-    ]);
+    expect(block(view, ID).places).toEqual({});
     const sized = after(
       mixed(),
       set("annotations", { place: { x: 1, scale: 2, spacing: 1.5, width: 700 } }),
@@ -290,16 +455,103 @@ describe("pruning stale keys", () => {
     expect(block(sized, ID).places).toEqual({ annotations: { spacing: 1.5, width: 700 } });
   });
 
-  it("drops a removed timeline's keys", () => {
-    const view = after(mixed(), set("annotations", { place: { x: 1 }, band_order: FLOW_FIRST }), {
+  it("drops a removed timeline's place", () => {
+    const view = after(mixed(), set("annotations", { place: { x: 1 } }), {
       type: "remove",
       targets: [`${ID}/annotations`],
     });
-    expect([block(view, ID).places, block(view, ID).bands]).toEqual([{}, {}]);
+    expect(block(view, ID).places).toEqual({});
   });
 });
 
-describe("a block's places and band orders as stored", () => {
+describe("band orders go with their timelines", () => {
+  const ordered = after(
+    mixed(),
+    set("recording", { order: R }),
+    set("excerpt", { order: E }),
+    set("annotations", { order: defaultOrder("annotations") }),
+  );
+  const remove = (id: string) => ({ type: "remove", targets: [`${ID}/${id}`] });
+
+  it("removes a timeline's entry and keeps its parent's", () => {
+    expect(orderOf(after(ordered, remove("excerpt")))).toEqual({
+      group_1: ["score", "performance"],
+      group_2: ["page"],
+      recording: R,
+      annotations: defaultOrder("annotations"),
+    });
+  });
+
+  it("removes the entries of a removed timeline's descendants", () => {
+    expect(orderOf(after(ordered, remove("recording")))).toEqual({
+      group_1: ["score", "performance"],
+      group_2: ["page"],
+      annotations: defaultOrder("annotations"),
+    });
+  });
+
+  it("drops a removed timeline's band addresses from statements", () => {
+    const inline = { display: "inline" };
+    const styled = after(
+      mixed(),
+      {
+        type: "style",
+        select: { ids: ["excerpt/regions_1", "annotations/regions_1"] },
+        set: inline,
+        blocks: [ID],
+      },
+      { type: "style", select: { ids: ["excerpt/markers_1"] }, set: inline, blocks: [ID] },
+    );
+    const removed = after(styled, remove("excerpt"));
+    expect(block(removed, ID).manifest.graphical?.statements).toEqual([
+      { select: { ids: ["annotations/regions_1"] }, set: inline },
+    ]);
+  });
+
+  it("renames nothing: a whole manifest changing an id brings its own orders", () => {
+    const inline = { display: "inline" };
+    const start = after(mixed(), set("excerpt", { order: E }), {
+      type: "style",
+      select: { ids: ["excerpt/regions_1"] },
+      set: inline,
+      blocks: [ID],
+    });
+    const stored = block(start, ID).manifest;
+    const fragment = E.map((entry) => entry.replace(/^excerpt/, "fragment"));
+    /** The stored manifest with `excerpt` renamed `fragment`, its band orders `orders`. */
+    const renamed = (orders: { readonly [key: string]: readonly string[] }): Manifest => ({
+      ...stored,
+      timelines: stored.timelines.map((root) =>
+        root.id === "recording"
+          ? { ...root, children: root.children.map((child) => ({ ...child, id: "fragment" })) }
+          : root,
+      ),
+      groups: stored.groups.map((group) =>
+        group.id === "group_2" ? { ...group, members: ["fragment", "page"] } : group,
+      ),
+      graphical: {
+        ...stored.graphical,
+        order: { group_1: DISPLAY.group_1, group_2: ["page", "fragment"], ...orders },
+      },
+    });
+    expect(refused(start, set("", { manifest: renamed({ excerpt: E }) }))).toEqual({
+      code: "schema_violation",
+      path: [ID, "manifest", "graphical", "order", "excerpt"],
+      message: '"excerpt" names no group or timeline of this manifest',
+    });
+    const accepted = after(start, set("", { manifest: renamed({ fragment }) }));
+    expect(orderOf(accepted)).toEqual({
+      group_1: DISPLAY.group_1,
+      group_2: ["page", "fragment"],
+      fragment,
+    });
+    expect(block(accepted, ID).manifest.graphical?.statements).toEqual([
+      { select: { ids: ["excerpt/regions_1"] }, set: inline },
+    ]);
+  });
+});
+
+describe("a block's places as stored", () => {
   const stored = block(mixed(), ID);
   const found = (changes: object) =>
     checkWorkspace({
@@ -340,14 +592,13 @@ describe("a block's places and band orders as stored", () => {
       ["places", "score", "length"],
     ],
     [{ places: { group_1: { depth: 1 } } }, "unknown_member", ["places", "group_1", "depth"]],
-    [{ bands: { score: ["flow"] } }, "invalid_order", ["bands", "score"]],
   ])("refuses %j", (changes, code, path) => {
     expect(found(changes).map(({ code, path }) => ({ code, path }))).toEqual([
       { code, path: at(...path) },
     ]);
   });
 
-  it("refuses keys naming no item, member, group or timeline, and a card beyond what it takes", () => {
+  it("refuses keys naming no item or member, and a card beyond what it takes", () => {
     expect(
       found({
         places: {
@@ -358,7 +609,6 @@ describe("a block's places and band orders as stored", () => {
           page: { width: 650 },
           performance: { spacing: 1.5 },
         },
-        bands: { nowhere: FLOW_FIRST, excerpt: FLOW_FIRST },
       }),
     ).toEqual([
       {
@@ -376,27 +626,13 @@ describe("a block's places and band orders as stored", () => {
         path: at("places", "score", "x"),
         message: "score is a member: its card takes only width, height and spacing",
       },
-      {
-        code: "unknown_band_key",
-        path: at("bands", "nowhere"),
-        message: `nowhere is no group and no timeline of block ${ID}`,
-      },
     ]);
   });
 
-  it("adds a block with the places and band orders it states, refusing a wrong key", () => {
-    const given = block(
-      mixed({
-        places: { annotations: { y: 8 }, score: { width: 650 } },
-        bands: { score: FLOW_FIRST },
-      }),
-      ID,
-    );
-    expect([given.places, given.bands]).toEqual([
-      { annotations: { y: 8 }, score: { width: 650 } },
-      { score: FLOW_FIRST },
-    ]);
-    expect([stored.places, stored.bands]).toEqual([{}, {}]);
+  it("adds a block with the places it states, refusing a wrong key", () => {
+    const given = block(mixed({ places: { annotations: { y: 8 }, score: { width: 650 } } }), ID);
+    expect(given.places).toEqual({ annotations: { y: 8 }, score: { width: 650 } });
+    expect(stored.places).toEqual({});
     const add = (extra: object) => ({
       type: "add",
       into: "workspace",
@@ -406,13 +642,11 @@ describe("a block's places and band orders as stored", () => {
       [
         { places: { score: { x: 1 } } },
         { places: { recording: { x: 1 } } },
-        { bands: { nowhere: FLOW_FIRST } },
         { places: { group_1: {} } },
       ].map((extra) => refusal(apply(createView(), add(extra)))),
     ).toEqual([
       { code: "unknown_member", path: [ID, "places", "score", "x"] },
       { code: "unknown_place", path: [ID, "places", "recording"] },
-      { code: "unknown_band_key", path: [ID, "bands", "nowhere"] },
       { code: "invalid_value", path: [ID, "places", "group_1"] },
     ]);
   });

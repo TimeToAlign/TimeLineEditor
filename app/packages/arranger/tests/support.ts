@@ -7,7 +7,7 @@
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
-import type { Block, Command, Manifest, View } from "@timetoalign/tilie-core";
+import type { BandKind, Block, Command, Manifest, View } from "@timetoalign/tilie-core";
 import {
   apply,
   createView,
@@ -15,6 +15,8 @@ import {
   isLoadError,
   loadManifest,
 } from "@timetoalign/tilie-core";
+import type { Drawing, DrawnBand, DrawnElement } from "@timetoalign/tilie-layout";
+import { INITIAL_STYLE } from "@timetoalign/tilie-layout";
 import { dumps, fontMetrics, parseJson, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
 
 export const metrics = fontMetrics;
@@ -175,3 +177,142 @@ export function mixedView(): View {
     child: { id: "dlt_1", offset: 0, unit: "samples", length: 44100 },
   });
 }
+
+/**
+ * The view of the README's "Marquee inside an editor": `mixed` with the
+ * region `region_1` (0 to 10 samples) added to `excerpt` and the map
+ * `cmap_3` added to `dlt_1`, both addressed under the root `recording`.
+ */
+export function marqueeView(): View {
+  const region = changed(mixedView(), {
+    type: "add",
+    into: `${A}/excerpt`,
+    region: { id: "region_1", name: "A", start: 0, end: 10 },
+  });
+  return changed(region, {
+    type: "add",
+    into: `${A}/dlt_1`,
+    map: {
+      id: "cmap_3",
+      type: "SamplesToSeconds",
+      source_unit: "samples",
+      target_unit: "seconds",
+      scalar: [1, 44100],
+      sample_rate: 44100,
+    },
+  });
+}
+
+/** A rectangle `[x, y, width, height]` in a drawing's units. */
+type Rectangle = readonly [number, number, number, number];
+
+/** The record of the band of `kind` of `timeline` at the line `line`, its rectangle `rect`. */
+export function bandRecord(
+  timeline: string,
+  kind: BandKind,
+  level: number,
+  line: number,
+  [x, y, width, height]: Rectangle,
+  elements = 1,
+): DrawnBand {
+  const address = `${timeline}/${kind}_1`;
+  return { address, timeline, kind, level, line, elements, x, y, width, height };
+}
+
+/**
+ * A drawing written by hand (the README's section "Bands"): `width` by
+ * `height`, its background, the card `<root>/card` of the ungrouped root
+ * `root` at `card`, then `elements`, the card's item spanning all of them,
+ * and the records `bands`.
+ */
+function handDrawn(
+  [width, height]: readonly [number, number],
+  root: string,
+  [x, y, cardWidth, cardHeight]: Rectangle,
+  elements: readonly DrawnElement[],
+  bands: readonly DrawnBand[],
+): Drawing {
+  const style = INITIAL_STYLE;
+  const address = `${root}/card`;
+  return {
+    width,
+    height,
+    origin: { x: 0, y: 0 },
+    items: [
+      {
+        key: root,
+        kind: "card",
+        address,
+        place: { x, y, length: 400, scale: 1, spacing: 1, width: cardWidth, height: cardHeight },
+        stated: {},
+        range: { start: 1, end: 2 + elements.length },
+      },
+    ],
+    cards: [],
+    elements: [
+      { type: "block", address: null, style, width, height },
+      { type: "card", address, style, x, y, width: cardWidth, height: cardHeight, shadowOffset: 2 },
+      ...elements,
+    ],
+    bands,
+    unmapped: [],
+  };
+}
+
+function line(type: "timeline" | "child", address: string, xs: number, xe: number, y: number) {
+  return {
+    type,
+    address,
+    style: INITIAL_STYLE,
+    xs,
+    xe,
+    y,
+    start: "circle",
+    end: "arrowhead",
+  } as const;
+}
+
+function map(address: string, xs: number, xe: number, yc: number) {
+  return { type: "map", address, style: INITIAL_STYLE, xs, xe, yc, spacing: 2 } as const;
+}
+
+/** The fixture path of the manifest whose root states a band order of its own. */
+export const ROOT_ORDER = "map_root_band_order";
+
+/** The README's drawing S: `styled__score`'s timeline `score`, its five bands present. */
+export const STYLED_DRAWN: Drawing = handDrawn(
+  [600, 200],
+  "score",
+  [8, 8, 584, 184],
+  [
+    line("child", "b", 300, 500, 55),
+    line("timeline", "score", 100, 500, 100),
+    map("score/ticks", 100, 500, 105),
+  ],
+  [
+    bandRecord("score", "children", 2, 100, [100, 40, 400, 30]),
+    bandRecord("score", "markers", 1, 100, [100, 80, 400, 20], 2),
+    bandRecord("score", "conversion_maps", -1, 100, [100, 100, 400, 10]),
+    bandRecord("score", "regions", -2, 100, [100, 114, 400, 20]),
+    bandRecord("score", "flow_control", -3, 100, [100, 138, 400, 22]),
+  ],
+);
+
+/** The README's drawing M: `map`'s `melody` and its child `phrase`. */
+export const MAP_DRAWN: Drawing = handDrawn(
+  [600, 140],
+  "melody",
+  [8, 8, 584, 124],
+  [
+    map("melody/ticks", 200, 400, 25),
+    line("child", "phrase", 200, 400, 30),
+    map("melody/tempo", 100, 500, 63),
+    line("timeline", "melody", 100, 500, 70),
+  ],
+  [
+    bandRecord("melody", "children", 2, 70, [100, 16, 400, 20]),
+    bandRecord("melody", "conversion_maps", 1, 70, [100, 56, 400, 14]),
+    bandRecord("melody", "markers", -1, 70, [100, 70, 400, 16], 2),
+    bandRecord("phrase", "conversion_maps", 1, 30, [200, 20, 200, 10]),
+  ],
+);

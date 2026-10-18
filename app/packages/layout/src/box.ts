@@ -4,7 +4,8 @@
  * is drawn as one box (section 8): each timeline drawn as a root lies in its
  * own card and is laid out by sections 3 to 6, and each item of the box, a
  * frame or an ungrouped root's card, applies the box's one horizontal layout
- * and is drawn at its own place and scale.
+ * and is drawn at its own place and scale, its elements and the records of
+ * its bands alike.
  */
 
 import {
@@ -20,23 +21,23 @@ import {
 } from "@timetoalign/tilie-core";
 import type { FontMetrics, Graphical } from "@timetoalign/timeskeleton";
 import { canonicalOrder } from "@timetoalign/timeskeleton";
-import { placedAt } from "./canvas.ts";
+import { placedAt, placedBand } from "./canvas.ts";
 import { Cascade } from "./cascade.ts";
 import { F, G, K, P, Q, SHADOW_OFFSET, TITLE_GAP } from "./constants.ts";
 import type {
   Drawing,
+  DrawnBand,
   DrawnCard,
   DrawnElement,
   DrawnItem,
   Placement,
   TextElement,
 } from "./elements.ts";
-import { layoutMember, type MemberLayout } from "./member.ts";
+import { layoutMember, type MemberDrawn, type MemberLayout } from "./member.ts";
 import { cleanText, TextMeasure } from "./metrics.ts";
 import { cutText } from "./names.ts";
 import { unscoped } from "./numbers.ts";
 import { brace } from "./regions.ts";
-import { bandOrderOf } from "./sides.ts";
 import { type Holder, shown } from "./traversal.ts";
 
 /** A member drawing laid out at the graphical length `L` of its item. */
@@ -128,9 +129,10 @@ function largestRightEdge(
   return edges.length === 0 ? undefined : Math.max(...edges);
 }
 
-/** What one item draws, in item coordinates: its elements and its right and bottom edges. */
+/** What one item draws, in item coordinates: its elements, its bands and its right and bottom edges. */
 interface Local {
   readonly elements: DrawnElement[];
+  readonly bands: DrawnBand[];
   readonly rights: number[];
   readonly bottoms: number[];
 }
@@ -175,24 +177,13 @@ export function draw(
     return { address: key.address as string, style: cascade.resolve(key, holder.style) };
   };
   type Card = ReturnType<typeof card>;
-  /**
-   * A member drawing at its item's graphical length `L` and its vertical stretch `v`, in its
-   * root's band order (section 6.4).
-   */
-  const layout = (
-    member: MemberDrawing,
-    holder: Holder,
-    group: string | null,
-    L: number,
-    v: number,
-  ) => {
-    const order = bandOrderOf(placement, member.timeline.id, group);
-    return layoutMember(
-      { placement: { ...placement, length: L, spacing: v, order }, cascade, measure },
+  /** A member drawing at its item's graphical length `L` and its vertical stretch `v`. */
+  const layout = (member: MemberDrawing, holder: Holder, L: number, v: number) =>
+    layoutMember(
+      { manifest: ordered, placement: { ...placement, length: L, spacing: v }, cascade, measure },
       member,
       holder,
     );
-  };
   /** What `places` states under `key`, `{}` when it states nothing. */
   const statedOf = (key: string): Place =>
     Object.hasOwn(placement.places, key) ? (placement.places[key] as Place) : {};
@@ -256,7 +247,7 @@ export function draw(
       const members = frame.members.map((member, index) => {
         const stated = requestOf(member.timeline.id);
         const spacing = stated.spacing ?? 1;
-        const memberLayout = layout(member, holder, id, L, v * spacing);
+        const memberLayout = layout(member, holder, L, v * spacing);
         const height =
           stated.height === undefined
             ? memberLayout.height
@@ -279,7 +270,7 @@ export function draw(
   });
   const loose = ungrouped.map((member) =>
     placeItem(member.timeline.id, (L, v) => {
-      const memberLayout = layout(member, block, null, L, v);
+      const memberLayout = layout(member, block, L, v);
       return { card: card(member, block), memberLayout, height: memberLayout.height };
     }),
   );
@@ -297,20 +288,22 @@ export function draw(
     ...frame,
     members: frame.members.map((item) => ({
       ...item,
-      elements: item.memberLayout.elements(s0, n, item.top),
+      drawn: item.memberLayout.drawAt(s0, n, item.top),
     })),
   }));
   const looseDrawn = loose.map((item) => ({
     ...item,
-    elements: item.memberLayout.elements(s0, n, 0),
+    drawn: item.memberLayout.drawAt(s0, n, 0),
   }));
   const margins: number[] = [];
   const margin = (elements: readonly DrawnElement[], L: number) => {
     const e = largestRightEdge(elements, measure);
     if (e !== undefined) margins.push(e - (s0 + L));
   };
-  for (const frame of framedDrawn) for (const item of frame.members) margin(item.elements, frame.L);
-  for (const item of looseDrawn) margin(item.elements, item.L);
+  for (const frame of framedDrawn) {
+    for (const item of frame.members) margin(item.drawn.elements, frame.L);
+  }
+  for (const item of looseDrawn) margin(item.drawn.elements, item.L);
   const Mr = margins.length === 0 ? undefined : Math.max(...margins);
   /** An item's right edge `Ri` before its request: its content's, or past its group's title `t`. */
   const rightOf = (L: number, t: number | undefined) => {
@@ -330,6 +323,7 @@ export function draw(
 
   // Every position below is in place coordinates; the place origin is added to each last.
   const elements: DrawnElement[] = [];
+  const bands: DrawnBand[] = [];
   const items: DrawnItem[] = [];
   const cards: DrawnCard[] = [];
   const rights: number[] = [];
@@ -355,7 +349,7 @@ export function draw(
     right: number,
     top: number,
     height: number,
-    drawn: readonly DrawnElement[],
+    drawn: MemberDrawn,
   ) => {
     const bottom = top + height;
     local.rights.push(right);
@@ -376,7 +370,8 @@ export function draw(
         shadowOffset: SHADOW_OFFSET,
       });
     }
-    local.elements.push(...drawn);
+    local.elements.push(...drawn.elements);
+    local.bands.push(...drawn.bands);
   };
   /**
    * The range of `drawing.elements` that the elements `from` to `to` of an item's local list
@@ -387,7 +382,7 @@ export function draw(
     end: 1 + elements.length + to,
   });
   /**
-   * Draw an item at its place (section 8.6): each element and edge it draws in item
+   * Draw an item at its place (section 8.6): each element, band and edge it draws in item
    * coordinates taken to its place at its scale.
    */
   const drawItem = (
@@ -396,13 +391,14 @@ export function draw(
   ) => {
     const { x, y, scale } = item;
     for (const element of local.elements) elements.push(placedAt(element, x, y, scale));
+    for (const band of local.bands) bands.push(placedBand(band, x, y, scale));
     for (const right of local.rights) rights.push(x + scale * right);
     for (const bottom of local.bottoms) bottoms.push(y + scale * bottom);
   };
 
   for (const frame of framedDrawn) {
     const { key: id, holder, stated, L, scale, spacing, x, y, members, frameTitle, height } = frame;
-    const local: Local = { elements: [], rights: [], bottoms: [] };
+    const local: Local = { elements: [], bands: [], rights: [], bottoms: [] };
     const titleText = frameTitle.drawn
       ? titleElement(frameTitle, Q, Q + measure.ascent(frameTitle.size))
       : undefined;
@@ -431,7 +427,7 @@ export function draw(
     members.forEach((item, index) => {
       const cardRight = cardRights[index] as number;
       const from = local.elements.length;
-      pushCard(local, item.card, Q, cardRight, item.top, item.height, item.elements);
+      pushCard(local, item.card, Q, cardRight, item.top, item.height, item.drawn);
       cards.push({
         key: item.member.timeline.id,
         group: id,
@@ -457,11 +453,11 @@ export function draw(
   const inset = framed.length > 0 ? Q : 0;
   for (const item of looseDrawn) {
     const { key, stated, L, scale, spacing, x, y, height } = item;
-    const local: Local = { elements: [], rights: [], bottoms: [] };
+    const local: Local = { elements: [], bands: [], rights: [], bottoms: [] };
     let R = rightOf(L, undefined);
     if (stated.width !== undefined) R = Math.max(R, stated.width - K - inset);
     const right = R + K + inset;
-    pushCard(local, item.card, 0, right, 0, height, item.elements);
+    pushCard(local, item.card, 0, right, 0, height, item.drawn);
     items.push({
       key,
       kind: "card",
@@ -489,6 +485,7 @@ export function draw(
     items,
     cards,
     elements: inBox,
+    bands: bands.map((band) => placedBand(band, Ox, Oy)),
     unmapped: [...measure.unmapped].sort((left, right) => left - right),
   };
 }

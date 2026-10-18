@@ -30,8 +30,7 @@ export const DEFAULT_LAYER: Graphical = {
       set: { "stroke-dasharray": "none" },
     },
     { select: { element: "child", modality: "discrete" }, set: { "stroke-dasharray": "3 3" } },
-    { select: { element: "child" }, set: { side: "above" } },
-    { select: { element: "map" }, set: { "stroke-width": 1, side: "above" } },
+    { select: { element: "map" }, set: { "stroke-width": 1 } },
     {
       select: { element: "map", modality: "continuous" },
       set: { "stroke-dasharray": "none" },
@@ -87,13 +86,26 @@ export const DEFAULT_LAYER: Graphical = {
       select: { element: "name", inside: "ancestor" },
       set: { fill: "#6B7280", "font-size": 9, opacity: 1 },
     },
+    {
+      select: { element: "band", class: "markers", inside: "band" },
+      set: { display: "none" },
+    },
+    {
+      select: { element: "band", class: "regions", inside: "band" },
+      set: { display: "none" },
+    },
+    {
+      select: { element: "band", class: "flow_control", inside: "band" },
+      set: { display: "none" },
+    },
   ],
 };
 
 /**
  * A manifest's own layer, the highest of its drawing (section 1): its
- * `graphical` block's `styles` and `statements`, without its groups' member
- * `order`; `undefined` without a block.
+ * `graphical` block's `styles` and `statements`, without its `order` (the
+ * display orders of its groups and the band orders of its timelines);
+ * `undefined` without a block.
  */
 export function manifestLayer(manifest: Manifest): Graphical | undefined {
   if (manifest.graphical === undefined) return undefined;

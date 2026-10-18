@@ -12,7 +12,7 @@ import { axisCoordinate, CoordinateError, compareCoordinates } from "../number/c
 import { Rational } from "../number/rational.ts";
 import type { Real } from "../number/real.ts";
 import { addReal, compareReal, realOf } from "../number/real.ts";
-import { rootPaths } from "./files.ts";
+import { rootPaths } from "./tree.ts";
 import type { Manifest, TimelineManifest } from "./types.ts";
 
 const DISCRETE_UNITS: readonly TimeUnit[] = ["ticks", "samples", "frames", "pixels"];

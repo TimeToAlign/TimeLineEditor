@@ -139,12 +139,12 @@ beforeAll(async () => {
 });
 
 describe("format round trips", () => {
-  it("covers the 36, 10 and 9 fixtures of the top, groups/ and bundles/", () => {
+  it("covers the 41, 10 and 9 fixtures of the top, groups/ and bundles/", () => {
     expect([
       fixturesOf("").length,
       fixturesOf("groups").length,
       fixturesOf("bundles").length,
-    ]).toEqual([36, 10, 9]);
+    ]).toEqual([41, 10, 9]);
   });
 
   for (const name of fixtureNames) {
@@ -384,11 +384,19 @@ describe("applying a text", () => {
     expect(store.journal).toHaveLength(2);
   });
 
-  it("is the inspector's to skip: the store journals a set that changes nothing", () => {
+  it("is the inspector's to skip: the store refuses a set that changes nothing", () => {
     const store = styledBare();
     const before = dumps(manifestIn(store, A));
-    setOrFail(store, A, { manifest: manifestIn(store, A) });
-    expect(store.journal).toHaveLength(3);
+    const refusal = store.dispatch({
+      type: "set",
+      changes: [{ target: A, values: { manifest: manifestIn(store, A) } }],
+    });
+    expect(refusal).toEqual({
+      code: "invalid_value",
+      message: "the command changes nothing",
+      path: [A, "manifest"],
+    });
+    expect(store.journal).toHaveLength(2);
     expect(dumps(manifestIn(store, A))).toBe(before);
   });
 
@@ -666,6 +674,7 @@ describe("the selection", () => {
 describe("the properties form", () => {
   it("builds one set per field and lets the store decide", () => {
     const store = storeOf("bare");
+    setOrFail(store, A, { width: 300 });
     const block = geometryOf(store.view, [A]) as Geometry;
     expect(propertyCommand(block, "x", "12.5")).toEqual({
       ok: true,
@@ -682,9 +691,9 @@ describe("the properties form", () => {
       ]);
     }
     const scale = propertyCommand(block, "scale", "0");
-    if (!scale.ok) throw new Error("refused");
+    if (!scale.ok || scale.value === null) throw new Error("no command");
     expect(store.dispatch(scale.value)?.code).toBe("non_positive_number");
-    expect(store.journal).toHaveLength(1);
+    expect(store.journal).toHaveLength(2);
   });
 
   it("steps exactly, by 1 or by 0.1", () => {

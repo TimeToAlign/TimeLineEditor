@@ -10,8 +10,8 @@ import type { Json, JsonObject, PathSegment } from "./json.ts";
 import { isJsonObject, showJson } from "./json.ts";
 import { schemaProblems } from "./manifest/io.ts";
 import { jsonInteger } from "./number/coordinate.ts";
-import type { BandOrder, Place } from "./workspace/blocks.ts";
-import { BAND_GROUPS, PLACE_MEMBERS } from "./workspace/blocks.ts";
+import type { Place } from "./workspace/blocks.ts";
+import { PLACE_MEMBERS } from "./workspace/blocks.ts";
 import { isIndex } from "./workspace/order.ts";
 
 function invalid(message: string, path: readonly PathSegment[]): Problem {
@@ -123,21 +123,6 @@ export function readNullablePositive(
   return value === null ? null : readPositive(value, path);
 }
 
-/** Whether a value is a permutation of the three band groups. */
-export function isBandOrder(value: unknown): value is BandOrder {
-  return (
-    Array.isArray(value) &&
-    value.length === BAND_GROUPS.length &&
-    BAND_GROUPS.every((group) => value.includes(group))
-  );
-}
-
-export function readOrder(value: unknown, path: readonly PathSegment[]): BandOrder | Problem {
-  return isBandOrder(value)
-    ? ([...value] as unknown as BandOrder)
-    : problem(ErrorCode.invalidOrder, "order must hold children, regions and flow once each", path);
-}
-
 /**
  * The rule of each member of a place: a position is finite, a size, the
  * scale and the vertical stretch positive.
@@ -170,37 +155,20 @@ export function readPlace(value: unknown, path: readonly PathSegment[]): Place |
     : invalid("a place states at least one member", path);
 }
 
-/** An object of values each read by `read` at its key, keys any string. */
-function readKeyed<T>(
-  value: unknown,
-  path: readonly PathSegment[],
-  read: (item: unknown, at: readonly PathSegment[]) => T | Problem,
-): { readonly [key: string]: T } | Problem {
-  const object = readObject(value, path);
-  if (isCommandError(object)) return object;
-  const result: { [key: string]: T } = {};
-  for (const [key, item] of Object.entries(object)) {
-    const found = read(item, [...path, key]);
-    if (isCommandError(found)) return found;
-    result[key] = found;
-  }
-  return result;
-}
-
 /** A block's places: an object of places, keys any string. */
 export function readPlaces(
   value: unknown,
   path: readonly PathSegment[],
 ): { readonly [key: string]: Place } | Problem {
-  return readKeyed(value, path, readPlace);
-}
-
-/** A block's band orders: an object of band orders, keys any string. */
-export function readBands(
-  value: unknown,
-  path: readonly PathSegment[],
-): { readonly [key: string]: BandOrder } | Problem {
-  return readKeyed(value, path, readOrder);
+  const object = readObject(value, path);
+  if (isCommandError(object)) return object;
+  const result: { [key: string]: Place } = {};
+  for (const [key, item] of Object.entries(object)) {
+    const place = readPlace(item, [...path, key]);
+    if (isCommandError(place)) return place;
+    result[key] = place;
+  }
+  return result;
 }
 
 export function readIndex(value: unknown, path: readonly PathSegment[]): string | Problem {

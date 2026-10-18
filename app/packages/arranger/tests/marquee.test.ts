@@ -1,13 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { elementsInRect, insideOf, project } from "../src/index.ts";
-import { A, blockIn, changed, metrics, mixedView } from "./support.ts";
+import { A, blockIn, marqueeView, metrics } from "./support.ts";
 
-/** `mixed` with the region `region_1` (0 to 10 samples) added to `dlt_1`. */
-const view = changed(mixedView(), {
-  type: "add",
-  into: `${A}/dlt_1`,
-  region: { id: "region_1", name: "A", start: 0, end: 10 },
-});
+const view = marqueeView();
 const [node] = project(view, new Set(), [], metrics, null);
 if (node === undefined) throw new Error("no node");
 const { manifest } = blockIn(view, A);
@@ -38,6 +33,7 @@ describe("elementsInRect", () => {
     expect(elementsInRect(node, bottom, every, metrics)).toEqual(
       at(
         "recording/cmap_2",
+        "recording/cmap_3",
         "recording/region_1",
         "excerpt",
         "dlt_1",
@@ -51,7 +47,7 @@ describe("elementsInRect", () => {
   it("selects only inside the edited element", () => {
     const child = insideOf(manifest, node.data.drawing, "dlt_1");
     expect(elementsInRect(node, bottom, child, metrics)).toEqual(
-      at("recording/region_1", "dlt_1", "dlt_1/name", "recording/region_1/label"),
+      at("recording/cmap_3", "dlt_1", "dlt_1/name"),
     );
     const group = insideOf(manifest, node.data.drawing, "group_1");
     expect(elementsInRect(node, bottom, group, metrics)).toEqual([]);
