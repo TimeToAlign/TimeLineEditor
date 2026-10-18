@@ -138,11 +138,12 @@ export function readOrder(value: unknown, path: readonly PathSegment[]): BandOrd
     : problem(ErrorCode.invalidOrder, "order must hold children, regions and flow once each", path);
 }
 
-/** The rule of each member of a place: a position is finite, a size positive. */
+/** The rule of each member of a place: a position is finite, a size and the scale positive. */
 export const PLACE_READERS = {
   x: readFinite,
   y: readFinite,
   length: readPositive,
+  scale: readPositive,
   width: readPositive,
   height: readPositive,
 } as const satisfies { readonly [member in keyof Place]-?: unknown };

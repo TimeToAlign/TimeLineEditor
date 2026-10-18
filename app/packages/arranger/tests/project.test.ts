@@ -15,8 +15,6 @@ import {
   viewOf,
 } from "./support.ts";
 
-const NO_ORIGIN = { x: 0, y: 0 };
-
 const view = viewOf(
   { id: A, fixture: "bare", x: 40, y: 80 },
   { id: B, fixture: "nested", scale: 2 },
@@ -145,10 +143,11 @@ describe("project", () => {
 
 describe("livePlacement", () => {
   const block = blockIn(view, A);
-  const stored = { id: A, scale: 1, length: 400, spacing: 1, width: null, height: null };
+  const drawing = drawingOf(block, view.settings, metrics);
+  const stored = { id: A, scale: 1, length: 400, spacing: 1, width: null, height: null, drawing };
 
   it("takes the position from the node", () => {
-    expect(livePlacement(block, { x: 104, y: 40 }, {}, NO_ORIGIN)).toStrictEqual({
+    expect(livePlacement(block, { x: 104, y: 40 }, {}, drawing)).toStrictEqual({
       ...stored,
       x: 104,
       y: 40,
@@ -157,14 +156,14 @@ describe("livePlacement", () => {
 
   it("takes previewed values over stored ones", () => {
     expect(
-      livePlacement(block, { x: 40, y: 80 }, { width: 478.5771484375 }, NO_ORIGIN),
+      livePlacement(block, { x: 40, y: 80 }, { width: 478.5771484375 }, drawing),
     ).toStrictEqual({
       ...stored,
       x: 40,
       y: 80,
       width: 478.5771484375,
     });
-    expect(livePlacement(block, { x: 19, y: 80 }, { x: 19, scale: 2 }, NO_ORIGIN)).toStrictEqual({
+    expect(livePlacement(block, { x: 19, y: 80 }, { x: 19, scale: 2 }, drawing)).toStrictEqual({
       ...stored,
       x: 19,
       y: 80,
@@ -178,27 +177,28 @@ describe("the node of a block placed by its place origin", () => {
 
   it("lies left of and above the place origin by the origin times the scale", () => {
     const [only] = project(moved, new Set(), [], metrics, null);
-    expect(only?.data.drawing.origin).toEqual({ x: 38, y: 28 });
-    expect(only?.position).toEqual({ x: 2, y: 52 });
-    expect([only?.width, only?.height]).toEqual([591.768798828125, 386.50390625]);
+    expect(only?.data.drawing.origin).toEqual({ x: 38, y: 48.8046875 });
+    expect(only?.position).toEqual({ x: 2, y: 31.1953125 });
+    expect([only?.width, only?.height]).toEqual([616.484619140625, 407.30859375]);
     const doubled = changed(moved, { type: "set", changes: [{ target: A, values: { scale: 2 } }] });
     const [large] = project(doubled, new Set(), [], metrics, null);
-    expect(large?.position).toEqual({ x: -36, y: 24 });
-    expect([large?.width, large?.height]).toEqual([1183.53759765625, 773.0078125]);
+    expect(large?.position).toEqual({ x: -36, y: -17.609375 });
+    expect([large?.width, large?.height]).toEqual([1232.96923828125, 814.6171875]);
     const block = blockIn(doubled, A);
     expect(nodePosition(block, drawingOf(block, doubled.settings, metrics))).toEqual({
       x: -36,
-      y: 24,
+      y: -17.609375,
     });
   });
 
   it("gives the place origin back from the node's position", () => {
     const block = blockIn(moved, A);
-    expect(livePlacement(block, { x: 2, y: 52 }, {}, { x: 38, y: 28 })).toMatchObject({
+    const drawing = drawingOf(block, moved.settings, metrics);
+    expect(livePlacement(block, { x: 2, y: 31.1953125 }, {}, drawing)).toMatchObject({
       x: 40,
       y: 80,
     });
-    expect(livePlacement(block, { x: -36, y: 24 }, { scale: 2 }, { x: 38, y: 28 })).toMatchObject({
+    expect(livePlacement(block, { x: -36, y: -17.609375 }, { scale: 2 }, drawing)).toMatchObject({
       x: 40,
       y: 80,
       scale: 2,

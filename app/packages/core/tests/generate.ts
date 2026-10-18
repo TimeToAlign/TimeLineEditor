@@ -278,8 +278,9 @@ export function editorFor(
 /**
  * The command a seed stands for in the editor of `target` (`null`: no
  * editor is open): mostly one that changes only what the editor edits (a
- * name, a place, a band order or a display order of what it holds, or the
- * box's width), sometimes any command of `commandFor`. In the bundle editor
+ * name, a place, a band order or a display order of what it holds, a
+ * member's group length and scale, or the box's width), sometimes any
+ * command of `commandFor`. In the bundle editor
  * every command is `commandFor`'s on its block.
  */
 export function commandIn(
@@ -298,6 +299,9 @@ export function commandIn(
   const held = heldBy(manifest, element);
   const members = manifest.groups.find((group) => group.id === element)?.members ?? [];
   const turn = members.length === 0 ? 0 : p3 % members.length;
+  // A member's editor also resizes its group's frame: the length and scale the members share.
+  const sharing = manifest.groups.find((group) => group.members.includes(element))?.id;
+  const scale = 0.5 + (p3 % 4) / 2;
   const changes = [
     {
       target: `${block}/${pick(held.length > 0 ? held : [element], p1)}`,
@@ -307,12 +311,20 @@ export function commandIn(
       target: `${block}/${element}`,
       values: { band_order: pick([["regions", "children", "flow"], null], p3) },
     },
-    { target: `${block}/${element}`, values: { place: { x: (p3 % 64) - 8 } } },
+    {
+      target: `${block}/${element}`,
+      values: { place: pick([{ x: (p3 % 64) - 8 }, { scale }, { width: 100 + (p3 % 900) }], p1) },
+    },
     {
       target: `${block}/${element}`,
       values: { order: [...members.slice(turn), ...members.slice(0, turn)] },
     },
     { target: block, values: { width: 100 + (p3 % 900) } },
+    ...(sharing === undefined
+      ? []
+      : [
+          { target: `${block}/${sharing}`, values: { place: { length: 100 + (p3 % 400), scale } } },
+        ]),
   ];
   return { type: "set", changes: [pick(changes, p2)] };
 }
@@ -510,6 +522,8 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
                 { x: canvas(p4) },
                 { y: -(p4 % 50), length: 1 + (p4 % 400) },
                 { width: canvas(p4), height: 1 + (p4 % 90) },
+                { scale: canvas(p4) },
+                { width: 1 + (p4 % 700) },
                 { x: null, length: null },
                 {},
                 { depth: 1 },

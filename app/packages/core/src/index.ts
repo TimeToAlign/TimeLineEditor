@@ -130,7 +130,14 @@ export type {
   BlockPlacement,
   Place,
 } from "./workspace/blocks.ts";
-export { BAND_GROUPS, BLOCK_ID, PLACE_MEMBERS } from "./workspace/blocks.ts";
+export {
+  BAND_GROUPS,
+  BLOCK_ID,
+  CARD_MEMBERS,
+  cardKeys,
+  itemKeys,
+  PLACE_MEMBERS,
+} from "./workspace/blocks.ts";
 export { readWorkspace, writeWorkspace } from "./workspace/file.ts";
 export { sideEffect } from "./workspace/guard.ts";
 export type { Address, ParsedAddress, TimelinePrefix } from "./workspace/ids.ts";
@@ -148,12 +155,18 @@ export type {
   CommandEntry,
   EditorKind,
   Entry,
+  ListedEntry,
   OpenEditor,
   Session,
   SessionEntry,
   SessionId,
 } from "./workspace/sessions.ts";
-export { editorKindOf, isSessionEntry, mintSessionId } from "./workspace/sessions.ts";
+export {
+  editorKindOf,
+  isSessionEntry,
+  listEntries,
+  mintSessionId,
+} from "./workspace/sessions.ts";
 export type { Store, StoreOptions, Workspace } from "./workspace/store.ts";
 export { createStore, DEFAULT_AUTHOR, replay } from "./workspace/store.ts";
 export type { View, WorkspaceMeta, WorkspaceSettings } from "./workspace/view.ts";

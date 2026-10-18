@@ -15,7 +15,10 @@ export const BAND_GROUPS: readonly BandGroup[] = ["children", "regions", "flow"]
 /** A band order: a permutation of the three groups, laid outwards from the root. */
 export type BandOrder = readonly [BandGroup, BandGroup, BandGroup];
 
-/** A stated place of an item (drawing.md §8.6); a member left out takes its default. */
+/**
+ * A stated place of an item, or the stated size of a member's card
+ * (drawing.md §8.6); a member left out takes its default.
+ */
 export interface Place {
   /** Finite. */
   readonly x?: number;
@@ -23,6 +26,8 @@ export interface Place {
   readonly y?: number;
   /** Positive. */
   readonly length?: number;
+  /** Positive. */
+  readonly scale?: number;
   /** Positive. */
   readonly width?: number;
   /** Positive. */
@@ -34,9 +39,13 @@ export const PLACE_MEMBERS = [
   "x",
   "y",
   "length",
+  "scale",
   "width",
   "height",
 ] as const satisfies readonly (keyof Place)[];
+
+/** The members of a place a member's card takes: its size only. */
+export const CARD_MEMBERS = ["width", "height"] as const satisfies readonly (keyof Place)[];
 
 /** The inputs of a block's drawing besides its manifest and the style layers. */
 export interface BlockPlacement {
@@ -65,7 +74,10 @@ export interface Block extends BlockPlacement {
   readonly index: string;
   readonly x: number;
   readonly y: number;
-  /** The stated places of the manifest's items, by group id or ungrouped root id. */
+  /**
+   * The stated places of the manifest's items, by group id or ungrouped root
+   * id, and the stated sizes of its members' cards, by member id.
+   */
   readonly places: { readonly [key: string]: Place };
   /** The band orders overriding `order`, by group id or timeline id at any depth. */
   readonly bands: { readonly [key: string]: BandOrder };
@@ -101,6 +113,15 @@ export function itemKeys(manifest: Manifest): ReadonlySet<string> {
     ...frames.map((frame) => frame.group.id),
     ...ungrouped.map((member) => member.timeline.id),
   ]);
+}
+
+/**
+ * The cards of a manifest's frames, the other keys `places` may hold: the ids
+ * of every group member, a root or a child timeline. Their places state only
+ * `CARD_MEMBERS`.
+ */
+export function cardKeys(manifest: Manifest): ReadonlySet<string> {
+  return new Set(manifest.groups.flatMap((group) => group.members));
 }
 
 /** The keys `bands` may hold: the manifest's group ids and its timeline ids at any depth. */

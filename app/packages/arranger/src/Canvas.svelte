@@ -14,11 +14,12 @@ import CanvasToolbar from "./CanvasToolbar.svelte";
 import type { Visible } from "./commands.ts";
 import { moveCommand, nudgeCommand, removeCommand, zOrderCommand } from "./commands.ts";
 import { descriptorsOf, drawingOf } from "./drawing.ts";
-import type { Editing } from "./editors.ts";
-import { editedElement, editorTargetOf, gesturesOf } from "./editors.ts";
+import type { Editing, Level } from "./editors.ts";
+import { editedElement, editorTargetOf, gesturesOf, resizes } from "./editors.ts";
 import { FOCUS_DURATION, focusViewport, targetBounds } from "./focus.ts";
 import type { ResizedItem } from "./gestures.svelte.ts";
 import { abortDrag, CLICK_DISTANCE } from "./gestures.svelte.ts";
+import { resizedItemOf } from "./items.ts";
 import type { LiveStore } from "./liveStore.svelte.ts";
 import { elementsInRect } from "./marquee.ts";
 import { setNodeActions } from "./nodeActions.ts";
@@ -55,8 +56,10 @@ interface Props {
   viewport: Viewport;
   /**
    * Called with the placement of the block a drag or a resize changes, as
-   * the canvas shows it before release, whenever it changes; with `null`
-   * once the gesture ends. Only a gesture on a single block reports one.
+   * the canvas shows it before release, with the drawing its node shows
+   * (the items and cards a gesture inside the block moves or resizes),
+   * whenever it changes; with `null` once the gesture ends. Only a gesture
+   * on a single block or inside one reports one.
    */
   onlive?: (placement: LivePlacement | null) => void;
 }
@@ -81,9 +84,9 @@ const SNAP_TOLERANCE = 6;
  * past this distance, or past any distance while Shift is held, so a marquee
  * ending within it counts as a click too.
  */
-/** Two taps of a touch open an editor when the second follows the first within this many milliseconds… */
+/** Two taps of a touch act as a double-click when the second follows the first within this many milliseconds… */
 const DOUBLE_TAP_MS = 300;
-/** …and this many screen pixels, on what opens the same editor. */
+/** …and this many screen pixels, where a double-click would do the same. */
 const DOUBLE_TAP_DISTANCE = 10;
 /** Arrow keys move by one grid step; with Shift by this many. */
 const LARGE_STEP = 8;
@@ -151,7 +154,9 @@ const editing: Editing | null = $derived.by(() => {
 });
 
 /** What the canvas offers at its current level: the arranger's gestures or the editor's. */
-const gestures = $derived(gesturesOf(view, editing));
+const gestures = $derived(gesturesOf(editing));
+/** The level the canvas is at: the arranger, or the innermost editor's kind. */
+const level: Level = $derived(editing === null ? "arranger" : editing.kind);
 
 // The view and the selection follow the store's editing path.
 $effect(() => {
@@ -188,6 +193,8 @@ let focusing = 0;
 let heading: Viewport | null = null;
 /** The editing path the canvas last followed, and the store it belongs to. */
 let followed: { readonly store: Store; readonly editing: readonly OpenEditor[] } | null = null;
+/** The canvas's size in screen pixels when the view last moved to an edited element. */
+let focusedAt: { readonly width: number; readonly height: number } | null = null;
 
 /** Move the view to `next`, smoothly unless the reader prefers reduced motion. */
 function moveTo(next: Viewport): void {
@@ -271,7 +278,24 @@ async function focusOn(target: Address): Promise<void> {
     if (error instanceof RangeError) return;
     throw error;
   }
-  moveTo(focusViewport(bounds, { width: root.clientWidth, height: root.clientHeight }, 0));
+  focusedAt = { width: root.clientWidth, height: root.clientHeight };
+  moveTo(focusViewport(bounds, focusedAt, 0));
+}
+
+/**
+ * The canvas has changed size (the inspector drawer opening or closing
+ * beside it, the window resized): with an editor open, its element is
+ * centred again to fill the new area, as on entering. A size the view was
+ * already focused at moves nothing, so the measurement that follows an
+ * editor's opening (and the drawer opening with it) does not move the view
+ * a second time. The viewport an editor returns to on Done stays the one it
+ * was entered from.
+ */
+function resized(): void {
+  const innermost = live.editing.at(-1);
+  if (innermost === undefined || root === undefined) return;
+  if (focusedAt?.width === root.clientWidth && focusedAt.height === root.clientHeight) return;
+  void focusOn(innermost.target);
 }
 
 /** Open the editor of `target`; a refusal is shown in the status region. */
@@ -300,43 +324,85 @@ function openableAt(target: EventTarget | null, client?: { x: number; y: number 
   return editorTargetOf(view, hitOf(node.id, node.data.drawing, target, point), editing);
 }
 
-/** A double-click opens the editor of what it hit. */
-function ondblclick(event: MouseEvent): void {
-  const target = openableAt(event.target, { x: event.clientX, y: event.clientY });
-  if (target !== null) openEditor(target);
+/** What a double-click outside the edited element does: close the innermost editor, as Done does. */
+const DONE = Symbol("done");
+
+/**
+ * Whether `target` lies outside the edited element: the empty pane (which a
+ * faded block, taking no pointer, lets a press through to), or a part of a
+ * block where a press selects nothing (`pressedIn`, the inside test that
+ * also fades and prunes). Nothing lies outside on the arranger; the canvas's
+ * own controls (toolbars, handles) lie in no block and are not the pane.
+ */
+function isOutside(target: EventTarget | null): boolean {
+  if (editing === null) return false;
+  if (target instanceof Element && target.classList.contains("svelte-flow__pane")) return true;
+  const node = nodeAt(target);
+  return node !== undefined && pressedIn(node, target) === null;
 }
 
-/** The last tap of a touch that could open an editor: where, when, and what it would open. */
+/**
+ * What a double-click or a double tap on `target` at `client` does: outside
+ * the edited element it closes the innermost editor (`DONE`), else it opens
+ * the editor `openableAt` names, or does nothing (`null`).
+ */
+function doubleClickAt(
+  target: EventTarget | null,
+  client: { x: number; y: number },
+): Address | typeof DONE | null {
+  return isOutside(target) ? DONE : openableAt(target, client);
+}
+
+/** Close the innermost editor, or open the editor of `target`. */
+function act(action: Address | typeof DONE): void {
+  if (action === DONE) store.done();
+  else openEditor(action);
+}
+
+/**
+ * A double-click opens the editor of what it hit, or outside the edited
+ * element closes the innermost editor. A touch's double tap is read in
+ * `onpointerupcapture`, so a double-click a browser derives from it is not
+ * read a second time.
+ */
+function ondblclick(event: MouseEvent): void {
+  if (press?.pointerType === "touch") return;
+  const action = doubleClickAt(event.target, { x: event.clientX, y: event.clientY });
+  if (action !== null) act(action);
+}
+
+/** The last tap of a touch that could act as a double-click: where, when, and what it would do. */
 let tap: {
   readonly x: number;
   readonly y: number;
   readonly time: number;
-  readonly target: Address;
+  readonly action: Address | typeof DONE;
 } | null = null;
 
 /**
- * A double tap opens an editor, as a double-click does with a mouse: two
- * taps within `DOUBLE_TAP_MS` and `DOUBLE_TAP_DISTANCE` of each other on
- * what opens the same editor. A tap is a touch released within the click
- * distance of its press.
+ * A double tap acts as a double-click does with a mouse: two taps within
+ * `DOUBLE_TAP_MS` and `DOUBLE_TAP_DISTANCE` of each other where a
+ * double-click would do the same (open the same editor, or close the
+ * innermost). A tap is a touch released within the click distance of its
+ * press.
  */
 function onpointerupcapture(event: PointerEvent): void {
   if (event.pointerType !== "touch" || !event.isPrimary) return;
-  const target =
+  const action =
     press !== null && isClick(press, event)
-      ? openableAt(event.target, { x: event.clientX, y: event.clientY })
+      ? doubleClickAt(event.target, { x: event.clientX, y: event.clientY })
       : null;
   const previous = tap;
   tap =
-    target === null ? null : { x: event.clientX, y: event.clientY, time: event.timeStamp, target };
+    action === null ? null : { x: event.clientX, y: event.clientY, time: event.timeStamp, action };
   if (
     previous !== null &&
-    previous.target === target &&
+    previous.action === action &&
     event.timeStamp - previous.time <= DOUBLE_TAP_MS &&
     Math.hypot(event.clientX - previous.x, event.clientY - previous.y) <= DOUBLE_TAP_DISTANCE
   ) {
     tap = null;
-    openEditor(previous.target);
+    act(previous.action);
   }
 }
 
@@ -482,7 +548,10 @@ function withPreview(
   );
 }
 
-/** The block a gesture on a single block changes, as the canvas shows it; `null` without one. */
+/**
+ * The block a gesture on a single block or inside one changes, as the canvas
+ * shows it, with the drawing its node shows; `null` without one.
+ */
 const placement: LivePlacement | null = $derived.by(() => {
   const id = preview?.id ?? (dragging?.length === 1 ? dragging[0] : undefined);
   const block = id === undefined ? undefined : view.blocks[id];
@@ -492,7 +561,7 @@ const placement: LivePlacement | null = $derived.by(() => {
     block,
     node.position,
     preview?.id === block.id ? preview.values : {},
-    node.data.drawing.origin,
+    node.data.drawing,
   );
 });
 
@@ -501,10 +570,11 @@ $effect(() => {
 });
 
 /**
- * What the resize toolbar acts on: the single selected block, or, in an
- * editor, the single selected item (a group's frame or an ungrouped root's
- * card) inside the edited element, with its key and the editor's kind. The
- * toolbar offers only the modes the level allows.
+ * What the resize toolbar acts on: the single selected box that the current
+ * level resizes (`RESIZING`), a block, a group's frame, an ungrouped root's
+ * card or a member's card (selected as `M/card`). On the arranger that is
+ * any of them; in an editor one inside the edited element, the edited
+ * element's own box included where the table says so.
  */
 const resizable: { readonly block: Block; readonly item?: ResizedItem } | undefined = $derived.by(
   () => {
@@ -513,14 +583,20 @@ const resizable: { readonly block: Block; readonly item?: ResizedItem } | undefi
     if (address === undefined) return undefined;
     const block = view.blocks[blockOf(address)];
     if (block === undefined) return undefined;
-    if (address === block.id) return { block };
-    if (editing === null || editedElement(editing.target).block !== block.id) return undefined;
+    const edited = editing === null ? null : editedElement(editing.target);
+    if (edited !== null && edited.block !== block.id) return undefined;
+    // The edited element within the block: `null` for the block itself, and on the arranger.
+    const within = edited === null ? null : edited.element;
+    if (address === block.id) {
+      return resizes("block", level, edited !== null && within === null) ? { block } : undefined;
+    }
     const element = address.slice(block.id.length + 1);
     const drawing = drawingOf(block, view.settings, metrics);
-    const item = drawing.items.find((drawn) => drawn.address === element);
-    const inside = insideOf(block.manifest, drawing, editedElement(editing.target).element);
-    if (item === undefined || !inside.has(item.address)) return undefined;
-    return { block, item: { key: item.key, editor: editing.kind } };
+    const item = resizedItemOf(drawing, element);
+    if (item === undefined || !insideOf(block.manifest, drawing, within).has(element)) {
+      return undefined;
+    }
+    return resizes(item.kind, level, item.key === within) ? { block, item } : undefined;
   },
 );
 
@@ -635,15 +711,17 @@ function onnodeclick({ node, event }: { node: BlockNodeType; event: MouseEvent |
 }
 
 /**
- * Where and on what the last primary press on the canvas landed: in client
- * pixels, and as the canvas point under it then (`at`), which stays where it
- * is on the canvas when Svelte Flow pans during a marquee.
+ * Where, on what and by which kind of pointer the last primary press on the
+ * canvas landed: in client pixels, and as the canvas point under it then
+ * (`at`), which stays where it is on the canvas when Svelte Flow pans during
+ * a marquee.
  */
 let press: {
   readonly x: number;
   readonly y: number;
   readonly at: { readonly x: number; readonly y: number } | null;
   readonly target: EventTarget | null;
+  readonly pointerType: string;
 } | null = null;
 
 function isClick(from: { x: number; y: number }, to: { clientX: number; clientY: number }) {
@@ -1036,7 +1114,12 @@ export function focus(): void {
 function onpointerdowncapture(event: PointerEvent) {
   if (event.isPrimary && event.button === 0) {
     const client = { x: event.clientX, y: event.clientY };
-    press = { ...client, at: toolbar?.toCanvas(client) ?? null, target: event.target };
+    press = {
+      ...client,
+      at: toolbar?.toCanvas(client) ?? null,
+      target: event.target,
+      pointerType: event.pointerType,
+    };
   }
   if (root !== undefined && !root.contains(document.activeElement)) focus();
 }
@@ -1069,6 +1152,8 @@ function onkeydowncapture(event: KeyboardEvent) {
   tabindex="0"
   bind:this={root}
   style:--tilie-zoom={viewport.zoom}
+  bind:clientWidth={null, resized}
+  bind:clientHeight={null, resized}
   {onpointerdowncapture}
   {onpointerupcapture}
   {ondblclick}
@@ -1114,7 +1199,7 @@ function onkeydowncapture(event: KeyboardEvent) {
           bind:this={resizer}
           block={resizable.block}
           item={resizable.item}
-          {gestures}
+          {level}
           box={resizableBox}
           {view}
           {metrics}

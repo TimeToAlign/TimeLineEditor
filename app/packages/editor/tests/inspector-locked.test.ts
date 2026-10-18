@@ -136,8 +136,9 @@ describe("the Locked checkbox", () => {
     flushSync();
   }
 
+  /** The Properties panel's one form, and its accessible name. */
   function form(): HTMLFormElement | null {
-    return document.querySelector<HTMLFormElement>('form[aria-label="Block properties"]');
+    return document.querySelector<HTMLFormElement>("#inspector-panel-properties form");
   }
 
   function checkboxes(): HTMLInputElement[] {
@@ -147,14 +148,14 @@ describe("the Locked checkbox", () => {
   }
 
   it.each([
-    ["fixed", true],
-    ["free", false],
-    ["take", false],
-    ["pages", false],
-    ["page_1", true],
-    ["part_1", false],
-    ["fixed/card", true],
-  ])("shows %s's locked, disabled", (element, locked) => {
+    ["fixed", true, "Card properties"],
+    ["free", false, "Card properties"],
+    ["take", false, "Timeline properties"],
+    ["pages", false, "Card properties"],
+    ["page_1", true, "Timeline properties"],
+    ["part_1", false, "Timeline properties"],
+    ["fixed/card", true, "Card properties"],
+  ])("shows %s's locked, disabled", (element, locked, label) => {
     show(storeOf(), [`${A}/${element}`]);
     const found = checkboxes();
     expect(found).toHaveLength(1);
@@ -163,8 +164,14 @@ describe("the Locked checkbox", () => {
     expect(checkbox.disabled).toBe(true);
     expect(checkbox.title).toBe(UNAVAILABLE);
     const cell = checkbox.closest("label");
+    expect(form()?.getAttribute("aria-label")).toBe(label);
     expect(cell?.parentElement).toBe(form());
-    expect(cell?.previousElementSibling?.querySelector("input[name=height]")).not.toBe(null);
+    if (label === "Timeline properties") {
+      // A child drawn in no card of its own has no geometry: the checkbox is the form's only cell.
+      expect(form()?.children).toHaveLength(1);
+    } else {
+      expect(cell?.previousElementSibling?.querySelector("input[name=height]")).not.toBe(null);
+    }
     expect(document.querySelectorAll("fieldset, legend, .locked-hint")).toHaveLength(0);
     const notes = [...document.querySelectorAll("*")].filter(
       (node) => node.textContent === UNAVAILABLE,
@@ -173,14 +180,17 @@ describe("the Locked checkbox", () => {
   });
 
   it.each([
-    ["a block", [A]],
-    ["a group", [`${A}/group_1`]],
-    ["a region", [`${A}/free/region_1`]],
-    ["two timelines", [`${A}/fixed`, `${A}/free`]],
-  ])("is absent for %s", (_case, selection) => {
+    ["a block", [A], "Block properties"],
+    ["a group", [`${A}/group_1`], "Frame properties"],
+    ["a region", [`${A}/free/region_1`], null],
+    ["two timelines", [`${A}/fixed`, `${A}/free`], null],
+  ])("is absent for %s", (_case, selection, label) => {
     show(storeOf(), selection);
     expect(checkboxes()).toHaveLength(0);
-    expect(form()?.lastElementChild?.querySelector("input[name=height]")).not.toBe(null);
+    expect(form()?.getAttribute("aria-label") ?? null).toBe(label);
+    if (label !== null) {
+      expect(form()?.lastElementChild?.querySelector("input[name=height]")).not.toBe(null);
+    }
   });
 
   it("follows the store", () => {

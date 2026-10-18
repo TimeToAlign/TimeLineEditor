@@ -6,7 +6,7 @@
 import type { Real } from "@timetoalign/tilie-core";
 import type { Band, Position } from "./canvas.ts";
 import type { Side } from "./cascade.ts";
-import { LABEL_GAP, MARKER_HEIGHT } from "./constants.ts";
+import { LABEL_GAP, MARKER_BASE, MARKER_HEIGHT } from "./constants.ts";
 import type { LineElement, MarkerElement, TextElement } from "./elements.ts";
 import { labelTiers, Rows } from "./fit.ts";
 import { centredLabel } from "./names.ts";
@@ -126,6 +126,7 @@ export function wedgeElements(scope: Scope, marks: Wedges, placed: Position): Ma
       x: x(marker.at),
       yt: yAt(marker.side, rootWidth / 2),
       yb: yAt(marker.side, rootWidth / 2 + MARKER_HEIGHT),
+      base: MARKER_BASE,
     }));
 }
 

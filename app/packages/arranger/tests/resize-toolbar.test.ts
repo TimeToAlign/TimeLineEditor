@@ -1,15 +1,14 @@
 // @vitest-environment jsdom
 /**
- * The resize toolbar offers the modes and handles the open editor's
- * gestures allow, for a block or for an item of its drawing, mounted inside
- * a Svelte Flow canvas of one node.
+ * The resize toolbar offers the modes and handles the level allows, for a
+ * block or for a frame or card of its drawing, mounted inside a Svelte Flow
+ * canvas of one node.
  */
 
-import type { EditorKind } from "@timetoalign/tilie-core";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
-import type { Gestures } from "../src/editors.ts";
-import { GESTURES } from "../src/editors.ts";
+import type { Level } from "../src/editors.ts";
+import type { ResizedItem } from "../src/gestures.svelte.ts";
 import type { ResizeMode } from "../src/resize.ts";
 import { A, blockIn, metrics, viewOf } from "./support.ts";
 import Harness from "./ToolbarHarness.svelte";
@@ -46,18 +45,13 @@ interface Shown {
 }
 
 /** Mount the toolbar alone on block `A` holding `bundle_mixed` and read what it shows. */
-function show(
-  gestures: Gestures,
-  mode: ResizeMode,
-  item?: { key: string; editor: EditorKind },
-  locked = false,
-): Shown {
+function show(level: Level, mode: ResizeMode, item?: ResizedItem, locked = false): Shown {
   clear();
   const view = viewOf({ id: A, fixture: "bundles/bundle_mixed" });
   const toolbar = {
     block: blockIn(view, A),
     item,
-    gestures,
+    level,
     box: { x: 0, y: 0, width: 100, height: 50 },
     view,
     metrics,
@@ -82,6 +76,13 @@ function show(
   };
 }
 
+/** The titles of the mode buttons shown. */
+function titles(): string[] {
+  return [...document.querySelectorAll("button[data-testid^='mode-']")].map(
+    (button) => button.getAttribute("title") ?? "",
+  );
+}
+
 const EIGHT = [
   "top-left",
   "top",
@@ -92,63 +93,100 @@ const EIGHT = [
   "bottom-left",
   "left",
 ];
+const CORNERS = ["top-left", "top-right", "bottom-right", "bottom-left"];
+const THREE = ["Scale", "Box", "Stretch"];
+const FRAME: ResizedItem = { kind: "frame", key: "group_1", item: "group_1" };
+const CARD: ResizedItem = { kind: "card", key: "annotations", item: "annotations" };
+const PERFORMANCE: ResizedItem = { kind: "member", key: "performance", item: "group_1" };
+const SCORE: ResizedItem = { kind: "member", key: "score", item: "group_1" };
 
 describe("ResizeToolbar", () => {
   it("offers a block every mode on the arranger, as before", () => {
-    expect(show(GESTURES.arranger, "stretch")).toEqual({
-      buttons: ["Scale", "Box", "Stretch"],
+    expect(show("arranger", "stretch")).toEqual({
+      buttons: THREE,
       pressed: ["Stretch"],
       disabled: [],
       handles: EIGHT,
     });
-    expect(show(GESTURES.arranger, "scale").handles).toEqual([
-      "top-left",
-      "top-right",
-      "bottom-right",
-      "bottom-left",
-    ]);
+    expect(show("arranger", "scale").handles).toEqual(CORNERS);
+    expect(titles()[2]).toBe("Stretch: stretch lengths and distances (3)");
   });
 
   it("shows no handle and disables the modes while locked", () => {
-    expect(show(GESTURES.arranger, "box", undefined, true)).toEqual({
-      buttons: ["Scale", "Box", "Stretch"],
+    expect(show("arranger", "box", undefined, true)).toEqual({
+      buttons: THREE,
       pressed: ["Box"],
-      disabled: ["Scale", "Box", "Stretch"],
+      disabled: THREE,
       handles: [],
     });
   });
 
-  it("offers an item box and stretch in the bundle editor", () => {
-    const item = { key: "group_2", editor: "bundle" as const };
-    expect(show(GESTURES.bundle, "scale", item)).toEqual({
-      buttons: ["Box", "Stretch"],
+  it("offers a frame every mode on the arranger, scaled from its corners", () => {
+    expect(show("arranger", "scale", FRAME)).toEqual({
+      buttons: THREE,
+      pressed: ["Scale"],
+      disabled: [],
+      handles: CORNERS,
+    });
+    expect(titles()).toEqual([
+      "Scale: scale everything, proportions kept (1)",
+      "Box: resize the box, the content stays (2)",
+      "Stretch: stretch the length (3)",
+    ]);
+  });
+
+  it("offers the edited block and its cards every mode in the bundle editor", () => {
+    expect(show("bundle", "box")).toEqual({
+      buttons: THREE,
       pressed: ["Box"],
       disabled: [],
       handles: EIGHT,
     });
-    expect(show(GESTURES.bundle, "stretch", item).handles).toEqual(["right", "left"]);
-  });
-
-  it("offers the edited frame its box and the members' stretch in the group editor", () => {
-    const item = { key: "group_1", editor: "group" as const };
-    expect(show(GESTURES.group, "box", item).buttons).toEqual(["Box", "Stretch"]);
-    expect(show(GESTURES.group, "stretch", item).handles).toEqual(["right"]);
-  });
-
-  it("offers an ungrouped card only its stretch in the timeline editor", () => {
-    const item = { key: "annotations", editor: "timeline" as const };
-    expect(show(GESTURES.timeline, "box", item)).toEqual({
-      buttons: ["Stretch"],
+    expect(show("bundle", "stretch", CARD)).toEqual({
+      buttons: THREE,
       pressed: ["Stretch"],
       disabled: [],
       handles: ["right", "left"],
     });
   });
 
-  it("shows nothing where the editor allows no resize", () => {
+  it("offers the edited frame and its members' cards every mode in the group editor", () => {
+    expect(show("group", "box", FRAME).buttons).toEqual(THREE);
+    expect(show("group", "box", FRAME).handles).toEqual(EIGHT);
+    expect(show("group", "stretch", FRAME).handles).toEqual(["right"]);
+    expect(show("group", "scale", PERFORMANCE)).toEqual({
+      buttons: THREE,
+      pressed: ["Scale"],
+      disabled: [],
+      handles: ["bottom-right"],
+    });
+    expect(titles()).toEqual([
+      "Scale: scale the whole group (1)",
+      "Box: resize the box, the content stays (2)",
+      "Stretch: stretch every member (3)",
+    ]);
+    expect(show("group", "box", PERFORMANCE).handles).toEqual(["right", "bottom-right", "bottom"]);
+    expect(show("group", "stretch", PERFORMANCE).handles).toEqual(["right"]);
+  });
+
+  it("offers the edited card every mode in the timeline editor", () => {
+    expect(show("timeline", "box", CARD)).toEqual({
+      buttons: THREE,
+      pressed: ["Box"],
+      disabled: [],
+      handles: EIGHT,
+    });
+    expect(show("timeline", "stretch", SCORE)).toEqual({
+      buttons: THREE,
+      pressed: ["Stretch"],
+      disabled: [],
+      handles: ["right"],
+    });
+  });
+
+  it("shows nothing where the level does not resize the box", () => {
     const nothing = { buttons: [], pressed: [], disabled: [], handles: [] };
-    const member = { ...GESTURES.timeline, stretchCard: false };
-    expect(show(member, "stretch", { key: "group_1", editor: "timeline" })).toEqual(nothing);
-    expect(show(GESTURES.bundle, "box")).toEqual(nothing);
+    expect(show("group", "box")).toEqual(nothing);
+    expect(show("timeline", "box", FRAME)).toEqual(nothing);
   });
 });

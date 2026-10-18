@@ -3,7 +3,8 @@
  * without an editor open; the manifest as text, applied as one command, refused with
  * its path, and Apply and Revert enabled exactly while the text is edited,
  * in the complete and the minimal form with the styling excluded or
- * included; the block properties form; and the disabled Locked checkbox
+ * included; the properties form of a block, a frame and a card, following a
+ * frame's Stretch live in the bundle editor; and the disabled Locked checkbox
  * of a selected timeline, and what the selection names beside the heading
  * (a bundle, a group, a timeline, a card), on `bundles` and for a pressed
  * card. The expected values are derived in `README.md` ("inspector.spec.ts").
@@ -34,6 +35,7 @@ import {
   SMALL,
   selection,
   setViewport,
+  viewportOf,
 } from "./support.ts";
 
 function manifestText(page: Page) {
@@ -405,7 +407,7 @@ test("a press on a card shows its timeline's checkbox", async ({ page }) => {
   // The cell right after the height field's.
   await expect(
     page
-      .getByRole("form", { name: "Block properties" })
+      .getByRole("form", { name: "Card properties" })
       .locator("label:has(input[name=height]) + label")
       .getByRole("checkbox", { name: "Locked", exact: true }),
   ).toHaveCount(1);
@@ -419,6 +421,89 @@ test("a press on a card shows its timeline's checkbox", async ({ page }) => {
   await expect(locked).toHaveCount(0);
   await expect(subject(page)).toHaveText("Anonymous bundle");
   expect(await journalLength(page)).toBe(6);
+});
+
+test("the form edits the selected frame's and card's places, never the block's", async ({
+  page,
+}) => {
+  await page.evaluate((text) => window.__tilie.load(text), fixtureText("bundles"));
+  await expect.poll(() => journalLength(page)).toBe(OPENED_JOURNAL.bundles);
+  await page.evaluate((address) => window.__tilie.select([address]), `${BUNDLES.mixed}/group_1`);
+  const frame = page.getByRole("form", { name: "Frame properties" });
+  const length = frame.getByLabel("length", { exact: true });
+  await expect(length).toHaveValue("400");
+  await expect(frame.getByLabel("scale", { exact: true })).toHaveValue("1");
+  await expect(frame.getByLabel("spacing", { exact: true })).toHaveCount(0);
+  await expect(frame.getByLabel("x", { exact: true })).toBeDisabled();
+  await expect(frame.getByLabel("y", { exact: true })).toBeDisabled();
+  await length.fill("300");
+  await length.press("Enter");
+  await expect.poll(() => journalLength(page)).toBe(OPENED_JOURNAL.bundles + 1);
+  expect(await commandsFrom(page, OPENED_JOURNAL.bundles)).toEqual([
+    {
+      type: "set",
+      changes: [
+        { target: `${BUNDLES.mixed}/group_1`, values: { place: { length: 300 } } },
+        { target: `${BUNDLES.mixed}/group_2`, values: { place: { x: 8, y: 176.3671875 } } },
+        { target: `${BUNDLES.mixed}/annotations`, values: { place: { x: 8, y: 358.50390625 } } },
+      ],
+    },
+  ]);
+  expect((await placement(page, BUNDLES.mixed)).length).toBe(400);
+  await expect(length).toHaveValue("300");
+
+  await page.evaluate((address) => window.__tilie.select([address]), `${BUNDLES.mixed}/score/card`);
+  const card = page.getByRole("form", { name: "Card properties" });
+  await expect(card.getByLabel("group length", { exact: true })).toHaveValue("300");
+  const width = card.getByLabel("width", { exact: true });
+  await width.fill("650");
+  await width.press("Enter");
+  await expect.poll(() => journalLength(page)).toBe(OPENED_JOURNAL.bundles + 2);
+  expect(await commandsFrom(page, OPENED_JOURNAL.bundles + 1)).toEqual([
+    {
+      type: "set",
+      changes: [{ target: `${BUNDLES.mixed}/score`, values: { place: { width: 650 } } }],
+    },
+  ]);
+  await expect(width).toHaveValue("650");
+});
+
+test("the form follows a frame's Stretch live in the bundle editor", async ({ page }) => {
+  await page.evaluate((text) => window.__tilie.load(text), fixtureText("bundles"));
+  await expect.poll(() => journalLength(page)).toBe(OPENED_JOURNAL.bundles);
+  const at = { x: 40, y: 40, zoom: 1 };
+  expect(await page.evaluate((target) => window.__tilie.open(target), BUNDLES.mixed)).toBeNull();
+  await expect.poll(() => viewportOf(page)).not.toEqual(at);
+  await setViewport(page, at);
+  await page.evaluate((address) => window.__tilie.select([address]), `${BUNDLES.mixed}/group_1`);
+  await tab(page, "Properties").click();
+  const frame = page.getByRole("form", { name: "Frame properties" });
+  const length = frame.getByLabel("length", { exact: true });
+  const width = frame.getByLabel("width", { exact: true });
+  await expect(length).toHaveValue("400");
+  await expect(width).toHaveValue("562.48");
+  const entries = () => page.evaluate(() => window.__tilie.store().entries.length);
+  await page.locator('[data-testid="mode-stretch"]').click();
+  const grip = await page.locator('[data-testid="handle-right"]').boundingBox();
+  if (grip === null) throw new Error("the right handle is not displayed");
+  await dragStart(page, { x: grip.x + grip.width / 2, y: grip.y + grip.height / 2 }, 20, 0);
+  await expect(length).toHaveValue("420");
+  await expect(width).toHaveValue("582.48");
+  expect(await entries()).toBe(0);
+  await page.mouse.up();
+  await expect.poll(entries).toBe(1);
+  expect(
+    await page.evaluate(
+      (block) => JSON.parse(JSON.stringify(window.__tilie.store().view.blocks[block]?.places)),
+      BUNDLES.mixed,
+    ),
+  ).toEqual({
+    group_1: { length: 420 },
+    group_2: { x: 8, y: 176.3671875 },
+    annotations: { x: 8, y: 358.50390625 },
+  });
+  await expect(length).toHaveValue("420");
+  await expect(width).toHaveValue("582.48");
 });
 
 /** The timeskeleton package that `core` depends on, and its schema version's manifest fixtures. */
@@ -528,8 +613,8 @@ for (const mode of MODES) {
     const locked = page.getByRole("checkbox", { name: "Locked", exact: true });
     await expect(locked).toHaveCount(1);
     await expect(locked).not.toBeChecked();
-    await expect(field(page, "x")).toHaveValue("640");
-    await expect(field(page, "y")).toHaveValue("160");
+    await expect(field(page, "x")).toHaveValue("8");
+    await expect(field(page, "y")).toHaveValue("8");
   });
 }
 

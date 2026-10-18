@@ -38,7 +38,7 @@ import { type Context, type Entry, type Holder, rowPitch, traverse } from "./tra
 /**
  * One member drawing laid out before its horizontal start and its top are
  * known: what the shared start `x0` needs, its height, and its elements once
- * `x0`, the name column `xn` and its top are given.
+ * `x0`, the name column `n` and its top are given.
  */
 export interface MemberLayout {
   /** The widths of its drawn names, its ancestors' included. */
@@ -50,7 +50,7 @@ export interface MemberLayout {
   /** Its height `Hm`: the content height `Hc` (section 6.5), the ancestor band included. */
   readonly height: number;
   /** Its elements in descriptor order (sections 7.2 and 8.5, without its card). */
-  elements(x0: number, xn: number, top: number): DrawnElement[];
+  elements(x0: number, n: number, top: number): DrawnElement[];
 }
 
 /**
@@ -104,10 +104,10 @@ export function layoutMember(
     below: below.rows,
   });
 
-  const elements = (x0: number, xn: number, top: number): DrawnElement[] => {
+  const elements = (x0: number, n: number, top: number): DrawnElement[] => {
     const distance = (line: Entry) =>
       band(line.style.side).rows[(children.row.get(line) as number) - 1] as number;
-    const placed = position(scope, yLocal, distance, x0, xn, top);
+    const placed = position(scope, yLocal, distance, x0, n, top);
     return [
       ...breakElements(drawnFlow, band, placed, Pv, Hc),
       ...mapElements(maps, placed),

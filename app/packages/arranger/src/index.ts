@@ -23,8 +23,16 @@ export {
   zOrderCommand,
 } from "./commands.ts";
 export { descriptorsOf, drawingOf, segmentAnchor } from "./drawing.ts";
-export type { Editing, Gestures } from "./editors.ts";
-export { editedElement, editorTargetOf, GESTURES, gesturesOf, sameEditing } from "./editors.ts";
+export type { Editing, Gestures, Level, Reach, ResizedKind, Resizing, Written } from "./editors.ts";
+export {
+  editedElement,
+  editorTargetOf,
+  GESTURES,
+  gesturesOf,
+  RESIZING,
+  resizes,
+  sameEditing,
+} from "./editors.ts";
 export type { Viewport } from "./focus.ts";
 export {
   FOCUS_DURATION,
@@ -40,18 +48,22 @@ export type {
   MemberDragOptions,
   Point,
   ResizedItem,
-  ResizeSubject,
 } from "./gestures.svelte.ts";
 export { CLICK_DISTANCE, itemDrag, listen, memberDrag, resizeModes } from "./gestures.svelte.ts";
-export type { ItemResizeMode, PlaceValues } from "./items.ts";
+export type { PlaceValues } from "./items.ts";
 export {
+  cappedLength,
   itemHandlesFor,
   itemMoveCommand,
   itemOf,
   itemResizeCommand,
   itemResizeValues,
+  keepsItems,
+  placeCommand,
+  placeKeyOf,
   placesAfter,
   placesWith,
+  resizedItemOf,
 } from "./items.ts";
 export type { LiveStore } from "./liveStore.svelte.ts";
 export { liveStore } from "./liveStore.svelte.ts";

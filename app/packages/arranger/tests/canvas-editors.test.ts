@@ -8,10 +8,13 @@
 
 import type { Store, View } from "@timetoalign/tilie-core";
 import { createStore } from "@timetoalign/tilie-core";
+import type { RectElement } from "@timetoalign/tilie-layout";
 import type { Viewport } from "@xyflow/svelte";
 import { flushSync, mount, tick, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { removeCommand } from "../src/commands.ts";
+import { drawingOf } from "../src/drawing.ts";
+import { GRID_FREE, quantize } from "../src/numbers.ts";
 import type { Selection } from "../src/selection.ts";
 import Harness from "./CanvasHarness.svelte";
 import { A, B, changed, load, metrics, mixedView } from "./support.ts";
@@ -28,6 +31,13 @@ let store: Store;
 
 /** Whether the `matchMedia` stub reports reduced motion, so that every move of the view is at once. */
 let reduced = true;
+
+/**
+ * Every `ResizeObserver` made in this file, with the elements it observes, so
+ * that a case can report a size change (`resizeArranger`). Kept across cases:
+ * Svelte observes element sizes through one observer, made once per module.
+ */
+const observers = new Set<{ callback: ResizeObserverCallback; targets: Set<Element> }>();
 
 beforeEach(() => {
   reduced = true;
@@ -46,9 +56,20 @@ beforeEach(() => {
   vi.stubGlobal(
     "ResizeObserver",
     class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
+      readonly #observed: { callback: ResizeObserverCallback; targets: Set<Element> };
+      constructor(callback: ResizeObserverCallback) {
+        this.#observed = { callback, targets: new Set() };
+        observers.add(this.#observed);
+      }
+      observe(target: Element) {
+        this.#observed.targets.add(target);
+      }
+      unobserve(target: Element) {
+        this.#observed.targets.delete(target);
+      }
+      disconnect() {
+        this.#observed.targets.clear();
+      }
     },
   );
 });
@@ -209,6 +230,18 @@ function viewport(): Viewport {
   return { ...harness.current().viewport };
 }
 
+/** Measure the arranger `width` × `height` px and report the change to whatever observes its size. */
+async function resizeArranger(width: number, height: number): Promise<void> {
+  measure(width, height);
+  const target = arranger();
+  for (const { callback, targets } of observers) {
+    if (targets.has(target)) {
+      callback([{ target } as unknown as ResizeObserverEntry], {} as ResizeObserver);
+    }
+  }
+  await settle();
+}
+
 function selected(): string[] {
   return [...harness.current().selection];
 }
@@ -274,17 +307,15 @@ describe("the canvas opens editors", () => {
     expect(path()).toEqual([]);
   });
 
-  it("opens nothing outside the edited element nor on it, and an inside box on top", async () => {
+  it("opens nothing on the edited element, and an inside box on top", async () => {
     await show();
     open(A);
-    await doubleClick(background(B));
     await doubleClick(background(A));
     expect(path()).toEqual([{ target: A, kind: "bundle" }]);
     store.done();
     open(`${A}/group_1`);
     await settle();
     await doubleClick(drawn("group_1"));
-    await doubleClick(drawn("page/card"));
     expect(path()).toEqual([{ target: `${A}/group_1`, kind: "group" }]);
     await doubleClick(drawn("score/card"));
     expect(path()).toEqual([
@@ -333,6 +364,82 @@ describe("the canvas opens editors", () => {
     await tap(drawn("group_1"), 100, 100, 4000, "mouse");
     await tap(drawn("group_1"), 100, 100, 4100, "mouse");
     expect(path()).toEqual([]);
+  });
+});
+
+describe("a double-click outside the edited element", () => {
+  it("closes the innermost editor, as Done does", async () => {
+    await show();
+    open(A);
+    await doubleClick(pane());
+    expect(path()).toEqual([]);
+
+    open(A);
+    open(`${A}/group_1`);
+    await settle();
+    await doubleClick(background(B));
+    expect(path()).toEqual([{ target: A, kind: "bundle" }]);
+    await doubleClick(background(B));
+    expect(path()).toEqual([]);
+
+    open(`${A}/group_1`);
+    await settle();
+    await doubleClick(drawn("page/card"));
+    expect(path()).toEqual([]);
+    open(`${A}/group_1`);
+    await settle();
+    await doubleClick(background(A));
+    expect(path()).toEqual([]);
+    expect(store.journal).toEqual([]);
+  });
+
+  it("keeps the editor on the edited element, and opens an editor inside it", async () => {
+    await show();
+    open(`${A}/group_1`);
+    await settle();
+    await doubleClick(drawn("group_1"));
+    expect(path()).toEqual([{ target: `${A}/group_1`, kind: "group" }]);
+    await doubleClick(drawn("performance/card"));
+    expect(path()).toEqual([
+      { target: `${A}/group_1`, kind: "group" },
+      { target: `${A}/performance`, kind: "timeline" },
+    ]);
+  });
+
+  it("returns the view to where the closed level was entered from", async () => {
+    await show();
+    harness.showAt({ x: 12, y: -34, zoom: 0.5 });
+    await settle();
+    measure(10000, 10000);
+    await doubleClick(drawn("group_1"));
+    expect(viewport()).toEqual({ x: 3683.03076171875, y: 4285.65625, zoom: 4 });
+    await doubleClick(pane());
+    expect(path()).toEqual([]);
+    expect(viewport()).toEqual({ x: 12, y: -34, zoom: 0.5 });
+  });
+
+  it("closes the innermost editor on a double tap, once", async () => {
+    await show();
+    open(A);
+    open(`${A}/group_1`);
+    await settle();
+    await tap(pane(), 50, 50, 1000);
+    await tap(pane(), 55, 55, 1250);
+    expect(path()).toEqual([{ target: A, kind: "bundle" }]);
+    // The double-click a browser may derive from the two taps closes nothing more.
+    await doubleClick(pane(), 55, 55);
+    expect(path()).toEqual([{ target: A, kind: "bundle" }]);
+    await tap(pane(), 50, 50, 2000);
+    await tap(pane(), 50, 50, 2301);
+    expect(path()).toEqual([{ target: A, kind: "bundle" }]);
+  });
+
+  it("does nothing on the arranger", async () => {
+    await show();
+    await select(`${A}/group_1`);
+    await doubleClick(pane());
+    expect(path()).toEqual([]);
+    expect(store.journal).toEqual([]);
   });
 });
 
@@ -398,13 +505,13 @@ describe("the canvas leaves editors", () => {
     await settle();
     measure(10000, 10000);
     await doubleClick(drawn("group_1"));
-    expect(viewport()).toEqual({ x: 3759.828125, y: 4285.65625, zoom: 4 });
+    expect(viewport()).toEqual({ x: 3683.03076171875, y: 4285.65625, zoom: 4 });
     await doubleClick(drawn("score/card"));
     expect(path().map(({ target }) => target)).toEqual([`${A}/group_1`, `${A}/score`]);
-    expect(viewport()).toEqual({ x: 3759.828125, y: 4366.8046875, zoom: 4 });
+    expect(viewport()).toEqual({ x: 3683.03076171875, y: 4366.8046875, zoom: 4 });
     await press("Escape");
     expect(path().map(({ target }) => target)).toEqual([`${A}/group_1`]);
-    expect(viewport()).toEqual({ x: 3759.828125, y: 4285.65625, zoom: 4 });
+    expect(viewport()).toEqual({ x: 3683.03076171875, y: 4285.65625, zoom: 4 });
     await press("Escape");
     expect(path()).toEqual([]);
     expect(viewport()).toEqual({ x: 12, y: -34, zoom: 0.5 });
@@ -544,11 +651,35 @@ describe("the view while it moves", () => {
     await doubleClick(drawn("score/card"));
     expect(path().map(({ target }) => target)).toEqual([`${A}/group_1`, `${A}/score`]);
     await wait(1100);
-    expect(viewport()).toEqual({ x: 3759.828125, y: 4366.8046875, zoom: 4 });
+    expect(viewport()).toEqual({ x: 3683.03076171875, y: 4366.8046875, zoom: 4 });
     await press("Escape");
     await wait(1100);
     expect(path().map(({ target }) => target)).toEqual([`${A}/group_1`]);
-    expect(viewport()).toEqual({ x: 3759.828125, y: 4285.65625, zoom: 4 });
+    expect(viewport()).toEqual({ x: 3683.03076171875, y: 4285.65625, zoom: 4 });
+  });
+});
+
+describe("the view when the canvas changes size", () => {
+  it("centres the edited element again for the new size", async () => {
+    await show();
+    harness.showAt({ x: 12, y: -34, zoom: 0.5 });
+    await settle();
+    measure(10000, 10000);
+    await doubleClick(drawn("group_1"));
+    expect(viewport()).toEqual({ x: 3683.03076171875, y: 4285.65625, zoom: 4 });
+    await resizeArranger(6000, 10000);
+    expect(viewport()).toEqual({ x: 1683.03076171875, y: 4285.65625, zoom: 4 });
+    harness.showAt({ x: 5, y: 6, zoom: 1 });
+    await settle();
+    await resizeArranger(6000, 10000);
+    expect(viewport()).toEqual({ x: 5, y: 6, zoom: 1 });
+    await resizeArranger(10000, 10000);
+    expect(viewport()).toEqual({ x: 3683.03076171875, y: 4285.65625, zoom: 4 });
+    await press("Escape");
+    expect(path()).toEqual([]);
+    expect(viewport()).toEqual({ x: 12, y: -34, zoom: 0.5 });
+    await resizeArranger(6000, 10000);
+    expect(viewport()).toEqual({ x: 12, y: -34, zoom: 0.5 });
   });
 });
 
@@ -560,27 +691,211 @@ describe("the resize toolbar in an editor", () => {
   }
 
   it("offers the modes the level allows", async () => {
+    const three = ["Scale", "Box", "Stretch"];
+    const offered = async (address: string) => {
+      await select(address);
+      return modes();
+    };
     await show();
-    await select(A);
-    expect(modes()).toEqual(["Scale", "Box", "Stretch"]);
+    for (const address of [A, `${A}/group_2`, `${A}/score/card`, `${A}/annotations/card`]) {
+      expect(await offered(address)).toEqual(three);
+    }
+    expect(await offered(`${A}/score`)).toEqual([]);
     open(A);
     await settle();
-    expect(modes()).toEqual([]);
-    await select(`${A}/group_2`);
-    expect(modes()).toEqual(["Box", "Stretch"]);
-    await select(`${A}/score/card`);
-    expect(modes()).toEqual([]);
+    for (const address of [A, `${A}/group_2`, `${A}/score/card`]) {
+      expect(await offered(address)).toEqual(three);
+    }
     store.done();
     open(`${A}/group_1`);
-    await select(`${A}/group_1`);
-    expect(modes()).toEqual(["Box", "Stretch"]);
+    expect(await offered(`${A}/group_1`)).toEqual(three);
+    expect(await offered(`${A}/score/card`)).toEqual(three);
+    store.done();
+    open(`${A}/annotations`);
+    expect(await offered(`${A}/annotations/card`)).toEqual(three);
+    store.done();
+    open(`${A}/score`);
+    expect(await offered(`${A}/score/card`)).toEqual(three);
+    store.done();
+    open(`${A}/recording`);
+    expect(await offered(`${A}/excerpt/card`)).toEqual([]);
+    store.done();
+    open(`${A}/dlt_1`);
+    expect(await offered(`${A}/dlt_1`)).toEqual([]);
+  });
+
+  it("resizes a frame the arranger's click selects, in one set that moves nothing else", async () => {
+    // jsdom has no pointer capture, which a resize handle takes on its press.
+    const element = Element.prototype as Partial<Element>;
+    element.setPointerCapture ??= () => {};
+    element.releasePointerCapture ??= () => {};
+    await show();
+    await atZoomOne();
+    await clickOn(drawn("group_1"));
+    expect(selected()).toEqual([`${A}/group_1`]);
+    expect(document.querySelectorAll("[data-testid^='handle-']")).toHaveLength(8);
+    const before = store.view.blocks[A];
+    if (before === undefined) throw new Error("no block A");
+    const { items } = drawingOf(before, store.view.settings, metrics);
+    const place = (key: string) => {
+      const found = items.find((item) => item.key === key);
+      if (found === undefined) throw new Error(`no item ${key}`);
+      return found.place;
+    };
+    const handle = document.querySelector('[data-testid="handle-right"]');
+    if (handle === null) throw new Error("no resize handle");
+    pointer("pointerdown", handle, { clientX: 0, clientY: 0, pointerType: "mouse" });
+    pointer("pointermove", handle, { clientX: 60, clientY: 0, pointerType: "mouse" });
+    pointer("pointerup", handle, { clientX: 60, clientY: 0, pointerType: "mouse" });
+    await settle();
+    expect(store.journal).toHaveLength(1);
+    expect(store.entries).toEqual(store.journal);
+    const [entry] = store.journal;
+    const { x: x2, y: y2 } = place("group_2");
+    const { x: x3, y: y3 } = place("annotations");
+    expect(entry !== undefined && "command" in entry ? entry.command : null).toEqual({
+      type: "set",
+      changes: [
+        {
+          target: `${A}/group_1`,
+          values: { place: { width: quantize(place("group_1").width + 60, GRID_FREE) } },
+        },
+        { target: `${A}/group_2`, values: { place: { x: x2, y: y2 } } },
+        { target: `${A}/annotations`, values: { place: { x: x3, y: y3 } } },
+      ],
+    });
+    store.undo();
+    expect(store.view.blocks[A]).toStrictEqual(before);
+  });
+
+  it("resizes the edited block itself in the bundle editor, as on the arranger", async () => {
+    const element = Element.prototype as Partial<Element>;
+    element.setPointerCapture ??= () => {};
+    element.releasePointerCapture ??= () => {};
+    await show();
+    open(A);
+    await atZoomOne();
+    await select(A);
+    const before = store.view.blocks[A];
+    if (before === undefined) throw new Error("no block A");
+    const { width } = drawingOf(before, store.view.settings, metrics);
+    const handle = document.querySelector('[data-testid="handle-right"]');
+    if (handle === null) throw new Error("no resize handle");
+    pointer("pointerdown", handle, { clientX: 0, clientY: 0, pointerType: "mouse" });
+    pointer("pointermove", handle, { clientX: 60, clientY: 0, pointerType: "mouse" });
+    pointer("pointerup", handle, { clientX: 60, clientY: 0, pointerType: "mouse" });
+    await settle();
+    expect(store.entries).toHaveLength(1);
+    expect(store.view.blocks[A]?.width).toBe(quantize(width + 60, GRID_FREE));
+  });
+
+  /** The transform placing the mode menu, as its element carries it. */
+  function menuTransform(): string {
+    const menu = document.querySelector('[role="toolbar"][aria-label="Resize mode"]');
+    const placed = menu?.parentElement;
+    if (placed == null) throw new Error("no mode menu");
+    return placed.style.transform;
+  }
+
+  /** Block `id`'s node position on the canvas, from the transform Svelte Flow gives its element. */
+  function nodePositionOf(id: string): { x: number; y: number } {
+    const match = /translate\((-?[\d.]+)px, *(-?[\d.]+)px\)/.exec(
+      (nodeOf(id) as HTMLElement).style.transform,
+    );
+    if (match === null) throw new Error(`node ${id} has no position`);
+    return { x: Number(match[1]), y: Number(match[2]) };
+  }
+
+  /**
+   * The transform that centres the menu above the canvas box `box` and keeps
+   * its bottom 10 screen pixels clear of the box's top at the current
+   * viewport: the screen point of the box's top centre, less 10 px upwards,
+   * then the menu moved left by half its width and up by its height.
+   */
+  function above(box: { x: number; y: number; width: number }): string {
+    const { x, y, zoom } = viewport();
+    const centre = (box.x + box.width / 2) * zoom + x;
+    const top = box.y * zoom + y - 10;
+    return `translate(${centre}px, ${top}px) translate(-50%, -100%)`;
+  }
+
+  /**
+   * The canvas box of the frame or card `address` of block A as stored: its
+   * rectangle in the block's drawing (exact; the drawn `rect` rounds its
+   * attributes), placed at the node's position at the block's scale.
+   */
+  function drawnBox(address: string): { x: number; y: number; width: number } {
+    const block = store.view.blocks[A];
+    if (block === undefined) throw new Error("no block A");
+    const rect = drawingOf(block, store.view.settings, metrics).elements.find(
+      (element): element is RectElement =>
+        (element.type === "group" || element.type === "card") && element.address === address,
+    );
+    if (rect === undefined) throw new Error(`no box ${address}`);
+    const at = nodePositionOf(A);
+    return {
+      x: at.x + rect.x * block.scale,
+      y: at.y + rect.y * block.scale,
+      width: rect.width * block.scale,
+    };
+  }
+
+  it("sits above the selected item, not above its block, and follows it", async () => {
+    // jsdom has no pointer capture, which a handle and an item drag take on their press.
+    const element = Element.prototype as Partial<Element>;
+    element.setPointerCapture ??= () => {};
+    element.hasPointerCapture ??= () => false;
+    element.releasePointerCapture ??= () => {};
+    await show();
+    open(A);
+    await atZoomOne();
+    await select(`${A}/group_2`);
+    const before = drawnBox("group_2");
+    expect(menuTransform()).toBe(above(before));
+    expect(above(before)).not.toBe(above({ ...nodePositionOf(A), width: 0 }));
+
+    harness.showAt({ x: -20, y: 30, zoom: 2 });
+    await settle();
+    expect(menuTransform()).toBe(above(drawnBox("group_2")));
+
+    harness.showAt({ x: 100, y: 100, zoom: 1 });
+    await settle();
+    const handle = document.querySelector('[data-testid="handle-right"]');
+    if (handle === null) throw new Error("no resize handle");
+    pointer("pointerdown", handle, { clientX: 0, clientY: 0, pointerType: "mouse" });
+    pointer("pointermove", handle, { clientX: 60, clientY: 0, pointerType: "mouse" });
+    pointer("pointerup", handle, { clientX: 60, clientY: 0, pointerType: "mouse" });
+    await settle();
+    const resized = drawnBox("group_2");
+    expect(resized.width).not.toBe(before.width);
+    expect(menuTransform()).toBe(above(resized));
+
+    // jsdom draws nothing; the drag reads only that the drawing has a screen CTM.
+    Object.assign(nodeOf(A).querySelector("svg") as SVGSVGElement, {
+      getScreenCTM: () => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 }),
+    });
+    const frame = drawn("group_2");
+    pointer("pointerdown", frame, { clientX: 100, clientY: 200, pointerType: "mouse" });
+    pointer("pointermove", frame, { clientX: 140, clientY: 224, pointerType: "mouse" });
+    pointer("pointerup", frame, { clientX: 140, clientY: 224, pointerType: "mouse" });
+    await settle();
+    const moved = drawnBox("group_2");
+    expect(moved.x).not.toBe(resized.x);
+    expect(menuTransform()).toBe(above(moved));
+
     store.done();
     open(`${A}/annotations`);
     await select(`${A}/annotations/card`);
-    expect(modes()).toEqual(["Stretch"]);
-    store.done();
-    open(`${A}/score`);
-    await select(`${A}/score/card`);
-    expect(modes()).toEqual([]);
+    expect(menuTransform()).toBe(above(drawnBox("annotations/card")));
+  });
+
+  it("sits above the selected block on the arranger", async () => {
+    await show();
+    await atZoomOne();
+    await select(A);
+    const svg = nodeOf(A).querySelector("svg");
+    const [, , width = 0] = (svg?.getAttribute("viewBox") ?? "").split(" ").map(Number);
+    const scale = store.view.blocks[A]?.scale ?? 1;
+    expect(menuTransform()).toBe(above({ ...nodePositionOf(A), width: width * scale }));
   });
 });

@@ -71,6 +71,7 @@ describe("descriptors", () => {
       y: 4,
       width: 40,
       height: 20,
+      shadowOffset: 0,
     });
     expect(svgBody(drawing)).toEqual([
       '<rect data-address="g" x="8" y="4" width="40" height="20" rx="6" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="1"/>',
@@ -96,6 +97,7 @@ describe("descriptors", () => {
       y: 4,
       width: 40,
       height: 20,
+      shadowOffset: 2,
     });
 
   it("writes a card's shadow, fill alone, before the card", () => {
@@ -128,6 +130,7 @@ describe("descriptors", () => {
       y: 4,
       width: 40,
       height: 20,
+      shadowOffset: 0,
     });
     expect(svgBody(drawing)).toEqual([
       '<rect data-address="g" x="8" y="4" width="40" height="20" rx="6" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="1"/>',
@@ -142,10 +145,57 @@ describe("descriptors", () => {
       x: 10,
       yt: 5,
       yb: 18,
+      base: 6,
     });
     expect(svgBody(drawing)).toEqual([
       '<polygon data-address="w" points="10,5 7,18 13,18" fill="#000000"/>',
     ]);
+  });
+
+  it("takes a wedge's base, a map's spacing and a card's shadow offset from the element", () => {
+    const wedge = synthetic({
+      type: "wedge",
+      address: "w",
+      style: style({ fill: "#000000" }),
+      x: 10,
+      yt: 5,
+      yb: 18,
+      base: 12,
+    });
+    expect(svgBody(wedge)).toEqual([
+      '<polygon data-address="w" points="10,5 4,18 16,18" fill="#000000"/>',
+    ]);
+    const map = synthetic({
+      type: "map",
+      address: "m",
+      style: style({ stroke: "#00CC00", "stroke-dasharray": "1 1" }),
+      xs: 10,
+      xe: 50,
+      yc: 20,
+      spacing: 4,
+    });
+    expect(svgBody(map)).toEqual([
+      '<polygon data-address="m" points="10,18 50,18 50,22 10,22" fill="none" stroke="#00CC00" stroke-width="1" stroke-dasharray="1 1"/>',
+    ]);
+    const card = synthetic({
+      type: "card",
+      address: "m/card",
+      style: style({
+        fill: "#FFFFFF",
+        stroke: "#C4C9D1",
+        "stroke-width": 0.75,
+        rx: 5,
+        shadow: "#B8BEC8",
+      }),
+      x: 8,
+      y: 4,
+      width: 40,
+      height: 20,
+      shadowOffset: 4,
+    });
+    expect(svgBody(card)[0]).toBe(
+      '<rect data-address="m/card" x="12" y="8" width="40" height="20" rx="5" fill="#B8BEC8"/>',
+    );
   });
 
   it("writes a boundary as a line", () => {
@@ -398,6 +448,7 @@ describe("descriptors", () => {
       xs: 10,
       xe: 50,
       yc: 20,
+      spacing: 2,
     });
     expect(svgBody(drawing)).toEqual([
       '<polygon data-address="m" points="10,19 50,19 50,21 10,21" fill="none" stroke="#00CC00" stroke-width="1" stroke-dasharray="1 1"/>',

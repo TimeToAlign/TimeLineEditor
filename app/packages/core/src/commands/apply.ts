@@ -61,12 +61,19 @@ import {
   unknownMember,
 } from "../values.ts";
 import type { Block, BlockId, BlockPlacement, Place } from "../workspace/blocks.ts";
-import { BLOCK_ID, bandKeys, itemKeys, PLACE_MEMBERS } from "../workspace/blocks.ts";
+import {
+  BLOCK_ID,
+  bandKeys,
+  CARD_MEMBERS,
+  cardKeys,
+  itemKeys,
+  PLACE_MEMBERS,
+} from "../workspace/blocks.ts";
 import type { Address } from "../workspace/ids.ts";
 import { parseAddress, takenIds, WORKSPACE } from "../workspace/ids.ts";
 import { indexBetween } from "../workspace/order.ts";
 import type { View, WorkspaceSettings } from "../workspace/view.ts";
-import { keyProblems } from "../workspace/view.ts";
+import { cardMemberProblem, keyProblems } from "../workspace/view.ts";
 import { parseCommand } from "./parse.ts";
 import type {
   AddCommand,
@@ -454,14 +461,22 @@ const NULLABLE_PLACE_READERS = Object.fromEntries(
 );
 
 /**
- * Merge members into the place of an item: a value states the member, null
- * unstates it, and a place left without members is no place.
+ * Merge members into the place of an item, or into the size of a member's
+ * card: a value states the member, null unstates it, and a place left
+ * without members is no place. A member's card takes only its size; the
+ * length and scale it is drawn with are its group's.
  */
 const setPlace: Setter<KeyedTarget> = (view, target, value, path) => {
   const key = keyOf(target);
   const { block } = target;
   if (!itemKeys(block.manifest).has(key)) {
-    return problem(ErrorCode.notAnItem, `${key} is not drawn in a card of its own`, path);
+    if (!cardKeys(block.manifest).has(key)) {
+      return problem(ErrorCode.notAnItem, `${key} is not drawn in a card of its own`, path);
+    }
+    const object = readObject(value, path);
+    if (isCommandError(object)) return object;
+    const card = cardMemberProblem(key, object, path, ErrorCode.notAnItem);
+    if (card !== undefined) return card;
   }
   const given = readMembers(value, path, NULLABLE_PLACE_READERS);
   if (isCommandError(given)) return given;
@@ -583,6 +598,7 @@ const ROOT_SET: { readonly [property: string]: Setter<TimelineTarget> } = {
 
 const CHILD_SET: { readonly [property: string]: Setter<TimelineTarget> } = {
   ...TIMELINE_SET,
+  place: setPlace,
   offset: (view, target, value, path) => {
     const parent = target.at.parent as Located;
     const json = toJson(value, path);
@@ -1096,16 +1112,37 @@ function settle(view: View, touched: ReadonlySet<BlockId>): View | CommandError 
     const schema = schemaProblems(manifest);
     const [first] = schema.length > 0 ? schema : checkOrdered(manifest);
     if (first !== undefined) return { ...first, path: [id, "manifest", ...first.path] };
-    const items = itemKeys(manifest);
     const keys = bandKeys(manifest);
     current = withBlock(current, {
       ...block,
-      places: kept(block.places, items),
+      places: keptPlaces(block.places, manifest),
       bands: kept(block.bands, keys),
       manifest,
     });
   }
   return current;
+}
+
+/**
+ * `places` with only the keys naming an item or a member's card, a card's
+ * place cut to its size and dropped when nothing is left (a root that became
+ * a member keeps its requested size); `places` itself when nothing goes.
+ */
+function keptPlaces(places: Block["places"], manifest: Manifest): Block["places"] {
+  const items = itemKeys(manifest);
+  const cards = cardKeys(manifest);
+  const entries = Object.entries(places).flatMap(([key, place]): [string, Place][] => {
+    if (items.has(key)) return [[key, place]];
+    if (!cards.has(key)) return [];
+    const size = CARD_MEMBERS.filter((member) => place[member] !== undefined);
+    if (size.length === Object.keys(place).length) return [[key, place]];
+    if (size.length === 0) return [];
+    return [[key, Object.fromEntries(size.map((member) => [member, place[member]]))]];
+  });
+  const same = entries.every(([key, place]) => places[key] === place);
+  return same && entries.length === Object.keys(places).length
+    ? places
+    : Object.fromEntries(entries);
 }
 
 /** `object` with only the keys `keep` holds; `object` itself when it holds no other. */

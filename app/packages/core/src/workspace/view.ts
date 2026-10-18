@@ -15,7 +15,7 @@ import {
   readPositive,
 } from "../values.ts";
 import type { Block, BlockId, BlockPlacement } from "./blocks.ts";
-import { BLOCK_ID, bandKeys, itemKeys } from "./blocks.ts";
+import { BLOCK_ID, bandKeys, CARD_MEMBERS, cardKeys, itemKeys, PLACE_MEMBERS } from "./blocks.ts";
 
 export interface WorkspaceMeta {
   readonly format: "tilie-workspace";
@@ -90,28 +90,57 @@ function placementProblems(block: Block, path: readonly PathSegment[]): Problem[
 }
 
 /**
- * The keys of a block's `places` naming no item of its manifest and of its
- * `bands` naming no group or timeline, in that order and each in code-point
- * order of its keys, each at `path`
- * followed by `places` or `bands` and the key.
+ * The first member, in place order, that a member's card place states
+ * beyond its size, as a problem of `code` at `path` followed by that
+ * member; `undefined` when it states only its size.
+ */
+export function cardMemberProblem(
+  key: string,
+  place: object,
+  path: readonly PathSegment[],
+  code: ErrorCode = ErrorCode.unknownMember,
+): Problem | undefined {
+  const extra = PLACE_MEMBERS.find(
+    (member) =>
+      Object.hasOwn(place, member) && !(CARD_MEMBERS as readonly string[]).includes(member),
+  );
+  return extra === undefined
+    ? undefined
+    : problem(code, `${key} is a member: its card takes only width and height`, [...path, extra]);
+}
+
+/**
+ * The keys of a block's `places` naming no item and no member of its
+ * manifest, or naming a member and stating more than its card's size, and
+ * of its `bands` naming no group or timeline, in that order and each in
+ * code-point order of its keys, each at `path` followed by `places` or
+ * `bands` and the key (and for a card the member it may not state).
  */
 export function keyProblems(
   block: Pick<Block, "id" | "places" | "bands" | "manifest">,
   path: readonly PathSegment[],
 ): Problem[] {
   const items = itemKeys(block.manifest);
+  const cards = cardKeys(block.manifest);
   const bands = bandKeys(block.manifest);
   return [
     ...Object.keys(block.places)
       .sort(compareCodePoints)
       .filter((key) => !items.has(key))
-      .map((key) =>
-        problem(
-          ErrorCode.unknownPlace,
-          `${key} is no group and no ungrouped root of block ${block.id}`,
-          [...path, "places", key],
-        ),
-      ),
+      .flatMap((key) => {
+        const at = [...path, "places", key];
+        if (!cards.has(key)) {
+          return [
+            problem(
+              ErrorCode.unknownPlace,
+              `${key} is no group, no ungrouped root and no member of block ${block.id}`,
+              at,
+            ),
+          ];
+        }
+        const card = cardMemberProblem(key, block.places[key] as object, at);
+        return card === undefined ? [] : [card];
+      }),
     ...Object.keys(block.bands)
       .sort(compareCodePoints)
       .filter((key) => !bands.has(key))

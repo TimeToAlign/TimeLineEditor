@@ -6,7 +6,7 @@
 import { compareReal, elementKey, type Real, type TimelineManifest } from "@timetoalign/tilie-core";
 import type { Band, Position } from "./canvas.ts";
 import type { Style } from "./cascade.ts";
-import { MARKER_HEIGHT } from "./constants.ts";
+import { MARKER_BASE, MARKER_HEIGHT } from "./constants.ts";
 import type { LineElement, LineEnd, MarkerElement, TextElement } from "./elements.ts";
 import { labelTiers, Rows } from "./fit.ts";
 import { type AncestorName, centredLabel, nameOf } from "./names.ts";
@@ -222,6 +222,7 @@ export function ancestorMarkElements(
       x: x0 + L * mark.u,
       yt: y - w / 2,
       yb: y - (w / 2 + MARKER_HEIGHT),
+      base: MARKER_BASE,
     }));
   });
 }

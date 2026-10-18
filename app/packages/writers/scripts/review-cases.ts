@@ -3,8 +3,10 @@
  * schema package but the corpus ones (`corpus_*`) at the default placement,
  * plus resized
  * drawings of `nested` and `map` with its child's map moved below the child,
- * two bundles with items at stated places, and `styled__score` in band
- * orders stated for the block, for its timeline, and for both.
+ * two bundles with items at stated places, `styled__score` in band
+ * orders stated for the block, for its timeline, and for both, then a
+ * bundle with a scaled card and one with a scaled frame whose member's card
+ * requests a size.
  * Each is also a drawing fixture of the schema package
  * (`fixtures/<version>/drawings/`).
  */
@@ -147,6 +149,16 @@ export function reviewCases(): ReviewCase[] {
       order: ["flow", "regions", "children"],
       bands: { score: ["regions", "children", "flow"] },
     }),
+  );
+  add(
+    "bundle_ungrouped__scale",
+    "bundles/bundle_ungrouped",
+    at({ places: { recording: { scale: 1.5 } } }),
+  );
+  add(
+    "bundle_mixed__cards",
+    "bundles/bundle_mixed",
+    at({ places: { group_1: { scale: 1.25 }, performance: { width: 650, height: 120 } } }),
   );
   return cases;
 }

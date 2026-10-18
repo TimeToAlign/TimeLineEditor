@@ -1,11 +1,18 @@
 /**
  * The store as Svelte state: each getter reads the store and registers the
  * reading effect or template with the store's subscription, so a component
- * re-reads after every change of the view, a level's entries, `undone` or
- * `editing`, and mirrors none of it.
+ * re-reads after every change of the view, a level's entries or undo state,
+ * or `editing`, and mirrors none of it.
  */
 
-import type { Entry, OpenEditor, Store, View, Workspace } from "@timetoalign/tilie-core";
+import type {
+  Entry,
+  ListedEntry,
+  OpenEditor,
+  Store,
+  View,
+  Workspace,
+} from "@timetoalign/tilie-core";
 import { createSubscriber } from "svelte/reactivity";
 
 export interface LiveStore {
@@ -13,7 +20,7 @@ export interface LiveStore {
   readonly view: View;
   readonly editing: readonly OpenEditor[];
   readonly entries: readonly Entry[];
-  readonly undone: readonly Entry[];
+  readonly listed: readonly ListedEntry[];
   readonly journal: readonly Entry[];
   readonly sessions: Workspace["sessions"];
   readonly changes: number;
@@ -37,8 +44,8 @@ export function liveStore(store: Store): LiveStore {
     get entries() {
       return tracked((s) => s.entries);
     },
-    get undone() {
-      return tracked((s) => s.undone);
+    get listed() {
+      return tracked((s) => s.listed);
     },
     get journal() {
       return tracked((s) => s.journal);

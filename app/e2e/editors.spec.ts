@@ -1,10 +1,12 @@
 /**
  * The editors on the canvas: entering by double-click and Enter, the
  * viewport's move there and back, the faded and inert surroundings, nested
- * editors, Done folding a session into one journal entry, Cancel and its
+ * editors, Done folding a session into one journal entry undone one change
+ * at a time, Cancel and its
  * question, Escape, moving an item in the bundle editor, reordering a
  * group's members in the group editor, the refusal of a change outside the
- * edited element, and the Journal tab. The expected values are derived in
+ * edited element, the Journal tab, and a member's card stretching its group
+ * in its timeline editor. The expected values are derived in
  * `README.md` ("editors.spec.ts"); the double tap is in `touch.spec.ts`.
  */
 
@@ -14,6 +16,8 @@ import path from "node:path";
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import { drawingOf } from "../packages/arranger/src/drawing.ts";
+import { focusViewport } from "../packages/arranger/src/focus.ts";
+import { nodePosition } from "../packages/arranger/src/project.ts";
 import type { CommandError } from "../packages/core/src/index.ts";
 import { isLoadError, readWorkspace } from "../packages/core/src/index.ts";
 import {
@@ -324,17 +328,7 @@ test.describe("on bundles", () => {
     await expect.poll(() => selection(page)).toEqual([]);
     expect(await editing(page)).toEqual(group);
 
-    await page.mouse.dblclick(pane.x, pane.y);
-    expect(await editing(page)).toEqual(group);
-    expect(await viewportOf(page)).toEqual(VIEW);
-    for (const [block, address] of [
-      [BUNDLES.shared, "group_1"],
-      [MIXED, "group_2"],
-    ] as const) {
-      const { x, y } = await partCentre(page, block, address);
-      await page.mouse.dblclick(x, y);
-      expect(await editing(page)).toEqual(group);
-    }
+    // A double-click outside closes the editor (see the cases at the end of the file).
     const own = await framePoint(page, MIXED, "group_1");
     await page.mouse.dblclick(own.x, own.y);
     expect(await editing(page)).toEqual(group);
@@ -373,10 +367,13 @@ test.describe("on bundles", () => {
     await expect.poll(() => editing(page)).toEqual([]);
   });
 
-  test("Done folds the session into one journal entry, undone as one", async ({ page }) => {
+  test("Done folds the session into one journal entry, undone one change at a time", async ({
+    page,
+  }) => {
     const view = await storeText(page, "view");
     await enter(page, `${MIXED}/group_1`);
     expect(await dispatch(page, SET_PLACE)).toBeNull();
+    const placed = await storeText(page, "view");
     expect(await dispatch(page, SET_NAME)).toBeNull();
     expect(await entriesLength(page)).toBe(2);
     expect(await journalLength(page)).toBe(START);
@@ -398,6 +395,9 @@ test.describe("on bundles", () => {
     ).toEqual({ command: false, target: `${MIXED}/group_1`, entries: 2 });
 
     await arranger(page).focus();
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect.poll(() => storeText(page, "view")).toBe(placed);
+    expect(await journalLength(page)).toBe(START + 1);
     await page.keyboard.press("ControlOrMeta+z");
     await expect.poll(() => journalLength(page)).toBe(START);
     expect(await storeText(page, "view")).toBe(view);
@@ -609,8 +609,80 @@ test.describe("on bundles", () => {
     await expect(undone).toContainText("undone");
     await expect(panel).toContainText("Set place of bmixed0000/group_1");
     await expect(panel.locator("[data-undone]", { hasText: "Set place" })).toHaveCount(0);
+    await expect(panel.locator(".text")).toHaveText([
+      "Set name of bmixed0000/score",
+      "Set place of bmixed0000/group_1",
+    ]);
     await page.evaluate(() => window.__tilie.store().redo());
     await expect(undone).toHaveCount(0);
+  });
+
+  test("three nested sessions undo one change at a time", async ({ page }) => {
+    const view = await storeText(page, "view");
+    const rename = (id: string, name: string) => ({
+      type: "set",
+      changes: [{ target: `${MIXED}/${id}`, values: { name } }],
+    });
+    const done = () => page.evaluate(() => window.__tilie.done());
+    const names = () =>
+      page.evaluate((block) => {
+        const timelines = window.__tilie.store().view.blocks[block]?.manifest.timelines ?? [];
+        return ["score", "performance", "annotations"].map(
+          (id) => timelines.find((timeline) => timeline.id === id)?.name ?? null,
+        );
+      }, MIXED);
+    const original = await names();
+    expect(original).toEqual(["Score", "Performance", "Annotations"]);
+    await enter(page, MIXED);
+    await enter(page, `${MIXED}/group_1`);
+    await enter(page, `${MIXED}/score`);
+    expect(await dispatch(page, rename("score", "c"))).toBeNull();
+    await done();
+    expect(await dispatch(page, rename("performance", "b"))).toBeNull();
+    await done();
+    expect(await dispatch(page, rename("annotations", "a"))).toBeNull();
+    await done();
+    await expect.poll(() => editing(page)).toEqual([]);
+    expect(await journalLength(page)).toBe(START + 1);
+    await tab(page, "Journal").click();
+    const panel = page.locator("#inspector-panel-journal");
+    const first = panel.locator(":scope > ol > li").first();
+    const firstText = first.locator(":scope > .row > .text");
+    await expect(firstText).toHaveText("Edited bundle Mixed (3 changes)");
+
+    await arranger(page).focus();
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect.poll(names).toEqual(["c", "b", original[2]]);
+    expect(await journalLength(page)).toBe(START + 1);
+    await expect(firstText).toHaveText("Edited bundle Mixed (3 changes, 1 undone)");
+    const disclosure = first.locator(":scope > .row > button");
+    await expect(disclosure).toHaveAttribute("aria-expanded", "false");
+    await disclosure.click();
+    await expect(disclosure).toHaveAttribute("aria-expanded", "true");
+    const children = first.locator(":scope > ol > li");
+    await expect(children.locator(":scope > .row > .text")).toHaveText([
+      "Set name of bmixed0000/annotations",
+      "Edited group Performance (2 changes)",
+    ]);
+    await expect(children.first()).toHaveAttribute("data-undone");
+    await expect(children.nth(1)).not.toHaveAttribute("data-undone");
+
+    await arranger(page).focus();
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect.poll(names).toEqual(["c", original[1], original[2]]);
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect.poll(names).toEqual(original);
+    expect(await storeText(page, "view")).toBe(view);
+    expect(await journalLength(page)).toBe(START);
+    await expect(first).toHaveAttribute("data-undone");
+    await expect(firstText).toHaveText("Edited bundle Mixed (3 changes)");
+
+    await page.keyboard.press("ControlOrMeta+Shift+z");
+    await expect.poll(names).toEqual(["c", original[1], original[2]]);
+    await page.keyboard.press("ControlOrMeta+Shift+z");
+    await expect.poll(names).toEqual(["c", "b", original[2]]);
+    await page.keyboard.press("ControlOrMeta+Shift+z");
+    await expect.poll(names).toEqual(["c", "b", "a"]);
   });
 });
 
@@ -652,5 +724,129 @@ test.describe("on groups", () => {
         GROUPS.child,
       ),
     ).toEqual({});
+  });
+});
+
+test.describe("leaving by a double-click, and the view when the canvas changes size", () => {
+  test.beforeEach(async ({ page }) => {
+    await open(page, "bundles");
+    await setViewport(page, VIEW);
+  });
+
+  test("a double-click outside the edited element closes the innermost editor", async ({
+    page,
+  }) => {
+    const bundle = [{ target: MIXED, kind: "bundle" }];
+    const group = [{ target: `${MIXED}/group_1`, kind: "group" }];
+    await enter(page, MIXED);
+    await enter(page, `${MIXED}/group_1`);
+    const pane = await emptyPoint(page, -20, 450);
+    await page.mouse.dblclick(pane.x, pane.y);
+    await expect.poll(() => editing(page)).toEqual(bundle);
+    await expect.poll(() => viewportOf(page)).toEqual(VIEW);
+
+    await enter(page, `${MIXED}/group_1`);
+    const other = await partCentre(page, BUNDLES.shared, "group_1");
+    await page.mouse.dblclick(other.x, other.y);
+    await expect.poll(() => editing(page)).toEqual(bundle);
+    await page.mouse.dblclick(other.x, other.y);
+    await expect.poll(() => editing(page)).toEqual([]);
+
+    await enter(page, `${MIXED}/group_1`);
+    const own = await framePoint(page, MIXED, "group_1");
+    await page.mouse.dblclick(own.x, own.y);
+    expect(await editing(page)).toEqual(group);
+    const faded = await partCentre(page, MIXED, "group_2");
+    await page.mouse.dblclick(faded.x, faded.y);
+    await expect.poll(() => editing(page)).toEqual([]);
+    expect(await journalLength(page)).toBe(START);
+  });
+
+  test("a double-click on a box inside the edited element opens its editor", async ({ page }) => {
+    await enter(page, `${MIXED}/group_1`);
+    const card = await framePoint(page, MIXED, "score/card");
+    await page.mouse.dblclick(card.x, card.y);
+    await expect
+      .poll(() => editing(page))
+      .toEqual([
+        { target: `${MIXED}/group_1`, kind: "group" },
+        { target: `${MIXED}/score`, kind: "timeline" },
+      ]);
+  });
+
+  test("closing and opening the drawer centres the edited element for the new size", async ({
+    page,
+  }) => {
+    const workspace = readWorkspace(fixtureText("bundles"));
+    if (isLoadError(workspace)) throw new Error("bundles.tle.json is refused");
+    const block = workspace.view.blocks[MIXED];
+    if (block === undefined) throw new Error(`block ${MIXED} is missing`);
+    const drawing = drawingOf(block, workspace.view.settings, METRICS);
+    const bounds = {
+      ...nodePosition(block, drawing),
+      width: drawing.width * block.scale,
+      height: drawing.height * block.scale,
+    };
+    /** The bundle editor's viewport for the arranger's size now. */
+    const focused = async () =>
+      focusViewport(
+        bounds,
+        await arranger(page).evaluate((element) => ({
+          width: element.clientWidth,
+          height: element.clientHeight,
+        })),
+        0,
+      );
+
+    expect(await page.evaluate((target) => window.__tilie.open(target), MIXED)).toBeNull();
+    await expect(page.locator("#inspector")).toBeVisible();
+    const open = await focused();
+    await expect.poll(() => viewportOf(page)).toEqual(open);
+
+    await page.getByRole("button", { name: "Close inspector" }).click();
+    await expect(page.locator("#inspector")).toBeHidden();
+    const closed = await focused();
+    expect(closed).not.toEqual(open);
+    await expect.poll(() => viewportOf(page)).toEqual(closed);
+
+    await page.getByRole("button", { name: "Open inspector" }).click();
+    await expect(page.locator("#inspector")).toBeVisible();
+    expect(await focused()).toEqual(open);
+    await expect.poll(() => viewportOf(page)).toEqual(open);
+
+    await editingBar(page).getByRole("button", { name: "Done", exact: true }).click();
+    await expect.poll(() => editing(page)).toEqual([]);
+    await expect.poll(() => viewportOf(page)).toEqual(VIEW);
+  });
+});
+
+test.describe("resizing in an editor", () => {
+  test.beforeEach(async ({ page }) => {
+    await open(page, "bundles");
+    await setViewport(page, VIEW);
+  });
+
+  test("a member's card stretched in its timeline editor stretches every member", async ({
+    page,
+  }) => {
+    await enter(page, `${MIXED}/score`);
+    await page.evaluate((address) => window.__tilie.select([address]), `${MIXED}/score/card`);
+    await page.locator('[data-testid="mode-stretch"]').click();
+    const handles = page.locator('[data-testid^="handle-"]');
+    await expect(handles).toHaveCount(1);
+    await expect(handles).toHaveAttribute("data-testid", "handle-right");
+    const grip = await handles.boundingBox();
+    if (grip === null) throw new Error("handle right is not displayed");
+    await drag(page, { x: grip.x + grip.width / 2, y: grip.y + grip.height / 2 }, 20, 0);
+    await expect.poll(() => entriesLength(page)).toBe(1);
+    expect(await places(page, MIXED)).toEqual({ group_1: { length: 420 } });
+    // Both member cards of the frame end at one x, 20 further right than before.
+    const card = (address: string) =>
+      node(page, MIXED)
+        .locator(`[data-address="${address}"]`)
+        .last()
+        .evaluate((rect) => [rect.getAttribute("x"), rect.getAttribute("width")]);
+    expect(await card("score/card")).toEqual(["16", "566.4846"]);
+    expect(await card("performance/card")).toEqual(["16", "566.4846"]);
   });
 });

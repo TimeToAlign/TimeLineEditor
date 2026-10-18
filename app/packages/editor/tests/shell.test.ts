@@ -14,7 +14,12 @@ import { SCHEMA_VERSION } from "@timetoalign/timeskeleton";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App.svelte";
-import { createAutosave, recoverWorkspace } from "../src/autosave.ts";
+import {
+  type Autosave,
+  type AutosaveOptions,
+  createAutosave,
+  recoverWorkspace,
+} from "../src/autosave.ts";
 import { manifestFileName } from "../src/files.ts";
 import { stubEditor } from "./dom.ts";
 import { fixture, fixtureText, interceptDownloads, pickFile } from "./support.ts";
@@ -25,6 +30,26 @@ const health = { name: "tilie-server", version: "0.1.0", timetoalign: "1.2.0" };
 const EMPTY_TEXT = writeWorkspace({ view: createView(), journal: [], sessions: {} });
 
 let app: ReturnType<typeof mount> | undefined;
+
+/**
+ * Every autosave created in the running test. Each test has its own
+ * IndexedDB, but a write reaches whichever is installed when it runs, so
+ * `afterEach` waits for every queued write, the one the unmount starts
+ * included, before the next test installs its own.
+ */
+const autosaves = vi.hoisted(() => new Set<Autosave>());
+
+vi.mock("../src/autosave.ts", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../src/autosave.ts")>();
+  return {
+    ...actual,
+    createAutosave(options: AutosaveOptions): Autosave {
+      const autosave = actual.createAutosave(options);
+      autosaves.add(autosave);
+      return autosave;
+    },
+  };
+});
 
 function start(response: () => Response = () => Response.json(health)): void {
   vi.stubGlobal(
@@ -40,9 +65,11 @@ beforeEach(() => {
   stubEditor();
 });
 
-afterEach(() => {
+afterEach(async () => {
   if (app !== undefined) unmount(app);
   app = undefined;
+  await Promise.all([...autosaves].map((autosave) => autosave.flush().catch(() => {})));
+  autosaves.clear();
   document.body.innerHTML = "";
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
@@ -528,6 +555,56 @@ describe("autosave and recovery", () => {
       }),
     );
     expect(messages()).toEqual([]);
+  });
+
+  it("writes nothing once unmounted during its recovery read", async () => {
+    await keep(EMPTY_TEXT);
+    const factory = indexedDB;
+    const open = factory.open.bind(factory);
+    // The editor's first request is its recovery read: leave while it runs.
+    vi.spyOn(factory, "open").mockImplementationOnce((name, version) => {
+      const request = open(name, version);
+      if (app !== undefined) unmount(app);
+      app = undefined;
+      return request;
+    });
+    start();
+    addBlock(hook().store(), A);
+    await new Promise((resolve) => setTimeout(resolve, 1300));
+    expect(app).toBe(undefined);
+    expect(await recoverWorkspace("current")).toEqual({
+      text: EMPTY_TEXT,
+      name: "untitled.tle.json",
+    });
+  });
+
+  it("gives back a lock granted after it was unmounted, and writes nothing", async () => {
+    let grant: ((lock: { name: string }) => unknown) | undefined;
+    vi.stubGlobal("navigator", {
+      ...navigator,
+      userAgent: navigator.userAgent,
+      locks: {
+        request: (
+          _name: string,
+          _options: object,
+          callback: (lock: { name: string } | null) => unknown,
+        ) => {
+          grant = callback;
+          return new Promise(() => {});
+        },
+      },
+    });
+    start();
+    addBlock(hook().store(), A);
+    await leave();
+    if (grant === undefined) throw new Error("the lock was not requested");
+    let released = false;
+    void Promise.resolve(grant({ name: "tilie-autosave/current" })).then(() => {
+      released = true;
+    });
+    await vi.waitFor(() => expect(released).toBe(true));
+    await new Promise((resolve) => setTimeout(resolve, 1300));
+    expect(await recoverWorkspace("current")).toBe(null);
   });
 
   it("writes the pending snapshot at once when the page is hidden and when the editor goes", async () => {

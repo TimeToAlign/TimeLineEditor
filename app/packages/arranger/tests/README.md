@@ -109,47 +109,67 @@ spacing 1, no box request) and the default style layer.
   `score`, `performance`) and `group_2` "Facsimile" (members `excerpt`,
   `page`, displayed `page`, `excerpt`; `excerpt` is a child of the root
   `recording`, drawn as its ancestor line), then the ungrouped root
-  `annotations`. With `places` empty the box holds three **items**, each
-  laid out on its own at its default place (`x = P = 8`, `y` one under the
-  other, `F = 8` apart, the first `P + h(11) + F = 28.8046875` below the
-  title "Mixed"), as layout's `draw` gives them and its own tests pin:
+  `annotations`. With `places` empty the box holds three **items** at
+  their default places (`x = P = 8`, `y` one under the other, `F = 8`
+  apart, the first `P + h(11) + F = 28.8046875` below the title "Mixed"),
+  laid out with the box's one horizontal layout (drawing.md section 8.2),
+  as layout's `draw` gives them and its own tests pin (layout's test
+  README, `bundles/bundle_mixed`):
 
   | item | address | `x` | `y` | `length` | `width` | `height` |
   |---|---|---|---|---|---|---|
-  | `group_1` | `group_1` | 8 | 28.8046875 | 400 | 524.0859375 | 139.5625 |
-  | `group_2` | `group_2` | 8 | 176.3671875 | 400 | 537.768798828125 | 174.13671875 |
-  | `annotations` | `annotations/card` | 8 | 358.50390625 | 400 | 499.332763671875 | 49.37890625 |
+  | `group_1` | `group_1` | 8 | 28.8046875 | 400 | 562.484619140625 | 139.5625 |
+  | `group_2` | `group_2` | 8 | 176.3671875 | 400 | 562.484619140625 | 174.13671875 |
+  | `annotations` | `annotations/card` | 8 | 358.50390625 | 400 | 562.484619140625 | 49.37890625 |
 
-  The ordinates and heights are those of the timeskeleton figure
-  `bundle__bundle_mixed` (frames at 28.8047 and 176.3672, the card at
-  358.5039), which only the widths of the items change. The box is
-  `553.768798828125 × 417.8828125`, its place origin at `(0, 0)`. The
-  member cards: `score/card` at y 53.609375, `performance/card` at
-  110.98828125 (both 49.37890625 high, x 16, 508.0859375 wide);
-  `page/card` at 201.171875 (49.37890625 high), `excerpt/card` at
-  258.55078125 (83.953125 high), both 521.768798828125 wide.
-  - Widths as functions of an item's own `length` `L`, each item's
-    rightmost element being an end label centred on `x0 + L`:
-    `group_1`'s frame is `Wn(L) = 124.0859375 + L` wide (`x0 =
-    102.29150390625`, the label "12.5 s" half 13.79443359375 wide, plus
-    `K + Q = 16`, less `x = 8`); `annotations`'s card `W(L) =
-    99.332763671875 + L` (`x0 = 90.0537109375`, the label "12" half
-    9.279052734375 wide). Neither `x0` depends on `L`.
+  The widths, in item coordinates: the box holds frames, so the name
+  column starts at `n = Q + K = 16` in every item, the ungrouped card's
+  included; `N = 70.29150390625` (`Performance`, the widest name of the
+  box); `recording`'s ancestor line runs on to the left (`excerpt` starts
+  at 44100 samples), so the start is `s0 = n + N + G' + 8 × 3 = 16 +
+  70.29150390625 + 8 + 24 = 118.29150390625`; the right margin is `Mr =
+  28.193115234375`, half of `excerpt`'s end mark label `132300 smp`
+  centred on the shared end. So every item has `Ri = 118.29150390625 +
+  400 + 28.193115234375 = 546.484619140625`, every frame spans 0 to `Ri +
+  K + Q = 562.484619140625` and so does the ungrouped card. The box is
+  `W = P + (8 + 562.484619140625 + 2) = 580.484619140625` (the ungrouped
+  card's shadow) by `H = 8 + (358.50390625 + 49.37890625 + 2) =
+  417.8828125`, its place origin at `(0, 0)`. The member cards span `Q =
+  8` to `Ri + K = 554.484619140625` in item coordinates, so all four lie
+  at x 16 and are 546.484619140625 wide: `score/card` at y 53.609375,
+  `performance/card` at 110.98828125 (both 49.37890625 high); `page/card`
+  at 201.171875 (49.37890625 high), `excerpt/card` at 258.55078125
+  (83.953125 high). Every line runs from `8 + s0 = 126.29150390625` to
+  526.29150390625.
+  - Widths as functions of an item's own `length` `L`: neither `s0` (set
+    by the ancestor line's chevrons) nor `Mr` (set by a label centred on
+    the shared end) depends on any item's length, so every item, frame or
+    ungrouped card, is `W(L) = s0 + L + Mr + K + Q = 162.484619140625 + L`
+    wide (`Wn(L)` for a frame).
   - **Moved left and up:** with `annotations` placed at `{x: −30, y: −20}`
-    (one `set` of its `place`), the box reaches `−30 − P = −38` and `−20 −
-    P = −28`, so the place origin lies at `(38, 28)` in a box of
-    `591.768798828125 × 386.50390625`; with `{x: −30}` alone at `(38, 0)`
-    in `591.768798828125 × 417.8828125`.
+    (one `set` of its `place`), the box reaches `−30 − P = −38` on the
+    left and `−20 − Pt = −48.8046875` at the top, `Pt = P + h(11) + F =
+    28.8046875` since the title is displayed (drawing.md section 8.4: the
+    title's slot is the items' top border), so the place origin lies at
+    `(38, 48.8046875)`. The box is `Wb = (8 + 570.484619140625) − (−38) =
+    616.484619140625` wide (the frames' right edge `8 +
+    562.484619140625`; the moved card ends at `−30 + 562.484619140625 + 2
+    = 534.484619140625`) and `Hb = (8 + 350.50390625) − (−48.8046875) =
+    407.30859375` high (`group_2`'s bottom `176.3671875 + 174.13671875`).
+    With `{x: −30}` alone the card keeps its default `y` and the origin is
+    `(38, 0)` in `616.484619140625 × 417.8828125`.
   - **`mixed`** is `bundle_mixed` with the child `dlt_1` (`samples`,
     offset 0, length 44100, half of `excerpt`) added to `excerpt`: it is
-    drawn on `excerpt`'s card as the `child` line from x 101.57568359375 to
-    301.57568359375 at y 311.52734375 and the name `dlt_1/name` "dlt_1"
-    anchored at x 24, 26.85009765625 wide, spanning y 305.125 to
-    317.9296875 (its baseline less the font's ascent at size 11 to its
-    baseline plus the descent, `h(11) = 12.8046875`).
-    `mixed`'s box is `553.768798828125 × 435.8828125`: `group_2`'s frame
-    is 192.13671875 high and `annotations` lies at y 376.50390625, the
-    rest as in the table.
+    drawn on `excerpt`'s card as the `child` line from x `8 + s0 =
+    126.29150390625` to `8 + s0 + 400 × 1/2 = 326.29150390625` at y
+    311.52734375 and the name `dlt_1/name` "dlt_1" anchored at x `8 + n =
+    24`, 26.85009765625 wide, spanning y 305.125 to 317.9296875 (its
+    baseline less the font's ascent at size 11 to its baseline plus the
+    descent, `h(11) = 12.8046875`). The child changes neither `N` (26.85…
+    is less than 70.29…), nor `s0`, nor `Mr` (its labels lie inside the
+    shared end). `mixed`'s box is `580.484619140625 × 435.8828125`:
+    `group_2`'s frame is 192.13671875 high and `annotations` lies at y
+    376.50390625, the rest as in the table.
 
 Block ids in the tests are `A = "0000000000"`, `B = "0000000001"` and
 `C = "0000000002"`. Block A holds `bare` at `(40, 80)` unless stated
@@ -223,10 +243,12 @@ What proves the projection is complete and stable:
 - **A block's `x`, `y` are its place origin's** (drawing.md section 8.6):
   the node lies at `(x − Ox × scale, y − Oy × scale)`, so a box growing
   left or up moves nothing it holds. `bundle_mixed` at (40, 80) with
-  `annotations` placed at `{x: −30, y: −20}` (origin `(38, 28)`) gives the
-  node `position: {x: 2, y: 52}`, `width: 591.768798828125`, `height:
-  386.50390625`; at scale 2 `position: {x: −36, y: 24}` and the box
-  doubled. With places empty the origin is `(0, 0)` and the node lies at
+  `annotations` placed at `{x: −30, y: −20}` (origin `(38, 48.8046875)`,
+  section "Fixture facts") gives the node `position: {x: 2, y:
+  31.1953125}` (`80 − 48.8046875`), `width: 616.484619140625`, `height:
+  407.30859375`; at scale 2 `position: {x: −36, y: −17.609375}` (`40 − 2 ×
+  38`, `80 − 2 × 48.8046875`) and the box doubled, `1232.96923828125 ×
+  814.6171875`. With places empty the origin is `(0, 0)` and the node lies at
   the block's `x`, `y` (every other case in this file).
   `nodePosition(block, drawing)` is that position.
 - **Editors.** `project(..., editing)` takes the innermost open editor
@@ -283,21 +305,23 @@ What proves the projection is complete and stable:
   gap, and without a preview it is empty. Projecting again with the same preview returns the
   identical node; with the gap changed to left shift A's node is new and
   carries the left-shift set.
-- **Live placement.** `livePlacement(block, position, values, origin)` is
+- **Live placement.** `livePlacement(block, position, values, drawing)` is
   what the inspector shows during a gesture: the block's `id`, `scale`,
   `length`, `spacing`, `width` and `height` overridden by the previewed
-  `values`, and `x`, `y` the place origin of the node's `position` (where
-  Svelte Flow has the dragged or previewed node), `origin` being the shown
-  drawing's: `position + origin × scale`. With the origin `(38, 28)` and
-  `position` (2, 52) it gives `x: 40, y: 80`, at scale 2 (`values`
-  `{scale: 2}`) and `position` (−36, 24) also `x: 40, y: 80`. With the
-  origin `(0, 0)`: for A (`bare` at (40, 80), defaults) with `position`
-  (104, 40) and no values it is exactly `{id: A, x: 104, y: 40, scale: 1,
-  length: 400, spacing: 1, width: null, height: null}`; with `values`
-  `{width: 478.5771484375}` and `position` (40, 80) it is the same with
-  `x: 40, y: 80, width: 478.5771484375`; with `values` `{x: 19, scale: 2}`
-  and `position` (19, 80) it has `x: 19, scale: 2` (the position wins over
-  a previewed `x`, and they agree whenever the canvas shows a preview).
+  `values`, `drawing` the drawing the node shows, and `x`, `y` the place
+  origin of the node's `position` (where Svelte Flow has the dragged or
+  previewed node): `position + drawing.origin × scale`. With the drawing of
+  the case above (origin `(38, 48.8046875)`) and `position` (2,
+  31.1953125) it gives `x: 40, y: 80`, at scale 2 (`values` `{scale: 2}`)
+  and `position` (−36, −17.609375) also `x: 40, y: 80`. With the origin
+  `(0, 0)`: for A (`bare` at (40, 80), defaults, its memoized drawing `D`)
+  with `position` (104, 40) and no values it is exactly `{id: A, x: 104,
+  y: 40, scale: 1, length: 400, spacing: 1, width: null, height: null,
+  drawing: D}`; with `values` `{width: 478.5771484375}` and `position`
+  (40, 80) it is the same with `x: 40, y: 80, width: 478.5771484375`; with
+  `values` `{x: 19, scale: 2}` and `position` (19, 80) it has `x: 19,
+  scale: 2` (the position wins over a previewed `x`, and they agree
+  whenever the canvas shows a preview).
 - **Property (fast-check).** For any sequence of accepted move, z-order and
   remove commands drawn from the gesture functions below, projecting the
   resulting view twice (the second time with the first result as
@@ -313,9 +337,11 @@ of a multi-block drag at their positions moved by the same snapped delta.
 A move holds a **node position** (the box's top-left corner on the canvas),
 and the command stores the block's place origin, `position + origin ×
 scale` (`nodePosition` inverted): on `bundle_mixed` at (40, 80) with
-`annotations` at `{x: −30, y: −20}` (origin `(38, 28)`, node at (2, 52)), a
-drop at (10, 60) stores `{x: 48, y: 88}`, and at scale 2 `{x: 86, y:
-116}`; a drop at (2, 52) is no move (`null`). Every case below has the
+`annotations` at `{x: −30, y: −20}` (origin `(38, 48.8046875)`, node at
+(2, 31.1953125)), a drop at (10, 60) stores `{x: 48, y: 108.8046875}`, and
+at scale 2 `{x: 10 + 76 = 86, y: 60 + 97.609375 = 157.609375}`; a drop at
+(2, 31.1953125) is no move (`null`). 48.8046875 is 1648 / 2048, so every
+sum is already a multiple of 1/2048. Every case below has the
 origin `(0, 0)`, where node and place origin coincide.
 
 View: A holds `bare` at (40, 80), B holds `nested` at (0, 0).
@@ -699,11 +725,12 @@ refuses.
 
 What moves and snaps is the **node** (the box the user sees), and the
 command stores its place origin, as `moveCommand` does. On `bundle_mixed` at
-(40, 80) with `annotations` at `{x: −30, y: −20}` (origin `(38, 28)`, node
-at (2, 52)): nudged by (1, 0) under the default grid the node goes to (10,
-52) and snaps to (8, 56) (10 / 8 = 1.25 rounds to 1; 52 / 8 = 6.5 rounds up
-to 7), stored as `{x: 46, y: 84}`; with the grid not snapping it goes to
-(10, 52), stored as `{x: 48, y: 80}`.
+(40, 80) with `annotations` at `{x: −30, y: −20}` (origin `(38,
+48.8046875)`, node at (2, 31.1953125)): nudged by (1, 0) under the default
+grid the node goes to (10, 31.1953125) and snaps to (8, 32) (10 / 8 = 1.25
+rounds to 1; 31.1953125 / 8 = 3.899… rounds to 4), stored as `{x: 46, y:
+80.8046875}`; with the grid not snapping it goes to (10, 31.1953125),
+stored as `{x: 48, y: 80}`.
 
 ## `removeCommand`
 
@@ -953,33 +980,63 @@ editors of equal target and kind and for two absent ones, false otherwise;
 `editedElement("A/group_1")` is `{block: A, element: "group_1"}`,
 `editedElement("A")` `{block: A, element: null}`.
 
-`GESTURES` is the permission table of the editors, one row per level, each
-member stated:
+`GESTURES` is the permission table of the gestures besides resizing, one
+row per level, each member stated:
 
-| level | moveBlocks | resizeBlocks | moveItems | resizeItems | reorderMembers | stretchMembers | resizeFrame | stretchCard | marquee |
-|---|---|---|---|---|---|---|---|---|---|
-| `arranger` | true | true | false | false | false | false | false | false | `"blocks"` |
-| `bundle` | false | false | true | true | false | false | false | false | `"elements"` |
-| `group` | false | false | false | false | true | true | true | false | `"elements"` |
-| `timeline` | false | false | false | false | false | false | false | true | `"elements"` |
+| level | moveBlocks | moveItems | reorderMembers | marquee |
+|---|---|---|---|---|
+| `arranger` | true | false | false | `"blocks"` |
+| `bundle` | false | true | false | `"elements"` |
+| `group` | false | false | true | `"elements"` |
+| `timeline` | false | false | false | `"elements"` |
 
-`gesturesOf(view, editing)` is the arranger's row without an editor and its
-kind's row otherwise (`toBe` the table's row), except that the timeline
-editor's `stretchCard` holds only for an ungrouped root: true for
-`A/annotations`; false, every other member as in the row, for the member
-`A/score`, the child `A/dlt_1` and the root `A/recording` (it holds the
-member `excerpt`, so it is drawn only as an ancestor line).
+`gesturesOf(editing)` is the arranger's row without an editor and its
+kind's row otherwise (`toBe` the table's row).
+
+**What resizes** is one table by box kind, `RESIZING`: for each kind the
+levels where it resizes and what each mode writes. What proves it is the
+table itself, compared whole (`toStrictEqual`), and `resizes(kind, level,
+own)` checked for every kind, level and `own` (4 × 4 × 2 cases): a box
+resizes where its reach is `"inside"` whatever `own` says, where it is
+`"edited"` only when it is the edited element's own box, and nowhere else.
+Every box offers the three modes wherever it resizes, so there is no
+per-mode permission. The rows (`·` no entry):
+
+| kind | arranger | bundle | group | timeline | scale writes | box writes | stretch writes |
+|---|---|---|---|---|---|---|---|
+| `block` | inside | edited | · | · | block | block | block |
+| `frame` | inside | inside | edited | · | item | item | item |
+| `card` (ungrouped) | inside | inside | · | edited | item | item | item |
+| `member` (a member's card) | inside | inside | inside | edited | item | card | item |
+
+So on the arranger every block, frame and card resizes; in the bundle
+editor the edited block itself and every frame and card in it; in the group
+editor the edited frame itself and its members' cards; in the timeline
+editor only the edited card itself (a child timeline has no box). A
+member's card scales and stretches its group ("item": the group's place)
+and sizes its own box ("card": the member's own place); every other box
+writes its own item's place.
 
 ## Items: moving and resizing frames and cards
 
 A box's items, its groups' frames and its ungrouped roots' cards, lie at
-places stated in the block (drawing.md section 8.6). What proves a gesture
-on an item is that applying its command moves or resizes exactly that item
-and **nothing else on the canvas**: every other item keeps its drawn place,
-and the dragged edge's opposite edge keeps its canvas position even when the
-box grows left or up. Each case therefore applies the command (core
-accepts it) and reads the drawing again. View: A holds `bundle_mixed` at
-(40, 80) unless stated (the items' table in "Fixture facts").
+places stated in the block, and its members' cards may state their own
+size (drawing.md section 8.6). What proves a gesture on an item is that
+applying its command moves or resizes exactly that item and **nothing else
+on the canvas**: every other item keeps its drawn place, and the dragged
+edge's opposite edge keeps its canvas position even when the box grows
+left or up. Each case therefore applies the command (core accepts it) and
+reads the drawing again. View: A holds `bundle_mixed` at (40, 80) unless
+stated. Under the box's one horizontal layout (drawing.md section 8.2)
+its three items are equally wide, each drawn 562.484619140625 wide in item
+coordinates at scale 1 (`group_1` at (8, 28.8046875), 139.5625 high;
+`group_2` at (8, 176.3671875), 174.13671875 high; `annotations`'s card at
+(8, 358.50390625), 49.37890625 high), and every member's card spans x 16
+to 562.484619140625, 546.484619140625 wide (`score`'s at y 53.609375 and
+`performance`'s at y 110.98828125, each 49.37890625 high). Each width
+grows by exactly the length added (`W(L) = 162.484619140625 + L`).
+562.484619140625 is an odd multiple of 1/4096, so a width quantized to
+1/2048 from it rounds half up.
 
 `itemMoveCommand(view, block, key, x, y, metrics)` (`x`, `y` in drawing
 units from the place origin, quantized to 1/2048):
@@ -1006,79 +1063,179 @@ is `{group_1: {x: 12}}`, with `{x: null, length: null}` it is `{}`, and
 for the first move above, the drawing previewed with them equals
 (`toEqual`) the drawing of the applied view.
 
-`itemHandlesFor(mode, editor)`: `box` gives all eight handles in every
-editor; `stretch` gives `["right", "left"]` in the bundle and timeline
-editors and `["right"]` in the group editor.
+`resizedItemOf(drawing, element)` names the box a selection's element
+address shows: `group_1` is `{kind: "frame", key: group_1, item:
+group_1}`, `annotations/card` `{kind: "card", key: annotations, item:
+annotations}`, `performance/card` `{kind: "member", key: performance,
+item: group_1}`, `excerpt/card` (a child member) `{kind: "member", key:
+excerpt, item: group_2}`; a line (`score`) or a title (`group_1/name`) is
+none (`undefined`). `placeKeyOf(resized, mode)` is the place a mode sets
+(`RESIZING`'s writes): for `performance` `group_1` to scale, `performance`
+to size its box, `group_1` to stretch; for a frame or an ungrouped card
+its own key in every mode.
 
-`itemResizeValues(block, settings, metrics, editor, key, mode, handle,
-delta)`, `delta` in canvas units as for a block, the values in drawing
-units. Every value is quantized to 1/2048, as a block's are, so the
-opposite edge stays exactly where it is drawn when that edge lies on the
-1/2048 lattice; the cases state widths that keep it there (`group_2`'s own
-537.768798828125 and `annotations`'s 499.332763671875 are odd multiples of
-1/4096, the half of a centred label's width). **Box** on `group_2` with
-`width` 540 stated (left edge 8, right edge 548, top 176.3671875, bottom
-350.50390625; its content is 537.768798828125 wide and 174.13671875 high):
+`itemHandlesFor(mode, kind, level)`: a frame or an ungrouped card offers a
+block's handles at every level, the four corners to scale and all eight to
+size its box, and to stretch `["right", "left"]`, `["right"]` in the group
+editor (the frame stays where it is). A member's card, whose top left
+corner its frame decides, offers at every level `["bottom-right"]` to
+scale, `["right", "bottom-right", "bottom"]` to size its box and
+`["right"]` to stretch.
+
+`itemResizeValues(block, settings, metrics, level, resized, mode, handle,
+delta)`, `delta` in canvas units as for a block, positions in drawing units
+from the place origin and sizes in item coordinates (before the item's
+scale). Every value is quantized to 1/2048, as a block's are; a handle the
+box does not offer throws `RangeError`.
+
+**Scale** sets the item's `scale` to its scale times the larger of the two
+axis ratios of the dragged corner's distance from the fixed corner, after
+the drag over before (a block's rule, section `resize`), floored at 1/8;
+scale 1 unstates it. On `annotations`'s card (left 8, top 358.50390625,
+right 570.484619140625, bottom 407.8828125) on the arranger:
+
+| case | handle | delta | values |
+|---|---|---|---|
+| | bottom-right | (40, 20) | `{scale: 1.4052734375}`: `max(602.484619140625 / 562.484619140625, 69.37890625 / 49.37890625) = 1.40503124…`, 2877.50 steps rounded; `x`, `y` unchanged, so not set |
+| | top-left | (−40, −20) | `{scale: 1.4052734375, x: −219.9599609375, y: 338.4921875}`: the dragged corner at (−32, 338.50390625), the same ratios; then the fixed bottom right corner less the scaled size, `570.484619140625 − 1.4052734375 × 562.484619140625 = −219.96007…` and `407.8828125 − 1.4052734375 × 49.37890625 = 338.49194…`, quantized |
+| | bottom-right | (−1000, −1000) | `{scale: 0.125}` (the floor) |
+| block at scale 2 | bottom-right | (80, 40) | `{scale: 1.4052734375}` (80 canvas units are 40 drawing units) |
+| `scale` 2 stated | bottom-right | (−562.484619140625, −49.37890625) | `{scale: null}`: the drawn extents halve, `2 × 1/2 = 1`, the default |
+
+On `performance`'s card the scale is its group's: the fixed corner is
+`group_1`'s top left (8, 28.8046875) and the dragged one the card's bottom
+right (562.484619140625, 160.3671875); by (40, 20), `max(594.484619140625 /
+554.484619140625, 151.5625 / 131.5625) = 1.15201900…`, 2359.33 steps, so
+`{scale: 1.15185546875}` for `group_1`. A right handle on a card, and a
+top-left one on a member's card, throw `RangeError`.
+
+**Box** sets `width` and `height`; a request at or below the box's own
+content stores `null`. On `group_2` with `width` 580 stated (left edge 8,
+right edge 588, top 176.3671875, bottom 350.50390625; its content is
+562.484619140625 wide and 174.13671875 high) in the bundle editor:
 
 | handle | delta | values |
 |---|---|---|
-| right | (20, 0) | `{width: 560}` |
-| right | (−20, 0) | `{width: null}` (520, below the content) |
-| left | (−21, 0) | `{width: 561, x: −13}` |
-| left | (100, 0) | `{width: null, x: 10.2314453125}` (the content's width from the right edge, `548 − 537.768798828125 = 10.231201171875`, 20953.5 steps rounded up) |
+| right | (20, 0) | `{width: 600}` |
+| right | (−20, 0) | `{width: null}` (560, below the content) |
+| left | (−21, 0) | `{width: 601, x: −13}` |
+| left | (100, 0) | `{width: null, x: 25.515625}` (the content's width from the right edge, `588 − 562.484619140625 = 25.515380859375`, 52255.5 steps rounded up) |
 | bottom | (0, 10.5) | `{height: 184.63671875}` |
 | top | (0, −16) | `{height: 190.13671875, y: 160.3671875}` |
-| right, block at scale 2 | (20, 0) | `{width: 550}` (20 canvas units are 10 drawing units) |
+| right, block at scale 2 | (20, 0) | `{width: 590}` (20 canvas units are 10 drawing units) |
 
 The left row grows the box left: applied in the bundle editor
 (`itemResizeCommand`), the place origin moves to `(21, 0)` (`−13 − P`),
 the node to x `40 − 21 = 19`, and `group_2`'s right edge stays at canvas x
-`19 + 21 + (−13) + 561 = 588 = 40 + 548`, where it was; `group_1` and
+`19 + 21 + (−13) + 601 = 628 = 40 + 588`, where it was; `group_1` and
 `annotations` keep their drawn places.
+
+On a member's card Box sets the card's own size, in item coordinates: with
+`group_1` at `scale` 1.25, `performance`'s card is still 546.484619140625 ×
+49.37890625 before the scale, so bottom-right by (50, 30) on the arranger
+gives `{width: 586.48486328125, height: 73.37890625}` (`546.484619140625 +
+50 / 1.25`, 1201120.5 steps rounded up, and `49.37890625 + 30 / 1.25`);
+right by (−50, 0) asks for less than the card's content, `{width: null}`;
+a left handle throws `RangeError`.
 
 **Stretch** sets `length` (left and right handles only; a top handle
 throws `RangeError`). On the card of `annotations` (`W(L) =
-99.332763671875 + L`, left edge 8, right edge 507.332763671875) in the
+162.484619140625 + L`, left edge 8, right edge 570.484619140625) in the
 bundle editor:
 
 | case | handle | delta | values |
 |---|---|---|---|
 | | right | (20, 0) | `{length: 420}` |
-| | left | (−21, 0) | `{length: 421, x: −13}` (`507.332763671875 − W(421)`) |
+| | left | (−21, 0) | `{length: 421, x: −13}` (`570.484619140625 − W(421)`) |
 | | right | (−500, 0) | `{length: 8}` (`MIN_LENGTH`) |
-| `width` 520 stated | right | (20, 0) | `{length: 420, width: 540}` |
+| `width` 580 stated | right | (20, 0) | `{length: 420, width: 600}` |
 
-The stated width adds `520 − W(400) = 20.667236328125`, which the card
-keeps, as a block's box does: the target content is `540 − 20.667236328125
-= W(420)` and the width `W(420) + 20.667236328125 = 540`.
+The stated width adds `580 − W(400) = 17.515380859375`, which the card
+keeps, as a block's box does: the target content is `600 −
+17.515380859375 = W(420)` and the width `W(420) + 17.515380859375 = 600`.
 
-**The group editor's stretch** (right handle only) changes the members'
-common `length` with the frame pinned: `width` is stated at the frame's
-drawn width and the length stops where the cards would pass it. On
-`group_1` (`Wn(L) = 124.0859375 + L`, drawn 524.0859375 wide):
+A member's card stretches its group's length from the frame's right edge,
+in the member's timeline editor too: on `score`'s card in `A/score`'s
+timeline editor, right by (20, 0) gives `{length: 420}` (for `group_1`,
+`W(420)` reaching 20 further), a left handle throws `RangeError`, and the
+command `itemResizeCommand(view, A, "group_1", {length: 420}, "timeline",
+metrics)` dispatched to a store with that editor open is accepted (the
+group's shared length is the member's own), leaving `places` exactly
+`{group_1: {length: 420}}`.
+
+A member's Stretch writes the group's `length` **alone**, at every level
+but the group editor: a stated width, the frame's or the card's, stays as
+stated, and the frame grows once its content passes it. What proves it is
+a frame whose stated width exceeds its content: a frame's or ungrouped
+card's own Stretch keeps the margin such a request adds (the
+`width` 580 row above), so a member's Stretch that did the same would
+write the group's `width`, which the member's timeline editor refuses
+(only the group's `length` and `scale` are the member's own). View
+`framed`: `group_1` states `{width: 600}`. On `score`'s card, right by
+(30, 0) gives exactly `{length: 430}` (`W(430) = 592.484619140625`, still
+inside the stated 600, which stays) on the arranger, in `A`'s bundle
+editor and in `A/score`'s timeline editor, never `{length: 430, width:
+630}`. Each level's `itemResizeCommand`, dispatched to a store with that
+editor open (none on the arranger), is accepted; `places.group_1` is then
+exactly `{width: 600, length: 430}` at every level, the other items
+stating their drawn positions on the arranger and in the bundle editor
+(`group_2` at (8, 176.3671875), `annotations` at (8, 358.50390625)) and
+nothing else in the timeline editor.
+
+**The group editor's stretch** (right handle only, on the frame or on a
+member's card, with the same values) changes the members' common `length`
+with the frame pinned: `width` is stated at the frame's drawn width,
+quantized (562.484619140625 rounds up to 562.48486328125), and the length
+stops where the cards would pass it. On `group_1` (`Wn(L) =
+162.484619140625 + L`):
 
 | case | delta | values |
 |---|---|---|
-| | (20, 0) | `{length: 400, width: 524.0859375}` (capped: the frame does not grow) |
-| | (−100, 0) | `{length: 300, width: 524.0859375}` |
-| `width` 600 stated | (50, 0) | `{length: 450, width: 600}` |
-| `width` 600 stated | (200, 0) | `{length: 475.9140625, width: 600}` (`600 − 124.0859375`) |
+| | (20, 0) | `{length: 400, width: 562.48486328125}` (capped: the frame does not grow; 400 + 1/4096 is no lattice step) |
+| | (−100, 0) | `{length: 300, width: 562.48486328125}` |
+| `width` 600 stated | (30, 0) | `{length: 430, width: 600}` |
+| `width` 600 stated | (200, 0) | `{length: 437.51513671875, width: 600}` (`600 − 162.484619140625 = 437.515380859375`, floored to the lattice) |
 
 A left handle there throws `RangeError`.
 
-`itemResizeCommand(view, block, key, values, editor, metrics)` is the `set`
-of the item's `place`; in the bundle editor it also states the drawn
-position of every other item without one, as a move does: for `group_2`'s
-left row, `[{target: A/group_2, values: {place: {width: 561, x: −13}}},
-{target: A/group_1, values: {place: {x: 8, y: 28.8046875}}},
-{target: A/annotations, values: {place: {x: 8, y: 358.50390625}}}]`; in
-the group editor, for the first group-editor row, `[{target: A/group_1,
-values: {place: {length: 400, width: 524.0859375}}}]` alone, and in the
-timeline editor, for `annotations`'s first stretch row, `[{target:
-A/annotations, values: {place: {length: 420}}}]` alone (an editor other
-than the bundle editor changes only its element). Values that are all
-stated already give `null`: `{width: null}` on `group_2`, which states no
-width.
+The cap is one helper, `cappedLength(block, settings, metrics, key,
+length)`, which the inspector's form shares for a `length` typed in the
+group editor: the group editor's values for the members' length `length`,
+`width` pinned at the frame's drawn width (quantized) and the length the
+smaller of `length` and the largest lattice length whose cards do not pass
+the frame. The stretch's values are `cappedLength` of the length the
+stretch reaches uncapped (the largest lattice length not passing the
+pointer); since that search is monotone, the table above holds unchanged.
+On `group_1`:
+
+| case | length | values |
+|---|---|---|
+| | 500 | `{length: 400, width: 562.48486328125}` (`W(400)` is the frame's width) |
+| | 300 | `{length: 300, width: 562.48486328125}` |
+| `width` 600 stated | 430 | `{length: 430, width: 600}` |
+| `width` 600 stated | 500 | `{length: 437.51513671875, width: 600}` |
+
+`itemResizeCommand(view, block, key, values, level, metrics)` is the `set`
+of the place of `key`; on the arranger and in the bundle editor it also
+states the drawn position of every other item without one, as a move
+does: for `group_2`'s left row, at both levels, `[{target: A/group_2,
+values: {place: {width: 601, x: −13}}}, {target: A/group_1, values:
+{place: {x: 8, y: 28.8046875}}}, {target: A/annotations, values: {place:
+{x: 8, y: 358.50390625}}}]`; in the group editor, for the first
+group-editor row, `[{target: A/group_1, values: {place: {length: 400,
+width: 562.48486328125}}}]` alone, and in the timeline editor, for
+`annotations`'s first stretch row, `[{target: A/annotations, values:
+{place: {length: 420}}}]` alone (the group and timeline editors change
+only their element, the container adapting). A member card's box on the
+arranger is the `set` of the member's own place followed by the drawn
+position of every item but the frame holding the card, whose top left
+corner a card's size never moves: `[{target: A/performance, values:
+{place: {width: 586.48486328125, height: 73.37890625}}}, {target:
+A/group_2, …}, {target: A/annotations, …}]` with the positions above
+(`group_2` at (8, 176.3671875)), never a change of `A/group_1`; applied,
+`places.performance` is exactly that size and `group_1` states no place. Values that are all stated already give `null`:
+`{width: null}` on `group_2` and `{scale: null}` on `annotations`, which
+state neither.
 
 ## Reordering a group's members
 
@@ -1122,15 +1279,16 @@ unchanged; drawn as a preview (`drawingOf` with `{manifest}`),
 
 `targetBounds(node, target, metrics)` is the canvas rectangle an editor
 centres. Nodes are `project`'s. On `mixed` at (40, 80), scale 1: the block
-`A` gives `{x: 40, y: 80, width: 553.768798828125, height: 435.8828125}`;
-the frame `A/group_1` `{x: 48, y: 108.8046875, width: 524.0859375, height:
-139.5625}`; `A/annotations` its card, `{x: 48, y: 456.50390625, width:
-499.332763671875, height: 49.37890625}`; the child
-`A/dlt_1`, which has no card, the rectangle around its drawn elements,
-its line and its name: x from 24 to 301.57568359375, y from 305.125 to
-317.9296875, so `{x: 64, y: 385.125, width: 277.57568359375, height:
-12.8046875}`. At scale 2 the frame is `{x: 56, y: 137.609375, width:
-1048.171875, height: 279.125}`. A target outside the node's block throws
+`A` gives `{x: 40, y: 80, width: 580.484619140625, height: 435.8828125}`;
+the frame `A/group_1` `{x: 48, y: 108.8046875, width: 562.484619140625,
+height: 139.5625}`; `A/annotations` its card, `{x: 48, y: 456.50390625,
+width: 562.484619140625, height: 49.37890625}` (the items share one
+horizontal layout, section "Fixture facts"); the child `A/dlt_1`, which
+has no card, the rectangle around its drawn elements, its line and its
+name: x from 24 to 326.29150390625, y from 305.125 to 317.9296875, so
+`{x: 64, y: 385.125, width: 302.29150390625, height: 12.8046875}`. At
+scale 2 the frame is `{x: 40 + 2 × 8 = 56, y: 80 + 2 × 28.8046875 =
+137.609375, width: 1124.96923828125, height: 279.125}`. A target outside the node's block throws
 `RangeError`.
 
 `focusViewport(bounds, pane, drawerWidth)` centres `bounds` in the pane
@@ -1160,7 +1318,7 @@ samples) added to `dlt_1` (so addressed `recording/region_1`), at (40,
 80), scale 1:
 
 - The rectangle of `score/card` on the canvas (`{x: 56, y: 133.609375,
-  width: 508.0859375, height: 49.37890625}`) with every address inside
+  width: 546.484619140625, height: 49.37890625}`) with every address inside
   gives, in drawing order, `A/score`, `A/score/start`, `A/score/end`,
   `A/score/name`, `A/score/start/label`, `A/score/end/label`: not the card.
 - `{x: 40, y: 380, width: 600, height: 82.98046875}` (drawing y 300 to
@@ -1178,10 +1336,23 @@ samples) added to `dlt_1` (so addressed `recording/region_1`), at (40,
 ## Gesture commands are accepted (fast-check)
 
 For any view built by adding 1–5 blocks from the fixtures `bare`, `nested`,
-`flow_control`, `with_region` and `map`, any sequence of moves (arbitrary
-finite doubles), nudges, z-order actions, resizes (any mode, a valid handle
-for it, any delta in ±1000) and removals produces commands that `apply`
-accepts. A removal selects any subset of what a click can select: block ids
+`flow_control`, `with_region`, `map` and `bundles/bundle_mixed` (frames, the
+cards of a root member and of a child member, an ungrouped card), any
+sequence of moves (arbitrary finite doubles), nudges, z-order actions,
+resizes (any mode, a valid handle for it, any delta in ±1000), resizes of
+a frame or card on the arranger (any of the drawing's items and members'
+cards, any mode, a valid handle of `itemHandlesFor` for it, any delta in
+±1000, the command `itemResizeCommand` builds for `placeKeyOf`'s key) and
+removals produces commands that `apply` accepts.
+
+A member's Stretch at any level but the group editor: for `bundle_mixed`
+at (40, 80) with any stated width of the group (none, or any multiple of
+1/2048 in [1, 2000]), any member's card of either group (`score`,
+`performance`, `page`, `excerpt`), any level among the arranger, the bundle editor
+and the member's own timeline editor, and any delta in ±1000 from the right
+handle, `itemResizeValues` gives an object whose only key is `length`, and
+its `itemResizeCommand`, dispatched to a store with that level's editor
+open, is accepted, leaving the group's stated width exactly as it was. A removal selects any subset of what a click can select: block ids
 and the addresses of the drawn elements and their parts.
 
 Markers are not drawn, so a click never selects one. Core rightly refuses
@@ -1194,7 +1365,8 @@ store's `dispatch`.
 The same arbitrary gestures, dispatched to a `createStore`, and then undone
 one by one, restore every block's `x`, `y`, `index`, `scale`, `length`,
 `spacing`, `width` and `height` exactly at each step (`toBe`, compared
-against the views recorded before each dispatch).
+against the views recorded before each dispatch), and its `places`, the
+frames' and cards' placement (`toStrictEqual`).
 
 ## Package
 
@@ -1361,13 +1533,17 @@ focus rather than nudge, need a browser and are not tested here.
 ## The canvas in an editor
 
 `Canvas.svelte` turns gestures into store operations: a double-click, a
-double tap or Enter opens an editor (`store.open`), Escape closes it
-(`store.done`), and the view follows the store's editing path. What proves
-this is that each gesture reaches the store with exactly the target
-`editorTargetOf` names for what it hit (section "Editors"), that nothing
-else opens, and that the viewport lands exactly where `focusViewport` puts
-the edited element's `targetBounds` and comes back exactly to where each
-level was. The store, not the canvas, is read for the result
+double tap or Enter opens an editor (`store.open`), Escape and a
+double-click or double tap outside the edited element close it
+(`store.done`, as the Done button does), and the view follows the store's
+editing path and the canvas's size. What proves this is that each gesture
+reaches the store with exactly the target `editorTargetOf` names for what
+it hit (section "Editors"), that nothing else opens, that "outside" is
+exactly where a press selects nothing (`selectionOf` over
+`BlockNodeData.inside`, the test that also fades and prunes, section
+"Boxes"), and that the viewport lands exactly where `focusViewport` puts
+the edited element's `targetBounds`, again whenever the canvas changes
+size, and comes back exactly to where each level was. The store, not the canvas, is read for the result
 (`store.editing`, `store.entries`, `store.view`), so a test cannot pass by
 the canvas merely drawing something.
 
@@ -1377,8 +1553,13 @@ through `liveStore` (section "The store as Svelte state") as the editor
 does, holds the bound selection and viewport and exposes them
 (`current()`, `select`, `showAt`).
 jsdom lays nothing out, so the harness stubs `ResizeObserver` and
-`matchMedia`; the stub matches the reduced-motion query, so every move of
-the view takes 0 ms and lands before the next assertion. Events are
+`matchMedia`; the `matchMedia` stub matches the reduced-motion query, so
+every move of the view takes 0 ms and lands before the next assertion. The
+`ResizeObserver` stub records each observer with the elements it observes
+(kept across cases: Svelte observes element sizes through one observer
+made once per module), so a case can measure the arranger anew
+(`clientWidth`, `clientHeight`) and report the change to the observer
+watching it, as a browser does when the drawer opens or closes. Events are
 dispatched on the drawn elements the block node renders (`rect group_1`
 is the `rect` whose `data-address` is `group_1`; a card is the last `rect`
 carrying `<T>/card`, its shadow the first), on the block's background (its
@@ -1392,11 +1573,11 @@ it by a gesture.
    background `{A, bundle}`, on `rect group_1` `{A/group_1, group}`, on
    `rect score/card` `{A/score, timeline}`, on `line dlt_1` (a child's
    line) `{A/dlt_1, timeline}`; on the pane nothing (`store.editing` stays
-   empty). In A's bundle editor, a `dblclick` on B's background (another
-   block) and on A's background (the edited element) leave the path at
-   `[A]`. In `A/group_1`'s group editor, `rect group_1` (itself) and
-   `rect page/card` (outside) leave it at `[A/group_1]`, and
-   `rect score/card` opens on top: `[A/group_1, A/score]`. Svelte Flow's
+   empty). In A's bundle editor, a `dblclick` on A's background (the
+   edited element) leaves the path at `[A]`. In `A/group_1`'s group
+   editor, `rect group_1` (itself) leaves it at `[A/group_1]`, and
+   `rect score/card` opens on top: `[A/group_1, A/score]` (a double-click
+   outside closes, case 12). Svelte Flow's
    double-click zoom is off, so no double-click moves the view: after the
    pane's, the viewport is as before.
    **Text opens the box holding it.** A's `<svg>` is measured at client
@@ -1442,17 +1623,17 @@ it by a gesture.
 5. **The view moves to the edited element and back.** The viewport is set
    to `{x: 12, y: −34, zoom: 0.5}` and the canvas measured 10000 × 10000
    px (the area left of the drawer). A `dblclick` on `rect group_1` opens
-   its group editor and the viewport becomes `{x: 3759.828125, y:
+   its group editor and the viewport becomes `{x: 3683.03076171875, y:
    4285.65625, zoom: 4}`: `group_1`'s frame is `{x: 48, y: 108.8046875,
-   width: 524.0859375, height: 139.5625}` (section "Focus"), the fitting
-   zoom `8000 / 524.0859375` is clamped to 4, and `x = 5000 − (48 +
-   262.04296875) × 4`, `y = 5000 − (108.8046875 + 69.78125) × 4`. A
+   width: 562.484619140625, height: 139.5625}` (section "Focus"), the
+   fitting zoom `8000 / 562.484619140625` is clamped to 4, and `x = 5000 −
+   (48 + 281.2423095703125) × 4`, `y = 5000 − (108.8046875 + 69.78125) × 4`. A
    `dblclick` on `rect score/card` then opens `A/score`'s timeline editor:
-   its card is `{x: 56, y: 133.609375, width: 508.0859375, height:
-   49.37890625}` (section "Marquee inside an editor"), so `{x: 3759.828125,
+   its card is `{x: 56, y: 133.609375, width: 546.484619140625, height:
+   49.37890625}` (its centre at the frame's x, `56 + 273.2423095703125`) (section "Marquee inside an editor"), so `{x: 3683.03076171875,
    y: 4366.8046875, zoom: 4}` (`5000 − (133.609375 + 24.689453125) × 4`).
    Escape (nothing selected) closes it and the viewport is again `{x:
-   3759.828125, y: 4285.65625, zoom: 4}`; Escape again closes the group
+   3683.03076171875, y: 4285.65625, zoom: 4}`; Escape again closes the group
    editor and it is `{x: 12, y: −34, zoom: 0.5}`. Each value is exact
    (`toEqual`). The 1000 ms move without reduced motion is seen in the
    browser.
@@ -1492,13 +1673,18 @@ it by a gesture.
    the status line (`data-testid="hint"`) reads exactly the message of the
    refusal the same `remove` gets from a store in the same state, whose
    code is `side_effect`, and `store.view` is the view before.
-9. **The resize toolbar offers what the level allows.** The mode buttons
-   shown: on the arranger with `{A}` `Scale`, `Box`, `Stretch`; in A's
-   bundle editor with `{A}` none, with `{A/group_2}` (a frame) `Box`,
-   `Stretch`, with `{A/score/card}` (a member's card, no item) none; in
-   `A/group_1`'s group editor with `{A/group_1}` `Box`, `Stretch`; in
-   `A/annotations`'s timeline editor with `{A/annotations/card}`
-   `Stretch`; in `A/score`'s with `{A/score/card}` none.
+9. **The resize toolbar offers what the level allows** (`RESIZING`, section
+   "Editors"), read as the mode buttons shown: Scale, Box and Stretch on
+   the arranger with `{A}`, `{A/group_2}` (a frame), `{A/score/card}` (a
+   member's card) and `{A/annotations/card}` (an ungrouped card), none with
+   `{A/score}` (a line, no box); in A's bundle editor the three with `{A}`
+   (the edited block itself), `{A/group_2}` and `{A/score/card}`; in
+   `A/group_1`'s group editor the three with `{A/group_1}` (the edited
+   frame) and `{A/score/card}`; in `A/annotations`'s timeline editor the
+   three with `{A/annotations/card}`; in `A/score`'s the three with
+   `{A/score/card}` (a member's own card); in `A/recording`'s none with
+   `{A/excerpt/card}` (a member's card inside the edited root, but not its
+   own box); in `A/dlt_1`'s none with `{A/dlt_1}` (a child has no box).
 10. **Opening an editor prunes the selection to what lies inside it**, so
     no gesture is offered that the store would refuse. Each editor is
     opened through `store.open` with the selection given, and the kept
@@ -1517,15 +1703,113 @@ it by a gesture.
     every move of the view takes `FOCUS_DURATION` (1000 ms) of real time.
     As in case 5, the viewport is set to `{x: 12, y: −34, zoom: 0.5}` and
     the canvas measured 10000 × 10000 px. A `dblclick` on `rect group_1`
-    starts the move to `{x: 3759.828125, y: 4285.65625, zoom: 4}`; while
+    starts the move to `{x: 3683.03076171875, y: 4285.65625, zoom: 4}`; while
     it is under way (the next task), a `dblclick` on `rect score/card`
     opens `A/score` on top. After 1100 ms the view is at `A/score`'s
-    `{x: 3759.828125, y: 4366.8046875, zoom: 4}`; Escape closes it, and
-    1100 ms later the view is exactly `{x: 3759.828125, y: 4285.65625,
+    `{x: 3683.03076171875, y: 4366.8046875, zoom: 4}`; Escape closes it, and
+    1100 ms later the view is exactly `{x: 3683.03076171875, y: 4285.65625,
     zoom: 4}`, the group editor's place, not a point the first move was
     passing when `A/score` opened. Svelte Flow ends a move on its exact
     target (d3-zoom sets the end transform at the end), so `toEqual`
     holds.
+12. **A double-click outside the edited element is Done.** Outside is
+    where a press selects nothing: the pane, another block (whose node
+    takes no pointer in a browser, so the press reaches the pane; in jsdom
+    the event is dispatched on its background, where `selectionOf` gives
+    `null`), and, in a group or timeline editor, the rest of the edited
+    block (a faded element takes no pointer, so in a browser the press
+    reaches the block's background; in jsdom it is dispatched on the
+    element or on the background, both giving `null`). Each `dblclick`
+    closes exactly the innermost editor, read as `store.editing`: in A's
+    bundle editor one on the pane gives `[]`; with A's bundle editor and
+    `A/group_1`'s group editor open, one on B's background gives `[A]`
+    and a second one `[]`; in `A/group_1`'s group editor opened from the
+    arranger, one on `rect page/card` (`group_2`'s member, faded) gives
+    `[]`, and again opened, one on A's background gives `[]`. No session
+    held a command, so `store.journal` stays `[]` (Done stores a session
+    only with entries). Inside nothing changes: in `A/group_1`'s group
+    editor a `dblclick` on `rect group_1` (the edited element) leaves
+    `[A/group_1]`, and one on `rect performance/card` (a member) opens
+    `[A/group_1, A/performance]`. The view returns as Done's does: with
+    the viewport `{x: 12, y: −34, zoom: 0.5}` and the canvas measured
+    10000 × 10000 px, a `dblclick` on `rect group_1` moves it to case 5's
+    `{x: 3683.03076171875, y: 4285.65625, zoom: 4}`, and a `dblclick` on the
+    pane closes the editor and gives back exactly `{x: 12, y: −34, zoom:
+    0.5}`. **Two taps outside close the innermost editor, once.** With
+    A's bundle editor and `A/group_1`'s group editor open, taps on the
+    pane at (50, 50) at 1000 ms and at (55, 55) at 1250 ms give `[A]`; a
+    `dblclick` on the pane right after (the double-click a browser may
+    derive from a double tap; the last press was a touch) leaves `[A]`;
+    taps at (50, 50) 301 ms apart (2000 ms, 2301 ms) leave `[A]`. **On
+    the arranger** (no editor) a `dblclick` on the pane with the selection
+    `{A/group_1}` opens nothing and changes no journal.
+13. **The canvas recentres the edited element when its size changes.**
+    As in case 5, the viewport `{x: 12, y: −34, zoom: 0.5}`, the canvas
+    10000 × 10000 px, and a `dblclick` on `rect group_1` gives `{x:
+    3683.03076171875, y: 4285.65625, zoom: 4}`. The canvas measured 6000 ×
+    10000 px and its size reported (the drawer opening beside it) gives
+    `{x: 1683.03076171875, y: 4285.65625, zoom: 4}`: the zoom stays clamped
+    at 4 (`4800 / 562.484619140625` is larger), `x = 3000 − 329.2423095703125 ×
+    4`,
+    `y` as before. The viewport then set to `{x: 5, y: 6, zoom: 1}` (a
+    pan inside the editor) stays there when the same 6000 × 10000 px is
+    reported again (no size change); 10000 × 10000 px reported gives `{x:
+    3683.03076171875, y: 4285.65625, zoom: 4}` again. Escape closes the editor
+    and the viewport is the one it was entered from, `{x: 12, y: −34,
+    zoom: 0.5}`, unchanged by the recentring; 6000 × 10000 px reported
+    without an editor leaves it there.
+14. **The mode menu sits centred above the resized box, 10 px clear of
+    its top.** The menu (the `role="toolbar"` "Resize mode" element) is
+    placed by its wrapper's `transform`, `translate(<cx>px, <top>px)
+    translate(-50%, -100%)`: `<cx>` the screen x of the box's top centre,
+    `(x + width / 2) × zoom + vx`, `<top>` its screen y less the gap,
+    `y × zoom + vy − 10` (`MENU_GAP`, Svelte Flow's `NodeToolbar`
+    default), the menu then moved left by half its width and up by its
+    whole height, so its bottom lies 10 px above the box. The expected box
+    is read independently of the canvas: the node's position from the
+    `translate` Svelte Flow gives its element, plus the frame's or card's
+    rectangle in `drawingOf(block, settings, metrics)` at the block's
+    scale (exact; the drawn `rect` rounds its attributes). In A's bundle
+    editor at `{x: 100, y: 100, zoom: 1}` with `{A/group_2}` selected,
+    `group_2`'s box is `{x: 48, y: 256.3671875, width:
+    562.484619140625}` (node at (40, 80)), so `translate(429.2423095703125px,
+    346.3671875px) translate(-50%, -100%)`, not the block's
+    `translate(…, 170px)`. It follows the box: at `{x: −20, y: 30, zoom:
+    2}` `translate(638.484619140625px, 532.734375px)`; back at zoom 1, a
+    box resize by `handle-right` 60 px to the right, released, widens the
+    frame to `622.48486328125` and gives `translate(459.242431640625px,
+    346.3671875px)`; an item drag of `rect group_2` by (40, 24), released,
+    moves it to `{x: 88, y: 280.3671875}` and gives
+    `translate(499.242431640625px, 370.3671875px)`. In
+    `A/annotations`'s timeline editor with `{A/annotations/card}` the card
+    `{x: 48, y: 456.50390625, width: 562.484619140625}` gives
+    `translate(429.2423095703125px, 546.50390625px)`. On the arranger,
+    with `{A}` selected at zoom 1, the menu sits above the block's node,
+    `{x: 40, y: 80}` and the drawing's width 580.484619140625 at scale 1:
+    `translate(430.2423095703125px, 170px)`. Each value is compared
+    exactly (`toBe`) with the formula over the box read as above.
+
+15. **On the arranger a click selects a frame, which resizes in one
+    `set`.** At `{x: 100, y: 100, zoom: 1}` with nothing open, a click on
+    `rect group_1` selects `{A/group_1}` and shows the eight box handles
+    (the bound mode is Box); a drag of `handle-right` by 60 px, released,
+    dispatches exactly one command, accepted (`store.journal` grows by
+    one, `store.entries` is that journal), the `set` of
+    `[{target: A/group_1, values: {place: {width: w + 60}}}, {target:
+    A/group_2, values: {place: {x, y}}}, {target: A/annotations, values:
+    {place: {x, y}}}]`, `w` the frame's drawn width and each `x`, `y` the
+    item's drawn place in `drawingOf(block, settings, metrics)` before the
+    gesture (`w + 60` on the 1/2048 lattice: `w` is a multiple of 1/4096,
+    so it is rounded as `quantize` rounds it), so no other item moves;
+    `store.undo()` restores the block exactly (`toStrictEqual` the block
+    before).
+
+16. **The bundle editor resizes its own block, as the arranger does.**
+    In A's bundle editor at `{x: 100, y: 100, zoom: 1}` with `{A}`
+    selected (the bound mode Box), `handle-right` dragged by 60 px and
+    released records one entry in the session, and the block's `width` is
+    exactly its drawing's width plus 60, quantized to 1/2048 (`resize`'s
+    box rule at scale 1).
 
 ## Boxes: selection and hover
 
@@ -1939,44 +2223,57 @@ tell them apart:
    `css`. `drawingMatrix` of the `rect` is its `<svg>`'s CTM, and of an
    `<svg>` its own.
 
-**The resize toolbar's modes** (`resizeModes` in `gestures.test.ts`), the
-editor's row of `GESTURES` deciding what is offered for a block or an item
-(a group's frame or an ungrouped root's card), read from the permission
-table of the editors:
+**The resize toolbar's modes** (`resizeModes(level, kind)` in
+`gestures.test.ts`), read from `RESIZING`: all three, Scale, Box and
+Stretch, for every kind at every level where it resizes, and none
+elsewhere, checked for all 4 × 4 pairs:
 
-| row | block | item |
-|---|---|---|
-| `arranger` | scale, box, stretch | none |
-| `bundle` | none | box, stretch |
-| `group` (the edited frame) | none | box (the frame), stretch (the members' common length) |
-| `timeline` (an ungrouped root's card) | none | stretch (its length) |
-| `timeline` without `stretchCard` (a group member's card) | none | none |
+| level | block | frame | card | member |
+|---|---|---|---|---|
+| `arranger` | all | all | all | all |
+| `bundle` | all | all | all | all |
+| `group` | none | all | none | all |
+| `timeline` | none | none | all | all |
 
-**The toolbar renders exactly those modes** (`resize-toolbar.test.ts`,
-jsdom): `ResizeToolbar.svelte` is a node toolbar, so `ToolbarHarness.svelte`
-mounts it inside a Svelte Flow canvas of one node, the block `A` holding
-`bundles/bundle_mixed` (Svelte Flow's `ResizeObserver` and `matchMedia`
-stubbed, which jsdom lacks). Read are the mode buttons' labels in order,
-the pressed and the disabled ones, and the handles' names in order:
+**The toolbar renders exactly those modes, with the handles of each box**
+(`resize-toolbar.test.ts`, jsdom): `ResizeToolbar.svelte` is mounted by
+`ToolbarHarness.svelte` inside a Svelte Flow canvas of one node, the block
+`A` holding `bundles/bundle_mixed` (Svelte Flow's `ResizeObserver` and
+`matchMedia` stubbed, which jsdom lacks). Read are the mode buttons' labels
+in order, the pressed and the disabled ones, the handles' names in order,
+and the buttons' titles. The handles are `handlesFor`'s for a block and
+`itemHandlesFor`'s for an item, so a frame and an ungrouped card offer a
+block's (the corners to scale, all eight to size the box, the left and
+right edges to stretch, the right edge alone in the group editor, whose
+frame stays put), and a member's card, whose top left corner its frame
+decides, offers its bottom right corner to scale, its right, bottom right
+and bottom handles to size its box, and its right edge to stretch:
 
-| gestures | subject | bound mode | buttons | pressed | handles |
+| level | subject | bound mode | buttons | pressed | handles |
 |---|---|---|---|---|---|
 | `arranger` | the block | stretch | Scale, Box, Stretch | Stretch | all eight |
 | `arranger` | the block | scale | (the same) | Scale | the four corners |
 | `arranger`, locked | the block | box | the three, all disabled | Box | none |
-| `bundle` | item `group_2` | scale | Box, Stretch | Box (the row's first) | all eight |
-| `bundle` | item `group_2` | stretch | Box, Stretch | Stretch | right, left |
-| `group` | item `group_1` (group editor) | box / stretch | Box, Stretch | | all eight / right |
-| `timeline` | item `annotations` | box | Stretch | Stretch | right, left |
-| `timeline` without `stretchCard` | item `group_1` | stretch | none | | none |
-| `bundle` | the block | box | none | | none |
+| `arranger` | frame `group_1` | scale | Scale, Box, Stretch | Scale | the four corners |
+| `bundle` | the block (the edited one) | box | Scale, Box, Stretch | Box | all eight |
+| `bundle` | card `annotations` | stretch | Scale, Box, Stretch | Stretch | right, left |
+| `group` | frame `group_1` | box / stretch | Scale, Box, Stretch | | all eight / right |
+| `group` | member card `performance` | scale / box / stretch | Scale, Box, Stretch | | bottom-right / right, bottom-right, bottom / right |
+| `timeline` | card `annotations` | box | Scale, Box, Stretch | Box | all eight |
+| `timeline` | member card `score` | stretch | Scale, Box, Stretch | Stretch | right |
+| `group` | the block | box | none | | none |
+| `timeline` | frame `group_1` | box | none | | none |
 
-The handles are those of `handlesFor` for a block and of `itemHandlesFor`
-for an item, so the arranger's row shows today's buttons and handles, and
-its values remain `resize`'s (the section above). The values of an item
-resize are `itemResizeValues`'s and its command `itemResizeCommand`'s
-(their own sections); a drag on a handle, which travels through Svelte
-Flow's viewport, is left to the Playwright suite.
+The titles say what each mode does: for a frame (and an ungrouped card)
+"Scale: scale everything, proportions kept (1)", "Box: resize the box,
+the content stays (2)", "Stretch: stretch the length (3)"; for a member's
+card the Scale and Stretch titles name the whole group, "Scale: scale the
+whole group (1)" and "Stretch: stretch every member (3)"; for a block
+Stretch is "Stretch: stretch lengths and distances (3)".
+
+The values of an item resize are `itemResizeValues`'s and its command
+`itemResizeCommand`'s (their own sections); a drag on a handle, which
+travels through Svelte Flow's viewport, is left to the Playwright suite.
 
 ## The block node in the editors
 
@@ -2118,9 +2415,10 @@ view (A, section "Fixture facts") with an empty journal and no sessions;
 the change is the `add` of block B holding `bare` at (1000, 0).
 
 1. **The getters are the store's.** `live.store` is the store, and
-   `view`, `editing`, `entries`, `journal`, `sessions` and `changes` are
-   each `toBe` the store's own (`undone`, which the store builds anew on
-   each read, `toEqual`), read outside any effect,
+   `view`, `editing`, `entries`, `listed`, `journal`, `sessions` and
+   `changes` are each `toBe` the store's own (the store computes `entries`,
+   `listed` and `journal` once per change, so two reads between changes
+   give the same object), read outside any effect,
    before the change and after it (the view after it is the store's new
    view, not the first).
 2. **An effect follows the store.** An effect records `[live.view,
@@ -2136,3 +2434,52 @@ the change is the `add` of block B holding `bare` at (1000, 0).
    adapter and reading `live.view` outside an effect holds none; two
    effects reading it in one root hold exactly one; once the root is
    destroyed and a tick has passed, none.
+
+## The live placement of items and cards (`live-items.test.ts`)
+
+During a gesture the canvas reports through `onlive` the placement of the
+block it changes (`livePlacement`) together with the drawing the block's
+node shows, so that what shows the block's items and cards (the editor's
+Properties form) follows them live, as it follows the block's own fields,
+without laying the block out a second time. What proves it is that during
+the gesture the reported drawing is exactly the block's drawing with the
+places its release then stores, the very function and values the node
+draws its preview with (`drawingOf(block, settings, metrics, {places})`),
+and differs from the stored drawing only in the item the gesture changes;
+and that nothing is reported before the gesture previews anything and
+`null` after its release.
+
+jsdom, `Canvas.svelte` mounted directly with an `onlive` that records every
+value, on a store of `mixedPlain()` (A holds `bundle_mixed` at (40, 80);
+its items as in section "Items": `group_1` at (8, 28.8046875), 400 long,
+562.484619140625 wide, 139.5625 high; `group_2` at (8, 176.3671875);
+`annotations` at (8, 358.50390625); each width `W(L) = 162.484619140625 +
+L`). The bundle editor of A is opened, the viewport set to `{x: 100, y:
+100, zoom: 1}` and the pane measured 1000 × 1000 px (no auto-pan), with
+reduced motion and pointer capture stubbed, so one screen pixel is one
+drawing unit of A (block scale 1). The drawing's place origin is (0, 0),
+so the reported `x`, `y` are the block's 40, 80.
+
+1. **A frame's Stretch.** `A/group_1` selected, mode Stretch, the right
+   handle pressed at (0, 0) and moved to (60, 0). Before the press the last
+   reported value is `null` (a selection is no gesture). After the move,
+   before release, the last reported placement is `{id: A, x: 40, y: 80,
+   scale: 1, length: 400, spacing: 1, width: null, height: null}` (the
+   block's own fields, unchanged). After release the last reported value
+   is `null` and A's `places` are exactly `{group_1: {length: 460},
+   group_2: {x: 8, y: 176.3671875}, annotations: {x: 8, y: 358.50390625}}`
+   (60 units more width is 60 more length; the other items state their
+   drawn positions, the bundle editor's rule, section "Items"). The
+   placement reported before release has `drawing` `toStrictEqual` to the
+   block's drawing with those stored `places`; its `group_1` item's place is
+   exactly `{x: 8, y: 28.8046875, length: 460, scale: 1, width:
+   622.484619140625, height: 139.5625}`, and `group_2`'s and
+   `annotations`'s places equal the stored drawing's.
+2. **An item drag.** `A/group_2` selected; its frame pressed at (100,
+   200) and moved to (140, 224), the drawing's screen matrix the identity.
+   After release the last reported value is `null` and A's `places` are
+   exactly `{group_2: {x: 48, y: 200.3671875}, group_1: {x: 8, y:
+   28.8046875}, annotations: {x: 8, y: 358.50390625}}` (8 + 40 and
+   176.3671875 + 24, both multiples of 1/2048). The placement reported
+   before release has `drawing` `toStrictEqual` to the block's drawing with
+   those stored `places`, its `group_2` item at (48, 200.3671875).

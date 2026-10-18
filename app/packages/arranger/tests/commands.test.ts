@@ -26,7 +26,7 @@ import {
   withGrid,
 } from "./support.ts";
 
-/** `bundle_mixed` at (40, 80) with `annotations` at `{x: −30, y: −20}`: the origin (38, 28). */
+/** `bundle_mixed` at (40, 80) with `annotations` at `{x: −30, y: −20}`: the origin (38, 48.8046875). */
 const shifted = placed(mixedPlain(), A, "annotations", { x: -30, y: -20 });
 const doubled = changed(shifted, { type: "set", changes: [{ target: A, values: { scale: 2 } }] });
 
@@ -60,12 +60,12 @@ describe("moveCommand", () => {
 
   it("stores the place origin of the dropped node", () => {
     expect(moveCommand(shifted, [{ id: A, x: 10, y: 60 }], metrics)?.changes).toEqual([
-      { target: A, values: { x: 48, y: 88 } },
+      { target: A, values: { x: 48, y: 108.8046875 } },
     ]);
     expect(moveCommand(doubled, [{ id: A, x: 10, y: 60 }], metrics)?.changes).toEqual([
-      { target: A, values: { x: 86, y: 116 } },
+      { target: A, values: { x: 86, y: 157.609375 } },
     ]);
-    expect(moveCommand(shifted, [{ id: A, x: 2, y: 52 }], metrics)).toBeNull();
+    expect(moveCommand(shifted, [{ id: A, x: 2, y: 31.1953125 }], metrics)).toBeNull();
   });
 
   it("is accepted by apply", () => {
@@ -102,7 +102,7 @@ describe("nudgeCommand", () => {
 
   it("moves and snaps the node, and stores its place origin", () => {
     expect(nudgeCommand(shifted, [A], 1, 0, metrics)?.changes).toEqual([
-      { target: A, values: { x: 46, y: 84 } },
+      { target: A, values: { x: 46, y: 80.8046875 } },
     ]);
     expect(nudgeCommand(withGrid(shifted, 8, false), [A], 1, 0, metrics)?.changes).toEqual([
       { target: A, values: { x: 48, y: 80 } },

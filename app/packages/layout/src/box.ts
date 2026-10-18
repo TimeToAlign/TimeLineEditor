@@ -3,7 +3,8 @@
  * TimeSkeleton manifest (`docs/drawing.md` in timeskeleton). Every manifest
  * is drawn as one box (section 8): each timeline drawn as a root lies in its
  * own card and is laid out by sections 3 to 6, and each item of the box, a
- * frame or an ungrouped root's card, lies at its own place.
+ * frame or an ungrouped root's card, applies the box's one horizontal layout
+ * and is drawn at its own place and scale.
  */
 
 import {
@@ -19,10 +20,17 @@ import {
 } from "@timetoalign/tilie-core";
 import type { FontMetrics, Graphical } from "@timetoalign/timeskeleton";
 import { canonicalOrder } from "@timetoalign/timeskeleton";
-import { shifted } from "./canvas.ts";
-import { Cascade, type Style } from "./cascade.ts";
-import { F, G, K, MARKER_BASE, P, Q, SHADOW_OFFSET, TITLE_GAP } from "./constants.ts";
-import type { Drawing, DrawnElement, DrawnItem, Placement, TextElement } from "./elements.ts";
+import { placedAt } from "./canvas.ts";
+import { Cascade } from "./cascade.ts";
+import { F, G, K, P, Q, SHADOW_OFFSET, TITLE_GAP } from "./constants.ts";
+import type {
+  Drawing,
+  DrawnCard,
+  DrawnElement,
+  DrawnItem,
+  Placement,
+  TextElement,
+} from "./elements.ts";
 import { layoutMember, type MemberLayout } from "./member.ts";
 import { cleanText, TextMeasure } from "./metrics.ts";
 import { cutText } from "./names.ts";
@@ -31,33 +39,29 @@ import { brace } from "./regions.ts";
 import { bandOrderOf } from "./sides.ts";
 import { type Holder, shown } from "./traversal.ts";
 
-/** An item's place in place coordinates (section 8.6), with what `places` states for it. */
-interface ItemPlace {
-  readonly key: string;
-  readonly stated: Place;
+/** A member drawing laid out at the graphical length `L` of its item. */
+interface Laid {
+  readonly layout: MemberLayout;
   readonly L: number;
-  readonly x: number;
-  readonly y: number;
-  readonly height: number;
 }
 
 /**
- * The shared start `x0` of the members' lines (section 8.2): past the name
- * column starting at `xn`, so that no centred label crosses its left edge
- * and no chevron crosses the gap after the names.
+ * The start `s0` of every member drawing of the box (section 8.2), in item
+ * coordinates: past the name column starting at `n`, so that no centred
+ * label crosses its left edge and no chevron crosses the gap after the names.
  */
-function sharedStart(xn: number, members: readonly MemberLayout[], L: number): number {
-  const names = members.flatMap((member) => member.names);
+function start(n: number, drawings: readonly Laid[]): number {
+  const names = drawings.flatMap(({ layout }) => layout.names);
   const N = names.length === 0 ? 0 : Math.max(...names);
   const gap = names.length === 0 ? 0 : G;
-  let x0 = xn + N + gap;
-  for (const item of members.flatMap((member) => member.centred)) {
-    x0 = Math.max(x0, xn + item.width / 2 - L * item.u);
+  let s0 = n + N + gap;
+  for (const { layout, L } of drawings) {
+    for (const item of layout.centred) s0 = Math.max(s0, n + item.width / 2 - L * item.u);
   }
-  for (const wa of members.flatMap((member) => member.chevrons)) {
-    x0 = Math.max(x0, xn + N + gap + 8 * wa);
+  for (const wa of drawings.flatMap(({ layout }) => layout.chevrons)) {
+    s0 = Math.max(s0, n + N + gap + 8 * wa);
   }
-  return x0;
+  return s0;
 }
 
 /** The right edge of an element (section 6.7): geometric, no stroke width counted. */
@@ -104,7 +108,7 @@ function rightEdge(element: DrawnElement, measure: TextMeasure): number | undefi
     case "boundary":
       return element.x;
     case "wedge":
-      return element.x + MARKER_BASE / 2;
+      return element.x + element.base / 2;
     case "name":
     case "label": {
       const width = measure.width(element.text, element.style["font-size"]);
@@ -122,6 +126,13 @@ function largestRightEdge(
     .map((element) => rightEdge(element, measure))
     .filter((edge): edge is number => edge !== undefined);
   return edges.length === 0 ? undefined : Math.max(...edges);
+}
+
+/** What one item draws, in item coordinates: its elements and its right and bottom edges. */
+interface Local {
+  readonly elements: DrawnElement[];
+  readonly rights: number[];
+  readonly bottoms: number[];
 }
 
 /**
@@ -163,6 +174,7 @@ export function draw(
     const key = elementKey("card", `${timeline.id}/card`, timeline, holder.key);
     return { address: key.address as string, style: cascade.resolve(key, holder.style) };
   };
+  type Card = ReturnType<typeof card>;
   /** A member drawing at its item's graphical length `L`, in its root's band order (section 6.4). */
   const layout = (member: MemberDrawing, holder: Holder, group: string | null, L: number) => {
     const order = bandOrderOf(placement, member.timeline.id, group);
@@ -172,9 +184,17 @@ export function draw(
       holder,
     );
   };
-  /** What `places` states for an item, `{}` when it states nothing. */
+  /** What `places` states under `key`, `{}` when it states nothing. */
   const statedOf = (key: string): Place =>
     Object.hasOwn(placement.places, key) ? (placement.places[key] as Place) : {};
+  /** The size `places` states for a member's card: its `width` and `height`, nothing else. */
+  const requestOf = (key: string): Pick<Place, "width" | "height"> => {
+    const { width, height } = statedOf(key);
+    return {
+      ...(width === undefined ? {} : { width }),
+      ...(height === undefined ? {} : { height }),
+    };
+  };
 
   // The manifest's title: its name, else its id; a manifest with neither has none.
   const heading =
@@ -182,197 +202,240 @@ export function draw(
       ? undefined
       : title(TITLE_ADDRESS, ordered.id ?? "", ordered.name, block);
   const headingDrawn = heading?.drawn === true ? heading : undefined;
+  // `Pt` (section 8.4): no item rises above F below the title's slot, and the first item's
+  // default top lies there.
+  const Pt = headingDrawn === undefined ? P : P + measure.lineHeight(headingDrawn.size) + F;
 
   // Each item's place (section 8.6), in place coordinates: what `places` states, else the
-  // defaults, the first item below the title and every further one F below the largest bottom
-  // edge of the items before it. Heights do not depend on the place.
-  const first = headingDrawn === undefined ? P : P + measure.lineHeight(headingDrawn.size) + F;
+  // defaults, the first item at Pt and every further one F below the largest drawn bottom edge
+  // of the items before it. Heights, in item coordinates, do not depend on the place.
   const itemBottoms: number[] = [];
-  const nextTop = () => (itemBottoms.length === 0 ? first : Math.max(...itemBottoms) + F);
+  const nextTop = () => (itemBottoms.length === 0 ? Pt : Math.max(...itemBottoms) + F);
   /**
    * The place of the item `key`, its content laid out at the item's length `L`: its height the
-   * larger of the content's and the requested one, its bottom edge recorded for the next default top.
+   * larger of the content's and the requested one, its drawn bottom edge, after its scale,
+   * recorded for the next default top.
    */
-  const placeItem = <T extends { readonly height: number }>(
+  const placeItem = <C extends { readonly height: number }>(
     key: string,
-    content: (L: number) => T,
+    content: (L: number) => C,
   ) => {
     const stated = statedOf(key);
     const L = stated.length ?? placement.length;
+    const scale = stated.scale ?? 1;
     const laid = content(L);
     const height = stated.height === undefined ? laid.height : Math.max(laid.height, stated.height);
     const x = stated.x ?? P;
     const y = stated.y ?? nextTop();
-    itemBottoms.push(y + height);
-    return { ...laid, key, stated, L, x, y, height };
+    itemBottoms.push(y + scale * height);
+    return { ...laid, key, stated, L, scale, x, y, height };
   };
   const framed = frames.map((frame) => {
     const id = frame.group.id;
     const key = unownedKey("group", id, BLOCK_KEY);
     const holder: Holder = { key, style: cascade.resolve(key, block.style) };
     return placeItem(id, (L) => {
-      const members = frame.members.map((member) => ({
-        card: card(member, holder),
-        layout: layout(member, holder, id, L),
-      }));
       const frameTitle = title(`${id}/name`, id, frame.group.name, holder);
-      // The frame's height (section 8.4): the title's slot, then the cards F apart.
-      let height = Q;
-      if (frameTitle.drawn) height = height + measure.lineHeight(frameTitle.size) + TITLE_GAP;
-      members.forEach((item, index) => {
-        if (index > 0) height = height + F;
-        height = height + item.layout.height;
+      // Vertical (section 8.4): the title's slot, then the cards F apart, each the larger of its
+      // member drawing's height and the height its own request asks (section 8.6).
+      let top = Q;
+      if (frameTitle.drawn) top = top + measure.lineHeight(frameTitle.size) + TITLE_GAP;
+      const members = frame.members.map((member, index) => {
+        const memberLayout = layout(member, holder, id, L);
+        const stated = requestOf(member.timeline.id);
+        const height =
+          stated.height === undefined
+            ? memberLayout.height
+            : Math.max(memberLayout.height, stated.height);
+        if (index > 0) top = top + F;
+        const item = { member, card: card(member, holder), memberLayout, stated, top, height };
+        top = top + height;
+        return item;
       });
-      height = height + Q;
-      return { holder, members, frameTitle, height };
+      return { holder, members, frameTitle, height: top + Q };
     });
   });
   const loose = ungrouped.map((member) =>
     placeItem(member.timeline.id, (L) => {
       const memberLayout = layout(member, block, null, L);
-      return { member, memberLayout, height: memberLayout.height };
+      return { card: card(member, block), memberLayout, height: memberLayout.height };
     }),
   );
 
-  // The box grows left and up to hold every frame and card with the padding P (section 8.4):
-  // the place origin lies at (Ox, Oy) in the box. A frame's cards lie inside it.
+  // The box's one horizontal layout (section 8.2), in item coordinates: the name column `n`,
+  // the start `s0` and the right margin `Mr`, found once over every member drawing of the box.
+  const n = framed.length > 0 ? Q + K : K;
+  const s0 = start(n, [
+    ...framed.flatMap((frame) =>
+      frame.members.map((item) => ({ layout: item.memberLayout, L: frame.L })),
+    ),
+    ...loose.map((item) => ({ layout: item.memberLayout, L: item.L })),
+  ]);
+  const framedDrawn = framed.map((frame) => ({
+    ...frame,
+    members: frame.members.map((item) => ({
+      ...item,
+      elements: item.memberLayout.elements(s0, n, item.top),
+    })),
+  }));
+  const looseDrawn = loose.map((item) => ({
+    ...item,
+    elements: item.memberLayout.elements(s0, n, 0),
+  }));
+  const margins: number[] = [];
+  const margin = (elements: readonly DrawnElement[], L: number) => {
+    const e = largestRightEdge(elements, measure);
+    if (e !== undefined) margins.push(e - (s0 + L));
+  };
+  for (const frame of framedDrawn) for (const item of frame.members) margin(item.elements, frame.L);
+  for (const item of looseDrawn) margin(item.elements, item.L);
+  const Mr = margins.length === 0 ? undefined : Math.max(...margins);
+  /** An item's right edge `Ri` before its request: its content's, or past its group's title `t`. */
+  const rightOf = (L: number, t: number | undefined) => {
+    const content = Mr === undefined ? s0 : s0 + L + Mr;
+    return t === undefined ? content : Math.max(content, t);
+  };
+
+  // The box grows left and up to hold every frame and card with the padding P, and above them
+  // the title's slot (section 8.4): the place origin lies at (Ox, Oy) in the box.
   const positioned = [...framed, ...loose];
   const Xl =
     positioned.length === 0 ? 0 : Math.min(0, Math.min(...positioned.map((item) => item.x)) - P);
   const Yt =
-    positioned.length === 0 ? 0 : Math.min(0, Math.min(...positioned.map((item) => item.y)) - P);
+    positioned.length === 0 ? 0 : Math.min(0, Math.min(...positioned.map((item) => item.y)) - Pt);
   const Ox = 0 - Xl;
   const Oy = 0 - Yt;
 
-  // Every position below is computed in place coordinates as sections 6 and 8 sum it; the
-  // place origin is added to each finished position last.
-  interface Placed {
-    readonly card: { readonly address: string; readonly style: Style };
-    readonly top: number;
-    readonly height: number;
-    readonly elements: DrawnElement[];
-  }
+  // Every position below is in place coordinates; the place origin is added to each last.
   const elements: DrawnElement[] = [];
   const items: DrawnItem[] = [];
+  const cards: DrawnCard[] = [];
   const rights: number[] = [];
   const bottoms: number[] = [];
-  /**
-   * An item's `R`, the larger of its content's and what its `width` request asks (section 8.6),
-   * and its right edge `R + K + margin`, `margin` the inset of the cards it holds: Q for a frame,
-   * 0 for an ungrouped card. Lists the item with its place and drawn size.
-   */
-  const finish = (
-    item: ItemPlace,
-    kind: DrawnItem["kind"],
-    address: string,
-    content: number,
-    margin: number,
-  ) => {
-    const { key, stated, L, x, y, height } = item;
-    const R =
-      stated.width === undefined ? content : Math.max(content, x + stated.width - K - margin);
-    const right = R + K + margin;
-    items.push({
-      key,
-      kind,
-      address,
-      place: { x, y, length: L, width: right - x, height },
-      stated,
-    });
-    return { R, right };
-  };
-  // The manifest's displayed title takes room in the box, its slot ending at P + h(s).
+  // The manifest's displayed title lies at the box's top left corner, its slot ending h(s) lower.
   if (headingDrawn !== undefined) {
-    const headingTitle = titleElement(headingDrawn, P, P + measure.ascent(headingDrawn.size));
+    const size = headingDrawn.size;
+    const left = Xl + P;
+    const top = Yt + P;
+    const headingTitle = titleElement(headingDrawn, left, top + measure.ascent(size));
     elements.push(headingTitle);
-    rights.push(P + measure.width(headingTitle.text, headingDrawn.size));
-    bottoms.push(P + measure.lineHeight(headingDrawn.size));
+    rights.push(left + measure.width(headingTitle.text, size));
+    bottoms.push(top + measure.lineHeight(size));
   }
-  // A frame or card takes room in the box whether displayed or not; a card's shadow only when drawn.
-  const pushCard = (item: Placed, left: number, right: number) => {
-    const bottom = item.top + item.height;
-    rights.push(right);
-    bottoms.push(bottom);
-    if (shown(item.card.style)) {
-      if (item.card.style.shadow !== "none") {
-        rights.push(right + SHADOW_OFFSET);
-        bottoms.push(bottom + SHADOW_OFFSET);
+  /**
+   * A card spanning `left` to `right` and `top` to `top + height` in item coordinates, with its
+   * member drawing. It takes room whether displayed or not; its shadow only when drawn.
+   */
+  const pushCard = (
+    local: Local,
+    item: Card,
+    left: number,
+    right: number,
+    top: number,
+    height: number,
+    drawn: readonly DrawnElement[],
+  ) => {
+    const bottom = top + height;
+    local.rights.push(right);
+    local.bottoms.push(bottom);
+    if (shown(item.style)) {
+      if (item.style.shadow !== "none") {
+        local.rights.push(right + SHADOW_OFFSET);
+        local.bottoms.push(bottom + SHADOW_OFFSET);
       }
-      elements.push({
+      local.elements.push({
         type: "card",
-        address: item.card.address,
-        style: item.card.style,
+        address: item.address,
+        style: item.style,
         x: left,
-        y: item.top,
+        y: top,
         width: right - left,
-        height: bottom - item.top,
+        height: bottom - top,
+        shadowOffset: SHADOW_OFFSET,
       });
     }
-    elements.push(...item.elements);
+    local.elements.push(...drawn);
+  };
+  /**
+   * Draw an item at its place (section 8.6): each element and edge it draws in item
+   * coordinates taken to its place at its scale.
+   */
+  const drawItem = (
+    item: { readonly x: number; readonly y: number; readonly scale: number },
+    local: Local,
+  ) => {
+    const { x, y, scale } = item;
+    for (const element of local.elements) elements.push(placedAt(element, x, y, scale));
+    for (const right of local.rights) rights.push(x + scale * right);
+    for (const bottom of local.bottoms) bottoms.push(y + scale * bottom);
   };
 
-  for (const frame of framed) {
-    const { key: id, holder, L, members, frameTitle, height, x } = frame;
-    const top = frame.y;
-    const xn = x + Q + K;
-    const x0 = sharedStart(
-      xn,
-      members.map((item) => item.layout),
-      L,
+  for (const frame of framedDrawn) {
+    const { key: id, holder, stated, L, scale, x, y, members, frameTitle, height } = frame;
+    const local: Local = { elements: [], rights: [], bottoms: [] };
+    const titleText = frameTitle.drawn
+      ? titleElement(frameTitle, Q, Q + measure.ascent(frameTitle.size))
+      : undefined;
+    let R = rightOf(L, titleText === undefined ? undefined : rightEdge(titleText, measure));
+    if (stated.width !== undefined) R = Math.max(R, stated.width - K - Q);
+    // Every card ends at R + K, unless its own request widens it; the frame holds them.
+    const cardRights = members.map((item) =>
+      item.stated.width === undefined ? R + K : Math.max(R + K, Q + item.stated.width),
     );
-    // Vertical (section 8.4): the title, then the cards F apart.
-    let memberTop = top + Q;
-    let titleText: TextElement | undefined;
-    if (frameTitle.drawn) {
-      titleText = titleElement(frameTitle, x + Q, top + Q + measure.ascent(frameTitle.size));
-      memberTop = top + Q + measure.lineHeight(frameTitle.size) + TITLE_GAP;
-    }
-    const placed: Placed[] = members.map((item) => {
-      const memberPlaced = {
-        card: item.card,
-        top: memberTop,
-        height: item.layout.height,
-        elements: item.layout.elements(x0, xn, memberTop),
-      };
-      memberTop = memberTop + item.layout.height + F;
-      return memberPlaced;
-    });
-    const content =
-      largestRightEdge(
-        [
-          ...placed.flatMap((item) => item.elements),
-          ...(titleText === undefined ? [] : [titleText]),
-        ],
-        measure,
-      ) ?? x0;
-    const { R, right } = finish(frame, "group", id, content, Q);
-    const bottom = top + height;
-    rights.push(right);
-    bottoms.push(bottom);
+    const right = Math.max(R + K, ...cardRights) + Q;
+    local.rights.push(right);
+    local.bottoms.push(height);
     if (shown(holder.style)) {
-      elements.push({
+      local.elements.push({
         type: "group",
         address: id,
         style: holder.style,
-        x,
-        y: top,
-        width: right - x,
-        height: bottom - top,
+        x: 0,
+        y: 0,
+        width: right,
+        height,
+        shadowOffset: 0,
       });
     }
-    if (titleText !== undefined) elements.push(titleText);
-    for (const item of placed) pushCard(item, x + Q, R + K);
+    if (titleText !== undefined) local.elements.push(titleText);
+    members.forEach((item, index) => {
+      const cardRight = cardRights[index] as number;
+      pushCard(local, item.card, Q, cardRight, item.top, item.height, item.elements);
+      cards.push({
+        key: item.member.timeline.id,
+        group: id,
+        address: item.card.address,
+        size: { width: cardRight - Q, height: item.height },
+        stated: item.stated,
+      });
+    });
+    items.push({
+      key: id,
+      kind: "group",
+      address: id,
+      place: { x, y, length: L, scale, width: right, height },
+      stated,
+    });
+    drawItem(frame, local);
   }
-  for (const item of loose) {
-    const { member, L, memberLayout, height, x } = item;
-    const top = item.y;
-    const xn = x + K;
-    const x0 = sharedStart(xn, [memberLayout], L);
-    const drawn = memberLayout.elements(x0, xn, top);
-    const placed: Placed = { card: card(member, block), top, height, elements: drawn };
-    const content = largestRightEdge(drawn, measure) ?? x0;
-    const { right } = finish(item, "card", placed.card.address, content, 0);
-    pushCard(placed, x, right);
+  // An ungrouped root's card ends where the frames of its length end, Q further when the box
+  // holds a frame.
+  const inset = framed.length > 0 ? Q : 0;
+  for (const item of looseDrawn) {
+    const { key, stated, L, scale, x, y, height } = item;
+    const local: Local = { elements: [], rights: [], bottoms: [] };
+    let R = rightOf(L, undefined);
+    if (stated.width !== undefined) R = Math.max(R, stated.width - K - inset);
+    const right = R + K + inset;
+    pushCard(local, item.card, 0, right, 0, height, item.elements);
+    items.push({
+      key,
+      kind: "card",
+      address: item.card.address,
+      place: { x, y, length: L, scale, width: right, height },
+      stated,
+    });
+    drawItem(item, local);
   }
 
   // The content runs from Xl to Xr and from Yt to Yb in place coordinates (section 8.4).
@@ -382,13 +445,14 @@ export function draw(
   const Hb = Yb - Yt;
   const W = placement.width === null ? Wb : Math.max(Wb, placement.width);
   const H = placement.height === null ? Hb : Math.max(Hb, placement.height);
-  const inBox = elements.map((item) => shifted(item, Ox, Oy));
+  const inBox = elements.map((item) => placedAt(item, Ox, Oy));
   inBox.unshift({ type: "block", address: null, style: block.style, width: W, height: H });
   return {
     width: W,
     height: H,
     origin: { x: Ox, y: Oy },
     items,
+    cards,
     elements: inBox,
     unmapped: [...measure.unmapped].sort((left, right) => left - right),
   };

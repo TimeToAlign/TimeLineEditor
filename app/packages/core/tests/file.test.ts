@@ -204,6 +204,49 @@ describe("the workspace file", () => {
     ]);
   });
 
+  it("reads places with a scale and a member's card size, and refuses a card beyond its size", () => {
+    const store = createStore(
+      { view: createView(), journal: [], sessions: {} },
+      { clock: testClock() },
+    );
+    for (const command of [
+      addBlock(A, "bundles/bundle_mixed.json"),
+      {
+        type: "set",
+        changes: [{ target: `${A}/group_1`, values: { place: { length: 300, scale: 1.25 } } }],
+      },
+      { type: "set", changes: [{ target: `${A}/score`, values: { place: { width: 650 } } }] },
+    ]) {
+      expect(store.dispatch(command)).toBeNull();
+    }
+    const placed = writeWorkspace(store.snapshot());
+    const again = read(placed);
+    expect(again).toEqual(store.snapshot());
+    expect(writeWorkspace(again)).toBe(placed);
+    expect(again.view.blocks[A]?.places).toEqual({
+      group_1: { length: 300, scale: 1.25 },
+      score: { width: 650 },
+    });
+    const changedPlace = (key: string, values: Value) => {
+      const value = parseJson(placed) as Value;
+      Object.assign((blockOf(value).places as Value)[key] as Value, values);
+      return readWorkspace(dumps(value as never));
+    };
+    expect(changedPlace("score", { length: 300 })).toMatchObject({
+      problems: [
+        {
+          code: "unknown_member",
+          message: "score is a member: its card takes only width and height",
+          path: ["blocks", A, "places", "score", "length"],
+        },
+      ],
+    });
+    const zero = changedPlace("group_1", { scale: 0 });
+    expect(isLoadError(zero) && zero.problems.map((item) => [item.code, item.path])).toEqual([
+      ["non_positive_number", ["blocks", A, "places", "group_1", "scale"]],
+    ]);
+  });
+
   describe("with sessions", () => {
     const S = "session001";
     // A store's two entries, the second then moved into session S.

@@ -57,6 +57,7 @@ export function mapElements(maps: MapStacks, placed: Position): MapElement[] {
       xs: x(entry.start),
       xe: xEnd(entry),
       yc: side === "above" ? y - centre : y + centre,
+      spacing: MAP_SPACING,
     };
   });
 }

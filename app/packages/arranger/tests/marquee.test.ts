@@ -17,7 +17,7 @@ const bottom = { x: 40, y: 380, width: 600, height: 82.98046875 };
 
 describe("elementsInRect", () => {
   it("selects the elements wholly inside, never a box", () => {
-    const card = { x: 56, y: 133.609375, width: 508.0859375, height: 49.37890625 };
+    const card = { x: 56, y: 133.609375, width: 546.484619140625, height: 49.37890625 };
     expect(elementsInRect(node, card, every, metrics)).toEqual(
       at("score", "score/start", "score/end", "score/name", "score/start/label", "score/end/label"),
     );

@@ -91,6 +91,96 @@ export function reachedSessions(journal: readonly Entry[], sessions: Sessions): 
   return result;
 }
 
+/** One entry of a level with its undo state, as the Journal tab lists it. */
+export interface ListedEntry {
+  readonly entry: Entry;
+  /** The changes it holds: 1 for a command, a session's commands at every depth. */
+  readonly changes: number;
+  /** How many of them are applied: all, some (a partly undone session) or none (undone). */
+  readonly applied: number;
+  /** A session entry's entries, listed the same way in order; `[]` for a command. */
+  readonly children: readonly ListedEntry[];
+}
+
+/** The changes of `entries` in order: their commands, a session's expanded from `sessions` recursively. */
+export function changesOf(entries: readonly Entry[], sessions: Sessions): CommandEntry[] {
+  const changes: CommandEntry[] = [];
+  const visit = (from: readonly Entry[]) => {
+    for (const entry of from) {
+      if (isSessionEntry(entry)) visit((sessions[entry.session] as Session).entries);
+      else changes.push(entry);
+    }
+  };
+  visit(entries);
+  return changes;
+}
+
+/**
+ * `entries` listed with their undo state: the first `applied` of their
+ * changes applied (all of them by default), the others undone.
+ */
+export function listEntries(
+  entries: readonly Entry[],
+  sessions: Sessions,
+  applied = Number.POSITIVE_INFINITY,
+): ListedEntry[] {
+  let left = applied;
+  const list = (from: readonly Entry[]): ListedEntry[] =>
+    from.map((entry) => {
+      if (!isSessionEntry(entry)) {
+        const done = left > 0 ? 1 : 0;
+        left -= done;
+        return { entry, changes: 1, applied: done, children: [] };
+      }
+      const children = list((sessions[entry.session] as Session).entries);
+      let changes = 0;
+      let done = 0;
+      for (const child of children) {
+        changes += child.changes;
+        done += child.applied;
+      }
+      return { entry, changes, applied: done, children };
+    });
+  return list(entries);
+}
+
+/**
+ * The first `count` changes of `entries`: the entries holding them, and
+ * `sessions` with each session that holds only some of them rebuilt under
+ * its id with those (at every depth) and without the sessions left with
+ * none. A session entry that is kept is the same object.
+ */
+export function keepChanges(
+  entries: readonly Entry[],
+  count: number,
+  sessions: Sessions,
+): { entries: Entry[]; sessions: Sessions } {
+  const result: { [id: SessionId]: Session } = { ...sessions };
+  let left = count;
+  /** The kept entries of `from`, and whether all of them are kept. */
+  const keep = (from: readonly Entry[]): { kept: Entry[]; whole: boolean } => {
+    const kept: Entry[] = [];
+    for (const entry of from) {
+      if (left === 0) {
+        if (isSessionEntry(entry)) {
+          for (const id of Object.keys(reachedSessions([entry], sessions))) delete result[id];
+        }
+        continue;
+      }
+      kept.push(entry);
+      if (!isSessionEntry(entry)) {
+        left -= 1;
+        continue;
+      }
+      const session = sessions[entry.session] as Session;
+      const inner = keep(session.entries);
+      if (!inner.whole) result[entry.session] = { target: session.target, entries: inner.kept };
+    }
+    return { kept, whole: kept.length === from.length };
+  };
+  return { entries: keep(entries).kept, sessions: result };
+}
+
 /**
  * The editor an address opens: a block the bundle editor, a group the group
  * editor, a root or child timeline the timeline editor; `no_editor` for a

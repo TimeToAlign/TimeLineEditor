@@ -318,3 +318,65 @@ describe("removals inside the target", () => {
     );
   });
 });
+
+describe("geometry in the editors", () => {
+  const score = `${BUNDLE}/score`;
+  const place = (id: string, values: object) => set(`${BUNDLE}/${id}`, { place: values });
+
+  it("lets a member's editor change its group's length and scale and its own card", () => {
+    const all = {
+      type: "set",
+      changes: [
+        { target: G1, values: { place: { length: 500 } } },
+        { target: G1, values: { place: { scale: 1.5 } } },
+        { target: score, values: { place: { width: 650 } } },
+      ],
+    };
+    for (const command of [
+      place("group_1", { length: 500 }),
+      place("group_1", { scale: 1.5 }),
+      place("score", { width: 650 }),
+      all,
+    ]) {
+      expect(sideEffect(before, changed(before, command), score)).toBeNull();
+    }
+    const moved = deepFreeze(changed(before, place("group_1", { x: 10 })));
+    expect(sideEffect(moved, changed(moved, place("group_1", { length: 500 })), score)).toBeNull();
+  });
+
+  it("refuses a member's editor every other place", () => {
+    expect(sideEffect(before, changed(before, place("group_1", { x: 10 })), score)).toEqual(
+      outside("the place of bundle0001/group_1", [G1], score),
+    );
+    expect(
+      sideEffect(before, changed(before, place("performance", { width: 650 })), score),
+    ).toEqual(outside("the place of bundle0001/performance", [`${BUNDLE}/performance`], score));
+    expect(sideEffect(before, changed(before, place("group_2", { length: 500 })), score)).toEqual(
+      outside("the place of bundle0001/group_2", [`${BUNDLE}/group_2`], score),
+    );
+  });
+
+  it("lets a child member's editor change its group's length, not its parent's editor", () => {
+    const longer = changed(before, place("group_2", { length: 500 }));
+    expect(sideEffect(before, longer, `${BUNDLE}/excerpt`)).toBeNull();
+    const recording = `${BUNDLE}/recording`;
+    expect(sideEffect(before, longer, recording)).toEqual(
+      outside("the place of bundle0001/group_2", [`${BUNDLE}/group_2`], recording),
+    );
+  });
+
+  it("lets a group's editor size its members' cards", () => {
+    const sized = changed(before, place("score", { width: 650, height: 120 }));
+    expect(sideEffect(before, sized, G1)).toBeNull();
+  });
+
+  it("lets an ungrouped root's editor change its whole place", () => {
+    const annotations = `${BUNDLE}/annotations`;
+    const resized = changed(before, place("annotations", { scale: 1.5, width: 700 }));
+    expect(sideEffect(before, resized, annotations)).toBeNull();
+  });
+
+  it("lets the bundle editor scale its block", () => {
+    expect(sideEffect(before, changed(before, set(BUNDLE, { scale: 2 })), BUNDLE)).toBeNull();
+  });
+});

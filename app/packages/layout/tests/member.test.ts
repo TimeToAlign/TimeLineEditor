@@ -70,7 +70,7 @@ describe("styled__score", () => {
   type JumpPoints = Record<"c1" | "c2" | "base" | "left" | "right", [number, number]>;
   /** The member drawing at spacing `v`, its ordinates given (README table). */
   const expected = (y: Ordinates, jump: JumpPoints) => [
-    { type: "map", address: "score/ticks", xs: x0, xe, yc: y.map },
+    { type: "map", address: "score/ticks", xs: x0, xe, yc: y.map, spacing: 2 },
     {
       type: "region",
       address: "score/intro",
@@ -92,8 +92,8 @@ describe("styled__score", () => {
     },
     { ...root, address: "score", xs: x0, xe, y: y.root },
     { ...child, address: "b", xs: 298.080078125, xe, y: y.b },
-    { type: "wedge", address: "score/start", x: x0, yt: y.tipW, yb: y.baseW },
-    { type: "wedge", address: "score/end", x: xe, yt: y.tipW, yb: y.baseW },
+    { type: "wedge", address: "score/start", x: x0, yt: y.tipW, yb: y.baseW, base: 6 },
+    { type: "wedge", address: "score/end", x: xe, yt: y.tipW, yb: y.baseW, base: 6 },
     name("b/name", y.bName, "b"),
     name("score/name", y.scoreName, "Styled score"),
     { ...label("score/start/label", x0, y.wedgeLabel, "0 ♩"), coordinate: q(0) },
@@ -139,7 +139,7 @@ describe("styled__score", () => {
       expected(
         {
           map: 66.1253125,
-          arms: 70.6853125,
+          arms: 70.68531250000001,
           tip: 76.68531250000001,
           flow: 93.88593750000001,
           root: 60.1253125,
@@ -171,7 +171,7 @@ describe("styled__score", () => {
         {
           map: 111.020625,
           arms: 122.54062499999999,
-          tip: 128.540625,
+          tip: 128.54062499999998,
           flow: 152.70125,
           root: 105.020625,
           b: 47.45,
@@ -180,7 +180,7 @@ describe("styled__score", () => {
           bName: 51.25810546875,
           scoreName: 109.174921875,
           wedgeLabel: 85.6622265625,
-          regionLabel: 139.8228515625,
+          regionLabel: 139.82285156249998,
           jumpLabel: 185.02347656249998,
         },
         {
@@ -205,8 +205,8 @@ describe("nested at length 800 and spacing 2", () => {
       { ...root, address: "clt_1", xs: x0, xe, y: 94 },
       { ...child, address: "clt_3", xs: 249.91552734375, xe: 649.91552734375, y: 66 },
       { ...child, address: "clt_2", xs: 324.91552734375, xe: 424.91552734375, y: 38 },
-      { type: "wedge", address: "clt_1/start", x: x0, yt: 95.5, yb: 108.5 },
-      { type: "wedge", address: "clt_1/end", x: xe, yt: 95.5, yb: 108.5 },
+      { type: "wedge", address: "clt_1/start", x: x0, yt: 95.5, yb: 108.5, base: 6 },
+      { type: "wedge", address: "clt_1/end", x: xe, yt: 95.5, yb: 108.5, base: 6 },
       name("clt_2/name", 41.80810546875, "clt_2"),
       name("clt_3/name", 69.80810546875, "clt_3"),
       name("clt_1/name", 97.80810546875, "clt_1"),

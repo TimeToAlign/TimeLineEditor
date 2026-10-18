@@ -1,7 +1,7 @@
 /** The editors of the canvas: the bundle, group and timeline editors on one element. */
 
 import type { Address, BlockId, EditorKind, View } from "@timetoalign/tilie-core";
-import { contains, findTimeline, memberDrawings } from "@timetoalign/tilie-core";
+import { contains, findTimeline } from "@timetoalign/tilie-core";
 import type { Hit } from "./boxes.ts";
 import { blockOf } from "./selection.ts";
 
@@ -68,73 +68,91 @@ function openedBy(hit: Hit, isTimeline: (id: string) => boolean): Address | null
   }
 }
 
-/** The gestures a level of the canvas offers: the arranger, or an editor of one kind. */
+/** A level of the canvas: the arranger, or an editor of one kind. */
+export type Level = "arranger" | EditorKind;
+
+/** The gestures a level of the canvas offers besides resizing (`RESIZING`). */
 export interface Gestures {
   /** Drag and nudge blocks. */
   readonly moveBlocks: boolean;
-  /** Scale, box and stretch blocks. */
-  readonly resizeBlocks: boolean;
   /** Drag a group's frame or an ungrouped root's card freely inside the box. */
   readonly moveItems: boolean;
-  /** Box and stretch a group's frame or an ungrouped root's card. */
-  readonly resizeItems: boolean;
   /** Drag and drop a group's member cards into another order. */
   readonly reorderMembers: boolean;
-  /** Stretch the members' common length, never past their frame. */
-  readonly stretchMembers: boolean;
-  /** Box the edited group's frame. */
-  readonly resizeFrame: boolean;
-  /** Stretch the edited timeline's card, the bundle box adapting. */
-  readonly stretchCard: boolean;
   /** What a marquee selects: whole blocks, or the elements inside the edited element. */
   readonly marquee: "blocks" | "elements";
 }
 
-const NONE = {
-  moveBlocks: false,
-  resizeBlocks: false,
-  moveItems: false,
-  resizeItems: false,
-  reorderMembers: false,
-  stretchMembers: false,
-  resizeFrame: false,
-  stretchCard: false,
-} as const;
+const NONE = { moveBlocks: false, moveItems: false, reorderMembers: false } as const;
 
-/**
- * What each level allows, one row per level, so a later editor adds a row and
- * never a branch. The timeline editor's `stretchCard` holds only for an
- * ungrouped root's card (`gesturesOf`): a member's length would change its
- * siblings, which that editor does not show.
- */
-export const GESTURES: { readonly [level in "arranger" | EditorKind]: Gestures } = {
-  arranger: { ...NONE, moveBlocks: true, resizeBlocks: true, marquee: "blocks" },
-  bundle: { ...NONE, moveItems: true, resizeItems: true, marquee: "elements" },
-  group: {
-    ...NONE,
-    reorderMembers: true,
-    stretchMembers: true,
-    resizeFrame: true,
-    marquee: "elements",
-  },
-  timeline: { ...NONE, stretchCard: true, marquee: "elements" },
+/** What each level allows, one row per level, so a later editor adds a row and never a branch. */
+export const GESTURES: { readonly [level in Level]: Gestures } = {
+  arranger: { ...NONE, moveBlocks: true, marquee: "blocks" },
+  bundle: { ...NONE, moveItems: true, marquee: "elements" },
+  group: { ...NONE, reorderMembers: true, marquee: "elements" },
+  timeline: { ...NONE, marquee: "elements" },
 };
 
-const FIXED_TIMELINE: Gestures = { ...GESTURES.timeline, stretchCard: false };
+/** The gestures the canvas offers under the innermost open editor `editing`; the arranger's without one. */
+export function gesturesOf(editing: Editing | null): Gestures {
+  return GESTURES[editing === null ? "arranger" : editing.kind];
+}
 
 /**
- * The gestures the canvas offers under the innermost open editor `editing`:
- * its kind's row of `GESTURES`, the arranger's without an editor, and in a
- * timeline editor no `stretchCard` unless the timeline is an ungrouped root.
+ * The boxes a resize acts on: a block, a group's frame, an ungrouped root's
+ * card, and a group member's card.
  */
-export function gesturesOf(view: View, editing: Editing | null): Gestures {
-  if (editing === null) return GESTURES.arranger;
-  if (editing.kind !== "timeline") return GESTURES[editing.kind];
-  const { block, element } = editedElement(editing.target);
-  const manifest = view.blocks[block]?.manifest;
-  if (manifest === undefined) return FIXED_TIMELINE;
-  const ungrouped = memberDrawings(manifest).ungrouped.some(
-    (drawn) => drawn.timeline.id === element,
-  );
-  return ungrouped ? GESTURES.timeline : FIXED_TIMELINE;
+export type ResizedKind = "block" | "frame" | "card" | "member";
+
+/**
+ * Which boxes of a kind resize at a level: every one inside the level's
+ * edited element (on the arranger, every one), or only the edited element's
+ * own box.
+ */
+export type Reach = "inside" | "edited";
+
+/**
+ * What a resize mode changes: the block's own placement, the place of the
+ * item holding the box (the group, for a member's card), or the member's
+ * own card size.
+ */
+export type Written = "block" | "item" | "card";
+
+/** How a kind of box resizes: the levels where it does, and what each mode changes. */
+export interface Resizing {
+  readonly levels: { readonly [level in Level]?: Reach };
+  /** By resize mode (`ResizeMode` of `resize.ts`). */
+  readonly writes: { readonly scale: Written; readonly box: Written; readonly stretch: Written };
+}
+
+const ITEM: Resizing["writes"] = { scale: "item", box: "item", stretch: "item" };
+
+/**
+ * How every kind of box resizes, one row per kind, so a later editor adds a
+ * level to the rows and never a branch. Every box resizes in all three modes
+ * wherever it resizes. The members of a group share its length and scale, so
+ * a member's card scales and stretches its group and sizes only its own box.
+ */
+export const RESIZING: { readonly [kind in ResizedKind]: Resizing } = {
+  block: {
+    levels: { arranger: "inside", bundle: "edited" },
+    writes: { scale: "block", box: "block", stretch: "block" },
+  },
+  frame: { levels: { arranger: "inside", bundle: "inside", group: "edited" }, writes: ITEM },
+  card: { levels: { arranger: "inside", bundle: "inside", timeline: "edited" }, writes: ITEM },
+  member: {
+    levels: { arranger: "inside", bundle: "inside", group: "inside", timeline: "edited" },
+    writes: { scale: "item", box: "card", stretch: "item" },
+  },
+};
+
+/**
+ * Whether a box of `kind` that lies inside the edited element resizes at
+ * `level`; `own` says whether it is the edited element's own box (the block
+ * in its bundle editor, the frame in its group editor, the card in its
+ * timeline editor).
+ */
+export function resizes(kind: ResizedKind, level: Level, own: boolean): boolean {
+  const reach = RESIZING[kind].levels[level];
+  return reach === "inside" || (reach === "edited" && own);
 }

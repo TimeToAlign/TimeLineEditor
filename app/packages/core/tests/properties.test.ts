@@ -110,20 +110,32 @@ const command = (store: Store, seed: Seed): boolean =>
   store.dispatch(commandIn(store.view, BLOCKS, store.editing.at(-1)?.target ?? null, seed)) ===
   null;
 
+/** What the store holds at an opening, which Cancel gives back. */
+interface Opening {
+  readonly view: View;
+  readonly journal: Store["journal"];
+  readonly sessions: Store["sessions"];
+  readonly listed: Store["listed"];
+}
+
 /**
  * Run one step of an editing sequence; whether it changed the store. A
  * session opens an editor, makes one or two commands in it and closes it
  * with Done; an unfold reopens the latest session of the innermost level,
- * undoes all of its entries or the last one, and closes it with Done. A step that changes nothing leaves the view and the editing
- * path the same objects.
+ * undoes all of its changes or the last one, and closes it with Done. A step that changes nothing leaves the view and the editing
+ * path the same objects. `openings` holds what the store held at each open
+ * editor's opening, outermost first: an open pushes it, Done pops it, and
+ * Cancel pops it and finds the store exactly as it was.
  */
-function run(store: Store, { operation, seed }: Step): boolean {
+function run(store: Store, { operation, seed }: Step, openings: Opening[]): boolean {
   const before = store.view;
   const editing = store.editing;
   let changed: boolean;
   if (operation === "command") changed = command(store, seed);
   else if (operation === "open" || operation === "reopen") {
+    const { journal, sessions, listed } = store;
     changed = open(store, operation === "reopen", seed);
+    if (changed) openings.push({ view: before, journal, sessions, listed });
   } else if (operation === "session") {
     changed = open(store, false, seed);
     if (changed) {
@@ -137,8 +149,8 @@ function run(store: Store, { operation, seed }: Step): boolean {
   } else if (operation === "unfold") {
     changed = open(store, true, seed);
     if (changed) {
-      const undos = (seed.picks[0] ?? 0) % 2 === 0 ? store.entries.length : 1;
-      for (let count = 0; count < undos; count += 1) store.undo();
+      if ((seed.picks[0] ?? 0) % 2 === 0) while (store.canUndo) store.undo();
+      else store.undo();
       store.done();
     }
   } else {
@@ -149,6 +161,15 @@ function run(store: Store, { operation, seed }: Step): boolean {
           ? store.canRedo
           : editing.length > 0;
     store[operation]();
+    if (changed && (operation === "done" || operation === "cancel")) {
+      const opening = openings.pop() as Opening;
+      if (operation === "cancel") {
+        expect(store.view).toBe(opening.view);
+        expect(store.journal).toEqual(opening.journal);
+        expect(store.sessions).toEqual(opening.sessions);
+        expect(store.listed).toEqual(opening.listed);
+      }
+    }
   }
   if (!changed) {
     expect(store.view).toBe(before);
@@ -169,16 +190,19 @@ describe("generated editing sequences", () => {
     fc.assert(
       fc.property(stepsArbitrary, (steps) => {
         const store = started(source);
+        const openings: Opening[] = [];
         for (const step of steps) {
-          if (!run(store, step)) continue;
+          if (!run(store, step, openings)) continue;
           const snapshot = replaysToView(store);
           expect(readWorkspace(writeWorkspace(snapshot))).toEqual(snapshot);
           // What redo would bring back replays too: redo it all, then undo it again.
-          const undone = store.undone.length;
+          const left = store.view;
+          let undone = 0;
+          for (; store.canRedo; undone += 1) store.redo();
           if (undone === 0) continue;
-          for (let count = 0; count < undone; count += 1) store.redo();
           replaysToView(store);
           for (let count = 0; count < undone; count += 1) store.undo();
+          expect(store.view).toBe(left);
         }
       }),
       { numRuns: 10 },

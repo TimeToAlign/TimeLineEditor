@@ -5,26 +5,34 @@ import { unknownKeys } from "@timetoalign/tilie-core";
 import { untrack } from "svelte";
 import type { Attachment } from "svelte/attachments";
 import EditingBar from "./EditingBar.svelte";
-import type { Property, TextOptions } from "./edit.ts";
+import type { TextOptions } from "./edit.ts";
 import {
   applyText,
   follow,
   manifestOf,
   manifestText,
-  PROPERTIES,
   problemPointer,
-  propertyCommand,
-  STEPS,
   selectedBlock,
   selectedTimeline,
-  shownValue,
-  stepValue,
 } from "./edit.ts";
 import type { Format, Source } from "./formats.ts";
 import { FORMATS, isLoaded, loadCodec } from "./formats.ts";
 import JournalPanel from "./JournalPanel.svelte";
 import { editorName, journalRows } from "./journal.ts";
 import type { InspectorProblem } from "./problems.ts";
+import type { Property } from "./properties.ts";
+import {
+  commonValue,
+  FIELDS,
+  fieldLabel,
+  geometryOf,
+  offered,
+  propertyCommand,
+  STEPS,
+  shownValue,
+  stepCommand,
+  stepValue,
+} from "./properties.ts";
 
 let {
   live,
@@ -71,14 +79,6 @@ const tabs: readonly Tab[] = $derived(depth > 0 ? TABS : TABS.filter((item) => i
 
 /** The innermost open editor, which the Editor tab names. */
 const innermost = $derived(editing.at(-1));
-
-/** The block's own fields, which a group or timeline editor refuses to change (a side effect). */
-const BLOCK_FIELDS: ReadonlySet<Property> = new Set(["scale", "length", "spacing"]);
-
-/** Whether a field is offered: the block's own fields are not inside a group or timeline editor. */
-function offered(property: Property): boolean {
-  return innermost === undefined || innermost.kind === "bundle" || !BLOCK_FIELDS.has(property);
-}
 
 let depthSeen = untrack(() => depth);
 let openingsSeen = 0;
@@ -144,8 +144,21 @@ const block = $derived(selectedBlock(view, selection));
 /** The one timeline selected, or one of its parts; its `locked` is shown. */
 const timeline = $derived(selectedTimeline(view, selection));
 
+/**
+ * The geometry the Properties form edits: elements of one kind in the block;
+ * else `null`. Its items and cards follow a canvas gesture on their block
+ * live, and an edit follows the gestures' rule of the current level.
+ */
+const geometry = $derived(geometryOf(view, selection, innermost?.kind ?? "arranger", placement));
+
+/** The fields the form offers, in order: the geometry's kind's. */
+const fields = $derived(geometry === null ? [] : FIELDS[geometry.kind]);
+
 /** What the Properties and Manifest tabs show while there is no block to inspect. */
 const HINT = "Select a block to inspect its manifest.";
+
+/** What the Properties tab shows for a selection in one block without one kind of geometry. */
+const GEOMETRY_HINT = "Select a block, a frame or a card to edit its geometry.";
 
 /** Why the Locked checkbox is disabled. */
 const LOCKING_UNAVAILABLE = "Locking and unlocking is not available yet.";
@@ -366,20 +379,35 @@ function onTextKey(event: KeyboardEvent): void {
 let drafts: { [property in Property]?: string } = $state({});
 let propertyProblems: { [property in Property]?: string } = $state({});
 
-/** What a field shows: its draft, else the live or stored value rounded to two decimals. */
+/**
+ * What a field shows: its draft, else the block's live value during a canvas
+ * gesture, else the value every edited element shares (stated, else drawn),
+ * rounded to two decimals; empty while the elements' values differ.
+ */
 function fieldValue(property: Property): string {
   const draft = drafts[property];
   if (draft !== undefined) return draft;
-  if (block === null) return "";
-  return shownValue(
-    (placement !== null && placement.id === block.id ? placement : block)[property],
-  );
+  if (geometry === null) return "";
+  if (geometry.kind === "block" && placement !== null && placement.id === geometry.block.id) {
+    return shownValue(placement[property]);
+  }
+  const value = commonValue(geometry, property);
+  return value === undefined ? "" : shownValue(value);
+}
+
+/** A field's placeholder: "mixed" while the edited elements differ, "auto" for a block's own size. */
+function placeholder(property: Property): string | undefined {
+  if (geometry === null) return undefined;
+  if (commonValue(geometry, property) === undefined) return "mixed";
+  return geometry.kind === "block" && (property === "width" || property === "height")
+    ? "auto"
+    : undefined;
 }
 
 function commitProperty(property: Property): void {
   const draft = drafts[property];
-  if (block === null || draft === undefined) return;
-  const command = propertyCommand(block.id, property, draft);
+  if (geometry === null || draft === undefined) return;
+  const command = propertyCommand(geometry, property, draft);
   const refusal = command.ok ? live.store.dispatch(command.value) : command.problems[0];
   if (refusal !== null && refusal !== undefined) {
     propertyProblems[property] = refusal.message;
@@ -391,14 +419,20 @@ function commitProperty(property: Property): void {
 
 /**
  * Commit one step of the property's `STEPS` (`direction` ±1) at once: from
- * the draft when there is one, else from the stored value (never from the
- * rounded text the field shows); an empty field counts as 0. A draft that
- * is no number is not stepped.
+ * the draft when there is one (an empty field counts as 0, a draft that is
+ * no number is not stepped), else each element from its own exact value
+ * (never from the rounded text the field shows).
  */
 function step(property: Property, direction: 1 | -1): void {
-  if (block === null) return;
+  if (geometry === null) return;
   const draft = drafts[property]?.trim();
-  const base = draft === undefined ? block[property] : draft === "" ? null : Number(draft);
+  if (draft === undefined) {
+    const refusal = live.store.dispatch(stepCommand(geometry, property, direction));
+    if (refusal === null) delete propertyProblems[property];
+    else propertyProblems[property] = refusal.message;
+    return;
+  }
+  const base = draft === "" ? null : Number(draft);
   if (base !== null && !Number.isFinite(base)) return;
   drafts[property] = String(stepValue(base, direction, STEPS[property]));
   commitProperty(property);
@@ -459,11 +493,16 @@ function onPropertyKey(event: KeyboardEvent, property: Property): void {
   }
 }
 
-const blockId = $derived(block?.id ?? null);
+/** The elements the form edits, as one text: a draft belongs to them. */
+const editedElements = $derived(
+  geometry === null
+    ? ""
+    : `${geometry.kind} ${geometry.elements.map((element) => element.target).join(" ")}`,
+);
 
-// A draft belongs to the block it was typed for.
+// A draft belongs to the elements it was typed for.
 $effect(() => {
-  void blockId;
+  void editedElements;
   untrack(() => {
     drafts = {};
     propertyProblems = {};
@@ -479,6 +518,13 @@ function position(problem: InspectorProblem): string {
 </script>
 
 <svelte:window onpointerup={() => (pressed = null)} onpointercancel={() => (pressed = null)} />
+
+{#snippet lockedCell(locked: boolean)}
+  <label class="locked">
+    <input type="checkbox" checked={locked} disabled title={LOCKING_UNAVAILABLE} />
+    Locked
+  </label>
+{/snippet}
 
 <!-- Full width above the tabs, while an editor is open. -->
 <EditingBar {live} />
@@ -522,45 +568,50 @@ function position(problem: InspectorProblem): string {
     {#if shown === null && block === null}
       <p class="hint">{HINT}</p>
     {:else if block !== null}
-      <form class="properties" aria-label="Block properties" onsubmit={(event) => event.preventDefault()}>
-        {#each PROPERTIES as property (property)}
-          <label>
-            <span>{property}</span>
-            <input
-              type="number"
-              step="any"
-              name={property}
-              disabled={!offered(property)}
-              value={fieldValue(property)}
-              placeholder={property === "width" || property === "height" ? "auto" : undefined}
-              aria-invalid={propertyProblems[property] !== undefined}
-              aria-describedby={propertyProblems[property] !== undefined
-                ? `property-problem-${property}`
-                : undefined}
-              onpointerdown={(event) => (pressed = event.currentTarget)}
-              oninput={(event) => onPropertyInput(event, property)}
-              {@attach wheelSteps(property)}
-              onkeydown={(event) => onPropertyKey(event, property)}
-              onblur={() => commitProperty(property)}
-            />
-          </label>
-          {#if property === "height" && timeline !== null}
-            <!-- The cell right of height. -->
-            <label class="locked">
+      {#if geometry === null}
+        <p class="hint">{GEOMETRY_HINT}</p>
+      {/if}
+      {#if geometry !== null || timeline !== null}
+        <form
+          class="properties"
+          aria-label={geometry?.label ?? "Timeline properties"}
+          onsubmit={(event) => event.preventDefault()}
+        >
+          {#each fields as property (property)}
+            <label>
+              <span>{geometry === null ? property : fieldLabel(geometry.kind, property)}</span>
               <input
-                type="checkbox"
-                checked={timeline.timeline.locked}
-                disabled
-                title={LOCKING_UNAVAILABLE}
+                type="number"
+                step="any"
+                name={property}
+                disabled={!offered(geometry, property)}
+                value={fieldValue(property)}
+                placeholder={placeholder(property)}
+                aria-invalid={propertyProblems[property] !== undefined}
+                aria-describedby={propertyProblems[property] !== undefined
+                  ? `property-problem-${property}`
+                  : undefined}
+                onpointerdown={(event) => (pressed = event.currentTarget)}
+                oninput={(event) => onPropertyInput(event, property)}
+                {@attach wheelSteps(property)}
+                onkeydown={(event) => onPropertyKey(event, property)}
+                onblur={() => commitProperty(property)}
               />
-              Locked
             </label>
+            {#if property === "height" && timeline !== null}
+              <!-- The cell right of height. -->
+              {@render lockedCell(timeline.timeline.locked)}
+            {/if}
+            {#if propertyProblems[property] !== undefined}
+              <p class="problem" id={`property-problem-${property}`}>{propertyProblems[property]}</p>
+            {/if}
+          {/each}
+          {#if timeline !== null && !fields.includes("height")}
+            <!-- A timeline drawn in no card of its own: its only cell. -->
+            {@render lockedCell(timeline.timeline.locked)}
           {/if}
-          {#if propertyProblems[property] !== undefined}
-            <p class="problem" id={`property-problem-${property}`}>{propertyProblems[property]}</p>
-          {/if}
-        {/each}
-      </form>
+        </form>
+      {/if}
     {/if}
   </div>
 

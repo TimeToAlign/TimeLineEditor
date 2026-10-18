@@ -16,7 +16,10 @@ export interface Placement {
   readonly order: BandOrder;
   /** Band orders of groups and timelines, overriding `order` (sections 1 and 6.4). */
   readonly bands: { readonly [key: string]: BandOrder };
-  /** The places of the box's items, by group id or ungrouped root id (section 8.6). */
+  /**
+   * The places of the box's items, by group id or ungrouped root id, and the sizes of its
+   * members' cards, by member id (section 8.6).
+   */
   readonly places: { readonly [key: string]: Place };
 }
 
@@ -55,6 +58,8 @@ export interface RectElement extends Addressed {
   readonly y: number;
   readonly width: number;
   readonly height: number;
+  /** How far a card's shadow lies to the right and down (section 8.4); 0 for a frame. */
+  readonly shadowOffset: number;
 }
 
 /** How a line starts: with its circle, or running on in a double chevron (section 8.3). */
@@ -84,6 +89,8 @@ export interface MapElement extends Addressed {
   readonly xe: number;
   /** The centre of the closed double line. */
   readonly yc: number;
+  /** The spacing `d` of the double line. */
+  readonly spacing: number;
 }
 
 export interface RegionElement extends Addressed {
@@ -131,6 +138,8 @@ export interface MarkerElement extends Addressed {
   readonly x: number;
   readonly yt: number;
   readonly yb: number;
+  /** The width of the wedge's base, centred on `x`. */
+  readonly base: number;
 }
 
 export interface TextElement extends Addressed {
@@ -160,10 +169,27 @@ export interface DrawnItem {
   readonly kind: "group" | "card";
   /** `G` for a group's frame, `U/card` for an ungrouped root's card. */
   readonly address: string;
-  /** The place with every default applied; `width` and `height` are the drawn size. */
+  /**
+   * The place with every default applied; `width` and `height` are the drawn size in item
+   * coordinates, before the scale, so `x + scale × width` is the drawn right edge.
+   */
   readonly place: Required<Place>;
   /** The place as the placement states it; `{}` when it states none. */
   readonly stated: Place;
+}
+
+/** The card of a group's member (sections 8.4 and 8.6). */
+export interface DrawnCard {
+  /** The member's timeline id, its key in `places`. */
+  readonly key: string;
+  /** The group whose frame holds the card. */
+  readonly group: string;
+  /** `M/card`. */
+  readonly address: string;
+  /** The drawn size in item coordinates, before the group's scale. */
+  readonly size: { readonly width: number; readonly height: number };
+  /** The card size `places` states for the member; `{}` when none. */
+  readonly stated: Pick<Place, "width" | "height">;
 }
 
 export interface Drawing {
@@ -172,6 +198,8 @@ export interface Drawing {
   /** The place origin within the box (section 8.4). */
   readonly origin: { readonly x: number; readonly y: number };
   readonly items: readonly DrawnItem[];
+  /** The members' cards, in drawing order. */
+  readonly cards: readonly DrawnCard[];
   readonly elements: readonly DrawnElement[];
   readonly unmapped: readonly number[];
 }

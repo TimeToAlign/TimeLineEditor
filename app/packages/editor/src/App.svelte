@@ -125,8 +125,13 @@ const AUTOSAVE_LOCK = `tilie-autosave/${AUTOSAVE_KEY}`;
  */
 let autosaving = false;
 let releaseLock: (() => void) | undefined;
+/** Set once the editor is unmounted: autosave still starting then stops, writing nothing. */
+let destroyed = false;
 
-$effect(() => () => releaseLock?.());
+$effect(() => () => {
+  destroyed = true;
+  releaseLock?.();
+});
 
 /**
  * Keep the slot in step with the open workspace: while it is unsaved, its
@@ -164,7 +169,13 @@ function claimAutosave(): Promise<boolean> {
 
 /** Autosave in this tab if no other tab does, and offer what an earlier session left. */
 async function startAutosave(): Promise<void> {
-  if (!(await claimAutosave())) {
+  const claimed = await claimAutosave();
+  if (destroyed) {
+    // A lock granted after the editor went was not released with it.
+    releaseLock?.();
+    return;
+  }
+  if (!claimed) {
     say(
       "Autosave is active in another TimeLineEditor tab, so changes in this tab are not autosaved.",
     );
@@ -172,6 +183,7 @@ async function startAutosave(): Promise<void> {
   }
   autosaving = true;
   await offerRecovery();
+  if (destroyed) return;
   // Changes made meanwhile; a saved workspace leaves an unanswered slot alone.
   if (store.view !== savedView) track();
 }
@@ -407,7 +419,7 @@ async function offerRecovery(): Promise<void> {
     autosaveFailure(error);
     return;
   }
-  if (snapshot === null || snapshot.text === writeWorkspace(EMPTY)) return;
+  if (destroyed || snapshot === null || snapshot.text === writeWorkspace(EMPTY)) return;
   const workspace = readWorkspace(snapshot.text);
   if (isLoadError(workspace)) {
     say("The autosaved workspace cannot be restored.", workspace.problems);
@@ -420,6 +432,7 @@ async function offerRecovery(): Promise<void> {
     "Discard",
     "first",
   );
+  if (destroyed) return;
   // A restored workspace has its file's name but no handle: its first Save asks where.
   if (answer === true) replace(workspace, snapshot.name, null, false);
   else if (answer === false) autosave.discard();

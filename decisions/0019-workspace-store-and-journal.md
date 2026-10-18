@@ -55,6 +55,14 @@ refuses another `format` or `version`, any unknown or missing member and any
 invalid manifest, and reads every block's manifest through
 `readManifestValue`. Writing what was read gives the same bytes.
 
+**Superseded in part (2026-10-18).** Undo and redo now step one change at
+a time, a change being one command at any depth, inside closed sessions
+too. The store keeps a count of applied changes per level instead of a
+redo stack, a new command discards the undone changes, and an undo past
+the views the store holds applies the changes from the latest view it
+holds, or from the empty workspace at the start of a loaded journal. The
+replay invariant holds as stated.
+
 ## Consequences
 
 Undo reaches back across sessions, and the file says who changed what and

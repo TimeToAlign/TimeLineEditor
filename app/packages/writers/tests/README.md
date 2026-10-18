@@ -278,6 +278,13 @@ as `Xr` (or `Xa`) plus its constant multiple of `w`:
   TikZ `\path[draw=ts000000,line width=1pt] (10,18) -- (10,12);`.
 - A wedge `x 10`, tip `yt 5`, base `yb 18`, fill `#000000`: `<polygon
   data-address="w" points="10,5 7,18 13,18" fill="#000000"/>`, fill only.
+- The sizes a drawing's element carries are its own, never constants of
+  the writer: a wedge's base width `base`, a map's double-line spacing `d`
+  (`spacing`) and a card's shadow offset (`shadowOffset`), 6, 2 and 2 at
+  scale 1 and multiplied by an item's scale (section 8.6). The wedge above
+  with `base 12` is `points="10,5 4,18 16,18"`; the map above with `spacing
+  4` is `points="10,18 50,18 50,22 10,22"`; the card above with
+  `shadowOffset 4` has its shadow at `x="12" y="8"`.
 - Opacity 0.5 is written last, as `opacity="0.5"` and `opacity=0.5`.
 - Stroke-dasharray `2` is `dash pattern=on 2pt off 2pt` and `1 2 3` is `dash
   pattern=on 1pt off 2pt on 3pt off 1pt on 2pt off 3pt`; each dash number
@@ -329,7 +336,7 @@ the manifest's own) and the bundled font metrics, writes the drawing placed
 at `(0, 0)` with the scale (`writeTikz` with its default font directory
 `.`), and requires both texts to equal the files byte for byte.
 
-Twenty SVGs are derived by hand from the specification alone, never from
+Twenty-one SVGs are derived by hand from the specification alone, never from
 this writer's output: `bare`, `nested`, `map`, `flow_control`,
 `with_region`, `styled__score`, `nested__length-800-spacing-2`,
 `segment_line`, `segment_pages_accolades`, `group__group_child_member`,
@@ -337,9 +344,10 @@ this writer's output: `bare`, `nested`, `map`, `flow_control`,
 timelines of unknown length `unknown_length`, `unknown_length_empty`,
 `unknown_length_locked`, `unknown_length_child`,
 `group__group_unknown_length` and `unknown_length_segments`, the bundle
-with a card placed left of and above the padding `bundle_ungrouped__places`, and
-`styled__score__bands-timeline`, a band order stated for one timeline
-(`HAND_DERIVED` in `scripts/emit-drawings.ts`). Their equality with the writer proves the
+with a card placed left of and above the padding `bundle_ungrouped__places`,
+`styled__score__bands-timeline`, a band order stated for one timeline, and
+`bundle_ungrouped__scale`, a card drawn at scale 1.5 (`HAND_DERIVED` in
+`scripts/emit-drawings.ts`). Their equality with the writer proves the
 specification complete for what they show. A missing hand-derived file is
 a failure, never a skip. Every other figure is emitted by `pnpm
 emit-drawings --into <timeskeleton checkout>` from the writer and pins the
@@ -364,7 +372,10 @@ application layer selects the child's map by its address `melody/ticks`;
 (`bands` `{score: ["flow", "children", "regions"]}`) and
 `styled__score__bands-both` (`order` `["flow", "regions", "children"]` and
 `bands` `{score: ["regions", "children", "flow"]}`, the timeline's band
-order winning): 59. The manifest directories are read one by one
+order winning); `bundle_ungrouped__scale` (`places` `{recording: {scale:
+1.5}}`) and `bundle_mixed__cards` (`{group_1: {scale: 1.25}, performance:
+{width: 650, height: 120}}`, a scaled frame whose second member's card
+requests a size): 61. The manifest directories are read one by one
 (`fixtures/<version>/`, its `groups/` and its `bundles/`), never
 recursively, and a fixture's minimal twin (`*.minimal.json`) is no case:
 it holds what its complete fixture holds and draws the same.

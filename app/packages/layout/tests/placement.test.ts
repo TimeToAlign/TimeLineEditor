@@ -52,7 +52,7 @@ describe("jump placement order and levels", () => {
     expect(jumps.map((item) => item.start[1])).toEqual([yf, yf, yf, yf, yf]);
     // The factor 4/3 is formed first: on level 4 the binary64 product would give 145.95182291666666.
     expect(jumps.map((item) => item.c1[1])).toEqual([
-      64.04557291666667, 64.04557291666667, 91.34765625, 118.64973958333333, 145.95182291666669,
+      64.04557291666666, 64.04557291666666, 91.34765625, 118.64973958333333, 145.95182291666669,
     ]);
     expect(
       drawing.elements
@@ -106,7 +106,7 @@ describe("jumps of corpus_score_ms3", () => {
       tip: [68.10205078125, 95.953125],
       base: [71.45167385263575, 98.13945189221907],
       corners: [
-        [70.35851040652621, 99.81426342791194],
+        [70.35851040652622, 99.81426342791194],
         [72.54483729874529, 96.4646403565262],
       ],
     });

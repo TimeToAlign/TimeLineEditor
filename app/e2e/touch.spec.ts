@@ -2,7 +2,8 @@
  * The canvas on a touch screen. Touch points are dispatched through the
  * Chrome DevTools Protocol, which produces the touch and pointer events of a
  * real screen, one or two fingers; Playwright's own touchscreen only taps.
- * A double tap opens an editor. Derivation in `README.md` ("touch.spec.ts").
+ * A double tap opens an editor, and outside the edited element closes it.
+ * Derivation in `README.md` ("touch.spec.ts").
  */
 
 import type { CDPSession, Page } from "@playwright/test";
@@ -11,6 +12,7 @@ import {
   cardPoint,
   commandsFrom,
   emptyPoint,
+  frames,
   OPENED_JOURNAL,
   open,
   partCentre,
@@ -177,6 +179,32 @@ test("a double tap on a card opens its timeline editor", async ({ page }) => {
       ),
     )
     .toEqual([{ target: `${SMALL.map}/melody`, kind: "timeline" }]);
+});
+
+test.describe("in an editor", () => {
+  test.use({ reducedMotion: "reduce" });
+
+  test("a double tap on the faded surroundings closes the innermost editor, once", async ({
+    page,
+  }) => {
+    const editing = () =>
+      page.evaluate(() =>
+        window.__tilie.store().editing.map(({ target, kind }) => ({ target, kind })),
+      );
+    for (const target of [SMALL.map, `${SMALL.map}/melody`]) {
+      expect(await page.evaluate((address) => window.__tilie.open(address), target)).toBeNull();
+    }
+    await expect.poll(() => viewportOf(page)).not.toEqual(VIEW);
+    await setViewport(page, VIEW);
+    const point = await emptyPoint(page, -20, 100);
+    await tap(page, point);
+    await tap(page, point);
+    const bundle = [{ target: SMALL.map, kind: "bundle" }];
+    await expect.poll(editing).toEqual(bundle);
+    // A double-click the engine derives from the two taps closes nothing more.
+    await frames(page);
+    expect(await editing()).toEqual(bundle);
+  });
 });
 
 async function centre(locator: import("@playwright/test").Locator): Promise<Point> {

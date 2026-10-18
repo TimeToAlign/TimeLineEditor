@@ -12,13 +12,21 @@ function geometry(drawing: Drawing): unknown[] {
 
 const q = (value: number) => ({ unit: "quarters", value: Rational.of(value) });
 const wedges = (x0: number, xe: number, root: string) => [
-  { type: "wedge", address: `${root}/start`, x: x0, yt: 0, yb: 0 },
-  { type: "wedge", address: `${root}/end`, x: xe, yt: 0, yb: 0 },
+  { type: "wedge", address: `${root}/start`, x: x0, yt: 0, yb: 0, base: 6 },
+  { type: "wedge", address: `${root}/end`, x: xe, yt: 0, yb: 0, base: 6 },
 ];
 /** The block and the root's card, `P = 8` from the box's top left, `Hm` high. */
 const box = (root: string, W: number, H: number, cardWidth: number, Hm: number) => [
   { type: "block", address: null, width: W, height: H },
-  { type: "card", address: `${root}/card`, x: 8, y: 8, width: cardWidth, height: Hm },
+  {
+    type: "card",
+    address: `${root}/card`,
+    x: 8,
+    y: 8,
+    width: cardWidth,
+    height: Hm,
+    shadowOffset: 2,
+  },
 ];
 const root = { type: "timeline", start: "circle", end: "arrowhead" } as const;
 const child = { type: "child", start: "circle", end: "diamond" } as const;
@@ -162,8 +170,8 @@ describe("flow_control", () => {
         tip: [140.9775390625, yf],
         base: [144.82492272779294, 64.94983565923889],
         corners: [
-          [144.2777392731735, 66.87352749188535],
-          [145.37210618241238, 63.02614382659242],
+          [144.2777392731735, 66.87352749188534],
+          [145.37210618241238, 63.02614382659241],
         ],
       },
       { ...root, address: "flow:quarters", xs: x0, xe, y: 22.40234375 },
@@ -231,8 +239,15 @@ describe("map", () => {
     const xe = 463.53662109375;
     expect(geometry(drawing)).toEqual([
       ...box("melody", 490.53662109375, 85.4765625, 472.53662109375, 67.4765625),
-      { type: "map", address: "melody/tempo", xs: x0, xe, yc: 35 },
-      { type: "map", address: "melody/ticks", xs: 163.53662109375, xe: 363.53662109375, yc: 17.5 },
+      { type: "map", address: "melody/tempo", xs: x0, xe, yc: 35, spacing: 2 },
+      {
+        type: "map",
+        address: "melody/ticks",
+        xs: 163.53662109375,
+        xe: 363.53662109375,
+        yc: 17.5,
+        spacing: 2,
+      },
       { ...root, address: "melody", xs: x0, xe, y: 40.5 },
       { ...child, address: "phrase", xs: 163.53662109375, xe: 363.53662109375, y: 23 },
       ...wedges(x0, xe, "melody").map((item) => ({ ...item, yt: 42, yb: 55 })),

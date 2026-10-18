@@ -18,19 +18,19 @@ describe("targetBounds", () => {
     expect(targetBounds(node, A, metrics)).toEqual({
       x: 40,
       y: 80,
-      width: 553.768798828125,
+      width: 580.484619140625,
       height: 435.8828125,
     });
     expect(targetBounds(node, at("group_1"), metrics)).toEqual({
       x: 48,
       y: 108.8046875,
-      width: 524.0859375,
+      width: 562.484619140625,
       height: 139.5625,
     });
     expect(targetBounds(node, at("annotations"), metrics)).toEqual({
       x: 48,
       y: 456.50390625,
-      width: 499.332763671875,
+      width: 562.484619140625,
       height: 49.37890625,
     });
   });
@@ -39,7 +39,7 @@ describe("targetBounds", () => {
     expect(targetBounds(node, at("dlt_1"), metrics)).toEqual({
       x: 64,
       y: 385.125,
-      width: 277.57568359375,
+      width: 302.29150390625,
       height: 12.8046875,
     });
   });
@@ -48,7 +48,7 @@ describe("targetBounds", () => {
     expect(targetBounds(nodeOf(2), at("group_1"), metrics)).toEqual({
       x: 56,
       y: 137.609375,
-      width: 1048.171875,
+      width: 1124.96923828125,
       height: 279.125,
     });
   });

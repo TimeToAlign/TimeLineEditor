@@ -13,7 +13,7 @@ import type {
   Point,
   Style,
 } from "@timetoalign/tilie-layout";
-import { brace, MAP_SPACING, MARKER_BASE, SHADOW_OFFSET, times } from "@timetoalign/tilie-layout";
+import { brace, times } from "@timetoalign/tilie-layout";
 import { formatNumber } from "./page.ts";
 
 export type { PathCommand, Point } from "@timetoalign/tilie-layout";
@@ -180,17 +180,17 @@ function elementDescriptors(element: DrawnElement): Descriptor[] {
       ];
       const own = write("rect", rect(element.x, element.y), [...filled, ...stroked]);
       if (element.type === "group" || style.shadow === "none") return [own];
-      const shadow = rect(element.x + SHADOW_OFFSET, element.y + SHADOW_OFFSET);
+      const shadow = rect(element.x + element.shadowOffset, element.y + element.shadowOffset);
       return [write("rect", shadow, [["fill", style.shadow]]), own];
     }
     case "wedge": {
-      const half = MARKER_BASE / 2;
+      const half = element.base / 2;
       const { x, yt, yb } = element;
       return [write("polygon", points([x, yt], [x - half, yb], [x + half, yb]), filled)];
     }
     case "map": {
       const { xs, xe, yc } = element;
-      const half = MAP_SPACING / 2;
+      const half = element.spacing / 2;
       const outline = points([xs, yc - half], [xe, yc - half], [xe, yc + half], [xs, yc + half]);
       return [write("polygon", outline, open)];
     }

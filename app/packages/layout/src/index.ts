@@ -15,12 +15,12 @@ export type { BandGroup, Domain, ElementKey, Modality } from "@timetoalign/tilie
 export { draw } from "./box.ts";
 export type { Side, Style } from "./cascade.ts";
 export { Cascade, INITIAL_STYLE } from "./cascade.ts";
-export { MAP_SPACING, MARKER_BASE, SHADOW_OFFSET } from "./constants.ts";
 export { DEFAULT_LAYER, manifestLayer } from "./defaults.ts";
 export type {
   BlockElement,
   BreakElement,
   Drawing,
+  DrawnCard,
   DrawnElement,
   DrawnItem,
   JumpElement,

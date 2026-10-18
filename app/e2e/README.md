@@ -425,7 +425,8 @@ Every block's card rectangle and its shadow carry the address `<root>/card`
 `small`, then `bare000000` set to (40, 80) and `nested0000` to (40, 224) (two
 `set` commands, journal 7), so `nested` (224…319.98) ends above `map` (from
 320) and clear of every other block; viewport (300, 40), zoom 1, page 1600 ×
-1000. `bare`'s box is then 40…516.5771484375 × 80…147.37890625.
+1000. `bare`'s box is then 40…516.5771484375 × 80…147.37890625. Cases 1 to 7
+run on these blocks of `small`; case 8 opens `bundles` instead.
 
 1. **Choosing the mode.** With `bare` selected, keys 1, 2, 3 and the buttons
    `mode-scale`, `mode-box`, `mode-stretch` set `mode()` to scale, box, stretch;
@@ -485,6 +486,19 @@ Every block's card rectangle and its shadow carry the address `<root>/card`
 7. **Undo** after the scale top-left resize restores the whole placement
    (`x`, `y`, `index`, `scale`, `length`, `spacing`, `width`, `height`)
    exactly.
+8. **A frame scales on the arranger.** `bundles` at viewport (40, 40), zoom
+   1, nothing open. A click on `group_1`'s frame of `bmixed0000`
+   (`framePoint`) selects `bmixed0000/group_1`; Scale shows exactly the
+   four corner handles. The frame is drawn 562.484619140625 × 139.5625 at
+   its default place (8, 28.8046875) (the box's one horizontal layout:
+   every item of `bundle_mixed` is 562.484619140625 wide). Its
+   `handle-bottom-right` dragged by (40, 20) scales it by the larger axis
+   ratio about its fixed top left corner, `max(602.484619140625 /
+   562.484619140625, 159.5625 / 139.5625) = 1.14330497…`, 2341.49 steps,
+   so 2341/2048 = 1.14306640625. One `set` is journalled (journal 4), and
+   the stored `places` are exactly `{group_1: {scale: 2341/2048}, group_2:
+   {x: 8, y: 176.3671875}, annotations: {x: 8, y: 358.50390625}}`: the
+   other items' drawn positions are stated with it, so nothing else moves.
 
 ## `touch.spec.ts` (the touch project)
 
@@ -521,8 +535,18 @@ mouse, Svelte Flow measures a node drag from the move that starts it).
    `map0000000`'s card opens the timeline editor of its root: the store's
    `editing` is exactly `[{target: "map0000000/melody", kind:
    "timeline"}]` (read as `{target, kind}`), one editor, even where the
-   engine also reports the two taps as a double-click (a second opening
-   of the same target is refused).
+   engine also reports the two taps as a double-click (the canvas reads a
+   touch's double tap from its taps and ignores a double-click that
+   follows a touch press).
+8. **A double tap outside the edited element closes the innermost editor,
+   once.** With `prefers-reduced-motion: reduce` emulated for the case, the
+   bundle editor of `map0000000` and the timeline editor of
+   `map0000000/melody` opened through the hook, and the viewport set back
+   to (20, 20), zoom 1, a double tap on the empty pane at canvas (−20,
+   100) (left of every block, clear of any element for the touch
+   adjustment) leaves exactly `[{target: "map0000000", kind: "bundle"}]`,
+   and two frames later still that one editor: the double-click the engine
+   may derive from the two taps closes nothing more.
 
 ## `files.spec.ts` (Chromium, Firefox, WebKit)
 
@@ -681,8 +705,8 @@ styling" and "Minimal", and the buttons are "Apply" and "Revert".
     `bare000000/bare` through the hook (accepted, journal 6). A press on
     the block's card (`cardPoint`) selects exactly `bare000000/bare/card`,
     and the drawer shows exactly one checkbox named "Locked", disabled and
-    checked, in the cell of the form "Block properties" right after the
-    `height` field's label, with no `fieldset` in the drawer; the subject
+    checked, in the cell of the form "Card properties" (the card of an
+    ungrouped root) right after the `height` field's label, with no `fieldset` in the drawer; the subject
     beside the heading reads exactly "Card of timeline Bare": the card
     stands for its timeline and the value is the stored `true`, not the
     `false` the fixture was written with. A press on the block's margin
@@ -736,13 +760,47 @@ styling" and "Minimal", and the buttons are "Apply" and "Revert".
        "Manifest" is still the selected one;
     5. on the Properties tab the subject reads "Timeline Renamed", the
        Locked checkbox of `score` is unchecked (its stored `false`) and the
-       fields `x` and `y` show the block's `640` and `160`.
+       fields `x` and `y` show its card's drawn place, `8` and `8`, never
+       the block's `640` and `160`.
 12. **An unapplied text survives a visit to Properties.** On the Manifest
     tab the JSON text of `bare000000` with `"name": "Bare"` replaced by
     `"name": "Kept"` is typed in; Apply and Revert are enabled. The tab
     "Properties" is pressed, then the tab "Manifest": the textarea still
     holds the edited text, Apply and Revert are still enabled, and the
     journal is still 5.
+13. **The form edits the selected frame's and card's places, never the
+    block's.** With the drawer open, `bundles` is loaded through the hook
+    (journal 3) and `bmixed0000/group_1` selected: the form "Frame
+    properties" shows `length` `400` and `scale` `1`, has no `spacing`
+    field, and its `x` and `y` fields are disabled (items are moved in the
+    bundle editor only). `length` filled with `300` and Enter adds exactly one entry,
+    `{type: "set", changes: [{target: "bmixed0000/group_1", values:
+    {place: {length: 300}}}, {target: "bmixed0000/group_2", values:
+    {place: {x: 8, y: 176.3671875}}}, {target: "bmixed0000/annotations",
+    values: {place: {x: 8, y: 358.50390625}}}]}`: on the arranger a form
+    edit, like a gesture, states the drawn position of every other item
+    that states none (the items' drawn places as in the arranger's tests
+    README, "Fixture facts"); the block's stored `length` stays 400 and the
+    field shows `300`. Then `bmixed0000/score/card` is selected: the form
+    "Card properties" shows the group's length, `group length` `300`;
+    `width` filled with `650` and Enter adds exactly one entry, `[{target:
+    "bmixed0000/score", values: {place: {width: 650}}}]` (`group_2` and
+    `annotations` state their positions now, and `group_1`, the frame
+    holding the card, is given none: a card's size never moves its frame),
+    and the field shows `650`.
+14. **The form follows a frame's Stretch live.** `bundles` loaded as in
+    case 13, the bundle editor of `bmixed0000` opened through the hook,
+    the viewport set back to `{x: 40, y: 40, zoom: 1}` once the opening has
+    moved it, `bmixed0000/group_1` selected and the Properties tab
+    pressed: the form "Frame properties" shows `length` `400` and `width`
+    `562.48`. Stretch chosen, the `right` handle is dragged 20 px right
+    with the button held: the form shows `length` `420` and `width`
+    `582.48` (each width grows by exactly the length added; at zoom 1 and
+    block scale 1, 20 px are 20 units) and the editor's session holds no
+    entry yet. Released, the session holds exactly one entry, the block's
+    places are exactly `{group_1: {length: 420}, group_2: {x: 8, y:
+    176.3671875}, annotations: {x: 8, y: 358.50390625}}`, and the form
+    still shows `420` and `582.48`.
 
 ## `a11y.spec.ts`
 
@@ -1086,12 +1144,9 @@ fixture: the manifest of `bmixed0000` is named "Mixed", its `group_1`
    - a click on the empty pane itself (canvas (−20, 450), left of every
      block) clears the selection (`[]`) as it does on the arranger, and
      `editing()` is unchanged;
-   - a double-click on the empty pane (canvas (−20, 450), left of every
-     block), on the centre of `bshared000`'s `group_1`, on the centre of
-     `bmixed0000`'s `group_2` (faded surroundings) and on `group_1`'s own
-     frame (the edited element) opens nothing: `editing()` is still the one
-     group editor, and the pane's double-click leaves the viewport at
-     (40, 40, 1) (the canvas does not zoom on a double-click).
+   - a double-click on `group_1`'s own frame (the edited element) opens
+     nothing: `editing()` is still the one group editor. A double-click on
+     the faded surroundings closes the editor (case 14).
 5. **Editors nest, inside the innermost only.** In the bundle editor of
    `bmixed0000` (opened by a double-click on its margin), a double-click on
    `group_1`'s frame opens a second editor: `editing()` is exactly
@@ -1101,7 +1156,8 @@ fixture: the manifest of `bmixed0000` is named "Mixed", its `group_1`
    `not_inside` with the path `["bmixed0000/group_2"]` and `editing()` is
    unchanged. Done closes the group editor (one editor left, path "Mixed"),
    Done again the bundle editor (`[]`).
-6. **Done folds the session into one entry.** In the group editor of
+6. **Done folds the session into one entry, undone one change at a
+   time.** In the group editor of
    `bmixed0000/group_1`, two commands through the hook's store are
    accepted: `set bmixed0000/group_1 place {length: 300}` and `set
    bmixed0000/score name "S"` (both inside the group). `entries` holds 2,
@@ -1109,9 +1165,12 @@ fixture: the manifest of `bmixed0000` is named "Mixed", its `group_1`
    closes the editor (`editing()` is `[]`); the main journal holds exactly
    4 entries, the last a session entry (it has `session`, no `command`)
    whose session in `store().sessions` has the target
-   `bmixed0000/group_1` and 2 entries. Ctrl/Cmd+Z on the arranger brings
-   the main journal back to 3 and the view's JSON text back to the one
-   before the editor was opened.
+   `bmixed0000/group_1` and 2 entries. Ctrl/Cmd+Z on the arranger reverts
+   the name only: the main journal still holds 4 entries (the session
+   partly undone stays in place) and the view's JSON text is the one
+   after the place alone; a second Ctrl/Cmd+Z brings the main journal
+   back to 3 and the view's JSON text back to the one before the editor
+   was opened.
 7. **Cancel asks before it discards, and only then.**
    - With no change, the button "Cancel" closes the editor at once
      (`editing()` `[]`) and no dialog is shown.
@@ -1200,17 +1259,100 @@ fixture: the manifest of `bmixed0000` is named "Mixed", its `group_1`
     outside bmixed0000/group_2: an editor changes only what it edits";
     `entries` stays empty and the manifest's JSON text is unchanged.
 12. **The Journal tab lists sessions on the arranger and greys undone
-    entries.** After case 6's two commands and Done, on the arranger the
-    Journal tab's panel `#inspector-panel-journal` shows the row text
-    "Edited group Performance (2 changes)". In a fresh group editor of
-    `bmixed0000/group_1` with the same two commands, one undo through the
-    hook's store leaves exactly one element `[data-undone]` in the panel,
-    which contains "Set name of bmixed0000/score" and the word "undone";
-    "Set place of bmixed0000/group_1" is shown and not inside it. A redo
-    leaves none.
+    entries, newest first.** After case 6's two commands and Done, on the
+    arranger the Journal tab's panel `#inspector-panel-journal` shows the
+    row text "Edited group Performance (2 changes)". In a fresh group
+    editor of `bmixed0000/group_1` with the same two commands, one undo
+    through the hook's store leaves exactly one element `[data-undone]` in
+    the panel, which contains "Set name of bmixed0000/score" and the word
+    "undone"; "Set place of bmixed0000/group_1" is shown and not inside
+    it, and the panel's row texts are exactly the name and then the
+    place (newest first). A redo leaves none.
+13. **Three nested sessions undo one change at a time.** The user's
+    scenario, from the fixture's names "Score", "Performance" and
+    "Annotations" of the roots `score`, `performance` and `annotations`:
+    through the hook, `open` of `bmixed0000`, then
+    `bmixed0000/group_1`, then `bmixed0000/score`; in the timeline editor
+    `set bmixed0000/score name "c"`, Done; in the group editor `set
+    bmixed0000/performance name "b"`, Done; in the bundle editor `set
+    bmixed0000/annotations name "a"`, Done. The main journal holds 4
+    entries (the three `add`s and one session) and the Journal tab's
+    first row reads "Edited bundle Mixed (3 changes)". Ctrl/Cmd+Z on the
+    arranger reverts `a` only: the journal still holds 4 entries, the
+    first row reads "Edited bundle Mixed (3 changes, 1 undone)", and the
+    names of `score`, `performance` and `annotations` in the view are
+    "c", "b" and "Annotations". Its disclosure button (`aria-expanded`
+    `"false"`) expanded (`"true"`) shows, newest first, "Set name of
+    bmixed0000/annotations" (greyed, `data-undone`) and "Edited group
+    Performance (2 changes)" (only the first `data-undone`). The next
+    Ctrl/Cmd+Z reverts `b` (score "c", performance "Performance"), the
+    next `c`, after which the view's JSON text is the one before the first
+    `open` and the store's journal (its entries holding an applied change)
+    is back at 3 entries, while the Journal tab still lists the session,
+    every change undone: its row carries `data-undone` and reads "Edited
+    bundle Mixed (3 changes)". Ctrl/Cmd+Shift+Z three times re-applies
+    `c`, `b`, `a` in that order (the three names after each).
 
-The double tap of a touch screen is in `touch.spec.ts` (case 7): the touch
-project runs only that file.
+14. **A double-click outside the edited element is Done.** Outside is
+    where a press selects nothing: the empty pane, a faded block (its node
+    takes no pointer, so the press reaches the pane) and the faded rest of
+    the edited block (its parts take no pointer, so the press reaches the
+    block's background). Each double-click closes exactly the innermost
+    editor, read through `editing()`:
+    - with the bundle editor of `bmixed0000` and the group editor of
+      `bmixed0000/group_1` open (both through `open`, the viewport set back
+      to (40, 40, 1) after each), a double-click on the empty pane (canvas
+      (−20, 450)) leaves `[{target: "bmixed0000", kind: "bundle"}]`, and
+      the viewport returns to (40, 40, 1), where the group editor was
+      opened, as Done's does;
+    - the group editor opened again, a double-click on the centre of
+      `bshared000`'s `group_1` (another block, faded) leaves the bundle
+      editor, and a second one there closes it too (`[]`);
+    - in the group editor of `bmixed0000/group_1` opened from the
+      arranger, a double-click on `group_1`'s own frame (`framePoint`, the
+      edited element) leaves the group editor open, and one on the centre
+      of `bmixed0000`'s `group_2` (the faded rest of the edited block)
+      closes it (`[]`). No session held a change, so the main journal is
+      still 3.
+15. **A double-click on a box inside the edited element opens its
+    editor.** In the group editor of `bmixed0000/group_1`, a double-click
+    on `score/card` (`framePoint`) gives `[{target: "bmixed0000/group_1",
+    kind: "group"}, {target: "bmixed0000/score", kind: "timeline"}]`.
+16. **Closing and opening the drawer recentres the edited element.** The
+    expected viewport is computed outside the page: the edited element's
+    canvas rectangle is the block's box, `bmixed0000`'s node position
+    (`nodePosition`, the place origin's canvas position less the drawing's
+    origin at the block's scale) and its drawing's width and height at its
+    scale, `drawingOf` of the block as `readWorkspace` reads it from
+    `bundles.tle.json` (case 9's metrics); `focusViewport(bounds, size,
+    0)` (unit-tested in the arranger) centres it in the arranger's
+    `clientWidth` × `clientHeight` read in the page after each change.
+    `open("bmixed0000")` opens the bundle editor and the drawer with it;
+    the viewport equals the focus for the arranger left of the drawer.
+    "Close inspector" hides the drawer; the arranger is wider, the
+    expected focus differs from the first, and the viewport equals it.
+    "Open inspector" shows the drawer again; the focus equals the first
+    one and the viewport equals it. Done then returns the viewport to
+    exactly (40, 40, 1), the one the editor was entered from, which the
+    recentring never replaces. Reduced motion makes every move land at
+    once, so each viewport is compared exactly (polled until the canvas
+    has measured its new size).
+
+17. **A member's card stretched in its timeline editor stretches every
+    member.** `bundles` at (40, 40), zoom 1; the timeline editor of
+    `bmixed0000/score` (a member of `group_1`) entered, `score/card`
+    selected and Stretch chosen: the only handle is `handle-right` (a
+    member's card stretches from its right edge). Dragged by (20, 0), one
+    entry is recorded in the session and the block's `places` are exactly
+    `{group_1: {length: 420}}`: the group's shared length, which the
+    member's editor may change, 400 + 20 since the frame's width grows by
+    exactly the length added. Read through the drawn rectangles, both
+    member cards, `score/card` and `performance/card`, are at x `16` and
+    `566.4846` wide (546.484619140625 + 20, written to four decimals):
+    they end at one x.
+
+The double tap of a touch screen is in `touch.spec.ts` (cases 7 and 8): the
+touch project runs only that file.
 
 ## `budget.spec.ts` (`@budget`, Chromium only)
 

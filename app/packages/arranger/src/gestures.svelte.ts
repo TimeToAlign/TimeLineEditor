@@ -1,7 +1,7 @@
 /**
  * The gestures of the editors: moving an item in the bundle editor,
  * reordering a group's member cards in the group editor, and the resize
- * modes each editor offers.
+ * modes each level offers.
  *
  * Each drag is an attachment on the element pressed. It marks that element
  * `nodrag nopan`, so Svelte Flow neither drags the node nor pans the canvas
@@ -18,9 +18,10 @@
  * in, never the element's own, which a sliding reorder moves.
  */
 
-import type { Command, EditorKind } from "@timetoalign/tilie-core";
+import type { Command } from "@timetoalign/tilie-core";
 import type { Attachment } from "svelte/attachments";
-import type { Gestures } from "./editors.ts";
+import type { Level, ResizedKind } from "./editors.ts";
+import { RESIZING } from "./editors.ts";
 import type { Matrix } from "./motion.ts";
 import { drawingMatrix, pointIn } from "./motion.ts";
 import { GRID_FREE, quantize } from "./numbers.ts";
@@ -345,28 +346,22 @@ export function memberDrag(options: MemberDragOptions): Attachment<SVGElement> {
   });
 }
 
-/** What the resize toolbar resizes: a block, or an item of a block's drawing. */
-export type ResizeSubject = "block" | "item";
-
-/** An item resized in an editor: its key in the block's drawing and the editor's kind. */
+/** A box of a block's drawing that a resize acts on: a group's frame, an ungrouped root's card or a member's card. */
 export interface ResizedItem {
+  readonly kind: Exclude<ResizedKind, "block">;
+  /** Its key in the block's `places`: the group's id, the ungrouped root's id, the member's id. */
   readonly key: string;
-  readonly editor: EditorKind;
+  /** The item of the drawing holding the box: its own key, or a member card's group. */
+  readonly item: string;
 }
 
+const MODES: readonly ResizeMode[] = ["scale", "box", "stretch"];
+
 /**
- * The resize modes the toolbar offers for `subject` under an editor's
- * gestures (`gesturesOf`), in the toolbar's order: a block scales, sizes its
- * box or stretches where blocks resize; an item sizes its box where items or
- * the edited frame resize, and stretches its length where items resize, the
- * members stretch or the card does.
+ * The resize modes the toolbar offers for a box of `kind` at `level`, in the
+ * toolbar's order: all three wherever that kind resizes (`RESIZING`), none
+ * elsewhere.
  */
-export function resizeModes(gestures: Gestures, subject: ResizeSubject): readonly ResizeMode[] {
-  if (subject === "block") return gestures.resizeBlocks ? ["scale", "box", "stretch"] : [];
-  const modes: ResizeMode[] = [];
-  if (gestures.resizeItems || gestures.resizeFrame) modes.push("box");
-  if (gestures.resizeItems || gestures.stretchMembers || gestures.stretchCard) {
-    modes.push("stretch");
-  }
-  return modes;
+export function resizeModes(level: Level, kind: ResizedKind): readonly ResizeMode[] {
+  return RESIZING[kind].levels[level] === undefined ? [] : MODES;
 }

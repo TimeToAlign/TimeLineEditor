@@ -1,12 +1,12 @@
 /**
  * Distances outwards from the root's line, the bands that fill a side, the
  * canvas positions of a member drawing once it is placed, and an element
- * shifted from the place origin into the box (`docs/drawing.md` in
- * timeskeleton, sections 3.3, 6.4 and 8.4).
+ * drawn at its item's place and shifted from the place origin into the box
+ * (`docs/drawing.md` in timeskeleton, sections 3.3, 6.4, 8.4 and 8.6).
  */
 
 import type { Real } from "@timetoalign/tilie-core";
-import type { Side } from "./cascade.ts";
+import type { Side, Style } from "./cascade.ts";
 import type { DrawnElement, Point } from "./elements.ts";
 import type { Entry, Scope } from "./traversal.ts";
 
@@ -24,10 +24,10 @@ export interface Band<T> {
   readonly at: (start: number) => T;
 }
 
-/** A member drawing placed at the shared start `x0`, the name column `xn` and its top. */
+/** A member drawing placed at the shared start `x0`, the name column `n` and its top. */
 export interface Position {
   readonly x0: number;
-  readonly xn: number;
+  readonly n: number;
   readonly top: number;
   /** The root line's ordinate. */
   readonly yRoot: number;
@@ -52,7 +52,7 @@ export function position(
   yLocal: number,
   distance: (line: Entry) => number,
   x0: number,
-  xn: number,
+  n: number,
   top: number,
 ): Position {
   const x = (value: Real) => x0 + scope.relativeX(value);
@@ -63,39 +63,82 @@ export function position(
     side === "above" ? y - scope.d(size) : y + scope.a(size);
   const lineY = (line: Entry): number =>
     line === scope.rootEntry ? yRoot : yAt(line.style.side, distance(line));
-  return { x0, xn, top, yRoot, x, xEnd, yAt, beyond, lineY };
+  return { x0, n, top, yRoot, x, xEnd, yAt, beyond, lineY };
+}
+
+/** A style at the scale `scale`: each of its lengths multiplied by it (section 8.6). */
+function scaledStyle(style: Style, scale: number): Style {
+  if (scale === 1) return style;
+  const dashes = style["stroke-dasharray"];
+  const maxWidth = style["max-width"];
+  return {
+    ...style,
+    "stroke-width": scale * style["stroke-width"],
+    "stroke-dasharray":
+      dashes === "none"
+        ? dashes
+        : dashes
+            .split(" ")
+            .map((dash) => String(scale * Number(dash)))
+            .join(" "),
+    "font-size": scale * style["font-size"],
+    rx: scale * style.rx,
+    "max-width": maxWidth === "none" ? maxWidth : scale * maxWidth,
+  };
 }
 
 /**
- * An element drawn shifted by `(dx, dy)`: each finished position measured
- * from the place origin becomes a position in the box (section 8.4).
+ * An element drawn at `(dx, dy)` and the scale `scale`: each of its positions
+ * `(u, v)` taken to `(dx + scale × u, dy + scale × v)` and each of its lengths
+ * multiplied by `scale`. An item is drawn at its place so (section 8.6), and
+ * every finished position in place coordinates is shifted into the box at
+ * scale 1 (section 8.4), where a position becomes `u + dx` and no length changes.
  */
-export function shifted(element: DrawnElement, dx: number, dy: number): DrawnElement {
-  const point = ([x, y]: Point): Point => [x + dx, y + dy];
+export function placedAt(element: DrawnElement, dx: number, dy: number, scale = 1): DrawnElement {
+  const x = (u: number) => dx + scale * u;
+  const y = (v: number) => dy + scale * v;
+  const point = ([u, v]: Point): Point => [x(u), y(v)];
+  if (element.type === "block") return element;
+  const style = scaledStyle(element.style, scale);
   switch (element.type) {
-    case "block":
-      return element;
     case "group":
     case "card":
-      return { ...element, x: element.x + dx, y: element.y + dy };
+      return {
+        ...element,
+        style,
+        x: x(element.x),
+        y: y(element.y),
+        width: scale * element.width,
+        height: scale * element.height,
+        shadowOffset: scale * element.shadowOffset,
+      };
     case "timeline":
     case "child":
     case "ancestor":
-      return { ...element, xs: element.xs + dx, xe: element.xe + dx, y: element.y + dy };
+      return { ...element, style, xs: x(element.xs), xe: x(element.xe), y: y(element.y) };
     case "map":
-      return { ...element, xs: element.xs + dx, xe: element.xe + dx, yc: element.yc + dy };
+      return {
+        ...element,
+        style,
+        xs: x(element.xs),
+        xe: x(element.xe),
+        yc: y(element.yc),
+        spacing: scale * element.spacing,
+      };
     case "region":
       return {
         ...element,
-        x1: element.x1 + dx,
-        x2: element.x2 + dx,
-        xm: element.xm + dx,
-        yb: element.yb + dy,
-        ya: element.ya + dy,
+        style,
+        x1: x(element.x1),
+        x2: x(element.x2),
+        xm: x(element.xm),
+        yb: y(element.yb),
+        ya: y(element.ya),
       };
     case "jump":
       return {
         ...element,
+        style,
         start: point(element.start),
         c1: point(element.c1),
         c2: point(element.c2),
@@ -105,11 +148,18 @@ export function shifted(element: DrawnElement, dx: number, dy: number): DrawnEle
       };
     case "break":
     case "boundary":
-      return { ...element, x: element.x + dx, y1: element.y1 + dy, y2: element.y2 + dy };
+      return { ...element, style, x: x(element.x), y1: y(element.y1), y2: y(element.y2) };
     case "wedge":
-      return { ...element, x: element.x + dx, yt: element.yt + dy, yb: element.yb + dy };
+      return {
+        ...element,
+        style,
+        x: x(element.x),
+        yt: y(element.yt),
+        yb: y(element.yb),
+        base: scale * element.base,
+      };
     case "name":
     case "label":
-      return { ...element, x: element.x + dx, baseline: element.baseline + dy };
+      return { ...element, style, x: x(element.x), baseline: y(element.baseline) };
   }
 }

@@ -2,6 +2,7 @@
 
 import { liveStore } from "@timetoalign/tilie-arranger";
 import type { Entry, OpenEditor, Store, View } from "@timetoalign/tilie-core";
+import { listEntries } from "@timetoalign/tilie-core";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it } from "vitest";
 import Inspector from "../src/inspector/Inspector.svelte";
@@ -13,7 +14,7 @@ const { A } = MIXED;
 const HINT = "Select a block to inspect its manifest.";
 
 /**
- * A store whose levels (`editing`, `entries`, `undone`, `sessions`) the test sets, announced
+ * A store whose levels (`editing`, `listed`, `sessions`) the test sets, announced
  * through `subscribe` as the store announces its own changes; everything else is `inner`'s.
  */
 function staged(inner: Store): { store: Store; stage(levels: Partial<JournalSource>): void } {
@@ -21,8 +22,7 @@ function staged(inner: Store): { store: Store; stage(levels: Partial<JournalSour
   const listeners = new Set<(view: View) => void>();
   const store = Object.create(inner, {
     editing: { get: () => levels.editing ?? inner.editing },
-    entries: { get: () => levels.entries ?? inner.entries },
-    undone: { get: () => levels.undone ?? inner.undone },
+    listed: { get: () => levels.listed ?? inner.listed },
     sessions: { get: () => levels.sessions ?? inner.sessions },
     subscribe: {
       value: (listener: (view: View) => void) => {
@@ -222,10 +222,10 @@ describe("with the store's own editors", () => {
         (item) => item.textContent,
       ),
     ).toEqual([
-      "Added block 0000000000 to workspace",
-      "Added block 0000000001 to workspace",
-      "Added block 0000000002 to workspace",
       "Edited group Performance (1 change)",
+      "Added block 0000000002 to workspace",
+      "Added block 0000000001 to workspace",
+      "Added block 0000000000 to workspace",
     ]);
   });
 });
@@ -323,10 +323,11 @@ describe("the Journal panel", () => {
 
   const T = "08:05:09";
   const G = "Gerhardt";
+  /** The three `add`s, newest first. */
   const ADDS = [
-    [T, G, "Added block 0000000000 to workspace", false, false, null],
-    [T, G, "Added block 0000000001 to workspace", false, false, null],
     [T, G, "Added block 0000000002 to workspace", false, false, null],
+    [T, G, "Added block 0000000001 to workspace", false, false, null],
+    [T, G, "Added block 0000000000 to workspace", false, false, null],
   ];
 
   it("lists the rows, the undone one grey with a hidden word, and follows the store", () => {
@@ -339,17 +340,17 @@ describe("the Journal panel", () => {
     store.dispatch({ type: "set", changes: [{ target: A, values: { x: 25 } }] });
     store.undo();
     flushSync();
-    expect(items()).toEqual([...ADDS, [T, G, `Set x of ${A}`, true, false, "undone"]]);
+    expect(items()).toEqual([[T, G, `Set x of ${A}`, true, false, "undone"], ...ADDS]);
     store.dispatch({ type: "set", changes: [{ target: A, values: { y: 7 } }] });
     flushSync();
-    expect(items()).toEqual([...ADDS, [T, G, `Set y of ${A}`, false, false, null]]);
+    expect(items()).toEqual([[T, G, `Set y of ${A}`, false, false, null], ...ADDS]);
   });
 
-  it("lists the earlier session first", () => {
+  it("lists the earlier session last, keeping the items per entry", () => {
     const inner = mixedStore({ clock: () => new Date("2026-10-17T08:05:09.123Z") });
     const { store, stage } = staged(inner);
     show(store);
-    stage({ editing: [GROUP], entries: inner.journal, undone: [] });
+    stage({ editing: [GROUP], listed: inner.listed });
     click("journal");
     const before = [...document.querySelectorAll("#inspector-panel-journal li")];
     expect(before).toHaveLength(3);
@@ -360,22 +361,41 @@ describe("the Journal panel", () => {
     };
     stage({
       editing: [{ ...GROUP, earlier: "s0" }],
-      entries: inner.journal,
-      undone: [],
+      listed: inner.listed,
       sessions: { s0: { target: GROUP.target, entries: [earlier] } },
     });
     expect(items()).toEqual([
-      ["07:00:01", "Ada", `Set order of ${GROUP.target}`, false, true, null],
       ...ADDS,
+      ["07:00:01", "Ada", `Set order of ${GROUP.target}`, false, true, null],
     ]);
     const after = [...document.querySelectorAll("#inspector-panel-journal li")];
-    expect(after.slice(1).map((item, index) => item === before[index])).toEqual([true, true, true]);
+    expect(after.slice(0, 3).map((item, index) => item === before[index])).toEqual([
+      true,
+      true,
+      true,
+    ]);
+    const fourth: Entry = {
+      command: { type: "set", changes: [{ target: A, values: { x: 1 } }] },
+      author: G,
+      time: "2026-10-17T08:05:09.123Z",
+    };
+    stage({
+      editing: [{ ...GROUP, earlier: "s0" }],
+      listed: listEntries([...inner.journal, fourth], inner.sessions),
+      sessions: { s0: { target: GROUP.target, entries: [earlier] } },
+    });
+    const later = [...document.querySelectorAll("#inspector-panel-journal li")];
+    expect(later.slice(1, 4).map((item, index) => item === before[index])).toEqual([
+      true,
+      true,
+      true,
+    ]);
   });
 
   it("says when a level has no changes yet", () => {
     const { store, stage } = staged(mixedStore());
     show(store);
-    stage({ editing: [GROUP], entries: [], undone: [] });
+    stage({ editing: [GROUP], listed: [] });
     click("journal");
     const panel = document.getElementById("inspector-panel-journal") as HTMLElement;
     expect(panel.textContent?.trim()).toBe("No changes yet.");
@@ -385,8 +405,72 @@ describe("the Journal panel", () => {
       author: G,
       time: "2026-10-17T08:05:09.123Z",
     };
-    stage({ editing: [GROUP], entries: [one], undone: [] });
+    stage({ editing: [GROUP], listed: listEntries([one], {}) });
     expect(items()).toEqual([[T, G, `Set x of ${A}`, false, false, null]]);
     expect(panel.textContent).not.toContain("No changes yet.");
+  });
+
+  it("discloses a session's changes with a button, newest first, as view state only", () => {
+    const store = mixedStore({ clock: () => new Date("2026-10-17T08:05:09.123Z") });
+    const rename = (id: string, name: string) => ({
+      type: "set",
+      changes: [{ target: `${A}/${id}`, values: { name } }],
+    });
+    expect(store.open(A)).toBe(null);
+    expect(store.open(`${A}/group_1`)).toBe(null);
+    expect(store.dispatch(rename("score", "S"))).toBe(null);
+    expect(store.dispatch(rename("performance", "P"))).toBe(null);
+    store.done();
+    store.done();
+    store.undo();
+    show(store);
+    click("journal");
+    const panel = document.getElementById("inspector-panel-journal") as HTMLElement;
+    const first = panel.querySelector(":scope > ol > li") as HTMLElement;
+    const button = () => first.querySelector(":scope > .row > button") as HTMLButtonElement;
+    const text = first.querySelector(":scope > .row > .text") as HTMLElement;
+    expect(text.textContent).toBe("Edited bundle Mixed (2 changes, 1 undone)");
+    expect(button().getAttribute("type")).toBe("button");
+    expect(button().nextElementSibling?.className).toContain("time");
+    expect([
+      button().getAttribute("aria-expanded"),
+      button().getAttribute("aria-controls"),
+      button().getAttribute("aria-labelledby"),
+    ]).toEqual(["false", null, text.id]);
+    expect(first.querySelector("ol")).toBe(null);
+    expect(panel.querySelectorAll("button")).toHaveLength(1);
+    const { journal, listed } = store;
+    button().click();
+    flushSync();
+    expect(button().getAttribute("aria-expanded")).toBe("true");
+    const nested = first.querySelector(":scope > ol") as HTMLElement;
+    expect(nested.id).toBe(button().getAttribute("aria-controls"));
+    const inner = nested.querySelector(":scope > li") as HTMLElement;
+    expect(nested.querySelectorAll(":scope > li")).toHaveLength(1);
+    expect(inner.querySelector(".text")?.textContent).toBe(
+      "Edited group Performance (2 changes, 1 undone)",
+    );
+    const innerButton = inner.querySelector("button") as HTMLButtonElement;
+    expect(innerButton.getAttribute("aria-expanded")).toBe("false");
+    innerButton.click();
+    flushSync();
+    expect(
+      [...inner.querySelectorAll(":scope > ol > li")].map((item) => [
+        item.querySelector(".text")?.textContent,
+        item.hasAttribute("data-undone"),
+        item.querySelector(".visually-hidden")?.textContent ?? null,
+        item.querySelector("button"),
+      ]),
+    ).toEqual([
+      [`Set name of ${A}/performance`, true, "undone", null],
+      [`Set name of ${A}/score`, false, null, null],
+    ]);
+    button().click();
+    flushSync();
+    expect(button().getAttribute("aria-expanded")).toBe("false");
+    expect(first.querySelector("ol")).toBe(null);
+    expect([store.journal, store.listed]).toEqual([journal, listed]);
+    expect(store.journal).toBe(journal);
+    expect(store.listed).toBe(listed);
   });
 });

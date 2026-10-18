@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
-import type { Editing, Hit } from "../src/index.ts";
-import { editedElement, editorTargetOf, GESTURES, gesturesOf, sameEditing } from "../src/index.ts";
+import type { Editing, Hit, Level, ResizedKind } from "../src/index.ts";
+import {
+  editedElement,
+  editorTargetOf,
+  GESTURES,
+  gesturesOf,
+  RESIZING,
+  resizes,
+  sameEditing,
+} from "../src/index.ts";
 import { A, B, changed, load, mixedView } from "./support.ts";
 
 const view = changed(mixedView(), {
@@ -99,45 +107,65 @@ describe("sameEditing and editedElement", () => {
 });
 
 describe("GESTURES and gesturesOf", () => {
-  it("is the permission table of the editors", () => {
+  it("is the permission table of the gestures besides resizing", () => {
     const row = (
       moveBlocks: boolean,
-      resizeBlocks: boolean,
       moveItems: boolean,
-      resizeItems: boolean,
       reorderMembers: boolean,
-      stretchMembers: boolean,
-      resizeFrame: boolean,
-      stretchCard: boolean,
       marquee: "blocks" | "elements",
-    ) => ({
-      moveBlocks,
-      resizeBlocks,
-      moveItems,
-      resizeItems,
-      reorderMembers,
-      stretchMembers,
-      resizeFrame,
-      stretchCard,
-      marquee,
-    });
+    ) => ({ moveBlocks, moveItems, reorderMembers, marquee });
     expect(GESTURES).toStrictEqual({
-      arranger: row(true, true, false, false, false, false, false, false, "blocks"),
-      bundle: row(false, false, true, true, false, false, false, false, "elements"),
-      group: row(false, false, false, false, true, true, true, false, "elements"),
-      timeline: row(false, false, false, false, false, false, false, true, "elements"),
+      arranger: row(true, false, false, "blocks"),
+      bundle: row(false, true, false, "elements"),
+      group: row(false, false, true, "elements"),
+      timeline: row(false, false, false, "elements"),
     });
   });
 
-  it("gives each level its row, stretching a card only for an ungrouped root", () => {
-    expect(gesturesOf(view, null)).toBe(GESTURES.arranger);
-    expect(gesturesOf(view, bundle)).toBe(GESTURES.bundle);
-    expect(gesturesOf(view, group)).toBe(GESTURES.group);
-    const timeline = (element: string) =>
-      gesturesOf(view, { target: at(element), kind: "timeline" });
-    expect(timeline("annotations")).toBe(GESTURES.timeline);
-    for (const element of ["score", "dlt_1", "recording"]) {
-      expect(timeline(element)).toStrictEqual({ ...GESTURES.timeline, stretchCard: false });
-    }
+  it("gives each level its row", () => {
+    expect(gesturesOf(null)).toBe(GESTURES.arranger);
+    expect(gesturesOf(bundle)).toBe(GESTURES.bundle);
+    expect(gesturesOf(group)).toBe(GESTURES.group);
+    expect(gesturesOf({ target: at("annotations"), kind: "timeline" })).toBe(GESTURES.timeline);
+  });
+});
+
+describe("RESIZING and resizes", () => {
+  it("is one table by box kind: where each kind resizes and what each mode writes", () => {
+    const item = { scale: "item", box: "item", stretch: "item" };
+    expect(RESIZING).toStrictEqual({
+      block: {
+        levels: { arranger: "inside", bundle: "edited" },
+        writes: { scale: "block", box: "block", stretch: "block" },
+      },
+      frame: { levels: { arranger: "inside", bundle: "inside", group: "edited" }, writes: item },
+      card: { levels: { arranger: "inside", bundle: "inside", timeline: "edited" }, writes: item },
+      member: {
+        levels: { arranger: "inside", bundle: "inside", group: "inside", timeline: "edited" },
+        writes: { scale: "item", box: "card", stretch: "item" },
+      },
+    });
+  });
+
+  it("resizes an inside box anywhere it reaches, the edited box only as its own", () => {
+    const kinds: readonly ResizedKind[] = ["block", "frame", "card", "member"];
+    const levels: readonly Level[] = ["arranger", "bundle", "group", "timeline"];
+    const table = Object.fromEntries(
+      kinds.map((kind) => [
+        kind,
+        Object.fromEntries(
+          levels.map((level) => [level, [resizes(kind, level, false), resizes(kind, level, true)]]),
+        ),
+      ]),
+    );
+    const inside = [true, true];
+    const edited = [false, true];
+    const never = [false, false];
+    expect(table).toStrictEqual({
+      block: { arranger: inside, bundle: edited, group: never, timeline: never },
+      frame: { arranger: inside, bundle: inside, group: edited, timeline: never },
+      card: { arranger: inside, bundle: inside, group: never, timeline: edited },
+      member: { arranger: inside, bundle: inside, group: inside, timeline: edited },
+    });
   });
 });

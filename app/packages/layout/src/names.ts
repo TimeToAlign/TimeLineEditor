@@ -113,7 +113,7 @@ export function nameElements(
       type: "name",
       address: item.first.address,
       style: item.first.style,
-      x: placed.xn,
+      x: placed.n,
       baseline: item.y(placed.yRoot) + (a(size) - d(size)) / 2,
       anchor: "start",
       text: item.text,

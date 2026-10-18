@@ -226,8 +226,9 @@ export function resize(
  * The places of `block` stretched to `length` and `spacing`: every stated
  * `x`, `length` and `width` scaled by the ratio of the lengths, every stated
  * `y` and `height` by the ratio of the spacings, quantized to `GRID_FREE`,
- * so a stretch scales the items' sizes and distances and keeps their
- * arrangement. The block's own `places` object when nothing changes.
+ * and every stated `scale` kept, so a stretch scales the items' and cards'
+ * sizes and distances and keeps their arrangement. The block's own `places`
+ * object when nothing changes.
  */
 export function blockStretchPlaces(
   block: Pick<Block, "length" | "spacing" | "places">,
@@ -242,6 +243,7 @@ export function blockStretchPlaces(
     width: horizontal,
     y: vertical,
     height: vertical,
+    scale: 1,
   };
   let changed = false;
   const places: { [key: string]: Place } = {};

@@ -11,13 +11,18 @@
  */
 import type { Block, SetCommand, View } from "@timetoalign/tilie-core";
 import type { FontMetrics } from "@timetoalign/timeskeleton";
-import { NodeToolbar, useStore, ViewportPortal } from "@xyflow/svelte";
-import { calcAutoPan } from "@xyflow/system";
-import type { Gestures } from "./editors.ts";
-import { GESTURES } from "./editors.ts";
+import { useStore, ViewportPortal } from "@xyflow/svelte";
+import { calcAutoPan, getNodeToolbarTransform, Position } from "@xyflow/system";
+import type { Level } from "./editors.ts";
 import type { ResizedItem } from "./gestures.svelte.ts";
 import { resizeModes } from "./gestures.svelte.ts";
-import { itemHandlesFor, itemResizeCommand, itemResizeValues, placesAfter } from "./items.ts";
+import {
+  itemHandlesFor,
+  itemResizeCommand,
+  itemResizeValues,
+  placeKeyOf,
+  placesAfter,
+} from "./items.ts";
 import type { Delta, Handle, ResizeMode } from "./resize.ts";
 import "./menu.css";
 import { handlesFor, resize, resizeCommand } from "./resize.ts";
@@ -27,12 +32,12 @@ interface Props {
   /** The selected block as stored, or the block of the item resized. */
   block: Block;
   /**
-   * The item resized in the open editor, a group's frame or an ungrouped
-   * root's card of the block's drawing; absent, the block itself is.
+   * The box of the block's drawing resized, a group's frame, an ungrouped
+   * root's card or a member's card; absent, the block itself is.
    */
   item?: ResizedItem | undefined;
-  /** What the open editor allows (`gesturesOf`); the arranger's gestures when absent. */
-  gestures?: Gestures;
+  /** The level the resize is made at: the arranger, or the open editor's kind. */
+  level?: Level;
   /** The box resized on the canvas as currently shown (the preview during a resize). */
   box: { x: number; y: number; width: number; height: number };
   /** The view the block lies in. */
@@ -41,7 +46,7 @@ interface Props {
   zoom: number;
   /** While the canvas is locked the mode buttons are disabled and no handle is shown. */
   locked: boolean;
-  /** The chosen mode; one the gestures do not offer shows as the first they do. */
+  /** The chosen mode; one the level does not offer shows as the first it does. */
   mode: ResizeMode;
   /** A new preview of the block's values during a resize. */
   onresize: (values: Partial<Block>) => void;
@@ -57,7 +62,7 @@ interface Props {
 let {
   block,
   item,
-  gestures = GESTURES.arranger,
+  level = "arranger",
   box,
   view,
   metrics,
@@ -75,21 +80,26 @@ const MODES: readonly { mode: ResizeMode; label: string; key: string }[] = [
   { mode: "stretch", label: "Stretch", key: "3" },
 ];
 
-/** What a mode does, said in its button's title; an item stretches its length alone. */
+/**
+ * What a mode does, said in its button's title: an item stretches its length
+ * alone, and a member's card scales and stretches its whole group.
+ */
 function hintOf(chosen: ResizeMode): string {
-  if (chosen === "scale") return "scale everything, proportions kept";
+  const member = item?.kind === "member";
+  if (chosen === "scale")
+    return member ? "scale the whole group" : "scale everything, proportions kept";
   if (chosen === "box") return "resize the box, the content stays";
-  return item === undefined ? "stretch lengths and distances" : "stretch the length";
+  if (item === undefined) return "stretch lengths and distances";
+  return member ? "stretch every member" : "stretch the length";
 }
 
 /** The modes offered, in the order of `MODES`, and the one shown. */
-const offered = $derived(resizeModes(gestures, item === undefined ? "block" : "item"));
+const offered = $derived(resizeModes(level, item?.kind ?? "block"));
 const shown = $derived(offered.includes(mode) ? mode : offered[0]);
 
 /** The handles of `chosen` on the block or on the item. */
 function handlesOf(chosen: ResizeMode): readonly Handle[] {
-  if (item === undefined) return handlesFor(chosen);
-  return itemHandlesFor(chosen === "box" ? "box" : "stretch", item.editor);
+  return item === undefined ? handlesFor(chosen) : itemHandlesFor(chosen, item.kind, level);
 }
 
 const CURSORS: { readonly [handle in Handle]: string } = {
@@ -106,6 +116,8 @@ const CURSORS: { readonly [handle in Handle]: string } = {
 /** The hit area of a handle and its visible square, in screen pixels. */
 const HIT = 24;
 const MARK = 9;
+/** How far above the resized box, in screen pixels, the mode menu sits: Svelte Flow's `NodeToolbar` default. */
+const MENU_GAP = 10;
 
 function anchor(handle: Handle): { x: number; y: number } {
   const x = handle.endsWith("left") ? 0 : handle.endsWith("right") ? box.width : box.width / 2;
@@ -118,6 +130,18 @@ function anchor(handle: Handle): { x: number; y: number } {
 }
 
 const flow = useStore();
+
+/**
+ * Where the mode menu sits: centred above the resized box, `MENU_GAP` screen
+ * pixels clear of its top, at any zoom. It is placed by the rule Svelte
+ * Flow's `NodeToolbar` uses (`getNodeToolbarTransform`), applied to the box
+ * rather than to a node, so the menu sits above the block or above the item
+ * resized (a group's frame, a card) alike, and follows it through a move, a
+ * resize and every pan or zoom.
+ */
+const menuTransform = $derived(
+  getNodeToolbarTransform(box, flow.viewport, Position.Top, MENU_GAP, "center"),
+);
 
 /**
  * The resize in progress: its mode, where the pointer went down and is now
@@ -152,19 +176,15 @@ function result(): { values: Partial<Block>; command: SetCommand | null } {
     );
     return { values, command: changes ? resizeCommand(block, values) : null };
   }
-  const itemMode = chosen === "box" ? "box" : "stretch";
-  const { key, editor } = item;
-  const place = itemResizeValues(
-    block,
-    view.settings,
+  const place = itemResizeValues(block, view.settings, metrics, level, item, chosen, handle, delta);
+  const command = itemResizeCommand(
+    view,
+    block.id,
+    placeKeyOf(item, chosen),
+    place,
+    level,
     metrics,
-    editor,
-    key,
-    itemMode,
-    handle,
-    delta,
   );
-  const command = itemResizeCommand(view, block.id, key, place, editor, metrics);
   return { values: command === null ? {} : { places: placesAfter(block, command) }, command };
 }
 
@@ -256,7 +276,7 @@ function cancel(event: PointerEvent): void {
 </script>
 
 {#if shown !== undefined}
-<NodeToolbar nodeId={block.id} isVisible>
+<div class="mode-menu" style:transform={menuTransform}>
   <div class="tilie-menu" role="toolbar" aria-label="Resize mode" {@attach roving}>
     {#each MODES.filter((entry) => offered.includes(entry.mode)) as entry (entry.mode)}
       <button
@@ -270,7 +290,7 @@ function cancel(event: PointerEvent): void {
       >
     {/each}
   </div>
-</NodeToolbar>
+</div>
 
 {#if !locked}
 <ViewportPortal target="front" class="tilie-overlay">
@@ -299,6 +319,14 @@ function cancel(event: PointerEvent): void {
 {/if}
 
 <style>
+  /* Above the nodes' renderer (z-index 4), where Svelte Flow's panels lie. */
+  .mode-menu {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 5;
+  }
+
   .handle {
     position: absolute;
     transform: translate(-50%, -50%);

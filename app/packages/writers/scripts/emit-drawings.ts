@@ -51,6 +51,7 @@ export const HAND_DERIVED: readonly string[] = [
   "unknown_length_segments",
   "bundle_ungrouped__places",
   "styled__score__bands-timeline",
+  "bundle_ungrouped__scale",
 ];
 
 /** Write `text` to `file` unless it already holds it; report whether it changed. */

@@ -35,8 +35,7 @@ describe("liveStore", () => {
       expect(live.view).toBe(store.view);
       expect(live.editing).toBe(store.editing);
       expect(live.entries).toBe(store.entries);
-      // The store builds `undone` anew on each read.
-      expect(live.undone).toEqual(store.undone);
+      expect(live.listed).toBe(store.listed);
       expect(live.journal).toBe(store.journal);
       expect(live.sessions).toBe(store.sessions);
       expect(live.changes).toBe(store.changes);

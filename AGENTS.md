@@ -63,7 +63,7 @@ Run each command from the stated directory.
 | `app/` | `pnpm e2e:fixtures` | Write the end-to-end workspaces in `e2e/fixtures/` from the schema package's manifest fixtures through the store's commands; never edit them by hand. |
 | `app/` | `pnpm e2e:fixtures:check` | Fail unless every committed end-to-end workspace equals the generator's output byte for byte. |
 | `app/` | `TILIE_REQUIRE_LUALATEX=1 pnpm vitest run --project writers packages/writers/tests/compile.test.ts` | Parse every drawing fixture's `figure.svg` and compile every `figure.tex`, failing when `lualatex` is missing. |
-| repository root | `pnpm -C app/packages/writers emit-drawings --into <timeskeleton checkout>` | Write the drawing fixtures into a timeskeleton checkout; never rewrites the hand-derived figures. While the schema package is a `link:`, rebuild the checkout's `js/` package with `pnpm build` afterwards, since TiLiE's tests read the drawings from that package's copy of the fixtures. |
+| repository root | `pnpm -C app/packages/writers emit-drawings --into <timeskeleton checkout>` | Write the drawing fixtures into a timeskeleton checkout (an absolute path, or one relative to `app/packages/writers`); never rewrites the hand-derived figures. While the schema package is a `link:`, rebuild the checkout's `js/` package with `pnpm build` afterwards, since TiLiE's tests read the drawings from that package's copy of the fixtures. |
 | repository root | `pnpm -C app/packages/writers review` | Render the writer review sheet into `app/packages/writers/review/` with `rsvg-convert`. |
 | `server/` | `uv sync` | Create or update the locked environment. |
 | `server/` | `uv run ruff check .` | Run Python lint checks. |

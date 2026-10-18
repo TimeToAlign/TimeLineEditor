@@ -1,7 +1,8 @@
 /**
- * The inspector's edits, as commands on the store: the block's whole
- * manifest from text, and one placement property from the form. The store's
- * checks decide; the inspector only reads text and builds the command.
+ * The inspector's edits of a block's whole manifest from text, as commands
+ * on the store, and what the selection names. The store's checks decide;
+ * the inspector only reads text and builds the command. The Properties
+ * form's edits are `properties.ts`'s.
  */
 
 import type {
@@ -294,80 +295,4 @@ function sameManifest(edited: Json, stored: Json): boolean {
 export function follow(source: Text["source"], manifest: Json, options: TextOptions): Applied {
   const patched = source.patch(visibleManifest(manifest, options));
   return patched.ok ? { ok: true, value: { text: patched.value, source } } : patched;
-}
-
-/** The block properties the form edits, in order. */
-export const PROPERTIES = ["x", "y", "scale", "length", "spacing", "width", "height"] as const;
-export type Property = (typeof PROPERTIES)[number];
-
-/**
- * A property's value as the form shows it: rounded to at most two decimals
- * (the exact double, as `toFixed` rounds it), trailing zeros trimmed, an
- * empty text for null. Only shown: commands are built from stored values
- * and typed text, never from this.
- */
-export function shownValue(value: number | null): string {
-  if (value === null) return "";
-  // `String` shows the negative zero of `Number("-0.00")` as "0".
-  return String(Number(value.toFixed(2)));
-}
-
-/** The step of each property's spin buttons, stepping keys and wheel. */
-export const STEPS: { readonly [property in Property]: number } = {
-  x: 1,
-  y: 1,
-  scale: 0.1,
-  length: 1,
-  spacing: 0.1,
-  width: 1,
-  height: 1,
-};
-
-/** The decimals of a number's shortest spelling (`1e-7` has 7). */
-function decimals(value: number): number {
-  const [mantissa = "", exponent = "0"] = String(Math.abs(value)).split("e");
-  return Math.max(0, (mantissa.split(".")[1] ?? "").length - Number(exponent));
-}
-
-/**
- * The value `direction` steps of `step` from `value` (null counts as 0),
- * rounded to the decimals of the value and the step, so 1 − 0.1 is 0.9
- * and 0.7 + 0.1 is 0.8, never the neighbouring double plain arithmetic gives.
- */
-export function stepValue(value: number | null, direction: 1 | -1, step: number): number {
-  const base = value ?? 0;
-  const places = Math.min(100, Math.max(decimals(base), decimals(step)));
-  return Number((base + direction * step).toFixed(places));
-}
-
-/** Properties that take an empty field as null. */
-const NULLABLE: ReadonlySet<Property> = new Set(["width", "height"]);
-
-/**
- * The command setting one block property from the field's text: a number,
- * or null for an empty `width` or `height`; anything else is refused before
- * dispatch. The store's checks decide everything else.
- */
-export function propertyCommand(
-  block: BlockId,
-  property: Property,
-  input: string,
-): Result<SetCommand> {
-  const trimmed = input.trim();
-  let value: number | null;
-  if (trimmed === "") {
-    if (!NULLABLE.has(property)) {
-      return refused(InspectorCode.invalidValue, `${property} needs a number`, [block, property]);
-    }
-    value = null;
-  } else {
-    value = Number(trimmed);
-    if (!Number.isFinite(value)) {
-      return refused(InspectorCode.invalidValue, `${trimmed} is not a number`, [block, property]);
-    }
-  }
-  return {
-    ok: true,
-    value: { type: "set", changes: [{ target: block, values: { [property]: value } }] },
-  };
 }

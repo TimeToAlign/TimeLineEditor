@@ -11,7 +11,6 @@
 import type { Command } from "@timetoalign/tilie-core";
 import type { Attachment } from "svelte/attachments";
 import { afterEach, describe, expect, it } from "vitest";
-import { GESTURES } from "../src/editors.ts";
 import type { Point } from "../src/gestures.svelte.ts";
 import {
   abortDrag,
@@ -373,20 +372,24 @@ describe("memberDrag", () => {
 });
 
 describe("resizeModes", () => {
-  it("offers what each editor's gestures allow", () => {
+  it("offers all three modes wherever a kind of box resizes, none elsewhere", () => {
+    const all = ["scale", "box", "stretch"];
     const rows = Object.fromEntries(
-      Object.entries(GESTURES).map(([row, gestures]) => [
-        row,
-        { block: resizeModes(gestures, "block"), item: resizeModes(gestures, "item") },
+      (["arranger", "bundle", "group", "timeline"] as const).map((level) => [
+        level,
+        Object.fromEntries(
+          (["block", "frame", "card", "member"] as const).map((kind) => [
+            kind,
+            resizeModes(level, kind),
+          ]),
+        ),
       ]),
     );
     expect(rows).toEqual({
-      arranger: { block: ["scale", "box", "stretch"], item: [] },
-      bundle: { block: [], item: ["box", "stretch"] },
-      group: { block: [], item: ["box", "stretch"] },
-      timeline: { block: [], item: ["stretch"] },
+      arranger: { block: all, frame: all, card: all, member: all },
+      bundle: { block: all, frame: all, card: all, member: all },
+      group: { block: [], frame: all, card: [], member: all },
+      timeline: { block: [], frame: [], card: all, member: all },
     });
-    // A group member's timeline editor: its length would change its siblings unseen.
-    expect(resizeModes({ ...GESTURES.timeline, stretchCard: false }, "item")).toEqual([]);
   });
 });

@@ -15,19 +15,42 @@ import {
   affectedBy,
   drawingOf,
   handlesFor,
+  itemHandlesFor,
+  itemResizeCommand,
+  itemResizeValues,
   moveCommand,
   nudgeCommand,
+  placeKeyOf,
   project,
   removeCommand,
   resize,
   resizeCommand,
+  resizedItemOf,
   zOrderCommand,
 } from "../src/index.ts";
-import { A, blockIn, CHILD_MEMBER, changed, load, metrics, numbersView } from "./support.ts";
+import {
+  A,
+  blockIn,
+  CHILD_MEMBER,
+  changed,
+  load,
+  metrics,
+  mixedPlain,
+  numbersView,
+  placed,
+} from "./support.ts";
 
-const FIXTURES = ["bare", "nested", "flow_control", "with_region", "map"] as const;
+/** `bundle_mixed` holds frames, members' cards (a root's and a child's) and an ungrouped card. */
+const FIXTURES = [
+  "bare",
+  "nested",
+  "flow_control",
+  "with_region",
+  "map",
+  "bundles/bundle_mixed",
+] as const;
 /** The manifests of the removal property: `numbers` is a manifest with one group and a region. */
-const REMOVAL_FIXTURES = [...FIXTURES, CHILD_MEMBER, "bundles/bundle_mixed", "numbers"] as const;
+const REMOVAL_FIXTURES = [...FIXTURES, CHILD_MEMBER, "numbers"] as const;
 const MODES: readonly ResizeMode[] = ["scale", "box", "stretch"];
 const ACTIONS: readonly ZOrderAction[] = ["front", "back", "forward", "backward"];
 const PLACEMENT = ["x", "y", "index", "scale", "length", "spacing", "width", "height"] as const;
@@ -51,6 +74,15 @@ const gesture = fc.oneof(
   fc.record({
     kind: fc.constant("resize" as const),
     pick: fc.nat(),
+    mode: fc.constantFrom(...MODES),
+    handle: fc.nat(),
+    dx: delta,
+    dy: delta,
+  }),
+  fc.record({
+    kind: fc.constant("itemResize" as const),
+    pick: fc.nat(),
+    box: fc.nat(),
     mode: fc.constantFrom(...MODES),
     handle: fc.nat(),
     dx: delta,
@@ -110,6 +142,29 @@ function commandOf(view: View, item: Gesture): object | null {
       const { values } = resize(block, view.settings, metrics, item.mode, handle, item);
       return resizeCommand(block, values);
     }
+    case "itemResize": {
+      const block = view.blocks[one(item.pick)];
+      if (block === undefined) return null;
+      const drawing = drawingOf(block, view.settings, metrics);
+      const boxes = [...drawing.items, ...drawing.cards].map((drawn) => drawn.address);
+      if (boxes.length === 0) return null;
+      const resized = resizedItemOf(drawing, boxes[item.box % boxes.length] as string);
+      if (resized === undefined) return null;
+      const handles = itemHandlesFor(item.mode, resized.kind, "arranger");
+      const handle = handles[item.handle % handles.length] as (typeof handles)[number];
+      const values = itemResizeValues(
+        block,
+        view.settings,
+        metrics,
+        "arranger",
+        resized,
+        item.mode,
+        handle,
+        item,
+      );
+      const key = placeKeyOf(resized, item.mode);
+      return itemResizeCommand(view, block.id, key, values, "arranger", metrics);
+    }
     case "remove": {
       const all = addresses(view);
       const command = removeCommand(
@@ -155,10 +210,51 @@ describe("gesture commands", () => {
           expect(Object.keys(view.blocks).sort()).toEqual(Object.keys(expected.blocks).sort());
           for (const [id, block] of Object.entries(expected.blocks)) {
             for (const member of PLACEMENT) expect(view.blocks[id]?.[member]).toBe(block[member]);
+            expect(view.blocks[id]?.places).toStrictEqual(block.places);
           }
         }
       }),
       { numRuns: 40 },
+    );
+  });
+});
+
+describe("a member's Stretch", () => {
+  it("states only its group's length at every level outside the group editor", () => {
+    const view = mixedPlain();
+    const { cards } = drawingOf(blockIn(view, A), view.settings, metrics);
+    fc.assert(
+      fc.property(
+        fc.constantFrom(...cards),
+        fc.option(fc.integer({ min: 2048, max: 2000 * 2048 }), { nil: null }),
+        fc.constantFrom(...(["arranger", "bundle", "timeline"] as const)),
+        delta,
+        (card, steps, level, dx) => {
+          const width = steps === null ? null : steps / 2048;
+          const framed = width === null ? view : placed(view, A, card.group, { width });
+          const resized = { kind: "member", key: card.key, item: card.group } as const;
+          const block = blockIn(framed, A);
+          const at = { dx, dy: 0 };
+          const values = itemResizeValues(
+            block,
+            framed.settings,
+            metrics,
+            level,
+            resized,
+            "stretch",
+            "right",
+            at,
+          );
+          expect(Object.keys(values)).toEqual(["length"]);
+          const store = createStore({ view: framed, journal: [], sessions: {} });
+          const editor = { arranger: null, bundle: A, timeline: `${A}/${card.key}` }[level];
+          if (editor !== null) expect(store.open(editor)).toBeNull();
+          const command = itemResizeCommand(framed, A, card.group, values, level, metrics);
+          if (command !== null) expect(store.dispatch(command)).toBeNull();
+          expect(blockIn(store.view, A).places[card.group]?.width).toBe(width ?? undefined);
+        },
+      ),
+      { numRuns: 60 },
     );
   });
 });

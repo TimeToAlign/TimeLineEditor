@@ -18,7 +18,7 @@ import {
   TITLE_ADDRESS,
 } from "../manifest/files.ts";
 import type { Manifest, TimelineManifest } from "../manifest/types.ts";
-import type { Block, BlockId } from "./blocks.ts";
+import type { Block, BlockId, Place } from "./blocks.ts";
 import { bandKeys } from "./blocks.ts";
 import type { Address } from "./ids.ts";
 import { parseAddress } from "./ids.ts";
@@ -30,6 +30,12 @@ import type { View } from "./view.ts";
  * places, band orders and manifest are compared key by key.
  */
 const FIXED_MEMBERS = ["scale", "length", "spacing", "order", "index", "parent"] as const;
+
+/**
+ * The members of a group's place that the editor of one of its members
+ * changes: the length and scale the members share are each member's own.
+ */
+const SHARED_MEMBERS: readonly string[] = ["length", "scale"];
 
 /** The manifest members compared first, in this order; the others follow by code point. */
 const TOP_MEMBERS = ["id", "name", "meta"];
@@ -267,13 +273,26 @@ function blockChange(
   const scopes = [scopeOf(was.manifest, element), scopeOf(now.manifest, element)] as const;
   // A key lies inside when the edited element contains it in each manifest that has it.
   const inside = (key: string) => scopes.every((scope) => !scope.ids.has(key) || scope.inside(key));
-  for (const [name, word] of [
-    ["places", "place"],
-    ["bands", "band order"],
+  // The group the edited element is a member of in both manifests, whose shared members it changes.
+  const groupOf = (manifest: Manifest) =>
+    manifest.groups.find((group) => group.members.includes(element))?.id;
+  const sharing =
+    groupOf(was.manifest) === groupOf(now.manifest) ? groupOf(was.manifest) : undefined;
+  const unshared = (place: Place | undefined) =>
+    place === undefined
+      ? {}
+      : Object.fromEntries(
+          Object.entries(place).filter(([member]) => !SHARED_MEMBERS.includes(member)),
+        );
+  const placeInside = (key: string) =>
+    inside(key) || (key === sharing && same(unshared(was.places[key]), unshared(now.places[key])));
+  for (const [name, word, within] of [
+    ["places", "place", placeInside],
+    ["bands", "band order", inside],
   ] as const) {
     const left: { readonly [key: string]: unknown } = was[name];
     const right: { readonly [key: string]: unknown } = now[name];
-    const key = keysOf(left, right).find((item) => !same(left[item], right[item]) && !inside(item));
+    const key = keysOf(left, right).find((item) => !same(left[item], right[item]) && !within(item));
     if (key !== undefined) return refuse(`the ${word} of ${block}/${key}`, [`${block}/${key}`]);
   }
   return manifestChange(scopes, element, block, target, refuse);
@@ -285,7 +304,8 @@ function blockChange(
  * every change lies inside it. In this order: a workspace setting; another
  * block; for an element's editor, its block's scale, length, spacing, band
  * order, index or parent, a place or band order of a key the element does
- * not contain, and the manifest outside the element (the element removed
+ * not contain (a group member's editor also changes its group's length and
+ * scale), and the manifest outside the element (the element removed
  * included). A block's editor changes anything in its own block but its
  * removal.
  */

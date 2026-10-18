@@ -42,11 +42,15 @@ export interface GapPreview {
 
 export type BlockNode = Node<BlockNodeData, "block">;
 
-/** A block's placement as the canvas shows it during a gesture, before anything is stored. */
+/**
+ * A block's placement as the canvas shows it during a gesture, before
+ * anything is stored, and the drawing its node shows then, its items and
+ * cards where the gesture puts them.
+ */
 export type LivePlacement = Pick<
   Block,
   "id" | "x" | "y" | "scale" | "length" | "spacing" | "width" | "height"
->;
+> & { readonly drawing: Drawing };
 
 const NO_ELEMENTS: ReadonlySet<string> = new Set();
 
@@ -225,17 +229,19 @@ export function project(
 
 /**
  * The placement of `block` as a gesture shows it: the previewed `values`
- * over the stored ones, and `x`, `y` the place origin of the node where the
- * canvas has it, `position`, the drawing as shown placing its origin at
- * `origin` in its box (`nodePosition` inverted).
+ * over the stored ones, `drawing` the drawing its node shows, and `x`, `y`
+ * the place origin of the node where the canvas has it, `position`, the
+ * drawing placing its origin at `drawing.origin` in its box (`nodePosition`
+ * inverted).
  */
 export function livePlacement(
   block: Block,
   position: { readonly x: number; readonly y: number },
   values: Partial<Block>,
-  origin: { readonly x: number; readonly y: number },
+  drawing: Drawing,
 ): LivePlacement {
   const shown = { ...block, ...values };
+  const { origin } = drawing;
   return {
     id: block.id,
     x: position.x + origin.x * shown.scale,
@@ -245,5 +251,6 @@ export function livePlacement(
     spacing: shown.spacing,
     width: shown.width,
     height: shown.height,
+    drawing,
   };
 }

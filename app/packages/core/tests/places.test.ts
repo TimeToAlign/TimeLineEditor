@@ -6,14 +6,15 @@ import { block, changed, deepFreeze, load, loadText, manifestValue, refusal } fr
 
 const ID = "bundle0001";
 const BUNDLE = "bundles/bundle_mixed.json";
+const CHILD_MEMBER = "groups/group_child_member.json";
 
-/** A view with block `bundle0001` holding `bundle_mixed.json`, frozen. */
-function mixed(extra: object = {}): View {
+/** A view with block `bundle0001` holding `fixture`, frozen. */
+function mixed(extra: object = {}, fixture = BUNDLE): View {
   return deepFreeze(
     changed(createView(), {
       type: "add",
       into: "workspace",
-      block: { id: ID, manifest: load(BUNDLE), x: 0, y: 0, ...extra },
+      block: { id: ID, manifest: load(fixture), x: 0, y: 0, ...extra },
     }),
   );
 }
@@ -58,6 +59,27 @@ describe("places, band orders and display orders, accepted", () => {
     });
   });
 
+  it("states and unstates a scale on a group and an ungrouped root", () => {
+    const scaled = after(mixed(), set("group_1", { place: { scale: 1.5 } }));
+    expect(block(scaled, ID).places).toEqual({ group_1: { scale: 1.5 } });
+    expect(block(after(scaled, set("group_1", { place: { scale: null } })), ID).places).toEqual({});
+    const root = after(mixed(), set("annotations", { place: { scale: 1.5 } }));
+    expect(block(root, ID).places).toEqual({ annotations: { scale: 1.5 } });
+  });
+
+  it("sizes the card of a member root and of a member child", () => {
+    const sized = after(mixed(), set("score", { place: { width: 650, height: 120 } }));
+    expect(block(sized, ID).places).toEqual({ score: { width: 650, height: 120 } });
+    expect(block(after(sized, set("score", { place: { width: null } })), ID).places).toEqual({
+      score: { height: 120 },
+    });
+    const child = after(
+      mixed({}, CHILD_MEMBER),
+      set("second-half", { place: { width: 650, height: 120 } }),
+    );
+    expect(block(child, ID).places).toEqual({ "second-half": { width: 650, height: 120 } });
+  });
+
   it("writes a group's display order, and null deletes it", () => {
     const start = mixed();
     const swapped = after(start, set("group_1", { order: ["performance", "score"] }));
@@ -97,19 +119,42 @@ describe("places, band orders and display orders, accepted", () => {
 describe("places, band orders and display orders, refused", () => {
   const view = mixed();
 
-  it("refuses a place for what is drawn in no card of its own", () => {
-    expect(refused(view, set("score", { place: { x: 1 } }))).toEqual({
+  it("refuses a place for what is neither an item nor a member", () => {
+    expect(refused(view, set("recording", { place: { x: 1 } }))).toEqual({
       code: "not_an_item",
-      path: [`${ID}/score`, "place"],
-      message: "score is not drawn in a card of its own",
+      path: [`${ID}/recording`, "place"],
+      message: "recording is not drawn in a card of its own",
     });
-    expect(refusal(apply(view, set("recording", { place: { x: 1 } })))).toEqual({
+    expect(refusal(apply(view, set("recording", { place: { x: "a" } })))).toEqual({
       code: "not_an_item",
       path: [`${ID}/recording`, "place"],
     });
-    expect(refusal(apply(view, set("score", { place: { x: "a" } })))).toEqual({
+    expect(
+      refusal(apply(mixed({}, CHILD_MEMBER), set("piece", { place: { width: 650 } }))),
+    ).toEqual({ code: "not_an_item", path: [`${ID}/piece`, "place"] });
+  });
+
+  it("refuses a member's card anything but its size", () => {
+    const card = "score is a member: its card takes only width and height";
+    expect(refused(view, set("score", { place: { x: 1 } }))).toEqual({
       code: "not_an_item",
-      path: [`${ID}/score`, "place"],
+      path: [`${ID}/score`, "place", "x"],
+      message: card,
+    });
+    expect(
+      [{ width: 650, length: 300 }, { scale: 2 }, { x: "a" }].map((place) =>
+        refusal(apply(view, set("score", { place }))),
+      ),
+    ).toEqual(
+      ["length", "scale", "x"].map((member) => ({
+        code: "not_an_item",
+        path: [`${ID}/score`, "place", member],
+      })),
+    );
+    expect(refused(mixed({}, CHILD_MEMBER), set("second-half", { place: { x: 10 } }))).toEqual({
+      code: "not_an_item",
+      path: [`${ID}/second-half`, "place", "x"],
+      message: "second-half is a member: its card takes only width and height",
     });
   });
 
@@ -132,6 +177,8 @@ describe("places, band orders and display orders, refused", () => {
     [{ y: Number.POSITIVE_INFINITY }, "non_finite_number", ["y"]],
     [{ length: 0 }, "non_positive_number", ["length"]],
     [{ width: -1 }, "non_positive_number", ["width"]],
+    [{ scale: 0 }, "non_positive_number", ["scale"]],
+    [{ scale: -1 }, "non_positive_number", ["scale"]],
     [{ depth: 1 }, "unknown_property", ["depth"]],
     [5, "invalid_value", []],
   ])("refuses the place value %j", (place, code, inside) => {
@@ -158,7 +205,6 @@ describe("places, band orders and display orders, refused", () => {
 
   it("refuses each property on a target of another kind", () => {
     const cases: [string, string][] = [
-      ["excerpt", "place"],
       ["", "place"],
       ["", "band_order"],
       ["annotations", "order"],
@@ -180,15 +226,19 @@ describe("pruning stale keys", () => {
     const view = after(
       mixed(),
       set("group_2", { place: { x: 10 }, band_order: ["regions", "flow", "children"] }),
-      set("excerpt", { band_order: FLOW_FIRST }),
+      set("excerpt", { band_order: FLOW_FIRST, place: { width: 650 } }),
+      set("page", { place: { width: 650 } }),
       { type: "remove", targets: [`${ID}/group_2`] },
     );
-    expect([block(view, ID).places, block(view, ID).bands]).toEqual([{}, { excerpt: FLOW_FIRST }]);
+    expect([block(view, ID).places, block(view, ID).bands]).toEqual([
+      { page: { width: 650 } },
+      { excerpt: FLOW_FIRST },
+    ]);
     const placed = after(view, set("recording", { place: { x: 1 } }));
-    expect(block(placed, ID).places).toEqual({ recording: { x: 1 } });
+    expect(block(placed, ID).places).toEqual({ page: { width: 650 }, recording: { x: 1 } });
   });
 
-  it("drops the place of a root that becomes a group member", () => {
+  it("cuts the place of a root that becomes a group member to its card's size", () => {
     const value = manifestValue(BUNDLE) as {
       groups: { id: string; members: string[] }[];
       graphical: { order: { [group: string]: string[] } };
@@ -216,6 +266,12 @@ describe("pruning stale keys", () => {
       {},
       { annotations: FLOW_FIRST },
     ]);
+    const sized = after(
+      mixed(),
+      set("annotations", { place: { x: 1, scale: 2, width: 700 } }),
+      set("", { manifest: grouped }),
+    );
+    expect(block(sized, ID).places).toEqual({ annotations: { width: 700 } });
   });
 
   it("drops a removed timeline's keys", () => {
@@ -251,6 +307,17 @@ describe("a block's places and band orders as stored", () => {
       "non_positive_number",
       ["places", "group_1", "height"],
     ],
+    [{ places: { group_1: { scale: 0 } } }, "non_positive_number", ["places", "group_1", "scale"]],
+    [
+      { places: { score: { height: 2, scale: 1 } } },
+      "unknown_member",
+      ["places", "score", "scale"],
+    ],
+    [
+      { places: { score: { length: 3, width: 2 } } },
+      "unknown_member",
+      ["places", "score", "length"],
+    ],
     [{ places: { group_1: { depth: 1 } } }, "unknown_member", ["places", "group_1", "depth"]],
     [{ bands: { score: ["flow"] } }, "invalid_order", ["bands", "score"]],
   ])("refuses %j", (changes, code, path) => {
@@ -259,22 +326,33 @@ describe("a block's places and band orders as stored", () => {
     ]);
   });
 
-  it("refuses keys naming no item, group or timeline", () => {
+  it("refuses keys naming no item, member, group or timeline, and a card beyond its size", () => {
     expect(
       found({
-        places: { score: { x: 1 }, nowhere: { y: 2 }, group_1: { x: 3 } },
+        places: {
+          score: { x: 1 },
+          nowhere: { y: 2 },
+          group_1: { x: 3 },
+          recording: { x: 4 },
+          page: { width: 650 },
+        },
         bands: { nowhere: FLOW_FIRST, excerpt: FLOW_FIRST },
       }),
     ).toEqual([
       {
         code: "unknown_place",
         path: at("places", "nowhere"),
-        message: `nowhere is no group and no ungrouped root of block ${ID}`,
+        message: `nowhere is no group, no ungrouped root and no member of block ${ID}`,
       },
       {
         code: "unknown_place",
-        path: at("places", "score"),
-        message: `score is no group and no ungrouped root of block ${ID}`,
+        path: at("places", "recording"),
+        message: `recording is no group, no ungrouped root and no member of block ${ID}`,
+      },
+      {
+        code: "unknown_member",
+        path: at("places", "score", "x"),
+        message: "score is a member: its card takes only width and height",
       },
       {
         code: "unknown_band_key",
@@ -286,10 +364,16 @@ describe("a block's places and band orders as stored", () => {
 
   it("adds a block with the places and band orders it states, refusing a wrong key", () => {
     const given = block(
-      mixed({ places: { annotations: { y: 8 } }, bands: { score: FLOW_FIRST } }),
+      mixed({
+        places: { annotations: { y: 8 }, score: { width: 650 } },
+        bands: { score: FLOW_FIRST },
+      }),
       ID,
     );
-    expect([given.places, given.bands]).toEqual([{ annotations: { y: 8 } }, { score: FLOW_FIRST }]);
+    expect([given.places, given.bands]).toEqual([
+      { annotations: { y: 8 }, score: { width: 650 } },
+      { score: FLOW_FIRST },
+    ]);
     expect([stored.places, stored.bands]).toEqual([{}, {}]);
     const add = (extra: object) => ({
       type: "add",
@@ -299,11 +383,13 @@ describe("a block's places and band orders as stored", () => {
     expect(
       [
         { places: { score: { x: 1 } } },
+        { places: { recording: { x: 1 } } },
         { bands: { nowhere: FLOW_FIRST } },
         { places: { group_1: {} } },
       ].map((extra) => refusal(apply(createView(), add(extra)))),
     ).toEqual([
-      { code: "unknown_place", path: [ID, "places", "score"] },
+      { code: "unknown_member", path: [ID, "places", "score", "x"] },
+      { code: "unknown_place", path: [ID, "places", "recording"] },
       { code: "unknown_band_key", path: [ID, "bands", "nowhere"] },
       { code: "invalid_value", path: [ID, "places", "group_1"] },
     ]);

@@ -24,15 +24,19 @@ import {
   manifestOf,
   manifestText,
   problemPointer,
-  propertyCommand,
-  STEPS,
   selectedBlock,
-  shownValue,
-  stepValue,
 } from "../src/inspector/edit.ts";
 import type { Format } from "../src/inspector/formats.ts";
 import { FORMATS, loadCodec, readText, writeText } from "../src/inspector/formats.ts";
 import { DOCUMENT, omissibleNulls } from "../src/inspector/nulls.ts";
+import type { Geometry } from "../src/inspector/properties.ts";
+import {
+  geometryOf,
+  propertyCommand,
+  STEPS,
+  shownValue,
+  stepValue,
+} from "../src/inspector/properties.ts";
 
 const A = "0000000000";
 const B = "0000000001";
@@ -661,22 +665,23 @@ describe("the selection", () => {
 
 describe("the properties form", () => {
   it("builds one set per field and lets the store decide", () => {
-    expect(propertyCommand(A, "x", "12.5")).toEqual({
+    const store = storeOf("bare");
+    const block = geometryOf(store.view, [A]) as Geometry;
+    expect(propertyCommand(block, "x", "12.5")).toEqual({
       ok: true,
       value: { type: "set", changes: [{ target: A, values: { x: 12.5 } }] },
     });
-    expect(propertyCommand(A, "width", "")).toEqual({
+    expect(propertyCommand(block, "width", "")).toEqual({
       ok: true,
       value: { type: "set", changes: [{ target: A, values: { width: null } }] },
     });
     for (const input of ["", "abc"]) {
-      const result = propertyCommand(A, "x", input);
+      const result = propertyCommand(block, "x", input);
       expect(result.ok ? null : result.problems.map((item) => [item.code, item.path])).toEqual([
         ["invalid_value", [A, "x"]],
       ]);
     }
-    const store = storeOf("bare");
-    const scale = propertyCommand(A, "scale", "0");
+    const scale = propertyCommand(block, "scale", "0");
     if (!scale.ok) throw new Error("refused");
     expect(store.dispatch(scale.value)?.code).toBe("non_positive_number");
     expect(store.journal).toHaveLength(1);

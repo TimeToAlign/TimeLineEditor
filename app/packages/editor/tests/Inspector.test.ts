@@ -5,7 +5,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import type { LivePlacement } from "@timetoalign/tilie-arranger";
-import { liveStore } from "@timetoalign/tilie-arranger";
+import { drawingOf, liveStore } from "@timetoalign/tilie-arranger";
 import type { Block, CommandEntry, Store, UnknownKey } from "@timetoalign/tilie-core";
 import {
   createStore,
@@ -14,7 +14,7 @@ import {
   loadManifest,
   saveManifest,
 } from "@timetoalign/tilie-core";
-import { dumps, parseJson, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
+import { dumps, fontMetrics, parseJson, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it } from "vitest";
 import type { TextOptions } from "../src/inspector/edit.ts";
@@ -323,6 +323,8 @@ describe("the inspector component", () => {
     show(store, [A], gesture);
     const field = (name: string) =>
       document.querySelector(`input[name="${name}"]`) as HTMLInputElement;
+    const drawn = (id: string) =>
+      drawingOf(store.view.blocks[id] as Block, store.view.settings, fontMetrics);
     const placement = {
       id: A,
       x: 5.556,
@@ -332,6 +334,7 @@ describe("the inspector component", () => {
       spacing: 1,
       width: null,
       height: null,
+      drawing: drawn(A),
     };
     gesture.value = placement;
     flushSync();
@@ -340,7 +343,7 @@ describe("the inspector component", () => {
     gesture.value = { ...placement, y: 7 };
     flushSync();
     expect(field("y").value).toBe("33");
-    gesture.value = { ...placement, id: B, x: 99 };
+    gesture.value = { ...placement, id: B, x: 99, drawing: drawn(B) };
     flushSync();
     expect(field("x").value).toBe("0");
     gesture.value = null;

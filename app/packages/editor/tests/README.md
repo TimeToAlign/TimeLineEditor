@@ -185,7 +185,10 @@ factory per test and gives `HTMLDialogElement` a minimal `showModal` (sets
 through the fallback path unless a test installs stub pickers: a file input
 whose `files` the test sets before dispatching `change`, and a download
 link whose `click` the test intercepts (recording `download` and the
-blob's text). Workspaces and manifests come from the installed
+blob's text). After each test the autosave each mounted editor created
+is flushed and its writes are waited for before the next test installs
+its own IndexedDB, since a write reaches whichever factory is installed
+when it runs. Workspaces and manifests come from the installed
 timeskeleton fixtures through `writeWorkspace` and `loadManifest`, never
 hand-written, except the refused texts.
 
@@ -306,6 +309,19 @@ The shell:
       unmounted the slot is still `null`. Granted, a command and the page
       hidden fill the slot and no message is shown. Without
       `navigator.locks` (jsdom) the editor autosaves, as above.
+    - **Unmounted while it starts: nothing written.** The editor looks for
+      a recoverable workspace only once it holds the lock, so an editor
+      unmounted before either has settled must never write afterwards. The
+      slot holds exactly `writeWorkspace` of an empty workspace (offered
+      nothing, so no dialog intervenes) under `untitled.tle.json`; the
+      editor is mounted, one command changes its store, and the editor is
+      unmounted the moment its recovery read opens the database. Past the
+      1,000 ms delay (1,300 ms, real timers) the slot still holds exactly
+      that snapshot: a snapshot scheduled by the destroyed editor would
+      have replaced it with the changed store's text. With a lock that is
+      granted only after the editor was unmounted, the editor gives the
+      lock back (the promise its lock callback returned resolves) and,
+      past the delay, the slot is still `null`.
 14. **An autosave failure is shown once, and editing goes on.** With
     IndexedDB missing, the page shows exactly one message, starting
     `Autosave is not working`, however many commands follow.
@@ -718,7 +734,9 @@ What would prove it works, and the exact values each test pins:
    empty selection, the block for its id or for `<id>/<element>`, the same
    block for several addresses in it, and `null` for addresses in two
    blocks.
-9. **The properties form builds one `set` per field.** `propertyCommand`
+9. **The properties form builds one `set` per field.** For the geometry
+   of a selected block (`geometryOf`, `src/inspector/properties.ts`, case
+   11) `propertyCommand`
    gives `{type: "set", changes: [{target, values: {x: 12.5}}]}` for `x`
    and `"12.5"`, `{width: null}` for `width` and an empty field, and refuses
    `invalid_value` for `x` with an empty field and for `abc`. Dispatching
@@ -747,6 +765,192 @@ What would prove it works, and the exact values each test pins:
    loaded; await loadCodec"; two concurrent `loadCodec("yaml")` resolve to
    the same codec and leave `[true, true, false]`; after
    `loadCodec("toml")` all three are loaded.
+
+11. **The Properties form edits the selected element's own geometry**
+   (`inspector-properties.test.ts`). The defect it guards against: the form
+   showed the block's `length` (400) whatever was selected, and a typed
+   value rescaled the whole block. What proves it fixed is that for every
+   kind of box the form shows that element's value and an edit dispatches a
+   `set` aimed at that element's place, the block's fields untouched. The
+   kinds (`geometryOf(view, selection)` in `src/inspector/properties.ts`)
+   come from the block's drawing, the same memoized drawing the canvas
+   shows (arranger's `drawingOf` with the schema package's font metrics),
+   never from the form of an address: the block id names the block, a
+   group (or its title) the group's frame, a timeline drawn in a card (by
+   its line, its card or any other part) that card. Drawn values (x, y,
+   width, height of a frame, a card's size) are compared with that drawing's
+   `items[].place` and `cards[].size`, since the claim is "shows what is
+   drawn"; stated values, the block's length and the default scale are
+   pinned as numbers. The workspace is the end-to-end `bundles`
+   workspace, block `bmixed0000` ("Mixed": length 400, scale 1, nothing in
+   `places`; groups `group_1` with members `performance`, `score` and
+   `group_2` with `excerpt` (a child of `recording`) and `page`; the
+   ungrouped root `annotations`; `recording`, which holds a member, is drawn
+   only as `excerpt`'s ancestor and has no card of its own). Its items are
+   drawn at `group_1` (8, 28.8046875), `group_2` (8, 176.3671875) and
+   `annotations` (8, 358.50390625), each 562.484619140625 wide, `group_1`
+   139.5625 high, every member's card 546.484619140625 wide, and a width
+   grows by exactly the length added (the arranger's tests README, sections
+   "Fixture facts" and "Items").
+   - *Kinds.* `bmixed0000` gives kind `block`, label "Block properties",
+     one element `{target: "bmixed0000", group: null, values: {x: 0, y: 0,
+     scale: 1, length: 400, spacing: 1, width: null, height: null}}`.
+     `bmixed0000/group_1` and its title `bmixed0000/group_1/name` each give
+     kind `item`, label "Frame properties", one element with target
+     `bmixed0000/group_1`, group `null`, `length` 400 and `scale` 1, and
+     `x`, `y`, `width`, `height` the drawn place's. `bmixed0000/annotations/card`
+     and the line `bmixed0000/annotations` each give kind `item`, label "Card
+     properties", target `bmixed0000/annotations`. `bmixed0000/score/card`
+     gives kind `card`, label "Card properties", target `bmixed0000/score`,
+     group `bmixed0000/group_1`, `scale` 1, `length` 400 (the group's) and
+     `width`, `height` the drawn card's size; `bmixed0000/excerpt/card`
+     gives group `bmixed0000/group_2` (a child member has a card). Two
+     frames give one `item` geometry with the elements `group_1`, `group_2`
+     in selection order; a frame with an ungrouped card gives kind `item`,
+     label "Frame and card properties"; `annotations` with
+     `annotations/card` gives one element. `null`: no selection,
+     `group_1` with `score/card` (two kinds), `bmixed0000` with
+     `group_1`, the title `bmixed0000/name`, `bmixed0000/recording`, and
+     `bmixed0000/group_1` with `bshared000/group_1` (two blocks).
+   - *Stated values win.* After `set` of `bmixed0000/group_1` `place
+     {length: 300, scale: 1.5}` and of `bmixed0000/score` `place {width:
+     650}`, `group_1` shows `length` 300 and `scale` 1.5, and the card of
+     `score` `scale` 1.5, `length` 300, `width` 650.
+   - *Commands.* An edit of a place follows the rule of the canvas's
+     gestures at the same level (the arranger's `keepsItems` and
+     `placeCommand`, one helper for both): on the arranger and in the
+     bundle editor the one `set` also states, after the edited places and
+     once each, the drawn `x`, `y` of every other item that states none
+     (the drawing's `items` order: `group_1`, `group_2`, `annotations`), so
+     nothing else moves; in the group and timeline editors it states only
+     the edited places. Below, `G2` is the change `{target:
+     "bmixed0000/group_2", values: {place: {x: 8, y: 176.3671875}}}` and
+     `AN` `{target: "bmixed0000/annotations", values: {place: {x: 8, y:
+     358.50390625}}}`; every geometry is taken on the
+     arranger (`geometryOf(view, selection)`, the level's default) unless
+     stated. For `group_1`, `length` `"300"` gives exactly `{type: "set",
+     changes: [{target: "bmixed0000/group_1", values: {place: {length:
+     300}}}, G2, AN]}`. For `score/card`, `scale` `"1.5"` gives the changes
+     `[{target: "bmixed0000/group_1", values: {place: {scale: 1.5}}}, G2,
+     AN]` (the members share their group's scale and length; the frame
+     whose place is edited states no position), `width` `"650"` the changes
+     `[{target: "bmixed0000/score", values: {place: {width: 650}}}, G2,
+     AN]` (the frame holding the card states no position either: a card's
+     size never moves its frame's top left corner) and `width`
+     `""` the same with `{place: {width: null}}` there
+     (unstated); `length` `""` is refused `invalid_value` "length needs a
+     number" at `["bmixed0000/score", "length"]`. Two frames and `length`
+     `"350"` give one `set`, `group_1` then `group_2`, then `AN`. Two cards
+     of one group (`performance/card`, `score/card`) and `scale` `"2"` give
+     one change on `bmixed0000/group_1`, then `G2`, `AN`; `width` `"500"`
+     gives `bmixed0000/performance`, `bmixed0000/score`, then `G2`, `AN`. With `group_1`'s length stated 300, a step up of `length` on
+     both frames gives one `set` with `group_1` 301, `group_2` 401 (each
+     element steps from its own exact value; `group_2` draws the block's
+     length, 400), then `AN`.
+   - *The gestures' rule, level by level.* A frame's `scale` `"1.5"` on
+     the arranger gives exactly `[{target: "bmixed0000/group_1", values:
+     {place: {scale: 1.5}}}, G2, AN]`; with `group_2` stating `{y: 200}`
+     first, `G2` becomes `{place: {x: 8}}` (an item stating one member gets
+     only the other) and `annotations`, drawn below `group_2`'s bottom edge,
+     states `{x: 8, y: 382.13671875}` (`200 + 174.13671875 + 8`). In the bundle editor (`level` `"bundle"`) the same
+     edit gives the same three changes. In the group editor (`"group"`) the
+     `scale` `"1.5"` of `score/card` gives only `[{target:
+     "bmixed0000/group_1", values: {place: {scale: 1.5}}}]`, and in the
+     timeline editor (`"timeline"`) its `width` `"650"` only `[{target:
+     "bmixed0000/score", values: {place: {width: 650}}}]`.
+   - *The group editor's length.* In the group editor the frame does not
+     adapt, so a typed or stepped `length` of the edited frame or of a
+     member's card gives the group editor's stretch values, through the one
+     helper the stretch uses (arranger's `cappedLength`, whose values the
+     arranger's tests README derives in "The group editor's stretch"): the
+     length capped where the cards would pass the frame and `width` pinned
+     at the frame's drawn width quantized to 1/2048, `562.48486328125`
+     (562.484619140625 rounds up). At level `"group"`: `group_1` `length`
+     `"500"` gives exactly `[{target: "bmixed0000/group_1", values: {place:
+     {length: 400, width: 562.48486328125}}}]` (`W(400)` already fills the
+     frame); `score/card` `length` `"300"` gives `[{target:
+     "bmixed0000/group_1", values: {place: {length: 300, width:
+     562.48486328125}}}]`; a step up of `group_1`'s `length` (401) gives
+     the capped `{length: 400, width: 562.48486328125}`; with `group_1`
+     stating `{width: 600}` first, `group_1` `length` `"500"` gives
+     `{length: 437.51513671875, width: 600}` (`600 − 162.484619140625`
+     floored to the lattice). On the arranger the same `"500"` is the
+     uncapped `{length: 500}` with `G2`, `AN`.
+   - *Positions are the bundle editor's.* `offered(geometry, property)`
+     (the predicate the form's `disabled` reads) withholds what the level
+     does not edit: for a block, `scale`, `length` and `spacing` in a group
+     or timeline editor; for an item (a frame or an ungrouped card), `x`
+     and `y` everywhere but the bundle editor, where items are moved, so a
+     typed value never moves an item where no gesture moves it. For
+     `group_1`: on the arranger, in the group editor (`"group"`) and, for
+     `annotations/card`, in the timeline editor (`"timeline"`), `x` and `y`
+     are not offered and `scale`, `length`, `width`, `height` are; in the
+     bundle editor all six are. A member's card has no `x`, `y` and offers
+     its four fields at every level; for the block the rule is unchanged
+     (`x`, `y`, `width`, `height` offered at every level).
+   - *Live values.* `geometryOf(view, selection, level, placement)` with a
+     `placement` of `bmixed0000` whose drawing is the block's drawing with
+     `places` `{group_1: {length: 460}}` (a Stretch preview) reads the items
+     and cards from that drawing: `group_1`'s `length` 460 and `width`
+     622.484619140625 (562.484619140625 + 60), `score/card`'s `length` 460
+     and `width` 606.484619140625; a placement of another block, or none,
+     gives the stored 400 and 562.484619140625.
+   - *Shown values.* `commonValue` gives the value every element shares,
+     `undefined` when they differ (300 and 400). `fieldLabel` names a
+     card's `scale` and `length` "group scale" and "group length" and every
+     other field by its property.
+
+   The component (same file) is mounted with a store reading the
+   `bundles` workspace:
+   - `bmixed0000/group_1`: the Properties panel holds one form, "Frame
+     properties", whose fields are exactly `x`, `y`, `scale`, `length`,
+     `width`, `height` (no `spacing`); `length` shows `400` and `scale`
+     `1`. `300` typed into `length` and Enter adds one journal entry whose
+     command is exactly the one above (with `G2` and `AN`); the block's own
+     `length` stays 400 and the field shows `300`.
+   - `bmixed0000/score/card`: one form, "Card properties", fields exactly
+     `scale`, `length`, `width`, `height`, labelled "group scale", "group
+     length", "width", "height". `1.5` typed into `scale` and Enter
+     dispatches `[{target: "bmixed0000/group_1", values: {place: {scale:
+     1.5}}}, G2, AN]`; `650` into `width` then only `[{target:
+     "bmixed0000/score", values: {place: {width: 650}}}]` (`group_2` and
+     `annotations` state their positions now, and the frame holding the
+     card is given none); the field then emptied
+     and Enter, only `[{target: "bmixed0000/score", values: {place:
+     {width: null}}}]`, after which the block's `places` hold no `score`.
+   - `group_1` and `group_2`: `350` typed into `length` and Enter adds one
+     entry with the two frames' changes and `AN`; both frames' places then
+     state `length` 350. With `group_1`'s length stated 300 first, `length`
+     shows nothing with the placeholder "mixed", and ArrowUp adds one entry
+     setting 301 and 401, then `AN`.
+   - In the group editor of `bmixed0000/group_1` (opened before mounting;
+     the Properties tab chosen), `score/card` with `1.5` typed into
+     `scale` and Enter adds one entry to the editor's session whose command
+     is exactly `{type: "set", changes: [{target: "bmixed0000/group_1",
+     values: {place: {scale: 1.5}}}]}`; `500` typed into "group length"
+     then adds one entry whose command is exactly `{type: "set", changes:
+     [{target: "bmixed0000/group_1", values: {place: {length: 400, width:
+     562.48486328125}}}]}`. In the bundle editor of `bmixed0000`, `group_1`
+     with `1.5` typed into `scale` dispatches the three changes of the
+     arranger.
+   - `group_1` on the arranger: its `x` and `y` fields are `disabled` and
+     its other four enabled; in the bundle editor of `bmixed0000` all six
+     are enabled; in the group editor of `bmixed0000/group_1`, `x` and `y`
+     are disabled again.
+   - *Following a gesture live.* In the bundle editor of `bmixed0000`,
+     `group_1` selected and the `placement` prop (held reactive) set to a
+     placement of `bmixed0000` whose drawing has `places` `{group_1:
+     {length: 460}, group_2: {x: 8, y: 176.3671875}, annotations: {x: 8,
+     y: 358.50390625}}` (what a Stretch by 60 previews): `length` shows
+     `460` and `width` `622.48` while nothing is dispatched; `placement`
+     `null` again (the release refused, nothing stored): `400` and
+     `562.48`. With `score/card` selected and the same placement, "group
+     length" shows `460` and `width` `606.48`.
+   - `bmixed0000`: one form, "Block properties", with the seven block
+     fields.
+   - `group_1` with `score/card`, and the title `bmixed0000/name`: the
+     Properties panel reads exactly "Select a block, a frame or a card to
+     edit its geometry." and holds no form.
 
 The component test mounts `Inspector.svelte` with a store holding `bare`
 (block `0000000000`) and `styled__score` (block `0000000001`), and proves
@@ -945,7 +1149,10 @@ more cell of the block properties form, the one right after `height`
 no fieldset, no legend and no hint text in the inspector. Anything
 else shows no checkbox: no selection, a block, several addresses (even two
 naming one timeline), a group, a region or any other non-timeline element,
-an address naming nothing. Locking and unlocking is not available yet, so
+an address naming nothing. A timeline drawn in no card of its own (a
+child that is no group member) has no geometry: the Properties panel shows
+the geometry hint of case 11, and the checkbox is the only cell of a form
+"Timeline properties". Locking and unlocking is not available yet, so
 the checkbox is disabled for every timeline, with the `title` "Locking and
 unlocking is not available yet." on the input. What proves it is a manifest
 written for the test, in block `0000000000`, whose `locked` values follow
@@ -981,13 +1188,18 @@ The component, mounted with that store, shows the checkbox for
 `…/fixed` (checked), `…/free`, `…/take`, `…/pages` (not checked),
 `…/page_1` (checked), `…/part_1` (not checked) and `…/fixed/card`
 (checked), each disabled, with that `title`; there is exactly one
-checkbox labelled "Locked" then, its label is a cell of the form
-"Block properties" directly after the label holding the field `height`
-(the next element sibling), and the inspector holds no `fieldset`,
-`legend` or `.locked-hint`, and no element whose text is the `title`'s.
-For `0000000000`, for `…/group_1`, for `…/free/region_1` and for
-`…/fixed` with `…/free` there is none, and the form's last cell is the
-label of `height`, as before. The checkbox follows the store: with
+checkbox labelled "Locked" then, its label is a cell of the panel's one
+form: for `…/fixed` and `…/fixed/card` (a member's card) and for `…/free`
+and `…/pages` (ungrouped roots' cards) the form "Card properties",
+directly after the label holding the field `height` (the next element
+sibling); for `…/take`, `…/page_1` and `…/part_1` (children drawn in no
+card of their own) the form "Timeline properties", whose only cell it is.
+The inspector holds no `fieldset`, `legend` or `.locked-hint`, and no
+element whose text is the `title`'s. For `0000000000` and `…/group_1`
+there is none, and the last cell of the form ("Block properties", "Frame
+properties") is the label of `height`; for `…/free/region_1` (no geometry)
+and for `…/fixed` with `…/free` (a member's card and an ungrouped root's
+card, two kinds) there is none and no form. The checkbox follows the store: with
 `…/free` shown, a `set` of `locked` `true` on `0000000000/free`
 dispatched to the store checks it. It follows an applied manifest text the
 same way, without a change of selection: with `…/free` selected and the
@@ -1077,7 +1289,9 @@ read exactly "Timeline Scores" with no change of selection.
 
 While an editor is open the inspector gains a first tab, "Editor", naming
 the innermost editor; the "Journal" tab, last, is always there and lists
-the entries of the level the user works on. The rows are plain TypeScript
+the entries of the level the user works on, newest first. The rows are
+read from the store's `listed` alone (every entry of the level with its
+undo state, a session's entries nested) and are plain TypeScript
 (`src/inspector/journal.ts`), so their texts are pinned without a DOM; the
 component only places them. What would prove it works, and the exact
 values each test pins:
@@ -1098,10 +1312,10 @@ values each test pins:
    "0000000009". The editing bar names the editing path with the same
    function.
 2. **Each command reads as one sentence** (`journal.test.ts`). On the
-   arranger (`editing` empty) each entry below, alone in `entries`, gives
-   exactly one row `{entry, time, author, text, undone: false, earlier:
-   false}`, `entry` being the entry itself (the panel keeps one item per
-   entry, case 6),
+   arranger (`editing` empty) each entry below, alone in `listed` and
+   applied, gives exactly one row `{entry, time, author, text, undone:
+   false, earlier: false, children: []}`, `entry` being the entry itself
+   (the panel keeps one item per entry, case 6),
    `time` being characters 11 to 19 of the entry's UTC time
    (`2026-10-17T08:05:09.123Z` gives `08:05:09`, `2026-10-17T23:59:58.999Z`
    gives `23:59:58`) and `author` the entry's:
@@ -1122,7 +1336,11 @@ values each test pins:
      `0000000001/score` with two, "Edited timeline score (2 changes)"; of
      `0000000000/excerpt` with one, "Edited timeline Excerpt (1 change)";
      of `0000000002` with three, "Edited bundle Anonymous bundle (3
-     changes)". The kind word is the editor kind of the target in the
+     changes)"; of `0000000000` holding one command and the session of
+     `0000000000/group_1` holding two, "Edited bundle Mixed (3 changes)":
+     the count is of changes (commands at every depth), never of entries,
+     so a bundle session holding a group session reads like the user's
+     three changes. The kind word is the editor kind of the target in the
      view (`editorKindOf`): a block a bundle, a group a group, a root or
      child timeline a timeline. A target the view no longer holds has no
      kind word, because what it was is not read back from earlier views:
@@ -1131,30 +1349,49 @@ values each test pins:
      `remove` of `0000000000/group_1` on the arranger give, before the
      remove, the session row "Edited group Performance (1 change)" and,
      after it, "Edited 0000000000/group_1 (1 change)" (the name falls back
-     to the address, as in case 1), followed by "Removed
+     to the address, as in case 1), below the newer "Removed
      0000000000/group_1". The word "timeline" for the removed group would
      be a guess.
-3. **Rows run in the order the entries were made, undone ones last**
-   (`journal.test.ts`). The store reports `undone` with the next to redo
-   first, which is the earliest undone entry, so appending it keeps the
-   order of making. With four distinct `set` entries `e1`, `e2`, `u1`,
-   `u2` (texts "Set x of 0000000000" … told apart by their targets):
-   - on the arranger with `entries` `[e1, e2]` and `undone` `[u1, u2]`, the
-     rows are `e1`, `e2`, `u1`, `u2`, `undone` exactly `[false, false,
-     true, true]`, `earlier` all `false`;
-   - in an editor whose `earlier` is `null`, with `entries` `[e1]` and
-     `undone` `[u1]`: `e1`, `u1` (`undone` `[false, true]`);
+3. **Rows run newest first, and a session holds its changes as rows**
+   (`journal.test.ts`). The user reads the latest change at the top, the
+   one the next undo reverts or the next redo re-applies. `listed` runs
+   oldest first with the undone changes last, so the rows are `listed`
+   reversed at every depth. With four distinct `set` entries `e1`, `e2`,
+   `u1`, `u2` (texts "Set x of 0000000000" … told apart by their targets),
+   rows read as `[text, undone, earlier]`:
+   - on the arranger with `e1`, `e2` applied and `u1`, `u2` undone, the
+     rows are `u2`, `u1`, `e2`, `e1`, `undone` exactly `[true, true,
+     false, false]`, `earlier` all `false`;
+   - in an editor whose `earlier` is `null`, with `e1` applied and `u1`
+     undone: `u1`, `e1` (`undone` `[true, false]`);
    - in an editor whose `earlier` is `s0`, a session holding `[u2, e2]`:
-     `u2`, `e2`, `e1`, `u1`, `earlier` exactly `[true, true, false, false]`
-     and `undone` `[false, false, false, true]`;
+     `u1`, `e1`, `e2`, `u2`, `earlier` exactly `[false, false, true,
+     true]` and `undone` `[true, false, false, false]` (the earlier
+     session's rows last, below the open level's);
    - with two editors open, the outer one with `earlier` `s0` and the inner
-     one with `earlier` `null`: only `entries` and `undone` (the earlier
+     one with `earlier` `null`: only the inner level's rows (the earlier
      session belongs to the outer level);
+   - a partly undone session: on the arranger the entries are `e1` and
+     the session `s5` of `0000000000` holding `[e2, s6]`, where `s6` is
+     the session of `0000000000/group_1` holding `[u1, u2]`: four changes
+     in order `e1`, `e2`, `u1`, `u2`, the first three applied (`listed`
+     built by core's `listEntries` with 3 applied). The rows are `s5`
+     "Edited bundle Mixed (3 changes, 1 undone)" (`undone` false), then
+     `e1`; `s5`'s children are `s6` "Edited group Performance (2 changes,
+     1 undone)" and then `e2` (newest first), and `s6`'s children `u2`
+     (`undone` true) and then `u1` (`undone` false). With nothing
+     applied, `s5` reads "Edited bundle Mixed (3 changes)" with `undone`
+     true, and so does every row below it at every depth;
+   - in an editor with `e1` applied whose `earlier` is `s0` holding
+     `[s7]`, `s7` the session of `0000000000/score` holding `[e2]`: the
+     rows are `e1` (`earlier` false) and `s7` "Edited timeline Score (1
+     change)" (`earlier` true), whose one child `e2` has `earlier` true
+     too;
    - nothing anywhere: no row.
 4. **The tab set follows the editing path** (`inspector-tabs.test.ts`).
    The component reads the editing path from the store whenever the store
    reports a change, so the cases drive a store whose `editing` (and, for
-   case 6, `entries`, `undone`, `sessions`) are set by the test and
+   case 6, `listed` and `sessions`) are set by the test and
    announced through `subscribe`, over a real store holding the three
    blocks of case 1; this pins the inspector's part independently of how
    the store opens and closes editors. The tabs are read as `[id, text,
@@ -1186,8 +1423,8 @@ values each test pins:
    - through the real store, end to end: `open` of `0000000000/group_1`
      selects "Editor" reading "Group editor: Performance"; a `set` of
      `score`'s name and Done select "Properties", and the Journal panel's
-     texts are exactly the three `add`s and "Edited group Performance (1
-     change)".
+     texts are exactly "Edited group Performance (1 change)" and then the
+     three `add`s, newest first.
 5. **The keys move over the tabs present** (`inspector-tabs.test.ts`).
    The selected tab has the focus after each key. With an editor open,
    from "Editor": ArrowRight Properties, ArrowRight Manifest, ArrowRight
@@ -1199,27 +1436,51 @@ values each test pins:
    the three `add`s of case 1, a `set` of `x` 25 on `0000000000` and then an
    undo, the Journal panel holds an ordered list (`ol`, `aria-label`
    "Journal") of four items, each with its time, author and text in
-   elements of their own (`08:05:09`, `Gerhardt`, the row's text); the
-   last, "Set x of 0000000000", carries `data-undone` and a visually hidden
-   word "undone", the other three neither. The list follows the store: a
-   `set` of `y` 7 on `0000000000` replaces the undone item (four items, the
-   last "Set y of 0000000000", none `data-undone`). With the earlier
-   session of case 3 (the store of case 4 set to an editor whose `earlier`
-   is `s0`, its session holding one `set` of `order` on `0000000000/group_1` by "Ada" at `07:00:01`, and `entries` the three `add`s), its item comes first and carries `data-earlier`, the three `add`s after it without.
+   elements of their own (`08:05:09`, `Gerhardt`, the row's text), newest
+   first: the first, "Set x of 0000000000", carries `data-undone` and a
+   visually hidden word "undone", the three `add`s after it (block
+   `0000000002`, `0000000001`, `0000000000`) neither. The list follows the
+   store: a `set` of `y` 7 on `0000000000` replaces the undone item (four
+   items, the first "Set y of 0000000000", none `data-undone`). With the
+   earlier session of case 3 (the store of case 4 set to an editor whose
+   `earlier` is `s0`, its session holding one `set` of `order` on
+   `0000000000/group_1` by "Ada" at `07:00:01`, and `listed` the three
+   `add`s applied), its item comes last and carries `data-earlier`, the
+   three `add`s before it without.
    The items are kept per entry, never per position (an entry is listed
-   once: in the earlier session, the open level's entries or its undone
-   ones): with the same editor first open without an earlier session and
-   the Journal tab selected, the three `add`s' items are the very same
-   elements after the earlier session's item has been put in front of
-   them, which items kept per position would not be.
+   once: in the earlier session or on the open level): with the same
+   editor first open without an earlier session and the Journal tab
+   selected, the three `add`s' items are the very same elements after the
+   earlier session's item has been put behind them, and after a fourth
+   entry has been put in front of them, which items kept per position
+   would not be.
    A level with no rows says so instead of showing an empty list, which
    would have no size and so not be seen at all: with the store of case 4
    set to an editor on `0000000000/group_1` whose `earlier` is `null`,
-   `entries` and `undone` empty (a fresh editor), and the Journal tab
-   selected, the panel's text is exactly "No changes yet." and it holds no
-   `ol`; with `entries` then one `set` of `x` on `0000000000`, it holds the
+   `listed` empty (a fresh editor), and the Journal tab selected, the
+   panel's text is exactly "No changes yet." and it holds no `ol`; with
+   `listed` then one applied `set` of `x` on `0000000000`, it holds the
    list of exactly one item, "Set x of 0000000000", and the text "No
    changes yet." is gone.
+   **A session row discloses its changes.** Through the real store, `open
+   0000000000`, `open 0000000000/group_1`, `set score name "S"`, `set
+   performance name "P"`, Done, Done, then one undo on the arranger: the
+   first item reads "Edited bundle Mixed (2 changes, 1 undone)" and holds
+   a native `button` (`type="button"`) before its time, with
+   `aria-expanded` `"false"`, no `aria-controls` and no nested list in the
+   item (a collapsed row's changes are not in the page, so neither the
+   eye nor a query finds them); the button's accessible name is the row's
+   text (`aria-labelledby` the text's element). A click sets
+   `aria-expanded` `"true"`, puts the nested `ol` into the item and
+   `aria-controls` names it: one item "Edited
+   group Performance (2 changes, 1 undone)", itself holding a collapsed
+   button; expanding it shows "Set name of 0000000000/performance" with
+   `data-undone` and the hidden word "undone", then "Set name of
+   0000000000/score" without (newest first). A second click on the outer
+   button sets `aria-expanded` back to `"false"` and takes the nested
+   list out again. A command row has no button. Expansion is view state of the
+   panel: nothing of it reaches the store (the journal and `listed` are
+   the same objects before and after the clicks).
 7. **A group or timeline editor offers no block field it would refuse**
    (`inspector-tabs.test.ts`). Inside a group or timeline editor the store
    refuses every change of the block's `scale`, `length` and `spacing` (a
