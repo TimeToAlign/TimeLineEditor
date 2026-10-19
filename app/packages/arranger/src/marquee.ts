@@ -1,8 +1,10 @@
 /** The marquee inside an editor: the elements a rectangle drawn on the canvas holds. */
 
-import type { DrawnElement } from "@timetoalign/tilie-layout";
+import { qualify } from "@timetoalign/tilie-core";
+import type { Drawing, DrawnElement } from "@timetoalign/tilie-layout";
 import { TextMeasure } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timeskeleton";
+import { boxOf } from "./boxes.ts";
 import type { BlockNode } from "./project.ts";
 
 /** An axis-aligned rectangle: on the canvas, or in a drawing's own units. */
@@ -13,14 +15,6 @@ export interface Rect {
   readonly height: number;
 }
 
-/** A drawn element other than the block's background and the boxes, its frames and cards. */
-export type ElementOnly = Exclude<DrawnElement, { readonly type: "block" | "group" | "card" }>;
-
-/** Whether a drawn element is an element rather than the background, a frame or a card. */
-export function isElementOnly(element: DrawnElement): element is ElementOnly {
-  return element.type !== "block" && element.type !== "group" && element.type !== "card";
-}
-
 function spanning(xs: readonly number[], ys: readonly number[]): Rect {
   const x = Math.min(...xs);
   const y = Math.min(...ys);
@@ -29,16 +23,22 @@ function spanning(xs: readonly number[], ys: readonly number[]): Rect {
 
 /**
  * The rectangle a drawn element spans, in the drawing's units: the
- * rectangle of the coordinates the drawing states for it (a line from its
- * start to its end on its ordinate, a map likewise on its centre, a region
- * between its edges and ordinates, a jump around its curve's points and its
- * arrowhead, a break, boundary or wedge on its abscissa between its
- * ordinates), and a text over its measured width (from its anchor, or
- * centred on it) from its baseline less the font's ascent to its baseline
- * plus the descent. Stroke widths and markers are not counted.
+ * rectangle of the coordinates the drawing states for it (the block's
+ * background its whole drawing, a frame's or a card's rectangle itself, a
+ * line from its start to its end on its ordinate, a map likewise on its
+ * centre, a region between its edges and ordinates, a jump around its
+ * curve's points and its arrowhead, a break, boundary or wedge on its
+ * abscissa between its ordinates), and a text over its measured width (from
+ * its anchor, or centred on it) from its baseline less the font's ascent to
+ * its baseline plus the descent. Stroke widths and markers are not counted.
  */
-export function elementBounds(element: ElementOnly, measure: TextMeasure): Rect {
+export function elementBounds(element: DrawnElement, measure: TextMeasure): Rect {
   switch (element.type) {
+    case "block":
+      return { x: 0, y: 0, width: element.width, height: element.height };
+    case "group":
+    case "card":
+      return { x: element.x, y: element.y, width: element.width, height: element.height };
     case "timeline":
     case "child":
     case "ancestor":
@@ -74,8 +74,17 @@ export function elementBounds(element: ElementOnly, measure: TextMeasure): Rect 
   }
 }
 
+/**
+ * Whether a drawn element carrying `address` is a container's own
+ * rectangle rather than an element: the block's background (no address), a
+ * frame, a card or its shadow. The marquee and the focus read elements only.
+ */
+export function isContainerAddress(drawing: Drawing, address: string | null): boolean {
+  return address === null || boxOf(drawing, address) !== undefined;
+}
+
 /** A rectangle in the drawing of `node` as the canvas shows it: moved by the node's position and scaled. */
-export function onCanvas(node: BlockNode, rect: Rect): Rect {
+export function rectOnCanvas(node: BlockNode, rect: Rect): Rect {
   const scale = node.data.block.scale;
   return {
     x: node.position.x + rect.x * scale,
@@ -100,9 +109,9 @@ function holds(outer: Rect, inner: Rect): boolean {
  * among `inside` (the node's `inside`) whose every drawn element lies wholly
  * in `rect`, edges included (`elementBounds`, on the canvas). An address
  * drawn in several places, such as an ancestor line in several cards, is
- * taken only when all of them lie inside. Frames and cards are boxes, which
- * a click selects, never a marquee; a band, a box of its timeline's editor,
- * draws nothing, so no marquee selects one either.
+ * taken only when all of them lie inside. Frames and cards are containers,
+ * which a click selects, never a marquee; a band draws nothing, so no
+ * marquee selects one either.
  */
 export function elementsInRect(
   node: BlockNode,
@@ -110,12 +119,14 @@ export function elementsInRect(
   inside: ReadonlySet<string>,
   metrics: FontMetrics,
 ): string[] {
+  const { drawing } = node.data;
   const measure = new TextMeasure(metrics);
   const taken = new Map<string, boolean>();
-  for (const element of node.data.drawing.elements) {
-    if (!isElementOnly(element) || !inside.has(element.address)) continue;
-    const held = holds(rect, onCanvas(node, elementBounds(element, measure)));
-    taken.set(element.address, (taken.get(element.address) ?? true) && held);
+  for (const element of drawing.elements) {
+    const { address } = element;
+    if (address === null || isContainerAddress(drawing, address) || !inside.has(address)) continue;
+    const held = holds(rect, rectOnCanvas(node, elementBounds(element, measure)));
+    taken.set(address, (taken.get(address) ?? true) && held);
   }
-  return [...taken].filter(([, held]) => held).map(([address]) => `${node.id}/${address}`);
+  return [...taken].filter(([, held]) => held).map(([address]) => qualify(node.id, address));
 }

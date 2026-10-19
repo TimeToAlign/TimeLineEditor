@@ -1,17 +1,14 @@
 // @vitest-environment jsdom
 /**
  * The menu that asks how to close the gap a deleted segment leaves: which
- * ways it offers, which it preselects, and its keys. The canvas does not
- * mount it while deleting a segment is not supported.
+ * ways it offers, which it preselects, and its keys. Nothing mounts it yet.
  */
 
 import type { Gap, GapOption } from "@timetoalign/tilie-core";
-import { segmentGaps } from "@timetoalign/tilie-core";
+import { GAPS } from "@timetoalign/tilie-core";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it } from "vitest";
-import { preferredGap } from "../src/commands.ts";
 import GapMenu from "../src/GapMenu.svelte";
-import { load, loadUnlocked } from "./support.ts";
 
 let mounted: ReturnType<typeof mount> | undefined;
 
@@ -21,14 +18,26 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
+/** The four ways in core's order of preference, with the reasons it refuses each. */
+const optionsOf = (...refused: (string | null)[]): readonly GapOption[] =>
+  GAPS.map((gap, index) => ({ gap, refused: refused[index] ?? null }));
+
 /** Core's options for `t2` of `segment_children` with `theme` unlocked in the file: all four. */
 function themeOptions(): readonly GapOption[] {
-  return segmentGaps(loadUnlocked("segment_children", "theme"), "t2") ?? [];
+  return optionsOf(null, null, null, null);
 }
 
 /** Core's options for `t2` of `segment_children` as it is, `theme` locked: only the extends. */
 function lockedOptions(): readonly GapOption[] {
-  return segmentGaps(load("segment_children"), "t2") ?? [];
+  const locked = "its segment line theme is locked";
+  return optionsOf(null, null, locked, locked);
+}
+
+/** The way preselected: the first permitted one, in the order core offers them. */
+function preselected(options: readonly GapOption[]): Gap {
+  const found = options.find((option) => option.refused === null)?.gap;
+  if (found === undefined) throw new Error("no way is permitted");
+  return found;
 }
 
 /** Mount the menu, recording its calls. */
@@ -37,7 +46,7 @@ function render(options: readonly GapOption[]): (Gap | "cancel")[] {
   const props = {
     segment: "t2",
     options,
-    gap: preferredGap(options) as Gap,
+    gap: preselected(options),
     x: 100,
     y: 50,
     onconfirm: (gap: Gap) => calls.push(gap),

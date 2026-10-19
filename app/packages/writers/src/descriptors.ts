@@ -8,33 +8,116 @@
 import type {
   Drawing,
   DrawnElement,
-  LineElement,
+  LineMark,
   PathCommand,
   Point,
-  Style,
 } from "@timetoalign/tilie-layout";
-import { brace, times } from "@timetoalign/tilie-layout";
+import { brace, lineGeometry } from "@timetoalign/tilie-layout";
 import { formatNumber } from "./page.ts";
+import type { DescriptorSource } from "./source.ts";
 
 export type { PathCommand, Point } from "@timetoalign/tilie-layout";
 
-/** An attribute value: a number, a string, polygon points or path data. */
-export type AttributeValue = number | string | readonly Point[] | readonly PathCommand[];
-
 export type Tag = "rect" | "line" | "circle" | "polygon" | "polyline" | "path" | "text";
 
-/** One SVG element: its tag, its attributes in the order they are written, and its text. */
-export interface Descriptor {
-  readonly tag: Tag;
-  readonly attrs: readonly (readonly [string, AttributeValue])[];
-  readonly text: string | null;
+/** One SVG attribute, its name and its value, as the descriptor writes it. */
+export type Attribute =
+  | readonly ["data-address" | "fill" | "stroke" | "stroke-dasharray" | "text-anchor", string]
+  | readonly [
+      (
+        | "x"
+        | "y"
+        | "width"
+        | "height"
+        | "rx"
+        | "x1"
+        | "y1"
+        | "x2"
+        | "y2"
+        | "cx"
+        | "cy"
+        | "r"
+        | "font-size"
+        | "stroke-width"
+        | "opacity"
+      ),
+      number,
+    ]
+  | readonly ["points", readonly Point[]]
+  | readonly ["d", readonly PathCommand[]];
+
+/** An attribute value: a number, a string, polygon points or path data. */
+export type AttributeValue = Attribute[1];
+
+interface Written {
+  /** Its attributes in the order they are written: its address, geometry, paint and opacity. */
+  readonly attrs: readonly Attribute[];
+  readonly source: DescriptorSource;
 }
 
-type Attributes = (readonly [string, AttributeValue])[];
+export interface RectDescriptor extends Written {
+  readonly tag: "rect";
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+  readonly text: null;
+}
+
+export interface LineDescriptor extends Written {
+  readonly tag: "line";
+  readonly x1: number;
+  readonly y1: number;
+  readonly x2: number;
+  readonly y2: number;
+  readonly text: null;
+}
+
+export interface CircleDescriptor extends Written {
+  readonly tag: "circle";
+  readonly cx: number;
+  readonly cy: number;
+  readonly r: number;
+  readonly text: null;
+}
+
+export interface PointsDescriptor extends Written {
+  readonly tag: "polygon" | "polyline";
+  readonly points: readonly Point[];
+  readonly text: null;
+}
+
+export interface PathDescriptor extends Written {
+  readonly tag: "path";
+  readonly d: readonly PathCommand[];
+  readonly text: null;
+}
+
+export interface TextDescriptor extends Written {
+  readonly tag: "text";
+  readonly x: number;
+  readonly y: number;
+  readonly anchor: "start" | "middle";
+  readonly text: string;
+}
+
+/**
+ * One SVG element: its tag, its geometry, its attributes in the order they
+ * are written, its text, and the element it was written from.
+ */
+export type Descriptor =
+  | RectDescriptor
+  | LineDescriptor
+  | CircleDescriptor
+  | PointsDescriptor
+  | PathDescriptor
+  | TextDescriptor;
+
+type Attributes = readonly Attribute[];
 
 /** The stroke attributes: `stroke`, `stroke-width` and, unless it is `none`, `stroke-dasharray`. */
-function strokeAttributes(stroke: string, width: number, dasharray: string): Attributes {
-  const result: Attributes = [
+function strokeAttributes(stroke: string, width: number, dasharray: string): Attribute[] {
+  const result: Attribute[] = [
     ["stroke", stroke],
     ["stroke-width", width],
   ];
@@ -46,193 +129,217 @@ function strokeAttributes(stroke: string, width: number, dasharray: string): Att
 }
 
 /**
- * The writer of one element's descriptors: each carries the element's
- * address, its geometric attributes, its paint and its opacity, in that
- * order (section 7.2).
+ * The writer of one element's descriptors, `index` its place in the
+ * drawing: each carries the element's address (the box's background none),
+ * its geometric attributes, its paint and its opacity, in that order
+ * (section 7.2).
  */
-function writerOf(address: string, style: Style) {
+function writerOf(element: DrawnElement, index: number) {
+  const { address, style } = element;
+  const head: Attributes = address === null ? [] : [["data-address", address]];
   const tail: Attributes = style.opacity === 1 ? [] : [["opacity", style.opacity]];
   const w = style["stroke-width"];
   const none: Attributes = [["fill", "none"]];
   const stroked = strokeAttributes(style.stroke, w, style["stroke-dasharray"]);
+  const written = (
+    geometry: Attributes,
+    paint: Attributes,
+    role: DescriptorSource["role"] = "primary",
+  ): Written => ({
+    attrs: [...head, ...geometry, ...paint, ...tail],
+    source: { element: index, type: element.type, address, role },
+  });
   return {
-    write: (
-      tag: Tag,
-      geometry: Attributes,
+    rect: (
+      x: number,
+      y: number,
+      width: number,
+      height: number,
       paint: Attributes,
-      text: string | null = null,
-    ): Descriptor => ({
-      tag,
-      attrs: [["data-address", address], ...geometry, ...paint, ...tail],
+      role?: DescriptorSource["role"],
+    ): RectDescriptor => ({
+      tag: "rect",
+      x,
+      y,
+      width,
+      height,
+      text: null,
+      ...written(
+        [
+          ["x", x],
+          ["y", y],
+          ["width", width],
+          ["height", height],
+          ["rx", style.rx],
+        ],
+        paint,
+        role,
+      ),
+    }),
+    line: (x1: number, y1: number, x2: number, y2: number): LineDescriptor => ({
+      tag: "line",
+      x1,
+      y1,
+      x2,
+      y2,
+      text: null,
+      ...written(
+        [
+          ["x1", x1],
+          ["y1", y1],
+          ["x2", x2],
+          ["y2", y2],
+        ],
+        stroked,
+      ),
+    }),
+    circle: (cx: number, cy: number, r: number, paint: Attributes): CircleDescriptor => ({
+      tag: "circle",
+      cx,
+      cy,
+      r,
+      text: null,
+      ...written(
+        [
+          ["cx", cx],
+          ["cy", cy],
+          ["r", r],
+        ],
+        paint,
+      ),
+    }),
+    points: (
+      tag: "polygon" | "polyline",
+      points: readonly Point[],
+      paint: Attributes,
+    ): PointsDescriptor => ({ tag, points, text: null, ...written([["points", points]], paint) }),
+    path: (d: readonly PathCommand[], paint: Attributes): PathDescriptor => ({
+      tag: "path",
+      d,
+      text: null,
+      ...written([["d", d]], paint),
+    }),
+    text: (x: number, y: number, anchor: "start" | "middle", text: string): TextDescriptor => ({
+      tag: "text",
+      x,
+      y,
+      anchor,
       text,
+      ...written(
+        [
+          ["x", x],
+          ["y", y],
+          ["text-anchor", anchor],
+          ["font-size", style["font-size"]],
+        ],
+        [["fill", style.fill]],
+      ),
     }),
     /** `fill` alone: a circle, a filled polygon, a text. */
-    filled: [["fill", style.fill]] as Attributes,
+    filled: [["fill", style.fill]] satisfies Attributes,
     /** The stroke attributes alone: a line. */
     stroked,
     /** `fill="none"` and the stroke attributes: a path, a map. */
     open: [...none, ...stroked],
-    /** `fill="none"`, the stroke at `w / 2` and no dash: the open arrowhead, the diamond, a chevron. */
+    /** `fill="none"`, the stroke at `w / 2`, no dash: the open arrowhead, diamond and chevrons. */
     outline: [...none, ...strokeAttributes(style.stroke, w / 2, "none")],
   };
 }
 
-const points = (...corners: Point[]): Attributes => [["points", corners]];
+type Writer = ReturnType<typeof writerOf>;
 
-/**
- * The descriptors of a line (sections 6.6, 7.2 and 8.3): its `<line>` to
- * where it stops, its start circle or left chevrons, its end or right
- * chevrons.
- */
-function lineDescriptors(element: LineElement): Descriptor[] {
-  const { xs, xe, y } = element;
-  const { write, filled, stroked, outline } = writerOf(element.address, element.style);
-  const w = element.style["stroke-width"];
-  const circle = (cx: number) =>
-    write(
-      "circle",
-      [
-        ["cx", cx],
-        ["cy", y],
-        ["r", w],
-      ],
-      filled,
-    );
-  // `count` chevrons at `x`, pointing left (-1) or right (1), the inner one first: two where
-  // a line runs on, three where its length is not known.
-  const chevrons = (x: number, direction: -1 | 1, count: 2 | 3): Descriptor[] => {
-    const at = (offset: number) => x + direction * offset;
-    const half = 1.5 * w;
-    return [
-      [w, 2.5 * w],
-      [2.5 * w, 4 * w],
-      [4 * w, 5.5 * w],
-    ]
-      .slice(0, count)
-      .map(([arm = 0, tip = 0]) =>
-        write("polyline", points([at(arm), y - half], [at(tip), y], [at(arm), y + half]), outline),
-      );
-  };
-  const arrowhead = points([xe + 3 * w, y], [xe, y - 1.5 * w], [xe, y + 1.5 * w]);
-  const stop = element.end === "diamond" ? xe - 1.5 * w : xe;
-  const line = write(
-    "line",
-    [
-      ["x1", xs],
-      ["y1", y],
-      ["x2", stop],
-      ["y2", y],
-    ],
-    stroked,
-  );
-  const start = element.start === "circle" ? [circle(xs)] : chevrons(xs, -1, 2);
-  const end = (() => {
-    switch (element.end) {
-      case "arrowhead":
-        return [write("polygon", arrowhead, filled)];
-      case "open":
-        return [write("polygon", arrowhead, outline)];
-      case "circle":
-        return [circle(xe)];
-      case "diamond": {
-        const half = times(6n, 5n, w);
-        const diamond = points([stop, y], [xe, y - half], [xe + 1.5 * w, y], [xe, y + half]);
-        return [write("polygon", diamond, outline)];
-      }
-      case "unknown":
-        return chevrons(xe, 1, 3);
-      case "chevrons":
-        return chevrons(xe, 1, 2);
-    }
-  })();
-  return [line, ...start, ...end];
+/** The descriptor of one mark at a line's end (section 7.2). */
+function markDescriptor(mark: LineMark, writer: Writer): Descriptor {
+  switch (mark.shape) {
+    case "circle":
+      return writer.circle(mark.cx, mark.cy, mark.r, writer.filled);
+    case "polygon":
+      return writer.points("polygon", mark.points, mark.filled ? writer.filled : writer.outline);
+    case "polyline":
+      return writer.points("polyline", mark.points, writer.outline);
+  }
 }
 
-function elementDescriptors(element: DrawnElement): Descriptor[] {
-  if (element.type === "block") {
-    // The background: its template, then `opacity`, and no address.
-    const { style } = element;
-    const attrs: Attributes = [
-      ["x", 0],
-      ["y", 0],
-      ["width", element.width],
-      ["height", element.height],
-      ["rx", style.rx],
-      ["fill", style.fill],
-    ];
-    if (style.opacity !== 1) attrs.push(["opacity", style.opacity]);
-    return [{ tag: "rect", attrs, text: null }];
-  }
-  if (element.type === "timeline" || element.type === "child" || element.type === "ancestor") {
-    return lineDescriptors(element);
-  }
-  const { style } = element;
-  const { write, filled, stroked, open } = writerOf(element.address, style);
+/** The descriptors of one element (sections 7.2 and 8.5). */
+function elementDescriptors(element: DrawnElement, index: number): Descriptor[] {
+  const writer = writerOf(element, index);
+  const { filled, stroked, open } = writer;
   switch (element.type) {
+    case "block":
+      // The background: its template, then `opacity`, and no address.
+      return [writer.rect(0, 0, element.width, element.height, filled)];
     case "group":
     case "card": {
-      const rect = (x: number, y: number): Attributes => [
-        ["x", x],
-        ["y", y],
-        ["width", element.width],
-        ["height", element.height],
-        ["rx", style.rx],
+      const { x, y, width, height, shadowOffset } = element;
+      const own = writer.rect(x, y, width, height, [...filled, ...stroked]);
+      const shadow = element.style.shadow;
+      if (element.type === "group" || shadow === "none") return [own];
+      const [sx, sy] = [x + shadowOffset, y + shadowOffset];
+      return [writer.rect(sx, sy, width, height, [["fill", shadow]], "shadow"), own];
+    }
+    case "timeline":
+    case "child":
+    case "ancestor": {
+      // The line to where it stops, its start circle or left chevrons, its end mark or chevrons.
+      const line = lineGeometry(element);
+      return [
+        writer.line(line.x1, line.y, line.x2, line.y),
+        ...[...line.start, ...line.end].map((mark) => markDescriptor(mark, writer)),
       ];
-      const own = write("rect", rect(element.x, element.y), [...filled, ...stroked]);
-      if (element.type === "group" || style.shadow === "none") return [own];
-      const shadow = rect(element.x + element.shadowOffset, element.y + element.shadowOffset);
-      return [write("rect", shadow, [["fill", style.shadow]]), own];
     }
     case "wedge": {
       const half = element.base / 2;
       const { x, yt, yb } = element;
-      return [write("polygon", points([x, yt], [x - half, yb], [x + half, yb]), filled)];
+      return [
+        writer.points(
+          "polygon",
+          [
+            [x, yt],
+            [x - half, yb],
+            [x + half, yb],
+          ],
+          filled,
+        ),
+      ];
     }
     case "map": {
       const { xs, xe, yc } = element;
       const half = element.spacing / 2;
-      const outline = points([xs, yc - half], [xe, yc - half], [xe, yc + half], [xs, yc + half]);
-      return [write("polygon", outline, open)];
+      return [
+        writer.points(
+          "polygon",
+          [
+            [xs, yc - half],
+            [xe, yc - half],
+            [xe, yc + half],
+            [xs, yc + half],
+          ],
+          open,
+        ),
+      ];
     }
-    case "region": {
-      const d = brace(element.x1, element.x2, element.xm, element.yb, element.ya);
-      return [write("path", [["d", d]], open)];
-    }
+    case "region":
+      return [writer.path(brace(element), open)];
     case "jump": {
       const shaft: PathCommand[] = [
         { command: "M", points: [element.start] },
         { command: "C", points: [element.c1, element.c2, element.base] },
       ];
       return [
-        write("path", [["d", shaft]], open),
-        write("polygon", points(element.tip, ...element.corners), filled),
+        writer.path(shaft, open),
+        writer.points("polygon", [element.tip, ...element.corners], filled),
       ];
     }
     case "break":
-    case "boundary": {
-      const { x, y1, y2 } = element;
-      const geometry: Attributes = [
-        ["x1", x],
-        ["y1", y1],
-        ["x2", x],
-        ["y2", y2],
-      ];
-      return [write("line", geometry, stroked)];
-    }
+    case "boundary":
+      return [writer.line(element.x, element.y1, element.x, element.y2)];
     case "name":
-    case "label": {
-      const geometry: Attributes = [
-        ["x", element.x],
-        ["y", element.baseline],
-        ["text-anchor", element.anchor],
-        ["font-size", style["font-size"]],
-      ];
-      return [write("text", geometry, filled, element.text)];
-    }
+    case "label":
+      return [writer.text(element.x, element.baseline, element.anchor, element.text)];
   }
 }
 
-/** The descriptors of a drawing, in the order of its elements. */
+/** The descriptors of a drawing, in the order of its elements, each naming its element. */
 export function toDescriptors(drawing: Drawing): Descriptor[] {
   return drawing.elements.flatMap(elementDescriptors);
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import type { Block, View } from "../src/index.ts";
-import { checkWorkspace, createView, DEFAULT_SETTINGS } from "../src/index.ts";
+import type { Block } from "../src/workspace/blocks.ts";
+import type { View } from "../src/workspace/view.ts";
+import { checkWorkspace, createView, DEFAULT_SETTINGS } from "../src/workspace/view.ts";
 import { A, B, block, C, viewOf } from "./support.ts";
 
 const found = (view: View) => checkWorkspace(view).map(({ code, path }) => ({ code, path }));
@@ -90,6 +91,7 @@ describe("workspace checks", () => {
     const region = block(viewOf([A, "with_region.json"]));
     const [timeline] = region.manifest.timelines;
     const [first] = timeline?.regions ?? [];
+    if (timeline === undefined || first === undefined) throw new Error("the fixture has a region");
     const invalid = {
       ...region,
       x: Number.POSITIVE_INFINITY,
@@ -100,9 +102,9 @@ describe("workspace checks", () => {
       height: null,
       manifest: {
         ...region.manifest,
-        timelines: [{ ...timeline, regions: [{ ...first, end: [0, 1] }] }],
+        timelines: [{ ...timeline, regions: [{ ...first, end: [0, 1] as const }] }],
       },
-    } as unknown as Block;
+    };
     expect(found(viewWith(invalid))).toEqual([
       { code: "non_finite_number", path: ["blocks", A, "x"] },
       { code: "non_positive_number", path: ["blocks", A, "scale"] },

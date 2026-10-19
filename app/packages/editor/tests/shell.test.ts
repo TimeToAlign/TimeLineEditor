@@ -5,6 +5,7 @@ import type { CommandEntry, Store } from "@timetoalign/tilie-core";
 import {
   createStore,
   createView,
+  emptyWorkspace,
   isLoadError,
   readWorkspace,
   saveManifest,
@@ -17,12 +18,20 @@ import App from "../src/App.svelte";
 import { createAutosave, recoverWorkspace } from "../src/autosave.ts";
 import { manifestFileName } from "../src/files.ts";
 import { stubEditor } from "./dom.ts";
-import { fixture, fixtureText, flushAutosaves, interceptDownloads, pickFile } from "./support.ts";
+import {
+  fixture,
+  fixtureText,
+  flushAutosaves,
+  hook,
+  interceptDownloads,
+  pickFile,
+  workspaceOf,
+} from "./support.ts";
 
 const A = "0000000000";
 const B = "0000000001";
 const health = { name: "tilie-server", version: "0.1.0", timetoalign: "1.2.0" };
-const EMPTY_TEXT = writeWorkspace({ view: createView(), journal: [], sessions: {} });
+const EMPTY_TEXT = writeWorkspace(emptyWorkspace());
 
 let app: ReturnType<typeof mount> | undefined;
 
@@ -53,12 +62,6 @@ afterEach(async () => {
   vi.unstubAllEnvs();
   vi.restoreAllMocks();
 });
-
-function hook() {
-  const installed = window.__tilie;
-  if (installed === undefined) throw new Error("window.__tilie is not installed");
-  return installed;
-}
 
 /** Add the fixture `name` as block `id` through the open store. */
 function addBlock(store: Store, id: string, name = "bare", x = 0): void {
@@ -133,13 +136,6 @@ function answer(label: string): void {
   flushSync();
 }
 
-/** A written workspace holding `bare` as block A. */
-function workspaceText(): string {
-  const store = createStore({ view: createView(), journal: [], sessions: {} });
-  addBlock(store, A);
-  return writeWorkspace({ view: store.view, journal: store.journal, sessions: store.sessions });
-}
-
 describe("the File menu", () => {
   it("follows the menu button pattern", async () => {
     start();
@@ -187,7 +183,7 @@ describe("the File menu", () => {
 describe("opening and saving", () => {
   it("leaves the open workspace when a file is refused", async () => {
     start();
-    hook().load(workspaceText());
+    hook().load(workspaceOf("bare"));
     const open = hook().store();
     choose("Open…");
     await vi.waitFor(() => pickFile("bad.tle.json", "{"));
@@ -195,7 +191,8 @@ describe("opening and saving", () => {
     const [message] = messages();
     expect(message?.startsWith("bad.tle.json is not a workspace file")).toBe(true);
     const problem = document.querySelector('[data-testid="message"] li')?.textContent ?? "";
-    expect(problem.startsWith("invalid_json at the top level: ")).toBe(true);
+    expect(problem.startsWith("invalid_json ")).toBe(true);
+    expect(problem.endsWith(" at the top level")).toBe(true);
     expect(hook().store()).toBe(open);
 
     document.querySelector<HTMLButtonElement>('[data-testid="message"] button')?.click();
@@ -362,10 +359,9 @@ describe("manifests", () => {
 describe("autosave and recovery", () => {
   /** A written workspace whose one entry is at 2026-10-12T09:05:07Z. */
   function recoverable(): string {
-    const store = createStore(
-      { view: createView(), journal: [], sessions: {} },
-      { clock: () => new Date("2026-10-12T09:05:07.000Z") },
-    );
+    const store = createStore(emptyWorkspace(), {
+      clock: () => new Date("2026-10-12T09:05:07.000Z"),
+    });
     addBlock(store, A);
     return writeWorkspace({ view: store.view, journal: store.journal, sessions: store.sessions });
   }
@@ -467,7 +463,7 @@ describe("autosave and recovery", () => {
     addBlock(hook().store(), A);
     hide();
     await vi.waitFor(async () => expect(await recoverWorkspace("current")).not.toBe(null));
-    hook().load(workspaceText());
+    hook().load(workspaceOf("bare"));
     await vi.waitFor(async () => expect(await recoverWorkspace("current")).toBe(null));
     await leave();
     expect(await recoverWorkspace("current")).toBe(null);
@@ -503,7 +499,7 @@ describe("autosave and recovery", () => {
     await startSettled();
     expect(requests).toEqual(["tilie-autosave/current"]);
     expect(messages()).toEqual([
-      "Autosave is active in another TimeLineEditor tab, so changes in this tab are not autosaved.",
+      "Autosave of this workspace is active elsewhere, so changes here are not autosaved.",
     ]);
     addBlock(hook().store(), A);
     hide();

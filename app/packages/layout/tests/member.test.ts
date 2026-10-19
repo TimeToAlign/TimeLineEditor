@@ -1,6 +1,6 @@
 /** The arithmetic of one member drawing; every number is derived in tests/README.md. */
 
-import { Rational } from "@timetoalign/tilie-core";
+import { Rational } from "@timetoalign/tilie-core/numbers";
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_LAYER,

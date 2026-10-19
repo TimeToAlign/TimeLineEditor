@@ -1,13 +1,13 @@
 import { dumps, type Selector, schema } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
-import type { ElementKey } from "../src/index.ts";
+import type { ElementKey } from "../src/manifest/elements.ts";
 import {
   manifestElements,
   selectorMatches,
   timelineAncestry,
   timelineClass,
   unitDomain,
-} from "../src/index.ts";
+} from "../src/manifest/elements.ts";
 import { allFixtures, load, loadText, manifestValue } from "./support.ts";
 
 const CLT = "ContinuousLogicalTimeline";

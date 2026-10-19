@@ -34,7 +34,7 @@ type Schema = { readonly [keyword: string]: unknown };
 type JsonObject = { readonly [key: string]: Json };
 
 /** The schema document of the current version, whose `$ref`s are all local. */
-export const DOCUMENT = schema as unknown as Schema;
+export const DOCUMENT: Schema = schema;
 
 function asSchema(value: unknown): Schema | null {
   return typeof value === "object" && value !== null && !Array.isArray(value)

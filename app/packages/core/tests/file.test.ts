@@ -1,14 +1,10 @@
 import { dumps, minimal, parseJson } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
-import type { Workspace } from "../src/index.ts";
-import {
-  createStore,
-  createView,
-  isLoadError,
-  readWorkspace,
-  replay,
-  writeWorkspace,
-} from "../src/index.ts";
+import { isLoadError } from "../src/errors.ts";
+import { readWorkspace, writeWorkspace } from "../src/workspace/file.ts";
+import type { Workspace } from "../src/workspace/store.ts";
+import { createStore, replay } from "../src/workspace/store.ts";
+import { createView } from "../src/workspace/view.ts";
 import { A, addBlock, B, testClock } from "./support.ts";
 
 function built(): Workspace {
@@ -67,7 +63,7 @@ describe("the workspace file", () => {
   const edited = (change: (value: Value) => void): string => {
     const value = parseJson(text) as Value;
     change(value);
-    return dumps(value as never);
+    return dumps(value);
   };
   const blockOf = (value: Value) => (value.blocks as Value)[A] as Value;
   const entry = (value: Value) => (value.journal as Value[])[0] as Value;
@@ -202,7 +198,7 @@ describe("the workspace file", () => {
     const value = parseJson(writeWorkspace(built())) as Value;
     const [root] = (blockOf(value).manifest as Value).timelines as Value[];
     Object.assign(root as Value, { regions: [{ id: "region_1", start: [4, 1], end: [2, 1] }] });
-    const result = readWorkspace(dumps(value as never));
+    const result = readWorkspace(dumps(value));
     expect(isLoadError(result) && result.problems.map((item) => [item.code, item.path])).toEqual([
       ["region_end_before_start", ["blocks", A, "manifest", "timelines", 0, "regions", 0, "end"]],
     ]);
@@ -239,7 +235,7 @@ describe("the workspace file", () => {
     const changedPlace = (key: string, values: Value) => {
       const value = parseJson(placed) as Value;
       Object.assign((blockOf(value).places as Value)[key] as Value, values);
-      return readWorkspace(dumps(value as never));
+      return readWorkspace(dumps(value));
     };
     expect(changedPlace("score", { length: 300 })).toMatchObject({
       problems: [
@@ -276,12 +272,12 @@ describe("the workspace file", () => {
       const [added, command] = value.journal as Value[];
       value.journal = [added, { session: S, author: "Gerhardt", time: (command as Value).time }];
       value.sessions = { [S]: { target: `${A}/group_1`, entries: [command] } };
-      return dumps(value as never);
+      return dumps(value);
     })();
     const withSessions = (change: (value: Value) => void): string => {
       const value = parseJson(sessionText) as Value;
       change(value);
-      return dumps(value as never);
+      return dumps(value);
     };
     const sessionsOf = (value: Value) => value.sessions as Value;
     const sessionEntry = (value: Value) => (value.journal as Value[])[1] as Value;

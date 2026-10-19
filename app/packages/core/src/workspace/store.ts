@@ -21,23 +21,23 @@
  * discards them, keeping a partly undone session with its applied changes.
  */
 
-import { applyParsed } from "../commands/apply.ts";
+import { applyChanges, applyParsed } from "../commands/apply.ts";
 import { parseCommand } from "../commands/parse.ts";
-import type { Command } from "../commands/types.ts";
 import type { CommandError } from "../errors.ts";
-import { ErrorCode, isCommandError, problem } from "../errors.ts";
+import { ErrorCode, isCommandError, JournalMismatchError, problem } from "../errors.ts";
+import type { PathSegment } from "../json.ts";
+import { compareCodePoints, jsonEqual } from "../json.ts";
 import { contains } from "../manifest/contains.ts";
 import { toJson } from "../values.ts";
+import type { Address } from "./address.ts";
+import { elementIn, parseAddressSyntax } from "./address.ts";
 import { sideEffect } from "./guard.ts";
-import type { Address } from "./ids.ts";
-import { parseAddress } from "./ids.ts";
 import type {
   CommandEntry,
   Entry,
   ListedEntry,
   OpenEditor,
   OwnedChange,
-  Session,
   SessionEntry,
   SessionId,
   Sessions,
@@ -85,6 +85,8 @@ export interface Store {
   readonly listed: readonly ListedEntry[];
   /** How many changes Cancel would discard; 0 when no editor is open. */
   readonly changes: number;
+  /** How many editors `open` has opened since the store was created. */
+  readonly openings: number;
   readonly canUndo: boolean;
   readonly canRedo: boolean;
   /** Apply a command and journal it; `null` when it was accepted. */
@@ -108,33 +110,118 @@ export interface Store {
 
 export const DEFAULT_AUTHOR = "Gerhardt";
 
+/** One change replayed: the index of the journal entry holding it and the view it leaves. */
+interface Replayed {
+  readonly entry: number;
+  readonly view: View;
+}
+
 /**
- * The views a journal produces from `view`: `view` itself, then the view
- * after each entry, a session's being the view after all of its entries,
- * which are expanded from `sessions` recursively.
+ * Replay `journal` from `view`, change by change: each command in order, a
+ * session's expanded from `sessions` recursively. A change the replay
+ * refuses throws `JournalMismatchError` at `["journal", <index>]`, the index
+ * of the journal entry holding it.
  */
-function replayFrom(view: View, journal: readonly Entry[], sessions: Sessions): View[] {
-  const views = [view];
-  for (const [index, entry] of journal.entries()) {
-    const before = views.at(-1) as View;
-    if (isSessionEntry(entry)) {
-      const session = sessions[entry.session];
-      if (session === undefined) throw new Error(`journal entry ${index} names no session`);
-      views.push(replayFrom(before, session.entries, sessions).at(-1) as View);
-      continue;
+function* replaying(
+  view: View,
+  journal: readonly Entry[],
+  sessions: Sessions,
+): Generator<Replayed> {
+  let current = view;
+  function* changes(entries: readonly Entry[], index: number): Generator<Replayed> {
+    for (const entry of entries) {
+      if (isSessionEntry(entry)) {
+        const session = sessions[entry.session];
+        if (session === undefined) throw new Error(`journal entry ${index} names no session`);
+        yield* changes(session.entries, index);
+        continue;
+      }
+      const next = applyParsed(current, entry.command);
+      if (isCommandError(next)) throw new JournalMismatchError(index, ["journal", index]);
+      current = next;
+      yield { entry: index, view: current };
     }
-    const next = applyParsed(before, entry.command);
-    if (isCommandError(next)) {
-      throw new Error(`journal entry ${index} is refused: ${next.code} ${next.message}`);
-    }
-    views.push(next);
+  }
+  for (const [index, entry] of journal.entries()) yield* changes([entry], index);
+}
+
+/** `value`, which the store's own bookkeeping holds wherever it is read. */
+function held<T>(value: T | null | undefined, what: string): T {
+  if (value === undefined || value === null) throw new Error(`the store has lost ${what}`);
+  return value;
+}
+
+/**
+ * The view a journal produces from the empty workspace, and the view after
+ * each of its entries, a session's being the view after all of its changes.
+ */
+export function replay(journal: readonly Entry[], sessions: Sessions): View[] {
+  const start = createView();
+  const after = new Map<number, View>();
+  for (const { entry, view } of replaying(start, journal, sessions)) after.set(entry, view);
+  const views = [start];
+  for (const index of journal.keys()) {
+    views.push(after.get(index) ?? held(views.at(-1), "the view before an entry"));
   }
   return views;
 }
 
-/** The view a journal produces from the empty workspace, and the view after each of its entries. */
-export function replay(journal: readonly Entry[], sessions: Sessions): View[] {
-  return replayFrom(createView(), journal, sessions);
+/** The keys of two objects, those of `left` first, each once. */
+function keysOf(left: object, right: object): string[] {
+  return [...new Set([...Object.keys(left), ...Object.keys(right)])];
+}
+
+/**
+ * The first member in which two objects differ, as JSON, in the order of
+ * `keysOf`; `undefined` when they hold the same members.
+ */
+function firstDifference(left: object, right: object): string | undefined {
+  const was = new Map(Object.entries(left));
+  const now = new Map(Object.entries(right));
+  return keysOf(left, right).find((key) => {
+    const a = was.get(key);
+    const b = now.get(key);
+    return a !== b && (!was.has(key) || !now.has(key) || !jsonEqual(a, b));
+  });
+}
+
+/**
+ * The first path at which `replayed` differs from `view`: a setting
+ * (`["settings", <member>]`), a block one of them lacks (`["blocks", <id>]`)
+ * or a member of a block both hold (`["blocks", <id>, <member>]`), blocks in
+ * code-point order of their ids; `undefined` when they are the same.
+ */
+function viewDifference(replayed: View, view: View): PathSegment[] | undefined {
+  const setting = firstDifference(replayed.settings, view.settings);
+  if (setting !== undefined) return ["settings", setting];
+  for (const id of keysOf(replayed.blocks, view.blocks).sort(compareCodePoints)) {
+    const was = replayed.blocks[id];
+    const now = view.blocks[id];
+    if (was === now) continue;
+    if (was === undefined || now === undefined) return ["blocks", id];
+    const member = firstDifference(was, now);
+    if (member !== undefined) return ["blocks", id, member];
+  }
+  return undefined;
+}
+
+/**
+ * The view after each of a workspace's changes (`replaying` its journal),
+ * from the empty workspace; the last is the workspace's own view. Throws
+ * `JournalMismatchError` when a journal entry is refused (its index, at
+ * `["journal", <index>]`) or when the replay does not reproduce the
+ * workspace's view (the number of entries replayed, at the first differing
+ * path): the journal is the authority, and a view it does not produce is
+ * no view of it.
+ */
+function verified(workspace: Workspace): View[] {
+  const start = createView();
+  const views = [start];
+  for (const { view } of replaying(start, workspace.journal, workspace.sessions)) views.push(view);
+  const path = viewDifference(held(views.at(-1), "the replayed view"), workspace.view);
+  if (path !== undefined) throw new JournalMismatchError(workspace.journal.length, path);
+  views[views.length - 1] = workspace.view;
+  return views;
 }
 
 /** One level of the store: the main journal, or the session of one open editor. */
@@ -177,13 +264,17 @@ function copyLevel(level: Level): Level {
   };
 }
 
+/**
+ * A store holding `workspace`, its journal verified first: replaying it from
+ * the empty workspace must reproduce the workspace's view, or
+ * `JournalMismatchError` is thrown.
+ */
 export function createStore(workspace: Workspace, options: StoreOptions = {}): Store {
   const clock = options.clock ?? (() => new Date());
   let author = options.author ?? DEFAULT_AUTHOR;
   let sessions: Sessions = workspace.sessions;
   const loaded = changesOf(workspace.journal, sessions);
-  const loadedViews: View[] = [];
-  loadedViews[loaded.length] = workspace.view;
+  const loadedViews = verified(workspace);
   // The main level first, then one level per open editor.
   const levels: Level[] = [
     {
@@ -199,11 +290,12 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
     },
   ];
   let editing: readonly OpenEditor[] = [];
+  let openings = 0;
   const listeners = new Set<(view: View) => void>();
   // Counts the changes of the store, so the derived getters are computed once per state.
   let revision = 0;
-  const top = () => levels.at(-1) as Level;
-  const current = () => top().views[top().applied] as View;
+  const top = () => held(levels.at(-1), "its main level");
+  const current = () => held(top().views[top().applied], "its current view");
   const notify = () => {
     revision += 1;
     for (const listener of [...listeners]) listener(current());
@@ -231,14 +323,14 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
     if (level.views[known] === undefined) level.views[known] = createView();
     for (let next = known + 1; next <= k; next += 1) {
       if (level.views[next] !== undefined) continue;
-      const change = level.changes[next - 1] as OwnedChange;
-      const view = applyParsed(level.views[next - 1] as View, change.entry.command);
+      const change = held(level.changes[next - 1], `change ${next - 1}`);
+      const view = applyParsed(held(level.views[next - 1], "a known view"), change.entry.command);
       if (isCommandError(view)) {
         throw new Error(`change ${next - 1} is refused: ${view.code} ${view.message}`);
       }
       level.views[next] = view;
     }
-    return level.views[k] as View;
+    return held(level.views[k], `the view after change ${k}`);
   };
 
   /**
@@ -262,7 +354,7 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
   const lastApplied = (level: Level): { index: number; start: number } | null => {
     let start = level.changes.length;
     for (let index = level.entries.length - 1; index >= 0; index -= 1) {
-      start -= count(level.entries[index] as Entry);
+      start -= count(held(level.entries[index], `entry ${index}`));
       if (start < level.applied) return { index, start };
     }
     return null;
@@ -272,7 +364,7 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
   const appliedEntries = (level: Level): Entry[] =>
     level.entries.slice(0, (lastApplied(level)?.index ?? -1) + 1);
 
-  const journal = cached(() => appliedEntries(levels[0] as Level));
+  const journal = cached(() => appliedEntries(held(levels[0], "its main level")));
   const entries = cached(() => appliedEntries(top()));
   const listed = cached(() => listEntries(top().entries, sessions, top().applied));
 
@@ -293,13 +385,15 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
   /** Whether `target` lies inside the editor `outer` and is not its target. */
   const inside = (outer: OpenEditor, target: Address): boolean => {
     if (target === outer.target) return false;
-    const container = parseAddress(outer.target);
-    const element = parseAddress(target);
+    const container = parseAddressSyntax(outer.target);
+    const element = parseAddressSyntax(target);
     if (isCommandError(container) || isCommandError(element)) return false;
-    if (element.block !== container.block || element.element === null) return false;
-    if (container.element === null) return true;
-    const manifest = current().blocks[element.block as string]?.manifest;
-    return manifest !== undefined && contains(manifest, container.element, element.element);
+    const inner = elementIn(element);
+    if (element.block === null || element.block !== container.block || inner === null) return false;
+    const outerElement = elementIn(container);
+    if (outerElement === null) return true;
+    const manifest = current().blocks[element.block]?.manifest;
+    return manifest !== undefined && contains(manifest, outerElement, inner);
   };
 
   const close = () => {
@@ -340,6 +434,9 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
       }
       return opening.length - common + (applied - common);
     },
+    get openings() {
+      return openings;
+    },
     get canUndo() {
       return top().applied > 0;
     },
@@ -351,15 +448,19 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
       const parsed = parseCommand(command);
       if (isCommandError(parsed)) return parsed;
       const before = current();
-      const next = applyParsed(before, parsed);
-      if (isCommandError(next)) return next;
+      const applied = applyChanges(before, parsed);
+      if (isCommandError(applied)) return applied;
+      const next = applied.view;
       const level = top();
       if (level.editor !== null) {
-        const refused = sideEffect(before, next, level.editor.target);
+        const refused = sideEffect(before, next, level.editor.target, applied.changes);
         if (refused !== null) return refused;
       }
       // Every value of an accepted command has been read, so it has a JSON form.
-      const stored = toJson(parsed, []) as unknown as Command;
+      const json = toJson(parsed, []);
+      const stored = isCommandError(json) ? json : parseCommand(json);
+      if (isCommandError(stored))
+        throw new Error(`an accepted command has no JSON form: ${stored.message}`);
       const entry: CommandEntry = { command: stored, ...stamp() };
       discard(level);
       level.entries.push(entry);
@@ -419,7 +520,7 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
         viewAt(below, start);
         level = {
           editor: { session: entry.session, target, kind, earlier: null },
-          entries: [...(sessions[entry.session] as Session).entries],
+          entries: [...held(sessions[entry.session], `session ${entry.session}`).entries],
           changes: below.changes.slice(start, start + total),
           applied: below.applied - start,
           views: below.views.slice(start, start + total + 1),
@@ -455,7 +556,8 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
         };
       }
       levels.push(level);
-      editing = [...editing, level.editor as OpenEditor];
+      editing = [...editing, held(level.editor, "the editor it opened")];
+      openings += 1;
       notify();
       return null;
     },
@@ -474,7 +576,7 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
         below.entries.push({ session, ...stamp() });
         // The session's own changes, owned by it, now go in runs below.
         for (let k = 1; k <= level.applied; k += 1) {
-          below.changes.push(level.changes[k - 1] as OwnedChange);
+          below.changes.push(held(level.changes[k - 1], `change ${k - 1}`));
           const view = level.views[k];
           if (view !== undefined) below.views[below.applied + k] = view;
         }
@@ -486,7 +588,7 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
       const level = top();
       if (level.editor === null) return;
       close();
-      levels[levels.length - 1] = level.below as Level;
+      levels[levels.length - 1] = held(level.below, "the level below an editor");
       sessions = level.sessions;
       notify();
     },
@@ -501,7 +603,7 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
       };
       let carried: SessionEntry | null = null;
       for (const level of levels.slice(1).reverse()) {
-        const { session, target } = level.editor as OpenEditor;
+        const { session, target } = held(level.editor, "an editor's session");
         const entries = applied(level);
         if (carried !== null) entries.push(carried);
         carried = null;
@@ -509,7 +611,7 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
         all = { ...all, [session]: { target, entries } };
         carried = { session, ...stamp() };
       }
-      const journal = applied(levels[0] as Level);
+      const journal = applied(held(levels[0], "its main level"));
       if (carried !== null) journal.push(carried);
       return { view: current(), journal, sessions: reachedSessions(journal, all) };
     },

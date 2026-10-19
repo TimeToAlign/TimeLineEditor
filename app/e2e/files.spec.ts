@@ -4,12 +4,10 @@
  * pane. Derivation in `README.md` ("files.spec.ts").
  */
 
-import { readFileSync } from "node:fs";
-import { createRequire } from "node:module";
-import path from "node:path";
-import { pathToFileURL } from "node:url";
 import { expect, test } from "@playwright/test";
+import { manifestFixture } from "./schema.ts";
 import {
+  arranger,
   chooseItem,
   downloaded,
   dragBlock,
@@ -22,24 +20,11 @@ import {
   selection,
   setViewport,
   viewportOf,
+  withoutPickers,
 } from "./support.ts";
 
-/** The timeskeleton package that `core` depends on, and its schema version's manifest fixtures. */
-const packageDir = path.dirname(
-  createRequire(path.join(import.meta.dirname, "../packages/core/package.json")).resolve(
-    "@timetoalign/timeskeleton/package.json",
-  ),
-);
-const { SCHEMA_VERSION } = (await import(
-  pathToFileURL(path.join(packageDir, "dist", "index.js")).href
-)) as { readonly SCHEMA_VERSION: string };
-
 test.beforeEach(async ({ page }) => {
-  // The fallback path: without the pickers the editor uses a file input and a download.
-  await page.addInitScript(() => {
-    delete (window as { showOpenFilePicker?: unknown }).showOpenFilePicker;
-    delete (window as { showSaveFilePicker?: unknown }).showSaveFilePicker;
-  });
+  await withoutPickers(page);
   await page.goto("/");
   await page.waitForFunction(() => window.__tilie !== undefined);
 });
@@ -47,13 +32,14 @@ test.beforeEach(async ({ page }) => {
 test("a workspace survives save, reopen and save byte for byte", async ({ page }) => {
   await chooseItem(page, "New workspace");
   expect(await journalLength(page)).toBe(0);
-  const size = await page
-    .locator('[role="application"][aria-label="Arranger"]')
-    .evaluate((element) => [element.clientWidth, element.clientHeight]);
+  const size = await arranger(page).evaluate((element) => [
+    element.clientWidth,
+    element.clientHeight,
+  ]);
   expect(size).toEqual([1280, 768]);
   await setViewport(page, { x: 100, y: 50, zoom: 1 });
 
-  const bare = readFileSync(path.join(packageDir, "fixtures", SCHEMA_VERSION, "bare.json"), "utf8");
+  const bare = manifestFixture("bare");
   await pick(page, "Import manifest…", "bare.json", bare);
   await expect.poll(() => journalLength(page)).toBe(1);
   const [id] = await selection(page);
@@ -120,7 +106,7 @@ test("an opened workspace is fitted; an import into it leaves the view", async (
   await frames(page);
   const fitted = await viewportOf(page);
 
-  const bare = readFileSync(path.join(packageDir, "fixtures", SCHEMA_VERSION, "bare.json"), "utf8");
+  const bare = manifestFixture("bare");
   await pick(page, "Import manifest…", "bare.json", bare);
   await expect.poll(() => journalLength(page)).toBe(OPENED_JOURNAL.small + 1);
   await frames(page);

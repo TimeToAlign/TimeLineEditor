@@ -45,7 +45,7 @@ test.describe("budgets at 300 blocks", { tag: "@budget" }, () => {
     test.skip(browserName !== "chromium", "script time is read through Chromium's protocol");
     await open(page, "grid-300");
     await setViewport(page, VIEW);
-    await expect(page.locator(".svelte-flow__node")).toHaveCount(300);
+    await expect(page.getByTestId("block")).toHaveCount(300);
   });
 
   test("dragging a block costs at most 3 ms of script per pointer move", async ({ page }) => {

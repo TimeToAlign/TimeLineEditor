@@ -7,92 +7,31 @@
  */
 
 import { readFileSync } from "node:fs";
-import { createRequire } from "node:module";
 import path from "node:path";
 import type { Download, Locator, Page } from "@playwright/test";
 import { expect } from "@playwright/test";
-import type {
-  BandKind,
-  Command,
-  CommandError,
-  OpenEditor,
-  Store,
-} from "../packages/core/src/index.ts";
+import type { Viewport } from "../packages/arranger/src/focus.ts";
+import type { Command, CommandError } from "../packages/core/src/index.ts";
+import { parseAddressSyntax, partAddress, qualify } from "../packages/core/src/index.ts";
+import type { HookBand, HookBox, TestHook } from "../packages/editor/src/testHook.ts";
+import { FONT_METRICS } from "./schema.ts";
 
-export type ResizeMode = "scale" | "box" | "stretch";
-export type Handle =
-  | "top-left"
-  | "top"
-  | "top-right"
-  | "right"
-  | "bottom-right"
-  | "bottom"
-  | "bottom-left"
-  | "left";
+export type { Handle, ResizeMode } from "../packages/arranger/src/resize.ts";
+export type { HookBand, HookBox } from "../packages/editor/src/testHook.ts";
+export type { Viewport };
 
-export interface Viewport {
-  readonly x: number;
-  readonly y: number;
-  readonly zoom: number;
-}
-
-/** The hook the editor installs in development and test builds only. */
-export interface TilieHook {
-  load(text: string): void;
-  store(): Store;
-  selection(): string[];
-  select(addresses: string[]): void;
-  viewport(): Viewport;
-  setViewport(viewport: Viewport): void;
-  locked(): boolean;
-  mode(): ResizeMode;
-  /** The open workspace as Save writes it: `writeWorkspace` of the store's snapshot, every open editor folded. */
-  text(): string;
-  /** The editing path: the open editors, outermost first. */
-  editing(): OpenEditor[];
-  /** Open the editor of `address` inside the innermost open one; the refusal, or `null` when it opened. */
-  open(address: string): CommandError | null;
-  /** Close the innermost editor, keeping its changes. */
-  done(): void;
-  /** Close the innermost editor, discarding its changes, without the editing bar's question. */
-  cancel(): void;
-  /** The bands drawn in block `block`, in the drawing's order. */
-  bands(block: string): HookBand[];
-}
-
-/** A rectangle in client pixels, left and top as `getBoundingClientRect` gives them. */
-export interface ClientRectangle {
-  readonly x: number;
-  readonly y: number;
-  readonly width: number;
-  readonly height: number;
-}
-
-/** A band of a block's drawing (drawing.md section 6.4), as the hook's `bands` reports it. */
-export interface HookBand {
-  /** `T/<kind>_1`. */
-  readonly address: string;
-  /** The id of its timeline. */
-  readonly timeline: string;
-  readonly kind: BandKind;
-  /** Signed and never 0: 1, 2, … above its timeline's line, −1, −2, … below. */
-  readonly level: number;
-  /** The client ordinate of its timeline's line. */
-  readonly line: number;
-  /** The displayed elements it holds directly. */
-  readonly elements: number;
-  /** Where its rectangle lies on the screen. */
-  readonly rect: ClientRectangle;
+declare global {
+  /**
+   * The editor's test hook. Every page the specs open is the test build, whose
+   * hook is installed before `open` returns, so the specs read it as always
+   * present: `window` is `Window & typeof globalThis`, and this declaration
+   * makes the editor's optional `Window.__tilie` required in that intersection.
+   */
+  var __tilie: TestHook;
 }
 
 /** A band as the specs compare it: what the drawing decides, without where the screen shows it. */
 export type BandRecord = Pick<HookBand, "address" | "kind" | "level" | "elements">;
-
-declare global {
-  interface Window {
-    __tilie: TilieHook;
-  }
-}
 
 /** A block's placement as the store holds it. */
 export interface Placement {
@@ -159,6 +98,18 @@ export async function open(page: Page, name: FixtureName): Promise<void> {
   await expect
     .poll(() => page.evaluate(() => window.__tilie.store().journal.length))
     .toBe(OPENED_JOURNAL[name]);
+}
+
+/**
+ * Take the fallback path for files on every page `page` loads from now on:
+ * without the pickers the editor reads a file through a file input and
+ * writes one as a download, as every engine allows.
+ */
+export async function withoutPickers(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    delete (window as { showOpenFilePicker?: unknown }).showOpenFilePicker;
+    delete (window as { showSaveFilePicker?: unknown }).showSaveFilePicker;
+  });
 }
 
 /** Choose `label` in the File menu. */
@@ -233,12 +184,47 @@ export async function clickPart(page: Page, block: string, address: string, addi
   if (additive) await page.keyboard.up("Shift");
 }
 
-/** The distinct addresses of the drawn parts marked `[data-selected]`, sorted. */
+/**
+ * What shows a mark, by the mark: the selection glows on a selected part
+ * itself (`data-selected`) and, on a selected frame or card, as an overlay
+ * copying the box's outline; the hover is an overlay only; a part going
+ * with the selection on Delete carries `data-affected`. An overlay names
+ * the box it marks in `data-marks`, a part its own address in
+ * `data-address`. Band marks (`data-box="band"`) are counted by
+ * `bandMarks`, not here.
+ */
+const MARKED = {
+  selection: '[data-selected], .tilie-mark[data-mark="selection"]:not([data-box="band"])',
+  hover: '.tilie-mark[data-mark="hover"]:not([data-box="band"])',
+  affected: "[data-affected]",
+} as const;
+
+export type Mark = keyof typeof MARKED;
+
+/** The block-qualified address of every part or overlay showing `mark`, in DOM order. */
+export function marked(page: Page, mark: Mark): Promise<string[]> {
+  return page
+    .locator(MARKED[mark])
+    .evaluateAll((items) =>
+      items.map(
+        (item) =>
+          `${item.closest(".svelte-flow__node")?.getAttribute("data-id")}/${item.getAttribute("data-marks") ?? item.getAttribute("data-address")}`,
+      ),
+    );
+}
+
+/** The distinct addresses showing the selection's mark, without their block, sorted. */
 export function selectedAddresses(page: Page): Promise<string[]> {
   return page
-    .locator("[data-selected]")
+    .locator(MARKED.selection)
     .evaluateAll((items) =>
-      [...new Set(items.map((item) => item.getAttribute("data-address") ?? ""))].sort(),
+      [
+        ...new Set(
+          items.map(
+            (item) => item.getAttribute("data-marks") ?? item.getAttribute("data-address") ?? "",
+          ),
+        ),
+      ].sort(),
     );
 }
 
@@ -368,6 +354,61 @@ export function arranger(page: Page): Locator {
   return page.locator('[role="application"][aria-label="Arranger"]');
 }
 
+/** Select `addresses` through the hook. */
+export function select(page: Page, addresses: readonly string[]): Promise<void> {
+  return page.evaluate((chosen) => window.__tilie.select(chosen), [...addresses]);
+}
+
+/**
+ * Close the innermost editor through the hook, as Done does, and wait until
+ * it is closed; with `view`, also until the canvas is back at that
+ * viewport, the one the editor was opened at.
+ */
+export async function done(page: Page, view?: Viewport): Promise<void> {
+  const open = (await editing(page)).length;
+  await page.evaluate(() => window.__tilie.done());
+  await expect.poll(async () => (await editing(page)).length).toBe(open - 1);
+  if (view !== undefined) await expect.poll(() => viewportOf(page)).toEqual(view);
+}
+
+/** The inspector's tab list. */
+export function tabs(page: Page): Locator {
+  return page.getByRole("tablist", { name: "Inspector sections" });
+}
+
+export type TabName = "Editor" | "Properties" | "Manifest" | "Journal";
+
+/** The inspector's tab `name`. */
+export function tab(page: Page, name: TabName): Locator {
+  return tabs(page).getByRole("tab", { name, exact: true });
+}
+
+/**
+ * The panel tab `name` controls, found through the tab's `aria-controls`
+ * (the ids are the instance's own). Only the shown panel holds content, so
+ * an assertion on what a panel holds chooses its tab first.
+ */
+export async function panel(page: Page, name: TabName): Promise<Locator> {
+  const id = await tab(page, name).getAttribute("aria-controls");
+  if (id === null) throw new Error(`the ${name} tab controls no panel`);
+  return page.locator(`[id="${id}"]`);
+}
+
+/** The inspector drawer. */
+export function drawer(page: Page): Locator {
+  return page.getByTestId("inspector");
+}
+
+/** The properties form's field `name`, by its exact label. */
+export function field(page: Page, name: string): Locator {
+  return page.getByLabel(name, { exact: true });
+}
+
+/** What the inspector shows, named beside its heading. */
+export function subject(page: Page): Locator {
+  return page.getByTestId("inspector-subject");
+}
+
 /** The selection, sorted, so comparisons ignore the order of additions. */
 export async function selection(page: Page): Promise<string[]> {
   return (await page.evaluate(() => window.__tilie.selection())).sort();
@@ -405,7 +446,7 @@ export async function toCanvas(
 /**
  * A whole-pixel screen point on block `id`'s card, away from everything
  * drawn on it: the element hit there and at the eight points `clearance` px
- * around it is a card (`<root>/card`) of that block, found by hit-testing a
+ * around it is a card of that block (the hook's `boxes`), found by hit-testing a
  * raster of points across the node (tenths down, twentieths across), and
  * when none of them is clear, every second pixel. A press there selects
  * that card; a drag from there moves the block.
@@ -434,6 +475,55 @@ export function framePoint(
   return boxPoint(page, id, address, clearance);
 }
 
+/** The containers of block `block`'s drawing, as the hook reads them from the drawing's records. */
+export function boxesOf(page: Page, block: string): Promise<HookBox[]> {
+  return page.evaluate((id) => window.__tilie.boxes(id), block);
+}
+
+/** The addresses of block `block`'s cards, in the drawing's box order. */
+export async function cardsOf(page: Page, block: string): Promise<string[]> {
+  return (await boxesOf(page, block)).flatMap(({ kind, address }) =>
+    kind === "card" && address !== null ? [address] : [],
+  );
+}
+
+/** A drawn element of a block's node: its address, and whether it lies outside the edited element. */
+export interface Drawn {
+  readonly address: string;
+  readonly outside: boolean;
+}
+
+/**
+ * The drawn elements of block `block`'s node, in DOM order, that show its
+ * structure: a frame or a card (the hook's `boxes`), a frame's title
+ * (core's `partAddress`), and a line or the manifest's title, whose element
+ * address is a single segment (core's `parseAddressSyntax`).
+ */
+export async function structure(page: Page, block: string): Promise<Drawn[]> {
+  const [drawn, boxes] = await Promise.all([
+    node(page, block)
+      .locator("[data-address]")
+      .evaluateAll((items) =>
+        items.map((item) => ({
+          address: item.getAttribute("data-address") ?? "",
+          outside: item.hasAttribute("data-outside"),
+        })),
+      ),
+    boxesOf(page, block),
+  ]);
+  const shown = new Set(
+    boxes.flatMap(({ kind, address }) => {
+      if (address === null || (kind !== "frame" && kind !== "card")) return [];
+      return kind === "frame" ? [address, partAddress(address, "name")] : [address];
+    }),
+  );
+  return drawn.filter(({ address }) => {
+    if (shown.has(address)) return true;
+    const syntax = parseAddressSyntax(qualify(block, address));
+    return "segments" in syntax && syntax.segments.length === 1;
+  });
+}
+
 /** A point whose hit, there and `clearance` px around, is the box `address`, or any card for `null`. */
 async function boxPoint(
   page: Page,
@@ -443,8 +533,10 @@ async function boxPoint(
 ): Promise<{ x: number; y: number }> {
   const box = await node(page, id).boundingBox();
   if (box === null) throw new Error(`block ${id} is not displayed`);
+  // Any card is read from the hook; a named box needs none, so a page without the hook can aim at it.
+  const cards = address === null ? await cardsOf(page, id) : [];
   const found = await page.evaluate(
-    ({ block, address, clearance, left, top, width, height }) => {
+    ({ block, address, cards, clearance, left, top, width, height }) => {
       // The box at a point and at the points `clearance` px around it, so neither
       // pixel rounding nor a finger's contact area reaches another drawn element.
       const inside = (x: number, y: number) => {
@@ -453,7 +545,7 @@ async function boxPoint(
         return (
           hit?.closest(".svelte-flow__node")?.getAttribute("data-id") === block &&
           at != null &&
-          (address === null ? at.endsWith("/card") : at === address)
+          (address === null ? cards.includes(at) : at === address)
         );
       };
       const around = [-clearance, 0, clearance];
@@ -478,6 +570,7 @@ async function boxPoint(
     {
       block: id,
       address,
+      cards,
       clearance,
       left: box.x,
       top: box.y,
@@ -642,8 +735,8 @@ export function middleOf(band: HookBand): number {
 /** The band addresses of the band marks in block `id`'s node, sorted. */
 export function bandMarks(page: Page, id: string): Promise<string[]> {
   return node(page, id)
-    .locator("rect.tilie-band")
-    .evaluateAll((marks) => marks.map((mark) => mark.getAttribute("data-band") ?? "").sort());
+    .locator('.tilie-mark[data-box="band"]')
+    .evaluateAll((marks) => marks.map((mark) => mark.getAttribute("data-marks") ?? "").sort());
 }
 
 /**
@@ -689,13 +782,14 @@ export async function bandPoint(
   const { rect } = await bandOf(page, block, address);
   const box = await pane(page).boundingBox();
   if (box === null) throw new Error("the canvas is not displayed");
+  const cards = await cardsOf(page, block);
   const found = await page.evaluate(
-    ({ id, clearance, left, top, right, bottom }) => {
+    ({ id, cards, clearance, left, top, right, bottom }) => {
       const empty = (x: number, y: number) => {
         const hit = document.elementFromPoint(x, y);
         if (hit?.closest(".svelte-flow__node")?.getAttribute("data-id") !== id) return false;
         const at = hit.closest("[data-address]")?.getAttribute("data-address");
-        return at == null || at.endsWith("/card");
+        return at == null || cards.includes(at);
       };
       const around = [-clearance, 0, clearance];
       const clear = (x: number, y: number) =>
@@ -715,6 +809,7 @@ export async function bandPoint(
     },
     {
       id: block,
+      cards,
       clearance,
       left: Math.max(rect.x, box.x),
       top: Math.max(rect.y, box.y),
@@ -738,22 +833,6 @@ export function between(above: number, below: number): number {
 
 /** The family the canvas declares for drawn text: the bundled DejaVu Sans. */
 export const DRAWING_FACE = "TiLiE DejaVu Sans";
-
-/** The bundled face's advance table, from the installed timeskeleton package. */
-const FONT_METRICS = JSON.parse(
-  readFileSync(
-    path.join(
-      path.dirname(
-        createRequire(path.join(import.meta.dirname, "../packages/core/package.json")).resolve(
-          "@timetoalign/timeskeleton/package.json",
-        ),
-      ),
-      "fonts",
-      "dejavu-sans-2.37.metrics.json",
-    ),
-    "utf8",
-  ),
-) as { units_per_em: number; advances: Record<string, number> };
 
 /**
  * A text's width as the drawing defines it: the sum of its code points'

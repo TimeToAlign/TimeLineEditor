@@ -11,7 +11,18 @@ import {
   type LineElement,
   manifestLayer,
 } from "../src/index.ts";
-import { BLOCK, child, drawFixture, edit, element, metrics, quarters, set } from "./support.ts";
+import { reachOf } from "../src/numbers.ts";
+import {
+  BLOCK,
+  child,
+  drawFixture,
+  edit,
+  element,
+  load,
+  metrics,
+  quarters,
+  set,
+} from "./support.ts";
 
 const drawn = (manifest: Manifest): Drawing =>
   draw(manifest, DEFAULT_PLACEMENT, [DEFAULT_LAYER, manifestLayer(manifest)], metrics);
@@ -36,6 +47,22 @@ const ordinate = (drawing: Drawing, address: string): number => {
 };
 
 describe("a root of unknown length", () => {
+  it("walks a timeline only once for one reach memo", () => {
+    const timeline = load("unknown_length").timelines[0];
+    if (timeline === undefined) throw new Error("unknown_length has no root");
+    let childReads = 0;
+    const counted = new Proxy(timeline, {
+      get(target, property, receiver) {
+        if (property === "children") childReads += 1;
+        return Reflect.get(target, property, receiver);
+      },
+    });
+    const reaches = new WeakMap();
+    const first = reachOf(counted, reaches);
+    expect(reachOf(counted, reaches)).toBe(first);
+    expect(childReads).toBe(1);
+  });
+
   it("is scaled to its reach, the child's end beyond the region and the marker", () => {
     const drawing = drawFixture("unknown_length");
     expect(line(drawing, "score")).toEqual({

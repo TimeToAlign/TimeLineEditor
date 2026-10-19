@@ -1,7 +1,7 @@
-/** Loading the YAML and TOML codecs on demand; derived in `README.md` ("The inspector"). */
+/** Loading the YAML and TOML codecs on demand; derived in `README.md` ("The manifest as text"). */
 
 import { expect, it } from "vitest";
-import { FORMATS, isLoaded, loadCodec, writeText } from "../src/inspector/formats.ts";
+import { FORMATS, isLoaded, loadCodec, writeText } from "../src/inspector/formats.svelte.ts";
 
 it("has JSON at once and loads YAML and TOML on demand, once each", async () => {
   expect(FORMATS.map(isLoaded)).toEqual([true, false, false]);

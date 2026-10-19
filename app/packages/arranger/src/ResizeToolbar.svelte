@@ -3,70 +3,50 @@
  * The resize handles are our own elements in a viewport portal rather than
  * Svelte Flow's `NodeResizeControl`s: a resize control writes its own width
  * and height into the node, while the size of a block during a resize is
- * whatever its drawing at the previewed placement measures. With our own
- * handles the pointer only yields a delta in canvas units, `resize` (for a
- * block) or `itemResizeValues` (for an item) turns it into new values, and
- * the canvas draws the block at those values, so the preview is exactly what
- * the command will store.
+ * whatever its drawing at the previewed placement measures. Each handle is
+ * the canvas's one pointer gesture with the resize strategy: the pointer
+ * yields a delta in canvas units, the strategy turns it into the command,
+ * and the canvas draws the block as that command leaves it, so the preview
+ * is exactly what the release stores.
  */
-import type { Block, SetCommand, View } from "@timetoalign/tilie-core";
-import type { FontMetrics } from "@timetoalign/timeskeleton";
+import type { Block } from "@timetoalign/tilie-core";
+import type { DrawnBox } from "@timetoalign/tilie-layout";
 import { useStore, ViewportPortal } from "@xyflow/svelte";
 import { calcAutoPan, getNodeToolbarTransform, Position } from "@xyflow/system";
-import type { Level } from "./editors.ts";
-import type { ResizedItem } from "./gestures.svelte.ts";
-import { resizeModes } from "./gestures.svelte.ts";
-import { itemHandlesFor, itemResizeCommand, itemResizeValues, placesAfter } from "./items.ts";
-import type { Delta, Handle, ResizeMode } from "./resize.ts";
+import type { Attachment } from "svelte/attachments";
+import { isHeld } from "./boxes.ts";
+import type { Level } from "./containers.ts";
+import { resizeModes } from "./containers.ts";
+import type { GestureOptions } from "./gesture.ts";
+import { pointerGesture } from "./gesture.ts";
+import type { ResizeHost } from "./gestures/resize.ts";
+import { resizeGesture } from "./gestures/resize.ts";
+import { itemHandlesFor } from "./items.ts";
+import { getNodeActions } from "./nodeActions.ts";
+import type { Handle, ResizeMode } from "./resize.ts";
 import "./menu.css";
-import { handlesFor, resize, resizeCommand } from "./resize.ts";
+import { handlesFor } from "./resize.ts";
 import { roving } from "./roving.ts";
 
 interface Props {
-  /** The selected block as stored, or the block of the item resized. */
+  /** The block resized, or holding the frame or card resized, as stored. */
   block: Block;
-  /**
-   * The box of the block's drawing resized, a group's frame, an ungrouped
-   * root's card or a member's card; absent, the block itself is.
-   */
-  item?: ResizedItem | undefined;
+  /** The box of the block's drawing resized: its own box, a group's frame or a card. */
+  box: DrawnBox;
   /** The level the resize is made at: the arranger, or the open editor's kind. */
   level?: Level;
-  /** The box resized on the canvas as currently shown (the preview during a resize). */
-  box: { x: number; y: number; width: number; height: number };
-  /** The view the block lies in. */
-  view: View;
-  metrics: FontMetrics;
+  /** The resized box on the canvas as currently shown (the preview during a resize). */
+  bounds: { x: number; y: number; width: number; height: number };
   zoom: number;
-  /** While the canvas is locked the mode buttons are disabled and no handle is shown. */
+  /** While the canvas is locked or read-only the mode buttons are disabled and no handle is shown. */
   locked: boolean;
   /** The chosen mode; one the level does not offer shows as the first it does. */
   mode: ResizeMode;
-  /** A new preview of the block's values during a resize. */
-  onresize: (values: Partial<Block>) => void;
-  /**
-   * The resize is complete: the block's values as previewed last, and the
-   * command storing them, `null` when it would change nothing.
-   */
-  onresizeend: (values: Partial<Block>, command: SetCommand | null) => void;
-  /** The resize ended without a change. */
-  onresizecancel: () => void;
 }
 
-let {
-  block,
-  item,
-  level = "arranger",
-  box,
-  view,
-  metrics,
-  zoom,
-  locked,
-  mode = $bindable(),
-  onresize,
-  onresizeend,
-  onresizecancel,
-}: Props = $props();
+let { block, box, level = "arranger", bounds, zoom, locked, mode = $bindable() }: Props = $props();
+
+const actions = getNodeActions();
 
 const MODES: readonly { mode: ResizeMode; label: string; key: string }[] = [
   { mode: "scale", label: "Scale", key: "1" },
@@ -75,27 +55,27 @@ const MODES: readonly { mode: ResizeMode; label: string; key: string }[] = [
 ];
 
 /**
- * What a mode does, said in its button's title: a member's card scales its
+ * What a mode does, said in its button's title: a held card scales its
  * whole group and stretches every member along time, its own card alone
  * vertically.
  */
 function hintOf(chosen: ResizeMode): string {
-  const member = item?.kind === "member";
+  const held = isHeld(box);
   if (chosen === "scale")
-    return member ? "scale the whole group" : "scale everything, proportions kept";
+    return held ? "scale the whole group" : "scale everything, proportions kept";
   if (chosen === "box") return "resize the box, the content stays";
-  return member
+  return held
     ? "stretch every member's length, this card's distances"
     : "stretch lengths and distances";
 }
 
 /** The modes offered, in the order of `MODES`, and the one shown. */
-const offered = $derived(resizeModes(level, item?.kind ?? "block"));
+const offered = $derived(resizeModes(box, level));
 const shown = $derived(offered.includes(mode) ? mode : offered[0]);
 
-/** The handles of `chosen` on the block or on the item. */
+/** The handles of `chosen` on the block's box or on a frame or card. */
 function handlesOf(chosen: ResizeMode): readonly Handle[] {
-  return item === undefined ? handlesFor(chosen) : itemHandlesFor(chosen, item.kind, level);
+  return box.kind === "box" ? handlesFor(chosen) : itemHandlesFor(chosen, box, level);
 }
 
 const CURSORS: { readonly [handle in Handle]: string } = {
@@ -116,13 +96,17 @@ const MARK = 9;
 const MENU_GAP = 10;
 
 function anchor(handle: Handle): { x: number; y: number } {
-  const x = handle.endsWith("left") ? 0 : handle.endsWith("right") ? box.width : box.width / 2;
+  const x = handle.endsWith("left")
+    ? 0
+    : handle.endsWith("right")
+      ? bounds.width
+      : bounds.width / 2;
   const y = handle.startsWith("top")
     ? 0
     : handle.startsWith("bottom")
-      ? box.height
-      : box.height / 2;
-  return { x: box.x + x, y: box.y + y };
+      ? bounds.height
+      : bounds.height / 2;
+  return { x: bounds.x + x, y: bounds.y + y };
 }
 
 const flow = useStore();
@@ -131,141 +115,49 @@ const flow = useStore();
  * Where the mode menu sits: centred above the resized box, `MENU_GAP` screen
  * pixels clear of its top, at any zoom. It is placed by the rule Svelte
  * Flow's `NodeToolbar` uses (`getNodeToolbarTransform`), applied to the box
- * rather than to a node, so the menu sits above the block or above the item
- * resized (a group's frame, a card) alike, and follows it through a move, a
- * resize and every pan or zoom.
+ * rather than to a node, so the menu sits above the block or above the
+ * frame or card resized alike, and follows it through a move, a resize and
+ * every pan or zoom.
  */
 const menuTransform = $derived(
-  getNodeToolbarTransform(box, flow.viewport, Position.Top, MENU_GAP, "center"),
+  getNodeToolbarTransform(bounds, flow.viewport, Position.Top, MENU_GAP, "center"),
 );
 
-/**
- * The resize in progress: its mode, where the pointer went down and is now
- * (client pixels), and the viewport's pan when it went down. The delta in
- * canvas units is the pointer's travel less the viewport's, over the zoom.
- */
-let gesture: {
-  pointer: number;
-  mode: ResizeMode;
-  handle: Handle;
-  start: { x: number; y: number };
-  client: { x: number; y: number };
-  pan: { x: number; y: number };
-  moved: boolean;
-  frame: number;
-} | null = null;
-
-/** The values and the command of the resize in progress, the pointer where it is now. */
-function result(): { values: Partial<Block>; command: SetCommand | null } {
-  if (gesture === null) return { values: {}, command: null };
-  const { mode: chosen, handle, start, client, pan } = gesture;
-  const { x, y, zoom: z } = flow.viewport;
-  const delta: Delta = {
-    dx: (client.x - start.x - (x - pan.x)) / z,
-    dy: (client.y - start.y - (y - pan.y)) / z,
-  };
-  if (item === undefined) {
-    const { values } = resize(block, view.settings, metrics, chosen, handle, delta);
-    return { values, command: resizeCommand(block, values) };
-  }
-  const places = itemResizeValues(
-    block,
-    view.settings,
-    metrics,
-    level,
-    item,
-    chosen,
-    handle,
-    delta,
-  );
-  const command = itemResizeCommand(view, block.id, places, level, metrics);
-  return { values: command === null ? {} : { places: placesAfter(block, command) }, command };
-}
-
-/**
- * While the pointer is in the pane's edge band, pan at Svelte Flow's
- * auto-pan speed every frame and redraw the preview where the pointer now
- * is on the canvas, as Svelte Flow does for a node drag.
- */
-function autoPan(): void {
-  const current = gesture;
-  if (current === null) return;
-  const pane = flow.domNode?.getBoundingClientRect();
-  if (pane !== undefined) {
+/** The toolbar's side of a resize: every member read when the gesture needs it. */
+const host: ResizeHost = {
+  actions,
+  target: () => ({ block, box }),
+  level: () => level,
+  mode: () => shown,
+  locked: () => locked,
+  viewport: () => flow.viewport,
+  autoPan(screen) {
+    const pane = flow.domNode?.getBoundingClientRect();
+    if (pane === undefined) return Promise.resolve(false);
     const [x = 0, y = 0] = calcAutoPan(
-      { x: current.client.x - pane.left, y: current.client.y - pane.top },
+      { x: screen.x - pane.left, y: screen.y - pane.top },
       { width: pane.width, height: pane.height },
       flow.autoPanSpeed,
     );
-    if (x !== 0 || y !== 0) {
-      void flow.panBy({ x, y }).then((panned) => {
-        if (panned && gesture === current) onresize(result().values);
-      });
-    }
+    return x === 0 && y === 0 ? Promise.resolve(false) : flow.panBy({ x, y });
+  },
+};
+
+const options: GestureOptions = {
+  dispatch: (command) => actions.dispatch(command),
+  slot: actions.gestures,
+};
+
+/** One gesture per handle, made once, so a redraw of the handles leaves a resize in progress. */
+const gestures = new Map<Handle, Attachment<Element>>();
+
+function gestureOf(handle: Handle): Attachment<Element> {
+  let found = gestures.get(handle);
+  if (found === undefined) {
+    found = pointerGesture(resizeGesture(host, handle), options);
+    gestures.set(handle, found);
   }
-  current.frame = requestAnimationFrame(autoPan);
-}
-
-function stop(): void {
-  if (gesture !== null) cancelAnimationFrame(gesture.frame);
-  gesture = null;
-}
-
-// A resize still in progress when the toolbar goes away ends with it, without a command.
-$effect(() => stop);
-
-function start(event: PointerEvent, handle: Handle): void {
-  if (event.button !== 0 || shown === undefined) return;
-  event.stopPropagation();
-  event.preventDefault();
-  (event.currentTarget as Element).setPointerCapture(event.pointerId);
-  const at = { x: event.clientX, y: event.clientY };
-  gesture = {
-    pointer: event.pointerId,
-    mode: shown,
-    handle,
-    start: at,
-    client: at,
-    pan: { x: flow.viewport.x, y: flow.viewport.y },
-    moved: false,
-    frame: 0,
-  };
-}
-
-function move(event: PointerEvent): void {
-  if (gesture === null || event.pointerId !== gesture.pointer) return;
-  if (!gesture.moved && event.clientX === gesture.start.x && event.clientY === gesture.start.y) {
-    return;
-  }
-  gesture.client = { x: event.clientX, y: event.clientY };
-  if (!gesture.moved) {
-    gesture.moved = true;
-    gesture.frame = requestAnimationFrame(autoPan);
-  }
-  onresize(result().values);
-}
-
-function end(event: PointerEvent): void {
-  if (gesture === null || event.pointerId !== gesture.pointer) return;
-  gesture.client = { x: event.clientX, y: event.clientY };
-  const ended = gesture.moved ? result() : null;
-  stop();
-  if (ended === null) onresizecancel();
-  else onresizeend(ended.values, ended.command);
-}
-
-/** End a resize in progress without a command; `false` when none is in progress. */
-export function abort(): boolean {
-  if (gesture === null) return false;
-  stop();
-  onresizecancel();
-  return true;
-}
-
-function cancel(event: PointerEvent): void {
-  if (gesture === null || event.pointerId !== gesture.pointer) return;
-  stop();
-  onresizecancel();
+  return found;
 }
 </script>
 
@@ -301,11 +193,7 @@ function cancel(event: PointerEvent): void {
       style:cursor={CURSORS[handle]}
       style:--mark="{MARK / zoom}px"
       style:--line="{1 / zoom}px"
-      onpointerdown={(event) => start(event, handle)}
-      onpointermove={move}
-      onpointerup={end}
-      onpointercancel={cancel}
-      onlostpointercapture={cancel}
+      {@attach gestureOf(handle)}
     ></div>
   {/each}
 </ViewportPortal>

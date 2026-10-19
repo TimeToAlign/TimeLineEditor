@@ -1,6 +1,7 @@
 /**
- * The tree of a manifest's timelines: its roots and their descendants, and
- * the one search through them.
+ * The tree of a manifest's timelines: its roots and their descendants, the
+ * one search through them, and what a timeline's place in it makes it (a
+ * segment).
  */
 
 import type { PathSegment } from "../json.ts";
@@ -46,6 +47,17 @@ export function locateTimeline(manifest: Manifest, id: string): Located | undefi
     if (found !== undefined) return found;
   }
   return undefined;
+}
+
+/** Whether the timeline at `at` is a segment: a child of a segment line. */
+export function isSegmentAt(at: Located): boolean {
+  return at.parent?.timeline.is_segment_line === true;
+}
+
+/** Whether timeline `id` of `manifest` is a segment (`isSegmentAt`); false for an id no timeline carries. */
+export function isSegment(manifest: Manifest, id: string): boolean {
+  const at = locateTimeline(manifest, id);
+  return at !== undefined && isSegmentAt(at);
 }
 
 /**

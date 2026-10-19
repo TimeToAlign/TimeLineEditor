@@ -32,10 +32,9 @@ export function boxed(
     width,
     height,
     origin: { x: 0, y: 0 },
-    items: [],
-    cards: [],
+    boxes: [],
+    axes: [],
     elements: [{ type: "block", address: null, style: background, width, height }, ...elements],
-    bands: [],
     unmapped: [],
   };
 }

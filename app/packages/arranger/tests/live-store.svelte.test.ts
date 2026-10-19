@@ -7,14 +7,13 @@
  */
 
 import type { Store, View } from "@timetoalign/tilie-core";
-import { createStore } from "@timetoalign/tilie-core";
 import { flushSync, tick } from "svelte";
 import { describe, expect, it } from "vitest";
 import { liveStore } from "../src/liveStore.svelte.ts";
-import { A, B, load, mixedView } from "./support.ts";
+import { A, B, load, mixedView, storeOf } from "./support.ts";
 
 function fresh(): Store {
-  return createStore({ view: mixedView(), journal: [], sessions: {} });
+  return storeOf(mixedView());
 }
 
 function addB(store: Store): void {
@@ -39,6 +38,7 @@ describe("liveStore", () => {
       expect(live.journal).toBe(store.journal);
       expect(live.sessions).toBe(store.sessions);
       expect(live.changes).toBe(store.changes);
+      expect(live.openings).toBe(store.openings);
     };
     same();
     const before = store.view;
@@ -50,26 +50,26 @@ describe("liveStore", () => {
   it("runs a reading effect again once for each change of the store", () => {
     const store = fresh();
     const live = liveStore(store);
-    const runs: [View, number, number][] = [];
+    const runs: [View, number, number, number][] = [];
     const destroy = $effect.root(() => {
       $effect(() => {
-        runs.push([live.view, live.editing.length, live.changes]);
+        runs.push([live.view, live.editing.length, live.changes, live.openings]);
       });
     });
     flushSync();
-    expect(runs).toEqual([[store.view, 0, 0]]);
+    expect(runs).toEqual([[store.view, 0, 0, 0]]);
     const first = store.view;
     addB(store);
     flushSync();
     expect(runs.length).toBe(2);
     expect(runs[0]?.[0]).toBe(first);
     expect(runs[1]?.[0]).toBe(store.view);
-    expect(runs[1]?.slice(1)).toEqual([0, 0]);
+    expect(runs[1]?.slice(1)).toEqual([0, 0, 0]);
     expect(store.open(A)).toBeNull();
     flushSync();
     expect(runs.length).toBe(3);
     expect(runs[2]?.[0]).toBe(store.view);
-    expect(runs[2]?.slice(1)).toEqual([1, 0]);
+    expect(runs[2]?.slice(1)).toEqual([1, 0, 1]);
     const refusal = store.dispatch({
       type: "add",
       into: `${A}/dlt_1`,
@@ -79,7 +79,7 @@ describe("liveStore", () => {
     flushSync();
     expect(runs.length).toBe(4);
     expect(runs[3]?.[0]).toBe(store.view);
-    expect(runs[3]?.slice(1)).toEqual([1, 1]);
+    expect(runs[3]?.slice(1)).toEqual([1, 1, 1]);
     flushSync();
     expect(runs.length).toBe(4);
     destroy();

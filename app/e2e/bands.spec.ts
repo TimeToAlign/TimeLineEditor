@@ -11,6 +11,7 @@
 
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
+import { parseBand } from "../packages/core/src/index.ts";
 import {
   arranger,
   type BandRecord,
@@ -21,6 +22,7 @@ import {
   bandsOf,
   between,
   dispatch,
+  done,
   drag,
   dragStart,
   editing,
@@ -36,12 +38,11 @@ import {
   node,
   OPENED_JOURNAL,
   open,
+  select,
   selection,
   setViewport,
   storeText,
   toCanvas,
-  type Viewport,
-  viewportOf,
 } from "./support.ts";
 
 test.use({ viewport: { width: 1600, height: 1000 }, reducedMotion: "reduce" });
@@ -59,10 +60,11 @@ const R = "score/regions_1";
 const F = "score/flow_control_1";
 const SELECTED_F = [`${MIXED}/${F}`];
 
-/** A band as `bandsOf` gives it, its kind read from its address (drawing.md section 2.2). */
+/** A band as `bandsOf` gives it, its kind read from its address by core's `parseBand`. */
 function band(address: string, level: number, elements: number): BandRecord {
-  const kind = address.slice(address.indexOf("/") + 1, -"_1".length) as BandRecord["kind"];
-  return { address, kind, level, elements };
+  const parsed = parseBand(address);
+  if (parsed === null) throw new Error(`${address} is no band address`);
+  return { address, kind: parsed.kind, level, elements };
 }
 
 /** `bmixed0000/score`'s bands as the fixture draws them. */
@@ -71,11 +73,6 @@ const SCORE = [band(M, 1, 2), band(K, -1, 2), band(F, -2, 1)];
 /** The `set` of `bmixed0000/score`'s band order. */
 function setScoreOrder(order: string[]) {
   return { type: "set", changes: [{ target: `${MIXED}/score`, values: { order } }] };
-}
-
-/** Select `addresses` through the hook. */
-function select(page: Page, addresses: string[]): Promise<void> {
-  return page.evaluate((chosen) => window.__tilie.select(chosen), addresses);
 }
 
 /** The client ordinate of the line of the timeline band `address` of block `block` lies at. */
@@ -93,18 +90,6 @@ async function dragBand(
 ): Promise<void> {
   const from = await bandPoint(page, block, address, clearance);
   await drag(page, from, 0, y - from.y);
-}
-
-/**
- * Close the innermost editor through the hook, as Done does, and wait until
- * it is closed and the canvas is back at `view`, the viewport it was opened
- * at.
- */
-async function done(page: Page, view: Viewport): Promise<void> {
-  const open = (await editing(page)).length;
-  await page.evaluate(() => window.__tilie.done());
-  await expect.poll(async () => (await editing(page)).length).toBe(open - 1);
-  await expect.poll(() => viewportOf(page)).toEqual(view);
 }
 
 /**

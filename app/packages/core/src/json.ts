@@ -8,14 +8,14 @@
  * JSON of its own.
  */
 
-import type { JsonNumber } from "@timetoalign/timeskeleton";
+import type { JsonNumber, Lossless, Json as SchemaJson } from "@timetoalign/timeskeleton";
 import { canonicalJson, isJsonObject as isObject } from "@timetoalign/timeskeleton";
 
 /** One step of a path into a JSON value: an object key or an array index. */
 export type PathSegment = string | number;
 
 export type Json = null | boolean | string | JsonNumber | JsonArray | JsonObject;
-export type JsonArray = readonly Json[];
+type JsonArray = readonly Json[];
 export type JsonObject = { readonly [key: string]: Json };
 
 /** Whether `value` is a JSON object: not an array, not a `JsonFloat`. */
@@ -23,9 +23,13 @@ export function isJsonObject(value: unknown): value is JsonObject {
   return isObject(value);
 }
 
-/** The canonical JSON text of a value (keys sorted by code point, no whitespace). */
+/**
+ * The canonical JSON text of a value (keys sorted by code point, no
+ * whitespace). The writer refuses, with a `TypeError`, any value that is not
+ * JSON, whatever its declared type.
+ */
 export function canonicalText(value: unknown): string {
-  return canonicalJson(value as never);
+  return canonicalJson(value as Lossless<SchemaJson>);
 }
 
 /** A short text of any value for a message: its canonical JSON when it has one. */
@@ -39,10 +43,13 @@ export function showJson(value: unknown): string {
 
 /**
  * Whether two JSON values are equal: same members, same numbers of the same
- * kind (an integer never equals a float), whatever the order of keys.
+ * kind (an integer never equals a float), whatever the order of keys. An
+ * absent value (`undefined`) equals only an absent value.
  */
 export function jsonEqual(left: unknown, right: unknown): boolean {
-  return left === right || canonicalText(left) === canonicalText(right);
+  if (left === right) return true;
+  if (left === undefined || right === undefined) return false;
+  return canonicalText(left) === canonicalText(right);
 }
 
 /** `-1`, `0` or `1` by Unicode code points, not by UTF-16 units as JavaScript's `<` compares. */

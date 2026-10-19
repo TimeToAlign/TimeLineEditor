@@ -7,13 +7,8 @@
  * the categories of section 7.2.
  */
 
-import {
-  BAND_KINDS,
-  type BandKind,
-  bandAddress,
-  parseBand,
-  type Real,
-} from "@timetoalign/tilie-core";
+import { type BandKind, bandAddress, parseBand } from "@timetoalign/tilie-core";
+import type { Real } from "@timetoalign/tilie-core/numbers";
 import type {
   BreakElement,
   JumpElement,
@@ -130,7 +125,7 @@ export interface PreparedBand {
    * it included (section 6.4, What a band holds and Segments without a line): wedges, maps, child
    * lines, regions, breaks and jumps. A label is held by its element and not counted; a segment
    * without a line is no element. The band is present when this is positive (section 6.4,
-   * Levels), and `DrawnBand.elements` is this number.
+   * Levels), and a band record's `band.elements` is this number.
    */
   readonly elements: number;
   /**
@@ -202,12 +197,15 @@ export interface ChildrenSpan {
  */
 export function bandSides(order: readonly string[], id: string): Readonly<Record<BandKind, Side>> {
   const line = order.indexOf(id);
-  return Object.fromEntries(
-    BAND_KINDS.map((kind) => [
-      kind,
-      order.indexOf(bandAddress(id, kind)) < line ? "above" : "below",
-    ]),
-  ) as Record<BandKind, Side>;
+  const side = (kind: BandKind): Side =>
+    order.indexOf(bandAddress(id, kind)) < line ? "above" : "below";
+  return {
+    children: side("children"),
+    conversion_maps: side("conversion_maps"),
+    markers: side("markers"),
+    regions: side("regions"),
+    flow_control: side("flow_control"),
+  };
 }
 
 /**

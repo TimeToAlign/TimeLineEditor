@@ -1,15 +1,15 @@
 /** The projection of a workspace view onto Svelte Flow nodes: one node per block. */
 
-import type { Block, Gap, Manifest, View } from "@timetoalign/tilie-core";
+import type { Block, Manifest, View } from "@timetoalign/tilie-core";
 import { contains } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import type { Descriptor } from "@timetoalign/tilie-writers";
 import type { FontMetrics } from "@timetoalign/timeskeleton";
 import type { Node } from "@xyflow/svelte";
-import { affectedBy, movedByGap } from "./affected.ts";
-import { descriptorsOf, drawingOf } from "./drawing.ts";
-import type { Editing } from "./editors.ts";
-import { editedElement, sameEditing } from "./editors.ts";
+import { affectedBy } from "./affected.ts";
+import { descriptorsOf, drawingOf, nodePosition } from "./drawing.ts";
+import type { Editing } from "./editing.ts";
+import { addressParts, sameEditing } from "./editing.ts";
 import type { Selection } from "./selection.ts";
 
 /** What a block node renders. */
@@ -21,8 +21,6 @@ export type BlockNodeData = {
   readonly selectedElements: ReadonlySet<string>;
   /** What removing the selected elements would also remove, highlighted with them. */
   readonly affectedElements: ReadonlySet<string>;
-  /** What closing the gap of a segment about to be deleted moves or resizes. */
-  readonly movedElements: ReadonlySet<string>;
   /** The innermost open editor, the same on every node; `null` on the arranger. */
   readonly editing: Editing | null;
   /**
@@ -33,12 +31,6 @@ export type BlockNodeData = {
    */
   readonly inside: ReadonlySet<string>;
 };
-
-/** A segment about to be deleted, `<block>/<id>`, and the way its gap is to be closed. */
-export interface GapPreview {
-  readonly segment: string;
-  readonly gap: Gap;
-}
 
 export type BlockNode = Node<BlockNodeData, "block">;
 
@@ -87,31 +79,25 @@ export function insideOf(
   return found;
 }
 
-/**
- * Where the node of `block` drawn as `drawing` lies: a block's `x`, `y` are
- * the canvas position of its place origin (`docs/drawing.md` in
- * timeskeleton, section 8.6), which lies at `drawing.origin` in the box, so
- * a box that grows left or up moves nothing it holds.
- */
-export function nodePosition(
-  block: Pick<Block, "x" | "y" | "scale">,
-  drawing: Drawing,
-): { x: number; y: number } {
-  return {
-    x: block.x - drawing.origin.x * block.scale,
-    y: block.y - drawing.origin.y * block.scale,
-  };
-}
+const orders = new WeakMap<View, readonly Block[]>();
 
-/** The blocks of a view by their parent, then their index (ids break ties). */
-export function blocksInOrder(view: View): Block[] {
-  return Object.values(view.blocks).sort((left, right) => {
-    const leftParent = left.parent ?? "";
-    const rightParent = right.parent ?? "";
-    if (leftParent !== rightParent) return leftParent < rightParent ? -1 : 1;
-    if (left.index !== right.index) return left.index < right.index ? -1 : 1;
-    return left.id < right.id ? -1 : left.id > right.id ? 1 : 0;
-  });
+/**
+ * The blocks of a view by their parent, then their index (ids break ties),
+ * memoized by the view: a view is immutable.
+ */
+export function blocksInOrder(view: View): readonly Block[] {
+  let found = orders.get(view);
+  if (found === undefined) {
+    found = Object.values(view.blocks).sort((left, right) => {
+      const leftParent = left.parent ?? "";
+      const rightParent = right.parent ?? "";
+      if (leftParent !== rightParent) return leftParent < rightParent ? -1 : 1;
+      if (left.index !== right.index) return left.index < right.index ? -1 : 1;
+      return left.id < right.id ? -1 : left.id > right.id ? 1 : 0;
+    });
+    orders.set(view, found);
+  }
+  return found;
 }
 
 function sameMembers(left: ReadonlySet<string>, right: ReadonlySet<string>): boolean {
@@ -120,19 +106,18 @@ function sameMembers(left: ReadonlySet<string>, right: ReadonlySet<string>): boo
   return true;
 }
 
-/** The selected element ids of every block holding one. */
+/** The selected element addresses of every block holding one (`addressParts`). */
 function elementsByBlock(selection: Selection): Map<string, Set<string>> {
   const result = new Map<string, Set<string>>();
   for (const address of selection) {
-    const slash = address.indexOf("/");
-    if (slash < 0) continue;
-    const block = address.slice(0, slash);
+    const { block, element } = addressParts(address);
+    if (element === null) continue;
     let elements = result.get(block);
     if (elements === undefined) {
       elements = new Set();
       result.set(block, elements);
     }
-    elements.add(address.slice(slash + 1));
+    elements.add(element);
   }
   return result;
 }
@@ -145,10 +130,9 @@ function elementsByBlock(selection: Selection): Map<string, Set<string>> {
  * `editing`, the innermost open editor, every node of another block is
  * outside it: not selectable, not draggable and of class `tilie-outside`;
  * the edited block's node is not draggable either, its `inside` naming what
- * the editor edits. With a `preview`, the block holding its segment marks
- * what closing the gap moves. A node of `previous` whose block, drawing,
- * position, rank, selection, marks and editor are unchanged is returned as
- * the same object, so Svelte Flow skips it.
+ * the editor edits. A node of `previous` whose block, drawing, position,
+ * rank, selection and editor are unchanged is returned as the same object,
+ * so Svelte Flow skips it.
  */
 export function project(
   view: View,
@@ -156,12 +140,11 @@ export function project(
   previous: readonly BlockNode[],
   metrics: FontMetrics,
   editing: Editing | null,
-  preview: GapPreview | null = null,
 ): BlockNode[] {
   const before = new Map(previous.map((node) => [node.id, node]));
   const elements = elementsByBlock(selection);
   const ranks = new Map<string, number>();
-  const edited = editing === null ? null : editedElement(editing.target);
+  const edited = editing === null ? null : addressParts(editing.target);
   return blocksInOrder(view).map((block) => {
     const siblings = block.parent ?? "";
     const zIndex = ranks.get(siblings) ?? 0;
@@ -174,9 +157,6 @@ export function project(
       : insideOf(block.manifest, drawing, edited === null ? null : edited.element);
     const selected = selection.has(block.id);
     const selectedElements = elements.get(block.id) ?? NO_ELEMENTS;
-    const movedElements = preview?.segment.startsWith(`${block.id}/`)
-      ? movedByGap(block.manifest, preview.segment.slice(block.id.length + 1), preview.gap)
-      : NO_ELEMENTS;
     const prior = before.get(block.id);
     if (
       prior !== undefined &&
@@ -187,7 +167,6 @@ export function project(
       prior.position.x === position.x &&
       prior.position.y === position.y &&
       sameMembers(prior.data.selectedElements, selectedElements) &&
-      sameMembers(prior.data.movedElements, movedElements) &&
       sameEditing(prior.data.editing, editing) &&
       prior.data.inside === inside
     ) {
@@ -219,7 +198,6 @@ export function project(
         selectedElements,
         affectedElements:
           selectedElements.size === 0 ? NO_ELEMENTS : affectedBy(block.manifest, selectedElements),
-        movedElements,
         editing,
         inside,
       },

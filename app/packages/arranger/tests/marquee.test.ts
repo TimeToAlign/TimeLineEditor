@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { elementsInRect, insideOf, project } from "../src/index.ts";
+import { elementsInRect } from "../src/marquee.ts";
+import { insideOf, project } from "../src/project.ts";
 import { A, blockIn, marqueeView, metrics } from "./support.ts";
 
 const view = marqueeView();

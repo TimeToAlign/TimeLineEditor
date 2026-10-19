@@ -1,26 +1,19 @@
 import { dumps, JsonFloat } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
-import type { Manifest, View } from "../src/index.ts";
-import {
-  apply,
-  createStore,
-  createView,
-  elementOf,
-  elementOfIn,
-  findEntry,
-  findTimeline,
-  isLoadError,
-  loadManifest,
-  manifestElements,
-  manifestIds,
-  memberDrawings,
-  nextId,
-  readWorkspace,
-  removedBy,
-  selectorMatches,
-  timelineAncestry,
-  writeWorkspace,
-} from "../src/index.ts";
+import { apply } from "../src/commands/apply.ts";
+import { isLoadError } from "../src/errors.ts";
+import { manifestElements, selectorMatches, timelineAncestry } from "../src/manifest/elements.ts";
+import { memberDrawings } from "../src/manifest/files.ts";
+import { loadManifest } from "../src/manifest/io.ts";
+import { removedBy } from "../src/manifest/remove.ts";
+import { findTimeline } from "../src/manifest/tree.ts";
+import type { Manifest } from "../src/manifest/types.ts";
+import { elementOf, resolveElement } from "../src/workspace/address.ts";
+import { readWorkspace, writeWorkspace } from "../src/workspace/file.ts";
+import { manifestIds, nextId } from "../src/workspace/ids.ts";
+import { createStore } from "../src/workspace/store.ts";
+import type { View } from "../src/workspace/view.ts";
+import { createView } from "../src/workspace/view.ts";
 import {
   A,
   addBlock,
@@ -400,9 +393,8 @@ describe("addresses in a block of several roots", () => {
     ["score/start", "score"],
     ["score/card", "score"],
     ["group_1/name", "group_1"],
-  ])("%s is a part of %s, read once or each time", (path, element) => {
-    const manifest = file(numbersWithRegion());
-    expect([elementOf(manifest, path), elementOfIn(manifest)(path)]).toEqual([element, element]);
+  ])("%s is a part of %s", (path, element) => {
+    expect(elementOf(file(numbersWithRegion()), path)).toBe(element);
   });
 
   it("never reads score/start as an element: a part word is no id", () => {
@@ -448,6 +440,10 @@ describe("addresses in a block of several roots", () => {
   });
 
   it("finds a map, region, break, jump or marker by its address, and nothing else", () => {
+    const findEntry = (manifest: Manifest, address: string) => {
+      const found = resolveElement(manifest, address);
+      return found?.kind === "entry" ? { kind: found.entry, entry: found.element } : undefined;
+    };
     const maps = load("map.json");
     const melody = maps.timelines[0];
     expect(findEntry(maps, "melody/tempo")?.kind).toBe("map");
@@ -667,7 +663,7 @@ describe("ids for new elements of a block of several roots", () => {
     const view = changed(createView(), {
       type: "add",
       into: "workspace",
-      block: { id: A, manifest: loadText(dumps(value as never)), x: 0, y: 0 },
+      block: { id: A, manifest: loadText(dumps(value)), x: 0, y: 0 },
     });
     expect(nextId(view, A, "group", "score")).toBe("group_1");
     for (const id of ["group_1", "edition"]) {

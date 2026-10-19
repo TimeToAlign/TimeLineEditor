@@ -6,34 +6,26 @@
  * Every other timeline keeps its own `locked`.
  */
 
+import type { Lossless, Timeline } from "@timetoalign/timeskeleton";
 import type { CommandError } from "../errors.ts";
 import { ErrorCode, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";
-import { isJsonObject } from "../json.ts";
-import type { Manifest, TimelineManifest } from "./types.ts";
-
-/** What of a timeline its place reads; a value given to `add` may be malformed. */
-type Placed = { readonly id?: unknown; readonly is_segment_line?: unknown };
+import type { TimelineManifest } from "./types.ts";
 
 /**
  * The lock the place of `timeline` decides: `false` for a segment of
  * `parent`, `true` for a segment line that is a child (of `parent`) or a
  * group member, `undefined` where the timeline's own value stands.
  */
-export function placeLock(
-  timeline: Placed,
-  parent: Placed | undefined,
+function placeLock(
+  timeline: Pick<Timeline, "id" | "is_segment_line">,
+  parent: Pick<Timeline, "id" | "is_segment_line"> | undefined,
   member: boolean,
 ): boolean | undefined {
   const line = timeline.is_segment_line === true;
   if (parent?.is_segment_line === true && !line) return false;
   if (line && (parent !== undefined || member)) return true;
   return undefined;
-}
-
-/** The ids of every group member of a manifest. */
-export function memberIds(manifest: Manifest): ReadonlySet<string> {
-  return new Set(manifest.groups.flatMap((group) => group.members));
 }
 
 /**
@@ -46,8 +38,8 @@ export function memberIds(manifest: Manifest): ReadonlySet<string> {
 export function lockProblem(
   locked: boolean,
   current: boolean | undefined,
-  timeline: Placed,
-  parent: Placed | undefined,
+  timeline: Pick<Timeline, "id" | "is_segment_line">,
+  parent: Pick<Timeline, "id" | "is_segment_line"> | undefined,
   member: boolean,
   path: readonly PathSegment[],
 ): CommandError | undefined {
@@ -62,28 +54,27 @@ export function lockProblem(
       )
     : problem(
         ErrorCode.segmentNeverLocked,
-        `A segment is never locked: lock its segment line '${String(parent?.id)}' instead.`,
+        `A segment is never locked: lock its segment line '${parent?.id ?? ""}' instead.`,
         path,
       );
 }
 
 /**
- * The first `locked` that `value`, a timeline given to `add` under `parent`,
- * or a timeline of its subtree states against its place (`lockProblem`),
- * refused at `path`. A timeline stating no `locked` takes its place's.
+ * The first `locked` that `value`, a timeline given to `add` under `parent`
+ * and already accepted by the schema as a fragment, or a timeline of its
+ * subtree states against its place (`lockProblem`), refused at `path`. A
+ * timeline stating no `locked` takes its place's.
  */
 export function statedLockProblem(
-  value: unknown,
-  parent: Placed,
+  value: Lossless<Timeline>,
+  parent: Pick<Timeline, "id" | "is_segment_line">,
   path: readonly PathSegment[],
 ): CommandError | undefined {
-  if (!isJsonObject(value)) return undefined;
-  if (typeof value.locked === "boolean") {
+  if (value.locked !== undefined) {
     const refused = lockProblem(value.locked, undefined, value, parent, false, path);
     if (refused !== undefined) return refused;
   }
-  if (!Array.isArray(value.children)) return undefined;
-  for (const child of value.children) {
+  for (const child of value.children ?? []) {
     const refused = statedLockProblem(child, value, path);
     if (refused !== undefined) return refused;
   }
@@ -92,37 +83,27 @@ export function statedLockProblem(
 
 /**
  * `timeline` under `parent` and its subtree, each with the lock its place
- * decides (`placeLock`); with `unlockOnly`, only the segments' locks, as
- * reading a manifest does, keeping a lock a file states elsewhere. A
- * timeline left as it was is the same object, and every other member is
- * kept whole.
+ * decides (`placeLock`; `member` tells a group member by id); with
+ * `unlockOnly`, only the segments' locks, as reading a manifest does,
+ * keeping a lock a file states elsewhere. A timeline left as it was is the
+ * same object, and every other member is kept whole.
  */
-export function withPlaceLocks(
-  timeline: TimelineManifest,
+export function withPlaceLocks<T extends TimelineManifest>(
+  timeline: T,
   parent: TimelineManifest | undefined,
-  members: ReadonlySet<string>,
+  member: (id: string) => boolean,
   unlockOnly = false,
-): TimelineManifest {
-  // A malformed value is left for the schema to refuse.
-  if (!isJsonObject(timeline as unknown)) return timeline;
-  const decided = placeLock(timeline, parent, members.has(timeline.id));
+): T {
+  const decided = placeLock(timeline, parent, member(timeline.id));
   const locked = decided === undefined || (unlockOnly && decided) ? timeline.locked : decided;
   const { children } = timeline;
-  const placed = Array.isArray(children)
-    ? children.map((child) => withPlaceLocks(child, timeline, members, unlockOnly))
-    : children;
+  const placed = children.map((child) => withPlaceLocks(child, timeline, member, unlockOnly));
   const same =
-    locked === timeline.locked &&
-    (placed === children || placed.every((child, index) => child === children[index]));
+    locked === timeline.locked && placed.every((child, index) => child === children[index]);
   return same ? timeline : { ...timeline, locked, children: placed };
 }
 
-/** `manifest` with every segment unlocked, as it is read; every other lock as its file states. */
-export function withSegmentsUnlocked(manifest: Manifest): Manifest {
-  const timelines = manifest.timelines.map((root) =>
-    withPlaceLocks(root, undefined, new Set(), true),
-  );
-  return timelines.every((root, index) => root === manifest.timelines[index])
-    ? manifest
-    : { ...manifest, timelines };
+/** A timeline's subtree with every segment unlocked, as reading a manifest does. */
+export function withSegmentsUnlocked<T extends TimelineManifest>(timeline: T): T {
+  return withPlaceLocks(timeline, undefined, () => false, true);
 }

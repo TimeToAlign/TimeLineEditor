@@ -1,16 +1,12 @@
 import { describe, expect, it } from "vitest";
-import type { Entry, ListedEntry, Session, SessionEntry, Store, View } from "../src/index.ts";
-import {
-  createStore,
-  createView,
-  editorKindOf,
-  isLoadError,
-  isSessionEntry,
-  mintSessionId,
-  readWorkspace,
-  replay,
-  writeWorkspace,
-} from "../src/index.ts";
+import { isLoadError } from "../src/errors.ts";
+import { readWorkspace, writeWorkspace } from "../src/workspace/file.ts";
+import type { Entry, ListedEntry, Session, SessionEntry } from "../src/workspace/sessions.ts";
+import { editorKindOf, isSessionEntry, mintSessionId } from "../src/workspace/sessions.ts";
+import type { Store } from "../src/workspace/store.ts";
+import { createStore, replay } from "../src/workspace/store.ts";
+import type { View } from "../src/workspace/view.ts";
+import { createView } from "../src/workspace/view.ts";
 import { A, addBlock, refusal, testClock, viewOf } from "./support.ts";
 
 const BUNDLE = "bundle0001";
@@ -84,6 +80,19 @@ describe("editor ids and kinds", () => {
         path: [address],
       });
     }
+    const bundle = view.blocks[BUNDLE];
+    if (bundle === undefined) throw new Error("the bundle block exists");
+    const withId = {
+      ...view,
+      blocks: {
+        ...view.blocks,
+        [BUNDLE]: { ...bundle, manifest: { ...bundle.manifest, id: "takes" } },
+      },
+    };
+    expect(refusal(editorKindOf(withId, at("takes")))).toEqual({
+      code: "no_editor",
+      path: [at("takes")],
+    });
   });
 });
 

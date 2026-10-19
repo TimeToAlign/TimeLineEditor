@@ -1,13 +1,12 @@
 /** One timeline's bands, laid out alone; every number is derived in tests/README.md. */
 
+import type { BandKind, Manifest } from "@timetoalign/tilie-core";
 import {
-  type BandKind,
-  BLOCK_KEY,
-  type Manifest,
+  BOX_KEY,
   type MemberDrawing,
   memberDrawings,
   timelineAncestry,
-} from "@timetoalign/tilie-core";
+} from "@timetoalign/tilie-core/drawing";
 import type { Graphical } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
 import {
@@ -49,11 +48,11 @@ function scopeOf(
     [DEFAULT_LAYER, ...extra, manifestLayer(manifest)],
     timelineAncestry(manifest),
   );
-  const block = { key: BLOCK_KEY, style: cascade.resolve(BLOCK_KEY, undefined) };
+  const box = { key: BOX_KEY, style: cascade.resolve(BOX_KEY, undefined) };
   return traverse(
     { manifest, placement: DEFAULT_PLACEMENT, cascade, measure: new TextMeasure(metrics) },
     member,
-    block,
+    box,
   );
 }
 

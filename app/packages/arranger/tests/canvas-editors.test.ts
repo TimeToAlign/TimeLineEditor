@@ -1,23 +1,23 @@
 // @vitest-environment jsdom
 /**
  * The canvas opens, follows and leaves editors: the gestures reach the store
- * with the targets `editorTargetOf` names, the selection is pruned to the
- * opened editor, and the view moves to the edited element and back. The
+ * with the targets `editorTargetOf` names, and the view moves to the edited
+ * element and back. The
  * expected values are derived in `README.md` ("The canvas in an editor").
  */
 
 import type { Store, View } from "@timetoalign/tilie-core";
-import { createStore } from "@timetoalign/tilie-core";
-import type { RectElement } from "@timetoalign/tilie-layout";
 import type { Viewport } from "@xyflow/svelte";
-import { flushSync, mount, tick, unmount } from "svelte";
+import { flushSync, mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { boxOf, itemOf } from "../src/boxes.ts";
 import { removeCommand } from "../src/commands.ts";
 import { drawingOf } from "../src/drawing.ts";
 import { GRID_FREE, quantize } from "../src/numbers.ts";
 import type { Selection } from "../src/selection.ts";
 import Harness from "./CanvasHarness.svelte";
-import { A, B, changed, load, marqueeView, metrics, mixedView } from "./support.ts";
+import { IDENTITY, settle, stubCanvasGlobals, withScreenMatrix } from "./dom.ts";
+import { A, B, changed, load, marqueeView, metrics, mixedView, storeOf } from "./support.ts";
 
 interface Mounted {
   current(): { selection: Selection; viewport: Viewport };
@@ -28,50 +28,17 @@ interface Mounted {
 let mounted: ReturnType<typeof mount> | undefined;
 let harness: Mounted;
 let store: Store;
+/** How many entries the store's journal held when the case began: the blocks added. */
+let stored = 0;
 
 /** Whether the `matchMedia` stub reports reduced motion, so that every move of the view is at once. */
 let reduced = true;
-
-/**
- * Every `ResizeObserver` made in this file, with the elements it observes, so
- * that a case can report a size change (`resizeArranger`). Kept across cases:
- * Svelte observes element sizes through one observer, made once per module.
- */
-const observers = new Set<{ callback: ResizeObserverCallback; targets: Set<Element> }>();
+/** The stubbed resize observers, which a case reports a size change to (`resizeArranger`). */
+let stubs: ReturnType<typeof stubCanvasGlobals>;
 
 beforeEach(() => {
   reduced = true;
-  // Svelte Flow measures its pane and reads media queries; every query but reduced motion fails.
-  vi.stubGlobal(
-    "matchMedia",
-    (media: string): Partial<MediaQueryList> => ({
-      matches: reduced && media === "(prefers-reduced-motion: reduce)",
-      media,
-      addEventListener() {},
-      removeEventListener() {},
-      addListener() {},
-      removeListener() {},
-    }),
-  );
-  vi.stubGlobal(
-    "ResizeObserver",
-    class {
-      readonly #observed: { callback: ResizeObserverCallback; targets: Set<Element> };
-      constructor(callback: ResizeObserverCallback) {
-        this.#observed = { callback, targets: new Set() };
-        observers.add(this.#observed);
-      }
-      observe(target: Element) {
-        this.#observed.targets.add(target);
-      }
-      unobserve(target: Element) {
-        this.#observed.targets.delete(target);
-      }
-      disconnect() {
-        this.#observed.targets.clear();
-      }
-    },
-  );
+  stubs = stubCanvasGlobals(() => reduced);
 });
 
 function clear(): void {
@@ -95,19 +62,14 @@ function twoBlocks(): View {
   });
 }
 
-async function settle(): Promise<void> {
-  flushSync();
-  await tick();
-  flushSync();
-  await tick();
-  flushSync();
-}
-
 async function show(view: View = twoBlocks()): Promise<void> {
   clear();
-  store = createStore({ view, journal: [], sessions: {} });
-  mounted = mount(Harness, { target: document.body, props: { store, metrics } });
-  harness = mounted as unknown as Mounted;
+  store = storeOf(view);
+  stored = store.journal.length;
+  const instance = mount(Harness, { target: document.body, props: { store, metrics } });
+  mounted = instance;
+  // `tsc` reads the harness through Svelte's generic module declaration, which leaves its exports untyped.
+  harness = instance as Mounted;
   await settle();
 }
 
@@ -223,13 +185,7 @@ function viewport(): Viewport {
 
 /** Measure the arranger `width` × `height` px and report the change to whatever observes its size. */
 async function resizeArranger(width: number, height: number): Promise<void> {
-  measure(width, height);
-  const target = arranger();
-  for (const { callback, targets } of observers) {
-    if (targets.has(target)) {
-      callback([{ target } as unknown as ResizeObserverEntry], {} as ResizeObserver);
-    }
-  }
+  stubs.resize(arranger(), width, height);
   await settle();
 }
 
@@ -275,11 +231,8 @@ describe("the canvas opens editors", () => {
     await show();
     const svg = nodeOf(A).querySelector("svg");
     if (svg === null) throw new Error("no svg");
-    const [, , width = 0, height = 0] = (svg.getAttribute("viewBox") ?? "").split(" ").map(Number);
     // Client points are drawing points: the drawing shown at its own size at (0, 0).
-    vi.spyOn(svg, "getBoundingClientRect").mockReturnValue(
-      DOMRect.fromRect({ x: 0, y: 0, width, height }),
-    );
+    withScreenMatrix(svg, () => IDENTITY);
     const textAt = async (address: string) => {
       const text = drawn(address);
       const x = Number(text.getAttribute("x"));
@@ -381,7 +334,7 @@ describe("a double-click outside the edited element", () => {
     await settle();
     await doubleClick(background(A));
     expect(path()).toEqual([]);
-    expect(store.journal).toEqual([]);
+    expect(store.journal).toHaveLength(stored);
   });
 
   it("keeps the editor on the edited element, and opens an editor inside it", async () => {
@@ -430,16 +383,12 @@ describe("a double-click outside the edited element", () => {
     await select(`${A}/group_1`);
     await doubleClick(pane());
     expect(path()).toEqual([]);
-    expect(store.journal).toEqual([]);
+    expect(store.journal).toHaveLength(stored);
   });
 });
 
 describe("the canvas leaves editors", () => {
   it("aborts the gesture, then clears the selection, then closes the editor on Escape", async () => {
-    // jsdom has no pointer capture, which a resize handle takes on its press (installed once).
-    const element = Element.prototype as Partial<Element>;
-    element.setPointerCapture ??= () => {};
-    element.releasePointerCapture ??= () => {};
     await show();
     open(`${A}/group_1`);
     await select(`${A}/group_1`);
@@ -460,19 +409,12 @@ describe("the canvas leaves editors", () => {
   });
 
   it("aborts an item drag before it clears the selection on Escape", async () => {
-    // The item drag also asks whether it holds the capture when it ends.
-    const element = Element.prototype as Partial<Element>;
-    element.setPointerCapture ??= () => {};
-    element.hasPointerCapture ??= () => false;
-    element.releasePointerCapture ??= () => {};
     await show();
     open(A);
     await select(`${A}/group_2`);
     const frame = drawn("group_2");
     // jsdom draws nothing; the drag reads only that the drawing has a screen CTM.
-    Object.assign(nodeOf(A).querySelector("svg") as SVGSVGElement, {
-      getScreenCTM: () => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 }),
-    });
+    withScreenMatrix(nodeOf(A).querySelector("svg") as SVGSVGElement, () => IDENTITY);
     pointer("pointerdown", frame, { clientX: 100, clientY: 200, pointerType: "mouse" });
     pointer("pointermove", frame, { clientX: 140, clientY: 224, pointerType: "mouse" });
     await settle();
@@ -534,13 +476,12 @@ describe("the surroundings of an editor", () => {
     expect(selected()).toEqual([`${A}/group_1`]);
     await clickOn(pane(), 50, 50);
     expect(selected()).toEqual([]);
-    await select(`${A}/group_1`);
     store.done();
     open(`${A}/group_1`);
     await settle();
-    await clickOn(drawn("group_2"));
-    expect(selected()).toEqual([`${A}/group_1`]);
     await clickOn(drawn("score/card"));
+    expect(selected()).toEqual([`${A}/score/card`]);
+    await clickOn(drawn("group_2"));
     expect(selected()).toEqual([`${A}/score/card`]);
   });
 
@@ -580,59 +521,13 @@ describe("the surroundings of an editor", () => {
     await select(`${A}/annotations`);
     const before = store.view;
     const command = removeCommand(before, new Set([`${A}/annotations`]));
-    const twin = createStore({ view: twoBlocks(), journal: [], sessions: {} });
+    const twin = storeOf(twoBlocks());
     twin.open(`${A}/group_1`);
     const refusal = twin.dispatch(command);
     expect(refusal?.code).toBe("side_effect");
     await press("Delete");
     expect(document.querySelector('[data-testid="hint"]')?.textContent).toBe(refusal?.message);
     expect(store.view).toBe(before);
-  });
-});
-
-describe("the selection when an editor opens", () => {
-  it("keeps only what lies inside the opened editor", async () => {
-    const opening = async (target: string, ...addresses: string[]) => {
-      await select(...addresses);
-      open(target);
-      await settle();
-      return selected();
-    };
-    await show();
-    expect(await opening(A, A, B, `${A}/group_1`, `${A}/annotations/card`)).toEqual([
-      A,
-      `${A}/group_1`,
-      `${A}/annotations/card`,
-    ]);
-    store.done();
-    expect(
-      await opening(
-        `${A}/group_1`,
-        A,
-        `${A}/group_1`,
-        `${A}/score/card`,
-        `${A}/performance`,
-        `${A}/page/card`,
-      ),
-    ).toEqual([`${A}/score/card`, `${A}/performance`]);
-    expect(
-      await opening(`${A}/score`, `${A}/score/card`, `${A}/score/start`, `${A}/performance`),
-    ).toEqual([`${A}/score/start`]);
-    store.done();
-    store.done();
-    expect(await opening(`${A}/score`, `${A}/score`, `${A}/score/name`)).toEqual([
-      `${A}/score/name`,
-    ]);
-    store.done();
-    open(`${A}/group_1`);
-    expect(
-      await opening(
-        `${A}/score`,
-        `${A}/score/conversion_maps_1`,
-        `${A}/performance/conversion_maps_1`,
-        `${A}/score/start`,
-      ),
-    ).toEqual([`${A}/score/conversion_maps_1`, `${A}/score/start`]);
   });
 });
 
@@ -721,10 +616,6 @@ describe("the resize toolbar in an editor", () => {
   });
 
   it("resizes a frame the arranger's click selects, in one set that moves nothing else", async () => {
-    // jsdom has no pointer capture, which a resize handle takes on its press.
-    const element = Element.prototype as Partial<Element>;
-    element.setPointerCapture ??= () => {};
-    element.releasePointerCapture ??= () => {};
     await show();
     await atZoomOne();
     await clickOn(drawn("group_1"));
@@ -732,21 +623,17 @@ describe("the resize toolbar in an editor", () => {
     expect(document.querySelectorAll("[data-testid^='handle-']")).toHaveLength(8);
     const before = store.view.blocks[A];
     if (before === undefined) throw new Error("no block A");
-    const { items } = drawingOf(before, store.view.settings, metrics);
-    const place = (key: string) => {
-      const found = items.find((item) => item.key === key);
-      if (found === undefined) throw new Error(`no item ${key}`);
-      return found.place;
-    };
+    const drawing = drawingOf(before, store.view.settings, metrics);
+    const place = (key: string) => itemOf(drawing, key).item.place;
     const handle = document.querySelector('[data-testid="handle-right"]');
     if (handle === null) throw new Error("no resize handle");
     pointer("pointerdown", handle, { clientX: 0, clientY: 0, pointerType: "mouse" });
     pointer("pointermove", handle, { clientX: 60, clientY: 0, pointerType: "mouse" });
     pointer("pointerup", handle, { clientX: 60, clientY: 0, pointerType: "mouse" });
     await settle();
-    expect(store.journal).toHaveLength(1);
+    expect(store.journal).toHaveLength(stored + 1);
     expect(store.entries).toEqual(store.journal);
-    const [entry] = store.journal;
+    const entry = store.journal.at(-1);
     const { x: x2, y: y2 } = place("group_2");
     const { x: x3, y: y3 } = place("annotations");
     expect(entry !== undefined && "command" in entry ? entry.command : null).toEqual({
@@ -765,9 +652,6 @@ describe("the resize toolbar in an editor", () => {
   });
 
   it("resizes the edited block itself in the bundle editor, as on the arranger", async () => {
-    const element = Element.prototype as Partial<Element>;
-    element.setPointerCapture ??= () => {};
-    element.releasePointerCapture ??= () => {};
     await show();
     open(A);
     await atZoomOne();
@@ -823,10 +707,7 @@ describe("the resize toolbar in an editor", () => {
   function drawnBox(address: string): { x: number; y: number; width: number } {
     const block = store.view.blocks[A];
     if (block === undefined) throw new Error("no block A");
-    const rect = drawingOf(block, store.view.settings, metrics).elements.find(
-      (element): element is RectElement =>
-        (element.type === "group" || element.type === "card") && element.address === address,
-    );
+    const rect = boxOf(drawingOf(block, store.view.settings, metrics), address);
     if (rect === undefined) throw new Error(`no box ${address}`);
     const at = nodePositionOf(A);
     return {
@@ -837,11 +718,6 @@ describe("the resize toolbar in an editor", () => {
   }
 
   it("sits above the selected item, not above its block, and follows it", async () => {
-    // jsdom has no pointer capture, which a handle and an item drag take on their press.
-    const element = Element.prototype as Partial<Element>;
-    element.setPointerCapture ??= () => {};
-    element.hasPointerCapture ??= () => false;
-    element.releasePointerCapture ??= () => {};
     await show();
     open(A);
     await atZoomOne();
@@ -867,9 +743,7 @@ describe("the resize toolbar in an editor", () => {
     expect(menuTransform()).toBe(above(resized));
 
     // jsdom draws nothing; the drag reads only that the drawing has a screen CTM.
-    Object.assign(nodeOf(A).querySelector("svg") as SVGSVGElement, {
-      getScreenCTM: () => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 }),
-    });
+    withScreenMatrix(nodeOf(A).querySelector("svg") as SVGSVGElement, () => IDENTITY);
     const frame = drawn("group_2");
     pointer("pointerdown", frame, { clientX: 100, clientY: 200, pointerType: "mouse" });
     pointer("pointermove", frame, { clientX: 140, clientY: 224, pointerType: "mouse" });
@@ -917,19 +791,14 @@ describe("the canvas and the bands of the edited timeline", () => {
     await settle();
     const svg = nodeOf(A).querySelector("svg");
     if (svg === null) throw new Error("no svg");
-    const [, , width = 0, height = 0] = (svg.getAttribute("viewBox") ?? "").split(" ").map(Number);
-    vi.spyOn(svg, "getBoundingClientRect").mockReturnValue(
-      DOMRect.fromRect({ x: 0, y: 0, width, height }),
-    );
+    withScreenMatrix(svg, () => IDENTITY);
   }
 
   /** The middle of the record of `score`'s band `address` in A's drawing as layout draws it. */
   function middleOf(address: string): { x: number; y: number } {
     const block = store.view.blocks[A];
     if (block === undefined) throw new Error("no block A");
-    const band = drawingOf(block, store.view.settings, metrics).bands.find(
-      (record) => record.address === address,
-    );
+    const band = boxOf(drawingOf(block, store.view.settings, metrics), address);
     if (band === undefined) throw new Error(`${address} is not drawn`);
     return { x: band.x + band.width / 2, y: band.y + band.height / 2 };
   }

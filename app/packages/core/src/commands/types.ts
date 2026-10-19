@@ -4,18 +4,28 @@
  */
 
 import type { Declaration, Selector } from "@timetoalign/timeskeleton";
-import type { Gap } from "../manifest/remove.ts";
+import type { Address } from "../workspace/address.ts";
 import type { BlockId } from "../workspace/blocks.ts";
-import type { Address } from "../workspace/ids.ts";
 
 /** What `add` can put into a target, by the member naming it. */
-export const ADD_KINDS = ["block", "child", "map", "region", "break", "jump", "marker"] as const;
+export const ADD_KINDS = [
+  "block",
+  "timeline",
+  "group",
+  "child",
+  "map",
+  "region",
+  "break",
+  "jump",
+  "marker",
+] as const;
 export type AddKind = (typeof ADD_KINDS)[number];
 
 /**
- * Add one thing `into` a target: a `block` into `workspace`; a `child`,
- * `map`, `region`, `break`, `jump` or `marker` into a timeline. The value is the thing as its container stores it,
- * carrying its own id.
+ * Add one thing `into` a target: a `block` into `workspace`; a root
+ * `timeline` or a `group` into a block; a `child`, `map`, `region`, `break`,
+ * `jump` or `marker` into a timeline. The value is the thing as its
+ * container stores it, carrying its own id.
  */
 export type AddCommand = {
   readonly type: "add";
@@ -37,15 +47,10 @@ export type SetCommand = {
   readonly changes: readonly Change[];
 };
 
-/**
- * Remove blocks and elements, mixed. Removing a segment leaves a gap in its
- * segment line: `gap` says how it is closed, and the command then names that
- * one segment alone.
- */
+/** Remove blocks and elements, mixed. */
 export type RemoveCommand = {
   readonly type: "remove";
   readonly targets: readonly Address[];
-  readonly gap?: Gap;
 };
 
 /**

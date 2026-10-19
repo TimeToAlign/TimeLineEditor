@@ -1,17 +1,15 @@
-/** The selection: a set of addresses, and the click that changes it. */
+/** The selection: a set of addresses, the click that changes it, and the addresses that still exist. */
 
-import type { Address, BandKind, BlockId, EditorKind, View } from "@timetoalign/tilie-core";
+import type { BandKind, BlockId, ResolvedAddress, View } from "@timetoalign/tilie-core";
 import {
-  elementOf,
+  cardAddress,
+  contains,
   findTimeline,
   isCommandError,
-  isNamed,
-  manifestIds,
-  parseAddress,
-  parseBand,
-  TITLE_ADDRESS,
+  resolveAddress,
 } from "@timetoalign/tilie-core";
-import { bandTimelineOf } from "./boxes.ts";
+import type { Editing } from "./editing.ts";
+import { addressParts, bandTimelineOf } from "./editing.ts";
 
 /**
  * Block ids and element addresses: `<block>/<element address>`, the element
@@ -23,11 +21,7 @@ export type Selection = ReadonlySet<string>;
 
 /** The block an address lies in. */
 export function blockOf(address: string): BlockId {
-  const parsed = parseAddress(address);
-  if (isCommandError(parsed) || parsed.block === null) {
-    throw new RangeError(`${address} is not the address of a block or an element`);
-  }
-  return parsed.block;
+  return addressParts(address).block;
 }
 
 /**
@@ -51,11 +45,21 @@ export interface SelectedBand {
   readonly kind: BandKind;
 }
 
-/** The band a selected address names, its block, timeline and kind; `null` for any other. */
-export function selectedBand(address: string): SelectedBand | null {
-  const block = blockOf(address);
-  const band = address === block ? null : parseBand(address.slice(block.length + 1));
-  return band === null ? null : { block, ...band };
+/** The band `resolved` names, its block, timeline and kind; `null` for anything else. */
+function bandOf(resolved: ResolvedAddress): SelectedBand | null {
+  return resolved.kind === "band"
+    ? { block: resolved.block.id, timeline: resolved.at.timeline.id, kind: resolved.band }
+    : null;
+}
+
+/**
+ * The band the selected `address` names in `view` (core's `resolveAddress`),
+ * its block, timeline and kind; `null` for any other address, and for one
+ * that names nothing.
+ */
+export function selectedBand(view: View, address: string): SelectedBand | null {
+  const resolved = resolveAddress(view, address);
+  return isCommandError(resolved) ? null : bandOf(resolved);
 }
 
 /**
@@ -63,13 +67,9 @@ export function selectedBand(address: string): SelectedBand | null {
  * arranger), offers the selected `band`: its timeline exists in its block
  * and is the one whose bands that block offers (`bandTimelineOf`). The one
  * rule for keeping a selected band, whether the selection is pruned
- * (`existing`, and the canvas when an editor opens) or a band is stepped.
+ * (`existing`) or a band is stepped.
  */
-export function offersBand(
-  view: View,
-  band: SelectedBand,
-  editing: { readonly target: Address; readonly kind: EditorKind } | null,
-): boolean {
+export function offersBand(view: View, band: SelectedBand, editing: Editing | null): boolean {
   const block = view.blocks[band.block];
   return (
     block !== undefined &&
@@ -79,29 +79,37 @@ export function offersBand(
 }
 
 /**
- * The addresses of `selection` that still name something in `view` under
- * `editing`, the innermost open editor (`null` on the arranger): a block
- * that exists, an element (or a part of one, read with core's `elementOf`)
- * whose block holds it, the title of a named manifest, or a band the view
- * offers under `editing` (`offersBand`). So opening an editor, or
- * closing one, drops every band but those of the timeline then edited. The
- * selection itself when nothing is gone, so an unchanged selection keeps its
- * identity.
+ * The addresses of `selection` that `view` keeps under `editing`, the
+ * innermost open editor (`null` on the arranger): each must name something
+ * (core's `resolveAddress`; the title only of a named manifest, the one
+ * whose title is drawn), a band only where the view offers it
+ * (`offersBand`), and, in an editor, lie inside the edited element: in the
+ * bundle editor its block or anything of it, in a group or timeline editor
+ * what that group or timeline contains (core's `contains`), never the
+ * edited element itself nor its card, on which a gesture would be refused,
+ * nor another block. The one rule for what a selection keeps, after a
+ * change, an undo or a redo and when an editor opens or closes, so opening
+ * an editor, or closing one, drops every band but those of the timeline
+ * then edited. The selection itself when nothing is gone, so an unchanged
+ * selection keeps its identity.
  */
-export function existing(
-  view: View,
-  selection: Selection,
-  editing: { readonly target: Address; readonly kind: EditorKind } | null,
-): Selection {
+export function existing(view: View, selection: Selection, editing: Editing | null): Selection {
+  const edited = editing === null ? null : addressParts(editing.target);
+  const own = edited?.element == null ? [] : [edited.element, cardAddress(edited.element)];
   const kept = [...selection].filter((address) => {
-    const block = view.blocks[blockOf(address)];
-    if (block === undefined) return false;
-    if (address === block.id) return true;
-    const band = selectedBand(address);
+    const resolved = resolveAddress(view, address);
+    if (isCommandError(resolved) || resolved.kind === "workspace") return false;
+    const band = bandOf(resolved);
     if (band !== null) return offersBand(view, band, editing);
-    const element = elementOf(block.manifest, address.slice(block.id.length + 1));
-    if (element === TITLE_ADDRESS) return isNamed(block.manifest);
-    return manifestIds(block.manifest).has(element);
+    if (edited === null) return true;
+    const { block, element } = addressParts(address);
+    if (block !== edited.block) return false;
+    if (edited.element === null) return true;
+    return (
+      element !== null &&
+      !own.includes(element) &&
+      contains(resolved.block.manifest, edited.element, element)
+    );
   });
   return kept.length === selection.size ? selection : new Set(kept);
 }

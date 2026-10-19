@@ -1,21 +1,23 @@
 import type { View } from "@timetoalign/tilie-core";
-import { contains, createStore } from "@timetoalign/tilie-core";
-import type { DrawnItem } from "@timetoalign/tilie-layout";
+import { contains, isCommandError, preview } from "@timetoalign/tilie-core";
+import type { DrawnBox } from "@timetoalign/tilie-layout";
 import { describe, expect, it } from "vitest";
-import type { Handle, Level, PlaceValues, ResizedItem, ResizeMode } from "../src/index.ts";
+import type { ItemBox } from "../src/boxes.ts";
+import { boxOf, isItem, itemHolding } from "../src/boxes.ts";
+import type { Level } from "../src/containers.ts";
+import { drawingOf } from "../src/drawing.ts";
+import type { PlaceValues } from "../src/items.ts";
 import {
-  drawingOf,
   itemHandlesFor,
   itemMoveCommand,
   itemResizeCommand,
   itemResizeValues,
   itemsMovedWith,
-  placesAfter,
-  placesWith,
-  project,
-  resizedItemOf,
-  stretchChanges,
-} from "../src/index.ts";
+  placeEdit,
+  Stretch,
+} from "../src/items.ts";
+import { project } from "../src/project.ts";
+import type { Handle, ResizeMode } from "../src/resize.ts";
 import {
   A,
   blockIn,
@@ -24,6 +26,7 @@ import {
   mixedPlain,
   placed,
   recordingInGroup1,
+  storeOf,
   viewOf,
 } from "./support.ts";
 
@@ -35,14 +38,21 @@ const DRAWN = {
   annotations: { x: 8, y: 391.7734375 },
 };
 
-function items(of: View): readonly DrawnItem[] {
-  return drawingOf(blockIn(of, A), of.settings, metrics).items;
+function items(of: View): readonly ItemBox[] {
+  return drawingOf(blockIn(of, A), of.settings, metrics).boxes.filter(isItem);
 }
 
-function placeOf(of: View, key: string): DrawnItem["place"] {
+function placeOf(of: View, key: string): ItemBox["item"]["place"] {
   const found = items(of).find((item) => item.key === key);
   if (found === undefined) throw new Error(`no item ${key}`);
-  return found.place;
+  return found.item.place;
+}
+
+/** A frame or card of block A in `of`, by its element address: the box a resize acts on. */
+function resizedBox(of: View, address: string): DrawnBox {
+  const found = boxOf(drawingOf(blockIn(of, A), of.settings, metrics), address);
+  if (found === undefined) throw new Error(`no box ${address}`);
+  return found;
 }
 
 describe("itemMoveCommand", () => {
@@ -190,9 +200,9 @@ describe("itemsMovedWith", () => {
     const block = blockIn(twice, A);
     const twiceDrawing = drawingOf(block, twice.settings, metrics);
     expect(
-      twiceDrawing.cards
+      twiceDrawing.boxes
         .filter((card) => card.address === "excerpt/card")
-        .map((card) => card.group),
+        .map((card) => itemHolding(twiceDrawing, card).key),
     ).toEqual(["group_2"]);
     for (const group of ["group_1", "group_2"]) {
       expect(contains(block.manifest, group, "excerpt/card")).toBe(true);
@@ -206,40 +216,30 @@ describe("itemsMovedWith", () => {
   });
 });
 
-describe("placesWith and placesAfter", () => {
-  it("merges values into a place as core does", () => {
-    const places = { group_1: { x: 12, length: 300 } };
-    expect(placesWith(places, "group_1", { length: null })).toStrictEqual({ group_1: { x: 12 } });
-    expect(placesWith(places, "group_1", { x: null, length: null })).toStrictEqual({});
-    expect(placesWith({}, "group_2", { y: 5 })).toStrictEqual({ group_2: { y: 5 } });
-  });
-
-  it("previews a command exactly as applying it draws", () => {
+describe("a move's preview", () => {
+  it("is the command applied: drawn exactly as the release stores it", () => {
     const command = itemMoveCommand(view, A, "group_2", 40, 200, metrics);
     if (command === null) throw new Error("no command");
-    const block = blockIn(view, A);
-    const preview = drawingOf(block, view.settings, metrics, {
-      places: placesAfter(block, command),
-    });
+    const previewed = preview(view, command);
+    if (isCommandError(previewed)) throw new Error(previewed.message);
     const after = changed(view, command);
-    expect(preview).toEqual(drawingOf(blockIn(after, A), after.settings, metrics));
+    expect(drawingOf(blockIn(previewed, A), previewed.settings, metrics)).toEqual(
+      drawingOf(blockIn(after, A), after.settings, metrics),
+    );
   });
 });
 
-describe("resizedItemOf", () => {
+describe("the boxes a resize acts on", () => {
   const drawing = drawingOf(blockIn(view, A), view.settings, metrics);
+  const holding = (address: string) => itemHolding(drawing, resizedBox(view, address)).key;
 
-  it("names the box at an address: a frame, an ungrouped card, a member's card", () => {
-    expect(resizedItemOf(drawing, "group_1")).toStrictEqual(FRAME_1);
-    expect(resizedItemOf(drawing, "annotations/card")).toStrictEqual(ANNOTATIONS);
-    expect(resizedItemOf(drawing, "performance/card")).toStrictEqual(PERFORMANCE);
-    expect(resizedItemOf(drawing, "excerpt/card")).toStrictEqual({
-      kind: "member",
-      key: "excerpt",
-      item: "group_2",
-    });
-    expect(resizedItemOf(drawing, "score")).toBeUndefined();
-    expect(resizedItemOf(drawing, "group_1/name")).toBeUndefined();
+  it("are the frames and cards, each held by its own item or, held by a frame, by the frame", () => {
+    expect(holding("group_1")).toBe("group_1");
+    expect(holding("annotations/card")).toBe("annotations");
+    expect(holding("performance/card")).toBe("group_1");
+    expect(holding("excerpt/card")).toBe("group_2");
+    expect(boxOf(drawing, "score")).toBeUndefined();
+    expect(boxOf(drawing, "group_1/name")).toBeUndefined();
   });
 });
 
@@ -257,58 +257,54 @@ describe("itemHandlesFor", () => {
   ];
 
   it("offers a frame or card a block's handles, no left one to stretch in the group editor", () => {
-    for (const kind of ["frame", "card"] as const) {
+    for (const address of ["group_1", "annotations/card"]) {
+      const box = resizedBox(view, address);
       for (const level of ["arranger", "bundle", "group", "timeline"] as const) {
-        expect(itemHandlesFor("scale", kind, level)).toEqual(CORNERS);
-        expect(itemHandlesFor("box", kind, level)).toEqual(EIGHT);
-        expect(itemHandlesFor("stretch", kind, level)).toEqual(
+        expect(itemHandlesFor("scale", box, level)).toEqual(CORNERS);
+        expect(itemHandlesFor("box", box, level)).toEqual(EIGHT);
+        expect(itemHandlesFor("stretch", box, level)).toEqual(
           level === "group" ? ["top", "top-right", "right", "bottom-right", "bottom"] : EIGHT,
         );
       }
     }
   });
 
-  it("never moves a member card's top left corner", () => {
+  it("never moves a held card's top left corner", () => {
+    const held = resizedBox(view, "performance/card");
     for (const level of ["arranger", "bundle", "group", "timeline"] as const) {
-      expect(itemHandlesFor("scale", "member", level)).toEqual(["bottom-right"]);
-      expect(itemHandlesFor("box", "member", level)).toEqual(["right", "bottom-right", "bottom"]);
-      expect(itemHandlesFor("stretch", "member", level)).toEqual([
-        "right",
-        "bottom-right",
-        "bottom",
-      ]);
+      expect(itemHandlesFor("scale", held, level)).toEqual(["bottom-right"]);
+      expect(itemHandlesFor("box", held, level)).toEqual(["right", "bottom-right", "bottom"]);
+      expect(itemHandlesFor("stretch", held, level)).toEqual(["right", "bottom-right", "bottom"]);
     }
   });
 });
 
-const FRAME_1: ResizedItem = { kind: "frame", key: "group_1", item: "group_1" };
-const FRAME_2: ResizedItem = { kind: "frame", key: "group_2", item: "group_2" };
-const ANNOTATIONS: ResizedItem = { kind: "card", key: "annotations", item: "annotations" };
-const PERFORMANCE: ResizedItem = { kind: "member", key: "performance", item: "group_1" };
-const SCORE: ResizedItem = { kind: "member", key: "score", item: "group_1" };
+const FRAME_1 = "group_1";
+const FRAME_2 = "group_2";
+const ANNOTATIONS = "annotations/card";
+const PERFORMANCE = "performance/card";
+const SCORE = "score/card";
 
 type Places = { readonly [key: string]: PlaceValues };
 
 function changes(
   of: View,
   level: Level,
-  resized: ResizedItem,
+  resized: string,
   mode: ResizeMode,
   handle: Handle,
   dx: number,
   dy: number,
 ): ReadonlyMap<string, PlaceValues> {
-  return itemResizeValues(blockIn(of, A), of.settings, metrics, level, resized, mode, handle, {
-    dx,
-    dy,
-  });
+  const box = resizedBox(of, resized);
+  return itemResizeValues(of, A, box, level, mode, handle, { dx, dy }, metrics);
 }
 
 /** The places a resize sets, as an object whose keys keep the map's order. */
 function values(
   of: View,
   level: Level,
-  resized: ResizedItem,
+  resized: string,
   mode: ResizeMode,
   handle: Handle,
   dx: number,
@@ -321,7 +317,7 @@ function values(
 function keys(
   of: View,
   level: Level,
-  resized: ResizedItem,
+  resized: string,
   mode: ResizeMode,
   handle: Handle,
   dx: number,
@@ -334,7 +330,7 @@ function keys(
 function resizeOf(
   of: View,
   level: Level,
-  resized: ResizedItem,
+  resized: string,
   mode: ResizeMode,
   handle: Handle,
   dx: number,
@@ -540,8 +536,9 @@ describe("itemResizeValues, stretch", () => {
       for (const level of ["arranger", "bundle", "timeline"] as const) {
         expect(values(of, level, resized, "stretch", handle, dx, dy)).toStrictEqual(expected);
         const command = resizeOf(of, level, resized, "stretch", handle, dx, dy);
-        const store = createStore({ view: of, journal: [], sessions: {} });
-        const editor = { arranger: null, bundle: A, timeline: `${A}/${resized.key}` }[level];
+        const store = storeOf(of);
+        const timeline = `${A}/${resizedBox(of, resized).key}`;
+        const editor = { arranger: null, bundle: A, timeline }[level];
         if (editor !== null) expect(store.open(editor)).toBeNull();
         expect(store.dispatch(command)).toBeNull();
       }
@@ -562,7 +559,7 @@ describe("itemResizeValues, stretch", () => {
   });
 
   it("applies a member's stretch in its timeline editor, its group's length alone", () => {
-    const store = createStore({ view, journal: [], sessions: {} });
+    const store = storeOf(view);
     expect(store.open(`${A}/score`)).toBeNull();
     expect(store.dispatch(resizeOf(view, "timeline", SCORE, "stretch", "right", 20, 0))).toBeNull();
     expect(blockIn(store.view, A).places).toStrictEqual({ group_1: { length: 420 } });
@@ -570,13 +567,13 @@ describe("itemResizeValues, stretch", () => {
 });
 
 describe("the shortening lock", () => {
-  const SHARED_EXPOSITION: ResizedItem = { kind: "member", key: "exposition", item: "group_1" };
-  const SHARED_FRAME: ResizedItem = { kind: "frame", key: "group_1", item: "group_1" };
+  const SHARED_EXPOSITION = "exposition/card";
+  const SHARED_FRAME = "group_1";
   const shared = viewOf({ id: A, fixture: "bundles/bundle_shared_parent", x: 40, y: 80 });
   /** `of` after the resize, its command applied on the arranger. */
   const after = (
     of: View,
-    resized: ResizedItem,
+    resized: string,
     mode: ResizeMode,
     dx: number,
   ): { view: View; values: Places } => ({
@@ -585,8 +582,8 @@ describe("the shortening lock", () => {
   });
   /** The drawn width of member `key`'s card, in item coordinates. */
   const cardWidth = (of: View, key: string) =>
-    drawingOf(blockIn(of, A), of.settings, metrics).cards.find((card) => card.key === key)?.size
-      .width;
+    drawingOf(blockIn(of, A), of.settings, metrics).boxes.find((card) => card.key === key)?.card
+      ?.size.width;
 
   it("keeps a member card's margin in proportion and shortens the group again", () => {
     const boxed = after(shared, SHARED_EXPOSITION, "box", 551.39013671875);
@@ -673,7 +670,7 @@ describe("itemResizeValues, the group editor's stretch", () => {
   });
 });
 
-describe("stretchChanges", () => {
+describe("Stretch, its changes", () => {
   const PINNED = 562.48486328125;
   const framed = placed(view, A, "group_1", { width: 600 });
   const wideCard = placed(view, A, "performance", { width: TWICE_CARD });
@@ -683,12 +680,12 @@ describe("stretchChanges", () => {
   const stretchedTo = (
     of: View,
     level: Level,
-    resized: ResizedItem,
+    resized: string,
     factor: "length" | "spacing",
     value: number,
   ): Places =>
     Object.fromEntries(
-      stretchChanges(blockIn(of, A), of.settings, metrics, level, resized, factor, value),
+      new Stretch(of, A, resizedBox(of, resized), level, factor, metrics).changes(value),
     );
 
   it.each([
@@ -732,15 +729,14 @@ describe("stretchChanges", () => {
       group_1: { spacing: 2 },
       performance: { height: 130.953125 },
     });
-    const card = stretchChanges(
-      blockIn(tallFrame, A),
-      tallFrame.settings,
-      metrics,
+    const card = new Stretch(
+      tallFrame,
+      A,
+      resizedBox(tallFrame, PERFORMANCE),
       "arranger",
-      PERFORMANCE,
       "spacing",
-      2,
-    );
+      metrics,
+    ).changes(2);
     expect([...card]).toStrictEqual([
       ["performance", { spacing: 2 }],
       ["group_1", { height: 370.46875 }],
@@ -791,5 +787,98 @@ describe("itemResizeCommand", () => {
     expect(
       itemResizeCommand(view, A, one("annotations", { scale: null }), "arranger", metrics),
     ).toBeNull();
+  });
+});
+
+describe("placeEdit", () => {
+  const edit = (
+    selected: readonly string[],
+    property: Parameters<typeof placeEdit>[2],
+    value: Parameters<typeof placeEdit>[3],
+    level: Level = "arranger",
+    of: View = view,
+  ) => placeEdit(of, new Set(selected), property, value, level, metrics);
+  /** A command's changes; a refusal or `null` as it is. */
+  const changesOf = (result: ReturnType<typeof placeEdit>) =>
+    result !== null && "changes" in result ? result.changes : result;
+  const others = [
+    { target: at("group_2"), values: { place: DRAWN.group_2 } },
+    { target: at("annotations"), values: { place: DRAWN.annotations } },
+  ];
+
+  it("sets a block's own member, null when it stores that value", () => {
+    expect(edit([A], "scale", 2)).toEqual({
+      type: "set",
+      changes: [{ target: A, values: { scale: 2 } }],
+    });
+    expect(edit([A], "scale", 1)).toBeNull();
+    expect(edit([A], "width", null)).toBeNull();
+  });
+
+  it("sets an item's place, stating the other items' positions where items lie freely", () => {
+    expect(changesOf(edit([at("group_2")], "width", 601, "bundle"))).toEqual([
+      { target: at("group_2"), values: { place: { width: 601 } } },
+      { target: at("group_1"), values: { place: DRAWN.group_1 } },
+      { target: at("annotations"), values: { place: DRAWN.annotations } },
+    ]);
+    expect(edit([at("group_2")], "width", null, "bundle")).toBeNull();
+  });
+
+  it("sets a held card's size on its own key, named by its card or by its line", () => {
+    const width = 586.48486328125;
+    const expected = [{ target: at("performance"), values: { place: { width } } }, ...others];
+    expect(changesOf(edit([at("performance/card")], "width", width))).toEqual(expected);
+    expect(changesOf(edit([at("performance")], "width", width))).toEqual(expected);
+    expect(changesOf(edit([at("performance/name")], "width", width))).toEqual(expected);
+  });
+
+  it("sets a held card's scale and length on its group, once for two cards of the group", () => {
+    expect(edit([at("score/card"), at("performance/card")], "scale", 2, "group")).toEqual({
+      type: "set",
+      changes: [{ target: at("group_1"), values: { place: { scale: 2 } } }],
+    });
+  });
+
+  it("writes a length or spacing as a Stretch to it writes", () => {
+    expect(changesOf(edit([at("group_1")], "length", 300))).toEqual([
+      { target: at("group_1"), values: { place: { length: 300 } } },
+      ...others,
+    ]);
+    expect(changesOf(edit([at("score/card")], "length", 500, "group"))).toEqual([
+      { target: at("group_1"), values: { place: { length: 400, width: 562.48486328125 } } },
+    ]);
+  });
+
+  it("steps from each element's shown value", () => {
+    expect(
+      changesOf(edit([at("group_1")], "spacing", (current) => (current ?? 0) + 1, "bundle")),
+    ).toEqual([{ target: at("group_1"), values: { place: { spacing: 2 } } }, ...others]);
+  });
+
+  it("refuses a selection with no geometry, mixed kinds, a held card's position, a bad value", () => {
+    const refusal = (code: string, path: readonly string[]) =>
+      expect.objectContaining({ code, path });
+    expect(edit([], "width", 1)).toEqual(refusal("unknown_target", ["width"]));
+    expect(edit([at("name")], "width", 1)).toEqual(
+      refusal("wrong_target_kind", [at("name"), "width"]),
+    );
+    expect(edit([A, at("group_1")], "width", 1)).toEqual(
+      refusal("wrong_target_kind", [A, "width"]),
+    );
+    expect(edit([at("performance/card")], "x", 1)).toEqual(
+      refusal("unknown_property", [at("performance"), "x"]),
+    );
+    expect(edit([at("group_1")], "scale", null)).toEqual(
+      refusal("invalid_value", [at("group_1"), "scale"]),
+    );
+    expect(edit([A], "length", Number.NaN)).toEqual(refusal("invalid_value", [A, "length"]));
+    const two = changed(view, {
+      type: "add",
+      into: "workspace",
+      block: { id: "0000000005", manifest: blockIn(view, A).manifest, x: 0, y: 0 },
+    });
+    expect(edit([at("group_1"), "0000000005/group_1"], "width", 600, "arranger", two)).toEqual(
+      refusal("wrong_target_kind", [at("group_1"), "width"]),
+    );
   });
 });

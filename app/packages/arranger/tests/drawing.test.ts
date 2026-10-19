@@ -1,6 +1,6 @@
 import { DEFAULT_LAYER, draw } from "@timetoalign/tilie-layout";
 import { describe, expect, it } from "vitest";
-import { drawingOf, withMemberOrder } from "../src/index.ts";
+import { drawingOf } from "../src/drawing.ts";
 import { A, blockIn, changed, metrics, mixedPlain, placed, viewOf } from "./support.ts";
 
 describe("drawingOf", () => {
@@ -47,13 +47,13 @@ describe("drawingOf", () => {
     expect(second.elements[0]?.style.fill).toBe("#FFFFFF");
   });
 
-  it("draws a preview without caching it", () => {
+  it("draws overridden placement members without caching them", () => {
     const memoized = drawingOf(block, view.settings, metrics);
     expect(drawingOf(block, view.settings, metrics, { length: 800 }).width).toBe(876.5771484375);
     expect(drawingOf(block, view.settings, metrics)).toBe(memoized);
   });
 
-  it("draws a block's places, and previews places and a manifest", () => {
+  it("draws a block's places, and overridden places", () => {
     const moved = placed(mixedPlain(), A, "annotations", { x: -30 });
     const mixed = blockIn(moved, A);
     const drawing = drawingOf(mixed, moved.settings, metrics);
@@ -76,15 +76,6 @@ describe("drawingOf", () => {
       x: 0,
       y: 0,
     });
-    const manifest = withMemberOrder(mixed.manifest, "group_1", ["performance", "score"]);
-    const reordered = drawingOf(mixed, moved.settings, metrics, { manifest });
-    const cards = reordered.elements.flatMap((element) =>
-      element.type === "card" ? [[element.address, element.y]] : [],
-    );
-    expect(cards.slice(0, 2)).toEqual([
-      ["performance/card", 53.609375],
-      ["score/card", 111.0859375],
-    ]);
     expect(drawingOf(mixed, moved.settings, metrics)).toBe(drawing);
   });
 });

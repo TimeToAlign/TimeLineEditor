@@ -1,16 +1,20 @@
-import type { Statement } from "@timetoalign/timeskeleton";
+import type { Declaration, Selector, Statement } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
-import type { Block, Manifest, View } from "../src/index.ts";
-import { sideEffect } from "../src/index.ts";
-import { statementInside } from "../src/workspace/guard.ts";
+import { applyChanges } from "../src/commands/apply.ts";
+import { parseCommand } from "../src/commands/parse.ts";
+import { isCommandError } from "../src/errors.ts";
+import type { Manifest } from "../src/manifest/types.ts";
+import type { Block } from "../src/workspace/blocks.ts";
+import { sideEffect, statementInside } from "../src/workspace/guard.ts";
+import type { View } from "../src/workspace/view.ts";
 import { A, addBlock, B, block, changed, deepFreeze, viewOf } from "./support.ts";
 
 const BUNDLE = "bundle0001";
 const G1 = `${BUNDLE}/group_1`;
 const MIXED = "bundles/bundle_mixed.json";
-const RED = { stroke: "#FF0000" };
-const TIMELINES = { element: "timeline" } as const;
-const SCORE = { ids: ["score"] } as const;
+const RED: Declaration = { stroke: "#FF0000" };
+const TIMELINES: Selector = { element: "timeline" };
+const SCORE: Selector = { ids: ["score"] };
 
 /** The default band order of the timeline `id`. */
 const D = (id: string) => [
@@ -63,8 +67,8 @@ const withBlock = (view: View, values: Partial<Block>): View => ({
 });
 
 /** `view` with members of the bundle's manifest replaced. */
-const withManifest = (view: View, values: object): View =>
-  withBlock(view, { manifest: { ...block(view, BUNDLE).manifest, ...values } as Manifest });
+const withManifest = (view: View, values: Partial<Manifest>): View =>
+  withBlock(view, { manifest: { ...block(view, BUNDLE).manifest, ...values } });
 
 const withGrid = (view: View): View => ({
   ...view,
@@ -259,6 +263,71 @@ describe("sideEffect, the order of the rules", () => {
   });
 });
 
+describe("sideEffect, with the command's change set", () => {
+  const grid = set("workspace", { grid: { size: 16, snap: true } });
+  it.each([
+    [before, grid, G1, outside("the workspace setting grid", ["workspace", "grid"])],
+    [before, grid, "workspace", null],
+    [two, set(A, { x: 50 }), G1, outside(`block ${A}`, [A])],
+    [two, addBlock(B, "bare.json"), G1, outside(`block ${B}`, [B])],
+    [two, { type: "remove", targets: [A] }, G1, outside(`block ${A}`, [A])],
+    [two, { type: "style", select: TIMELINES, set: RED }, G1, outside(`block ${A}`, [A])],
+    [two, set(A, { x: 50 }), A, null],
+    [before, named("score", "S"), G1, null],
+    [
+      before,
+      named("annotations", "A"),
+      G1,
+      outside(`${BUNDLE}/annotations`, [`${BUNDLE}/annotations`]),
+    ],
+    [
+      before,
+      set(BUNDLE, { length: 500 }),
+      G1,
+      outside(`the length of block ${BUNDLE}`, [BUNDLE, "length"]),
+    ],
+    [before, set(`${BUNDLE}/score`, { order: SCORE_LINE_FIRST }), G1, null],
+    [before, set(G1, { order: ["performance", "score"] }), G1, null],
+    [before, set(G1, { place: { length: 300 } }), `${BUNDLE}/score`, null],
+    [before, set(`${BUNDLE}/annotations/region_1`, { name: "R" }), `${BUNDLE}/annotations`, null],
+    [
+      before,
+      set(`${BUNDLE}/annotations/region_1`, { name: "R" }),
+      G1,
+      outside(`${BUNDLE}/annotations/region_1`, [`${BUNDLE}/annotations/region_1`]),
+    ],
+    [before, set(`${BUNDLE}/excerpt`, { offset: 22050 }), `${BUNDLE}/recording`, null],
+    [
+      before,
+      set(`${BUNDLE}/excerpt`, { offset: 22050 }),
+      G1,
+      outside(`${BUNDLE}/excerpt`, [`${BUNDLE}/excerpt`]),
+    ],
+  ])("refuses what the full comparison refuses (%#)", (view, command, target, expected) => {
+    const parsed = parseCommand(command);
+    if (isCommandError(parsed)) throw new Error(parsed.message);
+    const applied = applyChanges(view, parsed);
+    if (isCommandError(applied)) throw new Error(applied.message);
+    expect(sideEffect(view, applied.view, target, applied.changes)).toEqual(expected);
+    expect(sideEffect(view, applied.view, target)).toEqual(expected);
+  });
+
+  it("reads nothing of the manifest outside the target when every change lies inside", () => {
+    // A value without a text, outside group_1: only a projection of the manifest writes it.
+    const { manifest } = block(before, BUNDLE);
+    const timelines = manifest.timelines.map((timeline) =>
+      timeline.id === "annotations" ? { ...timeline, meta: { unread: Number.NaN } } : timeline,
+    );
+    const view = withManifest(before, { timelines });
+    const parsed = parseCommand(named("score", "S"));
+    if (isCommandError(parsed)) throw new Error(parsed.message);
+    const applied = applyChanges(view, parsed, false);
+    if (isCommandError(applied)) throw new Error(applied.message);
+    expect(sideEffect(view, applied.view, G1, applied.changes)).toBeNull();
+    expect(() => sideEffect(view, applied.view, G1)).toThrow(RangeError);
+  });
+});
+
 describe("statements inside and outside", () => {
   const was = block(before, BUNDLE).manifest;
   const { group_1: _, ...order } = was.graphical?.order ?? {};
@@ -269,7 +338,7 @@ describe("statements inside and outside", () => {
     graphical: { ...was.graphical, order },
   });
   const now = block(shrunk, BUNDLE).manifest;
-  const statement = (select: object): Statement => ({ select, set: RED }) as unknown as Statement;
+  const statement = (select: Selector): Statement => ({ select, set: RED });
 
   it("is inside only when every element it matches in each manifest is contained", () => {
     expect(statementInside([was], "group_1")(statement(SCORE))).toBe(true);

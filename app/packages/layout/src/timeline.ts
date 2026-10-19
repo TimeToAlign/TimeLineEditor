@@ -11,13 +11,8 @@
  * laid out by `rows.ts` and `children.ts`; this module never places a child.
  */
 
-import {
-  BAND_KINDS,
-  type BandKind,
-  bandAddress,
-  bandOrderOf,
-  type Real,
-} from "@timetoalign/tilie-core";
+import { BAND_KINDS, type BandKind, bandAddress, bandOrderOf } from "@timetoalign/tilie-core";
+import type { Real } from "@timetoalign/tilie-core/numbers";
 import {
   bandSides,
   bandStart,
@@ -161,10 +156,7 @@ export interface TimelineDrawing {
 export function sourcesOf(scope: Scope, line: Entry): readonly Entry[] {
   if (!line.drawn) return [];
   if (!line.manifest.is_segment_line) return [line];
-  return [
-    line,
-    ...scope.entries.filter((entry) => entry.parent === line && !entry.line && entry.drawn),
-  ];
+  return (scope.index.sourcesByLine.get(line) ?? []).filter((entry) => entry.line || entry.drawn);
 }
 
 /** The children band: the child lines it places, which each draw their own elements. */
@@ -212,7 +204,9 @@ export function prepareTimeline(scope: Scope, line: Entry): PreparedTimeline {
   const order = bandOrderOf(scope.manifest, id);
   const sources = sourcesOf(scope, line);
   const children = sources.flatMap((source) =>
-    scope.entries.filter((entry) => entry.parent === source && entry.line && entry.drawn),
+    (scope.index.childrenByParent.get(source.manifest.id) ?? []).filter(
+      (entry) => entry.line && entry.drawn,
+    ),
   );
   const bands: Record<BandKind, PreparedBand> = {
     children: childrenBand(line, children),
@@ -228,6 +222,8 @@ export function prepareTimeline(scope: Scope, line: Entry): PreparedTimeline {
   );
   const zero = levelZero(scope, line);
   const own = [...zero.extents, ...BAND_KINDS.flatMap((kind) => bands[kind].extents)];
+  const [firstExtent, ...otherExtents] = own;
+  if (firstExtent === undefined) throw new Error("a timeline has no extent");
   return {
     scope,
     line,
@@ -241,7 +237,7 @@ export function prepareTimeline(scope: Scope, line: Entry): PreparedTimeline {
       above: zero.reach("above", againstOf(bands, levels, "above")),
       below: zero.reach("below", againstOf(bands, levels, "below")),
     },
-    extent: wholeExtent(own[0] as Extent, own.slice(1)),
+    extent: wholeExtent(firstExtent, otherExtents),
     centred: [...zero.centred, ...BAND_KINDS.flatMap((kind) => bands[kind].centred)],
   };
 }
@@ -286,21 +282,23 @@ export function wholeExtent(own: Extent, children: readonly Extent[]): Extent {
   return children.reduce(widen, own);
 }
 
-/** What one line draws, every category empty. */
-const NOTHING: LineElements = {
-  breaks: [],
-  maps: [],
-  regions: [],
-  jumps: [],
-  line: [],
-  boundaries: [],
-  wedges: [],
-  wedgeLabels: [],
-  segmentLabels: [],
-  regionLabels: [],
-  jumpLabels: [],
-  breakLabels: [],
-};
+/** Merge the typed categories drawn by level zero and each band. */
+function mergeLineElements(parts: readonly Partial<LineElements>[]): LineElements {
+  return {
+    breaks: parts.flatMap((part) => part.breaks ?? []),
+    maps: parts.flatMap((part) => part.maps ?? []),
+    regions: parts.flatMap((part) => part.regions ?? []),
+    jumps: parts.flatMap((part) => part.jumps ?? []),
+    line: parts.flatMap((part) => part.line ?? []),
+    boundaries: parts.flatMap((part) => part.boundaries ?? []),
+    wedges: parts.flatMap((part) => part.wedges ?? []),
+    wedgeLabels: parts.flatMap((part) => part.wedgeLabels ?? []),
+    segmentLabels: parts.flatMap((part) => part.segmentLabels ?? []),
+    regionLabels: parts.flatMap((part) => part.regionLabels ?? []),
+    jumpLabels: parts.flatMap((part) => part.jumpLabels ?? []),
+    breakLabels: parts.flatMap((part) => part.breakLabels ?? []),
+  };
+}
 
 /**
  * The second pass for one timeline, once its children band is laid out
@@ -335,11 +333,7 @@ export function layoutTimeline(
       prepared.levelZero.draw(at, againstOf(bands, levels, "above")),
       ...laid.map((band) => bands[band.kind].draw(band.start, band.side, at)),
     ];
-    const drawn: Record<string, unknown[]> = {};
-    for (const category of Object.keys(NOTHING) as (keyof LineElements)[]) {
-      drawn[category] = parts.flatMap((part) => (part[category] ?? []) as unknown[]);
-    }
-    return drawn as unknown as LineElements;
+    return mergeLineElements(parts);
   };
 
   return {

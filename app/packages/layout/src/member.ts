@@ -6,7 +6,7 @@
  * timeskeleton, sections 6, 7.2, 8.3 and 8.5).
  */
 
-import type { MemberDrawing } from "@timetoalign/tilie-core";
+import type { MemberDrawing } from "@timetoalign/tilie-core/drawing";
 import {
   ancestorBand,
   ancestorLabelElements,
@@ -18,13 +18,13 @@ import {
   chevrons,
 } from "./ancestors.ts";
 import type { Centred, LineElements, SegmentElement } from "./bands.ts";
+import type { DrawnBox, ElementRange } from "./boxes.ts";
 import { type Fitted, fitTimelines } from "./children.ts";
-import type { DrawnBand, DrawnElement } from "./elements.ts";
+import type { DrawnElement } from "./elements.ts";
 import { heights } from "./heights.ts";
 import { lineNames, nameElement, type RowName, rowName } from "./names.ts";
 import { layoutRow, type PlacedLine, placeLines, type Row, rowsOf } from "./rows.ts";
-import type { TimelineDrawing } from "./timeline.ts";
-import { type Context, type Entry, type Holder, traverse } from "./traversal.ts";
+import { type Context, type Entry, type Holder, known, traverse } from "./traversal.ts";
 
 /**
  * One member drawing laid out before its horizontal start and its top are
@@ -48,8 +48,12 @@ export interface MemberLayout {
 export interface MemberDrawn {
   /** Its elements in descriptor order (sections 7.2 and 8.5), its card excluded. */
   readonly elements: DrawnElement[];
-  /** Its bands, its timelines in traversal order, each one's top to bottom (`Drawing.bands`). */
-  readonly bands: DrawnBand[];
+  /**
+   * The records of its present bands, its timelines in traversal order, each one's top to
+   * bottom, held by its card; each range is empty at the end of `elements`, counted from its
+   * first element.
+   */
+  readonly bands: DrawnBox[];
 }
 
 /** Every row of a member drawing, the root's first, then each joint's rows, at every depth. */
@@ -64,7 +68,8 @@ function rowsBelow(row: Row): Row[] {
 
 /**
  * Lay out one timeline drawn as a root (sections 3 to 6, and 8.3 for its
- * ancestors), its line held by `holder`, the block or its group's frame, by
+ * ancestors) in the card at `card`, its line held by `holder`, the box or its
+ * group's frame, by
  * the three passes of section 6.4: every first fit and every row; the
  * distances, from the deepest rows up, then the ancestor band and the
  * heights; the ordinates, from the root's line down, once `drawAt` gives the
@@ -74,13 +79,14 @@ export function layoutMember(
   context: Context,
   member: MemberDrawing,
   holder: Holder,
+  card: string,
 ): MemberLayout {
   const scope = traverse(context, member, holder);
   const { rootEntry } = scope;
 
   const fitted = fitTimelines(scope);
   const rootRow = rowsOf(scope, fitted);
-  const root = layoutRow(rootRow, fitted).get(rootEntry) as TimelineDrawing;
+  const root = known(layoutRow(rootRow, fitted), rootEntry);
   const ancestors = ancestorLines(scope);
   const band = ancestorBand(scope, ancestors, rootRow.pitch, root.edges.above);
   const { Pv, yLocal, Hc } = heights(scope, band.edge, root.edges.below);
@@ -121,33 +127,32 @@ export function layoutMember(
         text === undefined ? [] : [nameElement(scope, text, n, ancestorY(band, index, yRoot))],
       ),
       ...rowTexts
-        .map((item) => ({ text: item.text, y: ordinate.get(item.row) as number }))
+        .map((item) => ({ text: item.text, y: known(ordinate, item.row) }))
         .sort((left, right) => left.y - right.y)
         .flatMap((item) =>
           item.text === undefined ? [] : [nameElement(scope, item.text, n, item.y)],
         ),
     ];
-    return {
-      elements: [
-        ...each("breaks"),
-        ...each("maps"),
-        ...each("regions"),
-        ...each("jumps"),
-        ...ancestorLineElements(scope, ancestors, band, x0, yRoot),
-        ...each("line"),
-        ...bySegment(each("boundaries")),
-        ...ancestorMarkElements(scope, ancestors, band, x0, yRoot),
-        ...each("wedges"),
-        ...names,
-        ...ancestorLabelElements(scope, ancestors, band, x0, yRoot),
-        ...each("wedgeLabels"),
-        ...bySegment(each("segmentLabels")),
-        ...each("regionLabels"),
-        ...each("jumpLabels"),
-        ...each("breakLabels"),
-      ],
-      bands: bandRecords(placed, fitted),
-    };
+    const elements: DrawnElement[] = [
+      ...each("breaks"),
+      ...each("maps"),
+      ...each("regions"),
+      ...each("jumps"),
+      ...ancestorLineElements(scope, ancestors, band, x0, yRoot),
+      ...each("line"),
+      ...bySegment(each("boundaries")),
+      ...ancestorMarkElements(scope, ancestors, band, x0, yRoot),
+      ...each("wedges"),
+      ...names,
+      ...ancestorLabelElements(scope, ancestors, band, x0, yRoot),
+      ...each("wedgeLabels"),
+      ...bySegment(each("segmentLabels")),
+      ...each("regionLabels"),
+      ...each("jumpLabels"),
+      ...each("breakLabels"),
+    ];
+    const end = { start: elements.length, end: elements.length };
+    return { elements, bands: bandRecords(placed, fitted, card, end) };
   };
 
   return {
@@ -160,11 +165,13 @@ export function layoutMember(
 }
 
 /**
- * The bands of a member drawing whose lines are placed as `lines` (in
- * traversal order) after the first pass `fitted`, in item coordinates,
- * before its item is placed: for each line, each band of
- * `TimelineDrawing.bands` (top to bottom) with its address, timeline, kind,
- * level and elements, its line's ordinate `yl`, and its rectangle.
+ * The records of the bands of a member drawing whose lines are placed as
+ * `lines` (in traversal order) after the first pass `fitted`, in item
+ * coordinates, before its item is placed, each held by the card at `card`
+ * and given the empty range `range`, since a band draws nothing: for each
+ * line, each present band of `TimelineDrawing.bands` (top to bottom) with
+ * its address, timeline, kind, level and elements, its line's ordinate
+ * `yl`, and its rectangle.
  * Vertically a band above its line runs from `yl − E` to `yl − c`, one below
  * from `yl + c` to `yl + E`, `c` its start and `E` its outer edge (section
  * 6.4, Where a band lies); `y` is the top, `height` the bottom less the top.
@@ -172,30 +179,33 @@ export function layoutMember(
  * a` to `x0 + b`, `[a, b]` its `Fitted.extent` (section 6.4, Children); `x`
  * is the left, `width` the right less the left.
  */
-export function bandRecords(
+function bandRecords(
   lines: readonly PlacedLine[],
   fitted: ReadonlyMap<Entry, Fitted>,
-): DrawnBand[] {
+  card: string,
+  range: ElementRange,
+): DrawnBox[] {
   return lines.flatMap(({ drawing, place }) => {
     const timeline = drawing.prepared.line.manifest.id;
-    const [a, b] = (fitted.get(drawing.prepared.line) as Fitted).extent;
+    const [a, b] = known(fitted, drawing.prepared.line).extent;
     const left = place.x0 + a;
     const right = place.x0 + b;
     const yl = place.y;
-    return drawing.bands.map((band) => {
+    return drawing.bands.map((band): DrawnBox => {
       const top = band.side === "above" ? yl - band.edge : yl + band.start;
       const bottom = band.side === "above" ? yl - band.start : yl + band.edge;
       return {
+        kind: "band",
+        key: null,
         address: band.address,
-        timeline,
-        kind: band.kind,
-        level: band.level,
-        line: yl,
-        elements: band.elements,
+        holder: card,
         x: left,
         y: top,
         width: right - left,
         height: bottom - top,
+        range,
+        displayed: false,
+        band: { timeline, kind: band.kind, level: band.level, elements: band.elements, line: yl },
       };
     });
   });

@@ -24,11 +24,11 @@ export function conversionMapsBand(
   line: Entry,
   sources: readonly Entry[],
 ): PreparedBand {
-  const { address, owned } = scope;
+  const { address, mapped } = scope;
   const maps = sources.flatMap((source) =>
     shown(source.bands.conversion_maps.style)
       ? source.manifest.conversion_maps
-          .map((map) => owned("map", address(map.id), source, "conversion_maps", map))
+          .map((map) => mapped(address(map.id), source, map))
           .filter((map) => shown(map.style))
       : [],
   );

@@ -1,23 +1,19 @@
 /// <reference types="node" />
 /**
- * What the inspector names beside its heading, for every kind of element;
- * the expected values are derived in `README.md` ("The inspector").
+ * What the editor names beside the inspector's heading, for every kind of
+ * element; the expected values are derived in `README.md` ("Words").
  */
 
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import type { View } from "@timetoalign/tilie-core";
+import { liveStore } from "@timetoalign/tilie-arranger";
+import type { Store, View } from "@timetoalign/tilie-core";
 import { createStore, isLoadError, readWorkspace } from "@timetoalign/tilie-core";
 import { flushSync, mount, unmount } from "svelte";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import App from "../src/App.svelte";
-import { inspectedSubject } from "../src/inspector/edit.ts";
-import { stubEditor } from "./dom.ts";
-import { flushAutosaves } from "./support.ts";
-
-vi.mock("../src/autosave.ts", async (importOriginal) =>
-  (await import("./support.ts")).recordAutosaves(await importOriginal()),
-);
+import { afterEach, describe, expect, it } from "vitest";
+import InspectorDrawer from "../src/InspectorDrawer.svelte";
+import { inspectedSubject } from "../src/inspector/words.ts";
+import { holder } from "./holder.svelte.ts";
 
 /** The end-to-end workspaces, the generator's output. */
 const E2E_FIXTURES = path.join(import.meta.dirname, "..", "..", "..", "e2e", "fixtures");
@@ -26,18 +22,20 @@ function workspaceText(name: string): string {
   return readFileSync(path.join(E2E_FIXTURES, `${name}.tle.json`), "utf8");
 }
 
-function viewOf(name: string): View {
+function storeOf(name: string): Store {
   const read = readWorkspace(workspaceText(name));
   if (isLoadError(read)) throw new Error(`${name}.tle.json is refused`);
-  return read.view;
+  return createStore(read);
+}
+
+function viewOf(name: string): View {
+  return storeOf(name).view;
 }
 
 /** `name`'s view with block `block`'s manifest given the id `id` by one `set`. */
 function withManifestId(name: string, block: string, id: string): View {
-  const read = readWorkspace(workspaceText(name));
-  if (isLoadError(read)) throw new Error(`${name}.tle.json is refused`);
-  const store = createStore(read);
-  const manifest = { ...(read.view.blocks[block]?.manifest ?? {}), id };
+  const store = storeOf(name);
+  const manifest = { ...(store.view.blocks[block]?.manifest ?? {}), id };
   const error = store.dispatch({
     type: "set",
     changes: [{ target: block, values: { manifest } }],
@@ -76,7 +74,6 @@ describe("inspectedSubject", () => {
 
   it.each([
     ["gchild0000", bare("Anonymous bundle")],
-    ["gchild0000/name", bare("Title of anonymous bundle")],
     ["gchild0000/group_1", named("Group", "Second half")],
     ["gchild0000/second-half", named("Timeline", "Second half")],
   ])("names %s in an anonymous bundle", (address, subject) => {
@@ -165,90 +162,92 @@ describe("inspectedSubject", () => {
 describe("the subject beside the inspector's heading", () => {
   let app: ReturnType<typeof mount> | undefined;
 
-  afterEach(async () => {
+  afterEach(() => {
     if (app !== undefined) unmount(app);
     app = undefined;
-    await flushAutosaves();
     document.body.innerHTML = "";
-    vi.unstubAllGlobals();
   });
 
+  /** Mount the drawer on `name`'s workspace; the selection it gets back can be changed. */
+  function drawer(name: string, store = storeOf(name)): { value: ReadonlySet<string> } {
+    if (app !== undefined) unmount(app);
+    const selection = holder<ReadonlySet<string>>(new Set());
+    app = mount(InspectorDrawer, {
+      target: document.body,
+      props: {
+        live: liveStore(store),
+        get selection() {
+          return selection.value;
+        },
+        placement: null,
+        storageKey: null,
+      },
+    });
+    flushSync();
+    return selection;
+  }
+
+  /** The subject's text and its `code` (the id shown for an unnamed element), after selecting `addresses`. */
+  function shown(selection: { value: ReadonlySet<string> }, addresses: string[]) {
+    selection.value = new Set(addresses);
+    flushSync();
+    const subject = document.querySelector('[data-testid="inspector-subject"]');
+    return [subject?.textContent?.trim(), subject?.querySelector("code")?.textContent ?? null];
+  }
+
   it("names a bundle, a group, a timeline and its card, and nothing without a selection", () => {
-    window.history.replaceState({}, "", "/");
-    stubEditor();
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => Response.json({ name: "tilie-server", version: "0", timetoalign: "0" })),
-    );
-    app = mount(App, { target: document.body });
-    flushSync();
-    const hook = window.__tilie;
-    if (hook === undefined) throw new Error("window.__tilie is not installed");
-    const drawer = document.getElementById("inspector");
-    const heading = document.getElementById("inspector-heading");
-    const shown = (selection: string[]) => {
-      hook.select(selection);
-      flushSync();
-      const subject = document.getElementById("inspector-subject");
-      return [subject?.textContent, subject?.querySelector("code")?.textContent ?? null];
-    };
-
-    hook.load(workspaceText("bundles"));
-    flushSync();
-    expect(shown(["bmixed0000"])).toEqual(["Bundle Mixed", null]);
-    const subject = document.getElementById("inspector-subject");
+    let selection = drawer("bundles");
+    expect(shown(selection, ["bmixed0000"])).toEqual(["Bundle Mixed", null]);
+    const aside = document.querySelector('[data-testid="inspector"]');
+    const heading = document.querySelector("h2");
+    const subject = document.querySelector('[data-testid="inspector-subject"]');
     expect(subject?.parentElement).toBe(heading?.parentElement);
-    expect(drawer?.getAttribute("aria-describedby")).toBe("inspector-subject");
+    expect(aside?.getAttribute("aria-describedby")).toBe(subject?.id);
     expect(heading?.textContent).toBe("Inspector");
-    expect(shown(["bmixed0000/group_1"])).toEqual(["Group Performance", null]);
-    expect(shown(["bmixed0000/score"])).toEqual(["Timeline Score", null]);
-    expect(shown(["bmixed0000/score/card"])).toEqual(["Card of timeline Score", null]);
+    expect(shown(selection, ["bmixed0000/group_1"])).toEqual(["Group Performance", null]);
+    expect(shown(selection, ["bmixed0000/score"])).toEqual(["Timeline Score", null]);
+    expect(shown(selection, ["bmixed0000/score/card"])).toEqual(["Card of timeline Score", null]);
 
-    hook.load(workspaceText("groups"));
-    flushSync();
-    expect(shown(["gchild0000"])).toEqual(["Anonymous bundle", null]);
+    selection = drawer("groups");
+    expect(shown(selection, ["gchild0000"])).toEqual(["Anonymous bundle", null]);
 
-    hook.load(workspaceText("small"));
-    flushSync();
-    expect(shown(["styled0000/a"])).toEqual(["Timeline a", "a"]);
-    expect(shown(["styled0000/score/flow_control_1"])).toEqual([
+    selection = drawer("small");
+    expect(shown(selection, ["styled0000/a"])).toEqual(["Timeline a", "a"]);
+    expect(shown(selection, ["styled0000/score/flow_control_1"])).toEqual([
       "Flow control band of timeline Score",
       null,
     ]);
-    expect(shown(["styled0000/a/children_1"])).toEqual(["Children band of timeline a", "a"]);
+    expect(shown(selection, ["styled0000/a/children_1"])).toEqual([
+      "Children band of timeline a",
+      "a",
+    ]);
 
-    expect(shown([])).toEqual([undefined, null]);
-    expect(drawer?.hasAttribute("aria-describedby")).toBe(false);
+    expect(shown(selection, [])).toEqual([undefined, null]);
+    expect(
+      document.querySelector('[data-testid="inspector"]')?.hasAttribute("aria-describedby"),
+    ).toBe(false);
   });
 
   it("follows an applied manifest without a change of selection", () => {
-    window.history.replaceState({}, "", "/");
-    stubEditor();
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => Response.json({ name: "tilie-server", version: "0", timetoalign: "0" })),
-    );
-    app = mount(App, { target: document.body });
+    const selection = drawer("bundles");
+    expect(shown(selection, ["bmixed0000/score"])).toEqual(["Timeline Score", null]);
+    // The inspector is rendered only in an open drawer.
+    document.querySelector<HTMLButtonElement>('button[aria-label="Open inspector"]')?.click();
     flushSync();
-    const hook = window.__tilie;
-    if (hook === undefined) throw new Error("window.__tilie is not installed");
-    hook.load(workspaceText("bundles"));
+    const tabs = [...document.querySelectorAll<HTMLElement>('[role="tab"]')];
+    tabs.find((tab) => tab.textContent === "Manifest")?.click();
     flushSync();
-    hook.select(["bmixed0000/score"]);
-    flushSync();
-    const subject = () => document.getElementById("inspector-subject")?.textContent;
-    expect(subject()).toBe("Timeline Score");
-    (document.getElementById("inspector-tab-manifest") as HTMLElement).click();
-    flushSync();
-    const area = document.querySelector("#inspector textarea") as HTMLTextAreaElement;
+    const area = document.querySelector("textarea") as HTMLTextAreaElement;
     area.value = area.value.replace('"name": "Score"', '"name": "Scores"');
     area.dispatchEvent(new Event("input", { bubbles: true }));
     flushSync();
-    const apply = [...document.querySelectorAll("#inspector button")].find(
+    const apply = [...document.querySelectorAll("button")].find(
       (item) => item.textContent?.trim() === "Apply",
     ) as HTMLButtonElement;
     apply.click();
     flushSync();
-    expect(subject()).toBe("Timeline Scores");
+    expect(document.querySelector('[data-testid="inspector-subject"]')?.textContent?.trim()).toBe(
+      "Timeline Scores",
+    );
   });
 });

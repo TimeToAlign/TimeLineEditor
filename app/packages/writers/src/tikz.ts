@@ -4,13 +4,7 @@
  */
 
 import { times } from "@timetoalign/tilie-layout";
-import {
-  type AttributeValue,
-  type Descriptor,
-  type PathCommand,
-  type Point,
-  toDescriptors,
-} from "./descriptors.ts";
+import { type Descriptor, type PathCommand, type Point, toDescriptors } from "./descriptors.ts";
 import { formatNumber, type Placed, page } from "./page.ts";
 
 /** The TikZ options. */
@@ -50,8 +44,7 @@ function escapeTex(text: string): string {
 }
 
 const colourName = (colour: string): string => `ts${colour.slice(1)}`;
-const isColour = (value: AttributeValue): value is string =>
-  typeof value === "string" && value.startsWith("#");
+const isColour = (value: string): boolean => value.startsWith("#");
 
 /** `h(s)`, the line height of the drawing font at size `s`. */
 const lineHeight = (size: number): number => (2384 * size) / 2048;
@@ -67,85 +60,85 @@ function dashPattern(value: string): string {
 function options({ tag, attrs }: Descriptor): string[] {
   const result: string[] = [];
   for (const [name, value] of attrs) {
-    if (name === "rx") result.push(`rounded corners=${formatNumber(value as number)}pt`);
+    if (name === "rx") result.push(`rounded corners=${formatNumber(value)}pt`);
     else if (name === "font-size") {
-      const size = value as number;
       result.push(
-        `font=\\sffamily\\fontsize{${formatNumber(size)}}{${formatNumber(lineHeight(size))}}\\selectfont`,
+        `font=\\sffamily\\fontsize{${formatNumber(value)}}{${formatNumber(lineHeight(value))}}\\selectfont`,
       );
     } else if (name === "fill" && isColour(value)) {
       result.push(`${tag === "text" ? "text" : "fill"}=${colourName(value)}`);
     } else if (name === "stroke" && isColour(value)) result.push(`draw=${colourName(value)}`);
-    else if (name === "stroke-width") result.push(`line width=${formatNumber(value as number)}pt`);
-    else if (name === "stroke-dasharray")
-      result.push(`dash pattern=${dashPattern(value as string)}`);
-    else if (name === "opacity") result.push(`opacity=${formatNumber(value as number)}`);
+    else if (name === "stroke-width") result.push(`line width=${formatNumber(value)}pt`);
+    else if (name === "stroke-dasharray") result.push(`dash pattern=${dashPattern(value)}`);
+    else if (name === "opacity") result.push(`opacity=${formatNumber(value)}`);
   }
   return result;
 }
 
-function attribute(descriptor: Descriptor, name: string): AttributeValue {
-  const found = descriptor.attrs.find(([key]) => key === name);
-  if (found === undefined) throw new Error(`a ${descriptor.tag} without ${name}`);
-  return found[1];
+/** A path's commands as TikZ path operations, each quadratic curve raised to a cubic one. */
+function pathText(commands: readonly PathCommand[], point: (at: Point) => string): string {
+  const parts: string[] = [];
+  let current: Point = [0, 0];
+  for (const item of commands) {
+    switch (item.command) {
+      case "M":
+      case "L": {
+        const [to] = item.points;
+        parts.push(item.command === "M" ? point(to) : `-- ${point(to)}`);
+        current = to;
+        break;
+      }
+      case "C": {
+        const [c1, c2, end] = item.points;
+        parts.push(`.. controls ${point(c1)} and ${point(c2)} .. ${point(end)}`);
+        current = end;
+        break;
+      }
+      case "Q": {
+        // `P0 + 2/3 × (C − P0)` and `P + 2/3 × (C − P)`, 2/3 formed before it multiplies.
+        const [control, end] = item.points;
+        const toward = ([x, y]: Point): Point => [
+          x + times(2n, 3n, control[0] - x),
+          y + times(2n, 3n, control[1] - y),
+        ];
+        const [c1, c2] = [toward(current), toward(end)];
+        parts.push(`.. controls ${point(c1)} and ${point(c2)} .. ${point(end)}`);
+        current = end;
+        break;
+      }
+    }
+  }
+  return parts.join(" ");
 }
 
 /** One descriptor as one TikZ command, `height` the drawing's height. */
 function command(descriptor: Descriptor, height: number): string {
-  const num = (name: string): number => attribute(descriptor, name) as number;
   const point = ([x, y]: Point): string => `(${formatNumber(x)},${formatNumber(height - y)})`;
   const path = (text: string) => `\\path[${options(descriptor).join(",")}] ${text};`;
   switch (descriptor.tag) {
     case "rect": {
-      const [x, y, w, h] = [num("x"), num("y"), num("width"), num("height")];
+      const { x, y, width: w, height: h } = descriptor;
       return path(
         `(${formatNumber(x)},${formatNumber(height - y - h)}) rectangle (${formatNumber(x + w)},${formatNumber(height - y)})`,
       );
     }
     case "line":
-      return path(`${point([num("x1"), num("y1")])} -- ${point([num("x2"), num("y2")])}`);
+      return path(
+        `${point([descriptor.x1, descriptor.y1])} -- ${point([descriptor.x2, descriptor.y2])}`,
+      );
     case "circle":
-      return path(`${point([num("cx"), num("cy")])} circle[radius=${formatNumber(num("r"))}]`);
-    case "polygon": {
-      const points = attribute(descriptor, "points") as readonly Point[];
-      return path(`${points.map(point).join(" -- ")} -- cycle`);
-    }
-    case "polyline": {
-      const points = attribute(descriptor, "points") as readonly Point[];
-      return path(points.map(point).join(" -- "));
-    }
-    case "path": {
-      const commands = attribute(descriptor, "d") as readonly PathCommand[];
-      const parts: string[] = [];
-      let current: Point = [0, 0];
-      for (const { command: letter, points } of commands) {
-        if (letter === "M") {
-          current = points[0] as Point;
-          parts.push(point(current));
-        } else if (letter === "L") {
-          current = points[0] as Point;
-          parts.push(`-- ${point(current)}`);
-        } else if (letter === "C") {
-          const [c1, c2, end] = points as readonly [Point, Point, Point];
-          parts.push(`.. controls ${point(c1)} and ${point(c2)} .. ${point(end)}`);
-          current = end;
-        } else {
-          // `P0 + 2/3 × (C − P0)` and `P + 2/3 × (C − P)`, 2/3 formed before it multiplies.
-          const [control, end] = points as readonly [Point, Point];
-          const toward = ([x, y]: Point): Point => [
-            x + times(2n, 3n, control[0] - x),
-            y + times(2n, 3n, control[1] - y),
-          ];
-          const [c1, c2] = [toward(current), toward(end)];
-          parts.push(`.. controls ${point(c1)} and ${point(c2)} .. ${point(end)}`);
-          current = end;
-        }
-      }
-      return path(parts.join(" "));
-    }
+      return path(
+        `${point([descriptor.cx, descriptor.cy])} circle[radius=${formatNumber(descriptor.r)}]`,
+      );
+    case "polygon":
+      return path(`${descriptor.points.map(point).join(" -- ")} -- cycle`);
+    case "polyline":
+      return path(descriptor.points.map(point).join(" -- "));
+    case "path":
+      return path(pathText(descriptor.d, point));
     case "text": {
-      const anchor = attribute(descriptor, "text-anchor") === "start" ? "base west" : "base";
-      return `\\node[anchor=${anchor},inner sep=0,${options(descriptor).join(",")}] at ${point([num("x"), num("y")])} {${escapeTex(descriptor.text ?? "")}};`;
+      const anchor = descriptor.anchor === "start" ? "base west" : "base";
+      return `\\node[anchor=${anchor},inner sep=0,${options(descriptor).join(",")}] at ${point([descriptor.x, descriptor.y])} {${escapeTex(descriptor.text)}};`;
     }
   }
 }

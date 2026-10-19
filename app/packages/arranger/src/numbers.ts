@@ -22,3 +22,8 @@ export function quantize(value: number, step: number): number {
 export function positionStep(grid: { readonly size: number; readonly snap: boolean }): number {
   return grid.snap ? grid.size : GRID_FREE;
 }
+
+/** Whether two sequences hold the same entries in the same order. */
+export function sameSequence(left: readonly string[], right: readonly string[]): boolean {
+  return left.length === right.length && left.every((entry, index) => entry === right[index]);
+}

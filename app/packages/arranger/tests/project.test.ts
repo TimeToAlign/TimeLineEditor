@@ -1,8 +1,10 @@
 import { indexBetween } from "@timetoalign/tilie-core";
 import { toDescriptors } from "@timetoalign/tilie-writers";
 import { describe, expect, it } from "vitest";
-import type { BlockNode, Editing } from "../src/index.ts";
-import { drawingOf, livePlacement, nodePosition, project } from "../src/index.ts";
+import { drawingOf, nodePosition } from "../src/drawing.ts";
+import type { Editing } from "../src/editing.ts";
+import type { BlockNode } from "../src/project.ts";
+import { blocksInOrder, livePlacement, project } from "../src/project.ts";
 import {
   A,
   B,
@@ -94,6 +96,8 @@ describe("project", () => {
       [B, 0],
       [A, 1],
     ]);
+    expect(blocksInOrder(lowered).map((block) => block.id)).toEqual([B, A]);
+    expect(blocksInOrder(lowered)).toBe(blocksInOrder(lowered));
   });
 
   it("restores the selected flags Svelte Flow changed", () => {

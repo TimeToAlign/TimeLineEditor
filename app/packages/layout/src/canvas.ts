@@ -1,11 +1,12 @@
 /**
- * An element, or a band's record, drawn at its item's place and shifted from
- * the place origin into the box (`docs/drawing.md` in timeskeleton, sections
- * 8.4 and 8.6).
+ * An element, a container's record or a line's axis, drawn at its item's
+ * place and shifted from the place origin into the box (`docs/drawing.md`
+ * in timeskeleton, sections 8.4 and 8.6).
  */
 
+import type { DrawnAxis, DrawnBox } from "./boxes.ts";
 import type { Style } from "./cascade.ts";
-import type { DrawnBand, DrawnElement, Point } from "./elements.ts";
+import type { DrawnElement, Point } from "./elements.ts";
 
 /** A style at the scale `scale`: each of its lengths multiplied by it (section 8.6). */
 function scaledStyle(style: Style, scale: number): Style {
@@ -106,20 +107,31 @@ export function placedAt(element: DrawnElement, dx: number, dy: number, scale = 
 }
 
 /**
- * A band drawn at `(dx, dy)` and the scale `scale`, as `placedAt` draws a
- * frame or a card (section 8.6): its `x`, `y` and `line` taken to `dx +
- * scale × x`, `dy + scale × y` and `dy + scale × line`, its `width` and
- * `height` multiplied by `scale`. A band of an item is drawn at the item's
- * place so, and every band is then shifted from the place origin into the
- * box at scale 1 (section 8.4), where only `x`, `y` and `line` change.
+ * A container's record drawn at `(dx, dy)` and the scale `scale`, as
+ * `placedAt` draws a frame or a card: its `x` and `y`, and a band's `line`,
+ * taken to `dx + scale × x`, `dy + scale × y` and `dy + scale × line`, its
+ * `width` and `height` multiplied by `scale`. Its range and what it states
+ * stay as they are.
  */
-export function placedBand(band: DrawnBand, dx: number, dy: number, scale = 1): DrawnBand {
+export function placedBox(box: DrawnBox, dx: number, dy: number, scale = 1): DrawnBox {
+  const placed = {
+    ...box,
+    x: dx + scale * box.x,
+    y: dy + scale * box.y,
+    width: scale * box.width,
+    height: scale * box.height,
+  };
+  return box.band === undefined
+    ? placed
+    : { ...placed, band: { ...box.band, line: dy + scale * box.band.line } };
+}
+
+/** A line's axis drawn at `(dx, dy)` and the scale `scale`, as `placedAt` draws its line. */
+export function placedAxis(axis: DrawnAxis, dx: number, dy: number, scale = 1): DrawnAxis {
   return {
-    ...band,
-    line: dy + scale * band.line,
-    x: dx + scale * band.x,
-    y: dy + scale * band.y,
-    width: scale * band.width,
-    height: scale * band.height,
+    ...axis,
+    xStart: dx + scale * axis.xStart,
+    xEnd: dx + scale * axis.xEnd,
+    line: dy + scale * axis.line,
   };
 }

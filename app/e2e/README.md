@@ -27,29 +27,63 @@ before it, Playwright ignores the filter and runs every spec).
 `TILIE_E2E_WORKERS`, a positive integer, sets the number of workers
 (default 4); `run.ts` passes it, and `CI`, into the container when set.
 
+The web server of `playwright.config.ts` builds the editor twice with the
+test hook compiled in, both into `packages/editor/dist-e2e` (never `dist`,
+the folder the wheel bundles): the page at its root and the embed
+(`tilie.js`, `tilie.css`, `assets/`) under `embed/`, then serves the folder
+on port 4317.
+
+Two modules hold what the specs share. `schema.ts` loads the schema
+package the editor's packages resolve (installed or linked), typed as that
+package's own exports (the suite's `tsconfig.json` maps the package for
+types only), and gives its directory, its `SCHEMA_VERSION`, the manifest
+fixtures of that version and the bundled face's metrics, the package's own
+export the editor draws with.
+`support.ts` holds every helper more than one spec uses: opening a fixture,
+reading the hook, selecting, closing an editor, the inspector's tabs and
+panels, the marks, the points a gesture aims at and the gestures
+themselves. A block's drawn structure (frames, cards, titles and lines) is
+read from the hook's container records, and an address is built or taken
+apart only by core's and the arranger's own functions. The hook's type is
+the editor's own, imported, never copied.
+
 ## How state is read
 
 - **The store** through the test hook, `window.__tilie` (present only in
-  development builds and builds made with `VITE_TILIE_TEST_HOOK=1`):
+  development builds and builds made with `VITE_TILIE_TEST_HOOK=1`, and
+  never installed by an embedded editor):
   `store().view` for placements, manifests and block order,
   `store().journal` for the commands a gesture produced, `selection()`,
-  `viewport()`, `locked()`, `mode()` and `bands(block)`, the bands drawn
-  in a block (`bands.spec.ts`). A stored number is compared with
+  `viewport()`, `locked()`, `mode()`, `boxes(block)`, the containers a
+  block's drawing records, and `bands(block)`, the bands drawn in a block
+  (`bands.spec.ts`). A stored number is compared with
   `toEqual`/`toBe` against a literal; nothing is read back from pixels.
 - **The DOM** for what the editor renders: nodes
   `.svelte-flow__node[data-id="<block id>"]` (a selected block's node
-  carries Svelte Flow's class `selected`), drawn elements
+  carries Svelte Flow's class `selected`), counted as
+  `[data-testid="block"]`, drawn elements
   `[data-address="<address>"]` inside their node (one rule in every
   manifest: a timeline or a group by its bare id, every other element by
   `<root id>/<element id>`, the manifest's title by `name`; parts append
-  `/start`, `/end`, `/name`, `/label` or `/card`), `[data-selected]`,
-  `[data-hovered]`, `[data-contains-selection]`, the mode buttons `[data-testid="mode-scale"
+  `/start`, `/end`, `/name`, `/label` or `/card`), a selected part's
+  `[data-selected]`, the overlays, each a `.tilie-mark` with `data-mark`
+  (`selection`, `hover` or `holding`), `data-marks` the address it marks
+  and `data-box` the box's kind (`box`, `frame`, `card`, `band`; none on a
+  boundary's mark), `[data-affected]`, `[data-contains-selection]` on a
+  block's node, the mode buttons `[data-testid="mode-scale"
   | "mode-box" | "mode-stretch"]` and the canvas controls' `[data-testid="lock"
   | "marquee"]` with `aria-pressed`,
   handles `[data-testid="handle-<handle>"]`, guides
-  `[data-testid="snap-guide"]`, the refusal hint `[data-testid="hint"]` and
-  the marks of a hovered or selected band,
-  `rect.tilie-band[data-band="<band address>"]` inside the block's node.
+  `[data-testid="snap-guide"]` and the refusal hint `[data-testid="hint"]`.
+- **The shell and the inspector** by role, label or `data-testid`, never
+  by an element id: the editor's ids are its instance's own. A tab is found
+  by its name in the tab list "Inspector sections" and its panel through
+  the tab's `aria-controls`; only the shown panel holds content, so a test
+  chooses a tab before it reads the panel. The drawer is
+  `[data-testid="inspector"]`, the name of what it inspects
+  `[data-testid="inspector-subject"]`, a manifest text's refusals the list
+  named "Problems", the Journal's rows as list items and a session's
+  disclosure button by its name.
 - **Pixels** only in `visual.spec.ts`, tagged `@visual`.
 - **Time** only in `budget.spec.ts`, tagged `@budget`; its `≤` comparisons are
   budgets by definition and the only inequalities on measured values in the
@@ -236,1632 +270,218 @@ every frame and the ungrouped card `16 + Wc(L)`.
 - A nudge moves by one grid step (8), with Shift eight steps (64), and the
   result snaps to the grid.
 
-## `canvas.spec.ts` (Chromium, Firefox, WebKit)
+## The bundled face
 
-`small` at viewport (40, 40), zoom 1, page 1600 × 1000.
+A drawn text's width is defined by the drawing: the sum of its code points'
+advances in the bundled face's advance table times the font size over 2048,
+kerning off, a dyadic fraction exact as a double ("Phrase" at 11 px is
+(1235 + 1298 + 842 + 1255 + 1067 + 1260) × 11 / 2048 = 37.36669921875).
+Each engine stores it in its own precision: WebKit exactly, Chromium
+rounded up to its 1/64 px layout unit (37.375). Firefox stores values up to
+6e-4 px off by a rule no rounding grid reproduces, so there the expected
+width is the same string laid out afresh, after the face has loaded, in the
+same `<svg>` at the same size. A text laid out with a stand-in font fails
+either way (the fallback gives "Phrase" 34.79). `canvas.spec.ts` and
+`visual.spec.ts` require every text to pass.
 
-1. **Opening.** Five nodes, one per block id; `styled0000` holds the elements
-   `score/intro`, `score/da-capo` and `score/ticks` (region, jump and C-Map,
-   each addressed by its root `score`). **Every drawn text is in the bundled
-   face**: each `<text>` on the canvas has exactly the width the drawing
-   defines for it. That width is the sum of the code points' advances in the
-   bundled face's advance table times the font size over 2048 (kerning off),
-   a dyadic fraction exact as a double; e.g. "Phrase" at 11 px is
-   (1235 + 1298 + 842 + 1255 + 1067 + 1260) × 11 / 2048 = 37.36669921875.
-   Each engine stores it in its own precision: WebKit exactly (37.36669921875),
-   Chromium rounded up to its 1/64 px layout unit (2391.47 → 2392/64 =
-   37.375); both rules were checked on all 23 texts of `small`. Firefox
-   stores values up to 6e-4 px off the exact width (37.367000579833984) by a
-   rule no 1/(60 k) rounding grid reproduces on those 23 texts, so in
-   Firefox the expected width is the same string laid out afresh, after the
-   face has loaded, in the same `<svg>` at the same size. A text laid out
-   with a stand-in font before the face arrived fails either way (the
-   fallback gives "Phrase" 34.79); a negative control (one text forced to
-   `sans-serif`) is reported as exactly that text in all three engines.
-1b. **The fixture menu** (development and test builds): choosing `small` in
-   `[data-testid="fixture-select"]` and pressing `[data-testid="fixture-load"]`
-   on a freshly opened editor shows exactly the five nodes of `small` and a
-   journal of its 5 entries, as loading the file through the hook does.
-2. **Drag, undo, redo.** `map0000000` dragged by (101, 37): raw (101, 357),
-   grid (104, 360). No other left edge or origin lies within 6 of 104 or of
-   its origin 167.53662109375 (the nearest, `nested`'s origin
-   49.91552734375, is 54.08447265625 from 104). Stored (104, 360); the journal gains exactly `{type: "set",
-   changes: [{target: map0000000, values: {x: 104, y: 360}}]}`. Ctrl/Cmd+Z
-   restores (0, 320) exactly and the journal to 5 entries; Ctrl/Cmd+Shift+Z
-   restores (104, 360) and 6 entries.
-3. **Multi-drag.** `bare000000` and `nested0000` selected, `bare` dragged by
-   (21, 13): grid (24, 16); the nearest candidates (map's left edge 0 and
-   origin 63.54 against bare's left edge 24 and origin 73.58) are
-   10.04052734375 or more away. Stored bare (24, 16) and nested (24, 176); one `set` whose two
-   changes, sorted by target, are exactly those values.
-4. **Snap to a left edge.** `flow000000` is first set to x 515 by a `set`
-   command (off the grid). `nested0000` dragged by (512, 0): grid 512, 3 from
-   flow's left edge 515; its origin 561.92 is 44.06 from flow's origin 605.98.
-   While the button is down exactly one `snap-guide` is visible; after the
-   release there is none and the block is stored at (515, 160).
-5. **Snap to a plot origin.** `styled0000` dragged by (−8, 160): grid
-   (632, 320); its left edge is 8 from flow's left edge 640 (beyond 6); its
-   origin 730.080078125 is 0.8974609375 from flow's origin 730.9775390625.
-   Stored x = 730.9775390625 − 98.080078125 = 632.8974609375 (1296174/2048,
-   so quantizing to 1/2048 leaves it exact), y 320; one guide during the drag.
-6. **Locked drag pans.** The lock button pressed (`aria-pressed="true"`,
-   `locked()` true); a drag of (50, 30) on `bare`'s card moves the
-   viewport from (40, 40) to (90, 70) at zoom 1 exactly, leaves `bare` at
-   (0, 0) and the journal at 5. L unlocks.
-   A locked canvas also allows no nudge or resize: with `bare000000` selected
-   in box mode, 8 handles are shown; after L none is, and →, Shift+↓, ↑,
-   Shift+← leave `bare` at (0, 0) and the journal at 5.
-7. **A plain drag on the empty canvas pans**: from canvas (−20, 200) by
-   (30, 25) (rightwards, so the pointer stays inside the page), viewport
-   (70, 65), no command, no selection.
-7b. **The wheel pans; Ctrl+wheel zooms.** Svelte Flow 1.7.0 pans on scroll
-   by `−delta / zoom × panOnScrollSpeed`, the speed 0.5 by default
-   (`@xyflow/system` `createPanOnScrollHandler`, `SvelteFlow.svelte`), with
-   pixel deltas (`deltaMode` 0, what Playwright dispatches). From viewport
-   (40, 40), zoom 1, the pointer on the empty canvas:
-   - one wheel event of deltaY 100 → (40, −10): y − 100 × 0.5;
-   - with Shift held, deltaY 100 → (−10, 40): the same distance horizontally,
-     y unchanged; and the same for a Shift+wheel the browser reports as
-     deltaX 100, deltaY 0. Both forms occur, so both are pinned, except that
-     the deltaY form is skipped under a Mac user agent (the WebKit project's
-     Desktop Safari): macOS itself reports a Shift+wheel as deltaX, and
-     Svelte Flow (`isMacOs`, from the user agent) swaps nothing there;
-   - with Ctrl held, deltaY −10 → zoom 2^(10 × 0.002 × f) (Svelte Flow's
-     pinch zoom, `wheelDelta`: −deltaY × 0.002 × f on a pixel delta, f = 10
-     under a Mac user agent and 1 otherwise; a delta of 10 keeps both below
-     the maximum zoom 2), and the canvas
-     point under the pointer stays under it: with the pointer at pane point
-     p, the new viewport is p − (p − v) × zoom′ / zoom on each axis, as d3's
-     `scaleTo` computes it;
-   - no wheel event journals anything.
-8. **Marquee.** Viewport (100, 100) zoom 1/2 (the gesture stays clear of the
-   40 px edge zone), `map0000000` selected first; from canvas (−40, −40) by
-   (600, 120) pixels, i.e. to canvas (1160, 200). The rectangle holds `bare`
-   (0…476.58 × 0…67.38) and `flow000000` (640…1158.26 × 0…102.33) whole, and
-   `nested` (y 160…255.98) and `styled` (640…1168.08 × 160…296.92) only in
-   part. A marquee selects only blocks wholly inside.
-   - **Shift+drag replaces** the selection: exactly {bare000000,
-     flow000000} (a partial-overlap rule would add nested and styled, an
-     additive one would keep map); the viewport stays put.
-   - **With the `marquee` toggle on, everything adds**: the same plain drag
-     gives {bare000000, flow000000, map0000000}, the viewport stays put. With
-     the toggle off again the same drag pans to (700, 220).
-   - **Clicks in marquee mode add and remove.** With nothing selected and the
-     toggle on: a click on `bare`'s margin → {bare000000}; a click on
-     `nested0000`'s `clt_2` → {bare000000, nested0000/clt_2}; a marquee from
-     canvas (600, −40) by (280, 90) pixels, to (1160, 140), which holds only
-     `flow000000` whole → {bare000000, flow000000, nested0000/clt_2}; a
-     click on `bare`'s margin again removes it → {flow000000,
-     nested0000/clt_2}.
-   - **A click on the empty canvas clears the selection in every mode;
-     Shift+click there keeps it.** The selection Svelte Flow shows (the
-     nodes with class `selected`) always equals the selection's block ids,
-     and the elements marked `data-selected` equal its element addresses;
-     both are checked after every step below, as is the journal (never
-     changed). With the toggle on: a click on `bare`'s margin and on
-     `nested0000`'s `clt_2` → {bare000000, nested0000/clt_2}; a click on
-     the empty canvas at canvas (400, 120) → {} (no node `selected`, no
-     `data-selected`); a click on `flow000000`'s margin → {flow000000}
-     alone (a stale selection would bring back bare and clt_2). Then a
-     click on `bare`'s margin → {bare000000, flow000000}, and
-     Shift+click on the empty canvas at (400, 120) keeps exactly that, both
-     nodes still `selected` (Svelte Flow itself clears its flags on a pane
-     click, so the projection must restore them); the next click, on
-     `map0000000`'s margin, gives {bare000000, flow000000, map0000000}.
-     With the toggle off the same holds: from {bare000000, flow000000,
-     map0000000}, Shift+click on the empty canvas keeps all three, a plain
-     click there gives {}, a click on `nested0000`'s `clt_2` then gives
-     exactly {nested0000/clt_2}. A marquee that ends is no click: the
-     marquee step of the previous case already adds without clearing.
-   - **A click whose pointer moves a little is still a click.** Svelte
-     Flow starts a marquee once the pointer moves more than
-     `paneClickDistance` (4 here), or any distance while Shift is held; a
-     marquee ending within 4 px of its start counts as a click on what it
-     started on. Each step presses at canvas (400, 120), moves 2 px to the
-     right in two moves and releases. With the toggle on, from
-     {bare000000, flow000000}: Shift → unchanged; without Shift → {}. With
-     the toggle off, from {bare000000, flow000000}: Shift → unchanged;
-     without Shift → {} (the 2 px also pan the view, which is not
-     checked). The canvas shows the selection after every step, as above.
-8b. **A marquee ending in the edge zone pans.** Svelte Flow pans while the
-   pointer of a marquee rests within 40 px of the pane's edge, and keeps the
-   marquee's start fixed in canvas units (`selectionRect.startX/Y`), its end
-   under the pointer. Viewport (100, 100) zoom 1/2, Shift held: from canvas
-   (−40, −40) the pointer moves to pane point (pane width − 20, 170), inside
-   the right edge zone, and stays until the viewport has moved; then the
-   button is released. With the viewport v read after the release, the
-   rectangle is canvas (−40, −40) to ((pane width − 20 − v.x) / ½,
-   (170 − v.y) / ½), and the selection is exactly the blocks wholly inside
-   it, computed from the block boxes of the fixture table: {bare000000,
-   flow000000} whenever the rectangle ends below y 160 and right of
-   1158.256591796875 (flow's right edge), which the spec also checks. The other marquee specs stay ≥ 80 px inside
-   the pane, out of the zone.
-9. **Click (element, block, Shift).** A click on `nested0000`'s child line
-   `clt_2` selects exactly `[nested0000/clt_2]`: that element carries
-   `data-selected` and its node's `.tilie-block` `data-contains-selection`,
-   the only block on the page that does; the card `clt_1/card` holding the
-   line has the page's only dashed card mark
-   `rect.tilie-holding[data-box=card]`, and no frame mark (`data-box=group`)
-   is drawn. A click on `map0000000`'s card then selects exactly the card
-   `[map0000000/melody/card]`. Of the two parts addressed
-   `melody/card`, the second (the card itself) carries `data-selected` and,
-   the pointer resting on it, `data-hovered`; the first (its shadow) carries
-   no `data-selected`, and `melody/card` is the only selected address drawn.
-   The card's computed `filter` holds the selection's colour
-   `rgb(10, 132, 255)` and not the hover's `rgb(156, 200, 255)`: a selected
-   card keeps the selection's glow under the pointer. The line `melody`
-   carries `data-affected` (Delete of a selected card removes its
-   timeline). A click on its margin then selects exactly `[map0000000]`,
-   with no `data-selected` or `data-contains-selection` left.
-   Shift+click on `styled0000`'s root line adds `styled0000/score`: then
-   exactly two `.tilie-block`s carry `data-contains-selection` and two card
-   marks are drawn (`clt_1/card` and `score/card`), no frame mark. Shift+click
-   on `bare`'s margin adds `bare000000`, Shift+click on `clt_2` again
-   removes it: {bare000000, styled0000/score}. A drag that starts on `clt_2`
-   moves `nested0000` by (101, 37) to (104, 200) as one command. Escape
-   clears the selection.
-10. **Delete.** Selection {styled0000/score/intro}, Delete: the journal gains
-    exactly `{type: "remove", targets: ["styled0000/score/intro"]}`, the
-    manifest's region list is empty and the element `score/intro` is gone
-    from the node; Ctrl/Cmd+Z brings it back (`["intro"]`, one element).
-    Selection {map0000000}, Backspace: `{type: "remove", targets:
-    ["map0000000"]}`, the node gone, the order bare, nested, flow, styled.
-    Selection {bare000000/bare, styled0000/score/intro} (a root timeline and
-    a region), Delete: exactly one `{type: "remove", targets:
-    ["bare000000/bare", "styled0000/score/intro"]}`, as a timeline is removed
-    like any other element; `bare000000`'s manifest holds no timeline, its
-    node stays (the empty box; the block goes only as a block) without the
-    card `bare/card`, and `score/intro` is gone. Ctrl/Cmd+Z restores every
-    manifest (their JSON text equals that before the Delete) and both parts.
-10b. **Selecting a timeline marks its descendants.** `nested`'s root `clt_1`
-    holds `clt_3`, which holds `clt_2`; the drawing addresses `clt_2`'s line
-    as `clt_2` and its name as `clt_2/name`. With {nested0000/clt_3}
-    selected, the distinct `data-address` values carrying `[data-affected]`
-    are exactly `clt_2` and `clt_2/name`, all inside `nested0000`'s node, and
-    no other node has one. Delete then journals exactly `{type: "remove",
-    targets: ["nested0000/clt_3"]}` and the manifest's timeline ids are
-    [clt_1] (the whole subtree went with one entry); Ctrl/Cmd+Z restores
-    [clt_1, clt_2, clt_3] (sorted).
-11. **Z-order keys.** The order starts bare, nested, map, flow, styled.
-    `bare000000` selected: Ctrl/Cmd+Shift+] (front) → nested, map, flow,
-    styled, bare; Ctrl/Cmd+[ (backward) → nested, map, flow, bare, styled;
-    Ctrl/Cmd+Shift+[ (back) → bare, nested, map, flow, styled; Ctrl/Cmd+]
-    (forward) → nested, bare, map, flow, styled. Each is exactly one `set`
-    whose only change targets `bare000000` with the single property `index`,
-    and the nodes' computed `z-index` rises strictly along the order.
-12. **Keys need the focus in the arranger.** `map0000000` selected by a click
-    on its margin, then the focus moves to the inspector's tab (the
-    button "Open inspector", outside the arranger): →, Shift+↓, Ctrl/Cmd+Shift+], 1, 2,
-    3, L, Delete, Backspace and Escape journal nothing and leave the block at
-    (0, 320), the selection [map0000000], the mode and the lock unchanged.
-    A click on the block again and → moves it to (8, 320), so the keys are
-    live when the focus is back. With the focus on the page body (the
-    arranger blurred by the test), → moves nothing either: the body is not
-    the arranger. A click on the empty canvas (canvas point (−20, 200))
-    then focuses the arranger itself (`[role="application"][aria-label=
-    "Arranger"]` is the active element; the click also clears the
-    selection), and with `map0000000` selected again through the hook, →
-    moves it to (16, 320).
-13. **Toolbars move the focus with arrows** (roving focus): the canvas
-    controls are a vertical toolbar, so from the focused "Zoom in" button ↓
-    reaches "Zoom out", ↓ "Fit to view", ↓ `lock`, ↓ `marquee`, ↓ wraps to
-    "Zoom in", ↑ ↑ `lock` again, and → leaves the focus on `lock`; from
-    `mode-scale` → `mode-box`, → `mode-stretch`, ← `mode-box`. With
-    `map0000000` selected throughout, nothing is journalled and the block
-    stays at (0, 320).
-14. **Nudges.** `map0000000` selected by a click on its margin; → (8,
-    320), Shift+↓ (8, 384), ↑ (8, 376), Shift+← (−56, 376); four `set`
-    commands, each on `map0000000` only. Four undos restore (0, 320) and the
-    journal to 5; four redos (−56, 376).
+## The specs
 
-15. **The canvas controls.** On load the arranger holds the focus (opening
-    a workspace through the hook focuses it too). Exactly one Svelte Flow
-    controls panel (`.svelte-flow__controls`) exists, inside the pane
-    (`.svelte-flow`), with the classes `bottom` and `left`, and its box lies
-    inside the pane's box in its lower-left quarter. Its buttons, in DOM
-    order, are exactly: "Zoom in", "Zoom out", "Fit to view" (their
-    `aria-label`s, `title`s "Zoom in (+)", "Zoom out (-)", "Fit to view
-    (0)"), `lock` (`aria-label` "Lock the canvas", `title` "Lock the
-    canvas: dragging pans instead of moving blocks (L)") and `marquee`
-    (`aria-label` "Add to selection (marquee)"); Svelte Flow's own lock
-    button (`.svelte-flow__controls-interactive`) is absent and no other
-    button is in the panel. A click on `lock` sets `aria-pressed="true"` and
-    `locked()` true, a second click false; L toggles it the same way.
-    A click on `marquee` sets its `aria-pressed="true"`, a second click
-    `false`. From viewport (40, 40) zoom 1: "Zoom in" raises the zoom,
-    "Zoom out" then lowers it below the zoomed-in value, + raises it again
-    and − lowers it (the step sizes are Svelte Flow's and not pinned); "Fit
-    to view" and 0 each change the viewport away from a set (500, 500)
-    zoom 1, and both give the same viewport.
-16. **The inspector drawer.** On load (empty `localStorage`) the drawer
-    `#inspector` is hidden and the tab "Open inspector" (text «) is visible
-    at the right edge of the arranger: its right edge equals the pane's
-    right edge, and the pane's right edge equals the page's width (the
-    canvas takes the full width). With the viewport set to (40, 40) zoom 1,
-    a click on the tab shows the drawer, whose heading reads `Inspector`
-    and whose close button "Close inspector" (text ») has
-    `aria-expanded="true"`; the pane's right edge now equals the drawer's
-    left edge, and the viewport is still exactly (40, 40) zoom 1, so
-    opening re-fits nothing. A reload keeps the drawer open (the state is
-    in `localStorage` under `tilie.inspector.open`). A click on the close
-    button hides it again, the viewport is still (40, 40) zoom 1, and
-    after a reload the drawer is closed.
+Each paragraph states what the spec proves and where its expected values
+come from; the literals themselves are in the spec, each derived from the
+fixtures, the drawing facts and the gesture rules above.
 
-## `resize.spec.ts` (Chromium, Firefox, WebKit)
+**`canvas.spec.ts`** (Chromium, Firefox, WebKit) proves the canvas with the
+mouse and the keyboard on `small` at viewport (40, 40), zoom 1, page 1600 ×
+1000: opening draws one node per block, the fixture menu loads `small` as
+the hook does, and every text is in the bundled face; a drag is one `set`
+at the grid- and block-snapped position that the gesture rules give from
+the drag's delta, with undo and redo restoring both placements exactly; two
+selected blocks move in one command with two changes; a snap to another
+block's left edge or plot origin shows one guide at the target; a locked
+canvas pans instead and allows no move, nudge or resize; the wheel pans by
+half its delta, Shift+wheel sideways and Ctrl+wheel zooms about the
+pointer; the marquee selects exactly the blocks wholly inside, keeps its
+start while it pans in the edge zone, and its toggle makes plain drags and
+clicks additive; a click selects an element, a card (marked by a selection
+overlay on the card's own rectangle, never its shadow, and no hover overlay
+while it is selected) or, on the margin, the block; Delete and Backspace
+remove the selection as one `remove`, a selected timeline marking its
+descendants as affected; keys outside the arranger change nothing, arrows
+nudge by 8 and 64 and the z-order keys reorder, one command each; the
+canvas controls, the zoom and fit keys, and the inspector drawer, closed on
+load and opening beside the pane without moving the view. Every expected
+journal entry is written out whole and compared with the journal.
 
-`small`, then `bare000000` set to (40, 80) and `nested0000` to (40, 224) (two
-`set` commands, journal 7), so `nested` (224…319.98) ends above `map` (from
-320) and clear of every other block; viewport (300, 40), zoom 1, page 1600 ×
-1000. `bare`'s box is then 40…516.5771484375 × 80…147.37890625. Cases 1 to 7
-run on these blocks of `small`; cases 8 and 9 open `bundles` instead.
+**`resize.spec.ts`** (Chromium, Firefox, WebKit) proves the three resize
+modes on `small` after two moves place `bare` and `nested` clear of every
+other block (journal 7, viewport (300, 40)): the keys 1 to 3 and the mode
+buttons choose a mode and show its handles (four corners for scale, eight
+for box and stretch) and the mode survives a change of selection; for a
+table of handle drags in every mode the stored placement is the one the
+resize rules derive from the drawn box and the drag, with the opposite edge
+exactly put, one `set` journalled on release and none for a drag that
+changes no stored value; box keeps the content's own size below its extent,
+stretch solves the floor and the kink of `nested`'s height exactly, a resize
+held in the edge zone pans and follows the pointer, and undo restores the
+placement exactly. On `bundles` a frame's corner scales the group alone,
+and a member's card keeps its margin in proportion while its group
+shortens again.
 
-1. **Choosing the mode.** With `bare` selected, keys 1, 2, 3 and the buttons
-   `mode-scale`, `mode-box`, `mode-stretch` set `mode()` to scale, box, stretch;
-   exactly the chosen button has `aria-pressed="true"`. The handles shown are
-   exactly the four corners for scale and all eight for box and stretch. The mode
-   survives a change of selection (stretch chosen on `bare`, still stretch with 8
-   handles on `map0000000`).
-2. **Every drag previews, then journals once.** While the button is down the
-   node's box differs from before and the journal is unchanged; the release
-   adds exactly one `set` on the resized block.
-3. **Mode × handle → stored values** (pixel deltas at zoom 1 are canvas
-   deltas):
+**`touch.spec.ts`** (the touch project, Chromium on a Pixel 7) drives real
+touch points through the DevTools Protocol, one finger or two, on `small` at
+viewport (20, 20). A tap aims 14 px or more away from any other drawn
+element, since Chromium moves a tap onto a nearby clickable one, and a
+one-finger node drag first travels 20 px past Chromium's touch slop and
+counts its delta from there. It proves that a tap selects a card or an
+element, a one-finger drag moves a block by the drag in canvas units on the
+grid and pans the empty canvas, a pinch zooms, the mode buttons and the
+marquee toggle answer taps, a double tap on a card opens its timeline
+editor and a double tap on the faded surroundings closes the innermost one,
+and a band dragged with one finger moves across its line without panning
+the view.
 
-| Block | Mode | Handle | Delta | Stored | Derivation |
-|---|---|---|---|---|---|
-| bare | box | right | (20, 0) | width 496.5771484375, height null, (40, 80) | 476.5771484375 + 20 = 1016990/2048, exact |
-| bare | box | left | (−21, 0) | width 497.5771484375, x 19 | edge 19 (a resize never snaps to the grid); 516.5771484375 − 19 = 497.5771484375, x = right − width = 19, exact |
-| bare | box | bottom-right | (20, 11) | width 496.5771484375, height 78.37890625 | 67.37890625 + 11 = 78.37890625, exact |
-| bare | box | top | (0, −16) | height 83.37890625, y 64 | edge 64 on the grid; 147.37890625 − 64 = 83.37890625, exact; y = 147.37890625 − 83.37890625 = 64 |
-| bare | scale | bottom-right | (229, 0) | scale 1.48046875, (40, 80) | max(705.577…/476.577…, 1) = 1.4805098… → round(3032.08) = 3032/2048 |
-| bare | scale | top-left | (−229, 0) | scale 1.48046875, x −188.98046875, y 47.62646484375 | edge −189 (no grid); 705.577…/476.577… = 1.4805098… → 3032/2048; x = 516.5771484375 − 3032/2048 × 476.5771484375 and y = 147.37890625 − 3032/2048 × 67.37890625, each to 1/2048: the right and bottom edges stay exactly put |
-| bare | scale | bottom-right | (−440, −60) | scale 0.125 | max(36.58/476.58, 7.38/67.38) = 0.1095… below 1/8 → floor (a rise of 49 no longer reaches it: 18.38/67.38 = 0.2728) |
-| bare | stretch | right | (20, 0) | length 420, spacing 1 | width = origin + length + 27, so length + 20 |
-| bare | stretch | left | (−21, 0) | length 421, x 19 | edge 19 (no grid), width + 21 |
-| bare | stretch | right | (−500, 0) | length 8 | floor `MIN_LENGTH` |
-| bare | stretch | bottom | (0, 32) | spacing 3, length 400, y 80 | a single timeline stretches through its padding: 67.37890625 + 32 = 99.37890625 = 51.37890625 + 16 × 3 |
-| nested | stretch | bottom | (0, 51) | spacing 2, length 400, y 224 | 95.9765625 + 51 = 146.9765625 = 44.9765625 + 51 × 2 |
-| nested | stretch | bottom-right | (200, 51) | length 600, spacing 2 | both at once; the pointer ends at pane x 300 + 40 + 477.19 + 200 = 1017.19, clear of the auto-pan zone |
+**`files.spec.ts`** (Chromium, Firefox, WebKit) takes the fallback path every
+engine offers: the pickers are deleted before the page loads, so a file is
+read through the file chooser and written as a download. The gate is the
+round trip: a new workspace, an imported `bare.json` placed at the view's
+centre snapped to the grid, a drag and a stretch (three entries), then
+Ctrl/Cmd+S, whose download equals the hook's `text()` and clears the
+file name's unsaved mark, Open of that file, which restores the journal
+and the same text, and Save again, which writes the same bytes. Further cases prove that an
+opened workspace is fitted while an import leaves the view, that a refused
+file is shown with its problem code and leaves the open workspace, and that
+the About pane names the editor, the bundled packages and the server
+(offline in the test build, where no server answers the health check) and
+links a notices file the build serves.
 
-4. **Stretch to the floor and across the kink.** `nested`'s height is
-   `76.98828125 + 16 v` below the kink v = 32.01171875 / 35 = 0.91462… and
-   `44.9765625 + 51 v` above it; the padding leaves it no flat piece.
-   Stretch stores the largest multiple of 1/2048 (at or above the floor)
-   whose height does not pass the pointer. The bottom handle dragged by
-   (0, −40) asks for 55.9765625, below the height at the floor 1/4
-   (80.98828125), so the solve stops at the floor (y stays 224). Dragged by
-   (0, 35) from there, the target is 115.98828125, above the kink, so v ≤
-   (115.98828125 − 44.9765625) / 51 = 71.01171875 / 51 = 1.392386…, i.e.
-   2851/2048 = 1.39208984375.
-4b. **A resize held in the edge zone pans and follows the pointer.** In box
-   mode, `bare`'s right handle is pressed at screen x s₀ and moved to screen
-   x s₁ = pane right − 20, inside the right edge zone, both whole pixels
-   (WebKit and Firefox round pointer positions, so a fractional point would
-   travel another distance), held until the viewport has moved, then
-   released. The pointer's travel in canvas units is its screen travel minus
-   the pan: d = (s₁ − s₀) − (v₁.x − v₀.x) at zoom 1, v₀ = (300, 40) and v₁
-   the viewport read after the release. The stored width is
-   476.5771484375 + d rounded to 1/2048, with x 40 unchanged, as one `set`.
-5. **A no-op resize journals nothing.** In box mode `bare` (width null) has
-   its right edge dragged 20 px left: the request is below the content, so
-   width stays null, the value already stored; the journal stays at 7 and
-   the placement is unchanged.
-6. **Box never below the content.** In box mode `bare` grown by 20, then the
-   right edge dragged 60 to the left (below the content's 476.58): `width`
-   is stored `null` and the node's box equals the box it had before the
-   growth, exactly.
-7. **Undo** after the scale top-left resize restores the whole placement
-   (`x`, `y`, `index`, `scale`, `length`, `spacing`, `width`, `height`)
-   exactly.
-8. **A frame scales on the arranger.** `bundles` at viewport (40, 40), zoom
-   1, nothing open. A click on `group_1`'s frame of `bmixed0000`
-   (`framePoint`) selects `bmixed0000/group_1`; Scale shows exactly the
-   four corner handles. The frame is drawn 562.484619140625 × 169.234375 at
-   its default place (8, 28.8046875) (section "Drawing facts": the box's
-   one horizontal layout makes every item of `bundle_mixed`
-   562.484619140625 wide). Its
-   `handle-bottom-right` dragged by (40, 20) scales it by the larger axis
-   ratio about its fixed top left corner, `max(602.484619140625 /
-   562.484619140625, 189.234375 / 169.234375) = 1.11817930…`, 2290.03 steps,
-   so 2290/2048 = 1.1181640625. One `set` is journalled (journal 4), and
-   the stored `places` are exactly `{group_1: {scale: 2290/2048}, group_2:
-   {x: 8, y: 206.0390625}, annotations: {x: 8, y: 391.7734375}}`: the
-   other items' drawn positions are stated with it, so nothing else moves.
-9. **A member card's margin stretches with its group, and the group
-   shortens again.** `bundles` at viewport (40, 40), zoom 1, nothing open;
-   the block `bshared000` (`bundle_shared_parent`), whose group `group_1`
-   "Exposition" holds the cards of `exposition` and `take_1`. Every
-   member's card is `Wc(L) = 151.39013671875 + L` wide and the frame
-   `16 + ` its widest card (section "Drawing facts").
-   One gesture after the other, each journalling one `set`:
-   - `bshared000/exposition/card` selected, Box, `handle-right` dragged by
-     (100, 0): `places.exposition` is `{width: 651.39013671875}`
-     (551.39013671875 + 100), so the card is longer than `take_1`'s.
-   - Stretch: the card offers `handle-right`, `handle-bottom-right` and
-     `handle-bottom`. `handle-right` dragged by (60, 0): the card's box,
-     its request following its content, `q(651.39013671875 × Wc(L) /
-     551.39013671875)`, may reach 711.39013671875. The largest lattice
-     length is `L1 = 923216 / 2048 = 450.7890625` (the box is then exactly
-     711.39013671875; one step more draws 711.39111328125), so
-     `places.group_1` is `{length: 450.7890625}` and `places.exposition`
-     `{width: 711.39013671875}`. `take_1`'s card is drawn `Wc(L1) =
-     602.17919921875` wide: the margin is kept in proportion, not
-     removed, and the lines keep one length.
-   - The frame `bshared000/group_1` selected, Stretch, `handle-right`
-     dragged by (−120, 0): the frame is `16 + q(711.39013671875 × Wc(L) /
-     602.17919921875)` wide and must shrink from 727.39013671875 to
-     607.39013671875. The largest lattice length is `L2 = 715184 / 2048 =
-     349.2109375` (frame 607.3896484375; one step more 607.390625), so
-     `places.group_1` is `{length: 349.2109375}` and `places.exposition`
-     `{width: 591.3896484375}`: the group is shorter than when it started.
-   After each gesture, `places` holds exactly the values stated above for
-   it plus the drawn positions the arranger states for the other items
-   with the first gesture,
-   `group_2` at (8, 245.9921875) and `page` at (8, 478.08203125) (section
-   "Drawing facts").
+**`inspector.spec.ts`** (Chromium, Firefox, WebKit) opens the drawer on
+`small` with `bare` selected, at zoom 1. The manifest text: a YAML edit is
+applied as one `set` of the manifest and undone by Undo; a refused edit
+shows its code, message and JSON pointer in the list "Problems" and keeps
+the text; for the complete and the minimal form, with the styling excluded
+or included, the text shown equals the schema package's fixture file in
+that form (without `graphical` unless included), Apply and Revert are
+enabled exactly while it differs, the form options are locked meanwhile,
+Apply stores the renamed fixture as `loadManifest` reads it, and an
+unapplied text survives a visit to another tab. The tabs: each is paired
+with one panel of its own through `aria-controls` and `aria-labelledby`,
+and the arrow, Home and End keys move the selection and the focus with and
+without an editor open. The properties form: a value moves the block by
+exactly that amount, the fields follow a drag and a resize live (rounded to
+two decimals) and show the stored values afterwards, an arrow-key step applies
+at once as one command, Escape restores the stored values, and on
+`bundles` the form edits a frame's and a card's places, never the block's,
+following a frame's Stretch live in the bundle editor. The heading names
+what is inspected: a timeline, a bundle, a group, a card's timeline, and
+the anonymous bundle of a manifest without a name.
 
-## `touch.spec.ts` (the touch project)
+**`a11y.spec.ts`** (Chromium, Firefox, WebKit) runs axe-core on the page
+with `small` open and requires an empty violation list on the canvas, with
+an element selected, with the drawer open, on both of the drawer's tabs
+inspecting a timeline, with the File menu, the About dialog and the
+discard question open. Tab reaches the nodes in z-order, Enter selects the
+focused one and Escape clears the selection.
 
-Touch points go through the Chrome DevTools Protocol
-(`Input.dispatchTouchEvent`), which produces the touch and pointer events of
-a real screen, with one or two fingers; the spec skips on other engines.
-`small` at viewport (20, 20), zoom 1. Two properties of a real touch screen
-shape the gestures: Chromium moves a tap onto a nearby clickable element
-(touch adjustment), so a tap meant for a block's card lands 14 px or
-more from any other drawn element; and it withholds the moves inside its touch
-slop (15 px) at the start of a gesture, so a one-finger node drag first
-travels 20 px to the right and its delta counts from there (as with the
-mouse, Svelte Flow measures a node drag from the move that starts it).
+**`culling.spec.ts`** (Chromium, Firefox, WebKit) proves that culling is off
+below its threshold, so `grid-300` mounts all 300 nodes at any viewport,
+and on above it: with `grid-900` at viewport (−2000, −100) exactly the
+nodes whose boxes overlap the shown rectangle by a positive area are
+mounted, counted from the grid's formula for the pane's actual size (the
+formula itself pinned by a worked example).
 
-1. A tap on `map0000000`'s card selects the card, `[map0000000/melody/card]`;
-   a tap on `nested0000`'s `clt_2` selects `[nested0000/clt_2]`. The margin,
-   8 px wide, is narrower than a finger's 14 px, so on a touch screen a
-   block is selected by the marquee (6).
-2. A one-finger drag of (101, 37) from `map0000000`'s card: raw (101, 357) → grid
-   (104, 360), as with the mouse. Stored (104, 360) as exactly one `set`.
-3. A one-finger drag of (30, 40) on the empty canvas pans to (50, 60), zoom 1.
-4. A pinch (two fingers 40 px apart moved 120 px further apart) changes the
-   zoom and journals nothing; the new zoom value is Svelte Flow's and not
-   pinned.
-5. Taps on `mode-box`, `mode-stretch`, `mode-scale` with `map0000000` selected
-   (through the hook, the margin being out of a finger's reach) set the mode, press the button and show 8, 8, 4 handles.
-6. With the `marquee` toggle tapped on, at viewport (60, 60), zoom 0.4 (the
-   finger stays between pane points (48, 48) and (252, 116), clear of the
-   40 px auto-pan zone of the phone's narrow pane), a one-finger drag from
-   canvas (−30, −30) by (204, 68) pixels (to canvas (480, 140)) selects
-   exactly {bare000000} (bare ends at x 476.58 and y 67.38, flow starts at 640, nested at
-   y 160) and leaves the viewport where it was.
-7. A double tap (two taps at one point, well within 300 ms and 10 px) on
-   `map0000000`'s card opens the timeline editor of its root: the store's
-   `editing` is exactly `[{target: "map0000000/melody", kind:
-   "timeline"}]` (read as `{target, kind}`), one editor, even where the
-   engine also reports the two taps as a double-click (the canvas reads a
-   touch's double tap from its taps and ignores a double-click that
-   follows a touch press).
-8. **A double tap outside the edited element closes the innermost editor,
-   once.** With `prefers-reduced-motion: reduce` emulated for the case, the
-   bundle editor of `map0000000` and then the timeline editor of
-   `map0000000/melody` opened through the hook (`enter`: each time, once
-   the canvas has moved to the editor, the viewport is set back to (20,
-   20), zoom 1), a double tap on the empty pane at canvas (−20,
-   100) (left of every block, clear of any element for the touch
-   adjustment) leaves exactly `[{target: "map0000000", kind: "bundle"}]`,
-   and two frames later still that one editor: the double-click the engine
-   may derive from the two taps closes nothing more.
-9. **A band moves with one finger.** With `prefers-reduced-motion: reduce`
-   emulated for the case, `bundles` loaded through the hook in place of
-   `small` (journal 3), the viewport set to (20, 20), zoom 1, and the
-   timeline editor of `bmixed0000/score` opened through the hook. The
-   editor opens the drawer, 22rem wide, which leaves the phone's arranger
-   about 60 px; a tap on "Close inspector" closes it, and the canvas
-   recentres the edited card for the wider arranger (the viewport changes
-   once more). Then `score/flow_control_1` is centred at zoom 2
-   (`focusBand`, as in `bands.spec.ts`), where it is 40.953125 px high, so
-   the finger lands at `bandPoint` with clearance `FINGER` (14): a point
-   whose hit, and the hits 14 px around it, are the card or the block's
-   background, right of the jump. The finger first travels `TOUCH_LEAD` to
-   the right (the touch slop, as for a node drag), then straight up to a
-   release one band height (the flow control band's, in pixels) above the
-   middle of `score/conversion_maps_1`. No visible entry of `score` other
-   than the dragged band lies above that, so the band moves to just before
-   the first of them, `score/conversion_maps_1`: the new order is
-   `[score/children_1, score/flow_control_1, score/conversion_maps_1,
-   score, score/markers_1, score/regions_1]`, the order of `bands.spec.ts`
-   case 6 after its third Ctrl/Cmd+ArrowUp. Lifted: the session holds exactly one entry, the `set` of
-   `bmixed0000/score`'s `order` to that order; `score`'s bands are exactly
-   `score/flow_control_1` 2, 1; `score/conversion_maps_1` 1, 2;
-   `score/markers_1` −1, 2; the selection is exactly
-   `[bmixed0000/score/flow_control_1]`; and the viewport is still the one
-   `focusBand` set: a press on a band starts the band's drag and no pan.
+**`groups.spec.ts`** (Chromium, Firefox, WebKit) proves manifests holding
+groups on the canvas, `groups` and `bundles` at viewport (40, 40). The
+drawn structure of every block (frames, titles, cards and lines in DOM
+order) equals the order of `docs/drawing.md` section 8.5 applied to the
+fixture by hand, and the titles their texts. A part drawn twice, a member's
+line or an ancestor line in two frames, is marked selected in every copy.
+Delete removes a timeline with its subtree from its group, and refuses a
+selection holding the manifest's title whole. Hover marks exactly one box
+overlay, the card or the frame under the pointer (never a shadow or an
+enclosing frame), at zoom 1/2 and at scale 1.5 too, and a hovered segment
+boundary is marked with its card; a press on a frame selects the group;
+a click on a member's line marks its card and frame as holding the
+selection and the block dotted, each in its stated colour. A stretch keeps
+the margin a box resize added in proportion. Through the File menu, the
+schema package's `group_styled` and `bundle_mixed` are imported and
+exported byte for byte.
 
-## `files.spec.ts` (Chromium, Firefox, WebKit)
+**`segments.spec.ts`** (Chromium, Firefox, WebKit) proves in a browser the
+refusal to delete a segment: with the schema package's `segment_line`
+imported and its segment `b` selected, Delete and Backspace each show
+core's refusal "Removing segment b of line form is not supported yet" in
+the status line, open no menu and leave the journal, the selection and the root's length and
+segments unchanged; the status line clears on the next stored command.
 
-The pickers of the File System Access API are deleted from the page before
-it loads, so every engine takes the fallback path: a file input answered
-through Playwright's file chooser, and a download. Page 1280 × 800: the
-header is 32 px high and the inspector closed, so the arranger measures
-1280 × 768 (asserted).
+**`editors.spec.ts`** (Chromium, Firefox, WebKit) proves the bundle, group
+and timeline editors on `bundles` (and `groups` for a reorder) at viewport
+(40, 40), with reduced motion emulated so that every viewport is compared
+as soon as the canvas reports it. The open editors are read through the
+hook as `{target, kind}`, outermost first. A double-click on the margin, a
+frame or a card, and Enter on one selected box, opens the editor and the
+Editor tab names it; the viewport moves to the editor and back on Done;
+outside the edited element everything is faded and inert, another block as
+a whole through its node; editors nest only inside the innermost; Done
+folds the session into one journal entry, undone as one step, Cancel asks
+only when there are changes, and Escape aborts a gesture, then clears the
+selection, then acts as Done; moves in the bundle editor state every item's
+place, a card moved left of the padding grows the box left, two items move
+together, a change outside the edited element is refused, and a refused
+Delete shows its refusal. The Journal tab shows a closed session as one
+row, keeps an undone entry greyed, and undoes nested and interleaved
+sessions one run at a time, newest first, redoing in mirror. A
+double-click outside the edited element closes the innermost editor. The
+places of the bundle's items and the editor's viewport after the drawer
+changes the canvas's size come from the arranger's drawing and focus code
+run on the fixture outside the page; that is the one case in the suite
+whose expected values are computed by the code under test.
 
-1. **The gate: save, reopen, save.** File → New workspace (journal 0); the
-   viewport set to (100, 50), zoom 1. File → Import manifest… with the
-   installed package's `fixtures/<SCHEMA_VERSION>/bare.json`: one `add`
-   (journal 1), the new block selected, its top-left at the centre of the
-   view, `((1280 / 2 − 100) / 1, (768 / 2 − 50) / 1) = (540, 334)` snapped
-   to the grid of 8: `(544, 336)`, scale 1 and length 400 (the defaults).
-   An import never moves the view: two frames later the viewport is still
-   exactly (100, 50), zoom 1 (only opening a workspace that holds blocks
-   fits it into view). Dragged by (40, 24): one `set`, `(584, 360)`. In stretch mode its right
-   handle dragged by (20, 0): one `set`, length 420, spacing 1 (as
-   `resize.spec.ts` derives for `bare`). The header shows `• untitled.tle.json`.
-   Ctrl/Cmd+S downloads `untitled.tle.json` whose text equals the hook's
-   `text()` (`writeWorkspace` of the store), and the mark goes. File →
-   Open… with that text clears the selection (a new store), keeps the
-   journal at 3 and gives `text()` equal to the saved text; Ctrl/Cmd+S
-   again downloads `untitled.tle.json` byte-identical to the first save.
-1b. **An opened workspace is fitted, an import into it is not.** `small`
-   opened through the hook (journal 5) is fitted once its nodes are
-   measured: polled until all five nodes' boxes lie inside the pane
-   `.svelte-flow`. Its viewport then, two frames later, is read; File →
-   Import manifest… with `bare.json` journals one `add` (6), and two frames
-   later the viewport equals the fitted one exactly.
-2. **A refused file.** File → Open… with `{` (`broken.tle.json`) shows one
-   message containing `broken.tle.json is not a workspace file` whose first
-   problem code is `invalid_json`; the journal stays 0; Dismiss removes it.
-3. **About.** The About button opens the dialog named `About
-   TimeLineEditor`; its packages are exactly `@timetoalign/tilie-core`,
-   `-layout`, `-writers`, `-arranger`, `-client`; the server line starts
-   `offline: The server did not answer the health check (` (the preview
-   server runs no `tilie-server`; the reason's text differs by engine); its
-   link `THIRD_PARTY_NOTICES.txt` resolves against the page to a file the
-   server answers with status 200, starting `TimeLineEditor: third-party
-   notices` (the build wrote it); Escape closes it.
+**`bands.spec.ts`** (Chromium, Firefox, WebKit) proves a timeline's bands
+as boxes of its timeline editor on `bundles` at viewport (40, 40), reduced
+motion emulated. The hook reports every band drawn (address, kind, level,
+elements, and its line and rectangle on the screen); only a present band
+is recorded, offered, hovered and selected, and only in the innermost
+timeline editor of its own timeline. A band is hovered and clicked through
+its mark; a drag across the line into a gap or along its side, and
+Ctrl/Cmd+ArrowUp or ArrowDown past the next visible entry, is one `set` of
+the timeline's `order` (`null` when it equals the inherited one), one undo
+step and redone; a root's order change moves a child without an entry of
+its own; Escape during a drag dispatches nothing; no band is offered in
+the bundle or group editor or on the arranger; and Delete with only a band
+selected removes nothing.
 
-## `inspector.spec.ts` (Chromium, Firefox, WebKit)
+**`embed.spec.ts`** (Chromium, Firefox, WebKit) proves the embed build in a
+host page it does not own. A route serves the host page at
+`http://host.test/` (its own margin, font and title "Host page", an input,
+two empty 600-px slots) and forwards `/tilie/…` to the embed build, so the
+editor's files reach the page from the host's origin. The host imports
+`mount` from `tilie.js` and mounts `small` in the first slot and `bundles`
+in the second. Each slot then shows one node per block of its workspace and
+each editor's `text()` equals its fixture byte for byte; the bundled face
+is loaded (`document.fonts.check`, and the one face of that family
+`loaded`) from `assets/` beside the bundle, which proves the relative font
+URL; no request goes to an `/api/` path and no test hook is installed. A
+drag in the first slot changes that editor's text alone, and the host's
+body margin (7px) and title survive it. Ctrl/Cmd+S on the host's input and
+Ctrl/Cmd+Z on its body reach the host with `defaultPrevented` false, read
+after every listener has run. `destroy()` leaves the first slot without
+children or `data-tilie` and the second editor drawn. The page's only
+level-1 heading is the host's. Without a hook, the drag starts from a
+named card found on the page.
 
-The inspector drawer on `small` at zoom 1 (viewport `{x: 40, y: 40, zoom:
-1}`), with `bare000000` selected through the hook and the drawer opened by
-its "Open inspector" button. With no editor open the drawer holds three
-tabs, "Properties", "Manifest" and "Journal", in the tab list "Inspector
-sections"; every case starts with "Properties" selected
-(`aria-selected="true"`, "Manifest" and "Journal" `"false"`) and the
-textarea out of the accessibility tree (its panel is `hidden`). A
-case about the manifest text first presses the tab "Manifest". The text
-is read from the textarea labelled "Manifest (…)", the format chosen by
-the radio labelled "YAML", the options by the checkboxes "Include
-styling" and "Minimal", and the buttons are "Apply" and "Revert".
+**`budget.spec.ts`** (`@budget`, Chromium only) measures script time with
+`grid-300` at viewport (20, 20), all nodes mounted: `ScriptDuration` from
+the DevTools Protocol's performance metrics, read around 60 pointer moves
+or wheel events with two frames rendered on each side, divided by 60. The
+budgets are 3 ms per move for a block drag, 1 ms per move for a pan, 1 ms
+per Ctrl+wheel zoom and per plain wheel pan, and 1 ms per command with a
+single-block redraw within one frame; each test prints its measurement.
+These `≤` comparisons are budgets by definition.
 
-1. **A YAML edit reaches the canvas as one command, and Undo restores it.**
-   On the Manifest tab, the YAML text's line `    name: Bare` (the root's, inside the list
-   `timelines`) becomes `    name: Renamed`; Apply
-   adds exactly one journal entry (5 → 6), a `set` whose only change
-   targets `bare000000` with the single value `manifest`; the drawn name
-   `[data-address="bare/name"]` of the block reads `Renamed` and the
-   stored manifest's `timelines[0].name` is `Renamed`. After `undo()` through
-   the hook the drawn name reads `Bare` again and the textarea, which holds
-   no unapplied edit, shows `    name: Bare` again.
-2. **A refused edit shows its exact path and keeps the text.** On the
-   Manifest tab, `    locked:
-   false` becomes `    locked: yes` (a string in YAML 1.2); Apply leaves the
-   journal at 5, the problem list holds exactly one item reading
-   `schema_violation must be boolean at /timelines/0/locked`, the textarea
-   still holds the edited text, and Apply and Revert stay enabled (the text
-   still differs from the one shown).
-3. **The properties form moves the block by the exact amount.** On the
-   Properties tab, the field
-   `x` (initially `0`) is filled with `37.5` and Enter pressed: the journal
-   grows by one `set` `{target: "bare000000", values: {x: 37.5}}`, the
-   stored `x` is `37.5`, and the node's bounding box has moved right by
-   exactly 37.5 px (zoom 1) with its `y` unchanged.
-4. **The tabs follow the keyboard.** The tab list "Inspector sections"
-   holds exactly the tabs "Properties" (id `inspector-tab-properties`,
-   `aria-controls` `inspector-panel-properties`), "Manifest"
-   (`inspector-tab-manifest`, `inspector-panel-manifest`) and "Journal"
-   (`inspector-tab-journal`, `inspector-panel-journal`), in that order;
-   each panel has `role="tabpanel"` and `aria-labelledby` its tab. The keys
-   move over the tabs present, the arrows wrapping at either end. With the
-   focus on "Properties", each key below selects and focuses the tab
-   named, and afterwards exactly that tab has `aria-selected="true"` and
-   `tabindex="0"`, every other present tab `"false"` and `"-1"`, its panel
-   is visible and the other panels hidden: ArrowRight → Manifest,
-   ArrowRight → Journal, ArrowRight → Properties (wrapping), ArrowLeft →
-   Journal (wrapping), ArrowLeft → Manifest, End → Journal, Home →
-   Properties. Then the bundle editor of `bare000000` is opened through the
-   hook (`open("bare000000")` returns `null`): the list holds exactly
-   "Editor" (`inspector-tab-editor`, `inspector-panel-editor`),
-   "Properties", "Manifest", "Journal", with "Editor" selected. With the
-   focus on "Editor", the same rule over the four tabs: ArrowLeft → Journal
-   (wrapping), ArrowRight → Editor (wrapping), ArrowRight → Properties,
-   End → Journal, Home → Editor. No key and no opening adds a journal
-   entry (still 5). (axe-core on the Properties and Manifest tabs is in
-   `a11y.spec.ts`.)
-5. **The form follows a drag live.** `bare000000` (at (0, 0)) is pressed
-   on its card and moved by (101, 37) with the button held: Svelte
-   Flow has it at the grid point (104, 40) (no other left edge or origin
-   lies within 6 of 104 or of its origin 153.58; the nearest, `map`'s origin 63.54, is 40.46 from 104), so the fields `x` and
-   `y` show exactly `104` and `40` while the journal stays at 5 and the
-   stored placement is still (0, 0). The release adds exactly one `set`
-   `{x: 104, y: 40}`, and the fields show the stored `104` and `40`.
-6. **The form follows a resize live, rounded to two decimals.** In box
-   mode the `right` handle of `bare000000` is moved by (20, 0) with the
-   button held: the field `width` shows exactly `496.58` (the preview's
-   476.5771484375 + 20 = 496.5771484375), the journal stays at 5 and the
-   stored `width` is still `null`. The release adds one `set` and stores
-   `width` 496.5771484375, which the field shows as `496.58`.
-7. **A step applies at once, from the stored value.** After a `set` of
-   `x` to 10.123 through the hook (journal 6) the field `x` shows `10.12`.
-   ArrowUp in the field adds exactly one entry, `{type: "set", changes:
-   [{target: "bare000000", values: {x: 11.123}}]}`, and the field shows
-   `11.12`; ArrowDown adds one more with `x` 10.123. A click on the field's
-   upper spin button (8 px left of its right edge, past the border and
-   padding, a quarter of its height from the top; all three engines show
-   spin buttons there) adds exactly one entry with `x` 11.123 and the field shows
-   `11.12`; undo through the hook restores `x` 10.123 and the journal to
-   8 entries, so every step is a command of its own. One wheel notch up
-   (`deltaY` −100) over the focused field adds exactly one entry with `x`
-   11.123 (from the stored 10.123, never from the shown text). Typed text
-   still waits for Enter: typing `5` dispatches nothing.
-8. **Escape cancels a resize.** In box mode the `right` handle of
-   `bare000000` is moved by (20, 0) with the button held, and the field
-   `width` shows `496.58`; Escape ends the gesture: the field shows the
-   stored value again (empty, `width` null), the node's bounding box equals
-   the one before the gesture, the selection still holds `bare000000`,
-   and after the release the journal is still 5.
-9. **A selected timeline shows its `locked` as a disabled checkbox.** With
-   the drawer open, `bundles` is loaded through the hook (journal 3) and
-   the root `score` of `bungroup00` is locked by a `set` of `locked`
-   `true` on `bungroup00/score` through the hook (accepted). Then three
-   addresses are selected through the hook, one at a time:
-   `bungroup00/score` (a root), `bungroup00/pages` (a root segment line,
-   no group member) and `bungroup00/page_1` (one of its plain segments).
-   Each shows exactly one checkbox named "Locked", disabled, with the
-   `title` "Locking and unlocking is not available yet." (which is also
-   its accessible description, there being no other), checked for
-   `score` and not checked for `pages` and `page_1`: a plain segment is
-   never locked, and a root segment line that is no group member keeps
-   the `false` it was written with. Each also names the timeline beside
-   the drawer's heading by its name: `#inspector-subject` reads exactly
-   "Timeline Score", "Timeline Pages", "Timeline Page 1", and the drawer's
-   heading is still exactly "Inspector". Selecting the block `bungroup00`
-   itself shows no such checkbox, and the subject reads exactly "Bundle
-   Sketches" (the manifest's name); selecting the group
-   `bmixed0000/group_1` shows no checkbox and the subject "Group
-   Performance"; selecting nothing removes the subject.
-10. **A press on a card shows its timeline's checkbox.** The root `bare` of
-    `bare000000` is locked by a `set` of `locked` `true` on
-    `bare000000/bare` through the hook (accepted, journal 6). A press on
-    the block's card (`cardPoint`) selects exactly `bare000000/bare/card`,
-    and the drawer shows exactly one checkbox named "Locked", disabled and
-    checked, in the cell of the form "Card properties" (the card of an
-    ungrouped root) right after the `height` field's label, with no `fieldset` in the drawer; the subject
-    beside the heading reads exactly "Card of timeline Bare": the card
-    stands for its timeline and the value is the stored `true`, not the
-    `false` the fixture was written with. A press on the block's margin
-    (`marginPoint`) then selects exactly `bare000000`: the checkbox is
-    gone and the subject reads exactly "Anonymous bundle" (the manifest
-    has neither `id` nor `name`). Neither press adds a journal entry
-    (still 6).
-11. **Apply and Revert are enabled exactly while the text is edited, in
-    each of the four modes.** One case per mode: the complete or the
-    minimal form (the checkbox "Minimal"), each with the styling excluded
-    or included (the checkbox "Include styling"). The block is
-    `styled0000`, whose manifest is timeskeleton's fixture
-    `styled__score.json` as stored (it has `graphical`, and its minimal
-    form, the fixture `styled__score.minimal.json`, leaves out many
-    defaulted keys), with its root `styled0000/score` selected through the
-    hook, so the subject beside the heading reads "Timeline Score". The
-    text is JSON, timeskeleton's `dumps`. The expected text of a mode is
-    derived from the fixture files alone, never from the editor: the
-    complete form is `styled__score.json` byte for byte, the minimal form
-    `styled__score.minimal.json` byte for byte (the schema package's JS
-    `dumps(minimal(…))` of the complete fixture writes exactly that file),
-    and with the styling excluded each is `dumps` of that file's value read
-    by `parseJson` without its `graphical` member. Each case:
-    1. on the Manifest tab both checkboxes are unchecked; the case checks
-       the mode's ones, and the textarea then equals the mode's expected
-       text exactly; Apply and Revert are disabled;
-    2. one character typed into the textarea enables both buttons, disables
-       the checkboxes "Minimal" and "Include styling", and shows "Apply or
-       Revert to switch"; Backspace restores the text character for
-       character: the textarea equals the expected text again, both buttons
-       are disabled and the hint is gone;
-    3. the text with `"name": "Score"` (once in every mode's text: the
-       root's name; the conversion map's is "Ticks", the region's "intro")
-       replaced by `"name": "Draft"` enables both; Revert makes the textarea
-       equal the expected text again and disables both; the journal is
-       still 5;
-    4. the text with `"name": "Score"` replaced by `"name": "Renamed"`;
-       Apply adds exactly one journal entry (5 → 6), a `set` whose only
-       change targets `styled0000` with the single value `manifest`. The
-       whole stored manifest then equals in value (deep equality; the
-       store keeps the key order of the text applied, which no writer
-       shows) `loadManifest` of `styled__score.json` with that one
-       replacement: the complete form with `graphical` exactly as before
-       in every mode, also when the text did not show it. Both sides pass
-       through `JSON.stringify` on their way out of the page, which is
-       exact here: `styled__score` holds no integral float and no
-       `bigint`. The textarea equals the mode's expected text with the
-       same replacement byte for byte, so it still pins the order the user
-       sees (minimal: no defaulted key reappears; excluded: no
-       `graphical`); both buttons are disabled, and the tab
-       "Manifest" is still the selected one;
-    5. on the Properties tab the subject reads "Timeline Renamed", the
-       Locked checkbox of `score` is unchecked (its stored `false`) and the
-       fields `x` and `y` show its card's drawn place, `8` and `8`, never
-       the block's `640` and `160`.
-12. **An unapplied text survives a visit to Properties.** On the Manifest
-    tab the JSON text of `bare000000` with `"name": "Bare"` replaced by
-    `"name": "Kept"` is typed in; Apply and Revert are enabled. The tab
-    "Properties" is pressed, then the tab "Manifest": the textarea still
-    holds the edited text, Apply and Revert are still enabled, and the
-    journal is still 5.
-13. **The form edits the selected frame's and card's places, never the
-    block's.** With the drawer open, `bundles` is loaded through the hook
-    (journal 3) and `bmixed0000/group_1` selected: the form "Frame
-    properties" shows `length` `400`, `scale` `1` and `spacing` `1` (the
-    default, nothing stated), and its `x` and `y` fields are disabled (items are moved in the
-    bundle editor only). `length` filled with `300` and Enter adds exactly one entry,
-    `{type: "set", changes: [{target: "bmixed0000/group_1", values:
-    {place: {length: 300}}}, {target: "bmixed0000/group_2", values:
-    {place: {x: 8, y: 206.0390625}}}, {target: "bmixed0000/annotations",
-    values: {place: {x: 8, y: 391.7734375}}}]}`: on the arranger a form
-    edit, like a gesture, states the drawn position of every other item
-    that states none (the items' default places, section "Drawing
-    facts"); the block's stored `length` stays 400 and the
-    field shows `300`. Then `bmixed0000/score/card` is selected: the form
-    "Card properties" shows the group's length, `group length` `300`;
-    `width` filled with `650` and Enter adds exactly one entry, `[{target:
-    "bmixed0000/score", values: {place: {width: 650}}}]` (`group_2` and
-    `annotations` state their positions now, and `group_1`, the frame
-    holding the card, is given none: a card's size never moves its frame),
-    and the field shows `650`.
-14. **The form follows a frame's Stretch live.** `bundles` loaded as in
-    case 13, the bundle editor of `bmixed0000` opened through the hook,
-    the viewport set back to `{x: 40, y: 40, zoom: 1}` once the opening has
-    moved it, `bmixed0000/group_1` selected and the Properties tab
-    pressed: the form "Frame properties" shows `length` `400` and `width`
-    `562.48`. Stretch chosen, the `right` handle is dragged 20 px right
-    with the button held: the form shows `length` `420` and `width`
-    `582.48` (each width grows by exactly the length added; at zoom 1 and
-    block scale 1, 20 px are 20 units) and the editor's session holds no
-    entry yet. Released, the session holds exactly one entry, the block's
-    places are exactly `{group_1: {length: 420}, group_2: {x: 8, y:
-    206.0390625}, annotations: {x: 8, y: 391.7734375}}`, and the form
-    still shows `420` and `582.48`.
-
-## `a11y.spec.ts`
-
-axe-core (`@axe-core/playwright`) on the page with `small` open reports an
-empty `violations` list, again with the element `styled0000/score/intro`
-selected, with the inspector drawer open (nothing selected, so it shows
-only its hint), with the drawer inspecting the timeline `styled0000/score`
-on its default Properties tab and again on its Manifest tab (the
-textarea visible), with the File menu open, with the
-About dialog open, and with the question "… has unsaved changes. Discard
-them?" open (a `set` makes the workspace unsaved, then File → New
-workspace). Tab is pressed until a node holds the focus: the first is
-`bare000000` (nodes follow the z-order). Enter selects exactly it, Escape
-clears the selection, the next Tab focuses `nested0000` and Enter selects it.
-
-## `culling.spec.ts`
-
-- **300 blocks**: culling is off (the threshold is above 500 nodes), so
-  `grid-300` mounts all 300 nodes, both at the opening view and at viewport
-  (−2000, −100), zoom 1.
-- **900 blocks**: culling is on. At viewport (−2000, −100), zoom 1, the
-  pane shows canvas `[2000, 2000 + pane width] × [100, 100 + pane height]`.
-  Svelte Flow mounts a node when its box overlaps that rectangle by a
-  positive area. Block `n` is (512 × (n mod 30), 80 × ⌊n / 30⌋) with box
-  476.5771484375 × 67.37890625, so the expected count is the number of grid
-  cells whose box overlaps; the spec counts them for the pane's actual
-  `clientWidth` × `clientHeight` (the pane's size belongs to the editor's
-  layout, not to this file) and requires exactly that many
-  `.svelte-flow__node`. Worked example, pinned in the spec as a check of the
-  formula itself: a 1000 × 600 pane shows columns with x in (1523.42, 3000),
-  i.e. 1536, 2048 and 2560 (1536 + 476.58 = 2012.58 passes 2000; 1024 +
-  476.58 = 1500.58 does not reach it), and rows with y in (32.62, 700), i.e.
-  80 … 640 (row 0 ends at 67.38, before 100), eight rows: 3 × 8 = 24 nodes.
-
-## `groups.spec.ts` (Chromium, Firefox, WebKit)
-
-Manifests holding groups on the canvas: `groups` or `bundles` at viewport
-(40, 40), zoom 1, page 1600 × 1000, unless a test states otherwise. Every expected list below is the order
-of timeskeleton's `docs/drawing.md` section 8.5 (the manifest's title; per
-frame the frame, its title, then per member its card and its member
-drawing, ancestor lines just before the member's line; then each ungrouped
-root's card and drawing), applied to the fixture by hand.
-
-1. **A group workspace draws its frames, cards and lines.** Four nodes. In
-   each node, the distinct `data-address` values of the drawn parts, in DOM
-   order, kept only when they name a frame, a line or the manifest's title
-   (no `/`; the title is `name`), a card (ending `/card`) or a group's title
-   (`group_<n>/name`), are exactly:
-   - `gchild0000`: group_1, group_1/name, second-half/card, piece,
-     second-half, recording/card, recording;
-   - `ggrand0000`: group_1, group_1/name, theme/card, score, movement,
-     theme, recording/card, recording;
-   - `gmixed0000`: group_1, group_1/name, exposition/card, sonata,
-     exposition, take/card, session, take, system/card, page, system,
-     audio/card, audio;
-   - `gstyled000`: group_1, group_1/name, score/card, score, page/card,
-     page, performance/card, performance.
-
-   So the cards follow the display order (`graphical.order`, not
-   `members`), and an ancestor line precedes its member. Each title reads
-   the group's `name`: "Second half", "Theme", "Exposition", "Edition".
-   Every card is two parts (shadow, card) carrying its address, every frame
-   one.
-2. **A bundle workspace draws the manifest's title, its frames, and its
-   ungrouped roots without a frame.** Three nodes:
-   - `bmixed0000`: name, group_1, group_1/name, score/card, score,
-     performance/card, performance, group_2, group_2/name, page/card, page,
-     excerpt/card, recording, excerpt, annotations/card, annotations
-     (titles "Mixed", "Performance", "Facsimile"; `annotations` is
-     ungrouped and follows the frames);
-   - `bshared000`: name, group_1, group_1/name, exposition/card,
-     score, exposition, take_1/card, take_1, group_2, group_2/name,
-     recapitulation/card, recapitulation, recapitulation_first,
-     recapitulation_second, take_2/card, take_2, page/card,
-     page (titles "Sonata", "Exposition", "Recapitulation"; `score`, the
-     parent of both members, appears once in the list of distinct values
-     but is drawn in both frames);
-   - `bungroup00`: name, pages/card, pages, recording/card,
-     recording, score/card, score (title "Sketches"; no frame).
-
-   A segment that is itself a segment line is drawn as a child line
-   (drawing.md sections 2.1 and 6.1), addressed by its bare id and drawn
-   after its root, in traversal order (section 7.2): so `recapitulation`'s
-   segments `recapitulation_first` and `recapitulation_second` follow it.
-   A segment that is no segment line (`exposition_first`, `take_1_first`,
-   `page_1`, `recapitulation_first_1`, …) draws no line, only its label
-   `S/label` and, unless it is its line's first segment, its boundary
-   `S/start`; the list leaves these out, as it leaves out every map,
-   region and jump (`<root>/<id>`).
-3. **Selecting an element drawn twice marks every copy.** In `bshared000`
-   the ancestor line `score` is drawn once per frame: 8 parts carry
-   `data-address="score"`, 4 whose box centre lies inside `group_1`'s frame
-   (line, start circle, two chevrons running on to the right) and 4 inside
-   `group_2`'s (line, two chevrons running on to the left, arrowhead). A
-   click on the first part (the line in `group_1`) selects exactly
-   `[bshared000/score]`; all 8 parts, in both frames, carry
-   `data-selected`, and no other part does. In a manifest of one group the same holds
-   for a part drawn twice: `second-half/start` in `gchild0000` is the mark
-   of the member's start on `piece`'s ancestor line and its start wedge on
-   its own line; a click on the first of the two (the mark) selects exactly
-   `[gchild0000/second-half/start]`, both carry `data-selected`, and they
-   are the only marked parts.
-3b. **A card and its frame holding the selection are drawn dashed, the
-   block dotted.** In `bmixed0000` nothing carries
-   `data-contains-selection` and no mark `rect.tilie-holding` is drawn. A
-   click on the first part of the member line `score` (in `group_1`)
-   selects exactly `[bmixed0000/score]`; then exactly two `rect`s of the
-   node carry `data-contains-selection`, the frame `group_1` and the card
-   `score/card`, and so does the node's `.tilie-block`: three on the page.
-   At zoom 1 the marks are, in order, `[block, rgb(10, 132, 255), 1px,
-   1px, 2px, non-scaling-stroke, none]`, `[group, …, 2px, 6px, 4px, …]`
-   and `[card, …, 3px, 6px, 4px, …]` (`data-box`, `stroke`,
-   `stroke-width`, `stroke-dasharray`, `vector-effect`, `fill`): thinner
-   outward, the block dotted. Only the block's mark has `shape-rendering`
-   `crispedges` (the others `auto`): it lies on the node's edge, between
-   two device pixels at a pixel ratio of 1, and is drawn as one pixel of
-   the full colour per dot instead of two pale ones. At zoom 2 every width and dash is halved
-   (`0.5px` with `0.5px, 1px`; `1px` and `1.5px` with `3px, 2px`), so that
-   on screen, where the zoom doubles them, they stay 1, 2 and 3 pixels;
-   `non-scaling-stroke` keeps them from scaling with the block. The frame
-   and the card keep their own strokes under the marks: `rgb(209, 213,
-   219)` (`#D1D5DB`) and `rgb(196, 201, 209)` (`#C4C9D1`, the card's own
-   `rect`, not its shadow). Which selections mark which boxes is proven in
-   arranger's unit tests; this proves the attributes reach the page and
-   the stylesheet draws them.
-4. **Delete removes a timeline with its subtree from its group, and a
-   region.** In `gchild0000` (roots `piece`, holding `second-half`, and
-   `recording`; `group_1` with members `recording`, `second-half`), with
-   `{gchild0000/recording}` selected (a member line), Delete journals
-   exactly `{type: "remove", targets: ["gchild0000/recording"]}`; the roots
-   are then `piece` with the child `second-half`, `group_1`'s members
-   `[second-half]`, and the card `recording/card` is gone. Ctrl/Cmd+Z
-   brings the journal back to 4 and every block's manifest to its JSON text
-   before the Delete. The same for `{gchild0000/piece}` (an ancestor line,
-   a root): one `remove` of `gchild0000/piece`, the roots `recording` alone
-   (the child `second-half` went with its parent), `group_1`'s members
-   `[recording]` (the group stays), and the card `second-half/card` gone
-   (`piece` is drawn only as the ancestor line inside that card); undo
-   again restores every manifest. Then a region is added through the
-   hook with one `add` into `gchild0000/second-half` (`region_1`, name
-   `A`, `start` `[2, 1]` and `end` `[6, 1]`, bare values on `second-half`'s
-   own `fraction` axis): journal 5, and the node shows the
-   part `piece/region_1` (a region is addressed by its root, `piece`, and
-   its id). With `{gchild0000/piece/region_1}` selected,
-   Delete journals exactly `{type: "remove", targets:
-   ["gchild0000/piece/region_1"]}`, the stored `second-half` has no region
-   and the part is gone; Ctrl/Cmd+Z brings both back.
-4b. **Delete refuses a selection holding the manifest's title.** The title
-   is removed only with its block. In `bmixed0000`, with
-   `{bmixed0000/annotations, bmixed0000/name}` selected (a root and the
-   title), Delete is refused whole: the hint is visible and contains
-   "select the block to delete it", the journal stays at 3, every block's
-   manifest is unchanged (JSON text before and after identical) and the
-   card `annotations/card` is still drawn.
-5. **Hover marks the box under the pointer and a boundary; a press on a
-   frame selects its group.** The pointer anywhere inside a card marks that
-   card: its own rectangle (the one with a stroke), not its shadow, which
-   carries the same address, and not the frame around it (the card is the
-   innermost box). The mouse moved onto the centre of the first part of the
-   member line `recording` in `gchild0000` marks exactly one part in the
-   page, the card of `recording/card`. The pointer inside a frame and
-   outside its cards marks the frame: the mouse on a point of
-   `gchild0000`'s frame `group_1` clear of its cards and its title (the
-   element hit there and 6 px around is the frame, `framePoint`, found on
-   the same raster as `cardPoint`) marks exactly `[gchild0000/group_1]`. A
-   click there selects exactly `[gchild0000/group_1]`, the frame is the one
-   part carrying `data-selected`, and no part carries `data-affected` (a
-   group removes itself only). In `bungroup00` the segment line `pages` (segments
-   `page_1`, `page_2`, `page_3` from 0, 1754 and 3508 px) draws the
-   boundaries `page_2/start` and `page_3/start` (a segment starting at 0
-   has none); the mouse on `page_2/start` marks exactly, in DOM order, the
-   card of `pages/card` (the pointer is inside it) and `page_2/start`, not
-   `page_3/start`. With the mouse on the empty canvas no part carries
-   `data-hovered`.
-
-   The card is found from the pointer's client position read in the
-   drawing's units, `(client − box.left) × drawing.width / box.width` (and
-   the same vertically), where the box is the `<svg>`'s on screen; its size
-   is the drawing's times the block's `scale` times the zoom. Two tests
-   therefore move the pointer where that factor is not 1. In `gchild0000`'s
-   drawing (558.4140625 × 190.13671875) the card `second-half/card` spans
-   `x` 16 to 542.4140625, `y` 32.8046875 to 116.7578125, the card
-   `recording/card` `y` 124.7578125 to 174.13671875, and the first part of
-   `recording`, its line from (120.61962890625, 139.16015625) to
-   (520.61962890625, 139.16015625), has its centre at (320.61962890625,
-   139.16015625).
-   - **Zoom 1/2.** The viewport set to (40, 40), zoom 0.5; the mouse moved
-     onto the centre of `recording`'s first part marks exactly
-     `[gchild0000/recording/card]`. A conversion that left out the factor
-     (here 1/2) would read the drawing point (160.309814453125,
-     69.580078125), on `second-half/card`, and mark that card instead.
-   - **Scale 1.5.** One `set` through the hook, `{target: gchild0000,
-     values: {scale: 1.5}}`, is accepted (refusal `null`, journal 5) and the
-     node's `<svg>` is redrawn with `width` `837.62109375` (558.4140625 ×
-     1.5); at zoom 1 the line's centre lies near canvas (481, 209), clear of
-     `ggrand0000` (from `y` 240) and `gmixed0000` (from `x` 640). The mouse
-     moved onto it marks exactly `[gchild0000/recording/card]`. Without the
-     factor (here 1.5) the point read would be (480.929443359375,
-     208.740234375), below every card and below the drawing (height
-     190.13671875), and nothing would be marked.
-5b. **A stretched bundle's box follows its content.** `bungroup00`
-   (`bundles/bundle_ungrouped` at (0, 480)) is drawn `Wc(L) = R + 18` wide
-   with `R` the end label `441000 smp` (12831 advance units at size 9,
-   56.38623046875 wide) centred at `x0 + L`, `x0 = 16 + w(Recording, 11) +
-   8 = 16 + 55.70361328125 + 8 = 79.70361328125` (the page of
-   `drawings/bundle__bundle_ungrouped` is 557.8967 = `Wc(400) + 32` wide).
-   Every right edge of the drawing is `x0 + L` plus a constant, so `Wc(L) =
-   125.896728515625 + L` and `Wc(400) = 525.896728515625`. Selected through
-   the hook, box mode, its bottom-right handle dragged by (40, 30): one
-   `set` with a `height` request and `width` 565.89697265625, `Wc(400) + 40`
-   quantized to 1/2048 (`Wc(400)` is an odd multiple of 1/4096, the half
-   label's, and the half rounds up), a margin of 40.000244140625. Then
-   stretch mode, its right handle dragged by (50, 0) from a whole-pixel
-   press point: one `set`. The request keeps its proportion to the content
-   (the arranger's `kept`): at a length `L` the box is `q(565.89697265625 ×
-   Wc(L) ÷ 525.896728515625)`, `q` rounding to 1/2048, and the box must end
-   under the pointer, at `565.89697265625 + 50 = 615.89697265625`. A
-   quantized value is at most that while the product is below
-   `615.89697265625 + 1/4096`, so `Wc(L) < 572.36272…` and `L < 446.46599…`
-   (914362.35 steps of 1/2048): `length` 446.4658203125 = 914362 / 2048
-   (914363 steps would draw 615.8974609375). Then `Wc(L) =
-   572.362548828125` and `565.89697265625 × 572.362548828125 ÷
-   525.896728515625 = 615.89703…` rounds to `width` 615.89697265625: the
-   margin grows with the content, so the content grows by less than the
-   pointer's 50. `height` as before, (0, 480) unchanged. The node's right
-   edge on screen moves by exactly the pointer's 50 and its left edge stays
-   put: the box follows the content. Without it the box would keep its
-   565.9 and the content grow inside it; were the margin kept as a fixed
-   space instead, the length would be 450.
-6. **Import and export of a manifest of one group and of a named one.** As in
-   `files.spec.ts`, the File System Access pickers are deleted before the
-   page loads, so File → Import manifest… is answered through the file
-   chooser and File → Export manifest… downloads. On the fresh page (journal
-   0), File → Import manifest… with the installed package's
-   `fixtures/<SCHEMA_VERSION>/groups/group_styled.json` journals one `add`
-   (journal 1); the store holds exactly one new block, the selection is
-   exactly that block, and its manifest's JSON text equals that of
-   `loadManifest` of the file's text (run in the test, outside the page).
-   File → Export manifest… downloads a file named as the editor's
-   `manifestFileName` names it, from the manifest's `id`, else its `name`,
-   else `bundle` (`bundle.json`: the fixture has neither), whose text
-   equals `dumps` of the loaded fixture (core's `saveManifest`, the
-   canonical form) and the fixture file's own text, byte for byte (the
-   fixtures are written in that form). Then the same with
-   `bundles/bundle_mixed.json`: journal 2, one block more, selected alone,
-   its manifest that of `loadManifest` of the file, exported as
-   `Mixed.json` (its `name`; it has no `id`) with the text of the fixture
-   file.
-
-## `segments.spec.ts` (Chromium, Firefox, WebKit)
-
-Deleting a segment is not supported yet: Delete on a segment is refused
-in the canvas's status line and changes nothing (the refusal is
-`removeCommand`'s, proven in arranger's unit tests; the menu that will ask
-how to close the gap is proven there as a component and is not mounted).
-This spec checks the refusal in a browser, where the keys and the status
-line are real. The file chooser is answered as in `files.spec.ts` (the
-open picker deleted before the page loads).
-
-File → New workspace, then File → Import manifest… with the installed
-package's `fixtures/<SCHEMA_VERSION>/segment_line.json`: journal 1, the new
-block selected. Its root `form` (32 quarters) holds the segments `a` at 0,
-`b` at 8 and `c` at 20. With `<block>/b` selected through the hook and the
-arranger focused, Delete and then Backspace each:
-
-- show `Deleting a segment is not supported yet.` in the status line
-  (`data-testid="hint"`);
-- open no menu (`[data-testid="gap-menu"]` is absent) and mark nothing
-  `[data-moved]`;
-- journal nothing (the journal stays where it was before the key), keep
-  the selection `[<block>/b]`, and leave `form` 32 long holding `a` at
-  `[0, 1]`, `b` at `[8, 1]` and `c` at `[20, 1]`.
-
-Between the two keys the hint is cleared, so that Backspace's hint is its
-own refusal and not Delete's left standing. The status line clears on the
-next command the canvas stores: with the block selected through the hook,
-ArrowRight nudges it (journal 2) and the status line is empty. Then
-`<block>/b` is selected again and Backspace is pressed; its journal stays at
-2.
-
-## `editors.spec.ts` (Chromium, Firefox, WebKit)
-
-The editors: the bundle editor on a block, the group editor on a group, the
-timeline editor on a root or a child timeline, each a mode of the arranger
-on the same canvas. `bundles` (and, for the reorder, `groups`) at viewport
-(40, 40), zoom 1, page 1600 × 1000, with `prefers-reduced-motion: reduce`
-emulated for the whole file: the viewport's move to an opened editor and
-back then takes 0 ms, so every viewport is compared exactly as soon as the
-canvas reports it, never after a wait for the one-second animation. The
-drawer starts closed, as on a fresh page.
-
-The editing path is read through the hook: `editing()` lists the open
-editors, outermost first, and each is compared as `{target, kind}` (its
-session id is random; `earlier` is proven in core's unit tests). `open(address)`
-opens an editor the way a double-click would and returns the store's
-refusal or `null`; `done()` and `cancel()` close the innermost one. A case
-that is not about entering opens its editor through `open` (`support.ts`'s
-`enter`) and, once the viewport has left the one before the opening, which
-is (40, 40, 1) in every such case, sets it back to (40, 40, 1) through the
-hook, so that pointer positions are counted at zoom 1 (Done returns to the
-viewport the editor was opened at, which is then (40, 40, 1) as well).
-Commands made inside an editor are read from `store().entries` (the open
-session's), the main journal from `store().journal`. A view or a journal
-is compared as its JSON text, read in the page. Names come from the
-fixture: the manifest of `bmixed0000` is named "Mixed", its `group_1`
-"Performance", its `group_2` "Facsimile", its ungrouped root `annotations`
-"Annotations"; `gchild0000`'s `group_1` has the display order
-`[second-half, recording]`.
-
-1. **A double-click on a box opens its editor.** One case per box kind,
-   each from the arranger with the drawer closed (no tab list shown):
-   - on `bmixed0000`'s margin (`marginPoint`): `editing()` is exactly
-     `[{target: "bmixed0000", kind: "bundle"}]`; the Editor panel reads
-     "Bundle editor: Mixed";
-   - on `group_1`'s frame (`framePoint`): `[{target: "bmixed0000/group_1",
-     kind: "group"}]`, "Group editor: Performance";
-   - on `annotations`' card (`framePoint`'s point search, on the box
-     `annotations/card`): `[{target: "bmixed0000/annotations", kind:
-     "timeline"}]`, "Timeline editor: Annotations".
-
-   Each time the drawer opens, the tab list "Inspector sections" holds
-   exactly the tabs "Editor", "Properties", "Manifest", "Journal" in that
-   order, "Editor" is selected (`aria-selected="true"`), its panel
-   `#inspector-panel-editor` reads exactly the text above, and the path
-   `<ol aria-label="Editing path">` holds one item, the name. The journal
-   stays at 3: opening is not a command.
-2. **Enter opens the editor of the one selected box.** With
-   `[bmixed0000/group_2]` selected through the hook and the arranger
-   (`[role="application"][aria-label="Arranger"]`) focused, Enter opens
-   exactly `[{target: "bmixed0000/group_2", kind: "group"}]`.
-3. **The viewport moves to the editor and back.** Before the double-click
-   on `bmixed0000`'s margin the viewport is (40, 40, 1); once the editor is
-   open it is a different value (the focus on the box, whose exact value
-   depends on the pane's and the drawer's sizes, which belong to the
-   layout); after Done it equals (40, 40, 1) exactly. With two editors
-   (case 5) the inner Done returns to the viewport the inner one was opened
-   at.
-4. **Outside the edited element everything is faded and inert.** In the
-   group editor of `bmixed0000/group_1`:
-   - in `bmixed0000`, of the drawn parts kept as `groups.spec.ts` case 1
-     keeps them (frames, lines, the title, cards, group titles), exactly
-     these carry no `data-outside`: group_1, group_1/name, score/card,
-     score, performance/card, performance (the group, its title, its
-     members and their cards); exactly these carry it on every part: name,
-     group_2, group_2/name, page/card, page, excerpt/card, recording,
-     excerpt, annotations/card, annotations. No address has parts of both
-     kinds;
-   - `bshared000` and `bungroup00` are faded and inert as a whole, through
-     their nodes, not element by element: each node carries the class
-     `tilie-outside` and neither `selectable` nor `draggable` (Svelte
-     Flow's classes), its computed `opacity` is `0.3` and its
-     `pointer-events` `none`, and no element inside it carries
-     `data-outside` (nothing is faded twice). With the mouse moved to the
-     centre of the node's first card, the element hit there is the pane
-     (`.svelte-flow__pane`) and no element of the node carries
-     `data-hovered`;
-   - with `[bmixed0000/score]` selected through the hook, a click on the
-     centre of `bshared000`'s `take_1/card` and one on `bmixed0000`'s
-     `annotations/card` leave the selection `[bmixed0000/score]` and
-     `editing()` unchanged: a click on a faded element changes nothing,
-     although the faded element lets the pointer through to the pane;
-   - a click on the empty pane itself (canvas (−20, 450), left of every
-     block) clears the selection (`[]`) as it does on the arranger, and
-     `editing()` is unchanged;
-   - a double-click on `group_1`'s own frame (the edited element) opens
-     nothing: `editing()` is still the one group editor. A double-click on
-     the faded surroundings closes the editor (case 14).
-5. **Editors nest, inside the innermost only.** In the bundle editor of
-   `bmixed0000` (opened by a double-click on its margin), a double-click on
-   `group_1`'s frame opens a second editor: `editing()` is exactly
-   `[{target: "bmixed0000", kind: "bundle"}, {target: "bmixed0000/group_1",
-   kind: "group"}]` and the path's items read exactly "Mixed",
-   "Performance". Then `open("bmixed0000/group_2")` returns the refusal
-   `not_inside` with the path `["bmixed0000/group_2"]` and `editing()` is
-   unchanged. Done closes the group editor (one editor left, path "Mixed"),
-   Done again the bundle editor (`[]`).
-6. **Done folds the session into one entry, undone as one step.** In the
-   group editor of
-   `bmixed0000/group_1`, two commands through the hook's store are
-   accepted: `set bmixed0000/group_1 place {length: 300}` and `set
-   bmixed0000/score name "S"` (both inside the group). `entries` holds 2,
-   the main journal still 3. The button "Done" of the group "Editing"
-   closes the editor (`editing()` is `[]`); the main journal holds exactly
-   4 entries, the last a session entry (it has `session`, no `command`)
-   whose session in `store().sessions` has the target
-   `bmixed0000/group_1` and 2 entries. The two commands are consecutive
-   changes of the closed session, one run: Ctrl/Cmd+Z on the arranger
-   reverts both, bringing the main journal back to 3 and the view's JSON
-   text back to the one before the editor was opened (one change at a
-   time would leave the place applied and the journal at 4).
-   Ctrl/Cmd+Shift+Z re-applies both: the journal holds 4 again and the
-   view's JSON text is the one after both commands.
-7. **Cancel asks before it discards, and only then.**
-   - With no change, the button "Cancel" closes the editor at once
-     (`editing()` `[]`) and no dialog is shown.
-   - After `set bmixed0000/group_1 place {length: 300}` (`changes` 1),
-     "Cancel" opens a dialog holding exactly the text "Are you sure you
-     want to discard 1 change?" and the buttons "Yes" and "No". "No"
-     closes it and keeps the editor (`editing()` still the one editor,
-     `entries` still 1); so does Escape, and so does a click on the
-     backdrop (a page point outside the dialog's box).
-   - After a second `set` (`set bmixed0000/score name "S"`, `changes` 2)
-     the question reads "Are you sure you want to discard 2 changes?";
-     "Yes" closes the editor, and the view's, the journal's and the
-     sessions' JSON texts equal those read just before the editor was
-     opened.
-8. **Escape: first the gesture, then the selection, then Done.** In the
-   bundle editor of `bmixed0000` with `[bmixed0000/group_2]` selected
-   through the hook, `group_2`'s frame is pressed and moved by (40, 24)
-   with the button held; Escape aborts the move: `places` is still `{}`,
-   the selection still `[bmixed0000/group_2]`, the editor still open, and
-   after the release `entries` is still empty. Escape on the focused
-   arranger then clears the selection (`[]`), the editor still open; Escape
-   again closes it (`editing()` `[]`), and with no entry nothing is
-   journalled (the main journal still 3).
-9. **An item move states every item's place.** The expected places come
-   from the editor's own drawing code run in the test, outside the page:
-   `drawingOf` (arranger's `drawing.ts`) of `bmixed0000` as `readWorkspace`
-   reads it from `bundles.tle.json`, with the workspace's settings and the
-   bundled face's metrics (the installed schema package's
-   `fonts/dejavu-sans-2.37.metrics.json`, the data the editor's
-   `fontMetrics` holds). Its `items` give each item's drawn `place` (`x`,
-   `y` from the place origin, defaults applied), for `group_1`, `group_2`
-   and `annotations`, all stating nothing. An item moves freely: by the
-   pointer's travel from the press in drawing units (pixels over zoom 1
-   and scale 1), with no grid; the moved item's drawn `x` and `y` are
-   multiples of 1/2048 (the spec checks this premise), so a quantization
-   to 1/2048 changes nothing and the sums below are exact.
-   - In the bundle editor, `group_1`'s frame (`framePoint`) is dragged by
-     (40, 24): one entry, a `set`; `places` is exactly `{group_1: {x:
-     x₁ + 40, y: y₁ + 24}, group_2: {x: x₂, y: y₂}, annotations: {x: xₐ,
-     y: yₐ}}`, each item not moved stating its drawn position, so it stays
-     put; the block's stored `x`, `y` stay (0, 0).
-   - `annotations`' card is dragged by (−40, 16): `places.annotations` is
-     `{x: xₐ − 40, y: yₐ + 16}` (with `xₐ = P = 8`, `x` −32: the card now
-     reaches left of the padding, and the box grows left by 40), `group_1`
-     and `group_2` state their drawn positions; the block's stored `x`, `y`
-     stay (0, 0), the node's left edge on screen moves left by exactly 40
-     px, and `group_1`'s frame rectangle, read from its `rect`'s `x`, `y`,
-     `width` and `height` in drawing units (block scale 1, so one unit is
-     one canvas unit), goes from `x` 8 to exactly 48 with `y`, `width` and
-     `height` unchanged: 40 further right in a node 40 further left, so its
-     place on the canvas is unchanged and a box growing left moves nothing
-     that is drawn. Its screen box is not compared: Chromium and WebKit lay
-     the node's `<svg>` out at their layout unit (1/64 px), so the wider
-     `<svg>` is scaled differently in the last digits (measured in Chromium:
-     the frame's screen `x` 47.503448486328125 before, 47.50290298461914
-     after).
-   - **Two selected items move together.** In the bundle editor, a click
-     on `group_1`'s frame (`framePoint`) and a Shift+click on
-     `annotations`' card (`framePoint` on `annotations/card`), the way a
-     user selects two items, select exactly `[bmixed0000/annotations/card,
-     bmixed0000/group_1]` (sorted). `group_1`'s frame is pressed again and
-     moved by (40, 24), the button held: the preview draws both moved,
-     `group_1`'s frame `rect` (its first part) and `annotations`' card
-     `rect` (its second; the first is the card's shadow) each at `x` 48
-     (8 + 40 in drawing units; nothing reaches left of the padding, so the
-     drawing's origin stays). Released: one entry, exactly `{type: "set",
-     changes: [{target: bmixed0000/group_1, values: {place: {x: x₁ + 40,
-     y: y₁ + 24}}}, {target: bmixed0000/annotations, values: {place: {x:
-     xₐ + 40, y: yₐ + 24}}}, {target: bmixed0000/group_2, values: {place:
-     {x: x₂, y: y₂}}}]}`: the pressed item, the item moved with it by the
-     same travel, then the item left in place stating its drawn position,
-     so `places` is exactly those three places; the selection is still
-     exactly the two addresses. Ctrl/Cmd+Z on the focused arranger undoes
-     the move as one: `places` is `{}` again and the view's JSON text is
-     the one read before the first click.
-10. **A member card is reordered by drag and drop.** In the group editor of
-    `gchild0000/group_1` (display order `[second-half, recording]`; in its
-    drawing, which places do not change, `second-half/card` spans `y`
-    32.8046875 to 116.7578125 and `recording/card` 124.7578125 to
-    174.13671875, its middle at 149.453125), `second-half/card` is pressed
-    on a clear point in its upper half (drawing ordinate below its middle
-    74.78125, a premise the spec checks) and dropped at drawing ordinate
-    172 (canvas y 172, the block being at (0, 0)): no card's middle lies
-    below 172, so the dragged card goes last. The same holds when the drop
-    is read at the dragged card's own middle instead of the pointer: moved
-    by more than 172 − 74.78125, it lies below 172 > 149.453125. One
-    entry, exactly `{type: "set", changes:
-    [{target: "gchild0000/group_1", values: {order: null}}]}`: the new
-    order `[recording, second-half]` is the members' own order (`members`
-    is `[recording, second-half]`), and storage is minimal, so the command
-    deletes the group's display order rather than writing it out; the
-    manifest's `graphical.order` is then exactly `{}` (`group_1`'s entry,
-    its only one, is gone).
-11. **A change outside the edited element is refused.** In the group editor
-    of `bmixed0000/group_1`, `set bmixed0000/group_2 place {x: 10}` through
-    the hook's store returns the refusal `side_effect` with the path
-    `["bmixed0000/group_2"]`; `entries` stays empty and `places` `{}`. The
-    hook's store bypasses the canvas, so the status line is proven with a
-    key: in the group editor of `bmixed0000/group_2`, with
-    `[bmixed0000/excerpt]` (a member, a child of `recording`) selected
-    through the hook and the arranger focused, Delete asks to remove
-    `excerpt`, which would change its parent `recording`, outside the
-    group; the refusal's path is `["bmixed0000/recording"]`, and the status
-    line (`data-testid="hint"`) reads exactly "bmixed0000/recording lies
-    outside bmixed0000/group_2: an editor changes only what it edits";
-    `entries` stays empty and the manifest's JSON text is unchanged.
-12. **The Journal tab lists sessions on the arranger and greys undone
-    entries, newest first.** After case 6's two commands and Done, on the
-    arranger the Journal tab's panel `#inspector-panel-journal` shows the
-    row text "Edited group Performance (2 changes)". In a fresh group
-    editor of `bmixed0000/group_1` with the same two commands, one undo
-    through the hook's store leaves exactly one element `[data-undone]` in
-    the panel, which contains "Set name of bmixed0000/score" and the word
-    "undone"; "Set place of bmixed0000/group_1" is shown and not inside
-    it, and the panel's row texts are exactly the name and then the
-    place (newest first). A redo leaves none.
-13. **Nested sessions undo by runs.** A step of undo on the arranger is a
-    maximal run of consecutive changes owned by one closed session (the
-    innermost session whose own entries hold the command); redo mirrors
-    it. Names are read from the view as those of the roots `score`,
-    `performance` and `annotations`, in that order, the fixture's being
-    "Score", "Performance" and "Annotations". Every edit goes through the
-    hook (`open`, the store's `dispatch`, `done`), every undo and redo
-    through the keys on the focused arranger.
-    - **Three nested sessions, one change each,** so each run is one
-      change: `open` of `bmixed0000`, then
-      `bmixed0000/group_1`, then `bmixed0000/score`; in the timeline
-      editor `set bmixed0000/score name "c"`, Done; in the group editor
-      `set bmixed0000/performance name "b"`, Done; in the bundle editor
-      `set bmixed0000/annotations name "a"`, Done. The main journal holds
-      4 entries (the three `add`s and one session) and the Journal tab's
-      first row reads "Edited bundle Mixed (3 changes)". Ctrl/Cmd+Z
-      reverts `a` only: the journal still holds 4 entries, the first row
-      reads "Edited bundle Mixed (3 changes, 1 undone)", and the names are
-      "c", "b" and "Annotations". Its disclosure button (`aria-expanded`
-      `"false"`) expanded (`"true"`) shows, newest first, "Set name of
-      bmixed0000/annotations" (greyed, `data-undone`) and "Edited group
-      Performance (2 changes)" (only the first `data-undone`). The next
-      Ctrl/Cmd+Z reverts `b` (score "c", performance "Performance"), the
-      next `c`, after which the view's JSON text is the one before the
-      first `open` and the store's journal (its entries holding an applied
-      change) is back at 3 entries, while the Journal tab still lists the
-      session, every change undone: its row carries `data-undone` and
-      reads "Edited bundle Mixed (3 changes)". Ctrl/Cmd+Shift+Z three
-      times re-applies `c`, `b`, `a` in that order (the three names after
-      each).
-    - **An interleaved session,** a session's own changes split by an
-      embedded one: `open` of `bmixed0000`, `set
-      annotations name "a1"`; `open` of `bmixed0000/group_1`, `set
-      performance name "b1"`; `open` of `bmixed0000/score`, `set score
-      name "c1"`, `set score name "c2"`, Done; `set performance name
-      "b2"`, Done; `set annotations name "a2"`, Done. The runs are `a1`,
-      `b1`, `c1 c2`, `b2`, `a2`. The names are "c2", "b2", "a2", the
-      journal holds 4 entries and the first row reads "Edited bundle Mixed
-      (6 changes)". Five Ctrl/Cmd+Z give, as names and first row:
-      "c2", "b2", "a1", "(6 changes, 1 undone)"; "c2", "b1", "a1", "(6
-      changes, 2 undone)"; "Score", "b1", "a1", "(6 changes, 4 undone)"
-      (both of the timeline session's changes by one key press, never
-      "c1"); "Score", "Performance", "a1", "(6 changes, 5 undone)"; and
-      the fixture's names with "(6 changes)" on a row carrying
-      `data-undone`, the journal back at 3 and the view's JSON text the
-      one before the first `open`. After the third, the bundle row
-      expanded lists, newest first, "Set name of bmixed0000/annotations"
-      (`data-undone`), "Edited group Performance (4 changes, 3 undone)"
-      (not) and "Set name of bmixed0000/annotations" (not); the group row
-      expanded lists "Set name of bmixed0000/performance" (`data-undone`),
-      "Edited timeline Score (2 changes)" (`data-undone`) and "Set name of
-      bmixed0000/performance" (not). Five Ctrl/Cmd+Shift+Z mirror the
-      undos: the names after each are those before the matching undo, in
-      reverse order, ending at "c2", "b2", "a2".
-
-14. **A double-click outside the edited element is Done.** Outside is
-    where a press selects nothing: the empty pane, a faded block (its node
-    takes no pointer, so the press reaches the pane) and the faded rest of
-    the edited block (its parts take no pointer, so the press reaches the
-    block's background). Each double-click closes exactly the innermost
-    editor, read through `editing()`:
-    - with the bundle editor of `bmixed0000` and the group editor of
-      `bmixed0000/group_1` open (both through `open`, the viewport set back
-      to (40, 40, 1) after each), a double-click on the empty pane (canvas
-      (−20, 450)) leaves `[{target: "bmixed0000", kind: "bundle"}]`, and
-      the viewport returns to (40, 40, 1), where the group editor was
-      opened, as Done's does;
-    - the group editor opened again, a double-click on the centre of
-      `bshared000`'s `group_1` (another block, faded) leaves the bundle
-      editor, and a second one there closes it too (`[]`);
-    - in the group editor of `bmixed0000/group_1` opened from the
-      arranger, a double-click on `group_1`'s own frame (`framePoint`, the
-      edited element) leaves the group editor open, and one on the centre
-      of `bmixed0000`'s `group_2` (the faded rest of the edited block)
-      closes it (`[]`). No session held a change, so the main journal is
-      still 3.
-15. **A double-click on a box inside the edited element opens its
-    editor.** In the group editor of `bmixed0000/group_1`, a double-click
-    on `score/card` (`framePoint`) gives `[{target: "bmixed0000/group_1",
-    kind: "group"}, {target: "bmixed0000/score", kind: "timeline"}]`.
-16. **Closing and opening the drawer recentres the edited element.** The
-    expected viewport is computed outside the page: the edited element's
-    canvas rectangle is the block's box, `bmixed0000`'s node position
-    (`nodePosition`, the place origin's canvas position less the drawing's
-    origin at the block's scale) and its drawing's width and height at its
-    scale, `drawingOf` of the block as `readWorkspace` reads it from
-    `bundles.tle.json` (case 9's metrics); `focusViewport(bounds, size,
-    0)` (unit-tested in the arranger) centres it in the arranger's
-    `clientWidth` × `clientHeight` read in the page after each change.
-    `open("bmixed0000")` opens the bundle editor and the drawer with it;
-    the viewport equals the focus for the arranger left of the drawer.
-    "Close inspector" hides the drawer; the arranger is wider, the
-    expected focus differs from the first, and the viewport equals it.
-    "Open inspector" shows the drawer again; the focus equals the first
-    one and the viewport equals it. Done then returns the viewport to
-    exactly (40, 40, 1), the one the editor was entered from, which the
-    recentring never replaces. Reduced motion makes every move land at
-    once, so each viewport is compared exactly (polled until the canvas
-    has measured its new size).
-
-17. **A member's card stretched in its timeline editor stretches every
-    member.** `bundles` at (40, 40), zoom 1; the timeline editor of
-    `bmixed0000/score` (a member of `group_1`) entered, `score/card`
-    selected and Stretch chosen: the handles are `handle-right`,
-    `handle-bottom-right` and `handle-bottom` (a member's card never moves
-    its top left corner, which its frame decides). `handle-right` dragged
-    by (20, 0), one
-    entry is recorded in the session and the block's `places` are exactly
-    `{group_1: {length: 420}}`: the group's shared length, which the
-    member's editor may change, 400 + 20 since the frame's width grows by
-    exactly the length added. Read through the drawn rectangles, both
-    member cards, `score/card` and `performance/card`, are at x `16` and
-    `566.4846` wide (546.484619140625 + 20, written to four decimals):
-    they end at one x.
-
-The double tap of a touch screen is in `touch.spec.ts` (cases 7 and 8): the
-touch project runs only that file.
-
-## `bands.spec.ts` (Chromium, Firefox, WebKit)
-
-The bands of a timeline (drawing.md sections 2.1, 2.2 and 6.4) as boxes of
-its timeline editor. Every timeline has five bands, one of each kind,
-addressed `T/children_1`, `T/conversion_maps_1`, `T/markers_1`,
-`T/regions_1` and `T/flow_control_1`. A band is **present** when it draws an
-element; only a present band is recorded, offered, hovered and selected. A
-band is offered only in the timeline editor of its own timeline, while that
-editor is the innermost open editor of its block. A move of a band, by a
-drag or by Ctrl/Cmd+ArrowUp or ArrowDown, is one `set` of the timeline's
-`order` (its entry in the manifest's `graphical.order`, `null` when the new
-order equals the one it inherits): one command, one entry, one undo step.
-`bundles` at viewport (40, 40), zoom 1, page 1600 × 1000, with
-`prefers-reduced-motion: reduce` for the whole file, as `editors.spec.ts`.
-An editor is opened through the hook (`enter`: the viewport before the
-opening is read, the editor opened, the canvas's move to it awaited, and
-the viewport then set to a stated one), so pointer positions count from a
-known viewport.
-
-**What is read.** The hook's `bands(block)` lists the bands drawn in a
-block in the drawing's order (timelines in traversal order, each
-timeline's bands top to bottom), each `{address, timeline, kind, level,
-line, elements, rect}`: `level` is signed and never 0 (1, 2, … outwards
-above the line, −1, −2, … below), `elements` the number of displayed
-elements the band holds directly, `line` the client ordinate of its
-timeline's line, and `rect` its rectangle in client pixels, left and top
-edges then the size, as `getBoundingClientRect` gives them (both mapped
-from the drawing through the block's drawing `<svg>`, so a block off
-screen reports them unclipped, and one whose drawing is not on the page
-throws). The records
-are those of the stored view's drawing, never of a drag's preview. A
-timeline's bands are compared as `{address, kind, level, elements}`, in the
-hook's order; `line` and `rect` only aim the pointer. A selected band is
-`<block>/<band address>`. The marks of the hovered band and of the
-selected bands are read as the sorted `data-band` values of the
-`rect.tilie-band` marks in the block's node. A command is read from the
-newest entry of `store().entries` (the open session's, the journal's on
-the arranger) as JSON, a view as its JSON text.
-
-**Aiming at a band** (`support.ts`):
-- `focusBand(block, address, zoom)` centres the band's rectangle in the
-  pane at `zoom`: its canvas centre is its client centre less the pane's
-  origin and the viewport's offset, over the zoom, and the new viewport
-  puts that point at the pane's centre, rounded to whole pixels. A case
-  does this first, since at (40, 40) the right part of `bshared000` lies
-  behind the drawer that an editor opens.
-- `bandPoint(block, address, clearance)` is a whole-pixel point inside the
-  band's rectangle, at least `clearance` px inside its edges and inside the
-  pane, where the element hit there and at the eight points `clearance` px
-  around it lies in the block's node and carries no address but a card's
-  (`<root>/card`, or none: the block's background, or a part outside the
-  edited element, which takes no pointer). A press there meets no drawn
-  element, so in the band's timeline editor it hits the band, a drawn
-  element being hit before any band. Rows are searched from the band's
-  vertical middle outwards, each pixel by pixel from the left.
-- **Where a drop lands** (drawing.md section 6.4, The band order and
-  Levels). The **visible entries** of a timeline are its present bands and
-  its own id, top to bottom; a band's position is the middle of its
-  rectangle, the id's the line. The drop is read at the pointer's drawing
-  ordinate at the release, against the drawing at the press: of the visible
-  entries without the dragged band, `k` lie above it, and the band moves in
-  the timeline's band order to just after the `k`-th of them, or just
-  before the first when `k` is 0. So a release aims at an interval between
-  two positions, read from the hook before the press, and lands at its
-  middle; the spec checks the interval is not empty. Every drag is a mouse
-  drag in 10 moves from the press, beyond the click distance (4 px).
-- **A step** moves the band past the next visible entry in the arrow's
-  direction, the line included: up, to just before that entry in the
-  order; down, to just after it; nothing at the top or the bottom.
-
-**The bands, from the fixture.** No manifest of `bundles` has a statement,
-and `graphical.order` holds the groups' display orders only, so every
-timeline follows the default band order of drawing.md section 4,
-`[T/children_1, T/conversion_maps_1, T, T/markers_1, T/regions_1,
-T/flow_control_1]`, a child its parent's band by band (section 6.4). The
-defaults hide the markers, regions and flow control bands of every
-timeline a band holds, and only the root of a member drawing has wedges.
-The present bands, top to bottom, as `address level, elements`:
-
-- `bmixed0000/score` (a member of `group_1`; maps `cmap_1` and `cmap_2`,
-  the jump `jump_1`; no child, region or break): `score/conversion_maps_1`
-  1, 2; `score/markers_1` −1, 2 (its wedges); `score/flow_control_1` −2, 1.
-  Its children and regions bands are absent. With the line's stroke `w =
-  3`, the conversion maps band is `w / 2 + 2 × (g + d) = 11.5` wide from
-  the line, the markers band `w / 2 + 13 + 2 + h(9) = 26.9765625` (one
-  tier of wedge labels), and the flow control band starts `B = 4` beyond
-  that and is `8 + 2 + h(9) = 20.4765625` wide (one jump row). So the
-  middles lie 5.75 above the line and 13.48828125 and 41.21484375 below
-  it.
-- `bshared000/exposition` (a member of `group_1`, a child of `score`, a
-  segment line whose segments draw no line): `exposition/conversion_maps_1`
-  1, 2 (its own `cmap_2` and its segment `exposition_second`'s `cmap_3`,
-  which joins its band); `exposition/markers_1` −1, 2. Its children band
-  is absent: a segment that draws no line is no element.
-- `bshared000/recapitulation` (a member of `group_2`, a child of `score`,
-  whose segments are segment lines): `recapitulation/children_1` 1, 2 (the
-  child lines `recapitulation_first` and `recapitulation_second`);
-  `recapitulation/markers_1` −1, 2.
-- `bshared000/recapitulation_first`: no band. Its segments draw nothing,
-  and its markers band, held by `recapitulation`'s children band, is
-  hidden and holds no wedge.
-- `bshared000/recapitulation_second` (map `cmap_4`):
-  `recapitulation_second/conversion_maps_1` 1, 1. One map is `w / 2 + (g +
-  d) = 6.5` wide, but at level 1 the band shares its room with the line's
-  reach above, which is larger: the boundary of its second segment (`k =
-  8`) and one tier of segment labels, `8 + 2 + h(9) = 20.4765625`. So its
-  rectangle runs from the line to 20.4765625 above it, and holds, besides
-  the line's stroke and the map, the boundary and the two segment labels,
-  with empty room between them.
-- `bshared000/take_1` (a root, a segment line whose segments draw no
-  line, map `cmap_1`): `take_1/conversion_maps_1` 1, 1; `take_1/markers_1`
-  −1, 2.
-
-In cases 1 to 3 and 6 to 9, `C`, `M`, `K`, `R` and `F` stand for
-`score/children_1`, `score/conversion_maps_1`, `score/markers_1`,
-`score/regions_1` and `score/flow_control_1` of `bmixed0000`, so `score`'s
-inherited order is `[C, M, score, K, R, F]`, and `SCORE` for its three
-bands as listed above.
-
-1. **A band in its timeline editor is hovered and clicked.** The timeline
-   editor of `bmixed0000/score`, `F` centred at zoom 1. `score`'s bands are
-   exactly `SCORE`, and the node holds no band mark. The mouse moved to
-   `bandPoint` of `F` (clearance 2) gives exactly the marks `[F]`; the
-   selection is still `[]`. A click there selects exactly
-   `[bmixed0000/score/flow_control_1]`, and the marks are `[F]`, one band
-   being both hovered and selected. The mouse moved to `bandPoint` of `K`
-   gives the marks `[F, K]` (sorted) and leaves the selection; moved onto
-   the empty pane (canvas x −20, left of every block, at `K`'s canvas
-   ordinate), it leaves the selection's mark alone, `[F]`. Opening an
-   editor, hovering and selecting are no commands: the session holds no
-   entry.
-2. **A band dragged across the line into a gap, undone in one step and
-   redone.** The same editor, `F` centred at zoom 2, where the gap between
-   `M`'s middle and the line is 11.5 px. `F` is pressed at `bandPoint`
-   (clearance 2) and released at the middle of that gap. Of the visible
-   entries without it, `[M, score, K]`, one (`M`) lies above, so `F` moves
-   to just after `M`: `[C, M, F, score, K, R]`, not the inherited order.
-   One entry in the session, the main journal still 3, exactly `{type:
-   "set", changes: [{target: "bmixed0000/score", values: {order: [C, M,
-   F, score, K, R]}}]}`; the stored `graphical.order` is exactly `{group_1:
-   ["score", "performance"], group_2: ["page", "excerpt"], score: [C, M, F,
-   score, K, R]}`. `score`'s bands are exactly `M` 2, 2; `F` 1, 1; `K` −1,
-   2: the jump lies above the line, between the line and the maps. The
-   selection is exactly `[bmixed0000/score/flow_control_1]`: the release
-   keeps the moved band selected. Ctrl/Cmd+Z on the focused arranger undoes
-   it in one step: no entry, the view's JSON text the one before the drag
-   and `score`'s bands `SCORE`. Ctrl/Cmd+Shift+Z redoes it: one entry, the
-   view's JSON text the one after the drag.
-3. **A band dragged along its side.** The same editor, `F` centred at zoom
-   1, pressed at `bandPoint` (clearance 2) and released at the middle of
-   the 13.48828125 px between the line and `K`'s middle. Of `[M, score,
-   K]`, two lie above, so `F` moves to just after `score`: `[C, M, score,
-   F, K, R]`. One entry, exactly the `set` of `bmixed0000/score`'s `order`
-   `[C, M, score, F, K, R]`; `score`'s bands are exactly `M` 1, 2; `F` −1,
-   1; `K` −2, 2; the selection is exactly
-   `[bmixed0000/score/flow_control_1]`.
-4. **A child's band is offered in the child's editor and in no other.**
-   `bshared000`'s `recapitulation_second`, drawn as a child line in
-   `recapitulation`'s children band. The point is found once: in the bundle
-   editor of `bshared000`, with `recapitulation_second/conversion_maps_1`
-   centred at zoom 2, `bandPoint` (clearance 2). No part of the block is
-   outside the bundle editor's edited element, so every drawn element takes
-   the pointer there, and the point is clear of every drawn element of the
-   block. Every later editor is opened with the viewport set to that same
-   one, so the point is the same canvas point. At that point, the selection
-   cleared through the hook before each:
-   - in the bundle editor of `bshared000`, the mouse there shows no band
-     mark two frames later, and a click selects exactly
-     `[bshared000/recapitulation/card]` (a press on a card selects the
-     card), still with no mark;
-   - in the group editor of `bshared000/group_2`, the same;
-   - in the timeline editor of `bshared000/recapitulation`, the child's
-     parent, the point lies in `recapitulation/children_1`'s rectangle,
-     which holds the child's whole drawing (row 1's outer half is at least
-     the child's above side, its maps and its segment labels). That band is
-     the one offered: the marks are exactly
-     `[recapitulation/children_1]`, and a click selects exactly
-     `[bshared000/recapitulation/children_1]`;
-   - in the timeline editor of `bshared000/recapitulation_second`, opened
-     from the arranger, the child's bands are exactly
-     `recapitulation_second/conversion_maps_1` 1, 1; the marks are exactly
-     `[recapitulation_second/conversion_maps_1]`, and a click selects
-     exactly `[bshared000/recapitulation_second/conversion_maps_1]`;
-   - on the arranger, with no editor open, no mark, and a click selects
-     exactly `[bshared000/recapitulation/card]`.
-
-   Each editor is closed through the hook's `done`; no session held a
-   change, so the main journal is still 3.
-5. **A root's order change moves a child without an entry of its own.**
-   `bshared000`'s root `score` is drawn only as ancestor lines (its
-   children `exposition` and `recapitulation` are members), so no editor
-   offers its bands; its order is set through the hook's store on the
-   arranger, `{type: "set", changes: [{target: "bshared000/score", values:
-   {order: ["score/children_1", "score", "score/conversion_maps_1",
-   "score/markers_1", "score/regions_1", "score/flow_control_1"]}}]}`: the
-   maps below the line. It is accepted, and the journal holds 4 entries. No
-   other timeline has an entry, so `exposition`, `recapitulation` and,
-   through `recapitulation`, `recapitulation_second` follow it band by band:
-   - `exposition`: `exposition/conversion_maps_1` −1, 2;
-     `exposition/markers_1` −2, 2 (both below, the maps nearer the line);
-   - `recapitulation`: unchanged, `recapitulation/children_1` 1, 2;
-     `recapitulation/markers_1` −1, 2 (its conversion maps band is absent,
-     and its children band still comes before its id);
-   - `recapitulation_second`: `recapitulation_second/conversion_maps_1` −1,
-     1: the child's maps follow its grandparent's entry through its
-     parent, which has none;
-   - `recapitulation_first`: still no band; `take_1`, a root of its own,
-     unchanged.
-
-   Ctrl/Cmd+Z on the focused arranger undoes it: the journal holds 3
-   entries, the view's JSON text is the one before, and every band is as
-   before.
-6. **Ctrl/Cmd+ArrowUp and ArrowDown step a band past the next visible
-   entry.** The timeline editor of `bmixed0000/score`,
-   `[bmixed0000/score/flow_control_1]` selected through the hook, the
-   arranger focused. Each step that moves is one entry, the `set` of
-   `bmixed0000/score`'s `order` below; each keeps the selection exactly
-   `[bmixed0000/score/flow_control_1]`:
-   - Ctrl/Cmd+ArrowDown: `F` is the bottom visible entry, so nothing
-     happens: no entry, `score`'s bands `SCORE`;
-   - Ctrl/Cmd+ArrowUp: past `K`, `[C, M, score, F, K, R]`, 1 entry; `M` 1,
-     2; `F` −1, 1; `K` −2, 2;
-   - Ctrl/Cmd+ArrowUp: past the line, `[C, M, F, score, K, R]`, 2 entries;
-     `M` 2, 2; `F` 1, 1; `K` −1, 2;
-   - Ctrl/Cmd+ArrowUp: past `M`, `[C, F, M, score, K, R]`, 3 entries; `F`
-     2, 1; `M` 1, 2; `K` −1, 2;
-   - Ctrl/Cmd+ArrowUp: `F` is the top visible entry: still 3 entries;
-   - Ctrl/Cmd+ArrowDown: past `M`, `[C, M, F, score, K, R]`, 4 entries;
-     `M` 2, 2; `F` 1, 1; `K` −1, 2.
-
-   No step passes an absent band, so the step's two readings, before the
-   passed entry or after the visible entry beyond it, give one order.
-7. **Escape during a band's drag dispatches nothing.** The timeline editor
-   of `bmixed0000/score`, `F` centred at zoom 2,
-   `[bmixed0000/score/flow_control_1]` selected through the hook, and the
-   `points` attribute of the polygon of `score/start` (the start wedge, in
-   `K`) read, in drawing units. `F` is pressed at `bandPoint` and moved to
-   case 2's release with the button held. The preview draws case 2's
-   order: the line reaches nothing above, since `M` no longer lies against
-   it, so `F` at level 1 starts `B` beyond `w / 2`, at 5.5, and reaches
-   `5.5 + 20.4765625 = 25.9765625`; `M` at level 2 starts `B` beyond, at
-   29.9765625, and reaches `29.9765625 + 11.5 = 41.4765625`. So the outer
-   edge of `score`'s above side grows from 11.5 to 41.4765625, and the
-   line, with `K` against it below, lies 29.9765625 lower in the card: the
-   wedge's points differ from those read (the premise that a preview is
-   shown). Escape
-   withdraws the preview: the points equal those read, the selection is
-   still `[bmixed0000/score/flow_control_1]`, the timeline editor is still
-   open, and `score`'s bands are `SCORE`. After the release the session
-   holds no entry and the view's JSON text is the one before the press.
-   The maps are no witness: `M` is the outermost band above both before
-   and in the preview, so it lies against the card's top padding in both,
-   and `score/cmap_1`'s points do not change. No screen box is compared:
-   the preview makes the card taller and so the node's `<svg>` larger and
-   back, and Chromium and WebKit scale a resized `<svg>` differently in the
-   last digits (as for the frame in `editors.spec.ts`).
-8. **No band in the bundle or the group editor, nor on the arranger.** The
-   point is `bandPoint` of `bmixed0000`'s `F` (clearance 2), found in the
-   bundle editor of `bmixed0000` with `F` centred at zoom 1, where every
-   drawn element takes the pointer; every later editor is opened at that
-   viewport. The selection is cleared through the hook before each. In the
-   bundle editor, the mouse there shows no band mark two frames later, and
-   a click selects exactly `[bmixed0000/score/card]`, still with no mark.
-   The same in the group editor of `bmixed0000/group_1`, and on the
-   arranger with no editor open.
-9. **Delete with only a band selected removes nothing.** The timeline
-   editor of `bmixed0000/score`, `[bmixed0000/score/flow_control_1]`
-   selected through the hook, the arranger focused: Delete shows exactly
-   "A band is not deleted; select its elements to delete them." in the
-   status line (`data-testid="hint"`); the session holds no entry, the
-   view's JSON text is unchanged and the selection is still
-   `[bmixed0000/score/flow_control_1]`.
-
-The drag on a touch screen is in `touch.spec.ts` (case 9).
-
-## `budget.spec.ts` (`@budget`, Chromium only)
-
-`grid-300` at viewport (20, 20), zoom 1, all 300 nodes mounted (no culling).
-Script time is `ScriptDuration` from the DevTools Protocol's
-`Performance.getMetrics`, read before and after a gesture of 60 moves (two
-frames rendered on each side), divided by 60, as the canvas design measured
-it. The frame rate is capped at 60 Hz in headless Chromium, so script time is
-the discriminating number. Each test prints its measurement.
-
-| Measured | Budget |
-|---|---|
-| dragging block `g000000021` by (256, 120) in 60 moves, press and release included | ≤ 3 ms per move |
-| panning from the empty canvas by (300, −120) in 60 moves | ≤ 1 ms per move |
-| 60 Ctrl+wheel events (30 in, 30 out), a frame after each | ≤ 1 ms per event |
-| 60 plain wheel events (30 down, 30 up), which pan, a frame after each | ≤ 1 ms per event |
-| one `set` dispatched through the hook's store, until `dispatch` returns (apply, journal, listeners notified; the UI's flush runs untimed before the next run) | ≤ 1 ms |
-| one block's `length` changed and its node laid out again (Svelte's flush, then the node's box read) | ≤ 16.7 ms |
-
-A fifth test proves the measured Ctrl+wheel gesture zooms: one Ctrl+wheel
-event of deltaY −40 takes the zoom from 1 to exactly 2 ** (40 × 0.002).
-The command and the redraw take the shortest of five runs after one warm-up run: the cost
-of the code, not of whatever else the machine runs.
-
-## `visual.spec.ts` (`@visual`, the pinned container only)
-
-`small` at viewport (40, 40), zoom 1, page 1600 × 1000, nothing selected:
-one screenshot of each of the five nodes and one of the pane, each compared
-with `maxDiffPixels: 0` (animations disabled, caret hidden). Before the
-shots the drawing face is forced to load (`document.fonts.load`, then
-`ready` and `check`), two frames are rendered, and the face check of
-`canvas.spec.ts` must hold: a screenshot of text laid out with a stand-in
-font would otherwise become a baseline that only some runs reproduce. A
-seventh screenshot, `groups.png`, is of the pane with `groups` open at the
-same viewport, zoom and page, under the same font checks: frames, cards,
-titles, ancestor lines and the styled frame of `gstyled000`. The
-baselines are made and checked only in the pinned Playwright container
-(`pnpm e2e:visual:update`, `pnpm e2e:visual`).
+**`visual.spec.ts`** (`@visual`, the pinned container only) compares
+zero-tolerance screenshots: each of `small`'s five nodes and the pane at
+viewport (40, 40), zoom 1, nothing selected, and the pane with `groups`
+open. Before the shots the face is forced to load and the face check above
+must hold, so no baseline holds text laid out with a stand-in font. The
+baselines are made and checked only in the pinned container (`pnpm
+e2e:visual:update`, `pnpm e2e:visual`).

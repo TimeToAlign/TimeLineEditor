@@ -9,8 +9,8 @@
 import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
 import path from "node:path";
 import type { Plugin } from "vite";
+import { NOTICES_FILE } from "./src/attributions.ts";
 
-export const NOTICES_FILE = "THIRD_PARTY_NOTICES.txt";
 export const RULE = "=".repeat(72);
 export const SUBRULE = "-".repeat(72);
 

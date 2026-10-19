@@ -1,50 +1,11 @@
 /** Blocks: the entries of a workspace's canvas, each placing one manifest. */
 
-import { memberDrawings } from "../manifest/files.ts";
+import type { CardPlace, ItemPlace } from "../manifest/containers.ts";
 import type { Manifest } from "../manifest/types.ts";
 
 /** A block id: ten characters of base 36, unique within the workspace. */
 export type BlockId = string;
 export const BLOCK_ID = /^[0-9a-z]{10}$/;
-
-/**
- * A stated place of an item, or the stated size and vertical stretch of a
- * member's card (drawing.md §8.6); a member left out takes its default.
- */
-export interface Place {
-  /** Finite. */
-  readonly x?: number;
-  /** Finite. */
-  readonly y?: number;
-  /** Positive. */
-  readonly length?: number;
-  /** Positive. */
-  readonly scale?: number;
-  /** The vertical stretch, a factor on the placement's; positive. */
-  readonly spacing?: number;
-  /** Positive. */
-  readonly width?: number;
-  /** Positive. */
-  readonly height?: number;
-}
-
-/** The members of a place, in the order a place is written. */
-export const PLACE_MEMBERS = [
-  "x",
-  "y",
-  "length",
-  "scale",
-  "spacing",
-  "width",
-  "height",
-] as const satisfies readonly (keyof Place)[];
-
-/** The members of a place a member's card takes: its size and its vertical stretch. */
-export const CARD_MEMBERS = [
-  "width",
-  "height",
-  "spacing",
-] as const satisfies readonly (keyof Place)[];
 
 /** The inputs of a block's drawing besides its manifest and the style layers. */
 export interface BlockPlacement {
@@ -72,11 +33,11 @@ export interface Block extends BlockPlacement {
   readonly x: number;
   readonly y: number;
   /**
-   * The stated places of the manifest's items, by group id or ungrouped root
-   * id, and the stated sizes and vertical stretches of its members' cards, by
-   * member id.
+   * The stated places of the containers of its manifest's drawing, by place
+   * key (`containersOf`): an item's place by group id or ungrouped root id,
+   * a member's card's size and vertical stretch by member id.
    */
-  readonly places: { readonly [key: string]: Place };
+  readonly places: { readonly [key: string]: ItemPlace | CardPlace };
   readonly manifest: Manifest;
 }
 
@@ -95,25 +56,3 @@ export const BLOCK_MEMBERS = [
   "places",
   "manifest",
 ] as const satisfies readonly (keyof Block)[];
-
-/**
- * The items of a manifest's box (drawing.md §8.1), the keys `places` may
- * hold: its group ids and its ungrouped roots, the roots no group names as a
- * member and that contain no member.
- */
-export function itemKeys(manifest: Manifest): ReadonlySet<string> {
-  const { frames, ungrouped } = memberDrawings(manifest);
-  return new Set([
-    ...frames.map((frame) => frame.group.id),
-    ...ungrouped.map((member) => member.timeline.id),
-  ]);
-}
-
-/**
- * The cards of a manifest's frames, the other keys `places` may hold: the ids
- * of every group member, a root or a child timeline. Their places state only
- * `CARD_MEMBERS`.
- */
-export function cardKeys(manifest: Manifest): ReadonlySet<string> {
-  return new Set(manifest.groups.flatMap((group) => group.members));
-}

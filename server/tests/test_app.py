@@ -9,6 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from tilie_server.app import create_app
+from tilie_server.settings import ServerSettings
 
 TOKEN = "test-token-0123456789"
 HOST = "127.0.0.1"
@@ -17,7 +18,7 @@ AUTH = {"Authorization": f"Bearer {TOKEN}"}
 
 
 def client(static_dir: Path) -> TestClient:
-    app = create_app(token=TOKEN, host=HOST, port=PORT, static_dir=static_dir)
+    app = create_app(ServerSettings(HOST, PORT, TOKEN, static_dir))
     return TestClient(app, base_url=f"http://{HOST}:{PORT}")
 
 
@@ -74,6 +75,12 @@ def test_unknown_api_route_without_token_is_unauthorized(unbuilt: TestClient) ->
     assert response.json() == {"detail": "missing or invalid token"}
 
 
+def test_generated_openapi_document_is_not_exposed(unbuilt: TestClient) -> None:
+    response = unbuilt.get("/api/openapi.json", headers=AUTH)
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Not Found"}
+
+
 def test_foreign_origin_is_forbidden(unbuilt: TestClient) -> None:
     response = unbuilt.get(
         "/api/health", headers={**AUTH, "Origin": "http://evil.example"}
@@ -99,7 +106,7 @@ def test_foreign_host_is_forbidden(unbuilt: TestClient) -> None:
 def test_missing_host_is_forbidden(tmp_path: Path) -> None:
     # Starlette's TestClient always supplies a Host header, so the guard is
     # exercised through the raw ASGI interface with no Host header at all.
-    app = create_app(token=TOKEN, host=HOST, port=PORT, static_dir=tmp_path)
+    app = create_app(ServerSettings(HOST, PORT, TOKEN, tmp_path))
     scope = {
         "type": "http",
         "asgi": {"version": "3.0"},

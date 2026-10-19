@@ -1,20 +1,13 @@
 /** The shell while editing; the expected values are derived in `README.md` ("Editing"). */
 
 import type { Workspace } from "@timetoalign/tilie-core";
-import {
-  createStore,
-  createView,
-  isLoadError,
-  isSessionEntry,
-  readWorkspace,
-  writeWorkspace,
-} from "@timetoalign/tilie-core";
+import { isLoadError, isSessionEntry, readWorkspace } from "@timetoalign/tilie-core";
 import { flushSync, mount, tick, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App.svelte";
 import { recoverWorkspace } from "../src/autosave.ts";
 import { stubEditor } from "./dom.ts";
-import { fixture, flushAutosaves, interceptDownloads } from "./support.ts";
+import { flushAutosaves, hook, interceptDownloads, workspaceOf } from "./support.ts";
 
 const A = "0000000000";
 const SCORE = `${A}/score`;
@@ -35,7 +28,7 @@ beforeEach(() => {
   );
   app = mount(App, { target: document.body });
   flushSync();
-  hook().load(workspaceText());
+  hook().load(workspaceOf("bundles/bundle_mixed"));
   flushSync();
 });
 
@@ -48,24 +41,6 @@ afterEach(async () => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
-
-function hook() {
-  const installed = window.__tilie;
-  if (installed === undefined) throw new Error("window.__tilie is not installed");
-  return installed;
-}
-
-/** A written workspace holding `bundle_mixed` as block A. */
-function workspaceText(): string {
-  const store = createStore({ view: createView(), journal: [], sessions: {} });
-  const refusal = store.dispatch({
-    type: "add",
-    into: "workspace",
-    block: { id: A, manifest: fixture("bundles/bundle_mixed"), x: 0, y: 0 },
-  });
-  if (refusal !== null) throw new Error(refusal.message);
-  return writeWorkspace({ view: store.view, journal: store.journal, sessions: store.sessions });
-}
 
 function open(address: string): void {
   const refusal = hook().open(address);
@@ -82,7 +57,7 @@ function rename(name: string): void {
 }
 
 function drawer(): HTMLElement {
-  const element = document.getElementById("inspector");
+  const element = document.querySelector<HTMLElement>('[data-testid="inspector"]');
   if (element === null) throw new Error("the drawer is missing");
   return element;
 }
@@ -191,6 +166,16 @@ describe("the shell while editing", () => {
 
     hook().done();
     flushSync();
+    expect(hook().selection()).toEqual([`${SCORE}/start`]);
+  });
+
+  it("keeps after a change only what the innermost editor holds, by the same rule", () => {
+    open(A);
+    open(`${A}/group_1`);
+    open(SCORE);
+    hook().select([`${SCORE}/start`, `${A}/performance`, SCORE]);
+    flushSync();
+    rename("S");
     expect(hook().selection()).toEqual([`${SCORE}/start`]);
   });
 });

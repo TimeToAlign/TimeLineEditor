@@ -33,6 +33,33 @@ export type Result<T> =
   | { readonly ok: true; readonly value: T }
   | { readonly ok: false; readonly problems: readonly InspectorProblem[] };
 
+/** A problem's path as a JSON pointer (RFC 6901; `""` for the whole text). */
+export function problemPointer(problem: Pick<InspectorProblem, "path">): string {
+  return problem.path
+    .map((segment) => `/${String(segment).replaceAll("~", "~0").replaceAll("/", "~1")}`)
+    .join("");
+}
+
+/**
+ * Where a problem lies, as a list of problems shows it: a syntax error's
+ * line and column (`line 3, column 7`, or `line 3`), else the JSON pointer
+ * of its member, `null` for the top level.
+ */
+export function problemPlace(
+  problem: Pick<InspectorProblem, "path" | "line" | "column">,
+): { readonly position: string } | { readonly pointer: string | null } {
+  if (problem.line !== undefined) {
+    return {
+      position:
+        problem.column === undefined
+          ? `line ${problem.line}`
+          : `line ${problem.line}, column ${problem.column}`,
+    };
+  }
+  const pointer = problemPointer(problem);
+  return { pointer: pointer === "" ? null : pointer };
+}
+
 /** The failed result of one problem. */
 export function refused(
   code: InspectorProblem["code"],

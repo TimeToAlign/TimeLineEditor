@@ -1,7 +1,11 @@
 import { dumps } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
-import type { Block, Manifest, View } from "../src/index.ts";
-import { apply, checkWorkspace, createStore, createView, memberDrawings } from "../src/index.ts";
+import { apply } from "../src/commands/apply.ts";
+import { memberDrawings } from "../src/manifest/files.ts";
+import type { Manifest } from "../src/manifest/types.ts";
+import { createStore } from "../src/workspace/store.ts";
+import type { View } from "../src/workspace/view.ts";
+import { checkWorkspace, createView } from "../src/workspace/view.ts";
 import {
   block,
   changed,
@@ -439,7 +443,7 @@ describe("pruning stale keys", () => {
             group_1: [...(value.graphical.order.group_1 as string[]), "annotations"],
           },
         },
-      } as never),
+      }),
     );
     const view = after(
       mixed(),
@@ -556,7 +560,7 @@ describe("a block's places as stored", () => {
   const found = (changes: object) =>
     checkWorkspace({
       ...createView(),
-      blocks: { [ID]: { ...stored, ...changes } as unknown as Block },
+      blocks: { [ID]: { ...stored, ...changes } },
     }).map(({ code, path, message }) => ({ code, path, message }));
   const at = (...path: (string | number)[]) => ["blocks", ID, ...path];
 

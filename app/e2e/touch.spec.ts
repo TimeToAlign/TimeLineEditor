@@ -31,6 +31,7 @@ import {
   partCentre,
   placement,
   SMALL,
+  select,
   selection,
   setViewport,
   viewportOf,
@@ -153,7 +154,7 @@ test("a pinch changes the zoom", async ({ page }) => {
 
 test("the resize mode buttons respond to taps and show their handles", async ({ page }) => {
   // The block's margin is narrower than a finger, so the block is selected through the hook.
-  await page.evaluate((id) => window.__tilie.select([id]), SMALL.map);
+  await select(page, [SMALL.map]);
   for (const [mode, handles] of [
     ["box", 8],
     ["stretch", 8],

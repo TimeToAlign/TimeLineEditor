@@ -4,13 +4,13 @@
  * (`docs/drawing.md` in timeskeleton, sections 6.4, Markers, 6.6 and 8.3).
  */
 
-import { bandAddress, type Real } from "@timetoalign/tilie-core";
+import { bandAddress, partAddress } from "@timetoalign/tilie-core";
 import type { PreparedBand } from "./bands.ts";
 import { LABEL_GAP, MARKER_BASE, MARKER_HEIGHT } from "./constants.ts";
 import { labelExtent, labelTiers, Rows } from "./fit.ts";
 import { centredLabel } from "./names.ts";
 import { coordinateText } from "./numbers.ts";
-import { type Entry, maxSize, type Scope, shown } from "./traversal.ts";
+import { type Entry, known, maxSize, type Scope, shown } from "./traversal.ts";
 
 /** The reach of the wedges or marks of a line of width `w`: `w / 2 + 13`, and the label tiers beyond. */
 export const markReach = (scope: Scope, w: number, tiers: number, size: number): number =>
@@ -42,10 +42,10 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
   const wedges = !sources.includes(rootEntry)
     ? []
     : [
-        { ...owned("wedge", `${root.id}/start`, line, "markers"), at: rootEntry.start as Real },
+        { ...owned("wedge", partAddress(root.id, "start"), line, "markers"), at: rootEntry.start },
         ...(rootEntry.open
           ? []
-          : [{ ...owned("wedge", `${root.id}/end`, line, "markers"), at: lambda }]),
+          : [{ ...owned("wedge", partAddress(root.id, "end"), line, "markers"), at: lambda }]),
       ].filter((wedge) => shown(wedge.style) && shown(band.style));
   const labels = wedges
     .filter((wedge) => shown(wedge.label.style))
@@ -73,7 +73,7 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
       })),
       wedgeLabels: labels.map((item) => {
         const outwards =
-          start + w / 2 + MARKER_HEIGHT + LABEL_GAP + ((tier.get(item) as number) - 1) * h(size);
+          start + w / 2 + MARKER_HEIGHT + LABEL_GAP + (known(tier, item) - 1) * h(size);
         return centredLabel(
           item.wedge.label,
           at.x(item.wedge.at),

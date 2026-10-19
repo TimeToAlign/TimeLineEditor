@@ -1,50 +1,26 @@
-/// <reference types="node" />
-/** A failed import of a codec is shown in the drawer; derived in `README.md` ("The inspector"). */
+/** A failed import of a codec is shown in the panel; derived in `README.md` ("The manifest as text"). */
 
-import { readFileSync } from "node:fs";
-import { createRequire } from "node:module";
-import path from "node:path";
 import { liveStore } from "@timetoalign/tilie-arranger";
-import { createStore, createView, isLoadError, loadManifest } from "@timetoalign/tilie-core";
-import { SCHEMA_VERSION } from "@timetoalign/timeskeleton";
 import { flushSync, mount, tick, unmount } from "svelte";
 import { expect, it, vi } from "vitest";
-import { loadCodec } from "../src/inspector/formats.ts";
+import { loadCodec } from "../src/inspector/formats.svelte.ts";
 import Inspector from "../src/inspector/Inspector.svelte";
+import { blockId, storeOf } from "./support.ts";
 
 vi.mock("../src/inspector/toml.ts", () => {
   throw new Error("network down");
 });
 
 it("shows a failed codec import as an alert and keeps JSON working", async () => {
-  const manifest = loadManifest(
-    readFileSync(
-      path.join(
-        path.dirname(
-          createRequire(import.meta.url).resolve("@timetoalign/timeskeleton/package.json"),
-        ),
-        "fixtures",
-        SCHEMA_VERSION,
-        "bare.json",
-      ),
-      "utf8",
-    ),
-  );
-  if (isLoadError(manifest)) throw new Error("bare refused");
-  const store = createStore({ view: createView(), journal: [], sessions: {} });
-  const id = "0000000000";
-  const error = store.dispatch({
-    type: "add",
-    into: "workspace",
-    block: { id, x: 0, y: 0, manifest },
-  });
-  expect(error).toBe(null);
+  const store = storeOf("bare");
+  const id = blockId(0);
   const app = mount(Inspector, {
     target: document.body,
     props: { live: liveStore(store), selection: new Set([id]) },
   });
   flushSync();
-  (document.getElementById("inspector-tab-manifest") as HTMLElement).click();
+  const tabs = [...document.querySelectorAll<HTMLElement>('[role="tab"]')];
+  tabs.find((tab) => tab.textContent === "Manifest")?.click();
   flushSync();
   (document.querySelector('input[value="toml"]') as HTMLInputElement).click();
   flushSync();

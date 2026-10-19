@@ -1,15 +1,16 @@
 import type { Block, View } from "@timetoalign/tilie-core";
 import { describe, expect, it } from "vitest";
-import type { Handle, ResizeMode } from "../src/index.ts";
+import { drawingOf } from "../src/drawing.ts";
+import { project } from "../src/project.ts";
+import type { Handle, ResizeMode } from "../src/resize.ts";
 import {
   blockStretchPlaces,
-  drawingOf,
   handlesFor,
   kept,
-  project,
   resize,
   resizeCommand,
-} from "../src/index.ts";
+  solve,
+} from "../src/resize.ts";
 import {
   A,
   blockIn,
@@ -277,9 +278,45 @@ describe("stretching a block with placed items", () => {
     const after = changed(view, command);
     const drawing = drawingOf(blockIn(after, A), after.settings, metrics);
     expect(blockIn(after, A).x + drawing.width).toBe(862);
-    expect(drawing.items.find((item) => item.key === "group_2")?.place).toMatchObject({
+    expect(drawing.boxes.find((item) => item.key === "group_2")?.item?.place).toMatchObject({
       x: 44,
       width: 770,
     });
+  });
+});
+
+describe("solve", () => {
+  /** The extent `max(10, 2x)`, recording every value it is evaluated at. */
+  function counted() {
+    const seen: number[] = [];
+    const f = (x: number) => {
+      seen.push(x);
+      return { extent: Math.max(10, 2 * x) };
+    };
+    return { seen, f, extent: (result: { extent: number }) => result.extent };
+  }
+
+  it("finds the largest lattice value whose extent fits, with its result, each value once", () => {
+    const { seen, f, extent } = counted();
+    expect(solve(f, extent, 8, 30, 1)).toEqual({ value: 15, result: { extent: 30 } });
+    expect(new Set(seen).size).toBe(seen.length);
+  });
+
+  it("stops a shrink at the knee of a flat piece, never at the floor", () => {
+    const { seen, f, extent } = counted();
+    expect(solve(f, extent, 8, 4, 1)).toEqual({ value: 5, result: { extent: 10 } });
+    expect(new Set(seen).size).toBe(seen.length);
+  });
+
+  it("leaves the start where the extent never grows past the target", () => {
+    expect(
+      solve(
+        () => 5,
+        (extent) => extent,
+        7.3,
+        100,
+        1,
+      ),
+    ).toEqual({ value: 7.3, result: 5 });
   });
 });

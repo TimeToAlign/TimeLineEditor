@@ -2,25 +2,28 @@
 
 import type { Statement } from "@timetoalign/timeskeleton";
 import { dumps } from "@timetoalign/timeskeleton";
+import type { ChangeSet } from "../commands/mutations.ts";
 import type { CommandError } from "../errors.ts";
 import { ErrorCode, isCommandError, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";
 import { compareCodePoints, jsonEqual } from "../json.ts";
-import { containsIn } from "../manifest/contains.ts";
+import type { CardPlace, ItemPlace } from "../manifest/containers.ts";
+import { contains, containsIn } from "../manifest/contains.ts";
 import type { ElementKey } from "../manifest/elements.ts";
-import { manifestElements, selectorMatches, timelineAncestry } from "../manifest/elements.ts";
-import type { ListedElement } from "../manifest/files.ts";
-import {
-  ENTRY_KINDS,
-  elementAddress,
-  elementOfIn,
-  entriesOf,
-  TITLE_ADDRESS,
-} from "../manifest/files.ts";
+import { selectorMatches } from "../manifest/elements.ts";
+import { ENTRY_KINDS, elementAddress, entriesOf, TITLE_ADDRESS } from "../manifest/files.ts";
 import type { Manifest, TimelineManifest } from "../manifest/types.ts";
-import type { Block, BlockId, Place } from "./blocks.ts";
-import type { Address } from "./ids.ts";
-import { parseAddress } from "./ids.ts";
+import type { Address } from "./address.ts";
+import {
+  elementIn,
+  elementOf,
+  indexOf,
+  parseAddressSyntax,
+  qualify,
+  resolveAddress,
+  WORKSPACE,
+} from "./address.ts";
+import type { Block, BlockId } from "./blocks.ts";
 import type { View } from "./view.ts";
 
 /**
@@ -73,30 +76,31 @@ function inOrder(first: readonly string[], keys: Iterable<string>): string[] {
   ];
 }
 
-/** One manifest as the guard reads it: its elements, its ids and what the edited element contains. */
+/** One manifest as the guard reads it: its elements, its ancestry and what the edited element contains. */
 interface Scope {
   readonly manifest: Manifest;
   readonly keys: readonly ElementKey[];
   readonly ancestry: ReadonlyMap<string, readonly string[]>;
-  /** Its group and timeline ids. */
-  readonly ids: ReadonlySet<string>;
   readonly inside: (element: string) => boolean;
 }
 
 function scopeOf(manifest: Manifest, element: string): Scope {
-  const ancestry = timelineAncestry(manifest);
-  return {
-    manifest,
-    keys: manifestElements(manifest),
-    ancestry,
-    ids: new Set([...manifest.groups.map((group) => group.id), ...ancestry.keys()]),
-    inside: containsIn(manifest, element),
-  };
+  const { elements, ancestry } = indexOf(manifest);
+  return { manifest, keys: elements, ancestry, inside: containsIn(manifest, element) };
 }
 
-/** Whether a key naming a group or timeline lies inside: the edited element contains it in each manifest that has it. */
+/** Whether `key` names a group or a timeline of `scope`'s manifest. */
+function namesGroupOrTimeline(scope: Scope, key: string): boolean {
+  return scope.ancestry.has(key) || scope.manifest.groups.some((group) => group.id === key);
+}
+
+/**
+ * Whether a key of `places` or of `graphical.order` naming a group or a
+ * timeline lies inside: the edited element contains it in each manifest
+ * that has it.
+ */
 function keyInside(scopes: readonly Scope[]): (key: string) => boolean {
-  return (key) => scopes.every((scope) => !scope.ids.has(key) || scope.inside(key));
+  return (key) => scopes.every((scope) => !namesGroupOrTimeline(scope, key) || scope.inside(key));
 }
 
 const statementsOf = (manifest: Manifest): readonly Statement[] =>
@@ -179,7 +183,7 @@ function project(
       }),
     );
     for (const kind of ENTRY_KINDS) {
-      for (const entry of byId(entriesOf(timeline, kind) as readonly ListedElement[])) {
+      for (const entry of byId(entriesOf(timeline, kind))) {
         elements.set(elementAddress(root, entry.id), dumps(entry));
       }
     }
@@ -214,16 +218,50 @@ function project(
   return { elements, top, graphical };
 }
 
-/** The first difference of the manifest outside `element`, the element removed included. */
+/**
+ * Whether every change `changes` records in block `block` of `before` lies
+ * inside `element`, so that the manifest outside it is as it was: no change
+ * reached past its path there (`reaching`), and each of its paths names the
+ * block itself (a block member: replacing the manifest reaches) or an
+ * element the target contains (`resolveAddress`, `contains`). A path in the
+ * settings or in another block is compared on its own.
+ */
+function changedInside(before: View, block: BlockId, element: string, changes: ChangeSet): boolean {
+  if (changes.reaching.has(block)) return false;
+  const manifest = before.blocks[block]?.manifest;
+  if (manifest === undefined) return false;
+  return changes.paths.every(([address]) => {
+    if (typeof address !== "string") return false;
+    const syntax = parseAddressSyntax(address);
+    if (isCommandError(syntax)) return false;
+    if (syntax.block !== block) return true;
+    const named = elementIn(syntax);
+    return (
+      named === null ||
+      (!isCommandError(resolveAddress(before, address)) && contains(manifest, element, named))
+    );
+  });
+}
+
+/**
+ * The first difference of the manifest outside `element`, the element
+ * removed included. The manifests are projected (`project`) only when the
+ * manifest changed and `changes`, where given, does not show every change
+ * inside `element` (`changedInside`); the result is the same either way.
+ */
 function manifestChange(
   scopes: readonly [Scope, Scope],
   element: string,
   block: BlockId,
   target: Address,
   refuse: Refuse,
+  before: View,
+  changes: ChangeSet | undefined,
 ): CommandError | null {
   const [was, now] = scopes;
-  if (!now.ids.has(element)) return refuse(`the removal of ${target}`, [target]);
+  if (!namesGroupOrTimeline(now, element)) return refuse(`the removal of ${target}`, [target]);
+  if (was.manifest === now.manifest) return null;
+  if (changes !== undefined && changedInside(before, block, element, changes)) return null;
   const inside = insideAll(scopes);
   const outside = scopes.map(({ manifest }) =>
     statementsOf(manifest).filter((item) => !inside(item)),
@@ -232,19 +270,20 @@ function manifestChange(
     new Set(outside.flat().flatMap((item) => (typeof item.set === "string" ? [item.set] : []))),
   );
   const keys = keyInside(scopes);
-  const [a, b] = scopes.map(({ manifest }, index) =>
-    project(manifest, element, keys, outside[index] as Statement[], styles),
-  ) as [Projection, Projection];
+  const [wasOutside = [], nowOutside = []] = outside;
+  const a = project(was.manifest, element, keys, wasOutside, styles);
+  const b = project(now.manifest, element, keys, nowOutside, styles);
   // An element the target contains that is gone from `after` is removed inside the target.
   const differs = (address: string) =>
     a.elements.get(address) !== b.elements.get(address) &&
     !(was.inside(address) && !b.elements.has(address));
-  const changed = (address: string) => refuse(`${block}/${address}`, [`${block}/${address}`]);
+  const changed = (address: string) => refuse(qualify(block, address), [qualify(block, address)]);
   function* walk(): Generator<string> {
     for (const { manifest, keys } of [was, now]) {
-      const elementOf = elementOfIn(manifest);
       for (const key of keys) {
-        if (key.address !== null && key.address !== TITLE_ADDRESS) yield elementOf(key.address);
+        if (key.address !== null && key.address !== TITLE_ADDRESS) {
+          yield elementOf(manifest, key.address);
+        }
       }
     }
     // Elements no box draws: the children of a root drawn only as an ancestor line, and markers.
@@ -279,11 +318,13 @@ function manifestChange(
 
 /** The first change of a block outside its element `element`: its placement, a key, its manifest. */
 function blockChange(
+  before: View,
   was: Block | undefined,
   now: Block | undefined,
   element: string,
   target: Address,
   refuse: Refuse,
+  changes: ChangeSet | undefined,
 ): CommandError | null {
   if (was === undefined || now === undefined) return refuse(`the removal of ${target}`, [target]);
   const block = was.id;
@@ -305,7 +346,7 @@ function blockChange(
       : membersOf(was.manifest).includes(key) && membersOf(now.manifest).includes(key)
         ? SIBLING_MEMBERS
         : [];
-  const unshared = (place: Place | undefined, members: readonly string[]) =>
+  const unshared = (place: ItemPlace | CardPlace | undefined, members: readonly string[]) =>
     Object.fromEntries(Object.entries(place ?? {}).filter(([member]) => !members.includes(member)));
   const placeInside = (key: string) => {
     const members = shared(key);
@@ -318,8 +359,10 @@ function blockChange(
   const key = keysOf(was.places, now.places).find(
     (item) => !same(was.places[item], now.places[item]) && !placeInside(item),
   );
-  if (key !== undefined) return refuse(`the place of ${block}/${key}`, [`${block}/${key}`]);
-  return manifestChange(scopes, element, block, target, refuse);
+  if (key !== undefined) {
+    return refuse(`the place of ${qualify(block, key)}`, [qualify(block, key)]);
+  }
+  return manifestChange(scopes, element, block, target, refuse, before, changes);
 }
 
 /**
@@ -332,38 +375,52 @@ function blockChange(
  * siblings' card widths), and the manifest outside the element (the element
  * removed included; a display or band order lies inside when the element
  * contains its group or timeline). A block's editor changes anything in its
- * own block but its removal.
+ * own block but its removal. With `changes`, the change set of the command
+ * that led from `before` to `after`, only the settings and blocks it names
+ * are compared; the refusal is the same.
  */
-export function sideEffect(before: View, after: View, target: Address): CommandError | null {
-  const parsed = parseAddress(target);
+export function sideEffect(
+  before: View,
+  after: View,
+  target: Address,
+  changes?: ChangeSet,
+): CommandError | null {
+  const parsed = parseAddressSyntax(target);
   if (isCommandError(parsed)) return parsed;
   // The workspace holds everything.
   if (parsed.block === null) return null;
+  const { block } = parsed;
+  const element = elementIn(parsed);
   const refuse: Refuse = (what, path) =>
     problem(
       ErrorCode.sideEffect,
       `${what} lies outside ${target}: an editor changes only what it edits`,
       path,
     );
-  const setting = keysOf(before.settings, after.settings).find(
-    (key) => !same(before.settings[key as never], after.settings[key as never]),
-  );
-  if (setting !== undefined)
-    return refuse(`the workspace setting ${setting}`, ["workspace", setting]);
-  const other = keysOf(before.blocks, after.blocks).find(
-    (id) => id !== parsed.block && !same(before.blocks[id], after.blocks[id]),
-  );
+  // A change set names every setting and block a command touched; without one, both views are scanned.
+  if (changes === undefined || changes.paths.some(([first]) => first === WORKSPACE)) {
+    const was = new Map(Object.entries(before.settings));
+    const now = new Map(Object.entries(after.settings));
+    const setting = keysOf(before.settings, after.settings).find(
+      (key) => !same(was.get(key), now.get(key)),
+    );
+    if (setting !== undefined)
+      return refuse(`the workspace setting ${setting}`, [WORKSPACE, setting]);
+  }
+  const touched =
+    changes === undefined ? keysOf(before.blocks, after.blocks) : byCodePoint(changes.blocks);
+  const other = touched.find((id) => id !== block && !same(before.blocks[id], after.blocks[id]));
   if (other !== undefined) return refuse(`block ${other}`, [other]);
-  if (parsed.element === null) {
-    return Object.hasOwn(after.blocks, parsed.block)
-      ? null
-      : refuse(`the removal of ${target}`, [target]);
+  if (element === null) {
+    return Object.hasOwn(after.blocks, block) ? null : refuse(`the removal of ${target}`, [target]);
   }
   return blockChange(
-    before.blocks[parsed.block],
-    after.blocks[parsed.block],
-    parsed.element,
+    before,
+    before.blocks[block],
+    after.blocks[block],
+    element,
     target,
     refuse,
+    changes,
   );
 }

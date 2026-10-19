@@ -1,11 +1,11 @@
 /// <reference types="node" />
-/** The inspector's logic; the expected values are derived in `README.md` ("The inspector"). */
+/** The manifest as text and back; the expected values are derived in `README.md` ("The manifest as text"). */
 
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
-import type { CommandEntry, Json, Manifest, Store } from "@timetoalign/tilie-core";
-import { createStore, createView, isLoadError, loadManifest } from "@timetoalign/tilie-core";
+import type { Block, CommandEntry, Json, Manifest, Store } from "@timetoalign/tilie-core";
+import { isLoadError, loadManifest } from "@timetoalign/tilie-core";
 import {
   compactJson,
   dumps,
@@ -17,26 +17,14 @@ import {
   SCHEMA_VERSION,
 } from "@timetoalign/timeskeleton";
 import { beforeAll, describe, expect, it } from "vitest";
-import type { TextOptions } from "../src/inspector/edit.ts";
-import {
-  applyText,
-  follow,
-  manifestOf,
-  manifestText,
-  problemPointer,
-  selectedBlock,
-} from "../src/inspector/edit.ts";
-import type { Format } from "../src/inspector/formats.ts";
-import { FORMATS, loadCodec, readText, writeText } from "../src/inspector/formats.ts";
+import type { Format } from "../src/inspector/formats.svelte.ts";
+import { FORMATS, loadCodec, readText, writeText } from "../src/inspector/formats.svelte.ts";
+import { ManifestText } from "../src/inspector/manifestText.svelte.ts";
+import type { TextOptions } from "../src/inspector/manifestText.ts";
+import { applyText, follow, manifestOf, manifestText } from "../src/inspector/manifestText.ts";
 import { DOCUMENT, omissibleNulls } from "../src/inspector/nulls.ts";
-import type { Geometry } from "../src/inspector/properties.ts";
-import {
-  geometryOf,
-  propertyCommand,
-  STEPS,
-  shownValue,
-  stepValue,
-} from "../src/inspector/properties.ts";
+import { problemPointer } from "../src/inspector/problems.ts";
+import { fixtureText, storeOf } from "./support.ts";
 
 const A = "0000000000";
 const B = "0000000001";
@@ -51,39 +39,38 @@ function fixturesOf(kind: "" | "groups" | "bundles"): string[] {
   return readdirSync(path.join(fixturesDirectory, kind))
     .filter((name) => name.endsWith(".json") && !name.endsWith(".minimal.json"))
     .sort()
-    .map((name) => path.join(kind, name));
+    .map((name) => path.join(kind, name).replace(/\.json$/, ""));
 }
 
 const fixtureNames = [...fixturesOf(""), ...fixturesOf("groups"), ...fixturesOf("bundles")];
 
-/** A fixture's text by its path below the version's directory, without `.json`. */
-function fixtureText(name: string): string {
-  return readFileSync(path.join(fixturesDirectory, `${name}.json`), "utf8");
-}
-
-function fixture(name: string): Manifest {
-  const manifest = loadManifest(fixtureText(name));
-  if (isLoadError(manifest)) throw new Error(`${name} refused`);
-  return manifest;
-}
-
-/** A store holding the named fixtures in blocks `A`, `B`, … */
-function storeOf(...names: string[]): Store {
-  const store = createStore({ view: createView(), journal: [], sessions: {} });
-  names.forEach((name, index) => {
-    const id = String(index).padStart(10, "0");
-    const error = store.dispatch({
-      type: "add",
-      into: "workspace",
-      block: { id, manifest: fixture(name), x: 0, y: index * 200 },
-    });
-    if (error !== null) throw new Error(error.message);
-  });
-  return store;
+function blockIn(store: Store, id: string): Block {
+  const block = store.view.blocks[id];
+  if (block === undefined) throw new Error(`no block ${id}`);
+  return block;
 }
 
 function manifestIn(store: Store, id: string): Json {
-  return manifestOf(store.view.blocks[id] as never);
+  return manifestOf(blockIn(store, id));
+}
+
+/** One `quarters` timeline whose measure-map row states `nominal_length: null`, which TOML cannot hold. */
+function nominalNull(): Manifest {
+  const manifest = loadManifest(
+    dumps({
+      timeskeleton: SCHEMA_VERSION,
+      timelines: [
+        {
+          id: "score",
+          unit: "quarters",
+          length: [4, 1],
+          measure_map: [{ count: 1, qstamp: 0, number: 1, actual_length: 4, nominal_length: null }],
+        },
+      ],
+    }),
+  );
+  if (isLoadError(manifest)) throw new Error("the nominal-null manifest is refused");
+  return manifest;
 }
 
 /** The mode of a fixture file: the complete form with the styling. */
@@ -150,7 +137,7 @@ describe("format round trips", () => {
   for (const name of fixtureNames) {
     for (const format of FORMATS) {
       it(`${name} through ${format}`, () => {
-        const text = readFileSync(path.join(fixturesDirectory, name), "utf8");
+        const text = fixtureText(name);
         const value = parseJson(text) as Json;
         expect(dumps(readBack(format, written(format, value)))).toBe(text);
       });
@@ -659,73 +646,117 @@ describe("the four text modes", () => {
   }
 });
 
-describe("the selection", () => {
-  it("names one block or none", () => {
-    const store = storeOf("bare", "nested");
-    const { view } = store;
-    expect(selectedBlock(view, [])).toBe(null);
-    expect(selectedBlock(view, [A])?.id).toBe(A);
-    expect(selectedBlock(view, [`${A}/bare`])?.id).toBe(A);
-    expect(selectedBlock(view, [A, `${A}/bare`])?.id).toBe(A);
-    expect(selectedBlock(view, [A, `${B}/clt_1`])).toBe(null);
-  });
-});
+describe("the text state", () => {
+  /** A text state following block `A` of a store holding `bare` and `styled__score`. */
+  function following(): { store: Store; text: ManifestText } {
+    const store = storeOf("bare", "styled__score");
+    const text = new ManifestText();
+    text.follow(blockIn(store, A));
+    return { store, text };
+  }
 
-describe("the properties form", () => {
-  it("builds one set per field and lets the store decide", () => {
-    const store = storeOf("bare");
-    setOrFail(store, A, { width: 300 });
-    const block = geometryOf(store.view, [A]) as Geometry;
-    expect(propertyCommand(block, "x", "12.5")).toEqual({
-      ok: true,
-      value: { type: "set", changes: [{ target: A, values: { x: 12.5 } }] },
-    });
-    expect(propertyCommand(block, "width", "")).toEqual({
-      ok: true,
-      value: { type: "set", changes: [{ target: A, values: { width: null } }] },
-    });
-    for (const input of ["", "abc"]) {
-      const result = propertyCommand(block, "x", input);
-      expect(result.ok ? null : result.problems.map((item) => [item.code, item.path])).toEqual([
-        ["invalid_value", [A, "x"]],
-      ]);
-    }
-    const scale = propertyCommand(block, "scale", "0");
-    if (!scale.ok || scale.value === null) throw new Error("no command");
-    expect(store.dispatch(scale.value)?.code).toBe("non_positive_number");
-    expect(store.journal).toHaveLength(2);
+  const COMPLETE: TextOptions = { includeStyling: false, minimal: false };
+
+  it("shows the selected block's manifest while the text is clean", () => {
+    const { store, text } = following();
+    expect([text.text, text.dirty, text.stale]).toEqual([
+      written("json", manifestIn(store, A), COMPLETE),
+      false,
+      false,
+    ]);
+    text.follow(blockIn(store, B));
+    expect(text.text).toBe(written("json", manifestIn(store, B), COMPLETE));
+    text.follow(null);
+    expect([text.text, text.dirty, text.problems]).toEqual(["", false, []]);
   });
 
-  it("steps exactly, by 1 or by 0.1", () => {
-    expect(STEPS).toEqual({ x: 1, y: 1, scale: 0.1, length: 1, spacing: 0.1, width: 1, height: 1 });
-    const cases: [number | null, 1 | -1, number, number][] = [
-      [10.123, 1, 1, 11.123],
-      [1, -1, 0.1, 0.9],
-      [0.9, -1, 0.1, 0.8],
-      [0.7, 1, 0.1, 0.8],
-      [1e-7, 1, 0.1, 0.1000001],
-      [-0.05, 1, 0.1, 0.05],
-      [null, 1, 1, 1],
-    ];
-    expect(cases.map(([value, direction, step]) => stepValue(value, direction, step))).toEqual(
-      cases.map(([, , , result]) => result),
-    );
+  it("keeps an edited text, notes a change, and applies it to the block it was written for", () => {
+    const { store, text } = following();
+    const shown = text.text;
+    text.text = shown.replace('"name": "Bare"', '"name": "Hello"');
+    setOrFail(store, `${A}/bare`, { name: "Bye" });
+    text.follow(blockIn(store, A));
+    text.follow(blockIn(store, B));
+    expect([text.text.includes('"name": "Hello"'), text.dirty, text.stale]).toEqual([
+      true,
+      true,
+      true,
+    ]);
+    text.apply(store);
+    expect(store.journal).toHaveLength(4);
+    expect(at(manifestIn(store, A), "timelines", 0, "name")).toBe("Hello");
+    expect([text.text, text.dirty, text.stale]).toEqual([
+      written("json", manifestIn(store, A), COMPLETE),
+      false,
+      false,
+    ]);
   });
 
-  it("shows a value with at most two decimals", () => {
-    const cases: [number | null, string][] = [
-      [12.5, "12.5"],
-      [12.3449, "12.34"],
-      [7, "7"],
-      [10.123, "10.12"],
-      [2.999, "3"],
-      [478.5771484375, "478.58"],
-      [1.49951171875, "1.5"],
-      [0.125, "0.13"],
-      [1.005, "1"],
-      [-0.001, "0"],
-      [null, ""],
-    ];
-    expect(cases.map(([value]) => shownValue(value))).toEqual(cases.map(([, shown]) => shown));
+  it("follows at once when the text is typed back to the shown text", () => {
+    const { store, text } = following();
+    const shown = text.text;
+    text.text = `${shown} `;
+    setOrFail(store, `${A}/bare`, { name: "Bye" });
+    text.follow(blockIn(store, A));
+    expect(text.stale).toBe(true);
+    text.text = shown;
+    text.follow(blockIn(store, A));
+    expect([text.text, text.stale]).toEqual([
+      written("json", manifestIn(store, A), COMPLETE),
+      false,
+    ]);
+  });
+
+  it("drops a refused Apply's problems with the refused text and keeps a problem of writing", () => {
+    const { store, text } = following();
+    const shown = text.text;
+    text.text = shown.slice(0, -2);
+    text.apply(store);
+    expect([text.problems.map((problem) => problem.code), text.dirty]).toEqual([
+      ["syntax_error"],
+      true,
+    ]);
+    text.text = shown;
+    text.follow(blockIn(store, A));
+    expect([text.problems, text.dirty, store.journal.length]).toEqual([[], false, 2]);
+
+    const nulls = storeOf(nominalNull());
+    const toml = new ManifestText();
+    toml.format = "toml";
+    toml.follow(blockIn(nulls, A));
+    const problems = () => toml.problems.map((problem) => [problem.code, problemPointer(problem)]);
+    expect([toml.text, problems()]).toEqual([
+      "",
+      [["not_representable", "/timelines/0/measure_map/0/nominal_length"]],
+    ]);
+    toml.text = "x";
+    toml.text = "";
+    toml.follow(blockIn(nulls, A));
+    expect(problems()).toEqual([
+      ["not_representable", "/timelines/0/measure_map/0/nominal_length"],
+    ]);
+  });
+
+  it("reverts to the selected block's manifest, or to nothing", () => {
+    const { store, text } = following();
+    text.text = "{}";
+    setOrFail(store, `${A}/bare`, { name: "Bye" });
+    text.revert(blockIn(store, A));
+    expect([text.text, text.dirty, text.stale]).toEqual([
+      written("json", manifestIn(store, A), COMPLETE),
+      false,
+      false,
+    ]);
+    text.text = "{}";
+    text.revert(null);
+    expect([text.text, text.dirty]).toEqual(["", false]);
+  });
+
+  it("writes the text again when the format or an option changes", () => {
+    const { store, text } = following();
+    text.format = "yaml";
+    text.minimal = true;
+    text.follow(blockIn(store, A));
+    expect(text.text).toBe(written("yaml", manifestIn(store, A), { ...COMPLETE, minimal: true }));
   });
 });

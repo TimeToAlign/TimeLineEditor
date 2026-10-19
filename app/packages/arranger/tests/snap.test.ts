@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { Box } from "../src/index.ts";
-import { snap } from "../src/index.ts";
+import type { Box } from "../src/snap.ts";
+import { snap } from "../src/snap.ts";
 
 const grid = { size: 8, snap: true };
 const moving: Box = { id: "m", x: 101, y: 203, width: 458, height: 49, origin: 142.5771484375 };

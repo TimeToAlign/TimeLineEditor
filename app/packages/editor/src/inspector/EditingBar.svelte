@@ -2,55 +2,34 @@
 /**
  * The editing bar, shown while an editor is open: Done and Cancel for the
  * innermost editor, and the editing path, the open editors' names in
- * opening order. Cancel asks first when the editor holds a change.
+ * opening order. Cancel asks first, just below itself, when the editor
+ * holds a change.
  */
 import type { LiveStore } from "@timetoalign/tilie-arranger";
-import { tick } from "svelte";
-import { editorName } from "./journal.ts";
+import ConfirmDialog from "../ConfirmDialog.svelte";
+import { editorName } from "./words.ts";
 
 /** The open workspace's store, read as Svelte state. */
 let { live }: { live: LiveStore } = $props();
-
-const uid = $props.id();
 
 /** The editing path, the view its names are read from, and Cancel's count. */
 const editing = $derived(live.editing);
 const view = $derived(live.view);
 const changes = $derived(live.changes);
-const question = $derived(
-  `Are you sure you want to discard ${changes} ${changes === 1 ? "change" : "changes"}?`,
-);
 
 let cancelButton: HTMLButtonElement | undefined = $state();
-let dialog: HTMLDialogElement | undefined = $state();
-let noButton: HTMLButtonElement | undefined = $state();
-/** Where the question opens: just below the Cancel button, in viewport pixels. */
-let top = $state(0);
-let left = $state(0);
+let confirm: ConfirmDialog | undefined = $state();
 
-/** Close the innermost editor without its changes; with a change, only after asking. */
+/** Close the innermost editor without its changes; with a change, only after Yes. */
 async function cancel(): Promise<void> {
   if (changes === 0) {
     live.store.cancel();
     return;
   }
-  const button = cancelButton?.getBoundingClientRect();
-  top = (button?.bottom ?? 0) + 4;
-  left = button?.left ?? 0;
-  await tick();
-  dialog?.showModal();
-  noButton?.focus();
-}
-
-/** Answer the question: Yes discards the changes; No, Escape and the backdrop keep them. */
-function answer(discard: boolean): void {
-  dialog?.close();
-  if (discard) live.store.cancel();
-}
-
-/** A click on the dialog element itself fell on the backdrop: its content fills the dialog. */
-function onBackdrop(event: MouseEvent): void {
-  if (event.target === dialog) answer(false);
+  const question = `Are you sure you want to discard ${changes} ${changes === 1 ? "change" : "changes"}?`;
+  if ((await confirm?.ask(question, "Yes", "No", "second", cancelButton ?? null)) === true) {
+    live.store.cancel();
+  }
 }
 </script>
 
@@ -64,22 +43,7 @@ function onBackdrop(event: MouseEvent): void {
         <li>{editorName(view, editor.target)}</li>
       {/each}
     </ol>
-    <!-- Escape answers No from the keyboard; the backdrop's click is its pointer twin. -->
-    <dialog
-      bind:this={dialog}
-      aria-labelledby="{uid}-question"
-      style:top="{top}px"
-      style:left="{left}px"
-      onclick={onBackdrop}
-    >
-      <div class="content">
-        <p id="{uid}-question">{question}</p>
-        <div class="answers">
-          <button type="button" onclick={() => answer(true)}>Yes</button>
-          <button type="button" bind:this={noButton} onclick={() => answer(false)}>No</button>
-        </div>
-      </div>
-    </dialog>
+    <ConfirmDialog bind:this={confirm} />
   </div>
 {/if}
 
@@ -143,45 +107,5 @@ function onBackdrop(event: MouseEvent): void {
     content: " > " / "";
     white-space: pre;
     color: #595959;
-  }
-
-  /* Beside the Cancel button rather than centred; no padding, so a click on the dialog itself is the backdrop. */
-  dialog {
-    position: fixed;
-    inset: auto;
-    margin: 0;
-    padding: 0;
-    max-width: 18rem;
-    border: 1px solid #bdbdbd;
-    border-radius: 6px;
-    font-size: 0.85rem;
-  }
-
-  dialog::backdrop {
-    background: rgba(0, 0, 0, 0.15);
-  }
-
-  .content {
-    padding: 0.75rem 1rem;
-  }
-
-  p {
-    margin: 0 0 0.75rem;
-  }
-
-  .answers {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.5rem;
-  }
-
-  .answers button {
-    border-color: #bdbdbd;
-    background: #fafafa;
-    color: inherit;
-  }
-
-  .answers button:hover {
-    background: #f0f0f0;
   }
 </style>

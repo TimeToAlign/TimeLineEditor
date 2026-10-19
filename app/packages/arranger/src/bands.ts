@@ -1,10 +1,10 @@
 /**
  * The bands of a timeline (`docs/drawing.md` in timeskeleton, section 6.4) as
- * boxes of its timeline editor: which bands it offers, the band under a
- * point, where a dragged or stepped band lands in the timeline's band order,
- * and the one `set` that writes the new order. A band draws nothing: the
- * drawing records it (`Drawing.bands`) and only the editor marks it. No other
- * module computes these.
+ * containers of its timeline editor: where a dragged or stepped band lands in
+ * the timeline's band order, and the one `set` that writes the new order. A
+ * band draws nothing: the drawing records it among its boxes and only the
+ * editor marks it; which bands an editor offers and the band under a point
+ * are read from those boxes (`boxes.ts`). No other module computes these.
  *
  * Every order here is a band order: the timeline's five band addresses and
  * its id, top to bottom. The **visible** entries of a timeline in a drawing
@@ -14,42 +14,19 @@
  * told apart by their `line`: a band moves among the records of its own line.
  */
 
-import type { BlockId, SetCommand, View } from "@timetoalign/tilie-core";
-import { inheritedBandOrder } from "@timetoalign/tilie-core";
-import type { Drawing, DrawnBand } from "@timetoalign/tilie-layout";
+import type { Address, BlockId, SetCommand, View } from "@timetoalign/tilie-core";
+import { bandOrderOf, inheritedBandOrder, qualify } from "@timetoalign/tilie-core";
+import type { Drawing } from "@timetoalign/tilie-layout";
+import type { FontMetrics } from "@timetoalign/timeskeleton";
+import type { BandBox } from "./boxes.ts";
+import { offeredBands } from "./boxes.ts";
+import { drawingOf } from "./drawing.ts";
+import type { Editing } from "./editing.ts";
+import { sameSequence } from "./numbers.ts";
+import { offersBand, selectedBand } from "./selection.ts";
 
 /** The direction of a step (`bandStep`): the arrow pressed with Ctrl or Cmd. */
 export type BandDirection = "up" | "down";
-
-/**
- * The bands the drawing records for `timeline`, in `Drawing.bands` order: the
- * bands its timeline editor offers. Every recorded band is present; whether
- * an editor offers them at all (the timeline editor of `timeline`, the
- * innermost open editor of its block) is the caller's test.
- */
-export function offeredBands(drawing: Drawing, timeline: string): readonly DrawnBand[] {
-  return drawing.bands.filter((band) => band.timeline === timeline);
-}
-
-/**
- * The offered band of `timeline` whose rectangle, its edges included, holds
- * `point` (in the drawing's units), the first in `Drawing.bands` order, else
- * `null`. A band 0 high holds the points of its edge only. A drawn element
- * is hit before any band: the caller asks only where the press hit no
- * element.
- */
-export function bandAt(
-  drawing: Drawing,
-  timeline: string,
-  point: { readonly x: number; readonly y: number },
-): DrawnBand | null {
-  const { x, y } = point;
-  return (
-    offeredBands(drawing, timeline).find(
-      (band) => band.x <= x && x <= band.x + band.width && band.y <= y && y <= band.y + band.height,
-    ) ?? null
-  );
-}
 
 /**
  * The visible entries of the line `band` lies at, in `order` (top to
@@ -58,16 +35,17 @@ export function bandAt(
  */
 function visibleEntries(
   drawing: Drawing,
-  band: DrawnBand,
+  band: BandBox,
   order: readonly string[],
 ): { readonly entry: string; readonly at: number }[] {
+  const { timeline, line } = band.band;
   const middles = new Map(
-    drawing.bands
-      .filter((other) => other.timeline === band.timeline && other.line === band.line)
+    offeredBands(drawing, timeline)
+      .filter((other) => other.band.line === line)
       .map((other) => [other.address, other.y + other.height / 2]),
   );
   return order.flatMap((entry) => {
-    if (entry === band.timeline) return [{ entry, at: band.line }];
+    if (entry === timeline) return [{ entry, at: line }];
     const at = middles.get(entry);
     return at === undefined ? [] : [{ entry, at }];
   });
@@ -92,7 +70,7 @@ function movedBetween(
     (below === null || index < order.indexOf(below));
   if (between) return null;
   const rest = order.filter((entry) => entry !== band);
-  const at = above === null ? rest.indexOf(below as string) : rest.indexOf(above) + 1;
+  const at = above !== null ? rest.indexOf(above) + 1 : below !== null ? rest.indexOf(below) : 0;
   return [...rest.slice(0, at), band, ...rest.slice(at)];
 }
 
@@ -109,7 +87,7 @@ function movedBetween(
  */
 export function bandDrop(
   drawing: Drawing,
-  band: DrawnBand,
+  band: BandBox,
   y: number,
   order: readonly string[],
 ): readonly string[] | null {
@@ -126,7 +104,7 @@ export function bandDrop(
  */
 export function bandStep(
   drawing: Drawing,
-  band: DrawnBand,
+  band: BandBox,
   direction: BandDirection,
   order: readonly string[],
 ): readonly string[] | null {
@@ -155,11 +133,38 @@ export function bandMoveCommand(
 ): SetCommand {
   const found = view.blocks[block];
   if (found === undefined) throw new RangeError(`${block} is no block of the view`);
-  const inherited = inheritedBandOrder(found.manifest, timeline);
-  const inherits =
-    order.length === inherited.length && order.every((entry, index) => entry === inherited[index]);
+  const inherits = sameSequence(order, inheritedBandOrder(found.manifest, timeline));
   return {
     type: "set",
-    changes: [{ target: `${block}/${timeline}`, values: { order: inherits ? null : [...order] } }],
+    changes: [
+      { target: qualify(block, timeline), values: { order: inherits ? null : [...order] } },
+    ],
   };
+}
+
+/**
+ * The `set` that steps the selected band `address` past the next band or
+ * line drawn in `direction` (`bandStep`, `bandMoveCommand`): `null` unless
+ * `address` names a band the view offers under `editing` (`offersBand`)
+ * that its block's drawing records, and when nothing lies that way. Whether
+ * the canvas moves bands at all is the caller's question (`rulesOf`).
+ */
+export function bandStepCommand(
+  view: View,
+  address: Address,
+  direction: BandDirection,
+  editing: Editing | null,
+  metrics: FontMetrics,
+): SetCommand | null {
+  const selected = selectedBand(view, address);
+  if (selected === null || !offersBand(view, selected, editing)) return null;
+  const block = view.blocks[selected.block];
+  if (block === undefined) return null;
+  const drawing = drawingOf(block, view.settings, metrics);
+  const drawn = offeredBands(drawing, selected.timeline).find(
+    (band) => band.band.kind === selected.kind,
+  );
+  if (drawn === undefined) return null;
+  const order = bandStep(drawing, drawn, direction, bandOrderOf(block.manifest, selected.timeline));
+  return order === null ? null : bandMoveCommand(view, block.id, selected.timeline, order);
 }

@@ -1,13 +1,8 @@
-/** What removing a selection takes away besides the selection itself, and what it moves. */
+/** What removing a selection takes away besides the selection itself. */
 
-import type { Gap, Manifest } from "@timetoalign/tilie-core";
-import {
-  elementOfIn,
-  manifestElements,
-  movedBy,
-  parseBand,
-  removedBy,
-} from "@timetoalign/tilie-core";
+import type { Manifest } from "@timetoalign/tilie-core";
+import { elementOf, parseBand, removedBy } from "@timetoalign/tilie-core";
+import { manifestElements } from "@timetoalign/tilie-core/drawing";
 
 /**
  * The addresses a drawing of `manifest` may draw, as core's
@@ -15,8 +10,8 @@ import {
  * which draw nothing.
  */
 function drawnAddresses(manifest: Manifest): string[] {
-  return manifestElements(manifest).flatMap(({ address }) =>
-    address === null || parseBand(address) !== null ? [] : [address],
+  return manifestElements(manifest).flatMap(({ address, type }) =>
+    address === null || type === "band" ? [] : [address],
   );
 }
 
@@ -36,29 +31,18 @@ export function affectedBy(
   manifest: Manifest,
   selectedElementIds: ReadonlySet<string>,
 ): ReadonlySet<string> {
-  const element = elementOfIn(manifest);
-  const owners = [...selectedElementIds].filter((id) => parseBand(id) === null).map(element);
+  const owners = [...selectedElementIds]
+    .filter((id) => parseBand(id) === null)
+    .map((id) => elementOf(manifest, id));
   const removed = removedBy(manifest, owners);
   if (removed.size === 0) return new Set();
   const addresses = [...drawnAddresses(manifest), ...removed];
   return new Set(
-    addresses.filter(
-      (address) =>
-        removed.has(element(address)) &&
-        !selectedElementIds.has(address) &&
-        !selectedElementIds.has(element(address)),
-    ),
+    addresses.filter((address) => {
+      const owner = elementOf(manifest, address);
+      return (
+        removed.has(owner) && !selectedElementIds.has(address) && !selectedElementIds.has(owner)
+      );
+    }),
   );
-}
-
-/**
- * The addresses that closing the gap of segment `id` as `gap` moves or
- * resizes (core's `movedBy`): the timelines whose place or length changes,
- * and their parts, bands left out.
- */
-export function movedByGap(manifest: Manifest, id: string, gap: Gap): ReadonlySet<string> {
-  const moved = movedBy(manifest, id, gap);
-  if (moved.size === 0) return moved;
-  const element = elementOfIn(manifest);
-  return new Set(drawnAddresses(manifest).filter((address) => moved.has(element(address))));
 }

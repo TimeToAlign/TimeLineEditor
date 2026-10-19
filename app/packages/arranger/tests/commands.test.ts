@@ -1,14 +1,14 @@
 import type { View } from "@timetoalign/tilie-core";
 import { isIndex, manifestIds } from "@timetoalign/tilie-core";
 import { describe, expect, it } from "vitest";
-import type { ZOrderAction } from "../src/index.ts";
+import type { ZOrderAction } from "../src/commands.ts";
 import {
   addCommand,
   moveCommand,
   nudgeCommand,
   removeCommand,
   zOrderCommand,
-} from "../src/index.ts";
+} from "../src/commands.ts";
 import {
   A,
   B,

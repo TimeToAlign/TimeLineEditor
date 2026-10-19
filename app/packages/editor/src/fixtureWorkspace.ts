@@ -8,7 +8,7 @@
 import type { Manifest } from "@timetoalign/tilie-core";
 import {
   createStore,
-  createView,
+  emptyWorkspace,
   isLoadError,
   loadManifest,
   writeWorkspace,
@@ -31,13 +31,10 @@ export type FixtureBlock = readonly [id: string, manifest: Manifest, x: number, 
  */
 export function fixtureWorkspace(blocks: Iterable<FixtureBlock>): string {
   let calls = 0;
-  const store = createStore(
-    { view: createView(), journal: [], sessions: {} },
-    {
-      author: FIXTURE_AUTHOR,
-      clock: () => new Date(Date.parse(FIXTURE_TIME) + 1000 * calls++),
-    },
-  );
+  const store = createStore(emptyWorkspace(), {
+    author: FIXTURE_AUTHOR,
+    clock: () => new Date(Date.parse(FIXTURE_TIME) + 1000 * calls++),
+  });
   for (const [id, manifest, x, y] of blocks) {
     const refusal = store.dispatch({
       type: "add",

@@ -3,9 +3,15 @@ import type { Viewport, XYPosition } from "@xyflow/svelte";
 import { ControlButton, Controls, useSvelteFlow } from "@xyflow/svelte";
 import { roving } from "./roving.ts";
 
-/** The canvas lock and the marquee toggle; both are the viewer's own state. */
-let { locked = $bindable(), marquee = $bindable() }: { locked: boolean; marquee: boolean } =
-  $props();
+interface Props {
+  /** The canvas lock and the marquee toggle; both are the viewer's own state. */
+  locked: boolean;
+  marquee: boolean;
+  /** Whether the lock may be toggled: not on a read-only canvas. */
+  lockable?: boolean;
+}
+
+let { locked = $bindable(), marquee = $bindable(), lockable = true }: Props = $props();
 
 const flow = useSvelteFlow();
 
@@ -88,6 +94,7 @@ export function toCanvas(client: XYPosition): XYPosition {
     aria-pressed={locked}
     aria-label="Lock the canvas"
     title="Lock the canvas: dragging pans instead of moving blocks (L)"
+    disabled={!lockable}
     onclick={() => (locked = !locked)}
   >
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 25 32" aria-hidden="true">
@@ -124,16 +131,3 @@ export function toCanvas(client: XYPosition): XYPosition {
     </svg>
   </ControlButton>
 </Controls>
-
-<style>
-  /* A pressed toggle: a shade darker, its icon in the selection's blue. */
-  :global(.svelte-flow__controls-button.tilie-toggle[aria-pressed="true"]) {
-    background: #e2e2e2;
-    color: #0a6ad6;
-  }
-
-  :global(.svelte-flow__controls-button:focus-visible) {
-    outline: 2px solid #0a84ff;
-    outline-offset: -2px;
-  }
-</style>

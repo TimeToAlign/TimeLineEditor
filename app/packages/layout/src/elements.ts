@@ -3,9 +3,12 @@
  * (`docs/drawing.md` in timeskeleton, sections 1, 6.6 and 8).
  */
 
-import type { BandKind, Place, Real } from "@timetoalign/tilie-core";
+import type { ItemPlace, Real } from "@timetoalign/tilie-core";
 import type { TimeUnit } from "@timetoalign/timeskeleton";
+import type { DrawnAxis, DrawnBox } from "./boxes.ts";
 import type { Style } from "./cascade.ts";
+
+export type { DrawnAxis, DrawnBox, ElementRange } from "./boxes.ts";
 
 /** Where and how large the drawing is placed (section 1). */
 export interface Placement {
@@ -17,7 +20,7 @@ export interface Placement {
    * The places of the box's items, by group id or ungrouped root id, and the sizes of its
    * members' cards, by member id (section 8.6).
    */
-  readonly places: { readonly [key: string]: Place };
+  readonly places: { readonly [key: string]: ItemPlace };
 }
 
 export const DEFAULT_PLACEMENT: Placement = {
@@ -101,10 +104,10 @@ export interface RegionElement extends Addressed {
 export type Point = readonly [number, number];
 
 /** One path command and its points, in the order they are written. */
-export interface PathCommand {
-  readonly command: "M" | "C" | "Q" | "L";
-  readonly points: readonly Point[];
-}
+export type PathCommand =
+  | { readonly command: "M" | "L"; readonly points: readonly [Point] }
+  | { readonly command: "Q"; readonly points: readonly [Point, Point] }
+  | { readonly command: "C"; readonly points: readonly [Point, Point, Point] };
 
 export interface JumpElement extends Addressed {
   readonly type: "jump";
@@ -157,107 +160,19 @@ export type DrawnElement =
   | MarkerElement
   | TextElement;
 
-/**
- * The half-open range `[start, end)` of `Drawing.elements` that a frame or
- * card emitted: its own rectangle when displayed, then everything drawn as
- * part of it, in drawing order (section 8.5). A box that is not displayed
- * keeps its range over what it still emits.
- */
-export interface ElementRange {
-  readonly start: number;
-  readonly end: number;
-}
-
-/** One item of a box (section 8): a group's frame or an ungrouped root's card. */
-export interface DrawnItem {
-  /** The group id or the ungrouped root's id. */
-  readonly key: string;
-  readonly kind: "group" | "card";
-  /** `G` for a group's frame, `U/card` for an ungrouped root's card. */
-  readonly address: string;
-  /**
-   * The place with every default applied; `width` and `height` are the drawn size in item
-   * coordinates, before the scale, so `x + scale × width` is the drawn right edge.
-   */
-  readonly place: Required<Place>;
-  /** The place as the placement states it; `{}` when it states none. */
-  readonly stated: Place;
-  /**
-   * The elements it drew: a frame, its title and its cards with their member drawings, or an
-   * ungrouped root's card and its member drawing.
-   */
-  readonly range: ElementRange;
-}
-
-/** The card of a group's member (sections 8.4 and 8.6). */
-export interface DrawnCard {
-  /** The member's timeline id, its key in `places`. */
-  readonly key: string;
-  /** The group whose frame holds the card. */
-  readonly group: string;
-  /** `M/card`. */
-  readonly address: string;
-  /** The drawn size in item coordinates, before the group's scale. */
-  readonly size: { readonly width: number; readonly height: number };
-  /** The card's own vertical stretch, its stated `spacing`, else 1. */
-  readonly spacing: number;
-  /** What `places` states for the member's card; `{}` when it states nothing. */
-  readonly stated: Pick<Place, "width" | "height" | "spacing">;
-  /** The elements it drew: the card and its member drawing. */
-  readonly range: ElementRange;
-}
-
-/**
- * A present band of a timeline drawn with a line of its own (section 6.4).
- * A band draws nothing: it has no element and no descriptor, and no writer
- * reads it.
- */
-export interface DrawnBand {
-  /** `T/<kind>_1` (section 2.2). */
-  readonly address: string;
-  /** The id `T` of its timeline. */
-  readonly timeline: string;
-  readonly kind: BandKind;
-  /** Signed and never 0: 1, 2, … above its timeline's line, outwards; −1, −2, … below it. */
-  readonly level: number;
-  /**
-   * The number of displayed elements it holds directly, those a segment without a line of its
-   * own adds to it included; at least 1, since only a present band is drawn.
-   */
-  readonly elements: number;
-  /**
-   * The ordinate of its timeline's line, in the drawing's coordinates as the elements'. A
-   * timeline drawn twice in one drawing (a child in one card, a member in another) has two sets
-   * of bands under the same addresses, told apart by this.
-   */
-  readonly line: number;
-  /**
-   * Its rectangle, in the drawing's coordinates as the elements' (sections 8.4 and 8.6).
-   * Vertically it runs from the band's start `c` to its outer edge (section 6.4, Where a band
-   * lies). Horizontally it spans its timeline's drawing, the root's as a child's: its extent of
-   * section 6.4, Children, measured from the root's start, from `x0` plus its one end to `x0`
-   * plus its other; the name column is no part of it.
-   */
-  readonly x: number;
-  readonly y: number;
-  readonly width: number;
-  readonly height: number;
-}
-
 export interface Drawing {
   readonly width: number;
   readonly height: number;
   /** The place origin within the box (section 8.4). */
   readonly origin: { readonly x: number; readonly y: number };
-  readonly items: readonly DrawnItem[];
-  /** The members' cards, in drawing order. */
-  readonly cards: readonly DrawnCard[];
-  readonly elements: readonly DrawnElement[];
   /**
-   * Every present band of every timeline drawn with a line of its own: the member drawings in
-   * drawing order (section 8.5), each one's timelines in traversal order, each timeline's bands
-   * top to bottom.
+   * Every container drawn: the box first, then in drawing order each frame, each card and each
+   * band of the card's timelines (a timeline drawn twice, a child in one card and a member in
+   * another, has two sets of bands under the same addresses, told apart by their `line`).
    */
-  readonly bands: readonly DrawnBand[];
+  readonly boxes: readonly DrawnBox[];
+  /** Every line drawn, in the order of its element: what a position on it stands for. */
+  readonly axes: readonly DrawnAxis[];
+  readonly elements: readonly DrawnElement[];
   readonly unmapped: readonly number[];
 }

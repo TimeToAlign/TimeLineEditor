@@ -1,7 +1,8 @@
 /// <reference types="node" />
 /**
  * Fixtures and file stubs for the editor's tests: manifests from the
- * installed `@timetoalign/timeskeleton`, the fallback file input answered
+ * installed `@timetoalign/timeskeleton`, workspaces and stores built of
+ * them, the test hook of a mounted page, the fallback file input answered
  * with a chosen file, downloads recorded instead of performed, and the
  * autosaves of mounted editors waited for between tests.
  */
@@ -9,11 +10,13 @@
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
-import type { Manifest } from "@timetoalign/tilie-core";
-import { isLoadError, loadManifest } from "@timetoalign/tilie-core";
+import type { Manifest, Store } from "@timetoalign/tilie-core";
+import { createStore, isLoadError, loadManifest, readWorkspace } from "@timetoalign/tilie-core";
 import { SCHEMA_VERSION } from "@timetoalign/timeskeleton";
 import { vi } from "vitest";
 import type { Autosave, AutosaveOptions } from "../src/autosave.ts";
+import { fixtureWorkspace } from "../src/fixtureWorkspace.ts";
+import type { TestHook } from "../src/testHook.ts";
 
 const directory = path.join(
   path.dirname(createRequire(import.meta.url).resolve("@timetoalign/timeskeleton/package.json")),
@@ -31,6 +34,44 @@ export function fixture(name: string): Manifest {
   const manifest = loadManifest(fixtureText(name));
   if (isLoadError(manifest)) throw new Error(`${name} refused`);
   return manifest;
+}
+
+/** The id of the `index`th block of `workspaceOf`: `0000000000`, `0000000001`, … */
+export function blockId(index: number): string {
+  return String(index).padStart(10, "0");
+}
+
+/**
+ * The workspace text of one block per manifest, each given whole or as a
+ * fixture's name: the `index`th as block `blockId(index)` at (800 · index, 0),
+ * journalled as one `add` each (`fixtureWorkspace`).
+ */
+export function workspaceOf(...manifests: readonly (string | Manifest)[]): string {
+  return fixtureWorkspace(
+    manifests.map(
+      (manifest, index) =>
+        [
+          blockId(index),
+          typeof manifest === "string" ? fixture(manifest) : manifest,
+          800 * index,
+          0,
+        ] as const,
+    ),
+  );
+}
+
+/** A store opened on `workspaceOf(...manifests)`. */
+export function storeOf(...manifests: readonly (string | Manifest)[]): Store {
+  const workspace = readWorkspace(workspaceOf(...manifests));
+  if (isLoadError(workspace)) throw new Error("the written workspace is refused");
+  return createStore(workspace);
+}
+
+/** The installed test hook of the mounted page. */
+export function hook(): TestHook {
+  const installed = window.__tilie;
+  if (installed === undefined) throw new Error("window.__tilie is not installed");
+  return installed;
 }
 
 /** Answer the pending fallback file input with the file `name` holding `text`; returns the input. */

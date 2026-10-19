@@ -1,8 +1,12 @@
-import { canonicalJson } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
-import type { CommandEntry, Gap, Manifest, TimelineManifest, View } from "../src/index.ts";
-import { apply, createStore, movedBy, segmentGaps } from "../src/index.ts";
-import { A, block, changed, deepFreeze, refusal, unlockedView, viewOf } from "./support.ts";
+import { apply } from "../src/commands/apply.ts";
+import { canonicalText } from "../src/json.ts";
+import type { Gap } from "../src/manifest/segments.ts";
+import { movedBy, segmentGaps, withoutSegment } from "../src/manifest/segments.ts";
+import { isSegment } from "../src/manifest/tree.ts";
+import type { Manifest, TimelineManifest } from "../src/manifest/types.ts";
+import type { View } from "../src/workspace/view.ts";
+import { A, block, changed, deepFreeze, load, refusal, unlockedView, viewOf } from "./support.ts";
 
 const CHILDREN = "segment_children.json";
 const UNKNOWN = "unknown_length_segments.json";
@@ -22,11 +26,12 @@ function viewWith(fixture: string, ...unlocked: string[]): View {
   return deepFreeze(unlockedView(fixture, ...unlocked));
 }
 
-const remove = (segment: string, gap?: Gap) => ({
-  type: "remove",
-  targets: [at(segment)],
-  ...(gap === undefined ? {} : { gap }),
-});
+/** Block `A`'s manifest without `segment`, its gap closed as `gap` says, failing loudly if refused. */
+function closed(view: View, segment: string, gap: Gap): Manifest {
+  const result = withoutSegment(block(view).manifest, segment, gap);
+  if (typeof result === "string") throw new Error(`${segment} ${gap.side} ${gap.verb}: ${result}`);
+  return result;
+}
 
 function timeline(manifest: Manifest, id: string): TimelineManifest {
   const find = (here: TimelineManifest): TimelineManifest | undefined =>
@@ -37,19 +42,36 @@ function timeline(manifest: Manifest, id: string): TimelineManifest {
 }
 
 /** A timeline's offset and length as plain JSON, whatever integers the manifest holds them in. */
-function place(view: View, id: string): { offset: unknown; length: unknown } {
-  const { offset, length } = timeline(block(view).manifest, id);
-  return JSON.parse(canonicalJson({ offset: offset ?? null, length } as never));
+function place(manifest: Manifest, id: string): { offset: unknown; length: unknown } {
+  const { offset, length } = timeline(manifest, id);
+  return JSON.parse(canonicalText({ offset: offset ?? null, length }));
 }
 
-const childIds = (view: View, id: string) =>
-  timeline(block(view).manifest, id).children.map((child) => child.id);
+const childIds = (manifest: Manifest, id: string) =>
+  timeline(manifest, id).children.map((child) => child.id);
+
+describe("a segment", () => {
+  it("is a child of a segment line; the lines, the root and an unknown id are not", () => {
+    const manifest = load("segment_children.json");
+    const ids = ["piece", "intro", "i1", "i2", "theme", "t1", "t2", "t3", "coda", "c1", "c2"];
+    expect(ids.filter((id) => isSegment(manifest, id))).toEqual([
+      "i1",
+      "i2",
+      "t1",
+      "t2",
+      "t3",
+      "c1",
+      "c2",
+    ]);
+    expect(isSegment(manifest, "piece/regions_1")).toBe(false);
+  });
+});
 
 describe("deleting a segment of known length", () => {
   const view = viewWith(CHILDREN, "theme");
 
   it("left extend grows the preceding segment", () => {
-    const result = changed(view, remove("t2", LEFT_EXTEND));
+    const result = closed(view, "t2", LEFT_EXTEND);
     expect(childIds(result, "theme")).toEqual(["t1", "t3"]);
     expect(place(result, "t1")).toEqual({ offset: [0, 1], length: [8, 1] });
     expect(place(result, "t3")).toEqual({ offset: [8, 1], length: [4, 1] });
@@ -57,7 +79,7 @@ describe("deleting a segment of known length", () => {
   });
 
   it("right extend starts the following segment where the removed one started", () => {
-    const result = changed(view, remove("t2", RIGHT_EXTEND));
+    const result = closed(view, "t2", RIGHT_EXTEND);
     expect(childIds(result, "theme")).toEqual(["t1", "t3"]);
     expect(place(result, "t1")).toEqual({ offset: [0, 1], length: [4, 1] });
     expect(place(result, "t3")).toEqual({ offset: [4, 1], length: [8, 1] });
@@ -65,14 +87,14 @@ describe("deleting a segment of known length", () => {
   });
 
   it("right shift moves the later segments back and shortens the line", () => {
-    const result = changed(view, remove("t2", RIGHT_SHIFT));
+    const result = closed(view, "t2", RIGHT_SHIFT);
     expect(childIds(result, "theme")).toEqual(["t1", "t3"]);
     expect(place(result, "t3")).toEqual({ offset: [4, 1], length: [4, 1] });
     expect(place(result, "theme")).toEqual({ offset: [6, 1], length: [8, 1] });
   });
 
   it("left shift moves the line on in its parent and shortens it", () => {
-    const result = changed(view, remove("t2", LEFT_SHIFT));
+    const result = closed(view, "t2", LEFT_SHIFT);
     expect(childIds(result, "theme")).toEqual(["t1", "t3"]);
     expect(place(result, "t1")).toEqual({ offset: [0, 1], length: [4, 1] });
     expect(place(result, "t3")).toEqual({ offset: [4, 1], length: [4, 1] });
@@ -91,14 +113,14 @@ describe("deleting a segment of known length", () => {
 describe("deleting a segment of unknown length", () => {
   it("keeps lengths that are not known unknown", () => {
     const view = viewWith(UNKNOWN);
-    const extended = changed(view, remove("b", LEFT_EXTEND));
+    const extended = closed(view, "b", LEFT_EXTEND);
     expect(place(extended, "a")).toEqual({ offset: [0, 1], length: null });
     expect(place(extended, "c")).toEqual({ offset: [14, 1], length: null });
     expect(place(extended, "form").length).toBeNull();
-    const following = changed(view, remove("b", RIGHT_EXTEND));
+    const following = closed(view, "b", RIGHT_EXTEND);
     expect(place(following, "c")).toEqual({ offset: [8, 1], length: null });
     expect(place(following, "form").length).toBeNull();
-    const shifted = changed(view, remove("b", RIGHT_SHIFT));
+    const shifted = closed(view, "b", RIGHT_SHIFT);
     expect(place(shifted, "c")).toEqual({ offset: [8, 1], length: null });
     expect(place(shifted, "form").length).toBeNull();
     expect(childIds(shifted, "form")).toEqual(["a", "c"]);
@@ -106,18 +128,18 @@ describe("deleting a segment of unknown length", () => {
 
   it("closes the gap of the last segment, whose length is not known", () => {
     const view = viewWith(UNKNOWN);
-    expect(place(changed(view, remove("c", LEFT_EXTEND)), "b")).toEqual({
+    expect(place(closed(view, "c", LEFT_EXTEND), "b")).toEqual({
       offset: [8, 1],
       length: null,
     });
-    expect(place(changed(view, remove("c", RIGHT_SHIFT)), "b")).toEqual({
+    expect(place(closed(view, "c", RIGHT_SHIFT), "b")).toEqual({
       offset: [8, 1],
       length: [6, 1],
     });
   });
 
   it("reads the length of a segment of unknown length from its successor", () => {
-    const result = changed(viewWith(UNKNOWN), remove("a", RIGHT_SHIFT));
+    const result = closed(viewWith(UNKNOWN), "a", RIGHT_SHIFT);
     expect(place(result, "b")).toEqual({ offset: [0, 1], length: [6, 1] });
     expect(place(result, "c")).toEqual({ offset: [6, 1], length: null });
   });
@@ -168,57 +190,18 @@ describe("the permitted ways", () => {
   });
 });
 
-describe("refusals", () => {
+describe("removing a segment", () => {
   const rejected = (view: View, command: object) => refusal(apply(view, command));
 
-  it("asks how to close the gap", () => {
+  it("is refused while the editor offers no way to close its gap", () => {
     const view = viewWith(CHILDREN);
-    expect(rejected(view, remove("t2"))).toEqual({ code: "gap_required", path: [at("t2")] });
-    expect(rejected(view, { type: "remove", targets: [at("t2"), at("t3")] })).toEqual({
-      code: "gap_required",
+    expect(rejected(view, { type: "remove", targets: [at("t2")] })).toEqual({
+      code: "segment_not_removable",
       path: [at("t2")],
     });
-    expect(rejected(view, remove("t2", LEFT_SHIFT))).toEqual({
-      code: "gap_not_permitted",
-      path: [at("t2"), "gap"],
-    });
-  });
-
-  it("closes the gap of a segment only", () => {
-    const view = viewWith(CHILDREN);
-    for (const target of ["intro", "piece"]) {
-      expect(rejected(view, remove(target, RIGHT_SHIFT))).toEqual({
-        code: "wrong_target_kind",
-        path: [at(target), "gap"],
-      });
-    }
-  });
-
-  it("refuses a malformed gap", () => {
-    const view = viewWith(CHILDREN, "theme");
-    const malformed = (command: object) => rejected(view, { type: "remove", ...command });
-    expect(malformed({ targets: [at("t2"), at("t3")], gap: RIGHT_SHIFT })).toEqual({
-      code: "invalid_command",
-      path: ["targets"],
-    });
-    expect(malformed({ targets: [at("t2")], gap: { side: "up", verb: "shift" } })).toEqual({
-      code: "invalid_command",
-      path: ["gap", "side"],
-    });
-    expect(malformed({ targets: [at("t2")], gap: { side: "left", verb: "grow" } })).toEqual({
-      code: "invalid_command",
-      path: ["gap", "verb"],
-    });
-    expect(malformed({ targets: [at("t2")], gap: { ...RIGHT_SHIFT, by: 1 } })).toEqual({
-      code: "invalid_command",
-      path: ["gap", "by"],
-    });
-  });
-
-  it("refuses a result the manifest's rules refuse", () => {
-    expect(rejected(viewWith(LINE, "b"), remove("b1", RIGHT_SHIFT))).toEqual({
-      code: "schema_violation",
-      path: [A, "manifest", "timelines", 0, "children", 2, "offset"],
+    expect(rejected(view, { type: "remove", targets: [at("t2"), at("t3")] })).toEqual({
+      code: "segment_not_removable",
+      path: [at("t2")],
     });
   });
 });
@@ -227,26 +210,8 @@ describe("what needs no gap", () => {
   it("removes a segment that goes with another target", () => {
     const view = viewWith(CHILDREN);
     const withLine = changed(view, { type: "remove", targets: [at("theme"), at("t2")] });
-    expect(childIds(withLine, "piece")).toEqual(["intro", "coda"]);
+    expect(childIds(block(withLine).manifest, "piece")).toEqual(["intro", "coda"]);
     expect(changed(view, { type: "remove", targets: [A, at("t2")] }).blocks).toEqual({});
-  });
-});
-
-describe("undo", () => {
-  it("journals the gap and undoes the removal", () => {
-    const store = createStore({ view: viewWith(CHILDREN, "theme"), journal: [], sessions: {} });
-    const before = store.view;
-    expect(store.dispatch(remove("t2", RIGHT_SHIFT))).toBeNull();
-    const after = store.view;
-    expect((store.journal.at(-1) as CommandEntry).command).toEqual({
-      type: "remove",
-      targets: [at("t2")],
-      gap: { side: "right", verb: "shift" },
-    });
-    store.undo();
-    expect(store.view).toBe(before);
-    store.redo();
-    expect(store.view).toBe(after);
   });
 });
 

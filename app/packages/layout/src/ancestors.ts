@@ -3,7 +3,9 @@
  * (`docs/drawing.md` in timeskeleton, section 8.3).
  */
 
-import { compareReal, elementKey, type Real, type TimelineManifest } from "@timetoalign/tilie-core";
+import { partAddress, type TimelineManifest } from "@timetoalign/tilie-core";
+import { elementKey } from "@timetoalign/tilie-core/drawing";
+import { compareReal, type Real } from "@timetoalign/tilie-core/numbers";
 import type { Style } from "./cascade.ts";
 import { MARKER_BASE, MARKER_HEIGHT } from "./constants.ts";
 import type { LineElement, LineEnd, MarkerElement, TextElement } from "./elements.ts";
@@ -13,8 +15,10 @@ import { centredLabel, type NameItem, nameOf } from "./names.ts";
 import { add, coordinateText, coordinateValue, lengthValue, negate, zero } from "./numbers.ts";
 import {
   endOf,
+  known,
   type Measured,
   maxSize,
+  nth,
   rowPitch,
   type Scope,
   type Styled,
@@ -73,13 +77,14 @@ export function ancestorLines(scope: Scope): AncestorLine[] {
     // A member whose end is not known has no end to mark.
     const parts = rootEntry.open ? (["start"] as const) : (["start", "end"] as const);
     const marks = parts.map((part) => {
-      const markKey = elementKey("wedge", `${root.id}/${part}`, root, key);
+      const address = partAddress(root.id, part);
+      const markKey = elementKey("wedge", address, root, key);
       const markStyle = cascade.resolve(markKey, style);
       const label = textOf({ key: markKey, style: markStyle }, "label");
       // The member's start and end on the ancestor's axis: −ts and −ts + λ.
       const value = part === "start" ? negate(start) : add(negate(start), lambda);
       return {
-        address: markKey.address as string,
+        address,
         style: markStyle,
         label,
         u: part === "start" ? 0 : 1,
@@ -150,10 +155,10 @@ export function ancestorBand(
   let width = 0;
   for (const row of rows) width = width + row.inner + row.outer;
   const distances: number[] = [];
-  let line = c0 + (rows[0] as { inner: number }).inner;
+  let line = c0 + nth(rows, 0).inner;
   distances.push(line);
   for (let index = 1; index < rows.length; index += 1) {
-    line = line + ((rows[index - 1]?.outer as number) + (rows[index]?.inner as number));
+    line = line + (nth(rows, index - 1).outer + nth(rows, index).inner);
     distances.push(line);
   }
   return { distances, edge: c0 + width };
@@ -165,7 +170,7 @@ export const ancestorNames = (ancestors: readonly AncestorLine[]): NameItem[] =>
 
 /** The ordinate of ancestor `index` (from A1), `yRoot` the root's line. */
 export const ancestorY = (band: AncestorBand, index: number, yRoot: number): number =>
-  yRoot - (band.distances[band.distances.length - 1 - index] as number);
+  yRoot - nth(band.distances, band.distances.length - 1 - index);
 
 /** The stroke widths of the drawn ancestor lines that run on to the left. */
 export const chevrons = (ancestors: readonly AncestorLine[]): number[] =>
@@ -236,7 +241,7 @@ export function ancestorLabelElements(
     const w = ancestor.style["stroke-width"];
     const size = maxSize(ancestor.labelled.map((mark) => mark.label));
     return ancestor.labelled.map((mark) => {
-      const outwards = markLabelOffset(scope, w, ancestor.tier.get(mark) as number, size);
+      const outwards = markLabelOffset(scope, w, known(ancestor.tier, mark), size);
       return centredLabel(mark.label, x0 + L * mark.u, y - outwards - d(size), mark, {
         unit: ancestor.timeline.unit,
         value: mark.value,

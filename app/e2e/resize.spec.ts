@@ -21,6 +21,7 @@ import {
   open,
   placement,
   SMALL,
+  select,
   selection,
   setViewport,
   viewportOf,
@@ -109,7 +110,7 @@ test.describe("the blocks of small", () => {
       test(`key ${key} and the ${mode} button choose ${mode} and show its handles`, async ({
         page,
       }) => {
-        await page.evaluate((id) => window.__tilie.select([id]), SMALL.bare);
+        await select(page, [SMALL.bare]);
         // Start from another mode, so the key visibly changes it.
         await page.keyboard.press(key === "1" ? "2" : "1");
         await page.keyboard.press(key);
@@ -134,9 +135,9 @@ test.describe("the blocks of small", () => {
     }
 
     test("the mode is remembered across selections", async ({ page }) => {
-      await page.evaluate((id) => window.__tilie.select([id]), SMALL.bare);
+      await select(page, [SMALL.bare]);
       await chooseMode(page, "stretch");
-      await page.evaluate((id) => window.__tilie.select([id]), SMALL.map);
+      await select(page, [SMALL.map]);
       expect(await page.evaluate(() => window.__tilie.mode())).toBe("stretch");
       expect(await shownHandles(page)).toHaveLength(8);
     });
@@ -178,7 +179,7 @@ test.describe("the blocks of small", () => {
   test.describe("dragging a handle", () => {
     for (const [block, mode, handle, dx, dy, values] of ROWS) {
       test(`${mode} ${handle} by (${dx}, ${dy}) on ${block}`, async ({ page }) => {
-        await page.evaluate((id) => window.__tilie.select([id]), block);
+        await select(page, [block]);
         await chooseMode(page, mode);
         await resizeBy(page, block, handle, dx, dy);
         expect(await stored(page, block, values)).toEqual(values);
@@ -192,7 +193,7 @@ test.describe("the blocks of small", () => {
     test("box: dragging below the content's extent keeps the content's own size", async ({
       page,
     }) => {
-      await page.evaluate((id) => window.__tilie.select([id]), SMALL.bare);
+      await select(page, [SMALL.bare]);
       await chooseMode(page, "box");
       const content = await node(page, SMALL.bare).boundingBox();
       // Grow first, so the shrink below the content is a visible change.
@@ -209,7 +210,7 @@ test.describe("the blocks of small", () => {
     test("stretch: a shrink to the floor and a grow across the kink solve exactly", async ({
       page,
     }) => {
-      await page.evaluate((id) => window.__tilie.select([id]), SMALL.nested);
+      await select(page, [SMALL.nested]);
       await chooseMode(page, "stretch");
       // nested's height is 76.98828125 + 16 v below spacing 0.9146… and
       // 44.9765625 + 51 v above it: a target of 95.9765625 − 40 lies below the
@@ -230,7 +231,7 @@ test.describe("the blocks of small", () => {
     });
 
     test("box: a resize held in the edge zone pans and follows the pointer", async ({ page }) => {
-      await page.evaluate((id) => window.__tilie.select([id]), SMALL.bare);
+      await select(page, [SMALL.bare]);
       await chooseMode(page, "box");
       const box = await page.locator(".svelte-flow").boundingBox();
       const grip = await page.locator('[data-testid="handle-right"]').boundingBox();
@@ -257,7 +258,7 @@ test.describe("the blocks of small", () => {
     });
 
     test("box: a resize that changes no stored value journals nothing", async ({ page }) => {
-      await page.evaluate((id) => window.__tilie.select([id]), SMALL.bare);
+      await select(page, [SMALL.bare]);
       await chooseMode(page, "box");
       const before = await placement(page, SMALL.bare);
       const grip = await page.locator('[data-testid="handle-right"]').boundingBox();
@@ -271,7 +272,7 @@ test.describe("the blocks of small", () => {
     });
 
     test("undo restores the placement before a resize exactly", async ({ page }) => {
-      await page.evaluate((id) => window.__tilie.select([id]), SMALL.bare);
+      await select(page, [SMALL.bare]);
       await chooseMode(page, "scale");
       const before = await placement(page, SMALL.bare);
       await resizeBy(page, SMALL.bare, "top-left", -229, 0);
@@ -334,7 +335,7 @@ test.describe("a member's card in a group", () => {
     };
     const others = { group_2: { x: 8, y: 245.9921875 }, page: { x: 8, y: 478.08203125 } };
 
-    await page.evaluate((address) => window.__tilie.select([address]), `${block}/exposition/card`);
+    await select(page, [`${block}/exposition/card`]);
     await chooseMode(page, "box");
     await drag("right", 100);
     expect(await places()).toEqual({ exposition: { width: 651.39013671875 }, ...others });
@@ -355,7 +356,7 @@ test.describe("a member's card in a group", () => {
       .getAttribute("width");
     expect(take).toBe("602.1792");
 
-    await page.evaluate((address) => window.__tilie.select([address]), `${block}/group_1`);
+    await select(page, [`${block}/group_1`]);
     await drag("right", -120);
     expect(await places()).toEqual({
       exposition: { width: 591.3896484375 },

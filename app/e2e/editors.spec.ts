@@ -10,22 +10,23 @@
  * `README.md` ("editors.spec.ts"); the double tap is in `touch.spec.ts`.
  */
 
-import { readFileSync } from "node:fs";
-import { createRequire } from "node:module";
-import path from "node:path";
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
-import { drawingOf } from "../packages/arranger/src/drawing.ts";
+import { drawingOf, nodePosition } from "../packages/arranger/src/drawing.ts";
 import { focusViewport } from "../packages/arranger/src/focus.ts";
-import { nodePosition } from "../packages/arranger/src/project.ts";
 import { isLoadError, readWorkspace } from "../packages/core/src/index.ts";
+import { FONT_METRICS } from "./schema.ts";
 import {
   arranger,
   BUNDLES,
+  cardsOf,
   dispatch,
+  done,
   drag,
   dragStart,
+  drawer,
   editing,
+  element,
   emptyPoint,
   enter,
   entriesLength,
@@ -39,11 +40,16 @@ import {
   node,
   OPENED_JOURNAL,
   open,
+  panel,
   partCentre,
   placement,
+  select,
   selection,
   setViewport,
   storeText,
+  structure,
+  tab,
+  tabs,
   toScreen,
   viewportOf,
 } from "./support.ts";
@@ -53,22 +59,6 @@ test.use({ viewport: { width: 1600, height: 1000 }, reducedMotion: "reduce" });
 const VIEW = { x: 40, y: 40, zoom: 1 };
 const MIXED = BUNDLES.mixed;
 const START = OPENED_JOURNAL.bundles;
-
-/** The bundled face's metrics, from the installed schema package: the data the editor's `fontMetrics` holds. */
-const METRICS = JSON.parse(
-  readFileSync(
-    path.join(
-      path.dirname(
-        createRequire(path.join(import.meta.dirname, "../packages/core/package.json")).resolve(
-          "@timetoalign/timeskeleton/package.json",
-        ),
-      ),
-      "fonts",
-      "dejavu-sans-2.37.metrics.json",
-    ),
-    "utf8",
-  ),
-) as Parameters<typeof drawingOf>[2];
 
 /**
  * The drawn position of every item of `block` in `bundles.tle.json` (each
@@ -80,9 +70,11 @@ function drawnPlaces(block: string): Record<string, { x: number; y: number }> {
   if (isLoadError(workspace)) throw new Error("bundles.tle.json is refused");
   const found = workspace.view.blocks[block];
   if (found === undefined) throw new Error(`block ${block} is missing`);
-  const drawing = drawingOf(found, workspace.view.settings, METRICS);
+  const drawing = drawingOf(found, workspace.view.settings, FONT_METRICS);
   return Object.fromEntries(
-    drawing.items.map((item) => [item.key, { x: item.place.x, y: item.place.y }]),
+    drawing.boxes.flatMap(({ key, item }) =>
+      key === null || item === undefined ? [] : [[key, { x: item.place.x, y: item.place.y }]],
+    ),
   );
 }
 
@@ -140,21 +132,18 @@ function rootNames(page: Page): Promise<(string | null)[]> {
   }, MIXED);
 }
 
-/** Close the innermost editor through the hook, as Done does. */
-function doneByHook(page: Page): Promise<void> {
-  return page.evaluate(() => window.__tilie.done());
-}
-
-function tabs(page: Page) {
-  return page.getByRole("tablist", { name: "Inspector sections" });
-}
-
-function tab(page: Page, name: string) {
-  return tabs(page).getByRole("tab", { name, exact: true });
-}
-
 function editingBar(page: Page) {
   return page.getByRole("group", { name: "Editing" });
+}
+
+/**
+ * The rows of a journal list, by role: the panel's top list (named
+ * "Journal") or the changes a session row's disclosure shows, the first list
+ * inside that row. Only expanded sessions show their changes, so the rows
+ * of an unexpanded list are its own.
+ */
+function journalRows(within: Locator) {
+  return within.getByRole("list").first().getByRole("listitem");
 }
 
 function editingPath(page: Page) {
@@ -162,27 +151,18 @@ function editingPath(page: Page) {
 }
 
 /**
- * Of the parts of block `id` carrying an address, those naming a frame, a
- * line, the title, a card or a group's title (as `groups.spec.ts` keeps
- * them), each address with whether its parts carry `data-outside`: `true`
- * when all do, `false` when none does, `"mixed"` otherwise.
+ * Of the parts of block `id` showing its structure (`support.ts`'s
+ * `structure`: a frame, a line, the title, a card or a group's title), each
+ * address with whether its parts carry `data-outside`: `true` when all do,
+ * `false` when none does, `"mixed"` otherwise.
  */
-function outside(page: Page, id: string): Promise<Record<string, boolean | "mixed">> {
-  return node(page, id)
-    .locator("[data-address]")
-    .evaluateAll((items) => {
-      const found: Record<string, boolean | "mixed"> = {};
-      for (const item of items) {
-        const address = item.getAttribute("data-address") ?? "";
-        const shown =
-          !address.includes("/") || address.endsWith("/card") || /^group_\d+\/name$/.test(address);
-        if (!shown) continue;
-        const faded = item.hasAttribute("data-outside");
-        const seen = found[address];
-        found[address] = seen === undefined || seen === faded ? faded : "mixed";
-      }
-      return found;
-    });
+async function outside(page: Page, id: string): Promise<Record<string, boolean | "mixed">> {
+  const found: Record<string, boolean | "mixed"> = {};
+  for (const { address, outside: faded } of await structure(page, id)) {
+    const seen = found[address];
+    found[address] = seen === undefined || seen === faded ? faded : "mixed";
+  }
+  return found;
 }
 
 test.describe("on bundles", () => {
@@ -229,14 +209,14 @@ test.describe("on bundles", () => {
         "Journal",
       ]);
       await expect(tab(page, "Editor")).toHaveAttribute("aria-selected", "true");
-      await expect(page.locator("#inspector-panel-editor")).toHaveText(text);
+      await expect(await panel(page, "Editor")).toHaveText(text);
       await expect(editingPath(page)).toHaveText([name]);
       expect(await journalLength(page)).toBe(START);
     });
   }
 
   test("Enter opens the editor of the one selected box", async ({ page }) => {
-    await page.evaluate((address) => window.__tilie.select([address]), `${MIXED}/group_2`);
+    await select(page, [`${MIXED}/group_2`]);
     await arranger(page).focus();
     await page.keyboard.press("Enter");
     await expect.poll(() => editing(page)).toEqual([{ target: `${MIXED}/group_2`, kind: "group" }]);
@@ -282,7 +262,9 @@ test.describe("on bundles", () => {
       await expect(whole).toHaveCSS("opacity", "0.3");
       await expect(whole).toHaveCSS("pointer-events", "none");
       await expect(whole.locator("[data-outside]")).toHaveCount(0);
-      const card = await whole.locator('[data-address$="/card"]').first().boundingBox();
+      const [first] = await cardsOf(page, other);
+      const card =
+        first === undefined ? null : await element(page, other, first).first().boundingBox();
       if (card === null) throw new Error(`${other} draws no card`);
       const centre = { x: card.x + card.width / 2, y: card.y + card.height / 2 };
       await page.mouse.move(centre.x, centre.y);
@@ -293,10 +275,10 @@ test.describe("on bundles", () => {
           centre,
         ),
       ).toBe(true);
-      await expect(whole.locator("[data-hovered]")).toHaveCount(0);
+      await expect(whole.locator('.tilie-mark[data-mark="hover"]')).toHaveCount(0);
     }
 
-    await page.evaluate((address) => window.__tilie.select([address]), `${MIXED}/score`);
+    await select(page, [`${MIXED}/score`]);
     for (const [block, address] of [
       [BUNDLES.shared, "take_1/card"],
       [MIXED, "annotations/card"],
@@ -459,7 +441,7 @@ test.describe("on bundles", () => {
   }) => {
     await enter(page, MIXED, VIEW);
     const bundle = [{ target: MIXED, kind: "bundle" }];
-    await page.evaluate((address) => window.__tilie.select([address]), `${MIXED}/group_2`);
+    await select(page, [`${MIXED}/group_2`]);
     await dragStart(page, await framePoint(page, MIXED, "group_2"), 40, 24);
     await page.keyboard.press("Escape");
     expect(await places(page, MIXED)).toEqual({});
@@ -605,7 +587,7 @@ test.describe("on bundles", () => {
   }) => {
     await enter(page, `${MIXED}/group_2`, VIEW);
     const view = await storeText(page, "view");
-    await page.evaluate((address) => window.__tilie.select([address]), `${MIXED}/excerpt`);
+    await select(page, [`${MIXED}/excerpt`]);
     await arranger(page).focus();
     await page.keyboard.press("Delete");
     await expect(page.getByTestId("hint")).toHaveText(
@@ -623,9 +605,9 @@ test.describe("on bundles", () => {
     await expect.poll(() => editing(page)).toEqual([]);
     await tab(page, "Journal").click();
     await expect(
-      page
-        .locator("#inspector-panel-journal")
-        .getByText("Edited group Performance (2 changes)", { exact: true }),
+      (await panel(page, "Journal")).getByText("Edited group Performance (2 changes)", {
+        exact: true,
+      }),
     ).toBeVisible();
   });
 
@@ -635,14 +617,16 @@ test.describe("on bundles", () => {
     expect(await dispatch(page, SET_NAME)).toBeNull();
     await page.evaluate(() => window.__tilie.store().undo());
     await tab(page, "Journal").click();
-    const panel = page.locator("#inspector-panel-journal");
-    const undone = panel.locator("[data-undone]");
+    const journal = await panel(page, "Journal");
+    const undone = journal.locator("[data-undone]");
     await expect(undone).toHaveCount(1);
     await expect(undone).toContainText("Set name of bmixed0000/score");
     await expect(undone).toContainText("undone");
-    await expect(panel).toContainText("Set place of bmixed0000/group_1");
-    await expect(panel.locator("[data-undone]", { hasText: "Set place" })).toHaveCount(0);
-    await expect(panel.locator(".text")).toHaveText([
+    await expect(journal).toContainText("Set place of bmixed0000/group_1");
+    await expect(journal.locator("[data-undone]", { hasText: "Set place" })).toHaveCount(0);
+    const rows = journal.getByRole("listitem");
+    await expect(rows).toHaveCount(2);
+    await expect(rows).toContainText([
       "Set name of bmixed0000/score",
       "Set place of bmixed0000/group_1",
     ]);
@@ -654,7 +638,7 @@ test.describe("on bundles", () => {
     page,
   }) => {
     const view = await storeText(page, "view");
-    const done = () => doneByHook(page);
+    const close = () => done(page);
     const names = () => rootNames(page);
     const original = await names();
     expect(original).toEqual(["Score", "Performance", "Annotations"]);
@@ -662,30 +646,30 @@ test.describe("on bundles", () => {
     await enter(page, `${MIXED}/group_1`, VIEW);
     await enter(page, `${MIXED}/score`, VIEW);
     expect(await dispatch(page, rename("score", "c"))).toBeNull();
-    await done();
+    await close();
     expect(await dispatch(page, rename("performance", "b"))).toBeNull();
-    await done();
+    await close();
     expect(await dispatch(page, rename("annotations", "a"))).toBeNull();
-    await done();
+    await close();
     await expect.poll(() => editing(page)).toEqual([]);
     expect(await journalLength(page)).toBe(START + 1);
     await tab(page, "Journal").click();
-    const panel = page.locator("#inspector-panel-journal");
-    const first = panel.locator(":scope > ol > li").first();
-    const firstText = first.locator(":scope > .row > .text");
-    await expect(firstText).toHaveText("Edited bundle Mixed (3 changes)");
+    const first = journalRows(await panel(page, "Journal")).first();
+    // A session's row is named by its disclosure button, labelled by the row's text.
+    const disclosure = first.getByRole("button").first();
+    await expect(disclosure).toHaveAccessibleName("Edited bundle Mixed (3 changes)");
 
     await arranger(page).focus();
     await page.keyboard.press("ControlOrMeta+z");
     await expect.poll(names).toEqual(["c", "b", original[2]]);
     expect(await journalLength(page)).toBe(START + 1);
-    await expect(firstText).toHaveText("Edited bundle Mixed (3 changes, 1 undone)");
-    const disclosure = first.locator(":scope > .row > button");
+    await expect(disclosure).toHaveAccessibleName("Edited bundle Mixed (3 changes, 1 undone)");
     await expect(disclosure).toHaveAttribute("aria-expanded", "false");
     await disclosure.click();
     await expect(disclosure).toHaveAttribute("aria-expanded", "true");
-    const children = first.locator(":scope > ol > li");
-    await expect(children.locator(":scope > .row > .text")).toHaveText([
+    const children = journalRows(first);
+    await expect(children).toHaveCount(2);
+    await expect(children).toContainText([
       "Set name of bmixed0000/annotations",
       "Edited group Performance (2 changes)",
     ]);
@@ -700,7 +684,7 @@ test.describe("on bundles", () => {
     expect(await storeText(page, "view")).toBe(view);
     expect(await journalLength(page)).toBe(START);
     await expect(first).toHaveAttribute("data-undone");
-    await expect(firstText).toHaveText("Edited bundle Mixed (3 changes)");
+    await expect(disclosure).toHaveAccessibleName("Edited bundle Mixed (3 changes)");
 
     await page.keyboard.press("ControlOrMeta+Shift+z");
     await expect.poll(names).toEqual(["c", original[1], original[2]]);
@@ -722,16 +706,16 @@ test.describe("on bundles", () => {
     await enter(page, `${MIXED}/score`, VIEW);
     expect(await dispatch(page, rename("score", "c1"))).toBeNull();
     expect(await dispatch(page, rename("score", "c2"))).toBeNull();
-    await doneByHook(page);
+    await done(page);
     expect(await dispatch(page, rename("performance", "b2"))).toBeNull();
-    await doneByHook(page);
+    await done(page);
     expect(await dispatch(page, rename("annotations", "a2"))).toBeNull();
-    await doneByHook(page);
+    await done(page);
     await expect.poll(() => editing(page)).toEqual([]);
     expect(await journalLength(page)).toBe(START + 1);
     await tab(page, "Journal").click();
-    const first = page.locator("#inspector-panel-journal > ol > li").first();
-    const firstText = first.locator(":scope > .row > .text");
+    const first = journalRows(await panel(page, "Journal")).first();
+    const disclosure = first.getByRole("button").first();
     /** Whether each item carries `data-undone`. */
     const undone = (items: ReturnType<Page["locator"]>) =>
       items.evaluateAll((all) => all.map((item) => item.hasAttribute("data-undone")));
@@ -746,27 +730,32 @@ test.describe("on bundles", () => {
       [["Score", "Performance", "a1"], "Edited bundle Mixed (6 changes, 5 undone)"],
       [["Score", "Performance", "Annotations"], "Edited bundle Mixed (6 changes)"],
     ];
-    await expect(firstText).toHaveText("Edited bundle Mixed (6 changes)");
+    await expect(disclosure).toHaveAccessibleName("Edited bundle Mixed (6 changes)");
     for (const [index, [names, text]] of states.entries()) {
       if (index === 0) continue;
       await arranger(page).focus();
       await page.keyboard.press("ControlOrMeta+z");
       await expect.poll(() => rootNames(page)).toEqual(names);
-      await expect(firstText).toHaveText(text);
+      await expect(disclosure).toHaveAccessibleName(text);
       if (index !== 3) continue;
       // Both of the timeline session's changes went with one key press.
-      await first.locator(":scope > .row > button").click();
-      const children = first.locator(":scope > ol > li");
-      await expect(children.locator(":scope > .row > .text")).toHaveText([
+      await disclosure.click();
+      const children = journalRows(first);
+      await expect(children).toHaveCount(3);
+      await expect(children).toContainText([
         "Set name of bmixed0000/annotations",
         "Edited group Performance (4 changes, 3 undone)",
         "Set name of bmixed0000/annotations",
       ]);
       expect(await undone(children)).toEqual([true, false, false]);
       const group = children.nth(1);
-      await group.locator(":scope > .row > button").click();
-      const members = group.locator(":scope > ol > li");
-      await expect(members.locator(":scope > .row > .text")).toHaveText([
+      await expect(group.getByRole("button").first()).toHaveAccessibleName(
+        "Edited group Performance (4 changes, 3 undone)",
+      );
+      await group.getByRole("button").first().click();
+      const members = journalRows(group);
+      await expect(members).toHaveCount(3);
+      await expect(members).toContainText([
         "Set name of bmixed0000/performance",
         "Edited timeline Score (2 changes)",
         "Set name of bmixed0000/performance",
@@ -781,7 +770,7 @@ test.describe("on bundles", () => {
       await arranger(page).focus();
       await page.keyboard.press("ControlOrMeta+Shift+z");
       await expect.poll(() => rootNames(page)).toEqual(names);
-      await expect(firstText).toHaveText(text);
+      await expect(disclosure).toHaveAccessibleName(text);
     }
     await expect(first).not.toHaveAttribute("data-undone");
   });
@@ -867,7 +856,7 @@ test.describe("leaving by a double-click, and the view when the canvas changes s
     if (isLoadError(workspace)) throw new Error("bundles.tle.json is refused");
     const block = workspace.view.blocks[MIXED];
     if (block === undefined) throw new Error(`block ${MIXED} is missing`);
-    const drawing = drawingOf(block, workspace.view.settings, METRICS);
+    const drawing = drawingOf(block, workspace.view.settings, FONT_METRICS);
     const bounds = {
       ...nodePosition(block, drawing),
       width: drawing.width * block.scale,
@@ -885,18 +874,18 @@ test.describe("leaving by a double-click, and the view when the canvas changes s
       );
 
     expect(await page.evaluate((target) => window.__tilie.open(target), MIXED)).toBeNull();
-    await expect(page.locator("#inspector")).toBeVisible();
+    await expect(drawer(page)).toBeVisible();
     const open = await focused();
     await expect.poll(() => viewportOf(page)).toEqual(open);
 
     await page.getByRole("button", { name: "Close inspector" }).click();
-    await expect(page.locator("#inspector")).toBeHidden();
+    await expect(drawer(page)).toBeHidden();
     const closed = await focused();
     expect(closed).not.toEqual(open);
     await expect.poll(() => viewportOf(page)).toEqual(closed);
 
     await page.getByRole("button", { name: "Open inspector" }).click();
-    await expect(page.locator("#inspector")).toBeVisible();
+    await expect(drawer(page)).toBeVisible();
     expect(await focused()).toEqual(open);
     await expect.poll(() => viewportOf(page)).toEqual(open);
 
@@ -916,7 +905,7 @@ test.describe("resizing in an editor", () => {
     page,
   }) => {
     await enter(page, `${MIXED}/score`, VIEW);
-    await page.evaluate((address) => window.__tilie.select([address]), `${MIXED}/score/card`);
+    await select(page, [`${MIXED}/score/card`]);
     await page.locator('[data-testid="mode-stretch"]').click();
     const handles = page.locator('[data-testid^="handle-"]');
     await expect(handles).toHaveCount(3);

@@ -1,16 +1,6 @@
-<script module lang="ts">
-import type { Problem } from "@timetoalign/tilie-core";
-
-/** One message: what failed, and the reader's problems when there are any. */
-export interface Message {
-  readonly id: number;
-  readonly text: string;
-  readonly problems: readonly Problem[];
-}
-</script>
-
 <script lang="ts">
-import { problemPointer } from "./inspector/edit.ts";
+import ProblemList from "./inspector/ProblemList.svelte";
+import type { Message } from "./messages.ts";
 
 interface Props {
   messages: readonly Message[];
@@ -26,14 +16,7 @@ let { messages, ondismiss }: Props = $props();
     <div class="message" data-testid="message">
       <p>{message.text}</p>
       {#if message.problems.length > 0}
-        <ul>
-          {#each message.problems as problem, index (index)}
-            {@const at = problemPointer(problem)}
-            <li>
-              <code>{problem.code}</code> at {#if at === ""}the top level{:else}<code>{at}</code>{/if}: {problem.message}
-            </li>
-          {/each}
-        </ul>
+        <div class="problems"><ProblemList problems={message.problems} /></div>
       {/if}
       <button type="button" aria-label="Dismiss" title="Dismiss" onclick={() => ondismiss(message.id)}
         >×</button
@@ -71,9 +54,8 @@ let { messages, ondismiss }: Props = $props();
     margin: 0;
   }
 
-  ul {
+  .problems {
     margin: 0.3rem 0 0;
-    padding-left: 1.2rem;
     max-height: 12rem;
     overflow: auto;
   }

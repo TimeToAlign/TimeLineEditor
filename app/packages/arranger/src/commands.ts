@@ -5,25 +5,18 @@ import type {
   Block,
   BlockId,
   Change,
-  Gap,
-  GapOption,
   Manifest,
   RemoveCommand,
   SetCommand,
   View,
 } from "@timetoalign/tilie-core";
-import {
-  elementOf,
-  indicesBetween,
-  isSegment,
-  removedBy,
-  TITLE_ADDRESS,
-} from "@timetoalign/tilie-core";
+import { elementOf, indicesBetween, qualify, TITLE_ADDRESS } from "@timetoalign/tilie-core";
 import type { FontMetrics } from "@timetoalign/timeskeleton";
-import { drawingOf } from "./drawing.ts";
-import { GRID_FREE, positionStep, quantize } from "./numbers.ts";
-import { blocksInOrder, nodePosition } from "./project.ts";
-import { blockOf, type Selection, selectedBand } from "./selection.ts";
+import { drawingOf, nodePosition } from "./drawing.ts";
+import { addressParts } from "./editing.ts";
+import { GRID_FREE, positionStep, quantize, sameSequence } from "./numbers.ts";
+import { blocksInOrder } from "./project.ts";
+import { type Selection, selectedBand } from "./selection.ts";
 
 /** A block's node position after a gesture, before quantization. */
 export interface Move {
@@ -135,7 +128,11 @@ export function addCommand(
 export type ZOrderAction = "front" | "back" | "forward" | "backward";
 
 /** The ids of one sibling list after `action` on its members in `chosen`. */
-function reordered(order: readonly BlockId[], chosen: ReadonlySet<BlockId>, action: ZOrderAction) {
+function reordered(
+  order: readonly BlockId[],
+  chosen: ReadonlySet<BlockId>,
+  action: ZOrderAction,
+): BlockId[] {
   const picked = order.filter((id) => chosen.has(id));
   const rest = order.filter((id) => !chosen.has(id));
   switch (action) {
@@ -143,32 +140,27 @@ function reordered(order: readonly BlockId[], chosen: ReadonlySet<BlockId>, acti
       return [...rest, ...picked];
     case "back":
       return [...picked, ...rest];
-    case "forward": {
+    case "forward":
       // From the top down, each chosen block passes the unchosen one above it.
-      const next = [...order];
-      for (let index = next.length - 2; index >= 0; index -= 1) {
-        const here = next[index] as BlockId;
-        const above = next[index + 1] as BlockId;
-        if (chosen.has(here) && !chosen.has(above)) {
-          next[index] = above;
-          next[index + 1] = here;
-        }
-      }
-      return next;
-    }
-    case "backward": {
-      const next = [...order];
-      for (let index = 1; index < next.length; index += 1) {
-        const here = next[index] as BlockId;
-        const below = next[index - 1] as BlockId;
-        if (chosen.has(here) && !chosen.has(below)) {
-          next[index] = below;
-          next[index - 1] = here;
-        }
-      }
-      return next;
+      return passed([...order].reverse(), chosen).reverse();
+    case "backward":
+      return passed(order, chosen);
+  }
+}
+
+/** `order` with every chosen id swapped with the unchosen one before it, from the start on. */
+function passed(order: readonly BlockId[], chosen: ReadonlySet<BlockId>): BlockId[] {
+  const next = [...order];
+  for (let index = 1; index < next.length; index += 1) {
+    const here = next[index];
+    const before = next[index - 1];
+    if (here === undefined || before === undefined) continue;
+    if (chosen.has(here) && !chosen.has(before)) {
+      next[index] = before;
+      next[index - 1] = here;
     }
   }
+  return next;
 }
 
 /**
@@ -193,63 +185,37 @@ export function zOrderCommand(
   for (const family of families.values()) {
     const order = family.map((block) => block.id);
     const target = reordered(order, chosen, action);
-    if (target.every((id, index) => id === order[index])) continue;
+    if (sameSequence(target, order)) continue;
     const indexOf = new Map(family.map((block) => [block.id, block.index]));
     const held = family.filter((block) => chosen.has(block.id)).map((block) => block.index);
-    let start = 0;
-    while (start < target.length) {
-      if (!chosen.has(target[start] as BlockId)) {
-        start += 1;
-        continue;
-      }
-      let end = start;
-      while (end < target.length && chosen.has(target[end] as BlockId)) end += 1;
-      const lower = start === 0 ? null : (indexOf.get(target[start - 1] as BlockId) as string);
-      let upper = end === target.length ? null : (indexOf.get(target[end] as BlockId) as string);
+    let run: BlockId[] = [];
+    let lower: string | null = null;
+    const place = (above: string | null) => {
+      let upper = above;
       // A `set` applies its changes in turn, so no new index may equal an index a
       // chosen block still holds: the run fills the gap below the first of them.
       for (const index of held) {
         if ((lower === null || index > lower) && (upper === null || index < upper)) upper = index;
       }
-      const indices = indicesBetween(lower, upper, end - start);
+      const indices = indicesBetween(lower, upper, run.length);
       for (const [offset, index] of indices.entries()) {
-        changes.push({ target: target[start + offset] as BlockId, values: { index } });
+        const id = run[offset];
+        if (id !== undefined) changes.push({ target: id, values: { index } });
       }
-      start = end;
+      run = [];
+    };
+    for (const id of target) {
+      if (chosen.has(id)) {
+        run.push(id);
+        continue;
+      }
+      const index = indexOf.get(id) ?? null;
+      if (run.length > 0) place(index);
+      lower = index;
     }
+    if (run.length > 0) place(null);
   }
   return setOf(changes);
-}
-
-/** A segment to delete, and the ways of closing its gap, of which one at least is permitted. */
-export interface SegmentDelete {
-  /** The segment's address, `<block>/<id>`. */
-  readonly segment: string;
-  readonly options: readonly GapOption[];
-}
-
-/** The way preselected for a segment's gap: the first permitted one, in the order of preference. */
-export function preferredGap(options: readonly GapOption[]): Gap | null {
-  return options.find((option) => option.refused === null)?.gap ?? null;
-}
-
-/**
- * The segments among `targets` that leave a gap: those going neither with
- * their block nor with another target of their block.
- */
-function gapSegments(view: View, targets: readonly string[]): string[] {
-  const found: string[] = [];
-  for (const target of targets) {
-    const block = view.blocks[blockOf(target)];
-    if (block === undefined || target === block.id) continue;
-    const id = target.slice(block.id.length + 1);
-    if (!isSegment(block.manifest, id) || targets.includes(block.id)) continue;
-    const others = targets
-      .filter((other) => other !== target && blockOf(other) === block.id && other !== block.id)
-      .map((other) => other.slice(block.id.length + 1));
-    if (!removedBy(block.manifest, others).has(id)) found.push(target);
-  }
-  return found;
 }
 
 /**
@@ -258,62 +224,36 @@ function gapSegments(view: View, targets: readonly string[]): string[] {
  * and groups included; a selection holding a manifest's title, which goes
  * only with its block, is refused whole, with a hint naming the block. A
  * band is never removed: its address is left out, and a selection of bands
- * alone is refused with a hint.
- *
- * A segment leaves a gap in its segment line. Deleting a segment is not
- * supported yet: a selection holding a segment that leaves a gap is refused
- * whole. A segment that goes with its segment line or its block leaves no
- * gap and is removed with it.
+ * alone is refused with a hint. Whether a segment may go is core's to
+ * decide: one that would leave a gap in its segment line is refused there
+ * (`segment_not_removable`), and the canvas shows that refusal as it shows
+ * every refusal of the store.
  */
 export function removeCommand(
   view: View,
   selection: Selection,
 ): RemoveCommand | { readonly refused: string } {
   if (selection.size === 0) return { refused: "Nothing is selected." };
-  const addresses = [...selection].filter((address) => selectedBand(address) === null);
+  const addresses = [...selection].filter((address) => selectedBand(view, address) === null);
   if (addresses.length === 0) {
     return { refused: "A band is not deleted; select its elements to delete them." };
   }
   const targets: string[] = [];
   for (const address of addresses) {
-    const block = view.blocks[blockOf(address)];
-    if (block === undefined || address === block.id) {
+    const { block: id, element } = addressParts(address);
+    const block = view.blocks[id];
+    if (block === undefined || element === null) {
       if (!targets.includes(address)) targets.push(address);
       continue;
     }
-    const element = elementOf(block.manifest, address.slice(block.id.length + 1));
-    if (element === TITLE_ADDRESS) {
+    const owner = elementOf(block.manifest, element);
+    if (owner === TITLE_ADDRESS) {
       return {
         refused: `Block ${block.id}: its title is removed only with the block; select the block to delete it.`,
       };
     }
-    const target = `${block.id}/${element}`;
+    const target = qualify(block.id, owner);
     if (!targets.includes(target)) targets.push(target);
   }
-  const [segment] = gapSegments(view, targets);
-  if (segment === undefined) return { type: "remove", targets };
-  // Deleting a segment is not enabled yet. Enabling it restores the
-  // parameter `gap?: Gap` after `selection`, `SegmentDelete` in the return
-  // type, core's `segmentGaps` among the imports, and the branch below in
-  // place of this refusal: with a `gap` the remove carries it, without one
-  // the segment and its options go to the canvas's menu. Before that,
-  // the options must follow the meaning of the ways: "left shifts" moves
-  // the left neighbour, so the segment line's offset in its parent moves
-  // or, on a root, the line becomes shorter by the deleted length; a plain
-  // segment is never locked, so its neighbours may always extend; a segment
-  // that is itself a segment line is locked, so a line of such segments
-  // extends only into a neighbour of unknown length; and the options of a
-  // segment line that is a root must be checked against those rules.
-  return { refused: "Deleting a segment is not supported yet." };
-  // if (targets.length > 1) return { refused: "Delete one segment at a time." };
-  // if (gap !== undefined) return { type: "remove", targets, gap };
-  // const { manifest, id: block } = view.blocks[blockOf(segment)] as Block;
-  // const id = segment.slice(block.length + 1);
-  // const options = segmentGaps(manifest, id) ?? [];
-  // if (options.every((option) => option.refused !== null)) {
-  //   return {
-  //     refused: `Segment ${id} cannot be deleted: no neighbour may extend and its segment line may not shift.`,
-  //   };
-  // }
-  // return { segment, options };
+  return { type: "remove", targets };
 }

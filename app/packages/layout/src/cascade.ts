@@ -7,7 +7,7 @@
  * for every drawing it calls `cascade.resolve(key, parent)` once, with
  *
  * - `key`, the drawing's `ElementKey`, built by core from the key of the
- *   element holding it: `BLOCK_KEY` for the block, `unownedKey(type,
+ *   element holding it: `BOX_KEY` for the box, `unownedKey(type,
  *   address, holder)` for a frame or a title, `elementKey(type, address,
  *   timeline, holder, map?)` for every element of a timeline (a card, a
  *   line, an ancestor line, a mark, a map, a region, a segment's node, …),
@@ -17,7 +17,7 @@
  *   outermost first, and it is the only thing the selector member `inside`
  *   reads;
  * - `parent`, the style `resolve` gave the drawing of its holder (the
- *   element its key was built from), or `undefined` for the block.
+ *   element its key was built from), or `undefined` for the box.
  *
  * Drawings that share an address (a timeline drawn as an ancestor line and
  * as a line of its own, a member's start marked on its own line and on an
@@ -26,7 +26,7 @@
  * `inside` by its own chain.
  */
 
-import { type ElementKey, selectorMatches } from "@timetoalign/tilie-core";
+import { type ElementKey, selectorMatches } from "@timetoalign/tilie-core/drawing";
 import type { Declaration, Graphical, Selector } from "@timetoalign/timeskeleton";
 
 /** The cascaded value of every property on one element. */
@@ -44,8 +44,6 @@ export interface Style {
   readonly "max-width": number | "none";
 }
 
-type Property = keyof Style;
-
 export const INITIAL_STYLE: Style = {
   stroke: "none",
   "stroke-width": 1,
@@ -60,25 +58,104 @@ export const INITIAL_STYLE: Style = {
   "max-width": "none",
 };
 
-const INHERITED: ReadonlySet<Property> = new Set([
-  "stroke",
-  "stroke-width",
-  "stroke-dasharray",
-  "fill",
-  "font-size",
-]);
+type StyleValues = { -readonly [Property in keyof Style]?: Style[Property] };
 
-const PROPERTIES = Object.keys(INITIAL_STYLE) as Property[];
+/**
+ * One style property: whether an element without a value of its own takes
+ * its holder's (section 2.5), else the initial value; and how a declaration
+ * sets it. A parent's `Style` is a declaration of every property, so the
+ * same setter copies an inherited value.
+ */
+interface StyleProperty {
+  readonly inherits: boolean;
+  readonly set: (values: StyleValues, declaration: Declaration) => void;
+}
+
+/** Every style property, the one table of what the cascade sets and what it inherits. */
+const STYLE_PROPERTIES = {
+  stroke: {
+    inherits: true,
+    set: (values, declaration) => {
+      if (declaration.stroke !== undefined) values.stroke = declaration.stroke;
+    },
+  },
+  "stroke-width": {
+    inherits: true,
+    set: (values, declaration) => {
+      if (declaration["stroke-width"] !== undefined)
+        values["stroke-width"] = declaration["stroke-width"];
+    },
+  },
+  "stroke-dasharray": {
+    inherits: true,
+    set: (values, declaration) => {
+      if (declaration["stroke-dasharray"] !== undefined)
+        values["stroke-dasharray"] = declaration["stroke-dasharray"];
+    },
+  },
+  fill: {
+    inherits: true,
+    set: (values, declaration) => {
+      if (declaration.fill !== undefined) values.fill = declaration.fill;
+    },
+  },
+  opacity: {
+    inherits: false,
+    set: (values, declaration) => {
+      if (declaration.opacity !== undefined) values.opacity = declaration.opacity;
+    },
+  },
+  "font-size": {
+    inherits: true,
+    set: (values, declaration) => {
+      if (declaration["font-size"] !== undefined) values["font-size"] = declaration["font-size"];
+    },
+  },
+  rx: {
+    inherits: false,
+    set: (values, declaration) => {
+      if (declaration.rx !== undefined) values.rx = declaration.rx;
+    },
+  },
+  shadow: {
+    inherits: false,
+    set: (values, declaration) => {
+      if (declaration.shadow !== undefined) values.shadow = declaration.shadow;
+    },
+  },
+  display: {
+    inherits: false,
+    set: (values, declaration) => {
+      if (declaration.display !== undefined) values.display = declaration.display;
+    },
+  },
+  content: {
+    inherits: false,
+    set: (values, declaration) => {
+      if (declaration.content !== undefined) values.content = declaration.content;
+    },
+  },
+  "max-width": {
+    inherits: false,
+    set: (values, declaration) => {
+      if (declaration["max-width"] !== undefined) values["max-width"] = declaration["max-width"];
+    },
+  },
+} satisfies Record<keyof Style, StyleProperty>;
+
+const PROPERTIES: readonly StyleProperty[] = Object.values(STYLE_PROPERTIES);
+const INHERITED = PROPERTIES.filter((property) => property.inherits);
 
 interface Ranked {
   readonly select: Selector;
   readonly set: Declaration;
   readonly rank: readonly number[];
+  readonly order: number;
 }
 
 function compareRanks(left: readonly number[], right: readonly number[]): number {
   for (let index = 0; index < left.length; index += 1) {
-    const difference = (left[index] as number) - (right[index] as number);
+    const difference = (left[index] ?? 0) - (right[index] ?? 0);
     if (difference !== 0) return difference;
   }
   return 0;
@@ -92,7 +169,10 @@ function compareRanks(left: readonly number[], right: readonly number[]): number
  * roots 1).
  */
 export class Cascade {
-  readonly #statements: readonly Ranked[];
+  readonly #general: readonly Ranked[];
+  readonly #byElement: ReadonlyMap<string, readonly Ranked[]>;
+  readonly #byClass: ReadonlyMap<string, readonly Ranked[]>;
+  readonly #byId: ReadonlyMap<string, readonly Ranked[]>;
   readonly #ancestry: ReadonlyMap<string, readonly string[]>;
 
   constructor(
@@ -126,10 +206,34 @@ export class Cascade {
             (select.domain === undefined ? 0 : 1) + (select.modality === undefined ? 0 : 1),
             position,
           ],
+          order: 0,
         });
       });
     });
-    this.#statements = ranked.sort((a, b) => compareRanks(a.rank, b.rank));
+    ranked.sort((a, b) => compareRanks(a.rank, b.rank));
+    const general: Ranked[] = [];
+    const byElement = new Map<string, Ranked[]>();
+    const byClass = new Map<string, Ranked[]>();
+    const byId = new Map<string, Ranked[]>();
+    const add = (buckets: Map<string, Ranked[]>, key: string, statement: Ranked) => {
+      const bucket = buckets.get(key) ?? [];
+      bucket.push(statement);
+      buckets.set(key, bucket);
+    };
+    ranked.forEach((statement, order) => {
+      const rankedStatement: Ranked = { ...statement, order };
+      const { select } = statement;
+      if (select.element !== undefined) add(byElement, select.element, rankedStatement);
+      if (select.class !== undefined) add(byClass, select.class, rankedStatement);
+      for (const id of select.ids ?? []) add(byId, id, rankedStatement);
+      if (select.element === undefined && select.class === undefined && select.ids === undefined) {
+        general.push(rankedStatement);
+      }
+    });
+    this.#general = general;
+    this.#byElement = byElement;
+    this.#byClass = byClass;
+    this.#byId = byId;
   }
 
   /** Whether an element matches every member present in a selector. */
@@ -140,24 +244,25 @@ export class Cascade {
   /**
    * The cascaded style of one drawing of an element: `element` its key, with
    * its holder chain; `parent` the cascaded style of its holder's drawing,
-   * `undefined` for the block (section 2.5).
+   * `undefined` for the box (section 2.5).
    */
   resolve(element: ElementKey, parent: Style | undefined): Style {
-    const set: Partial<Record<Property, unknown>> = {};
-    for (const statement of this.#statements) {
+    const candidates = new Set(this.#general);
+    if (element.type !== null) {
+      for (const statement of this.#byElement.get(element.type) ?? []) candidates.add(statement);
+    }
+    if (element.class !== null) {
+      for (const statement of this.#byClass.get(element.class) ?? []) candidates.add(statement);
+    }
+    if (element.address !== null) {
+      for (const statement of this.#byId.get(element.address) ?? []) candidates.add(statement);
+    }
+    const values: StyleValues = {};
+    if (parent !== undefined) for (const property of INHERITED) property.set(values, parent);
+    for (const statement of [...candidates].sort((left, right) => left.order - right.order)) {
       if (!this.matches(statement.select, element)) continue;
-      for (const property of PROPERTIES) {
-        if (Object.hasOwn(statement.set, property)) set[property] = statement.set[property];
-      }
+      for (const property of PROPERTIES) property.set(values, statement.set);
     }
-    const style: Record<string, unknown> = {};
-    for (const property of PROPERTIES) {
-      style[property] = Object.hasOwn(set, property)
-        ? set[property]
-        : INHERITED.has(property) && parent !== undefined
-          ? parent[property]
-          : INITIAL_STYLE[property];
-    }
-    return style as unknown as Style;
+    return { ...INITIAL_STYLE, ...values };
   }
 }

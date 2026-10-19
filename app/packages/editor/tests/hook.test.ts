@@ -1,11 +1,9 @@
 /// <reference types="node" />
 import { readdirSync, readFileSync } from "node:fs";
-import { createRequire } from "node:module";
 import path from "node:path";
 import { drawingOf } from "@timetoalign/tilie-arranger";
-import type { Block, CommandEntry, Manifest } from "@timetoalign/tilie-core";
+import type { BandKind, Block, CommandEntry, Manifest } from "@timetoalign/tilie-core";
 import {
-  createStore,
   createView,
   isLoadError,
   isSessionEntry,
@@ -14,14 +12,16 @@ import {
   readWorkspace,
   writeWorkspace,
 } from "@timetoalign/tilie-core";
-import type { Drawing, DrawnBand } from "@timetoalign/tilie-layout";
-import { fontMetrics, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
+import type { Drawing, DrawnBox } from "@timetoalign/tilie-layout";
+import { fontMetrics } from "@timetoalign/timeskeleton";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App.svelte";
-import { bandsOf, hookBands, WorkspaceRefusedError } from "../src/testHook.ts";
+import type { HookBand } from "../src/testHook.ts";
+import { bandsOf, hookBands } from "../src/testHook.ts";
+import { WorkspaceRefusedError } from "../src/workspaceSession.svelte.ts";
 import { stubEditor } from "./dom.ts";
-import { flushAutosaves } from "./support.ts";
+import { fixtureText, flushAutosaves, hook, workspaceOf } from "./support.ts";
 
 vi.mock("../src/autosave.ts", async (importOriginal) =>
   (await import("./support.ts")).recordAutosaves(await importOriginal()),
@@ -32,82 +32,90 @@ const A = "0000000000";
 const E2E_FIXTURES = path.join(import.meta.dirname, "..", "..", "..", "e2e", "fixtures");
 const B = "0000000001";
 
-/** The manifest fixtures of the installed schema package's version. */
-function fixtureDirectory(): string {
-  return path.join(
-    path.dirname(createRequire(import.meta.url).resolve("@timetoalign/timeskeleton/package.json")),
-    "fixtures",
-    SCHEMA_VERSION,
-  );
-}
-
-/** A workspace file of two blocks holding manifest fixtures, written through the store. */
-function workspaceText(names: readonly [string, string] = ["bare", "nested"]): string {
-  const directory = fixtureDirectory();
-  const manifest = (name: string) => {
-    const loaded = loadManifest(readFileSync(path.join(directory, `${name}.json`), "utf8"));
-    if (isLoadError(loaded)) throw new Error(`${name} refused`);
-    return loaded;
-  };
-  const store = createStore({ view: createView(), journal: [], sessions: {} });
-  for (const [id, name, x] of [
-    [A, names[0], 0],
-    [B, names[1], 800],
-  ] as const) {
-    const error = store.dispatch({
-      type: "add",
-      into: "workspace",
-      block: { id, manifest: manifest(name), x, y: 0 },
-    });
-    if (error !== null) throw new Error(error.message);
-  }
-  return writeWorkspace({ view: store.view, journal: store.journal, sessions: store.sessions });
-}
-
-/** A record of the timeline `score` written for the mapping, its line at 30.5 (README, case 8). */
+/** A band of the timeline `score` written for the mapping, its line at 30.5 (`README.md`, "The test hook"). */
 function scoreBand(
-  kind: DrawnBand["kind"],
+  kind: BandKind,
   level: number,
   elements: number,
   y: number,
   height: number,
-): DrawnBand {
-  const address = `score/${kind}_1`;
+): DrawnBox {
   return {
-    address,
-    timeline: "score",
-    kind,
-    level,
-    line: 30.5,
-    elements,
+    kind: "band",
+    key: null,
+    address: `score/${kind}_1`,
+    holder: "score/card",
     x: 8.25,
     y,
     width: 300,
     height,
+    range: { start: 0, end: 0 },
+    displayed: false,
+    band: { timeline: "score", kind, level, elements, line: 30.5 },
   };
 }
 
-/** A drawing of 400 × 200 holding three band records and nothing else (case 8). */
+/** The bands of `MAPPED`, in its box order. */
+const BANDS: readonly DrawnBox[] = [
+  scoreBand("conversion_maps", 1, 1, 24, 6.5),
+  scoreBand("markers", -1, 2, 30.5, 26.75),
+  scoreBand("flow_control", -2, 1, 61.25, 0),
+];
+
+/**
+ * A drawing of 400 × 200 holding its box, one card and the three bands of
+ * the card's timeline, and nothing else (case 8): the box and the card are
+ * not reported.
+ */
 const MAPPED: Drawing = {
   width: 400,
   height: 200,
   origin: { x: 0, y: 0 },
-  items: [],
-  cards: [],
-  elements: [],
-  bands: [
-    scoreBand("conversion_maps", 1, 1, 24, 6.5),
-    scoreBand("markers", -1, 2, 30.5, 26.75),
-    scoreBand("flow_control", -2, 1, 61.25, 0),
+  boxes: [
+    {
+      kind: "box",
+      key: null,
+      address: null,
+      holder: null,
+      x: 0,
+      y: 0,
+      width: 400,
+      height: 200,
+      range: { start: 0, end: 0 },
+      displayed: true,
+    },
+    {
+      kind: "card",
+      key: "score",
+      address: "score/card",
+      holder: null,
+      x: 8.25,
+      y: 20,
+      width: 300,
+      height: 80,
+      range: { start: 0, end: 0 },
+      displayed: false,
+    },
+    ...BANDS,
   ],
+  axes: [],
+  elements: [],
   unmapped: [],
 };
 
 /** `MAPPED`'s bands as the hook reports them, at the line `line` with the rectangles `rects`. */
 function mapped(line: number, rects: readonly (readonly number[])[]) {
-  return MAPPED.bands.map(({ address, timeline, kind, level, elements }, at) => {
+  return BANDS.map(({ address, band }, at) => {
     const [x, y, width, height] = rects[at] ?? [];
-    return { address, timeline, kind, level, line, elements, rect: { x, y, width, height } };
+    return {
+      address,
+      timeline: band?.timeline,
+      kind: band?.kind,
+      level: band?.level,
+      line,
+      elements: band?.elements,
+      rect: { x, y, width, height },
+    };
   });
 }
 
@@ -118,13 +126,13 @@ function identity({
   kind,
   level,
   elements,
-}: Pick<DrawnBand, "address" | "timeline" | "kind" | "level" | "elements">) {
+}: Pick<HookBand, "address" | "timeline" | "kind" | "level" | "elements">) {
   return [address, timeline, kind, level, elements];
 }
 
 /**
  * The bands of `map` (`phrase` at 1) and `map_child_band_order` (`phrase`
- * at −1), derived in README case 8, as `identity` gives them.
+ * at −1), derived from the drawing's band order, as `identity` gives them.
  */
 function mapBands(phrase: number) {
   return [
@@ -159,7 +167,7 @@ describe("hookBands", () => {
 
 describe("bandsOf", () => {
   it("cannot place a block whose drawing is not on the page", () => {
-    const text = workspaceText(["map", "map_child_band_order"]);
+    const text = workspaceOf("map", "map_child_band_order");
     const read = readWorkspace(text);
     if (isLoadError(read)) throw new Error("the written workspace is refused");
     expect(() => bandsOf(read.view, A)).toThrow(
@@ -170,14 +178,13 @@ describe("bandsOf", () => {
 
 /** The text of a group or bundle fixture of the installed schema package. */
 function manifestFixtureText(name: string): string {
-  const kind = name.startsWith("group_") ? "groups" : "bundles";
-  return readFileSync(path.join(fixtureDirectory(), kind, `${name}.json`), "utf8");
+  return fixtureText(`${name.startsWith("group_") ? "groups" : "bundles"}/${name}`);
 }
 
 /**
  * The limit of a wait for a load through the fixture menu and of each test
  * holding one: about three times the slowest such test measured, 2.2 s on
- * a loaded machine (tests/README.md, "The test hook").
+ * a loaded machine.
  */
 const FIXTURE_LOAD_TIMEOUT = 7_000;
 
@@ -222,12 +229,6 @@ describe("the test hook", () => {
     vi.restoreAllMocks();
   });
 
-  function hook() {
-    const installed = window.__tilie;
-    if (installed === undefined) throw new Error("window.__tilie is not installed");
-    return installed;
-  }
-
   it("starts on an empty workspace with the viewer's defaults", () => {
     expect(hook().store().view).toEqual(createView());
     expect(hook().store().journal).toEqual([]);
@@ -237,7 +238,7 @@ describe("the test hook", () => {
   });
 
   it("loads a workspace file into a new store and clears the selection", () => {
-    const text = workspaceText();
+    const text = workspaceOf("bare", "nested");
     const expected = readWorkspace(text);
     if (isLoadError(expected)) throw new Error("the written workspace is refused");
     hook().select([A, `${B}/clt_1`]);
@@ -262,7 +263,7 @@ describe("the test hook", () => {
   });
 
   it("refuses a file the reader refuses and keeps the open workspace", () => {
-    hook().load(workspaceText());
+    hook().load(workspaceOf("bare", "nested"));
     const open = hook().store();
 
     let refusal: unknown;
@@ -377,7 +378,7 @@ describe("the test hook", () => {
   });
 
   it("opens and closes editors and lists the editing path", () => {
-    const text = workspaceText();
+    const text = workspaceOf("bare", "nested");
     hook().load(text);
     flushSync();
     const before = hook().store().view;
@@ -420,7 +421,7 @@ describe("the test hook", () => {
   });
 
   it("lists a block's drawn bands placed through its own drawing", () => {
-    hook().load(workspaceText(["map", "map_child_band_order"]));
+    hook().load(workspaceOf("map", "map_child_band_order"));
     flushSync();
     const svg = document.querySelector(`.svelte-flow__node[data-id="${A}"] .tilie-block > svg`);
     if (svg === null) throw new Error("the block's drawing is not rendered");
@@ -429,13 +430,15 @@ describe("the test hook", () => {
       DOMRect.fromRect({ x: 100, y: 50, width: 2 * width, height: 2 * height }),
     );
     const { view } = hook().store();
-    const recorded = drawingOf(view.blocks[A] as Block, view.settings, fontMetrics).bands;
+    const recorded = drawingOf(view.blocks[A] as Block, view.settings, fontMetrics).boxes.filter(
+      (box) => box.kind === "band",
+    );
 
     const first = hook().bands(A);
     expect(first.map(identity)).toEqual(mapBands(1));
     expect(first.map(({ line, rect }) => ({ line, rect }))).toEqual(
-      recorded.map(({ line, x, y, width, height }) => ({
-        line: 50 + 2 * line,
+      recorded.map(({ band, x, y, width, height }) => ({
+        line: 50 + 2 * (band?.line ?? Number.NaN),
         rect: { x: 100 + 2 * x, y: 50 + 2 * y, width: 2 * width, height: 2 * height },
       })),
     );
@@ -447,6 +450,34 @@ describe("the test hook", () => {
     );
 
     expect(() => hook().bands("0000000009")).toThrow(RangeError);
+  });
+
+  it("lists a block's containers as its drawing records them, in box order", () => {
+    hook().load(workspaceOf("map", "map_child_band_order"));
+    flushSync();
+    const { view } = hook().store();
+    const recorded = drawingOf(view.blocks[A] as Block, view.settings, fontMetrics).boxes;
+    expect(hook().boxes(A)).toEqual(
+      recorded.map(({ kind, address, holder, displayed }) => ({
+        kind,
+        address,
+        holder,
+        displayed,
+      })),
+    );
+    expect(
+      hook()
+        .boxes(A)
+        .map(({ kind, address }) => `${kind} ${address}`),
+    ).toEqual([
+      "box null",
+      "card melody/card",
+      "band melody/children_1",
+      "band melody/conversion_maps_1",
+      "band melody/markers_1",
+      "band phrase/conversion_maps_1",
+    ]);
+    expect(() => hook().boxes("0000000009")).toThrow(RangeError);
   });
 
   it("is removed when the editor is unmounted", () => {

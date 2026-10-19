@@ -10,15 +10,23 @@
 export const name = "@timetoalign/tilie-writers" as const;
 
 export type {
+  Attribute,
   AttributeValue,
+  CircleDescriptor,
   Descriptor,
+  LineDescriptor,
   PathCommand,
+  PathDescriptor,
   Point,
+  PointsDescriptor,
+  RectDescriptor,
   Tag,
+  TextDescriptor,
 } from "./descriptors.ts";
 export { toDescriptors } from "./descriptors.ts";
 export type { OnPage, Page, Placed } from "./page.ts";
 export { formatNumber, MARGIN, page } from "./page.ts";
+export type { DescriptorSource } from "./source.ts";
 export { attributeText, descriptorSvg, writeSvg } from "./svg.ts";
 export type { TikzOptions } from "./tikz.ts";
 export { writeTikz } from "./tikz.ts";

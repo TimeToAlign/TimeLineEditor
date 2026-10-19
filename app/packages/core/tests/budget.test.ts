@@ -1,13 +1,10 @@
 import { writeFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import type { Store } from "../src/index.ts";
-import {
-  createStore,
-  createView,
-  isLoadError,
-  readWorkspace,
-  writeWorkspace,
-} from "../src/index.ts";
+import { isLoadError } from "../src/errors.ts";
+import { readWorkspace, writeWorkspace } from "../src/workspace/file.ts";
+import type { Store } from "../src/workspace/store.ts";
+import { createStore } from "../src/workspace/store.ts";
+import { createView } from "../src/workspace/view.ts";
 import { allFixtures, loadText, testClock } from "./support.ts";
 
 /** A store of `blocks` blocks (the fixtures of one root in turn) whose journal holds `entries` entries. */
@@ -58,6 +55,7 @@ function measure(blocks: number, entries: number) {
       if (isLoadError(readWorkspace(text))) throw new Error("the generated workspace is refused");
     }),
     write: fastest(() => writeWorkspace(workspace)),
+
     dispatch: fastest(() => {
       moves += 1;
       store.dispatch({
@@ -74,6 +72,17 @@ describe("budgets", () => {
     expect(read, `readWorkspace took ${read} ms`).toBeLessThanOrEqual(250);
     expect(write, `writeWorkspace took ${write} ms`).toBeLessThanOrEqual(250);
     expect(dispatch, `dispatch took ${dispatch} ms`).toBeLessThanOrEqual(1);
+  });
+
+  it("measures opening and verifying 300 blocks with 1,000 entries", { timeout: 60_000 }, () => {
+    const text = writeWorkspace(generated(300, 1000).snapshot());
+    const open = fastest(() => {
+      const read = readWorkspace(text);
+      if (isLoadError(read)) throw new Error("the generated workspace is refused");
+      createStore(read);
+    });
+    // Measured and reported, not yet held to a budget.
+    console.info(`readWorkspace and createStore took ${open} ms`);
   });
 
   const output = process.env.TILIE_MEASURE;

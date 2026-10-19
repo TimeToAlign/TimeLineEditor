@@ -6,24 +6,15 @@
  * the same element.
  */
 
-import type {
-  Address,
-  Command,
-  Entry,
-  ListedEntry,
-  Session,
-  Store,
-  View,
-} from "@timetoalign/tilie-core";
+import type { Command, Entry, ListedEntry, Session, Store, View } from "@timetoalign/tilie-core";
 import {
   ADD_KINDS,
   editorKindOf,
-  findTimeline,
   isCommandError,
   isSessionEntry,
   listEntries,
-  parseAddress,
 } from "@timetoalign/tilie-core";
+import { editorName } from "./words.ts";
 
 /** One row of the Journal tab. */
 export interface JournalRow {
@@ -44,24 +35,24 @@ export interface JournalRow {
 /** What the rows are read from: the store's editing path and its innermost level. */
 export type JournalSource = Pick<Store, "editing" | "listed" | "sessions">;
 
-/** What a bundle is called that has neither a `name` nor an `id`. */
-export const ANONYMOUS_BUNDLE_NAME = "Anonymous bundle";
-
 /**
- * The name an editor's target goes by: a bundle's manifest `name`, else its
- * `id`, else "Anonymous bundle"; a group's or timeline's `name`, else its
- * id. A target the view does not hold goes by its address.
+ * The session `id` of the store's sessions. The store keeps every session
+ * its entries and open editors name, so a missing one is a broken store.
  */
-export function editorName(view: View, target: Address): string {
-  const parsed = parseAddress(target);
-  if (isCommandError(parsed) || parsed.block === null) return target;
-  const block = view.blocks[parsed.block];
-  if (block === undefined) return target;
-  const { manifest } = block;
-  if (parsed.element === null) return manifest.name ?? manifest.id ?? ANONYMOUS_BUNDLE_NAME;
-  const id = parsed.element;
-  const named = manifest.groups.find((group) => group.id === id) ?? findTimeline(manifest, id);
-  return named === undefined ? target : (named.name ?? id);
+function sessionOf(sessions: JournalSource["sessions"], id: string): Session {
+  const session = sessions[id];
+  if (session === undefined) throw new RangeError(`the store holds no session ${id}`);
+  return session;
+}
+
+/** The `id` of an added value; `null` for a value without one. */
+function addedId(value: unknown): string | null {
+  return typeof value === "object" &&
+    value !== null &&
+    "id" in value &&
+    typeof value.id === "string"
+    ? value.id
+    : null;
 }
 
 /** One command as a sentence. */
@@ -69,8 +60,9 @@ function commandText(command: Command): string {
   switch (command.type) {
     case "add": {
       const kind = ADD_KINDS.find((item) => command[item] !== undefined);
-      const value = kind === undefined ? undefined : (command[kind] as { readonly id?: unknown });
-      return `Added ${kind} ${value?.id} to ${command.into}`;
+      const id = kind === undefined ? null : addedId(command[kind]);
+      const words = [kind, id, "to", command.into].filter((word) => typeof word === "string");
+      return `Added ${words.join(" ")}`;
     }
     case "set": {
       const [first, ...more] = command.changes;
@@ -97,8 +89,7 @@ function entryText(
   view: View,
 ): string {
   if (!isSessionEntry(entry)) return commandText(entry.command);
-  // The store keeps every session its entries name.
-  const { target } = sessions[entry.session] as Session;
+  const { target } = sessionOf(sessions, entry.session);
   const count = changes === 1 ? "1 change" : `${changes} changes`;
   const partly = applied > 0 && applied < changes ? `, ${changes - applied} undone` : "";
   const kind = editorKindOf(view, target);
@@ -112,7 +103,7 @@ export function journalRows(store: JournalSource, view: View): JournalRow[] {
   const earlier =
     innermost === undefined || innermost.earlier === null
       ? []
-      : listEntries((store.sessions[innermost.earlier] as Session).entries, store.sessions);
+      : listEntries(sessionOf(store.sessions, innermost.earlier).entries, store.sessions);
   const rows = (listed: readonly ListedEntry[], isEarlier: boolean): JournalRow[] =>
     listed
       .map((item) => ({

@@ -5,15 +5,13 @@
  * ("groups.spec.ts").
  */
 
-import { readFileSync } from "node:fs";
-import { createRequire } from "node:module";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import type { Manifest } from "../packages/core/src/index.ts";
 import { isLoadError, loadManifest, saveManifest } from "../packages/core/src/index.ts";
 import { manifestFileName } from "../packages/editor/src/files.ts";
+import { manifestFixture } from "./schema.ts";
 import {
   BUNDLES,
   chooseItem,
@@ -25,6 +23,7 @@ import {
   framePoint,
   GROUPS,
   journalLength,
+  marked,
   node,
   OPENED_JOURNAL,
   open,
@@ -32,8 +31,11 @@ import {
   partCentre,
   pick,
   placement,
+  select,
   selection,
   setViewport,
+  structure,
+  withoutPickers,
 } from "./support.ts";
 
 test.use({ viewport: { width: 1600, height: 1000 } });
@@ -41,23 +43,12 @@ test.use({ viewport: { width: 1600, height: 1000 } });
 const VIEW = { x: 40, y: 40, zoom: 1 };
 
 /**
- * The distinct `data-address` values drawn in a node, in DOM order, kept
- * when they name a frame, a line or the manifest's title (no `/`), a card or
- * a group's title.
+ * The distinct addresses of the elements showing a node's structure
+ * (`support.ts`'s `structure`: a frame, a line, the title, a card or a
+ * group's title), in DOM order.
  */
-function structure(page: Page, block: string): Promise<string[]> {
-  return node(page, block)
-    .locator("[data-address]")
-    .evaluateAll((items) => {
-      const kept: string[] = [];
-      for (const item of items) {
-        const address = item.getAttribute("data-address") ?? "";
-        const shown =
-          !address.includes("/") || address.endsWith("/card") || /^group_\d+\/name$/.test(address);
-        if (shown && !kept.includes(address)) kept.push(address);
-      }
-      return kept;
-    });
+async function structureOf(page: Page, block: string): Promise<string[]> {
+  return [...new Set((await structure(page, block)).map(({ address }) => address))];
 }
 
 /** The text of each title in a node (the manifest's `name`, a group's `G/name`), by address. */
@@ -72,18 +63,6 @@ function titles(page: Page, block: string): Promise<Record<string, string>> {
             item.textContent ?? "",
           ])
           .filter(([address]) => /^(name|group_\d+\/name)$/.test(address)),
-      ),
-    );
-}
-
-/** The `data-address` of every part marked with `attribute`, block-qualified, in DOM order. */
-function marked(page: Page, attribute: string): Promise<string[]> {
-  return page
-    .locator(`[${attribute}]`)
-    .evaluateAll((items) =>
-      items.map(
-        (item) =>
-          `${item.closest(".svelte-flow__node")?.getAttribute("data-id")}/${item.getAttribute("data-address")}`,
       ),
     );
 }
@@ -124,8 +103,8 @@ test.describe("a group workspace", () => {
   });
 
   test("draws its frames, cards, titles and lines in display order", async ({ page }) => {
-    await expect(page.locator(".svelte-flow__node")).toHaveCount(4);
-    expect(await structure(page, GROUPS.child)).toEqual([
+    await expect(page.getByTestId("block")).toHaveCount(4);
+    expect(await structureOf(page, GROUPS.child)).toEqual([
       "group_1",
       "group_1/name",
       "second-half/card",
@@ -134,7 +113,7 @@ test.describe("a group workspace", () => {
       "recording/card",
       "recording",
     ]);
-    expect(await structure(page, GROUPS.grandchild)).toEqual([
+    expect(await structureOf(page, GROUPS.grandchild)).toEqual([
       "group_1",
       "group_1/name",
       "theme/card",
@@ -144,7 +123,7 @@ test.describe("a group workspace", () => {
       "recording/card",
       "recording",
     ]);
-    expect(await structure(page, GROUPS.mixed)).toEqual([
+    expect(await structureOf(page, GROUPS.mixed)).toEqual([
       "group_1",
       "group_1/name",
       "exposition/card",
@@ -159,7 +138,7 @@ test.describe("a group workspace", () => {
       "audio/card",
       "audio",
     ]);
-    expect(await structure(page, GROUPS.styled)).toEqual([
+    expect(await structureOf(page, GROUPS.styled)).toEqual([
       "group_1",
       "group_1/name",
       "score/card",
@@ -188,7 +167,7 @@ test.describe("a group workspace", () => {
     const { x, y } = await partCentre(page, GROUPS.child, "second-half/start");
     await page.mouse.click(x, y);
     expect(await selection(page)).toEqual([`${GROUPS.child}/second-half/start`]);
-    expect(await marked(page, "data-selected")).toEqual([
+    expect(await marked(page, "selection")).toEqual([
       `${GROUPS.child}/second-half/start`,
       `${GROUPS.child}/second-half/start`,
     ]);
@@ -224,10 +203,7 @@ test.describe("a group workspace", () => {
       },
     ];
     for (const { timeline, card, roots, members } of removals) {
-      await page.evaluate(
-        (address) => window.__tilie.select([address]),
-        `${GROUPS.child}/${timeline}`,
-      );
+      await select(page, [`${GROUPS.child}/${timeline}`]);
       await page.keyboard.press("Delete");
       expect(await commandsFrom(page, start)).toEqual([
         { type: "remove", targets: [`${GROUPS.child}/${timeline}`] },
@@ -268,10 +244,7 @@ test.describe("a group workspace", () => {
       }, GROUPS.child);
     expect(await regions()).toEqual(["region_1"]);
 
-    await page.evaluate(
-      (address) => window.__tilie.select([address]),
-      `${GROUPS.child}/piece/region_1`,
-    );
+    await select(page, [`${GROUPS.child}/piece/region_1`]);
     await page.keyboard.press("Delete");
     expect(await commandsFrom(page, start + 1)).toEqual([
       { type: "remove", targets: [`${GROUPS.child}/piece/region_1`] },
@@ -287,35 +260,31 @@ test.describe("a group workspace", () => {
   test("hovering a member's line marks its card, not its shadow or the frame", async ({ page }) => {
     const { x, y } = await partCentre(page, GROUPS.child, "recording");
     await page.mouse.move(x, y, { steps: 2 });
-    await expect
-      .poll(() => marked(page, "data-hovered"))
-      .toEqual([`${GROUPS.child}/recording/card`]);
+    await expect.poll(() => marked(page, "hover")).toEqual([`${GROUPS.child}/recording/card`]);
     const empty = await emptyPoint(page, 600, 200);
     await page.mouse.move(empty.x, empty.y, { steps: 2 });
-    await expect.poll(() => marked(page, "data-hovered")).toEqual([]);
+    await expect.poll(() => marked(page, "hover")).toEqual([]);
   });
 
   test("hovering a frame away from its cards marks the frame", async ({ page }) => {
     const { x, y } = await framePoint(page, GROUPS.child, "group_1");
     await page.mouse.move(x, y, { steps: 2 });
-    await expect.poll(() => marked(page, "data-hovered")).toEqual([`${GROUPS.child}/group_1`]);
+    await expect.poll(() => marked(page, "hover")).toEqual([`${GROUPS.child}/group_1`]);
   });
 
   test("a press on a frame selects the group", async ({ page }) => {
     const { x, y } = await framePoint(page, GROUPS.child, "group_1");
     await page.mouse.click(x, y);
     expect(await selection(page)).toEqual([`${GROUPS.child}/group_1`]);
-    expect(await marked(page, "data-selected")).toEqual([`${GROUPS.child}/group_1`]);
-    expect(await marked(page, "data-affected")).toEqual([]);
+    expect(await marked(page, "selection")).toEqual([`${GROUPS.child}/group_1`]);
+    expect(await marked(page, "affected")).toEqual([]);
   });
 
   test("hover at zoom 1/2 marks the card under the pointer", async ({ page }) => {
     await setViewport(page, { ...VIEW, zoom: 0.5 });
     const { x, y } = await partCentre(page, GROUPS.child, "recording");
     await page.mouse.move(x, y, { steps: 2 });
-    await expect
-      .poll(() => marked(page, "data-hovered"))
-      .toEqual([`${GROUPS.child}/recording/card`]);
+    await expect.poll(() => marked(page, "hover")).toEqual([`${GROUPS.child}/recording/card`]);
   });
 
   test("hover on a block of scale 1.5 marks the card under the pointer", async ({ page }) => {
@@ -334,9 +303,7 @@ test.describe("a group workspace", () => {
     );
     const { x, y } = await partCentre(page, GROUPS.child, "recording");
     await page.mouse.move(x, y, { steps: 2 });
-    await expect
-      .poll(() => marked(page, "data-hovered"))
-      .toEqual([`${GROUPS.child}/recording/card`]);
+    await expect.poll(() => marked(page, "hover")).toEqual([`${GROUPS.child}/recording/card`]);
   });
 });
 
@@ -347,8 +314,8 @@ test.describe("a bundle workspace", () => {
   });
 
   test("draws the manifest's title, its frames and its ungrouped roots", async ({ page }) => {
-    await expect(page.locator(".svelte-flow__node")).toHaveCount(3);
-    expect(await structure(page, BUNDLES.mixed)).toEqual([
+    await expect(page.getByTestId("block")).toHaveCount(3);
+    expect(await structureOf(page, BUNDLES.mixed)).toEqual([
       "name",
       "group_1",
       "group_1/name",
@@ -366,7 +333,7 @@ test.describe("a bundle workspace", () => {
       "annotations/card",
       "annotations",
     ]);
-    expect(await structure(page, BUNDLES.shared)).toEqual([
+    expect(await structureOf(page, BUNDLES.shared)).toEqual([
       "name",
       "group_1",
       "group_1/name",
@@ -386,7 +353,7 @@ test.describe("a bundle workspace", () => {
       "page/card",
       "page",
     ]);
-    expect(await structure(page, BUNDLES.ungrouped)).toEqual([
+    expect(await structureOf(page, BUNDLES.ungrouped)).toEqual([
       "name",
       "pages/card",
       "pages",
@@ -415,7 +382,7 @@ test.describe("a bundle workspace", () => {
     const { x, y } = await partCentre(page, BUNDLES.shared, "score");
     await page.mouse.click(x, y);
     expect(await selection(page)).toEqual([`${BUNDLES.shared}/score`]);
-    expect(await marked(page, "data-selected")).toEqual(
+    expect(await marked(page, "selection")).toEqual(
       Array.from({ length: 8 }, () => `${BUNDLES.shared}/score`),
     );
   });
@@ -424,18 +391,17 @@ test.describe("a bundle workspace", () => {
     page,
   }) => {
     const block = node(page, BUNDLES.mixed).locator(".tilie-block");
-    const boxes = node(page, BUNDLES.mixed).locator("rect[data-contains-selection]");
-    const dashed = node(page, BUNDLES.mixed).locator("rect.tilie-holding");
+    const dashed = node(page, BUNDLES.mixed).locator('rect.tilie-mark[data-mark="holding"]');
     await expect(page.locator("[data-contains-selection]")).toHaveCount(0);
     await expect(dashed).toHaveCount(0);
     const { x, y } = await partCentre(page, BUNDLES.mixed, "score");
     await page.mouse.click(x, y);
     expect(await selection(page)).toEqual([`${BUNDLES.mixed}/score`]);
     expect(
-      await boxes.evaluateAll((items) => items.map((item) => item.getAttribute("data-address"))),
-    ).toEqual(["group_1", "score/card"]);
+      await dashed.evaluateAll((items) => items.map((item) => item.getAttribute("data-marks"))),
+    ).toEqual([null, "group_1", "score/card"]);
     await expect(block).toHaveAttribute("data-contains-selection", "");
-    await expect(page.locator("[data-contains-selection]")).toHaveCount(3);
+    await expect(page.locator("[data-contains-selection]")).toHaveCount(1);
     const looks = () =>
       dashed.evaluateAll((items) =>
         items.map((item) => {
@@ -452,8 +418,8 @@ test.describe("a bundle workspace", () => {
       );
     const blue = "rgb(10, 132, 255)";
     expect(await looks()).toEqual([
-      ["block", blue, "1px", "1px, 2px", "non-scaling-stroke", "none"],
-      ["group", blue, "2px", "6px, 4px", "non-scaling-stroke", "none"],
+      ["box", blue, "1px", "1px, 2px", "non-scaling-stroke", "none"],
+      ["frame", blue, "2px", "6px, 4px", "non-scaling-stroke", "none"],
       ["card", blue, "3px", "6px, 4px", "non-scaling-stroke", "none"],
     ]);
     expect(
@@ -463,8 +429,8 @@ test.describe("a bundle workspace", () => {
     ).toEqual(["crispedges", "auto", "auto"]);
     await setViewport(page, { ...VIEW, zoom: 2 });
     expect(await looks()).toEqual([
-      ["block", blue, "0.5px", "0.5px, 1px", "non-scaling-stroke", "none"],
-      ["group", blue, "1px", "3px, 2px", "non-scaling-stroke", "none"],
+      ["box", blue, "0.5px", "0.5px, 1px", "non-scaling-stroke", "none"],
+      ["frame", blue, "1px", "3px, 2px", "non-scaling-stroke", "none"],
       ["card", blue, "1.5px", "3px, 2px", "non-scaling-stroke", "none"],
     ]);
     const stroke = (address: string) =>
@@ -482,19 +448,16 @@ test.describe("a bundle workspace", () => {
     const { x, y } = await partCentre(page, BUNDLES.ungrouped, "page_2/start");
     await page.mouse.move(x, y, { steps: 2 });
     await expect
-      .poll(() => marked(page, "data-hovered"))
+      .poll(() => marked(page, "hover"))
       .toEqual([`${BUNDLES.ungrouped}/pages/card`, `${BUNDLES.ungrouped}/page_2/start`]);
     const empty = await emptyPoint(page, 610, 200);
     await page.mouse.move(empty.x, empty.y, { steps: 2 });
-    await expect.poll(() => marked(page, "data-hovered")).toEqual([]);
+    await expect.poll(() => marked(page, "hover")).toEqual([]);
   });
 
   test("Delete refuses a selection holding the manifest's title whole", async ({ page }) => {
     const before = await manifests(page);
-    await page.evaluate(
-      (addresses) => window.__tilie.select(addresses),
-      [`${BUNDLES.mixed}/annotations`, `${BUNDLES.mixed}/name`],
-    );
+    await select(page, [`${BUNDLES.mixed}/annotations`, `${BUNDLES.mixed}/name`]);
     await page.keyboard.press("Delete");
     const hint = page.locator('[data-testid="hint"]');
     await expect(hint).toBeVisible();
@@ -519,7 +482,7 @@ test.describe("a bundle workspace", () => {
       await page.mouse.up();
       expect(await journalLength(page)).toBe(before + 1);
     };
-    await page.evaluate((id) => window.__tilie.select([id]), block);
+    await select(page, [block]);
     await page.locator('[data-testid="mode-box"]').click();
     await drag("bottom-right", 40, 30);
     const boxed = await placement(page, block);
@@ -551,21 +514,6 @@ test.describe("a bundle workspace", () => {
   });
 });
 
-/** The timeskeleton package that `core` depends on, and its schema version's manifest fixtures. */
-const packageDir = path.dirname(
-  createRequire(path.join(import.meta.dirname, "../packages/core/package.json")).resolve(
-    "@timetoalign/timeskeleton/package.json",
-  ),
-);
-const { SCHEMA_VERSION } = (await import(
-  pathToFileURL(path.join(packageDir, "dist", "index.js")).href
-)) as { readonly SCHEMA_VERSION: string };
-
-/** A manifest fixture's text by its path below the schema version's fixtures (`groups/group_styled`). */
-function fixtureFile(name: string): string {
-  return readFileSync(path.join(packageDir, "fixtures", SCHEMA_VERSION, `${name}.json`), "utf8");
-}
-
 function loaded(text: string): Manifest {
   const manifest = loadManifest(text);
   if (isLoadError(manifest)) throw new Error(`a fixture is refused: ${JSON.stringify(manifest)}`);
@@ -574,11 +522,7 @@ function loaded(text: string): Manifest {
 
 test.describe("manifests holding groups through the File menu", () => {
   test.beforeEach(async ({ page }) => {
-    // The fallback path: without the pickers the editor uses a file input and a download.
-    await page.addInitScript(() => {
-      delete (window as { showOpenFilePicker?: unknown }).showOpenFilePicker;
-      delete (window as { showSaveFilePicker?: unknown }).showSaveFilePicker;
-    });
+    await withoutPickers(page);
     await page.goto("/");
     await page.waitForFunction(() => window.__tilie !== undefined);
   });
@@ -589,7 +533,7 @@ test.describe("manifests holding groups through the File menu", () => {
     expect(await journalLength(page)).toBe(0);
     const cases = ["groups/group_styled", "bundles/bundle_mixed"];
     for (const [entry, name] of cases.entries()) {
-      const text = fixtureFile(name);
+      const text = manifestFixture(name);
       const manifest = loaded(text);
       const before = await page.evaluate(() => Object.keys(window.__tilie.store().view.blocks));
 

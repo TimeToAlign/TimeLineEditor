@@ -1,16 +1,23 @@
-import { dumps, JsonFloat, parseJson, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
-import { describe, expect, it, vi } from "vitest";
-import type { LoadError, Manifest } from "../src/index.ts";
 import {
-  apply,
-  createView,
-  InvalidManifestError,
-  isCommandError,
-  isLoadError,
-  loadManifest,
-  saveManifest,
+  dumps,
+  JsonFloat,
+  parseJson,
+  SCHEMA_VERSION,
   unknownKeys,
-} from "../src/index.ts";
+} from "@timetoalign/timeskeleton";
+import { describe, expect, it, vi } from "vitest";
+import { apply } from "../src/commands/apply.ts";
+import type { LoadError } from "../src/errors.ts";
+import { InvalidManifestError, isCommandError, isLoadError } from "../src/errors.ts";
+import {
+  completeOrdered,
+  loadManifest,
+  normalizeManifest,
+  readEntry,
+  saveManifest,
+} from "../src/manifest/io.ts";
+import type { Manifest, TimelineManifest } from "../src/manifest/types.ts";
+import { createView } from "../src/workspace/view.ts";
 import {
   A,
   allFixtures,
@@ -20,6 +27,8 @@ import {
   load,
   loadText,
   manifestValue,
+  NON_FINITE,
+  refusal,
   rejections,
 } from "./support.ts";
 
@@ -51,8 +60,25 @@ describe("fixture manifests round-trip byte for byte", () => {
 });
 
 describe("shared rejections", () => {
-  it.each(rejections.map((item) => [item.name, item.text, item.path]))("%s", (_, text, path) => {
-    expect(refused(text).problems.map((item) => item.path)).toEqual([path]);
+  it.each(rejections.map((item) => [item.name, item]))("%s", (_, item) => {
+    if (item.nonFinite === undefined) {
+      expect(refused(item.text).problems.map((problem) => problem.path)).toEqual([item.path]);
+      return;
+    }
+    // JSON carries no infinity and no NaN: the case names the one to put at its path.
+    const value = parseJson(item.text);
+    let owner: unknown = value;
+    const [last, ...above] = [...item.path].reverse();
+    for (const segment of above.reverse()) {
+      owner = typeof owner === "object" && owner !== null ? Reflect.get(owner, segment) : undefined;
+    }
+    if (typeof owner !== "object" || owner === null || last === undefined) {
+      throw new Error(`${item.name}: nothing at its path`);
+    }
+    Reflect.set(owner, last, NON_FINITE[item.nonFinite]);
+    const result = normalizeManifest(value);
+    if (!isLoadError(result)) throw new Error(`${item.name} was accepted`);
+    expect(result.problems.map((problem) => problem.path)).toEqual([item.path]);
   });
 });
 
@@ -86,7 +112,7 @@ describe("the minimal form in, either form out", () => {
       metric_hierarchy: null,
     };
     const { meta: _, ...twin } = parseJson(fixture("bare.json").twin) as Record<string, unknown>;
-    expect(loadText(dumps(twin as never))).toEqual({
+    expect(loadText(dumps(twin))).toEqual({
       timeskeleton: SCHEMA_VERSION,
       name: null,
       meta: {},
@@ -112,7 +138,7 @@ describe("unknown keys", () => {
       ],
     });
     const manifest = loadText(text);
-    const kept = (held: Manifest) => [
+    const kept = (held: unknown) => [
       node(held, "x-top"),
       node(held, "timelines", 0, "x-root"),
       node(held, "timelines", 0, "regions", 0, "x-region"),
@@ -134,11 +160,7 @@ describe("unknown keys", () => {
     });
     const edited = block(view).manifest;
     expect(kept(edited)).toEqual([1, { a: [1, 2] }, "kept"]);
-    expect(kept(parseJson(saveManifest(edited)) as unknown as Manifest)).toEqual([
-      1,
-      { a: [1, 2] },
-      "kept",
-    ]);
+    expect(kept(parseJson(saveManifest(edited)))).toEqual([1, { a: [1, 2] }, "kept"]);
     expect(unknownKeys(edited)).toEqual([
       { path: [], key: "x-top" },
       { path: ["timelines", 0], key: "x-root" },
@@ -167,6 +189,47 @@ describe("graphical styles", () => {
     expect(graphical.styles).toEqual({ kept: { fill: "#ABCDEF" } });
     warn.mockRestore();
   });
+
+  it("reads a declaration's integral float as the double it equals", () => {
+    const { text } = fixture("styled__score.json");
+    const spelled = /("(?:stroke-width|opacity|font-size|rx|max-width)": )(\d+)(,?\n)/g;
+    const floats = text.replace(spelled, "$1$2.0$3");
+    expect(floats.match(/": \d+\.0,?\n/g)).toEqual([
+      '": 4.0\n',
+      '": 2.0\n',
+      '": 10.0\n',
+      '": 12.0,\n',
+      '": 120.0\n',
+      '": 4.0\n',
+    ]);
+    const manifest = loadText(floats);
+    expect(manifest).toEqual(load("styled__score.json"));
+    expect(saveManifest(manifest)).toBe(text);
+    // Every key stays where the text wrote it: a number made a double keeps its place.
+    const { graphical } = manifest;
+    expect(Object.keys(graphical ?? {})).toEqual(["order", "statements", "styles"]);
+    const jump = graphical?.statements?.find((statement) => statement.select.element === "jump");
+    expect(Object.keys(jump?.set ?? {})).toEqual(["fill", "stroke", "stroke-width"]);
+    expect(Object.keys(graphical?.styles?.accent ?? {})).toEqual(
+      Object.keys(node(manifestValue("styled__score.json"), "graphical", "styles", "accent")),
+    );
+  });
+
+  it("reads an integer beyond 2^53 only where a double holds it exactly", () => {
+    const value = manifestValue("bare.json");
+    const exact = 2n ** 53n;
+    const statements = [{ select: {}, set: { "stroke-width": exact } }];
+    const held = loadText(dumps({ ...value, graphical: { statements } }));
+    expect(held.graphical?.statements).toEqual([{ select: {}, set: { "stroke-width": 2 ** 53 } }]);
+    const styles = { wide: { opacity: 0.5, "stroke-width": exact + 1n } };
+    expect(refused(dumps({ ...value, graphical: { styles } })).problems).toEqual([
+      {
+        code: "invalid_value",
+        message: "9007199254740993 has no exact double",
+        path: ["graphical", "styles", "wide", "stroke-width"],
+      },
+    ]);
+  });
 });
 
 describe("lossless numbers", () => {
@@ -174,7 +237,7 @@ describe("lossless numbers", () => {
   const withLength = (name: string, length: unknown) => {
     const value = manifestValue(name);
     const [root, ...rest] = value.timelines as Record<string, unknown>[];
-    return dumps({ ...value, timelines: [{ ...root, length }, ...rest] } as never);
+    return dumps({ ...value, timelines: [{ ...root, length }, ...rest] });
   };
 
   it("keeps an int above 2^53", () => {
@@ -194,16 +257,29 @@ describe("lossless numbers", () => {
 });
 
 describe("canonical order", () => {
+  it("refuses a value it cannot order with the schema's problem", () => {
+    const value = manifestValue("bare.json");
+    const [root] = value.timelines as Node[];
+    const regions = [
+      { id: "region_1", start: [0, 1], end: [1, 1] },
+      { id: "region_2", start: "later", end: [1, 1] },
+    ];
+    const unordered = { ...value, timelines: [{ ...root, regions }] };
+    expect(completeOrdered(unordered)).toEqual({
+      code: "schema_violation",
+      message: "must be number",
+      path: ["timelines", 0, "regions", 1, "start"],
+    });
+  });
+
   it("orders markers at one coordinate by id in code-point order", () => {
     const value = manifestValue("bare.json");
     const [root] = value.timelines as Node[];
     const markers = ["\u{1F3B5}", "～"].map((id) => ({ id, coordinate: [1, 1] }));
     const text = dumps({ ...value, timelines: [{ ...root, flow_control: { markers } }] });
-    const saved = parseJson(saveManifest(loadText(text))) as unknown as Manifest;
-    expect(saved.timelines[0]?.flow_control.markers.map((marker) => marker.id)).toEqual([
-      "～",
-      "\u{1F3B5}",
-    ]);
+    const saved = parseJson(saveManifest(loadText(text)));
+    const ordered = node(saved, "timelines", 0, "flow_control").markers as Node[];
+    expect(ordered.map((marker) => marker.id)).toEqual(["～", "\u{1F3B5}"]);
   });
 });
 
@@ -239,7 +315,13 @@ describe("invariants", () => {
       },
       { code: "region_end_before_start", path: [...rootPath, "regions", 0, "end"] },
     ]);
-    expect(() => saveManifest(value as unknown as Manifest)).toThrow(InvalidManifestError);
+    const loaded = load("with_region.json");
+    const [timeline] = loaded.timelines;
+    const [first] = timeline?.regions ?? [];
+    if (timeline === undefined || first === undefined) throw new Error("the fixture has a region");
+    const backwards = { ...first, end: [0, 1] as const };
+    const invalid: Manifest = { ...loaded, timelines: [{ ...timeline, regions: [backwards] }] };
+    expect(() => saveManifest(invalid)).toThrow(InvalidManifestError);
   });
 
   const cases: [string, (manifest: Node) => void, (string | number)[]][] = [
@@ -371,11 +453,11 @@ describe("segments read unlocked", () => {
   /** Every timeline's `locked`, by id. */
   function locks(manifest: Manifest): Record<string, unknown> {
     const found: Record<string, unknown> = {};
-    const walk = (timeline: Node) => {
-      found[timeline.id as string] = timeline.locked;
-      for (const child of timeline.children as Node[]) walk(child);
+    const walk = (timeline: TimelineManifest) => {
+      found[timeline.id] = timeline.locked;
+      for (const child of timeline.children) walk(child);
     };
-    for (const root of manifest.timelines) walk(root as unknown as Node);
+    for (const root of manifest.timelines) walk(root);
     return found;
   }
   const SEGMENTS = ["a1", "b1", "b2", "c1"];
@@ -418,5 +500,36 @@ describe("segments read unlocked", () => {
     };
     expect(stated(complete)).toEqual([false, false, false, false]);
     expect(stated(minimal)).toEqual(["absent", "absent", "absent", "absent"]);
+  });
+});
+
+describe("an entry given to a command", () => {
+  const [melody] = load("map.json").timelines;
+  if (melody === undefined) throw new Error("map.json has a root");
+  const tempo = {
+    id: "tempo",
+    scalar: [1, 2],
+    source_unit: "quarters",
+    target_unit: "seconds",
+    type: "ScalarMap",
+  };
+
+  it("reads an accepted map in its complete form", () => {
+    expect(readEntry("map", tempo, melody, 0)).toEqual({ ...tempo, name: null });
+    const [phrase] = melody.children;
+    if (phrase === undefined) throw new Error("melody has a child");
+    expect(readEntry("map", { ...tempo, id: "second" }, phrase, 1)).toEqual({
+      ...tempo,
+      id: "second",
+      name: null,
+    });
+  });
+
+  it("refuses a region at its path from the timeline that will list it", () => {
+    const region = { id: "start", start: [0, 1], end: [2, 1] };
+    expect(refusal(readEntry("region", region, melody, 0))).toEqual({
+      code: "schema_violation",
+      path: ["regions", 0, "id"],
+    });
   });
 });

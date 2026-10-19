@@ -16,7 +16,7 @@ import {
   layoutTimeline,
   type TimelineDrawing,
 } from "./timeline.ts";
-import { type Entry, rowPitch, type Scope } from "./traversal.ts";
+import { type Entry, known, nth, rowPitch, type Scope } from "./traversal.ts";
 
 /**
  * A row of lines at one ordinate (section 6.4, Children): the root's row, or
@@ -71,10 +71,6 @@ export interface PlacedLine {
 
 const SIDES = ["above", "below"] as const;
 
-/** `fitted` read for a line it holds: every line of a member drawing is fitted first. */
-const fittedOf = (fitted: ReadonlyMap<Entry, Fitted>, line: Entry): Fitted =>
-  fitted.get(line) as Fitted;
-
 /**
  * The name size a row counts (section 6.2): the largest font size of the
  * names its lines give it (`lineNames`), displayed or not; a row whose lines
@@ -82,7 +78,7 @@ const fittedOf = (fitted: ReadonlyMap<Entry, Fitted>, line: Entry): Fitted =>
  */
 function countedSize(lines: readonly Entry[]): number {
   const named = lineNames(lines).map((item) => item.name);
-  const counted = named.length === 0 ? [(lines[0] as Entry).name] : named;
+  const counted = named.length === 0 ? [nth(lines, 0).name] : named;
   return Math.max(...counted.map((name) => name.style["font-size"]));
 }
 
@@ -95,16 +91,16 @@ export function rowsOf(scope: Scope, fitted: ReadonlyMap<Entry, Fitted>): Row {
   /** The joint of the lines of a row whose present children band lies on `side`. */
   const jointOf = (lines: readonly Entry[], side: Side): Joint | undefined => {
     const holding = lines.filter((line) => {
-      const { prepared, fit } = fittedOf(fitted, line);
+      const { prepared, fit } = known(fitted, line);
       return fit.count > 0 && prepared.sides.children === side;
     });
     if (holding.length === 0) return undefined;
     // Row k holds every child that any of the bands places in its row k.
     const rowLines: Entry[][] = [];
     for (const line of holding) {
-      for (const [child, row] of fittedOf(fitted, line).fit.row) {
+      for (const [child, row] of known(fitted, line).fit.row) {
         while (rowLines.length < row) rowLines.push([]);
-        (rowLines[row - 1] as Entry[]).push(child);
+        nth(rowLines, row - 1).push(child);
       }
     }
     for (const children of rowLines) children.sort(scope.byTraversal);
@@ -153,10 +149,7 @@ export function layoutRow(
     }
   }
   return new Map(
-    row.lines.map((line) => [
-      line,
-      layoutTimeline(fittedOf(fitted, line).prepared, laid.get(line)),
-    ]),
+    row.lines.map((line) => [line, layoutTimeline(known(fitted, line).prepared, laid.get(line))]),
   );
 }
 
@@ -184,38 +177,33 @@ export function layoutChildren(
 ): ReadonlyMap<Entry, LaidChildren> {
   const half = joint.pitch / 2;
   const c0 = Math.max(
-    ...joint.lines.map((line) => childrenStart(fittedOf(fitted, line).prepared, pl)),
+    ...joint.lines.map((line) => childrenStart(known(fitted, line).prepared, pl)),
   );
   const halves = (side: Side) =>
     joint.rows.map((row) =>
-      Math.max(
-        half,
-        ...row.lines.map((line) => (drawings.get(line) as TimelineDrawing).edges[side]),
-      ),
+      Math.max(half, ...row.lines.map((line) => known(drawings, line).edges[side])),
     );
   const inner = halves(opposite(joint.side));
   const outer = halves(joint.side);
   const distances: number[] = [];
   inner.forEach((ik, index) => {
     distances.push(
-      index === 0
-        ? c0 + ik
-        : (distances[index - 1] as number) + ((outer[index - 1] as number) + ik),
+      index === 0 ? c0 + ik : nth(distances, index - 1) + (nth(outer, index - 1) + ik),
     );
   });
   return new Map(
     joint.lines.map((line) => {
-      const { prepared, fit } = fittedOf(fitted, line);
+      const { prepared, fit } = known(fitted, line);
       let width = 0;
       for (let index = 0; index < fit.count; index += 1) {
-        width = width + (inner[index] as number) + (outer[index] as number);
+        width = width + nth(inner, index) + nth(outer, index);
       }
       const children = prepared.children.map((child) => {
-        const row = fit.row.get(child) as number;
+        const row = known(fit.row, child);
         return {
-          drawing: drawings.get(child) as TimelineDrawing,
+          drawing: known(drawings, child),
           row,
-          distance: distances[row - 1] as number,
+          distance: nth(distances, row - 1),
         };
       });
       return [line, { start: c0, width, children }];
@@ -241,11 +229,11 @@ export function placeLines(root: TimelineDrawing, row: Row, place: LinePlace): P
   collect(row);
   const placed: PlacedLine[] = [];
   const visit = (drawing: TimelineDrawing, at: LinePlace) => {
-    placed.push({ drawing, place: at, row: rows.get(drawing.prepared.line) as Row });
+    placed.push({ drawing, place: at, row: known(rows, drawing.prepared.line) });
     const side = drawing.prepared.sides.children;
     for (const child of drawing.children?.children ?? []) {
       const y = side === "above" ? at.y - child.distance : at.y + child.distance;
-      const size = (rows.get(child.drawing.prepared.line) as Row).size;
+      const size = known(rows, child.drawing.prepared.line).size;
       visit(child.drawing, { ...at, y, size });
     }
   };

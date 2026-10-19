@@ -1,14 +1,13 @@
 /**
  * What a manifest holds beyond its tree of timelines (`tree.ts`): the entries
- * its timelines list, the addresses of its elements, its title, and the
- * timelines its drawing draws as roots (`docs/drawing.md` in timeskeleton,
- * sections 2.2 and 8.1).
+ * its timelines list, the ids an element address reserves, its title, and
+ * the timelines its drawing draws as roots (`docs/drawing.md` in
+ * timeskeleton, sections 2.2 and 8.1).
  */
 
 import { compareCodePoints } from "../json.ts";
 import { BAND_ID_PATTERN } from "./bands.ts";
-import type { Located } from "./tree.ts";
-import { rootPaths, searchTree } from "./tree.ts";
+import { displayOrder } from "./order.ts";
 import type {
   AxisValue,
   Break,
@@ -21,75 +20,73 @@ import type {
   TimelineManifest,
 } from "./types.ts";
 
-/** The kinds of the elements a timeline holds in a list, and where each list lies. */
-export const ENTRY_LISTS = {
-  map: ["conversion_maps"],
-  region: ["regions"],
-  break: ["flow_control", "breaks"],
-  jump: ["flow_control", "jumps"],
-  marker: ["flow_control", "markers"],
-} as const;
+/** Each kind of element a timeline holds in a list, and the type of its entries. */
+export interface EntryTypes {
+  readonly map: ConversionMap;
+  readonly region: Region;
+  readonly break: Break;
+  readonly jump: Jump;
+  readonly marker: Marker;
+}
 
 /** The kind of an element a timeline holds in a list. */
-export type EntryKind = keyof typeof ENTRY_LISTS;
-
-export const ENTRY_KINDS = Object.keys(ENTRY_LISTS) as EntryKind[];
+export type EntryKind = keyof EntryTypes;
 
 /** An element a timeline holds in a list: a conversion map, region, break, jump or marker. */
-export type ListedElement = ConversionMap | Region | Break | Jump | Marker;
+export type ListedElement = EntryTypes[EntryKind];
+
+/** One list of a timeline: where it lies, how to read it and how to replace it. */
+export interface EntryList<E> {
+  /** The members leading from a timeline to the list. */
+  readonly path: readonly string[];
+  get(timeline: TimelineManifest): readonly E[];
+  replace(timeline: TimelineManifest, list: readonly E[]): TimelineManifest;
+}
+
+/** Where each kind of entry lies in a timeline: the one table of the five lists. */
+export const ENTRY_LISTS: { readonly [kind in EntryKind]: EntryList<EntryTypes[kind]> } = {
+  map: {
+    path: ["conversion_maps"],
+    get: (timeline) => timeline.conversion_maps,
+    replace: (timeline, conversion_maps) => ({ ...timeline, conversion_maps }),
+  },
+  region: {
+    path: ["regions"],
+    get: (timeline) => timeline.regions,
+    replace: (timeline, regions) => ({ ...timeline, regions }),
+  },
+  break: {
+    path: ["flow_control", "breaks"],
+    get: (timeline) => timeline.flow_control.breaks,
+    replace: (timeline, breaks) => ({
+      ...timeline,
+      flow_control: { ...timeline.flow_control, breaks },
+    }),
+  },
+  jump: {
+    path: ["flow_control", "jumps"],
+    get: (timeline) => timeline.flow_control.jumps,
+    replace: (timeline, jumps) => ({
+      ...timeline,
+      flow_control: { ...timeline.flow_control, jumps },
+    }),
+  },
+  marker: {
+    path: ["flow_control", "markers"],
+    get: (timeline) => timeline.flow_control.markers,
+    replace: (timeline, markers) => ({
+      ...timeline,
+      flow_control: { ...timeline.flow_control, markers },
+    }),
+  },
+};
+
+/** The kinds of listed elements, in the order a timeline's entries are visited. */
+export const ENTRY_KINDS: readonly EntryKind[] = ["map", "region", "break", "jump", "marker"];
 
 /** The list of entries of one kind in a timeline. */
 export function entriesOf(timeline: TimelineManifest, kind: EntryKind): readonly ListedElement[] {
-  const [first, second] = ENTRY_LISTS[kind] as readonly string[];
-  const holder = timeline as unknown as { readonly [key: string]: unknown };
-  const list =
-    second === undefined
-      ? holder[first as string]
-      : (holder[first as string] as typeof holder)[second];
-  return list as readonly ListedElement[];
-}
-
-/** An entry inside a manifest: the timeline holding it, its kind and its index in that list. */
-export interface LocatedEntry {
-  readonly at: Located;
-  readonly kind: EntryKind;
-  readonly index: number;
-}
-
-/**
- * The entry an element address `<root>/<id>` names: the map, region, break,
- * jump or marker `<id>` of root `<root>`'s tree, located; `undefined` for
- * any other address.
- */
-export function locateEntry(manifest: Manifest, address: string): LocatedEntry | undefined {
-  const [first = "", id, ...rest] = address.split("/");
-  if (id === undefined || rest.length > 0) return undefined;
-  const root = rootPaths(manifest).find((item) => item.timeline.id === first);
-  if (root === undefined) return undefined;
-  return searchTree({ ...root, parent: undefined }, (at): LocatedEntry | undefined => {
-    for (const kind of ENTRY_KINDS) {
-      const index = entriesOf(at.timeline, kind).findIndex((item) => item.id === id);
-      if (index >= 0) return { at, kind, index };
-    }
-    return undefined;
-  });
-}
-
-/**
- * The entry an element address `<root>/<id>` names, with its kind; the one
- * reader of a map, region, break, jump or marker by address (`undefined` for
- * a timeline, a group, the title or an unknown address).
- */
-export function findEntry(
-  manifest: Manifest,
-  address: string,
-): { readonly kind: EntryKind; readonly entry: ListedElement } | undefined {
-  const found = locateEntry(manifest, address);
-  if (found === undefined) return undefined;
-  return {
-    kind: found.kind,
-    entry: entriesOf(found.at.timeline, found.kind)[found.index] as ListedElement,
-  };
+  return ENTRY_LISTS[kind].get(timeline);
 }
 
 /** Whether a manifest is named: it has an `id` or a `name`, and so a title. */
@@ -98,7 +95,7 @@ export function isNamed(manifest: Manifest): boolean {
 }
 
 /** The words that follow an element's address to name one of its parts. */
-const PART_WORDS: readonly string[] = ["start", "end", "name", "label", "card"];
+export const PART_WORDS = ["start", "end", "name", "label", "card"] as const;
 
 /**
  * Whether `id` is reserved, so that no id of a manifest may be it: a part
@@ -106,7 +103,7 @@ const PART_WORDS: readonly string[] = ["start", "end", "name", "label", "card"];
  * id (`BAND_ID_PATTERN`), which follows a timeline's id as one of its bands.
  */
 export function isReservedId(id: string): boolean {
-  return PART_WORDS.includes(id) || BAND_ID_PATTERN.test(id);
+  return PART_WORDS.some((word) => word === id) || BAND_ID_PATTERN.test(id);
 }
 
 /** The address of a manifest's title, the top label of its box, named or not. */
@@ -122,27 +119,14 @@ export function elementAddress(root: string, id: string): string {
   return `${root}/${id}`;
 }
 
-/**
- * The address of the element a path within a manifest names, its trailing
- * part words and band ids removed: `<root>/<id>` when the path starts with
- * a root's id followed by an id that is not reserved (`isReservedId`), and
- * the first segment otherwise. So `score/end/label` and `score/regions_1`
- * (the regions band of `score`) name `score`, as `score/card` does, and
- * `score/region_1/label` names `score/region_1`; reserved ids are refused as
- * ids, so the two never meet. The manifest's title is `name` itself.
- */
-export function elementOf(manifest: Manifest, path: string): string {
-  return elementOfIn(manifest)(path);
+/** The address of a timeline's card: `<timeline>/card`. */
+export function cardAddress(timeline: string): string {
+  return partAddress(timeline, "card");
 }
 
-/** `elementOf` of one manifest, its root ids read once for many paths. */
-export function elementOfIn(manifest: Manifest): (path: string) => string {
-  const roots = new Set(manifest.timelines.map((root) => root.id));
-  return (path) => {
-    const [first = "", second] = path.split("/");
-    if (second === undefined) return first;
-    return roots.has(first) && !isReservedId(second) ? `${first}/${second}` : first;
-  };
+/** The address of an element's part, `<owner address>/<word>`: a title, a label, a mark or a card. */
+export function partAddress(owner: string, word: (typeof PART_WORDS)[number]): string {
+  return `${owner}/${word}`;
 }
 
 /** A timeline drawn as a root: a group's member or an ungrouped root. */
@@ -181,8 +165,9 @@ export interface MemberDrawings {
 
 /**
  * The member drawings of a manifest in canonical order: every group's
- * members in their display order (`graphical.order`, else `members`), each
- * with its ancestors, then the ungrouped roots.
+ * members in their display order (`displayOrder`), each with its ancestors,
+ * then the ungrouped roots. A member id no timeline carries, which the
+ * schema refuses, is passed over.
  */
 export function memberDrawings(manifest: Manifest): MemberDrawings {
   const roots = [...manifest.timelines].sort((a, b) => compareCodePoints(a.id, b.id));
@@ -190,22 +175,22 @@ export function memberDrawings(manifest: Manifest): MemberDrawings {
   const visit = (timeline: TimelineManifest, root: string, ancestors: readonly Ancestor[]) => {
     if (!found.has(timeline.id)) found.set(timeline.id, { timeline, root, ancestors });
     for (const child of timeline.children) {
-      visit(child, root, [...ancestors, { timeline, offset: child.offset as AxisValue }]);
+      visit(child, root, [...ancestors, { timeline, offset: child.offset }]);
     }
   };
   for (const root of roots) visit(root, root.id, []);
+  const drawn = (id: string): MemberDrawing[] => {
+    const member = found.get(id);
+    return member === undefined ? [] : [member];
+  };
   const groups = [...manifest.groups].sort((a, b) => compareCodePoints(a.id, b.id));
   const frames = groups.map((group) => ({
     group,
-    members: (manifest.graphical?.order?.[group.id] ?? group.members).map(
-      (id) => found.get(id) as MemberDrawing,
-    ),
+    members: displayOrder(manifest, group.id).flatMap(drawn),
   }));
   const members = new Set(groups.flatMap((group) => group.members));
   const holdsMember = (timeline: TimelineManifest): boolean =>
     members.has(timeline.id) || timeline.children.some(holdsMember);
-  const ungrouped = roots
-    .filter((root) => !holdsMember(root))
-    .map((root) => found.get(root.id) as MemberDrawing);
+  const ungrouped = roots.filter((root) => !holdsMember(root)).flatMap((root) => drawn(root.id));
   return { frames, ungrouped };
 }

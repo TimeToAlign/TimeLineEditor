@@ -7,9 +7,9 @@ import path from "node:path";
 import { SCHEMA_VERSION } from "@timetoalign/timeskeleton";
 import { build } from "vite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { licenceFile, NOTICES_FILE, packageOf, RULE, SUBRULE } from "../notices.ts";
-import { ATTRIBUTIONS, FONT_LICENCE } from "../src/attributions.ts";
-import config from "../vite.config.ts";
+import { licenceFile, packageOf, RULE, SUBRULE } from "../notices.ts";
+import { ATTRIBUTIONS, FONT_LICENCE, NOTICES_FILE } from "../src/attributions.ts";
+import configOf from "../vite.config.ts";
 
 const editor = path.join(import.meta.dirname, "..");
 let outDir: string;
@@ -199,6 +199,7 @@ describe("the build", () => {
     const manifest = createRequire(import.meta.url).resolve(
       "@timetoalign/timeskeleton/package.json",
     );
+    const config = configOf({ command: "serve", mode: "development" });
     expect(config.server?.fs?.allow).toEqual([
       path.join(editor, "..", ".."),
       path.dirname(realpathSync(manifest)),

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { contains, manifestElements } from "../src/index.ts";
+import { contains } from "../src/manifest/contains.ts";
+import { manifestElements } from "../src/manifest/elements.ts";
 import { load } from "./support.ts";
 
 const mixed = load("bundles/bundle_mixed.json");

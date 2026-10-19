@@ -1,4 +1,4 @@
-/** The inspector's Editor and Journal tabs; the expected values are derived in `README.md` ("The Editor and Journal tabs"). */
+/** The inspector's tabs and panels; the expected values are derived in `README.md` ("The tabs and panels"). */
 
 import { liveStore } from "@timetoalign/tilie-arranger";
 import type { Entry, OpenEditor, Store, View } from "@timetoalign/tilie-core";
@@ -7,6 +7,8 @@ import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it } from "vitest";
 import Inspector from "../src/inspector/Inspector.svelte";
 import type { JournalSource } from "../src/inspector/journal.ts";
+import type { Tab } from "../src/inspector/tabs.ts";
+import { initialPick, nextTab, shownTab, TABS, tabsOf } from "../src/inspector/tabs.ts";
 import { holder } from "./holder.svelte.ts";
 import { MIXED, mixedStore } from "./mixed.ts";
 
@@ -15,12 +17,15 @@ const HINT = "Select a block to inspect its manifest.";
 
 /**
  * A store whose levels (`editing`, `listed`, `sessions`) the test sets, announced
- * through `subscribe` as the store announces its own changes; everything else is `inner`'s.
+ * through `subscribe` as the store announces its own changes, and which counts an
+ * opening whenever the staged editing path grows; everything else is `inner`'s.
  */
 function staged(inner: Store): { store: Store; stage(levels: Partial<JournalSource>): void } {
   let levels: Partial<JournalSource> = {};
+  let openings = 0;
   const listeners = new Set<(view: View) => void>();
   const store = Object.create(inner, {
+    openings: { get: () => openings },
     editing: { get: () => levels.editing ?? inner.editing },
     listed: { get: () => levels.listed ?? inner.listed },
     sessions: { get: () => levels.sessions ?? inner.sessions },
@@ -38,6 +43,7 @@ function staged(inner: Store): { store: Store; stage(levels: Partial<JournalSour
   return {
     store,
     stage(next) {
+      if ((next.editing?.length ?? 0) > (levels.editing?.length ?? 0)) openings += 1;
       levels = next;
       for (const listener of [...listeners]) listener(inner.view);
       flushSync();
@@ -74,73 +80,165 @@ function show(store: Store, selection: string[] = [A]): void {
   flushSync();
 }
 
-/** Every tab as [id, text, aria-selected, tabindex]. */
+/** The tab named `name`. */
+function tabNamed(name: string): HTMLElement {
+  const found = [...document.querySelectorAll<HTMLElement>('[role="tab"]')].find(
+    (tab) => tab.textContent?.trim() === name,
+  );
+  if (found === undefined) throw new Error(`no tab ${name}`);
+  return found;
+}
+
+/** The panel the tab `name` controls; `null` without that tab. */
+function panelOf(name: string): HTMLElement | null {
+  const tab = [...document.querySelectorAll<HTMLElement>('[role="tab"]')].find(
+    (item) => item.textContent?.trim() === name,
+  );
+  const id = tab?.getAttribute("aria-controls");
+  return id === null || id === undefined ? null : document.getElementById(id);
+}
+
+/** Every tab as [text, aria-selected, tabindex]. */
 function tabs(): unknown[] {
   return [...document.querySelectorAll<HTMLElement>('[role="tab"]')].map((tab) => [
-    tab.id,
     tab.textContent?.trim(),
     tab.getAttribute("aria-selected"),
     tab.getAttribute("tabindex"),
   ]);
 }
 
-/** Every panel as [id, hidden]. */
+/** Every panel as [the text of the tab labelling it, hidden]. */
 function panels(): unknown[] {
   return [...document.querySelectorAll<HTMLElement>('[role="tabpanel"]')].map((panel) => [
-    panel.id,
+    document.getElementById(panel.getAttribute("aria-labelledby") ?? "")?.textContent?.trim(),
     panel.hidden,
   ]);
 }
 
-function tab(name: string): unknown[] {
-  return [`inspector-tab-${name.toLowerCase()}`, name];
-}
-
-const on = (name: string) => [...tab(name), "true", "0"];
-const off = (name: string) => [...tab(name), "false", "-1"];
+const on = (name: string) => [name, "true", "0"];
+const off = (name: string) => [name, "false", "-1"];
 
 function click(name: string): void {
-  (document.getElementById(`inspector-tab-${name}`) as HTMLElement).click();
+  tabNamed(name).click();
   flushSync();
 }
 
 function editorText(): string | undefined {
-  return document.getElementById("inspector-panel-editor")?.textContent?.trim();
+  return panelOf("Editor")?.textContent?.trim();
 }
 
+describe("the tab rule", () => {
+  it("offers Editor only while an editor is open", () => {
+    expect([tabsOf(0), tabsOf(1), tabsOf(2)]).toEqual([
+      ["properties", "manifest", "journal"],
+      TABS,
+      TABS,
+    ]);
+    expect([initialPick(0, 3), initialPick(1, 3)]).toEqual([
+      { tab: "properties", openings: 3 },
+      { tab: "editor", openings: 3 },
+    ]);
+  });
+
+  it("shows Editor after an opening, the chosen tab otherwise, never Editor without an editor", () => {
+    const cases: [Tab, number, number, number, Tab][] = [
+      // [chosen, openings when chosen, openings now, depth, shown]
+      ["properties", 0, 0, 0, "properties"],
+      ["journal", 0, 1, 1, "editor"],
+      ["journal", 1, 1, 1, "journal"],
+      ["journal", 1, 2, 2, "editor"],
+      ["editor", 1, 1, 0, "properties"],
+      ["manifest", 1, 1, 0, "manifest"],
+      ["manifest", 1, 2, 0, "properties"],
+    ];
+    expect(
+      cases.map(([tab, chosenAt, openings, depth]) =>
+        shownTab({ tab, openings: chosenAt }, openings, depth),
+      ),
+    ).toEqual(cases.map(([, , , , shown]) => shown));
+  });
+
+  it("moves with the arrows, Home and End, wrapping, and leaves a modified key to the browser", () => {
+    const all = tabsOf(1);
+    const key = (name: string, held: Partial<KeyboardEvent> = {}) => ({
+      key: name,
+      altKey: false,
+      ctrlKey: false,
+      metaKey: false,
+      ...held,
+    });
+    expect([
+      nextTab(all, "editor", key("ArrowRight")),
+      nextTab(all, "journal", key("ArrowRight")),
+      nextTab(all, "editor", key("ArrowLeft")),
+      nextTab(all, "manifest", key("Home")),
+      nextTab(all, "manifest", key("End")),
+      nextTab(all, "manifest", key("ArrowDown")),
+      nextTab(all, "manifest", key("ArrowRight", { altKey: true })),
+      nextTab(all, "manifest", key("ArrowRight", { ctrlKey: true })),
+      nextTab(all, "manifest", key("ArrowRight", { metaKey: true })),
+    ]).toEqual([
+      "properties",
+      "editor",
+      "journal",
+      "editor",
+      "journal",
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    ]);
+  });
+});
+
 describe("the tab set", () => {
-  it("shows Properties, Manifest and Journal without an editor", () => {
+  it("shows Properties, Manifest and Journal without an editor, each tab naming its panel", () => {
     show(mixedStore());
     expect(tabs()).toEqual([on("Properties"), off("Manifest"), off("Journal")]);
-    expect(document.getElementById("inspector-tab-editor")).toBe(null);
-    expect(document.getElementById("inspector-panel-editor")).toBe(null);
-    expect(
-      [...document.querySelectorAll('[role="tabpanel"]')].map((panel) => [
-        panel.id,
-        panel.getAttribute("aria-labelledby"),
-      ]),
-    ).toEqual([
-      ["inspector-panel-properties", "inspector-tab-properties"],
-      ["inspector-panel-manifest", "inspector-tab-manifest"],
-      ["inspector-panel-journal", "inspector-tab-journal"],
+    expect(panelOf("Editor")).toBe(null);
+    const pairs = [...document.querySelectorAll<HTMLElement>('[role="tab"]')].map((tab) => {
+      const panel = document.getElementById(tab.getAttribute("aria-controls") ?? "");
+      return [panel?.getAttribute("role"), panel?.getAttribute("aria-labelledby") === tab.id];
+    });
+    expect(pairs).toEqual([
+      ["tabpanel", true],
+      ["tabpanel", true],
+      ["tabpanel", true],
+    ]);
+    const ids = [...document.querySelectorAll("[id]")].map((element) => element.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("renders only the panel shown", () => {
+    show(mixedStore());
+    expect(panels()).toEqual([
+      ["Properties", false],
+      ["Manifest", true],
+      ["Journal", true],
+    ]);
+    expect([panelOf("Manifest")?.childElementCount, panelOf("Journal")?.childElementCount]).toEqual(
+      [0, 0],
+    );
+    click("Journal");
+    expect([panelOf("Properties")?.childElementCount, panelOf("Journal")?.hidden]).toEqual([
+      0,
+      false,
     ]);
   });
 
   it("keeps the tab list with nothing selected", () => {
     show(mixedStore(), []);
     expect(tabs()).toEqual([on("Properties"), off("Manifest"), off("Journal")]);
-    expect(
-      ["properties", "manifest"].map((name) =>
-        document.getElementById(`inspector-panel-${name}`)?.textContent?.trim(),
-      ),
-    ).toEqual([HINT, HINT]);
-    click("journal");
+    expect(panelOf("Properties")?.textContent?.trim()).toBe(HINT);
+    click("Manifest");
+    expect(panelOf("Manifest")?.textContent?.trim()).toBe(HINT);
+    click("Journal");
     expect(panels()).toEqual([
-      ["inspector-panel-properties", true],
-      ["inspector-panel-manifest", true],
-      ["inspector-panel-journal", false],
+      ["Properties", true],
+      ["Manifest", true],
+      ["Journal", false],
     ]);
-    expect(document.querySelectorAll("#inspector-panel-journal li")).toHaveLength(3);
+    expect(panelOf("Journal")?.querySelectorAll("li")).toHaveLength(3);
   });
 
   it("selects Editor on every opening and Properties when the last editor closes", () => {
@@ -149,17 +247,14 @@ describe("the tab set", () => {
     stage({ editing: [GROUP] });
     expect(tabs()).toEqual([on("Editor"), off("Properties"), off("Manifest"), off("Journal")]);
     expect(panels()).toEqual([
-      ["inspector-panel-editor", false],
-      ["inspector-panel-properties", true],
-      ["inspector-panel-manifest", true],
-      ["inspector-panel-journal", true],
+      ["Editor", false],
+      ["Properties", true],
+      ["Manifest", true],
+      ["Journal", true],
     ]);
-    expect(document.getElementById("inspector-panel-editor")?.getAttribute("aria-labelledby")).toBe(
-      "inspector-tab-editor",
-    );
     expect(editorText()).toBe("Group editor: Performance");
 
-    click("journal");
+    click("Journal");
     stage({ editing: [GROUP, TIMELINE] });
     expect(tabs()).toEqual([on("Editor"), off("Properties"), off("Manifest"), off("Journal")]);
     expect(editorText()).toBe("Timeline editor: Score");
@@ -170,15 +265,15 @@ describe("the tab set", () => {
 
     stage({ editing: [] });
     expect(tabs()).toEqual([on("Properties"), off("Manifest"), off("Journal")]);
-    expect(document.getElementById("inspector-panel-editor")).toBe(null);
-    expect(document.getElementById("inspector-panel-properties")?.hidden).toBe(false);
+    expect(panelOf("Editor")).toBe(null);
+    expect(panelOf("Properties")?.hidden).toBe(false);
   });
 
   it("keeps another tab when the last editor closes", () => {
     const { store, stage } = staged(mixedStore());
     show(store);
     stage({ editing: [GROUP] });
-    click("manifest");
+    click("Manifest");
     stage({ editing: [] });
     expect(tabs()).toEqual([off("Properties"), on("Manifest"), off("Journal")]);
   });
@@ -216,11 +311,9 @@ describe("with the store's own editors", () => {
     store.done();
     flushSync();
     expect(tabs()).toEqual([on("Properties"), off("Manifest"), off("Journal")]);
-    click("journal");
+    click("Journal");
     expect(
-      [...document.querySelectorAll("#inspector-panel-journal .text")].map(
-        (item) => item.textContent,
-      ),
+      [...(panelOf("Journal")?.querySelectorAll(".text") ?? [])].map((item) => item.textContent),
     ).toEqual([
       "Edited group Performance (1 change)",
       "Added block 0000000002 to workspace",
@@ -240,7 +333,7 @@ describe("the block fields in an editor", () => {
       .map((input) => [input.name, input.disabled]);
   }
 
-  const ALL = ["x", "y", "scale", "length", "spacing", "width", "height"];
+  const ALL = ["x", "y", "length", "scale", "spacing", "width", "height"];
   const enabled = ALL.map((name) => [name, false]);
   const blockFieldsOff = ALL.map((name) => [
     name,
@@ -258,21 +351,23 @@ describe("the block fields in an editor", () => {
   it("disables scale, length and spacing in a group or timeline editor only", () => {
     const { store, stage } = staged(mixedStore());
     show(store);
+    /** The fields after the editing path `editing`, read on the Properties tab. */
+    const after = (editing: OpenEditor[]) => {
+      stage({ editing });
+      click("Properties");
+      return fields();
+    };
     expect(fields()).toEqual(enabled);
-    stage({ editing: [editor(A, "bundle")] });
-    expect(fields()).toEqual(enabled);
-    stage({ editing: [GROUP] });
-    expect(fields()).toEqual(blockFieldsOff);
-    stage({ editing: [GROUP, TIMELINE] });
-    expect(fields()).toEqual(blockFieldsOff);
-    stage({ editing: [] });
-    expect(fields()).toEqual(enabled);
+    expect(after([editor(A, "bundle")])).toEqual(enabled);
+    expect(after([GROUP])).toEqual(blockFieldsOff);
+    expect(after([GROUP, TIMELINE])).toEqual(blockFieldsOff);
+    expect(after([])).toEqual(enabled);
   });
 });
 
 describe("the keys", () => {
   function steps(from: string, keys: string[]): string[] {
-    (document.getElementById(`inspector-tab-${from}`) as HTMLElement).focus();
+    tabNamed(from).focus();
     return keys.map((key) => {
       (document.activeElement as HTMLElement).dispatchEvent(
         new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }),
@@ -287,7 +382,7 @@ describe("the keys", () => {
   it("move over the tabs present, wrapping", () => {
     const { store, stage } = staged(mixedStore());
     show(store);
-    expect(steps("properties", ["ArrowLeft", "ArrowRight", "End", "Home"])).toEqual([
+    expect(steps("Properties", ["ArrowLeft", "ArrowRight", "End", "Home"])).toEqual([
       "Journal",
       "Properties",
       "Journal",
@@ -295,7 +390,7 @@ describe("the keys", () => {
     ]);
     stage({ editing: [GROUP] });
     expect(
-      steps("editor", [
+      steps("Editor", [
         "ArrowRight",
         "ArrowRight",
         "ArrowRight",
@@ -311,7 +406,7 @@ describe("the keys", () => {
 describe("the Journal panel", () => {
   /** Each item as [time, author, text, data-undone, data-earlier, its hidden word]. */
   function items(): unknown[] {
-    return [...document.querySelectorAll("#inspector-panel-journal li")].map((item) => [
+    return [...(panelOf("Journal") as HTMLElement).querySelectorAll("li")].map((item) => [
       item.querySelector(".time")?.textContent,
       item.querySelector(".author")?.textContent,
       item.querySelector(".text")?.textContent,
@@ -333,10 +428,8 @@ describe("the Journal panel", () => {
   it("lists the rows, the undone one grey with a hidden word, and follows the store", () => {
     const store = mixedStore({ clock: () => new Date("2026-10-17T08:05:09.123Z") });
     show(store);
-    click("journal");
-    expect(document.querySelector("#inspector-panel-journal ol")?.getAttribute("aria-label")).toBe(
-      "Journal",
-    );
+    click("Journal");
+    expect(panelOf("Journal")?.querySelector("ol")?.getAttribute("aria-label")).toBe("Journal");
     store.dispatch({ type: "set", changes: [{ target: A, values: { x: 25 } }] });
     store.undo();
     flushSync();
@@ -351,8 +444,8 @@ describe("the Journal panel", () => {
     const { store, stage } = staged(inner);
     show(store);
     stage({ editing: [GROUP], listed: inner.listed });
-    click("journal");
-    const before = [...document.querySelectorAll("#inspector-panel-journal li")];
+    click("Journal");
+    const before = [...(panelOf("Journal") as HTMLElement).querySelectorAll("li")];
     expect(before).toHaveLength(3);
     const earlier: Entry = {
       command: { type: "set", changes: [{ target: GROUP.target, values: { order: null } }] },
@@ -368,7 +461,7 @@ describe("the Journal panel", () => {
       ...ADDS,
       ["07:00:01", "Ada", `Set order of ${GROUP.target}`, false, true, null],
     ]);
-    const after = [...document.querySelectorAll("#inspector-panel-journal li")];
+    const after = [...(panelOf("Journal") as HTMLElement).querySelectorAll("li")];
     expect(after.slice(0, 3).map((item, index) => item === before[index])).toEqual([
       true,
       true,
@@ -384,7 +477,7 @@ describe("the Journal panel", () => {
       listed: listEntries([...inner.journal, fourth], inner.sessions),
       sessions: { s0: { target: GROUP.target, entries: [earlier] } },
     });
-    const later = [...document.querySelectorAll("#inspector-panel-journal li")];
+    const later = [...(panelOf("Journal") as HTMLElement).querySelectorAll("li")];
     expect(later.slice(1, 4).map((item, index) => item === before[index])).toEqual([
       true,
       true,
@@ -396,8 +489,8 @@ describe("the Journal panel", () => {
     const { store, stage } = staged(mixedStore());
     show(store);
     stage({ editing: [GROUP], listed: [] });
-    click("journal");
-    const panel = document.getElementById("inspector-panel-journal") as HTMLElement;
+    click("Journal");
+    const panel = panelOf("Journal") as HTMLElement;
     expect(panel.textContent?.trim()).toBe("No changes yet.");
     expect(panel.querySelector("ol")).toBe(null);
     const one: Entry = {
@@ -428,8 +521,8 @@ describe("the Journal panel", () => {
     // One undo reverts the timeline session's run: both of its changes.
     store.undo();
     show(store);
-    click("journal");
-    const panel = document.getElementById("inspector-panel-journal") as HTMLElement;
+    click("Journal");
+    const panel = panelOf("Journal") as HTMLElement;
     const first = panel.querySelector(":scope > ol > li") as HTMLElement;
     const button = () => first.querySelector(":scope > .row > button") as HTMLButtonElement;
     const text = first.querySelector(":scope > .row > .text") as HTMLElement;

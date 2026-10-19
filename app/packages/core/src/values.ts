@@ -3,15 +3,17 @@
  * the value as stored, or a problem at the given path.
  */
 
+import type { Declaration, Selector } from "@timetoalign/timeskeleton";
 import { JsonFloat, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
 import type { Problem } from "./errors.ts";
 import { ErrorCode, isCommandError, problem } from "./errors.ts";
 import type { Json, JsonObject, PathSegment } from "./json.ts";
 import { isJsonObject, showJson } from "./json.ts";
-import { schemaProblems } from "./manifest/io.ts";
+import type { CardPlace, ItemPlace } from "./manifest/containers.ts";
+import { ITEM_PLACE_MEMBERS } from "./manifest/containers.ts";
+import { plainDeclaration, plainGraphical, plainSelector, schemaChecked } from "./manifest/io.ts";
+import type { ManifestGraphical } from "./manifest/types.ts";
 import { jsonInteger } from "./number/coordinate.ts";
-import type { Place } from "./workspace/blocks.ts";
-import { PLACE_MEMBERS } from "./workspace/blocks.ts";
 import { isIndex } from "./workspace/order.ts";
 
 function invalid(message: string, path: readonly PathSegment[]): Problem {
@@ -135,16 +137,19 @@ export const PLACE_READERS = {
   spacing: readPositive,
   width: readPositive,
   height: readPositive,
-} as const satisfies { readonly [member in keyof Place]-?: unknown };
+} as const satisfies { readonly [member in keyof ItemPlace]-?: unknown };
 
-/** A place: an object of only the place members, at least one, each by its rule. */
-export function readPlace(value: unknown, path: readonly PathSegment[]): Place | Problem {
+/**
+ * A place: an object of only the members an item's place may state, at
+ * least one, each by its rule.
+ */
+function readPlace(value: unknown, path: readonly PathSegment[]): ItemPlace | Problem {
   const object = readObject(value, path);
   if (isCommandError(object)) return object;
-  const extra = unknownMember(object, PLACE_MEMBERS, path);
+  const extra = unknownMember(object, ITEM_PLACE_MEMBERS, path);
   if (extra !== undefined) return extra;
-  const place: { [member: string]: number } = {};
-  for (const member of PLACE_MEMBERS) {
+  const place: { -readonly [M in keyof ItemPlace]?: number } = {};
+  for (const member of ITEM_PLACE_MEMBERS) {
     if (!Object.hasOwn(object, member)) continue;
     const read = PLACE_READERS[member](object[member], [...path, member]);
     if (isCommandError(read)) return read;
@@ -155,14 +160,18 @@ export function readPlace(value: unknown, path: readonly PathSegment[]): Place |
     : invalid("a place states at least one member", path);
 }
 
-/** A block's places: an object of places, keys any string. */
+/**
+ * A block's places: an object of places, keys any string, each read as an
+ * item's place; which keys and members a manifest's containers take is
+ * `placeProblems`'s.
+ */
 export function readPlaces(
   value: unknown,
   path: readonly PathSegment[],
-): { readonly [key: string]: Place } | Problem {
+): { readonly [key: string]: ItemPlace | CardPlace } | Problem {
   const object = readObject(value, path);
   if (isCommandError(object)) return object;
-  const result: { [key: string]: Place } = {};
+  const result: { [key: string]: ItemPlace | CardPlace } = {};
   for (const [key, item] of Object.entries(object)) {
     const place = readPlace(item, [...path, key]);
     if (isCommandError(place)) return place;
@@ -177,42 +186,51 @@ export function readIndex(value: unknown, path: readonly PathSegment[]): string 
     : problem(ErrorCode.invalidIndex, `invalid fractional index ${showJson(value)}`, path);
 }
 
-/** A manifest of the current schema version holding nothing, to validate a `graphical` block inside. */
-function host(graphical: Json): Json {
-  return { timeskeleton: SCHEMA_VERSION, timelines: [], graphical };
-}
-
 /**
- * The first schema problem of `value` placed at `at` inside a host manifest,
- * reported at `path` followed by its location inside `value`.
+ * `found`, a schema problem of a host manifest holding a fragment at `at`,
+ * reported at `path` followed by its location inside the fragment.
  */
-function fragmentProblem(
-  container: Json,
+function located(
+  found: Problem,
   at: readonly PathSegment[],
   path: readonly PathSegment[],
-): Problem | undefined {
-  const [found] = schemaProblems(container);
-  if (found === undefined) return undefined;
+): Problem {
   const inside = at.every((segment, index) => found.path[index] === segment);
   return { ...found, path: [...path, ...(inside ? found.path.slice(at.length) : [])] };
 }
 
 /** A `graphical` block, as a manifest's or the workspace settings'. */
-export function readGraphical(value: unknown, path: readonly PathSegment[]): JsonObject | Problem {
+export function readGraphical(
+  value: unknown,
+  path: readonly PathSegment[],
+): ManifestGraphical | Problem {
   const read = readObject(value, path);
   if (isCommandError(read)) return read;
-  return fragmentProblem(host(read), ["graphical"], path) ?? read;
+  const checked = schemaChecked({ timeskeleton: SCHEMA_VERSION, timelines: [], graphical: read });
+  if ("code" in checked) return located(checked, ["graphical"], path);
+  const plain = plainGraphical(checked.graphical ?? {});
+  return "code" in plain ? located(plain, ["graphical"], path) : plain;
 }
 
-/** A selector and a declaration, checked as one statement of a `graphical` block. */
-export function statementProblem(
+/**
+ * A selector and a declaration, checked as one statement of a `graphical`
+ * block and read as the plain `Selector` and `Declaration` (its numbers
+ * doubles), or the first problem at `path`.
+ */
+export function readStatement(
   select: Json,
   set: Json,
   path: readonly PathSegment[],
-): Problem | undefined {
-  return fragmentProblem(
-    host({ statements: [{ select, set }] }),
-    ["graphical", "statements", 0],
-    path,
-  );
+): { readonly select: Selector; readonly set: Declaration } | Problem {
+  const graphical = { statements: [{ select, set }] };
+  const checked = schemaChecked({ timeskeleton: SCHEMA_VERSION, timelines: [], graphical });
+  const at = ["graphical", "statements", 0] as const;
+  if ("code" in checked) return located(checked, at, path);
+  const [statement] = checked.graphical?.statements ?? [];
+  if (statement === undefined || typeof statement.set === "string") {
+    throw new Error("the schema checked one statement with a declaration");
+  }
+  const declaration = plainDeclaration(statement.set, [...at, "set"]);
+  if ("code" in declaration) return located(declaration, at, path);
+  return { select: plainSelector(statement.select), set: declaration };
 }

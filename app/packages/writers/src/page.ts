@@ -3,7 +3,7 @@
  * (`docs/drawing.md` in timeskeleton, sections 7.1 and 7.3).
  */
 
-import { fromFloat } from "@timetoalign/tilie-core";
+import { fromFloat } from "@timetoalign/tilie-core/numbers";
 import type { Drawing } from "@timetoalign/tilie-layout";
 
 /** One drawing placed at canvas position `(x, y)` and scaled by `scale`. */

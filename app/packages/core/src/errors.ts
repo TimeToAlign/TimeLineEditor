@@ -35,8 +35,7 @@ export const ErrorCode = {
   wrongTargetKind: "wrong_target_kind",
   idNotSettable: "id_not_settable",
   notRemovable: "not_removable",
-  gapRequired: "gap_required",
-  gapNotPermitted: "gap_not_permitted",
+  segmentNotRemovable: "segment_not_removable",
   invalidValue: "invalid_value",
   nonFiniteNumber: "non_finite_number",
   nonPositiveNumber: "non_positive_number",
@@ -53,6 +52,12 @@ export const ErrorCode = {
   unknownSession: "unknown_session",
   unreferencedSession: "unreferenced_session",
   sessionReferencedTwice: "session_referenced_twice",
+  journalMismatch: "journal_mismatch",
+  unitMismatch: "unit_mismatch",
+  segmentStructure: "segment_structure",
+  cycle: "cycle",
+  alreadyMember: "already_member",
+  nestedMember: "nested_member",
 } as const;
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
@@ -83,6 +88,7 @@ export interface LoadError {
   readonly problems: readonly Problem[];
 }
 
+/** A problem with the given code, description and path. */
 export function problem(code: ErrorCode, message: string, path: readonly PathSegment[]): Problem {
   return { code, message, path };
 }
@@ -92,8 +98,10 @@ export function isCommandError(value: unknown): value is CommandError {
   return (
     typeof value === "object" &&
     value !== null &&
-    typeof (value as { code?: unknown }).code === "string" &&
-    Array.isArray((value as { path?: unknown }).path)
+    "code" in value &&
+    typeof value.code === "string" &&
+    "path" in value &&
+    Array.isArray(value.path)
   );
 }
 
@@ -102,7 +110,8 @@ export function isLoadError(value: unknown): value is LoadError {
   return (
     typeof value === "object" &&
     value !== null &&
-    Array.isArray((value as { problems?: unknown }).problems)
+    "problems" in value &&
+    Array.isArray(value.problems)
   );
 }
 
@@ -118,5 +127,26 @@ export class InvalidManifestError extends Error {
     );
     this.name = "InvalidManifestError";
     this.problems = problems;
+  }
+}
+
+/**
+ * Thrown when replaying a workspace's journal does not reproduce the view the
+ * workspace holds: `entry` is the index of the first journal entry after
+ * which the replayed view differs from what the snapshot implies, `path` the
+ * first differing location in the view (`["settings", ...]` or `["blocks",
+ * <id>, ...]`).
+ */
+export class JournalMismatchError extends Error {
+  readonly entry: number;
+  readonly path: readonly PathSegment[];
+
+  constructor(entry: number, path: readonly PathSegment[]) {
+    super(
+      `the journal does not reproduce the workspace: entry ${entry} leaves ${JSON.stringify(path)} different`,
+    );
+    this.name = "JournalMismatchError";
+    this.entry = entry;
+    this.path = path;
   }
 }

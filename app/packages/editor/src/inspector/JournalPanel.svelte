@@ -1,5 +1,6 @@
 <script lang="ts">
 import type { Entry } from "@timetoalign/tilie-core";
+import { isSessionEntry } from "@timetoalign/tilie-core";
 import { SvelteSet } from "svelte/reactivity";
 import type { JournalRow } from "./journal.ts";
 
@@ -17,7 +18,7 @@ function toggle(entry: Entry): void {
 
 /** An id for a part of a session row; session ids are unique in the workspace. */
 function idOf(entry: Entry, part: string): string | undefined {
-  return "session" in entry ? `${uid}-${part}-${entry.session}` : undefined;
+  return isSessionEntry(entry) ? `${uid}-${part}-${entry.session}` : undefined;
 }
 </script>
 

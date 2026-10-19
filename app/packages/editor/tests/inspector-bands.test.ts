@@ -1,27 +1,22 @@
 /**
- * A selected band shows three read-only rows, and every other reader of
- * the selection leaves bands out; the expected values are derived in
- * `README.md` ("The inspector", "A selected band shows three read-only
- * rows").
+ * A selected band shows three read-only rows, and the form leaves bands
+ * out; the expected values are derived in `README.md` ("The Properties
+ * form", "A selected band").
  */
 
 import type { LivePlacement } from "@timetoalign/tilie-arranger";
-import { drawingOf, liveStore } from "@timetoalign/tilie-arranger";
+import { drawingOf, liveStore, resolveSelection } from "@timetoalign/tilie-arranger";
 import type { Block, Store, View } from "@timetoalign/tilie-core";
-import { createStore, createView } from "@timetoalign/tilie-core";
-import type { DrawnBand } from "@timetoalign/tilie-layout";
+import type { DrawnBox } from "@timetoalign/tilie-layout";
 import { fontMetrics } from "@timetoalign/timeskeleton";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  manifestOf,
-  manifestText,
-  selectedBlock,
-  selectedTimeline,
-} from "../src/inspector/edit.ts";
 import Inspector from "../src/inspector/Inspector.svelte";
+import { manifestOf, manifestText } from "../src/inspector/manifestText.ts";
+import type { Shown } from "../src/inspector/properties.ts";
 import { bandRows, geometryOf } from "../src/inspector/properties.ts";
-import { fixture } from "./support.ts";
+import { selectedBlock } from "../src/inspector/selection.ts";
+import { storeOf as storeOfFixtures } from "./support.ts";
 
 /** `map`. */
 const A = "0000000000";
@@ -32,28 +27,30 @@ const GEOMETRY_HINT = "Select a block, a frame or a card to edit its geometry.";
 
 /** The store of the two blocks, each written by one `add`. */
 function storeOf(): Store {
-  const store = createStore({ view: createView(), journal: [], sessions: {} });
-  for (const [id, name, x] of [
-    [A, "map", 0],
-    [B, "map_child_band_order", 800],
-  ] as const) {
-    const refusal = store.dispatch({
-      type: "add",
-      into: "workspace",
-      block: { id, manifest: fixture(name), x, y: 0 },
-    });
-    if (refusal !== null) throw new Error(refusal.message);
-  }
-  return store;
+  return storeOfFixtures("map", "map_child_band_order");
 }
 
-/** The rows of `selection` as `[label, value]` pairs; `null` when it has none. */
-function rows(
-  view: View,
-  selection: string[],
-  placement: LivePlacement | null = null,
-): [string, string][] | null {
-  return bandRows(view, selection, placement)?.map(({ label, value }) => [label, value]) ?? null;
+function blockOf(view: View, id: string): Block {
+  const block = view.blocks[id];
+  if (block === undefined) throw new Error(`no block ${id}`);
+  return block;
+}
+
+/** What the canvas shows of `id` without a gesture. */
+function stored(view: View, id: string): Shown {
+  const block = blockOf(view, id);
+  return { ...block, drawing: drawingOf(block, view.settings, fontMetrics) };
+}
+
+function subjectsOf(view: View, selection: string[]) {
+  return resolveSelection(view, new Set(selection), fontMetrics);
+}
+
+/** The rows of `selection` as `[label, value]` pairs, shown as `shown` (its block stored by default); `null` when it has none. */
+function rows(view: View, selection: string[], shown?: Shown): [string, string][] | null {
+  const subjects = subjectsOf(view, selection);
+  const found = bandRows(subjects, shown ?? stored(view, subjects[0]?.block ?? A));
+  return found?.map(({ label, value }) => [label, value]) ?? null;
 }
 
 /** The three rows of a band. */
@@ -63,19 +60,33 @@ const band = (kind: string, level: string, elements: string): [string, string][]
   ["Elements", elements],
 ];
 
-/** A record written for the test; the rows read only its address, level and elements. */
-function record(address: string, level: number, elements: number): DrawnBand {
-  const [timeline = "", id = ""] = address.split("/");
-  const kind = id.slice(0, -2) as DrawnBand["kind"];
-  return { address, timeline, kind, level, line: 0, elements, x: 0, y: 0, width: 10, height: 10 };
+/** A band's record written for the test; the rows read only its address, level and elements. */
+function record(
+  timeline: string,
+  kind: NonNullable<DrawnBox["band"]>["kind"],
+  level: number,
+  elements: number,
+): DrawnBox {
+  return {
+    kind: "band",
+    key: null,
+    address: `${timeline}/${kind}_1`,
+    holder: `${timeline}/card`,
+    x: 0,
+    y: 0,
+    width: 10,
+    height: 10,
+    range: { start: 0, end: 0 },
+    displayed: false,
+    band: { timeline, kind, level, elements, line: 0 },
+  };
 }
 
-/** A placement of `block` at its stored values, showing its stored drawing with `bands` instead. */
-function placementOf(view: View, id: string, bands: readonly DrawnBand[]): LivePlacement {
-  const block = view.blocks[id] as Block;
-  const { x, y, scale, length, spacing, width, height } = block;
-  const drawing = { ...drawingOf(block, view.settings, fontMetrics), bands };
-  return { id, x, y, scale, length, spacing, width, height, drawing };
+/** A placement of `id` at its stored values, showing its stored drawing with `bands` instead of its own. */
+function placementOf(view: View, id: string, bands: readonly DrawnBox[]): LivePlacement {
+  const { drawing, x, y, scale, length, spacing, width, height } = stored(view, id);
+  const boxes = [...drawing.boxes.filter((box) => box.kind !== "band"), ...bands];
+  return { id, x, y, scale, length, spacing, width, height, drawing: { ...drawing, boxes } };
 }
 
 describe("bandRows", () => {
@@ -103,20 +114,18 @@ describe("bandRows", () => {
     expect(rows(storeOf().view, selection)).toBe(null);
   });
 
-  it("reads the drawing a gesture shows on the band's block", () => {
+  it("reads the drawing a gesture shows", () => {
     const { view } = storeOf();
     const shown = placementOf(view, A, [
-      record("melody/markers_1", 1, 3),
-      record("melody/regions_1", -2, 4),
-      record("melody/flow_control_1", -12, 1),
+      record("melody", "markers", 1, 3),
+      record("melody", "regions", -2, 4),
+      record("melody", "flow_control", -12, 1),
     ]);
     expect(rows(view, [`${A}/melody/markers_1`], shown)).toEqual(band("Markers", "1", "3"));
     expect(rows(view, [`${A}/melody/regions_1`], shown)).toEqual(band("Regions", "−2", "4"));
     expect(rows(view, [`${A}/melody/flow_control_1`], shown)).toEqual(
       band("Flow control", "−12", "1"),
     );
-    const elsewhere = placementOf(view, B, [record("melody/markers_1", 1, 3)]);
-    expect(rows(view, [`${A}/melody/markers_1`], elsewhere)).toEqual(band("Markers", "−1", "2"));
   });
 });
 
@@ -124,31 +133,27 @@ describe("the other readers of the selection", () => {
   const markers = `${A}/melody/markers_1`;
   const card = `${A}/melody/card`;
 
-  it("leave a band alone without geometry or timeline, in its block", () => {
+  function geometry(view: View, selection: string[]) {
+    return geometryOf(blockOf(view, A), subjectsOf(view, selection), stored(view, A), "arranger");
+  }
+
+  it("leave a band alone without geometry, in its block", () => {
     const { view } = storeOf();
-    expect(geometryOf(view, [markers])).toBe(null);
-    expect(selectedTimeline(view, [markers])).toBe(null);
-    expect(selectedBlock(view, [markers])).toBe(view.blocks[A]);
+    expect(geometry(view, [markers])).toBe(null);
+    expect(selectedBlock(view, subjectsOf(view, [markers]))).toBe(view.blocks[A]);
   });
 
   it("read a mixed selection as the selection without its bands", () => {
     const { view } = storeOf();
-    const geometry = geometryOf(view, [markers, card]);
-    expect(geometry?.label).toBe("Card properties");
-    expect(geometry).toEqual(geometryOf(view, [card]));
-    const timeline = selectedTimeline(view, [markers, card]);
-    expect(timeline?.address).toBe(`${A}/melody`);
-    expect(timeline).toEqual(selectedTimeline(view, [card]));
-
-    const block = geometryOf(view, [markers, A]);
-    expect(block?.label).toBe("Block properties");
-    expect(block).toEqual(geometryOf(view, [A]));
-    expect(selectedTimeline(view, [markers, A])).toBe(null);
-
-    expect(selectedBlock(view, [markers, `${B}/melody`])).toBe(null);
+    const withCard = geometry(view, [markers, card]);
+    expect(withCard?.label).toBe("Card properties");
+    expect(withCard).toEqual(geometry(view, [card]));
+    const withBlock = geometry(view, [markers, A]);
+    expect(withBlock?.label).toBe("Block properties");
+    expect(withBlock).toEqual(geometry(view, [A]));
+    expect(selectedBlock(view, subjectsOf(view, [markers, `${B}/melody`]))).toBe(null);
   });
 });
-
 describe("the Properties panel of a band", () => {
   let app: ReturnType<typeof mount> | undefined;
 
@@ -173,7 +178,8 @@ describe("the Properties panel of a band", () => {
   }
 
   function panel(): HTMLElement {
-    return document.getElementById("inspector-panel-properties") as HTMLElement;
+    const tab = document.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]');
+    return document.getElementById(tab?.getAttribute("aria-controls") ?? "") as HTMLElement;
   }
 
   function texts(selector: string): string[] {
@@ -181,7 +187,8 @@ describe("the Properties panel of a band", () => {
   }
 
   function openTab(name: string): void {
-    (document.getElementById(`inspector-tab-${name}`) as HTMLButtonElement).click();
+    const tabs = [...document.querySelectorAll<HTMLElement>('[role="tab"]')];
+    tabs.find((tab) => tab.textContent === name)?.click();
     flushSync();
   }
 
@@ -194,8 +201,8 @@ describe("the Properties panel of a band", () => {
     expect(panel().querySelectorAll("form, input, select, textarea, button")).toHaveLength(0);
     expect(panel().querySelector(".hint")).toBe(null);
 
-    openTab("manifest");
-    const expected = manifestText(manifestOf(store.view.blocks[A] as Block), "json", {
+    openTab("Manifest");
+    const expected = manifestText(manifestOf(blockOf(store.view, A)), "json", {
       includeStyling: false,
       minimal: false,
     });
@@ -217,8 +224,8 @@ describe("the Properties panel of a band", () => {
       [...panel().querySelectorAll<HTMLInputElement>("input[type=number]")].map(
         (input) => input.name,
       ),
-    ).toEqual(["x", "y", "scale", "length", "spacing", "width", "height"]);
-    expect(panel().querySelectorAll("input[type=checkbox]")).toHaveLength(1);
+    ).toEqual(["x", "y", "length", "scale", "spacing", "width", "height"]);
+    expect(panel().querySelectorAll("input[type=checkbox]")).toHaveLength(0);
     expect(panel().querySelector("dl")).toBe(null);
   });
 
@@ -232,7 +239,7 @@ describe("the Properties panel of a band", () => {
   it("lists the store's refusal of a band's id given to a map", () => {
     const store = storeOf();
     show(store, [A]);
-    openTab("manifest");
+    openTab("Manifest");
     const textarea = document.querySelector("textarea") as HTMLTextAreaElement;
     const edited = textarea.value.replace('"id": "tempo"', '"id": "conversion_maps_1"');
     expect(edited).not.toBe(textarea.value);
@@ -245,13 +252,12 @@ describe("the Properties panel of a band", () => {
     apply.click();
     flushSync();
 
-    const items = [...document.querySelectorAll("#inspector-problems li")];
+    const items = [...document.querySelectorAll('ul[aria-label="Problems"] li')];
     expect(items.map((item) => item.textContent?.replace(/\s+/g, " ").trim())).toEqual([
       'schema_violation id "conversion_maps_1" is reserved for the bands of a timeline at /timelines/0/conversion_maps/0/id',
     ]);
-    expect(items[0]?.querySelector(".code")?.textContent).toBe("schema_violation");
-    expect(items[0]?.querySelector(".pointer")?.textContent).toBe(
-      "/timelines/0/conversion_maps/0/id",
+    expect([...(items[0]?.querySelectorAll("code") ?? [])].map((item) => item.textContent)).toEqual(
+      ["schema_violation", "/timelines/0/conversion_maps/0/id"],
     );
     expect(textarea.value).toBe(edited);
     expect(store.journal).toHaveLength(2);

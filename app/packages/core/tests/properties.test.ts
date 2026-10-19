@@ -1,20 +1,15 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import type { ListedEntry, SessionEntry, Store, View, Workspace } from "../src/index.ts";
-import {
-  apply,
-  checkWorkspace,
-  createStore,
-  createView,
-  isCommandError,
-  isLoadError,
-  isSessionEntry,
-  loadManifest,
-  readWorkspace,
-  replay,
-  saveManifest,
-  writeWorkspace,
-} from "../src/index.ts";
+import { apply } from "../src/commands/apply.ts";
+import { isCommandError, isLoadError } from "../src/errors.ts";
+import { loadManifest, saveManifest } from "../src/manifest/io.ts";
+import { readWorkspace, writeWorkspace } from "../src/workspace/file.ts";
+import type { ListedEntry } from "../src/workspace/sessions.ts";
+import { isSessionEntry } from "../src/workspace/sessions.ts";
+import type { Store, Workspace } from "../src/workspace/store.ts";
+import { createStore, replay } from "../src/workspace/store.ts";
+import type { View } from "../src/workspace/view.ts";
+import { checkWorkspace, createView } from "../src/workspace/view.ts";
 import type { Seed, Step } from "./generate.ts";
 import { commandFor, commandIn, editorFor, sequenceArbitrary, stepsArbitrary } from "./generate.ts";
 import { A, addBlock, allFixtures, B, changed, loadText, testClock } from "./support.ts";
@@ -73,7 +68,8 @@ describe("generated command sequences", () => {
         expect(journal.map(({ author, time: at }) => [author, at])).toEqual(
           journal.map((_, index) => ["Gerhardt", time(index)]),
         );
-        const replayed = replay(journal, {}).at(-1) as View;
+        const replayed = replay(journal, {}).at(-1);
+        if (replayed === undefined) throw new Error("a replay holds the empty view at least");
         expect(replayed.settings).toEqual(store.view.settings);
         expect(replayed.blocks).toEqual(store.view.blocks);
         const text = writeWorkspace({ view: store.view, journal, sessions: {} });
@@ -97,7 +93,7 @@ describe("generated command sequences", () => {
 
 /** Open the editor of a generated target, or reopen the latest session of the innermost level; whether it opened. */
 function open(store: Store, reopen: boolean, seed: Seed): boolean {
-  const latest = store.entries.findLast(isSessionEntry) as SessionEntry | undefined;
+  const latest = store.entries.findLast(isSessionEntry);
   const target =
     reopen && latest !== undefined
       ? (store.sessions[latest.session]?.target as string)
@@ -163,7 +159,8 @@ function run(store: Store, { operation, seed }: Step, openings: Opening[]): bool
           : editing.length > 0;
     store[operation]();
     if (changed && (operation === "done" || operation === "cancel")) {
-      const opening = openings.pop() as Opening;
+      const opening = openings.pop();
+      if (opening === undefined) throw new Error("a closed editor was opened");
       if (operation === "cancel") {
         expect(store.view).toBe(opening.view);
         expect(store.journal).toEqual(opening.journal);
@@ -230,15 +227,15 @@ describe("generated editing sequences", () => {
   });
 });
 
-/** The catalogue's sample takes 3.5 to 6.4 s on a loaded machine (tests/README.md, Properties 7). */
-const CATALOGUE_TIMEOUT = 20_000;
+/** The catalogue's sample takes 9.8 to 10.7 s on a loaded machine (tests/README.md, Properties 7). */
+const CATALOGUE_TIMEOUT = 32_000;
 
 describe("the generator reaches the refusal catalogue", () => {
   it("over every manifest", { timeout: CATALOGUE_TIMEOUT }, () => {
     const seen = new Set<string>();
     for (const [, source] of SOURCES) {
       const start = changed(changed(createView(), addText(source)), addBlock(B, "bare.json"));
-      for (const seeds of fc.sample(sequenceArbitrary, { numRuns: 100, seed: 20261011 })) {
+      for (const seeds of fc.sample(sequenceArbitrary, { numRuns: 150, seed: 20261011 })) {
         let view = start;
         for (const seed of seeds) {
           const result = apply(view, commandFor(view, BLOCKS, seed));
@@ -249,10 +246,11 @@ describe("the generator reaches the refusal catalogue", () => {
     }
     expect([...seen].sort()).toEqual(
       [
+        "already_member",
         "child_exceeds_parent",
+        "cycle",
         "duplicate_id",
         "duplicate_index",
-        "gap_required",
         "id_not_settable",
         "invalid_address",
         "invalid_coordinate",
@@ -263,6 +261,7 @@ describe("the generator reaches the refusal catalogue", () => {
         "locked",
         "map_source_unit_mismatch",
         "negative_child_offset",
+        "nested_member",
         "non_finite_number",
         "non_positive_number",
         "not_an_item",
@@ -272,6 +271,9 @@ describe("the generator reaches the refusal catalogue", () => {
         "schema_violation",
         "segment_end_fixed",
         "segment_never_locked",
+        "segment_not_removable",
+        "segment_structure",
+        "unit_mismatch",
         "unknown_property",
         "unknown_target",
         "unlocking_not_supported",

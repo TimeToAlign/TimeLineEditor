@@ -38,9 +38,9 @@ function visible(
 
 test("300 blocks: no culling, every node is mounted at any viewport", async ({ page }) => {
   await open(page, "grid-300");
-  await expect(page.locator(".svelte-flow__node")).toHaveCount(300);
+  await expect(page.getByTestId("block")).toHaveCount(300);
   await setViewport(page, { x: -2000, y: -100, zoom: 1 });
-  await expect(page.locator(".svelte-flow__node")).toHaveCount(300);
+  await expect(page.getByTestId("block")).toHaveCount(300);
 });
 
 test("900 blocks: culling on, exactly the nodes the viewport touches are mounted", async ({
@@ -56,7 +56,7 @@ test("900 blocks: culling on, exactly the nodes the viewport touches are mounted
   const { blocks, columns } = GRIDS["grid-900"];
   const expected = visible(blocks, columns, view, size.width, size.height);
   // The pane is a whole number of pixels; the count is exact for that pane.
-  await expect(page.locator(".svelte-flow__node")).toHaveCount(expected);
+  await expect(page.getByTestId("block")).toHaveCount(expected);
   // The worked example of the README pins the formula itself.
   expect(visible(blocks, columns, view, 1000, 600)).toBe(24);
 });

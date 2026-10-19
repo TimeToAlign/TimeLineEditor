@@ -5,33 +5,21 @@
  * contains none of it.
  */
 
-import type { ResizeMode } from "@timetoalign/tilie-arranger";
+import type { ResizeMode, Viewport } from "@timetoalign/tilie-arranger";
 import { drawingOf } from "@timetoalign/tilie-arranger";
+import type { Health } from "@timetoalign/tilie-client";
 import type {
   Address,
   BandKind,
   BlockId,
   CommandError,
+  ContainerKind,
   OpenEditor,
-  Problem,
   Store,
   View,
 } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import { fontMetrics } from "@timetoalign/timeskeleton";
-
-/** The body of `GET /api/health`. */
-export interface Health {
-  readonly name: string;
-  readonly version: string;
-  readonly timetoalign: string;
-}
-
-export interface ViewportValue {
-  readonly x: number;
-  readonly y: number;
-  readonly zoom: number;
-}
 
 /** A rectangle in client pixels, left and top as `getBoundingClientRect` gives them. */
 export interface ClientRectangle {
@@ -41,7 +29,7 @@ export interface ClientRectangle {
   readonly height: number;
 }
 
-/** A band of a block's drawing (`Drawing.bands`), as the hook's `bands` reports it. */
+/** A band of a block's drawing (a band of `Drawing.boxes`), as the hook's `bands` reports it. */
 export interface HookBand {
   /** `T/<kind>_1`. */
   readonly address: string;
@@ -55,10 +43,21 @@ export interface HookBand {
    * records of a timeline drawn with two lines in one drawing.
    */
   readonly line: number;
-  /** The displayed elements it holds directly (`DrawnBand.elements`). */
+  /** The displayed elements it holds directly. */
   readonly elements: number;
   /** Where its rectangle lies on the screen. */
   readonly rect: ClientRectangle;
+}
+
+/** A container of a block's drawing (a record of `Drawing.boxes`), as the hook's `boxes` reports it. */
+export interface HookBox {
+  readonly kind: ContainerKind;
+  /** Its element address; `null` for the block's own box. */
+  readonly address: string | null;
+  /** The address of the frame or card holding it; `null` for the box and what the box holds. */
+  readonly holder: string | null;
+  /** Whether its own rectangle is drawn. */
+  readonly displayed: boolean;
 }
 
 export interface TestHook {
@@ -68,8 +67,8 @@ export interface TestHook {
   /** The selected addresses. */
   selection(): string[];
   select(addresses: string[]): void;
-  viewport(): ViewportValue;
-  setViewport(viewport: ViewportValue): void;
+  viewport(): Viewport;
+  setViewport(viewport: Viewport): void;
   locked(): boolean;
   mode(): ResizeMode;
   /** The server's health response, or `null` until one arrives or when the check failed. */
@@ -84,8 +83,10 @@ export interface TestHook {
   done(): void;
   /** Close the innermost editor, discarding its changes, without the editing bar's question. */
   cancel(): void;
-  /** The drawn bands of block `block`, in `Drawing.bands` order, placed on the screen (`bandsOf`). */
+  /** The drawn bands of block `block`, in the drawing's box order, placed on the screen (`bandsOf`). */
   bands(block: BlockId): HookBand[];
+  /** The containers of block `block`'s drawing, in its box order (`boxesOf`). */
+  boxes(block: BlockId): HookBox[];
 }
 
 declare global {
@@ -94,59 +95,73 @@ declare global {
   }
 }
 
-/** A workspace file `load` refused, with the reader's problems. */
-export class WorkspaceRefusedError extends Error {
-  readonly problems: readonly Problem[];
-
-  constructor(problems: readonly Problem[]) {
-    const lines = problems.map(
-      ({ code, message, path }) => `${code} at /${path.join("/")}: ${message}`,
-    );
-    super(`the workspace file is refused:\n${lines.join("\n")}`);
-    this.name = "WorkspaceRefusedError";
-    this.problems = problems;
-  }
-}
-
 /** A screen rectangle, as `getBoundingClientRect` gives one. */
 export type ClientBox = Pick<DOMRectReadOnly, "left" | "top" | "width" | "height">;
 
 /**
- * The bands of `drawing`, shown in the client rectangle `box` (its `<svg>`'s):
- * each record's line ordinate and rectangle mapped from the drawing's units
- * into client pixels as the canvas maps a pointer into the drawing
- * (arranger's `drawingPointAt`), the other way round. Nothing is clipped: a
+ * The bands of `drawing`, in its box order, shown in the client rectangle
+ * `box` (its `<svg>`'s): each band's line ordinate and rectangle mapped from
+ * the drawing's units into client pixels by the scale of the rectangle to the
+ * drawing, the inverse of the `<svg>`'s screen transform the canvas reads a
+ * pointer through while the drawing is shown unrotated. Nothing is clipped: a
  * drawing off screen gives what this computes.
  */
 export function hookBands(drawing: Drawing, box: ClientBox): HookBand[] {
   const sx = box.width / drawing.width;
   const sy = box.height / drawing.height;
-  return drawing.bands.map(({ address, timeline, kind, level, line, elements, ...rect }) => ({
-    address,
-    timeline,
+  return drawing.boxes.flatMap(({ address, band, x, y, width, height }) =>
+    band === undefined || address === null
+      ? []
+      : [
+          {
+            address,
+            timeline: band.timeline,
+            kind: band.kind,
+            level: band.level,
+            line: box.top + band.line * sy,
+            elements: band.elements,
+            rect: {
+              x: box.left + x * sx,
+              y: box.top + y * sy,
+              width: width * sx,
+              height: height * sy,
+            },
+          },
+        ],
+  );
+}
+
+/** The drawing the canvas shows for block `block` of `view`; a `RangeError` for a block it does not hold. */
+function drawingIn(view: View, block: BlockId): Drawing {
+  const found = view.blocks[block];
+  if (found === undefined) throw new RangeError(`${block} is no block of the open workspace`);
+  return drawingOf(found, view.settings, fontMetrics);
+}
+
+/**
+ * The containers of block `block` of `view`, in the drawing's box order: the
+ * drawing the canvas shows for that block (arranger's `drawingOf`), so what a
+ * drawn address names is read from the drawing's own records. Throws a
+ * `RangeError` for a block `view` does not hold.
+ */
+export function boxesOf(view: View, block: BlockId): HookBox[] {
+  return drawingIn(view, block).boxes.map(({ kind, address, holder, displayed }) => ({
     kind,
-    level,
-    line: box.top + line * sy,
-    elements,
-    rect: {
-      x: box.left + rect.x * sx,
-      y: box.top + rect.y * sy,
-      width: rect.width * sx,
-      height: rect.height * sy,
-    },
+    address,
+    holder,
+    displayed,
   }));
 }
 
 /**
- * The drawn bands of block `block` of `view`, in `Drawing.bands` order: the
+ * The drawn bands of block `block` of `view`, in the drawing's box order: the
  * drawing the canvas shows for that block (arranger's `drawingOf`), placed
  * through the block's drawing `<svg>` on the page (`hookBands`). Throws a
  * `RangeError` for a block `view` does not hold, and an `Error` while the
  * block's drawing is not on the page, since nothing places it then.
  */
 export function bandsOf(view: View, block: BlockId): HookBand[] {
-  const found = view.blocks[block];
-  if (found === undefined) throw new RangeError(`${block} is no block of the open workspace`);
+  const drawing = drawingIn(view, block);
   const node = [...document.querySelectorAll(".svelte-flow__node[data-id]")].find(
     (element) => element.getAttribute("data-id") === block,
   );
@@ -154,7 +169,7 @@ export function bandsOf(view: View, block: BlockId): HookBand[] {
   if (svg === null || svg === undefined) {
     throw new Error(`the drawing of block ${block} is not on the page`);
   }
-  return hookBands(drawingOf(found, view.settings, fontMetrics), svg.getBoundingClientRect());
+  return hookBands(drawing, svg.getBoundingClientRect());
 }
 
 /** Whether this build carries the test hook. */

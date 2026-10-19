@@ -14,8 +14,8 @@ import {
   type Descriptor,
   descriptorSvg,
   formatNumber,
-  type PathCommand,
   type Point,
+  type Tag,
   toDescriptors,
   writeSvg,
   writeTikz,
@@ -246,20 +246,19 @@ describe("descriptors", () => {
       const layers = [DEFAULT_LAYER, manifestLayer(manifest)];
       const drawing = draw(manifest, DEFAULT_PLACEMENT, layers, fontMetrics);
       const descriptors = toDescriptors(drawing);
-      const jumps = new Set(
-        drawing.elements.filter((each) => each.type === "jump").map((each) => each.address),
-      );
       const paths = descriptors.filter(
-        (each) => each.tag === "path" && jumps.has(String(each.attrs[0]?.[1])),
+        (each) => each.tag === "path" && each.source.type === "jump",
       );
       expect(paths.length).toBe(count);
       for (const path of paths) {
         const index = descriptors.indexOf(path);
         const head = descriptors[index + 1];
-        const d = path.attrs.find(([key]) => key === "d")?.[1] as readonly PathCommand[];
-        const [, c2, base] = (d[1] as PathCommand).points as readonly [Point, Point, Point];
-        const points = head?.attrs.find(([key]) => key === "points")?.[1];
-        const [tip, left, right] = points as readonly [Point, Point, Point];
+        const curve = path.tag === "path" ? path.d[1] : undefined;
+        const [tip, left, right] = head?.tag === "polygon" ? head.points : [];
+        if (curve?.command !== "C" || tip === undefined || left === undefined || !right) {
+          throw new Error("a jump is a cubic shaft, then its head");
+        }
+        const [, c2, base] = curve.points;
         const unit = (from: Point, to: Point) => {
           const length = Math.hypot(to[0] - from[0], to[1] - from[1]);
           return [(to[0] - from[0]) / length, (to[1] - from[1]) / length].map(formatNumber);
@@ -348,11 +347,11 @@ describe("descriptors", () => {
       [DEFAULT_LAYER, manifestLayer(manifest)],
       fontMetrics,
     );
-    const polylines = toDescriptors(drawing).filter(
-      (each) => each.tag === "polyline" && each.attrs[0]?.[1] === address,
+    const polylines = toDescriptors(drawing).flatMap((each) =>
+      each.tag === "polyline" && each.source.address === address ? [each] : [],
     );
     return {
-      points: polylines.map((each) => each.attrs.find(([key]) => key === "points")?.[1]),
+      points: polylines.map((each) => each.points),
       // Every open path of three points the TikZ writer writes: a chevron.
       chevronPaths: tikzBody(drawing).filter((each) =>
         /^\\path\[[^\]]*\] \([^)]*\) -- \([^)]*\) -- \([^)]*\);$/.test(each),
@@ -546,7 +545,7 @@ describe("descriptors", () => {
   });
 });
 
-const KIND: Readonly<Record<string, RegExp>> = {
+const KIND: { readonly [tag in Tag]: RegExp } = {
   rect: /^\\path\[[^\]]*\] \([^)]*\) rectangle \([^)]*\);$/,
   line: /^\\path\[[^\]]*\] \([^)]*\) -- \([^)]*\);$/,
   circle: /^\\path\[[^\]]*\] \([^)]*\) circle\[radius=[^\]]*\];$/,
@@ -563,22 +562,58 @@ function oneCommandPerDescriptor(drawing: Drawing, scale: number): Descriptor[] 
   const svg = writeSvg(placed).split("\n");
   expect(svg.slice(2, -3)).toEqual(descriptors.map(descriptorSvg));
   descriptors.forEach((descriptor, index) => {
-    const line = svg[index + 2] as string;
     const address = descriptor.attrs.find(([name]) => name === "data-address")?.[1];
     expect(address === undefined).toBe(index === 0);
     const head = address === undefined ? "" : `data-address="${address}" `;
-    expect(line.startsWith(`<${descriptor.tag} ${head}`)).toBe(true);
+    expect(svg[index + 2]?.startsWith(`<${descriptor.tag} ${head}`)).toBe(true);
   });
   const tikz = writeTikz(placed).split("\n");
   const begin = tikz.findIndex((line) => line.startsWith("\\begin{scope}"));
   const end = tikz.indexOf("\\end{scope}");
   const commands = tikz.slice(begin + 1, end);
   expect(commands.length).toBe(descriptors.length);
-  commands.forEach((command, index) => {
-    expect(command).toMatch(KIND[(descriptors[index] as Descriptor).tag] as RegExp);
+  descriptors.forEach((descriptor, index) => {
+    expect(commands[index]).toMatch(KIND[descriptor.tag]);
   });
   return descriptors;
 }
+
+/**
+ * Every descriptor names the element it was written from: the elements in
+ * order, each once at least, its type and address, `shadow` the role of a
+ * card's shadow alone.
+ */
+function sourcesFollowElements(drawing: Drawing): void {
+  const descriptors = toDescriptors(drawing);
+  const order = descriptors.map((each) => each.source.element);
+  expect(order).toEqual([...order].sort((left, right) => left - right));
+  expect([...new Set(order)]).toEqual([...drawing.elements.keys()]);
+  drawing.elements.forEach((element, index) => {
+    const own = descriptors.filter((each) => each.source.element === index);
+    const shadowed = element.type === "card" && element.style.shadow !== "none";
+    expect(own.map(({ source }) => [source.type, source.address, source.role])).toEqual(
+      own.map((_, at) => [
+        element.type,
+        element.address,
+        shadowed && at === 0 ? "shadow" : "primary",
+      ]),
+    );
+  });
+}
+
+describe("descriptor sources", () => {
+  it("everything", () => {
+    sourcesFollowElements(everything());
+    const roles = toDescriptors(everything()).map((each) => each.source.role);
+    expect(roles.filter((role) => role === "shadow")).toHaveLength(1);
+  });
+
+  for (const item of reviewCases()) {
+    it(item.name, () => {
+      sourcesFollowElements(item.drawing);
+    });
+  }
+});
 
 describe("one command per descriptor", () => {
   it("everything", () => {

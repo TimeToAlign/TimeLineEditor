@@ -2,6 +2,7 @@ import { flushSync, mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App.svelte";
 import { stubEditor } from "./dom.ts";
+import { hook } from "./support.ts";
 
 const health = { name: "tilie-server", version: "0.1.0", timetoalign: "1.2.0" };
 
@@ -19,12 +20,6 @@ function stubFetch(response: Response) {
   });
   vi.stubGlobal("fetch", fetchStub);
   return { fetchStub, addresses };
-}
-
-function hook() {
-  const installed = window.__tilie;
-  if (installed === undefined) throw new Error("window.__tilie is not installed");
-  return installed;
 }
 
 /** The page's text as shown: outside its dialogs and visually hidden text. */
@@ -58,6 +53,7 @@ describe("App", () => {
     flushSync();
 
     expect(text("header h1")).toEqual(["TimeLineEditor"]);
+    expect(text("h1")).toEqual(["TimeLineEditor"]);
     expect(text("h2")).toEqual(["Inspector", "About TimeLineEditor"]);
     expect(document.querySelectorAll("footer").length).toBe(0);
     const arranger = document.querySelector('[role="application"][aria-label="Arranger"]');
@@ -75,7 +71,7 @@ describe("App", () => {
       expect(fetchStub.mock.calls.length).toBe(1);
     });
     expect(fetchStub.mock.calls).toEqual([
-      ["/api/health", { headers: { Authorization: "Bearer abc" } }],
+      ["api/health", { headers: { Authorization: "Bearer abc" } }],
     ]);
     expect(addresses).toEqual(["/?view=a"]);
     expect(location.hash).toBe("");
@@ -89,7 +85,7 @@ describe("App", () => {
 
     await vi.waitFor(() => {
       expect(fetchStub.mock.calls).toEqual([
-        ["/api/health", { headers: { Authorization: "Bearer " } }],
+        ["api/health", { headers: { Authorization: "Bearer " } }],
       ]);
     });
     expect(addresses).toEqual(["/?token=abc"]);
@@ -180,20 +176,21 @@ describe("the inspector drawer", () => {
   });
 
   function drawer(): HTMLElement {
-    const element = document.getElementById("inspector");
+    const element = document.querySelector<HTMLElement>('[data-testid="inspector"]');
     if (element === null) throw new Error("the drawer is missing");
     return element;
   }
 
-  /** The inspector's controls, as [label, text, aria-expanded, aria-controls]. */
-  function controls(): (string | null)[][] {
-    return Array.from(document.querySelectorAll('button[aria-controls="inspector"]'))
+  /** The inspector's shown controls, as [label, text, aria-expanded, whether it controls the drawer]. */
+  function controls(): (string | boolean | null)[][] {
+    return Array.from(document.querySelectorAll("button[aria-controls]"))
+      .filter((button) => /inspector$/.test(button.getAttribute("aria-label") ?? ""))
       .filter((button) => button.closest("[hidden]") === null)
       .map((button) => [
         button.getAttribute("aria-label"),
         button.textContent,
         button.getAttribute("aria-expanded"),
-        button.getAttribute("aria-controls"),
+        button.getAttribute("aria-controls") === drawer().id,
       ]);
   }
 
@@ -208,11 +205,11 @@ describe("the inspector drawer", () => {
     app = mount(App, { target: document.body });
     flushSync();
     expect(drawer().hidden).toBe(true);
-    expect(controls()).toEqual([["Open inspector", "«", "false", "inspector"]]);
+    expect(controls()).toEqual([["Open inspector", "«", "false", true]]);
 
     press("Open inspector");
     expect(drawer().hidden).toBe(false);
-    expect(controls()).toEqual([["Close inspector", "»", "true", "inspector"]]);
+    expect(controls()).toEqual([["Close inspector", "»", "true", true]]);
     expect(localStorage.getItem("tilie.inspector.open")).toBe("true");
     await vi.waitFor(() => {
       expect(document.activeElement?.getAttribute("aria-label")).toBe("Close inspector");
@@ -220,7 +217,7 @@ describe("the inspector drawer", () => {
 
     press("Close inspector");
     expect(drawer().hidden).toBe(true);
-    expect(controls()).toEqual([["Open inspector", "«", "false", "inspector"]]);
+    expect(controls()).toEqual([["Open inspector", "«", "false", true]]);
     expect(localStorage.getItem("tilie.inspector.open")).toBe("false");
   });
 

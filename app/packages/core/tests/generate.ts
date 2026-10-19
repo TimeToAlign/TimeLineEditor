@@ -8,8 +8,10 @@
  * table, another kind's table and unknown names; own-axis values on the
  * axis, off it (a coordinate dict, another number type's representation,
  * past int64), negative and past the end, and lengths of null; payloads
- * include ones the schema refuses. Every refusal the commands produce on
- * these targets is reachable.
+ * include ones the schema refuses; a timeline's new parent and group are
+ * drawn from the manifest's timelines and groups, itself and unknown ids
+ * included. Every refusal the commands produce on these targets is
+ * reachable.
  *
  * A step of an editing sequence is such a seed with an operation: a
  * command (`commandIn` the innermost open editor), opening an editor
@@ -19,15 +21,16 @@
 
 import { JsonFloat } from "@timetoalign/timeskeleton";
 import fc from "fast-check";
-import type { AxisValue, Manifest, TimelineManifest, View } from "../src/index.ts";
-import { elementAddress } from "../src/index.ts";
+import { elementAddress } from "../src/manifest/files.ts";
+import type { AxisValue, Manifest, TimelineManifest } from "../src/manifest/types.ts";
+import type { View } from "../src/workspace/view.ts";
 
 export interface Seed {
   readonly kind: number;
   readonly picks: readonly number[];
 }
 
-const KINDS = 12;
+const KINDS = 14;
 
 export const seedArbitrary: fc.Arbitrary<Seed> = fc.record({
   kind: fc.nat({ max: KINDS - 1 }),
@@ -66,7 +69,11 @@ export const stepsArbitrary: fc.Arbitrary<Step[]> = fc.array(
   { maxLength: 30, size: "max" },
 );
 
-const pick = <T>(items: readonly T[], n: number): T => items[n % items.length] as T;
+function pick<T>(items: readonly T[], n: number): T {
+  const item = items[n % items.length];
+  if (item === undefined) throw new Error("pick from a list that holds items");
+  return item;
+}
 
 /** `items` turned by `n` places: the item at `n` first. */
 const turned = <T>(items: readonly T[], n: number): T[] => {
@@ -120,8 +127,15 @@ const AXES = [
 
 type Axis = Pick<TimelineManifest, "unit" | "number_type" | "length">;
 
+/** An axis as the generator draws it: any unit and number type, the schema's or not. */
+interface DrawnAxis {
+  readonly unit: string;
+  readonly number_type: string;
+  readonly length?: AxisValue | null;
+}
+
 /** An approximate size of an axis, to draw values around its length (8 when it is not known). */
-function span(axis: Axis): number {
+function span(axis: DrawnAxis): number {
   const value: AxisValue = axis.length ?? 8;
   const size = Array.isArray(value)
     ? Number(value[0]) / Number(value[1])
@@ -130,11 +144,7 @@ function span(axis: Axis): number {
 }
 
 /** A bare value for `axis`, mostly on it, sometimes a dict, another representation or too large. */
-function coordinate(
-  axis: Pick<Axis, "unit" | "number_type"> & Partial<Axis>,
-  a: number,
-  b: number,
-): unknown {
+function coordinate(axis: DrawnAxis, a: number, b: number): unknown {
   const variant = a % 12;
   const n = (b % span({ length: null, ...axis })) - 2;
   if (variant === 0) return { unit: axis.unit, number_type: axis.number_type, value: n };
@@ -168,11 +178,7 @@ function newTimeline(id: string, picks: readonly number[], like: Axis | undefine
   const length =
     c % 13 === 0
       ? null
-      : coordinate(
-          { unit, number_type: numberType, length: 4n } as Axis,
-          a % 12 < 3 ? a : 3 + (c % 9),
-          c,
-        );
+      : coordinate({ unit, number_type: numberType, length: 4n }, a % 12 < 3 ? a : 3 + (c % 9), c);
   // Mostly the minimal form, sometimes defaults written out.
   return {
     id,
@@ -558,6 +564,37 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
                 p4,
               );
       return set(target === "" ? block : `${block}/${target}`, { [property]: value });
+    }
+    case 12: {
+      // Where a timeline lies: under which parent at which offset, a root, in which group.
+      if (p2 % 2 === 0) {
+        const host = pick([...ids, id], p3);
+        const on = all.find((item) => item.timeline.id === host)?.timeline ?? axis;
+        const parent = p4 % 4 === 0 ? null : { timeline: host, offset: coordinate(on, p5, p6) };
+        return set(element, { parent });
+      }
+      return set(element, { group: pick([...groups, ...groups, null, "ghost", 3], p3) });
+    }
+    case 13: {
+      // A new root timeline or a new group of a block's manifest.
+      const into = pick([block, block, block, element, "workspace"], p7 >> 4);
+      if (p2 % 2 === 0) {
+        const root = newTimeline(
+          pick([`r${p3 % 5}`, `r${p3 % 5}`, ...ids, ...groups], p3),
+          seed.picks.slice(4),
+          undefined,
+        );
+        return { type: "add", into, timeline: root };
+      }
+      const members = known.length === 0 ? [] : [pick(known, p4), pick(known, p5)].slice(p6 % 2);
+      return {
+        type: "add",
+        into,
+        group: {
+          id: pick([`g${p3 % 4}`, `g${p3 % 4}`, ...ids], p3),
+          members: [...members, ...(p5 % 7 === 0 ? ["ghost"] : [])],
+        },
+      };
     }
     default:
       return set(pick([element, block, "workspace", "short", `${block}/`], p2), {

@@ -3,6 +3,8 @@
  * (`docs/drawing.md` in timeskeleton, section 6.3).
  */
 
+import { nth } from "./traversal.ts";
+
 export type Extent = readonly [number, number];
 
 function conflicts([a1, b1]: Extent, [a2, b2]: Extent): boolean {
@@ -16,7 +18,7 @@ export class Rows {
     let row = 1;
     while ((this.rows[row - 1] ?? []).some((other) => conflicts(extent, other))) row += 1;
     while (this.rows.length < row) this.rows.push([]);
-    (this.rows[row - 1] as Extent[]).push(extent);
+    nth(this.rows, row - 1).push(extent);
     return row;
   }
 

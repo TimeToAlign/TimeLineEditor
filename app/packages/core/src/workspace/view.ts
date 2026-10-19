@@ -5,10 +5,12 @@ import type { Problem } from "../errors.ts";
 import { ErrorCode, isCommandError, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";
 import { compareCodePoints } from "../json.ts";
+import type { ContainerRef } from "../manifest/containers.ts";
+import { containersOf, ITEM_PLACE_MEMBERS, placeMembersOf } from "../manifest/containers.ts";
 import { manifestProblems } from "../manifest/io.ts";
 import { readFinite, readIndex, readPlaces, readPositive } from "../values.ts";
 import type { Block, BlockId, BlockPlacement } from "./blocks.ts";
-import { BLOCK_ID, CARD_MEMBERS, cardKeys, itemKeys, PLACE_MEMBERS } from "./blocks.ts";
+import { BLOCK_ID } from "./blocks.ts";
 
 export interface WorkspaceMeta {
   readonly format: "tilie-workspace";
@@ -66,51 +68,56 @@ function placementProblems(block: Block, path: readonly PathSegment[]): Problem[
   }
   const places = readPlaces(block.places, [...path, "places"]);
   if (isCommandError(places)) problems.push(places);
-  else problems.push(...keyProblems(block, path));
+  else problems.push(...placeProblems(block, path));
   return problems;
 }
 
+/** A list of words as prose: `a`, `a and b`, `a, b and c`. */
+function listed(words: readonly string[]): string {
+  return words.length < 2 ? words.join("") : `${words.slice(0, -1).join(", ")} and ${words.at(-1)}`;
+}
+
 /**
- * The first member, in place order, that a member's card place states
- * beyond its size and vertical stretch, as a problem of `code` at `path`
- * followed by that member; `undefined` when it states only those.
+ * The first member `place`, the place of `ref` (a frame's or a card's),
+ * states beyond those `placeMembersOf(ref)` allows, as a problem of `code`
+ * at `path` followed by that member; `undefined` when it states only those.
+ * Only a member's card is so limited: to its size and vertical stretch.
  */
-export function cardMemberProblem(
-  key: string,
+export function placeMemberProblem(
+  ref: ContainerRef,
   place: object,
   path: readonly PathSegment[],
   code: ErrorCode = ErrorCode.unknownMember,
 ): Problem | undefined {
-  const extra = PLACE_MEMBERS.find(
-    (member) =>
-      Object.hasOwn(place, member) && !(CARD_MEMBERS as readonly string[]).includes(member),
+  const allowed = placeMembersOf(ref);
+  const extra = ITEM_PLACE_MEMBERS.find(
+    (member) => Object.hasOwn(place, member) && !allowed.includes(member),
   );
   return extra === undefined
     ? undefined
-    : problem(code, `${key} is a member: its card takes only width, height and spacing`, [
+    : problem(code, `${ref.key} is a member: its card takes only ${listed(allowed)}`, [
         ...path,
         extra,
       ]);
 }
 
 /**
- * The keys of a block's `places` naming no item and no member of its
- * manifest, or naming a member and stating more than its card takes, in
- * code-point order of its keys, each at `path` followed by `places` and the
- * key (and for a card the member it may not state).
+ * The problems of a block's `places`, in code-point order of its keys, each
+ * at `path` followed by `places` and the key: a key naming no frame and no
+ * card of its manifest's drawing (`unknown_place`), and a place stating a
+ * member its container may not state (`placeMemberProblem`).
  */
-export function keyProblems(
+export function placeProblems(
   block: Pick<Block, "id" | "places" | "manifest">,
   path: readonly PathSegment[],
 ): Problem[] {
-  const items = itemKeys(block.manifest);
-  const cards = cardKeys(block.manifest);
+  const { byKey } = containersOf(block.manifest);
   return Object.keys(block.places)
     .sort(compareCodePoints)
-    .filter((key) => !items.has(key))
     .flatMap((key) => {
       const at = [...path, "places", key];
-      if (!cards.has(key)) {
+      const ref = byKey.get(key);
+      if (ref === undefined) {
         return [
           problem(
             ErrorCode.unknownPlace,
@@ -119,8 +126,8 @@ export function keyProblems(
           ),
         ];
       }
-      const card = cardMemberProblem(key, block.places[key] as object, at);
-      return card === undefined ? [] : [card];
+      const extra = placeMemberProblem(ref, block.places[key] ?? {}, at);
+      return extra === undefined ? [] : [extra];
     });
 }
 
@@ -138,7 +145,8 @@ export function structureProblems(view: View, manifests = false): Problem[] {
   const problems: Problem[] = [];
   const siblingIndices = new Map<string, BlockId>();
   for (const key of Object.keys(view.blocks).sort()) {
-    const block = view.blocks[key] as Block;
+    const block = view.blocks[key];
+    if (block === undefined) continue;
     const path = ["blocks", key];
     if (block.id !== key) {
       problems.push(

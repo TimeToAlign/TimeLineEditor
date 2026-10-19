@@ -3,7 +3,9 @@
  * are derived in `README.md` ("canvas.spec.ts").
  */
 
+import type { Locator } from "@playwright/test";
 import { expect, test } from "@playwright/test";
+import { addressParts } from "../packages/arranger/src/editing.ts";
 import type { Manifest } from "../packages/core/src/index.ts";
 import {
   blockOrder,
@@ -12,6 +14,7 @@ import {
   commandsFrom,
   drag,
   dragBlock,
+  drawer,
   element,
   emptyPoint,
   journalLength,
@@ -26,6 +29,7 @@ import {
   placement,
   SMALL,
   SMALL_ORDER,
+  select,
   selectedAddresses,
   selectedNodes,
   selection,
@@ -73,7 +77,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("opening shows one node per block", async ({ page }) => {
-  await expect(page.locator(".svelte-flow__node")).toHaveCount(5);
+  await expect(page.getByTestId("block")).toHaveCount(5);
   for (const id of SMALL_ORDER) await expect(node(page, id)).toHaveCount(1);
   await expect(part(page, SMALL.styled, "score/intro")).toBeAttached();
   await expect(part(page, SMALL.styled, "score/da-capo")).toBeAttached();
@@ -84,7 +88,7 @@ test("the fixture menu loads small", async ({ page }) => {
   await page.goto("/");
   await page.locator('[data-testid="fixture-select"]').selectOption("small");
   await page.locator('[data-testid="fixture-load"]').click();
-  await expect(page.locator(".svelte-flow__node")).toHaveCount(5);
+  await expect(page.getByTestId("block")).toHaveCount(5);
   for (const id of SMALL_ORDER) await expect(node(page, id)).toHaveCount(1);
   expect(await journalLength(page)).toBe(START);
 });
@@ -113,7 +117,7 @@ test.describe("drag", () => {
   });
 
   test("dragging two selected blocks is one command with two changes", async ({ page }) => {
-    await page.evaluate((ids) => window.__tilie.select(ids), [SMALL.bare, SMALL.nested]);
+    await select(page, [SMALL.bare, SMALL.nested]);
     await dragBlock(page, SMALL.bare, 21, 13);
     expect(await position(page, SMALL.bare)).toEqual({ x: 24, y: 16 });
     expect(await position(page, SMALL.nested)).toEqual({ x: 24, y: 176 });
@@ -173,7 +177,7 @@ test.describe("drag", () => {
   test("a locked canvas allows no move, nudge or resize and hides the handles", async ({
     page,
   }) => {
-    await page.evaluate((id) => window.__tilie.select([id]), SMALL.bare);
+    await select(page, [SMALL.bare]);
     await page.keyboard.press("2");
     await expect(page.locator('[data-testid^="handle-"]')).toHaveCount(8);
     await page.keyboard.press("l");
@@ -271,7 +275,7 @@ test.describe("marquee", () => {
     page,
   }) => {
     await setViewport(page, MARQUEE);
-    await page.evaluate((id) => window.__tilie.select([id]), SMALL.map);
+    await select(page, [SMALL.map]);
     const from = await emptyPoint(page, -40, -40);
     await page.keyboard.down("Shift");
     await drag(page, from, SPAN.dx, SPAN.dy);
@@ -315,7 +319,7 @@ test.describe("marquee", () => {
     page,
   }) => {
     await setViewport(page, MARQUEE);
-    await page.evaluate((id) => window.__tilie.select([id]), SMALL.map);
+    await select(page, [SMALL.map]);
     const toggle = page.locator('[data-testid="marquee"]');
     await toggle.click();
     await expect(toggle).toHaveAttribute("aria-pressed", "true");
@@ -359,11 +363,9 @@ test.describe("marquee", () => {
 async function shows(page: import("@playwright/test").Page, expected: readonly string[]) {
   const sorted = [...expected].sort();
   expect(await selection(page)).toEqual(sorted);
-  const blocks = sorted.filter((address) => !address.includes("/"));
-  const elements = sorted
-    .filter((address) => address.includes("/"))
-    .map((address) => address.slice(address.indexOf("/") + 1))
-    .sort();
+  const parts = sorted.map(addressParts);
+  const blocks = parts.flatMap(({ block, element }) => (element === null ? [block] : []));
+  const elements = parts.flatMap(({ element }) => (element === null ? [] : [element])).sort();
   await expect.poll(() => selectedNodes(page)).toEqual(blocks);
   await expect.poll(() => selectedAddresses(page)).toEqual(elements);
 }
@@ -395,7 +397,7 @@ test("a click whose pointer moves 2 px is still a click on the empty canvas", as
   await setViewport(page, { x: 100, y: 100, zoom: 0.5 });
   const toggle = page.locator('[data-testid="marquee"]');
   const both = async () => {
-    await page.evaluate((ids) => window.__tilie.select(ids), [SMALL.bare, SMALL.flow]);
+    await select(page, [SMALL.bare, SMALL.flow]);
     await shows(page, [SMALL.bare, SMALL.flow]);
   };
   await toggle.click();
@@ -459,10 +461,12 @@ test.describe("click", () => {
     expect(await selectedAddresses(page)).toEqual(["clt_2"]);
     const nested = node(page, SMALL.nested);
     await expect(nested.locator(".tilie-block[data-contains-selection]")).toHaveCount(1);
-    await expect(nested.locator('rect.tilie-holding[data-box="card"]')).toHaveCount(1);
+    await expect(nested.locator('.tilie-mark[data-mark="holding"][data-box="card"]')).toHaveCount(
+      1,
+    );
     await expect(page.locator(".tilie-block[data-contains-selection]")).toHaveCount(1);
-    await expect(page.locator('rect.tilie-holding[data-box="card"]')).toHaveCount(1);
-    await expect(page.locator('rect.tilie-holding[data-box="group"]')).toHaveCount(0);
+    await expect(page.locator('.tilie-mark[data-mark="holding"][data-box="card"]')).toHaveCount(1);
+    await expect(page.locator('.tilie-mark[data-mark="holding"][data-box="frame"]')).toHaveCount(0);
   });
 
   test("a click on a card selects the card, a click on the margin the block", async ({ page }) => {
@@ -471,14 +475,20 @@ test.describe("click", () => {
     await page.mouse.click(card.x, card.y);
     expect(await selection(page)).toEqual([`${SMALL.map}/melody/card`]);
     // The card glows on its own rectangle, not on its shadow, in the selection's colour
-    // although the pointer is over it; its timeline goes with it on Delete.
+    // although the pointer is over it: one selection mark copying that rectangle, and no
+    // hover mark; its timeline goes with it on Delete.
     const rects = element(page, SMALL.map, "melody/card");
     await expect(rects).toHaveCount(2);
-    await expect(rects.nth(1)).toHaveAttribute("data-selected", "");
-    await expect(rects.nth(1)).toHaveAttribute("data-hovered", "");
-    await expect(rects.nth(0)).not.toHaveAttribute("data-selected");
+    const glows = node(page, SMALL.map).locator('rect.tilie-mark[data-mark="selection"]');
+    await expect(glows).toHaveCount(1);
+    await expect(glows).toHaveAttribute("data-marks", "melody/card");
+    const outline = (rect: Locator) =>
+      rect.evaluate((item) => ["x", "y", "width", "height"].map((name) => item.getAttribute(name)));
+    expect(await outline(glows)).toEqual(await outline(rects.nth(1)));
+    expect(await outline(glows)).not.toEqual(await outline(rects.nth(0)));
+    await expect(page.locator('.tilie-mark[data-mark="hover"]')).toHaveCount(0);
     expect(await selectedAddresses(page)).toEqual(["melody/card"]);
-    const glow = await rects.nth(1).evaluate((rect) => getComputedStyle(rect).filter);
+    const glow = await glows.evaluate((rect) => getComputedStyle(rect).filter);
     expect(glow).toContain("rgb(10, 132, 255)");
     expect(glow).not.toContain("rgb(156, 200, 255)");
     await expect(element(page, SMALL.map, "melody").first()).toHaveAttribute("data-affected", "");
@@ -486,7 +496,7 @@ test.describe("click", () => {
     await page.mouse.click(point.x, point.y);
     expect(await selection(page)).toEqual([SMALL.map]);
     await expect(page.locator("[data-contains-selection]")).toHaveCount(0);
-    await expect(page.locator("[data-selected]")).toHaveCount(0);
+    expect(await selectedAddresses(page)).toEqual([]);
   });
 
   test("Shift+click adds and removes", async ({ page }) => {
@@ -494,8 +504,8 @@ test.describe("click", () => {
     await clickPart(page, SMALL.styled, "score", true);
     expect(await selection(page)).toEqual([`${SMALL.nested}/clt_2`, `${SMALL.styled}/score`]);
     await expect(page.locator(".tilie-block[data-contains-selection]")).toHaveCount(2);
-    await expect(page.locator('rect.tilie-holding[data-box="card"]')).toHaveCount(2);
-    await expect(page.locator('rect.tilie-holding[data-box="group"]')).toHaveCount(0);
+    await expect(page.locator('.tilie-mark[data-mark="holding"][data-box="card"]')).toHaveCount(2);
+    await expect(page.locator('.tilie-mark[data-mark="holding"][data-box="frame"]')).toHaveCount(0);
 
     const point = await marginPoint(page, SMALL.bare);
     await page.keyboard.down("Shift");
@@ -527,10 +537,7 @@ test.describe("click", () => {
 
 test.describe("Delete", () => {
   test("Delete removes the selected element as one remove; undo restores it", async ({ page }) => {
-    await page.evaluate(
-      (address) => window.__tilie.select([address]),
-      `${SMALL.styled}/score/intro`,
-    );
+    await select(page, [`${SMALL.styled}/score/intro`]);
     await page.keyboard.press("Delete");
     expect(await commandsFrom(page, START)).toEqual([
       { type: "remove", targets: [`${SMALL.styled}/score/intro`] },
@@ -567,7 +574,7 @@ test.describe("Delete", () => {
         if (root !== undefined) walk(root);
         return ids.sort();
       }, SMALL.nested);
-    await page.evaluate((address) => window.__tilie.select([address]), `${SMALL.nested}/clt_3`);
+    await select(page, [`${SMALL.nested}/clt_3`]);
     const affected = await page
       .locator("[data-affected]")
       .evaluateAll((items) =>
@@ -592,7 +599,7 @@ test.describe("Delete", () => {
   });
 
   test("Backspace removes a selected block and its node", async ({ page }) => {
-    await page.evaluate((id) => window.__tilie.select([id]), SMALL.map);
+    await select(page, [SMALL.map]);
     await page.keyboard.press("Backspace");
     expect(await commandsFrom(page, START)).toEqual([{ type: "remove", targets: [SMALL.map] }]);
     await expect(node(page, SMALL.map)).toHaveCount(0);
@@ -610,10 +617,7 @@ test.describe("Delete", () => {
         );
       });
     const before = await manifests();
-    await page.evaluate(
-      (addresses) => window.__tilie.select(addresses),
-      [`${SMALL.bare}/bare`, `${SMALL.styled}/score/intro`],
-    );
+    await select(page, [`${SMALL.bare}/bare`, `${SMALL.styled}/score/intro`]);
     await page.keyboard.press("Delete");
     expect(await commandsFrom(page, START)).toEqual([
       { type: "remove", targets: [`${SMALL.bare}/bare`, `${SMALL.styled}/score/intro`] },
@@ -687,13 +691,13 @@ test.describe("keyboard", () => {
           document.activeElement?.matches('[role="application"][aria-label="Arranger"]') ?? false,
       ),
     ).toBe(true);
-    await page.evaluate((id) => window.__tilie.select([id]), SMALL.map);
+    await select(page, [SMALL.map]);
     await page.keyboard.press("ArrowRight");
     expect(await position(page, SMALL.map)).toEqual({ x: 16, y: 320 });
   });
 
   test("arrow keys move the focus between toolbar buttons and nudge nothing", async ({ page }) => {
-    await page.evaluate((id) => window.__tilie.select([id]), SMALL.map);
+    await select(page, [SMALL.map]);
     const focused = () =>
       page.evaluate(
         () =>
@@ -728,7 +732,7 @@ test.describe("keyboard", () => {
 
   /** The z-order keys: one `set` of `index` on the selected block each. */
   test("z-order keys reorder the blocks, one command each", async ({ page }) => {
-    await page.evaluate((id) => window.__tilie.select([id]), SMALL.bare);
+    await select(page, [SMALL.bare]);
     const steps: [string, string[]][] = [
       [
         "ControlOrMeta+Shift+BracketRight",
@@ -803,7 +807,7 @@ test.describe("keyboard", () => {
 
 test.describe("shell", () => {
   /** The left, top, right and bottom edges of a locator's box. */
-  async function edges(locator: import("@playwright/test").Locator) {
+  async function edges(locator: Locator) {
     const box = await locator.boundingBox();
     if (box === null) throw new Error("not displayed");
     return { left: box.x, top: box.y, right: box.x + box.width, bottom: box.y + box.height };
@@ -905,9 +909,9 @@ test.describe("shell", () => {
   test("the inspector drawer is closed on load and opens without moving the canvas", async ({
     page,
   }) => {
-    const drawer = page.locator("#inspector");
+    const inspector = drawer(page);
     const tab = page.getByRole("button", { name: "Open inspector" });
-    await expect(drawer).toBeHidden();
+    await expect(inspector).toBeHidden();
     await expect(tab).toBeVisible();
     await expect(tab).toHaveText("«");
     const width = await page.evaluate(() => document.documentElement.clientWidth);
@@ -915,25 +919,25 @@ test.describe("shell", () => {
     expect((await edges(pane(page))).right).toBe(width);
 
     await tab.click();
-    await expect(drawer).toBeVisible();
-    await expect(drawer.locator("h2")).toHaveText("Inspector");
+    await expect(inspector).toBeVisible();
+    await expect(inspector.getByRole("heading", { level: 2 })).toHaveText("Inspector");
     const close = page.getByRole("button", { name: "Close inspector" });
     await expect(close).toHaveText("»");
     await expect(close).toHaveAttribute("aria-expanded", "true");
-    expect((await edges(pane(page))).right).toBe((await edges(drawer)).left);
+    expect((await edges(pane(page))).right).toBe((await edges(inspector)).left);
     expect(await viewportOf(page)).toEqual(VIEW);
 
     await page.reload();
     await page.waitForFunction(() => window.__tilie !== undefined);
-    await expect(drawer).toBeVisible();
+    await expect(inspector).toBeVisible();
 
     await open(page, "small");
     await setViewport(page, VIEW);
     await page.getByRole("button", { name: "Close inspector" }).click();
-    await expect(drawer).toBeHidden();
+    await expect(inspector).toBeHidden();
     expect(await viewportOf(page)).toEqual(VIEW);
     await page.reload();
     await page.waitForFunction(() => window.__tilie !== undefined);
-    await expect(drawer).toBeHidden();
+    await expect(inspector).toBeHidden();
   });
 });

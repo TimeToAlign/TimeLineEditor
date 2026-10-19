@@ -1,6 +1,6 @@
-import { bandKey, manifestElements } from "@timetoalign/tilie-core";
+import { bandKey, manifestElements } from "@timetoalign/tilie-core/drawing";
 import type { Graphical, Selector, Statement } from "@timetoalign/timeskeleton";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   Cascade,
   DEFAULT_LAYER,
@@ -153,6 +153,26 @@ describe("rank", () => {
       ancestry,
     );
     expect(cascade.resolve(block, undefined).stroke).toBe("none");
+  });
+});
+
+describe("candidate buckets", () => {
+  it("tests only general statements and the key's element, class and id buckets", () => {
+    const general: Selector = { domain: "logical" };
+    const element: Selector = { element: "child" };
+    const className: Selector = { class: "ContinuousLogicalTimeline" };
+    const id: Selector = { ids: ["c"] };
+    const otherElement: Selector = { element: "group" };
+    const otherClass: Selector = { class: "ChainMap" };
+    const otherId: Selector = { ids: ["elsewhere"] };
+    const selectors = [general, element, className, id, otherElement, otherClass, otherId];
+    const cascade = new Cascade(
+      [{ statements: selectors.map((select) => statement(select, "#111111")) }],
+      ancestry,
+    );
+    const matches = vi.spyOn(cascade, "matches");
+    cascade.resolve(key, undefined);
+    expect(matches.mock.calls.map(([select]) => select)).toEqual([general, element, className, id]);
   });
 });
 

@@ -84,9 +84,15 @@ export default defineConfig({
   ],
   webServer: {
     // The editor's own Vite binaries, so the command needs no package manager
-    // inside the image. The test hook is compiled in only by this build, which
-    // goes to `dist-e2e`, never to `dist` (the folder the wheel bundles).
-    command: `node_modules/.bin/vite build --outDir dist-e2e && node_modules/.bin/vite preview --outDir dist-e2e --port ${PORT} --strictPort --host 127.0.0.1`,
+    // inside the image. The test hook is compiled in only by these builds, which
+    // go to `dist-e2e`, never to `dist` (the folder the wheel bundles): the page
+    // at its root, the embed (`tilie.js`, `tilie.css`, `assets/`) under `embed/`,
+    // where `embed.spec.ts` loads it into a host page of its own.
+    command: [
+      "node_modules/.bin/vite build --outDir dist-e2e",
+      "node_modules/.bin/vite build --mode embed --outDir dist-e2e/embed",
+      `node_modules/.bin/vite preview --outDir dist-e2e --port ${PORT} --strictPort --host 127.0.0.1`,
+    ].join(" && "),
     cwd: "packages/editor",
     env: { VITE_TILIE_TEST_HOOK: "1" },
     url: `http://127.0.0.1:${PORT}/`,

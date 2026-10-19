@@ -7,6 +7,7 @@ import {
   type AxisValue,
   apply,
   type BandKind,
+  type ContainerKind,
   createView,
   isCommandError,
   isLoadError,
@@ -24,6 +25,7 @@ import {
   DEFAULT_LAYER,
   DEFAULT_PLACEMENT,
   type Drawing,
+  type DrawnBox,
   type DrawnElement,
   draw,
   manifestLayer,
@@ -82,6 +84,23 @@ export function drawFixture(
 export function element(drawing: Drawing, address: string | null, index = 0): DrawnElement {
   const found = drawing.elements.filter((item) => item.address === address)[index];
   if (found === undefined) throw new Error(`no element ${address}`);
+  return found;
+}
+
+/** The containers of one kind a drawing records, in drawing order. */
+export function boxesOf(drawing: Drawing, kind: ContainerKind): DrawnBox[] {
+  return drawing.boxes.filter((box) => box.kind === kind);
+}
+
+/** The frames and box-held cards of a drawing, its items, in drawing order. */
+export function itemsOf(drawing: Drawing): DrawnBox[] {
+  return drawing.boxes.filter((box) => box.item !== undefined);
+}
+
+/** The first container a drawing records at `address`. */
+export function boxAt(drawing: Drawing, address: string): DrawnBox {
+  const found = drawing.boxes.find((box) => box.address === address);
+  if (found === undefined) throw new Error(`no container ${address}`);
   return found;
 }
 
@@ -150,7 +169,7 @@ export function withLocked(
   manifest: Manifest,
   locked: Readonly<Record<string, boolean>>,
 ): Manifest {
-  const relock = (timeline: TimelineManifest): TimelineManifest => ({
+  const relock = <T extends TimelineManifest>(timeline: T): T => ({
     ...timeline,
     locked: Object.hasOwn(locked, timeline.id) ? (locked[timeline.id] as boolean) : timeline.locked,
     children: timeline.children.map(relock),

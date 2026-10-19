@@ -1,4 +1,4 @@
-/** A block's drawing, memoized by the identity of its inputs. */
+/** A block's drawing, memoized by the identity of its inputs, and where its node lies. */
 
 import type { Block, WorkspaceSettings } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
@@ -21,22 +21,23 @@ const descriptors = new WeakMap<Drawing, readonly Descriptor[]>();
  * default layer, the workspace's statements and the manifest's own, from
  * lowest to highest. Blocks are immutable, so the drawing is memoized per
  * block and redrawn only when the settings or the metrics change identity.
- * A `preview` overrides members of the block, its places or its manifest (a
- * reorder drawn before it is dropped) among them, and is never memoized.
+ * `overrides` replace members of the block's placement (a resize measuring
+ * the content at another length or with no box request) and are never
+ * memoized.
  */
 export function drawingOf(
   block: Block,
   settings: WorkspaceSettings,
   metrics: FontMetrics,
-  preview?: Partial<Block>,
+  overrides?: Partial<Block>,
 ): Drawing {
-  if (preview === undefined) {
+  if (overrides === undefined) {
     const memo = drawings.get(block);
     if (memo !== undefined && memo.settings === settings && memo.metrics === metrics) {
       return memo.drawing;
     }
   }
-  const placement = { ...block, ...preview };
+  const placement = { ...block, ...overrides };
   const drawing = draw(
     placement.manifest,
     {
@@ -49,7 +50,7 @@ export function drawingOf(
     [DEFAULT_LAYER, settings.graphical, placement.manifest.graphical],
     metrics,
   );
-  if (preview === undefined) drawings.set(block, { settings, metrics, drawing });
+  if (overrides === undefined) drawings.set(block, { settings, metrics, drawing });
   return drawing;
 }
 
@@ -64,23 +65,17 @@ export function descriptorsOf(drawing: Drawing): readonly Descriptor[] {
 }
 
 /**
- * Where a segment is drawn, in drawing units, for a menu placed below it:
- * its label (centred, at the baseline), else the foot of its boundary, else
- * the middle of its line; `null` when the drawing shows none of them.
+ * Where the node of `block` drawn as `drawing` lies: a block's `x`, `y` are
+ * the canvas position of its place origin (`docs/drawing.md` in
+ * timeskeleton, section 8.6), which lies at `drawing.origin` in the box, so
+ * a box that grows left or up moves nothing it holds.
  */
-export function segmentAnchor(drawing: Drawing, id: string): { x: number; y: number } | null {
-  let boundary: { x: number; y: number } | null = null;
-  let line: { x: number; y: number } | null = null;
-  for (const element of drawing.elements) {
-    if (element.type === "label" && element.address === `${id}/label`) {
-      return { x: element.x, y: element.baseline };
-    }
-    if (element.type === "boundary" && element.address === `${id}/start`) {
-      boundary = { x: element.x, y: element.y2 };
-    }
-    if (element.type === "child" && element.address === id) {
-      line = { x: (element.xs + element.xe) / 2, y: element.y };
-    }
-  }
-  return boundary ?? line;
+export function nodePosition(
+  block: Pick<Block, "x" | "y" | "scale">,
+  drawing: Drawing,
+): { x: number; y: number } {
+  return {
+    x: block.x - drawing.origin.x * block.scale,
+    y: block.y - drawing.origin.y * block.scale,
+  };
 }

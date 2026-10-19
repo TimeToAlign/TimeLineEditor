@@ -39,21 +39,26 @@ same objects. Undo past the session's first entry replays the journal once
 from the empty workspace (`createView()`, default settings) and keeps every
 view of that replay.
 
-**The replay invariant**: replaying the whole journal from the empty
+**The journal is the authority**: replaying the whole journal from the empty
 workspace reproduces the snapshot's `settings` and `blocks` exactly. It holds
 because `apply` is pure and deterministic and every id a command needs is
-minted by the caller and carried in the command. The property tests prove it
-over every manifest fixture with generated command sequences; `readWorkspace`
-does not replay, so a file whose journal was edited by hand to disagree with
-its snapshot opens with its snapshot, and undoing past its session's start
-follows the journal.
+minted by the caller and carried in the command; the property tests prove it
+over every manifest fixture with generated command sequences. Amended
+2026-10-19: `createStore` verifies it for every workspace it is given. It
+replays the journal to its end, compares the result's `settings` and blocks
+with the snapshot, and throws `JournalMismatchError {entry, path}` naming the
+first differing path when they differ, so a file whose journal was edited by
+hand to disagree with its snapshot is refused (`journal_mismatch`) as any
+unreadable file is, rather than opened with a history that undo would not
+follow. `readWorkspace` keeps its cost and does not replay: reading and
+verifying are two steps, both run when a file is opened.
 
 `writeWorkspace` is timeskeleton's `dumps` of `{meta, settings, blocks,
-journal}`; `readWorkspace` reads with timeskeleton's lossless `parseJson`
+journal, sessions}`; `readWorkspace` reads with timeskeleton's lossless `parseJson`
 (its `parse` validates one manifest and does not apply to the workspace),
 refuses another `format` or `version`, any unknown or missing member and any
-invalid manifest, and reads every block's manifest through
-`readManifestValue`. Writing what was read gives the same bytes.
+invalid manifest, and reads every block's manifest through core's one
+manifest reader, `normalizeManifest`. Writing what was read gives the same bytes.
 
 **Superseded in part (2026-10-18).** Undo and redo now move by steps. A
 change is one command at any depth, owned by the innermost editor session
@@ -104,6 +109,12 @@ the same code takes 175 ms alone, and even the minimum exceeded the limit
 when other work loaded the machine. The budget test therefore runs on its
 own: the default `pnpm test` excludes it, and `pnpm test:budget` runs it
 alone, without file parallelism.
+
+Opening and verifying the 300-block workspace with 1,000 entries,
+`readWorkspace` followed by `createStore`, measured 497 to 501 ms on
+2026-10-19 (the same machine, minimum of 5 runs after a warm-up, while other
+work loaded it); the budget test prints this figure and sets no limit on it,
+since the replay is the price of trusting the journal.
 
 Exit cost: the journal is one array in the file and one module in `core`;
 dropping it leaves the snapshot readable as it is.

@@ -35,9 +35,7 @@ export function attributeText(value: AttributeValue): string {
       )
       .join("");
   }
-  return (value as readonly (readonly [number, number])[])
-    .map(([x, y]) => `${formatNumber(x)},${formatNumber(y)}`)
-    .join(" ");
+  return value.map(([x, y]) => `${formatNumber(x)},${formatNumber(y)}`).join(" ");
 }
 
 /** One descriptor as one line of SVG. */

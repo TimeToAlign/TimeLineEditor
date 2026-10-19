@@ -11,8 +11,10 @@
 
 export const name = "@timetoalign/tilie-layout" as const;
 
-export type { Domain, ElementKey, Modality } from "@timetoalign/tilie-core";
+export type { Domain, ElementKey, Modality } from "@timetoalign/tilie-core/drawing";
 export { draw } from "./box.ts";
+export type { DrawnAxis, DrawnBox, ElementRange } from "./boxes.ts";
+export { coordinateAt } from "./boxes.ts";
 export type { Style } from "./cascade.ts";
 export { Cascade, INITIAL_STYLE } from "./cascade.ts";
 export { DEFAULT_LAYER, manifestLayer } from "./defaults.ts";
@@ -20,11 +22,7 @@ export type {
   BlockElement,
   BreakElement,
   Drawing,
-  DrawnBand,
-  DrawnCard,
   DrawnElement,
-  DrawnItem,
-  ElementRange,
   JumpElement,
   LineElement,
   LineEnd,
@@ -40,6 +38,7 @@ export type {
   TextElement,
 } from "./elements.ts";
 export { DEFAULT_PLACEMENT } from "./elements.ts";
+export type { Bounds, Circle, LineGeometry, LineMark } from "./geometry.ts";
+export { boundsOf, brace, lineGeometry } from "./geometry.ts";
 export { cleanText, TextMeasure } from "./metrics.ts";
 export { times } from "./numbers.ts";
-export { brace } from "./regions.ts";

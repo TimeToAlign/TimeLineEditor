@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { affectedBy } from "../src/index.ts";
+import { affectedBy } from "../src/affected.ts";
 import { A, blockIn, CHILD_MEMBER, load, MPM, numbersView } from "./support.ts";
 
 const marks = (id: string) => [`${id}/start`, `${id}/start/label`, `${id}/end`, `${id}/end/label`];

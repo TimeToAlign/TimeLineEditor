@@ -1,14 +1,11 @@
 import { dumps, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
-import type { Manifest, TimelineManifest, View } from "../src/index.ts";
-import {
-  apply,
-  createStore,
-  createView,
-  isLoadError,
-  loadManifest,
-  saveManifest,
-} from "../src/index.ts";
+import { apply } from "../src/commands/apply.ts";
+import { isLoadError } from "../src/errors.ts";
+import { loadManifest, saveManifest } from "../src/manifest/io.ts";
+import type { Manifest, TimelineManifest } from "../src/manifest/types.ts";
+import type { View } from "../src/workspace/view.ts";
+import { createView } from "../src/workspace/view.ts";
 import {
   A,
   block,
@@ -17,6 +14,7 @@ import {
   viewOf as fixtureView,
   loadText,
   refusal,
+  storeOf,
   unlockedView,
 } from "./support.ts";
 
@@ -137,7 +135,7 @@ describe("setting a length to and from null", () => {
   });
 
   it("is undone like any other command", () => {
-    const store = createStore({ view: viewOf([16, 1]), journal: [], sessions: {} });
+    const store = storeOf(viewOf([16, 1]));
     const before = store.view;
     expect(store.dispatch(setLength(null))).toBeNull();
     expect(root(store.view).length).toBe(null);

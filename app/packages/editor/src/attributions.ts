@@ -7,6 +7,9 @@
  * that file to name exactly the packages found in the bundle.
  */
 
+/** The file beside the built editor holding the full licence texts (`notices.ts` writes it). */
+export const NOTICES_FILE = "THIRD_PARTY_NOTICES.txt";
+
 export interface Attribution {
   /** The npm package name, or the name of a bundled asset. */
   readonly name: string;

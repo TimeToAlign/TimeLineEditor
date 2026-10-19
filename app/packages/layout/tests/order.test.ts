@@ -1,11 +1,7 @@
 /** Band orders: each kind moved across its line, children following their parents; every number is derived in tests/README.md. */
 
-import {
-  type BandKind,
-  defaultBandOrder,
-  type Manifest,
-  manifestElements,
-} from "@timetoalign/tilie-core";
+import { type BandKind, defaultBandOrder, type Manifest } from "@timetoalign/tilie-core";
+import { manifestElements } from "@timetoalign/tilie-core/drawing";
 import type { ElementType, Graphical } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
 import {

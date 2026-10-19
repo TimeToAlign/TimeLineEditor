@@ -8,21 +8,22 @@
  */
 
 import {
-  type AxisValue,
-  BAND_KINDS,
   type BandKind,
-  bandKey,
   type ConversionMap,
-  type ElementKey,
   elementAddress,
-  elementKey,
   type Manifest,
+  partAddress,
+  type TimelineManifest,
+} from "@timetoalign/tilie-core";
+import {
+  bandKey,
+  type ElementKey,
+  elementKey,
   type MemberDrawing,
   orderedChildren,
-  type Real,
-  type TimelineManifest,
   textKey,
-} from "@timetoalign/tilie-core";
+} from "@timetoalign/tilie-core/drawing";
+import type { Real } from "@timetoalign/tilie-core/numbers";
 import type { ElementType } from "@timetoalign/timeskeleton";
 import type { Cascade, Style } from "./cascade.ts";
 import type { LineEnd, Placement } from "./elements.ts";
@@ -50,7 +51,10 @@ export interface Entry extends Holder {
   readonly open: boolean;
   /** Its end is the open end of the root, drawn at `x0 + L` whatever the reach (section 3.4). */
   readonly rootEnd: boolean;
-  /** Its name: drawn for the root and a child, counted for a segment line among segments. */
+  /**
+   * Its name: drawn for the root and a child, counted for a segment line among segments. A
+   * segment that is no line has no name element; its name is its own style, never resolved.
+   */
   readonly name: Styled;
   /** A child of a segment line: it has a boundary unless it is the first, and a label. */
   readonly segment: boolean;
@@ -81,6 +85,14 @@ export interface Measured {
   readonly width: number;
 }
 
+/** The relationships every later layout pass reads from the one pre-order traversal. */
+export interface TraversalIndex {
+  /** Direct children in traversal order, keyed by their parent's timeline id. */
+  readonly childrenByParent: ReadonlyMap<string, readonly Entry[]>;
+  /** The line itself and the segments without a line whose bands join it, in traversal order. */
+  readonly sourcesByLine: ReadonlyMap<Entry, readonly Entry[]>;
+}
+
 /** What every member drawing of one manifest shares. */
 export interface Context {
   /** The manifest drawn, in canonical order: the band order of each timeline is read from it. */
@@ -98,6 +110,8 @@ export interface Scope extends Context {
   /** Every timeline of its tree in traversal order, the root first. */
   readonly entries: readonly Entry[];
   readonly rootEntry: Entry;
+  /** Its children by parent and its lines' sources, built once by the traversal. */
+  readonly index: TraversalIndex;
   /** Compares two of `entries` by their traversal order (section 6.1), for sorting. */
   readonly byTraversal: (left: Entry, right: Entry) => number;
   /** The root's length `λ`, or its reach when its length is not known. */
@@ -119,17 +133,36 @@ export interface Scope extends Context {
   readonly styled: (key: ElementKey, parent: Style) => Styled;
   readonly textOf: (owner: Holder, kind: "name" | "label") => Styled;
   readonly measured: (owner: Styled, text: string) => Measured;
+  /** A conversion map, which has no label element. */
+  readonly mapped: (
+    at: string,
+    entry: Entry,
+    map: ConversionMap,
+  ) => Styled & Holder & { entry: Entry };
   /** The element `at` of `entry`, held by its band of `kind`. */
   readonly owned: (
-    type: ElementType,
+    type: Exclude<ElementType, "map">,
     at: string,
     entry: Entry,
     kind: BandKind,
-    map?: ConversionMap,
   ) => Owned & Holder;
 }
 
 export const shown = (style: Style): boolean => style.display === "inline";
+
+/** What `map` holds under `key`: a stage reads only what an earlier stage of the pipeline set. */
+export function known<K, V>(map: ReadonlyMap<K, V>, key: K): V {
+  const value = map.get(key);
+  if (value === undefined) throw new Error("a layout stage read a value no earlier stage set");
+  return value;
+}
+
+/** The item at `index` of `items`, which holds one there. */
+export function nth<T>(items: readonly T[], index: number): T {
+  const item = items[index];
+  if (item === undefined) throw new Error(`a layout stage read a missing item ${index}`);
+  return item;
+}
 
 export const maxSize = (items: readonly Styled[], fallback = 9): number =>
   items.length === 0 ? fallback : Math.max(...items.map((item) => item.style["font-size"]));
@@ -160,10 +193,10 @@ export function traverse(context: Context, member: MemberDrawing, holder: Holder
   const d = (size: number) => measure.descent(size);
   const address = (id: string) => elementAddress(member.root, id);
 
-  const styled = (key: ElementKey, parent: Style): Styled => ({
-    address: key.address as string,
-    style: cascade.resolve(key, parent),
-  });
+  const styled = (key: ElementKey, parent: Style): Styled => {
+    if (key.address === null) throw new Error("a styled element has no address");
+    return { address: key.address, style: cascade.resolve(key, parent) };
+  };
   const textOf = (owner: Holder, kind: "name" | "label"): Styled =>
     styled(textKey(owner.key, kind), owner.style);
   const measured = (owner: Styled, text: string): Measured => {
@@ -172,8 +205,9 @@ export function traverse(context: Context, member: MemberDrawing, holder: Holder
   };
 
   const entries: Entry[] = [];
+  const reaches = new WeakMap<TimelineManifest, Real>();
   const rootLength = lengthValue(root);
-  const lambda = rootLength ?? reachOf(root);
+  const lambda = rootLength ?? reachOf(root, reaches);
   /**
    * Where a timeline starting at `start` ends, by the first rule of section
    * 3.4 that applies: its length; the root's reach; the next segment's
@@ -192,7 +226,7 @@ export function traverse(context: Context, member: MemberDrawing, holder: Holder
       if (next !== undefined) return { end: next, open: false, rootEnd: false };
       return { end: parent.end, open: parent.open, rootEnd: parent.rootEnd };
     }
-    return { end: add(start, reachOf(timeline)), open: true, rootEnd: false };
+    return { end: add(start, reachOf(timeline, reaches)), open: true, rootEnd: false };
   };
   const visit = (
     timeline: TimelineManifest,
@@ -208,12 +242,17 @@ export function traverse(context: Context, member: MemberDrawing, holder: Holder
     const outer = parent?.bands.children ?? holder;
     const key = elementKey(type, timeline.id, timeline, outer.key);
     const style = cascade.resolve(key, outer.style);
-    const bands = Object.fromEntries(
-      BAND_KINDS.map((kind) => {
-        const band = bandKey(timeline.id, kind, key);
-        return [kind, { key: band, style: cascade.resolve(band, style) }];
-      }),
-    ) as Record<BandKind, Holder>;
+    const band = (kind: BandKind): Holder => {
+      const own = bandKey(timeline.id, kind, key);
+      return { key: own, style: cascade.resolve(own, style) };
+    };
+    const bands = {
+      children: band("children"),
+      conversion_maps: band("conversion_maps"),
+      markers: band("markers"),
+      regions: band("regions"),
+      flow_control: band("flow_control"),
+    } satisfies Record<BandKind, Holder>;
     const entry: Entry = {
       manifest: timeline,
       parent,
@@ -221,7 +260,9 @@ export function traverse(context: Context, member: MemberDrawing, holder: Holder
       ...ending(timeline, parent, start, next),
       key,
       style,
-      name: textOf({ key, style }, "name"),
+      name: line
+        ? textOf({ key, style }, "name")
+        : { address: partAddress(timeline.id, "name"), style },
       segment,
       first,
       line,
@@ -233,32 +274,56 @@ export function traverse(context: Context, member: MemberDrawing, holder: Holder
     entries.push(entry);
     const children = orderedChildren(timeline);
     const starts = children.map((child) =>
-      add(start, coordinateValue(child.offset as AxisValue, timeline.number_type)),
+      add(start, coordinateValue(child.offset, timeline.number_type)),
     );
     children.forEach((child, index) => {
-      visit(child, entry, starts[index] as Real, starts[index + 1], index === 0);
+      visit(child, entry, nth(starts, index), starts[index + 1], index === 0);
     });
   };
   visit(root, undefined, zero(root.number_type), undefined, false);
-  const rootEntry = entries[0] as Entry;
+  const rootEntry = nth(entries, 0);
+  const childrenByParent = new Map<string, Entry[]>();
+  const sourcesByLine = new Map<Entry, Entry[]>();
+  const append = <K>(lists: Map<K, Entry[]>, key: K, entry: Entry) => {
+    const list = lists.get(key);
+    if (list === undefined) lists.set(key, [entry]);
+    else list.push(entry);
+  };
+  for (const entry of entries) {
+    if (entry.parent !== undefined) append(childrenByParent, entry.parent.manifest.id, entry);
+    // A segment that is no line joins the line of its segment line, its parent.
+    append(sourcesByLine, entry.line ? entry : (entry.parent ?? entry), entry);
+  }
+  const index: TraversalIndex = { childrenByParent, sourcesByLine };
   const traversal = new Map(entries.map((entry, index) => [entry, index]));
   const byTraversal = (left: Entry, right: Entry) =>
-    (traversal.get(left) as number) - (traversal.get(right) as number);
+    known(traversal, left) - known(traversal, right);
   const u = (value: Real) => proportion(value, lambda);
   const relativeX = (value: Real) => L * u(value);
   const relativeEnd = (entry: Entry) => (entry.rootEnd ? L : relativeX(entry.end));
 
-  const owned = (
+  const held = (
     type: ElementType,
     at: string,
     entry: Entry,
     kind: BandKind,
     map?: ConversionMap,
-  ): Owned & Holder => {
+  ): Styled & Holder & { entry: Entry } => {
     const band = entry.bands[kind];
     const key = elementKey(type, at, entry.manifest, band.key, map);
     const style = cascade.resolve(key, band.style);
-    return { key, address: at, style, entry, label: textOf({ key, style }, "label") };
+    return { key, address: at, style, entry };
+  };
+  const mapped = (at: string, entry: Entry, map: ConversionMap) =>
+    held("map", at, entry, "conversion_maps", map);
+  const owned = (
+    type: Exclude<ElementType, "map">,
+    at: string,
+    entry: Entry,
+    kind: BandKind,
+  ): Owned & Holder => {
+    const item = held(type, at, entry, kind);
+    return { ...item, label: textOf(item, "label") };
   };
 
   return {
@@ -270,6 +335,7 @@ export function traverse(context: Context, member: MemberDrawing, holder: Holder
     root,
     entries,
     rootEntry,
+    index,
     byTraversal,
     lambda,
     L,
@@ -284,6 +350,7 @@ export function traverse(context: Context, member: MemberDrawing, holder: Holder
     styled,
     textOf,
     measured,
+    mapped,
     owned,
   };
 }

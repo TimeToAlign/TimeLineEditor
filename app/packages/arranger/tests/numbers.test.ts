@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { GRID_FREE, MIN_LENGTH, MIN_SCALE, MIN_SPACING, quantize } from "../src/index.ts";
+import { GRID_FREE, MIN_LENGTH, MIN_SCALE, MIN_SPACING, quantize } from "../src/numbers.ts";
 
 describe("quantize", () => {
   it.each([

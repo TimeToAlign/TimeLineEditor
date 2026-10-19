@@ -7,7 +7,7 @@ import type { TimelineManifest } from "@timetoalign/tilie-core";
 import type { ShownCoordinate, TextElement } from "./elements.ts";
 import { cleanText, type TextMeasure } from "./metrics.ts";
 import { unscoped } from "./numbers.ts";
-import { type Entry, type Measured, type Scope, type Styled, shown } from "./traversal.ts";
+import { type Entry, type Measured, nth, type Scope, type Styled, shown } from "./traversal.ts";
 
 /** A name and its text: what one line or ancestor line gives its row of the name column. */
 export interface NameItem {
@@ -23,24 +23,50 @@ export interface RowName {
   readonly width: number;
 }
 
+/** A text as drawn: cut to its `max-width` or whole, with its width. */
+export interface CutText {
+  readonly text: string;
+  readonly width: number;
+}
+
 /** The name of a timeline (section 5.3): its `name`, or its id without its scope. */
 export const nameOf = (timeline: TimelineManifest): string =>
   timeline.name ?? unscoped(timeline.id);
 
-/** A name text cut to its `max-width` with `…` (section 6.6). */
+/**
+ * A name text cut to its `max-width` with `…` (section 6.6): the longest prefix
+ * that fits with the ellipsis, found by binary search over the text's advance sums.
+ */
 export function cutText(
   measure: TextMeasure,
   text: string,
   size: number,
   maximum: number | "none",
-) {
-  if (maximum === "none" || measure.width(text, size) <= maximum) return text;
-  const ellipsis = "…";
-  const points = Array.from(text);
-  while (points.length > 0 && measure.width(`${points.join("")}${ellipsis}`, size) > maximum) {
-    points.pop();
+): CutText {
+  const whole = measure.advances(text);
+  const width = measure.width(text, size);
+  if (maximum === "none" || width <= maximum) return { text, width };
+  const ellipsis = measure.advances("…");
+  const tail = nth(ellipsis.prefixes, ellipsis.points.length);
+  const fits = (count: number) =>
+    measure.widthOf(nth(whole.prefixes, count) + tail, size) <= maximum;
+  let low = 0;
+  let high = whole.points.length;
+  while (low < high) {
+    const middle = Math.ceil((low + high) / 2);
+    if (fits(middle)) low = middle;
+    else high = middle - 1;
   }
-  return `${points.join("")}${ellipsis}`;
+  const kept = nth(whole.prefixes, low);
+  const cut = `${whole.points.slice(0, low).join("")}…`;
+  measure.remember(cut, {
+    points: [...whole.points.slice(0, low), ...ellipsis.points],
+    prefixes: [
+      ...whole.prefixes.slice(0, low + 1),
+      ...ellipsis.prefixes.slice(1).map((advance) => kept + advance),
+    ],
+  });
+  return { text: cut, width: measure.widthOf(kept + tail, size) };
 }
 
 /** The names a row's lines give it, in their order: a segment's line gives none (section 6.6). */
@@ -66,8 +92,8 @@ export function rowName(scope: Scope, items: readonly NameItem[]): RowName | und
       ? visible.map((item) => item.text).join(", ")
       : first.style.content;
   const size = first.style["font-size"];
-  const text = cutText(measure, cleanText(source), size, first.style["max-width"]);
-  return { first, text, width: measure.width(text, size) };
+  const cut = cutText(measure, cleanText(source), size, first.style["max-width"]);
+  return { first, text: cut.text, width: cut.width };
 }
 
 /**

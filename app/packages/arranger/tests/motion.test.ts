@@ -2,7 +2,7 @@
 /**
  * `slide`, the `animate:` function of a drawing's elements: Svelte's screen
  * offset becomes drawing units through the element's screen CTM; and
- * `drawingMatrix`, the CTM a drag reads.
+ * `drawingMatrix`, the CTM a drag reads (README, "The gesture engine").
  */
 
 import { afterEach, describe, expect, it } from "vitest";

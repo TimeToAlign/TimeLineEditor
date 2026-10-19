@@ -5,13 +5,14 @@
  * line reaches on each side.
  */
 
-import { elementKey } from "@timetoalign/tilie-core";
+import { partAddress } from "@timetoalign/tilie-core";
+import { elementKey } from "@timetoalign/tilie-core/drawing";
 import type { Centred, LineElements, LinePosition, Side } from "./bands.ts";
 import { BOUNDARY, LABEL_GAP } from "./constants.ts";
 import { type Extent, labelExtent, labelTiers, Rows } from "./fit.ts";
 import { centredLabel } from "./names.ts";
 import { midpoint } from "./numbers.ts";
-import { type Entry, endOf, maxSize, type Scope, shown } from "./traversal.ts";
+import { type Entry, endOf, known, maxSize, type Scope, shown } from "./traversal.ts";
 
 /** A timeline's line and its segments' boundaries and labels, before any distance is known. */
 export interface LevelZero {
@@ -55,15 +56,17 @@ export interface LevelZero {
  * directly and in no band (section 2.1), and drawn only with that line.
  */
 export function levelZero(scope: Scope, line: Entry): LevelZero {
-  const { entries, rootEntry, member, styled, measured, relativeX, relativeEnd, u, h, d } = scope;
+  const { index, rootEntry, member, styled, measured, relativeX, relativeEnd, u, h, d } = scope;
   const drawn = shown(line.style);
   const segments =
-    drawn && line.manifest.is_segment_line ? entries.filter((entry) => entry.parent === line) : [];
+    drawn && line.manifest.is_segment_line
+      ? (index.childrenByParent.get(line.manifest.id) ?? [])
+      : [];
   const part = (segment: Entry, word: "start" | "label") =>
     styled(
       elementKey(
         word === "start" ? "boundary" : "label",
-        `${segment.manifest.id}/${word}`,
+        partAddress(segment.manifest.id, word),
         segment.manifest,
         line.key,
       ),
@@ -128,7 +131,7 @@ export function levelZero(scope: Scope, line: Entry): LevelZero {
         },
       })),
       segmentLabels: labels.map((item) => {
-        const outwards = m(against) + LABEL_GAP + ((tier.get(item) as number) - 1) * h(size);
+        const outwards = m(against) + LABEL_GAP + (known(tier, item) - 1) * h(size);
         return {
           segment: item.segment,
           element: centredLabel(item.label, at.x(item.at), at.y - outwards - d(size), item),

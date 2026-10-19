@@ -7,17 +7,22 @@
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
-import type { BandKind, Block, Command, Manifest, View } from "@timetoalign/tilie-core";
+import type { BandKind, Block, Command, Manifest, Store, View } from "@timetoalign/tilie-core";
 import {
   apply,
+  createStore,
   createView,
+  emptyWorkspace,
   isCommandError,
   isLoadError,
   loadManifest,
 } from "@timetoalign/tilie-core";
-import type { Drawing, DrawnBand, DrawnElement } from "@timetoalign/tilie-layout";
+import type { Drawing, DrawnBox, DrawnElement } from "@timetoalign/tilie-layout";
 import { INITIAL_STYLE } from "@timetoalign/tilie-layout";
+import type { DescriptorSource } from "@timetoalign/tilie-writers";
 import { dumps, fontMetrics, parseJson, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
+import type { BandBox } from "../src/boxes.ts";
+import { isBand } from "../src/boxes.ts";
 
 export const metrics = fontMetrics;
 
@@ -65,6 +70,39 @@ export function changed(view: View, command: Command | object | null): View {
   const result = apply(view, command);
   if (isCommandError(result)) throw new Error(`${result.code} at ${JSON.stringify(result.path)}`);
   return result;
+}
+
+/**
+ * A store whose journal builds `view`: from the empty workspace, one `set`
+ * of every setting that differs, then one `add` per block in index order,
+ * stating its placement and places. A store verifies its journal, so a view
+ * is never handed to it without one.
+ */
+export function storeOf(view: View): Store {
+  const store = createStore(emptyWorkspace());
+  const defaults = createView().settings;
+  const settings = Object.fromEntries(
+    Object.entries(view.settings).filter(
+      ([member, value]) =>
+        JSON.stringify(value) !== JSON.stringify(defaults[member as keyof typeof defaults]),
+    ),
+  );
+  const commands: object[] = [];
+  if (Object.keys(settings).length > 0) {
+    commands.push({ type: "set", changes: [{ target: "workspace", values: settings }] });
+  }
+  const blocks = Object.values(view.blocks).sort((left, right) =>
+    left.index < right.index ? -1 : left.index > right.index ? 1 : 0,
+  );
+  for (const { id, manifest, x, y, scale, length, spacing, width, height, places } of blocks) {
+    const block = { id, manifest, x, y, scale, length, spacing, width, height, places };
+    commands.push({ type: "add", into: "workspace", block });
+  }
+  for (const command of commands) {
+    const refused = store.dispatch(command);
+    if (refused !== null) throw new Error(`${refused.code} at ${JSON.stringify(refused.path)}`);
+  }
+  return store;
 }
 
 export interface Placed {
@@ -206,7 +244,11 @@ export function marqueeView(): View {
 /** A rectangle `[x, y, width, height]` in a drawing's units. */
 type Rectangle = readonly [number, number, number, number];
 
-/** The record of the band of `kind` of `timeline` at the line `line`, its rectangle `rect`. */
+/**
+ * The record of the band of `kind` of `timeline` at the line `line`, its
+ * rectangle `rect`, held by the card `holder` (the timeline's own card
+ * unless named) and drawing nothing.
+ */
 export function bandRecord(
   timeline: string,
   kind: BandKind,
@@ -214,47 +256,109 @@ export function bandRecord(
   line: number,
   [x, y, width, height]: Rectangle,
   elements = 1,
-): DrawnBand {
+  holder = `${timeline}/card`,
+): BandBox {
   const address = `${timeline}/${kind}_1`;
-  return { address, timeline, kind, level, line, elements, x, y, width, height };
+  return {
+    kind: "band",
+    key: null,
+    address,
+    holder,
+    x,
+    y,
+    width,
+    height,
+    range: { start: 0, end: 0 },
+    displayed: false,
+    band: { timeline, kind, level, elements, line },
+  };
+}
+
+/**
+ * The source of a descriptor drawing the first element of `drawing` that
+ * carries `address` (`null`: the block's background), of `type` when given,
+ * as a press on it reports it.
+ */
+export function sourceOf(
+  drawing: Drawing,
+  address: string | null,
+  type?: DrawnElement["type"],
+  role: DescriptorSource["role"] = "primary",
+): DescriptorSource {
+  const element = drawing.elements.findIndex(
+    (drawn) => drawn.address === address && (type === undefined || drawn.type === type),
+  );
+  const drawn = drawing.elements[element];
+  if (drawn === undefined) throw new Error(`nothing is drawn at ${address}`);
+  return { element, type: drawn.type, address, role };
+}
+
+/** `drawing` with its band records replaced by `bands`. */
+export function withBands(drawing: Drawing, bands: readonly BandBox[]): Drawing {
+  return { ...drawing, boxes: [...drawing.boxes.filter((box) => !isBand(box)), ...bands] };
+}
+
+/** The band records of a drawing, in drawing order. */
+export function bandsOf(drawing: Drawing): readonly BandBox[] {
+  return drawing.boxes.filter(isBand);
 }
 
 /**
  * A drawing written by hand (the README's section "Bands"): `width` by
  * `height`, its background, the card `<root>/card` of the ungrouped root
- * `root` at `card`, then `elements`, the card's item spanning all of them,
- * and the records `bands`.
+ * `root` at `card`, then `elements`; its boxes the block's box, the card,
+ * an item spanning the card and the elements, and the records `bands`.
  */
 function handDrawn(
   [width, height]: readonly [number, number],
   root: string,
   [x, y, cardWidth, cardHeight]: Rectangle,
   elements: readonly DrawnElement[],
-  bands: readonly DrawnBand[],
+  bands: readonly BandBox[],
 ): Drawing {
   const style = INITIAL_STYLE;
   const address = `${root}/card`;
+  const end = 2 + elements.length;
+  const box: DrawnBox = {
+    kind: "box",
+    key: null,
+    address: null,
+    holder: null,
+    x: 0,
+    y: 0,
+    width,
+    height,
+    range: { start: 0, end },
+    displayed: true,
+  };
+  const card: DrawnBox = {
+    kind: "card",
+    key: root,
+    address,
+    holder: null,
+    x,
+    y,
+    width: cardWidth,
+    height: cardHeight,
+    range: { start: 1, end },
+    displayed: true,
+    item: {
+      place: { x, y, length: 400, scale: 1, spacing: 1, width: cardWidth, height: cardHeight },
+      stated: {},
+    },
+    card: { size: { width: cardWidth, height: cardHeight }, spacing: 1, stated: {} },
+  };
   return {
     width,
     height,
     origin: { x: 0, y: 0 },
-    items: [
-      {
-        key: root,
-        kind: "card",
-        address,
-        place: { x, y, length: 400, scale: 1, spacing: 1, width: cardWidth, height: cardHeight },
-        stated: {},
-        range: { start: 1, end: 2 + elements.length },
-      },
-    ],
-    cards: [],
+    boxes: [box, card, ...bands],
+    axes: [],
     elements: [
       { type: "block", address: null, style, width, height },
       { type: "card", address, style, x, y, width: cardWidth, height: cardHeight, shadowOffset: 2 },
       ...elements,
     ],
-    bands,
     unmapped: [],
   };
 }
@@ -313,6 +417,6 @@ export const MAP_DRAWN: Drawing = handDrawn(
     bandRecord("melody", "children", 2, 70, [100, 16, 400, 20]),
     bandRecord("melody", "conversion_maps", 1, 70, [100, 56, 400, 14]),
     bandRecord("melody", "markers", -1, 70, [100, 70, 400, 16], 2),
-    bandRecord("phrase", "conversion_maps", 1, 30, [200, 20, 200, 10]),
+    bandRecord("phrase", "conversion_maps", 1, 30, [200, 20, 200, 10], 1, "melody/card"),
   ],
 );

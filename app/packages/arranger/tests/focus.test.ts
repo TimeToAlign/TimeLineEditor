@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import type { BlockNode } from "../src/index.ts";
-import { FOCUS_DURATION, focusViewport, project, targetBounds } from "../src/index.ts";
+import { FOCUS_DURATION, focusViewport, targetBounds } from "../src/focus.ts";
+import type { BlockNode } from "../src/project.ts";
+import { project } from "../src/project.ts";
 import { A, changed, metrics, mixedView } from "./support.ts";
 
 /** The node of block A, at `scale` when one is given. */

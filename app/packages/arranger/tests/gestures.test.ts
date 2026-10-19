@@ -1,50 +1,62 @@
 // @vitest-environment jsdom
 /**
- * The drags inside a block's drawing: a press stays a click within the
- * click distance, a drag previews in drawing units (an item move by the
- * zoom and the block's scale, a reorder through the drawing's screen CTM)
- * and ends in one command, Escape and a cancelled pointer abort
- * it, only the click its release fires is taken; and the resize modes each
- * editor's gestures offer.
+ * The one pointer gesture (README, "The gesture engine"): which presses it
+ * takes and how it marks them, the click distance, the points a strategy
+ * receives, one preview per new value, one command on release, Escape, the
+ * canvas's slot and a cancelled pointer ending it without one, and the
+ * click a gesture's release fires taken and no other. A recording strategy
+ * stands for the four the canvas uses.
  */
 
 import type { Command } from "@timetoalign/tilie-core";
-import type { Attachment } from "svelte/attachments";
-import { afterEach, describe, expect, it } from "vitest";
-import type { Point } from "../src/gestures.svelte.ts";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import type { GesturePoint, GestureStrategy, Point } from "../src/gesture.ts";
 import {
-  abortDrag,
-  bandDrag,
   CLICK_DISTANCE,
-  itemDrag,
-  memberDrag,
-  resizeModes,
-} from "../src/gestures.svelte.ts";
+  drawingPoint,
+  drawn,
+  GestureSlot,
+  pointerGesture,
+  sourceAt,
+} from "../src/gesture.ts";
 import type { Matrix } from "../src/motion.ts";
+import { nextTask, pointer, pressEscape, stubPointerCapture, withScreenMatrix } from "./dom.ts";
 
 const SVG = "http://www.w3.org/2000/svg";
+const COMMAND: Command = { type: "remove", targets: ["bundle0001/group_1"] };
 
-/** A recorded call of the drag's callbacks, in the order they were made. */
+/** What the recording strategy was asked, in order. */
 type Call =
-  | { readonly preview: unknown }
-  | { readonly command: unknown }
+  | { readonly takes: GesturePoint }
+  | { readonly start: true }
+  | { readonly preview: Point | null }
+  | { readonly command: Point }
   | { readonly dispatch: Command };
 
 interface Stage {
   readonly svg: SVGSVGElement;
   readonly element: SVGRectElement;
-  /** The `<svg>`'s screen CTM, the drawing's, which a test may change between events. */
+  /** The `<svg>`'s screen CTM, the drawing's, which a case may change between events. */
   matrix: Matrix;
-  readonly captured: number[];
-  readonly released: number[];
+  readonly calls: Call[];
   /** The clicks that reached the `<svg>`. */
   readonly clicks: Event[];
 }
 
+let detach: (() => void) | undefined;
+
+beforeEach(stubPointerCapture);
+
+afterEach(() => {
+  detach?.();
+  detach = undefined;
+  document.body.innerHTML = "";
+});
+
 /**
- * A `rect.card` in an `<svg>` in the document: the `<svg>` with a CTM, the
- * `rect` with a CTM of its own that no drag may read (a card sliding), and
- * recorded pointer capture.
+ * A `rect.card` in an `<svg>`: the `<svg>`'s CTM a scale of 2 at (10, 20), so
+ * client `(x, y)` is drawing `((x − 10) / 2, (y − 20) / 2)`; the `rect` has a
+ * CTM of its own that no gesture may read (a card sliding).
  */
 function stage(): Stage {
   const svg = document.createElementNS(SVG, "svg");
@@ -56,401 +68,340 @@ function stage(): Stage {
     svg,
     element,
     matrix: { a: 2, b: 0, c: 0, d: 2, e: 10, f: 20 },
-    captured: [],
-    released: [],
+    calls: [],
     clicks: [],
   };
-  const capture = new Set<number>();
-  Object.assign(svg, { getScreenCTM: () => result.matrix });
-  Object.assign(element, {
-    getScreenCTM: (): Matrix => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: -1000 }),
-    setPointerCapture: (pointer: number) => {
-      capture.add(pointer);
-      result.captured.push(pointer);
-    },
-    hasPointerCapture: (pointer: number) => capture.has(pointer),
-    releasePointerCapture: (pointer: number) => {
-      capture.delete(pointer);
-      result.released.push(pointer);
-    },
-  });
+  withScreenMatrix(svg, () => result.matrix);
+  withScreenMatrix(element, () => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: -1000 }));
   svg.addEventListener("click", (event) => result.clicks.push(event));
   return result;
 }
 
-function pointer(target: Element, type: string, x: number, y: number, button = 0): void {
-  target.dispatchEvent(
-    new PointerEvent(type, { pointerId: 1, clientX: x, clientY: y, button, bubbles: true }),
-  );
+/**
+ * A strategy recording what it is asked: it takes a press above drawing
+ * ordinate `limit`, its value is the drawing point with `y` rounded down to
+ * a multiple of 10 (so small moves give the same value), and `command`
+ * answers its command.
+ */
+function recording(
+  calls: Call[],
+  { limit = Number.POSITIVE_INFINITY, command = COMMAND as Command | null } = {},
+): GestureStrategy<{ readonly at: GesturePoint }, Point> {
+  return {
+    takes(_event, at) {
+      calls.push({ takes: at });
+      return at.drawing.y < limit ? { at } : null;
+    },
+    start: () => calls.push({ start: true }),
+    value: (_press, at) =>
+      at.drawing.y < 0 ? null : { x: 0, y: Math.floor(at.drawing.y / 10) * 10 },
+    preview: (_press, value) => calls.push({ preview: value }),
+    command(_press, value) {
+      calls.push({ command: value });
+      return command;
+    },
+  };
 }
 
-/** A click; a pointer's (`detail` 1) unless `detail` says otherwise (0: a key or `element.click()`). */
+function attach(
+  scene: Stage,
+  strategy = recording(scene.calls),
+  options: { clickDistance?: number; slot?: GestureSlot } = {},
+  on: Element = scene.element,
+): void {
+  detach =
+    pointerGesture(strategy, {
+      ...options,
+      dispatch: (command) => scene.calls.push({ dispatch: command }),
+    })(on) ?? undefined;
+}
+
+/** A click; a pointer's (`detail` 1) unless `detail` says otherwise (0: a key, `element.click()`). */
 function click(target: Element, detail = 1): void {
   target.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, detail }));
 }
 
-/** One task: what the browser runs after the task that fired a release and its click. */
-function nextTask(): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, 0));
+/** The calls but the presses taken. */
+function asked(calls: readonly Call[]): Call[] {
+  return calls.filter((call) => !("takes" in call));
 }
 
-const COMMAND: Command = { type: "remove", targets: ["bundle0001/group_1"] };
+describe("a press", () => {
+  it("is read in the drawing's units through the <svg>'s CTM, never the element's", () => {
+    const scene = stage();
+    attach(scene);
+    pointer(scene.element, "pointerdown", 30, 110);
+    expect(scene.calls).toEqual([
+      { takes: { drawing: { x: 10, y: 45 }, screen: { x: 30, y: 110 } } },
+    ]);
+  });
 
-/**
- * An item drag of the place `{x: 40, y: 200}` recording its calls, at zoom
- * 4 in a block of scale 1/2: a drawing unit is 2 screen pixels, as the
- * stage's CTM says.
- */
-function itemOptions(calls: Call[], command: Command | null = COMMAND) {
-  return {
-    place: (): Point => ({ x: 40, y: 200 }),
-    zoom: () => 4,
-    scale: () => 0.5,
-    preview: (place: Point | null) => calls.push({ preview: place }),
-    command: (place: Point) => {
-      calls.push({ command: place });
-      return command;
-    },
-    dispatch: (sent: Command) => calls.push({ dispatch: sent }),
-  };
-}
+  it("refused leaves the element unmarked and uncaptured, and the pointer to the canvas", () => {
+    const scene = stage();
+    attach(scene, recording(scene.calls, { limit: 40 }));
+    pointer(scene.element, "pointerdown", 30, 110);
+    expect(scene.element.getAttribute("class")).toBe("card");
+    expect(scene.element.hasPointerCapture(1)).toBe(false);
+    pointer(scene.element, "pointermove", 30, 150);
+    pointer(scene.element, "pointerup", 30, 150);
+    expect(asked(scene.calls)).toEqual([]);
+  });
 
-let detach: (() => void) | undefined;
+  it("taken marks the element nodrag nopan and captures the pointer while it is held", () => {
+    const scene = stage();
+    attach(scene);
+    pointer(scene.element, "pointerdown", 30, 110);
+    expect(scene.element.getAttribute("class")).toBe("card nodrag nopan");
+    expect(scene.element.hasPointerCapture(1)).toBe(true);
+    pointer(scene.element, "pointerup", 30, 110);
+    expect(scene.element.getAttribute("class")).toBe("card");
+    expect(scene.element.hasPointerCapture(1)).toBe(false);
+  });
 
-afterEach(() => {
-  detach?.();
-  detach = undefined;
-  document.body.innerHTML = "";
+  it("keeps marks the element carries of its own", () => {
+    const scene = stage();
+    scene.element.setAttribute("class", "card nodrag nopan");
+    attach(scene);
+    pointer(scene.element, "pointerdown", 30, 110);
+    pointer(scene.element, "pointerup", 30, 110);
+    expect(scene.element.getAttribute("class")).toBe("card nodrag nopan");
+  });
+
+  it("other than the primary button's is never taken", () => {
+    const scene = stage();
+    attach(scene);
+    pointer(scene.element, "pointerdown", 30, 110, { button: 2 });
+    expect(scene.calls).toEqual([]);
+  });
+
+  it("on an element outside a drawing is read at its screen point", () => {
+    const scene = stage();
+    const handle = document.createElement("div");
+    document.body.append(handle);
+    attach(scene, recording(scene.calls), {}, handle);
+    pointer(handle, "pointerdown", 30, 110);
+    expect(scene.calls).toEqual([
+      { takes: { drawing: { x: 30, y: 110 }, screen: { x: 30, y: 110 } } },
+    ]);
+  });
 });
 
-function attach(element: SVGElement, attachment: Attachment<SVGElement>): void {
-  detach = attachment(element) ?? undefined;
-}
-
-describe("itemDrag", () => {
-  it("marks its element nodrag nopan while attached", () => {
-    const { element, captured } = stage();
-    const calls: Call[] = [];
-    attach(element, itemDrag(itemOptions(calls)));
-    expect(element.getAttribute("class")).toBe("card nodrag nopan");
-    pointer(element, "pointerdown", 100, 100, 2);
-    pointer(element, "pointermove", 140, 140);
-    pointer(element, "pointerup", 140, 140);
-    expect(captured).toEqual([]);
-    expect(calls).toEqual([]);
-    detach?.();
-    detach = undefined;
-    expect(element.getAttribute("class")).toBe("card");
-  });
-
-  it("leaves a press within the click distance a click", () => {
-    const { element, captured, released, clicks } = stage();
-    const calls: Call[] = [];
-    attach(element, itemDrag(itemOptions(calls)));
-    expect(CLICK_DISTANCE).toBe(4);
-    pointer(element, "pointerdown", 100, 100);
-    pointer(element, "pointermove", 103, 102);
-    pointer(element, "pointermove", 104, 100);
-    pointer(element, "pointerup", 104, 100);
-    click(element);
-    expect(calls).toEqual([]);
-    expect(clicks).toHaveLength(1);
-    expect(captured).toEqual([1]);
-    expect(released).toEqual([1]);
-  });
-
-  it("previews in drawing units and dispatches one command on release", () => {
-    const { element, clicks } = stage();
-    const calls: Call[] = [];
-    attach(element, itemDrag(itemOptions(calls)));
-    pointer(element, "pointerdown", 100, 100);
-    pointer(element, "pointermove", 110, 96);
-    pointer(element, "pointermove", 110, 96);
-    pointer(element, "pointermove", 121, 100);
-    pointer(element, "pointerup", 121, 100);
-    click(element);
-    expect(calls).toEqual([
-      { preview: { x: 45, y: 198 } },
-      { preview: { x: 50.5, y: 200 } },
-      { command: { x: 50.5, y: 200 } },
-      { dispatch: COMMAND },
-      { preview: null },
-    ]);
-    expect(clicks).toEqual([]);
-  });
-
-  it("quantizes the place to GRID_FREE", () => {
-    const { element } = stage();
-    const calls: Call[] = [];
-    attach(element, itemDrag(itemOptions(calls)));
-    pointer(element, "pointerdown", 100, 100);
-    pointer(element, "pointermove", 100.0004, 110);
-    pointer(element, "pointermove", 100.0006, 110);
-    expect(calls).toEqual([
-      { preview: { x: 40, y: 205 } },
-      { preview: { x: 40.00048828125, y: 205 } },
-    ]);
-  });
-
-  it("converts the travel by the zoom and the scale, not by the drawing's CTM", () => {
+describe("the click distance", () => {
+  it("leaves a press released within it a click: nothing starts", () => {
     const scene = stage();
-    // An engine lays the <svg> out at its layout unit, so its CTM's scale is off in the last digits.
-    scene.matrix = { a: 0.9999813045672942, b: 0, c: 0, d: 0.9999813045672942, e: 40, f: 72 };
-    const calls: Call[] = [];
-    attach(scene.element, itemDrag({ ...itemOptions(calls), zoom: () => 1, scale: () => 1 }));
+    attach(scene);
+    expect(CLICK_DISTANCE).toBe(4);
     pointer(scene.element, "pointerdown", 100, 100);
-    pointer(scene.element, "pointerup", 140, 124);
-    expect(calls).toEqual([
-      { preview: { x: 80, y: 224 } },
-      { command: { x: 80, y: 224 } },
+    pointer(scene.element, "pointermove", 103, 102);
+    pointer(scene.element, "pointermove", 104, 100);
+    pointer(scene.element, "pointerup", 104, 100);
+    click(scene.element);
+    expect(asked(scene.calls)).toEqual([]);
+    expect(scene.clicks).toHaveLength(1);
+  });
+
+  it("is the option's where one is given", () => {
+    const scene = stage();
+    attach(scene, recording(scene.calls), { clickDistance: 10 });
+    pointer(scene.element, "pointerdown", 100, 100);
+    pointer(scene.element, "pointermove", 108, 106);
+    pointer(scene.element, "pointerup", 108, 106);
+    expect(asked(scene.calls)).toEqual([]);
+  });
+});
+
+describe("a gesture", () => {
+  it("starts once, previews each new value, and dispatches one command on release", () => {
+    const scene = stage();
+    attach(scene);
+    pointer(scene.element, "pointerdown", 30, 110);
+    pointer(scene.element, "pointermove", 30, 116);
+    pointer(scene.element, "pointermove", 30, 118);
+    pointer(scene.element, "pointermove", 30, 130);
+    pointer(scene.element, "pointerup", 30, 130);
+    click(scene.element);
+    expect(asked(scene.calls)).toEqual([
+      { start: true },
+      { preview: { x: 0, y: 40 } },
+      { preview: { x: 0, y: 50 } },
+      { command: { x: 0, y: 50 } },
       { dispatch: COMMAND },
       { preview: null },
     ]);
+    expect(scene.clicks).toEqual([]);
   });
 
-  it("reads the zoom and the scale at the press", () => {
-    const { element } = stage();
-    const calls: Call[] = [];
-    let zoom = 1;
-    attach(element, itemDrag({ ...itemOptions(calls), zoom: () => zoom, scale: () => 2.5 }));
-    pointer(element, "pointerdown", 100, 100);
-    zoom = 8;
-    pointer(element, "pointermove", 125, 110);
-    expect(calls).toEqual([{ preview: { x: 50, y: 204 } }]);
+  it("reads every point through the drawing's CTM of the moment", () => {
+    const scene = stage();
+    attach(scene);
+    pointer(scene.element, "pointerdown", 30, 110);
+    pointer(scene.element, "pointermove", 30, 116);
+    scene.matrix = { ...scene.matrix, f: -60 };
+    pointer(scene.element, "pointermove", 30, 116);
+    expect(asked(scene.calls)).toEqual([
+      { start: true },
+      { preview: { x: 0, y: 40 } },
+      { preview: { x: 0, y: 80 } },
+    ]);
+  });
+
+  it("previews nothing for a point with no value, and dispatches nothing without a value", () => {
+    const scene = stage();
+    attach(scene);
+    pointer(scene.element, "pointerdown", 30, 30);
+    pointer(scene.element, "pointermove", 30, 10);
+    pointer(scene.element, "pointerup", 30, 10);
+    expect(asked(scene.calls)).toEqual([{ start: true }, { preview: null }]);
   });
 
   it("dispatches nothing when the command changes nothing", () => {
-    const { element } = stage();
-    const calls: Call[] = [];
-    attach(element, itemDrag(itemOptions(calls, null)));
-    pointer(element, "pointerdown", 100, 100);
-    pointer(element, "pointermove", 110, 96);
-    pointer(element, "pointerup", 110, 96);
-    expect(calls).toEqual([
-      { preview: { x: 45, y: 198 } },
-      { command: { x: 45, y: 198 } },
+    const scene = stage();
+    attach(scene, recording(scene.calls, { command: null }));
+    pointer(scene.element, "pointerdown", 30, 110);
+    pointer(scene.element, "pointerup", 30, 130);
+    expect(asked(scene.calls)).toEqual([
+      { start: true },
+      { preview: { x: 0, y: 50 } },
+      { command: { x: 0, y: 50 } },
       { preview: null },
     ]);
   });
 
-  it("is ended by abortDrag as by Escape, which reports whether a drag was in progress", () => {
-    const { element, clicks } = stage();
-    const calls: Call[] = [];
-    attach(element, itemDrag(itemOptions(calls)));
-    expect(abortDrag()).toBe(false);
-    pointer(element, "pointerdown", 100, 100);
-    pointer(element, "pointermove", 103, 102);
-    expect(abortDrag()).toBe(false);
-    pointer(element, "pointermove", 110, 96);
-    expect(abortDrag()).toBe(true);
-    expect(abortDrag()).toBe(false);
-    pointer(element, "pointerup", 110, 96);
-    click(element);
-    expect(calls).toEqual([{ preview: { x: 45, y: 198 } }, { preview: null }]);
-    expect(clicks).toEqual([]);
+  it("is withdrawn when its element goes away", () => {
+    const scene = stage();
+    attach(scene);
+    pointer(scene.element, "pointerdown", 30, 110);
+    pointer(scene.element, "pointermove", 30, 130);
+    detach?.();
+    detach = undefined;
+    pointer(scene.element, "pointerup", 30, 130);
+    expect(asked(scene.calls)).toEqual([
+      { start: true },
+      { preview: { x: 0, y: 50 } },
+      { preview: null },
+    ]);
+  });
+});
+
+describe("ending a gesture without a command", () => {
+  it("through the canvas's slot, which says whether a gesture was under way", () => {
+    const scene = stage();
+    const slot = new GestureSlot();
+    attach(scene, recording(scene.calls), { slot });
+    expect(slot.abort()).toBe(false);
+    pointer(scene.element, "pointerdown", 30, 110);
+    pointer(scene.element, "pointermove", 32, 111);
+    expect(slot.abort()).toBe(false);
+    pointer(scene.element, "pointermove", 30, 130);
+    expect(slot.abort()).toBe(true);
+    expect(slot.abort()).toBe(false);
+    pointer(scene.element, "pointerup", 30, 130);
+    click(scene.element);
+    expect(asked(scene.calls)).toEqual([
+      { start: true },
+      { preview: { x: 0, y: 50 } },
+      { preview: null },
+    ]);
+    expect(scene.clicks).toEqual([]);
   });
 
-  it("aborts on Escape, which it takes from the canvas", () => {
-    const { element, clicks } = stage();
-    const calls: Call[] = [];
+  it("by Escape, which the gesture takes from the page", () => {
+    const scene = stage();
     const keys: string[] = [];
     document.addEventListener("keydown", (event) => keys.push(event.key));
-    attach(element, itemDrag(itemOptions(calls)));
-    pointer(element, "pointerdown", 100, 100);
-    pointer(element, "pointermove", 110, 96);
+    attach(scene);
+    pointer(scene.element, "pointerdown", 30, 110);
+    pointer(scene.element, "pointermove", 30, 130);
     const key = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
     document.body.dispatchEvent(key);
-    pointer(element, "pointerup", 110, 96);
-    click(element);
-    expect(calls).toEqual([{ preview: { x: 45, y: 198 } }, { preview: null }]);
+    pointer(scene.element, "pointerup", 30, 130);
+    expect(asked(scene.calls)).toEqual([
+      { start: true },
+      { preview: { x: 0, y: 50 } },
+      { preview: null },
+    ]);
     expect(key.defaultPrevented).toBe(true);
     expect(keys).toEqual([]);
-    expect(clicks).toEqual([]);
   });
 
   it("leaves an Escape before the click distance to the canvas", () => {
-    const { element } = stage();
-    const calls: Call[] = [];
+    const scene = stage();
     const keys: string[] = [];
     document.addEventListener("keydown", (event) => keys.push(event.key));
-    attach(element, itemDrag(itemOptions(calls)));
-    pointer(element, "pointerdown", 100, 100);
-    pointer(element, "pointermove", 102, 100);
+    attach(scene);
+    pointer(scene.element, "pointerdown", 30, 110);
+    pointer(scene.element, "pointermove", 32, 110);
     document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
     expect(keys).toEqual(["Escape"]);
-    expect(calls).toEqual([]);
+    expect(asked(scene.calls)).toEqual([]);
   });
 
-  it("aborts on a cancelled pointer", () => {
-    const { element } = stage();
-    const calls: Call[] = [];
-    attach(element, itemDrag(itemOptions(calls)));
-    pointer(element, "pointerdown", 100, 100);
-    pointer(element, "pointermove", 110, 96);
-    pointer(element, "pointercancel", 110, 96);
-    pointer(element, "pointerup", 110, 96);
-    expect(calls).toEqual([{ preview: { x: 45, y: 198 } }, { preview: null }]);
+  it("by a cancelled pointer", () => {
+    const scene = stage();
+    attach(scene);
+    pointer(scene.element, "pointerdown", 30, 110);
+    pointer(scene.element, "pointermove", 30, 130);
+    pointer(scene.element, "pointercancel", 30, 130);
+    pointer(scene.element, "pointerup", 30, 130);
+    expect(asked(scene.calls)).toEqual([
+      { start: true },
+      { preview: { x: 0, y: 50 } },
+      { preview: null },
+    ]);
   });
+});
 
-  it("takes only the click a drag's release fires", async () => {
-    const { element, clicks } = stage();
-    attach(element, itemDrag(itemOptions([])));
+describe("the click after a gesture", () => {
+  it("is taken, and no other: not a click without a pointer, nor one a task later", async () => {
+    const scene = stage();
+    attach(scene);
     const drag = () => {
-      pointer(element, "pointerdown", 100, 100);
-      pointer(element, "pointermove", 110, 96);
+      pointer(scene.element, "pointerdown", 30, 110);
+      pointer(scene.element, "pointermove", 30, 130);
     };
     drag();
-    pointer(element, "pointerup", 110, 96);
-    click(element, 0);
-    expect(clicks).toHaveLength(1);
-    click(element);
-    expect(clicks).toHaveLength(1);
+    pointer(scene.element, "pointerup", 30, 130);
+    click(scene.element, 0);
+    expect(scene.clicks).toHaveLength(1);
+    click(scene.element);
+    expect(scene.clicks).toHaveLength(1);
 
     drag();
-    pointer(element, "pointerup", 110, 96);
+    pointer(scene.element, "pointerup", 30, 130);
     await nextTask();
-    click(element);
-    expect(clicks).toHaveLength(2);
+    click(scene.element);
+    expect(scene.clicks).toHaveLength(2);
 
     drag();
-    document.body.dispatchEvent(
-      new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }),
-    );
+    pressEscape();
     await nextTask();
-    pointer(element, "pointerup", 110, 96);
-    click(element);
-    expect(clicks).toHaveLength(2);
+    pointer(scene.element, "pointerup", 30, 130);
+    click(scene.element);
+    expect(scene.clicks).toHaveLength(2);
     await nextTask();
-    click(element);
-    expect(clicks).toHaveLength(3);
+    click(scene.element);
+    expect(scene.clicks).toHaveLength(3);
   });
 });
 
-const SCORE_FIRST = ["score", "performance"];
-const PERFORMANCE_FIRST = ["performance", "score"];
-
-/** A reorder's options recording their calls: `[score, performance]` above drawing `y` 50. */
-function memberOptions(calls: Call[]) {
-  return {
-    order: (y: number) => (y < 50 ? SCORE_FIRST : PERFORMANCE_FIRST),
-    preview: (order: readonly string[] | null) => calls.push({ preview: order }),
-    command: (order: readonly string[]) => {
-      calls.push({ command: order });
-      return COMMAND;
-    },
-    dispatch: (sent: Command) => calls.push({ dispatch: sent }),
-  };
-}
-
-describe("memberDrag", () => {
-  it("previews each new order and dispatches one command on release", () => {
-    const { element } = stage();
-    const calls: Call[] = [];
-    attach(element, memberDrag(memberOptions(calls)));
-    pointer(element, "pointerdown", 30, 110);
-    pointer(element, "pointermove", 30, 116);
-    pointer(element, "pointermove", 30, 122);
-    pointer(element, "pointermove", 30, 130);
-    pointer(element, "pointerup", 30, 130);
-    expect(calls).toEqual([
-      { preview: SCORE_FIRST },
-      { preview: PERFORMANCE_FIRST },
-      { command: PERFORMANCE_FIRST },
-      { dispatch: COMMAND },
-      { preview: null },
-    ]);
-  });
-
-  it("reads the ordinate through the drawing's CTM of the moment", () => {
+describe("pointer targets", () => {
+  it("are read back as the descriptor they draw, and nothing else", () => {
     const scene = stage();
-    const calls: Call[] = [];
-    attach(scene.element, memberDrag(memberOptions(calls)));
-    pointer(scene.element, "pointerdown", 30, 110);
-    pointer(scene.element, "pointermove", 30, 116);
-    scene.matrix = { ...scene.matrix, f: 0 };
-    pointer(scene.element, "pointermove", 30, 106);
-    expect(calls).toEqual([{ preview: SCORE_FIRST }, { preview: PERFORMANCE_FIRST }]);
+    const source = { element: 3, type: "card", address: "score/card", role: "primary" } as const;
+    const stop = drawn(source)(scene.element);
+    expect(sourceAt(scene.element)).toBe(source);
+    expect(sourceAt(scene.svg)).toBeNull();
+    expect(sourceAt(null)).toBeNull();
+    stop?.();
+    expect(sourceAt(scene.element)).toBeNull();
   });
-});
 
-describe("bandDrag", () => {
-  it("takes only the presses it accepts and marks the svg only while it holds one", () => {
-    const { svg, element } = stage();
-    const captured: number[] = [];
-    const released: number[] = [];
-    const held = new Set<number>();
-    Object.assign(svg, {
-      setPointerCapture: (pointer: number) => {
-        held.add(pointer);
-        captured.push(pointer);
-      },
-      hasPointerCapture: (pointer: number) => held.has(pointer),
-      releasePointerCapture: (pointer: number) => {
-        held.delete(pointer);
-        released.push(pointer);
-      },
-    });
-    const calls: Call[] = [];
-    const asked: { target: EventTarget | null; point: Point }[] = [];
-    attach(
-      svg,
-      bandDrag({
-        ...memberOptions(calls),
-        takes: (event, point) => {
-          asked.push({ target: event.target, point });
-          return point.y < 50;
-        },
-      }),
-    );
-    expect([...svg.classList]).toEqual([]);
-
-    pointer(element, "pointerdown", 30, 130);
-    expect(asked).toEqual([{ target: element, point: { x: 10, y: 55 } }]);
-    expect([...svg.classList]).toEqual([]);
-    pointer(element, "pointermove", 30, 150);
-    pointer(element, "pointerup", 30, 150);
-    expect(captured).toEqual([]);
-    expect(calls).toEqual([]);
-
-    pointer(element, "pointerdown", 30, 110);
-    expect(asked).toHaveLength(2);
-    expect([...svg.classList]).toEqual(["nodrag", "nopan"]);
-    expect(captured).toEqual([1]);
-    pointer(element, "pointermove", 30, 116);
-    pointer(element, "pointermove", 30, 122);
-    expect([...svg.classList]).toEqual(["nodrag", "nopan"]);
-    pointer(element, "pointerup", 30, 122);
-    expect(calls).toEqual([
-      { preview: SCORE_FIRST },
-      { preview: PERFORMANCE_FIRST },
-      { command: PERFORMANCE_FIRST },
-      { dispatch: COMMAND },
-      { preview: null },
-    ]);
-    expect([...svg.classList]).toEqual([]);
-    expect(released).toEqual([1]);
-  });
-});
-
-describe("resizeModes", () => {
-  it("offers all three modes wherever a kind of box resizes, none elsewhere", () => {
-    const all = ["scale", "box", "stretch"];
-    const rows = Object.fromEntries(
-      (["arranger", "bundle", "group", "timeline"] as const).map((level) => [
-        level,
-        Object.fromEntries(
-          (["block", "frame", "card", "member"] as const).map((kind) => [
-            kind,
-            resizeModes(level, kind),
-          ]),
-        ),
-      ]),
-    );
-    expect(rows).toEqual({
-      arranger: { block: all, frame: all, card: all, member: all },
-      bundle: { block: all, frame: all, card: all, member: all },
-      group: { block: [], frame: all, card: [], member: all },
-      timeline: { block: [], frame: [], card: all, member: all },
-    });
+  it("are read in the drawing's units through their <svg>'s CTM, null off a drawing", () => {
+    const scene = stage();
+    expect(drawingPoint(scene.element, { x: 30, y: 110 })).toEqual({ x: 10, y: 45 });
+    expect(drawingPoint(scene.svg, { x: 30, y: 110 })).toEqual({ x: 10, y: 45 });
+    expect(drawingPoint(document.body, { x: 30, y: 110 })).toBeNull();
+    scene.matrix = { a: 0, b: 0, c: 0, d: 0, e: 0, f: 0 };
+    expect(drawingPoint(scene.element, { x: 30, y: 110 })).toBeNull();
   });
 });

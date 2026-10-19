@@ -1,6 +1,20 @@
+import type { FontMetrics } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
 import { cleanText, type TextElement, TextMeasure } from "../src/index.ts";
+import { cutText } from "../src/names.ts";
 import { drawFixture, manifestNames, metrics } from "./support.ts";
+
+/** The font metrics with every read of the advance table recorded, by code point. */
+function counting(): { readonly font: FontMetrics; readonly reads: string[] } {
+  const reads: string[] = [];
+  const advances = new Proxy(metrics.advances, {
+    get: (table, point: string) => {
+      reads.push(point);
+      return table[point];
+    },
+  });
+  return { font: { ...metrics, advances }, reads };
+}
 
 describe("font measures", () => {
   it("reads the metrics file", () => {
@@ -35,6 +49,25 @@ describe("font measures", () => {
     expect(cleanText("a\tb\u0000")).toBe("a b ");
     expect(cleanText("\u001F ")).toBe("  ");
     expect(new TextMeasure(metrics).width(cleanText("\t"), 2048)).toBe(651);
+  });
+
+  it("reads a text's advances from the font once, whatever the sizes", () => {
+    const { font, reads } = counting();
+    const measure = new TextMeasure(font);
+    expect(measure.width("same", 9)).toBe(measure.width("same", 9));
+    expect(measure.width("same", 18)).toBe(2 * measure.width("same", 9));
+    expect(reads).toEqual(["115", "97", "109", "101"]);
+  });
+
+  it("cuts from one prefix pass and returns the surviving width", () => {
+    const { font, reads } = counting();
+    const measure = new TextMeasure(font);
+    const cut = cutText(measure, "AAAA", 9, 20);
+    expect(cut).toEqual({ text: "A…", width: 15.15673828125 });
+    // The text and the ellipsis are read once; the cut is recorded from their prefix sums.
+    expect(reads).toEqual(["65", "65", "65", "65", "8230"]);
+    expect(measure.width(cut.text, 9)).toBe(cut.width);
+    expect(reads).toHaveLength(5);
   });
 
   it("gives every drawn text the width of the formula", () => {

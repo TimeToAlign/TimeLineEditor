@@ -7,22 +7,17 @@ import {
   validate,
 } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
-import type { BandKind, Manifest } from "../src/index.ts";
+import type { BandKind } from "../src/manifest/bands.ts";
+import { BAND_ID_PATTERN, BAND_KINDS, bandAddress } from "../src/manifest/bands.ts";
+import { isReservedId } from "../src/manifest/files.ts";
 import {
-  BAND_ID_PATTERN,
-  BAND_KINDS,
-  bandAddress,
   bandOrderOf,
   bandOrderProblem,
   defaultBandOrder,
-  elementOf,
-  elementOfIn,
-  formatAddress,
   inheritedBandOrder,
-  isReservedId,
-  parseAddress,
-  parseBand,
-} from "../src/index.ts";
+} from "../src/manifest/order.ts";
+import type { Manifest } from "../src/manifest/types.ts";
+import { elementOf, parseAddressSyntax, parseBand } from "../src/workspace/address.ts";
 import { A, load, loadText, manifestValue } from "./support.ts";
 
 /** The README's example band order: the marks above the line, the maps below it. */
@@ -46,7 +41,7 @@ const K = (id: string) => [
 ];
 
 /** `manifest` carrying `value` as the band order of `id`, its only entry of `graphical.order`. */
-function carrying(manifest: Manifest, id: string, value: unknown): unknown {
+function carrying(manifest: Manifest, id: string, value: unknown): Record<string, unknown> {
   return { ...manifest, graphical: { ...manifest.graphical, order: { [id]: value } } };
 }
 
@@ -132,16 +127,14 @@ describe("band addresses", () => {
     ["melody/children_1", "melody"],
     ["phrase/conversion_maps_1", "phrase"],
     ["melody/tempo", "melody/tempo"],
-  ])("read %s as a part of %s, read once or each time", (path, element) => {
-    expect([elementOf(manifest, path), elementOfIn(manifest)(path)]).toEqual([element, element]);
+  ])("read %s as a part of %s", (path, element) => {
+    expect(elementOf(manifest, path)).toBe(element);
   });
 
   it("split from their block as a card's address does", () => {
     for (const part of ["regions_1", "card"]) {
-      const text = `${A}/melody/${part}`;
-      const parsed = parseAddress(text);
-      expect(parsed).toEqual({ block: A, element: `melody/${part}` });
-      expect(formatAddress(parsed as { block: string; element: string })).toBe(text);
+      const parsed = parseAddressSyntax(`${A}/melody/${part}`);
+      expect(parsed).toEqual({ block: A, segments: ["melody", part] });
     }
   });
 });
@@ -257,7 +250,7 @@ describe("band order problems", () => {
 
   it.each(others)("refuses %s as the validators do", (_, value, message) => {
     expect(bandOrderProblem(manifest, "clt_3", value)).toBe(message);
-    expect(identityProblems(carrying(manifest, "clt_3", value) as never)[0]?.detail).toBe(message);
+    expect(identityProblems(carrying(manifest, "clt_3", value))[0]?.detail).toBe(message);
   });
 
   it.each([["clt_3/foo"], ["clt_3/regions_0"], ["clt_3/region_1"], ["clt_3/start"]])(

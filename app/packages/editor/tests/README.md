@@ -1,1876 +1,499 @@
 # `@timetoalign/tilie-editor` tests
 
-The editor is the shell: a thin header line (the title, the File menu, the
-open file's name, a quiet "offline" mark when the server does not answer,
-in development and test builds the fixture menu, and the About button), the arranger filling the window, and the inspector, a
-drawer on the right that is closed until the viewer opens it. It checks the
-server's health on mount. The component test (`App.test.ts`) mounts
-`App.svelte` into a jsdom document with Svelte's own `mount` and proves the
-following, each with exact values:
+The package holds the editor (header, canvas, inspector drawer and dialogs
+for one workspace), the standalone page that mounts it, and `mount`, the
+framework-free entry a host page calls. The Vitest tests mount components
+into jsdom, read them by role, label and accessible name (every id is made
+per instance) and compare exact values; the canvas's drawing and gestures
+are proven in a browser by the Playwright suite. `fetch` is stubbed,
+IndexedDB is a fresh fake per test, and after each test every component is
+unmounted and its pending autosaves awaited. `pnpm typecheck` runs
+`svelte-check --fail-on-warnings`, which also fails on the compiler's
+accessibility warnings. Workspaces hold the installed timeskeleton
+fixtures, one block per manifest journalled as one `add` (blocks
+`0000000000`, `0000000001`, … side by side), or are the committed
+end-to-end workspaces.
 
-1. **The shell renders and nothing else.** The header's `h1` reads
-   `TimeLineEditor`; the page's `h2` headings are exactly the drawer's
-   `Inspector` and the closed About dialog's `About TimeLineEditor` (no
-   "Arranger", no "Diagnostics"), and there is no `footer` element. The
-   arranger (`role="application"`, `aria-label` `Arranger`, `tabindex` 0)
-   holds the focus once the editor is mounted, so the canvas keys work
-   without a click first.
-2. **The token is taken from the fragment, and the fragment is cleared.**
-   `tilie` opens the editor as `/#token=<token>`. With the page at
-   `/?view=a#token=abc`, `fetch` (stubbed) is called exactly once with
-   `/api/health` and the header `Authorization: Bearer abc`, and by then the
-   location is exactly `/?view=a` with an empty `location.hash`: path and
-   query survive, the token is gone from the address bar, and the history
-   entry is replaced rather than added (`history.length` is unchanged).
-3. **Without a fragment token, no token is sent and the URL is untouched.**
-   With the page at `/?token=abc` (the query, which no longer carries the
-   token), `fetch` is called exactly once with `/api/health` and the header
-   `Authorization: Bearer ` (an empty token, which the server refuses), and
-   the location is still exactly `/?token=abc`. This proves the query is not
-   read as a second source of the token.
-4. **A healthy server shows nothing.** Once the stub resolves with
-   `{"name": "tilie-server", "version": "0.1.0", "timetoalign": "1.2.0"}`,
-   the test hook's `health()` returns exactly that object (the value the
-   About pane shows), the header holds no `.offline` element, and no text
-   on the page outside the closed About dialog contains `tilie-server`,
-   `0.1.0` or `1.2.0`.
-5. **A failed health check shows the offline mark, never the raw error.**
-   With the stub resolving to status 502, status text `Bad Gateway` (what
-   Vite's proxy answers when no server runs), the header shows exactly one
-   `.offline` mark reading `offline`, inside a region with
-   `aria-live="polite"`. Its reason reaches every user: the `title` is
-   `The server did not answer the health check (502 Bad Gateway).` for a
-   pointer, the mark holds the visually hidden text `: The server did not
-   answer the health check (502 Bad Gateway).` for assistive technology
-   (keyboard and touch users read it in the About pane, item 15 below).
-   With the stub rejecting with `TypeError("Failed to fetch")` the same
-   holds with `(Failed to fetch)`. In both cases `health()` is `null`, and
-   the shown text of the page (outside the closed About dialog and the
-   visually hidden text) contains no `HTTP 502` and no `502`.
-6. **The inspector drawer is closed by default.** With empty
-   `localStorage`, the drawer (`#inspector`) is `hidden`, and the only
-   inspector control is the tab, a button labelled `Open inspector` with
-   text `«` and `aria-expanded="false"`, `aria-controls="inspector"`.
-   Clicking it shows the drawer (not `hidden`), removes the tab and offers
-   a button labelled `Close inspector` with text `»`, `aria-expanded="true"`
-   and `aria-controls="inspector"`; `localStorage["tilie.inspector.open"]`
-   is then exactly `"true"`. Clicking the close button hides the drawer,
-   brings the tab back and stores exactly `"false"`.
-7. **The open state is read back per browser.** With
-   `localStorage["tilie.inspector.open"]` set to `"true"` before mounting,
-   the drawer starts open; set to any other value (`"false"`, `"yes"`), it
-   starts closed.
-8. **Storage that throws is no crash.** With a `localStorage` whose
-   `getItem` and `setItem` throw, the editor mounts with the drawer closed,
-   and opening and closing it still work (the state is then simply not
-   remembered).
+The editor owns what it shows, when, and in which words; the rest is read
+from its owner, never re-derived: what a command, an opening, Done and
+Cancel do, and whether a command is accepted, from core's store; a written
+file from core's snapshot and writer; what an address names from core's
+resolver through the arranger's resolved selection; a geometry edit's
+command, stretches included, from the arranger's edit for the same
+addresses, property, value and level (the edit a gesture makes); every
+drawn value (a frame's place, a card's size, a band's level and count) from
+the drawing's record, read in the test itself.
 
-The network is never touched: `fetch` is replaced by a stub for the duration
-of each test and restored afterwards, and the mounted component is unmounted
-and the document emptied after each test.
-The arranger pane mounts the canvas, which needs two browser interfaces
-jsdom lacks; `dom.ts` stubs them for each test: `matchMedia` (no query
-matches) and a `ResizeObserver` that never reports, since jsdom lays nothing
-out. What the canvas shows is proven in a browser by the Playwright suite.
+## The page (`App.test.ts`)
 
-Type-checking of the component and the test is done by `svelte-check` with
-`--fail-on-warnings` under `pnpm typecheck`; that gate also catches the
-compiler's accessibility warnings.
+The page is one caller of the editor: the page's one level-1 heading
+"TimeLineEditor", given to the editor's header as its title, the drawer
+and About, no footer, and the focused canvas (`application`
+"Arranger"). With `#token=abc` in the address, the one health request is
+`api/health` with `Authorization: Bearer abc`, the fragment is gone from
+the address before that request and the history gains no entry; without a
+fragment token (a `?token=` query is none) the request carries `Bearer `
+and the address is untouched. A healthy server shows nothing; an answer
+outside 2xx or an unreachable server shows one "offline" mark in a polite
+live region, whose title and screen-reader text read "The server did not
+answer the health check (`<reason>`)." with `502 Bad Gateway` or the
+fetch's message as the reason. The drawer is closed by default, toggled by
+"Open inspector" and "Close inspector", and its state is written under
+`tilie.inspector.open` and read at the next mount (`"true"` opens, anything
+else closes); a storage that throws leaves it closed and working.
 
 ## Editing (`EditingBar.test.ts`, `editing.test.ts`)
 
-An editor is a mode of the arranger on one element: the bundle editor on a
-block, the group editor on a group, the timeline editor on a root or child
-timeline. The store opens and closes them (`open`, `done`, `cancel`) and
-lists the open ones, outermost first, as `editing`, the editing path; its
-own tests prove what opening, Done and Cancel do to the view, the journal
-and the sessions. These tests prove the shell's part: the bar that shows
-the path and closes the innermost editor, the drawer opening on entering,
-and that Save and autosave write the workspace with every open editor
-folded.
+The store holds `bundle_mixed` in block `A`, `nested` in block `B` (no id,
+no name) and in block `C` `bundle_mixed` known only by its id `mixed` (its
+own and its group `group_2`'s names deleted). The bar renders nothing while
+no editor is open. With editors open it is one group "Editing" holding Done
+and Cancel, in that order, then "Editing:" and an ordered list "Editing
+path" whose items are the open editors' names alone, outermost first, as
+"Words" defines them: `["Mixed", "Performance", "Score"]` for block `A`'s
+three editors, `["Anonymous bundle", "clt_1", "clt_3"]` for block `B`'s,
+`["mixed", "group_2"]` for block `C`'s. A renaming shows at once.
 
-The store holds blocks written through `add` commands from the installed
-timeskeleton fixtures: `bundle_mixed` in block `A` (`0000000000`; the
-manifest's `name` `Mixed`, its group `group_1` named `Performance` with the
-member `score` named `Score`), `nested` in block `B` (`0000000001`; no `id`
-and no `name`, the root `clt_1` holding the child `clt_3`, neither named),
-and in block `C` (`0000000002`) `bundle_mixed` loaded after deleting its
-`name` and its group `group_2`'s `name` and setting its `id` to `mixed`, the
-one manifest no fixture provides (a bundle and a group known only by id).
-`dom.ts`'s `showModal` stub stands in for the browser's modal dialog.
-After each test the autosaves are flushed and waited for as in the shell
-tests below ("Files, history and About"): otherwise a write or clear the
-first test's editor queued, run late on a loaded machine, reaches the next
-test's IndexedDB and empties the slot item 9 waits for.
+Done closes the innermost editor, one per click. Cancel without changes
+closes at once and opens no dialog. Cancel with changes asks "Are you sure
+you want to discard 1 change?" ("2 changes" with two) in a modal dialog
+with Yes and No, the focus on No. No, Escape and a click on the backdrop
+close the dialog and keep the editor and its change; a click on the
+question keeps the dialog open; Yes closes the editor and leaves the view
+and the journal exactly as they were before it opened.
 
-`EditingBar.svelte` alone (mounted with the arranger's `liveStore` of a
-store, which follows the store's `subscribe`; the inspector and the canvas
-read the same one, made once by the shell):
+The page follows the editing path. The drawer opens when the first editor
+opens, without taking the focus from the canvas; an inner editor does not
+reopen it once the viewer closed it. Save and the autosave write the open
+editor folded (the `add`, then one session entry whose session holds the
+editor's changes), as the hook's `text()` does, and leave it open. Opening
+or closing an editor, and every other change of the store, prunes the
+selection by the arranger's one rule: other timelines' bands go, the
+edited timeline's band and a part stay, and after closing the band goes
+too; with `score`'s editor open inside `group_1`'s, a rename keeps
+`score/start` and drops `score` itself and `performance`.
 
-1. **Nothing is shown while no editor is open.** With `editing` empty the
-   component renders no element.
-2. **The bar's controls, in order.** After `open(A)` there is exactly one
-   element with `role="group"` and `aria-label="Editing"`; its buttons'
-   texts are exactly `["Done", "Cancel"]` in that order (`Done` carries the
-   class `done`, `Cancel` the class `cancel`: green and red), followed by
-   the text `Editing:` and an `<ol aria-label="Editing path">`.
-3. **The path names each open editor, outermost first.** The list items'
-   texts are exactly:
-   - after `open(A)`: `["Mixed"]` (the manifest's `name`); after
-     `open(A/group_1)`: `["Mixed", "Performance"]` (the group's `name`);
-     after `open(A/score)`: `["Mixed", "Performance", "Score"]` (the
-     timeline's `name`);
-   - after `set A/score name "S"` in that editor: `["Mixed", "Performance",
-     "S"]`: the names follow the view;
-   - after `open(B)`, `open(B/clt_1)`, `open(B/clt_3)`: `["Anonymous
-     bundle", "clt_1", "clt_3"]` (no name and no id; timelines known only
-     by id);
-   - after `open(C)`, `open(C/group_2)`: `["mixed", "group_2"]` (a bundle
-     and a group known only by id).
-   The " > " between the names is drawn by CSS (`li + li::before`), which
-   jsdom does not render; the list items hold the names alone, so the path
-   reads as a list to assistive technology. The names are
-   `editorName(view, target)` of `inspector/journal.ts`, which the Editor
-   tab and the Journal tab use too (tested with the journal).
-4. **Done closes the innermost editor.** With the three editors of `A`
-   open, each click on `Done` leaves `editing` one shorter (2, 1, 0), and
-   after the last no element is rendered.
-5. **Cancel without changes closes at once.** After `open(A/score)` and no
-   command, `Cancel` closes the editor (`editing` empty) and no dialog was
-   opened (`showModal` never called).
-6. **Cancel with changes asks first.** After `open(A/score)` and `set
-   A/score name "S"`, `Cancel` opens the modal dialog: `open` is true, its
-   question reads exactly `Are you sure you want to discard 1 change?`, its
-   buttons are exactly `["Yes", "No"]`, and `No` holds the focus. Each of
-   these keeps the editor: `No`; Escape (as the browser handles it: a
-   cancelable `cancel` event on the dialog, then `close()`, since jsdom
-   implements no Escape); a click whose target is the dialog element itself
-   (the backdrop: the dialog has no padding, its content fills it). After
-   each the dialog is closed, `editing` still has one editor, `changes` is
-   still 1 and the timeline is still named `S`. A click on the question
-   text leaves the dialog open. `Yes` closes the dialog and the editor:
-   `editing` is empty, the view is the very object it was before `open`
-   and the journal is as long as it was then.
-7. **The count is the store's.** After a second `set` (`A/score name
-   "T"`), the question reads exactly `Are you sure you want to discard 2
-   changes?`.
+## Files (`shell.test.ts`, `files.test.ts`)
 
-`App.svelte` (`editing.test.ts`, mounted as in `hook.test.ts`, the
-workspace of block `A` loaded through the hook):
+The File menu follows the WAI-ARIA menu button pattern: its items and
+shortcut labels (New workspace, Open… Ctrl+O, Save Ctrl+S, Save as…
+Ctrl+Shift+S, Import manifest…, Export manifest…, Export minimal
+manifest…), the exports disabled without a selected block, and every key
+of the pattern, each checked by the focused item and `aria-expanded`. A
+refused file leaves the open workspace as it is and shows one dismissible
+message, "bad.tle.json is not a workspace file", with each problem's code
+and place. The file name and the document title ("untitled.tle.json –
+TimeLineEditor") gain "• " after a command, lose it when undo returns to
+the opened view and regain it on redo; New workspace on unsaved changes
+asks "untitled.tle.json has unsaved changes. Discard them?" and only
+Discard replaces the workspace. Save writes core's writer's text of the
+store under the workspace's name, takes Ctrl+S from the browser and clears
+the mark; a save requested while one is under way is ignored. In a text
+field the browser keeps Ctrl+Z; elsewhere Ctrl+Z, Ctrl+Y and Ctrl+Shift+Z
+step the journal and drop selected addresses that no longer exist. Import
+adds one `add` of the manifest at the view's centre, the new block
+selected; a refused manifest ("bad.json is not a manifest") adds nothing.
+Export writes the selected block's manifest, complete or minimal, as core's
+writer gives it, under its manifest file name, and is disabled while the
+selection spans two blocks.
 
-8. **The drawer opens on entering an editor.** With nothing remembered
-   (the drawer closed), `open(A)` shows the drawer, stores exactly `"true"`
-   in `localStorage["tilie.inspector.open"]`, and leaves the focus on the
-   arranger. Closing the drawer while editing is allowed: the drawer is
-   hidden and the editor stays open. Opening a further editor inside
-   (`A/score`) leaves the closed drawer closed: the drawer opens when the
-   editing path becomes non-empty, not on every opening. After Done twice
-   and `open(A)` again, the drawer opens again.
-9. **Save and autosave write the open editors folded.** After
-   `open(A/score)` and `set A/score name "S"`, Ctrl+S downloads
-   `untitled.tle.json` whose text, read by `readWorkspace`, has a journal
-   of exactly two entries, the `add` of `A` and a session entry naming the
-   open editor's session id, and a `sessions` member holding exactly that
-   session, with target `0000000000/score` and one entry whose command is
-   that `set`. The editor is still open afterwards (`editing` has one
-   editor) and the unsaved mark is gone. The autosave slot, filled when the
-   page turns hidden after a second `set`, holds a text of the same form:
-   two journal entries, the session holding two entries. The hook's
-   `text()` is what Save writes; each folding stamps its session entry
-   with the time of the folding, so texts written at different moments
-   are compared by their content, not byte for byte.
-10. **Opening or closing an editor drops every band but those of the
-    timeline then edited.** A band is offered only in its own timeline's
-    editor, so the shell passes the innermost open editor to arranger's
-    `existing` whenever the editing path grows or shrinks (and after undo
-    and redo). With `open(A)` and `open(A/group_1)` (`score` and
-    `performance` are its members, each with a conversion maps band) and
-    the hook's `select` of `A/score/conversion_maps_1`,
-    `A/performance/conversion_maps_1` and `A/score/start`, `open(A/score)`
-    leaves the selection exactly `A/score/conversion_maps_1`,
-    `A/score/start`: the other timeline's band went, the edited timeline's
-    stayed, and the start of its line, which lies inside the opened editor,
-    stayed too (the canvas the shell mounts also prunes on opening, keeping
-    what lies inside and never the edited timeline itself or its card,
-    arranger README "The canvas in an editor" case 10, so the element
-    selected here is a part of `score`). `done()` then leaves exactly
-    `A/score/start`: under the group editor `existing` drops the band, and
-    closing an editor prunes nothing else.
+A manifest's file name is its id, else its name, else `bundle`, characters
+outside `[A-Za-z0-9_-]` replaced by `_` (`flow_quarters.json`,
+`Eroica__II.json`, `bundle.json`); the last-change time is the last entry's
+local time to the minute (`2026-10-12 09:05` in UTC). The fallback file
+input opens the chosen file's exact text and leaves no input behind, a
+download writes exactly the given text; with File System Access a file is
+saved back into its handle, a save without one picks one, a cancelled
+picker gives nothing and any other failure is thrown. About shows
+"TimeLineEditor `<version>`" from the app's `package.json`, "tilie-server
+0.1.0 (timetoalign 1.2.0)" from the health, the installed timeskeleton's
+version and schema version, the workspace packages and the link to
+`THIRD_PARTY_NOTICES.txt`; offline, "offline: " and the reason.
 
-## Files, history and About (`shell.test.ts`, `files.test.ts`)
+## Autosave (`autosave.test.ts`, `shell.test.ts`)
 
-These mount `App.svelte` as above. jsdom has neither IndexedDB nor a modal
-`<dialog>`: `dom.ts`'s `stubEditor` installs a fresh `fake-indexeddb`
-factory per test and gives `HTMLDialogElement` a minimal `showModal` (sets
-`open`) and `close` (removes it, fires `close`). Opening and saving go
-through the fallback path unless a test installs stub pickers: a file input
-whose `files` the test sets before dispatching `change`, and a download
-link whose `click` the test intercepts (recording `download` and the
-blob's text). After each test the autosave each mounted editor created
-is flushed and its writes are waited for before the next test installs
-its own IndexedDB, since a write reaches whichever factory is installed
-when it runs: the test file mocks `src/autosave.ts` with `support.ts`'s
-`recordAutosaves`, which records every autosave `createAutosave` makes,
-and its `afterEach` awaits `flushAutosaves` after the unmount, which
-flushes each recorded autosave (the write the unmount starts included,
-failures ignored) and forgets them. Workspaces and manifests come from the installed
-timeskeleton fixtures through `writeWorkspace` and `loadManifest`, never
-hand-written, except the refused texts.
+The storage alone: a snapshot is written once after the delay, the latest
+of a burst only (a text given as a function is called once, when due); a
+flush writes at once; a discard empties the slot, also after a write has
+started; each key has its own slot, which recovers the last text byte for
+byte. A failing IndexedDB rejects with `indexeddb_failed`, a failed timed
+write once at the next flush or to the error callback; no IndexedDB is
+`indexeddb_unavailable`.
 
-`files.ts` alone:
+The editor uses the slot `current`. A slot holding more than an empty
+workspace is offered with "Restore the unsaved workspace from 2026-10-12
+09:05?" (its last entry's time, in UTC); Restore opens it unsaved under its
+file's name, Discard empties the slot. An empty, saved or untouched
+workspace is never offered, and undo back to the saved view empties the
+slot. Hiding the page and unmounting write the pending snapshot at once.
+The editor autosaves only while it holds the Web Lock
+`tilie-autosave/current`, says once "Autosave of this workspace is active
+elsewhere, so changes here are not autosaved." when it does not, gives back
+a lock granted after it went, and writes nothing when it went during its
+recovery read. A failing storage is shown once and editing goes on.
 
-1. **`manifestFileName`** names a file after the manifest's `id`, else
-   its `name`, else `bundle` (a manifest without either is an anonymous
-   bundle), every character outside `[A-Za-z0-9_-]` written `_`, then
-   `.json`: a manifest of one root with the id `flow:quarters` and the name
-   "Flow" gives `flow_quarters.json`, one with only the name "Eroica: II"
-   `Eroica__II.json`, an anonymous one `bundle.json`.
-2. **`lastChanged`** is `null` for `[]`; with `TZ=UTC` an entry at
-   `2026-10-12T09:05:07.000Z` gives `2026-10-12 09:05` (the last entry's
-   time, local, minutes truncated).
-3. **The fallback open** resolves `{name, text, handle: null}` with the
-   chosen file's exact text after `change`, and `null` after `cancel`; the
-   input it adds is gone afterwards and accepted `.tle.json` (a workspace)
-   or `.json` (a manifest).
-4. **The fallback save** downloads exactly the text under the given name
-   and resolves `{name, handle: null}`.
-5. **With File System Access**, open returns the picked handle; a save with
-   that handle writes the text into it without a picker (the save picker
-   stub is never called); a save without a handle calls the picker once
-   with `suggestedName` and returns the picked handle's name. A picker
-   rejecting with an `AbortError` resolves `null`; any other rejection is
-   thrown.
+## Attributions and the build (`attributions.test.ts`)
 
-The shell:
-
-6. **The File menu follows the menu button pattern.** The button `File`
-   has `aria-haspopup="menu"` and `aria-expanded="false"`; the menu
-   (`role="menu"`) is hidden and holds exactly the items `New workspace`,
-   `Open…`, `Save`, `Save as…`, `Import manifest…`, `Export manifest…`,
-   `Export minimal manifest…`, with shortcuts `Ctrl+O`, `Ctrl+S`, `Ctrl+Shift+S` on the second to
-   fourth (jsdom's user agent is not a Mac). ArrowDown on the button opens
-   it (`aria-expanded="true"`) with the focus on `New workspace`; ArrowUp
-   from there wraps to `Export minimal manifest…`, ArrowDown wraps back,
-   End focuses `Export minimal manifest…`, Home `New workspace`; Escape
-   hides the menu and returns the focus to the button. ArrowUp on the
-   closed button opens it on `Export minimal manifest…`. Both export items
-   are `aria-disabled="true"` while nothing is selected.
-7. **A refused workspace file leaves the open workspace.** After the hook
-   loads a written workspace, choosing `Open…` and the file `{` shows one
-   message whose text starts `bad.tle.json is not a workspace file` and
-   whose problem reads `invalid_json at the top level: …` (an empty path is
-   named in words; any other is the JSON pointer the inspector shows, `~`
-   and `/` escaped as `~0` and `~1`); the store is the same object, and
-   dismissing the message removes it.
-8. **Unsaved changes are marked and guarded.** On a new editor the file
-   name reads `untitled.tle.json` and `document.title` is
-   `untitled.tle.json – TimeLineEditor`. After one accepted command both
-   start with `• `. Undo (Ctrl+Z on the page) removes the mark again (the
-   view is the saved one); redo (Ctrl+Y) brings it back. `New workspace`
-   then opens the dialog `untitled.tle.json has unsaved changes. Discard
-   them?` with `Discard` and `Cancel`; Cancel keeps the store; Discard
-   gives a new empty store with no mark.
-9. **Save writes `writeWorkspace` of the store's snapshot and clears the mark.** A
-   save requested while one is under way is ignored: with a save picker
-   whose file only closes when the test lets it, a second Ctrl+S and a
-   Ctrl+Shift+S meanwhile call the picker no second time and write once,
-   and the name becomes the picked `w.tle.json`.
-   Ctrl+S (fallback path) downloads `untitled.tle.json` whose text equals
-   `writeWorkspace` of the store's view, journal and sessions (with no editor
-   open, the snapshot is exactly these), and the mark is gone. With an editor
-   open, Save writes it folded (case 9 of "Editing").
-10. **Undo keys belong to text inputs there.** With the focus in a
-    `<textarea>` on the page, Ctrl+Z dispatches no undo (the journal keeps
-    its length) and the event's default is not prevented; on the page body
-    Ctrl+Shift+Z redoes. After an undo removes a selected block, the
-    selection is `[]`.
-11. **Import adds one block at the centre of the view, selected.** jsdom
-    lays nothing out, so the canvas reports a 0 × 0 pane at the viewport
-    `{0, 0, 1}`, whose centre is `(0, 0)`: importing the manifest fixture
-    `nested` journals exactly one `add` whose block has a ten-character id,
-    `x` 0, `y` 0 and the fixture's manifest, and the selection is exactly
-    that id. The centre arithmetic itself is `addCommand`'s, tested with
-    exact values in the arranger. A refused manifest (`{"meta": {}}`)
-    shows a message and journals nothing.
-12. **Export writes the selected block's manifest, complete or minimal.**
-    With `{block}/clt_3` of a `nested` block selected, `Export manifest…`
-    downloads a file named `manifestFileName` of the block's manifest whose
-    text equals `saveManifest` of it (the complete form), and `Export
-    minimal manifest…` one of the same name whose text equals
-    `saveManifest(manifest, {minimal: true})`; with two blocks selected
-    both items are `aria-disabled`.
-13. **Recovery is offered and honoured.** The slot `current` holds a
-    snapshot `{text, name}` while, and only while, the open workspace is
-    unsaved: it is emptied after a successful save, after Open (and the
-    hook's `load`), after New and when undo returns to the saved view, so
-    a saved workspace is never offered again. With the slot holding the
-    text of a workspace whose last entry is at `2026-10-12T09:05:07.000Z`
-    (`TZ=UTC`) and the name `score.tle.json`, mounting asks `Restore the
-    unsaved workspace from 2026-10-12 09:05?` with `Restore` and
-    `Discard`. Restore opens it (the store's view and journal equal
-    `readWorkspace` of the text) as unsaved under its name (`• score.tle.json`);
-    no file handle survives, so Ctrl+S then saves through the save picker,
-    or, here, downloads `score.tle.json` with exactly the text. Discard
-    leaves the empty workspace and empties the slot. A slot holding exactly
-    `writeWorkspace` of an empty workspace offers nothing. After one command
-    the slot holds, once the 1,000 ms delay has run (real timers, waited
-    on), exactly `{text: writeWorkspace of the store, name:
-    "untitled.tle.json"}`. The pending snapshot is written at once, well
-    within the delay (waited on for at most 500 ms), when the page turns
-    hidden (`visibilitychange` with `visibilityState` `hidden`) and when the
-    editor is unmounted. Then:
-    - **Saved, then reopened: nothing offered.** One command, the page
-      hidden (the slot fills), Ctrl+S: the slot is `null`; after unmounting
-      it is still `null`, and a new editor asks nothing.
-    - **Opened, untouched, reopened: nothing offered.** One command, the
-      page hidden (the slot fills), the hook loads a written workspace: the
-      slot is `null`, still after unmounting, and a new editor asks nothing.
-    - **Undo to the saved view** after the slot filled empties it.
-    - **One tab autosaves.** The editor asks `navigator.locks` for the
-      exclusive lock `tilie-autosave/current` if available. Refused (another
-      tab holds it), it shows exactly one message, `Autosave is active in
-      another TimeLineEditor tab, so changes in this tab are not
-      autosaved.`, and after a command, the page hidden and the editor
-      unmounted the slot is still `null`. Granted, a command and the page
-      hidden fill the slot and no message is shown. Without
-      `navigator.locks` (jsdom) the editor autosaves, as above.
-    - **Unmounted while it starts: nothing written.** The editor looks for
-      a recoverable workspace only once it holds the lock, so an editor
-      unmounted before either has settled must never write afterwards. The
-      slot holds exactly `writeWorkspace` of an empty workspace (offered
-      nothing, so no dialog intervenes) under `untitled.tle.json`; the
-      editor is mounted, one command changes its store, and the editor is
-      unmounted the moment its recovery read opens the database. Past the
-      1,000 ms delay (1,300 ms, real timers) the slot still holds exactly
-      that snapshot: a snapshot scheduled by the destroyed editor would
-      have replaced it with the changed store's text. With a lock that is
-      granted only after the editor was unmounted, the editor gives the
-      lock back (the promise its lock callback returned resolves) and,
-      past the delay, the slot is still `null`.
-14. **An autosave failure is shown once, and editing goes on.** With
-    IndexedDB missing, the page shows exactly one message, starting
-    `Autosave is not working`, however many commands follow.
-15. **The About pane.** `About` opens a modal dialog headed `About
-    TimeLineEditor` showing `TimeLineEditor <app version>` (the version in
-    `app/package.json`), the server line `tilie-server 0.1.0 (timetoalign
-    1.2.0)` from the health response (or `offline: The server did not
-    answer the health check (502 Bad Gateway).`), the packages exactly
-    `@timetoalign/tilie-core`, `-layout`, `-writers`, `-arranger`,
-    `-client`, and `timeskeleton <installed version>, schema version
-    <SCHEMA_VERSION>`, and a link to `THIRD_PARTY_NOTICES.txt` (relative
-   `href`, opening in a new tab). Close closes it.
-
-## Attributions and notices (`attributions.test.ts`)
-
-The About pane lists what the bundle ships from others, and the build
-writes their full licence texts into `THIRD_PARTY_NOTICES.txt` beside
-`index.html` (`notices.ts`, a Vite plugin of ours), so the wheel ships it.
-The test builds the editor with Vite into a temporary directory, with
-source maps, as a production build (`NODE_ENV` set to `production` for the
-build, since Vitest's `test` would make it a development build carrying the
-test hook and the end-to-end fixture files), and collects the package of every bundled source: the nearest
-`package.json` with a `name` above the source's real path, so an installed
-package and one linked from outside `node_modules` are found alike, and the
-workspace's own `@timetoalign/tilie-*` packages are left out (`packageOf`,
-shared with the plugin); this set is the reference.
-
-1. **The list names exactly the bundled packages.** The packages of
-   `ATTRIBUTIONS` equal the reference set; for each, the licence equals the
-   installed package's `license` field and the recorded copyright lines
-   equal, in order, the licence file's lines that start with `Copyright`
-   (trimmed): both of `@decimalturn/toml-patch`'s, both of `fast-uri`'s and
-   of `d3-ease`'s, and timeskeleton's `Copyright (c) 2026 Time to Align!`.
-2. **The other entries are backed.** They are exactly the canvas control
-   icons (MIT, the `webkid GmbH` line of `@xyflow/svelte`'s licence file)
-   and `DejaVu Sans 2.37`, backed by one bundled `DejaVuSans-*.ttf`, both
-   copyright lines occurring in timeskeleton's `fonts/LICENSE`.
-3. **The notices file holds every full text.** Split at its 72-character
-   `=` rules, each section is a heading line, `License: <licence>`, a
-   72-character `-` rule and the text. The package sections' headings are
-   exactly `<name> <version>` for each package of the reference set, the
-   version and licence being the installed `package.json`'s, and each text
-   equals the package's licence file byte for byte (a package without a
-   licence file fails the build). The two last
-   sections are the icons (`Icons of the canvas controls, copied from
-   @xyflow/svelte <version>`, MIT, the text of `@xyflow/svelte`'s licence
-   file) and the font (licence `FONT_LICENCE`, the text of timeskeleton's
-   `fonts/LICENSE`).
-4. **No chunk reaches Vite's warning limit.** Every `.js` file the build
-   writes into `assets/` is smaller than 500,000 bytes (Vite warns above
-   500 kB, counted in thousands of bytes); the limit itself is never
-   raised, so the vendor split is what keeps the chunks below it.
-5. **The codecs stay lazy.** `index.html` preloads chunks with `<link
-   rel="modulepreload">`, and no such link names a file whose name starts
-   with `yaml-` or `toml-`: a vendor group that took the YAML or TOML
-   package would make the main chunk import it at start.
-6. **The development server may read the schema package.** The config's
-   `server.fs.allow` holds the real directory (symbolic links resolved) of
-   the installed `@timetoalign/timeskeleton/package.json`, where its font
-   lies. Installed from npm that directory is inside `app/node_modules`;
-   with a local checkout linked in to try a schema change it lies outside
-   the workspace, and without the entry `pnpm dev` refuses the font with
-   403. Its other entry is the workspace root found from the
-   config file's own directory, `app/` (whose `pnpm-workspace.yaml` marks
-   it), not from the directory the server was started in.
-7. **No fixture reaches a production build.** Every manifest fixture the
-   fixture menu offers, and so every end-to-end workspace built from them,
-   carries the `meta.generator` of the installed package's fixtures (read
-   from its `bare.json`, e.g. `timetoalign 1.2.0 (98a6bb36)`), and the
-   workspaces the menu builds name the author `Fixture Generator`; no file
-   the production build writes contains either string, so neither the
-   fixture texts nor the code building workspaces from them is bundled.
-
-## Autosave (`autosave.test.ts`)
-
-`src/autosave.ts` keeps a snapshot of the open workspace in IndexedDB: the
-database `tilie-autosave` (version 1) with one object store, `workspaces`,
-holding one slot per workspace key. A snapshot is `{text, name}`: the text
-is whatever the caller passes, normally the output of `writeWorkspace`,
-stored and returned unchanged and never parsed, and the name is the file's.
-Below, a text `t` stands for the snapshot `{text: t, name: "n.tle.json"}`.
-Every test installs its own empty
-`IDBFactory` from `fake-indexeddb` as `globalThis.indexedDB`, so no test sees
-another's database. Writes are counted by a spy on the factory's
-`IDBObjectStore.prototype.put`, which records each written value and key.
-Vitest's fake timers replace only `setTimeout` and `clearTimeout`, because
-`fake-indexeddb` delivers its events through `setImmediate`.
-
-1. **Only the last text within the delay is written.** With
-   `createAutosave({key: "w", delayMs: 100})`: `flush()` before anything was
-   scheduled writes nothing (0 puts). Then `schedule("a")` at 0 ms,
-   `schedule("b")` at 50 ms and `schedule("c")` at 120 ms; each call restarts
-   the delay, so nothing is due before 220 ms. The clock is advanced to
-   219 ms and then by 1 ms; `flush()` (nothing is pending any more, it only
-   waits for the write) leaves exactly one put, `("c", "w")`. If any earlier
-   call had fired, the count would be higher at this point or below.
-2. **`flush()` writes the pending text at once and cancels its timer.**
-   Continuing: `schedule("d")`, the clock advanced by 99 ms, `flush()`: the
-   puts are exactly `[("c", "w"), ("d", "w")]`. Advancing the clock by
-   1,000 ms and flushing again adds no put, so the cancelled timer never
-   fires.
-   A function may stand for the text: `schedule(first)` then
-   `schedule(second)` (functions returning `"first"` and `"second"`) at
-   delay 100; at 99 ms neither was called; at 100 ms and after `flush()`
-   `first` was never called, `second` exactly once, and the only put is
-   `("second", "w")`. So the editor writes the workspace out once per
-   pause, not once per change.
-3. **Recovery returns the last written text byte for byte.** A text mixing
-   ASCII, `C♯`, the astral `𝄞` (a surrogate pair), a CRLF line end, a lone
-   surrogate `\uD800`, and trailing spaces is scheduled and flushed after an
-   earlier text was flushed under the same key; `recoverWorkspace("w")`
-   returns a string `===` to it (equal UTF-16 code units). A key never
-   written recovers `null`.
-3b. **`discard` drops the pending snapshot and empties the slot.** After
-   `a` was flushed, `b` is scheduled and `discard()` called: with the
-   clock advanced by 1,000 ms and a flush, the puts are still only
-   `("a", "w")` and the slot recovers `null`. A `discard()` after a flush
-   that has not finished yet still runs after its write: the slot is
-   `null`. A slot holding anything but a snapshot (the bare string `bare
-   text`, written directly) recovers `null`.
-4. **Slots are isolated by key.** Two autosaves, keys `w1` and `w2`, flush
-   `one` and `two`; each key recovers its own text. After `clear("w1")`,
-   `w1` recovers `null` and `w2` still recovers `two`.
-5. **A failure of IndexedDB is a rejected promise, never swallowed.** The
-   database `tilie-autosave` is first created at version 2 directly through
-   the factory, so the module's open at version 1 fails with the
-   IndexedDB `VersionError`. Then:
-   - `schedule("x")` and `flush()` reject with an `AutosaveError` whose
-     `code` is `indexeddb_failed`, `key` is `w` and `cause.name` is
-     `VersionError`; `recoverWorkspace("w")` and `clear("w")` reject with
-     the same `code`, `key` and cause name.
-   - a write started by the timer (schedule, then the clock advanced past
-     the delay) has no caller to reject; its failure rejects the next
-     `flush()` with that same error shape, and a further `flush()` with
-     nothing pending resolves, so each failure is reported exactly once.
-   - with an `onError` option, a failure no caller waits for (the timer's
-     write, a `discard`) goes to it instead:
-     the next `flush()` resolves, `onError` was called exactly once with
-     that error shape; a failure of a write `flush()` itself starts still
-     rejects that `flush()` and is not passed to `onError` (one call in
-     all).
-   - with `globalThis.indexedDB` undefined, `recoverWorkspace("w")` rejects
-     with an `AutosaveError` of `code` `indexeddb_unavailable` and `key` `w`.
+This test builds the production page with source maps, so it runs under
+`pnpm test:build`, outside `pnpm test`. The oracles are the source maps and
+each bundled package's own files: the attributions name exactly the npm
+packages found in the bundle, each with the licence of its `package.json`
+and every copyright line of its licence file; the icons and the font are
+backed by their licence files; `THIRD_PARTY_NOTICES.txt` holds every full
+licence text in order. No chunk reaches 500 kB, neither the YAML nor the
+TOML codec is preloaded, and no shipped file holds a fixture's generator
+string or "Fixture Generator". The development server may read the app
+workspace and the resolved schema package.
 
 ## The test hook (`hook.test.ts`)
 
-`src/testHook.ts` defines `window.__tilie`, through which the end-to-end
-tests open workspaces and read the viewer's state: `load(text)`, `store()`,
-`selection()`, `select(addresses)`, `viewport()`, `setViewport(v)`,
-`locked()`, `mode()`, `health()` (the parsed health response, or
-`null`), `text()` (`writeWorkspace` of the store's snapshot, what
-Save writes: every open editor folded as Done would fold it), and the
-editing path: `editing()` (a copy of the store's `editing`), `open(address)`
-(the store's `open`, returning its refusal or `null`), `done()` and
-`cancel()` (the store's, without the bar's question), and a block's drawn
-bands, `bands(blockId)` (case 8). `App.svelte` installs it only when
-`import.meta.env.DEV` is true or the build sets `VITE_TILIE_TEST_HOOK=1`;
-both are constants of the build, so a production build carries none of the
-hook. Vitest runs
-in development mode, so the hook is installed in these tests. Each test
-mounts `App.svelte` with `fetch` and the layout interfaces stubbed, as
-`App.test.ts` does.
+`window.__tilie` exists in a test build and goes with the editor. At start
+it reports the empty workspace, no selection, `locked()` false and `mode()`
+`"scale"`. Its `load` replaces the store with exactly the file's workspace
+(`text()` equal byte for byte) and clears the selection; a refused file
+throws with the reader's problem codes and keeps the store. Its `open`,
+`done` and `cancel` drive the editing path as the store does, without the
+bar's question (`unknown_target` for an unknown target). The fixture menu
+offers every end-to-end workspace and every group and bundle fixture of the
+schema version but `corpus_*` and the minimal twins, sorted; a manifest
+fixture loads as one block `fixture000` at the origin, journalled once by
+"Fixture Generator", and Delete on the canvas removes a selected timeline
+of it as one `remove`.
 
-The workspace file used below is written, never hand-made: an empty
-`createStore` receives two `add` commands placing the manifest fixtures
-`bare` (block `0000000000` at x 0) and `nested` (block `0000000001` at
-x 800) of the installed `@timetoalign/timeskeleton`, and `writeWorkspace`
-writes its snapshot.
+Its `bands` maps each band record of a block's drawing into client pixels
+through the drawing's `<svg>` rectangle: the rectangle's offset plus the
+drawing's value times the rectangle's size over the drawing's. A hand-made
+drawing of 400 × 200 (a box, a card and three bands, the line at 30.5) in a
+rectangle at (100, 50) of 800 × 400 puts the line at 111, and partly off
+screen is computed alike; on two real blocks the values are the arranger's
+drawing mapped the same way. A block whose drawing is not on the page
+cannot be placed, and an unknown block throws a `RangeError`. Its `boxes`
+lists a block's container records as the drawing has them (kind, address,
+holder, displayed), in box order, and throws the same `RangeError`.
 
-1. **The editor starts empty.** Before any load, `store().view` equals
-   `createView()`, the journal is `[]`, `selection()` is `[]`, `locked()`
-   is `false` and `mode()` is `"scale"`.
-2. **`load` opens the file in a new store.** After `select` of two
-   addresses (read back exactly by `selection()`), `load(text)` replaces the
-   store: the new store is not the old one, its view and journal equal
-   `readWorkspace(text)`'s, and writing them again gives `text` byte for
-   byte, and `text()` returns `text` too. The selection is `[]`, since it
-   addressed the previous workspace.
-3. **A refused file throws and changes nothing.** After loading the file,
-   `load("{")` throws a `WorkspaceRefusedError` whose problems' codes are
-   exactly `["invalid_json"]`, and `store()` is still the open store.
-4. **The header offers the end-to-end workspaces and one workspace per
-   synthetic group and bundle fixture.** In the same builds the header
-   carries a select labelled "Fixture" (`fixture-select`) and a Load
-   button (`fixture-load`). Its options are the base names of
-   `app/e2e/fixtures/*.tle.json` and of the installed timeskeleton's
-   `fixtures/<SCHEMA_VERSION>/groups/*.json` and `bundles/*.json` except
-   those starting `corpus_` (loader output, not drawings made to be
-   looked at) and the minimal twins `*.minimal.json`, all in one list
-   sorted by code point. The end-to-end
-   workspaces are the generator's output, pinned byte for byte by `pnpm
-   e2e:fixtures:check`, so the test lists that directory (and requires
-   `small` among them); the manifest entries are pinned exactly:
-   `bundle_mixed`, `bundle_shared_parent`, `bundle_ungrouped`,
-   `group_child_member`, `group_grandchild`, `group_number_types`,
-   `group_parent_both`, `group_parent_exact`, `group_parent_right`,
-   `group_parents_mixed`, `group_styled`, `group_unknown_length` (12; the
-   installed 0.7.0 package has 10 group and 9 bundle fixtures, one and six
-   of them `corpus_`, and each its minimal twin, which the menu leaves
-   out).
-   Choosing `small` and pressing Load opens it the way `load` does: the store's view and journal equal `readWorkspace`
-   of that file's text, and the selection is `[]`. Choosing
-   `group_number_types` and pressing Load opens a workspace of one block
-   `fixture000` at x 0, y 0 whose manifest equals `loadManifest` of the
-   fixture file, journalled as exactly one `add` of that block by `Fixture
-   Generator` at `2026-10-12T09:00:00.000Z` (the end-to-end generator's
-   author and first time); `bundle_mixed` likewise gives one block. A
-   production build carries none of these workspaces (attributions case
-   7).
-5. **Delete removes a timeline of a group or bundle block.** Core removes
-   any element, timelines included. After the menu's `group_child_member`
-   is loaded and `fixture000/second-half` (a child timeline that the group
-   names as a member) is selected, Delete on the canvas
-   (`role="application"`, where the canvas reads its keys) journals exactly
-   one more entry, `{type: "remove", targets: ["fixture000/second-half"]}`;
-   the block's manifest no longer carries `second-half` (`manifestIds`) and
-   the selection is `[]`. After `bundle_mixed`, the ungrouped root
-   `fixture000/annotations` goes the same way.
-6. **The hook leaves with the editor.** Unmounting `App.svelte` removes
-   `window.__tilie`.
-7. **The editing path through the hook.** After `load(text)`, `editing()`
-   is `[]`; `open("0000000001/nope")` returns a refusal with the code
-   `unknown_target` and `editing()` is still `[]`.
-   `open("0000000001/clt_1")` returns `null`, and `editing()` is then
-   exactly one editor `{session, target: "0000000001/clt_1", kind:
-   "timeline", earlier: null}` whose `session` is ten characters of
-   `0-9a-z`; it equals the store's `editing` but is not the same array.
-   After `set
-   0000000001/clt_1 name "N"`, `cancel()` closes the editor without asking
-   (no dialog opens): `editing()` is `[]` and the view is the one before
-   `open`. Opening it again, the same `set` and `done()` leave `editing()`
-   empty and the journal one entry longer, its last entry a session entry.
-8. **A block's drawn bands through the hook.** `bands(blockId)` reports
-   the bands layout records for the block's drawing (`Drawing.bands`, in
-   their order), read from the drawing the canvas shows (arranger's
-   `drawingOf` with the schema package's font metrics), each as
-   `{address, timeline, kind, level, line, elements, rect}`: `address`,
-   `timeline`, `kind`, `level` and `elements` are the record's; `line`
-   (the ordinate of the band's timeline's line) and `rect` (`{x, y,
-   width, height}`) are in client pixels, left and top as
-   `getBoundingClientRect` gives them. They are mapped through the block's
-   drawing `<svg>` the way the canvas maps a pointer into the drawing
-   (arranger's `drawingPointAt`), the other way round: with `box` the
-   svg's client rectangle, `D` the drawing, `sx = box.width / D.width`
-   and `sy = box.height / D.height`, a drawing abscissa `x` lies at
-   `box.left + x × sx` and an ordinate `y` at `box.top + y × sy`, and a
-   width and a height scale by `sx` and `sy`. Nothing is clipped: a block
-   off screen reports what this computes.
-   - The mapping alone (`hookBands(drawing, box)` in `src/testHook.ts`),
-     on a drawing written for the test, 400 × 200, holding three records
-     of the timeline `score`, its line at 30.5, each `x` 8.25 and `width`
-     300: `score/conversion_maps_1` (level 1, 1 element) at `y` 24,
-     height 6.5; `score/markers_1` (−1, 2) at `y` 30.5, height 26.75;
-     `score/flow_control_1` (−2, 1) at `y` 61.25, height 0 (a flow
-     control band holding only an unlabelled break is present and 0
-     high). With the svg at left 100, top 50, 800 × 400 (both factors
-     exactly 2): `line` 50 + 2 × 30.5 = 111 for each, and the rectangles
-     `{116.5, 98, 600, 13}`, `{116.5, 111, 600, 53.5}` and `{116.5,
-     172.5, 600, 0}`. With the svg off screen at left −30, top −20, 200 ×
-     100 (both factors exactly 0.5): `line` −20 + 15.25 = −4.75, and
-     `{−25.875, −8, 150, 3.25}`, `{−25.875, −4.75, 150, 13.375}` and
-     `{−25.875, 10.625, 150, 0}`. Every value is exact in binary.
-   - The hook on the mounted editor, after `load` of a workspace written
-     as above with two blocks: `map` in `0000000000` at x 0 and
-     `map_child_band_order` in `0000000001` at x 800. The bands follow
-     drawing.md §6.4 and the defaults of §4. In both, the root `melody`
-     ("Melody", length 8 quarters, the map `tempo`, the child `phrase`)
-     follows the default band order (children, conversion maps, the line,
-     markers, regions, flow control): its children band holds `phrase`,
-     its conversion maps band `tempo`, its markers band the two wedges of
-     its start and end (its length is known), and its regions and flow
-     control bands nothing, so they are absent. Levels count outwards
-     from the nearest present band: conversion maps 1, children 2,
-     markers −1. `phrase` holds the map `ticks` and no child; its markers
-     band draws nothing (only the root's start and end are marked) and
-     the defaults hide it anyway, so its one present band is its
-     conversion maps band: level 1 in `map`, where `phrase` inherits
-     `melody`'s order, and −1 in `map_child_band_order`, whose own entry
-     `[phrase/children_1, phrase, phrase/conversion_maps_1, …]` puts it
-     below. The records run timeline by timeline in traversal order, each
-     timeline's bands top to bottom, so each block gives `[address,
-     timeline, kind, level, elements]`:
-     `melody/children_1, melody, children, 2, 1`;
-     `melody/conversion_maps_1, melody, conversion_maps, 1, 1`;
-     `melody/markers_1, melody, markers, −1, 2`;
-     `phrase/conversion_maps_1, phrase, conversion_maps, ±1, 1` (1 in
-     `0000000000`, −1 in `0000000001`). With `0000000000`'s svg measured
-     at left 100, top 50 and twice its `viewBox` size (so `sx = sy = 2`
-     exactly), each of its bands
-     has `line` 50 + 2 × the record's `line` and `rect` `{100 + 2x, 50 +
-     2y, 2 width, 2 height}` of the record of the same index in
-     `drawingOf` of that block: the geometry is layout's to prove
-     (layout's tests); this proves the hook maps the drawing the canvas
-     shows through that block's own svg. `0000000001`'s svg, which jsdom
-     measures at no size and left and top 0, gives `line` 0 and `rect`
-     `{0, 0, 0, 0}` for each of its bands. This case reads real layout
-     output, so it passes only once layout records the bands.
-   - `bands("0000000009")` (no such block) throws a `RangeError`. A block
-     whose svg is not on the page (no editor mounted, or a block the
-     canvas does not render: above 500 blocks only those in view are)
-     cannot be measured: `bandsOf(view, "0000000000")` of that workspace
-     with no editor mounted throws exactly `Error("the drawing of block
-     0000000000 is not on the page")`.
+## Embedding (`embed.test.ts`)
 
-The viewport functions talk to Svelte Flow, which needs a laid-out page;
-they and everything the canvas does are proven by the Playwright suite.
+`mount` is proven against a host page. The host stays untouched: its body
+margin, title, address and history length are unchanged, no request is
+made and no IndexedDB opened (no `server` and no `storage` given),
+`localStorage` stays empty, there is no test hook, no fixture menu and no
+level-1 heading, and About says "no server". `text()` gives back the given `workspace` byte for
+byte. `onchange` reports `{fileName: "untitled.tle.json", dirty: false}`
+for it and exactly one `{…, dirty: true}` after a Delete on the canvas.
+Ctrl+S on a host input or the body is not prevented; on the canvas it is.
+Two editors on one page share no id, and a `select` in one leaves the
+other's `selection` empty and reaches only the first's `onselect`. `load`
+of a refused text returns its problem codes and leaves `text()` as it was;
+so does a workspace whose journal does not reproduce its view
+(`journal_mismatch` at the block no entry adds). Mounting on an element
+that holds an editor or anything else throws. With `shortcuts: "window"`
+the body's Ctrl+S is the editor's until `destroy()`, which empties the
+element, removes every window listener the editor added (counted per event
+type) and lets the element take an editor again; with `storage` given, it
+writes the pending autosave before it unmounts.
 
-A load through the fixture menu is asynchronous (the chosen file is
-imported when Load is pressed), so cases 4 and 5 wait for its store with
-`vi.waitFor`, whose default limit of 1 s a load exceeded at load averages
-of 11 to 15 on 12 cores. A wait lasts no longer than its test, so the
-three tests that load through the menu bound it: measured alone, five
-times one after the other at load averages of about 2, they took 0.12 to
-0.14 s (case 4, the end-to-end workspace), 0.13 to 0.20 s (case 4, two
-manifest fixtures) and 0.58 to 0.64 s (case 5, two loads and a Delete
-each); inside two whole `pnpm test` runs, at load averages of 2 to 6.5,
-0.40 and 0.60 s, 0.39 and 0.36 s, and 1.69 and 2.22 s. At a load average
-of about 36, case 5 and other tests mounting the editor ran past
-Vitest's default limit of 5 s per test (a timeout, so no duration was
-measured) and passed alone. By the rule the other timeouts of the
-workspace follow, about three times the slowest measured duration, the
-limit is 7 s (`3 × 2.22 = 6.66`), and it holds both for the waits and
-for the tests: each wait carries the explicit timeout
-`FIXTURE_LOAD_TIMEOUT` of 7 s, and each of the three tests carries the
-same constant as its own test timeout, since a wait longer than its
-test's limit could not help, and Vitest's default 5 s would cut the test
-short first.
+## The manifest as text (`inspector-text.test.ts`, `inspector-codecs.test.ts`, `Inspector-load.test.ts`)
 
-Two of these tests change the store and so write the autosave slot when
-the editor is unmounted: case 5 (each Delete schedules a snapshot) and
-case 7 (the renamed timeline, in the editor it then closes with Done);
-every load clears it. As in the shell tests ("Files, history and
-About"), the test file mocks `src/autosave.ts` with `recordAutosaves` and
-its `afterEach` awaits `flushAutosaves` after the unmount, so no write or
-clear runs late into the next test's IndexedDB, where it would empty a
-slot or offer a recovery that test does not expect.
+The Manifest panel shows the selected block's manifest as JSON, YAML or
+TOML and writes an edited text back as one `set` of the block's
+`manifest`. The oracles are the fixtures (their bytes), timeskeleton's
+`dumps` (a canonical text that sorts keys, so only a changed value fails a
+comparison) and the store (what it accepts and refuses).
 
-## The inspector (`inspector-text.test.ts`, `inspector-codecs.test.ts`, `Inspector.test.ts`, `Inspector-load.test.ts`, `inspector-locked.test.ts`, `inspector-subject.test.ts`, `inspector-bands.test.ts`)
+1. **Every manifest round-trips through every format, byte for byte.**
+   Each manifest fixture of the installed schema version (top level,
+   `groups/`, `bundles/`; a minimal twin reads back as its complete fixture,
+   a case already) is written in each format and read back, and `dumps` of
+   the value read equals the fixture's bytes.
+2. **Numbers stay exact.** Through `set`, an integer length of
+   9007199254740993 ticks (2^53 + 1), a float of 12.500000000000002 seconds
+   and an integral float of 1e16 seconds survive all three formats as
+   exactly `9007199254740993n`, `12.500000000000002` and a `JsonFloat` of
+   `1e16`; the YAML text carries `length: 9007199254740993` and
+   `length: 10000000000000000.0`.
+3. **TOML's missing null follows the schema.** A key whose value is null
+   is left out exactly when the schema requires it and admits null or gives
+   it the default null, and reading puts it back; the walk over the
+   schema's definitions lists exactly the `name` of the manifest, a group,
+   a region and a marker; a timeline's `length`, `measure_map`,
+   `metric_hierarchy`, `name`; each conversion map's `name`,
+   `source_unit`, `target_unit`; a break's `label`, `name`; a jump's
+   `label`, `target`. A manifest of two roots and a
+   group has its TOML text pinned whole. A measure-map row with
+   `nominal_length: null` (optional, no default null) is refused
+   `not_representable` at its path, "TOML has no null, and the schema
+   neither requires this member nor defaults it to null", and goes through
+   JSON and YAML; a TOML text without a required key (`bare` without its
+   `id`) is the store's to refuse (`schema_violation` at
+   `["timelines", 0]`).
+4. **Apply dispatches exactly one `set`, or none.** A changed text adds one
+   journal entry, the `set` of the block's `manifest` to the value read. A
+   text whose complete form is the stored manifest (compared by `dumps`)
+   dispatches nothing and is no refusal: the store refuses a `set` that
+   changes nothing (`invalid_value`, "the command changes nothing"), so the
+   comparison is the inspector's.
+5. **A refusal points into the text.** The store's path loses its
+   `[<block>, "manifest"]` prefix and is shown as a JSON pointer:
+   `"locked": "yes"` is `schema_violation` "must be boolean" at
+   `/timelines/0/locked`, `"unit": "parsecs"` "must be equal to one of the
+   allowed values" at `/timelines/0/unit`. A syntax error carries the
+   reader's 1-based line and column: JSON `"locked": ,` at 22:17, YAML
+   `locked: [false` at 16:5, TOML `locked = ` at 14:1. No refusal adds a
+   journal entry.
+6. **Comments survive.** In each of the four modes, a YAML or TOML text
+   with a comment line and an inline comment, applied, is exactly the typed
+   text; after the store renames the timeline, the text followed in the
+   same mode is the same text with the new name, both comments in place.
+7. **The four modes.** A text is complete or minimal, with or without the
+   styling (`graphical`). With `bare` styled by one `style` command, each
+   mode's JSON text is pinned whole: the fixture `bare.json` or
+   `bare.minimal.json`, with the styling `graphical` first. In every mode
+   and format an applied edit stores the complete manifest with that edit
+   (the styling kept when the text leaves it out) and shows the text
+   written from it; the shown text, its JSON reflowed or with keys
+   reversed, or a minimal text spelling a default, applies nothing; a typed
+   colour replaces the styling; without the styling a typed `graphical` is
+   refused `hidden_member` at `["graphical"]`, "the styling is excluded;
+   check Include styling to edit graphical".
+8. **The codecs load on demand, once, and a failure is shown.** In a fresh
+   module graph JSON is loaded and YAML and TOML are not; writing YAML
+   before loading throws "the yaml codec is not loaded; await loadCodec";
+   two concurrent loads of YAML give one codec; then TOML loads. With
+   TOML's import failing, choosing TOML shows one alert, exactly `TOML
+   could not be loaded (<reason>).`, and no text area; choosing JSON again
+   shows the JSON text and no alert.
 
-The inspector shows the manifest of the block the selection lies in as JSON,
-YAML or TOML text and writes an edited text back as one `set` command
-replacing that block's `manifest`. Its logic is plain TypeScript in
-`src/inspector/` (`formats.ts` reads and writes the three formats,
-`nulls.ts` the TOML null rule, `lossless.ts` the numbers, `edit.ts` the
-commands); `Inspector.svelte` only wires it to the store and the selection.
-JSON is always available; the YAML (`yaml.ts`) and TOML (`toml.ts`) codecs
-are dynamic imports, loaded by `loadCodec` the first time their format is
-needed, so their libraries stay out of the main chunk. `inspector-text`
-loads both before its cases.
-What would prove it works, and the exact values each test pins:
+**The text state.** The panel's text outlives the panel, so its rules are
+proven on the state alone, then through the component ("The tabs and
+panels"):
 
-1. **Every manifest round-trips through every format, byte for byte.** For
-   each manifest fixture of the installed timeskeleton's `SCHEMA_VERSION`
-   and each format, the fixture's lossless value (`parseJson`) is written
-   as text and read back, and `dumps` of what was read equals the fixture
-   file's bytes. `dumps` sorts keys and arrays, so only a lost or changed
-   value, a changed number kind (an integer that became a float or the
-   reverse) or a dropped or added member can make a case fail. The cases
-   are enumerated from the package's directories, so a first case pins
-   the set they come from: the installed 0.7.0 package holds 41 manifests
-   directly in `fixtures/<SCHEMA_VERSION>/`, 10 sorted into `groups/` and 9
-   into `bundles/`, the counts `ls` gives there without the minimal twins
-   (`*.minimal.json`); 60 fixtures in three formats are 180 cases. A
-   fixture added to or removed from the package fails that first case
-   until this file and the count are updated together. Every fixture is
-   written in the complete form, the form the inspector always shows (it
-   writes the held manifest, which is complete), so every TOML case
-   exercises the null rule of case 3. The twins are no case: the TOML null
-   rule restores what a minimal twin leaves out, so a twin reads back as
-   its complete fixture, which is the case already there.
-2. **Numbers stay exact.** A store holds `discrete_logical` (an unlocked
-   root of integer ticks) and `continuous_physical` (an unlocked root of
-   float seconds). Through `set` commands the integer root's `length`
-   becomes 9007199254740993 ticks (2^53 + 1, a `bigint`), and the float
-   root's `length` first 12.500000000000002 seconds (the double after 12.5,
-   whose shortest spelling has 17 digits), then 1e16 seconds (an integral
-   float beyond 2^53, a `JsonFloat`). Each manifest round-trips through all
-   three formats with `dumps` equal to `dumps` of the manifest, and the
-   value read back is exactly `9007199254740993n`, `12.500000000000002`
-   (a plain number) and a `JsonFloat` of `1e16`; the YAML text carries
-   `length: 9007199254740993` and `length: 10000000000000000.0` (a length
-   is a bare value on its axis). A JavaScript
-   number would round the integer to …992, and a float written as `1e16`
-   without a point would read back as the integer.
-3. **The TOML null rule is the schema's.** The schema is one document;
-   its `$ref`s point into its own `$defs`. A member is left out of the TOML
-   text when it is null and the schema either requires it and admits null,
-   or declares the default null; reading the text puts it back as null.
-   `omissibleNulls` over every `$defs` entry of the document lists exactly:
-   `TimeSkeleton` `name`; `Timeline` `length`, `measure_map`,
-   `metric_hierarchy`, `name`; each of the 21 conversion-map definitions
-   `name`, `source_unit`, `target_unit`; `Region` `name`; `Break` `label`,
-   `name`; `Jump` `label`, `target`; `Marker` `name`; `Group` `name`; and
-   no other definition has any.
+- a clean text shows the selected block's manifest, another block's when
+  the selection changes, nothing without a block;
+- an edited text is never replaced: a change of its manifest or of the
+  selection marks it stale, and Apply writes it to the block it was written
+  for, after which it shows the stored manifest, clean and not stale;
+- a text typed back to the shown text follows at once (the newer manifest,
+  not stale);
+- a refused Apply's problems go with the refused text once it is typed
+  back; a problem of writing the manifest (the `nominal_length` null in
+  TOML) stays while that manifest is shown, the text area empty;
+- Revert shows the selected block's stored manifest, or nothing;
+- a change of format or option writes the text again.
 
-   **A manifest of two roots and a group**, written out in its complete
-   form (`loadManifest` of `{timeskeleton, timelines: [score (quarters,
-   [12, 1]), page (pixels, length null)], groups: [group_1 of both]}`):
-   its TOML text is pinned whole and holds no `name` (of the manifest,
-   the group or a timeline), no `measure_map`, no `metric_hierarchy` and
-   no `length` for `page`; reading it back in each of the three formats
-   gives `dumps` equal to `dumps` of the manifest and those members null.
-   Two refusals:
-   - writing a manifest whose measure-map row has `nominal_length: null`
-     (optional, no default null: absent and null mean different things) is
-     refused `not_representable` at `["timelines", 0, "measure_map", 0,
-     "nominal_length"]`, message `TOML has no null, and the schema neither
-     requires this member nor defaults it to null`; this refusal is final,
-     not a gap: such a manifest is shown and edited as JSON or YAML, and
-     the same value writes and reads back through both (`dumps` equal);
-   - applying the TOML text of `bare` with its `id = "bare"` line removed
-     (`id` is required and may not be null, so nothing restores it) is
-     refused by the store: `schema_violation` at `["timelines", 0]`, and
-     the journal is unchanged.
-4. **Apply dispatches exactly one `set`.** With `bare` in block
-   `0000000000`, the JSON text with `"name": "Bare"` changed to
-   `"name": "Renamed"` is applied: the journal grows by exactly one entry,
-   whose command is `{type: "set", changes: [{target: "0000000000",
-   values: {manifest: <the parsed value>}}]}`, and `dumps` of the block's
-   manifest equals `dumps` of the parsed value. Applying the unchanged text
-   dispatches nothing and is no refusal: `applyText` returns `ok` and the
-   journal stays at that length. That comparison is the inspector's to
-   make, because the store refuses a command that changes nothing: with the
-   styled `bare` of case 7 (two entries), the `set` of the block's
-   `manifest` to the very value it holds, dispatched to the store directly,
-   is refused exactly `{code: "invalid_value", message: "the command
-   changes nothing", path: ["0000000000", "manifest"]}` (core's tests
-   README, "A `set` that changes nothing writes nothing"), the journal
-   stays at 2 and `dumps` of the manifest stays the same.
-5. **A refusal is shown with its exact path, and the text is kept.** From
-   the same JSON text, `"locked": false` changed to `"locked": "yes"` is
-   refused `schema_violation` "must be boolean" at `["timelines", 0,
-   "locked"]` (the store's path `["0000000000", "manifest", "timelines", 0,
-   "locked"]` loses its block prefix, so it points into the text), and
-   `problemPointer` renders it as `/timelines/0/locked`; `"unit":
-   "quarters"` of the root changed to `"parsecs"` is refused "must be equal
-   to one of the allowed values" at `/timelines/0/unit`. Syntax errors
-   carry 1-based positions: the JSON text with `"locked": ,` gives
-   `syntax_error` at line 22, column 17; the YAML text with `locked:
-   [false` gives line 16, column 5 (the line after `locked`, where the
-   flow sequence is found unclosed); the TOML text with `locked = ` gives
-   line 14, column 1 (likewise the line after it). No refusal adds a journal entry.
-6. **Comments survive Apply and an external change, in every mode.** With
-   the styled `bare` of case 7 selected, in each of the four modes, the
-   YAML text gets a comment line `    # shown on the canvas` above `name`
-   and an inline comment `# was Bare` after the name changed to `Hello`;
-   after Apply the text is exactly the written text with those two edits
-   (the document is patched with the value the mode shows, not rewritten).
-   Then the store changes the root's `name` to `Bye` through a `set` on
-   `0000000000/bare`, and following the manifest in the same mode gives
-   exactly the same text with `Hello` replaced by `Bye`, both comments in
-   place. The same for TOML with `# shown on the canvas` and `# was Bare`.
-7. **The four text modes.** A text is written in one of four modes, the
-   `TextOptions` `{includeStyling, minimal}`: the complete or the minimal
-   form, each with the styling excluded or included. `visibleManifest`
-   leaves `graphical` out unless `includeStyling`, then takes
-   timeskeleton's `minimal` of the rest when `minimal`. Cases 1 to 5 write
-   and apply in the complete mode with the styling included, the form of a
-   fixture file. What proves the modes is one manifest whose complete and
-   minimal forms differ and which has a `graphical`: `bare` in block
-   `0000000000`, styled by one `style` command `{select: {element:
-   "timeline"}, set: {stroke: "#800000"}, blocks: ["0000000000"]}` (the
-   journal then holds 2 entries). The store holds the complete form, whose
-   `graphical` is `{order: {}, statements: [{select: {element:
-   "timeline"}, set: {stroke: "#800000"}}], styles: {}}`; its minimal form
-   leaves out `groups`, `name`, the timeline's `children`,
-   `conversion_maps`, `flow_control`, `is_segment_line`, `locked`,
-   `measure_map`, `meta`, `metric_hierarchy`, `number_type` and `regions`,
-   and the `graphical`'s `order` and `styles`.
-   - *The shown text.* The JSON text of each mode is pinned whole. Without
-     the styling, the complete text is byte for byte the fixture file
-     `bare.json` and the minimal text `bare.minimal.json` (the `style`
-     command changed nothing but `graphical`); with the styling, each is
-     that text with the `graphical` member first (keys are sorted), the
-     complete one with `order` and `styles`, the minimal one with
-     `statements` only. The YAML and TOML texts of each mode read back to
-     the JSON text's value (`dumps` equal), with the one difference the
-     TOML null rule (case 3) makes: a minimal TOML text reads back with
-     the null members it leaves out restored, here the manifest's `name`
-     and the timeline's `measure_map` and `metric_hierarchy`, and the
-     minimal form of that value is the shown one. No text without the
-     styling contains `graphical`.
-   - *Apply of one edit.* In each mode and format, the timeline's name
-     changed from `Bare` to `Renamed` (`"name": "Bare"`, `name: Bare`,
-     `name = "Bare"`) and applied adds one journal entry (2 to 3), and
-     `dumps` of the whole stored manifest equals `dumps` of the complete
-     JSON text with the styling and that one edit: `graphical` is kept when
-     the text leaves it out, and every default a minimal text leaves out is
-     completed. The text returned equals the text `manifestText` writes
-     from the stored manifest in the same mode and format, so nothing in it
-     is left unapplied.
-   - *A no-op Apply.* Applying is decided by `dumps` of the complete form:
-     `complete` of the value read, with the stored `graphical` put back
-     when the styling is excluded, against the stored manifest. In each
-     mode and format the shown text, applied, dispatches nothing (the
-     journal stays at 2) and returns the shown text. Nor do, in each mode,
-     the JSON text with every line break and the indentation after it
-     removed, and the compact JSON text (`compactJson`) of the shown value
-     with the keys of every object in reverse order: `dumps` sorts keys
-     and ignores layout. In both minimal modes the JSON text that spells
-     out the timeline's default `"locked": false` dispatches nothing either
-     and returns the shown text, without it.
-   - *The styling replaced.* In both modes with the styling, the JSON
-     text with `"#800000"` replaced by `"#008000"` and applied adds one
-     journal entry (2 to 3), and the stored `graphical` is, by `dumps`,
-     exactly `{order: {}, statements: [{select: {element: "timeline"},
-     set: {stroke: "#008000"}}], styles: {}}`: the typed `graphical` is
-     dispatched rather than the stored one, and the minimal one (without
-     `order` and `styles`) is completed.
-   - *Styling typed into a text that excludes it.* In the complete and in
-     the minimal mode without the styling, the YAML text with `graphical:
-     {}` appended is refused `hidden_member` at `["graphical"]`, message
-     exactly "the styling is excluded; check Include styling to edit
-     graphical", and the journal is unchanged.
-8. **The selection decides the block.** `selectedBlock` gives `null` for an
-   empty selection, the block for its id or for `<id>/<element>`, the same
-   block for several addresses in it, and `null` for addresses in two
-   blocks.
-9. **The properties form builds one `set` per field.** For the geometry
-   of a selected block (`geometryOf`, `src/inspector/properties.ts`, case
-   11) `propertyCommand`
-   gives `{type: "set", changes: [{target, values: {x: 12.5}}]}` for `x`
-   and `"12.5"`, `{width: null}` for `width` and an empty field once the
-   block's `width` is set to 300 (unset, an empty field is the value the
-   block stores and gives no command, case 11), and refuses
-   `invalid_value` for `x` with an empty field and for `abc`. Dispatching
-   `scale` `0` is refused by the store (`non_positive_number`), and the
-   journal keeps its two entries (the `add` and the `width`).
-   A step (`stepValue(value, direction, step)`) is computed exactly: the
-   sum is rounded to as many decimals as the value and the step have
-   (shortest spellings), so float noise never reaches the store; an empty
-   (null) value counts as 0. `STEPS` is 1 for `x`, `y`, `width`, `height`
-   and `length`, 0.1 for `scale` and `spacing`. Pinned: `10.123` up by 1 →
-   `11.123`; `1` down by 0.1 → `0.9` (plain arithmetic gives the same here,
-   and `0.9` down → `0.8`); `0.7` up by 0.1 → `0.8` (plain arithmetic:
-   0.7999999999999999); `1e-7` up by 0.1 → `0.1000001` (plain:
-   0.10000010000000001); `-0.05` up by 0.1 → `0.05`; `null` up by 1 → `1`.
-   `shownValue` is what a field shows: at most two decimals, the exact
-   double rounded as `toFixed(2)` rounds it, trailing zeros trimmed, an
-   empty text for null. Pinned: `12.5` → `12.5`, `12.3449` → `12.34`, `7` →
-   `7`, `10.123` → `10.12`, `2.999` → `3`, `478.5771484375` → `478.58`,
-   `1.49951171875` → `1.5`, `0.125` → `0.13` (exactly halfway, the larger
-   neighbour), `1.005` → `1` (the double is 1.00499999999999989…, below
-   the half), `-0.001` → `0` (no negative zero), `null` → empty. The value
-   is only shown: no command is built from the shown text.
+## The Properties form (`inspector-properties.test.ts`, `inspector-bands.test.ts`)
 
-10. **The codecs load on demand, once.** In a fresh module graph
-   (`inspector-codecs.test.ts`) `isLoaded` is `[true, false, false]` for
-   JSON, YAML, TOML; `writeText("yaml", …)` throws "the yaml codec is not
-   loaded; await loadCodec"; two concurrent `loadCodec("yaml")` resolve to
-   the same codec and leave `[true, true, false]`; after
-   `loadCodec("toml")` all three are loaded.
+The form edits the geometry of what is selected, never the block's when
+something inside it is. A selected container has a role: the **box** (the
+block's placement), an **item** (a frame, or a card the box holds: its
+place in the box) or a **held** card (a card a frame holds: its frame's
+shared scale and length, its own spacing and size). The form is right when
+for each role it names exactly the selected containers, shows their values
+as the drawing records them (stated, else drawn), offers what the level
+edits, and dispatches exactly the arranger's command.
 
-11. **The Properties form edits the selected element's own geometry**
-   (`inspector-properties.test.ts`). The defect it guards against: the form
-   showed the block's `length` (400) whatever was selected, and a typed
-   value rescaled the whole block. What proves it fixed is that for every
-   kind of box the form shows that element's value and an edit dispatches a
-   `set` aimed at that element's place, the block's fields untouched. The
-   kinds (`geometryOf(view, selection)` in `src/inspector/properties.ts`)
-   come from the block's drawing, the same memoized drawing the canvas
-   shows (arranger's `drawingOf` with the schema package's font metrics),
-   never from the form of an address: the block id names the block, a
-   group (or its title) the group's frame, a timeline drawn in a card (by
-   its line, its card or any other part) that card. Drawn values (x, y,
-   width, height of a frame, a card's size) are compared with that drawing's
-   `items[].place` and `cards[].size`, since the claim is "shows what is
-   drawn"; stated values, the block's length and the default scale are
-   pinned as numbers. The workspace is the end-to-end `bundles`
-   workspace, block `bmixed0000` ("Mixed": length 400, scale 1, nothing in
-   `places`; groups `group_1` with members `performance`, `score` and
-   `group_2` with `excerpt` (a child of `recording`) and `page`; the
-   ungrouped root `annotations`; `recording`, which holds a member, is drawn
-   only as `excerpt`'s ancestor and has no card of its own; `score` holds
-   two maps and a jump, `performance`, `page` and `excerpt` a map each,
-   `annotations` two regions). Its items are
-   drawn at `group_1` (8, 28.8046875), `group_2` (8, 206.0390625) and
-   `annotations` (8, 391.7734375), each 562.484619140625 wide, `group_1`
-   169.234375 high, every member's card 546.484619140625 wide, and a width
-   grows by exactly the length added (the arranger's tests README, sections
-   "Fixture facts" and "Items"). The heights follow from timeskeleton's
-   drawing.md, sections 6.4, 6.5, 8.3 and 8.4, at a vertical stretch `v`:
-   the maps lie above the line, a stack of `J` maps reaching `1.5 + 5J`;
-   the wedges, regions and flow control lie below, the markers band (the
-   wedges) reaching `1.5 + 13 + 2 + h(9) = 26.9765625` (one tier of
-   labels); `h(11) / 2 =
-   6.40234375` is less than the reach of a stack of one map, so the line
-   lies at `8v` plus the stack's reach. So a card with one map is
-   `Hm(v) = (8v + 6.5) + 26.9765625 + 8v = 33.4765625 + 16v` high
-   (`performance`, `page`: 49.4765625). `score` has two maps above and,
-   below, the flow control band of its one jump, `4v` after the markers
-   band and `8v + 2 + h(9)` wide: `(8v + 11.5) + (26.9765625 + 4v + 8v +
-   12.4765625) + 8v = 50.953125 + 28v` (78.953125). `excerpt`'s ancestor
-   band starts after its map stack, at `max(14 / 2, 6.5 + 4) = 10.5`, and
-   is `7 + 26.9765625` wide, so its card is `(8 + 44.4765625) + 26.9765625
-   + 8 = 87.453125` high. A frame is `8 + h(11) + 4 + Hm1 + 8 + Hm2 + 8`
-   high: `group_1` `141.234375 + 28v` with `score` at `v` (169.234375),
-   `group_2` 177.734375; each item lies 8 below the one before:
-   `28.8046875 + 169.234375 + 8 = 206.0390625` and `206.0390625 +
-   177.734375 + 8 = 391.7734375`. A Stretch along time changes none of
-   these: no label tier or region row changes with the length.
-   - *Kinds.* `bmixed0000` gives kind `block`, label "Block properties",
-     one element `{target: "bmixed0000", group: null, values: {x: 0, y: 0,
-     scale: 1, length: 400, spacing: 1, width: null, height: null}}`.
-     `bmixed0000/group_1` and its title `bmixed0000/group_1/name` each give
-     kind `item`, label "Frame properties", one element with target
-     `bmixed0000/group_1`, group `null`, `length` 400, `scale` 1 and
-     `spacing` 1 (the default), and
-     `x`, `y`, `width`, `height` the drawn place's. `bmixed0000/annotations/card`
-     and the line `bmixed0000/annotations` each give kind `item`, label "Card
-     properties", target `bmixed0000/annotations`. `bmixed0000/score/card`
-     gives kind `card`, label "Card properties", target `bmixed0000/score`,
-     group `bmixed0000/group_1`, `scale` 1, `length` 400 (the group's),
-     `spacing` 1 (the card's own vertical stretch, its default) and
-     `width`, `height` the drawn card's size; `bmixed0000/excerpt/card`
-     gives group `bmixed0000/group_2` (a child member has a card). Two
-     frames give one `item` geometry with the elements `group_1`, `group_2`
-     in selection order; a frame with an ungrouped card gives kind `item`,
-     label "Frame and card properties"; `annotations` with
-     `annotations/card` gives one element. `null`: no selection,
-     `group_1` with `score/card` (two kinds), `bmixed0000` with
-     `group_1`, the title `bmixed0000/name`, `bmixed0000/recording`, and
-     `bmixed0000/group_1` with `bshared000/group_1` (two blocks).
-   - *Stated values win.* After `set` of `bmixed0000/group_1` `place
-     {length: 300, scale: 1.5, spacing: 2}` and of `bmixed0000/score`
-     `place {width: 650, spacing: 1.25}`, `group_1` shows `length` 300,
-     `scale` 1.5 and `spacing` 2, and the card of `score` `scale` 1.5,
-     `length` 300, `width` 650 and `spacing` 1.25 (its own, never the
-     frame's 2).
-   - *Commands.* An edit of a place follows the rule of the canvas's
-     gestures at the same level (the arranger's `keepsItems` and
-     `placeCommand`, one helper for both): on the arranger and in the
-     bundle editor the one `set` also states, after the edited places and
-     once each, the drawn `x`, `y` of every other item that states none
-     (the drawing's `items` order: `group_1`, `group_2`, `annotations`), so
-     nothing else moves; in the group and timeline editors it states only
-     the edited places. Below, `G2` is the change `{target:
-     "bmixed0000/group_2", values: {place: {x: 8, y: 206.0390625}}}` and
-     `AN` `{target: "bmixed0000/annotations", values: {place: {x: 8, y:
-     391.7734375}}}`; every geometry is taken on the
-     arranger (`geometryOf(view, selection)`, the level's default) unless
-     stated. For `group_1`, `length` `"300"` gives exactly `{type: "set",
-     changes: [{target: "bmixed0000/group_1", values: {place: {length:
-     300}}}, G2, AN]}`. For `score/card`, `scale` `"1.5"` gives the changes
-     `[{target: "bmixed0000/group_1", values: {place: {scale: 1.5}}}, G2,
-     AN]` (the members share their group's scale and length; the frame
-     whose place is edited states no position), `width` `"650"` the changes
-     `[{target: "bmixed0000/score", values: {place: {width: 650}}}, G2,
-     AN]` (the frame holding the card states no position either: a card's
-     size never moves its frame's top left corner); `width` `""` gives no
-     command while no place states a width (the next case), and with
-     `score` stating `{width: 650}` first the changes `[{target:
-     "bmixed0000/score", values: {place: {width: null}}}, G2, AN]`;
-     `length` `""` is refused `invalid_value` "length needs a
-     number" at `["bmixed0000/score", "length"]`. Two frames and `length`
-     `"350"` give one `set`, `group_1` then `group_2`, then `AN`. Two cards
-     of one group (`performance/card`, `score/card`) and `scale` `"2"` give
-     one change on `bmixed0000/group_1`, then `G2`, `AN`; `width` `"500"`
-     gives `bmixed0000/performance`, `bmixed0000/score`, then `G2`, `AN`.
-     `spacing` is a member of each place, a member's card's included: for
-     `group_1`, `spacing` `"1.5"` gives exactly `[{target:
-     "bmixed0000/group_1", values: {place: {spacing: 1.5}}}, G2, AN]`; for
-     `score/card` `[{target: "bmixed0000/score", values: {place: {spacing:
-     1.5}}}, G2, AN]` (the card's own place, never its group's: the members
-     share only the horizontal length and scale); `spacing` `""` is refused
-     `invalid_value` "spacing needs a number" at `["bmixed0000/score",
-     "spacing"]`. With `group_1`'s length stated 300, a step up of `length` on
-     both frames gives one `set` with `group_1` 301, `group_2` 401 (each
-     element steps from its own exact value; `group_2` draws the block's
-     length, 400), then `AN`.
-   - *A value already stored is no command.* The store refuses a `set`
-     that changes nothing (core's tests README, "A `set` that changes
-     nothing writes nothing"), so a typed value that every edited element
-     stores already is a commit that dispatches nothing: `propertyCommand`
-     gives `{ok: true, value: null}`. What an element stores is the
-     block's own member for the block, else the member of the place the
-     edit sets (its group's for a member card's `scale` and `length`),
-     `null` where that place states none; the typed value, read as the
-     command would carry it, is compared with it exactly (`===`, as
-     `commonValue` compares), never by its text. A drawn value is not
-     stored: typing the value a field shows where no place states one
-     states it. On the arranger unless stated:
-     - the block: `length` `"400"` and `"400.0"` (one number, two
-       spellings), `spacing` `"1"`, `x` `"0"` and `width` `""` (its
-       `width` is null) give `null`;
-     - `score/card`, nothing stated: `width` `""` gives `null` on the
-       arranger and in the timeline editor (`"timeline"`), where a
-       dispatched `{place: {width: null}}` would be the whole `set` and
-       refused; `width` `"546.484619140625"`, the drawn width the field
-       shows, gives `[{target: "bmixed0000/score", values: {place: {width:
-       546.484619140625}}}, G2, AN]`;
-     - with `group_1` stating `{length: 300}` first: `group_1` `length`
-       `"300"` and `score/card` "group length" `"300"` (its group's place)
-       give `null`; `group_1` with `group_2` and `length` `"300"` gives
-       `[{target: "bmixed0000/group_1", values: {place: {length: 300}}},
-       {target: "bmixed0000/group_2", values: {place: {length: 300}}},
-       AN]`, since `group_2` states none: the store judges the whole `set`.
-   - *The gestures' rule, level by level.* A frame's `scale` `"1.5"` on
-     the arranger gives exactly `[{target: "bmixed0000/group_1", values:
-     {place: {scale: 1.5}}}, G2, AN]`; with `group_2` stating `{y: 200}`
-     first, `G2` becomes `{place: {x: 8}}` (an item stating one member gets
-     only the other) and `annotations`, drawn below `group_2`'s bottom edge,
-     states `{x: 8, y: 385.734375}` (`200 + 177.734375 + 8`). In the bundle editor (`level` `"bundle"`) the same
-     edit gives the same three changes. In the group editor (`"group"`) the
-     `scale` `"1.5"` of `score/card` gives only `[{target:
-     "bmixed0000/group_1", values: {place: {scale: 1.5}}}]` and its
-     `spacing` `"1.5"` only `[{target: "bmixed0000/score", values: {place:
-     {spacing: 1.5}}}]` (no cap: the frame adapts to a vertical stretch),
-     and in the timeline editor (`"timeline"`) its `width` `"650"` only
-     `[{target: "bmixed0000/score", values: {place: {width: 650}}}]` and
-     its `spacing` `"1.5"` only `[{target: "bmixed0000/score", values:
-     {place: {spacing: 1.5}}}]`.
-   - *A typed length or spacing is a stretch.* A typed or stepped
-     `length` or `spacing` of a frame, an ungrouped card or a member's card
-     writes what a Stretch to that value writes, through the one helper the
-     canvas's Stretch uses (arranger's `stretchChanges`, whose values the
-     arranger's tests README derives in "A typed length or spacing is a
-     stretch"): every stated width (for `length`) or height (for `spacing`)
-     of the box and of the cards it holds keeps its proportion to its own
-     content. On the arranger, with `performance` stating `{width:
-     1092.96923828125}` (twice its content, `2 Wc(400)`, `Wc(L) =
-     146.484619140625 + L`) first, `score/card` `length` `"430"` gives
-     exactly `[{target: "bmixed0000/group_1", values: {place: {length:
-     430}}}, {target: "bmixed0000/performance", values: {place: {width:
-     1152.96923828125}}}, G2, AN]` (`2 Wc(430)`), and `group_1` `length`
-     `"430"` the same; with `performance` stating `{height: 98.953125}`
-     (twice its card's height, `Hm(v) = 33.4765625 + 16v` above) first,
-     `group_1` `spacing` `"2"` gives `[{target: "bmixed0000/group_1",
-     values: {place: {spacing: 2}}}, {target: "bmixed0000/performance",
-     values: {place: {height: 130.953125}}}, …]` (`2 Hm(2)`), followed by
-     the drawn positions of `group_2` and `annotations`, which the taller
-     card moves down by its extra 49.4765625: `{x: 8, y: 255.515625}`
-     and `{x: 8, y: 441.25}`; with `group_1` stating `{height:
-     338.46875}` (twice its height 169.234375) first, `score/card` `spacing`
-     `"2"` gives `[{target: "bmixed0000/score", values: {place: {spacing:
-     2}}}, {target: "bmixed0000/group_1", values: {place: {height:
-     394.46875}}}, …]` (the frame's content `141.234375 + 28 × 2`, its request
-     twice it), followed by `group_2` at `{x: 8, y: 375.2734375}`
-     (`28.8046875 + 338.46875 + 8`) and `annotations` at `{x: 8, y:
-     561.0078125}` (`375.2734375 + 177.734375 + 8`).
-     Without stated sizes a typed length or spacing writes the factor
-     alone, as the cases above show.
-   - *The group editor's length.* In the group editor the frame does not
-     adapt, so the same helper caps a typed or stepped `length` of the
-     edited frame or of a member's card as the group editor's stretch
-     does: the length capped where the content, the cards' widths
-     following, would pass the frame and `width` pinned at the frame's
-     drawn width quantized to 1/2048, `562.48486328125`
-     (562.484619140625 rounds up). At level `"group"`: `group_1` `length`
-     `"500"` gives exactly `[{target: "bmixed0000/group_1", values: {place:
-     {length: 400, width: 562.48486328125}}}]` (`W(400)` already fills the
-     frame); `score/card` `length` `"300"` gives `[{target:
-     "bmixed0000/group_1", values: {place: {length: 300, width:
-     562.48486328125}}}]`; a step up of `group_1`'s `length` (401) gives
-     the capped `{length: 400, width: 562.48486328125}`; with `group_1`
-     stating `{width: 600}` first, `group_1` `length` `"500"` gives
-     `{length: 437.51513671875, width: 600}` (`600 − 162.484619140625`
-     floored to the lattice). On the arranger the same `"500"` is the
-     uncapped `{length: 500}` with `G2`, `AN`. With `performance` stating
-     `{width: 1092.96923828125}` first (the frame drawn 1108.96923828125
-     wide), `score/card` `length` `"350"` gives exactly `[{target:
-     "bmixed0000/group_1", values: {place: {length: 350, width:
-     1108.96923828125}}}, {target: "bmixed0000/performance", values:
-     {place: {width: 992.96923828125}}}]` (`2 Wc(350)`).
-   - *Positions are the bundle editor's.* `offered(geometry, property)`
-     (the predicate the form's `disabled` reads) withholds what the level
-     does not edit: for a block, `scale`, `length` and `spacing` in a group
-     or timeline editor; for an item (a frame or an ungrouped card), `x`
-     and `y` everywhere but the bundle editor, where items are moved, so a
-     typed value never moves an item where no gesture moves it. For
-     `group_1`: on the arranger, in the group editor (`"group"`) and, for
-     `annotations/card`, in the timeline editor (`"timeline"`), `x` and `y`
-     are not offered and `scale`, `length`, `spacing`, `width`, `height`
-     are; in the bundle editor all seven are. A member's card has no `x`,
-     `y` and offers its five fields at every level; for the block the rule
-     is unchanged (`x`, `y`, `width`, `height` offered at every level).
-   - *Live values.* `geometryOf(view, selection, level, placement)` with a
-     `placement` of `bmixed0000` whose drawing is the block's drawing with
-     `places` `{group_1: {length: 460}}` (a Stretch preview) reads the items
-     and cards from that drawing: `group_1`'s `length` 460 and `width`
-     622.484619140625 (562.484619140625 + 60), `score/card`'s `length` 460
-     and `width` 606.484619140625; a placement of another block, or none,
-     gives the stored 400 and 562.484619140625. A placement whose drawing
-     has `places` `{group_1: {spacing: 2}, score: {spacing: 1.5}}` (a
-     vertical Stretch preview of the frame, then of the card) gives
-     `group_1`'s `spacing` 2 and `score/card`'s 1.5; none gives 1 and 1.
-   - *Shown values.* `commonValue` gives the value every element shares,
-     `undefined` when they differ (300 and 400). `fieldLabel` names a
-     card's `scale` and `length` "group scale" and "group length" and every
-     other field by its property (a card's `spacing` is "spacing", its
-     own).
+The workspace is the end-to-end `bundles` workspace, block `bmixed0000`
+("Mixed", length 400, scale 1, nothing in `places`; `group_1` holding
+`performance` and `score`, `group_2` holding `excerpt` and `page`; the
+ungrouped root `annotations`; `recording`, drawn only as `excerpt`'s
+ancestor, has no card).
 
-   The component (same file) is mounted with a store reading the
-   `bundles` workspace:
-   - `bmixed0000/group_1`: the Properties panel holds one form, "Frame
-     properties", whose fields are exactly `x`, `y`, `scale`, `length`,
-     `spacing`, `width`, `height`; `length` shows `400`, `scale` `1` and
-     `spacing` `1` (the default, nothing stated). `300` typed into `length` and Enter adds one journal entry whose
-     command is exactly the one above (with `G2` and `AN`); the block's own
-     `length` stays 400 and the field shows `300`. `1.5` typed into
-     `spacing` and Enter then adds one entry, exactly `[{target:
-     "bmixed0000/group_1", values: {place: {spacing: 1.5}}}]` (`group_2`
-     and `annotations` state their positions now); the block's own
-     `spacing` stays 1 and the field shows `1.5`.
-   - *Enter on an unchanged field* dispatches nothing (the store's
-     `dispatch` is not called), shows no problem and keeps the journal, as
-     an unchanged Apply does. On `group_1`, after `300` typed into
-     `length` and Enter (one entry, `dispatch` called once), `300` and
-     then `300.0` typed and Enter each leave `dispatch` at one call and the
-     journal at one entry more than before; the field shows `300`, and the
-     panel holds no `.problem` and no field with `aria-invalid="true"`. On
-     `bmixed0000`, `0` typed into `scale` and Enter is refused by the store
-     (`non_positive_number`, `dispatch` called once), and
-     `#property-problem-scale` is shown; `1` typed (the stored scale) and
-     Enter then drops the draft and the problem: `dispatch` still called
-     once, the journal unchanged, the field shows `1` and no `.problem` is
-     left; the `width` field emptied (the block's `width` is null) and
-     Enter leaves all of that as it is.
-   - `bmixed0000/score/card`: one form, "Card properties", fields exactly
-     `scale`, `length`, `spacing`, `width`, `height`, labelled "group
-     scale", "group length", "spacing", "width", "height"; `spacing` shows
-     `1` (the card's default, nothing stated). `1.5` typed into `scale` and
-     Enter dispatches `[{target: "bmixed0000/group_1", values: {place:
-     {scale: 1.5}}}, G2, AN]`; `650` into `width` then only `[{target:
-     "bmixed0000/score", values: {place: {width: 650}}}]` (`group_2` and
-     `annotations` state their positions now, and the frame holding the
-     card is given none); the field then emptied
-     and Enter, only `[{target: "bmixed0000/score", values: {place:
-     {width: null}}}]`, after which the block's `places` hold no `score`;
-     `1.5` typed into `spacing` and Enter then only `[{target:
-     "bmixed0000/score", values: {place: {spacing: 1.5}}}]` (the card's own
-     place), after which `score`'s place is exactly `{spacing: 1.5}`,
-     `group_1`'s states no `spacing` and the field shows `1.5`.
-   - `group_1` and `group_2`: `350` typed into `length` and Enter adds one
-     entry with the two frames' changes and `AN`; both frames' places then
-     state `length` 350. With `group_1`'s length stated 300 first, `length`
-     shows nothing with the placeholder "mixed", and ArrowUp adds one entry
-     setting 301 and 401, then `AN`.
-   - In the group editor of `bmixed0000/group_1` (opened before mounting;
-     the Properties tab chosen), `score/card` with `1.5` typed into
-     `scale` and Enter adds one entry to the editor's session whose command
-     is exactly `{type: "set", changes: [{target: "bmixed0000/group_1",
-     values: {place: {scale: 1.5}}}]}`; `500` typed into "group length"
-     then adds one entry whose command is exactly `{type: "set", changes:
-     [{target: "bmixed0000/group_1", values: {place: {length: 400, width:
-     562.48486328125}}}]}`. In the bundle editor of `bmixed0000`, `group_1`
-     with `1.5` typed into `scale` dispatches the three changes of the
-     arranger.
-   - `group_1` on the arranger: its `x` and `y` fields are `disabled` and
-     its other five enabled; in the bundle editor of `bmixed0000` all seven
-     are enabled; in the group editor of `bmixed0000/group_1`, `x` and `y`
-     are disabled again.
-   - *Following a gesture live.* In the bundle editor of `bmixed0000`,
-     `group_1` selected and the `placement` prop (held reactive) set to a
-     placement of `bmixed0000` whose drawing has `places` `{group_1:
-     {length: 460}, group_2: {x: 8, y: 206.0390625}, annotations: {x: 8,
-     y: 391.7734375}}` (what a Stretch by 60 previews): `length` shows
-     `460` and `width` `622.48` while nothing is dispatched; `placement`
-     `null` again (the release refused, nothing stored): `400` and
-     `562.48`. With `score/card` selected and the same placement, "group
-     length" shows `460` and `width` `606.48`.
-   - `bmixed0000`: one form, "Block properties", with the seven block
-     fields.
-   - `group_1` with `score/card`, and the title `bmixed0000/name`: the
-     Properties panel reads exactly "Select a block, a frame or a card to
-     edit its geometry." and holds no form.
+1. **Roles.** The block names the box, "Block properties", `{x: 0, y: 0,
+   scale: 1, length: 400, spacing: 1, width: null, height: null}`.
+   `group_1` and its title name the frame, "Frame properties", with its
+   record's values. `annotations` and `annotations/card` name the card the
+   box holds, "Card properties". `score/card` and `excerpt/card` name cards
+   their frames hold, "Card properties", with their frame's scale and length
+   and their own spacing and size. Two frames are edited together in
+   selection order; a frame with a card the box holds is "Frame and card
+   properties"; two addresses of one card are one card. None for no
+   selection, mixed roles, the box with a frame, the title, `recording`, a
+   map, or two blocks.
+2. **Stated values win**, and a held card's spacing is its own: after
+   stating `group_1` `{length: 300, scale: 1.5, spacing: 2}` and `score`
+   `{width: 650, spacing: 1.25}`, the frame shows 300, 1.5, 2 and the card
+   1.5, 300, 650, 1.25.
+3. **During a gesture the values are the gesture's drawing's**: with a
+   placement whose drawing states `group_1` `{length: 460}`, the frame and
+   its held card show that record (length 460, its width); a placement's
+   `x` is the box's. A gesture on another block, or none, leaves the stored
+   values.
+4. **Fields per role and level** are the arranger's field table, in
+   core's place order: the box and an item offer `x`, `y`, `length`,
+   `scale`, `spacing`, `width`, `height`; a held card `length`, `scale`
+   (labelled "group length", "group scale"), `spacing`, `width`, `height`.
+   Withheld, and disabled in the form: the box's `length`, `scale`,
+   `spacing` in a group or timeline editor (the store refuses them there,
+   `side_effect`); an item's `x`, `y` everywhere but the bundle editor;
+   nothing of a held card.
+5. **One edit, the arranger's command.** For the box's `x`, a frame's
+   `length`, a held card's `scale`, and its `spacing` and `length` in the
+   group editor, two frames, two held cards' `width` in the timeline editor
+   and a frame's `scale` in the bundle editor, the command built from the
+   typed text equals the arranger's edit of the same addresses, property,
+   value and level. An emptied `width` sends `null`; a value every selected
+   container stores already (`650.0` for a stated 650, the block's `400`)
+   gives no command. Text that is no decimal number is refused before
+   dispatch, `invalid_value` at `[<first address>, property]`: an empty
+   `length` or `spacing` ("… needs a number"), `abc`, `0x10` ("… is not a
+   number"). A step is the arranger's edit with the step applied to each
+   container's own value.
+6. **Numbers a field shows and steps.** A step adds or subtracts 1 for `x`,
+   `y`, `length`, `width`, `height` and 0.1 for `scale` and `spacing`,
+   rounded to the decimals of value and step: 10.123 + 1 is 11.123, 1 − 0.1
+   is 0.9, 0.9 − 0.1 is 0.8, 0.7 + 0.1 is 0.8, 1e-7 + 0.1 is 0.1000001,
+   −0.05 + 0.1 is 0.05, an empty value + 1 is 1. A field shows at most two
+   decimals as `toFixed(2)` rounds the double: 12.5, 12.34 (12.3449), 7,
+   10.12, 3 (2.999), 478.58 (478.5771484375), 1.5 (1.49951171875), 0.13
+   (0.125), 1 (1.005, whose double lies below the half), 0 (−0.001), and
+   empty for null. Decimal text only: `12.5`, ` 300.0 `, `-.5`, `1e3`, `+7`
+   read; `0x10`, `Infinity`, `1e400`, `abc` and the empty text do not.
 
-The component test mounts `Inspector.svelte` with a store holding `bare`
-(block `0000000000`) and `styled__score` (block `0000000001`), and proves
-the wiring. Every case that reads or edits the manifest text opens the
-Manifest tab first, as a user must. Choosing YAML before its codec is loaded shows exactly
-"Loading YAML…" and no textarea, and once `loadCodec("yaml")` resolves the
-YAML text; with nothing selected and with both blocks selected the
-Properties panel and the Manifest panel each read exactly the hint "Select
-a block to inspect its manifest." and hold no form and no textarea (the
-tab list stays, since the Journal tab is always there); with
-`0000000000` selected the textarea holds `saveManifest` of its manifest;
-choosing YAML shows exactly `writeText("yaml", manifest)`; while the text holds an unapplied edit
-the three format radios and the checkboxes "Include styling" and "Minimal"
-are disabled and a hint reading
-exactly "Apply or Revert to switch" (`#inspector-switch-hint`) is shown and
-named by `aria-describedby` on the radio group and both checkboxes; without an
-edit there is no hint; the edited text applied with Ctrl+Enter in the
-textarea adds one journal entry and removes the hint; an edited, unapplied
-text survives an external `set` and shows exactly "The manifest changed;
-Revert to see it", and Revert shows exactly the newer manifest
-(`writeText("yaml", …)` of the stored manifest, written afresh, with
-`name: Bye`), removes the notice and disables both Apply and Revert; the refused text of
-case 5 lists one problem reading `schema_violation`, `must be boolean`,
-`/timelines/0/locked` and keeps the edit; typing `25` into `x` and pressing
-Enter adds one journal entry whose command is `{type: "set", changes:
-[{target: "0000000000", values: {x: 25}}]}`. A step steps from the stored value,
-not from the shown one: after a `set` of `x` to `10.123` the field shows
-`10.12`; ArrowUp in it adds exactly one journal entry `{type: "set",
-changes: [{target: "0000000000", values: {x: 11.123}}]}` and the field
-shows `11.12`; ArrowDown adds one more entry with `x` `10.123` (a step from
-the shown `10.12` would store `11.12` and `9.12`). ArrowDown in `scale`
-(stored 1) adds one entry with `scale` `0.9` (the step there is 0.1). A typed draft is
-stepped instead: with `20` typed and not committed, ArrowUp commits `x`
-`21`. A live value given to the component (`placement`, the block as a
-canvas gesture shows it) is shown instead of the stored one for that block,
-rounded the same way, but never over a draft: with `placement` holding `x`
-`5.556` the field shows `5.56`, and with `33` typed it keeps `33`; with
-`placement` back to `null` the field shows the stored value again. Live values
-of another block are ignored.
+Mounted, the form shows each role's fields with those values and states;
+`300` and Enter on a frame's `length` add one entry, exactly the arranger's
+command, the block's own length staying 400; Enter on the value just
+stored (`300`, then `300.0`) dispatches nothing. A refusal (`0` for the
+block's `scale`) keeps the draft, marks the field `aria-invalid` and shows
+the store's message beside it; Escape drops both; an emptied `scale` shows
+"scale needs a number". A draft shows only for the containers and the
+manifest it was typed for. Two frames of different lengths show an empty
+field with the placeholder "mixed", and ArrowUp dispatches the arranger's
+step. Mixed roles and the title show only "Select a block, a frame or a
+card to edit its geometry."
 
-**The Properties and Manifest tabs** (`Inspector.test.ts`). With a block
-selected and no editor open it shows a tab list (`role="tablist"`,
-`aria-label` "Inspector sections") of three `button`s with `role="tab"`,
-"Properties" (`#inspector-tab-properties`), "Manifest"
-(`#inspector-tab-manifest`) and "Journal" (`#inspector-tab-journal`, below),
-each naming its panel by `aria-controls` (`inspector-panel-properties`,
-`inspector-panel-manifest`, `inspector-panel-journal`), and `role="tabpanel"`
-elements with those ids, each `aria-labelledby` its tab and without a
-`tabindex`: the panels hold focusable controls, so a panel is no tab stop of
-its own. What proves the
-pattern is the state after each action, read as `aria-selected` and
-`tabindex` of the first two tabs and `hidden` of their panels: at mount "Properties"
-is selected (`true`, `0`; `false`, `-1`; the Properties panel shown, the
-Manifest panel hidden); the form "Block properties" lies in the Properties
-panel, and the format radio group, both checkboxes and the textarea in the
-Manifest panel; a click on "Manifest" swaps all of it. On a focused tab
-ArrowRight and ArrowLeft select the next and the previous tab, wrapping,
-Home selects the first tab and End the last, and the selected tab has the
-focus after each key: from "Properties", ArrowRight gives Manifest,
-ArrowLeft Properties, Home Properties, ArrowRight Manifest, ArrowLeft
-Properties (the Journal tab's place among them is pinned below). A key held with a modifier is left to the browser (Alt+ArrowLeft
-goes back): ArrowRight with Alt, with Ctrl and with Meta on the focused
-"Properties" each leaves "Properties" selected and focused, and the event
-is not prevented. The Manifest panel holds the manifest's parts in the
-order the user reads them: with a shared warning case
-(`timeline_class.json`) in `0000000000`, its JSON text edited (the first
-`meta` given a member) and the root renamed `Bye` by a `set`, so the hint
-and the stale notice are shown, the panel's controls are exactly, in
-document order, the radios JSON, YAML and TOML, the checkboxes "Include
-styling" and "Minimal", the textarea "Manifest (JSON)", and the buttons
-Apply and Revert; the radio group, both checkboxes, the textarea, Apply,
-Revert, the problem list `#inspector-problems` and the warning list
-`#inspector-warnings` follow one another in that document order; those
-eight, the hint `#inspector-switch-hint` and the stale notice all lie in
-the Manifest panel and none in the Properties panel. The tab is the component's own state: with "Manifest" chosen,
-the `selection` prop changed from `0000000000` to `0000000001`, then to
-nothing (both panels read the hint, the tab list stays) and back to `0000000001`
-keeps "Manifest" selected; mounted again, the inspector selects
-"Properties". Both panels stay mounted, so an unapplied text survives a
-visit to Properties: with the JSON text edited (`"Bare"` → `"Bared"`),
-clicking Properties and then Manifest shows the same edited text, Apply
-and Revert still enabled.
+**A selected band** (`inspector-bands.test.ts`). A band alone shows three
+read-only rows instead of a form, read from the band's record in the
+drawing shown: "Band" its kind's word, "Level" signed (a negative level
+with U+2212 MINUS SIGN), "Elements" its count; the store holds `map` and
+`map_child_band_order`. No rows for no selection, a block, a map, a card,
+a band the drawing does not record, two bands, a band with a card, or a
+block the workspace does not hold. A gesture's drawing is read: with three
+band records written for the test the rows are Markers 1 3, Regions −2 4,
+Flow control −12 1. The form leaves bands out: a band with the card gives
+the card's geometry exactly, with the block the block's; the band's block
+is the selected block, and a second block makes none. In the component the
+band's panel holds one description list and nothing that edits, and the
+Manifest tab shows the block's text; with the card the panel is exactly
+the card's; two bands show the geometry hint. A band's id is reserved: a
+map renamed `conversion_maps_1` in the text is refused, listed as
+`schema_violation` `id "conversion_maps_1" is reserved for the bands of a
+timeline` at `/timelines/0/conversion_maps/0/id`, the text and the journal
+kept.
 
-**Apply and Revert are enabled exactly while the text is edited, in each
-of the four modes** (`Inspector.test.ts`). A mode is complete or minimal,
-with the styling excluded or included. The case runs once per mode on
-`styled__score` (block `0000000001`), whose minimal and complete forms
-differ and which carries `graphical`, after checking "Minimal" and
-"Include styling" as the mode asks (both are unchecked at mount). Each step
-pins the text and both buttons' `disabled`:
+## The tabs and panels (`Inspector.test.ts`, `inspector-tabs.test.ts`)
 
-1. Shown: the textarea holds exactly `manifestText(manifest, "json",
-   {includeStyling, minimal})` of the stored manifest; it contains
-   `"graphical"` exactly when the styling is included and
-   `"is_segment_line"` exactly in the complete form (the minimal form drops
-   it at its default `false`), so the component passes both options; both
-   buttons disabled.
-2. One character typed (`"name": "Score"` becomes `"name": "Scores"`): both
-   enabled.
-3. That character deleted again, so the text equals the shown text
-   character for character: both disabled.
-4. The character typed again, then Revert: the text is exactly the shown
-   text, both disabled, and the journal still holds only its two `add`s.
-5. The shown text without its final `}` (invalid JSON), then Apply:
-   refused with exactly one problem, `syntax_error`; the text is kept, both
-   enabled, the journal unchanged.
-6. The edit of step 2 written over it, then Apply: the journal grows to
-   three entries, the root's stored `name` is "Scores", the text is exactly
-   `manifestText` of the stored manifest in the same options, no problem is
-   listed, both disabled.
+**The tab rule** is proven as a table on the rule alone. The tabs present
+are Properties, Manifest, Journal, and Editor first while an editor is
+open. The tab chosen is recorded with the store's count of editor openings
+at that moment; the tab shown is Editor when an opening happened since,
+else the chosen one, and Properties instead of Editor while no editor is
+open. So: Editor on every opening, Properties when the last editor closes
+with Editor shown, the chosen tab kept otherwise; at mount Editor while an
+editor is open, else Properties. On a focused tab the arrows move to the
+next or previous tab present, wrapping, Home and End to the first and last;
+a key held with Alt, Ctrl or Meta is the browser's and is not prevented.
 
-**A clean text always follows the store** (`Inspector.test.ts`), so
-nothing the inspector lists asks for a button that is disabled. The listed
-problems come from one of two sources, kept apart by the component rather
-than read from the texts: a refused Apply (they belong to the text applied,
-and go once the text is clean) or writing the manifest (they belong to the
-manifest, and stay while it is shown).
-- Stale, typed back: with `0000000000` selected, the JSON text edited
-  (`"Bare"` → `"Bared"`) and the root renamed `Bye` by a `set` on
-  `0000000000/bare`, the notice "The manifest changed; Revert to see it"
-  is shown and the edit kept; typing the text back to the shown text
-  removes the notice at once, the textarea holds exactly `manifestText` of
-  the stored manifest (JSON, both options off, with `"name": "Bye"`), both
-  buttons are disabled, and the journal holds the two `add`s and that
-  `set` only.
-- Refused, typed back: with `0000000000` selected, the shown JSON text
-  without its final `}` applied is refused with exactly one problem,
-  `syntax_error`, both buttons enabled; typing the text back to the shown
-  text leaves no problem listed, the textarea `aria-invalid` `false`, both
-  buttons disabled, and the journal at its two `add`s.
-- A writing problem stays: a store holding, in block `0000000000`,
-  `loadManifest` of one `quarters` timeline `score` (length `[4, 1]`)
-  whose measure-map row has `nominal_length: null` (case 3's refusal),
-  with TOML chosen, shows an empty textarea and exactly one problem,
-  `not_representable` at
-  `/timelines/0/measure_map/0/nominal_length`, both buttons disabled;
-  typing `x` enables both, and deleting it again (the text and the shown
-  text both empty) disables both and still lists exactly that one problem.
-  Ctrl+Enter in that clean, empty textarea applies nothing: the problem
-  list is still exactly that one `not_representable`, and the journal
-  still holds only its `add` (an Apply of the empty text would replace it
-  with the problems of reading that text).
+**The component** reads the editing path from the real store (open, Done,
+sessions) or from a store whose levels the test sets and announces. The
+drawer renders it only while open: closed, no tab list and no panel
+exist, and a typed, unapplied text, its tab and an enabled Apply survive
+closing and reopening, nothing journalled.
 
-**Apply reloads the properties.** After an accepted Apply the Properties
-panel shows the stored manifest, and the tab stays "Manifest".
-- Drafts are discarded (`Inspector.test.ts`): with `0000000000` selected,
-  `0` typed into `scale` and Enter is refused by the store
-  (`non_positive_number`), so the field keeps `0` and
-  `#property-problem-scale` is shown; on the Manifest tab the name edited
-  (`"Bare"` → `"Bared"`) and applied grows the journal to three entries,
-  "Manifest" stays selected, and on Properties `scale` shows `1` and no
-  problem is shown.
-- The Locked checkbox follows (`inspector-locked.test.ts`, below).
-- The inspected name follows (`inspector-subject.test.ts`, below).
+1. **The tab list.** A `tablist` "Inspector sections" of buttons with
+   `role="tab"`, each naming by `aria-controls` a `tabpanel` labelled back
+   by `aria-labelledby` and without a `tabindex`; every id is unique. The
+   selected tab has `aria-selected="true"` and `tabindex` 0, the others
+   `false` and −1; only its panel is shown, and a hidden panel renders
+   nothing. With nothing selected the tab list stays and Properties and
+   Manifest each read only "Select a block to inspect its manifest."
+2. **Following the editing path.** Opening a group editor selects Editor,
+   reading "Group editor: Performance"; an inner timeline editor opened with
+   Journal chosen selects Editor again, "Timeline editor: Score"; closing it
+   keeps Editor; closing the last selects Properties, or keeps Manifest when
+   Manifest was chosen; mounted while a bundle editor is open it shows
+   "Bundle editor: Mixed". The editing bar precedes the tab list while an
+   editor is open. Through the real store, opening the group editor,
+   renaming `score` and Done give Properties and a Journal of "Edited group
+   Performance (1 change)" above the three `add`s.
+3. **The keys** follow the rule over the tabs present, with or without an
+   Editor tab, the focus with the selection; the block's fields follow the
+   editing level as in "The Properties form".
+4. **The Manifest panel**, with `bare` and `styled__score`: choosing YAML
+   before its codec is loaded shows "Loading YAML…" and no text area, then
+   the YAML text; while the text holds an edit the format radios and both
+   options are disabled and "Apply or Revert to switch" is shown and named
+   by their `aria-describedby`; Ctrl+Enter applies; an external `set` under
+   an edit shows "The manifest changed; Revert to see it" and Revert the
+   newer text; a refusal lists its code, message and pointer, code and
+   pointer each in a `code` element. The panel's controls follow one
+   another in reading order: the radios, Include styling, Minimal, the text
+   area "Manifest (JSON)", Apply, Revert, the problem list, the warning
+   list. The chosen tab is kept while the selection changes, and an
+   unapplied text survives a visit to Properties.
+5. **Apply and Revert are enabled exactly while the text differs from the
+   shown text,** in each of the four modes: disabled when shown, enabled by
+   one typed character, disabled when it is deleted again or after Revert;
+   a syntax error keeps both enabled; an accepted Apply disables both. The
+   text state's rules hold through the component, a problem of writing
+   kept even through Ctrl+Enter.
+6. **An applied manifest drops the property drafts** of its block (the
+   refused `scale` of `0` and its problem) and keeps the Manifest tab.
+7. **Warnings.** Each shared warning case of the installed timeskeleton
+   (`fixtures/warnings/<SCHEMA_VERSION>/`) loads in core and, selected,
+   lists exactly its expected unknown keys, each with its pointer or "at
+   the top level", in a list "Warnings"; no problem is listed, and an
+   applied edit keeps the warnings. `bare` shows no warning list.
+8. **The Properties panel** commits on Enter (the box's `x` to 25 is one
+   `set` of `x`), steps from the stored value, never the shown one (10.123
+   shown as 10.12 steps to 11.123 and back), steps a draft instead when
+   there is one, and shows a gesture's values without replacing a draft.
 
-**Unknown keys are warnings.** A manifest may carry keys the schema does
-not declare; they are kept and reported by core's `unknownKeys` (the
-timeskeleton validator's), never refused, because a misspelt optional key
-would otherwise silently become its default. What proves the inspector
-shows them is the shared warning cases of the installed timeskeleton
-(`fixtures/warnings/<SCHEMA_VERSION>/*.json`, each a manifest with its
-expected `unknown_keys` list, one key at a depth of its own): each case's
-manifest is loaded into a block and selected, and the warning list
-(`#inspector-warnings`, labelled "Warnings") holds exactly one item per
-expected key, in the expected order, each showing the key and its path as
-a JSON pointer into the manifest (the case's `path` rendered as
-`problemPointer` renders a problem's, `the top level` for the empty path),
-for example `order` at `/groups/0` for `group_unknown_key`. The list is
-driven by the files' own expectations, so a case added to the package is
-covered without a change here. Warnings never stop editing: with the
-warnings shown, the textarea holds the manifest's text, the problem list
-is empty, and Apply of an edited text (its first `meta` given a member,
-which `meta` admits freely) adds one journal entry, after which the same warnings are still listed, since the
-unknown keys were kept. `bare`, which has no unknown key, shows no warning
-list at all. Every case loads in core: the validator refuses whatever
-core's invariants refuse, so a warning case carries only unknown keys, and
-a case core refused (listed with the code of its first problem) fails the
-test instead of dropping out of it. `several_depths.json`, with its
-sixteen keys from the manifest down to a declaration, is among the cases
-listed.
-`Inspector-load.test.ts` replaces `toml.ts` with a module whose import
-fails (`vi.mock` with a throwing factory): choosing TOML shows one
-`role="alert"` paragraph reading exactly `TOML could not be loaded (<the
-rejection's message>).` and no textarea; choosing JSON again removes the
-alert and shows the JSON text.
+**The Journal panel** lists the rows of "Words" in an ordered list
+"Journal", each item with its time, author and text, newest first; an
+undone item carries `data-undone` and a hidden word "undone", the earlier
+session's items `data-earlier`; an item stays the same element when rows
+are added around it; an empty level reads "No changes yet."; a session row
+has a disclosure button labelled by its text that lists its changes,
+newest first (one undo greys a session's whole run: "Edited bundle Mixed (3
+changes, 2 undone)"), and nothing of the expansion reaches the store.
 
-**A selected timeline shows its `locked` as a disabled checkbox**
-(`inspector-locked.test.ts`). Only timelines carry `locked`. When the
-selection is exactly one address and that address names a timeline, or a
-part of one such as its card `<block>/T/card` (the element is read with
-core's `elementOf`, as the arranger reads it), the inspector shows a
-checkbox labelled "Locked" holding that timeline's own `locked` (the
-store holds the complete form, so an absent key reads `false`). It is one
-more cell of the block properties form, the one right after `height`
-(right of height, under width), a plain label around the input: there is
-no fieldset, no legend and no hint text in the inspector. Anything
-else shows no checkbox: no selection, a block, several addresses (even two
-naming one timeline), a group, a region or any other non-timeline element,
-an address naming nothing. A timeline drawn in no card of its own (a
-child that is no group member) has no geometry: the Properties panel shows
-the geometry hint of case 11, and the checkbox is the only cell of a form
-"Timeline properties". Locking and unlocking is not available yet, so
-the checkbox is disabled for every timeline, with the `title` "Locking and
-unlocking is not available yet." on the input. What proves it is a manifest
-written for the test, in block `0000000000`, whose `locked` values follow
-the rules a writer obeys, so that reading the manifest can never change
-them: a plain segment is unlocked, and a segment line that is a segment
-is locked. All its timelines are on `pixels`:
+## Words (`inspector-subject.test.ts`, `journal.test.ts`)
 
-- root `fixed`, length 300, locked, member of the group `group_1`, with the
-  child `take` (offset 20, length 100, unlocked);
-- root `free`, length 300, unlocked, with the region `region_1` (0 to 100);
-- root `pages`, length 300, a segment line, unlocked, with the segments
-  `page_1` (offset 0, length 100) and `page_2` (offset 100, length 200),
-  both locked and both segment lines (a segment line's segments share one
-  flag value), holding the plain segments `part_1` (offset 0, length 100)
-  and `part_2` (offset 0, length 200), both unlocked.
+The words are the editor's; what they name is core's resolver's. The
+oracles are the committed end-to-end workspaces and a store of
+`bundle_mixed` three times (as it is; without its title, with the id
+`mixed` and two names dropped; without its title).
 
-`selectedTimeline(view, selection)` (`edit.ts`) gives the block, the
-command target `<block>/<timeline id>` and the timeline value: for
-`0000000000/fixed` the timeline `fixed` (locked `true`), for `…/free`
-`false`, for `…/take` `false` (the child's own value, not its locked
-parent's), for `…/pages` `false`, for `…/page_1` and `…/page_2` `true`,
-for `…/part_1` `false`; for the card `…/fixed/card` the timeline `fixed`
-with target `0000000000/fixed`, and for `…/take/card` the child `take`;
-any other part names its timeline the same way: `…/fixed/name` gives
-`fixed` (locked `true`) and `…/page_1/start` gives `page_1` (locked
-`true`), each with the target `<block>/<timeline id>`. It
-gives `null` for an empty selection, for `0000000000`, for `…/group_1`,
-for `…/free/region_1`, for `…/free/nothing`, for an address in a block
-that does not exist (`0000000001/fixed`), and for the two addresses
-`…/fixed` and `…/fixed/card` together.
-
-The component, mounted with that store, shows the checkbox for
-`…/fixed` (checked), `…/free`, `…/take`, `…/pages` (not checked),
-`…/page_1` (checked), `…/part_1` (not checked) and `…/fixed/card`
-(checked), each disabled, with that `title`; there is exactly one
-checkbox labelled "Locked" then, its label is a cell of the panel's one
-form: for `…/fixed` and `…/fixed/card` (a member's card) and for `…/free`
-and `…/pages` (ungrouped roots' cards) the form "Card properties",
-directly after the label holding the field `height` (the next element
-sibling); for `…/take`, `…/page_1` and `…/part_1` (children drawn in no
-card of their own) the form "Timeline properties", whose only cell it is.
-The inspector holds no `fieldset`, `legend` or `.locked-hint`, and no
-element whose text is the `title`'s. For `0000000000` and `…/group_1`
-there is none, and the last cell of the form ("Block properties", "Frame
-properties") is the label of `height`; for `…/free/region_1` (no geometry)
-and for `…/fixed` with `…/free` (a member's card and an ungrouped root's
-card, two kinds) there is none and no form. The checkbox follows the store: with
-`…/free` shown, a `set` of `locked` `true` on `0000000000/free`
-dispatched to the store checks it. It follows an applied manifest text the
-same way, without a change of selection: with `…/free` selected and the
-Manifest tab open, the text replaced by `manifestText` (JSON, both options
-off) of the stored manifest with `free`'s `locked` set to `true`, and
-applied, the journal grows by one entry, "Manifest" stays selected, and
-the Locked checkbox in the Properties panel is checked, before and after
-clicking "Properties". `free` is chosen because the store accepts that
-value through a manifest as through `set locked`: a root that is no
-segment and no group member keeps its own `locked`.
-
-**The editor names what the selection names beside the drawer's heading**
-(`inspector-subject.test.ts`). Next to the `h2` "Inspector" (whose
-accessible name stays exactly "Inspector") an element `#inspector-subject`
-shows `inspectedSubject(view, selection)` (`edit.ts`): the words for the
-kind of element, then the element's name as text when it has one, else its
-id in a `code` element; the drawer's `aria-describedby` names the element
-while it is shown. The kind word comes from what the address resolves to
-in the block's manifest, through core's `parseAddress`, `elementOf`,
-`findTimeline` and `findEntry`, never from the address's shape: the block
-and the manifest's own id name the manifest, every manifest being an
-alignment bundle ("Bundle", or "Anonymous bundle" without `id` and
-`name`); `name` its title; a group's id the group; a timeline's id the
-timeline (a segment line and a segment too); `<root>/<id>` the conversion
-map, region, break, jump or marker it names. Each part the address appends
-comes before the kind as "<Part> of", innermost first, the part `name`
-reading "Title" on the bundle and a group and "Name" on a timeline. The
-function gives `{words, name, id}`, `id` only when `name` is `null`. What
-proves it is the committed end-to-end workspaces (the generator's output,
-read with `readWorkspace`), whose blocks hold every kind:
-
-- `bundles.tle.json`, block `bmixed0000` (named "Mixed", no id; groups
-  `group_1` "Performance" and `group_2` "Facsimile"; the child `excerpt`
-  "Excerpt" of `recording`): `bmixed0000` gives "Bundle" with name
-  "Mixed"; `…/name` "Title of bundle", "Mixed"; `…/group_1` "Group",
-  "Performance"; `…/group_1/name` "Title of group", "Performance";
-  `…/score` "Timeline", "Score"; `…/score/card` "Card of timeline",
-  "Score"; `…/score/start` "Start of timeline", `…/score/end` "End of
-  timeline", `…/score/name` "Name of timeline", each "Score";
-  `…/score/end/label` "Label of end of timeline", "Score"; `…/excerpt`
-  "Timeline", "Excerpt". Block `bungroup00`: the segment line `…/pages`
-  "Timeline", "Pages"; its segment `…/page_1` "Timeline", "Page 1";
-  `…/page_2/label` "Label of timeline", "Page 2".
-- `groups.tle.json`, block `gchild0000` (no id, no name; group `group_1`
-  "Second half"): `gchild0000` gives "Anonymous bundle" with neither name
-  nor id; `…/name` "Title of anonymous bundle"; `…/group_1` "Group",
-  "Second half"; `…/second-half` "Timeline", "Second half". The same
-  block's manifest given the id `takes` by one `set` of the block's
-  `manifest` (the loaded manifest spread with `id: "takes"`) gives
-  "Bundle" with id `takes` for `gchild0000` and for `…/takes`, and
-  "Title of bundle" with id `takes` for `…/name`; `bmixed0000`'s manifest
-  given the id `mixed` the same way still gives "Bundle" with name "Mixed"
-  and no id.
-- `small.tle.json`: in `map0000000`, `…/melody/tempo` "Conversion map",
-  "Tempo", and `…/melody/ticks` (a map of the child `phrase`, addressed by
-  its root) "Conversion map", "Ticks"; in `flow000000`,
-  `…/flow:quarters/break_1` "Break", "fine", `…/flow:quarters/break_1/label`
-  "Label of break", "fine", `…/flow:quarters/jump_1` "Jump" with id
-  `jump_1` (a jump has no name), `…/flow:quarters/marker_1` "Marker",
-  "repeat-start"; in `styled0000`, `…/score/intro` "Region", "intro",
-  `…/score/intro/label` "Label of region", "intro", `…/score/da-capo`
-  "Jump" with id `da-capo`, `…/a` (a child without a name) "Timeline"
-  with id `a` and `…/a/card` "Card of timeline" with id `a`.
-- A band, `<timeline>/<kind>_1` (drawing.md §2.2), is read by core's
-  `elementOf` as a part of its timeline, as a card is, and the part check
-  takes core's one predicate for reserved ids, `isReservedId`, so a band's
-  id is accepted after its timeline's: the words are "<Kind> band of
-  timeline", Kind one of `Markers`, `Conversion maps`, `Children`,
-  `Regions`, `Flow control`, then the timeline's name, or its id without
-  one, as a timeline's. In `small.tle.json`:
-  `map0000000/melody/conversion_maps_1` "Conversion maps band of
-  timeline", "Melody", and the child's `map0000000/phrase/conversion_maps_1`
-  the same words with "Phrase"; `styled0000/score/markers_1` "Markers band
-  of timeline", `styled0000/score/regions_1` "Regions band of timeline",
-  both "Score"; `flow000000/flow:quarters/flow_control_1` "Flow control
-  band of timeline", "Flow control"; `styled0000/a/children_1` "Children
-  band of timeline" with id `a`. In `bundles.tle.json` the band of a
-  segment without a line of its own, `bungroup00/page_1/regions_1`,
-  "Regions band of timeline", "Page 1". A band is one part of a timeline
-  and has no part of its own, so a reserved id anywhere else names
-  nothing: `null` for `bmixed0000/score/regions_2` (no band is numbered
-  2), `bmixed0000/score/regions_1/label`, `bmixed0000/score/card/regions_1`,
-  `bmixed0000/group_1/regions_1` (a group has no bands) and
-  `bmixed0000/score/jump_1/flow_control_1` (nor has a jump).
-- Several addresses give their count with neither name nor id:
-  `bmixed0000` with `…/score` "2 selected", and with `…/group_1` as well
-  "3 selected"; a band counts as any address, `bmixed0000/score/markers_1`
-  with `bmixed0000/score` "2 selected". `null` for an empty selection, for
-  `…/nothing`, for `…/score/x` (no part `x`), for `…/score/region_x` (no
-  such entry) and for a block that does not exist (`0000000009`).
-
-The editor, mounted, with a workspace loaded through the test hook shows
-it: with `bundles.tle.json`, selecting `bmixed0000` gives
-`#inspector-subject` the text exactly "Bundle Mixed" and no `code`, a
-sibling of the `h2` in the drawer's head, the drawer `#inspector` has
-`aria-describedby` `inspector-subject`, and its `h2` reads exactly
-"Inspector"; `bmixed0000/group_1` "Group Performance"; `bmixed0000/score`
-"Timeline Score"; `bmixed0000/score/card` "Card of timeline Score". With
-`groups.tle.json`, `gchild0000` gives exactly "Anonymous bundle" and no
-`code`. With `small.tle.json`, `styled0000/a` gives "Timeline a" with
-`code` "a", `styled0000/score/flow_control_1` "Flow control band of
-timeline Score" with no `code`, and `styled0000/a/children_1` "Children
-band of timeline a" with `code` "a". Selecting nothing removes the element and the drawer's
-`aria-describedby`. The name follows an applied manifest text: with
-`bundles.tle.json` loaded and `bmixed0000/score` selected ("Timeline
-Score"), the inspector's Manifest tab opened and its JSON text edited from
-`"name": "Score"` to `"name": "Scores"`, Apply makes `#inspector-subject`
-read exactly "Timeline Scores" with no change of selection. That Apply
-changes the store, so the unmounted editor may write the autosave slot
-(once the tab has started autosaving, which happens after the mount); as
-in the shell tests ("Files, history and About"), the file mocks
-`src/autosave.ts` with `recordAutosaves` and the mounted editors' `afterEach`
-awaits `flushAutosaves` after the unmount. `App.test.ts` changes no store
-and so writes nothing to the slot (it only reads it, offering no
-recovery from an empty one), and needs no flush.
-
-**A selected band shows three read-only rows** (`inspector-bands.test.ts`).
-A band, `<block>/<timeline>/<kind>_1`, is an element of the selection like
-any other; it has no geometry to edit and no `locked`. One band alone
-shows, in the Properties panel, the rows of the band's record in the
-block's drawing (`Drawing.bands`, read from the drawing the canvas shows:
-arranger's `drawingOf` with the schema package's font metrics, or while a
-canvas gesture shows the block, the drawing the gesture shows, as the
-geometry's values are read): "Band", its kind (`Markers`, `Conversion
-maps`, `Children`, `Regions`, `Flow control`); "Level", signed, a negative
-level written with U+2212 MINUS SIGN and a positive one bare; "Elements",
-the record's `elements`. A band of a block whose drawing records none
-there (an absent band) has no rows. Every other reader of the selection
-leaves bands out and applies its own rule to the rest, so a mixed
-selection follows the existing rule for mixed selections: `geometryOf`
-(the form) and `selectedTimeline` (the Locked cell) read the selection
-without its bands; `selectedBlock` (the Manifest tab) and
-`inspectedSubject` (the heading) read every address. The store holds
-two blocks written by one `add` each: `map` in `0000000000` and
-`map_child_band_order` in `0000000001`, whose bands the test hook's case
-8 derives from drawing.md (`melody`'s conversion maps band 1 and 1
-element, children band 2 and 1, markers band −1 and 2; `phrase`'s
-conversion maps band 1 and 1 in `map`, −1 and 1 in
-`map_child_band_order`). What proves it:
-
-- `bandRows(view, selection, placement)` (`src/inspector/properties.ts`)
-  gives `[label, value]` rows, for `0000000000/melody/conversion_maps_1`
-  Conversion maps, 1, 1; `…/melody/children_1` Children, 2, 1;
-  `…/melody/markers_1` Markers, −1, 2; `…/phrase/conversion_maps_1` (a
-  child's band) Conversion maps, 1, 1; `0000000001/phrase/conversion_maps_1`
-  Conversion maps, −1, 1. It gives `null` for no selection, the block
-  `0000000000`, the map `0000000000/melody/tempo`, the card
-  `0000000000/melody/card`, the absent bands `0000000000/melody/regions_1`
-  and `0000000000/phrase/markers_1`, two bands
-  (`…/melody/markers_1` with `…/melody/conversion_maps_1`), a band with
-  an element (`…/melody/markers_1` with `…/melody/card`), and a band of a
-  block the workspace does not hold (`0000000009/melody/markers_1`).
-  These cases read real layout output, so they pass only once layout
-  records the bands.
-- The rows read the drawing a gesture shows: with a placement for
-  `0000000000` (its stored placement values) whose drawing is the stored
-  drawing with its bands replaced by three records written for the test,
-  `melody/markers_1` at level 1 with 3 elements, `melody/regions_1` at
-  −2 with 4 and `melody/flow_control_1` at −12 with 1 (each `line` 0 and
-  rectangle `{0, 0, 10, 10}`, which the rows never read), the rows are
-  Markers, 1, 3; Regions, −2, 4; Flow control, −12, 1. A placement for
-  `0000000001` is not read for `0000000000/melody/markers_1`, which has
-  the stored rows Markers, −1, 2.
-- The other readers. For `0000000000/melody/markers_1` alone
-  `geometryOf` and `selectedTimeline` give `null` and `selectedBlock` the
-  block `0000000000`. With `0000000000/melody/card` besides, both give
-  exactly what the card alone gives (the card's geometry, label "Card
-  properties", and the timeline `melody` with target
-  `0000000000/melody`); with the block `0000000000` besides, exactly what
-  the block alone gives ("Block properties", no timeline). With an
-  address of `0000000001` besides, `selectedBlock` gives `null`, as for
-  any two blocks.
-- The component, mounted on that store: with `0000000000/melody/markers_1`
-  selected the Properties panel holds exactly one description list (`dl`)
-  whose terms read `Band`, `Level`, `Elements` and whose details read
-  `Markers`, `−1`, `2`, and nothing that edits: no `form`, `input`,
-  `select`, `textarea` or `button`, and no hint; the Manifest tab shows
-  the block's manifest (`manifestText` of `0000000000`'s, JSON, both
-  options off). With `0000000000/melody/card` besides, the panel's
-  content is exactly the card's alone (the form "Card properties" with
-  its seven fields and the Locked cell, and no list). With the two bands
-  `…/melody/markers_1` and `…/melody/conversion_maps_1`, exactly the hint
-  "Select a block, a frame or a card to edit its geometry." and neither
-  form nor list.
-- A band's id is reserved, so no element may take one, and the Manifest
-  tab shows the store's refusal as it shows every other: with block
-  `0000000000` selected and its JSON text edited from `"id": "tempo"` to
-  `"id": "conversion_maps_1"` (the map's id), Apply lists exactly one
-  problem, code `schema_violation`, message `id "conversion_maps_1" is
-  reserved for the bands of a timeline` (timeskeleton's README,
-  "Identity", ids quoted as JSON as the TypeScript validator quotes them)
-  at the pointer `/timelines/0/conversion_maps/0/id`; the text keeps the
-  edit and the journal keeps its two entries (the two `add`s).
-
-## The Editor and Journal tabs (`journal.test.ts`, `inspector-tabs.test.ts`)
-
-While an editor is open the inspector gains a first tab, "Editor", naming
-the innermost editor; the "Journal" tab, last, is always there and lists
-the entries of the level the user works on, newest first. The rows are
-read from the store's `listed` alone (every entry of the level with its
-undo state, a session's entries nested) and are plain TypeScript
-(`src/inspector/journal.ts`), so their texts are pinned without a DOM; the
-component only places them. What would prove it works, and the exact
-values each test pins:
-
-1. **Names follow the manifest, never the address's shape alone**
-   (`journal.test.ts`). The view holds the bundle fixture `bundle_mixed`
-   three times, through the store's `add`: `0000000000` as it is (title
-   "Mixed", no id; group `group_1` "Performance"; root `score` "Score";
-   child `excerpt` "Excerpt"), `0000000001` with the title dropped, the id
-   `mixed` given, `group_2`'s name and `score`'s name dropped, and
-   `0000000002` with the title dropped and no id. `editorName(view,
-   target)` gives: `0000000000` "Mixed"; `0000000001` "mixed" (the id when
-   there is no title); `0000000002` "Anonymous bundle"; `0000000000/group_1`
-   "Performance"; `0000000001/group_2` "group_2"; `0000000000/excerpt`
-   "Excerpt" (a child timeline); `0000000001/score` "score"; and, for what
-   the view does not hold, the address itself: `0000000000/gone`
-   "0000000000/gone", `0000000009/score` "0000000009/score", `0000000009`
-   "0000000009". The editing bar names the editing path with the same
-   function.
-2. **Each command reads as one sentence** (`journal.test.ts`). On the
-   arranger (`editing` empty) each entry below, alone in `listed` and
-   applied, gives exactly one row `{entry, time, author, text, undone:
-   false, earlier: false, children: []}`, `entry` being the entry itself
-   (the panel keeps one item per entry, case 6),
-   `time` being characters 11 to 19 of the entry's UTC time
-   (`2026-10-17T08:05:09.123Z` gives `08:05:09`, `2026-10-17T23:59:58.999Z`
-   gives `23:59:58`) and `author` the entry's:
-   - `add` of the block `0000000003` into `workspace`: "Added block
-     0000000003 to workspace"; `add` of the region `region_1` into
-     `0000000000/score`: "Added region region_1 to 0000000000/score";
-   - `set` of `x` and `y` of `0000000000`: "Set x, y of 0000000000"; with a
-     second change on `0000000001`: "Set x, y of 0000000000 and 1 more";
-     `place` on `0000000000/group_1`, `0000000000/group_2` and
-     `0000000000/annotations`: "Set place of 0000000000/group_1 and 2
-     more";
-   - `remove` of `0000000000/group_2` and `0000000001`: "Removed
-     0000000000/group_2, 0000000001";
-   - `style` selecting `{ids: ["score"]}`: `Styled {"ids":["score"]}`;
-     selecting `{element: "timeline"}`: `Styled {"element":"timeline"}`;
-   - a session entry, its session in `sessions`: of `0000000000/group_1`
-     with one entry, "Edited group Performance (1 change)"; of
-     `0000000001/score` with two, "Edited timeline score (2 changes)"; of
-     `0000000000/excerpt` with one, "Edited timeline Excerpt (1 change)";
-     of `0000000002` with three, "Edited bundle Anonymous bundle (3
-     changes)"; of `0000000000` holding one command and the session of
-     `0000000000/group_1` holding two, "Edited bundle Mixed (3 changes)":
-     the count is of changes (commands at every depth), never of entries,
-     so a bundle session holding a group session reads as three changes.
-     The kind word is the editor kind of the target in the
-     view (`editorKindOf`): a block a bundle, a group a group, a root or
-     child timeline a timeline. A target the view no longer holds has no
-     kind word, because what it was is not read back from earlier views:
-     through a real store (case 1's three blocks), `open` of
-     `0000000000/group_1`, a `set` of `score`'s name, Done, and then a
-     `remove` of `0000000000/group_1` on the arranger give, before the
-     remove, the session row "Edited group Performance (1 change)" and,
-     after it, "Edited 0000000000/group_1 (1 change)" (the name falls back
-     to the address, as in case 1), below the newer "Removed
-     0000000000/group_1". The word "timeline" for the removed group would
-     be a guess.
-3. **Rows run newest first, and a session holds its changes as rows**
-   (`journal.test.ts`). The user reads the latest change at the top, the
-   one the next undo reverts or the next redo re-applies. `listed` runs
-   oldest first with the undone changes last, so the rows are `listed`
-   reversed at every depth. With four distinct `set` entries `e1`, `e2`,
-   `u1`, `u2` (texts "Set x of 0000000000" … told apart by their targets),
-   rows read as `[text, undone, earlier]`:
-   - on the arranger with `e1`, `e2` applied and `u1`, `u2` undone, the
-     rows are `u2`, `u1`, `e2`, `e1`, `undone` exactly `[true, true,
-     false, false]`, `earlier` all `false`;
-   - in an editor whose `earlier` is `null`, with `e1` applied and `u1`
-     undone: `u1`, `e1` (`undone` `[true, false]`);
-   - in an editor whose `earlier` is `s0`, a session holding `[u2, e2]`:
-     `u1`, `e1`, `e2`, `u2`, `earlier` exactly `[false, false, true,
-     true]` and `undone` `[true, false, false, false]` (the earlier
-     session's rows last, below the open level's);
-   - with two editors open, the outer one with `earlier` `s0` and the inner
-     one with `earlier` `null`: only the inner level's rows (the earlier
-     session belongs to the outer level);
-   - a partly undone session: on the arranger the entries are `e1` and
-     the session `s5` of `0000000000` holding `[e2, s6]`, where `s6` is
-     the session of `0000000000/group_1` holding `[u1, u2]`: four changes
-     in order `e1`, `e2`, `u1`, `u2`, the first three applied (`listed`
-     built by core's `listEntries` with 3 applied). The rows are `s5`
-     "Edited bundle Mixed (3 changes, 1 undone)" (`undone` false), then
-     `e1`; `s5`'s children are `s6` "Edited group Performance (2 changes,
-     1 undone)" and then `e2` (newest first), and `s6`'s children `u2`
-     (`undone` true) and then `u1` (`undone` false). With nothing
-     applied, `s5` reads "Edited bundle Mixed (3 changes)" with `undone`
-     true, and so does every row below it at every depth;
-   - in an editor with `e1` applied whose `earlier` is `s0` holding
-     `[s7]`, `s7` the session of `0000000000/score` holding `[e2]`: the
-     rows are `e1` (`earlier` false) and `s7` "Edited timeline Score (1
-     change)" (`earlier` true), whose one child `e2` has `earlier` true
-     too;
-   - nothing anywhere: no row.
-4. **The tab set follows the editing path** (`inspector-tabs.test.ts`).
-   The component reads the editing path from the store whenever the store
-   reports a change, so the cases drive a store whose `editing` (and, for
-   case 6, `listed` and `sessions`) are set by the test and
-   announced through `subscribe`, over a real store holding the three
-   blocks of case 1; this pins the inspector's part independently of how
-   the store opens and closes editors. The tabs are read as `[id, text,
-   aria-selected, tabindex]` and the panels as `[id, hidden]`:
-   - no editor, `0000000000` selected: the tabs Properties, Manifest,
-     Journal, "Properties" selected; no `#inspector-tab-editor` and no
-     `#inspector-panel-editor`;
-   - nothing selected: the same three tabs; the Properties and Manifest
-     panels each read exactly the hint; a click on "Journal" shows the
-     Journal panel with one row per `add`;
-   - an editor opened on `0000000000/group_1` (kind group) while
-     "Properties" is selected: the tabs Editor, Properties, Manifest,
-     Journal, "Editor" selected (`true`, `0`, every other `false`, `-1`),
-     its panel `#inspector-panel-editor` (`aria-labelledby`
-     `inspector-tab-editor`) shown, reading exactly "Group editor:
-     Performance", every other panel hidden;
-   - with "Journal" then selected, a second editor opened inside it on
-     `0000000000/score` (kind timeline): "Editor" selected again, reading
-     "Timeline editor: Score";
-   - that inner editor closed with "Editor" selected: "Editor" stays
-     selected and reads "Group editor: Performance";
-   - the last editor closed with "Editor" selected: the Editor tab and its
-     panel are gone and "Properties" is selected and shown; closed with
-     "Manifest" selected instead: "Manifest" stays selected;
-   - the inspector mounted while an editor on `0000000000` (kind bundle)
-     is open: "Editor" selected, reading "Bundle editor: Mixed";
-   - the editing bar (`role="group"`, "Editing") is absent without an
-     editor and precedes the tab list with one;
-   - through the real store, end to end: `open` of `0000000000/group_1`
-     selects "Editor" reading "Group editor: Performance"; a `set` of
-     `score`'s name and Done select "Properties", and the Journal panel's
-     texts are exactly "Edited group Performance (1 change)" and then the
-     three `add`s, newest first.
-5. **The keys move over the tabs present** (`inspector-tabs.test.ts`).
-   The selected tab has the focus after each key. With an editor open,
-   from "Editor": ArrowRight Properties, ArrowRight Manifest, ArrowRight
-   Journal, ArrowRight Editor (wrapping), ArrowLeft Journal (wrapping),
-   Home Editor, End Journal. Without one, from "Properties": ArrowLeft
-   Journal (wrapping), ArrowRight Properties, End Journal, Home Properties.
-6. **The Journal panel lists the rows** (`inspector-tabs.test.ts`). With a
-   real store whose clock is fixed at `2026-10-17T08:05:09.123Z`, holding
-   the three `add`s of case 1, a `set` of `x` 25 on `0000000000` and then an
-   undo, the Journal panel holds an ordered list (`ol`, `aria-label`
-   "Journal") of four items, each with its time, author and text in
-   elements of their own (`08:05:09`, `Gerhardt`, the row's text), newest
-   first: the first, "Set x of 0000000000", carries `data-undone` and a
-   visually hidden word "undone", the three `add`s after it (block
-   `0000000002`, `0000000001`, `0000000000`) neither. The list follows the
-   store: a `set` of `y` 7 on `0000000000` replaces the undone item (four
-   items, the first "Set y of 0000000000", none `data-undone`). With the
-   earlier session of case 3 (the store of case 4 set to an editor whose
-   `earlier` is `s0`, its session holding one `set` of `order` on
-   `0000000000/group_1` by "Ada" at `07:00:01`, and `listed` the three
-   `add`s applied), its item comes last and carries `data-earlier`, the
-   three `add`s before it without.
-   The items are kept per entry, never per position (an entry is listed
-   once: in the earlier session or on the open level): with the same
-   editor first open without an earlier session and the Journal tab
-   selected, the three `add`s' items are the very same elements after the
-   earlier session's item has been put behind them, and after a fourth
-   entry has been put in front of them, which items kept per position
-   would not be.
-   A level with no rows says so instead of showing an empty list, which
-   would have no size and so not be seen at all: with the store of case 4
-   set to an editor on `0000000000/group_1` whose `earlier` is `null`,
-   `listed` empty (a fresh editor), and the Journal tab selected, the
-   panel's text is exactly "No changes yet." and it holds no `ol`; with
-   `listed` then one applied `set` of `x` on `0000000000`, it holds the
-   list of exactly one item, "Set x of 0000000000", and the text "No
-   changes yet." is gone.
-   **A session row discloses its changes, and a run greys at once.**
-   Through the real store, `open 0000000000`, `open 0000000000/group_1`,
-   `set performance name "P"`, `open 0000000000/score`, `set score name
-   "S"`, `set score name "T"`, Done, Done, Done, then one undo on the
-   arranger, which reverts the timeline session's two changes together
-   (one run of a closed session): the first item reads "Edited bundle
-   Mixed (3 changes, 2 undone)" and holds a native `button`
-   (`type="button"`) before its time, with `aria-expanded` `"false"`, no
-   `aria-controls` and no nested list in the item (a collapsed row's
-   changes are not in the page, so neither the eye nor a query finds
-   them); the button's accessible name is the row's text
-   (`aria-labelledby` the text's element). A click sets `aria-expanded`
-   `"true"`, puts the nested `ol` into the item and `aria-controls` names
-   it: one item "Edited group Performance (3 changes, 2 undone)", itself
-   holding a collapsed button; expanding it shows, newest first, "Edited
-   timeline Score (2 changes)" with `data-undone`, the hidden word
-   "undone" and a button of its own, then "Set name of
-   0000000000/performance" without either; expanding the timeline row
-   shows its two "Set name of 0000000000/score" rows, both with
-   `data-undone` and the hidden word "undone". A second click on the outer
-   button sets `aria-expanded` back to `"false"` and takes the nested
-   list out again. A command row has no button. Expansion is view state of the
-   panel: nothing of it reaches the store (the journal and `listed` are
-   the same objects before and after the clicks).
-7. **A group or timeline editor offers no block field it would refuse**
-   (`inspector-tabs.test.ts`). Inside a group or timeline editor the store
-   refuses every change of the block's `scale`, `length` and `spacing` (a
-   change of the whole block is a side effect of editing one element), so
-   the Properties form disables exactly these three fields there and
-   leaves `x`, `y`, `width` and `height` as they are. Through the real
-   store of case 1 with `0000000000/group_1`'s editor open, a `set` of
-   `scale` 2 on `0000000000` is refused (`side_effect`), which is why the
-   fields go. With the store of case 4 and `0000000000` selected, the
-   fields read as `[name, disabled]` in form order:
-   - no editor: all seven enabled;
-   - an editor on `0000000000` (kind bundle): all seven enabled (the
-     bundle editor changes the block itself);
-   - an editor on `0000000000/group_1` (kind group): `scale`, `length`,
-     `spacing` disabled, `x`, `y`, `width`, `height` enabled;
-   - a timeline editor on `0000000000/score` inside it: the same;
-   - both closed: all seven enabled again.
+1. **The subject beside the heading.** One address gives the words of what
+   it names, then its name, or its id without one: `bmixed0000` "Bundle"
+   "Mixed"; its title "Title of bundle"; `group_1` "Group" "Performance"
+   and its title "Title of group"; `score` "Timeline" "Score", its card
+   "Card of timeline", its start, end and name "Start of timeline", "End of
+   timeline", "Name of timeline", its end's label "Label of end of
+   timeline"; a segment line and a segment "Timeline"; an anonymous bundle
+   "Anonymous bundle" with neither; a bundle given the id `takes` "Bundle"
+   with that id; maps, breaks, jumps, markers and regions by their kind
+   ("Conversion map", "Break", "Jump" with its id, "Marker", "Region") and
+   their parts the same way; a band "<Kind> band of timeline" (Markers,
+   Conversion maps, Children, Regions, Flow control). Several addresses give
+   "N selected". Nothing for no selection or an address naming nothing (no
+   such part, entry, band or block). Mounted, the words stand beside the
+   drawer's heading and describe the drawer while shown; an id shows in a
+   `code` element; the name follows an applied text without a change of
+   selection.
+2. **Editor names.** A bundle by its `name`, else its `id`, else "Anonymous
+   bundle"; a group or timeline by its `name`, else its id; anything the
+   view does not hold by its address. The editing bar, the Editor tab and
+   the Journal use them.
+3. **Each journal entry is one sentence**, with the entry's UTC time as
+   `HH:MM:SS` and its author: "Added block 0000000003 to workspace", "Added
+   region region_1 to 0000000000/score", "Set x, y of 0000000000" (" and 1
+   more" for more changes), "Removed 0000000000/group_2, 0000000001",
+   `Styled {"ids":["score"]}`, and a session "Edited <kind> <name> (n
+   changes)", counting changes at every depth ("Edited bundle Mixed (3
+   changes)" for a bundle session holding a group session of two), ", k
+   undone" while partly undone, and without a kind word once its target is
+   gone ("Edited 0000000000/group_1 (1 change)").
+4. **Order.** Rows run newest first at every depth, undone ones at the top;
+   in an editor its own rows, then the earlier session of the same target
+   read only; with two editors open, the inner level only; a session's rows
+   hold its changes as rows; nothing gives no row.

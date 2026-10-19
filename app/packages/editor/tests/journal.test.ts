@@ -1,10 +1,11 @@
-/** The Journal tab's rows and the editors' names; the expected values are derived in `README.md` ("The Editor and Journal tabs"). */
+/** The Journal tab's rows and the editors' names; the expected values are derived in `README.md` ("Words"). */
 
 import type { Command, Entry, OpenEditor, Session } from "@timetoalign/tilie-core";
 import { listEntries } from "@timetoalign/tilie-core";
 import { describe, expect, it } from "vitest";
 import type { JournalRow, JournalSource } from "../src/inspector/journal.ts";
-import { editorName, journalRows } from "../src/inspector/journal.ts";
+import { journalRows } from "../src/inspector/journal.ts";
+import { editorName } from "../src/inspector/words.ts";
 import { MIXED, mixedStore, mixedView } from "./mixed.ts";
 
 const { A, B, C } = MIXED;

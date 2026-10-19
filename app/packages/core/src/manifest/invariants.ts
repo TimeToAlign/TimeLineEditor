@@ -2,7 +2,7 @@
  * Manifest invariants beyond the schema, matching timetoalign's behavior.
  */
 
-import { canonicalOrder, type NumberType, type TimeUnit } from "@timetoalign/timeskeleton";
+import type { NumberType, TimeUnit } from "@timetoalign/timeskeleton";
 import type { Problem } from "../errors.ts";
 import { ErrorCode, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";
@@ -17,13 +17,13 @@ import type { Manifest, TimelineManifest } from "./types.ts";
 
 const DISCRETE_UNITS: readonly TimeUnit[] = ["ticks", "samples", "frames", "pixels"];
 
-export function allowedNumberTypes(unit: TimeUnit): readonly NumberType[] {
+function allowedNumberTypes(unit: TimeUnit): readonly NumberType[] {
   if (DISCRETE_UNITS.includes(unit)) return ["int"];
   if (unit === "number") return ["int", "float", "fraction"];
   return ["float", "fraction"];
 }
 
-export function axisProblems(
+function axisProblems(
   timeline: Pick<TimelineManifest, "unit" | "number_type">,
   path: readonly PathSegment[],
 ): Problem[] {
@@ -197,12 +197,7 @@ function checkTimeline(
   }
 }
 
-/** Every invariant violation in canonical traversal order, root by root. */
-export function checkManifest(manifest: Manifest): Problem[] {
-  return checkOrdered(canonicalOrder(manifest));
-}
-
-/** `checkManifest` of a manifest already in canonical order. */
+/** Every invariant violation of a manifest in canonical order, in traversal order, root by root. */
 export function checkOrdered(manifest: Manifest): Problem[] {
   const problems: Problem[] = [];
   for (const root of rootPaths(manifest)) {

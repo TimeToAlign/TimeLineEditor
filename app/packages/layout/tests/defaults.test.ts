@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
-import { manifestElements, timelineAncestry } from "@timetoalign/tilie-core";
+import { manifestElements, timelineAncestry } from "@timetoalign/tilie-core/drawing";
 import { parseJson } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
 import {

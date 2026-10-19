@@ -24,6 +24,8 @@ export interface LiveStore {
   readonly journal: readonly Entry[];
   readonly sessions: Workspace["sessions"];
   readonly changes: number;
+  /** How many times an editor has been opened since the store was created. */
+  readonly openings: number;
 }
 
 export function liveStore(store: Store): LiveStore {
@@ -55,6 +57,9 @@ export function liveStore(store: Store): LiveStore {
     },
     get changes() {
       return tracked((s) => s.changes);
+    },
+    get openings() {
+      return tracked((s) => s.openings);
     },
   };
 }

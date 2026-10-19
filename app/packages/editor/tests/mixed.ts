@@ -1,12 +1,12 @@
 /// <reference types="node" />
-/** Three blocks of the bundle fixture `bundle_mixed`, named three ways (`README.md`, "The Editor and Journal tabs"). */
+/** Three blocks of the bundle fixture `bundle_mixed`, named three ways (`README.md`, "Words"). */
 
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import type { Store, View } from "@timetoalign/tilie-core";
-import { createStore, createView, isLoadError, loadManifest } from "@timetoalign/tilie-core";
-import { dumps, parseJson, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
+import { createStore, emptyWorkspace, isLoadError, loadManifest } from "@timetoalign/tilie-core";
+import { dumps, isJsonObject, parseJson, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
 
 /** The blocks: the fixture as it is; without its title, with the id `mixed` and two names dropped; without its title. */
 export const MIXED = { A: "0000000000", B: "0000000001", C: "0000000002" } as const;
@@ -23,16 +23,17 @@ type Editable = { [key: string]: unknown };
 
 /** `bundle_mixed`, changed by `edit` first. */
 function mixed(edit: (manifest: Editable) => void = () => {}) {
-  const value = parseJson(readFileSync(FIXTURE, "utf8")) as unknown as Editable;
+  const value: unknown = parseJson(readFileSync(FIXTURE, "utf8"));
+  if (!isJsonObject(value)) throw new Error("bundle_mixed is no JSON object");
   edit(value);
-  const manifest = loadManifest(dumps(value as never));
+  const manifest = loadManifest(dumps(value));
   if (isLoadError(manifest)) throw new Error(manifest.problems[0]?.message);
   return manifest;
 }
 
 /** A store holding the three blocks, added by three `add`s. */
 export function mixedStore(options: Parameters<typeof createStore>[1] = {}): Store {
-  const store = createStore({ view: createView(), journal: [], sessions: {} }, options);
+  const store = createStore(emptyWorkspace(), options);
   const manifests = [
     [MIXED.A, mixed()],
     [

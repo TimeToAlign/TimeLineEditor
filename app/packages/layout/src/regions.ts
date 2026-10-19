@@ -8,53 +8,10 @@
 import { bandAddress } from "@timetoalign/tilie-core";
 import type { PreparedBand } from "./bands.ts";
 import { BRACE, LABEL_GAP } from "./constants.ts";
-import type { PathCommand } from "./elements.ts";
 import { type Extent, labelExtent, Rows, widen } from "./fit.ts";
 import { centredLabel } from "./names.ts";
 import { add, coordinateValue, midpoint } from "./numbers.ts";
-import { type Entry, maxSize, type Scope, shown } from "./traversal.ts";
-
-/**
- * The brace of a region from `x1` to `x2`, arms at `yb`, tip at `(xm, ya)`
- * (section 7.2), as the path commands it is written with.
- */
-export function brace(x1: number, x2: number, xm: number, yb: number, ya: number): PathCommand[] {
-  const ym = (yb + ya) / 2;
-  const k = Math.abs(ya - yb) / 2;
-  return [
-    { command: "M", points: [[x1, yb]] },
-    {
-      command: "Q",
-      points: [
-        [x1, ym],
-        [x1 + k, ym],
-      ],
-    },
-    { command: "L", points: [[xm - k, ym]] },
-    {
-      command: "Q",
-      points: [
-        [xm, ym],
-        [xm, ya],
-      ],
-    },
-    {
-      command: "Q",
-      points: [
-        [xm, ym],
-        [xm + k, ym],
-      ],
-    },
-    { command: "L", points: [[x2 - k, ym]] },
-    {
-      command: "Q",
-      points: [
-        [x2, ym],
-        [x2, yb],
-      ],
-    },
-  ];
-}
+import { type Entry, maxSize, nth, type Scope, shown } from "./traversal.ts";
 
 /**
  * The regions band of the timeline drawn with the line `line` (section 6.4,
@@ -110,7 +67,7 @@ export function regionsBand(scope: Scope, line: Entry, sources: readonly Entry[]
       item.label === undefined ? [] : [{ width: item.label.width, u: u(item.middle) }],
     ),
     draw: (start, side, at) => {
-      const arms = (index: number) => start + ((row[index] as number) - 1) * pr;
+      const arms = (index: number) => start + (nth(row, index) - 1) * pr;
       return {
         regions: placed.map(({ region, middle }, index) => ({
           type: "region",

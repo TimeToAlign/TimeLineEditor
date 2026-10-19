@@ -12,8 +12,15 @@ import { compareReal, realOf } from "../number/real.ts";
 import type { BandKind } from "./bands.ts";
 import { BAND_KINDS, bandAddress } from "./bands.ts";
 import type { MemberDrawing } from "./files.ts";
-import { elementAddress, isNamed, memberDrawings, TITLE_ADDRESS } from "./files.ts";
-import type { ConversionMap, Manifest, TimelineManifest } from "./types.ts";
+import {
+  cardAddress,
+  elementAddress,
+  isNamed,
+  memberDrawings,
+  partAddress,
+  TITLE_ADDRESS,
+} from "./files.ts";
+import type { ChildTimeline, ConversionMap, Manifest, TimelineManifest } from "./types.ts";
 
 export type Domain = "graphical" | "logical" | "physical";
 export type Modality = "continuous" | "discrete";
@@ -22,9 +29,9 @@ export type Modality = "continuous" | "discrete";
 export interface ElementKey {
   /** `null` for a segment, a node of the tree that no selector naming `element` matches. */
   readonly type: ElementType | null;
-  /** `null` for the block. */
+  /** `null` for the box. */
   readonly address: string | null;
-  /** The timeline it belongs to; `null` for the block, a group's frame and a title. */
+  /** The timeline it belongs to; `null` for the box, a group's frame and a title. */
   readonly timeline: string | null;
   /** `null` for what belongs to no timeline, a band, and a map whose `target_unit` is null. */
   readonly domain: Domain | null;
@@ -43,8 +50,11 @@ export interface ElementKey {
   readonly inside: readonly ElementType[];
 }
 
-/** The block's key: it belongs to no timeline, has no address and no holder. */
-export const BLOCK_KEY: ElementKey = {
+/**
+ * The box's key: it belongs to no timeline, has no address and no holder;
+ * it is styled as the schema's `block` element.
+ */
+export const BOX_KEY: ElementKey = {
   type: "block",
   address: null,
   timeline: null,
@@ -65,7 +75,7 @@ export function unownedKey(
   address: string,
   holder: ElementKey,
 ): ElementKey {
-  return { ...BLOCK_KEY, type, address, inside: holdersOf(holder) };
+  return { ...BOX_KEY, type, address, inside: holdersOf(holder) };
 }
 
 /** The domain and modality of every unit (drawing.md section 2.3). */
@@ -88,10 +98,14 @@ const UNIT_DOMAINS: Readonly<Record<TimeUnit, readonly [Domain, Modality]>> = {
   points: ["graphical", "continuous"],
 };
 
+/** Whether a string is one of the schema's units. */
+function isUnit(unit: string): unit is TimeUnit {
+  return Object.hasOwn(UNIT_DOMAINS, unit);
+}
+
 /** The domain and modality of a unit, or `null` for none (a map's `target_unit` may be null). */
 export function unitDomain(unit: string | null | undefined): readonly [Domain, Modality] | null {
-  if (unit === null || unit === undefined || !Object.hasOwn(UNIT_DOMAINS, unit)) return null;
-  return UNIT_DOMAINS[unit as TimeUnit];
+  return unit === null || unit === undefined || !isUnit(unit) ? null : UNIT_DOMAINS[unit];
 }
 
 /** The name of a timeline class, which a selector's `class` matches. */
@@ -115,9 +129,10 @@ export function elementKey(
   map?: ConversionMap,
 ): ElementKey {
   const own = timelineClass(timeline.unit);
-  const [domain, modality] = unitDomain(
-    map === undefined ? timeline.unit : (map.target_unit as string | null),
-  ) ?? [null, null];
+  const [domain, modality] = unitDomain(map === undefined ? timeline.unit : map.target_unit) ?? [
+    null,
+    null,
+  ];
   return {
     type,
     address,
@@ -131,7 +146,8 @@ export function elementKey(
 
 /** The key of an element's own text, `name` or `label`, which the element holds. */
 export function textKey(owner: ElementKey, type: "name" | "label"): ElementKey {
-  return { ...owner, type, address: `${owner.address}/${type}`, inside: holdersOf(owner) };
+  if (owner.address === null) throw new Error("the box holds no text of its own");
+  return { ...owner, type, address: partAddress(owner.address, type), inside: holdersOf(owner) };
 }
 
 /**
@@ -191,8 +207,8 @@ export function selectorMatches(
 }
 
 /** A timeline's children by offset, then id in code-point order, whatever their order in `children`. */
-export function orderedChildren(timeline: TimelineManifest): TimelineManifest[] {
-  const offset = (child: TimelineManifest) => realOf(axisCoordinate(child.offset, timeline));
+export function orderedChildren(timeline: TimelineManifest): ChildTimeline[] {
+  const offset = (child: ChildTimeline) => realOf(axisCoordinate(child.offset, timeline));
   return [...timeline.children].sort(
     (left, right) =>
       compareReal(offset(left), offset(right)) || compareCodePoints(left.id, right.id),
@@ -201,7 +217,7 @@ export function orderedChildren(timeline: TimelineManifest): TimelineManifest[] 
 
 /**
  * The elements of one member drawing (section 8.1) held by `holder`, the
- * block or a frame: its card; its ancestor lines, each with its name and its
+ * box or a frame: its card; its ancestor lines, each with its name and its
  * marks of the member's start and end, each mark with its label; then per
  * timeline in pre-order its line and name, or for a segment its node (its
  * line and no name when it is a segment line), then its five bands in the
@@ -215,13 +231,13 @@ export function orderedChildren(timeline: TimelineManifest): TimelineManifest[] 
 function memberElements(member: MemberDrawing, holder: ElementKey, keys: ElementKey[]): void {
   const address = (id: string) => elementAddress(member.root, id);
   const root = member.timeline;
-  keys.push(elementKey("card", `${root.id}/card`, root, holder));
+  keys.push(elementKey("card", cardAddress(root.id), root, holder));
   const line = elementKey("timeline", root.id, root, holder);
   for (const { timeline } of member.ancestors) {
     const ancestor = elementKey("ancestor", timeline.id, timeline, line);
     keys.push(ancestor, textKey(ancestor, "name"));
-    for (const end of ["start", "end"]) {
-      const mark = elementKey("wedge", `${root.id}/${end}`, root, ancestor);
+    for (const end of ["start", "end"] as const) {
+      const mark = elementKey("wedge", partAddress(root.id, end), root, ancestor);
       keys.push(mark, textKey(mark, "label"));
     }
   }
@@ -237,8 +253,9 @@ function memberElements(member: MemberDrawing, holder: ElementKey, keys: Element
             const node = elementKey(own.is_segment_line ? "child" : null, own.id, own, band);
             keys.push(node);
             // A segment's boundary and label are parts of its segment line's line, in no band.
-            if (index > 0) keys.push(elementKey("boundary", `${own.id}/start`, own, key));
-            keys.push(elementKey("label", `${own.id}/label`, own, key));
+            if (index > 0)
+              keys.push(elementKey("boundary", partAddress(own.id, "start"), own, key));
+            keys.push(elementKey("label", partAddress(own.id, "label"), own, key));
             visit(node, own);
           } else {
             const node = elementKey("child", own.id, own, band);
@@ -254,8 +271,8 @@ function memberElements(member: MemberDrawing, holder: ElementKey, keys: Element
       },
       markers: (band) => {
         if (timeline !== root) return;
-        labelled("wedge", `${timeline.id}/start`, band);
-        labelled("wedge", `${timeline.id}/end`, band);
+        labelled("wedge", partAddress(timeline.id, "start"), band);
+        labelled("wedge", partAddress(timeline.id, "end"), band);
       },
       regions: (band) => {
         for (const region of timeline.regions) labelled("region", address(region.id), band);
@@ -278,7 +295,7 @@ function memberElements(member: MemberDrawing, holder: ElementKey, keys: Element
 
 /**
  * Every element of a manifest's drawing, in the order of its tree (sections
- * 2.1 and 8.1): the block; the title of a named manifest (one with an `id`
+ * 2.1 and 8.1): the box; the title of a named manifest (one with an `id`
  * or a `name`), addressed `name`; each group's frame, its title and its
  * member drawings in display order; then the roots drawn without a frame. A
  * timeline drawn twice, as an ancestor line and as a line of its own, is
@@ -286,17 +303,17 @@ function memberElements(member: MemberDrawing, holder: ElementKey, keys: Element
  * own line and on each of its ancestor lines.
  */
 export function manifestElements(manifest: Manifest): ElementKey[] {
-  const ordered = canonicalOrder(manifest as never) as unknown as Manifest;
-  const keys: ElementKey[] = [BLOCK_KEY];
+  const ordered = canonicalOrder(manifest);
+  const keys: ElementKey[] = [BOX_KEY];
   if (isNamed(ordered)) {
-    keys.push(unownedKey("name", TITLE_ADDRESS, BLOCK_KEY));
+    keys.push(unownedKey("name", TITLE_ADDRESS, BOX_KEY));
   }
   const { frames, ungrouped } = memberDrawings(ordered);
   for (const frame of frames) {
-    const group = unownedKey("group", frame.group.id, BLOCK_KEY);
-    keys.push(group, unownedKey("name", `${frame.group.id}/name`, group));
+    const group = unownedKey("group", frame.group.id, BOX_KEY);
+    keys.push(group, unownedKey("name", partAddress(frame.group.id, "name"), group));
     for (const member of frame.members) memberElements(member, group, keys);
   }
-  for (const member of ungrouped) memberElements(member, BLOCK_KEY, keys);
+  for (const member of ungrouped) memberElements(member, BOX_KEY, keys);
   return keys;
 }

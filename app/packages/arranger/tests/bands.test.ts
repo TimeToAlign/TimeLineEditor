@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 /**
  * The bands of a timeline as boxes of its editor: the offered bands, the
  * band under a point, where a dragged or stepped band lands, the one `set`
@@ -6,37 +5,32 @@
  */
 
 import type { BandKind, Store, View } from "@timetoalign/tilie-core";
-import { createStore } from "@timetoalign/tilie-core";
-import type { Drawing, DrawnBand } from "@timetoalign/tilie-layout";
+import type { Drawing } from "@timetoalign/tilie-layout";
 import { describe, expect, it } from "vitest";
-import { holdingOf } from "../src/boxes.ts";
-import type { BlockNode } from "../src/index.ts";
-import {
-  affectedBy,
-  bandAt,
-  bandDrop,
-  bandMoveCommand,
-  bandStep,
-  drawingOf,
-  elementsInRect,
-  existing,
-  hitOf,
-  offeredBands,
-  offersBand,
-  removeCommand,
-  selectedBand,
-} from "../src/index.ts";
+import { affectedBy } from "../src/affected.ts";
+import { bandDrop, bandMoveCommand, bandStep } from "../src/bands.ts";
+import type { BandBox } from "../src/boxes.ts";
+import { bandAt, hitOf, holdingOf, offeredBands } from "../src/boxes.ts";
+import { removeCommand } from "../src/commands.ts";
+import { drawingOf } from "../src/drawing.ts";
+import { elementsInRect } from "../src/marquee.ts";
+import type { BlockNode } from "../src/project.ts";
+import { existing, offersBand, selectedBand } from "../src/selection.ts";
 import {
   A,
   B,
   bandRecord,
+  bandsOf,
   blockIn,
   load,
   MAP_DRAWN,
   metrics,
   ROOT_ORDER,
   STYLED_DRAWN,
+  sourceOf,
+  storeOf,
   viewOf,
+  withBands,
 } from "./support.ts";
 
 const STYLED = "styled__score";
@@ -62,8 +56,8 @@ const D = melody("children", "conversion_maps", "melody", "markers", "regions", 
 const P = phrase("children", "conversion_maps", "phrase", "markers", "regions", "flow_control");
 
 /** The record of `address` in `drawing`, the first when there are several. */
-function record(drawing: Drawing, address: string): DrawnBand {
-  const found = drawing.bands.find((band) => band.address === address);
+function record(drawing: Drawing, address: string): BandBox {
+  const found = bandsOf(drawing).find((band) => band.address === address);
   if (found === undefined) throw new Error(`no record of ${address}`);
   return found;
 }
@@ -72,21 +66,18 @@ const S = (kind: BandKind) => record(STYLED_DRAWN, `score/${kind}_1`);
 const M = (address: string) => record(MAP_DRAWN, address);
 
 /** The README's drawing T: `excerpt` drawn with two lines, records only. */
-const TWO_LINES: Drawing = {
-  ...STYLED_DRAWN,
-  bands: [
-    bandRecord("excerpt", "children", 2, 50, [100, 10, 400, 14]),
-    bandRecord("excerpt", "conversion_maps", 1, 50, [100, 36, 400, 14]),
-    bandRecord("excerpt", "children", 2, 150, [100, 110, 400, 14]),
-    bandRecord("excerpt", "conversion_maps", 1, 150, [100, 136, 400, 14]),
-  ],
-};
+const TWO_LINES: Drawing = withBands(STYLED_DRAWN, [
+  bandRecord("excerpt", "children", 2, 50, [100, 10, 400, 14]),
+  bandRecord("excerpt", "conversion_maps", 1, 50, [100, 36, 400, 14]),
+  bandRecord("excerpt", "children", 2, 150, [100, 110, 400, 14]),
+  bandRecord("excerpt", "conversion_maps", 1, 150, [100, 136, 400, 14]),
+]);
 
 describe("the offered bands and the band under a point", () => {
   it("offers every record of a timeline, in order", () => {
-    expect(offeredBands(STYLED_DRAWN, "score")).toEqual(STYLED_DRAWN.bands);
+    expect(offeredBands(STYLED_DRAWN, "score")).toEqual(bandsOf(STYLED_DRAWN));
     expect(offeredBands(STYLED_DRAWN, "b")).toEqual([]);
-    expect(offeredBands(TWO_LINES, "excerpt")).toEqual(TWO_LINES.bands);
+    expect(offeredBands(TWO_LINES, "excerpt")).toEqual(bandsOf(TWO_LINES));
   });
 
   it("finds the offered band holding the point, edges included, the first in order", () => {
@@ -103,7 +94,7 @@ describe("the offered bands and the band under a point", () => {
 
   it("holds a band 0 high on its edge only", () => {
     const flat = { ...S("flow_control"), height: 0 };
-    const drawing = { ...STYLED_DRAWN, bands: [...STYLED_DRAWN.bands.slice(0, 4), flat] };
+    const drawing = withBands(STYLED_DRAWN, [...bandsOf(STYLED_DRAWN).slice(0, 4), flat]);
     expect(bandAt(drawing, "score", { x: 150, y: 138 })).toBe(flat);
     expect(bandAt(drawing, "score", { x: 150, y: 138.5 })).toBeNull();
   });
@@ -183,7 +174,7 @@ describe("bandDrop", () => {
   });
 
   it("reads the records of the dragged band's own line", () => {
-    const [children] = TWO_LINES.bands as [DrawnBand];
+    const [children] = bandsOf(TWO_LINES) as [BandBox];
     const defaults = excerpt(
       "children",
       "conversion_maps",
@@ -329,7 +320,7 @@ describe("bandMoveCommand", () => {
  * turn, one after the other.
  */
 function storeIn(fixture: string, ...path: string[]): Store {
-  const store = createStore({ view: viewOf({ id: A, fixture }), journal: [], sessions: {} });
+  const store = storeOf(viewOf({ id: A, fixture }));
   for (const target of path) expect(store.open(`${A}/${target}`)).toBeNull();
   return store;
 }
@@ -418,7 +409,7 @@ describe("on layout's drawing of styled__score", () => {
     );
     const y = lineOf?.type === "timeline" ? lineOf.y : Number.NaN;
     expect(
-      offeredBands(drawing, "score").map(({ address, level, line, elements }) => ({
+      offeredBands(drawing, "score").map(({ address, band: { level, line, elements } }) => ({
         address,
         level,
         line,
@@ -441,9 +432,8 @@ describe("on layout's drawing of styled__score", () => {
     expect(bandStep(drawing, band, "down", E)).toEqual(down);
     const middle = band.y + band.height / 2;
     expect(bandDrop(drawing, band, middle, E)).toBeNull();
-    const card = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    card.setAttribute("data-address", "score/card");
     const point = { x: band.x + band.width / 2, y: middle };
+    const card = sourceOf(drawing, "score/card");
     expect(hitOf(A, drawing, card, point, editing).address).toBe(`${A}/${band.address}`);
   });
 
@@ -461,13 +451,19 @@ describe("the selection readers", () => {
   const timeline = (target: string) => ({ target, kind: "timeline" }) as const;
 
   it("reads a band address", () => {
-    expect(selectedBand(`${A}/melody/markers_1`)).toEqual({
+    expect(selectedBand(view, `${A}/melody/markers_1`)).toEqual({
       block: A,
       timeline: "melody",
       kind: "markers",
     });
-    for (const address of [A, `${A}/melody`, `${A}/melody/tempo`, `${A}/melody/start/label`]) {
-      expect(selectedBand(address)).toBeNull();
+    for (const address of [
+      A,
+      `${A}/melody`,
+      `${A}/melody/tempo`,
+      `${A}/melody/start/label`,
+      `${A}/nobody/regions_1`,
+    ]) {
+      expect(selectedBand(view, address)).toBeNull();
     }
   });
 
@@ -475,31 +471,30 @@ describe("the selection readers", () => {
     const selection = new Set([
       `${A}/melody/markers_1`,
       `${A}/phrase/conversion_maps_1`,
-      `${A}/melody`,
+      `${A}/melody/ticks`,
       `${A}/nobody/regions_1`,
     ]);
     const kept = (editing: Parameters<typeof existing>[2]) => [
       ...existing(view, selection, editing),
     ];
-    expect(kept(timeline(`${A}/melody`))).toEqual([`${A}/melody/markers_1`, `${A}/melody`]);
-    expect(kept(timeline(`${A}/phrase`))).toEqual([`${A}/phrase/conversion_maps_1`, `${A}/melody`]);
-    expect(kept(timeline(`${A}/nobody`))).toEqual([`${A}/melody`]);
-    expect(kept(timeline(`${B}/melody`))).toEqual([`${A}/melody`]);
-    expect(kept({ target: A, kind: "bundle" })).toEqual([`${A}/melody`]);
-    expect(kept(null)).toEqual([`${A}/melody`]);
+    expect(kept(timeline(`${A}/melody`))).toEqual([`${A}/melody/markers_1`, `${A}/melody/ticks`]);
+    expect(kept(timeline(`${A}/phrase`))).toEqual([
+      `${A}/phrase/conversion_maps_1`,
+      `${A}/melody/ticks`,
+    ]);
+    expect(kept(timeline(`${A}/nobody`))).toEqual([]);
+    expect(kept(timeline(`${B}/melody`))).toEqual([]);
+    expect(kept({ target: A, kind: "bundle" })).toEqual([`${A}/melody/ticks`]);
+    expect(kept(null)).toEqual([`${A}/melody/ticks`]);
     const one = new Set([`${A}/melody/markers_1`]);
     expect(existing(view, one, timeline(`${A}/melody`))).toBe(one);
   });
 
   it("offers a band by the rule existing keeps it by", () => {
-    const bands = [
-      `${A}/melody/markers_1`,
-      `${A}/phrase/conversion_maps_1`,
-      `${A}/nobody/regions_1`,
-    ];
+    const bands = [`${A}/melody/markers_1`, `${A}/phrase/conversion_maps_1`];
     const offered = (editing: Parameters<typeof offersBand>[2]) =>
       bands.filter((address) => {
-        const band = selectedBand(address);
+        const band = selectedBand(view, address);
         if (band === null) throw new Error(`${address} is no band`);
         return offersBand(view, band, editing);
       });
@@ -516,10 +511,10 @@ describe("the selection readers", () => {
   it("prunes every other band when an editor opens and closes", () => {
     const store = storeIn("map", "melody");
     const innermost = () => store.editing.at(-1) ?? null;
-    const both = new Set([`${A}/melody/markers_1`, `${A}/melody/tempo`]);
+    const both = new Set([`${A}/melody/markers_1`, `${A}/melody/ticks`]);
     expect(existing(store.view, both, innermost())).toBe(both);
     expect(store.open(`${A}/phrase`)).toBeNull();
-    expect([...existing(store.view, both, innermost())]).toEqual([`${A}/melody/tempo`]);
+    expect([...existing(store.view, both, innermost())]).toEqual([`${A}/melody/ticks`]);
     store.done();
     expect(innermost()?.target).toBe(`${A}/melody`);
     expect([
@@ -579,7 +574,7 @@ describe("the selection readers", () => {
       "b",
       "score",
       "score/ticks",
-      ...STYLED_DRAWN.bands.map(({ address }) => address),
+      ...bandsOf(STYLED_DRAWN).map(({ address }) => address),
     ]);
     const node: BlockNode = {
       id: A,
@@ -591,7 +586,6 @@ describe("the selection readers", () => {
         descriptors: [],
         selectedElements: new Set(),
         affectedElements: new Set(),
-        movedElements: new Set(),
         editing: timeline(`${A}/score`),
         inside,
       },

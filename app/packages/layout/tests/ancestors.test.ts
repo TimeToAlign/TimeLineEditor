@@ -1,4 +1,4 @@
-import { Rational } from "@timetoalign/tilie-core";
+import { Rational } from "@timetoalign/tilie-core/numbers";
 import type { Graphical } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
 import {
@@ -415,7 +415,9 @@ describe("single changes to group_child_member", () => {
       "group_child_member",
       only({ ids: ["second-half"] }, { display: "none" }),
     );
-    const range = drawing.cards.find((item) => item.key === "second-half")?.range;
+    const range = drawing.boxes.find(
+      (item) => item.kind === "card" && item.key === "second-half",
+    )?.range;
     expect(
       drawing.elements.slice(range?.start, range?.end).map((item) => [item.type, item.address]),
     ).toEqual([
@@ -428,7 +430,7 @@ describe("single changes to group_child_member", () => {
       ["label", "second-half/end/label"],
     ]);
     expect(all(drawing, "second-half")).toEqual([]);
-    expect(drawing.bands.filter((band) => band.timeline === "second-half")).toEqual([]);
+    expect(drawing.boxes.filter((box) => box.band?.timeline === "second-half")).toEqual([]);
     expect(card(drawing, "second-half")).toMatchObject({ y: 32.8046875, height: 63.37890625 });
     expect(element(drawing, "piece")).toMatchObject({
       type: "ancestor",

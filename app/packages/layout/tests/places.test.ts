@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_PLACEMENT, type Drawing, type Placement } from "../src/index.ts";
-import { drawFixture, element } from "./support.ts";
+import { drawFixture, element, itemsOf } from "./support.ts";
 
 const at = (changes: Partial<Placement>): Placement => ({ ...DEFAULT_PLACEMENT, ...changes });
+const box = { kind: "box", key: null, address: null, holder: null, x: 0, y: 0, displayed: true };
 
 /** The rectangle of a frame or card. */
 function rect(drawing: Drawing, address: string): object {
@@ -23,22 +24,21 @@ describe("default places reproduce the stacked box", () => {
     const drawing = drawFixture("bare");
     expect(Object.is(drawing.origin.x, 0)).toBe(true);
     expect(Object.is(drawing.origin.y, 0)).toBe(true);
-    expect(drawing.items).toEqual([
+    const size = { width: 458.5771484375, height: 49.37890625 };
+    expect(drawing.boxes.filter((record) => record.kind !== "band")).toEqual([
+      { ...box, width: 476.5771484375, height: 67.37890625, range: { start: 0, end: 8 } },
       {
-        key: "bare",
         kind: "card",
+        key: "bare",
         address: "bare/card",
-        place: {
-          x: 8,
-          y: 8,
-          length: 400,
-          scale: 1,
-          spacing: 1,
-          width: 458.5771484375,
-          height: 49.37890625,
-        },
-        stated: {},
+        holder: null,
+        x: 8,
+        y: 8,
+        ...size,
         range: { start: 1, end: 8 },
+        displayed: true,
+        item: { place: { x: 8, y: 8, length: 400, scale: 1, spacing: 1, ...size }, stated: {} },
+        card: { size, spacing: 1, stated: {} },
       },
     ]);
   });
@@ -46,22 +46,19 @@ describe("default places reproduce the stacked box", () => {
   it("group_child_member: one frame at (8, 8)", () => {
     const drawing = drawFixture("groups/group_child_member");
     expect(drawing.origin).toEqual({ x: 0, y: 0 });
-    expect(drawing.items).toEqual([
+    const size = { width: 542.4140625, height: 174.13671875 };
+    expect(itemsOf(drawing)).toEqual([
       {
+        kind: "frame",
         key: "group_1",
-        kind: "group",
         address: "group_1",
-        place: {
-          x: 8,
-          y: 8,
-          length: 400,
-          scale: 1,
-          spacing: 1,
-          width: 542.4140625,
-          height: 174.13671875,
-        },
-        stated: {},
+        holder: null,
+        x: 8,
+        y: 8,
+        ...size,
         range: { start: 1, end: 23 },
+        displayed: true,
+        item: { place: { x: 8, y: 8, length: 400, scale: 1, spacing: 1, ...size }, stated: {} },
       },
     ]);
   });
@@ -76,12 +73,13 @@ describe("default places reproduce the stacked box", () => {
       natural.origin,
     ]);
     expect(drawing.elements).toEqual(natural.elements);
-    expect(drawing.items).toEqual([{ ...natural.items[0], stated }]);
+    const [card] = itemsOf(natural);
+    expect(itemsOf(drawing)).toEqual([{ ...card, item: { ...card?.item, stated } }]);
   });
 });
 
 describe("the default top", () => {
-  const tops = (drawing: Drawing) => drawing.items.map((item) => [item.key, item.place.y]);
+  const tops = (drawing: Drawing) => itemsOf(drawing).map((item) => [item.key, item.item?.place.y]);
 
   it("lies F below the bottom edge of the items before it, no shadow counted", () => {
     expect(tops(drawFixture("bundles/bundle_ungrouped"))).toEqual([
@@ -114,16 +112,16 @@ describe("an item left of the padding, a width request and a length of its own",
 
   it("lists the items in drawing order with their places as stated", () => {
     expect(
-      drawing.items.map(({ key, kind, address, stated }) => [key, kind, address, stated]),
+      itemsOf(drawing).map(({ key, kind, address, item }) => [key, kind, address, item?.stated]),
     ).toEqual([
-      ["group_1", "group", "group_1", {}],
-      ["group_2", "group", "group_2", places.group_2],
+      ["group_1", "frame", "group_1", {}],
+      ["group_2", "frame", "group_2", places.group_2],
       ["annotations", "card", "annotations/card", places.annotations],
     ]);
   });
 
   it("reports each place from the place origin, with the drawn size", () => {
-    expect(drawing.items.map((item) => item.place)).toEqual([
+    expect(itemsOf(drawing).map((box) => box.item?.place)).toEqual([
       {
         x: 8,
         y: 28.8046875,
@@ -206,7 +204,7 @@ describe("an item left of and above the padding and a height request", () => {
   });
 
   it("stacks the other items by default, whatever lies above them", () => {
-    expect(drawing.items.map((item) => item.place)).toEqual([
+    expect(itemsOf(drawing).map((box) => box.item?.place)).toEqual([
       {
         x: 8,
         y: 28.8046875,
@@ -324,7 +322,7 @@ describe("a frame's own length and height request, a card's width request", () =
       504.39453125,
       { x: 0, y: 0 },
     ]);
-    expect(drawing.items.map((item) => item.place)).toEqual([
+    expect(itemsOf(drawing).map((box) => box.item?.place)).toEqual([
       {
         x: 8,
         y: 28.8046875,
@@ -368,7 +366,7 @@ describe("a fractional place origin: the shift is added last", () => {
     });
     expect(rect(drawing, "recording/card")).toMatchObject({ width: 507.896728515625 });
     expect(line(drawing, "recording")).toMatchObject({ y: 293.89250000000004 });
-    expect(drawing.items.map((item) => item.place)).toEqual([
+    expect(itemsOf(drawing).map((box) => box.item?.place)).toEqual([
       {
         x: 8,
         y: 28.8046875,
@@ -410,7 +408,7 @@ describe("a fractional place origin: the shift is added last", () => {
       at({ places: { group_1: { y: 10.11 }, annotations: { x: 560, y: -40.1 } } }),
     );
     expect(mixed.origin.y).toBe(68.9046875);
-    expect(mixed.items[1]?.place.y).toBe(187.344375);
+    expect(itemsOf(mixed)[1]?.item?.place.y).toBe(187.344375);
     expect(rect(mixed, "group_2")).toMatchObject({ y: 256.24906250000004 });
   });
 });

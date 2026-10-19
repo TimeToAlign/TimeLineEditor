@@ -1,0 +1,195 @@
+/*
+ * The block nodes' drawings and the canvas's marks. Styled from here, so a
+ * block node has no style of its own and Svelte adds no scoping class to a
+ * drawn element. Every rule lies under the canvas's root, `.tilie-canvas`.
+ */
+
+/*
+ * The bundled DejaVu Sans 2.37, under a family name of its own, so a system
+ * copy of DejaVu Sans, whose outlines may differ, never stands in for it.
+ */
+@font-face {
+  font-family: "TiLiE DejaVu Sans";
+  src: url("@timetoalign/timeskeleton/fonts/DejaVuSans.ttf") format("truetype");
+  font-display: block;
+}
+
+.tilie-canvas {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.tilie-canvas:focus-visible {
+  outline: 2px solid #0a84ff;
+  outline-offset: -2px;
+}
+
+.tilie-canvas > .tilie-font-state {
+  margin: 0;
+  padding: 0.5rem;
+  color: #555;
+}
+
+/* A pressed toggle of the controls panel: a shade darker, its icon in the selection's blue. */
+.tilie-canvas .svelte-flow__controls-button.tilie-toggle[aria-pressed="true"] {
+  background: #e2e2e2;
+  color: #0a6ad6;
+}
+
+.tilie-canvas .svelte-flow__controls-button:focus-visible {
+  outline: 2px solid #0a84ff;
+  outline-offset: -2px;
+}
+
+/* The status line, beside the controls panel (15 px margin, 26 px wide). */
+.tilie-canvas > .tilie-hint {
+  position: absolute;
+  left: 3.5rem;
+  bottom: 0.5rem;
+  margin: 0;
+  font-size: 0.85rem;
+  color: #8a1c1c;
+  pointer-events: none;
+}
+
+/*
+ * Handles and guides sit in the viewport's front layer, which shares a
+ * stacking context with the nodes; a node's z-index is its rank among the
+ * blocks, so the overlay stacks above any rank.
+ */
+.tilie-canvas .tilie-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2147483000;
+}
+
+.tilie-canvas .tilie-block svg {
+  display: block;
+  /* biome-ignore lint/a11y/useGenericFontNames: the drawing is laid out with this face's advances alone; the canvas mounts only once it has loaded, and no other face may stand in. */
+  font-family: "TiLiE DejaVu Sans";
+  overflow: visible;
+  font-kerning: none;
+  font-variant-ligatures: none;
+  /*
+   * Unhinted advances: Chromium otherwise lays small SVG text out with
+   * hinted widths (11 px "Phrase" 35.57 instead of the advance table's
+   * 37.37), so names would not fill the widths the drawing measured.
+   */
+  text-rendering: geometricPrecision;
+}
+
+/*
+ * After a marquee, Svelte Flow lays a rectangle over the selected blocks (its
+ * node selection, `.svelte-flow__selection-wrapper`; the marquee drawn during
+ * the gesture is another element) that would take their clicks, so a click
+ * could neither pick an element nor toggle a block. A selected block is
+ * dragged by itself instead, which moves every selected block, so the
+ * rectangle is not shown.
+ */
+.tilie-canvas .svelte-flow__selection-wrapper {
+  display: none;
+}
+
+/* An element below a selected one: quieter than the selection itself. */
+.tilie-canvas .tilie-block [data-affected] {
+  filter: drop-shadow(0 0 1px #9cc8ff);
+}
+
+/*
+ * The marks: one `.tilie-mark` element per mark, drawn over the drawing as a
+ * copy of a box's outline (`data-box`: box, frame, card, band) or of a
+ * boundary's line, so a hover, a selection or a holding changes a mark
+ * alone, never an element of the drawing (`data-mark`: hover, selection,
+ * holding). A band draws nothing, so its mark is the outline of its
+ * rectangle. A box's outline is a screen pixel at any block scale and any
+ * zoom: its stroke does not scale with the block, and its width is divided
+ * by the canvas zoom (`--tilie-zoom`, set on the canvas); a boundary's copy
+ * keeps the line's own width.
+ */
+.tilie-canvas .tilie-block .tilie-mark {
+  pointer-events: none;
+}
+
+.tilie-canvas .tilie-block rect.tilie-mark {
+  fill: none;
+  stroke-width: calc(1px / var(--tilie-zoom, 1));
+  vector-effect: non-scaling-stroke;
+}
+
+/* The card, the group's frame or the band under the pointer: quieter than a selection. */
+.tilie-canvas .tilie-block rect.tilie-mark[data-mark="hover"] {
+  stroke: #9cc8ff;
+  filter: drop-shadow(0 0 2px #9cc8ff) drop-shadow(0 0 2px #9cc8ff);
+}
+
+/* A boundary under the pointer takes the accent. */
+.tilie-canvas .tilie-block line.tilie-mark[data-mark="hover"] {
+  stroke: #0a84ff;
+}
+
+/* A selected element, box or band. */
+.tilie-canvas .tilie-block [data-selected],
+.tilie-canvas .tilie-block rect.tilie-mark[data-mark="selection"] {
+  filter: drop-shadow(0 0 1.5px #0a84ff) drop-shadow(0 0 1.5px #0a84ff);
+}
+
+.tilie-canvas .tilie-block rect.tilie-mark[data-mark="selection"] {
+  stroke: #0a84ff;
+}
+
+/*
+ * In an editor, everything outside the edited element: other blocks as a
+ * whole, and the outside of the edited block element by element. It stays
+ * visible, so the edited element is seen in its surroundings, but takes no
+ * pointer: a press there reaches the pane, and a drag there pans.
+ */
+.tilie-canvas .svelte-flow__node.tilie-outside,
+.tilie-canvas .tilie-block [data-outside] {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+/*
+ * A box holding part of the selection is marked in the selection's colour,
+ * more thinly the further out it lies: a card 3 px dashed, a frame 2 px
+ * dashed, the block 1 px dotted, its widths and dashes divided by the canvas
+ * zoom as every mark's are.
+ */
+.tilie-canvas .tilie-block .tilie-mark[data-mark="holding"] {
+  --dash: calc(6px / var(--tilie-zoom, 1));
+  --gap: calc(4px / var(--tilie-zoom, 1));
+  stroke: #0a84ff;
+  stroke-dasharray: var(--dash) var(--gap);
+}
+
+.tilie-canvas .tilie-block .tilie-mark[data-mark="holding"][data-box="card"] {
+  stroke-width: calc(3px / var(--tilie-zoom, 1));
+}
+
+.tilie-canvas .tilie-block .tilie-mark[data-mark="holding"][data-box="frame"] {
+  stroke-width: calc(2px / var(--tilie-zoom, 1));
+}
+
+/*
+ * The block's mark lies on the node's edge, between two device pixels at a
+ * pixel ratio of 1; crisp edges keep its dots one pixel of the full colour
+ * instead of two pale ones.
+ */
+.tilie-canvas .tilie-block .tilie-mark[data-mark="holding"][data-box="box"] {
+  --dash: calc(1px / var(--tilie-zoom, 1));
+  --gap: calc(2px / var(--tilie-zoom, 1));
+  stroke-width: calc(1px / var(--tilie-zoom, 1));
+  shape-rendering: crispEdges;
+}
+
+.tilie-canvas .svelte-flow__node.svelte-flow__node-block.selected {
+  outline: 2px solid #0a84ff;
+  outline-offset: 2px;
+}
+
+.tilie-canvas .svelte-flow__node.svelte-flow__node-block:focus-visible {
+  outline: 2px solid #0a84ff;
+  outline-offset: 4px;
+}

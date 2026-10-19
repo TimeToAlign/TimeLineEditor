@@ -8,7 +8,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
-import { open, SMALL, selection } from "./support.ts";
+import { drawer, field, open, SMALL, select, selection } from "./support.ts";
 
 /** The `data-id` of the focused node, or `null` when focus is elsewhere. */
 function focusedNode(page: Page): Promise<string | null> {
@@ -40,27 +40,27 @@ test("axe-core reports no violation on the canvas page", async ({ page }) => {
 });
 
 test("axe-core reports no violation with an element selected", async ({ page }) => {
-  await page.evaluate((address) => window.__tilie.select([address]), `${SMALL.styled}/score/intro`);
+  await select(page, [`${SMALL.styled}/score/intro`]);
   await expect(page.locator(".tilie-block[data-contains-selection]")).toHaveCount(1);
-  await expect(page.locator('rect.tilie-holding[data-box="card"]')).toHaveCount(1);
-  await expect(page.locator('rect.tilie-holding[data-box="group"]')).toHaveCount(0);
+  await expect(page.locator('.tilie-mark[data-mark="holding"][data-box="card"]')).toHaveCount(1);
+  await expect(page.locator('.tilie-mark[data-mark="holding"][data-box="frame"]')).toHaveCount(0);
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations).toEqual([]);
 });
 
 test("axe-core reports no violation with the inspector drawer open", async ({ page }) => {
   await page.getByRole("button", { name: "Open inspector" }).click();
-  await expect(page.locator("#inspector")).toBeVisible();
+  await expect(drawer(page)).toBeVisible();
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations).toEqual([]);
 });
 
 test("axe-core reports no violation on either tab of the inspector", async ({ page }) => {
-  await page.evaluate((address) => window.__tilie.select([address]), `${SMALL.styled}/score`);
+  await select(page, [`${SMALL.styled}/score`]);
   await page.getByRole("button", { name: "Open inspector" }).click();
   const properties = page.getByRole("tab", { name: "Properties", exact: true });
   await expect(properties).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("checkbox", { name: "Locked", exact: true })).toBeVisible();
+  await expect(field(page, "x")).toBeVisible();
   const onProperties = await new AxeBuilder({ page }).analyze();
   expect(onProperties.violations).toEqual([]);
 

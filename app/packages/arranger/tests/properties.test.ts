@@ -1,33 +1,26 @@
 import type { Block, View } from "@timetoalign/tilie-core";
 import {
   apply,
-  createStore,
   createView,
   elementOf,
   isCommandError,
-  manifestElements,
   manifestIds,
   parseBand,
 } from "@timetoalign/tilie-core";
+import { manifestElements } from "@timetoalign/tilie-core/drawing";
+import type { Drawing, DrawnBox } from "@timetoalign/tilie-layout";
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import type { ResizeMode, ZOrderAction } from "../src/index.ts";
-import {
-  affectedBy,
-  drawingOf,
-  handlesFor,
-  itemHandlesFor,
-  itemResizeCommand,
-  itemResizeValues,
-  moveCommand,
-  nudgeCommand,
-  project,
-  removeCommand,
-  resize,
-  resizeCommand,
-  resizedItemOf,
-  zOrderCommand,
-} from "../src/index.ts";
+import { affectedBy } from "../src/affected.ts";
+import type { CardBox, ItemBox } from "../src/boxes.ts";
+import { boxOf, isHeld, isItem, itemHolding } from "../src/boxes.ts";
+import type { ZOrderAction } from "../src/commands.ts";
+import { moveCommand, nudgeCommand, removeCommand, zOrderCommand } from "../src/commands.ts";
+import { drawingOf } from "../src/drawing.ts";
+import { itemHandlesFor, itemResizeCommand, itemResizeValues } from "../src/items.ts";
+import { project } from "../src/project.ts";
+import type { ResizeMode } from "../src/resize.ts";
+import { handlesFor, resize, resizeCommand } from "../src/resize.ts";
 import {
   A,
   blockIn,
@@ -38,6 +31,7 @@ import {
   mixedPlain,
   numbersView,
   placed,
+  storeOf,
 } from "./support.ts";
 
 /** `bundle_mixed` holds frames, members' cards (a root's and a child's) and an ungrouped card. */
@@ -135,6 +129,11 @@ function addresses(view: View): string[] {
   return [...ids, ...ids.flatMap(drawn)];
 }
 
+/** The frames and cards of a drawing, the boxes a resize acts on, in drawing order. */
+function resizable(drawing: Drawing): (ItemBox | CardBox)[] {
+  return drawing.boxes.filter((box): box is ItemBox | CardBox => isItem(box) || isHeld(box));
+}
+
 /** The command a gesture gives on `view`, or `null` when it gives none. */
 function commandOf(view: View, item: Gesture): object | null {
   const ids = Object.keys(view.blocks).sort();
@@ -158,30 +157,27 @@ function commandOf(view: View, item: Gesture): object | null {
     case "itemResize": {
       const block = view.blocks[one(item.pick)];
       if (block === undefined) return null;
-      const drawing = drawingOf(block, view.settings, metrics);
-      const boxes = [...drawing.items, ...drawing.cards].map((drawn) => drawn.address);
-      if (boxes.length === 0) return null;
-      const resized = resizedItemOf(drawing, boxes[item.box % boxes.length] as string);
+      const boxes = resizable(drawingOf(block, view.settings, metrics));
+      const resized = boxes[item.box % boxes.length];
       if (resized === undefined) return null;
-      const handles = itemHandlesFor(item.mode, resized.kind, "arranger");
+      const handles = itemHandlesFor(item.mode, resized, "arranger");
       const handle = handles[item.handle % handles.length] as (typeof handles)[number];
       const values = itemResizeValues(
-        block,
-        view.settings,
-        metrics,
-        "arranger",
+        view,
+        block.id,
         resized,
+        "arranger",
         item.mode,
         handle,
         item,
+        metrics,
       );
       return itemResizeCommand(view, block.id, values, "arranger", metrics);
     }
     case "request": {
       const block = view.blocks[one(item.pick)];
       if (block === undefined) return null;
-      const drawing = drawingOf(block, view.settings, metrics);
-      const keys = [...drawing.items, ...drawing.cards].map((drawn) => drawn.key);
+      const keys = resizable(drawingOf(block, view.settings, metrics)).map((drawn) => drawn.key);
       if (keys.length === 0 || (item.width === undefined && item.height === undefined)) return null;
       const place = {
         ...(item.width === undefined ? {} : { width: item.width / 2048 }),
@@ -226,7 +222,7 @@ describe("gesture commands", () => {
   it("are undone exactly through the store", { timeout: DRAWING_TIMEOUT }, () => {
     fc.assert(
       fc.property(blocks, fc.array(gesture, { maxLength: 8 }), (specs, gestures) => {
-        const store = createStore({ view: initial(specs), journal: [], sessions: {} });
+        const store = storeOf(initial(specs));
         const before: View[] = [];
         for (const item of gestures) {
           const command = commandOf(store.view, item);
@@ -254,7 +250,9 @@ describe("a member's Stretch", () => {
     timeout: DRAWING_TIMEOUT,
   }, () => {
     const view = mixedPlain();
-    const { cards } = drawingOf(blockIn(view, A), view.settings, metrics);
+    const drawing = drawingOf(blockIn(view, A), view.settings, metrics);
+    const cards = drawing.boxes.filter(isHeld);
+    const groupOf = (card: DrawnBox) => itemHolding(drawing, card).key;
     const width = fc.option(fc.integer({ min: 2048, max: 2000 * 2048 }), { nil: null });
     fc.assert(
       fc.property(
@@ -267,25 +265,25 @@ describe("a member's Stretch", () => {
         (card, frameSteps, sized, cardSteps, level, dx) => {
           let framed = view;
           if (frameSteps !== null) {
-            framed = placed(framed, A, card.group, { width: frameSteps / 2048 });
+            framed = placed(framed, A, groupOf(card), { width: frameSteps / 2048 });
           }
           if (cardSteps !== null)
             framed = placed(framed, A, sized.key, { width: cardSteps / 2048 });
-          const resized = { kind: "member", key: card.key, item: card.group } as const;
           const block = blockIn(framed, A);
-          const members = new Set(cards.filter((c) => c.group === card.group).map((c) => c.key));
+          const group = groupOf(card);
+          const members = new Set(cards.filter((c) => groupOf(c) === group).map((c) => c.key));
           const values = itemResizeValues(
-            block,
-            framed.settings,
-            metrics,
+            framed,
+            A,
+            card,
             level,
-            resized,
             "stretch",
             "right",
             { dx, dy: 0 },
+            metrics,
           );
           for (const [key, place] of values) {
-            if (key === card.group) {
+            if (key === group) {
               expect(
                 Object.keys(place).every((member) => ["length", "width"].includes(member)),
               ).toBe(true);
@@ -296,7 +294,7 @@ describe("a member's Stretch", () => {
             }
             if (block.places[key]?.width === undefined) expect(place.width).toBeUndefined();
           }
-          const store = createStore({ view: framed, journal: [], sessions: {} });
+          const store = storeOf(framed);
           const editor = { arranger: null, bundle: A, timeline: `${A}/${card.key}` }[level];
           if (editor !== null) expect(store.open(editor)).toBeNull();
           const command = itemResizeCommand(framed, A, values, level, metrics);
@@ -326,13 +324,13 @@ function stretchCase(
   const start = initial([{ fixture, x: 40, y: 80 }]);
   const drawing = drawingOf(blockIn(start, A), start.settings, metrics);
   // The block itself (null), an item, or a member's card.
-  const boxes = [null, ...drawing.items, ...drawing.cards];
+  const boxes = [null, ...resizable(drawing)];
   const box = boxes[pick % boxes.length] ?? null;
   const handle = vertical ? "bottom" : "right";
   /** The request at `ratio` times `content`, on the lattice, or none. */
   const request = (ratio: number | null, content: number) =>
     ratio === null ? null : Math.ceil(ratio * content * 2048) / 2048;
-  const size = box === null ? drawing : "place" in box ? box.place : box.size;
+  const size = box === null ? drawing : isItem(box) ? box.item.place : box.card.size;
   const width = request(widthRatio, size.width);
   const height = request(heightRatio, size.height);
   const target = box === null ? A : `${A}/${box.key}`;
@@ -342,7 +340,6 @@ function stretchCase(
     width === null && height === null
       ? start
       : changed(start, { type: "set", changes: [{ target, values }] });
-  const resized = box === null ? undefined : resizedItemOf(drawing, box.address);
   /** The stretched value, and the dragged box's extent on the stretched axis. */
   const state = (of: View) => {
     const block = blockIn(of, A);
@@ -353,32 +350,23 @@ function stretchCase(
         edge: vertical ? drawn.height : drawn.width,
       };
     }
-    const card = drawn.cards.find((it) => it.key === box.key);
-    const item = drawn.items.find((it) => it.key === (card?.group ?? box.key));
-    if (item === undefined) throw new Error(`no item for ${box.key}`);
-    const extent = card === undefined ? item.place : card.size;
+    const own = boxOf(drawn, box.address);
+    if (own === undefined) throw new Error(`no box ${box.address}`);
+    const item = itemHolding(drawn, own);
+    const extent = isHeld(own) ? own.card.size : item.item.place;
     return {
-      value: vertical ? (block.places[box.key]?.spacing ?? 1) : item.place.length,
+      value: vertical ? (block.places[box.key]?.spacing ?? 1) : item.item.place.length,
       edge: vertical ? extent.height : extent.width,
     };
   };
   const stretch = (of: View, by: number) => {
     const block = blockIn(of, A);
     const at = vertical ? { dx: 0, dy: by } : { dx: by, dy: 0 };
-    if (resized === undefined) {
+    if (box === null) {
       const { values } = resize(block, of.settings, metrics, "stretch", handle, at);
       return gestured(of, resizeCommand(block, values));
     }
-    const places = itemResizeValues(
-      block,
-      of.settings,
-      metrics,
-      "arranger",
-      resized,
-      "stretch",
-      handle,
-      at,
-    );
+    const places = itemResizeValues(of, A, box, "arranger", "stretch", handle, at, metrics);
     return gestured(of, itemResizeCommand(of, A, places, "arranger", metrics));
   };
   /** A travel in [−200, 400] along time, [−8, 200] vertically, from `t` in [0, 1]. */

@@ -2,13 +2,13 @@
 
 import { liveStore } from "@timetoalign/tilie-arranger";
 import type { Manifest, Store } from "@timetoalign/tilie-core";
-import { createStore, createView, isLoadError, loadManifest } from "@timetoalign/tilie-core";
+import { isLoadError, loadManifest } from "@timetoalign/tilie-core";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import EditingBar from "../src/inspector/EditingBar.svelte";
-import { editorName } from "../src/inspector/journal.ts";
+import { editorName } from "../src/inspector/words.ts";
 import { stubEditor } from "./dom.ts";
-import { fixture, fixtureText } from "./support.ts";
+import { fixtureText, storeOf } from "./support.ts";
 
 const A = "0000000000";
 const B = "0000000001";
@@ -26,21 +26,8 @@ function idOnly(): Manifest {
 }
 
 /** A store holding `bundle_mixed` in A, `nested` in B and the id-only bundle in C. */
-function storeOf(): Store {
-  const store = createStore({ view: createView(), journal: [], sessions: {} });
-  for (const [id, manifest] of [
-    [A, fixture("bundles/bundle_mixed")],
-    [B, fixture("nested")],
-    [C, idOnly()],
-  ] as const) {
-    const error = store.dispatch({
-      type: "add",
-      into: "workspace",
-      block: { id, manifest, x: 0, y: 0 },
-    });
-    if (error !== null) throw new Error(error.message);
-  }
-  return store;
+function mixedNested(): Store {
+  return storeOf("bundles/bundle_mixed", "nested", idOnly());
 }
 
 function rename(store: Store, target: string, name: string): void {
@@ -107,12 +94,12 @@ afterEach(() => {
 
 describe("the editing bar", () => {
   it("renders nothing while no editor is open", () => {
-    show(storeOf());
+    show(mixedNested());
     expect(document.body.children.length).toBe(0);
   });
 
   it("offers Done and Cancel, then the editing path", () => {
-    const store = storeOf();
+    const store = mixedNested();
     show(store);
     open(store, A);
 
@@ -136,7 +123,7 @@ describe("the editing bar", () => {
   });
 
   it("names each open editor, outermost first, as the view names it", () => {
-    const store = storeOf();
+    const store = mixedNested();
     show(store);
 
     open(store, A);
@@ -162,7 +149,7 @@ describe("the editing bar", () => {
   });
 
   it("closes the innermost editor with Done", () => {
-    const store = storeOf();
+    const store = mixedNested();
     show(store);
     open(store, A, `${A}/group_1`, `${A}/score`);
 
@@ -177,7 +164,7 @@ describe("the editing bar", () => {
   });
 
   it("closes at once on Cancel when the editor holds no change", () => {
-    const store = storeOf();
+    const store = mixedNested();
     const showModal = vi.spyOn(HTMLDialogElement.prototype, "showModal");
     show(store);
     open(store, `${A}/score`);
@@ -190,7 +177,7 @@ describe("the editing bar", () => {
   });
 
   it("asks before Cancel discards a change, and keeps it on No, Escape and the backdrop", async () => {
-    const store = storeOf();
+    const store = mixedNested();
     show(store);
     const before = store.view;
     const journal = store.journal.length;
@@ -236,15 +223,16 @@ describe("the editing bar", () => {
     expect(inside.open).toBe(true);
 
     button("Yes", inside).click();
+    // The bar acts on the answer once the dialog's promise has resolved.
+    await vi.waitFor(() => expect(store.editing).toEqual([]));
     flushSync();
-    expect(store.editing).toEqual([]);
     expect(store.view).toBe(before);
     expect(store.journal.length).toBe(journal);
     expect(document.querySelector("dialog")).toBeNull();
   });
 
   it("counts the changes as the store does", async () => {
-    const store = storeOf();
+    const store = mixedNested();
     show(store);
     open(store, `${A}/score`);
     rename(store, `${A}/score`, "S");

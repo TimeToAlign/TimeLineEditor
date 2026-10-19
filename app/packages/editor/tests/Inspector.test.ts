@@ -1,5 +1,5 @@
 /// <reference types="node" />
-/** The inspector component's wiring; the expected values are derived in `README.md` ("The inspector"). */
+/** The inspector component's wiring; the expected values are derived in `README.md` ("The tabs and panels"). */
 
 import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -7,21 +7,24 @@ import path from "node:path";
 import type { LivePlacement } from "@timetoalign/tilie-arranger";
 import { drawingOf, liveStore } from "@timetoalign/tilie-arranger";
 import type { Block, CommandEntry, Store, UnknownKey } from "@timetoalign/tilie-core";
+import { isLoadError, loadManifest, saveManifest } from "@timetoalign/tilie-core";
 import {
-  createStore,
-  createView,
-  isLoadError,
-  loadManifest,
-  saveManifest,
-} from "@timetoalign/tilie-core";
-import { dumps, fontMetrics, parseJson, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
+  dumps,
+  fontMetrics,
+  isJsonObject,
+  parseJson,
+  SCHEMA_VERSION,
+} from "@timetoalign/timeskeleton";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it } from "vitest";
-import type { TextOptions } from "../src/inspector/edit.ts";
-import { manifestOf, manifestText, problemPointer } from "../src/inspector/edit.ts";
-import { loadCodec, writeText } from "../src/inspector/formats.ts";
+import InspectorDrawer from "../src/InspectorDrawer.svelte";
+import { loadCodec, writeText } from "../src/inspector/formats.svelte.ts";
 import Inspector from "../src/inspector/Inspector.svelte";
+import type { TextOptions } from "../src/inspector/manifestText.ts";
+import { manifestOf, manifestText } from "../src/inspector/manifestText.ts";
+import { problemPointer } from "../src/inspector/problems.ts";
 import { holder } from "./holder.svelte.ts";
+import { storeOf as storeOfFixtures } from "./support.ts";
 
 const A = "0000000000";
 const B = "0000000001";
@@ -35,48 +38,34 @@ const directory = path.join(
   SCHEMA_VERSION,
 );
 
+function blockOf(store: Store, id: string): Block {
+  const block = store.view.blocks[id];
+  if (block === undefined) throw new Error(`no block ${id}`);
+  return block;
+}
+
 /** A store holding `bare` in block A and `styled__score` in block B. */
 function storeOf(): Store {
-  const store = createStore({ view: createView(), journal: [], sessions: {} });
-  for (const [id, name] of [
-    [A, "bare"],
-    [B, "styled__score"],
-  ] as const) {
-    const manifest = loadManifest(readFileSync(path.join(directory, `${name}.json`), "utf8"));
-    if (isLoadError(manifest)) throw new Error(`${name} refused`);
-    const error = store.dispatch({
-      type: "add",
-      into: "workspace",
-      block: { id, manifest, x: 0, y: 0 },
-    });
-    if (error !== null) throw new Error(error.message);
-  }
-  return store;
+  return storeOfFixtures("bare", "styled__score");
 }
 
 const warningsDirectory = path.join(directory, "..", "warnings", SCHEMA_VERSION);
 
 /** A shared warning case's manifest, read by core, and the case's expectation. */
 function read(name: string) {
-  const value = parseJson(readFileSync(path.join(warningsDirectory, name), "utf8")) as unknown as {
-    manifest: unknown;
-    unknown_keys: UnknownKey[];
-  };
-  return { manifest: loadManifest(dumps(value.manifest as never)), expected: value.unknown_keys };
+  const text = readFileSync(path.join(warningsDirectory, name), "utf8");
+  const value = parseJson(text);
+  if (!isJsonObject(value) || value.manifest === undefined)
+    throw new Error(`${name} has no manifest`);
+  const expected: readonly UnknownKey[] = JSON.parse(text).unknown_keys;
+  return { manifest: loadManifest(dumps(value.manifest)), expected };
 }
 
 /** A store holding the manifest of one shared warning case in block A, and the case's expectation. */
 function warningCase(name: string): { store: Store; expected: readonly UnknownKey[] } {
   const { manifest, expected } = read(name);
   if (isLoadError(manifest)) throw new Error(`${name}: ${manifest.problems[0]?.message}`);
-  const store = createStore({ view: createView(), journal: [], sessions: {} });
-  const error = store.dispatch({
-    type: "add",
-    into: "workspace",
-    block: { id: A, manifest, x: 0, y: 0 },
-  });
-  if (error !== null) throw new Error(error.message);
-  return { store, expected };
+  return { store: storeOfFixtures(manifest), expected };
 }
 
 let app: ReturnType<typeof mount> | undefined;
@@ -104,24 +93,61 @@ function show(
   return selected;
 }
 
-/** Click the tab named `name` ("Properties" or "Manifest"). */
-function openTab(name: string): void {
-  const found = [...document.querySelectorAll<HTMLButtonElement>('[role="tab"]')].find(
+/** The tab named `name`. */
+function tabNamed(name: string): HTMLElement {
+  const found = [...document.querySelectorAll<HTMLElement>('[role="tab"]')].find(
     (item) => item.textContent?.trim() === name,
   );
   if (found === undefined) throw new Error(`no tab ${name}`);
-  found.click();
+  return found;
+}
+
+/** The panel the tab `name` controls. */
+function panelOf(name: string): HTMLElement {
+  return document.getElementById(tabNamed(name).getAttribute("aria-controls") ?? "") as HTMLElement;
+}
+
+/** Click the tab named `name`. */
+function openTab(name: string): void {
+  tabNamed(name).click();
   flushSync();
 }
 
-/** The texts of the Properties and Manifest panels, then the form and the textarea (null when absent). */
+/** The name of the tab selected. */
+function selectedTab(): string | undefined {
+  return document.querySelector('[role="tab"][aria-selected="true"]')?.textContent?.trim();
+}
+
+/**
+ * The texts of the Properties and Manifest panels, each read while shown,
+ * then whether a form and a textarea are there; the tab selected before is
+ * selected again.
+ */
 function hinted(): unknown[] {
-  return [
-    document.getElementById("inspector-panel-properties")?.textContent?.trim(),
-    document.getElementById("inspector-panel-manifest")?.textContent?.trim(),
-    document.querySelector("form"),
-    document.querySelector("textarea"),
-  ];
+  const before = selectedTab() ?? "Properties";
+  openTab("Properties");
+  const properties = [panelOf("Properties").textContent?.trim(), document.querySelector("form")];
+  openTab("Manifest");
+  const manifest = [panelOf("Manifest").textContent?.trim(), document.querySelector("textarea")];
+  openTab(before);
+  return [properties[0], manifest[0], properties[1], manifest[1]];
+}
+
+/** The element naming why the format and options are locked, while it is shown. */
+function switchHint(): HTMLElement | null {
+  const id = document.querySelector('[role="radiogroup"]')?.getAttribute("aria-describedby");
+  return id === null || id === undefined ? null : document.getElementById(id);
+}
+
+/** The listed problems' items. */
+function problemItems(): HTMLElement[] {
+  return [...document.querySelectorAll<HTMLElement>('ul[aria-label="Problems"] li')];
+}
+
+/** The refusal shown beside the field `name`, or `null`. */
+function fieldProblem(name: string): HTMLElement | null {
+  const id = document.querySelector(`input[name="${name}"]`)?.getAttribute("aria-describedby");
+  return id === null || id === undefined ? null : document.getElementById(id);
 }
 
 function press(element: HTMLElement, key: string, modifiers: KeyboardEventInit = {}): void {
@@ -168,7 +194,7 @@ describe("the inspector component", () => {
     const store = storeOf();
     show(store, []);
     expect(hinted()).toEqual([HINT, HINT, null, null]);
-    unmount(app as never);
+    if (app !== undefined) unmount(app);
     show(store, [A, `${B}/score`]);
     expect(hinted()).toEqual([HINT, HINT, null, null]);
   });
@@ -184,7 +210,7 @@ describe("the inspector component", () => {
     await loadCodec("yaml");
     flushSync();
     expect(document.querySelector(".loading")).toBe(null);
-    const yaml = writeText("yaml", store.view.blocks[A]?.manifest as never);
+    const yaml = writeText("yaml", manifestOf(blockOf(store, A)));
     if (!yaml.ok) throw new Error("not written");
     expect(textarea().value).toBe(yaml.value.text);
   });
@@ -193,24 +219,24 @@ describe("the inspector component", () => {
     const store = storeOf();
     show(store, [`${A}/bare`]);
     openTab("Manifest");
-    expect(textarea().value).toBe(saveManifest(store.view.blocks[A]?.manifest as never));
+    expect(textarea().value).toBe(saveManifest(blockOf(store, A).manifest));
     await chooseYaml();
-    const yaml = writeText("yaml", store.view.blocks[A]?.manifest as never);
+    const yaml = writeText("yaml", manifestOf(blockOf(store, A)));
     if (!yaml.ok) throw new Error("not written");
     expect(textarea().value).toBe(yaml.value.text);
 
-    expect(document.querySelector("#inspector-switch-hint")).toBe(null);
+    expect(switchHint()).toBe(null);
     type(textarea(), textarea().value.replace("  name: Bare\n", "  name: Hello # was Bare\n"));
-    const hint = document.querySelector("#inspector-switch-hint");
+    const hint = switchHint();
     expect(hint?.textContent).toBe("Apply or Revert to switch");
     const switches = [
       document.querySelector('[role="radiogroup"]'),
       ...document.querySelectorAll('.options input[type="checkbox"]'),
     ];
     expect(switches.map((item) => item?.getAttribute("aria-describedby"))).toEqual([
-      "inspector-switch-hint",
-      "inspector-switch-hint",
-      "inspector-switch-hint",
+      hint?.id,
+      hint?.id,
+      hint?.id,
     ]);
     expect(
       [
@@ -225,7 +251,7 @@ describe("the inspector component", () => {
     flushSync();
     expect(store.journal).toHaveLength(3);
     expect(textarea().value).toContain("  name: Hello # was Bare\n");
-    expect(document.querySelector("#inspector-switch-hint")).toBe(null);
+    expect(switchHint()).toBe(null);
 
     type(textarea(), textarea().value.replace("  locked: false\n", "  locked: true\n"));
     store.dispatch({ type: "set", changes: [{ target: `${A}/bare`, values: { name: "Bye" } }] });
@@ -237,7 +263,7 @@ describe("the inspector component", () => {
     );
     button("Revert").click();
     flushSync();
-    const newer = writeText("yaml", store.view.blocks[A]?.manifest as never);
+    const newer = writeText("yaml", manifestOf(blockOf(store, A)));
     if (!newer.ok) throw new Error("not written");
     expect(textarea().value).toBe(newer.value.text);
     expect(textarea().value).toContain("  name: Bye\n");
@@ -253,12 +279,13 @@ describe("the inspector component", () => {
     type(textarea(), edited);
     button("Apply").click();
     flushSync();
-    const items = [...document.querySelectorAll("#inspector-problems li")];
+    const items = problemItems();
     expect(items.map((item) => item.textContent?.replace(/\s+/g, " ").trim())).toEqual([
       "schema_violation must be boolean at /timelines/0/locked",
     ]);
-    expect(items[0]?.querySelector(".code")?.textContent).toBe("schema_violation");
-    expect(items[0]?.querySelector(".pointer")?.textContent).toBe("/timelines/0/locked");
+    expect([...(items[0]?.querySelectorAll("code") ?? [])].map((item) => item.textContent)).toEqual(
+      ["schema_violation", "/timelines/0/locked"],
+    );
     expect(textarea().value).toBe(edited);
     expect(store.journal).toHaveLength(2);
     expect([button("Apply").disabled, button("Revert").disabled]).toEqual([false, false]);
@@ -323,8 +350,7 @@ describe("the inspector component", () => {
     show(store, [A], gesture);
     const field = (name: string) =>
       document.querySelector(`input[name="${name}"]`) as HTMLInputElement;
-    const drawn = (id: string) =>
-      drawingOf(store.view.blocks[id] as Block, store.view.settings, fontMetrics);
+    const drawn = (id: string) => drawingOf(blockOf(store, id), store.view.settings, fontMetrics);
     const placement = {
       id: A,
       x: 5.556,
@@ -354,17 +380,15 @@ describe("the inspector component", () => {
 });
 
 describe("the inspector's tabs", () => {
-  const TABS = ["inspector-tab-properties", "inspector-tab-manifest"];
-  const PANELS = ["inspector-panel-properties", "inspector-panel-manifest"];
-
   /** Both tabs as [aria-selected, tabindex], then both panels' `hidden`. */
   function state(): unknown[] {
+    const names = ["Properties", "Manifest"];
     return [
-      ...TABS.map((id) => {
-        const tab = document.getElementById(id);
-        return [tab?.getAttribute("aria-selected"), tab?.getAttribute("tabindex")];
+      ...names.map((name) => {
+        const tab = tabNamed(name);
+        return [tab.getAttribute("aria-selected"), tab.getAttribute("tabindex")];
       }),
-      ...PANELS.map((id) => (document.getElementById(id) as HTMLElement).hidden),
+      ...names.map((name) => panelOf(name).hidden),
     ];
   }
 
@@ -375,46 +399,39 @@ describe("the inspector's tabs", () => {
     show(storeOf(), [A]);
     const list = document.querySelector('[role="tablist"]');
     expect(list?.getAttribute("aria-label")).toBe("Inspector sections");
-    const tabs = [...(list?.querySelectorAll('[role="tab"]') ?? [])];
+    const tabs = [...(list?.querySelectorAll<HTMLElement>('[role="tab"]') ?? [])];
     expect(
-      tabs.map((tab) => [
-        tab.tagName,
-        tab.id,
-        tab.textContent?.trim(),
-        tab.getAttribute("aria-controls"),
-      ]),
-    ).toEqual([
-      ["BUTTON", TABS[0], "Properties", PANELS[0]],
-      ["BUTTON", TABS[1], "Manifest", PANELS[1]],
-      ["BUTTON", "inspector-tab-journal", "Journal", "inspector-panel-journal"],
-    ]);
-    expect(
-      PANELS.map((id) => {
-        const panel = document.getElementById(id);
+      tabs.map((tab) => {
+        const panel = document.getElementById(tab.getAttribute("aria-controls") ?? "");
         return [
+          tab.tagName,
+          tab.textContent?.trim(),
           panel?.getAttribute("role"),
-          panel?.getAttribute("aria-labelledby"),
+          panel?.getAttribute("aria-labelledby") === tab.id,
           panel?.getAttribute("tabindex"),
         ];
       }),
     ).toEqual([
-      ["tabpanel", TABS[0], null],
-      ["tabpanel", TABS[1], null],
+      ["BUTTON", "Properties", "tabpanel", true, null],
+      ["BUTTON", "Manifest", "tabpanel", true, null],
+      ["BUTTON", "Journal", "tabpanel", true, null],
     ]);
     expect(state()).toEqual(PROPERTIES);
-    const [properties, manifest] = PANELS.map((id) => document.getElementById(id));
     expect(document.querySelector('form[aria-label="Block properties"]')?.parentElement).toBe(
-      properties,
+      panelOf("Properties"),
     );
+    openTab("Manifest");
+    expect(state()).toEqual(MANIFEST);
+    const manifest = panelOf("Manifest");
     expect(
       [
         document.querySelector('[role="radiogroup"]'),
         ...document.querySelectorAll('input[type="checkbox"]'),
         textarea(),
-      ].map((item) => manifest?.contains(item as Node)),
+      ].map((item) => manifest.contains(item as Node)),
     ).toEqual([true, true, true, true]);
     expect(
-      [...document.querySelectorAll('.options input[type="checkbox"]')].map((item) => [
+      [...manifest.querySelectorAll('input[type="checkbox"]')].map((item) => [
         item.closest("label")?.textContent?.trim(),
         (item as HTMLInputElement).checked,
       ]),
@@ -422,8 +439,6 @@ describe("the inspector's tabs", () => {
       ["Include styling", false],
       ["Minimal", false],
     ]);
-    openTab("Manifest");
-    expect(state()).toEqual(MANIFEST);
     openTab("Properties");
     expect(state()).toEqual(PROPERTIES);
   });
@@ -431,22 +446,26 @@ describe("the inspector's tabs", () => {
   it("moves between the tabs with the arrows, Home and End", () => {
     show(storeOf(), [A]);
     const steps: [string, unknown[], string][] = [
-      ["ArrowRight", MANIFEST, TABS[1] as string],
-      ["ArrowLeft", PROPERTIES, TABS[0] as string],
-      ["Home", PROPERTIES, TABS[0] as string],
-      ["ArrowRight", MANIFEST, TABS[1] as string],
-      ["ArrowLeft", PROPERTIES, TABS[0] as string],
+      ["ArrowRight", MANIFEST, "Manifest"],
+      ["ArrowLeft", PROPERTIES, "Properties"],
+      ["Home", PROPERTIES, "Properties"],
+      ["ArrowRight", MANIFEST, "Manifest"],
+      ["ArrowLeft", PROPERTIES, "Properties"],
     ];
-    (document.getElementById(TABS[0] as string) as HTMLElement).focus();
+    tabNamed("Properties").focus();
     for (const [key, expected, focused] of steps) {
       press(document.activeElement as HTMLElement, key);
-      expect([key, state(), document.activeElement?.id]).toEqual([key, expected, focused]);
+      expect([key, state(), document.activeElement?.textContent?.trim()]).toEqual([
+        key,
+        expected,
+        focused,
+      ]);
     }
   });
 
   it("leaves a key held with Alt, Ctrl or Meta to the browser", () => {
     show(storeOf(), [A]);
-    const properties = document.getElementById(TABS[0] as string) as HTMLElement;
+    const properties = tabNamed("Properties");
     properties.focus();
     for (const modifier of ["altKey", "ctrlKey", "metaKey"]) {
       const event = new KeyboardEvent("keydown", {
@@ -457,10 +476,10 @@ describe("the inspector's tabs", () => {
       });
       properties.dispatchEvent(event);
       flushSync();
-      expect([modifier, state(), document.activeElement?.id, event.defaultPrevented]).toEqual([
+      expect([modifier, state(), document.activeElement, event.defaultPrevented]).toEqual([
         modifier,
         PROPERTIES,
-        TABS[0],
+        properties,
         false,
       ]);
     }
@@ -474,10 +493,8 @@ describe("the inspector's tabs", () => {
     const root = store.view.blocks[A]?.manifest.timelines[0]?.id;
     store.dispatch({ type: "set", changes: [{ target: `${A}/${root}`, values: { name: "Bye" } }] });
     flushSync();
-    const [properties, manifest] = PANELS.map((id) => document.getElementById(id)) as [
-      HTMLElement,
-      HTMLElement,
-    ];
+    const manifest = panelOf("Manifest");
+    const properties = panelOf("Properties");
     expect(
       [
         ...manifest.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLButtonElement>(
@@ -502,13 +519,10 @@ describe("the inspector's tabs", () => {
       textarea(),
       button("Apply"),
       button("Revert"),
-      document.getElementById("inspector-problems"),
-      document.getElementById("inspector-warnings"),
+      document.querySelector('ul[aria-label="Problems"]'),
+      document.querySelector('ul[aria-label="Warnings"]'),
     ] as Node[];
-    const notices = [
-      document.getElementById("inspector-switch-hint"),
-      document.querySelector(".notice"),
-    ] as Node[];
+    const notices = [switchHint(), document.querySelector(".notice")] as Node[];
     expect([...ordered, ...notices].map((item) => manifest.contains(item))).toEqual(
       Array(10).fill(true),
     );
@@ -539,7 +553,7 @@ describe("the inspector's tabs", () => {
     selected.value = new Set([B]);
     flushSync();
     expect(state()).toEqual(MANIFEST);
-    unmount(app as never);
+    if (app !== undefined) unmount(app);
     show(store, [B]);
     expect(state()).toEqual(PROPERTIES);
   });
@@ -569,7 +583,7 @@ describe("Apply and Revert", () => {
 
   /** The text of block B's stored manifest in JSON and `options`. */
   function storedText(store: Store, options: TextOptions): string {
-    const written = manifestText(manifestOf(store.view.blocks[B] as Block), "json", options);
+    const written = manifestText(manifestOf(blockOf(store, B)), "json", options);
     if (!written.ok) throw new Error("not written");
     return written.value.text;
   }
@@ -618,9 +632,9 @@ describe("Apply and Revert", () => {
       type(textarea(), broken);
       button("Apply").click();
       flushSync();
-      expect(
-        [...document.querySelectorAll("#inspector-problems .code")].map((item) => item.textContent),
-      ).toEqual(["syntax_error"]);
+      expect(problemItems().map((item) => item.querySelector("code")?.textContent)).toEqual([
+        "syntax_error",
+      ]);
       expect(textarea().value).toBe(broken);
       expect(disabled()).toEqual([false, false]);
       expect(store.journal).toHaveLength(2);
@@ -632,7 +646,7 @@ describe("Apply and Revert", () => {
       expect(store.journal).toHaveLength(3);
       expect(store.view.blocks[B]?.manifest.timelines[0]?.name).toBe("Scores");
       expect(textarea().value).toBe(storedText(store, options));
-      expect(document.querySelectorAll("#inspector-problems li")).toHaveLength(0);
+      expect(problemItems()).toHaveLength(0);
       expect(disabled()).toEqual([true, true]);
     });
   }
@@ -641,9 +655,9 @@ describe("Apply and Revert", () => {
 describe("a clean text", () => {
   const buttons = () => [button("Apply").disabled, button("Revert").disabled];
   const listed = () =>
-    [...document.querySelectorAll("#inspector-problems li")].map((item) => [
-      item.querySelector(".code")?.textContent,
-      item.querySelector(".pointer")?.textContent,
+    problemItems().map((item) => [
+      item.querySelectorAll("code")[0]?.textContent,
+      item.querySelectorAll("code")[1]?.textContent,
     ]);
 
   it("follows the store at once when a stale text is typed back to the shown text", () => {
@@ -661,7 +675,7 @@ describe("a clean text", () => {
     expect(textarea().value).toBe(edited);
     type(textarea(), shown);
     expect(document.querySelector(".notice")).toBe(null);
-    const stored = manifestText(manifestOf(store.view.blocks[A] as Block), "json", COMPLETE);
+    const stored = manifestText(manifestOf(blockOf(store, A)), "json", COMPLETE);
     if (!stored.ok) throw new Error("not written");
     expect(textarea().value).toBe(stored.value.text);
     expect(textarea().value).toContain('"name": "Bye"');
@@ -688,7 +702,6 @@ describe("a clean text", () => {
   });
 
   it("keeps a problem of writing the manifest while the text is typed back", async () => {
-    const store = createStore({ view: createView(), journal: [], sessions: {} });
     const manifest = loadManifest(
       dumps({
         timeskeleton: SCHEMA_VERSION,
@@ -705,12 +718,7 @@ describe("a clean text", () => {
       }),
     );
     if (isLoadError(manifest)) throw new Error("refused");
-    const error = store.dispatch({
-      type: "add",
-      into: "workspace",
-      block: { id: A, manifest, x: 0, y: 0 },
-    });
-    if (error !== null) throw new Error(error.message);
+    const store = storeOfFixtures(manifest);
     show(store, [A]);
     openTab("Manifest");
     (document.querySelector('input[value="toml"]') as HTMLInputElement).click();
@@ -741,18 +749,16 @@ describe("an applied manifest", () => {
     press(scale(), "Enter");
     expect(store.journal).toHaveLength(2);
     expect(scale().value).toBe("0");
-    expect(document.querySelector("#property-problem-scale")).not.toBe(null);
+    expect(fieldProblem("scale")).not.toBe(null);
     openTab("Manifest");
     type(textarea(), textarea().value.replace('"Bare"', '"Bared"'));
     button("Apply").click();
     flushSync();
     expect(store.journal).toHaveLength(3);
-    expect(document.getElementById("inspector-tab-manifest")?.getAttribute("aria-selected")).toBe(
-      "true",
-    );
+    expect(selectedTab()).toBe("Manifest");
     openTab("Properties");
     expect(scale().value).toBe("1");
-    expect(document.querySelector("#property-problem-scale")).toBe(null);
+    expect(fieldProblem("scale")).toBe(null);
   });
 });
 
@@ -763,9 +769,9 @@ describe("the inspector's warnings", () => {
 
   /** Each listed warning as its key and its JSON pointer. */
   const listed = () =>
-    [...document.querySelectorAll("#inspector-warnings li")].map((item) => [
-      item.querySelector(".key")?.textContent,
-      item.querySelector(".pointer")?.textContent ?? item.querySelector(".where")?.textContent,
+    [...document.querySelectorAll('ul[aria-label="Warnings"] li')].map((item) => [
+      item.querySelectorAll("code")[0]?.textContent,
+      item.querySelectorAll("code")[1]?.textContent ?? item.querySelector(".where")?.textContent,
     ]);
 
   it("loads every case in core", () => {
@@ -782,17 +788,15 @@ describe("the inspector's warnings", () => {
       const { store, expected } = warningCase(name);
       show(store, [A]);
       openTab("Manifest");
-      expect(document.querySelector("#inspector-warnings")?.getAttribute("aria-label")).toBe(
-        "Warnings",
-      );
+      expect(document.querySelectorAll('ul[aria-label="Warnings"]')).toHaveLength(1);
       expect(listed()).toEqual(
         expected.map((item) => [
           item.key,
           item.path.length === 0 ? "at the top level" : problemPointer(item),
         ]),
       );
-      expect(document.querySelectorAll("#inspector-problems li")).toHaveLength(0);
-      const text = manifestText(manifestOf(store.view.blocks[A] as Block), "json", COMPLETE);
+      expect(problemItems()).toHaveLength(0);
+      const text = manifestText(manifestOf(blockOf(store, A)), "json", COMPLETE);
       if (!text.ok) throw new Error("not written");
       expect(textarea().value).toBe(text.value.text);
       type(textarea(), textarea().value.replace('"meta": {}', '"meta": {"note": "edited"}'));
@@ -805,6 +809,53 @@ describe("the inspector's warnings", () => {
 
   it("shows no warning list for a manifest without unknown keys", () => {
     show(storeOf(), [A]);
-    expect(document.querySelector("#inspector-warnings")).toBe(null);
+    openTab("Manifest");
+    expect(document.querySelector('ul[aria-label="Warnings"]')).toBe(null);
+  });
+});
+
+describe("the inspector in its drawer", () => {
+  /** Mount the drawer, closed, on `store` with `selection` selected. */
+  function drawer(store: Store, selection: string[]): void {
+    app = mount(InspectorDrawer, {
+      target: document.body,
+      props: {
+        live: liveStore(store),
+        selection: new Set(selection),
+        placement: null,
+        storageKey: null,
+      },
+    });
+    flushSync();
+  }
+
+  /** Press the drawer's button labelled `name`. */
+  function toggle(name: "Open inspector" | "Close inspector"): void {
+    document.querySelector<HTMLButtonElement>(`button[aria-label="${name}"]`)?.click();
+    flushSync();
+  }
+
+  it("renders no inspector while closed, and keeps a typed text and the tab through closing", () => {
+    const store = storeOf();
+    const journal = store.journal.length;
+    drawer(store, [`${A}/bare`]);
+    expect(document.querySelectorAll('[role="tablist"], [role="tabpanel"]').length).toBe(0);
+
+    toggle("Open inspector");
+    openTab("Manifest");
+    const shown = textarea().value;
+    const edited = shown.replace('"name": "Bare"', '"name": "Hello"');
+    expect(edited).not.toBe(shown);
+    type(textarea(), edited);
+
+    toggle("Close inspector");
+    expect(document.querySelectorAll('[role="tablist"], [role="tabpanel"]').length).toBe(0);
+    toggle("Open inspector");
+    expect([selectedTab(), textarea().value, button("Apply").disabled]).toEqual([
+      "Manifest",
+      edited,
+      false,
+    ]);
+    expect(store.journal.length).toBe(journal);
   });
 });

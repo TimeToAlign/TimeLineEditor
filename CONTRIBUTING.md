@@ -28,11 +28,13 @@ pnpm lint
 pnpm typecheck
 pnpm test
 pnpm test:budget
+pnpm test:build
 pnpm build
+pnpm build:embed
 pnpm dev
 ```
 
-`pnpm test:budget` runs the workspace store's timing budgets alone, one file at a time; `pnpm test` excludes them.
+`pnpm test:budget` runs the workspace store's timing budgets alone, one file at a time, and `pnpm test:build` the tests that make a production build; `pnpm test` excludes both. `pnpm build:embed` builds the embeddable editor into `app/packages/editor/dist-embed/` ([embedding](docs/architecture.md#embedding)); the wheel bundles only `dist/`.
 
 Run server commands from `server/`:
 
@@ -90,7 +92,7 @@ When adding a package, first establish a present need. Add its permitted edges t
 
 ## Known Limitations
 
-The editor component test mounts the shell and checks its headings, the focus on the canvas, the health request with the offline mark, and the inspector drawer with its remembered state. It covers the token taken from the URL fragment and cleared from the address bar, and the absent token (no fragment, so an empty bearer header is sent). It does not verify CSS layout (the drawer's and the tab's positions are checked end to end), mobile rendering, or a fragment that carries an empty token (`#token=`). The File System Access path is tested against stubbed pickers only; the end-to-end tests remove the pickers and take the file-input and download path in every engine. The server static-file tests do not exercise traversal behavior. Treat these gaps as test coverage to improve when their behavior is changed.
+The editor's component tests mount the page and check its headings, the focus on the canvas, the health request with the offline mark, and the inspector drawer with its remembered state. They cover the token taken from the URL fragment and cleared from the address bar, and the absent token (no fragment, so an empty bearer header is sent). They do not verify CSS layout (the drawer's and the tab's positions are checked end to end), mobile rendering, or a fragment that carries an empty token (`#token=`). The File System Access path is tested against stubbed pickers only; the end-to-end tests remove the pickers and take the file-input and download path in every engine. The server static-file tests do not exercise traversal behavior. Treat these gaps as test coverage to improve when their behavior is changed.
 
 ## Release
 

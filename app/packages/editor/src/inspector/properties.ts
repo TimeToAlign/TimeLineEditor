@@ -1,79 +1,48 @@
 /**
- * The Properties form: the geometry the selection names, the fields it
- * offers, the values they show and the one `set` an edit dispatches. A block
- * edits its placement; an item (a group's frame or an ungrouped root's card)
- * the place its block states for it; a group member's card its group's
- * shared scale and length and its own card size and vertical stretch. Values are read from the
- * block's drawing, the one the canvas shows (`drawingOf`, memoized per
- * block, or during a gesture the drawing the gesture shows), so a field shows
- * what is drawn where nothing is stated. An edit of a place follows the rule
- * of the canvas's gestures at the same level (`keepsItems`), a typed length or
- * spacing writing what a Stretch to it writes (`stretchChanges`), and a field
- * is offered only where the level edits it (`offered`). A band selected alone
- * shows read-only rows instead (`bandRows`).
+ * The Properties form: the containers the selected subjects name, the
+ * fields they offer, the values the fields show and the one `set` an edit
+ * dispatches. The box (the block's whole drawing) edits the block's
+ * placement; an item, a frame or a card held by the box, edits the place
+ * its block states for it; a card held by a frame edits its frame's shared
+ * scale and length and its own card place. Values are read from the
+ * drawing the canvas shows, so a field shows what is drawn where nothing
+ * is stated. The command is the arranger's `placeEdit`, the edit a gesture
+ * at the same level makes; a field is offered only where the level edits
+ * it. A band selected alone shows read-only rows instead (`bandRows`).
  */
 
-import type { Level, LivePlacement, PlaceValues, ResizedItem } from "@timetoalign/tilie-arranger";
-import {
-  drawingOf,
-  keepsItems,
-  placeCommand,
-  placesWith,
-  selectedBand,
-  stretchChanges,
+import type {
+  Level,
+  LivePlacement,
+  PlaceField,
+  PlaceProperty,
+  Subject,
 } from "@timetoalign/tilie-arranger";
-import type { Block, Place, SetCommand, View, WorkspaceSettings } from "@timetoalign/tilie-core";
-import { bandAddress, elementOf, isCommandError, parseAddress } from "@timetoalign/tilie-core";
-import type { Drawing } from "@timetoalign/tilie-layout";
+import {
+  boxOf,
+  fieldsOf,
+  isHeld,
+  isItem,
+  placeEdit,
+  shownValues,
+} from "@timetoalign/tilie-arranger";
+import type { Block, ContainerKind, Holding, SetCommand, View } from "@timetoalign/tilie-core";
+import { isCommandError } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timeskeleton";
-import { BAND_WORDS, withoutBands } from "./edit.ts";
 import type { Result } from "./problems.ts";
 import { InspectorCode, refused } from "./problems.ts";
-
-/** Every property a form edits, in order. */
-export const PROPERTIES = ["x", "y", "scale", "length", "spacing", "width", "height"] as const;
-export type Property = (typeof PROPERTIES)[number];
+import { bandWord } from "./words.ts";
 
 /**
- * What the form edits: a block's placement, the place of an item (a group's
- * frame or an ungrouped root's card), or a group member's card.
+ * What a selected container is to the form: the box, whose placement is
+ * the block's; an item, a frame or a card held by the box, placed freely
+ * in the box; or a card held by a frame. Containers of one role are edited
+ * together.
  */
-export type GeometryKind = "block" | "item" | "card";
-
-/** The fields of an item: every member of its place. */
-const ITEM_FIELDS = [
-  "x",
-  "y",
-  "scale",
-  "length",
-  "spacing",
-  "width",
-  "height",
-] as const satisfies readonly (keyof Place & Property)[];
-
-/** The fields each kind offers, in order. */
-export const FIELDS: { readonly [kind in GeometryKind]: readonly Property[] } = {
-  block: PROPERTIES,
-  item: ITEM_FIELDS,
-  card: ["scale", "length", "spacing", "width", "height"],
-};
-
-/** The fields of a member's card that edit its group's place: the members share them. */
-const SHARED: ReadonlySet<Property> = new Set(["scale", "length"]);
-
-/** Whether a Stretch sets `property`: a typed value then writes what a Stretch to it writes. */
-function stretched(property: Property): property is "length" | "spacing" {
-  return property === "length" || property === "spacing";
-}
-
-/** The block's own fields, which a group or timeline editor refuses to change (a side effect). */
-const BLOCK_FIELDS: ReadonlySet<Property> = new Set(["scale", "length", "spacing"]);
-
-/** An item's position: items are moved in the bundle editor only. */
-const POSITION: ReadonlySet<Property> = new Set(["x", "y"]);
+export type Role = "box" | "item" | "held";
 
 /** The step of each property's spin buttons, stepping keys and wheel. */
-export const STEPS: { readonly [property in Property]: number } = {
+export const STEPS: { readonly [property in PlaceProperty]: number } = {
   x: 1,
   y: 1,
   scale: 0.1,
@@ -84,203 +53,144 @@ export const STEPS: { readonly [property in Property]: number } = {
 };
 
 /** Properties that take an empty field as null: a block's own size, or an unstated size. */
-const NULLABLE: ReadonlySet<Property> = new Set(["width", "height"]);
+const NULLABLE: ReadonlySet<PlaceProperty> = new Set(["width", "height"]);
 
-/** One selected element the form edits. */
+/** The words naming a container of each kind in the form's accessible name. */
+const NOUNS: { readonly [kind in ContainerKind]: string } = {
+  box: "Block",
+  frame: "Frame",
+  card: "Card",
+  band: "Band",
+};
+
+/** The exact value of each field a container's role shows: stated, else drawn. */
+type Values = { readonly [property in PlaceProperty]?: number | null };
+
+/** One selected container the form edits. */
 export interface Edited {
-  /** The block id for the block; else `<block>/<key>`, the target of its own place. */
-  readonly target: string;
-  /** For a member's card, `<block>/<group>`, the target of its group's place; else `null`. */
-  readonly group: string | null;
-  /** The exact value of each field its kind offers: stated, else drawn. */
-  readonly values: { readonly [property in Property]?: number | null };
+  readonly kind: ContainerKind;
+  /** How a card is held; `null` for any other container. */
+  readonly holder: Holding | null;
+  /** The selected address naming it (the first, when several name it). */
+  readonly address: string;
+  readonly values: Values;
 }
 
-/** What the form edits: elements of one kind, all in one block. */
+/** What the form edits: containers of one role, all in one block. */
 export interface Geometry {
-  readonly kind: GeometryKind;
+  readonly role: Role;
   readonly block: Block;
-  /** The workspace's settings, which the block is drawn with. */
-  readonly settings: WorkspaceSettings;
-  /** The block's drawing as stored, which places every item an edit keeps where it is. */
-  readonly drawing: Drawing;
   /** The level of the canvas the form edits at: the arranger, or the innermost editor's kind. */
   readonly level: Level;
+  /** The fields the form shows, in order, and which of them the level edits (`fieldsOf`). */
+  readonly fields: readonly PlaceField[];
   /** The form's accessible name. */
   readonly label: string;
-  /** Each element once, in selection order. */
+  /** Each container once, in selection order. */
   readonly elements: readonly Edited[];
 }
 
-/** One selected element with its kind and the words naming its kind in the form's label. */
-interface Classified extends Edited {
-  readonly kind: GeometryKind;
-  readonly noun: "Block" | "Frame" | "Card";
-}
+/** What the canvas shows of a block: its placement and its drawing, a gesture's while one runs. */
+export type Shown = Omit<LivePlacement, "id">;
 
 /**
- * The geometry the selection names: every address in one block and of one
- * kind, read through core's `parseAddress` and `elementOf` and classified by
- * the block's drawing (`drawing.items` and `drawing.cards`), never by the
- * form of the address. The block id names the block; a group, its title or
- * its frame names the frame; a timeline drawn in a card, by its line, its
- * card or any other part, names that card. `null` for no selection,
- * addresses in several blocks, elements of different kinds, or an element
- * with no geometry of its own (a child drawn in no card of its own, a
- * region, a map, the title). Bands are left out (`withoutBands`). While
- * `placement`, a canvas gesture, shows the block, the values of its items
- * and cards are read from the drawing the gesture shows; `level` decides
- * what an edit states besides its values.
+ * The geometry the subjects name: every subject a container with a box of
+ * its own in one block, all of one role, each read as `shown` draws it. A
+ * timeline, or a part of a timeline or a group, names the card or frame
+ * drawn for it. `null` for no subject, subjects in several blocks, of
+ * different roles, or one without a box (a child drawn in no card of its
+ * own, a region, a map, the title). Bands are left out.
  */
 export function geometryOf(
-  view: View,
-  selection: Iterable<string>,
-  level: Level = "arranger",
-  placement: LivePlacement | null = null,
+  block: Block,
+  subjects: readonly Subject[],
+  shown: Shown,
+  level: Level,
 ): Geometry | null {
-  let block: Block | undefined;
-  const found = new Map<string, Classified>();
-  for (const address of withoutBands(selection)) {
-    const parsed = parseAddress(address);
-    if (isCommandError(parsed) || parsed.block === null) return null;
-    if (block !== undefined && block.id !== parsed.block) return null;
-    block = view.blocks[parsed.block];
-    if (block === undefined) return null;
-    const element = classify(block, shownDrawing(view, block, placement), parsed.element);
-    if (element === undefined) return null;
-    found.set(element.target, element);
+  const found = new Map<string | null, Edited>();
+  let role: Role | null = null;
+  let fields: readonly PlaceField[] = [];
+  for (const subject of subjects) {
+    if (subject.kind === "band") continue;
+    if (subject.block !== block.id || subject.box === null) return null;
+    // The same container as the shown drawing records it, a gesture's while one runs.
+    const box = boxOf(shown.drawing, subject.box.address);
+    if (box === undefined) return null;
+    const own: Role | null =
+      box.kind === "box" ? "box" : isItem(box) ? "item" : isHeld(box) ? "held" : null;
+    if (own === null || (role !== null && own !== role)) return null;
+    role = own;
+    fields = fieldsOf(box, level);
+    if (found.has(box.address)) continue;
+    const values: Values =
+      isItem(box) || isHeld(box) ? shownValues(shown.drawing, box) : placementOf(shown);
+    const holder = box.kind !== "card" ? null : own === "held" ? "frame" : "box";
+    found.set(box.address, { kind: box.kind, holder, address: subject.address, values });
   }
   const elements = [...found.values()];
   const [first] = elements;
-  if (block === undefined || first === undefined) return null;
-  if (elements.some((element) => element.kind !== first.kind)) return null;
-  const nouns = new Set(elements.map((element) => element.noun));
-  const label = nouns.size === 1 ? `${first.noun} properties` : "Frame and card properties";
+  if (role === null || first === undefined) return null;
+  const nouns = new Set(elements.map((element) => NOUNS[element.kind]));
   return {
-    kind: first.kind,
+    role,
     block,
-    settings: view.settings,
-    drawing: drawingOf(block, view.settings, fontMetrics),
     level,
-    label,
-    elements: elements.map(({ target, group, values }) => ({ target, group, values })),
+    fields,
+    label: nouns.size === 1 ? `${NOUNS[first.kind]} properties` : "Frame and card properties",
+    elements,
   };
 }
 
-/** The drawing the canvas shows for `block`: `placement`'s during a gesture on it, else the stored one. */
-function shownDrawing(view: View, block: Block, placement: LivePlacement | null): Drawing {
-  return placement?.id === block.id
-    ? placement.drawing
-    : drawingOf(block, view.settings, fontMetrics);
+/** The block's placement as `shown` shows it: the values of the box. */
+function placementOf(shown: Shown): Values {
+  const { x, y, scale, length, spacing, width, height } = shown;
+  return { x, y, scale, length, spacing, width, height };
 }
 
 /** One read-only row of the Properties tab: what it names and the value it shows. */
-export interface PropertyRow {
+interface PropertyRow {
   readonly label: string;
   readonly value: string;
 }
 
 /**
- * The read-only rows of the band the selection names when it is exactly one
- * band (arranger's `selectedBand`) whose block's drawing records it, read
- * from the drawing the canvas shows as `geometryOf` reads it: "Band", its
- * kind's word (`BAND_WORDS`); "Level", signed, a negative one written with
- * U+2212 MINUS SIGN; "Elements", the displayed elements it holds directly.
- * A timeline drawn with two lines in one drawing has two records under one
- * address; the first, in drawing order, is shown. `null` for any other
- * selection: a band among other addresses is left out (`geometryOf`).
+ * The read-only rows of the band the subjects name when they are exactly
+ * one band, read as `shown` draws it: "Band", its kind's word; "Level",
+ * signed, a negative one written with U+2212 MINUS SIGN; "Elements", the
+ * displayed elements it holds directly. A timeline drawn with two lines in
+ * one drawing has two records under one address; the first, in drawing
+ * order, is shown. `null` for any other selection.
  */
 export function bandRows(
-  view: View,
-  selection: Iterable<string>,
-  placement: LivePlacement | null = null,
+  subjects: readonly Subject[],
+  shown: Shown,
 ): readonly PropertyRow[] | null {
-  const [address, ...others] = selection;
-  const band = address === undefined || others.length > 0 ? null : selectedBand(address);
-  const block = band === null ? undefined : view.blocks[band.block];
-  if (band === null || block === undefined) return null;
-  const drawn = shownDrawing(view, block, placement).bands.find(
-    (record) => record.address === bandAddress(band.timeline, band.kind),
-  );
-  if (drawn === undefined) return null;
-  const { level, elements } = drawn;
+  const [subject, ...others] = subjects;
+  if (subject === undefined || others.length > 0 || subject.resolved.kind !== "band") return null;
+  const { address } = subject.resolved.container;
+  const band = boxOf(shown.drawing, address)?.band;
+  if (band === undefined) return null;
+  const { kind, level, elements } = band;
   return [
-    { label: "Band", value: BAND_WORDS[band.kind] },
+    { label: "Band", value: bandWord(kind) },
     { label: "Level", value: level < 0 ? `−${-level}` : String(level) },
     { label: "Elements", value: String(elements) },
   ];
 }
 
-/** What `element` (an element address, `null` for the block itself) names in `block`, drawn as `drawing`. */
-function classify(block: Block, drawing: Drawing, element: string | null): Classified | undefined {
-  if (element === null) {
-    const { x, y, scale, length, spacing, width, height } = block;
-    return {
-      kind: "block",
-      noun: "Block",
-      target: block.id,
-      group: null,
-      values: { x, y, scale, length, spacing, width, height },
-    };
-  }
-  const key = elementOf(block.manifest, element);
-  const item = drawing.items.find((drawn) => drawn.key === key);
-  if (item !== undefined) {
-    const values: { [property in Property]?: number } = {};
-    for (const property of ITEM_FIELDS)
-      values[property] = item.stated[property] ?? item.place[property];
-    return {
-      kind: "item",
-      noun: item.kind === "group" ? "Frame" : "Card",
-      target: `${block.id}/${key}`,
-      group: null,
-      values,
-    };
-  }
-  const card = drawing.cards.find((drawn) => drawn.key === key);
-  const frame = drawing.items.find((drawn) => drawn.key === card?.group);
-  if (card === undefined || frame === undefined) return undefined;
-  return {
-    kind: "card",
-    noun: "Card",
-    target: `${block.id}/${key}`,
-    group: `${block.id}/${card.group}`,
-    values: {
-      scale: frame.stated.scale ?? frame.place.scale,
-      length: frame.stated.length ?? frame.place.length,
-      spacing: card.spacing,
-      width: card.stated.width ?? card.size.width,
-      height: card.stated.height ?? card.size.height,
-    },
-  };
-}
-
-/**
- * Whether the form offers `property` of `geometry` at its level: a block's
- * own `scale`, `length` and `spacing` not inside a group or timeline editor,
- * which refuse to change them; an item's `x` and `y` only in the bundle
- * editor, the one level that moves items. Every field is offered without a
- * geometry.
- */
-export function offered(geometry: Geometry | null, property: Property): boolean {
-  if (geometry === null) return true;
-  const { kind, level } = geometry;
-  if (kind === "block") {
-    return level === "arranger" || level === "bundle" || !BLOCK_FIELDS.has(property);
-  }
-  return kind !== "item" || level === "bundle" || !POSITION.has(property);
-}
-
-/** A field's label: a member's card names the fields its group holds as the group's. */
-export function fieldLabel(kind: GeometryKind, property: Property): string {
-  return kind === "card" && SHARED.has(property) ? `group ${property}` : property;
+/** A field's label: a held card names the fields its frame's place holds as the group's. */
+export function fieldLabel(role: Role, { property, written }: PlaceField): string {
+  return role === "held" && written === "item" ? `group ${property}` : property;
 }
 
 /**
  * The value every element shows for `property`; `undefined` when they
  * differ (the field then shows none). Exact: only shown through `shownValue`.
  */
-export function commonValue(geometry: Geometry, property: Property): number | null | undefined {
+export function commonValue(
+  geometry: Geometry,
+  property: PlaceProperty,
+): number | null | undefined {
   const [first, ...others] = geometry.elements.map((element) => element.values[property] ?? null);
   if (first === undefined) return undefined;
   return others.every((value) => value === first) ? first : undefined;
@@ -315,139 +225,79 @@ export function stepValue(value: number | null, direction: 1 | -1, step: number)
   return Number((base + direction * step).toFixed(places));
 }
 
+/** Decimal text a field accepts: an optional sign, digits with an optional point, an optional exponent. */
+const DECIMAL = /^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i;
+
+/** The number of a field's decimal text, or `null` for any other text (`0x10`, `Infinity`). */
+export function decimalOf(text: string): number | null {
+  const trimmed = text.trim();
+  if (!DECIMAL.test(trimmed)) return null;
+  const value = Number(trimmed);
+  return Number.isFinite(value) ? value : null;
+}
+
+/** What an edit gives: the one `set`, `null` when it changes nothing, or why it was refused. */
+export type Edit = Result<SetCommand | null>;
+
 /**
- * The one `set` giving `property` of every element the value `valueFor`
- * gives it: a block's own property, else a member of a place (`place:
- * {[property]: value}`), on the group's place for the scale and length of a
- * member's card and on the card's own place for its size and spacing.
- * Elements sharing a target (two cards of one group) change it once, with
- * the first one's value. A place edit follows the canvas's gestures at the
- * geometry's level (`placeCommand`): on the arranger and in the bundle
- * editor the same `set` states, once, the drawn `x`, `y` of every other item
- * that states none, so nothing else moves. A `length` or `spacing` writes
- * what a Stretch to that value writes (`stretchChanges`): every stated width
- * or height it changes the content of keeps its proportion to it, and in the
- * group editor, where the frame does not adapt, a `length` is capped and the
- * frame's width pinned. Each element's stretch starts from the places the
- * ones before it wrote.
+ * The arranger's edit of `property` of every element to `value`, or to
+ * what `value` gives each element's own value (stated, else drawn), as the
+ * gestures at the geometry's level write it.
  */
-export function geometryCommand(
+function edit(
+  view: View,
   geometry: Geometry,
-  property: Property,
-  valueFor: (element: Edited) => number | null,
-): SetCommand {
-  const { block, kind } = geometry;
-  if (kind === "block") {
-    return {
-      type: "set",
-      changes: geometry.elements.map((element) => ({
-        target: element.target,
-        values: { [property]: valueFor(element) },
-      })),
-    };
-  }
-  const places = new Map<string, PlaceValues>();
-  const written = new Set<string>();
-  let edited = block;
-  for (const element of geometry.elements) {
-    const key = keyIn(block, placeTarget(kind, element, property));
-    if (written.has(key)) continue;
-    written.add(key);
-    const value = valueFor(element);
-    const changes =
-      stretched(property) && value !== null
-        ? stretchChanges(
-            edited,
-            geometry.settings,
-            fontMetrics,
-            geometry.level,
-            resizedOf(geometry, element),
-            property,
-            value,
-          )
-        : new Map([[key, { [property]: value }]]);
-    for (const [changed, values] of changes) {
-      places.set(changed, { ...places.get(changed), ...values });
-      edited = { ...edited, places: placesWith(edited.places, changed, values) };
-    }
-  }
-  return placeCommand(block.id, geometry.drawing, places, keepsItems(geometry.level));
-}
-
-/** The target whose place an edit of `property` sets: a member card's group for its shared fields. */
-function placeTarget(kind: GeometryKind, element: Edited, property: Property): string {
-  const shared = kind === "card" && SHARED.has(property);
-  return shared && element.group !== null ? element.group : element.target;
-}
-
-/** The key of `places` that `target`, `<block>/<key>`, names. */
-function keyIn(block: Block, target: string): string {
-  return target.slice(block.id.length + 1);
-}
-
-/**
- * What `element` stores for `property`: the block's own member for the
- * block, else the member of the place an edit of it sets, `null` where that
- * place states none. A drawn value the form shows is not stored.
- */
-function storedValue(geometry: Geometry, element: Edited, property: Property): number | null {
-  const { block, kind } = geometry;
-  if (kind === "block") return block[property];
-  return block.places[keyIn(block, placeTarget(kind, element, property))]?.[property] ?? null;
-}
-
-/** The box of the drawing that `element` names, as the canvas's resize gestures name it. */
-function resizedOf(geometry: Geometry, element: Edited): ResizedItem {
-  const key = keyIn(geometry.block, element.target);
-  if (element.group !== null) {
-    return { kind: "member", key, item: keyIn(geometry.block, element.group) };
-  }
-  const grouped = geometry.drawing.items.some((item) => item.key === key && item.kind === "group");
-  return { kind: grouped ? "frame" : "card", key, item: key };
+  property: PlaceProperty,
+  value: number | null | ((current: number | null) => number | null),
+): Edit {
+  const addresses = new Set(geometry.elements.map((element) => element.address));
+  const command = placeEdit(view, addresses, property, value, geometry.level, fontMetrics);
+  return isCommandError(command)
+    ? { ok: false, problems: [command] }
+    : { ok: true, value: command };
 }
 
 /**
  * The command setting one property of every element from the field's text:
- * a number, or null for an empty `width` or `height` (a block's size left
- * to its content, a place's size unstated); anything else is refused before
- * dispatch, at `[<first target>, property]`. `null` when every element
- * stores that value already (compared exactly, as `commonValue` compares):
- * the commit changes nothing, and the store refuses a `set` that changes
- * nothing. The store's checks decide everything else.
+ * a decimal number, or null for an empty `width` or `height` (a block's
+ * size left to its content, a place's size unstated); anything else is
+ * refused before dispatch, at `[<first address>, property]`. `null` when
+ * every element stores that value already: the commit changes nothing, and
+ * the store refuses a `set` that changes nothing. The store's checks
+ * decide everything else.
  */
 export function propertyCommand(
+  view: View,
   geometry: Geometry,
-  property: Property,
+  property: PlaceProperty,
   input: string,
-): Result<SetCommand | null> {
-  const path = [geometry.elements[0]?.target ?? geometry.block.id, property];
+): Edit {
+  const path = [geometry.elements[0]?.address ?? geometry.block.id, property];
   const trimmed = input.trim();
-  let value: number | null;
   if (trimmed === "") {
-    if (!NULLABLE.has(property)) {
-      return refused(InspectorCode.invalidValue, `${property} needs a number`, path);
-    }
-    value = null;
-  } else {
-    value = Number(trimmed);
-    if (!Number.isFinite(value)) {
-      return refused(InspectorCode.invalidValue, `${trimmed} is not a number`, path);
-    }
+    return NULLABLE.has(property)
+      ? edit(view, geometry, property, null)
+      : refused(InspectorCode.invalidValue, `${property} needs a number`, path);
   }
-  if (geometry.elements.every((element) => storedValue(geometry, element, property) === value)) {
-    return { ok: true, value: null };
-  }
-  return { ok: true, value: geometryCommand(geometry, property, () => value) };
+  const value = decimalOf(trimmed);
+  return value === null
+    ? refused(InspectorCode.invalidValue, `${trimmed} is not a number`, path)
+    : edit(view, geometry, property, value);
 }
 
 /**
  * The command stepping `property` of every element one step of `STEPS`
- * (`direction` ±1) from its own exact value (never from the rounded text the
- * field shows; null counts as 0), so elements of different values each step
- * from theirs.
+ * (`direction` ±1) from its own exact value (never from the rounded text
+ * the field shows; null counts as 0), so elements of different values each
+ * step from theirs.
  */
-export function stepCommand(geometry: Geometry, property: Property, direction: 1 | -1): SetCommand {
-  return geometryCommand(geometry, property, (element) =>
-    stepValue(element.values[property] ?? null, direction, STEPS[property]),
+export function stepCommand(
+  view: View,
+  geometry: Geometry,
+  property: PlaceProperty,
+  direction: 1 | -1,
+): Edit {
+  return edit(view, geometry, property, (current) =>
+    stepValue(current, direction, STEPS[property]),
   );
 }

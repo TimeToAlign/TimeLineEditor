@@ -1,7 +1,19 @@
-import { manifestElements } from "@timetoalign/tilie-core";
+import { manifestElements } from "@timetoalign/tilie-core/drawing";
 import { describe, expect, it } from "vitest";
-import { blockOf, click, existing } from "../src/index.ts";
-import { A, B, C, CHILD_MEMBER, load, numbersView, viewOf } from "./support.ts";
+import { addressParts } from "../src/editing.ts";
+import { blockOf, click, existing } from "../src/selection.ts";
+import {
+  A,
+  B,
+  C,
+  CHILD_MEMBER,
+  changed,
+  load,
+  mixedView,
+  numbersView,
+  storeOf,
+  viewOf,
+} from "./support.ts";
 
 describe("click", () => {
   it("selects the element only", () => {
@@ -42,15 +54,27 @@ describe("click", () => {
   });
 });
 
-describe("blockOf", () => {
-  it("gives the block of an address", () => {
+describe("addressParts and blockOf", () => {
+  it("split an address into its block and its element address, by core's syntax", () => {
+    expect(addressParts(A)).toEqual({ block: A, element: null });
+    expect(addressParts(`${A}/clt_3`)).toEqual({ block: A, element: "clt_3" });
+    expect(addressParts(`${A}/score/region_1/label`)).toEqual({
+      block: A,
+      element: "score/region_1/label",
+    });
+    expect(addressParts(`${A}/score/markers_1`)).toEqual({ block: A, element: "score/markers_1" });
+  });
+
+  it("give the block of an address", () => {
     expect(blockOf(`${A}/clt_3/name`)).toBe(A);
     expect(blockOf(A)).toBe(A);
     expect(blockOf(`${A}/score/region_1/label`)).toBe(A);
   });
 
-  it("refuses the workspace", () => {
+  it("refuse the workspace and a malformed address", () => {
     expect(() => blockOf("workspace")).toThrow(RangeError);
+    expect(() => addressParts("workspace")).toThrow(RangeError);
+    expect(() => addressParts("not a block/x")).toThrow(RangeError);
   });
 });
 
@@ -100,5 +124,57 @@ describe("existing", () => {
       `${A}/group_1/name`,
       `${A}/page/start`,
     ]);
+  });
+});
+
+describe("existing when an editor opens", () => {
+  it("keeps only what lies inside the opened editor", () => {
+    const store = storeOf(
+      changed(mixedView(), {
+        type: "add",
+        into: "workspace",
+        block: { id: B, manifest: load("bare"), x: 1000, y: 0 },
+      }),
+    );
+    const open = (target: string) => {
+      const refusal = store.open(target);
+      if (refusal !== null) throw new Error(refusal.message);
+    };
+    const opening = (target: string, ...addresses: string[]) => {
+      open(target);
+      return [...existing(store.view, new Set(addresses), store.editing.at(-1) ?? null)];
+    };
+    expect(opening(A, A, B, `${A}/group_1`, `${A}/annotations/card`)).toEqual([
+      A,
+      `${A}/group_1`,
+      `${A}/annotations/card`,
+    ]);
+    store.done();
+    expect(
+      opening(
+        `${A}/group_1`,
+        A,
+        `${A}/group_1`,
+        `${A}/score/card`,
+        `${A}/performance`,
+        `${A}/page/card`,
+      ),
+    ).toEqual([`${A}/score/card`, `${A}/performance`]);
+    expect(
+      opening(`${A}/score`, `${A}/score/card`, `${A}/score/start`, `${A}/performance`),
+    ).toEqual([`${A}/score/start`]);
+    store.done();
+    store.done();
+    expect(opening(`${A}/score`, `${A}/score`, `${A}/score/name`)).toEqual([`${A}/score/name`]);
+    store.done();
+    open(`${A}/group_1`);
+    expect(
+      opening(
+        `${A}/score`,
+        `${A}/score/conversion_maps_1`,
+        `${A}/performance/conversion_maps_1`,
+        `${A}/score/start`,
+      ),
+    ).toEqual([`${A}/score/conversion_maps_1`, `${A}/score/start`]);
   });
 });

@@ -1,17 +1,10 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import {
-  BLOCK_ID,
-  formatAddress,
-  indexBetween,
-  indicesBetween,
-  isIndex,
-  isProblem,
-  mintBlockId,
-  nextId,
-  parseAddress,
-  TIMELINE_PREFIX,
-} from "../src/index.ts";
+import { isProblem } from "../src/manifest/invariants.ts";
+import { elementIn, parseAddressSyntax, qualify } from "../src/workspace/address.ts";
+import { BLOCK_ID } from "../src/workspace/blocks.ts";
+import { mintBlockId, nextId, TIMELINE_PREFIX } from "../src/workspace/ids.ts";
+import { indexBetween, indicesBetween, isIndex } from "../src/workspace/order.ts";
 import { A, B, changed, load, refusal, viewOf } from "./support.ts";
 
 describe("block ids", () => {
@@ -62,18 +55,20 @@ describe("element ids", () => {
 
 describe("addresses", () => {
   it.each([
-    ["workspace", { block: null, element: null }],
-    ["0000000000", { block: A, element: null }],
-    ["0000000000/clt_1", { block: A, element: "clt_1" }],
-    ["0000000000/clt_1/start", { block: A, element: "clt_1/start" }],
-  ] as const)("parses and formats %s", (text, expected) => {
-    const parsed = parseAddress(text);
-    expect(parsed).toEqual(expected);
-    if (!isProblem(parsed)) expect(formatAddress(parsed)).toBe(text);
+    ["workspace", null, []],
+    ["0000000000", A, []],
+    ["0000000000/clt_1", A, ["clt_1"]],
+    ["0000000000/clt_1/start", A, ["clt_1", "start"]],
+  ] as const)("splits %s and qualifies its element back", (text, block, segments) => {
+    const parsed = parseAddressSyntax(text);
+    expect(parsed).toEqual({ block, segments });
+    if (isProblem(parsed) || parsed.block === null) return;
+    const element = elementIn(parsed);
+    expect(element === null ? parsed.block : qualify(parsed.block, element)).toBe(text);
   });
 
   it.each(["short", "0000000000/"])("refuses %s", (text) => {
-    expect(refusal(parseAddress(text))).toEqual({ code: "invalid_address", path: [text] });
+    expect(refusal(parseAddressSyntax(text))).toEqual({ code: "invalid_address", path: [text] });
   });
 });
 

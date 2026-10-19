@@ -3,12 +3,17 @@
  * around the content, or stretch the content's lengths and distances.
  */
 
-import type { Block, Change, Place, SetCommand, WorkspaceSettings } from "@timetoalign/tilie-core";
-import { PLACE_MEMBERS } from "@timetoalign/tilie-core";
+import type {
+  Block,
+  Change,
+  ItemPlace,
+  SetCommand,
+  WorkspaceSettings,
+} from "@timetoalign/tilie-core";
+import { ITEM_PLACE_MEMBERS, qualify } from "@timetoalign/tilie-core";
 import type { FontMetrics } from "@timetoalign/timeskeleton";
-import { drawingOf } from "./drawing.ts";
+import { drawingOf, nodePosition } from "./drawing.ts";
 import { GRID_FREE, MIN_LENGTH, MIN_SCALE, MIN_SPACING, quantize } from "./numbers.ts";
-import { nodePosition } from "./project.ts";
 
 export type ResizeMode = "scale" | "box" | "stretch";
 
@@ -34,7 +39,16 @@ export const SIDES: { readonly [handle in Handle]: readonly [-1 | 0 | 1, -1 | 0 
   left: [-1, 0],
 };
 
-export const ALL_HANDLES = Object.keys(SIDES) as readonly Handle[];
+export const ALL_HANDLES: readonly Handle[] = [
+  "top-left",
+  "top",
+  "top-right",
+  "right",
+  "bottom-right",
+  "bottom",
+  "bottom-left",
+  "left",
+];
 const CORNERS: readonly Handle[] = ["top-left", "top-right", "bottom-right", "bottom-left"];
 
 /** The handles a mode offers: the corners to scale, all eight to size or stretch. */
@@ -55,25 +69,45 @@ const NOISE = 2 ** -30;
 /** Beyond this many canvas units, an extent that has not grown never will. */
 const REACH = 2 ** 20;
 
+/** The extent of a function that returns its extent. */
+const extentOf = (extent: number) => extent;
+
+/** What `solve` found: the value and the result of the function there. */
+export interface Solved<R> {
+  readonly value: number;
+  readonly result: R;
+}
+
 /**
  * The largest multiple of `GRID_FREE`, at least `floor`, at which the
- * non-decreasing extent `f` is at most `target`. A target below the
- * smallest extent `f(floor)` is raised to it, so a shrink beyond a flat
- * piece stops at the knee where the extent starts to grow, never at the
- * floor. An extent that never grows past the target leaves `start`.
+ * non-decreasing extent of `f` (`extent` of its result) is at most `target`,
+ * with `f`'s result there. A target below the smallest extent, at `floor`,
+ * is raised to it, so a shrink beyond a flat piece stops at the knee where
+ * the extent starts to grow, never at the floor. An extent that never grows
+ * past the target leaves `start`.
  *
  * Search over the lattice: a Newton guess from `start` (the slope over one
- * step) and its neighbour, which settle an affine piece in four drawings,
- * then bisection between the largest value known to fit and the smallest
- * known not to.
+ * step) and its neighbour, which settle an affine piece in four
+ * evaluations, then bisection between the largest value known to fit and
+ * the smallest known not to. `f` is evaluated at most once per lattice
+ * point.
  */
-export function solve(
-  f: (x: number) => number,
+export function solve<R>(
+  f: (x: number) => R,
+  extent: (result: R) => number,
   start: number,
   target: number,
   floor: number,
-): number {
-  const at = (k: number) => f(k * GRID_FREE);
+): Solved<R> {
+  const results = new Map<number, R>();
+  const evaluate = (x: number): R => {
+    const found = results.get(x);
+    if (found !== undefined) return found;
+    const result = f(x);
+    results.set(x, result);
+    return result;
+  };
+  const at = (k: number) => extent(evaluate(k * GRID_FREE));
   const first = Math.ceil(floor / GRID_FREE);
   const goal = Math.max(target, at(first)) + NOISE;
   // Invariant: at(lo) ≤ goal < at(hi).
@@ -94,11 +128,11 @@ export function solve(
   }
   if (hi === Number.POSITIVE_INFINITY) {
     const far = lo + REACH / GRID_FREE;
-    if (at(far) <= goal) return start;
+    if (at(far) <= goal) return { value: start, result: evaluate(start) };
     hi = far;
   }
   while (hi - lo > 1) probe(Math.floor((lo + hi) / 2));
-  return lo * GRID_FREE;
+  return { value: lo * GRID_FREE, result: evaluate(lo * GRID_FREE) };
 }
 
 /**
@@ -195,13 +229,13 @@ export function resize(
       if (sx !== 0) {
         const width = (value: number) =>
           boxed(block.width, content.width, stretch(value, spacing).width);
-        length = solve(width, length, targetWidth / z, MIN_LENGTH);
+        length = solve(width, extentOf, length, targetWidth / z, MIN_LENGTH).value;
         values.length = length;
       }
       if (sy !== 0) {
         const height = (value: number) =>
           boxed(block.height, content.height, stretch(length, value).height);
-        spacing = solve(height, spacing, targetHeight / z, MIN_SPACING);
+        spacing = solve(height, extentOf, spacing, targetHeight / z, MIN_SPACING).value;
         values.spacing = spacing;
       }
       const stretched = stretch(length, spacing);
@@ -254,11 +288,12 @@ export function blockStretchPlaces(
     spacing: 1,
   };
   let changed = false;
-  const places: { [key: string]: Place } = {};
+  const places: { [key: string]: ItemPlace } = {};
   for (const [key, place] of Object.entries(block.places)) {
-    const scaled: { -readonly [member in keyof Place]: number } = {};
-    for (const member of PLACE_MEMBERS) {
-      const value = place[member];
+    const scaled: { -readonly [member in keyof ItemPlace]: number } = {};
+    const stated: ItemPlace = place;
+    for (const member of ITEM_PLACE_MEMBERS) {
+      const value = stated[member];
       if (value === undefined) continue;
       scaled[member] = quantize(value * ratios[member], GRID_FREE);
       if (scaled[member] !== value) changed = true;
@@ -268,6 +303,9 @@ export function blockStretchPlaces(
   return changed ? places : block.places;
 }
 
+/** The members of a block a resize may set. */
+const RESIZED = ["x", "y", "scale", "length", "spacing", "width", "height", "places"] as const;
+
 /**
  * The `set` storing a resize's values on its block: the block's own members
  * in one change, then the place of every item in `values.places` in one
@@ -276,14 +314,14 @@ export function blockStretchPlaces(
  * changes no stored value is no command, like a drag that ends where it began.
  */
 export function resizeCommand(block: Block, values: Partial<Block>): SetCommand | null {
-  const changed = Object.entries(values).some(
-    ([member, value]) => block[member as keyof Block] !== value,
+  const changed = RESIZED.some(
+    (member) => values[member] !== undefined && values[member] !== block[member],
   );
   if (!changed) return null;
   const { places, ...own } = values;
   const changes: Change[] = [{ target: block.id, values: own }];
   for (const [key, place] of Object.entries(places ?? {})) {
-    changes.push({ target: `${block.id}/${key}`, values: { place } });
+    changes.push({ target: qualify(block.id, key), values: { place } });
   }
   return { type: "set", changes };
 }

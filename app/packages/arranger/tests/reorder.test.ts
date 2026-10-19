@@ -1,6 +1,8 @@
 import type { View } from "@timetoalign/tilie-core";
+import { isCommandError, preview } from "@timetoalign/tilie-core";
 import { describe, expect, it } from "vitest";
-import { drawingOf, memberOrderAt, reorderCommand, withMemberOrder } from "../src/index.ts";
+import { drawingOf } from "../src/drawing.ts";
+import { memberOrderAt, reorderCommand } from "../src/reorder.ts";
 import {
   A,
   blockIn,
@@ -64,17 +66,17 @@ describe("memberOrderAt", () => {
   });
 });
 
-describe("withMemberOrder", () => {
-  it("previews the order, keeping everything else", () => {
-    const manifest = withMemberOrder(block.manifest, "group_1", ["performance", "score"]);
-    expect(manifest.graphical).toEqual({
-      order: { group_1: ["performance", "score"], group_2: ["page", "excerpt"] },
-      statements: [],
-      styles: {},
-    });
+describe("a reorder's preview", () => {
+  it("is the command applied: the cards drawn in the dropped order, everything else kept", () => {
+    const command = reorderCommand(block, "group_1", ["performance", "score"]);
+    if (command === null) throw new Error("no command");
+    const previewed = preview(view, command);
+    if (isCommandError(previewed)) throw new Error(previewed.message);
+    const shown = blockIn(previewed, A);
+    expect(shown.manifest.graphical?.order).toEqual({ group_2: ["page", "excerpt"] });
     expect(block.manifest.graphical?.order?.group_1).toEqual(["score", "performance"]);
-    const cards = drawingOf(block, view.settings, metrics, { manifest }).elements.flatMap(
-      (element) => (element.type === "card" ? [[element.address, element.y]] : []),
+    const cards = drawingOf(shown, previewed.settings, metrics).elements.flatMap((element) =>
+      element.type === "card" ? [[element.address, element.y]] : [],
     );
     expect(cards.slice(0, 2)).toEqual([
       ["performance/card", 53.609375],

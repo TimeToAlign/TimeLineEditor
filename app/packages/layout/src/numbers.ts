@@ -4,18 +4,23 @@
  * 3 and 5.2).
  */
 
+import type { AxisValue, TimelineManifest } from "@timetoalign/tilie-core";
 import {
-  type AxisValue,
   addReal,
   compareReal,
   fromFloat,
   Rational,
   type Real,
-  type TimelineManifest,
   toFloat,
-} from "@timetoalign/tilie-core";
+} from "@timetoalign/tilie-core/numbers";
 import type { NumberType, TimeUnit } from "@timetoalign/timeskeleton";
 import { compactJson, isJsonFloat, JsonFloat } from "@timetoalign/timeskeleton";
+
+function integerValue(value: unknown): bigint {
+  if (isJsonFloat(value)) return BigInt(value.value);
+  if (typeof value === "number" || typeof value === "bigint") return BigInt(value);
+  throw new TypeError("an axis integer is not numeric");
+}
 
 /**
  * A bare value on an axis of number type `numberType` as Python's numeric
@@ -26,10 +31,10 @@ import { compactJson, isJsonFloat, JsonFloat } from "@timetoalign/timeskeleton";
 export function coordinateValue(value: AxisValue, numberType: NumberType): Real {
   if (numberType === "float") return isJsonFloat(value) ? value.value : Number(value);
   // An integral JSON number counts as the integer it equals, as the library reads it.
-  const integer = (item: unknown): bigint =>
-    isJsonFloat(item) ? BigInt(item.value) : BigInt(item as number | bigint);
-  if (Array.isArray(value)) return Rational.fromParts(integer(value[0]), integer(value[1]));
-  return Rational.fromParts(integer(value), 1n);
+  if (Array.isArray(value)) {
+    return Rational.fromParts(integerValue(value[0]), integerValue(value[1]));
+  }
+  return Rational.fromParts(integerValue(value), 1n);
 }
 
 /** A timeline's length on its own axis, or null when the length is not known. */
@@ -38,10 +43,15 @@ export function lengthValue(timeline: TimelineManifest): Real | null {
 }
 
 /** A JSON number or fraction as the tower holds it: a float as a float, an integer or pair exactly. */
-function numberValue(value: AxisValue): Real {
+function numberValue(value: unknown): Real {
   if (isJsonFloat(value)) return value.value;
-  if (Array.isArray(value)) return Rational.fromParts(BigInt(value[0]), BigInt(value[1]));
-  return Rational.fromParts(BigInt(value as number | bigint), 1n);
+  if (Array.isArray(value)) {
+    return Rational.fromParts(integerValue(value[0]), integerValue(value[1]));
+  }
+  if (typeof value === "number" || typeof value === "bigint") {
+    return Rational.fromParts(BigInt(value), 1n);
+  }
+  throw new TypeError("an axis number is not numeric");
 }
 
 /** The larger of two values, compared exactly; of two equal ones, an exact one before a float. */
@@ -58,15 +68,22 @@ function larger(left: Real, right: Real): Real {
  * its length is not known; regions their start and end; breaks and markers
  * their coordinate; jumps their from and to; and every measure-map row that
  * holds both `qstamp` and `actual_length` their sum. Maps are not content.
+ * `reaches` holds the reach of every timeline already walked, so one traversal
+ * walks each subtree once.
  */
-export function reachOf(timeline: TimelineManifest): Real {
+export function reachOf(
+  timeline: TimelineManifest,
+  reaches: WeakMap<TimelineManifest, Real> = new WeakMap(),
+): Real {
+  const cached = reaches.get(timeline);
+  if (cached !== undefined) return cached;
   const own = (value: AxisValue) => coordinateValue(value, timeline.number_type);
   let reach = zero(timeline.number_type);
   const take = (value: Real) => {
     reach = larger(reach, value);
   };
   for (const child of timeline.children) {
-    take(add(own(child.offset as AxisValue), lengthValue(child) ?? reachOf(child)));
+    take(add(own(child.offset), lengthValue(child) ?? reachOf(child, reaches)));
   }
   for (const region of timeline.regions) {
     take(own(region.start));
@@ -80,9 +97,10 @@ export function reachOf(timeline: TimelineManifest): Real {
   }
   for (const row of timeline.measure_map ?? []) {
     if (row.qstamp !== undefined && row.actual_length !== undefined) {
-      take(add(numberValue(row.qstamp as AxisValue), numberValue(row.actual_length as AxisValue)));
+      take(add(numberValue(row.qstamp), numberValue(row.actual_length)));
     }
   }
+  reaches.set(timeline, reach);
   return reach;
 }
 

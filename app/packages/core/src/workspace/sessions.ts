@@ -9,11 +9,11 @@
 import type { Command } from "../commands/types.ts";
 import type { CommandError } from "../errors.ts";
 import { ErrorCode, isCommandError, problem } from "../errors.ts";
-import { elementOf, TITLE_ADDRESS } from "../manifest/files.ts";
-import { findTimeline } from "../manifest/tree.ts";
+import { contains } from "../manifest/contains.ts";
+import type { Address } from "./address.ts";
+import { elementIn, parseAddressSyntax, resolveAddress } from "./address.ts";
 import { BLOCK_ID } from "./blocks.ts";
-import type { Address } from "./ids.ts";
-import { manifestIds, mintBlockId, parseAddress } from "./ids.ts";
+import { mintBlockId } from "./ids.ts";
 import type { View } from "./view.ts";
 
 /** A session id: ten characters of base 36 (`mintSessionId`). */
@@ -195,24 +195,42 @@ export function keepChanges(
 }
 
 /**
- * The editor an address opens: a block the bundle editor, a group the group
- * editor, a root or child timeline the timeline editor; `no_editor` for a
- * part, any other element and `workspace`.
+ * The editor an address opens (`resolveAddress`): a block, by its bare id,
+ * the bundle editor, a group the group editor, a root or child timeline the
+ * timeline editor; `no_editor` for `workspace`, the manifest's own id and
+ * any other element or part; `unknown_target` for an address naming nothing.
  */
 export function editorKindOf(view: View, address: Address): EditorKind | CommandError {
-  const parsed = parseAddress(address);
-  if (isCommandError(parsed)) return parsed;
-  const unknown = problem(ErrorCode.unknownTarget, `${address} names nothing`, [address]);
-  const none = problem(ErrorCode.noEditor, `${address} has no editor`, [address]);
-  if (parsed.block === null) return none;
-  const manifest = view.blocks[parsed.block]?.manifest;
-  if (manifest === undefined) return unknown;
-  const { element } = parsed;
-  if (element === null) return "bundle";
-  const named = elementOf(manifest, element);
-  if (named === element) {
-    if (manifest.groups.some((group) => group.id === element)) return "group";
-    if (findTimeline(manifest, element) !== undefined) return "timeline";
+  const resolved = resolveAddress(view, address);
+  if (isCommandError(resolved)) return resolved;
+  switch (resolved.kind) {
+    case "block":
+      return address === resolved.block.id
+        ? "bundle"
+        : problem(ErrorCode.noEditor, `${address} has no editor`, [address]);
+    case "frame":
+      return "group";
+    case "timeline":
+      return "timeline";
+    default:
+      return problem(ErrorCode.noEditor, `${address} has no editor`, [address]);
   }
-  return named === TITLE_ADDRESS || manifestIds(manifest).has(named) ? none : unknown;
+}
+
+/**
+ * Whether the editor of `target` opens inside the open editor of
+ * `container`: `target` is another element of the same block, and
+ * `container` is that block or contains it (`contains`).
+ */
+export function opensInside(view: View, container: Address, target: Address): boolean {
+  if (target === container) return false;
+  const outer = parseAddressSyntax(container);
+  const inner = parseAddressSyntax(target);
+  if (isCommandError(outer) || isCommandError(inner) || inner.block !== outer.block) return false;
+  const element = elementIn(inner);
+  if (inner.block === null || element === null) return false;
+  const holder = elementIn(outer);
+  if (holder === null) return true;
+  const manifest = view.blocks[inner.block]?.manifest;
+  return manifest !== undefined && contains(manifest, holder, element);
 }

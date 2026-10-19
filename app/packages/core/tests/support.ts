@@ -7,10 +7,20 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
-import { canonicalJson, dumps, parseJson, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
-import type { Block, Command, Manifest, View } from "../src/index.ts";
-import { apply, createView, isCommandError, isLoadError, loadManifest } from "../src/index.ts";
+import { dumps, parseJson, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
+import { apply } from "../src/commands/apply.ts";
+import type { Command } from "../src/commands/types.ts";
+import { isCommandError, isLoadError } from "../src/errors.ts";
 import type { JsonObject, PathSegment } from "../src/json.ts";
+import { canonicalText, compareCodePoints } from "../src/json.ts";
+import { loadManifest } from "../src/manifest/io.ts";
+import type { Manifest } from "../src/manifest/types.ts";
+import type { Block } from "../src/workspace/blocks.ts";
+import { emptyWorkspace } from "../src/workspace/file.ts";
+import type { Store, StoreOptions } from "../src/workspace/store.ts";
+import { createStore } from "../src/workspace/store.ts";
+import type { View } from "../src/workspace/view.ts";
+import { createView } from "../src/workspace/view.ts";
 
 const packageDir = path.dirname(
   createRequire(import.meta.url).resolve("@timetoalign/timeskeleton/package.json"),
@@ -57,6 +67,20 @@ export interface Rejection {
   readonly name: string;
   readonly text: string;
   readonly path: readonly PathSegment[];
+  /** A non-finite number the case substitutes at `path`, which JSON cannot carry. */
+  readonly nonFinite?: NonFinite;
+}
+
+/** The names a rejection case gives a non-finite number, as the schema package's reader knows them. */
+export const NON_FINITE = {
+  Infinity: Number.POSITIVE_INFINITY,
+  NaN: Number.NaN,
+  "-Infinity": Number.NEGATIVE_INFINITY,
+} as const;
+export type NonFinite = keyof typeof NON_FINITE;
+
+function isNonFinite(value: unknown): value is NonFinite {
+  return typeof value === "string" && Object.hasOwn(NON_FINITE, value);
 }
 
 /** Every shared rejection case of the installed schema version, its value rendered as text. */
@@ -68,8 +92,9 @@ export const rejections: readonly Rejection[] = (() => {
     // value and every array position, which is all a pinned path needs.
     return {
       name,
-      text: canonicalJson((entry.manifest ?? entry.document) as never),
+      text: canonicalText(entry.manifest ?? entry.document),
       path: entry.path as (string | number)[],
+      ...(isNonFinite(entry.non_finite) ? { nonFinite: entry.non_finite } : {}),
     };
   });
 })();
@@ -173,4 +198,19 @@ export function testClock(): () => Date {
 export function refusal(result: unknown): { code: string; path: readonly (string | number)[] } {
   if (!isCommandError(result)) throw new Error("expected a refusal");
   return { code: result.code, path: result.path };
+}
+
+/**
+ * A store whose journal reproduces `view`: it adds each block of `view`, in
+ * index order, with its manifest, placement and places, as `viewOf` does.
+ */
+export function storeOf(view: View, options: StoreOptions = {}): Store {
+  const store = createStore(emptyWorkspace(), options);
+  const blocks = Object.values(view.blocks).sort((a, b) => compareCodePoints(a.index, b.index));
+  for (const { id, manifest, places, x, y, scale, length, spacing, width, height } of blocks) {
+    const block = { id, manifest, places, x, y, scale, length, spacing, width, height };
+    const refused = store.dispatch({ type: "add", into: "workspace", block });
+    if (refused !== null) throw new Error(`${refused.code} at ${JSON.stringify(refused.path)}`);
+  }
+  return store;
 }

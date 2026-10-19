@@ -7,7 +7,7 @@
 
 import { type Extent, Rows } from "./fit.ts";
 import { type PreparedTimeline, prepareTimeline, wholeExtent } from "./timeline.ts";
-import type { Entry, Scope } from "./traversal.ts";
+import { type Entry, known, type Scope } from "./traversal.ts";
 
 /** The first fit of one children band (sections 6.3 and 6.4, Children). */
 export interface ChildrenFit {
@@ -42,7 +42,7 @@ export function fitChildren(
   extents: ReadonlyMap<Entry, Extent>,
 ): ChildrenFit {
   const rows = new Rows();
-  const row = new Map(lines.map((line) => [line, rows.place(extents.get(line) as Extent)]));
+  const row = new Map(lines.map((line) => [line, rows.place(known(extents, line))]));
   return { row, count: rows.count };
 }
 

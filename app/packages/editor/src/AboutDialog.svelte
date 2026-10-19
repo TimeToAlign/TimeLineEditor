@@ -1,21 +1,27 @@
 <script lang="ts">
 import { name as arranger } from "@timetoalign/tilie-arranger";
+import type { Health } from "@timetoalign/tilie-client";
 import { name as client } from "@timetoalign/tilie-client";
 import { name as core } from "@timetoalign/tilie-core";
 import { name as layout } from "@timetoalign/tilie-layout";
 import { name as writers } from "@timetoalign/tilie-writers";
 import { SCHEMA_VERSION } from "@timetoalign/timeskeleton";
-import { ATTRIBUTIONS } from "./attributions.ts";
-import type { Health } from "./testHook.ts";
+import { ATTRIBUTIONS, NOTICES_FILE } from "./attributions.ts";
 
 interface Props {
+  /** Whether the editor has a server to ask; without one the pane says "no server". */
+  connected: boolean;
   /** The server's health response; `null` until it answers or when it failed. */
   health: Health | null;
   /** Why the health check failed; empty while it has not failed. */
   offline: string;
+  /** Where the full licence texts are. */
+  noticesUrl: string;
 }
 
-let { health, offline }: Props = $props();
+let { connected, health, offline, noticesUrl }: Props = $props();
+
+const id = $props.id();
 
 const PACKAGES = [core, layout, writers, arranger, client];
 
@@ -23,11 +29,13 @@ let dialog: HTMLDialogElement | undefined = $state();
 let closeButton: HTMLButtonElement | undefined = $state();
 
 const server = $derived(
-  health !== null
-    ? `${health.name} ${health.version} (timetoalign ${health.timetoalign})`
-    : offline !== ""
-      ? `offline: ${offline}`
-      : "waiting for the server",
+  !connected
+    ? "no server"
+    : health !== null
+      ? `${health.name} ${health.version} (timetoalign ${health.timetoalign})`
+      : offline !== ""
+        ? `offline: ${offline}`
+        : "waiting for the server",
 );
 
 /** Show the pane as a modal dialog. */
@@ -37,8 +45,8 @@ export function open(): void {
 }
 </script>
 
-<dialog bind:this={dialog} aria-labelledby="about-heading" class="about">
-  <h2 id="about-heading">About TimeLineEditor</h2>
+<dialog bind:this={dialog} aria-labelledby="{id}-heading" class="about">
+  <h2 id="{id}-heading">About TimeLineEditor</h2>
   <dl>
     <dt>Editor</dt>
     <dd data-testid="about-editor">TimeLineEditor {__TILIE_VERSION__}</dd>
@@ -58,7 +66,7 @@ export function open(): void {
   <h3>Third-party software</h3>
   <p class="notices">
     The full licence texts are in
-    <a href="THIRD_PARTY_NOTICES.txt" target="_blank" rel="noopener">THIRD_PARTY_NOTICES.txt</a>.
+    <a href={noticesUrl} target="_blank" rel="noopener">{NOTICES_FILE}</a>.
   </p>
   <ul class="attributions" data-testid="about-attributions">
     {#each ATTRIBUTIONS as item (item.name)}

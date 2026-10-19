@@ -12,7 +12,7 @@ import type { LoadError, Problem } from "../errors.ts";
 import { ErrorCode, isCommandError, isLoadError, problem } from "../errors.ts";
 import type { JsonObject, PathSegment } from "../json.ts";
 import { isJsonObject, showJson } from "../json.ts";
-import { readManifestValue } from "../manifest/io.ts";
+import { normalizeManifest } from "../manifest/io.ts";
 import type { Manifest } from "../manifest/types.ts";
 import {
   readBoolean,
@@ -23,14 +23,14 @@ import {
   readPositive,
   readString,
 } from "../values.ts";
+import { parseAddressSyntax } from "./address.ts";
 import type { Block, BlockPlacement } from "./blocks.ts";
 import { BLOCK_MEMBERS } from "./blocks.ts";
-import { parseAddress } from "./ids.ts";
 import type { Entry, Session, SessionId, Sessions } from "./sessions.ts";
 import { isSessionEntry, reachedSessions, SESSION_ID } from "./sessions.ts";
 import type { Workspace } from "./store.ts";
 import type { View, WorkspaceSettings } from "./view.ts";
-import { structureProblems, WORKSPACE_META } from "./view.ts";
+import { createView, structureProblems, WORKSPACE_META } from "./view.ts";
 
 const TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 
@@ -133,9 +133,9 @@ function readSettings(problems: Problem[]): Reader {
 }
 
 function readManifest(value: unknown, path: readonly PathSegment[]): Manifest | Problem[] {
-  const manifest = readManifestValue(value);
+  const manifest = normalizeManifest(value);
   if (!isLoadError(manifest)) return manifest;
-  return (manifest as LoadError).problems.map((item) => ({
+  return manifest.problems.map((item) => ({
     ...item,
     path: [...path, ...item.path],
   }));
@@ -215,7 +215,7 @@ function readSessions(problems: Problem[]): Reader {
       {
         target: (target, at) => {
           if (typeof target !== "string") return readString(target, at);
-          const parsed = parseAddress(target);
+          const parsed = parseAddressSyntax(target);
           return isCommandError(parsed) ? { ...parsed, path: at } : target;
         },
         entries: (entries, at) => {
@@ -295,7 +295,8 @@ export function readWorkspace(text: string): Workspace | LoadError {
   try {
     value = parseJson(text);
   } catch (error) {
-    return { problems: [problem(ErrorCode.invalidJson, (error as Error).message, [])] };
+    const message = error instanceof Error ? error.message : "";
+    return { problems: [problem(ErrorCode.invalidJson, message, [])] };
   }
   const problems: Problem[] = [];
   // A file of another format or version is refused for that alone: its other
@@ -347,5 +348,10 @@ export function readWorkspace(text: string): Workspace | LoadError {
 export function writeWorkspace(workspace: Workspace): string {
   const { view, journal, sessions } = workspace;
   const { meta, settings, blocks } = view;
-  return dumps({ meta, settings, blocks, journal, sessions } as never);
+  return dumps({ meta, settings, blocks, journal, sessions });
+}
+
+/** A workspace holding nothing: the empty view, an empty journal, no sessions. */
+export function emptyWorkspace(): Workspace {
+  return { view: createView(), journal: [], sessions: {} };
 }

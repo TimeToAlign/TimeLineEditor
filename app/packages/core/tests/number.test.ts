@@ -1,6 +1,7 @@
+import type { NumberType, TimeUnit } from "@timetoalign/timeskeleton";
 import { JsonFloat } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
-import type { Coordinate } from "../src/index.ts";
+import type { Coordinate } from "../src/number/coordinate.ts";
 import {
   AxisMismatchError,
   addCoordinates,
@@ -8,11 +9,11 @@ import {
   CoordinateError,
   compareCoordinates,
   coordinatesEqual,
-  Rational,
   readAxisValue,
   subtractCoordinates,
   toAxisValue,
-} from "../src/index.ts";
+} from "../src/number/coordinate.ts";
+import { Rational } from "../src/number/rational.ts";
 import {
   addReal,
   compareReal,
@@ -110,8 +111,8 @@ describe("Rational", () => {
 });
 
 describe("bare values mirror number_from_json and number_to_json", () => {
-  const read = (unit: string, numberType: string, value: unknown) =>
-    axisCoordinate(value, { unit, number_type: numberType } as never);
+  const read = (unit: TimeUnit, numberType: NumberType, value: unknown) =>
+    axisCoordinate(value, { unit, number_type: numberType });
 
   it("reads an int value from a JSON integer or an integral JSON number", () => {
     expect(read("ticks", "int", 480n)).toEqual({ unit: "ticks", numberType: "int", value: 480n });

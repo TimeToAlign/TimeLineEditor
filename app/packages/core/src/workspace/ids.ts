@@ -1,12 +1,9 @@
-/** Block ids, element ids and addresses. */
+/** Minting block ids and element ids. */
 
-import type { Problem } from "../errors.ts";
-import { ErrorCode, problem } from "../errors.ts";
 import type { TimelineClass } from "../manifest/elements.ts";
 import { elementAddress } from "../manifest/files.ts";
 import type { Manifest, TimelineManifest } from "../manifest/types.ts";
 import type { BlockId } from "./blocks.ts";
-import { BLOCK_ID } from "./blocks.ts";
 import type { View } from "./view.ts";
 
 declare const crypto: { getRandomValues(bytes: Uint8Array): Uint8Array };
@@ -35,8 +32,6 @@ export const TIMELINE_PREFIX = {
   ContinuousGraphicalTimeline: "cgt",
   DiscreteGraphicalTimeline: "dgt",
 } as const satisfies Readonly<Record<TimelineClass, string>>;
-
-export type TimelinePrefix = (typeof TIMELINE_PREFIX)[TimelineClass];
 
 /** Every id of a timeline tree, timelines and the elements they hold alike. */
 function treeIds(timeline: TimelineManifest, ids: Set<string>, timelinesOnly = false): Set<string> {
@@ -107,42 +102,4 @@ export function nextId(view: View, block: BlockId, prefix: string, into?: string
   let suffix = 1;
   while (ids.has(`${prefix}_${suffix}`)) suffix += 1;
   return `${prefix}_${suffix}`;
-}
-
-/**
- * The workspace-wide name of what a command targets: `workspace`, a block
- * id, or `<block id>/<element address>`, split at the first slash; the
- * element address of a map, region, break, jump or marker is qualified by
- * its root (`elementAddress`).
- */
-export type Address = string;
-
-export const WORKSPACE = "workspace";
-
-export interface ParsedAddress {
-  /** `null` for the workspace. */
-  readonly block: BlockId | null;
-  /** `null` for the workspace or a block. */
-  readonly element: string | null;
-}
-
-export function parseAddress(text: Address): ParsedAddress | Problem {
-  if (text === WORKSPACE) return { block: null, element: null };
-  const slash = text.indexOf("/");
-  const block = slash < 0 ? text : text.slice(0, slash);
-  const element = slash < 0 ? null : text.slice(slash + 1);
-  if (!BLOCK_ID.test(block)) {
-    return problem(ErrorCode.invalidAddress, "an address is workspace or starts with a block id", [
-      text,
-    ]);
-  }
-  if (element === "") {
-    return problem(ErrorCode.invalidAddress, "an address element cannot be empty", [text]);
-  }
-  return { block, element };
-}
-
-export function formatAddress(value: ParsedAddress): Address {
-  if (value.block === null) return WORKSPACE;
-  return value.element === null ? value.block : `${value.block}/${value.element}`;
 }

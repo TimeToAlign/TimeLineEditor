@@ -1,7 +1,12 @@
-import { JsonFloat } from "@timetoalign/timeskeleton";
+import { JsonFloat, parseJson } from "@timetoalign/timeskeleton";
 import { describe, expect, it } from "vitest";
-import type { Manifest, TimelineManifest, View } from "../src/index.ts";
-import { apply, createView, DEFAULT_SETTINGS, findTimeline, parseCommand } from "../src/index.ts";
+import { apply } from "../src/commands/apply.ts";
+import { parseCommand } from "../src/commands/parse.ts";
+import { preview } from "../src/commands/preview.ts";
+import { findTimeline } from "../src/manifest/tree.ts";
+import type { Manifest, TimelineManifest } from "../src/manifest/types.ts";
+import type { View } from "../src/workspace/view.ts";
+import { createView, DEFAULT_SETTINGS } from "../src/workspace/view.ts";
 import {
   A,
   addBlock,
@@ -10,6 +15,7 @@ import {
   C,
   changed,
   deepFreeze,
+  fixture,
   load,
   refusal,
   unlockedView,
@@ -99,7 +105,8 @@ describe("add", () => {
         locked: true,
       },
     });
-    const bare = load("bare.json").timelines[0] as TimelineManifest;
+    const [bare] = load("bare.json").timelines;
+    if (bare === undefined) throw new Error("bare.json holds a root");
     expect(root(view).length).toEqual([17, 2]);
     expect(root(view).children).toEqual([
       { ...bare, id: "clt_1", name: null, offset: quarters(1, 2), locked: true },
@@ -115,6 +122,18 @@ describe("add", () => {
       for (const map of order) view = applied(view, { type: "add", into: at("bare"), map });
       expect(root(view).conversion_maps).toEqual([tempo(), ticks()]);
     }
+  });
+
+  it("adds a conversion map into a segment line, validating the entry alone", () => {
+    const view = applied(viewOf([A, "segment_line.json"]), {
+      type: "add",
+      into: at("b"),
+      map: tempo(),
+    });
+    const line = findTimeline(manifest(view), "b");
+    expect(line?.conversion_maps).toEqual([tempo()]);
+    expect(line?.length).toEqual(quarters(12));
+    expect(line?.children.map((child) => child.id)).toEqual(["b1", "b2"]);
   });
 
   it("refuses with the exact code and path", () => {
@@ -240,6 +259,38 @@ describe("set", () => {
     expect(applied(view, set("workspace", { graphical })).settings.graphical).toEqual(graphical);
   });
 
+  it("reads a declaration's integral float of a setting or a style command as its double", () => {
+    // A command text that writes `2.0` reads the number as a `JsonFloat`; the stored
+    // declaration holds the double, so the cascade computes with a number.
+    const view = frozen([A, "map.json"]);
+    const float = new JsonFloat(2);
+    const statement = { select: { element: "map" }, set: { "stroke-width": float } };
+    const stored = { statements: [{ select: { element: "map" }, set: { "stroke-width": 2 } }] };
+    expect(
+      applied(view, set("workspace", { graphical: { statements: [statement] } })).settings
+        .graphical,
+    ).toEqual(stored);
+    const styled = applied(view, {
+      type: "style",
+      select: { element: "map" },
+      set: { "stroke-width": float, opacity: null },
+    });
+    expect(manifest(styled).graphical?.statements).toEqual([
+      { select: { element: "map" }, set: { "stroke-width": 2 } },
+    ]);
+    expect(
+      parseCommand({
+        type: "style",
+        select: { element: "map" },
+        set: { "stroke-width": float, opacity: null },
+      }),
+    ).toEqual({
+      type: "style",
+      select: { element: "map" },
+      set: { "stroke-width": 2, opacity: null },
+    });
+  });
+
   it("replaces a block's manifest whole, whatever it holds", () => {
     const view = applied(viewOf([A, "bare.json"]), set(A, { manifest: load("nested.json") }));
     expect(manifest(view)).toEqual(load("nested.json"));
@@ -331,6 +382,16 @@ describe("set", () => {
       code: "id_not_settable",
       path: [at("melody/tempo"), "map", "id"],
     });
+    // A reader finds the block by its manifest's id; a command aims at the block's own address.
+    const bare = viewOf([A, "bare.json"]);
+    const takes = {
+      ...bare,
+      blocks: { [A]: { ...block(bare), manifest: { ...manifest(bare), id: "takes" } } },
+    };
+    expect(rejected(takes, set(at("takes"), { x: 1 }))).toEqual({
+      code: "unknown_target",
+      path: [at("takes")],
+    });
   });
 
   it("is atomic", () => {
@@ -393,6 +454,26 @@ describe("set", () => {
       ],
     };
     expect(apply(view, undone)).toEqual(nothing(A, "manifest"));
+    const changes = (...items: [string, object][]) => ({
+      type: "set",
+      changes: items.map(([target, values]) => ({ target, values })),
+    });
+    expect(apply(view, changes([A, { x: 5 }], [A, { x: 0 }]))).toEqual(nothing(A, "x"));
+    expect(
+      apply(
+        view,
+        changes([at("clt_1"), { place: { x: 3 } }], [at("clt_1"), { place: { x: null } }]),
+      ),
+    ).toEqual(nothing(at("clt_1"), "place"));
+    const other = applied(view, changes([A, { x: 5 }], [A, { x: 0 }], [B, { x: 7 }]));
+    expect([block(other), block(other, B)]).toEqual([block(view), { ...block(view, B), x: 7 }]);
+    // The child's offset comes back, but the parent it pushed keeps its new length.
+    const pushed = applied(
+      view,
+      changes([at("clt_3"), { offset: quarters(12) }], [at("clt_3"), { offset: quarters(4) }]),
+    );
+    expect(findTimeline(manifest(pushed), "clt_1")?.length).toEqual(quarters(20));
+    expect(findTimeline(manifest(pushed), "clt_3")?.offset).toEqual(quarters(4));
   });
 });
 
@@ -564,6 +645,15 @@ describe("regions, breaks, jumps and markers", () => {
       code: "schema_violation",
       path: jumpTarget,
     });
+    expect(
+      rejected(
+        flow,
+        set(at("flow:quarters/break_1"), { control_type: "nonsense", repeat_count: 2 }),
+      ),
+    ).toEqual({
+      code: "schema_violation",
+      path: [A, "manifest", "timelines", 0, "flow_control", "breaks", 0, "control_type"],
+    });
     const dict = { unit: "quarters", number_type: "fraction", value: [1, 1] };
     expect(rejected(flow, set(at("flow:quarters/break_1"), { coordinate: dict }))).toEqual({
       code: "invalid_coordinate",
@@ -716,6 +806,7 @@ describe("malformed commands", () => {
     [{ type: "set", changes: [{ target: A, values: {} }] }, ["changes", 0, "values"]],
     [{ type: "set", changes: [{ target: A, x: 1 }] }, ["changes", 0, "x"]],
     [{ type: "remove", targets: [] }, ["targets"]],
+    [{ type: "remove", targets: [A], gap: { side: "left", verb: "extend" } }, ["gap"]],
     [{ type: "style", set: {} }, ["select"]],
     [{ type: "style", select: {}, set: {}, blocks: [1] }, ["blocks", 0]],
   ] as [object, (string | number)[]][])("refuses %j at %j", (command, path) => {
@@ -725,5 +816,240 @@ describe("malformed commands", () => {
   it("keeps integral floats as floats", () => {
     const value = new JsonFloat(2);
     expect(parseCommand(set(A, { x: value }))).toEqual(set(A, { x: value }));
+  });
+});
+
+describe("where a timeline lies", () => {
+  const mixed = () => frozen([A, "bundles/bundle_mixed.json"]);
+  const groupOf = (view: View, id: string) => manifest(view).groups.find((item) => item.id === id);
+  const rootIds = (view: View) => manifest(view).timelines.map((item) => item.id);
+  const timeline = (view: View, id: string) => findTimeline(manifest(view), id);
+  /** The default band order of `id` turned to start with its regions band. */
+  const regionsFirst = (id: string) => [
+    `${id}/regions_1`,
+    `${id}/flow_control_1`,
+    `${id}/children_1`,
+    `${id}/conversion_maps_1`,
+    id,
+    `${id}/markers_1`,
+  ];
+
+  it("adds a root timeline completed as a manifest's root is", () => {
+    const [minimal] = (parseJson(fixture("bare.json").twin) as { timelines: object[] }).timelines;
+    const view = applied(mixed(), { type: "add", into: A, timeline: minimal });
+    expect(timeline(view, "bare")).toEqual(root(viewOf([A, "bare.json"])));
+  });
+
+  it("adds a group, its new member's card keeping only its size and stretch", () => {
+    const placed = applied(
+      mixed(),
+      set(at("annotations"), { place: { x: 10, width: 300, spacing: 2 } }),
+    );
+    const view = applied(placed, {
+      type: "add",
+      into: A,
+      group: { id: "group_3", members: ["annotations"] },
+    });
+    expect(groupOf(view, "group_3")).toEqual({
+      id: "group_3",
+      name: null,
+      meta: {},
+      members: ["annotations"],
+    });
+    expect(block(view).places.annotations).toEqual({ width: 300, spacing: 2 });
+  });
+
+  it("adds a minimal group in its complete form, keeping its unknown keys", () => {
+    const view = applied(mixed(), {
+      type: "add",
+      into: A,
+      group: { id: "group_3", members: [], color: "red" },
+    });
+    expect(groupOf(view, "group_3")).toEqual({
+      id: "group_3",
+      name: null,
+      meta: {},
+      members: [],
+      color: "red",
+    });
+  });
+
+  it("makes a child a root, keeping its band order and its card's size", () => {
+    let view = applied(mixed(), set(at("excerpt"), { place: { width: 200, height: 80 } }));
+    view = applied(view, set(at("recording"), { order: regionsFirst("recording") }));
+    const before = timeline(view, "excerpt");
+    if (before === undefined) throw new Error("excerpt is a timeline of bundle_mixed");
+    view = applied(view, set(at("excerpt"), { parent: null }));
+    const { offset: _, ...unplaced } = before;
+    expect(timeline(view, "recording")?.children).toEqual([]);
+    expect(manifest(view).timelines.find((item) => item.id === "excerpt")).toEqual(unplaced);
+    expect(groupOf(view, "group_2")?.members).toEqual(["excerpt", "page"]);
+    expect(block(view).places.excerpt).toEqual({ width: 200, height: 80 });
+    expect(manifest(view).graphical?.order?.excerpt).toEqual(regionsFirst("excerpt"));
+  });
+
+  it("moves a root under another, growing its new parent", () => {
+    const view = applied(
+      mixed(),
+      set(at("annotations"), { parent: { timeline: "score", offset: quarters(4) } }),
+    );
+    const score = timeline(view, "score");
+    expect(score?.length).toEqual(quarters(16));
+    expect(score?.children.map((child) => [child.id, child.offset])).toEqual([
+      ["annotations", quarters(4)],
+    ]);
+    expect(rootIds(view)).not.toContain("annotations");
+  });
+
+  it("joins and leaves a group, its display order following", () => {
+    const joined = applied(mixed(), set(at("annotations"), { group: "group_1" }));
+    expect(groupOf(joined, "group_1")?.members).toEqual(["annotations", "performance", "score"]);
+    expect(manifest(joined).graphical?.order?.group_1).toEqual([
+      "score",
+      "performance",
+      "annotations",
+    ]);
+    const left = applied(mixed(), set(at("performance"), { group: null }));
+    expect(groupOf(left, "group_1")?.members).toEqual(["score"]);
+    expect(manifest(left).graphical?.order?.group_1).toEqual(["score"]);
+  });
+
+  it("refuses with the exact code and path", () => {
+    const view = mixed();
+    const samples = applied(view, {
+      type: "add",
+      into: A,
+      timeline: { id: "extra", unit: "samples", length: 4 },
+    });
+    expect(
+      rejected(view, { type: "add", into: A, timeline: { ...root(view), id: "score" } }),
+    ).toEqual({
+      code: "duplicate_id",
+      path: [at("score")],
+    });
+    expect(
+      rejected(view, { type: "add", into: A, group: { id: "group_3", members: ["score"] } }),
+    ).toEqual({
+      code: "already_member",
+      path: [A, "group", "members", 0],
+    });
+    expect(rejected(view, set(at("score"), { group: "group_2" }))).toEqual({
+      code: "already_member",
+      path: [at("score"), "group"],
+    });
+    expect(rejected(view, set(at("recording"), { group: "group_2" }))).toEqual({
+      code: "nested_member",
+      path: [at("recording"), "group"],
+    });
+    const grouped = applied(view, {
+      type: "add",
+      into: A,
+      timeline: { id: "extra", unit: "quarters", length: quarters(4) },
+    });
+    const joined = applied(grouped, set(at("extra"), { group: "group_1" }));
+    expect(
+      rejected(joined, set(at("score"), { parent: { timeline: "extra", offset: quarters(0) } })),
+    ).toEqual({ code: "nested_member", path: [at("score"), "parent"] });
+    expect(
+      rejected(joined, set(at("extra"), { parent: { timeline: "score", offset: quarters(0) } })),
+    ).toEqual({ code: "nested_member", path: [at("extra"), "parent"] });
+    expect(
+      rejected(view, { type: "add", into: A, group: { id: "group_3", name: 3, members: [] } }),
+    ).toEqual({ code: "schema_violation", path: [A, "group", "name"] });
+    expect(rejected(view, set(at("score"), { group: "ghost" }))).toEqual({
+      code: "unknown_target",
+      path: [at("score"), "group"],
+    });
+    expect(rejected(view, set(at("score"), { group: 3 }))).toEqual({
+      code: "invalid_value",
+      path: [at("score"), "group"],
+    });
+    expect(
+      rejected(view, set(at("annotations"), { parent: { timeline: "recording", offset: 0 } })),
+    ).toEqual({ code: "unit_mismatch", path: [at("annotations"), "parent"] });
+    expect(
+      rejected(view, set(at("recording"), { parent: { timeline: "excerpt", offset: 0 } })),
+    ).toEqual({ code: "cycle", path: [at("recording"), "parent"] });
+    expect(
+      rejected(
+        view,
+        set(at("annotations"), { parent: { timeline: "ghost", offset: quarters(0) } }),
+      ),
+    ).toEqual({ code: "unknown_target", path: [at("annotations"), "parent", "timeline"] });
+    expect(rejected(view, set(at("annotations"), { parent: "score" }))).toEqual({
+      code: "invalid_value",
+      path: [at("annotations"), "parent"],
+    });
+    expect(
+      rejected(samples, set(at("extra"), { parent: { timeline: "excerpt", offset: 88_200 } })),
+    ).toEqual({ code: "child_exceeds_parent", path: [at("extra"), "parent"] });
+    const line = frozen([A, "segment_line.json"]);
+    const extra = applied(line, {
+      type: "add",
+      into: A,
+      timeline: { id: "extra", unit: "quarters", length: quarters(4) },
+    });
+    expect(rejected(line, set(at("b1"), { parent: null }))).toEqual({
+      code: "segment_structure",
+      path: [at("b1"), "parent"],
+    });
+    expect(rejected(line, set(at("b"), { parent: null }))).toEqual({
+      code: "segment_structure",
+      path: [at("b"), "parent"],
+    });
+    expect(
+      rejected(extra, set(at("extra"), { parent: { timeline: "form", offset: quarters(0) } })),
+    ).toEqual({ code: "segment_structure", path: [at("extra"), "parent"] });
+  });
+});
+
+describe("removing a segment", () => {
+  const segments = () => frozen([A, "segment_children.json"]);
+
+  it("refuses a segment on its own, which would leave a gap", () => {
+    expect(apply(segments(), { type: "remove", targets: [at("t2")] })).toEqual({
+      code: "segment_not_removable",
+      message: "Removing segment t2 of line theme is not supported yet",
+      path: [at("t2")],
+    });
+  });
+
+  it("removes a segment with its line or its block", () => {
+    const withLine = applied(segments(), { type: "remove", targets: [at("theme"), at("t2")] });
+    expect(findTimeline(manifest(withLine), "theme")).toBeUndefined();
+    expect(findTimeline(manifest(withLine), "t1")).toBeUndefined();
+    const withBlock = applied(segments(), { type: "remove", targets: [A, at("t2")] });
+    expect(withBlock.blocks).toEqual({});
+  });
+});
+
+describe("previews", () => {
+  it("shows what apply stores", () => {
+    const view = frozen([A, "bundles/bundle_mixed.json"]);
+    for (const command of [
+      set(at("annotations"), { parent: { timeline: "score", offset: quarters(4) } }),
+      set(at("annotations"), { group: "group_1" }),
+      { type: "add", into: A, group: { id: "group_3", members: ["annotations"] } },
+      set(A, { x: 128, y: 64 }),
+    ]) {
+      const parsed = parseCommand(command);
+      if ("code" in parsed) throw new Error(parsed.message);
+      expect(preview(view, parsed)).toEqual(apply(view, command));
+    }
+  });
+
+  it("shows a value only the invariants refuse, and gives back the view for no change", () => {
+    const view = frozen([A, "nested.json"]);
+    const negative = parseCommand(set(at("clt_2"), { offset: quarters(-1) }));
+    const nothing = parseCommand(set(A, { x: 0 }));
+    const unknown = parseCommand(set(at("ghost"), { name: "G" }));
+    if ("code" in negative || "code" in nothing || "code" in unknown) throw new Error("parsed");
+    const shown = preview(view, negative);
+    if ("code" in shown) throw new Error(shown.message);
+    expect(findTimeline(shown.blocks[A]?.manifest ?? manifest(view), "clt_2")?.offset).toEqual(
+      quarters(-1),
+    );
+    expect(preview(view, nothing)).toBe(view);
+    expect(preview(view, unknown)).toEqual(apply(view, set(at("ghost"), { name: "G" })));
   });
 });

@@ -1,6 +1,6 @@
 /** Hand-derived drawings; every number is derived in tests/README.md. */
 
-import { Rational } from "@timetoalign/tilie-core";
+import { Rational } from "@timetoalign/tilie-core/numbers";
 import { describe, expect, it } from "vitest";
 import type { Drawing } from "../src/index.ts";
 import { drawFixture, element } from "./support.ts";

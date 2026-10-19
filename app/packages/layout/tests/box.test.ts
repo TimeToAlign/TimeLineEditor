@@ -9,7 +9,16 @@ import {
   draw,
   manifestLayer,
 } from "../src/index.ts";
-import { BLOCK, drawFixture, element, loadFile, metrics, quarters } from "./support.ts";
+import {
+  BLOCK,
+  boxesOf,
+  drawFixture,
+  element,
+  itemsOf,
+  loadFile,
+  metrics,
+  quarters,
+} from "./support.ts";
 
 const hide = (address: string): Graphical => ({
   statements: [{ select: { ids: [address] }, set: { display: "none" } }],
@@ -265,31 +274,63 @@ describe("a titled manifest with two frames and an ungrouped root", () => {
     expect(addresses.indexOf("performance/name")).toBeLessThan(addresses.indexOf("group_2"));
   });
 
-  it("reports every member's card in drawing order, the ungrouped card as an item", () => {
-    const sized = (key: string, group: string, height: number, start: number, end: number) => ({
-      key,
-      group,
-      address: `${key}/card`,
+  it("records the box, then each frame and card in drawing order, each with its holder", () => {
+    const containers = drawing.boxes.filter((box) => box.kind !== "band");
+    expect(
+      containers.map(({ kind, key, address, holder, range }) => [
+        kind,
+        key,
+        address,
+        holder,
+        range,
+      ]),
+    ).toEqual([
+      ["box", null, null, null, { start: 0, end: 58 }],
+      ["frame", "group_1", "group_1", null, { start: 2, end: 23 }],
+      ["card", "score", "score/card", "group_1", { start: 4, end: 15 }],
+      ["card", "performance", "performance/card", "group_1", { start: 15, end: 23 }],
+      ["frame", "group_2", "group_2", null, { start: 23, end: 47 }],
+      ["card", "page", "page/card", "group_2", { start: 25, end: 33 }],
+      ["card", "excerpt", "excerpt/card", "group_2", { start: 33, end: 47 }],
+      ["card", "annotations", "annotations/card", null, { start: 47, end: 58 }],
+    ]);
+    expect(drawing.elements.length).toBe(58);
+    expect(itemsOf(drawing).map((box) => box.key)).toEqual(["group_1", "group_2", "annotations"]);
+  });
+
+  it("gives every member's card its size, stretch and request, and its rectangle", () => {
+    const sized = (height: number) => ({
       size: { width: 546.484619140625, height },
       spacing: 1,
       stated: {},
-      range: { start, end },
     });
-    expect(drawing.cards).toEqual([
-      sized("score", "group_1", 78.953125, 4, 15),
-      sized("performance", "group_1", 49.4765625, 15, 23),
-      sized("page", "group_2", 49.4765625, 25, 33),
-      sized("excerpt", "group_2", 87.453125, 33, 47),
+    const members = boxesOf(drawing, "card").filter((box) => box.holder !== null);
+    expect(members.map((box) => box.card)).toEqual([
+      sized(78.953125),
+      sized(49.4765625),
+      sized(49.4765625),
+      sized(87.453125),
     ]);
+    for (const box of members) {
+      expect([box.x, box.y, box.width, box.height]).toEqual(
+        Object.values(rect(drawing, box.address as string)),
+      );
+    }
   });
 
-  it("reports the elements each item drew", () => {
-    expect(drawing.items.map((item) => [item.key, item.range])).toEqual([
-      ["group_1", { start: 2, end: 23 }],
-      ["group_2", { start: 23, end: 47 }],
-      ["annotations", { start: 47, end: 58 }],
+  it("holds each band in the card whose member drawing draws its line", () => {
+    const held = (timeline: string, kinds: readonly string[]) =>
+      kinds.map((kind) => [`${timeline}/${kind}_1`, `${timeline}/card`]);
+    expect(boxesOf(drawing, "band").map((box) => [box.address, box.holder])).toEqual([
+      ...held("score", ["conversion_maps", "markers", "flow_control"]),
+      ...held("performance", ["conversion_maps", "markers"]),
+      ...held("page", ["conversion_maps", "markers"]),
+      ...held("excerpt", ["conversion_maps", "markers"]),
+      ...held("annotations", ["markers", "regions"]),
     ]);
-    expect(drawing.elements.length).toBe(58);
+    for (const box of boxesOf(drawing, "band")) {
+      expect(box.range.start).toBe(box.range.end);
+    }
   });
 });
 
@@ -422,7 +463,7 @@ describe("hidden cards and frames keep their place", () => {
     expect(size(drawing)).toEqual([474.5771484375, 65.37890625]);
     expect(element(drawing, null)).toMatchObject({ width: 474.5771484375, height: 65.37890625 });
     expect(without(drawing, ["block"])).toEqual(without(natural, ["block", "card"]));
-    expect(drawing.items[0]?.range).toEqual({ start: 1, end: 7 });
+    expect(itemsOf(drawing)[0]?.range).toEqual({ start: 1, end: 7 });
   });
 
   it("group_child_member: the frame still sets the box", () => {
@@ -431,11 +472,11 @@ describe("hidden cards and frames keep their place", () => {
     expect(drawn(drawing, "card")).toEqual([]);
     expect(size(drawing)).toEqual([558.4140625, 190.13671875]);
     expect(without(drawing, [])).toEqual(without(natural, ["card"]));
-    expect(drawing.cards.map((card) => card.range)).toEqual([
+    expect(boxesOf(drawing, "card").map((card) => card.range)).toEqual([
       { start: 3, end: 15 },
       { start: 15, end: 21 },
     ]);
-    expect(drawing.items[0]?.range).toEqual({ start: 1, end: 21 });
+    expect(itemsOf(drawing)[0]?.range).toEqual({ start: 1, end: 21 });
   });
 
   it("group_child_member: a hidden frame keeps xn and the box", () => {
@@ -446,10 +487,33 @@ describe("hidden cards and frames keep their place", () => {
     expect(rect(drawing, "second-half/card")).toMatchObject({ x: 16 });
     expect(size(drawing)).toEqual([558.4140625, 190.13671875]);
     expect(without(drawing, [])).toEqual(without(natural, ["group"]));
-    expect(drawing.cards.map((card) => card.range)).toEqual([
+    expect(boxesOf(drawing, "card").map((card) => card.range)).toEqual([
       { start: 2, end: 15 },
       { start: 15, end: 22 },
     ]);
-    expect(drawing.items[0]?.range).toEqual({ start: 1, end: 22 });
+    expect(itemsOf(drawing)[0]?.range).toEqual({ start: 1, end: 22 });
+  });
+
+  it("records whether each container's own rectangle is drawn", () => {
+    const displayed = (drawing: Drawing) =>
+      drawing.boxes.map((record) => [record.kind, record.address, record.displayed]);
+    const natural = displayed(drawFixture("groups/group_child_member"));
+    const flip = (hidden: string) =>
+      natural.map(([kind, address, shown]) => [kind, address, kind === hidden ? false : shown]);
+    expect(natural.filter(([kind]) => kind !== "band")).toEqual([
+      ["box", null, true],
+      ["frame", "group_1", true],
+      ["card", "second-half/card", true],
+      ["card", "recording/card", true],
+    ]);
+    expect(natural.filter(([kind]) => kind === "band").every(([, , shown]) => !shown)).toBe(true);
+    for (const [kind, type] of [
+      ["frame", "group"],
+      ["card", "card"],
+    ] as const) {
+      expect(displayed(drawFixture("groups/group_child_member", [hideAll(type)]))).toEqual(
+        flip(kind),
+      );
+    }
   });
 });
