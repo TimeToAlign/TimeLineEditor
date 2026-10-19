@@ -13,7 +13,7 @@ import type {
 import { elementOf, indicesBetween, qualify, TITLE_ADDRESS } from "@timetoalign/tilie-core";
 import type { FontMetrics } from "@timetoalign/timeskeleton";
 import { drawingOf, nodePosition } from "./drawing.ts";
-import { addressParts } from "./editing.ts";
+import { addressParts, type Editing } from "./editing.ts";
 import { GRID_FREE, positionStep, quantize, sameSequence } from "./numbers.ts";
 import { blocksInOrder } from "./project.ts";
 import { type Selection, selectedBand } from "./selection.ts";
@@ -227,11 +227,15 @@ export function zOrderCommand(
  * alone is refused with a hint. Whether a segment may go is core's to
  * decide: one that would leave a gap in its segment line is refused there
  * (`segment_not_removable`), and the canvas shows that refusal as it shows
- * every refusal of the store.
+ * every refusal of the store. Inside an editor the edited element is never
+ * removed, a part of it standing for it as well: it is left out of the
+ * targets, and a selection that names nothing else is refused with a hint
+ * to close the editor first.
  */
 export function removeCommand(
   view: View,
   selection: Selection,
+  editing: Editing | null,
 ): RemoveCommand | { readonly refused: string } {
   if (selection.size === 0) return { refused: "Nothing is selected." };
   const addresses = [...selection].filter((address) => selectedBand(view, address) === null);
@@ -255,5 +259,7 @@ export function removeCommand(
     const target = qualify(block.id, owner);
     if (!targets.includes(target)) targets.push(target);
   }
-  return { type: "remove", targets };
+  const removed = targets.filter((target) => target !== editing?.target);
+  if (removed.length === 0) return { refused: "Close its editor to delete the edited element." };
+  return { type: "remove", targets: removed };
 }

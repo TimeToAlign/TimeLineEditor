@@ -5,10 +5,11 @@ import type { Entry, OpenEditor, Store, View } from "@timetoalign/tilie-core";
 import { listEntries } from "@timetoalign/tilie-core";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it } from "vitest";
+import InspectorDrawer from "../src/InspectorDrawer.svelte";
 import Inspector from "../src/inspector/Inspector.svelte";
 import type { JournalSource } from "../src/inspector/journal.ts";
 import type { Tab } from "../src/inspector/tabs.ts";
-import { initialPick, nextTab, shownTab, TABS, tabsOf } from "../src/inspector/tabs.ts";
+import { initialPick, nextTab, TABS, tabLabel, toggled } from "../src/inspector/tabs.ts";
 import { holder } from "./holder.svelte.ts";
 import { MIXED, mixedStore } from "./mixed.ts";
 
@@ -123,43 +124,72 @@ function click(name: string): void {
   flushSync();
 }
 
-function editorText(): string | undefined {
-  return panelOf("Editor")?.textContent?.trim();
+/** The level panel's title line as [the word, the name], its whole text, and how many elements the panel holds. */
+function titleLine(name: string): unknown[] {
+  const panel = panelOf(name);
+  const line = panel?.querySelector('[data-testid="level-title"]');
+  return [
+    line?.querySelector(".word")?.textContent,
+    line?.querySelector(".name")?.textContent,
+    line?.textContent?.replace(/\s+/g, " ").trim(),
+    panel?.childElementCount,
+  ];
 }
 
+/** The title line `word name`, as `titleLine` reads it. */
+const titled = (word: string, name: string) => [word, name, `${word} ${name}`, 1];
+
 describe("the tab rule", () => {
-  it("offers Editor only while an editor is open", () => {
-    expect([tabsOf(0), tabsOf(1), tabsOf(2)]).toEqual([
-      ["properties", "manifest", "journal"],
-      TABS,
-      TABS,
+  it("has the four tabs, the level tab first and named by its level", () => {
+    expect(TABS).toEqual(["level", "properties", "manifest", "journal"]);
+    expect(
+      (["arranger", "bundle", "group", "timeline"] as const).map((level) =>
+        TABS.map((tab) => tabLabel(tab, level)),
+      ),
+    ).toEqual([
+      ["Arranger", "Properties", "Manifest", "Journal"],
+      ["Bundle", "Properties", "Manifest", "Journal"],
+      ["Group", "Properties", "Manifest", "Journal"],
+      ["Timeline", "Properties", "Manifest", "Journal"],
     ]);
-    expect([initialPick(0, 3), initialPick(1, 3)]).toEqual([
+    expect([initialPick(0, 3), initialPick(1, 3), initialPick(2, 0)]).toEqual([
       { tab: "properties", openings: 3 },
-      { tab: "editor", openings: 3 },
+      { tab: "level", openings: 3 },
+      { tab: "level", openings: 0 },
     ]);
   });
 
-  it("shows Editor after an opening, the chosen tab otherwise, never Editor without an editor", () => {
-    const cases: [Tab, number, number, number, Tab][] = [
-      // [chosen, openings when chosen, openings now, depth, shown]
-      ["properties", 0, 0, 0, "properties"],
-      ["journal", 0, 1, 1, "editor"],
-      ["journal", 1, 1, 1, "journal"],
-      ["journal", 1, 2, 2, "editor"],
-      ["editor", 1, 1, 0, "properties"],
-      ["manifest", 1, 1, 0, "manifest"],
-      ["manifest", 1, 2, 0, "properties"],
+  it("shows the level tab after an opening while hidden, the chosen tab otherwise", () => {
+    const cases: [Tab, number, number, boolean, Tab, number][] = [
+      // [chosen, openings recorded, openings now, shown, tab after, openings after]
+      ["properties", 0, 0, true, "properties", 0],
+      ["journal", 0, 1, true, "level", 1],
+      ["journal", 2, 5, true, "level", 5],
+      ["manifest", 3, 0, true, "level", 0],
+      ["level", 1, 2, true, "level", 2],
+      ["journal", 1, 1, true, "journal", 1],
+      ["journal", 1, 4, false, "journal", 4],
+      ["level", 0, 0, false, "level", 0],
+      ["properties", 0, 2, false, "properties", 2],
     ];
     expect(
-      cases.map(([tab, chosenAt, openings, depth]) =>
-        shownTab({ tab, openings: chosenAt }, openings, depth),
+      cases.map(([tab, recorded, openings, shown]) =>
+        toggled({ tab, openings: recorded }, openings, shown),
       ),
-    ).toEqual(cases.map(([, , , , shown]) => shown));
+    ).toEqual(cases.map(([, , , , tab, openings]) => ({ tab, openings })));
+  });
+
+  it("keeps the chosen tab over editors opened while shown: hiding records them", () => {
+    // Journal chosen at 0 openings; two editors opened while shown; hidden; shown again.
+    const hidden = toggled({ tab: "journal", openings: 0 }, 2, false);
+    expect([hidden, toggled(hidden, 2, true), toggled(hidden, 3, true)]).toEqual([
+      { tab: "journal", openings: 2 },
+      { tab: "journal", openings: 2 },
+      { tab: "level", openings: 3 },
+    ]);
   });
 
   it("moves with the arrows, Home and End, wrapping, and leaves a modified key to the browser", () => {
-    const all = tabsOf(1);
     const key = (name: string, held: Partial<KeyboardEvent> = {}) => ({
       key: name,
       altKey: false,
@@ -168,20 +198,32 @@ describe("the tab rule", () => {
       ...held,
     });
     expect([
-      nextTab(all, "editor", key("ArrowRight")),
-      nextTab(all, "journal", key("ArrowRight")),
-      nextTab(all, "editor", key("ArrowLeft")),
-      nextTab(all, "manifest", key("Home")),
-      nextTab(all, "manifest", key("End")),
-      nextTab(all, "manifest", key("ArrowDown")),
-      nextTab(all, "manifest", key("ArrowRight", { altKey: true })),
-      nextTab(all, "manifest", key("ArrowRight", { ctrlKey: true })),
-      nextTab(all, "manifest", key("ArrowRight", { metaKey: true })),
+      nextTab("level", key("ArrowRight")),
+      nextTab("properties", key("ArrowRight")),
+      nextTab("manifest", key("ArrowRight")),
+      nextTab("journal", key("ArrowRight")),
+      nextTab("level", key("ArrowLeft")),
+      nextTab("properties", key("ArrowLeft")),
+      nextTab("journal", key("ArrowLeft")),
+      nextTab("manifest", key("Home")),
+      nextTab("manifest", key("End")),
+      nextTab("level", key("Home")),
+      nextTab("journal", key("End")),
+      nextTab("manifest", key("ArrowDown")),
+      nextTab("manifest", key("ArrowRight", { altKey: true })),
+      nextTab("manifest", key("ArrowRight", { ctrlKey: true })),
+      nextTab("manifest", key("ArrowRight", { metaKey: true })),
     ]).toEqual([
       "properties",
-      "editor",
+      "manifest",
       "journal",
-      "editor",
+      "level",
+      "journal",
+      "level",
+      "manifest",
+      "level",
+      "journal",
+      "level",
       "journal",
       undefined,
       undefined,
@@ -192,15 +234,15 @@ describe("the tab rule", () => {
 });
 
 describe("the tab set", () => {
-  it("shows Properties, Manifest and Journal without an editor, each tab naming its panel", () => {
+  it("shows the four tabs without an editor, each naming its panel", () => {
     show(mixedStore());
-    expect(tabs()).toEqual([on("Properties"), off("Manifest"), off("Journal")]);
-    expect(panelOf("Editor")).toBe(null);
+    expect(tabs()).toEqual([off("Arranger"), on("Properties"), off("Manifest"), off("Journal")]);
     const pairs = [...document.querySelectorAll<HTMLElement>('[role="tab"]')].map((tab) => {
       const panel = document.getElementById(tab.getAttribute("aria-controls") ?? "");
       return [panel?.getAttribute("role"), panel?.getAttribute("aria-labelledby") === tab.id];
     });
     expect(pairs).toEqual([
+      ["tabpanel", true],
       ["tabpanel", true],
       ["tabpanel", true],
       ["tabpanel", true],
@@ -212,13 +254,14 @@ describe("the tab set", () => {
   it("renders only the panel shown", () => {
     show(mixedStore());
     expect(panels()).toEqual([
+      ["Arranger", true],
       ["Properties", false],
       ["Manifest", true],
       ["Journal", true],
     ]);
-    expect([panelOf("Manifest")?.childElementCount, panelOf("Journal")?.childElementCount]).toEqual(
-      [0, 0],
-    );
+    expect(
+      ["Arranger", "Manifest", "Journal"].map((name) => panelOf(name)?.childElementCount),
+    ).toEqual([0, 0, 0]);
     click("Journal");
     expect([panelOf("Properties")?.childElementCount, panelOf("Journal")?.hidden]).toEqual([
       0,
@@ -226,14 +269,27 @@ describe("the tab set", () => {
     ]);
   });
 
-  it("keeps the tab list with nothing selected", () => {
+  it("names the workspace on the Arranger tab's title line, and nothing else", () => {
+    show(mixedStore());
+    click("Arranger");
+    expect(titleLine("Arranger")).toEqual(titled("Arranger", "untitled"));
+  });
+
+  it("keeps the tab list with nothing selected, the hint on the Manifest tab only", () => {
     show(mixedStore(), []);
-    expect(tabs()).toEqual([on("Properties"), off("Manifest"), off("Journal")]);
-    expect(panelOf("Properties")?.textContent?.trim()).toBe(HINT);
+    expect(tabs()).toEqual([off("Arranger"), on("Properties"), off("Manifest"), off("Journal")]);
+    const properties = panelOf("Properties") as HTMLElement;
+    expect([properties.querySelector(".hint"), properties.textContent?.includes(HINT)]).toEqual([
+      null,
+      false,
+    ]);
+    const name = properties.querySelector<HTMLInputElement>("input");
+    expect([name?.labels?.[0]?.textContent?.trim(), name?.value]).toEqual(["Name", "untitled"]);
     click("Manifest");
     expect(panelOf("Manifest")?.textContent?.trim()).toBe(HINT);
     click("Journal");
     expect(panels()).toEqual([
+      ["Arranger", true],
       ["Properties", true],
       ["Manifest", true],
       ["Journal", false],
@@ -241,49 +297,50 @@ describe("the tab set", () => {
     expect(panelOf("Journal")?.querySelectorAll("li")).toHaveLength(3);
   });
 
-  it("selects Editor on every opening and Properties when the last editor closes", () => {
+  it("keeps the chosen tab while editors open and close, the level tab named by the innermost", () => {
     const { store, stage } = staged(mixedStore());
     show(store);
     stage({ editing: [GROUP] });
-    expect(tabs()).toEqual([on("Editor"), off("Properties"), off("Manifest"), off("Journal")]);
-    expect(panels()).toEqual([
-      ["Editor", false],
-      ["Properties", true],
-      ["Manifest", true],
-      ["Journal", true],
-    ]);
-    expect(editorText()).toBe("Group editor: Performance");
-
+    expect(tabs()).toEqual([off("Group"), on("Properties"), off("Manifest"), off("Journal")]);
     click("Journal");
     stage({ editing: [GROUP, TIMELINE] });
-    expect(tabs()).toEqual([on("Editor"), off("Properties"), off("Manifest"), off("Journal")]);
-    expect(editorText()).toBe("Timeline editor: Score");
-
+    expect(tabs()).toEqual([off("Timeline"), off("Properties"), off("Manifest"), on("Journal")]);
     stage({ editing: [GROUP] });
-    expect(tabs()).toEqual([on("Editor"), off("Properties"), off("Manifest"), off("Journal")]);
-    expect(editorText()).toBe("Group editor: Performance");
-
+    expect(tabs()).toEqual([off("Group"), off("Properties"), off("Manifest"), on("Journal")]);
     stage({ editing: [] });
-    expect(tabs()).toEqual([on("Properties"), off("Manifest"), off("Journal")]);
-    expect(panelOf("Editor")).toBe(null);
-    expect(panelOf("Properties")?.hidden).toBe(false);
+    expect(tabs()).toEqual([off("Arranger"), off("Properties"), off("Manifest"), on("Journal")]);
   });
 
-  it("keeps another tab when the last editor closes", () => {
+  it("keeps the level tab shown, its title line following the innermost editor", () => {
     const { store, stage } = staged(mixedStore());
     show(store);
+    click("Arranger");
+    const lines: unknown[] = [titleLine("Arranger")];
     stage({ editing: [GROUP] });
-    click("Manifest");
+    expect(tabs()).toEqual([on("Group"), off("Properties"), off("Manifest"), off("Journal")]);
+    lines.push(titleLine("Group"));
+    stage({ editing: [GROUP, TIMELINE] });
+    lines.push(titleLine("Timeline"));
+    stage({ editing: [GROUP] });
+    lines.push(titleLine("Group"));
     stage({ editing: [] });
-    expect(tabs()).toEqual([off("Properties"), on("Manifest"), off("Journal")]);
+    expect(tabs()).toEqual([on("Arranger"), off("Properties"), off("Manifest"), off("Journal")]);
+    lines.push(titleLine("Arranger"));
+    expect(lines).toEqual([
+      titled("Arranger", "untitled"),
+      titled("Group", "Performance"),
+      titled("Timeline", "Score"),
+      titled("Group", "Performance"),
+      titled("Arranger", "untitled"),
+    ]);
   });
 
-  it("selects Editor when mounted while an editor is open", () => {
+  it("shows the level tab when mounted while an editor is open", () => {
     const { store, stage } = staged(mixedStore());
     stage({ editing: [editor(A, "bundle")] });
     show(store);
-    expect(tabs()).toEqual([on("Editor"), off("Properties"), off("Manifest"), off("Journal")]);
-    expect(editorText()).toBe("Bundle editor: Mixed");
+    expect(tabs()).toEqual([on("Bundle"), off("Properties"), off("Manifest"), off("Journal")]);
+    expect(titleLine("Bundle")).toEqual(titled("Bundle", "Mixed"));
   });
 
   it("places the editing bar above the tabs while an editor is open", () => {
@@ -305,12 +362,11 @@ describe("with the store's own editors", () => {
     show(store);
     expect(store.open(`${A}/group_1`)).toBe(null);
     flushSync();
-    expect(tabs()).toEqual([on("Editor"), off("Properties"), off("Manifest"), off("Journal")]);
-    expect(editorText()).toBe("Group editor: Performance");
+    expect(tabs()).toEqual([off("Group"), on("Properties"), off("Manifest"), off("Journal")]);
     store.dispatch({ type: "set", changes: [{ target: `${A}/score`, values: { name: "S" } }] });
     store.done();
     flushSync();
-    expect(tabs()).toEqual([on("Properties"), off("Manifest"), off("Journal")]);
+    expect(tabs()).toEqual([off("Arranger"), on("Properties"), off("Manifest"), off("Journal")]);
     click("Journal");
     expect(
       [...(panelOf("Journal")?.querySelectorAll(".text") ?? [])].map((item) => item.textContent),
@@ -320,6 +376,61 @@ describe("with the store's own editors", () => {
       "Added block 0000000001 to workspace",
       "Added block 0000000000 to workspace",
     ]);
+  });
+});
+
+describe("in the drawer", () => {
+  /** The drawer over `store`, closed; its `setOpen` opens and closes it as its buttons do. */
+  function drawer(store: Store): { setOpen(open: boolean): void } {
+    const shown = mount(InspectorDrawer, {
+      target: document.body,
+      props: { live: liveStore(store), selection: new Set([A]), placement: null, storageKey: null },
+    });
+    app = shown;
+    flushSync();
+    return {
+      setOpen(open) {
+        shown.setOpen(open);
+        flushSync();
+      },
+    };
+  }
+
+  it("shows the level tab for an editor opened while it was closed", () => {
+    const store = mixedStore();
+    const { setOpen } = drawer(store);
+    setOpen(true);
+    click("Journal");
+    setOpen(false);
+    expect(store.open(`${A}/group_1`)).toBe(null);
+    setOpen(true);
+    expect(tabs()).toEqual([on("Group"), off("Properties"), off("Manifest"), off("Journal")]);
+    expect(titleLine("Group")).toEqual(titled("Group", "Performance"));
+  });
+
+  it("keeps the chosen tab when no editor opened while it was closed", () => {
+    const store = mixedStore();
+    const { setOpen } = drawer(store);
+    setOpen(true);
+    click("Journal");
+    setOpen(false);
+    setOpen(true);
+    expect(tabs()).toEqual([off("Arranger"), off("Properties"), off("Manifest"), on("Journal")]);
+  });
+
+  it("keeps the chosen tab over an editor opened while it was open, through closing and opening", () => {
+    const store = mixedStore();
+    const { setOpen } = drawer(store);
+    setOpen(true);
+    click("Journal");
+    expect(store.open(`${A}/group_1`)).toBe(null);
+    flushSync();
+    expect(tabs()).toEqual([off("Group"), off("Properties"), off("Manifest"), on("Journal")]);
+    setOpen(true);
+    expect(tabs()).toEqual([off("Group"), off("Properties"), off("Manifest"), on("Journal")]);
+    setOpen(false);
+    setOpen(true);
+    expect(tabs()).toEqual([off("Group"), off("Properties"), off("Manifest"), on("Journal")]);
   });
 });
 
@@ -379,18 +490,19 @@ describe("the keys", () => {
     });
   }
 
-  it("move over the tabs present, wrapping", () => {
+  it("move over the four tabs, wrapping, at the top level and in an editor", () => {
     const { store, stage } = staged(mixedStore());
     show(store);
-    expect(steps("Properties", ["ArrowLeft", "ArrowRight", "End", "Home"])).toEqual([
+    expect(steps("Properties", ["ArrowLeft", "ArrowLeft", "ArrowRight", "End", "Home"])).toEqual([
+      "Arranger",
       "Journal",
-      "Properties",
+      "Arranger",
       "Journal",
-      "Properties",
+      "Arranger",
     ]);
     stage({ editing: [GROUP] });
     expect(
-      steps("Editor", [
+      steps("Group", [
         "ArrowRight",
         "ArrowRight",
         "ArrowRight",
@@ -399,7 +511,7 @@ describe("the keys", () => {
         "Home",
         "End",
       ]),
-    ).toEqual(["Properties", "Manifest", "Journal", "Editor", "Journal", "Editor", "Journal"]);
+    ).toEqual(["Properties", "Manifest", "Journal", "Group", "Journal", "Group", "Journal"]);
   });
 });
 

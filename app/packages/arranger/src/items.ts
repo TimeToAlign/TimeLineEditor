@@ -32,7 +32,7 @@ import { boxOf, isHeld, isItem, itemHolding, itemOf, keyedBox } from "./boxes.ts
 import type { Level, PlaceProperty, Resizing } from "./containers.ts";
 import { LEVELS, RESIZED_BY, resizingOf, resolveSelection } from "./containers.ts";
 import { drawingOf } from "./drawing.ts";
-import { GRID_FREE, MIN_LENGTH, MIN_SCALE, MIN_SPACING, quantize } from "./numbers.ts";
+import { GRID_FREE, MIN_LENGTH, MIN_SCALE, quantize } from "./numbers.ts";
 import type { Delta, Handle, ResizeMode } from "./resize.ts";
 import { ALL_HANDLES, handlesFor, kept, SIDES, solve } from "./resize.ts";
 import type { Selection } from "./selection.ts";
@@ -288,15 +288,17 @@ interface Stretched {
  * stretches with them; vertically the heights of a frame and its cards, or
  * of a held card and its frame; the cards first, since the item's content
  * holds them. Where the level pins the frame's width
- * (`frameWidthPinned`), a stretch along time states the frame's `width` at
- * its drawn width instead, and `changes` caps the length at the largest
- * whose content, the cards' widths following, does not pass it. Sizes are in
- * item coordinates.
+ * (`frameWidthPinned`), a stretch along time keeps the frame at its drawn
+ * width while the content, the cards' widths following, fits in it (its
+ * `width` stated at that width), and lets the frame follow the content once
+ * the content is wider (its `width` unstated), so a stretch shrinks the
+ * members inside the frame and grows the frame with them. Sizes are in item
+ * coordinates.
  */
 export class Stretch {
   /** The factor's value before the stretch. */
   readonly start: number;
-  /** The frame's width pinned along time; `null` where it adapts. */
+  /** The frame's width kept along time while the content fits in it; `null` where it adapts. */
   readonly pinned: number | null;
   readonly #view: View;
   readonly #block: BlockId;
@@ -340,8 +342,13 @@ export class Stretch {
       factor === "length" && LEVELS[level].frameWidthPinned
         ? quantize(item.item.place.width, GRID_FREE)
         : null;
+    // The spacing as drawn: stated, else the container's default (a frame's 8, a card's 4).
     this.start =
-      factor === "length" ? item.item.place.length : (stored.places[this.#key]?.spacing ?? 1);
+      factor === "length"
+        ? item.item.place.length
+        : held
+          ? resized.card.spacing
+          : item.item.place.spacing;
     const cards =
       held && factor === "spacing"
         ? [this.#key]
@@ -373,17 +380,9 @@ export class Stretch {
     return this.#evaluate(value).drawn;
   }
 
-  /**
-   * The places a Stretch to `value` writes: at `value`, or where the frame's
-   * width is pinned and the content at `value` would pass it, at the largest
-   * value up to `value` whose content does not (floored at `MIN_LENGTH`).
-   */
+  /** The places a Stretch to `value` writes. */
   changes(value: number): PlaceChanges {
-    if (this.pinned === null || this.content(value) <= this.pinned) {
-      return this.#evaluate(value).changes;
-    }
-    const capped = solve((at) => this.content(at), identity, this.start, this.pinned, MIN_LENGTH);
-    return this.#evaluate(Math.min(value, capped.value)).changes;
+    return this.#evaluate(value).changes;
   }
 
   #draw(changes: PlaceChanges): Drawing {
@@ -420,9 +419,11 @@ export class Stretch {
         if (request !== stated(key)) set(key, { [size]: request });
       }
     }
-    if (this.pinned !== null) set(this.#item, { [size]: this.pinned });
     const sized = this.#draw(this.#unstated(changes, [this.#item]));
     const content = this.#sizeOf(sized, this.#item);
+    if (this.pinned !== null) {
+      set(this.#item, { [size]: content <= this.pinned ? this.pinned : null });
+    }
     if (this.#itemRequest !== null) {
       const request = kept(this.#itemRequest.stated, this.#itemRequest.content, content);
       if (request !== this.#itemRequest.stated) set(this.#item, { [size]: request });
@@ -457,12 +458,16 @@ export class Stretch {
  *   content stores `null`. On a held card they are the card's own.
  * - `stretch` sets `length` from a left or right handle and `spacing` from
  *   a top or bottom one, both from a corner: the largest value whose box
- *   does not pass the pointer, floored at `MIN_LENGTH` and `MIN_SPACING`,
- *   the places being what a `Stretch` to it writes. A held card stretches
- *   its group along time, the card's own box following the pointer, and
- *   only its own card's `spacing` vertically. Where the frame's width is
- *   pinned, a stretch along time makes the frame's content follow the
- *   pointer, whichever box is dragged; vertically the frame adapts.
+ *   does not pass the pointer, floored at `MIN_LENGTH` and at 0, the places
+ *   being what a `Stretch` to it writes. Vertically a frame's `spacing` is
+ *   the gap between its cards and a box-held card's the gap between its
+ *   rows and bands, and a spacing the search leaves where it was drawn (a
+ *   container without gaps) is not stated; a held card stretches its group
+ *   along time, the card's own box following the pointer, and only its own
+ *   card's `spacing` vertically. Where the frame keeps its
+ *   width (`Stretch`), a stretch along time makes the frame's content
+ *   follow the pointer, whichever box is dragged; vertically the frame
+ *   adapts.
  */
 export function itemResizeValues(
   view: View,
@@ -571,7 +576,8 @@ export function itemResizeValues(
       const drawn = (value: number) => stretch.drawn(value);
       stretchTo(stretch, solve(drawn, identity, stretch.start, target, MIN_LENGTH).value);
     } else {
-      // The frame is pinned, so the frame's content follows the pointer, whichever box is dragged.
+      // The frame keeps its width while the content fits, so the frame's content follows the
+      // pointer, whichever box is dragged.
       const content = (value: number) => stretch.content(value);
       const target = content(stretch.start) + dx / scale;
       stretchTo(stretch, solve(content, identity, stretch.start, target, MIN_LENGTH).value);
@@ -584,7 +590,9 @@ export function itemResizeValues(
       ? sizeIn(drawing, "height") + dy / scale
       : ((sy > 0 ? bottom + dy : bottom) - top) / scale;
     const drawn = (value: number) => stretch.drawn(value);
-    stretchTo(stretch, solve(drawn, identity, stretch.start, target, MIN_SPACING).value);
+    const spacing = solve(drawn, identity, stretch.start, target, 0).value;
+    // A container without gaps draws alike at every spacing: its stretch states nothing.
+    if (spacing !== stretch.start) stretchTo(stretch, spacing);
   }
 
   if (sx >= 0 && sy >= 0) return changes;

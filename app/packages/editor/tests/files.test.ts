@@ -8,7 +8,9 @@ import {
   manifestFileName,
   openFile,
   saveFile,
+  UNTITLED,
   WORKSPACE_FILE,
+  workspaceFileName,
 } from "../src/files.ts";
 import { interceptDownloads, pickFile } from "./support.ts";
 
@@ -17,6 +19,15 @@ afterEach(() => {
   vi.unstubAllEnvs();
   vi.restoreAllMocks();
   document.body.innerHTML = "";
+});
+
+describe("workspaceFileName", () => {
+  it("is the name and .tle.json, every character no file name holds replaced", () => {
+    expect(UNTITLED).toBe("untitled.tle.json");
+    expect(
+      ["untitled", "Eroica sketches", 'a/b\\c:d*e?f"g<h>i|j\t'].map(workspaceFileName),
+    ).toEqual(["untitled.tle.json", "Eroica sketches.tle.json", "a_b_c_d_e_f_g_h_i_j_.tle.json"]);
+  });
 });
 
 describe("manifestFileName", () => {

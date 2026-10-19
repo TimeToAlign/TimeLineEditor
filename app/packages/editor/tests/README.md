@@ -67,11 +67,14 @@ opens, without taking the focus from the canvas; an inner editor does not
 reopen it once the viewer closed it. Save and the autosave write the open
 editor folded (the `add`, then one session entry whose session holds the
 editor's changes), as the hook's `text()` does, and leave it open. Opening
-or closing an editor, and every other change of the store, prunes the
-selection by the arranger's one rule: other timelines' bands go, the
-edited timeline's band and a part stay, and after closing the band goes
-too; with `score`'s editor open inside `group_1`'s, a rename keeps
-`score/start` and drops `score` itself and `performance`.
+an editor, a reopening included, makes the selection its edited element,
+whatever was selected: `A` for the bundle editor of `A`, `A/group_1` for
+`group_1`'s, `A/score/card` for `score`'s. Closing an editor, and every
+other change of the store, prunes the selection by the arranger's one
+rule: other timelines' bands go and a part stays, so closing `score`'s
+editor over its band, `performance`'s band and `score/start` keeps
+`score/start`; with `score`'s editor open inside `group_1`'s, a rename
+keeps `score/start` and `score` itself and drops `performance`.
 
 ## Files (`shell.test.ts`, `files.test.ts`)
 
@@ -87,8 +90,16 @@ TimeLineEditor") gain "• " after a command, lose it when undo returns to
 the opened view and regain it on redo; New workspace on unsaved changes
 asks "untitled.tle.json has unsaved changes. Discard them?" and only
 Discard replaces the workspace. Save writes core's writer's text of the
-store under the workspace's name, takes Ctrl+S from the browser and clears
-the mark; a save requested while one is under way is ignored. In a text
+store under the workspace's file name, takes Ctrl+S from the browser and
+clears the mark; a workspace with no file yet is offered the file its name
+gives (renamed "Eroica sketches", `Eroica sketches.tle.json`), and a
+workspace with a file keeps that file's name when renamed (renamed again
+"Variations", saved again as `Eroica sketches.tle.json`; restored from
+autosave as `score.tle.json`, saved as `score.tle.json`); a save requested while one is under way is ignored.
+A workspace file stating no name opens named `untitled`, whatever the
+file's name (`Op. 35 sketches.tle.json`), and one stating a name its
+journal gave opens under it (`Eroica sketches` from `other.tle.json`); a
+new workspace stays `untitled`. In a text
 field the browser keeps Ctrl+Z; elsewhere Ctrl+Z, Ctrl+Y and Ctrl+Shift+Z
 step the journal and drop selected addresses that no longer exist. Import
 adds one `add` of the manifest at the view's centre, the new block
@@ -96,6 +107,12 @@ selected; a refused manifest ("bad.json is not a manifest") adds nothing.
 Export writes the selected block's manifest, complete or minimal, as core's
 writer gives it, under its manifest file name, and is disabled while the
 selection spans two blocks.
+
+A workspace's file name is its name and `.tle.json`, every character a
+file name cannot hold on Windows, macOS or Linux (the control characters
+and `/ \ : * ? " < > |`) written `_`: `untitled` gives `untitled.tle.json`,
+`Eroica sketches` `Eroica sketches.tle.json`, `a/b\c:d*e?f"g<h>i|j` and a
+tab `a_b_c_d_e_f_g_h_i_j_.tle.json`.
 
 A manifest's file name is its id, else its name, else `bundle`, characters
 outside `[A-Za-z0-9_-]` replaced by `_` (`flow_quarters.json`,
@@ -138,9 +155,13 @@ This test builds the production page with source maps, so it runs under
 `pnpm test:build`, outside `pnpm test`. The oracles are the source maps and
 each bundled package's own files: the attributions name exactly the npm
 packages found in the bundle, each with the licence of its `package.json`
-and every copyright line of its licence file; the icons and the font are
-backed by their licence files; `THIRD_PARTY_NOTICES.txt` holds every full
-licence text in order. No chunk reaches 500 kB, neither the YAML nor the
+and every copyright line of its licence file; the icons and both fonts are
+backed by their licence files, the drawing font (DejaVu Sans) by the schema
+package's and the title font (IBM Plex Mono, vendored in `fonts/`) by its
+own, whose every copyright line the attribution gives; the build emits each
+font once as an asset, the title font byte-equal to the vendored file
+(SHA-256 `ba204497…b350`, 49,248 bytes); `THIRD_PARTY_NOTICES.txt` holds
+every full licence text in order, the two fonts last. No chunk reaches 500 kB, neither the YAML nor the
 TOML codec is preloaded, and no shipped file holds a fixture's generator
 string or "Fixture Generator". The development server may read the app
 workspace and the resolved schema package.
@@ -280,7 +301,7 @@ panels"):
 - Revert shows the selected block's stored manifest, or nothing;
 - a change of format or option writes the text again.
 
-## The Properties form (`inspector-properties.test.ts`, `inspector-bands.test.ts`)
+## The Properties form (`inspector-properties.test.ts`, `inspector-bands.test.ts`, `inspector-fields.test.ts`)
 
 The form edits the geometry of what is selected, never the block's when
 something inside it is. A selected container has a role: the **box** (the
@@ -298,9 +319,9 @@ ungrouped root `annotations`; `recording`, drawn only as `excerpt`'s
 ancestor, has no card).
 
 1. **Roles.** The block names the box, "Block properties", `{x: 0, y: 0,
-   scale: 1, length: 400, spacing: 1, width: null, height: null}`.
+   scale: 1, length: 400, spacing: 8, width: null, height: null}`.
    `group_1` and its title name the frame, "Frame properties", with its
-   record's values. `annotations` and `annotations/card` name the card the
+   record's values (its spacing the frame's default 8). `annotations` and `annotations/card` name the card the
    box holds, "Card properties". `score/card` and `excerpt/card` name cards
    their frames hold, "Card properties", with their frame's scale and length
    and their own spacing and size. Two frames are edited together in
@@ -321,6 +342,8 @@ ancestor, has no card).
    core's place order: the box and an item offer `x`, `y`, `length`,
    `scale`, `spacing`, `width`, `height`; a held card `length`, `scale`
    (labelled "group length", "group scale"), `spacing`, `width`, `height`.
+   The size is the container's: `width` and `height` are labelled
+   "container width" and "container height" in every role.
    Withheld, and disabled in the form: the box's `length`, `scale`,
    `spacing` in a group or timeline editor (the store refuses them there,
    `side_effect`); an item's `x`, `y` everywhere but the bundle editor;
@@ -336,9 +359,10 @@ ancestor, has no card).
    dispatch, `invalid_value` at `[<first address>, property]`: an empty
    `length` or `spacing` ("… needs a number"), `abc`, `0x10` ("… is not a
    number"). A step is the arranger's edit with the step applied to each
-   container's own value.
+   container's own value. A size below its minimum is item 7's.
 6. **Numbers a field shows and steps.** A step adds or subtracts 1 for `x`,
-   `y`, `length`, `width`, `height` and 0.1 for `scale` and `spacing`,
+   `y`, `length`, `spacing` (a gap in canvas units), `width`, `height` and
+   0.1 for `scale`,
    rounded to the decimals of value and step: 10.123 + 1 is 11.123, 1 − 0.1
    is 0.9, 0.9 − 0.1 is 0.8, 0.7 + 0.1 is 0.8, 1e-7 + 0.1 is 0.1000001,
    −0.05 + 0.1 is 0.05, an empty value + 1 is 1. A field shows at most two
@@ -347,6 +371,66 @@ ancestor, has no card).
    (0.125), 1 (1.005, whose double lies below the half), 0 (−0.001), and
    empty for null. Decimal text only: `12.5`, ` 300.0 `, `-.5`, `1e3`, `+7`
    read; `0x10`, `Infinity`, `1e400`, `abc` and the empty text do not.
+
+7. **A size at or below its minimum** (`inspector-fields.test.ts`). A
+   container's minimum `width` or `height` is its content's own extent:
+   what its drawing records when nothing states that size. The oracle is
+   the stored drawing of `bmixed0000`, which states no size anywhere, so
+   the drawn sizes are the minimums: the box's height is the drawing's
+   height, `group_1`'s and `group_2`'s width and height their frame
+   records'. Each container is held to its own minimum, never to another
+   selected container's. The block, whose unstated size the field shows as
+   "auto", is given its minimum as a number: `1` for its `height` is one
+   command equal to the arranger's edit of the block to that minimum. A
+   frame or a card states no size at or below its minimum, as the Box
+   gesture leaves it, and is drawn at the minimum: with `group_1` first
+   stated 10 above its minimum, `1` for its `height` (and, alike, its
+   `width`) is one command equal to the arranger's edit of `group_1` to
+   `null`, and the field then shows the drawn value, the minimum; on the
+   frame stating no size, `1` dispatches nothing. A value below a minimum
+   sets the status line to exactly `To decrease the height below <m> px,
+   decrease the size of the contained elements first.` (`width` for the
+   width), `<m>` the largest minimum a typed value fell below, as a field
+   shows it (at most two decimals). With `group_1` and `group_2` selected,
+   their minimum heights `a < b`, the height `a + 1` (one more than the
+   smaller minimum, below the larger) is one command: the arranger's edit
+   of both frames to `a + 1`, less the change of the frame whose minimum is
+   `b` (it states no height already); the notice names `b`. A size above
+   every minimum, a size equal to a frame's minimum, or an empty one gives
+   no notice. The next typed text clears the notice.
+8. **The name field** (`inspector-fields.test.ts`). The tab's first field
+   is a text field "Name". With nothing selected it is the workspace's name
+   at the top level (`untitled` for this workspace, its target
+   `workspace`, never empty) and, in an editor, the edited element's: the
+   name of what the editor's opening selects, read through core's
+   resolver (the group editor of `group_1` gives `Performance`, target
+   `<block>/group_1`; the bundle editor the manifest's `Mixed`; every
+   edited element has the schema's nullable `name`, so a null one shows an
+   empty field). For one inspected thing its name
+   where the schema gives it one, read through core's resolver, a part
+   standing for its element: the block and its title the manifest's
+   (`Mixed`, target the block), `group_1` (`Performance`), `score` and
+   `score/card` and `score/start` the timeline's (`Score`), the conversion
+   map `page/cmap_1` (empty, its name null; target `<block>/page/cmap_1`).
+   No field for a band, a jump (`score/jump_1`) or two things, in one
+   block or in two; mounted, two blocks selected show no field and the
+   geometry hint. The command: a text equal to the stored name is none; an
+   empty text unstates a nullable name (`{name: null}`) and is sent as
+   `""` for the workspace, which the store refuses. Mounted, `Op. 35` and
+   Enter rename the manifest in one entry; `Eroica` and blur rename the
+   workspace; an emptied workspace name keeps the draft, marks the field
+   `aria-invalid` and shows the store's message `a name is a non-empty
+   string`; Escape drops both. Mounted in the group editor of `group_1`
+   with nothing selected, the field shows `Performance`, and `Duo` with
+   Enter renames the group in one entry of the editor's session.
+9. **The Locked checkbox** (`inspector-fields.test.ts`). Right of the
+   container height, in the row of the container size, a disabled
+   checkbox labelled "Locked" shows the stored `locked` of the inspected
+   timelines: present only when every inspected thing is a timeline, its
+   card or a part of one. `excerpt/card` (locked) checked, `score/card`
+   unchecked, both together indeterminate; `recording`, drawn in no card,
+   shows it after the geometry hint; the block, `group_1` and a band show
+   none. It never dispatches: a click leaves the journal as it is.
 
 Mounted, the form shows each role's fields with those values and states;
 `300` and Enter on a frame's `length` add one entry, exactly the arranger's
@@ -357,8 +441,8 @@ the store's message beside it; Escape drops both; an emptied `scale` shows
 "scale needs a number". A draft shows only for the containers and the
 manifest it was typed for. Two frames of different lengths show an empty
 field with the placeholder "mixed", and ArrowUp dispatches the arranger's
-step. Mixed roles and the title show only "Select a block, a frame or a
-card to edit its geometry."
+step. Mixed roles show only "Select a block, a frame or a card to edit its
+geometry."; the title shows its manifest's name field, then that hint.
 
 **A selected band** (`inspector-bands.test.ts`). A band alone shows three
 read-only rows instead of a form, read from the band's record in the
@@ -372,8 +456,9 @@ Flow control −12 1. The form leaves bands out: a band with the card gives
 the card's geometry exactly, with the block the block's; the band's block
 is the selected block, and a second block makes none. In the component the
 band's panel holds one description list and nothing that edits, and the
-Manifest tab shows the block's text; with the card the panel is exactly
-the card's; two bands show the geometry hint. A band's id is reserved: a
+Manifest tab shows the block's text; with the card the form is exactly
+the card's, without the card's name field and Locked checkbox (two things
+are inspected, one of them no timeline); two bands show the geometry hint. A band's id is reserved: a
 map renamed `conversion_maps_1` in the text is refused, listed as
 `schema_violation` `id "conversion_maps_1" is reserved for the bands of a
 timeline` at `/timelines/0/conversion_maps/0/id`, the text and the journal
@@ -381,16 +466,21 @@ kept.
 
 ## The tabs and panels (`Inspector.test.ts`, `inspector-tabs.test.ts`)
 
-**The tab rule** is proven as a table on the rule alone. The tabs present
-are Properties, Manifest, Journal, and Editor first while an editor is
-open. The tab chosen is recorded with the store's count of editor openings
-at that moment; the tab shown is Editor when an opening happened since,
-else the chosen one, and Properties instead of Editor while no editor is
-open. So: Editor on every opening, Properties when the last editor closes
-with Editor shown, the chosen tab kept otherwise; at mount Editor while an
-editor is open, else Properties. On a focused tab the arrows move to the
-next or previous tab present, wrapping, Home and End to the first and last;
-a key held with Alt, Ctrl or Meta is the browser's and is not prevented.
+**The tab rule** is proven as a table on the rule alone. The four tabs are
+always present, in this order: the level tab, Properties, Manifest,
+Journal. The level tab is labelled by the level's word: "Arranger" with no
+editor open, else "Bundle", "Group" or "Timeline" for the innermost
+editor's kind. The tab chosen is recorded with the store's count of editor
+openings when it was chosen or when the inspector was last shown or
+hidden. While the inspector is shown the tab shown is the tab chosen,
+whatever editors open or close. Hiding the inspector records the count;
+showing it again shows the level tab when the count differs from the
+recorded one (an editor was entered while it was hidden), else the tab
+chosen. At mount the
+level tab is chosen while an editor is open, else Properties. On a focused
+tab the arrows move to the next or previous tab, wrapping, Home and End to
+the first and last; a key held with Alt, Ctrl or Meta is the browser's and
+is not prevented.
 
 **The component** reads the editing path from the real store (open, Done,
 sessions) or from a store whose levels the test sets and announces. The
@@ -403,21 +493,38 @@ closing and reopening, nothing journalled.
    by `aria-labelledby` and without a `tabindex`; every id is unique. The
    selected tab has `aria-selected="true"` and `tabindex` 0, the others
    `false` and −1; only its panel is shown, and a hidden panel renders
-   nothing. With nothing selected the tab list stays and Properties and
-   Manifest each read only "Select a block to inspect its manifest."
-2. **Following the editing path.** Opening a group editor selects Editor,
-   reading "Group editor: Performance"; an inner timeline editor opened with
-   Journal chosen selects Editor again, "Timeline editor: Score"; closing it
-   keeps Editor; closing the last selects Properties, or keeps Manifest when
-   Manifest was chosen; mounted while a bundle editor is open it shows
-   "Bundle editor: Mixed". The editing bar precedes the tab list while an
-   editor is open. Through the real store, opening the group editor,
-   renaming `score` and Done give Properties and a Journal of "Edited group
-   Performance (1 change)" above the three `add`s.
-3. **The keys** follow the rule over the tabs present, with or without an
-   Editor tab, the focus with the selection; the block's fields follow the
+   nothing. With nothing selected the tab list stays, Properties shows the
+   properties panel without a block (no hint) and Manifest reads only
+   "Select a block to inspect its manifest."
+2. **The level panel's title line** is one line, the level's word in one
+   element and the name in another, read together as "<word> <name>": at
+   the top level "Arranger" and the workspace's name ("Arranger untitled"
+   for the store of `bundle_mixed`, whose workspace has the default name),
+   in an editor the editor's word and the edited element's name as
+   "Words" gives it ("Group Performance", "Timeline Score", "Bundle
+   Mixed"). The panel holds the title line and nothing else.
+3. **Following the editing path while shown.** With Properties shown,
+   opening a group editor keeps Properties and relabels the level tab
+   "Group"; an inner timeline editor opened with Journal chosen keeps
+   Journal, the level tab "Timeline"; closing it gives "Group" again;
+   closing the last gives "Arranger", Journal still shown. With the level
+   tab shown, the same path keeps the level tab, its title line following
+   the innermost editor ("Group Performance", "Timeline Score", "Group
+   Performance", "Arranger untitled"). Mounted while a bundle editor is
+   open it shows the level tab, "Bundle Mixed". The editing bar precedes
+   the tab list while an editor is open. Through the real store, opening
+   the group editor, renaming `score` and Done keep Properties and give a
+   Journal of "Edited group Performance (1 change)" above the three `add`s.
+4. **Following the editing path while hidden** (the drawer): with Journal
+   chosen, a group editor opened while the drawer is closed shows the level
+   tab "Group" when it opens; closed and opened again with no editor opened
+   meanwhile, Journal chosen, it shows Journal; with Journal chosen, a
+   group editor opened while the drawer is open, the open drawer opened
+   again, then closed and opened, it still shows Journal.
+5. **The keys** move over the four tabs, wrapping, at the top level and in
+   an editor, the focus with the selection; the block's fields follow the
    editing level as in "The Properties form".
-4. **The Manifest panel**, with `bare` and `styled__score`: choosing YAML
+6. **The Manifest panel**, with `bare` and `styled__score`: choosing YAML
    before its codec is loaded shows "Loading YAML…" and no text area, then
    the YAML text; while the text holds an edit the format radios and both
    options are disabled and "Apply or Revert to switch" is shown and named
@@ -429,20 +536,20 @@ closing and reopening, nothing journalled.
    area "Manifest (JSON)", Apply, Revert, the problem list, the warning
    list. The chosen tab is kept while the selection changes, and an
    unapplied text survives a visit to Properties.
-5. **Apply and Revert are enabled exactly while the text differs from the
+7. **Apply and Revert are enabled exactly while the text differs from the
    shown text,** in each of the four modes: disabled when shown, enabled by
    one typed character, disabled when it is deleted again or after Revert;
    a syntax error keeps both enabled; an accepted Apply disables both. The
    text state's rules hold through the component, a problem of writing
    kept even through Ctrl+Enter.
-6. **An applied manifest drops the property drafts** of its block (the
+8. **An applied manifest drops the property drafts** of its block (the
    refused `scale` of `0` and its problem) and keeps the Manifest tab.
-7. **Warnings.** Each shared warning case of the installed timeskeleton
+9. **Warnings.** Each shared warning case of the installed timeskeleton
    (`fixtures/warnings/<SCHEMA_VERSION>/`) loads in core and, selected,
    lists exactly its expected unknown keys, each with its pointer or "at
    the top level", in a list "Warnings"; no problem is listed, and an
    applied edit keeps the warnings. `bare` shows no warning list.
-8. **The Properties panel** commits on Enter (the box's `x` to 25 is one
+10. **The Properties panel** commits on Enter (the box's `x` to 25 is one
    `set` of `x`), steps from the stored value, never the shown one (10.123
    shown as 10.12 steps to 11.123 and back), steps a draft instead when
    there is one, and shows a gesture's values without replacing a draft.
@@ -482,12 +589,15 @@ oracles are the committed end-to-end workspaces and a store of
    selection.
 2. **Editor names.** A bundle by its `name`, else its `id`, else "Anonymous
    bundle"; a group or timeline by its `name`, else its id; anything the
-   view does not hold by its address. The editing bar, the Editor tab and
-   the Journal use them.
+   view does not hold by its address. The editing bar, the level panel's
+   title line and the Journal use them. The level's word is "Arranger" at
+   the top level, else the editor's: "Bundle", "Group", "Timeline".
 3. **Each journal entry is one sentence**, with the entry's UTC time as
    `HH:MM:SS` and its author: "Added block 0000000003 to workspace", "Added
    region region_1 to 0000000000/score", "Set x, y of 0000000000" (" and 1
-   more" for more changes), "Removed 0000000000/group_2, 0000000001",
+   more" for more changes), a block's size by the Properties form's words
+   ("Set container width, container height of 0000000000"), "Removed
+   0000000000/group_2, 0000000001",
    `Styled {"ids":["score"]}`, and a session "Edited <kind> <name> (n
    changes)", counting changes at every depth ("Edited bundle Mixed (3
    changes)" for a bundle session holding a group session of two), ", k

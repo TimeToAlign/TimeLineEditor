@@ -8,7 +8,6 @@
 import type { Address, View } from "@timetoalign/tilie-core";
 import type { DrawnBox } from "@timetoalign/tilie-layout";
 import type { DescriptorSource } from "@timetoalign/tilie-writers";
-import { nodeBox } from "./blockDrag.ts";
 import type { Hit } from "./boxes.ts";
 import { boxOf, hitForAddress, hitOf, selectionOf } from "./boxes.ts";
 import type { Level } from "./containers.ts";
@@ -20,8 +19,7 @@ import type { Point } from "./gesture.ts";
 import type { BlockNode } from "./project.ts";
 import { insideOf } from "./project.ts";
 import type { Selection } from "./selection.ts";
-import { blockOf } from "./selection.ts";
-import type { Box } from "./snap.ts";
+import { blockOf, click } from "./selection.ts";
 
 /** What a pointer or key target on the canvas is, read once from its event. */
 export interface Pressed {
@@ -105,45 +103,53 @@ export function isOutside(pressed: Pressed, editing: Editing | null): boolean {
 /** What a double-click outside the edited element does: close the innermost editor, as Done does. */
 export const DONE = Symbol("done");
 
+/** What a double-click on the edited element does: centre the view on it again, as opening does. */
+export const RECENTRE = Symbol("recentre");
+
+/** What a double-click or a double tap does: open an editor, close the innermost, or centre the view. */
+export type DoubleClick = Address | typeof DONE | typeof RECENTRE;
+
 /**
  * What a double-click or a double tap on `pressed` does: outside the edited
- * element it closes the innermost editor (`DONE`), else it opens the editor
- * `openableAt` names, or does nothing (`null`).
+ * element it closes the innermost editor (`DONE`); else it opens the editor
+ * `openableAt` names; else, on a block inside the edited element (the
+ * edited element itself, or anything in it that opens no editor), it
+ * centres the view on the edited element again (`RECENTRE`); else nothing
+ * (`null`, on the arranger).
  */
 export function doubleClickAt(
   view: View,
   pressed: Pressed,
   editing: Editing | null,
-): Address | typeof DONE | null {
-  return isOutside(pressed, editing) ? DONE : openableAt(view, pressed, editing);
+): DoubleClick | null {
+  if (isOutside(pressed, editing)) return DONE;
+  const target = openableAt(view, pressed, editing);
+  if (target !== null) return target;
+  return editing !== null && pressed.node !== undefined ? RECENTRE : null;
 }
 
-/** Whether a block's box on the canvas holds the canvas point `at`, edges included. */
-export function onBlock(nodes: Iterable<BlockNode>, at: Point): boolean {
-  for (const node of nodes) {
-    const box: Box = nodeBox(node);
-    if (at.x >= box.x && at.x <= box.x + box.width && at.y >= box.y && at.y <= box.y + box.height) {
-      return true;
-    }
-  }
-  return false;
-}
+/** What a click on the empty pane is, read without its event: no block, no descriptor, no point. */
+export const ON_PANE: Pressed = { node: undefined, source: null, point: null, pane: true };
 
 /**
- * The selection after a click on the empty canvas: cleared in every mode,
- * the marquee mode included, on the arranger and in an editor alike; with
- * Shift unchanged. In an editor a click on a faded block reaches the pane
- * too, since the block takes no pointer, and changes nothing: the selection
- * is cleared only where no block's box holds the click (`onBlock`).
+ * The selection after a click on `pressed`: what the press selects
+ * (`pressedIn`), alone, or, when `additive` (Shift, or the marquee toggle),
+ * toggled in the selection (`click`). A click on the empty canvas, and in an
+ * editor a click outside the edited element (`isOutside`: on its group, on
+ * anything else faded, on another block), clears the selection in every
+ * mode, the marquee mode included; with Shift it leaves it. Anything else
+ * (a control of the canvas) leaves it.
  */
-export function clearOnPane(
+export function clickedAt(
   selection: Selection,
-  shift: boolean,
+  pressed: Pressed,
   editing: Editing | null,
-  blockHolds: () => boolean,
+  { shift, additive }: { readonly shift: boolean; readonly additive: boolean },
 ): Selection {
-  if (shift || (editing !== null && blockHolds())) return selection;
-  return new Set();
+  const address = pressedIn(pressed, editing);
+  if (address !== null) return click(selection, address, additive);
+  if (!pressed.pane && !isOutside(pressed, editing)) return selection;
+  return shift ? selection : new Set();
 }
 
 /** The box the resize toolbar acts on, in the block holding it. */
@@ -186,7 +192,7 @@ export interface Tap {
   readonly x: number;
   readonly y: number;
   readonly time: number;
-  readonly action: Address | typeof DONE;
+  readonly action: DoubleClick;
 }
 
 /** Two taps act as a double-click when the second follows the first within this many milliseconds… */

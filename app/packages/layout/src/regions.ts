@@ -19,14 +19,14 @@ import { type Entry, maxSize, nth, type Scope, shown } from "./traversal.ts";
  * timeline of `sources`, the line first and then each joined segment, each
  * one's in canonical order, placed in that order by one first fit with the
  * extent from the smaller to the larger of their start and end, widened to
- * their drawn label's extent. `R` rows are `R × pr − 4 × v` wide, `pr = 6 +
- * 2 + h(9) + 4 × v`, 9 the largest font size of the band's drawn labels.
+ * their drawn label's extent. `R` rows are `R × pr − S` wide, `pr = 6 + 2 +
+ * h(9) + S`, `S` the card spacing, 9 the largest font size of the band's drawn labels.
  * Drawn from its start `r0`, row `k` has its brace's arms `r0 + (k − 1) ×
  * pr` out, the tip 6 further and the label's ordinate 2 further again, each
  * distance summed whole first (section 6.6, Regions).
  */
 export function regionsBand(scope: Scope, line: Entry, sources: readonly Entry[]): PreparedBand {
-  const { address, owned, measured, relativeX, u, v, h } = scope;
+  const { address, owned, measured, relativeX, u, S, h } = scope;
   const regions = sources.flatMap((source) =>
     shown(source.bands.regions.style)
       ? source.manifest.regions
@@ -56,12 +56,12 @@ export function regionsBand(scope: Scope, line: Entry, sources: readonly Entry[]
   const size = maxSize(
     placed.flatMap((item) => (item.label === undefined ? [] : [item.region.label])),
   );
-  const pr = BRACE + LABEL_GAP + h(size) + 4 * v;
+  const pr = BRACE + LABEL_GAP + h(size) + S;
   return {
     kind: "regions",
     address: bandAddress(line.manifest.id, "regions"),
     elements: regions.length,
-    width: rows.count === 0 ? 0 : rows.count * pr - 4 * v,
+    width: rows.count === 0 ? 0 : rows.count * pr - S,
     extents: placed.map((item) => item.extent),
     centred: placed.flatMap((item) =>
       item.label === undefined ? [] : [{ width: item.label.width, u: u(item.middle) }],

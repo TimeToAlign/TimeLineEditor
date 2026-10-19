@@ -31,13 +31,14 @@ have, the schema is changed first.
   its groups and the band orders of its timelines. A manifest knows nothing
   about a canvas.
 - A **block** is one manifest placed on the canvas with its placement: `x`,
-  `y`, `scale`, `length`, `spacing`, the requested `width` and `height`, and
-  `places`, the stated places of its items and the stated sizes of its
-  cards. A block's styling is its manifest's `graphical`; the block has no
+  `y`, `scale`, `length`, `spacing` (the gap between its box's items), the
+  requested `width` and `height`, and `places`, the stated places of its
+  items and the stated sizes and spacings of its cards. A block's styling is its manifest's `graphical`; the block has no
   style layer of its own.
-- The **workspace** is the canvas: its blocks, the settings, and the command
-  journal that produced them with the sessions of its editors. It is one
-  canonical JSON file, `<name>.tle.json`, format version 4.
+- The **workspace** is the canvas: its name, its blocks, the settings, and
+  the command journal that produced them with the sessions of its editors.
+  It is one canonical JSON file, by default `<name>.tle.json` after its
+  name, format version 4.
 
 No other noun names any of these. "Document", "record" and "envelope" name
 nothing here.
@@ -176,7 +177,7 @@ that owns a document: it writes the title, styles `html` and `body`, takes
 the server's token from the URL fragment and binds the window shortcuts.
 `embed.ts` exports `mount(element, options)`, a framework-free entry over
 Svelte's `mount`/`unmount`, built by `pnpm build:embed` into `dist-embed/`
-(`tilie.js`, `tilie.css`, the font). A host page loads the stylesheet,
+(`tilie.js`, `tilie.css`, the fonts). A host page loads the stylesheet,
 imports `mount`, and hands it one element with a definite height.
 
 ## Releasing

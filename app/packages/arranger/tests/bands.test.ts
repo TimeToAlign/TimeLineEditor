@@ -527,7 +527,7 @@ describe("the selection readers", () => {
 
   it("never removes a band", () => {
     const refused = { refused: "A band is not deleted; select its elements to delete them." };
-    const remove = (...addresses: string[]) => removeCommand(view, new Set(addresses));
+    const remove = (...addresses: string[]) => removeCommand(view, new Set(addresses), null);
     expect(remove(`${A}/melody/markers_1`)).toEqual(refused);
     expect(remove(`${A}/melody/markers_1`, `${A}/phrase/conversion_maps_1`)).toEqual(refused);
     expect(remove(`${A}/melody/markers_1`, `${A}/melody/tempo`)).toEqual({
@@ -543,11 +543,11 @@ describe("the selection readers", () => {
 
   it("affects nothing through a selected band", () => {
     const manifest = load("map");
-    expect(affectedBy(manifest, new Set(["melody/markers_1"]))).toEqual(new Set());
-    expect(affectedBy(manifest, new Set(["phrase/conversion_maps_1", "melody/tempo"]))).toEqual(
-      new Set(),
-    );
-    expect(affectedBy(manifest, new Set(["melody/children_1", "phrase"]))).toEqual(
+    expect(affectedBy(manifest, new Set(["melody/markers_1"]), null)).toEqual(new Set());
+    expect(
+      affectedBy(manifest, new Set(["phrase/conversion_maps_1", "melody/tempo"]), null),
+    ).toEqual(new Set());
+    expect(affectedBy(manifest, new Set(["melody/children_1", "phrase"]), null)).toEqual(
       new Set(["melody/ticks"]),
     );
   });

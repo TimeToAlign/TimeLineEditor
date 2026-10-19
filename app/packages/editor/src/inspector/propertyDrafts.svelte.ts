@@ -5,15 +5,19 @@
  * once the form edits other containers, or the block's manifest is
  * replaced (an applied text, an undo), they are gone. The form reads each
  * field's text through `value`, a draft else the value every container
- * shares.
+ * shares. A commit that wrote something other than what was typed (a size
+ * below its container's minimum) leaves a notice for the status line, until
+ * the next edit. The name field's draft and refusal belong to the target named
+ * in the manifest it was typed against, alike.
  */
 
 import type { PlaceProperty } from "@timetoalign/tilie-arranger";
 import type { BlockId, Manifest, Store } from "@timetoalign/tilie-core";
-import type { Edit, Geometry, Role } from "./properties.ts";
+import type { Edit, Geometry, NameField, Role } from "./properties.ts";
 import {
   commonValue,
   decimalOf,
+  nameCommand,
   propertyCommand,
   STEPS,
   shownValue,
@@ -35,14 +39,32 @@ interface Entry {
   readonly owner: DraftOwner | null;
   readonly drafts: Texts;
   readonly problems: Texts;
+  /** What the status line says of the last commit. */
+  readonly notice: string | null;
 }
 
-const EMPTY: Entry = { owner: null, drafts: {}, problems: {} };
+const EMPTY: Entry = { owner: null, drafts: {}, problems: {}, notice: null };
 
-/** Dispatch an edit's command; the message of its refusal, or of the store's, else `undefined`. */
-function dispatched(edit: Edit, store: Store): string | undefined {
-  if (!edit.ok) return edit.problems[0]?.message;
-  return edit.value === null ? undefined : store.dispatch(edit.value)?.message;
+/** The name field's text and refusal, and the target and manifest they belong to. */
+interface NameDraft {
+  readonly target: string;
+  readonly manifest: Manifest | null;
+  readonly text: string;
+  readonly problem: string | undefined;
+}
+
+/** What dispatching an edit gave: the refusal's message, or what the status line says. */
+interface Dispatched {
+  readonly refusal: string | undefined;
+  readonly notice: string | null;
+}
+
+/** Dispatch an edit's command: the message of its refusal, or of the store's, or its notice. */
+function dispatched(edit: Edit, store: Store): Dispatched {
+  if (!edit.ok) return { refusal: edit.problems[0]?.message, notice: null };
+  const { command, notice } = edit.value;
+  const refusal = command === null ? undefined : store.dispatch(command)?.message;
+  return refusal === undefined ? { refusal, notice } : { refusal, notice: null };
 }
 
 function ownerOf(geometry: Geometry): DraftOwner {
@@ -73,19 +95,32 @@ function withText(texts: Texts, property: PlaceProperty, text: string | undefine
 
 export class PropertyDrafts {
   #entry: Entry = $state.raw(EMPTY);
+  #name: NameDraft | null = $state.raw(null);
 
   /** The drafts and refusals of `geometry`'s containers; none when they were typed for others. */
   #of(geometry: Geometry): Entry {
     return sameOwner(this.#entry.owner, ownerOf(geometry)) ? this.#entry : EMPTY;
   }
 
-  #write(geometry: Geometry, property: PlaceProperty, draft: string | undefined, problem?: string) {
+  #write(
+    geometry: Geometry,
+    property: PlaceProperty,
+    draft: string | undefined,
+    problem?: string,
+    notice: string | null = null,
+  ) {
     const entry = this.#of(geometry);
     this.#entry = {
       owner: ownerOf(geometry),
       drafts: withText(entry.drafts, property, draft),
       problems: withText(entry.problems, property, problem),
+      notice,
     };
+  }
+
+  /** What the status line says of the last commit to `geometry`'s containers; `null` for nothing. */
+  notice(geometry: Geometry): string | null {
+    return this.#of(geometry).notice;
   }
 
   /** Why the last commit of `property` was refused; `undefined` while it was not. */
@@ -131,8 +166,11 @@ export class PropertyDrafts {
   commit(geometry: Geometry, property: PlaceProperty, store: Store): void {
     const draft = this.#of(geometry).drafts[property];
     if (draft === undefined) return;
-    const refusal = dispatched(propertyCommand(store.view, geometry, property, draft), store);
-    this.#write(geometry, property, refusal === undefined ? undefined : draft, refusal);
+    const { refusal, notice } = dispatched(
+      propertyCommand(store.view, geometry, property, draft),
+      store,
+    );
+    this.#write(geometry, property, refusal === undefined ? undefined : draft, refusal, notice);
   }
 
   /**
@@ -144,13 +182,58 @@ export class PropertyDrafts {
   step(geometry: Geometry, property: PlaceProperty, direction: 1 | -1, store: Store): void {
     const draft = this.#of(geometry).drafts[property]?.trim();
     if (draft === undefined) {
-      const refusal = dispatched(stepCommand(store.view, geometry, property, direction), store);
-      this.#write(geometry, property, undefined, refusal);
+      const { refusal, notice } = dispatched(
+        stepCommand(store.view, geometry, property, direction),
+        store,
+      );
+      this.#write(geometry, property, undefined, refusal, notice);
       return;
     }
     const base = draft === "" ? null : decimalOf(draft);
     if (draft !== "" && base === null) return;
     this.#write(geometry, property, String(stepValue(base, direction, STEPS[property])));
     this.commit(geometry, property, store);
+  }
+
+  /** The name draft of `field`'s target in its manifest; `null` when it was typed for another. */
+  #nameOf(field: NameField): NameDraft | null {
+    const draft = this.#name;
+    return draft !== null && draft.target === field.target && draft.manifest === field.manifest
+      ? draft
+      : null;
+  }
+
+  /** What the name field shows: its draft, else the stored name (empty for none). */
+  nameValue(field: NameField): string {
+    return this.#nameOf(field)?.text ?? field.name ?? "";
+  }
+
+  /** Why the last commit of the name was refused; `undefined` while it was not. */
+  nameProblem(field: NameField): string | undefined {
+    return this.#nameOf(field)?.problem;
+  }
+
+  /** Keep `text` as the name's draft; its refusal stays until the next commit. */
+  typeName(field: NameField, text: string): void {
+    const { target, manifest } = field;
+    this.#name = { target, manifest, text, problem: this.#nameOf(field)?.problem };
+  }
+
+  /** Drop the name's draft and its refusal. */
+  discardName(field: NameField): void {
+    if (this.#nameOf(field) !== null) this.#name = null;
+  }
+
+  /**
+   * Commit the name's draft as one `set`: dropped once the store accepts it
+   * (a draft of the stored name dispatches nothing), kept with the refusal
+   * otherwise.
+   */
+  commitName(field: NameField, store: Store): void {
+    const draft = this.#nameOf(field);
+    if (draft === null) return;
+    const command = nameCommand(field, draft.text);
+    const problem = command === null ? undefined : store.dispatch(command)?.message;
+    this.#name = problem === undefined ? null : { ...draft, problem };
   }
 }

@@ -1,9 +1,10 @@
 /**
- * The workspace file, `<name>.tle.json`: `{meta, settings, blocks, journal,
- * sessions}` written by timeskeleton's `dumps` and read losslessly by its
- * `parseJson`. Any other format or version refuses the file before anything
- * else is read; any unknown member and any invalid manifest refuses it too,
- * and so does a session that the journal does not reach exactly once.
+ * The workspace file, `<name>.tle.json`: `{meta, name, settings, blocks,
+ * journal, sessions}` written by timeskeleton's `dumps` and read losslessly
+ * by its `parseJson`. Any other format or version refuses the file before
+ * anything else is read; any unknown member and any invalid manifest refuses
+ * it too, and so does a session that the journal does not reach exactly
+ * once. A file stating no `name` holds a workspace named `untitled`.
  */
 
 import { dumps, parseJson } from "@timetoalign/timeskeleton";
@@ -18,6 +19,8 @@ import {
   readBoolean,
   readFinite,
   readGraphical,
+  readName,
+  readNonNegative,
   readNullablePositive,
   readPlaces,
   readPositive,
@@ -30,7 +33,7 @@ import type { Entry, Session, SessionId, Sessions } from "./sessions.ts";
 import { isSessionEntry, reachedSessions, SESSION_ID } from "./sessions.ts";
 import type { Workspace } from "./store.ts";
 import type { View, WorkspaceSettings } from "./view.ts";
-import { createView, structureProblems, WORKSPACE_META } from "./view.ts";
+import { createView, structureProblems, UNTITLED_WORKSPACE, WORKSPACE_META } from "./view.ts";
 
 const TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 
@@ -97,7 +100,7 @@ function collecting(
 const PLACEMENT: { readonly [member in keyof BlockPlacement]: Reader } = {
   scale: readPositive,
   length: readPositive,
-  spacing: readPositive,
+  spacing: readNonNegative,
   width: readNullablePositive,
   height: readNullablePositive,
 };
@@ -317,11 +320,14 @@ export function readWorkspace(text: string): Workspace | LoadError {
     }
     return complete ? result : undefined;
   });
+  // The name is the one member a file may leave out.
+  const stated = isJsonObject(value) && Object.hasOwn(value, "name");
   const top = readExact(
     value,
     [],
     {
       meta: (meta, path) => readExact(meta, path, META, problems),
+      ...(stated ? { name: readName } : {}),
       settings: readSettings(problems),
       blocks,
       journal: readEntries(problems),
@@ -332,6 +338,7 @@ export function readWorkspace(text: string): Workspace | LoadError {
   if (top === undefined) return { problems };
   const view: View = {
     meta: WORKSPACE_META,
+    name: stated ? (top.name as string) : UNTITLED_WORKSPACE,
     settings: top.settings as WorkspaceSettings,
     blocks: top.blocks as View["blocks"],
   };
@@ -347,8 +354,8 @@ export function readWorkspace(text: string): Workspace | LoadError {
 /** The workspace file's text. */
 export function writeWorkspace(workspace: Workspace): string {
   const { view, journal, sessions } = workspace;
-  const { meta, settings, blocks } = view;
-  return dumps({ meta, settings, blocks, journal, sessions });
+  const { meta, name, settings, blocks } = view;
+  return dumps({ meta, name, settings, blocks, journal, sessions });
 }
 
 /** A workspace holding nothing: the empty view, an empty journal, no sessions. */

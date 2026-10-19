@@ -259,11 +259,11 @@ describe("boxes in a manifest with one group", () => {
     const selection = click(new Set(), selectionOf(card, null, inside) ?? "", false);
     expect(selection).toEqual(new Set([`${A}/recording/card`]));
     expect(existing(view, selection, null)).toBe(selection);
-    expect(removeCommand(view, selection)).toEqual({
+    expect(removeCommand(view, selection, null)).toEqual({
       type: "remove",
       targets: [`${A}/recording`],
     });
-    expect(affectedBy(blockIn(view, A).manifest, new Set(["recording/card"]))).toEqual(
+    expect(affectedBy(blockIn(view, A).manifest, new Set(["recording/card"]), null)).toEqual(
       new Set([
         "recording",
         "recording/name",

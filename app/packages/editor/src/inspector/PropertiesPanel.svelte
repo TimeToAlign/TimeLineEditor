@@ -1,17 +1,26 @@
 <script lang="ts">
 /**
- * The Properties tab for a selection in one block: the read-only rows of
- * one band, or the form of the selected containers' geometry, or the hint
- * that the selection has none. Typed text is the inspector's
- * `PropertyDrafts`; a commit or a step is one `set`.
+ * The Properties tab: first the name of what is inspected (with nothing
+ * selected, the workspace's at the top level, the edited element's in an
+ * editor), then, for a selection in one block, the read-only rows
+ * of one band, or the form of the selected containers' geometry, or the
+ * hint that the selection has none; the stored lock of the inspected
+ * timelines stands right of the container size, read-only. Typed text is
+ * the inspector's `PropertyDrafts`; a commit or a step is one `set`.
  */
-import type { Level, LivePlacement, PlaceProperty, Subject } from "@timetoalign/tilie-arranger";
-import { drawingOf } from "@timetoalign/tilie-arranger";
+import type {
+  Level,
+  LivePlacement,
+  PlaceField,
+  PlaceProperty,
+  Subject,
+} from "@timetoalign/tilie-arranger";
+import { drawingOf, liveStore } from "@timetoalign/tilie-arranger";
 import type { Block, Store, View } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timeskeleton";
 import type { Attachment } from "svelte/attachments";
-import type { Shown } from "./properties.ts";
-import { bandRows, fieldLabel, geometryOf } from "./properties.ts";
+import type { Geometry, NameField, Shown } from "./properties.ts";
+import { bandRows, fieldLabel, geometryOf, isSize, lockOf, nameOf } from "./properties.ts";
 import type { PropertyDrafts } from "./propertyDrafts.svelte.ts";
 
 let {
@@ -25,8 +34,8 @@ let {
 }: {
   view: View;
   store: Store;
-  /** The block the whole selection lies in. */
-  block: Block;
+  /** The block the whole selection lies in; `null` for no selection or one in several blocks. */
+  block: Block | null;
   /** The selection, resolved. */
   subjects: readonly Subject[];
   /** The level of the canvas: the arranger, or the innermost editor's kind. */
@@ -38,24 +47,41 @@ let {
 
 const uid = $props.id();
 
-/**
- * The gesture's placement while it shows the selected block, else `null`:
- * a gesture on another block changes nothing the form reads.
- */
-const live = $derived(placement?.id === block.id ? placement : null);
+/** The store's editing path, followed as it changes. */
+const live = $derived(liveStore(store));
 
-/** What the canvas shows of the block: the gesture's placement and drawing, else the stored ones. */
-const shown: Shown = $derived(
-  live ?? { ...block, drawing: drawingOf(block, view.settings, fontMetrics) },
-);
+/** The name field: the workspace's, the edited element's or the inspected thing's where it has a name; else `null`. */
+const name = $derived(nameOf(view, subjects, live.editing.at(-1) ?? null));
+
+/**
+ * What the canvas shows of the block: the gesture's placement and drawing
+ * while a gesture shows it, else the stored ones; `null` without a block.
+ */
+const shown: Shown | null = $derived.by(() => {
+  if (block === null) return null;
+  if (placement?.id === block.id) return placement;
+  return { ...block, drawing: drawingOf(block, view.settings, fontMetrics) };
+});
 
 /** The geometry the form edits: containers of one role in the block; else `null`. */
-const geometry = $derived(geometryOf(block, subjects, shown, level));
+const geometry = $derived(
+  block === null || shown === null ? null : geometryOf(block, subjects, shown, level),
+);
 
 /** The read-only rows of the one band selected; else `null`. */
-const band = $derived(bandRows(subjects, shown));
+const band = $derived(shown === null ? null : bandRows(subjects, shown));
 
-/** What the tab shows for a selection in one block without one role of geometry. */
+/** The stored lock of the inspected timelines; `null` unless every subject is one. */
+const lock = $derived(block === null ? null : lockOf(subjects));
+
+/** The fields of the geometry before the size, and the size, which shares a row with Locked. */
+const placeFields = $derived(geometry?.fields.filter((field) => !isSize(field.property)) ?? []);
+const sizeFields = $derived(geometry?.fields.filter((field) => isSize(field.property)) ?? []);
+
+/** What the Locked checkbox's tooltip says. */
+const LOCK_TITLE = "Whether the timeline's length is fixed";
+
+/** What the tab shows for a selection without one role of geometry. */
 const GEOMETRY_HINT = "Select a block, a frame or a card to edit its geometry.";
 
 /**
@@ -104,6 +130,22 @@ function onInput(
   drafts.type(geometry, property, input.value);
 }
 
+function onNameKey(event: KeyboardEvent, field: NameField): void {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    drafts.commitName(field, store);
+  } else if (event.key === "Escape") {
+    drafts.discardName(field);
+  }
+}
+
+/** An indeterminate checkbox while the timelines' locks differ, a property no attribute sets. */
+function indeterminate(mixed: boolean): Attachment<HTMLInputElement> {
+  return (input) => {
+    input.indeterminate = mixed;
+  };
+}
+
 function onKey(event: KeyboardEvent, property: PlaceProperty): void {
   if (geometry === null) return;
   if (event.key === "ArrowUp" || event.key === "ArrowDown") {
@@ -120,7 +162,72 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
 
 <svelte:window onpointerup={() => (pressed = null)} onpointercancel={() => (pressed = null)} />
 
-{#if band !== null}
+{#if name !== null}
+  {@const field = name}
+  {@const problem = drafts.nameProblem(field)}
+  <label class="name">
+    <span>Name</span>
+    <input
+      type="text"
+      name="name"
+      value={drafts.nameValue(field)}
+      aria-invalid={problem !== undefined}
+      aria-describedby={problem !== undefined ? `${uid}-problem-name` : undefined}
+      oninput={(event) => drafts.typeName(field, event.currentTarget.value)}
+      onkeydown={(event) => onNameKey(event, field)}
+      onblur={() => drafts.commitName(field, store)}
+    />
+  </label>
+  {#if problem !== undefined}
+    <p class="problem" id="{uid}-problem-name">{problem}</p>
+  {/if}
+{/if}
+
+{#snippet locked()}
+  {#if lock !== null}
+    <label class="locked" title={LOCK_TITLE}>
+      <input
+        type="checkbox"
+        checked={lock.checked}
+        disabled
+        {@attach indeterminate(lock.mixed)}
+      />
+      Locked
+    </label>
+  {/if}
+{/snippet}
+
+{#snippet placeField(field: PlaceField, edited: Geometry)}
+  {@const property = field.property}
+  {@const problem = drafts.problem(edited, property)}
+  <label>
+    <span>{fieldLabel(edited.role, field)}</span>
+    <input
+      type="number"
+      step="any"
+      name={property}
+      disabled={!field.offered}
+      value={drafts.value(edited, property)}
+      placeholder={drafts.placeholder(edited, property)}
+      aria-invalid={problem !== undefined}
+      aria-describedby={problem !== undefined ? `${uid}-problem-${property}` : undefined}
+      onpointerdown={(event) => (pressed = event.currentTarget)}
+      oninput={(event) => onInput(event, property)}
+      {@attach wheelSteps(property)}
+      onkeydown={(event) => onKey(event, property)}
+      onblur={() => drafts.commit(edited, property, store)}
+    />
+  </label>
+  {#if problem !== undefined}
+    <p class="problem" id="{uid}-problem-{property}">{problem}</p>
+  {/if}
+{/snippet}
+
+{#if block === null}
+  {#if subjects.length > 0}
+    <p class="hint">{GEOMETRY_HINT}</p>
+  {/if}
+{:else if band !== null}
   <dl class="properties">
     {#each band as row (row.label)}
       <div>
@@ -131,35 +238,21 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
   </dl>
 {:else if geometry === null}
   <p class="hint">{GEOMETRY_HINT}</p>
+  {@render locked()}
 {:else}
   {@const edited = geometry}
   <form class="properties" aria-label={edited.label} onsubmit={(event) => event.preventDefault()}>
-    {#each edited.fields as field (field.property)}
-      {@const property = field.property}
-      {@const problem = drafts.problem(edited, property)}
-      <label>
-        <span>{fieldLabel(edited.role, field)}</span>
-        <input
-          type="number"
-          step="any"
-          name={property}
-          disabled={!field.offered}
-          value={drafts.value(edited, property)}
-          placeholder={drafts.placeholder(edited, property)}
-          aria-invalid={problem !== undefined}
-          aria-describedby={problem !== undefined ? `${uid}-problem-${property}` : undefined}
-          onpointerdown={(event) => (pressed = event.currentTarget)}
-          oninput={(event) => onInput(event, property)}
-          {@attach wheelSteps(property)}
-          onkeydown={(event) => onKey(event, property)}
-          onblur={() => drafts.commit(edited, property, store)}
-        />
-      </label>
-      {#if problem !== undefined}
-        <p class="problem" id="{uid}-problem-{property}">{problem}</p>
-      {/if}
+    {#each placeFields as field (field.property)}
+      {@render placeField(field, edited)}
     {/each}
+    <div class="size">
+      {#each sizeFields as field (field.property)}
+        {@render placeField(field, edited)}
+      {/each}
+      {@render locked()}
+    </div>
   </form>
+  <p class="notice" role="status">{drafts.notice(edited) ?? ""}</p>
 {/if}
 
 <style>
@@ -174,8 +267,8 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
     gap: 0.25rem 0.5rem;
   }
 
-  .properties label,
-  .properties > div {
+  .properties label:not(.locked),
+  dl.properties > div {
     display: flex;
     flex-direction: column;
     gap: 0.1rem;
@@ -197,9 +290,55 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
     font: inherit;
   }
 
-  .properties .problem {
+  .properties .problem,
+  .properties .size {
     grid-column: 1 / -1;
+  }
+
+  .problem {
     margin: 0;
     color: #b00020;
   }
+
+  /* The container's width and height side by side, the Locked checkbox to their right. */
+  .properties .size {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 0.25rem 0.5rem;
+    align-items: end;
+  }
+
+  .size .problem {
+    grid-column: 1 / -1;
+  }
+
+  .name {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+
+  .name span {
+    color: #595959;
+  }
+
+  .name input {
+    font: inherit;
+  }
+
+  /* Greyed out: the checkbox shows the stored value only. */
+  .locked {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.25rem;
+    color: #595959;
+    cursor: not-allowed;
+  }
+
+  .notice {
+    margin: 0;
+    color: #595959;
+  }
+
 </style>

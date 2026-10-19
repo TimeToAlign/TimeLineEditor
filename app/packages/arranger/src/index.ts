@@ -23,4 +23,4 @@ export { liveStore } from "./liveStore.svelte.ts";
 export type { LivePlacement } from "./project.ts";
 export type { ResizeMode } from "./resize.ts";
 export type { Selection } from "./selection.ts";
-export { blockOf, existing } from "./selection.ts";
+export { blockOf, editedSelection, existing } from "./selection.ts";

@@ -2,6 +2,7 @@ import type { View } from "@timetoalign/tilie-core";
 import { isCommandError, preview } from "@timetoalign/tilie-core";
 import { describe, expect, it } from "vitest";
 import { drawingOf } from "../src/drawing.ts";
+import { releaseMotion } from "../src/gestures/held.ts";
 import { memberOrderAt, reorderCommand } from "../src/reorder.ts";
 import {
   A,
@@ -113,5 +114,26 @@ describe("reorderCommand", () => {
       "score",
       "page",
     ]);
+  });
+});
+
+describe("releaseMotion", () => {
+  const reordered = changed(view, reorderCommand(block, "group_1", ["performance", "score"]));
+  const shown = drawingOf(blockIn(reordered, A), reordered.settings, metrics);
+
+  it("moves the copy from its drop to the card's place after the release", () => {
+    expect(releaseMotion(drawing, shown, "score/card", { x: 10, y: 100 })).toEqual({
+      from: { x: 10, y: 100 },
+      to: { x: 0, y: 57.4765625 },
+    });
+    expect(releaseMotion(drawing, drawing, "score/card", { x: 10, y: 100 })).toEqual({
+      from: { x: 10, y: 100 },
+      to: { x: 0, y: 0 },
+    });
+  });
+
+  it("gives no motion for a copy already in place, nor for a card not drawn", () => {
+    expect(releaseMotion(drawing, shown, "score/card", { x: 0, y: 57.4765625 })).toBeNull();
+    expect(releaseMotion(drawing, shown, "nobody/card", { x: 10, y: 100 })).toBeNull();
   });
 });

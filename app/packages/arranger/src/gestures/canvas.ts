@@ -8,7 +8,7 @@
  * click.
  */
 
-import type { Address, View } from "@timetoalign/tilie-core";
+import type { View } from "@timetoalign/tilie-core";
 import type { FontMetrics } from "@timetoalign/timeskeleton";
 import type { LevelRules } from "../containers.ts";
 import type { Editing } from "../editing.ts";
@@ -19,15 +19,8 @@ import type { CanvasNodes } from "../nodes.svelte.ts";
 import type { BlockNode } from "../project.ts";
 import type { Selection } from "../selection.ts";
 import { blockOf, click } from "../selection.ts";
-import type { Pressed, Tap } from "../selectionRules.ts";
-import {
-  clearOnPane,
-  type DONE,
-  doubleClickAt,
-  doubleTap,
-  onBlock,
-  pressedIn,
-} from "../selectionRules.ts";
+import type { DoubleClick, Pressed, Tap } from "../selectionRules.ts";
+import { clickedAt, doubleClickAt, doubleTap, ON_PANE, pressedIn } from "../selectionRules.ts";
 
 /** What the canvas's pointer reads from the canvas and does through it. */
 export interface PointerHost {
@@ -42,8 +35,11 @@ export interface PointerHost {
   marquee(): boolean;
   /** The canvas point under the client point `client`; `undefined` before the flow exists. */
   toCanvas(client: Point): Point | undefined;
-  /** Close the innermost editor (`DONE`), or open the editor of an address. */
-  act(action: Address | typeof DONE): void;
+  /**
+   * Close the innermost editor (`DONE`), centre the view on the edited
+   * element again (`RECENTRE`), or open the editor of an address.
+   */
+  act(action: DoubleClick): void;
 }
 
 /**
@@ -115,23 +111,27 @@ export class CanvasPointer {
     });
   }
 
-  #paneCleared(event: MouseEvent): Selection {
+  /**
+   * The selection after a click on `pressed` (`clickedAt`): Shift, or the
+   * marquee toggle, adds or removes; the pane and, in an editor, whatever lies
+   * outside the edited element clear it.
+   */
+  #clickedOn(pressed: Pressed, event: { shiftKey: boolean }): Selection {
     const host = this.#host;
-    return clearOnPane(host.selection(), event.shiftKey, host.editing(), () => {
-      const at = host.toCanvas({ x: event.clientX, y: event.clientY });
-      return at !== undefined && onBlock(host.nodes.projected, at);
+    return clickedAt(host.selection(), pressed, host.editing(), {
+      shift: event.shiftKey,
+      additive: event.shiftKey || host.marquee(),
     });
   }
 
   readonly nodeclick = ({ event }: { node: BlockNode; event: MouseEvent | TouchEvent }): void => {
     const client = "clientX" in event ? { x: event.clientX, y: event.clientY } : undefined;
-    const pressed = this.pressedAt(event.target, client);
-    this.#host.select(this.clicked(pressedIn(pressed, this.#host.editing()), event));
+    this.#host.select(this.#clickedOn(this.pressedAt(event.target, client), event));
     this.#reassert();
   };
 
   readonly paneclick = ({ event }: { event: MouseEvent }): void => {
-    this.#host.select(this.#paneCleared(event));
+    this.#host.select(this.#clickedOn(ON_PANE, event));
     this.#reassert();
   };
 
@@ -148,11 +148,7 @@ export class CanvasPointer {
     this.#reassert();
     if (press !== null && isClick(press, event)) {
       const pressed = this.pressedAt(press.target, press);
-      host.select(
-        pressed.node === undefined
-          ? this.#paneCleared(event)
-          : this.clicked(pressedIn(pressed, host.editing()), event),
-      );
+      host.select(this.#clickedOn(pressed.node === undefined ? ON_PANE : pressed, event));
       return;
     }
     const marked = host.rules().marquee === "blocks" ? this.#markedBlocks() : this.#marked(event);

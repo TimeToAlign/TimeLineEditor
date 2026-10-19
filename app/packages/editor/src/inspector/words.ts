@@ -1,31 +1,34 @@
 /**
- * The words the editor names things with: the kinds of editors, bands and
- * listed elements, the name an editor's target goes by, and the subject
- * the inspector names beside its heading. Presentation only: what an
+ * The words the editor names things with: the levels of the canvas, the
+ * kinds of bands and listed elements, the name an editor's target goes by,
+ * the level panel's title, and the subject the inspector names beside its
+ * heading. Presentation only: what an
  * address names is core's resolver's to decide; this module only words it.
  */
 
+import type { Level } from "@timetoalign/tilie-arranger";
 import type {
   Address,
   BandKind,
-  EditorKind,
   EntryKind,
   Manifest,
+  OpenEditor,
   ResolvedAddress,
   View,
 } from "@timetoalign/tilie-core";
 import { isCommandError, resolveAddress } from "@timetoalign/tilie-core";
 
-/** The word of each kind of editor, in the Editor tab and a closed session's journal row. */
-const KIND_WORDS: { readonly [kind in EditorKind]: string } = {
+/** The word of each level of the canvas, on the level tab and its title line. */
+const LEVEL_WORDS: { readonly [level in Level]: string } = {
+  arranger: "Arranger",
   bundle: "Bundle",
   group: "Group",
   timeline: "Timeline",
 };
 
-/** The word of an editor's kind, capitalised: `Bundle`, `Group`, `Timeline`. */
-export function kindWord(kind: EditorKind): string {
-  return KIND_WORDS[kind];
+/** The word of a level, capitalised: `Arranger`, `Bundle`, `Group`, `Timeline`. */
+export function levelWord(level: Level): string {
+  return LEVEL_WORDS[level];
 }
 
 /** The word of each kind of band, in its heading and its rows. */
@@ -74,6 +77,24 @@ export function editorName(view: View, target: Address): string {
     default:
       return target;
   }
+}
+
+/** The level panel's title line: the level's word and the name of what the level shows. */
+interface LevelTitle {
+  /** `Arranger`, `Bundle`, `Group` or `Timeline`. */
+  readonly word: string;
+  readonly name: string;
+}
+
+/**
+ * The title of the level whose innermost open editor is `innermost`: at
+ * the top level (`undefined`) "Arranger" and the workspace's name, in an
+ * editor its kind's word and the name its target goes by (`editorName`).
+ */
+export function levelTitle(view: View, innermost: OpenEditor | undefined): LevelTitle {
+  return innermost === undefined
+    ? { word: levelWord("arranger"), name: view.name }
+    : { word: levelWord(innermost.kind), name: editorName(view, innermost.target) };
 }
 
 /**

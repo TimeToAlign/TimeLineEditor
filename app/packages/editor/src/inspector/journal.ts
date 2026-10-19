@@ -14,6 +14,7 @@ import {
   isSessionEntry,
   listEntries,
 } from "@timetoalign/tilie-core";
+import { propertyWord } from "./properties.ts";
 import { editorName } from "./words.ts";
 
 /** One row of the Journal tab. */
@@ -66,7 +67,9 @@ function commandText(command: Command): string {
     }
     case "set": {
       const [first, ...more] = command.changes;
-      const properties = Object.keys(first?.values ?? {}).join(", ");
+      const properties = Object.keys(first?.values ?? {})
+        .map(propertyWord)
+        .join(", ");
       const rest = more.length > 0 ? ` and ${more.length} more` : "";
       return `Set ${properties} of ${first?.target}${rest}`;
     }

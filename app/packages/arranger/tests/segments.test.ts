@@ -20,7 +20,7 @@ function themeUnlocked(): View {
 describe("removeCommand of a segment", () => {
   /** What core answers the remove of `addresses` in `view`: the arranger leaves the segment rule to it. */
   const answer = (view: View, ...addresses: string[]) => {
-    const command = removeCommand(view, new Set(addresses));
+    const command = removeCommand(view, new Set(addresses), null);
     if ("refused" in command) throw new Error(command.refused);
     return apply(view, command);
   };
@@ -32,7 +32,7 @@ describe("removeCommand of a segment", () => {
   });
 
   it("dispatches a segment that leaves a gap, which core refuses, whatever ways would close it", () => {
-    expect(removeCommand(segmentChildren(), new Set([at("t2/label")]))).toEqual({
+    expect(removeCommand(segmentChildren(), new Set([at("t2/label")]), null)).toEqual({
       type: "remove",
       targets: [at("t2")],
     });
@@ -48,11 +48,11 @@ describe("removeCommand of a segment", () => {
 
   it("asks nothing of a segment that goes with another target", () => {
     const view = themeUnlocked();
-    const withLine = removeCommand(view, new Set([at("theme"), at("t2")]));
+    const withLine = removeCommand(view, new Set([at("theme"), at("t2")]), null);
     expect(withLine).toEqual({ type: "remove", targets: [at("theme"), at("t2")] });
     const after = manifestIds(blockIn(changed(view, withLine), A).manifest);
     expect(["theme", "t1", "t2", "t3"].filter((id) => after.has(id))).toEqual([]);
-    expect(removeCommand(view, new Set([A, at("t2")]))).toEqual({
+    expect(removeCommand(view, new Set([A, at("t2")]), null)).toEqual({
       type: "remove",
       targets: [A, at("t2")],
     });

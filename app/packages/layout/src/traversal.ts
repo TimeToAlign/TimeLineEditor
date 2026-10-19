@@ -118,8 +118,8 @@ export interface Scope extends Context {
   readonly lambda: Real;
   /** The graphical length `L`. */
   readonly L: number;
-  /** The vertical stretch `v`. */
-  readonly v: number;
+  /** The card spacing `S` (sections 6.2 and 8.6): the gap between its rows and between its bands. */
+  readonly S: number;
   /** The proportion `u` of an exact position on the root's axis (section 3.2). */
   readonly u: (value: Real) => number;
   /** `L × u`: an exact position's distance from the root's start. */
@@ -167,9 +167,9 @@ export function nth<T>(items: readonly T[], index: number): T {
 export const maxSize = (items: readonly Styled[], fallback = 9): number =>
   items.length === 0 ? fallback : Math.max(...items.map((item) => item.style["font-size"]));
 
-/** The pitch `max(14v, h(size))` of a row whose name has font size `size`. */
+/** The pitch `max(10 + S, h(size))` of a row whose name has font size `size`. */
 export const rowPitch = (scope: Scope, size: number): number =>
-  Math.max(14 * scope.v, scope.h(size));
+  Math.max(10 + scope.S, scope.h(size));
 
 /** How a timeline drawn up to its end ends (section 6.6): an open end with three chevrons. */
 export function endOf(timeline: TimelineManifest, topLevel: boolean, open = false): LineEnd {
@@ -181,13 +181,17 @@ export function endOf(timeline: TimelineManifest, topLevel: boolean, open = fals
 
 /**
  * Traverse one timeline drawn as a root (section 6.1), its line held by
- * `holder`, the block or its group's frame.
+ * `holder`, the block or its group's frame, in a card of spacing `S`.
  */
-export function traverse(context: Context, member: MemberDrawing, holder: Holder): Scope {
+export function traverse(
+  context: Context,
+  member: MemberDrawing,
+  holder: Holder,
+  S: number,
+): Scope {
   const { manifest, placement, cascade, measure } = context;
   const root = member.timeline;
   const L = placement.length;
-  const v = placement.spacing;
   const h = (size: number) => measure.lineHeight(size);
   const a = (size: number) => measure.ascent(size);
   const d = (size: number) => measure.descent(size);
@@ -339,7 +343,7 @@ export function traverse(context: Context, member: MemberDrawing, holder: Holder
     byTraversal,
     lambda,
     L,
-    v,
+    S,
     u,
     relativeX,
     relativeEnd,

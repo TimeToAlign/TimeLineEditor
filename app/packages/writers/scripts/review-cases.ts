@@ -1,9 +1,11 @@
 /**
  * The drawings of the review sheet: every manifest fixture of the installed
  * schema package but the corpus ones (`corpus_*`) at the default placement,
- * plus resized drawings of `nested`, two bundles with items at stated
- * places, a bundle with a scaled card, one with a scaled frame whose
- * member's card requests a size, one with a vertically stretched card, and
+ * plus resized drawings of `nested` (among them its card at the spacings 0
+ * and 8), two bundles with items at stated places, a bundle with a scaled
+ * card, one with a scaled frame whose member's card requests a size, one
+ * with a box spacing and a card spacing of their own, a frame with a
+ * spacing of its own, a member's card with a spacing of its own, and
  * three manifests with bands the defaults hide shown by an application
  * layer: a child's regions band, every regions band, and a child's flow
  * control band. Each is also a drawing fixture of the schema package
@@ -101,8 +103,14 @@ export function reviewCases(): ReviewCase[] {
   for (const name of stems("")) add(name, name, DEFAULT_PLACEMENT);
   const at = (changes: Partial<Placement>): Placement => ({ ...DEFAULT_PLACEMENT, ...changes });
   for (const length of [200, 400, 800]) add(`nested__length-${length}`, "nested", at({ length }));
-  for (const spacing of [0.5, 1, 2]) add(`nested__spacing-${spacing}`, "nested", at({ spacing }));
-  add("nested__length-800-spacing-2", "nested", at({ length: 800, spacing: 2 }));
+  for (const spacing of [0, 8]) {
+    add(`nested__card-spacing-${spacing}`, "nested", at({ places: { clt_1: { spacing } } }));
+  }
+  add(
+    "nested__length-800-card-spacing-8",
+    "nested",
+    at({ length: 800, places: { clt_1: { spacing: 8 } } }),
+  );
   const natural = draw(loadFixture("nested"), DEFAULT_PLACEMENT, [DEFAULT_LAYER], metrics);
   add("nested__box", "nested", at({ width: natural.width + 120, height: natural.height + 60 }));
   add("nested__scale-2", "nested", DEFAULT_PLACEMENT, 2);
@@ -133,10 +141,24 @@ export function reviewCases(): ReviewCase[] {
     "bundles/bundle_mixed",
     at({ places: { group_1: { scale: 1.25 }, performance: { width: 650, height: 120 } } }),
   );
+  // `score` is the one root of the three whose card spacing shows; `pages` and `recording` draw
+  // nothing a card spacing moves.
   add(
     "bundle_ungrouped__spacing",
     "bundles/bundle_ungrouped",
-    at({ places: { recording: { spacing: 2 } } }),
+    at({ spacing: 24, places: { score: { spacing: 8 } } }),
+  );
+  // `score` is the member of `group_1` whose card has a gap for its spacing to widen (its jump's
+  // depth); `performance` draws nothing a card spacing moves.
+  add(
+    "bundle_mixed__frame-spacing-16",
+    "bundles/bundle_mixed",
+    at({ places: { group_1: { spacing: 16 } } }),
+  );
+  add(
+    "bundle_mixed__member-card-spacing-8",
+    "bundles/bundle_mixed",
+    at({ places: { score: { spacing: 8 } } }),
   );
   const shown = (select: Selector): Graphical[] => [
     { statements: [{ select, set: { display: "inline" } }] },

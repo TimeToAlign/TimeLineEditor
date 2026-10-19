@@ -376,7 +376,15 @@ export function tabs(page: Page): Locator {
   return page.getByRole("tablist", { name: "Inspector sections" });
 }
 
-export type TabName = "Editor" | "Properties" | "Manifest" | "Journal";
+/** The inspector's tabs: the level tab, named for the level shown, then the three others. */
+export type TabName =
+  | "Arranger"
+  | "Bundle"
+  | "Group"
+  | "Timeline"
+  | "Properties"
+  | "Manifest"
+  | "Journal";
 
 /** The inspector's tab `name`. */
 export function tab(page: Page, name: TabName): Locator {

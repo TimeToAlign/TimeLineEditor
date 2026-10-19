@@ -6,7 +6,7 @@ import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { searchForWorkspaceRoot } from "vite";
 import { defineConfig } from "vitest/config";
 import { packageOf, thirdPartyNotices } from "./notices.ts";
-import { FONT_LICENCE } from "./src/attributions.ts";
+import { FONT_LICENCE, TITLE_FONT_LICENCE } from "./src/attributions.ts";
 
 /** The `version` of a package.json file. */
 function versionOf(file: string): string {
@@ -54,7 +54,7 @@ const CODE_SPLITTING = {
  *
  * The embed (`vite build --mode embed`): `src/embed.ts` into `dist-embed/`
  * as `tilie.js` with its exports kept, all styles in `tilie.css`, the lazy
- * chunks and the font under `assets/`, and the notices file; a host page
+ * chunks and the fonts under `assets/`, and the notices file; a host page
  * loads `tilie.css` and imports `mount` from `tilie.js`. Library mode is
  * not used, since it would inline the font into the stylesheet.
  *
@@ -91,6 +91,11 @@ export default defineConfig(({ mode }) => {
             title: "DejaVu Sans 2.37 (the bundled font, from @timetoalign/timeskeleton)",
             licence: FONT_LICENCE,
             licenceFile: path.join(directory("@timetoalign/timeskeleton"), "fonts", "LICENSE"),
+          },
+          {
+            title: "IBM Plex Mono 2.5.0 (the bundled title font of the inspector)",
+            licence: TITLE_FONT_LICENCE,
+            licenceFile: fileURLToPath(new URL("fonts/LICENSE.txt", import.meta.url)),
           },
         ];
       }),

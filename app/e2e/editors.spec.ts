@@ -171,13 +171,14 @@ test.describe("on bundles", () => {
     await setViewport(page, VIEW);
   });
 
-  for (const { what, point, target, kind, text, name } of [
+  for (const { what, point, target, kind, word, text, name } of [
     {
       what: "the block's margin opens the bundle editor",
       point: (page: Page) => marginPoint(page, MIXED),
       target: MIXED,
       kind: "bundle",
-      text: "Bundle editor: Mixed",
+      word: "Bundle" as const,
+      text: "Bundle Mixed",
       name: "Mixed",
     },
     {
@@ -185,7 +186,8 @@ test.describe("on bundles", () => {
       point: (page: Page) => framePoint(page, MIXED, "group_1"),
       target: `${MIXED}/group_1`,
       kind: "group",
-      text: "Group editor: Performance",
+      word: "Group" as const,
+      text: "Group Performance",
       name: "Performance",
     },
     {
@@ -193,7 +195,8 @@ test.describe("on bundles", () => {
       point: (page: Page) => framePoint(page, MIXED, "annotations/card"),
       target: `${MIXED}/annotations`,
       kind: "timeline",
-      text: "Timeline editor: Annotations",
+      word: "Timeline" as const,
+      text: "Timeline Annotations",
       name: "Annotations",
     },
   ]) {
@@ -202,14 +205,15 @@ test.describe("on bundles", () => {
       const { x, y } = await point(page);
       await page.mouse.dblclick(x, y);
       await expect.poll(() => editing(page)).toEqual([{ target, kind }]);
+      // Opened while the drawer was closed: the drawer opens on the level tab.
       await expect(tabs(page).getByRole("tab")).toHaveText([
-        "Editor",
+        word,
         "Properties",
         "Manifest",
         "Journal",
       ]);
-      await expect(tab(page, "Editor")).toHaveAttribute("aria-selected", "true");
-      await expect(await panel(page, "Editor")).toHaveText(text);
+      await expect(tab(page, word)).toHaveAttribute("aria-selected", "true");
+      await expect(await panel(page, word)).toHaveText(text);
       await expect(editingPath(page)).toHaveText([name]);
       expect(await journalLength(page)).toBe(START);
     });
@@ -278,17 +282,19 @@ test.describe("on bundles", () => {
       await expect(whole.locator('.tilie-mark[data-mark="hover"]')).toHaveCount(0);
     }
 
-    await select(page, [`${MIXED}/score`]);
+    // A click outside the edited element, on another block or on a faded part of its own, deselects.
     for (const [block, address] of [
       [BUNDLES.shared, "take_1/card"],
       [MIXED, "annotations/card"],
     ] as const) {
+      await select(page, [`${MIXED}/score`]);
       const { x, y } = await partCentre(page, block, address);
       await page.mouse.click(x, y);
-      expect(await selection(page)).toEqual([`${MIXED}/score`]);
+      await expect.poll(() => selection(page)).toEqual([]);
       expect(await editing(page)).toEqual(group);
     }
 
+    await select(page, [`${MIXED}/score`]);
     const pane = await emptyPoint(page, -20, 450);
     await page.mouse.click(pane.x, pane.y);
     await expect.poll(() => selection(page)).toEqual([]);
@@ -595,6 +601,19 @@ test.describe("on bundles", () => {
     );
     expect(await entriesLength(page)).toBe(0);
     expect(await storeText(page, "view")).toBe(view);
+  });
+
+  test("Delete on the edited element asks to close its editor first", async ({ page }) => {
+    await enter(page, `${MIXED}/group_1`, VIEW);
+    await expect.poll(() => selection(page)).toEqual([`${MIXED}/group_1`]);
+    const journal = await journalLength(page);
+    await arranger(page).focus();
+    await page.keyboard.press("Delete");
+    await expect(page.getByTestId("hint")).toHaveText(
+      "Close its editor to delete the edited element.",
+    );
+    expect(await journalLength(page)).toBe(journal);
+    expect(await entriesLength(page)).toBe(0);
   });
 
   test("the Journal tab shows a closed session as one row on the arranger", async ({ page }) => {

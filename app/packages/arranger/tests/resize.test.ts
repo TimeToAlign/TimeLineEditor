@@ -39,6 +39,8 @@ function check(view: View, mode: ResizeMode, handle: Handle, dx: number, dy: num
 
 const bare = viewOf({ id: A, fixture: "bare", x: 40, y: 80 });
 const nested = viewOf({ id: A, fixture: "nested", x: 40, y: 80 });
+/** Three items at their default `y`, two gaps of the box's spacing between them. */
+const ungrouped = viewOf({ id: A, fixture: "bundles/bundle_ungrouped", x: 40, y: 80 });
 /** The view with block A's placement changed. */
 function placed(view: View, values: Partial<Block>): View {
   return changed(view, { type: "set", changes: [{ target: A, values }] });
@@ -62,14 +64,14 @@ const views: { readonly [name: string]: View } = {
   "bare, grid off": withGrid(bare, 8, false),
   "bare, scale 2": viewOf({ id: A, fixture: "bare", x: 40, y: 80, scale: 2 }),
   nested,
-  "nested, spacing 1/4": placed(nested, { spacing: 0.25 }),
-  "nested, spacing 1873/2048": placed(nested, { spacing: 0.91455078125 }),
+  ungrouped,
+  "ungrouped, score at y 200": placedItem(ungrouped, A, "score", { y: 200 }),
+  "ungrouped, height 504.33": placed(ungrouped, { height: 504.328125 }),
+  "ungrouped, both requests": placed(ungrouped, { width: 1051.79345703125, height: 504.328125 }),
   "audio, no names": audio,
   "audio, no names, length 8": placed(audio, { length: 8 }),
   "audio, no names, at the knee": placed(audio, { length: 40.08251953125 }),
   "bare, width 953.15": placed(bare, { width: 953.154296875 }),
-  "bare, height 134.76": placed(bare, { height: 134.7578125 }),
-  "bare, both requests": placed(bare, { width: 953.154296875, height: 134.7578125 }),
   "bare, length 500, width 496.58": placed(bare, { length: 500, width: 496.5771484375 }),
   "child member, width 600": placed(viewOf({ id: A, fixture: CHILD_MEMBER, x: 40, y: 80 }), {
     width: 600,
@@ -132,31 +134,29 @@ describe("resize: stretch", () => {
     ["bare, scale 2", "right", 20, 0, { length: 410 }],
     ["bare", "left", -21, 0, { length: 421, x: 19 }],
     ["bare", "right", -500, 0, { length: 8 }],
-    ["bare", "bottom", 0, 30, { spacing: 2.875 }],
-    ["bare", "top", 0, -16, { spacing: 2, y: 64 }],
-    ["bare", "bottom", 0, -8, { spacing: 0.5 }],
-    ["bare", "bottom", 0, -40, { spacing: 0.25 }],
-    ["nested", "bottom", 0, 51, { spacing: 2 }],
-    ["nested", "bottom", 0, 25.5, { spacing: 1.5 }],
-    ["nested", "bottom-right", 400, 51, { length: 800, spacing: 2 }],
-    ["nested", "top", 0, -51, { spacing: 2, y: 29 }],
-    ["nested", "bottom", 0, -40, { spacing: 0.25 }],
-    ["nested, spacing 1/4", "bottom", 0, 35, { spacing: 1.39208984375 }],
-    ["nested, spacing 1873/2048", "bottom", 0, 35, { spacing: 1.6005859375 }],
+    ["bare", "bottom", 0, 30, { spacing: 8 }],
+    ["nested", "top", 0, -51, { spacing: 8, y: 80 }],
+    ["nested", "bottom-right", 400, 51, { length: 800, spacing: 8 }],
+    ["ungrouped", "bottom", 0, 32, { spacing: 24 }],
+    ["ungrouped", "bottom", 0, 5, { spacing: 10.5 }],
+    ["ungrouped", "top", 0, -32, { spacing: 24, y: 48 }],
+    ["ungrouped", "bottom", 0, -16, { spacing: 0 }],
+    ["ungrouped", "bottom", 0, -40, { spacing: 0 }],
+    ["ungrouped", "bottom-right", 40, 32, { length: 440, spacing: 24 }],
+    ["ungrouped, score at y 200", "bottom", 0, 50, { spacing: 192.6953125 }],
     ["audio, no names", "right", -500, 0, { length: 40.08251953125 }],
     ["audio, no names, length 8", "right", 50, 0, { length: 90.08251953125 }],
     ["audio, no names, at the knee", "right", 100, 0, { length: 140.08251953125 }],
     ["bare, width 953.15", "right", 40, 0, { length: 420, width: 993.154296875 }],
     ["bare, width 953.15", "left", -42, 0, { length: 421, width: 995.154296875, x: -2 }],
-    ["bare, width 953.15", "bottom", 0, 30, { spacing: 2.875 }],
-    ["bare, height 134.76", "bottom", 0, 32, { spacing: 2, height: 166.7578125 }],
-    ["bare, height 134.76", "top", 0, -32, { spacing: 2, height: 166.7578125, y: 48 }],
+    ["ungrouped, height 504.33", "bottom", 0, 32, { spacing: 16, height: 536.328125 }],
+    ["ungrouped, height 504.33", "top", 0, -32, { spacing: 16, height: 536.328125, y: 48 }],
     [
-      "bare, both requests",
+      "ungrouped, both requests",
       "bottom-right",
       40,
       32,
-      { length: 420, spacing: 2, width: 993.154296875, height: 166.7578125 },
+      { length: 420, spacing: 16, width: 1091.79345703125, height: 536.328125 },
     ],
     ["bare, length 500, width 496.58", "right", 20, 0, { length: 520, width: null }],
     ["child member, width 600", "right", 50, 0, { length: 446.53466796875, width: 650 }],
@@ -237,22 +237,25 @@ describe("blockStretchPlaces", () => {
     group_2: { x: 40, y: 200, width: 700 },
     annotations: { x: -30, length: 300 },
   };
-  const block = { length: 400, spacing: 1, places };
+  const block = { length: 400, places };
 
-  it("scales horizontal members by the lengths and vertical ones by the spacings", () => {
-    expect(blockStretchPlaces(block, 500, 1.5)).toStrictEqual({
-      group_2: { x: 50, y: 300, width: 875 },
+  it("scales the horizontal members by the lengths and keeps every other", () => {
+    expect(blockStretchPlaces(block, 500)).toStrictEqual({
+      group_2: { x: 50, y: 200, width: 875 },
       annotations: { x: -37.5, length: 375 },
     });
     expect(
-      blockStretchPlaces({ ...block, places: { annotations: { x: 1, y: 1 } } }, 401, 1),
-    ).toStrictEqual({ annotations: { x: 1.00244140625, y: 1 } });
+      blockStretchPlaces(
+        { ...block, places: { annotations: { x: 1, y: 1, height: 90, spacing: 2 } } },
+        401,
+      ),
+    ).toStrictEqual({ annotations: { x: 1.00244140625, y: 1, height: 90, spacing: 2 } });
   });
 
   it("returns the block's own places when nothing changes", () => {
-    expect(blockStretchPlaces(block, 400, 1)).toBe(places);
+    expect(blockStretchPlaces(block, 400)).toBe(places);
     const none = {};
-    expect(blockStretchPlaces({ ...block, places: none }, 800, 2)).toBe(none);
+    expect(blockStretchPlaces({ ...block, places: none }, 800)).toBe(none);
   });
 });
 

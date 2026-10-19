@@ -55,8 +55,8 @@ export interface LinePosition {
   readonly beyond: (side: Side, y: number, size: number) => number;
   /**
    * The ordinate at which a break of the line's flow control band, lying on `side`, ends
-   * (section 6.4, Breaks): for the root of the member drawing its top plus `P × v` when the band
-   * lies below the line and its top plus `Hc − P × v` when above; for every other timeline
+   * (section 6.4, Breaks): for the root of the member drawing its top plus `P` when the band
+   * lies below the line and its top plus `Hc − P` when above; for every other timeline
    * `yl − mb` when the band lies below and `yl + mb` when above, `mb = max(E, h(s) / 2)`, `E` the
    * outer edge of the line's side opposite the band and `s` the name size of the row its line
    * lies in.
@@ -132,8 +132,8 @@ export interface PreparedBand {
    * Its width (section 6.4, Where a band lies), the distance its content reaches outwards from its
    * start, summed as its paragraph writes it: the markers band `w / 2 + 13`, or `w / 2 + 13 + 2 +
    * T × h(9)` with label tiers (Markers); the conversion maps band `e = w / 2 + J × (g + d)`
-   * (Conversion maps); the regions band `R × pr − 4 × v` (Regions); the flow control band `T ×
-   * h(9) + 8 × v + (K − 1) × pj + 2 + h(9)`, or `T × h(9)` without jumps (Flow control). 0 for an
+   * (Conversion maps); the regions band `R × pr − S` (Regions); the flow control band `T ×
+   * h(9) + (4 + S) + (K − 1) × pj + 2 + h(9)`, or `T × h(9)` without jumps (Flow control). 0 for an
    * absent band, and for the children band, whose width its children's layout gives.
    */
   readonly width: number;
@@ -240,10 +240,10 @@ const againstLine = (kind: BandKind): boolean => kind === "markers" || kind === 
  * The start `c` of a band of the kind `kind` (section 6.4, Where a band
  * lies), `previous` the outer edge of the present band at the level before
  * it on its side, `undefined` at level 1 or −1, `reach` the line's reach on
- * that side (Level 0), `w` the line's stroke width and `B = 4 × v`: at level
- * 1 or −1 the markers band and the conversion maps band start at 0, every
- * other band `B` beyond the larger of `reach` and `w / 2`; any further band
- * starts at `previous` plus `B`. A children band's own start is the larger
+ * that side (Level 0), `w` the line's stroke width and `S` the card spacing:
+ * at level 1 or −1 the markers band and the conversion maps band start at 0,
+ * every other band `S` beyond the larger of `reach` and `w / 2`; any further
+ * band starts at `previous` plus `S`. A children band's own start is the larger
  * of this and half its row's pitch (`childrenStart`).
  */
 export function bandStart(
@@ -251,16 +251,16 @@ export function bandStart(
   previous: number | undefined,
   reach: number,
   w: number,
-  v: number,
+  S: number,
 ): number {
-  if (previous !== undefined) return previous + 4 * v;
-  return againstLine(kind) ? 0 : Math.max(reach, w / 2) + 4 * v;
+  if (previous !== undefined) return previous + S;
+  return againstLine(kind) ? 0 : Math.max(reach, w / 2) + S;
 }
 
 /**
  * Lay out the present bands of one side outwards from the line (section 6.4,
  * Where a band lies), `present` in level order, `reach` the line's reach on
- * that side (Level 0), `w` the line's stroke width and `B = 4 × v`:
+ * that side (Level 0), `w` the line's stroke width and `S` the card spacing:
  *
  * - every band but the children band starts where `bandStart` puts it;
  * - the children band starts at `children.start` and is `children.width`
@@ -278,7 +278,7 @@ export function fillSide(
   side: Side,
   present: readonly PreparedBand[],
   reach: number,
-  v: number,
+  S: number,
   w: number,
   children: ChildrenSpan | undefined,
 ): LaidSide {
@@ -293,7 +293,7 @@ export function fillSide(
       if (children === undefined) throw new Error(`${band.address} is laid out without its rows`);
       ({ start, width } = children);
     } else {
-      start = bandStart(band.kind, edge, reach, w, v);
+      start = bandStart(band.kind, edge, reach, w, S);
       width = band.width;
     }
     const outer = start + width;

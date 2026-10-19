@@ -196,6 +196,7 @@ function commandOf(view: View, item: Gesture): object | null {
       const command = removeCommand(
         view,
         new Set(item.picks.map((pick) => all[pick % all.length] as string)),
+        null,
       );
       return "refused" in command ? null : command;
     }
@@ -355,7 +356,12 @@ function stretchCase(
     const item = itemHolding(drawn, own);
     const extent = isHeld(own) ? own.card.size : item.item.place;
     return {
-      value: vertical ? (block.places[box.key]?.spacing ?? 1) : item.item.place.length,
+      // The spacing drawn: stated, else the container's default.
+      value: vertical
+        ? isHeld(own)
+          ? own.card.spacing
+          : item.item.place.spacing
+        : item.item.place.length,
       edge: vertical ? extent.height : extent.width,
     };
   };
@@ -506,7 +512,11 @@ describe("affectedBy", () => {
           const owners = [...local]
             .filter((address) => parseBand(address) === null)
             .map((address) => elementOf(manifest, address));
-          const command = removeCommand(view, new Set([...local].map((path) => `${A}/${path}`)));
+          const command = removeCommand(
+            view,
+            new Set([...local].map((path) => `${A}/${path}`)),
+            null,
+          );
           if (owners.length === 0) {
             expect(command).toEqual({
               refused: "A band is not deleted; select its elements to delete them.",
@@ -519,7 +529,7 @@ describe("affectedBy", () => {
           const before = manifestIds(manifest);
           const after = manifestIds(blockIn(changed(view, command), A).manifest);
           const expected = new Set(
-            [...owners, ...affectedBy(manifest, local)].filter((item) => before.has(item)),
+            [...owners, ...affectedBy(manifest, local, null)].filter((item) => before.has(item)),
           );
           expect(new Set([...before].filter((item) => !after.has(item)))).toEqual(expected);
         },

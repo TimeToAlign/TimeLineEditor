@@ -43,12 +43,13 @@ export interface ItemPlace {
   readonly y?: number;
   readonly length?: number;
   readonly scale?: number;
+  /** A frame's gap between its cards; a box-held card's between its rows and its bands. */
   readonly spacing?: number;
   readonly width?: number;
   readonly height?: number;
 }
 
-/** The stated size and vertical stretch of a frame-held card. */
+/** The stated size and spacing (the gap between its rows and its bands) of a frame-held card. */
 export interface CardPlace {
   readonly width?: number;
   readonly height?: number;
@@ -226,7 +227,7 @@ export function placeMembersOf(ref: ContainerRef): readonly (keyof ItemPlace)[] 
  * `place` with only the members `ref` may state (`placeMembersOf`): `place`
  * itself when it states no other, `undefined` when it states none of them.
  * A timeline that becomes a group member so keeps its card's requested size
- * and vertical stretch, and loses its position, length and scale.
+ * and spacing, and loses its position, length and scale.
  */
 export function keptPlace(ref: ContainerRef, place: ItemPlace): ItemPlace | CardPlace | undefined {
   const members: readonly string[] = placeMembersOf(ref);

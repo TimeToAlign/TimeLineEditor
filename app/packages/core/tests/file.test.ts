@@ -43,10 +43,12 @@ describe("the workspace file", () => {
       "blocks",
       "journal",
       "meta",
+      "name",
       "sessions",
       "settings",
     ]);
     expect(value.meta).toEqual({ format: "tilie-workspace", version: 4 });
+    expect(value.name).toBe("untitled");
     expect((value.journal as unknown[]).length).toBe(4);
     expect(value.sessions).toEqual({});
   });
@@ -246,14 +248,14 @@ describe("the workspace file", () => {
         },
       ],
     });
-    for (const [key, member] of [
-      ["score", "spacing"],
-      ["group_1", "scale"],
+    for (const [key, member, value, code] of [
+      ["score", "spacing", -1, "invalid_value"],
+      ["group_1", "scale", 0, "non_positive_number"],
     ] as const) {
-      const zero = changedPlace(key, { [member]: 0 });
-      expect(isLoadError(zero) && zero.problems.map((item) => [item.code, item.path])).toEqual([
-        ["non_positive_number", ["blocks", A, "places", key, member]],
-      ]);
+      const refused = changedPlace(key, { [member]: value });
+      expect(
+        isLoadError(refused) && refused.problems.map((item) => [item.code, item.path]),
+      ).toEqual([[code, ["blocks", A, "places", key, member]]]);
     }
   });
 

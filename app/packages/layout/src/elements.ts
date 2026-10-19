@@ -13,6 +13,7 @@ export type { DrawnAxis, DrawnBox, ElementRange } from "./boxes.ts";
 /** Where and how large the drawing is placed (section 1). */
 export interface Placement {
   readonly length: number;
+  /** The box's spacing: the gap between its items at their default `y` (section 8.6). */
   readonly spacing: number;
   readonly width: number | null;
   readonly height: number | null;
@@ -25,7 +26,7 @@ export interface Placement {
 
 export const DEFAULT_PLACEMENT: Placement = {
   length: 400,
-  spacing: 1,
+  spacing: 8,
   width: null,
   height: null,
   places: {},

@@ -127,8 +127,9 @@ export interface AncestorBand {
 /**
  * The ancestor band (section 8.3), the outermost band of the above side,
  * `Ea` the outer edge of the root's above side: it starts at `max(p0 / 2,
- * max(Ea, wm / 2) + B)`, `wm` the stroke width of the member's line, or 0
- * when that line is not displayed (section 6.5), and holds one row per
+ * max(Ea, wm / 2) + S)`, `S` the card spacing and `wm` the stroke width of
+ * the member's line, or 0 when that line is not displayed (section 6.5), and
+ * holds one row per
  * drawn ancestor line, the nearest first, each with the pitch `qj` of its
  * name's font size, an inner half `qj / 2` and an outer half the larger of
  * `qj / 2` and its marks' reach. Without a drawn ancestor line there is no
@@ -149,9 +150,9 @@ export function ancestorBand(
     const reach = ancestor.marks.length === 0 ? q / 2 : Math.max(q / 2, marks);
     return { inner: q / 2, outer: reach };
   });
-  const { rootEntry, v } = scope;
+  const { rootEntry, S } = scope;
   const wm = rootEntry.drawn ? rootEntry.style["stroke-width"] : 0;
-  const c0 = Math.max(p0 / 2, Math.max(Ea, wm / 2) + 4 * v);
+  const c0 = Math.max(p0 / 2, Math.max(Ea, wm / 2) + S);
   let width = 0;
   for (const row of rows) width = width + row.inner + row.outer;
   const distances: number[] = [];

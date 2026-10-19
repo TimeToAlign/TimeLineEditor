@@ -333,10 +333,15 @@ directories equals the set of review case names exactly, and each case's
 inputs, written with timeskeleton's `dumps`, equal its `inputs.json` text.
 The review cases are every manifest fixture, `groups/` (as
 `group__<file>`) and `bundles/` (as `bundle__<file>`) included, but the
-`corpus_*` ones and the minimal twins; `nested` at other lengths, spacings,
-box sizes and scales; the bundles with places, a scale, card sizes and a
-stretch; and drawings with one application layer showing a band the
-defaults hide.
+`corpus_*` ones and the minimal twins; `nested` at other lengths, card
+spacings (its card's gap between rows and bands, 0 and 8), box sizes and
+scales; the bundles with places, a scale, card sizes, a box spacing with a
+card spacing, a frame's spacing (the gap between its member cards) and a
+member's card spacing; and drawings with one application layer showing a
+band the defaults hide. Every case stating a spacing, of the box or in a
+place, draws an SVG different from its manifest's default case: a spacing
+case that draws as the default (a box of one item has no gap) pins
+nothing.
 
 ## Validity (`compile.test.ts`)
 

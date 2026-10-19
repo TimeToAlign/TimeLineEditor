@@ -37,7 +37,7 @@ export const HAND_DERIVED: readonly string[] = [
   "flow_control",
   "with_region",
   "styled__score",
-  "nested__length-800-spacing-2",
+  "nested__length-800-card-spacing-8",
   "segment_line",
   "segment_pages_accolades",
   "group__group_child_member",

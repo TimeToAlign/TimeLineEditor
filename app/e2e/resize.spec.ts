@@ -2,7 +2,8 @@
  * The three resize modes on `small`: choosing the mode by button and by key,
  * the handles each mode shows, and the stored values after dragging one
  * corner and one edge handle in each mode; and on `bundles`, a group's frame
- * scaled on the arranger, and a member card's margin kept in proportion by
+ * scaled on the arranger and stretched vertically, the gap between its cards
+ * following the pointer, and a member card's margin kept in proportion by
  * stretches that lengthen and shorten its group. Derivation in `README.md`
  * ("resize.spec.ts").
  */
@@ -168,12 +169,10 @@ test.describe("the blocks of small", () => {
       { scale: 1.48046875, x: -188.98046875, y: 47.62646484375 },
     ],
     [SMALL.bare, "scale", "bottom-right", -440, -60, { scale: 0.125, x: 40, y: 80 }],
-    [SMALL.bare, "stretch", "right", 20, 0, { length: 420, spacing: 1, x: 40 }],
+    [SMALL.bare, "stretch", "right", 20, 0, { length: 420, spacing: 8, x: 40 }],
     [SMALL.bare, "stretch", "left", -21, 0, { length: 421, x: 19 }],
     [SMALL.bare, "stretch", "right", -500, 0, { length: 8, x: 40 }],
-    [SMALL.bare, "stretch", "bottom", 0, 32, { spacing: 3, length: 400, y: 80 }],
-    [SMALL.nested, "stretch", "bottom", 0, 51, { spacing: 2, length: 400, y: 224 }],
-    [SMALL.nested, "stretch", "bottom-right", 200, 51, { length: 600, spacing: 2, x: 40, y: 224 }],
+    [SMALL.nested, "stretch", "bottom-right", 200, 51, { length: 600, spacing: 8, x: 40, y: 224 }],
   ];
 
   test.describe("dragging a handle", () => {
@@ -207,27 +206,22 @@ test.describe("the blocks of small", () => {
       expect(await node(page, SMALL.bare).boundingBox()).toEqual(content);
     });
 
-    test("stretch: a shrink to the floor and a grow across the kink solve exactly", async ({
+    test("stretch: a block of one item has no gap, so a vertical stretch journals nothing", async ({
       page,
     }) => {
       await select(page, [SMALL.nested]);
       await chooseMode(page, "stretch");
-      // nested's height is 76.98828125 + 16 v below spacing 0.9146… and
-      // 44.9765625 + 51 v above it: a target of 95.9765625 − 40 lies below the
-      // height at the floor 1/4 (80.98828125), so the solve stops at the floor.
-      await resizeBy(page, SMALL.nested, "bottom", 0, -40);
-      expect(await stored(page, SMALL.nested, { spacing: 0, y: 0 })).toEqual({
-        spacing: 1 / 4,
-        y: 224,
-      });
-      // From there, 80.98828125 + 35 = 44.9765625 + 51 v gives
-      // v = 71.01171875 / 51 = 1.392386…; the largest multiple of 1/2048 whose
-      // height stays within the pointer is 2851/2048.
-      await resizeBy(page, SMALL.nested, "bottom", 0, 35);
-      expect(await stored(page, SMALL.nested, { spacing: 0, y: 0 })).toEqual({
-        spacing: 2851 / 2048,
-        y: 224,
-      });
+      const before = await placement(page, SMALL.nested);
+      const box = await node(page, SMALL.nested).boundingBox();
+      for (const dy of [51, -40]) {
+        const grip = await page.locator('[data-testid="handle-bottom"]').boundingBox();
+        if (grip === null) throw new Error("handle bottom is not displayed");
+        await dragStart(page, { x: grip.x + grip.width / 2, y: grip.y + grip.height / 2 }, 0, dy);
+        await page.mouse.up();
+      }
+      expect(await journalLength(page)).toBe(START);
+      expect(await placement(page, SMALL.nested)).toEqual(before);
+      expect(await node(page, SMALL.nested).boundingBox()).toEqual(box);
     });
 
     test("box: a resize held in the edge zone pans and follows the pointer", async ({ page }) => {
@@ -308,6 +302,35 @@ test.describe("a frame on the arranger", () => {
       ),
     ).toEqual({
       group_1: { scale: 2290 / 2048 },
+      group_2: { x: 8, y: 206.0390625 },
+      annotations: { x: 8, y: 391.7734375 },
+    });
+  });
+});
+
+test.describe("a frame stretched vertically", () => {
+  test("widens the gap between its cards by the pointer's travel, nothing else changing", async ({
+    page,
+  }) => {
+    await open(page, "bundles");
+    await setViewport(page, { x: 40, y: 40, zoom: 1 });
+    const block = BUNDLES.mixed;
+    const frame = await framePoint(page, block, "group_1");
+    await page.mouse.click(frame.x, frame.y);
+    expect(await selection(page)).toEqual([`${block}/group_1`]);
+    await chooseMode(page, "stretch");
+    const grip = await page.locator('[data-testid="handle-bottom"]').boundingBox();
+    if (grip === null) throw new Error("handle bottom is not displayed");
+    await dragStart(page, { x: grip.x + grip.width / 2, y: grip.y + grip.height / 2 }, 0, 44);
+    await page.mouse.up();
+    expect(await journalLength(page)).toBe(OPENED_JOURNAL.bundles + 1);
+    expect(
+      await page.evaluate(
+        (id) => JSON.parse(JSON.stringify(window.__tilie.store().view.blocks[id]?.places)),
+        block,
+      ),
+    ).toEqual({
+      group_1: { spacing: 52 },
       group_2: { x: 8, y: 206.0390625 },
       annotations: { x: 8, y: 391.7734375 },
     });

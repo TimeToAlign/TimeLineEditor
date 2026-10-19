@@ -5,7 +5,8 @@
  * when one is given. Beside its heading it names what is selected; below,
  * the inspector, rendered only while the drawer is open. What the inspector
  * holds between showings (unapplied text, drafts, the tab chosen) is kept
- * here, so closing the drawer loses none of it.
+ * here, so closing the drawer loses none of it; an editor opened while it
+ * is closed has the level tab shown when it opens.
  */
 import type { LivePlacement, LiveStore, Selection } from "@timetoalign/tilie-arranger";
 import { tick, untrack } from "svelte";
@@ -13,7 +14,7 @@ import Inspector from "./inspector/Inspector.svelte";
 import { ManifestText } from "./inspector/manifestText.svelte.ts";
 import { PropertyDrafts } from "./inspector/propertyDrafts.svelte.ts";
 import type { Picked } from "./inspector/tabs.ts";
-import { initialPick } from "./inspector/tabs.ts";
+import { initialPick, toggled } from "./inspector/tabs.ts";
 import { inspectedSubject } from "./inspector/words.ts";
 
 interface Props {
@@ -58,6 +59,7 @@ export function isOpen(): boolean {
 
 /** Open or close the drawer and remember the choice; the focus stays where it is. */
 export function setOpen(next: boolean): void {
+  if (next !== open) picked = toggled(picked, live.openings, next);
   open = next;
   if (storageKey === null) return;
   try {

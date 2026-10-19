@@ -25,8 +25,9 @@ import { type Entry, maxSize, type Scope, shown } from "./traversal.ts";
  * and from positions), smallest first, are placed in that order by first fit
  * with the extent from the smaller to the larger of their from and to,
  * widened to their drawn label's extent, into the jump rows; row `k` has its
- * apex `f0 + 8 × v + (k − 1) × pj` out, `pj = 10 × v + h(9)`. The band is `T
- * × h(9) + 8 × v + (K − 1) × pj + 2 + h(9)` wide for `K ≥ 1` jump rows and
+ * apex `f0 + (4 + S) + (k − 1) × pj` out, `pj = 6 + S + h(9)`, `S` the card
+ * spacing. The band is `T × h(9) + (4 + S) + (K − 1) × pj + 2 + h(9)` wide for
+ * `K ≥ 1` jump rows and
  * `T × h(9)` for none; 9 is the largest font size of its drawn jump and
  * break labels together. A break runs from the flow row to `at.breakEnd`,
  * its label starting at `x + 3` in its tier, tier 1 touching the flow row on
@@ -37,7 +38,7 @@ export function flowControlBand(
   line: Entry,
   sources: readonly Entry[],
 ): PreparedBand {
-  const { address, owned, measured, relativeX, u, v, h, a, d } = scope;
+  const { address, owned, measured, relativeX, u, S, h, a, d } = scope;
   const held = sources.filter((source) => shown(source.bands.flow_control.style));
   const own = (source: Entry, value: Parameters<typeof coordinateValue>[0]) =>
     add(source.start, coordinateValue(value, source.manifest.number_type));
@@ -91,13 +92,15 @@ export function flowControlBand(
     ...labelledBreaks.map((item) => item.item.label),
   ]);
   const tierRoom = tiers.count * h(size);
-  const pj = 10 * v + h(size);
+  // The first jump row's depth and the jump rows' pitch, each summed whole first.
+  const depth = 4 + S;
+  const pj = 6 + S + h(size);
   const K = rows.count;
   return {
     kind: "flow_control",
     address: bandAddress(line.manifest.id, "flow_control"),
     elements: breaks.length + jumps.length,
-    width: K === 0 ? tierRoom : tierRoom + 8 * v + (K - 1) * pj + LABEL_GAP + h(size),
+    width: K === 0 ? tierRoom : tierRoom + depth + (K - 1) * pj + LABEL_GAP + h(size),
     extents: [
       ...breaks.map((item): Extent => [relativeX(item.at), relativeX(item.at)]),
       ...labelledBreaks.map((item) => item.extent),
@@ -109,7 +112,7 @@ export function flowControlBand(
     draw: (start, side, at) => {
       const f0 = start + tierRoom;
       const yf = at.yAt(side, f0);
-      const apex = (row: number) => f0 + 8 * v + (row - 1) * pj;
+      const apex = (row: number) => f0 + depth + (row - 1) * pj;
       return {
         breaks: breaks.map((item) => ({
           type: "break",

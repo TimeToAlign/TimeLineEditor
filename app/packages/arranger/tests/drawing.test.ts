@@ -12,7 +12,7 @@ describe("drawingOf", () => {
       block.manifest,
       {
         length: 400,
-        spacing: 1,
+        spacing: 8,
         width: null,
         height: null,
         places: {},
@@ -62,7 +62,7 @@ describe("drawingOf", () => {
         mixed.manifest,
         {
           length: 400,
-          spacing: 1,
+          spacing: 8,
           width: null,
           height: null,
           places: { annotations: { x: -30 } },

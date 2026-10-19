@@ -73,7 +73,7 @@ describe("add", () => {
       y: 0,
       scale: 1,
       length: 400,
-      spacing: 1,
+      spacing: 8,
       width: null,
       height: null,
       places: {},
@@ -244,6 +244,7 @@ describe("set", () => {
     const view = frozen([A, "bare.json"]);
     const placement = { scale: 2, width: 120, height: null, length: 800, spacing: 2 };
     expect(block(applied(view, set(A, placement)))).toEqual({ ...block(view), ...placement });
+    expect(block(applied(view, set(A, { spacing: 0 }))).spacing).toBe(0);
   });
 
   it("sets the workspace settings member by member, graphical whole", () => {
@@ -336,6 +337,7 @@ describe("set", () => {
       [set(A, { x: Number.POSITIVE_INFINITY }), "non_finite_number", [A, "x"]],
       [set(A, { scale: 0 }), "non_positive_number", [A, "scale"]],
       [set(A, { width: -5 }), "non_positive_number", [A, "width"]],
+      [set(A, { spacing: -1 }), "invalid_value", [A, "spacing"]],
       [set(A, { index: "a00" }), "invalid_index", [A, "index"]],
       [set(A, { index: "a1" }), "duplicate_index", [A, "index"]],
       [
@@ -374,9 +376,9 @@ describe("set", () => {
     for (const [command, code, path] of cases)
       expect(rejected(view, command)).toEqual({ code, path });
     const maps = viewOf([A, "map.json"]);
-    expect(rejected(maps, set(at("melody/tempo"), { name: "x" }))).toEqual({
+    expect(rejected(maps, set(at("melody/tempo"), { start: 0 }))).toEqual({
       code: "wrong_target_kind",
-      path: [at("melody/tempo"), "name"],
+      path: [at("melody/tempo"), "start"],
     });
     expect(rejected(maps, set(at("melody/tempo"), { map: { ...tempo(), id: "other" } }))).toEqual({
       code: "id_not_settable",

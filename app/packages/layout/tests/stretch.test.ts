@@ -9,7 +9,21 @@ import {
 } from "../src/index.ts";
 import { bandOrder, drawFixture, edit, element, metrics, set } from "./support.ts";
 
-const NAMES = ["nested", "map", "flow_control", "with_region"] as const;
+/** Each stretched fixture and the id of its one root, whose card's spacing a stretch sets. */
+const ROOTS = {
+  nested: "clt_1",
+  map: "melody",
+  flow_control: "flow:quarters",
+  with_region: "clt_1",
+} as const;
+const NAMES = Object.keys(ROOTS) as (keyof typeof ROOTS)[];
+
+/** The default placement at `length`, the card of `root` at the card spacing `spacing`. */
+const spaced = (root: string, spacing: number, length = 400): Placement => ({
+  ...DEFAULT_PLACEMENT,
+  length,
+  places: { [root]: { spacing } },
+});
 
 /** What a stretch must keep: type, address, style, text, and the marker's size. */
 function sizes(item: DrawnElement): unknown {
@@ -28,8 +42,8 @@ describe("stretch", () => {
     it(`keeps sizes of ${name} at every length and spacing`, () => {
       const natural = drawFixture(name).elements.map(sizes);
       for (const length of [200, 400, 800]) {
-        for (const spacing of [0.5, 1, 2]) {
-          const placement: Placement = { ...DEFAULT_PLACEMENT, length, spacing };
+        for (const spacing of [0, 4, 8]) {
+          const placement = spaced(ROOTS[name], spacing, length);
           expect(
             drawFixture(name, [], placement).elements.map(sizes),
             `${length} ${spacing}`,
@@ -51,14 +65,14 @@ describe("stretch", () => {
     });
   });
 
-  it("spaces the root's row and every child row one pitch apart", () => {
+  it("spaces the root's row and every child row one band start and half a pitch apart", () => {
     const rows: [number, [number, number, number]][] = [
-      [0.5, [44.01171875, 31.20703125, 18.40234375]],
-      [1, [51, 37, 23]],
-      [2, [94, 66, 38]],
+      [0, [48.01171875, 35.20703125, 22.40234375]],
+      [4, [51, 37, 23]],
+      [8, [62, 43.5, 25]],
     ];
     for (const [spacing, expected] of rows) {
-      const drawing = drawFixture("nested", [], { ...DEFAULT_PLACEMENT, spacing });
+      const drawing = drawFixture("nested", [], spaced("clt_1", spacing));
       const y = (address: string) => {
         const line = drawing.elements.find((item) => item.address === address);
         return line?.type === "timeline" || line?.type === "child" ? line.y : Number.NaN;
@@ -70,32 +84,27 @@ describe("stretch", () => {
   });
 });
 
-describe("vertical padding", () => {
-  it("grows a root alone by the padding above and below it", () => {
-    const rows: [number, number, number][] = [
-      [0.5, 18.40234375, 59.37890625],
-      [1, 22.40234375, 67.37890625],
-      [2, 30.40234375, 83.37890625],
-    ];
-    for (const [spacing, yRoot, height] of rows) {
-      const drawing = drawFixture("bare", [], { ...DEFAULT_PLACEMENT, spacing });
-      expect(element(drawing, "bare"), `${spacing}`).toMatchObject({ y: yRoot });
-      expect([drawing.width, drawing.height], `${spacing}`).toEqual([476.5771484375, height]);
-      expect(drawing.height - 67.37890625).toBe(2 * 8 * (spacing - 1));
+describe("the padding", () => {
+  it("leaves a root without gaps as it is at every card spacing", () => {
+    const natural = drawFixture("bare");
+    for (const spacing of [0, 8]) {
+      const drawing = drawFixture("bare", [], spaced("bare", spacing));
+      expect(drawing.elements, `${spacing}`).toEqual(natural.elements);
+      expect([drawing.width, drawing.height], `${spacing}`).toEqual([476.5771484375, 67.37890625]);
     }
   });
 
-  it("ends a break line at the stretched padding below", () => {
-    const drawing = drawFixture("flow_control", [], { ...DEFAULT_PLACEMENT, spacing: 2 });
-    expect(drawing.height).toBe(130.33203125);
-    expect(element(drawing, "flow:quarters")).toMatchObject({ y: 30.40234375 });
+  it("ends a break line at the padding below", () => {
+    const drawing = drawFixture("flow_control", [], spaced("flow:quarters", 8));
+    expect(drawing.height).toBe(110.33203125);
+    expect(element(drawing, "flow:quarters")).toMatchObject({ y: 22.40234375 });
     expect(drawing.elements.find((item) => item.type === "break")).toMatchObject({
-      y1: 75.85546875,
-      y2: 24,
+      y1: 67.85546875,
+      y2: 16,
     });
   });
 
-  it("ends a break of a flow control band above the line at the stretched padding", () => {
+  it("ends a break of a flow control band above the line at the padding", () => {
     const order = bandOrder(
       "flow:quarters",
       ["flow_control", "children", "conversion_maps"],
@@ -104,15 +113,15 @@ describe("vertical padding", () => {
     const manifest = edit("flow_control", set("flow:quarters", { order }));
     const drawing = draw(
       manifest,
-      { ...DEFAULT_PLACEMENT, spacing: 2 },
+      spaced("flow:quarters", 8),
       [DEFAULT_LAYER, manifestLayer(manifest)],
       metrics,
     );
-    expect(drawing.height).toBe(125.4296875);
-    expect(element(drawing, "flow:quarters")).toMatchObject({ y: 72.453125 });
+    expect(drawing.height).toBe(105.4296875);
+    expect(element(drawing, "flow:quarters")).toMatchObject({ y: 60.453125 });
     expect(drawing.elements.find((item) => item.type === "break")).toMatchObject({
-      y1: 52.4765625,
-      y2: 99.4296875,
+      y1: 40.4765625,
+      y2: 87.4296875,
     });
   });
 });

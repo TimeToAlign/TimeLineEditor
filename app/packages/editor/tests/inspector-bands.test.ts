@@ -210,13 +210,21 @@ describe("the Properties panel of a band", () => {
     expect(document.querySelector("textarea")?.value).toBe(expected.value.text);
   });
 
-  it("shows for a band with a card exactly what the card alone shows", () => {
+  it("shows for a band with a card the card's geometry, without its name and lock", () => {
+    const geometry = () =>
+      [...panel().querySelectorAll<HTMLInputElement>("form input[type=number]")].map((input) => [
+        input.name,
+        input.value,
+        input.disabled,
+      ]);
     show(storeOf(), [`${A}/melody/card`]);
-    const alone = panel().innerHTML;
+    const alone = geometry();
+    expect(panel().querySelectorAll('input[name="name"], input[type=checkbox]')).toHaveLength(2);
     hide();
 
     show(storeOf(), [`${A}/melody/markers_1`, `${A}/melody/card`]);
-    expect(panel().innerHTML).toBe(alone);
+    expect(geometry()).toEqual(alone);
+    expect(panel().querySelector('input[name="name"]')).toBe(null);
     expect(
       [...panel().querySelectorAll("form")].map((form) => form.getAttribute("aria-label")),
     ).toEqual(["Card properties"]);

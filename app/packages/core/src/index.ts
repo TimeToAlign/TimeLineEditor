@@ -126,4 +126,4 @@ export { editorKindOf, isSessionEntry, listEntries } from "./workspace/sessions.
 export type { Store, StoreOptions, Workspace } from "./workspace/store.ts";
 export { createStore } from "./workspace/store.ts";
 export type { View, WorkspaceSettings } from "./workspace/view.ts";
-export { createView } from "./workspace/view.ts";
+export { createView, UNTITLED_WORKSPACE } from "./workspace/view.ts";

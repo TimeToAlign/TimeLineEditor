@@ -62,8 +62,9 @@ export interface DrawnBox {
    */
   readonly item?: { readonly place: Required<ItemPlace>; readonly stated: ItemPlace };
   /**
-   * Any card: its drawn size in item coordinates, its vertical stretch (a member's card's own
-   * `spacing`, a box-held card's its item's) and what `places` states for it.
+   * Any card: its drawn size in item coordinates, its spacing, the gap between its rows and its
+   * bands (a member's card's own `spacing`, a box-held card's its item's, else 4), and what
+   * `places` states for it.
    */
   readonly card?: {
     readonly size: { readonly width: number; readonly height: number };

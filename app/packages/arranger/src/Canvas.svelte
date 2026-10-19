@@ -28,7 +28,7 @@ import ResizeToolbar from "./ResizeToolbar.svelte";
 import type { ResizeMode } from "./resize.ts";
 import SnapGuides from "./SnapGuides.svelte";
 import type { Selection } from "./selection.ts";
-import { DONE, openable, resizableOf } from "./selectionRules.ts";
+import { DONE, openable, RECENTRE, resizableOf } from "./selectionRules.ts";
 import type { Guide } from "./snap.ts";
 
 interface Props {
@@ -232,7 +232,9 @@ const pointer = new CanvasPointer({
   toCanvas: (client) => toolbar?.toCanvas(client),
   act(action) {
     if (action === DONE) store.done();
-    else if (rules.open) openEditor(action);
+    else if (action === RECENTRE) {
+      if (editing !== null) void editorFocus.focusOn(editing.target);
+    } else if (rules.open) openEditor(action);
   },
 });
 

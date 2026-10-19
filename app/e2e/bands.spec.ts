@@ -120,7 +120,8 @@ test.describe("on bundles", () => {
     const point = await bandPoint(page, MIXED, F, 2);
     await page.mouse.move(point.x, point.y);
     await expect.poll(() => bandMarks(page, MIXED)).toEqual([F]);
-    expect(await selection(page)).toEqual([]);
+    // Opening the editor selected the edited timeline's card.
+    expect(await selection(page)).toEqual([`${MIXED}/score/card`]);
     await page.mouse.click(point.x, point.y);
     await expect.poll(() => selection(page)).toEqual(SELECTED_F);
     expect(await bandMarks(page, MIXED)).toEqual([F]);

@@ -197,7 +197,13 @@ export function project(
         descriptors: descriptorsOf(drawing),
         selectedElements,
         affectedElements:
-          selectedElements.size === 0 ? NO_ELEMENTS : affectedBy(block.manifest, selectedElements),
+          selectedElements.size === 0
+            ? NO_ELEMENTS
+            : affectedBy(
+                block.manifest,
+                selectedElements,
+                outside || edited === null ? null : edited.element,
+              ),
         editing,
         inside,
       },

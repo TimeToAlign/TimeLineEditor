@@ -1,7 +1,7 @@
 import { manifestElements } from "@timetoalign/tilie-core/drawing";
 import { describe, expect, it } from "vitest";
 import { addressParts } from "../src/editing.ts";
-import { blockOf, click, existing } from "../src/selection.ts";
+import { blockOf, click, editedSelection, existing } from "../src/selection.ts";
 import {
   A,
   B,
@@ -159,13 +159,16 @@ describe("existing when an editor opens", () => {
         `${A}/performance`,
         `${A}/page/card`,
       ),
-    ).toEqual([`${A}/score/card`, `${A}/performance`]);
+    ).toEqual([`${A}/group_1`, `${A}/score/card`, `${A}/performance`]);
     expect(
       opening(`${A}/score`, `${A}/score/card`, `${A}/score/start`, `${A}/performance`),
-    ).toEqual([`${A}/score/start`]);
+    ).toEqual([`${A}/score/card`, `${A}/score/start`]);
     store.done();
     store.done();
-    expect(opening(`${A}/score`, `${A}/score`, `${A}/score/name`)).toEqual([`${A}/score/name`]);
+    expect(opening(`${A}/score`, `${A}/score`, `${A}/score/name`)).toEqual([
+      `${A}/score`,
+      `${A}/score/name`,
+    ]);
     store.done();
     open(`${A}/group_1`);
     expect(
@@ -176,5 +179,25 @@ describe("existing when an editor opens", () => {
         `${A}/score/start`,
       ),
     ).toEqual([`${A}/score/conversion_maps_1`, `${A}/score/start`]);
+  });
+});
+
+describe("editedSelection", () => {
+  it("selects the edited element by the address a click on its box selects", () => {
+    const view = mixedView();
+    const nested = viewOf({ id: A, fixture: "nested" });
+    expect(editedSelection(view, { target: A, kind: "bundle" })).toEqual(new Set([A]));
+    expect(editedSelection(view, { target: `${A}/group_1`, kind: "group" })).toEqual(
+      new Set([`${A}/group_1`]),
+    );
+    expect(editedSelection(view, { target: `${A}/score`, kind: "timeline" })).toEqual(
+      new Set([`${A}/score/card`]),
+    );
+    expect(editedSelection(nested, { target: `${A}/clt_3`, kind: "timeline" })).toEqual(
+      new Set([`${A}/clt_3`]),
+    );
+    expect(editedSelection(nested, { target: `${A}/clt_1`, kind: "timeline" })).toEqual(
+      new Set([`${A}/clt_1/card`]),
+    );
   });
 });

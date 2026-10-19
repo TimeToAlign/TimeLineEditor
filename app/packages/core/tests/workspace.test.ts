@@ -14,20 +14,22 @@ describe("workspace creation", () => {
   it("defaults blocks to the drawing's placement defaults and scale 1", () => {
     expect(DEFAULT_SETTINGS).toEqual({
       grid: { size: 8, snap: true },
-      blockDefaults: { scale: 1, length: 400, spacing: 1, width: null, height: null },
+      blockDefaults: { scale: 1, length: 400, spacing: 8, width: null, height: null },
       graphical: {},
     });
   });
 
-  it("creates exactly the fixed metadata, the settings and no blocks", () => {
+  it("creates exactly the fixed metadata, the name, the settings and no blocks", () => {
     expect(createView()).toEqual({
       meta: { format: "tilie-workspace", version: 4 },
+      name: "untitled",
       settings: DEFAULT_SETTINGS,
       blocks: {},
     });
     const settings = { ...DEFAULT_SETTINGS, grid: { size: 4, snap: false } };
     expect(createView(settings)).toEqual({
       meta: { format: "tilie-workspace", version: 4 },
+      name: "untitled",
       settings,
       blocks: {},
     });
@@ -97,7 +99,7 @@ describe("workspace checks", () => {
       x: Number.POSITIVE_INFINITY,
       scale: 0,
       length: -1,
-      spacing: 0,
+      spacing: -1,
       width: -5,
       height: null,
       manifest: {
@@ -109,8 +111,8 @@ describe("workspace checks", () => {
       { code: "non_finite_number", path: ["blocks", A, "x"] },
       { code: "non_positive_number", path: ["blocks", A, "scale"] },
       { code: "non_positive_number", path: ["blocks", A, "length"] },
-      { code: "non_positive_number", path: ["blocks", A, "spacing"] },
       { code: "non_positive_number", path: ["blocks", A, "width"] },
+      { code: "invalid_value", path: ["blocks", A, "spacing"] },
       {
         code: "region_end_before_start",
         path: ["blocks", A, "manifest", "timelines", 0, "regions", 0, "end"],

@@ -108,6 +108,7 @@ describe("journalRows", () => {
         entry({ type: "add", into: "workspace", block: { id: "0000000003" } }),
         entry({ type: "add", into: `${A}/score`, region: { id: "region_1" } }),
         entry({ type: "set", changes: [{ target: A, values: { x: 25, y: -3 } }] }),
+        entry({ type: "set", changes: [{ target: A, values: { width: 640, height: null } }] }),
         entry({
           type: "set",
           changes: [
@@ -131,6 +132,7 @@ describe("journalRows", () => {
       "Added block 0000000003 to workspace",
       `Added region region_1 to ${A}/score`,
       `Set x, y of ${A}`,
+      `Set container width, container height of ${A}`,
       `Set x, y of ${A} and 1 more`,
       `Set place of ${A}/group_1 and 2 more`,
       `Removed ${A}/group_2, ${B}`,

@@ -20,11 +20,13 @@ import { rulesOf } from "../src/containers.ts";
 import { drawingOf } from "../src/drawing.ts";
 import type { Editing } from "../src/editing.ts";
 import { itemMoveCommand } from "../src/items.ts";
+import { CUBIC_OUT } from "../src/motion.ts";
 import type { BlockNodeData } from "../src/project.ts";
 import { project } from "../src/project.ts";
 import { reorderCommand } from "../src/reorder.ts";
 import type { Call } from "./dom.ts";
 import {
+  drag,
   IDENTITY,
   kinds,
   pointer,
@@ -415,7 +417,32 @@ describe("the presses taken", () => {
 });
 
 describe("the reorder of a frame's cards", () => {
-  it("selects, previews each order as its command leaves the block, stores one set", () => {
+  /** The Web Animations a settling copy runs, recorded; `finish` ends the last one. */
+  let settles: ReturnType<typeof vi.fn>;
+  let finish: () => void;
+
+  beforeEach(() => {
+    const animation = { cancel() {}, onfinish: null as (() => void) | null };
+    finish = () => {
+      animation.onfinish?.();
+      flushSync();
+    };
+    settles = vi.fn(() => animation);
+    Object.defineProperty(Element.prototype, "animate", {
+      value: settles,
+      configurable: true,
+      writable: true,
+    });
+  });
+
+  afterEach(() => {
+    Reflect.deleteProperty(Element.prototype, "animate");
+  });
+
+  /** Wait for the next animation frame, after the callbacks requested before it. */
+  const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+
+  it("selects, previews each order as its command leaves the block, stores one set", async () => {
     const { svg, calls } = mountOn(VIEW, A, GROUP);
     const card = addressed(svg, "score/card")[1] as Element;
     // The card slides 60 pixels down to a previewed slot; the gesture reads the drawing's CTM.
@@ -446,7 +473,45 @@ describe("the reorder of a frame's cards", () => {
       changes: [{ target: `${A}/group_1`, values: { order: null } }],
     });
     expect(previewed(calls[4])).toBeNull();
+    // The node's view is not changed by the recorded dispatch: the copy settles on the card's old place.
+    // Until the next frame it lies where it was dropped, no motion started.
+    expect(ghost().length).toBe(1);
+    expect(ghost()[0]?.getAttribute("transform")).toBe("translate(10 100)");
+    expect(settles).not.toHaveBeenCalled();
+    await nextFrame();
+    expect(settles.mock.calls).toEqual([
+      [
+        [{ transform: "translate(10px, 100px)" }, { transform: "translate(0px, 0px)" }],
+        {
+          duration: Math.sqrt(Math.hypot(10, 100)) * 120,
+          easing: CUBIC_OUT,
+          fill: "forwards",
+        },
+      ],
+    ]);
+    expect(settles.mock.contexts[0]).toBe(ghost()[0]);
+    expect(marked(svg, "visibility")).toEqual(SCORE);
+    finish();
     expect(ghost().length).toBe(0);
+    expect(marked(svg, "visibility")).toEqual([]);
+  });
+
+  it("starts no motion for a copy gone before the next frame", async () => {
+    const { svg } = mountOn(VIEW, A, GROUP);
+    const card = addressed(svg, "score/card")[1] as Element;
+    drag(card, [100, 70], [110, 170]);
+    expect(svg.querySelectorAll("g.tilie-dragged").length).toBe(1);
+    clear();
+    await nextFrame();
+    expect(settles).not.toHaveBeenCalled();
+  });
+
+  it("removes the copy at once under reduced motion", () => {
+    const { svg } = mountOn(VIEW, A, GROUP, { reducedMotion: true });
+    const card = addressed(svg, "score/card")[1] as Element;
+    drag(card, [100, 70], [110, 170]);
+    expect(settles).not.toHaveBeenCalled();
+    expect(svg.querySelectorAll("g.tilie-dragged").length).toBe(0);
     expect(marked(svg, "visibility")).toEqual([]);
   });
 
@@ -648,8 +713,10 @@ describe("the slide of a reorder", () => {
     expect(animate).not.toHaveBeenCalled();
   });
 
-  it("slides every moved element while a reorder previews an order", async () => {
-    expect(await previewed(false)).toBe(dataOf(REORDERED, A, GROUP).descriptors.length);
+  it("slides every moved element but the dragged card's while a reorder previews an order", async () => {
+    expect(await previewed(false)).toBe(
+      dataOf(REORDERED, A, GROUP).descriptors.length - SCORE.length,
+    );
   });
 
   it("does not slide under reduced motion", async () => {

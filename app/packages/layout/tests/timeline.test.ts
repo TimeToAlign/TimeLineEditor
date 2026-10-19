@@ -38,7 +38,10 @@ import {
   set,
 } from "./support.ts";
 
-/** One member drawing traversed with the default layer, `extra` and the manifest's own layer. */
+/**
+ * One member drawing traversed with the default layer, `extra` and the manifest's own layer, in a
+ * card of the default spacing 4.
+ */
 function scopeOf(
   manifest: Manifest,
   extra: readonly Graphical[] = [],
@@ -53,6 +56,7 @@ function scopeOf(
     { manifest, placement: DEFAULT_PLACEMENT, cascade, measure: new TextMeasure(metrics) },
     member,
     box,
+    4,
   );
 }
 
@@ -73,7 +77,7 @@ const laid = (timeline: PreparedTimeline, children?: { start: number; width: num
     children === undefined ? undefined : { ...children, children: [] },
   ).bands.map((band) => [band.kind, band.level, band.start, band.width, band.edge, band.elements]);
 
-const PLACE: LinePlace = { x0: 0, y: 100, size: 11, top: 0, Pv: 8, Hc: 200 };
+const PLACE: LinePlace = { x0: 0, y: 100, size: 11, top: 0, Hc: 200 };
 
 const show = (...kinds: BandKind[]): Graphical => ({
   statements: kinds.map((kind) => ({

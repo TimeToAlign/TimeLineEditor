@@ -133,6 +133,13 @@ async function clickOn(target: Element, clientX = 0, clientY = 0): Promise<void>
   await settle();
 }
 
+async function shiftClickOn(target: Element, clientX = 0, clientY = 0): Promise<void> {
+  target.dispatchEvent(
+    new MouseEvent("click", { bubbles: true, clientX, clientY, shiftKey: true }),
+  );
+  await settle();
+}
+
 /** Wait `ms` milliseconds of real time, then let the canvas settle. */
 async function wait(ms: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms));
@@ -470,9 +477,15 @@ describe("the surroundings of an editor", () => {
     expect(classes(A)).toEqual({ selectable: true, draggable: false, outside: false });
     expect(classes(B)).toEqual({ selectable: false, draggable: false, outside: true });
     await select(`${A}/group_1`);
-    await clickOn(background(B));
+    await shiftClickOn(background(B));
     expect(selected()).toEqual([`${A}/group_1`]);
+    await clickOn(background(B));
+    expect(selected()).toEqual([]);
+    await select(`${A}/group_1`);
     await clickOn(pane(), 1110, 110);
+    expect(selected()).toEqual([]);
+    await select(`${A}/group_1`);
+    await shiftClickOn(pane(), 50, 50);
     expect(selected()).toEqual([`${A}/group_1`]);
     await clickOn(pane(), 50, 50);
     expect(selected()).toEqual([]);
@@ -481,8 +494,11 @@ describe("the surroundings of an editor", () => {
     await settle();
     await clickOn(drawn("score/card"));
     expect(selected()).toEqual([`${A}/score/card`]);
-    await clickOn(drawn("group_2"));
+    await shiftClickOn(drawn("group_2"));
     expect(selected()).toEqual([`${A}/score/card`]);
+    await clickOn(drawn("group_2"));
+    expect(selected()).toEqual([]);
+    expect(path()).toEqual([{ target: `${A}/group_1`, kind: "group" }]);
   });
 
   /**
@@ -520,7 +536,7 @@ describe("the surroundings of an editor", () => {
     open(`${A}/group_1`);
     await select(`${A}/annotations`);
     const before = store.view;
-    const command = removeCommand(before, new Set([`${A}/annotations`]));
+    const command = removeCommand(before, new Set([`${A}/annotations`]), null);
     const twin = storeOf(twoBlocks());
     twin.open(`${A}/group_1`);
     const refusal = twin.dispatch(command);
@@ -528,6 +544,20 @@ describe("the surroundings of an editor", () => {
     await press("Delete");
     expect(document.querySelector('[data-testid="hint"]')?.textContent).toBe(refusal?.message);
     expect(store.view).toBe(before);
+  });
+
+  it("show the refusal to delete the edited element in the status line", async () => {
+    await show();
+    open(`${A}/group_1`);
+    await select(`${A}/group_1`);
+    const [before, entries] = [store.view, store.journal.length];
+    await press("Delete");
+    expect(document.querySelector('[data-testid="hint"]')?.textContent).toBe(
+      "Close its editor to delete the edited element.",
+    );
+    expect(store.view).toBe(before);
+    expect(store.journal).toHaveLength(entries);
+    expect(selected()).toEqual([`${A}/group_1`]);
   });
 });
 
@@ -548,6 +578,28 @@ describe("the view while it moves", () => {
     expect(path().map(({ target }) => target)).toEqual([`${A}/group_1`]);
     expect(viewport()).toEqual({ x: 3683.03076171875, y: 4226.3125, zoom: 4 });
   });
+});
+
+describe("a double-click on the edited element", () => {
+  for (const motion of ["reduced", "full"] as const) {
+    it(`centres the view on it again as opening did, with ${motion} motion`, async () => {
+      reduced = motion === "reduced";
+      await show();
+      harness.showAt({ x: 12, y: -34, zoom: 0.5 });
+      await settle();
+      measure(10000, 10000);
+      await doubleClick(drawn("group_1"));
+      await wait(reduced ? 0 : 1100);
+      expect(viewport()).toEqual({ x: 3683.03076171875, y: 4226.3125, zoom: 4 });
+      harness.showAt({ x: 5, y: 6, zoom: 1 });
+      await settle();
+      await doubleClick(drawn("group_1"));
+      await wait(reduced ? 0 : 1100);
+      expect(viewport()).toEqual({ x: 3683.03076171875, y: 4226.3125, zoom: 4 });
+      expect(path()).toEqual([{ target: `${A}/group_1`, kind: "group" }]);
+      expect(store.journal).toHaveLength(stored);
+    });
+  }
 });
 
 describe("the view when the canvas changes size", () => {

@@ -26,6 +26,7 @@ import {
   type PreparedBand,
   type Side,
 } from "./bands.ts";
+import { P } from "./constants.ts";
 import { type Extent, widen } from "./fit.ts";
 import { flowControlBand } from "./flow.ts";
 import { type LevelZero, levelZero } from "./line.ts";
@@ -82,8 +83,6 @@ export interface LinePlace {
   readonly size: number;
   /** The member drawing's top, in item coordinates (section 8.4). */
   readonly top: number;
-  /** The member drawing's vertical padding `P × v` (section 6.5). */
-  readonly Pv: number;
   /** The member drawing's content height `Hc` (section 6.5), its ancestor band included (section 8.4). */
   readonly Hc: number;
 }
@@ -258,7 +257,7 @@ export function childrenStart(prepared: PreparedTimeline, pl: number): number {
     side,
     lower.map((kind) => bands[kind]),
     reach[side],
-    scope.v,
+    scope.S,
     w,
     undefined,
   );
@@ -267,7 +266,7 @@ export function childrenStart(prepared: PreparedTimeline, pl: number): number {
     lower.length === 0 ? undefined : before.edge,
     reach[side],
     w,
-    scope.v,
+    scope.S,
   );
   return Math.max(start, pl / 2);
 }
@@ -318,7 +317,7 @@ export function layoutTimeline(
       side,
       levels[side].map((kind) => bands[kind]),
       reach[side],
-      scope.v,
+      scope.S,
       w,
       sides.children === side ? children : undefined,
     );
@@ -355,7 +354,7 @@ function linePosition(
   place: LinePlace,
 ): LinePosition {
   const { scope, line } = prepared;
-  const { x0, y, size, top, Pv, Hc } = place;
+  const { x0, y, size, top, Hc } = place;
   return {
     x0,
     x: (value: Real) => x0 + scope.relativeX(value),
@@ -366,7 +365,7 @@ function linePosition(
       side === "above" ? ordinate - scope.d(labelSize) : ordinate + scope.a(labelSize),
     breakEnd: (side) => {
       // The root's breaks run to the padding of the opposite side, counted from the drawing's top.
-      if (line === scope.rootEntry) return side === "below" ? top + Pv : top + (Hc - Pv);
+      if (line === scope.rootEntry) return side === "below" ? top + P : top + (Hc - P);
       const mb = Math.max(edges[opposite(side)], scope.h(size) / 2);
       return side === "below" ? y - mb : y + mb;
     },

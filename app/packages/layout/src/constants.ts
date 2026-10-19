@@ -8,8 +8,12 @@ export const G = 8;
 export const Q = 8;
 /** The card padding `K`, horizontal only. */
 export const K = 8;
-/** The gap between frames and cards `F`. */
+/** The gap `F` after the manifest's title. */
 export const F = 8;
+/** A frame's default spacing, the gap between its cards (section 8.6). */
+export const FRAME_SPACING = 8;
+/** A card's default spacing `S`, the gap between its rows and between its bands (section 8.6). */
+export const CARD_SPACING = 4;
 /** The gap after a frame's title. */
 export const TITLE_GAP = 4;
 /** The offset of a card's shadow, to the right and down. */

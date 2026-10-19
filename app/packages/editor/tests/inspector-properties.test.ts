@@ -32,6 +32,10 @@ import { holder } from "./holder.svelte.ts";
 const M = "bmixed0000";
 /** The members of a place, in the order a place is written and the form shows them. */
 const PLACE = ["x", "y", "length", "scale", "spacing", "width", "height"] as const;
+/** The fields' labels in place order: the size is the container's. */
+const LABELS = PLACE.map((property) =>
+  property === "width" || property === "height" ? `container ${property}` : property,
+);
 const GEOMETRY_HINT = "Select a block, a frame or a card to edit its geometry.";
 
 /** A store reading the end-to-end `bundles` workspace, the generator's output. */
@@ -124,7 +128,7 @@ describe("the geometry", () => {
           kind: "box",
           holder: null,
           address: M,
-          values: { x: 0, y: 0, scale: 1, length: 400, spacing: 1, width: null, height: null },
+          values: { x: 0, y: 0, scale: 1, length: 400, spacing: 8, width: null, height: null },
         },
       ],
     });
@@ -140,7 +144,7 @@ describe("the geometry", () => {
         { kind: "frame", holder: null, address: `${M}/${element}`, values: itemValues(frame) },
       ],
     });
-    expect(itemValues(frame)).toMatchObject({ scale: 1, length: 400, spacing: 1 });
+    expect(itemValues(frame)).toMatchObject({ scale: 1, length: 400, spacing: 8 });
   });
 
   it.each(["annotations/card", "annotations"])("names the card the box holds for %s", (element) => {
@@ -261,15 +265,15 @@ describe("the fields", () => {
       if (found === null) throw new Error("no geometry");
       return found.fields.map((field) => fieldLabel(found.role, field));
     };
-    expect(labels("")).toEqual(PLACE);
-    expect(labels("group_1")).toEqual(PLACE);
-    expect(labels("annotations/card")).toEqual(PLACE);
+    expect(labels("")).toEqual(LABELS);
+    expect(labels("group_1")).toEqual(LABELS);
+    expect(labels("annotations/card")).toEqual(LABELS);
     expect(labels("score/card")).toEqual([
       "group length",
       "group scale",
       "spacing",
-      "width",
-      "height",
+      "container width",
+      "container height",
     ]);
   });
 
@@ -294,7 +298,7 @@ describe("the fields", () => {
   });
 
   it("steps exactly, by 1 or by 0.1", () => {
-    expect(STEPS).toEqual({ x: 1, y: 1, scale: 0.1, length: 1, spacing: 0.1, width: 1, height: 1 });
+    expect(STEPS).toEqual({ x: 1, y: 1, scale: 0.1, length: 1, spacing: 1, width: 1, height: 1 });
     const cases: [number | null, 1 | -1, number, number][] = [
       [10.123, 1, 1, 11.123],
       [1, -1, 0.1, 0.9],
@@ -351,7 +355,7 @@ describe("the commands are the arranger's", () => {
     [["score/card"], "spacing", "1.5", 1.5, "group"],
     [["score/card"], "length", "500", 500, "group"],
     [["group_1", "group_2"], "length", "350", 350, "arranger"],
-    [["performance/card", "score/card"], "width", "500", 500, "timeline"],
+    [["performance/card", "score/card"], "width", "600", 600, "timeline"],
     [["group_1"], "scale", "1.5", 1.5, "bundle"],
   ] as const)("%j %s %s at %s is placeEdit's set", (elements, property, text, value, level) => {
     const store = storeOf();
@@ -367,7 +371,7 @@ describe("the commands are the arranger's", () => {
     );
     expect(propertyCommand(store.view, found, property, text)).toEqual({
       ok: true,
-      value: expected,
+      value: { command: expected, notice: null },
     });
   });
 
@@ -377,12 +381,25 @@ describe("the commands are the arranger's", () => {
     const card = geometry(store, "score/card");
     expect(propertyCommand(store.view, card, "width", "")).toEqual({
       ok: true,
-      value: placeEdit(store.view, addresses("score/card"), "width", null, "arranger", fontMetrics),
+      value: {
+        command: placeEdit(
+          store.view,
+          addresses("score/card"),
+          "width",
+          null,
+          "arranger",
+          fontMetrics,
+        ),
+        notice: null,
+      },
     });
-    expect(propertyCommand(store.view, card, "width", "650.0")).toEqual({ ok: true, value: null });
+    expect(propertyCommand(store.view, card, "width", "650.0")).toEqual({
+      ok: true,
+      value: { command: null, notice: null },
+    });
     expect(propertyCommand(store.view, geometry(store, ""), "length", "400")).toEqual({
       ok: true,
-      value: null,
+      value: { command: null, notice: null },
     });
   });
 
@@ -406,14 +423,17 @@ describe("the commands are the arranger's", () => {
     const step = (current: number | null) => stepValue(current, 1, STEPS.length);
     expect(stepCommand(store.view, both, "length", 1)).toEqual({
       ok: true,
-      value: placeEdit(
-        store.view,
-        addresses("group_1", "group_2"),
-        "length",
-        step,
-        "arranger",
-        fontMetrics,
-      ),
+      value: {
+        command: placeEdit(
+          store.view,
+          addresses("group_1", "group_2"),
+          "length",
+          step,
+          "arranger",
+          fontMetrics,
+        ),
+        notice: null,
+      },
     });
   });
 });
@@ -514,7 +534,12 @@ describe("the Properties form", () => {
     const frame = itemValues(recorded(stored(store).drawing, "frame", "group_1"));
     expect(forms()).toEqual(["Frame properties"]);
     expect(fields()).toEqual(
-      PLACE.map((property) => [property, shownValue(frame[property]), "", positional(property)]),
+      PLACE.map((property, index) => [
+        LABELS[index],
+        shownValue(frame[property]),
+        "",
+        positional(property),
+      ]),
     );
     const before = store.journal.length;
     const expected = placeEdit(
@@ -608,8 +633,8 @@ describe("the Properties form", () => {
       ["group length", false],
       ["group scale", false],
       ["spacing", false],
-      ["width", false],
-      ["height", false],
+      ["container width", false],
+      ["container height", false],
     ]);
   });
 
@@ -648,12 +673,20 @@ describe("the Properties form", () => {
   it("shows the block's seven fields for the block", () => {
     show(storeOf(), [""]);
     expect(forms()).toEqual(["Block properties"]);
-    expect(fields().map(([label]) => label)).toEqual(PLACE);
+    expect(fields().map(([label]) => label)).toEqual(LABELS);
   });
 
-  it.each([[["group_1", "score/card"]], [["name"]]])("shows the hint for %j", (elements) => {
+  it.each([
+    [["group_1", "score/card"], null],
+    [["name"], "Mixed"],
+  ])("shows the hint for %j, after the name %j", (elements, name) => {
     show(storeOf(), elements);
-    expect([panel().textContent?.trim(), forms()]).toEqual([GEOMETRY_HINT, []]);
+    const named = panel().querySelector<HTMLInputElement>('input[name="name"]');
+    expect([panel().querySelector(".hint")?.textContent, forms(), named?.value ?? null]).toEqual([
+      GEOMETRY_HINT,
+      [],
+      name,
+    ]);
   });
 });
 

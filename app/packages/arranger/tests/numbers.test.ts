@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { GRID_FREE, MIN_LENGTH, MIN_SCALE, MIN_SPACING, quantize } from "../src/numbers.ts";
+import { GRID_FREE, MIN_LENGTH, MIN_SCALE, quantize } from "../src/numbers.ts";
 
 describe("quantize", () => {
   it.each([
@@ -19,6 +19,6 @@ describe("quantize", () => {
   });
 
   it("has the constants", () => {
-    expect([GRID_FREE, MIN_SCALE, MIN_LENGTH, MIN_SPACING]).toEqual([1 / 2048, 1 / 8, 8, 1 / 4]);
+    expect([GRID_FREE, MIN_SCALE, MIN_LENGTH]).toEqual([1 / 2048, 1 / 8, 8]);
   });
 });

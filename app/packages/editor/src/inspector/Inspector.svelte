@@ -1,11 +1,12 @@
 <script lang="ts">
 /**
- * The inspector: the editing bar, then a tab list over four panels:
- * Editor (while an editor is open), Properties, Manifest and Journal. Only
- * the shown panel is rendered; what the Properties and Manifest tabs hold
- * between visits (typed text, a chosen format) lives in their state objects,
- * which a host keeping them while the inspector is not shown passes in, with
- * the tab chosen.
+ * The inspector: the editing bar, then a tab list over four panels: the
+ * level tab (named by the level: Arranger, Bundle, Group or Timeline, its
+ * panel opening with the level's title line), Properties, Manifest and
+ * Journal. Only the shown panel is rendered; what the Properties and
+ * Manifest tabs hold between visits (typed text, a chosen format) lives in
+ * their state objects, which a host keeping them while the inspector is not
+ * shown passes in, with the tab chosen.
  */
 import type { LivePlacement, LiveStore } from "@timetoalign/tilie-arranger";
 import { resolveSelection } from "@timetoalign/tilie-arranger";
@@ -21,8 +22,8 @@ import PropertiesPanel from "./PropertiesPanel.svelte";
 import { PropertyDrafts } from "./propertyDrafts.svelte.ts";
 import { selectedBlock } from "./selection.ts";
 import type { Picked, Tab } from "./tabs.ts";
-import { initialPick, nextTab, shownTab, TAB_LABELS, tabsOf } from "./tabs.ts";
-import { editorName, kindWord } from "./words.ts";
+import { initialPick, nextTab, TABS, tabLabel } from "./tabs.ts";
+import { levelTitle } from "./words.ts";
 
 let {
   live,
@@ -48,16 +49,16 @@ let {
 const uid = $props.id();
 
 const view = $derived(live.view);
-const editing = $derived(live.editing);
-const depth = $derived(editing.length); // changes only when an editor opens or closes
-/** The innermost open editor, which the Editor tab names. */
-const innermost = $derived(editing.at(-1));
+/** The innermost open editor, whose level names the level tab. */
+const innermost = $derived(live.editing.at(-1));
+const level = $derived(innermost?.kind ?? "arranger");
+const title = $derived(levelTitle(view, innermost));
 
 /** How many editors the store has opened. */
 const openings = $derived(live.openings);
 
-const tabs = $derived(tabsOf(depth));
-const tab: Tab = $derived(shownTab(picked, openings, depth));
+/** The tab shown: the one chosen; the drawer chooses the level tab when an editor opened while it was closed. */
+const tab: Tab = $derived(picked.tab);
 
 function choose(next: Tab): void {
   picked = { tab: next, openings };
@@ -73,7 +74,7 @@ const registered =
   };
 
 function onTabKey(event: KeyboardEvent, from: Tab): void {
-  const next = nextTab(tabs, from, event);
+  const next = nextTab(from, event);
   if (next === undefined) return;
   event.preventDefault();
   choose(next);
@@ -84,7 +85,7 @@ function onTabKey(event: KeyboardEvent, from: Tab): void {
 const subjects = $derived(resolveSelection(view, selection, fontMetrics));
 const block = $derived(selectedBlock(view, subjects));
 
-/** Without a block, and without unapplied text, the Properties and Manifest tabs show only a hint. */
+/** Without a block, and without unapplied text, the Manifest tab shows only a hint. */
 const hinted = $derived(block === null && !manifest.dirty);
 </script>
 
@@ -93,7 +94,7 @@ const hinted = $derived(block === null && !manifest.dirty);
 
 <div class="inspector-body">
   <div class="tabs" role="tablist" aria-label="Inspector sections">
-    {#each tabs as item (item)}
+    {#each TABS as item (item)}
       <button
         type="button"
         role="tab"
@@ -103,12 +104,12 @@ const hinted = $derived(block === null && !manifest.dirty);
         tabindex={tab === item ? 0 : -1}
         {@attach registered(item)}
         onclick={() => choose(item)}
-        onkeydown={(event) => onTabKey(event, item)}>{TAB_LABELS[item]}</button
+        onkeydown={(event) => onTabKey(event, item)}>{tabLabel(item, level)}</button
       >
     {/each}
   </div>
 
-  {#each tabs as item (item)}
+  {#each TABS as item (item)}
     <div
       class="panel"
       role="tabpanel"
@@ -118,34 +119,79 @@ const hinted = $derived(block === null && !manifest.dirty);
     >
       {#if tab !== item}
         <!-- A hidden panel renders nothing. -->
-      {:else if item === "editor"}
-        {#if innermost !== undefined}
-          <p>{kindWord(innermost.kind)} editor: {editorName(view, innermost.target)}</p>
-        {/if}
+      {:else if item === "level"}
+        <!-- A console field: the level's word, then the name of what it shows. -->
+        <p class="title-line" data-testid="level-title">
+          <span class="word">{title.word}</span>
+          <span class="name">{title.name}</span>
+        </p>
       {:else if item === "journal"}
         <JournalPanel rows={journalRows(live, view)} />
-      {:else if hinted}
-        <p class="hint">Select a block to inspect its manifest.</p>
-      {:else if item === "manifest"}
-        <ManifestTextPanel {manifest} {block} store={live.store} />
-      {:else if block !== null}
+      {:else if item === "properties"}
         <PropertiesPanel
           {view}
           store={live.store}
           {block}
           {subjects}
-          level={innermost?.kind ?? "arranger"}
+          {level}
           {placement}
           {drafts}
         />
+      {:else if hinted}
+        <p class="hint">Select a block to inspect its manifest.</p>
+      {:else}
+        <ManifestTextPanel {manifest} {block} store={live.store} />
       {/if}
     </div>
   {/each}
 </div>
 
 <style>
+  /* The title line's typewriter face, bundled so that it looks the same everywhere. */
+  @font-face {
+    font-family: "TiLiE Plex Mono";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("../../fonts/IBMPlexMono-Regular.woff2") format("woff2");
+  }
+
   p {
     margin: 0;
+  }
+
+  /* A console field: an inset, recessed line set in the typewriter face. */
+  .title-line {
+    display: flex;
+    align-items: baseline;
+    gap: 1ch;
+    min-width: 0;
+    padding: 0.5rem 0.75rem 0.45rem;
+    border: 1px solid #c8c2b4;
+    border-radius: 4px;
+    background: #f5f3ee;
+    box-shadow:
+      inset 0 1px 3px rgba(40, 32, 16, 0.14),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+    color: #23201b;
+    font-family: "TiLiE Plex Mono", ui-monospace, monospace;
+    line-height: 1.3;
+  }
+
+  /* The level's word: capitals, spaced out, quieter than the name. */
+  .title-line .word {
+    flex: none;
+    color: #665d4e;
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .title-line .name {
+    overflow: hidden;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 
   .hint {

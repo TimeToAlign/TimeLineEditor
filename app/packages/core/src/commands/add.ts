@@ -28,6 +28,7 @@ import { placeProblems } from "../workspace/view.ts";
 import type { ChangeSet } from "./mutations.ts";
 import { emptyChanges, record, withBlock, withEntryAdded, withTimeline } from "./mutations.ts";
 import { BLOCK_PROPERTIES, readBlockManifest, setProperty } from "./set.ts";
+import { withSegmentLinesCovered } from "./settle.ts";
 import type { BlockTarget, TargetKind, TimelineTarget } from "./targets.ts";
 import { rootOf, targetOf } from "./targets.ts";
 import { placeChild } from "./topology.ts";
@@ -131,7 +132,9 @@ function firstProblem(refused: LoadError): Problem {
 
 /**
  * A timeline given to `add`, read through the schema boundary as the one
- * root of a manifest of its own: checked by the schema, the `locked` it and
+ * root of a manifest of its own: its segment lines covered
+ * (`withSegmentLinesCovered`, no id minted there among `taken`, the ids of
+ * the manifest it is added to), checked by the schema, the `locked` it and
  * its subtree state checked against their place under `parent`
  * (`statedLockProblem`; a root's own lock is its own) before reading unlocks
  * its segments, then completed (`completed`, the schema check done), and given
@@ -142,11 +145,12 @@ function firstProblem(refused: LoadError): Problem {
 function readTimeline(
   value: JsonObject,
   parent: TimelineManifest | undefined,
+  taken: ReadonlySet<string>,
   at: readonly PathSegment[],
   path: readonly PathSegment[],
 ): TimelineManifest | CommandError {
   const host = { timeskeleton: SCHEMA_VERSION, timelines: [value] };
-  const checked = schemaChecked(host);
+  const checked = schemaChecked(withSegmentLinesCovered(host, taken));
   if ("code" in checked) return located(checked, "timelines", at);
   const [fragment] = checked.timelines;
   if (fragment === undefined) throw new Error("the host holds the timeline");
@@ -191,7 +195,7 @@ function addTimeline(view: View, target: BlockTarget, value: unknown, changes: C
   const { manifest } = block;
   if (manifestIds(manifest).has(id)) return duplicate(block, id, id);
   const at = [block.id, "manifest", "timelines", manifest.timelines.length];
-  const timeline = readTimeline(object, undefined, at, path);
+  const timeline = readTimeline(object, undefined, takenIds(manifest, true), at, path);
   if (isCommandError(timeline)) return timeline;
   record(changes, path, block.id, true);
   return withBlock(view, {
@@ -288,7 +292,7 @@ function addElement(
     const on = readOnAxis(offset, timeline, [...path, "offset"]);
     if (isCommandError(on)) return on;
     const where = [block.id, "manifest", ...at.path, "children", timeline.children.length];
-    const read = readTimeline(child, timeline, where, path);
+    const read = readTimeline(child, timeline, takenIds(block.manifest, true), where, path);
     if (isCommandError(read)) return read;
     changed = placeChild(at, read, on, path);
   } else {

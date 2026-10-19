@@ -6,6 +6,7 @@
  */
 
 import type { Entry, Manifest } from "@timetoalign/tilie-core";
+import { UNTITLED_WORKSPACE } from "@timetoalign/tilie-core";
 
 /** What a picker offers: a description and the one extension it filters on. */
 export interface FileKind {
@@ -19,8 +20,26 @@ export const WORKSPACE_FILE: FileKind = {
 };
 export const MANIFEST_FILE: FileKind = { description: "TimeSkeleton manifest", extension: ".json" };
 
-/** The name a new workspace is saved under. */
-export const UNTITLED = "untitled.tle.json";
+/** The printable characters some system refuses in a file name: `/` everywhere, the rest on Windows. */
+const NOT_IN_FILE_NAMES = new Set(["/", "\\", ":", "*", "?", '"', "<", ">", "|"]);
+
+/** Whether a file name on Windows, macOS or Linux cannot hold `character`: those, and every control character. */
+function refusedInFileNames(character: string): boolean {
+  const code = character.codePointAt(0) ?? 0;
+  return code < 0x20 || code === 0x7f || NOT_IN_FILE_NAMES.has(character);
+}
+
+/**
+ * The default file name of a workspace named `name`: `<name>.tle.json`,
+ * every character a file name cannot hold replaced by `_`.
+ */
+export function workspaceFileName(name: string): string {
+  const stem = Array.from(name, (character) => (refusedInFileNames(character) ? "_" : character));
+  return `${stem.join("")}${WORKSPACE_FILE.extension}`;
+}
+
+/** The name a new workspace is saved under: its default name's file, `untitled.tle.json`. */
+export const UNTITLED = workspaceFileName(UNTITLED_WORKSPACE);
 
 /** A file the browser handed over, with the handle to write back to when it gave one. */
 export interface Opened {

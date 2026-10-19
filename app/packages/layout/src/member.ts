@@ -68,8 +68,8 @@ function rowsBelow(row: Row): Row[] {
 
 /**
  * Lay out one timeline drawn as a root (sections 3 to 6, and 8.3 for its
- * ancestors) in the card at `card`, its line held by `holder`, the box or its
- * group's frame, by
+ * ancestors) in the card at `card` of spacing `S`, its line held by
+ * `holder`, the box or its group's frame, by
  * the three passes of section 6.4: every first fit and every row; the
  * distances, from the deepest rows up, then the ancestor band and the
  * heights; the ordinates, from the root's line down, once `drawAt` gives the
@@ -80,8 +80,9 @@ export function layoutMember(
   member: MemberDrawing,
   holder: Holder,
   card: string,
+  S: number,
 ): MemberLayout {
-  const scope = traverse(context, member, holder);
+  const scope = traverse(context, member, holder, S);
   const { rootEntry } = scope;
 
   const fitted = fitTimelines(scope);
@@ -89,7 +90,7 @@ export function layoutMember(
   const root = known(layoutRow(rootRow, fitted), rootEntry);
   const ancestors = ancestorLines(scope);
   const band = ancestorBand(scope, ancestors, rootRow.pitch, root.edges.above);
-  const { Pv, yLocal, Hc } = heights(scope, band.edge, root.edges.below);
+  const { yLocal, Hc } = heights(scope, band.edge, root.edges.below);
 
   // One text per row (section 6.6): each ancestor's, then the rows of lines, whose order from
   // the top down is known once their ordinates are. A line that is not displayed hides its name,
@@ -112,7 +113,7 @@ export function layoutMember(
 
   const drawAt = (x0: number, n: number, top: number): MemberDrawn => {
     const yRoot = top + yLocal;
-    const placed = placeLines(root, rootRow, { x0, y: yRoot, size: rootRow.size, top, Pv, Hc });
+    const placed = placeLines(root, rootRow, { x0, y: yRoot, size: rootRow.size, top, Hc });
     const drawn = placed.map((line) => line.drawing.elements(line.place));
     const each = <K extends keyof LineElements>(key: K): LineElements[K][number][] =>
       drawn.flatMap((elements) => [...elements[key]]);

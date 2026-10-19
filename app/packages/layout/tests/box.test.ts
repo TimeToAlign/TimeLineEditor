@@ -298,10 +298,10 @@ describe("a titled manifest with two frames and an ungrouped root", () => {
     expect(itemsOf(drawing).map((box) => box.key)).toEqual(["group_1", "group_2", "annotations"]);
   });
 
-  it("gives every member's card its size, stretch and request, and its rectangle", () => {
+  it("gives every member's card its size, spacing and request, and its rectangle", () => {
     const sized = (height: number) => ({
       size: { width: 546.484619140625, height },
-      spacing: 1,
+      spacing: 4,
       stated: {},
     });
     const members = boxesOf(drawing, "card").filter((box) => box.holder !== null);
@@ -377,16 +377,17 @@ describe("the box size", () => {
     expect(size(drawing)).toEqual([600, 67.37890625]);
   });
 
-  it("does not stretch its padding P with the spacing", () => {
-    const drawing = drawFixture("bare", [], { ...DEFAULT_PLACEMENT, spacing: 2 });
+  it("keeps its padding P whatever the box's and the card's spacing", () => {
+    const placement = { ...DEFAULT_PLACEMENT, spacing: 24, places: { bare: { spacing: 0 } } };
+    const drawing = drawFixture("bare", [], placement);
     expect(rect(drawing, "bare/card")).toEqual({
       x: 8,
       y: 8,
       width: 458.5771484375,
-      height: 65.37890625,
+      height: 49.37890625,
     });
-    expect(line(drawing, "bare")).toEqual({ xs: 49.5771484375, y: 30.40234375 });
-    expect(size(drawing)).toEqual([476.5771484375, 83.37890625]);
+    expect(line(drawing, "bare")).toEqual({ xs: 49.5771484375, y: 22.40234375 });
+    expect(size(drawing)).toEqual([476.5771484375, 67.37890625]);
   });
 });
 

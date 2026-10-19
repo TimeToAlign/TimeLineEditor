@@ -99,7 +99,7 @@ const UNIT_DOMAINS: Readonly<Record<TimeUnit, readonly [Domain, Modality]>> = {
 };
 
 /** Whether a string is one of the schema's units. */
-function isUnit(unit: string): unit is TimeUnit {
+export function isUnit(unit: string): unit is TimeUnit {
   return Object.hasOwn(UNIT_DOMAINS, unit);
 }
 

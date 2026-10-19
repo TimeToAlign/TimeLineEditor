@@ -129,7 +129,7 @@ the top, and the synthetic manifests holding groups in its `groups/` and
 journal is deterministic: author `"Fixture Generator"`, entry times from
 `2026-10-12T09:00:00.000Z`, one second apart. Each `add` gives only `id`,
 `manifest`, `x` and `y`, so every other placement member is the workspace
-default (`scale` 1, `length` 400, `spacing` 1, `width` and `height` null,
+default (`scale` 1, `length` 400, `spacing` 8, `width` and `height` null,
 grid 8 with snapping on) and indices ascend in the order of adding.
 
 `node e2e/fixtures/generate.ts` writes the files, `node
@@ -181,12 +181,14 @@ fixtures of the installed schema version):
 card's right edge, `K` 8 and the shadow 2), 27.279052734375 for `nested` and
 `flow_control` and 30 for `styled__score`; for every one it does not depend
 on the length, so a stretch of the length moves the right edge by exactly
-the length change (checked at lengths 400, 420 and 600). The vertical
-padding is `8 × spacing` above and below inside the card (drawing.md
-sections 6.5 and 8.4) and the card's 18 is not stretched, so `bare`'s
-height is `51.37890625 + 16 × spacing` and `nested`'s is `44.9765625 + 51 ×
-spacing` for `spacing ≥ 0.9146…` and `76.98828125 + 16 × spacing` below
-(the kink 32.01171875 / 35 = 0.91462… is unchanged by the card).
+the length change (checked at lengths 400, 420 and 600). A block's
+`spacing` is the gap between its box's items at their default `y`
+(drawing.md section 8.6); each block of `small` holds one item, so its
+spacing changes nothing drawn and a vertical stretch of it finds no other
+value. A frame's spacing is the gap between its cards: `bmixed0000`'s
+`group_1` is `161.234375 + Sf` high (its title's slot 24.8046875, its
+cards 78.953125 and 49.4765625, `Q` 8), so a vertical stretch by 44 sets
+its spacing to `8 + 44 = 52`.
 
 Every block's card rectangle and its shadow carry the address `<root>/card`
 (`bare/card`, `clt_1/card`, `melody/card`, `flow:quarters/card`,
@@ -194,7 +196,7 @@ Every block's card rectangle and its shadow carry the address `<root>/card`
 `name` nor `id` draws no title).
 
 The items of the two bundles with frames lie at their default places
-(drawing.md sections 6.4, 6.5, 8.4 and 8.6, `v = 1`), derived from the
+(drawing.md sections 6.4, 6.5, 8.4 and 8.6, at the default spacings), derived from the
 fixture and the font alone. A member drawing is `Hm = y_root + max(Eb,
 h(11) / 2) + 8` high, `y_root = max(8 + Ea, 8 + h(11) / 2)`, with `h(11) =
 12.8046875` and `h(9) = 10.4765625`. Below every line lie its wedges with
@@ -266,7 +268,7 @@ every frame and the ungrouped card `16 + Wc(L)`.
   resize whose values equal the stored ones dispatches nothing. Box: a request at or below the content's
   extent stores `null`. Scale: corners only, the new scale is the larger of
   the two axis ratios, floored at 1/8. Stretch: `length` from left and right,
-  `spacing` from top and bottom, both from a corner; floors 8 and 1/4.
+  `spacing` (a gap) from top and bottom, both from a corner; floors 8 and 0.
 - A nudge moves by one grid step (8), with Shift eight steps (64), and the
   result snaps to the grid.
 
@@ -321,11 +323,12 @@ table of handle drags in every mode the stored placement is the one the
 resize rules derive from the drawn box and the drag, with the opposite edge
 exactly put, one `set` journalled on release and none for a drag that
 changes no stored value; box keeps the content's own size below its extent,
-stretch solves the floor and the kink of `nested`'s height exactly, a resize
-held in the edge zone pans and follows the pointer, and undo restores the
-placement exactly. On `bundles` a frame's corner scales the group alone,
-and a member's card keeps its margin in proportion while its group
-shortens again.
+a vertical stretch of a block of one item, which has no gap, journals
+nothing, a resize held in the edge zone pans and follows the pointer, and
+undo restores the placement exactly. On `bundles` a frame's corner scales
+the group alone, a frame's vertical stretch by 44 sets its spacing to 52
+and states the other items where they are drawn, and a member's card keeps
+its margin in proportion while its group shortens again.
 
 **`touch.spec.ts`** (the touch project, Chromium on a Pixel 7) drives real
 touch points through the DevTools Protocol, one finger or two, on `small` at
@@ -365,8 +368,10 @@ enabled exactly while it differs, the form options are locked meanwhile,
 Apply stores the renamed fixture as `loadManifest` reads it, and an
 unapplied text survives a visit to another tab. The tabs: each is paired
 with one panel of its own through `aria-controls` and `aria-labelledby`,
-and the arrow, Home and End keys move the selection and the focus with and
-without an editor open. The properties form: a value moves the block by
+and the arrow, Home and End keys move the selection and the focus over the
+four tabs with and without an editor open; with the level tab chosen,
+entering the bundle editor keeps it shown, renamed from "Arranger" to
+"Bundle". The properties form: a value moves the block by
 exactly that amount, the fields follow a drag and a resize live (rounded to
 two decimals) and show the stored values afterwards, an arrow-key step applies
 at once as one command, Escape restores the stored values, and on
@@ -375,10 +380,25 @@ following a frame's Stretch live in the bundle editor. The heading names
 what is inspected: a timeline, a bundle, a group, a card's timeline, and
 the anonymous bundle of a manifest without a name.
 
+**`properties-fields.spec.ts`** (Chromium, Firefox, WebKit) opens the
+drawer's Properties tab on `bundles`. With `group_1` selected, its frame
+height stated 10 above the drawn one (one command, the field showing it)
+and then `1`, typed and committed with Enter, is one command
+unstating it (`place {height: null}`): the field shows the text it showed
+before (the drawn height, the minimum), the block's drawn box has its
+size on screen from before the first command, and the status line reads `To decrease the height
+below <that text> px, decrease the size of the contained elements
+first.`. The container width and height stand side by side in one row,
+the disabled Locked checkbox right of the height, checked for `excerpt`'s
+card and not for `score`'s. The Name field comes first and renames the
+selected group in one command. In the group editor of `group_1` with
+nothing selected, the Name field shows the edited group's name,
+`Performance`, and `Duo` with Enter renames the group.
+
 **`a11y.spec.ts`** (Chromium, Firefox, WebKit) runs axe-core on the page
 with `small` open and requires an empty violation list on the canvas, with
-an element selected, with the drawer open, on both of the drawer's tabs
-inspecting a timeline, with the File menu, the About dialog and the
+an element selected, with the drawer open, on the drawer's Properties and
+Manifest tabs inspecting a timeline, with the File menu, the About dialog and the
 discard question open. Tab reaches the nodes in z-order, Enter selects the
 focused one and Escape clears the selection.
 
@@ -418,16 +438,22 @@ and timeline editors on `bundles` (and `groups` for a reorder) at viewport
 (40, 40), with reduced motion emulated so that every viewport is compared
 as soon as the canvas reports it. The open editors are read through the
 hook as `{target, kind}`, outermost first. A double-click on the margin, a
-frame or a card, and Enter on one selected box, opens the editor and the
-Editor tab names it; the viewport moves to the editor and back on Done;
+frame or a card, and Enter on one selected box, opens the editor and, the
+drawer having been closed, the drawer opens on the level tab, named
+"Bundle", "Group" or "Timeline", whose title line names the edited
+element; the viewport moves to the editor and back on Done;
 outside the edited element everything is faded and inert, another block as
-a whole through its node; editors nest only inside the innermost; Done
+a whole through its node, and a click there, as on the pane, deselects;
+editors nest only inside the innermost; Done
 folds the session into one journal entry, undone as one step, Cancel asks
 only when there are changes, and Escape aborts a gesture, then clears the
 selection, then acts as Done; moves in the bundle editor state every item's
 place, a card moved left of the padding grows the box left, two items move
 together, a change outside the edited element is refused, and a refused
-Delete shows its refusal. The Journal tab shows a closed session as one
+Delete shows its refusal; Delete pressed right after the group editor of
+`group_1` has opened, the edited element selected by the opening, shows
+"Close its editor to delete the edited element." and journals nothing. The
+Journal tab shows a closed session as one
 row, keeps an undone entry greyed, and undoes nested and interleaved
 sessions one run at a time, newest first, redoing in mirror. A
 double-click outside the edited element closes the innermost editor. The
@@ -435,6 +461,77 @@ places of the bundle's items and the editor's viewport after the drawer
 changes the canvas's size come from the arranger's drawing and focus code
 run on the fixture outside the page; that is the one case in the suite
 whose expected values are computed by the code under test.
+
+**`selection-motion.spec.ts`** (Chromium, Firefox, WebKit) proves the
+selection through changes and editors on `bundles` (block `bshared000`,
+`bundle_shared_parent`) at viewport (40, 40) with reduced motion emulated,
+and the release of a card reorder on `groups` without it. Every gesture
+is a real pointer gesture; the stored state is read through the hook.
+
+- **A change keeps the selection**, gesture by gesture: a Box resize of
+  the block by its right handle on the arranger keeps `[bshared000]`; a
+  Stretch of `group_2`'s frame keeps `[bshared000/group_2]`, and so does
+  its undo (Ctrl+Z); in the bundle editor a Box resize of the block keeps
+  the block; in `group_2`'s editor a Box resize of the frame, a
+  Properties `height` committed with Enter and its undo keep
+  `bshared000/group_2`; in `take_2`'s timeline editor a Box resize of its
+  card keeps `bshared000/take_2/card`.
+- **Opening an editor selects the edited element**, whatever was
+  selected: a double-click on `group_2`'s frame gives
+  `[bshared000/group_2]`; Enter on the selected card of `recapitulation`
+  gives `[bshared000/recapitulation/card]`; the editor of its child
+  `recapitulation_first`, which no card draws, gives
+  `[bshared000/recapitulation_first]`.
+- **A click outside the edited element deselects**: in `group_2`'s
+  editor, a click on the middle of `group_1`'s faded frame and one on the
+  empty pane at canvas (−20, 450) each leave the selection empty and the
+  editor open; with Shift the click on the faded frame leaves the
+  selection as it was; a double-click there closes the editor.
+- **A double-click on the edited element centres the view on it again**:
+  after `group_2`'s editor has opened and the view has stopped moving,
+  the viewport moved to (40, 40) returns, after a double-click on
+  `group_2`'s frame, to exactly the viewport the opening settled at, the
+  editing path, the journal and the session unchanged.
+- **The release of a card reorder** in `group_1`'s editor of `gchild0000`,
+  `second-half`'s card dragged from its upper half to canvas y 172 and
+  released: on the first animation frame after the release the copy of
+  the card lies exactly where it was dropped (its client rectangle equal,
+  every member, to the one read just before the release; nothing rounds
+  between the two, since the copy's translation is the same number before
+  and after), the card itself still hidden. The copy's motion starts only
+  on the next animation frame, so this holds in every engine (in WebKit a
+  motion started at the release itself had already moved the copy 16 px on
+  the first frame painted after it); frame by frame the copy moves
+  monotonically towards the card's new place; 90 frames later the copy is
+  gone and the card is shown. Where the motion ends is the arranger's
+  `releaseMotion`, pinned in its tests.
+- **A stretch in the group editor grows as well as shrinks**: in
+  `group_2`'s editor at viewport (−400, 40), zoom 1, a Stretch by the
+  right handle of the frame, and of `recapitulation`'s card, by 60 stores
+  `group_2`'s place `{length: 460}` (the content follows the pointer one
+  unit of length per pixel, and the frame follows the content), by −60
+  `{length: 340, width: 567.39013671875}` (the cards fit, so the frame
+  keeps its width), each
+  undone before the next.
+
+**`level-tab.spec.ts`** (Chromium, Firefox, WebKit) proves the level tab on
+`bundles` (block `bmixed0000`, the manifest named "Mixed", group `group_1`
+"Performance", timeline `score` "Score"), the editors entered through the
+hook. With the drawer open and Properties chosen, entering the bundle, the
+group and the timeline editor keeps Properties shown while the first tab
+reads "Bundle", "Group", "Timeline", and Done three times gives "Arranger"
+back, Properties still shown. With the drawer closed, an editor entered
+shows the level tab when the drawer next opens, whether the canvas opens
+it (the first editor) or the viewer does (an inner editor entered after the
+viewer closed it). The level panel's title line reads "Arranger untitled"
+at the top level (the fixture's workspace has the default name), "Bundle
+Mixed", "Group Performance" and "Timeline Score" in the editors, the word
+and the name each in its own element, set in the bundled title face: the
+face named "TiLiE Plex Mono" is loaded (`document.fonts`) and is the first
+family of the line's computed `font-family`, compared without quotes:
+Chromium serialises a family name holding spaces in double quotes, Firefox
+and WebKit without them. The spec writes a screenshot of
+the level panel at each of the four levels for review; it compares none.
 
 **`bands.spec.ts`** (Chromium, Firefox, WebKit) proves a timeline's bands
 as boxes of its timeline editor on `bundles` at viewport (40, 40), reduced

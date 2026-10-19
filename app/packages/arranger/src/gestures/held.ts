@@ -8,6 +8,7 @@ import { cardAddress, qualify } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import type { Descriptor } from "@timetoalign/tilie-writers";
 import { boxOf } from "../boxes.ts";
+import { drawingOf } from "../drawing.ts";
 import type { GestureStrategy, Point } from "../gesture.ts";
 import { sameSequence } from "../numbers.ts";
 import { memberOrderAt, reorderCommand } from "../reorder.ts";
@@ -26,6 +27,8 @@ export interface HeldPress {
   readonly at: Point;
   /** The order last previewed; `null` before the first. */
   shown: readonly string[] | null;
+  /** The pointer's travel last shown, where the copy of the card lies; `null` before the first. */
+  offset: Point | null;
 }
 
 /** Where a held card drops (the display order of its group) and how far the pointer has travelled. */
@@ -50,6 +53,35 @@ export function cardDrawing(
   return descriptors.filter(({ source }) => source.element >= start && source.element < end);
 }
 
+/** The motion of a released card's copy, in the drawing's units: from its travel at the drop to its card's place. */
+export interface ReleaseMotion {
+  /** Where the copy lies when the gesture ends: the pointer's travel since the press. */
+  readonly from: Point;
+  /** Where its card is drawn once the gesture has ended, as a travel from the card's place at the press. */
+  readonly to: Point;
+}
+
+/**
+ * How the copy of `card`, dragged by `offset` from where `pressed` (the
+ * drawing at the press) draws it, moves once the gesture ends: from that
+ * travel to the card's place in `shown`, the drawing shown after it (its
+ * new place after a reorder stored, its old one after Escape, a release in
+ * place or a refusal). `null` where `shown` draws no such card, or the copy
+ * already lies there.
+ */
+export function releaseMotion(
+  pressed: Drawing,
+  shown: Drawing,
+  card: string,
+  offset: Point,
+): ReleaseMotion | null {
+  const before = boxOf(pressed, card);
+  const after = boxOf(shown, card);
+  if (before === undefined || after === undefined) return null;
+  const to = { x: after.x - before.x, y: after.y - before.y };
+  return to.x === offset.x && to.y === offset.y ? null : { from: offset, to };
+}
+
 /**
  * The drag of the card of `member` held by the frame of `group`. A press is
  * taken while the canvas reorders cards (`rulesOf(...).reorder`); the press
@@ -58,7 +90,10 @@ export function cardDrawing(
  * (`memberOrderAt`); the other cards slide apart in the preview while a copy
  * of the dragged card's drawing follows the pointer, the card itself left
  * hidden where it would drop. The release stores the order in one `set`
- * (`reorderCommand`), nothing for a release in place.
+ * (`reorderCommand`), nothing for a release in place. However the gesture
+ * ends, the copy then moves from where it was dropped to where its card is
+ * drawn (`releaseMotion`), the card hidden until it arrives; at once under
+ * reduced motion.
  */
 export function heldGesture(
   host: NodeHost,
@@ -83,6 +118,7 @@ export function heldGesture(
         ghost: cardDrawing(drawing, descriptors, card),
         at: at.drawing,
         shown: null,
+        offset: null,
       };
     },
     start() {
@@ -97,13 +133,31 @@ export function heldGesture(
     preview(press, value) {
       const block = host.data().block.id;
       if (value === null) {
+        const dropped = press.offset;
         press.shown = null;
-        host.ghost(null);
+        press.offset = null;
         actions.preview(block, null);
+        const view = actions.view();
+        const stored = view.blocks[block];
+        const motion =
+          dropped === null || stored === undefined || actions.reducedMotion()
+            ? null
+            : releaseMotion(
+                press.drawing,
+                drawingOf(stored, view.settings, actions.metrics),
+                card,
+                dropped,
+              );
+        host.ghost(
+          motion === null
+            ? null
+            : { card, descriptors: press.ghost, offset: motion.from, to: motion.to },
+        );
         host.slide(false);
         return;
       }
-      host.ghost({ card, descriptors: press.ghost, offset: value.offset });
+      press.offset = value.offset;
+      host.ghost({ card, descriptors: press.ghost, offset: value.offset, to: null });
       if (press.shown !== null && sameSequence(press.shown, value.order)) return;
       press.shown = value.order;
       host.slide(true);

@@ -41,7 +41,7 @@
       "parent": null,
       "places": {},
       "scale": 1,
-      "spacing": 1,
+      "spacing": 8,
       "width": null,
       "x": 0,
       "y": 0
@@ -132,7 +132,7 @@
       "parent": null,
       "places": {},
       "scale": 1,
-      "spacing": 1,
+      "spacing": 8,
       "width": null,
       "x": 640,
       "y": 0
@@ -228,7 +228,7 @@
       "parent": null,
       "places": {},
       "scale": 1,
-      "spacing": 1,
+      "spacing": 8,
       "width": null,
       "x": 0,
       "y": 320
@@ -330,7 +330,7 @@
       "parent": null,
       "places": {},
       "scale": 1,
-      "spacing": 1,
+      "spacing": 8,
       "width": null,
       "x": 0,
       "y": 160
@@ -685,7 +685,7 @@
       "parent": null,
       "places": {},
       "scale": 1,
-      "spacing": 1,
+      "spacing": 8,
       "width": null,
       "x": 640,
       "y": 160
@@ -1387,13 +1387,14 @@
     "format": "tilie-workspace",
     "version": 4
   },
+  "name": "untitled",
   "sessions": {},
   "settings": {
     "blockDefaults": {
       "height": null,
       "length": 400,
       "scale": 1,
-      "spacing": 1,
+      "spacing": 8,
       "width": null
     },
     "graphical": {},

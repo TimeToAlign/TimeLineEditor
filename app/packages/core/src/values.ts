@@ -89,6 +89,13 @@ export function readString(value: unknown, path: readonly PathSegment[]): string
   return typeof value === "string" ? value : invalid("expected a string", path);
 }
 
+/** A string holding at least one character: the workspace's name. */
+export function readName(value: unknown, path: readonly PathSegment[]): string | Problem {
+  return typeof value === "string" && value !== ""
+    ? value
+    : invalid("a name is a non-empty string", path);
+}
+
 export function readNullableString(
   value: unknown,
   path: readonly PathSegment[],
@@ -118,6 +125,13 @@ export function readPositive(value: unknown, path: readonly PathSegment[]): numb
     : problem(ErrorCode.nonPositiveNumber, "the number must be positive", path);
 }
 
+/** A gap in canvas units, a container's spacing: a finite number at least 0. */
+export function readNonNegative(value: unknown, path: readonly PathSegment[]): number | Problem {
+  const read = readFinite(value, path);
+  if (isCommandError(read)) return read;
+  return read >= 0 ? read : invalid("the number must not be negative", path);
+}
+
 export function readNullablePositive(
   value: unknown,
   path: readonly PathSegment[],
@@ -126,15 +140,15 @@ export function readNullablePositive(
 }
 
 /**
- * The rule of each member of a place: a position is finite, a size, the
- * scale and the vertical stretch positive.
+ * The rule of each member of a place: a position is finite, a size and the
+ * scale positive, the spacing, a gap, finite and at least 0.
  */
 export const PLACE_READERS = {
   x: readFinite,
   y: readFinite,
   length: readPositive,
   scale: readPositive,
-  spacing: readPositive,
+  spacing: readNonNegative,
   width: readPositive,
   height: readPositive,
 } as const satisfies { readonly [member in keyof ItemPlace]-?: unknown };

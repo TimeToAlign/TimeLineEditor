@@ -147,7 +147,7 @@ export const KEYS: readonly KeyRow[] = [
     match: (event) => plain(event) && (event.key === "Delete" || event.key === "Backspace"),
     run(context) {
       if (context.selection.size === 0 || !context.rules.remove) return false;
-      const removed = removeCommand(context.view, context.selection);
+      const removed = removeCommand(context.view, context.selection, context.editing);
       if ("refused" in removed) context.refuse(removed.refused);
       else if (context.dispatch(removed)) context.select(new Set());
       return true;

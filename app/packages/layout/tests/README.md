@@ -20,8 +20,14 @@ anywhere.
 manifest when it has a `graphical` block (its `styles` and `statements`,
 without its `order`); an "extra layer" is an application's layer, placed
 between the two, since no layer lies above the manifest's own. "The default
-placement" is `DEFAULT_PLACEMENT`, `{length: 400, spacing: 1, width: null,
-height: null, places: {}}`. A timeline's band order is its entry of the
+placement" is `DEFAULT_PLACEMENT`, `{length: 400, spacing: 8, width: null,
+height: null, places: {}}`. Every container has its own spacing, the gap
+between its direct contents, and none multiplies another (section 8.6):
+the box's, the placement's `spacing` (default 8), between its items at
+their default `y`; a frame's, its group's entry of `places` (default 8),
+between its cards; a card's, the card spacing `S` of its member drawing,
+the entry of `places` under its member or ungrouped root (default 4),
+between its rows and between its bands. A timeline's band order is its entry of the
 manifest's `graphical.order` (section 6.4), set through core's `set` of the
 property `order` and written `[above] | [below]`: the kinds above the line
 from the top down, then those below.
@@ -33,11 +39,11 @@ and the markers, regions and flow control bands lie below, in that order;
 the defaults hide the markers, regions and flow control bands of every
 timeline but a member drawing's root. Only a present band has a level and
 takes room. The band at level 1 or −1 starts at `c = 0` when it is the
-markers or the conversion maps band, and otherwise `B` beyond the larger of
+markers or the conversion maps band, and otherwise `S` beyond the larger of
 the line's reach on its side and `w / 2`: at `1.5 + 4 = 5.5` for a line of
 width 3 that reaches nothing there. A children band starts no nearer than
-`pl / 2`, half the pitch of the row its line lies in, so with no map it
-starts at `14 / 2 = 7`.
+`pl / 2`, half the pitch `max(10 + S, h(s))` of the row its line lies in,
+so with no map it starts at `14 / 2 = 7`.
 
 Addresses follow section 2.2: a timeline or a group is addressed by its
 bare id, the manifest's title by `name`, and every other element with an id
@@ -103,7 +109,7 @@ lies at `P = 8`, so the root's line lies at `8 + y_root`; the card spans `P`
 to `R + K` and is `Hm = Hc` high, and its shadow, 2 further right and down,
 sets the box: `W = 8 + (R + K + 2)` and `H = 8 + (8 + Hm + 2)`.
 
-Common values: `P = 8`, `G' = 8`, `B = 4 × v`, `h(9) = 10.4765625`,
+Common values: `P = 8`, `G' = 8`, the card spacing `S = 4`, `h(9) = 10.4765625`,
 `a(9) = 8.35400390625`, `d(9) = 2.12255859375`, `h(11) = 12.8046875`,
 `(a(11) − d(11)) / 2 = (20911 − 5313) / 4096 = 3.80810546875`. The root's
 stroke width `w` is 3, so a wedge's tip lies `w / 2 = 1.5` out and its base
@@ -168,7 +174,7 @@ Root `flow:quarters` length 16, name `Flow control` (`N =
 30.9765625` with one break-label tier, so the flow row lies 41.453125 out,
 at `yf = 63.85546875`; one jump level makes the band `10.4765625 + 8 + 0 + 2
 + 10.4765625 = 30.953125` wide, `Eb = 61.9296875`, `Hc = 84.33203125`. The
-break line runs at x 390.9775390625 from the flow row to `8 + P × v = 16`;
+break line runs at x 390.9775390625 from the flow row to `8 + P = 16`;
 its label starts at 393.9775390625, baseline `yf − d(9) =
 61.73291015625`.
 
@@ -221,11 +227,27 @@ lie as in `nested`, the root's line at 51. Below: the regions band from
 ## Member drawings (`member.test.ts`)
 
 `styled__score`, whose root has a band on every side, and `nested` at
-length 800 and spacing 2 are compared element by element with member
-drawings summed from sections 3 and 6. Two spacings of `styled__score`
-fix the order of the sums, each where the other order gives another double:
-at 0.89 each distance outwards is summed whole before it becomes an
-ordinate, at 2.63 each band's width is summed before its start is added.
+length 800 and card spacing 8 are compared element by element with member
+drawings summed from sections 3 and 6. `styled__score`'s root carries its
+markers band above at level 1, from 0 and `2 + 13 + 2 + h(10) =
+28.640625` wide, its children band beyond it from `max(28.640625 + S,
+p0 / 2)`, its row `max(10 + S, h(11))` high; below, its map stack to 7,
+the regions band from `7 + S`, `pr − S` wide with `pr = 6 + 2 + h(10) +
+S`, and the flow control band `S` beyond it, `(4 + S) + 2 + h(10)` wide,
+its jump's apex `4 + S` beyond the flow row; `y_root = 8 + Ea`, every
+ordinate summed in item coordinates and drawn `8 +` it. Two card spacings
+of `styled__score` (its card's entry of `places`) fix the order of the
+sums, each where the other order gives another double: at 2.63 each
+distance outwards is summed whole before it becomes an ordinate (the jump
+label's baseline `(y_root + ((f0 + (4 + S)) + 2)) + a(10)` is
+101.8881640625 in item coordinates, 101.88816406249998 summed outwards
+step by step), at 0.7 each band's width is summed before its start is
+added (`Eb = f + (4.7 + 2 + h(10)) = 46.381249999999994`, against 46.38125
+added band by band, so `Hm` is 104.5265625, not 104.52656250000001). At
+card spacing 8 `nested` has the pitch 18 and each children band starts at
+`max(1.5 + 8, 9) = 9.5`: its lines at 62, 43.5 and 25, `Hm =
+88.9765625`, as the drawing fixture `nested__length-800-card-spacing-8`
+derives.
 Wedge labels share tier 1 when the end label's extent starts where the
 start label's ends, and the end label goes to tier 2, start before end,
 when they overlap. A timeline whose name is null is named by its id after
@@ -393,38 +415,42 @@ manifest with its title at `display: none`.
 ## Stretch (`stretch.test.ts`)
 
 **Sizes.** For `nested`, `map`, `flow_control` and `with_region`, at
-lengths 200, 400 and 800 and spacings 0.5, 1 and 2, every element keeps its
-style and its text, the wedge stays 6 wide and 13 high, and a child's
-diamond and circle keep their size: only positions change. Length moves x
-only: at length 200 the root of `nested` runs from 49.91552734375 to
-249.91552734375 at 51.
+lengths 200, 400 and 800 and card spacings 0, 4 and 8 (the root's card's
+entry of `places`), every element keeps its style and its text, the wedge
+stays 6 wide and 13 high, and a child's diamond and circle keep their size:
+only positions change. Length moves x only: at length 200 the root of
+`nested` runs from 49.91552734375 to 249.91552734375 at 51.
 
-**Row spacing.** At spacing `v`, `nested` has `p0 = p = max(14v,
-12.8046875)`; with no map each children band starts at `p / 2`, so each
-row lies one pitch beyond the last, and `y_root = 8v + Ea`:
+**Row spacing.** At card spacing `S`, `nested` has `p0 = p = max(10 + S,
+12.8046875)`; with no map each children band starts at `c = max(1.5 + S,
+p / 2)`, so each row lies `c + p / 2` beyond the last, and `y_root = 8 +
+Ea`, `Ea = c + (p / 2 + (c + p))`:
 
-| `v` | `p` | root | `clt_3` | `clt_2` |
-|---|---|---|---|---|
-| 0.5 | 12.8046875 | `8 + (4 + 6.40234375 + 4 × 6.40234375) = 44.01171875` | 31.20703125 | 18.40234375 |
-| 1 | 14 | `8 + 43 = 51` | 37 | 23 |
-| 2 | 28 | `8 + (16 + 14 + 56) = 94` | 66 | 38 |
+| `S` | `p` | `c` | root | `clt_3` | `clt_2` |
+|---|---|---|---|---|---|
+| 0 | 12.8046875 | 6.40234375 | `8 + (8 + 32.01171875) = 48.01171875` | 35.20703125 | 22.40234375 |
+| 4 | 14 | 7 | `8 + 43 = 51` | 37 | 23 |
+| 8 | 18 | 9.5 | `8 + 54 = 62` | 43.5 | 25 |
 
-**Vertical padding.** Section 6.5 multiplies the padding by `v`: `y_root =
-max(P v + Ea, P v + h(s) / 2)`, `Hc = y_root + max(Eb, h(s) / 2) + P v`,
-and a break line ends `P v` from the member drawing's top or `Hc − P v`
-below it. The horizontal padding is not stretched; `H = Hc + 18`.
+**The padding.** Section 6.5 keeps the padding `P` above and below a
+member drawing at every spacing: `y_root = max(P + Ea, P + h(s) / 2)`,
+`Hc = y_root + max(Eb, h(s) / 2) + P`, and a root's break line ends `P`
+from the member drawing's top or `Hc − P` below it. `H = Hc + 18`.
 
-- `bare` at `v = 2`: `y_root = 22.40234375`, the line at 30.40234375, `Hc =
-  65.37890625`, `H = 83.37890625`; at `v = 0.5`: `y_root = 10.40234375`,
-  `Hc = 41.37890625`, `H = 59.37890625`. The width stays 476.5771484375:
-  the height grows by exactly `2 × 8 × (v − 1)`.
-- `flow_control` at `v = 2`: the flow control band from `26.9765625 + 8 =
-  34.9765625`, 38.953125 wide, `yf = 75.85546875`, `H = 130.33203125`; the
-  break line from `yf` to `8 + 16 = 24`. With `[flow_control, children,
-  conversion_maps] | [markers, regions]` the band lies alone above, from
-  `1.5 + 8 = 9.5`, `y_root = 64.453125`, `H = 125.4296875`; the break line
-  runs from the flow row at 52.4765625 to the padding below, `8 + (Hc − 16)
-  = 99.4296875`.
+- `bare`, one row and no gap between bands (its markers band lies against
+  its line), draws the same at card spacings 0 and 8: the line at
+  22.40234375, `W = 476.5771484375`, `H = 67.37890625`.
+- `flow_control` at card spacing 8: the flow control band from `26.9765625
+  + 8 = 34.9765625`, one break-label tier, so the flow row 45.453125 out,
+  `yf = 8 + (14.40234375 + 45.453125) = 67.85546875`; the band `10.4765625
+  + (4 + 8) + 0 + 2 + 10.4765625 = 34.953125` wide, `Eb = 69.9296875`, `Hc
+  = 92.33203125`, `H = 110.33203125`; the break line from `yf` to `8 + 8 =
+  16`. With `[flow_control, children, conversion_maps] | [markers,
+  regions]` the band lies alone above, from `1.5 + 8 = 9.5`, its flow row
+  `9.5 + 10.4765625 = 19.9765625` out, `Ea = 44.453125`, `y_root =
+  52.453125`, the line at 60.453125, `yf = 8 + (52.453125 − 19.9765625) =
+  40.4765625`, `Hc = 87.4296875`, `H = 105.4296875`; the break line runs
+  to the padding below, `8 + (Hc − 8) = 87.4296875`.
 
 **Box size.** With `width` and `height` 120 and 60 above the natural box,
 every element but the block is identical to the natural drawing and `W =
@@ -440,7 +466,11 @@ traversal order of their segments, and only the root's row named. Among
 ordinary children (`segment_children`) segment lines take rows by first
 fit, each named. Segments that are no lines stay on the root's line with no
 children band. A line's reach counts `k` only for a drawn boundary, keeps it
-fixed when the spacing stretches, and a hidden line takes no room. A row of
+fixed at every card spacing (`segment_line` at 8: its segment labels reach
+20.4765625 above `form`, whose children band starts at `20.4765625 + 8`,
+its row's inner half `max(9, k) = 9`, so `form` lies at 73.953125 and `b`
+at 36.4765625, each boundary `k = 8` both ways, `H = 118.9296875`), and a
+hidden line takes no room. A row of
 segment lines takes its first line's name size. A segment that is no line
 (`segment_pages`) is matched neither by `{element: child}` nor by its own
 id: its segment line holds its boundary and label, so that line's id and a
@@ -460,7 +490,7 @@ edge; the ancestors' elements come first within each frame (section 8.5).
 Single changes prove the room taken: mark labels in first-fit tiers, a
 row's pitch from its name's size, `q / 2` for a row without marks, eight
 stroke widths of `x0` for a line running on to the left, a mark label as a
-centred label, none for a hidden ancestor, and the ancestor band `B` beyond
+centred label, none for a hidden ancestor, and the ancestor band `S` beyond
 the stroke of a wide member's line. `inside: ancestor` matches the marks, never
 the member's own wedges.
 
@@ -507,8 +537,8 @@ name column, the gap `G' = 8` and `8 wa` for an ancestor running on to the
 left, the right margin `Mr`, the largest `e − (s0 + Li)` over the member
 drawings, and item `i`'s right edge `Ri = s0 + Li + Mr`, or its title's
 right edge when larger. At the default place `x = P = 8`: `xn = 8 + n`, `x0
-= 8 + s0`, `R = 8 + Ri`. Common values: `P = Q = K = F = 8`, the title gap
-4, `a(11) = 10.21044921875`, `h(11) = 12.8046875`. A member drawing with its
+= 8 + s0`, `R = 8 + Ri`. Common values: `P = Q = K = 8`, the gap after the
+manifest's title `F = 8`, the frame's spacing `Sf = 8`, the title gap 4, `a(11) = 10.21044921875`, `h(11) = 12.8046875`. A member drawing with its
 two wedges below in one label tier is `Hm = 14.40234375 + 26.9765625 + 8 =
 49.37890625` high with no ancestor, `48.9765625 + 26.9765625 + 8 =
 83.953125` with one ancestor row and `82.953125 + 26.9765625 + 8 =
@@ -526,9 +556,9 @@ horizontal quantity.
 | `group_grandchild` | 24 | `24 + 55.70361328125 + 8 + 24 = 111.70361328125` | 535.70361328125 (`score`'s outer chevron, `x0 + L + 8w`) | 117.9296875, 49.37890625 | 559.70361328125, 224.11328125 |
 
 A frame at `(P, P)` spans `0` to `Ri + K + Q` and `Q + h(11) + 4 + Σ Hm +
-(m − 1) F + Q` high for `m` cards; its title lies at `x = P + Q = 16`,
+(m − 1) Sf + Q` high for `m` cards; its title lies at `x = P + Q = 16`,
 baseline `P + Q + a(11) = 26.21044921875`; its cards span `Q` to `Ri + K`,
-the first at `P + Q + h(11) + 4 = 32.8046875`, each further one `F` below
+the first at `P + Q + h(11) + 4 = 32.8046875`, each further one `Sf` below
 the last; each root line lies `y_root` below its card's top. A box-held card
 spans `0` to `Ri + K`, `Q` further when the box holds a frame, so frames and
 cards of one length end at one x.
@@ -565,7 +595,7 @@ root `annotations`) is the case of every rule at once:
   `[25, 33)` and `excerpt/card` `[33, 47)`; `annotations/card` `[47, 58)`.
   The frames and `annotations/card` are the items and carry `item`, their
   place; every card carries `card`, its size in item coordinates (a
-  member's card `{546.484619140625, Hm}`), its `spacing` 1 and its request
+  member's card `{546.484619140625, Hm}`), its `spacing` 4 and its request
   `{}`, and its rectangle is its drawn one. Every band is held by the card
   whose member drawing draws its line, and its range is empty.
 
@@ -591,9 +621,9 @@ other element stays as it is.
 
 **The box size.** `W = max(Wb, width)`, `H = max(Hb, height)`: `bare` at
 600 and 100 gives 600 and 100, every other element unchanged; at 300 and 20
-it gives `Wb` and `Hb`; at 600 and null `H = Hb`. The box padding `P` does
-not stretch: `bare` at `spacing` 2 keeps its card at `y = 8`, `Hm =
-65.37890625`, `H = 83.37890625`.
+it gives `Wb` and `Hb`; at 600 and null `H = Hb`. The box padding `P`
+changes with no spacing: `bare` at the box's `spacing` 24 and its card's 0
+keeps its card at `y = 8`, `Hm = 49.37890625`, `H = 67.37890625`.
 
 **Addresses (section 2.2).** `corpus_mpm`'s map `tmap_1` is
 `score:clt_1/tmap_1`; a region added into the member `second-half` of
@@ -625,8 +655,9 @@ holding no defaults (`groups.test.ts`):
 Sections 1, 8.4 and 8.6: every item applies the box's one horizontal layout
 at its own place, and the box grows in every direction to hold the items.
 An item is laid out in item coordinates and each position `u` drawn at `x +
-u`; its default `y` lies `F` below the largest bottom edge before it (its
-requested height included, no shadow), summed in place coordinates; `Xl =
+u`; its default `y` lies the box's spacing (8) below the largest bottom
+edge before it (its requested height included, no shadow), summed in place
+coordinates; `Xl =
 min(0, smallest x − P)`, `Yt = min(0, smallest y − Pt)`, `Pt = P + h(s) +
 F` under a displayed title and `P` otherwise; the place origin `(0 − Xl, 0
 − Yt)`, so a zero origin is `+0`, is added to every finished position last;
@@ -639,10 +670,11 @@ the order of the sums apart.
 
 - **Defaults reproduce the stacked box.** `bare`'s records: the box `{0, 0,
   476.5771484375, 67.37890625}` `[0, 8)` and its card at `(8, 8)`,
-  `458.5771484375 × 49.37890625`, `[1, 8)`, its place `{8, 8, 400, 1, 1,
+  `458.5771484375 × 49.37890625`, `[1, 8)`, its place `{8, 8, 400, 1, 4,
   458.5771484375, 49.37890625}` (as `{x, y, length, scale, spacing, width,
-  height}`) stated `{}`; the origin `(+0, +0)`. `group_child_member`'s
-  frame `{8, 8, 400, 1, 1, 542.4140625, 174.13671875}`, `[1, 23)`. Stating
+  height}`, the spacing a card's default 4) stated `{}`; the origin `(+0,
+  +0)`. `group_child_member`'s frame `{8, 8, 400, 1, 8, 542.4140625,
+  174.13671875}` (a frame's default spacing 8), `[1, 23)`. Stating
   the defaults (`{bare: {x: 8, y: 8, length: 400}}`) draws the same; only
   `stated` changes.
 - **The default `y`** in `bundle_ungrouped` (heights `pages` 63.453125,
@@ -681,14 +713,13 @@ the order of the sums apart.
   + 8 = 187.344375` in place coordinates, drawn at 256.24906250000004
   (256.2490625 if summed after the shift).
 
-## One layout, scales, card sizes and stretches (`items.test.ts`)
+## One layout, scales, card sizes and spacings (`items.test.ts`)
 
 Sections 8.2, 8.4 and 8.6: the name column, the start and the right margin
 are found once over every item; an item's scale scales every position and
 length about its top left corner and nothing else; a member's card request
-widens and heightens that card and its frame; a member drawing's vertical
-stretch is the product of the placement's, its item's and its card's
-`spacing`. The records report what was stated and what was drawn, in item
+widens and heightens that card and its frame; each container's `spacing`
+is the gap between its own contents and multiplies no other. The records report what was stated and what was drawn, in item
 coordinates. `bundle_ungrouped`'s quantities are those of "Places".
 
 - **One layout.** `bundle_ungrouped` without `score`: `pages` takes the
@@ -706,7 +737,7 @@ coordinates. `bundle_ungrouped`'s quantities are those of "Places".
   the name at `x = 24`, baseline 44.4208984375, size 22; the wedge at
   91.154296875 from 39.8046875 to 65.8046875, base 12; the line to
   891.154296875 at width 6; `W = 937.154296875`, `H = 118.7578125`; the
-  place `{8, 8, 400, 2, 1, 458.5771484375, 49.37890625}`, its size before
+  place `{8, 8, 400, 2, 4, 458.5771484375, 49.37890625}`, its size before
   the scale. `bundle_ungrouped` at `{recording: {scale: 1.5}}`: `score`'s
   default top `(100.2578125 + 1.5 × 49.4765625) + 8 = 182.47265625`, the
   dash `4.5 4.5`, the name size 16.5.
@@ -718,20 +749,30 @@ coordinates. `bundle_ungrouped`'s quantities are those of "Places".
   member's entry is read for `width`, `height` and `spacing` alone; a
   request no larger than the card changes nothing; under the group's scale
   2 the card is drawn 1300 wide and its record keeps `{650, 49.37890625}`.
-- **Vertical stretch** (`v` the placement's `spacing` times its item's, for
-  a member times its card's too): the padding `P v`, the gaps `B = 4 v` and
-  the pitch `max(14 v, h(s))` stretch; the markers and conversion maps bands
-  at level ±1 and every horizontal quantity do not. A box-held card at
-  spacing 2 (`bundle_ungrouped`, `recording`): `Hm = (16 + 6.5) +
-  26.9765625 + 16 = 65.4765625`, the card at 100.2578125, its line at
-  122.7578125, `score` at 173.734375, `H = 268.1640625`; its record's place
-  and card carry `spacing` 2. A member at 1.5 under a frame at 2
-  (`group_child_member`): `second-half` at `v = 2`, `Hm = 113.953125`, its
-  line at 103.78125, `piece`'s at 75.78125; `recording` at `v = 3`, `Hm =
-  81.37890625`, its line at 185.16015625; the frame 236.13671875 high, its
-  `spacing` 2, the cards' 1 and 1.5. The placement's spacing 1.5 under a
-  frame at 2 gives both members `v = 3`: heights 143.953125 and
-  81.37890625, the cards' `spacing` 1, the frame's 2.
+- **Spacings.** The box's spacing 24 (`bundle_ungrouped`) moves the items
+  at their default `y` alone: `pages` at 28.8046875, `recording` at
+  `28.8046875 + 63.453125 + 24 = 116.2578125`, `score` at `116.2578125 +
+  49.4765625 + 24 = 189.734375`, every card's record as at 8, `H =
+  284.1640625`; with `{recording: {y: 40}}` `recording` keeps its stated
+  40 and `score` lies 24 below the larger bottom edge, `pages`' 92.2578125:
+  116.2578125. A box-held card's spacing 8 (`score`) widens only its own
+  gaps: its flow control band from `26.9765625 + 8`, its flow row
+  45.453125 out, the band `10.4765625 + 12 + 2 + 10.4765625 = 34.953125`
+  wide, `Hm = 14.5 + 69.9296875 + 8 = 92.4296875`, its line at 172.234375,
+  the break from 217.6875 to `157.734375 + 8`, `H = 260.1640625`; `pages`
+  and `recording` unchanged, the records `spacing` 4, 4 and 8. A frame's
+  spacing 16 (`group_child_member`) lies between its cards alone:
+  `recording/card` at `8 + (((8 + 12.8046875) + 4) + 83.953125 + 16) =
+  132.7578125`, the frame `182.13671875` high, `H = 198.13671875`, both
+  cards' spacing 4. A member's card spacing 8 (`second-half`, one ancestor
+  row) starts its ancestor band at `max(18 / 2, 1.5 + 8) = 9.5`, the row's
+  pitch `max(18, h(9)) = 18`, its halves 9 and 26.9765625: `Ea =
+  45.4765625`, `y_root = 53.4765625`, `Hm = 88.453125`, its line at
+  86.28125, `piece` 18.5 above it at 67.78125, `recording/card` at
+  129.2578125, the frame 178.63671875 high. All three together, with the
+  box's spacing 24 on the one frame, give the cards 88.453125 and
+  49.37890625 at spacings 8 and 4, `recording/card` at 137.2578125 and the
+  frame 186.63671875 high: no spacing multiplies another.
 
 ## Container records and axes (`records.test.ts`)
 

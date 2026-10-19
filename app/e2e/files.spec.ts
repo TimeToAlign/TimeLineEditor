@@ -61,7 +61,7 @@ test("a workspace survives save, reopen and save byte for byte", async ({ page }
   await page.mouse.move(grip.x + grip.width / 2 + 20, grip.y + grip.height / 2, { steps: 10 });
   await page.mouse.up();
   await expect.poll(() => journalLength(page)).toBe(3);
-  expect(await placement(page, id)).toMatchObject({ x: 584, y: 360, length: 420, spacing: 1 });
+  expect(await placement(page, id)).toMatchObject({ x: 584, y: 360, length: 420, spacing: 8 });
 
   await expect(page.getByTestId("file-name")).toHaveText("• untitled.tle.json");
   const first = downloaded(page.waitForEvent("download"));

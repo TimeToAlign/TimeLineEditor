@@ -423,10 +423,10 @@ describe("addresses in a block of several roots", () => {
     },
   );
 
-  it("finds a group, which sets nothing", () => {
-    expect(rejected(numbersWithRegion(), set(at("group_1"), { name: "x" }))).toEqual({
+  it("finds a group, which sets no length", () => {
+    expect(rejected(numbersWithRegion(), set(at("group_1"), { length: 4 }))).toEqual({
       code: "wrong_target_kind",
-      path: [at("group_1"), "name"],
+      path: [at("group_1"), "length"],
     });
   });
 

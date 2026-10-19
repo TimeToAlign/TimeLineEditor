@@ -86,6 +86,16 @@ describe("project", () => {
     expect(only?.data.drawing).toBe(drawingOf(blockIn(numbers, A), numbers.settings, metrics));
   });
 
+  it("marks nothing a Delete would not take: never the edited element", () => {
+    const mixed = mixedPlain();
+    const selection = new Set([`${A}/group_1/name`]);
+    const group: Editing = { target: `${A}/group_1`, kind: "group" };
+    const [free] = project(mixed, selection, [], metrics, null);
+    const [edited] = project(mixed, selection, [], metrics, group);
+    expect(free?.data.affectedElements).toEqual(new Set(["group_1"]));
+    expect(edited?.data.affectedElements).toEqual(new Set());
+  });
+
   it("orders nodes by index and ranks them", () => {
     const lowered = changed(view, {
       type: "set",
@@ -148,7 +158,7 @@ describe("project", () => {
 describe("livePlacement", () => {
   const block = blockIn(view, A);
   const drawing = drawingOf(block, view.settings, metrics);
-  const stored = { id: A, scale: 1, length: 400, spacing: 1, width: null, height: null, drawing };
+  const stored = { id: A, scale: 1, length: 400, spacing: 8, width: null, height: null, drawing };
 
   it("takes the position from the node", () => {
     expect(livePlacement(block, { x: 104, y: 40 }, {}, drawing)).toStrictEqual({

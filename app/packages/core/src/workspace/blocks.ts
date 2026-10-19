@@ -13,7 +13,7 @@ export interface BlockPlacement {
   readonly scale: number;
   /** The graphical length of the root, positive. */
   readonly length: number;
-  /** The vertical stretch, positive. */
+  /** The box's spacing, the gap between its items at their default `y`: finite, at least 0. */
   readonly spacing: number;
   /** The requested box size, positive, or null for the content's own size. */
   readonly width: number | null;
@@ -35,7 +35,7 @@ export interface Block extends BlockPlacement {
   /**
    * The stated places of the containers of its manifest's drawing, by place
    * key (`containersOf`): an item's place by group id or ungrouped root id,
-   * a member's card's size and vertical stretch by member id.
+   * a member's card's size and spacing by member id.
    */
   readonly places: { readonly [key: string]: ItemPlace | CardPlace };
   readonly manifest: Manifest;

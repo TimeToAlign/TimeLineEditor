@@ -8,13 +8,14 @@
 
 import type { CommandError, Problem } from "../errors.ts";
 import { ErrorCode, isCommandError, isLoadError, problem } from "../errors.ts";
-import type { JsonObject, PathSegment } from "../json.ts";
+import type { Json, JsonObject, PathSegment } from "../json.ts";
+import { isJsonObject } from "../json.ts";
 import type { CardPlace, ItemPlace } from "../manifest/containers.ts";
 import { containersOf, ITEM_PLACE_MEMBERS, isMember } from "../manifest/containers.ts";
 import type { EntryKind, EntryTypes } from "../manifest/files.ts";
 import { contentEnd, readOnAxis } from "../manifest/invariants.ts";
 import { normalizeManifest, readEntry } from "../manifest/io.ts";
-import { lockProblem } from "../manifest/locks.ts";
+import { lockProblem, withPlaceLocks, withSegmentLine } from "../manifest/locks.ts";
 import { bandOrderProblem } from "../manifest/order.ts";
 import type { AxisValue, Manifest, TimelineManifest } from "../manifest/types.ts";
 import { toAxisValue } from "../number/coordinate.ts";
@@ -25,6 +26,8 @@ import {
   readFinite,
   readGraphical,
   readIndex,
+  readName,
+  readNonNegative,
   readNullablePositive,
   readNullableString,
   readObject,
@@ -49,6 +52,7 @@ import {
   withSettings,
   withTimeline,
 } from "./mutations.ts";
+import { withSegmentLinesCovered } from "./settle.ts";
 import type {
   BlockTarget,
   EntryTarget,
@@ -110,7 +114,7 @@ function readMembers<T>(
 const PLACEMENT_READERS: Readers<BlockPlacement> = {
   scale: readPositive,
   length: readPositive,
-  spacing: readPositive,
+  spacing: readNonNegative,
   width: readNullablePositive,
   height: readNullablePositive,
 };
@@ -132,6 +136,14 @@ function settingChange<M extends keyof WorkspaceSettings>(
 }
 
 const WORKSPACE_SET: Setters<WorkspaceTarget> = {
+  /** The workspace's name, the default name of its file: a non-empty string. */
+  name: (view, _, value, path, changes) => {
+    const name = readName(value, path);
+    if (isCommandError(name)) return name;
+    if (view.name === name) return view;
+    recordValue(changes, path, null, false, view.name, name);
+    return { ...view, name };
+  },
   grid: (view, _, value, path, changes) => {
     const grid = readMembers(value, path, GRID_READERS);
     if (isCommandError(grid)) return grid;
@@ -166,19 +178,54 @@ function blockValue<M extends BlockNumber>(member: M, read: Reader<Block[M]>): S
   };
 }
 
-/** A whole manifest for block `id`, its problems located below `[id, "manifest"]`. */
+/** The ids of the roots of `covered`, `withSegmentLinesCovered`'s result for `value`, whose trees gained a segment. */
+function coveredRoots(value: Json, covered: unknown): ReadonlySet<unknown> {
+  if (covered === value || !isJsonObject(value) || !isJsonObject(covered)) return new Set();
+  const { timelines: before } = value;
+  const { timelines: after } = covered;
+  if (!Array.isArray(before) || !Array.isArray(after)) return new Set();
+  return new Set(
+    after.flatMap((root, index) => (root !== before[index] && isJsonObject(root) ? [root.id] : [])),
+  );
+}
+
+/**
+ * A whole manifest for block `id`, its segment lines covered
+ * (`withSegmentLinesCovered`) and the tree of every line covered given the
+ * locks its places decide (`withPlaceLocks`), as `set is_segment_line`
+ * gives them; its problems located below `[id, "manifest"]`.
+ */
 export function readBlockManifest(value: unknown, id: BlockId): Manifest | CommandError {
   const path = [id, "manifest"];
   const json = toJson(value, path);
   if (isCommandError(json)) return json;
-  const manifest = normalizeManifest(json);
-  if (!isLoadError(manifest)) return manifest;
-  const [first] = manifest.problems;
-  if (first === undefined) throw new Error("a refused manifest names its problem");
-  return { ...first, path: [...path, ...first.path] };
+  const covered = withSegmentLinesCovered(json);
+  const manifest = normalizeManifest(covered);
+  if (isLoadError(manifest)) {
+    const [first] = manifest.problems;
+    if (first === undefined) throw new Error("a refused manifest names its problem");
+    return { ...first, path: [...path, ...first.path] };
+  }
+  const roots = coveredRoots(json, covered);
+  if (roots.size === 0) return manifest;
+  const member = (timeline: string) => isMember(manifest, timeline);
+  const timelines = manifest.timelines.map((root) =>
+    roots.has(root.id) ? withPlaceLocks(root, undefined, member) : root,
+  );
+  return { ...manifest, timelines };
 }
 
 const BLOCK_SET: Setters<BlockTarget> = {
+  /** The name of the block's manifest, its title; null for none. */
+  name: (view, target, value, path, changes) => {
+    const name = readNullableString(value, path);
+    if (isCommandError(name)) return name;
+    const { block } = target;
+    const { manifest } = block;
+    if (manifest.name === name) return view;
+    recordValue(changes, path, block.id, true, manifest.name, name);
+    return withBlock(view, { ...block, manifest: { ...manifest, name } });
+  },
   x: blockValue("x", readFinite),
   y: blockValue("y", readFinite),
   index: (view, target, value, path, changes) => {
@@ -211,8 +258,13 @@ const BLOCK_SET: Setters<BlockTarget> = {
   },
 };
 
-/** The names of a block's members a `set` may give, in the order a new block's are applied. */
-export const BLOCK_PROPERTIES: readonly string[] = Object.keys(BLOCK_SET);
+/**
+ * The names of a block's own members a `set` may give, in the order a new
+ * block's are applied; `name` is its manifest's.
+ */
+export const BLOCK_PROPERTIES: readonly string[] = Object.keys(BLOCK_SET).filter(
+  (property) => property !== "name",
+);
 
 // ---------------------------------------------------------------- places and orders
 
@@ -264,7 +316,7 @@ function mergedPlace(
  * member, null unstates it, and a place left without members is no place.
  * Only a frame or a card has a place, and only the members its holder lets
  * it state (`placeMembersOf`): a box-held one its full place, a frame-held
- * card its size and vertical stretch, the length and scale it is drawn with
+ * card its size and spacing, the length and scale it is drawn with
  * being its group's.
  */
 const setPlace: Setter<KeyedTarget> = (view, target, value, path, changes) => {
@@ -324,6 +376,17 @@ function isStrings(value: unknown): value is readonly string[] {
 }
 
 const GROUP_SET: Setters<GroupTarget> = {
+  /** The group's name; null for none. */
+  name: (view, target, value, path, changes) => {
+    const name = readNullableString(value, path);
+    if (isCommandError(name)) return name;
+    const { block, group } = target;
+    if (group.name === name) return view;
+    const { manifest } = block;
+    const groups = manifest.groups.map((item) => (item === group ? { ...group, name } : item));
+    recordValue(changes, path, block.id, true, group.name, name);
+    return withBlock(view, { ...block, manifest: { ...manifest, groups } });
+  },
   /** The group's display order; null deletes its entry. */
   order: (view, target, value, path, changes) => {
     const { id, members } = target.group;
@@ -387,6 +450,23 @@ const TIMELINE_SET: Setters<TimelineTarget> = {
     if (refused !== undefined) return refused;
     const next = { ...timeline, locked };
     return timelineChange(view, target, path, changes, timeline.locked, next, locked);
+  },
+  /**
+   * Whether the timeline is a segment line: its children become its
+   * segments, or plain children again; it and its subtree take the locks
+   * their places decide (`withSegmentLine`: turned off, the lock its place
+   * gave it as a segment line is lifted), and a line holding no segment is
+   * given its first when the command settles (`withSegmentLinesCovered`).
+   */
+  is_segment_line: (view, target, value, path, changes) => {
+    const line = readBoolean(value, path);
+    if (isCommandError(line)) return line;
+    const { block, at } = target;
+    if (at.timeline.is_segment_line === line) return view;
+    const member = (id: string) => isMember(block.manifest, id);
+    const next = withSegmentLine(at.timeline, line, at.parent?.timeline, member);
+    record(changes, path, block.id, true);
+    return withTimeline(view, block, at, next);
   },
   length: (view, target, value, path, changes) => {
     const { timeline } = target.at;
@@ -536,6 +616,7 @@ function flowSet(kind: "break" | "jump"): Setters<EntryTarget> {
 
 const ENTRY_SET: { readonly [kind in EntryTarget["kind"]]: Setters<EntryTarget> } = {
   map: {
+    name: entryValue("map", "name", readNullableString),
     map: (view, target, value, path, changes) => {
       const map = readObject(value, path);
       if (isCommandError(map)) return map;

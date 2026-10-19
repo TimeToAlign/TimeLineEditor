@@ -249,6 +249,56 @@ describe("opening and saving", () => {
     );
     expect(fileName()).toBe("untitled.tle.json");
   });
+
+  it("offers a new workspace's file under its name, and keeps a file's name on a rename", async () => {
+    start();
+    const downloads = interceptDownloads();
+    const rename = (name: string) =>
+      expect(
+        hook()
+          .store()
+          .dispatch({ type: "set", changes: [{ target: "workspace", values: { name } }] }),
+      ).toBeNull();
+    rename("Eroica sketches");
+    key(document.body, { key: "s", ctrlKey: true });
+    await vi.waitFor(() =>
+      expect(downloads.map(([name]) => name)).toEqual(["Eroica sketches.tle.json"]),
+    );
+    expect(fileName()).toBe("Eroica sketches.tle.json");
+    rename("Variations");
+    key(document.body, { key: "s", ctrlKey: true });
+    await vi.waitFor(() =>
+      expect(downloads.map(([name]) => name)).toEqual([
+        "Eroica sketches.tle.json",
+        "Eroica sketches.tle.json",
+      ]),
+    );
+    expect(fileName()).toBe("Eroica sketches.tle.json");
+  });
+});
+
+describe("a workspace's name on opening", () => {
+  it("is untitled for a file stating none, whatever the file's name, and the stated one otherwise", async () => {
+    start();
+    const unnamed = EMPTY_TEXT.replace('  "name": "untitled",\n', "");
+    expect(unnamed).not.toBe(EMPTY_TEXT);
+    choose("Open…");
+    await vi.waitFor(() => pickFile("Op. 35 sketches.tle.json", unnamed));
+    await vi.waitFor(() => expect(fileName()).toBe("Op. 35 sketches.tle.json"));
+    expect(hook().store().view.name).toBe("untitled");
+    const renamed = createStore(emptyWorkspace());
+    expect(
+      renamed.dispatch({
+        type: "set",
+        changes: [{ target: "workspace", values: { name: "Eroica sketches" } }],
+      }),
+    ).toBeNull();
+    const named = writeWorkspace(renamed.snapshot());
+    choose("Open…");
+    await vi.waitFor(() => pickFile("other.tle.json", named));
+    await vi.waitFor(() => expect(fileName()).toBe("other.tle.json"));
+    expect(hook().store().view.name).toBe("Eroica sketches");
+  });
 });
 
 describe("saving twice at once", () => {

@@ -8,7 +8,13 @@
  */
 
 import type { LiveStore, Selection } from "@timetoalign/tilie-arranger";
-import { addCommand, blockOf, existing, liveStore } from "@timetoalign/tilie-arranger";
+import {
+  addCommand,
+  blockOf,
+  editedSelection,
+  existing,
+  liveStore,
+} from "@timetoalign/tilie-arranger";
 import type { LoadError, Problem, Store, View, Workspace } from "@timetoalign/tilie-core";
 import {
   createStore,
@@ -29,6 +35,7 @@ import {
   saveFile,
   UNTITLED,
   WORKSPACE_FILE,
+  workspaceFileName,
 } from "./files.ts";
 import { messageOf } from "./messages.ts";
 
@@ -84,6 +91,8 @@ export class WorkspaceSession {
   readonly dirty: boolean = $derived(this.live.view !== this.savedView);
 
   #selection: Selection = $state.raw(new Set());
+  /** The open store's count of openings when the session last followed it: a larger count is an editor opened. */
+  #openings = this.store.openings;
   #listeners = new Set<() => void>();
   #unsubscribe: () => void;
   #saving = false;
@@ -143,6 +152,7 @@ export class WorkspaceSession {
     this.#unsubscribe();
     this.selection = new Set();
     this.store = next;
+    this.#openings = next.openings;
     this.savedView = saved ? next.view : null;
     this.fileName = name;
     this.handle = handle;
@@ -171,16 +181,21 @@ export class WorkspaceSession {
   /**
    * Save the open workspace: back into its file, or, with `as` or without a
    * file handle (a new or restored workspace), to a file picked now, offered
-   * under the workspace's file name. A save requested while one is under
-   * way is ignored.
+   * under the workspace's file name: its file's, or for a workspace that has
+   * none yet the one its name gives. A save requested while one is under way
+   * is ignored.
    */
   async save(as: boolean): Promise<void> {
     if (this.#saving) return;
     this.#saving = true;
     const current = this.store.view;
     const text = this.text();
+    const offered =
+      this.handle === null && this.fileName === UNTITLED
+        ? workspaceFileName(current.name)
+        : this.fileName;
     try {
-      const saved = await saveFile(text, WORKSPACE_FILE, this.fileName, as ? null : this.handle);
+      const saved = await saveFile(text, WORKSPACE_FILE, offered, as ? null : this.handle);
       if (saved === null) return;
       this.fileName = saved.name;
       this.handle = saved.handle;
@@ -254,11 +269,20 @@ export class WorkspaceSession {
 
   /**
    * The open store changed (a command, an undo or a redo, an editor opened
-   * or closed): keep of the selection what the view keeps under the
-   * innermost open editor (`existing`), then tell the listeners.
+   * or closed): an editor that opened selects its edited element
+   * (`editedSelection`), every other change keeps of the selection what the
+   * view keeps under the innermost open editor (`existing`); then tell the
+   * listeners.
    */
   #changed(): void {
-    this.selection = existing(this.store.view, this.selection, this.store.editing.at(-1) ?? null);
+    const { store } = this;
+    const innermost = store.editing.at(-1) ?? null;
+    const opened = store.openings !== this.#openings;
+    this.#openings = store.openings;
+    this.selection =
+      opened && innermost !== null
+        ? editedSelection(store.view, innermost)
+        : existing(store.view, this.selection, innermost);
     this.#notify();
   }
 

@@ -44,7 +44,7 @@ export interface LevelRules {
    * nothing else moves; otherwise an item below follows the edited one down.
    */
   readonly itemsFree: boolean;
-  /** Whether a frame keeps its drawn width when its content is stretched along time. */
+  /** Whether a frame keeps its drawn width while its content, stretched along time, fits in it. */
   readonly frameWidthPinned: boolean;
   /** Delete the selection. */
   readonly remove: boolean;

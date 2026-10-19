@@ -37,8 +37,8 @@ const FIXED_MEMBERS = ["scale", "length", "spacing", "index", "parent"] as const
  * The members of a group's place that the editor of one of its members
  * changes: the length and scale the members share are each member's own,
  * a horizontal stretch keeps the frame's requested width in proportion,
- * and a member card's vertical stretch keeps the frame's requested height
- * in proportion.
+ * and a change of a member card's spacing keeps the frame's requested
+ * height in proportion.
  */
 const SHARED_MEMBERS: readonly string[] = ["length", "scale", "width", "height"];
 
@@ -368,8 +368,8 @@ function blockChange(
 /**
  * The first change from `before` to `after` that lies outside `target`, the
  * innermost open editor's target, as a `side_effect` refusal; `null` when
- * every change lies inside it. In this order: a workspace setting; another
- * block; for an element's editor, its block's scale, length, spacing,
+ * every change lies inside it. In this order: the workspace's name or a
+ * setting; another block; for an element's editor, its block's scale, length, spacing,
  * index or parent, a place of a key the element does not contain (a group
  * member's editor also changes its group's length, scale and width and its
  * siblings' card widths), and the manifest outside the element (the element
@@ -399,6 +399,7 @@ export function sideEffect(
     );
   // A change set names every setting and block a command touched; without one, both views are scanned.
   if (changes === undefined || changes.paths.some(([first]) => first === WORKSPACE)) {
+    if (before.name !== after.name) return refuse("the workspace name", [WORKSPACE, "name"]);
     const was = new Map(Object.entries(before.settings));
     const now = new Map(Object.entries(after.settings));
     const setting = keysOf(before.settings, after.settings).find(

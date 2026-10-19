@@ -138,6 +138,8 @@ describe("places, display orders and band orders, accepted", () => {
     expect(block(after(sized, set("score", { place: { spacing: null } })), ID).places).toEqual({
       score: { width: 650 },
     });
+    const gapless = after(mixed(), set("group_1", { place: { spacing: 0 } }));
+    expect(block(gapless, ID).places).toEqual({ group_1: { spacing: 0 } });
   });
 
   it("writes a group's display order, and null deletes it", () => {
@@ -291,8 +293,7 @@ describe("places, display orders and band orders, refused", () => {
     [{ width: -1 }, "non_positive_number", ["width"]],
     [{ scale: 0 }, "non_positive_number", ["scale"]],
     [{ scale: -1 }, "non_positive_number", ["scale"]],
-    [{ spacing: 0 }, "non_positive_number", ["spacing"]],
-    [{ spacing: -1 }, "non_positive_number", ["spacing"]],
+    [{ spacing: -1 }, "invalid_value", ["spacing"]],
     [{ depth: 1 }, "unknown_property", ["depth"]],
     [5, "invalid_value", []],
   ])("refuses the place value %j", (place, code, inside) => {
@@ -580,11 +581,7 @@ describe("a block's places as stored", () => {
       ["places", "group_1", "height"],
     ],
     [{ places: { group_1: { scale: 0 } } }, "non_positive_number", ["places", "group_1", "scale"]],
-    [
-      { places: { group_1: { spacing: 0 } } },
-      "non_positive_number",
-      ["places", "group_1", "spacing"],
-    ],
+    [{ places: { group_1: { spacing: -1 } } }, "invalid_value", ["places", "group_1", "spacing"]],
     [
       { places: { score: { height: 2, scale: 1 } } },
       "unknown_member",

@@ -6,6 +6,7 @@ import {
   contains,
   findTimeline,
   isCommandError,
+  qualify,
   resolveAddress,
 } from "@timetoalign/tilie-core";
 import type { Editing } from "./editing.ts";
@@ -85,17 +86,16 @@ export function offersBand(view: View, band: SelectedBand, editing: Editing | nu
  * whose title is drawn), a band only where the view offers it
  * (`offersBand`), and, in an editor, lie inside the edited element: in the
  * bundle editor its block or anything of it, in a group or timeline editor
- * what that group or timeline contains (core's `contains`), never the
- * edited element itself nor its card, on which a gesture would be refused,
- * nor another block. The one rule for what a selection keeps, after a
- * change, an undo or a redo and when an editor opens or closes, so opening
- * an editor, or closing one, drops every band but those of the timeline
- * then edited. The selection itself when nothing is gone, so an unchanged
- * selection keeps its identity.
+ * what that group or timeline contains (core's `contains`), the edited
+ * element itself and its card included, never another block. The one rule
+ * for what a selection keeps, after a change, an undo or a redo and when an
+ * editor closes, so a change keeps every address that still names something
+ * inside the edited element, and closing an editor drops every band but
+ * those of the timeline then edited. The selection itself when nothing is
+ * gone, so an unchanged selection keeps its identity.
  */
 export function existing(view: View, selection: Selection, editing: Editing | null): Selection {
   const edited = editing === null ? null : addressParts(editing.target);
-  const own = edited?.element == null ? [] : [edited.element, cardAddress(edited.element)];
   const kept = [...selection].filter((address) => {
     const resolved = resolveAddress(view, address);
     if (isCommandError(resolved) || resolved.kind === "workspace") return false;
@@ -105,11 +105,23 @@ export function existing(view: View, selection: Selection, editing: Editing | nu
     const { block, element } = addressParts(address);
     if (block !== edited.block) return false;
     if (edited.element === null) return true;
-    return (
-      element !== null &&
-      !own.includes(element) &&
-      contains(resolved.block.manifest, edited.element, element)
-    );
+    return element !== null && contains(resolved.block.manifest, edited.element, element);
   });
   return kept.length === selection.size ? selection : new Set(kept);
+}
+
+/**
+ * What the selection holds once `editing` has opened in `view`: the edited
+ * element, by the address a click on its box selects: the block for the
+ * bundle editor, the group for the group editor (a press on its frame
+ * selects the group), and for the timeline editor the timeline's card where
+ * it is drawn in one, else the timeline (a child, which has no card, is
+ * selected by its line).
+ */
+export function editedSelection(view: View, editing: Editing): Selection {
+  const { block, element } = addressParts(editing.target);
+  if (editing.kind !== "timeline" || element === null) return new Set([editing.target]);
+  const card = qualify(block, cardAddress(element));
+  const resolved = resolveAddress(view, card);
+  return new Set([!isCommandError(resolved) && resolved.kind === "card" ? card : editing.target]);
 }

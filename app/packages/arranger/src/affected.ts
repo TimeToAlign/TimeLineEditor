@@ -25,15 +25,19 @@ function drawnAddresses(manifest: Manifest): string[] {
  * the card holds is affected. The selected addresses, and the parts of a
  * selected element, are left out: they show as selected. A band is never
  * removed, so a selected band takes nothing away, and draws nothing, so no
- * band is affected.
+ * band is affected. Neither is the element an open editor edits, `edited`
+ * (its id in `manifest`, `null` for none): Delete never removes it, so
+ * selecting it, or a part of it, takes nothing away.
  */
 export function affectedBy(
   manifest: Manifest,
   selectedElementIds: ReadonlySet<string>,
+  edited: string | null,
 ): ReadonlySet<string> {
   const owners = [...selectedElementIds]
     .filter((id) => parseBand(id) === null)
-    .map((id) => elementOf(manifest, id));
+    .map((id) => elementOf(manifest, id))
+    .filter((owner) => owner !== edited);
   const removed = removedBy(manifest, owners);
   if (removed.size === 0) return new Set();
   const addresses = [...drawnAddresses(manifest), ...removed];

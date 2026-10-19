@@ -7,7 +7,13 @@
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { isLoadError, loadManifest } from "@timetoalign/tilie-core";
-import { DEFAULT_LAYER, draw, manifestLayer, type Placement } from "@timetoalign/tilie-layout";
+import {
+  DEFAULT_LAYER,
+  DEFAULT_PLACEMENT,
+  draw,
+  manifestLayer,
+  type Placement,
+} from "@timetoalign/tilie-layout";
 import {
   fontMetrics,
   type Graphical,
@@ -69,6 +75,23 @@ describe("the drawing fixtures", () => {
 
   it.each(cases)("$name: inputs.json holds the case's inputs", (item) => {
     expect(read(item.name, "inputs.json")).toBe(inputsText(item));
+  });
+
+  const spaced = cases.filter(
+    ({ placement }) =>
+      placement.spacing !== DEFAULT_PLACEMENT.spacing ||
+      Object.values(placement.places).some((place) => place.spacing !== undefined),
+  );
+  it.each(spaced)("$name: a stated spacing draws differently from the default", (item) => {
+    const plain = cases.find(
+      (other) =>
+        other.manifest === item.manifest &&
+        other.placement === DEFAULT_PLACEMENT &&
+        other.settings.length === 0 &&
+        other.scale === 1,
+    );
+    if (plain === undefined) throw new Error(`${item.manifest} has no default case`);
+    expect(read(item.name, "figure.svg")).not.toBe(read(plain.name, "figure.svg"));
   });
 });
 

@@ -16,8 +16,17 @@ export interface Ghost {
   readonly card: string;
   /** The descriptors of the card and everything drawn on it, as the press found them. */
   readonly descriptors: readonly Descriptor[];
-  /** The pointer's travel since the press, in the drawing's units. */
+  /**
+   * Where the copy lies: the pointer's travel since the press, in the
+   * drawing's units; once the gesture has ended, the travel at the drop.
+   */
   readonly offset: Point;
+  /**
+   * While the copy settles after the gesture has ended, the travel it moves
+   * to from `offset`, its card's place, and is then removed; `null` while
+   * it follows the pointer.
+   */
+  readonly to: Point | null;
 }
 
 /** A block node's side of a gesture inside its drawing. */

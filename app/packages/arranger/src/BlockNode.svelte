@@ -28,7 +28,7 @@ import { bandGesture } from "./gestures/band.ts";
 import { cardDrawing, heldGesture } from "./gestures/held.ts";
 import type { Ghost, NodeHost } from "./gestures/host.ts";
 import { itemGesture } from "./gestures/item.ts";
-import { slide } from "./motion.ts";
+import { settle, slide } from "./motion.ts";
 import { getNodeActions } from "./nodeActions.ts";
 import type { BlockNode as BlockNodeType } from "./project.ts";
 
@@ -282,12 +282,18 @@ function radiusOf(drawing: Drawing, band: BandBox): number {
  */
 let sliding = false;
 
-/** `slide`'s parameters for a move measured now. */
-function slideParams(): { duration?: number } {
-  return sliding && !actions.reducedMotion() ? {} : { duration: 0 };
+/**
+ * `slide`'s parameters for a move of `entry` measured now: a hidden element
+ * (the dragged card, which its copy stands for) never slides, so it always
+ * lies where it drops and its copy settles there.
+ */
+function slideParams(entry: Entry): { duration?: number } {
+  return sliding && !actions.reducedMotion() && !hidden.has(entry.descriptor)
+    ? {}
+    : { duration: 0 };
 }
 
-/** The copy of a held card that follows the pointer while it is reordered. */
+/** The copy of a held card that follows the pointer while it is reordered, then settles. */
 let ghost = $state.raw<Ghost | null>(null);
 
 /** The descriptors of the reordered card where the preview draws it, hidden under its copy. */
@@ -305,9 +311,9 @@ const host: NodeHost = {
       return;
     }
     // The redraw of the drop or the abort still slides, the one after it does not,
-    // unless a reorder has started again.
+    // unless a reorder has started again: a copy that follows the pointer, not one settling.
     void tick().then(() => {
-      sliding = ghost !== null;
+      sliding = ghost !== null && ghost.to === null;
     });
   },
   ghost(next) {
@@ -365,6 +371,21 @@ function gestureOf(box: DrawnBox | undefined): Attachment<Element> | undefined {
 /** The band drag, made once: the `<svg>` it is attached to outlives every redraw. */
 const bandMoves = pointerGesture(bandGesture(host), options);
 
+/**
+ * The motion of a settling copy (`ghost.to` set): from where it was
+ * dropped, where it is drawn, to its card's place (`settle`), after which
+ * the copy goes and the card shows; nothing for a copy that follows the
+ * pointer.
+ */
+function settling(settled: Ghost): Attachment<SVGGElement> | undefined {
+  const { to } = settled;
+  if (to === null) return undefined;
+  return (element) =>
+    settle(element, settled.offset, to, () => {
+      if (ghost === settled) ghost = null;
+    });
+}
+
 /** A ghost's attributes: those of its descriptor, its address left out. */
 function ghostAttributesOf(descriptor: Descriptor): Record<string, string> {
   const attributes: Record<string, string> = {};
@@ -403,7 +424,7 @@ function ghostAttributesOf(descriptor: Descriptor): Record<string, string> {
         data-outside={isOutside(entry) ? "" : undefined}
         {@attach drawn(entry.descriptor.source)}
         {@attach gestureOf(entry.box)}
-        animate:slide={slideParams()}>{entry.descriptor.text}</svelte:element
+        animate:slide={slideParams(entry)}>{entry.descriptor.text}</svelte:element
       >
     {/each}
     {#each holdingMarks as entry (entry.key)}
@@ -447,6 +468,7 @@ function ghostAttributesOf(descriptor: Descriptor): Record<string, string> {
         transform="translate({ghost.offset.x} {ghost.offset.y})"
         pointer-events="none"
         aria-hidden="true"
+        {@attach settling(ghost)}
       >
         {#each ghost.descriptors as descriptor (descriptor)}
           <svelte:element this={descriptor.tag} {...ghostAttributesOf(descriptor)}

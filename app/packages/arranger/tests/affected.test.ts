@@ -31,7 +31,18 @@ describe("affectedBy", () => {
     ["with_region", ["clt_1/region_1/label"], ["clt_1/region_1"]],
     ["nested", [], []],
   ])("%s with %j selected affects %j", (fixture, selected, expected) => {
-    expect(affectedBy(load(fixture), new Set(selected))).toEqual(new Set(expected));
+    expect(affectedBy(load(fixture), new Set(selected), null)).toEqual(new Set(expected));
+  });
+
+  it.each<[string, string, string[], string[]]>([
+    ["nested", "clt_3", ["clt_3"], []],
+    ["nested", "clt_3", ["clt_3/name"], []],
+    ["nested", "clt_1", ["clt_1/start"], []],
+    ["nested", "clt_1", ["clt_1/start", "clt_3"], ["clt_2", "clt_2/name"]],
+    [MPM, "group_1", ["group_1/name"], []],
+    [CHILD_MEMBER, "recording", ["recording/card"], []],
+  ])("%s with %s edited and %j selected affects %j", (fixture, edited, selected, expected) => {
+    expect(affectedBy(load(fixture), new Set(selected), edited)).toEqual(new Set(expected));
   });
 
   it.each<[string, string[], string[]]>([
@@ -49,6 +60,6 @@ describe("affectedBy", () => {
     [MPM, ["name"], []],
   ])("with several roots, %s with %j selected affects %j", (fixture, selected, expected) => {
     const manifest = fixture === "numbers" ? blockIn(numbersView(), A).manifest : load(fixture);
-    expect(affectedBy(manifest, new Set(selected))).toEqual(new Set(expected));
+    expect(affectedBy(manifest, new Set(selected), null)).toEqual(new Set(expected));
   });
 });

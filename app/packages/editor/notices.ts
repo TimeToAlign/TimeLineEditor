@@ -2,7 +2,7 @@
  * `THIRD_PARTY_NOTICES.txt`: the full licence text of every npm package
  * whose code the editor bundle contains, written next to `index.html` by
  * `vite build`, plus the notices for what was copied or bundled outside a
- * package's code (the canvas control icons and the font). The About pane
+ * package's code (the canvas control icons and the fonts). The About pane
  * links to it.
  */
 

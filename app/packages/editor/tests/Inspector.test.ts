@@ -119,18 +119,18 @@ function selectedTab(): string | undefined {
 }
 
 /**
- * The texts of the Properties and Manifest panels, each read while shown,
- * then whether a form and a textarea are there; the tab selected before is
- * selected again.
+ * Whether the Properties panel shows the hint, the Manifest panel's text and
+ * its textarea, each read while shown; the tab selected before is selected
+ * again.
  */
 function hinted(): unknown[] {
   const before = selectedTab() ?? "Properties";
   openTab("Properties");
-  const properties = [panelOf("Properties").textContent?.trim(), document.querySelector("form")];
+  const properties = panelOf("Properties").textContent?.includes(HINT);
   openTab("Manifest");
   const manifest = [panelOf("Manifest").textContent?.trim(), document.querySelector("textarea")];
   openTab(before);
-  return [properties[0], manifest[0], properties[1], manifest[1]];
+  return [properties, ...manifest];
 }
 
 /** The element naming why the format and options are locked, while it is shown. */
@@ -190,13 +190,13 @@ afterEach(() => {
 });
 
 describe("the inspector component", () => {
-  it("shows the hint without exactly one block", () => {
+  it("shows the hint on the Manifest tab only, without exactly one block", () => {
     const store = storeOf();
     show(store, []);
-    expect(hinted()).toEqual([HINT, HINT, null, null]);
+    expect(hinted()).toEqual([false, HINT, null]);
     if (app !== undefined) unmount(app);
     show(store, [A, `${B}/score`]);
-    expect(hinted()).toEqual([HINT, HINT, null, null]);
+    expect(hinted()).toEqual([false, HINT, null]);
   });
 
   it("shows a loading state until the YAML codec is there", async () => {
@@ -394,6 +394,8 @@ describe("the inspector's tabs", () => {
 
   const PROPERTIES = [["true", "0"], ["false", "-1"], false, true];
   const MANIFEST = [["false", "-1"], ["true", "0"], true, false];
+  /** Another tab shown (the level tab, Journal). */
+  const NEITHER = [["false", "-1"], ["false", "-1"], true, true];
 
   it("shows the Properties tab at mount and swaps on a click", () => {
     show(storeOf(), [A]);
@@ -412,6 +414,7 @@ describe("the inspector's tabs", () => {
         ];
       }),
     ).toEqual([
+      ["BUTTON", "Arranger", "tabpanel", true, null],
       ["BUTTON", "Properties", "tabpanel", true, null],
       ["BUTTON", "Manifest", "tabpanel", true, null],
       ["BUTTON", "Journal", "tabpanel", true, null],
@@ -448,8 +451,10 @@ describe("the inspector's tabs", () => {
     const steps: [string, unknown[], string][] = [
       ["ArrowRight", MANIFEST, "Manifest"],
       ["ArrowLeft", PROPERTIES, "Properties"],
-      ["Home", PROPERTIES, "Properties"],
-      ["ArrowRight", MANIFEST, "Manifest"],
+      ["Home", NEITHER, "Arranger"],
+      ["ArrowRight", PROPERTIES, "Properties"],
+      ["End", NEITHER, "Journal"],
+      ["ArrowLeft", MANIFEST, "Manifest"],
       ["ArrowLeft", PROPERTIES, "Properties"],
     ];
     tabNamed("Properties").focus();
@@ -548,7 +553,7 @@ describe("the inspector's tabs", () => {
     expect(state()).toEqual(MANIFEST);
     selected.value = new Set();
     flushSync();
-    expect(hinted()).toEqual([HINT, HINT, null, null]);
+    expect(hinted()).toEqual([false, HINT, null]);
     expect(state()).toEqual(MANIFEST);
     selected.value = new Set([B]);
     flushSync();

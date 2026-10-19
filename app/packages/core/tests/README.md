@@ -490,11 +490,13 @@ construction.
 
 ## Workspace view, ids and order (`workspace.test.ts`, `workspace-ids-order.test.ts`)
 
-The view is `{meta, settings, blocks}`; an empty one carries the format
-marker `{format: "tilie-workspace", version: 4}` and the default settings
+The view is `{meta, name, settings, blocks}`; an empty one carries the
+format marker `{format: "tilie-workspace", version: 4}`, the name
+`untitled` and the default settings
 `{grid: {size: 8, snap: true}, blockDefaults: {scale: 1, length: 400,
-spacing: 1, width: null, height: null}, graphical: {}}`, the drawing
-specification's placement defaults plus the block's scale. A block has
+spacing: 8, width: null, height: null}, graphical: {}}`, the drawing
+specification's placement defaults plus the block's scale (the box's
+`spacing` 8 is the gap between its items, drawing.md §8.6). A block has
 exactly its twelve members (`id`, `parent`, `index`, `x`, `y`, `scale`,
 `length`, `spacing`, `width`, `height`, `places`, `manifest`) and records
 no kind; a band order is no placement but the manifest's.
@@ -502,7 +504,8 @@ no kind; a band order is no placement but the manifest's.
 1. **Checking a view** pins one exact code and path per rule, each under
    `["blocks", <id>, …]`: a parent cycle, a key that is not the block's id,
    an invalid id, an unknown parent, a repeated sibling index, a non-finite
-   position, a non-positive size (`width` and `height` may be null), and a
+   position, a non-positive size (`width` and `height` may be null), a
+   negative `spacing` (`invalid_value`; 0 is a gap like any other), and a
    manifest problem prefixed by the block's path.
 2. **Block ids** are ten base-36 characters drawn byte by byte, bytes 252 to
    255 refused; fixed byte streams pin the result.
@@ -554,7 +557,7 @@ places of section 8.6.
    box at the bundle level, styled as `block`, with no place; the frame at
    the group level, styled as `group`, stating a whole place on the box; the
    card at the timeline level, styled as `card`, stating a whole place on
-   the box and its size and vertical stretch in a frame; the band at the
+   the box and its size and spacing in a frame; the band at the
    feature level, styled as `band`, with no place.
 5. **The containers of `bundle_mixed.json`** in drawing order, each with
    its holder: frames by group id, each followed by its members' cards in
@@ -568,7 +571,7 @@ places of section 8.6.
    their member's card, `score` has none, and the count of containers is
    derived by hand (two frames, five cards, fifteen timelines' bands).
 7. **Place members by holding**: a frame and a box-held card state a whole
-   place, a frame-held card only its size and vertical stretch, a band and
+   place, a frame-held card only its size and spacing, a band and
    the box nothing; a place is cut to what its container may state (kept
    whole, cut, or dropped when nothing is left); a group member is a
    timeline whose card a frame holds.
@@ -617,12 +620,13 @@ other commands are not judged by it.
 
 1. `add` a block `{id: A, manifest: bare, x: 0, y: 0}` to `createView()`:
    exactly `{id: A, parent: null, index: "a0", x: 0, y: 0, scale: 1,
-   length: 400, spacing: 1, width: null, height: null, places: {},
+   length: 400, spacing: 8, width: null, height: null, places: {},
    manifest: <bare.json>}`; a second block `B` given `scale: 2` has index
    `a1` and scale 2; one given `index: "Zz"` keeps it.
 2. Blocks and the workspace: one `set` moving `A` to (128, 64) and `B` to
    (1, 2) changes nothing else; `scale: 2, width: 120, height: null,
-   length: 800, spacing: 2` on `A` gives exactly those; `blockDefaults:
+   length: 800, spacing: 2` on `A` gives exactly those, and `spacing: 0`
+   is stored as given; `blockDefaults:
    {length: 640}` and `grid: {snap: false}` change that member only,
    `graphical` replaces the settings' block whole; `manifest` replaces a
    block's manifest whole, several roots and groups for one root alike.
@@ -675,7 +679,7 @@ group, or `null` takes it out; members are held in canonical order, and a
 stated display order lists a new member last and drops one that leaves.
 Ids never change; a moved timeline keeps its drawn band order and its
 card's stated size, and the places are fitted to the new drawing (a card a
-frame now holds keeps its size and vertical stretch, a key naming no frame
+frame now holds keeps its size and spacing, a key naming no frame
 or card goes).
 
 What proves it, on `bundles/bundle_mixed.json` in block `A`:
@@ -751,10 +755,11 @@ refusal as `apply`.
 - `set`: `id_not_settable` for an id and for a map payload with another id
   (`[A/melody/tempo, "map", "id"]`); `unknown_property` (`[A, "colour"]`);
   `wrong_target_kind` for a property of another kind (`["workspace", "x"]`,
-  `[A, "grid"]`, a root's `offset`, a map's `name`, a region's
+  `[A, "grid"]`, a root's `offset`, a map's `start`, a region's
   `coordinate`); `invalid_value`, `non_finite_number`,
   `non_positive_number`, `invalid_index` and `duplicate_index` for block and
-  setting values; `invalid_coordinate` for an own-axis value its number type
+  setting values (a block's `spacing` −1 is `invalid_value` at `[A,
+  "spacing"]`); `invalid_coordinate` for an own-axis value its number type
   does not read (`0.5` and `8` on a `fraction` axis, a coordinate dict);
   `locked`, `length_below_content` (`[23, 2]` on `clt_1`) and
   `child_exceeds_parent` (`clt_2` at `[7, 1]` under the locked `clt_3`);
@@ -1049,13 +1054,14 @@ lie in the block's manifest, as the entries of `graphical.order` keyed by
 the group's or the timeline's id (timeskeleton's README, "graphical"), each
 set by the property `order` of its group or timeline. A place is `{x?, y?,
 length?, scale?, spacing?, width?, height?}`, `x` and `y` finite, `length`,
-`scale`, `spacing` and the sizes positive, at least one member stated and
-none null: a place without members is never stored. A card's place states
-only `width`, `height` and `spacing` (drawing.md §8.6: a member is drawn
-with its group's length and scale, while its vertical stretch is its own).
+`scale` and the sizes positive, `spacing` (a gap) finite and at least 0, at
+least one member stated and none null: a place without members is never
+stored. A card's place states only `width`, `height` and `spacing`
+(drawing.md §8.6: a member is drawn with its group's length and scale,
+while its spacing, the gap between its rows and its bands, is its own).
 These are proved by what a stored block holds after commands and by
 checking a view built as a read file would be: a stale or invented key, or
-a card stating more than its size and vertical stretch, must never reach a
+a card stating more than its size and spacing, must never reach a
 saved file, or the file would be refused on reading.
 
 Block `bundle0001` holds `bundles/bundle_mixed.json`; where a case names
@@ -1095,7 +1101,9 @@ default band order of `T`, `["T/children_1", "T/conversion_maps_1", "T",
    1.5}`: exactly `{annotations: {spacing: 1.5}}`; `set score place
    {spacing: 1.5}`: exactly `{score: {spacing: 1.5}}`, then `place {width:
    650}`: `{score: {spacing: 1.5, width: 650}}`, then `place {spacing:
-   null}`: `{score: {width: 650}}`.
+   null}`: `{score: {width: 650}}`. A spacing of 0 is a gap like any
+   other: `set group_1 place {spacing: 0}` gives exactly `{group_1:
+   {spacing: 0}}`.
 6. **A display order.** `set group_1 order ["performance", "score"]`:
    `graphical.order` is `{group_1: ["performance", "score"], group_2:
    ["page", "excerpt"]}`; `order: null` deletes the entry, leaving exactly
@@ -1148,8 +1156,8 @@ default band order of `T`, `["T/children_1", "T/conversion_maps_1", "T",
     member of group_1 once".
 12. Place values at `[address, "place", member]`: `{x: "1"}` `invalid_value`,
     `{y: Infinity}` `non_finite_number`, `{length: 0}`, `{width: -1}`,
-    `{scale: 0}`, `{scale: -1}`, `{spacing: 0}` and `{spacing: -1}`
-    `non_positive_number`, `{depth: 1}` `unknown_property` (as every `set`
+    `{scale: 0}` and `{scale: -1}` `non_positive_number`, `{spacing: -1}`
+    `invalid_value`, `{depth: 1}` `unknown_property` (as every `set`
     object value naming an unknown member); `place: 5` `invalid_value` at
     `[address, "place"]`; `place: {}` `invalid_value` at `[address,
     "place"]`, message "a place value states at least one member" (an empty
@@ -1250,8 +1258,9 @@ is, codes and paths under `["blocks", "bundle0001", …]`):
 22. Readers: `places: []` `invalid_value` at `[…, "places"]`; a place `{}`
     and a place `null` `invalid_value` at `[…, "places", "group_1"]`; `{x:
     null}` `invalid_value` at `[…, "places", "group_1", "x"]`; `{x:
-    Infinity}` `non_finite_number`, `{height: 0}`, `{scale: 0}` and
-    `{spacing: 0}` `non_positive_number` at the member; `{depth: 1}`
+    Infinity}` `non_finite_number`, `{height: 0}` and `{scale: 0}`
+    `non_positive_number` and `{spacing: -1}` `invalid_value` at the
+    member; `{depth: 1}`
     `unknown_member` at `[…, "places", "group_1", "depth"]`.
 23. Keys, in code-point order: places `{score: {x: 1}, nowhere: …,
     group_1: …, recording: {x: 4}, page: {width: 650}}` give exactly
@@ -1895,8 +1904,8 @@ manifest after the removal, next to two removals that reach outside.
 and scale (drawing.md §8.6), so in a member's editor these members of the
 group's place are its own, as is its card's place. A horizontal stretch
 from a member's card keeps the frame's and every card's requested width in
-proportion (drawing.md §1), and a vertical stretch the frame's requested
-height, so the group's `width` and `height` and every sibling card's
+proportion (drawing.md §1), and a change of its spacing the frame's
+requested height, so the group's `width` and `height` and every sibling card's
 `width` are the member's too; the group's `spacing` and a sibling's
 `height` and `spacing` are not. A group's editor holds its frame's place
 and its members' card places; an ungrouped root's editor its whole place.
@@ -1943,7 +1952,7 @@ that holds a member without being one.
 ## The workspace file (`file.test.ts`)
 
 `writeWorkspace(workspace)` is timeskeleton's `dumps` (keys sorted) of
-`{meta, settings, blocks, journal, sessions}`, format version 4;
+`{meta, name, settings, blocks, journal, sessions}`, format version 4;
 `readWorkspace(text)` reads with timeskeleton's `parseJson` (lossless) and
 returns a `Workspace` or a `LoadError`. An entry is exactly `{command,
 author, time}` or `{session, author, time}` (chosen by the presence of
@@ -1957,8 +1966,9 @@ without entries); a session id is ten characters of `0-9a-z`, as a key of
    `map.json`, a move, a style, an undone command excluded) is written; the
    text read back deep-equals the workspace, and writing it again gives the
    same bytes. Its members are exactly `blocks`, `journal`, `meta`,
-   `sessions`, `settings`; `meta` is exactly `{format: "tilie-workspace",
-   version: 4}`; `sessions` is `{}`.
+   `name`, `sessions`, `settings`; `meta` is exactly `{format:
+   "tilie-workspace", version: 4}`; `name` is `untitled`; `sessions` is
+   `{}`.
 2. **Replay.** Replaying the read journal from `createView()` gives exactly
    the read `settings` and `blocks`.
 3. **Refusals**, each exactly one problem `{code, path}`: text `{` →
@@ -2029,9 +2039,136 @@ without entries); a session id is ten characters of `0-9a-z`, as a key of
    added to `score`'s place is refused with exactly one problem,
    `unknown_member` at `["blocks", A, "places", "score", "length"]`, message
    `score is a member: its card takes only width, height and spacing`; with
-   `score`'s `spacing` `0`, `non_positive_number` at `["blocks", A,
-   "places", "score", "spacing"]`; with `group_1`'s `scale` `0`,
+   `score`'s `spacing` `-1`, `invalid_value` at `["blocks", A, "places",
+   "score", "spacing"]`; with `group_1`'s `scale` `0`,
    `non_positive_number` at `["blocks", A, "places", "group_1", "scale"]`.
+
+## Names (`names.test.ts`)
+
+The workspace has a name, the default name of its file; a manifest, a
+group, a timeline, a conversion map, a region, a break and a marker have
+the schema's nullable `name`, each settable by `set` on its own target
+(the manifest's on its block's address). What proves it: each value is
+read back from the view, or from the file, exactly; each refusal by code
+and path, the view unchanged.
+
+1. **The workspace's name in the view and the file.** `createView().name`
+   is `untitled`. A store's workspace after `set {target: "workspace",
+   values: {name: "Eroica sketches"}}` writes `"name": "Eroica sketches"`
+   between `meta` and `sessions` (keys sorted), and reads back with that
+   name, writing the same bytes. The round trip's text without its `name`
+   member reads as a workspace named `untitled`, and writing it again
+   gives the text with `"name": "untitled"` added and nothing else
+   changed; `createStore` over it opens a workspace named `untitled`. A
+   stated `name` of `""` is refused with exactly one problem,
+   `invalid_value` at `["name"]`; of `3`, the same.
+2. **Setting the workspace's name.** `set {target: "workspace", values:
+   {name: "Eroica sketches"}}` changes the name and nothing else (the
+   settings and the blocks are the same objects); `""`, `null` and `3`
+   are `invalid_value` at `["workspace", "name"]`; the name it already
+   has is `invalid_value` "the command changes nothing" at the same path.
+   The journal replays to the name: `createStore` over that workspace's
+   `{view, journal, sessions}` succeeds, and over the same view named
+   `other` with the journal unchanged throws `JournalMismatchError` at
+   `["name"]`. Every replay starts from the empty workspace, named
+   `untitled`: the renamed workspace, written and read back, opens named
+   `Eroica sketches`, and undoing the rename there gives `untitled`;
+   renamed back to `untitled` before it is written, it writes `"name":
+   "untitled"`, opens named so, and undoing that rename gives `Eroica
+   sketches`. The one-block workspace whose journal never names it, its
+   file stating `"name": "sketches"`, is refused with
+   `JournalMismatchError` after its one entry (`entry` `1`) at `["name"]`:
+   no command gave it that name.
+3. **An editor does not rename the workspace.** With the bundle editor of
+   block `A` open, the same `set` is `side_effect` at `["workspace",
+   "name"]`, message `the workspace name lies outside <A>: an editor
+   changes only what it edits`.
+4. **Names in a manifest**, on `bundles/bundle_mixed.json` in block `A`
+   (the manifest named `Mixed`): `set {target: A, values: {name: "Op.
+   35"}}` leaves the manifest's `name` `Op. 35`, the rest of the manifest
+   equal; `null` leaves it `null`. `set A/group_1 {name: "Duo"}` leaves
+   `group_1` named `Duo` and every other member of it and of the manifest
+   equal; `null` leaves it `null`; `3` is `invalid_value` at `[A/group_1,
+   "name"]`. On `map.json`, `set A/melody/tempo {name: "Beat"}` stores
+   `name: "Beat"` in the map `tempo` (named `Tempo`), its payload otherwise
+   equal. Each
+   value the target already holds is refused as changing nothing. An
+   `add` of a block whose value carries `name` is `unknown_property` at
+   `[<block>, "name"]`: a block's value states the block's own members,
+   the manifest its own name.
+
+## Segment lines gain their first segment (`segment-lines.test.ts`)
+
+A segment line's segments end where it ends, so a segment line of known
+length without children cannot exist. Every manifest an edit leaves (a
+whole manifest set on a block, as the Manifest tab's Apply sends it; a
+timeline set to be a segment line; a timeline added) is given, for every
+segment line of known length that holds no segment, one segment from 0
+covering its whole length: a child of the line's unit, stating the line's
+`number_type` when the line states one, at offset 0 in the line's number
+type (`0`, `0.0` or `[0, 1]`), as long as the line (the same JSON value),
+unlocked (a segment is never locked), its id the smallest `{prefix}_{N}`
+of its unit's class that no `id` of the manifest, nor of the manifest a
+timeline is added into, equals. A segment line of unknown length is left
+without segments: nothing fixes where they would end. Reading a manifest
+from a file applies nothing. The replay of a journal reproduces it, since
+the rule is part of the command.
+
+What proves it, each manifest compared exactly:
+
+1. **Apply.** On `bundles/bundle_mixed.json` in block `A`, the manifest
+   with `is_segment_line: true` on `page` (pixels, int, length 1920, a
+   member of `group_2`, no children) set as `A`'s `manifest` is accepted:
+   `page` holds exactly one child, `{id: "dgt_1", unit: "pixels",
+   number_type: "int", offset: 0, length: 1920, locked: false,
+   is_segment_line: false, …the defaults}`, and the tree of every line
+   given a segment takes the locks its places decide, as the setter of
+   case 2 gives them: `page`, a segment line that is a group member, holds
+   `locked: true` although the applied text states `false`. The same manifest
+   read by `loadManifest` is refused with `schema_violation` at
+   `["timelines", 1, "length"]`, message `the segments of segment line
+   "page" do not end at its length`.
+2. **The setter.** `set A/page {is_segment_line: true}` gives the same
+   `page`, except that its place now decides its lock: a segment line that
+   is a group member is locked, so `page` holds `locked: true`. The
+   command is one journal entry, and `createStore` over the workspace it
+   leaves verifies (the replay reproduces the segment). `set A/score
+   {is_segment_line: true}` (fraction quarters, length `[12, 1]`, no
+   children) gives the segment `{id: "clt_1", unit: "quarters",
+   number_type: "fraction", offset: [0, 1], length: [12, 1], …}`;
+   `performance` (float seconds, 12.5) the segment `cpt_1` at offset `0.0`
+   (a `JsonFloat`) of length `12.5`.
+3. **The id is free in the manifest.** On `bundle_mixed.json` with a root
+   `dgt_1` (pixels, 10) added first, the segment of `page` is `dgt_2`.
+4. **Unknown length.** On a root `open` of unknown length (quarters)
+   added to `bare.json`'s block, `set A/open {is_segment_line: true}`
+   leaves `open` a segment line without children, its length `null`.
+5. **Turning it off.** The schema lets a timeline that is no segment line
+   hold any children within its length, so turning the flag off keeps the
+   segments as children. On `segment_line.json`, `set A/form
+   {is_segment_line: false}` leaves `form` with the children `a`, `b` and
+   `c` exactly as they were (offsets, lengths, their own segments): each
+   is still a segment line, now a child, and so still locked; their
+   segments stay unlocked. Turning off `b` alone, a segment beside the
+   segment lines `a` and `c`, is refused by the schema: `schema_violation`
+   at `[A, "manifest", "timelines", 0, "children", 1, "is_segment_line"]`.
+   Setting the flag to the value held is refused as changing nothing at
+   `[A/form, "is_segment_line"]`; `"yes"` is `invalid_value` there.
+   Turning the flag off lifts the lock the place rule gave the line for
+   being a segment line, and keeps a lock no place decided: on
+   `bundle_mixed.json`, the member `performance` (unlocked) turned on holds
+   `locked: true`, turned off again `locked: false`, its segment `cpt_1`
+   unlocked; the same for a child `c` (quarters, `[0, 1]`, `[4, 1]`, no
+   `locked` stated) added into `bare.json`'s root. The root `form`, no
+   child and no member, set `locked: true` and then turned off keeps
+   `locked: true`.
+6. **Adding a segment line.** `add {into: A/bare, child: {id: "sl", unit:
+   "quarters", offset: [0, 1], length: [4, 1], is_segment_line: true}}`
+   into `bare.json`'s root adds `sl` holding the segment `clt_1` from `[0,
+   1]` of `[4, 1]`, `sl` locked by its place (a segment line that is a
+   child).
+7. **Preview.** `preview` of the setter of case 2 gives the same manifest
+   as `apply`.
 
 ## Properties (`properties.test.ts`, fast-check)
 

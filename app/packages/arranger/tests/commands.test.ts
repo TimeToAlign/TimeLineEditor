@@ -161,19 +161,19 @@ describe("removeCommand", () => {
   const region = viewOf({ id: A, fixture: "with_region" });
 
   it("removes the selected addresses", () => {
-    expect(removeCommand(nested, new Set([A]))).toEqual({ type: "remove", targets: [A] });
-    expect(removeCommand(nested, new Set([`${A}/clt_3`]))).toEqual({
+    expect(removeCommand(nested, new Set([A]), null)).toEqual({ type: "remove", targets: [A] });
+    expect(removeCommand(nested, new Set([`${A}/clt_3`]), null)).toEqual({
       type: "remove",
       targets: [`${A}/clt_3`],
     });
   });
 
   it("folds an element's parts into the element", () => {
-    expect(removeCommand(nested, new Set([`${A}/clt_3/name`, `${A}/clt_3`]))).toEqual({
+    expect(removeCommand(nested, new Set([`${A}/clt_3/name`, `${A}/clt_3`]), null)).toEqual({
       type: "remove",
       targets: [`${A}/clt_3`],
     });
-    const command = removeCommand(region, new Set([`${A}/clt_1/region_1/label`]));
+    const command = removeCommand(region, new Set([`${A}/clt_1/region_1/label`]), null);
     expect(command).toEqual({ type: "remove", targets: [`${A}/clt_1/region_1`] });
     expect(manifestIds(blockIn(changed(region, command), A).manifest)).toEqual(
       new Set(["clt_1", "clt_2", "clt_3"]),
@@ -181,21 +181,21 @@ describe("removeCommand", () => {
   });
 
   it("removes a root timeline", () => {
-    const command = removeCommand(nested, new Set([`${A}/clt_1`]));
+    const command = removeCommand(nested, new Set([`${A}/clt_1`]), null);
     expect(command).toEqual({ type: "remove", targets: [`${A}/clt_1`] });
     expect(blockIn(changed(nested, command), A).manifest.timelines).toEqual([]);
-    expect(removeCommand(nested, new Set([B, `${A}/clt_1/start`]))).toEqual({
+    expect(removeCommand(nested, new Set([B, `${A}/clt_1/start`]), null)).toEqual({
       type: "remove",
       targets: [B, `${A}/clt_1`],
     });
   });
 
   it("refuses an empty selection", () => {
-    expect(removeCommand(nested, new Set())).toEqual({ refused: "Nothing is selected." });
+    expect(removeCommand(nested, new Set(), null)).toEqual({ refused: "Nothing is selected." });
   });
 
   it("is accepted by apply", () => {
-    const after = changed(nested, removeCommand(nested, new Set([`${A}/clt_3`])));
+    const after = changed(nested, removeCommand(nested, new Set([`${A}/clt_3`]), null));
     expect(manifestIds(blockIn(after, A).manifest)).toEqual(new Set(["clt_1"]));
   });
 
@@ -207,15 +207,15 @@ describe("removeCommand", () => {
     };
 
     it("removes an element of a root's tree by its root-qualified address", () => {
-      const command = removeCommand(numbers, new Set([`${A}/score/region_1/label`]));
+      const command = removeCommand(numbers, new Set([`${A}/score/region_1/label`]), null);
       expect(command).toEqual({ type: "remove", targets: [`${A}/score/region_1`] });
       expect(
         manifestIds(blockIn(changed(numbers, command), A).manifest).has("score/region_1"),
       ).toBe(false);
       expect(
-        removeCommand(numbers, new Set([`${A}/score/region_1`, `${A}/score/region_1/label`])),
+        removeCommand(numbers, new Set([`${A}/score/region_1`, `${A}/score/region_1/label`]), null),
       ).toEqual({ type: "remove", targets: [`${A}/score/region_1`] });
-      const map = removeCommand(mpm, new Set([`${A}/score:clt_1/tmap_1`]));
+      const map = removeCommand(mpm, new Set([`${A}/score:clt_1/tmap_1`]), null);
       expect(map).toEqual({ type: "remove", targets: [`${A}/score:clt_1/tmap_1`] });
       expect(manifestIds(blockIn(changed(mpm, map), A).manifest).has("score:clt_1/tmap_1")).toBe(
         false,
@@ -223,24 +223,24 @@ describe("removeCommand", () => {
     });
 
     it("removes timelines and groups, a part standing for its element", () => {
-      expect(removeCommand(numbers, new Set([`${A}/score`]))).toEqual({
+      expect(removeCommand(numbers, new Set([`${A}/score`]), null)).toEqual({
         type: "remove",
         targets: [`${A}/score`],
       });
       const child = viewOf({ id: A, fixture: CHILD_MEMBER });
-      expect(removeCommand(child, new Set([`${A}/second-half/start`]))).toEqual({
+      expect(removeCommand(child, new Set([`${A}/second-half/start`]), null)).toEqual({
         type: "remove",
         targets: [`${A}/second-half`],
       });
-      expect(removeCommand(numbers, new Set([`${A}/group_1/name`]))).toEqual({
+      expect(removeCommand(numbers, new Set([`${A}/group_1/name`]), null)).toEqual({
         type: "remove",
         targets: [`${A}/group_1`],
       });
     });
 
     it("refuses a selection holding a manifest's title whole", () => {
-      expect(removeCommand(mpm, new Set([`${A}/name`]))).toEqual(hint);
-      expect(removeCommand(mpm, new Set([B, `${A}/name`]))).toEqual(hint);
+      expect(removeCommand(mpm, new Set([`${A}/name`]), null)).toEqual(hint);
+      expect(removeCommand(mpm, new Set([B, `${A}/name`]), null)).toEqual(hint);
     });
   });
 });

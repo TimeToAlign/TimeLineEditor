@@ -1,5 +1,6 @@
 // @vitest-environment node
 /// <reference types="node" />
+import { createHash } from "node:crypto";
 import { mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
@@ -8,10 +9,18 @@ import { SCHEMA_VERSION } from "@timetoalign/timeskeleton";
 import { build } from "vite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { licenceFile, packageOf, RULE, SUBRULE } from "../notices.ts";
-import { ATTRIBUTIONS, FONT_LICENCE, NOTICES_FILE } from "../src/attributions.ts";
+import {
+  ATTRIBUTIONS,
+  FONT_LICENCE,
+  NOTICES_FILE,
+  TITLE_FONT_LICENCE,
+} from "../src/attributions.ts";
 import configOf from "../vite.config.ts";
 
 const editor = path.join(import.meta.dirname, "..");
+/** The vendored title font and its licence. */
+const titleFont = path.join(editor, "fonts", "IBMPlexMono-Regular.woff2");
+const titleFontLicence = path.join(editor, "fonts", "LICENSE.txt");
 let outDir: string;
 /** Each bundled npm package and the directory it was bundled from. */
 const bundled = new Map<string, string>();
@@ -79,11 +88,12 @@ describe("the attributions", () => {
     }
   });
 
-  it("back the icons and the font", () => {
+  it("back the icons and the fonts", () => {
     const others = ATTRIBUTIONS.filter((item) => !item.package);
     expect(others.map((entry) => [entry.name, entry.licence])).toEqual([
       ["Icons of the canvas controls, from @xyflow/svelte", "MIT"],
       ["DejaVu Sans 2.37", FONT_LICENCE],
+      ["IBM Plex Mono 2.5.0", TITLE_FONT_LICENCE],
     ]);
     const flowLicence = readFileSync(
       licenceFile(bundled.get("@xyflow/svelte") as string) as string,
@@ -99,6 +109,27 @@ describe("the attributions", () => {
     for (const line of others[1]?.copyright ?? []) {
       expect([line, licence.includes(line)]).toEqual([line, true]);
     }
+    // The title font's licence names its copyright holder on the lines starting "Copyright ©".
+    const titleLicence = readFileSync(titleFontLicence, "utf8");
+    const holders = titleLicence
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.startsWith("Copyright ©"));
+    expect(others[2]?.copyright).toEqual(holders);
+    expect(holders).toEqual(['Copyright © 2017 IBM Corp. with Reserved Font Name "Plex"']);
+  });
+
+  it("ship the vendored title font unchanged, once", () => {
+    const vendored = readFileSync(titleFont);
+    expect([vendored.length, createHash("sha256").update(vendored).digest("hex")]).toEqual([
+      49_248,
+      "ba204497f16b6d334cee9d1e963a831b73e3a56e1d6300a8489d18df7214b350",
+    ]);
+    const emitted = assets.filter((name) => /^IBMPlexMono-Regular-.*\.woff2$/.test(name));
+    expect(emitted.length).toBe(1);
+    expect(readFileSync(path.join(outDir, "assets", emitted[0] as string)).equals(vendored)).toBe(
+      true,
+    );
   });
 
   it("write every full licence text into the notices file", () => {
@@ -110,7 +141,7 @@ describe("the attributions", () => {
         expect(rule).toBe(SUBRULE);
         return { heading, licence, text: rest.join("\n") };
       });
-    const packageSections = sections.slice(0, -2);
+    const packageSections = sections.slice(0, -3);
     const expected = [...bundled.keys()].sort().map((name) => {
       const directory = bundled.get(name) as string;
       const manifest = JSON.parse(readFileSync(path.join(directory, "package.json"), "utf8")) as {
@@ -135,7 +166,8 @@ describe("the attributions", () => {
       "utf8",
     );
     const flowText = readFileSync(licenceFile(flow) as string, "utf8");
-    expect(sections.slice(-2)).toEqual([
+    const title = readFileSync(titleFontLicence, "utf8");
+    expect(sections.slice(-3)).toEqual([
       {
         heading: `Icons of the canvas controls, copied from @xyflow/svelte ${flowVersion}`,
         licence: "License: MIT",
@@ -144,7 +176,12 @@ describe("the attributions", () => {
       {
         heading: "DejaVu Sans 2.37 (the bundled font, from @timetoalign/timeskeleton)",
         licence: `License: ${FONT_LICENCE}`,
-        text: font.endsWith("\n") ? font : `${font}\n`,
+        text: font.endsWith("\n") ? `${font}\n` : `${font}\n\n`,
+      },
+      {
+        heading: "IBM Plex Mono 2.5.0 (the bundled title font of the inspector)",
+        licence: `License: ${TITLE_FONT_LICENCE}`,
+        text: title.endsWith("\n") ? title : `${title}\n`,
       },
     ]);
   });

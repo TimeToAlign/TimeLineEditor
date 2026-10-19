@@ -1,7 +1,7 @@
 /**
  * What the built editor ships besides its own code: every npm package the
  * bundle contains, the canvas control icons copied from Svelte Flow and the
- * bundled font, with their licences, shown in the About pane; the full
+ * two bundled fonts, with their licences, shown in the About pane; the full
  * texts are in `THIRD_PARTY_NOTICES.txt` (`notices.ts`).
  * `tests/attributions.test.ts` builds the editor and requires this list and
  * that file to name exactly the packages found in the bundle.
@@ -13,7 +13,7 @@ export const NOTICES_FILE = "THIRD_PARTY_NOTICES.txt";
 export interface Attribution {
   /** The npm package name, or the name of a bundled asset. */
   readonly name: string;
-  /** An SPDX licence expression, or the licence's own name for the font. */
+  /** An SPDX licence expression, or the licence's own name for the drawing font. */
   readonly licence: string;
   /** The copyright lines of the licence file, every one of them. */
   readonly copyright: readonly string[];
@@ -21,9 +21,12 @@ export interface Attribution {
   readonly package: boolean;
 }
 
-/** The licence of the bundled DejaVu Sans. */
+/** The licence of the bundled DejaVu Sans, the drawing font. */
 export const FONT_LICENCE =
   "Bitstream Vera Fonts licence and Arev Fonts licence; DejaVu changes are in the public domain";
+
+/** The licence of the bundled IBM Plex Mono, the inspector's title font. */
+export const TITLE_FONT_LICENCE = "OFL-1.1";
 
 const MIKE_BOSTOCK = "Copyright 2010-2021 Mike Bostock";
 const WEBKID = "Copyright (c) 2019-2025 webkid GmbH";
@@ -120,6 +123,12 @@ export const ATTRIBUTIONS: readonly Attribution[] = [
       "Copyright (c) 2003 by Bitstream, Inc. All Rights Reserved.",
       "Copyright (c) 2006 by Tavmjong Bah. All Rights Reserved.",
     ],
+    package: false,
+  },
+  {
+    name: "IBM Plex Mono 2.5.0",
+    licence: TITLE_FONT_LICENCE,
+    copyright: ['Copyright © 2017 IBM Corp. with Reserved Font Name "Plex"'],
     package: false,
   },
 ];

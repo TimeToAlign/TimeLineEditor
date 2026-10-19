@@ -184,33 +184,34 @@ async function expectTabPairs(page: Page, present: readonly TabName[]): Promise<
 }
 
 test("the tabs follow the keyboard", async ({ page }) => {
-  const arranging = ["Properties", "Manifest", "Journal"] as const;
+  const arranging = ["Arranger", "Properties", "Manifest", "Journal"] as const;
   await expectTabPairs(page, arranging);
   await tab(page, "Properties").focus();
   for (const [key, name] of [
     ["ArrowRight", "Manifest"],
     ["ArrowRight", "Journal"],
+    ["ArrowRight", "Arranger"],
     ["ArrowRight", "Properties"],
-    ["ArrowLeft", "Journal"],
-    ["ArrowLeft", "Manifest"],
+    ["ArrowLeft", "Arranger"],
     ["End", "Journal"],
-    ["Home", "Properties"],
+    ["Home", "Arranger"],
   ] as const) {
     await page.keyboard.press(key);
     await expectTab(page, name, arranging);
   }
 
+  // Entered while the inspector is shown: the level tab stays shown, renamed for the editor.
   expect(await page.evaluate((id) => window.__tilie.open(id), SMALL.bare)).toBeNull();
-  const editing = ["Editor", "Properties", "Manifest", "Journal"] as const;
+  const editing = ["Bundle", "Properties", "Manifest", "Journal"] as const;
   await expectTabPairs(page, editing);
-  await expect(tab(page, "Editor")).toHaveAttribute("aria-selected", "true");
-  await tab(page, "Editor").focus();
+  await expect(tab(page, "Bundle")).toHaveAttribute("aria-selected", "true");
+  await tab(page, "Bundle").focus();
   for (const [key, name] of [
     ["ArrowLeft", "Journal"],
-    ["ArrowRight", "Editor"],
+    ["ArrowRight", "Bundle"],
     ["ArrowRight", "Properties"],
     ["End", "Journal"],
-    ["Home", "Editor"],
+    ["Home", "Bundle"],
   ] as const) {
     await page.keyboard.press(key);
     await expectTab(page, name, editing);
@@ -239,13 +240,13 @@ test("the form follows a resize live, rounded to two decimals", async ({ page })
   const grip = await page.locator('[data-testid="handle-right"]').boundingBox();
   if (grip === null) throw new Error("the right handle is not displayed");
   await dragStart(page, { x: grip.x + grip.width / 2, y: grip.y + grip.height / 2 }, 20, 0);
-  await expect(field(page, "width")).toHaveValue("496.58");
+  await expect(field(page, "container width")).toHaveValue("496.58");
   expect(await journalLength(page)).toBe(5);
   expect((await placement(page, SMALL.bare)).width).toBe(null);
   await page.mouse.up();
   await expect.poll(() => journalLength(page)).toBe(6);
   expect((await placement(page, SMALL.bare)).width).toBe(496.5771484375);
-  await expect(field(page, "width")).toHaveValue("496.58");
+  await expect(field(page, "container width")).toHaveValue("496.58");
 });
 
 test("a step applies at once as one command, from the stored value", async ({ page }) => {
@@ -306,9 +307,9 @@ test("Escape cancels a resize and the form shows the stored values again", async
   const grip = await page.locator('[data-testid="handle-right"]').boundingBox();
   if (grip === null) throw new Error("the right handle is not displayed");
   await dragStart(page, { x: grip.x + grip.width / 2, y: grip.y + grip.height / 2 }, 20, 0);
-  await expect(field(page, "width")).toHaveValue("496.58");
+  await expect(field(page, "container width")).toHaveValue("496.58");
   await page.keyboard.press("Escape");
-  await expect(field(page, "width")).toHaveValue("");
+  await expect(field(page, "container width")).toHaveValue("");
   await expect.poll(() => node(page, SMALL.bare).boundingBox()).toEqual(before);
   expect(await page.evaluate(() => window.__tilie.selection())).toEqual([SMALL.bare]);
   await page.mouse.up();
@@ -361,7 +362,7 @@ test("the form edits the selected frame's and card's places, never the block's",
   const length = frame.getByLabel("length", { exact: true });
   await expect(length).toHaveValue("400");
   await expect(frame.getByLabel("scale", { exact: true })).toHaveValue("1");
-  await expect(frame.getByLabel("spacing", { exact: true })).toHaveValue("1");
+  await expect(frame.getByLabel("spacing", { exact: true })).toHaveValue("8");
   await expect(frame.getByLabel("x", { exact: true })).toBeDisabled();
   await expect(frame.getByLabel("y", { exact: true })).toBeDisabled();
   await length.fill("300");
@@ -383,7 +384,7 @@ test("the form edits the selected frame's and card's places, never the block's",
   await select(page, [`${BUNDLES.mixed}/score/card`]);
   const card = page.getByRole("form", { name: "Card properties" });
   await expect(card.getByLabel("group length", { exact: true })).toHaveValue("300");
-  const width = card.getByLabel("width", { exact: true });
+  const width = card.getByLabel("container width", { exact: true });
   await width.fill("650");
   await width.press("Enter");
   await expect.poll(() => journalLength(page)).toBe(OPENED_JOURNAL.bundles + 2);
@@ -407,7 +408,7 @@ test("the form follows a frame's Stretch live in the bundle editor", async ({ pa
   await tab(page, "Properties").click();
   const frame = page.getByRole("form", { name: "Frame properties" });
   const length = frame.getByLabel("length", { exact: true });
-  const width = frame.getByLabel("width", { exact: true });
+  const width = frame.getByLabel("container width", { exact: true });
   await expect(length).toHaveValue("400");
   await expect(width).toHaveValue("562.48");
   const entries = () => page.evaluate(() => window.__tilie.store().entries.length);

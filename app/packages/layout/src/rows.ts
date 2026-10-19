@@ -31,7 +31,7 @@ export interface Row {
    * the children bands laid out together whose row it is.
    */
   readonly size: number;
-  /** Its pitch: `p0 = max(14 × v, h(s))` for the root's row, else the pitch `p` of its joint layout. */
+  /** Its pitch: `p0 = max(10 + S, h(s))` for the root's row, else the pitch `p` of its joint layout. */
   readonly pitch: number;
   /**
    * The present children bands of its lines on each side, laid out together; `undefined` for a
@@ -57,7 +57,7 @@ export interface Joint {
    * displayed or not, a row of segment lines alone counting its first line's.
    */
   readonly size: number;
-  /** Its pitch `p = max(14 × v, h(s))`, the pitch of each of its rows. */
+  /** Its pitch `p = max(10 + S, h(s))`, the pitch of each of its rows. */
   readonly pitch: number;
 }
 
@@ -217,7 +217,7 @@ export function layoutChildren(
  * root's drawing `root` in the root's row `row` at `place`. A child in a
  * band above its parent's line lies at `yl − lk`, one below at `yl + lk`,
  * `yl` its parent's ordinate and `lk` its `PlacedChild.distance`; it shares
- * `x0`, the top, `P × v` and `Hc` of `place` and takes the name size of its
+ * `x0`, the top and `Hc` of `place` and takes the name size of its
  * own row.
  */
 export function placeLines(root: TimelineDrawing, row: Row, place: LinePlace): PlacedLine[] {

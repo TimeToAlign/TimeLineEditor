@@ -7,8 +7,6 @@ export const GRID_FREE = 1 / 2048;
 export const MIN_SCALE = 1 / 8;
 /** The smallest graphical length a resize gives a block's root. */
 export const MIN_LENGTH = 8;
-/** The smallest vertical stretch a resize gives a block. */
-export const MIN_SPACING = 1 / 4;
 
 /**
  * `value` rounded to the nearest multiple of `step`, halves towards +∞ and

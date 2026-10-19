@@ -358,13 +358,14 @@ describe("a line's reach", () => {
     expect(element(drawing, "a/label")).toMatchObject({ baseline: 24.35400390625 });
   });
 
-  it("keeps k fixed when the spacing stretches", () => {
-    const drawing = drawFixture("segment_line", [], { ...DEFAULT_PLACEMENT, spacing: 2 });
-    expect(drawing.height).toBe(139.9296875);
-    expect(element(drawing, "form")).toMatchObject({ y: 86.953125 });
-    expect(element(drawing, "b")).toMatchObject({ y: 44.4765625 });
-    expect(element(drawing, "b/start")).toMatchObject({ y1: 78.953125, y2: 94.953125 });
-    expect(element(drawing, "b2/start")).toMatchObject({ y1: 36.4765625, y2: 52.4765625 });
+  it("keeps k fixed at another card spacing", () => {
+    const placement = { ...DEFAULT_PLACEMENT, places: { form: { spacing: 8 } } };
+    const drawing = drawFixture("segment_line", [], placement);
+    expect(drawing.height).toBe(118.9296875);
+    expect(element(drawing, "form")).toMatchObject({ y: 73.953125 });
+    expect(element(drawing, "b")).toMatchObject({ y: 36.4765625 });
+    expect(element(drawing, "b/start")).toMatchObject({ y1: 65.953125, y2: 81.953125 });
+    expect(element(drawing, "b2/start")).toMatchObject({ y1: 28.4765625, y2: 44.4765625 });
   });
 });
 

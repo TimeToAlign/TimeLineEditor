@@ -103,6 +103,26 @@ export function withPlaceLocks<T extends TimelineManifest>(
   return same ? timeline : { ...timeline, locked, children: placed };
 }
 
+/**
+ * `timeline` under `parent` made a segment line or no longer one (`line`),
+ * its subtree with the locks their places decide (`withPlaceLocks`). A lock
+ * its place decided only because it was a segment line (one that is a child,
+ * a segment or a group member) is lifted with the flag; a lock no place
+ * decided stays.
+ */
+export function withSegmentLine<T extends TimelineManifest>(
+  timeline: T,
+  line: boolean,
+  parent: TimelineManifest | undefined,
+  member: (id: string) => boolean,
+): T {
+  const placed = withPlaceLocks({ ...timeline, is_segment_line: line }, parent, member);
+  const lifted =
+    placeLock(timeline, parent, member(timeline.id)) === true &&
+    placeLock(placed, parent, member(placed.id)) === undefined;
+  return lifted ? { ...placed, locked: false } : placed;
+}
+
 /** A timeline's subtree with every segment unlocked, as reading a manifest does. */
 export function withSegmentsUnlocked<T extends TimelineManifest>(timeline: T): T {
   return withPlaceLocks(timeline, undefined, () => false, true);

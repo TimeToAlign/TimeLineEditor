@@ -8,7 +8,7 @@ import { compareCodePoints } from "../json.ts";
 import type { ContainerRef } from "../manifest/containers.ts";
 import { containersOf, ITEM_PLACE_MEMBERS, placeMembersOf } from "../manifest/containers.ts";
 import { manifestProblems } from "../manifest/io.ts";
-import { readFinite, readIndex, readPlaces, readPositive } from "../values.ts";
+import { readFinite, readIndex, readNonNegative, readPlaces, readPositive } from "../values.ts";
 import type { Block, BlockId, BlockPlacement } from "./blocks.ts";
 import { BLOCK_ID } from "./blocks.ts";
 
@@ -26,21 +26,26 @@ export interface WorkspaceSettings {
 
 export interface View {
   readonly meta: WorkspaceMeta;
+  /** The workspace's name, the default name of its file (`<name>.tle.json`); never empty. */
+  readonly name: string;
   readonly settings: WorkspaceSettings;
   readonly blocks: { readonly [id: BlockId]: Block };
 }
 
 export const WORKSPACE_META: WorkspaceMeta = { format: "tilie-workspace", version: 4 };
 
+/** The name of a new workspace, and of one read from a file that states none. */
+export const UNTITLED_WORKSPACE = "untitled";
+
 export const DEFAULT_SETTINGS: WorkspaceSettings = {
   grid: { size: 8, snap: true },
-  blockDefaults: { scale: 1, length: 400, spacing: 1, width: null, height: null },
+  blockDefaults: { scale: 1, length: 400, spacing: 8, width: null, height: null },
   graphical: {},
 };
 
-/** An empty workspace with the given settings. */
+/** An empty workspace with the given settings, named `untitled`. */
 export function createView(settings: WorkspaceSettings = DEFAULT_SETTINGS): View {
-  return { meta: WORKSPACE_META, settings, blocks: {} };
+  return { meta: WORKSPACE_META, name: UNTITLED_WORKSPACE, settings, blocks: {} };
 }
 
 function formsParentCycle(view: View, start: BlockId): boolean {
@@ -61,11 +66,12 @@ function placementProblems(block: Block, path: readonly PathSegment[]): Problem[
   };
   check(readFinite(block.x, [...path, "x"]));
   check(readFinite(block.y, [...path, "y"]));
-  for (const name of ["scale", "length", "spacing", "width", "height"] as const) {
+  for (const name of ["scale", "length", "width", "height"] as const) {
     const value = block[name];
     if (value === null && (name === "width" || name === "height")) continue;
     check(readPositive(value, [...path, name]));
   }
+  check(readNonNegative(block.spacing, [...path, "spacing"]));
   const places = readPlaces(block.places, [...path, "places"]);
   if (isCommandError(places)) problems.push(places);
   else problems.push(...placeProblems(block, path));
@@ -81,7 +87,7 @@ function listed(words: readonly string[]): string {
  * The first member `place`, the place of `ref` (a frame's or a card's),
  * states beyond those `placeMembersOf(ref)` allows, as a problem of `code`
  * at `path` followed by that member; `undefined` when it states only those.
- * Only a member's card is so limited: to its size and vertical stretch.
+ * Only a member's card is so limited: to its size and spacing.
  */
 export function placeMemberProblem(
   ref: ContainerRef,

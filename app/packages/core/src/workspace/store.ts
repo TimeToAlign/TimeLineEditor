@@ -186,12 +186,14 @@ function firstDifference(left: object, right: object): string | undefined {
 }
 
 /**
- * The first path at which `replayed` differs from `view`: a setting
- * (`["settings", <member>]`), a block one of them lacks (`["blocks", <id>]`)
- * or a member of a block both hold (`["blocks", <id>, <member>]`), blocks in
- * code-point order of their ids; `undefined` when they are the same.
+ * The first path at which `replayed` differs from `view`: its name
+ * (`["name"]`), a setting (`["settings", <member>]`), a block one of them
+ * lacks (`["blocks", <id>]`) or a member of a block both hold (`["blocks",
+ * <id>, <member>]`), blocks in code-point order of their ids; `undefined`
+ * when they are the same.
  */
 function viewDifference(replayed: View, view: View): PathSegment[] | undefined {
+  if (replayed.name !== view.name) return ["name"];
   const setting = firstDifference(replayed.settings, view.settings);
   if (setting !== undefined) return ["settings", setting];
   for (const id of keysOf(replayed.blocks, view.blocks).sort(compareCodePoints)) {

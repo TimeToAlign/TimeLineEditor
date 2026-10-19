@@ -77,3 +77,51 @@ export function slide(
     css: (_t, u) => `transform: ${transform}translate(${u * offset.x}px, ${u * offset.y}px);`,
   };
 }
+
+/** A travel in a drawing's units. */
+export interface Travel {
+  readonly x: number;
+  readonly y: number;
+}
+
+/** `cubicOut` as a CSS timing function, for the Web Animations a settle runs. */
+export const CUBIC_OUT = "cubic-bezier(0.33, 1, 0.68, 1)";
+
+/**
+ * Move `element`, drawn in a block's drawing, from the drawing-unit travel
+ * `from` to `to`, as `slide` moves a reordered element: over `√d × 120` ms,
+ * `d` the screen distance between them (through the drawing's screen CTM),
+ * easing out. The element's own `transform` attribute is meant to hold
+ * `from`, where it lies until the motion starts on the next animation frame:
+ * so the first frame painted after the call shows it there in every engine,
+ * however an engine dates the start of an animation made between two frames.
+ * The motion holds `to` once it ends; `done` runs then. The function
+ * returned stops the motion, started or not.
+ */
+export function settle(
+  element: SVGElement,
+  from: Travel,
+  to: Travel,
+  done: () => void,
+): () => void {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const matrix = drawingMatrix(element);
+  const distance =
+    matrix === null ? 0 : Math.hypot(matrix.a * dx + matrix.c * dy, matrix.b * dx + matrix.d * dy);
+  let animation: Animation | null = null;
+  const frame = requestAnimationFrame(() => {
+    animation = element.animate(
+      [
+        { transform: `translate(${from.x}px, ${from.y}px)` },
+        { transform: `translate(${to.x}px, ${to.y}px)` },
+      ],
+      { duration: Math.sqrt(distance) * 120, easing: CUBIC_OUT, fill: "forwards" },
+    );
+    animation.onfinish = done;
+  });
+  return () => {
+    cancelAnimationFrame(frame);
+    animation?.cancel();
+  };
+}
