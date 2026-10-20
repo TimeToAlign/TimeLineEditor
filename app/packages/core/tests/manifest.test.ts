@@ -298,29 +298,16 @@ describe("invariants", () => {
     const value = base();
     const root = node(value, ...rootPath);
     const [region] = root.regions as Node[];
-    const seconds = (id: string) => ({
-      type: "LinearMap",
-      id,
-      source_unit: "seconds",
-      target_unit: null,
-      scalar: 2,
-      offset: 0,
+    Object.assign(node(value, ...childPath), {
+      regions: [{ ...region, id: "region_2", start: [1, 1], end: [0, 1] }],
     });
-    Object.assign(node(value, ...childPath), { conversion_maps: [seconds("inner")] });
-    Object.assign(root, {
-      conversion_maps: [seconds("seconds")],
-      regions: [{ ...region, end: [0, 1] }],
-    });
+    Object.assign(node(value, ...rootPath, "children", 1), { offset: [-1, 1] });
+    Object.assign(root, { regions: [{ ...region, end: [0, 1] }] });
     const text = dumps(value);
+    // At -1, clt_3 comes before clt_2 in canonical order.
     expect(problems(text)).toEqual([
-      {
-        code: "map_source_unit_mismatch",
-        path: [...childPath, "conversion_maps", 0, "source_unit"],
-      },
-      {
-        code: "map_source_unit_mismatch",
-        path: [...rootPath, "conversion_maps", 0, "source_unit"],
-      },
+      { code: "negative_child_offset", path: [...rootPath, "children", 0, "offset"] },
+      { code: "region_end_before_start", path: [...rootPath, "children", 1, "regions", 0, "end"] },
       { code: "region_end_before_start", path: [...rootPath, "regions", 0, "end"] },
     ]);
     const loaded = load("with_region.json");
@@ -337,16 +324,6 @@ describe("invariants", () => {
       "region_end_before_start",
       (manifest) => Object.assign(node(manifest, ...rootPath, "regions", 0), { end: [1, 1] }),
       [...rootPath, "regions", 0, "end"],
-    ],
-    [
-      "map_source_unit_mismatch",
-      (manifest) =>
-        Object.assign(node(manifest, ...rootPath), {
-          conversion_maps: [
-            { type: "LinearMap", id: "seconds", source_unit: "seconds", target_unit: null },
-          ],
-        }),
-      [...rootPath, "conversion_maps", 0, "source_unit"],
     ],
     [
       "number_type_not_allowed",
@@ -390,9 +367,20 @@ describe("invariants", () => {
       [...rootPath, "children", 1, "length"],
       "child 'clt_2' ends at [13, 1], beyond the length [12, 1] of its parent 'clt_1'",
     ],
-  ])("leaves %s to the schema", (_, change, path, message) => {
+    [
+      "a map of another source unit",
+      {
+        conversion_maps: [
+          { type: "LinearMap", id: "seconds", source_unit: "seconds", target_unit: null },
+        ],
+      },
+      [...rootPath, "conversion_maps", 0, "source_unit"],
+      'LinearMap "seconds" has source unit "seconds", its timeline "clt_1" has "quarters"',
+      rootPath,
+    ],
+  ])("leaves %s to the schema", (_, change, path, message, at = childPath) => {
     const value = base();
-    Object.assign(node(value, ...childPath), change);
+    Object.assign(node(value, ...at), change);
     expect(refused(dumps(value)).problems).toEqual([{ code: "schema_violation", message, path }]);
   });
 

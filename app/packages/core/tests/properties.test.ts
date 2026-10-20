@@ -259,7 +259,6 @@ describe("the generator reaches the refusal catalogue", () => {
         "invalid_value",
         "length_below_content",
         "locked",
-        "map_source_unit_mismatch",
         "negative_child_offset",
         "nested_member",
         "non_finite_number",

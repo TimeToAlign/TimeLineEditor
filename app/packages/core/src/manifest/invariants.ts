@@ -146,19 +146,6 @@ function checkTimeline(
     checkTimeline(child, childPath, problems);
   });
 
-  timeline.conversion_maps.forEach((map, index) => {
-    const mapPath = [...path, "conversion_maps", index];
-    if (map.source_unit != null && map.source_unit !== timeline.unit) {
-      problems.push(
-        problem(
-          ErrorCode.mapSourceUnitMismatch,
-          `map source unit ${map.source_unit} does not match timeline unit ${timeline.unit}`,
-          [...mapPath, "source_unit"],
-        ),
-      );
-    }
-  });
-
   timeline.regions.forEach((region, index) => {
     const regionPath = [...path, "regions", index];
     const start = report(readOnAxis(region.start, timeline, [...regionPath, "start"]));

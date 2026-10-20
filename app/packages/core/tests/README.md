@@ -194,17 +194,20 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
 9. **A child of another number type** (a float child of a Fraction parent,
    length `4.0`) loads and saves byte for byte.
 10. **Invariant refusal lists every violation.** `with_region.json` changed
-    to break three invariants at once (`clt_2` and its root `clt_1` each
-    given a conversion map whose `source_unit` is `seconds` on a `quarters`
-    timeline, the root a region ending before it starts) is refused with
-    exactly `map_source_unit_mismatch` at `clt_2`'s map (a child checked
-    before its parent's maps), `map_source_unit_mismatch` at `clt_1`'s map
-    and `region_end_before_start`, in traversal order, each at its exact
+    to break three invariants at once (`clt_2` given a region `region_2`
+    from `[1, 1]` to `[0, 1]`, `clt_3` placed at `[-1, 1]`, the root's
+    region ending at `[0, 1]`, before its start) is refused with exactly
+    `negative_child_offset` at `clt_3`'s offset (`["children", 0,
+    "offset"]`: at `-1` it comes first in canonical order),
+    `region_end_before_start` at `clt_2`'s region (`["children", 1,
+    "regions", 0, "end"]`, a child's own checks and its subtree before its
+    next sibling) and `region_end_before_start` at the root's region (a
+    timeline's own regions after its children), in traversal order, each
     path below `["timelines", 0]`, and `saveManifest` of the same value
     throws `InvalidManifestError`.
 11. **Each invariant at load and in a command.** For each of
-    `number_type_not_allowed`, `region_end_before_start` and
-    `map_source_unit_mismatch`, one copy of `with_region.json`
+    `number_type_not_allowed` and `region_end_before_start`, one copy of
+    `with_region.json`
     changed in exactly that respect is refused with exactly one problem:
     that code at the exact path. `invalid_coordinate` is reached through
     commands only (a value the schema's representation check would refuse
@@ -212,10 +215,11 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
     `with_region.json`, `set` of `clt_1/region_1`'s `end` to `[0, 1]` is
     `region_end_before_start` at `[A, "manifest", "timelines", 0,
     "regions", 0, "end"]`.
-12. **A child's unit and extent are the schema's.** timeskeleton's
-    `validate` refuses a child whose unit differs from its parent's and a
-    child reaching past its parent's known length, so core holds no check
-    of its own for either. One copy of `with_region.json` with `clt_2`'s
+12. **A child's unit and extent and a map's source unit are the
+    schema's.** timeskeleton's `validate` refuses a child whose unit
+    differs from its parent's, a child reaching past its parent's known
+    length and a map whose non-null source unit is not its timeline's, so
+    core holds no check of its own for any of them. One copy of `with_region.json` with `clt_2`'s
     unit `whole_notes` is refused with exactly one problem,
     `schema_violation` at `["timelines", 0, "children", 0, "unit"]` with
     the validator's message `child 'clt_2' has unit 'whole_notes', its
@@ -223,9 +227,14 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
     (length 4, in a parent of 12) with exactly `schema_violation` at
     `["timelines", 0, "children", 1, "length"]` (placed at 9, it comes
     after its sibling at 2 in canonical order), message `child 'clt_2' ends
-    at [13, 1], beyond the length [12, 1] of its parent 'clt_1'`. The
-    message is passed on unchanged, so a test pinning it fails if core
-    rewrites it.
+    at [13, 1], beyond the length [12, 1] of its parent 'clt_1'`. A
+    conversion map's source unit is the format's rule too: one copy whose
+    root `clt_1` (`quarters`) holds a `LinearMap` `seconds` with
+    `source_unit` `seconds` is refused with exactly `schema_violation` at
+    `["timelines", 0, "conversion_maps", 0, "source_unit"]`, message
+    `LinearMap "seconds" has source unit "seconds", its timeline "clt_1"
+    has "quarters"`. Each message is passed on unchanged, so a test pinning
+    it fails if core rewrites it.
 13. **A negative child offset is core's to refuse.** The schema accepts a
     child starting before its parent's origin; core does not support it
     yet. One copy of `with_region.json` with `clt_2`'s offset `[-1, 3]` is
@@ -380,13 +389,14 @@ timeline's length is fixed and binds no child to it.
 | `unlocking_not_supported` | A segment line that is a child, a segment or a group member is locked: an `add` placing one locks it, and `set locked: false` on one, or an `add` stating `locked: false` on one, is refused, since lifting that lock is not supported yet. Reading keeps a lock its file states on such a line | `Timeline.lock`; `ChildrenMixin.add_child` and `TimelineGroup.add_timeline` lock a segment line that joins |
 | `length_below_content` | A length is not set below the farthest point a child reaches: its end, or its offset when its length is not known (and so never negative; a rule of `set`) | the `Timeline.length` setter |
 | `region_end_before_start` | A region's end is not before its start | `timetoalign.timelines.regions.Region` |
-| `map_source_unit_mismatch` | A conversion map's `source_unit`, when not null, is the timeline's unit | `add_conversion_map` |
 
 Id uniqueness in its scopes, part words refused as ids, a group's members
 naming timelines of the manifest, a jump origin's `target` naming a jump
 target of its timeline, a measure view's `measure_map` naming a measure map
 of the manifest, a child sharing its parent's unit (`ChildrenMixin.validate_child`
-in the library), segment contiguity and the representation of every
+in the library), a conversion map's non-null `source_unit` being its
+timeline's unit (a held map's, its holder's), segment contiguity and the
+representation of every
 own-axis value are timeskeleton's rules, checked by its `validate`; names
 may repeat.
 
@@ -827,7 +837,9 @@ refusal as `apply`.
   for a region id holding `/`, a child in `seconds` under `quarters`, and a
   child whose `children` is `5` or `[5]` or whose `flow_control` is `5`
   (refused, never thrown); `unknown_property` and `invalid_value` for a block
-  value; `map_source_unit_mismatch`; `negative_child_offset` for a child at
+  value; `schema_violation` at `[A, "manifest", "timelines", 0,
+  "conversion_maps", 0, "source_unit"]` for a map whose `source_unit` is
+  `seconds` on the `quarters` root; `negative_child_offset` for a child at
   `[-1, 1]`; for a measure map `duplicate_id` at `[A/bare]` for the id of a
   timeline, `schema_violation` at `[A, "measure_map", "rows"]` for empty
   rows, and `wrong_target_kind` into a timeline.
@@ -2267,9 +2279,8 @@ Each manifest fixture starts as block `A` beside a block `B` of
    `child_exceeds_parent`, `cycle`, `duplicate_id`, `duplicate_index`,
    `id_not_settable`, `invalid_address`, `invalid_coordinate`,
    `invalid_index`, `invalid_order`, `invalid_value`,
-   `length_below_content`, `locked`, `map_source_unit_mismatch`,
-   `negative_child_offset`, `nested_member`, `non_finite_number`,
-   `non_positive_number`, `not_an_item`, `not_removable`,
+   `length_below_content`, `locked`, `negative_child_offset`,
+   `nested_member`, `non_finite_number`, `non_positive_number`, `not_an_item`, `not_removable`,
    `number_type_not_allowed`, `region_end_before_start`, `schema_violation`,
    `segment_end_fixed`, `segment_never_locked`, `segment_not_removable`,
    `segment_structure`, `unit_mismatch`, `unknown_property`,

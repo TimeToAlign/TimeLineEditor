@@ -188,7 +188,7 @@ describe("add", () => {
         map: { ...tempo(), source_unit: "seconds" },
       }),
     ).toEqual({
-      code: "map_source_unit_mismatch",
+      code: "schema_violation",
       path: [A, "manifest", "timelines", 0, "conversion_maps", 0, "source_unit"],
     });
     expect(
