@@ -26,7 +26,7 @@ have, the schema is changed first.
 
 - A **manifest** is one TimeSkeleton manifest: root timelines with exact
   coordinates, children at exact offsets, conversion maps, regions, flow
-  control, measure maps; optionally groups, an `id`, a `name`, and
+  control; optionally groups, measure maps, an `id`, a `name`, and
   `graphical`, the styling of its own drawing with the display orders of
   its groups and the band orders of its timelines. A manifest knows nothing
   about a canvas.
@@ -78,15 +78,16 @@ timeline and feature; the registry maps each container kind to its level.
 
 An address names anything a command can target: `workspace`, a block id, or
 `<block id>/<element address>`. Inside a manifest one rule holds: a
-timeline, a group or the manifest's title (`name`) by its bare id; a card
-`<timeline>/card`; a band `<timeline>/<kind>_1`; every other element (a
-map, region, break, jump or marker) `<root id>/<element id>`; a part of an
-element appends a reserved word (`start`, `end`, `name`, `label`). Core's
-`resolveAddress(view, address)` is the one place that decides what an
-address names, returning a discriminated record (workspace, block, title,
-frame, timeline, card, band, entry, part). Nothing else parses an address;
-the four builders `qualify`, `cardAddress`, `partAddress` and
-`elementAddress` are the only ones that build one.
+timeline, a group, a measure map or the manifest's title (`name`) by its
+bare id; a card `<timeline>/card`; a band `<timeline>/<kind>_1`; every
+other element (a conversion map, region or flow-control element)
+`<root id>/<element id>`; a part of an element appends a reserved word
+(`start`, `end`, `name`, `label`). Core's `resolveAddress(view, address)`
+is the one place that decides what an address names, returning a
+discriminated record (workspace, block, title, frame, timeline, card,
+band, entry, measure map, part). Nothing else parses an address; the four
+builders `qualify`, `cardAddress`, `partAddress` and `elementAddress` are
+the only ones that build one.
 
 ## How a change travels
 
