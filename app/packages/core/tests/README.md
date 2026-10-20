@@ -150,7 +150,9 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
    is refused by `loadManifest` with exactly one problem whose `path` equals
    the case's `path`. These include timeskeleton's identity and
    representation rules (an id repeated where it must be unique, a part word
-   as an id, a jump target naming no marker, an `int` on a `fraction` axis),
+   as an id, a jump origin's `target` naming no jump target of its
+   timeline, a measure view naming no measure map, an `int` on a `fraction`
+   axis),
    all `schema_violation`s from its `validate`, so `core` checks none of
    them again; a `non_finite` case is refused with its number in place.
 3. **The version marker.** `bare.json` with `"timeskeleton": "0.6.0"` is
@@ -162,15 +164,14 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
    (its `meta` left out) the complete root is exactly `{id: "bare", name:
    "Bare", unit: "quarters", number_type: "fraction", length: [8, 1],
    locked: false, is_segment_line: false, meta: {}, children: [],
-   conversion_maps: [], regions: [], flow_control: {breaks: [], jumps: [],
-   markers: []}, measure_map: null, metric_hierarchy: null}` and the
-   manifest around it `{timeskeleton, name: null, meta: {}, groups: [],
-   timelines: [root]}`: no `id` and no `graphical`, whose default is
-   "absent".
+   conversion_maps: [], regions: [], flow_control: []}` and the manifest
+   around it `{timeskeleton, name: null, meta: {}, groups: [],
+   measure_maps: [], timelines: [root]}`: no `id` and no `graphical`, whose
+   default is "absent".
 5. **Unknown keys survive.** `bare.json` with an unknown key at the top
    (`"x-top": 1`), on the root (`"x-root": {"a": [1, 2]}`) and on a region it
    is given (`"x-region": "kept"`) loads with all three in place; after a
-   `set` of the root's `name` and an `add` of a marker, all three are still
+   `set` of the root's `name` and an `add` of a flow marker, all three are still
    there with their values, and `saveManifest` writes them. `unknownKeys`,
    re-exported from timeskeleton, lists exactly the three `{path, key}`
    pairs, sorted by path then key.
@@ -185,25 +186,25 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
    it as written; `continuous_logical.json` with its length Fraction
    numerator `12` replaced by `9007199254740993` loads as
    `[9007199254740993n, 1]` and saves it as written.
-8. **Save goes through the canonical order.** `bare.json` given two markers
-   at the same coordinate with the ids `"\u{1F3B5}"` (a surrogate pair in
-   UTF-16) and `"～"`, in that order, is written with `"～"` first: markers
-   by coordinate, then id in code-point order, the reverse of JavaScript's
-   default sort.
+8. **Save goes through the canonical order.** `bare.json` given two jump
+   targets at the same coordinate with the ids `"\u{1F3B5}"` (a surrogate
+   pair in UTF-16) and `"～"`, in that order, is written with `"～"` first:
+   flow-control elements by coordinate, then id in code-point order, the
+   reverse of JavaScript's default sort.
 9. **A child of another number type** (a float child of a Fraction parent,
    length `4.0`) loads and saves byte for byte.
 10. **Invariant refusal lists every violation.** `with_region.json` changed
-    to break three invariants at once (`clt_2` given a metric hierarchy
-    without a measure map, a conversion map whose `source_unit` is
-    `seconds` on a `quarters` timeline, a region ending before it starts)
-    is refused with exactly `metric_hierarchy_without_measure_map` (at
-    `clt_2`'s `metric_hierarchy`, a child checked before its parent's maps),
-    `map_source_unit_mismatch` and `region_end_before_start`, in traversal
-    order, each at its exact path below `["timelines", 0]`, and
-    `saveManifest` of the same value throws `InvalidManifestError`.
+    to break three invariants at once (`clt_2` and its root `clt_1` each
+    given a conversion map whose `source_unit` is `seconds` on a `quarters`
+    timeline, the root a region ending before it starts) is refused with
+    exactly `map_source_unit_mismatch` at `clt_2`'s map (a child checked
+    before its parent's maps), `map_source_unit_mismatch` at `clt_1`'s map
+    and `region_end_before_start`, in traversal order, each at its exact
+    path below `["timelines", 0]`, and `saveManifest` of the same value
+    throws `InvalidManifestError`.
 11. **Each invariant at load and in a command.** For each of
     `number_type_not_allowed`, `region_end_before_start` and
-    `metric_hierarchy_without_measure_map`, one copy of `with_region.json`
+    `map_source_unit_mismatch`, one copy of `with_region.json`
     changed in exactly that respect is refused with exactly one problem:
     that code at the exact path. `invalid_coordinate` is reached through
     commands only (a value the schema's representation check would refuse
@@ -215,9 +216,9 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
     `validate` refuses a child whose unit differs from its parent's and a
     child reaching past its parent's known length, so core holds no check
     of its own for either. One copy of `with_region.json` with `clt_2`'s
-    unit `whole_note` is refused with exactly one problem,
+    unit `whole_notes` is refused with exactly one problem,
     `schema_violation` at `["timelines", 0, "children", 0, "unit"]` with
-    the validator's message `child 'clt_2' has unit 'whole_note', its
+    the validator's message `child 'clt_2' has unit 'whole_notes', its
     parent 'clt_1' has 'quarters'`; one with `clt_2`'s offset `[9, 1]`
     (length 4, in a parent of 12) with exactly `schema_violation` at
     `["timelines", 0, "children", 1, "length"]` (placed at 9, it comes
@@ -248,13 +249,19 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
     minimal form leaves it out, and it deep-equals the same file with the
     four segments stating `false`.
 15. **Malformed text** is refused with code `invalid_json` at path `[]`.
-16. **An entry given to a command** (a map, region, break, jump or marker)
-    is checked by the schema in the timeline that will list it, completed
-    and ordered as a command's result is: a minimal `tempo` map, in
-    `melody` of `map.json` and in its child `phrase`, comes back in its
-    complete form (`name: null`), and a region with the reserved id
-    `start` is `schema_violation` at `["regions", 0, "id"]`, its path from
-    that timeline, which a command reports below its block's manifest.
+16. **An entry given to a command** (a map, region or flow-control
+    element) is checked by the schema in the timeline that will list it,
+    beside the measure maps of its manifest, completed and ordered as a
+    command's result is: a minimal `LinearMap` `tempo`, in `melody` of
+    `map.json` and in its child `phrase`, comes back in its complete form
+    (`name: null`, `offset: 0`); a region with the reserved id `start` is
+    `schema_violation` at `["regions", 0, "id"]`, its path from that
+    timeline, which a command reports below its block's manifest; a
+    `MeasureRecordMap` `x_record` naming the measure map `bars` reads in its
+    complete form (`name: null`) beside `bars`, and without it is
+    `schema_violation` at its own `measure_map` (`["conversion_maps", i,
+    "measure_map"]`, `i` its place in canonical order, after `melody`'s
+    own maps).
 17. **Declarations are plain numbers.** `styled__score.json` with its six
     integral declaration numbers spelled `4.0`, `2.0`, … reads equal to the
     fixture and saves to its text, every key in place; 2^53 reads, 2^53 + 1
@@ -364,7 +371,7 @@ timeline's length is fixed and binds no child to it.
 | Code | Invariant | Source in timetoalign |
 |---|---|---|
 | `number_type_not_allowed` | A timeline's unit admits its number type (discrete units `int` only; `number` all three; other continuous units `float` or `fraction`) | `timetoalign.core.enums.TimeUnit.resolve_number_type` / `allowed_number_types` |
-| `invalid_coordinate` | Every own-axis value (a length, an offset, a region's start and end, a break, jump or marker coordinate) reads under its axis's number type, every integer is int64-bounded; a child has an offset | `timetoalign.core.time.number_from_json`; the editor's own rule for regions and flow coordinates |
+| `invalid_coordinate` | Every own-axis value (a length, an offset, a region's start and end, a flow-control element's coordinate) reads under its axis's number type, every integer is int64-bounded; a child has an offset | `timetoalign.core.time.number_from_json`; the editor's own rule for regions and flow coordinates |
 | `child_exceeds_parent` | A command never leaves a child starting past its parent's known length or, where its own length is known too, ending past it (compared as in "Exact numbers" 6). An unlocked parent grows to hold a child placed past its known end (to the child's end, or its offset when the child's length is not known), only to a value its number type holds exactly (an int parent not to 9/2, a float parent not to 1/3) and only within its own parent's known length; a locked parent refuses. Refused at the command's own path (`[address, "length"]`, `[address, "offset"]`, `[into, "child"]`); a manifest cannot break it (the schema refuses such a child) | `ChildrenMixin.add_child` (`timetoalign.timelines.engines.children`); the editor's own rule for the growth |
 | `segment_end_fixed` | A segment's new length, set or grown to hold a child added into it, keeps its end where its successor starts, or, for the last segment, where its line ends while the line's length is known; a segment line's new length keeps its end where its last segment ends while that segment's length is known; a length of null is always accepted (a rule of `set` and `add`, checked before the schema's segment contiguity would refuse the manifest) | the segment line's contiguity in `timetoalign.timelines.types` |
 | `locked` | A locked timeline's length cannot be set, to a value or to null (a rule of `set`) | `timetoalign.timelines.base.Timeline`, the `length` setter |
@@ -374,22 +381,22 @@ timeline's length is fixed and binds no child to it.
 | `length_below_content` | A length is not set below the farthest point a child reaches: its end, or its offset when its length is not known (and so never negative; a rule of `set`) | the `Timeline.length` setter |
 | `region_end_before_start` | A region's end is not before its start | `timetoalign.timelines.regions.Region` |
 | `map_source_unit_mismatch` | A conversion map's `source_unit`, when not null, is the timeline's unit | `add_conversion_map` |
-| `metric_hierarchy_without_measure_map` | A metric hierarchy requires a measure map | `Timeline.add_metric_hierarchy`, `Timeline.from_dict` |
 
 Id uniqueness in its scopes, part words refused as ids, a group's members
-naming timelines of the manifest, a jump's `target` naming a marker of its
-timeline, a child sharing its parent's unit (`ChildrenMixin.validate_child`
+naming timelines of the manifest, a jump origin's `target` naming a jump
+target of its timeline, a measure view's `measure_map` naming a measure map
+of the manifest, a child sharing its parent's unit (`ChildrenMixin.validate_child`
 in the library), segment contiguity and the representation of every
 own-axis value are timeskeleton's rules, checked by its `validate`; names
 may repeat.
 
 Rules the library does **not** enforce and this package therefore does not
 invent: a child may have another number type than its parent; a region may
-lie outside its timeline (negative start, end past the length); breaks,
-jumps and markers may lie outside it too; a locked timeline still accepts
-children within its length, regions, flow control and maps; any number of
-breaks or jumps may share a coordinate. Measure maps, metric hierarchies and
-conversion-map payloads are carried verbatim: their rules beyond the schema
+lie outside its timeline (negative start, end past the length); flow-control
+elements may lie outside it too; a locked timeline still accepts children
+within its length, regions, flow control and maps; any number of
+flow-control elements may share a coordinate. Measure maps and conversion-map
+payloads are carried verbatim: their rules beyond the schema
 (`MeasureMap.from_dict`, `ConversionMap.from_dict`) are the server's to
 check, not the editor's.
 
@@ -414,23 +421,27 @@ check of who holds what.
    then per timeline in pre-order its line and name and its five bands in
    band-kind order, each band followed by what it holds (children by
    offset then id, maps, the root's two wedges with their labels, regions,
-   breaks then jumps with their labels). Every timeline lists all five
+   flow markers then jump origins with their labels). Every timeline lists all five
    bands. A band has no domain or modality, and its class is its kind.
 2. **Timeline classes.** The six classes are written out with their units:
    each unit belongs to exactly one class, and the units are exactly the
-   schema's. A map takes its `target_unit`'s domain and modality, `number`
+   schema's (the `const` of every entry of `TimeUnit`'s `oneOf`). A map takes its `target_unit`'s domain and modality, `number`
    included.
-3. **Regions, breaks and jumps** of `with_region.json` and
+3. **Regions, flow markers and jump origins** of `with_region.json` and
    `flow_control.json` are addressed below their root, each with a label,
    and held by their bands (the whole (type, address) list of
-   `flow_control.json` is pinned); markers are no elements; in every
+   `flow_control.json` is pinned: `flow_marker` `break_1`, then the
+   `jump_from`s `jump_1` and `jump_2`, each followed by its label); a jump
+   target (`marker_1`, `marker_2`) is no element; in every
    one-root manifest fixture every address is distinct.
 4. **The title** `name` follows the box for a manifest with a `name` or an
    `id`, and is absent for an anonymous one.
 5. **Matching** over `map.json`, one selector per member (`element`,
    `domain`, `modality`, `class`, `ids`, `within`), bands included: a band
    belongs to its timeline (`within`), its kind is its class, and no
-   selector naming a domain or modality matches it. The empty selector
+   selector naming a domain or modality matches it; a map's class is its
+   type (`{class: "LinearMap"}` matches both maps of `map.json`,
+   `melody/ticks` then `melody/tempo` in tree order). The empty selector
    matches every key.
 6. **`inside`** matches what an element of the named type holds at any
    depth, never the holder: inside the box every key but the box, inside
@@ -539,7 +550,11 @@ places of section 8.6.
    (addressed by its root, held by a child), and parts nested two deep
    (`score/end/label`). Each part carries its owner, and every level its
    block. The manifest's own id after the block names the block, as the
-   bare block id does; on a manifest without that id it names nothing.
+   bare block id does; on a manifest without that id it names nothing. A
+   measure map (`bars`, added into the block) resolves by its bare id to
+   itself and its index in `measure_maps`; it is not drawn and has no part
+   (`bars/name` names nothing), and no root's tree holds it (`score/bars`
+   names nothing).
 2. **What names nothing** is `unknown_target` at `[address]`: an unknown
    block or id, an entry addressed by a child instead of its root, a band of
    a timeline drawn in no card, a band numbered 2, a part an owner does not
@@ -550,7 +565,7 @@ places of section 8.6.
 3. **Every drawn element resolves to its kind.** For every manifest
    fixture, every address the enumeration gives resolves, and to the kind
    its element type says (a card a card, a band a band, a group a frame, a
-   map, region, break or jump an entry, a label, wedge or boundary a part,
+   map, region, flow marker or jump origin an entry, a label, wedge or boundary a part,
    the title the title, every line a timeline): the cross-check between
    the resolver and the elements.
 4. **The registry** (`CONTAINERS`) states each container kind exactly: the
@@ -585,7 +600,7 @@ places of section 8.6.
 There are four commands, each aimed at **addresses**: `add {into, <kind>:
 value}` with exactly one kind member; `set {changes: [{target, values}, …]}`,
 at least one change and one property in each `values`, the properties a
-member of their own so that none (a jump's `target`) collides with the
+member of their own so that none (a jump origin's `target`) collides with the
 change's `target`; `remove {targets}`, at least one; `style {select, set,
 name?, blocks?}`. What a command does is decided by the **kind of its
 target**, resolved from the address alone. Which property each kind of
@@ -646,15 +661,36 @@ other commands are not judged by it.
    unchanged); `set` of `tempo`'s payload with `scalar: [1, 4]` stores
    exactly that payload. Into `bare`, the region `{id: "region_1", name:
    "A", start: [2, 1], end: [4, 1]}` is stored with `meta: {}`, and `end`
-   `[6, 1]` with `name` null exactly so. On `flow_control.json` (`break_1`
-   at 12; `jump_1` from 8 to 2 targeting `marker_1` at 2): adding
-   `marker_2` at `[12, 1]` and targeting it from `jump_1`; a copy of
-   `break_1` as `break_2` at `[3, 1]` with `break_1` removed; `jump_1`
-   removed; `marker_1` at `[2, 2]` stored `[1, 1]`.
-5. `remove` on `map.json`: a child takes its map; a map goes alone; the last
+   `[6, 1]` with `name` null exactly so. On `flow_control.json`, whose
+   elements in canonical order are the jump targets `marker_1` at 2 and
+   `marker_2` (segno) at 4, the jump origin `jump_1` at 8 targeting
+   `marker_1`, the flow marker `break_1` at 12 and the jump origin `jump_2`
+   (dal segno) at 16 targeting `marker_2`, each list compared whole in
+   canonical order (coordinate, then id): adding the jump target `{id:
+   "coda_1", type: "jump_to", manifestation: "coda", coordinate: [12, 1]}`
+   (stored with `name` and `label` null, `meta: {}`, after `break_1`) and
+   targeting it from `jump_1`; a copy of `break_1` as `break_2` at `[3, 1]`
+   with `break_1` removed (`marker_1`, `break_2`, `marker_2`, `jump_1`,
+   `jump_2`); `jump_1` removed; `marker_1` at `[2, 2]` stored
+   `[1, 1]`; `jump_1`'s `target` set to null, which removes the member (a
+   repeat end without a target leads to the timeline's start); `jump_1`
+   replaced whole through its `flow_control` property by `{id: "jump_1",
+   type: "flow_marker", manifestation: "double_barline", coordinate: [8,
+   1]}`, stored complete: an element's type, which decides the members it
+   may carry, changes only so.
+5. Measure maps, a block's manifest's top-level list in the global id
+   scope: `add {into: A, measure_map: {id: "bars", rows: [{count: 1,
+   qstamp: [0, 1]}]}}` into a block of `bare.json` stores it with `name:
+   null, meta: {}`; `set A/bars {name: "Bars", rows: <a second row
+   {count: 2, qstamp: [4, 1]} appended>}` stores exactly both; the
+   `MeasureRecordMap` `{id: "record", source_unit: "quarters",
+   target_unit: null, measure_map: "bars"}` added into `bare` is stored
+   with `name: null`; removing `A/bare/record` and `A/bars` together leaves
+   both lists empty.
+6. `remove` on `map.json`: a child takes its map; a map goes alone; the last
    root leaves `timelines: []` and the block; two blocks go together, and a
    block goes with every block whose `parent` chain reaches it.
-6. `style` over `A` (`map.json`) and `B` (`bare.json`) without `blocks`:
+7. `style` over `A` (`map.json`) and `B` (`bare.json`) without `blocks`:
    `{element: "map"}` `stroke` goes into `A` only, as `{order: {}, styles:
    {}, statements: [{select: {element: "map"}, set: {stroke:
    "#C00000"}}]}`; a second property merges into that statement, a selector
@@ -664,7 +700,7 @@ other commands are not judged by it.
    the statement's `set` its name, `A` untouched; without `name`, a merge
    into a named statement turns it into a declaration, the style unchanged;
    a style emptied by `null` goes with every statement naming it.
-7. A command keeps an integral float a float: `x: JsonFloat(2)` is read as
+8. A command keeps an integral float a float: `x: JsonFloat(2)` is read as
    given, except in a declaration (item 2).
 
 ### Where a timeline lies
@@ -764,11 +800,26 @@ refusal as `apply`.
   `locked`, `length_below_content` (`[23, 2]` on `clt_1`) and
   `child_exceeds_parent` (`clt_2` at `[7, 1]` under the locked `clt_3`);
   `schema_violation` below `["workspace", "graphical"]`, at `[A,
-  "manifest", "timeskeleton"]` for a manifest declaring `0.6.0` and, for a
-  break's `control_type: "nonsense"`, at that member in the manifest. Manifest
-  locations: `negative_child_offset` (`clt_2` at `[-1, 1]`),
-  `region_end_before_start` (`with_region.json`), `schema_violation` for a
-  jump targeting no marker and for removing the marker a jump targets.
+  "manifest", "timeskeleton"]` for a manifest declaring `0.6.0`, and for
+  the flow marker `break_1` given a jump origin's manifestation
+  (`repeat_end`) or a `repeat_count`, at that member in the manifest
+  (`flow_control` index 3); `unknown_property` for an element's `type`,
+  which only the whole element (`flow_control`) changes, and
+  `id_not_settable` at `[…/jump_1, "flow_control", "id"]` for a whole
+  element of another id. Manifest locations: `negative_child_offset`
+  (`clt_2` at `[-1, 1]`), `region_end_before_start` (`with_region.json`),
+  `schema_violation` for a jump origin targeting no jump target (at
+  `jump_1`'s `target`, index 2) and for removing the jump target a jump
+  origin names (at its `target`, index 1 once `marker_1` is gone): a
+  removal that leaves a reference dangling is refused, never followed by
+  removing the referrer. A measure map is held to the same rule: on a
+  block of `bare.json` holding `bars`, `remove A/bars` while the view
+  `record` names it is `schema_violation` at `record`'s `measure_map`
+  (`[A, "manifest", "timelines", 0, "conversion_maps", 0,
+  "measure_map"]`), the place where adding `record` without `bars` is
+  refused too; `set A/bars {rows: []}` is `schema_violation` at `[A,
+  "manifest", "measure_maps", 0, "rows"]` and `{name: null}` changes
+  nothing.
 - `add`: `wrong_target_kind` for a child into a map, a region into a group
   and a child into the workspace; `invalid_block_id`; `duplicate_id` for a
   block (`[A]`), a child carrying the root's id (`[A/bare]`) and a map
@@ -777,7 +828,9 @@ refusal as `apply`.
   child whose `children` is `5` or `[5]` or whose `flow_control` is `5`
   (refused, never thrown); `unknown_property` and `invalid_value` for a block
   value; `map_source_unit_mismatch`; `negative_child_offset` for a child at
-  `[-1, 1]`.
+  `[-1, 1]`; for a measure map `duplicate_id` at `[A/bare]` for the id of a
+  timeline, `schema_violation` at `[A, "measure_map", "rows"]` for empty
+  rows, and `wrong_target_kind` into a timeline.
 - `remove`: `not_removable` at `["workspace"]`; `unknown_target`. `style`:
   `unknown_target` at `[C]` for `blocks: [C]`.
 - Atomicity: a `set` of a valid and an unknown target, and a `remove` naming
@@ -857,9 +910,9 @@ or the exact code, path and message of the refusal, the view unchanged.
 
 A manifest holds several root timelines and groups, so what core does for
 one root it does for each, and its element addresses are those of
-drawing.md §2.2 in every manifest alike: a timeline, a group or the
-manifest by its bare id (unique together), every other element (map,
-region, break, jump, marker) by `<root id>/<element id>` (those ids are
+drawing.md §2.2 in every manifest alike: a timeline, a group, a measure
+map or the manifest by its bare id (unique together), every other element
+(map, region, flow-control element) by `<root id>/<element id>` (those ids are
 unique only within a root's tree), parts appended, the manifest's title
 `name`.
 
@@ -952,14 +1005,14 @@ unique only within a root's tree), parts appended, the manifest's title
    `timelines[0]` and for `excerpt` the object at `timelines[3].children[0]`
    (the very objects, not copies), and `undefined` for `group_1`, `name`,
    `recording/excerpt` (an element address, not an id) and `nothing`.
-   `resolveElement` reads a map, region, break, jump or marker by its
+   `resolveElement` reads a map, region or flow-control element by its
    address `<root>/<id>` and gives its kind and the very object: in
    `map.json` `melody/tempo` the map `timelines[0].conversion_maps[0]` and
    `melody/ticks` the map `timelines[0].children[0].conversion_maps[0]`,
    both kind `map`; in `flow_control.json` `flow:quarters/break_1`,
-   `…/jump_1` and `…/marker_1` the objects `flow_control.breaks[0]`,
-   `jumps[0]` and `markers[0]` of `timelines[0]`, kinds `break`, `jump`,
-   `marker`; in `group_number_types.json` with `region_1`,
+   `…/jump_1` and `…/marker_1` the elements of `timelines[0].flow_control`
+   with those ids (a flow marker, a jump origin, a jump target), each kind
+   `flow_control`; in `group_number_types.json` with `region_1`,
    `score/region_1` the object `timelines[2].regions[0]`, kind `region`. It
    gives `undefined` for `score` (a timeline), `group_1` (a group), `name`
    (the title), `region_1` (no root), `page/region_1` (not in page's
@@ -1000,13 +1053,17 @@ unique only within a root's tree), parts appended, the manifest's title
    - **A child.** `group_child_member.json`, `remove A/second-half`:
      `piece` has no children; `group_1`'s members and order are
      `["recording"]`.
-   - **Conversion maps naming a removed timeline.**
-     `group_number_types.json` with the `InterpolationMap` `{id: "warp",
-     source_id: "score", target_id: "performance", source_unit:
-     "quarters", target_unit: "seconds", source_coords: [0.0, 12.0],
-     target_coords: [0.0, 12.5]}` added into `A/score`, `remove
-     A/performance`: `score`'s `conversion_maps` are `[]`. `removedBy` of
-     `["performance"]` is exactly `{performance, score/warp}`.
+   - **A map belongs to its timeline only.** `group_number_types.json`
+     with the `TableMap` `{id: "warp", source_unit: "quarters",
+     target_unit: "seconds", x_values: [0, 12], y_values: [0, 12.5]}`
+     added into `A/score` (stored with `name: null`, `kind: "linear"`,
+     `extrapolate: "none"`), `remove A/performance` leaves `score`'s
+     `conversion_maps` exactly `[warp]`; `removedBy` of `["performance"]`
+     is exactly `{performance}`.
+   - **A measure map goes alone.** The same manifest given the measure map
+     `{id: "bars", rows: [{count: 1, qstamp: [0, 1]}]}` (added into `A`):
+     `removedBy` of `["bars"]` is exactly `{bars}`, and `remove A/bars`
+     leaves `measure_maps: []` and every timeline as it was.
    - **`ids` entries addressing a removed element.** `group_styled.json`
      with the statements `{select: {ids: ["page", "score/card"]}, set:
      {opacity: 0.5}}` and `{select: {ids: ["page/name"]}, set: {opacity:
@@ -1033,8 +1090,8 @@ unique only within a root's tree), parts appended, the manifest's title
    `score` is `clt_1` (a region of another tree does not count) and into
    `page` `clt_2`; after adding the child `clt_1` into `score`, `clt` into
    `page` is `clt_2` and into `performance` `clt_2` (timeline ids are unique
-   across the manifest). The scopes are the validator's: a map, region,
-   break, jump or marker id is unique within its root's tree only, so it
+   across the manifest). The scopes are the validator's: a map, region or
+   flow-control element id is unique within its root's tree only, so it
    may equal a group's id or the manifest's; a timeline id may equal
    neither. On `bundle_mixed.json` given the id `edition`, the id of a new
    `group` into `score` is `group_1`; a region `group_1` and a region
@@ -1796,7 +1853,11 @@ is the view of that block alone, added by `add`; `after` is reached by
     nothing (a member) and `set annotations order D(annotations)` (an entry
     the fixture lacks) → refused.
 15. **A top-level member.** The manifest's `name` replaced by `"Other"` →
-    at `["bundle0001", "manifest", "name"]`.
+    at `["bundle0001", "manifest", "name"]`. A measure map is compared on
+    its own, as a group is, since no timeline or group contains it: the
+    measure map `{id: "bars", name: null, meta: {}, rows: [{count: 1,
+    qstamp: [0, 1]}]}` appearing in `measure_maps` → at
+    `["bundle0001/bars"]`, message `bundle0001/bars lies outside …`.
 16. **A named style.** After `style {select: {element: "timeline"}, set:
     {stroke: "#FF0000"}, name: "accent"}`, the same with `stroke:
     "#00FF00"` (the statement unchanged) → at `["bundle0001", "manifest",
@@ -2046,8 +2107,8 @@ without entries); a session id is ten characters of `0-9a-z`, as a key of
 ## Names (`names.test.ts`)
 
 The workspace has a name, the default name of its file; a manifest, a
-group, a timeline, a conversion map, a region, a break and a marker have
-the schema's nullable `name`, each settable by `set` on its own target
+group, a timeline, a conversion map, a region and a flow-control element
+have the schema's nullable `name`, each settable by `set` on its own target
 (the manifest's on its block's address). What proves it: each value is
 read back from the view, or from the file, exactly; each refusal by code
 and path, the view unchanged.

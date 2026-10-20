@@ -77,7 +77,7 @@ export function placedAt(element: DrawnElement, dx: number, dy: number, scale = 
         yb: y(element.yb),
         ya: y(element.ya),
       };
-    case "jump":
+    case "jump_from":
       return {
         ...element,
         style,
@@ -88,7 +88,7 @@ export function placedAt(element: DrawnElement, dx: number, dy: number, scale = 
         base: point(element.base),
         corners: [point(element.corners[0]), point(element.corners[1])],
       };
-    case "break":
+    case "flow_marker":
     case "boundary":
       return { ...element, style, x: x(element.x), y1: y(element.y1), y2: y(element.y2) };
     case "wedge":

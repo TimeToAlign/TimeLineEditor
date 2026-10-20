@@ -135,7 +135,7 @@ export function layoutMember(
         ),
     ];
     const elements: DrawnElement[] = [
-      ...each("breaks"),
+      ...each("flowMarkers"),
       ...each("maps"),
       ...each("regions"),
       ...each("jumps"),
@@ -150,7 +150,7 @@ export function layoutMember(
       ...bySegment(each("segmentLabels")),
       ...each("regionLabels"),
       ...each("jumpLabels"),
-      ...each("breakLabels"),
+      ...each("flowMarkerLabels"),
     ];
     const end = { start: elements.length, end: elements.length };
     return { elements, bands: bandRecords(placed, fitted, card, end) };

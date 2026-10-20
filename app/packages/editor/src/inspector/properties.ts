@@ -500,9 +500,13 @@ function namedBy(resolved: ResolvedAddress): NameField | null {
     }
     case "entry": {
       const { block, at, element } = resolved;
-      if (!("name" in element)) return null;
       const target = qualify(block.id, elementAddress(rootId(at), element.id));
       return { target, name: element.name, nullable: true, manifest: block.manifest };
+    }
+    case "measure_map": {
+      const { block, map } = resolved;
+      const target = qualify(block.id, map.id);
+      return { target, name: map.name, nullable: true, manifest: block.manifest };
     }
     case "part":
       return namedBy(resolved.owner);
@@ -514,8 +518,8 @@ function namedBy(resolved: ResolvedAddress): NameField | null {
  * workspace's at the top level, and in an editor the edited element's (the
  * address its opening selects, `editedSelection`); else the one inspected
  * thing's. Each wherever the schema gives it a name (the block's manifest, a
- * group, a timeline or its card, a conversion map, a region, a break, a
- * marker; a part names its element's); `null` for a band, a jump, or
+ * group, a measure map, a timeline or its card, a conversion map, a region,
+ * a flow-control element; a part names its element's); `null` for a band or
  * several things.
  */
 export function nameOf(

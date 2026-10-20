@@ -32,11 +32,11 @@ import {
   child,
   drawFixture,
   edit,
+  linearMap,
   loadFile,
   manifestNames,
   metrics,
   quarters,
-  scalarMap,
 } from "./support.ts";
 
 const drawn = (
@@ -210,7 +210,12 @@ describe("a present band 0 high", () => {
     const manifest = build("r", 8, {
       type: "add",
       into: `${BLOCK}/r`,
-      break: { id: "fine", name: null, coordinate: quarters(4), label: null, meta: {} },
+      flow_control: {
+        id: "fine",
+        type: "flow_marker",
+        manifestation: "fine",
+        coordinate: quarters(4),
+      },
     });
     expect(bandsOf(drawn(manifest))[1]).toEqual(
       record("r/flow_control_1", -2, 1, 22.40234375, {
@@ -224,7 +229,7 @@ describe("a present band 0 high", () => {
 });
 
 describe("a timeline drawn twice: a child in one card, a member in another", () => {
-  const source = edit("with_region", scalarMap("clt_2", "tempo"));
+  const source = edit("with_region", linearMap("clt_2", "tempo"));
   const manifest: Manifest = canonicalOrder({
     ...source,
     groups: [

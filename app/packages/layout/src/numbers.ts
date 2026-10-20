@@ -42,18 +42,6 @@ export function lengthValue(timeline: TimelineManifest): Real | null {
   return timeline.length === null ? null : coordinateValue(timeline.length, timeline.number_type);
 }
 
-/** A JSON number or fraction as the tower holds it: a float as a float, an integer or pair exactly. */
-function numberValue(value: unknown): Real {
-  if (isJsonFloat(value)) return value.value;
-  if (Array.isArray(value)) {
-    return Rational.fromParts(integerValue(value[0]), integerValue(value[1]));
-  }
-  if (typeof value === "number" || typeof value === "bigint") {
-    return Rational.fromParts(BigInt(value), 1n);
-  }
-  throw new TypeError("an axis number is not numeric");
-}
-
 /** The larger of two values, compared exactly; of two equal ones, an exact one before a float. */
 function larger(left: Real, right: Real): Real {
   const order = compareReal(left, right);
@@ -65,9 +53,9 @@ function larger(left: Real, right: Real): Real {
  * The reach of a timeline on its own axis (section 3.4): the largest of its
  * number type's zero and every coordinate its content reaches, displayed or
  * not. A child counts its offset plus its length, or plus its own reach when
- * its length is not known; regions their start and end; breaks and markers
- * their coordinate; jumps their from and to; and every measure-map row that
- * holds both `qstamp` and `actual_length` their sum. Maps are not content.
+ * its length is not known; regions their start and end; every flow-control
+ * element its coordinate. Maps are not content, and a measure map belongs to
+ * no timeline.
  * `reaches` holds the reach of every timeline already walked, so one traversal
  * walks each subtree once.
  */
@@ -89,17 +77,7 @@ export function reachOf(
     take(own(region.start));
     take(own(region.end));
   }
-  const { breaks, jumps, markers } = timeline.flow_control;
-  for (const item of [...breaks, ...markers]) take(own(item.coordinate));
-  for (const jump of jumps) {
-    take(own(jump.from_coordinate));
-    take(own(jump.to_coordinate));
-  }
-  for (const row of timeline.measure_map ?? []) {
-    if (row.qstamp !== undefined && row.actual_length !== undefined) {
-      take(add(numberValue(row.qstamp), numberValue(row.actual_length)));
-    }
-  }
+  for (const item of timeline.flow_control) take(own(item.coordinate));
   reaches.set(timeline, reach);
   return reach;
 }

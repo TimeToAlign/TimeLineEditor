@@ -1,8 +1,8 @@
 /**
  * `add`: what each kind of target takes (`ADDABLE`) and how each thing is
- * put in. A block goes into the workspace; a root timeline or a group into a
- * block's manifest; a child, map, region, break, jump or marker into a
- * timeline. The value carries its id, which no element it would be confused
+ * put in. A block goes into the workspace; a root timeline, a group or a
+ * measure map into a block's manifest; a child, map, region or flow-control
+ * element into a timeline. The value carries its id, which no element it would be confused
  * with may carry; whatever has a default may be left out, `settle` writing
  * it out.
  */
@@ -14,9 +14,15 @@ import type { JsonObject, PathSegment } from "../json.ts";
 import type { EntryKind } from "../manifest/files.ts";
 import { ENTRY_KINDS, elementAddress, entriesOf } from "../manifest/files.ts";
 import { readOnAxis } from "../manifest/invariants.ts";
-import { completed, normalizeManifest, readEntry, schemaChecked } from "../manifest/io.ts";
+import {
+  completed,
+  normalizeManifest,
+  readEntry,
+  readMeasureMap,
+  schemaChecked,
+} from "../manifest/io.ts";
 import { statedLockProblem, withPlaceLocks } from "../manifest/locks.ts";
-import type { Group, TimelineManifest } from "../manifest/types.ts";
+import type { Group, MeasureMap, TimelineManifest } from "../manifest/types.ts";
 import { readObject, readPlaces, unknownMember } from "../values.ts";
 import { qualify, WORKSPACE } from "../workspace/address.ts";
 import type { Block } from "../workspace/blocks.ts";
@@ -40,15 +46,14 @@ const INTO_TIMELINE: readonly AddKind[] = ["child", ...ENTRY_KINDS];
 /** What `add` puts into each kind of target. */
 export const ADDABLE: { readonly [kind in TargetKind]: readonly AddKind[] } = {
   workspace: ["block"],
-  block: ["timeline", "group"],
+  block: ["timeline", "group", "measure_map"],
   group: [],
+  measure_map: [],
   root: INTO_TIMELINE,
   child: INTO_TIMELINE,
   map: [],
   region: [],
-  break: [],
-  jump: [],
-  marker: [],
+  flow_control: [],
 };
 
 const BLOCK_VALUE = ["id", "manifest", "places", ...BLOCK_PROPERTIES];
@@ -132,7 +137,8 @@ function firstProblem(refused: LoadError): Problem {
 
 /**
  * A timeline given to `add`, read through the schema boundary as the one
- * root of a manifest of its own: its segment lines covered
+ * root of a manifest of its own, beside the `measureMaps` of the manifest it
+ * is added to, which its measure views may name: its segment lines covered
  * (`withSegmentLinesCovered`, no id minted there among `taken`, the ids of
  * the manifest it is added to), checked by the schema, the `locked` it and
  * its subtree state checked against their place under `parent`
@@ -145,11 +151,12 @@ function firstProblem(refused: LoadError): Problem {
 function readTimeline(
   value: JsonObject,
   parent: TimelineManifest | undefined,
+  measureMaps: readonly MeasureMap[],
   taken: ReadonlySet<string>,
   at: readonly PathSegment[],
   path: readonly PathSegment[],
 ): TimelineManifest | CommandError {
-  const host = { timeskeleton: SCHEMA_VERSION, timelines: [value] };
+  const host = { timeskeleton: SCHEMA_VERSION, timelines: [value], measure_maps: measureMaps };
   const checked = schemaChecked(withSegmentLinesCovered(host, taken));
   if ("code" in checked) return located(checked, "timelines", at);
   const [fragment] = checked.timelines;
@@ -195,7 +202,14 @@ function addTimeline(view: View, target: BlockTarget, value: unknown, changes: C
   const { manifest } = block;
   if (manifestIds(manifest).has(id)) return duplicate(block, id, id);
   const at = [block.id, "manifest", "timelines", manifest.timelines.length];
-  const timeline = readTimeline(object, undefined, takenIds(manifest, true), at, path);
+  const timeline = readTimeline(
+    object,
+    undefined,
+    manifest.measure_maps,
+    takenIds(manifest, true),
+    at,
+    path,
+  );
   if (isCommandError(timeline)) return timeline;
   record(changes, path, block.id, true);
   return withBlock(view, {
@@ -267,7 +281,31 @@ function addGroup(view: View, target: BlockTarget, value: unknown, changes: Chan
   return current;
 }
 
-/** Add a child, map, region, break, jump or marker into a timeline. */
+/**
+ * Add a measure map to a block's manifest: `{id, name?, meta?, rows}`, read
+ * through the schema boundary (`readMeasureMap`), its id taken by no
+ * timeline, group, measure map or the manifest; a problem is reported at
+ * the measure map's path in the command, and below it.
+ */
+function addMeasureMap(view: View, target: BlockTarget, value: unknown, changes: ChangeSet) {
+  const path = [target.address, "measure_map"];
+  const object = readObject(value, path);
+  if (isCommandError(object)) return object;
+  const id = readId(object, "measure_map", path);
+  if (isCommandError(id)) return id;
+  const { block } = target;
+  const { manifest } = block;
+  if (manifestIds(manifest).has(id)) return duplicate(block, id, id);
+  const map = readMeasureMap(object);
+  if (isCommandError(map)) return { ...map, path: [...path, ...map.path] };
+  record(changes, path, block.id, true);
+  return withBlock(view, {
+    ...block,
+    manifest: { ...manifest, measure_maps: [...manifest.measure_maps, map] },
+  });
+}
+
+/** Add a child, map, region or flow-control element into a timeline. */
 function addElement(
   view: View,
   target: TimelineTarget,
@@ -292,11 +330,24 @@ function addElement(
     const on = readOnAxis(offset, timeline, [...path, "offset"]);
     if (isCommandError(on)) return on;
     const where = [block.id, "manifest", ...at.path, "children", timeline.children.length];
-    const read = readTimeline(child, timeline, takenIds(block.manifest, true), where, path);
+    const read = readTimeline(
+      child,
+      timeline,
+      block.manifest.measure_maps,
+      takenIds(block.manifest, true),
+      where,
+      path,
+    );
     if (isCommandError(read)) return read;
     changed = placeChild(at, read, on, path);
   } else {
-    const entry = readEntry(kind, object, timeline, entriesOf(timeline, kind).length);
+    const entry = readEntry(
+      kind,
+      object,
+      timeline,
+      entriesOf(timeline, kind).length,
+      block.manifest.measure_maps,
+    );
     if (isCommandError(entry)) {
       return { ...entry, path: [block.id, "manifest", ...at.path, ...entry.path] };
     }
@@ -322,9 +373,9 @@ export function applyAdd(view: View, command: AddCommand, changes: ChangeSet): V
       case "workspace":
         return addBlock(view, value, changes);
       case "block":
-        return kind === "group"
-          ? addGroup(view, target, value, changes)
-          : addTimeline(view, target, value, changes);
+        if (kind === "group") return addGroup(view, target, value, changes);
+        if (kind === "measure_map") return addMeasureMap(view, target, value, changes);
+        return addTimeline(view, target, value, changes);
       case "root":
       case "child":
         if (kind === "child" || isEntryKind(kind)) {

@@ -184,6 +184,19 @@ describe("sideEffect, each rule's path", () => {
     );
   });
 
+  it("refuses a measure map, which no timeline or group contains, at its address", () => {
+    const bars = {
+      id: "bars",
+      name: null,
+      meta: {},
+      rows: [{ count: 1, qstamp: [0, 1] as const }],
+    };
+    const address = `${BUNDLE}/bars`;
+    expect(sideEffect(before, withManifest(before, { measure_maps: [bars] }), G1)).toEqual(
+      outside(address, [address]),
+    );
+  });
+
   it("compares a named style only where an outside statement uses it", () => {
     const styled = (select: object, stroke: string) => ({
       type: "style",

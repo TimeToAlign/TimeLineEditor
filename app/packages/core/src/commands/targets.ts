@@ -9,7 +9,7 @@ import type { CommandError } from "../errors.ts";
 import { ErrorCode, isCommandError, problem } from "../errors.ts";
 import type { EntryKind } from "../manifest/files.ts";
 import type { Located } from "../manifest/tree.ts";
-import type { Group, TimelineManifest } from "../manifest/types.ts";
+import type { Group, MeasureMap, TimelineManifest } from "../manifest/types.ts";
 import type { Address } from "../workspace/address.ts";
 import { resolveAddress } from "../workspace/address.ts";
 import type { Block } from "../workspace/blocks.ts";
@@ -44,7 +44,17 @@ export interface TimelineTarget {
   readonly at: Located;
 }
 
-/** A map, region, break, jump or marker of a block's manifest. */
+/** A measure map of a block's manifest. */
+export interface MeasureMapTarget {
+  readonly kind: "measure_map";
+  readonly address: Address;
+  readonly block: Block;
+  readonly map: MeasureMap;
+  /** Its index in the manifest's `measure_maps`. */
+  readonly index: number;
+}
+
+/** A map, region or flow-control element of a block's manifest. */
 export interface EntryTarget {
   readonly kind: EntryKind;
   readonly address: Address;
@@ -55,7 +65,13 @@ export interface EntryTarget {
   readonly index: number;
 }
 
-export type Target = WorkspaceTarget | BlockTarget | GroupTarget | TimelineTarget | EntryTarget;
+export type Target =
+  | WorkspaceTarget
+  | BlockTarget
+  | GroupTarget
+  | MeasureMapTarget
+  | TimelineTarget
+  | EntryTarget;
 export type TargetKind = Target["kind"];
 
 /** The target of each kind, the type each kind's table of setters reads. */
@@ -63,13 +79,12 @@ export interface TargetOfKind {
   readonly workspace: WorkspaceTarget;
   readonly block: BlockTarget;
   readonly group: GroupTarget;
+  readonly measure_map: MeasureMapTarget;
   readonly root: TimelineTarget;
   readonly child: TimelineTarget;
   readonly map: EntryTarget;
   readonly region: EntryTarget;
-  readonly break: EntryTarget;
-  readonly jump: EntryTarget;
-  readonly marker: EntryTarget;
+  readonly flow_control: EntryTarget;
 }
 
 /**
@@ -89,6 +104,10 @@ export function targetOf(view: View, address: Address): Target | CommandError {
         : problem(ErrorCode.unknownTarget, `${address} names nothing`, [address]);
     case "frame":
       return { kind: "group", address, block: resolved.block, group: resolved.group };
+    case "measure_map": {
+      const { block, map, index } = resolved;
+      return { kind: "measure_map", address, block, map, index };
+    }
     case "timeline": {
       const { at, block } = resolved;
       return { kind: at.parent === undefined ? "root" : "child", address, block, at };

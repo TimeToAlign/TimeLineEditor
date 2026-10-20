@@ -14,7 +14,7 @@ import type { CardPlace, ItemPlace } from "../manifest/containers.ts";
 import { containersOf, ITEM_PLACE_MEMBERS, isMember } from "../manifest/containers.ts";
 import type { EntryKind, EntryTypes } from "../manifest/files.ts";
 import { contentEnd, readOnAxis } from "../manifest/invariants.ts";
-import { normalizeManifest, readEntry } from "../manifest/io.ts";
+import { normalizeManifest, readEntry, readMeasureMap } from "../manifest/io.ts";
 import { lockProblem, withPlaceLocks, withSegmentLine } from "../manifest/locks.ts";
 import { bandOrderProblem } from "../manifest/order.ts";
 import type { AxisValue, Manifest, TimelineManifest } from "../manifest/types.ts";
@@ -57,6 +57,7 @@ import type {
   BlockTarget,
   EntryTarget,
   GroupTarget,
+  MeasureMapTarget,
   Target,
   TargetKind,
   TargetOfKind,
@@ -403,6 +404,38 @@ const GROUP_SET: Setters<GroupTarget> = {
   place: setPlace,
 };
 
+// ---------------------------------------------------------------- measure maps
+
+/**
+ * A member of a measure map (`name`, `meta`, `rows`): the measure map with
+ * the value in place is read whole through the schema boundary
+ * (`readMeasureMap`), its problem placed in the block's manifest.
+ */
+function measureMapMember(member: string): Setter<MeasureMapTarget> {
+  return (view, target, value, path, changes) => {
+    const json = toJson(value, path);
+    if (isCommandError(json)) return json;
+    const { block, map, index, address } = target;
+    const object = readObject({ ...map, [member]: json }, [address]);
+    if (isCommandError(object)) return object;
+    const read = readMeasureMap(object);
+    if (isCommandError(read)) {
+      return { ...read, path: [block.id, "manifest", "measure_maps", index, ...read.path] };
+    }
+    if (sameJson(map, read)) return view;
+    recordValue(changes, path, block.id, true, map, read);
+    const { manifest } = block;
+    const measure_maps = manifest.measure_maps.map((item, at) => (at === index ? read : item));
+    return withBlock(view, { ...block, manifest: { ...manifest, measure_maps } });
+  };
+}
+
+const MEASURE_MAP_SET: Setters<MeasureMapTarget> = {
+  name: measureMapMember("name"),
+  meta: measureMapMember("meta"),
+  rows: measureMapMember("rows"),
+};
+
 // ---------------------------------------------------------------- timelines
 
 /** The view with the target timeline replaced by `next`, unless the member it sets holds what is stored. */
@@ -576,7 +609,7 @@ function entryRead(
   changes: ChangeSet,
 ): View | CommandError {
   const { block, at, kind, index } = target;
-  const read = readEntry(kind, object, at.timeline, index);
+  const read = readEntry(kind, object, at.timeline, index, block.manifest.measure_maps);
   if (isCommandError(read)) {
     return { ...read, path: [block.id, "manifest", ...at.path, ...read.path] };
   }
@@ -588,43 +621,42 @@ function entryRead(
 }
 
 /**
- * A member whose values only the schema reads (an enumeration, a count):
- * the entry with the value in place is read whole through the schema
- * boundary, as a conversion map is.
+ * A member whose values only the schema reads (an enumeration, a reference,
+ * a count): the entry with the value in place, or without the member for
+ * `null` where `optional`, is read whole through the schema boundary, as a
+ * conversion map is.
  */
-function entrySchemaValue(member: string): Setter<EntryTarget> {
+function entrySchemaValue(member: string, optional = false): Setter<EntryTarget> {
   return (view, target, value, path, changes) => {
     const json = toJson(value, path);
     if (isCommandError(json)) return json;
     const stored = entryAt(target.at.timeline, target.kind, target.index);
-    const object = readObject({ ...stored, [member]: json }, [target.address]);
+    const changed =
+      optional && json === null
+        ? Object.fromEntries(Object.entries(stored ?? {}).filter(([key]) => key !== member))
+        : { ...stored, [member]: json };
+    const object = readObject(changed, [target.address]);
     if (isCommandError(object)) return object;
     return entryRead(view, target, object, path, changes);
   };
 }
 
-/** The members a break and a jump share. */
-function flowSet(kind: "break" | "jump"): Setters<EntryTarget> {
-  return {
-    control_type: entrySchemaValue("control_type"),
-    condition: entrySchemaValue("condition"),
-    repeat_count: entrySchemaValue("repeat_count"),
-    label: entryValue(kind, "label", readNullableString),
-    meta: entryValue(kind, "meta", readObject),
+/** The whole entry of kind `kind`, replaced by the value, which keeps the entry's id. */
+function entryWhole(kind: EntryKind, what: string): Setter<EntryTarget> {
+  return (view, target, value, path, changes) => {
+    const object = readObject(value, path);
+    if (isCommandError(object)) return object;
+    if (object.id !== entryAt(target.at.timeline, kind, target.index)?.id) {
+      return problem(ErrorCode.idNotSettable, `${what} keeps its id`, [...path, "id"]);
+    }
+    return entryRead(view, target, object, path, changes);
   };
 }
 
 const ENTRY_SET: { readonly [kind in EntryTarget["kind"]]: Setters<EntryTarget> } = {
   map: {
     name: entryValue("map", "name", readNullableString),
-    map: (view, target, value, path, changes) => {
-      const map = readObject(value, path);
-      if (isCommandError(map)) return map;
-      if (map.id !== entryAt(target.at.timeline, "map", target.index)?.id) {
-        return problem(ErrorCode.idNotSettable, "a conversion map keeps its id", [...path, "id"]);
-      }
-      return entryRead(view, target, map, path, changes);
-    },
+    map: entryWhole("map", "a conversion map"),
   },
   region: {
     name: entryValue("region", "name", readNullableString),
@@ -632,20 +664,16 @@ const ENTRY_SET: { readonly [kind in EntryTarget["kind"]]: Setters<EntryTarget> 
     end: entryValue("region", "end", readAxis),
     meta: entryValue("region", "meta", readObject),
   },
-  break: {
-    ...flowSet("break"),
-    name: entryValue("break", "name", readNullableString),
-    coordinate: entryValue("break", "coordinate", readAxis),
-  },
-  jump: {
-    ...flowSet("jump"),
-    from_coordinate: entryValue("jump", "from_coordinate", readAxis),
-    to_coordinate: entryValue("jump", "to_coordinate", readAxis),
-    target: entryValue("jump", "target", readNullableString),
-  },
-  marker: {
-    name: entryValue("marker", "name", readNullableString),
-    coordinate: entryValue("marker", "coordinate", readAxis),
+  // The type decides which other members an element may carry: a new type replaces it whole.
+  flow_control: {
+    flow_control: entryWhole("flow_control", "a flow-control element"),
+    manifestation: entrySchemaValue("manifestation"),
+    target: entrySchemaValue("target", true),
+    repeat_count: entrySchemaValue("repeat_count", true),
+    coordinate: entryValue("flow_control", "coordinate", readAxis),
+    name: entryValue("flow_control", "name", readNullableString),
+    label: entryValue("flow_control", "label", readNullableString),
+    meta: entryValue("flow_control", "meta", readObject),
   },
 };
 
@@ -656,6 +684,7 @@ export const SETTABLE: { readonly [kind in TargetKind]: Setters<TargetOfKind[kin
   workspace: WORKSPACE_SET,
   block: BLOCK_SET,
   group: GROUP_SET,
+  measure_map: MEASURE_MAP_SET,
   root: ROOT_SET,
   child: CHILD_SET,
   ...ENTRY_SET,
@@ -685,6 +714,8 @@ function setterOf(
       return bind(SETTABLE.block[property], target);
     case "group":
       return bind(SETTABLE.group[property], target);
+    case "measure_map":
+      return bind(SETTABLE.measure_map[property], target);
     case "root":
     case "child":
       return bind(SETTABLE[target.kind][property], target);

@@ -209,23 +209,15 @@ function conversionMap(id: string, axis: Axis, picks: readonly number[]): object
   return map;
 }
 
-/** A region, break, jump or marker on `axis`, sometimes off it or malformed. */
+/** A region or flow-control element on `axis`, sometimes off it or malformed. */
 function flowElement(
   kind: string,
   id: string,
   axis: Axis,
   picks: readonly number[],
-  markers: readonly string[],
+  targets: readonly string[],
 ): object {
   const [a = 0, b = 0, c = 0, d = 0] = picks;
-  const common = {
-    control_type:
-      c % 9 === 0 ? "nonsense" : pick(["fine", "section_break", "segno", "repeat_end"], c),
-    condition: pick(["always", "first_n", "after_first", "after_dc_ds"], d),
-    repeat_count: 1 + (d % 2),
-    label: d % 2 === 0 ? null : "L",
-    meta: {},
-  };
   const at = coordinate(axis, a, b);
   if (kind === "region") {
     return {
@@ -236,14 +228,28 @@ function flowElement(
       meta: {},
     };
   }
-  if (kind === "marker") return { id, name: null, coordinate: at };
-  if (kind === "break") return { id, coordinate: at, ...common, name: null };
+  const type = pick(["jump_from", "jump_to", "flow_marker"], c);
+  // A manifestation of the element's type, sometimes another type's or none of them.
+  const manifestation = pick(
+    [
+      { jump_from: "repeat_end", jump_to: "segno", flow_marker: "fine" }[type],
+      { jump_from: "dal_segno", jump_to: "coda", flow_marker: "section_break" }[type],
+      "da_capo",
+      "nonsense",
+    ],
+    d,
+  );
+  // Mostly no target, sometimes a jump target of the timeline, sometimes none of them.
+  const target = pick(["", "", ...targets, "nothing"], b);
   return {
     id,
-    from_coordinate: at,
-    to_coordinate: coordinate(axis, 3 + (d % 9), c),
-    ...common,
-    target: pick([null, ...markers, "nothing"], b),
+    type,
+    manifestation,
+    coordinate: at,
+    ...(target === "" ? {} : { target }),
+    ...(d % 3 === 0 ? { repeat_count: 1 + (d % 2) } : {}),
+    label: d % 2 === 0 ? null : "L",
+    meta: {},
   };
 }
 
@@ -366,15 +372,12 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
   );
   const mapIds = maps.map(([, mapId]) => mapId as string);
   const elements = all.flatMap(({ timeline, root }) =>
-    [
-      timeline.regions,
-      timeline.flow_control.breaks,
-      timeline.flow_control.jumps,
-      timeline.flow_control.markers,
-    ].flatMap((list) => list.map((item) => elementAddress(root, item.id))),
+    [timeline.regions, timeline.flow_control].flatMap((list) =>
+      list.map((item) => elementAddress(root, item.id)),
+    ),
   );
-  const markers = all.flatMap(({ timeline }) =>
-    timeline.flow_control.markers.map((marker) => marker.id),
+  const targets = all.flatMap(({ timeline }) =>
+    timeline.flow_control.flatMap((item) => (item.type === "jump_to" ? [item.id] : [])),
   );
   const known = all.map((place) => place.timeline.id);
   const groups = manifest?.groups.map((group) => group.id) ?? [];
@@ -485,7 +488,7 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
       return set(`${block}/${address}`, { map: payload });
     }
     case 9: {
-      const kind = pick(["region", "break", "jump", "marker"], p2);
+      const kind = pick(["region", "flow_control"], p2);
       return {
         type: "add",
         into: pick([element, element, element, "workspace"], p7 >> 4),
@@ -494,7 +497,7 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
           pick([`e${p3 % 5}`, ...ids, "a/b"], p3),
           axis,
           seed.picks.slice(4),
-          markers,
+          targets,
         ),
       };
     }
@@ -506,9 +509,9 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
           "start",
           "end",
           "coordinate",
-          "from_coordinate",
           "label",
-          "control_type",
+          "manifestation",
+          "repeat_count",
           "meta",
           "target",
         ],
@@ -520,7 +523,7 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
           : property === "meta"
             ? { k: 1 }
             : property === "target"
-              ? pick([null, ...markers, "nothing"], p4)
+              ? pick([null, ...targets, "nothing"], p4)
               : pick(["x", null, "nonsense", 3], p4);
       return set(`${block}/${target}`, { [property]: value });
     }

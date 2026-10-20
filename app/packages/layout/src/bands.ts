@@ -10,13 +10,13 @@
 import { type BandKind, bandAddress, parseBand } from "@timetoalign/tilie-core";
 import type { Real } from "@timetoalign/tilie-core/numbers";
 import type {
-  BreakElement,
   JumpElement,
   LineElement,
   MapElement,
   MarkerElement,
   RegionElement,
   TextElement,
+  VerticalLineElement,
 } from "./elements.ts";
 import type { Extent } from "./fit.ts";
 import type { Entry } from "./traversal.ts";
@@ -54,14 +54,14 @@ export interface LinePosition {
   /** The baseline of a label of font size `size` beyond the ordinate `y` (section 6.6): `y − d(size)` above, `y + a(size)` below. */
   readonly beyond: (side: Side, y: number, size: number) => number;
   /**
-   * The ordinate at which a break of the line's flow control band, lying on `side`, ends
-   * (section 6.4, Breaks): for the root of the member drawing its top plus `P` when the band
+   * The ordinate at which a flow marker of the line's flow control band, lying on `side`, ends
+   * (section 6.4, Flow markers): for the root of the member drawing its top plus `P` when the band
    * lies below the line and its top plus `Hc − P` when above; for every other timeline
    * `yl − mb` when the band lies below and `yl + mb` when above, `mb = max(E, h(s) / 2)`, `E` the
    * outer edge of the line's side opposite the band and `s` the name size of the row its line
    * lies in.
    */
-  readonly breakEnd: (side: Side) => number;
+  readonly flowMarkerEnd: (side: Side) => number;
 }
 
 /**
@@ -78,14 +78,14 @@ export interface SegmentElement<T> {
  * What one timeline drawn with a line of its own draws (its line, and what
  * its bands hold), by the categories of section 7.2, each category in its
  * order within that timeline. A member drawing concatenates each category
- * over its timelines in traversal order, so breaks, maps, regions and jumps
+ * over its timelines in traversal order, so flow markers, maps, regions and jumps
  * come band by band, and orders boundaries and segment labels by the
  * traversal order of their segments. Ancestor lines, their marks and the row
  * names belong to the member drawing, not to a timeline.
  */
 export interface LineElements {
-  /** Its flow control band's breaks: its own, then each joined segment's, each in canonical order. */
-  readonly breaks: readonly BreakElement[];
+  /** Its flow control band's flow markers: its own, then each joined segment's, each in canonical order. */
+  readonly flowMarkers: readonly VerticalLineElement[];
   /** Its conversion maps band's maps: its own, then each joined segment's, each in canonical order. */
   readonly maps: readonly MapElement[];
   /** Its regions band's braces, in the order its first fit places them. */
@@ -95,7 +95,7 @@ export interface LineElements {
   /** Its line when displayed: a `timeline` element for the root of the member drawing, else a `child`. */
   readonly line: readonly LineElement[];
   /** The boundaries of its segments, on its line. */
-  readonly boundaries: readonly SegmentElement<BreakElement>[];
+  readonly boundaries: readonly SegmentElement<VerticalLineElement>[];
   /** Its markers band's wedges, start before end: the root's only. */
   readonly wedges: readonly MarkerElement[];
   /** The labels of those wedges, start before end. */
@@ -106,8 +106,8 @@ export interface LineElements {
   readonly regionLabels: readonly TextElement[];
   /** The labels of its flow control band's jumps, in the order of `jumps`. */
   readonly jumpLabels: readonly TextElement[];
-  /** The labels of its flow control band's breaks, in the order of `breaks`. */
-  readonly breakLabels: readonly TextElement[];
+  /** The labels of its flow control band's flow markers, in the order of `flowMarkers`. */
+  readonly flowMarkerLabels: readonly TextElement[];
 }
 
 /**
@@ -123,7 +123,7 @@ export interface PreparedBand {
   /**
    * The displayed elements it holds directly, those a segment without a line of its own adds to
    * it included (section 6.4, What a band holds and Segments without a line): wedges, maps, child
-   * lines, regions, breaks and jumps. A label is held by its element and not counted; a segment
+   * lines, regions, flow markers and jumps. A label is held by its element and not counted; a segment
    * without a line is no element. The band is present when this is positive (section 6.4,
    * Levels), and a band record's `band.elements` is this number.
    */
@@ -140,8 +140,8 @@ export interface PreparedBand {
   /**
    * What the band adds to its timeline's extent (section 6.4, Children), each measured from the
    * root's start as section 6.3 measures extents: the extent of every item its first fits place
-   * (a region or jump widened to its drawn label, a wedge or break label), and `[L × u, L × u]`
-   * at every break it draws. Empty for the children band: its children's extents are added by
+   * (a region or jump widened to its drawn label, a wedge or flow-marker label), and
+   * `[L × u, L × u]` at every flow marker it draws. Empty for the children band: its children's extents are added by
    * their own layout.
    */
   readonly extents: readonly Extent[];

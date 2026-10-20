@@ -3,7 +3,7 @@ import type { ElementKey } from "../src/manifest/elements.ts";
 import { manifestElements, timelineAncestry } from "../src/manifest/elements.ts";
 import type { ResolvedAddress, ResolvedElement } from "../src/workspace/address.ts";
 import { indexOf, resolveAddress, resolveElement } from "../src/workspace/address.ts";
-import { A, allFixtures, B, block, loadText, refusal, viewOf } from "./support.ts";
+import { A, allFixtures, B, block, changed, loadText, refusal, viewOf } from "./support.ts";
 
 const MIXED = "bundles/bundle_mixed.json";
 const view = viewOf([A, MIXED], [B, "map.json"]);
@@ -38,6 +38,8 @@ function shape(resolved: ResolvedAddress | ResolvedElement): unknown {
         resolved.index,
         resolved.element.id,
       ];
+    case "measure_map":
+      return [resolved.kind, resolved.map.id, resolved.index];
     case "part":
       return [resolved.kind, resolved.word, shape(resolved.owner)];
   }
@@ -65,7 +67,7 @@ describe("resolving an address", () => {
     [at("excerpt/children_1"), ["band", "excerpt", "children", "excerpt/card"]],
     [at("annotations/region_2"), ["entry", "annotations", "region", 1, "region_2"]],
     [at("recording/cmap_2"), ["entry", "excerpt", "map", 0, "cmap_2"]],
-    [at("score/jump_1"), ["entry", "score", "jump", 0, "jump_1"]],
+    [at("score/jump_1"), ["entry", "score", "flow_control", 0, "jump_1"]],
     [
       at("annotations/region_1/label"),
       ["part", "label", ["entry", "annotations", "region", 0, "region_1"]],
@@ -92,6 +94,24 @@ describe("resolving an address", () => {
       code: "unknown_target",
       path: [at("takes")],
     });
+  });
+
+  it("resolves a measure map by its bare id, without parts", () => {
+    const bars = { id: "bars", rows: [{ count: 1, qstamp: [0, 1] }] };
+    const held = changed(view, { type: "add", into: A, measure_map: bars });
+    const found = resolveAddress(held, at("bars"));
+    expect(found).toEqual({
+      kind: "measure_map",
+      block: block(held, A),
+      map: { ...bars, name: null, meta: {} },
+      index: 0,
+    });
+    for (const address of [at("bars/name"), at("score/bars")]) {
+      expect(refusal(resolveAddress(held, address))).toEqual({
+        code: "unknown_target",
+        path: [address],
+      });
+    }
   });
 
   it("carries the block of its manifest at every level", () => {
@@ -137,8 +157,8 @@ function kindOf(key: ElementKey): ResolvedElement["kind"] {
       return "frame";
     case "map":
     case "region":
-    case "break":
-    case "jump":
+    case "flow_marker":
+    case "jump_from":
       return "entry";
     case "name":
       return key.address === "name" ? "title" : "part";

@@ -56,20 +56,12 @@ describe("the elements of a manifest", () => {
       ["name", "phrase/name", ...phrase, child],
       band("phrase", "children", child),
       band("phrase", "conversion_maps", child),
-      [
-        "map",
-        "melody/ticks",
-        "phrase",
-        "logical",
-        "discrete",
-        "QuartersToTicks",
-        [...child, "band"],
-      ],
+      ["map", "melody/ticks", "phrase", "logical", "discrete", "LinearMap", [...child, "band"]],
       band("phrase", "markers", child),
       band("phrase", "regions", child),
       band("phrase", "flow_control", child),
       band("melody", "conversion_maps", line),
-      ["map", "melody/tempo", "melody", "physical", "continuous", "ScalarMap", [...line, "band"]],
+      ["map", "melody/tempo", "melody", "physical", "continuous", "LinearMap", [...line, "band"]],
       band("melody", "markers", line),
       ["wedge", "melody/start", ...melody, [...line, "band"]],
       ["label", "melody/start/label", ...melody, [...line, "band", "wedge"]],
@@ -80,10 +72,10 @@ describe("the elements of a manifest", () => {
     ]);
   });
 
-  it("gives regions, breaks and jumps their drawn addresses, each with a label", () => {
+  it("gives regions, flow markers and jump origins their drawn addresses, each with a label", () => {
     const addresses = (name: string) =>
       manifestElements(load(name))
-        .filter((key) => ["region", "break", "jump"].includes(key.type as string))
+        .filter((key) => ["region", "flow_marker", "jump_from"].includes(key.type as string))
         .map((key) => key.address);
     expect(addresses("with_region.json")).toEqual(["clt_1/region_1"]);
     expect(
@@ -106,10 +98,12 @@ describe("the elements of a manifest", () => {
       ["label", `${flow}/end/label`],
       ["band", `${flow}/regions_1`],
       ["band", `${flow}/flow_control_1`],
-      ["break", `${flow}/break_1`],
+      ["flow_marker", `${flow}/break_1`],
       ["label", `${flow}/break_1/label`],
-      ["jump", `${flow}/jump_1`],
+      ["jump_from", `${flow}/jump_1`],
       ["label", `${flow}/jump_1/label`],
+      ["jump_from", `${flow}/jump_2`],
+      ["label", `${flow}/jump_2/label`],
     ]);
   });
 
@@ -143,7 +137,7 @@ const BLOCK_NAME = {
 describe("timeline classes", () => {
   it("derive from the unit, each unit belonging to exactly one class", () => {
     const classes = {
-      ContinuousLogicalTimeline: ["number", "floating_measures", "whole_note", "quarters"],
+      ContinuousLogicalTimeline: ["number", "floating_measures", "whole_notes", "quarters"],
       DiscreteLogicalTimeline: ["ticks"],
       ContinuousPhysicalTimeline: ["milliseconds", "seconds", "minutes"],
       DiscretePhysicalTimeline: ["samples", "frames"],
@@ -151,7 +145,9 @@ describe("timeline classes", () => {
       DiscreteGraphicalTimeline: ["pixels"],
     } as const;
     const units = Object.values(classes).flat();
-    expect([...units].sort()).toEqual([...schema.$defs.TimeUnit.enum].sort());
+    expect([...units].sort()).toEqual(
+      schema.$defs.TimeUnit.oneOf.map((entry) => entry.const).sort(),
+    );
     for (const [name, own] of Object.entries(classes)) {
       for (const unit of own) expect([unit, timelineClass(unit)]).toEqual([unit, name]);
     }
@@ -184,7 +180,7 @@ describe("selector matching", () => {
       ],
     ],
     [{ ids: ["melody/tempo"] }, ["melody/tempo"]],
-    [{ class: "QuartersToTicks" }, ["melody/ticks"]],
+    [{ class: "LinearMap" }, ["melody/ticks", "melody/tempo"]],
     [{ modality: "discrete" }, ["melody/ticks"]],
     [{ element: "card" }, ["melody/card"]],
     [{ element: "card", domain: "logical" }, ["melody/card"]],

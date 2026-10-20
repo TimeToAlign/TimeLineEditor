@@ -198,7 +198,7 @@ export function everything(): Drawing {
       ya: 96,
     },
     {
-      type: "jump",
+      type: "jump_from",
       address: "j",
       style: style({ stroke: "#000000", fill: "#000000" }),
       start: [70, 50],
@@ -212,7 +212,7 @@ export function everything(): Drawing {
       ],
     },
     {
-      type: "break",
+      type: "flow_marker",
       address: "k",
       style: style({ stroke: "#FF0000", "stroke-dasharray": "2" }),
       x: 120,

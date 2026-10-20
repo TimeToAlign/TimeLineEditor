@@ -215,7 +215,7 @@ describe("descriptors", () => {
 
   it("ends a jump's shaft at its filled arrowhead's base", () => {
     const drawing = synthetic({
-      type: "jump",
+      type: "jump_from",
       address: "j",
       style: style({ stroke: "#000000", fill: "#000000", "stroke-width": 1.5 }),
       start: [10, 20],
@@ -237,17 +237,17 @@ describe("descriptors", () => {
     );
   });
 
-  for (const [name, count] of [
-    ["flow_control", 1],
-    ["corpus_score_ms3", 4],
-  ] as const) {
+  for (const name of ["flow_control", "corpus_score_ms3"]) {
     it(`continues each shaft of ${name} along its head's axis`, () => {
       const manifest = loadFixture(name);
+      const count = manifest.timelines
+        .flatMap((timeline) => timeline.flow_control)
+        .filter((item) => item.type === "jump_from").length;
       const layers = [DEFAULT_LAYER, manifestLayer(manifest)];
       const drawing = draw(manifest, DEFAULT_PLACEMENT, layers, fontMetrics);
       const descriptors = toDescriptors(drawing);
       const paths = descriptors.filter(
-        (each) => each.tag === "path" && each.source.type === "jump",
+        (each) => each.tag === "path" && each.source.type === "jump_from",
       );
       expect(paths.length).toBe(count);
       for (const path of paths) {
@@ -460,7 +460,7 @@ describe("descriptors", () => {
   it("writes opacity last and maps dash patterns", () => {
     const line = (dash: string) =>
       synthetic({
-        type: "break",
+        type: "flow_marker",
         address: "break_1",
         style: style({ stroke: "#FF0000", "stroke-dasharray": dash, opacity: 0.5 }),
         x: 10,
@@ -480,7 +480,7 @@ describe("descriptors", () => {
 
   it("formats each dash number by the number rule", () => {
     const drawing = synthetic({
-      type: "break",
+      type: "flow_marker",
       address: "break_1",
       style: style({ stroke: "#FF0000", "stroke-dasharray": "1.50 0.00001" }),
       x: 10,
@@ -497,7 +497,7 @@ describe("descriptors", () => {
 
   it("writes no paint option for stroke none", () => {
     const drawing = synthetic({
-      type: "break",
+      type: "flow_marker",
       address: "break_1",
       style: style({ stroke: "none" }),
       x: 10,
@@ -532,7 +532,7 @@ describe("descriptors", () => {
 
   it("escapes attribute values and self-closes elements without text", () => {
     const drawing = synthetic({
-      type: "break",
+      type: "flow_marker",
       address: 'r/&<>",',
       style: BLACK,
       x: 10,

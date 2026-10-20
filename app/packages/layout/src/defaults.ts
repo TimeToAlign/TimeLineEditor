@@ -42,11 +42,11 @@ export const DEFAULT_LAYER: Graphical = {
       set: { stroke: "#000000", "stroke-width": 1, "stroke-dasharray": "none" },
     },
     {
-      select: { element: "jump" },
+      select: { element: "jump_from" },
       set: { stroke: "#000000", fill: "#000000", "stroke-width": 1, "stroke-dasharray": "1 1" },
     },
     {
-      select: { element: "break" },
+      select: { element: "flow_marker" },
       set: { stroke: "#FF0000", "stroke-width": 1.5, "stroke-dasharray": "2 2" },
     },
     {

@@ -21,10 +21,10 @@ function thousandElements(): Manifest {
   const template = bare.timelines[0];
   const map = load("map").timelines[0]?.conversion_maps[0];
   const region = load("with_region").timelines[0]?.regions[0];
-  const flow = load("flow_control").timelines[0]?.flow_control;
-  const [stop] = flow?.breaks ?? [];
-  const [jump] = flow?.jumps ?? [];
-  const [marker] = flow?.markers ?? [];
+  const flow = load("flow_control").timelines[0]?.flow_control ?? [];
+  const stop = flow.find((item) => item.type === "flow_marker");
+  const jump = flow.find((item) => item.type === "jump_from");
+  const marker = flow.find((item) => item.type === "jump_to");
   if (
     template === undefined ||
     map === undefined ||
@@ -35,6 +35,8 @@ function thousandElements(): Manifest {
   ) {
     throw new Error("operation-count fixtures are incomplete");
   }
+  // The jump leads to the timeline's start: no target.
+  const { target: _, ...toStart } = jump;
 
   const richChildren: ChildTimeline[] = Array.from({ length: 60 }, (_, index) => ({
     ...template,
@@ -56,40 +58,21 @@ function thousandElements(): Manifest {
               children: [],
               conversion_maps: [],
               regions: [],
-              flow_control: { breaks: [], jumps: [], markers: [] },
+              flow_control: [],
             },
           ]
         : [],
     conversion_maps: [{ ...map, id: `map_${index}`, name: null }],
     regions: [{ ...region, id: `region_${index}`, name: "region", start: q(0), end: q(1) }],
-    flow_control: {
-      breaks:
-        index < 26
-          ? [
-              {
-                ...stop,
-                id: `break_${index}`,
-                coordinate: q(1, 2),
-                label: "stop",
-                name: null,
-              },
-            ]
-          : [],
-      jumps:
-        index === 26
-          ? [
-              {
-                ...jump,
-                id: `jump_${index}`,
-                from_coordinate: q(1),
-                to_coordinate: q(0),
-                target: null,
-                label: "jump",
-              },
-            ]
-          : [],
-      markers: [{ ...marker, id: `marker_${index}`, coordinate: q(0) }],
-    },
+    flow_control: [
+      ...(index < 26
+        ? [{ ...stop, id: `break_${index}`, coordinate: q(1, 2), label: "stop", name: null }]
+        : []),
+      ...(index === 26
+        ? [{ ...toStart, id: `jump_${index}`, coordinate: q(1), label: "jump" }]
+        : []),
+      { ...marker, id: `marker_${index}`, coordinate: q(0) },
+    ],
   }));
   const segments: ChildTimeline[] = Array.from({ length: 40 }, (_, index) => ({
     ...template,
@@ -101,7 +84,7 @@ function thousandElements(): Manifest {
     children: [],
     conversion_maps: [],
     regions: [],
-    flow_control: { breaks: [], jumps: [], markers: [] },
+    flow_control: [],
   }));
   const segmentLine: ChildTimeline = {
     ...template,
@@ -114,7 +97,7 @@ function thousandElements(): Manifest {
     children: segments,
     conversion_maps: [],
     regions: [],
-    flow_control: { breaks: [], jumps: [], markers: [] },
+    flow_control: [],
   };
   const root: TimelineManifest = {
     ...template,
@@ -124,7 +107,7 @@ function thousandElements(): Manifest {
     children: [...richChildren, segmentLine],
     conversion_maps: [],
     regions: [],
-    flow_control: { breaks: [], jumps: [], markers: [] },
+    flow_control: [],
   };
   return canonicalOrder({ ...bare, name: null, timelines: [root], groups: [] });
 }
@@ -174,8 +157,8 @@ function counting(): { readonly font: FontMetrics; readonly reads: string[] } {
 
 /**
  * Every distinct text the drawing measures: the root's start and end labels, the region's,
- * break's and jump's labels, the root's name, the nested child's, and the names of the rows of
- * children, each row's names joined (the segment line's row ends with its own).
+ * flow marker's and jump origin's labels, the root's name, the nested child's, and the names
+ * of the rows of children, each row's names joined (the segment line's row ends with its own).
  */
 const MEASURED = [
   "0 ♩",

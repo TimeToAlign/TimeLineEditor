@@ -54,11 +54,11 @@ function ordinate(
       return [item.yc, own(item.address)];
     case "region":
       return [item.ya, own(item.address)];
-    case "jump":
+    case "jump_from":
       return [item.c1[1], own(item.address)];
     case "wedge":
       return [item.yb, own(item.address)];
-    case "break":
+    case "flow_marker":
       return [item.y1, own(item.address)];
     default:
       throw new Error(item.type);
@@ -90,8 +90,8 @@ const CASES: readonly [BandKind, ElementType, string, string, number, number][] 
   ["conversion_maps", "map", "map", "melody", 2, -1],
   ["markers", "wedge", "map", "melody", 2, 1],
   ["regions", "region", "with_region", "clt_1", 1, 1],
-  ["flow_control", "jump", "flow_control", "flow:quarters", 1, 1],
-  ["flow_control", "break", "flow_control", "flow:quarters", 1, 1],
+  ["flow_control", "jump_from", "flow_control", "flow:quarters", 1, 1],
+  ["flow_control", "flow_marker", "flow_control", "flow:quarters", 1, 1],
 ];
 
 describe("a band moved across its line", () => {

@@ -6,11 +6,10 @@
  *   when it is null, and put back as null when the text is read. A reader
  *   would supply the default null anyway; putting it back keeps the
  *   manifest in its complete form. In schema 0.7.0 these are `length`
- *   (required, may be null), `name`, `measure_map` and `metric_hierarchy`
- *   of every timeline; `name`, `source_unit` and `target_unit` of every
- *   conversion map; `name` of a region and of a marker; `name` and `label`
- *   of a break; `target` and `label` of a jump; `name` of a group and of the
- *   manifest.
+ *   (required, may be null) and `name` of every timeline; `name`,
+ *   `source_unit` and `target_unit` of every conversion map; `name` of a
+ *   region; `name` and `label` of a flow-control element; `name` of a
+ *   group, of a measure map and of the manifest.
  * - Any other null cannot be shown: an optional member without the default
  *   null that may be null (a measure-map row's `nominal_length`, where
  *   absent and null mean different things) or a null array item. Such a
@@ -20,8 +19,9 @@
  *
  * Which schema object governs a JSON object is found by walking the schema
  * along the value: `$ref`s are followed, a discriminated `oneOf` contributes
- * the branch whose tag matches, any other `oneOf` or `anyOf` every branch the
- * value's JSON type admits; `if`/`then`/`else` only narrow and are skipped.
+ * the branch whose tag matches, an `allOf` (a conversion map's shared base)
+ * every branch, any other `oneOf` or `anyOf` every branch the value's JSON
+ * type admits; `if`/`then`/`else` only narrow and are skipped.
  */
 
 import type { Json, PathSegment } from "@timetoalign/tilie-core";
@@ -62,7 +62,7 @@ function resolve(node: Schema): Schema {
   return current;
 }
 
-function branches(node: Schema, keyword: "oneOf" | "anyOf"): Schema[] {
+function branches(node: Schema, keyword: "oneOf" | "anyOf" | "allOf"): Schema[] {
   const list = node[keyword];
   return Array.isArray(list) ? list.map(asSchema).filter((item) => item !== null) : [];
 }
@@ -103,7 +103,7 @@ function applicable(node: Schema, value: Json): Schema[] {
   const found = [resolved];
   const discriminator = asSchema(resolved.discriminator);
   const tag = discriminator?.propertyName;
-  for (const keyword of ["oneOf", "anyOf"] as const) {
+  for (const keyword of ["oneOf", "anyOf", "allOf"] as const) {
     for (const branch of branches(resolved, keyword)) {
       if (typeof tag === "string" && keyword === "oneOf") {
         const tagSchema = asSchema(asSchema(resolve(branch).properties)?.[tag]);
@@ -118,7 +118,8 @@ function applicable(node: Schema, value: Json): Schema[] {
 
 /**
  * The members of a schema object that may be null and are required or
- * default to null, sorted: the members TOML leaves out when null.
+ * default to null, by their own default or by that of the definition they
+ * refer to, sorted: the members TOML leaves out when null.
  */
 export function omissibleNulls(node: Schema): string[] {
   const resolved = resolve(node);
@@ -128,8 +129,10 @@ export function omissibleNulls(node: Schema): string[] {
     .filter((name) => {
       const member = asSchema(properties[name]);
       if (member === null || !admitsNull(member)) return false;
+      // A member's own default wins over the one of the definition it refers to (`Name`).
+      const stated = Object.hasOwn(member, "default") ? member : resolve(member);
       return (
-        required.includes(name) || (Object.hasOwn(member, "default") && member.default === null)
+        required.includes(name) || (Object.hasOwn(stated, "default") && stated.default === null)
       );
     })
     .sort();

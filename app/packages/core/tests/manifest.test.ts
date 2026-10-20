@@ -107,9 +107,7 @@ describe("the minimal form in, either form out", () => {
       children: [],
       conversion_maps: [],
       regions: [],
-      flow_control: { breaks: [], jumps: [], markers: [] },
-      measure_map: null,
-      metric_hierarchy: null,
+      flow_control: [],
     };
     const { meta: _, ...twin } = parseJson(fixture("bare.json").twin) as Record<string, unknown>;
     expect(loadText(dumps(twin))).toEqual({
@@ -117,6 +115,7 @@ describe("the minimal form in, either form out", () => {
       name: null,
       meta: {},
       groups: [],
+      measure_maps: [],
       timelines: [root],
     });
   });
@@ -156,7 +155,7 @@ describe("unknown keys", () => {
     view = changed(view, {
       type: "add",
       into: `${A}/bare`,
-      marker: { id: "marker_1", coordinate: [1, 1] },
+      flow_control: { id: "fine", type: "flow_marker", manifestation: "fine", coordinate: [1, 1] },
     });
     const edited = block(view).manifest;
     expect(kept(edited)).toEqual([1, { a: [1, 2] }, "kept"]);
@@ -208,7 +207,9 @@ describe("graphical styles", () => {
     // Every key stays where the text wrote it: a number made a double keeps its place.
     const { graphical } = manifest;
     expect(Object.keys(graphical ?? {})).toEqual(["order", "statements", "styles"]);
-    const jump = graphical?.statements?.find((statement) => statement.select.element === "jump");
+    const jump = graphical?.statements?.find(
+      (statement) => statement.select.element === "jump_from",
+    );
     expect(Object.keys(jump?.set ?? {})).toEqual(["fill", "stroke", "stroke-width"]);
     expect(Object.keys(graphical?.styles?.accent ?? {})).toEqual(
       Object.keys(node(manifestValue("styled__score.json"), "graphical", "styles", "accent")),
@@ -272,14 +273,19 @@ describe("canonical order", () => {
     });
   });
 
-  it("orders markers at one coordinate by id in code-point order", () => {
+  it("orders flow-control elements at one coordinate by id in code-point order", () => {
     const value = manifestValue("bare.json");
     const [root] = value.timelines as Node[];
-    const markers = ["\u{1F3B5}", "～"].map((id) => ({ id, coordinate: [1, 1] }));
-    const text = dumps({ ...value, timelines: [{ ...root, flow_control: { markers } }] });
+    const flow_control = ["\u{1F3B5}", "～"].map((id) => ({
+      id,
+      type: "jump_to",
+      manifestation: "segno",
+      coordinate: [1, 1],
+    }));
+    const text = dumps({ ...value, timelines: [{ ...root, flow_control }] });
     const saved = parseJson(saveManifest(loadText(text)));
-    const ordered = node(saved, "timelines", 0, "flow_control").markers as Node[];
-    expect(ordered.map((marker) => marker.id)).toEqual(["～", "\u{1F3B5}"]);
+    const ordered = node(saved, "timelines", 0).flow_control as Node[];
+    expect(ordered.map((element) => element.id)).toEqual(["～", "\u{1F3B5}"]);
   });
 });
 
@@ -292,23 +298,25 @@ describe("invariants", () => {
     const value = base();
     const root = node(value, ...rootPath);
     const [region] = root.regions as Node[];
-    Object.assign(node(value, ...childPath), { metric_hierarchy: {} });
+    const seconds = (id: string) => ({
+      type: "LinearMap",
+      id,
+      source_unit: "seconds",
+      target_unit: null,
+      scalar: 2,
+      offset: 0,
+    });
+    Object.assign(node(value, ...childPath), { conversion_maps: [seconds("inner")] });
     Object.assign(root, {
-      conversion_maps: [
-        {
-          type: "LinearMap",
-          id: "seconds",
-          source_unit: "seconds",
-          target_unit: null,
-          scalar: 2,
-          offset: 0,
-        },
-      ],
+      conversion_maps: [seconds("seconds")],
       regions: [{ ...region, end: [0, 1] }],
     });
     const text = dumps(value);
     expect(problems(text)).toEqual([
-      { code: "metric_hierarchy_without_measure_map", path: [...childPath, "metric_hierarchy"] },
+      {
+        code: "map_source_unit_mismatch",
+        path: [...childPath, "conversion_maps", 0, "source_unit"],
+      },
       {
         code: "map_source_unit_mismatch",
         path: [...rootPath, "conversion_maps", 0, "source_unit"],
@@ -331,9 +339,14 @@ describe("invariants", () => {
       [...rootPath, "regions", 0, "end"],
     ],
     [
-      "metric_hierarchy_without_measure_map",
-      (manifest) => Object.assign(node(manifest, ...rootPath), { metric_hierarchy: {} }),
-      [...rootPath, "metric_hierarchy"],
+      "map_source_unit_mismatch",
+      (manifest) =>
+        Object.assign(node(manifest, ...rootPath), {
+          conversion_maps: [
+            { type: "LinearMap", id: "seconds", source_unit: "seconds", target_unit: null },
+          ],
+        }),
+      [...rootPath, "conversion_maps", 0, "source_unit"],
     ],
     [
       "number_type_not_allowed",
@@ -366,9 +379,9 @@ describe("invariants", () => {
   it.each([
     [
       "a child of another unit",
-      { unit: "whole_note" },
+      { unit: "whole_notes" },
       [...childPath, "unit"],
-      "child 'clt_2' has unit 'whole_note', its parent 'clt_1' has 'quarters'",
+      "child 'clt_2' has unit 'whole_notes', its parent 'clt_1' has 'quarters'",
     ],
     [
       // Placed at 9, the child comes after its sibling at 2 in canonical order.
@@ -511,25 +524,48 @@ describe("an entry given to a command", () => {
     scalar: [1, 2],
     source_unit: "quarters",
     target_unit: "seconds",
-    type: "ScalarMap",
+    type: "LinearMap",
   };
 
   it("reads an accepted map in its complete form", () => {
-    expect(readEntry("map", tempo, melody, 0)).toEqual({ ...tempo, name: null });
+    expect(readEntry("map", tempo, melody, 0, [])).toEqual({ ...tempo, name: null, offset: 0 });
     const [phrase] = melody.children;
     if (phrase === undefined) throw new Error("melody has a child");
-    expect(readEntry("map", { ...tempo, id: "second" }, phrase, 1)).toEqual({
+    expect(readEntry("map", { ...tempo, id: "second" }, phrase, 1, [])).toEqual({
       ...tempo,
       id: "second",
       name: null,
+      offset: 0,
     });
   });
 
   it("refuses a region at its path from the timeline that will list it", () => {
     const region = { id: "start", start: [0, 1], end: [2, 1] };
-    expect(refusal(readEntry("region", region, melody, 0))).toEqual({
+    expect(refusal(readEntry("region", region, melody, 0, []))).toEqual({
       code: "schema_violation",
       path: ["regions", 0, "id"],
+    });
+  });
+
+  it("reads a measure view beside the measure maps of its manifest", () => {
+    const bars = {
+      id: "bars",
+      name: null,
+      meta: {},
+      rows: [{ count: 1, qstamp: [0, 1] as const }],
+    };
+    const view = {
+      id: "x_record",
+      type: "MeasureRecordMap",
+      source_unit: "quarters",
+      target_unit: null,
+      measure_map: "bars",
+    };
+    const index = melody.conversion_maps.length;
+    expect(readEntry("map", view, melody, index, [bars])).toEqual({ ...view, name: null });
+    expect(refusal(readEntry("map", view, melody, index, []))).toEqual({
+      code: "schema_violation",
+      path: ["conversion_maps", index, "measure_map"],
     });
   });
 });

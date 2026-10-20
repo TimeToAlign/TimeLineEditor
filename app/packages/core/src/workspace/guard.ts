@@ -52,6 +52,9 @@ const SIBLING_MEMBERS: readonly string[] = ["width"];
 /** The manifest members compared first, in this order; the others follow by code point. */
 const TOP_MEMBERS = ["id", "name", "meta"];
 
+/** The manifest members compared element by element or member by member, never as a top-level member. */
+const LISTED_MEMBERS = ["timelines", "groups", "measure_maps", "graphical"];
+
 /** The `graphical` members compared first, in this order; the others follow by code point. */
 const GRAPHICAL_MEMBERS = ["statements", "styles", "order"];
 
@@ -131,8 +134,8 @@ export function statementInside(
 /**
  * A manifest as seen from outside `element`, cut into comparable parts, each
  * the standard text of its value: per timeline (its lists reduced to their
- * ids), per map, region, break, jump and marker, per group; the top-level
- * members; the `graphical` members. The edited timeline's object, or the
+ * ids), per map, region and flow-control element, per group, per measure
+ * map; the other top-level members; the `graphical` members. The edited timeline's object, or the
  * edited group's and each of its members', stands as `{id}`; the entries of
  * `graphical.order` whose keys lie inside (the group's display order, the
  * band orders of the timelines it holds) are left out; only the
@@ -166,7 +169,6 @@ function project(
       elements.set(timeline.id, dumps({ id: timeline.id }));
       return;
     }
-    const { breaks, jumps, markers } = timeline.flow_control;
     elements.set(
       timeline.id,
       dumps({
@@ -174,12 +176,7 @@ function project(
         children: ids(timeline.children),
         conversion_maps: ids(timeline.conversion_maps),
         regions: ids(timeline.regions),
-        flow_control: {
-          ...timeline.flow_control,
-          breaks: ids(breaks),
-          jumps: ids(jumps),
-          markers: ids(markers),
-        },
+        flow_control: ids(timeline.flow_control),
       }),
     );
     for (const kind of ENTRY_KINDS) {
@@ -196,9 +193,10 @@ function project(
       dumps(item === group ? { id: item.id } : { ...item, members: byCodePoint(item.members) }),
     );
   }
+  for (const map of byId(manifest.measure_maps)) elements.set(map.id, dumps(map));
   const top = new Map<string, string>();
   for (const [key, value] of Object.entries(manifest)) {
-    if (!["timelines", "groups", "graphical"].includes(key)) top.set(key, dumps(value));
+    if (!LISTED_MEMBERS.includes(key)) top.set(key, dumps(value));
   }
   const { statements: _, styles: named = {}, order = {}, ...rest } = manifest.graphical ?? {};
   const orders = Object.fromEntries(Object.entries(order).filter(([key]) => !inside(key)));
@@ -286,7 +284,8 @@ function manifestChange(
         }
       }
     }
-    // Elements no box draws: the children of a root drawn only as an ancestor line, and markers.
+    // Elements no box draws: the children of a root drawn only as an ancestor line, the jump
+    // targets and the measure maps.
     yield* new Set([...a.elements.keys(), ...b.elements.keys()]);
   }
   // A differing element the target contains on one side only (a member joining or leaving

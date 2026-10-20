@@ -21,7 +21,6 @@ export const ErrorCode = {
   segmentEndFixed: "segment_end_fixed",
   regionEndBeforeStart: "region_end_before_start",
   mapSourceUnitMismatch: "map_source_unit_mismatch",
-  metricHierarchyWithoutMeasureMap: "metric_hierarchy_without_measure_map",
   duplicateId: "duplicate_id",
   keyMismatch: "key_mismatch",
   invalidBlockId: "invalid_block_id",

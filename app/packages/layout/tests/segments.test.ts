@@ -16,9 +16,9 @@ import {
   drawFixture,
   edit,
   element,
+  linearMap,
   load,
   metrics,
-  scalarMap,
   set as setOf,
 } from "./support.ts";
 
@@ -315,7 +315,7 @@ describe("a line's reach", () => {
       into: "workspace",
       block: { id: BLOCK, manifest: load("segment_line"), x: 0, y: 0 },
     });
-    for (const command of [scalarMap("b", "b_map"), scalarMap("b1", "b1_map")]) {
+    for (const command of [linearMap("b", "b_map"), linearMap("b1", "b1_map")]) {
       if (!isCommandError(view)) view = apply(view, command);
     }
     if (isCommandError(view)) throw new Error(`${view.code}: ${view.message}`);

@@ -236,11 +236,13 @@ comparison) and the store (what it accepts and refuses).
    is left out exactly when the schema requires it and admits null or gives
    it the default null, and reading puts it back; the walk over the
    schema's definitions lists exactly the `name` of the manifest, a group,
-   a region and a marker; a timeline's `length`, `measure_map`,
-   `metric_hierarchy`, `name`; each conversion map's `name`,
-   `source_unit`, `target_unit`; a break's `label`, `name`; a jump's
-   `label`, `target`. A manifest of two roots and a
-   group has its TOML text pinned whole. A measure-map row with
+   a measure map and a region; a timeline's `length`, `name`; a
+   flow-control element's `label`, `name`; and `name`, `source_unit`,
+   `target_unit` of `MapBase`, the base every conversion map type takes
+   through its `allOf`, which the walk along a value follows. A manifest of
+   two roots (one of unknown length, one holding a `LinearMap` whose
+   `target_unit` is null), a group and a measure map has its TOML text
+   pinned whole, and reads back with all seven nulls. A measure-map row with
    `nominal_length: null` (optional, no default null) is refused
    `not_representable` at its path, "TOML has no null, and the schema
    neither requires this member nor defaults it to null", and goes through
@@ -256,10 +258,10 @@ comparison) and the store (what it accepts and refuses).
 5. **A refusal points into the text.** The store's path loses its
    `[<block>, "manifest"]` prefix and is shown as a JSON pointer:
    `"locked": "yes"` is `schema_violation` "must be boolean" at
-   `/timelines/0/locked`, `"unit": "parsecs"` "must be equal to one of the
-   allowed values" at `/timelines/0/unit`. A syntax error carries the
-   reader's 1-based line and column: JSON `"locked": ,` at 22:17, YAML
-   `locked: [false` at 16:5, TOML `locked = ` at 14:1. No refusal adds a
+   `/timelines/0/locked`, `"unit": "parsecs"` "must be equal to constant"
+   (the first `const` of the units' `oneOf`) at `/timelines/0/unit`. A syntax error carries the
+   reader's 1-based line and column: JSON `"locked": ,` at 19:17, YAML
+   `locked: [false` at 14:5, TOML `locked = ` at 16:1. No refusal adds a
    journal entry.
 6. **Comments survive.** In each of the four modes, a YAML or TOML text
    with a comment line and an inline comment, applied, is exactly the typed
@@ -411,8 +413,10 @@ ancestor, has no card).
    standing for its element: the block and its title the manifest's
    (`Mixed`, target the block), `group_1` (`Performance`), `score` and
    `score/card` and `score/start` the timeline's (`Score`), the conversion
-   map `page/cmap_1` (empty, its name null; target `<block>/page/cmap_1`).
-   No field for a band, a jump (`score/jump_1`) or two things, in one
+   map `page/cmap_1` (empty, its name null; target `<block>/page/cmap_1`),
+   the jump origin `score/jump_1` likewise (every flow-control element has
+   the schema's nullable `name`), and a measure map `bars` added to the
+   block (empty; target `<block>/bars`, its bare id). No field for a band or two things, in one
    block or in two; mounted, two blocks selected show no field and the
    geometry hint. The command: a text equal to the stored name is none; an
    empty text unstates a nullable name (`{name: null}`) and is sent as
@@ -578,9 +582,10 @@ oracles are the committed end-to-end workspaces and a store of
    timeline", "Name of timeline", its end's label "Label of end of
    timeline"; a segment line and a segment "Timeline"; an anonymous bundle
    "Anonymous bundle" with neither; a bundle given the id `takes` "Bundle"
-   with that id; maps, breaks, jumps, markers and regions by their kind
-   ("Conversion map", "Break", "Jump" with its id, "Marker", "Region") and
-   their parts the same way; a band "<Kind> band of timeline" (Markers,
+   with that id; maps, regions and flow-control elements by their kind, a
+   flow-control element's by its type ("Conversion map", "Region", "Flow
+   marker", "Jump origin" with its id, "Jump target") and their parts the
+   same way; a measure map added to a block "Measure map" with its id; a band "<Kind> band of timeline" (Markers,
    Conversion maps, Children, Regions, Flow control). Several addresses give
    "N selected". Nothing for no selection or an address naming nothing (no
    such part, entry, band or block). Mounted, the words stand beside the

@@ -160,9 +160,9 @@ describe("flow_control", () => {
     const yc = 74.52213541666667;
     expect(geometry(drawing)).toEqual([
       ...box("flow:quarters", 518.256591796875, 102.33203125, 500.256591796875, 84.33203125),
-      { type: "break", address: "flow:quarters/break_1", x: 390.9775390625, y1: yf, y2: 16 },
+      { type: "flow_marker", address: "flow:quarters/break_1", x: 390.9775390625, y1: yf, y2: 16 },
       {
-        type: "jump",
+        type: "jump_from",
         address: "flow:quarters/jump_1",
         start: [290.9775390625, yf],
         c1: [253.4775390625, yc],

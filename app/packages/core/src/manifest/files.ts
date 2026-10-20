@@ -10,12 +10,10 @@ import { BAND_ID_PATTERN } from "./bands.ts";
 import { displayOrder } from "./order.ts";
 import type {
   AxisValue,
-  Break,
   ConversionMap,
+  FlowControlElement,
   Group,
-  Jump,
   Manifest,
-  Marker,
   Region,
   TimelineManifest,
 } from "./types.ts";
@@ -24,15 +22,13 @@ import type {
 export interface EntryTypes {
   readonly map: ConversionMap;
   readonly region: Region;
-  readonly break: Break;
-  readonly jump: Jump;
-  readonly marker: Marker;
+  readonly flow_control: FlowControlElement;
 }
 
 /** The kind of an element a timeline holds in a list. */
 export type EntryKind = keyof EntryTypes;
 
-/** An element a timeline holds in a list: a conversion map, region, break, jump or marker. */
+/** An element a timeline holds in a list: a conversion map, a region or a flow-control element. */
 export type ListedElement = EntryTypes[EntryKind];
 
 /** One list of a timeline: where it lies, how to read it and how to replace it. */
@@ -43,7 +39,7 @@ export interface EntryList<E> {
   replace(timeline: TimelineManifest, list: readonly E[]): TimelineManifest;
 }
 
-/** Where each kind of entry lies in a timeline: the one table of the five lists. */
+/** Where each kind of entry lies in a timeline: the one table of the three lists. */
 export const ENTRY_LISTS: { readonly [kind in EntryKind]: EntryList<EntryTypes[kind]> } = {
   map: {
     path: ["conversion_maps"],
@@ -55,34 +51,15 @@ export const ENTRY_LISTS: { readonly [kind in EntryKind]: EntryList<EntryTypes[k
     get: (timeline) => timeline.regions,
     replace: (timeline, regions) => ({ ...timeline, regions }),
   },
-  break: {
-    path: ["flow_control", "breaks"],
-    get: (timeline) => timeline.flow_control.breaks,
-    replace: (timeline, breaks) => ({
-      ...timeline,
-      flow_control: { ...timeline.flow_control, breaks },
-    }),
-  },
-  jump: {
-    path: ["flow_control", "jumps"],
-    get: (timeline) => timeline.flow_control.jumps,
-    replace: (timeline, jumps) => ({
-      ...timeline,
-      flow_control: { ...timeline.flow_control, jumps },
-    }),
-  },
-  marker: {
-    path: ["flow_control", "markers"],
-    get: (timeline) => timeline.flow_control.markers,
-    replace: (timeline, markers) => ({
-      ...timeline,
-      flow_control: { ...timeline.flow_control, markers },
-    }),
+  flow_control: {
+    path: ["flow_control"],
+    get: (timeline) => timeline.flow_control,
+    replace: (timeline, flow_control) => ({ ...timeline, flow_control }),
   },
 };
 
 /** The kinds of listed elements, in the order a timeline's entries are visited. */
-export const ENTRY_KINDS: readonly EntryKind[] = ["map", "region", "break", "jump", "marker"];
+export const ENTRY_KINDS: readonly EntryKind[] = ["map", "region", "flow_control"];
 
 /** The list of entries of one kind in a timeline. */
 export function entriesOf(timeline: TimelineManifest, kind: EntryKind): readonly ListedElement[] {
@@ -110,10 +87,10 @@ export function isReservedId(id: string): boolean {
 export const TITLE_ADDRESS = "name";
 
 /**
- * The address of an element with id `id` other than a timeline or a group
- * (a map, region, break, jump or marker) in the tree of root `root`:
- * `<root>/<id>`. A timeline, a group and the manifest are addressed by their
- * bare ids.
+ * The address of an element with id `id` other than a timeline, a group or
+ * a measure map (a map, region or flow-control element) in the tree of root
+ * `root`: `<root>/<id>`. A timeline, a group, a measure map and the manifest
+ * are addressed by their bare ids.
  */
 export function elementAddress(root: string, id: string): string {
   return `${root}/${id}`;

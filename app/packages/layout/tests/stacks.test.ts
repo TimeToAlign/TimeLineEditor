@@ -17,9 +17,9 @@ import {
   child,
   edit,
   element,
+  linearMap,
   load,
   metrics,
-  scalarMap,
   set,
   withLocked,
 } from "./support.ts";
@@ -49,7 +49,7 @@ const wedges = (drawing: Drawing) =>
   });
 
 describe("a child's conversion maps band", () => {
-  const commands = [child("r", "c", 4, 4), scalarMap("c", "m1"), scalarMap("c", "m2")];
+  const commands = [child("r", "c", 4, 4), linearMap("c", "m1"), linearMap("c", "m2")];
 
   it("lies above the child's own line by the default band order", () => {
     const drawing = drawn(build("r", 8, ...commands));

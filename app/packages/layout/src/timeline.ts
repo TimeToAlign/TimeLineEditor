@@ -284,7 +284,7 @@ export function wholeExtent(own: Extent, children: readonly Extent[]): Extent {
 /** Merge the typed categories drawn by level zero and each band. */
 function mergeLineElements(parts: readonly Partial<LineElements>[]): LineElements {
   return {
-    breaks: parts.flatMap((part) => part.breaks ?? []),
+    flowMarkers: parts.flatMap((part) => part.flowMarkers ?? []),
     maps: parts.flatMap((part) => part.maps ?? []),
     regions: parts.flatMap((part) => part.regions ?? []),
     jumps: parts.flatMap((part) => part.jumps ?? []),
@@ -295,7 +295,7 @@ function mergeLineElements(parts: readonly Partial<LineElements>[]): LineElement
     segmentLabels: parts.flatMap((part) => part.segmentLabels ?? []),
     regionLabels: parts.flatMap((part) => part.regionLabels ?? []),
     jumpLabels: parts.flatMap((part) => part.jumpLabels ?? []),
-    breakLabels: parts.flatMap((part) => part.breakLabels ?? []),
+    flowMarkerLabels: parts.flatMap((part) => part.flowMarkerLabels ?? []),
   };
 }
 
@@ -363,8 +363,8 @@ function linePosition(
     yAt: (side, outwards) => (side === "above" ? y - outwards : y + outwards),
     beyond: (side, ordinate, labelSize) =>
       side === "above" ? ordinate - scope.d(labelSize) : ordinate + scope.a(labelSize),
-    breakEnd: (side) => {
-      // The root's breaks run to the padding of the opposite side, counted from the drawing's top.
+    flowMarkerEnd: (side) => {
+      // The root's flow markers run to the padding of the opposite side, counted from the drawing's top.
       if (line === scope.rootEntry) return side === "below" ? top + P : top + (Hc - P);
       const mb = Math.max(edges[opposite(side)], scope.h(size) / 2);
       return side === "below" ? y - mb : y + mb;

@@ -597,9 +597,10 @@ describe("locks by place", () => {
   });
 });
 
-describe("regions, breaks, jumps and markers", () => {
+describe("regions and flow-control elements", () => {
   const into = (kind: string, value: object) => ({ type: "add", into: at("bare"), [kind]: value });
   const region = { id: "region_1", name: "A", start: quarters(2), end: quarters(4) };
+  const flowPath = [A, "manifest", "timelines", 0, "flow_control"];
 
   it("adds and sets a region", () => {
     const added = applied(viewOf([A, "bare.json"]), into("region", region));
@@ -608,53 +609,103 @@ describe("regions, breaks, jumps and markers", () => {
     expect(root(changed).regions).toEqual([{ ...region, meta: {}, end: quarters(6), name: null }]);
   });
 
-  it("adds, sets and removes markers, breaks and jumps", () => {
+  it("adds, sets and removes flow-control elements", () => {
     const view = frozen([A, "flow_control.json"]);
-    const flow = root(view).flow_control;
-    const marker = { id: "marker_2", name: "fine", coordinate: quarters(12) };
+    const [marker, segno, jump, fine, ds] = root(view).flow_control;
+    if (!marker || !segno || !jump || !fine || !ds) {
+      throw new Error(
+        "flow_control.json holds two jump targets, two jump origins and a flow marker",
+      );
+    }
+    expect([marker.id, segno.id, jump.id, fine.id, ds.id]).toEqual([
+      "marker_1",
+      "marker_2",
+      "jump_1",
+      "break_1",
+      "jump_2",
+    ]);
+    const flow = (next: View) => root(next).flow_control;
+    const add = (value: object) => ({
+      type: "add",
+      into: at("flow:quarters"),
+      flow_control: value,
+    });
+    const coda = { id: "coda_1", type: "jump_to", manifestation: "coda", coordinate: quarters(12) };
     const retargeted = applied(
-      applied(view, { type: "add", into: at("flow:quarters"), marker }),
-      set(at("flow:quarters/jump_1"), { target: "marker_2" }),
+      applied(view, add(coda)),
+      set(at("flow:quarters/jump_1"), { target: "coda_1" }),
     );
-    const moved = root(retargeted).flow_control;
-    expect(moved.jumps).toEqual([{ ...flow.jumps[0], target: "marker_2" }]);
-    expect(moved.markers).toEqual([flow.markers[0], marker]);
-    const copy = { ...flow.breaks[0], id: "break_2", coordinate: quarters(3) };
-    const swapped = applied(
-      applied(view, { type: "add", into: at("flow:quarters"), break: copy }),
-      { type: "remove", targets: [at("flow:quarters/break_1")] },
-    );
-    expect(root(swapped).flow_control.breaks).toEqual([copy]);
+    expect(flow(retargeted)).toEqual([
+      marker,
+      segno,
+      { ...jump, target: "coda_1" },
+      fine,
+      { ...coda, name: null, label: null, meta: {} },
+      ds,
+    ]);
+    const copy = { ...fine, id: "break_2", coordinate: quarters(3) };
+    const swapped = applied(applied(view, add(copy)), {
+      type: "remove",
+      targets: [at("flow:quarters/break_1")],
+    });
+    expect(flow(swapped)).toEqual([marker, copy, segno, jump, ds]);
     const unjumped = applied(view, { type: "remove", targets: [at("flow:quarters/jump_1")] });
-    expect(root(unjumped).flow_control.jumps).toEqual([]);
+    expect(flow(unjumped)).toEqual([marker, segno, fine, ds]);
     const shifted = applied(
       view,
       set(at("flow:quarters/marker_1"), { coordinate: quarters(2, 2) }),
     );
-    expect(root(shifted).flow_control.markers).toEqual([
-      { ...flow.markers[0], coordinate: quarters(1) },
+    expect(flow(shifted)).toEqual([{ ...marker, coordinate: quarters(1) }, segno, jump, fine, ds]);
+    const { target: _, ...toStart } = jump;
+    const untargeted = applied(view, set(at("flow:quarters/jump_1"), { target: null }));
+    expect(flow(untargeted)).toEqual([marker, segno, toStart, fine, ds]);
+    const barline = {
+      id: "jump_1",
+      type: "flow_marker",
+      manifestation: "double_barline",
+      coordinate: quarters(8),
+    };
+    const replaced = applied(view, set(at("flow:quarters/jump_1"), { flow_control: barline }));
+    expect(flow(replaced)).toEqual([
+      marker,
+      segno,
+      { ...barline, name: null, label: null, meta: {} },
+      fine,
+      ds,
     ]);
   });
 
   it("refuses with the exact code and path", () => {
     const flow = viewOf([A, "flow_control.json"]);
-    const jumpTarget = [A, "manifest", "timelines", 0, "flow_control", "jumps", 0, "target"];
     expect(rejected(flow, set(at("flow:quarters/jump_1"), { target: "nothing" }))).toEqual({
       code: "schema_violation",
-      path: jumpTarget,
+      path: [...flowPath, 2, "target"],
     });
+    // Removing the jump target a jump origin names leaves that origin second.
     expect(rejected(flow, { type: "remove", targets: [at("flow:quarters/marker_1")] })).toEqual({
       code: "schema_violation",
-      path: jumpTarget,
+      path: [...flowPath, 1, "target"],
     });
     expect(
-      rejected(
-        flow,
-        set(at("flow:quarters/break_1"), { control_type: "nonsense", repeat_count: 2 }),
-      ),
-    ).toEqual({
+      rejected(flow, set(at("flow:quarters/break_1"), { manifestation: "repeat_end" })),
+    ).toEqual({ code: "schema_violation", path: [...flowPath, 3, "manifestation"] });
+    expect(rejected(flow, set(at("flow:quarters/break_1"), { repeat_count: 2 }))).toEqual({
       code: "schema_violation",
-      path: [A, "manifest", "timelines", 0, "flow_control", "breaks", 0, "control_type"],
+      path: [...flowPath, 3, "repeat_count"],
+    });
+    expect(rejected(flow, set(at("flow:quarters/jump_1"), { type: "jump_to" }))).toEqual({
+      code: "unknown_property",
+      path: [at("flow:quarters/jump_1"), "type"],
+    });
+    const other = {
+      id: "other",
+      type: "flow_marker",
+      manifestation: "fine",
+      coordinate: quarters(8),
+    };
+    expect(rejected(flow, set(at("flow:quarters/jump_1"), { flow_control: other }))).toEqual({
+      code: "id_not_settable",
+      path: [at("flow:quarters/jump_1"), "flow_control", "id"],
     });
     const dict = { unit: "quarters", number_type: "fraction", value: [1, 1] };
     expect(rejected(flow, set(at("flow:quarters/break_1"), { coordinate: dict }))).toEqual({
@@ -678,6 +729,63 @@ describe("regions, breaks, jumps and markers", () => {
     expect(rejected(bare, into("region", { ...region, id: "a/b" }))).toEqual({
       code: "schema_violation",
       path: [A, "manifest", "timelines", 0, "regions", 0, "id"],
+    });
+  });
+});
+
+describe("measure maps", () => {
+  const bars = { id: "bars", rows: [{ count: 1, qstamp: quarters(0) }] };
+  const record = {
+    id: "record",
+    type: "MeasureRecordMap",
+    source_unit: "quarters",
+    target_unit: null,
+    measure_map: "bars",
+  };
+  const withBars = () =>
+    applied(frozen([A, "bare.json"]), { type: "add", into: A, measure_map: bars });
+  const viewPath = [A, "manifest", "timelines", 0, "conversion_maps", 0, "measure_map"];
+
+  it("adds, sets and removes a measure map, which a measure view names", () => {
+    const view = withBars();
+    expect(manifest(view).measure_maps).toEqual([{ ...bars, name: null, meta: {} }]);
+    const rows = [...bars.rows, { count: 2, qstamp: quarters(4) }];
+    const named = applied(view, set(at("bars"), { name: "Bars", rows }));
+    expect(manifest(named).measure_maps).toEqual([{ id: "bars", name: "Bars", meta: {}, rows }]);
+    const viewed = applied(view, { type: "add", into: at("bare"), map: record });
+    expect(root(viewed).conversion_maps).toEqual([{ ...record, name: null }]);
+    const gone = applied(viewed, { type: "remove", targets: [at("bare/record"), at("bars")] });
+    expect([manifest(gone).measure_maps, root(gone).conversion_maps]).toEqual([[], []]);
+  });
+
+  it("refuses with the exact code and path", () => {
+    const bare = viewOf([A, "bare.json"]);
+    expect(rejected(bare, { type: "add", into: at("bare"), map: record })).toEqual({
+      code: "schema_violation",
+      path: viewPath,
+    });
+    const viewed = applied(withBars(), { type: "add", into: at("bare"), map: record });
+    // Removing the measure map a view names leaves the view dangling.
+    expect(rejected(viewed, { type: "remove", targets: [at("bars")] })).toEqual({
+      code: "schema_violation",
+      path: viewPath,
+    });
+    expect(rejected(bare, { type: "add", into: A, measure_map: { ...bars, id: "bare" } })).toEqual({
+      code: "duplicate_id",
+      path: [at("bare")],
+    });
+    expect(rejected(bare, { type: "add", into: A, measure_map: { ...bars, rows: [] } })).toEqual({
+      code: "schema_violation",
+      path: [A, "measure_map", "rows"],
+    });
+    expect(rejected(viewed, set(at("bars"), { rows: [] }))).toEqual({
+      code: "schema_violation",
+      path: [A, "manifest", "measure_maps", 0, "rows"],
+    });
+    expect(apply(viewed, set(at("bars"), { name: null }))).toEqual(nothing(at("bars"), "name"));
+    expect(rejected(bare, { type: "add", into: at("bare"), measure_map: bars })).toEqual({
+      code: "wrong_target_kind",
+      path: [at("bare"), "measure_map"],
     });
   });
 });

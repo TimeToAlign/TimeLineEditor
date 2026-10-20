@@ -1,25 +1,28 @@
 /**
- * The flow control band: a timeline's displayed breaks and jumps and those
- * of the segments that join it; the break-label tiers and the flow row,
- * where jumps leave and arrive by rows and breaks end (`docs/drawing.md` in
- * timeskeleton, sections 6.4 and 6.6).
+ * The flow control band: a timeline's displayed flow markers and jump
+ * origins and those of the segments that join it; the flow-marker label
+ * tiers and the flow row, where jumps leave and arrive by rows and flow
+ * markers end (`docs/drawing.md` in timeskeleton, sections 6.4 and 6.6). A
+ * jump target draws nothing of its own.
  */
 
 import { bandAddress } from "@timetoalign/tilie-core";
 import type { PreparedBand } from "./bands.ts";
-import { BREAK_LABEL_OFFSET, LABEL_GAP } from "./constants.ts";
+import { FLOW_MARKER_LABEL_OFFSET, LABEL_GAP } from "./constants.ts";
 import type { Point } from "./elements.ts";
 import { type Extent, labelExtent, Rows, widen } from "./fit.ts";
 import { centredLabel } from "./names.ts";
-import { add, coordinateValue, exactDistance, midpoint, times } from "./numbers.ts";
+import { add, coordinateValue, exactDistance, midpoint, times, zero } from "./numbers.ts";
 import { type Entry, maxSize, type Scope, shown } from "./traversal.ts";
 
 /**
  * The flow control band of the timeline drawn with the line `line` (section
- * 6.4, Flow control, Breaks and Segments without a line): the displayed
- * breaks and jumps of each timeline of `sources`, the line first and then
- * each joined segment, each one's in canonical order. The drawn break
- * labels are placed in that order by first fit into the break-label tiers,
+ * 6.4, Flow control, Flow markers and Segments without a line): the
+ * displayed flow markers and jump origins (`jump_from`) of each timeline of
+ * `sources`, the line first and then each joined segment, each one's in
+ * canonical order. A jump runs from its element's coordinate to its target
+ * `jump_to`'s coordinate, or to 0 without a target. The drawn flow-marker
+ * labels are placed in that order by first fit into the label tiers,
  * `T × h(9)` wide; the flow row lies `T × h(9)` beyond the band's start. The
  * jumps, sorted stably by span (the exact absolute difference of their to
  * and from positions), smallest first, are placed in that order by first fit
@@ -29,9 +32,10 @@ import { type Entry, maxSize, type Scope, shown } from "./traversal.ts";
  * spacing. The band is `T × h(9) + (4 + S) + (K − 1) × pj + 2 + h(9)` wide for
  * `K ≥ 1` jump rows and
  * `T × h(9)` for none; 9 is the largest font size of its drawn jump and
- * break labels together. A break runs from the flow row to `at.breakEnd`,
- * its label starting at `x + 3` in its tier, tier 1 touching the flow row on
- * the line's side of it.
+ * flow-marker labels together; a jump without a label of its own is drawn
+ * with its manifestation. A flow marker runs from the flow row to
+ * `at.flowMarkerEnd`, its label starting at `x + 3` in its tier, tier 1
+ * touching the flow row on the line's side of it.
  */
 export function flowControlBand(
   scope: Scope,
@@ -42,32 +46,41 @@ export function flowControlBand(
   const held = sources.filter((source) => shown(source.bands.flow_control.style));
   const own = (source: Entry, value: Parameters<typeof coordinateValue>[0]) =>
     add(source.start, coordinateValue(value, source.manifest.number_type));
-  const breaks = held.flatMap((source) =>
-    source.manifest.flow_control.breaks
+  const markers = held.flatMap((source) =>
+    source.manifest.flow_control
+      .filter((item) => item.type === "flow_marker")
       .map((item) => ({
-        ...owned("break", address(item.id), source, "flow_control"),
+        ...owned("flow_marker", address(item.id), source, "flow_control"),
         at: own(source, item.coordinate),
         text: item.label,
       }))
       .filter((item) => shown(item.style)),
   );
-  const jumps = held.flatMap((source) =>
-    source.manifest.flow_control.jumps
+  const jumps = held.flatMap((source) => {
+    const elements = source.manifest.flow_control;
+    const landing = (target: string | undefined) => {
+      const found = elements.find((item) => item.type === "jump_to" && item.id === target);
+      return found === undefined
+        ? add(source.start, zero(source.manifest.number_type))
+        : own(source, found.coordinate);
+    };
+    return elements
+      .filter((item) => item.type === "jump_from")
       .map((item) => ({
-        ...owned("jump", address(item.id), source, "flow_control"),
-        from: own(source, item.from_coordinate),
-        to: own(source, item.to_coordinate),
-        text: item.label ?? item.control_type,
+        ...owned("jump_from", address(item.id), source, "flow_control"),
+        from: own(source, item.coordinate),
+        to: landing(item.target),
+        text: item.label ?? item.manifestation,
       }))
-      .filter((item) => shown(item.style)),
-  );
+      .filter((item) => shown(item.style));
+  });
 
-  // The drawn break labels, by first fit into the break-label tiers.
+  // The drawn flow-marker labels, by first fit into the label tiers.
   const tiers = new Rows();
-  const labelledBreaks = breaks.flatMap((item) => {
+  const labelledMarkers = markers.flatMap((item) => {
     if (item.text === null || !shown(item.label.style)) return [];
     const text = measured(item.label, item.text);
-    const left = relativeX(item.at) + BREAK_LABEL_OFFSET;
+    const left = relativeX(item.at) + FLOW_MARKER_LABEL_OFFSET;
     const extent: Extent = [left - 1, left + text.width + 1];
     return [{ item, text, extent, tier: tiers.place(extent) }];
   });
@@ -89,7 +102,7 @@ export function flowControlBand(
 
   const size = maxSize([
     ...placedJumps.flatMap((item) => (item.label === undefined ? [] : [item.jump.label])),
-    ...labelledBreaks.map((item) => item.item.label),
+    ...labelledMarkers.map((item) => item.item.label),
   ]);
   const tierRoom = tiers.count * h(size);
   // The first jump row's depth and the jump rows' pitch, each summed whole first.
@@ -99,11 +112,11 @@ export function flowControlBand(
   return {
     kind: "flow_control",
     address: bandAddress(line.manifest.id, "flow_control"),
-    elements: breaks.length + jumps.length,
+    elements: markers.length + jumps.length,
     width: K === 0 ? tierRoom : tierRoom + depth + (K - 1) * pj + LABEL_GAP + h(size),
     extents: [
-      ...breaks.map((item): Extent => [relativeX(item.at), relativeX(item.at)]),
-      ...labelledBreaks.map((item) => item.extent),
+      ...markers.map((item): Extent => [relativeX(item.at), relativeX(item.at)]),
+      ...labelledMarkers.map((item) => item.extent),
       ...placedJumps.map((item) => item.extent),
     ],
     centred: placedJumps.flatMap((item) =>
@@ -114,13 +127,13 @@ export function flowControlBand(
       const yf = at.yAt(side, f0);
       const apex = (row: number) => f0 + depth + (row - 1) * pj;
       return {
-        breaks: breaks.map((item) => ({
-          type: "break",
+        flowMarkers: markers.map((item) => ({
+          type: "flow_marker",
           address: item.address,
           style: item.style,
           x: at.x(item.at),
           y1: yf,
-          y2: at.breakEnd(side),
+          y2: at.flowMarkerEnd(side),
         })),
         jumps: placedJumps.map(({ jump, row }) => {
           const ya = at.yAt(side, apex(row));
@@ -137,7 +150,7 @@ export function flowControlBand(
           const base: Point = [xt - 4 * w * ux, yf - 4 * w * uy];
           const [nx, ny] = [-uy, ux];
           return {
-            type: "jump",
+            type: "jump_from",
             address: jump.address,
             style: jump.style,
             start: [xf, yf],
@@ -164,13 +177,13 @@ export function flowControlBand(
               ],
         ),
         // Tier 1 touches the flow row on the line's side; tier k lies (k − 1) h further in.
-        breakLabels: labelledBreaks.map(({ item, text, tier }) => {
+        flowMarkerLabels: labelledMarkers.map(({ item, text, tier }) => {
           const inwards = (tier - 1) * h(size);
           return {
             type: "label",
             address: item.label.address,
             style: item.label.style,
-            x: at.x(item.at) + BREAK_LABEL_OFFSET,
+            x: at.x(item.at) + FLOW_MARKER_LABEL_OFFSET,
             baseline: side === "below" ? yf - inwards - d(size) : yf + inwards + a(size),
             anchor: "start",
             text: text.clean,

@@ -11,12 +11,10 @@
  */
 
 import type {
-  CompleteBreak,
   CompleteConversionMap,
-  CompleteFlowControl,
+  CompleteFlowControlElement,
   CompleteGroup,
-  CompleteJump,
-  CompleteMarker,
+  CompleteMeasureMap,
   CompleteRegion,
   CompleteTimeline,
   CompleteTimeSkeleton,
@@ -38,7 +36,7 @@ type ReadonlyView<T> = unknown extends T
 
 /**
  * A value on its timeline's own axis (a length, an offset, a region's start
- * and end, a break, jump or marker coordinate): a JSON integer, a JSON number
+ * and end, a flow-control element's coordinate): a JSON integer, a JSON number
  * or a `[numerator, denominator]` pair, as the axis's number type selects,
  * each number as the reader returns it (an integral float in a pair is a
  * `JsonFloat`): the read-only view of the schema's `Number` read losslessly.
@@ -47,16 +45,23 @@ export type AxisValue = ReadonlyView<Lossless<SchemaNumber>>;
 
 export type Region = ReadonlyView<CompleteRegion>;
 
-export type Break = ReadonlyView<CompleteBreak>;
+/**
+ * One element of a timeline's flow control, discriminated by its `type`: a
+ * `jump_from` (a jump origin, naming the `jump_to` it leads to as `target`,
+ * or the timeline's start without one), a `jump_to` (a jump target) or a
+ * `flow_marker`.
+ */
+export type FlowControlElement = ReadonlyView<CompleteFlowControlElement>;
 
-export type Jump = ReadonlyView<CompleteJump>;
-
-export type Marker = ReadonlyView<CompleteMarker>;
-
-export type FlowControl = ReadonlyView<CompleteFlowControl>;
-
-/** A conversion map, discriminated by its `type`; positions on another axis are coordinate dicts. */
+/** A conversion map, discriminated by its `type`: an abstract function of a position on its timeline's axis. */
 export type ConversionMap = ReadonlyView<CompleteConversionMap>;
+
+/**
+ * A measure map of the manifest: compressed Measure Map rows in quarters,
+ * named by its id, which the measure views among the conversion maps
+ * name. It belongs to no timeline and is not drawn.
+ */
+export type MeasureMap = ReadonlyView<CompleteMeasureMap>;
 
 /**
  * A timeline: its length on its own axis, or null when the length is not

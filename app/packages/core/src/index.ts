@@ -75,15 +75,13 @@ export { GAPS } from "./manifest/segments.ts";
 export { findTimeline, isSegment } from "./manifest/tree.ts";
 export type {
   AxisValue,
-  Break,
   ChildTimeline,
   ConversionMap,
-  FlowControl,
+  FlowControlElement,
   Group,
-  Jump,
   Manifest,
   ManifestGraphical,
-  Marker,
+  MeasureMap,
   Region,
   TimelineManifest,
 } from "./manifest/types.ts";

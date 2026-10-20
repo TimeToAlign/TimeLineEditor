@@ -710,14 +710,11 @@ describe("a clean text", () => {
     const manifest = loadManifest(
       dumps({
         timeskeleton: SCHEMA_VERSION,
-        timelines: [
+        timelines: [{ id: "score", unit: "quarters", length: [4, 1] }],
+        measure_maps: [
           {
-            id: "score",
-            unit: "quarters",
-            length: [4, 1],
-            measure_map: [
-              { count: 1, qstamp: 0, number: 1, actual_length: 4, nominal_length: null },
-            ],
+            id: "bars",
+            rows: [{ count: 1, qstamp: 0, number: 1, actual_length: 4, nominal_length: null }],
           },
         ],
       }),
@@ -730,7 +727,7 @@ describe("a clean text", () => {
     flushSync();
     await loadCodec("toml");
     flushSync();
-    const unrepresentable = [["not_representable", "/timelines/0/measure_map/0/nominal_length"]];
+    const unrepresentable = [["not_representable", "/measure_maps/0/rows/0/nominal_length"]];
     expect(textarea().value).toBe("");
     expect(listed()).toEqual(unrepresentable);
     expect(buttons()).toEqual([true, true]);

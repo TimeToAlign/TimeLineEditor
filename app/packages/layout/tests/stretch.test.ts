@@ -98,7 +98,7 @@ describe("the padding", () => {
     const drawing = drawFixture("flow_control", [], spaced("flow:quarters", 8));
     expect(drawing.height).toBe(110.33203125);
     expect(element(drawing, "flow:quarters")).toMatchObject({ y: 22.40234375 });
-    expect(drawing.elements.find((item) => item.type === "break")).toMatchObject({
+    expect(drawing.elements.find((item) => item.type === "flow_marker")).toMatchObject({
       y1: 67.85546875,
       y2: 16,
     });
@@ -119,7 +119,7 @@ describe("the padding", () => {
     );
     expect(drawing.height).toBe(105.4296875);
     expect(element(drawing, "flow:quarters")).toMatchObject({ y: 60.453125 });
-    expect(drawing.elements.find((item) => item.type === "break")).toMatchObject({
+    expect(drawing.elements.find((item) => item.type === "flow_marker")).toMatchObject({
       y1: 40.4765625,
       y2: 87.4296875,
     });

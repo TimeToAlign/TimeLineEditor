@@ -1,7 +1,7 @@
 /** Minting block ids and element ids. */
 
 import type { TimelineClass } from "../manifest/elements.ts";
-import { elementAddress } from "../manifest/files.ts";
+import { ENTRY_KINDS, elementAddress, entriesOf } from "../manifest/files.ts";
 import type { Manifest, TimelineManifest } from "../manifest/types.ts";
 import type { BlockId } from "./blocks.ts";
 import type { View } from "./view.ts";
@@ -37,26 +37,29 @@ export const TIMELINE_PREFIX = {
 function treeIds(timeline: TimelineManifest, ids: Set<string>, timelinesOnly = false): Set<string> {
   ids.add(timeline.id);
   if (!timelinesOnly) {
-    const { breaks, jumps, markers } = timeline.flow_control;
-    for (const items of [timeline.conversion_maps, timeline.regions, breaks, jumps, markers]) {
-      for (const item of items) ids.add(item.id);
+    for (const kind of ENTRY_KINDS) {
+      for (const item of entriesOf(timeline, kind)) ids.add(item.id);
     }
   }
   for (const child of timeline.children) treeIds(child, ids, timelinesOnly);
   return ids;
 }
 
-/** The ids of a manifest's groups and the manifest's own id. */
-function frameIds(manifest: Manifest): string[] {
-  const ids = manifest.groups.map((group) => group.id);
+/**
+ * The ids a manifest scopes together with its timelines' ids: its groups',
+ * its measure maps' and the manifest's own.
+ */
+function globalIds(manifest: Manifest): string[] {
+  const ids = [...manifest.groups, ...manifest.measure_maps].map((item) => item.id);
   if (manifest.id !== undefined) ids.push(manifest.id);
   return ids;
 }
 
 /**
  * The address of every element a manifest carries (`elementAddress`): the
- * ids of its timelines, its groups and the manifest's own, and `<root>/<id>`
- * for every map, region, break, jump and marker of a root's tree.
+ * ids of its timelines, its groups, its measure maps and the manifest's own,
+ * and `<root>/<id>` for every map, region and flow-control element of a
+ * root's tree.
  */
 export function manifestIds(manifest: Manifest): Set<string> {
   const ids = new Set<string>();
@@ -66,17 +69,18 @@ export function manifestIds(manifest: Manifest): Set<string> {
       ids.add(timelines.has(id) ? id : elementAddress(timeline.id, id));
     }
   }
-  for (const id of frameIds(manifest)) ids.add(id);
+  for (const id of globalIds(manifest)) ids.add(id);
   return ids;
 }
 
 /**
  * The ids a new element of a manifest may not carry, as the manifest scopes
  * them: every id of the tree the element goes into (the tree holding the
- * timeline `into`, or every tree when `into` is omitted); for a new timeline
- * also every timeline id of the manifest, every group id and the manifest's
- * id. A map, region, break, jump or marker may carry a group's id, the
- * manifest's id or an id of another tree.
+ * timeline `into`, or every tree when `into` is omitted); for a new timeline,
+ * group or measure map also every timeline id of the manifest, every group
+ * and measure-map id and the manifest's id. A map, region or flow-control
+ * element may carry a group's or a measure map's id, the manifest's id or an
+ * id of another tree.
  */
 export function takenIds(manifest: Manifest, timeline: boolean, into?: string): Set<string> {
   const ids = new Set<string>();
@@ -85,7 +89,7 @@ export function takenIds(manifest: Manifest, timeline: boolean, into?: string): 
   for (const root of tree === undefined ? roots : [tree]) treeIds(root, ids);
   if (timeline) {
     for (const root of roots) treeIds(root, ids, true);
-    for (const id of frameIds(manifest)) ids.add(id);
+    for (const id of globalIds(manifest)) ids.add(id);
   }
   return ids;
 }

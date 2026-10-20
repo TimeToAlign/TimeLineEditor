@@ -232,11 +232,10 @@ export function marqueeView(): View {
     into: `${A}/dlt_1`,
     map: {
       id: "cmap_3",
-      type: "SamplesToSeconds",
+      type: "LinearMap",
       source_unit: "samples",
       target_unit: "seconds",
       scalar: [1, 44100],
-      sample_rate: 44100,
     },
   });
 }

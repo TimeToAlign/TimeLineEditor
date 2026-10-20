@@ -12,20 +12,19 @@ export const ADD_KINDS = [
   "block",
   "timeline",
   "group",
+  "measure_map",
   "child",
   "map",
   "region",
-  "break",
-  "jump",
-  "marker",
+  "flow_control",
 ] as const;
 export type AddKind = (typeof ADD_KINDS)[number];
 
 /**
  * Add one thing `into` a target: a `block` into `workspace`; a root
- * `timeline` or a `group` into a block; a `child`, `map`, `region`, `break`,
- * `jump` or `marker` into a timeline. The value is the thing as its
- * container stores it, carrying its own id.
+ * `timeline`, a `group` or a `measure_map` into a block; a `child`, a
+ * `map`, a `region` or a `flow_control` element into a timeline. The value
+ * is the thing as its container stores it, carrying its own id.
  */
 export type AddCommand = {
   readonly type: "add";

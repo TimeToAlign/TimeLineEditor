@@ -20,7 +20,6 @@ export { Cascade, INITIAL_STYLE } from "./cascade.ts";
 export { DEFAULT_LAYER, manifestLayer } from "./defaults.ts";
 export type {
   BlockElement,
-  BreakElement,
   Drawing,
   DrawnElement,
   JumpElement,
@@ -36,6 +35,7 @@ export type {
   RegionElement,
   ShownCoordinate,
   TextElement,
+  VerticalLineElement,
 } from "./elements.ts";
 export { DEFAULT_PLACEMENT } from "./elements.ts";
 export type { Bounds, Circle, LineGeometry, LineMark } from "./geometry.ts";

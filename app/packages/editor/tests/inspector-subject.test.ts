@@ -98,17 +98,30 @@ describe("inspectedSubject", () => {
   it.each([
     ["map0000000/melody/tempo", named("Conversion map", "Tempo")],
     ["map0000000/melody/ticks", named("Conversion map", "Ticks")],
-    ["flow000000/flow:quarters/break_1", named("Break", "fine")],
-    ["flow000000/flow:quarters/break_1/label", named("Label of break", "fine")],
-    ["flow000000/flow:quarters/jump_1", unnamed("Jump", "jump_1")],
-    ["flow000000/flow:quarters/marker_1", named("Marker", "repeat-start")],
+    ["flow000000/flow:quarters/break_1", named("Flow marker", "fine")],
+    ["flow000000/flow:quarters/break_1/label", named("Label of flow marker", "fine")],
+    ["flow000000/flow:quarters/jump_1", unnamed("Jump origin", "jump_1")],
+    ["flow000000/flow:quarters/marker_1", named("Jump target", "repeat-start")],
     ["styled0000/score/intro", named("Region", "intro")],
     ["styled0000/score/intro/label", named("Label of region", "intro")],
-    ["styled0000/score/da-capo", unnamed("Jump", "da-capo")],
+    ["styled0000/score/da-capo", unnamed("Jump origin", "da-capo")],
     ["styled0000/a", unnamed("Timeline", "a")],
     ["styled0000/a/card", unnamed("Card of timeline", "a")],
   ])("names %s, an element of a timeline", (address, subject) => {
     expect(inspectedSubject(small, [address])).toEqual(subject);
+  });
+
+  it("names a measure map by its kind and its name or id", () => {
+    const store = storeOf("small");
+    const error = store.dispatch({
+      type: "add",
+      into: "map0000000",
+      measure_map: { id: "bars", rows: [{ count: 1, qstamp: [0, 1] }] },
+    });
+    if (error !== null) throw new Error(error.message);
+    expect(inspectedSubject(store.view, ["map0000000/bars"])).toEqual(
+      unnamed("Measure map", "bars"),
+    );
   });
 
   it.each([

@@ -179,13 +179,13 @@ export function withLocked(
   return relocked;
 }
 
-/** The `add` command for a ScalarMap from quarters to seconds. */
-export function scalarMap(timeline: string, id: string): object {
+/** The `add` command for a LinearMap from quarters to seconds. */
+export function linearMap(timeline: string, id: string): object {
   return {
     type: "add",
     into: `${BLOCK}/${timeline}`,
     map: {
-      type: "ScalarMap",
+      type: "LinearMap",
       id,
       name: null,
       source_unit: "quarters",

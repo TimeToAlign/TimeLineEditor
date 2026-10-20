@@ -89,6 +89,7 @@ describe("the name field", () => {
     [["score/card"], `${M}/score`, "Score"],
     [["score/start"], `${M}/score`, "Score"],
     [["page/cmap_1"], `${M}/page/cmap_1`, null],
+    [["score/jump_1"], `${M}/score/jump_1`, null],
   ])("names %j by %s, %j", (elements, target, name) => {
     const store = storeOf();
     expect(fieldOf(store, elements)).toEqual({
@@ -99,12 +100,22 @@ describe("the name field", () => {
     });
   });
 
-  it.each([[["performance/markers_1"]], [["score/jump_1"]], [["score", "page"]]])(
-    "is absent for %j",
-    (elements) => {
-      expect(fieldOf(storeOf(), elements)).toBe(null);
-    },
-  );
+  it("names a measure map by its own address", () => {
+    const store = storeOf();
+    const bars = { id: "bars", rows: [{ count: 1, qstamp: [0, 1] }] };
+    const error = store.dispatch({ type: "add", into: M, measure_map: bars });
+    if (error !== null) throw new Error(error.message);
+    expect(fieldOf(store, ["bars"])).toEqual({
+      target: `${M}/bars`,
+      name: null,
+      nullable: true,
+      manifest: blockOf(store).manifest,
+    });
+  });
+
+  it.each([[["performance/markers_1"]], [["score", "page"]]])("is absent for %j", (elements) => {
+    expect(fieldOf(storeOf(), elements)).toBe(null);
+  });
 
   it("is absent for two blocks", () => {
     expect(nameIn(storeOf(), new Set([M, "bshared000"]))).toBe(null);

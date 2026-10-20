@@ -9,6 +9,7 @@ export type { Domain, ElementKey, Modality } from "./manifest/elements.ts";
 export {
   BOX_KEY,
   bandKey,
+  DRAWN_FLOW,
   elementKey,
   manifestElements,
   orderedChildren,

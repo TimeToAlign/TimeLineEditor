@@ -26,6 +26,6 @@ export const MARKER_BASE = 6;
 export const MARKER_HEIGHT = 13;
 export const LABEL_GAP = 2;
 export const BRACE = 6;
-export const BREAK_LABEL_OFFSET = 3;
+export const FLOW_MARKER_LABEL_OFFSET = 3;
 /** The boundary half-height `k`. */
 export const BOUNDARY = 8;

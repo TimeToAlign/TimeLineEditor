@@ -1,46 +1,38 @@
 /**
  * Removing elements from a manifest. Removing a timeline, root or child,
  * removes its subtree, its id from every group and from every display order,
- * the conversion maps naming a removed timeline as `source_id` or
- * `target_id`, every `ids` entry of a `graphical` statement addressing a
- * removed element (a statement left with no `ids` goes), and every statement
- * whose `within` names a removed timeline. Removing a group removes the group
- * only: its members stay where they are. A group left without members stays.
+ * every `ids` entry of a `graphical` statement addressing a removed element
+ * (a statement left with no `ids` goes), and every statement whose `within`
+ * names a removed timeline. Removing a group removes the group only: its
+ * members stay where they are. A group left without members stays. Removing
+ * a measure map removes it only; a measure view still naming it leaves the
+ * manifest dangling, which the schema check refuses.
  */
 
 import { elementOf } from "../workspace/address.ts";
-import { elementAddress } from "./files.ts";
-import type { ConversionMap, Manifest, ManifestGraphical, TimelineManifest } from "./types.ts";
+import { ENTRY_KINDS, elementAddress, entriesOf } from "./files.ts";
+import type { Manifest, ManifestGraphical, TimelineManifest } from "./types.ts";
 
-const LISTS = ["conversion_maps", "regions"] as const;
-const FLOW_LISTS = ["breaks", "jumps", "markers"] as const;
-
-/** The element addresses of every map, region, break, jump and marker of one timeline. */
+/** The element addresses of every map, region and flow-control element of one timeline. */
 function entryAddresses(timeline: TimelineManifest, root: string): string[] {
-  const { flow_control: flow } = timeline;
-  return [
-    ...LISTS.flatMap((list) => timeline[list].map((item) => elementAddress(root, item.id))),
-    ...FLOW_LISTS.flatMap((list) => flow[list].map((item) => elementAddress(root, item.id))),
-  ];
+  return ENTRY_KINDS.flatMap((kind) =>
+    entriesOf(timeline, kind).map((item) => elementAddress(root, item.id)),
+  );
 }
 
 /**
  * The element addresses that removing `elements` (element addresses: a
- * timeline's or a group's id, `<root>/<id>` for any other element) removes:
- * the elements themselves, every timeline below a removed one and every map,
- * region, break, jump and marker those timelines hold, and every conversion
- * map naming a removed timeline. An address naming nothing removes nothing.
+ * timeline's, a group's or a measure map's id, `<root>/<id>` for any other
+ * element) removes: the elements themselves, every timeline below a removed
+ * one and every map, region and flow-control element those timelines hold.
+ * An address naming nothing removes nothing.
  */
 export function removedBy(manifest: Manifest, elements: Iterable<string>): Set<string> {
   const asked = new Set(elements);
   const removed = new Set<string>();
-  const timelines = new Set<string>();
   const visit = (timeline: TimelineManifest, root: string, inRemoved: boolean): void => {
     const gone = inRemoved || asked.has(timeline.id);
-    if (gone) {
-      timelines.add(timeline.id);
-      removed.add(timeline.id);
-    }
+    if (gone) removed.add(timeline.id);
     for (const address of entryAddresses(timeline, root)) {
       if (gone || asked.has(address)) removed.add(address);
     }
@@ -48,16 +40,7 @@ export function removedBy(manifest: Manifest, elements: Iterable<string>): Set<s
   };
   for (const root of manifest.timelines) visit(root, root.id, false);
   for (const group of manifest.groups) if (asked.has(group.id)) removed.add(group.id);
-  // Only a map between two timelines names them (`source_id`, `target_id`).
-  const named = (map: ConversionMap): boolean =>
-    "source_id" in map && (timelines.has(map.source_id) || timelines.has(map.target_id));
-  const maps = (timeline: TimelineManifest, root: string): void => {
-    for (const map of timeline.conversion_maps) {
-      if (named(map)) removed.add(elementAddress(root, map.id));
-    }
-    for (const child of timeline.children) maps(child, root);
-  };
-  for (const root of manifest.timelines) maps(root, root.id);
+  for (const map of manifest.measure_maps) if (asked.has(map.id)) removed.add(map.id);
   return removed;
 }
 
@@ -74,12 +57,7 @@ export function withoutElements(manifest: Manifest, elements: Iterable<string>):
       .map((child) => prune(child, root)),
     conversion_maps: timeline.conversion_maps.filter(kept(root)),
     regions: timeline.regions.filter(kept(root)),
-    flow_control: {
-      ...timeline.flow_control,
-      breaks: timeline.flow_control.breaks.filter(kept(root)),
-      jumps: timeline.flow_control.jumps.filter(kept(root)),
-      markers: timeline.flow_control.markers.filter(kept(root)),
-    },
+    flow_control: timeline.flow_control.filter(kept(root)),
   });
   const result: Manifest = {
     ...manifest,
@@ -89,6 +67,7 @@ export function withoutElements(manifest: Manifest, elements: Iterable<string>):
     groups: manifest.groups
       .filter((group) => !removed.has(group.id))
       .map((group) => ({ ...group, members: group.members.filter((id) => !removed.has(id)) })),
+    measure_maps: manifest.measure_maps.filter((map) => !removed.has(map.id)),
   };
   const { graphical } = manifest;
   if (graphical === undefined) return result;

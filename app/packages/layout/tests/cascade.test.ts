@@ -440,13 +440,14 @@ describe("maps by target unit", () => {
       stroke: "#0050EF",
       "stroke-dasharray": "none",
     });
-    expect(element(drawing, "maps:quarters/cmap_11").style).toMatchObject({
-      stroke: "#00CC00",
-      "stroke-dasharray": "1 1",
-    });
     expect(element(drawing, "maps:quarters/tmap_1").style).toMatchObject({
       stroke: "#00CC00",
       "stroke-dasharray": "none",
+    });
+    const samples = drawFixture("conversion_maps__maps_seconds");
+    expect(element(samples, "maps:seconds/cmap_1").style).toMatchObject({
+      stroke: "#0050EF",
+      "stroke-dasharray": "1 1",
     });
   });
 
@@ -460,7 +461,7 @@ describe("maps by target unit", () => {
 
   it("gives a map its type as class", () => {
     const drawing = drawFixture(name, [
-      { statements: [{ select: { class: "FloorMap" }, set: { stroke: "#FEDCBA" } }] },
+      { statements: [{ select: { class: "ConstantMap" }, set: { stroke: "#FEDCBA" } }] },
     ]);
     const reached = drawing.elements
       .filter((item) => item.type === "map" && item.style.stroke === "#FEDCBA")

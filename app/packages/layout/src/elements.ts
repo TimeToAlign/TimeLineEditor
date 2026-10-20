@@ -110,8 +110,9 @@ export type PathCommand =
   | { readonly command: "Q"; readonly points: readonly [Point, Point] }
   | { readonly command: "C"; readonly points: readonly [Point, Point, Point] };
 
+/** A jump origin's arc, from its coordinate to its target's, and its arrowhead. */
 export interface JumpElement extends Addressed {
-  readonly type: "jump";
+  readonly type: "jump_from";
   /** The curve's start `P0` and its controls `C1`, `C2`. */
   readonly start: Point;
   readonly c1: Point;
@@ -124,9 +125,9 @@ export interface JumpElement extends Addressed {
   readonly corners: readonly [Point, Point];
 }
 
-/** A vertical line: a break, or the boundary of a segment. */
-export interface BreakElement extends Addressed {
-  readonly type: "break" | "boundary";
+/** A vertical line: a flow marker, or the boundary of a segment. */
+export interface VerticalLineElement extends Addressed {
+  readonly type: "flow_marker" | "boundary";
   readonly x: number;
   readonly y1: number;
   readonly y2: number;
@@ -157,7 +158,7 @@ export type DrawnElement =
   | MapElement
   | RegionElement
   | JumpElement
-  | BreakElement
+  | VerticalLineElement
   | MarkerElement
   | TextElement;
 

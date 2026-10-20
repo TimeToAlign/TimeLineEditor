@@ -11,6 +11,8 @@ import type {
   Address,
   BandKind,
   EntryKind,
+  FlowControlElement,
+  ListedElement,
   Manifest,
   OpenEditor,
   ResolvedAddress,
@@ -45,14 +47,26 @@ export function bandWord(kind: BandKind): string {
   return BAND_WORDS[kind];
 }
 
-/** The word of each kind of element a timeline holds in a list. */
-const ENTRY_WORDS: { readonly [kind in EntryKind]: string } = {
+/** The word of each type of flow-control element. */
+const FLOW_WORDS: { readonly [type in FlowControlElement["type"]]: string } = {
+  jump_from: "jump origin",
+  jump_to: "jump target",
+  flow_marker: "flow marker",
+};
+
+/** The word of each other kind of element a timeline holds in a list. */
+const ENTRY_WORDS: { readonly [kind in Exclude<EntryKind, "flow_control">]: string } = {
   map: "conversion map",
   region: "region",
-  break: "break",
-  jump: "jump",
-  marker: "marker",
 };
+
+/** The word of an element a timeline holds in a list: a flow-control element's by its type. */
+function entryWord(kind: EntryKind, element: ListedElement): string {
+  if (kind !== "flow_control") return ENTRY_WORDS[kind];
+  if (!("manifestation" in element))
+    throw new Error("a flow-control entry is a flow-control element");
+  return FLOW_WORDS[element.type];
+}
 
 /** What a bundle is called that has neither a `name` nor an `id`. */
 const ANONYMOUS_BUNDLE_NAME = "Anonymous bundle";
@@ -156,8 +170,17 @@ function describe(resolved: ResolvedAddress): Described | null {
     }
     case "entry": {
       const { element } = resolved;
-      const name = "name" in element ? element.name : null;
-      return { parts: [], kind: ENTRY_WORDS[resolved.entry], name, id: element.id, titled: false };
+      return {
+        parts: [],
+        kind: entryWord(resolved.entry, element),
+        name: element.name,
+        id: element.id,
+        titled: false,
+      };
+    }
+    case "measure_map": {
+      const { name, id } = resolved.map;
+      return { parts: [], kind: "measure map", name, id, titled: false };
     }
     case "part": {
       const owner = describe(resolved.owner);
@@ -170,8 +193,9 @@ function describe(resolved: ResolvedAddress): Described | null {
 
 /**
  * The subject the selection names: for one address, what core resolves it
- * to (the bundle, a group, a timeline, a conversion map, region, break,
- * jump or marker), each part the address appends prefixed (`Card of
+ * to (the bundle, a group, a measure map, a timeline, a conversion map, a
+ * region, a jump origin, a jump target or a flow marker), each part the
+ * address appends prefixed (`Card of
  * timeline`, `Label of end of timeline`, `Regions band of timeline`); for
  * several addresses their count; `null` for no selection or an address
  * naming nothing.

@@ -78,11 +78,18 @@ export function unownedKey(
   return { ...BOX_KEY, type, address, inside: holdersOf(holder) };
 }
 
+/**
+ * The flow-control element types a flow control band draws, in drawing
+ * order: its flow markers, then its jump origins; a `jump_to` draws nothing
+ * of its own.
+ */
+export const DRAWN_FLOW = ["flow_marker", "jump_from"] as const;
+
 /** The domain and modality of every unit (drawing.md section 2.3). */
 const UNIT_DOMAINS: Readonly<Record<TimeUnit, readonly [Domain, Modality]>> = {
   number: ["logical", "continuous"],
   floating_measures: ["logical", "continuous"],
-  whole_note: ["logical", "continuous"],
+  whole_notes: ["logical", "continuous"],
   quarters: ["logical", "continuous"],
   ticks: ["logical", "discrete"],
   milliseconds: ["physical", "continuous"],
@@ -226,7 +233,8 @@ export function orderedChildren(timeline: TimelineManifest): ChildTimeline[] {
  * not the first segment and its label, which its segment line holds
  * directly; the conversion maps band its maps; the markers band the
  * member's two wedges with their labels; the regions band its regions, and
- * the flow control band its breaks, then its jumps, each with its label.
+ * the flow control band its flow markers, then its jump origins, each with
+ * its label (a jump target draws nothing of its own).
  */
 function memberElements(member: MemberDrawing, holder: ElementKey, keys: ElementKey[]): void {
   const address = (id: string) => elementAddress(member.root, id);
@@ -278,9 +286,11 @@ function memberElements(member: MemberDrawing, holder: ElementKey, keys: Element
         for (const region of timeline.regions) labelled("region", address(region.id), band);
       },
       flow_control: (band) => {
-        const { breaks, jumps } = timeline.flow_control;
-        for (const item of breaks) labelled("break", address(item.id), band);
-        for (const item of jumps) labelled("jump", address(item.id), band);
+        for (const type of DRAWN_FLOW) {
+          for (const item of timeline.flow_control) {
+            if (item.type === type) labelled(type, address(item.id), band);
+          }
+        }
       },
     };
     for (const kind of BAND_KINDS) {

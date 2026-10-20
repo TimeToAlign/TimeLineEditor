@@ -103,25 +103,33 @@ describe("a root of unknown length", () => {
     expect(line(drawing, "coda").xs).toBe(353.798828125);
   });
 
-  it("counts the measure map's last row in its reach", () => {
-    const removed = {
-      type: "remove",
-      targets: [`${BLOCK}/clt_2`, `${BLOCK}/clt_3`, `${BLOCK}/clt_1/jump_4`],
-    };
-    const known = drawn(edit("corpus_score_ms3", removed));
-    const unknown = drawn(edit("corpus_score_ms3", removed, set("clt_1", { length: null })));
+  it("counts every flow-control coordinate in its reach, a jump target's too, and no measure map", () => {
+    const children = { type: "remove", targets: [`${BLOCK}/clt_2`, `${BLOCK}/clt_3`] };
+    const lastJump = { type: "remove", targets: [`${BLOCK}/clt_1/jump_4`] };
     const flow = (drawing: Drawing) =>
-      drawing.elements.filter((item) => item.type === "break" || item.type === "jump");
+      drawing.elements.filter((item) => item.type === "flow_marker" || item.type === "jump_from");
+    const known = drawn(edit("corpus_score_ms3", children));
+    const unknown = drawn(edit("corpus_score_ms3", children, set("clt_1", { length: null })));
     expect(flow(unknown)).toEqual(flow(known));
     expect(flow(unknown).map((item) => item.address)).toEqual([
       "clt_1/break_1",
       "clt_1/jump_2",
       "clt_1/jump_1",
       "clt_1/jump_3",
+      "clt_1/jump_4",
     ]);
     const x0 = line(known, "clt_1").xs;
     expect(line(known, "clt_1")).toEqual({ xs: x0, xe: x0 + 400, end: "arrowhead" });
     expect(line(unknown, "clt_1")).toEqual({ xs: x0, xe: x0 + 400 + 12, end: "unknown" });
+    // Without `jump_4` (at 37) the farthest coordinate is the jump target `marker_2` at 30,
+    // which draws nothing; the measure map's rows, reaching past it, are no content.
+    const at30 = drawn(
+      edit("corpus_score_ms3", children, lastJump, set("clt_1", { length: [30, 1] })),
+    );
+    const open = drawn(
+      edit("corpus_score_ms3", children, lastJump, set("clt_1", { length: null })),
+    );
+    expect(flow(open)).toEqual(flow(at30));
   });
 });
 

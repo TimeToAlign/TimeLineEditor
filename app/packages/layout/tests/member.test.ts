@@ -82,7 +82,7 @@ describe("styled__score", () => {
       ya: y.tip,
     },
     {
-      type: "jump",
+      type: "jump_from",
       address: "score/da-capo",
       start: [xe, y.flow],
       c1: jump.c1,

@@ -23,35 +23,50 @@ import {
   set,
 } from "./support.ts";
 
-const jump = (from: number, to: number, label: string) => ({
-  type: "add",
-  into: `${BLOCK}/r`,
-  jump: {
-    id: label,
-    from_coordinate: quarters(from),
-    to_coordinate: quarters(to),
-    control_type: "repeat_end",
-    condition: "first_n",
-    repeat_count: 2,
-    target: null,
-    label,
-    meta: {},
+/**
+ * A jump origin at `from` with `label` as its id and its label, and the jump
+ * target `<label>_to` at `to` that it names, added in that order.
+ */
+const jump = (from: number, to: number, label: string) => [
+  {
+    type: "add",
+    into: `${BLOCK}/r`,
+    flow_control: {
+      id: `${label}_to`,
+      type: "jump_to",
+      manifestation: "repeat_start",
+      coordinate: quarters(to),
+    },
   },
-});
+  {
+    type: "add",
+    into: `${BLOCK}/r`,
+    flow_control: {
+      id: label,
+      type: "jump_from",
+      manifestation: "repeat_end",
+      coordinate: quarters(from),
+      target: `${label}_to`,
+      repeat_count: 2,
+      label,
+      meta: {},
+    },
+  },
+];
 
 describe("jump placement order and levels", () => {
   it("places five jumps on four exact levels and emits them in placement order", () => {
     const manifest = build(
       "r",
       16,
-      jump(4, 6, "one"),
-      jump(8, 10, "two"),
-      jump(3, 11, "three"),
-      jump(2, 12, "four"),
-      jump(1, 13, "five"),
+      ...jump(4, 6, "one"),
+      ...jump(8, 10, "two"),
+      ...jump(3, 11, "three"),
+      ...jump(2, 12, "four"),
+      ...jump(1, 13, "five"),
     );
     const drawing = draw(manifest, DEFAULT_PLACEMENT, [DEFAULT_LAYER], metrics);
-    const jumps = drawing.elements.filter((item): item is JumpElement => item.type === "jump");
+    const jumps = drawing.elements.filter((item): item is JumpElement => item.type === "jump_from");
     expect(jumps.map((item) => item.address)).toEqual([
       "r/one",
       "r/two",
@@ -80,15 +95,15 @@ describe("jumps of corpus_score_ms3", () => {
   const drawing = drawFixture("corpus_score_ms3");
   const jump = (address: string) => {
     const found = drawing.elements.find((item) => item.address === address);
-    if (found?.type !== "jump") throw new Error(`no jump ${address}`);
+    if (found?.type !== "jump_from") throw new Error(`no jump ${address}`);
     return found;
   };
 
-  it("places the jumps on the flow row below the break-label tier", () => {
+  it("places the jumps on the flow row below the flow-marker label tier", () => {
     expect(drawing.height).toBe(175.3828125);
     expect(drawing.elements.find((item) => item.address === "clt_1")).toMatchObject({ y: 54.5 });
     expect(
-      drawing.elements.filter((item) => item.type === "jump").map((item) => item.address),
+      drawing.elements.filter((item) => item.type === "jump_from").map((item) => item.address),
     ).toEqual(["clt_1/jump_2", "clt_1/jump_1", "clt_1/jump_3", "clt_1/jump_4"]);
     expect(drawing.elements.find((item) => item.address === "clt_1/break_1/label")).toMatchObject({
       baseline: 93.83056640625,

@@ -54,17 +54,16 @@ function manifestIn(store: Store, id: string): Json {
   return manifestOf(blockIn(store, id));
 }
 
-/** One `quarters` timeline whose measure-map row states `nominal_length: null`, which TOML cannot hold. */
+/** One `quarters` timeline beside a measure map whose row states `nominal_length: null`, which TOML cannot hold. */
 function nominalNull(): Manifest {
   const manifest = loadManifest(
     dumps({
       timeskeleton: SCHEMA_VERSION,
-      timelines: [
+      timelines: [{ id: "score", unit: "quarters", length: [4, 1] }],
+      measure_maps: [
         {
-          id: "score",
-          unit: "quarters",
-          length: [4, 1],
-          measure_map: [{ count: 1, qstamp: 0, number: 1, actual_length: 4, nominal_length: null }],
+          id: "bars",
+          rows: [{ count: 1, qstamp: 0, number: 1, actual_length: 4, nominal_length: null }],
         },
       ],
     }),
@@ -189,59 +188,45 @@ describe("the TOML null rule", () => {
         .map(([name, node]) => [name, omissibleNulls(node)] as const)
         .filter(([, members]) => members.length > 0),
     );
-    const maps = [
-      "BeatInMeasureMap",
-      "ChainMap",
-      "CombinationMap",
-      "ConstantMap",
-      "FloorMap",
-      "InterpolationMap",
-      "IntervalToConstantMap",
-      "LinearMap",
-      "MetricMap",
-      "MetricalPositionMap",
-      "PiecewiseMap",
-      "QuartersToFloatingMeasures",
-      "QuartersToMeasureNumber",
-      "QuartersToTicks",
-      "RotationMap",
-      "SamplesToSeconds",
-      "ScalarMap",
-      "SecondsToSamples",
-      "ShiftMap",
-      "TableMap",
-      "TicksToQuarters",
-    ];
-    expect(maps).toHaveLength(21);
     expect(listed).toEqual({
       TimeSkeleton: ["name"],
-      Timeline: ["length", "measure_map", "metric_hierarchy", "name"],
-      ...Object.fromEntries(maps.map((name) => [name, ["name", "source_unit", "target_unit"]])),
+      Timeline: ["length", "name"],
+      MeasureMap: ["name"],
       Region: ["name"],
-      Break: ["label", "name"],
-      Jump: ["label", "target"],
-      Marker: ["name"],
+      FlowControlElement: ["label", "name"],
+      MapBase: ["name", "source_unit", "target_unit"],
       Group: ["name"],
     });
   });
 
-  /** A manifest of two roots, one of unknown length, and a group, every null written out. */
+  /**
+   * A manifest of two roots, one of unknown length and one with a conversion map converting to
+   * no time axis, a group and a measure map, every null written out.
+   */
   function nullable(): Json {
     const manifest = loadManifest(
       dumps({
         timeskeleton: SCHEMA_VERSION,
         timelines: [
-          { id: "score", unit: "quarters", length: [12, 1] },
+          {
+            id: "score",
+            unit: "quarters",
+            length: [12, 1],
+            conversion_maps: [
+              { id: "beats", type: "LinearMap", source_unit: "quarters", target_unit: null },
+            ],
+          },
           { id: "page", unit: "pixels", length: null },
         ],
         groups: [{ id: "group_1", members: ["page", "score"] }],
+        measure_maps: [{ id: "bars", rows: [{ count: 1, qstamp: [0, 1] }] }],
       }),
     );
     if (isLoadError(manifest)) throw new Error("the manifest is refused");
     return manifest as unknown as Json;
   }
 
-  it("omits and restores the null members of the manifest, its timelines and its groups", () => {
+  it("omits and restores the null members of the manifest and every element of it", () => {
     const value = nullable();
     const text = written("toml", value);
     expect(text).toBe(
@@ -254,6 +239,12 @@ describe("the TOML null rule", () => {
         "",
         "[groups.meta]",
         "",
+        "[[measure_maps]]",
+        'id = "bars"',
+        "rows = [ { count = 1, qstamp = [ 0, 1 ] } ]",
+        "",
+        "[measure_maps.meta]",
+        "",
         "[[timelines]]",
         'id = "page"',
         'unit = "pixels"',
@@ -262,32 +253,24 @@ describe("the TOML null rule", () => {
         "children = []",
         "conversion_maps = []",
         "regions = []",
+        "flow_control = []",
         'number_type = "int"',
         "",
         "[timelines.meta]",
         "",
-        "[timelines.flow_control]",
-        "breaks = []",
-        "jumps = []",
-        "markers = []",
-        "",
         "[[timelines]]",
+        'conversion_maps = [ { id = "beats", source_unit = "quarters", type = "LinearMap", scalar = 1, offset = 0 } ]',
         'id = "score"',
         "length = [ 12, 1 ]",
         'unit = "quarters"',
         "locked = false",
         "is_segment_line = false",
         "children = []",
-        "conversion_maps = []",
         "regions = []",
+        "flow_control = []",
         'number_type = "fraction"',
         "",
         "[timelines.meta]",
-        "",
-        "[timelines.flow_control]",
-        "breaks = []",
-        "jumps = []",
-        "markers = []",
         "",
         "[meta]",
         "",
@@ -301,8 +284,10 @@ describe("the TOML null rule", () => {
         at(read, "groups", 0, "name"),
         at(read, "timelines", 0, "length"),
         at(read, "timelines", 0, "name"),
-        at(read, "timelines", 1, "measure_map"),
-      ]).toEqual([null, null, null, null, null]);
+        at(read, "timelines", 1, "conversion_maps", 0, "name"),
+        at(read, "timelines", 1, "conversion_maps", 0, "target_unit"),
+        at(read, "measure_maps", 0, "name"),
+      ]).toEqual([null, null, null, null, null, null, null]);
     }
   });
 
@@ -310,14 +295,11 @@ describe("the TOML null rule", () => {
     const value = parseJson(
       dumps({
         timeskeleton: SCHEMA_VERSION,
-        timelines: [
+        timelines: [{ id: "score", unit: "quarters", length: [4, 1] }],
+        measure_maps: [
           {
-            id: "score",
-            unit: "quarters",
-            length: [4, 1],
-            measure_map: [
-              { count: 1, qstamp: 0, number: 1, actual_length: 4, nominal_length: null },
-            ],
+            id: "bars",
+            rows: [{ count: 1, qstamp: 0, number: 1, actual_length: 4, nominal_length: null }],
           },
         ],
       }),
@@ -329,14 +311,14 @@ describe("the TOML null rule", () => {
           code: "not_representable",
           message:
             "TOML has no null, and the schema neither requires this member nor defaults it to null",
-          path: ["timelines", 0, "measure_map", 0, "nominal_length"],
+          path: ["measure_maps", 0, "rows", 0, "nominal_length"],
         },
       ],
     });
     for (const format of ["json", "yaml"] as const) {
       const read = readBack(format, written(format, value));
       expect(dumps(read)).toBe(dumps(value));
-      expect(at(read, "timelines", 0, "measure_map", 0, "nominal_length")).toBe(null);
+      expect(at(read, "measure_maps", 0, "rows", 0, "nominal_length")).toBe(null);
     }
   });
 
@@ -418,7 +400,7 @@ describe("applying a text", () => {
     );
     if (unit.ok) throw new Error("accepted");
     expect(unit.problems.map((item) => [item.message, problemPointer(item)])).toEqual([
-      ["must be equal to one of the allowed values", "/timelines/0/unit"],
+      ["must be equal to constant", "/timelines/0/unit"],
     ]);
     const positions = (
       [
@@ -436,9 +418,9 @@ describe("applying a text", () => {
       return [problem?.code, problem?.line, problem?.column];
     });
     expect(positions).toEqual([
-      ["syntax_error", 22, 17],
-      ["syntax_error", 16, 5],
-      ["syntax_error", 14, 1],
+      ["syntax_error", 19, 17],
+      ["syntax_error", 14, 5],
+      ["syntax_error", 16, 1],
     ]);
     expect(store.journal).toHaveLength(1);
   });
@@ -546,12 +528,7 @@ describe("the four text modes", () => {
       expect(dumps(readBack("yaml", written("yaml", manifest, options)))).toBe(SHOWN[mode]);
       const toml = readBack("toml", written("toml", manifest, options));
       if (options.minimal) {
-        const timeline = at(shown, "timelines", 0) as Record<string, Json>;
-        const restored = {
-          ...(shown as Record<string, Json>),
-          name: null,
-          timelines: [{ ...timeline, measure_map: null, metric_hierarchy: null }],
-        };
+        const restored = { ...(shown as Record<string, Json>), name: null };
         expect(dumps(toml)).toBe(dumps(restored));
         expect(dumps(minimal(toml))).toBe(SHOWN[mode]);
       } else {
@@ -727,14 +704,12 @@ describe("the text state", () => {
     const problems = () => toml.problems.map((problem) => [problem.code, problemPointer(problem)]);
     expect([toml.text, problems()]).toEqual([
       "",
-      [["not_representable", "/timelines/0/measure_map/0/nominal_length"]],
+      [["not_representable", "/measure_maps/0/rows/0/nominal_length"]],
     ]);
     toml.text = "x";
     toml.text = "";
     toml.follow(blockIn(nulls, A));
-    expect(problems()).toEqual([
-      ["not_representable", "/timelines/0/measure_map/0/nominal_length"],
-    ]);
+    expect(problems()).toEqual([["not_representable", "/measure_maps/0/rows/0/nominal_length"]]);
   });
 
   it("reverts to the selected block's manifest, or to nothing", () => {

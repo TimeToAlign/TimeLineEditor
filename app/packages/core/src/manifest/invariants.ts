@@ -173,28 +173,9 @@ function checkTimeline(
     }
   });
 
-  const flowPath = [...path, "flow_control"];
-  timeline.flow_control.breaks.forEach((entry, index) => {
-    report(readOnAxis(entry.coordinate, timeline, [...flowPath, "breaks", index, "coordinate"]));
+  timeline.flow_control.forEach((entry, index) => {
+    report(readOnAxis(entry.coordinate, timeline, [...path, "flow_control", index, "coordinate"]));
   });
-  timeline.flow_control.jumps.forEach((entry, index) => {
-    const jumpPath = [...flowPath, "jumps", index];
-    report(readOnAxis(entry.from_coordinate, timeline, [...jumpPath, "from_coordinate"]));
-    report(readOnAxis(entry.to_coordinate, timeline, [...jumpPath, "to_coordinate"]));
-  });
-  timeline.flow_control.markers.forEach((marker, index) => {
-    report(readOnAxis(marker.coordinate, timeline, [...flowPath, "markers", index, "coordinate"]));
-  });
-
-  if (timeline.metric_hierarchy !== null && timeline.measure_map === null) {
-    problems.push(
-      problem(
-        ErrorCode.metricHierarchyWithoutMeasureMap,
-        "a metric hierarchy requires the timeline's measure map",
-        [...path, "metric_hierarchy"],
-      ),
-    );
-  }
 }
 
 /** Every invariant violation of a manifest in canonical order, in traversal order, root by root. */

@@ -95,7 +95,12 @@ own holders. Inheritance is a column of the property table: stroke,
 stroke-width, stroke-dasharray, fill and font-size inherit (a root's stroke
 reaches its grandchild, a region's font size its label), never `shadow`,
 `opacity` or `rx`. A map is drawn in the domain and modality it
-converts to, with its type as class. For every manifest fixture, every
+converts to (`conversion_maps__maps_quarters`: the LinearMap `lmap_1` to
+seconds physical and continuous, the FloatingMeasureMap `tmap_1` logical
+and continuous; `conversion_maps__maps_seconds`: the LinearMap `cmap_1`
+to samples physical and discrete), a map converting to no time axis (the
+ConstantMap `cmap_6`) taking its timeline's stroke, with its type as
+class (`ConstantMap` matches `cmap_6` alone). For every manifest fixture, every
 drawn element's address and type are among the element keys core
 enumerates.
 
@@ -168,13 +173,15 @@ down: `clt_2` at 26.80810546875, `clt_3` at 40.80810546875, `clt_1` at
 ### `flow_control`
 
 Root `flow:quarters` length 16, name `Flow control` (`N =
-66.9775390625`), `x0 = 90.9775390625`, `x(t) = x0 + 25 t`. Break at 12
-(label `Fine`), jump from 8 to 2 (label `Repeat`), both below; the line at
+66.9775390625`), `x0 = 90.9775390625`, `x(t) = x0 + 25 t`. The flow marker
+`break_1` at 12 (label `Fine`) and the jump origin `jump_1` at 8, leading to
+its target, the jump target `marker_1` at 2, which draws nothing (label
+`Repeat`), both below; the line at
 22.40234375 as in `bare`. The flow control band starts at `26.9765625 + 4 =
-30.9765625` with one break-label tier, so the flow row lies 41.453125 out,
+30.9765625` with one flow-marker label tier, so the flow row lies 41.453125 out,
 at `yf = 63.85546875`; one jump level makes the band `10.4765625 + 8 + 0 + 2
 + 10.4765625 = 30.953125` wide, `Eb = 61.9296875`, `Hc = 84.33203125`. The
-break line runs at x 390.9775390625 from the flow row to `8 + P = 16`;
+flow marker's line runs at x 390.9775390625 from the flow row to `8 + P = 16`;
 its label starts at 393.9775390625, baseline `yf − d(9) =
 61.73291015625`.
 
@@ -194,9 +201,9 @@ baseline 82.20947265625. The `16 ♩` label reaches `R = 500.256591796875`:
 
 ### `map`
 
-Root `melody` length 8 with map `tempo` (ScalarMap to seconds: physical,
-continuous); child `phrase` at 2, length 4, with map `ticks`
-(QuartersToTicks: logical, discrete). Maps have no names, so the widest
+Root `melody` length 8 with map `tempo` (a LinearMap to seconds: physical,
+continuous); child `phrase` at 2, length 4, with map `ticks` (a LinearMap
+to ticks: logical, discrete). Maps have no names, so the widest
 name is `Melody` (`N = 39.53662109375`), `x0 = 63.53662109375`, `x(t) = x0
 + 50 t`. The conversion maps band holds `tempo` and reaches 6.5; the
 children band starts at `max(6.5 + 4, 7) = 10.5`; `phrase`'s maps reach
@@ -267,8 +274,8 @@ row's pitch (`map`'s `melody` at 10.5 for the pitch 14 and 15 for 30,
 line with boundaries reaches `k` both ways, its segment labels above only
 (`b`: 20.4765625 above, 8 below). Segments without a line join their
 displayed bands to their segment line's, after its own, in its band order.
-An open end runs on `9.5w`; an extent holds the drawn labels and break
-points. A root's break ends at the padding of the opposite side, any other
+An open end runs on `9.5w`; an extent holds the drawn labels and flow
+markers' points. A root's flow marker ends at the padding of the opposite side, any other
 `max(E, h(s) / 2)` beyond its line (`child_flow_control`'s `verse` with a
 map: 93.5).
 
@@ -291,7 +298,7 @@ from sections 4 and 6.4:
 - **Band orders.** A band moved across its line moves everything it holds;
   a child's band order follows its parent's by band id without an entry,
   is its own entry when it has one, and returns to its parent's when the
-  entry is set to null. A break runs from its flow row across its line, the
+  entry is set to null. A flow marker runs from its flow row across its line, the
   root's to the padding, a child's to `max(E, h(s) / 2)` beyond it.
 - **Rows.** In `joint_rows` the children bands of each row's lines are laid
   out together at two depths, one name per row, at the size of the
@@ -304,15 +311,17 @@ from sections 4 and 6.4:
 
 **Five jumps.** Root `r`, quarters, length 16, `x(t) = x0 + 25 t`, with
 jumps 4→6 `one`, 8→10 `two`, 3→11 `three`, 2→12 `four` and 1→13 `five`,
-each added with its label as its id; `x0 = 16 + 4.5224609375 + 8` (the
-name `r`, `A = 842`). Canonical order sorts by `from`: `five`, `four`,
+each a jump origin at its `from` with its label as its id, added after the
+jump target `<id>_to` at its `to` that it names; `x0 = 16 + 4.5224609375 +
+8` (the name `r`, `A = 842`). Canonical order sorts the jump origins by
+their coordinate, `from`: `five`, `four`,
 `three`, `one`, `two`; their spans are 12, 10, 8, 2 and 2, and the stable
 sort by span gives the placement order `one`, `two`, `three`, `four`,
 `five`, which the jumps and their labels are drawn in. Extents from `x0`:
 `one` `[100, 150]`, `two` `[200, 250]`, `three` `[75, 275]`, `four` `[50,
 300]`, `five` `[25, 325]`; no label widens its extent. First fit: `one` and
 `two` level 1, `three` 2, `four` 3, `five` 4. No band above: the root's line at
-22.40234375. No break, so no break-label tier: the flow row is the flow
+22.40234375. No flow marker, so no label tier: the flow row is the flow
 control band's start `f0 = 26.9765625 + 4 = 30.9765625`, `yf =
 53.37890625`. With `pj = 10 + 10.4765625 = 20.4765625`, `apex − yf` is 8,
 28.4765625, 48.953125 and 69.4296875. In `yc = yf + 4/3 × (ya − yf)` the
@@ -325,18 +334,20 @@ gives 92.57291666666666. Summed in item coordinates (the flow row at
 118.64973958333333 and 145.95182291666669 (summed from the card's top
 first, `one` and `two` would be 64.04557291666667).
 
-**`corpus_score_ms3`.** Root `clt_1` (no name), quarters, length 37, a
-ScalarMap above; children `controls` and `notes`, each from 0 to 37, in
+**`corpus_score_ms3`.** Root `clt_1` (no name), quarters, length 37, one
+map above (a LinearMap; its measure map, which belongs to no timeline, is
+not drawn); children `controls` and `notes`, each from 0 to 37, in
 rows 1 and 2. The widest name is `controls` (44.10205078125); `x0 =
 68.10205078125` (no centred label asks more: `MC 3 → MC 1`, 58.53515625
 wide, at `u = 3/37` asks `16 + 29.267578125 − 32.432432432432435`). Above:
 the one-map stack (6.5), the children band from 10.5, two rows of 14, `Ea
 = 38.5`, `y_root = 46.5`, the root's line at 54.5. Below: the markers band
-to 26.9765625, the flow control band from 30.9765625 with one break-label
+to 26.9765625, the flow control band from 30.9765625 with one flow-marker label
 tier (`fine at MC 7`): the flow row lies 41.453125 out, `yf = 95.953125`,
-the break label's baseline `95.953125 − 2.12255859375 = 93.83056640625`.
-Jumps by `from`: `jump_1` `6→0`, `jump_2` `9→6`, `jump_3` `28→16`,
-`jump_4` `37→0`, spans 6, 3, 12, 37: placement order `jump_2`, `jump_1`,
+the flow-marker label's baseline `95.953125 − 2.12255859375 = 93.83056640625`.
+Jump origins by coordinate, each to its target's coordinate or to 0
+without one: `jump_1` `6→0`, `jump_2` `9→6`, `jump_3` `28→16`, `jump_4`
+`37→0`, spans 6, 3, 12, 37: placement order `jump_2`, `jump_1`,
 `jump_3`, `jump_4`. Extents (`400 × u`, `u` the double nearest `t / 37`):
 `jump_2` `[64.86486486486487, 97.2972972972973]`, widened by its label `MC
 5 → MC 4` centred at 81.08108108108108 to `[50.81350295608108,
@@ -434,22 +445,22 @@ Ea`, `Ea = c + (p / 2 + (c + p))`:
 
 **The padding.** Section 6.5 keeps the padding `P` above and below a
 member drawing at every spacing: `y_root = max(P + Ea, P + h(s) / 2)`,
-`Hc = y_root + max(Eb, h(s) / 2) + P`, and a root's break line ends `P`
+`Hc = y_root + max(Eb, h(s) / 2) + P`, and a root's flow marker's line ends `P`
 from the member drawing's top or `Hc − P` below it. `H = Hc + 18`.
 
 - `bare`, one row and no gap between bands (its markers band lies against
   its line), draws the same at card spacings 0 and 8: the line at
   22.40234375, `W = 476.5771484375`, `H = 67.37890625`.
 - `flow_control` at card spacing 8: the flow control band from `26.9765625
-  + 8 = 34.9765625`, one break-label tier, so the flow row 45.453125 out,
+  + 8 = 34.9765625`, one flow-marker label tier, so the flow row 45.453125 out,
   `yf = 8 + (14.40234375 + 45.453125) = 67.85546875`; the band `10.4765625
   + (4 + 8) + 0 + 2 + 10.4765625 = 34.953125` wide, `Eb = 69.9296875`, `Hc
-  = 92.33203125`, `H = 110.33203125`; the break line from `yf` to `8 + 8 =
+  = 92.33203125`, `H = 110.33203125`; the flow marker's line from `yf` to `8 + 8 =
   16`. With `[flow_control, children, conversion_maps] | [markers,
   regions]` the band lies alone above, from `1.5 + 8 = 9.5`, its flow row
   `9.5 + 10.4765625 = 19.9765625` out, `Ea = 44.453125`, `y_root =
   52.453125`, the line at 60.453125, `yf = 8 + (52.453125 − 19.9765625) =
-  40.4765625`, `Hc = 87.4296875`, `H = 105.4296875`; the break line runs
+  40.4765625`, `Hc = 87.4296875`, `H = 105.4296875`; the flow marker's line runs
   to the padding below, `8 + (Hc − 8) = 87.4296875`.
 
 **Box size.** With `width` and `height` 120 and 60 above the natural box,
@@ -500,9 +511,13 @@ Every end rule of section 6.6 is drawn. `unknown_length`'s root is scaled
 to its reach (`score` from 53.798828125, running on to 465.798828125), with
 its start wedge and `0 ♩` only, its outer chevron's tip setting `W =
 500.298828125`; empty, it is drawn `L` long; locked, it still ends in three
-chevrons. `corpus_score_ms3` without its children and `jump_4` draws the
-same flow control with its length set to null, the measure map's last row
-in its reach. A child of unknown length ends at its offset plus its reach,
+chevrons. `corpus_score_ms3` without its children draws the same flow
+control (the flow marker `break_1`, then the jump origins `jump_2`,
+`jump_1`, `jump_3`, `jump_4`) with its length set to null, `jump_4` at 37
+in its reach; without `jump_4` too, it draws the same flow control at
+length null as at length 30, the coordinate of the jump target `marker_2`,
+which draws nothing: every flow-control coordinate counts, and a measure
+map, which belongs to no timeline, does not. A child of unknown length ends at its offset plus its reach,
 open, with room for its chevrons, `9.5w`; a group member runs on at the
 shared end; a segment ends at the next one's start, the last at its
 segment line's end. Ancestor lines run on where the member's or the
@@ -586,7 +601,7 @@ root `annotations`) is the case of every rule at once:
 - Element order: block, `name`, `group_1`, `group_1/name`, `score/card`,
   `score/cmap_1`, `score/cmap_2`, `score/jump_1`, `score`, …,
   `excerpt/card`, `recording/cmap_2`, `recording` (the ancestor line),
-  `excerpt`, …: a member drawing opens with its breaks, maps, regions and
+  `excerpt`, …: a member drawing opens with its flow markers, maps, regions and
   jumps, its ancestor lines just before its line.
 - Records: a root with its two wedges emits 6 elements, each map 1, each
   region or jump 2, each ancestor row 6. So of 58 elements: the box `[0,
@@ -759,7 +774,7 @@ coordinates. `bundle_ungrouped`'s quantities are those of "Places".
   gaps: its flow control band from `26.9765625 + 8`, its flow row
   45.453125 out, the band `10.4765625 + 12 + 2 + 10.4765625 = 34.953125`
   wide, `Hm = 14.5 + 69.9296875 + 8 = 92.4296875`, its line at 172.234375,
-  the break from 217.6875 to `157.734375 + 8`, `H = 260.1640625`; `pages`
+  the flow marker from 217.6875 to `157.734375 + 8`, `H = 260.1640625`; `pages`
   and `recording` unchanged, the records `spacing` 4, 4 and 8. A frame's
   spacing 16 (`group_child_member`) lies between its cards alone:
   `recording/card` at `8 + (((8 + 12.8046875) + 4) + 83.953125 + 16) =
@@ -796,7 +811,7 @@ element's address is a band's, and its range is empty, at its card's end.
 | the same, `r` hidden | none: a hidden line hides its timeline's whole drawing; the card 16 × 28.8046875 alone, the box 34 × 46.8046875 |
 | the same at `{r: {x: −12, y: −20, scale: 2}}` | origin `(20, 28)`; `c/regions_1` at `x` 252.095703125, `y` 49, 400 × 36.953125, `line` 38 |
 | `unknown_length_segments`, regions shown (`x` 42.42431640625, width 435.916015625, `line` 24) | `form/markers_1` −1, 1, `y` 24, 26.9765625; `form/regions_1` −2, 2 (its segments' regions), 54.9765625, 18.4765625 |
-| `r` with an unlabelled break | `r/flow_control_1` −2, 1, `y` 53.37890625, 0 high |
+| `r` with an unlabelled flow marker | `r/flow_control_1` −2, 1, `y` 53.37890625, 0 high |
 
 **Core's listing.** Over every manifest fixture, the box, frame and card
 records carry core's kind, address and holder in core's order, displayed
@@ -857,7 +872,7 @@ conflicting drawn extents `[Xs, Xe]`.
 ## Redraw operation counts (`scale.test.ts`)
 
 A synthetic manifest has exactly 1,000 element keys, as core enumerates
-them: one root, 60 children with maps, regions, markers, breaks and a jump,
+them: one root, 60 children with maps, regions, jump targets, flow markers and a jump origin,
 and a segment line of 40 segments. Every count comes from the inputs a
 draw is given, never from watching the code: each statement counts reads
 of its selector, the font the code points asked, the manifest listings of

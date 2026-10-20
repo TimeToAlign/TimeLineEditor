@@ -439,7 +439,7 @@ describe("addresses in a block of several roots", () => {
     }
   });
 
-  it("finds a map, region, break, jump or marker by its address, and nothing else", () => {
+  it("finds a map, region or flow-control element by its address, and nothing else", () => {
     const findEntry = (manifest: Manifest, address: string) => {
       const found = resolveElement(manifest, address);
       return found?.kind === "entry" ? { kind: found.entry, entry: found.element } : undefined;
@@ -451,15 +451,11 @@ describe("addresses in a block of several roots", () => {
     expect(findEntry(maps, "melody/ticks")?.kind).toBe("map");
     expect(findEntry(maps, "melody/ticks")?.entry).toBe(melody?.children[0]?.conversion_maps[0]);
     const flow = load("flow_control.json");
-    const control = flow.timelines[0]?.flow_control;
-    for (const [id, kind, entry] of [
-      ["break_1", "break", control?.breaks[0]],
-      ["jump_1", "jump", control?.jumps[0]],
-      ["marker_1", "marker", control?.markers[0]],
-    ] as const) {
+    const control = flow.timelines[0]?.flow_control ?? [];
+    for (const id of ["break_1", "jump_1", "marker_1"]) {
       const found = findEntry(flow, `flow:quarters/${id}`);
-      expect(found?.kind).toBe(kind);
-      expect(found?.entry).toBe(entry);
+      expect(found?.kind).toBe("flow_control");
+      expect(found?.entry).toBe(control.find((item) => item.id === id));
     }
     const numbers = file(numbersWithRegion());
     expect(findEntry(numbers, "score/region_1")?.kind).toBe("region");
@@ -584,21 +580,30 @@ describe("delete deletes", () => {
     expect(after.graphical?.order).toEqual({ group_1: ["recording"] });
   });
 
-  it("removes the conversion maps naming a removed timeline", () => {
+  it("removes no map of another timeline: a map belongs to its timeline only", () => {
     const warp = {
-      type: "InterpolationMap",
+      type: "TableMap",
       id: "warp",
-      source_id: "score",
-      target_id: "performance",
       source_unit: "quarters",
       target_unit: "seconds",
-      source_coords: [0, 12],
-      target_coords: [0, 12.5],
+      x_values: [0, 12],
+      y_values: [0, 12.5],
     };
     const view = changed(viewOf([A, NUMBERS]), { type: "add", into: at("score"), map: warp });
-    expect(file(view).timelines[2]?.conversion_maps).toEqual([{ ...warp, name: null }]);
-    expect(removedBy(file(view), ["performance"])).toEqual(new Set(["performance", "score/warp"]));
-    expect(remove(view, "performance").timelines[1]?.conversion_maps).toEqual([]);
+    const stored = { ...warp, name: null, kind: "linear", extrapolate: "none" };
+    expect(file(view).timelines[2]?.conversion_maps).toEqual([stored]);
+    expect(removedBy(file(view), ["performance"])).toEqual(new Set(["performance"]));
+    expect(remove(view, "performance").timelines[1]?.conversion_maps).toEqual([stored]);
+  });
+
+  it("removes a measure map alone", () => {
+    const bars = { id: "bars", rows: [{ count: 1, qstamp: [0, 1] }] };
+    const view = changed(viewOf([A, NUMBERS]), { type: "add", into: A, measure_map: bars });
+    expect(file(view).measure_maps).toEqual([{ ...bars, name: null, meta: {} }]);
+    expect(removedBy(file(view), ["bars"])).toEqual(new Set(["bars"]));
+    const after = remove(view, "bars");
+    expect(after.measure_maps).toEqual([]);
+    expect(after.timelines).toEqual(file(view).timelines);
   });
 
   it("removes the ids entries addressing a removed element, and a statement left without", () => {

@@ -5,10 +5,11 @@
  * manifest, `resolveElement`); nothing else splits an address.
  *
  * A workspace address is `workspace`, a block id, or `<block id>/<element
- * address>`. An element address is a group's or a timeline's bare id
- * (`G`, `T`), a timeline's card or band (`T/card`, `T/regions_1`), an entry
- * of a root's tree (`r/R`), the manifest's title (`name`), or any of these
- * followed by part words (`T/end/label`).
+ * address>`. An element address is a group's, a timeline's or a measure
+ * map's bare id (`G`, `T`, `M`), a timeline's card or band (`T/card`,
+ * `T/regions_1`), an entry of a root's tree (`r/R`), the manifest's title
+ * (`name`), or any of these but a measure map followed by part words
+ * (`T/end/label`).
  */
 
 import type { CommandError, Problem } from "../errors.ts";
@@ -32,7 +33,7 @@ import {
   TITLE_ADDRESS,
 } from "../manifest/files.ts";
 import type { Located } from "../manifest/tree.ts";
-import type { Group, Manifest, TimelineManifest } from "../manifest/types.ts";
+import type { Group, Manifest, MeasureMap, TimelineManifest } from "../manifest/types.ts";
 import type { Block, BlockId } from "./blocks.ts";
 import { BLOCK_ID } from "./blocks.ts";
 import type { View } from "./view.ts";
@@ -127,6 +128,13 @@ export type ResolvedAddress =
       readonly element: ListedElement;
     }
   | {
+      readonly kind: "measure_map";
+      readonly block: Block;
+      readonly map: MeasureMap;
+      /** Its index in the manifest's `measure_maps`. */
+      readonly index: number;
+    }
+  | {
       readonly kind: "part";
       readonly block: Block;
       readonly owner: ResolvedAddress;
@@ -152,6 +160,7 @@ export type ResolvedElement =
       readonly index: number;
       readonly element: ListedElement;
     }
+  | { readonly kind: "measure_map"; readonly map: MeasureMap; readonly index: number }
   | { readonly kind: "part"; readonly owner: ResolvedElement; readonly word: PartWord };
 
 /** An entry located in its manifest: the timeline holding it, its kind, its index. */
@@ -225,8 +234,8 @@ function partsOf(owner: ResolvedElement): readonly PartWord[] {
 
 /**
  * The element the first one or two segments name, and how many they are: a
- * group's frame, a timeline, its card or one of its bands, or an entry of a
- * root's tree; `undefined` when they name nothing.
+ * group's frame, a measure map, a timeline, its card or one of its bands, or
+ * an entry of a root's tree; `undefined` when they name nothing.
  */
 function baseOf(
   manifest: Manifest,
@@ -239,6 +248,9 @@ function baseOf(
     const container = containers.byAddress.get(first);
     return container === undefined ? undefined : [{ kind: "frame", group, container }, 1];
   }
+  const index = manifest.measure_maps.findIndex((item) => item.id === first);
+  const map = manifest.measure_maps[index];
+  if (map !== undefined) return [{ kind: "measure_map", map, index }, 1];
   const { timelines, entries } = catalogueOf(manifest);
   const at = timelines.get(first);
   if (at === undefined) return undefined;
@@ -265,10 +277,10 @@ function baseOf(
 
 /**
  * Resolve an element address against a manifest: the title (of a named
- * manifest), a frame, a
- * timeline, a card, a band (of a timeline drawn in a card), an entry, or a
- * part of one of them; `undefined` for anything else. A part is one of the
- * part words its owner has: a timeline's `start`, `end`, `name` and `label`
+ * manifest), a frame, a measure map, a timeline, a card, a band (of a
+ * timeline drawn in a card), an entry, or a part of one of them; `undefined`
+ * for anything else. A measure map is not drawn and has no part; any other
+ * part is one of the part words its owner has: a timeline's `start`, `end`, `name` and `label`
  * (and `card` for a timeline drawn in no card), an entry's `name` and
  * `label`, a frame's `name`, the `label` of a `start` or an `end`.
  */

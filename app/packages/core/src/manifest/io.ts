@@ -1,8 +1,8 @@
 /**
  * The schema boundary: the one path from a value read from text to a
  * `Manifest` (`normalizeManifest`), the one path from a command's map,
- * region, break, jump or marker to its typed form (`readEntry`), and the one
- * path back (`saveManifest`).
+ * region or flow-control element to its typed form (`readEntry`), and the
+ * one path back (`saveManifest`).
  */
 
 import type {
@@ -35,7 +35,7 @@ import type { EntryKind, EntryTypes } from "./files.ts";
 import { ENTRY_LISTS } from "./files.ts";
 import { checkOrdered } from "./invariants.ts";
 import { withSegmentsUnlocked } from "./locks.ts";
-import type { Manifest, ManifestGraphical, TimelineManifest } from "./types.ts";
+import type { Manifest, ManifestGraphical, MeasureMap, TimelineManifest } from "./types.ts";
 
 /** The problem a schema refusal is reported as. */
 function schemaProblem(error: unknown): Problem {
@@ -268,20 +268,22 @@ export function completeOrdered<T>(value: T): T | Problem {
 }
 
 /**
- * A map, region, break, jump or marker given to a command, read through the
- * schema boundary in `host`, the timeline that will list it at `index` of
- * its kind's list (the entry there replaced, or appended at the list's
- * length): `host` alone (its children left out) with the value in place is
- * completed, ordered and checked by the schema as `settle` checks a
- * manifest, and the value is returned in its complete form. A schema
- * problem is returned with its path from `host`, the caller placing it in
- * its manifest.
+ * A map, region or flow-control element given to a command, read through
+ * the schema boundary in `host`, the timeline that will list it at `index`
+ * of its kind's list (the entry there replaced, or appended at the list's
+ * length): `host` alone (its children left out) with the value in place,
+ * beside `measureMaps`, the measure maps of its manifest, which a measure
+ * view names, is completed, ordered and checked by the schema as `settle`
+ * checks a manifest, and the value is returned in its complete form. A
+ * schema problem is returned with its path from `host`, the caller placing
+ * it in its manifest.
  */
 export function readEntry<K extends EntryKind>(
   kind: K,
   value: JsonObject,
   host: TimelineManifest,
   index: number,
+  measureMaps: readonly MeasureMap[],
 ): EntryTypes[K] | Problem {
   const list = ENTRY_LISTS[kind];
   const items: unknown[] = [...list.get(host)];
@@ -293,7 +295,11 @@ export function readEntry<K extends EntryKind>(
     list.path,
     items,
   );
-  const ordered = completeOrdered({ timeskeleton: SCHEMA_VERSION, timelines: [timeline] });
+  const ordered = completeOrdered({
+    timeskeleton: SCHEMA_VERSION,
+    timelines: [timeline],
+    measure_maps: measureMaps,
+  });
   const checked = "code" in ordered ? ordered : schemaChecked(ordered);
   if ("code" in checked) {
     const [timelines, root, ...path] = checked.path;
@@ -306,6 +312,29 @@ export function readEntry<K extends EntryKind>(
   const entry = read === undefined ? undefined : list.get(read).find(({ id }) => id === value.id);
   if (entry === undefined) throw new Error(`the host lists the ${kind} ${String(value.id)}`);
   return entry;
+}
+
+/**
+ * A measure map given to a command, read through the schema boundary as the
+ * one measure map of an empty manifest of its own and returned in its
+ * complete form, its unknown keys kept; or the first problem, with its path
+ * from the measure map.
+ */
+export function readMeasureMap(value: JsonObject): MeasureMap | Problem {
+  const read = normalizeManifest({
+    timeskeleton: SCHEMA_VERSION,
+    timelines: [],
+    measure_maps: [value],
+  });
+  if (isLoadError(read)) {
+    const [first] = read.problems;
+    if (first === undefined) throw new Error("a refused manifest names its problem");
+    const [list, index, ...path] = first.path;
+    return { ...first, path: list === "measure_maps" && index === 0 ? path : [] };
+  }
+  const [map] = read.measure_maps;
+  if (map === undefined) throw new Error("the host holds the measure map");
+  return map;
 }
 
 /** A manifest from its text (`normalizeManifest`); text that is no JSON is `invalid_json`. */

@@ -78,7 +78,9 @@ member drawing's card spacing `S`, between its rows and between its bands
   284.1640625`. With `score` stated at `{y: 200}` (its shadow's bottom
   286.4296875) the box is `8 + max(286.4296875, 143.734375 + s)`: flat up
   to its knee `s = 142.6953125`, slope 1 beyond.
-- **`flow_control`**: the root `flow:quarters` with `break_1` and `jump_1`.
+- **`flow_control`**: the root `flow:quarters` with the flow marker
+  `break_1`, the jump origins `jump_1` and `jump_2` and their jump targets
+  `marker_1` and `marker_2`, which are not drawn.
   **`with_region`**: the root `clt_1` with `region_1`.
 - **Addresses** (section 2.2), in every manifest alike: a timeline, a
   group or the manifest by its bare id; every other element by its root's
@@ -123,7 +125,7 @@ member drawing's card spacing `S`, between its rows and between its bands
   `group_2` "Facsimile" (members `excerpt`, `page`, displayed `page`,
   `excerpt`; `excerpt` is a child of the root `recording`, drawn as its
   ancestor line), then the ungrouped root `annotations`. `score` carries
-  the maps `cmap_1` and `cmap_2` and the jump `jump_1` "Repeat";
+  the maps `cmap_1` and `cmap_2` and the jump origin `jump_1` "Repeat";
   `performance` the map `cmap_1`; `page` `cmap_1`; `excerpt` `cmap_2`,
   addressed `recording/cmap_2`; `annotations` the regions `region_1`
   "Verse" and `region_2` "Chorus". Maps lie above their lines, jumps and

@@ -118,7 +118,7 @@ function initial(specs: readonly { fixture: string; x: number; y: number }[]): V
 
 /**
  * Every address a click can select in `view`: block ids, then the addresses
- * of their drawn elements and parts (a marker is not drawn).
+ * of their drawn elements and parts (a jump target is not drawn).
  */
 function addresses(view: View): string[] {
   const ids = Object.keys(view.blocks).sort();

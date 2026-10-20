@@ -30,11 +30,11 @@ import {
   BLOCK,
   bandOrder,
   edit,
+  linearMap,
   load,
   loadFile,
   metrics,
   quarters,
-  scalarMap,
   set,
 } from "./support.ts";
 
@@ -346,34 +346,37 @@ describe("segments without a line", () => {
     { type: "add", into: `${BLOCK}/b`, region: region("b_region", 0, 2) },
     { type: "add", into: `${BLOCK}/b1`, region: region("b1_region", 1, 3) },
     { type: "add", into: `${BLOCK}/b2`, region: region("b2_region", 0, 6) },
-    scalarMap("b1", "b1_map"),
+    linearMap("b1", "b1_map"),
     {
       type: "add",
       into: `${BLOCK}/b1`,
-      break: {
+      flow_control: {
         id: "b1_break",
-        name: null,
+        type: "flow_marker",
+        manifestation: "fine",
         coordinate: quarters(2),
-        control_type: "fine",
-        condition: "after_dc_ds",
-        repeat_count: 1,
-        label: null,
-        meta: {},
       },
     },
     {
       type: "add",
       into: `${BLOCK}/b1`,
-      jump: {
+      flow_control: {
+        id: "b1_start",
+        type: "jump_to",
+        manifestation: "repeat_start",
+        coordinate: quarters(1),
+      },
+    },
+    {
+      type: "add",
+      into: `${BLOCK}/b1`,
+      flow_control: {
         id: "b1_jump",
-        from_coordinate: quarters(4),
-        to_coordinate: quarters(1),
-        control_type: "repeat_end",
-        condition: "first_n",
+        type: "jump_from",
+        manifestation: "repeat_end",
+        coordinate: quarters(4),
+        target: "b1_start",
         repeat_count: 2,
-        target: null,
-        label: null,
-        meta: {},
       },
     },
   );
@@ -401,7 +404,9 @@ describe("segments without a line", () => {
     expect(drawn.maps.map((map) => [map.address, map.xs, map.xe])).toEqual([
       ["form/b1_map", 100, 175],
     ]);
-    expect(drawn.breaks.map((item) => [item.address, item.x])).toEqual([["form/b1_break", 125]]);
+    expect(drawn.flowMarkers.map((item) => [item.address, item.x])).toEqual([
+      ["form/b1_break", 125],
+    ]);
     expect(drawn.jumps.map((item) => item.address)).toEqual(["form/b1_jump"]);
   });
 
@@ -436,7 +441,7 @@ describe("segments without a line", () => {
   it("places a segment's content by its segment line's band order, never its own", () => {
     const reordered = edit(
       "segment_line",
-      scalarMap("b1", "b1_map"),
+      linearMap("b1", "b1_map"),
       set("b1", {
         order: bandOrder(
           "b1",
@@ -457,7 +462,7 @@ describe("extents", () => {
     ]);
   });
 
-  it("holds the drawn labels and the points of the breaks", () => {
+  it("holds the drawn labels and the points of the flow markers", () => {
     const root = prepared(scopeOf(load("flow_control")), "flow:quarters");
     expect(root.extent).toEqual([-7.416015625, 410.279052734375]);
     expect(root.bands.flow_control.extents).toEqual([
@@ -480,13 +485,13 @@ describe("extents", () => {
   });
 });
 
-describe("breaks", () => {
+describe("flow markers", () => {
   it("end at the padding of the opposite side for the root", () => {
     const below = layoutTimeline(
       prepared(scopeOf(load("flow_control")), "flow:quarters"),
       undefined,
     );
-    expect(below.elements(PLACE).breaks.map((item) => [item.y1, item.y2])).toEqual([
+    expect(below.elements(PLACE).flowMarkers.map((item) => [item.y1, item.y2])).toEqual([
       [141.453125, 8],
     ]);
     const above = layoutTimeline(
@@ -507,7 +512,7 @@ describe("breaks", () => {
       ),
       undefined,
     );
-    expect(above.elements(PLACE).breaks.map((item) => [item.y1, item.y2])).toEqual([
+    expect(above.elements(PLACE).flowMarkers.map((item) => [item.y1, item.y2])).toEqual([
       [84.0234375, 192],
     ]);
   });
@@ -519,7 +524,7 @@ describe("breaks", () => {
     const ends = (manifest: Manifest, size = 11) =>
       layoutTimeline(prepared(scopeOf(manifest, shown), "verse"), undefined)
         .elements({ ...PLACE, size })
-        .breaks.map((item) => item.y2);
+        .flowMarkers.map((item) => item.y2);
     expect(ends(load("child_flow_control"))).toEqual([93.59765625]);
     expect(ends(load("child_flow_control"), 40)).toEqual([76.71875]);
     expect(
@@ -536,6 +541,6 @@ describe("breaks", () => {
         ),
       ),
     ).toEqual([106.40234375]);
-    expect(ends(edit("child_flow_control", scalarMap("verse", "verse_map")))).toEqual([93.5]);
+    expect(ends(edit("child_flow_control", linearMap("verse", "verse_map")))).toEqual([93.5]);
   });
 });
