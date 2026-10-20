@@ -159,7 +159,7 @@ describe("flow_control", () => {
     const yf = 63.85546875;
     const yc = 74.52213541666667;
     expect(geometry(drawing)).toEqual([
-      ...box("flow:quarters", 518.256591796875, 102.33203125, 500.256591796875, 84.33203125),
+      ...box("flow:quarters", 518.256591796875, 122.80859375, 500.256591796875, 104.80859375),
       { type: "flow_marker", address: "flow:quarters/break_1", x: 390.9775390625, y1: yf, y2: 16 },
       {
         type: "jump_from",
@@ -172,6 +172,19 @@ describe("flow_control", () => {
         corners: [
           [144.2777392731735, 66.87352749188534],
           [145.37210618241238, 63.02614382659241],
+        ],
+      },
+      {
+        type: "jump_from",
+        address: "flow:quarters/jump_2",
+        start: [490.9775390625, yf],
+        c1: [415.9775390625, 101.82421875],
+        c2: [265.9775390625, 101.82421875],
+        tip: [190.9775390625, yf],
+        base: [194.5462814727158, 65.66214459517175],
+        corners: [
+          [193.64294355012993, 67.44651580027966],
+          [195.44961939530168, 63.87777339006385],
         ],
       },
       { ...root, address: "flow:quarters", xs: x0, xe, y: 22.40234375 },
@@ -213,6 +226,14 @@ describe("flow_control", () => {
         baseline: 82.20947265625,
         anchor: "middle",
         text: "Repeat",
+      },
+      {
+        type: "label",
+        address: "flow:quarters/jump_2/label",
+        x: 340.9775390625,
+        baseline: 102.68603515625,
+        anchor: "middle",
+        text: "D.S.",
       },
       {
         type: "label",

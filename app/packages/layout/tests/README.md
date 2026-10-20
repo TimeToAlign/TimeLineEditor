@@ -95,12 +95,12 @@ own holders. Inheritance is a column of the property table: stroke,
 stroke-width, stroke-dasharray, fill and font-size inherit (a root's stroke
 reaches its grandchild, a region's font size its label), never `shadow`,
 `opacity` or `rx`. A map is drawn in the domain and modality it
-converts to (`conversion_maps__maps_quarters`: the LinearMap `lmap_1` to
-seconds physical and continuous, the FloatingMeasureMap `tmap_1` logical
-and continuous; `conversion_maps__maps_seconds`: the LinearMap `cmap_1`
-to samples physical and discrete), a map converting to no time axis (the
-ConstantMap `cmap_6`) taking its timeline's stroke, with its type as
-class (`ConstantMap` matches `cmap_6` alone). For every manifest fixture, every
+converts to (`conversion_maps__maps_quarters`: the top-level LinearMap
+`lmap_5` to seconds physical and continuous, the FloatingMeasureMap
+`tmap_1` logical and continuous; `conversion_maps__maps_seconds`: the
+LinearMap `cmap_1` to samples physical and discrete), a map converting to
+no time axis (the ConstantMap `cmap_8`) taking its timeline's stroke, with
+its type as class (`ConstantMap` matches `cmap_8` alone). For every manifest fixture, every
 drawn element's address and type are among the element keys core
 enumerates.
 
@@ -173,31 +173,52 @@ down: `clt_2` at 26.80810546875, `clt_3` at 40.80810546875, `clt_1` at
 ### `flow_control`
 
 Root `flow:quarters` length 16, name `Flow control` (`N =
-66.9775390625`), `x0 = 90.9775390625`, `x(t) = x0 + 25 t`. The flow marker
-`break_1` at 12 (label `Fine`) and the jump origin `jump_1` at 8, leading to
-its target, the jump target `marker_1` at 2, which draws nothing (label
-`Repeat`), both below; the line at
-22.40234375 as in `bare`. The flow control band starts at `26.9765625 + 4 =
-30.9765625` with one flow-marker label tier, so the flow row lies 41.453125 out,
-at `yf = 63.85546875`; one jump level makes the band `10.4765625 + 8 + 0 + 2
-+ 10.4765625 = 30.953125` wide, `Eb = 61.9296875`, `Hc = 84.33203125`. The
-flow marker's line runs at x 390.9775390625 from the flow row to `8 + P = 16`;
-its label starts at 393.9775390625, baseline `yf − d(9) =
-61.73291015625`.
+66.9775390625`), `x0 = 90.9775390625`, `x(t) = x0 + 25 t`. Its flow
+control holds the jump targets `marker_1` at 2 and `marker_2` at 4, which
+draw nothing, the jump origin `jump_1` (label `Repeat`) from 8 to
+`marker_1`, the flow marker `break_1` (label `Fine`) at 12 and the jump
+origin `jump_2` (label `D.S.`) from 16 to `marker_2`, all below; the line
+at 22.40234375 as in `bare`. The flow control band starts at `26.9765625 +
+4 = 30.9765625` with one flow-marker label tier, so the flow row lies
+41.453125 out, at `yf = 63.85546875`. By span, `jump_1` (6) is placed
+before `jump_2` (12); their extents `[50, 200]` and `[100, 400]` (the
+labels, `Repeat` 32.08447265625 and `D.S.` 18.36474609375 wide, lie
+inside them) conflict, so `jump_1` takes jump row 1, its apex `30.9765625
++ 10.4765625 + 8 = 49.453125` out, and `jump_2` row 2, `pj = 6 + 4 +
+10.4765625 = 20.4765625` further, 69.9296875 out. The band is `10.4765625
++ 8 + 20.4765625 + 2 + 10.4765625 = 51.4296875` wide, `Eb = 82.40625`,
+`Hc = 14.40234375 + 82.40625 + 8 = 104.80859375`. The flow marker's line
+runs at x 390.9775390625 from the flow row to `8 + P = 16`; its label
+starts at 393.9775390625, baseline `yf − d(9) = 61.73291015625`.
 
-The jump (`w = 1`: the head 4 long and 2 half-wide): `Xf = 290.9775390625`,
-`Xt = 140.9775390625`, `q = (Xt − Xf) / 4 = −37.5`; the apex 49.453125 out,
-`ya = 71.85546875`; `yc = yf + 4/3 × (ya − yf) = 74.52213541666667`, `C1 =
-(253.4775390625, yc)`, `C2 = (178.4775390625, yc)`; the head's axis `u =
-(−0.9618459163232351, −0.2735917273097203)` from `Xt − Cx = −37.5` and `yf
-− yc = −10.666666666666671`. The head is computed in item coordinates and
-drawn `8 +` each: `Bh = (144.82492272779294, 64.94983565923889)`, corners
-`(144.2777392731735, 66.87352749188534)` and `(145.37210618241238,
-63.02614382659241)` (summed from the card's top first, their `y` would be
-66.87352749188535 and 63.02614382659242). The shaft runs `(Xf, yf)`, `C1`,
-`C2` to `Bh`. The jump label is centred at `x(5) = 215.9775390625`,
-baseline 82.20947265625. The `16 ♩` label reaches `R = 500.256591796875`:
-`W = 518.256591796875`, `H = 102.33203125`.
+Each jump has `w = 1`: the head 4 long and 2 half-wide. The head is
+computed in item coordinates and drawn `8 +` each.
+
+- `jump_1`: `Xf = 290.9775390625`, `Xt = 140.9775390625`, `q = (Xt − Xf) /
+  4 = −37.5`; `ya = 71.85546875`; `yc = yf + 4/3 × (ya − yf) =
+  74.52213541666667`, `C1 = (253.4775390625, yc)`, `C2 =
+  (178.4775390625, yc)`; the head's axis `u = (−0.9618459163232351,
+  −0.2735917273097203)` from `Xt − Cx = −37.5` and `yf − yc =
+  −10.666666666666671`. `Bh = (144.82492272779294, 64.94983565923889)`,
+  corners `(144.2777392731735, 66.87352749188534)` and
+  `(145.37210618241238, 63.02614382659241)` (summed from the card's top
+  first, their `y` would be 66.87352749188535 and 63.02614382659242). The
+  label is centred at `x(5) = 215.9775390625`, baseline `8 + ((14.40234375
+  + (49.453125 + 2)) + 8.35400390625) = 82.20947265625`.
+- `jump_2`: `Xf = 490.9775390625`, `Xt = 190.9775390625`, `q = −75`; `ya =
+  92.33203125`; `yc = 63.85546875 + 4/3 × 28.4765625 = 101.82421875`,
+  `C1 = (415.9775390625, yc)`, `C2 = (265.9775390625, yc)`; `u =
+  (−0.8921856025539521, −0.4516689612929382)` from `Xt − Cx = −75` and `yf
+  − yc = −37.96875`, `ℓ = 84.06322606563764`. `Bh = (194.5462814727158,
+  65.66214459517175)`, corners `(193.64294355012993, 67.44651580027966)`
+  and `(195.44961939530168, 63.87777339006385)`. The label is centred at
+  `x(10) = 340.9775390625`, baseline `8 + ((14.40234375 + (69.9296875 +
+  2)) + 8.35400390625) = 102.68603515625`.
+
+The shaft of each runs `(Xf, yf)`, `C1`, `C2` to `Bh`; the jump origins and
+their labels follow the order of first fit, `jump_1` before `jump_2`. The
+`16 ♩` label reaches `R = 500.256591796875`: `W = 518.256591796875`, `H =
+8 + (8 + 104.80859375 + 2) = 122.80859375`.
 
 ### `map`
 
@@ -275,7 +296,13 @@ line with boundaries reaches `k` both ways, its segment labels above only
 (`b`: 20.4765625 above, 8 below). Segments without a line join their
 displayed bands to their segment line's, after its own, in its band order.
 An open end runs on `9.5w`; an extent holds the drawn labels and flow
-markers' points. A root's flow marker ends at the padding of the opposite side, any other
+markers' points. In `flow_control` the flow control band's extents are the
+flow marker's point `[300, 300]` (`400 × 12/16`), its label `[300 + 3 − 1,
+300 + 3 + 18.91845703125 + 1] = [302, 322.91845703125]`, and the jump
+origins in placement order, `jump_1` `[50, 200]` and `jump_2` `[100,
+400]`; the root's extent `[−7.416015625, 410.279052734375]` runs from its
+start label (`0 − 6.416015625 − 1`) to its end label (`400 +
+9.279052734375 + 1`). A root's flow marker ends at the padding of the opposite side, any other
 `max(E, h(s) / 2)` beyond its line (`child_flow_control`'s `verse` with a
 map: 93.5).
 
@@ -288,10 +315,18 @@ from sections 4 and 6.4:
   default, below by its own entry or its parent's, and towards the root when
   the child lies below the root. The markers band alone lies against the
   root's line, on the side the band order gives it. In
-  `conversion_maps__maps_quarters` the maps lie against the line above (the
-  root at 107.5, `cmap_1` at 102, `tmap_2` at 17, `H = 152.4765625`); with
-  the markers band on that side the two lie `B` apart, and ordered after it
-  the maps lie beyond it and the line has no stack.
+  `conversion_maps__maps_quarters` the twelve top-level maps (nested maps
+  are not drawn), in canonical order `cmap_1` to `tmap_4`, lie against the
+  line above: the stack reaches `1.5 + 12 × 5 = 61.5`, `y_root = 69.5`, the
+  root at 77.5, `cmap_1` (`j = 1`, 5.5 out) at 72, `tmap_4` (`j = 12`, 60.5
+  out) at 17, `Hc = 69.5 + 26.9765625 + 8 = 104.4765625`, `H =
+  122.4765625`. With the markers band on that side, after the maps, the two
+  lie `B` apart: nothing above, so the root at 22.40234375, `cmap_1` at
+  27.90234375 and `tmap_4` at 82.90234375; the markers band from `61.5 + 4
+  = 65.5`, the wedges from `65.5 + 1.5 = 67` to 80 out (89.40234375 to
+  102.40234375), `Eb = 65.5 + 26.9765625 = 92.4765625`, `Hc = 114.87890625`,
+  `H = 132.87890625`. Ordered after it the maps lie beyond it and the line
+  has no stack.
 - **The end mark.** `r` (length 8) ends in the arrowhead unlocked (`xe`
   430.0478515625, `W = 457.0478515625`) and the circle locked (`W =
   454.4638671875`); its child `c` ends in the diamond whatever its `locked`.
@@ -299,7 +334,19 @@ from sections 4 and 6.4:
   a child's band order follows its parent's by band id without an entry,
   is its own entry when it has one, and returns to its parent's when the
   entry is set to null. A flow marker runs from its flow row across its line, the
-  root's to the padding, a child's to `max(E, h(s) / 2)` beyond it.
+  root's to the padding, a child's to `max(E, h(s) / 2)` beyond it. In
+  `flow_control` both jump origins and the flow marker move with their
+  band. With the flow control band moved above the line, next to it, it
+  lies at level 1 from `1.5 + 4 = 5.5` (no map, so no stack): the flow row
+  `5.5 + 10.4765625 = 15.9765625` out, the band `51.4296875` wide as below
+  the line (two jump rows), `Ea = 56.9296875`, `y_root = 64.9296875`, `Hc =
+  64.9296875 + 26.9765625 + 8 = 99.90625` and `H = 8 + (8 + 99.90625 + 2)
+  = 117.90625`. Drawn `8 +` each: the root's line at 72.9296875, the flow
+  row at `8 + (64.9296875 − 15.9765625) = 56.953125`, where `jump_1`
+  starts at `x(8) = 290.9775390625`; the flow marker from there down to the
+  bottom padding `8 + (Hc − P) = 99.90625`, its label at 393.9775390625
+  with its baseline `yf + a(9)`, `8 + (48.953125 + 8.35400390625) =
+  65.30712890625`.
 - **Rows.** In `joint_rows` the children bands of each row's lines are laid
   out together at two depths, one name per row, at the size of the
   hand-derived figure. A row takes the room of the children bands on both
@@ -334,17 +381,19 @@ gives 92.57291666666666. Summed in item coordinates (the flow row at
 118.64973958333333 and 145.95182291666669 (summed from the card's top
 first, `one` and `two` would be 64.04557291666667).
 
-**`corpus_score_ms3`.** Root `clt_1` (no name), quarters, length 37, one
-map above (a LinearMap; its measure map, which belongs to no timeline, is
-not drawn); children `controls` and `notes`, each from 0 to 37, in
-rows 1 and 2. The widest name is `controls` (44.10205078125); `x0 =
+**`corpus_score_ms3`.** Root `clt_1` (no name), quarters, length 37, two
+maps above (the LinearMap `cmap_1` and the MeasureRecordMap `cmap_2`; the
+measure map `cmap_2` reads, which belongs to no timeline, is not drawn);
+children `notes` and `controls`, each from 0 to 37, in rows 1 and 2. The widest name is `controls` (44.10205078125); `x0 =
 68.10205078125` (no centred label asks more: `MC 3 → MC 1`, 58.53515625
 wide, at `u = 3/37` asks `16 + 29.267578125 − 32.432432432432435`). Above:
-the one-map stack (6.5), the children band from 10.5, two rows of 14, `Ea
-= 38.5`, `y_root = 46.5`, the root's line at 54.5. Below: the markers band
-to 26.9765625, the flow control band from 30.9765625 with one flow-marker label
-tier (`fine at MC 7`): the flow row lies 41.453125 out, `yf = 95.953125`,
-the flow-marker label's baseline `95.953125 − 2.12255859375 = 93.83056640625`.
+the two-map stack (`1.5 + 2 × 5 = 11.5`), the children band from `11.5 + 4
+= 15.5`, two rows of 14, `Ea = 15.5 + 28 = 43.5`, `y_root = 51.5`, the
+root's line at 59.5. Below: the markers band to 26.9765625, the flow
+control band from 30.9765625 with one flow-marker label tier (`fine at MC
+7`): the flow row lies 41.453125 out, `yf = 8 + (51.5 + 41.453125) =
+100.953125`, the flow-marker label's baseline `100.953125 − 2.12255859375
+= 98.83056640625`.
 Jump origins by coordinate, each to its target's coordinate or to 0
 without one: `jump_1` `6→0`, `jump_2` `9→6`, `jump_3` `28→16`, `jump_4`
 `37→0`, spans 6, 3, 12, 37: placement order `jump_2`, `jump_1`,
@@ -354,21 +403,22 @@ without one: `jump_1` `6→0`, `jump_2` `9→6`, `jump_3` `28→16`, `jump_4`
 111.34865920608108]`, level 1; `jump_1` `[0, 64.86486486486487]` conflicts,
 level 2; `jump_3` `[172.97297297297297, 302.7027027027027]`, level 1;
 `jump_4` `[0, 400]`, level 3. With `pj = 20.4765625` the apexes lie at
-103.953125, 124.4296875 and 144.90625. The band is `10.4765625 + 8 + 2 ×
+108.953125, 129.4296875 and 149.90625. The band is `10.4765625 + 8 + 2 ×
 20.4765625 + 2 + 10.4765625 = 71.90625` wide, `Eb = 102.8828125`, `Hc =
-157.3828125`, `H = 175.3828125`.
+51.5 + 102.8828125 + 8 = 162.3828125`, `H = 180.3828125`. No `x` depends on
+the maps above.
 
 - **Short jump** (`9→6`, level 1): `Xf = 165.3993480785473`, `Xt =
-  132.96691564611487`, `yc = 95.953125 + (4/3) × 8 = 106.61979166666667`,
+  132.96691564611487`, `yc = 100.953125 + (4/3) × 8 = 111.61979166666667`,
   `C1 = (157.2912399704392, yc)`, `u = (−0.6051514590776749,
-  −0.7961103639421869)`, `Bh = (135.38752148242557, 99.13756645576875)`,
-  corners `(133.7953007545412, 100.3478693739241)` and
-  `(136.97974221030995, 97.9272635376134)`: it arrives steeply.
+  −0.7961103639421869)`, `Bh = (135.38752148242557, 104.13756645576875)`,
+  corners `(133.7953007545412, 105.3478693739241)` and
+  `(136.97974221030995, 102.9272635376134)`: it arrives steeply.
 - **Long jump** (`37→0`, level 3): `Xf = 468.10205078125`, `Xt =
-  68.10205078125`, `yc = 161.22395833333331`, `C1 = (368.10205078125, yc)`,
+  68.10205078125`, `yc = 166.22395833333331`, `C1 = (368.10205078125, yc)`,
   `u = (−0.837405767846437, −0.546581723054768)`, `Bh =
-  (71.45167385263575, 98.13945189221907)`, corners `(70.35851040652622,
-  99.81426342791194)` and `(72.54483729874529, 96.4646403565262)`: it
+  (71.45167385263575, 103.13945189221907)`, corners `(70.35851040652622,
+  104.81426342791194)` and `(72.54483729874529, 101.4646403565262)`: it
   arrives flatter. Summed from the card's left edge first, the first
   corner's `x` would be 70.35851040652621.
 
@@ -453,15 +503,18 @@ from the member drawing's top or `Hc − P` below it. `H = Hc + 18`.
   22.40234375, `W = 476.5771484375`, `H = 67.37890625`.
 - `flow_control` at card spacing 8: the flow control band from `26.9765625
   + 8 = 34.9765625`, one flow-marker label tier, so the flow row 45.453125 out,
-  `yf = 8 + (14.40234375 + 45.453125) = 67.85546875`; the band `10.4765625
-  + (4 + 8) + 0 + 2 + 10.4765625 = 34.953125` wide, `Eb = 69.9296875`, `Hc
-  = 92.33203125`, `H = 110.33203125`; the flow marker's line from `yf` to `8 + 8 =
-  16`. With `[flow_control, children, conversion_maps] | [markers,
-  regions]` the band lies alone above, from `1.5 + 8 = 9.5`, its flow row
-  `9.5 + 10.4765625 = 19.9765625` out, `Ea = 44.453125`, `y_root =
-  52.453125`, the line at 60.453125, `yf = 8 + (52.453125 − 19.9765625) =
-  40.4765625`, `Hc = 87.4296875`, `H = 105.4296875`; the flow marker's line runs
-  to the padding below, `8 + (Hc − 8) = 87.4296875`.
+  `yf = 8 + (14.40234375 + 45.453125) = 67.85546875`; two jump rows with
+  `pj = 6 + 8 + 10.4765625 = 24.4765625` make the band `10.4765625 + (4 +
+  8) + 24.4765625 + 2 + 10.4765625 = 59.4296875` wide, `Eb = 94.40625`,
+  `Hc = 14.40234375 + 94.40625 + 8 = 116.80859375`, `H = 134.80859375`;
+  the flow marker's line from `yf` to `8 + 8 = 16`. With `[flow_control,
+  children, conversion_maps] | [markers, regions]` the band lies alone
+  above, from `1.5 + 8 = 9.5`, its flow row `9.5 + 10.4765625 =
+  19.9765625` out, `Ea = 9.5 + 59.4296875 = 68.9296875`, `y_root =
+  76.9296875`, the line at 84.9296875, `yf = 8 + (76.9296875 − 19.9765625)
+  = 64.953125`, `Hc = 76.9296875 + 26.9765625 + 8 = 111.90625`, `H =
+  129.90625`; the flow marker's line runs to the padding below, `8 + (Hc −
+  8) = 111.90625`.
 
 **Box size.** With `width` and `height` 120 and 60 above the natural box,
 every element but the block is identical to the natural drawing and `W =

@@ -54,8 +54,8 @@ const jump = (from: number, to: number, label: string) => [
   },
 ];
 
-describe("jump placement order and levels", () => {
-  it("places five jumps on four exact levels and emits them in placement order", () => {
+describe("jump-origin placement order and rows", () => {
+  it("places five jump origins in four exact rows and emits them in placement order", () => {
     const manifest = build(
       "r",
       16,
@@ -91,49 +91,49 @@ describe("jump placement order and levels", () => {
   });
 });
 
-describe("jumps of corpus_score_ms3", () => {
+describe("jump origins of corpus_score_ms3", () => {
   const drawing = drawFixture("corpus_score_ms3");
   const jump = (address: string) => {
     const found = drawing.elements.find((item) => item.address === address);
-    if (found?.type !== "jump_from") throw new Error(`no jump ${address}`);
+    if (found?.type !== "jump_from") throw new Error(`no jump origin ${address}`);
     return found;
   };
 
-  it("places the jumps on the flow row below the flow-marker label tier", () => {
-    expect(drawing.height).toBe(175.3828125);
-    expect(drawing.elements.find((item) => item.address === "clt_1")).toMatchObject({ y: 54.5 });
+  it("places the jump origins on the flow row below the flow-marker label tier", () => {
+    expect(drawing.height).toBe(180.3828125);
+    expect(drawing.elements.find((item) => item.address === "clt_1")).toMatchObject({ y: 59.5 });
     expect(
       drawing.elements.filter((item) => item.type === "jump_from").map((item) => item.address),
     ).toEqual(["clt_1/jump_2", "clt_1/jump_1", "clt_1/jump_3", "clt_1/jump_4"]);
     expect(drawing.elements.find((item) => item.address === "clt_1/break_1/label")).toMatchObject({
-      baseline: 93.83056640625,
+      baseline: 98.83056640625,
     });
   });
 
-  it("arrives steeply on a short jump", () => {
+  it("arrives steeply on a short jump origin", () => {
     expect(jump("clt_1/jump_2")).toMatchObject({
-      start: [165.3993480785473, 95.953125],
-      c1: [157.2912399704392, 106.61979166666667],
-      c2: [141.07502375422297, 106.61979166666667],
-      tip: [132.96691564611487, 95.953125],
-      base: [135.38752148242557, 99.13756645576875],
+      start: [165.3993480785473, 100.953125],
+      c1: [157.2912399704392, 111.61979166666667],
+      c2: [141.07502375422297, 111.61979166666667],
+      tip: [132.96691564611487, 100.953125],
+      base: [135.38752148242557, 104.13756645576875],
       corners: [
-        [133.7953007545412, 100.3478693739241],
-        [136.97974221030995, 97.9272635376134],
+        [133.7953007545412, 105.3478693739241],
+        [136.97974221030995, 102.9272635376134],
       ],
     });
   });
 
-  it("arrives flatly on a long jump", () => {
+  it("arrives flatly on a long jump origin", () => {
     expect(jump("clt_1/jump_4")).toMatchObject({
-      start: [468.10205078125, 95.953125],
-      c1: [368.10205078125, 161.22395833333331],
-      c2: [168.10205078125, 161.22395833333331],
-      tip: [68.10205078125, 95.953125],
-      base: [71.45167385263575, 98.13945189221907],
+      start: [468.10205078125, 100.953125],
+      c1: [368.10205078125, 166.22395833333331],
+      c2: [168.10205078125, 166.22395833333331],
+      tip: [68.10205078125, 100.953125],
+      base: [71.45167385263575, 103.13945189221907],
       corners: [
-        [70.35851040652622, 99.81426342791194],
-        [72.54483729874529, 96.4646403565262],
+        [70.35851040652622, 104.81426342791194],
+        [72.54483729874529, 101.4646403565262],
       ],
     });
   });

@@ -90,7 +90,7 @@ const CASES: readonly [BandKind, ElementType, string, string, number, number][] 
   ["conversion_maps", "map", "map", "melody", 2, -1],
   ["markers", "wedge", "map", "melody", 2, 1],
   ["regions", "region", "with_region", "clt_1", 1, 1],
-  ["flow_control", "jump_from", "flow_control", "flow:quarters", 1, 1],
+  ["flow_control", "jump_from", "flow_control", "flow:quarters", 2, 1],
   ["flow_control", "flow_marker", "flow_control", "flow:quarters", 1, 1],
 ];
 
@@ -105,22 +105,22 @@ describe("a band moved across its line", () => {
     });
   }
 
-  it("ends the root's break at the bottom padding when its flow control band lies above", () => {
+  it("ends the root's flow marker at the bottom padding when its flow control band lies above", () => {
     const drawing = drawn(
       edit("flow_control", set("flow:quarters", { order: moved("flow:quarters", "flow_control") })),
     );
-    expect(drawing.height).toBe(97.4296875);
-    expect(element(drawing, "flow:quarters")).toMatchObject({ y: 52.453125 });
+    expect(drawing.height).toBe(117.90625);
+    expect(element(drawing, "flow:quarters")).toMatchObject({ y: 72.9296875 });
     expect(element(drawing, "flow:quarters/break_1")).toMatchObject({
-      y1: 36.4765625,
-      y2: 79.4296875,
+      y1: 56.953125,
+      y2: 99.90625,
     });
     expect(element(drawing, "flow:quarters/break_1/label")).toMatchObject({
       x: 393.9775390625,
-      baseline: 44.83056640625,
+      baseline: 65.30712890625,
     });
     expect(element(drawing, "flow:quarters/jump_1")).toMatchObject({
-      start: [290.9775390625, 36.4765625],
+      start: [290.9775390625, 56.953125],
     });
   });
 });
@@ -186,7 +186,7 @@ describe("a child's band order", () => {
   });
 });
 
-describe("a child's break", () => {
+describe("a child's flow marker", () => {
   const shown: Graphical = {
     statements: [{ select: { ids: ["verse/flow_control_1"] }, set: { display: "inline" } }],
   };

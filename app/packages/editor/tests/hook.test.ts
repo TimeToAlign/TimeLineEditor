@@ -295,6 +295,7 @@ describe("the test hook", () => {
       "bundle_ungrouped",
       "group_child_member",
       "group_grandchild",
+      "group_measure_map",
       "group_number_types",
       "group_parent_both",
       "group_parent_exact",

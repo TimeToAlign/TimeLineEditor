@@ -161,12 +161,12 @@ describe("the markers band alone", () => {
 describe("the conversion maps band", () => {
   const name = "conversion_maps__maps_quarters";
 
-  it("lies against the root's line above it alone, a stack of 18 maps", () => {
+  it("lies against the root's line above it alone, a stack of 12 maps", () => {
     const drawing = drawn(load(name));
-    expect(element(drawing, "maps:quarters")).toMatchObject({ y: 107.5 });
-    expect(element(drawing, "maps:quarters/cmap_1")).toMatchObject({ yc: 102 });
-    expect(element(drawing, "maps:quarters/tmap_2")).toMatchObject({ yc: 17 });
-    expect(drawing.height).toBe(152.4765625);
+    expect(element(drawing, "maps:quarters")).toMatchObject({ y: 77.5 });
+    expect(element(drawing, "maps:quarters/cmap_1")).toMatchObject({ yc: 72 });
+    expect(element(drawing, "maps:quarters/tmap_4")).toMatchObject({ yc: 17 });
+    expect(drawing.height).toBe(122.4765625);
   });
 
   it("and the markers band lie at two levels B apart on one side", () => {
@@ -184,12 +184,12 @@ describe("the conversion maps band", () => {
     );
     expect(element(drawing, "maps:quarters")).toMatchObject({ y: 22.40234375 });
     expect(element(drawing, "maps:quarters/cmap_1")).toMatchObject({ yc: 27.90234375 });
-    expect(element(drawing, "maps:quarters/tmap_2")).toMatchObject({ yc: 112.90234375 });
+    expect(element(drawing, "maps:quarters/tmap_4")).toMatchObject({ yc: 82.90234375 });
     expect(element(drawing, "maps:quarters/start")).toMatchObject({
-      yt: 119.40234375,
-      yb: 132.40234375,
+      yt: 89.40234375,
+      yb: 102.40234375,
     });
-    expect(drawing.height).toBe(162.87890625);
+    expect(drawing.height).toBe(132.87890625);
   });
 
   it("lies beyond the markers band, leaving the line no stack, when ordered after it", () => {
