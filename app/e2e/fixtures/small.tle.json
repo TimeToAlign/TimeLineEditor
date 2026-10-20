@@ -7,19 +7,16 @@
       "length": 400,
       "manifest": {
         "groups": [],
+        "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (4aacfe8e)"
+          "generator": "timetoalign 1.2.0 (ce979703)"
         },
         "name": null,
         "timelines": [
           {
             "children": [],
             "conversion_maps": [],
-            "flow_control": {
-              "breaks": [],
-              "jumps": [],
-              "markers": []
-            },
+            "flow_control": [],
             "id": "bare",
             "is_segment_line": false,
             "length": [
@@ -27,9 +24,7 @@
               1
             ],
             "locked": false,
-            "measure_map": null,
             "meta": {},
-            "metric_hierarchy": null,
             "name": "Bare",
             "number_type": "fraction",
             "regions": [],
@@ -53,64 +48,84 @@
       "length": 400,
       "manifest": {
         "groups": [],
+        "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (4aacfe8e)"
+          "generator": "timetoalign 1.2.0 (ce979703)"
         },
         "name": null,
         "timelines": [
           {
             "children": [],
             "conversion_maps": [],
-            "flow_control": {
-              "breaks": [
-                {
-                  "condition": "after_dc_ds",
-                  "control_type": "fine",
-                  "coordinate": [
-                    12,
-                    1
-                  ],
-                  "id": "break_1",
-                  "label": "Fine",
-                  "meta": {
-                    "source": "synthetic"
-                  },
-                  "name": "fine",
-                  "repeat_count": 1
-                }
-              ],
-              "jumps": [
-                {
-                  "condition": "first_n",
-                  "control_type": "repeat_end",
-                  "from_coordinate": [
-                    8,
-                    1
-                  ],
-                  "id": "jump_1",
-                  "label": "Repeat",
-                  "meta": {
-                    "source": "synthetic"
-                  },
-                  "repeat_count": 2,
-                  "target": "marker_1",
-                  "to_coordinate": [
-                    2,
-                    1
-                  ]
-                }
-              ],
-              "markers": [
-                {
-                  "coordinate": [
-                    2,
-                    1
-                  ],
-                  "id": "marker_1",
-                  "name": "repeat-start"
-                }
-              ]
-            },
+            "flow_control": [
+              {
+                "coordinate": [
+                  2,
+                  1
+                ],
+                "id": "marker_1",
+                "label": null,
+                "manifestation": "repeat_start",
+                "meta": {},
+                "name": "repeat-start",
+                "type": "jump_to"
+              },
+              {
+                "coordinate": [
+                  4,
+                  1
+                ],
+                "id": "marker_2",
+                "label": null,
+                "manifestation": "segno",
+                "meta": {},
+                "name": "segno",
+                "type": "jump_to"
+              },
+              {
+                "coordinate": [
+                  8,
+                  1
+                ],
+                "id": "jump_1",
+                "label": "Repeat",
+                "manifestation": "repeat_end",
+                "meta": {
+                  "source": "synthetic"
+                },
+                "name": null,
+                "repeat_count": 2,
+                "target": "marker_1",
+                "type": "jump_from"
+              },
+              {
+                "coordinate": [
+                  12,
+                  1
+                ],
+                "id": "break_1",
+                "label": "Fine",
+                "manifestation": "fine",
+                "meta": {
+                  "source": "synthetic"
+                },
+                "name": "fine",
+                "type": "flow_marker"
+              },
+              {
+                "coordinate": [
+                  16,
+                  1
+                ],
+                "id": "jump_2",
+                "label": "D.S.",
+                "manifestation": "dal_segno",
+                "meta": {},
+                "name": null,
+                "target": "marker_2",
+                "type": "jump_from"
+              }
+            ],
             "id": "flow:quarters",
             "is_segment_line": false,
             "length": [
@@ -118,9 +133,7 @@
               1
             ],
             "locked": false,
-            "measure_map": null,
             "meta": {},
-            "metric_hierarchy": null,
             "name": "Flow control",
             "number_type": "fraction",
             "regions": [],
@@ -144,8 +157,9 @@
       "length": 400,
       "manifest": {
         "groups": [],
+        "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (4aacfe8e)"
+          "generator": "timetoalign 1.2.0 (ce979703)"
         },
         "name": null,
         "timelines": [
@@ -157,18 +171,14 @@
                   {
                     "id": "ticks",
                     "name": "Ticks",
-                    "ppq": 480,
+                    "offset": 0,
                     "scalar": 480,
                     "source_unit": "quarters",
                     "target_unit": "ticks",
-                    "type": "QuartersToTicks"
+                    "type": "LinearMap"
                   }
                 ],
-                "flow_control": {
-                  "breaks": [],
-                  "jumps": [],
-                  "markers": []
-                },
+                "flow_control": [],
                 "id": "phrase",
                 "is_segment_line": false,
                 "length": [
@@ -176,9 +186,7 @@
                   1
                 ],
                 "locked": true,
-                "measure_map": null,
                 "meta": {},
-                "metric_hierarchy": null,
                 "name": "Phrase",
                 "number_type": "fraction",
                 "offset": [
@@ -193,20 +201,17 @@
               {
                 "id": "tempo",
                 "name": "Tempo",
+                "offset": 0,
                 "scalar": [
                   1,
                   2
                 ],
                 "source_unit": "quarters",
                 "target_unit": "seconds",
-                "type": "ScalarMap"
+                "type": "LinearMap"
               }
             ],
-            "flow_control": {
-              "breaks": [],
-              "jumps": [],
-              "markers": []
-            },
+            "flow_control": [],
             "id": "melody",
             "is_segment_line": false,
             "length": [
@@ -214,9 +219,7 @@
               1
             ],
             "locked": false,
-            "measure_map": null,
             "meta": {},
-            "metric_hierarchy": null,
             "name": "Melody",
             "number_type": "fraction",
             "regions": [],
@@ -240,8 +243,9 @@
       "length": 400,
       "manifest": {
         "groups": [],
+        "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (4aacfe8e)"
+          "generator": "timetoalign 1.2.0 (ce979703)"
         },
         "name": null,
         "timelines": [
@@ -252,11 +256,7 @@
                   {
                     "children": [],
                     "conversion_maps": [],
-                    "flow_control": {
-                      "breaks": [],
-                      "jumps": [],
-                      "markers": []
-                    },
+                    "flow_control": [],
                     "id": "clt_2",
                     "is_segment_line": false,
                     "length": [
@@ -264,9 +264,7 @@
                       1
                     ],
                     "locked": true,
-                    "measure_map": null,
                     "meta": {},
-                    "metric_hierarchy": null,
                     "name": null,
                     "number_type": "fraction",
                     "offset": [
@@ -278,11 +276,7 @@
                   }
                 ],
                 "conversion_maps": [],
-                "flow_control": {
-                  "breaks": [],
-                  "jumps": [],
-                  "markers": []
-                },
+                "flow_control": [],
                 "id": "clt_3",
                 "is_segment_line": false,
                 "length": [
@@ -290,9 +284,7 @@
                   1
                 ],
                 "locked": true,
-                "measure_map": null,
                 "meta": {},
-                "metric_hierarchy": null,
                 "name": null,
                 "number_type": "fraction",
                 "offset": [
@@ -304,11 +296,7 @@
               }
             ],
             "conversion_maps": [],
-            "flow_control": {
-              "breaks": [],
-              "jumps": [],
-              "markers": []
-            },
+            "flow_control": [],
             "id": "clt_1",
             "is_segment_line": false,
             "length": [
@@ -316,9 +304,7 @@
               1
             ],
             "locked": false,
-            "measure_map": null,
             "meta": {},
-            "metric_hierarchy": null,
             "name": null,
             "number_type": "fraction",
             "regions": [],
@@ -398,7 +384,7 @@
             },
             {
               "select": {
-                "class": "QuartersToTicks"
+                "class": "LinearMap"
               },
               "set": {
                 "stroke": "#7C3AED",
@@ -433,7 +419,7 @@
             {
               "select": {
                 "domain": "logical",
-                "element": "jump"
+                "element": "jump_from"
               },
               "set": {
                 "fill": "#DB2777",
@@ -554,8 +540,9 @@
           }
         },
         "groups": [],
+        "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (4aacfe8e)"
+          "generator": "timetoalign 1.2.0 (ce979703)"
         },
         "name": null,
         "timelines": [
@@ -564,11 +551,7 @@
               {
                 "children": [],
                 "conversion_maps": [],
-                "flow_control": {
-                  "breaks": [],
-                  "jumps": [],
-                  "markers": []
-                },
+                "flow_control": [],
                 "id": "a",
                 "is_segment_line": false,
                 "length": [
@@ -576,9 +559,7 @@
                   1
                 ],
                 "locked": true,
-                "measure_map": null,
                 "meta": {},
-                "metric_hierarchy": null,
                 "name": null,
                 "number_type": "fraction",
                 "offset": [
@@ -591,11 +572,7 @@
               {
                 "children": [],
                 "conversion_maps": [],
-                "flow_control": {
-                  "breaks": [],
-                  "jumps": [],
-                  "markers": []
-                },
+                "flow_control": [],
                 "id": "b",
                 "is_segment_line": false,
                 "length": [
@@ -603,9 +580,7 @@
                   1
                 ],
                 "locked": true,
-                "measure_map": null,
                 "meta": {},
-                "metric_hierarchy": null,
                 "name": null,
                 "number_type": "fraction",
                 "offset": [
@@ -620,36 +595,27 @@
               {
                 "id": "ticks",
                 "name": "Ticks",
-                "ppq": 480,
+                "offset": 0,
                 "scalar": 480,
                 "source_unit": "quarters",
                 "target_unit": "ticks",
-                "type": "QuartersToTicks"
+                "type": "LinearMap"
               }
             ],
-            "flow_control": {
-              "breaks": [],
-              "jumps": [
-                {
-                  "condition": "always",
-                  "control_type": "da_capo",
-                  "from_coordinate": [
-                    8,
-                    1
-                  ],
-                  "id": "da-capo",
-                  "label": "D.C.",
-                  "meta": {},
-                  "repeat_count": 1,
-                  "target": null,
-                  "to_coordinate": [
-                    0,
-                    1
-                  ]
-                }
-              ],
-              "markers": []
-            },
+            "flow_control": [
+              {
+                "coordinate": [
+                  8,
+                  1
+                ],
+                "id": "da-capo",
+                "label": "D.C.",
+                "manifestation": "da_capo",
+                "meta": {},
+                "name": null,
+                "type": "jump_from"
+              }
+            ],
             "id": "score",
             "is_segment_line": false,
             "length": [
@@ -657,9 +623,7 @@
               1
             ],
             "locked": false,
-            "measure_map": null,
             "meta": {},
-            "metric_hierarchy": null,
             "name": "Score",
             "number_type": "fraction",
             "regions": [
@@ -699,19 +663,16 @@
           "id": "bare000000",
           "manifest": {
             "groups": [],
+            "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (4aacfe8e)"
+              "generator": "timetoalign 1.2.0 (ce979703)"
             },
             "name": null,
             "timelines": [
               {
                 "children": [],
                 "conversion_maps": [],
-                "flow_control": {
-                  "breaks": [],
-                  "jumps": [],
-                  "markers": []
-                },
+                "flow_control": [],
                 "id": "bare",
                 "is_segment_line": false,
                 "length": [
@@ -719,9 +680,7 @@
                   1
                 ],
                 "locked": false,
-                "measure_map": null,
                 "meta": {},
-                "metric_hierarchy": null,
                 "name": "Bare",
                 "number_type": "fraction",
                 "regions": [],
@@ -745,8 +704,9 @@
           "id": "nested0000",
           "manifest": {
             "groups": [],
+            "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (4aacfe8e)"
+              "generator": "timetoalign 1.2.0 (ce979703)"
             },
             "name": null,
             "timelines": [
@@ -757,11 +717,7 @@
                       {
                         "children": [],
                         "conversion_maps": [],
-                        "flow_control": {
-                          "breaks": [],
-                          "jumps": [],
-                          "markers": []
-                        },
+                        "flow_control": [],
                         "id": "clt_2",
                         "is_segment_line": false,
                         "length": [
@@ -769,9 +725,7 @@
                           1
                         ],
                         "locked": true,
-                        "measure_map": null,
                         "meta": {},
-                        "metric_hierarchy": null,
                         "name": null,
                         "number_type": "fraction",
                         "offset": [
@@ -783,11 +737,7 @@
                       }
                     ],
                     "conversion_maps": [],
-                    "flow_control": {
-                      "breaks": [],
-                      "jumps": [],
-                      "markers": []
-                    },
+                    "flow_control": [],
                     "id": "clt_3",
                     "is_segment_line": false,
                     "length": [
@@ -795,9 +745,7 @@
                       1
                     ],
                     "locked": true,
-                    "measure_map": null,
                     "meta": {},
-                    "metric_hierarchy": null,
                     "name": null,
                     "number_type": "fraction",
                     "offset": [
@@ -809,11 +757,7 @@
                   }
                 ],
                 "conversion_maps": [],
-                "flow_control": {
-                  "breaks": [],
-                  "jumps": [],
-                  "markers": []
-                },
+                "flow_control": [],
                 "id": "clt_1",
                 "is_segment_line": false,
                 "length": [
@@ -821,9 +765,7 @@
                   1
                 ],
                 "locked": false,
-                "measure_map": null,
                 "meta": {},
-                "metric_hierarchy": null,
                 "name": null,
                 "number_type": "fraction",
                 "regions": [],
@@ -847,8 +789,9 @@
           "id": "map0000000",
           "manifest": {
             "groups": [],
+            "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (4aacfe8e)"
+              "generator": "timetoalign 1.2.0 (ce979703)"
             },
             "name": null,
             "timelines": [
@@ -860,18 +803,14 @@
                       {
                         "id": "ticks",
                         "name": "Ticks",
-                        "ppq": 480,
+                        "offset": 0,
                         "scalar": 480,
                         "source_unit": "quarters",
                         "target_unit": "ticks",
-                        "type": "QuartersToTicks"
+                        "type": "LinearMap"
                       }
                     ],
-                    "flow_control": {
-                      "breaks": [],
-                      "jumps": [],
-                      "markers": []
-                    },
+                    "flow_control": [],
                     "id": "phrase",
                     "is_segment_line": false,
                     "length": [
@@ -879,9 +818,7 @@
                       1
                     ],
                     "locked": true,
-                    "measure_map": null,
                     "meta": {},
-                    "metric_hierarchy": null,
                     "name": "Phrase",
                     "number_type": "fraction",
                     "offset": [
@@ -896,20 +833,17 @@
                   {
                     "id": "tempo",
                     "name": "Tempo",
+                    "offset": 0,
                     "scalar": [
                       1,
                       2
                     ],
                     "source_unit": "quarters",
                     "target_unit": "seconds",
-                    "type": "ScalarMap"
+                    "type": "LinearMap"
                   }
                 ],
-                "flow_control": {
-                  "breaks": [],
-                  "jumps": [],
-                  "markers": []
-                },
+                "flow_control": [],
                 "id": "melody",
                 "is_segment_line": false,
                 "length": [
@@ -917,9 +851,7 @@
                   1
                 ],
                 "locked": false,
-                "measure_map": null,
                 "meta": {},
-                "metric_hierarchy": null,
                 "name": "Melody",
                 "number_type": "fraction",
                 "regions": [],
@@ -943,64 +875,84 @@
           "id": "flow000000",
           "manifest": {
             "groups": [],
+            "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (4aacfe8e)"
+              "generator": "timetoalign 1.2.0 (ce979703)"
             },
             "name": null,
             "timelines": [
               {
                 "children": [],
                 "conversion_maps": [],
-                "flow_control": {
-                  "breaks": [
-                    {
-                      "condition": "after_dc_ds",
-                      "control_type": "fine",
-                      "coordinate": [
-                        12,
-                        1
-                      ],
-                      "id": "break_1",
-                      "label": "Fine",
-                      "meta": {
-                        "source": "synthetic"
-                      },
-                      "name": "fine",
-                      "repeat_count": 1
-                    }
-                  ],
-                  "jumps": [
-                    {
-                      "condition": "first_n",
-                      "control_type": "repeat_end",
-                      "from_coordinate": [
-                        8,
-                        1
-                      ],
-                      "id": "jump_1",
-                      "label": "Repeat",
-                      "meta": {
-                        "source": "synthetic"
-                      },
-                      "repeat_count": 2,
-                      "target": "marker_1",
-                      "to_coordinate": [
-                        2,
-                        1
-                      ]
-                    }
-                  ],
-                  "markers": [
-                    {
-                      "coordinate": [
-                        2,
-                        1
-                      ],
-                      "id": "marker_1",
-                      "name": "repeat-start"
-                    }
-                  ]
-                },
+                "flow_control": [
+                  {
+                    "coordinate": [
+                      2,
+                      1
+                    ],
+                    "id": "marker_1",
+                    "label": null,
+                    "manifestation": "repeat_start",
+                    "meta": {},
+                    "name": "repeat-start",
+                    "type": "jump_to"
+                  },
+                  {
+                    "coordinate": [
+                      4,
+                      1
+                    ],
+                    "id": "marker_2",
+                    "label": null,
+                    "manifestation": "segno",
+                    "meta": {},
+                    "name": "segno",
+                    "type": "jump_to"
+                  },
+                  {
+                    "coordinate": [
+                      8,
+                      1
+                    ],
+                    "id": "jump_1",
+                    "label": "Repeat",
+                    "manifestation": "repeat_end",
+                    "meta": {
+                      "source": "synthetic"
+                    },
+                    "name": null,
+                    "repeat_count": 2,
+                    "target": "marker_1",
+                    "type": "jump_from"
+                  },
+                  {
+                    "coordinate": [
+                      12,
+                      1
+                    ],
+                    "id": "break_1",
+                    "label": "Fine",
+                    "manifestation": "fine",
+                    "meta": {
+                      "source": "synthetic"
+                    },
+                    "name": "fine",
+                    "type": "flow_marker"
+                  },
+                  {
+                    "coordinate": [
+                      16,
+                      1
+                    ],
+                    "id": "jump_2",
+                    "label": "D.S.",
+                    "manifestation": "dal_segno",
+                    "meta": {},
+                    "name": null,
+                    "target": "marker_2",
+                    "type": "jump_from"
+                  }
+                ],
                 "id": "flow:quarters",
                 "is_segment_line": false,
                 "length": [
@@ -1008,9 +960,7 @@
                   1
                 ],
                 "locked": false,
-                "measure_map": null,
                 "meta": {},
-                "metric_hierarchy": null,
                 "name": "Flow control",
                 "number_type": "fraction",
                 "regions": [],
@@ -1090,7 +1040,7 @@
                 },
                 {
                   "select": {
-                    "class": "QuartersToTicks"
+                    "class": "LinearMap"
                   },
                   "set": {
                     "stroke": "#7C3AED",
@@ -1125,7 +1075,7 @@
                 {
                   "select": {
                     "domain": "logical",
-                    "element": "jump"
+                    "element": "jump_from"
                   },
                   "set": {
                     "fill": "#DB2777",
@@ -1246,8 +1196,9 @@
               }
             },
             "groups": [],
+            "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (4aacfe8e)"
+              "generator": "timetoalign 1.2.0 (ce979703)"
             },
             "name": null,
             "timelines": [
@@ -1256,11 +1207,7 @@
                   {
                     "children": [],
                     "conversion_maps": [],
-                    "flow_control": {
-                      "breaks": [],
-                      "jumps": [],
-                      "markers": []
-                    },
+                    "flow_control": [],
                     "id": "a",
                     "is_segment_line": false,
                     "length": [
@@ -1268,9 +1215,7 @@
                       1
                     ],
                     "locked": true,
-                    "measure_map": null,
                     "meta": {},
-                    "metric_hierarchy": null,
                     "name": null,
                     "number_type": "fraction",
                     "offset": [
@@ -1283,11 +1228,7 @@
                   {
                     "children": [],
                     "conversion_maps": [],
-                    "flow_control": {
-                      "breaks": [],
-                      "jumps": [],
-                      "markers": []
-                    },
+                    "flow_control": [],
                     "id": "b",
                     "is_segment_line": false,
                     "length": [
@@ -1295,9 +1236,7 @@
                       1
                     ],
                     "locked": true,
-                    "measure_map": null,
                     "meta": {},
-                    "metric_hierarchy": null,
                     "name": null,
                     "number_type": "fraction",
                     "offset": [
@@ -1312,36 +1251,27 @@
                   {
                     "id": "ticks",
                     "name": "Ticks",
-                    "ppq": 480,
+                    "offset": 0,
                     "scalar": 480,
                     "source_unit": "quarters",
                     "target_unit": "ticks",
-                    "type": "QuartersToTicks"
+                    "type": "LinearMap"
                   }
                 ],
-                "flow_control": {
-                  "breaks": [],
-                  "jumps": [
-                    {
-                      "condition": "always",
-                      "control_type": "da_capo",
-                      "from_coordinate": [
-                        8,
-                        1
-                      ],
-                      "id": "da-capo",
-                      "label": "D.C.",
-                      "meta": {},
-                      "repeat_count": 1,
-                      "target": null,
-                      "to_coordinate": [
-                        0,
-                        1
-                      ]
-                    }
-                  ],
-                  "markers": []
-                },
+                "flow_control": [
+                  {
+                    "coordinate": [
+                      8,
+                      1
+                    ],
+                    "id": "da-capo",
+                    "label": "D.C.",
+                    "manifestation": "da_capo",
+                    "meta": {},
+                    "name": null,
+                    "type": "jump_from"
+                  }
+                ],
                 "id": "score",
                 "is_segment_line": false,
                 "length": [
@@ -1349,9 +1279,7 @@
                   1
                 ],
                 "locked": false,
-                "measure_map": null,
                 "meta": {},
-                "metric_hierarchy": null,
                 "name": "Score",
                 "number_type": "fraction",
                 "regions": [

@@ -27,8 +27,9 @@
             "name": "Second half"
           }
         ],
+        "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (4aacfe8e)"
+          "generator": "timetoalign 1.2.0 (ce979703)"
         },
         "name": null,
         "timelines": [
@@ -37,11 +38,7 @@
               {
                 "children": [],
                 "conversion_maps": [],
-                "flow_control": {
-                  "breaks": [],
-                  "jumps": [],
-                  "markers": []
-                },
+                "flow_control": [],
                 "id": "second-half",
                 "is_segment_line": false,
                 "length": [
@@ -49,9 +46,7 @@
                   1
                 ],
                 "locked": true,
-                "measure_map": null,
                 "meta": {},
-                "metric_hierarchy": null,
                 "name": "Second half",
                 "number_type": "fraction",
                 "offset": [
@@ -63,11 +58,7 @@
               }
             ],
             "conversion_maps": [],
-            "flow_control": {
-              "breaks": [],
-              "jumps": [],
-              "markers": []
-            },
+            "flow_control": [],
             "id": "piece",
             "is_segment_line": false,
             "length": [
@@ -75,9 +66,7 @@
               1
             ],
             "locked": false,
-            "measure_map": null,
             "meta": {},
-            "metric_hierarchy": null,
             "name": "Piece",
             "number_type": "fraction",
             "regions": [],
@@ -86,18 +75,12 @@
           {
             "children": [],
             "conversion_maps": [],
-            "flow_control": {
-              "breaks": [],
-              "jumps": [],
-              "markers": []
-            },
+            "flow_control": [],
             "id": "recording",
             "is_segment_line": false,
             "length": 10.0,
             "locked": false,
-            "measure_map": null,
             "meta": {},
-            "metric_hierarchy": null,
             "name": "Recording",
             "number_type": "float",
             "regions": [],
@@ -141,26 +124,21 @@
             "name": "Theme"
           }
         ],
+        "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (4aacfe8e)"
+          "generator": "timetoalign 1.2.0 (ce979703)"
         },
         "name": null,
         "timelines": [
           {
             "children": [],
             "conversion_maps": [],
-            "flow_control": {
-              "breaks": [],
-              "jumps": [],
-              "markers": []
-            },
+            "flow_control": [],
             "id": "recording",
             "is_segment_line": false,
             "length": 12.0,
             "locked": false,
-            "measure_map": null,
             "meta": {},
-            "metric_hierarchy": null,
             "name": "Recording",
             "number_type": "float",
             "regions": [],
@@ -173,11 +151,7 @@
                   {
                     "children": [],
                     "conversion_maps": [],
-                    "flow_control": {
-                      "breaks": [],
-                      "jumps": [],
-                      "markers": []
-                    },
+                    "flow_control": [],
                     "id": "theme",
                     "is_segment_line": false,
                     "length": [
@@ -185,9 +159,7 @@
                       1
                     ],
                     "locked": true,
-                    "measure_map": null,
                     "meta": {},
-                    "metric_hierarchy": null,
                     "name": "Theme",
                     "number_type": "fraction",
                     "offset": [
@@ -199,11 +171,7 @@
                   }
                 ],
                 "conversion_maps": [],
-                "flow_control": {
-                  "breaks": [],
-                  "jumps": [],
-                  "markers": []
-                },
+                "flow_control": [],
                 "id": "movement",
                 "is_segment_line": false,
                 "length": [
@@ -211,9 +179,7 @@
                   1
                 ],
                 "locked": true,
-                "measure_map": null,
                 "meta": {},
-                "metric_hierarchy": null,
                 "name": "Movement",
                 "number_type": "fraction",
                 "offset": [
@@ -225,11 +191,7 @@
               }
             ],
             "conversion_maps": [],
-            "flow_control": {
-              "breaks": [],
-              "jumps": [],
-              "markers": []
-            },
+            "flow_control": [],
             "id": "score",
             "is_segment_line": false,
             "length": [
@@ -237,9 +199,7 @@
               1
             ],
             "locked": false,
-            "measure_map": null,
             "meta": {},
-            "metric_hierarchy": null,
             "name": "Score",
             "number_type": "fraction",
             "regions": [],
@@ -287,8 +247,9 @@
             "name": "Exposition"
           }
         ],
+        "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (4aacfe8e)"
+          "generator": "timetoalign 1.2.0 (ce979703)"
         },
         "name": null,
         "timelines": [
@@ -298,28 +259,22 @@
               {
                 "id": "cmap_1",
                 "name": null,
-                "sample_rate": 44100,
+                "offset": 0,
                 "scalar": [
                   1,
                   44100
                 ],
                 "source_unit": "samples",
                 "target_unit": "seconds",
-                "type": "SamplesToSeconds"
+                "type": "LinearMap"
               }
             ],
-            "flow_control": {
-              "breaks": [],
-              "jumps": [],
-              "markers": []
-            },
+            "flow_control": [],
             "id": "audio",
             "is_segment_line": false,
             "length": 1323000,
             "locked": false,
-            "measure_map": null,
             "meta": {},
-            "metric_hierarchy": null,
             "name": "Audio",
             "number_type": "int",
             "regions": [],
@@ -330,18 +285,12 @@
               {
                 "children": [],
                 "conversion_maps": [],
-                "flow_control": {
-                  "breaks": [],
-                  "jumps": [],
-                  "markers": []
-                },
+                "flow_control": [],
                 "id": "system",
                 "is_segment_line": false,
                 "length": 600,
                 "locked": true,
-                "measure_map": null,
                 "meta": {},
-                "metric_hierarchy": null,
                 "name": "System",
                 "number_type": "int",
                 "offset": 0,
@@ -350,18 +299,12 @@
               }
             ],
             "conversion_maps": [],
-            "flow_control": {
-              "breaks": [],
-              "jumps": [],
-              "markers": []
-            },
+            "flow_control": [],
             "id": "page",
             "is_segment_line": false,
             "length": 1754,
             "locked": false,
-            "measure_map": null,
             "meta": {},
-            "metric_hierarchy": null,
             "name": "Page",
             "number_type": "int",
             "regions": [],
@@ -375,25 +318,19 @@
                   {
                     "id": "cmap_1",
                     "name": null,
-                    "sample_rate": 44100,
+                    "offset": 0,
                     "scalar": 44100,
                     "source_unit": "seconds",
                     "target_unit": "samples",
-                    "type": "SecondsToSamples"
+                    "type": "LinearMap"
                   }
                 ],
-                "flow_control": {
-                  "breaks": [],
-                  "jumps": [],
-                  "markers": []
-                },
+                "flow_control": [],
                 "id": "take",
                 "is_segment_line": false,
                 "length": 25.5,
                 "locked": true,
-                "measure_map": null,
                 "meta": {},
-                "metric_hierarchy": null,
                 "name": "Take",
                 "number_type": "float",
                 "offset": 30.0,
@@ -402,18 +339,12 @@
               }
             ],
             "conversion_maps": [],
-            "flow_control": {
-              "breaks": [],
-              "jumps": [],
-              "markers": []
-            },
+            "flow_control": [],
             "id": "session",
             "is_segment_line": false,
             "length": 90.0,
             "locked": false,
-            "measure_map": null,
             "meta": {},
-            "metric_hierarchy": null,
             "name": "Session",
             "number_type": "float",
             "regions": [],
@@ -424,11 +355,7 @@
               {
                 "children": [],
                 "conversion_maps": [],
-                "flow_control": {
-                  "breaks": [],
-                  "jumps": [],
-                  "markers": []
-                },
+                "flow_control": [],
                 "id": "exposition",
                 "is_segment_line": false,
                 "length": [
@@ -436,9 +363,7 @@
                   1
                 ],
                 "locked": true,
-                "measure_map": null,
                 "meta": {},
-                "metric_hierarchy": null,
                 "name": "Exposition",
                 "number_type": "fraction",
                 "offset": [
@@ -450,11 +375,7 @@
               }
             ],
             "conversion_maps": [],
-            "flow_control": {
-              "breaks": [],
-              "jumps": [],
-              "markers": []
-            },
+            "flow_control": [],
             "id": "sonata",
             "is_segment_line": false,
             "length": [
@@ -462,9 +383,7 @@
               1
             ],
             "locked": true,
-            "measure_map": null,
             "meta": {},
-            "metric_hierarchy": null,
             "name": "Sonata",
             "number_type": "fraction",
             "regions": [],
@@ -542,8 +461,9 @@
             "name": "Edition"
           }
         ],
+        "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (4aacfe8e)"
+          "generator": "timetoalign 1.2.0 (ce979703)"
         },
         "name": null,
         "timelines": [
@@ -553,27 +473,22 @@
               {
                 "id": "cmap_1",
                 "name": null,
+                "offset": 0,
                 "scalar": [
                   3,
                   4
                 ],
                 "source_unit": "pixels",
                 "target_unit": "points",
-                "type": "ScalarMap"
+                "type": "LinearMap"
               }
             ],
-            "flow_control": {
-              "breaks": [],
-              "jumps": [],
-              "markers": []
-            },
+            "flow_control": [],
             "id": "page",
             "is_segment_line": false,
             "length": 1920,
             "locked": false,
-            "measure_map": null,
             "meta": {},
-            "metric_hierarchy": null,
             "name": "Page",
             "number_type": "int",
             "regions": [],
@@ -585,25 +500,19 @@
               {
                 "id": "cmap_1",
                 "name": null,
-                "sample_rate": 44100,
+                "offset": 0,
                 "scalar": 44100,
                 "source_unit": "seconds",
                 "target_unit": "samples",
-                "type": "SecondsToSamples"
+                "type": "LinearMap"
               }
             ],
-            "flow_control": {
-              "breaks": [],
-              "jumps": [],
-              "markers": []
-            },
+            "flow_control": [],
             "id": "performance",
             "is_segment_line": false,
             "length": 12.5,
             "locked": false,
-            "measure_map": null,
             "meta": {},
-            "metric_hierarchy": null,
             "name": "Performance",
             "number_type": "float",
             "regions": [],
@@ -615,36 +524,28 @@
               {
                 "id": "cmap_1",
                 "name": null,
-                "ppq": 480,
+                "offset": 0,
                 "scalar": 480,
                 "source_unit": "quarters",
                 "target_unit": "ticks",
-                "type": "QuartersToTicks"
+                "type": "LinearMap"
               }
             ],
-            "flow_control": {
-              "breaks": [],
-              "jumps": [
-                {
-                  "condition": "first_n",
-                  "control_type": "repeat_end",
-                  "from_coordinate": [
-                    8,
-                    1
-                  ],
-                  "id": "jump_1",
-                  "label": "Repeat",
-                  "meta": {},
-                  "repeat_count": 1,
-                  "target": null,
-                  "to_coordinate": [
-                    0,
-                    1
-                  ]
-                }
-              ],
-              "markers": []
-            },
+            "flow_control": [
+              {
+                "coordinate": [
+                  8,
+                  1
+                ],
+                "id": "jump_1",
+                "label": "Repeat",
+                "manifestation": "repeat_end",
+                "meta": {},
+                "name": null,
+                "repeat_count": 1,
+                "type": "jump_from"
+              }
+            ],
             "id": "score",
             "is_segment_line": false,
             "length": [
@@ -652,9 +553,7 @@
               1
             ],
             "locked": false,
-            "measure_map": null,
             "meta": {},
-            "metric_hierarchy": null,
             "name": "Score",
             "number_type": "fraction",
             "regions": [
@@ -714,8 +613,9 @@
                 "name": "Second half"
               }
             ],
+            "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (4aacfe8e)"
+              "generator": "timetoalign 1.2.0 (ce979703)"
             },
             "name": null,
             "timelines": [
@@ -724,11 +624,7 @@
                   {
                     "children": [],
                     "conversion_maps": [],
-                    "flow_control": {
-                      "breaks": [],
-                      "jumps": [],
-                      "markers": []
-                    },
+                    "flow_control": [],
                     "id": "second-half",
                     "is_segment_line": false,
                     "length": [
@@ -736,9 +632,7 @@
                       1
                     ],
                     "locked": true,
-                    "measure_map": null,
                     "meta": {},
-                    "metric_hierarchy": null,
                     "name": "Second half",
                     "number_type": "fraction",
                     "offset": [
@@ -750,11 +644,7 @@
                   }
                 ],
                 "conversion_maps": [],
-                "flow_control": {
-                  "breaks": [],
-                  "jumps": [],
-                  "markers": []
-                },
+                "flow_control": [],
                 "id": "piece",
                 "is_segment_line": false,
                 "length": [
@@ -762,9 +652,7 @@
                   1
                 ],
                 "locked": false,
-                "measure_map": null,
                 "meta": {},
-                "metric_hierarchy": null,
                 "name": "Piece",
                 "number_type": "fraction",
                 "regions": [],
@@ -773,18 +661,12 @@
               {
                 "children": [],
                 "conversion_maps": [],
-                "flow_control": {
-                  "breaks": [],
-                  "jumps": [],
-                  "markers": []
-                },
+                "flow_control": [],
                 "id": "recording",
                 "is_segment_line": false,
                 "length": 10.0,
                 "locked": false,
-                "measure_map": null,
                 "meta": {},
-                "metric_hierarchy": null,
                 "name": "Recording",
                 "number_type": "float",
                 "regions": [],
@@ -828,26 +710,21 @@
                 "name": "Theme"
               }
             ],
+            "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (4aacfe8e)"
+              "generator": "timetoalign 1.2.0 (ce979703)"
             },
             "name": null,
             "timelines": [
               {
                 "children": [],
                 "conversion_maps": [],
-                "flow_control": {
-                  "breaks": [],
-                  "jumps": [],
-                  "markers": []
-                },
+                "flow_control": [],
                 "id": "recording",
                 "is_segment_line": false,
                 "length": 12.0,
                 "locked": false,
-                "measure_map": null,
                 "meta": {},
-                "metric_hierarchy": null,
                 "name": "Recording",
                 "number_type": "float",
                 "regions": [],
@@ -860,11 +737,7 @@
                       {
                         "children": [],
                         "conversion_maps": [],
-                        "flow_control": {
-                          "breaks": [],
-                          "jumps": [],
-                          "markers": []
-                        },
+                        "flow_control": [],
                         "id": "theme",
                         "is_segment_line": false,
                         "length": [
@@ -872,9 +745,7 @@
                           1
                         ],
                         "locked": true,
-                        "measure_map": null,
                         "meta": {},
-                        "metric_hierarchy": null,
                         "name": "Theme",
                         "number_type": "fraction",
                         "offset": [
@@ -886,11 +757,7 @@
                       }
                     ],
                     "conversion_maps": [],
-                    "flow_control": {
-                      "breaks": [],
-                      "jumps": [],
-                      "markers": []
-                    },
+                    "flow_control": [],
                     "id": "movement",
                     "is_segment_line": false,
                     "length": [
@@ -898,9 +765,7 @@
                       1
                     ],
                     "locked": true,
-                    "measure_map": null,
                     "meta": {},
-                    "metric_hierarchy": null,
                     "name": "Movement",
                     "number_type": "fraction",
                     "offset": [
@@ -912,11 +777,7 @@
                   }
                 ],
                 "conversion_maps": [],
-                "flow_control": {
-                  "breaks": [],
-                  "jumps": [],
-                  "markers": []
-                },
+                "flow_control": [],
                 "id": "score",
                 "is_segment_line": false,
                 "length": [
@@ -924,9 +785,7 @@
                   1
                 ],
                 "locked": false,
-                "measure_map": null,
                 "meta": {},
-                "metric_hierarchy": null,
                 "name": "Score",
                 "number_type": "fraction",
                 "regions": [],
@@ -974,8 +833,9 @@
                 "name": "Exposition"
               }
             ],
+            "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (4aacfe8e)"
+              "generator": "timetoalign 1.2.0 (ce979703)"
             },
             "name": null,
             "timelines": [
@@ -985,28 +845,22 @@
                   {
                     "id": "cmap_1",
                     "name": null,
-                    "sample_rate": 44100,
+                    "offset": 0,
                     "scalar": [
                       1,
                       44100
                     ],
                     "source_unit": "samples",
                     "target_unit": "seconds",
-                    "type": "SamplesToSeconds"
+                    "type": "LinearMap"
                   }
                 ],
-                "flow_control": {
-                  "breaks": [],
-                  "jumps": [],
-                  "markers": []
-                },
+                "flow_control": [],
                 "id": "audio",
                 "is_segment_line": false,
                 "length": 1323000,
                 "locked": false,
-                "measure_map": null,
                 "meta": {},
-                "metric_hierarchy": null,
                 "name": "Audio",
                 "number_type": "int",
                 "regions": [],
@@ -1017,18 +871,12 @@
                   {
                     "children": [],
                     "conversion_maps": [],
-                    "flow_control": {
-                      "breaks": [],
-                      "jumps": [],
-                      "markers": []
-                    },
+                    "flow_control": [],
                     "id": "system",
                     "is_segment_line": false,
                     "length": 600,
                     "locked": true,
-                    "measure_map": null,
                     "meta": {},
-                    "metric_hierarchy": null,
                     "name": "System",
                     "number_type": "int",
                     "offset": 0,
@@ -1037,18 +885,12 @@
                   }
                 ],
                 "conversion_maps": [],
-                "flow_control": {
-                  "breaks": [],
-                  "jumps": [],
-                  "markers": []
-                },
+                "flow_control": [],
                 "id": "page",
                 "is_segment_line": false,
                 "length": 1754,
                 "locked": false,
-                "measure_map": null,
                 "meta": {},
-                "metric_hierarchy": null,
                 "name": "Page",
                 "number_type": "int",
                 "regions": [],
@@ -1062,25 +904,19 @@
                       {
                         "id": "cmap_1",
                         "name": null,
-                        "sample_rate": 44100,
+                        "offset": 0,
                         "scalar": 44100,
                         "source_unit": "seconds",
                         "target_unit": "samples",
-                        "type": "SecondsToSamples"
+                        "type": "LinearMap"
                       }
                     ],
-                    "flow_control": {
-                      "breaks": [],
-                      "jumps": [],
-                      "markers": []
-                    },
+                    "flow_control": [],
                     "id": "take",
                     "is_segment_line": false,
                     "length": 25.5,
                     "locked": true,
-                    "measure_map": null,
                     "meta": {},
-                    "metric_hierarchy": null,
                     "name": "Take",
                     "number_type": "float",
                     "offset": 30.0,
@@ -1089,18 +925,12 @@
                   }
                 ],
                 "conversion_maps": [],
-                "flow_control": {
-                  "breaks": [],
-                  "jumps": [],
-                  "markers": []
-                },
+                "flow_control": [],
                 "id": "session",
                 "is_segment_line": false,
                 "length": 90.0,
                 "locked": false,
-                "measure_map": null,
                 "meta": {},
-                "metric_hierarchy": null,
                 "name": "Session",
                 "number_type": "float",
                 "regions": [],
@@ -1111,11 +941,7 @@
                   {
                     "children": [],
                     "conversion_maps": [],
-                    "flow_control": {
-                      "breaks": [],
-                      "jumps": [],
-                      "markers": []
-                    },
+                    "flow_control": [],
                     "id": "exposition",
                     "is_segment_line": false,
                     "length": [
@@ -1123,9 +949,7 @@
                       1
                     ],
                     "locked": true,
-                    "measure_map": null,
                     "meta": {},
-                    "metric_hierarchy": null,
                     "name": "Exposition",
                     "number_type": "fraction",
                     "offset": [
@@ -1137,11 +961,7 @@
                   }
                 ],
                 "conversion_maps": [],
-                "flow_control": {
-                  "breaks": [],
-                  "jumps": [],
-                  "markers": []
-                },
+                "flow_control": [],
                 "id": "sonata",
                 "is_segment_line": false,
                 "length": [
@@ -1149,9 +969,7 @@
                   1
                 ],
                 "locked": true,
-                "measure_map": null,
                 "meta": {},
-                "metric_hierarchy": null,
                 "name": "Sonata",
                 "number_type": "fraction",
                 "regions": [],
@@ -1229,8 +1047,9 @@
                 "name": "Edition"
               }
             ],
+            "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (4aacfe8e)"
+              "generator": "timetoalign 1.2.0 (ce979703)"
             },
             "name": null,
             "timelines": [
@@ -1240,27 +1059,22 @@
                   {
                     "id": "cmap_1",
                     "name": null,
+                    "offset": 0,
                     "scalar": [
                       3,
                       4
                     ],
                     "source_unit": "pixels",
                     "target_unit": "points",
-                    "type": "ScalarMap"
+                    "type": "LinearMap"
                   }
                 ],
-                "flow_control": {
-                  "breaks": [],
-                  "jumps": [],
-                  "markers": []
-                },
+                "flow_control": [],
                 "id": "page",
                 "is_segment_line": false,
                 "length": 1920,
                 "locked": false,
-                "measure_map": null,
                 "meta": {},
-                "metric_hierarchy": null,
                 "name": "Page",
                 "number_type": "int",
                 "regions": [],
@@ -1272,25 +1086,19 @@
                   {
                     "id": "cmap_1",
                     "name": null,
-                    "sample_rate": 44100,
+                    "offset": 0,
                     "scalar": 44100,
                     "source_unit": "seconds",
                     "target_unit": "samples",
-                    "type": "SecondsToSamples"
+                    "type": "LinearMap"
                   }
                 ],
-                "flow_control": {
-                  "breaks": [],
-                  "jumps": [],
-                  "markers": []
-                },
+                "flow_control": [],
                 "id": "performance",
                 "is_segment_line": false,
                 "length": 12.5,
                 "locked": false,
-                "measure_map": null,
                 "meta": {},
-                "metric_hierarchy": null,
                 "name": "Performance",
                 "number_type": "float",
                 "regions": [],
@@ -1302,36 +1110,28 @@
                   {
                     "id": "cmap_1",
                     "name": null,
-                    "ppq": 480,
+                    "offset": 0,
                     "scalar": 480,
                     "source_unit": "quarters",
                     "target_unit": "ticks",
-                    "type": "QuartersToTicks"
+                    "type": "LinearMap"
                   }
                 ],
-                "flow_control": {
-                  "breaks": [],
-                  "jumps": [
-                    {
-                      "condition": "first_n",
-                      "control_type": "repeat_end",
-                      "from_coordinate": [
-                        8,
-                        1
-                      ],
-                      "id": "jump_1",
-                      "label": "Repeat",
-                      "meta": {},
-                      "repeat_count": 1,
-                      "target": null,
-                      "to_coordinate": [
-                        0,
-                        1
-                      ]
-                    }
-                  ],
-                  "markers": []
-                },
+                "flow_control": [
+                  {
+                    "coordinate": [
+                      8,
+                      1
+                    ],
+                    "id": "jump_1",
+                    "label": "Repeat",
+                    "manifestation": "repeat_end",
+                    "meta": {},
+                    "name": null,
+                    "repeat_count": 1,
+                    "type": "jump_from"
+                  }
+                ],
                 "id": "score",
                 "is_segment_line": false,
                 "length": [
@@ -1339,9 +1139,7 @@
                   1
                 ],
                 "locked": false,
-                "measure_map": null,
                 "meta": {},
-                "metric_hierarchy": null,
                 "name": "Score",
                 "number_type": "fraction",
                 "regions": [
