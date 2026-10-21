@@ -53,8 +53,8 @@ const TIMELINE: Editing = { target: `${A}/score`, kind: "timeline" };
  */
 function memberElements(member: string, maps: string[], jumps: string[] = []): string[] {
   return [
-    `rect ${member}/card`,
-    `rect ${member}/card`,
+    `rect group_1/${member}/card`,
+    `rect group_1/${member}/card`,
     ...maps.map((map) => `polygon ${member}/${map}`),
     ...jumps.flatMap((jump) => [`path ${member}/${jump}`, `polygon ${member}/${jump}`]),
     `line ${member}`,
@@ -69,7 +69,7 @@ function memberElements(member: string, maps: string[], jumps: string[] = []): s
   ];
 }
 
-const SCORE = memberElements("score", ["cmap_1", "cmap_2"], ["jump_1"]);
+const SCORE = memberElements("score", ["cmap_1", "cmap_2"], ["jump_from_1"]);
 const PERFORMANCE = memberElements("performance", ["cmap_1"]);
 
 let mounted: ReturnType<typeof mount> | undefined;
@@ -237,8 +237,8 @@ describe("the hover marks", () => {
       if (box === undefined) throw new Error(`no box ${address}`);
       return [box.x + box.width / 2, box.y + box.height / 2];
     };
-    move(svg, ...centre("score/card"));
-    expect(hovered(svg)).toEqual(["rect score/card"]);
+    move(svg, ...centre("group_1/score/card"));
+    expect(hovered(svg)).toEqual(["rect group_1/score/card"]);
     move(svg, ...centre("annotations/card"));
     expect(hovered(svg)).toEqual([]);
   });
@@ -322,8 +322,8 @@ describe("the hover marks", () => {
     move(frame, 12, 12);
     expect(hovered(svg)).toEqual([]);
     move(line, 120.61962890625, 139.16015625);
-    expect(hovered(svg)).toEqual(["rect recording/card"]);
-    const own = addressed(svg, "recording/card")[1];
+    expect(hovered(svg)).toEqual(["rect group_1/recording/card"]);
+    const own = addressed(svg, "group_1/recording/card")[1];
     const mark = svg.querySelector('.tilie-mark[data-mark="hover"]');
     for (const name of ["x", "y", "width", "height", "rx"]) {
       expect(mark?.getAttribute(name)).toBe(own?.getAttribute(name));
@@ -336,7 +336,7 @@ describe("the hover marks", () => {
     ).toEqual([
       ["holding", null],
       ["selection", "group_1"],
-      ["hover", "recording/card"],
+      ["hover", "group_1/recording/card"],
     ]);
     move(frame, 12, 12);
     expect(hovered(svg)).toEqual([]);
@@ -354,17 +354,19 @@ describe("the hover marks", () => {
 describe("keys", () => {
   it("keep every element across a reorder", () => {
     const { svg, redraw } = mountOn(VIEW, A, GROUP);
-    const score = addressed(svg, "score/card");
-    const performance = addressed(svg, "performance/card");
+    const score = addressed(svg, "group_1/score/card");
+    const performance = addressed(svg, "group_1/performance/card");
     expect(score.length).toBe(2);
     expect(addressed(svg, "excerpt/start").length).toBe(2);
     const command = reorderCommand(blockIn(VIEW, A), "group_1", ["performance", "score"]);
     redraw(changed(VIEW, command));
-    expect(addressed(svg, "score/card").every((element, index) => element === score[index])).toBe(
-      true,
-    );
     expect(
-      addressed(svg, "performance/card").every((element, index) => element === performance[index]),
+      addressed(svg, "group_1/score/card").every((element, index) => element === score[index]),
+    ).toBe(true);
+    expect(
+      addressed(svg, "group_1/performance/card").every(
+        (element, index) => element === performance[index],
+      ),
     ).toBe(true);
     const order = drawn(svg);
     expect(order.indexOf(performance[1] as Element)).toBeLessThan(
@@ -402,8 +404,8 @@ describe("the presses taken", () => {
 
   it("are the edited frame's cards in the group editor", () => {
     expect(taken(mountOn(VIEW, A, GROUP).svg)).toEqual([
-      "rect score/card 1",
-      "rect performance/card 1",
+      "rect group_1/score/card 1",
+      "rect group_1/performance/card 1",
     ]);
   });
 
@@ -444,7 +446,7 @@ describe("the reorder of a frame's cards", () => {
 
   it("selects, previews each order as its command leaves the block, stores one set", async () => {
     const { svg, calls } = mountOn(VIEW, A, GROUP);
-    const card = addressed(svg, "score/card")[1] as Element;
+    const card = addressed(svg, "group_1/score/card")[1] as Element;
     // The card slides 60 pixels down to a previewed slot; the gesture reads the drawing's CTM.
     withScreenMatrix(card, () => ({ ...IDENTITY, f: 60 }));
     pointer(card, "pointerdown", 100, 70);
@@ -464,7 +466,7 @@ describe("the reorder of a frame's cards", () => {
 
     const reorder = reorderCommand(blockIn(VIEW, A), "group_1", ["performance", "score"]);
     expect(kinds(calls)).toEqual(["select", "preview", "preview", "dispatch", "preview"]);
-    expect(calls[0]).toEqual({ select: `${A}/score/card` });
+    expect(calls[0]).toEqual({ select: `${A}/group_1/score/card` });
     expect(previewed(calls[1])).toEqual(blockIn(VIEW, A));
     expect(previewed(calls[2])).toEqual(after(VIEW, reorder));
     expect(calls[3]).toEqual({ dispatch: reorder });
@@ -498,7 +500,7 @@ describe("the reorder of a frame's cards", () => {
 
   it("starts no motion for a copy gone before the next frame", async () => {
     const { svg } = mountOn(VIEW, A, GROUP);
-    const card = addressed(svg, "score/card")[1] as Element;
+    const card = addressed(svg, "group_1/score/card")[1] as Element;
     drag(card, [100, 70], [110, 170]);
     expect(svg.querySelectorAll("g.tilie-dragged").length).toBe(1);
     clear();
@@ -508,7 +510,7 @@ describe("the reorder of a frame's cards", () => {
 
   it("removes the copy at once under reduced motion", () => {
     const { svg } = mountOn(VIEW, A, GROUP, { reducedMotion: true });
-    const card = addressed(svg, "score/card")[1] as Element;
+    const card = addressed(svg, "group_1/score/card")[1] as Element;
     drag(card, [100, 70], [110, 170]);
     expect(settles).not.toHaveBeenCalled();
     expect(svg.querySelectorAll("g.tilie-dragged").length).toBe(0);
@@ -517,7 +519,7 @@ describe("the reorder of a frame's cards", () => {
 
   it("calls nothing for a press released within the click distance", () => {
     const { svg, calls } = mountOn(VIEW, A, GROUP);
-    const card = addressed(svg, "score/card")[1] as Element;
+    const card = addressed(svg, "group_1/score/card")[1] as Element;
     pointer(card, "pointerdown", 100, 70);
     pointer(card, "pointermove", 102, 72);
     pointer(card, "pointerup", 102, 72);
@@ -697,7 +699,7 @@ describe("the slide of a reorder", () => {
   async function previewed(reducedMotion: boolean): Promise<number> {
     const { svg, redraw } = mountOn(VIEW, A, GROUP, { reducedMotion });
     const animate = measured();
-    const card = addressed(svg, "score/card")[1] as Element;
+    const card = addressed(svg, "group_1/score/card")[1] as Element;
     pointer(card, "pointerdown", 100, 70);
     pointer(card, "pointermove", 110, 170);
     redraw(REORDERED);
@@ -737,7 +739,7 @@ describe("bands in the timeline editor", () => {
       kind: "band",
       key: null,
       address: `score/${kind}_1`,
-      holder: "score/card",
+      holder: "group_1/score/card",
       x: 16,
       y,
       width: 540,
@@ -774,7 +776,7 @@ describe("bands in the timeline editor", () => {
   ) {
     const selection = new Set(selected.map((address) => `${A}/${address}`));
     const node = mountOn(VIEW, A, editing, { selection, bands: BANDS, locked });
-    return { ...node, card: addressed(node.svg, "score/card")[1] as Element };
+    return { ...node, card: addressed(node.svg, "group_1/score/card")[1] as Element };
   }
 
   /** The band marks of `svg` as `<data-marks> <data-mark>`. */

@@ -115,15 +115,17 @@ describe("places, display orders and band orders, accepted", () => {
 
   it("sizes the card of a member root and of a member child", () => {
     const sized = after(mixed(), set("score", { place: { width: 650, height: 120 } }));
-    expect(block(sized, ID).places).toEqual({ score: { width: 650, height: 120 } });
+    expect(block(sized, ID).places).toEqual({ "group_1/score": { width: 650, height: 120 } });
     expect(block(after(sized, set("score", { place: { width: null } })), ID).places).toEqual({
-      score: { height: 120 },
+      "group_1/score": { height: 120 },
     });
     const child = after(
       mixed({}, CHILD_MEMBER),
       set("second-half", { place: { width: 650, height: 120 } }),
     );
-    expect(block(child, ID).places).toEqual({ "second-half": { width: 650, height: 120 } });
+    expect(block(child, ID).places).toEqual({
+      "group_1/second-half": { width: 650, height: 120 },
+    });
   });
 
   it("states a spacing on a group, an ungrouped root and a member's card", () => {
@@ -132,11 +134,11 @@ describe("places, display orders and band orders, accepted", () => {
     const root = after(mixed(), set("annotations", { place: { spacing: 1.5 } }));
     expect(block(root, ID).places).toEqual({ annotations: { spacing: 1.5 } });
     const card = after(mixed(), set("score", { place: { spacing: 1.5 } }));
-    expect(block(card, ID).places).toEqual({ score: { spacing: 1.5 } });
+    expect(block(card, ID).places).toEqual({ "group_1/score": { spacing: 1.5 } });
     const sized = after(card, set("score", { place: { width: 650 } }));
-    expect(block(sized, ID).places).toEqual({ score: { spacing: 1.5, width: 650 } });
+    expect(block(sized, ID).places).toEqual({ "group_1/score": { spacing: 1.5, width: 650 } });
     expect(block(after(sized, set("score", { place: { spacing: null } })), ID).places).toEqual({
-      score: { width: 650 },
+      "group_1/score": { width: 650 },
     });
     const gapless = after(mixed(), set("group_1", { place: { spacing: 0 } }));
     expect(block(gapless, ID).places).toEqual({ group_1: { spacing: 0 } });
@@ -246,6 +248,18 @@ describe("places, display orders and band orders, refused", () => {
     expect(
       refusal(apply(mixed({}, CHILD_MEMBER), set("piece", { place: { width: 650 } }))),
     ).toEqual({ code: "not_an_item", path: [`${ID}/piece`, "place"] });
+  });
+
+  it("refuses the one place of a timeline drawn in the frames of several groups", () => {
+    const shared = mixed({}, "bundles/bundle_shared_member.json");
+    expect(refused(shared, set("t", { place: { width: 650 } }))).toEqual({
+      code: "not_an_item",
+      path: [`${ID}/t`, "place"],
+      message: "t is drawn in the frames of several groups",
+    });
+    expect(block(after(shared, set("u", { place: { width: 650 } })), ID).places).toEqual({
+      "g1/u": { width: 650 },
+    });
   });
 
   it("refuses a member's card anything but its size and spacing", () => {
@@ -457,7 +471,9 @@ describe("pruning stale keys", () => {
       set("annotations", { place: { x: 1, scale: 2, spacing: 1.5, width: 700 } }),
       set("", { manifest: grouped }),
     );
-    expect(block(sized, ID).places).toEqual({ annotations: { spacing: 1.5, width: 700 } });
+    expect(block(sized, ID).places).toEqual({
+      "group_1/annotations": { spacing: 1.5, width: 700 },
+    });
   });
 
   it("drops a removed timeline's place", () => {
@@ -583,14 +599,14 @@ describe("a block's places as stored", () => {
     [{ places: { group_1: { scale: 0 } } }, "non_positive_number", ["places", "group_1", "scale"]],
     [{ places: { group_1: { spacing: -1 } } }, "invalid_value", ["places", "group_1", "spacing"]],
     [
-      { places: { score: { height: 2, scale: 1 } } },
+      { places: { "group_1/score": { height: 2, scale: 1 } } },
       "unknown_member",
-      ["places", "score", "scale"],
+      ["places", "group_1/score", "scale"],
     ],
     [
-      { places: { score: { length: 3, width: 2 } } },
+      { places: { "group_1/score": { length: 3, width: 2 } } },
       "unknown_member",
-      ["places", "score", "length"],
+      ["places", "group_1/score", "length"],
     ],
     [{ places: { group_1: { depth: 1 } } }, "unknown_member", ["places", "group_1", "depth"]],
   ])("refuses %j", (changes, code, path) => {
@@ -603,36 +619,43 @@ describe("a block's places as stored", () => {
     expect(
       found({
         places: {
-          score: { x: 1 },
+          "group_1/score": { x: 1 },
           nowhere: { y: 2 },
           group_1: { x: 3 },
           recording: { x: 4 },
-          page: { width: 650 },
-          performance: { spacing: 1.5 },
+          "group_2/page": { width: 650 },
+          "group_1/performance": { spacing: 1.5 },
+          score: { width: 650 },
         },
       }),
     ).toEqual([
       {
+        code: "unknown_member",
+        path: at("places", "group_1/score", "x"),
+        message: "score is a member: its card takes only width, height and spacing",
+      },
+      {
         code: "unknown_place",
         path: at("places", "nowhere"),
-        message: `nowhere is no group, no ungrouped root and no member of block ${ID}`,
+        message: `nowhere is no group, no ungrouped root and no member's card of block ${ID}`,
       },
       {
         code: "unknown_place",
         path: at("places", "recording"),
-        message: `recording is no group, no ungrouped root and no member of block ${ID}`,
+        message: `recording is no group, no ungrouped root and no member's card of block ${ID}`,
       },
       {
-        code: "unknown_member",
-        path: at("places", "score", "x"),
-        message: "score is a member: its card takes only width, height and spacing",
+        code: "unknown_place",
+        path: at("places", "score"),
+        message: `score is no group, no ungrouped root and no member's card of block ${ID}`,
       },
     ]);
   });
 
   it("adds a block with the places it states, refusing a wrong key", () => {
-    const given = block(mixed({ places: { annotations: { y: 8 }, score: { width: 650 } } }), ID);
-    expect(given.places).toEqual({ annotations: { y: 8 }, score: { width: 650 } });
+    const places = { annotations: { y: 8 }, "group_1/score": { width: 650 } };
+    const given = block(mixed({ places }), ID);
+    expect(given.places).toEqual(places);
     expect(stored.places).toEqual({});
     const add = (extra: object) => ({
       type: "add",
@@ -641,12 +664,12 @@ describe("a block's places as stored", () => {
     });
     expect(
       [
-        { places: { score: { x: 1 } } },
+        { places: { "group_1/score": { x: 1 } } },
         { places: { recording: { x: 1 } } },
         { places: { group_1: {} } },
       ].map((extra) => refusal(apply(createView(), add(extra)))),
     ).toEqual([
-      { code: "unknown_member", path: [ID, "places", "score", "x"] },
+      { code: "unknown_member", path: [ID, "places", "group_1/score", "x"] },
       { code: "unknown_place", path: [ID, "places", "recording"] },
       { code: "invalid_value", path: [ID, "places", "group_1"] },
     ]);

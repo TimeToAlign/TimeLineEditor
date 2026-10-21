@@ -291,6 +291,7 @@ describe("the test hook", () => {
       .map((name) => name.slice(0, -".tle.json".length));
     const manifests = [
       "bundle_mixed",
+      "bundle_shared_member",
       "bundle_shared_parent",
       "bundle_ungrouped",
       "group_child_member",

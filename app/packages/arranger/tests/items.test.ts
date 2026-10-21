@@ -6,6 +6,7 @@ import type { ItemBox } from "../src/boxes.ts";
 import { boxOf, isItem, itemHolding, itemOf } from "../src/boxes.ts";
 import type { Level } from "../src/containers.ts";
 import { drawingOf } from "../src/drawing.ts";
+import { placeTarget } from "../src/editing.ts";
 import type { PlaceValues } from "../src/items.ts";
 import {
   itemHandlesFor,
@@ -159,7 +160,7 @@ describe("itemsMovedWith", () => {
   });
 
   it("names none for the one item in the selection, null for an item outside it", () => {
-    const oneItem = ["group_2", "page", "excerpt/card"];
+    const oneItem = ["group_2", "page", "group_2/excerpt/card"];
     expect(movedWith(oneItem, "group_2")).toEqual([]);
     expect(movedWith(oneItem, "group_1")).toBeNull();
     expect(movedWith(oneItem, "annotations")).toBeNull();
@@ -202,16 +203,16 @@ describe("itemsMovedWith", () => {
     const twiceDrawing = drawingOf(block, twice.settings, metrics);
     expect(
       twiceDrawing.boxes
-        .filter((card) => card.address === "excerpt/card")
+        .filter((card) => card.address === "group_2/excerpt/card")
         .map((card) => itemHolding(twiceDrawing, card).key),
     ).toEqual(["group_2"]);
     for (const group of ["group_1", "group_2"]) {
-      expect(contains(block.manifest, group, "excerpt/card")).toBe(true);
+      expect(contains(block.manifest, group, "group_2/excerpt/card")).toBe(true);
     }
     const movedIn = (selected: string, key: string) =>
       itemsMovedWith(block.manifest, twiceDrawing, new Set([selected]), key);
-    expect(movedIn("excerpt/card", "group_1")).toBeNull();
-    expect(movedIn("excerpt/card", "group_2")).toEqual([]);
+    expect(movedIn("group_2/excerpt/card", "group_1")).toBeNull();
+    expect(movedIn("group_2/excerpt/card", "group_2")).toEqual([]);
     expect(movedIn("excerpt", "group_1")).toEqual(["group_2"]);
     expect(movedIn("excerpt", "group_2")).toEqual(["group_1"]);
   });
@@ -237,8 +238,8 @@ describe("the boxes a resize acts on", () => {
   it("are the frames and cards, each held by its own item or, held by a frame, by the frame", () => {
     expect(holding("group_1")).toBe("group_1");
     expect(holding("annotations/card")).toBe("annotations");
-    expect(holding("performance/card")).toBe("group_1");
-    expect(holding("excerpt/card")).toBe("group_2");
+    expect(holding("group_1/performance/card")).toBe("group_1");
+    expect(holding("group_2/excerpt/card")).toBe("group_2");
     expect(boxOf(drawing, "score")).toBeUndefined();
     expect(boxOf(drawing, "group_1/name")).toBeUndefined();
   });
@@ -271,7 +272,7 @@ describe("itemHandlesFor", () => {
   });
 
   it("never moves a held card's top left corner", () => {
-    const held = resizedBox(view, "performance/card");
+    const held = resizedBox(view, "group_1/performance/card");
     for (const level of ["arranger", "bundle", "group", "timeline"] as const) {
       expect(itemHandlesFor("scale", held, level)).toEqual(["bottom-right"]);
       expect(itemHandlesFor("box", held, level)).toEqual(["right", "bottom-right", "bottom"]);
@@ -283,8 +284,8 @@ describe("itemHandlesFor", () => {
 const FRAME_1 = "group_1";
 const FRAME_2 = "group_2";
 const ANNOTATIONS = "annotations/card";
-const PERFORMANCE = "performance/card";
-const SCORE = "score/card";
+const PERFORMANCE = "group_1/performance/card";
+const SCORE = "group_1/score/card";
 
 type Places = { readonly [key: string]: PlaceValues };
 
@@ -427,10 +428,10 @@ describe("itemResizeValues, box", () => {
   it("sizes a member's own card, in item coordinates under its group's scale", () => {
     const scaled = placed(view, A, "group_1", { scale: 1.25 });
     expect(values(scaled, "arranger", PERFORMANCE, "box", "bottom-right", 50, 30)).toStrictEqual({
-      performance: { width: 586.48486328125, height: 73.4765625 },
+      "group_1/performance": { width: 586.48486328125, height: 73.4765625 },
     });
     expect(values(scaled, "arranger", PERFORMANCE, "box", "right", -50, 0)).toStrictEqual({
-      performance: { width: null },
+      "group_1/performance": { width: null },
     });
     expect(() => values(scaled, "arranger", PERFORMANCE, "box", "left", -10, 0)).toThrow(
       RangeError,
@@ -494,10 +495,24 @@ describe("itemResizeValues, stretch", () => {
 
   it.each([
     [view, SCORE, "right", 20, 0, { group_1: { length: 420 } }],
-    [view, SCORE, "bottom", 0, 16, { score: { spacing: 12 } }],
-    [view, SCORE, "bottom-right", 20, 16, { group_1: { length: 420 }, score: { spacing: 12 } }],
-    [tallScore, SCORE, "bottom", 0, 32, { score: { spacing: 12, height: 189.90625 } }],
-    [tallFrame, SCORE, "bottom", 0, 16, { score: { spacing: 12 }, group_1: { height: 370.46875 } }],
+    [view, SCORE, "bottom", 0, 16, { "group_1/score": { spacing: 12 } }],
+    [
+      view,
+      SCORE,
+      "bottom-right",
+      20,
+      16,
+      { group_1: { length: 420 }, "group_1/score": { spacing: 12 } },
+    ],
+    [tallScore, SCORE, "bottom", 0, 32, { "group_1/score": { spacing: 12, height: 189.90625 } }],
+    [
+      tallFrame,
+      SCORE,
+      "bottom",
+      0,
+      16,
+      { "group_1/score": { spacing: 12 }, group_1: { height: 370.46875 } },
+    ],
     [framed, SCORE, "right", 30, 0, { group_1: { length: 415, width: 1154.96923828125 } }],
     [
       wideCard,
@@ -505,7 +520,7 @@ describe("itemResizeValues, stretch", () => {
       "right",
       30,
       0,
-      { group_1: { length: 430 }, performance: { width: 1152.96923828125 } },
+      { group_1: { length: 430 }, "group_1/performance": { width: 1152.96923828125 } },
     ],
     [
       wideCard,
@@ -513,7 +528,7 @@ describe("itemResizeValues, stretch", () => {
       "right",
       60,
       0,
-      { group_1: { length: 430 }, performance: { width: 1152.96923828125 } },
+      { group_1: { length: 430 }, "group_1/performance": { width: 1152.96923828125 } },
     ],
   ] as const)(
     "stretches a member's group along time and its own card vertically, case %#",
@@ -522,7 +537,9 @@ describe("itemResizeValues, stretch", () => {
         expect(values(of, level, resized, "stretch", handle, dx, dy)).toStrictEqual(expected);
         const command = resizeOf(of, level, resized, "stretch", handle, dx, dy);
         const store = storeOf(of);
-        const timeline = `${A}/${resizedBox(of, resized).key}`;
+        const { key } = resizedBox(of, resized);
+        if (key === null) throw new Error(`${resized} has no place`);
+        const timeline = placeTarget(blockIn(of, A), key);
         const editor = { arranger: null, bundle: A, timeline }[level];
         if (editor !== null) expect(store.open(editor)).toBeNull();
         expect(store.dispatch(command)).toBeNull();
@@ -560,7 +577,7 @@ describe("itemResizeValues, stretch", () => {
 });
 
 describe("the shortening lock", () => {
-  const SHARED_EXPOSITION = "exposition/card";
+  const SHARED_EXPOSITION = "group_1/exposition/card";
   const SHARED_FRAME = "group_1";
   const shared = viewOf({ id: A, fixture: "bundles/bundle_shared_parent", x: 40, y: 80 });
   /** `of` after the resize, its command applied on the arranger. */
@@ -580,29 +597,29 @@ describe("the shortening lock", () => {
 
   it("keeps a member card's margin in proportion and shortens the group again", () => {
     const boxed = after(shared, SHARED_EXPOSITION, "box", 551.39013671875);
-    expect(boxed.values).toStrictEqual({ exposition: { width: 1102.7802734375 } });
+    expect(boxed.values).toStrictEqual({ "group_1/exposition": { width: 1102.7802734375 } });
     expect(placeOf(boxed.view, "group_1").width).toBe(1118.7802734375);
-    expect(cardWidth(boxed.view, "take_1")).toBe(551.39013671875);
+    expect(cardWidth(boxed.view, "group_1/take_1")).toBe(551.39013671875);
 
     const longer = after(boxed.view, SHARED_EXPOSITION, "stretch", 100);
     expect(longer.values).toStrictEqual({
       group_1: { length: 450 },
-      exposition: { width: 1202.7802734375 },
+      "group_1/exposition": { width: 1202.7802734375 },
     });
-    expect(cardWidth(longer.view, "take_1")).toBe(601.39013671875);
-    expect(cardWidth(longer.view, "exposition")).toBe(1202.7802734375);
+    expect(cardWidth(longer.view, "group_1/take_1")).toBe(601.39013671875);
+    expect(cardWidth(longer.view, "group_1/exposition")).toBe(1202.7802734375);
     expect(placeOf(longer.view, "group_1").width).toBe(1218.7802734375);
 
     const shorter = after(longer.view, SHARED_FRAME, "stretch", -200);
     expect(shorter.values).toStrictEqual({
       group_1: { length: 350 },
-      exposition: { width: 1002.7802734375 },
+      "group_1/exposition": { width: 1002.7802734375 },
     });
 
     const shortest = after(shorter.view, SHARED_EXPOSITION, "stretch", -50);
     expect(shortest.values).toStrictEqual({
       group_1: { length: 325 },
-      exposition: { width: 952.7802734375 },
+      "group_1/exposition": { width: 952.7802734375 },
     });
   });
 
@@ -611,7 +628,7 @@ describe("the shortening lock", () => {
     const both = placed(framed, A, "exposition", { width: 1654.17041015625 });
     expect(after(both, SHARED_EXPOSITION, "stretch", 90).values).toStrictEqual({
       group_1: { length: 430, width: null },
-      exposition: { width: 1744.17041015625 },
+      "group_1/exposition": { width: 1744.17041015625 },
     });
   });
 });
@@ -645,12 +662,15 @@ describe("itemResizeValues, the group editor's stretch", () => {
   });
 
   it.each([
-    [20, { group_1: { length: 410, width: null }, performance: { width: 1112.96923828125 } }],
+    [
+      20,
+      { group_1: { length: 410, width: null }, "group_1/performance": { width: 1112.96923828125 } },
+    ],
     [
       -100,
       {
         group_1: { length: 350, width: 1108.96923828125 },
-        performance: { width: 992.96923828125 },
+        "group_1/performance": { width: 992.96923828125 },
       },
     ],
   ] as const)("keeps a card's stated width in proportion, case %#", (dx, expected) => {
@@ -680,7 +700,7 @@ describe("itemResizeValues, the group editor's stretch", () => {
 
   it("stretches the recapitulation of bundle_shared_parent larger and smaller, by its frame and its members", () => {
     const shared = viewOf({ id: A, fixture: "bundles/bundle_shared_parent", x: 40, y: 80 });
-    for (const resized of ["group_2", "recapitulation/card", "take_2/card"]) {
+    for (const resized of ["group_2", "group_2/recapitulation/card", "group_2/take_2/card"]) {
       expect(values(shared, "group", resized, "stretch", "right", 50, 0)).toStrictEqual({
         group_2: { length: 450, width: null },
       });
@@ -719,7 +739,7 @@ describe("Stretch, its changes", () => {
       wideCard,
       "arranger",
       430,
-      { group_1: { length: 430 }, performance: { width: 1152.96923828125 } },
+      { group_1: { length: 430 }, "group_1/performance": { width: 1152.96923828125 } },
     ],
     [view, "group", 500, { group_1: { length: 500, width: null } }],
     [view, "group", 300, { group_1: { length: 300, width: PINNED } }],
@@ -731,14 +751,14 @@ describe("Stretch, its changes", () => {
       350,
       {
         group_1: { length: 350, width: 1108.96923828125 },
-        performance: { width: 992.96923828125 },
+        "group_1/performance": { width: 992.96923828125 },
       },
     ],
     [
       wideCard,
       "group",
       500,
-      { group_1: { length: 500, width: null }, performance: { width: 1292.96923828125 } },
+      { group_1: { length: 500, width: null }, "group_1/performance": { width: 1292.96923828125 } },
     ],
   ] as const)(
     "a group's length from its frame or a member's card, case %#",
@@ -762,7 +782,7 @@ describe("Stretch, its changes", () => {
       group_1: { spacing: 16, height: 354.46875 },
     });
     expect(stretchedTo(tallScore, "bundle", SCORE, "spacing", 12)).toStrictEqual({
-      score: { spacing: 12, height: 189.90625 },
+      "group_1/score": { spacing: 12, height: 189.90625 },
     });
     const card = new Stretch(
       tallFrame,
@@ -773,7 +793,7 @@ describe("Stretch, its changes", () => {
       metrics,
     ).changes(12);
     expect([...card]).toStrictEqual([
-      ["score", { spacing: 12 }],
+      ["group_1/score", { spacing: 12 }],
       ["group_1", { height: 370.46875 }],
     ]);
   });
@@ -812,14 +832,20 @@ describe("itemResizeCommand", () => {
 
   it("sizes a member's card on its own key, stating every other item's position but its frame's", () => {
     const size = { width: 586.48486328125, height: 73.4765625 };
-    const command = itemResizeCommand(view, A, one("performance", size), "arranger", metrics);
+    const command = itemResizeCommand(
+      view,
+      A,
+      one("group_1/performance", size),
+      "arranger",
+      metrics,
+    );
     expect(command?.changes).toEqual([
       { target: at("performance"), values: { place: size } },
       { target: at("group_2"), values: { place: DRAWN.group_2 } },
       { target: at("annotations"), values: { place: DRAWN.annotations } },
     ]);
     const places = blockIn(changed(view, command), A).places;
-    expect(places.performance).toStrictEqual(size);
+    expect(places["group_1/performance"]).toStrictEqual(size);
     expect(places.group_1).toBeUndefined();
   });
 
@@ -870,13 +896,15 @@ describe("placeEdit", () => {
   it("sets a held card's size on its own key, named by its card or by its line", () => {
     const width = 586.48486328125;
     const expected = [{ target: at("performance"), values: { place: { width } } }, ...others];
-    expect(changesOf(edit([at("performance/card")], "width", width))).toEqual(expected);
+    expect(changesOf(edit([at("group_1/performance/card")], "width", width))).toEqual(expected);
     expect(changesOf(edit([at("performance")], "width", width))).toEqual(expected);
     expect(changesOf(edit([at("performance/name")], "width", width))).toEqual(expected);
   });
 
   it("sets a held card's scale and length on its group, once for two cards of the group", () => {
-    expect(edit([at("score/card"), at("performance/card")], "scale", 2, "group")).toEqual({
+    expect(
+      edit([at("group_1/score/card"), at("group_1/performance/card")], "scale", 2, "group"),
+    ).toEqual({
       type: "set",
       changes: [{ target: at("group_1"), values: { place: { scale: 2 } } }],
     });
@@ -887,7 +915,7 @@ describe("placeEdit", () => {
       { target: at("group_1"), values: { place: { length: 300 } } },
       ...others,
     ]);
-    expect(changesOf(edit([at("score/card")], "length", 500, "group"))).toEqual([
+    expect(changesOf(edit([at("group_1/score/card")], "length", 500, "group"))).toEqual([
       { target: at("group_1"), values: { place: { length: 500, width: null } } },
     ]);
   });
@@ -908,7 +936,7 @@ describe("placeEdit", () => {
     expect(edit([A, at("group_1")], "width", 1)).toEqual(
       refusal("wrong_target_kind", [A, "width"]),
     );
-    expect(edit([at("performance/card")], "x", 1)).toEqual(
+    expect(edit([at("group_1/performance/card")], "x", 1)).toEqual(
       refusal("unknown_property", [at("performance"), "x"]),
     );
     expect(edit([at("group_1")], "scale", null)).toEqual(

@@ -10,7 +10,7 @@ import type { CommandError, Problem } from "../errors.ts";
 import { ErrorCode, isCommandError, isLoadError, problem } from "../errors.ts";
 import type { Json, JsonObject, PathSegment } from "../json.ts";
 import { isJsonObject } from "../json.ts";
-import type { CardPlace, ItemPlace } from "../manifest/containers.ts";
+import type { CardPlace, ContainerRef, ItemPlace } from "../manifest/containers.ts";
 import { containersOf, ITEM_PLACE_MEMBERS, isMember } from "../manifest/containers.ts";
 import type { EntryKind, EntryTypes } from "../manifest/files.ts";
 import { contentEnd, readOnAxis } from "../manifest/invariants.ts";
@@ -272,7 +272,7 @@ export const BLOCK_PROPERTIES: readonly string[] = Object.keys(BLOCK_SET).filter
 /** A target that `places` and `graphical.order` may name: a group, a root or a child timeline. */
 type KeyedTarget = GroupTarget | TimelineTarget;
 
-/** The id a group or timeline target carries, the key it has in `places` and `graphical.order`. */
+/** The id a group or timeline target carries, the key it has in `graphical.order`. */
 function keyOf(target: KeyedTarget): string {
   return target.kind === "group" ? target.group.id : target.at.timeline.id;
 }
@@ -313,20 +313,44 @@ function mergedPlace(
 }
 
 /**
- * Merge members into the stated place of a container: a value states a
- * member, null unstates it, and a place left without members is no place.
- * Only a frame or a card has a place, and only the members its holder lets
- * it state (`placeMembersOf`): a box-held one its full place, a frame-held
- * card its size and spacing, the length and scale it is drawn with
- * being its group's.
+ * The container whose place a `set` of `place` on `target` states: a
+ * group's frame, or the one card a timeline is drawn in (an ungrouped
+ * root's, or a member's in its group's frame); a refusal for a timeline
+ * drawn in no card or in the frames of several groups, whose cards are
+ * placed one by one.
+ */
+function placedOf(target: KeyedTarget, path: readonly PathSegment[]): ContainerRef | CommandError {
+  const containers = containersOf(target.block.manifest);
+  if (target.kind === "group") {
+    const frame = containers.byKey.get(target.group.id);
+    if (frame === undefined) throw new Error(`group ${target.group.id} draws no frame`);
+    return frame;
+  }
+  const { id } = target.at.timeline;
+  const [card, ...others] = containers.cards.get(id) ?? [];
+  if (card === undefined) {
+    return problem(ErrorCode.notAnItem, `${id} is not drawn in a card of its own`, path);
+  }
+  if (others.length > 0) {
+    return problem(ErrorCode.notAnItem, `${id} is drawn in the frames of several groups`, path);
+  }
+  return card;
+}
+
+/**
+ * Merge members into the stated place of a container (`placedOf`), under
+ * its `places` key: a value states a member, null unstates it, and a place
+ * left without members is no place. Only a frame or a card has a place, and
+ * only the members its holder lets it state (`placeMembersOf`): a box-held
+ * one its full place, a frame-held card its size and spacing, the length and
+ * scale it is drawn with being its group's.
  */
 const setPlace: Setter<KeyedTarget> = (view, target, value, path, changes) => {
-  const key = keyOf(target);
   const { block } = target;
-  const container = containersOf(block.manifest).byKey.get(key);
-  if (container === undefined) {
-    return problem(ErrorCode.notAnItem, `${key} is not drawn in a card of its own`, path);
-  }
+  const container = placedOf(target, path);
+  if (isCommandError(container)) return container;
+  const key = container.key;
+  if (key === null) throw new Error(`the container of ${target.address} has no places key`);
   const object = readObject(value, path);
   if (isCommandError(object)) return object;
   const extra = placeMemberProblem(container, object, path, ErrorCode.notAnItem);

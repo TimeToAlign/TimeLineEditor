@@ -66,7 +66,7 @@ test("a frame height at or below its minimum states none, and the status line sa
 test("the container size stands in one row, the Locked checkbox right of the height", async ({
   page,
 }) => {
-  await inspect(page, ["excerpt/card"]);
+  await inspect(page, ["group_2/excerpt/card"]);
   const card = page.getByRole("form", { name: "Card properties" });
   const width = card.getByLabel("container width", { exact: true });
   const height = card.getByLabel("container height", { exact: true });
@@ -82,7 +82,7 @@ test("the container size stands in one row, the Locked checkbox right of the hei
   expect(h.x).toBeGreaterThan(w.x + w.width - 1);
   expect(l.x).toBeGreaterThan(h.x + h.width - 1);
   expect(w.y).toBe(h.y);
-  await inspect(page, ["score/card"]);
+  await inspect(page, ["group_1/score/card"]);
   await expect(page.getByRole("checkbox", { name: "Locked" })).not.toBeChecked();
 });
 

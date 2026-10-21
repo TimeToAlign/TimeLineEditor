@@ -152,13 +152,13 @@ describe("the shell while editing", () => {
   });
 
   it("selects the edited element when an editor opens, and keeps the selection's rule when it closes", () => {
-    hook().select([`${A}/page/card`]);
+    hook().select([`${A}/group_2/page/card`]);
     open(A);
     expect(hook().selection()).toEqual([A]);
     open(`${A}/group_1`);
     expect(hook().selection()).toEqual([`${A}/group_1`]);
     open(SCORE);
-    expect(hook().selection()).toEqual([`${SCORE}/card`]);
+    expect(hook().selection()).toEqual([`${A}/group_1/score/card`]);
     hook().select([
       `${SCORE}/conversion_maps_1`,
       `${A}/performance/conversion_maps_1`,
@@ -170,7 +170,7 @@ describe("the shell while editing", () => {
     flushSync();
     expect(hook().selection()).toEqual([`${SCORE}/start`]);
     open(SCORE);
-    expect(hook().selection()).toEqual([`${SCORE}/card`]);
+    expect(hook().selection()).toEqual([`${A}/group_1/score/card`]);
   });
 
   it("keeps after a change only what the innermost editor holds, by the same rule", () => {

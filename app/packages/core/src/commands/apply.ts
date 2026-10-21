@@ -95,7 +95,7 @@ export function applyChanges(view: View, command: Command, checked = true): Appl
       break;
   }
   if (isCommandError(result)) return result;
-  const settled = settle(result, changes, checked);
+  const settled = settle(view, result, changes, checked);
   if (isCommandError(settled)) return settled;
   if (checked && command.type === "set") {
     if (changes.paths.length === 0 || undone(view, settled, changes))

@@ -1,7 +1,8 @@
 /** The editors of the canvas: the bundle, group and timeline editors on one element. */
 
-import type { Address, View } from "@timetoalign/tilie-core";
-import { contains, findTimeline, qualify } from "@timetoalign/tilie-core";
+import type { Address, Manifest, View } from "@timetoalign/tilie-core";
+import { contains, findTimeline, placedElement, qualify } from "@timetoalign/tilie-core";
+import type { DrawnBox } from "@timetoalign/tilie-layout";
 import type { Hit } from "./boxes.ts";
 import type { Editing } from "./editing.ts";
 import { addressParts } from "./editing.ts";
@@ -23,7 +24,7 @@ import { addressParts } from "./editing.ts";
 export function editorTargetOf(view: View, hit: Hit, editing: Editing | null): Address | null {
   const block = view.blocks[hit.block];
   if (block === undefined) return null;
-  const opened = openedBy(hit, (id) => findTimeline(block.manifest, id) !== undefined);
+  const opened = openedBy(hit, block.manifest);
   if (opened === undefined) return null;
   const target = opened === null ? block.id : qualify(block.id, opened);
   if (editing === null) return target;
@@ -34,23 +35,26 @@ export function editorTargetOf(view: View, hit: Hit, editing: Editing | null): A
 }
 
 /**
- * The element `hit` opens: its group's or timeline's id, `null` for the
- * block itself, `undefined` for nothing. A frame's or a card's key is the
- * group or timeline it stands for.
+ * The element `hit` in the drawing of `manifest` opens: its group's or
+ * timeline's id, `null` for the block itself, `undefined` for nothing. A
+ * frame stands for its group and a card for its timeline (core's
+ * `placedElement` of its `places` key).
  */
-function openedBy(hit: Hit, isTimeline: (id: string) => boolean): string | null | undefined {
+function openedBy(hit: Hit, manifest: Manifest): string | null | undefined {
+  const standsFor = (box: DrawnBox | null) =>
+    box?.key == null ? undefined : placedElement(manifest, box.key);
   switch (hit.kind) {
     case "box":
       return null;
     case "frame":
     case "card":
-      return hit.box?.key ?? undefined;
+      return standsFor(hit.box);
     case "band":
       return undefined;
     case "element": {
       const { element } = addressParts(hit.address);
-      if (element !== null && isTimeline(element)) return element;
-      return hit.within?.key ?? undefined;
+      if (element !== null && findTimeline(manifest, element) !== undefined) return element;
+      return standsFor(hit.within);
     }
   }
 }

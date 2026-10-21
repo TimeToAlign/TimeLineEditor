@@ -381,7 +381,7 @@ test("the form edits the selected frame's and card's places, never the block's",
   expect((await placement(page, BUNDLES.mixed)).length).toBe(400);
   await expect(length).toHaveValue("300");
 
-  await select(page, [`${BUNDLES.mixed}/score/card`]);
+  await select(page, [`${BUNDLES.mixed}/group_1/score/card`]);
   const card = page.getByRole("form", { name: "Card properties" });
   await expect(card.getByLabel("group length", { exact: true })).toHaveValue("300");
   const width = card.getByLabel("container width", { exact: true });

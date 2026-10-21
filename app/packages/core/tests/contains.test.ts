@@ -30,11 +30,11 @@ describe("contains", () => {
     expect(containedBy("group_2")).toEqual([
       "group_2",
       "group_2/name",
-      "page/card",
+      "group_2/page/card",
       "page",
       "page/name",
       ...bands("page", ["page/cmap_1"]),
-      "excerpt/card",
+      "group_2/excerpt/card",
       ...wedges("excerpt"),
       "excerpt",
       "excerpt/name",
@@ -46,7 +46,7 @@ describe("contains", () => {
 
   it("holds in a root everything of its descendants, its ancestor line included", () => {
     expect(containedBy("recording")).toEqual([
-      "excerpt/card",
+      "group_2/excerpt/card",
       "recording",
       "recording/name",
       ...wedges("excerpt"),
@@ -58,7 +58,7 @@ describe("contains", () => {
 
   it("leaves an ancestor line and the ancestor's own map outside a child", () => {
     expect(containedBy("excerpt")).toEqual([
-      "excerpt/card",
+      "group_2/excerpt/card",
       ...wedges("excerpt"),
       "excerpt",
       "excerpt/name",

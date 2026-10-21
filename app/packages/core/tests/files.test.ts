@@ -150,7 +150,7 @@ describe("the elements of a group manifest", () => {
       ["block", null, ...none, []],
       ["group", "group_1", ...none, ["block"]],
       ["name", "group_1/name", ...none, frame],
-      ["card", "second-half/card", ...half, frame],
+      ["card", "group_1/second-half/card", ...half, frame],
       ["ancestor", "piece", ...piece, line],
       ["name", "piece/name", ...piece, ancestor],
       ["wedge", "second-half/start", ...half, ancestor],
@@ -168,7 +168,7 @@ describe("the elements of a group manifest", () => {
       ["label", "second-half/end/label", ...half, [...marker, "wedge"]],
       band("second-half", "regions"),
       band("second-half", "flow_control"),
-      ["card", "recording/card", ...recording, frame],
+      ["card", "group_1/recording/card", ...recording, frame],
       ["timeline", "recording", ...recording, frame],
       ["name", "recording/name", ...recording, line],
       band("recording", "children"),
@@ -194,7 +194,7 @@ describe("the elements of a group manifest", () => {
       "second-half/end/label",
     ];
     expect(matched({ within: "piece" })).toEqual([
-      "second-half/card",
+      "group_1/second-half/card",
       "piece",
       "piece/name",
       ...marks,
@@ -209,7 +209,10 @@ describe("the elements of a group manifest", () => {
     ]);
     expect(matched({ within: "piece" }).length).toBe(18);
     expect(matched({ element: "group" })).toEqual(["group_1"]);
-    expect(matched({ element: "card" })).toEqual(["second-half/card", "recording/card"]);
+    expect(matched({ element: "card" })).toEqual([
+      "group_1/second-half/card",
+      "group_1/recording/card",
+    ]);
     expect(
       matching({ inside: "ancestor" }).map((key) => [key.address, key.inside.join(" ")]),
     ).toEqual([
@@ -262,18 +265,18 @@ describe("the elements of a named manifest with two groups", () => {
       "name",
       "group_1",
       "group_1/name",
-      "score/card",
+      "group_1/score/card",
       ...drawn("score", {
         maps: ["score/cmap_1", "score/cmap_2"],
-        flow: ["score/jump_1", "score/jump_1/label"],
+        flow: ["score/jump_from_1", "score/jump_from_1/label"],
       }),
-      "performance/card",
+      "group_1/performance/card",
       ...drawn("performance", { maps: ["performance/cmap_1"] }),
       "group_2",
       "group_2/name",
-      "page/card",
+      "group_2/page/card",
       ...drawn("page", { maps: ["page/cmap_1"] }),
-      "excerpt/card",
+      "group_2/excerpt/card",
       "recording",
       "recording/name",
       "excerpt/start",
@@ -392,6 +395,7 @@ describe("addresses in a block of several roots", () => {
     ["score/end/label", "score"],
     ["score/start", "score"],
     ["score/card", "score"],
+    ["group_1/score/card", "score"],
     ["group_1/name", "group_1"],
   ])("%s is a part of %s", (path, element) => {
     expect(elementOf(file(numbersWithRegion()), path)).toBe(element);
@@ -452,7 +456,7 @@ describe("addresses in a block of several roots", () => {
     expect(findEntry(maps, "melody/ticks")?.entry).toBe(melody?.children[0]?.conversion_maps[0]);
     const flow = load("flow_control.json");
     const control = flow.timelines[0]?.flow_control ?? [];
-    for (const id of ["break_1", "jump_1", "marker_1"]) {
+    for (const id of ["flow_marker_1", "jump_from_1", "jump_to_1"]) {
       const found = findEntry(flow, `flow:quarters/${id}`);
       expect(found?.kind).toBe("flow_control");
       expect(found?.entry).toBe(control.find((item) => item.id === id));
@@ -608,7 +612,7 @@ describe("delete deletes", () => {
 
   it("removes the ids entries addressing a removed element, and a statement left without", () => {
     const styled = [
-      { select: { ids: ["page", "score/card"] }, set: { opacity: 0.5 } },
+      { select: { ids: ["page", "group_1/score/card"] }, set: { opacity: 0.5 } },
       { select: { ids: ["page/name"] }, set: { opacity: 0.4 } },
     ].reduce(
       (view, { select, set: properties }) =>
@@ -618,7 +622,7 @@ describe("delete deletes", () => {
     const own = file(viewOf([A, STYLED])).graphical?.statements ?? [];
     expect(remove(styled, "page").graphical?.statements).toEqual([
       ...own,
-      { select: { ids: ["score/card"] }, set: { opacity: 0.5 } },
+      { select: { ids: ["group_1/score/card"] }, set: { opacity: 0.5 } },
     ]);
   });
 

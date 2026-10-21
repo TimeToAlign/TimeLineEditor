@@ -19,8 +19,8 @@ describe("the tree of a manifest of one group", () => {
       "second-half",
       "recording",
       "group_1/name",
-      "second-half/card",
-      "recording/card",
+      "group_1/second-half/card",
+      "group_1/recording/card",
       "piece",
       "piece/name",
     ]) {
@@ -41,7 +41,7 @@ describe("the tree of a manifest of one group", () => {
     expect(element(drawing, "piece").style.stroke).toBe("#654321");
     expect(element(drawing, "recording").style.stroke).toBe("none");
     // The card is the line's sibling under the frame, not its holder.
-    expect(element(drawing, "second-half/card").style.stroke).toBe("none");
+    expect(element(drawing, "group_1/second-half/card").style.stroke).toBe("none");
   });
 });
 

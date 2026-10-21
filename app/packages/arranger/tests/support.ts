@@ -156,11 +156,14 @@ export function withGrid(view: View, size: number, snap: boolean): View {
 /** The fixture path of the bundle of two groups and an ungrouped root the editors' tests use. */
 export const MIXED = "bundles/bundle_mixed";
 
-/** The view with the place of item `key` of block `block` merged with `place`. */
-export function placed(view: View, block: string, key: string, place: object): View {
+/**
+ * The view with `place` merged into the place a `set` aimed at the group or
+ * timeline `element` of block `block` states.
+ */
+export function placed(view: View, block: string, element: string, place: object): View {
   return changed(view, {
     type: "set",
-    changes: [{ target: `${block}/${key}`, values: { place } }],
+    changes: [{ target: `${block}/${element}`, values: { place } }],
   });
 }
 

@@ -73,6 +73,25 @@ describe("the drawing fixtures", () => {
     expect(directories).toEqual(cases.map((item) => item.name).sort());
   });
 
+  it("are 70", () => {
+    expect(directories.length).toBe(70);
+  });
+
+  it("draw a timeline of two groups in a card of each, every other address alike in both", () => {
+    const svg = read("bundle__bundle_shared_member", "figure.svg");
+    const addresses = [...svg.matchAll(/data-address="([^"]*)"/g)].map((match) => match[1]);
+    const cards = addresses.filter((address) => address?.endsWith("/card"));
+    expect(cards).toEqual(
+      ["g1/t/card", "g1/u/card", "g2/t/card", "g2/v/card"].flatMap((card) => [card, card]),
+    );
+    // Each card is written twice, its shadow and itself; its member drawing follows.
+    const drawnIn = (card: string, next: string) =>
+      addresses.slice(addresses.lastIndexOf(card) + 1, addresses.indexOf(next));
+    const first = drawnIn("g1/t/card", "g1/u/card");
+    expect(first).toContain("t");
+    expect(drawnIn("g2/t/card", "g2/v/card")).toEqual(first);
+  });
+
   it.each(cases)("$name: inputs.json holds the case's inputs", (item) => {
     expect(read(item.name, "inputs.json")).toBe(inputsText(item));
   });

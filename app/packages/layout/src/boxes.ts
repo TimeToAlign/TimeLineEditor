@@ -36,9 +36,15 @@ export interface ElementRange {
  */
 export interface DrawnBox {
   readonly kind: ContainerKind;
-  /** The `places` key: the group id of a frame, the timeline id of a card; null otherwise. */
+  /**
+   * The `places` key: the group id of a frame, `G/T` for a member's card in the frame of `G`,
+   * `T` for an ungrouped root's card; null otherwise.
+   */
   readonly key: string | null;
-  /** `G` for a frame, `T/card` for a card, `T/<kind>_1` for a band; null for the box. */
+  /**
+   * `G` for a frame, `G/T/card` or `T/card` for a card, `T/<kind>_1` for a band (the same for
+   * every drawing of it); null for the box.
+   */
   readonly address: string | null;
   /**
    * The holder's address: a frame's for the card of one of its members, the card holding the

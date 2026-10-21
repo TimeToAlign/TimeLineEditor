@@ -244,15 +244,15 @@ test.describe("on bundles", () => {
       name: true,
       group_1: false,
       "group_1/name": false,
-      "score/card": false,
+      "group_1/score/card": false,
       score: false,
-      "performance/card": false,
+      "group_1/performance/card": false,
       performance: false,
       group_2: true,
       "group_2/name": true,
-      "page/card": true,
+      "group_2/page/card": true,
       page: true,
-      "excerpt/card": true,
+      "group_2/excerpt/card": true,
       recording: true,
       excerpt: true,
       "annotations/card": true,
@@ -284,7 +284,7 @@ test.describe("on bundles", () => {
 
     // A click outside the edited element, on another block or on a faded part of its own, deselects.
     for (const [block, address] of [
-      [BUNDLES.shared, "take_1/card"],
+      [BUNDLES.shared, "group_1/take_1/card"],
       [MIXED, "annotations/card"],
     ] as const) {
       await select(page, [`${MIXED}/score`]);
@@ -804,7 +804,7 @@ test.describe("on groups", () => {
   test("a member card dragged below its sibling reorders the group", async ({ page }) => {
     const group = `${GROUPS.child}/group_1`;
     await enter(page, group, VIEW);
-    const from = await framePoint(page, GROUPS.child, "second-half/card");
+    const from = await framePoint(page, GROUPS.child, "group_1/second-half/card");
     // The block lies at (0, 0) at scale 1, so a drawing ordinate is the canvas y.
     const origin = await toScreen(page, 0, 0);
     // Pressed in the card's upper half, so the card's own middle passes recording's as well.
@@ -858,7 +858,7 @@ test.describe("leaving by a double-click, and the view when the canvas changes s
 
   test("a double-click on a box inside the edited element opens its editor", async ({ page }) => {
     await enter(page, `${MIXED}/group_1`, VIEW);
-    const card = await framePoint(page, MIXED, "score/card");
+    const card = await framePoint(page, MIXED, "group_1/score/card");
     await page.mouse.dblclick(card.x, card.y);
     await expect
       .poll(() => editing(page))
@@ -924,7 +924,7 @@ test.describe("resizing in an editor", () => {
     page,
   }) => {
     await enter(page, `${MIXED}/score`, VIEW);
-    await select(page, [`${MIXED}/score/card`]);
+    await select(page, [`${MIXED}/group_1/score/card`]);
     await page.locator('[data-testid="mode-stretch"]').click();
     const handles = page.locator('[data-testid^="handle-"]');
     await expect(handles).toHaveCount(3);
@@ -942,7 +942,7 @@ test.describe("resizing in an editor", () => {
         .locator(`[data-address="${address}"]`)
         .last()
         .evaluate((rect) => [rect.getAttribute("x"), rect.getAttribute("width")]);
-    expect(await card("score/card")).toEqual(["16", "566.4846"]);
-    expect(await card("performance/card")).toEqual(["16", "566.4846"]);
+    expect(await card("group_1/score/card")).toEqual(["16", "566.4846"]);
+    expect(await card("group_1/performance/card")).toEqual(["16", "566.4846"]);
   });
 });

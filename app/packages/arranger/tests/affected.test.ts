@@ -40,7 +40,7 @@ describe("affectedBy", () => {
     ["nested", "clt_1", ["clt_1/start"], []],
     ["nested", "clt_1", ["clt_1/start", "clt_3"], ["clt_2", "clt_2/name"]],
     [MPM, "group_1", ["group_1/name"], []],
-    [CHILD_MEMBER, "recording", ["recording/card"], []],
+    [CHILD_MEMBER, "recording", ["group_1/recording/card"], []],
   ])("%s with %s edited and %j selected affects %j", (fixture, edited, selected, expected) => {
     expect(affectedBy(load(fixture), new Set(selected), edited)).toEqual(new Set(expected));
   });
@@ -52,9 +52,13 @@ describe("affectedBy", () => {
     [
       CHILD_MEMBER,
       ["piece"],
-      ["second-half/card", ...marks("second-half"), "second-half", "second-half/name"],
+      ["group_1/second-half/card", ...marks("second-half"), "second-half", "second-half/name"],
     ],
-    [CHILD_MEMBER, ["recording/card"], ["recording", "recording/name", ...marks("recording")]],
+    [
+      CHILD_MEMBER,
+      ["group_1/recording/card"],
+      ["recording", "recording/name", ...marks("recording")],
+    ],
     [MPM, ["group_1"], []],
     [MPM, ["group_1/name"], ["group_1"]],
     [MPM, ["name"], []],

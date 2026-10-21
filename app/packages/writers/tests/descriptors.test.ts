@@ -461,14 +461,14 @@ describe("descriptors", () => {
     const line = (dash: string) =>
       synthetic({
         type: "flow_marker",
-        address: "break_1",
+        address: "flow_marker_1",
         style: style({ stroke: "#FF0000", "stroke-dasharray": dash, opacity: 0.5 }),
         x: 10,
         y1: 5,
         y2: 25,
       });
     expect(svgBody(line("2"))).toEqual([
-      '<line data-address="break_1" x1="10" y1="5" x2="10" y2="25" stroke="#FF0000" stroke-width="1" stroke-dasharray="2" opacity="0.5"/>',
+      '<line data-address="flow_marker_1" x1="10" y1="5" x2="10" y2="25" stroke="#FF0000" stroke-width="1" stroke-dasharray="2" opacity="0.5"/>',
     ]);
     expect(tikzBody(line("2"))).toEqual([
       "\\path[draw=tsFF0000,line width=1pt,dash pattern=on 2pt off 2pt,opacity=0.5] (10,25) -- (10,5);",
@@ -481,14 +481,14 @@ describe("descriptors", () => {
   it("formats each dash number by the number rule", () => {
     const drawing = synthetic({
       type: "flow_marker",
-      address: "break_1",
+      address: "flow_marker_1",
       style: style({ stroke: "#FF0000", "stroke-dasharray": "1.50 0.00001" }),
       x: 10,
       y1: 5,
       y2: 25,
     });
     expect(svgBody(drawing)).toEqual([
-      '<line data-address="break_1" x1="10" y1="5" x2="10" y2="25" stroke="#FF0000" stroke-width="1" stroke-dasharray="1.5 0"/>',
+      '<line data-address="flow_marker_1" x1="10" y1="5" x2="10" y2="25" stroke="#FF0000" stroke-width="1" stroke-dasharray="1.5 0"/>',
     ]);
     expect(tikzBody(drawing)).toEqual([
       "\\path[draw=tsFF0000,line width=1pt,dash pattern=on 1.5pt off 0pt] (10,25) -- (10,5);",
@@ -498,14 +498,14 @@ describe("descriptors", () => {
   it("writes no paint option for stroke none", () => {
     const drawing = synthetic({
       type: "flow_marker",
-      address: "break_1",
+      address: "flow_marker_1",
       style: style({ stroke: "none" }),
       x: 10,
       y1: 5,
       y2: 25,
     });
     expect(svgBody(drawing)).toEqual([
-      '<line data-address="break_1" x1="10" y1="5" x2="10" y2="25" stroke="none" stroke-width="1"/>',
+      '<line data-address="flow_marker_1" x1="10" y1="5" x2="10" y2="25" stroke="none" stroke-width="1"/>',
     ]);
     expect(tikzBody(drawing)).toEqual(["\\path[line width=1pt] (10,25) -- (10,5);"]);
   });

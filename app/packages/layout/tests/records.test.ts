@@ -49,7 +49,7 @@ const drawn = (
 /** The bands a drawing records, without their ranges, which are empty (tested below). */
 const bandsOf = (drawing: Drawing) => boxesOf(drawing, "band").map(({ range: _, ...band }) => band);
 
-/** A band's record: `T/<kind>_1` of `T`, held by the card `holder`, `T`'s by default. */
+/** A band's record: `T/<kind>_1` of `T`, held by the card `holder`, `T`'s box-held one by default. */
 const record = (
   address: string,
   level: number,
@@ -65,7 +65,7 @@ const record = (
     kind: "band",
     key: null,
     address,
-    holder: holder ?? cardAddress(timeline),
+    holder: holder ?? cardAddress(timeline, null),
     ...rectangle,
     displayed: false,
     band: { timeline, kind, level, elements, line },
@@ -88,7 +88,9 @@ describe("the records and core's listing of the containers", () => {
     for (const name of manifestNames()) {
       const manifest = loadFile(name);
       const { box, byAddress } = containersOf(manifest);
-      const expected = [box, ...byAddress.values()].filter((ref) => ref.kind !== "band");
+      const expected = [box, ...[...byAddress.values()].flat()].filter(
+        (ref) => ref.kind !== "band",
+      );
       for (const extra of [[], [hidden]]) {
         const records = drawn(manifest, extra).boxes.filter((record) => record.kind !== "band");
         expect(records.map(triple), name).toEqual(expected.map(listed));
@@ -96,15 +98,14 @@ describe("the records and core's listing of the containers", () => {
     }
   });
 
-  it("records each present band once, under core's address and holder", () => {
+  it("records each present band once per card drawing it, under core's address and holder", () => {
     for (const name of manifestNames()) {
       const manifest = loadFile(name);
       const { byAddress } = containersOf(manifest);
       const bands = drawn(manifest).boxes.filter((record) => record.kind === "band");
-      const expected = bands.flatMap(({ address }) => {
-        const ref = address === null ? undefined : byAddress.get(address);
-        return ref === undefined ? [] : [listed(ref)];
-      });
+      const expected = bands.flatMap(({ address }) =>
+        (address === null ? [] : (byAddress.get(address) ?? [])).map(listed),
+      );
       expect(bands.map(triple).sort(), name).toEqual([...new Set(expected)].sort());
     }
   });
@@ -242,12 +243,12 @@ describe("a timeline drawn twice: a child in one card, a member in another", () 
 
   it("records each drawing's bands at its own line, in drawing order", () => {
     expect(bands.map((band) => [band.address, band.band?.line, band.holder])).toEqual([
-      ["clt_1/children_1", 75.8046875, "clt_1/card"],
-      ["clt_1/markers_1", 75.8046875, "clt_1/card"],
-      ["clt_1/regions_1", 75.8046875, "clt_1/card"],
-      ["clt_2/conversion_maps_1", 61.8046875, "clt_1/card"],
-      ["clt_2/conversion_maps_1", 226.5390625, "clt_2/card"],
-      ["clt_2/markers_1", 226.5390625, "clt_2/card"],
+      ["clt_1/children_1", 75.8046875, "g1/clt_1/card"],
+      ["clt_1/markers_1", 75.8046875, "g1/clt_1/card"],
+      ["clt_1/regions_1", 75.8046875, "g1/clt_1/card"],
+      ["clt_2/conversion_maps_1", 61.8046875, "g1/clt_1/card"],
+      ["clt_2/conversion_maps_1", 226.5390625, "g2/clt_2/card"],
+      ["clt_2/markers_1", 226.5390625, "g2/clt_2/card"],
     ]);
   });
 
@@ -259,14 +260,84 @@ describe("a timeline drawn twice: a child in one card, a member in another", () 
         1,
         61.8046875,
         { x: 93.02663845486111, y: 55.3046875, width: 133.33333333333331, height: 6.5 },
-        "clt_1/card",
+        "g1/clt_1/card",
       ),
-      record("clt_2/conversion_maps_1", 1, 1, 226.5390625, {
-        x: 74.49951171875,
-        y: 220.0390625,
-        width: 414.83203125,
-        height: 6.5,
-      }),
+      record(
+        "clt_2/conversion_maps_1",
+        1,
+        1,
+        226.5390625,
+        { x: 74.49951171875, y: 220.0390625, width: 414.83203125, height: 6.5 },
+        "g2/clt_2/card",
+      ),
+    ]);
+  });
+});
+
+describe("a timeline in several groups (bundle_shared_member)", () => {
+  const drawing = drawFixture("bundles/bundle_shared_member");
+  const cardOf = (of: Drawing, address: string) => {
+    const card = of.boxes.find((box) => box.kind === "card" && box.address === address);
+    if (card === undefined) throw new Error(`${address} is no card of the drawing`);
+    return card;
+  };
+  /** The addresses of the elements a card's member drawing draws, the card's own left out. */
+  const drawnIn = (address: string) => {
+    const { range } = cardOf(drawing, address);
+    return drawing.elements.slice(range.start + 1, range.end).map((item) => item.address);
+  };
+
+  it("records a frame and a card per group, keyed by group and member", () => {
+    expect(
+      drawing.boxes
+        .filter((box) => box.kind === "frame" || box.kind === "card")
+        .map((box) => [box.kind, box.key, box.address, box.holder]),
+    ).toEqual([
+      ["frame", "g1", "g1", null],
+      ["card", "g1/t", "g1/t/card", "g1"],
+      ["card", "g1/u", "g1/u/card", "g1"],
+      ["frame", "g2", "g2", null],
+      ["card", "g2/t", "g2/t/card", "g2"],
+      ["card", "g2/v", "g2/v/card", "g2"],
+    ]);
+  });
+
+  it("draws the timeline in each frame with the same addresses", () => {
+    const first = drawnIn("g1/t/card");
+    expect(first).toContain("t");
+    expect(first).toContain("t/end/label");
+    expect(drawnIn("g2/t/card")).toEqual(first);
+  });
+
+  it("records the timeline's bands once in each of its cards", () => {
+    expect(
+      boxesOf(drawing, "band")
+        .filter((box) => box.band?.timeline === "t")
+        .map((box) => [box.address, box.holder]),
+    ).toEqual(
+      ["g1/t/card", "g2/t/card"].flatMap((card) =>
+        ["markers"].map((kind) => [`t/${kind}_1`, card]),
+      ),
+    );
+  });
+
+  it("lays out each card at its own entry of places", () => {
+    const sized = drawFixture("bundles/bundle_shared_member", [], {
+      ...DEFAULT_PLACEMENT,
+      places: { "g2/t": { width: 650 } },
+    });
+    expect(cardOf(sized, "g2/t/card").width).toBe(650);
+    expect(cardOf(sized, "g1/t/card").width).toBe(cardOf(drawing, "g1/t/card").width);
+  });
+
+  it("styles every drawing of an address with one statement", () => {
+    const stroked = drawFixture("bundles/bundle_shared_member", [
+      { statements: [{ select: { ids: ["t"] }, set: { stroke: "#123456" } }] },
+    ]);
+    const lines = stroked.elements.filter((item) => item.address === "t");
+    expect(lines.map((item) => [item.type, item.style.stroke])).toEqual([
+      ["timeline", "#123456"],
+      ["timeline", "#123456"],
     ]);
   });
 });

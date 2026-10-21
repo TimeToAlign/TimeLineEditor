@@ -29,6 +29,7 @@ import {
   isHeld,
   isItem,
   placeEdit,
+  placeTarget,
   shownValues,
 } from "@timetoalign/tilie-arranger";
 import type {
@@ -198,8 +199,8 @@ interface PropertyRow {
  * one band, read as `shown` draws it: "Band", its kind's word; "Level",
  * signed, a negative one written with U+2212 MINUS SIGN; "Elements", the
  * displayed elements it holds directly. A timeline drawn with two lines in
- * one drawing has two records under one address; the first, in drawing
- * order, is shown. `null` for any other selection.
+ * one drawing, or in the cards of several groups, has several records under
+ * one address; the first, in drawing order, is shown. `null` for any other selection.
  */
 export function bandRows(
   subjects: readonly Subject[],
@@ -207,8 +208,8 @@ export function bandRows(
 ): readonly PropertyRow[] | null {
   const [subject, ...others] = subjects;
   if (subject === undefined || others.length > 0 || subject.resolved.kind !== "band") return null;
-  const { address } = subject.resolved.container;
-  const band = boxOf(shown.drawing, address)?.band;
+  const [drawn] = subject.resolved.containers;
+  const band = drawn?.address == null ? undefined : boxOf(shown.drawing, drawn.address)?.band;
   if (band === undefined) return null;
   const { kind, level, elements } = band;
   return [
@@ -391,10 +392,11 @@ function joined(view: View, geometry: Geometry, edits: readonly Own[]): SetComma
   const [first] = edits;
   if (first === undefined || geometry.elements.length === 1) return first?.command ?? null;
   const { id } = geometry.block;
-  const drawing = drawingOf(view.blocks[id] ?? geometry.block, view.settings, fontMetrics);
+  const block = view.blocks[id] ?? geometry.block;
+  const drawing = drawingOf(block, view.settings, fontMetrics);
   const keyOf = (address: string | null) => {
     const key = address === null ? null : (boxOf(drawing, address)?.key ?? null);
-    return key === null ? null : qualify(id, key);
+    return key === null ? null : placeTarget(block, key);
   };
   const edited = new Set<string | null>();
   for (const element of geometry.elements) {

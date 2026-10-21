@@ -337,8 +337,13 @@ The review cases are every manifest fixture, `groups/` (as
 spacings (its card's gap between rows and bands, 0 and 8), box sizes and
 scales; the bundles with places, a scale, card sizes, a box spacing with a
 card spacing, a frame's spacing (the gap between its member cards) and a
-member's card spacing; and drawings with one application layer showing a
-band the defaults hide. Every case stating a spacing, of the box or in a
+member's card spacing (their member cards' places keyed `<group>/<member>`,
+`group_1/performance` and `group_1/score`, as drawing.md §8.6 keys them);
+and drawings with one application layer showing a band the defaults hide.
+`bundle__bundle_shared_member` draws a timeline that two groups have as a
+member, once in each frame: its member cards carry `data-address`
+`g1/t/card` and `g2/t/card`, and every other element of `t`'s two
+drawings the same address in both. There are 70 cases. Every case stating a spacing, of the box or in a
 place, draws an SVG different from its manifest's default case: a spacing
 case that draws as the default (a box of one item has no gap) pins
 nothing.

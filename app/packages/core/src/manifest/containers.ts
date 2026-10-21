@@ -1,9 +1,10 @@
 /**
  * The containers of a manifest's drawing (`docs/drawing.md` in timeskeleton,
  * sections 2.1, 6.4 and 8): the box, which every manifest is drawn as; a
- * group's frame; the card of every timeline drawn as a root (a member, held
- * by its group's frame, or an ungrouped root, held by the box); and the five
- * bands of every timeline drawn in a card. One table (`CONTAINERS`) states
+ * group's frame; the cards of every timeline drawn as a root (a member, one
+ * in the frame of each group that has it as a member, or an ungrouped root,
+ * one held by the box); and the five bands of every timeline drawn in a
+ * card, once in each card that draws it. One table (`CONTAINERS`) states
  * what each kind is styled as and which place members it may state; one
  * listing (`containersOf`) names every container of a manifest with its
  * holder, so a rule about containers reads the table and the listing and
@@ -14,7 +15,7 @@ import type { ElementType } from "@timetoalign/timeskeleton";
 import type { BandKind } from "./bands.ts";
 import { BAND_KINDS, bandAddress } from "./bands.ts";
 import { orderedChildren } from "./elements.ts";
-import { cardAddress, memberDrawings } from "./files.ts";
+import { cardAddress, cardKey, memberDrawings } from "./files.ts";
 import type { Manifest, TimelineManifest } from "./types.ts";
 
 /** The kinds of container in a drawing, from the outer box to a feature band. */
@@ -108,12 +109,22 @@ export const CONTAINERS: { readonly [kind in ContainerKind]: ContainerDescriptor
   band: { kind: "band", level: CONTAINER_LEVELS.band, element: "band", place: null },
 };
 
-/** One container of a manifest. */
+/**
+ * One drawing of a container of a manifest. A frame and a card are drawn
+ * once each; a band is drawn once in each card that draws its timeline, and
+ * every drawing of it carries the same address.
+ */
 export interface ContainerRef {
   readonly kind: ContainerKind;
-  /** The `places` key: a group id, a timeline id; null for the box and for a band. */
+  /**
+   * The `places` key (`cardKey`): a frame's group id `G`, an ungrouped
+   * root's card `T`, a member's card `G/T`; null for the box and for a band.
+   */
   readonly key: string | null;
-  /** The element address: `G`, `T/card`, `T/<kind>_1`; null for the box. */
+  /**
+   * The element address: `G` for a frame, `T/card` or `G/T/card` for a card
+   * (`cardAddress`), `T/<kind>_1` for a band; null for the box.
+   */
   readonly address: string | null;
   /** The container directly holding this one, or null for the box. */
   readonly holder: ContainerRef | null;
@@ -123,11 +134,18 @@ export interface ContainerRef {
   readonly band: BandKind | null;
 }
 
-/** Every container of a manifest, indexed by its element address and place key. */
+/** Every container of a manifest, indexed by its element address, its place key and its timeline. */
 export interface Containers {
   readonly box: ContainerRef;
-  readonly byAddress: ReadonlyMap<string, ContainerRef>;
+  /**
+   * Every drawing of a container by its address, in drawing order: one for a
+   * frame and a card, one per card drawing its timeline for a band.
+   */
+  readonly byAddress: ReadonlyMap<string, readonly ContainerRef[]>;
+  /** Every frame and card by its `places` key. */
   readonly byKey: ReadonlyMap<string, ContainerRef>;
+  /** The cards of every timeline drawn in one, by timeline id, in drawing order. */
+  readonly cards: ReadonlyMap<string, readonly ContainerRef[]>;
 }
 
 const listed = new WeakMap<Manifest, Containers>();
@@ -146,7 +164,9 @@ const BOX: ContainerRef = {
  * List every container of `manifest`, memoised by manifest identity, in
  * drawing order: per group in canonical order its frame, then per member in
  * display order the member's card followed by the bands of the timelines the
- * card holds; then the same for every ungrouped root's card. A card holds
+ * card holds; then the same for every ungrouped root's card. A timeline that
+ * several groups have as a member has a card in each of their frames, each
+ * followed by its own drawing of the same bands. A card holds
  * the bands of its timeline and of every descendant down to, not into, a
  * descendant drawn in a card of its own (a member of another group); each
  * timeline's five bands follow in `BAND_KINDS` order, the timelines in
@@ -157,15 +177,21 @@ const BOX: ContainerRef = {
 export function containersOf(manifest: Manifest): Containers {
   const known = listed.get(manifest);
   if (known !== undefined) return known;
-  const byAddress = new Map<string, ContainerRef>();
+  const byAddress = new Map<string, ContainerRef[]>();
   const byKey = new Map<string, ContainerRef>();
+  const cards = new Map<string, ContainerRef[]>();
   const { frames, ungrouped } = memberDrawings(manifest);
   const carded = new Set([
     ...frames.flatMap((frame) => frame.members.map((member) => member.timeline.id)),
     ...ungrouped.map((member) => member.timeline.id),
   ]);
+  const listIn = <K>(map: Map<K, ContainerRef[]>, key: K, ref: ContainerRef) => {
+    const list = map.get(key);
+    if (list === undefined) map.set(key, [ref]);
+    else list.push(ref);
+  };
   const add = (ref: ContainerRef, address: string) => {
-    byAddress.set(address, ref);
+    listIn(byAddress, address, ref);
     if (ref.key !== null) byKey.set(ref.key, ref);
   };
   const bands = (card: ContainerRef, timeline: TimelineManifest) => {
@@ -175,17 +201,18 @@ export function containersOf(manifest: Manifest): Containers {
     }
     for (const child of orderedChildren(timeline)) if (!carded.has(child.id)) bands(card, child);
   };
-  const card = (timeline: TimelineManifest, holder: ContainerRef) => {
-    const address = cardAddress(timeline.id);
+  const card = (timeline: TimelineManifest, holder: ContainerRef, group: string | null) => {
+    const address = cardAddress(timeline.id, group);
     const ref: ContainerRef = {
       kind: "card",
-      key: timeline.id,
+      key: cardKey(timeline.id, group),
       address,
       holder,
       timeline: timeline.id,
       band: null,
     };
     add(ref, address);
+    listIn(cards, timeline.id, ref);
     bands(ref, timeline);
   };
   for (const { group, members } of frames) {
@@ -198,10 +225,10 @@ export function containersOf(manifest: Manifest): Containers {
       band: null,
     };
     add(frame, group.id);
-    for (const member of members) card(member.timeline, frame);
+    for (const member of members) card(member.timeline, frame, group.id);
   }
-  for (const member of ungrouped) card(member.timeline, BOX);
-  const containers: Containers = { box: BOX, byAddress, byKey };
+  for (const member of ungrouped) card(member.timeline, BOX, null);
+  const containers: Containers = { box: BOX, byAddress, byKey, cards };
   listed.set(manifest, containers);
   return containers;
 }
@@ -236,8 +263,19 @@ export function keptPlace(ref: ContainerRef, place: ItemPlace): ItemPlace | Card
   return kept.length === Object.keys(place).length ? place : Object.fromEntries(kept);
 }
 
-/** Whether the timeline `id` is a group member: its card is held by a frame. */
+/**
+ * The element a `set` of `place` aims at to state the place under `key` in
+ * the drawing of `manifest`: a frame's group, a card's timeline; `undefined`
+ * for a key naming no frame and no card.
+ */
+export function placedElement(manifest: Manifest, key: string): string | undefined {
+  const ref = containersOf(manifest).byKey.get(key);
+  if (ref === undefined) return undefined;
+  return (ref.kind === "card" ? ref.timeline : ref.key) ?? undefined;
+}
+
+/** Whether the timeline `id` is a group member: a frame holds a card of it. */
 export function isMember(manifest: Manifest, id: string): boolean {
-  const ref = containersOf(manifest).byKey.get(id);
-  return ref?.kind === "card" && holdingOf(ref) === "frame";
+  const cards = containersOf(manifest).cards.get(id) ?? [];
+  return cards.some((ref) => holdingOf(ref) === "frame");
 }

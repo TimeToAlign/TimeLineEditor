@@ -158,7 +158,7 @@ describe("an item left of the padding, a width request and a length of its own",
       height: 169.234375,
     });
     expect(rect(drawing, "group_2")).toEqual({ x: 78, y: 200, width: 700, height: 177.734375 });
-    expect(rect(drawing, "page/card")).toEqual({
+    expect(rect(drawing, "group_2/page/card")).toEqual({
       x: 86,
       y: 224.8046875,
       width: 684,
@@ -283,13 +283,13 @@ describe("a frame's own length and height request, a card's width request", () =
       width: 462.484619140625,
       height: 200,
     });
-    expect(rect(drawing, "score/card")).toEqual({
+    expect(rect(drawing, "group_1/score/card")).toEqual({
       x: 16,
       y: 53.609375,
       width: 446.484619140625,
       height: 78.953125,
     });
-    expect(rect(drawing, "performance/card")).toMatchObject({ y: 140.5625 });
+    expect(rect(drawing, "group_1/performance/card")).toMatchObject({ y: 140.5625 });
   });
 
   it("puts the next item's default top F below the requested bottom", () => {
@@ -299,7 +299,7 @@ describe("a frame's own length and height request, a card's width request", () =
       width: 562.484619140625,
       height: 177.734375,
     });
-    expect(rect(drawing, "page/card")).toMatchObject({ y: 261.609375 });
+    expect(rect(drawing, "group_2/page/card")).toMatchObject({ y: 261.609375 });
   });
 
   it("widens the card to the requested width, its inset in a box of frames included", () => {

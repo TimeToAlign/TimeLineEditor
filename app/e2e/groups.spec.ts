@@ -107,45 +107,45 @@ test.describe("a group workspace", () => {
     expect(await structureOf(page, GROUPS.child)).toEqual([
       "group_1",
       "group_1/name",
-      "second-half/card",
+      "group_1/second-half/card",
       "piece",
       "second-half",
-      "recording/card",
+      "group_1/recording/card",
       "recording",
     ]);
     expect(await structureOf(page, GROUPS.grandchild)).toEqual([
       "group_1",
       "group_1/name",
-      "theme/card",
+      "group_1/theme/card",
       "score",
       "movement",
       "theme",
-      "recording/card",
+      "group_1/recording/card",
       "recording",
     ]);
     expect(await structureOf(page, GROUPS.mixed)).toEqual([
       "group_1",
       "group_1/name",
-      "exposition/card",
+      "group_1/exposition/card",
       "sonata",
       "exposition",
-      "take/card",
+      "group_1/take/card",
       "session",
       "take",
-      "system/card",
+      "group_1/system/card",
       "page",
       "system",
-      "audio/card",
+      "group_1/audio/card",
       "audio",
     ]);
     expect(await structureOf(page, GROUPS.styled)).toEqual([
       "group_1",
       "group_1/name",
-      "score/card",
+      "group_1/score/card",
       "score",
-      "page/card",
+      "group_1/page/card",
       "page",
-      "performance/card",
+      "group_1/performance/card",
       "performance",
     ]);
     const names = {
@@ -158,8 +158,8 @@ test.describe("a group workspace", () => {
       expect(await titles(page, block)).toEqual({ "group_1/name": name });
       await expect(element(page, block, "group_1")).toHaveCount(1);
     }
-    await expect(element(page, GROUPS.child, "second-half/card")).toHaveCount(2);
-    await expect(element(page, GROUPS.child, "recording/card")).toHaveCount(2);
+    await expect(element(page, GROUPS.child, "group_1/second-half/card")).toHaveCount(2);
+    await expect(element(page, GROUPS.child, "group_1/recording/card")).toHaveCount(2);
   });
 
   test("selecting a part drawn twice marks both copies", async ({ page }) => {
@@ -191,13 +191,13 @@ test.describe("a group workspace", () => {
     const removals = [
       {
         timeline: "recording",
-        card: "recording/card",
+        card: "group_1/recording/card",
         roots: [["piece", ["second-half"]]],
         members: [["group_1", ["second-half"]]],
       },
       {
         timeline: "piece",
-        card: "second-half/card",
+        card: "group_1/second-half/card",
         roots: [["recording", []]],
         members: [["group_1", ["recording"]]],
       },
@@ -260,7 +260,9 @@ test.describe("a group workspace", () => {
   test("hovering a member's line marks its card, not its shadow or the frame", async ({ page }) => {
     const { x, y } = await partCentre(page, GROUPS.child, "recording");
     await page.mouse.move(x, y, { steps: 2 });
-    await expect.poll(() => marked(page, "hover")).toEqual([`${GROUPS.child}/recording/card`]);
+    await expect
+      .poll(() => marked(page, "hover"))
+      .toEqual([`${GROUPS.child}/group_1/recording/card`]);
     const empty = await emptyPoint(page, 600, 200);
     await page.mouse.move(empty.x, empty.y, { steps: 2 });
     await expect.poll(() => marked(page, "hover")).toEqual([]);
@@ -284,7 +286,9 @@ test.describe("a group workspace", () => {
     await setViewport(page, { ...VIEW, zoom: 0.5 });
     const { x, y } = await partCentre(page, GROUPS.child, "recording");
     await page.mouse.move(x, y, { steps: 2 });
-    await expect.poll(() => marked(page, "hover")).toEqual([`${GROUPS.child}/recording/card`]);
+    await expect
+      .poll(() => marked(page, "hover"))
+      .toEqual([`${GROUPS.child}/group_1/recording/card`]);
   });
 
   test("hover on a block of scale 1.5 marks the card under the pointer", async ({ page }) => {
@@ -303,7 +307,9 @@ test.describe("a group workspace", () => {
     );
     const { x, y } = await partCentre(page, GROUPS.child, "recording");
     await page.mouse.move(x, y, { steps: 2 });
-    await expect.poll(() => marked(page, "hover")).toEqual([`${GROUPS.child}/recording/card`]);
+    await expect
+      .poll(() => marked(page, "hover"))
+      .toEqual([`${GROUPS.child}/group_1/recording/card`]);
   });
 });
 
@@ -319,15 +325,15 @@ test.describe("a bundle workspace", () => {
       "name",
       "group_1",
       "group_1/name",
-      "score/card",
+      "group_1/score/card",
       "score",
-      "performance/card",
+      "group_1/performance/card",
       "performance",
       "group_2",
       "group_2/name",
-      "page/card",
+      "group_2/page/card",
       "page",
-      "excerpt/card",
+      "group_2/excerpt/card",
       "recording",
       "excerpt",
       "annotations/card",
@@ -337,18 +343,18 @@ test.describe("a bundle workspace", () => {
       "name",
       "group_1",
       "group_1/name",
-      "exposition/card",
+      "group_1/exposition/card",
       "score",
       "exposition",
-      "take_1/card",
+      "group_1/take_1/card",
       "take_1",
       "group_2",
       "group_2/name",
-      "recapitulation/card",
+      "group_2/recapitulation/card",
       "recapitulation",
       "recapitulation_first",
       "recapitulation_second",
-      "take_2/card",
+      "group_2/take_2/card",
       "take_2",
       "page/card",
       "page",
@@ -399,7 +405,7 @@ test.describe("a bundle workspace", () => {
     expect(await selection(page)).toEqual([`${BUNDLES.mixed}/score`]);
     expect(
       await dashed.evaluateAll((items) => items.map((item) => item.getAttribute("data-marks"))),
-    ).toEqual([null, "group_1", "score/card"]);
+    ).toEqual([null, "group_1", "group_1/score/card"]);
     await expect(block).toHaveAttribute("data-contains-selection", "");
     await expect(page.locator("[data-contains-selection]")).toHaveCount(1);
     const looks = () =>
@@ -438,7 +444,7 @@ test.describe("a bundle workspace", () => {
         .last()
         .evaluate((item) => getComputedStyle(item).stroke);
     expect(await stroke("group_1")).toBe("rgb(209, 213, 219)");
-    expect(await stroke("score/card")).toBe("rgb(196, 201, 209)");
+    expect(await stroke("group_1/score/card")).toBe("rgb(196, 201, 209)");
   });
 
   test("hovering a segment boundary marks that boundary and its card", async ({ page }) => {

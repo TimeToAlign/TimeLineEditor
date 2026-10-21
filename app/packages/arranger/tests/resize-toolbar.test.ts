@@ -179,7 +179,7 @@ describe("the modes and handles", () => {
       "bottom-right",
       "bottom",
     ]);
-    expect(show("group", "scale", "performance/card")).toEqual({
+    expect(show("group", "scale", "group_1/performance/card")).toEqual({
       buttons: THREE,
       pressed: ["Scale"],
       disabled: [],
@@ -190,7 +190,7 @@ describe("the modes and handles", () => {
       "Box: resize the box, the content stays (2)",
       "Stretch: stretch every member's length, this card's distances (3)",
     ]);
-    expect(show("group", "box", "performance/card").handles).toEqual([
+    expect(show("group", "box", "group_1/performance/card").handles).toEqual([
       "right",
       "bottom-right",
       "bottom",
@@ -199,7 +199,7 @@ describe("the modes and handles", () => {
 
   it("offers the edited card every mode in the timeline editor", () => {
     expect(show("timeline", "box", "annotations/card").handles).toEqual(EIGHT);
-    expect(show("timeline", "stretch", "score/card").handles).toEqual([
+    expect(show("timeline", "stretch", "group_1/score/card").handles).toEqual([
       "right",
       "bottom-right",
       "bottom",

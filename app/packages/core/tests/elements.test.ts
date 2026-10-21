@@ -98,12 +98,12 @@ describe("the elements of a manifest", () => {
       ["label", `${flow}/end/label`],
       ["band", `${flow}/regions_1`],
       ["band", `${flow}/flow_control_1`],
-      ["flow_marker", `${flow}/break_1`],
-      ["label", `${flow}/break_1/label`],
-      ["jump_from", `${flow}/jump_1`],
-      ["label", `${flow}/jump_1/label`],
-      ["jump_from", `${flow}/jump_2`],
-      ["label", `${flow}/jump_2/label`],
+      ["flow_marker", `${flow}/flow_marker_1`],
+      ["label", `${flow}/flow_marker_1/label`],
+      ["jump_from", `${flow}/jump_from_1`],
+      ["label", `${flow}/jump_from_1/label`],
+      ["jump_from", `${flow}/jump_from_2`],
+      ["label", `${flow}/jump_from_2/label`],
     ]);
   });
 

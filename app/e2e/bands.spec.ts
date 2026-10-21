@@ -121,7 +121,7 @@ test.describe("on bundles", () => {
     await page.mouse.move(point.x, point.y);
     await expect.poll(() => bandMarks(page, MIXED)).toEqual([F]);
     // Opening the editor selected the edited timeline's card.
-    expect(await selection(page)).toEqual([`${MIXED}/score/card`]);
+    expect(await selection(page)).toEqual([`${MIXED}/group_1/score/card`]);
     await page.mouse.click(point.x, point.y);
     await expect.poll(() => selection(page)).toEqual(SELECTED_F);
     expect(await bandMarks(page, MIXED)).toEqual([F]);
@@ -197,7 +197,7 @@ test.describe("on bundles", () => {
     const child = "recapitulation_second";
     const conversionMaps = `${child}/conversion_maps_1`;
     const children = `${parent}/children_1`;
-    const card = [`${SHARED}/${parent}/card`];
+    const card = [`${SHARED}/group_2/${parent}/card`];
 
     // Found where every drawn element of the block takes the pointer.
     await enter(page, SHARED, VIEW);
@@ -369,7 +369,7 @@ test.describe("on bundles", () => {
   test("no band is offered in the bundle or the group editor, nor on the arranger", async ({
     page,
   }) => {
-    const card = [`${MIXED}/score/card`];
+    const card = [`${MIXED}/group_1/score/card`];
     // Found where every drawn element of the block takes the pointer.
     await enter(page, MIXED, VIEW);
     const at = await focusBand(page, MIXED, F, 1);

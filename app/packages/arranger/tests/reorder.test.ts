@@ -28,7 +28,7 @@ describe("memberOrderAt", () => {
     ["group_1", "performance", 93.0859375, ["score", "performance"]],
     ["group_2", "page", 440, ["excerpt", "page"]],
   ] as const)("%s, %s dropped at %d", (group, dragged, y, order) => {
-    expect(memberOrderAt(drawing, group, dragged, y)).toEqual(order);
+    expect(memberOrderAt(block.manifest, drawing, group, dragged, y)).toEqual(order);
   });
 
   describe("with the frame hidden", () => {
@@ -57,13 +57,17 @@ describe("memberOrderAt", () => {
       ["second-half", 160, ["recording", "second-half"]],
       ["recording", 50, ["recording", "second-half"]],
     ] as const)("orders %s dropped at %d as with the frame displayed", (dragged, y, order) => {
-      expect(memberOrderAt(drawn(hidden), "group_1", dragged, y)).toEqual(order);
-      expect(memberOrderAt(drawn(shown), "group_1", dragged, y)).toEqual(order);
+      expect(
+        memberOrderAt(blockIn(hidden, A).manifest, drawn(hidden), "group_1", dragged, y),
+      ).toEqual(order);
+      expect(
+        memberOrderAt(blockIn(shown, A).manifest, drawn(shown), "group_1", dragged, y),
+      ).toEqual(order);
     });
   });
 
   it("refuses a group that is not drawn", () => {
-    expect(() => memberOrderAt(drawing, "group_9", "score", 0)).toThrow(RangeError);
+    expect(() => memberOrderAt(block.manifest, drawing, "group_9", "score", 0)).toThrow(RangeError);
   });
 });
 
@@ -80,8 +84,8 @@ describe("a reorder's preview", () => {
       element.type === "card" ? [[element.address, element.y]] : [],
     );
     expect(cards.slice(0, 2)).toEqual([
-      ["performance/card", 53.609375],
-      ["score/card", 111.0859375],
+      ["group_1/performance/card", 53.609375],
+      ["group_1/score/card", 111.0859375],
     ]);
   });
 });
@@ -122,18 +126,18 @@ describe("releaseMotion", () => {
   const shown = drawingOf(blockIn(reordered, A), reordered.settings, metrics);
 
   it("moves the copy from its drop to the card's place after the release", () => {
-    expect(releaseMotion(drawing, shown, "score/card", { x: 10, y: 100 })).toEqual({
+    expect(releaseMotion(drawing, shown, "group_1/score/card", { x: 10, y: 100 })).toEqual({
       from: { x: 10, y: 100 },
       to: { x: 0, y: 57.4765625 },
     });
-    expect(releaseMotion(drawing, drawing, "score/card", { x: 10, y: 100 })).toEqual({
+    expect(releaseMotion(drawing, drawing, "group_1/score/card", { x: 10, y: 100 })).toEqual({
       from: { x: 10, y: 100 },
       to: { x: 0, y: 0 },
     });
   });
 
   it("gives no motion for a copy already in place, nor for a card not drawn", () => {
-    expect(releaseMotion(drawing, shown, "score/card", { x: 0, y: 57.4765625 })).toBeNull();
+    expect(releaseMotion(drawing, shown, "group_1/score/card", { x: 0, y: 57.4765625 })).toBeNull();
     expect(releaseMotion(drawing, shown, "nobody/card", { x: 10, y: 100 })).toBeNull();
   });
 });

@@ -6,10 +6,11 @@
  *
  * A workspace address is `workspace`, a block id, or `<block id>/<element
  * address>`. An element address is a group's, a timeline's or a measure
- * map's bare id (`G`, `T`, `M`), a timeline's card or band (`T/card`,
- * `T/regions_1`), an entry of a root's tree (`r/R`), the manifest's title
- * (`name`), or any of these but a measure map followed by part words
- * (`T/end/label`).
+ * map's bare id (`G`, `T`, `M`), a card (`G/T/card` for a member's in the
+ * frame of `G`, `T/card` for an ungrouped root's), a timeline's band
+ * (`T/regions_1`), an entry of a root's tree (`r/R`), the manifest's title
+ * (`name`), or any of these but a measure map and a card followed by part
+ * words (`T/end/label`).
  */
 
 import type { CommandError, Problem } from "../errors.ts";
@@ -22,7 +23,9 @@ import type { ElementKey } from "../manifest/elements.ts";
 import { manifestElements, timelineAncestry } from "../manifest/elements.ts";
 import type { EntryKind, ListedElement } from "../manifest/files.ts";
 import {
+  CARD_WORD,
   cardAddress,
+  cardKey,
   ENTRY_KINDS,
   elementAddress,
   entriesOf,
@@ -83,8 +86,12 @@ export function qualify(block: BlockId, element: string): Address {
   return `${block}/${element}`;
 }
 
-/** The address builders of a manifest's elements: `<root>/<id>`, `<timeline>/card` and `<owner>/<part word>`. */
-export { cardAddress, elementAddress, partAddress };
+/**
+ * The address builders of a manifest's elements, `<root>/<id>`,
+ * `[<group>/]<timeline>/card` and `<owner>/<part word>`, and the `places`
+ * key of a card, `[<group>/]<timeline>`.
+ */
+export { cardAddress, cardKey, elementAddress, partAddress };
 
 /** What a valid workspace address resolves to in a view. */
 export type ResolvedAddress =
@@ -101,8 +108,12 @@ export type ResolvedAddress =
       readonly kind: "timeline";
       readonly block: Block;
       readonly at: Located;
-      /** The timeline's card when it is drawn in one, a member or an ungrouped root. */
-      readonly container: ContainerRef | null;
+      /**
+       * The timeline's cards in drawing order: one per group that has it as a
+       * member, or its one card as an ungrouped root; none for a timeline
+       * drawn in no card.
+       */
+      readonly cards: readonly ContainerRef[];
     }
   | {
       readonly kind: "card";
@@ -115,7 +126,8 @@ export type ResolvedAddress =
       readonly block: Block;
       readonly at: Located;
       readonly band: BandKind;
-      readonly container: ContainerRef;
+      /** Every drawing of the band, one per card drawing its timeline, in drawing order. */
+      readonly containers: readonly ContainerRef[];
     }
   | {
       readonly kind: "entry";
@@ -145,13 +157,13 @@ export type ResolvedAddress =
 export type ResolvedElement =
   | { readonly kind: "title" }
   | { readonly kind: "frame"; readonly group: Group; readonly container: ContainerRef }
-  | { readonly kind: "timeline"; readonly at: Located; readonly container: ContainerRef | null }
+  | { readonly kind: "timeline"; readonly at: Located; readonly cards: readonly ContainerRef[] }
   | { readonly kind: "card"; readonly at: Located; readonly container: ContainerRef }
   | {
       readonly kind: "band";
       readonly at: Located;
       readonly band: BandKind;
-      readonly container: ContainerRef;
+      readonly containers: readonly ContainerRef[];
     }
   | {
       readonly kind: "entry";
@@ -218,9 +230,7 @@ function partWord(segment: string): PartWord | undefined {
 function partsOf(owner: ResolvedElement): readonly PartWord[] {
   switch (owner.kind) {
     case "timeline":
-      return owner.container === null
-        ? ["start", "end", "name", "label", "card"]
-        : ["start", "end", "name", "label"];
+      return PART_WORDS;
     case "entry":
       return ["name", "label"];
     case "frame":
@@ -233,19 +243,43 @@ function partsOf(owner: ResolvedElement): readonly PartWord[] {
 }
 
 /**
- * The element the first one or two segments name, and how many they are: a
- * group's frame, a measure map, a timeline, its card or one of its bands, or
- * an entry of a root's tree; `undefined` when they name nothing.
+ * The card under the `places` key of `timeline`'s card in the frame of
+ * `group` (null: on the box), with the timeline; `undefined` when the
+ * drawing has no such card.
+ */
+function cardOf(
+  manifest: Manifest,
+  timeline: string,
+  group: string | null,
+): ResolvedElement | undefined {
+  const container = containersOf(manifest).byKey.get(cardKey(timeline, group));
+  const at = catalogueOf(manifest).timelines.get(timeline);
+  return container?.kind !== "card" || at === undefined
+    ? undefined
+    : { kind: "card", at, container };
+}
+
+/**
+ * The element the first one to three segments name, and how many they are:
+ * a group's frame, a member's card in it (`G/T/card`), a measure map, a
+ * timeline, an ungrouped root's card (`T/card`) or one of a timeline's
+ * bands, or an entry of a root's tree; `undefined` when they name nothing.
+ * A member's card is named by its group only: `T/card` names nothing for a
+ * timeline that no box-held card draws.
  */
 function baseOf(
   manifest: Manifest,
   segments: readonly string[],
 ): readonly [ResolvedElement, number] | undefined {
-  const [first = "", second] = segments;
+  const [first = "", second, third] = segments;
   const containers = containersOf(manifest);
   const group = manifest.groups.find((item) => item.id === first);
   if (group !== undefined) {
-    const container = containers.byAddress.get(first);
+    if (second !== undefined && third === CARD_WORD) {
+      const card = cardOf(manifest, second, first);
+      return card === undefined ? undefined : [card, 3];
+    }
+    const [container] = containers.byAddress.get(first) ?? [];
     return container === undefined ? undefined : [{ kind: "frame", group, container }, 1];
   }
   const index = manifest.measure_maps.findIndex((item) => item.id === first);
@@ -254,18 +288,20 @@ function baseOf(
   const { timelines, entries } = catalogueOf(manifest);
   const at = timelines.get(first);
   if (at === undefined) return undefined;
-  const card = containers.byKey.get(first);
-  const timeline: ResolvedElement = { kind: "timeline", at, container: card ?? null };
-  if (second === undefined || (partWord(second) !== undefined && second !== "card")) {
-    return [timeline, 1];
-  }
-  if (second === "card") {
-    return card === undefined ? [timeline, 1] : [{ kind: "card", at, container: card }, 2];
+  const timeline: ResolvedElement = {
+    kind: "timeline",
+    at,
+    cards: containers.cards.get(first) ?? [],
+  };
+  if (second === undefined || partWord(second) !== undefined) return [timeline, 1];
+  if (second === CARD_WORD) {
+    const card = cardOf(manifest, first, null);
+    return card === undefined ? undefined : [card, 2];
   }
   const band = bandNamed(second);
   if (band !== undefined) {
-    const container = containers.byAddress.get(bandAddress(first, band));
-    return container === undefined ? undefined : [{ kind: "band", at, band, container }, 2];
+    const drawn = containers.byAddress.get(bandAddress(first, band));
+    return drawn === undefined ? undefined : [{ kind: "band", at, band, containers: drawn }, 2];
   }
   if (at.parent !== undefined || isReservedId(second)) return undefined;
   const found = entries.get(elementAddress(first, second));
@@ -279,10 +315,10 @@ function baseOf(
  * Resolve an element address against a manifest: the title (of a named
  * manifest), a frame, a measure map, a timeline, a card, a band (of a
  * timeline drawn in a card), an entry, or a part of one of them; `undefined`
- * for anything else. A measure map is not drawn and has no part; any other
- * part is one of the part words its owner has: a timeline's `start`, `end`, `name` and `label`
- * (and `card` for a timeline drawn in no card), an entry's `name` and
- * `label`, a frame's `name`, the `label` of a `start` or an `end`.
+ * for anything else. A measure map is not drawn and a card has no part; any
+ * other part is one of the part words its owner has: a timeline's `start`,
+ * `end`, `name` and `label`, an entry's `name` and `label`, a frame's
+ * `name`, the `label` of a `start` or an `end`.
  */
 export function resolveElement(manifest: Manifest, element: string): ResolvedElement | undefined {
   const segments = element.split("/");
@@ -331,16 +367,18 @@ export function resolveAddress(view: View, address: Address): ResolvedAddress | 
 
 /**
  * The element an element address names with its parts and bands folded
- * away: `<root>/<id>` when it starts with a root's id followed by an id that
- * is not reserved (`isReservedId`), its first segment otherwise. So
- * `score/end/label` and `score/regions_1` name `score`, as `score/card`
- * does, and `score/region_1/label` names `score/region_1`. The manifest's
- * title is `name` itself. It reads the syntax only: what it names need not
- * exist.
+ * away: the timeline of a card in a group's frame (`<group>/<timeline>/card`);
+ * `<root>/<id>` when it starts with a root's id followed by an id that is not
+ * reserved (`isReservedId`); its first segment otherwise. So
+ * `score/end/label` and `score/regions_1` name `score`, as `score/card` and
+ * `group_1/score/card` do, and `score/region_1/label` names
+ * `score/region_1`. The manifest's title is `name` itself. It reads the
+ * syntax only: what it names need not exist.
  */
 export function elementOf(manifest: Manifest, element: string): string {
-  const [first = "", second] = element.split("/");
+  const [first = "", second, third] = element.split("/");
   if (second === undefined) return first;
+  if (third === CARD_WORD && manifest.groups.some((group) => group.id === first)) return second;
   const root = manifest.timelines.some((timeline) => timeline.id === first);
   return root && !isReservedId(second) ? elementAddress(first, second) : first;
 }

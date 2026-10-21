@@ -224,7 +224,7 @@ export function orderedChildren(timeline: TimelineManifest): ChildTimeline[] {
 
 /**
  * The elements of one member drawing (section 8.1) held by `holder`, the
- * box or a frame: its card; its ancestor lines, each with its name and its
+ * box or the frame of `group`: its card, addressed by its group; its ancestor lines, each with its name and its
  * marks of the member's start and end, each mark with its label; then per
  * timeline in pre-order its line and name, or for a segment its node (its
  * line and no name when it is a segment line), then its five bands in the
@@ -236,10 +236,15 @@ export function orderedChildren(timeline: TimelineManifest): ChildTimeline[] {
  * the flow control band its flow markers, then its jump origins, each with
  * its label (a jump target draws nothing of its own).
  */
-function memberElements(member: MemberDrawing, holder: ElementKey, keys: ElementKey[]): void {
+function memberElements(
+  member: MemberDrawing,
+  holder: ElementKey,
+  group: string | null,
+  keys: ElementKey[],
+): void {
   const address = (id: string) => elementAddress(member.root, id);
   const root = member.timeline;
-  keys.push(elementKey("card", cardAddress(root.id), root, holder));
+  keys.push(elementKey("card", cardAddress(root.id, group), root, holder));
   const line = elementKey("timeline", root.id, root, holder);
   for (const { timeline } of member.ancestors) {
     const ancestor = elementKey("ancestor", timeline.id, timeline, line);
@@ -308,9 +313,10 @@ function memberElements(member: MemberDrawing, holder: ElementKey, keys: Element
  * 2.1 and 8.1): the box; the title of a named manifest (one with an `id`
  * or a `name`), addressed `name`; each group's frame, its title and its
  * member drawings in display order; then the roots drawn without a frame. A
- * timeline drawn twice, as an ancestor line and as a line of its own, is
- * listed at each drawing, and so are a member's start and end, marked on its
- * own line and on each of its ancestor lines.
+ * timeline drawn twice, as an ancestor line and as a line of its own, or as
+ * a member of several groups, is listed at each drawing with the same
+ * address, and so are a member's start and end, marked on its own line and
+ * on each of its ancestor lines; only its cards' addresses differ.
  */
 export function manifestElements(manifest: Manifest): ElementKey[] {
   const ordered = canonicalOrder(manifest);
@@ -322,8 +328,8 @@ export function manifestElements(manifest: Manifest): ElementKey[] {
   for (const frame of frames) {
     const group = unownedKey("group", frame.group.id, BOX_KEY);
     keys.push(group, unownedKey("name", partAddress(frame.group.id, "name"), group));
-    for (const member of frame.members) memberElements(member, group, keys);
+    for (const member of frame.members) memberElements(member, group, frame.group.id, keys);
   }
-  for (const member of ungrouped) memberElements(member, BOX_KEY, keys);
+  for (const member of ungrouped) memberElements(member, BOX_KEY, null, keys);
   return keys;
 }

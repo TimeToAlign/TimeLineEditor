@@ -9,6 +9,7 @@
  */
 
 import type {
+  Block,
   BlockId,
   Change,
   CommandError,
@@ -23,7 +24,6 @@ import {
   ITEM_PLACE_MEMBERS,
   isCommandError,
   preview,
-  qualify,
 } from "@timetoalign/tilie-core";
 import type { Drawing, DrawnBox } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timeskeleton";
@@ -32,6 +32,7 @@ import { boxOf, isHeld, isItem, itemHolding, itemOf, keyedBox } from "./boxes.ts
 import type { Level, PlaceProperty, Resizing } from "./containers.ts";
 import { LEVELS, RESIZED_BY, resizingOf, resolveSelection } from "./containers.ts";
 import { drawingOf } from "./drawing.ts";
+import { placeTarget } from "./editing.ts";
 import { GRID_FREE, MIN_LENGTH, MIN_SCALE, quantize } from "./numbers.ts";
 import type { Delta, Handle, ResizeMode } from "./resize.ts";
 import { ALL_HANDLES, handlesFor, kept, SIDES, solve } from "./resize.ts";
@@ -110,10 +111,11 @@ function merged(changes: PlaceChanges, more: PlaceChanges): Map<string, PlaceVal
  */
 function withPlaces(view: View, block: BlockId, changes: PlaceChanges): View {
   if (changes.size === 0) return view;
+  const found = blockIn(view, block);
   const command: SetCommand = {
     type: "set",
     changes: [...changes].map(([key, values]) => ({
-      target: qualify(block, key),
+      target: placeTarget(found, key),
       values: { place: values },
     })),
   };
@@ -142,13 +144,13 @@ function drawnWith(
  * no other item: a card's size never moves its frame's top left corner.
  */
 export function placeCommand(
-  block: BlockId,
+  block: Block,
   drawing: Drawing,
   places: PlaceChanges,
   others: boolean,
 ): SetCommand {
   const changes: Change[] = [...places].map(([key, values]) => ({
-    target: qualify(block, key),
+    target: placeTarget(block, key),
     values: { place: values },
   }));
   if (others) {
@@ -163,7 +165,7 @@ export function placeCommand(
       if (box.item.stated.x === undefined) place.x = box.item.place.x;
       if (box.item.stated.y === undefined) place.y = box.item.place.y;
       if (Object.keys(place).length > 0) {
-        changes.push({ target: qualify(block, box.key), values: { place } });
+        changes.push({ target: placeTarget(block, box.key), values: { place } });
       }
     }
   }
@@ -225,7 +227,8 @@ export function itemMoveCommand(
   metrics: FontMetrics,
   together: readonly string[] = [],
 ): SetCommand | null {
-  const drawing = drawingOf(blockIn(view, block), view.settings, metrics);
+  const found = blockIn(view, block);
+  const drawing = drawingOf(found, view.settings, metrics);
   const { place } = itemOf(drawing, key).item;
   const to = { x: quantize(x, GRID_FREE), y: quantize(y, GRID_FREE) };
   if (to.x === place.x && to.y === place.y) return null;
@@ -234,7 +237,7 @@ export function itemMoveCommand(
     const at = itemOf(drawing, other).item.place;
     places.set(other, { x: to.x + (at.x - place.x), y: to.y + (at.y - place.y) });
   }
-  return placeCommand(block, drawing, places, true);
+  return placeCommand(found, drawing, places, true);
 }
 
 /**
@@ -259,7 +262,7 @@ export function itemResizeCommand(
   });
   if (!changes) return null;
   const drawing = drawingOf(found, view.settings, metrics);
-  return placeCommand(block, drawing, places, LEVELS[level].itemsFree);
+  return placeCommand(found, drawing, places, LEVELS[level].itemsFree);
 }
 
 /** A stretch's axis: the member of a place it sets and the size that follows the content. */
@@ -725,7 +728,7 @@ export function placeEdit(
     const item = itemHolding(drawing, box);
     if (written === null && isHeld(box)) {
       return refused(ErrorCode.unknownProperty, `a held card has no ${property}`, [
-        qualify(block.id, box.key),
+        placeTarget(block, box.key),
         property,
       ]);
     }
@@ -733,7 +736,7 @@ export function placeEdit(
     if (keys.has(key)) continue;
     keys.add(key);
     const given = valueFor(shownValues(drawing, box)[property] ?? null);
-    const error = check(qualify(block.id, key), given);
+    const error = check(placeTarget(block, key), given);
     if (error !== null) return error;
     stored.push({ key, given });
     const changes =
@@ -750,5 +753,5 @@ export function placeEdit(
     return (place[property] ?? null) === given;
   });
   if (unchanged) return null;
-  return placeCommand(block.id, drawing, places, LEVELS[level].itemsFree);
+  return placeCommand(block, drawing, places, LEVELS[level].itemsFree);
 }

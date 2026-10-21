@@ -1,11 +1,16 @@
 /**
- * The open editor, and the one split of a block-qualified address that it
- * and every module of the canvas read. This module imports no other module
+ * The open editor, the one split of a block-qualified address that it and
+ * every module of the canvas read, and the target of a place's `set`. This module imports no other module
  * of the package, so every module may import it.
  */
 
-import type { Address, BlockId, EditorKind } from "@timetoalign/tilie-core";
-import { isCommandError, parseAddressSyntax } from "@timetoalign/tilie-core";
+import type { Address, Block, BlockId, EditorKind } from "@timetoalign/tilie-core";
+import {
+  isCommandError,
+  parseAddressSyntax,
+  placedElement,
+  qualify,
+} from "@timetoalign/tilie-core";
 
 /** The innermost open editor, as the canvas draws it: its target and its kind. */
 export interface Editing {
@@ -51,4 +56,15 @@ export function bandTimelineOf(block: BlockId, editing: Editing | null): string 
   if (editing?.kind !== "timeline") return null;
   const edited = addressParts(editing.target);
   return edited.block === block ? edited.element : null;
+}
+
+/**
+ * The address a `set` of `place` aims at to state the place under `key` of
+ * `block`'s `places` (core's `placedElement`): a frame's group, a card's
+ * timeline. A key naming no frame and no card of its drawing throws.
+ */
+export function placeTarget(block: Block, key: string): Address {
+  const element = placedElement(block.manifest, key);
+  if (element === undefined) throw new RangeError(`${key} names no frame or card of ${block.id}`);
+  return qualify(block.id, element);
 }

@@ -86,10 +86,10 @@ describe("the name field", () => {
     [["name"], M, "Mixed"],
     [["group_1"], `${M}/group_1`, "Performance"],
     [["score"], `${M}/score`, "Score"],
-    [["score/card"], `${M}/score`, "Score"],
+    [["group_1/score/card"], `${M}/score`, "Score"],
     [["score/start"], `${M}/score`, "Score"],
     [["page/cmap_1"], `${M}/page/cmap_1`, null],
-    [["score/jump_1"], `${M}/score/jump_1`, null],
+    [["score/jump_from_1"], `${M}/score/jump_from_1`, null],
   ])("names %j by %s, %j", (elements, target, name) => {
     const store = storeOf();
     expect(fieldOf(store, elements)).toEqual({
@@ -282,7 +282,7 @@ describe("the Properties panel", () => {
   });
 
   it("puts the container size in one row with the Locked checkbox last", () => {
-    show(storeOf(), ["score/card"]);
+    show(storeOf(), ["group_1/score/card"]);
     const row = input("height").closest("label")?.parentElement;
     const cells = [...(row?.children ?? [])].map((cell) => cell.textContent?.trim());
     expect(cells).toEqual(["container width", "container height", "Locked"]);
@@ -291,8 +291,8 @@ describe("the Properties panel", () => {
   });
 
   it.each([
-    [["excerpt/card"], true, false],
-    [["score/card", "excerpt/card"], false, true],
+    [["group_2/excerpt/card"], true, false],
+    [["group_1/score/card", "group_2/excerpt/card"], false, true],
     [["recording"], false, false],
   ])("shows the stored lock of %j: checked %s, mixed %s", (elements, checked, mixed) => {
     const store = storeOf();

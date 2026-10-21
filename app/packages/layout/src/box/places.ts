@@ -10,6 +10,7 @@ import {
   CARD_PLACE_MEMBERS,
   type CardPlace,
   type ContainerRef,
+  cardKey,
   type ItemPlace,
   indexOf,
   partAddress,
@@ -53,7 +54,7 @@ export interface Card {
   readonly member: MemberDrawing;
   /** Its container as core lists it. */
   readonly ref: ContainerRef;
-  /** `T/card`. */
+  /** `G/T/card` for a member's card in the frame of `G`, `T/card` for an ungrouped root's. */
   readonly address: string;
   readonly style: Style;
   /** What `places` states for a member's card; `{}` for a box-held card, whose item states it. */
@@ -135,16 +136,20 @@ function containerOf(
   return { ref, address: ref.address };
 }
 
-/** The card of `member` held by `holder`, its member drawing laid out at `L` and spacing `S`. */
+/**
+ * The card of `member` held by `holder`, the frame of `group` (null: the
+ * box), its member drawing laid out at `L` and spacing `S`.
+ */
 function cardOf(
   context: Context,
   member: MemberDrawing,
   holder: Holder,
+  group: string | null,
   L: number,
   S: number,
 ): Pick<Card, "member" | "ref" | "address" | "style" | "layout"> {
   const timeline = member.timeline;
-  const { ref, address } = containerOf(context, timeline.id);
+  const { ref, address } = containerOf(context, cardKey(timeline.id, group));
   const style = context.cascade.resolve(
     elementKey("card", address, timeline, holder.key),
     holder.style,
@@ -204,9 +209,9 @@ export function placeItems(context: Context, box: Holder, top: number): Item[] {
       let y = Q;
       if (title !== undefined) y = y + measure.lineHeight(title.size) + TITLE_GAP;
       const cards = members.map((member, index): Card => {
-        const stated = requestOf(context, member.timeline.id);
+        const stated = requestOf(context, cardKey(member.timeline.id, group.id));
         const spacing = stated.spacing ?? CARD_SPACING;
-        const card = cardOf(context, member, holder, L, spacing);
+        const card = cardOf(context, member, holder, group.id, L, spacing);
         const height =
           stated.height === undefined
             ? card.layout.height
@@ -221,7 +226,7 @@ export function placeItems(context: Context, box: Holder, top: number): Item[] {
   });
   const loose = ungrouped.map((member) =>
     place(member.timeline.id, null, (L, spacing) => {
-      const card = cardOf(context, member, box, L, spacing);
+      const card = cardOf(context, member, box, null, L, spacing);
       const height = card.layout.height;
       return { cards: [{ ...card, stated: {}, spacing, top: 0, height }], height };
     }),

@@ -1,4 +1,5 @@
 <script lang="ts">
+import { placedElement } from "@timetoalign/tilie-core";
 import type { Drawing, DrawnBox } from "@timetoalign/tilie-layout";
 import type { AttributeValue, Descriptor } from "@timetoalign/tilie-writers";
 import { attributeText } from "@timetoalign/tilie-writers";
@@ -359,10 +360,11 @@ function gestureOf(box: DrawnBox | undefined): Attachment<Element> | undefined {
   if (offered.move && isItem(box)) {
     return once(`item ${key}`, () => pointerGesture(itemGesture(host, key), options));
   }
-  if (offered.reorder && edited !== null && isHeld(box) && box.holder === edited) {
+  const member = placedElement(data.block.manifest, key);
+  if (offered.reorder && edited !== null && isHeld(box) && box.holder === edited && member) {
     const group = edited;
     return once(`held ${group} ${key}`, () =>
-      pointerGesture(heldGesture(host, group, key), options),
+      pointerGesture(heldGesture(host, group, member), options),
     );
   }
   return undefined;

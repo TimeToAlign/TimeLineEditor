@@ -175,7 +175,7 @@ test("a drag changes its own editor's text and leaves the host's styles and titl
   expect(await hostState(page)).toEqual(["7px", "Host page"]);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(["Host"]);
   // An embedded editor has no test hook: the drag starts on the card `bare`'s manifest draws.
-  await nodeDragStart(page, await framePoint(page, SMALL.bare, cardAddress("bare")), 40, 30);
+  await nodeDragStart(page, await framePoint(page, SMALL.bare, cardAddress("bare", null)), 40, 30);
   await page.mouse.up();
   await expect.poll(async () => (await texts(page))[0]).not.toBe(before[0]);
   expect((await texts(page))[1]).toBe(before[1]);

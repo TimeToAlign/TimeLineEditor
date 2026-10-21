@@ -101,16 +101,18 @@ export function placeMemberProblem(
   );
   return extra === undefined
     ? undefined
-    : problem(code, `${ref.key} is a member: its card takes only ${listed(allowed)}`, [
-        ...path,
-        extra,
-      ]);
+    : problem(
+        code,
+        `${ref.timeline ?? ref.key} is a member: its card takes only ${listed(allowed)}`,
+        [...path, extra],
+      );
 }
 
 /**
  * The problems of a block's `places`, in code-point order of its keys, each
  * at `path` followed by `places` and the key: a key naming no frame and no
- * card of its manifest's drawing (`unknown_place`), and a place stating a
+ * card of its manifest's drawing (`unknown_place`; a member's card is keyed
+ * `<group>/<member>`, never by the member's bare id), and a place stating a
  * member its container may not state (`placeMemberProblem`).
  */
 export function placeProblems(
@@ -127,7 +129,7 @@ export function placeProblems(
         return [
           problem(
             ErrorCode.unknownPlace,
-            `${key} is no group, no ungrouped root and no member of block ${block.id}`,
+            `${key} is no group, no ungrouped root and no member's card of block ${block.id}`,
             at,
           ),
         ];

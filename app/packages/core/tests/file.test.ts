@@ -232,24 +232,24 @@ describe("the workspace file", () => {
     expect(writeWorkspace(again)).toBe(placed);
     expect(again.view.blocks[A]?.places).toEqual({
       group_1: { length: 300, scale: 1.25, spacing: 2 },
-      score: { width: 650, spacing: 1.5 },
+      "group_1/score": { width: 650, spacing: 1.5 },
     });
     const changedPlace = (key: string, values: Value) => {
       const value = parseJson(placed) as Value;
       Object.assign((blockOf(value).places as Value)[key] as Value, values);
       return readWorkspace(dumps(value));
     };
-    expect(changedPlace("score", { length: 300 })).toMatchObject({
+    expect(changedPlace("group_1/score", { length: 300 })).toMatchObject({
       problems: [
         {
           code: "unknown_member",
           message: "score is a member: its card takes only width, height and spacing",
-          path: ["blocks", A, "places", "score", "length"],
+          path: ["blocks", A, "places", "group_1/score", "length"],
         },
       ],
     });
     for (const [key, member, value, code] of [
-      ["score", "spacing", -1, "invalid_value"],
+      ["group_1/score", "spacing", -1, "invalid_value"],
       ["group_1", "scale", 0, "non_positive_number"],
     ] as const) {
       const refused = changedPlace(key, { [member]: value });

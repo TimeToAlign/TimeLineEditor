@@ -9,7 +9,7 @@
         "groups": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (6a98518f)"
+          "generator": "timetoalign 1.2.0 (636fd9ce)"
         },
         "name": null,
         "timelines": [
@@ -50,7 +50,7 @@
         "groups": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (6a98518f)"
+          "generator": "timetoalign 1.2.0 (636fd9ce)"
         },
         "name": null,
         "timelines": [
@@ -63,7 +63,7 @@
                   2,
                   1
                 ],
-                "id": "marker_1",
+                "id": "jump_to_1",
                 "label": null,
                 "manifestation": "repeat_start",
                 "meta": {},
@@ -75,7 +75,7 @@
                   4,
                   1
                 ],
-                "id": "marker_2",
+                "id": "jump_to_2",
                 "label": null,
                 "manifestation": "segno",
                 "meta": {},
@@ -87,7 +87,7 @@
                   8,
                   1
                 ],
-                "id": "jump_1",
+                "id": "jump_from_1",
                 "label": "Repeat",
                 "manifestation": "repeat_end",
                 "meta": {
@@ -95,7 +95,7 @@
                 },
                 "name": null,
                 "repeat_count": 2,
-                "target": "marker_1",
+                "target": "jump_to_1",
                 "type": "jump_from"
               },
               {
@@ -103,7 +103,7 @@
                   12,
                   1
                 ],
-                "id": "break_1",
+                "id": "flow_marker_1",
                 "label": "Fine",
                 "manifestation": "fine",
                 "meta": {
@@ -117,12 +117,12 @@
                   16,
                   1
                 ],
-                "id": "jump_2",
+                "id": "jump_from_2",
                 "label": "D.S.",
                 "manifestation": "dal_segno",
                 "meta": {},
                 "name": null,
-                "target": "marker_2",
+                "target": "jump_to_2",
                 "type": "jump_from"
               }
             ],
@@ -159,7 +159,7 @@
         "groups": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (6a98518f)"
+          "generator": "timetoalign 1.2.0 (636fd9ce)"
         },
         "name": null,
         "timelines": [
@@ -245,7 +245,7 @@
         "groups": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (6a98518f)"
+          "generator": "timetoalign 1.2.0 (636fd9ce)"
         },
         "name": null,
         "timelines": [
@@ -542,7 +542,7 @@
         "groups": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (6a98518f)"
+          "generator": "timetoalign 1.2.0 (636fd9ce)"
         },
         "name": null,
         "timelines": [
@@ -665,7 +665,7 @@
             "groups": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (6a98518f)"
+              "generator": "timetoalign 1.2.0 (636fd9ce)"
             },
             "name": null,
             "timelines": [
@@ -706,7 +706,7 @@
             "groups": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (6a98518f)"
+              "generator": "timetoalign 1.2.0 (636fd9ce)"
             },
             "name": null,
             "timelines": [
@@ -791,7 +791,7 @@
             "groups": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (6a98518f)"
+              "generator": "timetoalign 1.2.0 (636fd9ce)"
             },
             "name": null,
             "timelines": [
@@ -877,7 +877,7 @@
             "groups": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (6a98518f)"
+              "generator": "timetoalign 1.2.0 (636fd9ce)"
             },
             "name": null,
             "timelines": [
@@ -890,7 +890,7 @@
                       2,
                       1
                     ],
-                    "id": "marker_1",
+                    "id": "jump_to_1",
                     "label": null,
                     "manifestation": "repeat_start",
                     "meta": {},
@@ -902,7 +902,7 @@
                       4,
                       1
                     ],
-                    "id": "marker_2",
+                    "id": "jump_to_2",
                     "label": null,
                     "manifestation": "segno",
                     "meta": {},
@@ -914,7 +914,7 @@
                       8,
                       1
                     ],
-                    "id": "jump_1",
+                    "id": "jump_from_1",
                     "label": "Repeat",
                     "manifestation": "repeat_end",
                     "meta": {
@@ -922,7 +922,7 @@
                     },
                     "name": null,
                     "repeat_count": 2,
-                    "target": "marker_1",
+                    "target": "jump_to_1",
                     "type": "jump_from"
                   },
                   {
@@ -930,7 +930,7 @@
                       12,
                       1
                     ],
-                    "id": "break_1",
+                    "id": "flow_marker_1",
                     "label": "Fine",
                     "manifestation": "fine",
                     "meta": {
@@ -944,12 +944,12 @@
                       16,
                       1
                     ],
-                    "id": "jump_2",
+                    "id": "jump_from_2",
                     "label": "D.S.",
                     "manifestation": "dal_segno",
                     "meta": {},
                     "name": null,
-                    "target": "marker_2",
+                    "target": "jump_to_2",
                     "type": "jump_from"
                   }
                 ],
@@ -1198,7 +1198,7 @@
             "groups": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (6a98518f)"
+              "generator": "timetoalign 1.2.0 (636fd9ce)"
             },
             "name": null,
             "timelines": [

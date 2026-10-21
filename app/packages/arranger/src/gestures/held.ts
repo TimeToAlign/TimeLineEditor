@@ -101,7 +101,7 @@ export function heldGesture(
   member: string,
 ): GestureStrategy<HeldPress, HeldValue> {
   const { actions } = host;
-  const card = cardAddress(member);
+  const card = cardAddress(member, group);
   const blockOf = (press: HeldPress) => {
     const block = press.view.blocks[host.data().block.id];
     if (block === undefined)
@@ -126,7 +126,7 @@ export function heldGesture(
     },
     value(press, at) {
       return {
-        order: memberOrderAt(press.drawing, group, member, at.drawing.y),
+        order: memberOrderAt(blockOf(press).manifest, press.drawing, group, member, at.drawing.y),
         offset: { x: at.drawing.x - press.at.x, y: at.drawing.y - press.at.y },
       };
     },

@@ -47,7 +47,8 @@ nothing here.
 
 A block's drawing is one **box** (the manifest's box). Inside it, every
 group is a **frame**, every timeline drawn as a root is a **card** (held by
-the box when the root belongs to no group, by a frame when it is a member),
+the box when the root belongs to no group, else one in the frame of each
+group that has it as a member),
 and every timeline has five **bands**, one per feature it can hold:
 `children`, `conversion_maps`, `markers`, `regions`, `flow_control`. A band
 draws nothing; it is the unit that holds and orders what the timeline has
@@ -79,10 +80,14 @@ timeline and feature; the registry maps each container kind to its level.
 An address names anything a command can target: `workspace`, a block id, or
 `<block id>/<element address>`. Inside a manifest one rule holds: a
 timeline, a group, a measure map or the manifest's title (`name`) by its
-bare id; a card `<timeline>/card`; a band `<timeline>/<kind>_1`; every
-other element (a conversion map, region or flow-control element)
-`<root id>/<element id>`; a part of an element appends a reserved word
-(`start`, `end`, `name`, `label`). Core's `resolveAddress(view, address)`
+bare id; an ungrouped root's card `<timeline>/card` and a member's card
+`<group id>/<timeline>/card`, one for each group that has the timeline as
+a member; a band `<timeline>/<kind>_1`; every other element (a conversion
+map, region or flow-control element) `<root id>/<element id>`; a part of
+an element appends a reserved part word (`start`, `end`, `name`,
+`label`), and `card` is reserved too. Every other element drawn more than
+once keeps one address in every drawing of it; only a card's names its
+group. Core's `resolveAddress(view, address)`
 is the one place that decides what an address names, returning a
 discriminated record (workspace, block, title, frame, timeline, card,
 band, entry, measure map, part). Nothing else parses an address; the four

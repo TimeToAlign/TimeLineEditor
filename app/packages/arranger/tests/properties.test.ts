@@ -17,6 +17,7 @@ import { boxOf, isHeld, isItem, itemHolding } from "../src/boxes.ts";
 import type { ZOrderAction } from "../src/commands.ts";
 import { moveCommand, nudgeCommand, removeCommand, zOrderCommand } from "../src/commands.ts";
 import { drawingOf } from "../src/drawing.ts";
+import { placeTarget } from "../src/editing.ts";
 import { itemHandlesFor, itemResizeCommand, itemResizeValues } from "../src/items.ts";
 import { project } from "../src/project.ts";
 import type { ResizeMode } from "../src/resize.ts";
@@ -189,7 +190,7 @@ function commandOf(view: View, item: Gesture): object | null {
       const same = ([member, value]: [string, number]) =>
         stated?.[member as "width" | "height"] === value;
       if (Object.entries(place).every(same)) return null;
-      return { type: "set", changes: [{ target: `${block.id}/${key}`, values: { place } }] };
+      return { type: "set", changes: [{ target: placeTarget(block, key), values: { place } }] };
     }
     case "remove": {
       const all = addresses(view);
@@ -269,7 +270,15 @@ describe("a member's Stretch", () => {
             framed = placed(framed, A, groupOf(card), { width: frameSteps / 2048 });
           }
           if (cardSteps !== null)
-            framed = placed(framed, A, sized.key, { width: cardSteps / 2048 });
+            framed = changed(framed, {
+              type: "set",
+              changes: [
+                {
+                  target: placeTarget(blockIn(framed, A), sized.key),
+                  values: { place: { width: cardSteps / 2048 } },
+                },
+              ],
+            });
           const block = blockIn(framed, A);
           const group = groupOf(card);
           const members = new Set(cards.filter((c) => groupOf(c) === group).map((c) => c.key));
@@ -296,7 +305,9 @@ describe("a member's Stretch", () => {
             if (block.places[key]?.width === undefined) expect(place.width).toBeUndefined();
           }
           const store = storeOf(framed);
-          const editor = { arranger: null, bundle: A, timeline: `${A}/${card.key}` }[level];
+          const editor = { arranger: null, bundle: A, timeline: placeTarget(block, card.key) }[
+            level
+          ];
           if (editor !== null) expect(store.open(editor)).toBeNull();
           const command = itemResizeCommand(framed, A, values, level, metrics);
           if (command !== null) expect(store.dispatch(command)).toBeNull();
@@ -334,7 +345,7 @@ function stretchCase(
   const size = box === null ? drawing : isItem(box) ? box.item.place : box.card.size;
   const width = request(widthRatio, size.width);
   const height = request(heightRatio, size.height);
-  const target = box === null ? A : `${A}/${box.key}`;
+  const target = box === null ? A : placeTarget(blockIn(start, A), box.key);
   const values = box === null ? { width, height } : { place: { width, height } };
   // Without a request the box is the view as added, which states none.
   const view =

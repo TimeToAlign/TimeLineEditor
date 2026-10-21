@@ -240,19 +240,19 @@ describe("BlockNode", () => {
     expect(holdingMarks(svg)).toEqual([
       "box",
       "frame group_1",
-      "card exposition/card",
+      "card group_1/exposition/card",
       "frame group_2",
-      "card recapitulation/card",
+      "card group_2/recapitulation/card",
     ]);
     expect(document.querySelectorAll(".tilie-block[data-contains-selection]").length).toBe(1);
   });
 
   it("marks a selected card on its own rectangle, not on its shadow", () => {
     const shown = fixture("group__group_child_member");
-    const svg = render(shown, new Set(["recording/card"]));
+    const svg = render(shown, new Set(["group_1/recording/card"]));
     const text = shown.svg;
 
-    const cards = Array.from(svg.querySelectorAll('rect[data-address="recording/card"]'));
+    const cards = Array.from(svg.querySelectorAll('rect[data-address="group_1/recording/card"]'));
     expect(cards.length).toBe(2);
     // The card's mark is a copy of its own rectangle's outline (the second, after the shadow),
     // drawn over the drawing; the card itself is not marked.
@@ -271,7 +271,7 @@ describe("BlockNode", () => {
       [
         "rect",
         "selection",
-        "recording/card",
+        "group_1/recording/card",
         ...["x", "y", "width", "height", "rx"].map((name) => own?.getAttribute(name)),
       ],
     ]);

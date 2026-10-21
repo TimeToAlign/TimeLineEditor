@@ -69,7 +69,8 @@ editor folded (the `add`, then one session entry whose session holds the
 editor's changes), as the hook's `text()` does, and leave it open. Opening
 an editor, a reopening included, makes the selection its edited element,
 whatever was selected: `A` for the bundle editor of `A`, `A/group_1` for
-`group_1`'s, `A/score/card` for `score`'s. Closing an editor, and every
+`group_1`'s, `A/group_1/score/card` for `score`'s (a member's card is
+addressed by its group). Closing an editor, and every
 other change of the store, prunes the selection by the arranger's one
 rule: other timelines' bands go and a part stays, so closing `score`'s
 editor over its band, `performance`'s band and `score/start` keeps
@@ -324,7 +325,8 @@ ancestor, has no card).
    scale: 1, length: 400, spacing: 8, width: null, height: null}`.
    `group_1` and its title name the frame, "Frame properties", with its
    record's values (its spacing the frame's default 8). `annotations` and `annotations/card` name the card the
-   box holds, "Card properties". `score/card` and `excerpt/card` name cards
+   box holds, "Card properties". `group_1/score/card` and
+   `group_2/excerpt/card` name cards
    their frames hold, "Card properties", with their frame's scale and length
    and their own spacing and size. Two frames are edited together in
    selection order; a frame with a card the box holds is "Frame and card
@@ -412,9 +414,9 @@ ancestor, has no card).
    where the schema gives it one, read through core's resolver, a part
    standing for its element: the block and its title the manifest's
    (`Mixed`, target the block), `group_1` (`Performance`), `score` and
-   `score/card` and `score/start` the timeline's (`Score`), the conversion
+   `group_1/score/card` and `score/start` the timeline's (`Score`), the conversion
    map `page/cmap_1` (empty, its name null; target `<block>/page/cmap_1`),
-   the jump origin `score/jump_1` likewise (every flow-control element has
+   the jump origin `score/jump_from_1` likewise (every flow-control element has
    the schema's nullable `name`), and a measure map `bars` added to the
    block (empty; target `<block>/bars`, its bare id). No field for a band or two things, in one
    block or in two; mounted, two blocks selected show no field and the
@@ -431,7 +433,8 @@ ancestor, has no card).
    container height, in the row of the container size, a disabled
    checkbox labelled "Locked" shows the stored `locked` of the inspected
    timelines: present only when every inspected thing is a timeline, its
-   card or a part of one. `excerpt/card` (locked) checked, `score/card`
+   card or a part of one. `group_2/excerpt/card` (locked) checked,
+   `group_1/score/card`
    unchecked, both together indeterminate; `recording`, drawn in no card,
    shows it after the geometry hint; the block, `group_1` and a band show
    none. It never dispatches: a click leaves the journal as it is.
@@ -588,7 +591,9 @@ oracles are the committed end-to-end workspaces and a store of
    same way; a measure map added to a block "Measure map" with its id; a band "<Kind> band of timeline" (Markers,
    Conversion maps, Children, Regions, Flow control). Several addresses give
    "N selected". Nothing for no selection or an address naming nothing (no
-   such part, entry, band or block). Mounted, the words stand beside the
+   such part, entry, band or block; a member's card written without its
+   group, `score/card`; `card` after a timeline drawn in no card,
+   `styled0000/a/card`). Mounted, the words stand beside the
    drawer's heading and describe the drawer while shown; an id shows in a
    `code` element; the name follows an applied text without a change of
    selection.

@@ -2,7 +2,6 @@
 
 import type { BandKind, BlockId, ResolvedAddress, View } from "@timetoalign/tilie-core";
 import {
-  cardAddress,
   contains,
   findTimeline,
   isCommandError,
@@ -115,13 +114,14 @@ export function existing(view: View, selection: Selection, editing: Editing | nu
  * element, by the address a click on its box selects: the block for the
  * bundle editor, the group for the group editor (a press on its frame
  * selects the group), and for the timeline editor the timeline's card where
- * it is drawn in one, else the timeline (a child, which has no card, is
- * selected by its line).
+ * it is drawn in one (its first, for a member of several groups), else the
+ * timeline (a child, which has no card, is selected by its line).
  */
 export function editedSelection(view: View, editing: Editing): Selection {
-  const { block, element } = addressParts(editing.target);
-  if (editing.kind !== "timeline" || element === null) return new Set([editing.target]);
-  const card = qualify(block, cardAddress(element));
-  const resolved = resolveAddress(view, card);
-  return new Set([!isCommandError(resolved) && resolved.kind === "card" ? card : editing.target]);
+  const { block } = addressParts(editing.target);
+  if (editing.kind !== "timeline") return new Set([editing.target]);
+  const resolved = resolveAddress(view, editing.target);
+  const card =
+    isCommandError(resolved) || resolved.kind !== "timeline" ? null : resolved.cards[0]?.address;
+  return new Set([card == null ? editing.target : qualify(block, card)]);
 }

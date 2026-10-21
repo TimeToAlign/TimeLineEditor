@@ -174,17 +174,17 @@ down: `clt_2` at 26.80810546875, `clt_3` at 40.80810546875, `clt_1` at
 
 Root `flow:quarters` length 16, name `Flow control` (`N =
 66.9775390625`), `x0 = 90.9775390625`, `x(t) = x0 + 25 t`. Its flow
-control holds the jump targets `marker_1` at 2 and `marker_2` at 4, which
-draw nothing, the jump origin `jump_1` (label `Repeat`) from 8 to
-`marker_1`, the flow marker `break_1` (label `Fine`) at 12 and the jump
-origin `jump_2` (label `D.S.`) from 16 to `marker_2`, all below; the line
+control holds the jump targets `jump_to_1` at 2 and `jump_to_2` at 4, which
+draw nothing, the jump origin `jump_from_1` (label `Repeat`) from 8 to
+`jump_to_1`, the flow marker `flow_marker_1` (label `Fine`) at 12 and the jump
+origin `jump_from_2` (label `D.S.`) from 16 to `jump_to_2`, all below; the line
 at 22.40234375 as in `bare`. The flow control band starts at `26.9765625 +
 4 = 30.9765625` with one flow-marker label tier, so the flow row lies
-41.453125 out, at `yf = 63.85546875`. By span, `jump_1` (6) is placed
-before `jump_2` (12); their extents `[50, 200]` and `[100, 400]` (the
+41.453125 out, at `yf = 63.85546875`. By span, `jump_from_1` (6) is placed
+before `jump_from_2` (12); their extents `[50, 200]` and `[100, 400]` (the
 labels, `Repeat` 32.08447265625 and `D.S.` 18.36474609375 wide, lie
-inside them) conflict, so `jump_1` takes jump row 1, its apex `30.9765625
-+ 10.4765625 + 8 = 49.453125` out, and `jump_2` row 2, `pj = 6 + 4 +
+inside them) conflict, so `jump_from_1` takes jump row 1, its apex `30.9765625
++ 10.4765625 + 8 = 49.453125` out, and `jump_from_2` row 2, `pj = 6 + 4 +
 10.4765625 = 20.4765625` further, 69.9296875 out. The band is `10.4765625
 + 8 + 20.4765625 + 2 + 10.4765625 = 51.4296875` wide, `Eb = 82.40625`,
 `Hc = 14.40234375 + 82.40625 + 8 = 104.80859375`. The flow marker's line
@@ -194,7 +194,7 @@ starts at 393.9775390625, baseline `yf − d(9) = 61.73291015625`.
 Each jump has `w = 1`: the head 4 long and 2 half-wide. The head is
 computed in item coordinates and drawn `8 +` each.
 
-- `jump_1`: `Xf = 290.9775390625`, `Xt = 140.9775390625`, `q = (Xt − Xf) /
+- `jump_from_1`: `Xf = 290.9775390625`, `Xt = 140.9775390625`, `q = (Xt − Xf) /
   4 = −37.5`; `ya = 71.85546875`; `yc = yf + 4/3 × (ya − yf) =
   74.52213541666667`, `C1 = (253.4775390625, yc)`, `C2 =
   (178.4775390625, yc)`; the head's axis `u = (−0.9618459163232351,
@@ -205,7 +205,7 @@ computed in item coordinates and drawn `8 +` each.
   first, their `y` would be 66.87352749188535 and 63.02614382659242). The
   label is centred at `x(5) = 215.9775390625`, baseline `8 + ((14.40234375
   + (49.453125 + 2)) + 8.35400390625) = 82.20947265625`.
-- `jump_2`: `Xf = 490.9775390625`, `Xt = 190.9775390625`, `q = −75`; `ya =
+- `jump_from_2`: `Xf = 490.9775390625`, `Xt = 190.9775390625`, `q = −75`; `ya =
   92.33203125`; `yc = 63.85546875 + 4/3 × 28.4765625 = 101.82421875`,
   `C1 = (415.9775390625, yc)`, `C2 = (265.9775390625, yc)`; `u =
   (−0.8921856025539521, −0.4516689612929382)` from `Xt − Cx = −75` and `yf
@@ -216,7 +216,7 @@ computed in item coordinates and drawn `8 +` each.
   2)) + 8.35400390625) = 102.68603515625`.
 
 The shaft of each runs `(Xf, yf)`, `C1`, `C2` to `Bh`; the jump origins and
-their labels follow the order of first fit, `jump_1` before `jump_2`. The
+their labels follow the order of first fit, `jump_from_1` before `jump_from_2`. The
 `16 ♩` label reaches `R = 500.256591796875`: `W = 518.256591796875`, `H =
 8 + (8 + 104.80859375 + 2) = 122.80859375`.
 
@@ -299,7 +299,7 @@ An open end runs on `9.5w`; an extent holds the drawn labels and flow
 markers' points. In `flow_control` the flow control band's extents are the
 flow marker's point `[300, 300]` (`400 × 12/16`), its label `[300 + 3 − 1,
 300 + 3 + 18.91845703125 + 1] = [302, 322.91845703125]`, and the jump
-origins in placement order, `jump_1` `[50, 200]` and `jump_2` `[100,
+origins in placement order, `jump_from_1` `[50, 200]` and `jump_from_2` `[100,
 400]`; the root's extent `[−7.416015625, 410.279052734375]` runs from its
 start label (`0 − 6.416015625 − 1`) to its end label (`400 +
 9.279052734375 + 1`). A root's flow marker ends at the padding of the opposite side, any other
@@ -342,7 +342,7 @@ from sections 4 and 6.4:
   the line (two jump rows), `Ea = 56.9296875`, `y_root = 64.9296875`, `Hc =
   64.9296875 + 26.9765625 + 8 = 99.90625` and `H = 8 + (8 + 99.90625 + 2)
   = 117.90625`. Drawn `8 +` each: the root's line at 72.9296875, the flow
-  row at `8 + (64.9296875 − 15.9765625) = 56.953125`, where `jump_1`
+  row at `8 + (64.9296875 − 15.9765625) = 56.953125`, where `jump_from_1`
   starts at `x(8) = 290.9775390625`; the flow marker from there down to the
   bottom padding `8 + (Hc − P) = 99.90625`, its label at 393.9775390625
   with its baseline `yf + a(9)`, `8 + (48.953125 + 8.35400390625) =
@@ -395,14 +395,14 @@ control band from 30.9765625 with one flow-marker label tier (`fine at MC
 100.953125`, the flow-marker label's baseline `100.953125 − 2.12255859375
 = 98.83056640625`.
 Jump origins by coordinate, each to its target's coordinate or to 0
-without one: `jump_1` `6→0`, `jump_2` `9→6`, `jump_3` `28→16`, `jump_4`
-`37→0`, spans 6, 3, 12, 37: placement order `jump_2`, `jump_1`,
-`jump_3`, `jump_4`. Extents (`400 × u`, `u` the double nearest `t / 37`):
-`jump_2` `[64.86486486486487, 97.2972972972973]`, widened by its label `MC
+without one: `jump_from_1` `6→0`, `jump_from_2` `9→6`, `jump_from_3` `28→16`, `jump_from_4`
+`37→0`, spans 6, 3, 12, 37: placement order `jump_from_2`, `jump_from_1`,
+`jump_from_3`, `jump_from_4`. Extents (`400 × u`, `u` the double nearest `t / 37`):
+`jump_from_2` `[64.86486486486487, 97.2972972972973]`, widened by its label `MC
 5 → MC 4` centred at 81.08108108108108 to `[50.81350295608108,
-111.34865920608108]`, level 1; `jump_1` `[0, 64.86486486486487]` conflicts,
-level 2; `jump_3` `[172.97297297297297, 302.7027027027027]`, level 1;
-`jump_4` `[0, 400]`, level 3. With `pj = 20.4765625` the apexes lie at
+111.34865920608108]`, level 1; `jump_from_1` `[0, 64.86486486486487]` conflicts,
+level 2; `jump_from_3` `[172.97297297297297, 302.7027027027027]`, level 1;
+`jump_from_4` `[0, 400]`, level 3. With `pj = 20.4765625` the apexes lie at
 108.953125, 129.4296875 and 149.90625. The band is `10.4765625 + 8 + 2 ×
 20.4765625 + 2 + 10.4765625 = 71.90625` wide, `Eb = 102.8828125`, `Hc =
 51.5 + 102.8828125 + 8 = 162.3828125`, `H = 180.3828125`. No `x` depends on
@@ -565,10 +565,10 @@ to its reach (`score` from 53.798828125, running on to 465.798828125), with
 its start wedge and `0 ♩` only, its outer chevron's tip setting `W =
 500.298828125`; empty, it is drawn `L` long; locked, it still ends in three
 chevrons. `corpus_score_ms3` without its children draws the same flow
-control (the flow marker `break_1`, then the jump origins `jump_2`,
-`jump_1`, `jump_3`, `jump_4`) with its length set to null, `jump_4` at 37
-in its reach; without `jump_4` too, it draws the same flow control at
-length null as at length 30, the coordinate of the jump target `marker_2`,
+control (the flow marker `flow_marker_1`, then the jump origins `jump_from_2`,
+`jump_from_1`, `jump_from_3`, `jump_from_4`) with its length set to null, `jump_from_4` at 37
+in its reach; without `jump_from_4` too, it draws the same flow control at
+length null as at length 30, the coordinate of the jump target `jump_to_2`,
 which draws nothing: every flow-control coordinate counts, and a measure
 map, which belongs to no timeline, does not. A child of unknown length ends at its offset plus its reach,
 open, with room for its chevrons, `9.5w`; a group member runs on at the
@@ -651,16 +651,19 @@ root `annotations`) is the case of every rule at once:
   230.84375 and 288.3203125; `annotations/card` at 391.7734375. Every line
   runs from 126.29150390625 to 526.29150390625; `W = 580.484619140625`, `H
   = 473.62890625`, both from `annotations/card`'s shadow.
-- Element order: block, `name`, `group_1`, `group_1/name`, `score/card`,
-  `score/cmap_1`, `score/cmap_2`, `score/jump_1`, `score`, …,
-  `excerpt/card`, `recording/cmap_2`, `recording` (the ancestor line),
+- Element order: block, `name`, `group_1`, `group_1/name`,
+  `group_1/score/card`, `score/cmap_1`, `score/cmap_2`, `score/jump_from_1`,
+  `score`, …, `group_2/excerpt/card`, `recording/cmap_2`, `recording` (the ancestor line),
   `excerpt`, …: a member drawing opens with its flow markers, maps, regions and
   jumps, its ancestor lines just before its line.
 - Records: a root with its two wedges emits 6 elements, each map 1, each
   region or jump 2, each ancestor row 6. So of 58 elements: the box `[0,
-  58)`; `group_1` `[2, 23)` holding `score/card` `[4, 15)` and
-  `performance/card` `[15, 23)`; `group_2` `[23, 47)` holding `page/card`
-  `[25, 33)` and `excerpt/card` `[33, 47)`; `annotations/card` `[47, 58)`.
+  58)`; `group_1` `[2, 23)` holding `group_1/score/card` `[4, 15)` and
+  `group_1/performance/card` `[15, 23)`; `group_2` `[23, 47)` holding
+  `group_2/page/card` `[25, 33)` and `group_2/excerpt/card` `[33, 47)`;
+  `annotations/card` `[47, 58)`; the cards' `places` keys `group_1/score`,
+  `group_1/performance`, `group_2/page`, `group_2/excerpt` and
+  `annotations`.
   The frames and `annotations/card` are the items and carry `item`, their
   place; every card carries `card`, its size in item coordinates (a
   member's card `{546.484619140625, Hm}`), its `spacing` 4 and its request
@@ -696,12 +699,13 @@ keeps its card at `y = 8`, `Hm = 49.37890625`, `H = 67.37890625`.
 **Addresses (section 2.2).** `corpus_mpm`'s map `tmap_1` is
 `score:clt_1/tmap_1`; a region added into the member `second-half` of
 `group_child_member` is `piece/region_1`, its label `piece/region_1/label`.
-The cards are `M/card`, a member's wedges `M/start` and `M/end`, on its own
+The cards are `G/M/card` for a member `M` in the frame of `G` and `M/card`
+for an ungrouped root, a member's wedges `M/start` and `M/end`, on its own
 line and as marks on its ancestors'.
 
 **Cards and frames in the tree (sections 2.1 and 8.1).** A card belongs to
 its timeline and has its domain: `{element: card, domain: physical} fill
-#ABCDEF` fills `recording/card` and not `second-half/card`. A card holds
+#ABCDEF` fills `group_1/recording/card` and not `group_1/second-half/card`. A card holds
 nothing: `{inside: card} stroke #123456` reaches no element. With layers
 holding no defaults (`groups.test.ts`):
 
@@ -711,7 +715,7 @@ holding no defaults (`groups.test.ts`):
    font size; the ancestor line `piece` takes them from its member, and
    `piece/name` from the ancestor. With `{ids: [second-half]} {stroke:
    #654321}` instead, `piece` is `#654321` and `recording` keeps `none`; so
-   does `second-half/card`, a sibling of the line.
+   does `group_1/second-half/card`, a sibling of the line.
 2. **The block holds the manifest's title, the frames and the box-held cards
    and lines.** With `{element: block} {stroke: #111111}` on `bundle_mixed`,
    `name`, `group_1`, `annotations/card` and `annotations` take `#111111`;
@@ -809,12 +813,14 @@ coordinates. `bundle_ungrouped`'s quantities are those of "Places".
   the scale. `bundle_ungrouped` at `{recording: {scale: 1.5}}`: `score`'s
   default top `(100.2578125 + 1.5 × 49.4765625) + 8 = 182.47265625`, the
   dash `4.5 4.5`, the name size 16.5.
-- **A member's card size** (`group_child_member`, `{recording: {width:
-  650, height: 120}}`): `recording/card` `{16, 124.7578125, 650, 120}`, the
+- **A member's card size** (`group_child_member`, `{"group_1/recording":
+  {width: 650, height: 120}}`): `group_1/recording/card` `{16, 124.7578125,
+  650, 120}`, the
   frame `{8, 8, 666, 244.7578125}`, `W = 682`, `H = 260.7578125`; the
   cards' records `second-half` `{526.4140625, 83.953125}` `[3, 16)`,
   `recording` `{650, 120}` stated `{width: 650, height: 120}` `[16, 23)`. A
-  member's entry is read for `width`, `height` and `spacing` alone; a
+  member's entry (under `G/M`; its bare id is no key) is read for `width`,
+  `height` and `spacing` alone; a
   request no larger than the card changes nothing; under the group's scale
   2 the card is drawn 1300 wide and its record keeps `{650, 49.37890625}`.
 - **Spacings.** The box's spacing 24 (`bundle_ungrouped`) moves the items
@@ -830,16 +836,16 @@ coordinates. `bundle_ungrouped`'s quantities are those of "Places".
   the flow marker from 217.6875 to `157.734375 + 8`, `H = 260.1640625`; `pages`
   and `recording` unchanged, the records `spacing` 4, 4 and 8. A frame's
   spacing 16 (`group_child_member`) lies between its cards alone:
-  `recording/card` at `8 + (((8 + 12.8046875) + 4) + 83.953125 + 16) =
+  `group_1/recording/card` at `8 + (((8 + 12.8046875) + 4) + 83.953125 + 16) =
   132.7578125`, the frame `182.13671875` high, `H = 198.13671875`, both
-  cards' spacing 4. A member's card spacing 8 (`second-half`, one ancestor
+  cards' spacing 4. A member's card spacing 8 (`group_1/second-half`, one ancestor
   row) starts its ancestor band at `max(18 / 2, 1.5 + 8) = 9.5`, the row's
   pitch `max(18, h(9)) = 18`, its halves 9 and 26.9765625: `Ea =
   45.4765625`, `y_root = 53.4765625`, `Hm = 88.453125`, its line at
-  86.28125, `piece` 18.5 above it at 67.78125, `recording/card` at
+  86.28125, `piece` 18.5 above it at 67.78125, `group_1/recording/card` at
   129.2578125, the frame 178.63671875 high. All three together, with the
   box's spacing 24 on the one frame, give the cards 88.453125 and
-  49.37890625 at spacings 8 and 4, `recording/card` at 137.2578125 and the
+  49.37890625 at spacings 8 and 4, `group_1/recording/card` at 137.2578125 and the
   frame 186.63671875 high: no spacing multiplies another.
 
 ## Container records and axes (`records.test.ts`)
@@ -868,18 +874,33 @@ element's address is a band's, and its range is empty, at its card's end.
 
 **Core's listing.** Over every manifest fixture, the box, frame and card
 records carry core's kind, address and holder in core's order, displayed
-or hidden; each drawn band is recorded once with core's address and holder,
+or hidden; each drawn band is recorded once per card that core lists as
+drawing it, with core's address and holder,
 except a timeline drawn twice (below), whose second set the card drawing it
 holds.
 
 **A timeline drawn twice.** `with_region` with the map `tempo` on `clt_2`
 and the groups `g1 {clt_1}` and `g2 {clt_2}` (written onto the built
 manifest, since no command adds a group, and validated): `clt_2` is a child
-line in `clt_1/card` and the root of `clt_2/card`. Its `conversion_maps_1`
+line in `g1/clt_1/card` and the root of `g2/clt_2/card`. Its `conversion_maps_1`
 is recorded twice under one address, at `line` 61.8046875 held by
-`clt_1/card` (`x` `8 + (73.91552734375 + 400 × u(1/3)) =
+`g1/clt_1/card` (`x` `8 + (73.91552734375 + 400 × u(1/3)) =
 93.02663845486111`, width 133.33333333333331) and at 226.5390625 held by
-`clt_2/card` (`x` 74.49951171875, width 414.83203125), both 6.5 high.
+`g2/clt_2/card` (`x` 74.49951171875, width 414.83203125), both 6.5 high.
+
+**A timeline in several groups** (sections 2.2, 8.1, 8.6).
+`bundles/bundle_shared_member` (`g1` {`t`, `u`}, `g2` {`t`, `v`}) records
+the frames and cards `g1`, `g1/t/card`, `g1/u/card`, `g2`, `g2/t/card`,
+`g2/v/card` in that order, keyed `g1`, `g1/t`, `g1/u`, `g2`, `g2/t`,
+`g2/v`; `t` is drawn in both frames, and the elements of its two member
+drawings carry the same addresses (`t`, `t/name`, `t/start`, `t/end` and
+their labels in each, in the same order), so each address but a card's
+occurs twice; `t`'s one present band under the defaults, `t/markers_1`, is
+recorded twice under that address, held first by `g1/t/card` and then by
+`g2/t/card`. Each card is
+laid out with its own entry: with `places` `{"g2/t": {width: 650}}` only
+`g2/t/card` is 650 wide and `g1/t/card` keeps its drawn width, and a
+statement `{ids: ["t"]} stroke #123456` strokes both lines of `t`.
 
 **Axes.** `Drawing.axes` holds one `DrawnAxis` per line element, in their
 order, at the line's ordinate. A timeline's or child's axis runs from

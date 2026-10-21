@@ -18,14 +18,14 @@ describe("elementsInRect", () => {
       at(
         "score/cmap_1",
         "score/cmap_2",
-        "score/jump_1",
+        "score/jump_from_1",
         "score",
         "score/start",
         "score/end",
         "score/name",
         "score/start/label",
         "score/end/label",
-        "score/jump_1/label",
+        "score/jump_from_1/label",
       ),
     );
   });

@@ -48,7 +48,7 @@ describe("editorTargetOf", () => {
   it.each([
     ["box", A, A],
     ["frame", at("group_1"), at("group_1")],
-    ["card", at("score/card"), at("score")],
+    ["card", at("group_1/score/card"), at("score")],
     ["element", at("score"), at("score")],
     ["element", at("annotations"), at("annotations")],
     ["element", at("excerpt"), at("excerpt")],
@@ -63,10 +63,10 @@ describe("editorTargetOf", () => {
   });
 
   it.each([
-    ["score/name", "score/card", at("score")],
-    ["score/start", "score/card", at("score")],
+    ["score/name", "group_1/score/card", at("score")],
+    ["score/start", "group_1/score/card", at("score")],
     ["group_1/name", "group_1", at("group_1")],
-    ["dlt_1", "excerpt/card", at("dlt_1")],
+    ["dlt_1", "group_2/excerpt/card", at("dlt_1")],
   ] as const)("on the arranger, %s within %s opens %s", (address, within, target) => {
     expect(editorTargetOf(view, inBox(at(address), within), null)).toBe(target);
   });
@@ -82,20 +82,22 @@ describe("editorTargetOf", () => {
 
   it("opens inside the group editor only what the group contains, never the group", () => {
     expect(editorTargetOf(view, hit("frame", at("group_1")), group)).toBeNull();
-    expect(editorTargetOf(view, hit("card", at("score/card")), group)).toBe(at("score"));
+    expect(editorTargetOf(view, hit("card", at("group_1/score/card")), group)).toBe(at("score"));
     expect(editorTargetOf(view, hit("element", at("performance")), group)).toBe(at("performance"));
-    expect(editorTargetOf(view, hit("card", at("page/card")), group)).toBeNull();
+    expect(editorTargetOf(view, hit("card", at("group_2/page/card")), group)).toBeNull();
     expect(editorTargetOf(view, hit("frame", at("group_2")), group)).toBeNull();
     expect(editorTargetOf(view, hit("box", A), group)).toBeNull();
-    expect(editorTargetOf(view, inBox(at("score/name"), "score/card"), group)).toBe(at("score"));
+    expect(editorTargetOf(view, inBox(at("score/name"), "group_1/score/card"), group)).toBe(
+      at("score"),
+    );
     expect(editorTargetOf(view, inBox(at("group_1/name"), "group_1"), group)).toBeNull();
-    expect(editorTargetOf(view, inBox(at("page/name"), "page/card"), group)).toBeNull();
+    expect(editorTargetOf(view, inBox(at("page/name"), "group_2/page/card"), group)).toBeNull();
   });
 
   it("opens inside a timeline editor only what the timeline contains", () => {
     const excerpt: Editing = { target: at("excerpt"), kind: "timeline" };
     expect(editorTargetOf(view, hit("element", at("dlt_1")), excerpt)).toBe(at("dlt_1"));
-    expect(editorTargetOf(view, hit("card", at("excerpt/card")), excerpt)).toBeNull();
+    expect(editorTargetOf(view, hit("card", at("group_2/excerpt/card")), excerpt)).toBeNull();
     expect(editorTargetOf(view, hit("element", at("recording")), excerpt)).toBeNull();
     const child: Editing = { target: at("dlt_1"), kind: "timeline" };
     expect(editorTargetOf(view, hit("element", at("dlt_1")), child)).toBeNull();
@@ -223,7 +225,7 @@ describe("resizingOf and resizes", () => {
     box: box(null),
     frame: box("group_1"),
     card: box("annotations/card"),
-    held: box("score/card"),
+    held: box("group_1/score/card"),
   };
 
   it("reads one row per kind of container, a held card's beside the card's", () => {

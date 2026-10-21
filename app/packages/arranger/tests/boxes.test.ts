@@ -162,9 +162,9 @@ describe("boxes in a manifest with one group", () => {
       kind: "element",
       address: `${A}/recording`,
     });
-    expect(summary(hit("recording/card"))).toMatchObject({
+    expect(summary(hit("group_1/recording/card"))).toMatchObject({
       kind: "card",
-      address: `${A}/recording/card`,
+      address: `${A}/group_1/recording/card`,
     });
     expect(summary(hit("group_1/name"))).toMatchObject({
       kind: "element",
@@ -175,8 +175,8 @@ describe("boxes in a manifest with one group", () => {
   it.each([
     ["the frame above the first card", 12, 12, "group_1"],
     ["the gap between the cards", 100, 120, "group_1"],
-    ["the start of the ancestor line", 108.61962890625, 67.78125, "second-half/card"],
-    ["the start of recording's line", 120.61962890625, 139.16015625, "recording/card"],
+    ["the start of the ancestor line", 108.61962890625, 67.78125, "group_1/second-half/card"],
+    ["the start of recording's line", 120.61962890625, 139.16015625, "group_1/recording/card"],
     ["the box's padding", 4, 4, null],
     ["the right of the frame", 552, 100, null],
   ])("finds under %s the box %s", (_, x, y, expected) => {
@@ -187,10 +187,10 @@ describe("boxes in a manifest with one group", () => {
     expect(roles(drawing)).toEqual([
       [0, null, "box"],
       [1, "group_1", "frame"],
-      [3, "second-half/card", "shadow"],
-      [4, "second-half/card", "card"],
-      [22, "recording/card", "shadow"],
-      [23, "recording/card", "card"],
+      [3, "group_1/second-half/card", "shadow"],
+      [4, "group_1/second-half/card", "card"],
+      [22, "group_1/recording/card", "shadow"],
+      [23, "group_1/recording/card", "card"],
     ]);
   });
 
@@ -208,7 +208,7 @@ describe("boxes in a manifest with one group", () => {
     const inside = insideOf(blockIn(view, A).manifest, drawing, null);
     const pressed = (address: string | null, type?: DrawnElement["type"]) =>
       selectionOf(hit(address, type), null, inside);
-    expect(pressed("recording/card")).toBe(`${A}/recording/card`);
+    expect(pressed("group_1/recording/card")).toBe(`${A}/group_1/recording/card`);
     expect(pressed("group_1")).toBe(`${A}/group_1`);
     expect(pressed(null)).toBe(A);
     expect(pressed("recording", "timeline")).toBe(`${A}/recording`);
@@ -220,7 +220,7 @@ describe("boxes in a manifest with one group", () => {
     const hover = (address: string | null, x: number, y: number) =>
       hoverOf(hitOf(A, drawing, address === null ? null : sourceOf(drawing, address), { x, y }));
     expect(hover("recording", 120.61962890625, 139.16015625)).toEqual({
-      box: "recording/card",
+      box: "group_1/recording/card",
       boundary: null,
       band: null,
     });
@@ -238,7 +238,7 @@ describe("boxes in a manifest with one group", () => {
       within: null,
     });
     expect(hitForAddress(A, drawing, `${A}/group_1`)?.box).toBe(boxOf(drawing, "group_1"));
-    expect(hitForAddress(A, drawing, `${A}/recording/card`)?.kind).toBe("card");
+    expect(hitForAddress(A, drawing, `${A}/group_1/recording/card`)?.kind).toBe("card");
     expect(hitForAddress(A, drawing, `${A}/recording`)).toEqual({
       block: A,
       kind: "element",
@@ -250,20 +250,22 @@ describe("boxes in a manifest with one group", () => {
     expect(hitForAddress(A, drawing, `${A}/nobody`)).toBeNull();
     expect(hitForAddress(A, drawing, `${B}/recording`)).toBeNull();
     const hidden = drawingIn(styled(view, HIDDEN_CARDS));
-    expect(hitForAddress(A, hidden, `${A}/recording/card`)).toBeNull();
+    expect(hitForAddress(A, hidden, `${A}/group_1/recording/card`)).toBeNull();
   });
 
   it("lets every other reader fold a selected card into its timeline", () => {
-    const card = hit("recording/card");
+    const card = hit("group_1/recording/card");
     const inside = insideOf(blockIn(view, A).manifest, drawing, null);
     const selection = click(new Set(), selectionOf(card, null, inside) ?? "", false);
-    expect(selection).toEqual(new Set([`${A}/recording/card`]));
+    expect(selection).toEqual(new Set([`${A}/group_1/recording/card`]));
     expect(existing(view, selection, null)).toBe(selection);
     expect(removeCommand(view, selection, null)).toEqual({
       type: "remove",
       targets: [`${A}/recording`],
     });
-    expect(affectedBy(blockIn(view, A).manifest, new Set(["recording/card"]), null)).toEqual(
+    expect(
+      affectedBy(blockIn(view, A).manifest, new Set(["group_1/recording/card"]), null),
+    ).toEqual(
       new Set([
         "recording",
         "recording/name",
@@ -296,13 +298,13 @@ describe("the boxes holding part of the selection", () => {
   const held = (...boxes: string[]) => ({ block: true, boxes: new Set(boxes) });
 
   it.each([
-    ["a member's line", ["score"], ["group_1", "score/card"]],
-    ["a member's start", ["score/start"], ["group_1", "score/card"]],
-    ["a child's line", ["dlt_1"], ["group_2", "excerpt/card"]],
-    ["a region's label", ["recording/region_1/label"], ["group_2", "excerpt/card"]],
-    ["a member that is a child", ["excerpt"], ["group_2", "excerpt/card"]],
-    ["the ancestor line on a member's card", ["recording"], ["group_2", "excerpt/card"]],
-    ["a member's card", ["page/card"], ["group_2"]],
+    ["a member's line", ["score"], ["group_1", "group_1/score/card"]],
+    ["a member's start", ["score/start"], ["group_1", "group_1/score/card"]],
+    ["a child's line", ["dlt_1"], ["group_2", "group_2/excerpt/card"]],
+    ["a region's label", ["recording/region_1/label"], ["group_2", "group_2/excerpt/card"]],
+    ["a member that is a child", ["excerpt"], ["group_2", "group_2/excerpt/card"]],
+    ["the ancestor line on a member's card", ["recording"], ["group_2", "group_2/excerpt/card"]],
+    ["a member's card", ["group_2/page/card"], ["group_2"]],
     ["the group itself", ["group_1"], []],
     ["the group's title", ["group_1/name"], ["group_1"]],
     ["the manifest's title", ["name"], []],
@@ -311,9 +313,13 @@ describe("the boxes holding part of the selection", () => {
     [
       "a member of each group",
       ["score", "page"],
-      ["group_1", "score/card", "group_2", "page/card"],
+      ["group_1", "group_1/score/card", "group_2", "group_2/page/card"],
     ],
-    ["a selected frame and a member in it", ["group_1", "score"], ["group_1", "score/card"]],
+    [
+      "a selected frame and a member in it",
+      ["group_1", "score"],
+      ["group_1", "group_1/score/card"],
+    ],
   ])("with %s (%j) selected, holds it in exactly its boxes and the block", (_, selected, boxes) => {
     expect(holding(selected)).toEqual(held(...boxes));
   });
@@ -337,7 +343,7 @@ describe("the boxes holding part of the selection", () => {
 
   it.each([
     ["cards", "score", HIDDEN_CARDS, ["group_1"]],
-    ["frames", "score", HIDDEN_FRAMES, ["score/card"]],
+    ["frames", "score", HIDDEN_FRAMES, ["group_1/score/card"]],
     ["frames", "group_1/name", HIDDEN_FRAMES, []],
   ])("with the %s hidden, %s is held only by displayed boxes", (_, selected, statement, boxes) => {
     expect(holding([selected], styled(mixed, statement))).toEqual(held(...boxes));
@@ -360,7 +366,7 @@ describe("the boxes holding part of the selection", () => {
       const width = 562.484619140625;
       expect(rect("annotations/card")).toEqual({ x: 8, y: 60, width, height: 71.85546875 });
       expect(rect("group_1")).toEqual({ x: 8, y: 28.8046875, width, height: 169.234375 });
-      expect(rect("score/card")).toEqual({
+      expect(rect("group_1/score/card")).toEqual({
         x: 16,
         y: 53.609375,
         width: 546.484619140625,
@@ -380,7 +386,7 @@ describe("the boxes holding part of the selection", () => {
 
     it.each([
       ["the name of the card on top", ["annotations/name"], ["annotations/card"]],
-      ["the line of the card underneath", ["score"], ["group_1", "score/card"]],
+      ["the line of the card underneath", ["score"], ["group_1", "group_1/score/card"]],
       ["the card on top", ["annotations/card"], []],
     ])("with %s (%j) selected, holds it only in the boxes it is drawn in", (_, selected, boxes) => {
       expect(holding(selected, over)).toEqual(held(...boxes));
@@ -396,8 +402,12 @@ describe("the boxes holding part of the selection", () => {
     });
 
     it.each([
-      ["drawn on both cards", twice, ["group_1", "recording/card", "group_2", "excerpt/card"]],
-      ["hidden on the card of `recording`", hidden, ["group_2", "excerpt/card"]],
+      [
+        "drawn on both cards",
+        twice,
+        ["group_1", "group_1/recording/card", "group_2", "group_2/excerpt/card"],
+      ],
+      ["hidden on the card of `recording`", hidden, ["group_2", "group_2/excerpt/card"]],
     ])("holds it in the boxes of each copy drawn, %s", (_, view, boxes) => {
       expect(holding(["recording/cmap_2"], view)).toEqual(held(...boxes));
     });
@@ -421,10 +431,12 @@ describe("selection and hover inside an editor", () => {
 
   it("selects only what lies inside the edited element", () => {
     const editing: Editing = { target: `${A}/group_1`, kind: "group" };
-    expect(selectionOf(hit("card", "score/card"), editing, group)).toBe(`${A}/score/card`);
+    expect(selectionOf(hit("card", "group_1/score/card"), editing, group)).toBe(
+      `${A}/group_1/score/card`,
+    );
     expect(selectionOf(hit("frame", "group_1"), editing, group)).toBe(`${A}/group_1`);
     expect(selectionOf(hit("element", "score"), editing, group)).toBe(`${A}/score`);
-    expect(selectionOf(hit("card", "page/card"), editing, group)).toBeNull();
+    expect(selectionOf(hit("card", "group_2/page/card"), editing, group)).toBeNull();
     expect(selectionOf(hit("element", "annotations"), editing, group)).toBeNull();
     expect(selectionOf(hit("element", "name"), editing, group)).toBeNull();
     expect(selectionOf(hit("box", null), editing, group)).toBeNull();

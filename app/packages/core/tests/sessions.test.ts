@@ -65,7 +65,7 @@ describe("editor ids and kinds", () => {
       "workspace",
       at("name"),
       at("group_1/name"),
-      at("score/card"),
+      at("group_1/score/card"),
       `${A}/melody/tempo`,
     ]) {
       expect(editorKindOf(view, address)).toEqual({

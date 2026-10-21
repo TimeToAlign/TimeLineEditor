@@ -5,8 +5,8 @@
  * preview is that `set` applied (core's `preview`).
  */
 
-import type { Block, SetCommand } from "@timetoalign/tilie-core";
-import { displayOrder, qualify } from "@timetoalign/tilie-core";
+import type { Block, Manifest, SetCommand } from "@timetoalign/tilie-core";
+import { displayOrder, placedElement, qualify } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import type { CardBox } from "./boxes.ts";
 import { boxOf, isDisplayed, isHeld } from "./boxes.ts";
@@ -28,21 +28,30 @@ function memberCards(drawing: Drawing, group: string): CardBox[] {
   );
 }
 
+/** The member a card of `manifest`'s drawing holds: the timeline its `places` key stands for. */
+function memberOf(manifest: Manifest, card: CardBox): string {
+  const member = placedElement(manifest, card.key);
+  if (member === undefined) throw new RangeError(`${card.key} is no card of the manifest`);
+  return member;
+}
+
 /**
  * The display order of `group` that dropping its member `dragged` at the
  * drawing's ordinate `y` gives: `dragged` before the first other member
  * whose card's middle lies below `y`, or last when none does. `drawing` is
- * the drawing of the stored order, so the cards do not move under the
- * pointer while it searches.
+ * the drawing of `manifest` in the stored order, so the cards do not move
+ * under the pointer while it searches; each card stands for its timeline
+ * (core's `placedElement`).
  */
 export function memberOrderAt(
+  manifest: Manifest,
   drawing: Drawing,
   group: string,
   dragged: string,
   y: number,
 ): string[] {
   const others = memberCards(drawing, group)
-    .map((card) => ({ id: card.key, middle: card.y + card.height / 2 }))
+    .map((card) => ({ id: memberOf(manifest, card), middle: card.y + card.height / 2 }))
     .filter((card) => card.id !== dragged);
   const at = others.findIndex((card) => card.middle > y);
   const order = others.map((card) => card.id);

@@ -139,7 +139,9 @@ export function reviewCases(): ReviewCase[] {
   add(
     "bundle_mixed__cards",
     "bundles/bundle_mixed",
-    at({ places: { group_1: { scale: 1.25 }, performance: { width: 650, height: 120 } } }),
+    at({
+      places: { group_1: { scale: 1.25 }, "group_1/performance": { width: 650, height: 120 } },
+    }),
   );
   // `score` is the one root of the three whose card spacing shows; `pages` and `recording` draw
   // nothing a card spacing moves.
@@ -158,7 +160,7 @@ export function reviewCases(): ReviewCase[] {
   add(
     "bundle_mixed__member-card-spacing-8",
     "bundles/bundle_mixed",
-    at({ places: { score: { spacing: 8 } } }),
+    at({ places: { "group_1/score": { spacing: 8 } } }),
   );
   const shown = (select: Selector): Graphical[] => [
     { statements: [{ select, set: { display: "inline" } }] },

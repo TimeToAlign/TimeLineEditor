@@ -8,10 +8,17 @@ import { ErrorCode, isCommandError, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";
 import { compareCodePoints, jsonEqual } from "../json.ts";
 import type { CardPlace, ItemPlace } from "../manifest/containers.ts";
+import { placedElement } from "../manifest/containers.ts";
 import { contains, containsIn } from "../manifest/contains.ts";
 import type { ElementKey } from "../manifest/elements.ts";
 import { selectorMatches } from "../manifest/elements.ts";
-import { ENTRY_KINDS, elementAddress, entriesOf, TITLE_ADDRESS } from "../manifest/files.ts";
+import {
+  cardKey,
+  ENTRY_KINDS,
+  elementAddress,
+  entriesOf,
+  TITLE_ADDRESS,
+} from "../manifest/files.ts";
 import type { Manifest, TimelineManifest } from "../manifest/types.ts";
 import type { Address } from "./address.ts";
 import {
@@ -98,12 +105,25 @@ function namesGroupOrTimeline(scope: Scope, key: string): boolean {
 }
 
 /**
- * Whether a key of `places` or of `graphical.order` naming a group or a
- * timeline lies inside: the edited element contains it in each manifest
+ * Whether a key of `graphical.order` naming a group or a timeline lies
+ * inside: the edited element contains it in each manifest
  * that has it.
  */
 function keyInside(scopes: readonly Scope[]): (key: string) => boolean {
   return (key) => scopes.every((scope) => !namesGroupOrTimeline(scope, key) || scope.inside(key));
+}
+
+/**
+ * Whether a key of `places` lies inside: the edited element contains the
+ * frame or card it names (a card belongs to its timeline) in each manifest
+ * that draws it.
+ */
+function placeInside(scopes: readonly Scope[]): (key: string) => boolean {
+  return (key) =>
+    scopes.every((scope) => {
+      const address = indexOf(scope.manifest).containers.byKey.get(key)?.address ?? null;
+      return address === null || scope.inside(address);
+    });
 }
 
 const statementsOf = (manifest: Manifest): readonly Statement[] =>
@@ -330,24 +350,28 @@ function blockChange(
   const member = FIXED_MEMBERS.find((name) => !same(was[name], now[name]));
   if (member !== undefined) return refuse(`the ${member} of block ${block}`, [block, member]);
   const scopes = [scopeOf(was.manifest, element), scopeOf(now.manifest, element)] as const;
-  const inside = keyInside(scopes);
+  const inside = placeInside(scopes);
   // The group the edited element is a member of in both manifests, whose shared members it changes.
   const groupOf = (manifest: Manifest) =>
     manifest.groups.find((group) => group.members.includes(element))?.id;
   const sharing =
     groupOf(was.manifest) === groupOf(now.manifest) ? groupOf(was.manifest) : undefined;
+  // The places keys of the cards in the frame of the sharing group.
+  const cardsOf = (manifest: Manifest): readonly string[] => {
+    if (sharing === undefined) return [];
+    const members = manifest.groups.find((group) => group.id === sharing)?.members ?? [];
+    return members.map((member) => cardKey(member, sharing));
+  };
   // The members of a key's place that the edited element shares: the group's, its siblings'.
-  const membersOf = (manifest: Manifest) =>
-    manifest.groups.find((group) => group.id === sharing)?.members ?? [];
   const shared = (key: string): readonly string[] =>
     key === sharing
       ? SHARED_MEMBERS
-      : membersOf(was.manifest).includes(key) && membersOf(now.manifest).includes(key)
+      : cardsOf(was.manifest).includes(key) && cardsOf(now.manifest).includes(key)
         ? SIBLING_MEMBERS
         : [];
   const unshared = (place: ItemPlace | CardPlace | undefined, members: readonly string[]) =>
     Object.fromEntries(Object.entries(place ?? {}).filter(([member]) => !members.includes(member)));
-  const placeInside = (key: string) => {
+  const keptInside = (key: string) => {
     const members = shared(key);
     return (
       inside(key) ||
@@ -356,10 +380,12 @@ function blockChange(
     );
   };
   const key = keysOf(was.places, now.places).find(
-    (item) => !same(was.places[item], now.places[item]) && !placeInside(item),
+    (item) => !same(was.places[item], now.places[item]) && !keptInside(item),
   );
   if (key !== undefined) {
-    return refuse(`the place of ${qualify(block, key)}`, [qualify(block, key)]);
+    const element = placedElement(now.manifest, key) ?? placedElement(was.manifest, key) ?? key;
+    const placed = qualify(block, element);
+    return refuse(`the place of ${placed}`, [placed]);
   }
   return manifestChange(scopes, element, block, target, refuse, before, changes);
 }

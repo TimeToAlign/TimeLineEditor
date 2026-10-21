@@ -219,7 +219,7 @@ describe("the canvas opens editors", () => {
     const cases: [() => Element, { target: string; kind: string }][] = [
       [() => background(A), { target: A, kind: "bundle" }],
       [() => drawn("group_1"), { target: `${A}/group_1`, kind: "group" }],
-      [() => drawn("score/card"), { target: `${A}/score`, kind: "timeline" }],
+      [() => drawn("group_1/score/card"), { target: `${A}/score`, kind: "timeline" }],
       [() => drawn("dlt_1"), { target: `${A}/dlt_1`, kind: "timeline" }],
     ];
     for (const [target, opened] of cases) {
@@ -268,7 +268,7 @@ describe("the canvas opens editors", () => {
     await settle();
     await doubleClick(drawn("group_1"));
     expect(path()).toEqual([{ target: `${A}/group_1`, kind: "group" }]);
-    await doubleClick(drawn("score/card"));
+    await doubleClick(drawn("group_1/score/card"));
     expect(path()).toEqual([
       { target: `${A}/group_1`, kind: "group" },
       { target: `${A}/score`, kind: "timeline" },
@@ -278,7 +278,7 @@ describe("the canvas opens editors", () => {
   it("opens the editor of the single selected address on Enter", async () => {
     const opened: [string, { target: string; kind: string }][] = [
       [`${A}/group_1`, { target: `${A}/group_1`, kind: "group" }],
-      [`${A}/score/card`, { target: `${A}/score`, kind: "timeline" }],
+      [`${A}/group_1/score/card`, { target: `${A}/score`, kind: "timeline" }],
       [A, { target: A, kind: "bundle" }],
     ];
     for (const [address, editor] of opened) {
@@ -335,7 +335,7 @@ describe("a double-click outside the edited element", () => {
 
     open(`${A}/group_1`);
     await settle();
-    await doubleClick(drawn("page/card"));
+    await doubleClick(drawn("group_2/page/card"));
     expect(path()).toEqual([]);
     open(`${A}/group_1`);
     await settle();
@@ -350,7 +350,7 @@ describe("a double-click outside the edited element", () => {
     await settle();
     await doubleClick(drawn("group_1"));
     expect(path()).toEqual([{ target: `${A}/group_1`, kind: "group" }]);
-    await doubleClick(drawn("performance/card"));
+    await doubleClick(drawn("group_1/performance/card"));
     expect(path()).toEqual([
       { target: `${A}/group_1`, kind: "group" },
       { target: `${A}/performance`, kind: "timeline" },
@@ -446,7 +446,7 @@ describe("the canvas leaves editors", () => {
     measure(10000, 10000);
     await doubleClick(drawn("group_1"));
     expect(viewport()).toEqual({ x: 3683.03076171875, y: 4226.3125, zoom: 4 });
-    await doubleClick(drawn("score/card"));
+    await doubleClick(drawn("group_1/score/card"));
     expect(path().map(({ target }) => target)).toEqual([`${A}/group_1`, `${A}/score`]);
     expect(viewport()).toEqual({ x: 3683.03076171875, y: 4307.65625, zoom: 4 });
     await press("Escape");
@@ -492,10 +492,10 @@ describe("the surroundings of an editor", () => {
     store.done();
     open(`${A}/group_1`);
     await settle();
-    await clickOn(drawn("score/card"));
-    expect(selected()).toEqual([`${A}/score/card`]);
+    await clickOn(drawn("group_1/score/card"));
+    expect(selected()).toEqual([`${A}/group_1/score/card`]);
     await shiftClickOn(drawn("group_2"));
-    expect(selected()).toEqual([`${A}/score/card`]);
+    expect(selected()).toEqual([`${A}/group_1/score/card`]);
     await clickOn(drawn("group_2"));
     expect(selected()).toEqual([]);
     expect(path()).toEqual([{ target: `${A}/group_1`, kind: "group" }]);
@@ -569,7 +569,7 @@ describe("the view while it moves", () => {
     await settle();
     measure(10000, 10000);
     await doubleClick(drawn("group_1"));
-    await doubleClick(drawn("score/card"));
+    await doubleClick(drawn("group_1/score/card"));
     expect(path().map(({ target }) => target)).toEqual([`${A}/group_1`, `${A}/score`]);
     await wait(1100);
     expect(viewport()).toEqual({ x: 3683.03076171875, y: 4307.65625, zoom: 4 });
@@ -640,28 +640,28 @@ describe("the resize toolbar in an editor", () => {
       return modes();
     };
     await show();
-    for (const address of [A, `${A}/group_2`, `${A}/score/card`, `${A}/annotations/card`]) {
+    for (const address of [A, `${A}/group_2`, `${A}/group_1/score/card`, `${A}/annotations/card`]) {
       expect(await offered(address)).toEqual(three);
     }
     expect(await offered(`${A}/score`)).toEqual([]);
     open(A);
     await settle();
-    for (const address of [A, `${A}/group_2`, `${A}/score/card`]) {
+    for (const address of [A, `${A}/group_2`, `${A}/group_1/score/card`]) {
       expect(await offered(address)).toEqual(three);
     }
     store.done();
     open(`${A}/group_1`);
     expect(await offered(`${A}/group_1`)).toEqual(three);
-    expect(await offered(`${A}/score/card`)).toEqual(three);
+    expect(await offered(`${A}/group_1/score/card`)).toEqual(three);
     store.done();
     open(`${A}/annotations`);
     expect(await offered(`${A}/annotations/card`)).toEqual(three);
     store.done();
     open(`${A}/score`);
-    expect(await offered(`${A}/score/card`)).toEqual(three);
+    expect(await offered(`${A}/group_1/score/card`)).toEqual(three);
     store.done();
     open(`${A}/recording`);
-    expect(await offered(`${A}/excerpt/card`)).toEqual([]);
+    expect(await offered(`${A}/group_2/excerpt/card`)).toEqual([]);
     store.done();
     open(`${A}/dlt_1`);
     expect(await offered(`${A}/dlt_1`)).toEqual([]);
@@ -876,15 +876,15 @@ describe("the canvas and the bands of the edited timeline", () => {
   it("selects a band by a click, which opens and closes nothing, also on a locked canvas", async () => {
     await inScoresEditor();
     const { x, y } = middleOf("score/markers_1");
-    await clickOn(drawn("score/card"), x, y);
+    await clickOn(drawn("group_1/score/card"), x, y);
     expect(selected()).toEqual([`${A}/score/markers_1`]);
     await press("Enter");
     expect(path()).toEqual([{ target: `${A}/score`, kind: "timeline" }]);
-    await doubleClick(drawn("score/card"), x, y);
+    await doubleClick(drawn("group_1/score/card"), x, y);
     expect(path()).toEqual([{ target: `${A}/score`, kind: "timeline" }]);
     await select();
     await press("l");
-    await clickOn(drawn("score/card"), x, y);
+    await clickOn(drawn("group_1/score/card"), x, y);
     expect(selected()).toEqual([`${A}/score/markers_1`]);
   });
 

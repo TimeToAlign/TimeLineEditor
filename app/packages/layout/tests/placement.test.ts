@@ -104,14 +104,16 @@ describe("jump origins of corpus_score_ms3", () => {
     expect(drawing.elements.find((item) => item.address === "clt_1")).toMatchObject({ y: 59.5 });
     expect(
       drawing.elements.filter((item) => item.type === "jump_from").map((item) => item.address),
-    ).toEqual(["clt_1/jump_2", "clt_1/jump_1", "clt_1/jump_3", "clt_1/jump_4"]);
-    expect(drawing.elements.find((item) => item.address === "clt_1/break_1/label")).toMatchObject({
+    ).toEqual(["clt_1/jump_from_2", "clt_1/jump_from_1", "clt_1/jump_from_3", "clt_1/jump_from_4"]);
+    expect(
+      drawing.elements.find((item) => item.address === "clt_1/flow_marker_1/label"),
+    ).toMatchObject({
       baseline: 98.83056640625,
     });
   });
 
   it("arrives steeply on a short jump origin", () => {
-    expect(jump("clt_1/jump_2")).toMatchObject({
+    expect(jump("clt_1/jump_from_2")).toMatchObject({
       start: [165.3993480785473, 100.953125],
       c1: [157.2912399704392, 111.61979166666667],
       c2: [141.07502375422297, 111.61979166666667],
@@ -125,7 +127,7 @@ describe("jump origins of corpus_score_ms3", () => {
   });
 
   it("arrives flatly on a long jump origin", () => {
-    expect(jump("clt_1/jump_4")).toMatchObject({
+    expect(jump("clt_1/jump_from_4")).toMatchObject({
       start: [468.10205078125, 100.953125],
       c1: [368.10205078125, 166.22395833333331],
       c2: [168.10205078125, 166.22395833333331],

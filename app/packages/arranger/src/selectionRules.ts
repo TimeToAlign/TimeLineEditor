@@ -6,6 +6,7 @@
  */
 
 import type { Address, View } from "@timetoalign/tilie-core";
+import { placedElement } from "@timetoalign/tilie-core";
 import type { DrawnBox } from "@timetoalign/tilie-layout";
 import type { DescriptorSource } from "@timetoalign/tilie-writers";
 import type { Hit } from "./boxes.ts";
@@ -183,7 +184,9 @@ export function resizableOf(
   if (element !== null && !insideOf(block.manifest, drawing, within).has(element)) {
     return undefined;
   }
-  const own = element === null ? edited !== null && within === null : box.key === within;
+  // A frame stands for its group, a card for its timeline (core's `placedElement`).
+  const standsFor = box.key === null ? undefined : placedElement(block.manifest, box.key);
+  const own = element === null ? edited !== null && within === null : standsFor === within;
   return resizes(box, level, own) ? { box, block: id } : undefined;
 }
 

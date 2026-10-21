@@ -14,6 +14,7 @@ export type { Level, PlaceField, PlaceProperty, Subject } from "./containers.ts"
 export { fieldsOf, resolveSelection } from "./containers.ts";
 export { drawingOf } from "./drawing.ts";
 export type { Editing } from "./editing.ts";
+export { placeTarget } from "./editing.ts";
 export type { Viewport } from "./focus.ts";
 export type { ShownValues } from "./items.ts";
 export { placeEdit, shownValues } from "./items.ts";

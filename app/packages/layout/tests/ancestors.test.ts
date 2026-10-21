@@ -19,8 +19,9 @@ const drawGroup = (name: string, extra: Graphical[] = [], placement?: Placement)
 /** Every drawing of an address, in descriptor order. */
 const all = (drawing: Drawing, address: string): DrawnElement[] =>
   drawing.elements.filter((item) => item.address === address);
+/** The card of `member` in the frame of `group_1`, the one group of these manifests. */
 const card = (drawing: Drawing, member: string) =>
-  element(drawing, `${member}/card`) as DrawnElement & { height: number };
+  element(drawing, `group_1/${member}/card`) as DrawnElement & { height: number };
 const xOf = (drawing: Drawing, member: string) => (element(drawing, member) as { xs: number }).xs;
 
 describe("group_child_member: one ancestor", () => {
@@ -172,8 +173,8 @@ describe("group_grandchild: every ancestor shown", () => {
   });
 
   it("orders the ancestors' elements first within each group (section 8.5)", () => {
-    const start = drawing.elements.findIndex((item) => item.address === "theme/card");
-    const end = drawing.elements.findIndex((item) => item.address === "recording/card");
+    const start = drawing.elements.findIndex((item) => item.address === "group_1/theme/card");
+    const end = drawing.elements.findIndex((item) => item.address === "group_1/recording/card");
     expect(drawing.elements.slice(start + 1, end).map((item) => [item.type, item.address])).toEqual(
       [
         ["ancestor", "score"],
@@ -416,12 +417,12 @@ describe("single changes to group_child_member", () => {
       only({ ids: ["second-half"] }, { display: "none" }),
     );
     const range = drawing.boxes.find(
-      (item) => item.kind === "card" && item.key === "second-half",
+      (item) => item.kind === "card" && item.key === "group_1/second-half",
     )?.range;
     expect(
       drawing.elements.slice(range?.start, range?.end).map((item) => [item.type, item.address]),
     ).toEqual([
-      ["card", "second-half/card"],
+      ["card", "group_1/second-half/card"],
       ["ancestor", "piece"],
       ["wedge", "second-half/start"],
       ["wedge", "second-half/end"],

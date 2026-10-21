@@ -18,8 +18,8 @@ export interface Placement {
   readonly width: number | null;
   readonly height: number | null;
   /**
-   * The places of the box's items, by group id or ungrouped root id, and the sizes of its
-   * members' cards, by member id (section 8.6).
+   * The places of the box's items, by group id or ungrouped root id, and the sizes and
+   * spacings of its members' cards, by `<group id>/<member id>` (section 8.6).
    */
   readonly places: { readonly [key: string]: ItemPlace };
 }

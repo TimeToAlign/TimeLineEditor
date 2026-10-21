@@ -12,6 +12,7 @@ import type { CommandError } from "../errors.ts";
 import { isLoadError } from "../errors.ts";
 import type { Json, JsonObject } from "../json.ts";
 import { isJsonObject } from "../json.ts";
+import type { ContainerRef } from "../manifest/containers.ts";
 import { containersOf, keptPlace } from "../manifest/containers.ts";
 import { isUnit, timelineClass } from "../manifest/elements.ts";
 import { checkOrdered } from "../manifest/invariants.ts";
@@ -128,19 +129,37 @@ function covered(manifest: Manifest, checked: boolean): Manifest | CommandError 
 }
 
 /**
- * `places` with only the keys naming a frame or a card of `manifest`, each
- * place cut to the members its holder lets it state (`placeMembersOf`) and
- * dropped when nothing is left: a root that became a member keeps its card's
- * size and spacing; `places` itself when nothing goes.
+ * `places` fitted to the drawing of `manifest`, `was` the manifest before
+ * the command: every key naming a frame or a card of `manifest` is kept,
+ * and a key that named a card of a timeline in `was` and names nothing now
+ * moves to the timeline's one card in `manifest` (a root that became a
+ * member, `T` to `G/T`; a member that left its group, `G/T` to `T`) unless
+ * that card's key is stated already; every other key goes. Each place is cut
+ * to the members its holder lets it state (`placeMembersOf`) and dropped
+ * when nothing is left, so a root that became a member keeps its card's size
+ * and spacing. `places` itself when nothing changes.
  */
-function keptPlaces(places: Block["places"], manifest: Manifest): Block["places"] {
-  const { byKey } = containersOf(manifest);
+function keptPlaces(
+  places: Block["places"],
+  was: Manifest | undefined,
+  manifest: Manifest,
+): Block["places"] {
+  const { byKey, cards } = containersOf(manifest);
+  const before = was === undefined ? undefined : containersOf(was).byKey;
+  const movedTo = (key: string): ContainerRef | undefined => {
+    const timeline = before?.get(key)?.timeline ?? null;
+    if (timeline === null) return undefined;
+    const [card, ...others] = cards.get(timeline) ?? [];
+    if (card === undefined || others.length > 0 || card.key === null) return undefined;
+    return Object.hasOwn(places, card.key) ? undefined : card;
+  };
   let changed = false;
   const kept = Object.entries(places).flatMap(([key, place]) => {
-    const container = byKey.get(key);
+    const container = byKey.get(key) ?? movedTo(key);
     const fitted = container === undefined ? undefined : keptPlace(container, place);
-    if (fitted !== place) changed = true;
-    return fitted === undefined ? [] : [[key, fitted] as const];
+    const placed = container?.key ?? null;
+    if (fitted !== place || placed !== key) changed = true;
+    return fitted === undefined || placed === null ? [] : [[placed, fitted] as const];
   });
   return changed ? Object.fromEntries(kept) : places;
 }
@@ -149,10 +168,16 @@ function keptPlaces(places: Block["places"], manifest: Manifest): Block["places"
  * Settle each manifest `changes` names: cover its segment lines, complete
  * it, order it and, with
  * `checked`, refuse its first schema or invariant problem, at `[<block id>,
- * "manifest", …]`; then fit its block's places to it. A block the command
- * removed is passed over.
+ * "manifest", …]`; then fit its block's places to it (`keptPlaces`, the
+ * block's manifest in `before` telling which card a stale key named). A
+ * block the command removed is passed over.
  */
-export function settle(view: View, changes: ChangeSet, checked: boolean): View | CommandError {
+export function settle(
+  before: View,
+  view: View,
+  changes: ChangeSet,
+  checked: boolean,
+): View | CommandError {
   let current = view;
   for (const id of changes.manifests) {
     const block = current.blocks[id];
@@ -169,7 +194,7 @@ export function settle(view: View, changes: ChangeSet, checked: boolean): View |
     }
     current = withBlock(current, {
       ...block,
-      places: keptPlaces(block.places, manifest),
+      places: keptPlaces(block.places, before.blocks[id]?.manifest, manifest),
       manifest,
     });
   }

@@ -20,7 +20,7 @@ function shape(resolved: ResolvedAddress | ResolvedElement): unknown {
     case "frame":
       return [resolved.kind, resolved.group.id, resolved.container.address];
     case "timeline":
-      return [resolved.kind, resolved.at.timeline.id, resolved.container?.address ?? null];
+      return [resolved.kind, resolved.at.timeline.id, resolved.cards.map((card) => card.address)];
     case "card":
       return [resolved.kind, resolved.at.timeline.id, resolved.container.address];
     case "band":
@@ -28,7 +28,7 @@ function shape(resolved: ResolvedAddress | ResolvedElement): unknown {
         resolved.kind,
         resolved.at.timeline.id,
         resolved.band,
-        resolved.container.holder?.address,
+        resolved.containers.map((band) => band.holder?.address),
       ];
     case "entry":
       return [
@@ -58,26 +58,26 @@ describe("resolving an address", () => {
     [at("name"), ["title"]],
     [at("group_1"), ["frame", "group_1", "group_1"]],
     [at("group_1/name"), ["part", "name", ["frame", "group_1", "group_1"]]],
-    [at("score"), ["timeline", "score", "score/card"]],
-    [at("excerpt"), ["timeline", "excerpt", "excerpt/card"]],
-    [at("recording"), ["timeline", "recording", null]],
-    [at("score/card"), ["card", "score", "score/card"]],
-    [at("recording/card"), ["part", "card", ["timeline", "recording", null]]],
-    [at("score/regions_1"), ["band", "score", "regions", "score/card"]],
-    [at("excerpt/children_1"), ["band", "excerpt", "children", "excerpt/card"]],
+    [at("score"), ["timeline", "score", ["group_1/score/card"]]],
+    [at("excerpt"), ["timeline", "excerpt", ["group_2/excerpt/card"]]],
+    [at("recording"), ["timeline", "recording", []]],
+    [at("group_1/score/card"), ["card", "score", "group_1/score/card"]],
+    [at("annotations/card"), ["card", "annotations", "annotations/card"]],
+    [at("score/regions_1"), ["band", "score", "regions", ["group_1/score/card"]]],
+    [at("excerpt/children_1"), ["band", "excerpt", "children", ["group_2/excerpt/card"]]],
     [at("annotations/region_2"), ["entry", "annotations", "region", 1, "region_2"]],
     [at("recording/cmap_2"), ["entry", "excerpt", "map", 0, "cmap_2"]],
-    [at("score/jump_1"), ["entry", "score", "flow_control", 0, "jump_1"]],
+    [at("score/jump_from_1"), ["entry", "score", "flow_control", 0, "jump_from_1"]],
     [
       at("annotations/region_1/label"),
       ["part", "label", ["entry", "annotations", "region", 0, "region_1"]],
     ],
-    [at("score/end"), ["part", "end", ["timeline", "score", "score/card"]]],
+    [at("score/end"), ["part", "end", ["timeline", "score", ["group_1/score/card"]]]],
     [
       at("score/end/label"),
-      ["part", "label", ["part", "end", ["timeline", "score", "score/card"]]],
+      ["part", "label", ["part", "end", ["timeline", "score", ["group_1/score/card"]]]],
     ],
-    [at("excerpt/name"), ["part", "name", ["timeline", "excerpt", "excerpt/card"]]],
+    [at("excerpt/name"), ["part", "name", ["timeline", "excerpt", ["group_2/excerpt/card"]]]],
   ])("resolves %s", (address, expected) => {
     expect(resolved(address)).toEqual(expected);
   });
@@ -125,7 +125,10 @@ describe("resolving an address", () => {
     at("excerpt/cmap_2"),
     at("recording/regions_1"),
     at("score/regions_2"),
-    at("score/card/label"),
+    at("score/card"),
+    at("group_2/score/card"),
+    at("recording/card"),
+    at("group_1/score/card/label"),
     at("group_1/label"),
     at("name/label"),
     at("score/regions_1/label"),

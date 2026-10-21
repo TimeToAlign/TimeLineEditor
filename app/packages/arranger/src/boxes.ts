@@ -174,7 +174,7 @@ export function boxOf(drawing: Drawing, address: string | null): DrawnBox | unde
   return address === null ? drawing.boxes[0] : indexOf(drawing).byAddress.get(address);
 }
 
-/** The frame or card of `drawing` that the key `key` of `places` names: a group id, a timeline id. */
+/** The frame or card of `drawing` that the key `key` of `places` names: `G`, `T` or `G/T`. */
 export function keyedBox(drawing: Drawing, key: string): ItemBox | CardBox | undefined {
   return indexOf(drawing).byKey.get(key);
 }

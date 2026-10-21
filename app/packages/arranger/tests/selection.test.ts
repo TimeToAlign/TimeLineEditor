@@ -45,7 +45,7 @@ describe("click", () => {
   it("selects addresses the drawings carry", () => {
     for (const [fixture, card, timeline] of [
       ["bare", "bare/card", "bare"],
-      [CHILD_MEMBER, "recording/card", "recording"],
+      [CHILD_MEMBER, "group_1/recording/card", "recording"],
     ] as const) {
       const keys = manifestElements(load(fixture)).map((key) => key.address);
       expect(keys).toContain(card);
@@ -155,14 +155,14 @@ describe("existing when an editor opens", () => {
         `${A}/group_1`,
         A,
         `${A}/group_1`,
-        `${A}/score/card`,
+        `${A}/group_1/score/card`,
         `${A}/performance`,
-        `${A}/page/card`,
+        `${A}/group_2/page/card`,
       ),
-    ).toEqual([`${A}/group_1`, `${A}/score/card`, `${A}/performance`]);
+    ).toEqual([`${A}/group_1`, `${A}/group_1/score/card`, `${A}/performance`]);
     expect(
-      opening(`${A}/score`, `${A}/score/card`, `${A}/score/start`, `${A}/performance`),
-    ).toEqual([`${A}/score/card`, `${A}/score/start`]);
+      opening(`${A}/score`, `${A}/group_1/score/card`, `${A}/score/start`, `${A}/performance`),
+    ).toEqual([`${A}/group_1/score/card`, `${A}/score/start`]);
     store.done();
     store.done();
     expect(opening(`${A}/score`, `${A}/score`, `${A}/score/name`)).toEqual([
@@ -191,7 +191,7 @@ describe("editedSelection", () => {
       new Set([`${A}/group_1`]),
     );
     expect(editedSelection(view, { target: `${A}/score`, kind: "timeline" })).toEqual(
-      new Set([`${A}/score/card`]),
+      new Set([`${A}/group_1/score/card`]),
     );
     expect(editedSelection(nested, { target: `${A}/clt_3`, kind: "timeline" })).toEqual(
       new Set([`${A}/clt_3`]),

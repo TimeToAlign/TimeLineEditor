@@ -79,8 +79,8 @@ member drawing's card spacing `S`, between its rows and between its bands
   286.4296875) the box is `8 + max(286.4296875, 143.734375 + s)`: flat up
   to its knee `s = 142.6953125`, slope 1 beyond.
 - **`flow_control`**: the root `flow:quarters` with the flow marker
-  `break_1`, the jump origins `jump_1` and `jump_2` and their jump targets
-  `marker_1` and `marker_2`, which are not drawn.
+  `flow_marker_1`, the jump origins `jump_from_1` and `jump_from_2` and their jump targets
+  `jump_to_1` and `jump_to_2`, which are not drawn.
   **`with_region`**: the root `clt_1` with `region_1`.
 - **Addresses** (section 2.2), in every manifest alike: a timeline, a
   group or the manifest by its bare id; every other element by its root's
@@ -125,7 +125,7 @@ member drawing's card spacing `S`, between its rows and between its bands
   `group_2` "Facsimile" (members `excerpt`, `page`, displayed `page`,
   `excerpt`; `excerpt` is a child of the root `recording`, drawn as its
   ancestor line), then the ungrouped root `annotations`. `score` carries
-  the maps `cmap_1` and `cmap_2` and the jump origin `jump_1` "Repeat";
+  the maps `cmap_1` and `cmap_2` and the jump origin `jump_from_1` "Repeat";
   `performance` the map `cmap_1`; `page` `cmap_1`; `excerpt` `cmap_2`,
   addressed `recording/cmap_2`; `annotations` the regions `region_1`
   "Verse" and `region_2` "Chorus". Maps lie above their lines, jumps and
@@ -158,8 +158,8 @@ member drawing's card spacing `S`, between its rows and between its bands
     neither `s0` nor `Mr` depends on a length, `W(L) = 162.484619140625 +
     L`. The held cards span `Q = 8` to `Ri + K` in item coordinates: they
     lie at x 16 and are 546.484619140625 wide, `Wc(L) = 146.484619140625 +
-    L` (`score/card` at y 53.609375, `performance/card` at 140.5625,
-    `page/card` at 230.84375, `excerpt/card` at 288.3203125). Every line
+    L` (`group_1/score/card` at y 53.609375, `group_1/performance/card` at 140.5625,
+    `group_2/page/card` at 230.84375, `group_2/excerpt/card` at 288.3203125). Every line
     runs from `8 + s0 = 126.29150390625` to 526.29150390625. The box is
     `P + 562.484619140625 + 2 + P = 580.484619140625` by `391.7734375 +
     71.85546875 + 2 + P = 473.62890625` (the ungrouped card's shadow), its
@@ -490,8 +490,8 @@ nothing is journalled and the selection stays.
 |---|---|---|
 | bundle A | {A} | refused |
 | group A/group_1 | {A/group_1} / {A/group_1/name} | refused |
-| timeline A/score | {A/score/card} / {A/score/name} | refused |
-| timeline A/excerpt | {A/excerpt/card, A/dlt_1} | `remove` [A/dlt_1], accepted; `excerpt` holds no child, the selection cleared |
+| timeline A/score | {A/group_1/score/card} / {A/score/name} | refused |
+| timeline A/excerpt | {A/group_2/excerpt/card, A/dlt_1} | `remove` [A/dlt_1], accepted; `excerpt` holds no child, the selection cleared |
 | none | {A} | `remove` [A], accepted |
 
 On the canvas the refusal appears in the status line (`data-testid="hint"`),
@@ -526,8 +526,8 @@ trees (`nested` `clt_1` ⊃ `clt_3` ⊃ `clt_2`; `map` `melody`, map
 | map | {phrase} / {melody/tempo} | {melody/ticks} / ∅ |
 | with_region | {clt_1/region_1/label} | {clt_1/region_1} |
 | numbers | {score/region_1/label} / {score/region_1} / {score} | {score/region_1} / ∅ / {score/region_1, score/region_1/label} |
-| group_child_member | {piece} | {second-half/card, second-half/start, second-half/start/label, second-half/end, second-half/end/label, second-half, second-half/name} |
-| group_child_member | {recording/card} | {recording, recording/name, recording/start, recording/start/label, recording/end, recording/end/label} |
+| group_child_member | {piece} | {group_1/second-half/card, second-half/start, second-half/start/label, second-half/end, second-half/end/label, second-half, second-half/name} |
+| group_child_member | {group_1/recording/card} | {recording, recording/name, recording/start, recording/start/label, recording/end, recording/end/label} |
 | corpus_mpm | {group_1} / {group_1/name} / {name} | ∅ / {group_1} / ∅ |
 
 The element an open editor edits is never deleted, so selecting it, or a
@@ -538,7 +538,7 @@ part of it, takes nothing away; the rest of the selection still does:
 | nested | clt_3 | {clt_3} / {clt_3/name} | ∅ / ∅ |
 | nested | clt_1 | {clt_1/start} / {clt_1/start, clt_3} | ∅ / {clt_2, clt_2/name} |
 | corpus_mpm | group_1 | {group_1/name} | ∅ |
-| group_child_member | recording | {recording/card} | ∅ |
+| group_child_member | recording | {group_1/recording/card} | ∅ |
 
 On the canvas (`project.test.ts`): `mixed` with the group editor of
 `group_1` open and `group_1/name` selected marks nothing affected; with
@@ -580,13 +580,13 @@ against itself.
   so the canvas does not re-render. On opening editors over `bundle_mixed`
   with `bare` beside it: the bundle editor keeps `A`, `A/group_1` and
   `A/annotations/card` and drops `B`; `group_1`'s keeps `A/group_1`,
-  `A/score/card` and `A/performance` and drops `A` and `A/page/card`;
+  `A/group_1/score/card` and `A/performance` and drops `A` and `A/group_2/page/card`;
   `score`'s keeps its card and `A/score/start` and drops `A/performance`,
   and keeps `A/score` and `A/score/name`.
 - **An opened editor selects its edited element** (`editedSelection`), by
   the address a click on its box selects, read through core's resolver:
   on `bundle_mixed`, the bundle editor of `A` gives `{A}`, `group_1`'s
-  `{A/group_1}`, `score`'s (a member, drawn in a card) `{A/score/card}`;
+  `{A/group_1}`, `score`'s (a member, drawn in a card) `{A/group_1/score/card}`;
   on `nested`, the timeline editor of the child `clt_3`, which no card
   draws, gives `{A/clt_3}`, and that of the root `clt_1` `{A/clt_1/card}`.
 
@@ -610,7 +610,7 @@ on (a line's start, a card's corner); their coordinates are layout's.
   address. On `segment_line`: `form/card` a card, `form` an element,
   `b/start` and `b2/start` boundaries, `form/start`'s wedge an element;
   on `group_child_member`: `group_1` a frame, `recording` an element,
-  `recording/card` a card, `group_1/name` an element.
+  `group_1/recording/card` a card, `group_1/name` an element.
 - **The box on top under a point** is the last displayed frame or card in
   drawing order whose rectangle holds the point, edges included; a frame
   or card that is not displayed holds no point. On `segment_line` a point
@@ -618,25 +618,25 @@ on (a line's start, a card's corner); their coordinates are layout's.
   corners lie in `form/card`; the box's padding, just right of the card
   and the shadow's rim in none; without a point there is none. On
   `group_child_member` the frame above the first card and the gap between
-  the cards are the frame, the ancestor line's start `second-half/card`,
-  `recording`'s start `recording/card`; with the cards hidden, that last
+  the cards are the frame, the ancestor line's start `group_1/second-half/card`,
+  `recording`'s start `group_1/recording/card`; with the cards hidden, that last
   point is the frame.
 - **What each descriptor draws** comes from its source alone: on
   `segment_line` the box, the card's shadow, the card and the three
   boundaries; on `group_child_member` the box, the frame, and each card's
   shadow and card; with the cards hidden the box and the frame only.
 - **What a press selects** is what it hit, inside what the level offers:
-  on the arranger a card selects `A/recording/card`, the frame
+  on the arranger a card selects `A/group_1/recording/card`, the frame
   `A/group_1`, the background `A`, a line, a wedge or a title itself. The
   block's box is selected only on the arranger and in its own bundle
   editor; in the group editor of `group_1` on `bundle_mixed`,
-  `score/card`, `group_1` and `score` select themselves, `page/card`,
+  `group_1/score/card`, `group_1` and `score` select themselves, `group_2/page/card`,
   `annotations`, the title and the box nothing. A selected card folds into
   its timeline for every other reader: it still exists, its deletion
   removes `A/recording`, and what it takes away is the timeline's parts.
 - **What the pointer highlights** is the box on top, the boundary pressed
   and the band pressed, by address: on `group_child_member` the line
-  `recording` highlights `recording/card`, the frame's corner the frame,
+  `recording` highlights `group_1/recording/card`, the frame's corner the frame,
   the padding nothing.
 - **Enter's hit** of a selected address comes from the drawing alone: the
   block its box, a displayed frame or card itself, an element its first
@@ -658,51 +658,54 @@ region on `excerpt`:
 
 | selected | holding boxes |
 |---|---|
-| score, or score/start | group_1, score/card |
-| dlt_1; recording/region_1/label; excerpt; recording (the ancestor line) | group_2, excerpt/card |
-| page/card | group_2 |
+| score, or score/start | group_1, group_1/score/card |
+| dlt_1; recording/region_1/label; excerpt; recording (the ancestor line) | group_2, group_2/excerpt/card |
+| group_2/page/card | group_2 |
 | group_1; the title; annotations/card | none (the block alone) |
 | group_1/name | group_1 |
 | annotations | annotations/card |
-| score and page | group_1, score/card, group_2, page/card |
-| group_1 and score | group_1, score/card |
+| score and page | group_1, group_1/score/card, group_2, group_2/page/card |
+| group_1 and score | group_1, group_1/score/card |
 
 Nothing selected, or an address not drawn, holds nothing, the block
 neither. Without groups (`bundle_ungrouped`) `recording` is held by
 `recording/card`, the boundary `page_2/start` by `pages/card`. With the
 cards hidden `score` is held by `group_1` alone; with the frames hidden by
-`score/card`, and `group_1/name` by none. **An item over another**
+`group_1/score/card`, and `group_1/name` by none. **An item over another**
 (`over`): `annotations`' card moved to (8, 60) lies inside `group_1`'s
 frame, each drawn as in the table above, and the middle of `score`'s line
 lies on the card on top, `annotations/card`; yet `annotations/name` is
-held by `annotations/card` alone, `score` by `group_1` and `score/card`,
+held by `annotations/card` alone, `score` by `group_1` and `group_1/score/card`,
 the card on top by none. **One element drawn twice** (`twice`, with
 `recording` a member of `group_1`): its map `recording/cmap_2` is drawn
-on both cards and held by `group_1`, `recording/card`, `group_2`,
-`excerpt/card`; hidden on `recording`'s card, by `group_2` and
-`excerpt/card`. A band counts as its timeline's line.
+on both cards and held by `group_1`, `group_1/recording/card`, `group_2`,
+`group_2/excerpt/card`; hidden on `recording`'s card, by `group_2` and
+`group_2/excerpt/card`. A band counts as its timeline's line.
 
 ## Editors: what opens and what each level permits (`editors.test.ts`)
 
 An editor is a mode of the canvas on one element. What proves the dispatch
 is that the target comes from the container hit, never from what it
 holds, and that inside an editor nothing outside the edited element, nor
-the element itself, opens. Hits are built from the drawing's records, so
-the cases need no DOM. A holds `mixed`, B `bare`.
+the element itself, opens. A frame stands for its group and a card for
+its timeline, read from the card's `places` key through core (a member's
+card `group_1/score/card`, keyed `group_1/score`, opens `A/score`), never
+from the key's text. Hits are built from the drawing's records, so the
+cases need no DOM. A holds `mixed`, B `bare`.
 
 | editing | hit | opens |
 |---|---|---|
-| none | the box A; the frame group_1; the card score/card | A; A/group_1; A/score |
+| none | the box A; the frame group_1; the card group_1/score/card | A; A/group_1; A/score |
 | none | the lines score, annotations, excerpt, dlt_1, recording | each its own timeline |
-| none | score/name or score/start in score/card; group_1/name in group_1; dlt_1 in excerpt/card | A/score; A/group_1; A/dlt_1 |
+| none | score/name or score/start in group_1/score/card; group_1/name in group_1; dlt_1 in group_2/excerpt/card | A/score; A/group_1; A/dlt_1 |
 | none | score/start, score/name, group_1/name in no box; the title | nothing |
 | bundle A | the box A; another block's box | nothing |
 | bundle A | group_1; annotations/card | A/group_1; A/annotations |
-| group group_1 | group_1 itself; page/card; group_2; the box | nothing |
-| group group_1 | score/card; performance; score/name in score/card | A/score; A/performance; A/score |
-| group group_1 | group_1/name in group_1; page/name in page/card | nothing |
+| group group_1 | group_1 itself; group_2/page/card; group_2; the box | nothing |
+| group group_1 | group_1/score/card; performance; score/name in group_1/score/card | A/score; A/performance; A/score |
+| group group_1 | group_1/name in group_1; page/name in group_2/page/card | nothing |
 | timeline excerpt | dlt_1 | A/dlt_1 |
-| timeline excerpt | excerpt/card; recording (its ancestor) | nothing |
+| timeline excerpt | group_2/excerpt/card; recording (its ancestor) | nothing |
 | timeline dlt_1 | dlt_1 | nothing |
 | any | a band; a block the view does not hold | nothing |
 
@@ -757,8 +760,8 @@ it measures on the view its command would leave, so a move's preview
 equals the drawing of the applied view by construction. A holds
 `bundle_mixed` at (40, 80), its items as in the fixture facts.
 562.484619140625 is an odd multiple of 1/4096, so a width quantized from
-it rounds half up. A held card's item is its frame (`performance/card`'s
-`group_1`, `excerpt/card`'s `group_2`); a line or a title is no resized
+it rounds half up. A held card's item is its frame (`group_1/performance/card`'s
+`group_1`, `group_2/excerpt/card`'s `group_2`); a line or a title is no resized
 box, and a frame or box-held card is held by its own item.
 
 **Moves.** `group_2` to (40, 200) states it there and every other item at
@@ -785,15 +788,15 @@ order, possibly none; otherwise it moves the pressed item alone (none).
 | {group_2, annotations/card} | group_2: [annotations]; annotations: [group_2]; group_1: none |
 | {group_1, group_2, annotations/card} | annotations: [group_1, group_2] |
 | {score, annotations/name} | group_1: [annotations]; annotations: [group_1]; group_2: none |
-| {group_2, page, excerpt/card} | group_2: []; group_1, annotations: none |
+| {group_2, page, group_2/excerpt/card} | group_2: []; group_1, annotations: none |
 | {name, group_2} | group_2: []; group_1: none |
 | {recording} (an ancestor line, contained by no item) | group_2: none |
 | ∅ | none for every key |
 | `over`: {annotations/name, group_2} | group_2: [annotations]; annotations: [group_2]; group_1: none |
-| `twice`: {excerpt/card} | group_1: none; group_2: [] |
+| `twice`: {group_2/excerpt/card} | group_1: none; group_2: [] |
 | `twice`: {excerpt} | group_1: [group_2]; group_2: [group_1] |
 
-`twice` draws `excerpt/card` once, in `group_2`'s frame, though both
+`twice` draws `group_2/excerpt/card` once, in `group_2`'s frame, though both
 groups contain it by address: the test asserts both premises.
 
 **Handles.** A frame or a box-held card offers a block's handles; where
@@ -820,7 +823,7 @@ with `x: −148.55078125, y: 371.7744140625`; by (−1000, −1000) the floor;
 at block scale 2 by (80, 40) the same 1.2783203125; with `scale` 2 stated,
 halving gives `{scale: null}`, the default. On a held card the scale is
 its group's, from the frame's top left to the card's bottom right:
-`performance/card` by (40, 20) gives `{group_1: {scale: 1.1240234375}}`.
+`group_1/performance/card` by (40, 20) gives `{group_1: {scale: 1.1240234375}}`.
 Only an offered corner scales.
 
 **Box** (on `group_2` with `width` 580, bundle editor): right by 20
@@ -830,7 +833,7 @@ Only an offered corner scales.
 scale 2 right by 20 `{width: 590}`. Applied, the left row moves the place
 origin to (21, 0) and keeps `group_2`'s right edge at canvas x 628. A held
 card sizes its own card in item coordinates: with `group_1` at scale 1.25,
-`performance/card` bottom-right by (50, 30) gives `{performance: {width:
+`group_1/performance/card` bottom-right by (50, 30) gives `{"group_1/performance": {width:
 586.48486328125, height: 73.4765625}}`, right by −50 `{width: null}`.
 
 **Stretch** follows a block's rule, every stated size of the stretched
@@ -856,12 +859,12 @@ its own card vertically, and has no left handle:
 | case | card | handle | delta | values |
 |---|---|---|---|---|
 | | score | right | (20, 0) | `{group_1: {length: 420}}` |
-| | score | bottom | (0, 16) | `{score: {spacing: 12}}` (two gaps: 8 per unit) |
+| | score | bottom | (0, 16) | `{"group_1/score": {spacing: 12}}` (two gaps: 8 per unit) |
 | | score | bottom-right | (20, 16) | both of the above |
-| score height `2 Hs(4)` = 157.90625 | score | bottom | (0, 32) | `{score: {spacing: 12, height: 189.90625}}` |
-| group_1 height `2 H(8)` | score | bottom | (0, 16) | `{score: {spacing: 12}, group_1: {height: 370.46875}}` (`338.46875 × 185.234375 ÷ 169.234375`) |
+| score height `2 Hs(4)` = 157.90625 | score | bottom | (0, 32) | `{"group_1/score": {spacing: 12, height: 189.90625}}` |
+| group_1 height `2 H(8)` | score | bottom | (0, 16) | `{"group_1/score": {spacing: 12}, group_1: {height: 370.46875}}` (`338.46875 × 185.234375 ÷ 169.234375`) |
 | group_1 width `2 W(400)` | score | right | (30, 0) | `{group_1: {length: 415, width: 1154.96923828125}}` (the frame's width widens its cards, so the card is drawn `2 W(L) − 16`) |
-| performance width `2 Wc(400)` | score, or performance by (60, 0) | right | (30, 0) | `{group_1: {length: 430}, performance: {width: 1152.96923828125}}` |
+| performance width `2 Wc(400)` | score, or performance by (60, 0) | right | (30, 0) | `{group_1: {length: 430}, "group_1/performance": {width: 1152.96923828125}}` |
 
 Each row's command is accepted on the arranger, in the bundle editor and
 in the member's timeline editor, where a held card's stretch writes its
@@ -869,15 +872,15 @@ group's length alone.
 
 **The shortening lock** (`bundle_shared_parent`, `Wc(L) =
 151.39013671875 + L`): Box on `exposition`'s card right by its content
-gives `{exposition: {width: 1102.7802734375}}`; then Stretch on the card
-right by 100 `{group_1: {length: 450}, exposition: {width:
+gives `{"group_1/exposition": {width: 1102.7802734375}}`; then Stretch on the card
+right by 100 `{group_1: {length: 450}, "group_1/exposition": {width:
 1202.7802734375}}`; on the frame by −200 `{group_1: {length: 350},
-exposition: {width: 1002.7802734375}}`; on the card by −50 `{group_1:
-{length: 325}, exposition: {width: 952.7802734375}}`: the card stays twice
+"group_1/exposition": {width: 1002.7802734375}}`; on the card by −50 `{group_1:
+{length: 325}, "group_1/exposition": {width: 952.7802734375}}`: the card stays twice
 its content and the group shortens again. A card's content is its own,
 never the width its frame lends it: with `group_1` at `2 Wf(400)` and the
 card at `3 Wc(400)`, Stretch right by 90 gives `{group_1: {length: 430,
-width: null}, exposition: {width: 1744.17041015625}}`.
+width: null}, "group_1/exposition": {width: 1744.17041015625}}`.
 
 **The group editor keeps the frame's width** along time at its drawn
 width, quantized (562.48486328125), while the content, the cards' widths
@@ -897,7 +900,7 @@ Wc(400) + (L − 400)`, its frame 16 wider:
 | width 600 | right | (30, 0) / (200, 0) | `{group_1: {length: 430, width: 600}}` / `{length: 600, width: null}` (content 762.48486328125) |
 | | bottom (frame) | (0, 44) | `{group_1: {spacing: 52}}` |
 | | bottom-right (frame) | (20, 44) | `{group_1: {length: 420, width: null, spacing: 52}}` |
-| performance width `2 Wc(400)` | right | (20, 0) / (−100, 0) | `{group_1: {length: 410, width: null}, performance: {width: 1112.96923828125}}` (the frame 1108.96923828125 + 20) / `{group_1: {length: 350, width: 1108.96923828125}, performance: {width: 992.96923828125}}` |
+| performance width `2 Wc(400)` | right | (20, 0) / (−100, 0) | `{group_1: {length: 410, width: null}, "group_1/performance": {width: 1112.96923828125}}` (the frame 1108.96923828125 + 20) / `{group_1: {length: 350, width: 1108.96923828125}, "group_1/performance": {width: 992.96923828125}}` |
 
 On `bundle_shared_parent` (whose recapitulation group's frame is as wide
 as its content, 567.39013671875 at length 400), the frame, the card of
@@ -913,17 +916,17 @@ frame and a held card alike:
 | case | box | level | value | values |
 |---|---|---|---|---|
 | | group_1 or score | arranger | length 300 | `{group_1: {length: 300}}` |
-| performance width `2 Wc(400)` | group_1 or score | arranger | length 430 | `{group_1: {length: 430}, performance: {width: 1152.96923828125}}` |
+| performance width `2 Wc(400)` | group_1 or score | arranger | length 430 | `{group_1: {length: 430}, "group_1/performance": {width: 1152.96923828125}}` |
 | annotations width `2 W(400)` | annotations | bundle | length 420 | `{annotations: {length: 420, width: 1164.96923828125}}` |
 | | group_1 or score | group | length 500 / 300 | `{group_1: {length: 500, width: null}}` / `{group_1: {length: 300, width: 562.48486328125}}` |
 | group_1 width 600 | group_1 or score | group | length 430 / 500 | `{length: 430, width: 600}` / `{length: 500, width: null}` |
-| performance width `2 Wc(400)` | group_1 or score | group | length 350 / 500 | the pointer's row above / `{group_1: {length: 500, width: null}, performance: {width: 1292.96923828125}}` (`2 Wc(500)`) |
-| score height `2 Hs(4)` | group_1 / score | bundle | spacing 16 / 12 | `{group_1: {spacing: 16}}` (no card's height follows) / `{score: {spacing: 12, height: 189.90625}}` |
+| performance width `2 Wc(400)` | group_1 or score | group | length 350 / 500 | the pointer's row above / `{group_1: {length: 500, width: null}, "group_1/performance": {width: 1292.96923828125}}` (`2 Wc(500)`) |
+| score height `2 Hs(4)` | group_1 / score | bundle | spacing 16 / 12 | `{group_1: {spacing: 16}}` (no card's height follows) / `{"group_1/score": {spacing: 12, height: 189.90625}}` |
 | group_1 height `2 H(8)` | group_1 | bundle | spacing 16 | `{group_1: {spacing: 16, height: 354.46875}}` |
 | group_1 height `2 H(8)` | score | arranger | spacing 12 | `[[score, {spacing: 12}], [group_1, {height: 370.46875}]]`, in that order |
 
 A Stretch starts from the spacing drawn, stated else the container's
-default: `group_1` 8, `score/card` and `annotations/card` 4; with
+default: `group_1` 8, `group_1/score/card` and `annotations/card` 4; with
 `group_1` at `{spacing: 0}` and `score` at `{spacing: 2}`, 0 and 2. A
 vertical Stretch that finds the spacing it started from states nothing: a
 card without gaps (`performance`) draws alike at every spacing, so its
@@ -948,7 +951,7 @@ others' positions in the bundle editor (`group_2` width 601); a held
 card's size on its own key, whether the card, its line or its name is
 selected; a held card's scale on its group, once for two cards of the
 group; a length or spacing as a Stretch to it (`group_1` length 300 on
-the arranger; `score/card` length 500 in the group editor, the frame
+the arranger; `group_1/score/card` length 500 in the group editor, the frame
 then following the content, `{length: 500, width: null}`);
 a step from each element's shown value (`group_1` spacing 8 + 1 = 9), the
 value stated, else drawn, which the inspector's fields read too. Refused,
@@ -984,7 +987,7 @@ Where a dragged card drops reads only the drawing's records: the displayed
 cards a frame holds, in drawing order, each at the middle of its
 rectangle. Neither the frame's rectangle nor the next item decides, so a
 hidden frame still orders its cards. On `bundle_mixed` the middles of
-`score/card` and `performance/card` are 93.0859375 and 165.30078125
+`group_1/score/card` and `group_1/performance/card` are 93.0859375 and 165.30078125
 (their `y` plus half their height).
 
 | group | dragged | y | order |
@@ -1000,8 +1003,8 @@ displayed, asserted on both drawings, and no frame is drawn. A group not
 drawn throws.
 
 **The preview of a drop is its command applied**: dropping `performance`
-first on `bundle_mixed` draws `performance/card` at `score/card`'s y
-53.609375 and `score/card` `49.4765625 + 8` below it, at 111.0859375,
+first on `bundle_mixed` draws `group_1/performance/card` at `group_1/score/card`'s y
+53.609375 and `group_1/score/card` `49.4765625 + 8` below it, at 111.0859375,
 everything else kept, and the stored order is left as it was. **The
 command** is none for the displayed order, `order: null` for the members'
 own order
@@ -1014,7 +1017,7 @@ score, page]` itself, which core stores.
 **The release's motion** starts where the dragged copy was dropped and
 ends where the card is drawn after the gesture, both as travels from the
 card's place at the press, in drawing units, read from the two drawings'
-records: on `bundle_mixed`, `score/card` dropped with a travel of
+records: on `bundle_mixed`, `group_1/score/card` dropped with a travel of
 `(10, 100)` and stored after `performance` moves from `(10, 100)` to
 `(0, 57.4765625)` (111.0859375 less 53.609375); with the order unchanged
 (Escape, a release in place, a refusal) to `(0, 0)`. A copy dropped
@@ -1172,10 +1175,10 @@ inside. On `mixed` with `region_1` (0 to 10 samples) on `excerpt` and the
 map `cmap_3` on `dlt_1`, both addressed under the root `recording`, at
 (40, 80):
 
-- The rectangle of `score/card` gives, in drawing order, `score/cmap_1`,
-  `score/cmap_2`, `score/jump_1`, `score`, `score/start`, `score/end`,
+- The rectangle of `group_1/score/card` gives, in drawing order, `score/cmap_1`,
+  `score/cmap_2`, `score/jump_from_1`, `score`, `score/start`, `score/end`,
   `score/name`, `score/start/label`, `score/end/label`,
-  `score/jump_1/label`, never the card.
+  `score/jump_from_1/label`, never the card.
 - `cmap_3` lies in `dlt_1`'s conversion maps band, centred `1.5 + 5 − 1 =
   5.5` above `dlt_1`'s line; its reach 6.5 stays within the row's half
   pitch 7, so nothing else moves. The region lies in `excerpt`'s regions
@@ -1308,7 +1311,7 @@ screen position chosen for the case or a value derived above.
    another block fades through its node. A reorder keeps every element
    (by key) and slides them only while a reorder previews an order, never
    under reduced motion; the dragged card's own elements, hidden under its
-   copy, never slide (the 15 of `score/card`), so the card always lies
+   copy, never slide (the 15 of `group_1/score/card`), so the card always lies
    where it drops.
 8. **The toolbars' keys.** On a toolbar of `a`, `b` (disabled) and `c`,
    the arrows move the focus and the tab stop past `b` and wrap, Home and
@@ -1336,7 +1339,7 @@ Mounted on a store holding `bundle_mixed` at (40, 80) and `bare` at
    lands: on another block's faded node, on the pane, and on a faded
    frame of the edited block (`group_2` in `group_1`'s editor) alike;
    Shift and such a click leave it. A click inside still selects what it
-   hits (`score/card` in `group_1`'s editor). A marquee
+   hits (`group_1/score/card` in `group_1`'s editor). A marquee
    selects only elements inside the edited element. A refusal of the
    store is shown in the status line with the store's own message.
 4. **The view.** Opening moves the view to the edited element: opening

@@ -56,6 +56,7 @@ export {
   containersOf,
   holdingOf,
   ITEM_PLACE_MEMBERS,
+  placedElement,
   placeMembersOf,
 } from "./manifest/containers.ts";
 export { contains } from "./manifest/contains.ts";
@@ -97,6 +98,7 @@ export type {
 } from "./workspace/address.ts";
 export {
   cardAddress,
+  cardKey,
   elementAddress,
   elementOf,
   indexOf,

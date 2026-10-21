@@ -249,7 +249,8 @@ export interface Subject {
   /**
    * The drawn container the address names: the block's box, a frame, a card,
    * a band (its first record); for a timeline, or a part of a timeline or a
-   * group, the card or frame drawn for it; `null` otherwise.
+   * group, the card (its first, for a member of several groups) or frame
+   * drawn for it; `null` otherwise.
    */
   readonly box: DrawnBox | null;
   readonly resolved: ResolvedAddress;
@@ -269,12 +270,12 @@ function boxFor(drawing: Drawing, resolved: ResolvedAddress): DrawnBox | null {
       return boxOf(drawing, null) ?? null;
     case "frame":
     case "card":
-    case "band":
       return boxOf(drawing, resolved.container.address) ?? null;
-    case "timeline":
-      return resolved.container === null
-        ? null
-        : (boxOf(drawing, resolved.container.address) ?? null);
+    case "band":
+    case "timeline": {
+      const [first] = resolved.kind === "band" ? resolved.containers : resolved.cards;
+      return first?.address == null ? null : (boxOf(drawing, first.address) ?? null);
+    }
     case "part":
       return boxFor(drawing, resolved.owner);
     default:

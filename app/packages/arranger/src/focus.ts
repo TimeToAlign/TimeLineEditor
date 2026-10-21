@@ -1,11 +1,11 @@
 /** The viewport of an editor: the edited element centred in the canvas area left of the drawer. */
 
 import type { Address } from "@timetoalign/tilie-core";
-import { contains } from "@timetoalign/tilie-core";
+import { contains, resolveElement } from "@timetoalign/tilie-core";
 import { TextMeasure } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timeskeleton";
 import type { Viewport } from "@xyflow/svelte";
-import { isDisplayed, keyedBox } from "./boxes.ts";
+import { boxOf, isDisplayed } from "./boxes.ts";
 import { addressParts } from "./editing.ts";
 import { elementBounds, isContainerAddress, type Rect, rectOnCanvas } from "./marquee.ts";
 import type { BlockNode } from "./project.ts";
@@ -24,7 +24,8 @@ export type { Viewport };
 /**
  * The canvas rectangle of the editor target `target` in `node`'s block: the
  * block's box for the block itself, the displayed frame of a group or card
- * of a timeline, and for a timeline drawn in no displayed card of its own (a
+ * of a timeline (its first, for a member of several groups), and for a
+ * timeline drawn in no displayed card of its own (a
  * child, or a hidden card) the rectangle spanning every element drawn inside
  * it (core's `contains`, `elementBounds`).
  */
@@ -35,7 +36,14 @@ export function targetBounds(node: BlockNode, target: Address, metrics: FontMetr
   if (element === null) {
     return rectOnCanvas(node, { x: 0, y: 0, width: drawing.width, height: drawing.height });
   }
-  const box = keyedBox(drawing, element);
+  const resolved = resolveElement(block.manifest, element);
+  const [container] =
+    resolved?.kind === "frame"
+      ? [resolved.container]
+      : resolved?.kind === "timeline"
+        ? resolved.cards
+        : [];
+  const box = container?.address == null ? undefined : boxOf(drawing, container.address);
   if (box !== undefined && isDisplayed(box)) return rectOnCanvas(node, box);
   const measure = new TextMeasure(metrics);
   const spans = drawing.elements

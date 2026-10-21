@@ -35,7 +35,7 @@ export interface Block extends BlockPlacement {
   /**
    * The stated places of the containers of its manifest's drawing, by place
    * key (`containersOf`): an item's place by group id or ungrouped root id,
-   * a member's card's size and spacing by member id.
+   * a member's card's size and spacing by `<group id>/<member id>` (`cardKey`).
    */
   readonly places: { readonly [key: string]: ItemPlace | CardPlace };
   readonly manifest: Manifest;

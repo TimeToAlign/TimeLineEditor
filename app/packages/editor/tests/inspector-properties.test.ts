@@ -158,8 +158,8 @@ describe("the geometry", () => {
   });
 
   it.each([
-    ["score/card", "group_1"],
-    ["excerpt/card", "group_2"],
+    ["group_1/score/card", "group_1"],
+    ["group_2/excerpt/card", "group_2"],
   ])("names %s, held by the frame of %s, with its frame's scale and length", (element, group) => {
     const store = storeOf();
     const { drawing } = stored(store);
@@ -198,7 +198,7 @@ describe("the geometry", () => {
 
   it.each([
     [[]],
-    [["group_1", "score/card"]],
+    [["group_1", "group_1/score/card"]],
     [["", "group_1"]],
     [["name"]],
     [["recording"]],
@@ -226,7 +226,7 @@ describe("the geometry", () => {
       scale: 1.5,
       spacing: 2,
     });
-    expect(geometry(store, "score/card").elements[0]?.values).toMatchObject({
+    expect(geometry(store, "group_1/score/card").elements[0]?.values).toMatchObject({
       scale: 1.5,
       length: 300,
       width: 650,
@@ -240,8 +240,10 @@ describe("the geometry", () => {
     const frame = itemValues(recorded(live.drawing, "frame", "group_1"));
     expect(geometryIn(store, ["group_1"], "arranger", live)?.elements[0]?.values).toEqual(frame);
     expect(frame.length).toBe(460);
-    const card = recorded(live.drawing, "card", "score/card").card;
-    expect(geometryIn(store, ["score/card"], "arranger", live)?.elements[0]?.values).toMatchObject({
+    const card = recorded(live.drawing, "card", "group_1/score/card").card;
+    expect(
+      geometryIn(store, ["group_1/score/card"], "arranger", live)?.elements[0]?.values,
+    ).toMatchObject({
       length: 460,
       width: card?.size.width,
     });
@@ -268,7 +270,7 @@ describe("the fields", () => {
     expect(labels("")).toEqual(LABELS);
     expect(labels("group_1")).toEqual(LABELS);
     expect(labels("annotations/card")).toEqual(LABELS);
-    expect(labels("score/card")).toEqual([
+    expect(labels("group_1/score/card")).toEqual([
       "group length",
       "group scale",
       "spacing",
@@ -286,8 +288,8 @@ describe("the fields", () => {
     ["group_1", "bundle", []],
     ["group_1", "group", ["x", "y"]],
     ["annotations/card", "timeline", ["x", "y"]],
-    ["score/card", "arranger", []],
-    ["score/card", "group", []],
+    ["group_1/score/card", "arranger", []],
+    ["group_1/score/card", "group", []],
   ] as const)("withholds for %s in %s exactly %j", (element, level, withheld) => {
     const store = storeOf();
     const found = geometryIn(store, [element], level);
@@ -351,11 +353,11 @@ describe("the commands are the arranger's", () => {
   it.each([
     [[""], "x", "12.5", 12.5, "arranger"],
     [["group_1"], "length", "300", 300, "arranger"],
-    [["score/card"], "scale", "1.5", 1.5, "arranger"],
-    [["score/card"], "spacing", "1.5", 1.5, "group"],
-    [["score/card"], "length", "500", 500, "group"],
+    [["group_1/score/card"], "scale", "1.5", 1.5, "arranger"],
+    [["group_1/score/card"], "spacing", "1.5", 1.5, "group"],
+    [["group_1/score/card"], "length", "500", 500, "group"],
     [["group_1", "group_2"], "length", "350", 350, "arranger"],
-    [["performance/card", "score/card"], "width", "600", 600, "timeline"],
+    [["group_1/performance/card", "group_1/score/card"], "width", "600", 600, "timeline"],
     [["group_1"], "scale", "1.5", 1.5, "bundle"],
   ] as const)("%j %s %s at %s is placeEdit's set", (elements, property, text, value, level) => {
     const store = storeOf();
@@ -378,13 +380,13 @@ describe("the commands are the arranger's", () => {
   it("sends an emptied width or height as null, and nothing for a value already stored", () => {
     const store = storeOf();
     dispatch(store, `${M}/score`, { place: { width: 650 } });
-    const card = geometry(store, "score/card");
+    const card = geometry(store, "group_1/score/card");
     expect(propertyCommand(store.view, card, "width", "")).toEqual({
       ok: true,
       value: {
         command: placeEdit(
           store.view,
-          addresses("score/card"),
+          addresses("group_1/score/card"),
           "width",
           null,
           "arranger",
@@ -627,7 +629,7 @@ describe("the Properties form", () => {
 
   it("labels a held card's fields and offers them at every level", () => {
     const store = storeOf();
-    show(store, ["score/card"]);
+    show(store, ["group_1/score/card"]);
     expect(forms()).toEqual(["Card properties"]);
     expect(fields().map(([label, , , disabled]) => [label, disabled])).toEqual([
       ["group length", false],
@@ -677,7 +679,7 @@ describe("the Properties form", () => {
   });
 
   it.each([
-    [["group_1", "score/card"], null],
+    [["group_1", "group_1/score/card"], null],
     [["name"], "Mixed"],
   ])("shows the hint for %j, after the name %j", (elements, name) => {
     show(storeOf(), elements);

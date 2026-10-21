@@ -72,15 +72,19 @@ export function isNamed(manifest: Manifest): boolean {
 }
 
 /** The words that follow an element's address to name one of its parts. */
-export const PART_WORDS = ["start", "end", "name", "label", "card"] as const;
+export const PART_WORDS = ["start", "end", "name", "label"] as const;
+
+/** The word that ends a card's address (`cardAddress`). */
+export const CARD_WORD = "card";
 
 /**
  * Whether `id` is reserved, so that no id of a manifest may be it: a part
- * word, which follows an element's address as one of its parts, or a band's
- * id (`BAND_ID_PATTERN`), which follows a timeline's id as one of its bands.
+ * word, which follows an element's address as one of its parts, the card
+ * word, which ends a card's address, or a band's id (`BAND_ID_PATTERN`),
+ * which follows a timeline's id as one of its bands.
  */
 export function isReservedId(id: string): boolean {
-  return PART_WORDS.some((word) => word === id) || BAND_ID_PATTERN.test(id);
+  return id === CARD_WORD || PART_WORDS.some((word) => word === id) || BAND_ID_PATTERN.test(id);
 }
 
 /** The address of a manifest's title, the top label of its box, named or not. */
@@ -96,12 +100,26 @@ export function elementAddress(root: string, id: string): string {
   return `${root}/${id}`;
 }
 
-/** The address of a timeline's card: `<timeline>/card`. */
-export function cardAddress(timeline: string): string {
-  return partAddress(timeline, "card");
+/**
+ * The `places` key of the card of `timeline` (drawing.md section 8.6): in
+ * the frame of `group`, `<group>/<timeline>`; on the box (`group` null, an
+ * ungrouped root), `<timeline>`.
+ */
+export function cardKey(timeline: string, group: string | null): string {
+  return group === null ? timeline : `${group}/${timeline}`;
 }
 
-/** The address of an element's part, `<owner address>/<word>`: a title, a label, a mark or a card. */
+/**
+ * The address of the card of `timeline` (drawing.md section 2.2): its
+ * `places` key followed by the card word, `<group>/<timeline>/card` for a
+ * member's card in the frame of `group`, `<timeline>/card` for an ungrouped
+ * root's.
+ */
+export function cardAddress(timeline: string, group: string | null): string {
+  return `${cardKey(timeline, group)}/${CARD_WORD}`;
+}
+
+/** The address of an element's part, `<owner address>/<word>`: a title, a label or a mark. */
 export function partAddress(owner: string, word: (typeof PART_WORDS)[number]): string {
   return `${owner}/${word}`;
 }

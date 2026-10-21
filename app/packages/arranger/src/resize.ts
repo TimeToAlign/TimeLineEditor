@@ -10,9 +10,10 @@ import type {
   SetCommand,
   WorkspaceSettings,
 } from "@timetoalign/tilie-core";
-import { ITEM_PLACE_MEMBERS, qualify } from "@timetoalign/tilie-core";
+import { ITEM_PLACE_MEMBERS } from "@timetoalign/tilie-core";
 import type { FontMetrics } from "@timetoalign/timeskeleton";
 import { drawingOf, nodePosition } from "./drawing.ts";
+import { placeTarget } from "./editing.ts";
 import { GRID_FREE, MIN_LENGTH, MIN_SCALE, quantize } from "./numbers.ts";
 
 export type ResizeMode = "scale" | "box" | "stretch";
@@ -309,7 +310,7 @@ const RESIZED = ["x", "y", "scale", "length", "spacing", "width", "height", "pla
 /**
  * The `set` storing a resize's values on its block: the block's own members
  * in one change, then the place of every item in `values.places` in one
- * change each, aimed at the item. `null` when every value is the block's own
+ * change each, aimed at its frame's group or card's timeline (`placeTarget`). `null` when every value is the block's own
  * (`places` its own object, as `blockStretchPlaces` keeps it): a resize that
  * changes no stored value is no command, like a drag that ends where it began.
  */
@@ -321,7 +322,7 @@ export function resizeCommand(block: Block, values: Partial<Block>): SetCommand 
   const { places, ...own } = values;
   const changes: Change[] = [{ target: block.id, values: own }];
   for (const [key, place] of Object.entries(places ?? {})) {
-    changes.push({ target: qualify(block.id, key), values: { place } });
+    changes.push({ target: placeTarget(block, key), values: { place } });
   }
   return { type: "set", changes };
 }

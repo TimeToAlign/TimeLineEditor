@@ -59,7 +59,7 @@ describe("inspectedSubject", () => {
     ["bmixed0000/group_1", named("Group", "Performance")],
     ["bmixed0000/group_1/name", named("Title of group", "Performance")],
     ["bmixed0000/score", named("Timeline", "Score")],
-    ["bmixed0000/score/card", named("Card of timeline", "Score")],
+    ["bmixed0000/group_1/score/card", named("Card of timeline", "Score")],
     ["bmixed0000/score/start", named("Start of timeline", "Score")],
     ["bmixed0000/score/end", named("End of timeline", "Score")],
     ["bmixed0000/score/name", named("Name of timeline", "Score")],
@@ -98,15 +98,14 @@ describe("inspectedSubject", () => {
   it.each([
     ["map0000000/melody/tempo", named("Conversion map", "Tempo")],
     ["map0000000/melody/ticks", named("Conversion map", "Ticks")],
-    ["flow000000/flow:quarters/break_1", named("Flow marker", "fine")],
-    ["flow000000/flow:quarters/break_1/label", named("Label of flow marker", "fine")],
-    ["flow000000/flow:quarters/jump_1", unnamed("Jump origin", "jump_1")],
-    ["flow000000/flow:quarters/marker_1", named("Jump target", "repeat-start")],
+    ["flow000000/flow:quarters/flow_marker_1", named("Flow marker", "fine")],
+    ["flow000000/flow:quarters/flow_marker_1/label", named("Label of flow marker", "fine")],
+    ["flow000000/flow:quarters/jump_from_1", unnamed("Jump origin", "jump_from_1")],
+    ["flow000000/flow:quarters/jump_to_1", named("Jump target", "repeat-start")],
     ["styled0000/score/intro", named("Region", "intro")],
     ["styled0000/score/intro/label", named("Label of region", "intro")],
     ["styled0000/score/da-capo", unnamed("Jump origin", "da-capo")],
     ["styled0000/a", unnamed("Timeline", "a")],
-    ["styled0000/a/card", unnamed("Card of timeline", "a")],
   ])("names %s, an element of a timeline", (address, subject) => {
     expect(inspectedSubject(small, [address])).toEqual(subject);
   });
@@ -164,9 +163,11 @@ describe("inspectedSubject", () => {
     ["a block that does not exist", ["0000000009"]],
     ["a band numbered 2", ["bmixed0000/score/regions_2"]],
     ["a part of a band", ["bmixed0000/score/regions_1/label"]],
-    ["a band after a part", ["bmixed0000/score/card/regions_1"]],
+    ["a band after a part", ["bmixed0000/group_1/score/card/regions_1"]],
+    ["a member's card without its group", ["bmixed0000/score/card"]],
+    ["the card of a timeline drawn in none", ["styled0000/a/card"]],
     ["a band of a group", ["bmixed0000/group_1/regions_1"]],
-    ["a band of a jump", ["bmixed0000/score/jump_1/flow_control_1"]],
+    ["a band of a jump", ["bmixed0000/score/jump_from_1/flow_control_1"]],
   ])("gives null for %s", (_case, selection) => {
     expect(inspectedSubject(bundles, selection)).toBe(null);
   });
@@ -219,7 +220,10 @@ describe("the subject beside the inspector's heading", () => {
     expect(heading?.textContent).toBe("Inspector");
     expect(shown(selection, ["bmixed0000/group_1"])).toEqual(["Group Performance", null]);
     expect(shown(selection, ["bmixed0000/score"])).toEqual(["Timeline Score", null]);
-    expect(shown(selection, ["bmixed0000/score/card"])).toEqual(["Card of timeline Score", null]);
+    expect(shown(selection, ["bmixed0000/group_1/score/card"])).toEqual([
+      "Card of timeline Score",
+      null,
+    ]);
 
     selection = drawer("groups");
     expect(shown(selection, ["gchild0000"])).toEqual(["Anonymous bundle", null]);

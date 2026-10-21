@@ -358,10 +358,10 @@ test.describe("a member's card in a group", () => {
     };
     const others = { group_2: { x: 8, y: 245.9921875 }, page: { x: 8, y: 478.08203125 } };
 
-    await select(page, [`${block}/exposition/card`]);
+    await select(page, [`${block}/group_1/exposition/card`]);
     await chooseMode(page, "box");
     await drag("right", 100);
-    expect(await places()).toEqual({ exposition: { width: 651.39013671875 }, ...others });
+    expect(await places()).toEqual({ "group_1/exposition": { width: 651.39013671875 }, ...others });
 
     await chooseMode(page, "stretch");
     expect((await shownHandles(page)).sort()).toEqual(
@@ -369,12 +369,12 @@ test.describe("a member's card in a group", () => {
     );
     await drag("right", 60);
     expect(await places()).toEqual({
-      exposition: { width: 711.39013671875 },
+      "group_1/exposition": { width: 711.39013671875 },
       group_1: { length: 450.7890625 },
       ...others,
     });
     const take = await node(page, block)
-      .locator('[data-address="take_1/card"]')
+      .locator('[data-address="group_1/take_1/card"]')
       .last()
       .getAttribute("width");
     expect(take).toBe("602.1792");
@@ -382,7 +382,7 @@ test.describe("a member's card in a group", () => {
     await select(page, [`${block}/group_1`]);
     await drag("right", -120);
     expect(await places()).toEqual({
-      exposition: { width: 591.3896484375 },
+      "group_1/exposition": { width: 591.3896484375 },
       group_1: { length: 349.2109375 },
       ...others,
     });

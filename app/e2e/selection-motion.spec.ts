@@ -129,9 +129,9 @@ test.describe("the selection", () => {
     expect(await selection(page)).toEqual([GROUP_2]);
 
     await openSettled(page, `${SHARED}/take_2`);
-    expect(await selection(page)).toEqual([`${SHARED}/take_2/card`]);
+    expect(await selection(page)).toEqual([`${SHARED}/group_2/take_2/card`]);
     await resize(page, "box", "right", 30, 0);
-    expect(await selection(page)).toEqual([`${SHARED}/take_2/card`]);
+    expect(await selection(page)).toEqual([`${SHARED}/group_2/take_2/card`]);
   });
 
   test("opening an editor selects the edited element", async ({ page }) => {
@@ -140,11 +140,11 @@ test.describe("the selection", () => {
     await expect.poll(() => editing(page)).toEqual([{ target: GROUP_2, kind: "group" }]);
     expect(await selection(page)).toEqual([GROUP_2]);
 
-    await select(page, [`${SHARED}/recapitulation/card`]);
+    await select(page, [`${SHARED}/group_2/recapitulation/card`]);
     await arranger(page).focus();
     await page.keyboard.press("Enter");
     await expect.poll(() => editing(page)).toHaveLength(2);
-    expect(await selection(page)).toEqual([`${SHARED}/recapitulation/card`]);
+    expect(await selection(page)).toEqual([`${SHARED}/group_2/recapitulation/card`]);
 
     await openSettled(page, `${SHARED}/recapitulation_first`);
     expect(await selection(page)).toEqual([`${SHARED}/recapitulation_first`]);
@@ -165,7 +165,7 @@ test.describe("the selection", () => {
     await page.mouse.click(faded.x, faded.y);
     await expect.poll(() => selection(page)).toEqual([]);
 
-    await select(page, [`${SHARED}/take_2/card`]);
+    await select(page, [`${SHARED}/group_2/take_2/card`]);
     const pane = await emptyPoint(page, -20, 450);
     await page.mouse.click(pane.x, pane.y);
     await expect.poll(() => selection(page)).toEqual([]);
@@ -214,7 +214,7 @@ test.describe("the release of a card reorder", () => {
     await setViewport(page, VIEW);
     await openSettled(page, `${block}/group_1`);
     await setViewport(page, VIEW);
-    const from = await framePoint(page, block, "second-half/card");
+    const from = await framePoint(page, block, "group_1/second-half/card");
     const to = await toScreen(page, 0, 172);
     await page.mouse.move(from.x, from.y);
     await page.mouse.down();
@@ -229,9 +229,9 @@ test.describe("the release of a card reorder", () => {
       };
       const shown = (): Shown => {
         const copy = node?.querySelector(".tilie-dragged");
-        const card = [...(node?.querySelectorAll('[data-address="second-half/card"]') ?? [])].at(
-          -1,
-        );
+        const card = [
+          ...(node?.querySelectorAll('[data-address="group_1/second-half/card"]') ?? []),
+        ].at(-1);
         if (card === undefined) throw new Error("the card is not drawn");
         return {
           copy: copy == null ? null : rect(copy),
@@ -300,7 +300,7 @@ test.describe("a stretch in the group editor", () => {
     await openSettled(page, GROUP_2);
     // The frame's right edge clear of the drawer, at zoom 1.
     await setViewport(page, { x: -400, y: 40, zoom: 1 });
-    for (const box of [GROUP_2, `${SHARED}/recapitulation/card`]) {
+    for (const box of [GROUP_2, `${SHARED}/group_2/recapitulation/card`]) {
       await select(page, [box]);
       await resize(page, "stretch", "right", 60, 0);
       expect(await place(page)).toEqual({ length: 460 });

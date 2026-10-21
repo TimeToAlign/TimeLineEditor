@@ -427,7 +427,7 @@ describe("set", () => {
       [view, at("clt_1"), { length: quarters(32, 2) }],
       [view, at("clt_3"), { offset: quarters(4) }],
       [maps, at("melody/tempo"), { map: tempo() }],
-      [flow, at("flow:quarters/marker_1"), { coordinate: quarters(4, 2) }],
+      [flow, at("flow:quarters/jump_to_1"), { coordinate: quarters(4, 2) }],
     ];
     expect(cases.map(([start, target, values]) => apply(start, set(target, values)))).toEqual(
       cases.map(([, target, values]) => nothing(target, Object.keys(values)[0] as string)),
@@ -618,11 +618,11 @@ describe("regions and flow-control elements", () => {
       );
     }
     expect([marker.id, segno.id, jump.id, fine.id, ds.id]).toEqual([
-      "marker_1",
-      "marker_2",
-      "jump_1",
-      "break_1",
-      "jump_2",
+      "jump_to_1",
+      "jump_to_2",
+      "jump_from_1",
+      "flow_marker_1",
+      "jump_from_2",
     ]);
     const flow = (next: View) => root(next).flow_control;
     const add = (value: object) => ({
@@ -633,39 +633,39 @@ describe("regions and flow-control elements", () => {
     const coda = { id: "coda_1", type: "jump_to", manifestation: "coda", coordinate: quarters(12) };
     const retargeted = applied(
       applied(view, add(coda)),
-      set(at("flow:quarters/jump_1"), { target: "coda_1" }),
+      set(at("flow:quarters/jump_from_1"), { target: "coda_1" }),
     );
     expect(flow(retargeted)).toEqual([
       marker,
       segno,
       { ...jump, target: "coda_1" },
-      fine,
       { ...coda, name: null, label: null, meta: {} },
+      fine,
       ds,
     ]);
-    const copy = { ...fine, id: "break_2", coordinate: quarters(3) };
+    const copy = { ...fine, id: "flow_marker_2", coordinate: quarters(3) };
     const swapped = applied(applied(view, add(copy)), {
       type: "remove",
-      targets: [at("flow:quarters/break_1")],
+      targets: [at("flow:quarters/flow_marker_1")],
     });
     expect(flow(swapped)).toEqual([marker, copy, segno, jump, ds]);
-    const unjumped = applied(view, { type: "remove", targets: [at("flow:quarters/jump_1")] });
+    const unjumped = applied(view, { type: "remove", targets: [at("flow:quarters/jump_from_1")] });
     expect(flow(unjumped)).toEqual([marker, segno, fine, ds]);
     const shifted = applied(
       view,
-      set(at("flow:quarters/marker_1"), { coordinate: quarters(2, 2) }),
+      set(at("flow:quarters/jump_to_1"), { coordinate: quarters(2, 2) }),
     );
     expect(flow(shifted)).toEqual([{ ...marker, coordinate: quarters(1) }, segno, jump, fine, ds]);
     const { target: _, ...toStart } = jump;
-    const untargeted = applied(view, set(at("flow:quarters/jump_1"), { target: null }));
+    const untargeted = applied(view, set(at("flow:quarters/jump_from_1"), { target: null }));
     expect(flow(untargeted)).toEqual([marker, segno, toStart, fine, ds]);
     const barline = {
-      id: "jump_1",
+      id: "jump_from_1",
       type: "flow_marker",
       manifestation: "double_barline",
       coordinate: quarters(8),
     };
-    const replaced = applied(view, set(at("flow:quarters/jump_1"), { flow_control: barline }));
+    const replaced = applied(view, set(at("flow:quarters/jump_from_1"), { flow_control: barline }));
     expect(flow(replaced)).toEqual([
       marker,
       segno,
@@ -677,25 +677,25 @@ describe("regions and flow-control elements", () => {
 
   it("refuses with the exact code and path", () => {
     const flow = viewOf([A, "flow_control.json"]);
-    expect(rejected(flow, set(at("flow:quarters/jump_1"), { target: "nothing" }))).toEqual({
+    expect(rejected(flow, set(at("flow:quarters/jump_from_1"), { target: "nothing" }))).toEqual({
       code: "schema_violation",
       path: [...flowPath, 2, "target"],
     });
     // Removing the jump target a jump origin names leaves that origin second.
-    expect(rejected(flow, { type: "remove", targets: [at("flow:quarters/marker_1")] })).toEqual({
+    expect(rejected(flow, { type: "remove", targets: [at("flow:quarters/jump_to_1")] })).toEqual({
       code: "schema_violation",
       path: [...flowPath, 1, "target"],
     });
     expect(
-      rejected(flow, set(at("flow:quarters/break_1"), { manifestation: "repeat_end" })),
+      rejected(flow, set(at("flow:quarters/flow_marker_1"), { manifestation: "repeat_end" })),
     ).toEqual({ code: "schema_violation", path: [...flowPath, 3, "manifestation"] });
-    expect(rejected(flow, set(at("flow:quarters/break_1"), { repeat_count: 2 }))).toEqual({
+    expect(rejected(flow, set(at("flow:quarters/flow_marker_1"), { repeat_count: 2 }))).toEqual({
       code: "schema_violation",
       path: [...flowPath, 3, "repeat_count"],
     });
-    expect(rejected(flow, set(at("flow:quarters/jump_1"), { type: "jump_to" }))).toEqual({
+    expect(rejected(flow, set(at("flow:quarters/jump_from_1"), { type: "jump_to" }))).toEqual({
       code: "unknown_property",
-      path: [at("flow:quarters/jump_1"), "type"],
+      path: [at("flow:quarters/jump_from_1"), "type"],
     });
     const other = {
       id: "other",
@@ -703,14 +703,14 @@ describe("regions and flow-control elements", () => {
       manifestation: "fine",
       coordinate: quarters(8),
     };
-    expect(rejected(flow, set(at("flow:quarters/jump_1"), { flow_control: other }))).toEqual({
+    expect(rejected(flow, set(at("flow:quarters/jump_from_1"), { flow_control: other }))).toEqual({
       code: "id_not_settable",
-      path: [at("flow:quarters/jump_1"), "flow_control", "id"],
+      path: [at("flow:quarters/jump_from_1"), "flow_control", "id"],
     });
     const dict = { unit: "quarters", number_type: "fraction", value: [1, 1] };
-    expect(rejected(flow, set(at("flow:quarters/break_1"), { coordinate: dict }))).toEqual({
+    expect(rejected(flow, set(at("flow:quarters/flow_marker_1"), { coordinate: dict }))).toEqual({
       code: "invalid_coordinate",
-      path: [at("flow:quarters/break_1"), "coordinate"],
+      path: [at("flow:quarters/flow_marker_1"), "coordinate"],
     });
     const regions = viewOf([A, "with_region.json"]);
     expect(rejected(regions, set(at("clt_1/region_1"), { end: quarters(0) }))).toEqual({
@@ -966,7 +966,7 @@ describe("where a timeline lies", () => {
       meta: {},
       members: ["annotations"],
     });
-    expect(block(view).places.annotations).toEqual({ width: 300, spacing: 2 });
+    expect(block(view).places).toEqual({ "group_3/annotations": { width: 300, spacing: 2 } });
   });
 
   it("adds a minimal group in its complete form, keeping its unknown keys", () => {
@@ -994,7 +994,7 @@ describe("where a timeline lies", () => {
     expect(timeline(view, "recording")?.children).toEqual([]);
     expect(manifest(view).timelines.find((item) => item.id === "excerpt")).toEqual(unplaced);
     expect(groupOf(view, "group_2")?.members).toEqual(["excerpt", "page"]);
-    expect(block(view).places.excerpt).toEqual({ width: 200, height: 80 });
+    expect(block(view).places["group_2/excerpt"]).toEqual({ width: 200, height: 80 });
     expect(manifest(view).graphical?.order?.excerpt).toEqual(regionsFirst("excerpt"));
   });
 
