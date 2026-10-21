@@ -1,7 +1,7 @@
 /// <reference types="node" />
 /**
  * Views built from the manifest fixtures of the installed
- * `@timetoalign/timeskeleton` package through core's commands.
+ * `@timetoalign/timetoshare` package through core's commands.
  */
 
 import { readFileSync } from "node:fs";
@@ -20,14 +20,14 @@ import {
 import type { Drawing, DrawnBox, DrawnElement } from "@timetoalign/tilie-layout";
 import { INITIAL_STYLE } from "@timetoalign/tilie-layout";
 import type { DescriptorSource } from "@timetoalign/tilie-writers";
-import { dumps, fontMetrics, parseJson, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
+import { dumps, fontMetrics, parseJson, SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import type { BandBox } from "../src/boxes.ts";
 import { isBand } from "../src/boxes.ts";
 
 export const metrics = fontMetrics;
 
 const packageDir = path.dirname(
-  createRequire(import.meta.url).resolve("@timetoalign/timeskeleton/package.json"),
+  createRequire(import.meta.url).resolve("@timetoalign/timetoshare/package.json"),
 );
 
 export const A = "0000000000";

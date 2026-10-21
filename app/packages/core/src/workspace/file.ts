@@ -1,13 +1,13 @@
 /**
  * The workspace file, `<name>.tle.json`: `{meta, name, settings, blocks,
- * journal, sessions}` written by timeskeleton's `dumps` and read losslessly
+ * journal, sessions}` written by TimeToShare's `dumps` and read losslessly
  * by its `parseJson`. Any other format or version refuses the file before
  * anything else is read; any unknown member and any invalid manifest refuses
  * it too, and so does a session that the journal does not reach exactly
  * once. A file stating no `name` holds a workspace named `untitled`.
  */
 
-import { dumps, parseJson } from "@timetoalign/timeskeleton";
+import { dumps, parseJson } from "@timetoalign/timetoshare";
 import { parseCommand } from "../commands/parse.ts";
 import type { LoadError, Problem } from "../errors.ts";
 import { ErrorCode, isCommandError, isLoadError, problem } from "../errors.ts";

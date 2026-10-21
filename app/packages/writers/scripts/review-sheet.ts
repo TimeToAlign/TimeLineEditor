@@ -60,7 +60,7 @@ try {
   }
   writeFileSync(
     path.join(output, "index.html"),
-    `<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<title>TimeSkeleton drawings</title>\n<style>body{font-family:sans-serif;margin:16px}figure{margin:0 0 32px}img{display:block;margin-top:8px;border:1px solid #ccc}</style>\n</head>\n<body>\n<h1>TimeSkeleton drawings</h1>\n<p>Rasterized at twice the size (rsvg-convert --zoom 2) with only <code>${escapeHtml(path.join(fontDirectory, "DejaVuSans.ttf"))}</code> available.</p>\n${rows.join("\n")}\n</body>\n</html>\n`,
+    `<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<title>TimeToShare drawings</title>\n<style>body{font-family:sans-serif;margin:16px}figure{margin:0 0 32px}img{display:block;margin-top:8px;border:1px solid #ccc}</style>\n</head>\n<body>\n<h1>TimeToShare drawings</h1>\n<p>Rasterized at twice the size (rsvg-convert --zoom 2) with only <code>${escapeHtml(path.join(fontDirectory, "DejaVuSans.ttf"))}</code> available.</p>\n${rows.join("\n")}\n</body>\n</html>\n`,
   );
   console.log(`${rows.length} drawings in ${path.join(output, "index.html")}`);
 } finally {

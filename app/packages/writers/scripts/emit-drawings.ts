@@ -1,5 +1,5 @@
 /**
- * Emit the drawing fixtures of the schema package into a timeskeleton
+ * Emit the drawing fixtures of the schema package into a TimeToShare
  * checkout: for every review case, `fixtures/<version>/drawings/<name>/`
  * holds `inputs.json`, `figure.svg` and `figure.tex`, the drawing placed at
  * `(0, 0)` with the case's scale. The cases are drawn from the installed
@@ -11,7 +11,7 @@
  * of a released version (tag `v<version>` in the checkout) are frozen, and a
  * directory that names no case is removed.
  *
- * Usage, from `app/packages/writers/`: `pnpm emit-drawings --into <timeskeleton checkout>`.
+ * Usage, from `app/packages/writers/`: `pnpm emit-drawings --into <TimeToShare checkout>`.
  */
 
 import { spawnSync } from "node:child_process";
@@ -19,7 +19,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
-import { SCHEMA_VERSION } from "@timetoalign/timeskeleton";
+import { SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import { writeSvg, writeTikz } from "../src/index.ts";
 import {
   fixturesDirectory,
@@ -94,7 +94,7 @@ function emit(checkout: string): string[] {
   const fixtures = path.join(checkout, "fixtures", SCHEMA_VERSION);
   for (const required of [path.join(checkout, "schema"), fixtures, path.join(checkout, ".git")]) {
     if (!existsSync(required)) {
-      throw new Error(`${checkout} is not a timeskeleton checkout: ${required} is missing`);
+      throw new Error(`${checkout} is not a TimeToShare checkout: ${required} is missing`);
     }
   }
   const tag = `v${SCHEMA_VERSION}`;
@@ -157,7 +157,7 @@ function emit(checkout: string): string[] {
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const { values } = parseArgs({ options: { into: { type: "string" } } });
   if (values.into === undefined)
-    throw new Error("usage: emit-drawings --into <timeskeleton checkout>");
+    throw new Error("usage: emit-drawings --into <TimeToShare checkout>");
   const problems = emit(path.resolve(values.into));
   if (problems.length > 0) {
     console.error(problems.join("\n"));

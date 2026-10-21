@@ -1,6 +1,6 @@
 /**
  * `toDescriptors(drawing)`: the SVG element descriptors of one drawing
- * (`docs/drawing.md` in timeskeleton, sections 7.2 and 8.5). An editor
+ * (`docs/drawing.md` in TimeToShare, sections 7.2 and 8.5). An editor
  * renders these descriptors on screen; the SVG and TikZ writers serialize
  * them.
  */

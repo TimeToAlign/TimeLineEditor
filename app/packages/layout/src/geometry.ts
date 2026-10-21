@@ -1,7 +1,7 @@
 /**
  * The geometry an element is drawn with, read by the layout for its extents
  * and by the writers for its descriptors (`docs/drawing.md` in
- * timeskeleton, sections 6.6, 6.7 and 7.2), so the two never differ.
+ * TimeToShare, sections 6.6, 6.7 and 7.2), so the two never differ.
  */
 
 import type { DrawnElement, LineElement, PathCommand, Point, RegionElement } from "./elements.ts";

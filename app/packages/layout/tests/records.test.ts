@@ -12,7 +12,7 @@ import {
   parseBand,
 } from "@timetoalign/tilie-core";
 import { Rational } from "@timetoalign/tilie-core/numbers";
-import { canonicalOrder, type Graphical, validate } from "@timetoalign/timeskeleton";
+import { canonicalOrder, type Graphical, validate } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import {
   coordinateAt,

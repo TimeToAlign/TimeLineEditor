@@ -1,5 +1,5 @@
 /**
- * The five bands of every timeline (`docs/drawing.md` in timeskeleton,
+ * The five bands of every timeline (`docs/drawing.md` in TimeToShare,
  * sections 2.1, 2.2 and 6.4): their kinds, their addresses and the ids they
  * reserve. The orders that stack them are `order.ts`'s; reading a band
  * address is the resolver's (`workspace/address.ts`).

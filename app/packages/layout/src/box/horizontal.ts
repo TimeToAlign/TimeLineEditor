@@ -1,5 +1,5 @@
 /**
- * The box's one horizontal layout (`docs/drawing.md` in timeskeleton,
+ * The box's one horizontal layout (`docs/drawing.md` in TimeToShare,
  * section 8.2), in item coordinates: the name column `n`, the start `s0` of
  * every member drawing, the right margin `Mr` past every line's end, and an
  * item's right edge `Ri` before its request.

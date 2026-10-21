@@ -4,7 +4,7 @@
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "types": ["node"],
     "paths": {
-      "@timetoalign/timeskeleton": ["../packages/core/node_modules/@timetoalign/timeskeleton"]
+      "@timetoalign/timetoshare": ["../packages/core/node_modules/@timetoalign/timetoshare"]
     }
   },
   "include": [".", "../playwright.config.ts", "../packages/editor/src/env.d.ts"]

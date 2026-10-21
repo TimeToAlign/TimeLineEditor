@@ -1,6 +1,6 @@
 /**
  * One item of the box laid out in item coordinates (`docs/drawing.md` in
- * timeskeleton, sections 8.2, 8.4 and 8.5): a group's frame with its title
+ * TimeToShare, sections 8.2, 8.4 and 8.5): a group's frame with its title
  * and its members' cards, or a box-held card, an item of one card without a
  * frame. Both take the same path: the cards' member drawings drawn at the
  * shared start, the right edge, then the elements in drawing order with the

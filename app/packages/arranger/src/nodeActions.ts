@@ -1,7 +1,7 @@
 /** What a block node and the canvas's controls ask of the canvas while the user edits. */
 
 import type { BlockId, Command, View } from "@timetoalign/tilie-core";
-import type { FontMetrics } from "@timetoalign/timeskeleton";
+import type { FontMetrics } from "@timetoalign/timetoshare";
 import { createContext } from "svelte";
 import type { LevelRules } from "./containers.ts";
 import type { GestureSlot } from "./gesture.ts";

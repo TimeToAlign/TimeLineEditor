@@ -8,7 +8,7 @@ import type { LivePlacement } from "@timetoalign/tilie-arranger";
 import { drawingOf, liveStore, resolveSelection } from "@timetoalign/tilie-arranger";
 import type { Block, Store, View } from "@timetoalign/tilie-core";
 import type { DrawnBox } from "@timetoalign/tilie-layout";
-import { fontMetrics } from "@timetoalign/timeskeleton";
+import { fontMetrics } from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it } from "vitest";
 import Inspector from "../src/inspector/Inspector.svelte";

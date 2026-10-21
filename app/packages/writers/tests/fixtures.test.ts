@@ -20,7 +20,7 @@ import {
   isJsonFloat,
   isJsonObject,
   parseJson,
-} from "@timetoalign/timeskeleton";
+} from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { writeSvg, writeTikz } from "../src/index.ts";
 import { drawingsDirectory, fixturesDirectory, inputsText, reviewCases } from "./support.ts";

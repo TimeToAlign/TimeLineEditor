@@ -36,9 +36,9 @@ describe("podmanArguments", () => {
   });
 
   it("mounts a schema package outside the app directory read-only and relabelled at its own path", () => {
-    expect(podmanArguments({ ...common, schemaPackage: "/w/timeskeleton/js" })).toEqual([
+    expect(podmanArguments({ ...common, schemaPackage: "/w/TimeToShare/js" })).toEqual([
       ...BEFORE.slice(0, 6),
-      "--volume=/w/timeskeleton/js:/w/timeskeleton/js:ro,z",
+      "--volume=/w/TimeToShare/js:/w/TimeToShare/js:ro,z",
       ...BEFORE.slice(6),
     ]);
   });

@@ -7,7 +7,7 @@
  * it out.
  */
 
-import { SCHEMA_VERSION } from "@timetoalign/timeskeleton";
+import { SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import type { CommandError, LoadError, Problem } from "../errors.ts";
 import { ErrorCode, isCommandError, isLoadError, problem } from "../errors.ts";
 import type { JsonObject, PathSegment } from "../json.ts";
@@ -156,7 +156,7 @@ function readTimeline(
   at: readonly PathSegment[],
   path: readonly PathSegment[],
 ): TimelineManifest | CommandError {
-  const host = { timeskeleton: SCHEMA_VERSION, timelines: [value], measure_maps: measureMaps };
+  const host = { timetoshare: SCHEMA_VERSION, timelines: [value], measure_maps: measureMaps };
   const checked = schemaChecked(withSegmentLinesCovered(host, taken));
   if ("code" in checked) return located(checked, "timelines", at);
   const [fragment] = checked.timelines;
@@ -226,7 +226,7 @@ function addTimeline(view: View, target: BlockTarget, value: unknown, changes: C
  */
 function readGroup(value: JsonObject, at: readonly PathSegment[]): Group | CommandError {
   const read = normalizeManifest({
-    timeskeleton: SCHEMA_VERSION,
+    timetoshare: SCHEMA_VERSION,
     timelines: [],
     groups: [{ ...value, members: [] }],
   });

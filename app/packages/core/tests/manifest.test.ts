@@ -1,10 +1,4 @@
-import {
-  dumps,
-  JsonFloat,
-  parseJson,
-  SCHEMA_VERSION,
-  unknownKeys,
-} from "@timetoalign/timeskeleton";
+import { dumps, JsonFloat, parseJson, SCHEMA_VERSION, unknownKeys } from "@timetoalign/timetoshare";
 import { describe, expect, it, vi } from "vitest";
 import { apply } from "../src/commands/apply.ts";
 import type { LoadError } from "../src/errors.ts";
@@ -85,10 +79,10 @@ describe("shared rejections", () => {
 describe("the version marker", () => {
   it("refuses another version at the marker and a value without one at the top", () => {
     const value = manifestValue("bare.json");
-    expect(problems(dumps({ ...value, timeskeleton: "0.6.0" }))).toEqual([
-      { code: "schema_violation", path: ["timeskeleton"] },
+    expect(problems(dumps({ ...value, timetoshare: "0.6.0" }))).toEqual([
+      { code: "schema_violation", path: ["timetoshare"] },
     ]);
-    const { timeskeleton: _, ...unmarked } = value;
+    const { timetoshare: _, ...unmarked } = value;
     expect(problems(dumps(unmarked))).toEqual([{ code: "schema_violation", path: [] }]);
   });
 });
@@ -111,7 +105,7 @@ describe("the minimal form in, either form out", () => {
     };
     const { meta: _, ...twin } = parseJson(fixture("bare.json").twin) as Record<string, unknown>;
     expect(loadText(dumps(twin))).toEqual({
-      timeskeleton: SCHEMA_VERSION,
+      timetoshare: SCHEMA_VERSION,
       name: null,
       meta: {},
       groups: [],
@@ -404,7 +398,7 @@ describe("invariants", () => {
     (_, unit, length, part, offset, spelled) => {
       const child = { id: "part", unit, length: part, offset };
       const value = {
-        timeskeleton: SCHEMA_VERSION,
+        timetoshare: SCHEMA_VERSION,
         timelines: [{ id: "take", unit, length, children: [child] }],
       };
       expect(refused(dumps(value)).problems).toEqual([
@@ -418,7 +412,7 @@ describe("invariants", () => {
   );
 
   it("refuses malformed text", () => {
-    expect(problems('{"timeskeleton": ')).toEqual([{ code: "invalid_json", path: [] }]);
+    expect(problems('{"timetoshare": ')).toEqual([{ code: "invalid_json", path: [] }]);
   });
 
   it("checks commands with the same invariants", () => {

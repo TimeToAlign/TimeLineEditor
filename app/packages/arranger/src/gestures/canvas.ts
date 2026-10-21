@@ -9,7 +9,7 @@
  */
 
 import type { View } from "@timetoalign/tilie-core";
-import type { FontMetrics } from "@timetoalign/timeskeleton";
+import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { LevelRules } from "../containers.ts";
 import type { Editing } from "../editing.ts";
 import type { Point } from "../gesture.ts";

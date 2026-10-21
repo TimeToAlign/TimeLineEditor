@@ -6,7 +6,7 @@
  */
 
 import type { Address, OpenEditor, Store } from "@timetoalign/tilie-core";
-import type { FontMetrics } from "@timetoalign/timeskeleton";
+import type { FontMetrics } from "@timetoalign/timetoshare";
 import { tick, untrack } from "svelte";
 import type { Viewport } from "./focus.ts";
 import { FOCUS_DURATION, focusViewport, targetBounds } from "./focus.ts";

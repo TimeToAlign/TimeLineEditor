@@ -20,7 +20,7 @@ import {
   fontMetrics as metrics,
   SCHEMA_VERSION,
   validate,
-} from "@timetoalign/timeskeleton";
+} from "@timetoalign/timetoshare";
 import {
   DEFAULT_LAYER,
   DEFAULT_PLACEMENT,
@@ -33,10 +33,10 @@ import {
 } from "../src/index.ts";
 
 const require = createRequire(import.meta.url);
-const packageDir = path.dirname(require.resolve("@timetoalign/timeskeleton/package.json"));
+const packageDir = path.dirname(require.resolve("@timetoalign/timetoshare/package.json"));
 
 export const fixturesDir = path.join(packageDir, "fixtures", SCHEMA_VERSION);
-export { fontMetrics as metrics } from "@timetoalign/timeskeleton";
+export { fontMetrics as metrics } from "@timetoalign/timetoshare";
 export const BLOCK = "0000000000";
 
 /**

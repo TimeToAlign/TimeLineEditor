@@ -1,7 +1,7 @@
 /**
  * The regions band: a timeline's displayed regions and those of the
  * segments that join it, placed by first fit into rows, each drawn as a
- * brace with its label (`docs/drawing.md` in timeskeleton, sections 6.4, 6.6
+ * brace with its label (`docs/drawing.md` in TimeToShare, sections 6.4, 6.6
  * and 7.2).
  */
 

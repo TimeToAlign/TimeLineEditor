@@ -1,7 +1,7 @@
 /** Segment lines: boundaries, segment labels and their tiers; every number is derived in tests/README.md. */
 
 import { apply, createView, isCommandError, type Manifest } from "@timetoalign/tilie-core";
-import type { Graphical } from "@timetoalign/timeskeleton";
+import type { Graphical } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_LAYER,

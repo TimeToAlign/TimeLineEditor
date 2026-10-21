@@ -1,5 +1,5 @@
 /**
- * The containers of a manifest's drawing (`docs/drawing.md` in timeskeleton,
+ * The containers of a manifest's drawing (`docs/drawing.md` in TimeToShare,
  * sections 2.1, 6.4 and 8): the box, which every manifest is drawn as; a
  * group's frame; the cards of every timeline drawn as a root (a member, one
  * in the frame of each group that has it as a member, or an ungrouped root,
@@ -11,7 +11,7 @@
  * never re-derives either.
  */
 
-import type { ElementType } from "@timetoalign/timeskeleton";
+import type { ElementType } from "@timetoalign/timetoshare";
 import type { BandKind } from "./bands.ts";
 import { BAND_KINDS, bandAddress } from "./bands.ts";
 import { orderedChildren } from "./elements.ts";

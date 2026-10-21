@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { Address, Command, Store } from "@timetoalign/tilie-core";
-import type { FontMetrics } from "@timetoalign/timeskeleton";
+import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { Viewport } from "@xyflow/svelte";
 import { SelectionMode, SvelteFlow } from "@xyflow/svelte";
 import "@xyflow/svelte/dist/style.css";

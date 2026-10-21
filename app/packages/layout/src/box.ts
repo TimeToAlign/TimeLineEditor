@@ -1,6 +1,6 @@
 /**
  * `draw(manifest, placement, layers, metrics)`: the drawing of one
- * TimeSkeleton manifest (`docs/drawing.md` in timeskeleton). Every manifest
+ * TimeToShare manifest (`docs/drawing.md` in TimeToShare). Every manifest
  * is drawn as one box (section 8): each timeline drawn as a root lies in its
  * own card and is laid out by sections 3 to 6, and each item of the box, a
  * frame or an ungrouped root's card, applies the box's one horizontal layout
@@ -9,7 +9,7 @@
 
 import { indexOf, isNamed, type Manifest, TITLE_ADDRESS } from "@timetoalign/tilie-core";
 import { BOX_KEY } from "@timetoalign/tilie-core/drawing";
-import type { FontMetrics, Graphical } from "@timetoalign/timeskeleton";
+import type { FontMetrics, Graphical } from "@timetoalign/timetoshare";
 import { emitDrawing } from "./box/emit.ts";
 import { columnsOf, horizontalOf } from "./box/horizontal.ts";
 import { drawItem, layoutItem } from "./box/items.ts";

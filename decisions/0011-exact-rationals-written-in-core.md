@@ -7,7 +7,7 @@ date: 2026-10-10
 
 ## Context
 
-Every coordinate whose number type is `fraction` is an exact ratio of two int64 integers, and integers on `int` axes may exceed 2^53. `core` must add, subtract, compare and normalize such values without ever building one from a JavaScript float, and must read and write them in the TimeSkeleton JSON forms: a `[numerator, denominator]` pair, a JSON integer, a JSON number. Nothing else is needed: no division, no rounding, no parsing of decimal fractions, no formatting beyond the pair.
+Every coordinate whose number type is `fraction` is an exact ratio of two int64 integers, and integers on `int` axes may exceed 2^53. `core` must add, subtract, compare and normalize such values without ever building one from a JavaScript float, and must read and write them in the TimeToShare JSON forms: a `[numerator, denominator]` pair, a JSON integer, a JSON number. Nothing else is needed: no division, no rounding, no parsing of decimal fractions, no formatting beyond the pair.
 
 ## Considered options
 

@@ -1,7 +1,7 @@
 # `@timetoalign/tilie-writers` tests
 
 `toDescriptors(drawing)`, `writeSvg(placed)` and `writeTikz(placed,
-options)` implement sections 7 and 8.5 of timeskeleton's drawing
+options)` implement sections 7 and 8.5 of TimeToShare's drawing
 specification (`docs/drawing.md`, "the specification" below): the element
 descriptors, the page, the number format and the SVG and TikZ profiles.
 `placed` is a list of `{drawing, x, y, scale}`. Every expected text below is
@@ -308,7 +308,7 @@ every tag occurs, one of them a shadow. For it and for every review case
 ## Drawing fixtures (`fixtures.test.ts`)
 
 The drawing fixtures of the schema package (`fixtures/<version>/drawings/`,
-read from the installed `@timetoalign/timeskeleton`, like the manifests and
+read from the installed `@timetoalign/timetoshare`, like the manifests and
 the font) are the contract between implementations of the specification.
 Each directory holds `inputs.json` (the manifest's path below
 `fixtures/<version>/`, the placement, the scale and the application's style
@@ -330,7 +330,7 @@ emitting.
 
 The fixtures and the review cases cannot drift apart: the set of fixture
 directories equals the set of review case names exactly, and each case's
-inputs, written with timeskeleton's `dumps`, equal its `inputs.json` text.
+inputs, written with TimeToShare's `dumps`, equal its `inputs.json` text.
 The review cases are every manifest fixture, `groups/` (as
 `group__<file>`) and `bundles/` (as `bundle__<file>`) included, but the
 `corpus_*` ones and the minimal twins; `nested` at other lengths, card

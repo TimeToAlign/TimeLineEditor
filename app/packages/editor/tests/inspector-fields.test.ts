@@ -10,7 +10,7 @@ import type { Level } from "@timetoalign/tilie-arranger";
 import { drawingOf, liveStore, placeEdit, resolveSelection } from "@timetoalign/tilie-arranger";
 import type { Block, CommandEntry, Store } from "@timetoalign/tilie-core";
 import { createStore, isLoadError, readWorkspace } from "@timetoalign/tilie-core";
-import { fontMetrics } from "@timetoalign/timeskeleton";
+import { fontMetrics } from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it } from "vitest";
 import PropertiesPanel from "../src/inspector/PropertiesPanel.svelte";

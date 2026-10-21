@@ -1,5 +1,5 @@
 /**
- * One timeline's bands (`docs/drawing.md` in timeskeleton, section 6.4): the
+ * One timeline's bands (`docs/drawing.md` in TimeToShare, section 6.4): the
  * side its band order gives each band, the levels of the present ones, and
  * where each lies outwards from its timeline's line, from its start to its
  * outer edge. Also the vocabulary every band shares: a band prepared by its

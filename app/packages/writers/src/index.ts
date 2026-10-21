@@ -3,7 +3,7 @@
  *
  * `toDescriptors`, `writeSvg` and `writeTikz` implement the element
  * descriptors, the page, the number format and the two output profiles of
- * timeskeleton's drawing specification (`docs/drawing.md`, section 7), so
+ * TimeToShare's drawing specification (`docs/drawing.md`, section 7), so
  * another implementation of it writes the same bytes.
  */
 

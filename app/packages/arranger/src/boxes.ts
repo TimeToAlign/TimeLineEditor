@@ -1,6 +1,6 @@
 /**
  * The boxes of a block's drawing and what the pointer does with them. The
- * drawing's containers (`docs/drawing.md` in timeskeleton, section 8) are
+ * drawing's containers (`docs/drawing.md` in TimeToShare, section 8) are
  * the block's own box, a group's frame, a timeline's card (an item of the
  * box for an ungrouped root, held by its group's frame for a member) and,
  * in a timeline's editor, the bands of its timeline (section 6.4), which

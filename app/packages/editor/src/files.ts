@@ -18,7 +18,7 @@ export const WORKSPACE_FILE: FileKind = {
   description: "TimeLineEditor workspace",
   extension: ".tle.json",
 };
-export const MANIFEST_FILE: FileKind = { description: "TimeSkeleton manifest", extension: ".json" };
+export const MANIFEST_FILE: FileKind = { description: "TimeToShare manifest", extension: ".json" };
 
 /** The printable characters some system refuses in a file name: `/` everywhere, the rest on Windows. */
 const NOT_IN_FILE_NAMES = new Set(["/", "\\", ":", "*", "?", '"', "<", ">", "|"]);

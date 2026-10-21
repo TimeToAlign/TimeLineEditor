@@ -2,7 +2,7 @@
 
 import { type BandKind, defaultBandOrder, type Manifest } from "@timetoalign/tilie-core";
 import { manifestElements } from "@timetoalign/tilie-core/drawing";
-import type { ElementType, Graphical } from "@timetoalign/timeskeleton";
+import type { ElementType, Graphical } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_LAYER,

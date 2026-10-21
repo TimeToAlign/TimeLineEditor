@@ -1,5 +1,5 @@
 /**
- * Level 0 of a timeline (`docs/drawing.md` in timeskeleton, sections 6.4,
+ * Level 0 of a timeline (`docs/drawing.md` in TimeToShare, sections 6.4,
  * Level 0 and Segment lines, and 6.6): its line, the boundaries and labels of
  * its segments, which belong to the line and to no band, and how far the
  * line reaches on each side.

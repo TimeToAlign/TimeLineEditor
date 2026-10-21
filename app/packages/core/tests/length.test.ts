@@ -1,4 +1,4 @@
-import { dumps, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
+import { dumps, SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { apply } from "../src/commands/apply.ts";
 import { isLoadError } from "../src/errors.ts";
@@ -23,7 +23,7 @@ type Length = readonly [number, number] | null;
 /** A root `score` on a `fraction` quarters axis, its children given as `[id, offset, length]`. */
 function manifestOf(length: Length, children: [string, number, Length][] = [], locked = false) {
   return {
-    timeskeleton: SCHEMA_VERSION,
+    timetoshare: SCHEMA_VERSION,
     timelines: [
       {
         id: "score",

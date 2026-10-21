@@ -1,5 +1,5 @@
 import { apply, createView, isCommandError, type Manifest } from "@timetoalign/tilie-core";
-import type { ElementType, Graphical } from "@timetoalign/timeskeleton";
+import type { ElementType, Graphical } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_LAYER,

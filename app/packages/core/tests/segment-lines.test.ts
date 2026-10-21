@@ -4,7 +4,7 @@
  * segment").
  */
 
-import { dumps, JsonFloat, parseJson } from "@timetoalign/timeskeleton";
+import { dumps, JsonFloat, parseJson } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { apply } from "../src/commands/apply.ts";
 import { preview } from "../src/commands/preview.ts";

@@ -1,4 +1,4 @@
-/** The constants of the layout (`docs/drawing.md` in timeskeleton, section 6.2). */
+/** The constants of the layout (`docs/drawing.md` in TimeToShare, section 6.2). */
 
 /** The padding `P`. */
 export const P = 8;

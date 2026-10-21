@@ -1,5 +1,5 @@
 /**
- * JSON values as `@timetoalign/timeskeleton`'s `parse` returns them.
+ * JSON values as `@timetoalign/timetoshare`'s `parse` returns them.
  *
  * Every number is a `JsonNumber`: a plain `number` for a safe integer or a
  * float with a fractional part, a `bigint` for an integer beyond the safe
@@ -8,8 +8,8 @@
  * JSON of its own.
  */
 
-import type { JsonNumber, Lossless, Json as SchemaJson } from "@timetoalign/timeskeleton";
-import { canonicalJson, isJsonObject as isObject } from "@timetoalign/timeskeleton";
+import type { JsonNumber, Lossless, Json as SchemaJson } from "@timetoalign/timetoshare";
+import { canonicalJson, isJsonObject as isObject } from "@timetoalign/timetoshare";
 
 /** One step of a path into a JSON value: an object key or an array index. */
 export type PathSegment = string | number;

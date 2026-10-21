@@ -7,7 +7,7 @@ import {
   memberDrawings,
   timelineAncestry,
 } from "@timetoalign/tilie-core/drawing";
-import type { Graphical } from "@timetoalign/timeskeleton";
+import type { Graphical } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import {
   Cascade,

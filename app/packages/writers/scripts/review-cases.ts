@@ -24,11 +24,11 @@ import {
   manifestLayer,
   type Placement,
 } from "@timetoalign/tilie-layout";
-import type { Graphical, Selector } from "@timetoalign/timeskeleton";
-import { dumps, fontMetrics as metrics, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
+import type { Graphical, Selector } from "@timetoalign/timetoshare";
+import { dumps, fontMetrics as metrics, SCHEMA_VERSION } from "@timetoalign/timetoshare";
 
 const require = createRequire(import.meta.url);
-const packageDir = path.dirname(require.resolve("@timetoalign/timeskeleton/package.json"));
+const packageDir = path.dirname(require.resolve("@timetoalign/timetoshare/package.json"));
 
 /** The manifest fixtures of the installed schema version, sorted into the top, `groups/` and `bundles/`. */
 export const fixturesDirectory = path.join(packageDir, "fixtures", SCHEMA_VERSION);

@@ -1,11 +1,11 @@
 /**
- * One TimeSkeleton manifest of the current schema version, held losslessly
+ * One TimeToShare manifest of the current schema version, held losslessly
  * in its complete form: every key with a default is present, its default
  * written out, so a reader never supplies one. Unknown keys are kept as they
  * were read; every copy spreads the value it changes.
  *
  * Every type here is a read-only view of the complete form the schema
- * package generates (`CompleteTimeSkeleton`, `CompleteTimeline`, …), so a
+ * package generates (`CompleteManifest`, `CompleteTimeline`, …), so a
  * change of the schema reaches core's types without a second statement of
  * which keys have defaults.
  */
@@ -14,15 +14,15 @@ import type {
   CompleteConversionMap,
   CompleteFlowControlElement,
   CompleteGroup,
+  CompleteManifest,
   CompleteMeasureMap,
   CompleteRegion,
   CompleteTimeline,
-  CompleteTimeSkeleton,
   Graphical,
   JsonFloat,
   Lossless,
   Number as SchemaNumber,
-} from "@timetoalign/timeskeleton";
+} from "@timetoalign/timetoshare";
 
 /**
  * `T` with every object member, every list and every pair read-only, at
@@ -86,9 +86,9 @@ export type Group = ReadonlyView<CompleteGroup>;
 export type ManifestGraphical = Graphical;
 
 /**
- * A TimeSkeleton manifest: its root timelines, optionally grouped. With an
+ * A TimeToShare manifest: its root timelines, optionally grouped. With an
  * `id` or a `name` it is named, without both an anonymous bundle.
  */
-export type Manifest = ReadonlyView<Omit<CompleteTimeSkeleton, "graphical">> & {
+export type Manifest = ReadonlyView<Omit<CompleteManifest, "graphical">> & {
   readonly graphical?: ManifestGraphical;
 };

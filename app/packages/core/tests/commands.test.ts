@@ -1,4 +1,4 @@
-import { JsonFloat, parseJson } from "@timetoalign/timeskeleton";
+import { JsonFloat, parseJson } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { apply } from "../src/commands/apply.ts";
 import { parseCommand } from "../src/commands/parse.ts";
@@ -359,9 +359,9 @@ describe("set", () => {
         [at("clt_1"), "length"],
       ],
       [
-        set(A, { manifest: { ...load("bare.json"), timeskeleton: "0.6.0" } }),
+        set(A, { manifest: { ...load("bare.json"), timetoshare: "0.6.0" } }),
         "schema_violation",
-        [A, "manifest", "timeskeleton"],
+        [A, "manifest", "timetoshare"],
       ],
       [set(at("clt_2"), { offset: quarters(7) }), "child_exceeds_parent", [at("clt_2"), "offset"]],
       [

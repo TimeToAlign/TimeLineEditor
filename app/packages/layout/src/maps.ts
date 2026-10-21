@@ -1,7 +1,7 @@
 /**
  * The conversion maps band: a timeline's displayed maps and those of the
  * segments that join it, stacked outwards from its start
- * (`docs/drawing.md` in timeskeleton, sections 6.4 and 6.6).
+ * (`docs/drawing.md` in TimeToShare, sections 6.4 and 6.6).
  */
 
 import { bandAddress } from "@timetoalign/tilie-core";

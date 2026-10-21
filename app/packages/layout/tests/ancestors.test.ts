@@ -1,5 +1,5 @@
 import { Rational } from "@timetoalign/tilie-core/numbers";
-import type { Graphical } from "@timetoalign/timeskeleton";
+import type { Graphical } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_LAYER,

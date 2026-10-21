@@ -12,7 +12,7 @@ fixture of the schema package, drawn by `layout` and written by `writeSvg`,
 rasterized to PNG at twice its size and listed on one HTML page
 (`app/packages/writers/scripts/review-sheet.ts`). The rasterizer must draw
 the SVG's text in the font the drawing specification names, the
-`fonts/DejaVuSans.ttf` that timeskeleton ships, and never in a system copy of
+`fonts/DejaVuSans.ttf` that TimeToShare ships, and never in a system copy of
 it, so it must take its fonts from a directory the script names. This is a
 development tool run by hand; nothing of it reaches a package, the wheel or
 CI.
@@ -21,7 +21,7 @@ CI.
 
 - **rsvg-convert** (librsvg), a command-line SVG rasterizer using cairo,
   pango and fontconfig; a fontconfig file passed in `FONTCONFIG_FILE` whose
-  only font directory is timeskeleton's `fonts/` limits it to the bundled
+  only font directory is TimeToShare's `fonts/` limits it to the bundled
   font.
 - **A headless browser** (Playwright's Chromium): a large download, and its
   font selection is harder to confine to one directory.

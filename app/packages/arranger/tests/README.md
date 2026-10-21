@@ -8,12 +8,12 @@ produces, the exact values a resize stores. Tests stand at the gesture
 boundary: a press, its moves and its release go in, one command comes out.
 
 The expected values are written here before any test, derived by hand
-from timeskeleton's specification (`docs/drawing.md`, cited below by
+from TimeToShare's specification (`docs/drawing.md`, cited below by
 section) and the boxes of its drawing fixtures, never from running the
 arranger. Layout's tests are the oracle for the drawing and core's for
 what a command does: every command a test produces is applied through
-core and the drawing read again. Every view is built from timeskeleton's
-manifest fixtures, read from the installed `@timetoalign/timeskeleton`
+core and the drawing read again. Every view is built from TimeToShare's
+manifest fixtures, read from the installed `@timetoalign/timetoshare`
 package, through core's commands (`add` a block, `set` a placement); no
 test writes a manifest literal, and only the band records of section
 "Bands" are written by hand.

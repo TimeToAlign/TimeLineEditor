@@ -7,7 +7,7 @@ import {
   type FontMetrics,
   type Graphical,
   type Selector,
-} from "@timetoalign/timeskeleton";
+} from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { Cascade } from "../src/cascade.ts";
 import { DEFAULT_PLACEMENT, draw } from "../src/index.ts";

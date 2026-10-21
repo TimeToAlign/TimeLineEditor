@@ -4,7 +4,7 @@ import type { Block, Manifest, View } from "@timetoalign/tilie-core";
 import { contains } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import type { Descriptor } from "@timetoalign/tilie-writers";
-import type { FontMetrics } from "@timetoalign/timeskeleton";
+import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { Node } from "@xyflow/svelte";
 import { affectedBy } from "./affected.ts";
 import { descriptorsOf, drawingOf, nodePosition } from "./drawing.ts";

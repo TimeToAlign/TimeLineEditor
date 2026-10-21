@@ -19,7 +19,7 @@ import type {
   View,
 } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
-import { fontMetrics } from "@timetoalign/timeskeleton";
+import { fontMetrics } from "@timetoalign/timetoshare";
 
 /** A rectangle in client pixels, left and top as `getBoundingClientRect` gives them. */
 export interface ClientRectangle {

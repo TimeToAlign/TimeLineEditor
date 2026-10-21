@@ -6,13 +6,13 @@ TiLiE is a pnpm TypeScript workspace with a Svelte 5 application and a separate 
 
 Install Node.js 22.18 or newer, pnpm 12.10.1, Python 3.11 or newer, and uv.
 
-The five application packages that use the schema, `core`, `layout`, `writers`, `arranger` and `editor`, take it from the `@timetoalign/timeskeleton` package. While TiLiE is built against a schema version that is not yet released, as it is now against schema 0.7.0, each of them depends on the package through a committed `link:` to the `js/` directory of a [timeskeleton](https://github.com/TimeToAlign/timeskeleton) checkout beside this repository (`link:../../../../timeskeleton/js` in each package manifest, `../timeskeleton/js` from the repository root), and the repository is not published in that state. Once that schema version is released, the `link:` is replaced by a compatible range from npm, `^0.7.0`. `pnpm dev` may read the linked package's directory, so the editor still loads its bundled font.
+The five application packages that use the schema, `core`, `layout`, `writers`, `arranger` and `editor`, take it from the `@timetoalign/timetoshare` package. While TiLiE is built against a schema version that is not yet released, as it is now against schema 0.1.0, each of them depends on the package through a committed `link:` to the `js/` directory of a [TimeToShare](https://github.com/TimeToAlign/TimeToShare) checkout beside this repository (`link:../../../../TimeToShare/js` in each package manifest, `../TimeToShare/js` from the repository root), and the repository is not published in that state. Once that schema version is released, the `link:` is replaced by a compatible range from npm, `^0.1.0`. `pnpm dev` may read the linked package's directory, so the editor still loads its bundled font.
 
 From the repository root, build the sibling schema package first, then prepare both parts of the repository:
 
 ```bash
-pnpm -C ../timeskeleton/js install
-pnpm -C ../timeskeleton/js build
+pnpm -C ../TimeToShare/js install
+pnpm -C ../TimeToShare/js build
 cd app
 pnpm install
 cd ../server
@@ -48,9 +48,9 @@ uv run tilie --check --no-browser
 
 Build the application before building a distributable server wheel. The server build hook copies `app/packages/editor/dist` into the wheel; the CI workflow verifies this and runs the installed wheel's self-check. For a development build, run `uv run tilie --check --static-dir ../app/packages/editor/dist` from `server/`.
 
-The writers' compile test runs every review drawing through `lualatex`, which needs TikZ, the `standalone` class, and `fontspec` (on Ubuntu: `texlive-luatex`, `texlive-latex-recommended`, `texlive-latex-extra`, and `texlive-pictures`). It uses the DejaVu Sans file bundled by timeskeleton. Without `lualatex` the test is skipped; set `TILIE_REQUIRE_LUALATEX=1` to make its absence a failure, as the `tikz` CI job does.
+The writers' compile test runs every review drawing through `lualatex`, which needs TikZ, the `standalone` class, and `fontspec` (on Ubuntu: `texlive-luatex`, `texlive-latex-recommended`, `texlive-latex-extra`, and `texlive-pictures`). It uses the DejaVu Sans file bundled by TimeToShare. Without `lualatex` the test is skipped; set `TILIE_REQUIRE_LUALATEX=1` to make its absence a failure, as the `tikz` CI job does.
 
-The SVG and TikZ fixtures that pin a drawing belong to timeskeleton. There is no drawing schema, and a drawing's JSON form is internal to TiLiE. The source of truth for layout and writer behavior is timeskeleton's [drawing specification](https://github.com/TimeToAlign/timeskeleton/blob/main/docs/drawing.md).
+The SVG and TikZ fixtures that pin a drawing belong to TimeToShare. There is no drawing schema, and a drawing's JSON form is internal to TiLiE. The source of truth for layout and writer behavior is TimeToShare's [drawing specification](https://github.com/TimeToAlign/TimeToShare/blob/main/docs/drawing.md).
 
 Review drawing changes with `rsvg-convert` installed:
 
@@ -58,7 +58,7 @@ Review drawing changes with `rsvg-convert` installed:
 pnpm -C app/packages/writers review
 ```
 
-The command draws every manifest fixture of the installed schema version except the corpus ones and the minimal twins, together with resized and restyled cases, writes their SVG and PNG files under `app/packages/writers/review/`, and lists them in `review/index.html`. It rasterizes at twice the size (`rsvg-convert --zoom 2`) with fontconfig restricted to timeskeleton's bundled `DejaVuSans.ttf`, and refuses to continue if another font is visible or `rsvg-convert` fails.
+The command draws every manifest fixture of the installed schema version except the corpus ones and the minimal twins, together with resized and restyled cases, writes their SVG and PNG files under `app/packages/writers/review/`, and lists them in `review/index.html`. It rasterizes at twice the size (`rsvg-convert --zoom 2`) with fontconfig restricted to TimeToShare's bundled `DejaVuSans.ttf`, and refuses to continue if another font is visible or `rsvg-convert` fails.
 
 ### End-to-end tests
 
@@ -82,7 +82,7 @@ Each package and the server has a `tests/README.md`. Update the appropriate read
 
 Add an ADR in [`decisions/`](decisions/) before adding a dependency. The record must use the repository's MADR structure, compare writing it ourselves, identify the audited version, and set a review date.
 
-Package manifests declare compatible ranges for runtime and peer dependencies, such as `fastapi>=0.141,<1` and `uvicorn[standard]>=0.53,<1` in the server and `svelte` `^5.57.1` in `app/packages/editor`; development dependencies, the npm `devDependencies` and the server's `dev` group, are pinned exactly. The lockfiles, `server/uv.lock` and `app/pnpm-lock.yaml`, pin every resolved version. Enter only versions released at least 14 days before they enter a lockfile, and name the audited version in its ADR; the one exception to that window is this project's own schema package, `@timetoalign/timeskeleton` (`minimumReleaseAgeExclude` in `app/pnpm-workspace.yaml`), which is also the one exception to compatible ranges: while it is consumed at an unreleased schema version it is declared as a committed `link:` (see [Setup](#setup)). This is the dependency policy; do not treat a compatible manifest range as an error by itself.
+Package manifests declare compatible ranges for runtime and peer dependencies, such as `fastapi>=0.141,<1` and `uvicorn[standard]>=0.53,<1` in the server and `svelte` `^5.57.1` in `app/packages/editor`; development dependencies, the npm `devDependencies` and the server's `dev` group, are pinned exactly. The lockfiles, `server/uv.lock` and `app/pnpm-lock.yaml`, pin every resolved version. Enter only versions released at least 14 days before they enter a lockfile, and name the audited version in its ADR; the one exception to that window is this project's own schema package, `@timetoalign/timetoshare` (`minimumReleaseAgeExclude` in `app/pnpm-workspace.yaml`), which is also the one exception to compatible ranges: while it is consumed at an unreleased schema version it is declared as a committed `link:` (see [Setup](#setup)). This is the dependency policy; do not treat a compatible manifest range as an error by itself.
 
 ## Packages
 

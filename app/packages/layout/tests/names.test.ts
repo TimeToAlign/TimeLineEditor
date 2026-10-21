@@ -1,5 +1,5 @@
 import { isLoadError, loadManifest } from "@timetoalign/tilie-core";
-import { dumps } from "@timetoalign/timeskeleton";
+import { dumps } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_LAYER, DEFAULT_PLACEMENT, draw, type TextElement } from "../src/index.ts";
 import { build, child, loadFile, metrics } from "./support.ts";

@@ -1,6 +1,6 @@
 /**
  * The page of placed drawings and the one number format of the writers
- * (`docs/drawing.md` in timeskeleton, sections 7.1 and 7.3).
+ * (`docs/drawing.md` in TimeToShare, sections 7.1 and 7.3).
  */
 
 import { fromFloat } from "@timetoalign/tilie-core/numbers";

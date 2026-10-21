@@ -1,7 +1,7 @@
 # `@timetoalign/tilie-core` tests
 
-`core` holds exact coordinates, one TimeSkeleton manifest of timeskeleton's
-`SCHEMA_VERSION` (`{timeskeleton, timelines, id?, name?, meta?, groups?,
+`core` holds exact coordinates, one TimeToShare manifest of TimeToShare's
+`SCHEMA_VERSION` (`{timetoshare, timelines, id?, name?, meta?, groups?,
 graphical?}`: root timelines, optionally named, optionally grouped), the
 elements a selector can match, the immutable workspace view of blocks, the
 four commands `add`, `set`, `remove` and `style` over addresses, the store
@@ -18,7 +18,7 @@ where a section says so. A view given to a command is deep-frozen, so a
 mutation throws.
 
 **Where manifests come from.** Every manifest is a fixture of the
-installed timeskeleton package: `fixtures/<SCHEMA_VERSION>/` with its
+installed TimeToShare package: `fixtures/<SCHEMA_VERSION>/` with its
 `groups/` and `bundles/`, each in the complete form beside its minimal twin
 (`<name>.minimal.json`), and the shared rejection cases of
 `fixtures/rejections/<SCHEMA_VERSION>/`. A variant is built from a fixture
@@ -26,7 +26,7 @@ through commands, or by changing the fixture's value before loading it
 (lifting a lock by stating `locked: false` is one such change). Core holds
 no manifest literal of its own except where a rejection or a single rule
 is asserted, and never names one like a fixture. So the suite proves core
-against whatever timeskeleton ships. The manifests named most often:
+against whatever TimeToShare ships. The manifests named most often:
 
 - `bare.json`: root `bare` "Bare", 8 quarters.
 - `nested.json`: root `clt_1` of 16, child `clt_3` at 4 of 8, its child
@@ -98,7 +98,7 @@ workspace package does; the editor shell lists the names it links.
    pair of integers with a positive denominator; every integer is
    int64-bounded. One accepted and one refused example per rule, refused
    ones carrying the `CoordinateError` code `invalid_coordinate` at the path
-   given (`[]` by default). `toAxisValue` writes numbers as timeskeleton's
+   given (`[]` by default). `toAxisValue` writes numbers as TimeToShare's
    `parse` reads them: an `int` value as a plain number (a `bigint` beyond 2^53), a
    `float` value as a plain number or, when integral, a `JsonFloat` (so 3 is
    written `3.0`), a `fraction` value as a normalized `[numerator,
@@ -125,7 +125,7 @@ workspace package does; the editor shell lists the names it links.
 ## Manifest load and save (`manifest.test.ts`)
 
 Reading, writing, the canonical order and the defaults are
-`@timetoalign/timeskeleton`'s and proven in its suite; these tests prove that
+`@timetoalign/timetoshare`'s and proven in its suite; these tests prove that
 `core` uses them so that nothing is lost. A loaded manifest is held in its
 complete form, every number a `JsonNumber` (a `bigint` beyond 2^53, a
 `JsonFloat` for an integral float such as `600.0`) except in declarations.
@@ -148,16 +148,16 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
    run each manifest twice.
 2. **Shared rejections.** Every shared rejection case, written as JSON text,
    is refused by `loadManifest` with exactly one problem whose `path` equals
-   the case's `path`. These include timeskeleton's identity and
+   the case's `path`. These include TimeToShare's identity and
    representation rules (an id repeated where it must be unique, a part word
    as an id, a jump origin's `target` naming no jump target of its
    timeline, a measure view naming no measure map, an `int` on a `fraction`
    axis),
    all `schema_violation`s from its `validate`, so `core` checks none of
    them again; a `non_finite` case is refused with its number in place.
-3. **The version marker.** `bare.json` with `"timeskeleton": "0.6.0"` is
+3. **The version marker.** `bare.json` with `"timetoshare": "0.6.0"` is
    refused with exactly one problem `{code: "schema_violation", path:
-   ["timeskeleton"]}`; without the marker it is refused with exactly one
+   ["timetoshare"]}`; without the marker it is refused with exactly one
    `schema_violation` at `[]`. Core reads the current version only and
    migrates nothing.
 4. **The minimal form in, pinned by hand.** For the twin of `bare.json`
@@ -165,7 +165,7 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
    "Bare", unit: "quarters", number_type: "fraction", length: [8, 1],
    locked: false, is_segment_line: false, meta: {}, children: [],
    conversion_maps: [], regions: [], flow_control: []}` and the manifest
-   around it `{timeskeleton, name: null, meta: {}, groups: [],
+   around it `{timetoshare, name: null, meta: {}, groups: [],
    measure_maps: [], timelines: [root]}`: no `id` and no `graphical`, whose
    default is "absent".
 5. **Unknown keys survive.** `bare.json` with an unknown key at the top
@@ -173,11 +173,11 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
    is given (`"x-region": "kept"`) loads with all three in place; after a
    `set` of the root's `name` and an `add` of a flow marker, all three are still
    there with their values, and `saveManifest` writes them. `unknownKeys`,
-   re-exported from timeskeleton, lists exactly the three `{path, key}`
+   re-exported from TimeToShare, lists exactly the three `{path, key}`
    pairs, sorted by path then key.
 6. **Missing styles are completed.** A graphical statement naming each of
    two absent styles produces exactly one warning naming both, the one
-   timeskeleton issues (`Missing graphical styles: 'a', 'z'`, names sorted
+   TimeToShare issues (`Missing graphical styles: 'a', 'z'`, names sorted
    by code point); core adds none of its own. The loaded manifest contains
    an empty declaration for each. The input object is not mutated and a
    declaration already present is preserved.
@@ -216,7 +216,7 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
     `region_end_before_start` at `[A, "manifest", "timelines", 0,
     "regions", 0, "end"]`.
 12. **A child's unit and extent and a map's source unit are the
-    schema's.** timeskeleton's `validate` refuses a child whose unit
+    schema's.** TimeToShare's `validate` refuses a child whose unit
     differs from its parent's, a child reaching past its parent's known
     length and a map whose non-null source unit is not its timeline's, so
     core holds no check of its own for any of them. One copy of `with_region.json` with `clt_2`'s
@@ -241,7 +241,7 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
     refused with exactly one problem, `negative_child_offset` at
     `["timelines", 0, "children", 0, "offset"]`, message `A negative child
     offset is not supported yet: child 'clt_2' has offset [-1, 3].` (the
-    offset spelled as timeskeleton's writer writes the number). The same
+    offset spelled as TimeToShare's writer writes the number). The same
     refusal on an `int` and on a `float` axis: a root `take` of 10 `ticks`
     whose child `part` of 2 lies at `-1` gives `... child 'part' has offset
     -1.`, and a root `take` of `10.0` `seconds` whose child `part` of `2.0`
@@ -397,7 +397,7 @@ of the manifest, a child sharing its parent's unit (`ChildrenMixin.validate_chil
 in the library), a conversion map's non-null `source_unit` being its
 timeline's unit (a held map's, its holder's), segment contiguity and the
 representation of every
-own-axis value are timeskeleton's rules, checked by its `validate`; names
+own-axis value are TimeToShare's rules, checked by its `validate`; names
 may repeat.
 
 Rules the library does **not** enforce and this package therefore does not
@@ -476,13 +476,13 @@ roots and groups".
 
 ## Bands and band orders (`bands.test.ts`)
 
-The band facts (drawing.md §2.2, §4, §6.4; timeskeleton's README,
+The band facts (drawing.md §2.2, §4, §6.4; TimeToShare's README,
 "Identity" and "Groups and the `graphical` block") and the orders that stack
 them. Every expected value is read from those texts. The band order cases
 are built so that each timeline's expected order differs from every other
 candidate rule (the default, the root's entry, its parent's entry), so a
 wrong rule cannot pass by coincidence; the order problems are checked
-against timeskeleton's own validators, so core and the schema agree by
+against TimeToShare's own validators, so core and the schema agree by
 construction.
 
 1. **Kinds and addresses.** The five kinds in default band order; a band
@@ -504,7 +504,7 @@ construction.
    child follows its parent; an unknown id gets the default.
 6. **Band order problems**, each the first in the README's order (shape,
    repeat, unknown id, stranger, missing), with the exact message; the
-   stranger and missing messages are also what timeskeleton's identity
+   stranger and missing messages are also what TimeToShare's identity
    check reports for the same value.
 7. **Entries the schema's pattern refuses** are refused by both: core as a
    stranger, the schema at the entry with its pattern; every value core
@@ -832,7 +832,7 @@ refusal as `apply`.
   `locked`, `length_below_content` (`[23, 2]` on `clt_1`) and
   `child_exceeds_parent` (`clt_2` at `[7, 1]` under the locked `clt_3`);
   `schema_violation` below `["workspace", "graphical"]`, at `[A,
-  "manifest", "timeskeleton"]` for a manifest declaring `0.6.0`, and for
+  "manifest", "timetoshare"]` for a manifest declaring `0.6.0`, and for
   the flow marker `flow_marker_1` given a jump origin's manifestation
   (`repeat_end`) or a `repeat_count`, at that member in the manifest
   (`flow_control` index 3); `unknown_property` for an element's `type`,
@@ -1031,7 +1031,7 @@ unique only within a root's tree), parts appended, the manifest's title
    `group_1/name` is `group_1`. `score/start` is never an
    element: adding a region with the id `start` into `A/score` is refused,
    `schema_violation` at `[A, "manifest", "timelines", 2, "regions", 0,
-   "id"]` (timeskeleton reserves the part words), and so is a region with
+   "id"]` (TimeToShare reserves the part words), and so is a region with
    the id `card`, at the same path; a `set` aimed at `A/score/start` is
    `unknown_target` at `[A + "/score/start"]`. `unknown_target` also for
    `A/region_1` (an entry needs its root), `A/page/region_1` (not in page's
@@ -1150,7 +1150,7 @@ card it is drawn in; a timeline drawn in the frames of several groups has
 several cards and no one place to set. What a group or a timeline stacks is
 no placement: a group's **display order** and a timeline's **band order**
 lie in the block's manifest, as the entries of `graphical.order` keyed by
-the group's or the timeline's id (timeskeleton's README, "graphical"), each
+the group's or the timeline's id (TimeToShare's README, "graphical"), each
 set by the property `order` of its group or timeline. A place is `{x?, y?,
 length?, scale?, spacing?, width?, height?}`, `x` and `y` finite, `length`,
 `scale` and the sizes positive, `spacing` (a gap) finite and at least 0, at
@@ -1268,7 +1268,7 @@ default band order of `T`, `["T/children_1", "T/conversion_maps_1", "T",
     value would journal a command that changes nothing).
 13. **A band order that is none**, each refused whole with `invalid_order`
     at `["bundle0001/excerpt", "order"]` and, as message, the first problem
-    in the terms of timeskeleton's README, by the rule "Bands and band
+    in the terms of TimeToShare's README, by the rule "Bands and band
     orders" checks against the validators (ids quoted as JSON): `E` with
     `excerpt/flow_control_1` replaced by `recording/flow_control_1`,
     `"recording/flow_control_1" is not "excerpt" or one of its bands`; `E`
@@ -2071,9 +2071,9 @@ that holds a member without being one.
 
 ## The workspace file (`file.test.ts`)
 
-`writeWorkspace(workspace)` is timeskeleton's `dumps` (keys sorted) of
+`writeWorkspace(workspace)` is TimeToShare's `dumps` (keys sorted) of
 `{meta, name, settings, blocks, journal, sessions}`, format version 4;
-`readWorkspace(text)` reads with timeskeleton's `parseJson` (lossless) and
+`readWorkspace(text)` reads with TimeToShare's `parseJson` (lossless) and
 returns a `Workspace` or a `LoadError`. An entry is exactly `{command,
 author, time}` or `{session, author, time}` (chosen by the presence of
 `session`); a session is exactly `{target, entries}`, its target an
@@ -2104,7 +2104,7 @@ without entries); a session id is ten characters of `0-9a-z`, as a key of
    `invalid_value` at `["blocks", A, "x"]`; a block's `blockKind` →
    `unknown_member` at `["blocks", A, "blockKind"]`; a block manifest
    declaring `0.6.0` → `schema_violation` at `["blocks", A, "manifest",
-   "timeskeleton"]`; a block manifest with a region ending before it starts
+   "timetoshare"]`; a block manifest with a region ending before it starts
    → `region_end_before_start` at its path below `["blocks", A,
    "manifest"]`; an entry time `yesterday` → `invalid_value` at
    `["journal", 0, "time"]`; an entry command of type `move` →

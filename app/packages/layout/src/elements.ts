@@ -1,10 +1,10 @@
 /**
  * The elements of a drawing and the placement it is drawn at
- * (`docs/drawing.md` in timeskeleton, sections 1, 6.6 and 8).
+ * (`docs/drawing.md` in TimeToShare, sections 1, 6.6 and 8).
  */
 
 import type { ItemPlace, Real } from "@timetoalign/tilie-core";
-import type { TimeUnit } from "@timetoalign/timeskeleton";
+import type { TimeUnit } from "@timetoalign/timetoshare";
 import type { DrawnAxis, DrawnBox } from "./boxes.ts";
 import type { Style } from "./cascade.ts";
 

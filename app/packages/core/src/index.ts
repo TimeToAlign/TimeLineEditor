@@ -1,7 +1,7 @@
 /**
  * The framework-free TiLiE core has three distinct layers: a workspace view
  * holds blocks, a block adds canvas placement to its own manifest, and the
- * manifest is one TimeSkeleton manifest (root timelines, optionally grouped)
+ * manifest is one TimeToShare manifest (root timelines, optionally grouped)
  * without canvas knowledge. The workspace changes only through the four
  * commands `add`, `set`, `remove` and `style`, journalled by the store.
  *
@@ -15,7 +15,7 @@
 export const name = "@timetoalign/tilie-core" as const;
 
 /** The keys of a manifest its schema does not declare, kept and written back, shown as warnings. */
-export { type UnknownKey, unknownKeys } from "@timetoalign/timeskeleton";
+export { type UnknownKey, unknownKeys } from "@timetoalign/timetoshare";
 export { apply } from "./commands/apply.ts";
 export { preview } from "./commands/preview.ts";
 export type {

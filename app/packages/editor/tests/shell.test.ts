@@ -11,7 +11,7 @@ import {
   saveManifest,
   writeWorkspace,
 } from "@timetoalign/tilie-core";
-import { SCHEMA_VERSION } from "@timetoalign/timeskeleton";
+import { SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App.svelte";
@@ -668,7 +668,7 @@ describe("the About pane", () => {
       readFileSync(path.join(import.meta.dirname, "..", "..", "..", "package.json"), "utf8"),
     ) as { version: string }
   ).version;
-  const timeskeletonVersion = (
+  const timetoshareVersion = (
     JSON.parse(
       readFileSync(
         path.join(
@@ -676,7 +676,7 @@ describe("the About pane", () => {
           "..",
           "node_modules",
           "@timetoalign",
-          "timeskeleton",
+          "timetoshare",
           "package.json",
         ),
         "utf8",
@@ -709,7 +709,7 @@ describe("the About pane", () => {
     expect(shown("about-editor")).toBe(`TimeLineEditor ${appVersion}`);
     expect(shown("about-server")).toBe("tilie-server 0.1.0 (timetoalign 1.2.0)");
     expect(shown("about-schema").replace(/\s+/g, " ")).toBe(
-      `timeskeleton ${timeskeletonVersion}, schema version ${SCHEMA_VERSION}`,
+      `TimeToShare ${timetoshareVersion}, schema version ${SCHEMA_VERSION}`,
     );
     expect(
       Array.from(

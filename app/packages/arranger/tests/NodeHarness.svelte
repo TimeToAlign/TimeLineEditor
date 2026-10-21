@@ -1,6 +1,6 @@
 <script lang="ts">
 /* A block node with the canvas's side of its edits set as the canvas sets it. */
-import { fontMetrics } from "@timetoalign/timeskeleton";
+import { fontMetrics } from "@timetoalign/timetoshare";
 import BlockNode from "../src/BlockNode.svelte";
 import { LEVELS } from "../src/containers.ts";
 import { GestureSlot } from "../src/gesture.ts";

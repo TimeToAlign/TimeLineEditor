@@ -13,7 +13,7 @@ import type { Health } from "@timetoalign/tilie-client";
 import { connect } from "@timetoalign/tilie-client";
 import type { LoadError, Problem, Store } from "@timetoalign/tilie-core";
 import { emptyWorkspace } from "@timetoalign/tilie-core";
-import { fontMetrics } from "@timetoalign/timeskeleton";
+import { fontMetrics } from "@timetoalign/timetoshare";
 import type { Snippet } from "svelte";
 import { onMount, tick, untrack } from "svelte";
 import { on } from "svelte/events";

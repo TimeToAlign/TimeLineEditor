@@ -1,8 +1,8 @@
 # `@timetoalign/tilie-layout` tests
 
 `draw(manifest, placement, layers, metrics)` returns the drawing of one
-TimeSkeleton manifest as timeskeleton's drawing specification defines it
-(`docs/drawing.md` in the timeskeleton repository, "the specification"
+TimeToShare manifest as TimeToShare's drawing specification defines it
+(`docs/drawing.md` in the TimeToShare repository, "the specification"
 below: sections 1 to 6 for each timeline drawn as a root, section 8 for the
 box that holds them). The tests prove it from the specification, never from
 the code's own output: every expected number is derived by hand from the

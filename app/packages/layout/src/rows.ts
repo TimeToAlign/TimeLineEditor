@@ -1,5 +1,5 @@
 /**
- * The rows of a member drawing (`docs/drawing.md` in timeskeleton, sections
+ * The rows of a member drawing (`docs/drawing.md` in TimeToShare, sections
  * 6.2 and 6.4, Children): the root's row, and the rows of the children bands
  * of each row's lines on one side, laid out together, at every depth. Holds
  * the second pass from the deepest rows up and places every line in the

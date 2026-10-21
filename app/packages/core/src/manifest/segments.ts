@@ -8,7 +8,7 @@
  * the deleted length instead of being refused.
  */
 
-import { canonicalOrder } from "@timetoalign/timeskeleton";
+import { canonicalOrder } from "@timetoalign/timetoshare";
 import { canonicalText } from "../json.ts";
 import type { Coordinate } from "../number/coordinate.ts";
 import { axisCoordinate, toAxisValue } from "../number/coordinate.ts";

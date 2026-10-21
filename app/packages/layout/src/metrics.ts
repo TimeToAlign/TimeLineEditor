@@ -1,9 +1,9 @@
 /**
  * Text measured from the advance widths of the drawing font
- * (`docs/drawing.md` in timeskeleton, section 5.1).
+ * (`docs/drawing.md` in TimeToShare, section 5.1).
  */
 
-import type { FontMetrics } from "@timetoalign/timeskeleton";
+import type { FontMetrics } from "@timetoalign/timetoshare";
 
 /** A text with every code point from U+0000 to U+001F replaced by a space. */
 export function cleanText(text: string): string {

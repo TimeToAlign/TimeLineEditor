@@ -1,4 +1,4 @@
-import type { Declaration, Selector, Statement } from "@timetoalign/timeskeleton";
+import type { Declaration, Selector, Statement } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { applyChanges } from "../src/commands/apply.ts";
 import { parseCommand } from "../src/commands/parse.ts";

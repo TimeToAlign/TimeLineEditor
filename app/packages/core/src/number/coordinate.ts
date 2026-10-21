@@ -8,8 +8,8 @@
  * denominator]` pair, and every integer is int64-bounded.
  */
 
-import type { NumberType, TimeUnit } from "@timetoalign/timeskeleton";
-import { JsonFloat } from "@timetoalign/timeskeleton";
+import type { NumberType, TimeUnit } from "@timetoalign/timetoshare";
+import { JsonFloat } from "@timetoalign/timetoshare";
 import type { PathSegment } from "../json.ts";
 import { showJson } from "../json.ts";
 import type { AxisValue } from "../manifest/types.ts";

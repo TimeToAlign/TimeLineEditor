@@ -1,5 +1,5 @@
 /**
- * The box around the laid-out items (`docs/drawing.md` in timeskeleton,
+ * The box around the laid-out items (`docs/drawing.md` in TimeToShare,
  * sections 8.4 and 8.6): each item drawn at its place and scale, the box
  * grown to hold them and the title, and everything shifted from the place
  * origin into the box.

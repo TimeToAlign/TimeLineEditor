@@ -1,6 +1,6 @@
 /**
  * Names and labels: the name column's row texts, one per row, and the
- * centred labels (`docs/drawing.md` in timeskeleton, sections 5.3 and 6.6).
+ * centred labels (`docs/drawing.md` in TimeToShare, sections 5.3 and 6.6).
  */
 
 import type { TimelineManifest } from "@timetoalign/tilie-core";

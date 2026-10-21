@@ -1,6 +1,6 @@
 /**
  * Selectors and the cascade of the `graphical` layers
- * (`docs/drawing.md` in timeskeleton, sections 2.1 to 2.5).
+ * (`docs/drawing.md` in TimeToShare, sections 2.1 to 2.5).
  *
  * The cascade runs on each drawing of an element at its own place in the
  * tree of sections 2.1 and 8.1, and the drawing code supplies that place:
@@ -27,7 +27,7 @@
  */
 
 import { type ElementKey, selectorMatches } from "@timetoalign/tilie-core/drawing";
-import type { Declaration, Graphical, Selector } from "@timetoalign/timeskeleton";
+import type { Declaration, Graphical, Selector } from "@timetoalign/timetoshare";
 
 /** The cascaded value of every property on one element. */
 export interface Style {

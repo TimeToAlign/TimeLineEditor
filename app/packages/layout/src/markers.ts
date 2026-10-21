@@ -1,7 +1,7 @@
 /**
  * The markers band: the wedges of the root's start and end with their label
  * tiers, and the reach of a line's marks, which ancestor lines share
- * (`docs/drawing.md` in timeskeleton, sections 6.4, Markers, 6.6 and 8.3).
+ * (`docs/drawing.md` in TimeToShare, sections 6.4, Markers, 6.6 and 8.3).
  */
 
 import { bandAddress, partAddress } from "@timetoalign/tilie-core";

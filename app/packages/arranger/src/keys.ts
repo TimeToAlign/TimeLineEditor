@@ -5,7 +5,7 @@
  */
 
 import type { Address, Command, View } from "@timetoalign/tilie-core";
-import type { FontMetrics } from "@timetoalign/timeskeleton";
+import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { BandDirection } from "./bands.ts";
 import { bandStepCommand } from "./bands.ts";
 import { nudgeCommand, removeCommand, type ZOrderAction, zOrderCommand } from "./commands.ts";

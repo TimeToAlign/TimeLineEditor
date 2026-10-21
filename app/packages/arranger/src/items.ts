@@ -1,6 +1,6 @@
 /**
  * The items of a block's box, its groups' frames and its ungrouped roots'
- * cards, and the cards its frames hold (`docs/drawing.md` in timeskeleton,
+ * cards, and the cards its frames hold (`docs/drawing.md` in TimeToShare,
  * section 8.6), moved and resized by stating their places. Every gesture is
  * one `set` of the `place` of each item or card it touches. Whatever a
  * gesture measures before it is stored is measured on the view its command
@@ -26,7 +26,7 @@ import {
   preview,
 } from "@timetoalign/tilie-core";
 import type { Drawing, DrawnBox } from "@timetoalign/tilie-layout";
-import type { FontMetrics } from "@timetoalign/timeskeleton";
+import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { CardBox, ItemBox } from "./boxes.ts";
 import { boxOf, isHeld, isItem, itemHolding, itemOf, keyedBox } from "./boxes.ts";
 import type { Level, PlaceProperty, Resizing } from "./containers.ts";

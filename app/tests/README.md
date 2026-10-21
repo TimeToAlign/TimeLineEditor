@@ -62,7 +62,7 @@ times the slowest measurement.
 ## The end-to-end container sees the schema package (`container.ts`)
 
 `e2e/run.ts` starts Playwright in a podman container that mounts only
-`app/`. The packages resolve `@timetoalign/timeskeleton` either from the
+`app/`. The packages resolve `@timetoalign/timetoshare` either from the
 registry (its real directory then lies in `app/node_modules/.pnpm`, inside
 the mount) or from a schema package linked from a sibling checkout, whose
 real directory lies outside `app/` and would be missing in the container.
@@ -85,8 +85,8 @@ What proves it, with app directory `/w/app` and image `img`:
    `TILIE_E2E_WORKERS` alone, only `--env=TILIE_E2E_WORKERS`, so a worker
    count set on the host reaches Playwright inside the container without CI
    being claimed.
-2. **Package outside `app/`** (`/w/timeskeleton/js`): the same list with
-   exactly one more member, `--volume=/w/timeskeleton/js:/w/timeskeleton/js:ro,z`,
+2. **Package outside `app/`** (`/w/TimeToShare/js`): the same list with
+   exactly one more member, `--volume=/w/TimeToShare/js:/w/TimeToShare/js:ro,z`,
    right after the app's volume: read-only, at the identical absolute path,
    so the links in `node_modules` resolve unchanged, and relabelled for the
    container (`z`) as the app's volume is, so that a host enforcing SELinux

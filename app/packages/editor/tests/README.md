@@ -9,7 +9,7 @@ are proven in a browser by the Playwright suite. `fetch` is stubbed,
 IndexedDB is a fresh fake per test, and after each test every component is
 unmounted and its pending autosaves awaited. `pnpm typecheck` runs
 `svelte-check --fail-on-warnings`, which also fails on the compiler's
-accessibility warnings. Workspaces hold the installed timeskeleton
+accessibility warnings. Workspaces hold the installed TimeToShare
 fixtures, one block per manifest journalled as one `add` (blocks
 `0000000000`, `0000000001`, … side by side), or are the committed
 end-to-end workspaces.
@@ -124,7 +124,7 @@ download writes exactly the given text; with File System Access a file is
 saved back into its handle, a save without one picks one, a cancelled
 picker gives nothing and any other failure is thrown. About shows
 "TimeLineEditor `<version>`" from the app's `package.json`, "tilie-server
-0.1.0 (timetoalign 1.2.0)" from the health, the installed timeskeleton's
+0.1.0 (timetoalign 1.2.0)" from the health, the installed TimeToShare's
 version and schema version, the workspace packages and the link to
 `THIRD_PARTY_NOTICES.txt`; offline, "offline: " and the reason.
 
@@ -218,7 +218,7 @@ writes the pending autosave before it unmounts.
 
 The Manifest panel shows the selected block's manifest as JSON, YAML or
 TOML and writes an edited text back as one `set` of the block's
-`manifest`. The oracles are the fixtures (their bytes), timeskeleton's
+`manifest`. The oracles are the fixtures (their bytes), TimeToShare's
 `dumps` (a canonical text that sorts keys, so only a changed value fails a
 comparison) and the store (what it accepts and refuses).
 
@@ -551,7 +551,7 @@ closing and reopening, nothing journalled.
    kept even through Ctrl+Enter.
 8. **An applied manifest drops the property drafts** of its block (the
    refused `scale` of `0` and its problem) and keeps the Manifest tab.
-9. **Warnings.** Each shared warning case of the installed timeskeleton
+9. **Warnings.** Each shared warning case of the installed TimeToShare
    (`fixtures/warnings/<SCHEMA_VERSION>/`) loads in core and, selected,
    lists exactly its expected unknown keys, each with its pointer or "at
    the top level", in a list "Warnings"; no problem is listed, and an

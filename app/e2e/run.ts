@@ -32,11 +32,11 @@ const args = process.argv.slice(2);
 /** The variables the configuration reads, passed into the container when set. */
 const env = ["CI", "TILIE_E2E_WORKERS"].filter((name) => process.env[name]);
 
-/** The real directory of the `@timetoalign/timeskeleton` the packages resolve. */
+/** The real directory of the `@timetoalign/timetoshare` the packages resolve. */
 const schemaPackage = realpathSync(
   path.dirname(
     createRequire(path.join(appRoot, "packages", "core", "package.json")).resolve(
-      "@timetoalign/timeskeleton/package.json",
+      "@timetoalign/timetoshare/package.json",
     ),
   ),
 );

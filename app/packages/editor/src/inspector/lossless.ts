@@ -2,7 +2,7 @@
  * Numbers between the lossless manifest value and the YAML and TOML
  * libraries.
  *
- * A manifest value holds every number as timeskeleton's `parseJson` reads
+ * A manifest value holds every number as TimeToShare's `parseJson` reads
  * it: a plain integral `number` for a safe integer, a `bigint` beyond the
  * safe range, a `JsonFloat` for an integral float and a plain `number` for
  * any other float. Both libraries are run with every integer as a `bigint`,
@@ -11,7 +11,7 @@
  */
 
 import type { Json, PathSegment } from "@timetoalign/tilie-core";
-import { isJsonFloat, JsonFloat } from "@timetoalign/timeskeleton";
+import { isJsonFloat, JsonFloat } from "@timetoalign/timetoshare";
 import { InspectorCode, ProblemError } from "./problems.ts";
 
 /** A value as the libraries hold it: integers as `bigint`, floats as `number`. */

@@ -11,7 +11,7 @@ import { drawingOf, liveStore, placeEdit, resolveSelection } from "@timetoalign/
 import type { Block, CommandEntry, Store } from "@timetoalign/tilie-core";
 import { createStore, isLoadError, readWorkspace } from "@timetoalign/tilie-core";
 import type { Drawing, DrawnBox } from "@timetoalign/tilie-layout";
-import { fontMetrics } from "@timetoalign/timeskeleton";
+import { fontMetrics } from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import Inspector from "../src/inspector/Inspector.svelte";

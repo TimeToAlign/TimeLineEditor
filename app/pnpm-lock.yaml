@@ -199,9 +199,9 @@ importers:
       '@timetoalign/tilie-writers':
         specifier: workspace:*
         version: link:../writers
-      '@timetoalign/timeskeleton':
-        specifier: link:../../../../timeskeleton/js
-        version: link:../../../../timeskeleton/js
+      '@timetoalign/timetoshare':
+        specifier: link:../../../../TimeToShare/js
+        version: link:../../../../TimeToShare/js
       '@xyflow/svelte':
         specifier: ^1.7.0
         version: 1.7.0(svelte@5.57.1)
@@ -229,9 +229,9 @@ importers:
 
   packages/core:
     dependencies:
-      '@timetoalign/timeskeleton':
-        specifier: link:../../../../timeskeleton/js
-        version: link:../../../../timeskeleton/js
+      '@timetoalign/timetoshare':
+        specifier: link:../../../../TimeToShare/js
+        version: link:../../../../TimeToShare/js
     devDependencies:
       fast-check:
         specifier: 4.10.2
@@ -257,9 +257,9 @@ importers:
       '@timetoalign/tilie-writers':
         specifier: workspace:*
         version: link:../writers
-      '@timetoalign/timeskeleton':
-        specifier: link:../../../../timeskeleton/js
-        version: link:../../../../timeskeleton/js
+      '@timetoalign/timetoshare':
+        specifier: link:../../../../TimeToShare/js
+        version: link:../../../../TimeToShare/js
       svelte:
         specifier: ^5.57.1
         version: 5.57.1
@@ -288,9 +288,9 @@ importers:
       '@timetoalign/tilie-core':
         specifier: workspace:*
         version: link:../core
-      '@timetoalign/timeskeleton':
-        specifier: link:../../../../timeskeleton/js
-        version: link:../../../../timeskeleton/js
+      '@timetoalign/timetoshare':
+        specifier: link:../../../../TimeToShare/js
+        version: link:../../../../TimeToShare/js
     devDependencies:
       fast-check:
         specifier: 4.10.2
@@ -304,9 +304,9 @@ importers:
       '@timetoalign/tilie-layout':
         specifier: workspace:*
         version: link:../layout
-      '@timetoalign/timeskeleton':
-        specifier: link:../../../../timeskeleton/js
-        version: link:../../../../timeskeleton/js
+      '@timetoalign/timetoshare':
+        specifier: link:../../../../TimeToShare/js
+        version: link:../../../../TimeToShare/js
 
 packages:
 

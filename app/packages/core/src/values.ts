@@ -3,8 +3,8 @@
  * the value as stored, or a problem at the given path.
  */
 
-import type { Declaration, Selector } from "@timetoalign/timeskeleton";
-import { JsonFloat, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
+import type { Declaration, Selector } from "@timetoalign/timetoshare";
+import { JsonFloat, SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import type { Problem } from "./errors.ts";
 import { ErrorCode, isCommandError, problem } from "./errors.ts";
 import type { Json, JsonObject, PathSegment } from "./json.ts";
@@ -220,7 +220,7 @@ export function readGraphical(
 ): ManifestGraphical | Problem {
   const read = readObject(value, path);
   if (isCommandError(read)) return read;
-  const checked = schemaChecked({ timeskeleton: SCHEMA_VERSION, timelines: [], graphical: read });
+  const checked = schemaChecked({ timetoshare: SCHEMA_VERSION, timelines: [], graphical: read });
   if ("code" in checked) return located(checked, ["graphical"], path);
   const plain = plainGraphical(checked.graphical ?? {});
   return "code" in plain ? located(plain, ["graphical"], path) : plain;
@@ -237,7 +237,7 @@ export function readStatement(
   path: readonly PathSegment[],
 ): { readonly select: Selector; readonly set: Declaration } | Problem {
   const graphical = { statements: [{ select, set }] };
-  const checked = schemaChecked({ timeskeleton: SCHEMA_VERSION, timelines: [], graphical });
+  const checked = schemaChecked({ timetoshare: SCHEMA_VERSION, timelines: [], graphical });
   const at = ["graphical", "statements", 0] as const;
   if ("code" in checked) return located(checked, at, path);
   const [statement] = checked.graphical?.statements ?? [];

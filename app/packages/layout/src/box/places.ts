@@ -1,5 +1,5 @@
 /**
- * The items of a box at their places (`docs/drawing.md` in timeskeleton,
+ * The items of a box at their places (`docs/drawing.md` in TimeToShare,
  * sections 8.1, 8.4 and 8.6): each group's frame with its members' cards,
  * and each ungrouped root's card, an item of one card without a frame. Each
  * card's member drawing is laid out here at its item's length and its card's

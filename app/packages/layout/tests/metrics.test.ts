@@ -1,4 +1,4 @@
-import type { FontMetrics } from "@timetoalign/timeskeleton";
+import type { FontMetrics } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { cleanText, type TextElement, TextMeasure } from "../src/index.ts";
 import { cutText } from "../src/names.ts";

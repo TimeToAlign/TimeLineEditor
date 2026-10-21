@@ -10,10 +10,10 @@ import type {
   Graphical,
   JsonNumber,
   Lossless,
-  LosslessTimeSkeleton,
+  LosslessManifest,
   Selector,
   Statement,
-} from "@timetoalign/timeskeleton";
+} from "@timetoalign/timetoshare";
 import {
   canonicalOrder,
   complete,
@@ -27,7 +27,7 @@ import {
   SchemaValidationError,
   UnsupportedVersionError,
   validate,
-} from "@timetoalign/timeskeleton";
+} from "@timetoalign/timetoshare";
 import type { LoadError, Problem } from "../errors.ts";
 import { ErrorCode, InvalidManifestError, isLoadError, problem } from "../errors.ts";
 import type { JsonObject, PathSegment } from "../json.ts";
@@ -43,13 +43,13 @@ function schemaProblem(error: unknown): Problem {
     return problem(ErrorCode.schemaViolation, error.detail, error.path);
   }
   if (error instanceof UnsupportedVersionError) {
-    return problem(ErrorCode.schemaViolation, error.message, ["timeskeleton"]);
+    return problem(ErrorCode.schemaViolation, error.message, ["timetoshare"]);
   }
   throw error;
 }
 
 /** `value` as the schema accepts it, or the schema's first problem. */
-export function schemaChecked(value: unknown): LosslessTimeSkeleton | Problem {
+export function schemaChecked(value: unknown): LosslessManifest | Problem {
   try {
     validate(value);
     return value;
@@ -179,9 +179,7 @@ export function plainGraphical(graphical: Lossless<Graphical>): ManifestGraphica
  * without its graphical block: the generated complete form, read as core's
  * read-only view of it.
  */
-function completeTimed(
-  value: Omit<LosslessTimeSkeleton, "graphical">,
-): Omit<Manifest, "graphical"> {
+function completeTimed(value: Omit<LosslessManifest, "graphical">): Omit<Manifest, "graphical"> {
   const { graphical: _, ...timed } = canonicalOrder(completeManifest(value));
   return timed;
 }
@@ -194,7 +192,7 @@ function completeTimed(
  * as the value states it, its graphical block made plain (`plainGraphical`)
  * and completed; or every invariant problem of it.
  */
-export function completed(value: LosslessTimeSkeleton): Manifest | LoadError {
+export function completed(value: LosslessManifest): Manifest | LoadError {
   const { graphical, ...timed } = value;
   const form = completeTimed(timed);
   const manifest: Manifest = {
@@ -296,7 +294,7 @@ export function readEntry<K extends EntryKind>(
     items,
   );
   const ordered = completeOrdered({
-    timeskeleton: SCHEMA_VERSION,
+    timetoshare: SCHEMA_VERSION,
     timelines: [timeline],
     measure_maps: measureMaps,
   });
@@ -322,7 +320,7 @@ export function readEntry<K extends EntryKind>(
  */
 export function readMeasureMap(value: JsonObject): MeasureMap | Problem {
   const read = normalizeManifest({
-    timeskeleton: SCHEMA_VERSION,
+    timetoshare: SCHEMA_VERSION,
     timelines: [],
     measure_maps: [value],
   });

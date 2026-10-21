@@ -1,7 +1,7 @@
 /** Rows and the children bands of a row laid out together; every number is derived in tests/README.md. */
 
 import type { Manifest } from "@timetoalign/tilie-core";
-import type { Graphical } from "@timetoalign/timeskeleton";
+import type { Graphical } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_LAYER,

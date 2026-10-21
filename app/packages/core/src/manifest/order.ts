@@ -1,6 +1,6 @@
 /**
  * The orders a manifest's `graphical.order` states (`docs/drawing.md` in
- * timeskeleton, sections 6.4 and 8.1): a group's display order, which stacks
+ * TimeToShare, sections 6.4 and 8.1): a group's display order, which stacks
  * its members' cards in its frame, and a timeline's band order, which stacks
  * its bands and its own line, top to bottom.
  */
@@ -84,7 +84,7 @@ export function bandOrderOf(manifest: Manifest, timelineId: string): readonly st
 /**
  * The first problem of `value` as the band order of the timeline
  * `timelineId`, its entry in `graphical.order`, in the terms and the order
- * of timeskeleton's README and validators, ids quoted as JSON; `null` for a
+ * of TimeToShare's README and validators, ids quoted as JSON; `null` for a
  * band order. The schema's problems about the value's shape and its repeats
  * come first, then the identity rules':
  *

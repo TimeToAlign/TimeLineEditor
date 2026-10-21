@@ -1,7 +1,7 @@
 /** The markers band, the conversion maps band and the end marker; every number is derived in tests/README.md. */
 
 import type { Manifest } from "@timetoalign/tilie-core";
-import type { Graphical } from "@timetoalign/timeskeleton";
+import type { Graphical } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_LAYER,

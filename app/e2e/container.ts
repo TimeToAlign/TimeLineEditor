@@ -8,7 +8,7 @@ import path from "node:path";
 export interface ContainerOptions {
   /** The absolute path of `app/`, mounted read-write at its own path. */
   readonly appRoot: string;
-  /** The real directory of the installed `@timetoalign/timeskeleton`. */
+  /** The real directory of the installed `@timetoalign/timetoshare`. */
   readonly schemaPackage: string;
   /** The Playwright image. */
   readonly image: string;

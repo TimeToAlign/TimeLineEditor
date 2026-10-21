@@ -1,6 +1,6 @@
 /**
  * First fit: items placed one at a time into numbered rows, by their extents
- * (`docs/drawing.md` in timeskeleton, section 6.3).
+ * (`docs/drawing.md` in TimeToShare, section 6.3).
  */
 
 import { nth } from "./traversal.ts";

@@ -1,6 +1,6 @@
 /**
  * Ancestor lines and the ancestor band of a member that is a child timeline
- * (`docs/drawing.md` in timeskeleton, section 8.3).
+ * (`docs/drawing.md` in TimeToShare, section 8.3).
  */
 
 import { partAddress, type TimelineManifest } from "@timetoalign/tilie-core";

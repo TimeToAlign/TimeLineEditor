@@ -2,7 +2,7 @@
  * A manifest as JSON, YAML or TOML text, read back into the lossless
  * manifest value and patched in place.
  *
- * JSON is timeskeleton's standard writer (`dumps`) and lossless reader
+ * JSON is TimeToShare's standard writer (`dumps`) and lossless reader
  * (`parseJson`), always available. YAML (`yaml.ts`) and TOML (`toml.ts`)
  * keep the parsed document of the text; patching it with a new manifest
  * changes only the values that differ, so the comments typed in the text
@@ -14,7 +14,7 @@
  */
 
 import type { Json } from "@timetoalign/tilie-core";
-import { dumps, JsonSyntaxError, parseJson } from "@timetoalign/timeskeleton";
+import { dumps, JsonSyntaxError, parseJson } from "@timetoalign/timetoshare";
 import { SvelteMap } from "svelte/reactivity";
 import type { Codec, Format, Read, Source, Text } from "./codec.ts";
 import type { Result } from "./problems.ts";
@@ -37,7 +37,7 @@ const JSON_SOURCE: Source = {
   patch: (value) => ({ ok: true, value: dumps(value) }),
 };
 
-/** The JSON value of `text`; a syntax error at the line and column timeskeleton's reader names. */
+/** The JSON value of `text`; a syntax error at the line and column TimeToShare's reader names. */
 function readJson(text: string): Result<Read> {
   try {
     return { ok: true, value: { value: parseJson(text) as Json, source: JSON_SOURCE } };

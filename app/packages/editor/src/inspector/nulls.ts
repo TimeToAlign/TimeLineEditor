@@ -5,7 +5,7 @@
  *   **requires** or gives the **default null** is left out of the TOML text
  *   when it is null, and put back as null when the text is read. A reader
  *   would supply the default null anyway; putting it back keeps the
- *   manifest in its complete form. In schema 0.7.0 these are `length`
+ *   manifest in its complete form. In schema 0.1.0 these are `length`
  *   (required, may be null) and `name` of every timeline; `name`,
  *   `source_unit` and `target_unit` of every conversion map; `name` of a
  *   region; `name` and `label` of a flow-control element; `name` of a
@@ -25,7 +25,7 @@
  */
 
 import type { Json, PathSegment } from "@timetoalign/tilie-core";
-import { isJsonFloat, isJsonObject, schema } from "@timetoalign/timeskeleton";
+import { isJsonFloat, isJsonObject, schema } from "@timetoalign/timetoshare";
 import { InspectorCode, ProblemError } from "./problems.ts";
 
 /** A JSON Schema object, read loosely. */

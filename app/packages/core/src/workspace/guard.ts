@@ -1,7 +1,7 @@
 /** The side-effect guard: an open editor changes only the element it edits. */
 
-import type { Statement } from "@timetoalign/timeskeleton";
-import { dumps } from "@timetoalign/timeskeleton";
+import type { Statement } from "@timetoalign/timetoshare";
+import { dumps } from "@timetoalign/timetoshare";
 import type { ChangeSet } from "../commands/mutations.ts";
 import type { CommandError } from "../errors.ts";
 import { ErrorCode, isCommandError, problem } from "../errors.ts";

@@ -1,7 +1,7 @@
 /**
  * Reordering a group's member cards: where a dragged card drops and the
  * `set` storing it. Only the display order changes; members are never
- * placed (`docs/drawing.md` in timeskeleton, sections 8.1 and 8.6). A drop's
+ * placed (`docs/drawing.md` in TimeToShare, sections 8.1 and 8.6). A drop's
  * preview is that `set` applied (core's `preview`).
  */
 

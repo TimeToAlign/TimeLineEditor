@@ -50,7 +50,7 @@ import {
   resolveAddress,
   WORKSPACE,
 } from "@timetoalign/tilie-core";
-import { fontMetrics } from "@timetoalign/timeskeleton";
+import { fontMetrics } from "@timetoalign/timetoshare";
 import type { Result } from "./problems.ts";
 import { InspectorCode, refused } from "./problems.ts";
 import { bandWord } from "./words.ts";

@@ -1,7 +1,7 @@
 /**
  * An element, a container's record or a line's axis, drawn at its item's
  * place and shifted from the place origin into the box (`docs/drawing.md`
- * in timeskeleton, sections 8.4 and 8.6).
+ * in TimeToShare, sections 8.4 and 8.6).
  */
 
 import type { DrawnAxis, DrawnBox } from "./boxes.ts";

@@ -11,7 +11,7 @@
  * coordinate is never re-expressed through them.
  */
 
-import type { NumberType, TimeUnit } from "@timetoalign/timeskeleton";
+import type { NumberType, TimeUnit } from "@timetoalign/timetoshare";
 import type { Coordinate } from "./coordinate.ts";
 import { Rational } from "./rational.ts";
 

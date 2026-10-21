@@ -6,7 +6,7 @@
  */
 
 import type { Json } from "@timetoalign/tilie-core";
-import { dumps, isJsonFloat } from "@timetoalign/timeskeleton";
+import { dumps, isJsonFloat } from "@timetoalign/timetoshare";
 import type { Node } from "yaml";
 import {
   Document,

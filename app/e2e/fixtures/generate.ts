@@ -1,6 +1,6 @@
 /**
  * The workspaces the end-to-end suite opens, built through the store's
- * commands from timeskeleton's manifest fixtures and written by
+ * commands from TimeToShare's manifest fixtures and written by
  * `writeWorkspace`. The `.tle.json` files beside this script are its output
  * and are never edited by hand.
  *
@@ -19,10 +19,10 @@ import { fixtureWorkspace } from "../../packages/editor/src/fixtureWorkspace.ts"
 
 const here = import.meta.dirname;
 
-/** The timeskeleton package that `core` depends on. */
+/** The TimeToShare package that `core` depends on. */
 const packageDir = path.dirname(
   createRequire(path.join(here, "../../packages/core/package.json")).resolve(
-    "@timetoalign/timeskeleton/package.json",
+    "@timetoalign/timetoshare/package.json",
   ),
 );
 const { SCHEMA_VERSION } = (await import(

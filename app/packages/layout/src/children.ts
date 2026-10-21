@@ -2,7 +2,7 @@
  * The children band's first fit: each child line placed as a whole, by the
  * extent of its whole drawing, into the rows of its parent's children band,
  * and the first pass over a member drawing (`docs/drawing.md` in
- * timeskeleton, sections 6.3 and 6.4, Children).
+ * TimeToShare, sections 6.3 and 6.4, Children).
  */
 
 import { type Extent, Rows } from "./fit.ts";

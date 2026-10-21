@@ -16,7 +16,7 @@ import type {
   Store,
 } from "@timetoalign/tilie-core";
 import { ErrorCode } from "@timetoalign/tilie-core";
-import { complete, dumps, isJsonFloat, isJsonObject, minimal } from "@timetoalign/timeskeleton";
+import { complete, dumps, isJsonFloat, isJsonObject, minimal } from "@timetoalign/timetoshare";
 import type { Format, Text } from "./formats.svelte.ts";
 import { readText, writeText } from "./formats.svelte.ts";
 import type { InspectorProblem, Result } from "./problems.ts";

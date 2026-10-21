@@ -16,14 +16,14 @@ import type { Drawing, Placement } from "@timetoalign/tilie-layout";
 import { DEFAULT_LAYER, draw } from "@timetoalign/tilie-layout";
 import type { Descriptor } from "@timetoalign/tilie-writers";
 import { toDescriptors } from "@timetoalign/tilie-writers";
-import type { Graphical } from "@timetoalign/timeskeleton";
+import type { Graphical } from "@timetoalign/timetoshare";
 import {
   fontMetrics,
   isJsonFloat,
   isJsonObject,
   parseJson,
   SCHEMA_VERSION,
-} from "@timetoalign/timeskeleton";
+} from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it } from "vitest";
 import type { BlockNodeData } from "../src/project.ts";
@@ -33,7 +33,7 @@ import NodeHarness from "./NodeHarness.svelte";
 const SVG = "http://www.w3.org/2000/svg";
 
 const fixturesDirectory = path.join(
-  path.dirname(createRequire(import.meta.url).resolve("@timetoalign/timeskeleton/package.json")),
+  path.dirname(createRequire(import.meta.url).resolve("@timetoalign/timetoshare/package.json")),
   "fixtures",
   SCHEMA_VERSION,
 );

@@ -5,7 +5,7 @@ import { name as client } from "@timetoalign/tilie-client";
 import { name as core } from "@timetoalign/tilie-core";
 import { name as layout } from "@timetoalign/tilie-layout";
 import { name as writers } from "@timetoalign/tilie-writers";
-import { SCHEMA_VERSION } from "@timetoalign/timeskeleton";
+import { SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import { ATTRIBUTIONS, NOTICES_FILE } from "./attributions.ts";
 
 interface Props {
@@ -54,7 +54,7 @@ export function open(): void {
     <dd data-testid="about-server">{server}</dd>
     <dt>Schema</dt>
     <dd data-testid="about-schema">
-      timeskeleton {__TIMESKELETON_VERSION__}, schema version {SCHEMA_VERSION}
+      TimeToShare {__TIMETOSHARE_VERSION__}, schema version {SCHEMA_VERSION}
     </dd>
     <dt>Packages</dt>
     <dd>

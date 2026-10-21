@@ -15,7 +15,7 @@ import {
   minimal,
   parseJson,
   SCHEMA_VERSION,
-} from "@timetoalign/timeskeleton";
+} from "@timetoalign/timetoshare";
 import { beforeAll, describe, expect, it } from "vitest";
 import type { Format } from "../src/inspector/formats.svelte.ts";
 import { FORMATS, loadCodec, readText, writeText } from "../src/inspector/formats.svelte.ts";
@@ -30,7 +30,7 @@ const A = "0000000000";
 const B = "0000000001";
 
 const fixturesDirectory = path.join(
-  path.dirname(createRequire(import.meta.url).resolve("@timetoalign/timeskeleton/package.json")),
+  path.dirname(createRequire(import.meta.url).resolve("@timetoalign/timetoshare/package.json")),
   "fixtures",
   SCHEMA_VERSION,
 );
@@ -58,7 +58,7 @@ function manifestIn(store: Store, id: string): Json {
 function nominalNull(): Manifest {
   const manifest = loadManifest(
     dumps({
-      timeskeleton: SCHEMA_VERSION,
+      timetoshare: SCHEMA_VERSION,
       timelines: [{ id: "score", unit: "quarters", length: [4, 1] }],
       measure_maps: [
         {
@@ -189,7 +189,7 @@ describe("the TOML null rule", () => {
         .filter(([, members]) => members.length > 0),
     );
     expect(listed).toEqual({
-      TimeSkeleton: ["name"],
+      Manifest: ["name"],
       Timeline: ["length", "name"],
       MeasureMap: ["name"],
       Region: ["name"],
@@ -206,7 +206,7 @@ describe("the TOML null rule", () => {
   function nullable(): Json {
     const manifest = loadManifest(
       dumps({
-        timeskeleton: SCHEMA_VERSION,
+        timetoshare: SCHEMA_VERSION,
         timelines: [
           {
             id: "score",
@@ -231,7 +231,7 @@ describe("the TOML null rule", () => {
     const text = written("toml", value);
     expect(text).toBe(
       [
-        'timeskeleton = "0.7.0"',
+        'timetoshare = "0.1.0"',
         "",
         "[[groups]]",
         'id = "group_1"',
@@ -294,7 +294,7 @@ describe("the TOML null rule", () => {
   it("refuses a null the schema neither requires nor defaults to null", () => {
     const value = parseJson(
       dumps({
-        timeskeleton: SCHEMA_VERSION,
+        timetoshare: SCHEMA_VERSION,
         timelines: [{ id: "score", unit: "quarters", length: [4, 1] }],
         measure_maps: [
           {

@@ -1,7 +1,7 @@
 /**
  * One timeline drawn with a line of its own (the root of a member drawing, a
  * displayed child, a displayed segment that is a segment line) laid out with
- * its five bands at its own line (`docs/drawing.md` in timeskeleton, section
+ * its five bands at its own line (`docs/drawing.md` in TimeToShare, section
  * 6.4, Every timeline's bands). Its bands draw what it holds and what each
  * segment without a line of its own adds to them. The three passes of
  * section 6.4 split the work: `prepareTimeline` (every first fit),

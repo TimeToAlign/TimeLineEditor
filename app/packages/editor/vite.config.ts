@@ -14,8 +14,8 @@ function versionOf(file: string): string {
 }
 
 /** The schema package's `package.json`, as installed (or linked) for this workspace. */
-const timeskeletonManifest = createRequire(import.meta.url).resolve(
-  "@timetoalign/timeskeleton/package.json",
+const schemaPackageJson = createRequire(import.meta.url).resolve(
+  "@timetoalign/timetoshare/package.json",
 );
 
 /**
@@ -28,7 +28,7 @@ const timeskeletonManifest = createRequire(import.meta.url).resolve(
  */
 const VENDOR_CHUNKS: readonly (readonly [string, (name: string) => boolean])[] = [
   ["svelte", (name) => name === "svelte"],
-  ["timeskeleton", (name) => name === "@timetoalign/timeskeleton"],
+  ["timetoshare", (name) => name === "@timetoalign/timetoshare"],
   ["flow", (name) => name.startsWith("@xyflow/")],
 ];
 
@@ -59,13 +59,13 @@ const CODE_SPLITTING = {
  * not used, since it would inline the font into the stylesheet.
  *
  * The About pane shows the editor's version (the workspace's `package.json`,
- * which releases bump) and the bundled timeskeleton's, fixed at build time.
+ * which releases bump) and the bundled TimeToShare's, fixed at build time.
  *
  * During `pnpm dev`, API calls are proxied to a locally running server
  * (`tilie --port <port> --no-browser`); set `TILIE_PORT` to its port. The
  * development server may also read the schema package's real directory, so
  * that the bundled font is served: installed from npm it lies inside the
- * workspace anyway, but a local timeskeleton checkout linked in to try a
+ * workspace anyway, but a local TimeToShare checkout linked in to try a
  * schema change lies outside it.
  */
 export default defineConfig(({ mode }) => {
@@ -88,9 +88,9 @@ export default defineConfig(({ mode }) => {
             licenceFile: path.join(flow, "LICENSE"),
           },
           {
-            title: "DejaVu Sans 2.37 (the bundled font, from @timetoalign/timeskeleton)",
+            title: "DejaVu Sans 2.37 (the bundled font, from @timetoalign/timetoshare)",
             licence: FONT_LICENCE,
-            licenceFile: path.join(directory("@timetoalign/timeskeleton"), "fonts", "LICENSE"),
+            licenceFile: path.join(directory("@timetoalign/timetoshare"), "fonts", "LICENSE"),
           },
           {
             title: "IBM Plex Mono 2.5.0 (the bundled title font of the inspector)",
@@ -104,7 +104,7 @@ export default defineConfig(({ mode }) => {
       __TILIE_VERSION__: JSON.stringify(
         versionOf(fileURLToPath(new URL("../../package.json", import.meta.url))),
       ),
-      __TIMESKELETON_VERSION__: JSON.stringify(versionOf(timeskeletonManifest)),
+      __TIMETOSHARE_VERSION__: JSON.stringify(versionOf(schemaPackageJson)),
     },
     environments: {
       client: {
@@ -146,7 +146,7 @@ export default defineConfig(({ mode }) => {
       fs: {
         allow: [
           searchForWorkspaceRoot(fileURLToPath(new URL(".", import.meta.url))),
-          path.dirname(realpathSync(timeskeletonManifest)),
+          path.dirname(realpathSync(schemaPackageJson)),
         ],
       },
       proxy: {

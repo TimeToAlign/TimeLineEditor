@@ -1,6 +1,6 @@
 /**
  * Positions on the root's axis, the one step from an exact value to a double,
- * and the text of a coordinate (`docs/drawing.md` in timeskeleton, sections
+ * and the text of a coordinate (`docs/drawing.md` in TimeToShare, sections
  * 3 and 5.2).
  */
 
@@ -13,8 +13,8 @@ import {
   type Real,
   toFloat,
 } from "@timetoalign/tilie-core/numbers";
-import type { NumberType, TimeUnit } from "@timetoalign/timeskeleton";
-import { compactJson, isJsonFloat, JsonFloat } from "@timetoalign/timeskeleton";
+import type { NumberType, TimeUnit } from "@timetoalign/timetoshare";
+import { compactJson, isJsonFloat, JsonFloat } from "@timetoalign/timetoshare";
 
 function integerValue(value: unknown): bigint {
   if (isJsonFloat(value)) return BigInt(value.value);

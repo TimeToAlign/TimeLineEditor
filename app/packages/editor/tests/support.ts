@@ -1,7 +1,7 @@
 /// <reference types="node" />
 /**
  * Fixtures and file stubs for the editor's tests: manifests from the
- * installed `@timetoalign/timeskeleton`, workspaces and stores built of
+ * installed `@timetoalign/timetoshare`, workspaces and stores built of
  * them, the test hook of a mounted page, the fallback file input answered
  * with a chosen file, downloads recorded instead of performed, and the
  * autosaves of mounted editors waited for between tests.
@@ -12,14 +12,14 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import type { Manifest, Store } from "@timetoalign/tilie-core";
 import { createStore, isLoadError, loadManifest, readWorkspace } from "@timetoalign/tilie-core";
-import { SCHEMA_VERSION } from "@timetoalign/timeskeleton";
+import { SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import { vi } from "vitest";
 import type { Autosave, AutosaveOptions } from "../src/autosave.ts";
 import { fixtureWorkspace } from "../src/fixtureWorkspace.ts";
 import type { TestHook } from "../src/testHook.ts";
 
 const directory = path.join(
-  path.dirname(createRequire(import.meta.url).resolve("@timetoalign/timeskeleton/package.json")),
+  path.dirname(createRequire(import.meta.url).resolve("@timetoalign/timetoshare/package.json")),
   "fixtures",
   SCHEMA_VERSION,
 );

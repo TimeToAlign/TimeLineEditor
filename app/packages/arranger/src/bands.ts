@@ -1,5 +1,5 @@
 /**
- * The bands of a timeline (`docs/drawing.md` in timeskeleton, section 6.4) as
+ * The bands of a timeline (`docs/drawing.md` in TimeToShare, section 6.4) as
  * containers of its timeline editor: where a dragged or stepped band lands in
  * the timeline's band order, and the one `set` that writes the new order. A
  * band draws nothing: the drawing records it among its boxes and only the
@@ -17,7 +17,7 @@
 import type { Address, BlockId, SetCommand, View } from "@timetoalign/tilie-core";
 import { bandOrderOf, inheritedBandOrder, qualify } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
-import type { FontMetrics } from "@timetoalign/timeskeleton";
+import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { BandBox } from "./boxes.ts";
 import { offeredBands } from "./boxes.ts";
 import { drawingOf } from "./drawing.ts";

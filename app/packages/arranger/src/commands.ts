@@ -11,7 +11,7 @@ import type {
   View,
 } from "@timetoalign/tilie-core";
 import { elementOf, indicesBetween, qualify, TITLE_ADDRESS } from "@timetoalign/tilie-core";
-import type { FontMetrics } from "@timetoalign/timeskeleton";
+import type { FontMetrics } from "@timetoalign/timetoshare";
 import { drawingOf, nodePosition } from "./drawing.ts";
 import { addressParts, type Editing } from "./editing.ts";
 import { GRID_FREE, positionStep, quantize, sameSequence } from "./numbers.ts";

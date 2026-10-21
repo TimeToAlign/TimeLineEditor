@@ -1,7 +1,7 @@
-/** The default style layer (`docs/drawing.md` in timeskeleton, section 4) and a manifest's own. */
+/** The default style layer (`docs/drawing.md` in TimeToShare, section 4) and a manifest's own. */
 
 import type { Manifest } from "@timetoalign/tilie-core";
-import type { Graphical } from "@timetoalign/timeskeleton";
+import type { Graphical } from "@timetoalign/timetoshare";
 
 /** The lowest layer of every drawing. */
 export const DEFAULT_LAYER: Graphical = {

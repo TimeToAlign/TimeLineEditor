@@ -1,5 +1,5 @@
 /**
- * The schema package the editor's packages resolve (`@timetoalign/timeskeleton`,
+ * The schema package the editor's packages resolve (`@timetoalign/timetoshare`,
  * installed from npm or linked from a sibling checkout): its directory, its
  * schema version, the manifest fixtures of that version, and the bundled
  * face's metrics, which the editor's bundle holds too. Every spec reads them
@@ -10,8 +10,8 @@ import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import type * as Schema from "@timetoalign/timeskeleton";
-import type { FontMetrics } from "@timetoalign/timeskeleton";
+import type * as Schema from "@timetoalign/timetoshare";
+import type { FontMetrics } from "@timetoalign/timetoshare";
 
 /**
  * The schema package's directory, as `core` resolves it. The suite's
@@ -20,7 +20,7 @@ import type { FontMetrics } from "@timetoalign/timeskeleton";
  */
 export const packageDir = path.dirname(
   createRequire(path.join(import.meta.dirname, "../packages/core/package.json")).resolve(
-    "@timetoalign/timeskeleton/package.json",
+    "@timetoalign/timetoshare/package.json",
   ),
 );
 

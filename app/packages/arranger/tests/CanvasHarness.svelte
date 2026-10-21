@@ -1,7 +1,7 @@
 <script lang="ts">
 /* The canvas on a store, its selection and viewport held here so a test can read and set them. */
 import type { Store } from "@timetoalign/tilie-core";
-import type { FontMetrics } from "@timetoalign/timeskeleton";
+import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { Viewport } from "@xyflow/svelte";
 import Canvas from "../src/Canvas.svelte";
 import { liveStore } from "../src/liveStore.svelte.ts";

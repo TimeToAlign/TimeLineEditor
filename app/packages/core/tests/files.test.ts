@@ -1,4 +1,4 @@
-import { dumps, JsonFloat } from "@timetoalign/timeskeleton";
+import { dumps, JsonFloat } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { apply } from "../src/commands/apply.ts";
 import { isLoadError } from "../src/errors.ts";

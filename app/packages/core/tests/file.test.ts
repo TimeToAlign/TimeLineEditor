@@ -1,4 +1,4 @@
-import { dumps, minimal, parseJson } from "@timetoalign/timeskeleton";
+import { dumps, minimal, parseJson } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { isLoadError } from "../src/errors.ts";
 import { readWorkspace, writeWorkspace } from "../src/workspace/file.ts";
@@ -144,9 +144,9 @@ describe("the workspace file", () => {
     ],
     [
       "a manifest of another schema version",
-      edited((value) => Object.assign(blockOf(value).manifest as Value, { timeskeleton: "0.6.0" })),
+      edited((value) => Object.assign(blockOf(value).manifest as Value, { timetoshare: "0.6.0" })),
       "schema_violation",
-      ["blocks", A, "manifest", "timeskeleton"],
+      ["blocks", A, "manifest", "timetoshare"],
     ],
     [
       "an entry time without milliseconds",

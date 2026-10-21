@@ -53,8 +53,8 @@ unreadable file is, rather than opened with a history that undo would not
 follow. `readWorkspace` keeps its cost and does not replay: reading and
 verifying are two steps, both run when a file is opened.
 
-`writeWorkspace` is timeskeleton's `dumps` of `{meta, settings, blocks,
-journal, sessions}`; `readWorkspace` reads with timeskeleton's lossless `parseJson`
+`writeWorkspace` is TimeToShare's `dumps` of `{meta, settings, blocks,
+journal, sessions}`; `readWorkspace` reads with TimeToShare's lossless `parseJson`
 (its `parse` validates one manifest and does not apply to the workspace),
 refuses another `format` or `version`, any unknown or missing member and any
 invalid manifest, and reads every block's manifest through core's one
@@ -93,7 +93,7 @@ fixtures in turn, with a journal of the block additions followed by moves.
 The budgets were first set at 50 ms to open (validation included) and to
 save 300 blocks with 1,000 entries, and 1 ms for a command. The command
 budget holds. Opening and saving did not: of the opening time,
-timeskeleton's `parseJson` takes about 88 ms on the 2.6 MB text and the
+TimeToShare's `parseJson` takes about 88 ms on the 2.6 MB text and the
 manifests' validation about 30 ms; of the saving time, `dumps` takes about
 60 ms. A command copies the map of blocks once, so its time grows with the
 number of blocks: 8.3 ms at 10,000.

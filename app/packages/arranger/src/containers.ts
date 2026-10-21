@@ -16,7 +16,7 @@ import type {
 } from "@timetoalign/tilie-core";
 import { ITEM_PLACE_MEMBERS, isCommandError, resolveAddress } from "@timetoalign/tilie-core";
 import type { Drawing, DrawnBox } from "@timetoalign/tilie-layout";
-import type { FontMetrics } from "@timetoalign/timeskeleton";
+import type { FontMetrics } from "@timetoalign/timetoshare";
 import { boxOf, isHeld, isItem } from "./boxes.ts";
 import { drawingOf } from "./drawing.ts";
 import type { Editing } from "./editing.ts";

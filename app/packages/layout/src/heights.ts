@@ -1,4 +1,4 @@
-/** The heights of a member drawing (`docs/drawing.md` in timeskeleton, section 6.5). */
+/** The heights of a member drawing (`docs/drawing.md` in TimeToShare, section 6.5). */
 
 import { P } from "./constants.ts";
 import type { Scope } from "./traversal.ts";

@@ -1,5 +1,5 @@
-import type { NumberType, TimeUnit } from "@timetoalign/timeskeleton";
-import { JsonFloat } from "@timetoalign/timeskeleton";
+import type { NumberType, TimeUnit } from "@timetoalign/timetoshare";
+import { JsonFloat } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import type { Coordinate } from "../src/number/coordinate.ts";
 import {

@@ -11,7 +11,7 @@ import type {
   WorkspaceSettings,
 } from "@timetoalign/tilie-core";
 import { ITEM_PLACE_MEMBERS } from "@timetoalign/tilie-core";
-import type { FontMetrics } from "@timetoalign/timeskeleton";
+import type { FontMetrics } from "@timetoalign/timetoshare";
 import { drawingOf, nodePosition } from "./drawing.ts";
 import { placeTarget } from "./editing.ts";
 import { GRID_FREE, MIN_LENGTH, MIN_SCALE, quantize } from "./numbers.ts";

@@ -3,7 +3,7 @@
 import { qualify } from "@timetoalign/tilie-core";
 import type { Drawing, DrawnElement } from "@timetoalign/tilie-layout";
 import { TextMeasure } from "@timetoalign/tilie-layout";
-import type { FontMetrics } from "@timetoalign/timeskeleton";
+import type { FontMetrics } from "@timetoalign/timetoshare";
 import { boxOf } from "./boxes.ts";
 import type { BlockNode } from "./project.ts";
 

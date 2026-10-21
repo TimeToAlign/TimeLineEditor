@@ -1,5 +1,5 @@
 /**
- * `writeSvg(placed)`: the SVG profile (`docs/drawing.md` in timeskeleton,
+ * `writeSvg(placed)`: the SVG profile (`docs/drawing.md` in TimeToShare,
  * section 7.3).
  */
 

@@ -5,7 +5,7 @@ import type { Drawing } from "@timetoalign/tilie-layout";
 import { DEFAULT_LAYER, draw } from "@timetoalign/tilie-layout";
 import type { Descriptor } from "@timetoalign/tilie-writers";
 import { toDescriptors } from "@timetoalign/tilie-writers";
-import type { FontMetrics } from "@timetoalign/timeskeleton";
+import type { FontMetrics } from "@timetoalign/timetoshare";
 
 interface Memo {
   readonly settings: WorkspaceSettings;
@@ -67,7 +67,7 @@ export function descriptorsOf(drawing: Drawing): readonly Descriptor[] {
 /**
  * Where the node of `block` drawn as `drawing` lies: a block's `x`, `y` are
  * the canvas position of its place origin (`docs/drawing.md` in
- * timeskeleton, section 8.6), which lies at `drawing.origin` in the box, so
+ * TimeToShare, section 8.6), which lies at `drawing.origin` in the box, so
  * a box that grows left or up moves nothing it holds.
  */
 export function nodePosition(

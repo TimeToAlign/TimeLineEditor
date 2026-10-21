@@ -1,6 +1,6 @@
 /// <reference types="node" />
 import { isLoadError, loadManifest } from "@timetoalign/tilie-core";
-import { dumps, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
+import { dumps, SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   lastChanged,
@@ -35,7 +35,7 @@ describe("manifestFileName", () => {
     const named = (members: object) => {
       const manifest = loadManifest(
         dumps({
-          timeskeleton: SCHEMA_VERSION,
+          timetoshare: SCHEMA_VERSION,
           timelines: [{ id: "piece", unit: "quarters", length: [8, 1] }],
           ...members,
         }),

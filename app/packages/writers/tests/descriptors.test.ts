@@ -8,7 +8,7 @@ import {
   manifestLayer,
   type Style,
 } from "@timetoalign/tilie-layout";
-import { fontMetrics } from "@timetoalign/timeskeleton";
+import { fontMetrics } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import {
   type Descriptor,

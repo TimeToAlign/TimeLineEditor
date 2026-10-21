@@ -1,7 +1,7 @@
 /**
  * One timeline drawn as a root: its timelines in traversal order, each with
  * its five bands, its axis and the measures its bands share
- * (`docs/drawing.md` in timeskeleton, sections 2.1, 2.4, 3.2, 5 and 6.1).
+ * (`docs/drawing.md` in TimeToShare, sections 2.1, 2.4, 3.2, 5 and 6.1).
  * The keys mirror core's tree of elements: a child, or a segment's node, is
  * held by its parent's children band, and what a timeline holds of a kind
  * by its band of that kind.
@@ -24,7 +24,7 @@ import {
   textKey,
 } from "@timetoalign/tilie-core/drawing";
 import type { Real } from "@timetoalign/tilie-core/numbers";
-import type { ElementType } from "@timetoalign/timeskeleton";
+import type { ElementType } from "@timetoalign/timetoshare";
 import type { Cascade, Style } from "./cascade.ts";
 import type { LineEnd, Placement } from "./elements.ts";
 import { cleanText, type TextMeasure } from "./metrics.ts";

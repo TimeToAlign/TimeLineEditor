@@ -15,7 +15,7 @@ TimeLineEditor holds the editor (`app/`, a pnpm workspace of TypeScript
 packages, Svelte 5 and Vite) and the local server (`server/`, FastAPI,
 installed from PyPI as `tilie-server`, whose wheel ships the built editor).
 The manifest format the editor reads and writes is specified by the
-`timeskeleton` repository: the JSON Schema, the generated TypeScript types
+TimeToShare repository: the JSON Schema, the generated TypeScript types
 and validator, the Python validator, the fixtures, the drawing
 specification `docs/drawing.md` and the font metrics. Setting up both
 checkouts is described in [`CONTRIBUTING.md`](../CONTRIBUTING.md#setup). The editor never
@@ -24,7 +24,7 @@ have, the schema is changed first.
 
 ## The three layers, named by one word each
 
-- A **manifest** is one TimeSkeleton manifest: root timelines with exact
+- A **manifest** is one TimeToShare manifest: root timelines with exact
   coordinates, children at exact offsets, conversion maps, regions, flow
   control; optionally groups, measure maps, an `id`, a `name`, and
   `graphical`, the styling of its own drawing with the display orders of
@@ -150,7 +150,7 @@ the only ones that build one.
   (`<name>.svelte.ts`) with the logic unit-tested without the component, a
   tab in `tabs.ts`, words in `words.ts`.
 - **A new schema rule**: the rule in both validators (`js/src/validate/*`,
-  `python/src/timeskeleton/validation/*`, the same module and the same
+  `python/src/timetoshare/validation/*`, the same module and the same
   order), a stable code in both `diagnostics` modules' `ValidationCode`, a shared rejection fixture that pins the path and
   message in both languages, and the README's rule table.
 - **A new dependency**: an ADR first, always weighing "write it ourselves"
@@ -160,7 +160,7 @@ the only ones that build one.
 
 Every package carries `tests/README.md`, written before its tests. It
 states what proves each behaviour, which values the package owns and
-derives, and where the oracle is: the drawing fixtures of `timeskeleton`
+derives, and where the oracle is: the drawing fixtures of TimeToShare
 (byte-equal SVG and TikZ), the specification's arithmetic, or another
 package. It names no internal function. Values are exact; no thresholds,
 no approximate matchers. Tests reach a package through its public
@@ -188,7 +188,7 @@ imports `mount`, and hands it one element with a definite height.
 
 ## Releasing
 
-A `timeskeleton` version is a schema version, released by release-please on
+A TimeToShare version is a schema version, released by release-please on
 `main` and published to npm and PyPI by trusted publishing. TimeLineEditor
 is released as `tilie-server` to PyPI, by release-please and trusted
 publishing as well; while the editor builds against an unreleased schema

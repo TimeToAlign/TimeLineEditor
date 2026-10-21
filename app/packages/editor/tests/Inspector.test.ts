@@ -14,7 +14,7 @@ import {
   isJsonObject,
   parseJson,
   SCHEMA_VERSION,
-} from "@timetoalign/timeskeleton";
+} from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it } from "vitest";
 import InspectorDrawer from "../src/InspectorDrawer.svelte";
@@ -33,7 +33,7 @@ const HINT = "Select a block to inspect its manifest.";
 const COMPLETE: TextOptions = { includeStyling: false, minimal: false };
 
 const directory = path.join(
-  path.dirname(createRequire(import.meta.url).resolve("@timetoalign/timeskeleton/package.json")),
+  path.dirname(createRequire(import.meta.url).resolve("@timetoalign/timetoshare/package.json")),
   "fixtures",
   SCHEMA_VERSION,
 );
@@ -709,7 +709,7 @@ describe("a clean text", () => {
   it("keeps a problem of writing the manifest while the text is typed back", async () => {
     const manifest = loadManifest(
       dumps({
-        timeskeleton: SCHEMA_VERSION,
+        timetoshare: SCHEMA_VERSION,
         timelines: [{ id: "score", unit: "quarters", length: [4, 1] }],
         measure_maps: [
           {

@@ -2,7 +2,7 @@
  * Manifest invariants beyond the schema, matching timetoalign's behavior.
  */
 
-import type { NumberType, TimeUnit } from "@timetoalign/timeskeleton";
+import type { NumberType, TimeUnit } from "@timetoalign/timetoshare";
 import type { Problem } from "../errors.ts";
 import { ErrorCode, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";
@@ -102,7 +102,7 @@ function spelled(value: unknown): string {
 /**
  * The checks of one timeline and its subtree, on a manifest the schema
  * accepts: a child already shares its parent's unit and lies within its
- * parent's known length (timeskeleton's `validate` refuses both). The
+ * parent's known length (TimeToShare's `validate` refuses both). The
  * schema accepts a child starting before its parent's origin; a negative
  * child offset is refused here, as not supported yet. A root's offset may
  * be negative.

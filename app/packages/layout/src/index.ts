@@ -1,7 +1,7 @@
 /**
- * @timetoalign/tilie-layout: the drawing of one TimeSkeleton manifest.
+ * @timetoalign/tilie-layout: the drawing of one TimeToShare manifest.
  *
- * `draw(manifest, placement, layers, metrics)` implements timeskeleton's
+ * `draw(manifest, placement, layers, metrics)` implements TimeToShare's
  * drawing specification (`docs/drawing.md`, sections 1 to 6 and 8): the
  * cascade of style layers, exact positions, text measured from the font's
  * advance widths, the layout of bands and rows, and the box of section 8

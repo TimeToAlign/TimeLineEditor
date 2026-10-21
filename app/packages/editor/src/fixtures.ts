@@ -8,7 +8,7 @@
  * hold. A production build contains neither the menu nor the files.
  */
 
-import { SCHEMA_VERSION } from "@timetoalign/timeskeleton";
+import { SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import { manifestWorkspace } from "./fixtureWorkspace.ts";
 
 export interface Fixture {
@@ -59,8 +59,8 @@ export const FIXTURES: readonly Fixture[] =
         }),
         import.meta.glob<string>(
           [
-            "../node_modules/@timetoalign/timeskeleton/fixtures/*/groups/*.json",
-            "../node_modules/@timetoalign/timeskeleton/fixtures/*/bundles/*.json",
+            "../node_modules/@timetoalign/timetoshare/fixtures/*/groups/*.json",
+            "../node_modules/@timetoalign/timetoshare/fixtures/*/bundles/*.json",
             "!**/*.minimal.json",
           ],
           { query: "?raw", import: "default" },

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { manifestElements, timelineAncestry } from "@timetoalign/tilie-core/drawing";
-import { parseJson } from "@timetoalign/timeskeleton";
+import { parseJson } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import {
   Cascade,
@@ -14,9 +14,9 @@ import {
 } from "../src/index.ts";
 import { loadFile, metrics } from "./support.ts";
 
-/** The drawing specification the installed timeskeleton package ships. */
+/** The drawing specification the installed TimeToShare package ships. */
 const specification = path.join(
-  path.dirname(createRequire(import.meta.url).resolve("@timetoalign/timeskeleton/package.json")),
+  path.dirname(createRequire(import.meta.url).resolve("@timetoalign/timetoshare/package.json")),
   "docs",
   "drawing.md",
 );

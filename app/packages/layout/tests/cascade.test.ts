@@ -1,5 +1,5 @@
 import { bandKey, manifestElements } from "@timetoalign/tilie-core/drawing";
-import type { Graphical, Selector, Statement } from "@timetoalign/timeskeleton";
+import type { Graphical, Selector, Statement } from "@timetoalign/timetoshare";
 import { describe, expect, it, vi } from "vitest";
 import {
   Cascade,

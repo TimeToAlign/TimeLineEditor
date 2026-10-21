@@ -8,8 +8,8 @@ packages:
 # applies the same window.
 minimumReleaseAge: 20160
 
-# The TimeSkeleton schema is published from the sibling repository of this
+# The TimeToShare schema is published from the sibling repository of this
 # project and consumed as soon as it is released; it is the one exception to
 # the release-age window (decisions/0012).
 minimumReleaseAgeExclude:
-  - "@timetoalign/timeskeleton"
+  - "@timetoalign/timetoshare"

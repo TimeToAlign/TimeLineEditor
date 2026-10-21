@@ -5,7 +5,7 @@ import { mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync 
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { SCHEMA_VERSION } from "@timetoalign/timeskeleton";
+import { SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import { build } from "vite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { licenceFile, packageOf, RULE, SUBRULE } from "../notices.ts";
@@ -102,7 +102,7 @@ describe("the attributions", () => {
     expect(others[0]?.copyright.map((line) => flowLicence.includes(line))).toEqual([true]);
     expect(assets.filter((name) => /^DejaVuSans-.*\.ttf$/.test(name)).length).toBe(1);
     const licence = readFileSync(
-      createRequire(import.meta.url).resolve("@timetoalign/timeskeleton/fonts/LICENSE"),
+      createRequire(import.meta.url).resolve("@timetoalign/timetoshare/fonts/LICENSE"),
       "utf8",
     );
     expect(others[1]?.copyright.length).toBe(2);
@@ -162,7 +162,7 @@ describe("the attributions", () => {
       JSON.parse(readFileSync(path.join(flow, "package.json"), "utf8")) as { version: string }
     ).version;
     const font = readFileSync(
-      createRequire(import.meta.url).resolve("@timetoalign/timeskeleton/fonts/LICENSE"),
+      createRequire(import.meta.url).resolve("@timetoalign/timetoshare/fonts/LICENSE"),
       "utf8",
     );
     const flowText = readFileSync(licenceFile(flow) as string, "utf8");
@@ -174,7 +174,7 @@ describe("the attributions", () => {
         text: flowText.endsWith("\n") ? `${flowText}\n` : `${flowText}\n\n`,
       },
       {
-        heading: "DejaVu Sans 2.37 (the bundled font, from @timetoalign/timeskeleton)",
+        heading: "DejaVu Sans 2.37 (the bundled font, from @timetoalign/timetoshare)",
         licence: `License: ${FONT_LICENCE}`,
         text: font.endsWith("\n") ? `${font}\n` : `${font}\n\n`,
       },
@@ -209,7 +209,7 @@ describe("the build", () => {
     const bare = readFileSync(
       path.join(
         path.dirname(
-          createRequire(import.meta.url).resolve("@timetoalign/timeskeleton/package.json"),
+          createRequire(import.meta.url).resolve("@timetoalign/timetoshare/package.json"),
         ),
         "fixtures",
         SCHEMA_VERSION,
@@ -234,7 +234,7 @@ describe("the build", () => {
 
   it("lets the development server read the schema package", () => {
     const manifest = createRequire(import.meta.url).resolve(
-      "@timetoalign/timeskeleton/package.json",
+      "@timetoalign/timetoshare/package.json",
     );
     const config = configOf({ command: "serve", mode: "development" });
     expect(config.server?.fs?.allow).toEqual([

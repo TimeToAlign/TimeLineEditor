@@ -3,7 +3,7 @@
 import type { Address } from "@timetoalign/tilie-core";
 import { contains, resolveElement } from "@timetoalign/tilie-core";
 import { TextMeasure } from "@timetoalign/tilie-layout";
-import type { FontMetrics } from "@timetoalign/timeskeleton";
+import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { Viewport } from "@xyflow/svelte";
 import { boxOf, isDisplayed } from "./boxes.ts";
 import { addressParts } from "./editing.ts";

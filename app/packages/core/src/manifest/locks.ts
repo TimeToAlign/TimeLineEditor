@@ -6,7 +6,7 @@
  * Every other timeline keeps its own `locked`.
  */
 
-import type { Lossless, Timeline } from "@timetoalign/timeskeleton";
+import type { Lossless, Timeline } from "@timetoalign/timetoshare";
 import type { CommandError } from "../errors.ts";
 import { ErrorCode, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";

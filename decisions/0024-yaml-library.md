@@ -16,7 +16,7 @@ writes an edited text back as one `set` command. For YAML it needs:
    kept as a parsed document whose values are patched in place, not written
    anew from the manifest.
 2. **Numbers stay exact.** Integers beyond 2^53 survive as `bigint`, and an
-   integral float (`2.0`) stays a float, as timeskeleton's lossless reader
+   integral float (`2.0`) stays a float, as TimeToShare's lossless reader
    keeps them; a float keeps its exact double.
 3. YAML 1.2 (the core schema), so `yes`, `no` and `0.6.0` are strings, as in
    JSON.

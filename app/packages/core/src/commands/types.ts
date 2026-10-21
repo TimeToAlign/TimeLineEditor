@@ -3,7 +3,7 @@
  * the target, resolved from the address, decides what it does.
  */
 
-import type { Declaration, Selector } from "@timetoalign/timeskeleton";
+import type { Declaration, Selector } from "@timetoalign/timetoshare";
 import type { Address } from "../workspace/address.ts";
 import type { BlockId } from "../workspace/blocks.ts";
 

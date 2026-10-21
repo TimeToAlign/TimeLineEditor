@@ -1,6 +1,6 @@
 /**
  * The axis of every line a member drawing draws (`docs/drawing.md` in
- * timeskeleton, sections 3 and 8.3): where on the drawing its timeline's
+ * TimeToShare, sections 3 and 8.3): where on the drawing its timeline's
  * own coordinates lie.
  */
 

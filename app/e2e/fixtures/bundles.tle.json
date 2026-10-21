@@ -42,7 +42,7 @@
         ],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (636fd9ce)"
+          "generator": "timetoalign 1.2.0 (bea05b0d)"
         },
         "name": "Mixed",
         "timelines": [
@@ -251,7 +251,7 @@
             "unit": "quarters"
           }
         ],
-        "timeskeleton": "0.7.0"
+        "timetoshare": "0.1.0"
       },
       "parent": null,
       "places": {},
@@ -303,7 +303,7 @@
         ],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (636fd9ce)"
+          "generator": "timetoalign 1.2.0 (bea05b0d)"
         },
         "name": "Sonata",
         "timelines": [
@@ -694,7 +694,7 @@
             "unit": "seconds"
           }
         ],
-        "timeskeleton": "0.7.0"
+        "timetoshare": "0.1.0"
       },
       "parent": null,
       "places": {},
@@ -713,7 +713,7 @@
         "groups": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (636fd9ce)"
+          "generator": "timetoalign 1.2.0 (bea05b0d)"
         },
         "name": "Sketches",
         "timelines": [
@@ -870,7 +870,7 @@
             "unit": "quarters"
           }
         ],
-        "timeskeleton": "0.7.0"
+        "timetoshare": "0.1.0"
       },
       "parent": null,
       "places": {},
@@ -924,7 +924,7 @@
             ],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (636fd9ce)"
+              "generator": "timetoalign 1.2.0 (bea05b0d)"
             },
             "name": "Mixed",
             "timelines": [
@@ -1133,7 +1133,7 @@
                 "unit": "quarters"
               }
             ],
-            "timeskeleton": "0.7.0"
+            "timetoshare": "0.1.0"
           },
           "x": 0,
           "y": 0
@@ -1185,7 +1185,7 @@
             ],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (636fd9ce)"
+              "generator": "timetoalign 1.2.0 (bea05b0d)"
             },
             "name": "Sonata",
             "timelines": [
@@ -1576,7 +1576,7 @@
                 "unit": "seconds"
               }
             ],
-            "timeskeleton": "0.7.0"
+            "timetoshare": "0.1.0"
           },
           "x": 640,
           "y": 0
@@ -1595,7 +1595,7 @@
             "groups": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (636fd9ce)"
+              "generator": "timetoalign 1.2.0 (bea05b0d)"
             },
             "name": "Sketches",
             "timelines": [
@@ -1752,7 +1752,7 @@
                 "unit": "quarters"
               }
             ],
-            "timeskeleton": "0.7.0"
+            "timetoshare": "0.1.0"
           },
           "x": 0,
           "y": 480

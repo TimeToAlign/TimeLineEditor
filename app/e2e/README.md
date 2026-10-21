@@ -11,7 +11,7 @@ belong in the suite.
 `node e2e/run.ts` (behind every `pnpm e2e*` script) runs Playwright inside
 the Playwright image of the installed version through rootless podman, with
 `app/` mounted at its own path. The packages may resolve
-`@timetoalign/timeskeleton` from a schema package linked from a sibling
+`@timetoalign/timetoshare` from a schema package linked from a sibling
 checkout instead of the registry; its real directory then lies outside
 `app/`, so `run.ts` mounts it as well, read-only and at its identical
 absolute path, where the links in `node_modules` find it. Like the app's
@@ -123,7 +123,7 @@ viewport through the hook first; at zoom 1 a pixel is a canvas unit.
 
 `fixtures/generate.ts` builds every workspace through `createStore` and the
 `add` command from the manifest fixtures of the installed
-`@timetoalign/timeskeleton` (its `SCHEMA_VERSION`: manifests of one root at
+`@timetoalign/timetoshare` (its `SCHEMA_VERSION`: manifests of one root at
 the top, and the synthetic manifests holding groups in its `groups/` and
 `bundles/`, never a `corpus_*` one) and writes it with `writeWorkspace`. The
 journal is deterministic: author `"Fixture Generator"`, entry times from

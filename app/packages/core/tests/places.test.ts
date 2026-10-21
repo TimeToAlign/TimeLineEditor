@@ -1,4 +1,4 @@
-import { dumps } from "@timetoalign/timeskeleton";
+import { dumps } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { apply } from "../src/commands/apply.ts";
 import { memberDrawings } from "../src/manifest/files.ts";

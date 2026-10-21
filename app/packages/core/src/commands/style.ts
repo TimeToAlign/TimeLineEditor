@@ -3,7 +3,7 @@
  * it names, or of every manifest holding an element its selector matches.
  */
 
-import type { Declaration, Graphical, Selector, Statement } from "@timetoalign/timeskeleton";
+import type { Declaration, Graphical, Selector, Statement } from "@timetoalign/timetoshare";
 import type { CommandError } from "../errors.ts";
 import { ErrorCode, problem } from "../errors.ts";
 import { canonicalText } from "../json.ts";

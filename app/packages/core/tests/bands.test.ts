@@ -1,11 +1,11 @@
-import type { PathSegment } from "@timetoalign/timeskeleton";
+import type { PathSegment } from "@timetoalign/timetoshare";
 import {
   dumps,
   identityProblems,
   SchemaValidationError,
   schema,
   validate,
-} from "@timetoalign/timeskeleton";
+} from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import type { BandKind } from "../src/manifest/bands.ts";
 import { BAND_ID_PATTERN, BAND_KINDS, bandAddress } from "../src/manifest/bands.ts";
@@ -45,7 +45,7 @@ function carrying(manifest: Manifest, id: string, value: unknown): Record<string
   return { ...manifest, graphical: { ...manifest.graphical, order: { [id]: value } } };
 }
 
-/** Where and why timeskeleton's validator refuses `value`, or `null` when it is a manifest. */
+/** Where and why TimeToShare's validator refuses `value`, or `null` when it is a manifest. */
 function validatorRefusal(value: unknown): { path: readonly PathSegment[]; detail: string } | null {
   try {
     validate(value);

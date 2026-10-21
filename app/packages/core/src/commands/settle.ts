@@ -6,8 +6,8 @@
  * block's places fitted to the drawing the manifest now makes.
  */
 
-import type { NumberType } from "@timetoalign/timeskeleton";
-import { numberTypeOf } from "@timetoalign/timeskeleton";
+import type { NumberType } from "@timetoalign/timetoshare";
+import { numberTypeOf } from "@timetoalign/timetoshare";
 import type { CommandError } from "../errors.ts";
 import { isLoadError } from "../errors.ts";
 import type { Json, JsonObject } from "../json.ts";

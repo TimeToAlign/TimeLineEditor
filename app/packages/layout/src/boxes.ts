@@ -1,7 +1,7 @@
 /**
  * The containers a drawing records, one list from the box down to the
  * bands, and the axis of every line it draws (`docs/drawing.md` in
- * timeskeleton, sections 3.2, 6.4 and 8).
+ * TimeToShare, sections 3.2, 6.4 and 8).
  */
 
 import type {
@@ -15,7 +15,7 @@ import type {
   Real,
 } from "@timetoalign/tilie-core";
 import { exactCoordinate, fromFloat, Rational, toFloat } from "@timetoalign/tilie-core/numbers";
-import type { NumberType, TimeUnit } from "@timetoalign/timeskeleton";
+import type { NumberType, TimeUnit } from "@timetoalign/timetoshare";
 
 /**
  * The half-open range `[start, end)` of `Drawing.elements` that a container

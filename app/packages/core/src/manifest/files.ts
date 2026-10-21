@@ -2,7 +2,7 @@
  * What a manifest holds beyond its tree of timelines (`tree.ts`): the entries
  * its timelines list, the ids an element address reserves, its title, and
  * the timelines its drawing draws as roots (`docs/drawing.md` in
- * timeskeleton, sections 2.2 and 8.1).
+ * TimeToShare, sections 2.2 and 8.1).
  */
 
 import { compareCodePoints } from "../json.ts";

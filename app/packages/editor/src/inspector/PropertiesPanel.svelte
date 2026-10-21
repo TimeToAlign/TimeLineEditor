@@ -17,7 +17,7 @@ import type {
 } from "@timetoalign/tilie-arranger";
 import { drawingOf, liveStore } from "@timetoalign/tilie-arranger";
 import type { Block, Store, View } from "@timetoalign/tilie-core";
-import { fontMetrics } from "@timetoalign/timeskeleton";
+import { fontMetrics } from "@timetoalign/timetoshare";
 import type { Attachment } from "svelte/attachments";
 import type { Geometry, NameField, Shown } from "./properties.ts";
 import { bandRows, fieldLabel, geometryOf, isSize, lockOf, nameOf } from "./properties.ts";

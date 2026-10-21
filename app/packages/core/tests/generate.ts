@@ -19,7 +19,7 @@
  * Done, Cancel, undo or redo (the property test runs them).
  */
 
-import { JsonFloat } from "@timetoalign/timeskeleton";
+import { JsonFloat } from "@timetoalign/timetoshare";
 import fc from "fast-check";
 import { elementAddress } from "../src/manifest/files.ts";
 import type { AxisValue, Manifest, TimelineManifest } from "../src/manifest/types.ts";

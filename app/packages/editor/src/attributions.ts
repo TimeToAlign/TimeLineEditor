@@ -46,7 +46,7 @@ export const ATTRIBUTIONS: readonly Attribution[] = [
     package: true,
   },
   {
-    name: "@timetoalign/timeskeleton",
+    name: "@timetoalign/timetoshare",
     licence: "MIT",
     copyright: ["Copyright (c) 2026 Time to Align!"],
     package: true,

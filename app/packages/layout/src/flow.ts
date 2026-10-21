@@ -2,7 +2,7 @@
  * The flow control band: a timeline's displayed flow markers and jump
  * origins and those of the segments that join it; the flow-marker label
  * tiers and the flow row, where jumps leave and arrive by rows and flow
- * markers end (`docs/drawing.md` in timeskeleton, sections 6.4 and 6.6). A
+ * markers end (`docs/drawing.md` in TimeToShare, sections 6.4 and 6.6). A
  * jump target draws nothing of its own.
  */
 

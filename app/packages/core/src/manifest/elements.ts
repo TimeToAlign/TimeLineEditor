@@ -1,11 +1,11 @@
 /**
  * The drawn elements of a manifest and the selector test over them
- * (`docs/drawing.md` in timeskeleton, sections 2.1 to 2.3): what a `graphical`
+ * (`docs/drawing.md` in TimeToShare, sections 2.1 to 2.3): what a `graphical`
  * statement can select, for the cascade and for the `style` command alike.
  */
 
-import type { ElementType, Selector, TimeUnit } from "@timetoalign/timeskeleton";
-import { canonicalOrder } from "@timetoalign/timeskeleton";
+import type { ElementType, Selector, TimeUnit } from "@timetoalign/timetoshare";
+import { canonicalOrder } from "@timetoalign/timetoshare";
 import { compareCodePoints } from "../json.ts";
 import { axisCoordinate } from "../number/coordinate.ts";
 import { compareReal, realOf } from "../number/real.ts";

@@ -1,13 +1,13 @@
 /**
  * The manifests the tests read: the fixtures shipped by the installed
- * `@timetoalign/timeskeleton` package, read from disk; nothing here writes
+ * `@timetoalign/timetoshare` package, read from disk; nothing here writes
  * files or reaches the network.
  */
 
 import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
-import { dumps, parseJson, SCHEMA_VERSION } from "@timetoalign/timeskeleton";
+import { dumps, parseJson, SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import { apply } from "../src/commands/apply.ts";
 import type { Command } from "../src/commands/types.ts";
 import { isCommandError, isLoadError } from "../src/errors.ts";
@@ -23,7 +23,7 @@ import type { View } from "../src/workspace/view.ts";
 import { createView } from "../src/workspace/view.ts";
 
 const packageDir = path.dirname(
-  createRequire(import.meta.url).resolve("@timetoalign/timeskeleton/package.json"),
+  createRequire(import.meta.url).resolve("@timetoalign/timetoshare/package.json"),
 );
 const fixturesDir = path.join(packageDir, "fixtures");
 

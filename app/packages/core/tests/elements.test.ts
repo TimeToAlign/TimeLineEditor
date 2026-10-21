@@ -1,4 +1,4 @@
-import { dumps, type Selector, schema } from "@timetoalign/timeskeleton";
+import { dumps, type Selector, schema } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import type { ElementKey } from "../src/manifest/elements.ts";
 import {

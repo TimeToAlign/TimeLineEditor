@@ -1,6 +1,6 @@
 /**
  * `writeTikz(placed, options)`: the TikZ profile (`docs/drawing.md` in
- * timeskeleton, section 7.4).
+ * TimeToShare, section 7.4).
  */
 
 import { times } from "@timetoalign/tilie-layout";

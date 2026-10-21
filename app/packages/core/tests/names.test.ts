@@ -3,7 +3,7 @@
  * are derived in `README.md` ("Names").
  */
 
-import { parseJson } from "@timetoalign/timeskeleton";
+import { parseJson } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { apply } from "../src/commands/apply.ts";
 import { isLoadError, JournalMismatchError } from "../src/errors.ts";

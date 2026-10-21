@@ -1,5 +1,5 @@
 /**
- * Addresses (`docs/drawing.md` in timeskeleton, section 2.2): their syntax,
+ * Addresses (`docs/drawing.md` in TimeToShare, section 2.2): their syntax,
  * their three builders, and the one resolver that decides what an address
  * names. Every reader of an address reads `resolveAddress` (or, within one
  * manifest, `resolveElement`); nothing else splits an address.

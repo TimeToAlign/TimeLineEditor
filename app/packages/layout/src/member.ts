@@ -3,7 +3,7 @@
  * a line of its own laid out with its bands at its own line, the rows of
  * their children bands laid out together, the ancestor band, and its
  * elements in descriptor order with its bands' records (`docs/drawing.md` in
- * timeskeleton, sections 6, 7.2, 8.3 and 8.5).
+ * TimeToShare, sections 6, 7.2, 8.3 and 8.5).
  */
 
 import type { MemberDrawing } from "@timetoalign/tilie-core/drawing";
