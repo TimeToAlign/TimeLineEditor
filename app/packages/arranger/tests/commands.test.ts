@@ -1,5 +1,5 @@
-import type { View } from "@timetoalign/tilie-core";
-import { isIndex, manifestIds } from "@timetoalign/tilie-core";
+import type { Address, Part, View } from "@timetoalign/tilie-core";
+import { isIndex, manifestIds, WORKSPACE } from "@timetoalign/tilie-core";
 import { describe, expect, it } from "vitest";
 import type { ZOrderAction } from "../src/commands.ts";
 import {
@@ -9,6 +9,7 @@ import {
   removeCommand,
   zOrderCommand,
 } from "../src/commands.ts";
+import { NOTHING_SELECTED, selectionOf } from "../src/selection.ts";
 import {
   A,
   B,
@@ -28,7 +29,10 @@ import {
 
 /** `bundle_mixed` at (40, 80) with `annotations` at `{x: −30, y: −20}`: the origin (38, 48.8046875). */
 const shifted = placed(mixedPlain(), A, "annotations", { x: -30, y: -20 });
-const doubled = changed(shifted, { type: "set", changes: [{ target: A, values: { scale: 2 } }] });
+const doubled = changed(shifted, {
+  type: "set",
+  changes: [{ target: { block: A }, values: { scale: 2 } }],
+});
 
 describe("moveCommand", () => {
   const view = viewOf({ id: A, fixture: "bare", x: 40, y: 80 }, { id: B, fixture: "nested" });
@@ -41,8 +45,8 @@ describe("moveCommand", () => {
     expect(moveCommand(view, moves, metrics)).toEqual({
       type: "set",
       changes: [
-        { target: A, values: { x: 41.5771484375, y: 203 } },
-        { target: B, values: { x: 20, y: 0 } },
+        { target: { block: A }, values: { x: 41.5771484375, y: 203 } },
+        { target: { block: B }, values: { x: 20, y: 0 } },
       ],
     });
   });
@@ -54,16 +58,16 @@ describe("moveCommand", () => {
       moveCommand(view, [{ id: A, x: 40.0001, y: 79.9999 }, ...moves.slice(1)], metrics),
     ).toEqual({
       type: "set",
-      changes: [{ target: B, values: { x: 20, y: 0 } }],
+      changes: [{ target: { block: B }, values: { x: 20, y: 0 } }],
     });
   });
 
   it("stores the place origin of the dropped node", () => {
     expect(moveCommand(shifted, [{ id: A, x: 10, y: 60 }], metrics)?.changes).toEqual([
-      { target: A, values: { x: 48, y: 108.8046875 } },
+      { target: { block: A }, values: { x: 48, y: 108.8046875 } },
     ]);
     expect(moveCommand(doubled, [{ id: A, x: 10, y: 60 }], metrics)?.changes).toEqual([
-      { target: A, values: { x: 86, y: 157.609375 } },
+      { target: { block: A }, values: { x: 86, y: 157.609375 } },
     ]);
     expect(moveCommand(shifted, [{ id: A, x: 2, y: 31.1953125 }], metrics)).toBeNull();
   });
@@ -83,29 +87,29 @@ describe("nudgeCommand", () => {
   it("moves by grid steps", () => {
     expect(nudgeCommand(view, [A], 1, 0, metrics)).toEqual({
       type: "set",
-      changes: [{ target: A, values: { x: 48, y: 80 } }],
+      changes: [{ target: { block: A }, values: { x: 48, y: 80 } }],
     });
     expect(nudgeCommand(view, [A], -8, 2, metrics)).toEqual({
       type: "set",
-      changes: [{ target: A, values: { x: -24, y: 96 } }],
+      changes: [{ target: { block: A }, values: { x: -24, y: 96 } }],
     });
   });
 
   it("snaps an off-grid block, and steps by the grid size without snapping", () => {
     expect(nudgeCommand(offGrid, [A], 1, 0, metrics)?.changes).toEqual([
-      { target: A, values: { x: 48, y: 80 } },
+      { target: { block: A }, values: { x: 48, y: 80 } },
     ]);
     expect(nudgeCommand(withGrid(offGrid, 8, false), [A], 1, 0, metrics)?.changes).toEqual([
-      { target: A, values: { x: 49, y: 80 } },
+      { target: { block: A }, values: { x: 49, y: 80 } },
     ]);
   });
 
   it("moves and snaps the node, and stores its place origin", () => {
     expect(nudgeCommand(shifted, [A], 1, 0, metrics)?.changes).toEqual([
-      { target: A, values: { x: 46, y: 80.8046875 } },
+      { target: { block: A }, values: { x: 46, y: 80.8046875 } },
     ]);
     expect(nudgeCommand(withGrid(shifted, 8, false), [A], 1, 0, metrics)?.changes).toEqual([
-      { target: A, values: { x: 48, y: 80 } },
+      { target: { block: A }, values: { x: 48, y: 80 } },
     ]);
   });
 
@@ -136,7 +140,9 @@ describe("zOrderCommand", () => {
     [[A, B], "forward", [C, A, B], [A, B]],
   ])("moves %j %s", (ids, action, expected, touched) => {
     const command = zOrderCommand(view, ids, action);
-    expect(command?.changes.map((change) => change.target)).toEqual(touched);
+    expect(command?.changes.map((change) => change.target)).toEqual(
+      touched.map((block) => ({ block })),
+    );
     for (const change of command?.changes ?? []) {
       expect(isIndex(change.values.index as string)).toBe(true);
     }
@@ -156,46 +162,52 @@ describe("zOrderCommand", () => {
   });
 });
 
+/** The address of the element `id` of block A, or of its part `words`. */
+const at = (id: string, ...words: Part[]): Address =>
+  words.length === 0 ? { block: A, id } : { block: A, id, part: words };
+
+/** The `remove` of `targets`. */
+const removing = (...targets: Address[]) => ({ type: "remove", targets });
+
 describe("removeCommand", () => {
   const nested = viewOf({ id: A, fixture: "nested" }, { id: B, fixture: "bare" });
   const region = viewOf({ id: A, fixture: "with_region" });
 
   it("removes the selected addresses", () => {
-    expect(removeCommand(nested, new Set([A]), null)).toEqual({ type: "remove", targets: [A] });
-    expect(removeCommand(nested, new Set([`${A}/clt_3`]), null)).toEqual({
-      type: "remove",
-      targets: [`${A}/clt_3`],
-    });
+    expect(removeCommand(nested, selectionOf([{ block: A }]), null)).toEqual(
+      removing({ block: A }),
+    );
+    expect(removeCommand(nested, selectionOf([at("clt_3")]), null)).toEqual(removing(at("clt_3")));
   });
 
   it("folds an element's parts into the element", () => {
-    expect(removeCommand(nested, new Set([`${A}/clt_3/name`, `${A}/clt_3`]), null)).toEqual({
-      type: "remove",
-      targets: [`${A}/clt_3`],
-    });
-    const command = removeCommand(region, new Set([`${A}/clt_1/region_1/label`]), null);
-    expect(command).toEqual({ type: "remove", targets: [`${A}/clt_1/region_1`] });
+    expect(removeCommand(nested, selectionOf([at("clt_3", "name"), at("clt_3")]), null)).toEqual(
+      removing(at("clt_3")),
+    );
+    const command = removeCommand(region, selectionOf([at("region_1", "label")]), null);
+    expect(command).toEqual(removing(at("region_1")));
     expect(manifestIds(blockIn(changed(region, command), A).manifest)).toEqual(
       new Set(["clt_1", "clt_2", "clt_3"]),
     );
   });
 
   it("removes a root timeline", () => {
-    const command = removeCommand(nested, new Set([`${A}/clt_1`]), null);
-    expect(command).toEqual({ type: "remove", targets: [`${A}/clt_1`] });
+    const command = removeCommand(nested, selectionOf([at("clt_1")]), null);
+    expect(command).toEqual(removing(at("clt_1")));
     expect(blockIn(changed(nested, command), A).manifest.timelines).toEqual([]);
-    expect(removeCommand(nested, new Set([B, `${A}/clt_1/start`]), null)).toEqual({
-      type: "remove",
-      targets: [B, `${A}/clt_1`],
-    });
+    expect(removeCommand(nested, selectionOf([{ block: B }, at("clt_1", "start")]), null)).toEqual(
+      removing({ block: B }, at("clt_1")),
+    );
   });
 
   it("refuses an empty selection", () => {
-    expect(removeCommand(nested, new Set(), null)).toEqual({ refused: "Nothing is selected." });
+    expect(removeCommand(nested, NOTHING_SELECTED, null)).toEqual({
+      refused: "Nothing is selected.",
+    });
   });
 
   it("is accepted by apply", () => {
-    const after = changed(nested, removeCommand(nested, new Set([`${A}/clt_3`]), null));
+    const after = changed(nested, removeCommand(nested, selectionOf([at("clt_3")]), null));
     expect(manifestIds(blockIn(after, A).manifest)).toEqual(new Set(["clt_1"]));
   });
 
@@ -206,41 +218,44 @@ describe("removeCommand", () => {
       refused: `Block ${A}: its title is removed only with the block; select the block to delete it.`,
     };
 
-    it("removes an element of a root's tree by its root-qualified address", () => {
-      const command = removeCommand(numbers, new Set([`${A}/score/region_1/label`]), null);
-      expect(command).toEqual({ type: "remove", targets: [`${A}/score/region_1`] });
-      expect(
-        manifestIds(blockIn(changed(numbers, command), A).manifest).has("score/region_1"),
-      ).toBe(false);
-      expect(
-        removeCommand(numbers, new Set([`${A}/score/region_1`, `${A}/score/region_1/label`]), null),
-      ).toEqual({ type: "remove", targets: [`${A}/score/region_1`] });
-      const map = removeCommand(mpm, new Set([`${A}/score:clt_1/tmap_1`]), null);
-      expect(map).toEqual({ type: "remove", targets: [`${A}/score:clt_1/tmap_1`] });
-      expect(manifestIds(blockIn(changed(mpm, map), A).manifest).has("score:clt_1/tmap_1")).toBe(
+    it("removes an element of a root's tree by its ID", () => {
+      const command = removeCommand(numbers, selectionOf([at("region_1", "label")]), null);
+      expect(command).toEqual(removing(at("region_1")));
+      expect(manifestIds(blockIn(changed(numbers, command), A).manifest).has("region_1")).toBe(
         false,
       );
+      expect(
+        removeCommand(numbers, selectionOf([at("region_1"), at("region_1", "label")]), null),
+      ).toEqual(removing(at("region_1")));
+      const map = removeCommand(mpm, selectionOf([at("tmap_1")]), null);
+      expect(map).toEqual(removing(at("tmap_1")));
+      expect(manifestIds(blockIn(changed(mpm, map), A).manifest).has("tmap_1")).toBe(false);
     });
 
     it("removes timelines and groups, a part standing for its element", () => {
-      expect(removeCommand(numbers, new Set([`${A}/score`]), null)).toEqual({
-        type: "remove",
-        targets: [`${A}/score`],
-      });
+      expect(removeCommand(numbers, selectionOf([at("score")]), null)).toEqual(
+        removing(at("score")),
+      );
       const child = viewOf({ id: A, fixture: CHILD_MEMBER });
-      expect(removeCommand(child, new Set([`${A}/second-half/start`]), null)).toEqual({
-        type: "remove",
-        targets: [`${A}/second-half`],
-      });
-      expect(removeCommand(numbers, new Set([`${A}/group_1/name`]), null)).toEqual({
-        type: "remove",
-        targets: [`${A}/group_1`],
-      });
+      expect(removeCommand(child, selectionOf([at("second-half", "start")]), null)).toEqual(
+        removing(at("second-half")),
+      );
+      expect(removeCommand(numbers, selectionOf([at("group_1", "name")]), null)).toEqual(
+        removing(at("group_1")),
+      );
+    });
+
+    it("removes a member of two groups by the one address of its cards", () => {
+      const shared = viewOf({ id: A, fixture: "bundles/bundle_shared_member" });
+      const command = removeCommand(shared, selectionOf([at("t", "card")]), null);
+      expect(command).toEqual(removing(at("t")));
+      expect(manifestIds(blockIn(changed(shared, command), A).manifest).has("t")).toBe(false);
     });
 
     it("refuses a selection holding a manifest's title whole", () => {
-      expect(removeCommand(mpm, new Set([`${A}/name`]), null)).toEqual(hint);
-      expect(removeCommand(mpm, new Set([B, `${A}/name`]), null)).toEqual(hint);
+      const title: Address = { block: A, part: ["name"] };
+      expect(removeCommand(mpm, selectionOf([title]), null)).toEqual(hint);
+      expect(removeCommand(mpm, selectionOf([{ block: B }, title]), null)).toEqual(hint);
     });
   });
 });
@@ -253,7 +268,7 @@ describe("addCommand", () => {
   it("places the block's top-left at the centre of the view, snapped to the grid", () => {
     expect(addCommand(view, C, bare, visible)).toEqual({
       type: "add",
-      into: "workspace",
+      into: WORKSPACE,
       block: { id: C, manifest: bare, x: 200, y: 128 },
     });
   });

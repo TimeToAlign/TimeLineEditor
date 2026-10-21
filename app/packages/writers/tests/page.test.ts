@@ -17,7 +17,7 @@ describe("the page", () => {
     expect(sheet.drawings.map((item) => [item.pageX, item.pageY])).toEqual([[16, 16]]);
   });
 
-  it("bounds several placed boxes", () => {
+  it("bounds several placed blocks", () => {
     const sheet = page(placed);
     expect([sheet.width, sheet.height]).toEqual([548.5771484375, 132]);
     expect(sheet.drawings.map((item) => [item.pageX, item.pageY])).toEqual([
@@ -39,7 +39,7 @@ describe("the page", () => {
     ]);
   });
 
-  it("scales a box by a fractional factor", () => {
+  it("scales a block by a fractional factor", () => {
     const alone = [{ drawing: box, x: 0, y: 0, scale: 1.5 }];
     const sheet = page(alone);
     expect([sheet.width, sheet.height]).toEqual([182.375, 107]);

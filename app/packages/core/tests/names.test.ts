@@ -7,6 +7,8 @@ import { parseJson } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { apply } from "../src/commands/apply.ts";
 import { isLoadError, JournalMismatchError } from "../src/errors.ts";
+import { addressKey } from "../src/manifest/address.ts";
+import type { Address } from "../src/workspace/address.ts";
 import { readWorkspace, writeWorkspace } from "../src/workspace/file.ts";
 import { createStore } from "../src/workspace/store.ts";
 import type { View } from "../src/workspace/view.ts";
@@ -23,13 +25,14 @@ import {
   viewOf,
 } from "./support.ts";
 
-const at = (element: string) => `${A}/${element}`;
-const set = (target: string, values: object) => ({ type: "set", changes: [{ target, values }] });
-const rename = (name: unknown) => set("workspace", { name });
-const nothing = (target: string, property: string) => ({
+const at = (id: string): Address => ({ block: A, id });
+const BLOCK: Address = { block: A };
+const set = (target: Address, values: object) => ({ type: "set", changes: [{ target, values }] });
+const rename = (name: unknown) => set({}, { name });
+const nothing = (target: Address, property: string) => ({
   code: "invalid_value",
   message: "the command changes nothing",
-  path: [target, property],
+  path: [addressKey(target), property],
 });
 
 function rejected(view: View, command: object) {
@@ -141,12 +144,12 @@ describe("the workspace's name", () => {
   it.each([[""], [null], [3]])("refuses the name %j", (name) => {
     expect(rejected(viewOf([A, "bare.json"]), rename(name))).toEqual({
       code: "invalid_value",
-      path: ["workspace", "name"],
+      path: ["{}", "name"],
     });
   });
 
   it("refuses the name it has as changing nothing", () => {
-    expect(refusedWith(createView(), rename("untitled"))).toEqual(nothing("workspace", "name"));
+    expect(refusedWith(createView(), rename("untitled"))).toEqual(nothing({}, "name"));
   });
 
   it("is reproduced by the journal", () => {
@@ -164,12 +167,12 @@ describe("the workspace's name", () => {
 
   it("is not changed by an editor", () => {
     const store = storeOf(viewOf([A, "bare.json"]));
-    expect(store.open(A)).toBe(null);
+    expect(store.open(BLOCK)).toBe(null);
     const refused = store.dispatch(rename("Eroica sketches"));
     expect(refused === null ? null : { ...refused }).toEqual({
       code: "side_effect",
-      message: `the workspace name lies outside ${A}: an editor changes only what it edits`,
-      path: ["workspace", "name"],
+      message: `the workspace name lies outside {"block":"${A}"}: an editor changes only what it edits`,
+      path: ["{}", "name"],
     });
     expect(store.view.name).toBe("untitled");
   });
@@ -182,13 +185,13 @@ describe("names in a manifest", () => {
     const view = mixed();
     const before = block(view).manifest;
     expect(before.name).toBe("Mixed");
-    const named = block(changed(view, set(A, { name: "Op. 35" }))).manifest;
+    const named = block(changed(view, set(BLOCK, { name: "Op. 35" }))).manifest;
     expect(named).toEqual({ ...before, name: "Op. 35" });
-    expect(block(changed(view, set(A, { name: null }))).manifest).toEqual({
+    expect(block(changed(view, set(BLOCK, { name: null }))).manifest).toEqual({
       ...before,
       name: null,
     });
-    expect(refusedWith(view, set(A, { name: "Mixed" }))).toEqual(nothing(A, "name"));
+    expect(refusedWith(view, set(BLOCK, { name: "Mixed" }))).toEqual(nothing(BLOCK, "name"));
   });
 
   it("sets a group's name", () => {
@@ -202,7 +205,7 @@ describe("names in a manifest", () => {
     expect(unnamed).toEqual({ ...before, groups: [{ ...first, name: null }, second] });
     expect(rejected(view, set(at("group_1"), { name: 3 }))).toEqual({
       code: "invalid_value",
-      path: [at("group_1"), "name"],
+      path: [addressKey(at("group_1")), "name"],
     });
     expect(refusedWith(view, set(at("group_1"), { name: "Performance" }))).toEqual(
       nothing(at("group_1"), "name"),
@@ -215,22 +218,22 @@ describe("names in a manifest", () => {
     const [melody] = before.timelines;
     const [tempo, ...maps] = melody?.conversion_maps ?? [];
     if (melody === undefined || tempo === undefined) throw new Error("the map tempo");
-    const named = block(changed(view, set(at("melody/tempo"), { name: "Beat" }))).manifest;
+    const named = block(changed(view, set(at("tempo"), { name: "Beat" }))).manifest;
     expect(named.timelines[0]?.conversion_maps).toEqual([{ ...tempo, name: "Beat" }, ...maps]);
-    expect(refusedWith(view, set(at("melody/tempo"), { name: tempo.name }))).toEqual(
-      nothing(at("melody/tempo"), "name"),
+    expect(refusedWith(view, set(at("tempo"), { name: tempo.name }))).toEqual(
+      nothing(at("tempo"), "name"),
     );
   });
 
   it("takes no name in a block's value", () => {
     const command = {
       type: "add",
-      into: "workspace",
+      into: {},
       block: { id: A, manifest: load("bare.json"), x: 0, y: 0, name: "Bare" },
     };
     expect(rejected(createView(), command)).toEqual({
       code: "unknown_property",
-      path: [A, "name"],
+      path: [addressKey({}), "block", "name"],
     });
   });
 });

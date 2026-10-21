@@ -1,5 +1,5 @@
 /**
- * `style`: one statement embedded in the `graphical` block of each manifest
+ * `style`: one statement embedded in the `graphical` object of each manifest
  * it names, or of every manifest holding an element its selector matches.
  */
 
@@ -7,6 +7,7 @@ import type { Declaration, Graphical, Selector, Statement } from "@timetoalign/t
 import type { CommandError } from "../errors.ts";
 import { ErrorCode, problem } from "../errors.ts";
 import { canonicalText } from "../json.ts";
+import { addressKey } from "../manifest/address.ts";
 import { selectorMatches } from "../manifest/elements.ts";
 import { indexOf } from "../workspace/address.ts";
 import type { Block } from "../workspace/blocks.ts";
@@ -86,7 +87,9 @@ export function applyStyle(
   for (const id of command.blocks ?? []) {
     const block = view.blocks[id];
     if (block === undefined) {
-      return problem(ErrorCode.unknownTarget, `block ${id} does not exist`, [id]);
+      return problem(ErrorCode.unknownTarget, `block '${id}' does not exist`, [
+        addressKey({ block: id }),
+      ]);
     }
     blocks.push(block);
   }

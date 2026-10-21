@@ -6,12 +6,12 @@
  */
 
 import type { CommandError } from "../errors.ts";
-import { ErrorCode, isCommandError, problem } from "../errors.ts";
+import { isCommandError } from "../errors.ts";
 import type { EntryKind } from "../manifest/files.ts";
 import type { Located } from "../manifest/tree.ts";
 import type { Group, MeasureMap, TimelineManifest } from "../manifest/types.ts";
 import type { Address } from "../workspace/address.ts";
-import { resolveAddress } from "../workspace/address.ts";
+import { namesNothing, resolveAddress } from "../workspace/address.ts";
 import type { Block } from "../workspace/blocks.ts";
 import type { View } from "../workspace/view.ts";
 
@@ -88,8 +88,8 @@ export interface TargetOfKind {
 }
 
 /**
- * The target an address names in `view`: `unknown_target` for a title, a
- * card, a band, a part, and a block named through its manifest's id.
+ * The target an address names in `view`: `unknown_target` for a title,
+ * cards, a band and a part.
  */
 export function targetOf(view: View, address: Address): Target | CommandError {
   const resolved = resolveAddress(view, address);
@@ -98,10 +98,7 @@ export function targetOf(view: View, address: Address): Target | CommandError {
     case "workspace":
       return { kind: "workspace", address };
     case "block":
-      // `<block>/<manifest id>` names the block for a reader; a command aims at the block's own address.
-      return address === resolved.block.id
-        ? { kind: "block", address, block: resolved.block }
-        : problem(ErrorCode.unknownTarget, `${address} names nothing`, [address]);
+      return { kind: "block", address, block: resolved.block };
     case "frame":
       return { kind: "group", address, block: resolved.block, group: resolved.group };
     case "measure_map": {
@@ -117,7 +114,7 @@ export function targetOf(view: View, address: Address): Target | CommandError {
       return { kind: entry, address, block, at, index };
     }
     default:
-      return problem(ErrorCode.unknownTarget, `${address} names nothing`, [address]);
+      return namesNothing(address);
   }
 }
 

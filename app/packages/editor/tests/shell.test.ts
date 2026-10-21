@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import type { CommandEntry, Store } from "@timetoalign/tilie-core";
+import type { Address, CommandEntry, Store } from "@timetoalign/tilie-core";
 import {
   createStore,
   createView,
@@ -67,7 +67,7 @@ afterEach(async () => {
 function addBlock(store: Store, id: string, name = "bare", x = 0): void {
   const refusal = store.dispatch({
     type: "add",
-    into: "workspace",
+    into: {},
     block: { id, manifest: fixture(name), x, y: 0 },
   });
   if (refusal !== null) throw new Error(refusal.message);
@@ -257,7 +257,7 @@ describe("opening and saving", () => {
       expect(
         hook()
           .store()
-          .dispatch({ type: "set", changes: [{ target: "workspace", values: { name } }] }),
+          .dispatch({ type: "set", changes: [{ target: {}, values: { name } }] }),
       ).toBeNull();
     rename("Eroica sketches");
     key(document.body, { key: "s", ctrlKey: true });
@@ -290,7 +290,7 @@ describe("a workspace's name on opening", () => {
     expect(
       renamed.dispatch({
         type: "set",
-        changes: [{ target: "workspace", values: { name: "Eroica sketches" } }],
+        changes: [{ target: {}, values: { name: "Eroica sketches" } }],
       }),
     ).toBeNull();
     const named = writeWorkspace(renamed.snapshot());
@@ -341,7 +341,7 @@ describe("undo and redo keys", () => {
     const ignored = key(textarea, { key: "z", ctrlKey: true });
     expect([hook().store().journal.length, ignored.defaultPrevented]).toEqual([1, false]);
 
-    hook().select([A]);
+    hook().select([{ block: A }]);
     key(document.body, { key: "z", ctrlKey: true });
     expect([hook().store().journal.length, hook().selection()]).toEqual([0, []]);
     key(document.body, { key: "Z", ctrlKey: true, shiftKey: true });
@@ -357,19 +357,19 @@ describe("manifests", () => {
     await vi.waitFor(() => expect(hook().store().journal.length).toBe(1));
     const command = (hook().store().journal[0] as CommandEntry | undefined)?.command as {
       type: string;
-      into: string;
+      into: Address;
       block: { id: string; x: number; y: number };
     };
     const { id } = command.block;
     expect(/^[0-9a-z]{10}$/.test(id)).toBe(true);
     expect([command.type, command.into, command.block.x, command.block.y]).toEqual([
       "add",
-      "workspace",
+      {},
       0,
       0,
     ]);
     expect(hook().store().view.blocks[id]?.manifest).toEqual(fixture("nested"));
-    expect(hook().selection()).toEqual([id]);
+    expect(hook().selection()).toEqual([{ block: id }]);
 
     choose("Import manifest…");
     await vi.waitFor(() => pickFile("bad.json", '{"meta": {}}'));
@@ -383,11 +383,11 @@ describe("manifests", () => {
     const downloads = interceptDownloads();
     addBlock(hook().store(), A, "nested");
     addBlock(hook().store(), B, "bare", 800);
-    hook().select([`${A}/clt_3`, B]);
+    hook().select([{ block: A, id: "clt_3" }, { block: B }]);
     flushSync();
     expect(item("Export manifest…").getAttribute("aria-disabled")).toBe("true");
 
-    hook().select([`${A}/clt_3`]);
+    hook().select([{ block: A, id: "clt_3" }]);
     flushSync();
     expect(item("Export manifest…").getAttribute("aria-disabled")).toBe(null);
     choose("Export manifest…");

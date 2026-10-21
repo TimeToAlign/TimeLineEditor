@@ -57,7 +57,7 @@ export function mixedStore(options: Parameters<typeof createStore>[1] = {}): Sto
   for (const [id, manifest] of manifests) {
     const error = store.dispatch({
       type: "add",
-      into: "workspace",
+      into: {},
       block: { id, manifest, x: 0, y: 0 },
     });
     if (error !== null) throw new Error(error.message);

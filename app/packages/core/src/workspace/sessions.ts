@@ -9,9 +9,10 @@
 import type { Command } from "../commands/types.ts";
 import type { CommandError } from "../errors.ts";
 import { ErrorCode, isCommandError, problem } from "../errors.ts";
+import { addressKey, sameAddress } from "../manifest/address.ts";
 import { contains } from "../manifest/contains.ts";
 import type { Address } from "./address.ts";
-import { elementIn, parseAddressSyntax, resolveAddress } from "./address.ts";
+import { elementAddressOf, isElementAddress, resolveAddress } from "./address.ts";
 import { BLOCK_ID } from "./blocks.ts";
 import { mintBlockId } from "./ids.ts";
 import type { View } from "./view.ts";
@@ -54,7 +55,7 @@ export type Sessions = { readonly [id: SessionId]: Session };
 /** One editor of the editing path. */
 export interface OpenEditor {
   readonly session: SessionId;
-  /** A block id, `<b>/<group>` or `<b>/<timeline>`. */
+  /** A block's address `{block}`, a group's or a timeline's `{block, id}`. */
   readonly target: Address;
   readonly kind: EditorKind;
   /** The latest earlier session of the same target at the level it opened on, listed read only; null when there is none or it was unfolded. */
@@ -195,42 +196,38 @@ export function keepChanges(
 }
 
 /**
- * The editor an address opens (`resolveAddress`): a block, by its bare id,
- * the bundle editor, a group the group editor, a root or child timeline the
- * timeline editor; `no_editor` for `workspace`, the manifest's own id and
- * any other element or part; `unknown_target` for an address naming nothing.
+ * The editor an address opens (`resolveAddress`): a block the bundle
+ * editor, a group the group editor, a root or child timeline the timeline
+ * editor; `no_editor` for the workspace and any other element or part;
+ * `unknown_target` for an address naming nothing.
  */
 export function editorKindOf(view: View, address: Address): EditorKind | CommandError {
   const resolved = resolveAddress(view, address);
   if (isCommandError(resolved)) return resolved;
   switch (resolved.kind) {
     case "block":
-      return address === resolved.block.id
-        ? "bundle"
-        : problem(ErrorCode.noEditor, `${address} has no editor`, [address]);
+      return "bundle";
     case "frame":
       return "group";
     case "timeline":
       return "timeline";
-    default:
-      return problem(ErrorCode.noEditor, `${address} has no editor`, [address]);
+    default: {
+      const key = addressKey(address);
+      return problem(ErrorCode.noEditor, `${key} has no editor`, [key]);
+    }
   }
 }
 
 /**
- * Whether the editor of `target` opens inside the open editor of
- * `container`: `target` is another element of the same block, and
- * `container` is that block or contains it (`contains`).
+ * Whether `target` lies inside the editor of `container`, a block's, a
+ * group's or a timeline's address: `target` is another element of the same
+ * block, and `container` is that block or contains it (`contains`).
  */
 export function opensInside(view: View, container: Address, target: Address): boolean {
-  if (target === container) return false;
-  const outer = parseAddressSyntax(container);
-  const inner = parseAddressSyntax(target);
-  if (isCommandError(outer) || isCommandError(inner) || inner.block !== outer.block) return false;
-  const element = elementIn(inner);
-  if (inner.block === null || element === null) return false;
-  const holder = elementIn(outer);
-  if (holder === null) return true;
-  const manifest = view.blocks[inner.block]?.manifest;
-  return manifest !== undefined && contains(manifest, holder, element);
+  if (sameAddress(target, container)) return false;
+  if (target.block === undefined || target.block !== container.block) return false;
+  if (!isElementAddress(target)) return false;
+  if (container.id === undefined) return true;
+  const manifest = view.blocks[target.block]?.manifest;
+  return manifest !== undefined && contains(manifest, container.id, elementAddressOf(target));
 }

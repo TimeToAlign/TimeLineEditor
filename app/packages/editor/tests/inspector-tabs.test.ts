@@ -1,8 +1,9 @@
 /** The inspector's tabs and panels; the expected values are derived in `README.md` ("The tabs and panels"). */
 
-import { liveStore } from "@timetoalign/tilie-arranger";
-import type { Entry, OpenEditor, Store, View } from "@timetoalign/tilie-core";
-import { listEntries } from "@timetoalign/tilie-core";
+import type { Selection } from "@timetoalign/tilie-arranger";
+import { liveStore, selectionOf } from "@timetoalign/tilie-arranger";
+import type { Address, Entry, OpenEditor, Store, View } from "@timetoalign/tilie-core";
+import { addressKey, listEntries } from "@timetoalign/tilie-core";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it } from "vitest";
 import InspectorDrawer from "../src/InspectorDrawer.svelte";
@@ -14,6 +15,8 @@ import { holder } from "./holder.svelte.ts";
 import { MIXED, mixedStore } from "./mixed.ts";
 
 const { A } = MIXED;
+/** The address of block `A`. */
+const BLOCK: Address = { block: A };
 const HINT = "Select a block to inspect its manifest.";
 
 /**
@@ -52,12 +55,12 @@ function staged(inner: Store): { store: Store; stage(levels: Partial<JournalSour
   };
 }
 
-function editor(target: string, kind: OpenEditor["kind"], session = "s1"): OpenEditor {
+function editor(target: Address, kind: OpenEditor["kind"], session = "s1"): OpenEditor {
   return { session, target, kind, earlier: null };
 }
 
-const GROUP = editor(`${A}/group_1`, "group", "s1");
-const TIMELINE = editor(`${A}/score`, "timeline", "s2");
+const GROUP = editor({ block: A, id: "group_1" }, "group", "s1");
+const TIMELINE = editor({ block: A, id: "score" }, "timeline", "s2");
 
 let app: ReturnType<typeof mount> | undefined;
 
@@ -67,8 +70,8 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-function show(store: Store, selection: string[] = [A]): void {
-  const selected = holder<ReadonlySet<string>>(new Set(selection));
+function show(store: Store, selection: Address[] = [BLOCK]): void {
+  const selected = holder<Selection>(selectionOf(selection));
   app = mount(Inspector, {
     target: document.body,
     props: {
@@ -337,7 +340,7 @@ describe("the tab set", () => {
 
   it("shows the level tab when mounted while an editor is open", () => {
     const { store, stage } = staged(mixedStore());
-    stage({ editing: [editor(A, "bundle")] });
+    stage({ editing: [editor(BLOCK, "bundle")] });
     show(store);
     expect(tabs()).toEqual([on("Bundle"), off("Properties"), off("Manifest"), off("Journal")]);
     expect(titleLine("Bundle")).toEqual(titled("Bundle", "Mixed"));
@@ -360,10 +363,13 @@ describe("with the store's own editors", () => {
   it("follows open, Done and the folded session", () => {
     const store = mixedStore();
     show(store);
-    expect(store.open(`${A}/group_1`)).toBe(null);
+    expect(store.open({ block: A, id: "group_1" })).toBe(null);
     flushSync();
     expect(tabs()).toEqual([off("Group"), on("Properties"), off("Manifest"), off("Journal")]);
-    store.dispatch({ type: "set", changes: [{ target: `${A}/score`, values: { name: "S" } }] });
+    store.dispatch({
+      type: "set",
+      changes: [{ target: { block: A, id: "score" }, values: { name: "S" } }],
+    });
     store.done();
     flushSync();
     expect(tabs()).toEqual([off("Arranger"), on("Properties"), off("Manifest"), off("Journal")]);
@@ -372,9 +378,9 @@ describe("with the store's own editors", () => {
       [...(panelOf("Journal")?.querySelectorAll(".text") ?? [])].map((item) => item.textContent),
     ).toEqual([
       "Edited group Performance (1 change)",
-      "Added block 0000000002 to workspace",
-      "Added block 0000000001 to workspace",
-      "Added block 0000000000 to workspace",
+      "Added block 0000000002 to {}",
+      "Added block 0000000001 to {}",
+      "Added block 0000000000 to {}",
     ]);
   });
 });
@@ -384,7 +390,12 @@ describe("in the drawer", () => {
   function drawer(store: Store): { setOpen(open: boolean): void } {
     const shown = mount(InspectorDrawer, {
       target: document.body,
-      props: { live: liveStore(store), selection: new Set([A]), placement: null, storageKey: null },
+      props: {
+        live: liveStore(store),
+        selection: selectionOf([BLOCK]),
+        placement: null,
+        storageKey: null,
+      },
     });
     app = shown;
     flushSync();
@@ -402,7 +413,7 @@ describe("in the drawer", () => {
     setOpen(true);
     click("Journal");
     setOpen(false);
-    expect(store.open(`${A}/group_1`)).toBe(null);
+    expect(store.open({ block: A, id: "group_1" })).toBe(null);
     setOpen(true);
     expect(tabs()).toEqual([on("Group"), off("Properties"), off("Manifest"), off("Journal")]);
     expect(titleLine("Group")).toEqual(titled("Group", "Performance"));
@@ -423,7 +434,7 @@ describe("in the drawer", () => {
     const { setOpen } = drawer(store);
     setOpen(true);
     click("Journal");
-    expect(store.open(`${A}/group_1`)).toBe(null);
+    expect(store.open({ block: A, id: "group_1" })).toBe(null);
     flushSync();
     expect(tabs()).toEqual([off("Group"), off("Properties"), off("Manifest"), on("Journal")]);
     setOpen(true);
@@ -453,9 +464,9 @@ describe("the block fields in an editor", () => {
 
   it("are refused by the store inside a group editor", () => {
     const store = mixedStore();
-    expect(store.open(`${A}/group_1`)).toBe(null);
+    expect(store.open({ block: A, id: "group_1" })).toBe(null);
     expect(
-      store.dispatch({ type: "set", changes: [{ target: A, values: { scale: 2 } }] })?.code,
+      store.dispatch({ type: "set", changes: [{ target: BLOCK, values: { scale: 2 } }] })?.code,
     ).toBe("side_effect");
   });
 
@@ -469,7 +480,7 @@ describe("the block fields in an editor", () => {
       return fields();
     };
     expect(fields()).toEqual(enabled);
-    expect(after([editor(A, "bundle")])).toEqual(enabled);
+    expect(after([editor(BLOCK, "bundle")])).toEqual(enabled);
     expect(after([GROUP])).toEqual(blockFieldsOff);
     expect(after([GROUP, TIMELINE])).toEqual(blockFieldsOff);
     expect(after([])).toEqual(enabled);
@@ -532,9 +543,9 @@ describe("the Journal panel", () => {
   const G = "Gerhardt";
   /** The three `add`s, newest first. */
   const ADDS = [
-    [T, G, "Added block 0000000002 to workspace", false, false, null],
-    [T, G, "Added block 0000000001 to workspace", false, false, null],
-    [T, G, "Added block 0000000000 to workspace", false, false, null],
+    [T, G, "Added block 0000000002 to {}", false, false, null],
+    [T, G, "Added block 0000000001 to {}", false, false, null],
+    [T, G, "Added block 0000000000 to {}", false, false, null],
   ];
 
   it("lists the rows, the undone one grey with a hidden word, and follows the store", () => {
@@ -542,13 +553,16 @@ describe("the Journal panel", () => {
     show(store);
     click("Journal");
     expect(panelOf("Journal")?.querySelector("ol")?.getAttribute("aria-label")).toBe("Journal");
-    store.dispatch({ type: "set", changes: [{ target: A, values: { x: 25 } }] });
+    store.dispatch({ type: "set", changes: [{ target: BLOCK, values: { x: 25 } }] });
     store.undo();
     flushSync();
-    expect(items()).toEqual([[T, G, `Set x of ${A}`, true, false, "undone"], ...ADDS]);
-    store.dispatch({ type: "set", changes: [{ target: A, values: { y: 7 } }] });
+    expect(items()).toEqual([
+      [T, G, `Set x of ${addressKey(BLOCK)}`, true, false, "undone"],
+      ...ADDS,
+    ]);
+    store.dispatch({ type: "set", changes: [{ target: BLOCK, values: { y: 7 } }] });
     flushSync();
-    expect(items()).toEqual([[T, G, `Set y of ${A}`, false, false, null], ...ADDS]);
+    expect(items()).toEqual([[T, G, `Set y of ${addressKey(BLOCK)}`, false, false, null], ...ADDS]);
   });
 
   it("lists the earlier session last, keeping the items per entry", () => {
@@ -571,7 +585,7 @@ describe("the Journal panel", () => {
     });
     expect(items()).toEqual([
       ...ADDS,
-      ["07:00:01", "Ada", `Set order of ${GROUP.target}`, false, true, null],
+      ["07:00:01", "Ada", `Set order of ${addressKey(GROUP.target)}`, false, true, null],
     ]);
     const after = [...(panelOf("Journal") as HTMLElement).querySelectorAll("li")];
     expect(after.slice(0, 3).map((item, index) => item === before[index])).toEqual([
@@ -580,7 +594,7 @@ describe("the Journal panel", () => {
       true,
     ]);
     const fourth: Entry = {
-      command: { type: "set", changes: [{ target: A, values: { x: 1 } }] },
+      command: { type: "set", changes: [{ target: BLOCK, values: { x: 1 } }] },
       author: G,
       time: "2026-10-17T08:05:09.123Z",
     };
@@ -606,12 +620,12 @@ describe("the Journal panel", () => {
     expect(panel.textContent?.trim()).toBe("No changes yet.");
     expect(panel.querySelector("ol")).toBe(null);
     const one: Entry = {
-      command: { type: "set", changes: [{ target: A, values: { x: 1 } }] },
+      command: { type: "set", changes: [{ target: BLOCK, values: { x: 1 } }] },
       author: G,
       time: "2026-10-17T08:05:09.123Z",
     };
     stage({ editing: [GROUP], listed: listEntries([one], {}) });
-    expect(items()).toEqual([[T, G, `Set x of ${A}`, false, false, null]]);
+    expect(items()).toEqual([[T, G, `Set x of ${addressKey(BLOCK)}`, false, false, null]]);
     expect(panel.textContent).not.toContain("No changes yet.");
   });
 
@@ -619,12 +633,12 @@ describe("the Journal panel", () => {
     const store = mixedStore({ clock: () => new Date("2026-10-17T08:05:09.123Z") });
     const rename = (id: string, name: string) => ({
       type: "set",
-      changes: [{ target: `${A}/${id}`, values: { name } }],
+      changes: [{ target: { block: A, id }, values: { name } }],
     });
-    expect(store.open(A)).toBe(null);
-    expect(store.open(`${A}/group_1`)).toBe(null);
+    expect(store.open(BLOCK)).toBe(null);
+    expect(store.open({ block: A, id: "group_1" })).toBe(null);
     expect(store.dispatch(rename("performance", "P"))).toBe(null);
-    expect(store.open(`${A}/score`)).toBe(null);
+    expect(store.open({ block: A, id: "score" })).toBe(null);
     expect(store.dispatch(rename("score", "S"))).toBe(null);
     expect(store.dispatch(rename("score", "T"))).toBe(null);
     store.done();
@@ -673,14 +687,14 @@ describe("the Journal panel", () => {
       ]);
     expect(rows(inner)).toEqual([
       ["Edited timeline Score (2 changes)", true, "undone", true],
-      [`Set name of ${A}/performance`, false, null, false],
+      [`Set name of ${addressKey({ block: A, id: "performance" })}`, false, null, false],
     ]);
     const timeline = inner.querySelector(":scope > ol > li") as HTMLElement;
     (timeline.querySelector(":scope > .row > button") as HTMLButtonElement).click();
     flushSync();
     expect(rows(timeline)).toEqual([
-      [`Set name of ${A}/score`, true, "undone", false],
-      [`Set name of ${A}/score`, true, "undone", false],
+      [`Set name of ${addressKey({ block: A, id: "score" })}`, true, "undone", false],
+      [`Set name of ${addressKey({ block: A, id: "score" })}`, true, "undone", false],
     ]);
     button().click();
     flushSync();

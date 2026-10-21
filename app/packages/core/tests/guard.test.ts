@@ -3,58 +3,37 @@ import { describe, expect, it } from "vitest";
 import { applyChanges } from "../src/commands/apply.ts";
 import { parseCommand } from "../src/commands/parse.ts";
 import { isCommandError } from "../src/errors.ts";
+import { addressKey } from "../src/manifest/address.ts";
 import type { Manifest } from "../src/manifest/types.ts";
+import type { Address } from "../src/workspace/address.ts";
 import type { Block } from "../src/workspace/blocks.ts";
 import { sideEffect, statementInside } from "../src/workspace/guard.ts";
 import type { View } from "../src/workspace/view.ts";
 import { A, addBlock, B, block, changed, deepFreeze, viewOf } from "./support.ts";
 
 const BUNDLE = "bundle0001";
-const G1 = `${BUNDLE}/group_1`;
+/** The address of block `bundle0001`, and of the element `id` of its manifest. */
+const BLOCK: Address = { block: BUNDLE };
+const at = (id: string): Address => ({ block: BUNDLE, id });
+/** The first segment of a path naming `address`, and its name in a message. */
+const key = (address: Address) => addressKey(address);
+const G1 = at("group_1");
 const MIXED = "bundles/bundle_mixed.json";
 const RED: Declaration = { stroke: "#FF0000" };
 const TIMELINES: Selector = { element: "timeline" };
-const SCORE: Selector = { ids: ["score"] };
+const SCORE: Selector = { addresses: [{ id: "score" }] };
 
-/** The default band order of the timeline `id`. */
-const D = (id: string) => [
-  `${id}/children_1`,
-  `${id}/conversion_maps_1`,
-  id,
-  `${id}/markers_1`,
-  `${id}/regions_1`,
-  `${id}/flow_control_1`,
-];
+/** The default band order. */
+const D = ["children", "conversion_maps", "line", "markers", "regions", "flow_control"];
 
 /** The root `recording`'s markers band at the top, its conversion maps band below its line. */
-const R = [
-  "recording/markers_1",
-  "recording/children_1",
-  "recording",
-  "recording/conversion_maps_1",
-  "recording/regions_1",
-  "recording/flow_control_1",
-];
+const R = ["markers", "children", "line", "conversion_maps", "regions", "flow_control"];
 
 /** Every band of the child `excerpt` below its line. */
-const E = [
-  "excerpt",
-  "excerpt/children_1",
-  "excerpt/conversion_maps_1",
-  "excerpt/markers_1",
-  "excerpt/regions_1",
-  "excerpt/flow_control_1",
-];
+const E = ["line", "children", "conversion_maps", "markers", "regions", "flow_control"];
 
 /** The member `score`'s line at the top, its bands below it in their default order. */
-const SCORE_LINE_FIRST = [
-  "score",
-  "score/children_1",
-  "score/conversion_maps_1",
-  "score/markers_1",
-  "score/regions_1",
-  "score/flow_control_1",
-];
+const SCORE_LINE_FIRST = E;
 
 const before = deepFreeze(viewOf([BUNDLE, MIXED]));
 /** `before` with a second block, `A`, holding `bare.json`. */
@@ -75,16 +54,16 @@ const withGrid = (view: View): View => ({
   settings: { ...view.settings, grid: { size: 16, snap: true } },
 });
 
-const set = (target: string, values: object) => ({
+const set = (target: Address, values: object) => ({
   type: "set",
   changes: [{ target, values }],
 });
 
-const named = (id: string, name: string) => set(`${BUNDLE}/${id}`, { name });
+const named = (id: string, name: string) => set(at(id), { name });
 
 const outside = (what: string, path: readonly (string | number)[], target = G1) => ({
   code: "side_effect",
-  message: `${what} lies outside ${target}: an editor changes only what it edits`,
+  message: `${what} lies outside ${key(target)}: an editor changes only what it edits`,
   path,
 });
 
@@ -97,29 +76,29 @@ describe("sideEffect, the exact cases", () => {
   it("refuses a place of another group", () => {
     const after = withBlock(before, { places: { group_2: { x: 10 } } });
     expect(sideEffect(before, after, G1)).toEqual(
-      outside("the place of bundle0001/group_2", ["bundle0001/group_2"]),
+      outside(`the place of ${key(at("group_2"))}`, [key(at("group_2"))]),
     );
   });
 
   it("accepts a member's name and refuses an ungrouped root's", () => {
     expect(sideEffect(before, changed(before, named("score", "S")), G1)).toBeNull();
     expect(sideEffect(before, changed(before, named("annotations", "A")), G1)).toEqual(
-      outside("bundle0001/annotations", ["bundle0001/annotations"]),
+      outside(key(at("annotations")), [key(at("annotations"))]),
     );
   });
 
-  it("refuses the block's length and accepts the box adapting", () => {
-    expect(sideEffect(before, changed(before, set(BUNDLE, { length: 500 })), G1)).toEqual(
-      outside("the length of block bundle0001", [BUNDLE, "length"]),
+  it("refuses the block's length and accepts the block adapting", () => {
+    expect(sideEffect(before, changed(before, set(BLOCK, { length: 500 })), G1)).toEqual(
+      outside("the length of block 'bundle0001'", [key(BLOCK), "length"]),
     );
-    const box = set(BUNDLE, { x: 40, y: -8, width: 900, height: 300 });
-    expect(sideEffect(before, changed(before, box), G1)).toBeNull();
+    const adapting = set(BLOCK, { x: 40, y: -8, width: 900, height: 300 });
+    expect(sideEffect(before, changed(before, adapting), G1)).toBeNull();
   });
 
   it("refuses a statement reaching outside and accepts one reaching only inside", () => {
     const wide = changed(before, { type: "style", select: TIMELINES, set: RED });
     expect(sideEffect(before, wide, G1)).toEqual(
-      outside("the graphical statements of block bundle0001", [
+      outside("the graphical statements of block 'bundle0001'", [
         BUNDLE,
         "manifest",
         "graphical",
@@ -135,32 +114,34 @@ describe("sideEffect, each rule's path", () => {
   it("refuses a workspace setting in every editor", () => {
     const after = withGrid(before);
     expect(sideEffect(before, after, G1)).toEqual(
-      outside("the workspace setting grid", ["workspace", "grid"]),
+      outside("the workspace setting grid", ["{}", "grid"]),
     );
-    expect(sideEffect(before, after, BUNDLE)).toEqual(
-      outside("the workspace setting grid", ["workspace", "grid"], BUNDLE),
+    expect(sideEffect(before, after, BLOCK)).toEqual(
+      outside("the workspace setting grid", ["{}", "grid"], BLOCK),
     );
   });
 
   it("refuses another block changing, appearing or going", () => {
-    const moved = changed(two, set(A, { x: 50 }));
-    expect(sideEffect(two, moved, G1)).toEqual(outside(`block ${A}`, [A]));
+    const moved = changed(two, set({ block: A }, { x: 50 }));
+    expect(sideEffect(two, moved, G1)).toEqual(outside(`block '${A}'`, [key({ block: A })]));
     expect(sideEffect(two, changed(two, addBlock(B, "bare.json")), G1)).toEqual(
-      outside(`block ${B}`, [B]),
+      outside(`block '${B}'`, [key({ block: B })]),
     );
-    expect(sideEffect(two, changed(two, { type: "remove", targets: [A] }), G1)).toEqual(
-      outside(`block ${A}`, [A]),
+    expect(sideEffect(two, changed(two, { type: "remove", targets: [{ block: A }] }), G1)).toEqual(
+      outside(`block '${A}'`, [key({ block: A })]),
     );
-    expect(sideEffect(two, moved, BUNDLE)).toEqual(outside(`block ${A}`, [A], BUNDLE));
+    expect(sideEffect(two, moved, BLOCK)).toEqual(
+      outside(`block '${A}'`, [key({ block: A })], BLOCK),
+    );
   });
 
   it("accepts a band order in every editor holding its timeline, and refuses it elsewhere", () => {
-    const excerpt = `${BUNDLE}/excerpt`;
-    const recording = `${BUNDLE}/recording`;
-    const group2 = `${BUNDLE}/group_2`;
-    const order = (target: string) =>
+    const excerpt = at("excerpt");
+    const recording = at("recording");
+    const group2 = at("group_2");
+    const order = (target: Address) =>
       outside(
-        "the graphical order of block bundle0001",
+        "the graphical order of block 'bundle0001'",
         [BUNDLE, "manifest", "graphical", "order"],
         target,
       );
@@ -172,15 +153,15 @@ describe("sideEffect, each rule's path", () => {
     const parent = changed(before, set(recording, { order: R }));
     expect(sideEffect(before, parent, excerpt)).toEqual(order(excerpt));
     expect(sideEffect(before, parent, group2)).toEqual(order(group2));
-    const member = changed(before, set(`${BUNDLE}/score`, { order: SCORE_LINE_FIRST }));
+    const member = changed(before, set(at("score"), { order: SCORE_LINE_FIRST }));
     expect(sideEffect(before, member, G1)).toBeNull();
-    const root = changed(before, set(`${BUNDLE}/annotations`, { order: D("annotations") }));
+    const root = changed(before, set(at("annotations"), { order: D }));
     expect(sideEffect(before, root, G1)).toEqual(order(G1));
   });
 
   it("refuses a top-level member of the manifest", () => {
     expect(sideEffect(before, withManifest(before, { name: "Other" }), G1)).toEqual(
-      outside("the manifest's name in block bundle0001", [BUNDLE, "manifest", "name"]),
+      outside("the manifest's name in block 'bundle0001'", [BUNDLE, "manifest", "name"]),
     );
   });
 
@@ -191,7 +172,7 @@ describe("sideEffect, each rule's path", () => {
       meta: {},
       rows: [{ count: 1, qstamp: [0, 1] as const }],
     };
-    const address = `${BUNDLE}/bars`;
+    const address = key(at("bars"));
     expect(sideEffect(before, withManifest(before, { measure_maps: [bars] }), G1)).toEqual(
       outside(address, [address]),
     );
@@ -206,7 +187,7 @@ describe("sideEffect, each rule's path", () => {
     });
     const wide = changed(before, styled(TIMELINES, "#FF0000"));
     expect(sideEffect(wide, changed(wide, styled(TIMELINES, "#00FF00")), G1)).toEqual(
-      outside("the graphical styles of block bundle0001", [
+      outside("the graphical styles of block 'bundle0001'", [
         BUNDLE,
         "manifest",
         "graphical",
@@ -223,10 +204,10 @@ describe("sideEffect, each rule's path", () => {
       graphical: { ...graphical, order: { ...graphical.order, group_1: ["performance", "score"] } },
     });
     expect(sideEffect(before, after, G1)).toBeNull();
-    const score = `${BUNDLE}/score`;
+    const score = at("score");
     expect(sideEffect(before, after, score)).toEqual(
       outside(
-        "the graphical order of block bundle0001",
+        "the graphical order of block 'bundle0001'",
         [BUNDLE, "manifest", "graphical", "order"],
         score,
       ),
@@ -234,27 +215,27 @@ describe("sideEffect, each rule's path", () => {
   });
 
   it("refuses removing the edited element or its block", () => {
-    const removal = outside("the removal of bundle0001/group_1", [G1]);
+    const removal = outside(`the removal of ${key(G1)}`, [key(G1)]);
     expect(sideEffect(before, changed(before, { type: "remove", targets: [G1] }), G1)).toEqual(
       removal,
     );
-    expect(sideEffect(before, changed(before, { type: "remove", targets: [BUNDLE] }), G1)).toEqual(
+    expect(sideEffect(before, changed(before, { type: "remove", targets: [BLOCK] }), G1)).toEqual(
       removal,
     );
-    const annotations = `${BUNDLE}/annotations`;
+    const annotations = at("annotations");
     expect(
       sideEffect(before, changed(before, { type: "remove", targets: [annotations] }), annotations),
-    ).toEqual(outside(`the removal of ${annotations}`, [annotations], annotations));
+    ).toEqual(outside(`the removal of ${key(annotations)}`, [key(annotations)], annotations));
     expect(
-      sideEffect(before, changed(before, { type: "remove", targets: [BUNDLE] }), BUNDLE),
-    ).toEqual(outside(`the removal of ${BUNDLE}`, [BUNDLE], BUNDLE));
+      sideEffect(before, changed(before, { type: "remove", targets: [BLOCK] }), BLOCK),
+    ).toEqual(outside(`the removal of ${key(BLOCK)}`, [key(BLOCK)], BLOCK));
   });
 });
 
 describe("sideEffect, the order of the rules", () => {
   it("reports another block before the manifest", () => {
     const after = changed(two, { type: "style", select: TIMELINES, set: RED });
-    expect(sideEffect(two, after, G1)).toEqual(outside(`block ${A}`, [A]));
+    expect(sideEffect(two, after, G1)).toEqual(outside(`block '${A}'`, [key({ block: A })]));
   });
 
   it("reports the first rule that applies", () => {
@@ -262,59 +243,69 @@ describe("sideEffect, the order of the rules", () => {
     const placed = withBlock(renamed, { places: { group_2: { x: 10 } } });
     const longer = withBlock(placed, { length: 500 });
     expect(sideEffect(before, withGrid(longer), G1)).toEqual(
-      outside("the workspace setting grid", ["workspace", "grid"]),
+      outside("the workspace setting grid", ["{}", "grid"]),
     );
     expect(sideEffect(before, longer, G1)).toEqual(
-      outside("the length of block bundle0001", [BUNDLE, "length"]),
+      outside("the length of block 'bundle0001'", [key(BLOCK), "length"]),
     );
     expect(sideEffect(before, placed, G1)).toEqual(
-      outside("the place of bundle0001/group_2", ["bundle0001/group_2"]),
+      outside(`the place of ${key(at("group_2"))}`, [key(at("group_2"))]),
     );
     expect(sideEffect(before, renamed, G1)).toEqual(
-      outside("bundle0001/annotations", ["bundle0001/annotations"]),
+      outside(key(at("annotations")), [key(at("annotations"))]),
     );
   });
 });
 
 describe("sideEffect, with the command's change set", () => {
-  const grid = set("workspace", { grid: { size: 16, snap: true } });
+  const grid = set({}, { grid: { size: 16, snap: true } });
   it.each([
-    [before, grid, G1, outside("the workspace setting grid", ["workspace", "grid"])],
-    [before, grid, "workspace", null],
-    [two, set(A, { x: 50 }), G1, outside(`block ${A}`, [A])],
-    [two, addBlock(B, "bare.json"), G1, outside(`block ${B}`, [B])],
-    [two, { type: "remove", targets: [A] }, G1, outside(`block ${A}`, [A])],
-    [two, { type: "style", select: TIMELINES, set: RED }, G1, outside(`block ${A}`, [A])],
-    [two, set(A, { x: 50 }), A, null],
+    [before, grid, G1, outside("the workspace setting grid", ["{}", "grid"])],
+    [before, grid, {}, null],
+    [two, set({ block: A }, { x: 50 }), G1, outside(`block '${A}'`, [key({ block: A })])],
+    [two, addBlock(B, "bare.json"), G1, outside(`block '${B}'`, [key({ block: B })])],
+    [
+      two,
+      { type: "remove", targets: [{ block: A }] },
+      G1,
+      outside(`block '${A}'`, [key({ block: A })]),
+    ],
+    [
+      two,
+      { type: "style", select: TIMELINES, set: RED },
+      G1,
+      outside(`block '${A}'`, [key({ block: A })]),
+    ],
+    [two, set({ block: A }, { x: 50 }), { block: A }, null],
     [before, named("score", "S"), G1, null],
     [
       before,
       named("annotations", "A"),
       G1,
-      outside(`${BUNDLE}/annotations`, [`${BUNDLE}/annotations`]),
+      outside(key(at("annotations")), [key(at("annotations"))]),
     ],
     [
       before,
-      set(BUNDLE, { length: 500 }),
+      set(BLOCK, { length: 500 }),
       G1,
-      outside(`the length of block ${BUNDLE}`, [BUNDLE, "length"]),
+      outside(`the length of block '${BUNDLE}'`, [key(BLOCK), "length"]),
     ],
-    [before, set(`${BUNDLE}/score`, { order: SCORE_LINE_FIRST }), G1, null],
+    [before, set(at("score"), { order: SCORE_LINE_FIRST }), G1, null],
     [before, set(G1, { order: ["performance", "score"] }), G1, null],
-    [before, set(G1, { place: { length: 300 } }), `${BUNDLE}/score`, null],
-    [before, set(`${BUNDLE}/annotations/region_1`, { name: "R" }), `${BUNDLE}/annotations`, null],
+    [before, set(G1, { place: { length: 300 } }), at("score"), null],
+    [before, set(at("region_1"), { name: "R" }), at("annotations"), null],
     [
       before,
-      set(`${BUNDLE}/annotations/region_1`, { name: "R" }),
+      set(at("region_1"), { name: "R" }),
       G1,
-      outside(`${BUNDLE}/annotations/region_1`, [`${BUNDLE}/annotations/region_1`]),
+      outside(key(at("region_1")), [key(at("region_1"))]),
     ],
-    [before, set(`${BUNDLE}/excerpt`, { offset: 22050 }), `${BUNDLE}/recording`, null],
+    [before, set(at("excerpt"), { offset: 22050 }), at("recording"), null],
     [
       before,
-      set(`${BUNDLE}/excerpt`, { offset: 22050 }),
+      set(at("excerpt"), { offset: 22050 }),
       G1,
-      outside(`${BUNDLE}/excerpt`, [`${BUNDLE}/excerpt`]),
+      outside(key(at("excerpt")), [key(at("excerpt"))]),
     ],
   ])("refuses what the full comparison refuses (%#)", (view, command, target, expected) => {
     const parsed = parseCommand(command);
@@ -357,47 +348,47 @@ describe("statements inside and outside", () => {
     expect(statementInside([was], "group_1")(statement(SCORE))).toBe(true);
     expect(statementInside([was, now], "group_1")(statement(SCORE))).toBe(false);
     expect(statementInside([was], "group_1")(statement(TIMELINES))).toBe(false);
-    expect(statementInside([was, now], "group_1")(statement({ ids: ["nothing"] }))).toBe(true);
+    expect(
+      statementInside([was, now], "group_1")(statement({ addresses: [{ id: "nothing" }] })),
+    ).toBe(true);
   });
 
   it("is moved across the boundary only by a change the projection shows", () => {
-    expect(sideEffect(before, shrunk, G1)).toEqual(
-      outside("bundle0001/score", ["bundle0001/score"]),
-    );
+    expect(sideEffect(before, shrunk, G1)).toEqual(outside(key(at("score")), [key(at("score"))]));
   });
 
   it("lies inside when every band it matches belongs to a timeline the editor holds", () => {
     const inline = { display: "inline" };
-    const statements = (target: string) =>
+    const statements = (target: Address) =>
       outside(
-        "the graphical statements of block bundle0001",
+        "the graphical statements of block 'bundle0001'",
         [BUNDLE, "manifest", "graphical", "statements"],
         target,
       );
     const one = changed(before, {
       type: "style",
-      select: { ids: ["excerpt/regions_1"] },
+      select: { addresses: [{ id: "excerpt", facet: "regions" }] },
       set: inline,
       blocks: [BUNDLE],
     });
-    expect(sideEffect(before, one, `${BUNDLE}/excerpt`)).toBeNull();
-    expect(sideEffect(before, one, `${BUNDLE}/recording`)).toBeNull();
-    expect(sideEffect(before, one, `${BUNDLE}/score`)).toEqual(statements(`${BUNDLE}/score`));
+    expect(sideEffect(before, one, at("excerpt"))).toBeNull();
+    expect(sideEffect(before, one, at("recording"))).toBeNull();
+    expect(sideEffect(before, one, at("score"))).toEqual(statements(at("score")));
     const every = changed(before, {
       type: "style",
-      select: { element: "band", class: "regions" },
+      select: { element: "band", facet: "regions" },
       set: inline,
     });
     expect(sideEffect(before, every, G1)).toEqual(statements(G1));
-    expect(sideEffect(before, every, BUNDLE)).toBeNull();
+    expect(sideEffect(before, every, BLOCK)).toBeNull();
   });
 });
 
 describe("the editors of a timeline and of the bundle", () => {
   it("lets a child's editor change the child and never its parent", () => {
-    const excerpt = `${BUNDLE}/excerpt`;
+    const excerpt = at("excerpt");
     expect(sideEffect(before, changed(before, named("recording", "R")), excerpt)).toEqual(
-      outside("bundle0001/recording", ["bundle0001/recording"], excerpt),
+      outside(key(at("recording")), [key(at("recording"))], excerpt),
     );
     expect(sideEffect(before, changed(before, named("excerpt", "E")), excerpt)).toBeNull();
   });
@@ -405,32 +396,32 @@ describe("the editors of a timeline and of the bundle", () => {
   it("lets the bundle editor change anything in its own block", () => {
     for (const after of [
       changed(before, named("annotations", "A")),
-      changed(before, set(BUNDLE, { length: 500 })),
+      changed(before, set(BLOCK, { length: 500 })),
       changed(before, { type: "style", select: TIMELINES, set: RED }),
       withBlock(before, { places: { group_2: { x: 10 } } }),
     ]) {
-      expect(sideEffect(before, after, BUNDLE)).toBeNull();
+      expect(sideEffect(before, after, BLOCK)).toBeNull();
     }
   });
 });
 
 describe("the element a manifest refusal names", () => {
-  const remove = (element: string) => ({ type: "remove", targets: [`${BUNDLE}/${element}`] });
+  const remove = (element: string) => ({ type: "remove", targets: [at(element)] });
 
   it("names a removed member's parent, not the member its group contains", () => {
-    const group2 = `${BUNDLE}/group_2`;
+    const group2 = at("group_2");
     expect(sideEffect(before, changed(before, remove("excerpt")), group2)).toEqual(
-      outside("bundle0001/recording", ["bundle0001/recording"], group2),
+      outside(key(at("recording")), [key(at("recording"))], group2),
     );
   });
 
   it("lets a timeline's editor change its subtree and names what lies outside", () => {
-    const recording = `${BUNDLE}/recording`;
+    const recording = at("recording");
     expect(sideEffect(before, changed(before, named("excerpt", "E")), recording)).toBeNull();
     expect(sideEffect(before, changed(before, remove("excerpt")), recording)).toEqual(
-      outside("bundle0001/group_2", ["bundle0001/group_2"], recording),
+      outside(key(at("group_2")), [key(at("group_2"))], recording),
     );
-    const excerpt = `${BUNDLE}/excerpt`;
+    const excerpt = at("excerpt");
     const both = {
       type: "set",
       changes: [
@@ -439,14 +430,14 @@ describe("the element a manifest refusal names", () => {
       ],
     };
     expect(sideEffect(before, changed(before, both), excerpt)).toEqual(
-      outside("bundle0001/recording", ["bundle0001/recording"], excerpt),
+      outside(key(at("recording")), [key(at("recording"))], excerpt),
     );
   });
 });
 
 describe("removals inside the target", () => {
-  const group2 = `${BUNDLE}/group_2`;
-  const remove = (element: string) => ({ type: "remove", targets: [`${BUNDLE}/${element}`] });
+  const group2 = at("group_2");
+  const remove = (element: string) => ({ type: "remove", targets: [at(element)] });
 
   it("lets a group's editor remove a root member", () => {
     const after = changed(before, remove("page"));
@@ -464,7 +455,7 @@ describe("removals inside the target", () => {
 
   it("refuses a member's removal or departure that reaches outside", () => {
     expect(sideEffect(before, changed(before, remove("excerpt")), group2)).toEqual(
-      outside("bundle0001/recording", ["bundle0001/recording"], group2),
+      outside(key(at("recording")), [key(at("recording"))], group2),
     );
     const was = block(before, BUNDLE).manifest;
     const left = withManifest(before, {
@@ -474,20 +465,20 @@ describe("removals inside the target", () => {
       graphical: { ...was.graphical, order: { ...was.graphical?.order, group_2: ["excerpt"] } },
     });
     expect(sideEffect(before, left, group2)).toEqual(
-      outside("bundle0001/page", ["bundle0001/page"], group2),
+      outside(key(at("page")), [key(at("page"))], group2),
     );
   });
 });
 
 describe("geometry in the editors", () => {
-  const score = `${BUNDLE}/score`;
-  const place = (id: string, values: object) => set(`${BUNDLE}/${id}`, { place: values });
+  const score = at("score");
+  const place = (id: string, values: object) => set(at(id), { place: values });
 
   /** One `set` of each `[id, place]` in turn. */
   const places = (...changes: [string, object][]) => ({
     type: "set",
     changes: changes.map(([id, values]) => ({
-      target: `${BUNDLE}/${id}`,
+      target: at(id),
       values: { place: values },
     })),
   });
@@ -535,14 +526,14 @@ describe("geometry in the editors", () => {
 
   it("refuses a member's editor every other place", () => {
     const performance = outside(
-      "the place of bundle0001/performance",
-      [`${BUNDLE}/performance`],
+      `the place of ${key(at("performance"))}`,
+      [key(at("performance"))],
       score,
     );
-    const group2 = outside("the place of bundle0001/group_2", [`${BUNDLE}/group_2`], score);
+    const group2 = outside(`the place of ${key(at("group_2"))}`, [key(at("group_2"))], score);
     for (const [command, refusal] of [
-      [place("group_1", { x: 10 }), outside("the place of bundle0001/group_1", [G1], score)],
-      [place("group_1", { spacing: 1.5 }), outside("the place of bundle0001/group_1", [G1], score)],
+      [place("group_1", { x: 10 }), outside(`the place of ${key(G1)}`, [key(G1)], score)],
+      [place("group_1", { spacing: 1.5 }), outside(`the place of ${key(G1)}`, [key(G1)], score)],
       [place("performance", { spacing: 1.5 }), performance],
       [place("performance", { height: 120 }), performance],
       [places(["group_1", { length: 500 }], ["performance", { spacing: 1.5 }]), performance],
@@ -551,7 +542,7 @@ describe("geometry in the editors", () => {
       [place("group_2", { width: 900 }), group2],
       [
         place("page", { width: 650 }),
-        outside("the place of bundle0001/page", [`${BUNDLE}/page`], score),
+        outside(`the place of ${key(at("page"))}`, [key(at("page"))], score),
       ],
     ] as const) {
       expect(sideEffect(before, changed(before, command), score)).toEqual(refusal);
@@ -560,10 +551,10 @@ describe("geometry in the editors", () => {
 
   it("lets a child member's editor change its group's length, not its parent's editor", () => {
     const longer = changed(before, place("group_2", { length: 500 }));
-    expect(sideEffect(before, longer, `${BUNDLE}/excerpt`)).toBeNull();
-    const recording = `${BUNDLE}/recording`;
+    expect(sideEffect(before, longer, at("excerpt"))).toBeNull();
+    const recording = at("recording");
     expect(sideEffect(before, longer, recording)).toEqual(
-      outside("the place of bundle0001/group_2", [`${BUNDLE}/group_2`], recording),
+      outside(`the place of ${key(at("group_2"))}`, [key(at("group_2"))], recording),
     );
   });
 
@@ -575,12 +566,12 @@ describe("geometry in the editors", () => {
   });
 
   it("lets an ungrouped root's editor change its whole place", () => {
-    const annotations = `${BUNDLE}/annotations`;
+    const annotations = at("annotations");
     const resized = changed(before, place("annotations", { scale: 1.5, width: 700 }));
     expect(sideEffect(before, resized, annotations)).toBeNull();
   });
 
   it("lets the bundle editor scale its block", () => {
-    expect(sideEffect(before, changed(before, set(BUNDLE, { scale: 2 })), BUNDLE)).toBeNull();
+    expect(sideEffect(before, changed(before, set(BLOCK, { scale: 2 })), BLOCK)).toBeNull();
   });
 });

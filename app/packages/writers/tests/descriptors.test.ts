@@ -1,3 +1,4 @@
+import { type ElementAddress, sameAddress } from "@timetoalign/tilie-core";
 import {
   DEFAULT_LAYER,
   DEFAULT_PLACEMENT,
@@ -20,7 +21,7 @@ import {
   writeSvg,
   writeTikz,
 } from "../src/index.ts";
-import { boxed, everything, loadFixture, reviewCases, style, synthetic } from "./support.ts";
+import { at, boxed, everything, loadFixture, reviewCases, style, synthetic } from "./support.ts";
 
 const svgBody = (drawing: Drawing) =>
   writeSvg([{ drawing, x: 0, y: 0, scale: 1 }])
@@ -36,7 +37,7 @@ describe("descriptors", () => {
   it("draws a brace and converts its quadratics for TikZ", () => {
     const drawing = synthetic({
       type: "region",
-      address: "region_1",
+      address: at("region_1"),
       style: BLACK,
       x1: 0,
       x2: 20,
@@ -45,7 +46,7 @@ describe("descriptors", () => {
       ya: 16,
     });
     expect(svgBody(drawing)).toEqual([
-      '<path data-address="region_1" d="M0 10Q0 13 3 13L7 13Q10 13 10 16Q10 13 13 13L17 13Q20 13 20 10" fill="none" stroke="#000000" stroke-width="1"/>',
+      '<path data-id="region_1" d="M0 10Q0 13 3 13L7 13Q10 13 10 16Q10 13 13 13L17 13Q20 13 20 10" fill="none" stroke="#000000" stroke-width="1"/>',
     ]);
     expect(tikzBody(drawing)).toEqual([
       "\\path[draw=ts000000,line width=1pt] (0,20) .. controls (0,18) and (1,17) .. (3,17) -- (7,17) .. controls (9,17) and (10,16) .. (10,14) .. controls (10,16) and (11,17) .. (13,17) -- (17,17) .. controls (19,17) and (20,18) .. (20,20);",
@@ -64,8 +65,8 @@ describe("descriptors", () => {
 
   it("writes a group's frame as a rect with rx after its coordinates", () => {
     const drawing = synthetic({
-      type: "group",
-      address: "g",
+      type: "frame",
+      address: at("g"),
       style: style({ fill: "#FFFFFF", stroke: "#D1D5DB", "stroke-width": 1, rx: 6 }),
       x: 8,
       y: 4,
@@ -74,7 +75,7 @@ describe("descriptors", () => {
       shadowOffset: 0,
     });
     expect(svgBody(drawing)).toEqual([
-      '<rect data-address="g" x="8" y="4" width="40" height="20" rx="6" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="1"/>',
+      '<rect data-id="g" x="8" y="4" width="40" height="20" rx="6" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="1"/>',
     ]);
     expect(tikzBody(drawing)).toEqual([
       "\\path[rounded corners=6pt,fill=tsFFFFFF,draw=tsD1D5DB,line width=1pt] (8,6) rectangle (48,26);",
@@ -84,7 +85,7 @@ describe("descriptors", () => {
   const card = (changes: Partial<Style> = {}) =>
     synthetic({
       type: "card",
-      address: "m/card",
+      address: at("m", "card"),
       style: style({
         fill: "#FFFFFF",
         stroke: "#C4C9D1",
@@ -102,9 +103,9 @@ describe("descriptors", () => {
 
   it("writes a card's shadow, fill alone, before the card", () => {
     const own =
-      '<rect data-address="m/card" x="8" y="4" width="40" height="20" rx="5" fill="#FFFFFF" stroke="#C4C9D1" stroke-width="0.75"/>';
+      '<rect data-id="m" data-part="card" x="8" y="4" width="40" height="20" rx="5" fill="#FFFFFF" stroke="#C4C9D1" stroke-width="0.75"/>';
     expect(svgBody(card())).toEqual([
-      '<rect data-address="m/card" x="10" y="6" width="40" height="20" rx="5" fill="#B8BEC8"/>',
+      '<rect data-id="m" data-part="card" x="10" y="6" width="40" height="20" rx="5" fill="#B8BEC8"/>',
       own,
     ]);
     expect(tikzBody(card())).toEqual([
@@ -116,15 +117,15 @@ describe("descriptors", () => {
 
   it("writes a card's dash and opacity, and the opacity on its shadow", () => {
     expect(svgBody(card({ "stroke-dasharray": "2 1", opacity: 0.5 }))).toEqual([
-      '<rect data-address="m/card" x="10" y="6" width="40" height="20" rx="5" fill="#B8BEC8" opacity="0.5"/>',
-      '<rect data-address="m/card" x="8" y="4" width="40" height="20" rx="5" fill="#FFFFFF" stroke="#C4C9D1" stroke-width="0.75" stroke-dasharray="2 1" opacity="0.5"/>',
+      '<rect data-id="m" data-part="card" x="10" y="6" width="40" height="20" rx="5" fill="#B8BEC8" opacity="0.5"/>',
+      '<rect data-id="m" data-part="card" x="8" y="4" width="40" height="20" rx="5" fill="#FFFFFF" stroke="#C4C9D1" stroke-width="0.75" stroke-dasharray="2 1" opacity="0.5"/>',
     ]);
   });
 
   it("draws no shadow for a group's frame", () => {
     const drawing = synthetic({
-      type: "group",
-      address: "g",
+      type: "frame",
+      address: at("g"),
       style: style({ fill: "#FFFFFF", stroke: "#D1D5DB", rx: 6, shadow: "#B8BEC8" }),
       x: 8,
       y: 4,
@@ -133,14 +134,14 @@ describe("descriptors", () => {
       shadowOffset: 0,
     });
     expect(svgBody(drawing)).toEqual([
-      '<rect data-address="g" x="8" y="4" width="40" height="20" rx="6" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="1"/>',
+      '<rect data-id="g" x="8" y="4" width="40" height="20" rx="6" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="1"/>',
     ]);
   });
 
   it("writes a wedge with its fill alone", () => {
     const drawing = synthetic({
       type: "wedge",
-      address: "w",
+      address: at("w"),
       style: style({ fill: "#000000", stroke: "#FF0000" }),
       x: 10,
       yt: 5,
@@ -148,14 +149,14 @@ describe("descriptors", () => {
       base: 6,
     });
     expect(svgBody(drawing)).toEqual([
-      '<polygon data-address="w" points="10,5 7,18 13,18" fill="#000000"/>',
+      '<polygon data-id="w" points="10,5 7,18 13,18" fill="#000000"/>',
     ]);
   });
 
   it("takes a wedge's base, a map's spacing and a card's shadow offset from the element", () => {
     const wedge = synthetic({
       type: "wedge",
-      address: "w",
+      address: at("w"),
       style: style({ fill: "#000000" }),
       x: 10,
       yt: 5,
@@ -163,11 +164,11 @@ describe("descriptors", () => {
       base: 12,
     });
     expect(svgBody(wedge)).toEqual([
-      '<polygon data-address="w" points="10,5 4,18 16,18" fill="#000000"/>',
+      '<polygon data-id="w" points="10,5 4,18 16,18" fill="#000000"/>',
     ]);
     const map = synthetic({
       type: "map",
-      address: "m",
+      address: at("m"),
       style: style({ stroke: "#00CC00", "stroke-dasharray": "1 1" }),
       xs: 10,
       xe: 50,
@@ -175,11 +176,11 @@ describe("descriptors", () => {
       spacing: 4,
     });
     expect(svgBody(map)).toEqual([
-      '<polygon data-address="m" points="10,18 50,18 50,22 10,22" fill="none" stroke="#00CC00" stroke-width="1" stroke-dasharray="1 1"/>',
+      '<polygon data-id="m" points="10,18 50,18 50,22 10,22" fill="none" stroke="#00CC00" stroke-width="1" stroke-dasharray="1 1"/>',
     ]);
     const card = synthetic({
       type: "card",
-      address: "m/card",
+      address: at("m", "card"),
       style: style({
         fill: "#FFFFFF",
         stroke: "#C4C9D1",
@@ -194,21 +195,21 @@ describe("descriptors", () => {
       shadowOffset: 4,
     });
     expect(svgBody(card)[0]).toBe(
-      '<rect data-address="m/card" x="12" y="8" width="40" height="20" rx="5" fill="#B8BEC8"/>',
+      '<rect data-id="m" data-part="card" x="12" y="8" width="40" height="20" rx="5" fill="#B8BEC8"/>',
     );
   });
 
   it("writes a boundary as a line", () => {
     const drawing = synthetic({
       type: "boundary",
-      address: "b/start",
+      address: at("b", "start"),
       style: BLACK,
       x: 10,
       y1: 12,
       y2: 18,
     });
     expect(svgBody(drawing)).toEqual([
-      '<line data-address="b/start" x1="10" y1="12" x2="10" y2="18" stroke="#000000" stroke-width="1"/>',
+      '<line data-id="b" data-part="start" x1="10" y1="12" x2="10" y2="18" stroke="#000000" stroke-width="1"/>',
     ]);
     expect(tikzBody(drawing)).toEqual(["\\path[draw=ts000000,line width=1pt] (10,18) -- (10,12);"]);
   });
@@ -216,7 +217,7 @@ describe("descriptors", () => {
   it("ends a jump's shaft at its filled arrowhead's base", () => {
     const drawing = synthetic({
       type: "jump_from",
-      address: "j",
+      address: at("j"),
       style: style({ stroke: "#000000", fill: "#000000", "stroke-width": 1.5 }),
       start: [10, 20],
       c1: [20, 40],
@@ -229,8 +230,8 @@ describe("descriptors", () => {
       ],
     });
     expect(svgBody(drawing)).toEqual([
-      '<path data-address="j" d="M10 20C20 40 40 40 48 24" fill="none" stroke="#000000" stroke-width="1.5"/>',
-      '<polygon data-address="j" points="50,20 46,23 50,25" fill="#000000"/>',
+      '<path data-id="j" d="M10 20C20 40 40 40 48 24" fill="none" stroke="#000000" stroke-width="1.5"/>',
+      '<polygon data-id="j" points="50,20 46,23 50,25" fill="#000000"/>',
     ]);
     expect(tikzBody(drawing)[0]).toBe(
       "\\path[draw=ts000000,line width=1.5pt] (10,10) .. controls (20,-10) and (40,-10) .. (48,6);",
@@ -282,7 +283,7 @@ describe("descriptors", () => {
   ) =>
     synthetic({
       type,
-      address: "c",
+      address: at("c"),
       style: style({
         stroke: "#00CC00",
         fill: "#00CC00",
@@ -297,49 +298,49 @@ describe("descriptors", () => {
       end,
     });
   const lineTo = (stop: number) =>
-    `<line data-address="c" x1="10" y1="20" x2="${stop}" y2="20" stroke="#00CC00" stroke-width="2" stroke-dasharray="3 3"/>`;
-  const startCircle = '<circle data-address="c" cx="10" cy="20" r="2" fill="#00CC00"/>';
+    `<line data-id="c" x1="10" y1="20" x2="${stop}" y2="20" stroke="#00CC00" stroke-width="2" stroke-dasharray="3 3"/>`;
+  const startCircle = '<circle data-id="c" cx="10" cy="20" r="2" fill="#00CC00"/>';
 
   for (const type of ["timeline", "child", "ancestor"] as const) {
     it(`ends a ${type} line with each end of section 6.6`, () => {
       expect(svgBody(line(type, "circle", "arrowhead"))).toEqual([
         lineTo(50),
         startCircle,
-        '<polygon data-address="c" points="56,20 50,17 50,23" fill="#00CC00"/>',
+        '<polygon data-id="c" points="56,20 50,17 50,23" fill="#00CC00"/>',
       ]);
       expect(svgBody(line(type, "circle", "open"))).toEqual([
         lineTo(50),
         startCircle,
-        '<polygon data-address="c" points="56,20 50,17 50,23" fill="none" stroke="#00CC00" stroke-width="1"/>',
+        '<polygon data-id="c" points="56,20 50,17 50,23" fill="none" stroke="#00CC00" stroke-width="1"/>',
       ]);
       expect(svgBody(line(type, "circle", "circle"))).toEqual([
         lineTo(50),
         startCircle,
-        '<circle data-address="c" cx="50" cy="20" r="2" fill="#00CC00"/>',
+        '<circle data-id="c" cx="50" cy="20" r="2" fill="#00CC00"/>',
       ]);
       expect(svgBody(line(type, "circle", "diamond"))).toEqual([
         lineTo(47),
         startCircle,
-        '<polygon data-address="c" points="47,20 50,17.6 53,20 50,22.4" fill="none" stroke="#00CC00" stroke-width="1"/>',
+        '<polygon data-id="c" points="47,20 50,17.6 53,20 50,22.4" fill="none" stroke="#00CC00" stroke-width="1"/>',
       ]);
       expect(svgBody(line(type, "circle", "unknown"))).toEqual([
         lineTo(50),
         startCircle,
-        '<polyline data-address="c" points="52,17 55,20 52,23" fill="none" stroke="#00CC00" stroke-width="1"/>',
-        '<polyline data-address="c" points="55,17 58,20 55,23" fill="none" stroke="#00CC00" stroke-width="1"/>',
-        '<polyline data-address="c" points="58,17 61,20 58,23" fill="none" stroke="#00CC00" stroke-width="1"/>',
+        '<polyline data-id="c" points="52,17 55,20 52,23" fill="none" stroke="#00CC00" stroke-width="1"/>',
+        '<polyline data-id="c" points="55,17 58,20 55,23" fill="none" stroke="#00CC00" stroke-width="1"/>',
+        '<polyline data-id="c" points="58,17 61,20 58,23" fill="none" stroke="#00CC00" stroke-width="1"/>',
       ]);
       expect(svgBody(line(type, "circle", "chevrons"))).toEqual([
         lineTo(50),
         startCircle,
-        '<polyline data-address="c" points="52,17 55,20 52,23" fill="none" stroke="#00CC00" stroke-width="1"/>',
-        '<polyline data-address="c" points="55,17 58,20 55,23" fill="none" stroke="#00CC00" stroke-width="1"/>',
+        '<polyline data-id="c" points="52,17 55,20 52,23" fill="none" stroke="#00CC00" stroke-width="1"/>',
+        '<polyline data-id="c" points="55,17 58,20 55,23" fill="none" stroke="#00CC00" stroke-width="1"/>',
       ]);
     });
   }
 
   /** The points of the polylines a fixture's drawing writes for one address, in order. */
-  const chevronsOf = (name: string, address: string) => {
+  const chevronsOf = (name: string, id: string) => {
     const manifest = loadFixture(name);
     const drawing = draw(
       manifest,
@@ -348,7 +349,7 @@ describe("descriptors", () => {
       fontMetrics,
     );
     const polylines = toDescriptors(drawing).flatMap((each) =>
-      each.tag === "polyline" && each.source.address === address ? [each] : [],
+      each.tag === "polyline" && sameAddress(each.source.address, at(id)) ? [each] : [],
     );
     return {
       points: polylines.map((each) => each.points),
@@ -410,7 +411,7 @@ describe("descriptors", () => {
   it("runs an ancestor line on at both sides in double chevrons, inner first", () => {
     const drawing = synthetic({
       type: "ancestor",
-      address: "a",
+      address: at("a"),
       style: style({
         stroke: "#00CC00",
         fill: "#00CC00",
@@ -425,9 +426,9 @@ describe("descriptors", () => {
       end: "chevrons",
     });
     const chevron = (points: string) =>
-      `<polyline data-address="a" points="${points}" fill="none" stroke="#00CC00" stroke-width="1" opacity="0.35"/>`;
+      `<polyline data-id="a" points="${points}" fill="none" stroke="#00CC00" stroke-width="1" opacity="0.35"/>`;
     expect(svgBody(drawing)).toEqual([
-      '<line data-address="a" x1="20" y1="20" x2="40" y2="20" stroke="#00CC00" stroke-width="2" stroke-dasharray="3 3" opacity="0.35"/>',
+      '<line data-id="a" x1="20" y1="20" x2="40" y2="20" stroke="#00CC00" stroke-width="2" stroke-dasharray="3 3" opacity="0.35"/>',
       chevron("18,17 15,20 18,23"),
       chevron("15,17 12,20 15,23"),
       chevron("42,17 45,20 42,23"),
@@ -442,7 +443,7 @@ describe("descriptors", () => {
   it("draws a map as one closed, stroked outline whose dash starts at its first corner", () => {
     const drawing = synthetic({
       type: "map",
-      address: "m",
+      address: at("m"),
       style: style({ stroke: "#00CC00", "stroke-dasharray": "1 1" }),
       xs: 10,
       xe: 50,
@@ -450,7 +451,7 @@ describe("descriptors", () => {
       spacing: 2,
     });
     expect(svgBody(drawing)).toEqual([
-      '<polygon data-address="m" points="10,19 50,19 50,21 10,21" fill="none" stroke="#00CC00" stroke-width="1" stroke-dasharray="1 1"/>',
+      '<polygon data-id="m" points="10,19 50,19 50,21 10,21" fill="none" stroke="#00CC00" stroke-width="1" stroke-dasharray="1 1"/>',
     ]);
     expect(tikzBody(drawing)).toEqual([
       "\\path[draw=ts00CC00,line width=1pt,dash pattern=on 1pt off 1pt] (10,11) -- (50,11) -- (50,9) -- (10,9) -- cycle;",
@@ -461,14 +462,14 @@ describe("descriptors", () => {
     const line = (dash: string) =>
       synthetic({
         type: "flow_marker",
-        address: "flow_marker_1",
+        address: at("flow_marker_1"),
         style: style({ stroke: "#FF0000", "stroke-dasharray": dash, opacity: 0.5 }),
         x: 10,
         y1: 5,
         y2: 25,
       });
     expect(svgBody(line("2"))).toEqual([
-      '<line data-address="flow_marker_1" x1="10" y1="5" x2="10" y2="25" stroke="#FF0000" stroke-width="1" stroke-dasharray="2" opacity="0.5"/>',
+      '<line data-id="flow_marker_1" x1="10" y1="5" x2="10" y2="25" stroke="#FF0000" stroke-width="1" stroke-dasharray="2" opacity="0.5"/>',
     ]);
     expect(tikzBody(line("2"))).toEqual([
       "\\path[draw=tsFF0000,line width=1pt,dash pattern=on 2pt off 2pt,opacity=0.5] (10,25) -- (10,5);",
@@ -481,14 +482,14 @@ describe("descriptors", () => {
   it("formats each dash number by the number rule", () => {
     const drawing = synthetic({
       type: "flow_marker",
-      address: "flow_marker_1",
+      address: at("flow_marker_1"),
       style: style({ stroke: "#FF0000", "stroke-dasharray": "1.50 0.00001" }),
       x: 10,
       y1: 5,
       y2: 25,
     });
     expect(svgBody(drawing)).toEqual([
-      '<line data-address="flow_marker_1" x1="10" y1="5" x2="10" y2="25" stroke="#FF0000" stroke-width="1" stroke-dasharray="1.5 0"/>',
+      '<line data-id="flow_marker_1" x1="10" y1="5" x2="10" y2="25" stroke="#FF0000" stroke-width="1" stroke-dasharray="1.5 0"/>',
     ]);
     expect(tikzBody(drawing)).toEqual([
       "\\path[draw=tsFF0000,line width=1pt,dash pattern=on 1.5pt off 0pt] (10,25) -- (10,5);",
@@ -498,14 +499,14 @@ describe("descriptors", () => {
   it("writes no paint option for stroke none", () => {
     const drawing = synthetic({
       type: "flow_marker",
-      address: "flow_marker_1",
+      address: at("flow_marker_1"),
       style: style({ stroke: "none" }),
       x: 10,
       y1: 5,
       y2: 25,
     });
     expect(svgBody(drawing)).toEqual([
-      '<line data-address="flow_marker_1" x1="10" y1="5" x2="10" y2="25" stroke="none" stroke-width="1"/>',
+      '<line data-id="flow_marker_1" x1="10" y1="5" x2="10" y2="25" stroke="none" stroke-width="1"/>',
     ]);
     expect(tikzBody(drawing)).toEqual(["\\path[line width=1pt] (10,25) -- (10,5);"]);
   });
@@ -514,7 +515,7 @@ describe("descriptors", () => {
     const text = (value: string) =>
       synthetic({
         type: "label",
-        address: "region_1/label",
+        address: at("region_1", "label"),
         style: style({ fill: "#000000" }),
         x: 10,
         baseline: 20,
@@ -522,7 +523,7 @@ describe("descriptors", () => {
         text: value,
       });
     expect(svgBody(text("a&b<c>"))[0]).toBe(
-      '<text data-address="region_1/label" x="10" y="20" text-anchor="middle" font-size="9" fill="#000000">a&amp;b&lt;c&gt;</text>',
+      '<text data-id="region_1" data-part="label" x="10" y="20" text-anchor="middle" font-size="9" fill="#000000">a&amp;b&lt;c&gt;</text>',
     );
     expect(tikzBody(text("\\~^#$%&_{}"))[0]).toBe(
       "\\node[anchor=base,inner sep=0,font=\\sffamily\\fontsize{9}{10.4766}\\selectfont,text=ts000000] at (10,10) {\\textbackslash{}\\textasciitilde{}\\textasciicircum{}\\#\\$\\%\\&\\_\\{\\}};",
@@ -533,15 +534,63 @@ describe("descriptors", () => {
   it("escapes attribute values and self-closes elements without text", () => {
     const drawing = synthetic({
       type: "flow_marker",
-      address: 'r/&<>",',
+      address: at('r/&<>",'),
       style: BLACK,
       x: 10,
       y1: 5,
       y2: 25,
     });
     expect(svgBody(drawing)).toEqual([
-      '<line data-address="r/&amp;&lt;&gt;&quot;," x1="10" y1="5" x2="10" y2="25" stroke="#000000" stroke-width="1"/>',
+      '<line data-id="r/&amp;&lt;&gt;&quot;," x1="10" y1="5" x2="10" y2="25" stroke="#000000" stroke-width="1"/>',
     ]);
+  });
+});
+
+describe("address attributes", () => {
+  /** A flow marker's line at `address`, its attributes after the address fixed. */
+  const marker = (address: ElementAddress) =>
+    synthetic({ type: "flow_marker", address, style: BLACK, x: 10, y1: 5, y2: 25 });
+  const tail = 'x1="10" y1="5" x2="10" y2="25" stroke="#000000" stroke-width="1"/>';
+
+  it("writes data-id, data-facet and data-part, each only when present, in that order", () => {
+    expect(svgBody(marker({ id: "c" }))).toEqual([`<line data-id="c" ${tail}`]);
+    expect(svgBody(marker({ id: "c", facet: "regions" }))).toEqual([
+      `<line data-id="c" data-facet="regions" ${tail}`,
+    ]);
+    expect(svgBody(marker({ id: "c", part: ["start"] }))).toEqual([
+      `<line data-id="c" data-part="start" ${tail}`,
+    ]);
+    expect(svgBody(marker({ part: ["name"] }))).toEqual([`<line data-part="name" ${tail}`]);
+  });
+
+  it("joins a wedge label's part words with one space", () => {
+    const drawing = synthetic({
+      type: "label",
+      address: at("c", "start", "label"),
+      style: style({ fill: "#000000" }),
+      x: 10,
+      baseline: 20,
+      anchor: "middle",
+      text: "0",
+    });
+    expect(svgBody(drawing)).toEqual([
+      '<text data-id="c" data-part="start label" x="10" y="20" text-anchor="middle" font-size="9" fill="#000000">0</text>',
+    ]);
+  });
+
+  it("writes an ID verbatim, a slash, a space and a URI's # included", () => {
+    expect(svgBody(marker({ id: "perf/take 2" }))).toEqual([`<line data-id="perf/take 2" ${tail}`]);
+    expect(
+      svgBody(marker({ id: "https://example.org/piece/score#exposition", part: ["card"] })),
+    ).toEqual([
+      `<line data-id="https://example.org/piece/score#exposition" data-part="card" ${tail}`,
+    ]);
+  });
+
+  it("writes none for the block's background, the bundle's address {}", () => {
+    const [background] = toDescriptors(synthetic());
+    expect(background?.source.address).toEqual({});
+    expect(background?.attrs.some(([name]) => name.startsWith("data-"))).toBe(false);
   });
 });
 
@@ -555,6 +604,14 @@ const KIND: { readonly [tag in Tag]: RegExp } = {
   text: /^\\node\[anchor=base( west)?,inner sep=0,/,
 };
 
+/** An attribute value as SVG escapes it. */
+const escaped = (value: string) =>
+  value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+
 /** One SVG line and one TikZ command per descriptor, in order, of the kind its tag selects. */
 function oneCommandPerDescriptor(drawing: Drawing, scale: number): Descriptor[] {
   const descriptors = toDescriptors(drawing);
@@ -562,9 +619,19 @@ function oneCommandPerDescriptor(drawing: Drawing, scale: number): Descriptor[] 
   const svg = writeSvg(placed).split("\n");
   expect(svg.slice(2, -3)).toEqual(descriptors.map(descriptorSvg));
   descriptors.forEach((descriptor, index) => {
-    const address = descriptor.attrs.find(([name]) => name === "data-address")?.[1];
-    expect(address === undefined).toBe(index === 0);
-    const head = address === undefined ? "" : `data-address="${address}" `;
+    // The attributes of the element's address, first and in this order; none for the background.
+    const { id, facet, part } = descriptor.source.address;
+    const expected: (readonly [string, string])[] = [
+      ...(id === undefined ? [] : [["data-id", id] as const]),
+      ...(facet === undefined ? [] : [["data-facet", facet] as const]),
+      ...(part === undefined ? [] : [["data-part", part.join(" ")] as const]),
+    ];
+    expect(expected.length === 0).toBe(index === 0);
+    expect(descriptor.attrs.slice(0, expected.length)).toEqual(expected);
+    expect(descriptor.attrs.slice(expected.length).some(([name]) => name.startsWith("data-"))).toBe(
+      false,
+    );
+    const head = expected.map(([name, value]) => `${name}="${escaped(value)}" `).join("");
     expect(svg[index + 2]?.startsWith(`<${descriptor.tag} ${head}`)).toBe(true);
   });
   const tikz = writeTikz(placed).split("\n");

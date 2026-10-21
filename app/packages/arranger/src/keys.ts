@@ -5,6 +5,7 @@
  */
 
 import type { Address, Command, View } from "@timetoalign/tilie-core";
+import { isElementAddress } from "@timetoalign/tilie-core";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { BandDirection } from "./bands.ts";
 import { bandStepCommand } from "./bands.ts";
@@ -13,7 +14,7 @@ import type { LevelRules } from "./containers.ts";
 import type { Editing } from "./editing.ts";
 import type { ResizeMode } from "./resize.ts";
 import type { Selection } from "./selection.ts";
-import { selectedBand } from "./selection.ts";
+import { NOTHING_SELECTED, selectedBand } from "./selection.ts";
 
 /** Arrow keys move by one grid step; with Shift by this many. */
 export const LARGE_STEP = 8;
@@ -74,9 +75,15 @@ const Z_ORDER: { readonly [code: string]: readonly [ZOrderAction, ZOrderAction] 
 const command = (event: KeyboardEvent) => event.ctrlKey || event.metaKey;
 const plain = (event: KeyboardEvent) => !command(event);
 
-/** The selected block ids, without element addresses. */
+/** The ids of the selected blocks, without element addresses. */
 function selectedBlocks({ view, selection }: KeyContext): string[] {
-  return [...selection].filter((address) => Object.hasOwn(view.blocks, address));
+  return [...selection.values()].flatMap((address) =>
+    address.block !== undefined &&
+    !isElementAddress(address) &&
+    Object.hasOwn(view.blocks, address.block)
+      ? [address.block]
+      : [],
+  );
 }
 
 /** The key table, in the order the rows are read. */
@@ -85,7 +92,7 @@ export const KEYS: readonly KeyRow[] = [
     // Ctrl/Cmd+Up/Down is the band's whenever a band is selected: it steps exactly one.
     match: (event) => command(event) && (event.key === "ArrowUp" || event.key === "ArrowDown"),
     run(context, event) {
-      const bands = [...context.selection].filter(
+      const bands = [...context.selection.values()].filter(
         (address) => selectedBand(context.view, address) !== null,
       );
       if (bands.length === 0) return false;
@@ -149,7 +156,7 @@ export const KEYS: readonly KeyRow[] = [
       if (context.selection.size === 0 || !context.rules.remove) return false;
       const removed = removeCommand(context.view, context.selection, context.editing);
       if ("refused" in removed) context.refuse(removed.refused);
-      else if (context.dispatch(removed)) context.select(new Set());
+      else if (context.dispatch(removed)) context.select(NOTHING_SELECTED);
       return true;
     },
   },
@@ -192,7 +199,7 @@ export const KEYS: readonly KeyRow[] = [
     match: (event) => plain(event) && event.key === "Escape",
     run(context) {
       if (context.abortGesture()) return true;
-      if (context.selection.size > 0) context.select(new Set());
+      if (context.selection.size > 0) context.select(NOTHING_SELECTED);
       else if (context.editors > 0) context.done();
       return true;
     },

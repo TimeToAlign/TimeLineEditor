@@ -6,16 +6,16 @@
  * editor marks it; which bands an editor offers and the band under a point
  * are read from those boxes (`boxes.ts`). No other module computes these.
  *
- * Every order here is a band order: the timeline's five band addresses and
- * its id, top to bottom. The **visible** entries of a timeline in a drawing
- * are its present bands and its own id, top to bottom; a band's position is
- * the middle of its rectangle, the id's the ordinate of the timeline's line.
+ * Every order here is a band order: `line` and the timeline's five facets,
+ * top to bottom. The **visible** entries of a timeline in a drawing are its
+ * present bands' facets and `line`, top to bottom; a band's position is the
+ * middle of its rectangle, `line`'s the ordinate of the timeline's line.
  * A timeline drawn with two lines in one drawing has two sets of records,
  * told apart by their `line`: a band moves among the records of its own line.
  */
 
 import type { Address, BlockId, SetCommand, View } from "@timetoalign/tilie-core";
-import { bandOrderOf, inheritedBandOrder, qualify } from "@timetoalign/tilie-core";
+import { bandOrderOf, idAddress, inBlock, inheritedBandOrder, LINE } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { BandBox } from "./boxes.ts";
@@ -30,8 +30,8 @@ export type BandDirection = "up" | "down";
 
 /**
  * The visible entries of the line `band` lies at, in `order` (top to
- * bottom), each with its position: a present band's middle, the timeline's
- * id at the line's ordinate.
+ * bottom), each with its position: a present band's facet at its middle,
+ * `line` at the line's ordinate.
  */
 function visibleEntries(
   drawing: Drawing,
@@ -39,13 +39,13 @@ function visibleEntries(
   order: readonly string[],
 ): { readonly entry: string; readonly at: number }[] {
   const { timeline, line } = band.band;
-  const middles = new Map(
+  const middles = new Map<string, number>(
     offeredBands(drawing, timeline)
       .filter((other) => other.band.line === line)
-      .map((other) => [other.address, other.y + other.height / 2]),
+      .map((other) => [other.band.facet, other.y + other.height / 2]),
   );
   return order.flatMap((entry) => {
-    if (entry === timeline) return [{ entry, at: line }];
+    if (entry === LINE) return [{ entry, at: line }];
     const at = middles.get(entry);
     return at === undefined ? [] : [{ entry, at }];
   });
@@ -83,7 +83,7 @@ function movedBetween(
  * first when `k` is 0. When the band already lies between those two
  * neighbours in `order`, relative to them alone, the result is `null`: a
  * release in place never writes. A drop across the line follows the same
- * rule, the timeline's id being a visible entry like any band.
+ * rule, `line` being a visible entry like any band.
  */
 export function bandDrop(
   drawing: Drawing,
@@ -91,9 +91,10 @@ export function bandDrop(
   y: number,
   order: readonly string[],
 ): readonly string[] | null {
-  const others = visibleEntries(drawing, band, order).filter(({ entry }) => entry !== band.address);
+  const { facet } = band.band;
+  const others = visibleEntries(drawing, band, order).filter(({ entry }) => entry !== facet);
   const k = others.filter(({ at }) => at < y).length;
-  return movedBetween(order, band.address, others[k - 1]?.entry ?? null, others[k]?.entry ?? null);
+  return movedBetween(order, facet, others[k - 1]?.entry ?? null, others[k]?.entry ?? null);
 }
 
 /**
@@ -108,18 +109,19 @@ export function bandStep(
   direction: BandDirection,
   order: readonly string[],
 ): readonly string[] | null {
+  const { facet } = band.band;
   const visible = visibleEntries(drawing, band, order).map(({ entry }) => entry);
-  const index = visible.indexOf(band.address);
+  const index = visible.indexOf(facet);
   const passed = visible[direction === "up" ? index - 1 : index + 1];
   if (index < 0 || passed === undefined) return null;
   return direction === "up"
-    ? movedBetween(order, band.address, null, passed)
-    : movedBetween(order, band.address, passed, null);
+    ? movedBetween(order, facet, null, passed)
+    : movedBetween(order, facet, passed, null);
 }
 
 /**
  * The one `set` that gives `timeline` of block `block` the band order
- * `order`: one change `{target: "<block>/<timeline>", values: {order: X}}`,
+ * `order`: one change `{target: {block, id: timeline}, values: {order: X}}`,
  * `X` being `order`, or `null` when `order` equals the timeline's inherited
  * band order (core's `inheritedBandOrder` over the block's manifest), so the
  * timeline inherits again. A move is one command, one journal entry, one
@@ -137,7 +139,10 @@ export function bandMoveCommand(
   return {
     type: "set",
     changes: [
-      { target: qualify(block, timeline), values: { order: inherits ? null : [...order] } },
+      {
+        target: inBlock(block, idAddress(timeline)),
+        values: { order: inherits ? null : [...order] },
+      },
     ],
   };
 }
@@ -162,7 +167,7 @@ export function bandStepCommand(
   if (block === undefined) return null;
   const drawing = drawingOf(block, view.settings, metrics);
   const drawn = offeredBands(drawing, selected.timeline).find(
-    (band) => band.band.kind === selected.kind,
+    (band) => band.band.facet === selected.facet,
   );
   if (drawn === undefined) return null;
   const order = bandStep(drawing, drawn, direction, bandOrderOf(block.manifest, selected.timeline));

@@ -1,5 +1,5 @@
 /**
- * The box's one horizontal layout (`docs/drawing.md` in TimeToShare,
+ * The block's one horizontal layout (`docs/drawing.md` in TimeToShare,
  * section 8.2), in item coordinates: the name column `n`, the start `s0` of
  * every member drawing, the right margin `Mr` past every line's end, and an
  * item's right edge `Ri` before its request.
@@ -13,17 +13,17 @@ import type { Item } from "./places.ts";
 
 /** Where the name column and the member drawings start. */
 export interface Columns {
-  /** The name column's left edge `n`: `K`, `Q` further when the box holds a frame. */
+  /** The name column's left edge `n`: `K`, `Q` further when the block holds a frame. */
   readonly n: number;
   /** The start `s0` of every member drawing. */
   readonly s0: number;
 }
 
-/** The columns, the right margin `Mr` and how far a box-held card's end lies past `R + K`. */
+/** The columns, the right margin `Mr` and how far a block-held card's end lies past `R + K`. */
 export interface Horizontal extends Columns {
   /** `Mr`, or undefined when nothing drawn has a right edge. */
   readonly Mr: number | undefined;
-  /** `Q` when the box holds a frame: a box-held card then ends where a frame of its length does. */
+  /** `Q` when the block holds a frame: a block-held card then ends where a frame of its length does. */
   readonly inset: number;
 }
 
@@ -34,7 +34,7 @@ export interface DrawnAt {
 }
 
 /**
- * The columns of the box's items (section 8.2): `s0` lies past the name
+ * The columns of the block's items (section 8.2): `s0` lies past the name
  * column, the widest drawn name `N` and the gap `G` after it, so that no
  * centred label crosses the column's left edge and no left chevron of an
  * ancestor line crosses the gap.

@@ -11,8 +11,14 @@ import path from "node:path";
 import type { Download, Locator, Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 import type { Viewport } from "../packages/arranger/src/focus.ts";
-import type { Command, CommandError } from "../packages/core/src/index.ts";
-import { parseAddressSyntax, partAddress, qualify } from "../packages/core/src/index.ts";
+import type {
+  Address,
+  Command,
+  CommandError,
+  ElementAddress,
+  OpenEditor,
+} from "../packages/core/src/index.ts";
+import { addressKey, idAddress, partAddress, TITLE_ADDRESS } from "../packages/core/src/index.ts";
 import type { HookBand, HookBox, TestHook } from "../packages/editor/src/testHook.ts";
 import { FONT_METRICS } from "./schema.ts";
 
@@ -31,7 +37,7 @@ declare global {
 }
 
 /** A band as the specs compare it: what the drawing decides, without where the screen shows it. */
-export type BandRecord = Pick<HookBand, "address" | "kind" | "level" | "elements">;
+export type BandRecord = Pick<HookBand, "address" | "facet" | "level" | "elements">;
 
 /** A block's placement as the store holds it. */
 export interface Placement {
@@ -73,6 +79,8 @@ export const BUNDLES = {
   mixed: "bmixed0000",
   shared: "bshared000",
   ungrouped: "bungroup00",
+  /** `bundle_shared_member`: the timeline `t` is a member of `g1` and of `g2`. */
+  twoGroups: "btwogroups",
 } as const;
 
 /** The block ids of `small` in index order. */
@@ -82,7 +90,7 @@ export const SMALL_ORDER = [SMALL.bare, SMALL.nested, SMALL.map, SMALL.flow, SMA
 export const OPENED_JOURNAL = {
   small: 5,
   groups: 4,
-  bundles: 3,
+  bundles: 4,
   "grid-300": 300,
   "grid-900": 900,
 } as const;
@@ -145,19 +153,66 @@ export function viewportOf(page: Page): Promise<Viewport> {
 }
 
 export function node(page: Page, id: string): Locator {
-  return page.locator(`.svelte-flow__node[data-id="${id}"]`);
+  return page.locator(`.svelte-flow__node[data-id=${cssString(id)}]`);
 }
 
 /**
- * The drawn element `element` inside block `block`: every SVG part carrying
+ * A CSS string holding `value` exactly, in double quotes: a backslash and a
+ * double quote are escaped. IDs hold no control characters, so nothing else
+ * needs escaping.
+ */
+function cssString(value: string): string {
+  return `"${value.replace(/[\\"]/g, (character) => `\\${character}`)}"`;
+}
+
+/** The three attributes a drawn element's address is written with, in their order. */
+const ADDRESS_ATTRIBUTES = [
+  ["data-id", "id"],
+  ["data-facet", "facet"],
+  ["data-part", "part"],
+] as const;
+
+/**
+ * Any element of a block's drawing that carries an address. Svelte Flow's
+ * node carries a `data-id` of its own, the block's ID, so the selector stays
+ * inside the block's drawing.
+ */
+export const ADDRESSED = ADDRESS_ATTRIBUTES.map(
+  ([attribute]) => `.tilie-block svg [${attribute}]`,
+).join(", ");
+
+/**
+ * The selector of the drawn elements carrying exactly `address`: each of
+ * `data-id`, `data-facet` and `data-part` (the part words joined by one
+ * space) equal to the address's member when it has one, and absent when it
+ * has none, so `{id: "score"}` never matches `{id: "score", part: ["card"]}`.
+ * It names no ancestor; a locator below a node scopes it with
+ * `.tilie-block svg`.
+ */
+export function addressSelector(address: ElementAddress): string {
+  const values = { id: address.id, facet: address.facet, part: address.part?.join(" ") };
+  return ADDRESS_ATTRIBUTES.map(([attribute, member]) => {
+    const value = values[member];
+    return value === undefined ? `:not([${attribute}])` : `[${attribute}=${cssString(value)}]`;
+  }).join("");
+}
+
+/** The selector of the marks over the element `address`: `data-marks` its `addressKey`. */
+export function marksSelector(address: ElementAddress): string {
+  const key = addressKey(address).replace(/[\\']/g, (character) => `\\${character}`);
+  return `[data-marks='${key}']`;
+}
+
+/**
+ * The drawn element `address` inside block `block`: every SVG part carrying
  * its address (a timeline is its line, its start dot and its end marker).
  */
-export function element(page: Page, block: string, element: string): Locator {
-  return node(page, block).locator(`[data-address="${element}"]`);
+export function element(page: Page, block: string, address: ElementAddress): Locator {
+  return node(page, block).locator(`.tilie-block svg ${addressSelector(address)}`);
 }
 
 /** The first part of a drawn element, the one a click or a drag aims at. */
-export function part(page: Page, block: string, address: string): Locator {
+export function part(page: Page, block: string, address: ElementAddress): Locator {
   return element(page, block, address).first();
 }
 
@@ -169,15 +224,20 @@ export function part(page: Page, block: string, address: string): Locator {
 export async function partCentre(
   page: Page,
   block: string,
-  address: string,
+  address: ElementAddress,
 ): Promise<{ x: number; y: number }> {
   const box = await part(page, block, address).boundingBox();
-  if (box === null) throw new Error(`${block}/${address} is not displayed`);
+  if (box === null) throw new Error(`${addressKey({ block, ...address })} is not displayed`);
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 }
 
 /** Click a drawn element, with Shift when `additive`. */
-export async function clickPart(page: Page, block: string, address: string, additive = false) {
+export async function clickPart(
+  page: Page,
+  block: string,
+  address: ElementAddress,
+  additive = false,
+) {
   const { x, y } = await partCentre(page, block, address);
   if (additive) await page.keyboard.down("Shift");
   await page.mouse.click(x, y);
@@ -189,9 +249,9 @@ export async function clickPart(page: Page, block: string, address: string, addi
  * itself (`data-selected`) and, on a selected frame or card, as an overlay
  * copying the box's outline; the hover is an overlay only; a part going
  * with the selection on Delete carries `data-affected`. An overlay names
- * the box it marks in `data-marks`, a part its own address in
- * `data-address`. Band marks (`data-box="band"`) are counted by
- * `bandMarks`, not here.
+ * the element it marks in `data-marks` (its `addressKey`), a part carries
+ * its own address in `data-id`, `data-facet` and `data-part`. Band marks
+ * (`data-box="band"`) are counted by `bandMarks`, not here.
  */
 const MARKED = {
   selection: '[data-selected], .tilie-mark[data-mark="selection"]:not([data-box="band"])',
@@ -201,31 +261,73 @@ const MARKED = {
 
 export type Mark = keyof typeof MARKED;
 
-/** The block-qualified address of every part or overlay showing `mark`, in DOM order. */
-export function marked(page: Page, mark: Mark): Promise<string[]> {
-  return page
-    .locator(MARKED[mark])
-    .evaluateAll((items) =>
-      items.map(
-        (item) =>
-          `${item.closest(".svelte-flow__node")?.getAttribute("data-id")}/${item.getAttribute("data-marks") ?? item.getAttribute("data-address")}`,
-      ),
-    );
+/** A part or overlay showing a mark: its block and the `addressKey` of the element it shows. */
+export interface Marked {
+  readonly block: string;
+  readonly marks: string;
 }
 
-/** The distinct addresses showing the selection's mark, without their block, sorted. */
-export function selectedAddresses(page: Page): Promise<string[]> {
-  return page
-    .locator(MARKED.selection)
-    .evaluateAll((items) =>
-      [
-        ...new Set(
-          items.map(
-            (item) => item.getAttribute("data-marks") ?? item.getAttribute("data-address") ?? "",
-          ),
-        ),
-      ].sort(),
-    );
+/** What `marked` gives for the element `address` of block `block`. */
+export function markOf(block: string, address: ElementAddress): Marked {
+  return { block, marks: addressKey(address) };
+}
+
+/** A shown part or overlay as read in the page: an overlay's key, or a part's address. */
+interface ShownItem {
+  readonly block: string | null;
+  readonly marks: string | null;
+  readonly address: ElementAddress;
+}
+
+/** Every part or overlay matching `selector`, in DOM order, as `ShownItem`s. */
+function shownItems(page: Page, selector: string): Promise<ShownItem[]> {
+  return page.locator(selector).evaluateAll((items) =>
+    items.map((item) => {
+      const id = item.getAttribute("data-id") ?? undefined;
+      const facet = item.getAttribute("data-facet") ?? undefined;
+      const part = item.getAttribute("data-part")?.split(" ");
+      return {
+        block: item.closest(".svelte-flow__node")?.getAttribute("data-id") ?? null,
+        marks: item.getAttribute("data-marks"),
+        address: { id, facet, part } as ElementAddress,
+      };
+    }),
+  );
+}
+
+/** The key of the element a shown item shows. */
+function shownKey(item: ShownItem): string {
+  return item.marks ?? addressKey(item.address);
+}
+
+/** Every part or overlay showing `mark`, in DOM order. */
+export async function marked(page: Page, mark: Mark): Promise<Marked[]> {
+  return (await shownItems(page, MARKED[mark])).map((item) => ({
+    block: item.block ?? "",
+    marks: shownKey(item),
+  }));
+}
+
+/**
+ * The distinct keys (`addressKey`) of the element addresses showing the
+ * selection's mark, without their block, sorted.
+ */
+export async function selectedAddresses(page: Page): Promise<string[]> {
+  return [...new Set((await shownItems(page, MARKED.selection)).map(shownKey))].sort();
+}
+
+/** The distinct keys (`addressKey`) of `addresses`, sorted: what `selectedAddresses` and `bandMarks` compare with. */
+export function keysOf(addresses: readonly ElementAddress[]): string[] {
+  return [...new Set(addresses.map((address) => addressKey(address)))].sort();
+}
+
+/** `addresses` sorted by their keys, as `selection` gives a selection. */
+export function byKey<A extends Address>(addresses: readonly A[]): A[] {
+  return [...addresses].sort((a, b) => {
+    const left = addressKey(a);
+    const right = addressKey(b);
+    return left < right ? -1 : left > right ? 1 : 0;
+  });
 }
 
 /** The ids of the nodes Svelte Flow shows as selected (class `selected`), sorted. */
@@ -282,7 +384,7 @@ export function commandsFrom(page: Page, from: number): Promise<Command[]> {
 }
 
 /** The open editors, outermost first, each as `{target, kind}`. */
-export function editing(page: Page): Promise<{ target: string; kind: string }[]> {
+export function editing(page: Page): Promise<Pick<OpenEditor, "target" | "kind">[]> {
   return page.evaluate(() =>
     window.__tilie.editing().map(({ target, kind }) => ({ target, kind })),
   );
@@ -293,7 +395,7 @@ export function editing(page: Page): Promise<{ target: string; kind: string }[]>
  * moved away from the viewport it was opened at, and set the viewport to
  * `view`, so that pointer positions count from a known viewport.
  */
-export async function enter(page: Page, address: string, view: Viewport): Promise<void> {
+export async function enter(page: Page, address: Address, view: Viewport): Promise<void> {
   const before = await viewportOf(page);
   const open = (await editing(page)).length;
   expect(await page.evaluate((target) => window.__tilie.open(target), address)).toBeNull();
@@ -355,7 +457,7 @@ export function arranger(page: Page): Locator {
 }
 
 /** Select `addresses` through the hook. */
-export function select(page: Page, addresses: readonly string[]): Promise<void> {
+export function select(page: Page, addresses: readonly Address[]): Promise<void> {
   return page.evaluate((chosen) => window.__tilie.select(chosen), [...addresses]);
 }
 
@@ -417,9 +519,9 @@ export function subject(page: Page): Locator {
   return page.getByTestId("inspector-subject");
 }
 
-/** The selection, sorted, so comparisons ignore the order of additions. */
-export async function selection(page: Page): Promise<string[]> {
-  return (await page.evaluate(() => window.__tilie.selection())).sort();
+/** The selection, sorted by key (`byKey`), so comparisons ignore the order of additions. */
+export async function selection(page: Page): Promise<Address[]> {
+  return byKey(await page.evaluate(() => window.__tilie.selection()));
 }
 
 /** The pane: the element whose top-left corner is the viewport's origin. */
@@ -469,15 +571,15 @@ export function cardPoint(
 
 /**
  * A whole-pixel screen point on the drawn box `address` in block `id` (a
- * group's frame, by the group id, or a card, `<root>/card`), away from what
- * lies on it, found as `cardPoint` finds a card: the element hit there and
- * at the eight points `clearance` px around it carries `data-address`
+ * group's frame, `{id: G}`, or a card, `{id: T, part: ["card"]}`), away from
+ * what lies on it, found as `cardPoint` finds a card: the element hit there
+ * and at the eight points `clearance` px around it carries the address
  * `address`. A press there selects that box.
  */
 export function framePoint(
   page: Page,
   id: string,
-  address: string,
+  address: ElementAddress,
   clearance = 6,
 ): Promise<{ x: number; y: number }> {
   return boxPoint(page, id, address, clearance);
@@ -488,105 +590,130 @@ export function boxesOf(page: Page, block: string): Promise<HookBox[]> {
   return page.evaluate((id) => window.__tilie.boxes(id), block);
 }
 
-/** The addresses of block `block`'s cards, in the drawing's box order. */
-export async function cardsOf(page: Page, block: string): Promise<string[]> {
+/** The addresses of block `block`'s cards, in the drawing's box order (a card per record). */
+export async function cardsOf(page: Page, block: string): Promise<ElementAddress[]> {
   return (await boxesOf(page, block)).flatMap(({ kind, address }) =>
-    kind === "card" && address !== null ? [address] : [],
+    kind === "card" ? [address] : [],
   );
+}
+
+/** The selector of any card of block `block`, or `null` when it draws none. */
+async function cardsSelector(page: Page, block: string): Promise<string | null> {
+  const cards = await cardsOf(page, block);
+  return cards.length === 0 ? null : cards.map(addressSelector).join(", ");
 }
 
 /** A drawn element of a block's node: its address, and whether it lies outside the edited element. */
 export interface Drawn {
-  readonly address: string;
+  readonly address: ElementAddress;
   readonly outside: boolean;
 }
 
 /**
  * The drawn elements of block `block`'s node, in DOM order, that show its
  * structure: a frame or a card (the hook's `boxes`), a frame's title
- * (core's `partAddress`), and a line or the manifest's title, whose element
- * address is a single segment (core's `parseAddressSyntax`).
+ * (core's `partAddress`), a line (the address `{id: T}` of a timeline of
+ * the block's manifest, at any depth) and the manifest's title
+ * (`TITLE_ADDRESS`).
  */
 export async function structure(page: Page, block: string): Promise<Drawn[]> {
-  const [drawn, boxes] = await Promise.all([
+  const [drawn, boxes, timelines] = await Promise.all([
     node(page, block)
-      .locator("[data-address]")
+      .locator(ADDRESSED)
       .evaluateAll((items) =>
         items.map((item) => ({
-          address: item.getAttribute("data-address") ?? "",
+          address: {
+            id: item.getAttribute("data-id") ?? undefined,
+            facet: item.getAttribute("data-facet") ?? undefined,
+            part: item.getAttribute("data-part")?.split(" "),
+          } as ElementAddress,
           outside: item.hasAttribute("data-outside"),
         })),
       ),
     boxesOf(page, block),
+    page.evaluate((id) => {
+      const found = window.__tilie.store().view.blocks[id];
+      if (found === undefined) throw new Error(`block ${id} is missing`);
+      type Line = { readonly id: string; readonly children: readonly Line[] };
+      const ids = (lines: readonly Line[]): string[] =>
+        lines.flatMap((line) => [line.id, ...ids(line.children)]);
+      return ids(found.manifest.timelines);
+    }, block),
   ]);
-  const shown = new Set(
-    boxes.flatMap(({ kind, address }) => {
-      if (address === null || (kind !== "frame" && kind !== "card")) return [];
-      return kind === "frame" ? [address, partAddress(address, "name")] : [address];
+  const shown = new Set([
+    addressKey(TITLE_ADDRESS),
+    ...timelines.map((id) => addressKey({ id })),
+    ...boxes.flatMap(({ kind, address }) => {
+      if (kind === "frame" && address.id !== undefined) {
+        return [addressKey(address), addressKey(partAddress(idAddress(address.id), "name"))];
+      }
+      return kind === "card" ? [addressKey(address)] : [];
     }),
-  );
-  return drawn.filter(({ address }) => {
-    if (shown.has(address)) return true;
-    const syntax = parseAddressSyntax(qualify(block, address));
-    return "segments" in syntax && syntax.segments.length === 1;
-  });
+  ]);
+  return drawn.filter(({ address }) => shown.has(addressKey(address)));
 }
 
 /** A point whose hit, there and `clearance` px around, is the box `address`, or any card for `null`. */
 async function boxPoint(
   page: Page,
   id: string,
-  address: string | null,
+  address: ElementAddress | null,
   clearance: number,
 ): Promise<{ x: number; y: number }> {
   const box = await node(page, id).boundingBox();
   if (box === null) throw new Error(`block ${id} is not displayed`);
   // Any card is read from the hook; a named box needs none, so a page without the hook can aim at it.
-  const cards = address === null ? await cardsOf(page, id) : [];
-  const found = await page.evaluate(
-    ({ block, address, cards, clearance, left, top, width, height }) => {
-      // The box at a point and at the points `clearance` px around it, so neither
-      // pixel rounding nor a finger's contact area reaches another drawn element.
-      const inside = (x: number, y: number) => {
-        const hit = document.elementFromPoint(x, y);
-        const at = hit?.closest("[data-address]")?.getAttribute("data-address");
-        return (
-          hit?.closest(".svelte-flow__node")?.getAttribute("data-id") === block &&
-          at != null &&
-          (address === null ? cards.includes(at) : at === address)
+  const wanted = address === null ? await cardsSelector(page, id) : addressSelector(address);
+  const found =
+    wanted === null
+      ? null
+      : await page.evaluate(
+          ({ block, addressed, wanted, clearance, left, top, width, height }) => {
+            // The box at a point and at the points `clearance` px around it, so neither
+            // pixel rounding nor a finger's contact area reaches another drawn element.
+            const inside = (x: number, y: number) => {
+              const hit = document.elementFromPoint(x, y);
+              const at = hit?.closest(addressed);
+              return (
+                hit?.closest(".svelte-flow__node")?.getAttribute("data-id") === block &&
+                at != null &&
+                at.matches(wanted)
+              );
+            };
+            const around = [-clearance, 0, clearance];
+            const clear = (x: number, y: number) =>
+              around.every((dx) => around.every((dy) => inside(x + dx, y + dy)));
+            for (let fy = 0.1; fy < 1; fy += 0.1) {
+              for (let fx = 0.05; fx < 1; fx += 0.05) {
+                const x = Math.round(left + width * fx);
+                const y = Math.round(top + height * fy);
+                if (clear(x, y)) return { x, y };
+              }
+            }
+            // A box clear only in a strip between the raster's rows or columns (a
+            // frame's title row): every second pixel, rows from the top.
+            for (let y = Math.ceil(top); y <= top + height; y += 2) {
+              for (let x = Math.ceil(left); x <= left + width; x += 2) {
+                if (clear(x, y)) return { x, y };
+              }
+            }
+            return null;
+          },
+          {
+            block: id,
+            addressed: ADDRESSED,
+            wanted,
+            clearance,
+            left: box.x,
+            top: box.y,
+            width: box.width,
+            height: box.height,
+          },
         );
-      };
-      const around = [-clearance, 0, clearance];
-      const clear = (x: number, y: number) =>
-        around.every((dx) => around.every((dy) => inside(x + dx, y + dy)));
-      for (let fy = 0.1; fy < 1; fy += 0.1) {
-        for (let fx = 0.05; fx < 1; fx += 0.05) {
-          const x = Math.round(left + width * fx);
-          const y = Math.round(top + height * fy);
-          if (clear(x, y)) return { x, y };
-        }
-      }
-      // A box clear only in a strip between the raster's rows or columns (a
-      // frame's title row): every second pixel, rows from the top.
-      for (let y = Math.ceil(top); y <= top + height; y += 2) {
-        for (let x = Math.ceil(left); x <= left + width; x += 2) {
-          if (clear(x, y)) return { x, y };
-        }
-      }
-      return null;
-    },
-    {
-      block: id,
-      address,
-      cards,
-      clearance,
-      left: box.x,
-      top: box.y,
-      width: box.width,
-      height: box.height,
-    },
-  );
-  if (found === null) throw new Error(`block ${id} shows no point on ${address ?? "its card"}`);
+  if (found === null) {
+    const what = address === null ? "its card" : addressKey(address);
+    throw new Error(`block ${id} shows no point on ${what}`);
+  }
   return found;
 }
 
@@ -602,12 +729,12 @@ export async function marginPoint(page: Page, id: string): Promise<{ x: number; 
   const box = await node(page, id).boundingBox();
   if (box === null) throw new Error(`block ${id} is not displayed`);
   const found = await page.evaluate(
-    ({ block, left, top, width, height }) => {
+    ({ block, addressed, left, top, width, height }) => {
       const margin = (x: number, y: number) => {
         const hit = document.elementFromPoint(x, y);
         return (
           hit?.closest(".svelte-flow__node")?.getAttribute("data-id") === block &&
-          hit?.closest("[data-address]") === null
+          hit?.closest(addressed) === null
         );
       };
       const around = [-1, 0, 1];
@@ -628,7 +755,14 @@ export async function marginPoint(page: Page, id: string): Promise<{ x: number; 
       }
       return null;
     },
-    { block: id, left: box.x, top: box.y, width: box.width, height: box.height },
+    {
+      block: id,
+      addressed: ADDRESSED,
+      left: box.x,
+      top: box.y,
+      width: box.width,
+      height: box.height,
+    },
   );
   if (found === null) throw new Error(`block ${id} shows no point on its margin`);
   return found;
@@ -720,18 +854,21 @@ export function bandsOf(page: Page, block: string, timeline: string): Promise<Ba
       window.__tilie
         .bands(id)
         .filter((band) => band.timeline === of)
-        .map(({ address, kind, level, elements }) => ({ address, kind, level, elements })),
+        .map(({ address, facet, level, elements }) => ({ address, facet, level, elements })),
     { id: block, of: timeline },
   );
 }
 
 /** Band `address` of block `block` as the hook reports it, its line and rectangle included. */
-export async function bandOf(page: Page, block: string, address: string): Promise<HookBand> {
-  const found = await page.evaluate(
-    ({ id, wanted }) => window.__tilie.bands(id).find((band) => band.address === wanted) ?? null,
-    { id: block, wanted: address },
-  );
-  if (found === null) throw new Error(`block ${block} draws no band ${address}`);
+export async function bandOf(
+  page: Page,
+  block: string,
+  address: ElementAddress,
+): Promise<HookBand> {
+  const key = addressKey(address);
+  const bands = await page.evaluate((id) => window.__tilie.bands(id), block);
+  const found = bands.find((band) => addressKey(band.address) === key);
+  if (found === undefined) throw new Error(`block ${block} draws no band ${key}`);
   return found;
 }
 
@@ -740,7 +877,7 @@ export function middleOf(band: HookBand): number {
   return band.rect.y + band.rect.height / 2;
 }
 
-/** The band addresses of the band marks in block `id`'s node, sorted. */
+/** The keys (`data-marks`, compared with `keysOf`) of the band marks in block `id`'s node, sorted. */
 export function bandMarks(page: Page, id: string): Promise<string[]> {
   return node(page, id)
     .locator('.tilie-mark[data-box="band"]')
@@ -755,7 +892,7 @@ export function bandMarks(page: Page, id: string): Promise<string[]> {
 export async function focusBand(
   page: Page,
   block: string,
-  address: string,
+  address: ElementAddress,
   zoom: number,
 ): Promise<Viewport> {
   const { rect } = await bandOf(page, block, address);
@@ -784,20 +921,20 @@ export async function focusBand(
 export async function bandPoint(
   page: Page,
   block: string,
-  address: string,
+  address: ElementAddress,
   clearance: number,
 ): Promise<{ x: number; y: number }> {
   const { rect } = await bandOf(page, block, address);
   const box = await pane(page).boundingBox();
   if (box === null) throw new Error("the canvas is not displayed");
-  const cards = await cardsOf(page, block);
+  const cards = await cardsSelector(page, block);
   const found = await page.evaluate(
-    ({ id, cards, clearance, left, top, right, bottom }) => {
+    ({ id, addressed, cards, clearance, left, top, right, bottom }) => {
       const empty = (x: number, y: number) => {
         const hit = document.elementFromPoint(x, y);
         if (hit?.closest(".svelte-flow__node")?.getAttribute("data-id") !== id) return false;
-        const at = hit.closest("[data-address]")?.getAttribute("data-address");
-        return at == null || cards.includes(at);
+        const at = hit.closest(addressed);
+        return at === null || (cards !== null && at.matches(cards));
       };
       const around = [-clearance, 0, clearance];
       const clear = (x: number, y: number) =>
@@ -817,6 +954,7 @@ export async function bandPoint(
     },
     {
       id: block,
+      addressed: ADDRESSED,
       cards,
       clearance,
       left: Math.max(rect.x, box.x),
@@ -825,7 +963,9 @@ export async function bandPoint(
       bottom: Math.min(rect.y + rect.height, box.y + box.height),
     },
   );
-  if (found === null) throw new Error(`band ${address} of ${block} shows no empty point`);
+  if (found === null) {
+    throw new Error(`band ${addressKey(address)} of ${block} shows no empty point`);
+  }
   return found;
 }
 
@@ -893,7 +1033,12 @@ export async function textsNotInFace(page: Page, browserName: string): Promise<s
       const relaid = fresh.getComputedTextLength();
       fresh.remove();
       return {
-        name: `${text.closest(".svelte-flow__node")?.getAttribute("data-id")}/${text.getAttribute("data-address")}`,
+        block: text.closest(".svelte-flow__node")?.getAttribute("data-id") ?? undefined,
+        address: {
+          id: text.getAttribute("data-id") ?? undefined,
+          facet: text.getAttribute("data-facet") ?? undefined,
+          part: text.getAttribute("data-part")?.split(" "),
+        } as ElementAddress,
         text: text.textContent ?? "",
         size,
         width: text.getComputedTextLength(),
@@ -907,5 +1052,8 @@ export async function textsNotInFace(page: Page, browserName: string): Promise<s
       const expected = rule === undefined ? row.relaid : rule(advanceWidth(row.text, row.size));
       return row.width !== expected;
     })
-    .map((row) => `${row.name} "${row.text}" ${row.width}`);
+    .map(({ block, address, text, width }) => {
+      const name = addressKey(block === undefined ? address : { block, ...address });
+      return `${name} "${text}" ${width}`;
+    });
 }

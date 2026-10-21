@@ -1,6 +1,6 @@
 /** What a block node and the canvas's controls ask of the canvas while the user edits. */
 
-import type { BlockId, Command, View } from "@timetoalign/tilie-core";
+import type { Address, BlockId, Command, View } from "@timetoalign/tilie-core";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import { createContext } from "svelte";
 import type { LevelRules } from "./containers.ts";
@@ -20,7 +20,7 @@ export interface NodeActions {
   /** Runs a command; the canvas shows a refusal in the status line. */
   dispatch(command: Command): void;
   /** Selects one address, replacing the selection: the press that starts a gesture. */
-  select(address: string): void;
+  select(address: Address): void;
   /** Draws the block with the preview, or as it is stored when the preview is null. */
   preview(block: BlockId, preview: NodePreview | null): void;
   /** The font metrics the canvas lays blocks out with. */

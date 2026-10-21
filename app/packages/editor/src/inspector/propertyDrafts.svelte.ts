@@ -12,7 +12,8 @@
  */
 
 import type { PlaceProperty } from "@timetoalign/tilie-arranger";
-import type { BlockId, Manifest, Store } from "@timetoalign/tilie-core";
+import type { Address, BlockId, Manifest, Store } from "@timetoalign/tilie-core";
+import { sameAddress } from "@timetoalign/tilie-core";
 import type { Edit, Geometry, NameField, Role } from "./properties.ts";
 import {
   commonValue,
@@ -30,7 +31,7 @@ interface DraftOwner {
   readonly block: BlockId;
   readonly manifest: Manifest;
   readonly role: Role;
-  readonly addresses: readonly string[];
+  readonly addresses: readonly Address[];
 }
 
 type Texts = { readonly [property in PlaceProperty]?: string };
@@ -47,7 +48,7 @@ const EMPTY: Entry = { owner: null, drafts: {}, problems: {}, notice: null };
 
 /** The name field's text and refusal, and the target and manifest they belong to. */
 interface NameDraft {
-  readonly target: string;
+  readonly target: Address;
   readonly manifest: Manifest | null;
   readonly text: string;
   readonly problem: string | undefined;
@@ -83,7 +84,10 @@ function sameOwner(left: DraftOwner | null, right: DraftOwner): boolean {
     left.manifest === right.manifest &&
     left.role === right.role &&
     left.addresses.length === right.addresses.length &&
-    left.addresses.every((address, index) => address === right.addresses[index])
+    left.addresses.every((address, index) => {
+      const other = right.addresses[index];
+      return other !== undefined && sameAddress(address, other);
+    })
   );
 }
 
@@ -143,7 +147,7 @@ export class PropertyDrafts {
   /** A field's placeholder: "mixed" while the containers differ, "auto" for the box's own size. */
   placeholder(geometry: Geometry, property: PlaceProperty): string | undefined {
     if (commonValue(geometry, property) === undefined) return "mixed";
-    return geometry.role === "box" && (property === "width" || property === "height")
+    return geometry.role === "block" && (property === "width" || property === "height")
       ? "auto"
       : undefined;
   }
@@ -198,7 +202,9 @@ export class PropertyDrafts {
   /** The name draft of `field`'s target in its manifest; `null` when it was typed for another. */
   #nameOf(field: NameField): NameDraft | null {
     const draft = this.#name;
-    return draft !== null && draft.target === field.target && draft.manifest === field.manifest
+    return draft !== null &&
+      sameAddress(draft.target, field.target) &&
+      draft.manifest === field.manifest
       ? draft
       : null;
   }

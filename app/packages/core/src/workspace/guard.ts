@@ -7,26 +7,28 @@ import type { CommandError } from "../errors.ts";
 import { ErrorCode, isCommandError, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";
 import { compareCodePoints, jsonEqual } from "../json.ts";
-import type { CardPlace, ItemPlace } from "../manifest/containers.ts";
-import { placedElement } from "../manifest/containers.ts";
+import type { ElementAddress } from "../manifest/address.ts";
+import { addressKey, idAddress } from "../manifest/address.ts";
+import type { CardPlace, ItemPlace, PlaceKey } from "../manifest/containers.ts";
+import {
+  placeAt,
+  placedContainer,
+  placedElement,
+  placeEntries,
+  placeKeyText,
+} from "../manifest/containers.ts";
 import { contains, containsIn } from "../manifest/contains.ts";
 import type { ElementKey } from "../manifest/elements.ts";
 import { selectorMatches } from "../manifest/elements.ts";
-import {
-  cardKey,
-  ENTRY_KINDS,
-  elementAddress,
-  entriesOf,
-  TITLE_ADDRESS,
-} from "../manifest/files.ts";
+import { ENTRY_KINDS, entriesOf } from "../manifest/files.ts";
 import type { Manifest, TimelineManifest } from "../manifest/types.ts";
 import type { Address } from "./address.ts";
 import {
-  elementIn,
-  elementOf,
+  elementAddressOf,
+  inBlock,
   indexOf,
-  parseAddressSyntax,
-  qualify,
+  isElementAddress,
+  readAddress,
   resolveAddress,
   WORKSPACE,
 } from "./address.ts";
@@ -35,7 +37,7 @@ import type { View } from "./view.ts";
 
 /**
  * The members of a block an element's editor never changes. `x`, `y`,
- * `width` and `height` are the box adapting to what it holds, and the
+ * `width` and `height` are the block adapting to what it holds, and the
  * places and manifest are compared key by key.
  */
 const FIXED_MEMBERS = ["scale", "length", "spacing", "index", "parent"] as const;
@@ -77,6 +79,9 @@ function keysOf(...objects: readonly (object | undefined)[]): string[] {
   return byCodePoint(new Set(objects.flatMap((value) => Object.keys(value ?? {}))));
 }
 
+/** The address key of the element with ID `id` in block `block`, a refusal's path and words. */
+const keyIn = (block: BlockId, id: string): string => addressKey(inBlock(block, idAddress(id)));
+
 /** `first`, those of `keys` that it lists, followed by the rest of `keys` by code point. */
 function inOrder(first: readonly string[], keys: Iterable<string>): string[] {
   const all = new Set(keys);
@@ -91,7 +96,7 @@ interface Scope {
   readonly manifest: Manifest;
   readonly keys: readonly ElementKey[];
   readonly ancestry: ReadonlyMap<string, readonly string[]>;
-  readonly inside: (element: string) => boolean;
+  readonly inside: (element: ElementAddress) => boolean;
 }
 
 function scopeOf(manifest: Manifest, element: string): Scope {
@@ -110,19 +115,20 @@ function namesGroupOrTimeline(scope: Scope, key: string): boolean {
  * that has it.
  */
 function keyInside(scopes: readonly Scope[]): (key: string) => boolean {
-  return (key) => scopes.every((scope) => !namesGroupOrTimeline(scope, key) || scope.inside(key));
+  return (key) =>
+    scopes.every((scope) => !namesGroupOrTimeline(scope, key) || scope.inside(idAddress(key)));
 }
 
 /**
- * Whether a key of `places` lies inside: the edited element contains the
- * frame or card it names (a card belongs to its timeline) in each manifest
- * that draws it.
+ * Whether a place lies inside: the edited element contains the frame or
+ * card it names (a card belongs to its timeline) in each manifest that
+ * draws it.
  */
-function placeInside(scopes: readonly Scope[]): (key: string) => boolean {
+function placeInside(scopes: readonly Scope[]): (key: PlaceKey) => boolean {
   return (key) =>
     scopes.every((scope) => {
-      const address = indexOf(scope.manifest).containers.byKey.get(key)?.address ?? null;
-      return address === null || scope.inside(address);
+      const container = placedContainer(scope.manifest, key);
+      return container === undefined || scope.inside(container.address);
     });
 }
 
@@ -132,11 +138,7 @@ const statementsOf = (manifest: Manifest): readonly Statement[] =>
 function insideAll(scopes: readonly Scope[]): (statement: Statement) => boolean {
   return (statement) =>
     scopes.every(({ keys, ancestry, inside }) =>
-      keys.every(
-        (key) =>
-          !selectorMatches(statement.select, key, ancestry) ||
-          (key.address !== null && inside(key.address)),
-      ),
+      keys.every((key) => !selectorMatches(statement.select, key, ancestry) || inside(key.address)),
     );
 }
 
@@ -184,7 +186,7 @@ function project(
   const group = manifest.groups.find((item) => item.id === element);
   const hidden = new Set(group === undefined ? [element] : group.members);
   const elements = new Map<string, string>();
-  const visit = (timeline: TimelineManifest, root: string) => {
+  const visit = (timeline: TimelineManifest) => {
     if (hidden.has(timeline.id)) {
       elements.set(timeline.id, dumps({ id: timeline.id }));
       return;
@@ -201,12 +203,12 @@ function project(
     );
     for (const kind of ENTRY_KINDS) {
       for (const entry of byId(entriesOf(timeline, kind))) {
-        elements.set(elementAddress(root, entry.id), dumps(entry));
+        elements.set(entry.id, dumps(entry));
       }
     }
-    for (const child of byId(timeline.children)) visit(child, root);
+    for (const child of byId(timeline.children)) visit(child);
   };
-  for (const root of byId(manifest.timelines)) visit(root, root.id);
+  for (const root of byId(manifest.timelines)) visit(root);
   for (const item of byId(manifest.groups)) {
     elements.set(
       item.id,
@@ -248,17 +250,13 @@ function changedInside(before: View, block: BlockId, element: string, changes: C
   if (changes.reaching.has(block)) return false;
   const manifest = before.blocks[block]?.manifest;
   if (manifest === undefined) return false;
-  return changes.paths.every(([address]) => {
-    if (typeof address !== "string") return false;
-    const syntax = parseAddressSyntax(address);
-    if (isCommandError(syntax)) return false;
-    if (syntax.block !== block) return true;
-    const named = elementIn(syntax);
-    return (
-      named === null ||
-      (!isCommandError(resolveAddress(before, address)) && contains(manifest, element, named))
-    );
-  });
+  return changes.targets.every(
+    (target) =>
+      target.block !== block ||
+      !isElementAddress(target) ||
+      (!isCommandError(resolveAddress(before, target)) &&
+        contains(manifest, element, elementAddressOf(target))),
+  );
 }
 
 /**
@@ -277,7 +275,9 @@ function manifestChange(
   changes: ChangeSet | undefined,
 ): CommandError | null {
   const [was, now] = scopes;
-  if (!namesGroupOrTimeline(now, element)) return refuse(`the removal of ${target}`, [target]);
+  if (!namesGroupOrTimeline(now, element)) {
+    return refuse(`the removal of ${addressKey(target)}`, [addressKey(target)]);
+  }
   if (was.manifest === now.manifest) return null;
   if (changes !== undefined && changedInside(before, block, element, changes)) return null;
   const inside = insideAll(scopes);
@@ -292,39 +292,35 @@ function manifestChange(
   const a = project(was.manifest, element, keys, wasOutside, styles);
   const b = project(now.manifest, element, keys, nowOutside, styles);
   // An element the target contains that is gone from `after` is removed inside the target.
-  const differs = (address: string) =>
-    a.elements.get(address) !== b.elements.get(address) &&
-    !(was.inside(address) && !b.elements.has(address));
-  const changed = (address: string) => refuse(qualify(block, address), [qualify(block, address)]);
+  const differs = (id: string) =>
+    a.elements.get(id) !== b.elements.get(id) &&
+    !(was.inside(idAddress(id)) && !b.elements.has(id));
+  const changed = (id: string) => refuse(keyIn(block, id), [keyIn(block, id)]);
   function* walk(): Generator<string> {
-    for (const { manifest, keys } of [was, now]) {
-      for (const key of keys) {
-        if (key.address !== null && key.address !== TITLE_ADDRESS) {
-          yield elementOf(manifest, key.address);
-        }
-      }
+    for (const { keys } of [was, now]) {
+      for (const key of keys) if (key.address.id !== undefined) yield key.address.id;
     }
-    // Elements no box draws: the children of a root drawn only as an ancestor line, the jump
-    // targets and the measure maps.
+    // Elements the block does not draw: the children of a root drawn only as an ancestor line,
+    // the jump targets and the measure maps.
     yield* new Set([...a.elements.keys(), ...b.elements.keys()]);
   }
   // A differing element the target contains on one side only (a member joining or leaving
   // the group) is named only when nothing outside it differs.
   let contained: string | undefined;
-  for (const address of walk()) {
-    if (!differs(address)) continue;
-    if (!was.inside(address) && !now.inside(address)) return changed(address);
-    contained ??= address;
+  for (const id of walk()) {
+    if (!differs(id)) continue;
+    if (!was.inside(idAddress(id)) && !now.inside(idAddress(id))) return changed(id);
+    contained ??= id;
   }
   if (contained !== undefined) return changed(contained);
   for (const key of inOrder(TOP_MEMBERS, [...a.top.keys(), ...b.top.keys()])) {
     if (a.top.get(key) !== b.top.get(key)) {
-      return refuse(`the manifest's ${key} in block ${block}`, [block, "manifest", key]);
+      return refuse(`the manifest's ${key} in block '${block}'`, [block, "manifest", key]);
     }
   }
   for (const key of inOrder(GRAPHICAL_MEMBERS, [...a.graphical.keys(), ...b.graphical.keys()])) {
     if (a.graphical.get(key) !== b.graphical.get(key)) {
-      return refuse(`the graphical ${key} of block ${block}`, [
+      return refuse(`the graphical ${key} of block '${block}'`, [
         block,
         "manifest",
         "graphical",
@@ -345,10 +341,13 @@ function blockChange(
   refuse: Refuse,
   changes: ChangeSet | undefined,
 ): CommandError | null {
-  if (was === undefined || now === undefined) return refuse(`the removal of ${target}`, [target]);
+  if (was === undefined || now === undefined) {
+    return refuse(`the removal of ${addressKey(target)}`, [addressKey(target)]);
+  }
   const block = was.id;
   const member = FIXED_MEMBERS.find((name) => !same(was[name], now[name]));
-  if (member !== undefined) return refuse(`the ${member} of block ${block}`, [block, member]);
+  if (member !== undefined)
+    return refuse(`the ${member} of block '${block}'`, [addressKey({ block }), member]);
   const scopes = [scopeOf(was.manifest, element), scopeOf(now.manifest, element)] as const;
   const inside = placeInside(scopes);
   // The group the edited element is a member of in both manifests, whose shared members it changes.
@@ -356,35 +355,44 @@ function blockChange(
     manifest.groups.find((group) => group.members.includes(element))?.id;
   const sharing =
     groupOf(was.manifest) === groupOf(now.manifest) ? groupOf(was.manifest) : undefined;
-  // The places keys of the cards in the frame of the sharing group.
-  const cardsOf = (manifest: Manifest): readonly string[] => {
-    if (sharing === undefined) return [];
-    const members = manifest.groups.find((group) => group.id === sharing)?.members ?? [];
-    return members.map((member) => cardKey(member, sharing));
+  // Whether the sharing group has `member` as a member in `manifest`: its card lies in the frame.
+  const sharedBy = (manifest: Manifest, member: string): boolean =>
+    manifest.groups.some((group) => group.id === sharing && group.members.includes(member));
+  // The members of a place that the edited element shares: the group's, its siblings' cards'.
+  const shared = (key: PlaceKey): readonly string[] => {
+    if (key.item !== sharing) return [];
+    if (key.member === undefined) return SHARED_MEMBERS;
+    return sharedBy(was.manifest, key.member) && sharedBy(now.manifest, key.member)
+      ? SIBLING_MEMBERS
+      : [];
   };
-  // The members of a key's place that the edited element shares: the group's, its siblings'.
-  const shared = (key: string): readonly string[] =>
-    key === sharing
-      ? SHARED_MEMBERS
-      : cardsOf(was.manifest).includes(key) && cardsOf(now.manifest).includes(key)
-        ? SIBLING_MEMBERS
-        : [];
   const unshared = (place: ItemPlace | CardPlace | undefined, members: readonly string[]) =>
     Object.fromEntries(Object.entries(place ?? {}).filter(([member]) => !members.includes(member)));
-  const keptInside = (key: string) => {
+  const keptInside = (key: PlaceKey) => {
     const members = shared(key);
     return (
       inside(key) ||
       (members.length > 0 &&
-        same(unshared(was.places[key], members), unshared(now.places[key], members)))
+        same(
+          unshared(placeAt(was.places, key), members),
+          unshared(placeAt(now.places, key), members),
+        ))
     );
   };
-  const key = keysOf(was.places, now.places).find(
-    (item) => !same(was.places[item], now.places[item]) && !keptInside(item),
-  );
+  const stated = new Map<string, PlaceKey>();
+  for (const [key] of [...placeEntries(was.places), ...placeEntries(now.places)]) {
+    stated.set(placeKeyText(key), key);
+  }
+  const key = [...stated.entries()]
+    .sort(([left], [right]) => compareCodePoints(left, right))
+    .map(([, item]) => item)
+    .find(
+      (item) => !same(placeAt(was.places, item), placeAt(now.places, item)) && !keptInside(item),
+    );
   if (key !== undefined) {
-    const element = placedElement(now.manifest, key) ?? placedElement(was.manifest, key) ?? key;
-    const placed = qualify(block, element);
+    const element =
+      placedElement(now.manifest, key) ?? placedElement(was.manifest, key) ?? key.item;
+    const placed = keyIn(block, element);
     return refuse(`the place of ${placed}`, [placed]);
   }
   return manifestChange(scopes, element, block, target, refuse, before, changes);
@@ -410,35 +418,38 @@ export function sideEffect(
   target: Address,
   changes?: ChangeSet,
 ): CommandError | null {
-  const parsed = parseAddressSyntax(target);
+  const parsed = readAddress(target, [addressKey(target)]);
   if (isCommandError(parsed)) return parsed;
   // The workspace holds everything.
-  if (parsed.block === null) return null;
   const { block } = parsed;
-  const element = elementIn(parsed);
+  if (block === undefined) return null;
+  const element = parsed.id;
+  const workspace = addressKey(WORKSPACE);
   const refuse: Refuse = (what, path) =>
     problem(
       ErrorCode.sideEffect,
-      `${what} lies outside ${target}: an editor changes only what it edits`,
+      `${what} lies outside ${addressKey(target)}: an editor changes only what it edits`,
       path,
     );
   // A change set names every setting and block a command touched; without one, both views are scanned.
-  if (changes === undefined || changes.paths.some(([first]) => first === WORKSPACE)) {
-    if (before.name !== after.name) return refuse("the workspace name", [WORKSPACE, "name"]);
+  if (changes === undefined || changes.targets.some((item) => item.block === undefined)) {
+    if (before.name !== after.name) return refuse("the workspace name", [workspace, "name"]);
     const was = new Map(Object.entries(before.settings));
     const now = new Map(Object.entries(after.settings));
     const setting = keysOf(before.settings, after.settings).find(
       (key) => !same(was.get(key), now.get(key)),
     );
     if (setting !== undefined)
-      return refuse(`the workspace setting ${setting}`, [WORKSPACE, setting]);
+      return refuse(`the workspace setting ${setting}`, [workspace, setting]);
   }
   const touched =
     changes === undefined ? keysOf(before.blocks, after.blocks) : byCodePoint(changes.blocks);
   const other = touched.find((id) => id !== block && !same(before.blocks[id], after.blocks[id]));
-  if (other !== undefined) return refuse(`block ${other}`, [other]);
-  if (element === null) {
-    return Object.hasOwn(after.blocks, block) ? null : refuse(`the removal of ${target}`, [target]);
+  if (other !== undefined) return refuse(`block '${other}'`, [addressKey({ block: other })]);
+  if (element === undefined) {
+    return Object.hasOwn(after.blocks, block)
+      ? null
+      : refuse(`the removal of ${addressKey(target)}`, [addressKey(target)]);
   }
   return blockChange(
     before,

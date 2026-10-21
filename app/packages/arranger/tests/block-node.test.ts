@@ -9,21 +9,47 @@
  * dispatches that command, and the preview is withdrawn.
  */
 
-import type { Block, Command, SetCommand, View } from "@timetoalign/tilie-core";
-import { isCommandError, preview as previewOf } from "@timetoalign/tilie-core";
+import type {
+  Address,
+  Block,
+  Command,
+  ElementAddress,
+  Facet,
+  OwnerAddress,
+  PlaceKey,
+  SetCommand,
+  View,
+} from "@timetoalign/tilie-core";
+import {
+  addressKey,
+  BUNDLE_ADDRESS,
+  bandAddress,
+  cardAddress,
+  idAddress,
+  inBlock,
+  isCommandError,
+  partAddress,
+  placeKeyText,
+  preview as previewOf,
+  sameAddress,
+  WORKSPACE,
+} from "@timetoalign/tilie-core";
 import type { DrawnBox } from "@timetoalign/tilie-layout";
 import { flushSync, mount, tick, unmount } from "svelte";
 import { SvelteMap } from "svelte/reactivity";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { boxOf } from "../src/boxes.ts";
+import { keyedBox } from "../src/boxes.ts";
 import { rulesOf } from "../src/containers.ts";
 import { drawingOf } from "../src/drawing.ts";
 import type { Editing } from "../src/editing.ts";
+import { sourceAt } from "../src/gesture.ts";
 import { itemMoveCommand } from "../src/items.ts";
 import { CUBIC_OUT } from "../src/motion.ts";
 import type { BlockNodeData } from "../src/project.ts";
 import { project } from "../src/project.ts";
 import { reorderCommand } from "../src/reorder.ts";
+import type { Selection } from "../src/selection.ts";
+import { NOTHING_SELECTED, selectionOf } from "../src/selection.ts";
 import type { Call } from "./dom.ts";
 import {
   drag,
@@ -40,37 +66,55 @@ import { A, B, blockIn, CHILD_MEMBER, changed, MIXED, metrics, viewOf } from "./
 
 const VIEW = viewOf({ id: A, fixture: MIXED, x: 40, y: 80 }, { id: B, fixture: "bare", x: 2000 });
 
-const BUNDLE: Editing = { target: A, kind: "bundle" };
-const GROUP: Editing = { target: `${A}/group_1`, kind: "group" };
-const TIMELINE: Editing = { target: `${A}/score`, kind: "timeline" };
+/** The address in block A of the element address `element`. */
+const inA = (element: ElementAddress): Address => inBlock(A, element);
+
+/** The address of the part `words` of the element `id`. */
+const part = (id: string, ...words: ("start" | "end" | "name" | "label")[]): ElementAddress =>
+  words.reduce<OwnerAddress>((owner, word) => partAddress(owner, word), idAddress(id));
+
+const BUNDLE: Editing = { target: { block: A }, kind: "bundle" };
+const GROUP: Editing = { target: inA(idAddress("group_1")), kind: "group" };
+const TIMELINE: Editing = { target: inA(idAddress("score")), kind: "timeline" };
+
+/** A drawn element as `<tag> <key of its address>` (`addressKey`). */
+const tagged = (tag: string, address: ElementAddress): string => `${tag} ${addressKey(address)}`;
 
 /**
  * The elements of a root member drawing of `bundle_mixed` with the maps `maps`
- * and the jumps `jumps`, as `<tag> <address>` in drawing order: the card's
- * shadow and card, the maps, each jump's shaft and arrowhead, the line, its
- * start dot and arrowhead, the start and end wedges, the name, the two
- * wedge labels and the jumps' labels.
+ * and the jumps `jumps`, as `<tag> <address key>` in drawing order: the
+ * card's shadow and card, the maps, each jump's shaft and arrowhead, the
+ * line, its start dot and arrowhead, the start and end wedges, the name, the
+ * two wedge labels and the jumps' labels.
  */
 function memberElements(member: string, maps: string[], jumps: string[] = []): string[] {
+  const line = idAddress(member);
   return [
-    `rect group_1/${member}/card`,
-    `rect group_1/${member}/card`,
-    ...maps.map((map) => `polygon ${member}/${map}`),
-    ...jumps.flatMap((jump) => [`path ${member}/${jump}`, `polygon ${member}/${jump}`]),
-    `line ${member}`,
-    `circle ${member}`,
-    `polygon ${member}`,
-    `polygon ${member}/start`,
-    `polygon ${member}/end`,
-    `text ${member}/name`,
-    `text ${member}/start/label`,
-    `text ${member}/end/label`,
-    ...jumps.map((jump) => `text ${member}/${jump}/label`),
+    tagged("rect", cardAddress(member)),
+    tagged("rect", cardAddress(member)),
+    ...maps.map((map) => tagged("polygon", idAddress(map))),
+    ...jumps.flatMap((jump) => [
+      tagged("path", idAddress(jump)),
+      tagged("polygon", idAddress(jump)),
+    ]),
+    tagged("line", line),
+    tagged("circle", line),
+    tagged("polygon", line),
+    tagged("polygon", part(member, "start")),
+    tagged("polygon", part(member, "end")),
+    tagged("text", part(member, "name")),
+    tagged("text", part(member, "start", "label")),
+    tagged("text", part(member, "end", "label")),
+    ...jumps.map((jump) => tagged("text", part(jump, "label"))),
   ];
 }
 
 const SCORE = memberElements("score", ["cmap_1", "cmap_2"], ["jump_from_1"]);
-const PERFORMANCE = memberElements("performance", ["cmap_1"]);
+const PERFORMANCE = memberElements("performance", ["cmap_3"]);
+
+/** The selection of the element addresses `elements` of block A. */
+const selectedIn = (...elements: ElementAddress[]): Selection =>
+  selectionOf(elements.map((element) => inA(element)));
 
 let mounted: ReturnType<typeof mount> | undefined;
 
@@ -93,7 +137,7 @@ function dataOf(
   view: View,
   id: string,
   editing: Editing | null,
-  selection: ReadonlySet<string> = new Set(),
+  selection: Selection = NOTHING_SELECTED,
 ): BlockNodeData {
   const node = project(view, selection, [], metrics, editing).find((found) => found.id === id);
   if (node === undefined) throw new Error(`no node for ${id}`);
@@ -108,7 +152,7 @@ function withBands(data: BlockNodeData, bands?: readonly DrawnBox[]): BlockNodeD
 }
 
 interface Options {
-  readonly selection?: ReadonlySet<string>;
+  readonly selection?: Selection;
   readonly bands?: readonly DrawnBox[];
   readonly locked?: boolean;
   readonly zoom?: number;
@@ -122,7 +166,13 @@ interface Options {
  * the identity screen CTM, so a client point is a drawing point.
  */
 function mountOn(view: View, id: string, editing: Editing | null, options: Options = {}) {
-  const { selection = new Set(), bands, locked = false, zoom = 1, reducedMotion = false } = options;
+  const {
+    selection = NOTHING_SELECTED,
+    bands,
+    locked = false,
+    zoom = 1,
+    reducedMotion = false,
+  } = options;
   const props = new SvelteMap([["data", withBands(dataOf(view, id, editing, selection), bands)]]);
   const rules = rulesOf(editing, { locked, readonly: false });
   const { actions, calls } = recordingActions(view, { rules, zoom, reducedMotion });
@@ -157,20 +207,35 @@ function drawn(svg: SVGSVGElement): Element[] {
   );
 }
 
-function named(element: Element): string {
-  return `${element.localName} ${element.getAttribute("data-address")}`;
+/** The element address `element` draws, read from its descriptor's source; `null` for none. */
+function addressOf(element: Element): ElementAddress | null {
+  return sourceAt(element)?.address ?? null;
 }
 
-/** The drawn elements of `svg` as `<tag> <address>`, with or without `attribute`. */
+/** A DOM element as `<tag> <key of the address it draws>`, `<tag> none` where it draws none. */
+function named(element: Element): string {
+  const address = addressOf(element);
+  return address === null ? `${element.localName} none` : tagged(element.localName, address);
+}
+
+/** Whether `element` carries an attribute writing an address: `data-id`, `data-facet`, `data-part`. */
+function writesAddress(element: Element): boolean {
+  return ["data-id", "data-facet", "data-part"].some((name) => element.hasAttribute(name));
+}
+
+/** The drawn elements of `svg` as `<tag> <address key>`, with or without `attribute`. */
 function marked(svg: SVGSVGElement, attribute: string, present = true): string[] {
   return drawn(svg)
     .filter((element) => element.hasAttribute(attribute) === present)
     .map(named);
 }
 
-/** The drawn elements of `svg` carrying `address`, in document order. */
-function addressed(svg: SVGSVGElement, address: string): Element[] {
-  return drawn(svg).filter((element) => element.getAttribute("data-address") === address);
+/** The drawn elements of `svg` drawing `address`, in document order. */
+function addressed(svg: SVGSVGElement, address: ElementAddress): Element[] {
+  return drawn(svg).filter((element) => {
+    const drawnAddress = addressOf(element);
+    return drawnAddress !== null && sameAddress(drawnAddress, address);
+  });
 }
 
 /** The block `call` previews: block A of the view it shows; `null` for a withdrawal. */
@@ -195,7 +260,12 @@ describe("data-outside", () => {
 
   it("marks everything but the edited group in the group editor", () => {
     const { svg } = mountOn(VIEW, A, GROUP);
-    const inside = ["rect group_1", "text group_1/name", ...SCORE, ...PERFORMANCE];
+    const inside = [
+      tagged("rect", idAddress("group_1")),
+      tagged("text", part("group_1", "name")),
+      ...SCORE,
+      ...PERFORMANCE,
+    ];
     expect(marked(svg, "data-outside", false)).toEqual(inside);
     expect(marked(svg, "data-outside").length).toBe(drawn(svg).length - 28);
     expect(drawn(svg)[0]?.hasAttribute("data-outside")).toBe(true);
@@ -211,7 +281,7 @@ describe("data-outside", () => {
 });
 
 describe("the hover marks", () => {
-  /** The hover marks over the drawing, in document order, as `<tag> <address>`. */
+  /** The hover marks over the drawing, in document order, as `<tag> <data-marks>`. */
   function hovered(svg: SVGSVGElement): string[] {
     return Array.from(
       svg.querySelectorAll('.tilie-mark[data-mark="hover"]'),
@@ -232,35 +302,42 @@ describe("the hover marks", () => {
       vi.fn(() => IDENTITY),
     );
     const drawing = drawingOf(blockIn(view, A), view.settings, metrics);
-    const centre = (address: string): [number, number] => {
-      const box = boxOf(drawing, address);
-      if (box === undefined) throw new Error(`no box ${address}`);
+    const centre = (key: PlaceKey): [number, number] => {
+      const box = keyedBox(drawing, key);
+      if (box === undefined) throw new Error(`no box ${placeKeyText(key)}`);
       return [box.x + box.width / 2, box.y + box.height / 2];
     };
-    move(svg, ...centre("group_1/score/card"));
-    expect(hovered(svg)).toEqual(["rect group_1/score/card"]);
-    move(svg, ...centre("annotations/card"));
+    move(svg, ...centre({ item: "group_1", member: "score" }));
+    expect(hovered(svg)).toEqual([tagged("rect", cardAddress("score"))]);
+    move(svg, ...centre({ item: "annotations" }));
     expect(hovered(svg)).toEqual([]);
   });
 
   it("keeps both marks across a redraw, changes only the marks, and reads nothing during a press", () => {
     const view = viewOf({ id: A, fixture: "segment_line" });
     const { svg, redraw } = mountOn(view, A, null);
+    const FORM_AND_BOUNDARY = [
+      tagged("rect", cardAddress("form")),
+      tagged("line", part("b2", "start")),
+    ];
     const matrix = vi.fn(() => IDENTITY);
     withScreenMatrix(svg, matrix);
     const boundary = () =>
-      addressed(svg, "b2/start").find((element) => element.localName === "line");
+      addressed(svg, part("b2", "start")).find((element) => element.localName === "line");
     const line = boundary();
-    if (line === undefined) throw new Error("no boundary b2/start");
+    if (line === undefined) throw new Error("no boundary of b2");
 
     move(line, 227.294921875, 36.4765625);
-    expect(hovered(svg)).toEqual(["rect form/card", "line b2/start"]);
+    expect(hovered(svg)).toEqual(FORM_AND_BOUNDARY);
     // The boundary's mark copies its line, the address left out.
-    const mark = svg.querySelector('line.tilie-mark[data-marks="b2/start"]');
+    const mark = Array.from(svg.querySelectorAll("line.tilie-mark")).find(
+      (found) => found.getAttribute("data-marks") === addressKey(part("b2", "start")),
+    );
+    if (mark === undefined) throw new Error("no mark of the boundary of b2");
     for (const name of ["x1", "y1", "x2", "y2", "stroke-width"]) {
-      expect(mark?.getAttribute(name)).toBe(line.getAttribute(name));
+      expect(mark.getAttribute(name)).toBe(line.getAttribute(name));
     }
-    expect(mark?.hasAttribute("data-address")).toBe(false);
+    expect(writesAddress(mark)).toBe(false);
 
     const before = drawn(svg);
     redraw(
@@ -268,7 +345,7 @@ describe("the hover marks", () => {
         type: "set",
         changes: [
           {
-            target: "workspace",
+            target: WORKSPACE,
             values: {
               graphical: {
                 statements: [{ select: { element: "boundary" }, set: { stroke: "#FF0000" } }],
@@ -280,7 +357,7 @@ describe("the hover marks", () => {
     );
     expect(drawn(svg).every((element, index) => element === before[index])).toBe(true);
     expect(boundary()?.getAttribute("stroke")).toBe("#FF0000");
-    expect(hovered(svg)).toEqual(["rect form/card", "line b2/start"]);
+    expect(hovered(svg)).toEqual(FORM_AND_BOUNDARY);
 
     // Leaving the boundary for the card removes the boundary's mark and touches nothing else.
     const changes = new MutationObserver(() => {});
@@ -288,25 +365,25 @@ describe("the hover marks", () => {
     move(svg, 52.294921875, 68.953125);
     const records = changes.takeRecords();
     changes.disconnect();
-    expect(hovered(svg)).toEqual(["rect form/card"]);
+    expect(hovered(svg)).toEqual([tagged("rect", cardAddress("form"))]);
     expect(records.every(({ type, target }) => type === "childList" && target === svg)).toBe(true);
     const elements = (nodes: NodeList[]) =>
       nodes.flatMap((list) => Array.from(list)).filter((node) => node instanceof Element);
     expect(elements(records.map(({ removedNodes }) => removedNodes)).map(named)).toEqual([
-      "line null",
+      "line none",
     ]);
     expect(elements(records.map(({ addedNodes }) => addedNodes))).toEqual([]);
 
     matrix.mockClear();
     move(line, 4, 4, 1);
     expect(matrix).toHaveBeenCalledTimes(0);
-    expect(hovered(svg)).toEqual(["rect form/card"]);
+    expect(hovered(svg)).toEqual([tagged("rect", cardAddress("form"))]);
     move(svg, 4, 4);
     expect(matrix).toHaveBeenCalledTimes(1);
     expect(hovered(svg)).toEqual([]);
 
     move(line, 227.294921875, 36.4765625);
-    expect(hovered(svg)).toEqual(["rect form/card", "line b2/start"]);
+    expect(hovered(svg)).toEqual(FORM_AND_BOUNDARY);
     svg.dispatchEvent(new PointerEvent("pointerleave"));
     flushSync();
     expect(hovered(svg)).toEqual([]);
@@ -314,16 +391,18 @@ describe("the hover marks", () => {
 
   it("marks a frame, the card rather than the frame around it, and a selected card by its selection", () => {
     const view = viewOf({ id: A, fixture: CHILD_MEMBER });
-    const { svg } = mountOn(view, A, null, { selection: new Set([`${A}/group_1`]) });
-    const frame = addressed(svg, "group_1")[0];
-    const line = addressed(svg, "recording").find((element) => element.localName === "line");
+    const { svg } = mountOn(view, A, null, { selection: selectedIn(idAddress("group_1")) });
+    const frame = addressed(svg, idAddress("group_1"))[0];
+    const line = addressed(svg, idAddress("recording")).find(
+      (element) => element.localName === "line",
+    );
     if (frame === undefined || line === undefined) throw new Error("no frame or line");
 
     move(frame, 12, 12);
     expect(hovered(svg)).toEqual([]);
     move(line, 120.61962890625, 139.16015625);
-    expect(hovered(svg)).toEqual(["rect group_1/recording/card"]);
-    const own = addressed(svg, "group_1/recording/card")[1];
+    expect(hovered(svg)).toEqual([tagged("rect", cardAddress("recording"))]);
+    const own = addressed(svg, cardAddress("recording"))[1];
     const mark = svg.querySelector('.tilie-mark[data-mark="hover"]');
     for (const name of ["x", "y", "width", "height", "rx"]) {
       expect(mark?.getAttribute(name)).toBe(own?.getAttribute(name));
@@ -334,9 +413,9 @@ describe("the hover marks", () => {
         found.getAttribute("data-marks"),
       ]),
     ).toEqual([
-      ["holding", null],
-      ["selection", "group_1"],
-      ["hover", "group_1/recording/card"],
+      ["holding", addressKey(BUNDLE_ADDRESS)],
+      ["selection", addressKey(idAddress("group_1"))],
+      ["hover", addressKey(cardAddress("recording"))],
     ]);
     move(frame, 12, 12);
     expect(hovered(svg)).toEqual([]);
@@ -344,27 +423,59 @@ describe("the hover marks", () => {
 
   it("marks the frame under the pointer when it is not selected", () => {
     const { svg } = mountOn(viewOf({ id: A, fixture: CHILD_MEMBER }), A, null);
-    const frame = addressed(svg, "group_1")[0];
+    const frame = addressed(svg, idAddress("group_1"))[0];
     if (frame === undefined) throw new Error("no frame");
     move(frame, 12, 12);
-    expect(hovered(svg)).toEqual(["rect group_1"]);
+    expect(hovered(svg)).toEqual([tagged("rect", idAddress("group_1"))]);
+  });
+});
+
+describe("the selection marks", () => {
+  it("marks both cards of a member of two groups, which share one address", () => {
+    // `t` is a member of `g1` and of `g2`: a card in each frame, both `{id: "t", part: ["card"]}`.
+    const view = viewOf({ id: A, fixture: "bundles/bundle_shared_member" });
+    const { svg } = mountOn(view, A, null, { selection: selectedIn(cardAddress("t")) });
+    const drawing = drawingOf(blockIn(view, A), view.settings, metrics);
+    /** The outline of the card under `key`: its record's own rectangle, as the node draws it. */
+    const rectangle = (key: PlaceKey) => {
+      const box = keyedBox(drawing, key);
+      if (box === undefined) throw new Error(`no card ${placeKeyText(key)}`);
+      const own = drawn(svg).find((element) => {
+        const source = sourceAt(element);
+        return source?.element === box.range.start && source.role === "primary";
+      });
+      if (own === undefined) throw new Error(`no rectangle of ${placeKeyText(key)}`);
+      return ["x", "y", "width", "height"].map((name) => own.getAttribute(name));
+    };
+    const marks = Array.from(svg.querySelectorAll('.tilie-mark[data-mark="selection"]'));
+    expect(
+      marks.map((mark) => [
+        mark.localName,
+        mark.getAttribute("data-marks"),
+        mark.getAttribute("data-box"),
+        ...["x", "y", "width", "height"].map((name) => mark.getAttribute(name)),
+      ]),
+    ).toEqual([
+      ["rect", addressKey(cardAddress("t")), "card", ...rectangle({ item: "g1", member: "t" })],
+      ["rect", addressKey(cardAddress("t")), "card", ...rectangle({ item: "g2", member: "t" })],
+    ]);
   });
 });
 
 describe("keys", () => {
   it("keep every element across a reorder", () => {
     const { svg, redraw } = mountOn(VIEW, A, GROUP);
-    const score = addressed(svg, "group_1/score/card");
-    const performance = addressed(svg, "group_1/performance/card");
+    const score = addressed(svg, cardAddress("score"));
+    const performance = addressed(svg, cardAddress("performance"));
     expect(score.length).toBe(2);
-    expect(addressed(svg, "excerpt/start").length).toBe(2);
+    expect(addressed(svg, part("excerpt", "start")).length).toBe(2);
     const command = reorderCommand(blockIn(VIEW, A), "group_1", ["performance", "score"]);
     redraw(changed(VIEW, command));
     expect(
-      addressed(svg, "group_1/score/card").every((element, index) => element === score[index]),
+      addressed(svg, cardAddress("score")).every((element, index) => element === score[index]),
     ).toBe(true);
     expect(
-      addressed(svg, "group_1/performance/card").every(
+      addressed(svg, cardAddress("performance")).every(
         (element, index) => element === performance[index],
       ),
     ).toBe(true);
@@ -387,8 +498,9 @@ describe("the presses taken", () => {
       pointer(element, "pointerdown", -1000, -1000);
       const marks = element.classList.contains("nodrag") && element.classList.contains("nopan");
       pointer(element, "pointerup", -1000, -1000);
-      const address = element.getAttribute("data-address") as string;
-      return marks ? [`${named(element)} ${addressed(svg, address).indexOf(element)}`] : [];
+      const address = addressOf(element);
+      if (!marks || address === null) return [];
+      return [`${named(element)} ${addressed(svg, address).indexOf(element)}`];
     });
   }
 
@@ -398,14 +510,18 @@ describe("the presses taken", () => {
 
   it("are the items' own rectangles in the bundle editor", () => {
     const { svg, calls } = mountOn(VIEW, A, BUNDLE);
-    expect(taken(svg)).toEqual(["rect group_1 0", "rect group_2 0", "rect annotations/card 1"]);
+    expect(taken(svg)).toEqual([
+      `${tagged("rect", idAddress("group_1"))} 0`,
+      `${tagged("rect", idAddress("group_2"))} 0`,
+      `${tagged("rect", cardAddress("annotations"))} 1`,
+    ]);
     expect(calls).toEqual([]);
   });
 
   it("are the edited frame's cards in the group editor", () => {
     expect(taken(mountOn(VIEW, A, GROUP).svg)).toEqual([
-      "rect group_1/score/card 1",
-      "rect group_1/performance/card 1",
+      `${tagged("rect", cardAddress("score"))} 1`,
+      `${tagged("rect", cardAddress("performance"))} 1`,
     ]);
   });
 
@@ -446,7 +562,7 @@ describe("the reorder of a frame's cards", () => {
 
   it("selects, previews each order as its command leaves the block, stores one set", async () => {
     const { svg, calls } = mountOn(VIEW, A, GROUP);
-    const card = addressed(svg, "group_1/score/card")[1] as Element;
+    const card = addressed(svg, cardAddress("score"))[1] as Element;
     // The card slides 60 pixels down to a previewed slot; the gesture reads the drawing's CTM.
     withScreenMatrix(card, () => ({ ...IDENTITY, f: 60 }));
     pointer(card, "pointerdown", 100, 70);
@@ -460,19 +576,19 @@ describe("the reorder of a frame's cards", () => {
     expect(copy.map((element) => element.localName)).toEqual(
       SCORE.map((element) => element.split(" ")[0]),
     );
-    expect(copy.some((element) => element.hasAttribute("data-address"))).toBe(false);
+    expect(copy.some(writesAddress)).toBe(false);
     expect(marked(svg, "visibility")).toEqual(SCORE);
     pointer(card, "pointerup", 110, 170);
 
     const reorder = reorderCommand(blockIn(VIEW, A), "group_1", ["performance", "score"]);
     expect(kinds(calls)).toEqual(["select", "preview", "preview", "dispatch", "preview"]);
-    expect(calls[0]).toEqual({ select: `${A}/group_1/score/card` });
+    expect(calls[0]).toEqual({ select: inA(cardAddress("score")) });
     expect(previewed(calls[1])).toEqual(blockIn(VIEW, A));
     expect(previewed(calls[2])).toEqual(after(VIEW, reorder));
     expect(calls[3]).toEqual({ dispatch: reorder });
     expect(reorder).toEqual({
       type: "set",
-      changes: [{ target: `${A}/group_1`, values: { order: null } }],
+      changes: [{ target: inA(idAddress("group_1")), values: { order: null } }],
     });
     expect(previewed(calls[4])).toBeNull();
     // The node's view is not changed by the recorded dispatch: the copy settles on the card's old place.
@@ -500,7 +616,7 @@ describe("the reorder of a frame's cards", () => {
 
   it("starts no motion for a copy gone before the next frame", async () => {
     const { svg } = mountOn(VIEW, A, GROUP);
-    const card = addressed(svg, "group_1/score/card")[1] as Element;
+    const card = addressed(svg, cardAddress("score"))[1] as Element;
     drag(card, [100, 70], [110, 170]);
     expect(svg.querySelectorAll("g.tilie-dragged").length).toBe(1);
     clear();
@@ -510,7 +626,7 @@ describe("the reorder of a frame's cards", () => {
 
   it("removes the copy at once under reduced motion", () => {
     const { svg } = mountOn(VIEW, A, GROUP, { reducedMotion: true });
-    const card = addressed(svg, "group_1/score/card")[1] as Element;
+    const card = addressed(svg, cardAddress("score"))[1] as Element;
     drag(card, [100, 70], [110, 170]);
     expect(settles).not.toHaveBeenCalled();
     expect(svg.querySelectorAll("g.tilie-dragged").length).toBe(0);
@@ -519,7 +635,7 @@ describe("the reorder of a frame's cards", () => {
 
   it("calls nothing for a press released within the click distance", () => {
     const { svg, calls } = mountOn(VIEW, A, GROUP);
-    const card = addressed(svg, "group_1/score/card")[1] as Element;
+    const card = addressed(svg, cardAddress("score"))[1] as Element;
     pointer(card, "pointerdown", 100, 70);
     pointer(card, "pointermove", 102, 72);
     pointer(card, "pointerup", 102, 72);
@@ -530,34 +646,36 @@ describe("the reorder of a frame's cards", () => {
 
 describe("the item move", () => {
   /** `group_2` moved alone to (40, 200), the other items stating their drawn places. */
-  const ALONE = itemMoveCommand(VIEW, A, "group_2", 40, 200, metrics);
+  const ALONE = itemMoveCommand(VIEW, A, { item: "group_2" }, 40, 200, metrics);
   /** `group_2` moved to (40, 200) with `annotations` by the same travel. */
-  const BOTH = itemMoveCommand(VIEW, A, "group_2", 40, 200, metrics, ["annotations"]);
+  const BOTH = itemMoveCommand(VIEW, A, { item: "group_2" }, 40, 200, metrics, [
+    { item: "annotations" },
+  ]);
 
   it("is the command the bundle editor's rule gives", () => {
     expect(ALONE).toEqual({
       type: "set",
       changes: [
-        { target: `${A}/group_2`, values: { place: { x: 40, y: 200 } } },
-        { target: `${A}/group_1`, values: { place: { x: 8, y: 28.8046875 } } },
-        { target: `${A}/annotations`, values: { place: { x: 8, y: 391.7734375 } } },
+        { target: inA(idAddress("group_2")), values: { place: { x: 40, y: 200 } } },
+        { target: inA(idAddress("group_1")), values: { place: { x: 8, y: 28.8046875 } } },
+        { target: inA(idAddress("annotations")), values: { place: { x: 8, y: 391.7734375 } } },
       ],
     });
     expect(BOTH).toEqual({
       type: "set",
       changes: [
-        { target: `${A}/group_2`, values: { place: { x: 40, y: 200 } } },
-        { target: `${A}/annotations`, values: { place: { x: 40, y: 385.734375 } } },
-        { target: `${A}/group_1`, values: { place: { x: 8, y: 28.8046875 } } },
+        { target: inA(idAddress("group_2")), values: { place: { x: 40, y: 200 } } },
+        { target: inA(idAddress("annotations")), values: { place: { x: 40, y: 385.734375 } } },
+        { target: inA(idAddress("group_1")), values: { place: { x: 8, y: 28.8046875 } } },
       ],
     });
   });
 
   /** The node of A on `view` in A's bundle editor with `selected` (element addresses of A). */
-  function pressedWith(selected: string[], view: View = VIEW, options: Options = {}) {
-    const selection = new Set(selected.map((at) => `${A}/${at}`));
+  function pressedWith(selected: ElementAddress[], view: View = VIEW, options: Options = {}) {
+    const selection = selectedIn(...selected);
     const node = mountOn(view, A, BUNDLE, { ...options, selection });
-    const frame = addressed(node.svg, "group_2")[0] as Element;
+    const frame = addressed(node.svg, idAddress("group_2"))[0] as Element;
     pointer(frame, "pointerdown", 100, 200);
     return { ...node, frame };
   }
@@ -568,7 +686,7 @@ describe("the item move", () => {
     const shown = previewOf(view, command);
     if (isCommandError(shown)) throw new Error(shown.message);
     return [
-      ...(selects ? [{ select: `${A}/group_2` }] : []),
+      ...(selects ? [{ select: inA(idAddress("group_2")) }] : []),
       { preview: A, with: { view: shown } },
       { dispatch: command },
       { preview: A, with: null },
@@ -583,21 +701,21 @@ describe("the item move", () => {
     expect(calls).toEqual(stored(VIEW, ALONE, true));
     clear();
 
-    const outside = pressedWith(["group_1", "annotations/card"]);
+    const outside = pressedWith([idAddress("group_1"), cardAddress("annotations")]);
     pointer(outside.frame, "pointermove", 132, 193.9609375);
     pointer(outside.frame, "pointerup", 132, 193.9609375);
     expect(outside.calls).toEqual(stored(VIEW, ALONE, true));
   });
 
   it("moves two selected items together in one set and leaves the selection", () => {
-    const { calls, frame } = pressedWith(["group_2", "annotations/card"]);
+    const { calls, frame } = pressedWith([idAddress("group_2"), cardAddress("annotations")]);
     pointer(frame, "pointermove", 132, 193.9609375);
     pointer(frame, "pointerup", 132, 193.9609375);
     expect(calls).toEqual(stored(VIEW, BOTH, false));
   });
 
   it("moves the one item in the selection alone and leaves the selection", () => {
-    const { calls, frame } = pressedWith(["group_2", "page"]);
+    const { calls, frame } = pressedWith([idAddress("group_2"), idAddress("page")]);
     pointer(frame, "pointermove", 132, 193.9609375);
     pointer(frame, "pointerup", 132, 193.9609375);
     expect(calls).toEqual(stored(VIEW, ALONE, false));
@@ -605,23 +723,25 @@ describe("the item move", () => {
 
   it("leaves a frame under a moved card where it is", () => {
     // `annotations`' card drawn at (8, 60), over `group_1`'s frame; every item states its place.
-    const over = changed(VIEW, itemMoveCommand(VIEW, A, "annotations", 8, 60, metrics));
-    const moved = itemMoveCommand(over, A, "group_2", 40, 200, metrics, ["annotations"]);
+    const over = changed(VIEW, itemMoveCommand(VIEW, A, { item: "annotations" }, 8, 60, metrics));
+    const moved = itemMoveCommand(over, A, { item: "group_2" }, 40, 200, metrics, [
+      { item: "annotations" },
+    ]);
     expect(moved).toEqual({
       type: "set",
       changes: [
-        { target: `${A}/group_2`, values: { place: { x: 40, y: 200 } } },
-        { target: `${A}/annotations`, values: { place: { x: 40, y: 53.9609375 } } },
+        { target: inA(idAddress("group_2")), values: { place: { x: 40, y: 200 } } },
+        { target: inA(idAddress("annotations")), values: { place: { x: 40, y: 53.9609375 } } },
       ],
     });
-    const { calls, frame } = pressedWith(["annotations/name", "group_2"], over);
+    const { calls, frame } = pressedWith([part("annotations", "name"), idAddress("group_2")], over);
     pointer(frame, "pointermove", 132, 193.9609375);
     pointer(frame, "pointerup", 132, 193.9609375);
     expect(calls).toEqual(stored(over, moved, false));
   });
 
   it("withdraws the preview on Escape, and stores nothing for a drag back to its start", () => {
-    const escaped = pressedWith(["group_2", "annotations/card"]);
+    const escaped = pressedWith([idAddress("group_2"), cardAddress("annotations")]);
     pointer(escaped.frame, "pointermove", 132, 193.9609375);
     pressEscape();
     pointer(escaped.frame, "pointerup", 132, 193.9609375);
@@ -630,7 +750,7 @@ describe("the item move", () => {
     expect(previewed(escaped.calls[1])).toBeNull();
     clear();
 
-    const back = pressedWith(["group_2", "annotations/card"]);
+    const back = pressedWith([idAddress("group_2"), cardAddress("annotations")]);
     pointer(back.frame, "pointermove", 132, 193.9609375);
     pointer(back.frame, "pointermove", 100, 200);
     pointer(back.frame, "pointerup", 100, 200);
@@ -645,7 +765,7 @@ describe("the item move", () => {
     const { calls, frame } = pressedWith([], scaled, { zoom: 2 });
     pointer(frame, "pointerup", 180, 184.90234375);
     expect(calls.at(-2)).toEqual({
-      dispatch: itemMoveCommand(scaled, A, "group_2", 40, 200, metrics),
+      dispatch: itemMoveCommand(scaled, A, { item: "group_2" }, 40, 200, metrics),
     });
   });
 });
@@ -699,7 +819,7 @@ describe("the slide of a reorder", () => {
   async function previewed(reducedMotion: boolean): Promise<number> {
     const { svg, redraw } = mountOn(VIEW, A, GROUP, { reducedMotion });
     const animate = measured();
-    const card = addressed(svg, "group_1/score/card")[1] as Element;
+    const card = addressed(svg, cardAddress("score"))[1] as Element;
     pointer(card, "pointerdown", 100, 70);
     pointer(card, "pointermove", 110, 170);
     redraw(REORDERED);
@@ -729,7 +849,7 @@ describe("the slide of a reorder", () => {
 describe("bands in the timeline editor", () => {
   /** A record of `score` on its line at 100, 540 wide from x 16 (README, "Stated records"). */
   function band(
-    kind: NonNullable<DrawnBox["band"]>["kind"],
+    facet: Facet,
     level: number,
     elements: number,
     y: number,
@@ -738,15 +858,15 @@ describe("bands in the timeline editor", () => {
     return {
       kind: "band",
       key: null,
-      address: `score/${kind}_1`,
-      holder: "group_1/score/card",
+      address: bandAddress("score", facet),
+      holder: { item: "group_1", member: "score" },
       x: 16,
       y,
       width: 540,
       height,
       range: { start: 0, end: 0 },
       displayed: false,
-      band: { timeline: "score", kind, level, elements, line: 100 },
+      band: { timeline: "score", facet, level, elements, line: 100 },
     };
   }
 
@@ -756,27 +876,22 @@ describe("bands in the timeline editor", () => {
   const BANDS = [MAPS, MARKERS, FLOW];
 
   /** `score`'s order with its markers band moved just below its conversion maps band. */
-  const MOVED = [
-    "score/children_1",
-    "score/conversion_maps_1",
-    "score/markers_1",
-    "score",
-    "score/regions_1",
-    "score/flow_control_1",
-  ];
+  const MOVED = ["children", "conversion_maps", "markers", "line", "regions", "flow_control"];
   const MOVE = {
     type: "set",
-    changes: [{ target: `${A}/score`, values: { order: MOVED } }],
+    changes: [{ target: inA(idAddress("score")), values: { order: MOVED } }],
   } as const;
+  const MARKERS_BAND = addressKey(bandAddress("score", "markers"));
+  const MAPS_BAND = addressKey(bandAddress("score", "conversion_maps"));
 
   /** The node of A on `VIEW` under `editing` with the stated records, and `score`'s card. */
   function shown(
     editing: Editing | null,
-    { selected = [], locked = false }: { selected?: string[]; locked?: boolean } = {},
+    { selected = [], locked = false }: { selected?: ElementAddress[]; locked?: boolean } = {},
   ) {
-    const selection = new Set(selected.map((address) => `${A}/${address}`));
+    const selection = selectedIn(...selected);
     const node = mountOn(VIEW, A, editing, { selection, bands: BANDS, locked });
-    return { ...node, card: addressed(node.svg, "group_1/score/card")[1] as Element };
+    return { ...node, card: addressed(node.svg, cardAddress("score"))[1] as Element };
   }
 
   /** The band marks of `svg` as `<data-marks> <data-mark>`. */
@@ -801,7 +916,7 @@ describe("bands in the timeline editor", () => {
     ).toEqual({
       class: "tilie-mark",
       "data-mark": "hover",
-      "data-marks": "score/markers_1",
+      "data-marks": MARKERS_BAND,
       "data-box": "band",
       x: "16",
       y: "104",
@@ -812,12 +927,12 @@ describe("bands in the timeline editor", () => {
     });
     clear();
 
-    const selected = shown(TIMELINE, { selected: ["score/markers_1"] });
-    expect(bandMarks(selected.svg)).toEqual(["score/markers_1 selection"]);
+    const selected = shown(TIMELINE, { selected: [bandAddress("score", "markers")] });
+    expect(bandMarks(selected.svg)).toEqual([`${MARKERS_BAND} selection`]);
     const children = Array.from(selected.svg.children);
     const holding = children.filter((element) => element.getAttribute("data-mark") === "holding");
     expect(holding.map((element) => element.getAttribute("data-box"))).toEqual([
-      "box",
+      "block",
       "frame",
       "card",
     ]);
@@ -826,15 +941,12 @@ describe("bands in the timeline editor", () => {
       last + 1,
     );
     pointer(selected.card, "pointermove", 200, 110);
-    expect(bandMarks(selected.svg)).toEqual(["score/markers_1 selection"]);
+    expect(bandMarks(selected.svg)).toEqual([`${MARKERS_BAND} selection`]);
     pointer(selected.card, "pointermove", 200, 75);
-    expect(bandMarks(selected.svg)).toEqual([
-      "score/conversion_maps_1 hover",
-      "score/markers_1 selection",
-    ]);
+    expect(bandMarks(selected.svg)).toEqual([`${MAPS_BAND} hover`, `${MARKERS_BAND} selection`]);
     selected.svg.dispatchEvent(new PointerEvent("pointerleave"));
     flushSync();
-    expect(bandMarks(selected.svg)).toEqual(["score/markers_1 selection"]);
+    expect(bandMarks(selected.svg)).toEqual([`${MARKERS_BAND} selection`]);
   });
 
   it("selects, previews and stores one set for a drag past the click distance", () => {
@@ -846,7 +958,7 @@ describe("bands in the timeline editor", () => {
     pointer(card, "pointermove", 200, 90);
     pointer(card, "pointerup", 200, 90);
     expect(kinds(calls)).toEqual(["select", "preview", "dispatch", "preview"]);
-    expect(calls[0]).toEqual({ select: `${A}/score/markers_1` });
+    expect(calls[0]).toEqual({ select: inA(bandAddress("score", "markers")) });
     expect(previewed(calls[1])).toEqual(after(VIEW, MOVE));
     expect(calls[2]).toEqual({ dispatch: MOVE });
     expect(previewed(calls[3])).toBeNull();
@@ -911,19 +1023,19 @@ describe("bands in the timeline editor", () => {
     const shifted = shown(TIMELINE);
     untaken(shifted, shifted.card, true);
     const wedge = shown(TIMELINE);
-    untaken(wedge, addressed(wedge.svg, "score/start")[0] as Element);
+    untaken(wedge, addressed(wedge.svg, part("score", "start"))[0] as Element);
   });
 
   it("marks and moves no band outside its timeline's editor", () => {
-    const performance: Editing = { target: `${A}/performance`, kind: "timeline" };
+    const performance: Editing = { target: inA(idAddress("performance")), kind: "timeline" };
     const outside: [Editing | null, (node: ReturnType<typeof shown>) => Element][] = [
       [null, (node) => node.card],
       [BUNDLE, (node) => node.card],
-      [GROUP, (node) => addressed(node.svg, "group_1")[0] as Element],
+      [GROUP, (node) => addressed(node.svg, idAddress("group_1"))[0] as Element],
       [performance, (node) => node.card],
     ];
     for (const [editing, target] of outside) {
-      const marks = shown(editing, { selected: ["score/markers_1"] });
+      const marks = shown(editing, { selected: [bandAddress("score", "markers")] });
       pointer(marks.card, "pointermove", 200, 110);
       expect(bandMarks(marks.svg)).toEqual([]);
       clear();

@@ -1,63 +1,78 @@
 /** The selection: a set of addresses, the click that changes it, and the addresses that still exist. */
 
-import type { BandKind, BlockId, ResolvedAddress, View } from "@timetoalign/tilie-core";
+import type { Address, BlockId, Facet, ResolvedAddress, View } from "@timetoalign/tilie-core";
 import {
+  addressKey,
+  cardAddress,
   contains,
   findTimeline,
+  inBlock,
   isCommandError,
-  qualify,
   resolveAddress,
 } from "@timetoalign/tilie-core";
 import type { Editing } from "./editing.ts";
 import { addressParts, bandTimelineOf } from "./editing.ts";
 
 /**
- * Block ids and element addresses: `<block>/<element address>`, the element
- * address being an element's, a part's or a band's (drawing.md section 2.2,
- * so `<block>/<root>/<id>/<part>` at most, and `<block>/<timeline>/<kind>_1`
- * for a band).
+ * The selected addresses of blocks and of their elements, parts and bands
+ * (drawing.md section 2.2), each under its key (`addressKey`): an address
+ * is selected once, however its object was built.
  */
-export type Selection = ReadonlySet<string>;
+export type Selection = ReadonlyMap<string, Address>;
+
+/** The selection holding `addresses`, each once. */
+export function selectionOf(addresses: Iterable<Address>): Selection {
+  return new Map([...addresses].map((address) => [addressKey(address), address]));
+}
+
+/** The empty selection. */
+export const NOTHING_SELECTED: Selection = new Map();
+
+/** Whether `selection` holds `address`. */
+export function isSelected(selection: Selection, address: Address): boolean {
+  return selection.has(addressKey(address));
+}
 
 /** The block an address lies in. */
-export function blockOf(address: string): BlockId {
+export function blockOf(address: Address): BlockId {
   return addressParts(address).block;
 }
 
 /**
  * The selection after a click that selects `address` (what a press hit
- * selects is `boxes.ts`'s `selectionOf`): that address alone, or, when
+ * selects is `boxes.ts`'s `pressSelection`): that address alone, or, when
  * `additive`, the selection with that address toggled. A click on an element
  * selects the element only, never its block.
  */
-export function click(selection: Selection, address: string, additive: boolean): Selection {
-  if (!additive) return new Set([address]);
-  const next = new Set(selection);
-  if (next.has(address)) next.delete(address);
-  else next.add(address);
+export function click(selection: Selection, address: Address, additive: boolean): Selection {
+  if (!additive) return selectionOf([address]);
+  const key = addressKey(address);
+  const next = new Map(selection);
+  if (next.has(key)) next.delete(key);
+  else next.set(key, address);
   return next;
 }
 
-/** A selected band: its block, its timeline and its kind. */
+/** A selected band: its block, its timeline and its facet. */
 export interface SelectedBand {
   readonly block: BlockId;
   readonly timeline: string;
-  readonly kind: BandKind;
+  readonly facet: Facet;
 }
 
-/** The band `resolved` names, its block, timeline and kind; `null` for anything else. */
+/** The band `resolved` names, its block, timeline and facet; `null` for anything else. */
 function bandOf(resolved: ResolvedAddress): SelectedBand | null {
   return resolved.kind === "band"
-    ? { block: resolved.block.id, timeline: resolved.at.timeline.id, kind: resolved.band }
+    ? { block: resolved.block.id, timeline: resolved.at.timeline.id, facet: resolved.facet }
     : null;
 }
 
 /**
  * The band the selected `address` names in `view` (core's `resolveAddress`),
- * its block, timeline and kind; `null` for any other address, and for one
+ * its block, timeline and facet; `null` for any other address, and for one
  * that names nothing.
  */
-export function selectedBand(view: View, address: string): SelectedBand | null {
+export function selectedBand(view: View, address: Address): SelectedBand | null {
   const resolved = resolveAddress(view, address);
   return isCommandError(resolved) ? null : bandOf(resolved);
 }
@@ -86,7 +101,7 @@ export function offersBand(view: View, band: SelectedBand, editing: Editing | nu
  * (`offersBand`), and, in an editor, lie inside the edited element: in the
  * bundle editor its block or anything of it, in a group or timeline editor
  * what that group or timeline contains (core's `contains`), the edited
- * element itself and its card included, never another block. The one rule
+ * element itself and its cards included, never another block. The one rule
  * for what a selection keeps, after a change, an undo or a redo and when an
  * editor closes, so a change keeps every address that still names something
  * inside the edited element, and closing an editor drops every band but
@@ -95,7 +110,7 @@ export function offersBand(view: View, band: SelectedBand, editing: Editing | nu
  */
 export function existing(view: View, selection: Selection, editing: Editing | null): Selection {
   const edited = editing === null ? null : addressParts(editing.target);
-  const kept = [...selection].filter((address) => {
+  const kept = [...selection.values()].filter((address) => {
     const resolved = resolveAddress(view, address);
     if (isCommandError(resolved) || resolved.kind === "workspace") return false;
     const band = bandOf(resolved);
@@ -103,25 +118,26 @@ export function existing(view: View, selection: Selection, editing: Editing | nu
     if (edited === null) return true;
     const { block, element } = addressParts(address);
     if (block !== edited.block) return false;
-    if (edited.element === null) return true;
-    return element !== null && contains(resolved.block.manifest, edited.element, element);
+    if (edited.element?.id === undefined) return true;
+    return element !== null && contains(resolved.block.manifest, edited.element.id, element);
   });
-  return kept.length === selection.size ? selection : new Set(kept);
+  return kept.length === selection.size ? selection : selectionOf(kept);
 }
 
 /**
  * What the selection holds once `editing` has opened in `view`: the edited
  * element, by the address a click on its box selects: the block for the
  * bundle editor, the group for the group editor (a press on its frame
- * selects the group), and for the timeline editor the timeline's card where
- * it is drawn in one (its first, for a member of several groups), else the
- * timeline (a child, which has no card, is selected by its line).
+ * selects the group), and for the timeline editor the timeline's cards
+ * where it is drawn in a card (every card of a member of several groups
+ * shares one address), else the timeline (a child, which has no card, is
+ * selected by its line).
  */
 export function editedSelection(view: View, editing: Editing): Selection {
-  const { block } = addressParts(editing.target);
-  if (editing.kind !== "timeline") return new Set([editing.target]);
-  const resolved = resolveAddress(view, editing.target);
-  const card =
-    isCommandError(resolved) || resolved.kind !== "timeline" ? null : resolved.cards[0]?.address;
-  return new Set([card == null ? editing.target : qualify(block, card)]);
+  const { target } = editing;
+  if (editing.kind !== "timeline" || target.id === undefined) return selectionOf([target]);
+  const resolved = resolveAddress(view, target);
+  const carded =
+    !isCommandError(resolved) && resolved.kind === "timeline" && resolved.cards.length > 0;
+  return selectionOf([carded ? inBlock(blockOf(target), cardAddress(target.id)) : target]);
 }

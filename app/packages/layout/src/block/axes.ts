@@ -4,7 +4,7 @@
  * own coordinates lie.
  */
 
-import { elementAddress, type Real, type TimelineManifest } from "@timetoalign/tilie-core";
+import type { Real, TimelineManifest } from "@timetoalign/tilie-core";
 import { type MemberDrawing, orderedChildren } from "@timetoalign/tilie-core/drawing";
 import { compareReal } from "@timetoalign/tilie-core/numbers";
 import type { DrawnAxis } from "../boxes.ts";
@@ -98,15 +98,16 @@ export function axesOf(
   const relativeX = (value: Real) => L * proportion(value, lambda);
   const spans = spansOf(root, lambda);
   const rootOpen = spans.get(root.id)?.open === true;
+  // The IDs of the displayed maps: a map's address is `{id}`.
   const shownMaps = new Set(
-    drawn.elements.flatMap((element) => (element.type === "map" ? [element.address] : [])),
+    drawn.elements.flatMap((element) => (element.type === "map" ? [element.address.id] : [])),
   );
   const ancestorIndex = new Map(
     member.ancestors.map(({ timeline }, index) => [timeline.id, index]),
   );
 
   const lineAxis = (element: LineElement): DrawnAxis | undefined => {
-    const span = spans.get(element.address);
+    const span = element.address.id === undefined ? undefined : spans.get(element.address.id);
     if (span === undefined) return undefined;
     const { timeline } = span;
     const length = lengthValue(timeline);
@@ -119,13 +120,12 @@ export function axesOf(
       numberType: timeline.number_type,
       start: zero(timeline.number_type),
       end: span.open ? null : (length ?? add(span.end, negate(span.start))),
-      maps: timeline.conversion_maps.filter((map) =>
-        shownMaps.has(elementAddress(member.root, map.id)),
-      ),
+      maps: timeline.conversion_maps.filter((map) => shownMaps.has(map.id)),
     };
   };
   const ancestorAxis = (element: LineElement): DrawnAxis | undefined => {
-    const index = ancestorIndex.get(element.address) ?? member.ancestors.length;
+    const { id } = element.address;
+    const index = (id === undefined ? undefined : ancestorIndex.get(id)) ?? member.ancestors.length;
     const [ancestor, ...lower] = member.ancestors.slice(index);
     if (ancestor === undefined) return undefined;
     const { timeline } = ancestor;

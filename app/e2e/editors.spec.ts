@@ -14,11 +14,14 @@ import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import { drawingOf, nodePosition } from "../packages/arranger/src/drawing.ts";
 import { focusViewport } from "../packages/arranger/src/focus.ts";
-import { isLoadError, readWorkspace } from "../packages/core/src/index.ts";
+import type { Address, ElementAddress } from "../packages/core/src/index.ts";
+import { addressKey, cardAddress, isLoadError, readWorkspace } from "../packages/core/src/index.ts";
 import { FONT_METRICS } from "./schema.ts";
 import {
+  addressSelector,
   arranger,
   BUNDLES,
+  byKey,
   cardsOf,
   dispatch,
   done,
@@ -60,6 +63,11 @@ const VIEW = { x: 40, y: 40, zoom: 1 };
 const MIXED = BUNDLES.mixed;
 const START = OPENED_JOURNAL.bundles;
 
+/** The element `id` of `bmixed0000`, as a selection, an editor or a command names it. */
+const mixed = (id: string): Address => ({ block: MIXED, id });
+/** The block `bmixed0000`, its bundle's address. */
+const BUNDLE: Address = { block: MIXED };
+
 /**
  * The drawn position of every item of `block` in `bundles.tle.json` (each
  * frame and ungrouped card, from the place origin, defaults applied), by
@@ -73,7 +81,7 @@ function drawnPlaces(block: string): Record<string, { x: number; y: number }> {
   const drawing = drawingOf(found, workspace.view.settings, FONT_METRICS);
   return Object.fromEntries(
     drawing.boxes.flatMap(({ key, item }) =>
-      key === null || item === undefined ? [] : [[key, { x: item.place.x, y: item.place.y }]],
+      key === null || item === undefined ? [] : [[key.item, { x: item.place.x, y: item.place.y }]],
     ),
   );
 }
@@ -90,8 +98,7 @@ function onFreeGrid(value: number): boolean {
  * `<svg>`'s scale in the last digits).
  */
 function frameRect(page: Page): Promise<{ x: number; y: number; width: number; height: number }> {
-  return node(page, MIXED)
-    .locator('[data-address="group_1"]')
+  return element(page, MIXED, { id: "group_1" })
     .first()
     .evaluate((rect) => {
       const read = (name: string) => Number(rect.getAttribute(name));
@@ -109,17 +116,17 @@ function places(page: Page, id: string): Promise<unknown> {
 
 const SET_PLACE = {
   type: "set",
-  changes: [{ target: `${MIXED}/group_1`, values: { place: { length: 300 } } }],
+  changes: [{ target: mixed("group_1"), values: { place: { length: 300 } } }],
 };
 const SET_NAME = {
   type: "set",
-  changes: [{ target: `${MIXED}/score`, values: { name: "S" } }],
+  changes: [{ target: mixed("score"), values: { name: "S" } }],
 };
 
 /** The `set` of the name of `bmixed0000`'s timeline `id`. */
 const rename = (id: string, name: string) => ({
   type: "set",
-  changes: [{ target: `${MIXED}/${id}`, values: { name } }],
+  changes: [{ target: mixed(id), values: { name } }],
 });
 
 /** The names of `bmixed0000`'s roots `score`, `performance` and `annotations` in the view. */
@@ -153,16 +160,22 @@ function editingPath(page: Page) {
 /**
  * Of the parts of block `id` showing its structure (`support.ts`'s
  * `structure`: a frame, a line, the title, a card or a group's title), each
- * address with whether its parts carry `data-outside`: `true` when all do,
- * `false` when none does, `"mixed"` otherwise.
+ * address's key (`addressKey`) with whether its parts carry `data-outside`:
+ * `true` when all do, `false` when none does, `"mixed"` otherwise.
  */
 async function outside(page: Page, id: string): Promise<Record<string, boolean | "mixed">> {
   const found: Record<string, boolean | "mixed"> = {};
   for (const { address, outside: faded } of await structure(page, id)) {
-    const seen = found[address];
-    found[address] = seen === undefined || seen === faded ? faded : "mixed";
+    const key = addressKey(address);
+    const seen = found[key];
+    found[key] = seen === undefined || seen === faded ? faded : "mixed";
   }
   return found;
+}
+
+/** The record `outside` gives for the addresses of `entries`, each with its value. */
+function keyed(entries: readonly (readonly [ElementAddress, boolean])[]): Record<string, boolean> {
+  return Object.fromEntries(entries.map(([address, value]) => [addressKey(address), value]));
 }
 
 test.describe("on bundles", () => {
@@ -175,7 +188,7 @@ test.describe("on bundles", () => {
     {
       what: "the block's margin opens the bundle editor",
       point: (page: Page) => marginPoint(page, MIXED),
-      target: MIXED,
+      target: BUNDLE,
       kind: "bundle",
       word: "Bundle" as const,
       text: "Bundle Mixed",
@@ -183,8 +196,8 @@ test.describe("on bundles", () => {
     },
     {
       what: "a frame opens the group editor",
-      point: (page: Page) => framePoint(page, MIXED, "group_1"),
-      target: `${MIXED}/group_1`,
+      point: (page: Page) => framePoint(page, MIXED, { id: "group_1" }),
+      target: mixed("group_1"),
       kind: "group",
       word: "Group" as const,
       text: "Group Performance",
@@ -192,8 +205,8 @@ test.describe("on bundles", () => {
     },
     {
       what: "a card opens the timeline editor",
-      point: (page: Page) => framePoint(page, MIXED, "annotations/card"),
-      target: `${MIXED}/annotations`,
+      point: (page: Page) => framePoint(page, MIXED, cardAddress("annotations")),
+      target: mixed("annotations"),
       kind: "timeline",
       word: "Timeline" as const,
       text: "Timeline Annotations",
@@ -220,17 +233,17 @@ test.describe("on bundles", () => {
   }
 
   test("Enter opens the editor of the one selected box", async ({ page }) => {
-    await select(page, [`${MIXED}/group_2`]);
+    await select(page, [mixed("group_2")]);
     await arranger(page).focus();
     await page.keyboard.press("Enter");
-    await expect.poll(() => editing(page)).toEqual([{ target: `${MIXED}/group_2`, kind: "group" }]);
+    await expect.poll(() => editing(page)).toEqual([{ target: mixed("group_2"), kind: "group" }]);
   });
 
   test("the viewport moves to the opened editor and back on Done", async ({ page }) => {
     expect(await viewportOf(page)).toEqual(VIEW);
     const { x, y } = await marginPoint(page, MIXED);
     await page.mouse.dblclick(x, y);
-    await expect.poll(() => editing(page)).toEqual([{ target: MIXED, kind: "bundle" }]);
+    await expect.poll(() => editing(page)).toEqual([{ target: BUNDLE, kind: "bundle" }]);
     await expect.poll(() => viewportOf(page)).not.toEqual(VIEW);
     await editingBar(page).getByRole("button", { name: "Done", exact: true }).click();
     await expect.poll(() => editing(page)).toEqual([]);
@@ -238,26 +251,28 @@ test.describe("on bundles", () => {
   });
 
   test("outside the edited element everything is faded and inert", async ({ page }) => {
-    await enter(page, `${MIXED}/group_1`, VIEW);
-    const group = [{ target: `${MIXED}/group_1`, kind: "group" }];
-    expect(await outside(page, MIXED)).toEqual({
-      name: true,
-      group_1: false,
-      "group_1/name": false,
-      "group_1/score/card": false,
-      score: false,
-      "group_1/performance/card": false,
-      performance: false,
-      group_2: true,
-      "group_2/name": true,
-      "group_2/page/card": true,
-      page: true,
-      "group_2/excerpt/card": true,
-      recording: true,
-      excerpt: true,
-      "annotations/card": true,
-      annotations: true,
-    });
+    await enter(page, mixed("group_1"), VIEW);
+    const group = [{ target: mixed("group_1"), kind: "group" }];
+    expect(await outside(page, MIXED)).toEqual(
+      keyed([
+        [{ part: ["name"] }, true],
+        [{ id: "group_1" }, false],
+        [{ id: "group_1", part: ["name"] }, false],
+        [cardAddress("score"), false],
+        [{ id: "score" }, false],
+        [cardAddress("performance"), false],
+        [{ id: "performance" }, false],
+        [{ id: "group_2" }, true],
+        [{ id: "group_2", part: ["name"] }, true],
+        [cardAddress("page"), true],
+        [{ id: "page" }, true],
+        [cardAddress("excerpt"), true],
+        [{ id: "recording" }, true],
+        [{ id: "excerpt" }, true],
+        [cardAddress("annotations"), true],
+        [{ id: "annotations" }, true],
+      ]),
+    );
     for (const other of [BUNDLES.shared, BUNDLES.ungrouped]) {
       // Another block is faded and inert as a whole, through its node, not element by element.
       const whole = node(page, other);
@@ -267,10 +282,10 @@ test.describe("on bundles", () => {
       await expect(whole).toHaveCSS("pointer-events", "none");
       await expect(whole.locator("[data-outside]")).toHaveCount(0);
       const [first] = await cardsOf(page, other);
-      const card =
+      const drawn =
         first === undefined ? null : await element(page, other, first).first().boundingBox();
-      if (card === null) throw new Error(`${other} draws no card`);
-      const centre = { x: card.x + card.width / 2, y: card.y + card.height / 2 };
+      if (drawn === null) throw new Error(`${other} draws no card`);
+      const centre = { x: drawn.x + drawn.width / 2, y: drawn.y + drawn.height / 2 };
       await page.mouse.move(centre.x, centre.y);
       expect(
         await page.evaluate(
@@ -284,24 +299,24 @@ test.describe("on bundles", () => {
 
     // A click outside the edited element, on another block or on a faded part of its own, deselects.
     for (const [block, address] of [
-      [BUNDLES.shared, "group_1/take_1/card"],
-      [MIXED, "annotations/card"],
+      [BUNDLES.shared, cardAddress("take_1")],
+      [MIXED, cardAddress("annotations")],
     ] as const) {
-      await select(page, [`${MIXED}/score`]);
+      await select(page, [mixed("score")]);
       const { x, y } = await partCentre(page, block, address);
       await page.mouse.click(x, y);
       await expect.poll(() => selection(page)).toEqual([]);
       expect(await editing(page)).toEqual(group);
     }
 
-    await select(page, [`${MIXED}/score`]);
+    await select(page, [mixed("score")]);
     const pane = await emptyPoint(page, -20, 450);
     await page.mouse.click(pane.x, pane.y);
     await expect.poll(() => selection(page)).toEqual([]);
     expect(await editing(page)).toEqual(group);
 
     // A double-click outside closes the editor (see the cases at the end of the file).
-    const own = await framePoint(page, MIXED, "group_1");
+    const own = await framePoint(page, MIXED, { id: "group_1" });
     await page.mouse.dblclick(own.x, own.y);
     expect(await editing(page)).toEqual(group);
   });
@@ -309,30 +324,27 @@ test.describe("on bundles", () => {
   test("editors nest, and open only inside the innermost", async ({ page }) => {
     const margin = await marginPoint(page, MIXED);
     await page.mouse.dblclick(margin.x, margin.y);
-    await expect.poll(() => editing(page)).toEqual([{ target: MIXED, kind: "bundle" }]);
+    await expect.poll(() => editing(page)).toEqual([{ target: BUNDLE, kind: "bundle" }]);
     await expect.poll(() => viewportOf(page)).not.toEqual(VIEW);
     await setViewport(page, VIEW);
 
-    const frame = await framePoint(page, MIXED, "group_1");
+    const frame = await framePoint(page, MIXED, { id: "group_1" });
     await page.mouse.dblclick(frame.x, frame.y);
     const nested = [
-      { target: MIXED, kind: "bundle" },
-      { target: `${MIXED}/group_1`, kind: "group" },
+      { target: BUNDLE, kind: "bundle" },
+      { target: mixed("group_1"), kind: "group" },
     ];
     await expect.poll(() => editing(page)).toEqual(nested);
     await expect(editingPath(page)).toHaveText(["Mixed", "Performance"]);
 
-    const refusal = await page.evaluate(
-      (target) => window.__tilie.open(target),
-      `${MIXED}/group_2`,
-    );
+    const refusal = await page.evaluate((target) => window.__tilie.open(target), mixed("group_2"));
     expect(refusal?.code).toBe("not_inside");
-    expect(refusal?.path).toEqual([`${MIXED}/group_2`]);
+    expect(refusal?.path).toEqual([addressKey(mixed("group_2"))]);
     expect(await editing(page)).toEqual(nested);
 
     const done = editingBar(page).getByRole("button", { name: "Done", exact: true });
     await done.click();
-    await expect.poll(() => editing(page)).toEqual([{ target: MIXED, kind: "bundle" }]);
+    await expect.poll(() => editing(page)).toEqual([{ target: BUNDLE, kind: "bundle" }]);
     await expect(editingPath(page)).toHaveText(["Mixed"]);
     await expect.poll(() => viewportOf(page)).toEqual(VIEW);
     await done.click();
@@ -341,7 +353,7 @@ test.describe("on bundles", () => {
 
   test("Done folds the session into one journal entry, undone as one step", async ({ page }) => {
     const view = await storeText(page, "view");
-    await enter(page, `${MIXED}/group_1`, VIEW);
+    await enter(page, mixed("group_1"), VIEW);
     expect(await dispatch(page, SET_PLACE)).toBeNull();
     expect(await dispatch(page, SET_NAME)).toBeNull();
     const after = await storeText(page, "view");
@@ -362,7 +374,7 @@ test.describe("on bundles", () => {
           entries: sessions[id]?.entries.length,
         };
       }),
-    ).toEqual({ command: false, target: `${MIXED}/group_1`, entries: 2 });
+    ).toEqual({ command: false, target: mixed("group_1"), entries: 2 });
 
     // The two commands are one run of the closed session: one undo reverts both.
     await arranger(page).focus();
@@ -375,7 +387,7 @@ test.describe("on bundles", () => {
   });
 
   test("Cancel without a change closes at once", async ({ page }) => {
-    await enter(page, `${MIXED}/group_1`, VIEW);
+    await enter(page, mixed("group_1"), VIEW);
     await editingBar(page).getByRole("button", { name: "Cancel", exact: true }).click();
     await expect.poll(() => editing(page)).toEqual([]);
     await expect(page.getByRole("dialog")).toHaveCount(0);
@@ -389,8 +401,8 @@ test.describe("on bundles", () => {
       journal: await storeText(page, "journal"),
       sessions: await storeText(page, "sessions"),
     };
-    await enter(page, `${MIXED}/group_1`, VIEW);
-    const group = [{ target: `${MIXED}/group_1`, kind: "group" }];
+    await enter(page, mixed("group_1"), VIEW);
+    const group = [{ target: mixed("group_1"), kind: "group" }];
     const cancel = editingBar(page).getByRole("button", { name: "Cancel", exact: true });
     const dialog = page.getByRole("dialog");
     const question = (n: string) =>
@@ -445,13 +457,13 @@ test.describe("on bundles", () => {
   test("Escape aborts the gesture, then clears the selection, then acts as Done", async ({
     page,
   }) => {
-    await enter(page, MIXED, VIEW);
-    const bundle = [{ target: MIXED, kind: "bundle" }];
-    await select(page, [`${MIXED}/group_2`]);
-    await dragStart(page, await framePoint(page, MIXED, "group_2"), 40, 24);
+    await enter(page, BUNDLE, VIEW);
+    const bundle = [{ target: BUNDLE, kind: "bundle" }];
+    await select(page, [mixed("group_2")]);
+    await dragStart(page, await framePoint(page, MIXED, { id: "group_2" }), 40, 24);
     await page.keyboard.press("Escape");
     expect(await places(page, MIXED)).toEqual({});
-    expect(await selection(page)).toEqual([`${MIXED}/group_2`]);
+    expect(await selection(page)).toEqual([mixed("group_2")]);
     expect(await editing(page)).toEqual(bundle);
     await page.mouse.up();
     expect(await entriesLength(page)).toBe(0);
@@ -475,8 +487,8 @@ test.describe("on bundles", () => {
     }
     expect([first.x, first.y].every(onFreeGrid)).toBe(true);
 
-    await enter(page, MIXED, VIEW);
-    await drag(page, await framePoint(page, MIXED, "group_1"), 40, 24);
+    await enter(page, BUNDLE, VIEW);
+    await drag(page, await framePoint(page, MIXED, { id: "group_1" }), 40, 24);
     await expect.poll(() => entriesLength(page)).toBe(1);
     expect(await newestCommand(page)).toMatchObject({ type: "set" });
     expect(await places(page, MIXED)).toEqual({
@@ -499,13 +511,13 @@ test.describe("on bundles", () => {
     expect(annotations.x).toBe(8);
     expect([annotations.x, annotations.y].every(onFreeGrid)).toBe(true);
 
-    await enter(page, MIXED, VIEW);
+    await enter(page, BUNDLE, VIEW);
     const nodeBefore = await node(page, MIXED).boundingBox();
     if (nodeBefore === null) throw new Error("bmixed0000 is not displayed");
     const frameBefore = await frameRect(page);
     expect(frameBefore.x).toBe(8);
 
-    await drag(page, await framePoint(page, MIXED, "annotations/card"), -40, 16);
+    await drag(page, await framePoint(page, MIXED, cardAddress("annotations")), -40, 16);
     await expect.poll(() => entriesLength(page)).toBe(1);
     expect(await places(page, MIXED)).toEqual({
       group_1: { x: first.x, y: first.y },
@@ -529,38 +541,38 @@ test.describe("on bundles", () => {
     expect([first.x, first.y, annotations.x, annotations.y].every(onFreeGrid)).toBe(true);
     expect([first.x, annotations.x]).toEqual([8, 8]);
 
-    await enter(page, MIXED, VIEW);
+    await enter(page, BUNDLE, VIEW);
     const view = await storeText(page, "view");
-    const frame = await framePoint(page, MIXED, "group_1");
-    const card = await framePoint(page, MIXED, "annotations/card");
+    const frame = await framePoint(page, MIXED, { id: "group_1" });
+    const held = await framePoint(page, MIXED, cardAddress("annotations"));
     await page.mouse.click(frame.x, frame.y);
     await page.keyboard.down("Shift");
-    await page.mouse.click(card.x, card.y);
+    await page.mouse.click(held.x, held.y);
     await page.keyboard.up("Shift");
-    const both = [`${MIXED}/annotations/card`, `${MIXED}/group_1`];
+    const both = byKey([{ block: MIXED, ...cardAddress("annotations") }, mixed("group_1")]);
     await expect.poll(() => selection(page)).toEqual(both);
 
     /** The `x` attribute of the `index`-th `rect` of `address`, in drawing units. */
-    const rectX = (address: string, index: number) =>
+    const rectX = (address: ElementAddress, index: number) =>
       node(page, MIXED)
-        .locator(`rect[data-address="${address}"]`)
+        .locator(`.tilie-block svg rect${addressSelector(address)}`)
         .nth(index)
         .evaluate((rect) => Number(rect.getAttribute("x")));
     await dragStart(page, frame, 40, 24);
-    await expect.poll(() => rectX("group_1", 0)).toBe(48);
-    expect(await rectX("annotations/card", 1)).toBe(48);
+    await expect.poll(() => rectX({ id: "group_1" }, 0)).toBe(48);
+    expect(await rectX(cardAddress("annotations"), 1)).toBe(48);
     await page.mouse.up();
 
     await expect.poll(() => entriesLength(page)).toBe(1);
     expect(await newestCommand(page)).toEqual({
       type: "set",
       changes: [
-        { target: `${MIXED}/group_1`, values: { place: { x: first.x + 40, y: first.y + 24 } } },
+        { target: mixed("group_1"), values: { place: { x: first.x + 40, y: first.y + 24 } } },
         {
-          target: `${MIXED}/annotations`,
+          target: mixed("annotations"),
           values: { place: { x: annotations.x + 40, y: annotations.y + 24 } },
         },
-        { target: `${MIXED}/group_2`, values: { place: { x: second.x, y: second.y } } },
+        { target: mixed("group_2"), values: { place: { x: second.x, y: second.y } } },
       ],
     });
     expect(await places(page, MIXED)).toEqual({
@@ -577,13 +589,13 @@ test.describe("on bundles", () => {
   });
 
   test("a change outside the edited element is refused", async ({ page }) => {
-    await enter(page, `${MIXED}/group_1`, VIEW);
+    await enter(page, mixed("group_1"), VIEW);
     const refusal = await dispatch(page, {
       type: "set",
-      changes: [{ target: `${MIXED}/group_2`, values: { place: { x: 10 } } }],
+      changes: [{ target: mixed("group_2"), values: { place: { x: 10 } } }],
     });
     expect(refusal?.code).toBe("side_effect");
-    expect(refusal?.path).toEqual([`${MIXED}/group_2`]);
+    expect(refusal?.path).toEqual([addressKey(mixed("group_2"))]);
     expect(await entriesLength(page)).toBe(0);
     expect(await places(page, MIXED)).toEqual({});
   });
@@ -591,21 +603,21 @@ test.describe("on bundles", () => {
   test("a refused Delete in the group editor shows the refusal in the status line", async ({
     page,
   }) => {
-    await enter(page, `${MIXED}/group_2`, VIEW);
+    await enter(page, mixed("group_2"), VIEW);
     const view = await storeText(page, "view");
-    await select(page, [`${MIXED}/excerpt`]);
+    await select(page, [mixed("excerpt")]);
     await arranger(page).focus();
     await page.keyboard.press("Delete");
     await expect(page.getByTestId("hint")).toHaveText(
-      `${MIXED}/recording lies outside ${MIXED}/group_2: an editor changes only what it edits`,
+      `${addressKey(mixed("recording"))} lies outside ${addressKey(mixed("group_2"))}: an editor changes only what it edits`,
     );
     expect(await entriesLength(page)).toBe(0);
     expect(await storeText(page, "view")).toBe(view);
   });
 
   test("Delete on the edited element asks to close its editor first", async ({ page }) => {
-    await enter(page, `${MIXED}/group_1`, VIEW);
-    await expect.poll(() => selection(page)).toEqual([`${MIXED}/group_1`]);
+    await enter(page, mixed("group_1"), VIEW);
+    await expect.poll(() => selection(page)).toEqual([mixed("group_1")]);
     const journal = await journalLength(page);
     await arranger(page).focus();
     await page.keyboard.press("Delete");
@@ -617,7 +629,7 @@ test.describe("on bundles", () => {
   });
 
   test("the Journal tab shows a closed session as one row on the arranger", async ({ page }) => {
-    await enter(page, `${MIXED}/group_1`, VIEW);
+    await enter(page, mixed("group_1"), VIEW);
     expect(await dispatch(page, SET_PLACE)).toBeNull();
     expect(await dispatch(page, SET_NAME)).toBeNull();
     await editingBar(page).getByRole("button", { name: "Done", exact: true }).click();
@@ -631,7 +643,7 @@ test.describe("on bundles", () => {
   });
 
   test("the Journal tab keeps an undone entry listed, greyed, until redone", async ({ page }) => {
-    await enter(page, `${MIXED}/group_1`, VIEW);
+    await enter(page, mixed("group_1"), VIEW);
     expect(await dispatch(page, SET_PLACE)).toBeNull();
     expect(await dispatch(page, SET_NAME)).toBeNull();
     await page.evaluate(() => window.__tilie.store().undo());
@@ -639,15 +651,15 @@ test.describe("on bundles", () => {
     const journal = await panel(page, "Journal");
     const undone = journal.locator("[data-undone]");
     await expect(undone).toHaveCount(1);
-    await expect(undone).toContainText("Set name of bmixed0000/score");
+    await expect(undone).toContainText(`Set name of ${addressKey(mixed("score"))}`);
     await expect(undone).toContainText("undone");
-    await expect(journal).toContainText("Set place of bmixed0000/group_1");
+    await expect(journal).toContainText(`Set place of ${addressKey(mixed("group_1"))}`);
     await expect(journal.locator("[data-undone]", { hasText: "Set place" })).toHaveCount(0);
     const rows = journal.getByRole("listitem");
     await expect(rows).toHaveCount(2);
     await expect(rows).toContainText([
-      "Set name of bmixed0000/score",
-      "Set place of bmixed0000/group_1",
+      `Set name of ${addressKey(mixed("score"))}`,
+      `Set place of ${addressKey(mixed("group_1"))}`,
     ]);
     await page.evaluate(() => window.__tilie.store().redo());
     await expect(undone).toHaveCount(0);
@@ -661,9 +673,9 @@ test.describe("on bundles", () => {
     const names = () => rootNames(page);
     const original = await names();
     expect(original).toEqual(["Score", "Performance", "Annotations"]);
-    await enter(page, MIXED, VIEW);
-    await enter(page, `${MIXED}/group_1`, VIEW);
-    await enter(page, `${MIXED}/score`, VIEW);
+    await enter(page, BUNDLE, VIEW);
+    await enter(page, mixed("group_1"), VIEW);
+    await enter(page, mixed("score"), VIEW);
     expect(await dispatch(page, rename("score", "c"))).toBeNull();
     await close();
     expect(await dispatch(page, rename("performance", "b"))).toBeNull();
@@ -689,7 +701,7 @@ test.describe("on bundles", () => {
     const children = journalRows(first);
     await expect(children).toHaveCount(2);
     await expect(children).toContainText([
-      "Set name of bmixed0000/annotations",
+      `Set name of ${addressKey(mixed("annotations"))}`,
       "Edited group Performance (2 changes)",
     ]);
     await expect(children.first()).toHaveAttribute("data-undone");
@@ -718,11 +730,11 @@ test.describe("on bundles", () => {
   }) => {
     const view = await storeText(page, "view");
     expect(await rootNames(page)).toEqual(["Score", "Performance", "Annotations"]);
-    await enter(page, MIXED, VIEW);
+    await enter(page, BUNDLE, VIEW);
     expect(await dispatch(page, rename("annotations", "a1"))).toBeNull();
-    await enter(page, `${MIXED}/group_1`, VIEW);
+    await enter(page, mixed("group_1"), VIEW);
     expect(await dispatch(page, rename("performance", "b1"))).toBeNull();
-    await enter(page, `${MIXED}/score`, VIEW);
+    await enter(page, mixed("score"), VIEW);
     expect(await dispatch(page, rename("score", "c1"))).toBeNull();
     expect(await dispatch(page, rename("score", "c2"))).toBeNull();
     await done(page);
@@ -762,9 +774,9 @@ test.describe("on bundles", () => {
       const children = journalRows(first);
       await expect(children).toHaveCount(3);
       await expect(children).toContainText([
-        "Set name of bmixed0000/annotations",
+        `Set name of ${addressKey(mixed("annotations"))}`,
         "Edited group Performance (4 changes, 3 undone)",
-        "Set name of bmixed0000/annotations",
+        `Set name of ${addressKey(mixed("annotations"))}`,
       ]);
       expect(await undone(children)).toEqual([true, false, false]);
       const group = children.nth(1);
@@ -775,9 +787,9 @@ test.describe("on bundles", () => {
       const members = journalRows(group);
       await expect(members).toHaveCount(3);
       await expect(members).toContainText([
-        "Set name of bmixed0000/performance",
+        `Set name of ${addressKey(mixed("performance"))}`,
         "Edited timeline Score (2 changes)",
-        "Set name of bmixed0000/performance",
+        `Set name of ${addressKey(mixed("performance"))}`,
       ]);
       expect(await undone(members)).toEqual([true, true, false]);
     }
@@ -802,9 +814,9 @@ test.describe("on groups", () => {
   });
 
   test("a member card dragged below its sibling reorders the group", async ({ page }) => {
-    const group = `${GROUPS.child}/group_1`;
+    const group = { block: GROUPS.child, id: "group_1" };
     await enter(page, group, VIEW);
-    const from = await framePoint(page, GROUPS.child, "group_1/second-half/card");
+    const from = await framePoint(page, GROUPS.child, cardAddress("second-half"));
     // The block lies at (0, 0) at scale 1, so a drawing ordinate is the canvas y.
     const origin = await toScreen(page, 0, 0);
     // Pressed in the card's upper half, so the card's own middle passes recording's as well.
@@ -830,41 +842,41 @@ test.describe("leaving by a double-click, and the view when the canvas changes s
   test("a double-click outside the edited element closes the innermost editor", async ({
     page,
   }) => {
-    const bundle = [{ target: MIXED, kind: "bundle" }];
-    const group = [{ target: `${MIXED}/group_1`, kind: "group" }];
-    await enter(page, MIXED, VIEW);
-    await enter(page, `${MIXED}/group_1`, VIEW);
+    const bundle = [{ target: BUNDLE, kind: "bundle" }];
+    const group = [{ target: mixed("group_1"), kind: "group" }];
+    await enter(page, BUNDLE, VIEW);
+    await enter(page, mixed("group_1"), VIEW);
     const pane = await emptyPoint(page, -20, 450);
     await page.mouse.dblclick(pane.x, pane.y);
     await expect.poll(() => editing(page)).toEqual(bundle);
     await expect.poll(() => viewportOf(page)).toEqual(VIEW);
 
-    await enter(page, `${MIXED}/group_1`, VIEW);
-    const other = await partCentre(page, BUNDLES.shared, "group_1");
+    await enter(page, mixed("group_1"), VIEW);
+    const other = await partCentre(page, BUNDLES.shared, { id: "group_1" });
     await page.mouse.dblclick(other.x, other.y);
     await expect.poll(() => editing(page)).toEqual(bundle);
     await page.mouse.dblclick(other.x, other.y);
     await expect.poll(() => editing(page)).toEqual([]);
 
-    await enter(page, `${MIXED}/group_1`, VIEW);
-    const own = await framePoint(page, MIXED, "group_1");
+    await enter(page, mixed("group_1"), VIEW);
+    const own = await framePoint(page, MIXED, { id: "group_1" });
     await page.mouse.dblclick(own.x, own.y);
     expect(await editing(page)).toEqual(group);
-    const faded = await partCentre(page, MIXED, "group_2");
+    const faded = await partCentre(page, MIXED, { id: "group_2" });
     await page.mouse.dblclick(faded.x, faded.y);
     await expect.poll(() => editing(page)).toEqual([]);
     expect(await journalLength(page)).toBe(START);
   });
 
   test("a double-click on a box inside the edited element opens its editor", async ({ page }) => {
-    await enter(page, `${MIXED}/group_1`, VIEW);
-    const card = await framePoint(page, MIXED, "group_1/score/card");
-    await page.mouse.dblclick(card.x, card.y);
+    await enter(page, mixed("group_1"), VIEW);
+    const held = await framePoint(page, MIXED, cardAddress("score"));
+    await page.mouse.dblclick(held.x, held.y);
     await expect
       .poll(() => editing(page))
       .toEqual([
-        { target: `${MIXED}/group_1`, kind: "group" },
-        { target: `${MIXED}/score`, kind: "timeline" },
+        { target: mixed("group_1"), kind: "group" },
+        { target: mixed("score"), kind: "timeline" },
       ]);
   });
 
@@ -892,7 +904,7 @@ test.describe("leaving by a double-click, and the view when the canvas changes s
         0,
       );
 
-    expect(await page.evaluate((target) => window.__tilie.open(target), MIXED)).toBeNull();
+    expect(await page.evaluate((target) => window.__tilie.open(target), BUNDLE)).toBeNull();
     await expect(drawer(page)).toBeVisible();
     const open = await focused();
     await expect.poll(() => viewportOf(page)).toEqual(open);
@@ -923,8 +935,8 @@ test.describe("resizing in an editor", () => {
   test("a member's card stretched in its timeline editor stretches every member", async ({
     page,
   }) => {
-    await enter(page, `${MIXED}/score`, VIEW);
-    await select(page, [`${MIXED}/group_1/score/card`]);
+    await enter(page, mixed("score"), VIEW);
+    await select(page, [{ block: MIXED, ...cardAddress("score") }]);
     await page.locator('[data-testid="mode-stretch"]').click();
     const handles = page.locator('[data-testid^="handle-"]');
     await expect(handles).toHaveCount(3);
@@ -937,12 +949,11 @@ test.describe("resizing in an editor", () => {
     await expect.poll(() => entriesLength(page)).toBe(1);
     expect(await places(page, MIXED)).toEqual({ group_1: { length: 420 } });
     // Both member cards of the frame end at one x, 20 further right than before.
-    const card = (address: string) =>
-      node(page, MIXED)
-        .locator(`[data-address="${address}"]`)
+    const drawn = (id: string) =>
+      element(page, MIXED, cardAddress(id))
         .last()
         .evaluate((rect) => [rect.getAttribute("x"), rect.getAttribute("width")]);
-    expect(await card("group_1/score/card")).toEqual(["16", "566.4846"]);
-    expect(await card("group_1/performance/card")).toEqual(["16", "566.4846"]);
+    expect(await drawn("score")).toEqual(["16", "566.4846"]);
+    expect(await drawn("performance")).toEqual(["16", "566.4846"]);
   });
 });

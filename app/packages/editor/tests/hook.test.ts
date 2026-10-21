@@ -2,8 +2,9 @@
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { drawingOf } from "@timetoalign/tilie-arranger";
-import type { BandKind, Block, CommandEntry, Manifest } from "@timetoalign/tilie-core";
+import type { Address, Block, CommandEntry, Facet, Manifest } from "@timetoalign/tilie-core";
 import {
+  addressKey,
   createView,
   isLoadError,
   isSessionEntry,
@@ -34,7 +35,7 @@ const B = "0000000001";
 
 /** A band of the timeline `score` written for the mapping, its line at 30.5 (`README.md`, "The test hook"). */
 function scoreBand(
-  kind: BandKind,
+  facet: Facet,
   level: number,
   elements: number,
   y: number,
@@ -43,15 +44,15 @@ function scoreBand(
   return {
     kind: "band",
     key: null,
-    address: `score/${kind}_1`,
-    holder: "score/card",
+    address: { id: "score", facet },
+    holder: { item: "score" },
     x: 8.25,
     y,
     width: 300,
     height,
     range: { start: 0, end: 0 },
     displayed: false,
-    band: { timeline: "score", kind, level, elements, line: 30.5 },
+    band: { timeline: "score", facet, level, elements, line: 30.5 },
   };
 }
 
@@ -73,9 +74,9 @@ const MAPPED: Drawing = {
   origin: { x: 0, y: 0 },
   boxes: [
     {
-      kind: "box",
+      kind: "block",
       key: null,
-      address: null,
+      address: {},
       holder: null,
       x: 0,
       y: 0,
@@ -86,8 +87,8 @@ const MAPPED: Drawing = {
     },
     {
       kind: "card",
-      key: "score",
-      address: "score/card",
+      key: { item: "score" },
+      address: { id: "score", part: ["card"] },
       holder: null,
       x: 8.25,
       y: 20,
@@ -110,7 +111,7 @@ function mapped(line: number, rects: readonly (readonly number[])[]) {
     return {
       address,
       timeline: band?.timeline,
-      kind: band?.kind,
+      facet: band?.facet,
       level: band?.level,
       line,
       elements: band?.elements,
@@ -119,15 +120,15 @@ function mapped(line: number, rects: readonly (readonly number[])[]) {
   });
 }
 
-/** A band's identity as `[address, timeline, kind, level, elements]`. */
+/** A band's identity as `[address, timeline, facet, level, elements]`. */
 function identity({
   address,
   timeline,
-  kind,
+  facet,
   level,
   elements,
-}: Pick<HookBand, "address" | "timeline" | "kind" | "level" | "elements">) {
-  return [address, timeline, kind, level, elements];
+}: Pick<HookBand, "address" | "timeline" | "facet" | "level" | "elements">) {
+  return [address, timeline, facet, level, elements];
 }
 
 /**
@@ -136,10 +137,10 @@ function identity({
  */
 function mapBands(phrase: number) {
   return [
-    ["melody/children_1", "melody", "children", 2, 1],
-    ["melody/conversion_maps_1", "melody", "conversion_maps", 1, 1],
-    ["melody/markers_1", "melody", "markers", -1, 2],
-    ["phrase/conversion_maps_1", "phrase", "conversion_maps", phrase, 1],
+    [{ id: "melody", facet: "children" }, "melody", "children", 2, 1],
+    [{ id: "melody", facet: "conversion_maps" }, "melody", "conversion_maps", 1, 1],
+    [{ id: "melody", facet: "markers" }, "melody", "markers", -1, 2],
+    [{ id: "phrase", facet: "conversion_maps" }, "phrase", "conversion_maps", phrase, 1],
   ];
 }
 
@@ -241,8 +242,9 @@ describe("the test hook", () => {
     const text = workspaceOf("bare", "nested");
     const expected = readWorkspace(text);
     if (isLoadError(expected)) throw new Error("the written workspace is refused");
-    hook().select([A, `${B}/clt_1`]);
-    expect(hook().selection()).toEqual([A, `${B}/clt_1`]);
+    const selected: Address[] = [{ block: A }, { block: B, id: "clt_1" }];
+    hook().select(selected);
+    expect(hook().selection()).toEqual(selected);
     const before = hook().store();
 
     hook().load(text);
@@ -290,6 +292,7 @@ describe("the test hook", () => {
       .filter((name) => name.endsWith(".tle.json"))
       .map((name) => name.slice(0, -".tle.json".length));
     const manifests = [
+      "bundle_free_ids",
       "bundle_mixed",
       "bundle_shared_member",
       "bundle_shared_parent",
@@ -314,7 +317,7 @@ describe("the test hook", () => {
     const text = readFileSync(path.join(E2E_FIXTURES, "small.tle.json"), "utf8");
     const expected = readWorkspace(text);
     if (isLoadError(expected)) throw new Error("small.tle.json is refused");
-    hook().select([A]);
+    hook().select([{ block: A }]);
     select.value = "small";
     select.dispatchEvent(new Event("change"));
     load.click();
@@ -357,7 +360,7 @@ describe("the test hook", () => {
     ] as const) {
       await loadFromMenu(name);
       const view = hook().store().view;
-      hook().select([`fixture000/${timeline}`]);
+      hook().select([{ block: "fixture000", id: timeline }]);
       flushSync();
       const canvas = document.querySelector('[role="application"]');
       if (canvas === null) throw new Error("the canvas is missing");
@@ -370,7 +373,7 @@ describe("the test hook", () => {
           .journal.map((entry) => (entry as CommandEntry).command),
       ).toEqual([
         (hook().store().journal[0] as CommandEntry | undefined)?.command,
-        { type: "remove", targets: [`fixture000/${timeline}`] },
+        { type: "remove", targets: [{ block: "fixture000", id: timeline }] },
       ]);
       expect(
         manifestIds(hook().store().view.blocks.fixture000?.manifest as Manifest).has(timeline),
@@ -384,14 +387,14 @@ describe("the test hook", () => {
     hook().load(text);
     flushSync();
     const before = hook().store().view;
-    const target = `${B}/clt_1`;
+    const target: Address = { block: B, id: "clt_1" };
     const rename = () =>
       hook()
         .store()
         .dispatch({ type: "set", changes: [{ target, values: { name: "N" } }] });
 
     expect(hook().editing()).toEqual([]);
-    expect(hook().open(`${B}/nope`)?.code).toBe("unknown_target");
+    expect(hook().open({ block: B, id: "nope" })?.code).toBe("unknown_target");
     expect(hook().editing()).toEqual([]);
 
     expect(hook().open(target)).toBeNull();
@@ -460,9 +463,10 @@ describe("the test hook", () => {
     const { view } = hook().store();
     const recorded = drawingOf(view.blocks[A] as Block, view.settings, fontMetrics).boxes;
     expect(hook().boxes(A)).toEqual(
-      recorded.map(({ kind, address, holder, displayed }) => ({
+      recorded.map(({ kind, address, key, holder, displayed }) => ({
         kind,
         address,
+        key,
         holder,
         displayed,
       })),
@@ -470,14 +474,14 @@ describe("the test hook", () => {
     expect(
       hook()
         .boxes(A)
-        .map(({ kind, address }) => `${kind} ${address}`),
+        .map(({ kind, address }) => `${kind} ${addressKey(address)}`),
     ).toEqual([
-      "box null",
-      "card melody/card",
-      "band melody/children_1",
-      "band melody/conversion_maps_1",
-      "band melody/markers_1",
-      "band phrase/conversion_maps_1",
+      "block {}",
+      'card {"id":"melody","part":["card"]}',
+      'band {"facet":"children","id":"melody"}',
+      'band {"facet":"conversion_maps","id":"melody"}',
+      'band {"facet":"markers","id":"melody"}',
+      'band {"facet":"conversion_maps","id":"phrase"}',
     ]);
     expect(() => hook().boxes("0000000009")).toThrow(RangeError);
   });

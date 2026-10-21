@@ -1,6 +1,6 @@
 /**
  * An element, a container's record or a line's axis, drawn at its item's
- * place and shifted from the place origin into the box (`docs/drawing.md`
+ * place and shifted from the place origin into the block (`docs/drawing.md`
  * in TimeToShare, sections 8.4 and 8.6).
  */
 
@@ -33,7 +33,7 @@ function scaledStyle(style: Style, scale: number): Style {
  * An element drawn at `(dx, dy)` and the scale `scale`: each of its positions
  * `(u, v)` taken to `(dx + scale × u, dy + scale × v)` and each of its lengths
  * multiplied by `scale`. An item is drawn at its place so (section 8.6), and
- * every finished position in place coordinates is shifted into the box at
+ * every finished position in place coordinates is shifted into the block at
  * scale 1 (section 8.4), where a position becomes `u + dx` and no length changes.
  */
 export function placedAt(element: DrawnElement, dx: number, dy: number, scale = 1): DrawnElement {
@@ -43,7 +43,7 @@ export function placedAt(element: DrawnElement, dx: number, dy: number, scale = 
   if (element.type === "block") return element;
   const style = scaledStyle(element.style, scale);
   switch (element.type) {
-    case "group":
+    case "frame":
     case "card":
       return {
         ...element,

@@ -10,11 +10,13 @@ import { drawingOf } from "@timetoalign/tilie-arranger";
 import type { Health } from "@timetoalign/tilie-client";
 import type {
   Address,
-  BandKind,
   BlockId,
   CommandError,
   ContainerKind,
+  ElementAddress,
+  Facet,
   OpenEditor,
+  PlaceKey,
   Store,
   View,
 } from "@timetoalign/tilie-core";
@@ -31,11 +33,11 @@ export interface ClientRectangle {
 
 /** A band of a block's drawing (a band of `Drawing.boxes`), as the hook's `bands` reports it. */
 export interface HookBand {
-  /** `T/<kind>_1`. */
-  readonly address: string;
-  /** The id of its timeline. */
+  /** `{id: T, facet}`. */
+  readonly address: ElementAddress;
+  /** The ID of its timeline. */
   readonly timeline: string;
-  readonly kind: BandKind;
+  readonly facet: Facet;
   /** Signed and never 0: 1, 2, … above its timeline's line, −1, −2, … below. */
   readonly level: number;
   /**
@@ -52,10 +54,12 @@ export interface HookBand {
 /** A container of a block's drawing (a record of `Drawing.boxes`), as the hook's `boxes` reports it. */
 export interface HookBox {
   readonly kind: ContainerKind;
-  /** Its element address; `null` for the block's own box. */
-  readonly address: string | null;
-  /** The address of the frame or card holding it; `null` for the box and what the box holds. */
-  readonly holder: string | null;
+  /** Its element address; `{}` for the block. */
+  readonly address: ElementAddress;
+  /** Its place key, telling every frame and card apart; `null` for the block and a band. */
+  readonly key: PlaceKey | null;
+  /** The place key of the frame or card holding it; `null` for the block and what it holds. */
+  readonly holder: PlaceKey | null;
   /** Whether its own rectangle is drawn. */
   readonly displayed: boolean;
 }
@@ -65,8 +69,8 @@ export interface TestHook {
   load(text: string): void;
   store(): Store;
   /** The selected addresses. */
-  selection(): string[];
-  select(addresses: string[]): void;
+  selection(): Address[];
+  select(addresses: Address[]): void;
   viewport(): Viewport;
   setViewport(viewport: Viewport): void;
   locked(): boolean;
@@ -110,13 +114,13 @@ export function hookBands(drawing: Drawing, box: ClientBox): HookBand[] {
   const sx = box.width / drawing.width;
   const sy = box.height / drawing.height;
   return drawing.boxes.flatMap(({ address, band, x, y, width, height }) =>
-    band === undefined || address === null
+    band === undefined
       ? []
       : [
           {
             address,
             timeline: band.timeline,
-            kind: band.kind,
+            facet: band.facet,
             level: band.level,
             line: box.top + band.line * sy,
             elements: band.elements,
@@ -145,9 +149,10 @@ function drawingIn(view: View, block: BlockId): Drawing {
  * `RangeError` for a block `view` does not hold.
  */
 export function boxesOf(view: View, block: BlockId): HookBox[] {
-  return drawingIn(view, block).boxes.map(({ kind, address, holder, displayed }) => ({
+  return drawingIn(view, block).boxes.map(({ kind, address, key, holder, displayed }) => ({
     kind,
     address,
+    key,
     holder,
     displayed,
   }));

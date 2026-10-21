@@ -4,7 +4,7 @@
  * plus resized drawings of `nested` (among them its card at the spacings 0
  * and 8), two bundles with items at stated places, a bundle with a scaled
  * card, one with a scaled frame whose member's card requests a size, one
- * with a box spacing and a card spacing of their own, a frame with a
+ * with a block spacing and a card spacing of their own, a frame with a
  * spacing of its own, a member's card with a spacing of its own, and
  * three manifests with bands the defaults hide shown by an application
  * layer: a child's regions band, every regions band, and a child's flow
@@ -112,7 +112,7 @@ export function reviewCases(): ReviewCase[] {
     at({ length: 800, places: { clt_1: { spacing: 8 } } }),
   );
   const natural = draw(loadFixture("nested"), DEFAULT_PLACEMENT, [DEFAULT_LAYER], metrics);
-  add("nested__box", "nested", at({ width: natural.width + 120, height: natural.height + 60 }));
+  add("nested__block", "nested", at({ width: natural.width + 120, height: natural.height + 60 }));
   add("nested__scale-2", "nested", DEFAULT_PLACEMENT, 2);
   for (const kind of ["group", "bundle"] as const) {
     for (const stem of stems(`${kind}s`)) {
@@ -140,7 +140,7 @@ export function reviewCases(): ReviewCase[] {
     "bundle_mixed__cards",
     "bundles/bundle_mixed",
     at({
-      places: { group_1: { scale: 1.25 }, "group_1/performance": { width: 650, height: 120 } },
+      places: { group_1: { scale: 1.25, cards: { performance: { width: 650, height: 120 } } } },
     }),
   );
   // `score` is the one root of the three whose card spacing shows; `pages` and `recording` draw
@@ -160,7 +160,7 @@ export function reviewCases(): ReviewCase[] {
   add(
     "bundle_mixed__member-card-spacing-8",
     "bundles/bundle_mixed",
-    at({ places: { "group_1/score": { spacing: 8 } } }),
+    at({ places: { group_1: { cards: { score: { spacing: 8 } } } } }),
   );
   const shown = (select: Selector): Graphical[] => [
     { statements: [{ select, set: { display: "inline" } }] },
@@ -170,21 +170,21 @@ export function reviewCases(): ReviewCase[] {
     "unknown_length_child",
     DEFAULT_PLACEMENT,
     1,
-    shown({ ids: ["movement/regions_1"] }),
+    shown({ addresses: [{ id: "movement", facet: "regions" }] }),
   );
   add(
     "unknown_length_segments__regions-shown",
     "unknown_length_segments",
     DEFAULT_PLACEMENT,
     1,
-    shown({ element: "band", class: "regions" }),
+    shown({ element: "band", facet: "regions" }),
   );
   add(
     "child_flow_control__flow-shown",
     "child_flow_control",
     DEFAULT_PLACEMENT,
     1,
-    shown({ ids: ["verse/flow_control_1"] }),
+    shown({ addresses: [{ id: "verse", facet: "flow_control" }] }),
   );
   return cases;
 }

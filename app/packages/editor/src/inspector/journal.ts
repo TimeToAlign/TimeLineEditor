@@ -9,6 +9,7 @@
 import type { Command, Entry, ListedEntry, Session, Store, View } from "@timetoalign/tilie-core";
 import {
   ADD_KINDS,
+  addressKey,
   editorKindOf,
   isCommandError,
   isSessionEntry,
@@ -62,7 +63,9 @@ function commandText(command: Command): string {
     case "add": {
       const kind = ADD_KINDS.find((item) => command[item] !== undefined);
       const id = kind === undefined ? null : addedId(command[kind]);
-      const words = [kind, id, "to", command.into].filter((word) => typeof word === "string");
+      const words = [kind, id, "to", addressKey(command.into)].filter(
+        (word) => typeof word === "string",
+      );
       return `Added ${words.join(" ")}`;
     }
     case "set": {
@@ -71,10 +74,10 @@ function commandText(command: Command): string {
         .map(propertyWord)
         .join(", ");
       const rest = more.length > 0 ? ` and ${more.length} more` : "";
-      return `Set ${properties} of ${first?.target}${rest}`;
+      return `Set ${properties} of ${first === undefined ? "" : addressKey(first.target)}${rest}`;
     }
     case "remove":
-      return `Removed ${command.targets.join(", ")}`;
+      return `Removed ${command.targets.map(addressKey).join(", ")}`;
     case "style":
       return `Styled ${JSON.stringify(command.select)}`;
   }

@@ -8,7 +8,7 @@
  * their state objects, which a host keeping them while the inspector is not
  * shown passes in, with the tab chosen.
  */
-import type { LivePlacement, LiveStore } from "@timetoalign/tilie-arranger";
+import type { LivePlacement, LiveStore, Selection } from "@timetoalign/tilie-arranger";
 import { resolveSelection } from "@timetoalign/tilie-arranger";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import { untrack } from "svelte";
@@ -35,7 +35,7 @@ let {
 }: {
   /** The open workspace's store, read as Svelte state. */
   live: LiveStore;
-  selection: ReadonlySet<string>;
+  selection: Selection;
   /** The placement a canvas gesture shows before release; the form shows it for its block. */
   placement?: LivePlacement | null;
   /** The Manifest tab's text, kept while another tab is shown. */
@@ -82,7 +82,7 @@ function onTabKey(event: KeyboardEvent, from: Tab): void {
 }
 
 /** The selection, resolved once for the panels. */
-const subjects = $derived(resolveSelection(view, selection, fontMetrics));
+const subjects = $derived(resolveSelection(view, selection, innermost ?? null, fontMetrics));
 const block = $derived(selectedBlock(view, subjects));
 
 /** Without a block, and without unapplied text, the Manifest tab shows only a hint. */
@@ -133,7 +133,7 @@ const hinted = $derived(block === null && !manifest.dirty);
           store={live.store}
           {block}
           {subjects}
-          {level}
+          editing={innermost ?? null}
           {placement}
           {drafts}
         />

@@ -66,16 +66,18 @@ The page follows the editing path. The drawer opens when the first editor
 opens, without taking the focus from the canvas; an inner editor does not
 reopen it once the viewer closed it. Save and the autosave write the open
 editor folded (the `add`, then one session entry whose session holds the
-editor's changes), as the hook's `text()` does, and leave it open. Opening
-an editor, a reopening included, makes the selection its edited element,
-whatever was selected: `A` for the bundle editor of `A`, `A/group_1` for
-`group_1`'s, `A/group_1/score/card` for `score`'s (a member's card is
-addressed by its group). Closing an editor, and every
-other change of the store, prunes the selection by the arranger's one
-rule: other timelines' bands go and a part stays, so closing `score`'s
-editor over its band, `performance`'s band and `score/start` keeps
-`score/start`; with `score`'s editor open inside `group_1`'s, a rename
-keeps `score/start` and `score` itself and drops `performance`.
+editor's changes), as the hook's `text()` does, and leave it open.
+Addresses are objects, compared whole. Opening an editor, a reopening
+included, makes the selection its edited element, whatever was selected:
+`{block: A}` for the bundle editor of `A`, `{block: A, id: "group_1"}` for
+`group_1`'s, `{block: A, id: "score", part: ["card"]}` for `score`'s (the
+address of every card of `score`). Closing an editor, and every other
+change of the store, prunes the selection by the arranger's one rule:
+other timelines' bands go and a part stays, so closing `score`'s editor
+over its `conversion_maps` band, `performance`'s `conversion_maps` band and
+`score`'s start `{block: A, id: "score", part: ["start"]}` keeps that
+start; with `score`'s editor open inside `group_1`'s, a rename keeps
+`score`'s start and `score` itself and drops `performance`.
 
 ## Files (`shell.test.ts`, `files.test.ts`)
 
@@ -172,8 +174,9 @@ workspace and the resolved schema package.
 `window.__tilie` exists in a test build and goes with the editor. At start
 it reports the empty workspace, no selection, `locked()` false and `mode()`
 `"scale"`. Its `load` replaces the store with exactly the file's workspace
-(`text()` equal byte for byte) and clears the selection; a refused file
-throws with the reader's problem codes and keeps the store. Its `open`,
+(`text()` equal byte for byte) and clears the selection; `select` and
+`selection` take and give address objects; a refused file throws with the
+reader's problem codes and keeps the store. Its `open`,
 `done` and `cancel` drive the editing path as the store does, without the
 bar's question (`unknown_target` for an unknown target). The fixture menu
 offers every end-to-end workspace and every group and bundle fixture of the
@@ -184,14 +187,19 @@ of it as one `remove`.
 
 Its `bands` maps each band record of a block's drawing into client pixels
 through the drawing's `<svg>` rectangle: the rectangle's offset plus the
-drawing's value times the rectangle's size over the drawing's. A hand-made
-drawing of 400 × 200 (a box, a card and three bands, the line at 30.5) in a
+drawing's value times the rectangle's size over the drawing's. Each band
+is reported with its address `{id: T, facet}`, its timeline and facet. A
+hand-made drawing of 400 × 200 (the block, a card and three bands, the line
+at 30.5) in a
 rectangle at (100, 50) of 800 × 400 puts the line at 111, and partly off
 screen is computed alike; on two real blocks the values are the arranger's
 drawing mapped the same way. A block whose drawing is not on the page
 cannot be placed, and an unknown block throws a `RangeError`. Its `boxes`
 lists a block's container records as the drawing has them (kind, address,
-holder, displayed), in box order, and throws the same `RangeError`.
+place key, holder, displayed), in box order: for `map` the block `{}`, the
+card `{id: "melody", part: ["card"]}`, the bands `children`,
+`conversion_maps`, `markers` of `melody` and `conversion_maps` of `phrase`;
+an unknown block throws the same `RangeError`.
 
 ## Embedding (`embed.test.ts`)
 
@@ -203,8 +211,13 @@ level-1 heading, and About says "no server". `text()` gives back the given `work
 byte. `onchange` reports `{fileName: "untitled.tle.json", dirty: false}`
 for it and exactly one `{…, dirty: true}` after a Delete on the canvas.
 Ctrl+S on a host input or the body is not prevented; on the canvas it is.
-Two editors on one page share no id, and a `select` in one leaves the
-other's `selection` empty and reaches only the first's `onselect`. `load`
+Two editors on one page share no id, and a `select` of `[{block: A}]` in
+one leaves the other's `selection` empty and reaches only the first's
+`onselect`, with `[{block: A}]`. `select` reads each address at the
+boundary (core's `readAddress`): of `[{block: A}, {block: A, facet:
+"markers"}, {block: "B"}]` it selects `[{block: A}]` alone, and one message
+says "Some addresses could not be selected." with the two `invalid_address`
+problems at `/addresses/1` and `/addresses/2`, in that order. `load`
 of a refused text returns its problem codes and leaves `text()` as it was;
 so does a workspace whose journal does not reproduce its view
 (`journal_mismatch` at the block no entry adds). Mounting on an element
@@ -254,8 +267,9 @@ comparison) and the store (what it accepts and refuses).
    journal entry, the `set` of the block's `manifest` to the value read. A
    text whose complete form is the stored manifest (compared by `dumps`)
    dispatches nothing and is no refusal: the store refuses a `set` that
-   changes nothing (`invalid_value`, "the command changes nothing"), so the
-   comparison is the inspector's.
+   changes nothing (`invalid_value`, "the command changes nothing", at
+   `['{"block":"0000000000"}', "manifest"]`, the target's `addressKey`
+   first), so the comparison is the inspector's.
 5. **A refusal points into the text.** The store's path loses its
    `[<block>, "manifest"]` prefix and is shown as a JSON pointer:
    `"locked": "yes"` is `schema_violation` "must be boolean" at
@@ -307,10 +321,13 @@ panels"):
 ## The Properties form (`inspector-properties.test.ts`, `inspector-bands.test.ts`, `inspector-fields.test.ts`)
 
 The form edits the geometry of what is selected, never the block's when
-something inside it is. A selected container has a role: the **box** (the
-block's placement), an **item** (a frame, or a card the box holds: its
-place in the box) or a **held** card (a card a frame holds: its frame's
-shared scale and length, its own spacing and size). The form is right when
+something inside it is. A selected container has a role: the **block**
+(its placement), an **item** (a frame, or a card the block holds: its
+place in the block) or a **held** card (a card a frame holds: its frame's
+shared scale and length, its own spacing and size). Each edited container
+carries its selected address and its place key (`null` for the block,
+`{item: G}` for a frame, `{item: T}` for a card the block holds, `{item:
+G, member: T}` for a card a frame holds). The form is right when
 for each role it names exactly the selected containers, shows their values
 as the drawing records them (stated, else drawn), offers what the level
 edits, and dispatches exactly the arranger's command.
@@ -321,18 +338,19 @@ The workspace is the end-to-end `bundles` workspace, block `bmixed0000`
 ungrouped root `annotations`; `recording`, drawn only as `excerpt`'s
 ancestor, has no card).
 
-1. **Roles.** The block names the box, "Block properties", `{x: 0, y: 0,
-   scale: 1, length: 400, spacing: 8, width: null, height: null}`.
-   `group_1` and its title name the frame, "Frame properties", with its
-   record's values (its spacing the frame's default 8). `annotations` and `annotations/card` name the card the
-   box holds, "Card properties". `group_1/score/card` and
-   `group_2/excerpt/card` name cards
-   their frames hold, "Card properties", with their frame's scale and length
-   and their own spacing and size. Two frames are edited together in
-   selection order; a frame with a card the box holds is "Frame and card
-   properties"; two addresses of one card are one card. None for no
-   selection, mixed roles, the box with a frame, the title, `recording`, a
-   map, or two blocks.
+1. **Roles.** The block `{block}` names itself, "Block properties", `{x:
+   0, y: 0, scale: 1, length: 400, spacing: 8, width: null, height: null}`.
+   `group_1` and its title `{id: "group_1", part: ["name"]}` name the
+   frame, "Frame properties", with its record's values (its spacing the
+   frame's default 8). `annotations` and its card `{id: "annotations",
+   part: ["card"]}` name the card the block holds, "Card properties". The
+   cards of `score` and `excerpt` (`{id: T, part: ["card"]}`, each drawn
+   once) name cards their frames hold, "Card properties", with their
+   frame's scale and length and their own spacing and size. Two frames are
+   edited together in selection order; a frame with a card the block holds
+   is "Frame and card properties"; two addresses of one card are one card.
+   None for no selection, mixed roles, the block with a frame, the title,
+   `recording`, a map (`cmap_1`), or two blocks.
 2. **Stated values win**, and a held card's spacing is its own: after
    stating `group_1` `{length: 300, scale: 1.5, spacing: 2}` and `score`
    `{width: 650, spacing: 1.25}`, the frame shows 300, 1.5, 2 and the card
@@ -340,19 +358,19 @@ ancestor, has no card).
 3. **During a gesture the values are the gesture's drawing's**: with a
    placement whose drawing states `group_1` `{length: 460}`, the frame and
    its held card show that record (length 460, its width); a placement's
-   `x` is the box's. A gesture on another block, or none, leaves the stored
+   `x` is the block's. A gesture on another block, or none, leaves the stored
    values.
 4. **Fields per role and level** are the arranger's field table, in
-   core's place order: the box and an item offer `x`, `y`, `length`,
+   core's place order: the block and an item offer `x`, `y`, `length`,
    `scale`, `spacing`, `width`, `height`; a held card `length`, `scale`
    (labelled "group length", "group scale"), `spacing`, `width`, `height`.
    The size is the container's: `width` and `height` are labelled
    "container width" and "container height" in every role.
-   Withheld, and disabled in the form: the box's `length`, `scale`,
+   Withheld, and disabled in the form: the block's `length`, `scale`,
    `spacing` in a group or timeline editor (the store refuses them there,
    `side_effect`); an item's `x`, `y` everywhere but the bundle editor;
    nothing of a held card.
-5. **One edit, the arranger's command.** For the box's `x`, a frame's
+5. **One edit, the arranger's command.** For the block's `x`, a frame's
    `length`, a held card's `scale`, and its `spacing` and `length` in the
    group editor, two frames, two held cards' `width` in the timeline editor
    and a frame's `scale` in the bundle editor, the command built from the
@@ -360,7 +378,8 @@ ancestor, has no card).
    value and level. An emptied `width` sends `null`; a value every selected
    container stores already (`650.0` for a stated 650, the block's `400`)
    gives no command. Text that is no decimal number is refused before
-   dispatch, `invalid_value` at `[<first address>, property]`: an empty
+   dispatch, `invalid_value` at `[<first address's key>, property]`
+   (`'{"block":"bmixed0000","id":"group_1"}'` for `group_1`): an empty
    `length` or `spacing` ("… needs a number"), `abc`, `0x10` ("… is not a
    number"). A step is the arranger's edit with the step applied to each
    container's own value. A size below its minimum is item 7's.
@@ -380,7 +399,7 @@ ancestor, has no card).
    container's minimum `width` or `height` is its content's own extent:
    what its drawing records when nothing states that size. The oracle is
    the stored drawing of `bmixed0000`, which states no size anywhere, so
-   the drawn sizes are the minimums: the box's height is the drawing's
+   the drawn sizes are the minimums: the block's height is the drawing's
    height, `group_1`'s and `group_2`'s width and height their frame
    records'. Each container is held to its own minimum, never to another
    selected container's. The block, whose unstated size the field shows as
@@ -404,21 +423,22 @@ ancestor, has no card).
    no notice. The next typed text clears the notice.
 8. **The name field** (`inspector-fields.test.ts`). The tab's first field
    is a text field "Name". With nothing selected it is the workspace's name
-   at the top level (`untitled` for this workspace, its target
-   `workspace`, never empty) and, in an editor, the edited element's: the
-   name of what the editor's opening selects, read through core's
+   at the top level (`untitled` for this workspace, its target the
+   workspace `{}`, never empty) and, in an editor, the edited element's:
+   the name of what the editor's opening selects, read through core's
    resolver (the group editor of `group_1` gives `Performance`, target
-   `<block>/group_1`; the bundle editor the manifest's `Mixed`; every
+   `{block, id: "group_1"}`; the bundle editor the manifest's `Mixed`; every
    edited element has the schema's nullable `name`, so a null one shows an
    empty field). For one inspected thing its name
    where the schema gives it one, read through core's resolver, a part
    standing for its element: the block and its title the manifest's
-   (`Mixed`, target the block), `group_1` (`Performance`), `score` and
-   `group_1/score/card` and `score/start` the timeline's (`Score`), the conversion
-   map `page/cmap_1` (empty, its name null; target `<block>/page/cmap_1`),
-   the jump origin `score/jump_from_1` likewise (every flow-control element has
-   the schema's nullable `name`), and a measure map `bars` added to the
-   block (empty; target `<block>/bars`, its bare id). No field for a band or two things, in one
+   (`Mixed`, target the block `{block}`), `group_1` (`Performance`),
+   `score`, its card and its start the timeline's (`Score`, target `{block,
+   id: "score"}`), the conversion map `cmap_4` of `page` (empty, its name
+   null; target `{block, id: "cmap_4"}`), the jump origin `jump_from_1`
+   likewise (every flow-control element has the schema's nullable `name`),
+   and a measure map `bars` added to the block (empty; target `{block, id:
+   "bars"}`). No field for a band or two things, in one
    block or in two; mounted, two blocks selected show no field and the
    geometry hint. The command: a text equal to the stored name is none; an
    empty text unstates a nullable name (`{name: null}`) and is sent as
@@ -433,9 +453,8 @@ ancestor, has no card).
    container height, in the row of the container size, a disabled
    checkbox labelled "Locked" shows the stored `locked` of the inspected
    timelines: present only when every inspected thing is a timeline, its
-   card or a part of one. `group_2/excerpt/card` (locked) checked,
-   `group_1/score/card`
-   unchecked, both together indeterminate; `recording`, drawn in no card,
+   card or a part of one. The card of `excerpt` (locked) checked, the card
+   of `score` unchecked, both together indeterminate; `recording`, drawn in no card,
    shows it after the geometry hint; the block, `group_1` and a band show
    none. It never dispatches: a click leaves the journal as it is.
 
@@ -453,7 +472,7 @@ geometry."; the title shows its manifest's name field, then that hint.
 
 **A selected band** (`inspector-bands.test.ts`). A band alone shows three
 read-only rows instead of a form, read from the band's record in the
-drawing shown: "Band" its kind's word, "Level" signed (a negative level
+drawing shown: "Band" its facet's word, "Level" signed (a negative level
 with U+2212 MINUS SIGN), "Elements" its count; the store holds `map` and
 `map_child_band_order`. No rows for no selection, a block, a map, a card,
 a band the drawing does not record, two bands, a band with a card, or a
@@ -465,11 +484,12 @@ is the selected block, and a second block makes none. In the component the
 band's panel holds one description list and nothing that edits, and the
 Manifest tab shows the block's text; with the card the form is exactly
 the card's, without the card's name field and Locked checkbox (two things
-are inspected, one of them no timeline); two bands show the geometry hint. A band's id is reserved: a
-map renamed `conversion_maps_1` in the text is refused, listed as
-`schema_violation` `id "conversion_maps_1" is reserved for the bands of a
-timeline` at `/timelines/0/conversion_maps/0/id`, the text and the journal
-kept.
+are inspected, one of them no timeline); two bands show the geometry
+hint. A band is addressed `{block, id: T, facet}`, so a facet word is no
+reserved ID; an ID is unique across the manifest: the map `tempo` renamed
+`phrase` in the text is refused, listed as `schema_violation` `'phrase' is
+not unique in the manifest, first at #/timelines/0/conversion_maps/0/id`
+at `/timelines/0/children/0/id`, the text and the journal kept.
 
 ## The tabs and panels (`Inspector.test.ts`, `inspector-tabs.test.ts`)
 
@@ -556,7 +576,7 @@ closing and reopening, nothing journalled.
    lists exactly its expected unknown keys, each with its pointer or "at
    the top level", in a list "Warnings"; no problem is listed, and an
    applied edit keeps the warnings. `bare` shows no warning list.
-10. **The Properties panel** commits on Enter (the box's `x` to 25 is one
+10. **The Properties panel** commits on Enter (the block's `x` to 25 is one
    `set` of `x`), steps from the stored value, never the shown one (10.123
    shown as 10.12 steps to 11.123 and back), steps a draft instead when
    there is one, and shows a gesture's values without replacing a draft.
@@ -585,34 +605,41 @@ oracles are the committed end-to-end workspaces and a store of
    timeline", "Name of timeline", its end's label "Label of end of
    timeline"; a segment line and a segment "Timeline"; an anonymous bundle
    "Anonymous bundle" with neither; a bundle given the id `takes` "Bundle"
-   with that id; maps, regions and flow-control elements by their kind, a
+   with that id, its title "Title of bundle" (the manifest's own id
+   addresses nothing, so `{block, id: "takes"}` gives nothing); maps, regions and flow-control elements by their kind, a
    flow-control element's by its type ("Conversion map", "Region", "Flow
    marker", "Jump origin" with its id, "Jump target") and their parts the
-   same way; a measure map added to a block "Measure map" with its id; a band "<Kind> band of timeline" (Markers,
+   same way; a measure map added to a block "Measure map" with its id; a
+   band `{block, id: T, facet}` "<Facet> band of timeline" (Markers,
    Conversion maps, Children, Regions, Flow control). Several addresses give
    "N selected". Nothing for no selection or an address naming nothing (no
-   such part, entry, band or block; a member's card written without its
-   group, `score/card`; `card` after a timeline drawn in no card,
-   `styled0000/a/card`). Mounted, the words stand beside the
+   such ID or block; a part its element does not have, `start` of a region;
+   a part of a card; a band with a part; a band of a group or of a jump;
+   the card of a timeline drawn in no card, `{block: "styled0000", id: "a",
+   part: ["card"]}`). Mounted, the words stand beside the
    drawer's heading and describe the drawer while shown; an id shows in a
    `code` element; the name follows an applied text without a change of
    selection.
 2. **Editor names.** A bundle by its `name`, else its `id`, else "Anonymous
    bundle"; a group or timeline by its `name`, else its id; anything the
-   view does not hold by its address. The editing bar, the level panel's
+   view does not hold by its address's key (`addressKey`, e.g.
+   `{"block":"0000000000","id":"gone"}`). The editing bar, the level panel's
    title line and the Journal use them. The level's word is "Arranger" at
    the top level, else the editor's: "Bundle", "Group", "Timeline".
 3. **Each journal entry is one sentence**, with the entry's UTC time as
-   `HH:MM:SS` and its author: "Added block 0000000003 to workspace", "Added
-   region region_1 to 0000000000/score", "Set x, y of 0000000000" (" and 1
-   more" for more changes), a block's size by the Properties form's words
-   ("Set container width, container height of 0000000000"), "Removed
-   0000000000/group_2, 0000000001",
-   `Styled {"ids":["score"]}`, and a session "Edited <kind> <name> (n
-   changes)", counting changes at every depth ("Edited bundle Mixed (3
-   changes)" for a bundle session holding a group session of two), ", k
-   undone" while partly undone, and without a kind word once its target is
-   gone ("Edited 0000000000/group_1 (1 change)").
+   `HH:MM:SS` and its author, every address written as its key
+   (`addressKey`): "Added block 0000000003 to {}", `Added region region_1
+   to {"block":"0000000000","id":"score"}`, `Set x, y of
+   {"block":"0000000000"}` (" and 1 more" for more changes), a block's
+   size by the Properties form's words (`Set container width, container
+   height of {"block":"0000000000"}`), `Removed
+   {"block":"0000000000","id":"group_2"}, {"block":"0000000001"}`,
+   `Styled {"addresses":[{"id":"score"}]}`, and a session "Edited <kind>
+   <name> (n changes)", counting changes at every depth ("Edited bundle
+   Mixed (3 changes)" for a bundle session holding a group session of
+   two), ", k undone" while partly undone, and without a kind word once its
+   target is gone (`Edited {"block":"0000000000","id":"group_1"} (1
+   change)`).
 4. **Order.** Rows run newest first at every depth, undone ones at the top;
    in an editor its own rows, then the earlier session of the same target
    read only; with two editors open, the inner level only; a session's rows

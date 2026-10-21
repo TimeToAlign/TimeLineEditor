@@ -1,7 +1,18 @@
+import type { Address, ElementAddress, PlaceKey } from "@timetoalign/tilie-core";
+import {
+  BUNDLE_ADDRESS,
+  bandAddress,
+  cardAddress,
+  idAddress,
+  inBlock,
+  partAddress,
+  TITLE_ADDRESS,
+  WORKSPACE,
+} from "@timetoalign/tilie-core";
 import type { DrawnBox } from "@timetoalign/tilie-layout";
 import { describe, expect, it } from "vitest";
 import type { Hit } from "../src/boxes.ts";
-import { boxOf } from "../src/boxes.ts";
+import { boxOf, keyedBox } from "../src/boxes.ts";
 import type { Level, LevelRules } from "../src/containers.ts";
 import { fieldsOf, LEVELS, resizeModes, resizes, resizingOf, rulesOf } from "../src/containers.ts";
 import { drawingOf } from "../src/drawing.ts";
@@ -12,116 +23,141 @@ import { A, B, blockIn, changed, load, metrics, mixedView } from "./support.ts";
 
 const view = changed(mixedView(), {
   type: "add",
-  into: "workspace",
+  into: WORKSPACE,
   block: { id: B, manifest: load("bare"), x: 600, y: 0 },
 });
 const drawing = drawingOf(blockIn(view, A), view.settings, metrics);
 
 /** The container of block A's drawing at `element`, failing loudly when there is none. */
-function box(element: string | null): DrawnBox {
+function box(element: ElementAddress): DrawnBox {
   const found = boxOf(drawing, element);
-  if (found === undefined) throw new Error(`${element} is no container of the drawing`);
+  if (found === undefined) throw new Error(`${JSON.stringify(element)} is no container`);
   return found;
 }
 
-/** A hit of `kind` on `address`, at a point inside the frame or card `within` when given. */
-function hit(kind: Hit["kind"], address: string, block = A, within: string | null = null): Hit {
-  const { element } = addressParts(address);
-  const container = block !== A || kind === "element" ? null : box(element);
+/** The frame or card of block A's drawing under the place key `key`. */
+function keyed(key: PlaceKey): DrawnBox {
+  const found = keyedBox(drawing, key);
+  if (found === undefined) throw new Error(`${JSON.stringify(key)} is no frame or card`);
+  return found;
+}
+
+/** A hit of `kind` on `address`, at a point inside the frame or card under `within` when given. */
+function hit(kind: Hit["kind"], address: Address, within: PlaceKey | null = null): Hit {
+  const { block, element } = addressParts(address);
+  const container = block !== A || kind === "element" ? null : box(element ?? BUNDLE_ADDRESS);
   return {
     block,
     kind,
     address,
     box: container,
     boundary: false,
-    within: within === null ? null : box(within),
+    within: within === null ? null : keyed(within),
   };
 }
-/** An element hit at a point that the card or frame `within` holds. */
-const inBox = (address: string, within: string) => hit("element", address, A, within);
+/** An element hit at a point that the card or frame under `within` holds. */
+const inBox = (address: Address, within: PlaceKey) => hit("element", address, within);
 
-const at = (element: string) => `${A}/${element}`;
-const bundle: Editing = { target: A, kind: "bundle" };
-const group: Editing = { target: at("group_1"), kind: "group" };
+/** The element `element` of block A. */
+const at = (element: ElementAddress): Address => inBlock(A, element);
+/** The element with the ID `id` of block A: a timeline's line, a group. */
+const id = (element: string): Address => at(idAddress(element));
+/** The part `words` of the element `owner` of block A. */
+const part = (owner: string, ...words: ("start" | "name")[]): Address =>
+  at(words.reduce(partAddress, idAddress(owner)));
+/** The cards of `timeline` in block A. */
+const card = (timeline: string): Address => at(cardAddress(timeline));
+
+const scoreCard: PlaceKey = { item: "group_1", member: "score" };
+const bundle: Editing = { target: { block: A }, kind: "bundle" };
+const group: Editing = { target: id("group_1"), kind: "group" };
+const timeline = (element: string): Editing => ({ target: id(element), kind: "timeline" });
 
 describe("editorTargetOf", () => {
   it.each([
-    ["box", A, A],
-    ["frame", at("group_1"), at("group_1")],
-    ["card", at("group_1/score/card"), at("score")],
-    ["element", at("score"), at("score")],
-    ["element", at("annotations"), at("annotations")],
-    ["element", at("excerpt"), at("excerpt")],
-    ["element", at("dlt_1"), at("dlt_1")],
-    ["element", at("recording"), at("recording")],
-    ["element", at("score/start"), null],
-    ["element", at("score/name"), null],
-    ["element", at("group_1/name"), null],
-    ["element", at("name"), null],
-  ] as const)("on the arranger, a %s hit on %s opens %s", (kind, address, target) => {
-    expect(editorTargetOf(view, hit(kind, address), null)).toBe(target);
+    ["block", { block: A }, { block: A }],
+    ["frame", id("group_1"), id("group_1")],
+    ["card", card("score"), id("score")],
+    ["element", id("score"), id("score")],
+    ["element", id("annotations"), id("annotations")],
+    ["element", id("excerpt"), id("excerpt")],
+    ["element", id("dlt_1"), id("dlt_1")],
+    ["element", id("recording"), id("recording")],
+    ["element", part("score", "start"), null],
+    ["element", part("score", "name"), null],
+    ["element", part("group_1", "name"), null],
+    ["element", at(TITLE_ADDRESS), null],
+  ] as const)("on the arranger, a %s hit on %j opens %j", (kind, address, target) => {
+    expect(editorTargetOf(view, hit(kind, address), null)).toEqual(target);
   });
 
   it.each([
-    ["score/name", "group_1/score/card", at("score")],
-    ["score/start", "group_1/score/card", at("score")],
-    ["group_1/name", "group_1", at("group_1")],
-    ["dlt_1", "group_2/excerpt/card", at("dlt_1")],
-  ] as const)("on the arranger, %s within %s opens %s", (address, within, target) => {
-    expect(editorTargetOf(view, inBox(at(address), within), null)).toBe(target);
+    [part("score", "name"), scoreCard, id("score")],
+    [part("score", "start"), scoreCard, id("score")],
+    [part("group_1", "name"), { item: "group_1" }, id("group_1")],
+    [id("dlt_1"), { item: "group_2", member: "excerpt" }, id("dlt_1")],
+  ] as const)("on the arranger, %j within %j opens %j", (address, within, target) => {
+    expect(editorTargetOf(view, inBox(address, within), null)).toEqual(target);
   });
 
   it("opens inside the bundle editor anything of its block but the block", () => {
-    expect(editorTargetOf(view, hit("box", A), bundle)).toBeNull();
-    expect(editorTargetOf(view, hit("frame", at("group_1")), bundle)).toBe(at("group_1"));
-    expect(editorTargetOf(view, hit("card", at("annotations/card")), bundle)).toBe(
-      at("annotations"),
+    expect(editorTargetOf(view, hit("block", { block: A }), bundle)).toBeNull();
+    expect(editorTargetOf(view, hit("frame", id("group_1")), bundle)).toEqual(id("group_1"));
+    expect(editorTargetOf(view, hit("card", card("annotations")), bundle)).toEqual(
+      id("annotations"),
     );
-    expect(editorTargetOf(view, hit("box", B, B), bundle)).toBeNull();
+    expect(editorTargetOf(view, hit("block", { block: B }), bundle)).toBeNull();
   });
 
   it("opens inside the group editor only what the group contains, never the group", () => {
-    expect(editorTargetOf(view, hit("frame", at("group_1")), group)).toBeNull();
-    expect(editorTargetOf(view, hit("card", at("group_1/score/card")), group)).toBe(at("score"));
-    expect(editorTargetOf(view, hit("element", at("performance")), group)).toBe(at("performance"));
-    expect(editorTargetOf(view, hit("card", at("group_2/page/card")), group)).toBeNull();
-    expect(editorTargetOf(view, hit("frame", at("group_2")), group)).toBeNull();
-    expect(editorTargetOf(view, hit("box", A), group)).toBeNull();
-    expect(editorTargetOf(view, inBox(at("score/name"), "group_1/score/card"), group)).toBe(
-      at("score"),
+    expect(editorTargetOf(view, hit("frame", id("group_1")), group)).toBeNull();
+    expect(editorTargetOf(view, hit("card", card("score")), group)).toEqual(id("score"));
+    expect(editorTargetOf(view, hit("element", id("performance")), group)).toEqual(
+      id("performance"),
     );
-    expect(editorTargetOf(view, inBox(at("group_1/name"), "group_1"), group)).toBeNull();
-    expect(editorTargetOf(view, inBox(at("page/name"), "group_2/page/card"), group)).toBeNull();
+    expect(editorTargetOf(view, hit("card", card("page")), group)).toBeNull();
+    expect(editorTargetOf(view, hit("frame", id("group_2")), group)).toBeNull();
+    expect(editorTargetOf(view, hit("block", { block: A }), group)).toBeNull();
+    expect(editorTargetOf(view, inBox(part("score", "name"), scoreCard), group)).toEqual(
+      id("score"),
+    );
+    expect(
+      editorTargetOf(view, inBox(part("group_1", "name"), { item: "group_1" }), group),
+    ).toBeNull();
+    expect(
+      editorTargetOf(view, inBox(part("page", "name"), { item: "group_2", member: "page" }), group),
+    ).toBeNull();
   });
 
   it("opens inside a timeline editor only what the timeline contains", () => {
-    const excerpt: Editing = { target: at("excerpt"), kind: "timeline" };
-    expect(editorTargetOf(view, hit("element", at("dlt_1")), excerpt)).toBe(at("dlt_1"));
-    expect(editorTargetOf(view, hit("card", at("group_2/excerpt/card")), excerpt)).toBeNull();
-    expect(editorTargetOf(view, hit("element", at("recording")), excerpt)).toBeNull();
-    const child: Editing = { target: at("dlt_1"), kind: "timeline" };
-    expect(editorTargetOf(view, hit("element", at("dlt_1")), child)).toBeNull();
+    const excerpt = timeline("excerpt");
+    expect(editorTargetOf(view, hit("element", id("dlt_1")), excerpt)).toEqual(id("dlt_1"));
+    expect(editorTargetOf(view, hit("card", card("excerpt")), excerpt)).toBeNull();
+    expect(editorTargetOf(view, hit("element", id("recording")), excerpt)).toBeNull();
+    expect(editorTargetOf(view, hit("element", id("dlt_1")), timeline("dlt_1"))).toBeNull();
   });
 
   it("opens nothing on a band", () => {
-    const band = hit("band", at("excerpt/children_1"));
-    expect(editorTargetOf(view, band, { target: at("excerpt"), kind: "timeline" })).toBeNull();
+    const band = hit("band", at(bandAddress("excerpt", "children")));
+    expect(editorTargetOf(view, band, timeline("excerpt"))).toBeNull();
     expect(editorTargetOf(view, band, null)).toBeNull();
   });
 
   it("opens nothing in a block that does not exist", () => {
-    expect(editorTargetOf(view, hit("box", "zzzzzzzzzz", "zzzzzzzzzz"), null)).toBeNull();
+    expect(editorTargetOf(view, hit("block", { block: "zzzzzzzzzz" }), null)).toBeNull();
   });
 });
 
 describe("sameEditing", () => {
   it("compares editors by target and kind", () => {
-    expect(sameEditing(group, { target: at("group_1"), kind: "group" })).toBe(true);
+    expect(sameEditing(group, { target: inBlock(A, idAddress("group_1")), kind: "group" })).toBe(
+      true,
+    );
     expect(sameEditing(null, null)).toBe(true);
     expect(sameEditing(group, null)).toBe(false);
     expect(sameEditing(null, bundle)).toBe(false);
     expect(sameEditing(group, bundle)).toBe(false);
-    expect(sameEditing(group, { target: at("group_1"), kind: "timeline" })).toBe(false);
+    expect(sameEditing(group, { target: id("group_1"), kind: "timeline" })).toBe(false);
   });
 });
 
@@ -165,7 +201,7 @@ describe("LEVELS and rulesOf", () => {
     expect(rulesOf(null, free)).toBe(LEVELS.arranger);
     expect(rulesOf(bundle, free)).toBe(LEVELS.bundle);
     expect(rulesOf(group, free)).toBe(LEVELS.group);
-    expect(rulesOf({ target: at("annotations"), kind: "timeline" }, free)).toBe(LEVELS.timeline);
+    expect(rulesOf(timeline("annotations"), free)).toBe(LEVELS.timeline);
   });
 
   it("resizes at every level of a free canvas", () => {
@@ -187,7 +223,7 @@ describe("LEVELS and rulesOf", () => {
       resize: false,
     });
     expect(rulesOf(bundle, locked)).toStrictEqual({ ...LEVELS.bundle, move: false, resize: false });
-    expect(rulesOf({ target: at("excerpt"), kind: "timeline" }, locked)).toStrictEqual({
+    expect(rulesOf(timeline("excerpt"), locked)).toStrictEqual({
       ...LEVELS.timeline,
       bands: false,
       resize: false,
@@ -222,15 +258,15 @@ describe("LEVELS and rulesOf", () => {
 
 describe("resizingOf and resizes", () => {
   const boxes = {
-    box: box(null),
-    frame: box("group_1"),
-    card: box("annotations/card"),
-    held: box("group_1/score/card"),
+    block: box(BUNDLE_ADDRESS),
+    frame: keyed({ item: "group_1" }),
+    card: keyed({ item: "annotations" }),
+    held: keyed(scoreCard),
   };
 
   it("reads one row per kind of container, a held card's beside the card's", () => {
     const item = { scale: "item", box: "item", length: "item", spacing: "item" };
-    expect(resizingOf(boxes.box)).toStrictEqual({
+    expect(resizingOf(boxes.block)).toStrictEqual({
       levels: { arranger: "inside", bundle: "edited" },
       writes: { scale: "block", box: "block", length: "block", spacing: "block" },
     });
@@ -246,7 +282,7 @@ describe("resizingOf and resizes", () => {
       levels: { arranger: "inside", bundle: "inside", group: "inside", timeline: "edited" },
       writes: { scale: "item", box: "own", length: "item", spacing: "own" },
     });
-    expect(resizingOf(box("excerpt/children_1")).levels).toStrictEqual({});
+    expect(resizingOf(box(bandAddress("excerpt", "children"))).levels).toStrictEqual({});
   });
 
   it("resizes an inside container anywhere it reaches, the edited one only as its own", () => {
@@ -266,7 +302,7 @@ describe("resizingOf and resizes", () => {
     const edited = [false, true];
     const never = [false, false];
     expect(table).toStrictEqual({
-      box: { arranger: inside, bundle: edited, group: never, timeline: never },
+      block: { arranger: inside, bundle: edited, group: never, timeline: never },
       frame: { arranger: inside, bundle: inside, group: edited, timeline: never },
       card: { arranger: inside, bundle: inside, group: never, timeline: edited },
       held: { arranger: inside, bundle: inside, group: inside, timeline: edited },
@@ -275,8 +311,8 @@ describe("resizingOf and resizes", () => {
 
   it("offers the three modes wherever a container resizes, none elsewhere", () => {
     expect(resizeModes(boxes.held, "group")).toEqual(["scale", "box", "stretch"]);
-    expect(resizeModes(boxes.box, "group")).toEqual([]);
-    expect(resizeModes(box("excerpt/children_1"), "timeline")).toEqual([]);
+    expect(resizeModes(boxes.block, "group")).toEqual([]);
+    expect(resizeModes(box(bandAddress("excerpt", "children")), "timeline")).toEqual([]);
   });
 
   it("lists each container's place members per level: whose they are and whether the level edits them", () => {
@@ -309,7 +345,7 @@ describe("resizingOf and resizes", () => {
     );
     const held = ["length item", "scale item", "spacing own", "width own", "height own"];
     expect(table).toStrictEqual({
-      box: { arranger: block, bundle: block, group: fixedOff, timeline: fixedOff },
+      block: { arranger: block, bundle: block, group: fixedOff, timeline: fixedOff },
       frame: {
         arranger: unmoved,
         bundle: item,
@@ -324,6 +360,6 @@ describe("resizingOf and resizes", () => {
       },
       held: { arranger: held, bundle: held, group: held, timeline: held },
     });
-    expect(fieldsOf(box("excerpt/children_1"), "timeline")).toEqual([]);
+    expect(fieldsOf(box(bandAddress("excerpt", "children")), "timeline")).toEqual([]);
   });
 });

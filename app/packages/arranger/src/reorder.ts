@@ -6,10 +6,17 @@
  */
 
 import type { Block, Manifest, SetCommand } from "@timetoalign/tilie-core";
-import { displayOrder, placedElement, qualify } from "@timetoalign/tilie-core";
+import {
+  displayOrder,
+  idAddress,
+  inBlock,
+  placedElement,
+  placeKeyText,
+  samePlaceKey,
+} from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import type { CardBox } from "./boxes.ts";
-import { boxOf, isDisplayed, isHeld } from "./boxes.ts";
+import { isDisplayed, isHeld, keyedBox } from "./boxes.ts";
 import { sameSequence } from "./numbers.ts";
 
 /**
@@ -20,18 +27,24 @@ import { sameSequence } from "./numbers.ts";
  * out.
  */
 function memberCards(drawing: Drawing, group: string): CardBox[] {
-  if (boxOf(drawing, group)?.kind !== "frame") {
+  if (keyedBox(drawing, { item: group })?.kind !== "frame") {
     throw new RangeError(`${group} is no group of the drawing`);
   }
   return drawing.boxes.filter(
-    (box): box is CardBox => isHeld(box) && box.holder === group && isDisplayed(box),
+    (box): box is CardBox =>
+      isHeld(box) &&
+      box.holder !== null &&
+      samePlaceKey(box.holder, { item: group }) &&
+      isDisplayed(box),
   );
 }
 
-/** The member a card of `manifest`'s drawing holds: the timeline its `places` key stands for. */
+/** The member a card of `manifest`'s drawing holds: the timeline its place key stands for. */
 function memberOf(manifest: Manifest, card: CardBox): string {
   const member = placedElement(manifest, card.key);
-  if (member === undefined) throw new RangeError(`${card.key} is no card of the manifest`);
+  if (member === undefined) {
+    throw new RangeError(`${placeKeyText(card.key)} is no card of the manifest`);
+  }
   return member;
 }
 
@@ -73,5 +86,8 @@ export function reorderCommand(
   if (sameSequence(displayOrder(block.manifest, group), order)) return null;
   const members = block.manifest.groups.find((candidate) => candidate.id === group)?.members ?? [];
   const value = sameSequence(members, order) ? null : [...order];
-  return { type: "set", changes: [{ target: qualify(block.id, group), values: { order: value } }] };
+  return {
+    type: "set",
+    changes: [{ target: inBlock(block.id, idAddress(group)), values: { order: value } }],
+  };
 }

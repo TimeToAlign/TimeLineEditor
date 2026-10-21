@@ -11,8 +11,10 @@
 
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
-import { parseBand } from "../packages/core/src/index.ts";
+import type { Address, ElementAddress, Facet } from "../packages/core/src/index.ts";
+import { addressKey, bandAddress, partAddress } from "../packages/core/src/index.ts";
 import {
+  addressSelector,
   arranger,
   type BandRecord,
   BUNDLES,
@@ -33,6 +35,7 @@ import {
   frames,
   graphicalOrder,
   journalLength,
+  keysOf,
   middleOf,
   newestCommand,
   node,
@@ -52,31 +55,39 @@ const START = OPENED_JOURNAL.bundles;
 const MIXED = BUNDLES.mixed;
 const SHARED = BUNDLES.shared;
 
-/** `bmixed0000/score`'s bands and its own id, as the README names them. */
-const C = "score/children_1";
-const M = "score/conversion_maps_1";
-const K = "score/markers_1";
-const R = "score/regions_1";
-const F = "score/flow_control_1";
-const SELECTED_F = [`${MIXED}/${F}`];
+/** `bmixed0000/score`'s band order entries: its facets and its line, as the README names them. */
+const C = "children";
+const M = "conversion_maps";
+const K = "markers";
+const R = "regions";
+const F = "flow_control";
+const LINE = "line";
 
-/** A band as `bandsOf` gives it, its kind read from its address by core's `parseBand`. */
-function band(address: string, level: number, elements: number): BandRecord {
-  const parsed = parseBand(address);
-  if (parsed === null) throw new Error(`${address} is no band address`);
-  return { address, kind: parsed.kind, level, elements };
+/** The band of `score` drawing the facet `facet`. */
+function scoreBand(facet: Facet): ElementAddress {
+  return bandAddress("score", facet);
+}
+
+const SCORE_F = scoreBand(F);
+const SCORE_K = scoreBand(K);
+const SCORE_M = scoreBand(M);
+const SELECTED_F: Address[] = [{ block: MIXED, ...SCORE_F }];
+
+/** A band of timeline `timeline` as `bandsOf` gives it. */
+function band(timeline: string, facet: Facet, level: number, elements: number): BandRecord {
+  return { address: bandAddress(timeline, facet), facet, level, elements };
 }
 
 /** `bmixed0000/score`'s bands as the fixture draws them. */
-const SCORE = [band(M, 1, 2), band(K, -1, 2), band(F, -2, 1)];
+const SCORE = [band("score", M, 1, 2), band("score", K, -1, 2), band("score", F, -2, 1)];
 
 /** The `set` of `bmixed0000/score`'s band order. */
 function setScoreOrder(order: string[]) {
-  return { type: "set", changes: [{ target: `${MIXED}/score`, values: { order } }] };
+  return { type: "set", changes: [{ target: { block: MIXED, id: "score" }, values: { order } }] };
 }
 
 /** The client ordinate of the line of the timeline band `address` of block `block` lies at. */
-async function lineOf(page: Page, block: string, address: string): Promise<number> {
+async function lineOf(page: Page, block: string, address: ElementAddress): Promise<number> {
   return (await bandOf(page, block, address)).line;
 }
 
@@ -84,7 +95,7 @@ async function lineOf(page: Page, block: string, address: string): Promise<numbe
 async function dragBand(
   page: Page,
   block: string,
-  address: string,
+  address: ElementAddress,
   y: number,
   clearance = 2,
 ): Promise<void> {
@@ -97,13 +108,16 @@ async function dragBand(
  * `block`, in drawing units, never its screen box, which an engine lays out
  * at its own layout unit when the node's `<svg>` changes size.
  */
-async function pointsOf(page: Page, block: string, address: string): Promise<string> {
+async function pointsOf(page: Page, block: string, address: ElementAddress): Promise<string> {
   const points = await node(page, block)
-    .locator(`polygon[data-address="${address}"]`)
+    .locator(`.tilie-block svg polygon${addressSelector(address)}`)
     .getAttribute("points");
-  if (points === null) throw new Error(`${block}/${address} has no points`);
+  if (points === null) throw new Error(`${block} ${addressKey(address)} has no points`);
   return points;
 }
+
+/** The start wedge of `score`. */
+const SCORE_START = partAddress({ id: "score" }, "start");
 
 test.describe("on bundles", () => {
   test.beforeEach(async ({ page }) => {
@@ -112,42 +126,45 @@ test.describe("on bundles", () => {
   });
 
   test("a band in its timeline editor is hovered and clicked", async ({ page }) => {
-    await enter(page, `${MIXED}/score`, VIEW);
-    await focusBand(page, MIXED, F, 1);
+    await enter(page, { block: MIXED, id: "score" }, VIEW);
+    await focusBand(page, MIXED, SCORE_F, 1);
     expect(await bandsOf(page, MIXED, "score")).toEqual(SCORE);
     expect(await bandMarks(page, MIXED)).toEqual([]);
 
-    const point = await bandPoint(page, MIXED, F, 2);
+    const point = await bandPoint(page, MIXED, SCORE_F, 2);
     await page.mouse.move(point.x, point.y);
-    await expect.poll(() => bandMarks(page, MIXED)).toEqual([F]);
+    await expect.poll(() => bandMarks(page, MIXED)).toEqual(keysOf([SCORE_F]));
     // Opening the editor selected the edited timeline's card.
-    expect(await selection(page)).toEqual([`${MIXED}/group_1/score/card`]);
+    expect(await selection(page)).toEqual([{ block: MIXED, id: "score", part: ["card"] }]);
     await page.mouse.click(point.x, point.y);
     await expect.poll(() => selection(page)).toEqual(SELECTED_F);
-    expect(await bandMarks(page, MIXED)).toEqual([F]);
+    expect(await bandMarks(page, MIXED)).toEqual(keysOf([SCORE_F]));
 
-    const markers = await bandPoint(page, MIXED, K, 2);
+    const markers = await bandPoint(page, MIXED, SCORE_K, 2);
     await page.mouse.move(markers.x, markers.y);
-    await expect.poll(() => bandMarks(page, MIXED)).toEqual([F, K]);
+    await expect.poll(() => bandMarks(page, MIXED)).toEqual(keysOf([SCORE_F, SCORE_K]));
     expect(await selection(page)).toEqual(SELECTED_F);
 
     // Left of every block, at the markers band's ordinate: only the selection's mark stays.
     const at = await toCanvas(page, markers.x, markers.y);
     const off = await emptyPoint(page, -20, at.y);
     await page.mouse.move(off.x, off.y);
-    await expect.poll(() => bandMarks(page, MIXED)).toEqual([F]);
+    await expect.poll(() => bandMarks(page, MIXED)).toEqual(keysOf([SCORE_F]));
     expect(await entriesLength(page)).toBe(0);
   });
 
   test("a band dragged across the line into a gap, undone in one step and redone", async ({
     page,
   }) => {
-    const order = [C, M, F, "score", K, R];
-    await enter(page, `${MIXED}/score`, VIEW);
-    await focusBand(page, MIXED, F, 2);
+    const order = [C, M, F, LINE, K, R];
+    await enter(page, { block: MIXED, id: "score" }, VIEW);
+    await focusBand(page, MIXED, SCORE_F, 2);
     const view = await storeText(page, "view");
-    const gap = between(middleOf(await bandOf(page, MIXED, M)), await lineOf(page, MIXED, M));
-    await dragBand(page, MIXED, F, gap);
+    const gap = between(
+      middleOf(await bandOf(page, MIXED, SCORE_M)),
+      await lineOf(page, MIXED, SCORE_M),
+    );
+    await dragBand(page, MIXED, SCORE_F, gap);
 
     await expect.poll(() => entriesLength(page)).toBe(1);
     expect(await journalLength(page)).toBe(START);
@@ -158,9 +175,9 @@ test.describe("on bundles", () => {
       score: order,
     });
     expect(await bandsOf(page, MIXED, "score")).toEqual([
-      band(M, 2, 2),
-      band(F, 1, 1),
-      band(K, -1, 2),
+      band("score", M, 2, 2),
+      band("score", F, 1, 1),
+      band("score", K, -1, 2),
     ]);
     expect(await selection(page)).toEqual(SELECTED_F);
     const after = await storeText(page, "view");
@@ -176,18 +193,21 @@ test.describe("on bundles", () => {
   });
 
   test("a band dragged along its side", async ({ page }) => {
-    const order = [C, M, "score", F, K, R];
-    await enter(page, `${MIXED}/score`, VIEW);
-    await focusBand(page, MIXED, F, 1);
-    const inside = between(await lineOf(page, MIXED, K), middleOf(await bandOf(page, MIXED, K)));
-    await dragBand(page, MIXED, F, inside);
+    const order = [C, M, LINE, F, K, R];
+    await enter(page, { block: MIXED, id: "score" }, VIEW);
+    await focusBand(page, MIXED, SCORE_F, 1);
+    const inside = between(
+      await lineOf(page, MIXED, SCORE_K),
+      middleOf(await bandOf(page, MIXED, SCORE_K)),
+    );
+    await dragBand(page, MIXED, SCORE_F, inside);
 
     await expect.poll(() => entriesLength(page)).toBe(1);
     expect(await newestCommand(page)).toEqual(setScoreOrder(order));
     expect(await bandsOf(page, MIXED, "score")).toEqual([
-      band(M, 1, 2),
-      band(F, -1, 1),
-      band(K, -2, 2),
+      band("score", M, 1, 2),
+      band("score", F, -1, 1),
+      band("score", K, -2, 2),
     ]);
     expect(await selection(page)).toEqual(SELECTED_F);
   });
@@ -195,12 +215,12 @@ test.describe("on bundles", () => {
   test("a child's band is offered in the child's editor and in no other", async ({ page }) => {
     const parent = "recapitulation";
     const child = "recapitulation_second";
-    const conversionMaps = `${child}/conversion_maps_1`;
-    const children = `${parent}/children_1`;
-    const card = [`${SHARED}/group_2/${parent}/card`];
+    const conversionMaps = bandAddress(child, M);
+    const children = bandAddress(parent, C);
+    const card: Address[] = [{ block: SHARED, id: parent, part: ["card"] }];
 
     // Found where every drawn element of the block takes the pointer.
-    await enter(page, SHARED, VIEW);
+    await enter(page, { block: SHARED }, VIEW);
     const at = await focusBand(page, SHARED, conversionMaps, 2);
     const point = await bandPoint(page, SHARED, conversionMaps, 2);
 
@@ -209,30 +229,30 @@ test.describe("on bundles", () => {
      * selection the click makes, and the same marks after it (a band both
      * hovered and selected shows one).
      */
-    const tryPoint = async (marks: string[], selected: string[]) => {
+    const tryPoint = async (marks: ElementAddress[], selected: Address[]) => {
       await select(page, []);
       await page.mouse.move(point.x, point.y);
       if (marks.length === 0) await frames(page);
-      await expect.poll(() => bandMarks(page, SHARED)).toEqual(marks);
+      await expect.poll(() => bandMarks(page, SHARED)).toEqual(keysOf(marks));
       await page.mouse.click(point.x, point.y);
       await expect.poll(() => selection(page)).toEqual(selected);
-      expect(await bandMarks(page, SHARED)).toEqual(marks);
+      expect(await bandMarks(page, SHARED)).toEqual(keysOf(marks));
     };
 
     await tryPoint([], card);
     await done(page, VIEW);
 
-    await enter(page, `${SHARED}/group_2`, at);
+    await enter(page, { block: SHARED, id: "group_2" }, at);
     await tryPoint([], card);
     await done(page, VIEW);
 
-    await enter(page, `${SHARED}/${parent}`, at);
-    await tryPoint([children], [`${SHARED}/${children}`]);
+    await enter(page, { block: SHARED, id: parent }, at);
+    await tryPoint([children], [{ block: SHARED, ...children }]);
     await done(page, VIEW);
 
-    await enter(page, `${SHARED}/${child}`, at);
-    expect(await bandsOf(page, SHARED, child)).toEqual([band(conversionMaps, 1, 1)]);
-    await tryPoint([conversionMaps], [`${SHARED}/${conversionMaps}`]);
+    await enter(page, { block: SHARED, id: child }, at);
+    expect(await bandsOf(page, SHARED, child)).toEqual([band(child, M, 1, 1)]);
+    await tryPoint([conversionMaps], [{ block: SHARED, ...conversionMaps }]);
     await done(page, VIEW);
 
     await setViewport(page, at);
@@ -242,22 +262,16 @@ test.describe("on bundles", () => {
 
   test("a root's order change moves a child without an entry of its own", async ({ page }) => {
     const before = {
-      exposition: [band("exposition/conversion_maps_1", 1, 2), band("exposition/markers_1", -1, 2)],
-      recapitulation: [
-        band("recapitulation/children_1", 1, 2),
-        band("recapitulation/markers_1", -1, 2),
-      ],
+      exposition: [band("exposition", M, 1, 2), band("exposition", K, -1, 2)],
+      recapitulation: [band("recapitulation", C, 1, 2), band("recapitulation", K, -1, 2)],
       recapitulation_first: [],
-      recapitulation_second: [band("recapitulation_second/conversion_maps_1", 1, 1)],
-      take_1: [band("take_1/conversion_maps_1", 1, 1), band("take_1/markers_1", -1, 2)],
+      recapitulation_second: [band("recapitulation_second", M, 1, 1)],
+      take_1: [band("take_1", M, 1, 1), band("take_1", K, -1, 2)],
     };
     const after = {
       ...before,
-      exposition: [
-        band("exposition/conversion_maps_1", -1, 2),
-        band("exposition/markers_1", -2, 2),
-      ],
-      recapitulation_second: [band("recapitulation_second/conversion_maps_1", -1, 1)],
+      exposition: [band("exposition", M, -1, 2), band("exposition", K, -2, 2)],
+      recapitulation_second: [band("recapitulation_second", M, -1, 1)],
     };
     const shown = async () =>
       Object.fromEntries(
@@ -273,17 +287,8 @@ test.describe("on bundles", () => {
         type: "set",
         changes: [
           {
-            target: `${SHARED}/score`,
-            values: {
-              order: [
-                "score/children_1",
-                "score",
-                "score/conversion_maps_1",
-                "score/markers_1",
-                "score/regions_1",
-                "score/flow_control_1",
-              ],
-            },
+            target: { block: SHARED, id: "score" },
+            values: { order: [C, LINE, M, K, R, F] },
           },
         ],
       }),
@@ -301,7 +306,7 @@ test.describe("on bundles", () => {
   test("Ctrl/Cmd+ArrowUp and ArrowDown step a band past the next visible entry", async ({
     page,
   }) => {
-    await enter(page, `${MIXED}/score`, VIEW);
+    await enter(page, { block: MIXED, id: "score" }, VIEW);
     await select(page, SELECTED_F);
     await arranger(page).focus();
 
@@ -313,9 +318,21 @@ test.describe("on bundles", () => {
     expect(await selection(page)).toEqual(SELECTED_F);
 
     const steps: [string, string[], BandRecord[]][] = [
-      ["ArrowUp", [C, M, "score", F, K, R], [band(M, 1, 2), band(F, -1, 1), band(K, -2, 2)]],
-      ["ArrowUp", [C, M, F, "score", K, R], [band(M, 2, 2), band(F, 1, 1), band(K, -1, 2)]],
-      ["ArrowUp", [C, F, M, "score", K, R], [band(F, 2, 1), band(M, 1, 2), band(K, -1, 2)]],
+      [
+        "ArrowUp",
+        [C, M, LINE, F, K, R],
+        [band("score", M, 1, 2), band("score", F, -1, 1), band("score", K, -2, 2)],
+      ],
+      [
+        "ArrowUp",
+        [C, M, F, LINE, K, R],
+        [band("score", M, 2, 2), band("score", F, 1, 1), band("score", K, -1, 2)],
+      ],
+      [
+        "ArrowUp",
+        [C, F, M, LINE, K, R],
+        [band("score", F, 2, 1), band("score", M, 1, 2), band("score", K, -1, 2)],
+      ],
     ];
     for (const [entries, [key, order, bands]] of steps.entries()) {
       await page.keyboard.press(`ControlOrMeta+${key}`);
@@ -333,32 +350,37 @@ test.describe("on bundles", () => {
 
     await page.keyboard.press("ControlOrMeta+ArrowDown");
     await expect.poll(() => entriesLength(page)).toBe(4);
-    expect(await newestCommand(page)).toEqual(setScoreOrder([C, M, F, "score", K, R]));
+    expect(await newestCommand(page)).toEqual(setScoreOrder([C, M, F, LINE, K, R]));
     expect(await bandsOf(page, MIXED, "score")).toEqual([
-      band(M, 2, 2),
-      band(F, 1, 1),
-      band(K, -1, 2),
+      band("score", M, 2, 2),
+      band("score", F, 1, 1),
+      band("score", K, -1, 2),
     ]);
     expect(await selection(page)).toEqual(SELECTED_F);
   });
 
   test("Escape during a band's drag dispatches nothing", async ({ page }) => {
-    await enter(page, `${MIXED}/score`, VIEW);
-    await focusBand(page, MIXED, F, 2);
+    await enter(page, { block: MIXED, id: "score" }, VIEW);
+    await focusBand(page, MIXED, SCORE_F, 2);
     await select(page, SELECTED_F);
     const view = await storeText(page, "view");
-    const wedge = await pointsOf(page, MIXED, "score/start");
-    const from = await bandPoint(page, MIXED, F, 2);
-    const gap = between(middleOf(await bandOf(page, MIXED, M)), await lineOf(page, MIXED, M));
+    const wedge = await pointsOf(page, MIXED, SCORE_START);
+    const from = await bandPoint(page, MIXED, SCORE_F, 2);
+    const gap = between(
+      middleOf(await bandOf(page, MIXED, SCORE_M)),
+      await lineOf(page, MIXED, SCORE_M),
+    );
     await dragStart(page, from, 0, gap - from.y);
     // The preview lays F between the line and the conversion maps band: the
     // line, and the markers band against it, lie lower in the card.
-    await expect.poll(() => pointsOf(page, MIXED, "score/start")).not.toBe(wedge);
+    await expect.poll(() => pointsOf(page, MIXED, SCORE_START)).not.toBe(wedge);
 
     await page.keyboard.press("Escape");
-    await expect.poll(() => pointsOf(page, MIXED, "score/start")).toBe(wedge);
+    await expect.poll(() => pointsOf(page, MIXED, SCORE_START)).toBe(wedge);
     expect(await selection(page)).toEqual(SELECTED_F);
-    expect(await editing(page)).toEqual([{ target: `${MIXED}/score`, kind: "timeline" }]);
+    expect(await editing(page)).toEqual([
+      { target: { block: MIXED, id: "score" }, kind: "timeline" },
+    ]);
     expect(await bandsOf(page, MIXED, "score")).toEqual(SCORE);
     await page.mouse.up();
     await frames(page);
@@ -369,11 +391,11 @@ test.describe("on bundles", () => {
   test("no band is offered in the bundle or the group editor, nor on the arranger", async ({
     page,
   }) => {
-    const card = [`${MIXED}/group_1/score/card`];
+    const card: Address[] = [{ block: MIXED, id: "score", part: ["card"] }];
     // Found where every drawn element of the block takes the pointer.
-    await enter(page, MIXED, VIEW);
-    const at = await focusBand(page, MIXED, F, 1);
-    const point = await bandPoint(page, MIXED, F, 2);
+    await enter(page, { block: MIXED }, VIEW);
+    const at = await focusBand(page, MIXED, SCORE_F, 1);
+    const point = await bandPoint(page, MIXED, SCORE_F, 2);
 
     const tryPoint = async () => {
       await select(page, []);
@@ -387,7 +409,7 @@ test.describe("on bundles", () => {
 
     await tryPoint();
     await done(page, VIEW);
-    await enter(page, `${MIXED}/group_1`, at);
+    await enter(page, { block: MIXED, id: "group_1" }, at);
     await tryPoint();
     await done(page, VIEW);
     await setViewport(page, at);
@@ -395,7 +417,7 @@ test.describe("on bundles", () => {
   });
 
   test("Delete with only a band selected removes nothing", async ({ page }) => {
-    await enter(page, `${MIXED}/score`, VIEW);
+    await enter(page, { block: MIXED, id: "score" }, VIEW);
     await select(page, SELECTED_F);
     const view = await storeText(page, "view");
     await arranger(page).focus();

@@ -6,12 +6,12 @@ import type { Viewport } from "@xyflow/svelte";
 import Canvas from "../src/Canvas.svelte";
 import { liveStore } from "../src/liveStore.svelte.ts";
 import type { ResizeMode } from "../src/resize.ts";
-import type { Selection } from "../src/selection.ts";
+import { NOTHING_SELECTED, type Selection } from "../src/selection.ts";
 
 let { store, metrics }: { store: Store; metrics: FontMetrics } = $props();
 
 const live = $derived(liveStore(store));
-let selection: Selection = $state(new Set());
+let selection: Selection = $state(NOTHING_SELECTED);
 let viewport: Viewport = $state({ x: 0, y: 0, zoom: 1 });
 let locked = $state(false);
 let mode: ResizeMode = $state("box");

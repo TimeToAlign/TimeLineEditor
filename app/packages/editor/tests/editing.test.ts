@@ -1,6 +1,6 @@
 /** The shell while editing; the expected values are derived in `README.md` ("Editing"). */
 
-import type { Workspace } from "@timetoalign/tilie-core";
+import type { Address, Workspace } from "@timetoalign/tilie-core";
 import { isLoadError, isSessionEntry, readWorkspace } from "@timetoalign/tilie-core";
 import { flushSync, mount, tick, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -10,7 +10,11 @@ import { stubEditor } from "./dom.ts";
 import { flushAutosaves, hook, interceptDownloads, workspaceOf } from "./support.ts";
 
 const A = "0000000000";
-const SCORE = `${A}/score`;
+const BLOCK: Address = { block: A };
+const GROUP: Address = { block: A, id: "group_1" };
+const SCORE: Address = { block: A, id: "score" };
+const SCORE_CARD: Address = { block: A, id: "score", part: ["card"] };
+const SCORE_START: Address = { block: A, id: "score", part: ["start"] };
 
 let app: ReturnType<typeof mount> | undefined;
 
@@ -42,7 +46,7 @@ afterEach(async () => {
   vi.restoreAllMocks();
 });
 
-function open(address: string): void {
+function open(address: Address): void {
   const refusal = hook().open(address);
   if (refusal !== null) throw new Error(refusal.message);
   flushSync();
@@ -83,7 +87,7 @@ function expectFolded(workspace: Workspace, count: number, name: string): void {
   expect(folded !== undefined && isSessionEntry(folded) && folded.session).toBe(session);
   expect(Object.keys(workspace.sessions)).toEqual([session]);
   const stored = workspace.sessions[session as string];
-  expect(stored?.target).toBe(SCORE);
+  expect(stored?.target).toEqual(SCORE);
   expect(stored?.entries.length).toBe(count);
   expect(stored?.entries.at(-1)).toMatchObject({
     command: { type: "set", changes: [{ target: SCORE, values: { name } }] },
@@ -95,7 +99,7 @@ describe("the shell while editing", () => {
     expect(drawer().hidden).toBe(true);
     expect(document.activeElement).toBe(arranger());
 
-    open(A);
+    open(BLOCK);
     expect(drawer().hidden).toBe(false);
     expect(localStorage.getItem("tilie.inspector.open")).toBe("true");
     expect(document.activeElement).toBe(arranger());
@@ -112,7 +116,7 @@ describe("the shell while editing", () => {
     hook().done();
     hook().done();
     flushSync();
-    open(A);
+    open(BLOCK);
     expect(drawer().hidden).toBe(false);
   });
 
@@ -152,34 +156,34 @@ describe("the shell while editing", () => {
   });
 
   it("selects the edited element when an editor opens, and keeps the selection's rule when it closes", () => {
-    hook().select([`${A}/group_2/page/card`]);
-    open(A);
-    expect(hook().selection()).toEqual([A]);
-    open(`${A}/group_1`);
-    expect(hook().selection()).toEqual([`${A}/group_1`]);
+    hook().select([{ block: A, id: "page", part: ["card"] }]);
+    open(BLOCK);
+    expect(hook().selection()).toEqual([BLOCK]);
+    open(GROUP);
+    expect(hook().selection()).toEqual([GROUP]);
     open(SCORE);
-    expect(hook().selection()).toEqual([`${A}/group_1/score/card`]);
+    expect(hook().selection()).toEqual([SCORE_CARD]);
     hook().select([
-      `${SCORE}/conversion_maps_1`,
-      `${A}/performance/conversion_maps_1`,
-      `${SCORE}/start`,
+      { block: A, id: "score", facet: "conversion_maps" },
+      { block: A, id: "performance", facet: "conversion_maps" },
+      SCORE_START,
     ]);
     flushSync();
 
     hook().done();
     flushSync();
-    expect(hook().selection()).toEqual([`${SCORE}/start`]);
+    expect(hook().selection()).toEqual([SCORE_START]);
     open(SCORE);
-    expect(hook().selection()).toEqual([`${A}/group_1/score/card`]);
+    expect(hook().selection()).toEqual([SCORE_CARD]);
   });
 
   it("keeps after a change only what the innermost editor holds, by the same rule", () => {
-    open(A);
-    open(`${A}/group_1`);
+    open(BLOCK);
+    open(GROUP);
     open(SCORE);
-    hook().select([`${SCORE}/start`, `${A}/performance`, SCORE]);
+    hook().select([SCORE_START, { block: A, id: "performance" }, SCORE]);
     flushSync();
     rename("S");
-    expect(hook().selection()).toEqual([`${SCORE}/start`, SCORE]);
+    expect(hook().selection()).toEqual([SCORE_START, SCORE]);
   });
 });

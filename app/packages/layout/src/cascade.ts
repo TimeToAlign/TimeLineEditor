@@ -7,25 +7,26 @@
  * for every drawing it calls `cascade.resolve(key, parent)` once, with
  *
  * - `key`, the drawing's `ElementKey`, built by core from the key of the
- *   element holding it: `BOX_KEY` for the box, `unownedKey(type,
+ *   element holding it: `BLOCK_KEY` for the block, `unownedKey(type,
  *   address, holder)` for a frame or a title, `elementKey(type, address,
  *   timeline, holder, map?)` for every element of a timeline (a card, a
  *   line, an ancestor line, a mark, a map, a region, a segment's node, …),
- *   `bandKey(timeline, kind, holder)` for one of a timeline's five bands,
+ *   `bandKey(timeline, facet, holder)` for one of a timeline's five bands,
  *   `textKey(owner, "name" | "label")` for an element's own text. Its
  *   `inside` is the **holder chain**, the types of every element holding it,
  *   outermost first, and it is the only thing the selector member `inside`
  *   reads;
  * - `parent`, the style `resolve` gave the drawing of its holder (the
- *   element its key was built from), or `undefined` for the box.
+ *   element its key was built from), or `undefined` for the block.
  *
  * Drawings that share an address (a timeline drawn as an ancestor line and
  * as a line of its own, a member's start marked on its own line and on an
- * ancestor line) are keyed separately: they match the same `ids`, `within`
+ * ancestor line) are keyed separately: they match the same `addresses`, `within`
  * and `element`, but each inherits from its own `parent` and matches
  * `inside` by its own chain.
  */
 
+import { addressKey } from "@timetoalign/tilie-core";
 import { type ElementKey, selectorMatches } from "@timetoalign/tilie-core/drawing";
 import type { Declaration, Graphical, Selector } from "@timetoalign/timetoshare";
 
@@ -163,7 +164,7 @@ function compareRanks(left: readonly number[], right: readonly number[]): number
 
 /**
  * The statements of every layer, lowest rank first (section 2.5: layer,
- * `ids`, `within` depth, `class`, `element`, `inside`, the count of `domain`
+ * `addresses`, `within` depth, `class` or `facet`, `element`, `inside`, the count of `domain`
  * and `modality`, position). `ancestry` maps every timeline id to the ids
  * from its root down to it, so its length is the timeline's depth (the
  * roots 1).
@@ -172,7 +173,8 @@ export class Cascade {
   readonly #general: readonly Ranked[];
   readonly #byElement: ReadonlyMap<string, readonly Ranked[]>;
   readonly #byClass: ReadonlyMap<string, readonly Ranked[]>;
-  readonly #byId: ReadonlyMap<string, readonly Ranked[]>;
+  readonly #byFacet: ReadonlyMap<string, readonly Ranked[]>;
+  readonly #byAddress: ReadonlyMap<string, readonly Ranked[]>;
   readonly #ancestry: ReadonlyMap<string, readonly string[]>;
 
   constructor(
@@ -198,9 +200,9 @@ export class Cascade {
           set,
           rank: [
             level,
-            select.ids === undefined ? 0 : 1,
+            select.addresses === undefined ? 0 : 1,
             within,
-            select.class === undefined ? 0 : 1,
+            select.class === undefined && select.facet === undefined ? 0 : 1,
             select.element === undefined ? 0 : 1,
             select.inside === undefined ? 0 : 1,
             (select.domain === undefined ? 0 : 1) + (select.modality === undefined ? 0 : 1),
@@ -214,7 +216,8 @@ export class Cascade {
     const general: Ranked[] = [];
     const byElement = new Map<string, Ranked[]>();
     const byClass = new Map<string, Ranked[]>();
-    const byId = new Map<string, Ranked[]>();
+    const byFacet = new Map<string, Ranked[]>();
+    const byAddress = new Map<string, Ranked[]>();
     const add = (buckets: Map<string, Ranked[]>, key: string, statement: Ranked) => {
       const bucket = buckets.get(key) ?? [];
       bucket.push(statement);
@@ -225,15 +228,24 @@ export class Cascade {
       const { select } = statement;
       if (select.element !== undefined) add(byElement, select.element, rankedStatement);
       if (select.class !== undefined) add(byClass, select.class, rankedStatement);
-      for (const id of select.ids ?? []) add(byId, id, rankedStatement);
-      if (select.element === undefined && select.class === undefined && select.ids === undefined) {
+      if (select.facet !== undefined) add(byFacet, select.facet, rankedStatement);
+      for (const address of select.addresses ?? []) {
+        add(byAddress, addressKey(address), rankedStatement);
+      }
+      if (
+        select.element === undefined &&
+        select.class === undefined &&
+        select.facet === undefined &&
+        select.addresses === undefined
+      ) {
         general.push(rankedStatement);
       }
     });
     this.#general = general;
     this.#byElement = byElement;
     this.#byClass = byClass;
-    this.#byId = byId;
+    this.#byFacet = byFacet;
+    this.#byAddress = byAddress;
   }
 
   /** Whether an element matches every member present in a selector. */
@@ -244,7 +256,7 @@ export class Cascade {
   /**
    * The cascaded style of one drawing of an element: `element` its key, with
    * its holder chain; `parent` the cascaded style of its holder's drawing,
-   * `undefined` for the box (section 2.5).
+   * `undefined` for the block (section 2.5).
    */
   resolve(element: ElementKey, parent: Style | undefined): Style {
     const candidates = new Set(this.#general);
@@ -254,8 +266,11 @@ export class Cascade {
     if (element.class !== null) {
       for (const statement of this.#byClass.get(element.class) ?? []) candidates.add(statement);
     }
-    if (element.address !== null) {
-      for (const statement of this.#byId.get(element.address) ?? []) candidates.add(statement);
+    if (element.facet !== null) {
+      for (const statement of this.#byFacet.get(element.facet) ?? []) candidates.add(statement);
+    }
+    for (const statement of this.#byAddress.get(addressKey(element.address)) ?? []) {
+      candidates.add(statement);
     }
     const values: StyleValues = {};
     if (parent !== undefined) for (const property of INHERITED) property.set(values, parent);

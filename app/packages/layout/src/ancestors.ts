@@ -3,7 +3,12 @@
  * (`docs/drawing.md` in TimeToShare, section 8.3).
  */
 
-import { partAddress, type TimelineManifest } from "@timetoalign/tilie-core";
+import {
+  type ElementAddress,
+  idAddress,
+  partAddress,
+  type TimelineManifest,
+} from "@timetoalign/tilie-core";
 import { elementKey } from "@timetoalign/tilie-core/drawing";
 import { compareReal, type Real } from "@timetoalign/tilie-core/numbers";
 import type { Style } from "./cascade.ts";
@@ -27,7 +32,7 @@ import {
 
 /** A mark of the member's start or end on an ancestor's axis. */
 interface AncestorMark extends Measured {
-  readonly address: string;
+  readonly address: ElementAddress;
   readonly style: Style;
   readonly label: Styled;
   /** The proportion the mark is centred on: 0 at the member's start, 1 at its end. */
@@ -39,7 +44,7 @@ interface AncestorMark extends Measured {
 /** An ancestor drawn as a line above the member, with its marks of the member's start and end. */
 interface AncestorLine {
   readonly timeline: TimelineManifest;
-  readonly address: string;
+  readonly address: ElementAddress;
   readonly style: Style;
   readonly name: Styled;
   /** It runs on to the left: `ts < 0`. */
@@ -71,13 +76,13 @@ export function ancestorLines(scope: Scope): AncestorLine[] {
     const start = negate(below);
     const length = lengthValue(timeline);
     const end = length === null ? null : add(start, length);
-    const key = elementKey("ancestor", timeline.id, timeline, rootEntry.key);
+    const key = elementKey("ancestor", idAddress(timeline.id), timeline, rootEntry.key);
     const style = cascade.resolve(key, rootEntry.style);
     const line = { key, style };
     // A member whose end is not known has no end to mark.
     const parts = rootEntry.open ? (["start"] as const) : (["start", "end"] as const);
     const marks = parts.map((part) => {
-      const address = partAddress(root.id, part);
+      const address = partAddress(idAddress(root.id), part);
       const markKey = elementKey("wedge", address, root, key);
       const markStyle = cascade.resolve(markKey, style);
       const label = textOf({ key: markKey, style: markStyle }, "label");
@@ -94,7 +99,7 @@ export function ancestorLines(scope: Scope): AncestorLine[] {
     });
     return {
       timeline,
-      address: timeline.id,
+      address: idAddress(timeline.id),
       style,
       name: textOf(line, "name"),
       left: compareReal(start, zero(root.number_type)) < 0,

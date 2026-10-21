@@ -138,14 +138,14 @@ test.describe("budgets at 300 blocks", { tag: "@budget" }, () => {
       const command = await fastest((n) => {
         store.dispatch({
           type: "set",
-          changes: [{ target: "g000000000", values: { x: (n + 1) * 8, y: 0 } }],
+          changes: [{ target: { block: "g000000000" }, values: { x: (n + 1) * 8, y: 0 } }],
         });
       });
       const redraw = await fastest(
         (n) => {
           store.dispatch({
             type: "set",
-            changes: [{ target: "g000000001", values: { length: 400 + (n + 1) * 8 } }],
+            changes: [{ target: { block: "g000000001" }, values: { length: 400 + (n + 1) * 8 } }],
           });
         },
         async () => {

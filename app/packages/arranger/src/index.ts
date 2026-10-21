@@ -7,14 +7,14 @@
 export const name = "@timetoalign/tilie-arranger" as const;
 
 export type { CardBox, ItemBox } from "./boxes.ts";
-export { boxOf, isHeld, isItem } from "./boxes.ts";
+export { blockBox, boxOf, isHeld, isItem, keyedBox } from "./boxes.ts";
 export { default as Canvas } from "./Canvas.svelte";
 export { addCommand } from "./commands.ts";
 export type { Level, PlaceField, PlaceProperty, Subject } from "./containers.ts";
-export { fieldsOf, resolveSelection } from "./containers.ts";
+export { fieldsOf, levelOf, resolveSelection } from "./containers.ts";
 export { drawingOf } from "./drawing.ts";
 export type { Editing } from "./editing.ts";
-export { placeTarget } from "./editing.ts";
+export { changedPlace, placeChange } from "./editing.ts";
 export type { Viewport } from "./focus.ts";
 export type { ShownValues } from "./items.ts";
 export { placeEdit, shownValues } from "./items.ts";
@@ -24,4 +24,11 @@ export { liveStore } from "./liveStore.svelte.ts";
 export type { LivePlacement } from "./project.ts";
 export type { ResizeMode } from "./resize.ts";
 export type { Selection } from "./selection.ts";
-export { blockOf, editedSelection, existing } from "./selection.ts";
+export {
+  blockOf,
+  editedSelection,
+  existing,
+  isSelected,
+  NOTHING_SELECTED,
+  selectionOf,
+} from "./selection.ts";

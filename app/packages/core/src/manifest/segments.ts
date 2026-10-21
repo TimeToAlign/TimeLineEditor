@@ -128,7 +128,7 @@ function closedLine(at: SegmentAt, gap: Gap): TimelineManifest | string {
           : null;
   const length = end === null ? null : end.subtract(start);
   const exactly = (timeline: TimelineManifest, what: string) =>
-    `the ${what} of ${timeline.id} would not be exact as ${timeline.number_type}`;
+    `the ${what} of '${timeline.id}' would not be exact as ${timeline.number_type}`;
   const changed = new Map<string, ChildTimeline>();
   let changedLine: TimelineManifest = line;
 
@@ -144,7 +144,7 @@ function closedLine(at: SegmentAt, gap: Gap): TimelineManifest | string {
     // line is locked, so a line of such segments extends only into a
     // neighbour of unknown length.
     if (neighbour.locked && neighbour.length !== null) {
-      return `the ${gap.side === "left" ? "preceding" : "following"} segment ${neighbour.id} is locked`;
+      return `the ${gap.side === "left" ? "preceding" : "following"} segment '${neighbour.id}' is locked`;
     }
     let grown: AxisValue | null = null;
     if (neighbour.length !== null && length !== null) {
@@ -158,11 +158,11 @@ function closedLine(at: SegmentAt, gap: Gap): TimelineManifest | string {
       ...(gap.side === "right" ? { offset: segment.offset } : {}),
     });
   } else {
-    if (line.locked) return `its segment line ${line.id} is locked`;
+    if (line.locked) return `its segment line '${line.id}' is locked`;
     // "Left shifts" names the neighbour that moves: the line's offset in its
     // parent moves by the deleted length, which a root does not have.
     if (gap.side === "left" && parent === undefined) {
-      return `its segment line ${line.id} is a root and has no offset to move`;
+      return `its segment line '${line.id}' is a root and has no offset to move`;
     }
     if (length !== null) {
       for (const later of segments.slice(index + 1)) {
@@ -181,7 +181,7 @@ function closedLine(at: SegmentAt, gap: Gap): TimelineManifest | string {
     if (gap.side === "left") {
       if (length === null) return "its length is not known";
       if (parent === undefined || line.offset === undefined) {
-        return `its segment line ${line.id} is a root and has no offset to move`;
+        return `its segment line '${line.id}' is a root and has no offset to move`;
       }
       const offset = placedOn(exactOn(line.offset, parent).add(length), parent);
       if (offset === undefined) return exactly(line, "offset");
@@ -201,7 +201,7 @@ function closedLine(at: SegmentAt, gap: Gap): TimelineManifest | string {
  */
 export function withoutSegment(manifest: Manifest, id: string, gap: Gap): Manifest | string {
   const at = segmentAt(manifest, id);
-  if (at === undefined) return `${id} is not a segment`;
+  if (at === undefined) return `'${id}' is not a segment`;
   const line = closedLine(at, gap);
   if (typeof line === "string") return line;
   return withoutElements(withTimeline(manifest, line), [id]);

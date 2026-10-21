@@ -9,7 +9,7 @@ import type { Problem } from "./errors.ts";
 import { ErrorCode, isCommandError, problem } from "./errors.ts";
 import type { Json, JsonObject, PathSegment } from "./json.ts";
 import { isJsonObject, showJson } from "./json.ts";
-import type { CardPlace, ItemPlace } from "./manifest/containers.ts";
+import type { CardPlace, ItemPlace, Place, Places } from "./manifest/containers.ts";
 import { ITEM_PLACE_MEMBERS } from "./manifest/containers.ts";
 import { plainDeclaration, plainGraphical, plainSelector, schemaChecked } from "./manifest/io.ts";
 import type { ManifestGraphical } from "./manifest/types.ts";
@@ -154,20 +154,26 @@ export const PLACE_READERS = {
 } as const satisfies { readonly [member in keyof ItemPlace]-?: unknown };
 
 /**
- * A place: an object of only the members an item's place may state, at
- * least one, each by its rule.
+ * A place: an object of only the members an item's place may state, each
+ * by its rule, and with `cards` also `cards`; at least one member.
  */
-function readPlace(value: unknown, path: readonly PathSegment[]): ItemPlace | Problem {
+function readPlace(value: unknown, path: readonly PathSegment[], cards: boolean): Place | Problem {
   const object = readObject(value, path);
   if (isCommandError(object)) return object;
-  const extra = unknownMember(object, ITEM_PLACE_MEMBERS, path);
+  const allowed = cards ? [...ITEM_PLACE_MEMBERS, "cards"] : ITEM_PLACE_MEMBERS;
+  const extra = unknownMember(object, allowed, path);
   if (extra !== undefined) return extra;
-  const place: { -readonly [M in keyof ItemPlace]?: number } = {};
+  const place: { -readonly [M in keyof Place]: Place[M] } = {};
   for (const member of ITEM_PLACE_MEMBERS) {
     if (!Object.hasOwn(object, member)) continue;
     const read = PLACE_READERS[member](object[member], [...path, member]);
     if (isCommandError(read)) return read;
     place[member] = read;
+  }
+  if (cards && Object.hasOwn(object, "cards")) {
+    const read = readCards(object.cards, [...path, "cards"]);
+    if (isCommandError(read)) return read;
+    place.cards = read;
   }
   return Object.keys(place).length > 0
     ? place
@@ -175,19 +181,38 @@ function readPlace(value: unknown, path: readonly PathSegment[]): ItemPlace | Pr
 }
 
 /**
- * A block's places: an object of places, keys any string, each read as an
- * item's place; which keys and members a manifest's containers take is
+ * The `cards` of an item's place: an object of at least one card place by
+ * member ID, each read as a place; which members a card takes is
  * `placeProblems`'s.
  */
-export function readPlaces(
+function readCards(
   value: unknown,
   path: readonly PathSegment[],
-): { readonly [key: string]: ItemPlace | CardPlace } | Problem {
+): { readonly [member: string]: CardPlace } | Problem {
   const object = readObject(value, path);
   if (isCommandError(object)) return object;
-  const result: { [key: string]: ItemPlace | CardPlace } = {};
+  const result: { [member: string]: CardPlace } = {};
+  for (const [member, item] of Object.entries(object)) {
+    const place = readPlace(item, [...path, member], false);
+    if (isCommandError(place)) return place;
+    result[member] = place;
+  }
+  return Object.keys(result).length > 0
+    ? result
+    : invalid("cards holds at least one card's place", path);
+}
+
+/**
+ * A block's places: an object of places by item ID, keys any string, each
+ * read as an item's place with its members' `cards`; which keys and members
+ * a manifest's containers take is `placeProblems`'s.
+ */
+export function readPlaces(value: unknown, path: readonly PathSegment[]): Places | Problem {
+  const object = readObject(value, path);
+  if (isCommandError(object)) return object;
+  const result: { [key: string]: Place } = {};
   for (const [key, item] of Object.entries(object)) {
-    const place = readPlace(item, [...path, key]);
+    const place = readPlace(item, [...path, key], true);
     if (isCommandError(place)) return place;
     result[key] = place;
   }

@@ -5,6 +5,7 @@
  * them.
  */
 
+import type { ElementAddress } from "@timetoalign/tilie-core";
 import type {
   Drawing,
   DrawnElement,
@@ -18,11 +19,17 @@ import type { DescriptorSource } from "./source.ts";
 
 export type { PathCommand, Point } from "@timetoalign/tilie-layout";
 
+/** The SVG attributes that carry an element's address (section 7.2), in the order written. */
+export const ADDRESS_ATTRIBUTES = ["data-id", "data-facet", "data-part"] as const;
+
 export type Tag = "rect" | "line" | "circle" | "polygon" | "polyline" | "path" | "text";
 
 /** One SVG attribute, its name and its value, as the descriptor writes it. */
 export type Attribute =
-  | readonly ["data-address" | "fill" | "stroke" | "stroke-dasharray" | "text-anchor", string]
+  | readonly [
+      (typeof ADDRESS_ATTRIBUTES)[number] | "fill" | "stroke" | "stroke-dasharray" | "text-anchor",
+      string,
+    ]
   | readonly [
       (
         | "x"
@@ -129,14 +136,29 @@ function strokeAttributes(stroke: string, width: number, dasharray: string): Att
 }
 
 /**
+ * The attributes of an address (section 7.2): `data-id`, `data-facet` and
+ * `data-part`, its part words joined by one space, each only when the
+ * address has its member; none for the bundle's address `{}`.
+ */
+function addressAttributes(address: ElementAddress): Attributes {
+  const values = [address.id, address.facet, address.part?.join(" ")];
+  const result: Attribute[] = [];
+  ADDRESS_ATTRIBUTES.forEach((name, index) => {
+    const value = values[index];
+    if (value !== undefined) result.push([name, value]);
+  });
+  return result;
+}
+
+/**
  * The writer of one element's descriptors, `index` its place in the
- * drawing: each carries the element's address (the box's background none),
- * its geometric attributes, its paint and its opacity, in that order
+ * drawing: each carries the element's address (the block's background
+ * none), its geometric attributes, its paint and its opacity, in that order
  * (section 7.2).
  */
 function writerOf(element: DrawnElement, index: number) {
   const { address, style } = element;
-  const head: Attributes = address === null ? [] : [["data-address", address]];
+  const head = addressAttributes(address);
   const tail: Attributes = style.opacity === 1 ? [] : [["opacity", style.opacity]];
   const w = style["stroke-width"];
   const none: Attributes = [["fill", "none"]];
@@ -266,14 +288,14 @@ function elementDescriptors(element: DrawnElement, index: number): Descriptor[] 
   const { filled, stroked, open } = writer;
   switch (element.type) {
     case "block":
-      // The background: its template, then `opacity`, and no address.
+      // The background: its template, then `opacity`, and no address attribute.
       return [writer.rect(0, 0, element.width, element.height, filled)];
-    case "group":
+    case "frame":
     case "card": {
       const { x, y, width, height, shadowOffset } = element;
       const own = writer.rect(x, y, width, height, [...filled, ...stroked]);
       const shadow = element.style.shadow;
-      if (element.type === "group" || shadow === "none") return [own];
+      if (element.type === "frame" || shadow === "none") return [own];
       const [sx, sy] = [x + shadowOffset, y + shadowOffset];
       return [writer.rect(sx, sy, width, height, [["fill", shadow]], "shadow"), own];
     }

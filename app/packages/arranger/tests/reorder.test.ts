@@ -1,5 +1,12 @@
 import type { View } from "@timetoalign/tilie-core";
-import { isCommandError, preview } from "@timetoalign/tilie-core";
+import {
+  cardAddress,
+  idAddress,
+  inBlock,
+  isCommandError,
+  preview,
+  WORKSPACE,
+} from "@timetoalign/tilie-core";
 import { describe, expect, it } from "vitest";
 import { drawingOf } from "../src/drawing.ts";
 import { releaseMotion } from "../src/gestures/held.ts";
@@ -19,6 +26,9 @@ const view = mixedPlain();
 const block = blockIn(view, A);
 const drawing = drawingOf(block, view.settings, metrics);
 
+/** The place key of `score`'s card in `group_1`'s frame. */
+const SCORE_CARD = { item: "group_1", member: "score" } as const;
+
 describe("memberOrderAt", () => {
   it.each([
     ["group_1", "score", 100, ["score", "performance"]],
@@ -37,10 +47,10 @@ describe("memberOrderAt", () => {
       type: "set",
       changes: [
         {
-          target: "workspace",
+          target: WORKSPACE,
           values: {
             graphical: {
-              statements: [{ select: { element: "group" }, set: { display: "none" } }],
+              statements: [{ select: { element: "frame" }, set: { display: "none" } }],
             },
           },
         },
@@ -49,7 +59,7 @@ describe("memberOrderAt", () => {
     const drawn = (of: View) => drawingOf(blockIn(of, A), of.settings, metrics);
 
     it("draws no frame", () => {
-      expect(drawn(hidden).elements.filter((element) => element.type === "group")).toEqual([]);
+      expect(drawn(hidden).elements.filter((element) => element.type === "frame")).toEqual([]);
     });
 
     it.each([
@@ -84,8 +94,8 @@ describe("a reorder's preview", () => {
       element.type === "card" ? [[element.address, element.y]] : [],
     );
     expect(cards.slice(0, 2)).toEqual([
-      ["group_1/performance/card", 53.609375],
-      ["group_1/score/card", 111.0859375],
+      [cardAddress("performance"), 53.609375],
+      [cardAddress("score"), 111.0859375],
     ]);
   });
 });
@@ -95,7 +105,7 @@ describe("reorderCommand", () => {
     expect(reorderCommand(block, "group_1", ["score", "performance"])).toBeNull();
     expect(reorderCommand(block, "group_1", ["performance", "score"])).toEqual({
       type: "set",
-      changes: [{ target: `${A}/group_1`, values: { order: null } }],
+      changes: [{ target: inBlock(A, idAddress("group_1")), values: { order: null } }],
     });
   });
 
@@ -105,12 +115,17 @@ describe("reorderCommand", () => {
     expect(reorderCommand(group, "group_1", ["score", "page", "performance"])).toBeNull();
     expect(reorderCommand(group, "group_1", ["page", "performance", "score"])).toEqual({
       type: "set",
-      changes: [{ target: `${A}/group_1`, values: { order: null } }],
+      changes: [{ target: inBlock(A, idAddress("group_1")), values: { order: null } }],
     });
     const command = reorderCommand(group, "group_1", ["performance", "score", "page"]);
     expect(command).toEqual({
       type: "set",
-      changes: [{ target: `${A}/group_1`, values: { order: ["performance", "score", "page"] } }],
+      changes: [
+        {
+          target: inBlock(A, idAddress("group_1")),
+          values: { order: ["performance", "score", "page"] },
+        },
+      ],
     });
     const after = changed(numbers, command);
     expect(blockIn(after, A).manifest.graphical?.order?.group_1).toEqual([
@@ -126,18 +141,18 @@ describe("releaseMotion", () => {
   const shown = drawingOf(blockIn(reordered, A), reordered.settings, metrics);
 
   it("moves the copy from its drop to the card's place after the release", () => {
-    expect(releaseMotion(drawing, shown, "group_1/score/card", { x: 10, y: 100 })).toEqual({
+    expect(releaseMotion(drawing, shown, SCORE_CARD, { x: 10, y: 100 })).toEqual({
       from: { x: 10, y: 100 },
       to: { x: 0, y: 57.4765625 },
     });
-    expect(releaseMotion(drawing, drawing, "group_1/score/card", { x: 10, y: 100 })).toEqual({
+    expect(releaseMotion(drawing, drawing, SCORE_CARD, { x: 10, y: 100 })).toEqual({
       from: { x: 10, y: 100 },
       to: { x: 0, y: 0 },
     });
   });
 
   it("gives no motion for a copy already in place, nor for a card not drawn", () => {
-    expect(releaseMotion(drawing, shown, "group_1/score/card", { x: 0, y: 57.4765625 })).toBeNull();
-    expect(releaseMotion(drawing, shown, "nobody/card", { x: 10, y: 100 })).toBeNull();
+    expect(releaseMotion(drawing, shown, SCORE_CARD, { x: 0, y: 57.4765625 })).toBeNull();
+    expect(releaseMotion(drawing, shown, { item: "nobody" }, { x: 10, y: 100 })).toBeNull();
   });
 });

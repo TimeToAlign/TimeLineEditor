@@ -10,7 +10,7 @@ import { moveCommand } from "./commands.ts";
 import type { BlockNode, LivePlacement } from "./project.ts";
 import { livePlacement } from "./project.ts";
 import type { Selection } from "./selection.ts";
-import { blockOf } from "./selection.ts";
+import { blockOf, isSelected, selectionOf } from "./selection.ts";
 import type { Box, Guide } from "./snap.ts";
 import { snap } from "./snap.ts";
 
@@ -107,9 +107,9 @@ export class BlockDrag {
     this.#dragging = [...ids];
     this.#boxes = anchors(host.projected(), ids);
     const selection = host.selection();
-    if (targetNode !== null && !selection.has(targetNode.id)) {
-      const inside = [...selection].some((address) => blockOf(address) === targetNode.id);
-      if (!inside) host.select(new Set(ids));
+    if (targetNode !== null && !isSelected(selection, { block: targetNode.id })) {
+      const inside = [...selection.values()].some((address) => blockOf(address) === targetNode.id);
+      if (!inside) host.select(selectionOf([...ids].map((block) => ({ block }))));
     }
     const lead = targetNode ?? nodes[0];
     if (lead !== undefined) host.report(this.#placed(lead, 0, 0));

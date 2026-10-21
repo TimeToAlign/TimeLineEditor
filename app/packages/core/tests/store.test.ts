@@ -10,9 +10,9 @@ import { createView } from "../src/workspace/view.ts";
 import { A, addBlock, B, testClock } from "./support.ts";
 
 const empty = () => ({ view: createView(), journal: [], sessions: {} });
-const move = (target: string, x: number): SetCommand => ({
+const move = (block: string, x: number): SetCommand => ({
   type: "set",
-  changes: [{ target, values: { x, y: 0 } }],
+  changes: [{ target: { block }, values: { x, y: 0 } }],
 });
 
 describe("the store", () => {
@@ -43,8 +43,8 @@ describe("the store", () => {
     });
     expect(store.dispatch(move(B, 1))).toEqual({
       code: "unknown_target",
-      message: `${B} names nothing`,
-      path: [B],
+      message: `{"block":"${B}"} names nothing`,
+      path: [`{"block":"${B}"}`],
     });
     expect(store.view).toBe(view);
     expect(store.journal.length).toBe(1);
@@ -119,14 +119,14 @@ describe("the store", () => {
     const store = createStore(empty(), { clock: testClock() });
     store.dispatch(addBlock(A, "bare.json"));
     expect(store.openings).toBe(0);
-    expect(store.open(A)).toBeNull();
-    expect(store.open(`${A}/bare`)).toBeNull();
+    expect(store.open({ block: A })).toBeNull();
+    expect(store.open({ block: A, id: "bare" })).toBeNull();
     expect(store.openings).toBe(2);
     store.cancel();
     store.done();
-    expect(store.open(`${A}/ghost`)?.code).toBe("unknown_target");
+    expect(store.open({ block: A, id: "ghost" })?.code).toBe("unknown_target");
     expect(store.openings).toBe(2);
-    expect(store.open(A)).toBeNull();
+    expect(store.open({ block: A })).toBeNull();
     expect(store.openings).toBe(3);
   });
 });

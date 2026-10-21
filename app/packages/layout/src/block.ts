@@ -1,19 +1,19 @@
 /**
  * `draw(manifest, placement, layers, metrics)`: the drawing of one
  * TimeToShare manifest (`docs/drawing.md` in TimeToShare). Every manifest
- * is drawn as one box (section 8): each timeline drawn as a root lies in its
- * own card and is laid out by sections 3 to 6, and each item of the box, a
- * frame or an ungrouped root's card, applies the box's one horizontal layout
+ * is drawn as one block (section 8): each timeline drawn as a root lies in its
+ * own card and is laid out by sections 3 to 6, and each item of the block, a
+ * frame or an ungrouped root's card, applies the block's one horizontal layout
  * and is drawn at its own place and scale.
  */
 
 import { indexOf, isNamed, type Manifest, TITLE_ADDRESS } from "@timetoalign/tilie-core";
-import { BOX_KEY } from "@timetoalign/tilie-core/drawing";
+import { BLOCK_KEY } from "@timetoalign/tilie-core/drawing";
 import type { FontMetrics, Graphical } from "@timetoalign/timetoshare";
-import { emitDrawing } from "./box/emit.ts";
-import { columnsOf, horizontalOf } from "./box/horizontal.ts";
-import { drawItem, layoutItem } from "./box/items.ts";
-import { placeItems, titleOf } from "./box/places.ts";
+import { emitDrawing } from "./block/emit.ts";
+import { columnsOf, horizontalOf } from "./block/horizontal.ts";
+import { drawItem, layoutItem } from "./block/items.ts";
+import { placeItems, titleOf } from "./block/places.ts";
 import { Cascade } from "./cascade.ts";
 import { F, P } from "./constants.ts";
 import type { Drawing, Placement } from "./elements.ts";
@@ -21,11 +21,11 @@ import { TextMeasure } from "./metrics.ts";
 import type { Context, Holder } from "./traversal.ts";
 
 /**
- * Draw one manifest as one box (section 8): its title, its groups as frames
+ * Draw one manifest as one block (section 8): its title, its groups as frames
  * and its ungrouped roots as cards, each item at its place (section 8.6).
- * The items are placed and their member drawings laid out; the box's one
+ * The items are placed and their member drawings laid out; the block's one
  * horizontal layout is found over every member drawing; each item is laid
- * out by it; the box is grown around them.
+ * out by it; the block is grown around them.
  *
  * `manifest` is in canonical order, as every manifest core reads or settles
  * is: the drawing follows the order of its arrays and never copies it. Its
@@ -41,16 +41,16 @@ export function draw(
   const measure = new TextMeasure(metrics);
   const cascade = new Cascade(layers, indexOf(manifest).ancestry);
   const context: Context = { manifest, placement, cascade, measure };
-  const box: Holder = { key: BOX_KEY, style: cascade.resolve(BOX_KEY, undefined) };
+  const block: Holder = { key: BLOCK_KEY, style: cascade.resolve(BLOCK_KEY, undefined) };
 
   // The manifest's title: its name, else its id; a manifest with neither has none. `Pt` (section
   // 8.4): no item rises above F below the title's slot, and the first default top lies there.
   const title = isNamed(manifest)
-    ? titleOf(context, TITLE_ADDRESS, manifest.id ?? "", manifest.name, box)
+    ? titleOf(context, TITLE_ADDRESS, manifest.id ?? "", manifest.name, block)
     : undefined;
   const Pt = title === undefined ? P : P + measure.lineHeight(title.size) + F;
 
-  const items = placeItems(context, box, Pt);
+  const items = placeItems(context, block, Pt);
   const columns = columnsOf(items);
   const drawings = items.map((item) => drawItem(item, columns));
   const horizontal = horizontalOf(
@@ -62,5 +62,5 @@ export function draw(
     measure,
   );
   const laid = drawings.map((drawing) => layoutItem(drawing, horizontal, measure));
-  return emitDrawing(laid, { style: box.style, title, Pt }, placement, measure);
+  return emitDrawing(laid, { style: block.style, title, Pt }, placement, measure);
 }

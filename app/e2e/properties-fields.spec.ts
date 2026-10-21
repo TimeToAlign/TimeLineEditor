@@ -6,6 +6,8 @@
 
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
+import type { ElementAddress } from "../packages/core/src/index.ts";
+import { sameAddress } from "../packages/core/src/index.ts";
 import {
   BUNDLES,
   commandsFrom,
@@ -18,11 +20,14 @@ import {
   tab,
 } from "./support.ts";
 
+/** The mixed bundle's group `group_1`, as a command targets it. */
+const GROUP = { block: BUNDLES.mixed, id: "group_1" };
+
 /** The Properties tab showing the selection `elements` of the mixed bundle. */
-async function inspect(page: Page, elements: string[]): Promise<void> {
+async function inspect(page: Page, elements: ElementAddress[]): Promise<void> {
   await select(
     page,
-    elements.map((element) => `${BUNDLES.mixed}/${element}`),
+    elements.map((element) => ({ block: BUNDLES.mixed, ...element })),
   );
   await tab(page, "Properties").click();
   await expect(tab(page, "Properties")).toHaveAttribute("aria-selected", "true");
@@ -37,7 +42,7 @@ test.beforeEach(async ({ page }) => {
 test("a frame height at or below its minimum states none, and the status line says why", async ({
   page,
 }) => {
-  await inspect(page, ["group_1"]);
+  await inspect(page, [{ id: "group_1" }]);
   const frame = page.getByRole("form", { name: "Frame properties" });
   const height = frame.getByLabel("container height", { exact: true });
   const drawn = await height.inputValue();
@@ -53,8 +58,7 @@ test("a frame height at or below its minimum states none, and the status line sa
   await expect.poll(() => journalLength(page)).toBe(OPENED_JOURNAL.bundles + 2);
   const [, command] = await commandsFrom(page, OPENED_JOURNAL.bundles);
   const changes = command?.type === "set" ? command.changes : [];
-  const place = changes.find((change) => change.target === `${BUNDLES.mixed}/group_1`)?.values
-    .place;
+  const place = changes.find((change) => sameAddress(change.target, GROUP))?.values.place;
   expect(place).toEqual({ height: null });
   await expect(height).toHaveValue(drawn);
   await expect(page.getByRole("status").filter({ hasText: "To decrease" })).toHaveText(
@@ -66,7 +70,7 @@ test("a frame height at or below its minimum states none, and the status line sa
 test("the container size stands in one row, the Locked checkbox right of the height", async ({
   page,
 }) => {
-  await inspect(page, ["group_2/excerpt/card"]);
+  await inspect(page, [{ id: "excerpt", part: ["card"] }]);
   const card = page.getByRole("form", { name: "Card properties" });
   const width = card.getByLabel("container width", { exact: true });
   const height = card.getByLabel("container height", { exact: true });
@@ -82,19 +86,19 @@ test("the container size stands in one row, the Locked checkbox right of the hei
   expect(h.x).toBeGreaterThan(w.x + w.width - 1);
   expect(l.x).toBeGreaterThan(h.x + h.width - 1);
   expect(w.y).toBe(h.y);
-  await inspect(page, ["group_1/score/card"]);
+  await inspect(page, [{ id: "score", part: ["card"] }]);
   await expect(page.getByRole("checkbox", { name: "Locked" })).not.toBeChecked();
 });
 
 test("the Name field comes first and renames the group in one command", async ({ page }) => {
-  await inspect(page, ["group_1"]);
+  await inspect(page, [{ id: "group_1" }]);
   const name = page.getByLabel("Name", { exact: true });
   await expect(name).toHaveValue("Performance");
   await name.fill("Duo");
   await name.press("Enter");
   await expect.poll(() => journalLength(page)).toBe(OPENED_JOURNAL.bundles + 1);
   expect(await commandsFrom(page, OPENED_JOURNAL.bundles)).toEqual([
-    { type: "set", changes: [{ target: `${BUNDLES.mixed}/group_1`, values: { name: "Duo" } }] },
+    { type: "set", changes: [{ target: GROUP, values: { name: "Duo" } }] },
   ]);
   await expect(name).toHaveValue("Duo");
 });
@@ -102,8 +106,7 @@ test("the Name field comes first and renames the group in one command", async ({
 test("in an editor with nothing selected, the Name field names the edited group", async ({
   page,
 }) => {
-  const group = `${BUNDLES.mixed}/group_1`;
-  expect(await page.evaluate((address) => window.__tilie.open(address), group)).toBeNull();
+  expect(await page.evaluate((address) => window.__tilie.open(address), GROUP)).toBeNull();
   await select(page, []);
   await tab(page, "Properties").click();
   const name = page.getByLabel("Name", { exact: true });

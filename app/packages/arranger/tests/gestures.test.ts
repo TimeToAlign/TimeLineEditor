@@ -23,7 +23,7 @@ import type { Matrix } from "../src/motion.ts";
 import { nextTask, pointer, pressEscape, stubPointerCapture, withScreenMatrix } from "./dom.ts";
 
 const SVG = "http://www.w3.org/2000/svg";
-const COMMAND: Command = { type: "remove", targets: ["bundle0001/group_1"] };
+const COMMAND: Command = { type: "remove", targets: [{ block: "bundle0001", id: "group_1" }] };
 
 /** What the recording strategy was asked, in order. */
 type Call =
@@ -387,7 +387,12 @@ describe("the click after a gesture", () => {
 describe("pointer targets", () => {
   it("are read back as the descriptor they draw, and nothing else", () => {
     const scene = stage();
-    const source = { element: 3, type: "card", address: "score/card", role: "primary" } as const;
+    const source = {
+      element: 3,
+      type: "card",
+      address: { id: "score", part: ["card"] },
+      role: "primary",
+    } as const;
     const stop = drawn(source)(scene.element);
     expect(sourceAt(scene.element)).toBe(source);
     expect(sourceAt(scene.svg)).toBeNull();

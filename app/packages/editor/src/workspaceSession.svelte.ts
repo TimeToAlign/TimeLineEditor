@@ -14,8 +14,10 @@ import {
   editedSelection,
   existing,
   liveStore,
+  NOTHING_SELECTED,
+  selectionOf,
 } from "@timetoalign/tilie-arranger";
-import type { LoadError, Problem, Store, View, Workspace } from "@timetoalign/tilie-core";
+import type { Address, LoadError, Problem, Store, View, Workspace } from "@timetoalign/tilie-core";
 import {
   createStore,
   ErrorCode,
@@ -68,12 +70,12 @@ export interface SessionOptions {
   /** Called after the open workspace was replaced by another. */
   readonly replaced?: () => void;
   /** Called with the selected addresses whenever the selection changes. */
-  readonly selected?: (selection: readonly string[]) => void;
+  readonly selected?: (selection: readonly Address[]) => void;
 }
 
 /** Whether two selections name the same addresses. */
 function sameSelection(left: Selection, right: Selection): boolean {
-  return left.size === right.size && [...left].every((address) => right.has(address));
+  return left.size === right.size && [...left.keys()].every((key) => right.has(key));
 }
 
 export class WorkspaceSession {
@@ -90,7 +92,7 @@ export class WorkspaceSession {
   /** Whether the workspace holds changes its file does not. */
   readonly dirty: boolean = $derived(this.live.view !== this.savedView);
 
-  #selection: Selection = $state.raw(new Set());
+  #selection: Selection = $state.raw(NOTHING_SELECTED);
   /** The open store's count of openings when the session last followed it: a larger count is an editor opened. */
   #openings = this.store.openings;
   #listeners = new Set<() => void>();
@@ -103,7 +105,7 @@ export class WorkspaceSession {
     this.#unsubscribe = this.store.subscribe(() => this.#changed());
   }
 
-  /** The viewer's selection: block ids and `<block>/<element address>`; never written to the workspace. */
+  /** The viewer's selection: addresses of blocks and of their elements; never written to the workspace. */
   get selection(): Selection {
     return this.#selection;
   }
@@ -111,7 +113,7 @@ export class WorkspaceSession {
   set selection(next: Selection) {
     if (sameSelection(next, this.#selection)) return;
     this.#selection = next;
-    this.#options.selected?.([...next]);
+    this.#options.selected?.([...next.values()]);
   }
 
   /**
@@ -150,7 +152,7 @@ export class WorkspaceSession {
       };
     }
     this.#unsubscribe();
-    this.selection = new Set();
+    this.selection = NOTHING_SELECTED;
     this.store = next;
     this.#openings = next.openings;
     this.savedView = saved ? next.view : null;
@@ -232,7 +234,7 @@ export class WorkspaceSession {
         this.#options.say(`${opened.name} could not be added.`, [refusal]);
         return;
       }
-      this.selection = new Set([id]);
+      this.selection = selectionOf([{ block: id }]);
       canvas.focus();
     } catch (error) {
       this.#options.say(`The file could not be imported: ${messageOf(error)}`);
@@ -241,7 +243,7 @@ export class WorkspaceSession {
 
   /** The block the whole selection lies in, if it lies in exactly one. */
   get exportable(): string | null {
-    const blocks = new Set([...this.selection].map(blockOf));
+    const blocks = new Set([...this.selection.values()].map(blockOf));
     const [only] = blocks;
     return blocks.size === 1 && only !== undefined && this.live.view.blocks[only] !== undefined
       ? only

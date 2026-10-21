@@ -3,14 +3,15 @@
  * its five bands, its axis and the measures its bands share
  * (`docs/drawing.md` in TimeToShare, sections 2.1, 2.4, 3.2, 5 and 6.1).
  * The keys mirror core's tree of elements: a child, or a segment's node, is
- * held by its parent's children band, and what a timeline holds of a kind
- * by its band of that kind.
+ * held by its parent's children band, and what a timeline holds of a facet
+ * by its band of that facet.
  */
 
 import {
-  type BandKind,
   type ConversionMap,
-  elementAddress,
+  type ElementAddress,
+  type Facet,
+  idAddress,
   type Manifest,
   partAddress,
   type TimelineManifest,
@@ -31,7 +32,7 @@ import { cleanText, type TextMeasure } from "./metrics.ts";
 import { add, coordinateValue, lengthValue, proportion, reachOf, zero } from "./numbers.ts";
 
 export interface Styled {
-  readonly address: string;
+  readonly address: ElementAddress;
   readonly style: Style;
 }
 
@@ -63,7 +64,7 @@ export interface Entry extends Holder {
   /** Drawn as a line of its own: the root, a child, a segment that is a segment line. */
   readonly line: boolean;
   /** Its five bands (sections 2.1 and 2.2): each band's key, held by this timeline, and its style. */
-  readonly bands: Readonly<Record<BandKind, Holder>>;
+  readonly bands: Readonly<Record<Facet, Holder>>;
   /**
    * Its drawing may be drawn (sections 2.4 and 6.4): it is displayed (its own `display` and that
    * of every band holding it, at any depth, are `inline`) and, for any timeline but the root, its
@@ -129,22 +130,21 @@ export interface Scope extends Context {
   readonly h: (size: number) => number;
   readonly a: (size: number) => number;
   readonly d: (size: number) => number;
-  readonly address: (id: string) => string;
   readonly styled: (key: ElementKey, parent: Style) => Styled;
   readonly textOf: (owner: Holder, kind: "name" | "label") => Styled;
   readonly measured: (owner: Styled, text: string) => Measured;
   /** A conversion map, which has no label element. */
   readonly mapped: (
-    at: string,
+    at: ElementAddress,
     entry: Entry,
     map: ConversionMap,
   ) => Styled & Holder & { entry: Entry };
-  /** The element `at` of `entry`, held by its band of `kind`. */
+  /** The element `at` of `entry`, held by its band of `facet`. */
   readonly owned: (
     type: Exclude<ElementType, "map">,
-    at: string,
+    at: ElementAddress,
     entry: Entry,
-    kind: BandKind,
+    facet: Facet,
   ) => Owned & Holder;
 }
 
@@ -195,12 +195,10 @@ export function traverse(
   const h = (size: number) => measure.lineHeight(size);
   const a = (size: number) => measure.ascent(size);
   const d = (size: number) => measure.descent(size);
-  const address = (id: string) => elementAddress(member.root, id);
-
-  const styled = (key: ElementKey, parent: Style): Styled => {
-    if (key.address === null) throw new Error("a styled element has no address");
-    return { address: key.address, style: cascade.resolve(key, parent) };
-  };
+  const styled = (key: ElementKey, parent: Style): Styled => ({
+    address: key.address,
+    style: cascade.resolve(key, parent),
+  });
   const textOf = (owner: Holder, kind: "name" | "label"): Styled =>
     styled(textKey(owner.key, kind), owner.style);
   const measured = (owner: Styled, text: string): Measured => {
@@ -244,10 +242,10 @@ export function traverse(
     const type = parent === undefined ? "timeline" : line ? "child" : null;
     // A child, and a segment's node, are held by the children band of their parent.
     const outer = parent?.bands.children ?? holder;
-    const key = elementKey(type, timeline.id, timeline, outer.key);
+    const key = elementKey(type, idAddress(timeline.id), timeline, outer.key);
     const style = cascade.resolve(key, outer.style);
-    const band = (kind: BandKind): Holder => {
-      const own = bandKey(timeline.id, kind, key);
+    const band = (facet: Facet): Holder => {
+      const own = bandKey(timeline.id, facet, key);
       return { key: own, style: cascade.resolve(own, style) };
     };
     const bands = {
@@ -256,7 +254,7 @@ export function traverse(
       markers: band("markers"),
       regions: band("regions"),
       flow_control: band("flow_control"),
-    } satisfies Record<BandKind, Holder>;
+    } satisfies Record<Facet, Holder>;
     const entry: Entry = {
       manifest: timeline,
       parent,
@@ -266,7 +264,7 @@ export function traverse(
       style,
       name: line
         ? textOf({ key, style }, "name")
-        : { address: partAddress(timeline.id, "name"), style },
+        : { address: partAddress(idAddress(timeline.id), "name"), style },
       segment,
       first,
       line,
@@ -308,25 +306,25 @@ export function traverse(
 
   const held = (
     type: ElementType,
-    at: string,
+    at: ElementAddress,
     entry: Entry,
-    kind: BandKind,
+    facet: Facet,
     map?: ConversionMap,
   ): Styled & Holder & { entry: Entry } => {
-    const band = entry.bands[kind];
+    const band = entry.bands[facet];
     const key = elementKey(type, at, entry.manifest, band.key, map);
     const style = cascade.resolve(key, band.style);
     return { key, address: at, style, entry };
   };
-  const mapped = (at: string, entry: Entry, map: ConversionMap) =>
+  const mapped = (at: ElementAddress, entry: Entry, map: ConversionMap) =>
     held("map", at, entry, "conversion_maps", map);
   const owned = (
     type: Exclude<ElementType, "map">,
-    at: string,
+    at: ElementAddress,
     entry: Entry,
-    kind: BandKind,
+    facet: Facet,
   ): Owned & Holder => {
-    const item = held(type, at, entry, kind);
+    const item = held(type, at, entry, facet);
     return { ...item, label: textOf(item, "label") };
   };
 
@@ -350,7 +348,6 @@ export function traverse(
     h,
     a,
     d,
-    address,
     styled,
     textOf,
     measured,

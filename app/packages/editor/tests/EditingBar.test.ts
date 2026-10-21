@@ -1,7 +1,7 @@
 /** The editing bar; the expected values are derived in `README.md` ("Editing"). */
 
 import { liveStore } from "@timetoalign/tilie-arranger";
-import type { Manifest, Store } from "@timetoalign/tilie-core";
+import type { Address, Manifest, Store } from "@timetoalign/tilie-core";
 import { isLoadError, loadManifest } from "@timetoalign/tilie-core";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -13,6 +13,11 @@ import { fixtureText, storeOf } from "./support.ts";
 const A = "0000000000";
 const B = "0000000001";
 const C = "0000000002";
+
+/** The address of block `block`, or of its element `id`. */
+function address(block: string, id?: string): Address {
+  return id === undefined ? { block } : { block, id };
+}
 
 /** `bundle_mixed` known only by id: its `name` and its group `group_2`'s `name` deleted, its `id` `mixed`. */
 function idOnly(): Manifest {
@@ -30,13 +35,13 @@ function mixedNested(): Store {
   return storeOf("bundles/bundle_mixed", "nested", idOnly());
 }
 
-function rename(store: Store, target: string, name: string): void {
+function rename(store: Store, target: Address, name: string): void {
   const error = store.dispatch({ type: "set", changes: [{ target, values: { name } }] });
   if (error !== null) throw new Error(error.message);
   flushSync();
 }
 
-function open(store: Store, ...targets: string[]): void {
+function open(store: Store, ...targets: Address[]): void {
   for (const target of targets) {
     const error = store.open(target);
     if (error !== null) throw new Error(error.message);
@@ -101,7 +106,7 @@ describe("the editing bar", () => {
   it("offers Done and Cancel, then the editing path", () => {
     const store = mixedNested();
     show(store);
-    open(store, A);
+    open(store, address(A));
 
     const bars = document.querySelectorAll('[role="group"][aria-label="Editing"]');
     expect(bars.length).toBe(1);
@@ -126,32 +131,32 @@ describe("the editing bar", () => {
     const store = mixedNested();
     show(store);
 
-    open(store, A);
+    open(store, address(A));
     expect(path()).toEqual(["Mixed"]);
-    open(store, `${A}/group_1`);
+    open(store, address(A, "group_1"));
     expect(path()).toEqual(["Mixed", "Performance"]);
-    open(store, `${A}/score`);
+    open(store, address(A, "score"));
     expect(path()).toEqual(["Mixed", "Performance", "Score"]);
-    rename(store, `${A}/score`, "S");
+    rename(store, address(A, "score"), "S");
     expect(path()).toEqual(["Mixed", "Performance", "S"]);
 
     store.cancel();
     store.cancel();
     store.cancel();
-    open(store, B, `${B}/clt_1`, `${B}/clt_3`);
+    open(store, address(B), address(B, "clt_1"), address(B, "clt_3"));
     expect(path()).toEqual(["Anonymous bundle", "clt_1", "clt_3"]);
 
     store.cancel();
     store.cancel();
     store.cancel();
-    open(store, C, `${C}/group_2`);
+    open(store, address(C), address(C, "group_2"));
     expect(path()).toEqual(["mixed", "group_2"]);
   });
 
   it("closes the innermost editor with Done", () => {
     const store = mixedNested();
     show(store);
-    open(store, A, `${A}/group_1`, `${A}/score`);
+    open(store, address(A), address(A, "group_1"), address(A, "score"));
 
     const lengths: number[] = [];
     for (let step = 0; step < 3; step += 1) {
@@ -167,7 +172,7 @@ describe("the editing bar", () => {
     const store = mixedNested();
     const showModal = vi.spyOn(HTMLDialogElement.prototype, "showModal");
     show(store);
-    open(store, `${A}/score`);
+    open(store, address(A, "score"));
 
     button("Cancel").click();
     flushSync();
@@ -181,8 +186,8 @@ describe("the editing bar", () => {
     show(store);
     const before = store.view;
     const journal = store.journal.length;
-    open(store, `${A}/score`);
-    rename(store, `${A}/score`, "S");
+    open(store, address(A, "score"));
+    rename(store, address(A, "score"), "S");
 
     const question = await ask();
     expect(question.querySelector("p")?.textContent).toBe(
@@ -199,7 +204,7 @@ describe("the editing bar", () => {
       expect(dialog().open).toBe(false);
       expect(store.editing.length).toBe(1);
       expect(store.changes).toBe(1);
-      expect(editorName(store.view, `${A}/score`)).toBe("S");
+      expect(editorName(store.view, address(A, "score"))).toBe("S");
     };
 
     button("No", question).click();
@@ -234,9 +239,9 @@ describe("the editing bar", () => {
   it("counts the changes as the store does", async () => {
     const store = mixedNested();
     show(store);
-    open(store, `${A}/score`);
-    rename(store, `${A}/score`, "S");
-    rename(store, `${A}/score`, "T");
+    open(store, address(A, "score"));
+    rename(store, address(A, "score"), "S");
+    rename(store, address(A, "score"), "T");
 
     const question = await ask();
     expect(question.querySelector("p")?.textContent).toBe(

@@ -1,7 +1,7 @@
 /**
- * One item of the box laid out in item coordinates (`docs/drawing.md` in
+ * One item of the block laid out in item coordinates (`docs/drawing.md` in
  * TimeToShare, sections 8.2, 8.4 and 8.5): a group's frame with its title
- * and its members' cards, or a box-held card, an item of one card without a
+ * and its members' cards, or a block-held card, an item of one card without a
  * frame. Both take the same path: the cards' member drawings drawn at the
  * shared start, the right edge, then the elements in drawing order with the
  * records of the item's containers and the axes of its lines.
@@ -33,7 +33,7 @@ export interface LaidItem {
   readonly elements: readonly DrawnElement[];
   readonly boxes: readonly DrawnBox[];
   readonly axes: readonly DrawnAxis[];
-  /** The right and bottom edges it draws, its cards' shadows included, for the box's size. */
+  /** The right and bottom edges it draws, its cards' shadows included, for the block's size. */
   readonly rights: readonly number[];
   readonly bottoms: readonly number[];
 }
@@ -60,10 +60,10 @@ const EMPTY: MemberDrawn = { elements: [], bands: [] };
 
 /**
  * Lay out an item drawn as `drawing` (sections 8.2, 8.4 and 8.5). A frame
- * holds its cards `Q` in from its edges, below its title; a box-held card is
+ * holds its cards `Q` in from its edges, below its title; a block-held card is
  * its item. Its right edge before its request is `Ri`, past its title, at
  * least its requested `width` less `K` and its inset (`Q` for a frame, the
- * box's inset for a box-held card). Every card ends at `Ri + K`, a box-held
+ * block's inset for a block-held card). Every card ends at `Ri + K`, a block-held
  * card its inset further, unless its own request widens it; a frame holds
  * them and `Q` more. A card takes its room whether displayed or not, its
  * shadow only when drawn. The records follow the elements: the frame, then
@@ -107,7 +107,7 @@ export function layoutItem(
   if (frame !== null) {
     if (frameShown) {
       elements.push({
-        type: "group",
+        type: "frame",
         address: frame.address,
         style: frame.holder.style,
         x: 0,

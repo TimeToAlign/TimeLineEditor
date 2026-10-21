@@ -1,8 +1,14 @@
-import { isLoadError, loadManifest } from "@timetoalign/tilie-core";
+import {
+  BUNDLE_ADDRESS,
+  isLoadError,
+  loadManifest,
+  sameAddress,
+  TITLE_ADDRESS,
+} from "@timetoalign/tilie-core";
 import { dumps } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_LAYER, DEFAULT_PLACEMENT, draw, type TextElement } from "../src/index.ts";
-import { build, child, loadFile, metrics } from "./support.ts";
+import { at, build, child, loadFile, metrics } from "./support.ts";
 
 describe("row names", () => {
   it("replaces, cuts and sizes a row from displayed and hidden names", () => {
@@ -14,9 +20,9 @@ describe("row names", () => {
         DEFAULT_LAYER,
         {
           statements: [
-            { select: { ids: ["a/name"] }, set: { content: "AAAA", "max-width": 20 } },
+            { select: { addresses: [at("a", "name")] }, set: { content: "AAAA", "max-width": 20 } },
             {
-              select: { ids: ["b/name"] },
+              select: { addresses: [at("b", "name")] },
               set: { display: "none", "font-size": 20 },
             },
           ],
@@ -26,13 +32,13 @@ describe("row names", () => {
     );
     const names = drawing.elements.filter((item): item is TextElement => item.type === "name");
     expect(names.map((item) => [item.address, item.text])).toEqual([
-      ["a/name", "A…"],
-      ["r/name", "r"],
+      [at("a", "name"), "A…"],
+      [at("r", "name"), "r"],
     ]);
-    expect(drawing.elements.find((item) => item.address === "a")).toMatchObject({
+    expect(drawing.elements.find((item) => sameAddress(item.address, at("a")))).toMatchObject({
       y: 27.640625,
     });
-    expect(drawing.elements.find((item) => item.address === "b")).toMatchObject({
+    expect(drawing.elements.find((item) => sameAddress(item.address, at("b")))).toMatchObject({
       y: 27.640625,
     });
   });
@@ -66,32 +72,34 @@ describe("row names", () => {
     return draw(manifest, DEFAULT_PLACEMENT, layers, metrics);
   };
 
-  it("sizes a box holding only the manifest's title by that title", () => {
+  it("sizes a block holding only the manifest's title by that title", () => {
     // A manifest without timelines or groups holds only its title "Mixed"
     // at font size 11, drawn from x = P = 8. Its advances are M 1767, i 569,
     // x 1212, e 1260, d 1300, summing to 6108 units of 2048 per em, so
     // w = 6108 * 11 / 2048 = 32.806640625 and its right edge is 8 +
     // 32.806640625 = 40.806640625; h(11) = (1901 + 483) * 11 / 2048 =
-    // 12.8046875, so its slot ends at 8 + 12.8046875 = 20.8046875. The box
+    // 12.8046875, so its slot ends at 8 + 12.8046875 = 20.8046875. The block
     // is Wb = 8 + 40.806640625 = 48.806640625 wide and Hb = 8 + 20.8046875 =
     // 28.8046875 high.
     const drawing = emptyBundle([DEFAULT_LAYER]);
     expect(drawing).toMatchObject({ width: 48.806640625, height: 28.8046875 });
     expect(drawing.elements.map((item) => [item.type, item.address])).toEqual([
-      ["block", null],
-      ["name", "name"],
+      ["block", BUNDLE_ADDRESS],
+      ["name", TITLE_ADDRESS],
     ]);
     expect(drawing.elements[0]).toMatchObject({ width: 48.806640625, height: 28.8046875 });
   });
 
-  it("is P plus x0 wide and P high when the box holds no frame, no card and no title", () => {
+  it("is P plus x0 wide and P high when the block holds no frame, no card and no title", () => {
     // The same manifest with its title hidden: xn = P + K = 16, no row name,
-    // so x0 = 16, the box P + x0 = 24 wide and P = 8 high.
+    // so x0 = 16, the block P + x0 = 24 wide and P = 8 high.
     const drawing = emptyBundle([
       DEFAULT_LAYER,
-      { statements: [{ select: { ids: ["name"] }, set: { display: "none" } }] },
+      { statements: [{ select: { addresses: [{ part: ["name"] }] }, set: { display: "none" } }] },
     ]);
     expect(drawing).toMatchObject({ width: 24, height: 8 });
-    expect(drawing.elements.map((item) => [item.type, item.address])).toEqual([["block", null]]);
+    expect(drawing.elements.map((item) => [item.type, item.address])).toEqual([
+      ["block", BUNDLE_ADDRESS],
+    ]);
   });
 });

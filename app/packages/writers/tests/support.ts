@@ -1,6 +1,13 @@
 /** Drawings of the fixtures and hand-built drawings for the writers. */
 
 import {
+  BUNDLE_ADDRESS,
+  type ElementAddress,
+  idAddress,
+  type Part,
+  partAddress,
+} from "@timetoalign/tilie-core";
+import {
   type Drawing,
   type DrawnElement,
   INITIAL_STYLE,
@@ -16,6 +23,11 @@ export {
   loadFixture,
   reviewCases,
 } from "../scripts/review-cases.ts";
+
+/** The address `{id}` with the part words `part`, built by core's address builders (section 2.2). */
+export function at(id: string, ...part: Part[]): ElementAddress {
+  return part.reduce(partAddress, idAddress(id));
+}
 
 export function style(changes: Partial<Style> = {}): Style {
   return { ...INITIAL_STYLE, ...changes };
@@ -34,7 +46,10 @@ export function boxed(
     origin: { x: 0, y: 0 },
     boxes: [],
     axes: [],
-    elements: [{ type: "block", address: null, style: background, width, height }, ...elements],
+    elements: [
+      { type: "block", address: BUNDLE_ADDRESS, style: background, width, height },
+      ...elements,
+    ],
     unmapped: [],
   };
 }
@@ -60,9 +75,9 @@ const LOGICAL = style({ stroke: "#00CC00", fill: "#00CC00", "stroke-width": 3 })
  */
 export function bare(): Drawing {
   const [x0, xe, y] = [49.5771484375, 449.5771484375, 22.40234375];
-  const label = (at: "start" | "end", x: number, text: string): DrawnElement => ({
+  const label = (end: "start" | "end", x: number, text: string): DrawnElement => ({
     type: "label",
-    address: `bare/${at}/label`,
+    address: at("bare", end, "label"),
     style: style({ fill: "#000000", "font-size": 9 }),
     x,
     baseline: 47.25634765625,
@@ -75,7 +90,7 @@ export function bare(): Drawing {
     style({ fill: "#F3F4F6", rx: 10 }),
     {
       type: "card",
-      address: "bare/card",
+      address: at("bare", "card"),
       style: CARD,
       x: 8,
       y: 8,
@@ -85,7 +100,7 @@ export function bare(): Drawing {
     },
     {
       type: "timeline",
-      address: "bare",
+      address: at("bare"),
       style: LOGICAL,
       xs: x0,
       xe,
@@ -95,7 +110,7 @@ export function bare(): Drawing {
     },
     {
       type: "wedge",
-      address: "bare/start",
+      address: at("bare", "start"),
       style: BLACK,
       x: x0,
       yt: 23.90234375,
@@ -104,7 +119,7 @@ export function bare(): Drawing {
     },
     {
       type: "wedge",
-      address: "bare/end",
+      address: at("bare", "end"),
       style: BLACK,
       x: xe,
       yt: 23.90234375,
@@ -113,7 +128,7 @@ export function bare(): Drawing {
     },
     {
       type: "name",
-      address: "bare/name",
+      address: at("bare", "name"),
       style: style({ fill: "#000000", "font-size": 11 }),
       x: 16,
       baseline: 26.21044921875,
@@ -128,7 +143,7 @@ export function bare(): Drawing {
 /** A line of `everything()`. */
 function line(
   type: LineElement["type"],
-  address: string,
+  address: ElementAddress,
   [xs, xe, y]: readonly [number, number, number],
   start: LineElement["start"],
   end: LineElement["end"],
@@ -145,8 +160,8 @@ export function everything(): Drawing {
     130,
     style({ fill: "#F3F4F6", rx: 10 }),
     {
-      type: "group",
-      address: "g",
+      type: "frame",
+      address: at("g"),
       style: style({ fill: "#FFFFFF", stroke: "#D1D5DB", rx: 6 }),
       x: 8,
       y: 8,
@@ -156,7 +171,7 @@ export function everything(): Drawing {
     },
     {
       type: "name",
-      address: "g/name",
+      address: at("g", "name"),
       style: style({ fill: "#000000", "font-size": 11 }),
       x: 16,
       baseline: 20,
@@ -165,7 +180,7 @@ export function everything(): Drawing {
     },
     {
       type: "card",
-      address: "c/card",
+      address: at("c", "card"),
       style: CARD,
       x: 16,
       y: 26,
@@ -173,14 +188,14 @@ export function everything(): Drawing {
       height: 88,
       shadowOffset: 2,
     },
-    line("ancestor", "a", [40, 160, 40], "chevrons", "chevrons", { opacity: 0.35 }),
-    line("timeline", "c", [52, 148, 56], "circle", "diamond"),
-    line("child", "d", [60, 100, 68], "circle", "open", { ...blue, "stroke-dasharray": "3 3" }),
-    line("child", "e", [100, 140, 74], "circle", "circle", blue),
-    line("child", "f", [60, 120, 80], "circle", "arrowhead", blue),
+    line("ancestor", at("a"), [40, 160, 40], "chevrons", "chevrons", { opacity: 0.35 }),
+    line("timeline", at("c"), [52, 148, 56], "circle", "diamond"),
+    line("child", at("d"), [60, 100, 68], "circle", "open", { ...blue, "stroke-dasharray": "3 3" }),
+    line("child", at("e"), [100, 140, 74], "circle", "circle", blue),
+    line("child", at("f"), [60, 120, 80], "circle", "arrowhead", blue),
     {
       type: "map",
-      address: "m",
+      address: at("m"),
       style: style({ stroke: "#0050EF", "stroke-dasharray": "1 1" }),
       xs: 60,
       xe: 100,
@@ -189,7 +204,7 @@ export function everything(): Drawing {
     },
     {
       type: "region",
-      address: "r",
+      address: at("r"),
       style: style({ stroke: "#000000" }),
       x1: 60,
       x2: 100,
@@ -199,7 +214,7 @@ export function everything(): Drawing {
     },
     {
       type: "jump_from",
-      address: "j",
+      address: at("j"),
       style: style({ stroke: "#000000", fill: "#000000" }),
       start: [70, 50],
       c1: [80, 44],
@@ -213,7 +228,7 @@ export function everything(): Drawing {
     },
     {
       type: "flow_marker",
-      address: "k",
+      address: at("k"),
       style: style({ stroke: "#FF0000", "stroke-dasharray": "2" }),
       x: 120,
       y1: 30,
@@ -221,16 +236,16 @@ export function everything(): Drawing {
     },
     {
       type: "boundary",
-      address: "s/start",
+      address: at("s", "start"),
       style: style({ stroke: "#000000" }),
       x: 90,
       y1: 52,
       y2: 60,
     },
-    { type: "wedge", address: "c/start", style: BLACK, x: 52, yt: 57.5, yb: 70.5, base: 6 },
+    { type: "wedge", address: at("c", "start"), style: BLACK, x: 52, yt: 57.5, yb: 70.5, base: 6 },
     {
       type: "label",
-      address: "c/start/label",
+      address: at("c", "start", "label"),
       style: style({ fill: "#000000", "font-size": 9, opacity: 0.5 }),
       x: 52,
       baseline: 104,

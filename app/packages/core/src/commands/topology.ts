@@ -3,20 +3,18 @@
  * offset, in which group. A child is placed by one rule wherever it comes
  * from (`placeChild`): added, given another offset, or moved with its subtree
  * under another parent (`moveTimeline`). A timeline joins or leaves a group
- * by `joinGroup`. Ids never change; the addresses of a moved subtree's
- * entries follow its new root.
+ * by `joinGroup`. IDs never change, and so no address does.
  */
 
 import type { CommandError } from "../errors.ts";
 import { ErrorCode, isCommandError, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";
 import { orderedChildren } from "../manifest/elements.ts";
-import { ENTRY_KINDS, ENTRY_LISTS, elementAddress } from "../manifest/files.ts";
 import { childEnd, childReach, lengthOf, readOnAxis } from "../manifest/invariants.ts";
 import { withPlaceLocks } from "../manifest/locks.ts";
 import { bandOrderOf } from "../manifest/order.ts";
 import type { Located } from "../manifest/tree.ts";
-import { isSegmentAt, locateTimeline, searchTree } from "../manifest/tree.ts";
+import { isSegmentAt, locateTimeline } from "../manifest/tree.ts";
 import type { ChildTimeline, Group, Manifest, TimelineManifest } from "../manifest/types.ts";
 import type { Coordinate } from "../number/coordinate.ts";
 import { axisCoordinate, toAxisValue } from "../number/coordinate.ts";
@@ -27,7 +25,6 @@ import type { View } from "../workspace/view.ts";
 import type { ChangeSet } from "./mutations.ts";
 import { record, replaceTimeline, sameJson, withBlock, withKey } from "./mutations.ts";
 import type { TimelineTarget } from "./targets.ts";
-import { rootOf } from "./targets.ts";
 
 /** The refusal of a child reaching past its parent's known length. */
 function exceedsParent(
@@ -38,8 +35,8 @@ function exceedsParent(
   return problem(
     ErrorCode.childExceedsParent,
     child.length === null
-      ? `child ${child.id} starts after its parent ${parent.id} ends`
-      : `child ${child.id} ends after its parent ${parent.id}`,
+      ? `child '${child.id}' starts after its parent '${parent.id}' ends`
+      : `child '${child.id}' ends after its parent '${parent.id}'`,
     path,
   );
 }
@@ -77,11 +74,11 @@ export function lengthProblem(
       if (fixed !== null && compareReal(end, realOf(fixed)) !== 0) {
         const where =
           successor === undefined
-            ? `its segment line ${parent.id} ends`
-            : `segment ${successor.id} starts`;
+            ? `its segment line '${parent.id}' ends`
+            : `segment '${successor.id}' starts`;
         return problem(
           ErrorCode.segmentEndFixed,
-          `segment ${timeline.id} ends where ${where}`,
+          `segment '${timeline.id}' ends where ${where}`,
           path,
         );
       }
@@ -94,7 +91,7 @@ export function lengthProblem(
     if (compareReal(realOf(length), lastEnd) !== 0) {
       return problem(
         ErrorCode.segmentEndFixed,
-        `segment line ${timeline.id} ends where its last segment ${last.id} ends`,
+        `segment line '${timeline.id}' ends where its last segment '${last.id}' ends`,
         path,
       );
     }
@@ -149,7 +146,7 @@ function nestingProblem(
     if (other !== undefined) {
       return problem(
         ErrorCode.nestedMember,
-        `${id} and ${other}, a member of group ${group.id}, would hold one another`,
+        `'${id}' and '${other}', a member of group '${group.id}', would hold one another`,
         path,
       );
     }
@@ -168,54 +165,6 @@ function withoutTimeline(manifest: Manifest, at: Located): Manifest {
   }
   const children = parent.timeline.children.filter((_, item) => item !== index);
   return replaceTimeline(manifest, parent, { ...parent.timeline, children });
-}
-
-/** The ids of the timelines of the subtree of `timeline`, itself included. */
-function subtreeIds(timeline: TimelineManifest): Set<string> {
-  const ids = new Set<string>();
-  searchTree({ timeline, path: [], parent: undefined }, (at) => {
-    ids.add(at.timeline.id);
-    return undefined;
-  });
-  return ids;
-}
-
-/**
- * The entry addresses of `timeline`'s subtree under the root `from`, each
- * mapped to its address under the root `to`; empty when the root stays.
- */
-function requalified(timeline: TimelineManifest, from: string, to: string): Map<string, string> {
-  const moved = new Map<string, string>();
-  if (from === to) return moved;
-  searchTree({ timeline, path: [], parent: undefined }, (at) => {
-    for (const kind of ENTRY_KINDS) {
-      for (const entry of ENTRY_LISTS[kind].get(at.timeline)) {
-        moved.set(elementAddress(from, entry.id), elementAddress(to, entry.id));
-      }
-    }
-    return undefined;
-  });
-  return moved;
-}
-
-/**
- * `manifest` with every statement's `ids` naming an entry `moved` holds
- * rewritten to the entry's new address.
- */
-function withAddresses(manifest: Manifest, moved: ReadonlyMap<string, string>): Manifest {
-  const { graphical } = manifest;
-  if (moved.size === 0 || graphical?.statements === undefined) return manifest;
-  const statements = graphical.statements.map((statement) => {
-    const { ids } = statement.select;
-    if (ids === undefined || !ids.some((id) => moved.has(id))) return statement;
-    const [first, ...rest] = ids;
-    const renamed: [string, ...string[]] = [
-      moved.get(first) ?? first,
-      ...rest.map((id) => moved.get(id) ?? id),
-    ];
-    return { ...statement, select: { ...statement.select, ids: renamed } };
-  });
-  return { ...manifest, graphical: { ...graphical, statements } };
 }
 
 /**
@@ -256,7 +205,7 @@ function readParent(
   }
   const at = locateTimeline(manifest, timeline);
   if (at === undefined) {
-    return problem(ErrorCode.unknownTarget, `${timeline} names no timeline of the manifest`, [
+    return problem(ErrorCode.unknownTarget, `'${timeline}' names no timeline of the manifest`, [
       ...path,
       "timeline",
     ]);
@@ -295,54 +244,52 @@ export function moveTimeline(
     const what = isSegmentAt(at) ? "a segment" : "a segment line";
     return problem(
       ErrorCode.segmentStructure,
-      `${timeline.id} is ${what} and keeps its place`,
+      `'${timeline.id}' is ${what} and keeps its place`,
       path,
     );
   }
   if (parent !== null) {
     const host = parent.at.timeline;
-    const moving = subtreeIds(timeline);
-    if (moving.has(host.id)) {
-      return problem(ErrorCode.cycle, `${host.id} lies in the subtree of ${timeline.id}`, path);
+    const { ancestry } = indexOf(manifest);
+    // Whether a timeline lies in the moved subtree: the moved one is among its ancestors.
+    const moving = (id: string) => ancestry.get(id)?.includes(timeline.id) ?? false;
+    if (moving(host.id)) {
+      return problem(ErrorCode.cycle, `'${host.id}' lies in the subtree of '${timeline.id}'`, path);
     }
     if (host.is_segment_line) {
       return problem(
         ErrorCode.segmentStructure,
-        `${host.id} is a segment line: it holds only its segments`,
+        `'${host.id}' is a segment line: it holds only its segments`,
         path,
       );
     }
     if (host.unit !== timeline.unit) {
       return problem(
         ErrorCode.unitMismatch,
-        `${timeline.id} is in ${timeline.unit}, its new parent ${host.id} in ${host.unit}`,
+        `'${timeline.id}' is in ${timeline.unit}, its new parent '${host.id}' in ${host.unit}`,
         path,
       );
     }
     const offset = toAxisValue(parent.offset);
     if (at.parent?.timeline.id === host.id && sameJson(timeline.offset, offset)) return view;
-    const { ancestry } = indexOf(manifest);
     const under = ancestry.get(host.id) ?? [];
     // A timeline of the moved subtree lies under the new parent, the path from the moved one down kept.
     const after = (id: string) => {
       const own = ancestry.get(id) ?? [];
-      return moving.has(id) ? [...under, ...own.slice(own.indexOf(timeline.id))] : own;
+      return moving(id) ? [...under, ...own.slice(own.indexOf(timeline.id))] : own;
     };
     for (const group of manifest.groups) {
-      const changed = group.members.filter((member) => moving.has(member));
+      const changed = group.members.filter(moving);
       const nested = nestingProblem(group, changed, after, path);
       if (nested !== undefined) return nested;
     }
   }
   const order = bandOrderOf(manifest, timeline.id);
-  const from = rootOf(at).id;
   const without = withoutTimeline(manifest, at);
   let moved: Manifest;
-  let to: string;
   if (parent === null) {
     const { offset: _, ...root } = timeline;
     moved = { ...without, timelines: [...without.timelines, root] };
-    to = timeline.id;
   } else {
     // The new parent lies outside the moved subtree, so it is still there.
     const host = locateTimeline(without, parent.at.timeline.id);
@@ -350,13 +297,8 @@ export function moveTimeline(
     const placed = placeChild(host, timeline, parent.offset, path);
     if (isCommandError(placed)) return placed;
     moved = replaceTimeline(without, host, placed);
-    to = rootOf(host).id;
   }
-  const kept = withBandOrderKept(
-    withAddresses(moved, requalified(timeline, from, to)),
-    timeline.id,
-    order,
-  );
+  const kept = withBandOrderKept(moved, timeline.id, order);
   record(changes, path, block.id, true);
   return withBlock(view, { ...block, manifest: kept });
 }
@@ -412,10 +354,10 @@ export function joinGroup(
   } else {
     const group = manifest.groups.find((item) => item.id === value);
     if (group === undefined) {
-      return problem(ErrorCode.unknownTarget, `${value} names no group of the manifest`, path);
+      return problem(ErrorCode.unknownTarget, `'${value}' names no group of the manifest`, path);
     }
     if (current !== undefined) {
-      return problem(ErrorCode.alreadyMember, `${id} is a member of group ${current.id}`, path);
+      return problem(ErrorCode.alreadyMember, `'${id}' is a member of group '${current.id}'`, path);
     }
     const { ancestry } = indexOf(manifest);
     const nested = nestingProblem(group, [id], (member) => ancestry.get(member) ?? [], path);

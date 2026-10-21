@@ -4,7 +4,7 @@
 TimeToShare manifest as TimeToShare's drawing specification defines it
 (`docs/drawing.md` in the TimeToShare repository, "the specification"
 below: sections 1 to 6 for each timeline drawn as a root, section 8 for the
-box that holds them). The tests prove it from the specification, never from
+block that holds them). The tests prove it from the specification, never from
 the code's own output: every expected number is derived by hand from the
 specification's formulas and the font's advance widths, and the arithmetic
 is written out below. The drawing fixtures of the schema package, byte-equal
@@ -23,14 +23,18 @@ between the two, since no layer lies above the manifest's own. "The default
 placement" is `DEFAULT_PLACEMENT`, `{length: 400, spacing: 8, width: null,
 height: null, places: {}}`. Every container has its own spacing, the gap
 between its direct contents, and none multiplies another (section 8.6):
-the box's, the placement's `spacing` (default 8), between its items at
+the block's, the placement's `spacing` (default 8), between its items at
 their default `y`; a frame's, its group's entry of `places` (default 8),
 between its cards; a card's, the card spacing `S` of its member drawing,
-the entry of `places` under its member or ungrouped root (default 4),
-between its rows and between its bands. A timeline's band order is its entry of the
-manifest's `graphical.order` (section 6.4), set through core's `set` of the
-property `order` and written `[above] | [below]`: the kinds above the line
-from the top down, then those below.
+the entry of `places` of an ungrouped root, or of a member under its
+group's entry's `cards` (default 4), between its rows and between its
+bands. `places` is keyed by group ID and ungrouped root ID; a member's card
+lies at `places[G].cards[T]`, never under a key composed of both. A
+timeline's band order is its entry of the manifest's `graphical.order`
+(section 6.4), a permutation of `line` and the five facets, set through
+core's `set` of the property `order` and written `[above] | [below]`: the
+facets above `line` from the top down, then those below; a child without an
+entry follows its parent's band order verbatim.
 
 Every timeline drawn with a line of its own has its five bands at its own
 line (section 6.4). By the default band order (section 4) the conversion
@@ -45,11 +49,21 @@ width 3 that reaches nothing there. A children band starts no nearer than
 `pl / 2`, half the pitch `max(10 + S, h(s))` of the row its line lies in,
 so with no map it starts at `14 / 2 = 7`.
 
-Addresses follow section 2.2: a timeline or a group is addressed by its
-bare id, the manifest's title by `name`, and every other element with an id
-by the id of the root whose tree holds it, `/`, and its own id, so `map`'s
-map `tempo` is `melody/tempo`. The prose names such elements by their id;
-selectors and expectations use the whole address. The fixtures' minimal
+Addresses follow section 2.2: an address is an object `{id?, facet?,
+part?}`, built as an object and compared as a whole, never a string
+composed from IDs. Every element with an ID, a timeline, a group, a map, a
+region or a flow-control element, at any depth, is `{id}` by its whole ID
+alone (`map`'s map `tempo` is `{id: "tempo"}`); a part of an element appends
+part words, `{id: "bare", part: ["start"]}` for `bare`'s start wedge and
+`{id: "bare", part: ["start", "label"]}` for that wedge's label, `{id: T,
+part: ["name"]}` for a timeline's or group's name; every card of `T` is
+`{id: T, part: ["card"]}`, with no group in it; the band drawing the facet
+`F` of `T` is `{id: T, facet: F}`; the manifest's title is `{part:
+["name"]}` and the block `{}`. The prose names elements in words (`bare`'s
+card, the label of its start wedge); selectors and expectations use the
+whole address. A container record's `key` and `holder` are place keys,
+`{item: G}` for the frame of `G`, `{item: G, member: T}` for the card of `T`
+in it and `{item: T}` for an ungrouped root's card. The fixtures' minimal
 twins (`*.minimal.json`) draw as their complete fixtures do and are left out
 of every list of fixtures.
 
@@ -80,14 +94,21 @@ drawing's root, a member that is a child included.
 ## The cascade (`cascade.test.ts`)
 
 One key, the child `c` of a root `r`, exercises the eight ranks of section
-5 in order, each statement against the next lower one: layer, ids, depth of
-`within`, class, element, `inside`, the count of domain and modality, then
-statement order. A missing named style sets nothing, a `within` outside the
-manifest matches nothing, and the block is never matched by domain, class,
-ids or `within`. Recording which statements the cascade tests proves that
-it tests only the general statements and those of the key's element, class
-and id, in layer order. On the regions bands of `c` and `r`, each selector
-field matches as section 5 says. Drawings prove the holder chain: a band
+5 in order, each statement against the next lower one: layer, `addresses`,
+depth of `within`, class, element, `inside`, the count of domain and
+modality, then statement order; `facet` ranks exactly where class does (on
+the regions band of `c`, `{facet: regions}` outranks `{element: band,
+inside: child}` and is outranked by `{within: c}`). A missing named style
+sets nothing, a `within` outside the manifest matches nothing, and the
+block is never matched by domain, class, facet, an element's address or
+`within`. Recording which statements the cascade tests proves that it tests
+only the general statements and those of the key's element, class, facet
+and address, in layer order: a line's key tests no statement selecting a
+facet, and the regions band of `c` tests those selecting `band`, the facet
+`regions` and the address `{id: c, facet: regions}`, never the line's
+`{id: c}`. On the regions bands of `c` and `r`, each selector field matches
+as section 5 says, and a timeline's address `{id: c}` matches none of its
+bands. Drawings prove the holder chain: a band
 passes its timeline's style through to what it holds; a band's `display:
 none` hides what it holds, its children's bands included, and nothing of
 another timeline; an address drawn twice matches `inside` by each drawing's
@@ -101,18 +122,18 @@ converts to (`conversion_maps__maps_quarters`: the top-level LinearMap
 LinearMap `cmap_1` to samples physical and discrete), a map converting to
 no time axis (the ConstantMap `cmap_8`) taking its timeline's stroke, with
 its type as class (`ConstantMap` matches `cmap_8` alone). For every manifest fixture, every
-drawn element's address and type are among the element keys core
-enumerates.
+drawn element's address and type, the block's `{}` included, are among the
+element keys core enumerates.
 
 ## Hand-derived drawings (`examples.test.ts`)
 
 The manifests below are drawn at the default placement with the default
 layers, and every element's geometry, text and coordinate is compared. Each
-is an anonymous box with one ungrouped root in its card (section 8, "The
-box" below): the name column starts at `xn = P + K = 16`, the card's top
+is an anonymous block with one ungrouped root in its card (section 8, "The
+block" below): the name column starts at `xn = P + K = 16`, the card's top
 lies at `P = 8`, so the root's line lies at `8 + y_root`; the card spans `P`
 to `R + K` and is `Hm = Hc` high, and its shadow, 2 further right and down,
-sets the box: `W = 8 + (R + K + 2)` and `H = 8 + (8 + Hm + 2)`.
+sets the block: `W = 8 + (R + K + 2)` and `H = 8 + (8 + Hm + 2)`.
 
 Common values: `P = 8`, `G' = 8`, the card spacing `S = 4`, `h(9) = 10.4765625`,
 `a(9) = 8.35400390625`, `d(9) = 2.12255859375`, `h(11) = 12.8046875`,
@@ -143,9 +164,9 @@ tip 23.90234375, base 36.90234375. Labels' baseline `(22.40234375 + 16.5) +
 = 26.21044921875`. The rightmost drawn point is the arrowhead tip `R =
 458.5771484375` (the `8 ♩` label reaches only 455.9931640625), so the card
 is `{8, 8, 458.5771484375, 49.37890625}`, `W = 476.5771484375` and `H =
-67.37890625`. The elements are, in order: block, `bare/card`, `bare`,
-`bare/start`, `bare/end`, `bare/name`, `bare/start/label` (coordinate 0
-quarters), `bare/end/label` (8 quarters). `unmapped` is empty. The default
+67.37890625`. The elements are, in order: the block, `bare`'s card, its
+line, its start and end wedges, its name, the start wedge's label
+(coordinate 0 quarters) and the end wedge's (8 quarters). `unmapped` is empty. The default
 layer gives the line and its fill `#00CC00` at width 3, the wedges `#000000`,
 the name size 11 and the labels size 9.
 
@@ -278,16 +299,19 @@ card spacing 8 `nested` has the pitch 18 and each children band starts at
 derives.
 Wedge labels share tier 1 when the end label's extent starts where the
 start label's ends, and the end label goes to tier 2, start before end,
-when they overlap. A timeline whose name is null is named by its id after
-the last colon.
+when they overlap. A timeline whose name is null is named by its whole id:
+the root `piece:score` of a manifest built by command is named
+`piece:score` (`A = 1300 + 569 + 1260 + 1126 + 1260 + 690 + 1067 + 1126 +
+1253 + 842 + 1260 = 11753`, `N = 11753 × 11 / 2048 = 63.12646484375`), so
+its line starts at `x0 = 16 + 63.12646484375 + 8 = 87.12646484375`.
 
 ## One timeline's bands (`timeline.test.ts`)
 
 Each timeline of a member drawing is laid out alone and its bands compared
-top to bottom as kind, level, start, width, outer edge and elements held,
+top to bottom as facet, level, start, width, outer edge and elements held,
 against the band rules above: sides and levels by the band order (a child
-without an entry following its parent band by band id, a member that is a
-child following its parent), and a side without a band has the line's reach
+without an entry following its parent's band order verbatim, a member that
+is a child following its parent), and a side without a band has the line's reach
 as its outer edge. A children band starts at the larger of the rule's start and half its
 row's pitch (`map`'s `melody` at 10.5 for the pitch 14 and 15 for 30,
 `segment_line`'s `form` at 24.4765625, `unknown_length_child`'s `score` at
@@ -331,7 +355,7 @@ from sections 4 and 6.4:
   430.0478515625, `W = 457.0478515625`) and the circle locked (`W =
   454.4638671875`); its child `c` ends in the diamond whatever its `locked`.
 - **Band orders.** A band moved across its line moves everything it holds;
-  a child's band order follows its parent's by band id without an entry,
+  a child's band order follows its parent's verbatim without an entry,
   is its own entry when it has one, and returns to its parent's when the
   entry is set to null. A flow marker runs from its flow row across its line, the
   root's to the padding, a child's to `max(E, h(s) / 2)` beyond it. In
@@ -455,7 +479,7 @@ markers band reaches 26.9765625.
 The child rows and map centres of `map` do not change when a name's
 `content` widens `x0`: first fit is independent of the name column.
 
-## Row names and empty boxes (`names.test.ts`)
+## Row names and empty blocks (`names.test.ts`)
 
 Two non-overlapping children share row 1, whose joined name is replaced by
 `content: "AAAA"` on the first name and cut to `"A…"` by `max-width: 20`.
@@ -465,12 +489,12 @@ A hidden second name at font size 20 still sets the band's `p = h(20) =
 38.28125`, the root's line at 46.28125, the child row at 27.640625. With
 every element but the block hidden the hidden card keeps its place
 (section 8.4): `x0 = R = xn = 16`, the card spans 8 to 24, `Hc =
-14.40234375 + 6.40234375 + 8 = 28.8046875`, the box 32 by 44.8046875. A
+14.40234375 + 6.40234375 + 8 = 28.8046875`, the block 32 by 44.8046875. A
 manifest named "Mixed" with no timelines and no groups holds only its title
-at size 11, which enters the box like a card: `w = 6108 × 11 / 2048 =
-32.806640625`, its slot ending at `8 + h(11) = 20.8046875`; the box is
+at size 11, which enters the block like a card: `w = 6108 × 11 / 2048 =
+32.806640625`, its slot ending at `8 + h(11) = 20.8046875`; the block is
 48.806640625 by 28.8046875. The fallback `P + x0 = 24` by `P = 8` applies
-only to a box holding no frame, no card and no displayed title: the same
+only to a block holding no frame, no card and no displayed title: the same
 manifest with its title at `display: none`.
 
 ## Stretch (`stretch.test.ts`)
@@ -516,13 +540,13 @@ from the member drawing's top or `Hc − P` below it. `H = Hc + 18`.
   129.90625`; the flow marker's line runs to the padding below, `8 + (Hc −
   8) = 111.90625`.
 
-**Box size.** With `width` and `height` 120 and 60 above the natural box,
+**Block size.** With `width` and `height` 120 and 60 above the natural block,
 every element but the block is identical to the natural drawing and `W =
 width`, `H = height`; a request of 1 by 1 draws the natural drawing.
 
 ## Segment lines (`segments.test.ts`)
 
-`segment_line` and `segment_pages_accolades` are checked against the box
+`segment_line` and `segment_pages_accolades` are checked against the block
 size, lines, boundaries, labels and names summed from sections 3.4 and 6:
 the segment lines are children in row 1, each boundary on its segment
 line's line, each label above it centred on its segment, both in the
@@ -578,28 +602,28 @@ ancestor's length is not known and end short of the member where a
 timeline between has no length. Counting reads of a timeline's children
 proves that its reach is computed once per drawing.
 
-## The box (`box.test.ts`, `groups.test.ts`)
+## The block (`block.test.ts`, `groups.test.ts`)
 
-Section 8 draws every manifest as one box: a manifest of one root as a box
-holding it ungrouped, one of one group as a box holding its frame; a
+Section 8 draws every manifest as one block: a manifest of one root as a block
+holding it ungrouped, one of one group as a block holding its frame; a
 manifest with neither a `name` nor an `id` has no title. Positions are
 checked against the quantities below, derived from sections 8.1, 8.2 and
 8.4, the advance widths and the member heights `Hm` of section 6.5 (with
 the ancestor band of section 8.3); the drawing fixtures pin the same boxes
 byte for byte. Order is checked against sections 7.2 and 8.5, and
-`Drawing.boxes` holds one `DrawnBox` per container, the box first, then in
+`Drawing.boxes` holds one `DrawnBox` per container, the block first, then in
 drawing order each frame, card and band, each naming its holder. A record's
 `range` is the half-open range of `elements` it emitted, whatever is
 displayed; `displayed`, stated on every record, says whether its own
 rectangle opens that range:
-always for the box, for a frame or card unless its style hides it, never
+always for the block, for a frame or card unless its style hides it, never
 for a band. Every value is dyadic, so every sum is exact. A rectangle
 spanning `a..b`, `c..d` is `{x: a, y: c, width: b − a, height: d − c}`. A
 card's shadow, 2 right and 2 down, is its first descriptor, and its edges
 enter `Wb` and `Hb`.
 
-**The quantities.** One horizontal layout for the whole box (section 8.2),
-in item coordinates: the name column `n` (`Q + K = 16` when the box holds a
+**The quantities.** One horizontal layout for the whole block (section 8.2),
+in item coordinates: the name column `n` (`Q + K = 16` when the block holds a
 frame, else `K = 8`), `N` the widest drawn name, the start `s0` past the
 name column, the gap `G' = 8` and `8 wa` for an ancestor running on to the
 left, the right margin `Mr`, the largest `e − (s0 + Li)` over the member
@@ -627,8 +651,8 @@ A frame at `(P, P)` spans `0` to `Ri + K + Q` and `Q + h(11) + 4 + Σ Hm +
 (m − 1) Sf + Q` high for `m` cards; its title lies at `x = P + Q = 16`,
 baseline `P + Q + a(11) = 26.21044921875`; its cards span `Q` to `Ri + K`,
 the first at `P + Q + h(11) + 4 = 32.8046875`, each further one `Sf` below
-the last; each root line lies `y_root` below its card's top. A box-held card
-spans `0` to `Ri + K`, `Q` further when the box holds a frame, so frames and
+the last; each root line lies `y_root` below its card's top. A block-held card
+spans `0` to `Ri + K`, `Q` further when the block holds a frame, so frames and
 cards of one length end at one x.
 
 **`bundle_mixed`** ("Mixed", no `id`; frames `group_1` with `score`,
@@ -648,34 +672,39 @@ root `annotations`) is the case of every rule at once:
 - The title at `(8, 18.21044921875)`, `Pt = 8 + h(11) + 8 = 28.8046875`;
   `group_1` at 28.8046875, 169.234375 high, its cards at 53.609375 and
   140.5625; `group_2` at 206.0390625, 177.734375 high, its cards at
-  230.84375 and 288.3203125; `annotations/card` at 391.7734375. Every line
+  230.84375 and 288.3203125; `annotations`' card at 391.7734375. Every line
   runs from 126.29150390625 to 526.29150390625; `W = 580.484619140625`, `H
-  = 473.62890625`, both from `annotations/card`'s shadow.
-- Element order: block, `name`, `group_1`, `group_1/name`,
-  `group_1/score/card`, `score/cmap_1`, `score/cmap_2`, `score/jump_from_1`,
-  `score`, …, `group_2/excerpt/card`, `recording/cmap_2`, `recording` (the ancestor line),
-  `excerpt`, …: a member drawing opens with its flow markers, maps, regions and
-  jumps, its ancestor lines just before its line.
+  = 473.62890625`, both from `annotations`' card's shadow.
+- Element order: the block, the title, `group_1`, its title, `score`'s
+  card, `score`'s maps `cmap_1` and `cmap_2`, its jump origin
+  `jump_from_1`, its line, …, `excerpt`'s card, `excerpt`'s map `cmap_6`,
+  `recording` (the ancestor line), `excerpt`, …: a member drawing opens with
+  its flow markers, maps, regions and jumps, its ancestor lines just before
+  its line. The member drawings of `performance` and `page` open with their
+  maps `cmap_3` and `cmap_4`, `annotations`' with its regions `region_1` and
+  `region_2`.
 - Records: a root with its two wedges emits 6 elements, each map 1, each
-  region or jump 2, each ancestor row 6. So of 58 elements: the box `[0,
-  58)`; `group_1` `[2, 23)` holding `group_1/score/card` `[4, 15)` and
-  `group_1/performance/card` `[15, 23)`; `group_2` `[23, 47)` holding
-  `group_2/page/card` `[25, 33)` and `group_2/excerpt/card` `[33, 47)`;
-  `annotations/card` `[47, 58)`; the cards' `places` keys `group_1/score`,
-  `group_1/performance`, `group_2/page`, `group_2/excerpt` and
-  `annotations`.
-  The frames and `annotations/card` are the items and carry `item`, their
+  region or jump 2, each ancestor row 6. So of 58 elements: the block `[0,
+  58)`, key and holder null, address `{}`; `group_1` `[2, 23)` holding the
+  cards of `score` `[4, 15)` and `performance` `[15, 23)`; `group_2` `[23,
+  47)` holding the cards of `page` `[25, 33)` and `excerpt` `[33, 47)`;
+  `annotations`' card `[47, 58)`. A frame's key is `{item: G}`, its address
+  `{id: G}`; a member's card's key `{item: G, member: T}`, its holder its
+  frame's key `{item: G}`; `annotations`' card's key `{item: annotations}`,
+  its holder null.
+  The frames and `annotations`' card are the items and carry `item`, their
   place; every card carries `card`, its size in item coordinates (a
   member's card `{546.484619140625, Hm}`), its `spacing` 4 and its request
   `{}`, and its rectangle is its drawn one. Every band is held by the card
-  whose member drawing draws its line, and its range is empty.
+  whose member drawing draws its line, its holder that card's key, and its
+  range is empty.
 
-**Hidden titles.** With `{ids: ["group_1/name"]} display none` on
-`group_child_member` the frame loses its title slot: cards at 16 and
-107.953125, the frame 157.33203125 high, `H = 173.33203125`. With `{ids:
-["name"]} display none` on `bundle_mixed` everything below moves up by
-`h(11) + F = 20.8046875`: `annotations/card` at 370.96875, `H =
-452.82421875`.
+**Hidden titles.** With `{addresses: [{id: group_1, part: [name]}]}
+display none` on `group_child_member` the frame loses its title slot: cards
+at 16 and 107.953125, the frame 157.33203125 high, `H = 173.33203125`. With
+`{addresses: [{part: [name]}]} display none` on `bundle_mixed` everything
+below moves up by `h(11) + F = 20.8046875`: `annotations`' card at
+370.96875, `H = 452.82421875`.
 
 **Hidden cards and frames keep their place** (section 8.4): not drawn, but
 their edges enter `Wb` and `Hb`, a hidden card's shadow does not, and every
@@ -686,48 +715,50 @@ other element stays as it is.
 - `group_child_member` with `{element: card} display none`: the frame still
   sets `W` and `H`; the cards' ranges `[3, 15)` and `[15, 21)`, the frame's
   `[1, 21)`.
-- `group_child_member` with `{element: group} display none`: `xn = 24`, the
+- `group_child_member` with `{element: frame} display none`: `xn = 24`, the
   cards at `x = 16`, `W` and `H` from the frame's edges; the title moves to
   1, the cards `[2, 15)` and `[15, 22)`, the frame `[1, 22)`.
 
-**The box size.** `W = max(Wb, width)`, `H = max(Hb, height)`: `bare` at
+**The block size.** `W = max(Wb, width)`, `H = max(Hb, height)`: `bare` at
 600 and 100 gives 600 and 100, every other element unchanged; at 300 and 20
-it gives `Wb` and `Hb`; at 600 and null `H = Hb`. The box padding `P`
-changes with no spacing: `bare` at the box's `spacing` 24 and its card's 0
+it gives `Wb` and `Hb`; at 600 and null `H = Hb`. The block padding `P`
+changes with no spacing: `bare` at the block's `spacing` 24 and its card's 0
 keeps its card at `y = 8`, `Hm = 49.37890625`, `H = 67.37890625`.
 
-**Addresses (section 2.2).** `corpus_mpm`'s map `tmap_1` is
-`score:clt_1/tmap_1`; a region added into the member `second-half` of
-`group_child_member` is `piece/region_1`, its label `piece/region_1/label`.
-The cards are `G/M/card` for a member `M` in the frame of `G` and `M/card`
-for an ungrouped root, a member's wedges `M/start` and `M/end`, on its own
-line and as marks on its ancestors'.
+**Addresses (section 2.2).** `corpus_mpm`'s map `tmap_1`, of the root
+`score:clt_1`, is `{id: tmap_1}`; a region `region_1` added into the member
+`second-half` of `group_child_member` is `{id: region_1}`, its label `{id:
+region_1, part: [label]}`, and these two are the only elements whose
+address carries that ID. Every card of `M` is `{id: M, part: [card]}`,
+whether `M` is a member or an ungrouped root, its place key telling cards
+apart; a member's wedges are `{id: M, part: [start]}` and `{id: M, part:
+[end]}`, on its own line and as marks on its ancestors'.
 
 **Cards and frames in the tree (sections 2.1 and 8.1).** A card belongs to
 its timeline and has its domain: `{element: card, domain: physical} fill
-#ABCDEF` fills `group_1/recording/card` and not `group_1/second-half/card`. A card holds
+#ABCDEF` fills `recording`'s card and not `second-half`'s. A card holds
 nothing: `{inside: card} stroke #123456` reaches no element. With layers
 holding no defaults (`groups.test.ts`):
 
 1. **The frame holds its title, cards and its members' lines.** With `{element:
-   group} {stroke: #123456, font-size: 13}`, `group_child_member`'s members'
-   lines, the title `group_1/name` and the cards take the frame's stroke and
+   frame} {stroke: #123456, font-size: 13}`, `group_child_member`'s members'
+   lines, `group_1`'s title and the cards take the frame's stroke and
    font size; the ancestor line `piece` takes them from its member, and
-   `piece/name` from the ancestor. With `{ids: [second-half]} {stroke:
-   #654321}` instead, `piece` is `#654321` and `recording` keeps `none`; so
-   does `group_1/second-half/card`, a sibling of the line.
-2. **The block holds the manifest's title, the frames and the box-held cards
+   `piece`'s name from the ancestor. With `{addresses: [{id: second-half}]}
+   {stroke: #654321}` instead, `piece` is `#654321` and `recording` keeps
+   `none`; so does `second-half`'s card, a sibling of the line.
+2. **The block holds the manifest's title, the frames and the block-held cards
    and lines.** With `{element: block} {stroke: #111111}` on `bundle_mixed`,
-   `name`, `group_1`, `annotations/card` and `annotations` take `#111111`;
-   with `{ids: [annotations/card]} {stroke: #222222}` the line
-   `annotations` keeps `none`.
+   the title, `group_1`, `annotations`' card and `annotations` take
+   `#111111`; with `{addresses: [{id: annotations, part: [card]}]} {stroke:
+   #222222}` the line `annotations` keeps `none`.
 
 ## Places (`places.test.ts`)
 
-Sections 1, 8.4 and 8.6: every item applies the box's one horizontal layout
-at its own place, and the box grows in every direction to hold the items.
+Sections 1, 8.4 and 8.6: every item applies the block's one horizontal layout
+at its own place, and the block grows in every direction to hold the items.
 An item is laid out in item coordinates and each position `u` drawn at `x +
-u`; its default `y` lies the box's spacing (8) below the largest bottom
+u`; its default `y` lies the block's spacing (8) below the largest bottom
 edge before it (its requested height included, no shadow), summed in place
 coordinates; `Xl =
 min(0, smallest x − P)`, `Yt = min(0, smallest y − Pt)`, `Pt = P + h(s) +
@@ -740,7 +771,7 @@ included. The fixtures `bundle_mixed__places` and
 and the sums are proved, two of them with a fractional origin that tells
 the order of the sums apart.
 
-- **Defaults reproduce the stacked box.** `bare`'s records: the box `{0, 0,
+- **Defaults reproduce the stacked block.** `bare`'s records: the block `{0, 0,
   476.5771484375, 67.37890625}` `[0, 8)` and its card at `(8, 8)`,
   `458.5771484375 × 49.37890625`, `[1, 8)`, its place `{8, 8, 400, 1, 4,
   458.5771484375, 49.37890625}` (as `{x, y, length, scale, spacing, width,
@@ -760,19 +791,19 @@ the order of the sums apart.
   `max(28.8046875 + 169.234375, 200 + 177.734375) + 8 = 385.734375`, its
   card `418.29150390625 + 28.193115234375 + 16 = 462.484619140625` wide;
   origin `(38, 0)`, `Wb = (8 + 740) + 38 = 786`, `Hb = 467.58984375`. Every
-  item's lines start at the box's one start, each at its own length.
+  item's lines start at the block's one start, each at its own length.
 - **`bundle_ungrouped__places`** (`{score: {x: −60, y: −150, height:
   120}}`; no frame, `s0 = 71.70361328125`, every card 507.896728515625
   wide, `score` 84.4296875 high on its own and 120 by request): origin
-  `(68, 178.8046875)`, the title pushed up with the box's top to `(8,
-  18.21044921875)`, `score/card` at `(8, 28.8046875)`, `W =
+  `(68, 178.8046875)`, the title pushed up with the block's top to `(8,
+  18.21044921875)`, `score`'s card at `(8, 28.8046875)`, `W =
   593.896728515625`, `H = 338.5390625`; the other items keep their default
   places.
 - **A frame's own length and height request, a card's width request**
   (`bundle_mixed` at `{group_1: {length: 300, height: 200}, annotations:
   {width: 600}}`): `group_1`'s lines end at 426.29150390625, the frame `{8,
   28.8046875, 462.484619140625, 200}`; `group_2` at 236.8046875;
-  `annotations/card` at 422.5390625, `Ri = 600 − K − Q = 584`, exactly 600
+  `annotations`' card at 422.5390625, `Ri = 600 − K − Q = 584`, exactly 600
   wide (without the inset `Q` it would be 608); `W = 618`, `H =
   504.39453125`.
 - **A fractional origin: the shift is added last.** `bundle_ungrouped` at
@@ -813,39 +844,42 @@ coordinates. `bundle_ungrouped`'s quantities are those of "Places".
   the scale. `bundle_ungrouped` at `{recording: {scale: 1.5}}`: `score`'s
   default top `(100.2578125 + 1.5 × 49.4765625) + 8 = 182.47265625`, the
   dash `4.5 4.5`, the name size 16.5.
-- **A member's card size** (`group_child_member`, `{"group_1/recording":
-  {width: 650, height: 120}}`): `group_1/recording/card` `{16, 124.7578125,
-  650, 120}`, the
+- **A member's card size** (`group_child_member`, `{group_1: {cards:
+  {recording: {width: 650, height: 120}}}}`): `recording`'s card `{16,
+  124.7578125, 650, 120}`, the
   frame `{8, 8, 666, 244.7578125}`, `W = 682`, `H = 260.7578125`; the
-  cards' records `second-half` `{526.4140625, 83.953125}` `[3, 16)`,
-  `recording` `{650, 120}` stated `{width: 650, height: 120}` `[16, 23)`. A
-  member's entry (under `G/M`; its bare id is no key) is read for `width`,
-  `height` and `spacing` alone; a
+  cards' records, keyed `{item: group_1, member: second-half}` and `{item:
+  group_1, member: recording}`, held by `{item: group_1}`: `second-half`
+  `{526.4140625, 83.953125}` `[3, 16)`, `recording` `{650, 120}` stated
+  `{width: 650, height: 120}` `[16, 23)`. A member's entry (under its
+  group's entry's `cards`, by member ID) is read for `width`, `height` and
+  `spacing` alone: one also stating `x`, `y`, `length` and `scale` draws as
+  the one stating `width` alone; a
   request no larger than the card changes nothing; under the group's scale
   2 the card is drawn 1300 wide and its record keeps `{650, 49.37890625}`.
-- **Spacings.** The box's spacing 24 (`bundle_ungrouped`) moves the items
+- **Spacings.** The block's spacing 24 (`bundle_ungrouped`) moves the items
   at their default `y` alone: `pages` at 28.8046875, `recording` at
   `28.8046875 + 63.453125 + 24 = 116.2578125`, `score` at `116.2578125 +
   49.4765625 + 24 = 189.734375`, every card's record as at 8, `H =
   284.1640625`; with `{recording: {y: 40}}` `recording` keeps its stated
   40 and `score` lies 24 below the larger bottom edge, `pages`' 92.2578125:
-  116.2578125. A box-held card's spacing 8 (`score`) widens only its own
+  116.2578125. A block-held card's spacing 8 (`score`) widens only its own
   gaps: its flow control band from `26.9765625 + 8`, its flow row
   45.453125 out, the band `10.4765625 + 12 + 2 + 10.4765625 = 34.953125`
   wide, `Hm = 14.5 + 69.9296875 + 8 = 92.4296875`, its line at 172.234375,
   the flow marker from 217.6875 to `157.734375 + 8`, `H = 260.1640625`; `pages`
   and `recording` unchanged, the records `spacing` 4, 4 and 8. A frame's
   spacing 16 (`group_child_member`) lies between its cards alone:
-  `group_1/recording/card` at `8 + (((8 + 12.8046875) + 4) + 83.953125 + 16) =
+  `recording`'s card at `8 + (((8 + 12.8046875) + 4) + 83.953125 + 16) =
   132.7578125`, the frame `182.13671875` high, `H = 198.13671875`, both
-  cards' spacing 4. A member's card spacing 8 (`group_1/second-half`, one ancestor
-  row) starts its ancestor band at `max(18 / 2, 1.5 + 8) = 9.5`, the row's
+  cards' spacing 4. A member's card spacing 8 (`{group_1: {cards:
+  {second-half: {spacing: 8}}}}`, one ancestor row) starts its ancestor band at `max(18 / 2, 1.5 + 8) = 9.5`, the row's
   pitch `max(18, h(9)) = 18`, its halves 9 and 26.9765625: `Ea =
   45.4765625`, `y_root = 53.4765625`, `Hm = 88.453125`, its line at
-  86.28125, `piece` 18.5 above it at 67.78125, `group_1/recording/card` at
+  86.28125, `piece` 18.5 above it at 67.78125, `recording`'s card at
   129.2578125, the frame 178.63671875 high. All three together, with the
-  box's spacing 24 on the one frame, give the cards 88.453125 and
-  49.37890625 at spacings 8 and 4, `group_1/recording/card` at 137.2578125 and the
+  block's spacing 24 on the one frame, give the cards 88.453125 and
+  49.37890625 at spacings 8 and 4, `recording`'s card at 137.2578125 and the
   frame 186.63671875 high: no spacing multiplies another.
 
 ## Container records and axes (`records.test.ts`)
@@ -854,53 +888,62 @@ A band's record says where the band lies, from the band layout of section
 6.4, and which card holds it; every drawn line has an axis whose ends are
 its semantic start and end; `coordinateAt` reads a position exactly.
 
-**Bands.** A band record `T/<kind>_1` carries its timeline, kind, signed
-level, `line` (the ordinate of its timeline's line), `elements` (the
-displayed elements it holds directly, no label), its holder (the card of
-the member drawing its line lies in) and its rectangle: from its start `c`
-to its outer edge `E` beyond the line `yl`, along its timeline's extent
-from `x0 + a` to `x0 + b`, drawn as its card is. A band draws nothing: no
-element's address is a band's, and its range is empty, at its card's end.
+**Bands.** A band record, addressed `{id: T, facet: F}` with key null,
+carries its timeline `T`, its facet `F`, signed level, `line` (the ordinate
+of its timeline's line), `elements` (the displayed elements it holds
+directly, no label), its holder (the place key of the card of the member
+drawing its line lies in: `{item: T}` for an ungrouped root's) and its
+rectangle: from its start `c` to its outer edge `E` beyond the line `yl`,
+along its timeline's extent from `x0 + a` to `x0 + b`, drawn as its card
+is. A band draws nothing: no element's address carries a facet, and its
+range is empty, at its card's end. The table names each band by its
+timeline and facet.
 
 | case | records |
 |---|---|
-| `styled__score` (`x = 89.951171875`, width 416.2578125, `line` 62.640625) | `children_1` level 2, 1 element, `y` 16, 14 high; `markers_1` 1, 2, 34, 28.640625; `conversion_maps_1` −1, 1, 62.640625, 7; `regions_1` −2, 1, 73.640625, 19.640625; `flow_control_1` −3, 1, 97.28125, 21.640625 |
-| `r` with the child `c` and its region, defaults | `r/children_1` 1, 1, `y` 16, 14; `r/markers_1` −1, 2, 37, 26.9765625; `line` 37, `x` 22.6318359375, width 414.83203125 |
-| the same with `c/regions_1` shown | `r`'s at `line` 53.9765625, the children band 30.9765625 high; `c/regions_1` −1, 1, held by `r/card`, `x` 130.0478515625, `y` 28.5, 200 × 18.4765625, `line` 23 |
-| the same, `r` hidden | none: a hidden line hides its timeline's whole drawing; the card 16 × 28.8046875 alone, the box 34 × 46.8046875 |
-| the same at `{r: {x: −12, y: −20, scale: 2}}` | origin `(20, 28)`; `c/regions_1` at `x` 252.095703125, `y` 49, 400 × 36.953125, `line` 38 |
-| `unknown_length_segments`, regions shown (`x` 42.42431640625, width 435.916015625, `line` 24) | `form/markers_1` −1, 1, `y` 24, 26.9765625; `form/regions_1` −2, 2 (its segments' regions), 54.9765625, 18.4765625 |
-| `r` with an unlabelled flow marker | `r/flow_control_1` −2, 1, `y` 53.37890625, 0 high |
+| `styled__score` (`x = 89.951171875`, width 416.2578125, `line` 62.640625) | `score` children level 2, 1 element, `y` 16, 14 high; markers 1, 2, 34, 28.640625; conversion maps −1, 1, 62.640625, 7; regions −2, 1, 73.640625, 19.640625; flow control −3, 1, 97.28125, 21.640625 |
+| `r` with the child `c` and its region, defaults | `r` children 1, 1, `y` 16, 14; `r` markers −1, 2, 37, 26.9765625; `line` 37, `x` 22.6318359375, width 414.83203125 |
+| the same with `c`'s regions band shown (`{addresses: [{id: c, facet: regions}]}`) | `r`'s at `line` 53.9765625, the children band 30.9765625 high; `c` regions −1, 1, held by `r`'s card `{item: r}`, `x` 130.0478515625, `y` 28.5, 200 × 18.4765625, `line` 23 |
+| the same, `r` hidden | none: a hidden line hides its timeline's whole drawing; the card 16 × 28.8046875 alone, the block 34 × 46.8046875 |
+| the same at `{r: {x: −12, y: −20, scale: 2}}` | origin `(20, 28)`; `c` regions at `x` 252.095703125, `y` 49, 400 × 36.953125, `line` 38 |
+| `unknown_length_segments`, regions shown (`x` 42.42431640625, width 435.916015625, `line` 24) | `form` markers −1, 1, `y` 24, 26.9765625; `form` regions −2, 2 (its segments' regions), 54.9765625, 18.4765625 |
+| `r` with an unlabelled flow marker | `r` flow control −2, 1, `y` 53.37890625, 0 high |
 
-**Core's listing.** Over every manifest fixture, the box, frame and card
-records carry core's kind, address and holder in core's order, displayed
-or hidden; each drawn band is recorded once per card that core lists as
-drawing it, with core's address and holder,
+**Core's listing.** Over every manifest fixture, the block, frame and card
+records carry core's kind, address and holder (the holder's place key) in
+core's order, displayed or hidden; each drawn band is recorded once per
+card that core lists as drawing it, with core's address and holder,
 except a timeline drawn twice (below), whose second set the card drawing it
 holds.
 
 **A timeline drawn twice.** `with_region` with the map `tempo` on `clt_2`
 and the groups `g1 {clt_1}` and `g2 {clt_2}` (written onto the built
 manifest, since no command adds a group, and validated): `clt_2` is a child
-line in `g1/clt_1/card` and the root of `g2/clt_2/card`. Its `conversion_maps_1`
-is recorded twice under one address, at `line` 61.8046875 held by
-`g1/clt_1/card` (`x` `8 + (73.91552734375 + 400 × u(1/3)) =
-93.02663845486111`, width 133.33333333333331) and at 226.5390625 held by
-`g2/clt_2/card` (`x` 74.49951171875, width 414.83203125), both 6.5 high.
+line in the card `{item: g1, member: clt_1}` and the root of the card
+`{item: g2, member: clt_2}`. Its conversion maps band is recorded twice
+under one address `{id: clt_2, facet: conversion_maps}`, at `line`
+61.8046875 held by `{item: g1, member: clt_1}` (`x` `8 + (73.91552734375 +
+400 × u(1/3)) = 93.02663845486111`, width 133.33333333333331) and at
+226.5390625 held by `{item: g2, member: clt_2}` (`x` 74.49951171875, width
+414.83203125), both 6.5 high.
 
 **A timeline in several groups** (sections 2.2, 8.1, 8.6).
 `bundles/bundle_shared_member` (`g1` {`t`, `u`}, `g2` {`t`, `v`}) records
-the frames and cards `g1`, `g1/t/card`, `g1/u/card`, `g2`, `g2/t/card`,
-`g2/v/card` in that order, keyed `g1`, `g1/t`, `g1/u`, `g2`, `g2/t`,
-`g2/v`; `t` is drawn in both frames, and the elements of its two member
-drawings carry the same addresses (`t`, `t/name`, `t/start`, `t/end` and
-their labels in each, in the same order), so each address but a card's
-occurs twice; `t`'s one present band under the defaults, `t/markers_1`, is
-recorded twice under that address, held first by `g1/t/card` and then by
-`g2/t/card`. Each card is
-laid out with its own entry: with `places` `{"g2/t": {width: 650}}` only
-`g2/t/card` is 650 wide and `g1/t/card` keeps its drawn width, and a
-statement `{ids: ["t"]} stroke #123456` strokes both lines of `t`.
+the frame of `g1`, the cards of `t` and `u`, the frame of `g2`, the cards of
+`t` and `v`, in that order, keyed `{item: g1}`, `{item: g1, member: t}`,
+`{item: g1, member: u}`, `{item: g2}`, `{item: g2, member: t}`, `{item: g2,
+member: v}`; both cards of `t` carry the one address `{id: t, part:
+[card]}`, their keys telling them apart. `t` is drawn in both frames, and
+the elements of its two member drawings carry the same addresses (its
+line, name, wedges and their labels in each, in the same order), so every
+address of `t`, its cards' included, occurs twice; `t`'s one present band
+under the defaults, its markers band `{id: t, facet: markers}`, is
+recorded twice under that address, held first by `{item: g1, member: t}`
+and then by `{item: g2, member: t}`. Each card is laid out with its own
+entry: with `places` `{g2: {cards: {t: {width: 650}}}}` only the card keyed
+`{item: g2, member: t}` is 650 wide and the one keyed `{item: g1, member:
+t}` keeps its drawn width, and a statement `{addresses: [{id: t}]} stroke
+#123456` strokes both lines of `t`.
 
 **Axes.** `Drawing.axes` holds one `DrawnAxis` per line element, in their
 order, at the line's ordinate. A timeline's or child's axis runs from
@@ -917,8 +960,8 @@ ancestor's own end short of it, with the ancestor's coordinates there:
 `recording` over `excerpt` in `bundle_mixed` from 44100 to 132300 samples,
 running on. Each axis lists the maps of its own timeline that the member
 drawing displays: in `bundle_mixed` `score` `cmap_1` and `cmap_2`,
-`performance`, `page` `cmap_1`, `excerpt` `cmap_2`, none for the ancestor
-`recording`, whose line draws no map.
+`performance` `cmap_3`, `page` `cmap_4`, `excerpt` `cmap_6`, none for the
+ancestor `recording`, whose line draws no map (its own `cmap_5` included).
 
 **`coordinateAt(axis, x)`** is `start + (x − xStart) / (xEnd − xStart) ×
 (end − start)`, every double read as its exact value, computed exactly and
@@ -950,9 +993,9 @@ them: one root, 60 children with maps, regions, jump targets, flow markers and a
 and a segment line of 40 segments. Every count comes from the inputs a
 draw is given, never from watching the code: each statement counts reads
 of its selector, the font the code points asked, the manifest listings of
-its keys. The statement with no element, class or id is tested exactly
-1,000 times, so each key is resolved once; three whose id, class or element
-no key has, 0 times; one per drawn address as often as core lists keys
-there. The font is read 203 times, the code points of the eleven distinct
+its keys. The statement with no element, class or address is tested
+exactly 1,000 times, so each key is resolved once; three whose address,
+class or element no key has, 0 times; one per address the keys carry, the
+block's `{}` included, as often as core lists keys there. The font is read 203 times, the code points of the eleven distinct
 texts as a multiset; the manifest's keys are listed 0 times, so a draw
 copies nothing. No count is a timing.

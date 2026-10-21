@@ -5,7 +5,7 @@
  * call.
  */
 
-import type { Command, View } from "@timetoalign/tilie-core";
+import type { Address, Command, View } from "@timetoalign/tilie-core";
 import { flushSync, tick } from "svelte";
 import { vi } from "vitest";
 import type { LevelRules } from "../src/containers.ts";
@@ -188,7 +188,7 @@ export function pressEscape(): void {
 
 /** A recorded call of a node's actions, in the order it was made. */
 export type Call =
-  | { readonly select: string }
+  | { readonly select: Address }
   | { readonly preview: string; readonly with: NodePreview | null }
   | { readonly dispatch: Command };
 

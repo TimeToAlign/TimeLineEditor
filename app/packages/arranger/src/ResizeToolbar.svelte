@@ -73,9 +73,9 @@ function hintOf(chosen: ResizeMode): string {
 const offered = $derived(resizeModes(box, level));
 const shown = $derived(offered.includes(mode) ? mode : offered[0]);
 
-/** The handles of `chosen` on the block's box or on a frame or card. */
+/** The handles of `chosen` on the block or on a frame or card. */
 function handlesOf(chosen: ResizeMode): readonly Handle[] {
-  return box.kind === "box" ? handlesFor(chosen) : itemHandlesFor(chosen, box, level);
+  return box.kind === "block" ? handlesFor(chosen) : itemHandlesFor(chosen, box, level);
 }
 
 const CURSORS: { readonly [handle in Handle]: string } = {

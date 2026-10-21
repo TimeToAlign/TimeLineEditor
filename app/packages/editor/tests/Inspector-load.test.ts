@@ -1,6 +1,6 @@
 /** A failed import of a codec is shown in the panel; derived in `README.md` ("The manifest as text"). */
 
-import { liveStore } from "@timetoalign/tilie-arranger";
+import { liveStore, selectionOf } from "@timetoalign/tilie-arranger";
 import { flushSync, mount, tick, unmount } from "svelte";
 import { expect, it, vi } from "vitest";
 import { loadCodec } from "../src/inspector/formats.svelte.ts";
@@ -16,7 +16,7 @@ it("shows a failed codec import as an alert and keeps JSON working", async () =>
   const id = blockId(0);
   const app = mount(Inspector, {
     target: document.body,
-    props: { live: liveStore(store), selection: new Set([id]) },
+    props: { live: liveStore(store), selection: selectionOf([{ block: id }]) },
   });
   flushSync();
   const tabs = [...document.querySelectorAll<HTMLElement>('[role="tab"]')];

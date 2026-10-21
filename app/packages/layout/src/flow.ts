@@ -6,7 +6,7 @@
  * jump target draws nothing of its own.
  */
 
-import { bandAddress } from "@timetoalign/tilie-core";
+import { idAddress } from "@timetoalign/tilie-core";
 import type { PreparedBand } from "./bands.ts";
 import { FLOW_MARKER_LABEL_OFFSET, LABEL_GAP } from "./constants.ts";
 import type { Point } from "./elements.ts";
@@ -37,12 +37,8 @@ import { type Entry, maxSize, type Scope, shown } from "./traversal.ts";
  * `at.flowMarkerEnd`, its label starting at `x + 3` in its tier, tier 1
  * touching the flow row on the line's side of it.
  */
-export function flowControlBand(
-  scope: Scope,
-  line: Entry,
-  sources: readonly Entry[],
-): PreparedBand {
-  const { address, owned, measured, relativeX, u, S, h, a, d } = scope;
+export function flowControlBand(scope: Scope, sources: readonly Entry[]): PreparedBand {
+  const { owned, measured, relativeX, u, S, h, a, d } = scope;
   const held = sources.filter((source) => shown(source.bands.flow_control.style));
   const own = (source: Entry, value: Parameters<typeof coordinateValue>[0]) =>
     add(source.start, coordinateValue(value, source.manifest.number_type));
@@ -50,7 +46,7 @@ export function flowControlBand(
     source.manifest.flow_control
       .filter((item) => item.type === "flow_marker")
       .map((item) => ({
-        ...owned("flow_marker", address(item.id), source, "flow_control"),
+        ...owned("flow_marker", idAddress(item.id), source, "flow_control"),
         at: own(source, item.coordinate),
         text: item.label,
       }))
@@ -67,7 +63,7 @@ export function flowControlBand(
     return elements
       .filter((item) => item.type === "jump_from")
       .map((item) => ({
-        ...owned("jump_from", address(item.id), source, "flow_control"),
+        ...owned("jump_from", idAddress(item.id), source, "flow_control"),
         from: own(source, item.coordinate),
         to: landing(item.target),
         text: item.label ?? item.manifestation,
@@ -110,8 +106,7 @@ export function flowControlBand(
   const pj = 6 + S + h(size);
   const K = rows.count;
   return {
-    kind: "flow_control",
-    address: bandAddress(line.manifest.id, "flow_control"),
+    facet: "flow_control",
     elements: markers.length + jumps.length,
     width: K === 0 ? tierRoom : tierRoom + depth + (K - 1) * pj + LABEL_GAP + h(size),
     extents: [

@@ -10,7 +10,15 @@ import type {
   SetCommand,
   View,
 } from "@timetoalign/tilie-core";
-import { elementOf, indicesBetween, qualify, TITLE_ADDRESS } from "@timetoalign/tilie-core";
+import {
+  type Address,
+  addressKey,
+  idAddress,
+  inBlock,
+  indicesBetween,
+  sameAddress,
+  WORKSPACE,
+} from "@timetoalign/tilie-core";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import { drawingOf, nodePosition } from "./drawing.ts";
 import { addressParts, type Editing } from "./editing.ts";
@@ -52,14 +60,14 @@ function placing(
     const x = quantize(quantize(move.x, step) + origin.x * scale, GRID_FREE);
     const y = quantize(quantize(move.y, step) + origin.y * scale, GRID_FREE);
     if (block !== undefined && block.x === x && block.y === y) continue;
-    changes.push({ target: move.id, values: { x, y } });
+    changes.push({ target: { block: move.id }, values: { x, y } });
   }
   return setOf(changes);
 }
 
 /**
  * One `set` placing every moved block where its node is dropped, `moves`
- * holding node positions (the box's top-left corner, `nodePosition`): each
+ * holding node positions (the block's top-left corner, `nodePosition`): each
  * quantized to `GRID_FREE` and stored as the position of the block's place
  * origin, in the order of `moves`; a block whose stored position does not
  * change is left out, and `null` is returned when nothing is left. Snapping
@@ -122,7 +130,7 @@ export function addCommand(
   const step = positionStep(view.settings.grid);
   const x = quantize((visible.width / 2 - visible.x) / visible.zoom, step);
   const y = quantize((visible.height / 2 - visible.y) / visible.zoom, step);
-  return { type: "add", into: "workspace", block: { id, manifest, x, y } };
+  return { type: "add", into: WORKSPACE, block: { id, manifest, x, y } };
 }
 
 export type ZOrderAction = "front" | "back" | "forward" | "backward";
@@ -200,7 +208,7 @@ export function zOrderCommand(
       const indices = indicesBetween(lower, upper, run.length);
       for (const [offset, index] of indices.entries()) {
         const id = run[offset];
-        if (id !== undefined) changes.push({ target: id, values: { index } });
+        if (id !== undefined) changes.push({ target: { block: id }, values: { index } });
       }
       run = [];
     };
@@ -219,8 +227,8 @@ export function zOrderCommand(
 }
 
 /**
- * One `remove` of the selected addresses, an element's part standing for
- * the element (core's `elementOf`). Every element can be removed, timelines
+ * One `remove` of the selected addresses, an element's part or card
+ * standing for the element whose ID it carries. Every element can be removed, timelines
  * and groups included; a selection holding a manifest's title, which goes
  * only with its block, is refused whole, with a hint naming the block. A
  * band is never removed: its address is left out, and a selection of bands
@@ -238,28 +246,31 @@ export function removeCommand(
   editing: Editing | null,
 ): RemoveCommand | { readonly refused: string } {
   if (selection.size === 0) return { refused: "Nothing is selected." };
-  const addresses = [...selection].filter((address) => selectedBand(view, address) === null);
+  const addresses = [...selection.values()].filter(
+    (address) => selectedBand(view, address) === null,
+  );
   if (addresses.length === 0) {
     return { refused: "A band is not deleted; select its elements to delete them." };
   }
-  const targets: string[] = [];
+  const targets = new Map<string, Address>();
+  const add = (target: Address) => targets.set(addressKey(target), target);
   for (const address of addresses) {
     const { block: id, element } = addressParts(address);
     const block = view.blocks[id];
     if (block === undefined || element === null) {
-      if (!targets.includes(address)) targets.push(address);
+      add(address);
       continue;
     }
-    const owner = elementOf(block.manifest, element);
-    if (owner === TITLE_ADDRESS) {
+    if (element.id === undefined) {
       return {
         refused: `Block ${block.id}: its title is removed only with the block; select the block to delete it.`,
       };
     }
-    const target = qualify(block.id, owner);
-    if (!targets.includes(target)) targets.push(target);
+    add(inBlock(block.id, idAddress(element.id)));
   }
-  const removed = targets.filter((target) => target !== editing?.target);
+  const removed = [...targets.values()].filter(
+    (target) => editing === null || !sameAddress(target, editing.target),
+  );
   if (removed.length === 0) return { refused: "Close its editor to delete the edited element." };
   return { type: "remove", targets: removed };
 }

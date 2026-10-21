@@ -8,11 +8,11 @@
  * callbacks.
  */
 import type { LivePlacement, ResizeMode, Viewport } from "@timetoalign/tilie-arranger";
-import { Canvas, isTextInput, within } from "@timetoalign/tilie-arranger";
+import { Canvas, isTextInput, selectionOf, within } from "@timetoalign/tilie-arranger";
 import type { Health } from "@timetoalign/tilie-client";
 import { connect } from "@timetoalign/tilie-client";
-import type { LoadError, Problem, Store } from "@timetoalign/tilie-core";
-import { emptyWorkspace } from "@timetoalign/tilie-core";
+import type { Address, LoadError, Problem, Store } from "@timetoalign/tilie-core";
+import { emptyWorkspace, isCommandError, readAddress } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import type { Snippet } from "svelte";
 import { onMount, tick, untrack } from "svelte";
@@ -335,13 +335,25 @@ export function load(text: string, name: string = UNTITLED): LoadError | null {
 }
 
 /** The selected addresses. */
-export function selection(): string[] {
-  return [...session.selection];
+export function selection(): Address[] {
+  return [...session.selection.values()];
 }
 
-/** Select `addresses`. */
-export function select(addresses: readonly string[]): void {
-  session.selection = new Set(addresses);
+/**
+ * Select `addresses`, each read at this boundary (core's `readAddress`): an
+ * address that is not one is left out, and the message area names its
+ * problem.
+ */
+export function select(addresses: readonly Address[]): void {
+  const problems: Problem[] = [];
+  const read: Address[] = [];
+  addresses.forEach((value, index) => {
+    const address = readAddress(value, ["addresses", index]);
+    if (isCommandError(address)) problems.push(address);
+    else read.push(address);
+  });
+  if (problems.length > 0) say("Some addresses could not be selected.", problems);
+  session.selection = selectionOf(read);
 }
 
 /** Move the focus to the canvas. */

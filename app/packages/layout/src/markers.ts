@@ -4,7 +4,7 @@
  * (`docs/drawing.md` in TimeToShare, sections 6.4, Markers, 6.6 and 8.3).
  */
 
-import { bandAddress, partAddress } from "@timetoalign/tilie-core";
+import { idAddress, partAddress } from "@timetoalign/tilie-core";
 import type { PreparedBand } from "./bands.ts";
 import { LABEL_GAP, MARKER_BASE, MARKER_HEIGHT } from "./constants.ts";
 import { labelExtent, labelTiers, Rows } from "./fit.ts";
@@ -42,10 +42,18 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
   const wedges = !sources.includes(rootEntry)
     ? []
     : [
-        { ...owned("wedge", partAddress(root.id, "start"), line, "markers"), at: rootEntry.start },
+        {
+          ...owned("wedge", partAddress(idAddress(root.id), "start"), line, "markers"),
+          at: rootEntry.start,
+        },
         ...(rootEntry.open
           ? []
-          : [{ ...owned("wedge", partAddress(root.id, "end"), line, "markers"), at: lambda }]),
+          : [
+              {
+                ...owned("wedge", partAddress(idAddress(root.id), "end"), line, "markers"),
+                at: lambda,
+              },
+            ]),
       ].filter((wedge) => shown(wedge.style) && shown(band.style));
   const labels = wedges
     .filter((wedge) => shown(wedge.label.style))
@@ -55,8 +63,7 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
   const size = maxSize(labels.map((item) => item.wedge.label));
   const w = rootEntry.style["stroke-width"];
   return {
-    kind: "markers",
-    address: bandAddress(line.manifest.id, "markers"),
+    facet: "markers",
     elements: wedges.length,
     width: wedges.length === 0 ? 0 : markReach(scope, w, tiers.count, size),
     extents: labels.map((item) => labelExtent(relativeX(item.wedge.at), item.width)),

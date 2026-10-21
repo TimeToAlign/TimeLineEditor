@@ -1,7 +1,7 @@
 /** The Journal tab's rows and the editors' names; the expected values are derived in `README.md` ("Words"). */
 
-import type { Command, Entry, OpenEditor, Session } from "@timetoalign/tilie-core";
-import { listEntries } from "@timetoalign/tilie-core";
+import type { Address, Command, Entry, OpenEditor, Session } from "@timetoalign/tilie-core";
+import { addressKey, listEntries, WORKSPACE } from "@timetoalign/tilie-core";
 import { describe, expect, it } from "vitest";
 import type { JournalRow, JournalSource } from "../src/inspector/journal.ts";
 import { journalRows } from "../src/inspector/journal.ts";
@@ -9,6 +9,16 @@ import { editorName } from "../src/inspector/words.ts";
 import { MIXED, mixedStore, mixedView } from "./mixed.ts";
 
 const { A, B, C } = MIXED;
+
+/** The address of block `block`, or of its element `id`. */
+function address(block: string, id?: string): Address {
+  return id === undefined ? { block } : { block, id };
+}
+
+/** An address as a sentence writes it: its one string form. */
+function key(target: Address): string {
+  return addressKey(target);
+}
 
 const view = mixedView();
 
@@ -18,7 +28,7 @@ function entry(command: Command, time = TIME, author = "Gerhardt"): Entry {
   return { command, author, time };
 }
 
-function set(target: string, property = "x"): Entry {
+function set(target: Address, property = "x"): Entry {
   return entry({ type: "set", changes: [{ target, values: { [property]: 1 } }] });
 }
 
@@ -36,7 +46,7 @@ function level(
   return { listed: listEntries(entries, sessions, applied), sessions };
 }
 
-function editor(target: string, earlier: string | null = null): OpenEditor {
+function editor(target: Address, earlier: string | null = null): OpenEditor {
   return { session: "s9", target, kind: "group", earlier };
 }
 
@@ -51,16 +61,16 @@ describe("editorName", () => {
   it("names each editor's target by the manifest", () => {
     expect(
       [
-        A,
-        B,
-        C,
-        `${A}/group_1`,
-        `${B}/group_2`,
-        `${A}/excerpt`,
-        `${B}/score`,
-        `${A}/gone`,
-        "0000000009/score",
-        "0000000009",
+        address(A),
+        address(B),
+        address(C),
+        address(A, "group_1"),
+        address(B, "group_2"),
+        address(A, "excerpt"),
+        address(B, "score"),
+        address(A, "gone"),
+        address("0000000009", "score"),
+        address("0000000009"),
       ].map((target) => editorName(view, target)),
     ).toEqual([
       "Mixed",
@@ -70,33 +80,37 @@ describe("editorName", () => {
       "group_2",
       "Excerpt",
       "score",
-      `${A}/gone`,
-      "0000000009/score",
-      "0000000009",
+      '{"block":"0000000000","id":"gone"}',
+      '{"block":"0000000009","id":"score"}',
+      '{"block":"0000000009"}',
     ]);
   });
 });
 
 describe("journalRows", () => {
   it("reads the time, the author and the flags of an entry", () => {
-    const removal = entry({ type: "remove", targets: [B] }, TIME, "Ada");
+    const removal = entry({ type: "remove", targets: [address(B)] }, TIME, "Ada");
     const rows = journalRows(source(level([removal])), view);
     expect(rows).toEqual([
       {
         entry: removal,
         time: "08:05:09",
         author: "Ada",
-        text: `Removed ${B}`,
+        text: `Removed ${key(address(B))}`,
         undone: false,
         earlier: false,
         children: [],
       },
     ]);
     expect(rows[0]?.entry).toBe(removal);
-    expect(journalRows(source(level([set(A)])), view).map((row) => row.time)).toEqual(["08:05:09"]);
+    expect(journalRows(source(level([set(address(A))])), view).map((row) => row.time)).toEqual([
+      "08:05:09",
+    ]);
     expect(
       journalRows(
-        source(level([entry({ type: "remove", targets: [B] }, "2026-10-17T23:59:58.999Z")])),
+        source(
+          level([entry({ type: "remove", targets: [address(B)] }, "2026-10-17T23:59:58.999Z")]),
+        ),
         view,
       )[0]?.time,
     ).toBe("23:59:58");
@@ -105,50 +119,60 @@ describe("journalRows", () => {
   it("writes each command as one sentence", () => {
     expect(
       [
-        entry({ type: "add", into: "workspace", block: { id: "0000000003" } }),
-        entry({ type: "add", into: `${A}/score`, region: { id: "region_1" } }),
-        entry({ type: "set", changes: [{ target: A, values: { x: 25, y: -3 } }] }),
-        entry({ type: "set", changes: [{ target: A, values: { width: 640, height: null } }] }),
+        entry({ type: "add", into: WORKSPACE, block: { id: "0000000003" } }),
+        entry({ type: "add", into: address(A, "score"), region: { id: "region_1" } }),
+        entry({ type: "set", changes: [{ target: address(A), values: { x: 25, y: -3 } }] }),
+        entry({
+          type: "set",
+          changes: [{ target: address(A), values: { width: 640, height: null } }],
+        }),
         entry({
           type: "set",
           changes: [
-            { target: A, values: { x: 25, y: -3 } },
-            { target: B, values: { x: 1 } },
+            { target: address(A), values: { x: 25, y: -3 } },
+            { target: address(B), values: { x: 1 } },
           ],
         }),
         entry({
           type: "set",
           changes: [
-            { target: `${A}/group_1`, values: { place: { x: 1 } } },
-            { target: `${A}/group_2`, values: { place: { x: 2 } } },
-            { target: `${A}/annotations`, values: { place: { x: 3 } } },
+            { target: address(A, "group_1"), values: { place: { x: 1 } } },
+            { target: address(A, "group_2"), values: { place: { x: 2 } } },
+            { target: address(A, "annotations"), values: { place: { x: 3 } } },
           ],
         }),
-        entry({ type: "remove", targets: [`${A}/group_2`, B] }),
-        entry({ type: "style", select: { ids: ["score"] }, set: { stroke: "#FF0000" } }),
+        entry({ type: "remove", targets: [address(A, "group_2"), address(B)] }),
+        entry({
+          type: "style",
+          select: { addresses: [{ id: "score" }] },
+          set: { stroke: "#FF0000" },
+        }),
         entry({ type: "style", select: { element: "timeline" }, set: { stroke: "#FF0000" } }),
       ].map((only) => textOf(only)),
     ).toEqual([
-      "Added block 0000000003 to workspace",
-      `Added region region_1 to ${A}/score`,
-      `Set x, y of ${A}`,
-      `Set container width, container height of ${A}`,
-      `Set x, y of ${A} and 1 more`,
-      `Set place of ${A}/group_1 and 2 more`,
-      `Removed ${A}/group_2, ${B}`,
-      'Styled {"ids":["score"]}',
+      "Added block 0000000003 to {}",
+      `Added region region_1 to ${key(address(A, "score"))}`,
+      `Set x, y of ${key(address(A))}`,
+      `Set container width, container height of ${key(address(A))}`,
+      `Set x, y of ${key(address(A))} and 1 more`,
+      `Set place of ${key(address(A, "group_1"))} and 2 more`,
+      `Removed ${key(address(A, "group_2"))}, ${key(address(B))}`,
+      'Styled {"addresses":[{"id":"score"}]}',
       'Styled {"element":"timeline"}',
     ]);
   });
 
   it("writes a session as its kind, name and count", () => {
     const sessions: { [id: string]: Session } = {
-      s1: { target: `${A}/group_1`, entries: [set(A)] },
-      s2: { target: `${B}/score`, entries: [set(A), set(B)] },
-      s3: { target: `${A}/excerpt`, entries: [set(A)] },
-      s4: { target: C, entries: [set(A), set(B), set(C)] },
-      s5: { target: A, entries: [set(A), { session: "s8", author: "Gerhardt", time: TIME }] },
-      s8: { target: `${A}/group_1`, entries: [set(A), set(B)] },
+      s1: { target: address(A, "group_1"), entries: [set(address(A))] },
+      s2: { target: address(B, "score"), entries: [set(address(A)), set(address(B))] },
+      s3: { target: address(A, "excerpt"), entries: [set(address(A))] },
+      s4: { target: address(C), entries: [set(address(A)), set(address(B)), set(address(C))] },
+      s5: {
+        target: address(A),
+        entries: [set(address(A)), { session: "s8", author: "Gerhardt", time: TIME }],
+      },
+      s8: { target: address(A, "group_1"), entries: [set(address(A)), set(address(B))] },
     };
     expect(
       ["s1", "s2", "s3", "s4", "s5"].map((session) =>
@@ -165,21 +189,27 @@ describe("journalRows", () => {
 
   it("gives no kind word to a session whose target is gone", () => {
     const store = mixedStore();
-    expect(store.open(`${A}/group_1`)).toBeNull();
+    expect(store.open(address(A, "group_1"))).toBeNull();
     expect(
-      store.dispatch({ type: "set", changes: [{ target: `${A}/score`, values: { name: "S" } }] }),
+      store.dispatch({
+        type: "set",
+        changes: [{ target: address(A, "score"), values: { name: "S" } }],
+      }),
     ).toBeNull();
     store.done();
     const texts = () => journalRows(store, store.view).map((row) => row.text);
     expect(texts()[0]).toBe("Edited group Performance (1 change)");
-    expect(store.dispatch({ type: "remove", targets: [`${A}/group_1`] })).toBeNull();
-    expect(texts().slice(0, 2)).toEqual([`Removed ${A}/group_1`, `Edited ${A}/group_1 (1 change)`]);
+    expect(store.dispatch({ type: "remove", targets: [address(A, "group_1")] })).toBeNull();
+    expect(texts().slice(0, 2)).toEqual([
+      `Removed ${key(address(A, "group_1"))}`,
+      `Edited ${key(address(A, "group_1"))} (1 change)`,
+    ]);
   });
 
-  const e1 = set(A);
-  const e2 = set(B);
-  const u1 = set(C);
-  const u2 = set(`${A}/score`);
+  const e1 = set(address(A));
+  const e2 = set(address(B));
+  const u1 = set(address(C));
+  const u2 = set(address(A, "score"));
 
   /** Each row as [text, undone, earlier]. */
   function listed(levels: Partial<JournalSource>): [string, boolean, boolean][] {
@@ -188,35 +218,37 @@ describe("journalRows", () => {
 
   it("lists the newest first, the undone ones at the top", () => {
     expect(listed(level([e1, e2, u1, u2], {}, 2))).toEqual([
-      [`Set x of ${A}/score`, true, false],
-      [`Set x of ${C}`, true, false],
-      [`Set x of ${B}`, false, false],
-      [`Set x of ${A}`, false, false],
+      [`Set x of ${key(address(A, "score"))}`, true, false],
+      [`Set x of ${key(address(C))}`, true, false],
+      [`Set x of ${key(address(B))}`, false, false],
+      [`Set x of ${key(address(A))}`, false, false],
     ]);
-    expect(listed({ editing: [editor(`${A}/group_1`)], ...level([e1, u1], {}, 1) })).toEqual([
-      [`Set x of ${C}`, true, false],
-      [`Set x of ${A}`, false, false],
-    ]);
+    expect(listed({ editing: [editor(address(A, "group_1"))], ...level([e1, u1], {}, 1) })).toEqual(
+      [
+        [`Set x of ${key(address(C))}`, true, false],
+        [`Set x of ${key(address(A))}`, false, false],
+      ],
+    );
   });
 
   it("lists the earlier session of the innermost editor last", () => {
-    const sessions = { s0: { target: `${A}/group_1`, entries: [u2, e2] } };
+    const sessions = { s0: { target: address(A, "group_1"), entries: [u2, e2] } };
     expect(
-      listed({ editing: [editor(`${A}/group_1`, "s0")], ...level([e1, u1], sessions, 1) }),
+      listed({ editing: [editor(address(A, "group_1"), "s0")], ...level([e1, u1], sessions, 1) }),
     ).toEqual([
-      [`Set x of ${C}`, true, false],
-      [`Set x of ${A}`, false, false],
-      [`Set x of ${B}`, false, true],
-      [`Set x of ${A}/score`, false, true],
+      [`Set x of ${key(address(C))}`, true, false],
+      [`Set x of ${key(address(A))}`, false, false],
+      [`Set x of ${key(address(B))}`, false, true],
+      [`Set x of ${key(address(A, "score"))}`, false, true],
     ]);
     expect(
       listed({
-        editing: [editor(`${A}/group_1`, "s0"), editor(`${A}/score`)],
+        editing: [editor(address(A, "group_1"), "s0"), editor(address(A, "score"))],
         ...level([e1, u1], sessions, 1),
       }),
     ).toEqual([
-      [`Set x of ${C}`, true, false],
-      [`Set x of ${A}`, false, false],
+      [`Set x of ${key(address(C))}`, true, false],
+      [`Set x of ${key(address(A))}`, false, false],
     ]);
   });
 
@@ -229,8 +261,8 @@ describe("journalRows", () => {
   it("holds a session's changes as rows, newest first, with their undo state", () => {
     const at = (session: string): Entry => ({ session, author: "Gerhardt", time: TIME });
     const sessions = {
-      s5: { target: A, entries: [e2, at("s6")] },
-      s6: { target: `${A}/group_1`, entries: [u1, u2] },
+      s5: { target: address(A), entries: [e2, at("s6")] },
+      s6: { target: address(A, "group_1"), entries: [u1, u2] },
     };
     expect(tree(journalRows(source(level([e1, at("s5")], sessions, 3)), view))).toEqual([
       [
@@ -241,14 +273,14 @@ describe("journalRows", () => {
             "Edited group Performance (2 changes, 1 undone)",
             false,
             [
-              [`Set x of ${A}/score`, true, []],
-              [`Set x of ${C}`, false, []],
+              [`Set x of ${key(address(A, "score"))}`, true, []],
+              [`Set x of ${key(address(C))}`, false, []],
             ],
           ],
-          [`Set x of ${B}`, false, []],
+          [`Set x of ${key(address(B))}`, false, []],
         ],
       ],
-      [`Set x of ${A}`, false, []],
+      [`Set x of ${key(address(A))}`, false, []],
     ]);
     expect(tree(journalRows(source(level([e1, at("s5")], sessions, 0)), view))).toEqual([
       [
@@ -259,33 +291,33 @@ describe("journalRows", () => {
             "Edited group Performance (2 changes)",
             true,
             [
-              [`Set x of ${A}/score`, true, []],
-              [`Set x of ${C}`, true, []],
+              [`Set x of ${key(address(A, "score"))}`, true, []],
+              [`Set x of ${key(address(C))}`, true, []],
             ],
           ],
-          [`Set x of ${B}`, true, []],
+          [`Set x of ${key(address(B))}`, true, []],
         ],
       ],
-      [`Set x of ${A}`, true, []],
+      [`Set x of ${key(address(A))}`, true, []],
     ]);
   });
 
   it("marks the earlier session's rows at every depth", () => {
     const at = (session: string): Entry => ({ session, author: "Gerhardt", time: TIME });
     const sessions = {
-      s0: { target: `${A}/group_1`, entries: [at("s7")] },
-      s7: { target: `${A}/score`, entries: [e2] },
+      s0: { target: address(A, "group_1"), entries: [at("s7")] },
+      s7: { target: address(A, "score"), entries: [e2] },
     };
     const rows = journalRows(
-      source({ editing: [editor(`${A}/group_1`, "s0")], ...level([e1], sessions) }),
+      source({ editing: [editor(address(A, "group_1"), "s0")], ...level([e1], sessions) }),
       view,
     );
     expect(rows.map((row) => [row.text, row.earlier])).toEqual([
-      [`Set x of ${A}`, false],
+      [`Set x of ${key(address(A))}`, false],
       ["Edited timeline Score (1 change)", true],
     ]);
     expect(rows[1]?.children.map((row) => [row.text, row.earlier])).toEqual([
-      [`Set x of ${B}`, true],
+      [`Set x of ${key(address(B))}`, true],
     ]);
   });
 

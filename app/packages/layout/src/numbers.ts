@@ -150,8 +150,3 @@ export function coordinateText(value: Real, unit: TimeUnit): string {
 export function times(numerator: bigint, denominator: bigint, value: number): number {
   return toFloat(Rational.fromParts(numerator, denominator).multiply(fromFloat(value)));
 }
-
-/** The name of a timeline, group or manifest without its own: its id after the last `:` (section 5.3). */
-export function unscoped(id: string): string {
-  return id.slice(id.lastIndexOf(":") + 1);
-}

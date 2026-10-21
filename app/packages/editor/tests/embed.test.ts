@@ -117,7 +117,7 @@ describe("mount", () => {
     expect(onchange.mock.calls).toEqual([[{ fileName: "untitled.tle.json", dirty: false }]]);
     onchange.mockClear();
 
-    editor.select([A]);
+    editor.select([{ block: A }]);
     flushSync();
     canvasOf(element).dispatchEvent(new KeyboardEvent("keydown", { key: "Delete", bubbles: true }));
     flushSync();
@@ -148,10 +148,27 @@ describe("mount", () => {
     expect(ids.every((list) => list.length > 0)).toBe(true);
     expect(new Set(all).size).toBe(all.length);
 
-    first.select([A]);
+    first.select([{ block: A }]);
     flushSync();
-    expect([first.selection(), second.selection()]).toEqual([[A], []]);
-    expect([onselect[0].mock.calls, onselect[1].mock.calls]).toEqual([[[[A]]], []]);
+    expect([first.selection(), second.selection()]).toEqual([[{ block: A }], []]);
+    expect([onselect[0].mock.calls, onselect[1].mock.calls]).toEqual([[[[{ block: A }]]], []]);
+  });
+
+  it("selects the addresses it can read and names the problem of each other", () => {
+    const element = host();
+    const editor = embed(element, { workspace: workspaceOf("bare") });
+    editor.select([{ block: A }, { block: A, facet: "markers" }, { block: "B" }]);
+    flushSync();
+    expect(editor.selection()).toEqual([{ block: A }]);
+    const message = element.querySelector('[data-testid="message"]');
+    expect(message?.querySelector("p")?.textContent).toBe("Some addresses could not be selected.");
+    const problems = Array.from(message?.querySelectorAll("li") ?? [], (item) =>
+      item.textContent?.replace(/\s+/g, " ").trim(),
+    );
+    expect(problems).toEqual([
+      "invalid_address a facet stands with an id at /addresses/1",
+      "invalid_address an address's block is a block id at /addresses/2",
+    ]);
   });
 
   it("refuses a text the reader refuses and keeps its workspace", () => {
@@ -211,7 +228,7 @@ describe("destroy", () => {
     flushSync();
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(editor.load(workspaceOf("bare"), "piece.tle.json")).toBe(null);
-    editor.select([A]);
+    editor.select([{ block: A }]);
     flushSync();
     canvasOf(element).dispatchEvent(new KeyboardEvent("keydown", { key: "Delete", bubbles: true }));
     flushSync();

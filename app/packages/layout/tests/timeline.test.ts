@@ -1,13 +1,13 @@
 /** One timeline's bands, laid out alone; every number is derived in tests/README.md. */
 
-import type { BandKind, Manifest } from "@timetoalign/tilie-core";
+import type { Facet, Manifest } from "@timetoalign/tilie-core";
 import {
-  BOX_KEY,
+  BLOCK_KEY,
   type MemberDrawing,
   memberDrawings,
   timelineAncestry,
 } from "@timetoalign/tilie-core/drawing";
-import type { Graphical } from "@timetoalign/timetoshare";
+import type { Address, Graphical } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import {
   Cascade,
@@ -27,7 +27,7 @@ import {
 } from "../src/timeline.ts";
 import { type Entry, type Scope, traverse } from "../src/traversal.ts";
 import {
-  BLOCK,
+  at,
   bandOrder,
   edit,
   linearMap,
@@ -36,6 +36,7 @@ import {
   metrics,
   quarters,
   set,
+  target,
 } from "./support.ts";
 
 /**
@@ -51,11 +52,11 @@ function scopeOf(
     [DEFAULT_LAYER, ...extra, manifestLayer(manifest)],
     timelineAncestry(manifest),
   );
-  const box = { key: BOX_KEY, style: cascade.resolve(BOX_KEY, undefined) };
+  const block = { key: BLOCK_KEY, style: cascade.resolve(BLOCK_KEY, undefined) };
   return traverse(
     { manifest, placement: DEFAULT_PLACEMENT, cascade, measure: new TextMeasure(metrics) },
     member,
-    box,
+    block,
     4,
   );
 }
@@ -70,23 +71,23 @@ const entryOf = (scope: Scope, id: string): Entry => {
 const prepared = (scope: Scope, id: string): PreparedTimeline =>
   prepareTimeline(scope, entryOf(scope, id));
 
-/** The laid bands of a timeline, top to bottom, as `[kind, level, start, width, edge, elements]`. */
+/** The laid bands of a timeline, top to bottom, as `[facet, level, start, width, edge, elements]`. */
 const laid = (timeline: PreparedTimeline, children?: { start: number; width: number }) =>
   layoutTimeline(
     timeline,
     children === undefined ? undefined : { ...children, children: [] },
-  ).bands.map((band) => [band.kind, band.level, band.start, band.width, band.edge, band.elements]);
+  ).bands.map((band) => [band.facet, band.level, band.start, band.width, band.edge, band.elements]);
 
 const PLACE: LinePlace = { x0: 0, y: 100, size: 11, top: 0, Hc: 200 };
 
-const show = (...kinds: BandKind[]): Graphical => ({
-  statements: kinds.map((kind) => ({
-    select: { element: "band", class: kind },
+const show = (...facets: Facet[]): Graphical => ({
+  statements: facets.map((facet) => ({
+    select: { element: "band", facet },
     set: { display: "inline" },
   })),
 });
-const hide = (...ids: [string, ...string[]]): Graphical => ({
-  statements: [{ select: { ids }, set: { display: "none" } }],
+const hide = (...addresses: [Address, ...Address[]]): Graphical => ({
+  statements: [{ select: { addresses }, set: { display: "none" } }],
 });
 
 describe("sides and levels by band order", () => {
@@ -94,7 +95,7 @@ describe("sides and levels by band order", () => {
     const scope = scopeOf(load("map"));
     const melody = prepared(scope, "melody");
     expect(melody.order).toEqual(
-      bandOrder("melody", ["children", "conversion_maps"], ["markers", "regions", "flow_control"]),
+      bandOrder(["children", "conversion_maps"], ["markers", "regions", "flow_control"]),
     );
     expect(melody.sides).toEqual({
       children: "above",
@@ -106,12 +107,12 @@ describe("sides and levels by band order", () => {
     expect(melody.levels).toEqual({ above: ["conversion_maps", "children"], below: ["markers"] });
     const phrase = prepared(scope, "phrase");
     expect(phrase.order).toEqual(
-      bandOrder("phrase", ["children", "conversion_maps"], ["markers", "regions", "flow_control"]),
+      bandOrder(["children", "conversion_maps"], ["markers", "regions", "flow_control"]),
     );
     expect(phrase.levels).toEqual({ above: ["conversion_maps"], below: [] });
   });
 
-  it("lets a child without an entry follow its parent band by band id", () => {
+  it("lets a child without an entry follow its parent's band order verbatim", () => {
     const scope = scopeOf(load("map_root_band_order"));
     expect(prepared(scope, "melody").levels).toEqual({
       above: ["children"],
@@ -119,7 +120,7 @@ describe("sides and levels by band order", () => {
     });
     const phrase = prepared(scope, "phrase");
     expect(phrase.order).toEqual(
-      bandOrder("phrase", ["children"], ["conversion_maps", "markers", "regions", "flow_control"]),
+      bandOrder(["children"], ["conversion_maps", "markers", "regions", "flow_control"]),
     );
     expect(phrase.levels).toEqual({ above: [], below: ["conversion_maps"] });
   });
@@ -141,29 +142,17 @@ describe("sides and levels by band order", () => {
       ) as MemberDrawing;
     const own = loadFile(name);
     expect(prepared(scopeOf(own, [], member(own)), "second-half").order).toEqual(
-      bandOrder(
-        "second-half",
-        ["children", "conversion_maps"],
-        ["markers", "regions", "flow_control"],
-      ),
+      bandOrder(["children", "conversion_maps"], ["markers", "regions", "flow_control"]),
     );
     const reordered = edit(
       name,
       set("piece", {
-        order: bandOrder(
-          "piece",
-          ["children"],
-          ["conversion_maps", "markers", "regions", "flow_control"],
-        ),
+        order: bandOrder(["children"], ["conversion_maps", "markers", "regions", "flow_control"]),
       }),
     );
     const followed = prepared(scopeOf(reordered, [], member(reordered)), "second-half");
     expect(followed.order).toEqual(
-      bandOrder(
-        "second-half",
-        ["children"],
-        ["conversion_maps", "markers", "regions", "flow_control"],
-      ),
+      bandOrder(["children"], ["conversion_maps", "markers", "regions", "flow_control"]),
     );
     expect(followed.levels).toEqual({ above: [], below: ["markers"] });
   });
@@ -180,9 +169,7 @@ describe("where a band lies", () => {
       ["markers", -1, 0, 26.9765625, 26.9765625, 2],
     ]);
     const phrase = layoutTimeline(prepared(scope, "phrase"), undefined);
-    expect(phrase.bands.map((band) => [band.address, band.level])).toEqual([
-      ["phrase/conversion_maps_1", 1],
-    ]);
+    expect(phrase.bands.map((band) => [band.facet, band.level])).toEqual([["conversion_maps", 1]]);
     expect(phrase.edges).toEqual({ above: 6.5, below: 0 });
   });
 
@@ -199,7 +186,14 @@ describe("where a band lies", () => {
   it("starts any other band at level 1 or −1 B beyond the line's reach or its stroke", () => {
     const movement = prepared(
       scopeOf(load("unknown_length_child"), [
-        { statements: [{ select: { ids: ["movement/regions_1"] }, set: { display: "inline" } }] },
+        {
+          statements: [
+            {
+              select: { addresses: [{ id: "movement", facet: "regions" }] },
+              set: { display: "inline" },
+            },
+          ],
+        },
       ]),
       "movement",
     );
@@ -214,7 +208,6 @@ describe("where a band lies", () => {
           "unknown_length_segments",
           set("form", {
             order: bandOrder(
-              "form",
               ["children", "conversion_maps", "regions"],
               ["markers", "flow_control"],
             ),
@@ -252,7 +245,6 @@ describe("where a band lies", () => {
           "segment_pages",
           set("pages", {
             order: bandOrder(
-              "pages",
               ["children", "conversion_maps", "markers"],
               ["regions", "flow_control"],
             ),
@@ -293,7 +285,6 @@ describe("level 0", () => {
           "map",
           set("melody", {
             order: bandOrder(
-              "melody",
               ["children"],
               ["markers", "conversion_maps", "regions", "flow_control"],
             ),
@@ -310,7 +301,7 @@ describe("level 0", () => {
     ]);
     const drawn = layoutTimeline(melody, { start: 7, width: 14, children: [] }).elements(PLACE);
     expect(drawn.maps.map((map) => [map.address, map.xs, map.xe, map.yc])).toEqual([
-      ["melody/tempo", 0, 400, 136.4765625],
+      [at("tempo"), 0, 400, 136.4765625],
     ]);
   });
 
@@ -319,16 +310,16 @@ describe("level 0", () => {
     expect(b.reach).toEqual({ above: 20.4765625, below: 8 });
     const drawn = layoutTimeline(b, undefined).elements(PLACE);
     expect(drawn.line.map((line) => [line.type, line.address, line.y, line.end])).toEqual([
-      ["child", "b", 100, "diamond"],
+      ["child", at("b"), 100, "diamond"],
     ]);
     expect(
       drawn.boundaries.map(({ element }) => [element.address, element.x, element.y1, element.y2]),
-    ).toEqual([["b2/start", 175, 92, 108]]);
+    ).toEqual([[at("b2", "start"), 175, 92, 108]]);
     expect(
       drawn.segmentLabels.map(({ element }) => [element.address, element.x, element.baseline]),
     ).toEqual([
-      ["b1/label", 137.5, 87.87744140625],
-      ["b2/label", 212.5, 87.87744140625],
+      [at("b1", "label"), 137.5, 87.87744140625],
+      [at("b2", "label"), 212.5, 87.87744140625],
     ]);
   });
 });
@@ -343,13 +334,13 @@ describe("segments without a line", () => {
   });
   const manifest = edit(
     "segment_line",
-    { type: "add", into: `${BLOCK}/b`, region: region("b_region", 0, 2) },
-    { type: "add", into: `${BLOCK}/b1`, region: region("b1_region", 1, 3) },
-    { type: "add", into: `${BLOCK}/b2`, region: region("b2_region", 0, 6) },
+    { type: "add", into: target("b"), region: region("b_region", 0, 2) },
+    { type: "add", into: target("b1"), region: region("b1_region", 1, 3) },
+    { type: "add", into: target("b2"), region: region("b2_region", 0, 6) },
     linearMap("b1", "b1_map"),
     {
       type: "add",
-      into: `${BLOCK}/b1`,
+      into: target("b1"),
       flow_control: {
         id: "b1_break",
         type: "flow_marker",
@@ -359,7 +350,7 @@ describe("segments without a line", () => {
     },
     {
       type: "add",
-      into: `${BLOCK}/b1`,
+      into: target("b1"),
       flow_control: {
         id: "b1_start",
         type: "jump_to",
@@ -369,7 +360,7 @@ describe("segments without a line", () => {
     },
     {
       type: "add",
-      into: `${BLOCK}/b1`,
+      into: target("b1"),
       flow_control: {
         id: "b1_jump",
         type: "jump_from",
@@ -381,7 +372,7 @@ describe("segments without a line", () => {
     },
   );
   const elements = (timeline: PreparedTimeline) =>
-    Object.fromEntries(Object.values(timeline.bands).map((band) => [band.kind, band.elements]));
+    Object.fromEntries(Object.values(timeline.bands).map((band) => [band.facet, band.elements]));
 
   it("joins each segment's displayed bands to its segment line's, after its own", () => {
     const scope = scopeOf(manifest, [show("regions", "flow_control")]);
@@ -397,17 +388,17 @@ describe("segments without a line", () => {
     });
     const drawn = layoutTimeline(timeline, undefined).elements(PLACE);
     expect(drawn.regions.map((item) => item.address)).toEqual([
-      "form/b_region",
-      "form/b1_region",
-      "form/b2_region",
+      at("b_region"),
+      at("b1_region"),
+      at("b2_region"),
     ]);
     expect(drawn.maps.map((map) => [map.address, map.xs, map.xe])).toEqual([
-      ["form/b1_map", 100, 175],
+      [at("b1_map"), 100, 175],
     ]);
     expect(drawn.flowMarkers.map((item) => [item.address, item.x])).toEqual([
-      ["form/b1_break", 125],
+      [at("b1_break"), 125],
     ]);
-    expect(drawn.jumps.map((item) => item.address)).toEqual(["form/b1_jump"]);
+    expect(drawn.jumps.map((item) => item.address)).toEqual([at("b1_jump")]);
   });
 
   it("joins nothing by default but the maps, and nothing of a hidden segment", () => {
@@ -418,7 +409,7 @@ describe("segments without a line", () => {
       regions: 0,
       flow_control: 0,
     });
-    const scope = scopeOf(manifest, [show("regions", "flow_control"), hide("b1")]);
+    const scope = scopeOf(manifest, [show("regions", "flow_control"), hide(at("b1"))]);
     expect(sourcesOf(scope, entryOf(scope, "b")).map((entry) => entry.manifest.id)).toEqual([
       "b",
       "b2",
@@ -433,9 +424,12 @@ describe("segments without a line", () => {
   });
 
   it("keeps a segment line's band present while its own display is none", () => {
-    const scope = scopeOf(manifest, [show("regions", "flow_control"), hide("b/regions_1")]);
+    const scope = scopeOf(manifest, [
+      show("regions", "flow_control"),
+      hide({ id: "b", facet: "regions" }),
+    ]);
     const drawn = layoutTimeline(prepared(scope, "b"), undefined).elements(PLACE);
-    expect(drawn.regions.map((item) => item.address)).toEqual(["form/b1_region", "form/b2_region"]);
+    expect(drawn.regions.map((item) => item.address)).toEqual([at("b1_region"), at("b2_region")]);
   });
 
   it("places a segment's content by its segment line's band order, never its own", () => {
@@ -443,11 +437,7 @@ describe("segments without a line", () => {
       "segment_line",
       linearMap("b1", "b1_map"),
       set("b1", {
-        order: bandOrder(
-          "b1",
-          ["children"],
-          ["conversion_maps", "markers", "regions", "flow_control"],
-        ),
+        order: bandOrder(["children"], ["conversion_maps", "markers", "regions", "flow_control"]),
       }),
     );
     const b = prepared(scopeOf(reordered), "b");
@@ -502,7 +492,6 @@ describe("flow markers", () => {
             "flow_control",
             set("flow:quarters", {
               order: bandOrder(
-                "flow:quarters",
                 ["children", "conversion_maps", "flow_control"],
                 ["markers", "regions"],
               ),
@@ -520,7 +509,14 @@ describe("flow markers", () => {
 
   it("end max(E, h(s) / 2) beyond any other timeline's line", () => {
     const shown: Graphical[] = [
-      { statements: [{ select: { ids: ["verse/flow_control_1"] }, set: { display: "inline" } }] },
+      {
+        statements: [
+          {
+            select: { addresses: [{ id: "verse", facet: "flow_control" }] },
+            set: { display: "inline" },
+          },
+        ],
+      },
     ];
     const ends = (manifest: Manifest, size = 11) =>
       layoutTimeline(prepared(scopeOf(manifest, shown), "verse"), undefined)
@@ -534,7 +530,6 @@ describe("flow markers", () => {
           "child_flow_control",
           set("verse", {
             order: bandOrder(
-              "verse",
               ["children", "conversion_maps", "flow_control"],
               ["markers", "regions"],
             ),

@@ -8,10 +8,12 @@ import type { View } from "../src/workspace/view.ts";
 import { createView } from "../src/workspace/view.ts";
 import {
   A,
+  at,
   block,
   changed,
   deepFreeze,
   viewOf as fixtureView,
+  key,
   loadText,
   refusal,
   storeOf,
@@ -46,7 +48,7 @@ const text = (...parts: Parameters<typeof manifestOf>) => dumps(manifestOf(...pa
 function viewOf(...parts: Parameters<typeof manifestOf>): View {
   return changed(createView(), {
     type: "add",
-    into: "workspace",
+    into: {},
     block: { id: A, manifest: loadText(text(...parts)), x: 0, y: 0 },
   });
 }
@@ -55,7 +57,7 @@ const root = (view: View): TimelineManifest =>
   block(view).manifest.timelines[0] as TimelineManifest;
 const setLength = (length: unknown) => ({
   type: "set",
-  changes: [{ target: `${A}/score`, values: { length } }],
+  changes: [{ target: at("score"), values: { length } }],
 });
 const problems = (input: string) => {
   const result = loadManifest(input);
@@ -112,12 +114,12 @@ describe("setting a length to and from null", () => {
     expect(root(changed(unknown, setLength([12, 1]))).length).toEqual([12, 1]);
     expect(refusal(apply(unknown, setLength([23, 2])))).toEqual({
       code: "length_below_content",
-      path: [`${A}/score`, "length"],
+      path: [key(at("score")), "length"],
     });
     const open = deepFreeze(viewOf(null, [["part", 6, null]]));
     expect(refusal(apply(open, setLength([5, 1])))).toEqual({
       code: "length_below_content",
-      path: [`${A}/score`, "length"],
+      path: [key(at("score")), "length"],
     });
     expect(root(changed(open, setLength([6, 1]))).length).toEqual([6, 1]);
   });
@@ -129,7 +131,7 @@ describe("setting a length to and from null", () => {
     ] as [Length, Length][]) {
       expect(refusal(apply(deepFreeze(viewOf(from, [], true)), setLength(to)))).toEqual({
         code: "locked",
-        path: [`${A}/score`, "length"],
+        path: [key(at("score")), "length"],
       });
     }
   });
@@ -149,12 +151,12 @@ describe("adding content", () => {
     let view = viewOf(null);
     view = changed(view, {
       type: "add",
-      into: `${A}/score`,
+      into: at("score"),
       child: { id: "part", unit: "quarters", offset: [4, 1], length: [8, 1] },
     });
     view = changed(view, {
       type: "add",
-      into: `${A}/score`,
+      into: at("score"),
       region: { id: "region_1", start: [2, 1], end: [30, 1] },
     });
     expect(root(view).length).toBe(null);
@@ -163,7 +165,7 @@ describe("adding content", () => {
   it("grows an unlocked parent of known length to the offset of a child of unknown length", () => {
     const view = changed(viewOf([16, 1]), {
       type: "add",
-      into: `${A}/score`,
+      into: at("score"),
       child: { id: "part", unit: "quarters", offset: [20, 1], length: null },
     });
     expect(root(view).length).toEqual([20, 1]);
@@ -174,9 +176,9 @@ describe("adding content", () => {
 describe("a length change never pushes a parent", () => {
   const set = (values: Record<string, Record<string, unknown>>) => ({
     type: "set",
-    changes: Object.entries(values).map(([id, own]) => ({ target: `${A}/${id}`, values: own })),
+    changes: Object.entries(values).map(([id, own]) => ({ target: at(id), values: own })),
   });
-  const add = (into: string, child: object) => ({ type: "add", into: `${A}/${into}`, child });
+  const add = (into: string, child: object) => ({ type: "add", into: at(into), child });
   const child = (id: string, offset: number, length: number) => ({
     id,
     unit: "quarters",
@@ -209,7 +211,7 @@ describe("a length change never pushes a parent", () => {
       for (const start of [nested, locked]) {
         expect(refusal(apply(start, set({ clt_3: { length: [13, 1] } })))).toEqual({
           code: "child_exceeds_parent",
-          path: [`${A}/clt_3`, "length"],
+          path: [key(at("clt_3")), "length"],
         });
       }
     });
@@ -219,7 +221,7 @@ describe("a length change never pushes a parent", () => {
       expect(lengths(view)).toEqual({ clt_1: [16, 1], clt_3: [11, 1], clt_2: [2, 1], g: [6, 1] });
       expect(refusal(apply(nested, add("clt_3", child("g", 5, 8))))).toEqual({
         code: "child_exceeds_parent",
-        path: [`${A}/clt_3`, "child"],
+        path: [key(at("clt_3")), "child"],
       });
     });
 
@@ -228,7 +230,7 @@ describe("a length change never pushes a parent", () => {
       expect(lengths(view)).toEqual({ clt_1: [16, 1], clt_3: [9, 1], clt_2: [2, 1] });
       expect(refusal(apply(nested, set({ clt_2: { offset: [11, 1] } })))).toEqual({
         code: "child_exceeds_parent",
-        path: [`${A}/clt_2`, "offset"],
+        path: [key(at("clt_2")), "offset"],
       });
     });
 
@@ -250,13 +252,13 @@ describe("a length change never pushes a parent", () => {
       ]) {
         expect(refusal(apply(lines, set({ b2: { length } })))).toEqual({
           code: "segment_end_fixed",
-          path: [`${A}/b2`, "length"],
+          path: [key(at("b2")), "length"],
         });
       }
       expect(apply(lines, set({ b2: { length: [6, 1] } }))).toEqual({
         code: "invalid_value",
         message: "the command changes nothing",
-        path: [`${A}/b2`, "length"],
+        path: [key(at("b2")), "length"],
       });
       const unknown = lengths(changed(lines, set({ b2: { length: null } })));
       expect([unknown.b2, unknown.b]).toEqual([null, [12, 1]]);
@@ -265,7 +267,7 @@ describe("a length change never pushes a parent", () => {
     it("keeps a segment ending where its successor starts", () => {
       expect(refusal(apply(lines, set({ b1: { length: [4, 1] } })))).toEqual({
         code: "segment_end_fixed",
-        path: [`${A}/b1`, "length"],
+        path: [key(at("b1")), "length"],
       });
       expect(lengths(changed(lines, set({ b1: { length: null } }))).b1).toBe(null);
     });
@@ -281,7 +283,7 @@ describe("a length change never pushes a parent", () => {
       const view = changed(unlockedView("segment_line.json", "c"), set({ form: { length: null } }));
       expect(refusal(apply(view, set({ c: { length: [14, 1] } })))).toEqual({
         code: "segment_end_fixed",
-        path: [`${A}/c`, "length"],
+        path: [key(at("c")), "length"],
       });
     });
 
@@ -289,7 +291,7 @@ describe("a length change never pushes a parent", () => {
       const view = deepFreeze(unlockedView("segment_line.json", "c"));
       expect(refusal(apply(view, add("c", child("c2", 12, 4))))).toEqual({
         code: "segment_end_fixed",
-        path: [`${A}/c`, "child"],
+        path: [key(at("c")), "child"],
       });
       const open = changed(view, set({ form: { length: null } }));
       const grown = lengths(changed(open, add("c", child("c2", 12, 4))));

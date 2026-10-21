@@ -7,7 +7,7 @@
  * the categories of section 7.2.
  */
 
-import { type BandKind, bandAddress, parseBand } from "@timetoalign/tilie-core";
+import { type Facet, isFacet, LINE } from "@timetoalign/tilie-core";
 import type { Real } from "@timetoalign/tilie-core/numbers";
 import type {
   JumpElement,
@@ -117,9 +117,8 @@ export interface LineElements {
  * band's width comes from its children's layout.
  */
 export interface PreparedBand {
-  readonly kind: BandKind;
-  /** `T/<kind>_1`, `T` its timeline (section 2.2). */
-  readonly address: string;
+  /** The facet it draws; its address is `{id: T, facet}`, `T` its timeline (section 2.2). */
+  readonly facet: Facet;
   /**
    * The displayed elements it holds directly, those a segment without a line of its own adds to
    * it included (section 6.4, What a band holds and Segments without a line): wedges, maps, child
@@ -156,9 +155,7 @@ export interface PreparedBand {
 
 /** A present band laid out (section 6.4, Levels and Where a band lies). */
 export interface LaidBand {
-  readonly kind: BandKind;
-  /** `T/<kind>_1`. */
-  readonly address: string;
+  readonly facet: Facet;
   readonly side: Side;
   /** Signed and never 0: 1, 2, … above the line, outwards; −1, −2, … below it. */
   readonly level: number;
@@ -191,14 +188,13 @@ export interface ChildrenSpan {
 }
 
 /**
- * The side each band of the timeline `id` lies on (section 6.4, The band
- * order): `above` for the bands listed before `id` in its band order
- * `order`, `below` for those after it, whether present or not.
+ * The side each band of a timeline lies on (section 6.4, The band order):
+ * `above` for the facets listed before `line` in its band order `order`,
+ * `below` for those after it, whether present or not.
  */
-export function bandSides(order: readonly string[], id: string): Readonly<Record<BandKind, Side>> {
-  const line = order.indexOf(id);
-  const side = (kind: BandKind): Side =>
-    order.indexOf(bandAddress(id, kind)) < line ? "above" : "below";
+export function bandSides(order: readonly string[]): Readonly<Record<Facet, Side>> {
+  const line = order.indexOf(LINE);
+  const side = (facet: Facet): Side => (order.indexOf(facet) < line ? "above" : "below");
   return {
     children: side("children"),
     conversion_maps: side("conversion_maps"),
@@ -209,24 +205,20 @@ export function bandSides(order: readonly string[], id: string): Readonly<Record
 }
 
 /**
- * The present bands of each side of the timeline `id`, in level order
- * (section 6.4, Levels): above, those listed before `id` in `order`, level 1
- * the one listed nearest before it, then outwards; below, those listed after
- * it, level −1 the one listed nearest after it, then outwards. A band absent
- * from `present` has no level.
+ * The present bands of each side of a timeline, in level order (section
+ * 6.4, Levels): above, the facets listed before `line` in its band order
+ * `order`, level 1 the one listed nearest before it, then outwards; below,
+ * those listed after it, level −1 the one listed nearest after it, then
+ * outwards. A band absent from `present` has no level.
  */
 export function levelsOf(
   order: readonly string[],
-  id: string,
-  present: ReadonlySet<BandKind>,
-): Readonly<Record<Side, readonly BandKind[]>> {
-  const line = order.indexOf(id);
-  const kinds = (entries: readonly string[]) =>
-    entries.flatMap((entry) => {
-      const kind = parseBand(entry)?.kind;
-      return kind !== undefined && present.has(kind) ? [kind] : [];
-    });
-  return { above: kinds(order.slice(0, line).reverse()), below: kinds(order.slice(line + 1)) };
+  present: ReadonlySet<Facet>,
+): Readonly<Record<Side, readonly Facet[]>> {
+  const line = order.indexOf(LINE);
+  const facets = (entries: readonly string[]) =>
+    entries.flatMap((entry) => (isFacet(entry) && present.has(entry) ? [entry] : []));
+  return { above: facets(order.slice(0, line).reverse()), below: facets(order.slice(line + 1)) };
 }
 
 /**
@@ -234,10 +226,10 @@ export function levelsOf(
  * against the line, from `c = 0`, and shares its room with the line's reach
  * (section 6.4, Where a band lies).
  */
-const againstLine = (kind: BandKind): boolean => kind === "markers" || kind === "conversion_maps";
+const againstLine = (facet: Facet): boolean => facet === "markers" || facet === "conversion_maps";
 
 /**
- * The start `c` of a band of the kind `kind` (section 6.4, Where a band
+ * The start `c` of a band drawing the facet `facet` (section 6.4, Where a band
  * lies), `previous` the outer edge of the present band at the level before
  * it on its side, `undefined` at level 1 or −1, `reach` the line's reach on
  * that side (Level 0), `w` the line's stroke width and `S` the card spacing:
@@ -247,14 +239,14 @@ const againstLine = (kind: BandKind): boolean => kind === "markers" || kind === 
  * of this and half its row's pitch (`childrenStart`).
  */
 export function bandStart(
-  kind: BandKind,
+  facet: Facet,
   previous: number | undefined,
   reach: number,
   w: number,
   S: number,
 ): number {
   if (previous !== undefined) return previous + S;
-  return againstLine(kind) ? 0 : Math.max(reach, w / 2) + S;
+  return againstLine(facet) ? 0 : Math.max(reach, w / 2) + S;
 }
 
 /**
@@ -289,19 +281,18 @@ export function fillSide(
     const first = edge === undefined;
     let start: number;
     let width: number;
-    if (band.kind === "children") {
-      if (children === undefined) throw new Error(`${band.address} is laid out without its rows`);
+    if (band.facet === "children") {
+      if (children === undefined) throw new Error("a children band is laid out without its rows");
       ({ start, width } = children);
     } else {
-      start = bandStart(band.kind, edge, reach, w, S);
+      start = bandStart(band.facet, edge, reach, w, S);
       width = band.width;
     }
     const outer = start + width;
-    const against = first && againstLine(band.kind);
+    const against = first && againstLine(band.facet);
     edge = against ? Math.max(outer, reach) : outer;
     bands.push({
-      kind: band.kind,
-      address: band.address,
+      facet: band.facet,
       side,
       level: sign * (bands.length + 1),
       start,

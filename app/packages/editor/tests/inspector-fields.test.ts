@@ -6,10 +6,17 @@
 
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import type { Level } from "@timetoalign/tilie-arranger";
-import { drawingOf, liveStore, placeEdit, resolveSelection } from "@timetoalign/tilie-arranger";
-import type { Block, CommandEntry, Store } from "@timetoalign/tilie-core";
-import { createStore, isLoadError, readWorkspace } from "@timetoalign/tilie-core";
+import type { Level, Selection } from "@timetoalign/tilie-arranger";
+import {
+  drawingOf,
+  liveStore,
+  NOTHING_SELECTED,
+  placeEdit,
+  resolveSelection,
+  selectionOf,
+} from "@timetoalign/tilie-arranger";
+import type { Block, CommandEntry, ElementAddress, Store } from "@timetoalign/tilie-core";
+import { createStore, isLoadError, readWorkspace, sameAddress } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it } from "vitest";
@@ -17,6 +24,7 @@ import PropertiesPanel from "../src/inspector/PropertiesPanel.svelte";
 import { nameCommand, nameOf, shownValue } from "../src/inspector/properties.ts";
 import { PropertyDrafts } from "../src/inspector/propertyDrafts.svelte.ts";
 import { selectedBlock } from "../src/inspector/selection.ts";
+import { editorAt } from "./support.ts";
 
 const M = "bmixed0000";
 
@@ -37,19 +45,20 @@ function blockOf(store: Store): Block {
   return block;
 }
 
-/** `M`'s addresses of `elements`; `""` names the block. */
-function addresses(...elements: string[]): Set<string> {
-  return new Set(elements.map((element) => (element === "" ? M : `${M}/${element}`)));
+/** The selection of `elements` of `M`; `{}` names the block. */
+function addresses(...elements: ElementAddress[]): Selection {
+  return selectionOf(elements.map((element) => ({ block: M, ...element })));
 }
 
 /** The name field `nameOf` gives for `selection` in the store's innermost editor, or at the top level. */
-function nameIn(store: Store, selection: Set<string>) {
-  const subjects = resolveSelection(store.view, selection, fontMetrics);
-  return nameOf(store.view, subjects, store.editing.at(-1) ?? null);
+function nameIn(store: Store, selection: Selection) {
+  const editing = store.editing.at(-1) ?? null;
+  const subjects = resolveSelection(store.view, selection, editing, fontMetrics);
+  return nameOf(store.view, subjects, editing);
 }
 
 /** The name field for `elements` of `M`, or for nothing selected with `null`. */
-function fieldOf(store: Store, elements: string[] | null) {
+function fieldOf(store: Store, elements: ElementAddress[] | null) {
   return nameIn(store, addresses(...(elements ?? [])));
 }
 
@@ -57,7 +66,7 @@ describe("the name field", () => {
   it("names the workspace with nothing selected at the top level", () => {
     const store = storeOf();
     expect(fieldOf(store, null)).toEqual({
-      target: "workspace",
+      target: {},
       name: "untitled",
       nullable: false,
       manifest: null,
@@ -65,10 +74,10 @@ describe("the name field", () => {
   });
 
   it.each([
-    [`${M}/group_1`, `${M}/group_1`, "Performance"],
-    [M, M, "Mixed"],
+    [{ block: M, id: "group_1" }, { block: M, id: "group_1" }, "Performance"],
+    [{ block: M }, { block: M }, "Mixed"],
   ])(
-    "names the edited element with nothing selected in the editor of %s",
+    "names the edited element with nothing selected in the editor of %j",
     (edited, target, name) => {
       const store = storeOf();
       expect(store.open(edited)).toBe(null);
@@ -81,16 +90,17 @@ describe("the name field", () => {
     },
   );
 
-  it.each([
-    [[""], M, "Mixed"],
-    [["name"], M, "Mixed"],
-    [["group_1"], `${M}/group_1`, "Performance"],
-    [["score"], `${M}/score`, "Score"],
-    [["group_1/score/card"], `${M}/score`, "Score"],
-    [["score/start"], `${M}/score`, "Score"],
-    [["page/cmap_1"], `${M}/page/cmap_1`, null],
-    [["score/jump_from_1"], `${M}/score/jump_from_1`, null],
-  ])("names %j by %s, %j", (elements, target, name) => {
+  it.each<[ElementAddress[], ElementAddress, string | null]>([
+    [[{}], {}, "Mixed"],
+    [[{ part: ["name"] }], {}, "Mixed"],
+    [[{ id: "group_1" }], { id: "group_1" }, "Performance"],
+    [[{ id: "score" }], { id: "score" }, "Score"],
+    [[{ id: "score", part: ["card"] }], { id: "score" }, "Score"],
+    [[{ id: "score", part: ["start"] }], { id: "score" }, "Score"],
+    [[{ id: "cmap_4" }], { id: "cmap_4" }, null],
+    [[{ id: "jump_from_1" }], { id: "jump_from_1" }, null],
+  ])("names %j by %j, %j", (elements, element, name) => {
+    const target = { block: M, ...element };
     const store = storeOf();
     expect(fieldOf(store, elements)).toEqual({
       target,
@@ -103,41 +113,44 @@ describe("the name field", () => {
   it("names a measure map by its own address", () => {
     const store = storeOf();
     const bars = { id: "bars", rows: [{ count: 1, qstamp: [0, 1] }] };
-    const error = store.dispatch({ type: "add", into: M, measure_map: bars });
+    const error = store.dispatch({ type: "add", into: { block: M }, measure_map: bars });
     if (error !== null) throw new Error(error.message);
-    expect(fieldOf(store, ["bars"])).toEqual({
-      target: `${M}/bars`,
+    expect(fieldOf(store, [{ id: "bars" }])).toEqual({
+      target: { block: M, id: "bars" },
       name: null,
       nullable: true,
       manifest: blockOf(store).manifest,
     });
   });
 
-  it.each([[["performance/markers_1"]], [["score", "page"]]])("is absent for %j", (elements) => {
+  it.each<[ElementAddress[]]>([
+    [[{ id: "performance", facet: "markers" }]],
+    [[{ id: "score" }, { id: "page" }]],
+  ])("is absent for %j", (elements) => {
     expect(fieldOf(storeOf(), elements)).toBe(null);
   });
 
   it("is absent for two blocks", () => {
-    expect(nameIn(storeOf(), new Set([M, "bshared000"]))).toBe(null);
+    expect(nameIn(storeOf(), selectionOf([{ block: M }, { block: "bshared000" }]))).toBe(null);
   });
 
   it("sets what was typed, unstates an empty nullable name, and sends nothing for the stored one", () => {
     const store = storeOf();
-    const manifest = fieldOf(store, [""]);
+    const manifest = fieldOf(store, [{}]);
     const workspace = fieldOf(store, null);
     if (manifest === null || workspace === null) throw new Error("no name field");
     expect(nameCommand(manifest, "Op. 35")).toEqual({
       type: "set",
-      changes: [{ target: M, values: { name: "Op. 35" } }],
+      changes: [{ target: { block: M }, values: { name: "Op. 35" } }],
     });
     expect(nameCommand(manifest, "")).toEqual({
       type: "set",
-      changes: [{ target: M, values: { name: null } }],
+      changes: [{ target: { block: M }, values: { name: null } }],
     });
     expect(nameCommand(manifest, "Mixed")).toBe(null);
     expect(nameCommand(workspace, "")).toEqual({
       type: "set",
-      changes: [{ target: "workspace", values: { name: "" } }],
+      changes: [{ target: {}, values: { name: "" } }],
     });
   });
 });
@@ -152,14 +165,15 @@ describe("the Properties panel", () => {
   });
 
   /** Mount the panel on `store` for `elements` of `M`, or for nothing selected with `null`. */
-  function show(store: Store, elements: string[] | null, level: Level = "arranger"): void {
+  function show(store: Store, elements: ElementAddress[] | null, level: Level = "arranger"): void {
     showSelection(store, addresses(...(elements ?? [])), level);
   }
 
   /** Mount the panel on `store` for the addresses `selection`. */
-  function showSelection(store: Store, selection: Set<string>, level: Level = "arranger"): void {
+  function showSelection(store: Store, selection: Selection, level: Level = "arranger"): void {
     const live = liveStore(store);
-    const subjects = () => resolveSelection(live.view, selection, fontMetrics);
+    const editing = editorAt(level, M);
+    const subjects = () => resolveSelection(live.view, selection, editing, fontMetrics);
     app = mount(PropertiesPanel, {
       target: document.body,
       props: {
@@ -173,7 +187,7 @@ describe("the Properties panel", () => {
         get subjects() {
           return subjects();
         },
-        level,
+        editing,
         placement: null,
         drafts: new PropertyDrafts(),
       },
@@ -213,7 +227,7 @@ describe("the Properties panel", () => {
 
   it("shows the name first, and renames the manifest in one entry", () => {
     const store = storeOf();
-    show(store, ["group_1"]);
+    show(store, [{ id: "group_1" }]);
     const [first] = document.querySelectorAll("input");
     expect([first?.name, first?.type, first?.labels?.[0]?.textContent?.trim()]).toEqual([
       "name",
@@ -223,7 +237,7 @@ describe("the Properties panel", () => {
     expect(input("name").value).toBe("Performance");
     if (app !== undefined) unmount(app);
     document.body.innerHTML = "";
-    show(store, [""]);
+    show(store, [{}]);
     const before = store.journal.length;
     type("name", "Op. 35");
     press("name", "Enter");
@@ -258,7 +272,7 @@ describe("the Properties panel", () => {
   });
 
   it("shows no name and the geometry hint for two blocks", () => {
-    showSelection(storeOf(), new Set([M, "bshared000"]));
+    showSelection(storeOf(), selectionOf([{ block: M }, { block: "bshared000" }]));
     expect(document.querySelector('input[name="name"]')).toBe(null);
     expect(document.querySelector(".hint")?.textContent).toBe(
       "Select a block, a frame or a card to edit its geometry.",
@@ -267,8 +281,8 @@ describe("the Properties panel", () => {
 
   it("names the edited group in its editor with nothing selected, and renames it there", () => {
     const store = storeOf();
-    expect(store.open(`${M}/group_1`)).toBe(null);
-    showSelection(store, new Set(), "group");
+    expect(store.open({ block: M, id: "group_1" })).toBe(null);
+    showSelection(store, NOTHING_SELECTED, "group");
     expect([...document.querySelectorAll("input")].map((item) => item.name)).toEqual(["name"]);
     expect(input("name").value).toBe("Performance");
     const before = store.entries.length;
@@ -282,7 +296,7 @@ describe("the Properties panel", () => {
   });
 
   it("puts the container size in one row with the Locked checkbox last", () => {
-    show(storeOf(), ["group_1/score/card"]);
+    show(storeOf(), [{ id: "score", part: ["card"] }]);
     const row = input("height").closest("label")?.parentElement;
     const cells = [...(row?.children ?? [])].map((cell) => cell.textContent?.trim());
     expect(cells).toEqual(["container width", "container height", "Locked"]);
@@ -290,10 +304,17 @@ describe("the Properties panel", () => {
     expect([box?.checked, box?.disabled, box?.indeterminate]).toEqual([false, true, false]);
   });
 
-  it.each([
-    [["group_2/excerpt/card"], true, false],
-    [["group_1/score/card", "group_2/excerpt/card"], false, true],
-    [["recording"], false, false],
+  it.each<[ElementAddress[], boolean, boolean]>([
+    [[{ id: "excerpt", part: ["card"] }], true, false],
+    [
+      [
+        { id: "score", part: ["card"] },
+        { id: "excerpt", part: ["card"] },
+      ],
+      false,
+      true,
+    ],
+    [[{ id: "recording" }], false, false],
   ])("shows the stored lock of %j: checked %s, mixed %s", (elements, checked, mixed) => {
     const store = storeOf();
     show(store, elements);
@@ -305,13 +326,14 @@ describe("the Properties panel", () => {
     expect(store.journal.length).toBe(before);
   });
 
-  it.each([[[""]], [["group_1"]], [["performance/markers_1"]]])(
-    "shows no Locked checkbox for %j",
-    (elements) => {
-      show(storeOf(), elements);
-      expect(locked()).toBe(null);
-    },
-  );
+  it.each<[ElementAddress[]]>([
+    [[{}]],
+    [[{ id: "group_1" }]],
+    [[{ id: "performance", facet: "markers" }]],
+  ])("shows no Locked checkbox for %j", (elements) => {
+    show(storeOf(), elements);
+    expect(locked()).toBe(null);
+  });
 
   /** The notice a size below `minimum` gives. */
   const below = (property: string, minimum: number) =>
@@ -320,15 +342,8 @@ describe("the Properties panel", () => {
   it("gives the block its minimum height as a number, and says so", () => {
     const store = storeOf();
     const minimum = drawingOf(blockOf(store), store.view.settings, fontMetrics).height;
-    const expected = placeEdit(
-      store.view,
-      addresses(""),
-      "height",
-      minimum,
-      "arranger",
-      fontMetrics,
-    );
-    show(store, [""]);
+    const expected = placeEdit(store.view, addresses({}), "height", minimum, null, fontMetrics);
+    show(store, [{}]);
     type("height", "1");
     press("height", "Enter");
     expect(lastCommand(store)).toEqual(expected);
@@ -345,18 +360,20 @@ describe("the Properties panel", () => {
       const minimum = frameSize(blockOf(store), store, "group_1", property);
       const stated = {
         type: "set",
-        changes: [{ target: `${M}/group_1`, values: { place: { [property]: minimum + 10 } } }],
+        changes: [
+          { target: { block: M, id: "group_1" }, values: { place: { [property]: minimum + 10 } } },
+        ],
       };
       expect(store.dispatch(stated)).toBe(null);
       const expected = placeEdit(
         store.view,
-        addresses("group_1"),
+        addresses({ id: "group_1" }),
         property,
         null,
-        "arranger",
+        null,
         fontMetrics,
       );
-      show(store, ["group_1"]);
+      show(store, [{ id: "group_1" }]);
       expect(input(property).value).toBe(shownValue(minimum + 10));
       type(property, "1");
       press(property, "Enter");
@@ -390,19 +407,21 @@ describe("the Properties panel", () => {
     const value = low.minimum + 1;
     const both = placeEdit(
       store.view,
-      addresses("group_1", "group_2"),
+      addresses({ id: "group_1" }, { id: "group_2" }),
       "height",
       value,
-      "arranger",
+      null,
       fontMetrics,
     );
     if (both === null || "code" in both) throw new Error("no edit of both frames");
-    show(store, ["group_1", "group_2"]);
+    show(store, [{ id: "group_1" }, { id: "group_2" }]);
     type("height", String(value));
     press("height", "Enter");
     expect(lastCommand(store)).toEqual({
       ...both,
-      changes: both.changes.filter((change) => change.target !== `${M}/${high.key}`),
+      changes: both.changes.filter(
+        (change) => !sameAddress(change.target, { block: M, id: high.key }),
+      ),
     });
     expect([
       block.places,
@@ -414,7 +433,7 @@ describe("the Properties panel", () => {
 
   it("says nothing for a size above the minimum", () => {
     const store = storeOf();
-    show(store, ["group_1"]);
+    show(store, [{ id: "group_1" }]);
     type("height", String(frameSize(blockOf(store), store, "group_1", "height") + 10));
     press("height", "Enter");
     expect(status()).toBe("");
@@ -429,7 +448,9 @@ function frameSize(
   property: "width" | "height",
 ): number {
   const drawing = drawingOf(block, store.view.settings, fontMetrics);
-  const frame = drawing.boxes.find((box) => box.kind === "frame" && box.address === group);
+  const frame = drawing.boxes.find(
+    (box) => box.kind === "frame" && sameAddress(box.address, { id: group }),
+  );
   const size = frame?.item?.place[property];
   if (size === undefined) throw new Error(`no frame ${group}`);
   return size;

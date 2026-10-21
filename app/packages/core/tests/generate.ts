@@ -21,9 +21,16 @@
 
 import { JsonFloat } from "@timetoalign/timetoshare";
 import fc from "fast-check";
-import { elementAddress } from "../src/manifest/files.ts";
+import { DEFAULT_BAND_ORDER } from "../src/manifest/order.ts";
 import type { AxisValue, Manifest, TimelineManifest } from "../src/manifest/types.ts";
+import type { Address } from "../src/workspace/address.ts";
 import type { View } from "../src/workspace/view.ts";
+
+/** The address of the workspace. */
+const WORKSPACE: Address = {};
+
+/** The address of the element `id` of the manifest of block `block`. */
+const at = (block: string, id: string): Address => ({ block, id });
 
 export interface Seed {
   readonly kind: number;
@@ -81,35 +88,22 @@ const turned = <T>(items: readonly T[], n: number): T[] => {
   return [...items.slice(turn), ...items.slice(0, turn)];
 };
 
-/** The default band order of the timeline `id`, turned by `n` places, a band order of it. */
-const bandOrder = (id: string, n: number): string[] =>
-  turned(
-    [
-      `${id}/children_1`,
-      `${id}/conversion_maps_1`,
-      id,
-      `${id}/markers_1`,
-      `${id}/regions_1`,
-      `${id}/flow_control_1`,
-    ],
-    n,
-  );
+/** The default band order turned by `n` places, a band order of any timeline. */
+const bandOrder = (n: number): string[] => turned(DEFAULT_BAND_ORDER, n);
 
 interface Place {
   readonly timeline: TimelineManifest;
   readonly parent: TimelineManifest | undefined;
-  /** The root qualifying the addresses of its other elements. */
-  readonly root: string;
 }
 
 /** Every timeline of every root of a manifest. */
 function places(manifest: Manifest): Place[] {
   const found: Place[] = [];
-  const walk = (timeline: TimelineManifest, parent: TimelineManifest | undefined, root: string) => {
-    found.push({ timeline, parent, root });
-    for (const child of timeline.children) walk(child, timeline, root);
+  const walk = (timeline: TimelineManifest, parent: TimelineManifest | undefined) => {
+    found.push({ timeline, parent });
+    for (const child of timeline.children) walk(child, timeline);
   };
-  for (const root of manifest.timelines) walk(root, undefined, root.id);
+  for (const root of manifest.timelines) walk(root, undefined);
   return found;
 }
 
@@ -284,16 +278,17 @@ function heldBy(manifest: Manifest, element: string): string[] {
 export function editorFor(
   view: View,
   blocks: readonly string[],
-  within: string | null,
+  within: Address | null,
   seed: Seed,
-): string {
+): Address {
   const [p0 = 0, p1 = 0, p2 = 0] = seed.picks;
-  const [inner = "", element] = within?.split("/") ?? [];
+  const inner = within?.block ?? "";
+  const element = within?.id;
   const nested = within !== null && p2 % 4 !== 0;
   const block = nested ? inner : pick(blocks, p0);
   const manifest = view.blocks[block]?.manifest;
   if (manifest === undefined || p2 % 8 === 1) {
-    return pick([`${block}/name`, `${block}/ghost`, "workspace"], p1);
+    return pick<Address>([{ block, part: ["name"] }, at(block, "ghost"), WORKSPACE], p1);
   }
   const all = [
     ...manifest.groups.map((group) => group.id),
@@ -303,25 +298,27 @@ export function editorFor(
     nested && element !== undefined
       ? heldBy(manifest, element).filter((id) => id !== element)
       : all;
-  const targets = held.map((id) => `${block}/${id}`);
-  return pick(nested || targets.length === 0 ? [...targets, block] : [block, ...targets], p1);
+  const targets = held.map((id) => at(block, id));
+  const own: Address = { block };
+  return pick(nested || targets.length === 0 ? [...targets, own] : [own, ...targets], p1);
 }
 
 /**
  * The command a seed stands for in the editor of `target` (`null`: no
  * editor is open): mostly one that changes only what the editor edits (a
  * name or a band order of a timeline it holds, its place, a group's
- * display order, a member's group length and scale, or the box's width),
+ * display order, a member's group length and scale, or the block's width),
  * sometimes any command of `commandFor`. In the bundle editor
  * every command is `commandFor`'s on its block.
  */
 export function commandIn(
   view: View,
   blocks: readonly string[],
-  target: string | null,
+  target: Address | null,
   seed: Seed,
 ): object {
-  const [block = "", element] = target?.split("/") ?? [];
+  const block = target?.block ?? "";
+  const element = target?.id;
   const manifest = view.blocks[block]?.manifest;
   const [, p1 = 0, p2 = 0, p3 = 0, , , , p7 = 0] = seed.picks;
   if (target === null || manifest === undefined || p7 % 4 === 0) {
@@ -335,13 +332,13 @@ export function commandIn(
   const sharing = manifest.groups.find((group) => group.members.includes(element))?.id;
   const scale = 0.5 + (p3 % 4) / 2;
   const changes = [
-    { target: `${block}/${timeline}`, values: { name: `N${p3 % 7}` } },
+    { target: at(block, timeline), values: { name: `N${p3 % 7}` } },
     {
-      target: `${block}/${timeline}`,
-      values: { order: pick([bandOrder(timeline, p3), null], p3 >> 3) },
+      target: at(block, timeline),
+      values: { order: pick([bandOrder(p3), null], p3 >> 3) },
     },
     {
-      target: `${block}/${element}`,
+      target: at(block, element),
       values: {
         place: pick(
           [{ x: (p3 % 64) - 8 }, { scale }, { spacing: scale }, { width: 100 + (p3 % 900) }],
@@ -349,13 +346,11 @@ export function commandIn(
         ),
       },
     },
-    { target: `${block}/${element}`, values: { order: turned(members, p3) } },
-    { target: block, values: { width: 100 + (p3 % 900) } },
+    { target: at(block, element), values: { order: turned(members, p3) } },
+    { target: { block }, values: { width: 100 + (p3 % 900) } },
     ...(sharing === undefined
       ? []
-      : [
-          { target: `${block}/${sharing}`, values: { place: { length: 100 + (p3 % 400), scale } } },
-        ]),
+      : [{ target: at(block, sharing), values: { place: { length: 100 + (p3 % 400), scale } } }]),
   ];
   return { type: "set", changes: [pick(changes, p2)] };
 }
@@ -366,15 +361,10 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
   const block = pick([...blocks, ...blocks, ...blocks, "0000000009"], p0);
   const manifest = view.blocks[block]?.manifest;
   const all = manifest === undefined ? [] : places(manifest);
-  // Maps as [address within the block, id]; the other elements by address.
-  const maps = all.flatMap((place) =>
-    place.timeline.conversion_maps.map((map) => [elementAddress(place.root, map.id), map.id]),
-  );
-  const mapIds = maps.map(([, mapId]) => mapId as string);
-  const elements = all.flatMap(({ timeline, root }) =>
-    [timeline.regions, timeline.flow_control].flatMap((list) =>
-      list.map((item) => elementAddress(root, item.id)),
-    ),
+  // The IDs of the maps, and of the regions and flow-control elements.
+  const mapIds = all.flatMap((place) => place.timeline.conversion_maps.map((map) => map.id));
+  const elements = all.flatMap(({ timeline }) =>
+    [timeline.regions, timeline.flow_control].flatMap((list) => list.map((item) => item.id)),
   );
   const targets = all.flatMap(({ timeline }) =>
     timeline.flow_control.flatMap((item) => (item.type === "jump_to" ? [item.id] : [])),
@@ -389,8 +379,9 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
     number_type: "fraction",
     length: [8n, 1n],
   };
-  const element = `${block}/${id}`;
-  const set = (target: string, properties: object) => ({
+  const element = at(block, id);
+  const own: Address = { block };
+  const set = (target: Address, properties: object) => ({
     type: "set",
     changes: [{ target, values: properties }],
   });
@@ -420,7 +411,7 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
         property === "index"
           ? pick([...Object.values(view.blocks).map((item) => item.index), "Zz", "a00"], p3)
           : canvas(p3);
-      return set(block, { [property]: value });
+      return set(own, { [property]: value });
     }
     case 2: {
       const member = pick(["grid", "blockDefaults", "graphical"], p2);
@@ -430,7 +421,7 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
           : member === "blockDefaults"
             ? pick([{ length: canvas(p3) }, { width: canvas(p3) }], p4)
             : pick([{}, { statements: [{ select: {}, set: { stroke: "red" } }] }], p4);
-      return set("workspace", { [member]: value });
+      return set(WORKSPACE, { [member]: value });
     }
     case 3: {
       const fresh = `c${p2 % 7}`;
@@ -441,24 +432,21 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
       );
       return {
         type: "add",
-        into: pick([element, element, element, element, block, "workspace"], p7 >> 4),
+        into: pick([element, element, element, element, own, WORKSPACE], p7 >> 4),
         child: { ...child, offset: coordinate(axis, p7, p2 * 7 + p3) },
       };
     }
     case 4:
       return {
         type: "add",
-        into: pick([element, element, element, "workspace"], p6),
+        into: pick([element, element, element, WORKSPACE], p6),
         map: conversionMap(pick([`m${p2 % 5}`, ...ids, ...mapIds], p3), axis, seed.picks.slice(4)),
       };
     case 5: {
-      const targets = [
-        ...ids.map((item) => `${block}/${item}`),
-        ...groups.map((item) => `${block}/${item}`),
-        ...maps.map(([address]) => `${block}/${address}`),
-        ...elements.map((item) => `${block}/${item}`),
-        "workspace",
-        blocks[1] ?? block,
+      const targets: Address[] = [
+        ...[...ids, ...groups, ...mapIds, ...elements].map((item) => at(block, item)),
+        WORKSPACE,
+        { block: blocks[1] ?? block },
       ];
       return {
         type: "remove",
@@ -467,7 +455,16 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
     }
     case 6: {
       const select = pick(
-        [{ element: "map" }, { element: "timeline" }, { within: id }, { ids: [id] }, {}],
+        [
+          { element: "map" },
+          { element: "timeline" },
+          { within: id },
+          { addresses: [{ id }] },
+          { addresses: [{ id, facet: "regions" }] },
+          { facet: "markers" },
+          { element: "frame" },
+          {},
+        ],
         p2,
       );
       const value = pick(
@@ -483,18 +480,18 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
       };
     }
     case 7: {
-      const [address, mapId] = pick([...maps, ["ghost", "ghost"]], p2) as [string, string];
+      const mapId = pick([...mapIds, "ghost"], p2);
       const payload = conversionMap(pick([mapId, mapId, "other"], p3), axis, seed.picks.slice(4));
-      return set(`${block}/${address}`, { map: payload });
+      return set(at(block, mapId), { map: payload });
     }
     case 9: {
       const kind = pick(["region", "flow_control"], p2);
       return {
         type: "add",
-        into: pick([element, element, element, "workspace"], p7 >> 4),
+        into: pick([element, element, element, WORKSPACE], p7 >> 4),
         [kind]: flowElement(
           kind,
-          pick([`e${p3 % 5}`, ...ids, "a/b"], p3),
+          pick([`e${p3 % 5}`, ...ids, "a\tb"], p3),
           axis,
           seed.picks.slice(4),
           targets,
@@ -525,7 +522,7 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
             : property === "target"
               ? pick([null, ...targets, "nothing"], p4)
               : pick(["x", null, "nonsense", 3], p4);
-      return set(`${block}/${target}`, { [property]: value });
+      return set(at(block, target), { [property]: value });
     }
     case 11: {
       // What a group or timeline states for its drawing: its place and its
@@ -534,7 +531,7 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
       const property = pick(["place", "place", "order", "order"], p3);
       const group = manifest?.groups.find((item) => item.id === target);
       const members = group?.members ?? [];
-      const bands = bandOrder(target, p5);
+      const bands = bandOrder(p5);
       const value =
         property === "place"
           ? pick(
@@ -559,14 +556,12 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
                   bands,
                   null,
                   bands.slice(1),
-                  bands.map((entry) =>
-                    entry === `${target}/regions_1` ? `${id}/regions_1` : entry,
-                  ),
-                  target,
+                  bands.map((entry) => (entry === "regions" ? "region" : entry)),
+                  "line",
                 ],
                 p4,
               );
-      return set(target === "" ? block : `${block}/${target}`, { [property]: value });
+      return set(target === "" ? own : at(block, target), { [property]: value });
     }
     case 12: {
       // Where a timeline lies: under which parent at which offset, a root, in which group.
@@ -580,7 +575,7 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
     }
     case 13: {
       // A new root timeline or a new group of a block's manifest.
-      const into = pick([block, block, block, element, "workspace"], p7 >> 4);
+      const into = pick([own, own, own, element, WORKSPACE], p7 >> 4);
       if (p2 % 2 === 0) {
         const root = newTimeline(
           pick([`r${p3 % 5}`, `r${p3 % 5}`, ...ids, ...groups], p3),
@@ -599,9 +594,19 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
         },
       };
     }
-    default:
-      return set(pick([element, block, "workspace", "short", `${block}/`], p2), {
+    default: {
+      const addresses: Address[] = [
+        element,
+        own,
+        WORKSPACE,
+        { block: "short" },
+        { block, facet: "regions" },
+        { block, id, facet: "regions" },
+        { block, id, part: ["card"] },
+      ];
+      return set(pick(addresses, p2), {
         [pick(["id", "colour", "x", "grid", "offset", "map"], p3)]: 1,
       });
+    }
   }
 }

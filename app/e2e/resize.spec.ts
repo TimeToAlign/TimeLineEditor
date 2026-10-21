@@ -3,20 +3,26 @@
  * the handles each mode shows, and the stored values after dragging one
  * corner and one edge handle in each mode; and on `bundles`, a group's frame
  * scaled on the arranger and stretched vertically, the gap between its cards
- * following the pointer, and a member card's margin kept in proportion by
- * stretches that lengthen and shorten its group. Derivation in `README.md`
+ * following the pointer, a member card's margin kept in proportion by
+ * stretches that lengthen and shorten its group, and the card of a member
+ * of two groups resized in the second group's editor. Derivation in `README.md`
  * ("resize.spec.ts").
  */
 
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
+import { cardAddress, idAddress } from "../packages/core/src/index.ts";
 import type { Handle, Placement, ResizeMode } from "./support.ts";
 import {
   BUNDLES,
   commandsFrom,
   dragStart,
+  element,
+  enter,
+  entriesLength,
   framePoint,
   journalLength,
+  newestCommand,
   node,
   OPENED_JOURNAL,
   open,
@@ -92,8 +98,14 @@ test.describe("the blocks of small", () => {
       ([bare, nested]) => {
         const store = window.__tilie.store();
         return [
-          store.dispatch({ type: "set", changes: [{ target: bare, values: { x: 40, y: 80 } }] }),
-          store.dispatch({ type: "set", changes: [{ target: nested, values: { x: 40, y: 224 } }] }),
+          store.dispatch({
+            type: "set",
+            changes: [{ target: { block: bare }, values: { x: 40, y: 80 } }],
+          }),
+          store.dispatch({
+            type: "set",
+            changes: [{ target: { block: nested }, values: { x: 40, y: 224 } }],
+          }),
         ];
       },
       [SMALL.bare, SMALL.nested],
@@ -111,7 +123,7 @@ test.describe("the blocks of small", () => {
       test(`key ${key} and the ${mode} button choose ${mode} and show its handles`, async ({
         page,
       }) => {
-        await select(page, [SMALL.bare]);
+        await select(page, [{ block: SMALL.bare }]);
         // Start from another mode, so the key visibly changes it.
         await page.keyboard.press(key === "1" ? "2" : "1");
         await page.keyboard.press(key);
@@ -136,9 +148,9 @@ test.describe("the blocks of small", () => {
     }
 
     test("the mode is remembered across selections", async ({ page }) => {
-      await select(page, [SMALL.bare]);
+      await select(page, [{ block: SMALL.bare }]);
       await chooseMode(page, "stretch");
-      await select(page, [SMALL.map]);
+      await select(page, [{ block: SMALL.map }]);
       expect(await page.evaluate(() => window.__tilie.mode())).toBe("stretch");
       expect(await shownHandles(page)).toHaveLength(8);
     });
@@ -178,13 +190,13 @@ test.describe("the blocks of small", () => {
   test.describe("dragging a handle", () => {
     for (const [block, mode, handle, dx, dy, values] of ROWS) {
       test(`${mode} ${handle} by (${dx}, ${dy}) on ${block}`, async ({ page }) => {
-        await select(page, [block]);
+        await select(page, [{ block }]);
         await chooseMode(page, mode);
         await resizeBy(page, block, handle, dx, dy);
         expect(await stored(page, block, values)).toEqual(values);
         const [command] = await commandsFrom(page, START);
         expect(command?.type === "set" && command.changes.map((change) => change.target)).toEqual([
-          block,
+          { block },
         ]);
       });
     }
@@ -192,7 +204,7 @@ test.describe("the blocks of small", () => {
     test("box: dragging below the content's extent keeps the content's own size", async ({
       page,
     }) => {
-      await select(page, [SMALL.bare]);
+      await select(page, [{ block: SMALL.bare }]);
       await chooseMode(page, "box");
       const content = await node(page, SMALL.bare).boundingBox();
       // Grow first, so the shrink below the content is a visible change.
@@ -209,7 +221,7 @@ test.describe("the blocks of small", () => {
     test("stretch: a block of one item has no gap, so a vertical stretch journals nothing", async ({
       page,
     }) => {
-      await select(page, [SMALL.nested]);
+      await select(page, [{ block: SMALL.nested }]);
       await chooseMode(page, "stretch");
       const before = await placement(page, SMALL.nested);
       const box = await node(page, SMALL.nested).boundingBox();
@@ -225,7 +237,7 @@ test.describe("the blocks of small", () => {
     });
 
     test("box: a resize held in the edge zone pans and follows the pointer", async ({ page }) => {
-      await select(page, [SMALL.bare]);
+      await select(page, [{ block: SMALL.bare }]);
       await chooseMode(page, "box");
       const box = await page.locator(".svelte-flow").boundingBox();
       const grip = await page.locator('[data-testid="handle-right"]').boundingBox();
@@ -252,7 +264,7 @@ test.describe("the blocks of small", () => {
     });
 
     test("box: a resize that changes no stored value journals nothing", async ({ page }) => {
-      await select(page, [SMALL.bare]);
+      await select(page, [{ block: SMALL.bare }]);
       await chooseMode(page, "box");
       const before = await placement(page, SMALL.bare);
       const grip = await page.locator('[data-testid="handle-right"]').boundingBox();
@@ -266,7 +278,7 @@ test.describe("the blocks of small", () => {
     });
 
     test("undo restores the placement before a resize exactly", async ({ page }) => {
-      await select(page, [SMALL.bare]);
+      await select(page, [{ block: SMALL.bare }]);
       await chooseMode(page, "scale");
       const before = await placement(page, SMALL.bare);
       await resizeBy(page, SMALL.bare, "top-left", -229, 0);
@@ -283,9 +295,9 @@ test.describe("a frame on the arranger", () => {
     await open(page, "bundles");
     await setViewport(page, { x: 40, y: 40, zoom: 1 });
     const block = BUNDLES.mixed;
-    const frame = await framePoint(page, block, "group_1");
+    const frame = await framePoint(page, block, idAddress("group_1"));
     await page.mouse.click(frame.x, frame.y);
-    expect(await selection(page)).toEqual([`${block}/group_1`]);
+    expect(await selection(page)).toEqual([{ block, id: "group_1" }]);
     await chooseMode(page, "scale");
     expect((await shownHandles(page)).sort()).toEqual(
       CORNERS.map((handle) => `handle-${handle}`).sort(),
@@ -315,9 +327,9 @@ test.describe("a frame stretched vertically", () => {
     await open(page, "bundles");
     await setViewport(page, { x: 40, y: 40, zoom: 1 });
     const block = BUNDLES.mixed;
-    const frame = await framePoint(page, block, "group_1");
+    const frame = await framePoint(page, block, idAddress("group_1"));
     await page.mouse.click(frame.x, frame.y);
-    expect(await selection(page)).toEqual([`${block}/group_1`]);
+    expect(await selection(page)).toEqual([{ block, id: "group_1" }]);
     await chooseMode(page, "stretch");
     const grip = await page.locator('[data-testid="handle-bottom"]').boundingBox();
     if (grip === null) throw new Error("handle bottom is not displayed");
@@ -339,6 +351,9 @@ test.describe("a frame stretched vertically", () => {
 
 test.describe("a member's card in a group", () => {
   test("keeps its margin in proportion, and its group shortens again", async ({ page }) => {
+    // Every pointer move of a Stretch drag re-solves the block's layout, which
+    // takes several seconds in WebKit and Firefox under parallel load.
+    test.slow();
     await open(page, "bundles");
     await setViewport(page, { x: 40, y: 40, zoom: 1 });
     const block = BUNDLES.shared;
@@ -358,10 +373,13 @@ test.describe("a member's card in a group", () => {
     };
     const others = { group_2: { x: 8, y: 245.9921875 }, page: { x: 8, y: 478.08203125 } };
 
-    await select(page, [`${block}/group_1/exposition/card`]);
+    await select(page, [{ block, ...cardAddress("exposition") }]);
     await chooseMode(page, "box");
     await drag("right", 100);
-    expect(await places()).toEqual({ "group_1/exposition": { width: 651.39013671875 }, ...others });
+    expect(await places()).toEqual({
+      group_1: { cards: { exposition: { width: 651.39013671875 } } },
+      ...others,
+    });
 
     await chooseMode(page, "stretch");
     expect((await shownHandles(page)).sort()).toEqual(
@@ -369,22 +387,48 @@ test.describe("a member's card in a group", () => {
     );
     await drag("right", 60);
     expect(await places()).toEqual({
-      "group_1/exposition": { width: 711.39013671875 },
-      group_1: { length: 450.7890625 },
+      group_1: { length: 450.7890625, cards: { exposition: { width: 711.39013671875 } } },
       ...others,
     });
-    const take = await node(page, block)
-      .locator('[data-address="group_1/take_1/card"]')
-      .last()
-      .getAttribute("width");
+    const take = await element(page, block, cardAddress("take_1")).last().getAttribute("width");
     expect(take).toBe("602.1792");
 
-    await select(page, [`${block}/group_1`]);
+    await select(page, [{ block, id: "group_1" }]);
     await drag("right", -120);
     expect(await places()).toEqual({
-      "group_1/exposition": { width: 591.3896484375 },
-      group_1: { length: 349.2109375 },
+      group_1: { length: 349.2109375, cards: { exposition: { width: 591.3896484375 } } },
       ...others,
     });
+  });
+});
+
+test.describe("the card of a member of two groups", () => {
+  test("resizes in the second group's editor as the card that group's frame holds", async ({
+    page,
+  }) => {
+    await open(page, "bundles");
+    const block = BUNDLES.twoGroups;
+    // Opening the editor moves the viewport to it; `enter` puts it back at zoom 1, the block
+    // (at (640, 560)) at (80, 80), clear of the drawer the editor opens.
+    await enter(page, { block, id: "g2" }, { x: -560, y: -480, zoom: 1 });
+    await select(page, [{ block, ...cardAddress("t") }]);
+    await chooseMode(page, "box");
+    const grip = await page.locator('[data-testid="handle-right"]').boundingBox();
+    if (grip === null) throw new Error("handle right is not displayed");
+    await dragStart(page, { x: grip.x + grip.width / 2, y: grip.y + grip.height / 2 }, 100, 0);
+    await page.mouse.up();
+    // Inside the editor the change is an entry of its session; the journal waits for Done.
+    await expect.poll(() => entriesLength(page)).toBe(1);
+    expect(await newestCommand(page)).toMatchObject({ type: "set" });
+    expect(await journalLength(page)).toBe(OPENED_JOURNAL.bundles);
+    expect(
+      await page.evaluate(
+        (id) => JSON.parse(JSON.stringify(window.__tilie.store().view.blocks[id]?.places)),
+        block,
+      ),
+    ).toEqual({ g2: { cards: { t: { width: 609.83056640625 } } } });
+    const cards = element(page, block, cardAddress("t"));
+    expect(await cards.first().getAttribute("width")).toBe("509.8306");
+    expect(await cards.last().getAttribute("width")).toBe("609.8306");
   });
 });

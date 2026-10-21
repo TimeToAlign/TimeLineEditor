@@ -6,7 +6,6 @@
 import type { TimelineManifest } from "@timetoalign/tilie-core";
 import type { ShownCoordinate, TextElement } from "./elements.ts";
 import { cleanText, type TextMeasure } from "./metrics.ts";
-import { unscoped } from "./numbers.ts";
 import { type Entry, type Measured, nth, type Scope, type Styled, shown } from "./traversal.ts";
 
 /** A name and its text: what one line or ancestor line gives its row of the name column. */
@@ -29,9 +28,8 @@ export interface CutText {
   readonly width: number;
 }
 
-/** The name of a timeline (section 5.3): its `name`, or its id without its scope. */
-export const nameOf = (timeline: TimelineManifest): string =>
-  timeline.name ?? unscoped(timeline.id);
+/** The name of a timeline (section 5.3): its `name`, or its whole ID, never parsed. */
+export const nameOf = (timeline: TimelineManifest): string => timeline.name ?? timeline.id;
 
 /**
  * A name text cut to its `max-width` with `…` (section 6.6): the longest prefix

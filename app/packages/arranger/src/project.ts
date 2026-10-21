@@ -1,7 +1,7 @@
 /** The projection of a workspace view onto Svelte Flow nodes: one node per block. */
 
-import type { Block, Manifest, View } from "@timetoalign/tilie-core";
-import { contains } from "@timetoalign/tilie-core";
+import type { Block, ElementAddress, Manifest, View } from "@timetoalign/tilie-core";
+import { addressKey, contains } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import type { Descriptor } from "@timetoalign/tilie-writers";
 import type { FontMetrics } from "@timetoalign/timetoshare";
@@ -10,24 +10,28 @@ import { affectedBy } from "./affected.ts";
 import { descriptorsOf, drawingOf, nodePosition } from "./drawing.ts";
 import type { Editing } from "./editing.ts";
 import { addressParts, sameEditing } from "./editing.ts";
-import type { Selection } from "./selection.ts";
+import { isSelected, type Selection } from "./selection.ts";
 
 /** What a block node renders. */
 export type BlockNodeData = {
   readonly block: Block;
   readonly drawing: Drawing;
   readonly descriptors: readonly Descriptor[];
-  /** The ids of the block's selected elements. */
-  readonly selectedElements: ReadonlySet<string>;
-  /** What removing the selected elements would also remove, highlighted with them. */
+  /** The block's selected element addresses, by their keys (`addressKey`). */
+  readonly selectedElements: ReadonlyMap<string, ElementAddress>;
+  /**
+   * The keys of the addresses that removing the selected elements would also remove,
+   * highlighted with them.
+   */
   readonly affectedElements: ReadonlySet<string>;
   /** The innermost open editor, the same on every node; `null` on the arranger. */
   readonly editing: Editing | null;
   /**
-   * The drawn element addresses that lie inside the edited element, the only
-   * ones that are hovered and selected: every drawn address on the arranger
-   * and in this block's bundle editor, those the edited group or timeline
-   * contains in its editor, none in another block while an editor is open.
+   * The keys of the drawn element addresses that lie inside the edited
+   * element, the only ones that are hovered and selected: every drawn
+   * address on the arranger and in this block's bundle editor, those the
+   * edited group or timeline contains in its editor, none in another block
+   * while an editor is open.
    */
   readonly inside: ReadonlySet<string>;
 };
@@ -46,13 +50,16 @@ export type LivePlacement = Pick<
 
 const NO_ELEMENTS: ReadonlySet<string> = new Set();
 
+const NOTHING: ReadonlyMap<string, ElementAddress> = new Map();
+
 const insides = new WeakMap<Drawing, Map<string | null, ReadonlySet<string>>>();
 
 /**
- * The element addresses `drawing` draws inside `element`, an element address
- * of `manifest` (core's `contains`), or every address it draws when `element`
- * is `null`, the whole block. Memoized by the drawing and the element, so an
- * unchanged node keeps the identical set.
+ * The keys of the element addresses `drawing` draws inside `element`, the ID
+ * of a group or a timeline of `manifest` (core's `contains`), or of every
+ * address it draws but the block's background when `element` is `null`, the
+ * whole block. Memoized by the drawing and the element, so an unchanged node
+ * keeps the identical set.
  */
 export function insideOf(
   manifest: Manifest,
@@ -68,9 +75,9 @@ export function insideOf(
   if (found === undefined) {
     const addresses = new Set<string>();
     for (const drawn of drawing.elements) {
-      if (drawn.address === null) continue;
+      if (drawn.type === "block") continue;
       if (element === null || contains(manifest, element, drawn.address)) {
-        addresses.add(drawn.address);
+        addresses.add(addressKey(drawn.address));
       }
     }
     found = addresses;
@@ -100,31 +107,34 @@ export function blocksInOrder(view: View): readonly Block[] {
   return found;
 }
 
-function sameMembers(left: ReadonlySet<string>, right: ReadonlySet<string>): boolean {
+function sameMembers(
+  left: ReadonlyMap<string, ElementAddress>,
+  right: ReadonlyMap<string, ElementAddress>,
+): boolean {
   if (left.size !== right.size) return false;
-  for (const item of left) if (!right.has(item)) return false;
+  for (const key of left.keys()) if (!right.has(key)) return false;
   return true;
 }
 
-/** The selected element addresses of every block holding one (`addressParts`). */
-function elementsByBlock(selection: Selection): Map<string, Set<string>> {
-  const result = new Map<string, Set<string>>();
-  for (const address of selection) {
+/** The selected element addresses of every block holding one (`addressParts`), by their keys. */
+function elementsByBlock(selection: Selection): Map<string, Map<string, ElementAddress>> {
+  const result = new Map<string, Map<string, ElementAddress>>();
+  for (const address of selection.values()) {
     const { block, element } = addressParts(address);
     if (element === null) continue;
     let elements = result.get(block);
     if (elements === undefined) {
-      elements = new Set();
+      elements = new Map();
       result.set(block, elements);
     }
-    elements.add(element);
+    elements.set(addressKey(element), element);
   }
   return result;
 }
 
 /**
  * One node per block of `view`, in index order. A node lies at
- * `nodePosition`; its box is the drawing's box times the block's scale,
+ * `nodePosition`; its size is the drawing's times the block's scale,
  * given as `width`, `height` and `measured` so Svelte Flow never measures
  * it, and its `zIndex` is the block's rank among its siblings. With
  * `editing`, the innermost open editor, every node of another block is
@@ -154,9 +164,9 @@ export function project(
     const outside = edited !== null && edited.block !== block.id;
     const inside = outside
       ? NO_ELEMENTS
-      : insideOf(block.manifest, drawing, edited === null ? null : edited.element);
-    const selected = selection.has(block.id);
-    const selectedElements = elements.get(block.id) ?? NO_ELEMENTS;
+      : insideOf(block.manifest, drawing, edited === null ? null : (edited.element?.id ?? null));
+    const selected = isSelected(selection, { block: block.id });
+    const selectedElements = elements.get(block.id) ?? NOTHING;
     const prior = before.get(block.id);
     if (
       prior !== undefined &&
@@ -202,7 +212,7 @@ export function project(
             : affectedBy(
                 block.manifest,
                 selectedElements,
-                outside || edited === null ? null : edited.element,
+                outside || edited === null ? null : (edited.element?.id ?? null),
               ),
         editing,
         inside,
@@ -215,7 +225,7 @@ export function project(
  * The placement of `block` as a gesture shows it: the previewed `values`
  * over the stored ones, `drawing` the drawing its node shows, and `x`, `y`
  * the place origin of the node where the canvas has it, `position`, the
- * drawing placing its origin at `drawing.origin` in its box (`nodePosition`
+ * drawing placing its origin at `drawing.origin` in the block (`nodePosition`
  * inverted).
  */
 export function livePlacement(

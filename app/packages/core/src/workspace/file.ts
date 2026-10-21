@@ -26,7 +26,7 @@ import {
   readPositive,
   readString,
 } from "../values.ts";
-import { parseAddressSyntax } from "./address.ts";
+import { readAddress } from "./address.ts";
 import type { Block, BlockPlacement } from "./blocks.ts";
 import { BLOCK_MEMBERS } from "./blocks.ts";
 import type { Entry, Session, SessionId, Sessions } from "./sessions.ts";
@@ -216,11 +216,7 @@ function readSessions(problems: Problem[]): Reader {
       value,
       path,
       {
-        target: (target, at) => {
-          if (typeof target !== "string") return readString(target, at);
-          const parsed = parseAddressSyntax(target);
-          return isCommandError(parsed) ? { ...parsed, path: at } : target;
-        },
+        target: (target, at) => readAddress(target, at),
         entries: (entries, at) => {
           // A session without entries is never closed with Done.
           if (Array.isArray(entries) && entries.length === 0) {

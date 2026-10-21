@@ -5,7 +5,7 @@
  * line reaches on each side.
  */
 
-import { partAddress } from "@timetoalign/tilie-core";
+import { idAddress, partAddress } from "@timetoalign/tilie-core";
 import { elementKey } from "@timetoalign/tilie-core/drawing";
 import type { Centred, LineElements, LinePosition, Side } from "./bands.ts";
 import { BOUNDARY, LABEL_GAP } from "./constants.ts";
@@ -66,7 +66,7 @@ export function levelZero(scope: Scope, line: Entry): LevelZero {
     styled(
       elementKey(
         word === "start" ? "boundary" : "label",
-        partAddress(segment.manifest.id, word),
+        partAddress(idAddress(segment.manifest.id), word),
         segment.manifest,
         line.key,
       ),
@@ -106,7 +106,7 @@ export function levelZero(scope: Scope, line: Entry): LevelZero {
         : [
             {
               type: line === rootEntry ? "timeline" : "child",
-              address: line.manifest.id,
+              address: line.key.address,
               style: line.style,
               xs: at.x(line.start),
               xe: line.open ? at.xEnd(line) + 4 * w : at.xEnd(line),

@@ -38,7 +38,8 @@ describe("first fit", () => {
         const measure = new TextMeasure(metrics);
         const labels = drawing.elements.filter(
           (item): item is TextElement =>
-            item.type === "label" && /\/(start|end)\/label$/.test(item.address),
+            // A wedge's label is the one label whose address has two part words.
+            item.type === "label" && item.address.part?.length === 2,
         );
         for (const [i, a] of labels.entries()) {
           for (const b of labels.slice(i + 1)) {

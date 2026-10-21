@@ -15,6 +15,7 @@ import { createView } from "../src/workspace/view.ts";
 import {
   A,
   allFixtures,
+  at,
   block,
   changed,
   fixture,
@@ -139,16 +140,16 @@ describe("unknown keys", () => {
     expect(kept(manifest)).toEqual([1, { a: [1, 2] }, "kept"]);
     let view = changed(createView(), {
       type: "add",
-      into: "workspace",
+      into: {},
       block: { id: A, manifest, x: 0, y: 0 },
     });
     view = changed(view, {
       type: "set",
-      changes: [{ target: `${A}/bare`, values: { name: "B" } }],
+      changes: [{ target: at("bare"), values: { name: "B" } }],
     });
     view = changed(view, {
       type: "add",
-      into: `${A}/bare`,
+      into: at("bare"),
       flow_control: { id: "fine", type: "flow_marker", manifestation: "fine", coordinate: [1, 1] },
     });
     const edited = block(view).manifest;
@@ -369,7 +370,7 @@ describe("invariants", () => {
         ],
       },
       [...rootPath, "conversion_maps", 0, "source_unit"],
-      'LinearMap "seconds" has source unit "seconds", its timeline "clt_1" has "quarters"',
+      "LinearMap 'seconds' has source unit 'seconds', its timeline 'clt_1' has 'quarters'",
       rootPath,
     ],
   ])("leaves %s to the schema", (_, change, path, message, at = childPath) => {
@@ -418,12 +419,12 @@ describe("invariants", () => {
   it("checks commands with the same invariants", () => {
     const view = changed(createView(), {
       type: "add",
-      into: "workspace",
+      into: {},
       block: { id: A, manifest: load("with_region.json"), x: 0, y: 0 },
     });
     const result = apply(view, {
       type: "set",
-      changes: [{ target: `${A}/clt_1/region_1`, values: { end: [0, 1] } }],
+      changes: [{ target: at("region_1"), values: { end: [0, 1] } }],
     });
     expect(isCommandError(result) ? [result.code, result.path] : result).toEqual([
       "region_end_before_start",
@@ -522,7 +523,7 @@ describe("an entry given to a command", () => {
   });
 
   it("refuses a region at its path from the timeline that will list it", () => {
-    const region = { id: "start", start: [0, 1], end: [2, 1] };
+    const region = { id: "verse\tchorus", start: [0, 1], end: [2, 1] };
     expect(refusal(readEntry("region", region, melody, 0, []))).toEqual({
       code: "schema_violation",
       path: ["regions", 0, "id"],

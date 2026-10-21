@@ -21,14 +21,14 @@ describe("workspace creation", () => {
 
   it("creates exactly the fixed metadata, the name, the settings and no blocks", () => {
     expect(createView()).toEqual({
-      meta: { format: "tilie-workspace", version: 4 },
+      meta: { format: "tilie-workspace", version: 5 },
       name: "untitled",
       settings: DEFAULT_SETTINGS,
       blocks: {},
     });
     const settings = { ...DEFAULT_SETTINGS, grid: { size: 4, snap: false } };
     expect(createView(settings)).toEqual({
-      meta: { format: "tilie-workspace", version: 4 },
+      meta: { format: "tilie-workspace", version: 5 },
       name: "untitled",
       settings,
       blocks: {},

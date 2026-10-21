@@ -23,7 +23,7 @@ export type {
   Tag,
   TextDescriptor,
 } from "./descriptors.ts";
-export { toDescriptors } from "./descriptors.ts";
+export { ADDRESS_ATTRIBUTES, toDescriptors } from "./descriptors.ts";
 export type { OnPage, Page, Placed } from "./page.ts";
 export { formatNumber, MARGIN, page } from "./page.ts";
 export type { DescriptorSource } from "./source.ts";

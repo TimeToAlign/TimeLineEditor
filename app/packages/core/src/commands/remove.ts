@@ -9,16 +9,17 @@
 
 import type { CommandError } from "../errors.ts";
 import { ErrorCode, isCommandError, problem } from "../errors.ts";
-import { elementAddress } from "../manifest/files.ts";
+import { addressKey, idAddress } from "../manifest/address.ts";
 import { removedBy, withoutElements } from "../manifest/remove.ts";
 import { isSegmentAt } from "../manifest/tree.ts";
-import { qualify } from "../workspace/address.ts";
+import type { Address } from "../workspace/address.ts";
+import { inBlock } from "../workspace/address.ts";
 import type { BlockId } from "../workspace/blocks.ts";
 import type { View } from "../workspace/view.ts";
 import type { ChangeSet } from "./mutations.ts";
 import { entryAt, record, withBlock } from "./mutations.ts";
 import type { Target } from "./targets.ts";
-import { rootOf, targetOf } from "./targets.ts";
+import { targetOf } from "./targets.ts";
 
 /** The view without the blocks `removed` and every block whose `parent` chain reaches one. */
 function withoutBlocks(view: View, removed: Set<BlockId>): View {
@@ -40,16 +41,13 @@ function withoutBlocks(view: View, removed: Set<BlockId>): View {
 
 /** One element a `remove` names in a block's manifest. */
 interface Removal {
-  /** Its element address. */
+  /** Its ID. */
   readonly element: string;
   /** For a segment, the segment line it lies in. */
   readonly line: string | null;
 }
 
-/**
- * The element address of a group, measure map, timeline or entry target;
- * `null` for the workspace or a block.
- */
+/** The ID of a group, measure map, timeline or entry target; `null` for the workspace or a block. */
 function removalOf(target: Target): Removal | null {
   switch (target.kind) {
     case "workspace":
@@ -67,15 +65,15 @@ function removalOf(target: Target): Removal | null {
     }
     default: {
       const entry = entryAt(target.at.timeline, target.kind, target.index);
-      if (entry === undefined) throw new Error(`${target.address} names an entry`);
-      return { element: elementAddress(rootOf(target.at).id, entry.id), line: null };
+      if (entry === undefined) throw new Error(`${addressKey(target.address)} names an entry`);
+      return { element: entry.id, line: null };
     }
   }
 }
 
 export function applyRemove(
   view: View,
-  targets: readonly string[],
+  targets: readonly Address[],
   changes: ChangeSet,
 ): View | CommandError {
   const blocks = new Set<BlockId>();
@@ -84,7 +82,9 @@ export function applyRemove(
     const target = targetOf(view, address);
     if (isCommandError(target)) return target;
     if (target.kind === "workspace") {
-      return problem(ErrorCode.notRemovable, `${target.kind} cannot be removed`, [address]);
+      return problem(ErrorCode.notRemovable, `${target.kind} cannot be removed`, [
+        addressKey(address),
+      ]);
     }
     if (target.kind === "block") {
       blocks.add(target.block.id);
@@ -104,8 +104,8 @@ export function applyRemove(
       if (removedBy(manifest, others).has(element)) continue;
       return problem(
         ErrorCode.segmentNotRemovable,
-        `Removing segment ${element} of line ${line} is not supported yet`,
-        [qualify(id, element)],
+        `Removing segment '${element}' of line '${line}' is not supported yet`,
+        [addressKey(inBlock(id, idAddress(element)))],
       );
     }
   }
@@ -117,12 +117,12 @@ export function applyRemove(
       block.manifest,
       list.map((item) => item.element),
     );
-    record(changes, [id], id, true);
+    record(changes, [addressKey({ block: id })], id, true);
     current = withBlock(current, { ...block, manifest });
   }
   current = withoutBlocks(current, blocks);
   for (const id of Object.keys(view.blocks)) {
-    if (current.blocks[id] === undefined) record(changes, [id], id);
+    if (current.blocks[id] === undefined) record(changes, [addressKey({ block: id })], id);
   }
   return current;
 }

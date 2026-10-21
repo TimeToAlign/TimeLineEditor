@@ -6,11 +6,11 @@
  * address names is core's resolver's to decide; this module only words it.
  */
 
-import type { Level } from "@timetoalign/tilie-arranger";
+import type { Level, Selection } from "@timetoalign/tilie-arranger";
 import type {
   Address,
-  BandKind,
   EntryKind,
+  Facet,
   FlowControlElement,
   ListedElement,
   Manifest,
@@ -18,7 +18,7 @@ import type {
   ResolvedAddress,
   View,
 } from "@timetoalign/tilie-core";
-import { isCommandError, resolveAddress } from "@timetoalign/tilie-core";
+import { addressKey, isCommandError, resolveAddress } from "@timetoalign/tilie-core";
 
 /** The word of each level of the canvas, on the level tab and its title line. */
 const LEVEL_WORDS: { readonly [level in Level]: string } = {
@@ -33,8 +33,8 @@ export function levelWord(level: Level): string {
   return LEVEL_WORDS[level];
 }
 
-/** The word of each kind of band, in its heading and its rows. */
-const BAND_WORDS: { readonly [kind in BandKind]: string } = {
+/** The word of the band of each facet, in its heading and its rows. */
+const BAND_WORDS: { readonly [facet in Facet]: string } = {
   markers: "Markers",
   conversion_maps: "Conversion maps",
   children: "Children",
@@ -42,9 +42,9 @@ const BAND_WORDS: { readonly [kind in BandKind]: string } = {
   flow_control: "Flow control",
 };
 
-/** The word of a band's kind, capitalised: `Markers`, `Conversion maps`, … */
-export function bandWord(kind: BandKind): string {
-  return BAND_WORDS[kind];
+/** The word of a band's facet, capitalised: `Markers`, `Conversion maps`, … */
+export function bandWord(facet: Facet): string {
+  return BAND_WORDS[facet];
 }
 
 /** The word of each type of flow-control element. */
@@ -74,11 +74,11 @@ const ANONYMOUS_BUNDLE_NAME = "Anonymous bundle";
 /**
  * The name an editor's target goes by: a bundle's manifest `name`, else its
  * `id`, else "Anonymous bundle"; a group's or timeline's `name`, else its
- * id. A target the view does not hold goes by its address.
+ * id. A target the view does not hold goes by its address's key (`addressKey`).
  */
 export function editorName(view: View, target: Address): string {
   const resolved = resolveAddress(view, target);
-  if (isCommandError(resolved)) return target;
+  if (isCommandError(resolved)) return addressKey(target);
   switch (resolved.kind) {
     case "block": {
       const { manifest } = resolved.block;
@@ -89,7 +89,7 @@ export function editorName(view: View, target: Address): string {
     case "timeline":
       return resolved.at.timeline.name ?? resolved.at.timeline.id;
     default:
-      return target;
+      return addressKey(target);
   }
 }
 
@@ -165,7 +165,7 @@ function describe(resolved: ResolvedAddress): Described | null {
           ? []
           : resolved.kind === "card"
             ? ["card"]
-            : [`${bandWord(resolved.band).toLowerCase()} band`];
+            : [`${bandWord(resolved.facet).toLowerCase()} band`];
       return { parts, kind: "timeline", name, id, titled: false };
     }
     case "entry": {
@@ -200,8 +200,8 @@ function describe(resolved: ResolvedAddress): Described | null {
  * several addresses their count; `null` for no selection or an address
  * naming nothing.
  */
-export function inspectedSubject(view: View, selection: Iterable<string>): InspectedSubject | null {
-  const addresses = [...selection];
+export function inspectedSubject(view: View, selection: Selection): InspectedSubject | null {
+  const addresses = [...selection.values()];
   const [address] = addresses;
   if (address === undefined) return null;
   if (addresses.length > 1) return { words: `${addresses.length} selected`, name: null, id: null };

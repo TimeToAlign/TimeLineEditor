@@ -1,5 +1,5 @@
 /**
- * The items of a block's box, its groups' frames and its ungrouped roots'
+ * The items of a block, its groups' frames and its ungrouped roots'
  * cards, and the cards its frames hold (`docs/drawing.md` in TimeToShare,
  * section 8.6), moved and resized by stating their places. Every gesture is
  * one `set` of the `place` of each item or card it touches. Whatever a
@@ -9,30 +9,39 @@
  */
 
 import type {
+  Address,
   Block,
   BlockId,
   Change,
   CommandError,
+  ElementAddress,
   ItemPlace,
   Manifest,
+  PlaceKey,
   SetCommand,
   View,
 } from "@timetoalign/tilie-core";
 import {
+  addressKey,
   contains,
   ErrorCode,
   ITEM_PLACE_MEMBERS,
+  inBlock,
   isCommandError,
+  placeAt,
+  placeKeyText,
   preview,
+  samePlaceKey,
 } from "@timetoalign/tilie-core";
 import type { Drawing, DrawnBox } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { CardBox, ItemBox } from "./boxes.ts";
-import { boxOf, isHeld, isItem, itemHolding, itemOf, keyedBox } from "./boxes.ts";
+import { boxKey, isHeld, isItem, itemHolding, itemOf, keyedBox } from "./boxes.ts";
 import type { Level, PlaceProperty, Resizing } from "./containers.ts";
-import { LEVELS, RESIZED_BY, resizingOf, resolveSelection } from "./containers.ts";
+import { LEVELS, levelOf, RESIZED_BY, resizingOf, resolveSelection } from "./containers.ts";
 import { drawingOf } from "./drawing.ts";
-import { placeTarget } from "./editing.ts";
+import type { Editing } from "./editing.ts";
+import { placeChange } from "./editing.ts";
 import { GRID_FREE, MIN_LENGTH, MIN_SCALE, quantize } from "./numbers.ts";
 import type { Delta, Handle, ResizeMode } from "./resize.ts";
 import { ALL_HANDLES, handlesFor, kept, SIDES, solve } from "./resize.ts";
@@ -41,8 +50,29 @@ import type { Selection } from "./selection.ts";
 /** Members of a place to set: a number states the member, `null` unstates it. */
 export type PlaceValues = { -readonly [member in keyof ItemPlace]?: number | null };
 
-/** The places a gesture sets: each key of `places` with its values, in order. */
-export type PlaceChanges = ReadonlyMap<string, PlaceValues>;
+/** The values a gesture sets on the place under `key`. */
+export interface PlacedValues {
+  readonly key: PlaceKey;
+  readonly values: PlaceValues;
+}
+
+/** The places a gesture sets, each with its values, in order, by `placeKeyText`. */
+export type PlaceChanges = ReadonlyMap<string, PlacedValues>;
+
+/** The place changes `entries` gives, each place once, its values merged in order. */
+export function placeChanges(
+  entries: Iterable<readonly [PlaceKey, PlaceValues]>,
+): Map<string, PlacedValues> {
+  const changes = new Map<string, PlacedValues>();
+  for (const [key, values] of entries) setValues(changes, key, values);
+  return changes;
+}
+
+/** `values` merged into the values `changes` sets on the place under `key`. */
+function setValues(changes: Map<string, PlacedValues>, key: PlaceKey, values: PlaceValues): void {
+  const text = placeKeyText(key);
+  changes.set(text, { key, values: { ...changes.get(text)?.values, ...values } });
+}
 
 const BELOW_RIGHT: readonly Handle[] = ["right", "bottom-right", "bottom"];
 const HELD_HANDLES: { readonly [mode in ResizeMode]: readonly Handle[] } = {
@@ -61,25 +91,27 @@ function blockIn(view: View, id: BlockId) {
   return block;
 }
 
-/** The frame or card of `drawing` at the address of `box`, which may come from another drawing of its block. */
+/** The frame or card of `drawing` with the place key of `box`, which may come from another drawing of its block. */
 function resizedIn(drawing: Drawing, box: DrawnBox): ItemBox | CardBox {
-  const found = boxOf(drawing, box.address);
+  const found = box.key === null ? undefined : keyedBox(drawing, box.key);
   if (found === undefined || !(isItem(found) || isHeld(found))) {
-    throw new RangeError(`${box.address ?? "the box"} is no frame or card of the drawing`);
+    throw new RangeError(`${addressKey(box.address)} is no frame or card of the drawing`);
   }
   return found;
 }
 
 /** The card of `key` held by a frame of `drawing`. */
-function heldCard(drawing: Drawing, key: string): CardBox {
+function heldCard(drawing: Drawing, key: PlaceKey): CardBox {
   const card = keyedBox(drawing, key);
-  if (card === undefined || !isHeld(card)) throw new RangeError(`${key} has no held card`);
+  if (card === undefined || !isHeld(card)) {
+    throw new RangeError(`${placeKeyText(key)} has no held card`);
+  }
   return card;
 }
 
 /**
  * The handles `box`, a frame or a card, offers in `mode` at `level`. A frame
- * or a box-held card offers a block's: the corners to scale, all eight to
+ * or a block-held card offers a block's: the corners to scale, all eight to
  * size or stretch its box; where the level pins the frame's width
  * (`frameWidthPinned`), its stretch leaves out the left edge and the left
  * corners. A held card never moves its top left corner, which its frame
@@ -92,15 +124,15 @@ export function itemHandlesFor(mode: ResizeMode, box: DrawnBox, level: Level): r
   return handlesFor(mode);
 }
 
-/** The key of `places` a change of `box` (held by `item`) written as `written` (`resizingOf`) sets. */
-function keyOf(box: ItemBox | CardBox, item: ItemBox, written: keyof Resizing["writes"]): string {
+/** The place a change of `box` (held by `item`) written as `written` (`resizingOf`) sets. */
+function keyOf(box: ItemBox | CardBox, item: ItemBox, written: keyof Resizing["writes"]): PlaceKey {
   return resizingOf(box).writes[written] === "own" ? box.key : item.key;
 }
 
-/** `changes` with `more` merged in, key by key, in order. */
-function merged(changes: PlaceChanges, more: PlaceChanges): Map<string, PlaceValues> {
+/** `changes` with `more` merged in, place by place, in order. */
+function merged(changes: PlaceChanges, more: PlaceChanges): Map<string, PlacedValues> {
   const all = new Map(changes);
-  for (const [key, values] of more) all.set(key, { ...all.get(key), ...values });
+  for (const { key, values } of more.values()) setValues(all, key, values);
   return all;
 }
 
@@ -114,10 +146,7 @@ function withPlaces(view: View, block: BlockId, changes: PlaceChanges): View {
   const found = blockIn(view, block);
   const command: SetCommand = {
     type: "set",
-    changes: [...changes].map(([key, values]) => ({
-      target: placeTarget(found, key),
-      values: { place: values },
-    })),
+    changes: [...changes.values()].map(({ key, values }) => placeChange(found, key, values)),
   };
   const next = preview(view, command);
   if (isCommandError(next)) throw new RangeError(`a place change is refused: ${next.message}`);
@@ -149,23 +178,22 @@ export function placeCommand(
   places: PlaceChanges,
   others: boolean,
 ): SetCommand {
-  const changes: Change[] = [...places].map(([key, values]) => ({
-    target: placeTarget(block, key),
-    values: { place: values },
-  }));
+  const changes: Change[] = [...places.values()].map(({ key, values }) =>
+    placeChange(block, key, values),
+  );
   if (others) {
     const edited = new Set(places.keys());
-    for (const key of places.keys()) {
+    for (const { key } of places.values()) {
       const box = keyedBox(drawing, key);
-      if (box !== undefined && isHeld(box)) edited.add(itemHolding(drawing, box).key);
+      if (box !== undefined && isHeld(box)) edited.add(placeKeyText(itemHolding(drawing, box).key));
     }
     for (const box of drawing.boxes) {
-      if (!isItem(box) || edited.has(box.key)) continue;
+      if (!isItem(box) || edited.has(placeKeyText(box.key))) continue;
       const place: PlaceValues = {};
       if (box.item.stated.x === undefined) place.x = box.item.place.x;
       if (box.item.stated.y === undefined) place.y = box.item.place.y;
       if (Object.keys(place).length > 0) {
-        changes.push({ target: placeTarget(block, box.key), values: { place } });
+        changes.push(placeChange(block, box.key, place));
       }
     }
   }
@@ -175,39 +203,42 @@ export function placeCommand(
 /**
  * The other items of `drawing`, the drawing of `manifest`, that a drag of
  * the item `key` moves with it: every other item in the selection
- * `selected` (the block's selected element addresses), in the drawing's
- * order and possibly none, when `key` is in it; `null` when it is not. A
- * selected frame or card puts in the selection only the item that draws it
- * (the item itself, a held card's frame); any other selected address puts
+ * `selected` (the block's selected element addresses, by their keys), in
+ * the drawing's order and possibly none, when `key` is in it; `null` when it
+ * is not. A selected frame puts in the selection only itself, a selected
+ * card every item drawing it (the card itself, a held card's frame, each
+ * frame of a member of several groups); any other selected address puts
  * there every item containing it by core's `contains`, its key naming the
  * group or the ungrouped root, wherever the address is drawn.
  */
 export function itemsMovedWith(
   manifest: Manifest,
   drawing: Drawing,
-  selected: ReadonlySet<string>,
-  key: string,
-): string[] | null {
-  const drawnBy = new Map<string, string[]>();
+  selected: ReadonlyMap<string, ElementAddress>,
+  key: PlaceKey,
+): PlaceKey[] | null {
+  const drawnBy = new Map<string, PlaceKey[]>();
   for (const box of drawing.boxes) {
-    if (isItem(box)) drawnBy.set(box.address, [box.key]);
+    const address = addressKey(box.address);
+    if (isItem(box)) drawnBy.set(address, [...(drawnBy.get(address) ?? []), box.key]);
     else if (isHeld(box)) {
-      drawnBy.set(box.address, [
-        ...(drawnBy.get(box.address) ?? []),
-        itemHolding(drawing, box).key,
-      ]);
+      drawnBy.set(address, [...(drawnBy.get(address) ?? []), itemHolding(drawing, box).key]);
     }
   }
   const keys = drawing.boxes
     .filter(isItem)
     .filter((item) =>
-      [...selected].some(
-        (address) =>
-          drawnBy.get(address)?.includes(item.key) ?? contains(manifest, item.key, address),
-      ),
+      [...selected].some(([text, address]) => {
+        const drawers = drawnBy.get(text);
+        return drawers === undefined
+          ? contains(manifest, item.key.item, address)
+          : drawers.some((drawer) => samePlaceKey(drawer, item.key));
+      }),
     )
     .map((item) => item.key);
-  return keys.includes(key) ? keys.filter((other) => other !== key) : null;
+  return keys.some((other) => samePlaceKey(other, key))
+    ? keys.filter((other) => !samePlaceKey(other, key))
+    : null;
 }
 
 /**
@@ -221,21 +252,21 @@ export function itemsMovedWith(
 export function itemMoveCommand(
   view: View,
   block: BlockId,
-  key: string,
+  key: PlaceKey,
   x: number,
   y: number,
   metrics: FontMetrics,
-  together: readonly string[] = [],
+  together: readonly PlaceKey[] = [],
 ): SetCommand | null {
   const found = blockIn(view, block);
   const drawing = drawingOf(found, view.settings, metrics);
   const { place } = itemOf(drawing, key).item;
   const to = { x: quantize(x, GRID_FREE), y: quantize(y, GRID_FREE) };
   if (to.x === place.x && to.y === place.y) return null;
-  const places = new Map<string, PlaceValues>([[key, to]]);
+  const places = placeChanges([[key, to]]);
   for (const other of together) {
     const at = itemOf(drawing, other).item.place;
-    places.set(other, { x: to.x + (at.x - place.x), y: to.y + (at.y - place.y) });
+    setValues(places, other, { x: to.x + (at.x - place.x), y: to.y + (at.y - place.y) });
   }
   return placeCommand(found, drawing, places, true);
 }
@@ -254,8 +285,8 @@ export function itemResizeCommand(
   metrics: FontMetrics,
 ): SetCommand | null {
   const found = blockIn(view, block);
-  const changes = [...places].some(([key, values]) => {
-    const stated: ItemPlace = found.places[key] ?? {};
+  const changes = [...places.values()].some(({ key, values }) => {
+    const stated: ItemPlace = placeAt(found.places, key) ?? {};
     return ITEM_PLACE_MEMBERS.some(
       (member) => values[member] !== undefined && values[member] !== (stated[member] ?? null),
     );
@@ -308,14 +339,14 @@ export class Stretch {
   readonly #metrics: FontMetrics;
   readonly #factor: "length" | "spacing";
   readonly #size: "width" | "height";
-  /** The key of `places` the factor is stated on. */
-  readonly #key: string;
+  /** The place the factor is stated on. */
+  readonly #key: PlaceKey;
   /** The item holding the stretched boxes. */
-  readonly #item: string;
-  /** The key of the box whose drawn size the stretch reports. */
-  readonly #dragged: string;
-  /** The keys whose stated size follows their content, each with that content before. */
-  readonly #requests: ReadonlyMap<string, number>;
+  readonly #item: PlaceKey;
+  /** The place key of the box whose drawn size the stretch reports. */
+  readonly #dragged: PlaceKey;
+  /** The places whose stated size follows their content, each with that content before. */
+  readonly #requests: readonly (readonly [PlaceKey, number])[];
   /** The item's stated size and its content before, where it follows its content. */
   readonly #itemRequest: { readonly stated: number; readonly content: number } | null;
   readonly #at = new Map<number, Stretched>();
@@ -356,14 +387,17 @@ export class Stretch {
       held && factor === "spacing"
         ? [this.#key]
         : drawing.boxes
-            .filter((card): card is CardBox => isHeld(card) && card.holder === item.address)
+            .filter(
+              (card): card is CardBox =>
+                isHeld(card) && card.holder !== null && samePlaceKey(card.holder, item.key),
+            )
             .map((card) => card.key);
-    const stated = (key: string) => stored.places[key]?.[this.#size] ?? null;
+    const stated = (key: PlaceKey) => placeAt(stored.places, key)?.[this.#size] ?? null;
     const requests = cards.filter((key) => stated(key) !== null);
     const itemStated = this.pinned === null ? stated(item.key) : null;
     // The cards' own contents: a frame's width would widen them.
     const before = this.#draw(this.#unstated(new Map(), [...requests, item.key]));
-    this.#requests = new Map(requests.map((key) => [key, this.#sizeOf(before, key)]));
+    this.#requests = requests.map((key) => [key, this.#sizeOf(before, key)] as const);
     this.#itemRequest =
       itemStated === null
         ? null
@@ -392,14 +426,14 @@ export class Stretch {
     return drawnWith(this.#view, this.#block, changes, this.#metrics);
   }
 
-  /** `changes` with the size of every key of `keys` unstated. */
-  #unstated(changes: PlaceChanges, keys: readonly string[]): Map<string, PlaceValues> {
-    return merged(changes, new Map(keys.map((key) => [key, { [this.#size]: null }])));
+  /** `changes` with the size of every place of `keys` unstated. */
+  #unstated(changes: PlaceChanges, keys: readonly PlaceKey[]): Map<string, PlacedValues> {
+    return merged(changes, placeChanges(keys.map((key) => [key, { [this.#size]: null }])));
   }
 
-  /** The drawn size on the axis of the item or of a card it holds, by key. */
-  #sizeOf(drawing: Drawing, key: string): number {
-    return key === this.#item
+  /** The drawn size on the axis of the item or of a card it holds, by place key. */
+  #sizeOf(drawing: Drawing, key: PlaceKey): number {
+    return samePlaceKey(key, this.#item)
       ? itemOf(drawing, key).item.place[this.#size]
       : heldCard(drawing, key).card.size[this.#size];
   }
@@ -409,14 +443,13 @@ export class Stretch {
     if (found !== undefined) return found;
     const size = this.#size;
     const stored = blockIn(this.#view, this.#block).places;
-    const stated = (key: string) => stored[key]?.[size] ?? null;
-    const changes = new Map<string, PlaceValues>();
-    const set = (key: string, values: PlaceValues) => {
-      changes.set(key, { ...changes.get(key), ...values });
-    };
+    const stated = (key: PlaceKey) => placeAt(stored, key)?.[size] ?? null;
+    const changes = new Map<string, PlacedValues>();
+    const set = (key: PlaceKey, values: PlaceValues) => setValues(changes, key, values);
     set(this.#key, { [this.#factor]: value });
-    if (this.#requests.size > 0) {
-      const free = this.#draw(this.#unstated(changes, [...this.#requests.keys(), this.#item]));
+    if (this.#requests.length > 0) {
+      const keys = this.#requests.map(([key]) => key);
+      const free = this.#draw(this.#unstated(changes, [...keys, this.#item]));
       for (const [key, content] of this.#requests) {
         const request = kept(stated(key), content, this.#sizeOf(free, key));
         if (request !== stated(key)) set(key, { [size]: request });
@@ -432,7 +465,7 @@ export class Stretch {
       if (request !== this.#itemRequest.stated) set(this.#item, { [size]: request });
     }
     // A frame's width widens its cards, so the dragged box is measured with every request.
-    const bare = this.#requests.size === 0 && this.#itemRequest === null && this.pinned === null;
+    const bare = this.#requests.length === 0 && this.#itemRequest === null && this.pinned === null;
     const drawn = this.#sizeOf(bare ? sized : this.#draw(changes), this.#dragged);
     const stretched = { changes, content, drawn };
     this.#at.set(value, stretched);
@@ -500,8 +533,8 @@ export function itemResizeValues(
   const left = sx < 0 ? quantize(x + dx, GRID_FREE) : x;
   const top = sy < 0 ? quantize(y + dy, GRID_FREE) : y;
   /** The drawing of the block with `values` merged into the place of `key`. */
-  const redrawn = (key: string, values: PlaceValues) =>
-    drawnWith(view, block, new Map([[key, values]]), metrics);
+  const redrawn = (key: PlaceKey, values: PlaceValues) =>
+    drawnWith(view, block, placeChanges([[key, values]]), metrics);
   const placed = (values: PlaceValues) => itemOf(redrawn(item.key, values), item.key).item.place;
   const values: PlaceValues = {};
 
@@ -523,7 +556,7 @@ export function itemResizeValues(
       if (sx < 0) values.x = quantize(right - next * size.width, GRID_FREE);
       if (sy < 0) values.y = quantize(bottom - next * size.height, GRID_FREE);
     }
-    return new Map([[keyOf(resized, item, "scale"), values]]);
+    return placeChanges([[keyOf(resized, item, "scale"), values]]);
   }
 
   if (mode === "box" && held) {
@@ -538,7 +571,7 @@ export function itemResizeValues(
       const request = quantize(card.height + dy / scale, GRID_FREE);
       values.height = request > content.height ? request : null;
     }
-    return new Map([[keyOf(resized, item, "box"), values]]);
+    return placeChanges([[keyOf(resized, item, "box"), values]]);
   }
 
   if (mode === "box") {
@@ -556,7 +589,7 @@ export function itemResizeValues(
     }
     if (sx < 0) values.x = quantize(right - scale * achieved.width, GRID_FREE);
     if (sy < 0) values.y = quantize(bottom - scale * achieved.height, GRID_FREE);
-    return new Map([[keyOf(resized, item, "box"), values]]);
+    return placeChanges([[keyOf(resized, item, "box"), values]]);
   }
 
   /** The dragged box's drawn size on an axis in `of`, in item coordinates. */
@@ -603,7 +636,7 @@ export function itemResizeValues(
   const own: PlaceValues = {};
   if (sx < 0) own.x = quantize(right - scale * sizeIn(after, "width"), GRID_FREE);
   if (sy < 0) own.y = quantize(bottom - scale * sizeIn(after, "height"), GRID_FREE);
-  return merged(changes, new Map([[item.key, own]]));
+  return merged(changes, placeChanges([[item.key, own]]));
 }
 
 /** The value of each place member a frame or a card shows. */
@@ -645,8 +678,9 @@ function refused(
 /**
  * The one `set` the inspector dispatches for a typed or stepped property:
  * `property` of every block, frame or card the selection names (core's
- * resolver, `resolveSelection`: a part of a group or of a timeline drawn in
- * a card names that frame or card; bands are left out) given `value`, or
+ * resolver, `resolveSelection` where `editing`, the innermost open editor,
+ * works: a part of a group or of a timeline drawn in a card names that
+ * frame or card; bands are left out) given `value`, or
  * `value(current)`, `current` being the element's shown value (stated, else
  * drawn). A block sets its own member; a frame or a card a member of the
  * place its resizing writes (`resizingOf`: a held card's scale and length
@@ -669,10 +703,11 @@ export function placeEdit(
   selection: Selection,
   property: PlaceProperty,
   value: number | null | ((current: number | null) => number | null),
-  level: Level,
+  editing: Editing | null,
   metrics: FontMetrics,
 ): SetCommand | null | CommandError {
-  const subjects = resolveSelection(view, selection, metrics).filter(
+  const level = levelOf(editing);
+  const subjects = resolveSelection(view, selection, editing, metrics).filter(
     (subject) => subject.box?.kind !== "band",
   );
   const [first] = subjects;
@@ -682,74 +717,79 @@ export function placeEdit(
   const block = blockIn(view, first.block);
   if (subjects.some((subject) => subject.block !== block.id)) {
     return refused(ErrorCode.wrongTargetKind, "the selection lies in several blocks", [
-      first.address,
+      addressKey(first.address),
       property,
     ]);
   }
   const drawing = drawingOf(block, view.settings, metrics);
   const valueFor = (current: number | null) =>
     typeof value === "function" ? value(current) : value;
-  const check = (target: string, given: number | null): CommandError | null => {
+  const check = (target: Address, given: number | null): CommandError | null => {
     if (given === null) {
       return property === "width" || property === "height"
         ? null
-        : refused(ErrorCode.invalidValue, `${property} needs a number`, [target, property]);
+        : refused(ErrorCode.invalidValue, `${property} needs a number`, [
+            addressKey(target),
+            property,
+          ]);
     }
     return Number.isFinite(given)
       ? null
-      : refused(ErrorCode.invalidValue, `${given} is not a number`, [target, property]);
+      : refused(ErrorCode.invalidValue, `${given} is not a number`, [addressKey(target), property]);
   };
 
-  if (subjects.every((subject) => subject.box?.kind === "box")) {
+  if (subjects.every((subject) => subject.box?.kind === "block")) {
     const given = valueFor(block[property]);
-    const error = check(block.id, given);
+    const target: Address = { block: block.id };
+    const error = check(target, given);
     if (error !== null) return error;
     if (block[property] === given) return null;
-    return { type: "set", changes: [{ target: block.id, values: { [property]: given } }] };
+    return { type: "set", changes: [{ target, values: { [property]: given } }] };
   }
 
   const boxes = new Map<string, ItemBox | CardBox>();
   for (const subject of subjects) {
     const box = subject.box;
     if (box === null || !(isItem(box) || isHeld(box))) {
-      return refused(ErrorCode.wrongTargetKind, `${subject.address} has no place to edit`, [
-        subject.address,
-        property,
-      ]);
+      return refused(
+        ErrorCode.wrongTargetKind,
+        `${addressKey(subject.address)} has no place to edit`,
+        [addressKey(subject.address), property],
+      );
     }
-    if (!boxes.has(box.address)) boxes.set(box.address, box);
+    const own = boxKey(box);
+    if (own !== null && !boxes.has(own)) boxes.set(own, box);
   }
   const written = RESIZED_BY[property];
-  const places = new Map<string, PlaceValues>();
+  const places = new Map<string, PlacedValues>();
   const keys = new Set<string>();
-  const stored: { key: string; given: number | null }[] = [];
+  const stored: { key: PlaceKey; given: number | null }[] = [];
   let edited = view;
   for (const box of boxes.values()) {
     const item = itemHolding(drawing, box);
     if (written === null && isHeld(box)) {
       return refused(ErrorCode.unknownProperty, `a held card has no ${property}`, [
-        placeTarget(block, box.key),
+        addressKey(inBlock(block.id, box.address)),
         property,
       ]);
     }
     const key = written === null ? item.key : keyOf(box, item, written);
-    if (keys.has(key)) continue;
-    keys.add(key);
+    if (keys.has(placeKeyText(key))) continue;
+    keys.add(placeKeyText(key));
     const given = valueFor(shownValues(drawing, box)[property] ?? null);
-    const error = check(placeTarget(block, key), given);
+    const placed = samePlaceKey(key, box.key) ? box : item;
+    const error = check(inBlock(block.id, placed.address), given);
     if (error !== null) return error;
     stored.push({ key, given });
     const changes =
       (property === "length" || property === "spacing") && given !== null
         ? new Stretch(edited, block.id, box, level, property, metrics).changes(given)
-        : new Map([[key, { [property]: given }]]);
-    for (const [changed, values] of changes) {
-      places.set(changed, { ...places.get(changed), ...values });
-    }
+        : placeChanges([[key, { [property]: given }]]);
+    for (const { key: changed, values } of changes.values()) setValues(places, changed, values);
     edited = withPlaces(edited, block.id, changes);
   }
   const unchanged = stored.every(({ key, given }) => {
-    const place: ItemPlace = block.places[key] ?? {};
+    const place: ItemPlace = placeAt(block.places, key) ?? {};
     return (place[property] ?? null) === given;
   });
   if (unchanged) return null;

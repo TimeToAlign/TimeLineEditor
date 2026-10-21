@@ -7,38 +7,25 @@ import {
   validate,
 } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
-import type { BandKind } from "../src/manifest/bands.ts";
-import { BAND_ID_PATTERN, BAND_KINDS, bandAddress } from "../src/manifest/bands.ts";
-import { isReservedId } from "../src/manifest/files.ts";
+import { FACETS, isFacet } from "../src/manifest/address.ts";
 import {
   bandOrderOf,
   bandOrderProblem,
-  defaultBandOrder,
+  DEFAULT_BAND_ORDER,
   inheritedBandOrder,
+  LINE,
 } from "../src/manifest/order.ts";
 import type { Manifest } from "../src/manifest/types.ts";
-import { elementOf, parseAddressSyntax, parseBand } from "../src/workspace/address.ts";
-import { A, load, loadText, manifestValue } from "./support.ts";
+import { load, loadText, manifestValue } from "./support.ts";
+
+/** The default band order, drawing.md section 4. */
+const D = ["children", "conversion_maps", "line", "markers", "regions", "flow_control"];
 
 /** The README's example band order: the marks above the line, the maps below it. */
-const R = (id: string) => [
-  `${id}/children_1`,
-  `${id}/markers_1`,
-  id,
-  `${id}/conversion_maps_1`,
-  `${id}/regions_1`,
-  `${id}/flow_control_1`,
-];
+const R = ["children", "markers", "line", "conversion_maps", "regions", "flow_control"];
 
 /** A third band order, different from the default and from `R`. */
-const K = (id: string) => [
-  `${id}/flow_control_1`,
-  id,
-  `${id}/children_1`,
-  `${id}/conversion_maps_1`,
-  `${id}/markers_1`,
-  `${id}/regions_1`,
-];
+const K = ["flow_control", "line", "children", "conversion_maps", "markers", "regions"];
 
 /** `manifest` carrying `value` as the band order of `id`, its only entry of `graphical.order`. */
 function carrying(manifest: Manifest, id: string, value: unknown): Record<string, unknown> {
@@ -68,74 +55,20 @@ function withOrder(name: string, order: Record<string, readonly string[]>): Mani
   );
 }
 
-describe("band kinds and addresses", () => {
-  it("lists the kinds in the order of the default band order", () => {
-    expect(BAND_KINDS).toEqual([
-      "children",
-      "conversion_maps",
-      "markers",
-      "regions",
-      "flow_control",
+describe("facets", () => {
+  it("lists the five facets in the order of the default band order", () => {
+    expect(FACETS).toEqual(["children", "conversion_maps", "markers", "regions", "flow_control"]);
+    expect([...FACETS, "line", "region", "card", 1].map(isFacet)).toEqual([
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
     ]);
-  });
-
-  it.each(BAND_KINDS.map((kind) => [kind]))("addresses the %s band and parses it back", (kind) => {
-    expect(bandAddress("score", kind as BandKind)).toBe(`score/${kind}_1`);
-    expect(parseBand(`score/${kind}_1`)).toEqual({ timeline: "score", kind });
-  });
-
-  it("parses a child's band, and nothing that is not a band address", () => {
-    expect(parseBand("b/flow_control_1")).toEqual({ timeline: "b", kind: "flow_control" });
-    for (const address of [
-      "score/regions_2",
-      "score/region_1",
-      "score/card",
-      "score/regions_1/label",
-      "regions_1",
-      "/regions_1",
-      "score",
-    ]) {
-      expect([address, parseBand(address)]).toEqual([address, null]);
-    }
-  });
-});
-
-describe("the reserved pattern", () => {
-  const bands = ["regions_1", "markers_1", "conversion_maps_1", "children_1", "flow_control_1"];
-  const free = ["regions_0", "regions_01", "regions", "region_1", "regions_1x", "x_regions_1"];
-  const parts = ["start", "end", "name", "label", "card"];
-
-  it("matches a band id whatever its number, and nothing else", () => {
-    for (const id of [...bands, "regions_10"])
-      expect([id, BAND_ID_PATTERN.test(id)]).toEqual([id, true]);
-    for (const id of [...free, "card"]) expect([id, BAND_ID_PATTERN.test(id)]).toEqual([id, false]);
-  });
-
-  it("reserves the band ids and the part words, and no other id", () => {
-    for (const id of [...bands, "regions_10", ...parts]) {
-      expect([id, isReservedId(id)]).toEqual([id, true]);
-    }
-    for (const id of free) expect([id, isReservedId(id)]).toEqual([id, false]);
-  });
-});
-
-describe("band addresses", () => {
-  const manifest = load("map.json");
-
-  it.each([
-    ["melody/regions_1", "melody"],
-    ["melody/children_1", "melody"],
-    ["phrase/conversion_maps_1", "phrase"],
-    ["melody/tempo", "melody/tempo"],
-  ])("read %s as a part of %s", (path, element) => {
-    expect(elementOf(manifest, path)).toBe(element);
-  });
-
-  it("split from their block as a card's address does", () => {
-    for (const part of ["regions_1", "card"]) {
-      const parsed = parseAddressSyntax(`${A}/melody/${part}`);
-      expect(parsed).toEqual({ block: A, segments: ["melody", part] });
-    }
   });
 });
 
@@ -145,107 +78,105 @@ describe("band orders", () => {
     ids.map((id) => [id, bandOrderOf(manifest, id), inheritedBandOrder(manifest, id)]);
 
   it("defaults to the children and maps above the line, the rest below", () => {
-    expect(defaultBandOrder("score")).toEqual([
-      "score/children_1",
-      "score/conversion_maps_1",
-      "score",
-      "score/markers_1",
-      "score/regions_1",
-      "score/flow_control_1",
-    ]);
+    expect(LINE).toBe("line");
+    expect(DEFAULT_BAND_ORDER).toEqual(D);
   });
 
-  it("give every timeline of a manifest without entries its default", () => {
-    expect(orders(load("nested.json"))).toEqual(
-      ids.map((id) => [id, defaultBandOrder(id), defaultBandOrder(id)]),
-    );
+  it("give every timeline of a manifest without entries the default", () => {
+    expect(orders(load("nested.json"))).toEqual(ids.map((id) => [id, D, D]));
   });
 
-  it("let a child follow its parent's entry, band by band id", () => {
-    expect(orders(withOrder("nested.json", { clt_1: R("clt_1") }))).toEqual([
-      ["clt_1", R("clt_1"), defaultBandOrder("clt_1")],
-      ["clt_3", R("clt_3"), R("clt_3")],
-      ["clt_2", R("clt_2"), R("clt_2")],
+  it("let a child follow its parent's entry verbatim", () => {
+    expect(orders(withOrder("nested.json", { clt_1: R }))).toEqual([
+      ["clt_1", R, D],
+      ["clt_3", R, R],
+      ["clt_2", R, R],
     ]);
   });
 
   it("let a grandchild follow its parent's own entry, not the root's", () => {
-    const manifest = withOrder("nested.json", { clt_1: R("clt_1"), clt_3: K("clt_3") });
+    const manifest = withOrder("nested.json", { clt_1: R, clt_3: K });
     expect(orders(manifest)).toEqual([
-      ["clt_1", R("clt_1"), defaultBandOrder("clt_1")],
-      ["clt_3", K("clt_3"), R("clt_3")],
-      ["clt_2", K("clt_2"), K("clt_2")],
+      ["clt_1", R, D],
+      ["clt_3", K, R],
+      ["clt_2", K, K],
     ]);
   });
 
   it("let a member that is a child follow its parent, a root member the default", () => {
-    const manifest = withOrder("groups/group_child_member.json", { piece: R("piece") });
+    const manifest = withOrder("groups/group_child_member.json", { piece: R });
     expect(
       ["second-half", "recording"].map((id) => [
         bandOrderOf(manifest, id),
         inheritedBandOrder(manifest, id),
       ]),
     ).toEqual([
-      [R("second-half"), R("second-half")],
-      [defaultBandOrder("recording"), defaultBandOrder("recording")],
+      [R, R],
+      [D, D],
     ]);
   });
 
-  it("give an id no timeline carries the default", () => {
+  it("give an ID no timeline carries the default", () => {
     const manifest = load("nested.json");
     expect([bandOrderOf(manifest, "nothing"), inheritedBandOrder(manifest, "nothing")]).toEqual([
-      defaultBandOrder("nothing"),
-      defaultBandOrder("nothing"),
+      D,
+      D,
     ]);
   });
 });
 
 describe("band order problems", () => {
   const manifest = load("nested.json");
-  const D = [...defaultBandOrder("clt_3")];
 
-  it.each([[D], [R("clt_3")], [K("clt_3")], [[...D].reverse()]])("accept %j", (value) => {
+  it.each([[D], [R], [K], [[...D].reverse()]])("accept %j", (value) => {
     expect(bandOrderProblem(manifest, "clt_3", value)).toBeNull();
   });
 
-  it.each([["clt_3"], [null], [{}], [["clt_3", 1]]])(
-    "refuse %j as no array of strings",
-    (value) => {
-      expect(bandOrderProblem(manifest, "clt_3", value)).toBe(
-        'the band order of "clt_3" is not an array of strings',
-      );
-    },
-  );
-
-  it("refuses a repeated entry", () => {
-    expect(bandOrderProblem(manifest, "clt_3", [...D, "clt_3"])).toBe(
-      '"clt_3" is repeated in the band order of "clt_3"',
+  it.each([["line"], [null], [{}], [["line", 1]]])("refuse %j as no array of strings", (value) => {
+    expect(bandOrderProblem(manifest, "clt_3", value)).toBe(
+      "the band order of 'clt_3' is not an array of strings",
     );
   });
 
-  it("refuses an id no timeline carries", () => {
-    expect(bandOrderProblem(manifest, "nothing", defaultBandOrder("nothing"))).toBe(
-      '"nothing" names no group or timeline of this manifest',
+  it("refuses a repeated entry", () => {
+    expect(bandOrderProblem(manifest, "clt_3", [...D, "line"])).toBe(
+      "'line' is repeated in the band order of 'clt_3'",
+    );
+  });
+
+  it("refuses an ID no timeline carries", () => {
+    expect(bandOrderProblem(manifest, "nothing", D)).toBe(
+      "'nothing' names no group or timeline of this manifest",
     );
   });
 
   const others: [string, readonly string[], string][] = [
     [
-      "an entry that is no band of the timeline",
-      [...D, "clt_3/regions_2"],
-      '"clt_3/regions_2" is not "clt_3" or one of its bands',
+      "an entry that is neither line nor a facet",
+      [...D, "region"],
+      "'region' is not 'line' or a facet, in the band order of 'clt_3'",
     ],
     [
-      "a parent's band before the band it displaces",
-      D.map((entry) => (entry === "clt_3/regions_1" ? "clt_1/regions_1" : entry)),
-      '"clt_1/regions_1" is not "clt_3" or one of its bands',
+      "the timeline's ID for its line, before the line it displaces",
+      D.map((entry) => (entry === "line" ? "clt_3" : entry)),
+      "'clt_3' is not 'line' or a facet, in the band order of 'clt_3'",
     ],
     [
-      "a missing band",
-      D.filter((entry) => entry !== "clt_3/markers_1"),
-      '"clt_3/markers_1" is missing from the band order of "clt_3"',
+      "a band address of the former string form",
+      D.map((entry) => (entry === "regions" ? "clt_3/regions_1" : entry)),
+      "'clt_3/regions_1' is not 'line' or a facet, in the band order of 'clt_3'",
     ],
-    ["an empty order", [], '"clt_3/children_1" is missing from the band order of "clt_3"'],
+    [
+      "a missing facet",
+      D.filter((entry) => entry !== "markers"),
+      "'markers' is missing from the band order of 'clt_3'",
+    ],
+    [
+      "a missing line",
+      D.filter((entry) => entry !== "line"),
+      "'line' is missing from the band order of 'clt_3'",
+    ],
+    ["an empty order", [], "'children' is missing from the band order of 'clt_3'"],
   ];
 
   it.each(others)("refuses %s as the validators do", (_, value, message) => {
@@ -253,12 +184,12 @@ describe("band order problems", () => {
     expect(identityProblems(carrying(manifest, "clt_3", value))[0]?.detail).toBe(message);
   });
 
-  it.each([["clt_3/foo"], ["clt_3/regions_0"], ["clt_3/region_1"], ["clt_3/start"]])(
-    "reports %s, which the schema's pattern refuses, as a stranger",
+  it.each([[""], ["li\u0000ne"]])(
+    "reports %j, which the schema's pattern refuses, as a stranger",
     (entry) => {
       const value = [...D, entry];
       expect(bandOrderProblem(manifest, "clt_3", value)).toBe(
-        `"${entry}" is not "clt_3" or one of its bands`,
+        `'${entry}' is not 'line' or a facet, in the band order of 'clt_3'`,
       );
       expect(validatorRefusal(carrying(manifest, "clt_3", value))).toEqual({
         path: ["graphical", "order", "clt_3", 6],
@@ -270,14 +201,14 @@ describe("band order problems", () => {
   it("refuses exactly the values the validators refuse", () => {
     const values: unknown[] = [
       D,
-      R("clt_3"),
-      K("clt_3"),
+      R,
+      K,
       [...D].reverse(),
-      "clt_3",
+      "line",
       null,
       {},
-      ["clt_3", 1],
-      [...D, "clt_3"],
+      ["line", 1],
+      [...D, "line"],
       ...others.map(([, value]) => value),
     ];
     expect(

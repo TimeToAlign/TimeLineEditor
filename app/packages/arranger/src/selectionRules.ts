@@ -6,11 +6,11 @@
  */
 
 import type { Address, View } from "@timetoalign/tilie-core";
-import { placedElement } from "@timetoalign/tilie-core";
+import { addressKey, BUNDLE_ADDRESS, placedElement, sameAddress } from "@timetoalign/tilie-core";
 import type { DrawnBox } from "@timetoalign/tilie-layout";
 import type { DescriptorSource } from "@timetoalign/tilie-writers";
 import type { Hit } from "./boxes.ts";
-import { boxOf, hitForAddress, hitOf, selectionOf } from "./boxes.ts";
+import { hitForAddress, hitOf, pressSelection, workedBox } from "./boxes.ts";
 import type { Level } from "./containers.ts";
 import { resizes } from "./containers.ts";
 import type { Editing } from "./editing.ts";
@@ -20,7 +20,7 @@ import type { Point } from "./gesture.ts";
 import type { BlockNode } from "./project.ts";
 import { insideOf } from "./project.ts";
 import type { Selection } from "./selection.ts";
-import { blockOf, click } from "./selection.ts";
+import { blockOf, click, NOTHING_SELECTED } from "./selection.ts";
 
 /** What a pointer or key target on the canvas is, read once from its event. */
 export interface Pressed {
@@ -42,17 +42,17 @@ export function hitAt(pressed: Pressed, editing: Editing | null): Hit | null {
 }
 
 /**
- * What a press on `pressed` selects (`selectionOf`): the card, the frame,
- * the band or the element it hit, or the block where it hit the block's own
- * box; `null` off every block and outside the edited element, where a press
+ * What a press on `pressed` selects (`pressSelection`): the card, the frame,
+ * the band or the element it hit, or the block where it hit the block
+ * itself; `null` off every block and outside the edited element, where a press
  * changes nothing. A band is hit only with a drawing point: a key selects
  * none.
  */
-export function pressedIn(pressed: Pressed, editing: Editing | null): string | null {
+export function pressedIn(pressed: Pressed, editing: Editing | null): Address | null {
   const hit = hitAt(pressed, editing);
   return hit === null || pressed.node === undefined
     ? null
-    : selectionOf(hit, editing, pressed.node.data.inside);
+    : pressSelection(hit, editing, pressed.node.data.inside);
 }
 
 /**
@@ -80,10 +80,10 @@ export function openable(
   editing: Editing | null,
 ): Address | null {
   if (selection.size !== 1) return null;
-  const [address] = selection;
+  const [address] = selection.values();
   const node = address === undefined ? undefined : nodes.get(blockOf(address));
   if (address === undefined || node === undefined) return null;
-  const hit = hitForAddress(node.id, node.data.drawing, address);
+  const hit = hitForAddress(node.id, node.data.drawing, address, editing);
   return hit === null ? null : editorTargetOf(view, hit, editing);
 }
 
@@ -150,7 +150,7 @@ export function clickedAt(
   const address = pressedIn(pressed, editing);
   if (address !== null) return click(selection, address, additive);
   if (!pressed.pane && !isOutside(pressed, editing)) return selection;
-  return shift ? selection : new Set();
+  return shift ? selection : NOTHING_SELECTED;
 }
 
 /** The box the resize toolbar acts on, in the block holding it. */
@@ -161,9 +161,11 @@ export interface Resizable {
 
 /**
  * What the resize toolbar acts on: the single selected box `level` resizes
- * (`resizes`), the block's own box, a group's frame or a card; on the
- * arranger any of them, in an editor one inside the edited element, the
- * edited element's own box included where the level resizes it.
+ * (`resizes`), the block itself, a group's frame or a card (for the cards
+ * of a member of several groups the one in the frame worked in,
+ * `workedBox`, and none where no frame is); on the arranger any of them, in
+ * an editor one inside the edited element, the edited element's own box
+ * included where the level resizes it.
  */
 export function resizableOf(
   selection: Selection,
@@ -171,17 +173,17 @@ export function resizableOf(
   editing: Editing | null,
   level: Level,
 ): Resizable | undefined {
-  const [address] = selection;
+  const [address] = selection.values();
   if (selection.size !== 1 || address === undefined) return undefined;
   const { block: id, element } = addressParts(address);
   const node = nodes.get(id);
   const edited = editing === null ? null : addressParts(editing.target);
   if (node === undefined || (edited !== null && edited.block !== id)) return undefined;
-  const within = edited === null ? null : edited.element;
+  const within = edited === null ? null : (edited.element?.id ?? null);
   const { block, drawing } = node.data;
-  const box = boxOf(drawing, element);
+  const box = workedBox(drawing, id, element ?? BUNDLE_ADDRESS, editing);
   if (box === undefined || box.kind === "band") return undefined;
-  if (element !== null && !insideOf(block.manifest, drawing, within).has(element)) {
+  if (element !== null && !insideOf(block.manifest, drawing, within).has(addressKey(element))) {
     return undefined;
   }
   // A frame stands for its group, a card for its timeline (core's `placedElement`).
@@ -203,6 +205,12 @@ export const DOUBLE_TAP_MS = 300;
 /** …and this many screen pixels, where a double-click would do the same. */
 export const DOUBLE_TAP_DISTANCE = 10;
 
+/** Whether two double-click actions are the same: the same symbol, or equal addresses. */
+function sameAction(left: DoubleClick, right: DoubleClick): boolean {
+  if (typeof left === "symbol" || typeof right === "symbol") return left === right;
+  return sameAddress(left, right);
+}
+
 /**
  * Whether `tap` completes a double tap begun by `previous`: within
  * `DOUBLE_TAP_MS` and `DOUBLE_TAP_DISTANCE` of it, where a double-click
@@ -211,7 +219,7 @@ export const DOUBLE_TAP_DISTANCE = 10;
 export function doubleTap(previous: Tap | null, tap: Tap): boolean {
   return (
     previous !== null &&
-    previous.action === tap.action &&
+    sameAction(previous.action, tap.action) &&
     tap.time - previous.time <= DOUBLE_TAP_MS &&
     Math.hypot(tap.x - previous.x, tap.y - previous.y) <= DOUBLE_TAP_DISTANCE
   );

@@ -1,23 +1,26 @@
 <script lang="ts">
-import { placedElement } from "@timetoalign/tilie-core";
+import type { ElementAddress } from "@timetoalign/tilie-core";
+import { addressKey, placedElement, placeKeyText, samePlaceKey } from "@timetoalign/tilie-core";
 import type { Drawing, DrawnBox } from "@timetoalign/tilie-layout";
 import type { AttributeValue, Descriptor } from "@timetoalign/tilie-writers";
-import { attributeText } from "@timetoalign/tilie-writers";
+import { ADDRESS_ATTRIBUTES, attributeText } from "@timetoalign/tilie-writers";
 import type { NodeProps } from "@xyflow/svelte";
 import { tick } from "svelte";
 import type { Attachment } from "svelte/attachments";
 import type { BandBox, Hover, Role } from "./boxes.ts";
 import {
-  boxOf,
+  boxKey,
   hitOf,
   holdingOf,
   hoverOf,
   isDisplayed,
   isHeld,
   isItem,
+  keyedBox,
   NO_HOVER,
   offeredBands,
   roleOf,
+  shapeBox,
   showsContainedSelection,
   showsSelection,
 } from "./boxes.ts";
@@ -53,10 +56,13 @@ function domValue(value: AttributeValue): string {
 /** One drawn descriptor with what every render reads of it, computed once per drawing. */
 interface Entry {
   readonly descriptor: Descriptor;
-  /** `<address>#<tag>#<n>`, `n` counting the earlier descriptors of that address and tag. */
+  /**
+   * `<address key>#<tag>#<n>`, `n` counting the earlier descriptors of that address and tag
+   * (`addressKey`).
+   */
   readonly key: string;
-  /** The element address it carries (its source's), `null` for the background. */
-  readonly address: string | null;
+  /** The element address it carries (its source's), `{}` for the background. */
+  readonly address: ElementAddress;
   readonly role: Role;
   readonly attributes: Readonly<Record<string, string>>;
   /** The frame or card whose own rectangle it draws; `undefined` for anything else. */
@@ -76,9 +82,9 @@ function isBoxShape(role: Role): boolean {
 function keyed(drawing: Drawing, descriptors: readonly Descriptor[]): Entry[] {
   const seen = new Map<string, number>();
   return descriptors.map((descriptor) => {
-    const { address } = descriptor.source;
+    const { address, element } = descriptor.source;
     const role = roleOf(descriptor);
-    const pair = `${address ?? ""}#${descriptor.tag}`;
+    const pair = `${addressKey(address)}#${descriptor.tag}`;
     const n = seen.get(pair) ?? 0;
     seen.set(pair, n + 1);
     return {
@@ -89,7 +95,7 @@ function keyed(drawing: Drawing, descriptors: readonly Descriptor[]): Entry[] {
       attributes: Object.fromEntries(
         descriptor.attrs.map(([name, value]) => [name, domValue(value)]),
       ),
-      box: address !== null && isBoxShape(role) ? boxOf(drawing, address) : undefined,
+      box: isBoxShape(role) ? shapeBox(drawing, element) : undefined,
     };
   });
 }
@@ -97,14 +103,21 @@ function keyed(drawing: Drawing, descriptors: readonly Descriptor[]): Entry[] {
 const entries = $derived(keyed(data.drawing, data.descriptors));
 
 /**
- * The entries a mark copies, by element address: each frame's and card's own
- * rectangle and each segment boundary's line.
+ * The entries a mark copies: each frame's and card's own rectangle by its
+ * box's place key (`boxKey`), each segment boundary's line by its address's
+ * key (`addressKey`).
  */
 const shapes = $derived.by(() => {
   const found = new Map<string, Entry[]>();
   for (const entry of entries) {
-    if (entry.address === null || (!isBoxShape(entry.role) && entry.role !== "boundary")) continue;
-    found.set(entry.address, [...(found.get(entry.address) ?? []), entry]);
+    const key =
+      entry.box !== undefined
+        ? boxKey(entry.box)
+        : entry.role === "boundary"
+          ? addressKey(entry.address)
+          : null;
+    if (key === null) continue;
+    found.set(key, [...(found.get(key) ?? []), entry]);
   }
   return found;
 });
@@ -143,11 +156,11 @@ function glows(entry: Entry): boolean {
   return !isBoxShape(entry.role) && isSelected(entry);
 }
 
-/** The block's own box, and its cards and frames, holding part of the selection. */
+/** The block itself, and its cards and frames, holding part of the selection. */
 const holding = $derived(holdingOf(data.drawing, data.selectedElements));
 
 function holdsSelection(entry: Entry): boolean {
-  return showsContainedSelection(entry.role, entry.address, holding.boxes);
+  return showsContainedSelection(entry.role, entry.box, holding.boxes);
 }
 
 /**
@@ -158,16 +171,17 @@ function holdsSelection(entry: Entry): boolean {
  */
 const holdingMarks = $derived(
   entries.filter((entry) =>
-    entry.role === "box" ? holding.block : holdsSelection(entry) && !isSelected(entry),
+    entry.role === "block" ? holding.block : holdsSelection(entry) && !isSelected(entry),
   ),
 );
 
 /**
  * A mark over the drawing: a copy of a box's outline or a boundary's line,
  * with its kind. Every mark, a holding mark's and a band's too, is one
- * `.tilie-mark` element: `data-mark` its kind, `data-marks` the element
- * address it marks (none for the block's own box), `data-box` the container
- * it outlines (`box`, `frame`, `card`, `band`; none for a boundary).
+ * `.tilie-mark` element: `data-mark` its kind, `data-marks` the key
+ * (`addressKey`) of the element address it marks (`{}` for the block),
+ * `data-box` the container it outlines (`block`, `frame`, `card`, `band`;
+ * none for a boundary).
  */
 interface Mark {
   readonly entry: Entry;
@@ -187,11 +201,12 @@ const selectionMarks: readonly Mark[] = $derived(
  * these marks alone, never an element of the drawing.
  */
 const hoverMarks: readonly Mark[] = $derived(
-  [hover.box, hover.boundary].flatMap((address) =>
-    address === null || !data.inside.has(address)
+  [hover.box, hover.boundary].flatMap((key) =>
+    key === null
       ? []
-      : (shapes.get(address) ?? []).flatMap((entry) =>
-          entry.role === "boundary" || !isSelected(entry)
+      : (shapes.get(key) ?? []).flatMap((entry) =>
+          data.inside.has(addressKey(entry.address)) &&
+          (entry.role === "boundary" || !isSelected(entry))
             ? [{ entry, mark: "hover" as const }]
             : [],
         ),
@@ -200,21 +215,26 @@ const hoverMarks: readonly Mark[] = $derived(
 
 const OUTLINE = ["x", "y", "width", "height", "rx"];
 
+/** Whether `name` is one of the attributes a descriptor writes its address with. */
+function isAddressAttribute(name: string): boolean {
+  return ADDRESS_ATTRIBUTES.some((attribute) => attribute === name);
+}
+
 /**
  * A mark's shape: its box's rectangle and corner radius, or its line with
- * every attribute but the address, so a mark is never read as the element.
+ * every attribute but the address's, so a mark is never read as the element.
  */
 function shapeOf(entry: Entry): Record<string, string> {
   return Object.fromEntries(
     Object.entries(entry.attributes).filter(([name]) =>
-      entry.descriptor.tag === "rect" ? OUTLINE.includes(name) : name !== "data-address",
+      entry.descriptor.tag === "rect" ? OUTLINE.includes(name) : !isAddressAttribute(name),
     ),
   );
 }
 
 /** Whether the element lies under a selected one, and so goes with it on Delete. */
 function isAffected(entry: Entry): boolean {
-  return entry.address !== null && data.affectedElements.has(entry.address);
+  return data.affectedElements.has(addressKey(entry.address));
 }
 
 /**
@@ -234,7 +254,7 @@ const edited = $derived.by(() => {
  */
 function isOutside(entry: Entry): boolean {
   if (edited == null) return false;
-  return entry.address === null || !data.inside.has(entry.address);
+  return !data.inside.has(addressKey(entry.address));
 }
 
 /** The timeline whose bands this block offers (`bandTimelineOf`), else `null`. */
@@ -256,8 +276,9 @@ const bandMarks: readonly BandMark[] = $derived(
   bandTimeline === null
     ? []
     : offeredBands(data.drawing, bandTimeline).flatMap((band): BandMark[] => {
-        if (data.selectedElements.has(band.address)) return [{ band, mark: "selection" }];
-        return band.address === hover.band ? [{ band, mark: "hover" }] : [];
+        const key = addressKey(band.address);
+        if (data.selectedElements.has(key)) return [{ band, mark: "selection" }];
+        return key === hover.band ? [{ band, mark: "hover" }] : [];
       }),
 );
 
@@ -266,7 +287,7 @@ const bandMarks: readonly BandMark[] = $derived(
  * cascade styles it; square where the card is not drawn.
  */
 function radiusOf(drawing: Drawing, band: BandBox): number {
-  const card = band.holder === null ? undefined : boxOf(drawing, band.holder);
+  const card = band.holder === null ? undefined : keyedBox(drawing, band.holder);
   if (card === undefined || !isDisplayed(card)) return 0;
   const element = drawing.elements[card.range.start];
   return element?.type === "card" ? element.style.rx : 0;
@@ -358,12 +379,14 @@ function gestureOf(box: DrawnBox | undefined): Attachment<Element> | undefined {
   const offered = LEVELS[data.editing.kind];
   const { key } = box;
   if (offered.move && isItem(box)) {
-    return once(`item ${key}`, () => pointerGesture(itemGesture(host, key), options));
+    return once(`item ${placeKeyText(key)}`, () => pointerGesture(itemGesture(host, key), options));
   }
   const member = placedElement(data.block.manifest, key);
-  if (offered.reorder && edited !== null && isHeld(box) && box.holder === edited && member) {
-    const group = edited;
-    return once(`held ${group} ${key}`, () =>
+  const group = edited?.id;
+  const inEdited =
+    group !== undefined && box.holder !== null && samePlaceKey(box.holder, { item: group });
+  if (offered.reorder && inEdited && isHeld(box) && member) {
+    return once(`held ${placeKeyText(key)}`, () =>
       pointerGesture(heldGesture(host, group, member), options),
     );
   }
@@ -388,11 +411,11 @@ function settling(settled: Ghost): Attachment<SVGGElement> | undefined {
     });
 }
 
-/** A ghost's attributes: those of its descriptor, its address left out. */
+/** A ghost's attributes: those of its descriptor, its address's left out. */
 function ghostAttributesOf(descriptor: Descriptor): Record<string, string> {
   const attributes: Record<string, string> = {};
   for (const [name, value] of descriptor.attrs) {
-    if (name !== "data-address") attributes[name] = domValue(value);
+    if (!isAddressAttribute(name)) attributes[name] = domValue(value);
   }
   return attributes;
 }
@@ -434,7 +457,7 @@ function ghostAttributesOf(descriptor: Descriptor): Record<string, string> {
         {...shapeOf(entry)}
         class="tilie-mark"
         data-mark="holding"
-        data-marks={entry.address}
+        data-marks={addressKey(entry.address)}
         data-box={entry.role}
         aria-hidden="true"
       />
@@ -445,7 +468,7 @@ function ghostAttributesOf(descriptor: Descriptor): Record<string, string> {
         {...shapeOf(entry)}
         class="tilie-mark"
         data-mark={mark}
-        data-marks={entry.address}
+        data-marks={addressKey(entry.address)}
         data-box={isBoxShape(entry.role) ? entry.role : undefined}
         aria-hidden="true"
       />
@@ -454,7 +477,7 @@ function ghostAttributesOf(descriptor: Descriptor): Record<string, string> {
       <rect
         class="tilie-mark"
         data-mark={mark}
-        data-marks={band.address}
+        data-marks={addressKey(band.address)}
         data-box="band"
         x={band.x}
         y={band.y}

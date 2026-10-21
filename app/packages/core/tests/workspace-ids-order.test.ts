@@ -1,11 +1,8 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { isProblem } from "../src/manifest/invariants.ts";
-import { elementIn, parseAddressSyntax, qualify } from "../src/workspace/address.ts";
 import { BLOCK_ID } from "../src/workspace/blocks.ts";
-import { mintBlockId, nextId, TIMELINE_PREFIX } from "../src/workspace/ids.ts";
+import { mintBlockId, TIMELINE_PREFIX } from "../src/workspace/ids.ts";
 import { indexBetween, indicesBetween, isIndex } from "../src/workspace/order.ts";
-import { A, B, changed, load, refusal, viewOf } from "./support.ts";
 
 describe("block ids", () => {
   it("uses one byte per attempt and rejects the top four values", () => {
@@ -33,42 +30,6 @@ describe("element ids", () => {
       ContinuousGraphicalTimeline: "cgt",
       DiscreteGraphicalTimeline: "dgt",
     });
-  });
-
-  it("takes the smallest suffix no element of a one-root block carries, of any kind", () => {
-    const bare = load("bare.json");
-    const childOf = (id: string) => ({
-      type: "add",
-      into: `${A}/bare`,
-      child: { ...bare.timelines[0], id, offset: [0, 1], locked: true },
-    });
-    let view = viewOf([A, "bare.json"]);
-    expect(nextId(view, A, "clt")).toBe("clt_1");
-    view = changed(changed(view, childOf("clt_1")), childOf("clt_3"));
-    expect(nextId(view, A, "clt")).toBe("clt_2");
-    const tempo = load("map.json").timelines[0]?.conversion_maps[0];
-    view = changed(view, { type: "add", into: `${A}/bare`, map: { ...tempo, id: "map_1" } });
-    expect(nextId(view, A, "map")).toBe("map_2");
-    expect(nextId(view, B, "clt")).toBe("clt_1");
-  });
-});
-
-describe("addresses", () => {
-  it.each([
-    ["workspace", null, []],
-    ["0000000000", A, []],
-    ["0000000000/clt_1", A, ["clt_1"]],
-    ["0000000000/clt_1/start", A, ["clt_1", "start"]],
-  ] as const)("splits %s and qualifies its element back", (text, block, segments) => {
-    const parsed = parseAddressSyntax(text);
-    expect(parsed).toEqual({ block, segments });
-    if (isProblem(parsed) || parsed.block === null) return;
-    const element = elementIn(parsed);
-    expect(element === null ? parsed.block : qualify(parsed.block, element)).toBe(text);
-  });
-
-  it.each(["short", "0000000000/"])("refuses %s", (text) => {
-    expect(refusal(parseAddressSyntax(text))).toEqual({ code: "invalid_address", path: [text] });
   });
 });
 

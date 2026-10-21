@@ -66,11 +66,14 @@ export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
  *
  * For a load, the path points into the text read: into the manifest, or into
  * the workspace file (`["blocks", <id>, "manifest", ...]`). For a command,
- * it starts with the address of the target at fault, followed by the
- * property or kind at fault (`[<address>, "length"]`), or by `"manifest"`
- * and a location in the manifest the command would leave (`[<block id>,
- * "manifest", "timelines", 0, ...]`). Only a malformed command, which has no
- * target, names the malformed member of the command itself.
+ * it starts with the address key (`addressKey`) of the target at fault,
+ * followed by the property at fault (`[<address key>, "length"]`) or, for
+ * a value `add` puts in, by its kind and the location in the value
+ * (`[<address key of into>, "timeline", "id"]`). A problem of the manifest
+ * the command would leave lies there instead: at the block's ID, `"manifest"`
+ * and the location in that manifest (`[<block id>, "manifest", "timelines",
+ * 0, ...]`). Only a malformed command, which has no target, names the
+ * malformed member of the command itself.
  */
 export interface Problem {
   readonly code: ErrorCode;

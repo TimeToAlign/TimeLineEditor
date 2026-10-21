@@ -27,10 +27,9 @@ import type { CommandError } from "../errors.ts";
 import { ErrorCode, isCommandError, JournalMismatchError, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";
 import { compareCodePoints, jsonEqual } from "../json.ts";
-import { contains } from "../manifest/contains.ts";
+import { addressKey, sameAddress } from "../manifest/address.ts";
 import { toJson } from "../values.ts";
 import type { Address } from "./address.ts";
-import { elementIn, parseAddressSyntax } from "./address.ts";
 import { sideEffect } from "./guard.ts";
 import type {
   CommandEntry,
@@ -49,6 +48,7 @@ import {
   keepChanges,
   listEntries,
   mintSessionId,
+  opensInside,
   reachedSessions,
 } from "./sessions.ts";
 import type { View } from "./view.ts";
@@ -266,6 +266,11 @@ function copyLevel(level: Level): Level {
   };
 }
 
+/** Whether a closed session edited `target`. */
+function sameSessionTarget(session: { readonly target: Address } | undefined, target: Address) {
+  return session !== undefined && sameAddress(session.target, target);
+}
+
 /**
  * A store holding `workspace`, its journal verified first: replaying it from
  * the empty workspace must reproduce the workspace's view, or
@@ -385,18 +390,8 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
   };
 
   /** Whether `target` lies inside the editor `outer` and is not its target. */
-  const inside = (outer: OpenEditor, target: Address): boolean => {
-    if (target === outer.target) return false;
-    const container = parseAddressSyntax(outer.target);
-    const element = parseAddressSyntax(target);
-    if (isCommandError(container) || isCommandError(element)) return false;
-    const inner = elementIn(element);
-    if (element.block === null || element.block !== container.block || inner === null) return false;
-    const outerElement = elementIn(container);
-    if (outerElement === null) return true;
-    const manifest = current().blocks[element.block]?.manifest;
-    return manifest !== undefined && contains(manifest, outerElement, inner);
-  };
+  const inside = (outer: OpenEditor, target: Address): boolean =>
+    opensInside(current(), outer.target, target);
 
   const close = () => {
     levels.pop();
@@ -497,8 +492,8 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
       if (original.editor !== null && !inside(original.editor, target)) {
         return problem(
           ErrorCode.notInside,
-          `${target} does not lie inside ${original.editor.target}`,
-          [target],
+          `${addressKey(target)} does not lie inside ${addressKey(original.editor.target)}`,
+          [addressKey(target)],
         );
       }
       const opened = sessions;
@@ -511,7 +506,7 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
         last !== null &&
         entry !== undefined &&
         isSessionEntry(entry) &&
-        sessions[entry.session]?.target === target
+        sameSessionTarget(sessions[entry.session], target)
       ) {
         // The level's last entry holding an applied change is a session of the
         // same target: it is unfolded, its applied changes the editor's
@@ -540,9 +535,9 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
       } else {
         const earlier = below.entries
           .slice(0, (last?.index ?? -1) + 1)
-          .findLast((item) => isSessionEntry(item) && sessions[item.session]?.target === target) as
-          | SessionEntry
-          | undefined;
+          .findLast(
+            (item) => isSessionEntry(item) && sameSessionTarget(sessions[item.session], target),
+          ) as SessionEntry | undefined;
         let session = mintSessionId();
         while (Object.hasOwn(sessions, session)) session = mintSessionId();
         level = {

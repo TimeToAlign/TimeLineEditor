@@ -1,11 +1,16 @@
-import type { Block, View } from "@timetoalign/tilie-core";
+import type { Address, Block, ElementAddress, View } from "@timetoalign/tilie-core";
 import {
+  addressKey,
   apply,
   createView,
-  elementOf,
+  idAddress,
+  inBlock,
   isCommandError,
   manifestIds,
-  parseBand,
+  placeAt,
+  placeKeyText,
+  samePlaceKey,
+  WORKSPACE,
 } from "@timetoalign/tilie-core";
 import { manifestElements } from "@timetoalign/tilie-core/drawing";
 import type { Drawing, DrawnBox } from "@timetoalign/tilie-layout";
@@ -13,15 +18,16 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { affectedBy } from "../src/affected.ts";
 import type { CardBox, ItemBox } from "../src/boxes.ts";
-import { boxOf, isHeld, isItem, itemHolding } from "../src/boxes.ts";
+import { isHeld, isItem, itemHolding, keyedBox } from "../src/boxes.ts";
 import type { ZOrderAction } from "../src/commands.ts";
 import { moveCommand, nudgeCommand, removeCommand, zOrderCommand } from "../src/commands.ts";
 import { drawingOf } from "../src/drawing.ts";
-import { placeTarget } from "../src/editing.ts";
+import { placeChange } from "../src/editing.ts";
 import { itemHandlesFor, itemResizeCommand, itemResizeValues } from "../src/items.ts";
 import { project } from "../src/project.ts";
 import type { ResizeMode } from "../src/resize.ts";
 import { handlesFor, resize, resizeCommand } from "../src/resize.ts";
+import { selectionOf } from "../src/selection.ts";
 import {
   A,
   blockIn,
@@ -110,7 +116,7 @@ function initial(specs: readonly { fixture: string; x: number; y: number }[]): V
     (view, { fixture, x, y }, index) =>
       changed(view, {
         type: "add",
-        into: "workspace",
+        into: WORKSPACE,
         block: { id: `000000000${index}`, manifest: load(fixture), x, y },
       }),
     createView(),
@@ -118,16 +124,17 @@ function initial(specs: readonly { fixture: string; x: number; y: number }[]): V
 }
 
 /**
- * Every address a click can select in `view`: block ids, then the addresses
- * of their drawn elements and parts (a jump target is not drawn).
+ * Every address a click can select in `view`: the blocks, then the addresses
+ * of their drawn elements and parts (a jump target is not drawn), the
+ * block's background, which a click takes for the block, left out.
  */
-function addresses(view: View): string[] {
+function addresses(view: View): Address[] {
   const ids = Object.keys(view.blocks).sort();
   const drawn = (id: string) =>
     drawingOf(view.blocks[id] as Block, view.settings, metrics).elements.flatMap((element) =>
-      element.address === null ? [] : [`${id}/${element.address}`],
+      element.type === "block" ? [] : [inBlock(id, element.address)],
     );
-  return [...ids, ...ids.flatMap(drawn)];
+  return [...ids.map((block) => ({ block })), ...ids.flatMap(drawn)];
 }
 
 /** The frames and cards of a drawing, the boxes a resize acts on, in drawing order. */
@@ -184,21 +191,22 @@ function commandOf(view: View, item: Gesture): object | null {
         ...(item.width === undefined ? {} : { width: item.width / 2048 }),
         ...(item.height === undefined ? {} : { height: item.height / 2048 }),
       };
-      const key = keys[item.box % keys.length] as string;
-      const stated = block.places[key];
+      const key = keys[item.box % keys.length];
+      if (key === undefined) return null;
+      const stated = placeAt(block.places, key);
       // A request its place states already changes nothing, so it gives no command.
       const same = ([member, value]: [string, number]) =>
         stated?.[member as "width" | "height"] === value;
       if (Object.entries(place).every(same)) return null;
-      return { type: "set", changes: [{ target: placeTarget(block, key), values: { place } }] };
+      return { type: "set", changes: [placeChange(block, key, place)] };
     }
     case "remove": {
       const all = addresses(view);
-      const command = removeCommand(
-        view,
-        new Set(item.picks.map((pick) => all[pick % all.length] as string)),
-        null,
-      );
+      const picked = item.picks.flatMap((pick) => {
+        const address = all[pick % all.length];
+        return address === undefined ? [] : [address];
+      });
+      const command = removeCommand(view, selectionOf(picked), null);
       return "refused" in command ? null : command;
     }
   }
@@ -267,21 +275,18 @@ describe("a member's Stretch", () => {
         (card, frameSteps, sized, cardSteps, level, dx) => {
           let framed = view;
           if (frameSteps !== null) {
-            framed = placed(framed, A, groupOf(card), { width: frameSteps / 2048 });
+            framed = placed(framed, A, groupOf(card).item, { width: frameSteps / 2048 });
           }
           if (cardSteps !== null)
             framed = changed(framed, {
               type: "set",
-              changes: [
-                {
-                  target: placeTarget(blockIn(framed, A), sized.key),
-                  values: { place: { width: cardSteps / 2048 } },
-                },
-              ],
+              changes: [placeChange(blockIn(framed, A), sized.key, { width: cardSteps / 2048 })],
             });
           const block = blockIn(framed, A);
           const group = groupOf(card);
-          const members = new Set(cards.filter((c) => groupOf(c) === group).map((c) => c.key));
+          const members = new Set(
+            cards.filter((c) => samePlaceKey(groupOf(c), group)).map((c) => placeKeyText(c.key)),
+          );
           const values = itemResizeValues(
             framed,
             A,
@@ -292,22 +297,26 @@ describe("a member's Stretch", () => {
             { dx, dy: 0 },
             metrics,
           );
-          for (const [key, place] of values) {
-            if (key === group) {
+          for (const { key, values: place } of values.values()) {
+            if (samePlaceKey(key, group)) {
               expect(
                 Object.keys(place).every((member) => ["length", "width"].includes(member)),
               ).toBe(true);
               expect(place.length).toBeTypeOf("number");
             } else {
-              expect(members.has(key)).toBe(true);
+              expect(members.has(placeKeyText(key))).toBe(true);
               expect(Object.keys(place)).toEqual(["width"]);
             }
-            if (block.places[key]?.width === undefined) expect(place.width).toBeUndefined();
+            if (placeAt(block.places, key)?.width === undefined) {
+              expect(place.width).toBeUndefined();
+            }
           }
           const store = storeOf(framed);
-          const editor = { arranger: null, bundle: A, timeline: placeTarget(block, card.key) }[
-            level
-          ];
+          const editor = {
+            arranger: null,
+            bundle: { block: A },
+            timeline: inBlock(A, idAddress(card.key.member ?? card.key.item)),
+          }[level];
           if (editor !== null) expect(store.open(editor)).toBeNull();
           const command = itemResizeCommand(framed, A, values, level, metrics);
           if (command !== null) expect(store.dispatch(command)).toBeNull();
@@ -345,13 +354,13 @@ function stretchCase(
   const size = box === null ? drawing : isItem(box) ? box.item.place : box.card.size;
   const width = request(widthRatio, size.width);
   const height = request(heightRatio, size.height);
-  const target = box === null ? A : placeTarget(blockIn(start, A), box.key);
-  const values = box === null ? { width, height } : { place: { width, height } };
+  const change =
+    box === null
+      ? { target: { block: A }, values: { width, height } }
+      : placeChange(blockIn(start, A), box.key, { width, height });
   // Without a request the box is the view as added, which states none.
   const view =
-    width === null && height === null
-      ? start
-      : changed(start, { type: "set", changes: [{ target, values }] });
+    width === null && height === null ? start : changed(start, { type: "set", changes: [change] });
   /** The stretched value, and the dragged box's extent on the stretched axis. */
   const state = (of: View) => {
     const block = blockIn(of, A);
@@ -362,8 +371,8 @@ function stretchCase(
         edge: vertical ? drawn.height : drawn.width,
       };
     }
-    const own = boxOf(drawn, box.address);
-    if (own === undefined) throw new Error(`no box ${box.address}`);
+    const own = keyedBox(drawn, box.key);
+    if (own === undefined) throw new Error(`no box ${placeKeyText(box.key)}`);
     const item = itemHolding(drawn, own);
     const extent = isHeld(own) ? own.card.size : item.item.place;
     return {
@@ -490,8 +499,11 @@ describe("projection", () => {
             if (command !== null) view = changed(view, command);
           }
           const all = addresses(view);
-          const selection = new Set(
-            all.length === 0 ? [] : picks.map((pick) => all[pick % all.length] as string),
+          const selection = selectionOf(
+            picks.flatMap((pick) => {
+              const address = all[pick % all.length];
+              return address === undefined ? [] : [address];
+            }),
           );
           const first = project(view, selection, [], metrics, null);
           const second = project(view, selection, first, metrics, null);
@@ -516,16 +528,28 @@ describe("affectedBy", () => {
         (fixture, picks) => {
           const view = fixture === "numbers" ? numbersView() : initial([{ fixture, x: 0, y: 0 }]);
           const manifest = blockIn(view, A).manifest;
+          // Every element address but the block's own, which no element selection holds.
           const elements = manifestElements(manifest).flatMap((key) =>
-            key.address === null ? [] : [key.address],
+            key.type === "block" ? [] : [key.address],
           );
-          const local = new Set(picks.map((pick) => elements[pick % elements.length] as string));
-          const owners = [...local]
-            .filter((address) => parseBand(address) === null)
-            .map((address) => elementOf(manifest, address));
+          const local = new Map<string, ElementAddress>();
+          for (const pick of picks) {
+            const address = elements[pick % elements.length];
+            if (address !== undefined) local.set(addressKey(address), address);
+          }
+          // A part or a card stands for the element whose ID it carries; a band for nothing.
+          const owners = [
+            ...new Map(
+              [...local.values()].flatMap((address): [string, ElementAddress][] => {
+                if (address.facet !== undefined) return [];
+                const owner = address.id === undefined ? address : idAddress(address.id);
+                return [[addressKey(owner), owner]];
+              }),
+            ).values(),
+          ];
           const command = removeCommand(
             view,
-            new Set([...local].map((path) => `${A}/${path}`)),
+            selectionOf([...local.values()].map((address) => inBlock(A, address))),
             null,
           );
           if (owners.length === 0) {
@@ -534,13 +558,18 @@ describe("affectedBy", () => {
             });
             return;
           }
-          const direct = apply(view, { type: "remove", targets: owners.map((o) => `${A}/${o}`) });
+          const direct = apply(view, {
+            type: "remove",
+            targets: owners.map((owner) => inBlock(A, owner)),
+          });
           expect("refused" in command).toBe(isCommandError(direct));
           if ("refused" in command) return;
           const before = manifestIds(manifest);
           const after = manifestIds(blockIn(changed(view, command), A).manifest);
+          const affected = affectedBy(manifest, local, null);
+          const ownerIds = new Set(owners.flatMap(({ id }) => (id === undefined ? [] : [id])));
           const expected = new Set(
-            [...owners, ...affectedBy(manifest, local, null)].filter((item) => before.has(item)),
+            [...before].filter((id) => ownerIds.has(id) || affected.has(addressKey(idAddress(id)))),
           );
           expect(new Set([...before].filter((item) => !after.has(item)))).toEqual(expected);
         },

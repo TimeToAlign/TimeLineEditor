@@ -1,5 +1,6 @@
 /** The arithmetic of one member drawing; every number is derived in tests/README.md. */
 
+import type { ElementAddress } from "@timetoalign/tilie-core";
 import { Rational } from "@timetoalign/tilie-core/numbers";
 import { describe, expect, it } from "vitest";
 import {
@@ -10,7 +11,7 @@ import {
   type Placement,
   type RectElement,
 } from "../src/index.ts";
-import { build, drawFixture, element, metrics } from "./support.ts";
+import { at, build, drawFixture, element, metrics } from "./support.ts";
 
 /** The member drawing's elements in descriptor order: no block, no card, no styles. */
 function member(drawing: Drawing): unknown[] {
@@ -21,10 +22,10 @@ function member(drawing: Drawing): unknown[] {
 
 /** The member drawing's height `Hm`: its card's height. */
 const height = (drawing: Drawing, root: string) =>
-  (element(drawing, `${root}/card`) as RectElement).height;
+  (element(drawing, at(root, "card")) as RectElement).height;
 
 /** The default placement at `length` with `places`. */
-const at = (length: number, places: Placement["places"] = {}): Placement => ({
+const placedAt = (length: number, places: Placement["places"] = {}): Placement => ({
   ...DEFAULT_PLACEMENT,
   length,
   places,
@@ -32,7 +33,7 @@ const at = (length: number, places: Placement["places"] = {}): Placement => ({
 const q = (value: number) => ({ unit: "quarters", value: Rational.of(value) });
 const root = { type: "timeline", start: "circle", end: "arrowhead" } as const;
 const child = { type: "child", start: "circle", end: "diamond" } as const;
-const name = (address: string, baseline: number, text: string) => ({
+const name = (address: ElementAddress, baseline: number, text: string) => ({
   type: "name",
   address,
   x: 16,
@@ -40,7 +41,7 @@ const name = (address: string, baseline: number, text: string) => ({
   anchor: "start",
   text,
 });
-const label = (address: string, x: number, baseline: number, text: string) => ({
+const label = (address: ElementAddress, x: number, baseline: number, text: string) => ({
   type: "label",
   address,
   x,
@@ -71,10 +72,10 @@ describe("styled__score", () => {
   type JumpPoints = Record<"c1" | "c2" | "base" | "left" | "right", [number, number]>;
   /** The member drawing at card spacing `S`, its ordinates given (README). */
   const expected = (y: Ordinates, jump: JumpPoints) => [
-    { type: "map", address: "score/ticks", xs: x0, xe, yc: y.map, spacing: 2 },
+    { type: "map", address: at("ticks"), xs: x0, xe, yc: y.map, spacing: 2 },
     {
       type: "region",
-      address: "score/intro",
+      address: at("intro"),
       x1: x0,
       x2: 198.080078125,
       xm: 148.080078125,
@@ -83,7 +84,7 @@ describe("styled__score", () => {
     },
     {
       type: "jump_from",
-      address: "score/da-capo",
+      address: at("da-capo"),
       start: [xe, y.flow],
       c1: jump.c1,
       c2: jump.c2,
@@ -91,16 +92,16 @@ describe("styled__score", () => {
       base: jump.base,
       corners: [jump.left, jump.right],
     },
-    { ...root, address: "score", xs: x0, xe, y: y.root },
-    { ...child, address: "b", xs: 298.080078125, xe, y: y.b },
-    { type: "wedge", address: "score/start", x: x0, yt: y.tipW, yb: y.baseW, base: 6 },
-    { type: "wedge", address: "score/end", x: xe, yt: y.tipW, yb: y.baseW, base: 6 },
-    name("b/name", y.bName, "b"),
-    name("score/name", y.scoreName, "Styled score"),
-    { ...label("score/start/label", x0, y.wedgeLabel, "0 ♩"), coordinate: q(0) },
-    { ...label("score/end/label", xe, y.wedgeLabel, "8 ♩"), coordinate: q(8) },
-    label("score/intro/label", 148.080078125, y.regionLabel, "intro"),
-    label("score/da-capo/label", 298.080078125, y.jumpLabel, "D.C."),
+    { ...root, address: at("score"), xs: x0, xe, y: y.root },
+    { ...child, address: at("b"), xs: 298.080078125, xe, y: y.b },
+    { type: "wedge", address: at("score", "start"), x: x0, yt: y.tipW, yb: y.baseW, base: 6 },
+    { type: "wedge", address: at("score", "end"), x: xe, yt: y.tipW, yb: y.baseW, base: 6 },
+    name(at("b", "name"), y.bName, "b"),
+    name(at("score", "name"), y.scoreName, "Styled score"),
+    { ...label(at("score", "start", "label"), x0, y.wedgeLabel, "0 ♩"), coordinate: q(0) },
+    { ...label(at("score", "end", "label"), xe, y.wedgeLabel, "8 ♩"), coordinate: q(8) },
+    label(at("intro", "label"), 148.080078125, y.regionLabel, "intro"),
+    label(at("da-capo", "label"), 298.080078125, y.jumpLabel, "D.C."),
   ];
 
   it("draws the hand-derived member drawing", () => {
@@ -135,7 +136,7 @@ describe("styled__score", () => {
   });
 
   it("sums each distance outwards whole before it becomes an ordinate (card spacing 2.63)", () => {
-    const drawing = drawFixture("styled__score", [], at(400, { score: { spacing: 2.63 } }));
+    const drawing = drawFixture("styled__score", [], placedAt(400, { score: { spacing: 2.63 } }));
     expect(member(drawing)).toEqual(
       expected(
         {
@@ -166,7 +167,7 @@ describe("styled__score", () => {
   });
 
   it("sums each band's width before adding its start (card spacing 0.7)", () => {
-    const drawing = drawFixture("styled__score", [], at(400, { score: { spacing: 0.7 } }));
+    const drawing = drawFixture("styled__score", [], placedAt(400, { score: { spacing: 0.7 } }));
     expect(member(drawing)).toEqual(
       expected(
         {
@@ -199,20 +200,20 @@ describe("styled__score", () => {
 
 describe("nested at length 800 and card spacing 8", () => {
   it("draws the hand-derived member drawing", () => {
-    const drawing = drawFixture("nested", [], at(800, { clt_1: { spacing: 8 } }));
+    const drawing = drawFixture("nested", [], placedAt(800, { clt_1: { spacing: 8 } }));
     const x0 = 49.91552734375;
     const xe = 849.91552734375;
     expect(member(drawing)).toEqual([
-      { ...root, address: "clt_1", xs: x0, xe, y: 62 },
-      { ...child, address: "clt_3", xs: 249.91552734375, xe: 649.91552734375, y: 43.5 },
-      { ...child, address: "clt_2", xs: 324.91552734375, xe: 424.91552734375, y: 25 },
-      { type: "wedge", address: "clt_1/start", x: x0, yt: 63.5, yb: 76.5, base: 6 },
-      { type: "wedge", address: "clt_1/end", x: xe, yt: 63.5, yb: 76.5, base: 6 },
-      name("clt_2/name", 28.80810546875, "clt_2"),
-      name("clt_3/name", 47.30810546875, "clt_3"),
-      name("clt_1/name", 65.80810546875, "clt_1"),
-      { ...label("clt_1/start/label", x0, 86.85400390625, "0 ♩"), coordinate: q(0) },
-      { ...label("clt_1/end/label", xe, 86.85400390625, "16 ♩"), coordinate: q(16) },
+      { ...root, address: at("clt_1"), xs: x0, xe, y: 62 },
+      { ...child, address: at("clt_3"), xs: 249.91552734375, xe: 649.91552734375, y: 43.5 },
+      { ...child, address: at("clt_2"), xs: 324.91552734375, xe: 424.91552734375, y: 25 },
+      { type: "wedge", address: at("clt_1", "start"), x: x0, yt: 63.5, yb: 76.5, base: 6 },
+      { type: "wedge", address: at("clt_1", "end"), x: xe, yt: 63.5, yb: 76.5, base: 6 },
+      name(at("clt_2", "name"), 28.80810546875, "clt_2"),
+      name(at("clt_3", "name"), 47.30810546875, "clt_3"),
+      name(at("clt_1", "name"), 65.80810546875, "clt_1"),
+      { ...label(at("clt_1", "start", "label"), x0, 86.85400390625, "0 ♩"), coordinate: q(0) },
+      { ...label(at("clt_1", "end", "label"), xe, 86.85400390625, "16 ♩"), coordinate: q(16) },
     ]);
     expect(height(drawing, "clt_1")).toBe(88.9765625);
   });
@@ -220,13 +221,13 @@ describe("nested at length 800 and card spacing 8", () => {
 
 describe("wedge-label tiers", () => {
   const labels = (drawing: Drawing) =>
-    ["bare/start/label", "bare/end/label"].map((address) => {
+    [at("bare", "start", "label"), at("bare", "end", "label")].map((address) => {
       const item = element(drawing, address) as { x: number; baseline: number };
       return [item.x, item.baseline];
     });
 
   it("shares tier 1 when the end label's extent starts where the start label's ends", () => {
-    const drawing = drawFixture("bare", [], at(14.83203125));
+    const drawing = drawFixture("bare", [], placedAt(14.83203125));
     expect(labels(drawing)).toEqual([
       [49.5771484375, 47.25634765625],
       [64.4091796875, 47.25634765625],
@@ -235,7 +236,7 @@ describe("wedge-label tiers", () => {
   });
 
   it("puts the end label in tier 2 when the extents overlap, placing start before end", () => {
-    const drawing = drawFixture("bare", [], at(10));
+    const drawing = drawFixture("bare", [], placedAt(10));
     expect(labels(drawing)).toEqual([
       [49.5771484375, 47.25634765625],
       [59.5771484375, 57.73291015625],
@@ -245,9 +246,12 @@ describe("wedge-label tiers", () => {
 });
 
 describe("names", () => {
-  it("names a timeline whose name is null by its id after the last colon", () => {
+  it("names a timeline whose name is null by its whole id", () => {
     const drawing = draw(build("piece:score", 8), DEFAULT_PLACEMENT, [DEFAULT_LAYER], metrics);
-    expect(element(drawing, "piece:score/name")).toMatchObject({ x: 16, text: "score" });
-    expect(element(drawing, "piece:score")).toMatchObject({ xs: 53.798828125 });
+    expect(element(drawing, at("piece:score", "name"))).toMatchObject({
+      x: 16,
+      text: "piece:score",
+    });
+    expect(element(drawing, at("piece:score"))).toMatchObject({ xs: 87.12646484375 });
   });
 });

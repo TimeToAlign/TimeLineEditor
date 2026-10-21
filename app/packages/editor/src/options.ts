@@ -1,7 +1,7 @@
 /** The framework-free options and handle of an embedded TimeLineEditor. */
 
 import type { ConnectOptions } from "@timetoalign/tilie-client";
-import type { LoadError } from "@timetoalign/tilie-core";
+import type { Address, LoadError } from "@timetoalign/tilie-core";
 
 /** The `tilie-server` an editor asks, and how it authenticates: the client's options. */
 export type { ConnectOptions as ServerOptions };
@@ -39,7 +39,7 @@ export interface TimeLineEditorOptions {
   /** Called with the file status after every change of the workspace and every load; the text is `text()`. */
   readonly onchange?: (status: Status) => void;
   /** Called with the selected addresses whenever the selection changes. */
-  readonly onselect?: (selection: readonly string[]) => void;
+  readonly onselect?: (selection: readonly Address[]) => void;
 }
 
 /** The handle a host holds on an editor it mounted. */
@@ -49,9 +49,9 @@ export interface TimeLineEditor {
   /** Open the workspace file `text` without asking; the reader's refusal, or `null` when it opened. */
   load(text: string, name?: string): LoadError | null;
   /** The selected addresses. */
-  selection(): string[];
+  selection(): Address[];
   /** Select `addresses`. */
-  select(addresses: readonly string[]): void;
+  select(addresses: readonly Address[]): void;
   /** Move the focus to the canvas. */
   focus(): void;
   /** Write the pending autosave, then remove the editor from its element. */

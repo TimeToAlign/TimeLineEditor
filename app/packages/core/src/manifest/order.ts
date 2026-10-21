@@ -2,16 +2,15 @@
  * The orders a manifest's `graphical.order` states (`docs/drawing.md` in
  * TimeToShare, sections 6.4 and 8.1): a group's display order, which stacks
  * its members' cards in its frame, and a timeline's band order, which stacks
- * its bands and its own line, top to bottom.
+ * its own line (`line`) and the bands of its five facets, top to bottom.
  */
 
-import type { BandKind } from "./bands.ts";
-import { BAND_KINDS, bandAddress } from "./bands.ts";
+import type { Facet } from "@timetoalign/timetoshare";
 import type { Located } from "./tree.ts";
 import { locateTimeline } from "./tree.ts";
 import type { Manifest } from "./types.ts";
 
-/** The entry of `graphical.order` under `key`, a group's or a timeline's id, if it has one. */
+/** The entry of `graphical.order` under `key`, a group's or a timeline's ID, if it has one. */
 function ownOrder(manifest: Manifest, key: string): readonly string[] | undefined {
   const order = manifest.graphical?.order;
   return order !== undefined && Object.hasOwn(order, key) ? order[key] : undefined;
@@ -27,50 +26,43 @@ export function displayOrder(manifest: Manifest, group: string): readonly string
   );
 }
 
-/** The kinds of band above a timeline's line in the default band order; the others lie below. */
-const ABOVE: readonly BandKind[] = ["children", "conversion_maps"];
+/** A band order's entry for a timeline's own line, beside its five facets. */
+export const LINE = "line";
+
+/** An entry of a band order: a timeline's own line or one of its facets. */
+export type BandOrderEntry = typeof LINE | Facet;
 
 /**
- * The default band order of the timeline `id`, which a root without an entry
- * in `graphical.order` follows: its children and conversion maps above its
- * line, its markers, regions and flow control below.
+ * The default band order (drawing.md section 4), which a root without an
+ * entry in `graphical.order` follows: its children and conversion maps
+ * above its line, its markers, regions and flow control below.
  */
-export function defaultBandOrder(id: string): readonly string[] {
-  const band = (kind: BandKind) => bandAddress(id, kind);
-  return [...ABOVE.map(band), id, ...BAND_KINDS.filter((kind) => !ABOVE.includes(kind)).map(band)];
-}
-
-/** A parent's band order as its child follows it: the parent's id and bands replaced by the child's. */
-function followed(order: readonly string[], parent: string, child: string): readonly string[] {
-  const renamed = new Map<string, string>([
-    [parent, child],
-    ...BAND_KINDS.map((kind): [string, string] => [
-      bandAddress(parent, kind),
-      bandAddress(child, kind),
-    ]),
-  ]);
-  return order.map((entry) => renamed.get(entry) ?? entry);
-}
+export const DEFAULT_BAND_ORDER: readonly BandOrderEntry[] = [
+  "children",
+  "conversion_maps",
+  LINE,
+  "markers",
+  "regions",
+  "flow_control",
+];
 
 /**
  * The band order the timeline `timelineId` follows without an entry of its
  * own in `graphical.order`: a root the default band order, every other
- * timeline its parent's band order, band by band id (the parent's
- * `P/regions_1` becomes its own `T/regions_1`, `P` itself `T`). A member
- * that is a child timeline follows its parent so too. An id no timeline
- * carries gets the default band order, as a root would.
+ * timeline its parent's band order. A member that is a child timeline
+ * follows its parent so too. An ID no timeline carries gets the default
+ * band order, as a root would.
  */
 export function inheritedBandOrder(manifest: Manifest, timelineId: string): readonly string[] {
   const at = locateTimeline(manifest, timelineId);
-  return at === undefined ? defaultBandOrder(timelineId) : inheritedAt(manifest, at);
+  return at === undefined ? DEFAULT_BAND_ORDER : inheritedAt(manifest, at);
 }
 
 /** `inheritedBandOrder` of a located timeline, folded down its `parent` chain. */
 function inheritedAt(manifest: Manifest, at: Located): readonly string[] {
   const { parent } = at;
-  if (parent === undefined) return defaultBandOrder(at.timeline.id);
-  const order = ownOrder(manifest, parent.timeline.id) ?? inheritedAt(manifest, parent);
-  return followed(order, parent.timeline.id, at.timeline.id);
+  if (parent === undefined) return DEFAULT_BAND_ORDER;
+  return ownOrder(manifest, parent.timeline.id) ?? inheritedAt(manifest, parent);
 }
 
 /**
@@ -84,33 +76,29 @@ export function bandOrderOf(manifest: Manifest, timelineId: string): readonly st
 /**
  * The first problem of `value` as the band order of the timeline
  * `timelineId`, its entry in `graphical.order`, in the terms and the order
- * of TimeToShare's README and validators, ids quoted as JSON; `null` for a
- * band order. The schema's problems about the value's shape and its repeats
- * come first, then the identity rules':
+ * of TimeToShare's README and validators, IDs and entries in single quotes;
+ * `null` for a band order. The schema's problems about the value's shape
+ * and its repeats come first, then the identity rules':
  *
- * 1. a value that is not an array of strings: `the band order of "<id>" is
+ * 1. a value that is not an array of strings: `the band order of '<id>' is
  *    not an array of strings`;
- * 2. an entry repeating an earlier one: `"<entry>" is repeated in the band
- *    order of "<id>"`;
- * 3. an id no timeline carries (a group's id is a display order's key,
- *    never asked here): `"<id>" names no group or timeline of this
+ * 2. an entry repeating an earlier one: `'<entry>' is repeated in the band
+ *    order of '<id>'`;
+ * 3. an ID no timeline carries (a group's ID is a display order's key,
+ *    never asked here): `'<id>' names no group or timeline of this
  *    manifest`;
- * 4. the first entry that is neither the timeline's id nor one of its five
- *    bands: `"<entry>" is not "<id>" or one of its bands`. An entry the
- *    schema's pattern refuses (`score/foo`, `score/regions_0`,
- *    `score/start`) is reported as such a stranger, where the validators
- *    report the pattern at the entry: both refuse it, so core and the
- *    validators refuse the same values;
- * 5. the first of the id and the bands, in the default band order's order,
- *    that the value lacks: `"<address>" is missing from the band order of
- *    "<id>"`.
+ * 4. the first entry that is neither `line` nor a facet: `'<entry>' is not
+ *    'line' or a facet, in the band order of '<id>'`;
+ * 5. the first of `line` and the facets, in the default band order's order,
+ *    that the value lacks: `'<entry>' is missing from the band order of
+ *    '<id>'`.
  */
 export function bandOrderProblem(
   manifest: Manifest,
   timelineId: string,
   value: unknown,
 ): string | null {
-  const id = JSON.stringify(timelineId);
+  const id = `'${timelineId}'`;
   if (!Array.isArray(value)) return `the band order of ${id} is not an array of strings`;
   const entries: string[] = [];
   for (const entry of value) {
@@ -118,18 +106,16 @@ export function bandOrderProblem(
     entries.push(entry);
   }
   const repeated = entries.find((entry, index) => entries.indexOf(entry) !== index);
-  if (repeated !== undefined) {
-    return `${JSON.stringify(repeated)} is repeated in the band order of ${id}`;
-  }
+  if (repeated !== undefined) return `'${repeated}' is repeated in the band order of ${id}`;
   if (locateTimeline(manifest, timelineId) === undefined) {
     return `${id} names no group or timeline of this manifest`;
   }
-  const expected = defaultBandOrder(timelineId);
+  const expected: readonly string[] = DEFAULT_BAND_ORDER;
   const stranger = entries.find((entry) => !expected.includes(entry));
-  if (stranger !== undefined) return `${JSON.stringify(stranger)} is not ${id} or one of its bands`;
-  const missing = expected.find((address) => !entries.includes(address));
-  if (missing !== undefined) {
-    return `${JSON.stringify(missing)} is missing from the band order of ${id}`;
+  if (stranger !== undefined) {
+    return `'${stranger}' is not 'line' or a facet, in the band order of ${id}`;
   }
+  const missing = expected.find((entry) => !entries.includes(entry));
+  if (missing !== undefined) return `'${missing}' is missing from the band order of ${id}`;
   return null;
 }

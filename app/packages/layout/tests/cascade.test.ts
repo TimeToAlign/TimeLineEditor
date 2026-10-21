@@ -1,5 +1,6 @@
-import { bandKey, manifestElements } from "@timetoalign/tilie-core/drawing";
-import type { Graphical, Selector, Statement } from "@timetoalign/timetoshare";
+import { addressKey, sameAddress } from "@timetoalign/tilie-core";
+import { BLOCK_KEY, bandKey, manifestElements } from "@timetoalign/tilie-core/drawing";
+import type { Address, Graphical, Selector, Statement } from "@timetoalign/timetoshare";
 import { describe, expect, it, vi } from "vitest";
 import {
   Cascade,
@@ -11,7 +12,7 @@ import {
   manifestLayer,
 } from "../src/index.ts";
 import {
-  BLOCK,
+  at,
   drawFixture,
   edit,
   element,
@@ -20,6 +21,7 @@ import {
   manifestNames,
   metrics,
   quarters,
+  target,
 } from "./support.ts";
 
 // A child `c` of a root `r`: the key of its line, held by the children band of `r`.
@@ -29,15 +31,16 @@ const ancestry = new Map<string, readonly string[]>([
 ]);
 const key: ElementKey = {
   type: "child",
-  address: "c",
+  address: at("c"),
   timeline: "c",
   domain: "logical",
   modality: "continuous",
   class: "ContinuousLogicalTimeline",
+  facet: null,
   inside: ["block", "timeline", "band"],
 };
 const ALL: Selector = {
-  ids: ["c"],
+  addresses: [at("c")],
   within: "c",
   class: "ContinuousLogicalTimeline",
   element: "child",
@@ -64,13 +67,13 @@ describe("rank", () => {
     ).toBe("#111111");
   });
 
-  it("2. ids outrank within, class, element, inside, domain and modality", () => {
-    const { ids: _, ...rest } = ALL;
-    expect(stroke(winnerFirst({ ids: ["c"] }, rest))).toBe("#111111");
+  it("2. addresses outrank within, class, element, inside, domain and modality", () => {
+    const { addresses: _, ...rest } = ALL;
+    expect(stroke(winnerFirst({ addresses: [at("c")] }, rest))).toBe("#111111");
   });
 
   it("3. a deeper within outranks a shallower one with every lower member", () => {
-    const { ids: _, within: __, ...rest } = ALL;
+    const { addresses: _, within: __, ...rest } = ALL;
     expect(stroke(winnerFirst({ within: "c" }, { ...rest, within: "r" }))).toBe("#111111");
   });
 
@@ -83,6 +86,18 @@ describe("rank", () => {
         ),
       ),
     ).toBe("#111111");
+  });
+
+  it("4. facet ranks where class does: it outranks element, inside, domain and modality", () => {
+    const band = bandKey("c", "regions", key);
+    const strokeOf = (layers: Graphical[]) =>
+      new Cascade(layers, ancestry).resolve(band, undefined).stroke;
+    expect(strokeOf(winnerFirst({ facet: "regions" }, { element: "band", inside: "child" }))).toBe(
+      "#111111",
+    );
+    expect(strokeOf(winnerFirst({ within: "c" }, { facet: "regions", element: "band" }))).toBe(
+      "#111111",
+    );
   });
 
   it("5. element outranks inside, domain and modality", () => {
@@ -119,7 +134,7 @@ describe("rank", () => {
       statements: [
         { select: {}, set: { stroke: "#111111" } },
         { select: { element: "child" }, set: "mine" },
-        { select: { ids: ["c"] }, set: "missing" },
+        { select: { addresses: [at("c")] }, set: "missing" },
       ],
     };
     expect(stroke([layer])).toBe("#333333");
@@ -129,24 +144,17 @@ describe("rank", () => {
     expect(stroke([{ statements: [statement({ within: "elsewhere" }, "#111111")] }])).toBe("none");
   });
 
-  it("never matches the block with domain, class, ids or within", () => {
-    const block: ElementKey = {
-      type: "block",
-      address: null,
-      timeline: null,
-      domain: null,
-      modality: null,
-      class: null,
-      inside: [],
-    };
+  it("never matches the block with domain, class, facet, an element's address or within", () => {
+    const block: ElementKey = BLOCK_KEY;
     const cascade = new Cascade(
       [
         {
           statements: [
             statement({ domain: "logical" }, "#111111"),
-            statement({ ids: ["c"] }, "#111111"),
+            statement({ addresses: [at("c")] }, "#111111"),
             statement({ within: "r" }, "#111111"),
             statement({ class: "ContinuousLogicalTimeline" }, "#111111"),
+            statement({ facet: "regions" }, "#111111"),
           ],
         },
       ],
@@ -157,15 +165,31 @@ describe("rank", () => {
 });
 
 describe("candidate buckets", () => {
-  it("tests only general statements and the key's element, class and id buckets", () => {
+  it("tests only general statements and the key's element, class, facet and address buckets", () => {
     const general: Selector = { domain: "logical" };
     const element: Selector = { element: "child" };
     const className: Selector = { class: "ContinuousLogicalTimeline" };
-    const id: Selector = { ids: ["c"] };
-    const otherElement: Selector = { element: "group" };
+    const id: Selector = { addresses: [at("c")] };
+    const band: Selector = { element: "band" };
+    const facet: Selector = { facet: "regions" };
+    const bandId: Selector = { addresses: [{ id: "c", facet: "regions" }] };
+    const otherElement: Selector = { element: "frame" };
     const otherClass: Selector = { class: "ChainMap" };
-    const otherId: Selector = { ids: ["elsewhere"] };
-    const selectors = [general, element, className, id, otherElement, otherClass, otherId];
+    const otherId: Selector = { addresses: [at("elsewhere")] };
+    const otherFacet: Selector = { facet: "markers" };
+    const selectors = [
+      general,
+      element,
+      className,
+      id,
+      band,
+      facet,
+      bandId,
+      otherElement,
+      otherClass,
+      otherId,
+      otherFacet,
+    ];
     const cascade = new Cascade(
       [{ statements: selectors.map((select) => statement(select, "#111111")) }],
       ancestry,
@@ -173,6 +197,9 @@ describe("candidate buckets", () => {
     const matches = vi.spyOn(cascade, "matches");
     cascade.resolve(key, undefined);
     expect(matches.mock.calls.map(([select]) => select)).toEqual([general, element, className, id]);
+    matches.mockClear();
+    cascade.resolve(bandKey("c", "regions", key), undefined);
+    expect(matches.mock.calls.map(([select]) => select)).toEqual([general, band, facet, bandId]);
   });
 });
 
@@ -193,7 +220,7 @@ describe("bands", () => {
   const root: ElementKey = {
     ...key,
     type: "timeline",
-    address: "r",
+    address: at("r"),
     timeline: "r",
     inside: ["block"],
   };
@@ -201,14 +228,15 @@ describe("bands", () => {
 
   it.each([
     [{ element: "band" }, ["#111111", "#111111"]],
-    [{ element: "band", class: "regions" }, ["#111111", "#111111"]],
-    [{ element: "band", class: "markers" }, ["none", "none"]],
+    [{ element: "band", facet: "regions" }, ["#111111", "#111111"]],
+    [{ element: "band", facet: "markers" }, ["none", "none"]],
     [{ inside: "band" }, ["#111111", "none"]],
     [{ inside: "child" }, ["#111111", "none"]],
     [{ domain: "logical" }, ["none", "none"]],
     [{ class: "ContinuousLogicalTimeline" }, ["none", "none"]],
     [{ within: "c" }, ["#111111", "none"]],
-    [{ ids: ["c/regions_1"] }, ["#111111", "none"]],
+    [{ addresses: [{ id: "c", facet: "regions" }] }, ["#111111", "none"]],
+    [{ addresses: [{ id: "c" }] }, ["none", "none"]],
   ] as [Selector, string[]][])("%j sets %j on the regions bands of c and r", (select, expected) => {
     const cascade = new Cascade([{ statements: [statement(select, "#111111")] }], ancestry);
     expect(bands.map((band) => cascade.resolve(band, undefined).stroke)).toEqual(expected);
@@ -217,25 +245,25 @@ describe("bands", () => {
   it("passes its timeline's style through to what it holds, and its own", () => {
     const strokes = (layer: Graphical) => {
       const drawing = draw(load("with_region"), DEFAULT_PLACEMENT, [layer], metrics);
-      return ["clt_1/region_1", "clt_1/region_1/label", "clt_2"].map(
+      return [at("region_1"), at("region_1", "label"), at("clt_2")].map(
         (address) => element(drawing, address).style.stroke,
       );
     };
-    expect(strokes({ statements: [statement({ ids: ["clt_1"] }, "#111111")] })).toEqual([
+    expect(strokes({ statements: [statement({ addresses: [at("clt_1")] }, "#111111")] })).toEqual([
       "#111111",
       "#111111",
       "#111111",
     ]);
-    expect(strokes({ statements: [statement({ ids: ["clt_1/regions_1"] }, "#111111")] })).toEqual([
-      "#111111",
-      "#111111",
-      "none",
-    ]);
-    expect(strokes({ statements: [statement({ ids: ["clt_1/children_1"] }, "#111111")] })).toEqual([
-      "none",
-      "none",
-      "#111111",
-    ]);
+    expect(
+      strokes({
+        statements: [statement({ addresses: [{ id: "clt_1", facet: "regions" }] }, "#111111")],
+      }),
+    ).toEqual(["#111111", "#111111", "none"]);
+    expect(
+      strokes({
+        statements: [statement({ addresses: [{ id: "clt_1", facet: "children" }] }, "#111111")],
+      }),
+    ).toEqual(["none", "none", "#111111"]);
   });
 });
 
@@ -243,11 +271,11 @@ describe("a band's display", () => {
   // `with_region` with a region of its child `clt_2`.
   const manifest = edit("with_region", {
     type: "add",
-    into: `${BLOCK}/clt_2`,
+    into: target("clt_2"),
     region: { id: "region_2", name: null, start: quarters(0), end: quarters(2), meta: {} },
   });
-  const display = (ids: [string, ...string[]], value: "inline" | "none"): Statement => ({
-    select: { ids },
+  const display = (addresses: [Address, ...Address[]], value: "inline" | "none"): Statement => ({
+    select: { addresses },
     set: { display: value },
   });
   const drawnWith = (...statements: Statement[]) =>
@@ -261,38 +289,45 @@ describe("a band's display", () => {
     );
 
   it("hides what the band holds, and nothing a band of another timeline holds", () => {
-    expect(drawnWith()).toEqual(["clt_1/region_1", "clt_2", "clt_3"]);
-    expect(drawnWith(display(["clt_2/regions_1"], "inline"))).toEqual([
-      "clt_1/region_1",
-      "clt_1/region_2",
-      "clt_2",
-      "clt_3",
+    expect(drawnWith()).toEqual([at("region_1"), at("clt_2"), at("clt_3")]);
+    expect(drawnWith(display([{ id: "clt_2", facet: "regions" }], "inline"))).toEqual([
+      at("region_1"),
+      at("region_2"),
+      at("clt_2"),
+      at("clt_3"),
     ]);
     expect(
-      drawnWith(display(["clt_2/regions_1"], "inline"), display(["clt_1/regions_1"], "none")),
-    ).toEqual(["clt_1/region_2", "clt_2", "clt_3"]);
-    expect(drawnWith(display(["clt_1/regions_1"], "inline"))).toEqual([
-      "clt_1/region_1",
-      "clt_2",
-      "clt_3",
+      drawnWith(
+        display([{ id: "clt_2", facet: "regions" }], "inline"),
+        display([{ id: "clt_1", facet: "regions" }], "none"),
+      ),
+    ).toEqual([at("region_2"), at("clt_2"), at("clt_3")]);
+    expect(drawnWith(display([{ id: "clt_1", facet: "regions" }], "inline"))).toEqual([
+      at("region_1"),
+      at("clt_2"),
+      at("clt_3"),
     ]);
   });
 
   it("hides the children it holds with everything their bands hold", () => {
     expect(
-      drawnWith(display(["clt_2/regions_1"], "inline"), display(["clt_1/children_1"], "none")),
-    ).toEqual(["clt_1/region_1"]);
+      drawnWith(
+        display([{ id: "clt_2", facet: "regions" }], "inline"),
+        display([{ id: "clt_1", facet: "children" }], "none"),
+      ),
+    ).toEqual([at("region_1")]);
   });
 });
 
 describe("one address drawn twice", () => {
   const drawingOf = (inside: ElementKey["inside"]): ElementKey => ({
     type: "wedge",
-    address: "m/start",
+    address: at("m", "start"),
     timeline: "m",
     domain: "logical",
     modality: "continuous",
     class: "ContinuousLogicalTimeline",
+    facet: null,
     inside,
   });
 
@@ -302,7 +337,7 @@ describe("one address drawn twice", () => {
         {
           statements: [
             { select: { inside: "ancestor" }, set: { opacity: 0.5 } },
-            { select: { ids: ["m/start"] }, set: { fill: "#654321" } },
+            { select: { addresses: [at("m", "start")] }, set: { fill: "#654321" } },
           ],
         },
       ],
@@ -310,27 +345,27 @@ describe("one address drawn twice", () => {
     );
     const parent = (colour: string) => ({ ...INITIAL_STYLE, stroke: colour });
     const mark = cascade.resolve(
-      drawingOf(["block", "group", "timeline", "ancestor"]),
+      drawingOf(["block", "frame", "timeline", "ancestor"]),
       parent("#111111"),
     );
-    const wedge = cascade.resolve(drawingOf(["block", "group", "timeline"]), parent("#222222"));
+    const wedge = cascade.resolve(drawingOf(["block", "frame", "timeline"]), parent("#222222"));
     expect([mark.opacity, mark.fill, mark.stroke]).toEqual([0.5, "#654321", "#111111"]);
     expect([wedge.opacity, wedge.fill, wedge.stroke]).toEqual([1, "#654321", "#222222"]);
   });
 
   it.each([
-    "second-half/start",
-    "second-half/end",
-    "second-half/start/label",
-    "second-half/end/label",
-  ])("draws %s on the ancestor line and on the member's own line", (address) => {
+    at("second-half", "start"),
+    at("second-half", "end"),
+    at("second-half", "start", "label"),
+    at("second-half", "end", "label"),
+  ])("draws %j on the ancestor line and on the member's own line", (address) => {
     const drawing = draw(
       loadFile("groups/group_child_member"),
       DEFAULT_PLACEMENT,
       [
         {
           statements: [
-            { select: { ids: ["piece"] }, set: { stroke: "#111111" } },
+            { select: { addresses: [at("piece")] }, set: { stroke: "#111111" } },
             { select: { inside: "ancestor" }, set: { opacity: 0.5 } },
           ],
         },
@@ -338,7 +373,7 @@ describe("one address drawn twice", () => {
       metrics,
     );
     const pairs = drawing.elements
-      .filter((item) => item.address === address)
+      .filter((item) => sameAddress(item.address, address))
       .map((item) => [item.style.stroke, item.style.opacity])
       .sort((a, b) => String(a[0]).localeCompare(String(b[0])));
     expect(pairs).toEqual([
@@ -368,8 +403,8 @@ describe("shadow", () => {
       metrics,
     );
     expect([
-      element(drawing, null).style.shadow,
-      element(drawing, "bare/card").style.shadow,
+      element(drawing, BLOCK_KEY.address).style.shadow,
+      element(drawing, at("bare", "card")).style.shadow,
     ]).toEqual(["#123456", "none"]);
   });
 });
@@ -378,7 +413,7 @@ describe("inheritance", () => {
   it("gives every element the initial values without layers", () => {
     const drawing = draw(load("with_region"), DEFAULT_PLACEMENT, [], metrics);
     for (const item of drawing.elements)
-      expect(item.style, String(item.address)).toEqual(INITIAL_STYLE);
+      expect(item.style, addressKey(item.address)).toEqual(INITIAL_STYLE);
   });
 
   it("inherits fill from the block, never opacity or rx", () => {
@@ -394,30 +429,40 @@ describe("inheritance", () => {
       ],
       metrics,
     );
-    expect(element(drawing, null).style).toMatchObject({ fill: "#111111", opacity: 0.5, rx: 4 });
-    expect(element(drawing, "bare").style).toMatchObject({ fill: "#111111", opacity: 1, rx: 0 });
+    expect(element(drawing, BLOCK_KEY.address).style).toMatchObject({
+      fill: "#111111",
+      opacity: 0.5,
+      rx: 4,
+    });
+    expect(element(drawing, at("bare")).style).toMatchObject({
+      fill: "#111111",
+      opacity: 1,
+      rx: 0,
+    });
   });
 
   it("passes a root's stroke to its child and grandchild", () => {
     const drawing = draw(
       load("nested"),
       DEFAULT_PLACEMENT,
-      [{ statements: [{ select: { ids: ["clt_1"] }, set: { stroke: "#123456" } }] }],
+      [{ statements: [{ select: { addresses: [at("clt_1")] }, set: { stroke: "#123456" } }] }],
       metrics,
     );
-    expect(element(drawing, "clt_3").style.stroke).toBe("#123456");
-    expect(element(drawing, "clt_2").style.stroke).toBe("#123456");
+    expect(element(drawing, at("clt_3")).style.stroke).toBe("#123456");
+    expect(element(drawing, at("clt_2")).style.stroke).toBe("#123456");
   });
 
   it("passes a timeline's stroke width to its map, which has no name", () => {
     const drawing = draw(
       load("map"),
       DEFAULT_PLACEMENT,
-      [{ statements: [{ select: { ids: ["melody"] }, set: { "stroke-width": 7 } }] }],
+      [{ statements: [{ select: { addresses: [at("melody")] }, set: { "stroke-width": 7 } }] }],
       metrics,
     );
-    expect(element(drawing, "melody/tempo").style["stroke-width"]).toBe(7);
-    expect(drawing.elements.some((item) => item.address === "melody/tempo/name")).toBe(false);
+    expect(element(drawing, at("tempo")).style["stroke-width"]).toBe(7);
+    expect(drawing.elements.some((item) => sameAddress(item.address, at("tempo", "name")))).toBe(
+      false,
+    );
   });
 
   it("passes a region's font size to its label", () => {
@@ -427,7 +472,7 @@ describe("inheritance", () => {
       [{ statements: [{ select: { element: "region" }, set: { "font-size": 13 } }] }],
       metrics,
     );
-    expect(element(drawing, "clt_1/region_1/label").style["font-size"]).toBe(13);
+    expect(element(drawing, at("region_1", "label")).style["font-size"]).toBe(13);
   });
 });
 
@@ -436,16 +481,16 @@ describe("maps by target unit", () => {
 
   it("draws a map in the domain and modality it converts to", () => {
     const drawing = drawFixture(name);
-    expect(element(drawing, "maps:quarters/lmap_5").style).toMatchObject({
+    expect(element(drawing, at("lmap_5")).style).toMatchObject({
       stroke: "#0050EF",
       "stroke-dasharray": "none",
     });
-    expect(element(drawing, "maps:quarters/tmap_1").style).toMatchObject({
+    expect(element(drawing, at("tmap_1")).style).toMatchObject({
       stroke: "#00CC00",
       "stroke-dasharray": "none",
     });
     const samples = drawFixture("conversion_maps__maps_seconds");
-    expect(element(samples, "maps:seconds/cmap_1").style).toMatchObject({
+    expect(element(samples, at("cmap_1")).style).toMatchObject({
       stroke: "#0050EF",
       "stroke-dasharray": "1 1",
     });
@@ -453,10 +498,12 @@ describe("maps by target unit", () => {
 
   it("lets a map with a null target inherit its timeline's stroke", () => {
     const drawing = drawFixture(name, [
-      { statements: [{ select: { ids: ["maps:quarters"] }, set: { stroke: "#ABCDEF" } }] },
+      {
+        statements: [{ select: { addresses: [at("maps:quarters")] }, set: { stroke: "#ABCDEF" } }],
+      },
     ]);
-    expect(element(drawing, "maps:quarters/cmap_8").style.stroke).toBe("#ABCDEF");
-    expect(element(drawing, "maps:quarters/lmap_5").style.stroke).toBe("#0050EF");
+    expect(element(drawing, at("cmap_8")).style.stroke).toBe("#ABCDEF");
+    expect(element(drawing, at("lmap_5")).style.stroke).toBe("#0050EF");
   });
 
   it("gives a map its type as class", () => {
@@ -466,21 +513,23 @@ describe("maps by target unit", () => {
     const reached = drawing.elements
       .filter((item) => item.type === "map" && item.style.stroke === "#FEDCBA")
       .map((item) => item.address);
-    expect(reached).toEqual(["maps:quarters/cmap_8"]);
+    expect(reached).toEqual([at("cmap_8")]);
   });
 });
 
 describe("the elements core enumerates", () => {
   it.each(manifestNames())("include every drawn element of %s with its key", (name) => {
+    // Keyed by each address's one string form.
     const listed = new Map<string, string[]>();
     for (const key of manifestElements(loadFile(name))) {
-      if (key.address === null || key.type === null) continue;
-      listed.set(key.address, [...(listed.get(key.address) ?? []), key.type]);
+      if (key.type === null) continue;
+      const own = addressKey(key.address);
+      listed.set(own, [...(listed.get(own) ?? []), key.type]);
     }
     const drawn = new Map<string, string[]>();
     for (const item of drawFixture(name).elements) {
-      if (item.type === "block") continue;
-      drawn.set(item.address, [...(drawn.get(item.address) ?? []), item.type]);
+      const own = addressKey(item.address);
+      drawn.set(own, [...(drawn.get(own) ?? []), item.type]);
     }
     for (const [address, types] of drawn) {
       const keys = listed.get(address) ?? [];

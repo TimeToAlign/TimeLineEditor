@@ -12,8 +12,16 @@ import type { CommandError } from "../errors.ts";
 import { isLoadError } from "../errors.ts";
 import type { Json, JsonObject } from "../json.ts";
 import { isJsonObject } from "../json.ts";
-import type { ContainerRef } from "../manifest/containers.ts";
-import { containersOf, keptPlace } from "../manifest/containers.ts";
+import type { ContainerRef, PlaceKey, Places } from "../manifest/containers.ts";
+import {
+  containersOf,
+  keptPlace,
+  placedContainer,
+  placeEntries,
+  placeKeyText,
+  samePlaceKey,
+  withPlaceAt,
+} from "../manifest/containers.ts";
 import { isUnit, timelineClass } from "../manifest/elements.ts";
 import { checkOrdered } from "../manifest/invariants.ts";
 import { completeOrdered, normalizeManifest, schemaProblems } from "../manifest/io.ts";
@@ -21,7 +29,6 @@ import type { Manifest } from "../manifest/types.ts";
 import type { CoordinateValue } from "../number/coordinate.ts";
 import { toAxisValue } from "../number/coordinate.ts";
 import { Rational } from "../number/rational.ts";
-import type { Block } from "../workspace/blocks.ts";
 import { TIMELINE_PREFIX } from "../workspace/ids.ts";
 import type { View } from "../workspace/view.ts";
 import type { ChangeSet } from "./mutations.ts";
@@ -34,16 +41,36 @@ const ZEROS: { readonly [type in NumberType]: CoordinateValue } = {
   fraction: Rational.fromParts(0n, 1n),
 };
 
-/** Every string a value holds under an `id` key, at any depth. */
-function idsIn(value: unknown, ids: Set<string>): Set<string> {
-  if (Array.isArray(value)) {
-    for (const item of value) idsIn(item, ids);
-  } else if (isJsonObject(value)) {
-    for (const [key, item] of Object.entries(value)) {
-      if (key === "id" && typeof item === "string") ids.add(item);
-      else idsIn(item, ids);
-    }
-  }
+/**
+ * Every ID a manifest value states, read as JSON before the schema checks
+ * it, added to `ids`: the manifest's own, its timelines' at any depth with
+ * their conversion maps' (and the maps those hold, at any depth), regions'
+ * and flow-control elements', its groups' and its MeasureMaps'; never a
+ * string under `meta` or `graphical`.
+ */
+function idsIn(manifest: JsonObject, ids: Set<string>): Set<string> {
+  const note = (value: unknown) => {
+    if (isJsonObject(value) && typeof value.id === "string") ids.add(value.id);
+  };
+  const listed = (value: unknown, member: string): readonly unknown[] => {
+    const list = isJsonObject(value) ? value[member] : undefined;
+    return Array.isArray(list) ? list : [];
+  };
+  const map = (value: unknown) => {
+    note(value);
+    const held = isJsonObject(value) ? value.maps : undefined;
+    for (const item of isJsonObject(held) ? Object.values(held) : listed(value, "maps")) map(item);
+  };
+  const timeline = (value: unknown) => {
+    note(value);
+    for (const item of listed(value, "conversion_maps")) map(item);
+    for (const item of [...listed(value, "regions"), ...listed(value, "flow_control")]) note(item);
+    for (const item of listed(value, "children")) timeline(item);
+  };
+  note(manifest);
+  for (const item of listed(manifest, "timelines")) timeline(item);
+  for (const item of [...listed(manifest, "groups"), ...listed(manifest, "measure_maps")])
+    note(item);
   return ids;
 }
 
@@ -130,38 +157,37 @@ function covered(manifest: Manifest, checked: boolean): Manifest | CommandError 
 
 /**
  * `places` fitted to the drawing of `manifest`, `was` the manifest before
- * the command: every key naming a frame or a card of `manifest` is kept,
- * and a key that named a card of a timeline in `was` and names nothing now
- * moves to the timeline's one card in `manifest` (a root that became a
- * member, `T` to `G/T`; a member that left its group, `G/T` to `T`) unless
- * that card's key is stated already; every other key goes. Each place is cut
- * to the members its holder lets it state (`placeMembersOf`) and dropped
- * when nothing is left, so a root that became a member keeps its card's size
- * and spacing. `places` itself when nothing changes.
+ * the command: every place lying where a frame or a card of `manifest` has
+ * its place is kept, and a place that was a card's in `was` and names
+ * nothing now moves to the timeline's one card in `manifest` (a root that
+ * became a member, from `places[T]` to `places[G].cards[T]`; a member that
+ * left its group, the other way) unless that card's place is stated
+ * already; every other place goes. Each place is cut to the members its
+ * holder lets it state (`placeMembersOf`) and dropped when nothing is left,
+ * so a root that became a member keeps its card's size and spacing.
+ * `places` itself when nothing changes.
  */
-function keptPlaces(
-  places: Block["places"],
-  was: Manifest | undefined,
-  manifest: Manifest,
-): Block["places"] {
-  const { byKey, cards } = containersOf(manifest);
-  const before = was === undefined ? undefined : containersOf(was).byKey;
-  const movedTo = (key: string): ContainerRef | undefined => {
-    const timeline = before?.get(key)?.timeline ?? null;
+function keptPlaces(places: Places, was: Manifest | undefined, manifest: Manifest): Places {
+  const { cards } = containersOf(manifest);
+  const stated = placeEntries(places);
+  const statedAt = new Set(stated.map(([key]) => placeKeyText(key)));
+  const movedTo = (key: PlaceKey): ContainerRef | undefined => {
+    const timeline = was === undefined ? null : (placedContainer(was, key)?.timeline ?? null);
     if (timeline === null) return undefined;
     const [card, ...others] = cards.get(timeline) ?? [];
     if (card === undefined || others.length > 0 || card.key === null) return undefined;
-    return Object.hasOwn(places, card.key) ? undefined : card;
+    return statedAt.has(placeKeyText(card.key)) ? undefined : card;
   };
   let changed = false;
-  const kept = Object.entries(places).flatMap(([key, place]) => {
-    const container = byKey.get(key) ?? movedTo(key);
+  let kept: Places = {};
+  for (const [key, place] of stated) {
+    const container = placedContainer(manifest, key) ?? movedTo(key);
     const fitted = container === undefined ? undefined : keptPlace(container, place);
     const placed = container?.key ?? null;
-    if (fitted !== place || placed !== key) changed = true;
-    return fitted === undefined || placed === null ? [] : [[placed, fitted] as const];
-  });
-  return changed ? Object.fromEntries(kept) : places;
+    if (fitted !== place || placed === null || !samePlaceKey(placed, key)) changed = true;
+    if (fitted !== undefined && placed !== null) kept = withPlaceAt(kept, placed, fitted);
+  }
+  return changed ? kept : places;
 }
 
 /**

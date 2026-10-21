@@ -20,10 +20,10 @@ function generated(blocks: number, entries: number): Store {
   for (let n = 0; n < blocks; n += 1) {
     const manifest = manifests[n % manifests.length];
     const block = { id: id(n), manifest, x: (n % 20) * 480, y: Math.floor(n / 20) * 160 };
-    expect(store.dispatch({ type: "add", into: "workspace", block })).toBeNull();
+    expect(store.dispatch({ type: "add", into: {}, block })).toBeNull();
   }
   for (let n = blocks; n < entries; n += 1) {
-    const move = { target: id(n % blocks), values: { x: n * 8, y: n * 4 } };
+    const move = { target: { block: id(n % blocks) }, values: { x: n * 8, y: n * 4 } };
     expect(store.dispatch({ type: "set", changes: [move] })).toBeNull();
   }
   return store;
@@ -60,7 +60,7 @@ function measure(blocks: number, entries: number) {
       moves += 1;
       store.dispatch({
         type: "set",
-        changes: [{ target: "0000000000", values: { x: moves, y: 0 } }],
+        changes: [{ target: { block: "0000000000" }, values: { x: moves, y: 0 } }],
       });
     }),
   };

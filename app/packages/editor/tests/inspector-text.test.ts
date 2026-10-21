@@ -4,7 +4,7 @@
 import { readdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
-import type { Block, CommandEntry, Json, Manifest, Store } from "@timetoalign/tilie-core";
+import type { Address, Block, CommandEntry, Json, Manifest, Store } from "@timetoalign/tilie-core";
 import { isLoadError, loadManifest } from "@timetoalign/tilie-core";
 import {
   compactJson,
@@ -110,7 +110,7 @@ function readBack(format: Format, text: string): Json {
   return read.value.value;
 }
 
-function setOrFail(store: Store, target: string, values: Record<string, unknown>): void {
+function setOrFail(store: Store, target: Address, values: Record<string, unknown>): void {
   const error = store.dispatch({ type: "set", changes: [{ target, values }] });
   if (error !== null) throw new Error(`${error.code}: ${error.message}`);
 }
@@ -125,12 +125,12 @@ beforeAll(async () => {
 });
 
 describe("format round trips", () => {
-  it("covers the 43, 11 and 10 fixtures of the top, groups/ and bundles/", () => {
+  it("covers the 43, 11 and 11 fixtures of the top, groups/ and bundles/", () => {
     expect([
       fixturesOf("").length,
       fixturesOf("groups").length,
       fixturesOf("bundles").length,
-    ]).toEqual([43, 11, 10]);
+    ]).toEqual([43, 11, 11]);
   });
 
   for (const name of fixtureNames) {
@@ -149,7 +149,7 @@ describe("exact numbers", () => {
   const big = 9007199254740993n;
 
   it("keeps an integer beyond 2^53 in every format", () => {
-    setOrFail(store, `${A}/dlt_1`, { length: big });
+    setOrFail(store, { block: A, id: "dlt_1" }, { length: big });
     const manifest = manifestIn(store, A);
     for (const format of FORMATS) {
       const read = readBack(format, written(format, manifest));
@@ -160,14 +160,14 @@ describe("exact numbers", () => {
   });
 
   it("keeps a 17-digit float and an integral float beyond 2^53 in every format", () => {
-    setOrFail(store, `${B}/cpt_1`, { length: 12.500000000000002 });
+    setOrFail(store, { block: B, id: "cpt_1" }, { length: 12.500000000000002 });
     let manifest = manifestIn(store, B);
     for (const format of FORMATS) {
       const read = readBack(format, written(format, manifest));
       expect(dumps(read)).toBe(dumps(manifest));
       expect(at(read, "timelines", 0, "length")).toBe(12.500000000000002);
     }
-    setOrFail(store, `${B}/cpt_1`, { length: new JsonFloat(1e16) });
+    setOrFail(store, { block: B, id: "cpt_1" }, { length: new JsonFloat(1e16) });
     manifest = manifestIn(store, B);
     for (const format of FORMATS) {
       const read = readBack(format, written(format, manifest));
@@ -346,7 +346,7 @@ describe("applying a text", () => {
     expect(store.journal).toHaveLength(2);
     expect((store.journal[1] as CommandEntry | undefined)?.command).toEqual({
       type: "set",
-      changes: [{ target: A, values: { manifest: parsed } }],
+      changes: [{ target: { block: A }, values: { manifest: parsed } }],
     });
     expect(dumps(manifestIn(store, A))).toBe(dumps(parsed));
     expect(applyText(store, A, "json", text, FILE_FORM).ok).toBe(true);
@@ -358,12 +358,12 @@ describe("applying a text", () => {
     const before = dumps(manifestIn(store, A));
     const refusal = store.dispatch({
       type: "set",
-      changes: [{ target: A, values: { manifest: manifestIn(store, A) } }],
+      changes: [{ target: { block: A }, values: { manifest: manifestIn(store, A) } }],
     });
     expect(refusal).toEqual({
       code: "invalid_value",
       message: "the command changes nothing",
-      path: [A, "manifest"],
+      path: ['{"block":"0000000000"}', "manifest"],
     });
     expect(store.journal).toHaveLength(2);
     expect(dumps(manifestIn(store, A))).toBe(before);
@@ -442,7 +442,7 @@ describe("comments", () => {
         if (!applied.ok) throw new Error(JSON.stringify(applied.problems));
         expect(applied.value.text).toBe(text);
         expect(at(manifestIn(store, A), "timelines", 0, "name")).toBe("Hello");
-        setOrFail(store, `${A}/bare`, { name: "Bye" });
+        setOrFail(store, { block: A, id: "bare" }, { name: "Bye" });
         const followed = follow(applied.value.source, manifestIn(store, A), options);
         if (!followed.ok) throw new Error(JSON.stringify(followed.problems));
         expect(followed.value.text).toBe(text.replace("Hello", "Bye"));
@@ -651,7 +651,7 @@ describe("the text state", () => {
     const { store, text } = following();
     const shown = text.text;
     text.text = shown.replace('"name": "Bare"', '"name": "Hello"');
-    setOrFail(store, `${A}/bare`, { name: "Bye" });
+    setOrFail(store, { block: A, id: "bare" }, { name: "Bye" });
     text.follow(blockIn(store, A));
     text.follow(blockIn(store, B));
     expect([text.text.includes('"name": "Hello"'), text.dirty, text.stale]).toEqual([
@@ -673,7 +673,7 @@ describe("the text state", () => {
     const { store, text } = following();
     const shown = text.text;
     text.text = `${shown} `;
-    setOrFail(store, `${A}/bare`, { name: "Bye" });
+    setOrFail(store, { block: A, id: "bare" }, { name: "Bye" });
     text.follow(blockIn(store, A));
     expect(text.stale).toBe(true);
     text.text = shown;
@@ -715,7 +715,7 @@ describe("the text state", () => {
   it("reverts to the selected block's manifest, or to nothing", () => {
     const { store, text } = following();
     text.text = "{}";
-    setOrFail(store, `${A}/bare`, { name: "Bye" });
+    setOrFail(store, { block: A, id: "bare" }, { name: "Bye" });
     text.revert(blockIn(store, A));
     expect([text.text, text.dirty, text.stale]).toEqual([
       written("json", manifestIn(store, A), COMPLETE),

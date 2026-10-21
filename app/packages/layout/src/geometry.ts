@@ -186,7 +186,7 @@ export function boundsOf(element: DrawnElement, measure: TextMeasure): Bounds {
   switch (element.type) {
     case "block":
       return { left: 0, top: 0, right: element.width, bottom: element.height };
-    case "group":
+    case "frame":
     case "card":
       return {
         left: element.x,
@@ -251,10 +251,10 @@ export function boundsOf(element: DrawnElement, measure: TextMeasure): Bounds {
 
 /**
  * The right edge of an element's content (section 6.7): its bounds' right,
- * none for the box, a frame or a card, which hold content and are none.
+ * none for the block, a frame or a card, which hold content and are none.
  */
 export function rightEdge(element: DrawnElement, measure: TextMeasure): number | undefined {
-  if (element.type === "block" || element.type === "group" || element.type === "card") {
+  if (element.type === "block" || element.type === "frame" || element.type === "card") {
     return undefined;
   }
   return boundsOf(element, measure).right;

@@ -1,3 +1,4 @@
+import { sameAddress } from "@timetoalign/tilie-core";
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_LAYER,
@@ -7,7 +8,7 @@ import {
   manifestLayer,
   type Placement,
 } from "../src/index.ts";
-import { bandOrder, drawFixture, edit, element, metrics, set } from "./support.ts";
+import { at, bandOrder, drawFixture, edit, element, metrics, set } from "./support.ts";
 
 /** Each stretched fixture and the id of its one root, whose card's spacing a stretch sets. */
 const ROOTS = {
@@ -58,7 +59,7 @@ describe("stretch", () => {
 
   it("moves along time by length", () => {
     const short = drawFixture("nested", [], { ...DEFAULT_PLACEMENT, length: 200 });
-    expect(short.elements.find((item) => item.address === "clt_1")).toMatchObject({
+    expect(short.elements.find((item) => sameAddress(item.address, at("clt_1")))).toMatchObject({
       xs: 49.91552734375,
       xe: 249.91552734375,
       y: 51,
@@ -73,8 +74,8 @@ describe("stretch", () => {
     ];
     for (const [spacing, expected] of rows) {
       const drawing = drawFixture("nested", [], spaced("clt_1", spacing));
-      const y = (address: string) => {
-        const line = drawing.elements.find((item) => item.address === address);
+      const y = (id: string) => {
+        const line = drawing.elements.find((item) => sameAddress(item.address, at(id)));
         return line?.type === "timeline" || line?.type === "child" ? line.y : Number.NaN;
       };
       const [root, first, second] = [y("clt_1"), y("clt_3"), y("clt_2")];
@@ -97,7 +98,7 @@ describe("the padding", () => {
   it("ends a flow marker's line at the padding below", () => {
     const drawing = drawFixture("flow_control", [], spaced("flow:quarters", 8));
     expect(drawing.height).toBe(134.80859375);
-    expect(element(drawing, "flow:quarters")).toMatchObject({ y: 22.40234375 });
+    expect(element(drawing, at("flow:quarters"))).toMatchObject({ y: 22.40234375 });
     expect(drawing.elements.find((item) => item.type === "flow_marker")).toMatchObject({
       y1: 67.85546875,
       y2: 16,
@@ -106,7 +107,6 @@ describe("the padding", () => {
 
   it("ends a flow marker of a flow control band above the line at the padding", () => {
     const order = bandOrder(
-      "flow:quarters",
       ["flow_control", "children", "conversion_maps"],
       ["markers", "regions"],
     );
@@ -118,7 +118,7 @@ describe("the padding", () => {
       metrics,
     );
     expect(drawing.height).toBe(129.90625);
-    expect(element(drawing, "flow:quarters")).toMatchObject({ y: 84.9296875 });
+    expect(element(drawing, at("flow:quarters"))).toMatchObject({ y: 84.9296875 });
     expect(drawing.elements.find((item) => item.type === "flow_marker")).toMatchObject({
       y1: 64.953125,
       y2: 111.90625,
@@ -126,7 +126,7 @@ describe("the padding", () => {
   });
 });
 
-describe("box", () => {
+describe("the block's size", () => {
   for (const name of NAMES) {
     it(`moves no element of ${name} and grows only the block`, () => {
       const natural = drawFixture(name);

@@ -73,23 +73,33 @@ describe("the drawing fixtures", () => {
     expect(directories).toEqual(cases.map((item) => item.name).sort());
   });
 
-  it("are 70", () => {
-    expect(directories.length).toBe(70);
+  it("are 71", () => {
+    expect(directories.length).toBe(71);
   });
 
-  it("draw a timeline of two groups in a card of each, every other address alike in both", () => {
+  it("draw a timeline of two groups in a card of each, every address alike in both", () => {
     const svg = read("bundle__bundle_shared_member", "figure.svg");
-    const addresses = [...svg.matchAll(/data-address="([^"]*)"/g)].map((match) => match[1]);
-    const cards = addresses.filter((address) => address?.endsWith("/card"));
-    expect(cards).toEqual(
-      ["g1/t/card", "g1/u/card", "g2/t/card", "g2/v/card"].flatMap((card) => [card, card]),
-    );
-    // Each card is written twice, its shadow and itself; its member drawing follows.
-    const drawnIn = (card: string, next: string) =>
-      addresses.slice(addresses.lastIndexOf(card) + 1, addresses.indexOf(next));
-    const first = drawnIn("g1/t/card", "g1/u/card");
-    expect(first).toContain("t");
-    expect(drawnIn("g2/t/card", "g2/v/card")).toEqual(first);
+    // Each written element's address attributes, `data-id`, `data-facet` and `data-part`.
+    const attribute = (line: string, name: string) =>
+      line.match(new RegExp(` ${name}="([^"]*)"`))?.[1] ?? null;
+    const written = svg
+      .split("\n")
+      .filter((line) => /^<(rect|line|circle|polygon|polyline|path|text) /.test(line))
+      .map((line) => [
+        attribute(line, "data-id"),
+        attribute(line, "data-facet"),
+        attribute(line, "data-part"),
+      ]);
+    const cards = written.flatMap(([id, , part], line) => (part === "card" ? [{ id, line }] : []));
+    // Each card is written twice, its shadow and itself, under one address for every card of `t`.
+    expect(cards.map((card) => card.id)).toEqual(["t", "t", "u", "u", "t", "t", "v", "v"]);
+    // A card's member drawing follows it, up to the next card.
+    const between = (card: number) =>
+      written.slice((cards[card]?.line ?? 0) + 1, cards[card + 1]?.line);
+    const first = between(1);
+    const second = between(5);
+    expect(first).toContainEqual(["t", null, null]);
+    expect(second).toEqual(first);
   });
 
   it.each(cases)("$name: inputs.json holds the case's inputs", (item) => {
@@ -99,7 +109,11 @@ describe("the drawing fixtures", () => {
   const spaced = cases.filter(
     ({ placement }) =>
       placement.spacing !== DEFAULT_PLACEMENT.spacing ||
-      Object.values(placement.places).some((place) => place.spacing !== undefined),
+      Object.values(placement.places).some(
+        (place) =>
+          place.spacing !== undefined ||
+          Object.values(place.cards ?? {}).some((card) => card.spacing !== undefined),
+      ),
   );
   it.each(spaced)("$name: a stated spacing draws differently from the default", (item) => {
     const plain = cases.find(

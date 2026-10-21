@@ -6,7 +6,23 @@
  * expected values are derived in `README.md` ("The canvas in an editor").
  */
 
-import type { Store, View } from "@timetoalign/tilie-core";
+import type {
+  Address,
+  EditorKind,
+  ElementAddress,
+  Facet,
+  Store,
+  View,
+} from "@timetoalign/tilie-core";
+import {
+  bandAddress,
+  cardAddress,
+  idAddress,
+  inBlock,
+  partAddress,
+  TITLE_ADDRESS,
+  WORKSPACE,
+} from "@timetoalign/tilie-core";
 import type { Viewport } from "@xyflow/svelte";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -14,7 +30,7 @@ import { boxOf, itemOf } from "../src/boxes.ts";
 import { removeCommand } from "../src/commands.ts";
 import { drawingOf } from "../src/drawing.ts";
 import { GRID_FREE, quantize } from "../src/numbers.ts";
-import type { Selection } from "../src/selection.ts";
+import { type Selection, selectionOf } from "../src/selection.ts";
 import Harness from "./CanvasHarness.svelte";
 import { IDENTITY, settle, stubCanvasGlobals, withScreenMatrix } from "./dom.ts";
 import { A, B, changed, load, marqueeView, metrics, mixedView, storeOf } from "./support.ts";
@@ -57,7 +73,7 @@ afterEach(() => {
 function twoBlocks(): View {
   return changed(mixedView(), {
     type: "add",
-    into: "workspace",
+    into: WORKSPACE,
     block: { id: B, manifest: load("bare"), x: 1000, y: 0 },
   });
 }
@@ -73,18 +89,29 @@ async function show(view: View = twoBlocks()): Promise<void> {
   await settle();
 }
 
-function open(target: string): void {
+/** The element `element` of block A. */
+const at = (element: ElementAddress): Address => inBlock(A, element);
+/** The element of block A with the ID `id`: a timeline's line, a group. */
+const id = (element: string): Address => at(idAddress(element));
+/** The cards of `timeline` in block A. */
+const card = (timeline: string): Address => at(cardAddress(timeline));
+/** The band of `score` drawing `facet`, in block A. */
+const scoreBand = (facet: Facet): Address => at(bandAddress("score", facet));
+/** Block A itself. */
+const blockA: Address = { block: A };
+
+function open(target: Address): void {
   const refusal = store.open(target);
   if (refusal !== null) throw new Error(refusal.message);
   flushSync();
 }
 
-async function select(...addresses: string[]): Promise<void> {
-  harness.select(new Set(addresses));
+async function select(...addresses: Address[]): Promise<void> {
+  harness.select(selectionOf(addresses));
   await settle();
 }
 
-function path(): { target: string; kind: string }[] {
+function path(): { target: Address; kind: EditorKind }[] {
   return store.editing.map(({ target, kind }) => ({ target, kind }));
 }
 
@@ -102,17 +129,33 @@ function nodeOf(block: string): Element {
   return found;
 }
 
-/** The last drawn element of `block` carrying `address` (a card's own rect, not its shadow). */
-function drawn(address: string, block = A): Element {
-  const found = [...nodeOf(block).querySelectorAll("[data-address]")].findLast(
-    (element) => element.getAttribute("data-address") === address,
+/**
+ * Whether `element` is drawn with exactly `address`: its `data-id`,
+ * `data-facet` and `data-part` (the part words joined by one space, as the
+ * writers write them) each equal to the address's member, and absent where
+ * the address has none.
+ */
+function carries(element: Element, address: ElementAddress): boolean {
+  return (
+    element.getAttribute("data-id") === (address.id ?? null) &&
+    element.getAttribute("data-facet") === (address.facet ?? null) &&
+    element.getAttribute("data-part") === (address.part?.join(" ") ?? null)
   );
-  if (found === undefined) throw new Error(`nothing drawn at ${address}`);
+}
+
+/** The last drawn element of `block` carrying `address` (a card's own rect, not its shadow). */
+function drawn(address: ElementAddress, block = A): Element {
+  const found = [
+    ...nodeOf(block).querySelectorAll("svg [data-id], svg [data-facet], svg [data-part]"),
+  ].findLast((element) => carries(element, address));
+  if (found === undefined) throw new Error(`nothing drawn at ${JSON.stringify(address)}`);
   return found;
 }
 
 function background(block: string): Element {
-  const found = nodeOf(block).querySelector("svg rect:not([data-address])");
+  const found = nodeOf(block).querySelector(
+    "svg rect:not([data-id]):not([data-facet]):not([data-part]):not(.tilie-mark)",
+  );
   if (found === null) throw new Error(`no background in ${block}`);
   return found;
 }
@@ -196,8 +239,8 @@ async function resizeArranger(width: number, height: number): Promise<void> {
   await settle();
 }
 
-function selected(): string[] {
-  return [...harness.current().selection];
+function selected(): Address[] {
+  return [...harness.current().selection.values()];
 }
 
 /**
@@ -216,11 +259,11 @@ async function atZoomOne(): Promise<void> {
 
 describe("the canvas opens editors", () => {
   it("opens the editor of the box a double-click hits", async () => {
-    const cases: [() => Element, { target: string; kind: string }][] = [
-      [() => background(A), { target: A, kind: "bundle" }],
-      [() => drawn("group_1"), { target: `${A}/group_1`, kind: "group" }],
-      [() => drawn("group_1/score/card"), { target: `${A}/score`, kind: "timeline" }],
-      [() => drawn("dlt_1"), { target: `${A}/dlt_1`, kind: "timeline" }],
+    const cases: [() => Element, { target: Address; kind: EditorKind }][] = [
+      [() => background(A), { target: blockA, kind: "bundle" }],
+      [() => drawn(idAddress("group_1")), { target: id("group_1"), kind: "group" }],
+      [() => drawn(cardAddress("score")), { target: id("score"), kind: "timeline" }],
+      [() => drawn(idAddress("dlt_1")), { target: id("dlt_1"), kind: "timeline" }],
     ];
     for (const [target, opened] of cases) {
       await show();
@@ -240,46 +283,46 @@ describe("the canvas opens editors", () => {
     if (svg === null) throw new Error("no svg");
     // Client points are drawing points: the drawing shown at its own size at (0, 0).
     withScreenMatrix(svg, () => IDENTITY);
-    const textAt = async (address: string) => {
+    const textAt = async (address: ElementAddress) => {
       const text = drawn(address);
       const x = Number(text.getAttribute("x"));
       const y = Number(text.getAttribute("y"));
       await doubleClick(text, x, y);
     };
-    await textAt("score/name");
-    expect(path()).toEqual([{ target: `${A}/score`, kind: "timeline" }]);
+    await textAt(partAddress(idAddress("score"), "name"));
+    expect(path()).toEqual([{ target: id("score"), kind: "timeline" }]);
     store.done();
     await settle();
-    await textAt("group_1/name");
-    expect(path()).toEqual([{ target: `${A}/group_1`, kind: "group" }]);
+    await textAt(partAddress(idAddress("group_1"), "name"));
+    expect(path()).toEqual([{ target: id("group_1"), kind: "group" }]);
     store.done();
     await settle();
-    await textAt("name");
+    await textAt(TITLE_ADDRESS);
     expect(path()).toEqual([]);
   });
 
   it("opens nothing on the edited element, and an inside box on top", async () => {
     await show();
-    open(A);
+    open(blockA);
     await doubleClick(background(A));
-    expect(path()).toEqual([{ target: A, kind: "bundle" }]);
+    expect(path()).toEqual([{ target: blockA, kind: "bundle" }]);
     store.done();
-    open(`${A}/group_1`);
+    open(id("group_1"));
     await settle();
-    await doubleClick(drawn("group_1"));
-    expect(path()).toEqual([{ target: `${A}/group_1`, kind: "group" }]);
-    await doubleClick(drawn("group_1/score/card"));
+    await doubleClick(drawn(idAddress("group_1")));
+    expect(path()).toEqual([{ target: id("group_1"), kind: "group" }]);
+    await doubleClick(drawn(cardAddress("score")));
     expect(path()).toEqual([
-      { target: `${A}/group_1`, kind: "group" },
-      { target: `${A}/score`, kind: "timeline" },
+      { target: id("group_1"), kind: "group" },
+      { target: id("score"), kind: "timeline" },
     ]);
   });
 
   it("opens the editor of the single selected address on Enter", async () => {
-    const opened: [string, { target: string; kind: string }][] = [
-      [`${A}/group_1`, { target: `${A}/group_1`, kind: "group" }],
-      [`${A}/group_1/score/card`, { target: `${A}/score`, kind: "timeline" }],
-      [A, { target: A, kind: "bundle" }],
+    const opened: [Address, { target: Address; kind: EditorKind }][] = [
+      [id("group_1"), { target: id("group_1"), kind: "group" }],
+      [card("score"), { target: id("score"), kind: "timeline" }],
+      [blockA, { target: blockA, kind: "bundle" }],
     ];
     for (const [address, editor] of opened) {
       await show();
@@ -288,32 +331,32 @@ describe("the canvas opens editors", () => {
       expect(path()).toEqual([editor]);
     }
     await show();
-    await select(`${A}/score/start`);
+    await select(at(partAddress(idAddress("score"), "start")));
     await press("Enter");
-    await select(`${A}/group_1`, `${A}/group_2`);
+    await select(id("group_1"), id("group_2"));
     await press("Enter");
     expect(path()).toEqual([]);
-    open(`${A}/group_1`);
-    await select(`${A}/group_1`);
+    open(id("group_1"));
+    await select(id("group_1"));
     await press("Enter");
-    expect(path()).toEqual([{ target: `${A}/group_1`, kind: "group" }]);
+    expect(path()).toEqual([{ target: id("group_1"), kind: "group" }]);
   });
 
   it("opens an editor on two taps within 300 ms and 10 px on one target", async () => {
     await show();
-    await tap(drawn("group_1"), 100, 100, 1000);
-    await tap(drawn("group_1"), 105, 105, 1250);
-    expect(path()).toEqual([{ target: `${A}/group_1`, kind: "group" }]);
+    await tap(drawn(idAddress("group_1")), 100, 100, 1000);
+    await tap(drawn(idAddress("group_1")), 105, 105, 1250);
+    expect(path()).toEqual([{ target: id("group_1"), kind: "group" }]);
 
     await show();
-    await tap(drawn("group_1"), 100, 100, 1000);
-    await tap(drawn("group_1"), 100, 100, 1301);
-    await tap(drawn("group_1"), 100, 100, 2000);
-    await tap(drawn("group_1"), 111, 100, 2100);
-    await tap(drawn("group_1"), 100, 100, 3000);
-    await tap(drawn("group_2"), 100, 100, 3100);
-    await tap(drawn("group_1"), 100, 100, 4000, "mouse");
-    await tap(drawn("group_1"), 100, 100, 4100, "mouse");
+    await tap(drawn(idAddress("group_1")), 100, 100, 1000);
+    await tap(drawn(idAddress("group_1")), 100, 100, 1301);
+    await tap(drawn(idAddress("group_1")), 100, 100, 2000);
+    await tap(drawn(idAddress("group_1")), 111, 100, 2100);
+    await tap(drawn(idAddress("group_1")), 100, 100, 3000);
+    await tap(drawn(idAddress("group_2")), 100, 100, 3100);
+    await tap(drawn(idAddress("group_1")), 100, 100, 4000, "mouse");
+    await tap(drawn(idAddress("group_1")), 100, 100, 4100, "mouse");
     expect(path()).toEqual([]);
   });
 });
@@ -321,23 +364,23 @@ describe("the canvas opens editors", () => {
 describe("a double-click outside the edited element", () => {
   it("closes the innermost editor, as Done does", async () => {
     await show();
-    open(A);
+    open(blockA);
     await doubleClick(pane());
     expect(path()).toEqual([]);
 
-    open(A);
-    open(`${A}/group_1`);
+    open(blockA);
+    open(id("group_1"));
     await settle();
     await doubleClick(background(B));
-    expect(path()).toEqual([{ target: A, kind: "bundle" }]);
+    expect(path()).toEqual([{ target: blockA, kind: "bundle" }]);
     await doubleClick(background(B));
     expect(path()).toEqual([]);
 
-    open(`${A}/group_1`);
+    open(id("group_1"));
     await settle();
-    await doubleClick(drawn("group_2/page/card"));
+    await doubleClick(drawn(cardAddress("page")));
     expect(path()).toEqual([]);
-    open(`${A}/group_1`);
+    open(id("group_1"));
     await settle();
     await doubleClick(background(A));
     expect(path()).toEqual([]);
@@ -346,14 +389,14 @@ describe("a double-click outside the edited element", () => {
 
   it("keeps the editor on the edited element, and opens an editor inside it", async () => {
     await show();
-    open(`${A}/group_1`);
+    open(id("group_1"));
     await settle();
-    await doubleClick(drawn("group_1"));
-    expect(path()).toEqual([{ target: `${A}/group_1`, kind: "group" }]);
-    await doubleClick(drawn("group_1/performance/card"));
+    await doubleClick(drawn(idAddress("group_1")));
+    expect(path()).toEqual([{ target: id("group_1"), kind: "group" }]);
+    await doubleClick(drawn(cardAddress("performance")));
     expect(path()).toEqual([
-      { target: `${A}/group_1`, kind: "group" },
-      { target: `${A}/performance`, kind: "timeline" },
+      { target: id("group_1"), kind: "group" },
+      { target: id("performance"), kind: "timeline" },
     ]);
   });
 
@@ -362,7 +405,7 @@ describe("a double-click outside the edited element", () => {
     harness.showAt({ x: 12, y: -34, zoom: 0.5 });
     await settle();
     measure(10000, 10000);
-    await doubleClick(drawn("group_1"));
+    await doubleClick(drawn(idAddress("group_1")));
     expect(viewport()).toEqual({ x: 3683.03076171875, y: 4226.3125, zoom: 4 });
     await doubleClick(pane());
     expect(path()).toEqual([]);
@@ -371,23 +414,23 @@ describe("a double-click outside the edited element", () => {
 
   it("closes the innermost editor on a double tap, once", async () => {
     await show();
-    open(A);
-    open(`${A}/group_1`);
+    open(blockA);
+    open(id("group_1"));
     await settle();
     await tap(pane(), 50, 50, 1000);
     await tap(pane(), 55, 55, 1250);
-    expect(path()).toEqual([{ target: A, kind: "bundle" }]);
+    expect(path()).toEqual([{ target: blockA, kind: "bundle" }]);
     // The double-click a browser may derive from the two taps closes nothing more.
     await doubleClick(pane(), 55, 55);
-    expect(path()).toEqual([{ target: A, kind: "bundle" }]);
+    expect(path()).toEqual([{ target: blockA, kind: "bundle" }]);
     await tap(pane(), 50, 50, 2000);
     await tap(pane(), 50, 50, 2301);
-    expect(path()).toEqual([{ target: A, kind: "bundle" }]);
+    expect(path()).toEqual([{ target: blockA, kind: "bundle" }]);
   });
 
   it("does nothing on the arranger", async () => {
     await show();
-    await select(`${A}/group_1`);
+    await select(id("group_1"));
     await doubleClick(pane());
     expect(path()).toEqual([]);
     expect(store.journal).toHaveLength(stored);
@@ -397,8 +440,8 @@ describe("a double-click outside the edited element", () => {
 describe("the canvas leaves editors", () => {
   it("aborts the gesture, then clears the selection, then closes the editor on Escape", async () => {
     await show();
-    open(`${A}/group_1`);
-    await select(`${A}/group_1`);
+    open(id("group_1"));
+    await select(id("group_1"));
     const handle = document.querySelector('[data-testid="handle-right"]');
     if (handle === null) throw new Error("no resize handle");
     pointer("pointerdown", handle, { clientX: 0, clientY: 0, pointerType: "mouse" });
@@ -406,35 +449,35 @@ describe("the canvas leaves editors", () => {
     await settle();
     await press("Escape");
     expect(store.entries).toEqual([]);
-    expect(selected()).toEqual([`${A}/group_1`]);
-    expect(path()).toEqual([{ target: `${A}/group_1`, kind: "group" }]);
+    expect(selected()).toEqual([id("group_1")]);
+    expect(path()).toEqual([{ target: id("group_1"), kind: "group" }]);
     await press("Escape");
     expect(selected()).toEqual([]);
-    expect(path()).toEqual([{ target: `${A}/group_1`, kind: "group" }]);
+    expect(path()).toEqual([{ target: id("group_1"), kind: "group" }]);
     await press("Escape");
     expect(path()).toEqual([]);
   });
 
   it("aborts an item drag before it clears the selection on Escape", async () => {
     await show();
-    open(A);
-    await select(`${A}/group_2`);
-    const frame = drawn("group_2");
+    open(blockA);
+    await select(id("group_2"));
+    const frame = drawn(idAddress("group_2"));
     // jsdom draws nothing; the drag reads only that the drawing has a screen CTM.
     withScreenMatrix(nodeOf(A).querySelector("svg") as SVGSVGElement, () => IDENTITY);
     pointer("pointerdown", frame, { clientX: 100, clientY: 200, pointerType: "mouse" });
     pointer("pointermove", frame, { clientX: 140, clientY: 224, pointerType: "mouse" });
     await settle();
     await press("Escape");
-    expect(selected()).toEqual([`${A}/group_2`]);
-    expect(path()).toEqual([{ target: A, kind: "bundle" }]);
+    expect(selected()).toEqual([id("group_2")]);
+    expect(path()).toEqual([{ target: blockA, kind: "bundle" }]);
     pointer("pointerup", frame, { clientX: 140, clientY: 224, pointerType: "mouse" });
     await settle();
     expect(store.entries).toEqual([]);
     expect(store.view.blocks[A]?.places).toEqual({});
     await press("Escape");
     expect(selected()).toEqual([]);
-    expect(path()).toEqual([{ target: A, kind: "bundle" }]);
+    expect(path()).toEqual([{ target: blockA, kind: "bundle" }]);
     await press("Escape");
     expect(path()).toEqual([]);
   });
@@ -444,13 +487,13 @@ describe("the canvas leaves editors", () => {
     harness.showAt({ x: 12, y: -34, zoom: 0.5 });
     await settle();
     measure(10000, 10000);
-    await doubleClick(drawn("group_1"));
+    await doubleClick(drawn(idAddress("group_1")));
     expect(viewport()).toEqual({ x: 3683.03076171875, y: 4226.3125, zoom: 4 });
-    await doubleClick(drawn("group_1/score/card"));
-    expect(path().map(({ target }) => target)).toEqual([`${A}/group_1`, `${A}/score`]);
+    await doubleClick(drawn(cardAddress("score")));
+    expect(path().map(({ target }) => target)).toEqual([id("group_1"), id("score")]);
     expect(viewport()).toEqual({ x: 3683.03076171875, y: 4307.65625, zoom: 4 });
     await press("Escape");
-    expect(path().map(({ target }) => target)).toEqual([`${A}/group_1`]);
+    expect(path().map(({ target }) => target)).toEqual([id("group_1")]);
     expect(viewport()).toEqual({ x: 3683.03076171875, y: 4226.3125, zoom: 4 });
     await press("Escape");
     expect(path()).toEqual([]);
@@ -472,33 +515,33 @@ describe("the surroundings of an editor", () => {
     await show();
     expect(classes(A)).toEqual({ selectable: true, draggable: true, outside: false });
     expect(classes(B)).toEqual({ selectable: true, draggable: true, outside: false });
-    open(A);
+    open(blockA);
     await atZoomOne();
     expect(classes(A)).toEqual({ selectable: true, draggable: false, outside: false });
     expect(classes(B)).toEqual({ selectable: false, draggable: false, outside: true });
-    await select(`${A}/group_1`);
+    await select(id("group_1"));
     await shiftClickOn(background(B));
-    expect(selected()).toEqual([`${A}/group_1`]);
+    expect(selected()).toEqual([id("group_1")]);
     await clickOn(background(B));
     expect(selected()).toEqual([]);
-    await select(`${A}/group_1`);
+    await select(id("group_1"));
     await clickOn(pane(), 1110, 110);
     expect(selected()).toEqual([]);
-    await select(`${A}/group_1`);
+    await select(id("group_1"));
     await shiftClickOn(pane(), 50, 50);
-    expect(selected()).toEqual([`${A}/group_1`]);
+    expect(selected()).toEqual([id("group_1")]);
     await clickOn(pane(), 50, 50);
     expect(selected()).toEqual([]);
     store.done();
-    open(`${A}/group_1`);
+    open(id("group_1"));
     await settle();
-    await clickOn(drawn("group_1/score/card"));
-    expect(selected()).toEqual([`${A}/group_1/score/card`]);
-    await shiftClickOn(drawn("group_2"));
-    expect(selected()).toEqual([`${A}/group_1/score/card`]);
-    await clickOn(drawn("group_2"));
+    await clickOn(drawn(cardAddress("score")));
+    expect(selected()).toEqual([card("score")]);
+    await shiftClickOn(drawn(idAddress("group_2")));
+    expect(selected()).toEqual([card("score")]);
+    await clickOn(drawn(idAddress("group_2")));
     expect(selected()).toEqual([]);
-    expect(path()).toEqual([{ target: `${A}/group_1`, kind: "group" }]);
+    expect(path()).toEqual([{ target: id("group_1"), kind: "group" }]);
   });
 
   /**
@@ -520,12 +563,16 @@ describe("the surroundings of an editor", () => {
 
   it("select by marquee only the elements inside the edited element", async () => {
     await show(marqueeView());
-    open(`${A}/dlt_1`);
+    open(id("dlt_1"));
     await atZoomOne();
     await marqueeFrom(40, 410, 640, 496.25);
-    expect(selected()).toEqual([`${A}/recording/cmap_3`, `${A}/dlt_1`, `${A}/dlt_1/name`]);
+    expect(selected()).toEqual([
+      id("cmap_7"),
+      id("dlt_1"),
+      at(partAddress(idAddress("dlt_1"), "name")),
+    ]);
     store.done();
-    open(`${A}/group_1`);
+    open(id("group_1"));
     await atZoomOne();
     await marqueeFrom(40, 410, 640, 496.25);
     expect(selected()).toEqual([]);
@@ -533,12 +580,12 @@ describe("the surroundings of an editor", () => {
 
   it("show a refusal of the store in the status line", async () => {
     await show();
-    open(`${A}/group_1`);
-    await select(`${A}/annotations`);
+    open(id("group_1"));
+    await select(id("annotations"));
     const before = store.view;
-    const command = removeCommand(before, new Set([`${A}/annotations`]), null);
+    const command = removeCommand(before, selectionOf([id("annotations")]), null);
     const twin = storeOf(twoBlocks());
-    twin.open(`${A}/group_1`);
+    twin.open(id("group_1"));
     const refusal = twin.dispatch(command);
     expect(refusal?.code).toBe("side_effect");
     await press("Delete");
@@ -548,8 +595,8 @@ describe("the surroundings of an editor", () => {
 
   it("show the refusal to delete the edited element in the status line", async () => {
     await show();
-    open(`${A}/group_1`);
-    await select(`${A}/group_1`);
+    open(id("group_1"));
+    await select(id("group_1"));
     const [before, entries] = [store.view, store.journal.length];
     await press("Delete");
     expect(document.querySelector('[data-testid="hint"]')?.textContent).toBe(
@@ -557,7 +604,7 @@ describe("the surroundings of an editor", () => {
     );
     expect(store.view).toBe(before);
     expect(store.journal).toHaveLength(entries);
-    expect(selected()).toEqual([`${A}/group_1`]);
+    expect(selected()).toEqual([id("group_1")]);
   });
 });
 
@@ -568,14 +615,14 @@ describe("the view while it moves", () => {
     harness.showAt({ x: 12, y: -34, zoom: 0.5 });
     await settle();
     measure(10000, 10000);
-    await doubleClick(drawn("group_1"));
-    await doubleClick(drawn("group_1/score/card"));
-    expect(path().map(({ target }) => target)).toEqual([`${A}/group_1`, `${A}/score`]);
+    await doubleClick(drawn(idAddress("group_1")));
+    await doubleClick(drawn(cardAddress("score")));
+    expect(path().map(({ target }) => target)).toEqual([id("group_1"), id("score")]);
     await wait(1100);
     expect(viewport()).toEqual({ x: 3683.03076171875, y: 4307.65625, zoom: 4 });
     await press("Escape");
     await wait(1100);
-    expect(path().map(({ target }) => target)).toEqual([`${A}/group_1`]);
+    expect(path().map(({ target }) => target)).toEqual([id("group_1")]);
     expect(viewport()).toEqual({ x: 3683.03076171875, y: 4226.3125, zoom: 4 });
   });
 });
@@ -588,15 +635,15 @@ describe("a double-click on the edited element", () => {
       harness.showAt({ x: 12, y: -34, zoom: 0.5 });
       await settle();
       measure(10000, 10000);
-      await doubleClick(drawn("group_1"));
+      await doubleClick(drawn(idAddress("group_1")));
       await wait(reduced ? 0 : 1100);
       expect(viewport()).toEqual({ x: 3683.03076171875, y: 4226.3125, zoom: 4 });
       harness.showAt({ x: 5, y: 6, zoom: 1 });
       await settle();
-      await doubleClick(drawn("group_1"));
+      await doubleClick(drawn(idAddress("group_1")));
       await wait(reduced ? 0 : 1100);
       expect(viewport()).toEqual({ x: 3683.03076171875, y: 4226.3125, zoom: 4 });
-      expect(path()).toEqual([{ target: `${A}/group_1`, kind: "group" }]);
+      expect(path()).toEqual([{ target: id("group_1"), kind: "group" }]);
       expect(store.journal).toHaveLength(stored);
     });
   }
@@ -608,7 +655,7 @@ describe("the view when the canvas changes size", () => {
     harness.showAt({ x: 12, y: -34, zoom: 0.5 });
     await settle();
     measure(10000, 10000);
-    await doubleClick(drawn("group_1"));
+    await doubleClick(drawn(idAddress("group_1")));
     expect(viewport()).toEqual({ x: 3683.03076171875, y: 4226.3125, zoom: 4 });
     await resizeArranger(6000, 10000);
     expect(viewport()).toEqual({ x: 1683.03076171875, y: 4226.3125, zoom: 4 });
@@ -635,48 +682,48 @@ describe("the resize toolbar in an editor", () => {
 
   it("offers the modes the level allows", async () => {
     const three = ["Scale", "Box", "Stretch"];
-    const offered = async (address: string) => {
+    const offered = async (address: Address) => {
       await select(address);
       return modes();
     };
     await show();
-    for (const address of [A, `${A}/group_2`, `${A}/group_1/score/card`, `${A}/annotations/card`]) {
+    for (const address of [blockA, id("group_2"), card("score"), card("annotations")]) {
       expect(await offered(address)).toEqual(three);
     }
-    expect(await offered(`${A}/score`)).toEqual([]);
-    open(A);
+    expect(await offered(id("score"))).toEqual([]);
+    open(blockA);
     await settle();
-    for (const address of [A, `${A}/group_2`, `${A}/group_1/score/card`]) {
+    for (const address of [blockA, id("group_2"), card("score")]) {
       expect(await offered(address)).toEqual(three);
     }
     store.done();
-    open(`${A}/group_1`);
-    expect(await offered(`${A}/group_1`)).toEqual(three);
-    expect(await offered(`${A}/group_1/score/card`)).toEqual(three);
+    open(id("group_1"));
+    expect(await offered(id("group_1"))).toEqual(three);
+    expect(await offered(card("score"))).toEqual(three);
     store.done();
-    open(`${A}/annotations`);
-    expect(await offered(`${A}/annotations/card`)).toEqual(three);
+    open(id("annotations"));
+    expect(await offered(card("annotations"))).toEqual(three);
     store.done();
-    open(`${A}/score`);
-    expect(await offered(`${A}/group_1/score/card`)).toEqual(three);
+    open(id("score"));
+    expect(await offered(card("score"))).toEqual(three);
     store.done();
-    open(`${A}/recording`);
-    expect(await offered(`${A}/group_2/excerpt/card`)).toEqual([]);
+    open(id("recording"));
+    expect(await offered(card("excerpt"))).toEqual([]);
     store.done();
-    open(`${A}/dlt_1`);
-    expect(await offered(`${A}/dlt_1`)).toEqual([]);
+    open(id("dlt_1"));
+    expect(await offered(id("dlt_1"))).toEqual([]);
   });
 
   it("resizes a frame the arranger's click selects, in one set that moves nothing else", async () => {
     await show();
     await atZoomOne();
-    await clickOn(drawn("group_1"));
-    expect(selected()).toEqual([`${A}/group_1`]);
+    await clickOn(drawn(idAddress("group_1")));
+    expect(selected()).toEqual([id("group_1")]);
     expect(document.querySelectorAll("[data-testid^='handle-']")).toHaveLength(8);
     const before = store.view.blocks[A];
     if (before === undefined) throw new Error("no block A");
     const drawing = drawingOf(before, store.view.settings, metrics);
-    const place = (key: string) => itemOf(drawing, key).item.place;
+    const place = (item: string) => itemOf(drawing, { item }).item.place;
     const handle = document.querySelector('[data-testid="handle-right"]');
     if (handle === null) throw new Error("no resize handle");
     pointer("pointerdown", handle, { clientX: 0, clientY: 0, pointerType: "mouse" });
@@ -692,11 +739,11 @@ describe("the resize toolbar in an editor", () => {
       type: "set",
       changes: [
         {
-          target: `${A}/group_1`,
+          target: id("group_1"),
           values: { place: { width: quantize(place("group_1").width + 60, GRID_FREE) } },
         },
-        { target: `${A}/group_2`, values: { place: { x: x2, y: y2 } } },
-        { target: `${A}/annotations`, values: { place: { x: x3, y: y3 } } },
+        { target: id("group_2"), values: { place: { x: x2, y: y2 } } },
+        { target: id("annotations"), values: { place: { x: x3, y: y3 } } },
       ],
     });
     store.undo();
@@ -705,9 +752,9 @@ describe("the resize toolbar in an editor", () => {
 
   it("resizes the edited block itself in the bundle editor, as on the arranger", async () => {
     await show();
-    open(A);
+    open(blockA);
     await atZoomOne();
-    await select(A);
+    await select(blockA);
     const before = store.view.blocks[A];
     if (before === undefined) throw new Error("no block A");
     const { width } = drawingOf(before, store.view.settings, metrics);
@@ -730,11 +777,11 @@ describe("the resize toolbar in an editor", () => {
   }
 
   /** Block `id`'s node position on the canvas, from the transform Svelte Flow gives its element. */
-  function nodePositionOf(id: string): { x: number; y: number } {
+  function nodePositionOf(block: string): { x: number; y: number } {
     const match = /translate\((-?[\d.]+)px, *(-?[\d.]+)px\)/.exec(
-      (nodeOf(id) as HTMLElement).style.transform,
+      (nodeOf(block) as HTMLElement).style.transform,
     );
-    if (match === null) throw new Error(`node ${id} has no position`);
+    if (match === null) throw new Error(`node ${block} has no position`);
     return { x: Number(match[1]), y: Number(match[2]) };
   }
 
@@ -756,11 +803,11 @@ describe("the resize toolbar in an editor", () => {
    * rectangle in the block's drawing (exact; the drawn `rect` rounds its
    * attributes), placed at the node's position at the block's scale.
    */
-  function drawnBox(address: string): { x: number; y: number; width: number } {
+  function drawnBox(address: ElementAddress): { x: number; y: number; width: number } {
     const block = store.view.blocks[A];
     if (block === undefined) throw new Error("no block A");
     const rect = boxOf(drawingOf(block, store.view.settings, metrics), address);
-    if (rect === undefined) throw new Error(`no box ${address}`);
+    if (rect === undefined) throw new Error(`no box ${JSON.stringify(address)}`);
     const at = nodePositionOf(A);
     return {
       x: at.x + rect.x * block.scale,
@@ -771,16 +818,16 @@ describe("the resize toolbar in an editor", () => {
 
   it("sits above the selected item, not above its block, and follows it", async () => {
     await show();
-    open(A);
+    open(blockA);
     await atZoomOne();
-    await select(`${A}/group_2`);
-    const before = drawnBox("group_2");
+    await select(id("group_2"));
+    const before = drawnBox(idAddress("group_2"));
     expect(menuTransform()).toBe(above(before));
     expect(above(before)).not.toBe(above({ ...nodePositionOf(A), width: 0 }));
 
     harness.showAt({ x: -20, y: 30, zoom: 2 });
     await settle();
-    expect(menuTransform()).toBe(above(drawnBox("group_2")));
+    expect(menuTransform()).toBe(above(drawnBox(idAddress("group_2"))));
 
     harness.showAt({ x: 100, y: 100, zoom: 1 });
     await settle();
@@ -790,31 +837,31 @@ describe("the resize toolbar in an editor", () => {
     pointer("pointermove", handle, { clientX: 60, clientY: 0, pointerType: "mouse" });
     pointer("pointerup", handle, { clientX: 60, clientY: 0, pointerType: "mouse" });
     await settle();
-    const resized = drawnBox("group_2");
+    const resized = drawnBox(idAddress("group_2"));
     expect(resized.width).not.toBe(before.width);
     expect(menuTransform()).toBe(above(resized));
 
     // jsdom draws nothing; the drag reads only that the drawing has a screen CTM.
     withScreenMatrix(nodeOf(A).querySelector("svg") as SVGSVGElement, () => IDENTITY);
-    const frame = drawn("group_2");
+    const frame = drawn(idAddress("group_2"));
     pointer("pointerdown", frame, { clientX: 100, clientY: 200, pointerType: "mouse" });
     pointer("pointermove", frame, { clientX: 140, clientY: 224, pointerType: "mouse" });
     pointer("pointerup", frame, { clientX: 140, clientY: 224, pointerType: "mouse" });
     await settle();
-    const moved = drawnBox("group_2");
+    const moved = drawnBox(idAddress("group_2"));
     expect(moved.x).not.toBe(resized.x);
     expect(menuTransform()).toBe(above(moved));
 
     store.done();
-    open(`${A}/annotations`);
-    await select(`${A}/annotations/card`);
-    expect(menuTransform()).toBe(above(drawnBox("annotations/card")));
+    open(id("annotations"));
+    await select(card("annotations"));
+    expect(menuTransform()).toBe(above(drawnBox(cardAddress("annotations"))));
   });
 
   it("sits above the selected block on the arranger", async () => {
     await show();
     await atZoomOne();
-    await select(A);
+    await select(blockA);
     const svg = nodeOf(A).querySelector("svg");
     const [, , width = 0] = (svg?.getAttribute("viewBox") ?? "").split(" ").map(Number);
     const scale = store.view.blocks[A]?.scale ?? 1;
@@ -824,22 +871,15 @@ describe("the resize toolbar in an editor", () => {
 
 describe("the canvas and the bands of the edited timeline", () => {
   /** `score`'s band order with its markers band moved just above its line. */
-  const MOVED = [
-    "score/children_1",
-    "score/conversion_maps_1",
-    "score/markers_1",
-    "score",
-    "score/regions_1",
-    "score/flow_control_1",
-  ];
+  const MOVED = ["children", "conversion_maps", "markers", "line", "regions", "flow_control"];
 
   /**
-   * `A/score`'s timeline editor open, A's `<svg>` shown at client (0, 0) at
+   * `{block: A, id: "score"}`'s timeline editor open, A's `<svg>` shown at client (0, 0) at
    * the drawing's own size, so a client point is a drawing point.
    */
   async function inScoresEditor(): Promise<void> {
     await show();
-    open(`${A}/score`);
+    open(id("score"));
     await settle();
     const svg = nodeOf(A).querySelector("svg");
     if (svg === null) throw new Error("no svg");
@@ -847,11 +887,12 @@ describe("the canvas and the bands of the edited timeline", () => {
   }
 
   /** The middle of the record of `score`'s band `address` in A's drawing as layout draws it. */
-  function middleOf(address: string): { x: number; y: number } {
+  function middleOf(facet: Facet): { x: number; y: number } {
     const block = store.view.blocks[A];
     if (block === undefined) throw new Error("no block A");
+    const address = bandAddress("score", facet);
     const band = boxOf(drawingOf(block, store.view.settings, metrics), address);
-    if (band === undefined) throw new Error(`${address} is not drawn`);
+    if (band === undefined) throw new Error(`score's ${facet} band is not drawn`);
     return { x: band.x + band.width / 2, y: band.y + band.height / 2 };
   }
 
@@ -875,22 +916,22 @@ describe("the canvas and the bands of the edited timeline", () => {
 
   it("selects a band by a click, which opens and closes nothing, also on a locked canvas", async () => {
     await inScoresEditor();
-    const { x, y } = middleOf("score/markers_1");
-    await clickOn(drawn("group_1/score/card"), x, y);
-    expect(selected()).toEqual([`${A}/score/markers_1`]);
+    const { x, y } = middleOf("markers");
+    await clickOn(drawn(cardAddress("score")), x, y);
+    expect(selected()).toEqual([scoreBand("markers")]);
     await press("Enter");
-    expect(path()).toEqual([{ target: `${A}/score`, kind: "timeline" }]);
-    await doubleClick(drawn("group_1/score/card"), x, y);
-    expect(path()).toEqual([{ target: `${A}/score`, kind: "timeline" }]);
+    expect(path()).toEqual([{ target: id("score"), kind: "timeline" }]);
+    await doubleClick(drawn(cardAddress("score")), x, y);
+    expect(path()).toEqual([{ target: id("score"), kind: "timeline" }]);
     await select();
     await press("l");
-    await clickOn(drawn("group_1/score/card"), x, y);
-    expect(selected()).toEqual([`${A}/score/markers_1`]);
+    await clickOn(drawn(cardAddress("score")), x, y);
+    expect(selected()).toEqual([scoreBand("markers")]);
   });
 
   it("steps the selected band past the next visible entry with Ctrl or Cmd and an arrow", async () => {
     await inScoresEditor();
-    await select(`${A}/score/markers_1`);
+    await select(scoreBand("markers"));
     expect(await stepped("ArrowUp")).toBe(true);
     expect(store.entries).toHaveLength(1);
     expect(scoreOrder()).toEqual(MOVED);
@@ -899,22 +940,22 @@ describe("the canvas and the bands of the edited timeline", () => {
     expect(Object.hasOwn(store.view.blocks[A]?.manifest.graphical?.order ?? {}, "score")).toBe(
       false,
     );
-    expect(selected()).toEqual([`${A}/score/markers_1`]);
+    expect(selected()).toEqual([scoreBand("markers")]);
   });
 
   it("consumes the key whenever a band is selected, and stores nothing it cannot step", async () => {
     await inScoresEditor();
-    await select(`${A}/score/conversion_maps_1`);
+    await select(scoreBand("conversion_maps"));
     expect(await stepped("ArrowUp")).toBe(true);
-    await select(`${A}/score/markers_1`, `${A}/score/flow_control_1`);
+    await select(scoreBand("markers"), scoreBand("flow_control"));
     expect(await stepped("ArrowUp")).toBe(true);
-    await select(`${A}/score/markers_1`);
+    await select(scoreBand("markers"));
     await press("l");
     expect(await stepped("ArrowUp")).toBe(true);
     expect(store.entries).toEqual([]);
     expect(scoreOrder()).toBeUndefined();
     await press("l");
-    await select(`${A}/score/name`);
+    await select(at(partAddress(idAddress("score"), "name")));
     expect(await stepped("ArrowUp")).toBe(false);
   });
 });

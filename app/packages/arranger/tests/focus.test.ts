@@ -1,7 +1,10 @@
+import type { Address } from "@timetoalign/tilie-core";
+import { idAddress, inBlock } from "@timetoalign/tilie-core";
 import { describe, expect, it } from "vitest";
 import { FOCUS_DURATION, focusViewport, targetBounds } from "../src/focus.ts";
 import type { BlockNode } from "../src/project.ts";
 import { project } from "../src/project.ts";
+import { NOTHING_SELECTED } from "../src/selection.ts";
 import { A, changed, metrics, mixedView } from "./support.ts";
 
 /** The node of block A, at `scale` when one is given. */
@@ -10,18 +13,18 @@ function nodeOf(scale?: number): BlockNode {
   const view =
     scale === undefined
       ? mixed
-      : changed(mixed, { type: "set", changes: [{ target: A, values: { scale } }] });
-  const [node] = project(view, new Set(), [], metrics, null);
+      : changed(mixed, { type: "set", changes: [{ target: { block: A }, values: { scale } }] });
+  const [node] = project(view, NOTHING_SELECTED, [], metrics, null);
   if (node === undefined) throw new Error("no node");
   return node;
 }
 
 describe("targetBounds", () => {
   const node = nodeOf();
-  const at = (element: string) => `${A}/${element}`;
+  const at = (id: string): Address => inBlock(A, idAddress(id));
 
-  it("is the block's box, a frame or a card on the canvas", () => {
-    expect(targetBounds(node, A, metrics)).toEqual({
+  it("is the block, a frame or a card on the canvas", () => {
+    expect(targetBounds(node, { block: A }, metrics)).toEqual({
       x: 40,
       y: 80,
       width: 580.484619140625,
@@ -60,7 +63,9 @@ describe("targetBounds", () => {
   });
 
   it("refuses a target of another block", () => {
-    expect(() => targetBounds(node, "0000000009/group_1", metrics)).toThrow(RangeError);
+    expect(() => targetBounds(node, inBlock("0000000009", idAddress("group_1")), metrics)).toThrow(
+      RangeError,
+    );
   });
 });
 

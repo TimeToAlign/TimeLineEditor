@@ -17,6 +17,18 @@ nothing written outside temporary state. Block ids in examples are `A =
 where a section says so. A view given to a command is deep-frozen, so a
 mutation throws.
 
+**Addresses in this file.** An address is an object (TimeToShare's
+drawing specification, section 2.2): `{}` the workspace, `{block: A}` a
+block, `{block: A, id: "score"}` the element with the ID `score` of block
+`A`'s manifest, `{block: A, id: "score", facet: "regions"}` a band,
+`{block: A, id: "score", part: ["end", "label"]}` a part. Where a path or
+a message below names an address, it holds the address's one string form,
+`addressKey`: the path `[{block: A, id: "clt_3"}, "length"]` stands for
+`['{"block":"0000000000","id":"clt_3"}', "length"]`, the workspace's
+`[{}, "name"]` for `["{}", "name"]`. A path that starts with a bare block
+id (`[A, "manifest", …]`, `[A, "places", …]`, `[A, "x"]` in the view
+check or the guard) is a location in the view, not an address.
+
 **Where manifests come from.** Every manifest is a fixture of the
 installed TimeToShare package: `fixtures/<SCHEMA_VERSION>/` with its
 `groups/` and `bundles/`, each in the complete form beside its minimal twin
@@ -32,23 +44,31 @@ against whatever TimeToShare ships. The manifests named most often:
 - `nested.json`: root `clt_1` of 16, child `clt_3` at 4 of 8, its child
   `clt_2` at 3/2 of 2, both locked.
 - `map.json`: root `melody` with the map `tempo`, child `phrase` at 2 with
-  the map `ticks` (addressed `melody/ticks`).
+  the map `ticks` (addressed `{id: "ticks"}`: every ID is unique across a
+  manifest, so an element is addressed by its ID wherever it lies).
 - `segment_line.json`: root `form` of 32 with the segments `a` 0–8, `b`
   8–20 and `c` 20–32, each a locked segment line; `b` holds `b1` 0–6 and
   `b2` 6–12, `c` holds `c1` 0–12.
 - `bundles/bundle_mixed.json`: named "Mixed", no id. Roots `annotations`
   (regions `region_1` "Verse" and `region_2` "Chorus"), `score` (12
   quarters; maps `cmap_1` and `cmap_2`, jump `jump_from_1` "Repeat"),
-  `performance` (seconds), `page` (pixels) and `recording` (samples), each
-  of these three with a map `cmap_1`; `recording` holds the child `excerpt`
-  at 44100, whose map `cmap_2` is addressed `recording/cmap_2`. `group_1`
-  "Performance" of `performance` and `score`, display order `score`,
-  `performance`; `group_2` "Facsimile" of `excerpt` and `page`, display
-  order `page`, `excerpt`. The box holds the frames `group_1` and `group_2`
-  and the card of the ungrouped root `annotations` (its items); the frames
-  hold the cards of the members `score`, `performance`, `page` and
-  `excerpt`; `recording` holds a member, so it is drawn in no card, only as
+  `performance` (seconds, map `cmap_3`), `page` (pixels, map `cmap_4`) and
+  `recording` (samples, map `cmap_5`); `recording` holds the child
+  `excerpt` at 44100, whose map is `cmap_6`. `group_1` "Performance" of
+  `performance` and `score`, display order `score`, `performance`;
+  `group_2` "Facsimile" of `excerpt` and `page`, display order `page`,
+  `excerpt`. The block holds the frames `group_1` and `group_2` and the
+  card of the ungrouped root `annotations` (its items); the frames hold the
+  cards of the members `score`, `performance`, `page` and `excerpt`;
+  `recording` holds a member, so it is drawn in no card, only as
   `excerpt`'s ancestor line.
+- `bundles/bundle_shared_member.json`: roots `t` (quarters), `u` (seconds)
+  and `v` (pixels); `g1` of `t`, `u` and `g2` of `t`, `v`: `t` has a card
+  in each frame.
+- `bundles/bundle_free_ids.json`: roots `https://example.org/piece/score`
+  (quarters, region `https://example.org/piece/score#exposition`) and
+  `perf/take 2` (seconds, region `take 2/intro`), both members of
+  `group_1`; one statement selects `{addresses: [{id: "take 2/intro"}]}`.
 - `groups/group_child_member.json`: group `group_1` "Second half", display
   order `second-half`, `recording`; root `piece` holds the member
   `second-half` at 8; root `recording`.
@@ -149,10 +169,11 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
 2. **Shared rejections.** Every shared rejection case, written as JSON text,
    is refused by `loadManifest` with exactly one problem whose `path` equals
    the case's `path`. These include TimeToShare's identity and
-   representation rules (an id repeated where it must be unique, a part word
-   as an id, a jump origin's `target` naming no jump target of its
-   timeline, a measure view naming no measure map, an `int` on a `fraction`
-   axis),
+   representation rules (an ID repeated anywhere in the manifest, an ID
+   holding a control character, an address of a statement of the wrong
+   shape, a band order in the former string form, a jump origin's `target`
+   naming no jump target of its timeline, a measure view naming no measure
+   map, an `int` on a `fraction` axis),
    all `schema_violation`s from its `validate`, so `core` checks none of
    them again; a `non_finite` case is refused with its number in place.
 3. **The version marker.** `bare.json` with `"timetoshare": "0.6.0"` is
@@ -212,7 +233,7 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
     that code at the exact path. `invalid_coordinate` is reached through
     commands only (a value the schema's representation check would refuse
     at load). A command meets the same invariants: in a block of
-    `with_region.json`, `set` of `clt_1/region_1`'s `end` to `[0, 1]` is
+    `with_region.json`, `set` of `{block: A, id: "region_1"}`'s `end` to `[0, 1]` is
     `region_end_before_start` at `[A, "manifest", "timelines", 0,
     "regions", 0, "end"]`.
 12. **A child's unit and extent and a map's source unit are the
@@ -232,8 +253,8 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
     root `clt_1` (`quarters`) holds a `LinearMap` `seconds` with
     `source_unit` `seconds` is refused with exactly `schema_violation` at
     `["timelines", 0, "conversion_maps", 0, "source_unit"]`, message
-    `LinearMap "seconds" has source unit "seconds", its timeline "clt_1"
-    has "quarters"`. Each message is passed on unchanged, so a test pinning
+    `LinearMap 'seconds' has source unit 'seconds', its timeline 'clt_1'
+    has 'quarters'`. Each message is passed on unchanged, so a test pinning
     it fails if core rewrites it.
 13. **A negative child offset is core's to refuse.** The schema accepts a
     child starting before its parent's origin; core does not support it
@@ -263,8 +284,8 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
     beside the measure maps of its manifest, completed and ordered as a
     command's result is: a minimal `LinearMap` `tempo`, in `melody` of
     `map.json` and in its child `phrase`, comes back in its complete form
-    (`name: null`, `offset: 0`); a region with the reserved id `start` is
-    `schema_violation` at `["regions", 0, "id"]`, its path from that
+    (`name: null`, `offset: 0`); a region whose ID holds a tab
+    (`"verse\tchorus"`) is `schema_violation` at `["regions", 0, "id"]`, its path from that
     timeline, which a command reports below its block's manifest; a
     `MeasureRecordMap` `x_record` naming the measure map `bars` reads in its
     complete form (`name: null`) beside `bars`, and without it is
@@ -329,37 +350,37 @@ refusal; none reaches `schema_violation`.
 On `nested.json`, both children unlocked:
 
 1. **Set.** `clt_3` length `[12, 1]` is accepted, `clt_1` stays `[16, 1]`;
-   `[13, 1]` (end 17) is `child_exceeds_parent` at `[A + "/clt_3",
+   `[13, 1]` (end 17) is `child_exceeds_parent` at `[{block: A, id: "clt_3"},
    "length"]`, the same with `clt_1` locked.
 2. **Add.** A child `g` of 6 at 5 into `clt_3` grows `clt_3` to exactly
    `[11, 1]` and leaves `clt_1` at `[16, 1]`; a child of 8 at 5 would grow
-   it to 13 (end 17) and is `child_exceeds_parent` at `[A + "/clt_3",
+   it to 13 (end 17) and is `child_exceeds_parent` at `[{block: A, id: "clt_3"},
    "child"]`.
 3. **Move.** `clt_2`'s offset `[7, 1]` grows `clt_3` to exactly `[9, 1]`,
    `clt_1` stays `[16, 1]`; `[11, 1]` would grow it to 13 and is
-   `child_exceeds_parent` at `[A + "/clt_2", "offset"]`.
+   `child_exceeds_parent` at `[{block: A, id: "clt_2"}, "offset"]`.
 4. **A root has no parent.** A child of 4 at 14 into `clt_1` grows it to
    exactly `[18, 1]`.
 
 On `segment_line.json` (`form` unlocked; segments read unlocked):
 
 5. **The last segment of a line of known length.** On `b2`, its length
-   `[8, 1]` and `[4, 1]` are each `segment_end_fixed` at `[A + "/b2",
+   `[8, 1]` and `[4, 1]` are each `segment_end_fixed` at `[{block: A, id: "b2"},
    "length"]`; `[6, 1]`, its own, changes nothing and is refused as such
    (`invalid_value`, "the command changes nothing"), never as
    `segment_end_fixed`; `null` is accepted and leaves `b` at `[12, 1]`.
 6. **A segment with a successor.** On `b1`, `[4, 1]` is
-   `segment_end_fixed` at `[A + "/b1", "length"]` (`b2` starts at 6);
+   `segment_end_fixed` at `[{block: A, id: "b1"}, "length"]` (`b2` starts at 6);
    `null` is accepted.
 7. **A line of unknown length.** With `b` stating `locked: false` and `b`'s
    length set to null, `b2` length `[8, 1]` is accepted and `b` stays null.
    The other way round, a segment line ends where its last segment of
    known length ends: with `c` stating `locked: false` and `form`'s length
-   set to null, `c` length `[14, 1]` is `segment_end_fixed` at `[A + "/c",
+   set to null, `c` length `[14, 1]` is `segment_end_fixed` at `[{block: A, id: "c"},
    "length"]` (`c1` ends at 12).
 8. **A segment grown by what is added.** With `c` stating `locked: false`,
    adding `c2` of 4 at 12 into `c` would grow it to 16 and is
-   `segment_end_fixed` at `[A + "/c", "child"]`; after `form`'s length is
+   `segment_end_fixed` at `[{block: A, id: "c"}, "child"]`; after `form`'s length is
    set to null the same `add` grows `c` to exactly `[16, 1]` and `form`
    stays null.
 
@@ -390,7 +411,8 @@ timeline's length is fixed and binds no child to it.
 | `length_below_content` | A length is not set below the farthest point a child reaches: its end, or its offset when its length is not known (and so never negative; a rule of `set`) | the `Timeline.length` setter |
 | `region_end_before_start` | A region's end is not before its start | `timetoalign.timelines.regions.Region` |
 
-Id uniqueness in its scopes, part words refused as ids, a group's members
+An ID unique across the whole manifest and free of control characters (any
+other string is an ID: `/`, spaces, URIs and part words alike), a group's members
 naming timelines of the manifest, a jump origin's `target` naming a jump
 target of its timeline, a measure view's `measure_map` naming a measure map
 of the manifest, a child sharing its parent's unit (`ChildrenMixin.validate_child`
@@ -415,9 +437,10 @@ check, not the editor's.
 A `style` command and the layout's cascade decide which elements a selector
 matches by one enumeration of the drawing's tree (drawing.md sections 2.1
 and 8.1) and one matcher, `manifestElements` and `selectorMatches`. Each
-element is a key `{type, address, timeline, domain, modality, class,
-inside}`; `inside` is its holder chain, the types of the elements holding
-it, outermost first.
+element is a key `{type, address, timeline, domain, modality, class, facet,
+inside}`; `address` is its element address (`{}` for the block), `facet`
+the facet a band draws (null for every other element), and `inside` its
+holder chain, the types of the elements holding it, outermost first.
 
 What proves it: the oracle is drawing.md. For three fixtures the whole
 enumeration is written out by hand from the specification's tree, in tree
@@ -426,49 +449,65 @@ are then run over those keys and their matches written out by hand too. A
 key held by the wrong element shows as a wrong chain, so the chains are the
 check of who holds what.
 
-1. **The enumeration of `map.json`**: twenty-two keys. The box (`block`,
-   every member null, holding nothing), the root's card beside its line,
-   then per timeline in pre-order its line and name and its five bands in
-   band-kind order, each band followed by what it holds (children by
-   offset then id, maps, the root's two wedges with their labels, regions,
-   flow markers then jump origins with their labels). Every timeline lists all five
-   bands. A band has no domain or modality, and its class is its kind.
+1. **The enumeration of `map.json`**: twenty-two keys. The block (`block`,
+   address `{}`, every other member null, holding nothing), the root's card
+   `{id: "melody", part: ["card"]}` beside its line `{id: "melody"}`, then
+   per timeline in pre-order its line and name (`{id, part: ["name"]}`) and
+   its five bands (`{id, facet}`) in `FACETS` order, each band followed by
+   what it holds (children by offset then ID, maps, the root's two wedges
+   `{id: "melody", part: ["start"]}` and `["end"]` with their labels
+   `["start", "label"]` and `["end", "label"]`, regions, flow markers then
+   jump origins with their labels). The maps are `{id: "ticks"}` and
+   `{id: "tempo"}`. Every timeline lists all five bands. A band has no
+   domain, modality or class, and its facet.
 2. **Timeline classes.** The six classes are written out with their units:
    each unit belongs to exactly one class, and the units are exactly the
    schema's (the `const` of every entry of `TimeUnit`'s `oneOf`). A map takes its `target_unit`'s domain and modality, `number`
    included.
 3. **Regions, flow markers and jump origins** of `with_region.json` and
-   `flow_control.json` are addressed below their root, each with a label,
-   and held by their bands (the whole (type, address) list of
-   `flow_control.json` is pinned: `flow_marker` `flow_marker_1`, then the
-   `jump_from`s `jump_from_1` and `jump_from_2`, each followed by its label); a jump
-   target (`jump_to_1`, `jump_to_2`) is no element; in every
-   one-root manifest fixture every address is distinct.
-4. **The title** `name` follows the box for a manifest with a `name` or an
-   `id`, and is absent for an anonymous one.
+   `flow_control.json` are addressed by their IDs, each with a label
+   (`{id, part: ["label"]}`), and held by their bands (the whole (type,
+   address) list of `flow_control.json` is pinned: `flow_marker`
+   `{id: "flow_marker_1"}`, then the `jump_from`s `jump_from_1` and
+   `jump_from_2`, each followed by its label); a jump target (`jump_to_1`,
+   `jump_to_2`) is no element; in every one-root manifest fixture every
+   address is distinct (compared by `addressKey`).
+4. **The title** `{part: ["name"]}` follows the block for a manifest with a
+   `name` or an `id`, and is absent for an anonymous one.
 5. **Matching** over `map.json`, one selector per member (`element`,
-   `domain`, `modality`, `class`, `ids`, `within`), bands included: a band
-   belongs to its timeline (`within`), its kind is its class, and no
-   selector naming a domain or modality matches it; a map's class is its
-   type (`{class: "LinearMap"}` matches both maps of `map.json`,
-   `melody/ticks` then `melody/tempo` in tree order). The empty selector
-   matches every key.
+   `domain`, `modality`, `class`, `facet`, `addresses`, `within`), bands
+   included: a band belongs to its timeline (`within`), `facet` matches the
+   bands of that facet in tree order (`{facet: "markers"}` the markers band
+   of `phrase`, then `melody`'s), a band has no class (`{class: "regions"}`
+   matches nothing), and no selector naming a domain or modality matches
+   it; a map's class is its type (`{class: "LinearMap"}` matches both maps
+   of `map.json`, `ticks` then `tempo` in tree order). `addresses` matches
+   whole addresses: `[{id: "melody", part: ["end", "label"]}, {id:
+   "ticks"}]` matches `ticks` and then that label, `[{id: "melody", part:
+   ["label", "end"]}]` nothing, `[{id: "phrase", facet: "regions"}]` the
+   band, `[{id: "melody", part: ["card"]}]` the card and `[{part:
+   ["name"]}]` nothing (the manifest is anonymous). The empty selector
+   matches every key. On `bundles/bundle_free_ids.json` its statement's
+   selector `{addresses: [{id: "take 2/intro"}]}` matches exactly the region
+   `take 2/intro` of `perf/take 2`: an ID is matched whole, never split.
 6. **`inside`** matches what an element of the named type holds at any
-   depth, never the holder: inside the box every key but the box, inside
-   the line every key after it; a hand-built chain proves the matcher reads
-   the chain and nothing else.
+   depth, never the holder: inside the block every key but the block, inside
+   the line every key after it; a hand-built chain (`[block, frame,
+   timeline, ancestor]`) proves the matcher reads the chain and nothing
+   else.
 7. **Segment lines** of `segment_line.json`: a segment that is a segment
    line is a `child` without a name, one that is not has type `null` (no
    selector naming `element` matches it, and it adds nothing to the chains
-   below it); boundaries and labels are held by the segment line directly,
-   in no band. The full (type, address) list, the boundary `b/start`'s
-   whole key and the chains of `b/label`, `b2`'s marks and `a1`'s bands are
-   pinned, and so are the matches of `{element: "boundary"}`, `{element:
-   "child"}`, `{ids: ["b"]}` and `{within: "b"}`.
-8. **Bands of a root, a child and a segment**: `{element: "band", class:
+   below it); boundaries (`{id: "b", part: ["start"]}`) and labels are held
+   by the segment line directly, in no band. The full (type, address) list,
+   the boundary of `b`'s whole key and the chains of `b`'s label, `b2`'s
+   marks and `a1` with its bands are pinned, and so are the matches of
+   `{element: "boundary"}`, `{element: "child"}`, `{addresses: [{id:
+   "b"}]}` and `{within: "b"}`.
+8. **Bands of a root, a child and a segment**: `{element: "band", facet:
    "regions"}` matches every regions band, and the default statement
-   `{element: "band", class: "regions", inside: "band"}` every one but the
-   root's; `{inside: "band"}` matches everything but the box, the root's
+   `{element: "band", facet: "regions", inside: "band"}` every one but the
+   root's; `{inside: "band"}` matches everything but the block, the root's
    card, line, name and bands, and its segments' parts.
 
 The elements of manifests with several roots and groups are in "Several
@@ -478,46 +517,61 @@ roots and groups".
 
 The band facts (drawing.md §2.2, §4, §6.4; TimeToShare's README,
 "Identity" and "Groups and the `graphical` block") and the orders that stack
-them. Every expected value is read from those texts. The band order cases
-are built so that each timeline's expected order differs from every other
-candidate rule (the default, the root's entry, its parent's entry), so a
-wrong rule cannot pass by coincidence; the order problems are checked
-against TimeToShare's own validators, so core and the schema agree by
-construction.
+them. Every expected value is read from those texts. A band is addressed
+`{id: T, facet: F}` (see "Addresses and containers"); a band order is a
+permutation of `line` and the five facets, the same words for every
+timeline. The band order cases are built so that each timeline's expected
+order differs from every other candidate rule (the default, the root's
+entry, its parent's entry), so a wrong rule cannot pass by coincidence; the
+order problems are checked against TimeToShare's own validators, so core and
+the schema agree by construction.
 
-1. **Kinds and addresses.** The five kinds in default band order; a band
-   address `T/<kind>_1` reads back as its timeline and kind, and nothing
-   else does (`T/regions_2`, `T/region_1`, `T/card`, a band's part, no
-   timeline, an empty one).
-2. **The reserved pattern** is drawing.md §2.2's, with its edge cases
-   (numbers from 1, no leading zero, a kind and a number); the four part
-   words (`start`, `end`, `name`, `label`) and the card word `card` are
-   reserved too.
-3. **A band address is a part of its timeline**: it folds to its timeline
-   (a child's band follows the child's id), while a map stays an element of
-   its own; its block splits off as a card's address does.
-4. **The default band order** is drawing.md §4's.
-5. **Effective and inherited band orders** on `nested.json` under three
-   pairwise different orders (the default, the README's example, a third):
-   a root without an entry takes the default, a descendant its parent's band
-   by band id, an entry wins for its own timeline only; a member that is a
-   child follows its parent; an unknown id gets the default.
-6. **Band order problems**, each the first in the README's order (shape,
-   repeat, unknown id, stranger, missing), with the exact message; the
-   stranger and missing messages are also what TimeToShare's identity
-   check reports for the same value.
-7. **Entries the schema's pattern refuses** are refused by both: core as a
-   stranger, the schema at the entry with its pattern; every value core
-   accepts the schema accepts.
+1. **Facets.** `FACETS` lists the five facets in the default band order's
+   order (`children`, `conversion_maps`, `markers`, `regions`,
+   `flow_control`); `isFacet` holds for exactly those, never for `line`,
+   `region`, `card` or a number.
+2. **The default band order** is drawing.md §4's: `DEFAULT_BAND_ORDER` is
+   exactly `["children", "conversion_maps", "line", "markers", "regions",
+   "flow_control"]`, `LINE` is `"line"`.
+3. **Effective and inherited band orders** on `nested.json` under three
+   pairwise different orders (the default `D`, the README's example `R` =
+   `["children", "markers", "line", "conversion_maps", "regions",
+   "flow_control"]`, a third `K` = `["flow_control", "line", "children",
+   "conversion_maps", "markers", "regions"]`): a root without an entry
+   takes `D`, a descendant its parent's order verbatim (with `clt_1: R`,
+   `clt_3` and `clt_2` draw `R`; with `clt_3: K` too, `clt_2` draws `K`), an
+   entry wins for its own timeline only; a member that is a child follows
+   its parent (`second-half` of `group_child_member.json` under `piece: R`
+   draws `R`, the root member `recording` `D`); an unknown ID gets `D`.
+4. **Band order problems**, each the first in the README's order (shape,
+   repeat, unknown ID, stranger, missing), with the exact message, IDs and
+   entries in single quotes: `"line"`, `null`, `{}` and `["line", 1]` give
+   `the band order of 'clt_3' is not an array of strings`; `D` with `line`
+   appended `'line' is repeated in the band order of 'clt_3'`; `D` as the
+   order of `nothing` `'nothing' names no group or timeline of this
+   manifest`; `D` with `region` appended `'region' is not 'line' or a
+   facet, in the band order of 'clt_3'`, and so for the timeline's own ID
+   in place of `line` and for the former band address `clt_3/regions_1` in
+   place of `regions` (a stranger comes before what is missing); `D`
+   without `markers` `'markers' is missing from the band order of
+   'clt_3'`, without `line` the same for `line`, and `[]` the same for
+   `children`, the first in the default band order's order. The stranger
+   and missing messages are also what TimeToShare's identity check reports
+   first for the same value.
+5. **Entries the schema's pattern refuses** (an empty string, an entry
+   holding a control character) are refused by both: core as a stranger,
+   the schema at the entry (`["graphical", "order", "clt_3", 6]`) with its
+   pattern; every value core accepts the schema accepts and every value it
+   refuses the schema refuses.
 
 ## Workspace view, ids and order (`workspace.test.ts`, `workspace-ids-order.test.ts`)
 
 The view is `{meta, name, settings, blocks}`; an empty one carries the
-format marker `{format: "tilie-workspace", version: 4}`, the name
+format marker `{format: "tilie-workspace", version: 5}`, the name
 `untitled` and the default settings
 `{grid: {size: 8, snap: true}, blockDefaults: {scale: 1, length: 400,
 spacing: 8, width: null, height: null}, graphical: {}}`, the drawing
-specification's placement defaults plus the block's scale (the box's
+specification's placement defaults plus the block's scale (the block's
 `spacing` 8 is the gap between its items, drawing.md §8.6). A block has
 exactly its twelve members (`id`, `parent`, `index`, `x`, `y`, `scale`,
 `length`, `spacing`, `width`, `height`, `places`, `manifest`) and records
@@ -531,17 +585,10 @@ no kind; a band order is no placement but the manifest's.
    manifest problem prefixed by the block's path.
 2. **Block ids** are ten base-36 characters drawn byte by byte, bytes 252 to
    255 refused; fixed byte streams pin the result.
-3. **New ids** are the smallest free `{prefix}_{N}` of the block's
-   manifest, whatever element carries the taken ones; the timeline prefixes
-   are the six classes' (`clt`, `dlt`, `cpt`, `dpt`, `cgt`, `dgt`). Scoping
-   across several roots is in "Several roots and groups".
-4. **Address syntax**: `workspace`, a block id, and a block id followed by
-   an element address split into the block and the element's segments, and
-   qualifying the element with its block gives the text back; a text that
-   starts with no block id, or a block id followed by an empty element, is
-   `invalid_address` at `[text]`. What an address names is the resolver's
-   (next section).
-5. **Fractional indices** are compatible with `fractional-indexing` 4.0.0:
+3. **Timeline prefixes** are the six classes' (`clt`, `dlt`, `cpt`,
+   `dpt`, `cgt`, `dgt`), which the IDs a segment line's first segment is
+   minted with take ("Segment lines gain their first segment").
+4. **Fractional indices** are compatible with `fractional-indexing` 4.0.0:
    its four published vectors, refusal of invalid keys and unordered
    bounds, and generated keys strictly between their bounds.
 
@@ -550,91 +597,205 @@ no kind; a band order is no placement but the manifest's.
 One resolver decides what an address names, and one registry lists every
 container of a drawing with its holder. The oracle is drawing.md: the
 address table of section 2.2, the tree of sections 2.1 and 8.1, and the
-places of section 8.6.
+places of section 8.6. An address is an object compared as a whole; its one
+string form is `addressKey`, and nothing splits or composes an ID.
 
-1. **Every kind resolves.** On a block of `bundles/bundle_mixed.json` (and
+1. **The shape of an address.** `readAddress(value, path)` gives back an
+   equal object for `{}`, `{block: A}`, `{block: A, id: "score"}`,
+   `{block: A, id: "score", facet: "regions"}`, `{block: A, id: "score",
+   part: ["end", "label"]}`, `{block: A, id: "score", part: ["card"]}`,
+   `{block: A, part: ["name"]}` and the free IDs
+   `https://example.org/piece/score#exposition` and `perf/take 2`. Each
+   invalid shape is `invalid_address` at the `path` given, with its
+   message: a string, `null` or an array, "an address is an object";
+   `{block: A, colour: "red"}`, "an address has no member colour"; a
+   `block` of `"short"` or `3`, "an address's block is a block id"; an `id`
+   of `""`, `"a\u0001b"` or `3`, "an address's id is a non-empty string
+   without control characters"; a `facet` of `region`, "an address's facet
+   is a facet"; a `part` of `[]`, `["middle"]` or `"name"`, "an address's
+   part is a non-empty array of part words"; `{block: A, facet:
+   "regions"}`, "a facet stands with an id"; `{block: A, id: "score",
+   facet: "regions", part: ["label"]}`, "a facet never stands with a part";
+   `{id: "score"}` and `{part: ["name"]}`, "an element's address names its
+   block".
+2. **The builders.** `BUNDLE_ADDRESS` is `{}`, `TITLE_ADDRESS` `{part:
+   ["name"]}`, `idAddress("score")` `{id: "score"}`, `bandAddress("score",
+   "regions")` `{id: "score", facet: "regions"}`, `cardAddress("score")`
+   `{id: "score", part: ["card"]}`; `partAddress` appends its word to the
+   owner's `part` (`{id: "score"}` and `end` give `{id: "score", part:
+   ["end"]}`, then `label` `["end", "label"]`) and keeps the owner's
+   `block`, and refuses a band's address as its owner at the type level (a
+   band has no part: the test type-checks only with that call refused); `PART_WORDS` is `start`, `end`, `name`, `label`, `card`.
+   `inBlock(A, element)` puts an element address into block `A`,
+   `elementAddressOf` takes the block off again (`{}` for a block), and
+   `isElementAddress` holds for an address stating `id`, `facet` or `part`
+   only, never for `{}` or `{block: A}`. `WORKSPACE` is `{}`.
+3. **The one string form.** `addressKey` writes the members an address
+   states as JSON in code-point order of their names (`block`, `facet`,
+   `id`, `part`), whatever order they were stated in: `{}` is `{}`, `{block:
+   A}` is `{"block":"0000000000"}`, `{block: A, id: "score"}` is
+   `{"block":"0000000000","id":"score"}`, `{id: "score", facet: "regions"}`
+   is `{"facet":"regions","id":"score"}`, `{part: ["end", "label"], id:
+   "score", block: A}` is
+   `{"block":"0000000000","id":"score","part":["end","label"]}`, and an ID
+   holding quotes and a slash is escaped as JSON. Different addresses give
+   different keys: fourteen addresses that a composed string would confuse
+   (`{id: "score/end"}` and `{id: "score", part: ["end"]}`, `{id:
+   "score/regions_1"}` and `{id: "score", facet: "regions"}`, `{part:
+   ["name"]}` and `{id: "name"}`, part words in another order, another
+   block, no block) give fourteen keys. `sameAddress` compares whole
+   addresses: equal whatever their members' order, unequal for another
+   part, a part's words in another order, another facet, or a block on one
+   side only.
+4. **Every kind resolves.** On a block of `bundles/bundle_mixed.json` (and
    one of `map.json`), one address per kind with its expected resolution
-   written by hand: the workspace, a block, the title `name`, a frame and
-   its title, a timeline drawn in a card (a root and a child member, each
-   with its one card) and one drawn in none (`recording`, no card), a
-   member's card addressed by its group (`group_1/score/card`) and an
-   ungrouped root's (`annotations/card`), a band and the card holding it, an
-   entry of each list (addressed by its root, held by a child), and parts
-   nested two deep (`score/end/label`). Each part carries its owner, and every level its
-   block. The manifest's own id after the block names the block, as the
-   bare block id does; on a manifest without that id it names nothing. A
-   measure map (`bars`, added into the block) resolves by its bare id to
-   itself and its index in `measure_maps`; it is not drawn and has no part
-   (`bars/name` names nothing), and no root's tree holds it (`score/bars`
-   names nothing).
-2. **What names nothing** is `unknown_target` at `[address]`: an unknown
-   block or id, an entry addressed by a child instead of its root, a band of
-   a timeline drawn in no card, a band numbered 2, a member's card written
-   without its group (`score/card`), a card in the frame of a group that
-   does not have the timeline as a member (`group_2/score/card`), `card`
-   after a timeline drawn in no card (`recording/card`), a part an owner
-   does not have (a card's label, `group_1/score/card/label`, a frame's
-   label, the title's label, a band's label, a start's end), and the title
-   of an unnamed manifest (`name` on `map.json`'s block): a title exists
-   only for a named manifest. A malformed address is `invalid_address`.
-3. **Every drawn element resolves to its kind.** For every manifest
-   fixture, every address the enumeration gives resolves, and to the kind
-   its element type says (a card a card, a band a band, a group a frame, a
-   map, region, flow marker or jump origin an entry, a label, wedge or boundary a part,
-   the title the title, every line a timeline): the cross-check between
-   the resolver and the elements.
-4. **The registry** (`CONTAINERS`) states each container kind exactly: the
-   box at the bundle level, styled as `block`, with no place; the frame at
-   the group level, styled as `group`, stating a whole place on the box; the
-   card at the timeline level, styled as `card`, stating a whole place on
-   the box and its size and spacing in a frame; the band at the
-   feature level, styled as `band`, with no place.
-5. **The containers of `bundle_mixed.json`** in drawing order, each with
-   its holder: frames by group id, each followed by its members' cards in
-   display order (`group_1/score/card`, `group_1/performance/card`,
-   `group_2/page/card`, `group_2/excerpt/card`), then the ungrouped roots'
-   cards on the box (`annotations/card`); `recording` has no card and so no
-   bands. A card is followed by its timeline's five bands, held by it,
-   keyed by nothing; the places keys are exactly the frames' (`group_1`,
-   `group_2`), the members' cards' (`group_1/score`, `group_1/performance`,
-   `group_2/page`, `group_2/excerpt`) and the ungrouped root's
-   (`annotations`).
-6. **A timeline in several groups** (drawing.md §2.2, §8.1): on
-   `bundles/bundle_shared_member.json` (`g1` with `t`, `u`; `g2` with `t`,
-   `v`) the frames and cards in drawing order are `g1`, `g1/t/card`,
-   `g1/u/card`, `g2`, `g2/t/card`, `g2/v/card`, keyed `g1`, `g1/t`, `g1/u`,
-   `g2`, `g2/t`, `g2/v`; `t` has the two cards `g1/t/card` and
-   `g2/t/card`, each followed by its own drawing of `t`'s five bands, so
-   each of `t/children_1`, `t/conversion_maps_1`, `t/markers_1`,
-   `t/regions_1` and `t/flow_control_1` is listed twice under one address,
-   held by `g1/t/card` and then by `g2/t/card`. The resolver gives `t` both
-   cards, `g1/t/card` and `g2/t/card` each the card of `t` in its frame,
-   `t/regions_1` both drawings, `t/card` nothing, and `t` is a group
-   member; `elementOf` folds `g2/t/card` to `t`.
-7. **A child's bands lie in the card of its nearest ancestor drawn in
-   one**: on `bundles/bundle_shared_parent.json`, where the root `score`
-   holds two members and is drawn in no card, the bands of segments lie in
-   their member's card, `score` has none, and the count of containers is
-   derived by hand (two frames, five cards, fifteen timelines' bands).
-8. **Place members by holding**: a frame and a box-held card state a whole
-   place, a frame-held card only its size and spacing, a band and
-   the box nothing; a place is cut to what its container may state (kept
-   whole, cut, or dropped when nothing is left); a group member is a
-   timeline whose card a frame holds.
-9. **Memoised by identity**: the listing and the index of a manifest are
-   the same objects when asked twice; the index maps every timeline to
-   itself and every entry to the timeline holding it, and its elements
-   equal the drawing's own.
+   written by hand: the workspace `{}`, a block `{block: A}`, the title
+   `{part: ["name"]}`, a frame `{id: "group_1"}` (its place key `{item:
+   "group_1"}`) and its title `{id: "group_1", part: ["name"]}`, a timeline
+   drawn in a card (the root member `score`, its one card keyed `{item:
+   "group_1", member: "score"}`, and the child member `excerpt`) and one
+   drawn in none (`recording`, no card), the cards of a member `{id:
+   "score", part: ["card"]}` and of an ungrouped root `{id: "annotations",
+   part: ["card"]}` (keyed `{item: "annotations"}`), a band `{id: "score",
+   facet: "regions"}` with the card holding it, an entry of each list by its
+   ID alone (`region_2`, index 1 of `annotations`' regions; `cmap_6`, the
+   map of the child `excerpt`; `jump_from_1`), and parts nested two deep
+   (`{id: "score", part: ["end", "label"]}`). Each part carries its owner,
+   and every level its block. The manifest's own ID names nothing: on a
+   manifest with the id `takes`, `{block: A, id: "takes"}` is
+   `unknown_target`, message `{"block":"0000000000","id":"takes"} names
+   nothing`, while `{block: A}` is the block. A measure map (`bars`, added
+   into the block) resolves by its ID to itself and its index in
+   `measure_maps`; it is not drawn and has no part (`{id: "bars", part:
+   ["name"]}` names nothing).
+5. **What names nothing** is `unknown_target` at `[address]`, message
+   `<address> names nothing`: an unknown block or ID, an ID composed from
+   two (`score/cmap_1`), a band of a timeline drawn in no card (`{id:
+   "recording", facet: "regions"}`), a facet of a group or a map, the cards
+   of a timeline drawn in no card (`{id: "recording", part: ["card"]}`), a
+   group's card, a part an owner does not have (a card's label, a frame's
+   label, the title's label `{part: ["name", "label"]}`, a label without an
+   owner `{part: ["label"]}`, a start's end, a region's start), the title
+   of an unnamed manifest (`{block: B, part: ["name"]}` on `map.json`'s
+   block): a title exists only for a named manifest, and every part nothing
+   draws (drawing.md §2.2): the wedges of `recording`, drawn only as an
+   ancestor line (`{id: "recording", part: ["start"]}`, `["end",
+   "label"]`), a label of a timeline that is no segment (`{id: "score",
+   part: ["label"]}`), the name of a region and of a jump origin, and a
+   map's label and name. A malformed address is
+   `invalid_address` at `[address]` with the reader's message (`{block:
+   "short"}`, a facet beside a part, an element without its block).
+6. **Free IDs.** On a block of `bundles/bundle_free_ids.json`, `{id:
+   "https://example.org/piece/score"}` and `{id: "perf/take 2"}` resolve to
+   their timelines, each with its one card in the frame of `group_1`; `{id:
+   "https://example.org/piece/score#exposition"}` to the first region of
+   the former; `{id: "take 2/intro", part: ["label"]}` to the label of the
+   region of `perf/take 2`, and `{id: "perf/take 2", part: ["end",
+   "label"]}` to the label of its end. Pieces of these IDs (`perf`, `take
+   2`, `https:`, `intro`, the URI with an empty fragment) name nothing.
+7. **Every drawn element resolves to its kind.** For every manifest
+   fixture, every address the enumeration gives but the block's resolves
+   with `resolveElement`, and to the kind its element type says (a card the
+   cards, a band a band, a frame a frame, a map, region, flow marker or jump
+   origin an entry, a label, wedge or boundary a part, the title the title,
+   every line a timeline): the cross-check between the resolver and the
+   elements. The bundle's address `{}` resolves to nothing there (the
+   workspace resolver reads it as the block). The other way round, **every
+   resolvable part is drawn**: for every manifest fixture, every address
+   built from no ID or one of `manifestIds` with a part of one or two part
+   words that `resolveElement` resolves is exactly, as a set of
+   `addressKey`s, the addresses with a part of the drawing's elements
+   (`indexOf(manifest).elements`). The candidates are built without the
+   resolver, so a part the resolver names that nothing draws fails here.
+8. **The registry** (`CONTAINERS`, `CONTAINER_KINDS` `block`, `frame`,
+   `card`, `band`) states each container kind exactly: the block at the
+   bundle level, styled as `block`, with no place; the frame at the group
+   level, styled as `frame`, stating a whole place on the block; the card at
+   the timeline level, styled as `card`, stating a whole place on the block
+   and its size and spacing in a frame; the band at the facet level, styled
+   as `band`, with no place.
+9. **The containers of `bundle_mixed.json`** in drawing order, each with
+   its holder: frames by group ID, each followed by its members' cards in
+   display order, then the ungrouped roots' cards on the block;
+   `recording` has no card and so no bands. A frame is addressed `{id: G}`
+   and keyed `{item: G}`, a member's card addressed `{id: T, part:
+   ["card"]}` and keyed `{item: G, member: T}`, an ungrouped root's card
+   keyed `{item: T}`; `byKey` holds exactly the seven frames and cards
+   under their `placeKeyText` (`["group_1"]`, `["group_1","score"]`, …,
+   `["annotations"]`), `frames` the two groups, `cards` the five carded
+   timelines. A card is followed by its timeline's five bands, addressed
+   `{id: T, facet}`, held by it and keyed by nothing. The block's container
+   is exactly `{kind: "block", key: null, address: {}, holder: null,
+   timeline: null, facet: null}`.
+10. **A timeline in several groups** (drawing.md §2.2, §8.1): on
+    `bundles/bundle_shared_member.json` (`g1` with `t`, `u`; `g2` with `t`,
+    `v`) the frames and cards in drawing order are keyed `{item: "g1"}`,
+    `{item: "g1", member: "t"}`, `{item: "g1", member: "u"}`, `{item:
+    "g2"}`, `{item: "g2", member: "t"}`, `{item: "g2", member: "v"}`; `t`
+    has the two cards, both addressed `{id: "t", part: ["card"]}`, each
+    followed by its own drawing of `t`'s five bands, so each band of `t` is
+    drawn twice under one address, held by the card in `g1` and then by the
+    one in `g2`. The resolver gives `{id: "t"}` both cards, `{id: "t", part:
+    ["card"]}` both cards (every card of `t`), `{id: "u", part: ["card"]}`
+    its one card, `{id: "t", facet: "regions"}` both drawings, and a group's
+    card nothing; `t` is a group member.
+11. **A child's bands lie in the card of its nearest ancestor drawn in
+    one**: on `bundles/bundle_shared_parent.json`, where the root `score`
+    holds two members and is drawn in no card, the bands of segments lie in
+    their member's card, `score` has none, and the count of containers is
+    derived by hand (two frames, five cards, fifteen timelines' bands).
+12. **Place members by holding**: a frame and a block-held card state a
+    whole place, a frame-held card only its size and spacing, a band and
+    the block nothing; a place is cut to what its container may state (kept
+    whole, cut, or dropped when nothing is left); a group member is a
+    timeline whose card a frame holds.
+13. **Places.** A block's `places` holds a frame's and an ungrouped root's
+    place under the item's ID and a member's card's under `places[G].cards[T]`.
+    With `P = {group_1: {x: 10, cards: {score: {width: 650}}}, annotations:
+    {y: 4}, group_2: {cards: {page: {height: 80}}}}`: `placeKeyText` writes
+    `{item: "group_1"}` as `["group_1"]` and `{item: "group_1", member:
+    "score"}` as `["group_1","score"]` (and keeps `{item: "a/b"}` apart from
+    `{item: "a", member: "b"}`); `samePlaceKey` compares item and member.
+    `placeAt(P, key)` gives exactly `{x: 10}` for `group_1` (its `cards`
+    left out), `{width: 650}` for its member `score`, nothing for its member
+    `performance`, nothing for `group_2` (which states cards only), `{height:
+    80}` for its member `page`, `{y: 4}` for `annotations`, nothing for a
+    member of `annotations`, for `nothing` and for `constructor` (no
+    inherited key). `withPlaceAt` replaces `group_1`'s own place by
+    `{length: 300}` keeping its cards after it (keys `length`, `cards`);
+    removes `group_1`'s own place leaving `{cards: {score: {width: 650}}}`;
+    removes the card of `score` leaving `{x: 10}`; removes the card of
+    `page`, and with it the entry `group_2`; adds a card for `performance`
+    beside `score`'s; puts `{g: {cards: {t: {width: 2}}}}` into `{}`; and
+    removes `annotations`. `placeEntries(P)` is exactly `[[{item:
+    "group_1"}, {x: 10}], [{item: "group_1", member: "score"}, {width:
+    650}], [{item: "annotations"}, {y: 4}], [{item: "group_2", member:
+    "page"}, {height: 80}]]`. On `bundle_mixed.json`, `placedContainer`
+    gives `score`'s card for `{item: "group_1", member: "score"}`, and
+    `placedElement` gives `group_1`, `score` and `annotations` for the keys
+    of the frame, a member's card and an ungrouped root's card, and nothing
+    for `{item: "score"}` (a member's bare ID), `{item: "recording"}` and
+    `{item: "group_2", member: "score"}`.
+14. **Memoised by identity**: the listing and the index of a manifest are
+    the same objects when asked twice; the index maps every timeline to
+    itself and every entry to the timeline holding it (`region_1` to
+    `annotations`, `cmap_6` to `excerpt`, `cmap_5` to `recording`, a
+    group to nothing; fifteen IDs), and its elements equal the drawing's
+    own.
 
 ## Commands (`commands.test.ts`)
 
-There are four commands, each aimed at **addresses**: `add {into, <kind>:
+There are four commands, each aimed at **addresses**, objects read by
+`readAddress` ("Addresses and containers"): `add {into, <kind>:
 value}` with exactly one kind member; `set {changes: [{target, values}, …]}`,
 at least one change and one property in each `values`, the properties a
 member of their own so that none (a jump origin's `target`) collides with the
 change's `target`; `remove {targets}`, at least one; `style {select, set,
 name?, blocks?}`. What a command does is decided by the **kind of its
-target**, resolved from the address alone. Which property each kind of
+target**, resolved from the address alone: `{}` the workspace, `{block:
+A}` a block, `{block: A, id: "x"}` the group, timeline, measure map or
+entry `x` of its manifest. Below, "`set x {…}` in `A`" aims at `{block: A,
+id: "x"}`. Which property each kind of
 target takes is a table in the source; the cases below are written
 independently of it, from the fixtures and the rules, so a wrong table entry
 fails a case rather than being restated by one.
@@ -644,8 +805,8 @@ and its result is compared exactly with an expectation built by hand from
 the fixture, or with a value reached by another path (a minimal twin
 completing to its complete fixture). A command is **atomic**: a refusal of
 any change, target or block refuses it whole, the input unchanged. A
-refusal is compared by code and path; its path is an address followed by
-the property or kind at fault, or a manifest location below a block
+refusal is compared by code and path; its path is an address (its key)
+followed by the property or kind at fault, or a manifest location below a block
 (`[<block>, "manifest", …]`, the first schema or invariant problem of the
 manifest the command would leave), never a member of the command, except
 for a malformed command, which has no target. Messages are compared only
@@ -710,15 +871,16 @@ other commands are not judged by it.
    type: "flow_marker", manifestation: "double_barline", coordinate: [8,
    1]}`, stored complete: an element's type, which decides the members it
    may carry, changes only so.
-5. Measure maps, a block's manifest's top-level list in the global id
-   scope: `add {into: A, measure_map: {id: "bars", rows: [{count: 1,
-   qstamp: [0, 1]}]}}` into a block of `bare.json` stores it with `name:
-   null, meta: {}`; `set A/bars {name: "Bars", rows: <a second row
-   {count: 2, qstamp: [4, 1]} appended>}` stores exactly both; the
-   `MeasureRecordMap` `{id: "record", source_unit: "quarters",
-   target_unit: null, measure_map: "bars"}` added into `bare` is stored
-   with `name: null`; removing `A/bare/record` and `A/bars` together leaves
-   both lists empty.
+5. Measure maps, a block's manifest's top-level list, their IDs unique
+   across the manifest as every ID: `add {into: {block: A}, measure_map:
+   {id: "bars", rows: [{count: 1, qstamp: [0, 1]}]}}` into a block of
+   `bare.json` stores it with `name: null, meta: {}`; `set bars {name:
+   "Bars", rows: <a second row {count: 2, qstamp: [4, 1]} appended>}`
+   stores exactly both; the `MeasureRecordMap` `{id: "record",
+   source_unit: "quarters", target_unit: null, measure_map: "bars"}` added
+   into `bare` is stored with `name: null`; removing `{block: A, id:
+   "record"}` and `{block: A, id: "bars"}` together leaves both lists
+   empty.
 6. `remove` on `map.json`: a child takes its map; a map goes alone; the last
    root leaves `timelines: []` and the block; two blocks go together, and a
    block goes with every block whose `parent` chain reaches it.
@@ -745,10 +907,11 @@ dropping a child's offset; `{timeline, offset}` a child there, growing the
 new parent as adding a child would. `set group` puts a timeline into a
 group, or `null` takes it out; members are held in canonical order, and a
 stated display order lists a new member last and drops one that leaves.
-Ids never change; a moved timeline keeps its drawn band order and its
-card's stated size, and the places are fitted to the new drawing (a card a
-frame now holds keeps its size and spacing, under its new key `G/T`; a key
-naming no frame or card goes).
+IDs never change, and so no address does; a moved timeline keeps its
+drawn band order and its card's stated size, and the places are fitted to
+the new drawing (a card a frame now holds keeps its size and spacing, moved
+from `places[T]` to `places[G].cards[T]`; a place naming no frame or card
+goes).
 
 What proves it, on `bundles/bundle_mixed.json` in block `A`:
 
@@ -757,15 +920,17 @@ What proves it, on `bundles/bundle_mixed.json` in block `A`:
 2. **A group added.** With `annotations` placed at `{x: 10, width: 300,
    spacing: 2}`, `add group {id: "group_3", members: ["annotations"]}` adds
    exactly `{id: "group_3", name: null, meta: {}, members:
-   ["annotations"]}`, and `places` becomes exactly `{"group_3/annotations":
-   {width: 300, spacing: 2}}`; `{id: "group_3", members: [], color: "red"}` is added
+   ["annotations"]}`, and `places` becomes exactly `{group_3: {cards:
+   {annotations: {width: 300, spacing: 2}}}}`; `{id: "group_3", members: [], color: "red"}` is added
    complete, its unknown key kept.
 3. **A child made a root.** With `excerpt`'s card at `{width: 200, height:
-   80}` (under `group_2/excerpt`) and `recording`'s band order turned (its regions band first),
-   `parent: null` on `excerpt` leaves `recording` without children,
-   `excerpt` a root exactly as it was without its `offset`, still a member
-   of `group_2` with its card's place unchanged, and drawn with the band
-   order it inherited, as its own entry in `graphical.order`.
+   80}` (in `places.group_2.cards`) and `recording`'s band order turned
+   (`["regions", "flow_control", "children", "conversion_maps", "line",
+   "markers"]`), `parent: null` on `excerpt` leaves `recording` without
+   children, `excerpt` a root exactly as it was without its `offset`, still
+   a member of `group_2` with `places` exactly `{group_2: {cards: {excerpt:
+   {width: 200, height: 80}}}}`, and drawn with the band order it
+   inherited, that same list, as its own entry in `graphical.order`.
 4. **A move that grows its new parent.** `parent: {timeline: "score",
    offset: [4, 1]}` on `annotations` makes it `score`'s only child at `[4,
    1]` and grows `score` to exactly `[16, 1]`; the roots no longer hold
@@ -775,17 +940,19 @@ What proves it, on `bundles/bundle_mixed.json` in block `A`:
    order `[score, performance, annotations]`; `group: null` on
    `performance` leaves `[score]` and `[score]`.
 6. **Refusals**, each at `[<address>, <property>]` unless stated:
-   `duplicate_id` at `[A/score]` for a root added as `score`;
-   `already_member` at `[A, "group", "members", 0]` for a group of `score`
-   and at `[A/score, "group"]` for `score` into `group_2`; `nested_member`
-   for `recording` into `group_2`, which holds `excerpt`, and, once a root
-   `extra` of 4 quarters has joined `group_1`, for a move of `score` under
-   `extra` or of `extra` under `score` (at `[A/score, "parent"]` and
-   `[A/extra, "parent"]`); `schema_violation` at `[A, "group", "name"]` for
-   a group named `3`; `unknown_target` for a group `ghost`; `invalid_value`
-   for a `group` of `3` and a `parent` of `"score"`; `unit_mismatch` for `annotations` under `recording`;
-   `cycle` for `recording` under `excerpt`; `unknown_target` at
-   `[A/annotations, "parent", "timeline"]` for a parent named `ghost`; and,
+   `duplicate_id` at `[{block: A}, "timeline", "id"]` for a root added as
+   `score`; `already_member` at `[{block: A}, "group", "members", 0]` for a
+   group of `score` and at `[{block: A, id: "score"}, "group"]` for `score`
+   into `group_2`; `nested_member` for `recording` into `group_2`, which
+   holds `excerpt`, and, once a root `extra` of 4 quarters has joined
+   `group_1`, for a move of `score` under `extra` or of `extra` under
+   `score` (at `[{block: A, id: "score"}, "parent"]` and `[{block: A, id:
+   "extra"}, "parent"]`); `schema_violation` at `[{block: A}, "group",
+   "name"]` for a group named `3`; `unknown_target` for a group `ghost`;
+   `invalid_value` for a `group` of `3` and a `parent` of `"score"`;
+   `unit_mismatch` for `annotations` under `recording`; `cycle` for
+   `recording` under `excerpt`; `unknown_target` at `[{block: A, id:
+   "annotations"}, "parent", "timeline"]` for a parent named `ghost`; and,
    after a root `extra` of 4 samples is added, `child_exceeds_parent` for it
    under the locked `excerpt` (of 88,200) at 88,200. On `segment_line.json`,
    `segment_structure` for `parent: null` on the segment `b1` and on the
@@ -808,36 +975,45 @@ refusal as `apply`.
 
 - Malformed (`invalid_command` at the malformed member): an unknown `type`
   at `["type"]`; an `add` with no kind or two at `[]`; an empty `changes` at
-  `["changes"]`; a change whose `target` is not a string at `["changes", 0,
-  "target"]`; missing or empty `values` at `["changes", 0, "values"]`; a
+  `["changes"]`; missing or empty `values` at `["changes", 0, "values"]`; a
   property outside `values` at `["changes", 0, "x"]`; an empty `targets` at
   `["targets"]`; a member a command does not have (a `remove` given `gap`)
   at that member; a `style` without `select` at `["select"]`; a `blocks`
   entry not a string at `["blocks", 0]`. A `select` or `set` (nulls
   removed) the schema refuses: `schema_violation` at `["select", …]` or
   `["set", …]`.
-- Addresses: `invalid_address` at `["short"]`; `unknown_target` at
-  `["0000000009"]`, `[A/nothing]` and `[A/region_1]` (an entry needs its
-  root), and at `[A/takes]` on a manifest with id `takes`, which names the
-  block for a reader but is no address a command is aimed at.
+- Addresses: the command reader reads each address with `readAddress`, so
+  a malformed one is `invalid_address` at the command's member, with the
+  reader's message: an `into` of `"workspace"` (the former string form) at
+  `["into"]`, "an address is an object"; a `target` of `1` at `["changes",
+  0, "target"]`, the same; a `target` with the facet `region` there, "an
+  address's facet is a facet"; a second `remove` target `{id: "score"}` at
+  `["targets", 1]`, "an element's address names its block"; and `set
+  {block: "short"}` through `apply` at `["changes", 0, "target"]`. The
+  reader gives back the objects it read (`{block: A, id: "perf/take 2"}`,
+  `{block: A, id: "score", part: ["card"]}`). `unknown_target` at
+  `[{block: "0000000009"}]`, `[{block: A, id: "nothing"}]`, and at
+  `[{block: A, id: "takes"}]` on a manifest with id `takes`: the
+  manifest's own ID addresses nothing.
 - `set`: `id_not_settable` for an id and for a map payload with another id
-  (`[A/melody/tempo, "map", "id"]`); `unknown_property` (`[A, "colour"]`);
-  `wrong_target_kind` for a property of another kind (`["workspace", "x"]`,
-  `[A, "grid"]`, a root's `offset`, a map's `start`, a region's
-  `coordinate`); `invalid_value`, `non_finite_number`,
-  `non_positive_number`, `invalid_index` and `duplicate_index` for block and
-  setting values (a block's `spacing` −1 is `invalid_value` at `[A,
-  "spacing"]`); `invalid_coordinate` for an own-axis value its number type
+  (`[{block: A, id: "tempo"}, "map", "id"]`); `unknown_property`
+  (`[{block: A}, "colour"]`); `wrong_target_kind` for a property of
+  another kind (`[{}, "x"]`, `[{block: A}, "grid"]`, a root's `offset`, a
+  map's `start`, a region's `coordinate`); `invalid_value`,
+  `non_finite_number`, `non_positive_number`, `invalid_index` and
+  `duplicate_index` for block and setting values (a block's `spacing` −1
+  is `invalid_value` at `[{block: A}, "spacing"]`); `invalid_coordinate` for an own-axis value its number type
   does not read (`0.5` and `8` on a `fraction` axis, a coordinate dict);
   `locked`, `length_below_content` (`[23, 2]` on `clt_1`) and
   `child_exceeds_parent` (`clt_2` at `[7, 1]` under the locked `clt_3`);
-  `schema_violation` below `["workspace", "graphical"]`, at `[A,
+  `schema_violation` below `[{}, "graphical"]`, at `[A,
   "manifest", "timetoshare"]` for a manifest declaring `0.6.0`, and for
   the flow marker `flow_marker_1` given a jump origin's manifestation
   (`repeat_end`) or a `repeat_count`, at that member in the manifest
   (`flow_control` index 3); `unknown_property` for an element's `type`,
   which only the whole element (`flow_control`) changes, and
-  `id_not_settable` at `[…/jump_from_1, "flow_control", "id"]` for a whole
+  `id_not_settable` at `[{block: A, id: "jump_from_1"}, "flow_control",
+  "id"]` for a whole
   element of another id. Manifest locations: `negative_child_offset`
   (`clt_2` at `[-1, 1]`), `region_end_before_start` (`with_region.json`),
   `schema_violation` for a jump origin targeting no jump target (at
@@ -845,28 +1021,46 @@ refusal as `apply`.
   origin names (at its `target`, index 1 once `jump_to_1` is gone): a
   removal that leaves a reference dangling is refused, never followed by
   removing the referrer. A measure map is held to the same rule: on a
-  block of `bare.json` holding `bars`, `remove A/bars` while the view
+  block of `bare.json` holding `bars`, removing `{block: A, id: "bars"}` while the view
   `record` names it is `schema_violation` at `record`'s `measure_map`
   (`[A, "manifest", "timelines", 0, "conversion_maps", 0,
   "measure_map"]`), the place where adding `record` without `bars` is
-  refused too; `set A/bars {rows: []}` is `schema_violation` at `[A,
+  refused too; `set bars {rows: []}` is `schema_violation` at `[A,
   "manifest", "measure_maps", 0, "rows"]` and `{name: null}` changes
   nothing.
-- `add`: `wrong_target_kind` for a child into a map, a region into a group
-  and a child into the workspace; `invalid_block_id`; `duplicate_id` for a
-  block (`[A]`), a child carrying the root's id (`[A/bare]`) and a map
-  carrying it (`[A/bare/bare]`); `schema_violation` at its manifest location
-  for a region id holding `/`, a child in `seconds` under `quarters`, and a
+- `add`: a problem of the value lies at `[<into>, <kind>, …]`, its path in
+  the command. `wrong_target_kind` for a child into a map, a region into a
+  group and a child into the workspace (`[{}, "child"]`); `invalid_block_id`
+  at `[{}, "block", "id"]`; for a block value `duplicate_id` at `[{},
+  "block", "id"]`, `unknown_property` at `[{}, "block", "overrides"]`,
+  `invalid_value` at `[{}, "block", "x"]` for a missing `x`, and
+  `non_positive_number` at `[{}, "block", "scale"]` for `scale: 0`, a block
+  member refused as its `set` refuses it but at its path in the value;
+  `duplicate_id` for a child and a map carrying the root's ID (at `[{block:
+  A, id: "bare"}, "child", "id"]` and `[…, "map", "id"]`: an ID is unique
+  across the manifest); `duplicate_id` where it would lie in the manifest
+  for a given ID below the value's own that the manifest holds: a root
+  `fresh` whose child is `bare` at `[A, "manifest", "timelines", 1,
+  "children", 0, "id"]`, that root added as a child of `bare` at `[A,
+  "manifest", "timelines", 0, "children", 0, "children", 0, "id"]`, a root
+  `fresh` whose map is `bare` at `[A, "manifest", "timelines", 1,
+  "conversion_maps", 0, "id"]` (refused there, never later as
+  `schema_violation`); `schema_violation` at its manifest location
+  for a region ID holding a control character (`"a\u0001b"`; a `/` is
+  allowed), a child in `seconds` under `quarters`, and a
   child whose `children` is `5` or `[5]` or whose `flow_control` is `5`
   (refused, never thrown); `unknown_property` and `invalid_value` for a block
   value; `schema_violation` at `[A, "manifest", "timelines", 0,
   "conversion_maps", 0, "source_unit"]` for a map whose `source_unit` is
   `seconds` on the `quarters` root; `negative_child_offset` for a child at
-  `[-1, 1]`; for a measure map `duplicate_id` at `[A/bare]` for the id of a
-  timeline, `schema_violation` at `[A, "measure_map", "rows"]` for empty
-  rows, and `wrong_target_kind` into a timeline.
-- `remove`: `not_removable` at `["workspace"]`; `unknown_target`. `style`:
-  `unknown_target` at `[C]` for `blocks: [C]`.
+  `[-1, 1]`; for a measure map `duplicate_id` at `[{block: A},
+  "measure_map", "id"]` for the id of a timeline, `schema_violation` at `[{block: A},
+  "measure_map", "rows"]` for empty rows, and `wrong_target_kind` into a
+  timeline.
+- `remove`: `not_removable` at `[{}]`; `unknown_target` at `[{block:
+  C}]` for an absent block. `style`: `unknown_target` at `[{block: C}]`
+  for `blocks: [C]` (a `style` names blocks by their ids, a refusal by its
+  address).
 - Atomicity: a `set` of a valid and an unknown target, and a `remove` naming
   an absent block, are refused whole.
 - Changes nothing, on every kind of target (blocks `A` of `nested.json` and
@@ -875,9 +1069,10 @@ refusal as `apply`.
   `length: [32, 2]`; `clt_3`'s own offset; on `map.json` `tempo`'s own
   payload; on `flow_control.json` `jump_to_1` at `[4, 2]`. Judging the whole
   command: `A` at its own `x` with `B` moved is accepted; refused are both
-  at their own `x` (at `[A, "x"]`), `A`'s `x` 5 then 0, `clt_1`'s place
-  `{x: 3}` then `{x: null}` (at `[A/clt_1, "place"]`) and a manifest
-  renaming `clt_1` then `clt_1` renamed back (at `[A, "manifest"]`);
+  at their own `x` (at `[{block: A}, "x"]`), `A`'s `x` 5 then 0, `clt_1`'s
+  place `{x: 3}` then `{x: null}` (at `[{block: A, id: "clt_1"},
+  "place"]`) and a manifest renaming `clt_1` then `clt_1` renamed back (at
+  `[{block: A}, "manifest"]`);
   accepted are that `x` pair beside `B` at 7, and `clt_3`'s offset to 12
   and back to 4, the root it pushed staying at `[20, 1]`.
 
@@ -895,28 +1090,28 @@ something, it is accepted. Each case checks the exact `locked` afterwards,
 or the exact code, path and message of the refusal, the view unchanged.
 
 1. **`set locked` on a segment.** In a block of `segment_line.json`,
-   `locked: true` on `b1` is `segment_never_locked` at `[A + "/b1",
+   `locked: true` on `b1` is `segment_never_locked` at `[{block: A, id: "b1"},
    "locked"]`, message `A segment is never locked: lock its segment line
    'b' instead.`; `locked: false` on `b1` changes nothing (refused as such
    at the same path).
 2. **`set locked` on a segment line placed inside something.** In the
    same block, `locked: false` on `b` (a segment that is a segment line) is
-   `unlocking_not_supported` at `[A + "/b", "locked"]`, message `Unlocking
+   `unlocking_not_supported` at `[{block: A, id: "b"}, "locked"]`, message `Unlocking
    a segment line that is a child, a segment or a group member is not
    supported yet.`. The same refusal for `intro` of `segment_children.json`
    (a segment line that is a child of `piece`, no segment) and for the root
    `original_score:dgt_1` of `bundles/corpus_ieee1599.json` (a segment line
    that is a group member). Each of the three holds `locked: true`, so
-   `locked: true` on it changes nothing (refused as such at `[A + "/<id>",
+   `locked: true` on it changes nothing (refused as such at `[{block: A, id: "<id>"},
    "locked"]`).
 3. **`set locked` to the value a timeline has.** In a block of
    `segment_line.json` whose file states `locked: false` on `b` (kept on
    reading), `locked: false` on `b` alone changes nothing and is refused as
-   such at `[A + "/b", "locked"]`, never as `unlocking_not_supported`;
+   such at `[{block: A, id: "b"}, "locked"]`, never as `unlocking_not_supported`;
    `{locked: false, name: "Bridge"}` on `b` is accepted and leaves `b`
    `false` and named `Bridge`, the manifest otherwise equal to the one
    before; `locked: true` on `b` is accepted and leaves it `true`.
-   Unlocking it again is then `unlocking_not_supported` at `[A + "/b",
+   Unlocking it again is then `unlocking_not_supported` at `[{block: A, id: "b"},
    "locked"]`, as in case 2, so the acceptance is the no-op's and no lifted
    rule's.
 4. **`set locked` elsewhere.** On the root `form` of `segment_line.json`
@@ -927,7 +1122,7 @@ or the exact code, path and message of the refusal, the view unchanged.
    unknown), a child `d` of 4 at 20 holds `locked: false`; into the root
    `form` of `segment_line.json`, a child `e` of unknown length at 32 that
    is a segment line holding no segment holds `locked: true`. The same `d`
-   stating `locked: true` is `segment_never_locked` at `[A + "/form",
+   stating `locked: true` is `segment_never_locked` at `[{block: A, id: "form"},
    "child"]`, message `A segment is never locked: lock its segment line
    'form' instead.`; the same `e` stating `locked: false` is
    `unlocking_not_supported` at the same path.
@@ -935,7 +1130,7 @@ or the exact code, path and message of the refusal, the view unchanged.
    a segment line), a child `sl` of 4 at 0 that is a segment line holding
    the segment `s1` of 4 at 0, neither stating `locked`, is added with
    `sl` locked and `s1` unlocked. The same value with `s1` stating `locked:
-   true` is `segment_never_locked` at `[A + "/bare", "child"]`, message
+   true` is `segment_never_locked` at `[{block: A, id: "bare"}, "child"]`, message
    naming the line `sl`. A child that is no segment line added into a
    timeline that is no segment line keeps the lock it states (the accept
    paths above add `bare`'s root, locked, as a child).
@@ -944,16 +1139,17 @@ or the exact code, path and message of the refusal, the view unchanged.
 
 A manifest holds several root timelines and groups, so what core does for
 one root it does for each, and its element addresses are those of
-drawing.md §2.2 in every manifest alike: a timeline, a group, a measure
-map or the manifest by its bare id (unique together), every other element
-(map, region, flow-control element) by `<root id>/<element id>` (those ids are
-unique only within a root's tree), parts appended, the manifest's title
-`name`.
+drawing.md §2.2 in every manifest alike: every ID is unique across the
+whole manifest (timelines at any depth, groups, measure maps, maps,
+regions, flow-control elements and the manifest's own), so an element is
+addressed `{id}` wherever it lies, a band `{id: T, facet}`, every card of a
+timeline `{id: T, part: ["card"]}`, parts by `part`, the manifest's title
+`{part: ["name"]}`; no address is composed from IDs.
 
 1. **Blocks hold any manifest.** A workspace holding blocks of `bare.json`,
    `group_child_member.json` and `bundle_mixed.json` writes and reads back
    deep-equal, and writes again to the same bytes; its file format is
-   version 4.
+   version 5.
 2. **Invariants root by root.** `group_child_member.json` with
    `second-half`'s unit changed to `seconds` (its length written `8.0`, as
    the `float` axis of seconds represents it) is refused with exactly
@@ -962,219 +1158,220 @@ unique only within a root's tree), parts appended, the manifest's title
    'quarters'`: the path counts the roots of a manifest with a group.
 3. **Elements of a group manifest.** The enumeration of
    `group_child_member.json` is written out whole, every member of every
-   key, and compared exactly. Its order: the box; the frame `group_1`
-   (chain `[block]`) and its title `group_1/name` (`[block, group]`), both
-   belonging to no timeline, so timeline, domain, modality and class are
-   null; then each member in display order, `second-half` first: its card
-   `group_1/second-half/card` (`[block, group]`), its ancestor line `piece` (type `ancestor`, `[block,
-   group, timeline]`) with its name and the member's two marks
-   `second-half/start` and `second-half/end` (`[block, group, timeline,
-   ancestor]`), each followed by its label (`[…, ancestor, wedge]`); then
-   the member's own line as a root's: `timeline second-half` (`[block,
-   group]`), its name and its five bands (`[block, group, timeline]`), the
-   markers band holding the wedges (`[…, timeline, band]`), each followed by
-   its label (`[…, band, wedge]`); then `recording` the same way without
-   ancestors. A timeline's keys carry its domain, modality and class
-   (`second-half` and `piece` logical, continuous,
-   `ContinuousLogicalTimeline`; `recording` physical, continuous,
-   `ContinuousPhysicalTimeline`), a band its timeline, null domain and
-   modality, and its kind as class. So an ancestor line holds no band, a
-   member that is a child in `timelines` is a `timeline` element in its
-   drawing whose bands are held by no band, and the mark addresses and
+   key, and compared exactly. Its order: the block; the frame `{id:
+   "group_1"}` (type `frame`, chain `[block]`) and its title `{id:
+   "group_1", part: ["name"]}` (`[block, frame]`), both belonging to no
+   timeline, so timeline, domain, modality, class and facet are null; then
+   each member in display order, `second-half` first: its card `{id:
+   "second-half", part: ["card"]}` (`[block, frame]`), its ancestor line
+   `piece` (type `ancestor`, `[block, frame, timeline]`) with its name and
+   the member's two marks `{id: "second-half", part: ["start"]}` and
+   `["end"]` (`[block, frame, timeline, ancestor]`), each followed by its
+   label (`[…, ancestor, wedge]`); then the member's own line as a root's:
+   `timeline` `{id: "second-half"}` (`[block, frame]`), its name and its
+   five bands (`[block, frame, timeline]`), the markers band holding the
+   wedges (`[…, timeline, band]`), each followed by its label (`[…, band,
+   wedge]`); then `recording` the same way without ancestors. A timeline's
+   keys carry its domain, modality and class (`second-half` and `piece`
+   logical, continuous, `ContinuousLogicalTimeline`; `recording` physical,
+   continuous, `ContinuousPhysicalTimeline`), a band its timeline, null
+   domain, modality and class, and its facet. So an ancestor line holds no
+   band, a member that is a child in `timelines` is a `timeline` element in
+   its drawing whose bands are held by no band, and the mark addresses and
    their labels occur twice, on the ancestor line and on the member's own
-   line. `{within: "piece"}` matches exactly `group_1/second-half/card`, the
+   line. `{within: "piece"}` matches exactly the card of `second-half`, the
    `piece` ancestor, its name, the four mark keys on it and every element of
-   the line `second-half` (eighteen keys); `{element: "group"}` only the
-   frame; `{element: "card"}` exactly `group_1/second-half/card`,
-   `group_1/recording/card`;
-   `{inside: "ancestor"}` exactly `piece/name` and the four mark keys on the
-   ancestor line; `{element: "wedge", inside: "ancestor"}` the two marks;
-   `{element: "name", inside: "ancestor"}` only `piece/name`; `{inside:
-   "group"}` every key but the box and the frame.
+   the line `second-half` (eighteen keys); `{element: "frame"}` only the
+   frame; `{element: "card"}` exactly the cards of `second-half` and
+   `recording`; `{inside: "ancestor"}` exactly the name of `piece` and the
+   four mark keys on the ancestor line; `{element: "wedge", inside:
+   "ancestor"}` the two marks; `{element: "name", inside: "ancestor"}` only
+   the name of `piece`; `{inside: "frame"}` every key but the block and the
+   frame.
 4. **Elements of a named manifest with two groups.** The addresses of
-   `bundle_mixed.json`'s enumeration are written out whole: the box; the
-   title `name` (addressed `name` whether the manifest is named, as here, or
-   has an id); per frame in group order its title and its members' cards in
-   display order (`group_1`: `group_1/score/card`,
-   `group_1/performance/card`; `group_2`: `group_2/page/card`,
-   `group_2/excerpt/card`), each card followed by the member's ancestor lines (for
-   `excerpt`, `recording`, `recording/name` and the marks `excerpt/start`,
-   `excerpt/end` with their labels) and its line with its name and five
-   bands, the bands holding its maps (`score/cmap_1`, `score/cmap_2`;
-   `performance/cmap_1`; `page/cmap_1`; for `excerpt` `recording/cmap_2`),
-   its wedges with their labels and its jump with its label (`score/jump_from_1`,
-   `score/jump_from_1/label`); then the ungrouped root `annotations` with its
-   card, name and five bands, the regions band holding
-   `annotations/region_1`, `annotations/region_1/label`,
-   `annotations/region_2`, `annotations/region_2/label`. Nothing of
-   `recording`'s own is drawn on an ancestor line (`recording/cmap_1` is
-   not, drawing.md §8.3). A line's elements come in the order of "Elements
-   and selectors" 1. The title, `annotations/card` and the line
-   `annotations` are held by the box alone (chain `[block]`), the line's
-   name by the box and the line (`[block, timeline]`). `memberDrawings`
-   gives the frames `group_1` (`score`, `performance`) and `group_2`
-   (`page`, `excerpt`, the latter with the one ancestor `recording`, offset
-   its offset there) and the ungrouped roots `["annotations"]`.
+   `bundle_mixed.json`'s enumeration are written out whole: the block `{}`;
+   the title `{part: ["name"]}` (whether the manifest is named, as here, or
+   has an id); per frame in group order the frame, its title and its
+   members' cards in display order (`group_1`: `score`, `performance`;
+   `group_2`: `page`, `excerpt`), each card followed by the member's
+   ancestor lines (for `excerpt`, `{id: "recording"}`, its name and the
+   marks of `excerpt`'s start and end with their labels) and its line with
+   its name and five bands, the bands holding its maps (`cmap_1`, `cmap_2`
+   in `score`'s; `cmap_3` in `performance`'s; `cmap_4` in `page`'s;
+   `cmap_6` in `excerpt`'s), its wedges with their labels and its jump with
+   its label (`{id: "jump_from_1"}`, `{id: "jump_from_1", part:
+   ["label"]}`); then the ungrouped root `annotations` with its card, name
+   and five bands, the regions band holding `region_1`, its label,
+   `region_2`, its label. Nothing of `recording`'s own is drawn on an
+   ancestor line (its map `cmap_5` is not, drawing.md §8.3). A line's
+   elements come in the order of "Elements and selectors" 1. The title, the
+   card of `annotations` and the line `annotations` are held by the block
+   alone (chain `[block]`), the line's name by the block and the line
+   (`[block, timeline]`). `memberDrawings` gives the frames `group_1`
+   (`score`, `performance`) and `group_2` (`page`, `excerpt`, the latter
+   with the one ancestor `recording`, offset its offset there) and the
+   ungrouped roots `["annotations"]`.
 5. **Addresses, one root and several.** In a block of `map.json`:
-   `manifestIds` is exactly `melody`, `phrase`, `melody/tempo`,
-   `melody/ticks`; `elementOf` gives `melody/ticks` for `melody/ticks`,
-   `phrase` for `phrase/name`, `melody` for `melody/end/label` and
-   `melody/card` (an ungrouped root's card), and `name` for `name`; `set` reaches `A/melody/ticks` (a
-   map of the child `phrase`, qualified by the root), and `A/ticks` and
-   `A/phrase/ticks` are `unknown_target`. In a block of
+   `manifestIds` is exactly `melody`, `phrase`, `tempo`, `ticks`; `set`
+   reaches the map `ticks` of the child `phrase` by `{block: A, id:
+   "ticks"}`, and `{id: "melody/ticks"}` and `{id: "phrase/ticks"}` are
+   `unknown_target`: no ID is composed. In a block of
    `group_number_types.json`, adding the region `region_1` (`[2, 1]` to
-   `[4, 1]`) into `A/score` stores it in `timelines[2].regions`;
-   `manifestIds` then holds exactly `group_1`, `page`, `performance`,
-   `score` and `score/region_1`. `elementOf` of `score/region_1/label` is
-   `score/region_1`, of `score/end/label`, `score/start`, `score/card`
-   and `group_1/score/card` (the member's card) is `score`, of
-   `group_1/name` is `group_1`. `score/start` is never an
-   element: adding a region with the id `start` into `A/score` is refused,
-   `schema_violation` at `[A, "manifest", "timelines", 2, "regions", 0,
-   "id"]` (TimeToShare reserves the part words), and so is a region with
-   the id `card`, at the same path; a `set` aimed at `A/score/start` is
-   `unknown_target` at `[A + "/score/start"]`. `unknown_target` also for
-   `A/region_1` (an entry needs its root), `A/page/region_1` (not in page's
-   tree) and `A/score/region_1/x`; `A/group_1` is a group, which `set`
-   refuses by kind (`wrong_target_kind` for `name`). `findTimeline`, the one
-   reader of a timeline by id, searches every root's tree: in
-   `bundle_mixed.json` it gives for `annotations` the object at
-   `timelines[0]` and for `excerpt` the object at `timelines[3].children[0]`
-   (the very objects, not copies), and `undefined` for `group_1`, `name`,
-   `recording/excerpt` (an element address, not an id) and `nothing`.
-   `resolveElement` reads a map, region or flow-control element by its
-   address `<root>/<id>` and gives its kind and the very object: in
-   `map.json` `melody/tempo` the map `timelines[0].conversion_maps[0]` and
-   `melody/ticks` the map `timelines[0].children[0].conversion_maps[0]`,
-   both kind `map`; in `flow_control.json` `flow:quarters/flow_marker_1`,
-   `…/jump_from_1` and `…/jump_to_1` the elements of `timelines[0].flow_control`
-   with those ids (a flow marker, a jump origin, a jump target), each kind
-   `flow_control`; in `group_number_types.json` with `region_1`,
-   `score/region_1` the object `timelines[2].regions[0]`, kind `region`. It
-   gives `undefined` for `score` (a timeline), `group_1` (a group), `name`
-   (the title), `region_1` (no root), `page/region_1` (not in page's
-   tree), `score/region_1/label` (a part) and `score/nothing`.
+   `[4, 1]`) into `{block: A, id: "score"}` stores it in
+   `timelines[2].regions`; `manifestIds` then holds exactly `group_1`,
+   `page`, `performance`, `region_1` and `score`. IDs are free: a region
+   with the ID `start` or `card` (part words) added into `score` is
+   accepted, listed before `region_1`, and `set` of its `name` on `{block:
+   A, id: "start"}` names that region, while `{block: A, id: "score", part:
+   ["start"]}` is the wedge of `score`, a part, which no command aims at:
+   `unknown_target` at that address. `unknown_target` also for `{id:
+   "page/region_1"}`, `{id: "score/region_1"}`, and the parts `start` and
+   `label` of `region_1` (a region has a label, but no command aims at a
+   part); `{block: A, id: "group_1"}` is a group, which `set` refuses by
+   kind (`wrong_target_kind` for `length`). `findTimeline`, the one reader
+   of a timeline by id, searches every root's tree: in `bundle_mixed.json`
+   it gives for `annotations` the object at `timelines[0]` and for
+   `excerpt` the object at `timelines[3].children[0]` (the very objects,
+   not copies), and `undefined` for `group_1`, `name`, `recording/excerpt`,
+   `cmap_6` (a map) and `nothing`. `resolveElement` reads a map, region or
+   flow-control element by its ID alone and gives its kind and the very
+   object: in `map.json` `{id: "tempo"}` the map
+   `timelines[0].conversion_maps[0]` and `{id: "ticks"}` the map
+   `timelines[0].children[0].conversion_maps[0]`, both kind `map`; in
+   `flow_control.json` `flow_marker_1`, `jump_from_1` and `jump_to_1` the
+   elements of `timelines[0].flow_control` with those ids (a flow marker, a
+   jump origin, a jump target), each kind `flow_control`; in
+   `group_number_types.json` with `region_1`, `{id: "region_1"}` the object
+   `timelines[2].regions[0]`, kind `region`. It gives no entry for `{id:
+   "score"}` (a timeline), `{id: "group_1"}` (a group), `{part: ["name"]}`
+   (the title), `{id: "score/region_1"}`, `{id: "region_1", part:
+   ["label"]}` (a part) and `{id: "nothing"}`.
 6. **Commands.** `set` reaches a timeline at any depth: `name: "Late"` on
-   `A/second-half` of `group_child_member.json` changes exactly
-   `timelines[0].children[0].name`, and `name: "Intro"` on
-   `A/score/region_1` that region's name. `add` the child `clt_1` (bare's
-   root, locked, offset `[0, 1]`) into `A/score` of
+   `{block: A, id: "second-half"}` of `group_child_member.json` changes
+   exactly `timelines[0].children[0].name`, and `name: "Intro"` on `{block:
+   A, id: "region_1"}` that region's name. `add` the child `clt_1` (bare's
+   root, locked, offset `[0, 1]`) into `score` of
    `group_number_types.json`: it is stored in `timelines[2].children`.
-   `duplicate_id` is scoped like the ids: a child carrying `page` (a
-   timeline of another root) at `[A + "/page"]`; a second `region_1` into
-   `A/score` at `[A + "/score/region_1"]`; but `region_1` into `A/page`,
-   another tree, is accepted. `style` with `blocks: [A]` on
-   `group_styled.json`, `{select: {element: "ancestor"}, set: {opacity:
-   0.5}}`, adds that statement after the manifest's three and keeps
-   `styles` and `order`, written out literally: `order` exactly `{group_1:
-   ["score", "page", "performance"]}`, `styles` exactly
-   `{"frame-highlight": {stroke: "#7F00FF"}}`, and `statements` exactly
-   `{select: {element: "group"}, set: "frame-highlight"}`, `{select:
-   {element: "name", ids: ["group_1/name"]}, set: {fill: "#7F00FF"}}`,
-   `{select: {element: "card", inside: "group"}, set: {rx: 2, shadow:
-   "#C4B5FD"}}`, then the new one. Statements cascade (a later one wins),
-   so a reordered, merged or rewritten statement would draw differently,
-   and the string `set` names a style that must still resolve. Without
-   `blocks`, `{select: {element: "group"}, set: {stroke: "#C00000"}}`
-   reaches the two blocks holding a group and not the one-root block beside
-   them.
+   `duplicate_id` is manifest-wide: a child carrying `page` (a timeline of
+   another root) at `[{block: A, id: "score"}, "child", "id"]`; a second
+   `region_1` into `score` and one into `page`, another root, at `[{block:
+   A, id: "score"}, "region", "id"]` and `[{block: A, id: "page"}, "region",
+   "id"]`. `style` with `blocks: [A]` on `group_styled.json`,
+   `{select: {element: "ancestor"}, set: {opacity: 0.5}}`, adds that
+   statement after the manifest's three and keeps `styles` and `order`,
+   written out literally: `order` exactly `{group_1: ["score", "page",
+   "performance"]}`, `styles` exactly `{"frame-highlight": {stroke:
+   "#7F00FF"}}`, and `statements` exactly `{select: {element: "frame"},
+   set: "frame-highlight"}`, `{select: {addresses: [{id: "group_1", part:
+   ["name"]}], element: "name"}, set: {fill: "#7F00FF"}}`, `{select:
+   {element: "card", inside: "frame"}, set: {rx: 2, shadow: "#C4B5FD"}}`,
+   then the new one. Statements cascade (a later one wins), so a
+   reordered, merged or rewritten statement would draw differently, and the
+   string `set` names a style that must still resolve. Without `blocks`,
+   `{select: {element: "frame"}, set: {stroke: "#C00000"}}` reaches the two
+   blocks holding a group and not the one-root block beside them.
 7. **Delete deletes.** `remove` takes any element, timelines and groups
-   included, and `removedBy(manifest, elements)` names exactly what goes,
-   which the arranger's Delete preview reads. Each effect on its own case:
+   included, and `removedBy(manifest, ids)` names, by ID, exactly what
+   goes, which the arranger's Delete preview reads. Each effect on its own
+   case:
    - **A subtree, its ids in groups and orders.** `bundle_mixed.json`,
-     `remove A/recording`: the roots are `annotations`, `page`,
+     removing `recording`: the roots are `annotations`, `page`,
      `performance`, `score`; `group_2`'s members are `["page"]` and its
      order `["page"]`; `group_1` and its order are unchanged. `removedBy`
-     of `["recording"]` is exactly `{recording, excerpt,
-     recording/cmap_1, recording/cmap_2}`.
-   - **A child.** `group_child_member.json`, `remove A/second-half`:
+     of `["recording"]` is exactly `{recording, excerpt, cmap_5, cmap_6}`.
+   - **A child.** `group_child_member.json`, removing `second-half`:
      `piece` has no children; `group_1`'s members and order are
      `["recording"]`.
    - **A map belongs to its timeline only.** `group_number_types.json`
      with the `TableMap` `{id: "warp", source_unit: "quarters",
      target_unit: "seconds", x_values: [0, 12], y_values: [0, 12.5]}`
-     added into `A/score` (stored with `name: null`, `kind: "linear"`,
-     `extrapolate: "none"`), `remove A/performance` leaves `score`'s
+     added into `score` (stored with `name: null`, `kind: "linear"`,
+     `extrapolate: "none"`), removing `performance` leaves `score`'s
      `conversion_maps` exactly `[warp]`; `removedBy` of `["performance"]`
      is exactly `{performance}`.
    - **A measure map goes alone.** The same manifest given the measure map
-     `{id: "bars", rows: [{count: 1, qstamp: [0, 1]}]}` (added into `A`):
-     `removedBy` of `["bars"]` is exactly `{bars}`, and `remove A/bars`
-     leaves `measure_maps: []` and every timeline as it was.
-   - **`ids` entries addressing a removed element.** `group_styled.json`
-     with the statements `{select: {ids: ["page", "score/card"]}, set:
-     {opacity: 0.5}}` and `{select: {ids: ["page/name"]}, set: {opacity:
-     0.4}}` styled in, `remove A/page`: the first keeps `ids:
-     ["score/card"]`, the second goes, the manifest's own three statements
-     are unchanged.
+     `{id: "bars", rows: [{count: 1, qstamp: [0, 1]}]}` (added into
+     `{block: A}`): `removedBy` of `["bars"]` is exactly `{bars}`, and
+     removing `bars` leaves `measure_maps: []` and every timeline as it
+     was.
+   - **`addresses` entries naming a removed element.** `group_styled.json`
+     with the statements `{select: {addresses: [{id: "page"}, {id: "score",
+     part: ["card"]}]}, set: {opacity: 0.5}}` and `{select: {addresses:
+     [{id: "page", part: ["name"]}, {id: "page", facet: "regions"}]}, set:
+     {opacity: 0.4}}` styled in, removing `page`: the first keeps
+     `addresses: [{id: "score", part: ["card"]}]`, the second goes (its
+     part and band of `page` go with `page`), the manifest's own three
+     statements are unchanged.
    - **A group left without members stays; the last root leaves an empty
-     array.** `group_number_types.json`, `remove` `A/page`,
-     `A/performance` and `A/score` in one command: `timelines` is `[]`,
-     `groups` is exactly `[{id: "group_1", name: "Edition", meta: {},
-     members: []}]`, the order `{group_1: []}`.
-   - **Deleting a group keeps its members.** `bundle_mixed.json`, `remove
-     A/group_1`: the roots are unchanged, `groups` is `[group_2]`, the
-     order holds `group_2` alone, and `memberDrawings` draws `annotations`,
+     array.** `group_number_types.json`, removing `page`, `performance` and
+     `score` in one command: `timelines` is `[]`, `groups` is exactly
+     `[{id: "group_1", name: "Edition", meta: {}, members: []}]`, the order
+     `{group_1: []}`.
+   - **Deleting a group keeps its members.** `bundle_mixed.json`, removing
+     `group_1`: the roots are unchanged, `groups` is `[group_2]`, the order
+     holds `group_2` alone, and `memberDrawings` draws `annotations`,
      `performance` and `score` as ungrouped roots.
-   - **Targets that go with another are not refused**: `remove
-     [A/recording, A/excerpt]` gives the same manifest as `remove
-     [A/recording]`.
-8. **Ids for new elements**, the smallest free `{prefix}_{N}` in the scope
-   of the timeline the element goes into, on a block of
-   `group_number_types.json` with `region_1` in `score`: `region` into
-   `score` is `region_2`, into `page` `region_1`, without `into`
-   `region_2`; after adding a region `clt_1` into `page`, `clt` into
-   `score` is `clt_1` (a region of another tree does not count) and into
-   `page` `clt_2`; after adding the child `clt_1` into `score`, `clt` into
-   `page` is `clt_2` and into `performance` `clt_2` (timeline ids are unique
-   across the manifest). The scopes are the validator's: a map, region or
-   flow-control element id is unique within its root's tree only, so it
-   may equal a group's id or the manifest's; a timeline id may equal
-   neither. On `bundle_mixed.json` given the id `edition`, the id of a new
-   `group` into `score` is `group_1`; a region `group_1` and a region
-   `edition` added into `score` are each accepted, and a child `group_1` or
-   `edition` added into `score` is `duplicate_id` at `[A + "/group_1"]` and
-   `[A + "/edition"]`.
+   - **Targets that go with another are not refused**: removing
+     `recording` and `excerpt` gives the same manifest as removing
+     `recording`.
+8. **IDs of new elements** are unique across the manifest. On
+   `bundle_mixed.json` given the id `edition`, a region and a child
+   carrying `group_1`, `edition` (the manifest's own id) or `cmap_5` (a map
+   of another root) added into `score` are each `duplicate_id` at
+   `[{block: A, id: "score"}, "region", "id"]` and `[…, "child", "id"]`.
+   On `conversion_maps__maps_quarters.json`, whose maps hold maps two
+   deep, `manifestIds` is exactly `cmap_1` to `cmap_8`, `lmap_1` to
+   `lmap_5`, `maps:quarters`, `measuremap_1`, `pmap_1` and `tmap_1` to
+   `tmap_4`: the maps a `ChainMap`, `CombinationMap` or `PiecewiseMap`
+   holds count. A region `lmap_3` (a held map's ID) into `maps:quarters`
+   is `duplicate_id` at `[{block: A, id: "maps:quarters"}, "region",
+   "id"]`, and `{id: "lmap_3"}` resolves to nothing: a held map is neither
+   drawn nor addressed.
 
 ## Places, display orders and band orders (`places.test.ts`)
 
 A block stores one drawing input beside its placement (drawing.md §1):
-`places`, the stated places of its box's **items** (a group's frame or an
+`places`, the stated places of its block's **items** (a group's frame or an
 ungrouped root's card, drawing.md §8.1) and the stated sizes and vertical
-stretches of its members' **cards**. So a key of `places` is a group id, an
-ungrouped root's id or, for a member's card in the frame of a group,
-`<group id>/<member id>` (drawing.md §8.6: one card, and one key, per
-group that has the member); a member's bare id names nothing. A `set` of
-`place` aims at the group, for its frame, or at the timeline, for the one
-card it is drawn in; a timeline drawn in the frames of several groups has
-several cards and no one place to set. What a group or a timeline stacks is
-no placement: a group's **display order** and a timeline's **band order**
-lie in the block's manifest, as the entries of `graphical.order` keyed by
-the group's or the timeline's id (TimeToShare's README, "graphical"), each
-set by the property `order` of its group or timeline. A place is `{x?, y?,
-length?, scale?, spacing?, width?, height?}`, `x` and `y` finite, `length`,
-`scale` and the sizes positive, `spacing` (a gap) finite and at least 0, at
-least one member stated and none null: a place without members is never
-stored. A card's place states only `width`, `height` and `spacing`
-(drawing.md §8.6: a member is drawn with its group's length and scale,
-while its spacing, the gap between its rows and its bands, is its own).
-These are proved by what a stored block holds after commands and by
-checking a view built as a read file would be: a stale or invented key, or
-a card stating more than its size and spacing, must never reach a
-saved file, or the file would be refused on reading.
+stretches of its members' **cards**. So `places` is keyed by the ID of a
+group or of an ungrouped root, and a member's card's place lies in its
+group's entry, `places[G].cards[T]` (drawing.md §8.6: one card, and one
+place, per group that has the member); a member's bare ID at the top names
+nothing. A `set` of `place` aims at the group, for its frame, or at the
+timeline, for the one card it is drawn in; a timeline drawn in the frames
+of several groups has several cards and no one place to set, so each of
+its cards is placed through its group: a `set` of `cards` on the group,
+`{<member ID>: <card place>}`, merges into `places[G].cards[T]` exactly as
+`place` merges a card's. What a group
+or a timeline stacks is no placement: a group's **display order** and a
+timeline's **band order** lie in the block's manifest, as the entries of
+`graphical.order` keyed by the group's or the timeline's ID (TimeToShare's
+README, "graphical"), each set by the property `order` of its group or
+timeline. A place is `{x?, y?, length?, scale?, spacing?, width?,
+height?}`, `x` and `y` finite, `length`, `scale` and the sizes positive,
+`spacing` (a gap) finite and at least 0, at least one member stated and
+none null: a place without members is never stored; a group's entry adds
+`cards`, an object of at least one card place by member ID. A card's place
+states only `width`, `height` and `spacing` (drawing.md §8.6: a member is
+drawn with its group's length and scale, while its spacing, the gap between
+its rows and its bands, is its own). These are proved by what a stored
+block holds after commands and by checking a view built as a read file
+would be: a stale or invented key, or a card stating more than its size and
+spacing, must never reach a saved file, or the file would be refused on
+reading.
 
 Block `bundle0001` holds `bundles/bundle_mixed.json`; where a case names
 `groups/group_child_member.json` (whose root `piece` holds the member
-`second-half` and so is no item), its block is `bundle0001` too. The band
-orders below are `R` for the root `recording`, `["recording/markers_1",
-"recording/children_1", "recording", "recording/conversion_maps_1",
-"recording/regions_1", "recording/flow_control_1"]` (the markers band moved
-to the top and the conversion maps band below the line), and `E` for its
-child `excerpt`, `["excerpt", "excerpt/children_1",
-"excerpt/conversion_maps_1", "excerpt/markers_1", "excerpt/regions_1",
-"excerpt/flow_control_1"]` (every band below the line); `D(T)` is the
-default band order of `T`, `["T/children_1", "T/conversion_maps_1", "T",
-"T/markers_1", "T/regions_1", "T/flow_control_1"]`.
+`second-half` and so is no item), its block is `bundle0001` too. `set x
+{…}` aims at `{block: "bundle0001", id: "x"}`, `set bundle0001 {…}` at
+`{block: "bundle0001"}`, and a path `[x, …]` starts with that address's
+key. The band orders below are `R` for the root `recording`, `["markers",
+"children", "line", "conversion_maps", "regions", "flow_control"]` (the
+markers band moved to the top and the conversion maps band below the line),
+`E` for its child `excerpt`, `["line", "children", "conversion_maps",
+"markers", "regions", "flow_control"]` (every band below the line), and
+`D` the default band order, `["children", "conversion_maps", "line",
+"markers", "regions", "flow_control"]`.
 
 **Accepted** (expected values exact):
 
@@ -1190,19 +1387,25 @@ default band order of `T`, `["T/children_1", "T/conversion_maps_1", "T",
    1.5}}`; then `place {scale: null}`: `{}`. `set annotations place
    {scale: 1.5}`: exactly `{annotations: {scale: 1.5}}`.
 4. **A member's card size.** `set score place {width: 650, height: 120}`
-   (a member that is a root): exactly `{"group_1/score": {width: 650,
-   height: 120}}`; then `place {width: null}`: `{"group_1/score": {height:
-   120}}`. In `group_child_member.json`, `set second-half place {width:
-   650, height: 120}` (a member that is a child timeline): exactly
-   `{"group_1/second-half": {width: 650, height: 120}}`.
-5. **Spacing, on every kind of key.** `set group_1 place {spacing: 1.5}`:
-   exactly `{group_1: {spacing: 1.5}}`; `set annotations place {spacing:
-   1.5}`: exactly `{annotations: {spacing: 1.5}}`; `set score place
-   {spacing: 1.5}`: exactly `{"group_1/score": {spacing: 1.5}}`, then
-   `place {width: 650}`: `{"group_1/score": {spacing: 1.5, width: 650}}`,
-   then `place {spacing: null}`: `{"group_1/score": {width: 650}}`. A spacing of 0 is a gap like any
-   other: `set group_1 place {spacing: 0}` gives exactly `{group_1:
-   {spacing: 0}}`.
+   (a member that is a root): exactly `{group_1: {cards: {score: {width:
+   650, height: 120}}}}`; then `place {width: null}`: `{group_1: {cards:
+   {score: {height: 120}}}}`. In `group_child_member.json`, `set
+   second-half place {width: 650, height: 120}` (a member that is a child
+   timeline): exactly `{group_1: {cards: {"second-half": {width: 650,
+   height: 120}}}}`.
+5. **Spacing, on every kind of place.** `set group_1 place {spacing:
+   1.5}`: exactly `{group_1: {spacing: 1.5}}`; `set annotations place
+   {spacing: 1.5}`: exactly `{annotations: {spacing: 1.5}}`; `set score
+   place {spacing: 1.5}`: exactly `{group_1: {cards: {score: {spacing:
+   1.5}}}}`, then `place {width: 650}`: `{group_1: {cards: {score:
+   {spacing: 1.5, width: 650}}}}`, then `place {spacing: null}`: `{group_1:
+   {cards: {score: {width: 650}}}}`. A frame's own place and its cards
+   share the entry: from `{spacing: 1.5, width: 650}` on `score`'s card,
+   `set group_1 place {x: 10}` gives `{group_1: {x: 10, cards: {score:
+   {spacing: 1.5, width: 650}}}}` and `place {x: null}` again `{group_1:
+   {cards: {score: {spacing: 1.5, width: 650}}}}`. A spacing of 0 is a gap
+   like any other: `set group_1 place {spacing: 0}` gives exactly
+   `{group_1: {spacing: 0}}`.
 6. **A display order.** `set group_1 order ["performance", "score"]`:
    `graphical.order` is `{group_1: ["performance", "score"], group_2:
    ["page", "excerpt"]}`; `order: null` deletes the entry, leaving exactly
@@ -1215,9 +1418,8 @@ default band order of `T`, `["T/children_1", "T/conversion_maps_1", "T",
    `excerpt: E`; then `set recording order null`: the two display orders
    and `excerpt: E` (the child keeps its own entry while its parent's goes);
    then `set excerpt order null`: exactly the fixture's `graphical.order`.
-   `set annotations order D(annotations)` stores `annotations:
-   D(annotations)`: a value equal to what the timeline inherits is an entry
-   like any other, deleted only by null.
+   `set annotations order D` stores `annotations: D`: a value equal to what
+   the timeline inherits is an entry like any other, deleted only by null.
 8. **Both in one `set`.** `group_1`'s display order `["performance",
    "score"]` and `recording`'s order `R` write both entries beside
    `group_2`'s; `group_1`'s display order the fixture states, `["score",
@@ -1236,162 +1438,207 @@ default band order of `T`, `["T/children_1", "T/conversion_maps_1", "T",
 **Refused** (exact code, path and, where one is fixed, message):
 
 10. `set recording place {x: 1}` (it holds a member, so it is drawn in no
-    card): `not_an_item` at `["bundle0001/recording", "place"]`, message
-    "recording is not drawn in a card of its own"; in
-    `group_child_member.json`, `set piece place {width: 650}` the same at
-    `["bundle0001/piece", "place"]`. A member's card states only its size:
-    `set score place {x: 1}` is `not_an_item` at `["bundle0001/score",
-    "place", "x"]`, message "score is a member: its card takes only width,
-    height and spacing"; `{width: 650, length: 300}` at `[…, "place",
-    "length"]`, `{scale: 2}` at `[…, "place", "scale"]`, and in
+    card): `not_an_item` at `[recording, "place"]`, message "'recording'
+    is not drawn in a card of its own"; in `group_child_member.json`, `set
+    piece place {width: 650}` the same at `[piece, "place"]`. A member's
+    card states only its size: `set score place {x: 1}` is `not_an_item` at
+    `[score, "place", "x"]`, message "'score' is a member: its card
+    takes only width, height and spacing"; `{width: 650, length: 300}` at `[…,
+    "place", "length"]`, `{scale: 2}` at `[…, "place", "scale"]`, and in
     `group_child_member.json` `set second-half place {x: 10}` at
-    `["bundle0001/second-half", "place", "x"]`. Both refusals come before
-    the value is read: `set recording place {x: "a"}` is `not_an_item` at
-    `[…, "place"]` and `set score place {x: "a"}` at `[…, "place", "x"]`.
-    On `bundles/bundle_shared_member.json` (`t` a member of `g1` and
-    `g2`), `set t place {width: 650}` is `not_an_item` at
-    `["bundle0001/t", "place"]`, message "t is drawn in the frames of
-    several groups", while `set u place {width: 650}` (a member of `g1`
-    only) gives exactly `{"g1/u": {width: 650}}`.
+    `[second-half, "place", "x"]`. Both refusals come before the value is
+    read: `set recording place {x: "a"}` is `not_an_item` at `[…, "place"]`
+    and `set score place {x: "a"}` at `[…, "place", "x"]`. On
+    `bundles/bundle_shared_member.json` (`t` a member of `g1` and `g2`),
+    `set t place {width: 650}` is `not_an_item` at `[t, "place"]`, message
+    "'t' is drawn in the frames of several groups", while `set u place
+    {width: 650}` (a member of `g1` only) gives exactly `{g1: {cards: {u:
+    {width: 650}}}}`.
 11. `set group_1 order ["score"]` (a member missing), `["score", "score"]`
     (a duplicate id), `["score", "performance", "score"]`, `["score",
-    "annotations"]` and `"score"`: each `invalid_order` at
-    `["bundle0001/group_1", "order"]`, message "order must list every
-    member of group_1 once".
-12. Place values at `[address, "place", member]`: `{x: "1"}` `invalid_value`,
+    "annotations"]` and `"score"`: each `invalid_order` at `[group_1,
+    "order"]`, message "order must list every member of 'group_1' once".
+12. Place values at `[x, "place", member]`: `{x: "1"}` `invalid_value`,
     `{y: Infinity}` `non_finite_number`, `{length: 0}`, `{width: -1}`,
     `{scale: 0}` and `{scale: -1}` `non_positive_number`, `{spacing: -1}`
     `invalid_value`, `{depth: 1}` `unknown_property` (as every `set`
     object value naming an unknown member); `place: 5` `invalid_value` at
-    `[address, "place"]`; `place: {}` `invalid_value` at `[address,
-    "place"]`, message "a place value states at least one member" (an empty
-    value would journal a command that changes nothing).
+    `[x, "place"]`; `place: {}` `invalid_value` at `[x, "place"]`, message
+    "a place value states at least one member" (an empty value would
+    journal a command that changes nothing).
 13. **A band order that is none**, each refused whole with `invalid_order`
-    at `["bundle0001/excerpt", "order"]` and, as message, the first problem
-    in the terms of TimeToShare's README, by the rule "Bands and band
-    orders" checks against the validators (ids quoted as JSON): `E` with
-    `excerpt/flow_control_1` replaced by `recording/flow_control_1`,
-    `"recording/flow_control_1" is not "excerpt" or one of its bands`; `E`
-    without `excerpt/regions_1`, `"excerpt/regions_1" is missing from the
-    band order of "excerpt"`; `E` without `excerpt` itself, `"excerpt" is
-    missing from the band order of "excerpt"`; `E` without
-    `excerpt/markers_1` and `excerpt/children_1`, the first missing in the
-    default band order's order, `"excerpt/children_1" is missing from the
-    band order of "excerpt"`; `E` with `"excerpt/regions_2"` appended (a
-    stranger before anything missing), `"excerpt/regions_2" is not
-    "excerpt" or one of its bands`; a group's display order `["score",
-    "performance"]`, `"score" is not "excerpt" or one of its bands`; `E`
-    with `excerpt` appended again, `"excerpt" is repeated in the band order
-    of "excerpt"` (a repetition comes before a stranger, as the schema's
-    rule comes before the identity rules); `"excerpt"` and `[1, 2]`, `the
-    band order of "excerpt" is not an array of strings`. On the root, `R`
-    without `recording`: `"recording" is missing from the band order of
-    "recording"` at `["bundle0001/recording", "order"]`.
+    at `[excerpt, "order"]` and, as message, the first problem in the terms
+    of TimeToShare's README, by the rule "Bands and band orders" checks
+    against the validators (IDs and entries in single quotes): `E` with
+    `flow_control` replaced by `flow`, `'flow' is not 'line' or a facet, in
+    the band order of 'excerpt'`; `E` without `regions`, `'regions' is
+    missing from the band order of 'excerpt'`; `E` without `line`, `'line'
+    is missing from the band order of 'excerpt'`; `E` without `markers` and
+    `children`, the first missing in the default band order's order,
+    `'children' is missing from the band order of 'excerpt'`; `E` with
+    `regions` replaced by the former band address `excerpt/regions_1` (a
+    stranger before anything missing), `'excerpt/regions_1' is not 'line'
+    or a facet, in the band order of 'excerpt'`, and the same for `line`
+    replaced by the timeline's own ID `excerpt`; a group's display order
+    `["score", "performance"]`, `'score' is not 'line' or a facet, in the
+    band order of 'excerpt'`; `E` with `line` appended again, `'line' is
+    repeated in the band order of 'excerpt'` (a repetition comes before a
+    stranger, as the schema's rule comes before the identity rules);
+    `"excerpt"` and `[1, 2]`, `the band order of 'excerpt' is not an array
+    of strings`. On the root, `R` without `line`: `'line' is missing from
+    the band order of 'recording'` at `[recording, "order"]`.
 14. **A place or an order that changes nothing**, each refused as every
-    such `set` is: `invalid_value` at `["bundle0001/<id>", <property>]`,
-    message "the command changes nothing". `place {x: null}` on
-    `annotations`, which has no place; `place {width: 650}` on `score` once
-    its card states `{width: 650}` (under `group_1/score`); `set group_1 order ["score",
-    "performance"]`, the display order the fixture states; `set excerpt
-    order E` once `excerpt: E` is stored; `order: null` where nothing is
-    stored: `set recording order null` and `set excerpt order null` (the
-    fixture states no band order), `set group_1 order null` once a first
-    one has deleted its entry, and on `map.json`, which has no `graphical`
-    at all, `set melody order null` and `set phrase order null` (deleting
-    an entry that is not there never adds an empty `graphical`). In a store
-    holding `map.json` as block `bundle0001`, `dispatch` of `set phrase
-    order null` returns exactly that refusal, the view stays the same
-    object and the journal keeps its one entry, the `add`.
+    such `set` is: `invalid_value` at `[x, <property>]`, message "the
+    command changes nothing". `place {x: null}` on `annotations`, which has
+    no place; `place {width: 650}` on `score` once its card states `{width:
+    650}`; `set group_1 order ["score", "performance"]`, the display order
+    the fixture states; `set excerpt order E` once `excerpt: E` is stored;
+    `order: null` where nothing is stored: `set recording order null` and
+    `set excerpt order null` (the fixture states no band order), `set
+    group_1 order null` once a first one has deleted its entry, and on
+    `map.json`, which has no `graphical` at all, `set melody order null` and
+    `set phrase order null` (deleting an entry that is not there never adds
+    an empty `graphical`). In a store holding `map.json` as block
+    `bundle0001`, `dispatch` of `set phrase order null` returns exactly that
+    refusal, the view stays the same object and the journal keeps its one
+    entry, the `add`.
 15. The target's kind: `place` and `order` on the block are
-    `wrong_target_kind` at `["bundle0001", "place"]` / `["bundle0001",
-    "order"]`; a group refuses every other property: `locked` on `group_1`
-    is `wrong_target_kind` at `["bundle0001/group_1", "locked"]`.
+    `wrong_target_kind` at `[{block: "bundle0001"}, "place"]` / `[{block:
+    "bundle0001"}, "order"]`; a group refuses every other property:
+    `locked` on `group_1` is `wrong_target_kind` at `[group_1, "locked"]`.
 
 **Pruning.** After every command, the blocks it touched keep only the
-`places` keys that still name an item or a member's card, a member's place
-cut to its `width`, `height` and `spacing` (dropped when nothing is left).
-A key that named a timeline's card before the command and names nothing
-after it moves to the timeline's one card (a root that joins a group, `T`
-to `G/T`; a member whose group goes, `G/T` to `T`) unless that card's key
-is stated already; nothing else is dropped.
+places that still lie where an item or a member's card has its place, a
+member's place cut to its `width`, `height` and `spacing` (dropped when
+nothing is left). A place that was a timeline's card's before the command
+and names nothing after it moves to the timeline's one card (a root that
+joins a group, from `places[T]` to `places[G].cards[T]`; a member whose
+group goes or that leaves it, the other way) unless that card's place is
+stated already; nothing else is dropped.
 
 16. With `group_2` placed (`{x: 10}`) and the cards of `page` and
-    `excerpt` sized `{width: 650}` (`group_2/page`, `group_2/excerpt`),
-    `remove group_2`: `places` is exactly `{page: {width: 650}}` (`page`
-    becomes an ungrouped root, an item, and keeps its size under its own
-    id; `excerpt` is then neither an item nor a group member). `recording`
-    then holds no member, so it is an item: `set recording place {x: 1}` is
-    accepted.
+    `excerpt` sized `{width: 650}` (`places.group_2.cards`), `remove
+    group_2`: `places` is exactly `{page: {width: 650}}` (`page` becomes an
+    ungrouped root, an item, and keeps its size under its own ID; `excerpt`
+    is then neither an item nor a group member). `recording` then holds no
+    member, so it is an item: `set recording place {x: 1}` is accepted.
 17. A root becoming a member: with `annotations` placed (`{x: 1}`), `set
     bundle0001 manifest` to `bundle_mixed.json` with `annotations` added to
     `group_1`'s `members` and display order: `places` is `{}`. The same
     with `annotations` placed `{x: 1, scale: 2, spacing: 1.5, width: 700}`:
-    `places` is exactly `{"group_1/annotations": {spacing: 1.5, width:
-    700}}`.
-18. `remove annotations` with `annotations` placed: `places` loses the key.
+    `places` is exactly `{group_1: {cards: {annotations: {spacing: 1.5,
+    width: 700}}}}`.
+18. **The card's place moves both ways.** With `annotations` placed `{x:
+    1, width: 700, spacing: 2}`, `set annotations group "group_1"` leaves
+    `places` exactly `{group_1: {cards: {annotations: {width: 700, spacing:
+    2}}}}`, and `set annotations group null` then exactly `{annotations:
+    {width: 700, spacing: 2}}`. With `group_1` placed `{x: 10}` and
+    `score`'s card `{width: 650}`, `set score group null` leaves exactly
+    `{group_1: {x: 10}, score: {width: 650}}`: the frame keeps its own
+    place.
+19. `remove annotations` with `annotations` placed: `places` loses its
+    entry.
 
 **Band orders go with their timelines.** Removing a timeline removes the
 entries of `graphical.order` keyed by it and by each of its descendants (as
-for a group's display order), and a statement's `ids` naming a band address
-follow the removal as they follow a card address (`T/card`, `G/T/card`):
-the address goes with its timeline, and a statement left without `ids`
-goes.
+for a group's display order), and a statement's `addresses` naming one of
+its bands (`{id: T, facet}`) go with it as those naming its cards (`{id: T,
+part: ["card"]}`) do: the address goes with its timeline, and a statement
+left without `addresses` goes.
 
-19. With `recording: R`, `excerpt: E` and `annotations: D(annotations)`
-    set: `remove excerpt` leaves `graphical.order` exactly `{group_1:
-    ["score", "performance"], group_2: ["page"], recording: R,
-    annotations: D(annotations)}`; `remove recording` instead leaves exactly
-    `{group_1: ["score", "performance"], group_2: ["page"], annotations:
-    D(annotations)}` (its descendant's entry goes with its own).
-20. With the statements `{select: {ids: ["excerpt/regions_1",
-    "annotations/regions_1"]}, set: {display: "inline"}}` and `{select:
-    {ids: ["excerpt/markers_1"]}, set: {display: "inline"}}`, `remove
-    excerpt` leaves exactly `[{select: {ids: ["annotations/regions_1"]},
-    set: {display: "inline"}}]`.
-21. **No command renames.** Ids are never settable, and core renames
-    neither an entry of `graphical.order` nor a band address in a
-    statement (as it renames no card address). A timeline's id changes only
-    with a whole manifest (`set bundle0001 manifest`), which brings its own
-    `graphical`. With `excerpt: E` and the statement `{select: {ids:
-    ["excerpt/regions_1"]}, set: {display: "inline"}}`, the manifest with
-    `excerpt` renamed `fragment` in `recording`'s children, in `group_2`'s
-    members and in its display order, its band order still keyed
-    `excerpt`, is refused: `schema_violation` at `["bundle0001",
-    "manifest", "graphical", "order", "excerpt"]`, message `"excerpt" names
-    no group or timeline of this manifest`. The same with the entry rekeyed
-    `fragment` and its entries renamed is accepted, and the statement is
-    kept exactly as written, still naming `excerpt/regions_1`.
+20. With `recording: R`, `excerpt: E` and `annotations: D` set: `remove
+    excerpt` leaves `graphical.order` exactly `{group_1: ["score",
+    "performance"], group_2: ["page"], recording: R, annotations: D}`;
+    `remove recording` instead leaves exactly `{group_1: ["score",
+    "performance"], group_2: ["page"], annotations: D}` (its descendant's
+    entry goes with its own).
+21. With the statements `{select: {addresses: [{id: "excerpt", facet:
+    "regions"}, {id: "annotations", facet: "regions"}]}, set: {display:
+    "inline"}}` and `{select: {addresses: [{id: "excerpt", facet:
+    "markers"}]}, set: {display: "inline"}}`, `remove excerpt` leaves
+    exactly `[{select: {addresses: [{id: "annotations", facet:
+    "regions"}]}, set: {display: "inline"}}]`.
+22. **No command renames.** IDs are never settable, and core renames
+    neither an entry of `graphical.order` nor an address in a statement. A
+    timeline's ID changes only with a whole manifest (`set bundle0001
+    manifest`), which brings its own `graphical`. With `excerpt: E` and the
+    statement `{select: {addresses: [{id: "excerpt", facet: "regions"}]},
+    set: {display: "inline"}}`, the manifest with `excerpt` renamed
+    `fragment` in `recording`'s children, in `group_2`'s members and in its
+    display order, its band order still keyed `excerpt`, is refused:
+    `schema_violation` at `["bundle0001", "manifest", "graphical", "order",
+    "excerpt"]`, message `'excerpt' names no group or timeline of this
+    manifest`. The same with the entry rekeyed `fragment: E` is accepted
+    (a band order names no ID, so it moves unchanged), and the statement is
+    kept exactly as written, still addressing `{id: "excerpt", facet:
+    "regions"}`.
+
+**Member cards placed through their group** (on
+`bundles/bundle_shared_member.json`: `t` a member of `g1` and `g2`, `u` of
+`g1` only, `v` of `g2` only; `set g {cards: …}` aims at the group `g`):
+
+- `set g1 {cards: {t: {width: 650, spacing: 2}}}` gives exactly `{g1:
+  {cards: {t: {width: 650, spacing: 2}}}}`; then `set g2 {cards: {t:
+  {height: 80}, v: {width: 300}}}` adds exactly `g2: {cards: {t: {height:
+  80}, v: {width: 300}}}`, `t`'s two cards placed apart; `{t: {width:
+  null}}` on `g1` leaves `{cards: {t: {spacing: 2}}}`, and `{t: {spacing:
+  null}}` then removes `g1`'s entry whole. `set g2 {cards: {v: {width:
+  300}}}` again is `invalid_value` at `[g2, "cards"]`, "the command changes
+  nothing".
+- On the member of one group, `set g1 {cards: {u: {width: 650}}}` gives the
+  very view `set u {place: {width: 650}}` gives, places exactly `{g1:
+  {cards: {u: {width: 650}}}}`.
+- Refused: a card of no member, `{v: …}` on `g1`, is `unknown_place` at
+  `[g1, "cards", "v"]`, message "'v' is no member of group 'g1'" (the code
+  a stored `cards` key naming no member has); `{t: {x: 1}}` `not_an_item`
+  at `[g1, "cards", "t", "x"]`, message "'t' is a member: its card takes
+  only width, height and spacing" (as `place` refuses it); `{}`
+  `invalid_value` at `[g1, "cards"]`; `{t: {}}` and `{t: null}`
+  `invalid_value` at `[g1, "cards", "t"]`; `{t: {width: 0}}`
+  `non_positive_number` at `[g1, "cards", "t", "width"]`; `cards` on the
+  timeline `t` is `wrong_target_kind` at `[t, "cards"]`.
 
 **A block's `places` as stored** (the view check, on a view built as a file
 is, codes and paths under `["blocks", "bundle0001", …]`):
 
-22. Readers: `places: []` `invalid_value` at `[…, "places"]`; a place `{}`
+23. Readers: `places: []` `invalid_value` at `[…, "places"]`; a place `{}`
     and a place `null` `invalid_value` at `[…, "places", "group_1"]`; `{x:
     null}` `invalid_value` at `[…, "places", "group_1", "x"]`; `{x:
     Infinity}` `non_finite_number`, `{height: 0}` and `{scale: 0}`
     `non_positive_number` and `{spacing: -1}` `invalid_value` at the
-    member; `{depth: 1}`
-    `unknown_member` at `[…, "places", "group_1", "depth"]`.
-23. Keys, in code-point order: places `{"group_1/score": {x: 1}, nowhere:
-    …, group_1: …, recording: {x: 4}, "group_2/page": {width: 650}, score:
-    {width: 650}}` give exactly `unknown_member` at `[…, "places",
-    "group_1/score", "x"]` ("score is a member: its card takes only width,
-    height and spacing"), `unknown_place` at `[…, "places", "nowhere"]`
-    ("nowhere is no group, no ungrouped root and no member's card of block
-    bundle0001"), `unknown_place` at `[…, "places", "recording"]` and
-    `unknown_place` at `[…, "places", "score"]` (a member's bare id);
-    `page`'s card size is no problem, and neither is a card place
-    `{spacing: 1.5}`. A card place `{height: 2, scale: 1}` is refused
-    at its `scale` and `{length: 3, width: 2}` at its `length`: the first
-    member in place order. Keys are checked only once `places` read.
-24. `add` a block with `places: {annotations: {y: 8}, "group_1/score":
-    {width: 650}}` stores them as given; without them, `places` is `{}`;
-    with `places: {"group_1/score": {x: 1}}`, `unknown_member` at
-    `["bundle0001", "places", "group_1/score", "x"]`, with `places: {recording: {x: 1}}`
-    `unknown_place` at `["bundle0001", "places", "recording"]`, with
-    `places: {group_1: {}}` `invalid_value` at `["bundle0001", "places",
-    "group_1"]`: an `add` states its keys, so a key it gets wrong is
-    refused, never dropped.
+    member; `{depth: 1}` `unknown_member` at `[…, "places", "group_1",
+    "depth"]`. `cards` of `[]` and of `{}` are `invalid_value` at `[…,
+    "places", "group_1", "cards"]`, a card place `{}` at `[…, "cards", "score"]`; a card place
+    `{height: 2, scale: 1}` is `unknown_member` at its `scale` and `{length:
+    3, width: 2}` at its `length` (the first member in place order), a card
+    place stating `cards` at its `cards`, and `{width: 0}`
+    `non_positive_number` at its `width`.
+24. Keys, in code-point order of the entries and then of each entry's
+    `cards`: places `{score: {width: 650}, group_1: {x: 3, cards: {score:
+    {x: 1}, page: {width: 650}, performance: {spacing: 1.5}}}, nowhere: {y:
+    2}, recording: {x: 4}, annotations: {cards: {score: {width: 1}}},
+    group_2: {cards: {page: {width: 650}}}}` give exactly `unknown_member`
+    at `[…, "places", "annotations", "cards"]` ("'annotations' is no
+    group: its place has no cards"), `unknown_place` at `[…, "places", "group_1",
+    "cards", "page"]` ("'page' is no member of group 'group_1' of
+    block 'bundle0001'"), `unknown_member` at `[…, "places", "group_1", "cards",
+    "score", "x"]` ("'score' is a member: its card takes only width,
+    height and spacing"), `unknown_place` at `[…, "places", "nowhere"]` ("'nowhere'
+    is no group and no ungrouped root of block 'bundle0001'"), and the same
+    at `[…, "places", "recording"]` and `[…, "places", "score"]` (a
+    member's bare ID); `group_1`'s own `{x: 3}`, the card of `performance`
+    stating `{spacing: 1.5}` and the card of `page` in `group_2` are no
+    problem. Keys are checked only once `places` read.
+25. `add` a block with `places: {annotations: {y: 8}, group_1: {cards:
+    {score: {width: 650}}}}` stores them as given; without them, `places`
+    is `{}`; with `places: {group_1: {cards: {score: {x: 1}}}}`,
+    `unknown_member` at `[{}, "block", "places", "group_1", "cards",
+    "score", "x"]`, with `places: {recording: {x: 1}}` `unknown_place` at
+    `[{}, "block", "places", "recording"]`, with `places: {group_1: {}}`
+    `invalid_value` at `[{}, "block", "places", "group_1"]`, and with the
+    former key `"group_1/score"` `unknown_place` at `[{}, "block",
+    "places", "group_1/score"]` (the value's path in the command): an `add` states its places, so a place it
+    gets wrong is refused, never dropped.
 
 ## Removing a segment (`segments.test.ts`, `commands.test.ts`)
 
@@ -1399,12 +1646,13 @@ A segment is a child of a segment line: on `segment_children.json`
 exactly `i1`, `i2`, `t1`, `t2`, `t3`, `c1` and `c2`. It is not removed on
 its own: removing
 it would leave a gap in its segment line, and the editor offers no way to
-close it yet. On `segment_children.json`, `remove A/t2` is
-`segment_not_removable` at `[A/t2]`, message `Removing segment t2 of line
-theme is not supported yet`, and so is `remove [A/t2, A/t3]`, another
-segment not removing its line. Removing it with its segment line (`remove
-[A/theme, A/t2]` leaves `piece` with the children `intro` and `coda`) or
-with its block (`remove [A, A/t2]`) needs no gap and is accepted.
+close it yet. On `segment_children.json`, removing `{block: A, id: "t2"}`
+is `segment_not_removable` at `[{block: A, id: "t2"}]`, message `Removing
+segment 't2' of line 'theme' is not supported yet`, and so is removing `t2`
+and `t3` together, another segment not removing its line. Removing it with
+its segment line (`theme` and `t2` leave `piece` with the children `intro`
+and `coda`) or with its block (`{block: A}` and `t2`) needs no gap and is
+accepted.
 
 The arithmetic of the four ways the editor will offer to close the gap is
 kept for that feature and proven here. Removing
@@ -1423,12 +1671,12 @@ are compared with values worked out by hand from the rule above, written
 out literally; what each way moves on the root's axis is written out too.
 The ways come in the order of preference (left extend, right extend, left
 shift, right shift), each with the reason it is refused or none: a locked
-line refuses both shifts (`its segment line theme is locked`), the first
+line refuses both shifts (`its segment line 'theme' is locked`), the first
 and last segments lack a neighbour (`no segment precedes it`, `no segment
-follows it`), a root has no offset to move (`its segment line form is a
-root and has no offset to move`), and a result the manifest's rules refuse
-is refused with that rule's message (on `segment_line.json`, `segment "b"
-of segment line "form" does not start where the one before it ends`). A
+follows it`), a root has no offset to move (`its segment line 'form' is
+a root and has no offset to move`), and a result the manifest's rules refuse
+is refused with that rule's message (on `segment_line.json`, `segment 'b'
+of segment line 'form' does not start where the one before it ends`). A
 timeline that is no segment has no ways. A segment's neighbours are
 segments, which are never locked, so they may always extend.
 
@@ -1517,31 +1765,38 @@ same ids; and the file then replays. Every view named below is the very
 object the store held (`toBe`) unless "deep-equal" is said.
 
 The cases run on block `bundle0001` holding `bundles/bundle_mixed.json`,
-added by the store's first dispatch. "A `set`" in an editor of `group_1` is
-`set bundle0001/score name` or `set bundle0001/performance name`, both
-inside the group.
+added by the store's first dispatch. Addresses are objects: `bundle0001`
+below stands for the block's address `{block: "bundle0001"}`, `G1` for
+`{block: "bundle0001", id: "group_1"}`, `G2` for the same with `group_2`,
+and a bare ID `x` in `open x`, `set x …` or `remove x` for `{block:
+"bundle0001", id: "x"}`; a session's and an editor's `target` is such an
+object, and a path or message names its key. "A `set`" in an editor of
+`group_1` is `set score name` or `set performance name`, both inside the
+group.
 
 1. **Ids and kinds.** A session id is drawn from bytes exactly as
    `mintBlockId` draws a block id (a byte below 252 gives the digit `byte %
    36` of `0-9a-z`, others are skipped): bytes 0, 1, 35, 36, 252, 255, 71,
    2, 3, 4, 5, 6 give exactly `01z0z23456`; drawn at random the id matches
    `^[0-9a-z]{10}$`. `editorKindOf(view, address)`: `bundle0001` →
-   `bundle`; `bundle0001/group_1` → `group`; `bundle0001/annotations` (a
-   root) and `bundle0001/excerpt` (a child) → `timeline`; `workspace`,
-   `bundle0001/name` (the title), `bundle0001/group_1/name`,
-   `bundle0001/score/card`, an entry address and the manifest's own id
-   after the block (which names the block, but opens no editor) →
-   `no_editor` "<address> has no editor" at `[<address>]`;
-   `bundle0001/nothing` and `0000000009` → `unknown_target` at
-   `[<address>]`. The editor kind reads the resolver's answer.
-2. **Done.** `open bundle0001/group_1` gives `editing` exactly one editor
-   `{session: <ten characters>, target: "bundle0001/group_1", kind:
+   `bundle`; `G1` → `group`; `annotations` (a root) and `excerpt` (a
+   child) → `timeline`; the workspace `{}`, the title `{block:
+   "bundle0001", part: ["name"]}`, `group_1`'s title, the cards of `score`
+   (`part: ["card"]`), a band (`{block: "bundle0001", id: "score", facet:
+   "regions"}`), the region `region_1` and the map `tempo` of block `A`
+   (`map.json`) → `no_editor` "<address> has no editor" at `[<address>]`;
+   `nothing`, `{block: "0000000009"}` and, on a manifest with the id
+   `takes`, `takes` (the manifest's own ID addresses nothing) →
+   `unknown_target` at `[<address>]`. The editor kind reads the resolver's
+   answer.
+2. **Done.** `open G1` gives `editing` exactly one editor
+   `{session: <ten characters>, target: G1, kind:
    "group", earlier: null}`, `entries` `[]`, `canUndo` false, the view
    unchanged. Two `set`s give `entries.length` 2 and an unchanged `journal`
    (the `add` only). `done()` leaves `editing` empty; the journal is the
    `add` plus `{session: <that id>, author: "Gerhardt", time: <the clock's
    next tick>}`; `sessions` is exactly `{<id>: {target:
-   "bundle0001/group_1", entries: <the two command entries>}}`; the view is
+   G1, entries: <the two command entries>}}`; the view is
    the one after both sets. The two `set`s are one run of the closed
    session: `undo()` reverts both at once, giving the view at opening (the
    view after the first `set` never shown), `journal` the `add` alone,
@@ -1558,7 +1813,7 @@ inside the group.
    opening, the journal and `sessions` deep-equal to those at opening,
    `listed` and `canRedo` as at opening. With no editor open `changes` is 0.
 5. **Reopen while it is the latest entry: unfolded.** After 2's Done, `open
-   bundle0001/group_1` again: `editing[0]` has 2's session id and `earlier`
+   G1` again: `editing[0]` has 2's session id and `earlier`
    null; `entries` are 2's two entries (the same objects), `canUndo` true,
    `changes` 0, the journal is the `add` alone and `sessions` is `{}`. The
    reopened session's own changes are the open level's again, one step
@@ -1574,13 +1829,13 @@ inside the group.
    new `set` give `changes` 2 (two at opening, the first of them and a
    new one now).
 8. **Reopen after a later entry: fresh.** After 2's Done, a main-level `set
-   bundle0001 x 40`, then `open bundle0001/group_1`: a new session id,
+   bundle0001 x 40`, then `open G1`: a new session id,
    `earlier` 2's id, `entries` `[]`, `canUndo` false, the journal three
    entries (the `add`, the session, the `set`). Opening
-   `bundle0001/group_2` after 2's Done gives `earlier` null (no session of
+   `G2` after 2's Done gives `earlier` null (no session of
    that target).
 9. **Nested sessions.** `open bundle0001` (kind `bundle`), one `set
-   bundle0001/annotations name "A"`, `open bundle0001/group_1`, one `set`,
+   annotations name "A"`, `open G1`, one `set`,
    `done()`: the bundle editor's `entries` are the command and one session
    entry of the inner session; `done()` again: the journal is the `add` and
    one session entry of the bundle session, whose `entries` are the command
@@ -1594,16 +1849,17 @@ inside the group.
     closes only the inner editor: `editing` is the bundle editor alone,
     `entries` its one command, the view the one after it; `done()` then
     journals a session of one entry.
-11. **Opening refusals.** `open workspace` → `no_editor`; `open
-    bundle0001/nothing` → `unknown_target`; inside `open
-    bundle0001/group_1`: `open bundle0001/group_1` → `not_inside`
-    "bundle0001/group_1 does not lie inside bundle0001/group_1" at
-    `["bundle0001/group_1"]`; inside `open bundle0001`: `open bundle0001` →
+11. **Opening refusals.** `open {}` (the workspace) → `no_editor` at
+    `[{}]`; `open
+    nothing` → `unknown_target`; inside `open
+    G1`: `open G1` → `not_inside`
+    "<G1> does not lie inside <G1>" (each `<G1>` the key of `G1`) at
+    `[G1]`; inside `open bundle0001`: `open bundle0001` →
     `not_inside`; a refused open changes neither `editing` nor the
     listeners' count. Done and Cancel with no editor open change nothing.
-12. **Snapshot.** Open `bundle0001/group_1`, one `set`; `snapshot()` gives
+12. **Snapshot.** Open `G1`, one `set`; `snapshot()` gives
     the view and a journal ending with a session entry whose session is
-    `{target: "bundle0001/group_1", entries: [<the set>]}`; `editing` and
+    `{target: G1, entries: [<the set>]}`; `editing` and
     `entries` still have one each. `readWorkspace(writeWorkspace(snapshot))`
     gives the same journal and sessions (deep-equal). Nested: in 9 before
     either Done, `snapshot()` folds the inner editor into the bundle session
@@ -1619,21 +1875,21 @@ inside the group.
     `redo`, `done` and `cancel` calls the listener exactly once.
 14. **The side-effect guard through the store.** The store applies the
     guard ("Containment and the side-effect guard") to every dispatch in an
-    editor. In the editor of `bundle0001/group_1`, the commands of the
-    guard's cases 6 to 11 (the box sized by `width 900` alone) are accepted
+    editor. In the editor of `G1`, the commands of the
+    guard's cases 6 to 11 (the block sized by `width 900` alone) are accepted
     or refused at the same paths, the refused ones journalling nothing
-    (`entries` holds the four accepted), and `open bundle0001/group_2` is
-    `not_inside`. In the editor of `bundle0001/group_2`, `remove excerpt` is
+    (`entries` holds the four accepted), and `open G2` is
+    `not_inside`. In the editor of `G2`, `remove excerpt` is
     refused as in guard case 25, message included, `entries` staying `[]`,
     and `remove page` is accepted as in guard case 27, `entries` holding that
     one `remove`. In the bundle editor, `remove bundle0001` is refused as in
     guard case 18, message included, `editing` the same object and `entries`
     still `[]`.
 15. **Done on an emptied unfolded session clears the redo stack below.**
-    After the `add`, `open bundle0001/group_1`, `set score name "S"`,
+    After the `add`, `open G1`, `set score name "S"`,
     `done()`; a main-level `set bundle0001 x 40` and its `undo` (the redo
     stack holds that `set`, whose view was computed with the session
-    applied); `open bundle0001/group_1` unfolds the session, `undo`
+    applied); `open G1` unfolds the session, `undo`
     empties it and `done()` records nothing. Taking the session off the
     main level changed that level, so `canRedo` is false and `redo()`
     changes nothing: the journal is the `add` alone, the view deep-equals
@@ -1643,7 +1899,7 @@ inside the group.
 
 **Three nested sessions.** Cases 16 to 22 run three nested editors: `A` is
 the bundle editor of `bundle0001`, `B` the group editor of
-`bundle0001/group_1`, `C` the timeline editor of `bundle0001/score`. Open
+`G1`, `C` the timeline editor of `score`. Open
 `A`, `B`, `C`; in `C` the change `c` = `set score name "c-name"`, Done; in
 `B` the change `b` = `set performance name "b-name"`, Done; in `A` the
 change `a` = `set annotations name "a-name"`, Done. The views right after
@@ -1685,7 +1941,7 @@ main journal is then the `add` and one session entry `SA`,
     with the very same entry, `SA` 2 of 3, `canRedo` true, `sessions`
     deep-equal to before `open`, the view `Vb`; a `redo()` then gives `Va`.
 21. **Inside an editor a closed sub-session undoes by its run and undo
-    stops at the opening.** `open bundle0001`, `open bundle0001/group_1`,
+    stops at the opening.** `open bundle0001`, `open G1`,
     `set score name "S"`, `set performance name "P"`, Done: the bundle
     editor's `entries` are `[SB]`, whose two `set`s are one run. `undo()`
     reverts both: the view at the bundle editor's opening, `entries` `[]`,
@@ -1788,12 +2044,14 @@ matches a session id (`[0-9a-z]` only).
 ## Containment and the side-effect guard (`contains.test.ts`, `guard.test.ts`)
 
 An editor changes only the element it edits and what that element holds;
-the block's box adapting to it is no side effect. Two pure rules decide it,
+the block adapting to it is no side effect. Two pure rules decide it,
 and the store applies the second to every command made in an editor, with
 the innermost editor's target.
 
 `contains(manifest, container, element)` says whether an element address
-(a part allowed) lies inside a timeline or a group. What it must get right
+(a part, a band or a card allowed) lies inside the timeline or group with
+the ID `container`; an element belongs to the timeline its ID names, or,
+for an entry, to the timeline holding it, whatever its root. What it must get right
 is the boundary drawing.md §2.2 draws with "Belongs to": a timeline holds
 everything belonging to it or to a descendant, parts included, while an
 ancestor line, drawn inside a member's card, carries the ancestor's address
@@ -1825,111 +2083,118 @@ an offset, each inside and outside) gives the same result with the change
 set and without it; a `NaN` in an outside `meta`, which only a projection
 reads, is accepted with it and throws without it.
 
-Block `bundle0001` holds `bundles/bundle_mixed.json`; `R`, `E` and `D(T)`
+Block `bundle0001` holds `bundles/bundle_mixed.json`; `R`, `E` and `D`
 are the band orders of "Places, display orders and band orders". `before`
 is the view of that block alone, added by `add`; `after` is reached by
 `apply` unless a case says it is built by replacing one member of
-`before`'s block. `G1` is `bundle0001/group_1`.
+`before`'s block. As in "Editor sessions", `bundle0001` stands for the
+block's address `{block: "bundle0001"}`, `G1` for `{block: "bundle0001",
+id: "group_1"}`, and a bare ID `x` as an editor's target or a command's
+for `{block: "bundle0001", id: "x"}`; in a path `[x]` is that address's
+key, and in a message `<x>` is it (`<group_2>` is
+`{"block":"bundle0001","id":"group_2"}`, `<bundle0001>` is
+`{"block":"bundle0001"}`).
 
 **`contains`** (`contains.test.ts`):
 
 1. **A group.** Over `bundle_mixed.json`'s enumeration, `group_2` contains
-   exactly, in enumeration order: its frame and title; for each member in
-   display order its card, its line, name and five bands with everything
-   they hold (`page/cmap_1` in `page`'s, `recording/cmap_2` in
-   `excerpt`'s, the wedges and their labels in each markers band), and for
-   `excerpt` the marks `excerpt/start` and `excerpt/end` with their labels
-   on its ancestor line, never that line `recording` or its name. A band
-   belongs to its timeline, so a member's five bands are in, empty ones
-   too; `recording/cmap_2` is in although its address names `recording`,
-   since the map belongs to `excerpt` (an address names the root whose tree
-   holds a map). `group_1` contains neither `group_2` nor
-   `annotations/card`.
+   exactly, in enumeration order: its frame `{id: "group_2"}` and title
+   `{id: "group_2", part: ["name"]}`; for each member in display order its
+   card (`{id, part: ["card"]}`), its line, name and five bands with
+   everything they hold (`cmap_4` in `page`'s, `cmap_6` in `excerpt`'s, the
+   wedges and their labels in each markers band), and for `excerpt` the
+   marks `{id: "excerpt", part: ["start"]}` and `["end"]` with their labels
+   on its ancestor line, never that line `{id: "recording"}` or its name. A
+   band belongs to its timeline, so a member's five bands are in, empty
+   ones too. `group_1` contains neither `{id: "group_2"}` nor `{id:
+   "annotations", part: ["card"]}`.
 2. **A root holding a member.** `recording` contains exactly the elements
-   of `excerpt`'s card: `excerpt/card`, `recording`, `recording/name`, the
-   marks on that line with their labels, `excerpt`, `excerpt/name`, and the
+   of `excerpt`'s card: its card, `{id: "recording"}`, its name, the marks
+   on that line with their labels, `{id: "excerpt"}`, its name, and the
    bands of `excerpt` with what they hold, as in 1.
 3. **A child.** `excerpt` contains exactly 2's list without `recording` and
-   `recording/name`. The ancestor's own map `recording/cmap_1` lies outside
-   it: `excerpt` does not contain it and `recording` does. That map is not
-   drawn in `excerpt`'s card (drawing.md §8.3), so the enumeration cannot
-   show it; the second answer proves that the first is the boundary's, not
-   that of an address `contains` does not know.
+   its name. The ancestor's own map `cmap_5` and its band `{id:
+   "recording", facet: "regions"}` lie outside it: `excerpt` contains
+   neither and `recording` both. That map is not drawn in `excerpt`'s card
+   (drawing.md §8.3), so the enumeration cannot show it; the second answer
+   proves that the first is the boundary's, not that of an address
+   `contains` does not know.
 4. **Entries belong to the timeline holding them.** In `map.json`,
-   `phrase` contains `melody/ticks` (its map) and not `melody/tempo`;
-   `melody` contains both and `phrase/name`.
-5. **Anything else contains nothing.** The title `name`, the map
-   `melody/tempo`, the card `melody/card` and the unknown `nothing`
-   contain not even themselves; no container contains the title or an
-   unknown address; `group_1` does not contain `group_2`.
+   `phrase` contains `{id: "ticks"}` (its map) and not `{id: "tempo"}`;
+   `melody` contains both, `{id: "phrase", part: ["name"]}` and `{id:
+   "ticks", part: ["label"]}`.
+5. **Anything else contains nothing.** The map `tempo` and the unknown
+   `nothing` contain not even themselves, nor `{id: "melody"}`; no
+   container contains the title `{part: ["name"]}`, the bundle `{}` or an
+   unknown address; `group_1` does not contain the title either.
 
 **The guard, the exact cases** (`guard.test.ts`), each in the editor of
 `G1` unless named:
 
 6. `set group_1 place {length: 300}` (`places` replaced) → nothing.
 7. `set group_2 place {x: 10}` (`places` replaced) → `side_effect` at
-   `["bundle0001/group_2"]`, message `the place of bundle0001/group_2 lies
-   outside bundle0001/group_1: an editor changes only what it edits`.
+   `[group_2]`, message `the place of <group_2> lies
+   outside <G1>: an editor changes only what it edits`.
 8. `set score name "S"` → nothing.
 9. `set annotations name "A"` → `side_effect` at
-   `["bundle0001/annotations"]`, message `bundle0001/annotations lies
-   outside bundle0001/group_1: …`: the first element of the enumeration
-   that differs is `annotations/card`, reported as its element.
-10. `set bundle0001 length 500` → at `["bundle0001", "length"]`; `set
+   `[annotations]`, message `<annotations> lies
+   outside <G1>: …`: the first element of the enumeration
+   that differs is the card of `annotations` (`{id: "annotations", part:
+   ["card"]}`), reported as its element, `annotations`.
+10. `set bundle0001 length 500` → at `[{block: "bundle0001"}, "length"]`; `set
     bundle0001 {x: 40, y: -8, width: 900, height: 300}` → nothing.
 11. `style {select: {element: "timeline"}, set: {stroke: "#FF0000"}}` → at
     `["bundle0001", "manifest", "graphical", "statements"]`; the same with
-    `select: {ids: ["score"]}` → nothing.
+    `select: {addresses: [{id: "score"}]}` → nothing.
 
 **Each rule's path, once:**
 
 12. **Settings.** `grid` replaced by `{size: 16, snap: true}` → at
-    `["workspace", "grid"]`, message `the workspace setting grid lies
+    `[{}, "grid"]`, message `the workspace setting grid lies
     outside …`, in `G1`'s editor and in the bundle editor alike.
 13. **Another block.** With a second block `0000000000` holding
-    `bare.json`: `set 0000000000 x 50`, `add` of block `0000000001`
-    (`bare.json`) and `remove 0000000000` → at `["0000000000"]`,
-    `["0000000001"]`, `["0000000000"]`, message `block 0000000000 lies
-    outside …`; the bundle editor refuses the move alike.
+    `bare.json`: `set {block: "0000000000"} x 50`, `add` of block
+    `0000000001` (`bare.json`) and `remove {block: "0000000000"}` → at the
+    blocks' addresses `[{block: "0000000000"}]`, `[{block: "0000000001"}]`,
+    `[{block: "0000000000"}]`, message `block '0000000000' lies outside …`;
+    the bundle editor refuses the move alike.
 14. **Band orders.** A timeline's band order lies inside every editor that
     holds the timeline, and outside one that does not, refused there where
     a display order is, at `["bundle0001", "manifest", "graphical",
-    "order"]`, message `the graphical order of block bundle0001 lies
+    "order"]`, message `the graphical order of block 'bundle0001' lies
     outside …`. `set excerpt order E` → nothing in the editors of
-    `bundle0001/excerpt` (its own), `bundle0001/recording` (its parent's)
-    and `bundle0001/group_2` (its group's); from there, `set excerpt order
-    null` → nothing in the editor of `bundle0001/excerpt`. `set recording
-    order R` → refused in the editor of `bundle0001/excerpt` (the parent's
+    `excerpt` (its own), `recording` (its parent's)
+    and `group_2` (its group's); from there, `set excerpt order
+    null` → nothing in the editor of `excerpt`. `set recording
+    order R` → refused in the editor of `excerpt` (the parent's
     order changes the child's drawing, but the child's editor does not hold
-    the parent) and in the editor of `bundle0001/group_2` (`recording` is
+    the parent) and in the editor of `group_2` (`recording` is
     the ancestor of a member, outside the group). In `G1`'s editor, `set
-    score order ["score", "score/children_1", "score/conversion_maps_1",
-    "score/markers_1", "score/regions_1", "score/flow_control_1"]` →
-    nothing (a member) and `set annotations order D(annotations)` (an entry
-    the fixture lacks) → refused.
+    score order E` → nothing (a member) and `set annotations order D` (an
+    entry the fixture lacks) → refused.
 15. **A top-level member.** The manifest's `name` replaced by `"Other"` →
     at `["bundle0001", "manifest", "name"]`. A measure map is compared on
     its own, as a group is, since no timeline or group contains it: the
     measure map `{id: "bars", name: null, meta: {}, rows: [{count: 1,
     qstamp: [0, 1]}]}` appearing in `measure_maps` → at
-    `["bundle0001/bars"]`, message `bundle0001/bars lies outside …`.
+    `[bars]`, message `<bars> lies outside …`.
 16. **A named style.** After `style {select: {element: "timeline"}, set:
     {stroke: "#FF0000"}, name: "accent"}`, the same with `stroke:
     "#00FF00"` (the statement unchanged) → at `["bundle0001", "manifest",
-    "graphical", "styles"]`; with `select: {ids: ["score"]}` for both, the
+    "graphical", "styles"]`; with `select: {addresses: [{id: "score"}]}` for both, the
     style is used only by an inside statement → nothing.
 17. **A display order.** `graphical.order.group_1` replaced by
     `["performance", "score"]` → nothing in `G1`'s editor; at
     `["bundle0001", "manifest", "graphical", "order"]` in the editor of
-    `bundle0001/score`.
+    `score`.
 18. **The edited element removed.** `remove G1` → at
-    `["bundle0001/group_1"]`, message `the removal of bundle0001/group_1
+    `[G1]`, message `the removal of <G1>
     lies outside …`; the block removed (`remove bundle0001`) → the same. In
-    the editor of the root `bundle0001/annotations`, `remove annotations` →
-    at `["bundle0001/annotations"]`, message `the removal of
-    bundle0001/annotations lies outside bundle0001/annotations: …`. In the
+    the editor of the root `annotations`, `remove annotations` →
+    at `[annotations]`, message `the removal of
+    <annotations> lies outside <annotations>: …`. In the
     bundle editor, `remove bundle0001` → at `["bundle0001"]`, message `the
-    removal of bundle0001 lies outside bundle0001: …`: an editor never
+    removal of <bundle0001> lies outside <bundle0001>: …`: an editor never
     removes the element it edits, whatever its kind.
 
 **The order of the rules:**
@@ -1939,37 +2204,37 @@ is the view of that block alone, added by `add`; `after` is reached by
     not at the statements (the manifest).
 20. One `after` with `grid` replaced, the block's `length` 500, `places`
     `{group_2: {x: 10}}` and the name of `annotations` "A" → at
-    `["workspace", "grid"]`; without the grid → at `["bundle0001",
-    "length"]`; without the length too → at `["bundle0001/group_2"]`; with
-    the name alone → at `["bundle0001/annotations"]`.
+    `[{}, "grid"]`; without the grid → at `["bundle0001",
+    "length"]`; without the length too → at `[group_2]`; with
+    the name alone → at `[annotations]`.
 
 **Statements, inside and outside:**
 
 21. **Inside in both manifests.** A statement lies inside a container when
     every element it matches in each manifest compared is contained there.
     With `after`'s manifest built with `group_1`'s members `[performance]`
-    (its display order removed), `{select: {ids: ["score"]}}` is inside
+    (its display order removed), `{select: {addresses: [{id: "score"}]}}` is inside
     `group_1` judged on `before` alone and outside judged on both;
     `{select: {element: "timeline"}}` is outside on `before`; `{select:
-    {ids: ["nothing"]}}` matches nothing and is inside. The guard refuses
-    such an `after` already at `["bundle0001/score"]`, since `score`'s
+    {addresses: [{id: "nothing"}]}}` matches nothing and is inside. The guard refuses
+    such an `after` already at `[score]`, since `score`'s
     object is hidden only while it is a member: a statement can move across
     the boundary only with a change the projection shows, so this rule is
     tested on its own, without a command.
 22. **Statements selecting bands.** A band belongs to its timeline, so a
     statement lies inside when every band it matches belongs to a timeline
-    the editor holds. `style {select: {ids: ["excerpt/regions_1"]}, set:
-    {display: "inline"}}` → nothing in the editors of `bundle0001/excerpt`
-    and `bundle0001/recording`, and at `["bundle0001", "manifest",
-    "graphical", "statements"]` in the editor of `bundle0001/score`; `style
-    {select: {element: "band", class: "regions"}, set: {display:
+    the editor holds. `style {select: {addresses: [{id: "excerpt", facet:
+    "regions"}]}, set: {display: "inline"}}` → nothing in the editors of `excerpt`
+    and `recording`, and at `["bundle0001", "manifest",
+    "graphical", "statements"]` in the editor of `score`; `style
+    {select: {element: "band", facet: "regions"}, set: {display:
     "inline"}}`, which matches the regions band of every timeline, → at the
     statements in `G1`'s editor and nothing in the bundle editor.
 
 **Editors of a timeline and of the bundle:**
 
-23. **A child's editor.** In the editor of `bundle0001/excerpt`, `set
-    recording name "R"` → at `["bundle0001/recording"]`; `set excerpt name
+23. **A child's editor.** In the editor of `excerpt`, `set
+    recording name "R"` → at `[recording]`; `set excerpt name
     "E"` → nothing.
 24. **The bundle editor.** In the editor of `bundle0001`, `set annotations
     name "A"`, `set bundle0001 length 500`, the `style` of 11, and `places`
@@ -1983,20 +2248,20 @@ on one side only (a member joining or leaving its group) is named only when
 nothing outside differs, as in 21.
 
 25. **A member removed in its group's editor.** In the editor of
-    `bundle0001/group_2`, `remove excerpt` → `side_effect` at
-    `["bundle0001/recording"]`, message `bundle0001/recording lies outside
-    bundle0001/group_2: an editor changes only what it edits`. The
-    enumeration meets `excerpt/card` first, but that is a removal inside
+    `group_2`, `remove excerpt` → `side_effect` at
+    `[recording]`, message `<recording> lies outside
+    <group_2>: an editor changes only what it edits`. The
+    enumeration meets the card of `excerpt` first, but that is a removal inside
     `group_2`; what lies outside is its parent `recording`, whose
     `children` lose it.
-26. **A timeline's editor.** In the editor of `bundle0001/recording`, `set
+26. **A timeline's editor.** In the editor of `recording`, `set
     excerpt name "E"` differs only inside its subtree → nothing, while
     `remove excerpt` reaches `group_2`, which names it as a member → at
-    `["bundle0001/group_2"]`, message `bundle0001/group_2 lies outside
-    bundle0001/recording: …`. In the editor of `bundle0001/excerpt`, one
+    `[group_2]`, message `<group_2> lies outside
+    <recording>: …`. In the editor of `excerpt`, one
     `set` naming `excerpt` "E" and `recording` "R" → at
-    `["bundle0001/recording"]`, message `bundle0001/recording lies outside
-    bundle0001/excerpt: …`.
+    `[recording]`, message `<recording> lies outside
+    <excerpt>: …`.
 
 **Removals inside the target.** A group's editor may remove a root
 member: its object, `members` and display order lie inside the group. A
@@ -2005,15 +2270,15 @@ descendant from outside (a group, 26) is refused. The proof is the
 manifest after the removal, next to two removals that reach outside.
 
 27. **A root member removed in its group's editor.** In the editor of
-    `bundle0001/group_2`, `remove page` → nothing; the manifest after has
+    `group_2`, `remove page` → nothing; the manifest after has
     no timeline `page`, and `group_2`'s `members` and
     `graphical.order.group_2` are `["excerpt"]`.
 28. **Removals that reach outside stay refused.** In the same editor,
-    `remove excerpt` → at `["bundle0001/recording"]` (25); `page` leaving
+    `remove excerpt` → at `[recording]` (25); `page` leaving
     `group_2` while it stays an ungrouped root (`after` built with
     `group_2`'s `members` and display order `["excerpt"]`) → `side_effect`
-    at `["bundle0001/page"]`, message `bundle0001/page lies outside
-    bundle0001/group_2: an editor changes only what it edits`: `page` then
+    at `[page]`, message `<page> lies outside
+    <group_2>: an editor changes only what it edits`: `page` then
     lies outside, its whole object visible.
 
 **Geometry in the editors.** A member is drawn with its group's length
@@ -2025,16 +2290,16 @@ requested height, so the group's `width` and `height` and every sibling card's
 `width` are the member's too; the group's `spacing` and a sibling's
 `height` and `spacing` are not. A group's editor holds its frame's place
 and its members' card places; an ungrouped root's editor its whole place.
-A card's place lies under its `places` key (`G/T`, or `T` for an ungrouped
+A card's place lies at `places[G].cards[T]` (`places[T]` for an ungrouped
 root's), and lies inside an editor exactly when the editor contains the
 card (a card belongs to its timeline); a refusal names the place by the
 element a `set` of it aims at, the group or the timeline (`the place of
-bundle0001/performance`). The exception is proved narrow by a refusal beside every acceptance:
+performance`). The exception is proved narrow by a refusal beside every acceptance:
 another member of the group's place, another member of a sibling's card,
 another group's place, and the group's place in the editor of a timeline
 that holds a member without being one.
 
-29. **A member's editor.** In the editor of `bundle0001/score`: `set
+29. **A member's editor.** In the editor of `score`: `set
     group_1 place {length: 500}`, `set group_1 place {scale: 1.5}`, `set
     score place {width: 650}`, `set score place {spacing: 1.5, height:
     120}` and one `set` of the first three → nothing each; with `group_1`
@@ -2045,26 +2310,26 @@ that holds a member without being one.
     `score` `place {spacing: 2}` → nothing each; with `performance` placed
     `{width: 650, height: 120, spacing: 1.5}` before, `set performance
     place {width: null}` → nothing. `set group_1 place {x: 10}` →
-    `side_effect` at `["bundle0001/group_1"]`, message `the place of
-    bundle0001/group_1 lies outside bundle0001/score: an editor changes
+    `side_effect` at `[group_1]`, message `the place of
+    <G1> lies outside <score>: an editor changes
     only what it edits`; `set group_1 place {spacing: 1.5}` → the same;
     `set performance place {spacing: 1.5}` and `set performance place
     {height: 120}`, alone or beside the stretch's `set` of `group_1`
-    `{length: 500}` in one command → at `["bundle0001/performance"]`,
-    message `the place of bundle0001/performance lies outside
-    bundle0001/score: …`; `set group_2 place {length: 500}` and `set
-    group_2 place {width: 900}` → at `["bundle0001/group_2"]`; `set page
+    `{length: 500}` in one command → at `[performance]`,
+    message `the place of <performance> lies outside
+    <score>: …`; `set group_2 place {length: 500}` and `set
+    group_2 place {width: 900}` → at `[group_2]`; `set page
     place {width: 650}` (a card of another group) → at
-    `["bundle0001/page"]`.
-30. **A child member's editor.** In the editor of `bundle0001/excerpt`,
+    `[page]`.
+30. **A child member's editor.** In the editor of `excerpt`,
     `set group_2 place {length: 500}` → nothing. In the editor of
-    `bundle0001/recording`, which holds `excerpt` but is no member: the
-    same `set` → at `["bundle0001/group_2"]`.
+    `recording`, which holds `excerpt` but is no member: the
+    same `set` → at `[group_2]`.
 31. **A group's editor.** In `G1`'s editor, `set score place {width: 650,
     height: 120, spacing: 1.5}` and `set group_1 place {spacing: 1.5}` →
     nothing each.
 32. **An ungrouped root's editor.** In the editor of
-    `bundle0001/annotations`, `set annotations place {scale: 1.5, width:
+    `annotations`, `set annotations place {scale: 1.5, width:
     700}` → nothing.
 33. **The bundle editor.** In the editor of `bundle0001`, `set bundle0001
     scale 2` → nothing: the bundle itself resizes.
@@ -2072,12 +2337,13 @@ that holds a member without being one.
 ## The workspace file (`file.test.ts`)
 
 `writeWorkspace(workspace)` is TimeToShare's `dumps` (keys sorted) of
-`{meta, name, settings, blocks, journal, sessions}`, format version 4;
+`{meta, name, settings, blocks, journal, sessions}`, format version 5;
 `readWorkspace(text)` reads with TimeToShare's `parseJson` (lossless) and
 returns a `Workspace` or a `LoadError`. An entry is exactly `{command,
 author, time}` or `{session, author, time}` (chosen by the presence of
 `session`); a session is exactly `{target, entries}`, its target an
-address, its entries entries, at least one (Done never closes a session
+address object as `readAddress` reads it (so are the addresses of the
+commands its entries and the journal's hold), its entries entries, at least one (Done never closes a session
 without entries); a session id is ten characters of `0-9a-z`, as a key of
 `sessions` and in an entry. Every session is reached exactly once from
 `journal` through session entries.
@@ -2087,13 +2353,13 @@ without entries); a session id is ten characters of `0-9a-z`, as a key of
    text read back deep-equals the workspace, and writing it again gives the
    same bytes. Its members are exactly `blocks`, `journal`, `meta`,
    `name`, `sessions`, `settings`; `meta` is exactly `{format:
-   "tilie-workspace", version: 4}`; `name` is `untitled`; `sessions` is
+   "tilie-workspace", version: 5}`; `name` is `untitled`; `sessions` is
    `{}`.
 2. **Replay.** Replaying the read journal from `createView()` gives exactly
    the read `settings` and `blocks`.
 3. **Refusals**, each exactly one problem `{code, path}`: text `{` →
    `invalid_json` at `[]`; `format: "other"` → `unsupported_format` at
-   `["meta", "format"]`; `version: 5` → `unsupported_version` at `["meta",
+   `["meta", "format"]`; `version: 6` → `unsupported_version` at `["meta",
    "version"]`; a top-level member `extra` → `unknown_member` at
    `["extra"]`; `meta.created` → `unknown_member` at `["meta", "created"]`;
    `settings.styles` → `unknown_member` at `["settings", "styles"]`; a
@@ -2107,19 +2373,22 @@ without entries); a session id is ten characters of `0-9a-z`, as a key of
    "timetoshare"]`; a block manifest with a region ending before it starts
    → `region_end_before_start` at its path below `["blocks", A,
    "manifest"]`; an entry time `yesterday` → `invalid_value` at
-   `["journal", 0, "time"]`; an entry command of type `move` →
+   `["journal", 0, "time"]`; an entry command aimed at `into:
+   "workspace"`, the former string form, → `invalid_address` at
+   `["journal", 0, "command", "into"]`; an entry command of type `move` →
    `invalid_command` at `["journal", 0, "command", "type"]`.
-4. **Version 3.** A version-3 file (the round trip's text with `version:
-   3`, each block given `order: ["children", "regions", "flow"]` and
-   `bands: {}`, and `settings.blockDefaults` given the same `order`, as
-   that format wrote them) is refused for its version alone: exactly one
-   problem, `unsupported_version` at `["meta", "version"]`, message
-   `workspace version 3 is not supported; this editor reads version 4
-   only`. There is no migration.
+4. **Version 4.** A version-4 file (the round trip's text with `version:
+   4` and its commands' addresses written as that format wrote them,
+   strings: the `add`s `into: "workspace"`, each `set` aimed at the bare
+   block id) is refused for its version alone: exactly one problem,
+   `unsupported_version` at `["meta", "version"]`, message `workspace
+   version 4 is not supported; this editor reads version 5 only`. There is
+   no migration.
 5. **Sessions in the file.** On the text of a workspace whose journal is
    the `add` of block `A` holding `bundles/bundle_mixed.json` and one entry
-   naming session `s = "session001"`, `{target: "<A>/group_1", entries:
-   [<set A/score name "S">]}` (written by a store and then edited as text,
+   naming session `s = "session001"`, `{target: {block: A, id: "group_1"},
+   entries: [<set {block: A, id: "score"} name "S">]}` (written by a store
+   and then edited as text,
    so the file is read without any editor), each change gives exactly the
    problems listed, `{code, path}` in this order: first every session entry
    in turn, the journal's, then each session's in key order (one naming no
@@ -2139,8 +2408,10 @@ without entries); a session id is ten characters of `0-9a-z`, as a key of
    and `session` → `unknown_member` at `["journal", 1, "command"]`; a
    session's `note` → `unknown_member` at `["sessions", s, "note"]`; a
    session without `target` → `missing_member` at `["sessions", s,
-   "target"]`; a session target `nowhere` → `invalid_address` at
-   `["sessions", s, "target"]`; the entry naming `Session001` (upper case)
+   "target"]`; a session target `nowhere`, one in the former string form
+   `"<A>/group_1"` and one naming no block, `{id: "group_1"}`, → each
+   `invalid_address` at `["sessions", s, "target"]`; the entry naming
+   `Session001` (upper case)
    → `invalid_value` at `["journal", 1, "session"]`; a key `bad` of
    `sessions` → `invalid_value` at `["sessions", "bad"]`; `s`'s entries
    `[]` → `invalid_value` at `["sessions", s, "entries"]`, message "a
@@ -2151,17 +2422,19 @@ without entries); a session id is ten characters of `0-9a-z`, as a key of
    deep-equal to the one read from the original text: a block holds the
    complete form.
 7. **Places in the file.** A store's workspace of block `A` holding
-   `bundles/bundle_mixed.json` with `set A/group_1 place {length: 300,
-   scale: 1.25, spacing: 2}` and `set A/score place {width: 650, spacing:
-   1.5}` is written; the text reads back deep-equal and writes the same
-   bytes, `places` exactly `{group_1: {length: 300, scale: 1.25, spacing:
-   2}, score: {width: 650, spacing: 1.5}}`. That text with `length: 300`
-   added to `score`'s place is refused with exactly one problem,
-   `unknown_member` at `["blocks", A, "places", "score", "length"]`, message
-   `score is a member: its card takes only width, height and spacing`; with
-   `score`'s `spacing` `-1`, `invalid_value` at `["blocks", A, "places",
-   "score", "spacing"]`; with `group_1`'s `scale` `0`,
-   `non_positive_number` at `["blocks", A, "places", "group_1", "scale"]`.
+   `bundles/bundle_mixed.json` with `set {block: A, id: "group_1"} place
+   {length: 300, scale: 1.25, spacing: 2}` and `set {block: A, id:
+   "score"} place {width: 650, spacing: 1.5}` is written; the text reads
+   back deep-equal and writes the same bytes, `places` exactly `{group_1:
+   {length: 300, scale: 1.25, spacing: 2, cards: {score: {width: 650,
+   spacing: 1.5}}}}`. That text with `length: 300` added to `score`'s card
+   place is refused with exactly one problem, `unknown_member` at
+   `["blocks", A, "places", "group_1", "cards", "score", "length"]`,
+   message `'score' is a member: its card takes only width, height and
+   spacing`; with `score`'s `spacing` `-1`, `invalid_value` at `["blocks",
+   A, "places", "group_1", "cards", "score", "spacing"]`; with `group_1`'s
+   `scale` `0`, `non_positive_number` at `["blocks", A, "places",
+   "group_1", "scale"]`.
 
 ## Names (`names.test.ts`)
 
@@ -2173,8 +2446,8 @@ read back from the view, or from the file, exactly; each refusal by code
 and path, the view unchanged.
 
 1. **The workspace's name in the view and the file.** `createView().name`
-   is `untitled`. A store's workspace after `set {target: "workspace",
-   values: {name: "Eroica sketches"}}` writes `"name": "Eroica sketches"`
+   is `untitled`. A store's workspace after `set {target: {}, values:
+   {name: "Eroica sketches"}}` writes `"name": "Eroica sketches"`
    between `meta` and `sessions` (keys sorted), and reads back with that
    name, writing the same bytes. The round trip's text without its `name`
    member reads as a workspace named `untitled`, and writing it again
@@ -2182,10 +2455,10 @@ and path, the view unchanged.
    changed; `createStore` over it opens a workspace named `untitled`. A
    stated `name` of `""` is refused with exactly one problem,
    `invalid_value` at `["name"]`; of `3`, the same.
-2. **Setting the workspace's name.** `set {target: "workspace", values:
-   {name: "Eroica sketches"}}` changes the name and nothing else (the
-   settings and the blocks are the same objects); `""`, `null` and `3`
-   are `invalid_value` at `["workspace", "name"]`; the name it already
+2. **Setting the workspace's name.** `set {target: {}, values: {name:
+   "Eroica sketches"}}` changes the name and nothing else (the settings and
+   the blocks are the same objects); `""`, `null` and `3` are
+   `invalid_value` at `[{}, "name"]`; the name it already
    has is `invalid_value` "the command changes nothing" at the same path.
    The journal replays to the name: `createStore` over that workspace's
    `{view, journal, sessions}` succeeds, and over the same view named
@@ -2200,22 +2473,23 @@ and path, the view unchanged.
    `JournalMismatchError` after its one entry (`entry` `1`) at `["name"]`:
    no command gave it that name.
 3. **An editor does not rename the workspace.** With the bundle editor of
-   block `A` open, the same `set` is `side_effect` at `["workspace",
-   "name"]`, message `the workspace name lies outside <A>: an editor
-   changes only what it edits`.
+   block `A` (`{block: A}`) open, the same `set` is `side_effect` at `[{},
+   "name"]`, message `the workspace name lies outside
+   {"block":"0000000000"}: an editor changes only what it edits`.
 4. **Names in a manifest**, on `bundles/bundle_mixed.json` in block `A`
-   (the manifest named `Mixed`): `set {target: A, values: {name: "Op.
-   35"}}` leaves the manifest's `name` `Op. 35`, the rest of the manifest
-   equal; `null` leaves it `null`. `set A/group_1 {name: "Duo"}` leaves
-   `group_1` named `Duo` and every other member of it and of the manifest
-   equal; `null` leaves it `null`; `3` is `invalid_value` at `[A/group_1,
-   "name"]`. On `map.json`, `set A/melody/tempo {name: "Beat"}` stores
+   (the manifest named `Mixed`): `set {target: {block: A}, values: {name:
+   "Op. 35"}}` leaves the manifest's `name` `Op. 35`, the rest of the
+   manifest equal; `null` leaves it `null`. `set {block: A, id: "group_1"}
+   {name: "Duo"}` leaves `group_1` named `Duo` and every other member of it
+   and of the manifest equal; `null` leaves it `null`; `3` is
+   `invalid_value` at `[{block: A, id: "group_1"}, "name"]`. On
+   `map.json`, `set {block: A, id: "tempo"} {name: "Beat"}` stores
    `name: "Beat"` in the map `tempo` (named `Tempo`), its payload otherwise
    equal. Each
    value the target already holds is refused as changing nothing. An
    `add` of a block whose value carries `name` is `unknown_property` at
-   `[<block>, "name"]`: a block's value states the block's own members,
-   the manifest its own name.
+   `[{}, "block", "name"]` (the value's own path in the command): a block's
+   value states the block's own members, the manifest its own name.
 
 ## Segment lines gain their first segment (`segment-lines.test.ts`)
 
@@ -2228,8 +2502,9 @@ covering its whole length: a child of the line's unit, stating the line's
 `number_type` when the line states one, at offset 0 in the line's number
 type (`0`, `0.0` or `[0, 1]`), as long as the line (the same JSON value),
 unlocked (a segment is never locked), its id the smallest `{prefix}_{N}`
-of its unit's class that no `id` of the manifest, nor of the manifest a
-timeline is added into, equals. A segment line of unknown length is left
+of its unit's class that no ID of the manifest (the manifest's own and
+its elements', never a string under `meta` or `graphical`), nor of the
+manifest a timeline is added into, equals. A segment line of unknown length is left
 without segments: nothing fixes where they would end. Reading a manifest
 from a file applies nothing. The replay of a journal reproduces it, since
 the rule is part of the command.
@@ -2247,25 +2522,27 @@ What proves it, each manifest compared exactly:
    `locked: true` although the applied text states `false`. The same manifest
    read by `loadManifest` is refused with `schema_violation` at
    `["timelines", 1, "length"]`, message `the segments of segment line
-   "page" do not end at its length`.
-2. **The setter.** `set A/page {is_segment_line: true}` gives the same
+   'page' do not end at its length`.
+2. **The setter.** `set {block: A, id: "page"} {is_segment_line: true}` gives the same
    `page`, except that its place now decides its lock: a segment line that
    is a group member is locked, so `page` holds `locked: true`. The
    command is one journal entry, and `createStore` over the workspace it
-   leaves verifies (the replay reproduces the segment). `set A/score
-   {is_segment_line: true}` (fraction quarters, length `[12, 1]`, no
+   leaves verifies (the replay reproduces the segment). `{is_segment_line:
+   true}` on `{block: A, id: "score"}` (fraction quarters, length `[12, 1]`, no
    children) gives the segment `{id: "clt_1", unit: "quarters",
    number_type: "fraction", offset: [0, 1], length: [12, 1], …}`;
    `performance` (float seconds, 12.5) the segment `cpt_1` at offset `0.0`
    (a `JsonFloat`) of length `12.5`.
 3. **The id is free in the manifest.** On `bundle_mixed.json` with a root
-   `dgt_1` (pixels, 10) added first, the segment of `page` is `dgt_2`.
+   `dgt_1` (pixels, 10) added first, the segment of `page` is `dgt_2`. An
+   `id` under `meta` is no ID of the manifest: `page` applied as a segment
+   line with `meta: {id: "dgt_1", note: {id: "dgt_2"}}` gains `dgt_1`.
 4. **Unknown length.** On a root `open` of unknown length (quarters)
-   added to `bare.json`'s block, `set A/open {is_segment_line: true}`
+   added to `bare.json`'s block, `set {block: A, id: "open"} {is_segment_line: true}`
    leaves `open` a segment line without children, its length `null`.
 5. **Turning it off.** The schema lets a timeline that is no segment line
    hold any children within its length, so turning the flag off keeps the
-   segments as children. On `segment_line.json`, `set A/form
+   segments as children. On `segment_line.json`, `set {block: A, id: "form"}
    {is_segment_line: false}` leaves `form` with the children `a`, `b` and
    `c` exactly as they were (offsets, lengths, their own segments): each
    is still a segment line, now a child, and so still locked; their
@@ -2273,7 +2550,7 @@ What proves it, each manifest compared exactly:
    segment lines `a` and `c`, is refused by the schema: `schema_violation`
    at `[A, "manifest", "timelines", 0, "children", 1, "is_segment_line"]`.
    Setting the flag to the value held is refused as changing nothing at
-   `[A/form, "is_segment_line"]`; `"yes"` is `invalid_value` there.
+   `[{block: A, id: "form"}, "is_segment_line"]`; `"yes"` is `invalid_value` there.
    Turning the flag off lifts the lock the place rule gave the line for
    being a segment line, and keeps a lock no place decided: on
    `bundle_mixed.json`, the member `performance` (unlocked) turned on holds
@@ -2282,7 +2559,7 @@ What proves it, each manifest compared exactly:
    `locked` stated) added into `bare.json`'s root. The root `form`, no
    child and no member, set `locked: true` and then turned off keeps
    `locked: true`.
-6. **Adding a segment line.** `add {into: A/bare, child: {id: "sl", unit:
+6. **Adding a segment line.** `add {into: {block: A, id: "bare"}, child: {id: "sl", unit:
    "quarters", offset: [0, 1], length: [4, 1], is_segment_line: true}}`
    into `bare.json`'s root adds `sl` holding the segment `clt_1` from `[0,
    1]` of `[4, 1]`, `sl` locked by its place (a segment line that is a
@@ -2294,14 +2571,18 @@ What proves it, each manifest compared exactly:
 
 Commands of every kind, over every target kind, are generated against the
 current view from seeds (a command kind and natural numbers), so a sequence
-stays valid input whatever the earlier commands did. Targets are drawn from
-what the view holds plus unknown and malformed addresses; properties from
+stays valid input whatever the earlier commands did. Targets are address
+objects drawn from what the view holds plus unknown ones (`ghost`, an
+absent block), ones no command aims at (a band, the cards of a timeline,
+a block's title) and malformed ones (`{block: "short"}`, a facet without
+an ID); properties from
 the target's table, another kind's table and unknown names; coordinates on
 the axis, off it, negative and past the end, and lengths of null; payloads
-include ones the schema refuses. Among them are `place` (members stated,
+include ones the schema refuses (an ID holding a control character among
+them); selectors include `addresses`, `facet` and the element `frame`. Among them are `place` (members stated,
 unstated with null, empty, unknown, on items and members' cards) and
 `order` (a display order or band order turned, null, missing an entry,
-holding another timeline's band, not an array), so every saved file also
+holding an entry that is neither `line` nor a facet, not an array), so every saved file also
 proves that no stale `places` key or `graphical.order` entry survives a
 command; and the topology commands `parent` (`null`, another timeline,
 itself, an unknown id), `group` (a group, `null`, an unknown id, a number)
@@ -2349,7 +2630,7 @@ one or two commands, Done), an unfold (reopen, undo until nothing is left to
 undo or one step, Done), Done, Cancel, undo and redo. A command in an open
 editor is mostly one that stays inside it (a name or a band order of a
 timeline it holds, its place's `x`, `scale`, `spacing` or `width`, a group's
-display order, for a member its group's `length` and `scale`, the box's
+display order, for a member its group's `length` and `scale`, the block's
 width), sometimes any generated command, so the guard both accepts and
 refuses; a target to open is mostly one the innermost editor holds, so
 editors nest, sometimes one outside it, one without an editor or one naming

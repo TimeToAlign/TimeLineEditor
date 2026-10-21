@@ -6,6 +6,7 @@
  * TimeToShare, sections 6, 7.2, 8.3 and 8.5).
  */
 
+import { bandAddress, type PlaceKey } from "@timetoalign/tilie-core";
 import type { MemberDrawing } from "@timetoalign/tilie-core/drawing";
 import {
   ancestorBand,
@@ -68,8 +69,8 @@ function rowsBelow(row: Row): Row[] {
 
 /**
  * Lay out one timeline drawn as a root (sections 3 to 6, and 8.3 for its
- * ancestors) in the card at `card` of spacing `S`, its line held by
- * `holder`, the box or its group's frame, by
+ * ancestors) in the card whose place key is `card`, of spacing `S`, its
+ * line held by `holder`, the block or its group's frame, by
  * the three passes of section 6.4: every first fit and every row; the
  * distances, from the deepest rows up, then the ancestor band and the
  * heights; the ordinates, from the root's line down, once `drawAt` gives the
@@ -79,7 +80,7 @@ export function layoutMember(
   context: Context,
   member: MemberDrawing,
   holder: Holder,
-  card: string,
+  card: PlaceKey,
   S: number,
 ): MemberLayout {
   const scope = traverse(context, member, holder, S);
@@ -168,10 +169,10 @@ export function layoutMember(
 /**
  * The records of the bands of a member drawing whose lines are placed as
  * `lines` (in traversal order) after the first pass `fitted`, in item
- * coordinates, before its item is placed, each held by the card at `card`
+ * coordinates, before its item is placed, each held by the card keyed `card`
  * and given the empty range `range`, since a band draws nothing: for each
  * line, each present band of `TimelineDrawing.bands` (top to bottom) with
- * its address, timeline, kind, level and elements, its line's ordinate
+ * its address, timeline, facet, level and elements, its line's ordinate
  * `yl`, and its rectangle.
  * Vertically a band above its line runs from `yl − E` to `yl − c`, one below
  * from `yl + c` to `yl + E`, `c` its start and `E` its outer edge (section
@@ -183,7 +184,7 @@ export function layoutMember(
 function bandRecords(
   lines: readonly PlacedLine[],
   fitted: ReadonlyMap<Entry, Fitted>,
-  card: string,
+  card: PlaceKey,
   range: ElementRange,
 ): DrawnBox[] {
   return lines.flatMap(({ drawing, place }) => {
@@ -198,7 +199,7 @@ function bandRecords(
       return {
         kind: "band",
         key: null,
-        address: band.address,
+        address: bandAddress(timeline, band.facet),
         holder: card,
         x: left,
         y: top,
@@ -206,7 +207,7 @@ function bandRecords(
         height: bottom - top,
         range,
         displayed: false,
-        band: { timeline, kind: band.kind, level: band.level, elements: band.elements, line: yl },
+        band: { timeline, facet: band.facet, level: band.level, elements: band.elements, line: yl },
       };
     });
   });

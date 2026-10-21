@@ -1,15 +1,28 @@
 /**
- * The open editor, the one split of a block-qualified address that it and
- * every module of the canvas read, and the target of a place's `set`. This module imports no other module
- * of the package, so every module may import it.
+ * The open editor, the block an address lies in, the frame worked in, and
+ * the change of a place's `set`. This module imports no other module of the package, so
+ * every module may import it.
  */
 
-import type { Address, Block, BlockId, EditorKind } from "@timetoalign/tilie-core";
+import type {
+  Address,
+  Block,
+  BlockId,
+  Change,
+  EditorKind,
+  ElementAddress,
+  ItemPlace,
+  PlaceKey,
+} from "@timetoalign/tilie-core";
 import {
-  isCommandError,
-  parseAddressSyntax,
-  placedElement,
-  qualify,
+  addressKey,
+  elementAddressOf,
+  idAddress,
+  inBlock,
+  isElementAddress,
+  placedContainer,
+  placeKeyText,
+  sameAddress,
 } from "@timetoalign/tilie-core";
 
 /** The innermost open editor, as the canvas draws it: its target and its kind. */
@@ -21,27 +34,23 @@ export interface Editing {
 /** Whether two editors are the same editor, or both absent. */
 export function sameEditing(left: Editing | null, right: Editing | null): boolean {
   if (left === null || right === null) return left === right;
-  return left.target === right.target && left.kind === right.kind;
+  return sameAddress(left.target, right.target) && left.kind === right.kind;
 }
 
 /**
  * The block an address lies in and the element address it names there,
- * `null` for the block itself, read with core's address syntax: the one rule
- * every module splits an address by. The workspace and a malformed address
- * name no block and throw.
+ * `null` for the block itself: the one rule every module reads an address
+ * by. The workspace's address names no block and throws.
  */
 export function addressParts(address: Address): {
   readonly block: BlockId;
-  readonly element: string | null;
+  readonly element: ElementAddress | null;
 } {
-  const parsed = parseAddressSyntax(address);
-  if (isCommandError(parsed) || parsed.block === null) {
-    throw new RangeError(`${address} is not the address of a block or an element`);
+  const { block } = address;
+  if (block === undefined) {
+    throw new RangeError(`${addressKey(address)} is not the address of a block or an element`);
   }
-  return {
-    block: parsed.block,
-    element: parsed.segments.length === 0 ? null : parsed.segments.join("/"),
-  };
+  return { block, element: isElementAddress(address) ? elementAddressOf(address) : null };
 }
 
 /**
@@ -53,18 +62,62 @@ export function addressParts(address: Address): {
  * rule.
  */
 export function bandTimelineOf(block: BlockId, editing: Editing | null): string | null {
-  if (editing?.kind !== "timeline") return null;
-  const edited = addressParts(editing.target);
-  return edited.block === block ? edited.element : null;
+  return editedIn(block, editing, "timeline");
 }
 
 /**
- * The address a `set` of `place` aims at to state the place under `key` of
- * `block`'s `places` (core's `placedElement`): a frame's group, a card's
- * timeline. A key naming no frame and no card of its drawing throws.
+ * The group whose frame block `block` is worked in under `editing`, the
+ * innermost open editor: the edited group when `editing` is a group editor
+ * in this block, else `null`. A card address covers every card of its
+ * timeline; inside a frame it names the card that frame holds.
  */
-export function placeTarget(block: Block, key: string): Address {
-  const element = placedElement(block.manifest, key);
-  if (element === undefined) throw new RangeError(`${key} names no frame or card of ${block.id}`);
-  return qualify(block.id, element);
+export function frameGroupOf(block: BlockId, editing: Editing | null): string | null {
+  return editedIn(block, editing, "group");
+}
+
+/** The ID of the element `editing` edits when it is an editor of `kind` in block `block`, else `null`. */
+function editedIn(block: BlockId, editing: Editing | null, kind: EditorKind): string | null {
+  if (editing?.kind !== kind) return null;
+  const { target } = editing;
+  return target.block === block ? (target.id ?? null) : null;
+}
+
+/**
+ * The change of a `set` stating `place` (a place's members, each a value or
+ * null to unstate it) under `key` of `block`'s `places`: a frame's on its
+ * group, a member's card through its group (`cards`, by the member's ID),
+ * an ungrouped root's card on its timeline. A key naming no frame and no
+ * card of its drawing throws.
+ */
+export function placeChange(
+  block: Block,
+  key: PlaceKey,
+  place: { readonly [member in keyof ItemPlace]?: number | null },
+): Change {
+  if (placedContainer(block.manifest, key) === undefined) {
+    throw new RangeError(`${placeKeyText(key)} names no frame or card of ${block.id}`);
+  }
+  if (key.member !== undefined) {
+    return {
+      target: inBlock(block.id, idAddress(key.item)),
+      values: { cards: { [key.member]: place } },
+    };
+  }
+  return { target: inBlock(block.id, idAddress(key.item)), values: { place } };
+}
+
+/**
+ * The place key a `change` of `placeChange` states a place under: the
+ * inverse of `placeChange`; `null` for a change of anything else (the
+ * block's own members, an element's).
+ */
+export function changedPlace(change: Change): PlaceKey | null {
+  const { target, values } = change;
+  if (target.id === undefined || target.facet !== undefined) return null;
+  const cards = values.cards;
+  if (cards !== undefined && cards !== null && typeof cards === "object") {
+    const [member, ...others] = Object.keys(cards);
+    return member === undefined || others.length > 0 ? null : { item: target.id, member };
+  }
+  return values.place === undefined ? null : { item: target.id };
 }

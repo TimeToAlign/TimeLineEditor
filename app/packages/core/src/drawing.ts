@@ -7,7 +7,7 @@
 
 export type { Domain, ElementKey, Modality } from "./manifest/elements.ts";
 export {
-  BOX_KEY,
+  BLOCK_KEY,
   bandKey,
   DRAWN_FLOW,
   elementKey,

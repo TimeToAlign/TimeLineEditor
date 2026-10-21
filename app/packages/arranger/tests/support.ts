@@ -7,15 +7,31 @@
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
-import type { BandKind, Block, Command, Manifest, Store, View } from "@timetoalign/tilie-core";
+import type {
+  Block,
+  Command,
+  ElementAddress,
+  Facet,
+  Manifest,
+  PlaceKey,
+  Store,
+  View,
+} from "@timetoalign/tilie-core";
 import {
   apply,
+  BUNDLE_ADDRESS,
+  bandAddress,
+  cardAddress,
   createStore,
   createView,
   emptyWorkspace,
+  idAddress,
+  inBlock,
   isCommandError,
   isLoadError,
   loadManifest,
+  sameAddress,
+  WORKSPACE,
 } from "@timetoalign/tilie-core";
 import type { Drawing, DrawnBox, DrawnElement } from "@timetoalign/tilie-layout";
 import { INITIAL_STYLE } from "@timetoalign/tilie-layout";
@@ -89,14 +105,14 @@ export function storeOf(view: View): Store {
   );
   const commands: object[] = [];
   if (Object.keys(settings).length > 0) {
-    commands.push({ type: "set", changes: [{ target: "workspace", values: settings }] });
+    commands.push({ type: "set", changes: [{ target: WORKSPACE, values: settings }] });
   }
   const blocks = Object.values(view.blocks).sort((left, right) =>
     left.index < right.index ? -1 : left.index > right.index ? 1 : 0,
   );
   for (const { id, manifest, x, y, scale, length, spacing, width, height, places } of blocks) {
     const block = { id, manifest, x, y, scale, length, spacing, width, height, places };
-    commands.push({ type: "add", into: "workspace", block });
+    commands.push({ type: "add", into: WORKSPACE, block });
   }
   for (const command of commands) {
     const refused = store.dispatch(command);
@@ -117,7 +133,7 @@ export interface Placed {
 export function viewOf(...blocks: readonly Placed[]): View {
   return blocks.reduce((view, { id, fixture, x = 0, y = 0, scale }) => {
     const block = { id, manifest: load(fixture), x, y, ...(scale === undefined ? {} : { scale }) };
-    return changed(view, { type: "add", into: "workspace", block });
+    return changed(view, { type: "add", into: WORKSPACE, block });
   }, createView());
 }
 
@@ -140,7 +156,7 @@ export function numbersView(id: string = A): View {
   const region = { id: "region_1", name: "A", start: [2, 1], end: [4, 1], meta: {} };
   return changed(viewOf({ id, fixture: NUMBERS }), {
     type: "add",
-    into: `${id}/score`,
+    into: inBlock(id, idAddress("score")),
     region,
   });
 }
@@ -149,7 +165,7 @@ export function numbersView(id: string = A): View {
 export function withGrid(view: View, size: number, snap: boolean): View {
   return changed(view, {
     type: "set",
-    changes: [{ target: "workspace", values: { grid: { size, snap } } }],
+    changes: [{ target: WORKSPACE, values: { grid: { size, snap } } }],
   });
 }
 
@@ -163,7 +179,7 @@ export const MIXED = "bundles/bundle_mixed";
 export function placed(view: View, block: string, element: string, place: object): View {
   return changed(view, {
     type: "set",
-    changes: [{ target: `${block}/${element}`, values: { place } }],
+    changes: [{ target: inBlock(block, idAddress(element)), values: { place } }],
   });
 }
 
@@ -186,7 +202,7 @@ export function recordingInGroup1(view: View): View {
     type: "set",
     changes: [
       {
-        target: A,
+        target: { block: A },
         values: {
           manifest: {
             ...manifest,
@@ -214,27 +230,27 @@ export function recordingInGroup1(view: View): View {
 export function mixedView(): View {
   return changed(mixedPlain(), {
     type: "add",
-    into: `${A}/excerpt`,
+    into: inBlock(A, idAddress("excerpt")),
     child: { id: "dlt_1", offset: 0, unit: "samples", length: 44100 },
   });
 }
 
 /**
  * The view of the README's "Marquee inside an editor": `mixed` with the
- * region `region_1` (0 to 10 samples) added to `excerpt` and the map
- * `cmap_3` added to `dlt_1`, both addressed under the root `recording`.
+ * region `region_3` (0 to 10 samples) added to `excerpt` and the map
+ * `cmap_7` added to `dlt_1`.
  */
 export function marqueeView(): View {
   const region = changed(mixedView(), {
     type: "add",
-    into: `${A}/excerpt`,
-    region: { id: "region_1", name: "A", start: 0, end: 10 },
+    into: inBlock(A, idAddress("excerpt")),
+    region: { id: "region_3", name: "A", start: 0, end: 10 },
   });
   return changed(region, {
     type: "add",
-    into: `${A}/dlt_1`,
+    into: inBlock(A, idAddress("dlt_1")),
     map: {
-      id: "cmap_3",
+      id: "cmap_7",
       type: "LinearMap",
       source_unit: "samples",
       target_unit: "seconds",
@@ -247,24 +263,24 @@ export function marqueeView(): View {
 type Rectangle = readonly [number, number, number, number];
 
 /**
- * The record of the band of `kind` of `timeline` at the line `line`, its
- * rectangle `rect`, held by the card `holder` (the timeline's own card
- * unless named) and drawing nothing.
+ * The record of the band drawing the facet `facet` of `timeline` at the
+ * line `line`, its rectangle `rect`, held by the card under the place key
+ * `holder` (the timeline's own, as an ungrouped root, unless named) and
+ * drawing nothing.
  */
 export function bandRecord(
   timeline: string,
-  kind: BandKind,
+  facet: Facet,
   level: number,
   line: number,
   [x, y, width, height]: Rectangle,
   elements = 1,
-  holder = `${timeline}/card`,
+  holder: PlaceKey = { item: timeline },
 ): BandBox {
-  const address = `${timeline}/${kind}_1`;
   return {
     kind: "band",
     key: null,
-    address,
+    address: bandAddress(timeline, facet),
     holder,
     x,
     y,
@@ -272,26 +288,26 @@ export function bandRecord(
     height,
     range: { start: 0, end: 0 },
     displayed: false,
-    band: { timeline, kind, level, elements, line },
+    band: { timeline, facet, level, elements, line },
   };
 }
 
 /**
  * The source of a descriptor drawing the first element of `drawing` that
- * carries `address` (`null`: the block's background), of `type` when given,
+ * carries `address` (`{}`: the block's background), of `type` when given,
  * as a press on it reports it.
  */
 export function sourceOf(
   drawing: Drawing,
-  address: string | null,
+  address: ElementAddress,
   type?: DrawnElement["type"],
   role: DescriptorSource["role"] = "primary",
 ): DescriptorSource {
   const element = drawing.elements.findIndex(
-    (drawn) => drawn.address === address && (type === undefined || drawn.type === type),
+    (drawn) => sameAddress(drawn.address, address) && (type === undefined || drawn.type === type),
   );
   const drawn = drawing.elements[element];
-  if (drawn === undefined) throw new Error(`nothing is drawn at ${address}`);
+  if (drawn === undefined) throw new Error(`nothing is drawn at ${JSON.stringify(address)}`);
   return { element, type: drawn.type, address, role };
 }
 
@@ -307,9 +323,9 @@ export function bandsOf(drawing: Drawing): readonly BandBox[] {
 
 /**
  * A drawing written by hand (the README's section "Bands"): `width` by
- * `height`, its background, the card `<root>/card` of the ungrouped root
- * `root` at `card`, then `elements`; its boxes the block's box, the card,
- * an item spanning the card and the elements, and the records `bands`.
+ * `height`, its background, the card of the ungrouped root `root` at
+ * `card`, then `elements`; its boxes the block, the card, an item spanning
+ * the card and the elements, and the records `bands`.
  */
 function handDrawn(
   [width, height]: readonly [number, number],
@@ -319,12 +335,12 @@ function handDrawn(
   bands: readonly BandBox[],
 ): Drawing {
   const style = INITIAL_STYLE;
-  const address = `${root}/card`;
+  const address = cardAddress(root);
   const end = 2 + elements.length;
-  const box: DrawnBox = {
-    kind: "box",
+  const block: DrawnBox = {
+    kind: "block",
     key: null,
-    address: null,
+    address: BUNDLE_ADDRESS,
     holder: null,
     x: 0,
     y: 0,
@@ -335,7 +351,7 @@ function handDrawn(
   };
   const card: DrawnBox = {
     kind: "card",
-    key: root,
+    key: { item: root },
     address,
     holder: null,
     x,
@@ -354,10 +370,10 @@ function handDrawn(
     width,
     height,
     origin: { x: 0, y: 0 },
-    boxes: [box, card, ...bands],
+    boxes: [block, card, ...bands],
     axes: [],
     elements: [
-      { type: "block", address: null, style, width, height },
+      { type: "block", address: BUNDLE_ADDRESS, style, width, height },
       { type: "card", address, style, x, y, width: cardWidth, height: cardHeight, shadowOffset: 2 },
       ...elements,
     ],
@@ -365,10 +381,10 @@ function handDrawn(
   };
 }
 
-function line(type: "timeline" | "child", address: string, xs: number, xe: number, y: number) {
+function line(type: "timeline" | "child", id: string, xs: number, xe: number, y: number) {
   return {
     type,
-    address,
+    address: idAddress(id),
     style: INITIAL_STYLE,
     xs,
     xe,
@@ -378,7 +394,8 @@ function line(type: "timeline" | "child", address: string, xs: number, xe: numbe
   } as const;
 }
 
-function map(address: string, xs: number, xe: number, yc: number) {
+function map(id: string, xs: number, xe: number, yc: number) {
+  const address = idAddress(id);
   return { type: "map", address, style: INITIAL_STYLE, xs, xe, yc, spacing: 2 } as const;
 }
 
@@ -393,7 +410,7 @@ export const STYLED_DRAWN: Drawing = handDrawn(
   [
     line("child", "b", 300, 500, 55),
     line("timeline", "score", 100, 500, 100),
-    map("score/ticks", 100, 500, 105),
+    map("ticks", 100, 500, 105),
   ],
   [
     bandRecord("score", "children", 2, 100, [100, 40, 400, 30]),
@@ -410,15 +427,15 @@ export const MAP_DRAWN: Drawing = handDrawn(
   "melody",
   [8, 8, 584, 124],
   [
-    map("melody/ticks", 200, 400, 25),
+    map("ticks", 200, 400, 25),
     line("child", "phrase", 200, 400, 30),
-    map("melody/tempo", 100, 500, 63),
+    map("tempo", 100, 500, 63),
     line("timeline", "melody", 100, 500, 70),
   ],
   [
     bandRecord("melody", "children", 2, 70, [100, 16, 400, 20]),
     bandRecord("melody", "conversion_maps", 1, 70, [100, 56, 400, 14]),
     bandRecord("melody", "markers", -1, 70, [100, 70, 400, 16], 2),
-    bandRecord("phrase", "conversion_maps", 1, 30, [200, 20, 200, 10], 1, "melody/card"),
+    bandRecord("phrase", "conversion_maps", 1, 30, [200, 20, 200, 10], 1, { item: "melody" }),
   ],
 );

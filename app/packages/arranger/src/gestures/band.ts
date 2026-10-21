@@ -1,7 +1,7 @@
 /** Moving a band of the edited timeline across its bands and its line, in its timeline editor. */
 
 import type { View } from "@timetoalign/tilie-core";
-import { bandOrderOf, qualify } from "@timetoalign/tilie-core";
+import { bandOrderOf, inBlock } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import { bandDrop, bandMoveCommand } from "../bands.ts";
 import type { BandBox } from "../boxes.ts";
@@ -56,7 +56,7 @@ export function bandGesture(host: NodeHost): GestureStrategy<BandPress, readonly
       return { view, timeline, drawing, band, order: bandOrderOf(stored.manifest, timeline) };
     },
     start(press) {
-      actions.select(qualify(host.data().block.id, press.band.address));
+      actions.select(inBlock(host.data().block.id, press.band.address));
     },
     value: (press, at) =>
       bandDrop(press.drawing, press.band, at.drawing.y, press.order) ?? press.order,

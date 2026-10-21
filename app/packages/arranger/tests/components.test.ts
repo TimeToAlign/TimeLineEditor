@@ -10,8 +10,17 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
-import type { Block, Manifest } from "@timetoalign/tilie-core";
-import { isLoadError, loadManifest } from "@timetoalign/tilie-core";
+import type { Block, ElementAddress, Manifest } from "@timetoalign/tilie-core";
+import {
+  addressKey,
+  BUNDLE_ADDRESS,
+  cardAddress,
+  idAddress,
+  isLoadError,
+  loadManifest,
+  partAddress,
+  sameAddress,
+} from "@timetoalign/tilie-core";
 import type { Drawing, Placement } from "@timetoalign/tilie-layout";
 import { DEFAULT_LAYER, draw } from "@timetoalign/tilie-layout";
 import type { Descriptor } from "@timetoalign/tilie-writers";
@@ -26,6 +35,7 @@ import {
 } from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it } from "vitest";
+import { sourceAt } from "../src/gesture.ts";
 import type { BlockNodeData } from "../src/project.ts";
 import { roving } from "../src/roving.ts";
 import NodeHarness from "./NodeHarness.svelte";
@@ -121,8 +131,8 @@ afterEach(() => {
  */
 function render(
   { drawing, manifest, scale }: { drawing: Drawing; manifest: Manifest; scale: number },
-  selectedElements: ReadonlySet<string> = new Set(),
-  affectedElements: ReadonlySet<string> = new Set(),
+  selected: readonly ElementAddress[] = [],
+  affected: readonly ElementAddress[] = [],
   descriptors: readonly Descriptor[] = toDescriptors(drawing),
 ): SVGSVGElement {
   const block: Block = {
@@ -143,10 +153,14 @@ function render(
     block,
     drawing,
     descriptors,
-    selectedElements,
-    affectedElements,
+    selectedElements: new Map(selected.map((address) => [addressKey(address), address])),
+    affectedElements: new Set(affected.map(addressKey)),
     editing: null,
-    inside: new Set(drawing.elements.flatMap(({ address }) => (address === null ? [] : [address]))),
+    inside: new Set(
+      drawing.elements.flatMap(({ type, address }) =>
+        type === "block" ? [] : [addressKey(address)],
+      ),
+    ),
   };
   mounted = mount(NodeHarness, { target: document.body, props: { data } });
   flushSync();
@@ -160,11 +174,31 @@ function drawn(svg: SVGSVGElement): Element[] {
   return Array.from(svg.children).filter((element) => !element.classList.contains("tilie-mark"));
 }
 
-/** The holding marks inside `svg`, as `<data-box> <data-marks>`, the block's own as `box`. */
+/** The holding marks inside `svg`, as `<data-box> <data-marks>`. */
 function holdingMarks(svg: SVGSVGElement): string[] {
-  return Array.from(svg.querySelectorAll('.tilie-mark[data-mark="holding"]'), (mark) =>
-    [mark.getAttribute("data-box"), mark.getAttribute("data-marks")].filter(Boolean).join(" "),
+  return Array.from(
+    svg.querySelectorAll('.tilie-mark[data-mark="holding"]'),
+    (mark) => `${mark.getAttribute("data-box")} ${mark.getAttribute("data-marks")}`,
   );
+}
+
+/** A holding mark as `holdingMarks` reads it: the box it outlines and the key of the address marked. */
+const holds = (box: string, address: ElementAddress): string => `${box} ${addressKey(address)}`;
+
+/** The block's holding mark. */
+const BLOCK_HOLDS = holds("block", BUNDLE_ADDRESS);
+
+/** The key (`addressKey`) of the address each element of `svg` carrying `attribute` draws. */
+function markedWith(svg: SVGSVGElement, attribute: string): (string | null)[] {
+  return Array.from(svg.querySelectorAll(`[${attribute}]`), (element) => {
+    const address = sourceAt(element)?.address;
+    return address === undefined ? null : addressKey(address);
+  });
+}
+
+/** The number of descriptors of `descriptors` carrying `address`. */
+function carrying(descriptors: readonly Descriptor[], address: ElementAddress): number {
+  return descriptors.filter(({ source }) => sameAddress(source.address, address)).length;
 }
 
 describe("BlockNode", () => {
@@ -183,18 +217,15 @@ describe("BlockNode", () => {
   it("marks exactly the selected element's descriptors and the block holding them", () => {
     const shown = fixture("styled__score");
     const descriptors = toDescriptors(shown.drawing);
-    const svg = render(shown, new Set(["score/intro"]));
+    const intro = idAddress("intro");
+    const svg = render(shown, [intro]);
     const text = shown.svg;
 
-    const marked = Array.from(svg.querySelectorAll("[data-selected]"), (element) =>
-      element.getAttribute("data-address"),
-    );
-    const expected = descriptors.filter(({ source }) => source.address === "score/intro");
-    expect(expected.length).toBe(1);
-    expect(marked).toEqual(["score/intro"]);
+    expect(carrying(descriptors, intro)).toBe(1);
+    expect(markedWith(svg, "data-selected")).toEqual([addressKey(intro)]);
     // The mark is the only difference from the exported tree.
     expect(trees(drawn(svg), ["data-selected"])).toEqual(exported(text));
-    expect(holdingMarks(svg)).toEqual(["box", "card score/card"]);
+    expect(holdingMarks(svg)).toEqual([BLOCK_HOLDS, holds("card", cardAddress("score"))]);
     expect(document.querySelectorAll(".tilie-block[data-contains-selection]").length).toBe(1);
   });
 
@@ -210,49 +241,55 @@ describe("BlockNode", () => {
   it("marks exactly the affected elements' descriptors, apart from the selected one", () => {
     const shown = fixture("nested");
     const descriptors = toDescriptors(shown.drawing);
-    const svg = render(shown, new Set(["clt_3"]), new Set(["clt_2"]));
+    const [clt2, clt3] = [idAddress("clt_2"), idAddress("clt_3")];
+    const svg = render(shown, [clt3], [clt2]);
     const text = shown.svg;
 
-    const addressed = (id: string) =>
-      descriptors.filter(({ source }) => source.address === id).length;
-    const marks = (attribute: string) =>
-      Array.from(svg.querySelectorAll(`[${attribute}]`), (element) =>
-        element.getAttribute("data-address"),
-      );
-    expect(marks("data-affected")).toEqual(Array(addressed("clt_2")).fill("clt_2"));
-    expect(marks("data-selected")).toEqual(Array(addressed("clt_3")).fill("clt_3"));
-    expect(addressed("clt_2")).toBe(3);
-    expect(holdingMarks(svg)).toEqual(["box", "card clt_1/card"]);
+    expect(markedWith(svg, "data-affected")).toEqual(
+      Array(carrying(descriptors, clt2)).fill(addressKey(clt2)),
+    );
+    expect(markedWith(svg, "data-selected")).toEqual(
+      Array(carrying(descriptors, clt3)).fill(addressKey(clt3)),
+    );
+    expect(carrying(descriptors, clt2)).toBe(3);
+    expect(holdingMarks(svg)).toEqual([BLOCK_HOLDS, holds("card", cardAddress("clt_1"))]);
     expect(trees(drawn(svg), ["data-selected", "data-affected"])).toEqual(exported(text));
   });
 
   it("marks every descriptor carrying a selected address", () => {
     const shown = fixture("bundle__bundle_shared_parent");
-    const svg = render(shown, new Set(["score", "exposition/start"]));
+    const start = partAddress(idAddress("exposition"), "start");
+    const svg = render(shown, [idAddress("score"), start]);
     const text = shown.svg;
 
-    const marked = Array.from(svg.querySelectorAll("[data-selected]"), (element) =>
-      element.getAttribute("data-address"),
-    );
-    const score = Array(4).fill("score");
-    expect(marked).toEqual([...score, "exposition/start", "exposition/start", ...score]);
+    const score = Array(4).fill(addressKey(idAddress("score")));
+    expect(markedWith(svg, "data-selected")).toEqual([
+      ...score,
+      addressKey(start),
+      addressKey(start),
+      ...score,
+    ]);
     expect(trees(drawn(svg), ["data-selected"])).toEqual(exported(text));
     expect(holdingMarks(svg)).toEqual([
-      "box",
-      "frame group_1",
-      "card group_1/exposition/card",
-      "frame group_2",
-      "card group_2/recapitulation/card",
+      BLOCK_HOLDS,
+      holds("frame", idAddress("group_1")),
+      holds("card", cardAddress("exposition")),
+      holds("frame", idAddress("group_2")),
+      holds("card", cardAddress("recapitulation")),
     ]);
     expect(document.querySelectorAll(".tilie-block[data-contains-selection]").length).toBe(1);
   });
 
   it("marks a selected card on its own rectangle, not on its shadow", () => {
     const shown = fixture("group__group_child_member");
-    const svg = render(shown, new Set(["group_1/recording/card"]));
+    const card = cardAddress("recording");
+    const svg = render(shown, [card]);
     const text = shown.svg;
 
-    const cards = Array.from(svg.querySelectorAll('rect[data-address="group_1/recording/card"]'));
+    const cards = drawn(svg).filter((element) => {
+      const address = sourceAt(element)?.address;
+      return address !== undefined && sameAddress(address, card);
+    });
     expect(cards.length).toBe(2);
     // The card's mark is a copy of its own rectangle's outline (the second, after the shadow),
     // drawn over the drawing; the card itself is not marked.
@@ -271,12 +308,12 @@ describe("BlockNode", () => {
       [
         "rect",
         "selection",
-        "group_1/recording/card",
+        addressKey(card),
         ...["x", "y", "width", "height", "rx"].map((name) => own?.getAttribute(name)),
       ],
     ]);
     expect(trees(drawn(svg), ["data-selected"])).toEqual(exported(text));
-    expect(holdingMarks(svg)).toEqual(["box", "frame group_1"]);
+    expect(holdingMarks(svg)).toEqual([BLOCK_HOLDS, holds("frame", idAddress("group_1"))]);
     expect(document.querySelectorAll(".tilie-block[data-contains-selection]").length).toBe(1);
   });
 
@@ -285,23 +322,23 @@ describe("BlockNode", () => {
     const text: Descriptor = {
       tag: "text",
       attrs: [
-        ["data-address", 'a"<b>'],
+        ["data-id", 'a"<b>'],
         ["x", 1.5],
       ],
       x: 1.5,
       y: 0,
       anchor: "start",
       text: name,
-      source: { element: 0, type: "name", address: 'a"<b>', role: "primary" },
+      source: { element: 0, type: "name", address: { id: 'a"<b>' }, role: "primary" },
     };
-    const svg = render({ ...fixture("bare"), scale: 1 }, new Set(), new Set(), [text]);
+    const svg = render({ ...fixture("bare"), scale: 1 }, [], [], [text]);
 
     expect(trees(svg.children)).toEqual([
       {
         tag: "text",
         namespace: SVG,
         attrs: [
-          ["data-address", 'a"<b>'],
+          ["data-id", 'a"<b>'],
           ["x", "1.5"],
         ],
         text: name,

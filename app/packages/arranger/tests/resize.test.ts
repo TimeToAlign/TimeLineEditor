@@ -1,5 +1,7 @@
 import type { Block, View } from "@timetoalign/tilie-core";
+import { idAddress, inBlock, WORKSPACE } from "@timetoalign/tilie-core";
 import { describe, expect, it } from "vitest";
+import { keyedBox } from "../src/boxes.ts";
 import { drawingOf } from "../src/drawing.ts";
 import { project } from "../src/project.ts";
 import type { Handle, ResizeMode } from "../src/resize.ts";
@@ -11,6 +13,7 @@ import {
   resizeCommand,
   solve,
 } from "../src/resize.ts";
+import { NOTHING_SELECTED } from "../src/selection.ts";
 import {
   A,
   blockIn,
@@ -39,19 +42,19 @@ function check(view: View, mode: ResizeMode, handle: Handle, dx: number, dy: num
 
 const bare = viewOf({ id: A, fixture: "bare", x: 40, y: 80 });
 const nested = viewOf({ id: A, fixture: "nested", x: 40, y: 80 });
-/** Three items at their default `y`, two gaps of the box's spacing between them. */
+/** Three items at their default `y`, two gaps of the block's spacing between them. */
 const ungrouped = viewOf({ id: A, fixture: "bundles/bundle_ungrouped", x: 40, y: 80 });
 /** The view with block A's placement changed. */
 function placed(view: View, values: Partial<Block>): View {
-  return changed(view, { type: "set", changes: [{ target: A, values }] });
+  return changed(view, { type: "set", changes: [{ target: { block: A }, values }] });
 }
 
-/** corpus_audio_audio with every name hidden, so its wide end label sets the box's left margin. */
+/** corpus_audio_audio with every name hidden, so its wide end label sets the block's left margin. */
 const audio = changed(viewOf({ id: A, fixture: "corpus_audio_audio", x: 40, y: 80 }), {
   type: "set",
   changes: [
     {
-      target: "workspace",
+      target: WORKSPACE,
       values: {
         graphical: { statements: [{ select: { element: "name" }, set: { display: "none" } }] },
       },
@@ -201,7 +204,7 @@ describe("resizeCommand", () => {
   it("sets the values on the block", () => {
     expect(resizeCommand(blockIn(bare, A), { width: 500 })).toEqual({
       type: "set",
-      changes: [{ target: A, values: { width: 500 } }],
+      changes: [{ target: { block: A }, values: { width: 500 } }],
     });
   });
 
@@ -215,18 +218,18 @@ describe("resizeCommand", () => {
   });
 });
 
-describe("resizing a block whose place origin lies inside its box", () => {
+describe("resizing a block whose place origin lies inside it", () => {
   it("keeps the node's opposite edge, storing the place origin", () => {
     const wide = placedItem(mixedPlain(), A, "group_2", { width: 600 });
     const view = placedItem(wide, A, "annotations", { x: -30 });
-    const [before] = project(view, new Set(), [], metrics, null);
+    const [before] = project(view, NOTHING_SELECTED, [], metrics, null);
     expect(before?.data.drawing.origin).toEqual({ x: 38, y: 0 });
     expect([before?.position.x, before?.width]).toEqual([2, 654]);
     const block = blockIn(view, A);
     const { values } = resize(block, view.settings, metrics, "box", "left", { dx: -21, dy: 0 });
     expect(values).toStrictEqual({ width: 675, x: 19 });
     const after = changed(view, resizeCommand(block, values));
-    const [node] = project(after, new Set(), [], metrics, null);
+    const [node] = project(after, NOTHING_SELECTED, [], metrics, null);
     expect(node?.position.x).toBe(-19);
     expect((node?.position.x ?? 0) + (node?.width ?? 0)).toBe(656);
   });
@@ -252,6 +255,13 @@ describe("blockStretchPlaces", () => {
     ).toStrictEqual({ annotations: { x: 1.00244140625, y: 1, height: 90, spacing: 2 } });
   });
 
+  it("scales a member's card place like an item's", () => {
+    const cards = { group_1: { x: 4, cards: { score: { width: 700, spacing: 2 } } } };
+    expect(blockStretchPlaces({ length: 400, places: cards }, 500)).toStrictEqual({
+      group_1: { x: 5, cards: { score: { width: 875, spacing: 2 } } },
+    });
+  });
+
   it("returns the block's own places when nothing changes", () => {
     expect(blockStretchPlaces(block, 400)).toBe(places);
     const none = {};
@@ -274,14 +284,17 @@ describe("stretching a block with placed items", () => {
     expect(command).toEqual({
       type: "set",
       changes: [
-        { target: A, values: { length: 440 } },
-        { target: `${A}/group_2`, values: { place: { x: 44, y: 200, width: 770 } } },
+        { target: { block: A }, values: { length: 440 } },
+        {
+          target: inBlock(A, idAddress("group_2")),
+          values: { place: { x: 44, y: 200, width: 770 } },
+        },
       ],
     });
     const after = changed(view, command);
     const drawing = drawingOf(blockIn(after, A), after.settings, metrics);
     expect(blockIn(after, A).x + drawing.width).toBe(862);
-    expect(drawing.boxes.find((item) => item.key === "group_2")?.item?.place).toMatchObject({
+    expect(keyedBox(drawing, { item: "group_2" })?.item?.place).toMatchObject({
       x: 44,
       width: 770,
     });

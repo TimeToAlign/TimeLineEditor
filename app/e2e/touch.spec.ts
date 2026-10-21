@@ -9,6 +9,8 @@
 
 import type { CDPSession, Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
+import type { Address } from "../packages/core/src/index.ts";
+import { bandAddress } from "../packages/core/src/index.ts";
 import {
   BUNDLES,
   bandOf,
@@ -110,9 +112,9 @@ test("a tap on a card selects the card, a tap on an element selects the element"
   page,
 }) => {
   await tap(page, await cardPoint(page, SMALL.map, FINGER));
-  expect(await selection(page)).toEqual([`${SMALL.map}/melody/card`]);
-  await tap(page, await partCentre(page, SMALL.nested, "clt_2"));
-  expect(await selection(page)).toEqual([`${SMALL.nested}/clt_2`]);
+  expect(await selection(page)).toEqual([{ block: SMALL.map, id: "melody", part: ["card"] }]);
+  await tap(page, await partCentre(page, SMALL.nested, { id: "clt_2" }));
+  expect(await selection(page)).toEqual([{ block: SMALL.nested, id: "clt_2" }]);
 });
 
 test("a one-finger drag moves a block by the drag in canvas units, grid-snapped", async ({
@@ -123,7 +125,7 @@ test("a one-finger drag moves a block by the drag in canvas units, grid-snapped"
   const { x, y } = await placement(page, SMALL.map);
   expect({ x, y }).toEqual({ x: 104, y: 360 });
   expect(await commandsFrom(page, START)).toEqual([
-    { type: "set", changes: [{ target: SMALL.map, values: { x: 104, y: 360 } }] },
+    { type: "set", changes: [{ target: { block: SMALL.map }, values: { x: 104, y: 360 } }] },
   ]);
 });
 
@@ -154,7 +156,7 @@ test("a pinch changes the zoom", async ({ page }) => {
 
 test("the resize mode buttons respond to taps and show their handles", async ({ page }) => {
   // The block's margin is narrower than a finger, so the block is selected through the hook.
-  await select(page, [SMALL.map]);
+  await select(page, [{ block: SMALL.map }]);
   for (const [mode, handles] of [
     ["box", 8],
     ["stretch", 8],
@@ -178,7 +180,7 @@ test("the marquee toggle turns a one-finger drag into a marquee", async ({ page 
   const half = { x: 60, y: 60, zoom: 0.4 };
   await setViewport(page, half);
   await gesture(cdp, [await emptyPoint(page, -30, -30)], [{ x: 204, y: 68 }]);
-  expect(await selection(page)).toEqual([SMALL.bare]);
+  expect(await selection(page)).toEqual([{ block: SMALL.bare }]);
   expect(await viewportOf(page)).toEqual(half);
 });
 
@@ -188,7 +190,7 @@ test("a double tap on a card opens its timeline editor", async ({ page }) => {
   await tap(page, point);
   await expect
     .poll(() => editing(page))
-    .toEqual([{ target: `${SMALL.map}/melody`, kind: "timeline" }]);
+    .toEqual([{ target: { block: SMALL.map, id: "melody" }, kind: "timeline" }]);
 });
 
 test.describe("in an editor", () => {
@@ -197,12 +199,12 @@ test.describe("in an editor", () => {
   test("a double tap on the faded surroundings closes the innermost editor, once", async ({
     page,
   }) => {
-    await enter(page, SMALL.map, VIEW);
-    await enter(page, `${SMALL.map}/melody`, VIEW);
+    await enter(page, { block: SMALL.map }, VIEW);
+    await enter(page, { block: SMALL.map, id: "melody" }, VIEW);
     const point = await emptyPoint(page, -20, 100);
     await tap(page, point);
     await tap(page, point);
-    const bundle = [{ target: SMALL.map, kind: "bundle" }];
+    const bundle = [{ target: { block: SMALL.map }, kind: "bundle" }];
     await expect.poll(() => editing(page)).toEqual(bundle);
     // A double-click the engine derives from the two taps closes nothing more.
     await frames(page);
@@ -211,14 +213,13 @@ test.describe("in an editor", () => {
 
   test("a band dragged with one finger moves across the line", async ({ page }) => {
     const block = BUNDLES.mixed;
-    const flowControl = "score/flow_control_1";
-    const conversionMaps = "score/conversion_maps_1";
+    const flowControl = bandAddress("score", "flow_control");
+    const conversionMaps = bandAddress("score", "conversion_maps");
+    const score: Address = { block, id: "score" };
     await page.evaluate((text) => window.__tilie.load(text), fixtureText("bundles"));
     await expect.poll(() => journalLength(page)).toBe(OPENED_JOURNAL.bundles);
     await setViewport(page, VIEW);
-    expect(
-      await page.evaluate((address) => window.__tilie.open(address), `${block}/score`),
-    ).toBeNull();
+    expect(await page.evaluate((address) => window.__tilie.open(address), score)).toBeNull();
     await expect.poll(() => viewportOf(page)).not.toEqual(VIEW);
     const opened = await viewportOf(page);
     // The drawer leaves the phone's arranger too narrow; closed, the edited card is centred again.
@@ -240,26 +241,19 @@ test.describe("in an editor", () => {
       type: "set",
       changes: [
         {
-          target: `${block}/score`,
+          target: score,
           values: {
-            order: [
-              "score/children_1",
-              flowControl,
-              conversionMaps,
-              "score",
-              "score/markers_1",
-              "score/regions_1",
-            ],
+            order: ["children", "flow_control", "conversion_maps", "line", "markers", "regions"],
           },
         },
       ],
     });
     expect(await bandsOf(page, block, "score")).toEqual([
-      { address: flowControl, kind: "flow_control", level: 2, elements: 1 },
-      { address: conversionMaps, kind: "conversion_maps", level: 1, elements: 2 },
-      { address: "score/markers_1", kind: "markers", level: -1, elements: 2 },
+      { address: flowControl, facet: "flow_control", level: 2, elements: 1 },
+      { address: conversionMaps, facet: "conversion_maps", level: 1, elements: 2 },
+      { address: bandAddress("score", "markers"), facet: "markers", level: -1, elements: 2 },
     ]);
-    expect(await selection(page)).toEqual([`${block}/${flowControl}`]);
+    expect(await selection(page)).toEqual([{ block, ...flowControl }]);
     expect(await viewportOf(page)).toEqual(focused);
   });
 });

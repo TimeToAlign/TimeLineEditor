@@ -10,8 +10,16 @@ import type { CommandError, Problem } from "../errors.ts";
 import { ErrorCode, isCommandError, isLoadError, problem } from "../errors.ts";
 import type { Json, JsonObject, PathSegment } from "../json.ts";
 import { isJsonObject } from "../json.ts";
+import { addressKey } from "../manifest/address.ts";
 import type { CardPlace, ContainerRef, ItemPlace } from "../manifest/containers.ts";
-import { containersOf, ITEM_PLACE_MEMBERS, isMember } from "../manifest/containers.ts";
+import {
+  containersOf,
+  ITEM_PLACE_MEMBERS,
+  isMember,
+  placeAt,
+  placedContainer,
+  withPlaceAt,
+} from "../manifest/containers.ts";
 import type { EntryKind, EntryTypes } from "../manifest/files.ts";
 import { contentEnd, readOnAxis } from "../manifest/invariants.ts";
 import { normalizeManifest, readEntry, readMeasureMap } from "../manifest/io.ts";
@@ -238,7 +246,11 @@ const BLOCK_SET: Setters<BlockTarget> = {
       (item) => item.id !== block.id && item.parent === block.parent && item.index === index,
     );
     if (sibling !== undefined) {
-      return problem(ErrorCode.duplicateIndex, `block ${sibling.id} already has that index`, path);
+      return problem(
+        ErrorCode.duplicateIndex,
+        `block '${sibling.id}' already has that index`,
+        path,
+      );
     }
     recordValue(changes, path, block.id, false, block.index, index);
     return withBlock(view, { ...block, index });
@@ -317,40 +329,45 @@ function mergedPlace(
  * group's frame, or the one card a timeline is drawn in (an ungrouped
  * root's, or a member's in its group's frame); a refusal for a timeline
  * drawn in no card or in the frames of several groups, whose cards are
- * placed one by one.
+ * placed through their groups' `cards`.
  */
 function placedOf(target: KeyedTarget, path: readonly PathSegment[]): ContainerRef | CommandError {
   const containers = containersOf(target.block.manifest);
   if (target.kind === "group") {
-    const frame = containers.byKey.get(target.group.id);
+    const frame = containers.frames.get(target.group.id);
     if (frame === undefined) throw new Error(`group ${target.group.id} draws no frame`);
     return frame;
   }
   const { id } = target.at.timeline;
   const [card, ...others] = containers.cards.get(id) ?? [];
   if (card === undefined) {
-    return problem(ErrorCode.notAnItem, `${id} is not drawn in a card of its own`, path);
+    return problem(ErrorCode.notAnItem, `'${id}' is not drawn in a card of its own`, path);
   }
   if (others.length > 0) {
-    return problem(ErrorCode.notAnItem, `${id} is drawn in the frames of several groups`, path);
+    return problem(ErrorCode.notAnItem, `'${id}' is drawn in the frames of several groups`, path);
   }
   return card;
 }
 
 /**
- * Merge members into the stated place of a container (`placedOf`), under
- * its `places` key: a value states a member, null unstates it, and a place
- * left without members is no place. Only a frame or a card has a place, and
- * only the members its holder lets it state (`placeMembersOf`): a box-held
- * one its full place, a frame-held card its size and spacing, the length and
- * scale it is drawn with being its group's.
+ * Merge `value`, members of a place, into the stated place of `container`
+ * in `block`, where its place key puts it in `places`: a value states a
+ * member, null unstates it, and a place left without members is no place.
+ * Only a frame or a card has a place, and only the members its holder lets
+ * it state (`placeMembersOf`): a block-held one its full place, a
+ * frame-held card its size and spacing, the length and scale it is drawn
+ * with being its group's.
  */
-const setPlace: Setter<KeyedTarget> = (view, target, value, path, changes) => {
-  const { block } = target;
-  const container = placedOf(target, path);
-  if (isCommandError(container)) return container;
-  const key = container.key;
-  if (key === null) throw new Error(`the container of ${target.address} has no places key`);
+function mergePlace(
+  view: View,
+  block: Block,
+  container: ContainerRef,
+  value: unknown,
+  path: readonly PathSegment[],
+  changes: ChangeSet,
+): View | CommandError {
+  const { key } = container;
+  if (key === null) throw new Error("a frame or a card has a place key");
   const object = readObject(value, path);
   if (isCommandError(object)) return object;
   const extra = placeMemberProblem(container, object, path, ErrorCode.notAnItem);
@@ -361,11 +378,50 @@ const setPlace: Setter<KeyedTarget> = (view, target, value, path, changes) => {
   if (Object.keys(given).length === 0) {
     return problem(ErrorCode.invalidValue, "a place value states at least one member", path);
   }
-  const stored = block.places[key];
+  const stored = placeAt(block.places, key);
   const place = mergedPlace(stored, given);
   if (sameJson(stored, place)) return view;
   recordValue(changes, path, block.id, false, stored, place);
-  return withBlock(view, { ...block, places: withKey(block.places, key, place) });
+  return withBlock(view, { ...block, places: withPlaceAt(block.places, key, place) });
+}
+
+/** The place of a group's frame or of a timeline's one card (`placedOf`), merged (`mergePlace`). */
+const setPlace: Setter<KeyedTarget> = (view, target, value, path, changes) => {
+  const container = placedOf(target, path);
+  if (isCommandError(container)) return container;
+  return mergePlace(view, target.block, container, value, path, changes);
+};
+
+/**
+ * The places of the cards of a group's members, in its frame
+ * (`places[G].cards[T]`): an object of at least one member's card place by
+ * member ID, each merged as `place` merges a card's (`mergePlace`), so a
+ * timeline that several groups have as a member has each of its cards
+ * placed through its group. An ID that is no member of the group is
+ * `unknown_place`.
+ */
+const setCards: Setter<GroupTarget> = (view, target, value, path, changes) => {
+  const object = readObject(value, path);
+  if (isCommandError(object)) return object;
+  const members = Object.keys(object);
+  if (members.length === 0) {
+    return problem(ErrorCode.invalidValue, "cards states at least one card's place", path);
+  }
+  const { group } = target;
+  let current = view;
+  for (const member of members) {
+    const at = [...path, member];
+    const card = placedContainer(target.block.manifest, { item: group.id, member });
+    if (card === undefined) {
+      return problem(ErrorCode.unknownPlace, `'${member}' is no member of group '${group.id}'`, at);
+    }
+    const block = current.blocks[target.block.id];
+    if (block === undefined) throw new Error(`block ${target.block.id} holds the group`);
+    const next = mergePlace(current, block, card, object[member], at, changes);
+    if (isCommandError(next)) return next;
+    current = next;
+  }
+  return current;
 };
 
 /**
@@ -421,11 +477,12 @@ const GROUP_SET: Setters<GroupTarget> = {
       value.length === members.length &&
       members.every((member) => value.includes(member));
     if (!listsMembers) {
-      return problem(ErrorCode.invalidOrder, `order must list every member of ${id} once`, path);
+      return problem(ErrorCode.invalidOrder, `order must list every member of '${id}' once`, path);
     }
     return withOrder(view, target, value, path, changes);
   },
   place: setPlace,
+  cards: setCards,
 };
 
 // ---------------------------------------------------------------- measure maps
@@ -440,7 +497,7 @@ function measureMapMember(member: string): Setter<MeasureMapTarget> {
     const json = toJson(value, path);
     if (isCommandError(json)) return json;
     const { block, map, index, address } = target;
-    const object = readObject({ ...map, [member]: json }, [address]);
+    const object = readObject({ ...map, [member]: json }, [addressKey(address)]);
     if (isCommandError(object)) return object;
     const read = readMeasureMap(object);
     if (isCommandError(read)) {
@@ -528,7 +585,7 @@ const TIMELINE_SET: Setters<TimelineTarget> = {
   length: (view, target, value, path, changes) => {
     const { timeline } = target.at;
     if (timeline.locked) {
-      return problem(ErrorCode.locked, `timeline ${timeline.id} is locked`, path);
+      return problem(ErrorCode.locked, `timeline '${timeline.id}' is locked`, path);
     }
     // A length of null means the length is not known; it bounds nothing.
     if (value === null) {
@@ -659,7 +716,7 @@ function entrySchemaValue(member: string, optional = false): Setter<EntryTarget>
       optional && json === null
         ? Object.fromEntries(Object.entries(stored ?? {}).filter(([key]) => key !== member))
         : { ...stored, [member]: json };
-    const object = readObject(changed, [target.address]);
+    const object = readObject(changed, [addressKey(target.address)]);
     if (isCommandError(object)) return object;
     return entryRead(view, target, object, path, changes);
   };
@@ -758,10 +815,15 @@ export function setProperty(
 ): View | CommandError {
   const target = targetOf(view, address);
   if (isCommandError(target)) return target;
-  const path = [address, property];
+  const path = [addressKey(address), property];
   if (property === "id") return problem(ErrorCode.idNotSettable, "ids are never settable", path);
   const setter = setterOf(target, property);
-  if (setter !== undefined) return setter(view, value, path, changes);
+  if (setter !== undefined) {
+    const recorded = changes.paths.length;
+    const result = setter(view, value, path, changes);
+    if (changes.paths.length > recorded) changes.targets.push(address);
+    return result;
+  }
   const kinds = Object.entries(SETTABLE)
     .filter(([, setters]) => Object.hasOwn(setters, property))
     .map(([kind]) => kind);

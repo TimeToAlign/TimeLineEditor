@@ -9,6 +9,8 @@ import { ErrorCode, isCommandError, problem } from "../errors.ts";
 import type { JsonObject, PathSegment } from "../json.ts";
 import { isJsonObject, showJson } from "../json.ts";
 import { readStatement, toJson } from "../values.ts";
+import type { Address } from "../workspace/address.ts";
+import { readAddress } from "../workspace/address.ts";
 import type {
   AddCommand,
   Change,
@@ -56,8 +58,8 @@ function strings(value: unknown, path: readonly PathSegment[]): string[] | Comma
 }
 
 function parseAdd(input: Members): AddCommand | CommandError {
-  const { into } = input;
-  if (typeof into !== "string") return invalid("into is an address", ["into"]);
+  const into = readAddress(input.into, ["into"]);
+  if (isCommandError(into)) return into;
   const [kind, ...more] = ADD_KINDS.filter((item) => Object.hasOwn(input, item));
   if (kind === undefined || more.length > 0) {
     return invalid(`add names exactly one of ${ADD_KINDS.join(", ")}`, []);
@@ -75,9 +77,8 @@ function parseSet(input: Members): SetCommand | CommandError {
     if (change === undefined) return invalid("a change is an object", ["changes", index]);
     const extra = Object.keys(change).find((key) => key !== "target" && key !== "values");
     if (extra !== undefined) return invalid(`unknown member ${extra}`, ["changes", index, extra]);
-    if (typeof change.target !== "string") {
-      return invalid("target is an address", ["changes", index, "target"]);
-    }
+    const target = readAddress(change.target, ["changes", index, "target"]);
+    if (isCommandError(target)) return target;
     const values = members(change.values);
     if (values === undefined || Object.keys(values).length === 0) {
       return invalid("values is an object setting at least one property", [
@@ -86,15 +87,21 @@ function parseSet(input: Members): SetCommand | CommandError {
         "values",
       ]);
     }
-    changes.push({ target: change.target, values });
+    changes.push({ target, values });
   }
   return { type: "set", changes };
 }
 
 function parseRemove(input: Members): RemoveCommand | CommandError {
-  const targets = strings(input.targets, ["targets"]);
-  if (isCommandError(targets)) return targets;
-  if (targets.length === 0) return invalid("targets is a non-empty array", ["targets"]);
+  if (!Array.isArray(input.targets) || input.targets.length === 0) {
+    return invalid("targets is a non-empty array", ["targets"]);
+  }
+  const targets: Address[] = [];
+  for (const [index, item] of input.targets.entries()) {
+    const target = readAddress(item, ["targets", index]);
+    if (isCommandError(target)) return target;
+    targets.push(target);
+  }
   return { type: "remove", targets };
 }
 

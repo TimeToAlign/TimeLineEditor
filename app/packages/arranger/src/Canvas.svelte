@@ -12,7 +12,7 @@ import { BlockDrag } from "./blockDrag.ts";
 import CanvasToolbar from "./CanvasToolbar.svelte";
 import type { Visible } from "./commands.ts";
 import type { Level } from "./containers.ts";
-import { rulesOf } from "./containers.ts";
+import { levelOf, rulesOf } from "./containers.ts";
 import type { Editing } from "./editing.ts";
 import { EditorFocus } from "./editorFocus.svelte.ts";
 import { CLICK_DISTANCE, GestureSlot } from "./gesture.ts";
@@ -27,7 +27,7 @@ import type { LivePlacement } from "./project.ts";
 import ResizeToolbar from "./ResizeToolbar.svelte";
 import type { ResizeMode } from "./resize.ts";
 import SnapGuides from "./SnapGuides.svelte";
-import type { Selection } from "./selection.ts";
+import { type Selection, selectionOf } from "./selection.ts";
 import { DONE, openable, RECENTRE, resizableOf } from "./selectionRules.ts";
 import type { Guide } from "./snap.ts";
 
@@ -92,7 +92,7 @@ const editing: Editing | null = $derived.by(() => {
   const innermost = live.editing.at(-1);
   return innermost === undefined ? null : { target: innermost.target, kind: innermost.kind };
 });
-const level: Level = $derived(editing === null ? "arranger" : editing.kind);
+const level: Level = $derived(levelOf(editing));
 /** What the canvas allows now: the one answer every key and pointer path asks. */
 const rules = $derived(rulesOf(editing, { locked, readonly }));
 
@@ -189,7 +189,7 @@ setNodeActions({
     dispatch(command);
   },
   select(address) {
-    selection = new Set([address]);
+    selection = selectionOf([address]);
   },
   preview(block, shown) {
     if (shown !== null) nodes.preview = { id: block, view: shown.view };

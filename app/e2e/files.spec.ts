@@ -42,8 +42,11 @@ test("a workspace survives save, reopen and save byte for byte", async ({ page }
   const bare = manifestFixture("bare");
   await pick(page, "Import manifest…", "bare.json", bare);
   await expect.poll(() => journalLength(page)).toBe(1);
-  const [id] = await selection(page);
-  if (id === undefined) throw new Error("the imported block is not selected");
+  const [selected] = await selection(page);
+  if (selected?.block === undefined || selected.id !== undefined) {
+    throw new Error("the imported block is not selected");
+  }
+  const id = selected.block;
   expect(await placement(page, id)).toMatchObject({ x: 544, y: 336, scale: 1, length: 400 });
   // An import never moves the view.
   await frames(page);
@@ -71,7 +74,7 @@ test("a workspace survives save, reopen and save byte for byte", async ({ page }
   expect(firstText).toBe(await page.evaluate(() => window.__tilie.text()));
   await expect(page.getByTestId("file-name")).toHaveText("untitled.tle.json");
 
-  expect(await selection(page)).toEqual([id]);
+  expect(await selection(page)).toEqual([{ block: id }]);
   await pick(page, "Open…", "untitled.tle.json", firstText);
   // Opening a file clears the selection, which addressed the previous workspace.
   await expect.poll(() => selection(page)).toEqual([]);

@@ -99,7 +99,7 @@
 
 /*
  * The marks: one `.tilie-mark` element per mark, drawn over the drawing as a
- * copy of a box's outline (`data-box`: box, frame, card, band) or of a
+ * copy of a box's outline (`data-box`: block, frame, card, band) or of a
  * boundary's line, so a hover, a selection or a holding changes a mark
  * alone, never an element of the drawing (`data-mark`: hover, selection,
  * holding). A band draws nothing, so its mark is the outline of its
@@ -177,7 +177,7 @@
  * pixel ratio of 1; crisp edges keep its dots one pixel of the full colour
  * instead of two pale ones.
  */
-.tilie-canvas .tilie-block .tilie-mark[data-mark="holding"][data-box="box"] {
+.tilie-canvas .tilie-block .tilie-mark[data-mark="holding"][data-box="block"] {
   --dash: calc(1px / var(--tilie-zoom, 1));
   --gap: calc(2px / var(--tilie-zoom, 1));
   stroke-width: calc(1px / var(--tilie-zoom, 1));

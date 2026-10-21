@@ -3,13 +3,15 @@
  * Fixtures and file stubs for the editor's tests: manifests from the
  * installed `@timetoalign/timetoshare`, workspaces and stores built of
  * them, the test hook of a mounted page, the fallback file input answered
- * with a chosen file, downloads recorded instead of performed, and the
- * autosaves of mounted editors waited for between tests.
+ * with a chosen file, downloads recorded instead of performed, the
+ * autosaves of mounted editors waited for between tests, and the open
+ * editor of a level.
  */
 
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
+import type { Editing, Level } from "@timetoalign/tilie-arranger";
 import type { Manifest, Store } from "@timetoalign/tilie-core";
 import { createStore, isLoadError, loadManifest, readWorkspace } from "@timetoalign/tilie-core";
 import { SCHEMA_VERSION } from "@timetoalign/timetoshare";
@@ -140,4 +142,23 @@ export function recordAutosaves(
 export async function flushAutosaves(): Promise<void> {
   await Promise.all([...autosaves].map((autosave) => autosave.flush().catch(() => {})));
   autosaves.clear();
+}
+
+/**
+ * The innermost open editor of `level` in block `block` of `bundle_mixed`,
+ * `null` on the arranger: the bundle editor, the editor of `group_1` or the
+ * timeline editor of `score`. A reader takes its level from it, and inside
+ * a group editor the frame its cards lie in.
+ */
+export function editorAt(level: Level, block: string): Editing | null {
+  switch (level) {
+    case "arranger":
+      return null;
+    case "bundle":
+      return { target: { block }, kind: level };
+    case "group":
+      return { target: { block, id: "group_1" }, kind: level };
+    case "timeline":
+      return { target: { block, id: "score" }, kind: level };
+  }
 }

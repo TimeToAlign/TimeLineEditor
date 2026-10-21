@@ -1,8 +1,15 @@
 /** Redraw cost: exact operation counts on a synthetic 1,000-element manifest, no timing. */
 
-import type { ChildTimeline, Manifest, TimelineManifest } from "@timetoalign/tilie-core";
+import {
+  addressKey,
+  type ChildTimeline,
+  type ElementAddress,
+  type Manifest,
+  type TimelineManifest,
+} from "@timetoalign/tilie-core";
 import { manifestElements } from "@timetoalign/tilie-core/drawing";
 import {
+  type Address,
   canonicalOrder,
   type FontMetrics,
   type Graphical,
@@ -11,7 +18,7 @@ import {
 import { describe, expect, it } from "vitest";
 import { Cascade } from "../src/cascade.ts";
 import { DEFAULT_PLACEMENT, draw } from "../src/index.ts";
-import { load, metrics } from "./support.ts";
+import { at, load, metrics } from "./support.ts";
 
 const q = (numerator: number, denominator = 1) => [numerator, denominator] as const;
 
@@ -174,6 +181,16 @@ const MEASURED = [
   "voice, voice, voice, voice, voice, voice, voice, segments",
 ];
 
+/** An element's address as a selector states it. */
+function selected({ id, facet, part }: ElementAddress): Address {
+  const [first, ...rest] = part ?? [];
+  return {
+    ...(id === undefined ? {} : { id }),
+    ...(facet === undefined ? {} : { facet }),
+    ...(first === undefined ? {} : { part: [first, ...rest] }),
+  };
+}
+
 /** A text's code points as the advance table is keyed. */
 const codePoints = (text: string): string[] =>
   Array.from(text, (character) => String(character.codePointAt(0)));
@@ -183,15 +200,16 @@ describe("redraw operation counts", () => {
   const keys = manifestElements(manifest);
   const general = counted({});
   const discriminating = [
-    counted({ ids: ["not-in-the-manifest"] }),
+    counted({ addresses: [at("not-in-the-manifest")] }),
     counted({ class: "ChainMap" }),
-    counted({ element: "group" }),
+    counted({ element: "frame" }),
   ];
-  // One statement per address the drawing's keys carry: the cascade tests it only on keys there.
+  // One statement per address the drawing's keys carry, the block's `{}` included: the cascade
+  // tests it only on keys there.
   const addresses = [
-    ...new Set(keys.flatMap((key) => (key.address === null ? [] : [key.address]))),
+    ...new Map(keys.map((key) => [addressKey(key.address), selected(key.address)])).values(),
   ];
-  const byAddress = addresses.map((address) => ({ address, ...counted({ ids: [address] }) }));
+  const byAddress = addresses.map((address) => ({ address, ...counted({ addresses: [address] }) }));
   const layer: Graphical = {
     statements: [
       { select: general.select, set: { "font-size": 9 } },
@@ -217,14 +235,15 @@ describe("redraw operation counts", () => {
     expect(tests[0]).toBe(1000);
   });
 
-  it("tests a statement with ids, a class or an element only on keys it can match", () => {
+  it("tests a statement with addresses, a class or an element only on keys it can match", () => {
     expect(tests.slice(1, 4)).toEqual([0, 0, 0]);
     const perAddress = new Map<string, number>();
     for (const { address } of keys) {
-      if (address !== null) perAddress.set(address, (perAddress.get(address) ?? 0) + 1);
+      const key = addressKey(address);
+      perAddress.set(key, (perAddress.get(key) ?? 0) + 1);
     }
     expect(byAddress.map(({ address }, index) => [address, tests[4 + index]])).toEqual(
-      addresses.map((address) => [address, perAddress.get(address)]),
+      addresses.map((address) => [address, perAddress.get(addressKey(address))]),
     );
   });
 

@@ -6,10 +6,22 @@
 
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import type { Level, LivePlacement, PlaceProperty } from "@timetoalign/tilie-arranger";
-import { drawingOf, liveStore, placeEdit, resolveSelection } from "@timetoalign/tilie-arranger";
-import type { Block, CommandEntry, Store } from "@timetoalign/tilie-core";
-import { createStore, isLoadError, readWorkspace } from "@timetoalign/tilie-core";
+import type { Level, LivePlacement, PlaceProperty, Selection } from "@timetoalign/tilie-arranger";
+import {
+  drawingOf,
+  liveStore,
+  placeEdit,
+  resolveSelection,
+  selectionOf,
+} from "@timetoalign/tilie-arranger";
+import type { Address, Block, CommandEntry, ElementAddress, Store } from "@timetoalign/tilie-core";
+import {
+  addressKey,
+  createStore,
+  isLoadError,
+  readWorkspace,
+  sameAddress,
+} from "@timetoalign/tilie-core";
 import type { Drawing, DrawnBox } from "@timetoalign/tilie-layout";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
@@ -28,6 +40,7 @@ import {
   stepValue,
 } from "../src/inspector/properties.ts";
 import { holder } from "./holder.svelte.ts";
+import { editorAt } from "./support.ts";
 
 const M = "bmixed0000";
 /** The members of a place, in the order a place is written and the form shows them. */
@@ -55,14 +68,19 @@ function blockOf(store: Store, id = M): Block {
   return block;
 }
 
-function dispatch(store: Store, target: string, values: { [property: string]: unknown }): void {
+function dispatch(store: Store, target: Address, values: { [property: string]: unknown }): void {
   const refusal = store.dispatch({ type: "set", changes: [{ target, values }] });
   if (refusal !== null) throw new Error(refusal.message);
 }
 
-/** `M`'s addresses of `elements`; `""` names the block. */
-function addresses(...elements: string[]): Set<string> {
-  return new Set(elements.map((element) => (element === "" ? M : `${M}/${element}`)));
+/** The address of `element` in `M`; `{}` names the block. */
+function at(element: ElementAddress = {}): Address {
+  return { block: M, ...element };
+}
+
+/** The selection of `elements` of `M`. */
+function addresses(...elements: readonly ElementAddress[]): Selection {
+  return selectionOf(elements.map((element) => at(element)));
 }
 
 /** What the canvas shows of `M` without a gesture: the stored placement and drawing. */
@@ -81,31 +99,32 @@ function livePlacementOf(store: Store, places: Block["places"]): LivePlacement {
 
 function geometryIn(
   store: Store,
-  elements: string[],
+  elements: readonly ElementAddress[],
   level: Level = "arranger",
   shown: Shown = stored(store),
 ): Geometry | null {
-  const subjects = resolveSelection(store.view, addresses(...elements), fontMetrics);
-  return geometryOf(blockOf(store), subjects, shown, level);
+  const editing = editorAt(level, M);
+  const subjects = resolveSelection(store.view, addresses(...elements), editing, fontMetrics);
+  return geometryOf(blockOf(store), subjects, shown, editing);
 }
 
-function geometry(store: Store, ...elements: string[]): Geometry {
+function geometry(store: Store, ...elements: ElementAddress[]): Geometry {
   const found = geometryIn(store, elements);
-  if (found === null) throw new Error(`no geometry for ${elements.join(", ")}`);
+  if (found === null) throw new Error(`no geometry for ${elements.map(addressKey).join(", ")}`);
   return found;
 }
 
 /** The record of the container at `address` in `drawing`. */
-function recorded(drawing: Drawing, kind: DrawnBox["kind"], address: string): DrawnBox {
-  const found = drawing.boxes.find((box) => box.kind === kind && box.address === address);
-  if (found === undefined) throw new Error(`no ${kind} ${address}`);
+function recorded(drawing: Drawing, kind: DrawnBox["kind"], address: ElementAddress): DrawnBox {
+  const found = drawing.boxes.find((box) => box.kind === kind && sameAddress(box.address, address));
+  if (found === undefined) throw new Error(`no ${kind} ${addressKey(address)}`);
   return found;
 }
 
 /** An item's values as the drawing records them: stated, else drawn. */
 function itemValues(box: DrawnBox) {
   const item = box.item;
-  if (item === undefined) throw new Error(`${box.address} is no item`);
+  if (item === undefined) throw new Error(`${addressKey(box.address)} is no item`);
   const { place, stated } = item;
   return {
     x: stated.x ?? place.x,
@@ -119,90 +138,120 @@ function itemValues(box: DrawnBox) {
 }
 
 describe("the geometry", () => {
-  it("names the box for the block", () => {
-    expect(geometry(storeOf(), "")).toMatchObject({
-      role: "box",
+  it("names the block for the block", () => {
+    expect(geometry(storeOf(), {})).toMatchObject({
+      role: "block",
       label: "Block properties",
       elements: [
         {
-          kind: "box",
+          kind: "block",
           holder: null,
-          address: M,
+          address: at(),
+          box: null,
           values: { x: 0, y: 0, scale: 1, length: 400, spacing: 8, width: null, height: null },
         },
       ],
     });
   });
 
-  it.each(["group_1", "group_1/name"])("names group_1's frame for %s", (element) => {
-    const store = storeOf();
-    const frame = recorded(stored(store).drawing, "frame", "group_1");
-    expect(geometry(store, element)).toMatchObject({
-      role: "item",
-      label: "Frame properties",
-      elements: [
-        { kind: "frame", holder: null, address: `${M}/${element}`, values: itemValues(frame) },
-      ],
-    });
-    expect(itemValues(frame)).toMatchObject({ scale: 1, length: 400, spacing: 8 });
-  });
-
-  it.each(["annotations/card", "annotations"])("names the card the box holds for %s", (element) => {
-    const store = storeOf();
-    const card = recorded(stored(store).drawing, "card", "annotations/card");
-    expect(geometry(store, element)).toMatchObject({
-      role: "item",
-      label: "Card properties",
-      elements: [{ kind: "card", holder: "box", values: itemValues(card) }],
-    });
-  });
-
-  it.each([
-    ["group_1/score/card", "group_1"],
-    ["group_2/excerpt/card", "group_2"],
-  ])("names %s, held by the frame of %s, with its frame's scale and length", (element, group) => {
-    const store = storeOf();
-    const { drawing } = stored(store);
-    const card = recorded(drawing, "card", element).card;
-    const frame = recorded(drawing, "frame", group).item?.place;
-    expect(geometry(store, element)).toMatchObject({
-      role: "held",
-      label: "Card properties",
-      elements: [
-        {
-          kind: "card",
-          holder: "frame",
-          values: {
-            scale: frame?.scale,
-            length: frame?.length,
-            spacing: card?.spacing,
-            width: card?.size.width,
-            height: card?.size.height,
+  it.each<ElementAddress>([{ id: "group_1" }, { id: "group_1", part: ["name"] }])(
+    "names group_1's frame for %j",
+    (element) => {
+      const store = storeOf();
+      const frame = recorded(stored(store).drawing, "frame", { id: "group_1" });
+      expect(geometry(store, element)).toMatchObject({
+        role: "item",
+        label: "Frame properties",
+        elements: [
+          {
+            kind: "frame",
+            holder: null,
+            address: at(element),
+            box: { item: "group_1" },
+            values: itemValues(frame),
           },
-        },
-      ],
-    });
-  });
+        ],
+      });
+      expect(itemValues(frame)).toMatchObject({ scale: 1, length: 400, spacing: 8 });
+    },
+  );
+
+  it.each<ElementAddress>([{ id: "annotations", part: ["card"] }, { id: "annotations" }])(
+    "names the card the block holds for %j",
+    (element) => {
+      const store = storeOf();
+      const card = recorded(stored(store).drawing, "card", { id: "annotations", part: ["card"] });
+      expect(geometry(store, element)).toMatchObject({
+        role: "item",
+        label: "Card properties",
+        elements: [
+          {
+            kind: "card",
+            holder: "block",
+            address: at(element),
+            box: { item: "annotations" },
+            values: itemValues(card),
+          },
+        ],
+      });
+    },
+  );
+
+  it.each<[ElementAddress, string, string]>([
+    [{ id: "score", part: ["card"] }, "group_1", "score"],
+    [{ id: "excerpt", part: ["card"] }, "group_2", "excerpt"],
+  ])(
+    "names %j, held by the frame of %s, with its frame's scale and length",
+    (element, group, member) => {
+      const store = storeOf();
+      const { drawing } = stored(store);
+      const card = recorded(drawing, "card", element).card;
+      const frame = recorded(drawing, "frame", { id: group }).item?.place;
+      expect(geometry(store, element)).toMatchObject({
+        role: "held",
+        label: "Card properties",
+        elements: [
+          {
+            kind: "card",
+            holder: "frame",
+            address: at(element),
+            box: { item: group, member },
+            values: {
+              scale: frame?.scale,
+              length: frame?.length,
+              spacing: card?.spacing,
+              width: card?.size.width,
+              height: card?.size.height,
+            },
+          },
+        ],
+      });
+    },
+  );
 
   it("gathers several containers of one role, each once, in selection order", () => {
     const store = storeOf();
-    const two = geometry(store, "group_1", "group_2");
+    const two = geometry(store, { id: "group_1" }, { id: "group_2" });
     expect([two.role, two.label, two.elements.map((element) => element.address)]).toEqual([
       "item",
       "Frame properties",
-      [`${M}/group_1`, `${M}/group_2`],
+      [at({ id: "group_1" }), at({ id: "group_2" })],
     ]);
-    expect(geometry(store, "group_1", "annotations/card").label).toBe("Frame and card properties");
-    expect(geometry(store, "annotations", "annotations/card").elements).toHaveLength(1);
+    expect(geometry(store, { id: "group_1" }, { id: "annotations", part: ["card"] }).label).toBe(
+      "Frame and card properties",
+    );
+    expect(
+      geometry(store, { id: "annotations" }, { id: "annotations", part: ["card"] }).elements,
+    ).toHaveLength(1);
   });
 
-  it.each([
+  it.each<[ElementAddress[]]>([
     [[]],
-    [["group_1", "group_1/score/card"]],
-    [["", "group_1"]],
-    [["name"]],
-    [["recording"]],
-    [["score/tempo"]],
+    [[{ id: "group_1" }, { id: "score", part: ["card"] }]],
+    [[{}, { id: "group_1" }]],
+    [[{ part: ["name"] }]],
+    [[{ id: "recording" }]],
+    [[{ id: "cmap_1" }]],
   ])("gives none for %j", (elements) => {
     expect(geometryIn(storeOf(), elements)).toBe(null);
   });
@@ -211,22 +260,23 @@ describe("the geometry", () => {
     const store = storeOf();
     const subjects = resolveSelection(
       store.view,
-      new Set([`${M}/group_1`, "bshared000/group_1"]),
+      selectionOf([at({ id: "group_1" }), { block: "bshared000", id: "group_1" }]),
+      null,
       fontMetrics,
     );
-    expect(geometryOf(blockOf(store), subjects, stored(store), "arranger")).toBe(null);
+    expect(geometryOf(blockOf(store), subjects, stored(store), null)).toBe(null);
   });
 
   it("shows stated values over drawn ones, a held card's spacing its own", () => {
     const store = storeOf();
-    dispatch(store, `${M}/group_1`, { place: { length: 300, scale: 1.5, spacing: 2 } });
-    dispatch(store, `${M}/score`, { place: { width: 650, spacing: 1.25 } });
-    expect(geometry(store, "group_1").elements[0]?.values).toMatchObject({
+    dispatch(store, at({ id: "group_1" }), { place: { length: 300, scale: 1.5, spacing: 2 } });
+    dispatch(store, at({ id: "score" }), { place: { width: 650, spacing: 1.25 } });
+    expect(geometry(store, { id: "group_1" }).elements[0]?.values).toMatchObject({
       length: 300,
       scale: 1.5,
       spacing: 2,
     });
-    expect(geometry(store, "group_1/score/card").elements[0]?.values).toMatchObject({
+    expect(geometry(store, { id: "score", part: ["card"] }).elements[0]?.values).toMatchObject({
       scale: 1.5,
       length: 300,
       width: 650,
@@ -237,40 +287,44 @@ describe("the geometry", () => {
   it("reads the drawing a gesture shows", () => {
     const store = storeOf();
     const live = livePlacementOf(store, { group_1: { length: 460 } });
-    const frame = itemValues(recorded(live.drawing, "frame", "group_1"));
-    expect(geometryIn(store, ["group_1"], "arranger", live)?.elements[0]?.values).toEqual(frame);
+    const frame = itemValues(recorded(live.drawing, "frame", { id: "group_1" }));
+    expect(geometryIn(store, [{ id: "group_1" }], "arranger", live)?.elements[0]?.values).toEqual(
+      frame,
+    );
     expect(frame.length).toBe(460);
-    const card = recorded(live.drawing, "card", "group_1/score/card").card;
+    const card = recorded(live.drawing, "card", { id: "score", part: ["card"] }).card;
     expect(
-      geometryIn(store, ["group_1/score/card"], "arranger", live)?.elements[0]?.values,
+      geometryIn(store, [{ id: "score", part: ["card"] }], "arranger", live)?.elements[0]?.values,
     ).toMatchObject({
       length: 460,
       width: card?.size.width,
     });
     const moved = { ...live, x: 5.556 };
-    expect(geometryIn(store, [""], "arranger", moved)?.elements[0]?.values.x).toBe(5.556);
+    expect(geometryIn(store, [{}], "arranger", moved)?.elements[0]?.values.x).toBe(5.556);
   });
 
   it("gives the value every element shares, none when they differ", () => {
     const store = storeOf();
-    expect(commonValue(geometry(store, "group_1", "group_2"), "length")).toBe(400);
-    dispatch(store, `${M}/group_1`, { place: { length: 300 } });
-    expect(commonValue(geometry(store, "group_1", "group_2"), "length")).toBe(undefined);
+    expect(commonValue(geometry(store, { id: "group_1" }, { id: "group_2" }), "length")).toBe(400);
+    dispatch(store, at({ id: "group_1" }), { place: { length: 300 } });
+    expect(commonValue(geometry(store, { id: "group_1" }, { id: "group_2" }), "length")).toBe(
+      undefined,
+    );
   });
 });
 
 describe("the fields", () => {
   it("offers each role's fields, labelling a held card's shared ones as the group's", () => {
     const store = storeOf();
-    const labels = (element: string) => {
+    const labels = (element: ElementAddress) => {
       const found = geometryIn(store, [element]);
       if (found === null) throw new Error("no geometry");
       return found.fields.map((field) => fieldLabel(found.role, field));
     };
-    expect(labels("")).toEqual(LABELS);
-    expect(labels("group_1")).toEqual(LABELS);
-    expect(labels("annotations/card")).toEqual(LABELS);
-    expect(labels("group_1/score/card")).toEqual([
+    expect(labels({})).toEqual(LABELS);
+    expect(labels({ id: "group_1" })).toEqual(LABELS);
+    expect(labels({ id: "annotations", part: ["card"] })).toEqual(LABELS);
+    expect(labels({ id: "score", part: ["card"] })).toEqual([
       "group length",
       "group scale",
       "spacing",
@@ -280,17 +334,17 @@ describe("the fields", () => {
   });
 
   it.each([
-    ["", "arranger", []],
-    ["", "bundle", []],
-    ["", "group", ["length", "scale", "spacing"]],
-    ["", "timeline", ["length", "scale", "spacing"]],
-    ["group_1", "arranger", ["x", "y"]],
-    ["group_1", "bundle", []],
-    ["group_1", "group", ["x", "y"]],
-    ["annotations/card", "timeline", ["x", "y"]],
-    ["group_1/score/card", "arranger", []],
-    ["group_1/score/card", "group", []],
-  ] as const)("withholds for %s in %s exactly %j", (element, level, withheld) => {
+    [{}, "arranger", []],
+    [{}, "bundle", []],
+    [{}, "group", ["length", "scale", "spacing"]],
+    [{}, "timeline", ["length", "scale", "spacing"]],
+    [{ id: "group_1" }, "arranger", ["x", "y"]],
+    [{ id: "group_1" }, "bundle", []],
+    [{ id: "group_1" }, "group", ["x", "y"]],
+    [{ id: "annotations", part: ["card"] }, "timeline", ["x", "y"]],
+    [{ id: "score", part: ["card"] }, "arranger", []],
+    [{ id: "score", part: ["card"] }, "group", []],
+  ] as const)("withholds for %j in %s exactly %j", (element, level, withheld) => {
     const store = storeOf();
     const found = geometryIn(store, [element], level);
     if (found === null) throw new Error("no geometry");
@@ -351,14 +405,23 @@ describe("the fields", () => {
 
 describe("the commands are the arranger's", () => {
   it.each([
-    [[""], "x", "12.5", 12.5, "arranger"],
-    [["group_1"], "length", "300", 300, "arranger"],
-    [["group_1/score/card"], "scale", "1.5", 1.5, "arranger"],
-    [["group_1/score/card"], "spacing", "1.5", 1.5, "group"],
-    [["group_1/score/card"], "length", "500", 500, "group"],
-    [["group_1", "group_2"], "length", "350", 350, "arranger"],
-    [["group_1/performance/card", "group_1/score/card"], "width", "600", 600, "timeline"],
-    [["group_1"], "scale", "1.5", 1.5, "bundle"],
+    [[{}], "x", "12.5", 12.5, "arranger"],
+    [[{ id: "group_1" }], "length", "300", 300, "arranger"],
+    [[{ id: "score", part: ["card"] }], "scale", "1.5", 1.5, "arranger"],
+    [[{ id: "score", part: ["card"] }], "spacing", "1.5", 1.5, "group"],
+    [[{ id: "score", part: ["card"] }], "length", "500", 500, "group"],
+    [[{ id: "group_1" }, { id: "group_2" }], "length", "350", 350, "arranger"],
+    [
+      [
+        { id: "performance", part: ["card"] },
+        { id: "score", part: ["card"] },
+      ],
+      "width",
+      "600",
+      600,
+      "timeline",
+    ],
+    [[{ id: "group_1" }], "scale", "1.5", 1.5, "bundle"],
   ] as const)("%j %s %s at %s is placeEdit's set", (elements, property, text, value, level) => {
     const store = storeOf();
     const found = geometryIn(store, [...elements], level);
@@ -368,7 +431,7 @@ describe("the commands are the arranger's", () => {
       addresses(...elements),
       property,
       value,
-      level,
+      editorAt(level, M),
       fontMetrics,
     );
     expect(propertyCommand(store.view, found, property, text)).toEqual({
@@ -379,17 +442,17 @@ describe("the commands are the arranger's", () => {
 
   it("sends an emptied width or height as null, and nothing for a value already stored", () => {
     const store = storeOf();
-    dispatch(store, `${M}/score`, { place: { width: 650 } });
-    const card = geometry(store, "group_1/score/card");
+    dispatch(store, at({ id: "score" }), { place: { width: 650 } });
+    const card = geometry(store, { id: "score", part: ["card"] });
     expect(propertyCommand(store.view, card, "width", "")).toEqual({
       ok: true,
       value: {
         command: placeEdit(
           store.view,
-          addresses("group_1/score/card"),
+          addresses({ id: "score", part: ["card"] }),
           "width",
           null,
-          "arranger",
+          null,
           fontMetrics,
         ),
         notice: null,
@@ -399,7 +462,7 @@ describe("the commands are the arranger's", () => {
       ok: true,
       value: { command: null, notice: null },
     });
-    expect(propertyCommand(store.view, geometry(store, ""), "length", "400")).toEqual({
+    expect(propertyCommand(store.view, geometry(store, {}), "length", "400")).toEqual({
       ok: true,
       value: { command: null, notice: null },
     });
@@ -412,26 +475,34 @@ describe("the commands are the arranger's", () => {
     ["x", "0x10", "0x10 is not a number"],
   ] as const)("refuses %s %j before dispatch", (property, text, message) => {
     const store = storeOf();
-    expect(propertyCommand(store.view, geometry(store, "group_1"), property, text)).toEqual({
-      ok: false,
-      problems: [{ code: "invalid_value", message, path: [`${M}/group_1`, property] }],
-    });
+    expect(propertyCommand(store.view, geometry(store, { id: "group_1" }), property, text)).toEqual(
+      {
+        ok: false,
+        problems: [
+          {
+            code: "invalid_value",
+            message,
+            path: ['{"block":"bmixed0000","id":"group_1"}', property],
+          },
+        ],
+      },
+    );
   });
 
   it("steps each element from its own value through the same call", () => {
     const store = storeOf();
-    dispatch(store, `${M}/group_1`, { place: { length: 300 } });
-    const both = geometry(store, "group_1", "group_2");
+    dispatch(store, at({ id: "group_1" }), { place: { length: 300 } });
+    const both = geometry(store, { id: "group_1" }, { id: "group_2" });
     const step = (current: number | null) => stepValue(current, 1, STEPS.length);
     expect(stepCommand(store.view, both, "length", 1)).toEqual({
       ok: true,
       value: {
         command: placeEdit(
           store.view,
-          addresses("group_1", "group_2"),
+          addresses({ id: "group_1" }, { id: "group_2" }),
           "length",
           step,
-          "arranger",
+          null,
           fontMetrics,
         ),
         notice: null,
@@ -453,10 +524,10 @@ describe("the Properties form", () => {
   /** Mount the inspector on `store`; the selection and the gesture can be changed afterwards. */
   function show(
     store: Store,
-    elements: string[],
+    elements: ElementAddress[],
     placement = holder<LivePlacement | null>(null),
-  ): { value: ReadonlySet<string> } {
-    const selection = holder<ReadonlySet<string>>(addresses(...elements));
+  ): { value: Selection } {
+    const selection = holder<Selection>(addresses(...elements));
     app = mount(Inspector, {
       target: document.body,
       props: {
@@ -478,7 +549,7 @@ describe("the Properties form", () => {
     return selection;
   }
 
-  function open(store: Store, target: string): void {
+  function open(store: Store, target: Address): void {
     const refusal = store.open(target);
     if (refusal !== null) throw new Error(refusal.message);
   }
@@ -532,8 +603,8 @@ describe("the Properties form", () => {
 
   it("edits a frame's place with the arranger's command, never the block's", () => {
     const store = storeOf();
-    show(store, ["group_1"]);
-    const frame = itemValues(recorded(stored(store).drawing, "frame", "group_1"));
+    show(store, [{ id: "group_1" }]);
+    const frame = itemValues(recorded(stored(store).drawing, "frame", { id: "group_1" }));
     expect(forms()).toEqual(["Frame properties"]);
     expect(fields()).toEqual(
       PLACE.map((property, index) => [
@@ -546,10 +617,10 @@ describe("the Properties form", () => {
     const before = store.journal.length;
     const expected = placeEdit(
       store.view,
-      addresses("group_1"),
+      addresses({ id: "group_1" }),
       "length",
       300,
-      "arranger",
+      null,
       fontMetrics,
     );
     type("length", "300");
@@ -561,7 +632,7 @@ describe("the Properties form", () => {
 
   it("commits an unchanged field by dispatching nothing and showing nothing", () => {
     const store = storeOf();
-    show(store, ["group_1"]);
+    show(store, [{ id: "group_1" }]);
     const spy = vi.spyOn(store, "dispatch");
     type("length", "300");
     press("length", "Enter");
@@ -576,7 +647,7 @@ describe("the Properties form", () => {
 
   it("shows a refusal beside its field until a value is accepted or the draft discarded", () => {
     const store = storeOf();
-    show(store, [""]);
+    show(store, [{}]);
     type("scale", "0");
     press("scale", "Enter");
     expect([field("scale").value, field("scale").getAttribute("aria-invalid")]).toEqual([
@@ -596,31 +667,31 @@ describe("the Properties form", () => {
 
   it("shows a draft only for the containers and the manifest it was typed for", () => {
     const store = storeOf();
-    const selection = show(store, ["group_1"]);
+    const selection = show(store, [{ id: "group_1" }]);
     type("length", "999");
-    selection.value = addresses("group_2");
+    selection.value = addresses({ id: "group_2" });
     flushSync();
     expect(field("length").value).toBe("400");
-    selection.value = addresses("group_1");
+    selection.value = addresses({ id: "group_1" });
     flushSync();
     expect(field("length").value).toBe("999");
-    dispatch(store, `${M}/score`, { name: "Renamed" });
+    dispatch(store, at({ id: "score" }), { name: "Renamed" });
     flushSync();
     expect(field("length").value).toBe("400");
   });
 
   it("shows differing values as mixed and steps each from its own", () => {
     const store = storeOf();
-    dispatch(store, `${M}/group_1`, { place: { length: 300 } });
-    show(store, ["group_1", "group_2"]);
+    dispatch(store, at({ id: "group_1" }), { place: { length: 300 } });
+    show(store, [{ id: "group_1" }, { id: "group_2" }]);
     expect([field("length").value, field("length").placeholder]).toEqual(["", "mixed"]);
     const step = (current: number | null) => stepValue(current, 1, STEPS.length);
     const expected = placeEdit(
       store.view,
-      addresses("group_1", "group_2"),
+      addresses({ id: "group_1" }, { id: "group_2" }),
       "length",
       step,
-      "arranger",
+      null,
       fontMetrics,
     );
     press("length", "ArrowUp");
@@ -629,7 +700,7 @@ describe("the Properties form", () => {
 
   it("labels a held card's fields and offers them at every level", () => {
     const store = storeOf();
-    show(store, ["group_1/score/card"]);
+    show(store, [{ id: "score", part: ["card"] }]);
     expect(forms()).toEqual(["Card properties"]);
     expect(fields().map(([label, , , disabled]) => [label, disabled])).toEqual([
       ["group length", false],
@@ -640,14 +711,14 @@ describe("the Properties form", () => {
     ]);
   });
 
-  it.each([
+  it.each<[Address | null, boolean]>([
     [null, true],
-    [M, false],
-    [`${M}/group_1`, true],
-  ])("in the editor of %s disables a frame's x and y: %s", (target, disabled) => {
+    [at(), false],
+    [at({ id: "group_1" }), true],
+  ])("in the editor of %j disables a frame's x and y: %s", (target, disabled) => {
     const store = storeOf();
     if (target !== null) open(store, target);
-    show(store, ["group_1"]);
+    show(store, [{ id: "group_1" }]);
     expect([field("x").disabled, field("y").disabled, field("length").disabled]).toEqual([
       disabled,
       disabled,
@@ -658,9 +729,9 @@ describe("the Properties form", () => {
   it("follows a gesture on its block live, and only on its block", () => {
     const store = storeOf();
     const gesture = holder<LivePlacement | null>(null);
-    show(store, ["group_1"], gesture);
+    show(store, [{ id: "group_1" }], gesture);
     const live = livePlacementOf(store, { group_1: { length: 460 } });
-    const width = itemValues(recorded(live.drawing, "frame", "group_1")).width;
+    const width = itemValues(recorded(live.drawing, "frame", { id: "group_1" })).width;
     gesture.value = live;
     flushSync();
     expect([field("length").value, field("width").value]).toEqual(["460", shownValue(width)]);
@@ -673,14 +744,14 @@ describe("the Properties form", () => {
   });
 
   it("shows the block's seven fields for the block", () => {
-    show(storeOf(), [""]);
+    show(storeOf(), [{}]);
     expect(forms()).toEqual(["Block properties"]);
     expect(fields().map(([label]) => label)).toEqual(LABELS);
   });
 
-  it.each([
-    [["group_1", "group_1/score/card"], null],
-    [["name"], "Mixed"],
+  it.each<[ElementAddress[], string | null]>([
+    [[{ id: "group_1" }, { id: "score", part: ["card"] }], null],
+    [[{ part: ["name"] }], "Mixed"],
   ])("shows the hint for %j, after the name %j", (elements, name) => {
     show(storeOf(), elements);
     const named = panel().querySelector<HTMLInputElement>('input[name="name"]');

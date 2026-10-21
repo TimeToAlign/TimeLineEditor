@@ -38,7 +38,7 @@ export function fixtureWorkspace(blocks: Iterable<FixtureBlock>): string {
   for (const [id, manifest, x, y] of blocks) {
     const refusal = store.dispatch({
       type: "add",
-      into: "workspace",
+      into: {},
       block: { id, manifest, x, y },
     });
     if (refusal !== null) throw new Error(`adding ${id} is refused: ${refusal.code}`);

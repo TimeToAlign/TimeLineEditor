@@ -43,9 +43,17 @@ export the editor draws with.
 reading the hook, selecting, closing an editor, the inspector's tabs and
 panels, the marks, the points a gesture aims at and the gestures
 themselves. A block's drawn structure (frames, cards, titles and lines) is
-read from the hook's container records, and an address is built or taken
-apart only by core's and the arranger's own functions. The hook's type is
-the editor's own, imported, never copied.
+read from the hook's container records. An address is an object, never a
+string composed from IDs: a drawn element is found by `addressSelector`,
+which matches each of `data-id`, `data-facet` and `data-part` exactly when
+the address states it and requires it absent when it does not (so `{id:
+"score"}` never matches `{id: "score", part: ["card"]}`), always inside
+the block's drawing (`.tilie-block svg`, since Svelte Flow's node carries a
+`data-id` of its own, the block's ID), with every value escaped as a CSS
+string; a mark by `marksSelector`, its `data-marks` equal to the marked
+element's `addressKey`. Addresses are compared as whole objects or by
+core's `addressKey`, never taken apart. The hook's type is the editor's
+own, imported, never copied.
 
 ## How state is read
 
@@ -61,15 +69,18 @@ the editor's own, imported, never copied.
 - **The DOM** for what the editor renders: nodes
   `.svelte-flow__node[data-id="<block id>"]` (a selected block's node
   carries Svelte Flow's class `selected`), counted as
-  `[data-testid="block"]`, drawn elements
-  `[data-address="<address>"]` inside their node (one rule in every
-  manifest: a timeline or a group by its bare id, every other element by
-  `<root id>/<element id>`, the manifest's title by `name`; parts append
-  `/start`, `/end`, `/name`, `/label` or `/card`), a selected part's
-  `[data-selected]`, the overlays, each a `.tilie-mark` with `data-mark`
-  (`selection`, `hover` or `holding`), `data-marks` the address it marks
-  and `data-box` the box's kind (`box`, `frame`, `card`, `band`; none on a
-  boundary's mark), `[data-affected]`, `[data-contains-selection]` on a
+  `[data-testid="block"]`, drawn elements inside their node's drawing by
+  the attributes of their element address, `data-id`, `data-facet` and
+  `data-part` (the part words joined by one space), each present only when
+  the address states it (a timeline, group, map, region or flow-control
+  element `{id}`, a band `{id: T, facet}`, every card of a timeline `{id:
+  T, part: ["card"]}`, the manifest's title `{part: ["name"]}`, a name,
+  label or mark `{id, part}`; the block's background carries none), a
+  selected part's `[data-selected]`, the overlays, each a `.tilie-mark`
+  with `data-mark` (`selection`, `hover` or `holding`), `data-marks` the
+  `addressKey` of the element address it marks (`{}` for the block) and
+  `data-box` the container it outlines (`block`, `frame`, `card`, `band`;
+  none on a boundary's mark), `[data-affected]`, `[data-contains-selection]` on a
   block's node, the mode buttons `[data-testid="mode-scale"
   | "mode-box" | "mode-stretch"]` and the canvas controls' `[data-testid="lock"
   | "marquee"]` with `aria-pressed`,
@@ -92,8 +103,8 @@ the editor's own, imported, never copied.
 Every wait waits on state (`expect.poll`, `toHaveCount`, the hook's values, a
 requested animation frame); no test sleeps. Pointer gestures move the mouse
 in steps (`support.ts`: `drag`, `dragStart`, `dragBlock`). A press on a
-block's card selects the card (`<block>/<root>/card`), a press on a group's
-frame the group (`<block>/<group>`), a click on its
+block's card selects the card (`{block, id: <root>, part: ["card"]}`), a
+press on a group's frame the group (`{block, id: <group>}`), a click on its
 margin (the `P` = 8 canvas units outside the card, the block's own
 background) selects the block, and a drag from either moves the block. So a
 click meant to select a block lands on its margin, a whole-pixel point
@@ -141,35 +152,36 @@ present. The files are never edited by hand.
 |---|---|
 | `small.tle.json` | `bare000000` (`bare`) at (0, 0), `nested0000` (`nested`) at (0, 160), `map0000000` (`map`) at (0, 320), `flow000000` (`flow_control`) at (640, 0), `styled0000` (`styled__score`: region `intro`, jump `da-capo`, C-Map `ticks`) at (640, 160) |
 | `groups.tle.json` | four manifests of one group each: `gchild0000` (`groups/group_child_member`) at (0, 0), `ggrand0000` (`groups/group_grandchild`) at (0, 240), `gmixed0000` (`groups/group_parents_mixed`) at (640, 0), `gstyled000` (`groups/group_styled`) at (640, 424) |
-| `bundles.tle.json` | the three named manifests of `bundles/`: `bmixed0000` (`bundles/bundle_mixed`) at (0, 0), `bshared000` (`bundles/bundle_shared_parent`) at (640, 0), `bungroup00` (`bundles/bundle_ungrouped`) at (0, 480) |
+| `bundles.tle.json` | the four named manifests of `bundles/`: `bmixed0000` (`bundles/bundle_mixed`) at (0, 0), `bshared000` (`bundles/bundle_shared_parent`) at (640, 0), `bungroup00` (`bundles/bundle_ungrouped`) at (0, 480), `btwogroups` (`bundles/bundle_shared_member`: `t` a member of `g1` and of `g2`) at (640, 560) |
 | `grid-300.tle.json` | 300 `bare` blocks `g000000000` … `g000000299`, block `n` at (512 × (n mod 20), 80 × ⌊n / 20⌋) |
 | `grid-900.tle.json` | 900 `bare` blocks, block `n` at (512 × (n mod 30), 80 × ⌊n / 30⌋) |
 
 The group workspace takes one manifest of each shape the drawing distinguishes:
 a member that is a child (one ancestor line), a grandchild (two), members
 under three different roots beside a root member, and a styled frame; the
-boxes it draws (558.4140625 × 190.13671875, 559.70361328125 × 224.11328125,
+blocks it draws (558.4140625 × 190.13671875, 559.70361328125 × 224.11328125,
 568.08642578125 × 377.640625, 544.693603515625 × 260.1875) do not
 overlap at those positions, and all four lie inside a 1600 × 1000 page at
 viewport (40, 40), zoom 1. The bundle workspace holds every synthetic manifest
-of `bundles/` (boxes 580.484619140625 × 473.62890625, 585.39013671875 ×
-537.4609375, 525.896728515625 × 252.1640625).
+of `bundles/` (blocks 580.484619140625 × 473.62890625, 585.39013671875 ×
+537.4609375, 525.896728515625 × 252.1640625, 541.83056640625 ×
+323.9296875), none overlapping another at those positions.
 
-After opening, the journal holds one `add` per block (5, 4, 3, 300, 900); a gesture
+After opening, the journal holds one `add` per block (5, 4, 4, 300, 900); a gesture
 is proven to be one command by the journal growing by exactly one entry.
 
 ### Drawing facts the expected values rest on
 
-A manifest of one root with neither `name` nor `id` is drawn as a box without
+A manifest of one root with neither `name` nor `id` is drawn as a block without
 a title holding its root in a card (drawing.md section 8): the card spans `x = P = 8` to `R + K` and `y = 8` to
-`8 + Hm`, its shadow 2 further right and down, and the box adds `P` beyond
-the shadow, so every box is the root's own drawing (sections 3 to 6, the
+`8 + Hm`, its shadow 2 further right and down, and the block adds `P` beyond
+the shadow, so every block is the root's own drawing (sections 3 to 6, the
 card's size) plus 18 each way, and its plot origin lies 8 further right.
-The boxes and plot origins of the default placement, from `draw` and the
+The blocks and plot origins of the default placement, from `draw` and the
 font's advances (they equal the background `rect` of the upstream drawing
 fixtures of the installed schema version):
 
-| Manifest | Width | Height | Plot origin (root line start, box-local) | Card (`x`, `y`, `width`, `height`) |
+| Manifest | Width | Height | Plot origin (root line start, block-local) | Card (`x`, `y`, `width`, `height`) |
 |---|---|---|---|---|
 | `bare` | 476.5771484375 | 67.37890625 | 49.5771484375 | 8, 8, 458.5771484375, 49.37890625 |
 | `nested` | 477.194580078125 | 95.9765625 | 49.91552734375 | 8, 8, 459.194580078125, 77.9765625 |
@@ -182,7 +194,7 @@ card's right edge, `K` 8 and the shadow 2), 27.279052734375 for `nested` and
 `flow_control` and 30 for `styled__score`; for every one it does not depend
 on the length, so a stretch of the length moves the right edge by exactly
 the length change (checked at lengths 400, 420 and 600). A block's
-`spacing` is the gap between its box's items at their default `y`
+`spacing` is the gap between its block's items at their default `y`
 (drawing.md section 8.6); each block of `small` holds one item, so its
 spacing changes nothing drawn and a vertical stretch of it finds no other
 value. A frame's spacing is the gap between its cards: `bmixed0000`'s
@@ -190,9 +202,9 @@ value. A frame's spacing is the gap between its cards: `bmixed0000`'s
 cards 78.953125 and 49.4765625, `Q` 8), so a vertical stretch by 44 sets
 its spacing to `8 + 44 = 52`.
 
-Every block's card rectangle and its shadow carry the address `<root>/card`
-(`bare/card`, `clt_1/card`, `melody/card`, `flow:quarters/card`,
-`score/card`); the drawn texts of `small` are still 23 (a manifest with neither
+Every block's card rectangle and its shadow carry the address `{id: <root>,
+part: ["card"]}` (roots `bare`, `clt_1`, `melody`, `flow:quarters`,
+`score`); the drawn texts of `small` are still 23 (a manifest with neither
 `name` nor `id` draws no title).
 
 The items of the two bundles with frames lie at their default places
@@ -219,7 +231,7 @@ before, all at `x = 8`.
   87.453125; `annotations` (both regions in one row, a regions band `6 + 2
   + h(9) + 4 − 4 = 18.4765625` wide, 4 beyond the wedges) 71.85546875. So
   `group_1` is 169.234375 high at `y` 28.8046875, `group_2` 177.734375 at
-  206.0390625, and `annotations/card` lies at 391.7734375; the box is `8 +
+  206.0390625, and `annotations`' card lies at 391.7734375; the block is `8 +
   (391.7734375 + 71.85546875 + 2) = 473.62890625` high.
 - `bshared000`: `exposition` (two maps, its own `cmap_2` and then its
   segment `exposition_second`'s `cmap_3`, and the boundary of
@@ -238,8 +250,8 @@ before, all at `x = 8`.
   `recapitulation_second`'s map and one tier of phrase labels), so it ends
   at 52.953125; `score`'s row from 56.953125, `Ea = 90.9296875`)
   133.90625; `take_2` (plain) 49.37890625. So `group_1` is 209.1875 high at `y` 28.8046875, `group_2`
-  224.08984375 at 245.9921875, and `page/card` lies at 478.08203125; the
-  box is `8 + (478.08203125 + 49.37890625 + 2) = 537.4609375` high.
+  224.08984375 at 245.9921875, and `page`'s card lies at 478.08203125; the
+  block is `8 + (478.08203125 + 49.37890625 + 2) = 537.4609375` high.
 
 Their widths are those of the names, the ancestor lines' chevrons and the
 labels at the lines' ends: maps span their lines (a plain segment's map its
@@ -321,14 +333,28 @@ buttons choose a mode and show its handles (four corners for scale, eight
 for box and stretch) and the mode survives a change of selection; for a
 table of handle drags in every mode the stored placement is the one the
 resize rules derive from the drawn box and the drag, with the opposite edge
-exactly put, one `set` journalled on release and none for a drag that
-changes no stored value; box keeps the content's own size below its extent,
+exactly put, one `set` at the block (`{block}`) journalled on release and
+none for a drag that changes no stored value; box keeps the content's own size below its extent,
 a vertical stretch of a block of one item, which has no gap, journals
 nothing, a resize held in the edge zone pans and follows the pointer, and
 undo restores the placement exactly. On `bundles` a frame's corner scales
 the group alone, a frame's vertical stretch by 44 sets its spacing to 52
 and states the other items where they are drawn, and a member's card keeps
-its margin in proportion while its group shortens again.
+its margin in proportion while its group shortens again; the card's place
+is stated inside its frame's (`places.group_1.cards.exposition`, beside
+the frame's own `length`), and the card is selected by its one address
+`{block, id: "exposition", part: ["card"]}`. The card address `{block:
+"btwogroups", id: "t", part: ["card"]}` covers both cards of `t`; in the
+editor of `g2`, the viewport put back to (−560, −480), zoom 1, after the
+editor moved it (the block at (80, 80), clear of the drawer the editor
+opens), the resize toolbar acts on the card `g2`'s frame holds: a
+box drag of its right handle by 100 takes it from its drawn width
+`509.83056640625` (the frame `525.83056640625` wide less 2 × 8 padding,
+every card of the block being as wide) to `609.83056640625`, one `set`
+entry of the editor's session, the journal unchanged until Done,
+stating `places.g2.cards.t.width` alone (the group editor lays no item out
+freely), and the card of `t` in `g1` keeps its drawn width: the first
+rectangle with the address writes `509.8306`, the last `609.8306`.
 
 **`touch.spec.ts`** (the touch project, Chromium on a Pixel 7) drives real
 touch points through the DevTools Protocol, one finger or two, on `small` at
@@ -341,7 +367,10 @@ grid and pans the empty canvas, a pinch zooms, the mode buttons and the
 marquee toggle answer taps, a double tap on a card opens its timeline
 editor and a double tap on the faded surroundings closes the innermost one,
 and a band dragged with one finger moves across its line without panning
-the view.
+the view (`bmixed0000`'s `score`, its `flow_control` band released above
+the conversion maps band: one `set` at `{block: "bmixed0000", id:
+"score"}` of the order `children, flow_control, conversion_maps, line,
+markers, regions`).
 
 **`files.spec.ts`** (Chromium, Firefox, WebKit) takes the fallback path every
 engine offers: the pickers are deleted before the page loads, so a file is
@@ -376,21 +405,29 @@ exactly that amount, the fields follow a drag and a resize live (rounded to
 two decimals) and show the stored values afterwards, an arrow-key step applies
 at once as one command, Escape restores the stored values, and on
 `bundles` the form edits a frame's and a card's places, never the block's,
-following a frame's Stretch live in the bundle editor. The heading names
-what is inspected: a timeline, a bundle, a group, a card's timeline, and
-the anonymous bundle of a manifest without a name.
+following a frame's Stretch live in the bundle editor; every `set` the
+form journals aims at an address object, `{block}` for the block's own
+placement, `{block, id: G}` for a frame's group and, through its `cards`,
+for a member's card in that frame (`score`'s width 650 is `{cards: {score:
+{width: 650}}}` at `group_1`), and `{block, id: T}` for an ungrouped
+root's card (`annotations`). The
+heading names what is inspected: a timeline, a bundle, a group, a card's
+timeline (a press on `bare`'s card selects `{block: "bare000000", id:
+"bare", part: ["card"]}`), and the anonymous bundle of a manifest without
+a name (a press on the margin selects `{block: "bare000000"}`).
 
 **`properties-fields.spec.ts`** (Chromium, Firefox, WebKit) opens the
 drawer's Properties tab on `bundles`. With `group_1` selected, its frame
 height stated 10 above the drawn one (one command, the field showing it)
 and then `1`, typed and committed with Enter, is one command
-unstating it (`place {height: null}`): the field shows the text it showed
+unstating it (a `set` at `{block: "bmixed0000", id: "group_1"}` with
+`place {height: null}`): the field shows the text it showed
 before (the drawn height, the minimum), the block's drawn box has its
 size on screen from before the first command, and the status line reads `To decrease the height
 below <that text> px, decrease the size of the contained elements
 first.`. The container width and height stand side by side in one row,
 the disabled Locked checkbox right of the height, checked for `excerpt`'s
-card and not for `score`'s. The Name field comes first and renames the
+card (`{id: "excerpt", part: ["card"]}` selected) and not for `score`'s. The Name field comes first and renames the
 selected group in one command. In the group editor of `group_1` with
 nothing selected, the Name field shows the edited group's name,
 `Performance`, and `Duo` with Enter renames the group.
@@ -412,16 +449,22 @@ formula itself pinned by a worked example).
 **`groups.spec.ts`** (Chromium, Firefox, WebKit) proves manifests holding
 groups on the canvas, `groups` and `bundles` at viewport (40, 40). The
 drawn structure of every block (frames, titles, cards and lines in DOM
-order) equals the order of `docs/drawing.md` section 8.5 applied to the
-fixture by hand, and the titles their texts. A part drawn twice, a member's
+order, each address once, compared by `addressKey`: a frame `{id: G}`, its
+title `{id: G, part: ["name"]}`, a card and its shadow
+`{id: T, part: ["card"]}`, a line `{id: T}`, the manifest's title
+`{part: ["name"]}`) equals the order of `docs/drawing.md` section 8.5
+applied to the fixture by hand, and the titles their texts. A part drawn twice, a member's
 line or an ancestor line in two frames, is marked selected in every copy.
-Delete removes a timeline with its subtree from its group, and refuses a
-selection holding the manifest's title whole. Hover marks exactly one box
+Delete removes a timeline with its subtree from its group (one `remove`
+of `{block, id: T}`) and a region added into `second-half` (`region_1`,
+removed as `{block, id: "region_1"}`), and refuses a selection holding the
+manifest's title whole. Hover marks exactly one box
 overlay, the card or the frame under the pointer (never a shadow or an
 enclosing frame), at zoom 1/2 and at scale 1.5 too, and a hovered segment
 boundary is marked with its card; a press on a frame selects the group;
 a click on a member's line marks its card and frame as holding the
-selection and the block dotted, each in its stated colour. A stretch keeps
+selection and the block dotted (the block's mark `data-marks="{}"`,
+`data-box="block"`), each in its stated colour. A stretch keeps
 the margin a box resize added in proportion. Through the File menu, the
 schema package's `group_styled` and `bundle_mixed` are imported and
 exported byte for byte.
@@ -429,7 +472,7 @@ exported byte for byte.
 **`segments.spec.ts`** (Chromium, Firefox, WebKit) proves in a browser the
 refusal to delete a segment: with the schema package's `segment_line`
 imported and its segment `b` selected, Delete and Backspace each show
-core's refusal "Removing segment b of line form is not supported yet" in
+core's refusal "Removing segment 'b' of line 'form' is not supported yet" in
 the status line, open no menu and leave the journal, the selection and the root's length and
 segments unchanged; the status line clears on the next stored command.
 
@@ -437,24 +480,34 @@ segments unchanged; the status line clears on the next stored command.
 and timeline editors on `bundles` (and `groups` for a reorder) at viewport
 (40, 40), with reduced motion emulated so that every viewport is compared
 as soon as the canvas reports it. The open editors are read through the
-hook as `{target, kind}`, outermost first. A double-click on the margin, a
+hook as `{target, kind}`, outermost first, each target an address object:
+`{block: "bmixed0000"}` for the bundle editor, `{block: "bmixed0000", id}`
+for a group's or a timeline's. A double-click on the margin, a
 frame or a card, and Enter on one selected box, opens the editor and, the
 drawer having been closed, the drawer opens on the level tab, named
 "Bundle", "Group" or "Timeline", whose title line names the edited
 element; the viewport moves to the editor and back on Done;
 outside the edited element everything is faded and inert, another block as
 a whole through its node, and a click there, as on the pane, deselects;
-editors nest only inside the innermost; Done
+editors nest only inside the innermost (opening `group_2` inside
+`group_1`'s editor is refused with `not_inside` at the path
+`[addressKey({block: "bmixed0000", id: "group_2"})]`); Done
 folds the session into one journal entry, undone as one step, Cancel asks
 only when there are changes, and Escape aborts a gesture, then clears the
 selection, then acts as Done; moves in the bundle editor state every item's
 place, a card moved left of the padding grows the box left, two items move
-together, a change outside the edited element is refused, and a refused
-Delete shows its refusal; Delete pressed right after the group editor of
+together, a change outside the edited element is refused (a `set` of
+`group_2`'s place in `group_1`'s editor: `side_effect` at the path
+`[addressKey({block: "bmixed0000", id: "group_2"})]`), and a refused
+Delete shows its refusal (`excerpt` deleted in `group_2`'s editor changes
+its parent `recording`, which the group does not contain: the status line reads `<key of recording>
+lies outside <key of group_2>: an editor changes only what it edits`, each
+address printed as its `addressKey`); Delete pressed right after the group editor of
 `group_1` has opened, the edited element selected by the opening, shows
 "Close its editor to delete the edited element." and journals nothing. The
 Journal tab shows a closed session as one
-row, keeps an undone entry greyed, and undoes nested and interleaved
+row (a command's row reads `Set <members> of <addressKey of its first
+target>`, `Set name of {"block":"bmixed0000","id":"score"}`), keeps an undone entry greyed, and undoes nested and interleaved
 sessions one run at a time, newest first, redoing in mirror. A
 double-click outside the edited element closes the innermost editor. The
 places of the bundle's items and the editor's viewport after the drawer
@@ -469,19 +522,22 @@ and the release of a card reorder on `groups` without it. Every gesture
 is a real pointer gesture; the stored state is read through the hook.
 
 - **A change keeps the selection**, gesture by gesture: a Box resize of
-  the block by its right handle on the arranger keeps `[bshared000]`; a
-  Stretch of `group_2`'s frame keeps `[bshared000/group_2]`, and so does
-  its undo (Ctrl+Z); in the bundle editor a Box resize of the block keeps
-  the block; in `group_2`'s editor a Box resize of the frame, a
-  Properties `height` committed with Enter and its undo keep
-  `bshared000/group_2`; in `take_2`'s timeline editor a Box resize of its
-  card keeps `bshared000/take_2/card`.
+  the block by its right handle on the arranger keeps
+  `[{block: "bshared000"}]`; a Stretch of `group_2`'s frame keeps
+  `[{block: "bshared000", id: "group_2"}]`, and so does its undo
+  (Ctrl+Z); in the bundle editor a Box resize of the block keeps the
+  block; in `group_2`'s editor a Box resize of the frame, a Properties
+  `height` committed with Enter and its undo keep
+  `{block: "bshared000", id: "group_2"}`; in `take_2`'s timeline editor a
+  Box resize of its card keeps
+  `{block: "bshared000", id: "take_2", part: ["card"]}`.
 - **Opening an editor selects the edited element**, whatever was
   selected: a double-click on `group_2`'s frame gives
-  `[bshared000/group_2]`; Enter on the selected card of `recapitulation`
-  gives `[bshared000/recapitulation/card]`; the editor of its child
-  `recapitulation_first`, which no card draws, gives
-  `[bshared000/recapitulation_first]`.
+  `[{block: "bshared000", id: "group_2"}]`; Enter on the selected card of
+  `recapitulation` gives
+  `[{block: "bshared000", id: "recapitulation", part: ["card"]}]`; the
+  editor of its child `recapitulation_first`, which no card draws, gives
+  `[{block: "bshared000", id: "recapitulation_first"}]`.
 - **A click outside the edited element deselects**: in `group_2`'s
   editor, a click on the middle of `group_1`'s faded frame and one on the
   empty pane at canvas (−20, 450) each leave the selection empty and the
@@ -517,7 +573,8 @@ is a real pointer gesture; the stored state is read through the hook.
 **`level-tab.spec.ts`** (Chromium, Firefox, WebKit) proves the level tab on
 `bundles` (block `bmixed0000`, the manifest named "Mixed", group `group_1`
 "Performance", timeline `score` "Score"), the editors entered through the
-hook. With the drawer open and Properties chosen, entering the bundle, the
+hook at `{block: "bmixed0000"}`, `{block: "bmixed0000", id: "group_1"}` and
+`{block: "bmixed0000", id: "score"}`. With the drawer open and Properties chosen, entering the bundle, the
 group and the timeline editor keeps Properties shown while the first tab
 reads "Bundle", "Group", "Timeline", and Done three times gives "Arranger"
 back, Properties still shown. With the drawer closed, an editor entered
@@ -535,15 +592,24 @@ the level panel at each of the four levels for review; it compares none.
 
 **`bands.spec.ts`** (Chromium, Firefox, WebKit) proves a timeline's bands
 as boxes of its timeline editor on `bundles` at viewport (40, 40), reduced
-motion emulated. The hook reports every band drawn (address, kind, level,
-elements, and its line and rectangle on the screen); only a present band
-is recorded, offered, hovered and selected, and only in the innermost
-timeline editor of its own timeline. A band is hovered and clicked through
-its mark; a drag across the line into a gap or along its side, and
-Ctrl/Cmd+ArrowUp or ArrowDown past the next visible entry, is one `set` of
-the timeline's `order` (`null` when it equals the inherited one), one undo
-step and redone; a root's order change moves a child without an entry of
-its own; Escape during a drag dispatches nothing; no band is offered in
+motion emulated. The hook reports every band drawn (its address `{id: T,
+facet}`, its facet, level, elements, and its line and rectangle on the
+screen); only a present band is recorded, offered, hovered and selected,
+and only in the innermost timeline editor of its own timeline. A band is
+hovered and clicked through its mark (`data-marks`, the `addressKey` of
+`{id: T, facet}`), and selecting it selects `{block, id: T, facet}`. A
+band order is a permutation of `line` and the five facets, the default
+`children, conversion_maps, line, markers, regions, flow_control`; a drag
+across the line into a gap or along its side, and Ctrl/Cmd+ArrowUp or
+ArrowDown past the next visible entry, is one `set` at `{block, id: T}`
+of the timeline's `order` (`null` when it equals the inherited one), one
+undo step and redone: `score`'s `flow_control` band dragged between the
+conversion maps band and the line gives `children, conversion_maps,
+flow_control, line, markers, regions`, dragged between the line and the
+markers band `children, conversion_maps, line, flow_control, markers,
+regions`; a root's order change (`score` of `bshared000` to `children,
+line, conversion_maps, markers, regions, flow_control`) moves a child
+without an entry of its own below its line; Escape during a drag dispatches nothing; no band is offered in
 the bundle or group editor or on the arranger; and Delete with only a band
 selected removes nothing.
 

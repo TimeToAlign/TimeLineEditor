@@ -11,7 +11,7 @@
  * laid out by `rows.ts` and `children.ts`; this module never places a child.
  */
 
-import { BAND_KINDS, type BandKind, bandAddress, bandOrderOf } from "@timetoalign/tilie-core";
+import { bandOrderOf, FACETS, type Facet } from "@timetoalign/tilie-core";
 import type { Real } from "@timetoalign/tilie-core/numbers";
 import {
   bandSides,
@@ -40,14 +40,14 @@ export interface PreparedTimeline {
   readonly scope: Scope;
   /** Its entry: a timeline drawn with a line of its own. */
   readonly line: Entry;
-  /** Its band order (core's `bandOrderOf`): its five band addresses and its id, top to bottom. */
+  /** Its band order (core's `bandOrderOf`): `line` and its five facets, top to bottom. */
   readonly order: readonly string[];
   /** The side of its line each of its bands lies on, by its band order (section 6.4, The band order). */
-  readonly sides: Readonly<Record<BandKind, Side>>;
+  readonly sides: Readonly<Record<Facet, Side>>;
   /** Its five bands, present or not; the children band without its width. */
-  readonly bands: Readonly<Record<BandKind, PreparedBand>>;
-  /** The kinds of its present bands on each side, from level 1 or −1 outwards (section 6.4, Levels). */
-  readonly levels: Readonly<Record<Side, readonly BandKind[]>>;
+  readonly bands: Readonly<Record<Facet, PreparedBand>>;
+  /** The facets of its present bands on each side, from level 1 or −1 outwards (section 6.4, Levels). */
+  readonly levels: Readonly<Record<Side, readonly Facet[]>>;
   /**
    * The child lines its children band places, in the order its first fit takes them (section
    * 6.4, Children and Segments without a line): its own displayed children with a line of their
@@ -146,7 +146,7 @@ export interface TimelineDrawing {
  * 6.4, Segments without a line): `line` itself, then, when it is a segment
  * line, each of its displayed segments that is no segment line, in
  * traversal order. Such a segment's bands lie at `line`'s line: what each of
- * its displayed bands holds joins the band of `line` of the same kind, after
+ * its displayed bands holds joins the band of `line` of the same facet, after
  * `line`'s own content; its own band order places nothing. None when `line`
  * is not displayed, which hides its timeline's whole drawing (section 2.4):
  * only the root is laid out so, every other line being placed only when
@@ -159,10 +159,9 @@ export function sourcesOf(scope: Scope, line: Entry): readonly Entry[] {
 }
 
 /** The children band: the child lines it places, which each draw their own elements. */
-function childrenBand(line: Entry, children: readonly Entry[]): PreparedBand {
+function childrenBand(children: readonly Entry[]): PreparedBand {
   return {
-    kind: "children",
-    address: bandAddress(line.manifest.id, "children"),
+    facet: "children",
     elements: children.length,
     width: 0,
     extents: [],
@@ -179,13 +178,13 @@ function childrenBand(line: Entry, children: readonly Entry[]): PreparedBand {
  * 0.
  */
 function againstOf(
-  bands: Readonly<Record<BandKind, PreparedBand>>,
-  levels: Readonly<Record<Side, readonly BandKind[]>>,
+  bands: Readonly<Record<Facet, PreparedBand>>,
+  levels: Readonly<Record<Side, readonly Facet[]>>,
   side: Side,
 ): number {
-  const kind = levels[side][0];
-  return kind === "conversion_maps" || (kind === "markers" && side === "above")
-    ? bands[kind].width
+  const facet = levels[side][0];
+  return facet === "conversion_maps" || (facet === "markers" && side === "above")
+    ? bands[facet].width
     : 0;
 }
 
@@ -207,27 +206,23 @@ export function prepareTimeline(scope: Scope, line: Entry): PreparedTimeline {
       (entry) => entry.line && entry.drawn,
     ),
   );
-  const bands: Record<BandKind, PreparedBand> = {
-    children: childrenBand(line, children),
+  const bands: Record<Facet, PreparedBand> = {
+    children: childrenBand(children),
     conversion_maps: conversionMapsBand(scope, line, sources),
     markers: markersBand(scope, line, sources),
-    regions: regionsBand(scope, line, sources),
-    flow_control: flowControlBand(scope, line, sources),
+    regions: regionsBand(scope, sources),
+    flow_control: flowControlBand(scope, sources),
   };
-  const levels = levelsOf(
-    order,
-    id,
-    new Set(BAND_KINDS.filter((kind) => bands[kind].elements > 0)),
-  );
+  const levels = levelsOf(order, new Set(FACETS.filter((facet) => bands[facet].elements > 0)));
   const zero = levelZero(scope, line);
-  const own = [...zero.extents, ...BAND_KINDS.flatMap((kind) => bands[kind].extents)];
+  const own = [...zero.extents, ...FACETS.flatMap((facet) => bands[facet].extents)];
   const [firstExtent, ...otherExtents] = own;
   if (firstExtent === undefined) throw new Error("a timeline has no extent");
   return {
     scope,
     line,
     order,
-    sides: bandSides(order, id),
+    sides: bandSides(order),
     bands,
     levels,
     children,
@@ -237,7 +232,7 @@ export function prepareTimeline(scope: Scope, line: Entry): PreparedTimeline {
       below: zero.reach("below", againstOf(bands, levels, "below")),
     },
     extent: wholeExtent(firstExtent, otherExtents),
-    centred: [...zero.centred, ...BAND_KINDS.flatMap((kind) => bands[kind].centred)],
+    centred: [...zero.centred, ...FACETS.flatMap((facet) => bands[facet].centred)],
   };
 }
 
@@ -255,7 +250,7 @@ export function childrenStart(prepared: PreparedTimeline, pl: number): number {
   const w = line.style["stroke-width"];
   const before = fillSide(
     side,
-    lower.map((kind) => bands[kind]),
+    lower.map((facet) => bands[facet]),
     reach[side],
     scope.S,
     w,
@@ -315,7 +310,7 @@ export function layoutTimeline(
   const fill = (side: Side) =>
     fillSide(
       side,
-      levels[side].map((kind) => bands[kind]),
+      levels[side].map((facet) => bands[facet]),
       reach[side],
       scope.S,
       w,
@@ -330,7 +325,7 @@ export function layoutTimeline(
     const at = linePosition(prepared, edges, place);
     const parts = [
       prepared.levelZero.draw(at, againstOf(bands, levels, "above")),
-      ...laid.map((band) => bands[band.kind].draw(band.start, band.side, at)),
+      ...laid.map((band) => bands[band.facet].draw(band.start, band.side, at)),
     ];
     return mergeLineElements(parts);
   };

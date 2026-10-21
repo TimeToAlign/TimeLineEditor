@@ -109,7 +109,7 @@ function withExcluded(edited: Json, current: Json, options: TextOptions): Result
 
 /** The one command that replaces a block's manifest. */
 function manifestCommand(block: BlockId, manifest: Json): SetCommand {
-  return { type: "set", changes: [{ target: block, values: { manifest } }] };
+  return { type: "set", changes: [{ target: { block }, values: { manifest } }] };
 }
 
 /**

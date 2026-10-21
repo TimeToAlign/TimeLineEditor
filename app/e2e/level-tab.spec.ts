@@ -9,6 +9,7 @@
 
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
+import type { Address } from "../packages/core/src/index.ts";
 import type { TabName } from "./support.ts";
 import { BUNDLES, done, drawer, editing, open, panel, select, tab, tabs } from "./support.ts";
 
@@ -21,16 +22,16 @@ test.use({
 const MIXED = BUNDLES.mixed;
 /** The bundle, a group in it and a member of that group, each with its level's word and its name. */
 const PATH = [
-  { target: MIXED, word: "Bundle", name: "Mixed" },
-  { target: `${MIXED}/group_1`, word: "Group", name: "Performance" },
-  { target: `${MIXED}/score`, word: "Timeline", name: "Score" },
+  { target: { block: MIXED }, word: "Bundle", name: "Mixed" },
+  { target: { block: MIXED, id: "group_1" }, word: "Group", name: "Performance" },
+  { target: { block: MIXED, id: "score" }, word: "Timeline", name: "Score" },
 ] as const;
 const FACE = "TiLiE Plex Mono";
 
 /** Open the editor of `target` through the hook and wait until it is the innermost. */
-async function enter(page: Page, target: string): Promise<void> {
+async function enter(page: Page, target: Address): Promise<void> {
   expect(await page.evaluate((address) => window.__tilie.open(address), target)).toBeNull();
-  await expect.poll(async () => (await editing(page)).at(-1)?.target).toBe(target);
+  await expect.poll(async () => (await editing(page)).at(-1)?.target).toEqual(target);
 }
 
 /** The level panel's title line. */
@@ -56,7 +57,7 @@ async function shoot(page: Page, word: TabName, name: string) {
 
 test.beforeEach(async ({ page }) => {
   await open(page, "bundles");
-  await select(page, [MIXED]);
+  await select(page, [{ block: MIXED }]);
 });
 
 test("entering and leaving editors in view keeps the chosen tab, the level tab renamed", async ({

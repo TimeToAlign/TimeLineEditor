@@ -1,5 +1,5 @@
 /**
- * Resizing a block in three modes: scale the whole drawing, size the box
+ * Resizing a block in three modes: scale the whole drawing, size the block
  * around the content, or stretch the content's lengths and distances.
  */
 
@@ -7,13 +7,14 @@ import type {
   Block,
   Change,
   ItemPlace,
+  Places,
   SetCommand,
   WorkspaceSettings,
 } from "@timetoalign/tilie-core";
-import { ITEM_PLACE_MEMBERS } from "@timetoalign/tilie-core";
+import { ITEM_PLACE_MEMBERS, placeEntries, withPlaceAt } from "@timetoalign/tilie-core";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import { drawingOf, nodePosition } from "./drawing.ts";
-import { placeTarget } from "./editing.ts";
+import { placeChange } from "./editing.ts";
 import { GRID_FREE, MIN_LENGTH, MIN_SCALE, quantize } from "./numbers.ts";
 
 export type ResizeMode = "scale" | "box" | "stretch";
@@ -137,7 +138,7 @@ export function solve<R>(
 }
 
 /**
- * The box request after a stretch that took the content from `content` to
+ * The size request after a stretch that took the content from `content` to
  * `stretched` on one axis: a request larger than the content keeps its
  * proportion to the content, `request × stretched ÷ content` (multiplied
  * first), so every margin it adds stretches with the content; one at or
@@ -164,11 +165,11 @@ export function kept(request: number | null, content: number, stretched: number)
  *   gap between the items at their default `y`, from a top or bottom one:
  *   the largest value whose box does not pass the pointer, floored at
  *   `MIN_LENGTH` and at 0; a shrink past a flat piece stops at its knee
- *   (a box of one item has no gap, so its height never follows). The box
+ *   (a block of one item has no gap, so its height never follows). The block
  *   follows the content on each axis (`kept`): a `width` or `height` larger
  *   than the content keeps its proportion to it, one at or below the
  *   content becomes `null`, and `null` stays. So the edge ends under the
- *   pointer with or without a box request, and a pointer moved back always
+ *   pointer with or without a size request, and a pointer moved back always
  *   finds a smaller value. Along time the stated places stretch with the
  *   content (`blockStretchPlaces`), so the items keep their arrangement;
  *   `places` is set when they change. Vertically every stated `y` and
@@ -227,7 +228,7 @@ export function resize(
           spacing: spacingTo,
           places: blockStretchPlaces(block, lengthTo),
         });
-      /** The box's extent at a content extent: the larger of it and the request following it. */
+      /** The block's extent at a content extent: the larger of it and the request following it. */
       const boxed = (request: number | null, before: number, extent: number) =>
         Math.max(extent, kept(request, before, extent) ?? 0);
       if (sx !== 0) {
@@ -268,16 +269,17 @@ export function resize(
 
 /**
  * The places of `block` stretched along time to `length`: every stated `x`,
- * `length` and `width` scaled by the ratio of the lengths, quantized to
- * `GRID_FREE`, and every other member kept (a container's `spacing` is its
- * own gap, never a factor of the block's), so a stretch scales the items'
- * and cards' sizes and distances along time and keeps their arrangement. The
- * block's own `places` object when nothing changes.
+ * `length` and `width`, an item's and a member's card's alike, scaled by
+ * the ratio of the lengths, quantized to `GRID_FREE`, and every other
+ * member kept (a container's `spacing` is its own gap, never a factor of
+ * the block's), so a stretch scales the items' and cards' sizes and
+ * distances along time and keeps their arrangement. The block's own
+ * `places` object when nothing changes.
  */
 export function blockStretchPlaces(
   block: Pick<Block, "length" | "places">,
   length: number,
-): Block["places"] {
+): Places {
   const horizontal = length / block.length;
   const ratios = {
     x: horizontal,
@@ -289,8 +291,8 @@ export function blockStretchPlaces(
     spacing: 1,
   };
   let changed = false;
-  const places: { [key: string]: ItemPlace } = {};
-  for (const [key, place] of Object.entries(block.places)) {
+  let places: Places = {};
+  for (const [key, place] of placeEntries(block.places)) {
     const scaled: { -readonly [member in keyof ItemPlace]: number } = {};
     const stated: ItemPlace = place;
     for (const member of ITEM_PLACE_MEMBERS) {
@@ -299,7 +301,7 @@ export function blockStretchPlaces(
       scaled[member] = quantize(value * ratios[member], GRID_FREE);
       if (scaled[member] !== value) changed = true;
     }
-    places[key] = scaled;
+    places = withPlaceAt(places, key, scaled);
   }
   return changed ? places : block.places;
 }
@@ -310,7 +312,7 @@ const RESIZED = ["x", "y", "scale", "length", "spacing", "width", "height", "pla
 /**
  * The `set` storing a resize's values on its block: the block's own members
  * in one change, then the place of every item in `values.places` in one
- * change each, aimed at its frame's group or card's timeline (`placeTarget`). `null` when every value is the block's own
+ * change each, as `placeChange` writes it. `null` when every value is the block's own
  * (`places` its own object, as `blockStretchPlaces` keeps it): a resize that
  * changes no stored value is no command, like a drag that ends where it began.
  */
@@ -320,9 +322,9 @@ export function resizeCommand(block: Block, values: Partial<Block>): SetCommand 
   );
   if (!changed) return null;
   const { places, ...own } = values;
-  const changes: Change[] = [{ target: block.id, values: own }];
-  for (const [key, place] of Object.entries(places ?? {})) {
-    changes.push({ target: placeTarget(block, key), values: { place } });
+  const changes: Change[] = [{ target: { block: block.id }, values: own }];
+  for (const [key, place] of placeEntries(places ?? {})) {
+    changes.push(placeChange(block, key, place));
   }
   return { type: "set", changes };
 }

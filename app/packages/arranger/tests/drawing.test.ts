@@ -1,3 +1,4 @@
+import { WORKSPACE } from "@timetoalign/tilie-core";
 import { DEFAULT_LAYER, draw } from "@timetoalign/tilie-layout";
 import { describe, expect, it } from "vitest";
 import { drawingOf } from "../src/drawing.ts";
@@ -34,7 +35,7 @@ describe("drawingOf", () => {
       type: "set",
       changes: [
         {
-          target: "workspace",
+          target: WORKSPACE,
           values: {
             graphical: { statements: [{ select: { element: "block" }, set: { fill: "#FFFFFF" } }] },
           },

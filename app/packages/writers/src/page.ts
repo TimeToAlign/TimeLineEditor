@@ -29,7 +29,7 @@ export interface Page {
 /** The margin of the page on every side. */
 export const MARGIN = 16;
 
-/** The bounding box of the placed boxes plus the margin on every side. */
+/** The bounding box of the placed blocks plus the margin on every side. */
 export function page(placed: readonly Placed[]): Page {
   if (placed.length === 0) throw new RangeError("a page holds at least one drawing");
   const left = Math.min(...placed.map((item) => item.x));

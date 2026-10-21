@@ -42,7 +42,7 @@
         ],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (bea05b0d)"
+          "generator": "timetoalign 1.2.0 (1d61e026)"
         },
         "name": "Mixed",
         "timelines": [
@@ -94,7 +94,7 @@
             "children": [],
             "conversion_maps": [
               {
-                "id": "cmap_1",
+                "id": "cmap_4",
                 "name": null,
                 "offset": 0,
                 "scalar": [
@@ -121,7 +121,7 @@
             "children": [],
             "conversion_maps": [
               {
-                "id": "cmap_1",
+                "id": "cmap_3",
                 "name": null,
                 "offset": 0,
                 "scalar": 44100,
@@ -147,7 +147,7 @@
                 "children": [],
                 "conversion_maps": [
                   {
-                    "id": "cmap_2",
+                    "id": "cmap_6",
                     "name": null,
                     "offset": 0,
                     "scalar": [
@@ -174,7 +174,7 @@
             ],
             "conversion_maps": [
               {
-                "id": "cmap_1",
+                "id": "cmap_5",
                 "name": null,
                 "offset": 0,
                 "scalar": [
@@ -303,7 +303,7 @@
         ],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (bea05b0d)"
+          "generator": "timetoalign 1.2.0 (1d61e026)"
         },
         "name": "Sonata",
         "timelines": [
@@ -659,7 +659,7 @@
             ],
             "conversion_maps": [
               {
-                "id": "cmap_1",
+                "id": "cmap_5",
                 "name": null,
                 "offset": 0,
                 "scalar": 44100,
@@ -704,6 +704,108 @@
       "x": 640,
       "y": 0
     },
+    "btwogroups": {
+      "height": null,
+      "id": "btwogroups",
+      "index": "a3",
+      "length": 400,
+      "manifest": {
+        "graphical": {
+          "order": {
+            "g1": [
+              "t",
+              "u"
+            ],
+            "g2": [
+              "t",
+              "v"
+            ]
+          },
+          "statements": [],
+          "styles": {}
+        },
+        "groups": [
+          {
+            "id": "g1",
+            "members": [
+              "t",
+              "u"
+            ],
+            "meta": {},
+            "name": "Performance"
+          },
+          {
+            "id": "g2",
+            "members": [
+              "t",
+              "v"
+            ],
+            "meta": {},
+            "name": "Page"
+          }
+        ],
+        "measure_maps": [],
+        "meta": {
+          "generator": "timetoalign 1.2.0 (1d61e026)"
+        },
+        "name": "Shared",
+        "timelines": [
+          {
+            "children": [],
+            "conversion_maps": [],
+            "flow_control": [],
+            "id": "t",
+            "is_segment_line": false,
+            "length": [
+              8,
+              1
+            ],
+            "locked": false,
+            "meta": {},
+            "name": "Score",
+            "number_type": "fraction",
+            "regions": [],
+            "unit": "quarters"
+          },
+          {
+            "children": [],
+            "conversion_maps": [],
+            "flow_control": [],
+            "id": "u",
+            "is_segment_line": false,
+            "length": 4.0,
+            "locked": false,
+            "meta": {},
+            "name": "Performance",
+            "number_type": "float",
+            "regions": [],
+            "unit": "seconds"
+          },
+          {
+            "children": [],
+            "conversion_maps": [],
+            "flow_control": [],
+            "id": "v",
+            "is_segment_line": false,
+            "length": 800,
+            "locked": false,
+            "meta": {},
+            "name": "Page",
+            "number_type": "int",
+            "regions": [],
+            "unit": "pixels"
+          }
+        ],
+        "timetoshare": "0.1.0"
+      },
+      "parent": null,
+      "places": {},
+      "scale": 1,
+      "spacing": 8,
+      "width": null,
+      "x": 640,
+      "y": 560
+    },
     "bungroup00": {
       "height": null,
       "id": "bungroup00",
@@ -713,7 +815,7 @@
         "groups": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (bea05b0d)"
+          "generator": "timetoalign 1.2.0 (1d61e026)"
         },
         "name": "Sketches",
         "timelines": [
@@ -767,7 +869,7 @@
             ],
             "conversion_maps": [
               {
-                "id": "cmap_1",
+                "id": "cmap_3",
                 "name": null,
                 "offset": 0,
                 "scalar": [
@@ -794,7 +896,7 @@
             "children": [],
             "conversion_maps": [
               {
-                "id": "cmap_1",
+                "id": "cmap_2",
                 "name": null,
                 "offset": 0,
                 "scalar": [
@@ -924,7 +1026,7 @@
             ],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (bea05b0d)"
+              "generator": "timetoalign 1.2.0 (1d61e026)"
             },
             "name": "Mixed",
             "timelines": [
@@ -976,7 +1078,7 @@
                 "children": [],
                 "conversion_maps": [
                   {
-                    "id": "cmap_1",
+                    "id": "cmap_4",
                     "name": null,
                     "offset": 0,
                     "scalar": [
@@ -1003,7 +1105,7 @@
                 "children": [],
                 "conversion_maps": [
                   {
-                    "id": "cmap_1",
+                    "id": "cmap_3",
                     "name": null,
                     "offset": 0,
                     "scalar": 44100,
@@ -1029,7 +1131,7 @@
                     "children": [],
                     "conversion_maps": [
                       {
-                        "id": "cmap_2",
+                        "id": "cmap_6",
                         "name": null,
                         "offset": 0,
                         "scalar": [
@@ -1056,7 +1158,7 @@
                 ],
                 "conversion_maps": [
                   {
-                    "id": "cmap_1",
+                    "id": "cmap_5",
                     "name": null,
                     "offset": 0,
                     "scalar": [
@@ -1138,7 +1240,7 @@
           "x": 0,
           "y": 0
         },
-        "into": "workspace",
+        "into": {},
         "type": "add"
       },
       "time": "2026-10-12T09:00:00.000Z"
@@ -1185,7 +1287,7 @@
             ],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (bea05b0d)"
+              "generator": "timetoalign 1.2.0 (1d61e026)"
             },
             "name": "Sonata",
             "timelines": [
@@ -1541,7 +1643,7 @@
                 ],
                 "conversion_maps": [
                   {
-                    "id": "cmap_1",
+                    "id": "cmap_5",
                     "name": null,
                     "offset": 0,
                     "scalar": 44100,
@@ -1581,7 +1683,7 @@
           "x": 640,
           "y": 0
         },
-        "into": "workspace",
+        "into": {},
         "type": "add"
       },
       "time": "2026-10-12T09:00:01.000Z"
@@ -1595,7 +1697,7 @@
             "groups": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (bea05b0d)"
+              "generator": "timetoalign 1.2.0 (1d61e026)"
             },
             "name": "Sketches",
             "timelines": [
@@ -1649,7 +1751,7 @@
                 ],
                 "conversion_maps": [
                   {
-                    "id": "cmap_1",
+                    "id": "cmap_3",
                     "name": null,
                     "offset": 0,
                     "scalar": [
@@ -1676,7 +1778,7 @@
                 "children": [],
                 "conversion_maps": [
                   {
-                    "id": "cmap_1",
+                    "id": "cmap_2",
                     "name": null,
                     "offset": 0,
                     "scalar": [
@@ -1757,15 +1859,117 @@
           "x": 0,
           "y": 480
         },
-        "into": "workspace",
+        "into": {},
         "type": "add"
       },
       "time": "2026-10-12T09:00:02.000Z"
+    },
+    {
+      "author": "Fixture Generator",
+      "command": {
+        "block": {
+          "id": "btwogroups",
+          "manifest": {
+            "graphical": {
+              "order": {
+                "g1": [
+                  "t",
+                  "u"
+                ],
+                "g2": [
+                  "t",
+                  "v"
+                ]
+              },
+              "statements": [],
+              "styles": {}
+            },
+            "groups": [
+              {
+                "id": "g1",
+                "members": [
+                  "t",
+                  "u"
+                ],
+                "meta": {},
+                "name": "Performance"
+              },
+              {
+                "id": "g2",
+                "members": [
+                  "t",
+                  "v"
+                ],
+                "meta": {},
+                "name": "Page"
+              }
+            ],
+            "measure_maps": [],
+            "meta": {
+              "generator": "timetoalign 1.2.0 (1d61e026)"
+            },
+            "name": "Shared",
+            "timelines": [
+              {
+                "children": [],
+                "conversion_maps": [],
+                "flow_control": [],
+                "id": "t",
+                "is_segment_line": false,
+                "length": [
+                  8,
+                  1
+                ],
+                "locked": false,
+                "meta": {},
+                "name": "Score",
+                "number_type": "fraction",
+                "regions": [],
+                "unit": "quarters"
+              },
+              {
+                "children": [],
+                "conversion_maps": [],
+                "flow_control": [],
+                "id": "u",
+                "is_segment_line": false,
+                "length": 4.0,
+                "locked": false,
+                "meta": {},
+                "name": "Performance",
+                "number_type": "float",
+                "regions": [],
+                "unit": "seconds"
+              },
+              {
+                "children": [],
+                "conversion_maps": [],
+                "flow_control": [],
+                "id": "v",
+                "is_segment_line": false,
+                "length": 800,
+                "locked": false,
+                "meta": {},
+                "name": "Page",
+                "number_type": "int",
+                "regions": [],
+                "unit": "pixels"
+              }
+            ],
+            "timetoshare": "0.1.0"
+          },
+          "x": 640,
+          "y": 560
+        },
+        "into": {},
+        "type": "add"
+      },
+      "time": "2026-10-12T09:00:03.000Z"
     }
   ],
   "meta": {
     "format": "tilie-workspace",
-    "version": 4
+    "version": 5
   },
   "name": "untitled",
   "sessions": {},

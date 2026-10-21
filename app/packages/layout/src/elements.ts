@@ -3,7 +3,7 @@
  * (`docs/drawing.md` in TimeToShare, sections 1, 6.6 and 8).
  */
 
-import type { ItemPlace, Real } from "@timetoalign/tilie-core";
+import type { ElementAddress, Places, Real } from "@timetoalign/tilie-core";
 import type { TimeUnit } from "@timetoalign/timetoshare";
 import type { DrawnAxis, DrawnBox } from "./boxes.ts";
 import type { Style } from "./cascade.ts";
@@ -13,15 +13,15 @@ export type { DrawnAxis, DrawnBox, ElementRange } from "./boxes.ts";
 /** Where and how large the drawing is placed (section 1). */
 export interface Placement {
   readonly length: number;
-  /** The box's spacing: the gap between its items at their default `y` (section 8.6). */
+  /** The block's spacing: the gap between its items at their default `y` (section 8.6). */
   readonly spacing: number;
   readonly width: number | null;
   readonly height: number | null;
   /**
-   * The places of the box's items, by group id or ungrouped root id, and the sizes and
-   * spacings of its members' cards, by `<group id>/<member id>` (section 8.6).
+   * The places of the block's items, by group ID or ungrouped root ID, each group's holding
+   * the sizes and spacings of its members' cards in its `cards`, by member ID (section 8.6).
    */
-  readonly places: { readonly [key: string]: ItemPlace };
+  readonly places: Places;
 }
 
 export const DEFAULT_PLACEMENT: Placement = {
@@ -38,13 +38,14 @@ export interface ShownCoordinate {
 }
 
 interface Addressed {
-  readonly address: string;
+  readonly address: ElementAddress;
   readonly style: Style;
 }
 
 export interface BlockElement {
   readonly type: "block";
-  readonly address: null;
+  /** The bundle's address, `{}`. */
+  readonly address: ElementAddress;
   readonly style: Style;
   readonly width: number;
   readonly height: number;
@@ -52,7 +53,7 @@ export interface BlockElement {
 
 /** A group's frame or a timeline's card: a rounded rectangle (section 8). */
 export interface RectElement extends Addressed {
-  readonly type: "group" | "card";
+  readonly type: "frame" | "card";
   readonly x: number;
   readonly y: number;
   readonly width: number;
@@ -101,7 +102,7 @@ export interface RegionElement extends Addressed {
   readonly ya: number;
 }
 
-/** A point `(x, y)` in box-local canvas units. */
+/** A point `(x, y)` in block-local canvas units. */
 export type Point = readonly [number, number];
 
 /** One path command and its points, in the order they are written. */
@@ -165,10 +166,10 @@ export type DrawnElement =
 export interface Drawing {
   readonly width: number;
   readonly height: number;
-  /** The place origin within the box (section 8.4). */
+  /** The place origin within the block (section 8.4). */
   readonly origin: { readonly x: number; readonly y: number };
   /**
-   * Every container drawn: the box first, then in drawing order each frame, each card and each
+   * Every container drawn: the block first, then in drawing order each frame, each card and each
    * band of the card's timelines (a timeline drawn twice, a child in one card and a member in
    * another, has two sets of bands under the same addresses, told apart by their `line`).
    */

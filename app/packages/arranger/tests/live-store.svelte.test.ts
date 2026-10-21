@@ -7,6 +7,7 @@
  */
 
 import type { Store, View } from "@timetoalign/tilie-core";
+import { idAddress, inBlock, WORKSPACE } from "@timetoalign/tilie-core";
 import { flushSync, tick } from "svelte";
 import { describe, expect, it } from "vitest";
 import { liveStore } from "../src/liveStore.svelte.ts";
@@ -19,7 +20,7 @@ function fresh(): Store {
 function addB(store: Store): void {
   const refusal = store.dispatch({
     type: "add",
-    into: "workspace",
+    into: WORKSPACE,
     block: { id: B, manifest: load("bare"), x: 1000, y: 0 },
   });
   if (refusal !== null) throw new Error(refusal.message);
@@ -65,15 +66,15 @@ describe("liveStore", () => {
     expect(runs[0]?.[0]).toBe(first);
     expect(runs[1]?.[0]).toBe(store.view);
     expect(runs[1]?.slice(1)).toEqual([0, 0, 0]);
-    expect(store.open(A)).toBeNull();
+    expect(store.open({ block: A })).toBeNull();
     flushSync();
     expect(runs.length).toBe(3);
     expect(runs[2]?.[0]).toBe(store.view);
     expect(runs[2]?.slice(1)).toEqual([1, 0, 1]);
     const refusal = store.dispatch({
       type: "add",
-      into: `${A}/dlt_1`,
-      region: { id: "region_1", name: "A", start: 0, end: 10 },
+      into: inBlock(A, idAddress("dlt_1")),
+      region: { id: "region_3", name: "A", start: 0, end: 10 },
     });
     expect(refusal).toBeNull();
     flushSync();

@@ -9,8 +9,10 @@
 
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
+import type { Address } from "../packages/core/src/index.ts";
 import type { Handle, ResizeMode, Viewport } from "./support.ts";
 import {
+  addressSelector,
   arranger,
   BUNDLES,
   editing,
@@ -33,7 +35,13 @@ test.use({ viewport: { width: 1600, height: 1000 } });
 
 const VIEW = { x: 40, y: 40, zoom: 1 };
 const SHARED = BUNDLES.shared;
-const GROUP_2 = `${SHARED}/group_2`;
+const BLOCK: Address = { block: SHARED };
+const GROUP_2: Address = { block: SHARED, id: "group_2" };
+
+/** The card of timeline `id` in the shared-parent bundle. */
+function card(id: string): Address {
+  return { block: SHARED, id, part: ["card"] };
+}
 
 /** How many entries the open level holds: the journal's on the arranger, the session's in an editor. */
 function changes(page: Page): Promise<number> {
@@ -58,10 +66,7 @@ async function resize(page: Page, mode: ResizeMode, handle: Handle, dx: number, 
   await page.mouse.up();
   await expect
     .poll(() =>
-      page.evaluate(
-        () =>
-          window.__tilie.store().view !== (window as unknown as { viewBefore: unknown }).viewBefore,
-      ),
+      page.evaluate(() => window.__tilie.store().view !== Reflect.get(window, "viewBefore")),
     )
     .toBe(true);
 }
@@ -70,7 +75,7 @@ async function resize(page: Page, mode: ResizeMode, handle: Handle, dx: number, 
  * Open the editor of `target` through the hook and wait until the view has
  * stopped moving there; the viewport it settled at.
  */
-async function openSettled(page: Page, target: string): Promise<Viewport> {
+async function openSettled(page: Page, target: Address): Promise<Viewport> {
   const before = await viewportOf(page);
   expect(await page.evaluate((address) => window.__tilie.open(address), target)).toBeNull();
   await expect.poll(() => viewportOf(page)).not.toEqual(before);
@@ -95,9 +100,9 @@ test.describe("the selection", () => {
   });
 
   test("a change keeps the selection, on the arranger and in every editor", async ({ page }) => {
-    await select(page, [SHARED]);
+    await select(page, [BLOCK]);
     await resize(page, "box", "right", 40, 0);
-    expect(await selection(page)).toEqual([SHARED]);
+    expect(await selection(page)).toEqual([BLOCK]);
 
     await select(page, [GROUP_2]);
     await resize(page, "stretch", "right", 40, 0);
@@ -107,10 +112,10 @@ test.describe("the selection", () => {
     await expect.poll(() => canRedo(page)).toBe(true);
     expect(await selection(page)).toEqual([GROUP_2]);
 
-    await openSettled(page, SHARED);
-    expect(await selection(page)).toEqual([SHARED]);
+    await openSettled(page, BLOCK);
+    expect(await selection(page)).toEqual([BLOCK]);
     await resize(page, "box", "bottom", 0, 30);
-    expect(await selection(page)).toEqual([SHARED]);
+    expect(await selection(page)).toEqual([BLOCK]);
 
     await openSettled(page, GROUP_2);
     expect(await selection(page)).toEqual([GROUP_2]);
@@ -128,26 +133,27 @@ test.describe("the selection", () => {
     await expect.poll(() => canRedo(page)).toBe(true);
     expect(await selection(page)).toEqual([GROUP_2]);
 
-    await openSettled(page, `${SHARED}/take_2`);
-    expect(await selection(page)).toEqual([`${SHARED}/group_2/take_2/card`]);
+    await openSettled(page, { block: SHARED, id: "take_2" });
+    expect(await selection(page)).toEqual([card("take_2")]);
     await resize(page, "box", "right", 30, 0);
-    expect(await selection(page)).toEqual([`${SHARED}/group_2/take_2/card`]);
+    expect(await selection(page)).toEqual([card("take_2")]);
   });
 
   test("opening an editor selects the edited element", async ({ page }) => {
-    const frame = await framePoint(page, SHARED, "group_2");
+    const frame = await framePoint(page, SHARED, { id: "group_2" });
     await page.mouse.dblclick(frame.x, frame.y);
     await expect.poll(() => editing(page)).toEqual([{ target: GROUP_2, kind: "group" }]);
     expect(await selection(page)).toEqual([GROUP_2]);
 
-    await select(page, [`${SHARED}/group_2/recapitulation/card`]);
+    await select(page, [card("recapitulation")]);
     await arranger(page).focus();
     await page.keyboard.press("Enter");
     await expect.poll(() => editing(page)).toHaveLength(2);
-    expect(await selection(page)).toEqual([`${SHARED}/group_2/recapitulation/card`]);
+    expect(await selection(page)).toEqual([card("recapitulation")]);
 
-    await openSettled(page, `${SHARED}/recapitulation_first`);
-    expect(await selection(page)).toEqual([`${SHARED}/recapitulation_first`]);
+    const first: Address = { block: SHARED, id: "recapitulation_first" };
+    await openSettled(page, first);
+    expect(await selection(page)).toEqual([first]);
   });
 
   test("a click outside the edited element deselects; Shift keeps the selection", async ({
@@ -156,7 +162,7 @@ test.describe("the selection", () => {
     await openSettled(page, GROUP_2);
     await setViewport(page, VIEW);
     // Faded parts take no pointer, so the click aims at the middle of the faded frame's rectangle.
-    const faded = await partCentre(page, SHARED, "group_1");
+    const faded = await partCentre(page, SHARED, { id: "group_1" });
 
     await page.keyboard.down("Shift");
     await page.mouse.click(faded.x, faded.y);
@@ -165,7 +171,7 @@ test.describe("the selection", () => {
     await page.mouse.click(faded.x, faded.y);
     await expect.poll(() => selection(page)).toEqual([]);
 
-    await select(page, [`${SHARED}/group_2/take_2/card`]);
+    await select(page, [card("take_2")]);
     const pane = await emptyPoint(page, -20, 450);
     await page.mouse.click(pane.x, pane.y);
     await expect.poll(() => selection(page)).toEqual([]);
@@ -179,7 +185,7 @@ test.describe("the selection", () => {
     const centred = await openSettled(page, GROUP_2);
     const journal = await journalLength(page);
     await setViewport(page, VIEW);
-    const own = await framePoint(page, SHARED, "group_2");
+    const own = await framePoint(page, SHARED, { id: "group_2" });
     await page.mouse.dblclick(own.x, own.y);
     await expect.poll(() => viewportOf(page)).toEqual(centred);
     expect(await editing(page)).toEqual([{ target: GROUP_2, kind: "group" }]);
@@ -212,54 +218,56 @@ test.describe("the release of a card reorder", () => {
     const block = GROUPS.child;
     await open(page, "groups");
     await setViewport(page, VIEW);
-    await openSettled(page, `${block}/group_1`);
+    await openSettled(page, { block, id: "group_1" });
     await setViewport(page, VIEW);
-    const from = await framePoint(page, block, "group_1/second-half/card");
+    const secondHalf = { id: "second-half", part: ["card"] } as const;
+    const from = await framePoint(page, block, secondHalf);
     const to = await toScreen(page, 0, 172);
     await page.mouse.move(from.x, from.y);
     await page.mouse.down();
     await page.mouse.move(from.x, to.y, { steps: 10 });
 
     // Every frame from the release on, what is shown of the card, read in the page.
-    const dropped = await page.evaluate((id) => {
-      const node = document.querySelector(`.svelte-flow__node[data-id="${id}"]`);
-      const rect = (element: Element): Rect => {
-        const { x, y, width, height } = element.getBoundingClientRect();
-        return { x, y, width, height };
-      };
-      const shown = (): Shown => {
-        const copy = node?.querySelector(".tilie-dragged");
-        const card = [
-          ...(node?.querySelectorAll('[data-address="group_1/second-half/card"]') ?? []),
-        ].at(-1);
-        if (card === undefined) throw new Error("the card is not drawn");
-        return {
-          copy: copy == null ? null : rect(copy),
-          card: rect(card),
-          hidden: card.getAttribute("visibility") === "hidden",
+    const dropped = await page.evaluate(
+      ({ id, cardSelector }) => {
+        const node = document.querySelector(`.svelte-flow__node[data-id="${id}"]`);
+        const rect = (element: Element): Rect => {
+          const { x, y, width, height } = element.getBoundingClientRect();
+          return { x, y, width, height };
         };
-      };
-      const frames: Shown[] = [];
-      Object.assign(window, { released: frames });
-      window.addEventListener(
-        "pointerup",
-        () => {
-          const record = () => {
-            frames.push(shown());
-            if (frames.length < 90) requestAnimationFrame(record);
+        const shown = (): Shown => {
+          const copy = node?.querySelector(".tilie-dragged");
+          const card = [...(node?.querySelectorAll(cardSelector) ?? [])].at(-1);
+          if (card === undefined) throw new Error("the card is not drawn");
+          return {
+            copy: copy == null ? null : rect(copy),
+            card: rect(card),
+            hidden: card.getAttribute("visibility") === "hidden",
           };
-          requestAnimationFrame(record);
-        },
-        { capture: true, once: true },
-      );
-      return shown();
-    }, block);
+        };
+        const frames: Shown[] = [];
+        Object.assign(window, { released: frames });
+        window.addEventListener(
+          "pointerup",
+          () => {
+            const record = () => {
+              frames.push(shown());
+              if (frames.length < 90) requestAnimationFrame(record);
+            };
+            requestAnimationFrame(record);
+          },
+          { capture: true, once: true },
+        );
+        return shown();
+      },
+      { id: block, cardSelector: `.tilie-block svg ${addressSelector(secondHalf)}` },
+    );
     await page.mouse.up();
     await expect.poll(() => entriesLength(page)).toBe(1);
     await expect
-      .poll(() => page.evaluate(() => (window as unknown as { released: Shown[] }).released.length))
+      .poll(() => page.evaluate((): number => Reflect.get(window, "released").length))
       .toBe(90);
-    const frames = await page.evaluate(() => (window as unknown as { released: Shown[] }).released);
+    const frames = await page.evaluate((): Shown[] => Reflect.get(window, "released"));
 
     expect(dropped.hidden).toBe(true);
     if (dropped.copy === null) throw new Error("no copy follows the pointer");
@@ -300,7 +308,7 @@ test.describe("a stretch in the group editor", () => {
     await openSettled(page, GROUP_2);
     // The frame's right edge clear of the drawer, at zoom 1.
     await setViewport(page, { x: -400, y: 40, zoom: 1 });
-    for (const box of [GROUP_2, `${SHARED}/group_2/recapitulation/card`]) {
+    for (const box of [GROUP_2, card("recapitulation")]) {
       await select(page, [box]);
       await resize(page, "stretch", "right", 60, 0);
       expect(await place(page)).toEqual({ length: 460 });

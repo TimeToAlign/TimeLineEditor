@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { apply } from "../src/commands/apply.ts";
 import { canonicalText } from "../src/json.ts";
+import { addressKey } from "../src/manifest/address.ts";
 import type { Gap } from "../src/manifest/segments.ts";
 import { movedBy, segmentGaps, withoutSegment } from "../src/manifest/segments.ts";
 import { isSegment } from "../src/manifest/tree.ts";
 import type { Manifest, TimelineManifest } from "../src/manifest/types.ts";
+import type { Address } from "../src/workspace/address.ts";
 import type { View } from "../src/workspace/view.ts";
 import { A, block, changed, deepFreeze, load, refusal, unlockedView, viewOf } from "./support.ts";
 
@@ -12,7 +14,7 @@ const CHILDREN = "segment_children.json";
 const UNKNOWN = "unknown_length_segments.json";
 const LINE = "segment_line.json";
 
-const at = (element: string) => `${A}/${element}`;
+const at = (id: string): Address => ({ block: A, id });
 const LEFT_EXTEND: Gap = { side: "left", verb: "extend" };
 const RIGHT_EXTEND: Gap = { side: "right", verb: "extend" };
 const LEFT_SHIFT: Gap = { side: "left", verb: "shift" };
@@ -63,7 +65,7 @@ describe("a segment", () => {
       "c1",
       "c2",
     ]);
-    expect(isSegment(manifest, "piece/regions_1")).toBe(false);
+    expect(isSegment(manifest, "nothing")).toBe(false);
   });
 });
 
@@ -161,8 +163,8 @@ describe("the permitted ways", () => {
     expect(reasons(view, "t2")).toEqual([
       null,
       null,
-      "its segment line theme is locked",
-      "its segment line theme is locked",
+      "its segment line 'theme' is locked",
+      "its segment line 'theme' is locked",
     ]);
     expect(reasons(view, "t1")?.[0]).toBe("no segment precedes it");
     expect(reasons(view, "t3")?.[1]).toBe("no segment follows it");
@@ -173,7 +175,7 @@ describe("the permitted ways", () => {
     expect(reasons(viewWith(UNKNOWN), "b")).toEqual([
       null,
       null,
-      "its segment line form is a root and has no offset to move",
+      "its segment line 'form' is a root and has no offset to move",
       null,
     ]);
   });
@@ -182,10 +184,10 @@ describe("the permitted ways", () => {
     const view = viewWith(LINE, "b");
     const found = reasons(view, "b1");
     expect(found?.[2]).toBe(
-      'segment "b" of segment line "form" does not start where the one before it ends',
+      "segment 'b' of segment line 'form' does not start where the one before it ends",
     );
     expect(found?.[3]).toBe(
-      'segment "c" of segment line "form" does not start where the one before it ends',
+      "segment 'c' of segment line 'form' does not start where the one before it ends",
     );
   });
 });
@@ -197,11 +199,11 @@ describe("removing a segment", () => {
     const view = viewWith(CHILDREN);
     expect(rejected(view, { type: "remove", targets: [at("t2")] })).toEqual({
       code: "segment_not_removable",
-      path: [at("t2")],
+      path: [addressKey(at("t2"))],
     });
     expect(rejected(view, { type: "remove", targets: [at("t2"), at("t3")] })).toEqual({
       code: "segment_not_removable",
-      path: [at("t2")],
+      path: [addressKey(at("t2"))],
     });
   });
 });
@@ -211,7 +213,7 @@ describe("what needs no gap", () => {
     const view = viewWith(CHILDREN);
     const withLine = changed(view, { type: "remove", targets: [at("theme"), at("t2")] });
     expect(childIds(block(withLine).manifest, "piece")).toEqual(["intro", "coda"]);
-    expect(changed(view, { type: "remove", targets: [A, at("t2")] }).blocks).toEqual({});
+    expect(changed(view, { type: "remove", targets: [{ block: A }, at("t2")] }).blocks).toEqual({});
   });
 });
 

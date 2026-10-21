@@ -63,7 +63,7 @@ export const DEFAULT_LAYER: Graphical = {
       set: { "stroke-dasharray": "3 3" },
     },
     {
-      select: { element: "group" },
+      select: { element: "frame" },
       set: { fill: "#FFFFFF", stroke: "#D1D5DB", "stroke-width": 1, rx: 6 },
     },
     {
@@ -87,15 +87,15 @@ export const DEFAULT_LAYER: Graphical = {
       set: { fill: "#6B7280", "font-size": 9, opacity: 1 },
     },
     {
-      select: { element: "band", class: "markers", inside: "band" },
+      select: { element: "band", facet: "markers", inside: "band" },
       set: { display: "none" },
     },
     {
-      select: { element: "band", class: "regions", inside: "band" },
+      select: { element: "band", facet: "regions", inside: "band" },
       set: { display: "none" },
     },
     {
-      select: { element: "band", class: "flow_control", inside: "band" },
+      select: { element: "band", facet: "flow_control", inside: "band" },
       set: { display: "none" },
     },
   ],

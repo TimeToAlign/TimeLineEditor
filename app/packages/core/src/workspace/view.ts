@@ -6,7 +6,12 @@ import { ErrorCode, isCommandError, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";
 import { compareCodePoints } from "../json.ts";
 import type { ContainerRef } from "../manifest/containers.ts";
-import { containersOf, ITEM_PLACE_MEMBERS, placeMembersOf } from "../manifest/containers.ts";
+import {
+  ITEM_PLACE_MEMBERS,
+  placeAt,
+  placedContainer,
+  placeMembersOf,
+} from "../manifest/containers.ts";
 import { manifestProblems } from "../manifest/io.ts";
 import { readFinite, readIndex, readNonNegative, readPlaces, readPositive } from "../values.ts";
 import type { Block, BlockId, BlockPlacement } from "./blocks.ts";
@@ -14,7 +19,7 @@ import { BLOCK_ID } from "./blocks.ts";
 
 export interface WorkspaceMeta {
   readonly format: "tilie-workspace";
-  readonly version: 4;
+  readonly version: 5;
 }
 
 export interface WorkspaceSettings {
@@ -32,7 +37,7 @@ export interface View {
   readonly blocks: { readonly [id: BlockId]: Block };
 }
 
-export const WORKSPACE_META: WorkspaceMeta = { format: "tilie-workspace", version: 4 };
+export const WORKSPACE_META: WorkspaceMeta = { format: "tilie-workspace", version: 5 };
 
 /** The name of a new workspace, and of one read from a file that states none. */
 export const UNTITLED_WORKSPACE = "untitled";
@@ -101,41 +106,72 @@ export function placeMemberProblem(
   );
   return extra === undefined
     ? undefined
-    : problem(
-        code,
-        `${ref.timeline ?? ref.key} is a member: its card takes only ${listed(allowed)}`,
-        [...path, extra],
-      );
+    : problem(code, `'${ref.timeline}' is a member: its card takes only ${listed(allowed)}`, [
+        ...path,
+        extra,
+      ]);
 }
 
 /**
- * The problems of a block's `places`, in code-point order of its keys, each
- * at `path` followed by `places` and the key: a key naming no frame and no
- * card of its manifest's drawing (`unknown_place`; a member's card is keyed
- * `<group>/<member>`, never by the member's bare id), and a place stating a
- * member its container may not state (`placeMemberProblem`).
+ * The problems of a block's `places`, in code-point order of its keys and
+ * then of each entry's `cards`, each at `path` followed by `places`, the key
+ * and below: a key naming no group and no ungrouped root
+ * (`unknown_place`; a member's card lies in its group's `cards`, never at
+ * the top under the member's ID), `cards` on an entry that is no group's
+ * (`unknown_member`), a key of `cards` naming no member of the group
+ * (`unknown_place`), and a place stating a member its container may not
+ * state (`placeMemberProblem`).
  */
 export function placeProblems(
   block: Pick<Block, "id" | "places" | "manifest">,
   path: readonly PathSegment[],
 ): Problem[] {
-  const { byKey } = containersOf(block.manifest);
   return Object.keys(block.places)
     .sort(compareCodePoints)
-    .flatMap((key) => {
-      const at = [...path, "places", key];
-      const ref = byKey.get(key);
+    .flatMap((item) => {
+      const at = [...path, "places", item];
+      const ref = placedContainer(block.manifest, { item });
       if (ref === undefined) {
         return [
           problem(
             ErrorCode.unknownPlace,
-            `${key} is no group, no ungrouped root and no member's card of block ${block.id}`,
+            `'${item}' is no group and no ungrouped root of block '${block.id}'`,
             at,
           ),
         ];
       }
-      const extra = placeMemberProblem(ref, block.places[key] ?? {}, at);
-      return extra === undefined ? [] : [extra];
+      const own = placeAt(block.places, { item }) ?? {};
+      const problems: Problem[] = [];
+      const extra = placeMemberProblem(ref, own, at);
+      if (extra !== undefined) problems.push(extra);
+      const cards = block.places[item]?.cards;
+      if (cards === undefined) return problems;
+      if (ref.kind !== "frame") {
+        problems.push(
+          problem(ErrorCode.unknownMember, `'${item}' is no group: its place has no cards`, [
+            ...at,
+            "cards",
+          ]),
+        );
+        return problems;
+      }
+      for (const member of Object.keys(cards).sort(compareCodePoints)) {
+        const where = [...at, "cards", member];
+        const card = placedContainer(block.manifest, { item, member });
+        if (card === undefined) {
+          problems.push(
+            problem(
+              ErrorCode.unknownPlace,
+              `'${member}' is no member of group '${item}' of block '${block.id}'`,
+              where,
+            ),
+          );
+          continue;
+        }
+        const stated = placeMemberProblem(card, cards[member] ?? {}, where);
+        if (stated !== undefined) problems.push(stated);
+      }
+      return problems;
     });
 }
 
@@ -158,17 +194,20 @@ export function structureProblems(view: View, manifests = false): Problem[] {
     const path = ["blocks", key];
     if (block.id !== key) {
       problems.push(
-        problem(ErrorCode.keyMismatch, `block ${block.id} is stored under ${key}`, [...path, "id"]),
+        problem(ErrorCode.keyMismatch, `block '${block.id}' is stored under '${key}'`, [
+          ...path,
+          "id",
+        ]),
       );
     }
     if (!BLOCK_ID.test(block.id)) {
       problems.push(
-        problem(ErrorCode.invalidBlockId, `invalid block id ${block.id}`, [...path, "id"]),
+        problem(ErrorCode.invalidBlockId, `invalid block id '${block.id}'`, [...path, "id"]),
       );
     }
     if (block.parent !== null && view.blocks[block.parent] === undefined) {
       problems.push(
-        problem(ErrorCode.unknownParent, `parent ${block.parent} does not exist`, [
+        problem(ErrorCode.unknownParent, `parent '${block.parent}' does not exist`, [
           ...path,
           "parent",
         ]),
@@ -188,7 +227,7 @@ export function structureProblems(view: View, manifests = false): Problem[] {
         problems.push(
           problem(
             ErrorCode.duplicateIndex,
-            `block ${block.id} shares its sibling index with ${prior}`,
+            `block '${block.id}' shares its sibling index with '${prior}'`,
             [...path, "index"],
           ),
         );

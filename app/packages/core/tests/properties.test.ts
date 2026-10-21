@@ -24,7 +24,7 @@ const SOURCES: readonly (readonly [string, string])[] = allFixtures.map(
 /** The `add` of block `A` holding the manifest of `text`. */
 const addText = (text: string) => ({
   type: "add",
-  into: "workspace",
+  into: {},
   block: { id: A, manifest: loadText(text), x: 0, y: 0 },
 });
 
@@ -94,10 +94,10 @@ describe("generated command sequences", () => {
 /** Open the editor of a generated target, or reopen the latest session of the innermost level; whether it opened. */
 function open(store: Store, reopen: boolean, seed: Seed): boolean {
   const latest = store.entries.findLast(isSessionEntry);
+  const reopened =
+    reopen && latest !== undefined ? store.sessions[latest.session]?.target : undefined;
   const target =
-    reopen && latest !== undefined
-      ? (store.sessions[latest.session]?.target as string)
-      : editorFor(store.view, BLOCKS, store.editing.at(-1)?.target ?? null, seed);
+    reopened ?? editorFor(store.view, BLOCKS, store.editing.at(-1)?.target ?? null, seed);
   return store.open(target) === null;
 }
 

@@ -1,6 +1,6 @@
 /** Timelines of unknown length: the reach, the five end rules, the open end; derived in tests/README.md. */
 
-import type { Manifest } from "@timetoalign/tilie-core";
+import { type Manifest, sameAddress } from "@timetoalign/tilie-core";
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_LAYER,
@@ -13,7 +13,7 @@ import {
 } from "../src/index.ts";
 import { reachOf } from "../src/numbers.ts";
 import {
-  BLOCK,
+  at,
   child,
   drawFixture,
   edit,
@@ -22,16 +22,17 @@ import {
   metrics,
   quarters,
   set,
+  target,
 } from "./support.ts";
 
 const drawn = (manifest: Manifest): Drawing =>
   draw(manifest, DEFAULT_PLACEMENT, [DEFAULT_LAYER, manifestLayer(manifest)], metrics);
 
-/** A line's start, its end and how it ends. */
-function line(drawing: Drawing, address: string): Pick<LineElement, "xs" | "xe" | "end"> {
-  const found = element(drawing, address);
+/** The start, the end and how it ends of the line of the timeline `id`. */
+function line(drawing: Drawing, id: string): Pick<LineElement, "xs" | "xe" | "end"> {
+  const found = element(drawing, at(id));
   if (found.type !== "timeline" && found.type !== "child" && found.type !== "ancestor") {
-    throw new Error(`${address} is no line`);
+    throw new Error(`${id} is no line`);
   }
   return { xs: found.xs, xe: found.xe, end: found.end };
 }
@@ -40,9 +41,9 @@ const addresses = (drawing: Drawing, type: DrawnElement["type"]) =>
   drawing.elements.filter((item) => item.type === type).map((item) => item.address);
 const texts = (drawing: Drawing) =>
   drawing.elements.flatMap((item) => (item.type === "label" ? [item.text] : []));
-const ordinate = (drawing: Drawing, address: string): number => {
-  const found = element(drawing, address);
-  if (found.type !== "child") throw new Error(`${address} is no child line`);
+const ordinate = (drawing: Drawing, id: string): number => {
+  const found = element(drawing, at(id));
+  if (found.type !== "child") throw new Error(`${id} is no child line`);
   return found.y;
 };
 
@@ -77,11 +78,14 @@ describe("a root of unknown length", () => {
     });
   });
 
-  it("has its start wedge and the label 0 only, and the outer chevron's tip sets the box", () => {
+  it("has its start wedge and the label 0 only, and the outer chevron's tip sets the block", () => {
     const drawing = drawFixture("unknown_length");
-    expect(addresses(drawing, "wedge")).toEqual(["score/start"]);
+    expect(addresses(drawing, "wedge")).toEqual([at("score", "start")]);
     expect(texts(drawing)).toEqual(["0 ♩"]);
-    expect(drawing.elements.some((item) => item.address?.startsWith("score/end"))).toBe(false);
+    const end = [at("score", "end"), at("score", "end", "label")];
+    expect(
+      drawing.elements.some((item) => end.some((address) => sameAddress(item.address, address))),
+    ).toBe(false);
     expect(drawing.width).toBe(500.298828125);
   });
 
@@ -104,19 +108,19 @@ describe("a root of unknown length", () => {
   });
 
   it("counts every flow-control coordinate in its reach, a jump target's too, and no measure map", () => {
-    const children = { type: "remove", targets: [`${BLOCK}/clt_2`, `${BLOCK}/clt_3`] };
-    const lastJump = { type: "remove", targets: [`${BLOCK}/clt_1/jump_from_4`] };
+    const children = { type: "remove", targets: [target("clt_2"), target("clt_3")] };
+    const lastJump = { type: "remove", targets: [target("jump_from_4")] };
     const flow = (drawing: Drawing) =>
       drawing.elements.filter((item) => item.type === "flow_marker" || item.type === "jump_from");
     const known = drawn(edit("corpus_score_ms3", children));
     const unknown = drawn(edit("corpus_score_ms3", children, set("clt_1", { length: null })));
     expect(flow(unknown)).toEqual(flow(known));
     expect(flow(unknown).map((item) => item.address)).toEqual([
-      "clt_1/flow_marker_1",
-      "clt_1/jump_from_2",
-      "clt_1/jump_from_1",
-      "clt_1/jump_from_3",
-      "clt_1/jump_from_4",
+      at("flow_marker_1"),
+      at("jump_from_2"),
+      at("jump_from_1"),
+      at("jump_from_3"),
+      at("jump_from_4"),
     ]);
     const x0 = line(known, "clt_1").xs;
     expect(line(known, "clt_1")).toEqual({ xs: x0, xe: x0 + 400, end: "arrowhead" });
@@ -146,18 +150,18 @@ describe("a child of unknown length in a known parent", () => {
       xe: 483.490234375,
       end: "arrowhead",
     });
-    expect(addresses(drawing, "wedge")).toEqual(["score/start", "score/end"]);
+    expect(addresses(drawing, "wedge")).toEqual([at("score", "start"), at("score", "end")]);
   });
 
   it("takes room for its three chevrons in its row: 9.5w past its end", () => {
-    const at = (offset: number) =>
+    const briefAt = (offset: number) =>
       drawn(edit("unknown_length_child", child("score", "brief", offset, 2)));
-    const meeting = at(15);
+    const meeting = briefAt(15);
     expect(ordinate(meeting, "brief")).toBe(ordinate(meeting, "movement") - 14);
     // Within the outer chevron (203.5), past the inner two (199).
-    const outer = at(16);
+    const outer = briefAt(16);
     expect(ordinate(outer, "brief")).toBe(ordinate(outer, "movement") - 14);
-    const past = at(17);
+    const past = briefAt(17);
     expect(ordinate(past, "brief")).toBe(ordinate(past, "movement"));
   });
 });
@@ -165,7 +169,7 @@ describe("a child of unknown length in a known parent", () => {
 describe("a group member of unknown length", () => {
   it("is drawn with its reach at the shared end, running on into three chevrons", () => {
     const drawing = drawFixture("groups/group_unknown_length");
-    const region = element(drawing, "performance/region_1");
+    const region = element(drawing, at("region_1"));
     if (region.type !== "region") throw new Error("no region");
     expect([region.x1, region.x2]).toEqual([102.640625, 502.640625]);
     expect(line(drawing, "performance")).toEqual({
@@ -188,14 +192,14 @@ describe("a segment line whose segments are of unknown length", () => {
     expect(addresses(drawFixture("unknown_length_segments"), "region")).toEqual([]);
     const drawing = drawFixture("unknown_length_segments", [
       {
-        statements: [{ select: { element: "band", class: "regions" }, set: { display: "inline" } }],
+        statements: [{ select: { element: "band", facet: "regions" }, set: { display: "inline" } }],
       },
     ]);
-    const region = element(drawing, "form/region_2");
+    const region = element(drawing, at("region_2"));
     if (region.type !== "region") throw new Error("no region");
     expect([region.x1, region.x2]).toEqual([379.2520967371323, 449.84033203125]);
     expect(
-      ["b/start", "c/start"].map((address) => {
+      [at("b", "start"), at("c", "start")].map((address) => {
         const boundary = element(drawing, address);
         return boundary.type === "boundary" ? boundary.x : undefined;
       }),
@@ -218,12 +222,13 @@ describe("a segment line whose segments are of unknown length", () => {
     );
     expect(
       drawing.elements.flatMap((item) =>
-        item.type === "label" && item.address.length === 7 ? [[item.address, item.x]] : [],
+        // The segments' labels, each with the one part word `label`.
+        item.type === "label" && item.address.part?.length === 1 ? [[item.address, item.x]] : [],
       ),
     ).toEqual([
-      ["a/label", 143.95797909007354],
-      ["b/label", 308.6638614430147],
-      ["c/label", 414.54621438419116],
+      [at("a", "label"), 143.95797909007354],
+      [at("b", "label"), 308.6638614430147],
+      [at("c", "label"), 414.54621438419116],
     ]);
   });
 });
@@ -238,7 +243,7 @@ describe("ancestor lines and unknown lengths", () => {
         set("second-half", { locked: true }),
         {
           type: "add",
-          into: `${BLOCK}/second-half`,
+          into: target("second-half"),
           region: { id: "region_1", name: null, start: quarters(0), end: quarters(8), meta: {} },
         },
       ),
@@ -251,12 +256,13 @@ describe("ancestor lines and unknown lengths", () => {
       end: "unknown",
     });
     expect(line(drawing, "piece")).toEqual({ xs: x0 - 12, xe: x0 + 400 + 12, end: "chevrons" });
-    expect(addresses(drawing, "wedge").filter((item) => item?.startsWith("second-half"))).toEqual([
-      "second-half/start",
-      "second-half/start",
+    expect(addresses(drawing, "wedge").filter((item) => item.id === "second-half")).toEqual([
+      at("second-half", "start"),
+      at("second-half", "start"),
     ]);
     const marks = drawing.elements.filter(
-      (item) => item.type === "label" && item.address === "second-half/start/label",
+      (item) =>
+        item.type === "label" && sameAddress(item.address, at("second-half", "start", "label")),
     );
     expect(marks.map((item) => (item.type === "label" ? item.text : ""))).toEqual(["8 ♩", "0 ♩"]);
   });
@@ -265,14 +271,15 @@ describe("ancestor lines and unknown lengths", () => {
     const drawing = drawn(edit("groups/group_child_member", set("piece", { length: null })));
     const x0 = line(drawing, "second-half").xs;
     expect(line(drawing, "piece")).toEqual({ xs: x0 - 12, xe: x0 + 400 + 12, end: "chevrons" });
+    const ends = [at("second-half", "start", "label"), at("second-half", "end", "label")];
     const markLabels = drawing.elements.flatMap((item) =>
-      item.type === "label" && /^second-half\/(start|end)\/label$/.test(item.address)
+      item.type === "label" && ends.some((address) => sameAddress(item.address, address))
         ? [[item.address, item.text]]
         : [],
     );
     expect(markLabels.slice(0, 2)).toEqual([
-      ["second-half/start/label", "8 ♩"],
-      ["second-half/end/label", "16 ♩"],
+      [at("second-half", "start", "label"), "8 ♩"],
+      [at("second-half", "end", "label"), "16 ♩"],
     ]);
   });
 

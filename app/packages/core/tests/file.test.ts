@@ -15,9 +15,9 @@ function built(): Workspace {
   for (const command of [
     addBlock(A, "bare.json"),
     addBlock(B, "map.json"),
-    { type: "set", changes: [{ target: A, values: { x: 128, y: 64 } }] },
+    { type: "set", changes: [{ target: { block: A }, values: { x: 128, y: 64 } }] },
     { type: "style", select: { element: "map" }, set: { stroke: "#C00000" } },
-    { type: "set", changes: [{ target: B, values: { x: 0.5 } }] },
+    { type: "set", changes: [{ target: { block: B }, values: { x: 0.5 } }] },
   ]) {
     expect(store.dispatch(command)).toBeNull();
   }
@@ -47,7 +47,7 @@ describe("the workspace file", () => {
       "sessions",
       "settings",
     ]);
-    expect(value.meta).toEqual({ format: "tilie-workspace", version: 4 });
+    expect(value.meta).toEqual({ format: "tilie-workspace", version: 5 });
     expect(value.name).toBe("untitled");
     expect((value.journal as unknown[]).length).toBe(4);
     expect(value.sessions).toEqual({});
@@ -80,7 +80,7 @@ describe("the workspace file", () => {
     ],
     [
       "a later version",
-      edited((value) => Object.assign(value.meta as Value, { version: 5 })),
+      edited((value) => Object.assign(value.meta as Value, { version: 6 })),
       "unsupported_version",
       ["meta", "version"],
     ],
@@ -155,6 +155,12 @@ describe("the workspace file", () => {
       ["journal", 0, "time"],
     ],
     [
+      "an entry command aimed at an address in the string form",
+      edited((value) => Object.assign(entry(value).command as Value, { into: "workspace" })),
+      "invalid_address",
+      ["journal", 0, "command", "into"],
+    ],
+    [
       "an entry command of no known type",
       edited((value) => Object.assign(entry(value).command as Value, { type: "move" })),
       "invalid_command",
@@ -167,20 +173,25 @@ describe("the workspace file", () => {
     ]);
   });
 
-  it("refuses a workspace of version 3 for its version alone", () => {
-    const groups = ["children", "regions", "flow"];
+  it("refuses a workspace of version 4 for its version alone", () => {
+    // Version 4 wrote every address as a string: `workspace`, a block id, `<block>/<element>`.
     const older = edited((value) => {
-      Object.assign(value.meta as Value, { version: 3 });
-      for (const block of Object.values(value.blocks as Value)) {
-        Object.assign(block as Value, { order: groups, bands: {} });
+      Object.assign(value.meta as Value, { version: 4 });
+      for (const item of value.journal as Value[]) {
+        const command = item.command as Value;
+        if (command.type === "add") command.into = "workspace";
+        if (command.type === "set") {
+          for (const change of command.changes as Value[]) {
+            change.target = (change.target as Value).block;
+          }
+        }
       }
-      Object.assign((value.settings as Value).blockDefaults as Value, { order: groups });
     });
     const result = readWorkspace(older);
     expect(isLoadError(result) && result.problems).toEqual([
       {
         code: "unsupported_version",
-        message: "workspace version 3 is not supported; this editor reads version 4 only",
+        message: "workspace version 4 is not supported; this editor reads version 5 only",
         path: ["meta", "version"],
       },
     ]);
@@ -216,12 +227,17 @@ describe("the workspace file", () => {
       {
         type: "set",
         changes: [
-          { target: `${A}/group_1`, values: { place: { length: 300, scale: 1.25, spacing: 2 } } },
+          {
+            target: { block: A, id: "group_1" },
+            values: { place: { length: 300, scale: 1.25, spacing: 2 } },
+          },
         ],
       },
       {
         type: "set",
-        changes: [{ target: `${A}/score`, values: { place: { width: 650, spacing: 1.5 } } }],
+        changes: [
+          { target: { block: A, id: "score" }, values: { place: { width: 650, spacing: 1.5 } } },
+        ],
       },
     ]) {
       expect(store.dispatch(command)).toBeNull();
@@ -231,31 +247,40 @@ describe("the workspace file", () => {
     expect(again).toEqual(store.snapshot());
     expect(writeWorkspace(again)).toBe(placed);
     expect(again.view.blocks[A]?.places).toEqual({
-      group_1: { length: 300, scale: 1.25, spacing: 2 },
-      "group_1/score": { width: 650, spacing: 1.5 },
+      group_1: {
+        length: 300,
+        scale: 1.25,
+        spacing: 2,
+        cards: { score: { width: 650, spacing: 1.5 } },
+      },
     });
-    const changedPlace = (key: string, values: Value) => {
+    const changedPlace = (where: readonly string[], values: Value) => {
       const value = parseJson(placed) as Value;
-      Object.assign((blockOf(value).places as Value)[key] as Value, values);
+      const place = where.reduce(
+        (item, step) => item[step] as Value,
+        blockOf(value).places as Value,
+      );
+      Object.assign(place, values);
       return readWorkspace(dumps(value));
     };
-    expect(changedPlace("group_1/score", { length: 300 })).toMatchObject({
+    const score = ["group_1", "cards", "score"];
+    expect(changedPlace(score, { length: 300 })).toMatchObject({
       problems: [
         {
           code: "unknown_member",
-          message: "score is a member: its card takes only width, height and spacing",
-          path: ["blocks", A, "places", "group_1/score", "length"],
+          message: "'score' is a member: its card takes only width, height and spacing",
+          path: ["blocks", A, "places", ...score, "length"],
         },
       ],
     });
-    for (const [key, member, value, code] of [
-      ["group_1/score", "spacing", -1, "invalid_value"],
-      ["group_1", "scale", 0, "non_positive_number"],
+    for (const [where, member, value, code] of [
+      [score, "spacing", -1, "invalid_value"],
+      [["group_1"], "scale", 0, "non_positive_number"],
     ] as const) {
-      const refused = changedPlace(key, { [member]: value });
+      const refused = changedPlace(where, { [member]: value });
       expect(
         isLoadError(refused) && refused.problems.map((item) => [item.code, item.path]),
-      ).toEqual([[code, ["blocks", A, "places", key, member]]]);
+      ).toEqual([[code, ["blocks", A, "places", ...where, member]]]);
     }
   });
 
@@ -268,12 +293,15 @@ describe("the workspace file", () => {
         { clock: testClock() },
       );
       expect(store.dispatch(addBlock(A, "bundles/bundle_mixed.json"))).toBeNull();
-      const set = { type: "set", changes: [{ target: `${A}/score`, values: { name: "S" } }] };
+      const set = {
+        type: "set",
+        changes: [{ target: { block: A, id: "score" }, values: { name: "S" } }],
+      };
       expect(store.dispatch(set)).toBeNull();
       const value = parseJson(writeWorkspace(store.snapshot())) as Value;
       const [added, command] = value.journal as Value[];
       value.journal = [added, { session: S, author: "Gerhardt", time: (command as Value).time }];
-      value.sessions = { [S]: { target: `${A}/group_1`, entries: [command] } };
+      value.sessions = { [S]: { target: { block: A, id: "group_1" }, entries: [command] } };
       return dumps(value);
     })();
     const withSessions = (change: (value: Value) => void): string => {
@@ -284,7 +312,7 @@ describe("the workspace file", () => {
     const sessionsOf = (value: Value) => value.sessions as Value;
     const sessionEntry = (value: Value) => (value.journal as Value[])[1] as Value;
     const named = (id: string, target: string) => ({
-      target: `${A}/${target}`,
+      target: { block: A, id: target },
       entries: [{ session: id, author: "Gerhardt", time: "2026-10-11T14:03:12.418Z" }],
     });
 
@@ -314,7 +342,7 @@ describe("the workspace file", () => {
         withSessions((value) =>
           Object.assign(sessionsOf(value), {
             "0000000098": {
-              target: `${A}/group_2`,
+              target: { block: A, id: "group_2" },
               entries: (sessionsOf(value)[S] as Value).entries,
             },
           }),
@@ -346,7 +374,7 @@ describe("the workspace file", () => {
         "an entry with a command and a session",
         withSessions((value) =>
           Object.assign(sessionEntry(value), {
-            command: { type: "remove", targets: [`${A}/score`] },
+            command: { type: "remove", targets: [{ block: A, id: "score" }] },
           }),
         ),
         [["unknown_member", ["journal", 1, "command"]]],
@@ -367,6 +395,20 @@ describe("the workspace file", () => {
         "a session target that is no address",
         withSessions((value) =>
           Object.assign(sessionsOf(value)[S] as Value, { target: "nowhere" }),
+        ),
+        [["invalid_address", ["sessions", S, "target"]]],
+      ],
+      [
+        "a session target in the string form",
+        withSessions((value) =>
+          Object.assign(sessionsOf(value)[S] as Value, { target: `${A}/group_1` }),
+        ),
+        [["invalid_address", ["sessions", S, "target"]]],
+      ],
+      [
+        "a session target naming no block",
+        withSessions((value) =>
+          Object.assign(sessionsOf(value)[S] as Value, { target: { id: "group_1" } }),
         ),
         [["invalid_address", ["sessions", S, "target"]]],
       ],

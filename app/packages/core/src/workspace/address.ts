@@ -1,97 +1,119 @@
 /**
- * Addresses (`docs/drawing.md` in TimeToShare, section 2.2): their syntax,
- * their three builders, and the one resolver that decides what an address
- * names. Every reader of an address reads `resolveAddress` (or, within one
- * manifest, `resolveElement`); nothing else splits an address.
- *
- * A workspace address is `workspace`, a block id, or `<block id>/<element
- * address>`. An element address is a group's, a timeline's or a measure
- * map's bare id (`G`, `T`, `M`), a card (`G/T/card` for a member's in the
- * frame of `G`, `T/card` for an ungrouped root's), a timeline's band
- * (`T/regions_1`), an entry of a root's tree (`r/R`), the manifest's title
- * (`name`), or any of these but a measure map and a card followed by part
- * words (`T/end/label`).
+ * Workspace addresses and the one resolver that decides what an address
+ * names. An address is an object, never a string composed from IDs: `{}`
+ * the workspace, `{block}` a block (which draws its bundle), and `{block,
+ * id?, facet?, part?}` an element of the block's manifest, its members
+ * those of the manifest's own address (`docs/drawing.md` in TimeToShare,
+ * section 2.2). Every reader of an address reads `resolveAddress` (or,
+ * within one manifest, `resolveElement`); `addressKey` is its one string
+ * form.
  */
 
 import type { CommandError, Problem } from "../errors.ts";
 import { ErrorCode, problem } from "../errors.ts";
-import type { BandKind } from "../manifest/bands.ts";
-import { BAND_KINDS, bandAddress, bandId } from "../manifest/bands.ts";
+import type { PathSegment } from "../json.ts";
+import { compareCodePoints, isJsonObject } from "../json.ts";
+import type { ElementAddress, Facet, Part } from "../manifest/address.ts";
+import { addressKey, isFacet, isPart } from "../manifest/address.ts";
 import type { ContainerRef, Containers } from "../manifest/containers.ts";
 import { containersOf } from "../manifest/containers.ts";
 import type { ElementKey } from "../manifest/elements.ts";
 import { manifestElements, timelineAncestry } from "../manifest/elements.ts";
 import type { EntryKind, ListedElement } from "../manifest/files.ts";
-import {
-  CARD_WORD,
-  cardAddress,
-  cardKey,
-  ENTRY_KINDS,
-  elementAddress,
-  entriesOf,
-  isNamed,
-  isReservedId,
-  PART_WORDS,
-  partAddress,
-  TITLE_ADDRESS,
-} from "../manifest/files.ts";
+import { ENTRY_KINDS, ENTRY_LISTS, entriesOf } from "../manifest/files.ts";
 import type { Located } from "../manifest/tree.ts";
-import type { Group, Manifest, MeasureMap, TimelineManifest } from "../manifest/types.ts";
+import type {
+  ConversionMap,
+  Group,
+  Manifest,
+  MeasureMap,
+  TimelineManifest,
+} from "../manifest/types.ts";
 import type { Block, BlockId } from "./blocks.ts";
 import { BLOCK_ID } from "./blocks.ts";
 import type { View } from "./view.ts";
 
-/** The workspace-wide name of a workspace, block, element or element part. */
-export type Address = string;
+/**
+ * The workspace-wide address of the workspace (`{}`), a block (`{block}`),
+ * or an element or part of a block's manifest (`{block, id?, facet?, part?}`).
+ */
+export interface Address extends ElementAddress {
+  readonly block?: BlockId;
+}
 
 /** The address of the workspace itself. */
-export const WORKSPACE = "workspace";
+export const WORKSPACE: Address = {};
 
-/** A word that addresses a named part of an element. */
-export type PartWord = (typeof PART_WORDS)[number];
+/** The members an address may state. */
+const ADDRESS_MEMBERS = ["block", "id", "facet", "part"] as const;
 
-/** The syntactic split of an address into its optional block and following segments. */
-export interface AddressSyntax {
-  readonly block: BlockId | null;
-  readonly segments: readonly string[];
+/** Whether `value` is an ID as the schema allows it: a non-empty string without control characters. */
+function isId(value: unknown): value is string {
+  if (typeof value !== "string" || value === "") return false;
+  for (let index = 0; index < value.length; index += 1) {
+    if (value.charCodeAt(index) < 0x20) return false;
+  }
+  return true;
 }
 
 /**
- * Split an address at its slashes: `workspace` has no block and no
- * segments, a block id no segments, `<block id>/<element address>` the
- * element address's segments. A first segment that is no block id, and a
- * block id followed by an empty element address, are `invalid_address`.
+ * `value` read as an address, or `invalid_address` at `path`: an object of
+ * only `block`, `id`, `facet` and `part`; `block` a block id; `id` an ID;
+ * `facet` one of the five facets, standing with an `id` and never with a
+ * `part`; `part` a non-empty array of part words; and any of `id`, `facet`
+ * and `part` only with a `block`.
  */
-export function parseAddressSyntax(text: string): AddressSyntax | Problem {
-  if (text === WORKSPACE) return { block: null, segments: [] };
-  const [block = "", ...segments] = text.split("/");
-  if (!BLOCK_ID.test(block)) {
-    return problem(ErrorCode.invalidAddress, "an address is workspace or starts with a block id", [
-      text,
-    ]);
+export function readAddress(value: unknown, path: readonly PathSegment[]): Address | Problem {
+  const invalid = (message: string) => problem(ErrorCode.invalidAddress, message, path);
+  if (!isJsonObject(value)) return invalid("an address is an object");
+  const extra = Object.keys(value).find(
+    (member) => !ADDRESS_MEMBERS.some((known) => known === member),
+  );
+  if (extra !== undefined) return invalid(`an address has no member ${extra}`);
+  const { block, id, facet, part } = value;
+  if (block !== undefined && (typeof block !== "string" || !BLOCK_ID.test(block))) {
+    return invalid("an address's block is a block id");
   }
-  if (segments.length === 1 && segments[0] === "") {
-    return problem(ErrorCode.invalidAddress, "an address element cannot be empty", [text]);
+  if (id !== undefined && !isId(id)) {
+    return invalid("an address's id is a non-empty string without control characters");
   }
-  return { block, segments };
+  if (facet !== undefined && !isFacet(facet)) return invalid("an address's facet is a facet");
+  let words: Part[] | undefined;
+  if (part !== undefined) {
+    if (!Array.isArray(part) || part.length === 0 || !part.every(isPart)) {
+      return invalid("an address's part is a non-empty array of part words");
+    }
+    words = part;
+  }
+  if (facet !== undefined && id === undefined) return invalid("a facet stands with an id");
+  if (facet !== undefined && words !== undefined)
+    return invalid("a facet never stands with a part");
+  if (block === undefined && (id !== undefined || facet !== undefined || words !== undefined)) {
+    return invalid("an element's address names its block");
+  }
+  return {
+    ...(block === undefined ? {} : { block }),
+    ...(id === undefined ? {} : { id }),
+    ...(facet === undefined ? {} : { facet: facet as Facet }),
+    ...(words === undefined ? {} : { part: words }),
+  };
 }
 
-/** The element address an address holds after its block; `null` for the workspace or a block. */
-export function elementIn(syntax: AddressSyntax): string | null {
-  return syntax.segments.length === 0 ? null : syntax.segments.join("/");
+/** The address, in the block `block`, of the element of its manifest addressed `element`. */
+export function inBlock(block: BlockId, element: ElementAddress): Address {
+  return { block, ...element };
 }
 
-/** Qualify a manifest element address with the block that holds its manifest. */
-export function qualify(block: BlockId, element: string): Address {
-  return `${block}/${element}`;
+/** The element address an address holds without its block (`{}` for the workspace and a block). */
+export function elementAddressOf(address: Address): ElementAddress {
+  const { block: _, ...element } = address;
+  return element;
 }
 
-/**
- * The address builders of a manifest's elements, `<root>/<id>`,
- * `[<group>/]<timeline>/card` and `<owner>/<part word>`, and the `places`
- * key of a card, `[<group>/]<timeline>`.
- */
-export { cardAddress, cardKey, elementAddress, partAddress };
+/** Whether an address names an element or part of a block's manifest, not a block or the workspace. */
+export function isElementAddress(address: Address): boolean {
+  return address.id !== undefined || address.facet !== undefined || address.part !== undefined;
+}
 
 /** What a valid workspace address resolves to in a view. */
 export type ResolvedAddress =
@@ -119,13 +141,14 @@ export type ResolvedAddress =
       readonly kind: "card";
       readonly block: Block;
       readonly at: Located;
-      readonly container: ContainerRef;
+      /** Every card of the timeline, in drawing order; at least one. */
+      readonly cards: readonly ContainerRef[];
     }
   | {
       readonly kind: "band";
       readonly block: Block;
       readonly at: Located;
-      readonly band: BandKind;
+      readonly facet: Facet;
       /** Every drawing of the band, one per card drawing its timeline, in drawing order. */
       readonly containers: readonly ContainerRef[];
     }
@@ -150,7 +173,7 @@ export type ResolvedAddress =
       readonly kind: "part";
       readonly block: Block;
       readonly owner: ResolvedAddress;
-      readonly word: PartWord;
+      readonly word: Part;
     };
 
 /** A resolved element address without the block that holds its manifest. */
@@ -158,11 +181,11 @@ export type ResolvedElement =
   | { readonly kind: "title" }
   | { readonly kind: "frame"; readonly group: Group; readonly container: ContainerRef }
   | { readonly kind: "timeline"; readonly at: Located; readonly cards: readonly ContainerRef[] }
-  | { readonly kind: "card"; readonly at: Located; readonly container: ContainerRef }
+  | { readonly kind: "card"; readonly at: Located; readonly cards: readonly ContainerRef[] }
   | {
       readonly kind: "band";
       readonly at: Located;
-      readonly band: BandKind;
+      readonly facet: Facet;
       readonly containers: readonly ContainerRef[];
     }
   | {
@@ -173,237 +196,231 @@ export type ResolvedElement =
       readonly element: ListedElement;
     }
   | { readonly kind: "measure_map"; readonly map: MeasureMap; readonly index: number }
-  | { readonly kind: "part"; readonly owner: ResolvedElement; readonly word: PartWord };
+  | { readonly kind: "part"; readonly owner: ResolvedElement; readonly word: Part };
 
-/** An entry located in its manifest: the timeline holding it, its kind, its index. */
-interface LocatedEntry {
-  readonly at: Located;
-  readonly kind: EntryKind;
-  readonly index: number;
+/**
+ * What an ID of a manifest names, located in the manifest: a timeline, an
+ * entry of a timeline's list, a conversion map another map holds (at
+ * `path`, which nothing draws or addresses), a group or a MeasureMap.
+ */
+type Found =
+  | { readonly kind: "timeline"; readonly at: Located }
+  | {
+      readonly kind: "entry";
+      readonly at: Located;
+      readonly entry: EntryKind;
+      readonly index: number;
+    }
+  | { readonly kind: "held"; readonly path: readonly PathSegment[] }
+  | { readonly kind: "group"; readonly group: Group }
+  | { readonly kind: "measure_map"; readonly map: MeasureMap; readonly index: number };
+
+const catalogues = new WeakMap<Manifest, ReadonlyMap<string, Found>>();
+
+function isMapList(maps: unknown): maps is readonly ConversionMap[] {
+  return Array.isArray(maps);
 }
 
-/** Every timeline of a manifest by id, and every entry by its element address. */
-interface Catalogue {
-  readonly timelines: ReadonlyMap<string, Located>;
-  readonly entries: ReadonlyMap<string, LocatedEntry>;
+/** The maps `map` holds, with their keys in its `maps`: a list's indices, else names by code point. */
+function heldMaps(map: ConversionMap): readonly (readonly [PathSegment, ConversionMap])[] {
+  if (!("maps" in map)) return [];
+  const { maps } = map;
+  if (isMapList(maps)) return maps.map((item, index) => [index, item] as const);
+  return Object.entries(maps).sort(([left], [right]) => compareCodePoints(left, right));
 }
 
-const catalogues = new WeakMap<Manifest, Catalogue>();
-
-/** The catalogue of a manifest, built in one walk of its trees and memoised by identity. */
-function catalogueOf(manifest: Manifest): Catalogue {
+/**
+ * Every ID of a manifest with what it names, built in one walk of its trees
+ * and memoised by identity: per timeline in pre-order its own, its entries'
+ * and, after each conversion map, the maps it holds at any depth; then the
+ * groups' and the MeasureMaps'. An ID repeated in a manifest the schema
+ * refuses keeps its first finding.
+ */
+function catalogueOf(manifest: Manifest): ReadonlyMap<string, Found> {
   const known = catalogues.get(manifest);
   if (known !== undefined) return known;
-  const timelines = new Map<string, Located>();
-  const entries = new Map<string, LocatedEntry>();
-  const visit = (at: Located, root: string) => {
-    if (!timelines.has(at.timeline.id)) timelines.set(at.timeline.id, at);
-    for (const kind of ENTRY_KINDS) {
-      entriesOf(at.timeline, kind).forEach((entry, index) => {
-        const address = elementAddress(root, entry.id);
-        if (!entries.has(address)) entries.set(address, { at, kind, index });
+  const found = new Map<string, Found>();
+  const note = (id: string, item: Found) => {
+    if (!found.has(id)) found.set(id, item);
+  };
+  const hold = (map: ConversionMap, path: readonly PathSegment[]) => {
+    for (const [key, item] of heldMaps(map)) {
+      const at = [...path, "maps", key];
+      note(item.id, { kind: "held", path: at });
+      hold(item, at);
+    }
+  };
+  const visit = (at: Located) => {
+    note(at.timeline.id, { kind: "timeline", at });
+    for (const entry of ENTRY_KINDS) {
+      entriesOf(at.timeline, entry).forEach((item, index) => {
+        note(item.id, { kind: "entry", at, entry, index });
       });
     }
+    at.timeline.conversion_maps.forEach((map, index) => {
+      hold(map, [...at.path, "conversion_maps", index]);
+    });
     at.timeline.children.forEach((timeline: TimelineManifest, index) => {
-      visit({ timeline, path: [...at.path, "children", index], parent: at }, root);
+      visit({ timeline, path: [...at.path, "children", index], parent: at });
     });
   };
   manifest.timelines.forEach((timeline, index) => {
-    visit({ timeline, path: ["timelines", index], parent: undefined }, timeline.id);
+    visit({ timeline, path: ["timelines", index], parent: undefined });
   });
-  const catalogue = { timelines, entries };
-  catalogues.set(manifest, catalogue);
-  return catalogue;
+  for (const group of manifest.groups) note(group.id, { kind: "group", group });
+  manifest.measure_maps.forEach((map, index) => {
+    note(map.id, { kind: "measure_map", map, index });
+  });
+  catalogues.set(manifest, found);
+  return found;
 }
 
-/** The band a segment names when it is a band's id (`<kind>_1`). */
-function bandNamed(segment: string): BandKind | undefined {
-  return BAND_KINDS.find((kind) => bandId(kind) === segment);
+/**
+ * Every ID a manifest holds, each unique across the manifest: the IDs of
+ * its catalogue (its timelines at any depth, their conversion maps at any
+ * depth, regions and flow-control elements, its groups and MeasureMaps) and
+ * the manifest's own.
+ */
+export function manifestIds(manifest: Manifest): Set<string> {
+  const ids = new Set(catalogueOf(manifest).keys());
+  if (manifest.id !== undefined) ids.add(manifest.id);
+  return ids;
 }
 
-/** The part word a segment is, if it is one. */
-function partWord(segment: string): PartWord | undefined {
-  return PART_WORDS.find((word) => word === segment);
-}
-
-/** The part words each resolved element has. */
-function partsOf(owner: ResolvedElement): readonly PartWord[] {
-  switch (owner.kind) {
+/**
+ * Where an ID of a manifest's tree of timelines lies in the manifest, its
+ * `id` member: a timeline's, an entry's or a held conversion map's;
+ * `undefined` for a group's, a MeasureMap's and an ID the manifest lacks.
+ */
+export function idPath(manifest: Manifest, id: string): readonly PathSegment[] | undefined {
+  const found = catalogueOf(manifest).get(id);
+  switch (found?.kind) {
     case "timeline":
-      return PART_WORDS;
+      return [...found.at.path, "id"];
     case "entry":
-      return ["name", "label"];
-    case "frame":
-      return ["name"];
-    case "part":
-      return owner.word === "start" || owner.word === "end" ? ["label"] : [];
+      return [...found.at.path, ...ENTRY_LISTS[found.entry].path, found.index, "id"];
+    case "held":
+      return [...found.path, "id"];
     default:
-      return [];
+      return undefined;
   }
 }
 
 /**
- * The card under the `places` key of `timeline`'s card in the frame of
- * `group` (null: on the box), with the timeline; `undefined` when the
- * drawing has no such card.
- */
-function cardOf(
-  manifest: Manifest,
-  timeline: string,
-  group: string | null,
-): ResolvedElement | undefined {
-  const container = containersOf(manifest).byKey.get(cardKey(timeline, group));
-  const at = catalogueOf(manifest).timelines.get(timeline);
-  return container?.kind !== "card" || at === undefined
-    ? undefined
-    : { kind: "card", at, container };
-}
-
-/**
- * The element the first one to three segments name, and how many they are:
- * a group's frame, a member's card in it (`G/T/card`), a measure map, a
- * timeline, an ungrouped root's card (`T/card`) or one of a timeline's
- * bands, or an entry of a root's tree; `undefined` when they name nothing.
- * A member's card is named by its group only: `T/card` names nothing for a
- * timeline that no box-held card draws.
+ * The element an ID names with what its address adds: a group's frame, a
+ * measure map, a timeline, its cards (`part` beginning with `card`) or one
+ * of its bands (`facet`), or an entry; with the part words that address
+ * left to read, or `undefined` when it names nothing. A band or a card
+ * exists only for a timeline drawn in a card; a map another map holds is
+ * neither drawn nor addressed.
  */
 function baseOf(
   manifest: Manifest,
-  segments: readonly string[],
-): readonly [ResolvedElement, number] | undefined {
-  const [first = "", second, third] = segments;
-  const containers = containersOf(manifest);
-  const group = manifest.groups.find((item) => item.id === first);
-  if (group !== undefined) {
-    if (second !== undefined && third === CARD_WORD) {
-      const card = cardOf(manifest, second, first);
-      return card === undefined ? undefined : [card, 3];
-    }
-    const [container] = containers.byAddress.get(first) ?? [];
-    return container === undefined ? undefined : [{ kind: "frame", group, container }, 1];
-  }
-  const index = manifest.measure_maps.findIndex((item) => item.id === first);
-  const map = manifest.measure_maps[index];
-  if (map !== undefined) return [{ kind: "measure_map", map, index }, 1];
-  const { timelines, entries } = catalogueOf(manifest);
-  const at = timelines.get(first);
-  if (at === undefined) return undefined;
-  const timeline: ResolvedElement = {
-    kind: "timeline",
-    at,
-    cards: containers.cards.get(first) ?? [],
-  };
-  if (second === undefined || partWord(second) !== undefined) return [timeline, 1];
-  if (second === CARD_WORD) {
-    const card = cardOf(manifest, first, null);
-    return card === undefined ? undefined : [card, 2];
-  }
-  const band = bandNamed(second);
-  if (band !== undefined) {
-    const drawn = containers.byAddress.get(bandAddress(first, band));
-    return drawn === undefined ? undefined : [{ kind: "band", at, band, containers: drawn }, 2];
-  }
-  if (at.parent !== undefined || isReservedId(second)) return undefined;
-  const found = entries.get(elementAddress(first, second));
+  id: string,
+  facet: Facet | undefined,
+  part: readonly Part[],
+): readonly [ResolvedElement, readonly Part[]] | undefined {
+  const found = catalogueOf(manifest).get(id);
   if (found === undefined) return undefined;
-  const element = entriesOf(found.at.timeline, found.kind)[found.index];
-  if (element === undefined) return undefined;
-  return [{ kind: "entry", at: found.at, entry: found.kind, index: found.index, element }, 2];
+  const containers = containersOf(manifest);
+  if (found.kind === "timeline") {
+    const { at } = found;
+    const cards = containers.cards.get(id) ?? [];
+    if (facet !== undefined) {
+      const drawn = containers.bands.get(id)?.get(facet);
+      return drawn === undefined ? undefined : [{ kind: "band", at, facet, containers: drawn }, []];
+    }
+    if (part[0] === "card") {
+      return cards.length === 0 ? undefined : [{ kind: "card", at, cards }, part.slice(1)];
+    }
+    return [{ kind: "timeline", at, cards }, part];
+  }
+  if (facet !== undefined) return undefined;
+  switch (found.kind) {
+    case "held":
+      return undefined;
+    case "group": {
+      const container = containers.frames.get(id);
+      if (container === undefined) throw new Error(`group ${id} draws no frame`);
+      return [{ kind: "frame", group: found.group, container }, part];
+    }
+    case "measure_map":
+      return part.length > 0 ? undefined : [{ ...found }, []];
+    case "entry": {
+      const element = entriesOf(found.at.timeline, found.entry)[found.index];
+      if (element === undefined) return undefined;
+      return [{ ...found, element }, part];
+    }
+  }
 }
 
 /**
- * Resolve an element address against a manifest: the title (of a named
- * manifest), a frame, a measure map, a timeline, a card, a band (of a
- * timeline drawn in a card), an entry, or a part of one of them; `undefined`
- * for anything else. A measure map is not drawn and a card has no part; any
- * other part is one of the part words its owner has: a timeline's `start`,
- * `end`, `name` and `label`, an entry's `name` and `label`, a frame's
- * `name`, the `label` of a `start` or an `end`.
+ * Resolve an element address against a manifest: a frame, a measure map, a
+ * timeline, a timeline's cards, a band (of a timeline drawn in a card), an
+ * entry, or a part that the manifest's drawing draws (`ManifestIndex.drawn`,
+ * `docs/drawing.md` section 2.2): the manifest's title (of a named
+ * manifest), a group's title, the name of a timeline drawn with one, the
+ * wedges and marks of a member drawing's root with their labels, a
+ * segment's boundary (of every segment but the first) and label, the label
+ * of a region, a flow marker or a jump origin, and the cards. `undefined`
+ * for anything else, the bundle's address `{}` included (the workspace
+ * resolver reads it as the block).
  */
-export function resolveElement(manifest: Manifest, element: string): ResolvedElement | undefined {
-  const segments = element.split("/");
-  if (segments.length === 1 && segments[0] === TITLE_ADDRESS) {
-    // A title exists only for a named manifest: an anonymous bundle draws none.
-    return isNamed(manifest) ? { kind: "title" } : undefined;
-  }
-  const base = baseOf(manifest, segments);
+export function resolveElement(
+  manifest: Manifest,
+  element: ElementAddress,
+): ResolvedElement | undefined {
+  const { id, facet, part = [] } = element;
+  if (part.length > 0 && !indexOf(manifest).drawn.has(addressKey(element))) return undefined;
+  if (id === undefined) return part.length > 0 ? { kind: "title" } : undefined;
+  const base = baseOf(manifest, id, facet, part);
   if (base === undefined) return undefined;
   let [resolved] = base;
-  for (const segment of segments.slice(base[1])) {
-    const word = partWord(segment);
-    if (word === undefined || !partsOf(resolved).includes(word)) return undefined;
-    resolved = { kind: "part", owner: resolved, word };
-  }
+  for (const word of base[1]) resolved = { kind: "part", owner: resolved, word };
   return resolved;
 }
 
 /** A resolved element as an address of the block holding its manifest. */
-function inBlock(element: ResolvedElement, block: Block): ResolvedAddress {
+function resolvedIn(element: ResolvedElement, block: Block): ResolvedAddress {
   if (element.kind === "part") {
-    return { kind: "part", block, owner: inBlock(element.owner, block), word: element.word };
+    return { kind: "part", block, owner: resolvedIn(element.owner, block), word: element.word };
   }
   return { ...element, block };
 }
 
+/** `unknown_target` for an address naming nothing: `<address key> names nothing`, at `[<address key>]`. */
+export function namesNothing(address: Address): CommandError {
+  const key = addressKey(address);
+  return problem(ErrorCode.unknownTarget, `${key} names nothing`, [key]);
+}
+
 /**
  * Resolve an address once against its workspace view: the workspace, a
- * block, or an element of a block's manifest (`resolveElement`). The
- * manifest's own id names the block as its bare id does (`<block id>/<manifest
- * id>`). A malformed address is `invalid_address`; one naming nothing,
- * `unknown_target` (`<address> names nothing`), both at `[address]`.
+ * block, or an element of a block's manifest (`resolveElement`). A malformed
+ * address is `invalid_address`, one naming nothing `unknown_target`, both at
+ * `[<address key>]`. The manifest's own ID addresses nothing.
  */
 export function resolveAddress(view: View, address: Address): ResolvedAddress | CommandError {
-  const syntax = parseAddressSyntax(address);
-  if ("code" in syntax) return syntax;
-  if (syntax.block === null) return { kind: "workspace" };
-  const unknown = problem(ErrorCode.unknownTarget, `${address} names nothing`, [address]);
-  const block = view.blocks[syntax.block];
-  if (block === undefined) return unknown;
-  const element = elementIn(syntax);
-  if (element === null || element === block.manifest.id) return { kind: "block", block };
-  const resolved = resolveElement(block.manifest, element);
-  return resolved === undefined ? unknown : inBlock(resolved, block);
-}
-
-/**
- * The element an element address names with its parts and bands folded
- * away: the timeline of a card in a group's frame (`<group>/<timeline>/card`);
- * `<root>/<id>` when it starts with a root's id followed by an id that is not
- * reserved (`isReservedId`); its first segment otherwise. So
- * `score/end/label` and `score/regions_1` name `score`, as `score/card` and
- * `group_1/score/card` do, and `score/region_1/label` names
- * `score/region_1`. The manifest's title is `name` itself. It reads the
- * syntax only: what it names need not exist.
- */
-export function elementOf(manifest: Manifest, element: string): string {
-  const [first = "", second, third] = element.split("/");
-  if (second === undefined) return first;
-  if (third === CARD_WORD && manifest.groups.some((group) => group.id === first)) return second;
-  const root = manifest.timelines.some((timeline) => timeline.id === first);
-  return root && !isReservedId(second) ? elementAddress(first, second) : first;
-}
-
-/**
- * The timeline of a band address `<timeline>/<kind>_1` and its kind, read
- * from the syntax; `null` for any other address.
- */
-export function parseBand(
-  element: string,
-): { readonly timeline: string; readonly kind: BandKind } | null {
-  const segments = element.split("/");
-  const [timeline = "", id = ""] = segments;
-  const kind = segments.length === 2 && timeline !== "" ? bandNamed(id) : undefined;
-  return kind === undefined ? null : { timeline, kind };
+  const read = readAddress(address, [addressKey(address)]);
+  if ("code" in read) return read;
+  if (read.block === undefined) return { kind: "workspace" };
+  const block = view.blocks[read.block];
+  if (block === undefined) return namesNothing(address);
+  if (!isElementAddress(read)) return { kind: "block", block };
+  const resolved = resolveElement(block.manifest, elementAddressOf(read));
+  return resolved === undefined ? namesNothing(address) : resolvedIn(resolved, block);
 }
 
 /** What a manifest's readers need once per manifest, memoised by identity. */
 export interface ManifestIndex {
   readonly containers: Containers;
   readonly ancestry: ReadonlyMap<string, readonly string[]>;
-  /** Every timeline's id and every entry's element address, mapped to the timeline it belongs to. */
+  /** Every timeline's and every entry's ID, mapped to the timeline it belongs to. */
   readonly owners: ReadonlyMap<string, string>;
   /** Every element of the manifest's drawing (`manifestElements`). */
   readonly elements: readonly ElementKey[];
+  /** The `addressKey` of every element's address in `elements`, once each. */
+  readonly drawn: ReadonlySet<string>;
 }
 
 const indexes = new WeakMap<Manifest, ManifestIndex>();
@@ -418,6 +435,7 @@ export function indexOf(manifest: Manifest): ManifestIndex {
   let ancestry: ReadonlyMap<string, readonly string[]> | undefined;
   let owners: ReadonlyMap<string, string> | undefined;
   let elements: readonly ElementKey[] | undefined;
+  let drawn: ReadonlySet<string> | undefined;
   const index: ManifestIndex = {
     get containers() {
       return containersOf(manifest);
@@ -434,16 +452,20 @@ export function indexOf(manifest: Manifest): ManifestIndex {
       elements ??= manifestElements(manifest);
       return elements;
     },
+    get drawn() {
+      drawn ??= new Set(index.elements.map((key) => addressKey(key.address)));
+      return drawn;
+    },
   };
   indexes.set(manifest, index);
   return index;
 }
 
-/** Every timeline mapped to itself and every entry's address to the timeline holding it. */
+/** Every timeline's ID mapped to itself and every entry's ID to the timeline holding it. */
 function ownersOf(manifest: Manifest): ReadonlyMap<string, string> {
-  const { timelines, entries } = catalogueOf(manifest);
   const owners = new Map<string, string>();
-  for (const id of timelines.keys()) owners.set(id, id);
-  for (const [address, { at }] of entries) owners.set(address, at.timeline.id);
+  for (const [id, found] of catalogueOf(manifest)) {
+    if (found.kind === "timeline" || found.kind === "entry") owners.set(id, found.at.timeline.id);
+  }
   return owners;
 }

@@ -1,6 +1,6 @@
 /** Blocks: the entries of a workspace's canvas, each placing one manifest. */
 
-import type { CardPlace, ItemPlace } from "../manifest/containers.ts";
+import type { Places } from "../manifest/containers.ts";
 import type { Manifest } from "../manifest/types.ts";
 
 /** A block id: ten characters of base 36, unique within the workspace. */
@@ -13,9 +13,9 @@ export interface BlockPlacement {
   readonly scale: number;
   /** The graphical length of the root, positive. */
   readonly length: number;
-  /** The box's spacing, the gap between its items at their default `y`: finite, at least 0. */
+  /** The block's spacing, the gap between its items at their default `y`: finite, at least 0. */
   readonly spacing: number;
-  /** The requested box size, positive, or null for the content's own size. */
+  /** The requested block size, positive, or null for the content's own size. */
   readonly width: number | null;
   readonly height: number | null;
 }
@@ -33,11 +33,12 @@ export interface Block extends BlockPlacement {
   readonly x: number;
   readonly y: number;
   /**
-   * The stated places of the containers of its manifest's drawing, by place
-   * key (`containersOf`): an item's place by group id or ungrouped root id,
-   * a member's card's size and spacing by `<group id>/<member id>` (`cardKey`).
+   * The stated places of the containers of its manifest's drawing: an item's
+   * place by its group's or ungrouped root's ID, and in a group's entry the
+   * size and spacing of each member's card in its frame by member ID
+   * (`places[G].cards[T]`).
    */
-  readonly places: { readonly [key: string]: ItemPlace | CardPlace };
+  readonly places: Places;
   readonly manifest: Manifest;
 }
 

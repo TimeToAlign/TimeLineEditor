@@ -1,5 +1,7 @@
 import { dumps, type Selector, schema } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
+import type { ElementAddress, Facet, Part } from "../src/manifest/address.ts";
+import { addressKey, FACETS } from "../src/manifest/address.ts";
 import type { ElementKey } from "../src/manifest/elements.ts";
 import {
   manifestElements,
@@ -12,14 +14,24 @@ import { allFixtures, load, loadText, manifestValue } from "./support.ts";
 
 const CLT = "ContinuousLogicalTimeline";
 
-/** The addresses of a timeline's five bands, in the order of `BAND_KINDS`. */
-const bandsOf = (id: string) =>
-  ["children", "conversion_maps", "markers", "regions", "flow_control"].map(
-    (kind) => `${id}/${kind}_1`,
-  );
+/** The address of the element `value`, with the part words `part`. */
+const id = (value: string, ...part: Part[]): ElementAddress =>
+  part.length === 0 ? { id: value } : { id: value, part };
+
+/** The address of the band drawing the facet `facet` of the timeline `timeline`. */
+const band = (timeline: string, facet: Facet): ElementAddress => ({ id: timeline, facet });
+
+/** The addresses of a timeline's five bands, in the order of `FACETS`. */
+const bandsOf = (timeline: string) => FACETS.map((facet) => band(timeline, facet));
 
 /** The five bands of the child `phrase` of `map.json`. */
 const PHRASE_BANDS = bandsOf("phrase");
+
+/** The addresses of the keys a selector matches, in enumeration order. */
+function matcher(keys: readonly ElementKey[], ancestry: ReadonlyMap<string, readonly string[]>) {
+  return (select: Selector) =>
+    keys.filter((key) => selectorMatches(select, key, ancestry)).map((key) => key.address);
+}
 
 describe("the elements of a manifest", () => {
   it("enumerates map.json in tree order", () => {
@@ -27,10 +39,11 @@ describe("the elements of a manifest", () => {
     const phrase = ["phrase", "logical", "continuous", CLT] as const;
     const line = ["block", "timeline"];
     const child = [...line, "band", "child"];
-    const band = (timeline: string, kind: string, inside: string[]) => [
+    const facet = (timeline: string, kind: Facet, inside: string[]) => [
       "band",
-      `${timeline}/${kind}_1`,
+      band(timeline, kind),
       timeline,
+      null,
       null,
       null,
       kind,
@@ -44,31 +57,41 @@ describe("the elements of a manifest", () => {
         key.domain,
         key.modality,
         key.class,
+        key.facet,
         key.inside,
       ]),
     ).toEqual([
-      ["block", null, null, null, null, null, []],
-      ["card", "melody/card", ...melody, ["block"]],
-      ["timeline", "melody", ...melody, ["block"]],
-      ["name", "melody/name", ...melody, line],
-      band("melody", "children", line),
-      ["child", "phrase", ...phrase, [...line, "band"]],
-      ["name", "phrase/name", ...phrase, child],
-      band("phrase", "children", child),
-      band("phrase", "conversion_maps", child),
-      ["map", "melody/ticks", "phrase", "logical", "discrete", "LinearMap", [...child, "band"]],
-      band("phrase", "markers", child),
-      band("phrase", "regions", child),
-      band("phrase", "flow_control", child),
-      band("melody", "conversion_maps", line),
-      ["map", "melody/tempo", "melody", "physical", "continuous", "LinearMap", [...line, "band"]],
-      band("melody", "markers", line),
-      ["wedge", "melody/start", ...melody, [...line, "band"]],
-      ["label", "melody/start/label", ...melody, [...line, "band", "wedge"]],
-      ["wedge", "melody/end", ...melody, [...line, "band"]],
-      ["label", "melody/end/label", ...melody, [...line, "band", "wedge"]],
-      band("melody", "regions", line),
-      band("melody", "flow_control", line),
+      ["block", {}, null, null, null, null, null, []],
+      ["card", id("melody", "card"), ...melody, null, ["block"]],
+      ["timeline", id("melody"), ...melody, null, ["block"]],
+      ["name", id("melody", "name"), ...melody, null, line],
+      facet("melody", "children", line),
+      ["child", id("phrase"), ...phrase, null, [...line, "band"]],
+      ["name", id("phrase", "name"), ...phrase, null, child],
+      facet("phrase", "children", child),
+      facet("phrase", "conversion_maps", child),
+      ["map", id("ticks"), "phrase", "logical", "discrete", "LinearMap", null, [...child, "band"]],
+      facet("phrase", "markers", child),
+      facet("phrase", "regions", child),
+      facet("phrase", "flow_control", child),
+      facet("melody", "conversion_maps", line),
+      [
+        "map",
+        id("tempo"),
+        "melody",
+        "physical",
+        "continuous",
+        "LinearMap",
+        null,
+        [...line, "band"],
+      ],
+      facet("melody", "markers", line),
+      ["wedge", id("melody", "start"), ...melody, null, [...line, "band"]],
+      ["label", id("melody", "start", "label"), ...melody, null, [...line, "band", "wedge"]],
+      ["wedge", id("melody", "end"), ...melody, null, [...line, "band"]],
+      ["label", id("melody", "end", "label"), ...melody, null, [...line, "band", "wedge"]],
+      facet("melody", "regions", line),
+      facet("melody", "flow_control", line),
     ]);
   });
 
@@ -77,7 +100,7 @@ describe("the elements of a manifest", () => {
       manifestElements(load(name))
         .filter((key) => ["region", "flow_marker", "jump_from"].includes(key.type as string))
         .map((key) => key.address);
-    expect(addresses("with_region.json")).toEqual(["clt_1/region_1"]);
+    expect(addresses("with_region.json")).toEqual([id("region_1")]);
     expect(
       manifestElements(load("with_region.json")).find((key) => key.type === "region")?.inside,
     ).toEqual(["block", "timeline", "band"]);
@@ -85,36 +108,36 @@ describe("the elements of a manifest", () => {
     expect(
       manifestElements(load("flow_control.json")).map((key) => [key.type, key.address]),
     ).toEqual([
-      ["block", null],
-      ["card", `${flow}/card`],
-      ["timeline", flow],
-      ["name", `${flow}/name`],
-      ["band", `${flow}/children_1`],
-      ["band", `${flow}/conversion_maps_1`],
-      ["band", `${flow}/markers_1`],
-      ["wedge", `${flow}/start`],
-      ["label", `${flow}/start/label`],
-      ["wedge", `${flow}/end`],
-      ["label", `${flow}/end/label`],
-      ["band", `${flow}/regions_1`],
-      ["band", `${flow}/flow_control_1`],
-      ["flow_marker", `${flow}/flow_marker_1`],
-      ["label", `${flow}/flow_marker_1/label`],
-      ["jump_from", `${flow}/jump_from_1`],
-      ["label", `${flow}/jump_from_1/label`],
-      ["jump_from", `${flow}/jump_from_2`],
-      ["label", `${flow}/jump_from_2/label`],
+      ["block", {}],
+      ["card", id(flow, "card")],
+      ["timeline", id(flow)],
+      ["name", id(flow, "name")],
+      ["band", band(flow, "children")],
+      ["band", band(flow, "conversion_maps")],
+      ["band", band(flow, "markers")],
+      ["wedge", id(flow, "start")],
+      ["label", id(flow, "start", "label")],
+      ["wedge", id(flow, "end")],
+      ["label", id(flow, "end", "label")],
+      ["band", band(flow, "regions")],
+      ["band", band(flow, "flow_control")],
+      ["flow_marker", id("flow_marker_1")],
+      ["label", id("flow_marker_1", "label")],
+      ["jump_from", id("jump_from_1")],
+      ["label", id("jump_from_1", "label")],
+      ["jump_from", id("jump_from_2")],
+      ["label", id("jump_from_2", "label")],
     ]);
   });
 
   it("enumerates every manifest fixture of one root with unique addresses", () => {
     for (const { name, text } of allFixtures.filter((item) => !item.name.includes("/"))) {
-      const addresses = manifestElements(loadText(text)).map((key) => key.address);
+      const addresses = manifestElements(loadText(text)).map((key) => addressKey(key.address));
       expect([name, new Set(addresses).size]).toEqual([name, addresses.length]);
     }
   });
 
-  it("lists the title of a named manifest, addressed name", () => {
+  it("lists the title of a named manifest, addressed by the part name alone", () => {
     const title = { ...BLOCK_NAME };
     const top = (members: object) =>
       manifestElements(loadText(dumps({ ...manifestValue("bare.json"), ...members })))[1];
@@ -126,11 +149,12 @@ describe("the elements of a manifest", () => {
 
 const BLOCK_NAME = {
   type: "name",
-  address: "name",
+  address: { part: ["name"] },
   timeline: null,
   domain: null,
   modality: null,
   class: null,
+  facet: null,
   inside: ["block"],
 };
 
@@ -163,44 +187,51 @@ describe("timeline classes", () => {
 describe("selector matching", () => {
   const manifest = load("map.json");
   const keys = manifestElements(manifest);
-  const ancestry = timelineAncestry(manifest);
-  const matched = (select: Selector) =>
-    keys.filter((key) => selectorMatches(select, key, ancestry)).map((key) => key.address);
+  const matched = matcher(keys, timelineAncestry(manifest));
 
   it.each([
-    [{ element: "map", domain: "physical" }, ["melody/tempo"]],
+    [{ element: "map", domain: "physical" }, [id("tempo")]],
     [
       { within: "phrase" },
       [
-        "phrase",
-        "phrase/name",
+        id("phrase"),
+        id("phrase", "name"),
         ...PHRASE_BANDS.slice(0, 2),
-        "melody/ticks",
+        id("ticks"),
         ...PHRASE_BANDS.slice(2),
       ],
     ],
-    [{ ids: ["melody/tempo"] }, ["melody/tempo"]],
-    [{ class: "LinearMap" }, ["melody/ticks", "melody/tempo"]],
-    [{ modality: "discrete" }, ["melody/ticks"]],
-    [{ element: "card" }, ["melody/card"]],
-    [{ element: "card", domain: "logical" }, ["melody/card"]],
+    [{ addresses: [{ id: "tempo" }] }, [id("tempo")]],
+    [{ class: "LinearMap" }, [id("ticks"), id("tempo")]],
+    [{ modality: "discrete" }, [id("ticks")]],
+    [{ element: "card" }, [id("melody", "card")]],
+    [{ element: "card", domain: "logical" }, [id("melody", "card")]],
     [
       { element: "band" },
       [
-        "melody/children_1",
+        band("melody", "children"),
         ...PHRASE_BANDS,
-        "melody/conversion_maps_1",
-        "melody/markers_1",
-        "melody/regions_1",
-        "melody/flow_control_1",
+        band("melody", "conversion_maps"),
+        band("melody", "markers"),
+        band("melody", "regions"),
+        band("melody", "flow_control"),
       ],
     ],
-    [{ element: "band", class: "regions" }, ["phrase/regions_1", "melody/regions_1"]],
-    [{ class: "children" }, ["melody/children_1", "phrase/children_1"]],
-    [{ ids: ["phrase/regions_1"] }, ["phrase/regions_1"]],
+    [{ element: "band", facet: "regions" }, [band("phrase", "regions"), band("melody", "regions")]],
+    [{ facet: "children" }, [band("melody", "children"), band("phrase", "children")]],
+    [{ facet: "markers" }, [band("phrase", "markers"), band("melody", "markers")]],
+    [{ class: "regions" }, []],
+    [{ addresses: [{ id: "phrase", facet: "regions" }] }, [band("phrase", "regions")]],
+    [
+      { addresses: [{ id: "melody", part: ["end", "label"] }, { id: "ticks" }] },
+      [id("ticks"), id("melody", "end", "label")],
+    ],
+    [{ addresses: [{ id: "melody", part: ["label", "end"] }] }, []],
+    [{ addresses: [{ id: "melody", part: ["card"] }] }, [id("melody", "card")]],
+    [{ addresses: [{ part: ["name"] }] }, []],
     [{ element: "band", domain: "logical" }, []],
     [{ element: "band", modality: "continuous" }, []],
-  ] as [Selector, string[]][])("%j", (select, expected) => {
+  ] as [Selector, ElementAddress[]][])("%j", (select, expected) => {
     expect(matched(select)).toEqual(expected);
   });
 
@@ -208,63 +239,75 @@ describe("selector matching", () => {
     expect(matched({})).toEqual(keys.map((key) => key.address));
     expect(keys.length).toBe(22);
   });
+
+  it("matches a free ID as a whole", () => {
+    const free = load("bundles/bundle_free_ids.json");
+    const statement = free.graphical?.statements?.[0];
+    expect(statement?.select).toEqual({ addresses: [{ id: "take 2/intro" }] });
+    const found = manifestElements(free).filter((key) =>
+      selectorMatches(statement?.select ?? {}, key, timelineAncestry(free)),
+    );
+    expect(found.map((key) => [key.type, key.address, key.timeline])).toEqual([
+      ["region", id("take 2/intro"), "perf/take 2"],
+    ]);
+  });
 });
 
 describe("the selector member inside", () => {
   const manifest = load("map.json");
   const keys = manifestElements(manifest);
   const ancestry = timelineAncestry(manifest);
-  const matched = (select: Selector) =>
-    keys.filter((key) => selectorMatches(select, key, ancestry)).map((key) => key.address);
+  const matched = matcher(keys, ancestry);
 
   it.each([
     [
       { inside: "child" },
-      ["phrase/name", ...PHRASE_BANDS.slice(0, 2), "melody/ticks", ...PHRASE_BANDS.slice(2)],
+      [id("phrase", "name"), ...PHRASE_BANDS.slice(0, 2), id("ticks"), ...PHRASE_BANDS.slice(2)],
     ],
     [
       { inside: "band" },
       [
-        "phrase",
-        "phrase/name",
+        id("phrase"),
+        id("phrase", "name"),
         ...PHRASE_BANDS.slice(0, 2),
-        "melody/ticks",
+        id("ticks"),
         ...PHRASE_BANDS.slice(2),
-        "melody/tempo",
-        "melody/start",
-        "melody/start/label",
-        "melody/end",
-        "melody/end/label",
+        id("tempo"),
+        id("melody", "start"),
+        id("melody", "start", "label"),
+        id("melody", "end"),
+        id("melody", "end", "label"),
       ],
     ],
     [{ element: "band", inside: "band" }, PHRASE_BANDS],
-    [{ inside: "wedge" }, ["melody/start/label", "melody/end/label"]],
+    [{ inside: "wedge" }, [id("melody", "start", "label"), id("melody", "end", "label")]],
     [{ inside: "card" }, []],
     [{ inside: "map" }, []],
-    [{ element: "name", inside: "child" }, ["phrase/name"]],
-  ] as [Selector, string[]][])("%j", (select, expected) => {
+    [{ element: "name", inside: "child" }, [id("phrase", "name")]],
+  ] as [Selector, ElementAddress[]][])("%j", (select, expected) => {
     expect(matched(select)).toEqual(expected);
   });
 
   it("matches every key but the block inside the block, every key after the line inside it", () => {
     expect(matched({ inside: "block" })).toEqual(keys.slice(1).map((key) => key.address));
-    expect(keys[2]?.address).toBe("melody");
+    expect(keys[2]?.address).toEqual(id("melody"));
     expect(matched({ inside: "timeline" })).toEqual(keys.slice(3).map((key) => key.address));
   });
 
   it("reads the holder chain and nothing else", () => {
     const mark: ElementKey = {
       type: "wedge",
-      address: "melody/start",
+      address: id("melody", "start"),
       timeline: "melody",
       domain: "logical",
       modality: "continuous",
       class: CLT,
-      inside: ["block", "group", "timeline", "ancestor"],
+      facet: null,
+      inside: ["block", "frame", "timeline", "ancestor"],
     };
     const test = (select: Selector) => selectorMatches(select, mark, ancestry);
     expect([
-      test({ inside: "group" }),
+      test({ inside: "frame" }),
       test({ inside: "ancestor" }),
       test({ inside: "child" }),
     ]).toEqual([true, true, false]);
@@ -274,75 +317,77 @@ describe("the selector member inside", () => {
 describe("the elements of a segment line", () => {
   const manifest = load("segment_line.json");
   const keys = manifestElements(manifest);
-  const ancestry = timelineAncestry(manifest);
-  const matched = (select: Selector) =>
-    keys.filter((key) => selectorMatches(select, key, ancestry)).map((key) => key.address);
-  const band = (address: string) => ["band", address];
+  const matched = matcher(keys, timelineAncestry(manifest));
+  const row = (facet: ElementAddress) => ["band", facet];
   /** The (type, address) pairs of a timeline's five bands. */
-  const five = (id: string) => bandsOf(id).map(band);
+  const five = (timeline: string) => bandsOf(timeline).map(row);
   /** The last four of them: conversion maps, markers, regions, flow control. */
-  const four = (id: string) => five(id).slice(1);
+  const four = (timeline: string) => five(timeline).slice(1);
+  const find = (address: ElementAddress) =>
+    keys.find((key) => addressKey(key.address) === addressKey(address));
 
   it("enumerates segments in their children bands, boundaries and labels on their lines", () => {
     expect(keys.map((key) => [key.type, key.address])).toEqual([
-      ["block", null],
-      ["card", "form/card"],
-      ["timeline", "form"],
-      ["name", "form/name"],
-      band("form/children_1"),
-      ["child", "a"],
-      ["label", "a/label"],
-      band("a/children_1"),
-      [null, "a1"],
-      ["label", "a1/label"],
+      ["block", {}],
+      ["card", id("form", "card")],
+      ["timeline", id("form")],
+      ["name", id("form", "name")],
+      row(band("form", "children")),
+      ["child", id("a")],
+      ["label", id("a", "label")],
+      row(band("a", "children")),
+      [null, id("a1")],
+      ["label", id("a1", "label")],
       ...five("a1"),
       ...four("a"),
-      ["child", "b"],
-      ["boundary", "b/start"],
-      ["label", "b/label"],
-      band("b/children_1"),
-      [null, "b1"],
-      ["label", "b1/label"],
+      ["child", id("b")],
+      ["boundary", id("b", "start")],
+      ["label", id("b", "label")],
+      row(band("b", "children")),
+      [null, id("b1")],
+      ["label", id("b1", "label")],
       ...five("b1"),
-      [null, "b2"],
-      ["boundary", "b2/start"],
-      ["label", "b2/label"],
+      [null, id("b2")],
+      ["boundary", id("b2", "start")],
+      ["label", id("b2", "label")],
       ...five("b2"),
       ...four("b"),
-      ["child", "c"],
-      ["boundary", "c/start"],
-      ["label", "c/label"],
-      band("c/children_1"),
-      [null, "c1"],
-      ["label", "c1/label"],
+      ["child", id("c")],
+      ["boundary", id("c", "start")],
+      ["label", id("c", "label")],
+      row(band("c", "children")),
+      [null, id("c1")],
+      ["label", id("c1", "label")],
       ...five("c1"),
       ...four("c"),
-      band("form/conversion_maps_1"),
-      band("form/markers_1"),
-      ["wedge", "form/start"],
-      ["label", "form/start/label"],
-      ["wedge", "form/end"],
-      ["label", "form/end/label"],
-      band("form/regions_1"),
-      band("form/flow_control_1"),
+      row(band("form", "conversion_maps")),
+      row(band("form", "markers")),
+      ["wedge", id("form", "start")],
+      ["label", id("form", "start", "label")],
+      ["wedge", id("form", "end")],
+      ["label", id("form", "end", "label")],
+      row(band("form", "regions")),
+      row(band("form", "flow_control")),
     ]);
-    const boundary = keys.find((key) => key.address === "b/start");
-    expect(boundary).toEqual({
+    expect(find(id("b", "start"))).toEqual({
       type: "boundary",
-      address: "b/start",
+      address: id("b", "start"),
       timeline: "b",
       domain: "logical",
       modality: "continuous",
       class: CLT,
+      facet: null,
       inside: ["block", "timeline"],
     });
-    const inside = (address: string) => keys.find((key) => key.address === address)?.inside;
-    expect(inside("b/label")).toEqual(["block", "timeline"]);
-    for (const address of ["b2/start", "b2/label"]) {
-      expect([address, inside(address)]).toEqual([address, ["block", "timeline", "band", "child"]]);
+    expect(find(id("b", "label"))?.inside).toEqual(["block", "timeline"]);
+    for (const address of [id("b2", "start"), id("b2", "label")]) {
+      expect([address, find(address)?.inside]).toEqual([
+        address,
+        ["block", "timeline", "band", "child"],
+      ]);
     }
-    for (const address of ["a1", ...bandsOf("a1")]) {
-      expect([address, inside(address)]).toEqual([
+    for (const address of [id("a1"), ...bandsOf("a1")]) {
+      expect([address, find(address)?.inside]).toEqual([
         address,
         ["block", "timeline", "band", "child", "band"],
       ]);
@@ -350,44 +395,38 @@ describe("the elements of a segment line", () => {
   });
 
   it.each([
-    [{ element: "boundary" }, ["b/start", "b2/start", "c/start"]],
-    [{ element: "child" }, ["a", "b", "c"]],
-    [{ ids: ["b"] }, ["b"]],
+    [{ element: "boundary" }, [id("b", "start"), id("b2", "start"), id("c", "start")]],
+    [{ element: "child" }, [id("a"), id("b"), id("c")]],
+    [{ addresses: [{ id: "b" }] }, [id("b")]],
     [
       { within: "b" },
       [
-        "b",
-        "b/start",
-        "b/label",
-        "b/children_1",
-        "b1",
-        "b1/label",
+        id("b"),
+        id("b", "start"),
+        id("b", "label"),
+        band("b", "children"),
+        id("b1"),
+        id("b1", "label"),
         ...bandsOf("b1"),
-        "b2",
-        "b2/start",
-        "b2/label",
+        id("b2"),
+        id("b2", "start"),
+        id("b2", "label"),
         ...bandsOf("b2"),
         ...bandsOf("b").slice(1),
       ],
     ],
-  ] as [Selector, string[]][])("%j", (select, expected) => {
+  ] as [Selector, ElementAddress[]][])("%j", (select, expected) => {
     expect(matched(select)).toEqual(expected);
   });
 
-  const regions = [
-    "a1/regions_1",
-    "a/regions_1",
-    "b1/regions_1",
-    "b2/regions_1",
-    "b/regions_1",
-    "c1/regions_1",
-    "c/regions_1",
-  ];
+  const regions = ["a1", "a", "b1", "b2", "b", "c1", "c"].map((timeline) =>
+    band(timeline, "regions"),
+  );
 
   it.each([
-    [{ element: "band", class: "regions" }, [...regions, "form/regions_1"]],
-    [{ element: "band", class: "regions", inside: "band" }, regions],
-  ] as [Selector, string[]][])(
+    [{ element: "band", facet: "regions" }, [...regions, band("form", "regions")]],
+    [{ element: "band", facet: "regions", inside: "band" }, regions],
+  ] as [Selector, ElementAddress[]][])(
     "matches the bands of a root, a child and a segment: %j",
     (select, expected) => {
       expect(matched(select)).toEqual(expected);
@@ -396,20 +435,22 @@ describe("the elements of a segment line", () => {
 
   it("holds in a band everything but the root's line, its bands and its segments' parts", () => {
     const outside = [
-      null,
-      "form/card",
-      "form",
-      "form/name",
+      {},
+      id("form", "card"),
+      id("form"),
+      id("form", "name"),
       ...bandsOf("form"),
-      "a/label",
-      "b/start",
-      "b/label",
-      "c/start",
-      "c/label",
-    ];
+      id("a", "label"),
+      id("b", "start"),
+      id("b", "label"),
+      id("c", "start"),
+      id("c", "label"),
+    ].map(addressKey);
     expect(matched({ inside: "band" })).toEqual(
-      keys.map((key) => key.address).filter((address) => !outside.includes(address)),
+      keys.map((key) => key.address).filter((address) => !outside.includes(addressKey(address))),
     );
-    expect(keys.filter((key) => outside.includes(key.address)).length).toBe(outside.length);
+    expect(keys.filter((key) => outside.includes(addressKey(key.address))).length).toBe(
+      outside.length,
+    );
   });
 });

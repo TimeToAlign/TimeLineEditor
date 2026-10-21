@@ -12,6 +12,7 @@ import type { EntryKind, EntryTypes } from "../manifest/files.ts";
 import { ENTRY_LISTS } from "../manifest/files.ts";
 import type { Located } from "../manifest/tree.ts";
 import type { ChildTimeline, Manifest, TimelineManifest } from "../manifest/types.ts";
+import type { Address } from "../workspace/address.ts";
 import type { Block, BlockId } from "../workspace/blocks.ts";
 import type { View, WorkspaceSettings } from "../workspace/view.ts";
 
@@ -25,9 +26,10 @@ export interface Written {
 /**
  * What a command changed. `blocks` are the blocks it added, removed or
  * changed; `manifests` those of them whose manifest changed, which `settle`
- * completes, orders and checks; `paths` the `[target, property]` of every
- * value a `set` stored that differs from the one stored before, and for the
- * other commands the address each acted on. `written` holds, by path, each
+ * completes, orders and checks; `paths` the `[<target's address key>,
+ * property]` of every value a `set` stored that differs from the one stored
+ * before, and for the other commands the path each acted on; `targets` the
+ * address of every target a change was made at. `written` holds, by path, each
  * value a `set` wrote that reaches no further than its path; `reaching` the
  * blocks a change reached past its path in (a whole manifest replaced, a
  * timeline moved, placed or grouped), which only the whole block compares.
@@ -36,6 +38,7 @@ export interface ChangeSet {
   readonly blocks: Set<BlockId>;
   readonly manifests: Set<BlockId>;
   readonly paths: PathSegment[][];
+  readonly targets: Address[];
   readonly written: Map<string, Written>;
   readonly reaching: Set<BlockId>;
 }
@@ -57,6 +60,7 @@ export function emptyChanges(): ChangeSet {
     blocks: new Set(),
     manifests: new Set(),
     paths: [],
+    targets: [],
     written: new Map(),
     reaching: new Set(),
   };

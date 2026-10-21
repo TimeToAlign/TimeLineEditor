@@ -9,7 +9,7 @@
  * the inspector's `PropertyDrafts`; a commit or a step is one `set`.
  */
 import type {
-  Level,
+  Editing,
   LivePlacement,
   PlaceField,
   PlaceProperty,
@@ -28,7 +28,7 @@ let {
   store,
   block,
   subjects,
-  level,
+  editing,
   placement,
   drafts,
 }: {
@@ -38,8 +38,8 @@ let {
   block: Block | null;
   /** The selection, resolved. */
   subjects: readonly Subject[];
-  /** The level of the canvas: the arranger, or the innermost editor's kind. */
-  level: Level;
+  /** The innermost open editor, `null` on the arranger: the level and the frame the form edits in. */
+  editing: Editing | null;
   /** The placement a canvas gesture shows before release; the form shows it for its block. */
   placement: LivePlacement | null;
   drafts: PropertyDrafts;
@@ -65,7 +65,7 @@ const shown: Shown | null = $derived.by(() => {
 
 /** The geometry the form edits: containers of one role in the block; else `null`. */
 const geometry = $derived(
-  block === null || shown === null ? null : geometryOf(block, subjects, shown, level),
+  block === null || shown === null ? null : geometryOf(block, subjects, shown, editing),
 );
 
 /** The read-only rows of the one band selected; else `null`. */

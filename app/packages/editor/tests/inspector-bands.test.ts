@@ -5,8 +5,9 @@
  */
 
 import type { LivePlacement } from "@timetoalign/tilie-arranger";
-import { drawingOf, liveStore, resolveSelection } from "@timetoalign/tilie-arranger";
-import type { Block, Store, View } from "@timetoalign/tilie-core";
+import { drawingOf, liveStore, resolveSelection, selectionOf } from "@timetoalign/tilie-arranger";
+import type { Address, Block, ElementAddress, Facet, Store, View } from "@timetoalign/tilie-core";
+import { addressKey } from "@timetoalign/tilie-core";
 import type { DrawnBox } from "@timetoalign/tilie-layout";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
@@ -42,43 +43,48 @@ function stored(view: View, id: string): Shown {
   return { ...block, drawing: drawingOf(block, view.settings, fontMetrics) };
 }
 
-function subjectsOf(view: View, selection: string[]) {
-  return resolveSelection(view, new Set(selection), fontMetrics);
+/** The address of `element` in block `block`; the block itself without an element. */
+function at(block: string, element: ElementAddress = {}): Address {
+  return { block, ...element };
+}
+
+/** The address of the band of `facet` of `timeline` in block `block`. */
+function bandOf(block: string, timeline: string, facet: Facet): Address {
+  return at(block, { id: timeline, facet });
+}
+
+function subjectsOf(view: View, selection: readonly Address[]) {
+  return resolveSelection(view, selectionOf(selection), null, fontMetrics);
 }
 
 /** The rows of `selection` as `[label, value]` pairs, shown as `shown` (its block stored by default); `null` when it has none. */
-function rows(view: View, selection: string[], shown?: Shown): [string, string][] | null {
+function rows(view: View, selection: readonly Address[], shown?: Shown): [string, string][] | null {
   const subjects = subjectsOf(view, selection);
   const found = bandRows(subjects, shown ?? stored(view, subjects[0]?.block ?? A));
   return found?.map(({ label, value }) => [label, value]) ?? null;
 }
 
 /** The three rows of a band. */
-const band = (kind: string, level: string, elements: string): [string, string][] => [
-  ["Band", kind],
+const band = (word: string, level: string, elements: string): [string, string][] => [
+  ["Band", word],
   ["Level", level],
   ["Elements", elements],
 ];
 
 /** A band's record written for the test; the rows read only its address, level and elements. */
-function record(
-  timeline: string,
-  kind: NonNullable<DrawnBox["band"]>["kind"],
-  level: number,
-  elements: number,
-): DrawnBox {
+function record(timeline: string, facet: Facet, level: number, elements: number): DrawnBox {
   return {
     kind: "band",
     key: null,
-    address: `${timeline}/${kind}_1`,
-    holder: `${timeline}/card`,
+    address: { id: timeline, facet },
+    holder: { item: timeline },
     x: 0,
     y: 0,
     width: 10,
     height: 10,
     range: { start: 0, end: 0 },
     displayed: false,
-    band: { timeline, kind, level, elements, line: 0 },
+    band: { timeline, facet, level, elements, line: 0 },
   };
 }
 
@@ -90,27 +96,32 @@ function placementOf(view: View, id: string, bands: readonly DrawnBox[]): LivePl
 }
 
 describe("bandRows", () => {
-  it.each([
-    [`${A}/melody/conversion_maps_1`, band("Conversion maps", "1", "1")],
-    [`${A}/melody/children_1`, band("Children", "2", "1")],
-    [`${A}/melody/markers_1`, band("Markers", "−1", "2")],
-    [`${A}/phrase/conversion_maps_1`, band("Conversion maps", "1", "1")],
-    [`${B}/phrase/conversion_maps_1`, band("Conversion maps", "−1", "1")],
-  ])("gives the kind, signed level and element count of %s", (address, expected) => {
-    expect(rows(storeOf().view, [address])).toEqual(expected);
+  it.each(
+    [
+      [bandOf(A, "melody", "conversion_maps"), band("Conversion maps", "1", "1")],
+      [bandOf(A, "melody", "children"), band("Children", "2", "1")],
+      [bandOf(A, "melody", "markers"), band("Markers", "−1", "2")],
+      [bandOf(A, "phrase", "conversion_maps"), band("Conversion maps", "1", "1")],
+      [bandOf(B, "phrase", "conversion_maps"), band("Conversion maps", "−1", "1")],
+    ].map(([address, expected]) => [addressKey(address as Address), address, expected] as const),
+  )("gives the word, signed level and element count of %s", (_key, address, expected) => {
+    expect(rows(storeOf().view, [address as Address])).toEqual(expected);
   });
 
   it.each([
     ["no selection", []],
-    ["a block", [A]],
-    ["a map", [`${A}/melody/tempo`]],
-    ["a card", [`${A}/melody/card`]],
-    ["an absent band of a root", [`${A}/melody/regions_1`]],
-    ["an absent band of a child", [`${A}/phrase/markers_1`]],
-    ["two bands", [`${A}/melody/markers_1`, `${A}/melody/conversion_maps_1`]],
-    ["a band with an element", [`${A}/melody/markers_1`, `${A}/melody/card`]],
-    ["a band of a block the workspace does not hold", ["0000000009/melody/markers_1"]],
-  ])("gives null for %s", (_case, selection) => {
+    ["a block", [at(A)]],
+    ["a map", [at(A, { id: "tempo" })]],
+    ["a card", [at(A, { id: "melody", part: ["card"] })]],
+    ["an absent band of a root", [bandOf(A, "melody", "regions")]],
+    ["an absent band of a child", [bandOf(A, "phrase", "markers")]],
+    ["two bands", [bandOf(A, "melody", "markers"), bandOf(A, "melody", "conversion_maps")]],
+    [
+      "a band with an element",
+      [bandOf(A, "melody", "markers"), at(A, { id: "melody", part: ["card"] })],
+    ],
+    ["a band of a block the workspace does not hold", [bandOf("0000000009", "melody", "markers")]],
+  ] as const)("gives null for %s", (_case, selection) => {
     expect(rows(storeOf().view, selection)).toBe(null);
   });
 
@@ -121,20 +132,20 @@ describe("bandRows", () => {
       record("melody", "regions", -2, 4),
       record("melody", "flow_control", -12, 1),
     ]);
-    expect(rows(view, [`${A}/melody/markers_1`], shown)).toEqual(band("Markers", "1", "3"));
-    expect(rows(view, [`${A}/melody/regions_1`], shown)).toEqual(band("Regions", "−2", "4"));
-    expect(rows(view, [`${A}/melody/flow_control_1`], shown)).toEqual(
+    expect(rows(view, [bandOf(A, "melody", "markers")], shown)).toEqual(band("Markers", "1", "3"));
+    expect(rows(view, [bandOf(A, "melody", "regions")], shown)).toEqual(band("Regions", "−2", "4"));
+    expect(rows(view, [bandOf(A, "melody", "flow_control")], shown)).toEqual(
       band("Flow control", "−12", "1"),
     );
   });
 });
 
 describe("the other readers of the selection", () => {
-  const markers = `${A}/melody/markers_1`;
-  const card = `${A}/melody/card`;
+  const markers = bandOf(A, "melody", "markers");
+  const card = at(A, { id: "melody", part: ["card"] });
 
-  function geometry(view: View, selection: string[]) {
-    return geometryOf(blockOf(view, A), subjectsOf(view, selection), stored(view, A), "arranger");
+  function geometry(view: View, selection: readonly Address[]) {
+    return geometryOf(blockOf(view, A), subjectsOf(view, selection), stored(view, A), null);
   }
 
   it("leave a band alone without geometry, in its block", () => {
@@ -148,10 +159,10 @@ describe("the other readers of the selection", () => {
     const withCard = geometry(view, [markers, card]);
     expect(withCard?.label).toBe("Card properties");
     expect(withCard).toEqual(geometry(view, [card]));
-    const withBlock = geometry(view, [markers, A]);
+    const withBlock = geometry(view, [markers, at(A)]);
     expect(withBlock?.label).toBe("Block properties");
-    expect(withBlock).toEqual(geometry(view, [A]));
-    expect(selectedBlock(view, subjectsOf(view, [markers, `${B}/melody`]))).toBe(null);
+    expect(withBlock).toEqual(geometry(view, [at(A)]));
+    expect(selectedBlock(view, subjectsOf(view, [markers, at(B, { id: "melody" })]))).toBe(null);
   });
 });
 describe("the Properties panel of a band", () => {
@@ -163,10 +174,10 @@ describe("the Properties panel of a band", () => {
     document.body.innerHTML = "";
   });
 
-  function show(store: Store, selection: string[]): void {
+  function show(store: Store, selection: readonly Address[]): void {
     app = mount(Inspector, {
       target: document.body,
-      props: { live: liveStore(store), selection: new Set(selection) },
+      props: { live: liveStore(store), selection: selectionOf(selection) },
     });
     flushSync();
   }
@@ -194,7 +205,7 @@ describe("the Properties panel of a band", () => {
 
   it("shows the three rows of a band and nothing to edit", () => {
     const store = storeOf();
-    show(store, [`${A}/melody/markers_1`]);
+    show(store, [bandOf(A, "melody", "markers")]);
     expect(panel().querySelectorAll("dl")).toHaveLength(1);
     expect(texts("dt")).toEqual(["Band", "Level", "Elements"]);
     expect(texts("dd")).toEqual(["Markers", "−1", "2"]);
@@ -217,12 +228,12 @@ describe("the Properties panel of a band", () => {
         input.value,
         input.disabled,
       ]);
-    show(storeOf(), [`${A}/melody/card`]);
+    show(storeOf(), [at(A, { id: "melody", part: ["card"] })]);
     const alone = geometry();
     expect(panel().querySelectorAll('input[name="name"], input[type=checkbox]')).toHaveLength(2);
     hide();
 
-    show(storeOf(), [`${A}/melody/markers_1`, `${A}/melody/card`]);
+    show(storeOf(), [bandOf(A, "melody", "markers"), at(A, { id: "melody", part: ["card"] })]);
     expect(geometry()).toEqual(alone);
     expect(panel().querySelector('input[name="name"]')).toBe(null);
     expect(
@@ -238,18 +249,18 @@ describe("the Properties panel of a band", () => {
   });
 
   it("shows only the geometry hint for two bands", () => {
-    show(storeOf(), [`${A}/melody/markers_1`, `${A}/melody/conversion_maps_1`]);
+    show(storeOf(), [bandOf(A, "melody", "markers"), bandOf(A, "melody", "conversion_maps")]);
     expect(panel().textContent?.trim()).toBe(GEOMETRY_HINT);
     expect(panel().querySelector("form")).toBe(null);
     expect(panel().querySelector("dl")).toBe(null);
   });
 
-  it("lists the store's refusal of a band's id given to a map", () => {
+  it("lists the store's refusal of a map given an ID the manifest holds", () => {
     const store = storeOf();
-    show(store, [A]);
+    show(store, [at(A)]);
     openTab("Manifest");
     const textarea = document.querySelector("textarea") as HTMLTextAreaElement;
-    const edited = textarea.value.replace('"id": "tempo"', '"id": "conversion_maps_1"');
+    const edited = textarea.value.replace('"id": "tempo"', '"id": "phrase"');
     expect(edited).not.toBe(textarea.value);
     textarea.value = edited;
     textarea.dispatchEvent(new Event("input", { bubbles: true }));
@@ -262,10 +273,10 @@ describe("the Properties panel of a band", () => {
 
     const items = [...document.querySelectorAll('ul[aria-label="Problems"] li')];
     expect(items.map((item) => item.textContent?.replace(/\s+/g, " ").trim())).toEqual([
-      'schema_violation id "conversion_maps_1" is reserved for the bands of a timeline at /timelines/0/conversion_maps/0/id',
+      "schema_violation 'phrase' is not unique in the manifest, first at #/timelines/0/conversion_maps/0/id at /timelines/0/children/0/id",
     ]);
     expect([...(items[0]?.querySelectorAll("code") ?? [])].map((item) => item.textContent)).toEqual(
-      ["schema_violation", "/timelines/0/conversion_maps/0/id"],
+      ["schema_violation", "/timelines/0/children/0/id"],
     );
     expect(textarea.value).toBe(edited);
     expect(store.journal).toHaveLength(2);

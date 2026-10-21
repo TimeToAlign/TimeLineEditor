@@ -9,7 +9,7 @@
         "groups": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (bea05b0d)"
+          "generator": "timetoalign 1.2.0 (1d61e026)"
         },
         "name": null,
         "timelines": [
@@ -50,7 +50,7 @@
         "groups": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (bea05b0d)"
+          "generator": "timetoalign 1.2.0 (1d61e026)"
         },
         "name": null,
         "timelines": [
@@ -159,7 +159,7 @@
         "groups": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (bea05b0d)"
+          "generator": "timetoalign 1.2.0 (1d61e026)"
         },
         "name": null,
         "timelines": [
@@ -245,7 +245,7 @@
         "groups": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (bea05b0d)"
+          "generator": "timetoalign 1.2.0 (1d61e026)"
         },
         "name": null,
         "timelines": [
@@ -330,12 +330,12 @@
         "graphical": {
           "order": {
             "score": [
-              "score/children_1",
-              "score/markers_1",
-              "score",
-              "score/conversion_maps_1",
-              "score/regions_1",
-              "score/flow_control_1"
+              "children",
+              "markers",
+              "line",
+              "conversion_maps",
+              "regions",
+              "flow_control"
             ]
           },
           "statements": [
@@ -359,8 +359,10 @@
             },
             {
               "select": {
-                "ids": [
-                  "a"
+                "addresses": [
+                  {
+                    "id": "a"
+                  }
                 ]
               },
               "set": {
@@ -439,8 +441,13 @@
             },
             {
               "select": {
-                "ids": [
-                  "score/end"
+                "addresses": [
+                  {
+                    "id": "score",
+                    "part": [
+                      "end"
+                    ]
+                  }
                 ]
               },
               "set": {
@@ -479,8 +486,14 @@
             },
             {
               "select": {
-                "ids": [
-                  "score/end/label"
+                "addresses": [
+                  {
+                    "id": "score",
+                    "part": [
+                      "end",
+                      "label"
+                    ]
+                  }
                 ]
               },
               "set": {
@@ -489,8 +502,13 @@
             },
             {
               "select": {
-                "ids": [
-                  "score/intro/label"
+                "addresses": [
+                  {
+                    "id": "intro",
+                    "part": [
+                      "label"
+                    ]
+                  }
                 ]
               },
               "set": {
@@ -499,8 +517,13 @@
             },
             {
               "select": {
-                "ids": [
-                  "score/da-capo/label"
+                "addresses": [
+                  {
+                    "id": "da-capo",
+                    "part": [
+                      "label"
+                    ]
+                  }
                 ]
               },
               "set": {
@@ -509,8 +532,13 @@
             },
             {
               "select": {
-                "ids": [
-                  "score/name"
+                "addresses": [
+                  {
+                    "id": "score",
+                    "part": [
+                      "name"
+                    ]
+                  }
                 ]
               },
               "set": {
@@ -542,7 +570,7 @@
         "groups": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (bea05b0d)"
+          "generator": "timetoalign 1.2.0 (1d61e026)"
         },
         "name": null,
         "timelines": [
@@ -665,7 +693,7 @@
             "groups": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (bea05b0d)"
+              "generator": "timetoalign 1.2.0 (1d61e026)"
             },
             "name": null,
             "timelines": [
@@ -692,7 +720,7 @@
           "x": 0,
           "y": 0
         },
-        "into": "workspace",
+        "into": {},
         "type": "add"
       },
       "time": "2026-10-12T09:00:00.000Z"
@@ -706,7 +734,7 @@
             "groups": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (bea05b0d)"
+              "generator": "timetoalign 1.2.0 (1d61e026)"
             },
             "name": null,
             "timelines": [
@@ -777,7 +805,7 @@
           "x": 0,
           "y": 160
         },
-        "into": "workspace",
+        "into": {},
         "type": "add"
       },
       "time": "2026-10-12T09:00:01.000Z"
@@ -791,7 +819,7 @@
             "groups": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (bea05b0d)"
+              "generator": "timetoalign 1.2.0 (1d61e026)"
             },
             "name": null,
             "timelines": [
@@ -863,7 +891,7 @@
           "x": 0,
           "y": 320
         },
-        "into": "workspace",
+        "into": {},
         "type": "add"
       },
       "time": "2026-10-12T09:00:02.000Z"
@@ -877,7 +905,7 @@
             "groups": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (bea05b0d)"
+              "generator": "timetoalign 1.2.0 (1d61e026)"
             },
             "name": null,
             "timelines": [
@@ -972,7 +1000,7 @@
           "x": 640,
           "y": 0
         },
-        "into": "workspace",
+        "into": {},
         "type": "add"
       },
       "time": "2026-10-12T09:00:03.000Z"
@@ -986,12 +1014,12 @@
             "graphical": {
               "order": {
                 "score": [
-                  "score/children_1",
-                  "score/markers_1",
-                  "score",
-                  "score/conversion_maps_1",
-                  "score/regions_1",
-                  "score/flow_control_1"
+                  "children",
+                  "markers",
+                  "line",
+                  "conversion_maps",
+                  "regions",
+                  "flow_control"
                 ]
               },
               "statements": [
@@ -1015,8 +1043,10 @@
                 },
                 {
                   "select": {
-                    "ids": [
-                      "a"
+                    "addresses": [
+                      {
+                        "id": "a"
+                      }
                     ]
                   },
                   "set": {
@@ -1095,8 +1125,13 @@
                 },
                 {
                   "select": {
-                    "ids": [
-                      "score/end"
+                    "addresses": [
+                      {
+                        "id": "score",
+                        "part": [
+                          "end"
+                        ]
+                      }
                     ]
                   },
                   "set": {
@@ -1135,8 +1170,14 @@
                 },
                 {
                   "select": {
-                    "ids": [
-                      "score/end/label"
+                    "addresses": [
+                      {
+                        "id": "score",
+                        "part": [
+                          "end",
+                          "label"
+                        ]
+                      }
                     ]
                   },
                   "set": {
@@ -1145,8 +1186,13 @@
                 },
                 {
                   "select": {
-                    "ids": [
-                      "score/intro/label"
+                    "addresses": [
+                      {
+                        "id": "intro",
+                        "part": [
+                          "label"
+                        ]
+                      }
                     ]
                   },
                   "set": {
@@ -1155,8 +1201,13 @@
                 },
                 {
                   "select": {
-                    "ids": [
-                      "score/da-capo/label"
+                    "addresses": [
+                      {
+                        "id": "da-capo",
+                        "part": [
+                          "label"
+                        ]
+                      }
                     ]
                   },
                   "set": {
@@ -1165,8 +1216,13 @@
                 },
                 {
                   "select": {
-                    "ids": [
-                      "score/name"
+                    "addresses": [
+                      {
+                        "id": "score",
+                        "part": [
+                          "name"
+                        ]
+                      }
                     ]
                   },
                   "set": {
@@ -1198,7 +1254,7 @@
             "groups": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (bea05b0d)"
+              "generator": "timetoalign 1.2.0 (1d61e026)"
             },
             "name": null,
             "timelines": [
@@ -1305,7 +1361,7 @@
           "x": 640,
           "y": 160
         },
-        "into": "workspace",
+        "into": {},
         "type": "add"
       },
       "time": "2026-10-12T09:00:04.000Z"
@@ -1313,7 +1369,7 @@
   ],
   "meta": {
     "format": "tilie-workspace",
-    "version": 4
+    "version": 5
   },
   "name": "untitled",
   "sessions": {},

@@ -8,7 +8,7 @@
 import type { BlockId, View } from "@timetoalign/tilie-core";
 import type { DrawnBox } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timetoshare";
-import { boxOf } from "./boxes.ts";
+import { keyedBox } from "./boxes.ts";
 import { descriptorsOf, drawingOf, nodePosition } from "./drawing.ts";
 import type { Editing } from "./editing.ts";
 import type { Rect } from "./marquee.ts";
@@ -104,18 +104,18 @@ export class CanvasNodes {
 
   /**
    * The rectangle on the canvas of `box` of block `id` as shown, its
-   * preview's while one is under way: the node's for the block's own box, a
+   * preview's while one is under way: the node's for the block itself, a
    * frame's or a card's where the shown drawing draws it; `undefined` where
    * it is not shown.
    */
   boundsOf(id: BlockId, box: DrawnBox): Rect | undefined {
     const node = this.shown(id);
     if (node === undefined) return undefined;
-    if (box.kind === "box") {
+    if (box.kind === "block") {
       const { x, y } = node.position;
       return { x, y, width: node.width ?? 0, height: node.height ?? 0 };
     }
-    const shown = boxOf(node.data.drawing, box.address);
+    const shown = box.key === null ? undefined : keyedBox(node.data.drawing, box.key);
     return shown === undefined ? undefined : rectOnCanvas(node, shown);
   }
 

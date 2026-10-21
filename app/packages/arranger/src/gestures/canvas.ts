@@ -8,7 +8,7 @@
  * click.
  */
 
-import type { View } from "@timetoalign/tilie-core";
+import type { Address, View } from "@timetoalign/tilie-core";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { LevelRules } from "../containers.ts";
 import type { Editing } from "../editing.ts";
@@ -18,7 +18,7 @@ import { elementsInRect } from "../marquee.ts";
 import type { CanvasNodes } from "../nodes.svelte.ts";
 import type { BlockNode } from "../project.ts";
 import type { Selection } from "../selection.ts";
-import { blockOf, click } from "../selection.ts";
+import { blockOf, click, selectionOf } from "../selection.ts";
 import type { DoubleClick, Pressed, Tap } from "../selectionRules.ts";
 import { clickedAt, doubleClickAt, doubleTap, ON_PANE, pressedIn } from "../selectionRules.ts";
 
@@ -83,7 +83,7 @@ export class CanvasPointer {
   }
 
   /** The selection after a click on `address`: Shift, or the marquee toggle, adds or removes. */
-  clicked(address: string | null, event: { shiftKey: boolean }): Selection {
+  clicked(address: Address | null, event: { shiftKey: boolean }): Selection {
     const selection = this.#host.selection();
     return address === null
       ? selection
@@ -92,7 +92,7 @@ export class CanvasPointer {
 
   /** What a press on the target of `event` (a key's: the focused element) selects, as a click would. */
   pressedBy(event: KeyboardEvent): Selection | null {
-    // The node itself carries no address, so the press hits the block's own box.
+    // The node itself carries no address, so the press hits the block itself.
     const pressed = this.pressedAt(event.target);
     return pressed.node === undefined
       ? null
@@ -152,14 +152,16 @@ export class CanvasPointer {
       return;
     }
     const marked = host.rules().marquee === "blocks" ? this.#markedBlocks() : this.#marked(event);
-    host.select(new Set(host.marquee() ? [...host.selection(), ...marked] : marked));
+    host.select(selectionOf(host.marquee() ? [...host.selection().values(), ...marked] : marked));
   };
 
-  #markedBlocks(): string[] {
-    return this.#host.nodes.nodes.filter((node) => node.selected).map((node) => node.id);
+  #markedBlocks(): Address[] {
+    return this.#host.nodes.nodes
+      .filter((node) => node.selected)
+      .map((node) => ({ block: node.id }));
   }
 
-  #marked(event: PointerEvent): string[] {
+  #marked(event: PointerEvent): Address[] {
     const host = this.#host;
     const editing = host.editing();
     const node = editing === null ? undefined : host.nodes.byId.get(blockOf(editing.target));

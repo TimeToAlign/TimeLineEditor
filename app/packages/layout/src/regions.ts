@@ -5,7 +5,7 @@
  * and 7.2).
  */
 
-import { bandAddress } from "@timetoalign/tilie-core";
+import { idAddress } from "@timetoalign/tilie-core";
 import type { PreparedBand } from "./bands.ts";
 import { BRACE, LABEL_GAP } from "./constants.ts";
 import { type Extent, labelExtent, Rows, widen } from "./fit.ts";
@@ -25,13 +25,13 @@ import { type Entry, maxSize, nth, type Scope, shown } from "./traversal.ts";
  * pr` out, the tip 6 further and the label's ordinate 2 further again, each
  * distance summed whole first (section 6.6, Regions).
  */
-export function regionsBand(scope: Scope, line: Entry, sources: readonly Entry[]): PreparedBand {
-  const { address, owned, measured, relativeX, u, S, h } = scope;
+export function regionsBand(scope: Scope, sources: readonly Entry[]): PreparedBand {
+  const { owned, measured, relativeX, u, S, h } = scope;
   const regions = sources.flatMap((source) =>
     shown(source.bands.regions.style)
       ? source.manifest.regions
           .map((region) => ({
-            ...owned("region", address(region.id), source, "regions"),
+            ...owned("region", idAddress(region.id), source, "regions"),
             start: add(source.start, coordinateValue(region.start, source.manifest.number_type)),
             end: add(source.start, coordinateValue(region.end, source.manifest.number_type)),
             text: region.name,
@@ -58,8 +58,7 @@ export function regionsBand(scope: Scope, line: Entry, sources: readonly Entry[]
   );
   const pr = BRACE + LABEL_GAP + h(size) + S;
   return {
-    kind: "regions",
-    address: bandAddress(line.manifest.id, "regions"),
+    facet: "regions",
     elements: regions.length,
     width: rows.count === 0 ? 0 : rows.count * pr - S,
     extents: placed.map((item) => item.extent),

@@ -1,10 +1,18 @@
-import { indexBetween } from "@timetoalign/tilie-core";
+import type { Address, ElementAddress, Part } from "@timetoalign/tilie-core";
+import {
+  addressKey,
+  cardAddress,
+  idAddress,
+  indexBetween,
+  WORKSPACE,
+} from "@timetoalign/tilie-core";
 import { toDescriptors } from "@timetoalign/tilie-writers";
 import { describe, expect, it } from "vitest";
 import { drawingOf, nodePosition } from "../src/drawing.ts";
 import type { Editing } from "../src/editing.ts";
 import type { BlockNode } from "../src/project.ts";
 import { blocksInOrder, livePlacement, project } from "../src/project.ts";
+import { isSelected, NOTHING_SELECTED, selectionOf } from "../src/selection.ts";
 import {
   A,
   B,
@@ -22,6 +30,32 @@ const view = viewOf(
   { id: B, fixture: "nested", scale: 2 },
 );
 
+/** The element address of `id`, with the part words `words` when given. */
+const at = (id: string, ...words: Part[]): ElementAddress =>
+  words.length === 0 ? idAddress(id) : { id, part: words };
+
+/** The address of the element `id` of block `block`, with the part words `words` when given. */
+const of = (block: string, id: string, ...words: Part[]): Address => ({
+  block,
+  ...at(id, ...words),
+});
+
+/** The keys of `addresses`, in order. */
+const keysOf = (addresses: readonly ElementAddress[]) => addresses.map(addressKey);
+
+/** `addresses` by their keys, as a node's selected elements hold them. */
+const keyed = (...addresses: ElementAddress[]) =>
+  new Map(addresses.map((address) => [addressKey(address), address]));
+
+/** The marks of a wedge-ended timeline `id`, in drawing order after its line. */
+const wedges = (id: string) => [
+  at(id, "start"),
+  at(id, "end"),
+  at(id, "name"),
+  at(id, "start", "label"),
+  at(id, "end", "label"),
+];
+
 function node(nodes: readonly BlockNode[], id: string): BlockNode {
   const found = nodes.find((item) => item.id === id);
   if (found === undefined) throw new Error(`no node ${id}`);
@@ -29,7 +63,7 @@ function node(nodes: readonly BlockNode[], id: string): BlockNode {
 }
 
 describe("project", () => {
-  const selection = new Set([A, `${B}/clt_3`]);
+  const selection = selectionOf([{ block: A }, of(B, "clt_3")]);
   const nodes = project(view, selection, [], metrics, null);
 
   it("gives every node its exact shape", () => {
@@ -46,7 +80,7 @@ describe("project", () => {
       zIndex: 0,
     });
     expect(dataA.block).toBe(blockIn(view, A));
-    expect(dataA.selectedElements).toEqual(new Set());
+    expect(dataA.selectedElements).toEqual(new Map());
     const { data: dataB, ...b } = node(nodes, B);
     expect(b).toStrictEqual({
       id: B,
@@ -59,47 +93,42 @@ describe("project", () => {
       selected: false,
       zIndex: 1,
     });
-    expect(dataB.selectedElements).toEqual(new Set(["clt_3"]));
-    expect(dataB.affectedElements).toEqual(new Set(["clt_2", "clt_2/name"]));
+    expect(dataB.selectedElements).toEqual(keyed(at("clt_3")));
+    expect(dataB.affectedElements).toEqual(new Set(keysOf([at("clt_2"), at("clt_2", "name")])));
     expect(dataA.affectedElements).toEqual(new Set());
     expect(dataB.descriptors).toEqual(toDescriptors(dataB.drawing));
     for (const member of ["draggable", "selectable", "class"]) {
       expect(member in node(nodes, A)).toBe(false);
     }
     expect(dataA.editing).toBeNull();
-    expect([...dataA.inside]).toEqual([
-      "bare/card",
-      "bare",
-      "bare/start",
-      "bare/end",
-      "bare/name",
-      "bare/start/label",
-      "bare/end/label",
-    ]);
+    expect([...dataA.inside]).toEqual(keysOf([cardAddress("bare"), at("bare"), ...wedges("bare")]));
   });
 
-  it("projects a group block through the same drawing, with root-qualified selections", () => {
+  it("projects a group block through the same drawing, with its elements selected", () => {
     const numbers = numbersView();
-    const [only] = project(numbers, new Set([`${A}/score/region_1/label`]), [], metrics, null);
-    expect(only?.data.selectedElements).toEqual(new Set(["score/region_1/label"]));
-    expect(only?.data.affectedElements).toEqual(new Set(["score/region_1"]));
+    const label = of(A, "region_1", "label");
+    const [only] = project(numbers, selectionOf([label]), [], metrics, null);
+    expect(only?.data.selectedElements).toEqual(keyed(at("region_1", "label")));
+    expect(only?.data.affectedElements).toEqual(new Set(keysOf([at("region_1")])));
     expect(only?.data.drawing).toBe(drawingOf(blockIn(numbers, A), numbers.settings, metrics));
   });
 
   it("marks nothing a Delete would not take: never the edited element", () => {
     const mixed = mixedPlain();
-    const selection = new Set([`${A}/group_1/name`]);
-    const group: Editing = { target: `${A}/group_1`, kind: "group" };
+    const selection = selectionOf([of(A, "group_1", "name")]);
+    const group: Editing = { target: of(A, "group_1"), kind: "group" };
     const [free] = project(mixed, selection, [], metrics, null);
     const [edited] = project(mixed, selection, [], metrics, group);
-    expect(free?.data.affectedElements).toEqual(new Set(["group_1"]));
+    expect(free?.data.affectedElements).toEqual(new Set(keysOf([at("group_1")])));
     expect(edited?.data.affectedElements).toEqual(new Set());
   });
 
   it("orders nodes by index and ranks them", () => {
     const lowered = changed(view, {
       type: "set",
-      changes: [{ target: B, values: { index: indexBetween(null, blockIn(view, A).index) } }],
+      changes: [
+        { target: { block: B }, values: { index: indexBetween(null, blockIn(view, A).index) } },
+      ],
     });
     const result = project(lowered, selection, [], metrics, null);
     expect(result.map((item) => [item.id, item.zIndex])).toEqual([
@@ -118,7 +147,7 @@ describe("project", () => {
     expect(node(again, A)).not.toBe(node(tampered, A));
     expect(node(again, B)).not.toBe(node(tampered, B));
     expect(again.map((item) => [item.id, item.selected])).toEqual(
-      again.map((item) => [item.id, selection.has(item.id)]),
+      again.map((item) => [item.id, isSelected(selection, { block: item.id })]),
     );
   });
 
@@ -129,7 +158,10 @@ describe("project", () => {
   });
 
   it("renews only the moved block's node", () => {
-    const moved = changed(view, { type: "set", changes: [{ target: A, values: { x: 48 } }] });
+    const moved = changed(view, {
+      type: "set",
+      changes: [{ target: { block: A }, values: { x: 48 } }],
+    });
     const again = project(moved, selection, nodes, metrics, null);
     expect(node(again, A)).not.toBe(node(nodes, A));
     expect(node(again, A).position).toEqual({ x: 48, y: 80 });
@@ -137,10 +169,16 @@ describe("project", () => {
   });
 
   it("renews only the nodes whose selection changed", () => {
-    const blockOnly = project(view, new Set([`${B}/clt_3`]), nodes, metrics, null);
+    const blockOnly = project(view, selectionOf([of(B, "clt_3")]), nodes, metrics, null);
     expect(node(blockOnly, A)).not.toBe(node(nodes, A));
     expect(node(blockOnly, B)).toBe(node(nodes, B));
-    const elements = project(view, new Set([A, `${B}/clt_2`]), nodes, metrics, null);
+    const elements = project(
+      view,
+      selectionOf([{ block: A }, of(B, "clt_2")]),
+      nodes,
+      metrics,
+      null,
+    );
     expect(node(elements, A)).toBe(node(nodes, A));
     expect(node(elements, B)).not.toBe(node(nodes, B));
   });
@@ -190,12 +228,15 @@ describe("the node of a block placed by its place origin", () => {
   const moved = placed(mixedPlain(), A, "annotations", { x: -30, y: -20 });
 
   it("lies left of and above the place origin by the origin times the scale", () => {
-    const [only] = project(moved, new Set(), [], metrics, null);
+    const [only] = project(moved, NOTHING_SELECTED, [], metrics, null);
     expect(only?.data.drawing.origin).toEqual({ x: 38, y: 48.8046875 });
     expect(only?.position).toEqual({ x: 2, y: 31.1953125 });
     expect([only?.width, only?.height]).toEqual([616.484619140625, 440.578125]);
-    const doubled = changed(moved, { type: "set", changes: [{ target: A, values: { scale: 2 } }] });
-    const [large] = project(doubled, new Set(), [], metrics, null);
+    const doubled = changed(moved, {
+      type: "set",
+      changes: [{ target: { block: A }, values: { scale: 2 } }],
+    });
+    const [large] = project(doubled, NOTHING_SELECTED, [], metrics, null);
     expect(large?.position).toEqual({ x: -36, y: -17.609375 });
     expect([large?.width, large?.height]).toEqual([1232.96923828125, 881.15625]);
     const block = blockIn(doubled, A);
@@ -223,7 +264,7 @@ describe("the node of a block placed by its place origin", () => {
 describe("the projection under an editor", () => {
   const view = changed(mixedPlain(), {
     type: "add",
-    into: "workspace",
+    into: WORKSPACE,
     block: {
       id: B,
       manifest: blockIn(viewOf({ id: B, fixture: "bare" }), B).manifest,
@@ -231,11 +272,11 @@ describe("the projection under an editor", () => {
       y: 0,
     },
   });
-  const none = new Set<string>();
+  const none = NOTHING_SELECTED;
   const plain = project(view, none, [], metrics, null);
 
   it("fades every other block and keeps the edited one in place", () => {
-    const editing: Editing = { target: A, kind: "bundle" };
+    const editing: Editing = { target: { block: A }, kind: "bundle" };
     const nodes = project(view, none, [], metrics, editing);
     const a = node(nodes, A);
     expect(a.draggable).toBe(false);
@@ -248,53 +289,45 @@ describe("the projection under an editor", () => {
   });
 
   it("holds inside exactly what the edited group or timeline contains", () => {
-    const group = project(view, none, [], metrics, { target: `${A}/group_1`, kind: "group" });
-    expect([...node(group, A).data.inside]).toEqual([
-      "group_1",
-      "group_1/name",
-      "group_1/score/card",
-      "score/cmap_1",
-      "score/cmap_2",
-      "score/jump_from_1",
-      "score",
-      "score/start",
-      "score/end",
-      "score/name",
-      "score/start/label",
-      "score/end/label",
-      "score/jump_from_1/label",
-      "group_1/performance/card",
-      "performance/cmap_1",
-      "performance",
-      "performance/start",
-      "performance/end",
-      "performance/name",
-      "performance/start/label",
-      "performance/end/label",
-    ]);
-    const editing: Editing = { target: `${A}/annotations`, kind: "timeline" };
+    const group = project(view, none, [], metrics, { target: of(A, "group_1"), kind: "group" });
+    expect([...node(group, A).data.inside]).toEqual(
+      keysOf([
+        at("group_1"),
+        at("group_1", "name"),
+        cardAddress("score"),
+        at("cmap_1"),
+        at("cmap_2"),
+        at("jump_from_1"),
+        at("score"),
+        ...wedges("score"),
+        at("jump_from_1", "label"),
+        cardAddress("performance"),
+        at("cmap_3"),
+        at("performance"),
+        ...wedges("performance"),
+      ]),
+    );
+    const editing: Editing = { target: of(A, "annotations"), kind: "timeline" };
     const timeline = project(view, none, [], metrics, editing);
-    expect([...node(timeline, A).data.inside]).toEqual([
-      "annotations/card",
-      "annotations/region_1",
-      "annotations/region_2",
-      "annotations",
-      "annotations/start",
-      "annotations/end",
-      "annotations/name",
-      "annotations/start/label",
-      "annotations/end/label",
-      "annotations/region_1/label",
-      "annotations/region_2/label",
-    ]);
+    expect([...node(timeline, A).data.inside]).toEqual(
+      keysOf([
+        cardAddress("annotations"),
+        at("region_1"),
+        at("region_2"),
+        at("annotations"),
+        ...wedges("annotations"),
+        at("region_1", "label"),
+        at("region_2", "label"),
+      ]),
+    );
     expect(node(timeline, A).draggable).toBe(false);
   });
 
   it("reuses the nodes under an equal editor and renews them under another", () => {
-    const first = project(view, none, [], metrics, { target: A, kind: "bundle" });
-    const again = project(view, none, first, metrics, { target: A, kind: "bundle" });
+    const first = project(view, none, [], metrics, { target: { block: A }, kind: "bundle" });
+    const again = project(view, none, first, metrics, { target: { block: A }, kind: "bundle" });
     for (const [index, item] of again.entries()) expect(item).toBe(first[index]);
-    const group = project(view, none, first, metrics, { target: `${A}/group_1`, kind: "group" });
+    const group = project(view, none, first, metrics, { target: of(A, "group_1"), kind: "group" });
     const closed = project(view, none, first, metrics, null);
     for (const [index, item] of first.entries()) {
       expect(group[index]).not.toBe(item);

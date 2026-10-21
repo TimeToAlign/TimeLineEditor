@@ -8,8 +8,17 @@
 import path from "node:path";
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
-import type { Manifest } from "../packages/core/src/index.ts";
-import { isLoadError, loadManifest, saveManifest } from "../packages/core/src/index.ts";
+import type { ElementAddress, Manifest } from "../packages/core/src/index.ts";
+import {
+  addressKey,
+  cardAddress,
+  idAddress,
+  isLoadError,
+  loadManifest,
+  partAddress,
+  saveManifest,
+  TITLE_ADDRESS,
+} from "../packages/core/src/index.ts";
 import { manifestFileName } from "../packages/editor/src/files.ts";
 import { manifestFixture } from "./schema.ts";
 import {
@@ -24,6 +33,7 @@ import {
   GROUPS,
   journalLength,
   marked,
+  markOf,
   node,
   OPENED_JOURNAL,
   open,
@@ -42,40 +52,69 @@ test.use({ viewport: { width: 1600, height: 1000 } });
 
 const VIEW = { x: 40, y: 40, zoom: 1 };
 
+/** The frame of group `id`. */
+const frame = idAddress;
+
+/** The title of group `id`. */
+function title(id: string): ElementAddress {
+  return partAddress(idAddress(id), "name");
+}
+
+/** A timeline's line, its address `{id}`. */
+const line = idAddress;
+
 /**
  * The distinct addresses of the elements showing a node's structure
  * (`support.ts`'s `structure`: a frame, a line, the title, a card or a
- * group's title), in DOM order.
+ * group's title), in DOM order, each once (by `addressKey`).
  */
-async function structureOf(page: Page, block: string): Promise<string[]> {
-  return [...new Set((await structure(page, block)).map(({ address }) => address))];
+async function structureOf(page: Page, block: string): Promise<ElementAddress[]> {
+  const seen = new Map<string, ElementAddress>();
+  for (const { address } of await structure(page, block)) {
+    const key = addressKey(address);
+    if (!seen.has(key)) seen.set(key, address);
+  }
+  return [...seen.values()];
 }
 
-/** The text of each title in a node (the manifest's `name`, a group's `G/name`), by address. */
-function titles(page: Page, block: string): Promise<Record<string, string>> {
-  return node(page, block)
-    .locator("[data-address]")
-    .evaluateAll((items) =>
-      Object.fromEntries(
-        items
-          .map((item): [string, string] => [
-            item.getAttribute("data-address") ?? "",
-            item.textContent ?? "",
-          ])
-          .filter(([address]) => /^(name|group_\d+\/name)$/.test(address)),
+/**
+ * The text of each title in a node, the manifest's (`TITLE_ADDRESS`) and each
+ * group's (`{id: G, part: ["name"]}`, `G` a group of the block's manifest), by
+ * the key (`addressKey`) of its address.
+ */
+async function titles(page: Page, block: string): Promise<Record<string, string>> {
+  const [texts, groups] = await Promise.all([
+    node(page, block)
+      .locator('.tilie-block svg [data-part="name"]:not([data-facet])')
+      .evaluateAll((items) =>
+        items.map((item) => ({
+          id: item.getAttribute("data-id"),
+          text: item.textContent ?? "",
+        })),
       ),
-    );
+    page.evaluate(
+      (id) =>
+        window.__tilie.store().view.blocks[id]?.manifest.groups.map((group) => group.id) ?? [],
+      block,
+    ),
+  ]);
+  return Object.fromEntries(
+    texts.flatMap(({ id, text }) => {
+      if (id === null) return [[addressKey(TITLE_ADDRESS), text]];
+      return groups.includes(id) ? [[addressKey(title(id)), text]] : [];
+    }),
+  );
 }
 
-/** How many parts of `address` in `block` have their box centre inside the part `frame`. */
+/** How many parts of `address` in `block` have their box centre inside the part `container`. */
 async function partsInside(
   page: Page,
   block: string,
-  address: string,
-  frame: string,
+  address: ElementAddress,
+  container: ElementAddress,
 ): Promise<number> {
-  const outer = await part(page, block, frame).boundingBox();
-  if (outer === null) throw new Error(`${block}/${frame} is not displayed`);
+  const outer = await part(page, block, container).boundingBox();
+  if (outer === null) throw new Error(`${addressKey({ block, ...container })} is not displayed`);
   const boxes = await element(page, block, address).evaluateAll((items) =>
     items.map((item) => {
       const { x, y, width, height } = item.getBoundingClientRect();
@@ -105,48 +144,48 @@ test.describe("a group workspace", () => {
   test("draws its frames, cards, titles and lines in display order", async ({ page }) => {
     await expect(page.getByTestId("block")).toHaveCount(4);
     expect(await structureOf(page, GROUPS.child)).toEqual([
-      "group_1",
-      "group_1/name",
-      "group_1/second-half/card",
-      "piece",
-      "second-half",
-      "group_1/recording/card",
-      "recording",
+      frame("group_1"),
+      title("group_1"),
+      cardAddress("second-half"),
+      line("piece"),
+      line("second-half"),
+      cardAddress("recording"),
+      line("recording"),
     ]);
     expect(await structureOf(page, GROUPS.grandchild)).toEqual([
-      "group_1",
-      "group_1/name",
-      "group_1/theme/card",
-      "score",
-      "movement",
-      "theme",
-      "group_1/recording/card",
-      "recording",
+      frame("group_1"),
+      title("group_1"),
+      cardAddress("theme"),
+      line("score"),
+      line("movement"),
+      line("theme"),
+      cardAddress("recording"),
+      line("recording"),
     ]);
     expect(await structureOf(page, GROUPS.mixed)).toEqual([
-      "group_1",
-      "group_1/name",
-      "group_1/exposition/card",
-      "sonata",
-      "exposition",
-      "group_1/take/card",
-      "session",
-      "take",
-      "group_1/system/card",
-      "page",
-      "system",
-      "group_1/audio/card",
-      "audio",
+      frame("group_1"),
+      title("group_1"),
+      cardAddress("exposition"),
+      line("sonata"),
+      line("exposition"),
+      cardAddress("take"),
+      line("session"),
+      line("take"),
+      cardAddress("system"),
+      line("page"),
+      line("system"),
+      cardAddress("audio"),
+      line("audio"),
     ]);
     expect(await structureOf(page, GROUPS.styled)).toEqual([
-      "group_1",
-      "group_1/name",
-      "group_1/score/card",
-      "score",
-      "group_1/page/card",
-      "page",
-      "group_1/performance/card",
-      "performance",
+      frame("group_1"),
+      title("group_1"),
+      cardAddress("score"),
+      line("score"),
+      cardAddress("page"),
+      line("page"),
+      cardAddress("performance"),
+      line("performance"),
     ]);
     const names = {
       [GROUPS.child]: "Second half",
@@ -155,21 +194,22 @@ test.describe("a group workspace", () => {
       [GROUPS.styled]: "Edition",
     };
     for (const [block, name] of Object.entries(names)) {
-      expect(await titles(page, block)).toEqual({ "group_1/name": name });
-      await expect(element(page, block, "group_1")).toHaveCount(1);
+      expect(await titles(page, block)).toEqual({ [addressKey(title("group_1"))]: name });
+      await expect(element(page, block, frame("group_1"))).toHaveCount(1);
     }
-    await expect(element(page, GROUPS.child, "group_1/second-half/card")).toHaveCount(2);
-    await expect(element(page, GROUPS.child, "group_1/recording/card")).toHaveCount(2);
+    await expect(element(page, GROUPS.child, cardAddress("second-half"))).toHaveCount(2);
+    await expect(element(page, GROUPS.child, cardAddress("recording"))).toHaveCount(2);
   });
 
   test("selecting a part drawn twice marks both copies", async ({ page }) => {
-    await expect(element(page, GROUPS.child, "second-half/start")).toHaveCount(2);
-    const { x, y } = await partCentre(page, GROUPS.child, "second-half/start");
+    const start = partAddress(line("second-half"), "start");
+    await expect(element(page, GROUPS.child, start)).toHaveCount(2);
+    const { x, y } = await partCentre(page, GROUPS.child, start);
     await page.mouse.click(x, y);
-    expect(await selection(page)).toEqual([`${GROUPS.child}/second-half/start`]);
+    expect(await selection(page)).toEqual([{ block: GROUPS.child, ...start }]);
     expect(await marked(page, "selection")).toEqual([
-      `${GROUPS.child}/second-half/start`,
-      `${GROUPS.child}/second-half/start`,
+      markOf(GROUPS.child, start),
+      markOf(GROUPS.child, start),
     ]);
   });
 
@@ -191,22 +231,22 @@ test.describe("a group workspace", () => {
     const removals = [
       {
         timeline: "recording",
-        card: "group_1/recording/card",
+        card: cardAddress("recording"),
         roots: [["piece", ["second-half"]]],
         members: [["group_1", ["second-half"]]],
       },
       {
         timeline: "piece",
-        card: "group_1/second-half/card",
+        card: cardAddress("second-half"),
         roots: [["recording", []]],
         members: [["group_1", ["recording"]]],
       },
     ];
     for (const { timeline, card, roots, members } of removals) {
-      await select(page, [`${GROUPS.child}/${timeline}`]);
+      await select(page, [{ block: GROUPS.child, id: timeline }]);
       await page.keyboard.press("Delete");
       expect(await commandsFrom(page, start)).toEqual([
-        { type: "remove", targets: [`${GROUPS.child}/${timeline}`] },
+        { type: "remove", targets: [{ block: GROUPS.child, id: timeline }] },
       ]);
       expect(await contents()).toEqual({ roots, members });
       await expect(element(page, GROUPS.child, card)).toHaveCount(0);
@@ -219,7 +259,7 @@ test.describe("a group workspace", () => {
       (block) =>
         window.__tilie.store().dispatch({
           type: "add",
-          into: `${block}/second-half`,
+          into: { block, id: "second-half" },
           region: {
             id: "region_1",
             name: "A",
@@ -232,7 +272,7 @@ test.describe("a group workspace", () => {
     );
     expect(refusal).toBeNull();
     expect(await journalLength(page)).toBe(start + 1);
-    await expect(part(page, GROUPS.child, "piece/region_1")).toBeAttached();
+    await expect(part(page, GROUPS.child, idAddress("region_1"))).toBeAttached();
 
     const regions = () =>
       page.evaluate((block) => {
@@ -244,51 +284,53 @@ test.describe("a group workspace", () => {
       }, GROUPS.child);
     expect(await regions()).toEqual(["region_1"]);
 
-    await select(page, [`${GROUPS.child}/piece/region_1`]);
+    await select(page, [{ block: GROUPS.child, id: "region_1" }]);
     await page.keyboard.press("Delete");
     expect(await commandsFrom(page, start + 1)).toEqual([
-      { type: "remove", targets: [`${GROUPS.child}/piece/region_1`] },
+      { type: "remove", targets: [{ block: GROUPS.child, id: "region_1" }] },
     ]);
     expect(await regions()).toEqual([]);
-    await expect(element(page, GROUPS.child, "piece/region_1")).toHaveCount(0);
+    await expect(element(page, GROUPS.child, idAddress("region_1"))).toHaveCount(0);
 
     await page.keyboard.press("ControlOrMeta+z");
     expect(await regions()).toEqual(["region_1"]);
-    await expect(part(page, GROUPS.child, "piece/region_1")).toBeAttached();
+    await expect(part(page, GROUPS.child, idAddress("region_1"))).toBeAttached();
   });
 
   test("hovering a member's line marks its card, not its shadow or the frame", async ({ page }) => {
-    const { x, y } = await partCentre(page, GROUPS.child, "recording");
+    const { x, y } = await partCentre(page, GROUPS.child, line("recording"));
     await page.mouse.move(x, y, { steps: 2 });
     await expect
       .poll(() => marked(page, "hover"))
-      .toEqual([`${GROUPS.child}/group_1/recording/card`]);
+      .toEqual([markOf(GROUPS.child, cardAddress("recording"))]);
     const empty = await emptyPoint(page, 600, 200);
     await page.mouse.move(empty.x, empty.y, { steps: 2 });
     await expect.poll(() => marked(page, "hover")).toEqual([]);
   });
 
   test("hovering a frame away from its cards marks the frame", async ({ page }) => {
-    const { x, y } = await framePoint(page, GROUPS.child, "group_1");
+    const { x, y } = await framePoint(page, GROUPS.child, frame("group_1"));
     await page.mouse.move(x, y, { steps: 2 });
-    await expect.poll(() => marked(page, "hover")).toEqual([`${GROUPS.child}/group_1`]);
+    await expect
+      .poll(() => marked(page, "hover"))
+      .toEqual([markOf(GROUPS.child, frame("group_1"))]);
   });
 
   test("a press on a frame selects the group", async ({ page }) => {
-    const { x, y } = await framePoint(page, GROUPS.child, "group_1");
+    const { x, y } = await framePoint(page, GROUPS.child, frame("group_1"));
     await page.mouse.click(x, y);
-    expect(await selection(page)).toEqual([`${GROUPS.child}/group_1`]);
-    expect(await marked(page, "selection")).toEqual([`${GROUPS.child}/group_1`]);
+    expect(await selection(page)).toEqual([{ block: GROUPS.child, id: "group_1" }]);
+    expect(await marked(page, "selection")).toEqual([markOf(GROUPS.child, frame("group_1"))]);
     expect(await marked(page, "affected")).toEqual([]);
   });
 
   test("hover at zoom 1/2 marks the card under the pointer", async ({ page }) => {
     await setViewport(page, { ...VIEW, zoom: 0.5 });
-    const { x, y } = await partCentre(page, GROUPS.child, "recording");
+    const { x, y } = await partCentre(page, GROUPS.child, line("recording"));
     await page.mouse.move(x, y, { steps: 2 });
     await expect
       .poll(() => marked(page, "hover"))
-      .toEqual([`${GROUPS.child}/group_1/recording/card`]);
+      .toEqual([markOf(GROUPS.child, cardAddress("recording"))]);
   });
 
   test("hover on a block of scale 1.5 marks the card under the pointer", async ({ page }) => {
@@ -296,7 +338,7 @@ test.describe("a group workspace", () => {
       (block) =>
         window.__tilie
           .store()
-          .dispatch({ type: "set", changes: [{ target: block, values: { scale: 1.5 } }] }),
+          .dispatch({ type: "set", changes: [{ target: { block }, values: { scale: 1.5 } }] }),
       GROUPS.child,
     );
     expect(refusal).toBeNull();
@@ -305,11 +347,11 @@ test.describe("a group workspace", () => {
       "width",
       "837.62109375",
     );
-    const { x, y } = await partCentre(page, GROUPS.child, "recording");
+    const { x, y } = await partCentre(page, GROUPS.child, line("recording"));
     await page.mouse.move(x, y, { steps: 2 });
     await expect
       .poll(() => marked(page, "hover"))
-      .toEqual([`${GROUPS.child}/group_1/recording/card`]);
+      .toEqual([markOf(GROUPS.child, cardAddress("recording"))]);
   });
 });
 
@@ -320,76 +362,98 @@ test.describe("a bundle workspace", () => {
   });
 
   test("draws the manifest's title, its frames and its ungrouped roots", async ({ page }) => {
-    await expect(page.getByTestId("block")).toHaveCount(3);
+    await expect(page.getByTestId("block")).toHaveCount(4);
     expect(await structureOf(page, BUNDLES.mixed)).toEqual([
-      "name",
-      "group_1",
-      "group_1/name",
-      "group_1/score/card",
-      "score",
-      "group_1/performance/card",
-      "performance",
-      "group_2",
-      "group_2/name",
-      "group_2/page/card",
-      "page",
-      "group_2/excerpt/card",
-      "recording",
-      "excerpt",
-      "annotations/card",
-      "annotations",
+      TITLE_ADDRESS,
+      frame("group_1"),
+      title("group_1"),
+      cardAddress("score"),
+      line("score"),
+      cardAddress("performance"),
+      line("performance"),
+      frame("group_2"),
+      title("group_2"),
+      cardAddress("page"),
+      line("page"),
+      cardAddress("excerpt"),
+      line("recording"),
+      line("excerpt"),
+      cardAddress("annotations"),
+      line("annotations"),
     ]);
     expect(await structureOf(page, BUNDLES.shared)).toEqual([
-      "name",
-      "group_1",
-      "group_1/name",
-      "group_1/exposition/card",
-      "score",
-      "exposition",
-      "group_1/take_1/card",
-      "take_1",
-      "group_2",
-      "group_2/name",
-      "group_2/recapitulation/card",
-      "recapitulation",
-      "recapitulation_first",
-      "recapitulation_second",
-      "group_2/take_2/card",
-      "take_2",
-      "page/card",
-      "page",
+      TITLE_ADDRESS,
+      frame("group_1"),
+      title("group_1"),
+      cardAddress("exposition"),
+      line("score"),
+      line("exposition"),
+      cardAddress("take_1"),
+      line("take_1"),
+      frame("group_2"),
+      title("group_2"),
+      cardAddress("recapitulation"),
+      line("recapitulation"),
+      line("recapitulation_first"),
+      line("recapitulation_second"),
+      cardAddress("take_2"),
+      line("take_2"),
+      cardAddress("page"),
+      line("page"),
     ]);
     expect(await structureOf(page, BUNDLES.ungrouped)).toEqual([
-      "name",
-      "pages/card",
-      "pages",
-      "recording/card",
-      "recording",
-      "score/card",
-      "score",
+      TITLE_ADDRESS,
+      cardAddress("pages"),
+      line("pages"),
+      cardAddress("recording"),
+      line("recording"),
+      cardAddress("score"),
+      line("score"),
+    ]);
+    // The card and line of `t`, drawn in both frames, are listed where first drawn.
+    expect(await structureOf(page, BUNDLES.twoGroups)).toEqual([
+      TITLE_ADDRESS,
+      frame("g1"),
+      title("g1"),
+      cardAddress("t"),
+      line("t"),
+      cardAddress("u"),
+      line("u"),
+      frame("g2"),
+      title("g2"),
+      cardAddress("v"),
+      line("v"),
     ]);
     expect(await titles(page, BUNDLES.mixed)).toEqual({
-      name: "Mixed",
-      "group_1/name": "Performance",
-      "group_2/name": "Facsimile",
+      [addressKey(TITLE_ADDRESS)]: "Mixed",
+      [addressKey(title("group_1"))]: "Performance",
+      [addressKey(title("group_2"))]: "Facsimile",
     });
     expect(await titles(page, BUNDLES.shared)).toEqual({
-      name: "Sonata",
-      "group_1/name": "Exposition",
-      "group_2/name": "Recapitulation",
+      [addressKey(TITLE_ADDRESS)]: "Sonata",
+      [addressKey(title("group_1"))]: "Exposition",
+      [addressKey(title("group_2"))]: "Recapitulation",
     });
-    expect(await titles(page, BUNDLES.ungrouped)).toEqual({ name: "Sketches" });
+    expect(await titles(page, BUNDLES.ungrouped)).toEqual({
+      [addressKey(TITLE_ADDRESS)]: "Sketches",
+    });
+    expect(await titles(page, BUNDLES.twoGroups)).toEqual({
+      [addressKey(TITLE_ADDRESS)]: "Shared",
+      [addressKey(title("g1"))]: "Performance",
+      [addressKey(title("g2"))]: "Page",
+    });
   });
 
   test("selecting an ancestor line drawn in two frames marks both", async ({ page }) => {
-    await expect(element(page, BUNDLES.shared, "score")).toHaveCount(8);
-    expect(await partsInside(page, BUNDLES.shared, "score", "group_1")).toBe(4);
-    expect(await partsInside(page, BUNDLES.shared, "score", "group_2")).toBe(4);
-    const { x, y } = await partCentre(page, BUNDLES.shared, "score");
+    const score = line("score");
+    await expect(element(page, BUNDLES.shared, score)).toHaveCount(8);
+    expect(await partsInside(page, BUNDLES.shared, score, frame("group_1"))).toBe(4);
+    expect(await partsInside(page, BUNDLES.shared, score, frame("group_2"))).toBe(4);
+    const { x, y } = await partCentre(page, BUNDLES.shared, score);
     await page.mouse.click(x, y);
-    expect(await selection(page)).toEqual([`${BUNDLES.shared}/score`]);
+    expect(await selection(page)).toEqual([{ block: BUNDLES.shared, id: "score" }]);
     expect(await marked(page, "selection")).toEqual(
-      Array.from({ length: 8 }, () => `${BUNDLES.shared}/score`),
+      Array.from({ length: 8 }, () => markOf(BUNDLES.shared, score)),
     );
   });
 
@@ -400,12 +464,12 @@ test.describe("a bundle workspace", () => {
     const dashed = node(page, BUNDLES.mixed).locator('rect.tilie-mark[data-mark="holding"]');
     await expect(page.locator("[data-contains-selection]")).toHaveCount(0);
     await expect(dashed).toHaveCount(0);
-    const { x, y } = await partCentre(page, BUNDLES.mixed, "score");
+    const { x, y } = await partCentre(page, BUNDLES.mixed, line("score"));
     await page.mouse.click(x, y);
-    expect(await selection(page)).toEqual([`${BUNDLES.mixed}/score`]);
+    expect(await selection(page)).toEqual([{ block: BUNDLES.mixed, id: "score" }]);
     expect(
       await dashed.evaluateAll((items) => items.map((item) => item.getAttribute("data-marks"))),
-    ).toEqual([null, "group_1", "group_1/score/card"]);
+    ).toEqual(["{}", addressKey(frame("group_1")), addressKey(cardAddress("score"))]);
     await expect(block).toHaveAttribute("data-contains-selection", "");
     await expect(page.locator("[data-contains-selection]")).toHaveCount(1);
     const looks = () =>
@@ -424,7 +488,7 @@ test.describe("a bundle workspace", () => {
       );
     const blue = "rgb(10, 132, 255)";
     expect(await looks()).toEqual([
-      ["box", blue, "1px", "1px, 2px", "non-scaling-stroke", "none"],
+      ["block", blue, "1px", "1px, 2px", "non-scaling-stroke", "none"],
       ["frame", blue, "2px", "6px, 4px", "non-scaling-stroke", "none"],
       ["card", blue, "3px", "6px, 4px", "non-scaling-stroke", "none"],
     ]);
@@ -435,27 +499,31 @@ test.describe("a bundle workspace", () => {
     ).toEqual(["crispedges", "auto", "auto"]);
     await setViewport(page, { ...VIEW, zoom: 2 });
     expect(await looks()).toEqual([
-      ["box", blue, "0.5px", "0.5px, 1px", "non-scaling-stroke", "none"],
+      ["block", blue, "0.5px", "0.5px, 1px", "non-scaling-stroke", "none"],
       ["frame", blue, "1px", "3px, 2px", "non-scaling-stroke", "none"],
       ["card", blue, "1.5px", "3px, 2px", "non-scaling-stroke", "none"],
     ]);
-    const stroke = (address: string) =>
+    const stroke = (address: ElementAddress) =>
       element(page, BUNDLES.mixed, address)
         .last()
         .evaluate((item) => getComputedStyle(item).stroke);
-    expect(await stroke("group_1")).toBe("rgb(209, 213, 219)");
-    expect(await stroke("group_1/score/card")).toBe("rgb(196, 201, 209)");
+    expect(await stroke(frame("group_1"))).toBe("rgb(209, 213, 219)");
+    expect(await stroke(cardAddress("score"))).toBe("rgb(196, 201, 209)");
   });
 
   test("hovering a segment boundary marks that boundary and its card", async ({ page }) => {
-    await expect(element(page, BUNDLES.ungrouped, "page_2/start")).toHaveCount(1);
-    await expect(element(page, BUNDLES.ungrouped, "page_3/start")).toHaveCount(1);
-    await expect(element(page, BUNDLES.ungrouped, "page_1/start")).toHaveCount(0);
-    const { x, y } = await partCentre(page, BUNDLES.ungrouped, "page_2/start");
+    const startOf = (id: string) => partAddress(idAddress(id), "start");
+    await expect(element(page, BUNDLES.ungrouped, startOf("page_2"))).toHaveCount(1);
+    await expect(element(page, BUNDLES.ungrouped, startOf("page_3"))).toHaveCount(1);
+    await expect(element(page, BUNDLES.ungrouped, startOf("page_1"))).toHaveCount(0);
+    const { x, y } = await partCentre(page, BUNDLES.ungrouped, startOf("page_2"));
     await page.mouse.move(x, y, { steps: 2 });
     await expect
       .poll(() => marked(page, "hover"))
-      .toEqual([`${BUNDLES.ungrouped}/pages/card`, `${BUNDLES.ungrouped}/page_2/start`]);
+      .toEqual([
+        markOf(BUNDLES.ungrouped, cardAddress("pages")),
+        markOf(BUNDLES.ungrouped, startOf("page_2")),
+      ]);
     const empty = await emptyPoint(page, 610, 200);
     await page.mouse.move(empty.x, empty.y, { steps: 2 });
     await expect.poll(() => marked(page, "hover")).toEqual([]);
@@ -463,14 +531,17 @@ test.describe("a bundle workspace", () => {
 
   test("Delete refuses a selection holding the manifest's title whole", async ({ page }) => {
     const before = await manifests(page);
-    await select(page, [`${BUNDLES.mixed}/annotations`, `${BUNDLES.mixed}/name`]);
+    await select(page, [
+      { block: BUNDLES.mixed, id: "annotations" },
+      { block: BUNDLES.mixed, ...TITLE_ADDRESS },
+    ]);
     await page.keyboard.press("Delete");
     const hint = page.locator('[data-testid="hint"]');
     await expect(hint).toBeVisible();
     await expect(hint).toContainText("select the block to delete it");
     expect(await journalLength(page)).toBe(OPENED_JOURNAL.bundles);
     expect(await manifests(page)).toBe(before);
-    await expect(part(page, BUNDLES.mixed, "annotations/card")).toBeAttached();
+    await expect(part(page, BUNDLES.mixed, cardAddress("annotations"))).toBeAttached();
   });
 
   test("a stretch keeps the margin a box resize added in proportion", async ({ page }) => {
@@ -488,7 +559,7 @@ test.describe("a bundle workspace", () => {
       await page.mouse.up();
       expect(await journalLength(page)).toBe(before + 1);
     };
-    await select(page, [block]);
+    await select(page, [{ block }]);
     await page.locator('[data-testid="mode-box"]').click();
     await drag("bottom-right", 40, 30);
     const boxed = await placement(page, block);
@@ -553,7 +624,7 @@ test.describe("manifests holding groups through the File menu", () => {
       expect(added).toHaveLength(1);
       const [block] = added;
       if (block === undefined) throw new Error(`${name}.json added no block`);
-      expect(await selection(page)).toEqual([block]);
+      expect(await selection(page)).toEqual([{ block }]);
       const stored = await page.evaluate(
         (target) => JSON.stringify(window.__tilie.store().view.blocks[target]?.manifest),
         block,

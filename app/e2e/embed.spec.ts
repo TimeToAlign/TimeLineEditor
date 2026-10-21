@@ -74,7 +74,7 @@ const HOST_PAGE = `<!doctype html>
 /** The workspace each slot is mounted with, and the blocks it holds. */
 const SLOTS: readonly { readonly slot: string; readonly fixture: FixtureName; blocks: number }[] = [
   { slot: "first", fixture: "small", blocks: 5 },
-  { slot: "second", fixture: "bundles", blocks: 3 },
+  { slot: "second", fixture: "bundles", blocks: 4 },
 ];
 
 /** The family the embed declares for drawn text. */
@@ -175,7 +175,7 @@ test("a drag changes its own editor's text and leaves the host's styles and titl
   expect(await hostState(page)).toEqual(["7px", "Host page"]);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(["Host"]);
   // An embedded editor has no test hook: the drag starts on the card `bare`'s manifest draws.
-  await nodeDragStart(page, await framePoint(page, SMALL.bare, cardAddress("bare", null)), 40, 30);
+  await nodeDragStart(page, await framePoint(page, SMALL.bare, cardAddress("bare")), 40, 30);
   await page.mouse.up();
   await expect.poll(async () => (await texts(page))[0]).not.toBe(before[0]);
   expect((await texts(page))[1]).toBe(before[1]);
@@ -203,5 +203,5 @@ test("destroy() empties its own slot and leaves the other editor", async ({ page
   const first = page.getByTestId("first");
   await expect(first.locator("*")).toHaveCount(0);
   await expect(first).not.toHaveAttribute("data-tilie");
-  await expect(page.getByTestId("second").getByTestId("block")).toHaveCount(3);
+  await expect(page.getByTestId("second").getByTestId("block")).toHaveCount(4);
 });

@@ -10,9 +10,11 @@ import { apply } from "../src/commands/apply.ts";
 import { preview } from "../src/commands/preview.ts";
 import type { SetCommand } from "../src/commands/types.ts";
 import { isCommandError, isLoadError } from "../src/errors.ts";
+import { addressKey } from "../src/manifest/address.ts";
 import { loadManifest } from "../src/manifest/io.ts";
 import { findTimeline } from "../src/manifest/tree.ts";
 import type { Manifest, TimelineManifest } from "../src/manifest/types.ts";
+import type { Address } from "../src/workspace/address.ts";
 import { createStore } from "../src/workspace/store.ts";
 import type { View } from "../src/workspace/view.ts";
 import {
@@ -27,8 +29,8 @@ import {
   viewOf,
 } from "./support.ts";
 
-const at = (element: string) => `${A}/${element}`;
-const set = (target: string, values: object) => ({ type: "set", changes: [{ target, values }] });
+const at = (id: string): Address => ({ block: A, id });
+const set = (target: Address, values: object) => ({ type: "set", changes: [{ target, values }] });
 
 type Value = { [key: string]: unknown };
 
@@ -74,13 +76,13 @@ describe("a segment line without segments", () => {
   it("gains its first segment when a manifest is applied, locked by its place", () => {
     const view = viewOf([A, MIXED]);
     const value = edited(MIXED, "page", (page) => ({ ...page, is_segment_line: true }));
-    const next = changed(deepFreeze(view), set(A, { manifest: value }));
+    const next = changed(deepFreeze(view), set({ block: A }, { manifest: value }));
     expect(block(next).manifest).toEqual(read(pageCovered(true)));
     const refused = loadManifest(dumps(value));
     expect(isLoadError(refused) ? refused.problems : []).toEqual([
       {
         code: "schema_violation",
-        message: 'the segments of segment line "page" do not end at its length',
+        message: "the segments of segment line 'page' do not end at its length",
         path: ["timelines", 1, "length"],
       },
     ]);
@@ -122,17 +124,27 @@ describe("a segment line without segments", () => {
   it("is given an id no element of the manifest carries", () => {
     const view = changed(viewOf([A, MIXED]), {
       type: "add",
-      into: A,
+      into: { block: A },
       timeline: { id: "dgt_1", unit: "pixels", length: 10 },
     });
     const page = timeline(changed(view, set(at("page"), { is_segment_line: true })), "page");
     expect(page.children.map((child) => child.id)).toEqual(["dgt_2"]);
   });
 
+  it("is given an id an `id` under `meta` does not take", () => {
+    const value = edited(MIXED, "page", (page) => ({
+      ...page,
+      is_segment_line: true,
+      meta: { id: "dgt_1", note: { id: "dgt_2" } },
+    }));
+    const next = changed(viewOf([A, MIXED]), set({ block: A }, { manifest: value }));
+    expect(timeline(next, "page").children.map((child) => child.id)).toEqual(["dgt_1"]);
+  });
+
   it("stays without segments while its length is unknown", () => {
     const view = changed(viewOf([A, "bare.json"]), {
       type: "add",
-      into: A,
+      into: { block: A },
       timeline: { id: "open", unit: "quarters", length: null },
     });
     const open = timeline(changed(view, set(at("open"), { is_segment_line: true })), "open");
@@ -224,11 +236,11 @@ describe("a segment line turned off", () => {
     expect(isCommandError(result) ? { ...result } : null).toEqual({
       code: "invalid_value",
       message: "the command changes nothing",
-      path: [at("form"), "is_segment_line"],
+      path: [addressKey(at("form")), "is_segment_line"],
     });
     expect(rejected(view, set(at("form"), { is_segment_line: "yes" }))).toEqual({
       code: "invalid_value",
-      path: [at("form"), "is_segment_line"],
+      path: [addressKey(at("form")), "is_segment_line"],
     });
   });
 });

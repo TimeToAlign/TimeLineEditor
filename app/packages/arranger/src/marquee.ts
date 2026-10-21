@@ -1,6 +1,7 @@
 /** The marquee inside an editor: the elements a rectangle drawn on the canvas holds. */
 
-import { qualify } from "@timetoalign/tilie-core";
+import type { Address, ElementAddress } from "@timetoalign/tilie-core";
+import { addressKey, inBlock } from "@timetoalign/tilie-core";
 import type { Drawing, DrawnElement } from "@timetoalign/tilie-layout";
 import { TextMeasure } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timetoshare";
@@ -36,7 +37,7 @@ export function elementBounds(element: DrawnElement, measure: TextMeasure): Rect
   switch (element.type) {
     case "block":
       return { x: 0, y: 0, width: element.width, height: element.height };
-    case "group":
+    case "frame":
     case "card":
       return { x: element.x, y: element.y, width: element.width, height: element.height };
     case "timeline":
@@ -76,11 +77,12 @@ export function elementBounds(element: DrawnElement, measure: TextMeasure): Rect
 
 /**
  * Whether a drawn element carrying `address` is a container's own
- * rectangle rather than an element: the block's background (no address), a
- * frame, a card or its shadow. The marquee and the focus read elements only.
+ * rectangle rather than an element: the block's background (the bundle's
+ * address `{}`), a frame, a card or its shadow. The marquee and the focus
+ * read elements only.
  */
-export function isContainerAddress(drawing: Drawing, address: string | null): boolean {
-  return address === null || boxOf(drawing, address) !== undefined;
+export function isContainerAddress(drawing: Drawing, address: ElementAddress): boolean {
+  return boxOf(drawing, address) !== undefined;
 }
 
 /** A rectangle in the drawing of `node` as the canvas shows it: moved by the node's position and scaled. */
@@ -105,8 +107,9 @@ function holds(outer: Rect, inner: Rect): boolean {
 
 /**
  * The elements of `node` a marquee over the canvas rectangle `rect` selects,
- * as block-qualified addresses in drawing order, each once: the addresses
- * among `inside` (the node's `inside`) whose every drawn element lies wholly
+ * as addresses in the node's block, in drawing order, each once: the
+ * addresses among `inside` (the node's `inside`, by their keys) whose every
+ * drawn element lies wholly
  * in `rect`, edges included (`elementBounds`, on the canvas). An address
  * drawn in several places, such as an ancestor line in several cards, is
  * taken only when all of them lie inside. Frames and cards are containers,
@@ -118,15 +121,20 @@ export function elementsInRect(
   rect: Rect,
   inside: ReadonlySet<string>,
   metrics: FontMetrics,
-): string[] {
+): Address[] {
   const { drawing } = node.data;
   const measure = new TextMeasure(metrics);
-  const taken = new Map<string, boolean>();
+  const taken = new Map<string, { readonly address: ElementAddress; held: boolean }>();
   for (const element of drawing.elements) {
     const { address } = element;
-    if (address === null || isContainerAddress(drawing, address) || !inside.has(address)) continue;
+    const key = addressKey(address);
+    if (isContainerAddress(drawing, address) || !inside.has(key)) continue;
     const held = holds(rect, rectOnCanvas(node, elementBounds(element, measure)));
-    taken.set(address, (taken.get(address) ?? true) && held);
+    const known = taken.get(key);
+    if (known === undefined) taken.set(key, { address, held });
+    else known.held &&= held;
   }
-  return [...taken].filter(([, held]) => held).map(([address]) => qualify(node.id, address));
+  return [...taken.values()]
+    .filter((item) => item.held)
+    .map((item) => inBlock(node.id, item.address));
 }

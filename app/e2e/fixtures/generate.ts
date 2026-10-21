@@ -61,6 +61,7 @@ export const BUNDLES = [
   ["bmixed0000", "bundles/bundle_mixed", 0, 0],
   ["bshared000", "bundles/bundle_shared_parent", 640, 0],
   ["bungroup00", "bundles/bundle_ungrouped", 0, 480],
+  ["btwogroups", "bundles/bundle_shared_member", 640, 560],
 ] as const;
 
 /** The grid of blocks of one timeline: the pitch between block origins. */

@@ -3,11 +3,11 @@
  * the group editor of that group.
  */
 
-import type { View } from "@timetoalign/tilie-core";
-import { cardAddress, qualify } from "@timetoalign/tilie-core";
+import type { PlaceKey, View } from "@timetoalign/tilie-core";
+import { cardAddress, inBlock } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import type { Descriptor } from "@timetoalign/tilie-writers";
-import { boxOf } from "../boxes.ts";
+import { keyedBox } from "../boxes.ts";
 import { drawingOf } from "../drawing.ts";
 import type { GestureStrategy, Point } from "../gesture.ts";
 import { sameSequence } from "../numbers.ts";
@@ -45,9 +45,9 @@ export interface HeldValue {
 export function cardDrawing(
   drawing: Drawing,
   descriptors: readonly Descriptor[],
-  card: string,
+  card: PlaceKey,
 ): readonly Descriptor[] {
-  const box = boxOf(drawing, card);
+  const box = keyedBox(drawing, card);
   if (box === undefined) return [];
   const { start, end } = box.range;
   return descriptors.filter(({ source }) => source.element >= start && source.element < end);
@@ -72,11 +72,11 @@ export interface ReleaseMotion {
 export function releaseMotion(
   pressed: Drawing,
   shown: Drawing,
-  card: string,
+  card: PlaceKey,
   offset: Point,
 ): ReleaseMotion | null {
-  const before = boxOf(pressed, card);
-  const after = boxOf(shown, card);
+  const before = keyedBox(pressed, card);
+  const after = keyedBox(shown, card);
   if (before === undefined || after === undefined) return null;
   const to = { x: after.x - before.x, y: after.y - before.y };
   return to.x === offset.x && to.y === offset.y ? null : { from: offset, to };
@@ -101,7 +101,7 @@ export function heldGesture(
   member: string,
 ): GestureStrategy<HeldPress, HeldValue> {
   const { actions } = host;
-  const card = cardAddress(member, group);
+  const card: PlaceKey = { item: group, member };
   const blockOf = (press: HeldPress) => {
     const block = press.view.blocks[host.data().block.id];
     if (block === undefined)
@@ -122,7 +122,7 @@ export function heldGesture(
       };
     },
     start() {
-      actions.select(qualify(host.data().block.id, card));
+      actions.select(inBlock(host.data().block.id, cardAddress(member)));
     },
     value(press, at) {
       return {

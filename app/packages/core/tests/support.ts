@@ -13,8 +13,10 @@ import type { Command } from "../src/commands/types.ts";
 import { isCommandError, isLoadError } from "../src/errors.ts";
 import type { JsonObject, PathSegment } from "../src/json.ts";
 import { canonicalText, compareCodePoints } from "../src/json.ts";
+import { addressKey } from "../src/manifest/address.ts";
 import { loadManifest } from "../src/manifest/io.ts";
 import type { Manifest } from "../src/manifest/types.ts";
+import type { Address } from "../src/workspace/address.ts";
 import type { Block } from "../src/workspace/blocks.ts";
 import { emptyWorkspace } from "../src/workspace/file.ts";
 import type { Store, StoreOptions } from "../src/workspace/store.ts";
@@ -141,6 +143,23 @@ export const A = "0000000000";
 export const B = "0000000001";
 export const C = "0000000002";
 
+/**
+ * The address of the element with ID `id` in block `block` (`A` unless
+ * given), with the part words `part` when given.
+ */
+export function at(
+  id: string,
+  part?: readonly ("start" | "end" | "name" | "label" | "card")[],
+  block = A,
+): Address {
+  return part === undefined ? { block, id } : { block, id, part };
+}
+
+/** The first segment of a path or the name in a message for `address`: its address key. */
+export function key(address: Address): string {
+  return addressKey(address);
+}
+
 /** The view a command leaves, failing loudly if it is refused. */
 export function changed(view: View, command: Command | object): View {
   const result = apply(view, command);
@@ -150,7 +169,7 @@ export function changed(view: View, command: Command | object): View {
 
 /** The `add` command of a block holding a manifest fixture at (0, 0). */
 export function addBlock(id: string, name: string): Command {
-  return { type: "add", into: "workspace", block: { id, manifest: load(name), x: 0, y: 0 } };
+  return { type: "add", into: {}, block: { id, manifest: load(name), x: 0, y: 0 } };
 }
 
 /** An empty view with one block per `[id, name]` pair of a manifest fixture, added in that order. */
@@ -177,7 +196,7 @@ export function unlockedView(name: string, ...ids: string[]): View {
   );
   return changed(createView(), {
     type: "add",
-    into: "workspace",
+    into: {},
     block: { id: A, manifest, x: 0, y: 0 },
   });
 }
@@ -209,7 +228,7 @@ export function storeOf(view: View, options: StoreOptions = {}): Store {
   const blocks = Object.values(view.blocks).sort((a, b) => compareCodePoints(a.index, b.index));
   for (const { id, manifest, places, x, y, scale, length, spacing, width, height } of blocks) {
     const block = { id, manifest, places, x, y, scale, length, spacing, width, height };
-    const refused = store.dispatch({ type: "add", into: "workspace", block });
+    const refused = store.dispatch({ type: "add", into: {}, block });
     if (refused !== null) throw new Error(`${refused.code} at ${JSON.stringify(refused.path)}`);
   }
   return store;

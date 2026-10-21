@@ -7,8 +7,15 @@
  * slot stores nothing. Mounted inside a Svelte Flow canvas of one node.
  */
 
-import type { View } from "@timetoalign/tilie-core";
-import { isCommandError, preview } from "@timetoalign/tilie-core";
+import type { ElementAddress, View } from "@timetoalign/tilie-core";
+import {
+  addressKey,
+  BUNDLE_ADDRESS,
+  cardAddress,
+  idAddress,
+  isCommandError,
+  preview,
+} from "@timetoalign/tilie-core";
 import type { DrawnBox } from "@timetoalign/tilie-layout";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -28,10 +35,10 @@ const VIEW = viewOf({ id: A, fixture: "bundles/bundle_mixed" });
 const BLOCK = blockIn(VIEW, A);
 const DRAWING = drawingOf(BLOCK, VIEW.settings, metrics);
 
-/** The box of A's drawing at `address`; `null` names the block's own box. */
-function box(address: string | null): DrawnBox {
+/** The box of A's drawing at `address`; `{}` names the block. */
+function box(address: ElementAddress): DrawnBox {
   const found = boxOf(DRAWING, address);
-  if (found === undefined) throw new Error(`no box at ${address}`);
+  if (found === undefined) throw new Error(`no box at ${addressKey(address)}`);
   return found;
 }
 
@@ -60,7 +67,7 @@ interface Shown {
 }
 
 /** Mount the toolbar on block A for the box at `address` and return the actions' calls. */
-function mountOn(level: Level, mode: ResizeMode, address: string | null, locked = false): Call[] {
+function mountOn(level: Level, mode: ResizeMode, address: ElementAddress, locked = false): Call[] {
   clear();
   const { actions, calls } = recordingActions(VIEW, { rules: LEVELS[level] });
   const toolbar = {
@@ -78,7 +85,7 @@ function mountOn(level: Level, mode: ResizeMode, address: string | null, locked 
 }
 
 /** What the toolbar shows for the box at `address`. */
-function show(level: Level, mode: ResizeMode, address: string | null, locked = false): Shown {
+function show(level: Level, mode: ResizeMode, address: ElementAddress, locked = false): Shown {
   mountOn(level, mode, address, locked);
   const buttons = [...document.querySelectorAll("button[data-testid^='mode-']")];
   const label = (button: Element) => button.textContent ?? "";
@@ -127,18 +134,18 @@ const THREE = ["Scale", "Box", "Stretch"];
 
 describe("the modes and handles", () => {
   it("offers a block every mode on the arranger", () => {
-    expect(show("arranger", "stretch", null)).toEqual({
+    expect(show("arranger", "stretch", BUNDLE_ADDRESS)).toEqual({
       buttons: THREE,
       pressed: ["Stretch"],
       disabled: [],
       handles: EIGHT,
     });
-    expect(show("arranger", "scale", null).handles).toEqual(CORNERS);
+    expect(show("arranger", "scale", BUNDLE_ADDRESS).handles).toEqual(CORNERS);
     expect(titles()[2]).toBe("Stretch: stretch lengths and distances (3)");
   });
 
   it("shows no handle and disables the modes while locked", () => {
-    expect(show("arranger", "box", null, true)).toEqual({
+    expect(show("arranger", "box", BUNDLE_ADDRESS, true)).toEqual({
       buttons: THREE,
       pressed: ["Box"],
       disabled: THREE,
@@ -147,7 +154,7 @@ describe("the modes and handles", () => {
   });
 
   it("offers a frame every mode on the arranger, scaled from its corners", () => {
-    expect(show("arranger", "scale", "group_1")).toEqual({
+    expect(show("arranger", "scale", idAddress("group_1"))).toEqual({
       buttons: THREE,
       pressed: ["Scale"],
       disabled: [],
@@ -161,8 +168,8 @@ describe("the modes and handles", () => {
   });
 
   it("offers the edited block and its cards every mode in the bundle editor", () => {
-    expect(show("bundle", "box", null).handles).toEqual(EIGHT);
-    expect(show("bundle", "stretch", "annotations/card")).toEqual({
+    expect(show("bundle", "box", BUNDLE_ADDRESS).handles).toEqual(EIGHT);
+    expect(show("bundle", "stretch", cardAddress("annotations"))).toEqual({
       buttons: THREE,
       pressed: ["Stretch"],
       disabled: [],
@@ -171,15 +178,15 @@ describe("the modes and handles", () => {
   });
 
   it("offers the edited frame and its held cards every mode in the group editor", () => {
-    expect(show("group", "box", "group_1").handles).toEqual(EIGHT);
-    expect(show("group", "stretch", "group_1").handles).toEqual([
+    expect(show("group", "box", idAddress("group_1")).handles).toEqual(EIGHT);
+    expect(show("group", "stretch", idAddress("group_1")).handles).toEqual([
       "top",
       "top-right",
       "right",
       "bottom-right",
       "bottom",
     ]);
-    expect(show("group", "scale", "group_1/performance/card")).toEqual({
+    expect(show("group", "scale", cardAddress("performance"))).toEqual({
       buttons: THREE,
       pressed: ["Scale"],
       disabled: [],
@@ -190,7 +197,7 @@ describe("the modes and handles", () => {
       "Box: resize the box, the content stays (2)",
       "Stretch: stretch every member's length, this card's distances (3)",
     ]);
-    expect(show("group", "box", "group_1/performance/card").handles).toEqual([
+    expect(show("group", "box", cardAddress("performance")).handles).toEqual([
       "right",
       "bottom-right",
       "bottom",
@@ -198,8 +205,8 @@ describe("the modes and handles", () => {
   });
 
   it("offers the edited card every mode in the timeline editor", () => {
-    expect(show("timeline", "box", "annotations/card").handles).toEqual(EIGHT);
-    expect(show("timeline", "stretch", "group_1/score/card").handles).toEqual([
+    expect(show("timeline", "box", cardAddress("annotations")).handles).toEqual(EIGHT);
+    expect(show("timeline", "stretch", cardAddress("score")).handles).toEqual([
       "right",
       "bottom-right",
       "bottom",
@@ -208,14 +215,14 @@ describe("the modes and handles", () => {
 
   it("shows nothing where the level does not resize the box", () => {
     const nothing = { buttons: [], pressed: [], disabled: [], handles: [] };
-    expect(show("group", "box", null)).toEqual(nothing);
-    expect(show("timeline", "box", "group_1")).toEqual(nothing);
+    expect(show("group", "box", BUNDLE_ADDRESS)).toEqual(nothing);
+    expect(show("timeline", "box", idAddress("group_1"))).toEqual(nothing);
   });
 });
 
 describe("a handle's gesture", () => {
   it("resizes the block: previews the view its command gives and stores the command once", () => {
-    const calls = mountOn("arranger", "box", null);
+    const calls = mountOn("arranger", "box", BUNDLE_ADDRESS);
     const right = handle("right");
     pointer(right, "pointerdown", 100, 25);
     pointer(right, "pointermove", 160, 25);
@@ -231,14 +238,14 @@ describe("a handle's gesture", () => {
   });
 
   it("resizes a frame by the places its command states", () => {
-    const calls = mountOn("arranger", "box", "group_1");
+    const calls = mountOn("arranger", "box", idAddress("group_1"));
     const right = handle("right");
     pointer(right, "pointerdown", 100, 25);
     pointer(right, "pointerup", 160, 25);
     const places = itemResizeValues(
       VIEW,
       A,
-      box("group_1"),
+      box(idAddress("group_1")),
       "arranger",
       "box",
       "right",
@@ -255,7 +262,7 @@ describe("a handle's gesture", () => {
   });
 
   it("is a click within the click distance, and stores nothing after Escape", () => {
-    const calls = mountOn("arranger", "box", null);
+    const calls = mountOn("arranger", "box", BUNDLE_ADDRESS);
     const right = handle("right");
     pointer(right, "pointerdown", 100, 25);
     pointer(right, "pointermove", 103, 25);
@@ -263,7 +270,7 @@ describe("a handle's gesture", () => {
     expect(calls).toEqual([]);
 
     clear();
-    const escaped = mountOn("arranger", "box", null);
+    const escaped = mountOn("arranger", "box", BUNDLE_ADDRESS);
     pointer(handle("right"), "pointerdown", 100, 25);
     pointer(handle("right"), "pointermove", 160, 25);
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", cancelable: true }));

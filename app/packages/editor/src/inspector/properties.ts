@@ -1,9 +1,9 @@
 /**
  * The Properties form: the containers the selected subjects name, the
  * fields they offer, the values the fields show and the one `set` an edit
- * dispatches. The box (the block's whole drawing) edits the block's
- * placement; an item, a frame or a card held by the box, edits the place
- * its block states for it; a card held by a frame edits its frame's shared
+ * dispatches. The block (its whole drawing) edits the block's placement;
+ * an item, a frame or a card held by the block, edits the place its block
+ * states for it; a card held by a frame edits its frame's shared
  * scale and length and its own card place. Values are read from the
  * drawing the canvas shows, so a field shows what is drawn where nothing
  * is stated. The command is the arranger's `placeEdit`, the edit a gesture
@@ -15,40 +15,50 @@
 
 import type {
   Editing,
-  Level,
   LivePlacement,
   PlaceField,
   PlaceProperty,
   Subject,
 } from "@timetoalign/tilie-arranger";
 import {
+  blockBox,
   boxOf,
+  changedPlace,
   drawingOf,
   editedSelection,
   fieldsOf,
   isHeld,
   isItem,
+  keyedBox,
+  levelOf,
   placeEdit,
-  placeTarget,
+  selectionOf,
   shownValues,
 } from "@timetoalign/tilie-arranger";
 import type {
   Address,
   Block,
+  Change,
   CommandError,
   ContainerKind,
   Holding,
   Manifest,
+  PlaceKey,
   ResolvedAddress,
   SetCommand,
   View,
 } from "@timetoalign/tilie-core";
 import {
-  elementAddress,
+  addressKey,
+  bandAddress,
+  idAddress,
+  inBlock,
   isCommandError,
-  qualify,
+  placeAt,
+  placeKeyText,
   resolveAddress,
   WORKSPACE,
+  withPlaceAt,
 } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import type { Result } from "./problems.ts";
@@ -56,12 +66,12 @@ import { InspectorCode, refused } from "./problems.ts";
 import { bandWord } from "./words.ts";
 
 /**
- * What a selected container is to the form: the box, whose placement is
- * the block's; an item, a frame or a card held by the box, placed freely
- * in the box; or a card held by a frame. Containers of one role are edited
+ * What a selected container is to the form: the block, whose placement is
+ * its own; an item, a frame or a card held by the block, placed freely in
+ * the block; or a card held by a frame. Containers of one role are edited
  * together.
  */
-export type Role = "box" | "item" | "held";
+export type Role = "block" | "item" | "held";
 
 /** The step of each property's spin buttons, stepping keys and wheel. */
 export const STEPS: { readonly [property in PlaceProperty]: number } = {
@@ -95,7 +105,7 @@ export function propertyWord(property: string): string {
 
 /** The words naming a container of each kind in the form's accessible name. */
 const NOUNS: { readonly [kind in ContainerKind]: string } = {
-  box: "Block",
+  block: "Block",
   frame: "Frame",
   card: "Card",
   band: "Band",
@@ -110,9 +120,9 @@ export interface Edited {
   /** How a card is held; `null` for any other container. */
   readonly holder: Holding | null;
   /** The selected address naming it (the first, when several name it). */
-  readonly address: string;
-  /** The address of its drawn box, `null` for the block's own. */
-  readonly box: string | null;
+  readonly address: Address;
+  /** The place key of its drawn box, `null` for the block. */
+  readonly box: PlaceKey | null;
   readonly values: Values;
 }
 
@@ -120,8 +130,8 @@ export interface Edited {
 export interface Geometry {
   readonly role: Role;
   readonly block: Block;
-  /** The level of the canvas the form edits at: the arranger, or the innermost editor's kind. */
-  readonly level: Level;
+  /** The innermost open editor the form edits in, `null` on the arranger: its level and its frame. */
+  readonly editing: Editing | null;
   /** The fields the form shows, in order, and which of them the level edits (`fieldsOf`). */
   readonly fields: readonly PlaceField[];
   /** The form's accessible name. */
@@ -145,8 +155,9 @@ export function geometryOf(
   block: Block,
   subjects: readonly Subject[],
   shown: Shown,
-  level: Level,
+  editing: Editing | null,
 ): Geometry | null {
+  const level = levelOf(editing);
   const found = new Map<string | null, Edited>();
   let role: Role | null = null;
   let fields: readonly PlaceField[] = [];
@@ -154,19 +165,20 @@ export function geometryOf(
     if (subject.kind === "band") continue;
     if (subject.block !== block.id || subject.box === null) return null;
     // The same container as the shown drawing records it, a gesture's while one runs.
-    const box = boxOf(shown.drawing, subject.box.address);
+    const { key } = subject.box;
+    const box = key === null ? blockBox(shown.drawing) : keyedBox(shown.drawing, key);
     if (box === undefined) return null;
     const own: Role | null =
-      box.kind === "box" ? "box" : isItem(box) ? "item" : isHeld(box) ? "held" : null;
+      box.kind === "block" ? "block" : isItem(box) ? "item" : isHeld(box) ? "held" : null;
     if (own === null || (role !== null && own !== role)) return null;
     role = own;
     fields = fieldsOf(box, level);
-    if (found.has(box.address)) continue;
+    const text = box.key === null ? null : placeKeyText(box.key);
+    if (found.has(text)) continue;
     const values: Values =
       isItem(box) || isHeld(box) ? shownValues(shown.drawing, box) : placementOf(shown);
-    const holder = box.kind !== "card" ? null : own === "held" ? "frame" : "box";
-    const at = box.kind === "box" ? null : box.address;
-    found.set(box.address, { kind: box.kind, holder, address: subject.address, box: at, values });
+    const holder = box.kind !== "card" ? null : own === "held" ? "frame" : "block";
+    found.set(text, { kind: box.kind, holder, address: subject.address, box: box.key, values });
   }
   const elements = [...found.values()];
   const [first] = elements;
@@ -175,14 +187,14 @@ export function geometryOf(
   return {
     role,
     block,
-    level,
+    editing,
     fields,
     label: nouns.size === 1 ? `${NOUNS[first.kind]} properties` : "Frame and card properties",
     elements,
   };
 }
 
-/** The block's placement as `shown` shows it: the values of the box. */
+/** The block's placement as `shown` shows it: the values of the block. */
 function placementOf(shown: Shown): Values {
   const { x, y, scale, length, spacing, width, height } = shown;
   return { x, y, scale, length, spacing, width, height };
@@ -196,7 +208,7 @@ interface PropertyRow {
 
 /**
  * The read-only rows of the band the subjects name when they are exactly
- * one band, read as `shown` draws it: "Band", its kind's word; "Level",
+ * one band, read as `shown` draws it: "Band", its facet's word; "Level",
  * signed, a negative one written with U+2212 MINUS SIGN; "Elements", the
  * displayed elements it holds directly. A timeline drawn with two lines in
  * one drawing, or in the cards of several groups, has several records under
@@ -208,12 +220,12 @@ export function bandRows(
 ): readonly PropertyRow[] | null {
   const [subject, ...others] = subjects;
   if (subject === undefined || others.length > 0 || subject.resolved.kind !== "band") return null;
-  const [drawn] = subject.resolved.containers;
-  const band = drawn?.address == null ? undefined : boxOf(shown.drawing, drawn.address)?.band;
+  const { at, facet } = subject.resolved;
+  const band = boxOf(shown.drawing, bandAddress(at.timeline.id, facet))?.band;
   if (band === undefined) return null;
-  const { kind, level, elements } = band;
+  const { level, elements } = band;
   return [
-    { label: "Band", value: bandWord(kind) },
+    { label: "Band", value: bandWord(facet) },
     { label: "Level", value: level < 0 ? `−${-level}` : String(level) },
     { label: "Elements", value: String(elements) },
   ];
@@ -298,16 +310,16 @@ function minimumOf(view: View, block: Block, element: Edited, property: "width" 
   if (element.box === null) {
     return drawingOf(stored, view.settings, fontMetrics, { [property]: null })[property];
   }
-  const box = boxOf(drawingOf(stored, view.settings, fontMetrics), element.box);
-  if (box === undefined || box.key === null || !(isItem(box) || isHeld(box))) {
-    throw new Error(`${element.box} is drawn as a frame or a card`);
+  const box = keyedBox(drawingOf(stored, view.settings, fontMetrics), element.box);
+  if (box === undefined || !(isItem(box) || isHeld(box))) {
+    throw new Error(`${placeKeyText(element.box)} is drawn as a frame or a card`);
   }
-  const { [property]: _request, ...place } = stored.places[box.key] ?? {};
-  const places = { ...stored.places, [box.key]: place };
+  const { [property]: _request, ...place } = placeAt(stored.places, box.key) ?? {};
+  const places = withPlaceAt(stored.places, box.key, place);
   const drawing = drawingOf(stored, view.settings, fontMetrics, { places });
-  const content = boxOf(drawing, element.box);
+  const content = keyedBox(drawing, element.box);
   if (content === undefined || !(isItem(content) || isHeld(content))) {
-    throw new Error(`${element.box} is drawn without its request`);
+    throw new Error(`${placeKeyText(element.box)} is drawn without its request`);
   }
   return shownValues(drawing, content)[property] ?? 0;
 }
@@ -335,8 +347,8 @@ function editOf(command: SetCommand | null | CommandError, notice: string | null
  */
 function edit(view: View, geometry: Geometry, property: PlaceProperty, value: Given): Edit {
   if (isSize(property)) return sizeEdit(view, geometry, property, value);
-  const addresses = new Set(geometry.elements.map((element) => element.address));
-  return editOf(placeEdit(view, addresses, property, value, geometry.level, fontMetrics), null);
+  const addresses = selectionOf(geometry.elements.map((element) => element.address));
+  return editOf(placeEdit(view, addresses, property, value, geometry.editing, fontMetrics), null);
 }
 
 /**
@@ -365,8 +377,8 @@ function sizeEdit(
       if (next < minimum) raised = Math.max(raised ?? minimum, minimum);
       return element.box === null ? minimum : null;
     };
-    const addresses = new Set([element.address]);
-    const command = placeEdit(view, addresses, property, own, geometry.level, fontMetrics);
+    const addresses = selectionOf([element.address]);
+    const command = placeEdit(view, addresses, property, own, geometry.editing, fontMetrics);
     if (isCommandError(command)) return editOf(command, null);
     if (command !== null) edits.push({ element, command });
   }
@@ -394,23 +406,28 @@ function joined(view: View, geometry: Geometry, edits: readonly Own[]): SetComma
   const { id } = geometry.block;
   const block = view.blocks[id] ?? geometry.block;
   const drawing = drawingOf(block, view.settings, fontMetrics);
-  const keyOf = (address: string | null) => {
-    const key = address === null ? null : (boxOf(drawing, address)?.key ?? null);
-    return key === null ? null : placeTarget(block, key);
+  // The place a change states (`changedPlace`), by its key; `null` for the block's own members.
+  const placeOf = (change: Change): string | null => {
+    const key = changedPlace(change);
+    return key === null ? null : placeKeyText(key);
   };
+  const keyText = (key: PlaceKey | null): string | null =>
+    key === null ? null : placeKeyText(key);
   const edited = new Set<string | null>();
   for (const element of geometry.elements) {
-    const box = element.box === null ? undefined : boxOf(drawing, element.box);
-    edited.add(keyOf(element.box));
-    if (box !== undefined && isHeld(box)) edited.add(keyOf(box.holder));
+    const box = element.box === null ? undefined : keyedBox(drawing, element.box);
+    edited.add(keyText(element.box));
+    if (box !== undefined && isHeld(box)) edited.add(keyText(box.holder));
   }
   const changes = edits.map(({ element, command }) => {
-    const target = keyOf(element.box);
-    const change = command.changes.find((item) => item.target === target);
-    if (change === undefined) throw new Error(`the edit of ${element.address} names no own place`);
+    const own = keyText(element.box);
+    const change = command.changes.find((item) => placeOf(item) === own);
+    if (change === undefined) {
+      throw new Error(`the edit of ${addressKey(element.address)} names no own place`);
+    }
     return change;
   });
-  const others = first.command.changes.filter((change) => !edited.has(change.target));
+  const others = first.command.changes.filter((change) => !edited.has(placeOf(change)));
   return { type: "set", changes: [...changes, ...others] };
 }
 
@@ -418,7 +435,7 @@ function joined(view: View, geometry: Geometry, edits: readonly Own[]): SetComma
  * The command setting one property of every element from the field's text:
  * a decimal number, or null for an empty `width` or `height` (a block's
  * size left to its content, a place's size unstated); anything else is
- * refused before dispatch, at `[<first address>, property]`. `null` when
+ * refused before dispatch, at `[<first address's key>, property]`. `null` when
  * every element stores that value already: the commit changes nothing, and
  * the store refuses a `set` that changes nothing. The store's checks
  * decide everything else.
@@ -429,7 +446,10 @@ export function propertyCommand(
   property: PlaceProperty,
   input: string,
 ): Edit {
-  const path = [geometry.elements[0]?.address ?? geometry.block.id, property];
+  const path = [
+    addressKey(geometry.elements[0]?.address ?? { block: geometry.block.id }),
+    property,
+  ];
   const trimmed = input.trim();
   if (trimmed === "") {
     return NULLABLE.has(property)
@@ -461,21 +481,13 @@ export function stepCommand(
 
 /** The name field of the Properties tab: whose name it edits, and the name stored. */
 export interface NameField {
-  /** The target of the `set` naming it: `workspace`, a block (its manifest), or an element. */
+  /** The target of the `set` naming it: the workspace, a block (its manifest), or an element. */
   readonly target: Address;
   readonly name: string | null;
   /** Whether an empty text unstates the name (`null`); the workspace's name is never empty. */
   readonly nullable: boolean;
   /** The manifest the name lies in; `null` for the workspace's. */
   readonly manifest: Manifest | null;
-}
-
-/** Where a timeline lies in its manifest, as the resolver locates it. */
-type At = Extract<ResolvedAddress, { kind: "entry" }>["at"];
-
-/** The id of the root whose tree holds the timeline at `at`. */
-function rootId(at: At): string {
-  return at.parent === undefined ? at.timeline.id : rootId(at.parent);
 }
 
 /** The name field of what `resolved` names, a part standing for its owner; `null` where the schema gives no name. */
@@ -487,27 +499,32 @@ function namedBy(resolved: ResolvedAddress): NameField | null {
     case "block":
     case "title": {
       const { manifest } = resolved.block;
-      return { target: resolved.block.id, name: manifest.name, nullable: true, manifest };
+      return {
+        target: { block: resolved.block.id },
+        name: manifest.name,
+        nullable: true,
+        manifest,
+      };
     }
     case "frame": {
       const { block, group } = resolved;
-      const target = qualify(block.id, group.id);
+      const target = inBlock(block.id, idAddress(group.id));
       return { target, name: group.name, nullable: true, manifest: block.manifest };
     }
     case "timeline":
     case "card": {
       const { block, at } = resolved;
-      const target = qualify(block.id, at.timeline.id);
+      const target = inBlock(block.id, idAddress(at.timeline.id));
       return { target, name: at.timeline.name, nullable: true, manifest: block.manifest };
     }
     case "entry": {
-      const { block, at, element } = resolved;
-      const target = qualify(block.id, elementAddress(rootId(at), element.id));
+      const { block, element } = resolved;
+      const target = inBlock(block.id, idAddress(element.id));
       return { target, name: element.name, nullable: true, manifest: block.manifest };
     }
     case "measure_map": {
       const { block, map } = resolved;
-      const target = qualify(block.id, map.id);
+      const target = inBlock(block.id, idAddress(map.id));
       return { target, name: map.name, nullable: true, manifest: block.manifest };
     }
     case "part":
@@ -534,7 +551,7 @@ export function nameOf(
   if (editing === null) {
     return { target: WORKSPACE, name: view.name, nullable: false, manifest: null };
   }
-  const [edited] = editedSelection(view, editing);
+  const [edited] = editedSelection(view, editing).values();
   const resolved = edited === undefined ? undefined : resolveAddress(view, edited);
   return resolved === undefined || isCommandError(resolved) ? null : namedBy(resolved);
 }
@@ -582,7 +599,7 @@ export function lockOf(subjects: readonly Subject[]): LockShown | null {
   for (const subject of subjects) {
     const timeline = timelineOf(subject.resolved);
     if (timeline === null) return null;
-    locks.set(`${subject.block}/${timeline.id}`, timeline.locked);
+    locks.set(addressKey(inBlock(subject.block, idAddress(timeline.id))), timeline.locked);
   }
   const values = new Set(locks.values());
   if (values.size === 0) return null;

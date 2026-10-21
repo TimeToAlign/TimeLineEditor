@@ -3,7 +3,7 @@
  * the one way every gesture previews: the command it would store, applied.
  */
 
-import type { BlockId, Command, View } from "@timetoalign/tilie-core";
+import type { BlockId, Command, PlaceKey, View } from "@timetoalign/tilie-core";
 import { isCommandError, preview } from "@timetoalign/tilie-core";
 import type { Descriptor } from "@timetoalign/tilie-writers";
 import type { Point } from "../gesture.ts";
@@ -12,8 +12,8 @@ import type { BlockNodeData } from "../project.ts";
 
 /** A copy of a held card's drawing that follows the pointer while the card is reordered. */
 export interface Ghost {
-  /** The card's element address, `M/card`: its drawing is hidden where the preview drops it. */
-  readonly card: string;
+  /** The card's place key: its drawing is hidden where the preview drops it. */
+  readonly card: PlaceKey;
   /** The descriptors of the card and everything drawn on it, as the press found them. */
   readonly descriptors: readonly Descriptor[];
   /**

@@ -1,11 +1,11 @@
 /** The viewport of an editor: the edited element centred in the canvas area left of the drawer. */
 
 import type { Address } from "@timetoalign/tilie-core";
-import { contains, resolveElement } from "@timetoalign/tilie-core";
+import { addressKey, contains, resolveElement } from "@timetoalign/tilie-core";
 import { TextMeasure } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { Viewport } from "@xyflow/svelte";
-import { boxOf, isDisplayed } from "./boxes.ts";
+import { isDisplayed, keyedBox } from "./boxes.ts";
 import { addressParts } from "./editing.ts";
 import { elementBounds, isContainerAddress, type Rect, rectOnCanvas } from "./marquee.ts";
 import type { BlockNode } from "./project.ts";
@@ -32,7 +32,9 @@ export type { Viewport };
 export function targetBounds(node: BlockNode, target: Address, metrics: FontMetrics): Rect {
   const { drawing, block } = node.data;
   const { block: id, element } = addressParts(target);
-  if (id !== node.id) throw new RangeError(`${target} does not lie in block ${node.id}`);
+  if (id !== node.id) {
+    throw new RangeError(`${addressKey(target)} does not lie in block ${node.id}`);
+  }
   if (element === null) {
     return rectOnCanvas(node, { x: 0, y: 0, width: drawing.width, height: drawing.height });
   }
@@ -43,18 +45,18 @@ export function targetBounds(node: BlockNode, target: Address, metrics: FontMetr
       : resolved?.kind === "timeline"
         ? resolved.cards
         : [];
-  const box = container?.address == null ? undefined : boxOf(drawing, container.address);
+  const box = container?.key == null ? undefined : keyedBox(drawing, container.key);
   if (box !== undefined && isDisplayed(box)) return rectOnCanvas(node, box);
   const measure = new TextMeasure(metrics);
   const spans = drawing.elements
     .filter(
       (drawn) =>
         !isContainerAddress(drawing, drawn.address) &&
-        drawn.address !== null &&
-        contains(block.manifest, element, drawn.address),
+        element.id !== undefined &&
+        contains(block.manifest, element.id, drawn.address),
     )
     .map((drawn) => elementBounds(drawn, measure));
-  if (spans.length === 0) throw new RangeError(`${target} is not drawn`);
+  if (spans.length === 0) throw new RangeError(`${addressKey(target)} is not drawn`);
   const x = Math.min(...spans.map((span) => span.x));
   const y = Math.min(...spans.map((span) => span.y));
   const right = Math.max(...spans.map((span) => span.x + span.width));

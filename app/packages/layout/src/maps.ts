@@ -4,7 +4,7 @@
  * (`docs/drawing.md` in TimeToShare, sections 6.4 and 6.6).
  */
 
-import { bandAddress } from "@timetoalign/tilie-core";
+import { idAddress } from "@timetoalign/tilie-core";
 import type { PreparedBand } from "./bands.ts";
 import { MAP_GAP, MAP_SPACING } from "./constants.ts";
 import { type Entry, type Scope, shown } from "./traversal.ts";
@@ -24,18 +24,17 @@ export function conversionMapsBand(
   line: Entry,
   sources: readonly Entry[],
 ): PreparedBand {
-  const { address, mapped } = scope;
+  const { mapped } = scope;
   const maps = sources.flatMap((source) =>
     shown(source.bands.conversion_maps.style)
       ? source.manifest.conversion_maps
-          .map((map) => mapped(address(map.id), source, map))
+          .map((map) => mapped(idAddress(map.id), source, map))
           .filter((map) => shown(map.style))
       : [],
   );
   const w = line.style["stroke-width"];
   return {
-    kind: "conversion_maps",
-    address: bandAddress(line.manifest.id, "conversion_maps"),
+    facet: "conversion_maps",
     elements: maps.length,
     width: maps.length === 0 ? 0 : w / 2 + maps.length * (MAP_GAP + MAP_SPACING),
     extents: [],

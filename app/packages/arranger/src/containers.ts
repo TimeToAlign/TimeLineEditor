@@ -14,10 +14,16 @@ import type {
   ResolvedAddress,
   View,
 } from "@timetoalign/tilie-core";
-import { ITEM_PLACE_MEMBERS, isCommandError, resolveAddress } from "@timetoalign/tilie-core";
+import {
+  bandAddress,
+  cardAddress,
+  ITEM_PLACE_MEMBERS,
+  isCommandError,
+  resolveAddress,
+} from "@timetoalign/tilie-core";
 import type { Drawing, DrawnBox } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timetoshare";
-import { boxOf, isHeld, isItem } from "./boxes.ts";
+import { blockBox, boxOf, isHeld, isItem, workedBox } from "./boxes.ts";
 import { drawingOf } from "./drawing.ts";
 import type { Editing } from "./editing.ts";
 import type { ResizeMode } from "./resize.ts";
@@ -25,6 +31,11 @@ import type { Selection } from "./selection.ts";
 
 /** A level of the canvas: the arranger, or an editor of one kind. */
 export type Level = "arranger" | EditorKind;
+
+/** The level of the canvas under `editing`, the innermost open editor: its kind, else the arranger. */
+export function levelOf(editing: Editing | null): Level {
+  return editing === null ? "arranger" : editing.kind;
+}
 
 /** What a level of the canvas permits. */
 export interface LevelRules {
@@ -146,7 +157,7 @@ const ITEM: Resizing["writes"] = { scale: "item", box: "item", length: "item", s
  * stretches vertically only its own card. A band never resizes.
  */
 const RESIZING: { readonly [kind in ContainerKind | "held"]: Resizing } = {
-  box: {
+  block: {
     levels: { arranger: "inside", bundle: "edited" },
     writes: { scale: "block", box: "block", length: "block", spacing: "block" },
   },
@@ -211,7 +222,7 @@ export interface PlaceField {
  * with whether the level edits it and whose value it is (`RESIZING`). A
  * member a resize changes is edited where the container resizes
  * (`resizingOf`), and the block's own size wherever its block is edited,
- * since every editor's box adapts it. A position is the block's or an
+ * since every editor adapts the block's own box. A position is the block's or an
  * item's: the block's is edited at every level, an item's in an editor
  * whose level moves what it places (`LEVELS`, the bundle editor); a card a
  * frame holds has none, its frame placing it. A band has no place: none.
@@ -220,7 +231,7 @@ export function fieldsOf(box: DrawnBox, level: Level): readonly PlaceField[] {
   if (box.kind === "band") return [];
   const { levels, writes } = resizingOf(box);
   const resizes = levels[level] !== undefined;
-  const block = box.kind === "box";
+  const block = box.kind === "block";
   return ITEM_PLACE_MEMBERS.flatMap((property): PlaceField[] => {
     const by = RESIZED_BY[property];
     if (by === null) {
@@ -247,37 +258,43 @@ export interface Subject {
   /** The container the address names directly, or `"element"` for anything else. */
   readonly kind: ContainerKind | "element";
   /**
-   * The drawn container the address names: the block's box, a frame, a card,
-   * a band (its first record); for a timeline, or a part of a timeline or a
-   * group, the card (its first, for a member of several groups) or frame
-   * drawn for it; `null` otherwise.
+   * The drawn container the address names: the block, a frame, a card, a
+   * band (its first record); for a timeline, or a part of a timeline or a
+   * group, the card or frame drawn for it. Of the cards of a member of
+   * several groups, the one in the frame worked in (`workedBox`); `null`
+   * where no frame is, and otherwise.
    */
   readonly box: DrawnBox | null;
   readonly resolved: ResolvedAddress;
 }
 
 const KINDS: { readonly [kind in ResolvedAddress["kind"]]?: ContainerKind } = {
-  block: "box",
+  block: "block",
   frame: "frame",
   card: "card",
   band: "band",
 };
 
-/** The drawn container `resolved` names or stands for in `drawing`. */
-function boxFor(drawing: Drawing, resolved: ResolvedAddress): DrawnBox | null {
+/** The drawn container `resolved` names or stands for in `drawing` where `editing` works. */
+function boxFor(
+  drawing: Drawing,
+  resolved: ResolvedAddress,
+  editing: Editing | null,
+): DrawnBox | null {
   switch (resolved.kind) {
     case "block":
-      return boxOf(drawing, null) ?? null;
+      return blockBox(drawing) ?? null;
     case "frame":
-    case "card":
       return boxOf(drawing, resolved.container.address) ?? null;
     case "band":
+      return boxOf(drawing, bandAddress(resolved.at.timeline.id, resolved.facet)) ?? null;
+    case "card":
     case "timeline": {
-      const [first] = resolved.kind === "band" ? resolved.containers : resolved.cards;
-      return first?.address == null ? null : (boxOf(drawing, first.address) ?? null);
+      const card = cardAddress(resolved.at.timeline.id);
+      return workedBox(drawing, resolved.block.id, card, editing) ?? null;
     }
     case "part":
-      return boxFor(drawing, resolved.owner);
+      return boxFor(drawing, resolved.owner, editing);
     default:
       return null;
   }
@@ -287,15 +304,17 @@ function boxFor(drawing: Drawing, resolved: ResolvedAddress): DrawnBox | null {
  * The selection resolved through core's `resolveAddress`, one subject per
  * address that names something in `view`, in selection order; an address
  * that names nothing (or the workspace) is left out. Each subject's box is
- * read from its block's drawing (`drawingOf` with `metrics`).
+ * read from its block's drawing (`drawingOf` with `metrics`) where
+ * `editing`, the innermost open editor, works.
  */
 export function resolveSelection(
   view: View,
   selection: Selection,
+  editing: Editing | null,
   metrics: FontMetrics,
 ): Subject[] {
   const subjects: Subject[] = [];
-  for (const address of selection) {
+  for (const address of selection.values()) {
     const resolved = resolveAddress(view, address);
     if (isCommandError(resolved) || resolved.kind === "workspace") continue;
     const { block } = resolved;
@@ -303,7 +322,7 @@ export function resolveSelection(
       address,
       block: block.id,
       kind: KINDS[resolved.kind] ?? "element",
-      box: boxFor(drawingOf(block, view.settings, metrics), resolved),
+      box: boxFor(drawingOf(block, view.settings, metrics), resolved, editing),
       resolved,
     });
   }

@@ -9,17 +9,19 @@ import { canonicalOrder } from "@timetoalign/timetoshare";
 import { compareCodePoints } from "../json.ts";
 import { axisCoordinate } from "../number/coordinate.ts";
 import { compareReal, realOf } from "../number/real.ts";
-import type { BandKind } from "./bands.ts";
-import { BAND_KINDS, bandAddress } from "./bands.ts";
-import type { MemberDrawing } from "./files.ts";
+import type { ElementAddress, Facet } from "./address.ts";
 import {
+  BUNDLE_ADDRESS,
+  bandAddress,
   cardAddress,
-  elementAddress,
-  isNamed,
-  memberDrawings,
+  FACETS,
+  idAddress,
   partAddress,
+  sameAddress,
   TITLE_ADDRESS,
-} from "./files.ts";
+} from "./address.ts";
+import type { MemberDrawing } from "./files.ts";
+import { isNamed, memberDrawings } from "./files.ts";
 import type { ChildTimeline, ConversionMap, Manifest, TimelineManifest } from "./types.ts";
 
 export type Domain = "graphical" | "logical" | "physical";
@@ -29,15 +31,17 @@ export type Modality = "continuous" | "discrete";
 export interface ElementKey {
   /** `null` for a segment, a node of the tree that no selector naming `element` matches. */
   readonly type: ElementType | null;
-  /** `null` for the box. */
-  readonly address: string | null;
-  /** The timeline it belongs to; `null` for the box, a group's frame and a title. */
+  /** Its address: `{}` for the block. */
+  readonly address: ElementAddress;
+  /** The timeline it belongs to; `null` for the block, a group's frame and a title. */
   readonly timeline: string | null;
   /** `null` for what belongs to no timeline, a band, and a map whose `target_unit` is null. */
   readonly domain: Domain | null;
   readonly modality: Modality | null;
-  /** Its timeline's class, a map's `type` or a band's kind; `null` for what belongs to no timeline. */
+  /** Its timeline's class or a map's `type`; `null` for a band and for what belongs to no timeline. */
   readonly class: string | null;
+  /** The facet a band draws; `null` for every other element. */
+  readonly facet: Facet | null;
   /**
    * Its holder chain: the types of the elements holding it in the tree
    * (sections 2.1 and 8.1), outermost first, which the selector member
@@ -51,16 +55,17 @@ export interface ElementKey {
 }
 
 /**
- * The box's key: it belongs to no timeline, has no address and no holder;
- * it is styled as the schema's `block` element.
+ * The block's key: it draws the bundle, whose address is `{}`, belongs to
+ * no timeline and has no holder.
  */
-export const BOX_KEY: ElementKey = {
+export const BLOCK_KEY: ElementKey = {
   type: "block",
-  address: null,
+  address: BUNDLE_ADDRESS,
   timeline: null,
   domain: null,
   modality: null,
   class: null,
+  facet: null,
   inside: [],
 };
 
@@ -71,11 +76,11 @@ function holdersOf(holder: ElementKey): readonly ElementType[] {
 
 /** The key of an element belonging to no timeline, held by `holder`: a group's frame or a title. */
 export function unownedKey(
-  type: "group" | "name",
-  address: string,
+  type: "frame" | "name",
+  address: ElementAddress,
   holder: ElementKey,
 ): ElementKey {
-  return { ...BOX_KEY, type, address, inside: holdersOf(holder) };
+  return { ...BLOCK_KEY, type, address, inside: holdersOf(holder) };
 }
 
 /**
@@ -130,7 +135,7 @@ export function timelineClass(unit: TimeUnit): TimelineClass {
 /** The key of an element of `timeline` held by `holder`, or of its conversion map `map`. */
 export function elementKey(
   type: ElementType | null,
-  address: string,
+  address: ElementAddress,
   timeline: TimelineManifest,
   holder: ElementKey,
   map?: ConversionMap,
@@ -147,29 +152,32 @@ export function elementKey(
     domain,
     modality,
     class: map === undefined ? own : map.type,
+    facet: null,
     inside: holdersOf(holder),
   };
 }
 
 /** The key of an element's own text, `name` or `label`, which the element holds. */
 export function textKey(owner: ElementKey, type: "name" | "label"): ElementKey {
-  if (owner.address === null) throw new Error("the box holds no text of its own");
-  return { ...owner, type, address: partAddress(owner.address, type), inside: holdersOf(owner) };
+  const { facet, ...address } = owner.address;
+  if (facet !== undefined) throw new Error("a band has no text");
+  return { ...owner, type, address: partAddress(address, type), inside: holdersOf(owner) };
 }
 
 /**
- * The key of the band of `kind` of the timeline `timeline`, held by `holder`,
- * that timeline's line or node: it belongs to the timeline, has no domain
- * and no modality, and its class is its kind.
+ * The key of the band drawing the facet `facet` of the timeline `timeline`,
+ * held by `holder`, that timeline's line or node: it belongs to the
+ * timeline, has no domain, no modality and no class, and has its facet.
  */
-export function bandKey(timeline: string, kind: BandKind, holder: ElementKey): ElementKey {
+export function bandKey(timeline: string, facet: Facet, holder: ElementKey): ElementKey {
   return {
     type: "band",
-    address: bandAddress(timeline, kind),
+    address: bandAddress(timeline, facet),
     timeline,
     domain: null,
     modality: null,
-    class: kind,
+    class: null,
+    facet,
     inside: holdersOf(holder),
   };
 }
@@ -190,8 +198,9 @@ export function timelineAncestry(manifest: Manifest): Map<string, readonly strin
 }
 
 /**
- * Whether an element matches every member present in a selector; `class`
- * matches a timeline's class, a map's type or a band's kind alike.
+ * Whether an element matches every member present in a selector:
+ * `addresses` by whole address, `class` a timeline's class or a map's type,
+ * `facet` a band's facet.
  */
 export function selectorMatches(
   select: Selector,
@@ -199,12 +208,13 @@ export function selectorMatches(
   ancestry: ReadonlyMap<string, readonly string[]>,
 ): boolean {
   if (select.element !== undefined && select.element !== element.type) return false;
-  if (select.ids !== undefined) {
-    if (element.address === null || !select.ids.includes(element.address)) return false;
+  if (select.addresses !== undefined) {
+    if (!select.addresses.some((address) => sameAddress(address, element.address))) return false;
   }
   if (select.domain !== undefined && select.domain !== element.domain) return false;
   if (select.modality !== undefined && select.modality !== element.modality) return false;
   if (select.class !== undefined && select.class !== element.class) return false;
+  if (select.facet !== undefined && select.facet !== element.facet) return false;
   if (select.inside !== undefined && !element.inside.includes(select.inside)) return false;
   if (select.within !== undefined) {
     if (element.timeline === null) return false;
@@ -224,54 +234,54 @@ export function orderedChildren(timeline: TimelineManifest): ChildTimeline[] {
 
 /**
  * The elements of one member drawing (section 8.1) held by `holder`, the
- * box or the frame of `group`: its card, addressed by its group; its ancestor lines, each with its name and its
- * marks of the member's start and end, each mark with its label; then per
- * timeline in pre-order its line and name, or for a segment its node (its
- * line and no name when it is a segment line), then its five bands in the
- * order of `BAND_KINDS`, each followed by what it holds: the children band
- * its children by offset then id, each segment with its boundary when it is
- * not the first segment and its label, which its segment line holds
- * directly; the conversion maps band its maps; the markers band the
- * member's two wedges with their labels; the regions band its regions, and
- * the flow control band its flow markers, then its jump origins, each with
- * its label (a jump target draws nothing of its own).
+ * block or a group's frame: its card; its ancestor lines, each with its name
+ * and its marks of the member's start and end, each mark with its label;
+ * then per timeline in pre-order its line and name, or for a segment its
+ * node (its line and no name when it is a segment line), then its five
+ * bands in the order of `FACETS`, each followed by what it holds: the
+ * children band its children by offset then ID, each segment with its
+ * boundary when it is not the first segment and its label, which its
+ * segment line holds directly; the conversion maps band its maps; the
+ * markers band the member's two wedges with their labels; the regions band
+ * its regions, and the flow control band its flow markers, then its jump
+ * origins, each with its label (a jump target draws nothing of its own).
  */
-function memberElements(
-  member: MemberDrawing,
-  holder: ElementKey,
-  group: string | null,
-  keys: ElementKey[],
-): void {
-  const address = (id: string) => elementAddress(member.root, id);
+function memberElements(member: MemberDrawing, holder: ElementKey, keys: ElementKey[]): void {
   const root = member.timeline;
-  keys.push(elementKey("card", cardAddress(root.id, group), root, holder));
-  const line = elementKey("timeline", root.id, root, holder);
+  keys.push(elementKey("card", cardAddress(root.id), root, holder));
+  const line = elementKey("timeline", idAddress(root.id), root, holder);
   for (const { timeline } of member.ancestors) {
-    const ancestor = elementKey("ancestor", timeline.id, timeline, line);
+    const ancestor = elementKey("ancestor", idAddress(timeline.id), timeline, line);
     keys.push(ancestor, textKey(ancestor, "name"));
     for (const end of ["start", "end"] as const) {
-      const mark = elementKey("wedge", partAddress(root.id, end), root, ancestor);
+      const mark = elementKey("wedge", partAddress(idAddress(root.id), end), root, ancestor);
       keys.push(mark, textKey(mark, "label"));
     }
   }
   const visit = (key: ElementKey, timeline: TimelineManifest) => {
-    const labelled = (type: ElementType, at: string, band: ElementKey) => {
+    const labelled = (type: ElementType, at: ElementAddress, band: ElementKey) => {
       const owned = elementKey(type, at, timeline, band);
       keys.push(owned, textKey(owned, "label"));
     };
-    const held: { readonly [kind in BandKind]: (band: ElementKey) => void } = {
+    const held: { readonly [facet in Facet]: (band: ElementKey) => void } = {
       children: (band) => {
         orderedChildren(timeline).forEach((own, index) => {
           if (timeline.is_segment_line) {
-            const node = elementKey(own.is_segment_line ? "child" : null, own.id, own, band);
+            const node = elementKey(
+              own.is_segment_line ? "child" : null,
+              idAddress(own.id),
+              own,
+              band,
+            );
             keys.push(node);
             // A segment's boundary and label are parts of its segment line's line, in no band.
+            const segment = idAddress(own.id);
             if (index > 0)
-              keys.push(elementKey("boundary", partAddress(own.id, "start"), own, key));
-            keys.push(elementKey("label", partAddress(own.id, "label"), own, key));
+              keys.push(elementKey("boundary", partAddress(segment, "start"), own, key));
+            keys.push(elementKey("label", partAddress(segment, "label"), own, key));
             visit(node, own);
           } else {
-            const node = elementKey("child", own.id, own, band);
+            const node = elementKey("child", idAddress(own.id), own, band);
             keys.push(node, textKey(node, "name"));
             visit(node, own);
           }
@@ -279,29 +289,29 @@ function memberElements(
       },
       conversion_maps: (band) => {
         for (const map of timeline.conversion_maps) {
-          keys.push(elementKey("map", address(map.id), timeline, band, map));
+          keys.push(elementKey("map", idAddress(map.id), timeline, band, map));
         }
       },
       markers: (band) => {
         if (timeline !== root) return;
-        labelled("wedge", partAddress(timeline.id, "start"), band);
-        labelled("wedge", partAddress(timeline.id, "end"), band);
+        labelled("wedge", partAddress(idAddress(timeline.id), "start"), band);
+        labelled("wedge", partAddress(idAddress(timeline.id), "end"), band);
       },
       regions: (band) => {
-        for (const region of timeline.regions) labelled("region", address(region.id), band);
+        for (const region of timeline.regions) labelled("region", idAddress(region.id), band);
       },
       flow_control: (band) => {
         for (const type of DRAWN_FLOW) {
           for (const item of timeline.flow_control) {
-            if (item.type === type) labelled(type, address(item.id), band);
+            if (item.type === type) labelled(type, idAddress(item.id), band);
           }
         }
       },
     };
-    for (const kind of BAND_KINDS) {
-      const band = bandKey(timeline.id, kind, key);
+    for (const facet of FACETS) {
+      const band = bandKey(timeline.id, facet, key);
       keys.push(band);
-      held[kind](band);
+      held[facet](band);
     }
   };
   keys.push(line, textKey(line, "name"));
@@ -310,26 +320,27 @@ function memberElements(
 
 /**
  * Every element of a manifest's drawing, in the order of its tree (sections
- * 2.1 and 8.1): the box; the title of a named manifest (one with an `id`
- * or a `name`), addressed `name`; each group's frame, its title and its
- * member drawings in display order; then the roots drawn without a frame. A
- * timeline drawn twice, as an ancestor line and as a line of its own, or as
- * a member of several groups, is listed at each drawing with the same
- * address, and so are a member's start and end, marked on its own line and
- * on each of its ancestor lines; only its cards' addresses differ.
+ * 2.1 and 8.1): the block; the title of a named manifest (one with an `id`
+ * or a `name`), addressed `{part: ["name"]}`; each group's frame, its title
+ * and its member drawings in display order; then the roots drawn without a
+ * frame. A timeline drawn more than once, as an ancestor line and as a line
+ * of its own, or as a member of several groups, is listed at each drawing
+ * with the same address, cards included, and so are a member's start and
+ * end, marked on its own line and on each of its ancestor lines.
  */
 export function manifestElements(manifest: Manifest): ElementKey[] {
   const ordered = canonicalOrder(manifest);
-  const keys: ElementKey[] = [BOX_KEY];
+  const keys: ElementKey[] = [BLOCK_KEY];
   if (isNamed(ordered)) {
-    keys.push(unownedKey("name", TITLE_ADDRESS, BOX_KEY));
+    keys.push(unownedKey("name", TITLE_ADDRESS, BLOCK_KEY));
   }
   const { frames, ungrouped } = memberDrawings(ordered);
   for (const frame of frames) {
-    const group = unownedKey("group", frame.group.id, BOX_KEY);
-    keys.push(group, unownedKey("name", partAddress(frame.group.id, "name"), group));
-    for (const member of frame.members) memberElements(member, group, frame.group.id, keys);
+    const address = idAddress(frame.group.id);
+    const group = unownedKey("frame", address, BLOCK_KEY);
+    keys.push(group, unownedKey("name", partAddress(address, "name"), group));
+    for (const member of frame.members) memberElements(member, group, keys);
   }
-  for (const member of ungrouped) memberElements(member, BOX_KEY, null, keys);
+  for (const member of ungrouped) memberElements(member, BLOCK_KEY, keys);
   return keys;
 }

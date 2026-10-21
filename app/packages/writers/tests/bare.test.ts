@@ -7,16 +7,16 @@ import { bare } from "./support.ts";
 const SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="508.5771" height="99.3789" viewBox="0 0 508.5771 99.3789" font-family="DejaVu Sans" text-rendering="geometricPrecision" style="font-kerning:none;font-variant-ligatures:none">
 <g transform="translate(16 16)">
 <rect x="0" y="0" width="476.5771" height="67.3789" rx="10" fill="#F3F4F6"/>
-<rect data-address="bare/card" x="10" y="10" width="458.5771" height="49.3789" rx="5" fill="#B8BEC8"/>
-<rect data-address="bare/card" x="8" y="8" width="458.5771" height="49.3789" rx="5" fill="#FFFFFF" stroke="#C4C9D1" stroke-width="0.75"/>
-<line data-address="bare" x1="49.5771" y1="22.4023" x2="449.5771" y2="22.4023" stroke="#00CC00" stroke-width="3"/>
-<circle data-address="bare" cx="49.5771" cy="22.4023" r="3" fill="#00CC00"/>
-<polygon data-address="bare" points="458.5771,22.4023 449.5771,17.9023 449.5771,26.9023" fill="#00CC00"/>
-<polygon data-address="bare/start" points="49.5771,23.9023 46.5771,36.9023 52.5771,36.9023" fill="#000000"/>
-<polygon data-address="bare/end" points="449.5771,23.9023 446.5771,36.9023 452.5771,36.9023" fill="#000000"/>
-<text data-address="bare/name" x="16" y="26.2104" text-anchor="start" font-size="11" fill="#000000">Bare</text>
-<text data-address="bare/start/label" x="49.5771" y="47.2563" text-anchor="middle" font-size="9" fill="#000000">0 ♩</text>
-<text data-address="bare/end/label" x="449.5771" y="47.2563" text-anchor="middle" font-size="9" fill="#000000">8 ♩</text>
+<rect data-id="bare" data-part="card" x="10" y="10" width="458.5771" height="49.3789" rx="5" fill="#B8BEC8"/>
+<rect data-id="bare" data-part="card" x="8" y="8" width="458.5771" height="49.3789" rx="5" fill="#FFFFFF" stroke="#C4C9D1" stroke-width="0.75"/>
+<line data-id="bare" x1="49.5771" y1="22.4023" x2="449.5771" y2="22.4023" stroke="#00CC00" stroke-width="3"/>
+<circle data-id="bare" cx="49.5771" cy="22.4023" r="3" fill="#00CC00"/>
+<polygon data-id="bare" points="458.5771,22.4023 449.5771,17.9023 449.5771,26.9023" fill="#00CC00"/>
+<polygon data-id="bare" data-part="start" points="49.5771,23.9023 46.5771,36.9023 52.5771,36.9023" fill="#000000"/>
+<polygon data-id="bare" data-part="end" points="449.5771,23.9023 446.5771,36.9023 452.5771,36.9023" fill="#000000"/>
+<text data-id="bare" data-part="name" x="16" y="26.2104" text-anchor="start" font-size="11" fill="#000000">Bare</text>
+<text data-id="bare" data-part="start label" x="49.5771" y="47.2563" text-anchor="middle" font-size="9" fill="#000000">0 ♩</text>
+<text data-id="bare" data-part="end label" x="449.5771" y="47.2563" text-anchor="middle" font-size="9" fill="#000000">8 ♩</text>
 </g>
 </svg>
 `;

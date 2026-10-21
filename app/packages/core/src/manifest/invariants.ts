@@ -152,7 +152,7 @@ function checkTimeline(
     const end = report(readOnAxis(region.end, timeline, [...regionPath, "end"]));
     if (start !== undefined && end !== undefined && compareCoordinates(end, start) < 0) {
       problems.push(
-        problem(ErrorCode.regionEndBeforeStart, `region ${region.id} ends before it starts`, [
+        problem(ErrorCode.regionEndBeforeStart, `region '${region.id}' ends before it starts`, [
           ...regionPath,
           "end",
         ]),

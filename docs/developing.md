@@ -31,68 +31,91 @@ have, the schema is changed first.
   its groups and the band orders of its timelines. A manifest knows nothing
   about a canvas.
 - A **block** is one manifest placed on the canvas with its placement: `x`,
-  `y`, `scale`, `length`, `spacing` (the gap between its box's items), the
-  requested `width` and `height`, and `places`, the stated places of its
-  items and the stated sizes and spacings of its cards. A block's styling is its manifest's `graphical`; the block has no
+  `y`, `scale`, `length`, `spacing` (the gap between the items of its
+  drawing), the requested `width` and `height`, and `places`, the stated
+  places of its items and the stated sizes and spacings of its members'
+  cards, a member's card set through its group. A block's styling is its manifest's `graphical`; the block has no
   style layer of its own.
 - The **workspace** is the canvas: its name, its blocks, the settings, and
   the command journal that produced them with the sessions of its editors.
   It is one canonical JSON file, by default `<name>.tle.json` after its
-  name, format version 4.
+  name, format version 5.
 
 No other noun names any of these. "Document", "record" and "envelope" name
 nothing here.
 
 ## The containers of a drawing
 
-A block's drawing is one **box** (the manifest's box). Inside it, every
-group is a **frame**, every timeline drawn as a root is a **card** (held by
-the box when the root belongs to no group, else one in the frame of each
-group that has it as a member),
-and every timeline has five **bands**, one per feature it can hold:
-`children`, `conversion_maps`, `markers`, `regions`, `flow_control`. A band
-draws nothing; it is the unit that holds and orders what the timeline has
-of that kind, placed by the timeline's band order in `graphical.order`.
+A manifest and its drawing nest the same four containers, each drawn by a
+container of its own (TimeToShare's README, "Containers", states the
+format's side):
 
-These four kinds are one hierarchy, and the code treats them through one
-model:
+| Semantic level | Graphical container | What it draws |
+| --- | --- | --- |
+| bundle | **block** | the manifest; a block's whole drawing |
+| group | **frame** | a group, with its title and its members' cards |
+| timeline | **card** | a timeline drawn as a root: an ungrouped root's card lies in the block, a member has one in the frame of each group that has it as a member |
+| facet | **band** | one of a timeline's five facets, `markers`, `conversion_maps`, `children`, `regions` and `flow_control`, at the timeline's line |
 
-- core's registry (`manifest/containers.ts`) says what each kind is, how it
-  is addressed, what holds it, which place members it may state in a block's
-  `places`, and the schema element type it is styled as; `containersOf`
-  lists every container of a manifest with its holder;
+All four are **boxes**, drawn as rectangles with rounded corners; "box" is
+the generic word and names none of them. A child timeline is content of
+its parent's `children` facet, drawn as a line in the children band, never
+in a card of its own unless a group has it as a member. A band draws
+nothing of its own; it is the unit that holds and orders what its timeline
+has of its facet, placed by the timeline's band order in
+`graphical.order`. Manifest content and addresses take the semantic words,
+the drawing's containers the graphical ones.
+
+The code treats the four kinds through one model:
+
+- core's registry (`manifest/containers.ts`) says what each kind is, the
+  level it draws, what holds it, which place members it may state in a
+  block's `places`, and the schema element type it is styled as (`block`,
+  `frame`, `card`, `band`); `containersOf` lists every container of a
+  manifest with its holder;
 - layout records every container of a drawing as one `DrawnBox` in
-  `Drawing.boxes`, with its kind, key, address, holder, rectangle and the
-  range of elements it drew; the arranger and the editor read that list and
-  derive nothing from element order;
+  `Drawing.boxes`, with its kind, its place in `places`, address, holder,
+  rectangle and the range of elements it drew; the arranger and the editor
+  read that list and derive nothing from element order;
 - the arranger's level table (`containers.ts`) says, per level of the
   canvas (the arranger, the bundle editor, the group editor, the timeline
   editor), what may be moved, reordered, resized, removed and opened, and
-  how each box kind resizes.
+  how each kind of box resizes.
 
-The semantic levels the style selectors will name are bundle, group,
-timeline and feature; the registry maps each container kind to its level.
-"Item" is a role (a frame or a box-held card is placed freely in the box);
-"member" is a fact about a timeline (it is in a group); neither is a kind.
+"Item" is a role (a frame or a block-held card is placed freely in the
+block); "member" is a fact about a timeline (a group names it); neither is
+a kind.
 
-## Addresses
+## IDs and addresses
 
-An address names anything a command can target: `workspace`, a block id, or
-`<block id>/<element address>`. Inside a manifest one rule holds: a
-timeline, a group, a measure map or the manifest's title (`name`) by its
-bare id; an ungrouped root's card `<timeline>/card` and a member's card
-`<group id>/<timeline>/card`, one for each group that has the timeline as
-a member; a band `<timeline>/<kind>_1`; every other element (a conversion
-map, region or flow-control element) `<root id>/<element id>`; a part of
-an element appends a reserved part word (`start`, `end`, `name`,
-`label`), and `card` is reserved too. Every other element drawn more than
-once keeps one address in every drawing of it; only a card's names its
-group. Core's `resolveAddress(view, address)`
-is the one place that decides what an address names, returning a
-discriminated record (workspace, block, title, frame, timeline, card,
-band, entry, measure map, part). Nothing else parses an address; the four
-builders `qualify`, `cardAddress`, `partAddress` and `elementAddress` are
-the only ones that build one.
+Every element of a manifest has an ID, unique across the manifest and kept
+verbatim: any non-empty string without control characters, with no
+reserved word (TimeToShare's README, "Identity"). TiLiE never parses an ID,
+and names a timeline, group or manifest without a `name` by its whole ID.
+Where core creates an element itself (the first segment of an empty
+segment line), it mints `{prefix}_{N}` with the smallest `N` whose ID the
+manifest does not hold; a command that adds an element carries its ID.
+
+An address names anything a command can target, and it is an object,
+never a string composed from IDs: `{}` the workspace, `{block}` a block,
+and `{block, id?, facet?, part?}` an element of the block's manifest, its
+members those of the manifest's own address (TimeToShare's drawing
+specification, section 2.2): `{block, id: X}` a timeline, group, measure
+map, conversion map, region or flow-control element; `{block, id: T,
+facet: F}` the band drawing facet `F` of timeline `T`; `{block, id: T,
+part: ["card"]}` every card of `T`; `{block, part: ["name"]}` the
+manifest's title; and a part of an element its address with `start`,
+`end`, `name` or `label` appended to `part`. An element drawn more than
+once, a member's cards in several frames among them, keeps one address in
+every drawing of it, so a statement or a selection reaches every drawing.
+Two addresses are equal when they are equal as whole objects, and
+`addressKey(address)` is an address's one string form, the only key a map
+or a Svelte keyed block takes for it. Core's `resolveAddress(view,
+address)` is the one place that decides what an address names, returning
+a discriminated record (workspace, block, title, frame, timeline, card,
+band, entry, measure map, part); a part names something only where it is
+drawn. Nothing reads an ID or an address out of
+a string.
 
 ## How a change travels
 
@@ -103,7 +126,9 @@ the only ones that build one.
    schema check, so a preview can never differ from what the release stores.
 2. **The store** parses the command, applies it through the pure reducer
    (`apply` in core), refuses it with a typed `{code, message, path}` when a
-   rule is broken, runs the side-effect guard when an editor is open, and
+   rule is broken (the path starts with the `addressKey` of the target at
+   fault, an added value's problems under the address it goes into, never
+   with a bare block id), runs the side-effect guard when an editor is open, and
    journals it with its author and time. Undo and redo move by steps over
    the journal; a closed editor session undoes by runs.
 3. **The view** is an immutable value; every component reads it through the

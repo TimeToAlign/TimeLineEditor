@@ -9,6 +9,7 @@
 
 import type { CommandError } from "../errors.ts";
 import { ErrorCode, isCommandError, problem } from "../errors.ts";
+import { addressKey } from "../manifest/address.ts";
 import type { View } from "../workspace/view.ts";
 import { applyAdd } from "./add.ts";
 import type { ChangeSet } from "./mutations.ts";
@@ -66,7 +67,7 @@ function changesNothing(command: SetCommand): CommandError {
   const [change] = command.changes;
   const [property = ""] = Object.keys(change?.values ?? {});
   return problem(ErrorCode.invalidValue, "the command changes nothing", [
-    change?.target ?? "",
+    addressKey(change?.target ?? {}),
     property,
   ]);
 }

@@ -7,6 +7,7 @@
 
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
+import type { Address } from "../packages/core/src/index.ts";
 import { manifestFixture } from "./schema.ts";
 import {
   arranger,
@@ -41,8 +42,10 @@ test("Delete on a segment is refused and changes nothing", async ({ page }) => {
   await chooseItem(page, "New workspace");
   await pick(page, "Import manifest…", "segment_line.json", manifestFixture("segment_line"));
   await expect.poll(() => journalLength(page)).toBe(1);
-  const [block] = await selection(page);
+  const [selected] = await selection(page);
+  const block = selected?.block;
   if (block === undefined) throw new Error("the imported block is not selected");
+  const segment: Address = { block, id: "b" };
   const unchanged = JSON.stringify({
     length: [32, 1],
     segments: [
@@ -55,7 +58,7 @@ test("Delete on a segment is refused and changes nothing", async ({ page }) => {
 
   const hint = page.getByTestId("hint");
   /** Select `address` and focus the arranger, as a key press needs. */
-  const selectOne = async (address: string): Promise<void> => {
+  const selectOne = async (address: Address): Promise<void> => {
     await select(page, [address]);
     await arranger(page).focus();
   };
@@ -63,20 +66,20 @@ test("Delete on a segment is refused and changes nothing", async ({ page }) => {
   const refused = async (key: string, journal: number): Promise<void> => {
     await page.keyboard.press(key);
     // Core's refusal (`segment_not_removable`), shown as the canvas shows every refusal.
-    await expect(hint).toHaveText("Removing segment b of line form is not supported yet");
+    await expect(hint).toHaveText("Removing segment 'b' of line 'form' is not supported yet");
     await expect(page.locator('[data-testid="gap-menu"]')).toHaveCount(0);
     expect(await journalLength(page)).toBe(journal);
-    expect(await selection(page)).toEqual([`${block}/b`]);
+    expect(await selection(page)).toEqual([segment]);
     expect(await form(page, block)).toBe(unchanged);
   };
 
-  await selectOne(`${block}/b`);
+  await selectOne(segment);
   await refused("Delete", 1);
   // The hint clears on the next command the canvas stores: a nudge of the block.
-  await selectOne(block);
+  await selectOne({ block });
   await page.keyboard.press("ArrowRight");
   await expect.poll(() => journalLength(page)).toBe(2);
   await expect(hint).toBeEmpty();
-  await selectOne(`${block}/b`);
+  await selectOne(segment);
   await refused("Backspace", 2);
 });

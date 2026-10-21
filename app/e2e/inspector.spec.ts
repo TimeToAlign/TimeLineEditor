@@ -82,7 +82,7 @@ test.use({ viewport: { width: 1600, height: 1000 } });
 test.beforeEach(async ({ page }) => {
   await open(page, "small");
   await setViewport(page, { x: 40, y: 40, zoom: 1 });
-  await select(page, [SMALL.bare]);
+  await select(page, [{ block: SMALL.bare }]);
   await page.getByRole("button", { name: "Open inspector" }).click();
   await expect(tab(page, "Properties")).toHaveAttribute("aria-selected", "true");
   await expect(tab(page, "Manifest")).toHaveAttribute("aria-selected", "false");
@@ -99,13 +99,16 @@ test("a YAML edit reaches the canvas as one command and Undo restores it", async
   await page.getByRole("button", { name: "Apply" }).click();
   await expect.poll(() => journalLength(page)).toBe(6);
   expect(await commandsFrom(page, 5)).toEqual([
-    { type: "set", changes: [{ target: SMALL.bare, values: { manifest: expect.anything() } }] },
+    {
+      type: "set",
+      changes: [{ target: { block: SMALL.bare }, values: { manifest: expect.anything() } }],
+    },
   ]);
-  await expect(element(page, SMALL.bare, "bare/name")).toHaveText("Renamed");
+  await expect(element(page, SMALL.bare, { id: "bare", part: ["name"] })).toHaveText("Renamed");
   expect(await storedName(page, SMALL.bare)).toBe("Renamed");
 
   await page.evaluate(() => window.__tilie.store().undo());
-  await expect(element(page, SMALL.bare, "bare/name")).toHaveText("Bare");
+  await expect(element(page, SMALL.bare, { id: "bare", part: ["name"] })).toHaveText("Bare");
   await expect(manifestText(page)).toHaveValue(/\n {4}name: Bare\n/);
 });
 
@@ -137,7 +140,7 @@ test("the properties form moves the block by the exact amount", async ({ page })
   await x.press("Enter");
   await expect.poll(() => journalLength(page)).toBe(6);
   expect(await commandsFrom(page, 5)).toEqual([
-    { type: "set", changes: [{ target: SMALL.bare, values: { x: 37.5 } }] },
+    { type: "set", changes: [{ target: { block: SMALL.bare }, values: { x: 37.5 } }] },
   ]);
   expect((await placement(page, SMALL.bare)).x).toBe(37.5);
   await expect
@@ -201,7 +204,9 @@ test("the tabs follow the keyboard", async ({ page }) => {
   }
 
   // Entered while the inspector is shown: the level tab stays shown, renamed for the editor.
-  expect(await page.evaluate((id) => window.__tilie.open(id), SMALL.bare)).toBeNull();
+  expect(
+    await page.evaluate((target) => window.__tilie.open(target), { block: SMALL.bare }),
+  ).toBeNull();
   const editing = ["Bundle", "Properties", "Manifest", "Journal"] as const;
   await expectTabPairs(page, editing);
   await expect(tab(page, "Bundle")).toHaveAttribute("aria-selected", "true");
@@ -229,7 +234,7 @@ test("the form follows a drag live, then shows the stored values", async ({ page
   await page.mouse.up();
   await expect.poll(() => journalLength(page)).toBe(6);
   expect(await commandsFrom(page, 5)).toEqual([
-    { type: "set", changes: [{ target: SMALL.bare, values: { x: 104, y: 40 } }] },
+    { type: "set", changes: [{ target: { block: SMALL.bare }, values: { x: 104, y: 40 } }] },
   ]);
   await expect(field(page, "x")).toHaveValue("104");
   await expect(field(page, "y")).toHaveValue("40");
@@ -254,7 +259,7 @@ test("a step applies at once as one command, from the stored value", async ({ pa
     (id) =>
       window.__tilie
         .store()
-        .dispatch({ type: "set", changes: [{ target: id, values: { x: 10.123 } }] }),
+        .dispatch({ type: "set", changes: [{ target: { block: id }, values: { x: 10.123 } }] }),
     SMALL.bare,
   );
   expect(refused).toBe(null);
@@ -264,13 +269,13 @@ test("a step applies at once as one command, from the stored value", async ({ pa
   await x.press("ArrowUp");
   await expect.poll(() => journalLength(page)).toBe(7);
   expect(await commandsFrom(page, 6)).toEqual([
-    { type: "set", changes: [{ target: SMALL.bare, values: { x: 11.123 } }] },
+    { type: "set", changes: [{ target: { block: SMALL.bare }, values: { x: 11.123 } }] },
   ]);
   await expect(x).toHaveValue("11.12");
   await x.press("ArrowDown");
   await expect.poll(() => journalLength(page)).toBe(8);
   expect(await commandsFrom(page, 7)).toEqual([
-    { type: "set", changes: [{ target: SMALL.bare, values: { x: 10.123 } }] },
+    { type: "set", changes: [{ target: { block: SMALL.bare }, values: { x: 10.123 } }] },
   ]);
   await expect(x).toHaveValue("10.12");
 
@@ -280,7 +285,7 @@ test("a step applies at once as one command, from the stored value", async ({ pa
   await page.mouse.click(box.x + box.width - 8, box.y + box.height / 4);
   await expect.poll(() => journalLength(page)).toBe(9);
   expect(await commandsFrom(page, 8)).toEqual([
-    { type: "set", changes: [{ target: SMALL.bare, values: { x: 11.123 } }] },
+    { type: "set", changes: [{ target: { block: SMALL.bare }, values: { x: 11.123 } }] },
   ]);
   await expect(x).toHaveValue("11.12");
   await page.evaluate(() => window.__tilie.store().undo());
@@ -292,7 +297,7 @@ test("a step applies at once as one command, from the stored value", async ({ pa
   await page.mouse.wheel(0, -100);
   await expect.poll(() => journalLength(page)).toBe(9);
   expect(await commandsFrom(page, 8)).toEqual([
-    { type: "set", changes: [{ target: SMALL.bare, values: { x: 11.123 } }] },
+    { type: "set", changes: [{ target: { block: SMALL.bare }, values: { x: 11.123 } }] },
   ]);
   await expect(x).toHaveValue("11.12");
 
@@ -311,7 +316,7 @@ test("Escape cancels a resize and the form shows the stored values again", async
   await page.keyboard.press("Escape");
   await expect(field(page, "container width")).toHaveValue("");
   await expect.poll(() => node(page, SMALL.bare).boundingBox()).toEqual(before);
-  expect(await page.evaluate(() => window.__tilie.selection())).toEqual([SMALL.bare]);
+  expect(await page.evaluate(() => window.__tilie.selection())).toEqual([{ block: SMALL.bare }]);
   await page.mouse.up();
   expect(await journalLength(page)).toBe(5);
   expect((await placement(page, SMALL.bare)).width).toBe(null);
@@ -325,13 +330,13 @@ test("the heading names the selected timeline, bundle and group", async ({ page 
     ["pages", "Pages"],
     ["page_1", "Page 1"],
   ] as const) {
-    await select(page, [`${BUNDLES.ungrouped}/${id}`]);
+    await select(page, [{ block: BUNDLES.ungrouped, id }]);
     await expect(subject(page)).toHaveText(`Timeline ${name}`);
     await expect(drawer(page).getByRole("heading", { level: 2 })).toHaveText("Inspector");
   }
-  await select(page, [BUNDLES.ungrouped]);
+  await select(page, [{ block: BUNDLES.ungrouped }]);
   await expect(subject(page)).toHaveText("Bundle Sketches");
-  await select(page, [`${BUNDLES.mixed}/group_1`]);
+  await select(page, [{ block: BUNDLES.mixed, id: "group_1" }]);
   await expect(subject(page)).toHaveText("Group Performance");
   await select(page, []);
   await expect(subject(page)).toHaveCount(0);
@@ -341,13 +346,13 @@ test("the heading names the selected timeline, bundle and group", async ({ page 
 test("a press on a card names its timeline, a press on the margin the bundle", async ({ page }) => {
   const card = await cardPoint(page, SMALL.bare);
   await page.mouse.click(card.x, card.y);
-  expect(await selection(page)).toEqual([`${SMALL.bare}/bare/card`]);
+  expect(await selection(page)).toEqual([{ block: SMALL.bare, id: "bare", part: ["card"] }]);
   await expect(page.getByRole("form", { name: "Card properties" })).toHaveCount(1);
   await expect(drawer(page).locator("fieldset")).toHaveCount(0);
   await expect(subject(page)).toHaveText("Card of timeline Bare");
   const margin = await marginPoint(page, SMALL.bare);
   await page.mouse.click(margin.x, margin.y);
-  expect(await selection(page)).toEqual([SMALL.bare]);
+  expect(await selection(page)).toEqual([{ block: SMALL.bare }]);
   await expect(subject(page)).toHaveText("Anonymous bundle");
   expect(await journalLength(page)).toBe(OPENED_JOURNAL.small);
 });
@@ -357,7 +362,7 @@ test("the form edits the selected frame's and card's places, never the block's",
 }) => {
   await page.evaluate((text) => window.__tilie.load(text), fixtureText("bundles"));
   await expect.poll(() => journalLength(page)).toBe(OPENED_JOURNAL.bundles);
-  await select(page, [`${BUNDLES.mixed}/group_1`]);
+  await select(page, [{ block: BUNDLES.mixed, id: "group_1" }]);
   const frame = page.getByRole("form", { name: "Frame properties" });
   const length = frame.getByLabel("length", { exact: true });
   await expect(length).toHaveValue("400");
@@ -372,16 +377,22 @@ test("the form edits the selected frame's and card's places, never the block's",
     {
       type: "set",
       changes: [
-        { target: `${BUNDLES.mixed}/group_1`, values: { place: { length: 300 } } },
-        { target: `${BUNDLES.mixed}/group_2`, values: { place: { x: 8, y: 206.0390625 } } },
-        { target: `${BUNDLES.mixed}/annotations`, values: { place: { x: 8, y: 391.7734375 } } },
+        { target: { block: BUNDLES.mixed, id: "group_1" }, values: { place: { length: 300 } } },
+        {
+          target: { block: BUNDLES.mixed, id: "group_2" },
+          values: { place: { x: 8, y: 206.0390625 } },
+        },
+        {
+          target: { block: BUNDLES.mixed, id: "annotations" },
+          values: { place: { x: 8, y: 391.7734375 } },
+        },
       ],
     },
   ]);
   expect((await placement(page, BUNDLES.mixed)).length).toBe(400);
   await expect(length).toHaveValue("300");
 
-  await select(page, [`${BUNDLES.mixed}/group_1/score/card`]);
+  await select(page, [{ block: BUNDLES.mixed, id: "score", part: ["card"] }]);
   const card = page.getByRole("form", { name: "Card properties" });
   await expect(card.getByLabel("group length", { exact: true })).toHaveValue("300");
   const width = card.getByLabel("container width", { exact: true });
@@ -391,7 +402,12 @@ test("the form edits the selected frame's and card's places, never the block's",
   expect(await commandsFrom(page, OPENED_JOURNAL.bundles + 1)).toEqual([
     {
       type: "set",
-      changes: [{ target: `${BUNDLES.mixed}/score`, values: { place: { width: 650 } } }],
+      changes: [
+        {
+          target: { block: BUNDLES.mixed, id: "group_1" },
+          values: { cards: { score: { width: 650 } } },
+        },
+      ],
     },
   ]);
   await expect(width).toHaveValue("650");
@@ -401,10 +417,12 @@ test("the form follows a frame's Stretch live in the bundle editor", async ({ pa
   await page.evaluate((text) => window.__tilie.load(text), fixtureText("bundles"));
   await expect.poll(() => journalLength(page)).toBe(OPENED_JOURNAL.bundles);
   const at = { x: 40, y: 40, zoom: 1 };
-  expect(await page.evaluate((target) => window.__tilie.open(target), BUNDLES.mixed)).toBeNull();
+  expect(
+    await page.evaluate((target) => window.__tilie.open(target), { block: BUNDLES.mixed }),
+  ).toBeNull();
   await expect.poll(() => viewportOf(page)).not.toEqual(at);
   await setViewport(page, at);
-  await select(page, [`${BUNDLES.mixed}/group_1`]);
+  await select(page, [{ block: BUNDLES.mixed, id: "group_1" }]);
   await tab(page, "Properties").click();
   const frame = page.getByRole("form", { name: "Frame properties" });
   const length = frame.getByLabel("length", { exact: true });
@@ -468,7 +486,7 @@ for (const mode of MODES) {
   const form = mode.minimal ? "minimal" : "complete";
   const styling = mode.includeStyling ? "included" : "excluded";
   test(`Apply and Revert follow the text, ${form} form, styling ${styling}`, async ({ page }) => {
-    await select(page, [`${SMALL.styled}/score`]);
+    await select(page, [{ block: SMALL.styled, id: "score" }]);
     await expect(subject(page)).toHaveText("Timeline Score");
     await showManifest(page);
     const minimal = page.getByRole("checkbox", { name: "Minimal", exact: true });
@@ -506,7 +524,10 @@ for (const mode of MODES) {
     await page.getByRole("button", { name: "Apply", exact: true }).click();
     await expect.poll(() => journalLength(page)).toBe(6);
     expect(await commandsFrom(page, 5)).toEqual([
-      { type: "set", changes: [{ target: SMALL.styled, values: { manifest: expect.anything() } }] },
+      {
+        type: "set",
+        changes: [{ target: { block: SMALL.styled }, values: { manifest: expect.anything() } }],
+      },
     ]);
     const expected = loadManifest(manifestFixture("styled__score").replace(SCORE, RENAMED));
     if (isLoadError(expected)) throw new Error(`the renamed fixture is refused`);

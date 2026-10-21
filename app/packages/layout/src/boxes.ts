@@ -1,17 +1,19 @@
 /**
- * The containers a drawing records, one list from the box down to the
+ * The containers a drawing records, one list from the block down to the
  * bands, and the axis of every line it draws (`docs/drawing.md` in
  * TimeToShare, sections 3.2, 6.4 and 8).
  */
 
 import type {
-  BandKind,
   CardPlace,
   ContainerKind,
   ContainerRef,
   ConversionMap,
   Coordinate,
+  ElementAddress,
+  Facet,
   ItemPlace,
+  PlaceKey,
   Real,
 } from "@timetoalign/tilie-core";
 import { exactCoordinate, fromFloat, Rational, toFloat } from "@timetoalign/tilie-core/numbers";
@@ -20,7 +22,7 @@ import type { NumberType, TimeUnit } from "@timetoalign/timetoshare";
 /**
  * The half-open range `[start, end)` of `Drawing.elements` that a container
  * emitted: a frame or a card its own rectangle when displayed, then
- * everything drawn as part of it, in drawing order (section 8.5); the box
+ * everything drawn as part of it, in drawing order (section 8.5); the block
  * every element. A container that is not displayed keeps its range over
  * what it still emits; a band emits nothing, and its range is empty.
  */
@@ -30,46 +32,47 @@ export interface ElementRange {
 }
 
 /**
- * One container of a drawing: the box, a group's frame, a timeline's card
- * or one of a timeline's bands, with its rectangle in the drawing's
- * coordinates (those of the elements).
+ * One container of a drawing, a box: the block, a group's frame, a
+ * timeline's card or one of a timeline's bands, with its rectangle in the
+ * drawing's coordinates (those of the elements).
  */
 export interface DrawnBox {
   readonly kind: ContainerKind;
   /**
-   * The `places` key: the group id of a frame, `G/T` for a member's card in the frame of `G`,
-   * `T` for an ungrouped root's card; null otherwise.
+   * Where its place lies in `places`, which tells every frame and card apart: `{item: G}` for
+   * the frame of `G`, `{item: G, member: T}` for the card of `T` in it, `{item: T}` for an
+   * ungrouped root's card; null for the block and a band.
    */
-  readonly key: string | null;
+  readonly key: PlaceKey | null;
   /**
-   * `G` for a frame, `G/T/card` or `T/card` for a card, `T/<kind>_1` for a band (the same for
-   * every drawing of it); null for the box.
+   * Its address: `{}` for the block, `{id: G}` for a frame, `{id: T, part: ["card"]}` for every
+   * card of `T`, `{id: T, facet}` for a band (the same for every drawing of it).
    */
-  readonly address: string | null;
+  readonly address: ElementAddress;
   /**
-   * The holder's address: a frame's for the card of one of its members, the card holding the
-   * line of a band's timeline (for a child, the card of the member drawing it lies in) for a
-   * band. Null for the box and for what the box holds directly, since the box has no address.
+   * The place key of the box holding it: a frame's for the card of one of its members, the card
+   * holding the line of a band's timeline (for a child, the card of the member drawing it lies
+   * in) for a band. Null for the block and for what the block holds directly.
    */
-  readonly holder: string | null;
+  readonly holder: PlaceKey | null;
   readonly x: number;
   readonly y: number;
   readonly width: number;
   readonly height: number;
   readonly range: ElementRange;
   /**
-   * Its own rectangle is drawn: always for the box, for a frame or a card unless its style hides
-   * it (its range then opens with that rectangle), never for a band.
+   * Its own rectangle is drawn: always for the block, for a frame or a card unless its style
+   * hides it (its range then opens with that rectangle), never for a band.
    */
   readonly displayed: boolean;
   /**
-   * A frame or a box-held card: its place with every default applied, `width` and `height` the
+   * A frame or a block-held card: its place with every default applied, `width` and `height` the
    * drawn size in item coordinates, before the scale; and the place as stated, `{}` when none.
    */
   readonly item?: { readonly place: Required<ItemPlace>; readonly stated: ItemPlace };
   /**
    * Any card: its drawn size in item coordinates, its spacing, the gap between its rows and its
-   * bands (a member's card's own `spacing`, a box-held card's its item's, else 4), and what
+   * bands (a member's card's own `spacing`, a block-held card's its item's, else 4), and what
    * `places` states for it.
    */
   readonly card?: {
@@ -77,10 +80,10 @@ export interface DrawnBox {
     readonly spacing: number;
     readonly stated: CardPlace;
   };
-  /** A band: its timeline, kind, level, the elements it holds and its timeline's line. */
+  /** A band: its timeline, facet, level, the elements it holds and its timeline's line. */
   readonly band?: {
     readonly timeline: string;
-    readonly kind: BandKind;
+    readonly facet: Facet;
     /** Signed and never 0: 1, 2, … above its timeline's line, outwards; −1, −2, … below it. */
     readonly level: number;
     /** The number of displayed elements it holds directly; at least 1. */
@@ -92,8 +95,8 @@ export interface DrawnBox {
 
 /**
  * The identity of the container `ref` as a record states it, read from
- * core's listing of the manifest's containers: its kind, `places` key and
- * address, and its holder's address.
+ * core's listing of the manifest's containers: its kind, place key and
+ * address, and its holder's place key.
  */
 export function identityOf(
   ref: ContainerRef,
@@ -102,7 +105,7 @@ export function identityOf(
     kind: ref.kind,
     key: ref.key,
     address: ref.address,
-    holder: ref.holder?.address ?? null,
+    holder: ref.holder?.key ?? null,
   };
 }
 
@@ -114,8 +117,8 @@ export function identityOf(
  * and end, or its own end short of the member's.
  */
 export interface DrawnAxis {
-  /** The timeline drawn. */
-  readonly address: string;
+  /** The address of the timeline drawn, `{id: T}`. */
+  readonly address: ElementAddress;
   /** The ordinate of its line, telling two drawings of one timeline apart. */
   readonly line: number;
   readonly xStart: number;

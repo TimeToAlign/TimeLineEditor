@@ -22,7 +22,7 @@ const descriptors = new WeakMap<Drawing, readonly Descriptor[]>();
  * lowest to highest. Blocks are immutable, so the drawing is memoized per
  * block and redrawn only when the settings or the metrics change identity.
  * `overrides` replace members of the block's placement (a resize measuring
- * the content at another length or with no box request) and are never
+ * the content at another length or with no size request) and are never
  * memoized.
  */
 export function drawingOf(
@@ -67,8 +67,8 @@ export function descriptorsOf(drawing: Drawing): readonly Descriptor[] {
 /**
  * Where the node of `block` drawn as `drawing` lies: a block's `x`, `y` are
  * the canvas position of its place origin (`docs/drawing.md` in
- * TimeToShare, section 8.6), which lies at `drawing.origin` in the box, so
- * a box that grows left or up moves nothing it holds.
+ * TimeToShare, section 8.6), which lies at `drawing.origin` in the block, so
+ * a block that grows left or up moves nothing it holds.
  */
 export function nodePosition(
   block: Pick<Block, "x" | "y" | "scale">,

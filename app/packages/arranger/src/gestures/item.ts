@@ -1,10 +1,10 @@
 /**
  * Moving an item (a group's frame or an ungrouped root's card) freely inside
- * its box, in the bundle editor of its block.
+ * its block, in the bundle editor of its block.
  */
 
-import type { View } from "@timetoalign/tilie-core";
-import { qualify } from "@timetoalign/tilie-core";
+import type { PlaceKey, View } from "@timetoalign/tilie-core";
+import { inBlock } from "@timetoalign/tilie-core";
 import { itemOf } from "../boxes.ts";
 import type { GestureStrategy, Point } from "../gesture.ts";
 import { itemMoveCommand, itemsMovedWith } from "../items.ts";
@@ -24,7 +24,7 @@ export interface ItemPress {
   /** The pointer's client point at the press. */
   readonly screen: Point;
   /** The other items the drag moves with it, read from the selection as it starts. */
-  together: readonly string[];
+  together: readonly PlaceKey[];
 }
 
 /**
@@ -42,7 +42,7 @@ export interface ItemPress {
  * zoom times the scale in the last digits, and a whole-pixel travel would
  * not come out as a whole number of units.
  */
-export function itemGesture(host: NodeHost, key: string): GestureStrategy<ItemPress, Point> {
+export function itemGesture(host: NodeHost, key: PlaceKey): GestureStrategy<ItemPress, Point> {
   const { actions } = host;
   const command = (press: ItemPress, place: Point) =>
     itemMoveCommand(
@@ -72,7 +72,7 @@ export function itemGesture(host: NodeHost, key: string): GestureStrategy<ItemPr
       const { block, drawing, selectedElements } = host.data();
       const moved = itemsMovedWith(block.manifest, drawing, selectedElements, key);
       press.together = moved ?? [];
-      if (moved === null) actions.select(qualify(block.id, itemOf(drawing, key).address));
+      if (moved === null) actions.select(inBlock(block.id, itemOf(drawing, key).address));
     },
     value(press, at) {
       const { place, zoom, scale, screen } = press;

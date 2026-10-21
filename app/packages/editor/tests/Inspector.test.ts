@@ -4,9 +4,9 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
-import type { LivePlacement } from "@timetoalign/tilie-arranger";
-import { drawingOf, liveStore } from "@timetoalign/tilie-arranger";
-import type { Block, CommandEntry, Store, UnknownKey } from "@timetoalign/tilie-core";
+import type { LivePlacement, Selection } from "@timetoalign/tilie-arranger";
+import { drawingOf, liveStore, NOTHING_SELECTED, selectionOf } from "@timetoalign/tilie-arranger";
+import type { Address, Block, CommandEntry, Store, UnknownKey } from "@timetoalign/tilie-core";
 import { isLoadError, loadManifest, saveManifest } from "@timetoalign/tilie-core";
 import {
   dumps,
@@ -73,10 +73,10 @@ let app: ReturnType<typeof mount> | undefined;
 /** Mount the inspector; the selection it gets back can be changed afterwards. */
 function show(
   store: Store,
-  selection: string[],
+  selection: Address[],
   placement = holder<LivePlacement | null>(null),
-): { value: ReadonlySet<string> } {
-  const selected = holder<ReadonlySet<string>>(new Set(selection));
+): { value: Selection } {
+  const selected = holder<Selection>(selectionOf(selection));
   app = mount(Inspector, {
     target: document.body,
     props: {
@@ -195,13 +195,13 @@ describe("the inspector component", () => {
     show(store, []);
     expect(hinted()).toEqual([false, HINT, null]);
     if (app !== undefined) unmount(app);
-    show(store, [A, `${B}/score`]);
+    show(store, [{ block: A }, { block: B, id: "score" }]);
     expect(hinted()).toEqual([false, HINT, null]);
   });
 
   it("shows a loading state until the YAML codec is there", async () => {
     const store = storeOf();
-    show(store, [A]);
+    show(store, [{ block: A }]);
     openTab("Manifest");
     (document.querySelector('input[value="yaml"]') as HTMLInputElement).click();
     flushSync();
@@ -217,7 +217,7 @@ describe("the inspector component", () => {
 
   it("shows, switches, applies and follows the manifest", async () => {
     const store = storeOf();
-    show(store, [`${A}/bare`]);
+    show(store, [{ block: A, id: "bare" }]);
     openTab("Manifest");
     expect(textarea().value).toBe(saveManifest(blockOf(store, A).manifest));
     await chooseYaml();
@@ -254,7 +254,10 @@ describe("the inspector component", () => {
     expect(switchHint()).toBe(null);
 
     type(textarea(), textarea().value.replace("  locked: false\n", "  locked: true\n"));
-    store.dispatch({ type: "set", changes: [{ target: `${A}/bare`, values: { name: "Bye" } }] });
+    store.dispatch({
+      type: "set",
+      changes: [{ target: { block: A, id: "bare" }, values: { name: "Bye" } }],
+    });
     flushSync();
     expect(textarea().value).toContain("  locked: true\n");
     expect(textarea().value).toContain("  name: Hello # was Bare\n");
@@ -273,7 +276,7 @@ describe("the inspector component", () => {
 
   it("lists a refusal and keeps the edit", () => {
     const store = storeOf();
-    show(store, [A]);
+    show(store, [{ block: A }]);
     openTab("Manifest");
     const edited = textarea().value.replace('"locked": false', '"locked": "yes"');
     type(textarea(), edited);
@@ -293,7 +296,7 @@ describe("the inspector component", () => {
 
   it("commits a property on Enter as one set", () => {
     const store = storeOf();
-    show(store, [A]);
+    show(store, [{ block: A }]);
     const x = document.querySelector('input[name="x"]') as HTMLInputElement;
     expect(x.value).toBe("0");
     type(x, "25");
@@ -302,36 +305,36 @@ describe("the inspector component", () => {
     expect(store.journal).toHaveLength(3);
     expect((store.journal[2] as CommandEntry | undefined)?.command).toEqual({
       type: "set",
-      changes: [{ target: A, values: { x: 25 } }],
+      changes: [{ target: { block: A }, values: { x: 25 } }],
     });
     expect(x.value).toBe("25");
   });
 
   it("steps from the stored value, one set per step", () => {
     const store = storeOf();
-    store.dispatch({ type: "set", changes: [{ target: A, values: { x: 10.123 } }] });
-    show(store, [A]);
+    store.dispatch({ type: "set", changes: [{ target: { block: A }, values: { x: 10.123 } }] });
+    show(store, [{ block: A }]);
     const x = document.querySelector('input[name="x"]') as HTMLInputElement;
     expect(x.value).toBe("10.12");
     press(x, "ArrowUp");
     expect(store.journal).toHaveLength(4);
     expect((store.journal[3] as CommandEntry | undefined)?.command).toEqual({
       type: "set",
-      changes: [{ target: A, values: { x: 11.123 } }],
+      changes: [{ target: { block: A }, values: { x: 11.123 } }],
     });
     expect(x.value).toBe("11.12");
     press(x, "ArrowDown");
     expect(store.journal).toHaveLength(5);
     expect((store.journal[4] as CommandEntry | undefined)?.command).toEqual({
       type: "set",
-      changes: [{ target: A, values: { x: 10.123 } }],
+      changes: [{ target: { block: A }, values: { x: 10.123 } }],
     });
     type(x, "20");
     press(x, "ArrowUp");
     expect(store.journal).toHaveLength(6);
     expect((store.journal[5] as CommandEntry | undefined)?.command).toEqual({
       type: "set",
-      changes: [{ target: A, values: { x: 21 } }],
+      changes: [{ target: { block: A }, values: { x: 21 } }],
     });
     expect(x.value).toBe("21");
     const scale = document.querySelector('input[name="scale"]') as HTMLInputElement;
@@ -339,7 +342,7 @@ describe("the inspector component", () => {
     expect(store.journal).toHaveLength(7);
     expect((store.journal[6] as CommandEntry | undefined)?.command).toEqual({
       type: "set",
-      changes: [{ target: A, values: { scale: 0.9 } }],
+      changes: [{ target: { block: A }, values: { scale: 0.9 } }],
     });
     expect(scale.value).toBe("0.9");
   });
@@ -347,7 +350,7 @@ describe("the inspector component", () => {
   it("shows live values of its block, never over a draft", () => {
     const store = storeOf();
     const gesture = holder<LivePlacement | null>(null);
-    show(store, [A], gesture);
+    show(store, [{ block: A }], gesture);
     const field = (name: string) =>
       document.querySelector(`input[name="${name}"]`) as HTMLInputElement;
     const drawn = (id: string) => drawingOf(blockOf(store, id), store.view.settings, fontMetrics);
@@ -398,7 +401,7 @@ describe("the inspector's tabs", () => {
   const NEITHER = [["false", "-1"], ["false", "-1"], true, true];
 
   it("shows the Properties tab at mount and swaps on a click", () => {
-    show(storeOf(), [A]);
+    show(storeOf(), [{ block: A }]);
     const list = document.querySelector('[role="tablist"]');
     expect(list?.getAttribute("aria-label")).toBe("Inspector sections");
     const tabs = [...(list?.querySelectorAll<HTMLElement>('[role="tab"]') ?? [])];
@@ -447,7 +450,7 @@ describe("the inspector's tabs", () => {
   });
 
   it("moves between the tabs with the arrows, Home and End", () => {
-    show(storeOf(), [A]);
+    show(storeOf(), [{ block: A }]);
     const steps: [string, unknown[], string][] = [
       ["ArrowRight", MANIFEST, "Manifest"],
       ["ArrowLeft", PROPERTIES, "Properties"],
@@ -469,7 +472,7 @@ describe("the inspector's tabs", () => {
   });
 
   it("leaves a key held with Alt, Ctrl or Meta to the browser", () => {
-    show(storeOf(), [A]);
+    show(storeOf(), [{ block: A }]);
     const properties = tabNamed("Properties");
     properties.focus();
     for (const modifier of ["altKey", "ctrlKey", "metaKey"]) {
@@ -492,11 +495,14 @@ describe("the inspector's tabs", () => {
 
   it("holds the manifest's controls, problems, warnings and notices in the Manifest panel, in order", () => {
     const { store } = warningCase("timeline_class.json");
-    show(store, [A]);
+    show(store, [{ block: A }]);
     openTab("Manifest");
     type(textarea(), textarea().value.replace('"meta": {}', '"meta": {"note": "edited"}'));
     const root = store.view.blocks[A]?.manifest.timelines[0]?.id;
-    store.dispatch({ type: "set", changes: [{ target: `${A}/${root}`, values: { name: "Bye" } }] });
+    store.dispatch({
+      type: "set",
+      changes: [{ target: { block: A, id: root }, values: { name: "Bye" } }],
+    });
     flushSync();
     const manifest = panelOf("Manifest");
     const properties = panelOf("Properties");
@@ -546,25 +552,25 @@ describe("the inspector's tabs", () => {
 
   it("keeps the chosen tab while the selection changes, and starts on Properties", () => {
     const store = storeOf();
-    const selected = show(store, [A]);
+    const selected = show(store, [{ block: A }]);
     openTab("Manifest");
-    selected.value = new Set([B]);
+    selected.value = selectionOf([{ block: B }]);
     flushSync();
     expect(state()).toEqual(MANIFEST);
-    selected.value = new Set();
+    selected.value = NOTHING_SELECTED;
     flushSync();
     expect(hinted()).toEqual([false, HINT, null]);
     expect(state()).toEqual(MANIFEST);
-    selected.value = new Set([B]);
+    selected.value = selectionOf([{ block: B }]);
     flushSync();
     expect(state()).toEqual(MANIFEST);
     if (app !== undefined) unmount(app);
-    show(store, [B]);
+    show(store, [{ block: B }]);
     expect(state()).toEqual(PROPERTIES);
   });
 
   it("keeps an unapplied text while Properties is shown", () => {
-    show(storeOf(), [A]);
+    show(storeOf(), [{ block: A }]);
     openTab("Manifest");
     const edited = textarea().value.replace('"Bare"', '"Bared"');
     type(textarea(), edited);
@@ -596,7 +602,7 @@ describe("Apply and Revert", () => {
   for (const [mode, options] of MODES) {
     it(`are enabled exactly while the text is edited (${mode})`, () => {
       const store = storeOf();
-      show(store, [B]);
+      show(store, [{ block: B }]);
       openTab("Manifest");
       const [styling, minimal] = [
         ...document.querySelectorAll<HTMLInputElement>('.options input[type="checkbox"]'),
@@ -667,12 +673,15 @@ describe("a clean text", () => {
 
   it("follows the store at once when a stale text is typed back to the shown text", () => {
     const store = storeOf();
-    show(store, [A]);
+    show(store, [{ block: A }]);
     openTab("Manifest");
     const shown = textarea().value;
     const edited = shown.replace('"Bare"', '"Bared"');
     type(textarea(), edited);
-    store.dispatch({ type: "set", changes: [{ target: `${A}/bare`, values: { name: "Bye" } }] });
+    store.dispatch({
+      type: "set",
+      changes: [{ target: { block: A, id: "bare" }, values: { name: "Bye" } }],
+    });
     flushSync();
     expect(document.querySelector(".notice")?.textContent).toBe(
       "The manifest changed; Revert to see it",
@@ -690,7 +699,7 @@ describe("a clean text", () => {
 
   it("drops a refused Apply's problems when typed back to the shown text", () => {
     const store = storeOf();
-    show(store, [A]);
+    show(store, [{ block: A }]);
     openTab("Manifest");
     const shown = textarea().value;
     type(textarea(), shown.slice(0, shown.lastIndexOf("}")));
@@ -721,7 +730,7 @@ describe("a clean text", () => {
     );
     if (isLoadError(manifest)) throw new Error("refused");
     const store = storeOfFixtures(manifest);
-    show(store, [A]);
+    show(store, [{ block: A }]);
     openTab("Manifest");
     (document.querySelector('input[value="toml"]') as HTMLInputElement).click();
     flushSync();
@@ -745,7 +754,7 @@ describe("a clean text", () => {
 describe("an applied manifest", () => {
   it("discards the property drafts of its block and keeps the Manifest tab", () => {
     const store = storeOf();
-    show(store, [A]);
+    show(store, [{ block: A }]);
     const scale = () => document.querySelector('input[name="scale"]') as HTMLInputElement;
     type(scale(), "0");
     press(scale(), "Enter");
@@ -788,7 +797,7 @@ describe("the inspector's warnings", () => {
   for (const name of cases) {
     it(`lists every unknown key of ${name} with its path, and editing continues`, () => {
       const { store, expected } = warningCase(name);
-      show(store, [A]);
+      show(store, [{ block: A }]);
       openTab("Manifest");
       expect(document.querySelectorAll('ul[aria-label="Warnings"]')).toHaveLength(1);
       expect(listed()).toEqual(
@@ -810,7 +819,7 @@ describe("the inspector's warnings", () => {
   }
 
   it("shows no warning list for a manifest without unknown keys", () => {
-    show(storeOf(), [A]);
+    show(storeOf(), [{ block: A }]);
     openTab("Manifest");
     expect(document.querySelector('ul[aria-label="Warnings"]')).toBe(null);
   });
@@ -818,12 +827,12 @@ describe("the inspector's warnings", () => {
 
 describe("the inspector in its drawer", () => {
   /** Mount the drawer, closed, on `store` with `selection` selected. */
-  function drawer(store: Store, selection: string[]): void {
+  function drawer(store: Store, selection: Address[]): void {
     app = mount(InspectorDrawer, {
       target: document.body,
       props: {
         live: liveStore(store),
-        selection: new Set(selection),
+        selection: selectionOf(selection),
         placement: null,
         storageKey: null,
       },
@@ -840,7 +849,7 @@ describe("the inspector in its drawer", () => {
   it("renders no inspector while closed, and keeps a typed text and the tab through closing", () => {
     const store = storeOf();
     const journal = store.journal.length;
-    drawer(store, [`${A}/bare`]);
+    drawer(store, [{ block: A, id: "bare" }]);
     expect(document.querySelectorAll('[role="tablist"], [role="tabpanel"]').length).toBe(0);
 
     toggle("Open inspector");

@@ -31,6 +31,7 @@ import {
 import type { LoadError, Problem } from "../errors.ts";
 import { ErrorCode, InvalidManifestError, isLoadError, problem } from "../errors.ts";
 import type { JsonObject, PathSegment } from "../json.ts";
+import type { Part } from "./address.ts";
 import type { EntryKind, EntryTypes } from "./files.ts";
 import { ENTRY_LISTS } from "./files.ts";
 import { checkOrdered } from "./invariants.ts";
@@ -126,16 +127,24 @@ export function plainDeclaration(
 
 /**
  * A selector read losslessly as the plain `Selector`: it holds no number,
- * only its non-empty `ids`, which the lossless type reads as a list, is
- * given its tuple again, in its place.
+ * only its non-empty `addresses` and each address's non-empty `part`, which
+ * the lossless type reads as lists, are given their tuples again, in their
+ * places.
  */
 export function plainSelector(select: Lossless<Selector>): Selector {
-  const { ids, ...rest } = select;
+  const { addresses, ...rest } = select;
   const kept: typeof rest = select;
-  if (ids === undefined) return kept;
-  const [first, ...more] = ids;
-  if (first === undefined) throw new Error("the schema refuses an empty ids list");
-  return { ...kept, ids: [first, ...more] };
+  if (addresses === undefined) return kept;
+  const plain = addresses.map((address) => {
+    const { part, ...own } = address;
+    if (part === undefined) return own;
+    const [word, ...words] = part;
+    if (word === undefined) throw new Error("the schema refuses an empty part");
+    return { ...own, part: [word, ...words] satisfies [Part, ...Part[]] };
+  });
+  const [first, ...more] = plain;
+  if (first === undefined) throw new Error("the schema refuses an empty addresses list");
+  return { ...kept, addresses: [first, ...more] };
 }
 
 /**

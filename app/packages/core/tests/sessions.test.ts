@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { isLoadError } from "../src/errors.ts";
+import type { Part } from "../src/manifest/address.ts";
+import { addressKey } from "../src/manifest/address.ts";
+import type { Address } from "../src/workspace/address.ts";
 import { readWorkspace, writeWorkspace } from "../src/workspace/file.ts";
 import type { Entry, ListedEntry, Session, SessionEntry } from "../src/workspace/sessions.ts";
 import { editorKindOf, isSessionEntry, mintSessionId } from "../src/workspace/sessions.ts";
@@ -10,14 +13,19 @@ import { createView } from "../src/workspace/view.ts";
 import { A, addBlock, refusal, testClock, viewOf } from "./support.ts";
 
 const BUNDLE = "bundle0001";
-const G1 = `${BUNDLE}/group_1`;
-const G2 = `${BUNDLE}/group_2`;
-const at = (element: string) => `${BUNDLE}/${element}`;
+/** The addresses of block `bundle0001`, of an element of its manifest, and of its two groups. */
+const BLOCK: Address = { block: BUNDLE };
+const at = (id: string, ...part: Part[]): Address =>
+  part.length === 0 ? { block: BUNDLE, id } : { block: BUNDLE, id, part };
+const G1 = at("group_1");
+const G2 = at("group_2");
+/** The first segment of a path naming `address`, and its name in a message. */
+const key = (address: Address) => addressKey(address);
 const rename = (element: string, name: string) => ({
   type: "set",
   changes: [{ target: at(element), values: { name } }],
 });
-const set = (target: string, values: object) => ({ type: "set", changes: [{ target, values }] });
+const set = (target: Address, values: object) => ({ type: "set", changes: [{ target, values }] });
 const style = (select: object) => ({ type: "style", select, set: { stroke: "#FF0000" } });
 
 /** A store whose journal holds the `add` of block `bundle0001` holding `bundle_mixed.json`. */
@@ -57,27 +65,29 @@ describe("editor ids and kinds", () => {
 
   it("names the editor of each address", () => {
     const view = viewOf([BUNDLE, "bundles/bundle_mixed.json"], [A, "map.json"]);
-    expect(editorKindOf(view, BUNDLE)).toBe("bundle");
+    expect(editorKindOf(view, BLOCK)).toBe("bundle");
     expect(editorKindOf(view, G1)).toBe("group");
     expect(editorKindOf(view, at("annotations"))).toBe("timeline");
     expect(editorKindOf(view, at("excerpt"))).toBe("timeline");
     for (const address of [
-      "workspace",
-      at("name"),
-      at("group_1/name"),
-      at("group_1/score/card"),
-      `${A}/melody/tempo`,
-    ]) {
+      {},
+      { block: BUNDLE, part: ["name"] },
+      at("group_1", "name"),
+      at("score", "card"),
+      { block: BUNDLE, id: "score", facet: "regions" },
+      at("region_1"),
+      { block: A, id: "tempo" },
+    ] as Address[]) {
       expect(editorKindOf(view, address)).toEqual({
         code: "no_editor",
-        message: `${address} has no editor`,
-        path: [address],
+        message: `${key(address)} has no editor`,
+        path: [key(address)],
       });
     }
-    for (const address of [at("nothing"), "0000000009"]) {
+    for (const address of [at("nothing"), { block: "0000000009" }]) {
       expect(refusal(editorKindOf(view, address))).toEqual({
         code: "unknown_target",
-        path: [address],
+        path: [key(address)],
       });
     }
     const bundle = view.blocks[BUNDLE];
@@ -90,8 +100,8 @@ describe("editor ids and kinds", () => {
       },
     };
     expect(refusal(editorKindOf(withId, at("takes")))).toEqual({
-      code: "no_editor",
-      path: [at("takes")],
+      code: "unknown_target",
+      path: [key(at("takes"))],
     });
   });
 });
@@ -167,7 +177,7 @@ describe("editor sessions", () => {
 
   it("counts Cancel's changes and restores the opening exactly", () => {
     const store = mixedStore();
-    store.dispatch(set(BUNDLE, { x: 40 }));
+    store.dispatch(set(BLOCK, { x: 40 }));
     store.undo();
     const opening = store.view;
     const journal = [...store.journal];
@@ -233,7 +243,7 @@ describe("editor sessions", () => {
 
   it("opens a fresh session when a later entry follows the earlier one", () => {
     const { store, session } = doneStore();
-    store.dispatch(set(BUNDLE, { x: 40 }));
+    store.dispatch(set(BLOCK, { x: 40 }));
     expect(store.open(G1)).toBeNull();
     const [editor] = store.editing;
     expect(editor?.session).not.toBe(session);
@@ -247,7 +257,7 @@ describe("editor sessions", () => {
   it("nests sessions and replays them in place", () => {
     const store = mixedStore();
     const afterAdd = store.view;
-    expect(store.open(BUNDLE)).toBeNull();
+    expect(store.open(BLOCK)).toBeNull();
     expect(store.editing[0]?.kind).toBe("bundle");
     store.dispatch(rename("annotations", "A"));
     const renamed = store.view;
@@ -267,7 +277,7 @@ describe("editor sessions", () => {
     expect((store.journal[1] as SessionEntry).session).toBe(outer);
     expect(Object.keys(store.sessions).sort()).toEqual([inner, outer].sort());
     const bundleSession = store.sessions[outer] as Session;
-    expect(bundleSession.target).toBe(BUNDLE);
+    expect(bundleSession.target).toEqual(BLOCK);
     expect(bundleSession.entries.length).toBe(2);
     expect((bundleSession.entries[1] as SessionEntry).session).toBe(inner);
     const views = replay(store.journal, store.sessions);
@@ -281,13 +291,13 @@ describe("editor sessions", () => {
 
   it("cancels only the innermost editor", () => {
     const store = mixedStore();
-    store.open(BUNDLE);
+    store.open(BLOCK);
     store.dispatch(rename("annotations", "A"));
     const renamed = store.view;
     store.open(G1);
     store.dispatch(rename("score", "S"));
     store.cancel();
-    expect(store.editing.map((editor) => editor.target)).toEqual([BUNDLE]);
+    expect(store.editing.map((editor) => editor.target)).toEqual([BLOCK]);
     expect(store.entries.length).toBe(1);
     expect(store.view).toBe(renamed);
     store.done();
@@ -301,20 +311,20 @@ describe("editor sessions", () => {
     store.subscribe(() => {
       calls += 1;
     });
-    expect(refusal(store.open("workspace"))).toEqual({ code: "no_editor", path: ["workspace"] });
+    expect(refusal(store.open({}))).toEqual({ code: "no_editor", path: ["{}"] });
     expect(refusal(store.open(at("nothing")))).toEqual({
       code: "unknown_target",
-      path: [at("nothing")],
+      path: [key(at("nothing"))],
     });
     store.open(G1);
     expect(store.open(G1)).toEqual({
       code: "not_inside",
-      message: `${G1} does not lie inside ${G1}`,
-      path: [G1],
+      message: `${key(G1)} does not lie inside ${key(G1)}`,
+      path: [key(G1)],
     });
     store.cancel();
-    store.open(BUNDLE);
-    expect(refusal(store.open(BUNDLE))).toEqual({ code: "not_inside", path: [BUNDLE] });
+    store.open(BLOCK);
+    expect(refusal(store.open(BLOCK))).toEqual({ code: "not_inside", path: [key(BLOCK)] });
     expect(store.editing.length).toBe(1);
     expect(calls).toBe(3);
     store.cancel();
@@ -345,7 +355,7 @@ describe("editor sessions", () => {
 
   it("snapshots nested editors innermost first", () => {
     const store = mixedStore();
-    store.open(BUNDLE);
+    store.open(BLOCK);
     store.dispatch(rename("annotations", "A"));
     store.open(G1);
     store.dispatch(rename("score", "S"));
@@ -376,7 +386,7 @@ describe("editor sessions", () => {
     store.open(G1);
     expect(store.dispatch(rename("score", "S"))).toBeNull();
     store.done();
-    expect(store.dispatch(set(BUNDLE, { x: 40 }))).toBeNull();
+    expect(store.dispatch(set(BLOCK, { x: 40 }))).toBeNull();
     store.undo();
     expect(store.canRedo).toBe(true);
     expect(store.open(G1)).toBeNull();
@@ -426,7 +436,7 @@ const nameOf = (view: View, id: string) =>
 function nestedStore(withA = true) {
   const store = mixedStore();
   const v0 = store.view;
-  expect(store.open(BUNDLE)).toBeNull();
+  expect(store.open(BLOCK)).toBeNull();
   expect(store.open(G1)).toBeNull();
   expect(store.open(SCORE)).toBeNull();
   expect(store.dispatch(rename("score", "c-name"))).toBeNull();
@@ -451,7 +461,7 @@ function nestedStore(withA = true) {
 }
 
 /** A new command on the arranger. */
-const MOVE = set(BUNDLE, { x: 40 });
+const MOVE = set(BLOCK, { x: 40 });
 
 describe("undo by runs through three nested sessions", () => {
   it("reverts the latest session's run first and redoes the earliest undone first", () => {
@@ -557,9 +567,9 @@ describe("undo by runs through three nested sessions", () => {
     const { store, vb, va, add, sa, sb, a } = nestedStore();
     store.undo();
     const sessions = store.sessions;
-    expect(store.open(BUNDLE)).toBeNull();
+    expect(store.open(BLOCK)).toBeNull();
     expect(store.editing).toEqual([
-      { session: sa.session, target: BUNDLE, kind: "bundle", earlier: null },
+      { session: sa.session, target: BLOCK, kind: "bundle", earlier: null },
     ]);
     expect(store.entries).toEqual([sb]);
     expect(store.listed).toEqual([
@@ -585,7 +595,7 @@ describe("undo by runs through three nested sessions", () => {
   it("undoes a closed sub-session inside an editor by its run and stops at the opening", () => {
     const store = mixedStore();
     const add = store.journal;
-    expect(store.open(BUNDLE)).toBeNull();
+    expect(store.open(BLOCK)).toBeNull();
     const opening = store.view;
     expect(store.open(G1)).toBeNull();
     store.dispatch(rename("score", "S"));
@@ -613,7 +623,7 @@ describe("undo by runs through three nested sessions", () => {
 
   it("counts Cancel's changes as changes, by the command entries", () => {
     const { store, sb, sc, c } = nestedStore(false);
-    expect(store.open(BUNDLE)).toBeNull();
+    expect(store.open(BLOCK)).toBeNull();
     expect(store.entries).toEqual([sb]);
     expect(store.changes).toBe(0);
     store.undo();
@@ -656,7 +666,7 @@ function interleavedStore(close = true) {
     expect(store.dispatch(rename(id, name))).toBeNull();
     return { entry: store.entries.at(-1) as Entry, view: store.view };
   };
-  expect(store.open(BUNDLE)).toBeNull();
+  expect(store.open(BLOCK)).toBeNull();
   const a1 = change("annotations", "name-a1");
   expect(store.open(G1)).toBeNull();
   const b1 = change("performance", "name-b1");
@@ -737,7 +747,7 @@ describe("undo by runs through an interleaved session", () => {
     const partly = store.snapshot();
     expect(partly.journal).toEqual([add, sa]);
     expect(partly.sessions).toEqual({
-      [sa.session]: { target: BUNDLE, entries: [a1.entry, sb] },
+      [sa.session]: { target: BLOCK, entries: [a1.entry, sb] },
       [sb.session]: { target: G1, entries: [b1.entry] },
     });
     expect(replay(partly.journal, partly.sessions).at(-1)).toEqual(store.view);
@@ -814,9 +824,9 @@ describe("undo by runs through an interleaved session", () => {
     store.undo();
     expect(store.view).toBe(b2.view);
     const sessions = store.sessions;
-    expect(store.open(BUNDLE)).toBeNull();
+    expect(store.open(BLOCK)).toBeNull();
     expect(store.editing).toEqual([
-      { session: sa.session, target: BUNDLE, kind: "bundle", earlier: null },
+      { session: sa.session, target: BLOCK, kind: "bundle", earlier: null },
     ]);
     expect(store.entries).toEqual([a1.entry, sb]);
     expect(store.listed).toEqual([leaf(a1.entry, 1), listedSB(4), leaf(a2.entry, 0)]);
@@ -867,24 +877,24 @@ describe("the side-effect guard through the store", () => {
     expect(store.dispatch(set(G1, { place: { length: 300 } }))).toBeNull();
     expect(refusal(store.dispatch(set(G2, { place: { x: 10 } })))).toEqual({
       code: "side_effect",
-      path: [G2],
+      path: [key(G2)],
     });
     expect(store.dispatch(rename("score", "S"))).toBeNull();
     expect(refusal(store.dispatch(rename("annotations", "A")))).toEqual({
       code: "side_effect",
-      path: [at("annotations")],
+      path: [key(at("annotations"))],
     });
-    expect(refusal(store.dispatch(set(BUNDLE, { length: 500 })))).toEqual({
+    expect(refusal(store.dispatch(set(BLOCK, { length: 500 })))).toEqual({
       code: "side_effect",
-      path: [BUNDLE, "length"],
+      path: [key(BLOCK), "length"],
     });
-    expect(store.dispatch(set(BUNDLE, { width: 900 }))).toBeNull();
+    expect(store.dispatch(set(BLOCK, { width: 900 }))).toBeNull();
     expect(refusal(store.dispatch(style({ element: "timeline" })))).toEqual({
       code: "side_effect",
       path: [BUNDLE, "manifest", "graphical", "statements"],
     });
-    expect(store.dispatch(style({ ids: ["score"] }))).toBeNull();
-    expect(refusal(store.open(G2))).toEqual({ code: "not_inside", path: [G2] });
+    expect(store.dispatch(style({ addresses: [{ id: "score" }] }))).toBeNull();
+    expect(refusal(store.open(G2))).toEqual({ code: "not_inside", path: [key(G2)] });
     expect(store.entries.length).toBe(4);
   });
 
@@ -893,9 +903,8 @@ describe("the side-effect guard through the store", () => {
     store.open(G2);
     expect(store.dispatch({ type: "remove", targets: [at("excerpt")] })).toEqual({
       code: "side_effect",
-      message:
-        "bundle0001/recording lies outside bundle0001/group_2: an editor changes only what it edits",
-      path: [at("recording")],
+      message: `${key(at("recording"))} lies outside ${key(G2)}: an editor changes only what it edits`,
+      path: [key(at("recording"))],
     });
     expect(store.entries).toEqual([]);
   });
@@ -916,13 +925,12 @@ describe("the side-effect guard through the store", () => {
 
   it("refuses the bundle editor's removal of its own block", () => {
     const store = mixedStore();
-    store.open(BUNDLE);
+    store.open(BLOCK);
     const editing = store.editing;
-    expect(store.dispatch({ type: "remove", targets: [BUNDLE] })).toEqual({
+    expect(store.dispatch({ type: "remove", targets: [BLOCK] })).toEqual({
       code: "side_effect",
-      message:
-        "the removal of bundle0001 lies outside bundle0001: an editor changes only what it edits",
-      path: [BUNDLE],
+      message: `the removal of ${key(BLOCK)} lies outside ${key(BLOCK)}: an editor changes only what it edits`,
+      path: [key(BLOCK)],
     });
     expect(store.editing).toBe(editing);
     expect(store.entries).toEqual([]);

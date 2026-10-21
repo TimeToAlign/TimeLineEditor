@@ -47,21 +47,21 @@ decimal spelling of it, is a double that lies a few 1e-15 off a decimal tie:
 ## Page (`page.test.ts`)
 
 Two hand-built drawings: `bare` (`W = 476.5771484375`, `H = 67.37890625`,
-below) and a box `W = 100.25`, `H = 50` with only its background.
+below) and a block `W = 100.25`, `H = 50` with only its background.
 
 - One drawing alone at `(0, 0)`, scale 1, has the page `W + 32` by `H + 32`,
   `508.5771484375` by `99.37890625`, and lies at `(16, 16)`.
-- `bare` at `(10, 20)` scale 1 and the box at `(−30, 5)` scale 2: `left =
+- `bare` at `(10, 20)` scale 1 and the block at `(−30, 5)` scale 2: `left =
   −30`, `top = 5`, `right = max(10 + 476.5771484375, −30 + 100.25 × 2) =
   486.5771484375`, `bottom = max(20 + 67.37890625, 5 + 50 × 2) = 105`, so
   the page is `486.5771484375 + 30 + 32 = 548.5771484375` by `105 − 5 + 32 =
-  132`; `bare` lies at `(56, 31)`, the box at `(16, 16)`. The SVG root
+  132`; `bare` lies at `(56, 31)`, the block at `(16, 16)`. The SVG root
   carries `width="548.5771" height="132" viewBox="0 0 548.5771 132"`, and
   the groups are `<g transform="translate(56 31)">` and `<g
   transform="translate(16 16) scale(2)">`. The TikZ scopes are shifted to
   `(56, 132 − 31 − 67.37890625 = 33.62109375)`, written `33.6211`, and to
   `(16, 132 − 16 − 100 = 16)` with `,scale=2,transform shape`.
-- The box alone at scale 1.5: the page `100.25 × 1.5 + 32 = 182.375` by `50 ×
+- The block alone at scale 1.5: the page `100.25 × 1.5 + 32 = 182.375` by `50 ×
   1.5 + 32 = 107`; `scale(1.5)` and `,scale=1.5,transform shape`, the scope
   at `(16, 107 − 16 − 75 = 16)`.
 - An empty list is refused with a `RangeError`.
@@ -69,19 +69,24 @@ below) and a box `W = 100.25`, `H = 50` with only its background.
 ## `bare`, byte for byte (`bare.test.ts`)
 
 The drawing of the manifest `bare` is built by hand from its derivation
-(the layout's tests derive it): an anonymous box with one ungrouped root in
+(the layout's tests derive it): an anonymous block with one ungrouped root in
 its card. `W = 476.5771484375`, `H = 67.37890625`; the background `fill
-#F3F4F6`, `rx 10`; the card `bare/card` at `x = y = 8`, `458.5771484375` by
-`49.37890625`, `fill #FFFFFF`, `stroke #C4C9D1`, `stroke-width 0.75`, `rx
-5`, `shadow #B8BEC8`; the line `bare` from `x0 = 49.5771484375` to `Xe =
-449.5771484375` at `y = 22.40234375`, `#00CC00`, width 3, a start circle and
-the arrowhead (tip `Xe + 3w = 458.5771484375`, base on `Xe` from `y − 4.5`
-to `y + 4.5`); the wedges `bare/start` and `bare/end` at `x0` and `Xe`, tip
+#F3F4F6`, `rx 10`, address `{}`; the card `{id: bare, part: [card]}` at `x
+= y = 8`, `458.5771484375` by `49.37890625`, `fill #FFFFFF`, `stroke
+#C4C9D1`, `stroke-width 0.75`, `rx 5`, `shadow #B8BEC8`; the line `{id:
+bare}` from `x0 = 49.5771484375` to `Xe = 449.5771484375` at `y =
+22.40234375`, `#00CC00`, width 3, a start circle and the arrowhead (tip `Xe
++ 3w = 458.5771484375`, base on `Xe` from `y − 4.5` to `y + 4.5`); the
+wedges `{id: bare, part: [start]}` and `{id: bare, part: [end]}` at `x0` and `Xe`, tip
 `y + 1.5 = 23.90234375`, base `36.90234375`, at `x ∓ 3`, `#000000`; the name
-`Bare` at `x = 16`, baseline `26.21044921875`, size 11; the labels `0 ♩` and
-`8 ♩` at `x0` and `Xe`, baseline `47.25634765625`, size 9. Placed alone, the
-page is `508.5771484375 × 99.37890625`. The SVG written is, byte for byte,
-the schema package's hand-derived figure of `bare`.
+`{id: bare, part: [name]}`, `Bare`, at `x = 16`, baseline `26.21044921875`,
+size 11; the labels `{id: bare, part: [start, label]}` and `{id: bare,
+part: [end, label]}`, `0 ♩` and `8 ♩`, at `x0` and `Xe`, baseline
+`47.25634765625`, size 9. Placed alone, the page is `508.5771484375 ×
+99.37890625`. The SVG written is, byte for byte, the schema package's
+hand-derived figure of `bare`: each element after the background carries
+`data-id="bare"` and, but the line's three descriptors, the `data-part` of
+its address (`card`, `start`, `end`, `name`, `start label`, `end label`).
 
 In TikZ every ordinate becomes `H − y`: the line `44.9765625`, the
 arrowhead's base corners `49.4765625` and `40.4765625`, the wedges' tips
@@ -131,9 +136,26 @@ to `\end{tikzpicture}` alone; the default font directory is `.`
 ## Descriptors and commands (`descriptors.test.ts`)
 
 On synthetic drawings, `H = 30`. The attribute order of section 7.2 is
-`data-address`, the template's geometry, `rx`, `text-anchor`, `font-size`,
-`fill`, `stroke`, `stroke-width`, `stroke-dasharray`, `opacity`; every
-expected line below follows it, so each one also proves the order.
+the address's attributes, the template's geometry, `rx`, `text-anchor`,
+`font-size`, `fill`, `stroke`, `stroke-width`, `stroke-dasharray`,
+`opacity`; every expected line below follows it, so each one also proves
+the order. Below, an element's address is written `{id: g}`, `{id: m, part:
+[card]}`.
+
+**Address attributes.** An element's address `{id?, facet?, part?}` is
+written as `data-id`, `data-facet` and `data-part`, in that order, each only
+when the address has that member; `data-part` holds the part words joined by
+one space. On a flow marker's line `x 10` from `y1 5` to `y2 25`, stroked
+`#000000`: `{id: c}` writes `<line data-id="c" x1="10" …`, `{id: c, facet:
+regions}` `<line data-id="c" data-facet="regions" x1="10" …`, `{id: c, part:
+[start]}` `<line data-id="c" data-part="start" x1="10" …` and the title's
+`{part: [name]}` `<line data-part="name" x1="10" …`; a wedge's label `{id: c,
+part: [start, label]}` writes `data-id="c" data-part="start label"`. An ID is
+written verbatim, escaped only as every attribute value is: `perf/take 2`
+is `data-id="perf/take 2"`, `https://example.org/piece/score#exposition`
+with the part `card` is `data-id="https://example.org/piece/score#exposition"
+data-part="card"`. The background, whose address is the bundle's `{}`,
+writes no address attribute, and its descriptor's source carries `{}`.
 
 **The background, frames and cards.**
 
@@ -142,18 +164,18 @@ expected line below follows it, so each one also proves the order.
   rx="0" fill="none" opacity="0.5"/>`, in TikZ `\path[rounded
   corners=0pt,opacity=0.5] (0,0) rectangle (60,30);` (`rx` maps one to one,
   0 included; `fill="none"` adds no option).
-- A group's frame `g` at `x 8`, `y 4`, `width 40`, `height 20`, filled
+- A group's frame `{id: g}` at `x 8`, `y 4`, `width 40`, `height 20`, filled
   `#FFFFFF`, stroked `#D1D5DB` with width 1, `rx 6`: `<rect
-  data-address="g" x="8" y="4" width="40" height="20" rx="6"
+  data-id="g" x="8" y="4" width="40" height="20" rx="6"
   fill="#FFFFFF" stroke="#D1D5DB" stroke-width="1"/>`, and no shadow even
   when its style holds one; in TikZ the rectangle from `(x, H − y − h)` to
   `(x + w, H − y)`: `\path[rounded corners=6pt,fill=tsFFFFFF,draw=tsD1D5DB,line
   width=1pt] (8,6) rectangle (48,26);`.
-- A card `m/card` at the same place, filled `#FFFFFF`, stroked `#C4C9D1`
+- A card `{id: m, part: [card]}` at the same place, filled `#FFFFFF`, stroked `#C4C9D1`
   with width 0.75, `rx 5`, `shadow #B8BEC8`: first its shadow, 2 to the
   right and 2 down, with the card's size, `rx` and `fill` alone, `<rect
-  data-address="m/card" x="10" y="6" width="40" height="20" rx="5"
-  fill="#B8BEC8"/>`, then the card, `<rect data-address="m/card" x="8"
+  data-id="m" data-part="card" x="10" y="6" width="40" height="20" rx="5"
+  fill="#B8BEC8"/>`, then the card, `<rect data-id="m" data-part="card" x="8"
   y="4" width="40" height="20" rx="5" fill="#FFFFFF" stroke="#C4C9D1"
   stroke-width="0.75"/>`; in TikZ `\path[rounded corners=5pt,fill=tsB8BEC8]
   (10,4) rectangle (50,24);` and `\path[rounded
@@ -166,37 +188,37 @@ expected line below follows it, so each one also proves the order.
   not 1.
 
 **Line ends** (`timeline`, `child` and `ancestor` alike), `xs 10`, `xe 50`,
-`y 20`, width 2, stroke and fill `#00CC00`, dash `3 3`, address `c`. The
-`<line>` comes first, `<line data-address="c" x1="10" y1="20" x2="{stop}"
+`y 20`, width 2, stroke and fill `#00CC00`, dash `3 3`, address `{id: c}`. The
+`<line>` comes first, `<line data-id="c" x1="10" y1="20" x2="{stop}"
 y2="20" stroke="#00CC00" stroke-width="2" stroke-dasharray="3 3"/>`, then
-the start circle `<circle data-address="c" cx="10" cy="20" r="2"
+the start circle `<circle data-id="c" cx="10" cy="20" r="2"
 fill="#00CC00"/>`, then the end of section 6.6:
 
-- `arrowhead`: stop 50, then the filled `<polygon data-address="c"
+- `arrowhead`: stop 50, then the filled `<polygon data-id="c"
   points="56,20 50,17 50,23" fill="#00CC00"/>` (tip `50 + 3 × 2`, base on
   50 at `20 ∓ 1.5 × 2`);
 - `open`: stop 50, the same points with `fill="none" stroke="#00CC00"
   stroke-width="1"`, no dash although the line is dashed;
-- `circle`: stop 50, then `<circle data-address="c" cx="50" cy="20" r="2"
+- `circle`: stop 50, then `<circle data-id="c" cx="50" cy="20" r="2"
   fill="#00CC00"/>`;
-- `diamond`: stop `50 − 1.5 × 2 = 47`, then `<polygon data-address="c"
+- `diamond`: stop `50 − 1.5 × 2 = 47`, then `<polygon data-id="c"
   points="47,20 50,17.6 53,20 50,22.4" fill="none" stroke="#00CC00"
   stroke-width="1"/>` (`1.2w = 2.4`);
 - `unknown`, the open end of a timeline of unknown length, `xe` being `Xr`,
   the point the line runs on to: stop 50, then three chevrons, `<polyline
-  data-address="c" points="52,17 55,20 52,23" fill="none" stroke="#00CC00"
+  data-id="c" points="52,17 55,20 52,23" fill="none" stroke="#00CC00"
   stroke-width="1"/>` (`Xr + w` to `Xr + 2.5w`), then through `55,17 58,20
   55,23` and `58,17 61,20 58,23`: stroked at `w / 2`, no dash, with the
   line's own address, so they hit the line;
 - `chevrons`, a line running on (section 8.3): stop 50, then only the
   first two of those three: the two ends differ in the outer chevron alone.
 
-An ancestor line `a` running on at both sides, `xs = Xa = 20`, `xe = Xr =
+An ancestor line `{id: a}` running on at both sides, `xs = Xa = 20`, `xe = Xr =
 40`, `y 20`, width 2, dash `3 3`, opacity 0.35: the line `x1="20" …
 x2="40"` with its dash and `opacity="0.35"`; then the left chevrons, inner
 first, `18,17 15,20 18,23` (`Xa − w`, `Xa − 2.5w`) and `15,17 12,20 15,23`;
 then the right ones, inner first, `42,17 45,20 42,23` and `45,17 48,20
-45,23`. Each is `<polyline data-address="a" points="…" fill="none"
+45,23`. Each is `<polyline data-id="a" points="…" fill="none"
 stroke="#00CC00" stroke-width="1" opacity="0.35"/>`: width `w / 2`, no
 dash, the line's opacity. In TikZ the line is
 `\path[draw=ts00CC00,line width=2pt,dash pattern=on 3pt off
@@ -225,7 +247,7 @@ point is `Xr` (or `Xa`) plus its multiple of `w`:
 
 **Other elements.**
 
-- A brace `region_1` from `x1 = 0` to `x2 = 20`, arms at 10, tip at 16,
+- A brace `{id: region_1}` from `x1 = 0` to `x2 = 20`, arms at 10, tip at 16,
   `xm = 10`, has `ym = 13`, `k = 3` and the path `M0 10Q0 13 3 13L7 13Q10
   13 10 16Q10 13 13 13L17 13Q20 13 20 10` with `fill="none"` and the stroke
   attributes. In TikZ each `Q C P` from `P0` becomes the cubic with
@@ -248,20 +270,20 @@ point is `Xr` (or `Xa`) plus its multiple of `w`:
   path's last point is the midpoint of the two corners, and the dot product
   of the base with the axis is written `0`.
 - A map with `xs 10`, `xe 50`, `yc 20`, stroke `#00CC00`, dash `1 1`, is one
-  closed outline at `yc ∓ d / 2 = 19, 21`: `<polygon data-address="m"
+  closed outline at `yc ∓ d / 2 = 19, 21`: `<polygon data-id="m"
   points="10,19 50,19 50,21 10,21" fill="none" stroke="#00CC00"
   stroke-width="1" stroke-dasharray="1 1"/>`; in TikZ
   `\path[draw=ts00CC00,line width=1pt,dash pattern=on 1pt off 1pt] (10,11)
   -- (50,11) -- (50,9) -- (10,9) -- cycle;`. Both start at `(Xs, yc − d /
   2)` and run the corners in the same order, so the dash pattern starts at
   the same corner.
-- A segment's boundary `b/start`, `x 10` from `y1 12` to `y2 18`, stroked
+- A segment's boundary `{id: b, part: [start]}`, `x 10` from `y1 12` to `y2 18`, stroked
   `#000000` with width 1, is a line like a flow marker's: `<line
-  data-address="b/start" x1="10" y1="12" x2="10" y2="18" stroke="#000000"
+  data-id="b" data-part="start" x1="10" y1="12" x2="10" y2="18" stroke="#000000"
   stroke-width="1"/>`, in TikZ `\path[draw=ts000000,line width=1pt] (10,18)
   -- (10,12);`.
 - A wedge `x 10`, tip `yt 5`, base `yb 18`, fill `#000000`: `<polygon
-  data-address="w" points="10,5 7,18 13,18" fill="#000000"/>`, fill only.
+  data-id="w" points="10,5 7,18 13,18" fill="#000000"/>`, fill only.
 - The sizes an element carries are its own, never constants of the writer:
   a wedge's `base`, a map's double-line `spacing` and a card's
   `shadowOffset`, 6, 2 and 2 at scale 1 and multiplied by an item's scale
@@ -277,7 +299,8 @@ point is `Xr` (or `Xa`) plus its multiple of `w`:
   `y2 25` stroked `none` is `<line … stroke="none" stroke-width="1"/>` and
   `\path[line width=1pt] (10,25) -- (10,5);`.
 - Escaping: SVG writes the text `a&b<c>` as `a&amp;b&lt;c&gt;`, and an
-  attribute value escapes `&`, `<`, `>` and `"`; TikZ writes `\~^#$%&_{}`
+  attribute value escapes `&`, `<`, `>` and `"` (the ID `r/&<>",` is
+  `data-id="r/&amp;&lt;&gt;&quot;,"`); TikZ writes `\~^#$%&_{}`
   as `\textbackslash{}\textasciitilde{}\textasciicircum{}\#\$\%\&\_\{\}`,
   and a space at the start or end or following another space as `\ ` (` a
   b ` is `\ a \ b\ `). A text descriptor is `<text …>{text}</text>`; every
@@ -297,8 +320,9 @@ every tag occurs, one of them a shadow. For it and for every review case
   descriptors when its style has a shadow and `primary` otherwise;
 - **one command per descriptor**: `writeSvg` writes exactly one line per
   descriptor between `<g …>` and `</g>`, in order, equal to `descriptorSvg`
-  of it, each starting with `<{tag} ` and, except the background, `<{tag}
-  data-address="…" `; `writeTikz` writes exactly one command per descriptor
+  of it, each starting with `<{tag} ` followed by the address attributes of
+  its source's address, `data-id`, `data-facet` and `data-part` as present,
+  in that order, and no other `data-` attribute (none for the background); `writeTikz` writes exactly one command per descriptor
   inside the scope, in the same order, of the kind its tag selects (two
   points joined by `rectangle` for a rect, by `--` for a line,
   `circle[radius=` for a circle, `-- cycle;` for a polygon, three points
@@ -334,19 +358,27 @@ inputs, written with TimeToShare's `dumps`, equal its `inputs.json` text.
 The review cases are every manifest fixture, `groups/` (as
 `group__<file>`) and `bundles/` (as `bundle__<file>`) included, but the
 `corpus_*` ones and the minimal twins; `nested` at other lengths, card
-spacings (its card's gap between rows and bands, 0 and 8), box sizes and
-scales; the bundles with places, a scale, card sizes, a box spacing with a
+spacings (its card's gap between rows and bands, 0 and 8), block sizes and
+scales; the bundles with places, a scale, card sizes, a block spacing with a
 card spacing, a frame's spacing (the gap between its member cards) and a
-member's card spacing (their member cards' places keyed `<group>/<member>`,
-`group_1/performance` and `group_1/score`, as drawing.md §8.6 keys them);
-and drawings with one application layer showing a band the defaults hide.
+member's card spacing (their member cards' places under their group's
+entry's `cards`, `{group_1: {scale: 1.25, cards: {performance: {width: 650,
+height: 120}}}}` and `{group_1: {cards: {score: {spacing: 8}}}}`, as
+drawing.md §8.6 nests them); and drawings with one application layer
+showing a band the defaults hide, each selecting the band by `{addresses:
+[{id: T, facet: F}]}` or `{element: band, facet: F}`.
 `bundle__bundle_shared_member` draws a timeline that two groups have as a
-member, once in each frame: its member cards carry `data-address`
-`g1/t/card` and `g2/t/card`, and every other element of `t`'s two
-drawings the same address in both. There are 70 cases. Every case stating a spacing, of the box or in a
-place, draws an SVG different from its manifest's default case: a spacing
-case that draws as the default (a box of one item has no gap) pins
-nothing.
+member, once in each frame: the four member cards are written, shadow and
+card, with `data-id` `t`, `u`, `t`, `v` and `data-part="card"`, both cards
+of `t` alike, and the elements written after each card of `t` up to the
+next card carry the same address attributes in both, `t`'s line (`data-id`
+`t` alone) among them. `bundle__bundle_free_ids` draws IDs with a `/`, a
+space and a URI's `#` (`perf/take 2`, `take 2/intro`,
+`https://example.org/piece/score#exposition`), written verbatim. There are
+71 cases. Every case stating a spacing, of the block, in a place or in a
+member's card place, draws an SVG different from its manifest's default
+case: a spacing case that draws as the default (a block of one item has no
+gap) pins nothing.
 
 ## Validity (`compile.test.ts`)
 

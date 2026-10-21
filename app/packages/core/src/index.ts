@@ -36,8 +36,20 @@ export {
   JournalMismatchError,
 } from "./errors.ts";
 export type { Json, PathSegment } from "./json.ts";
-export type { BandKind } from "./manifest/bands.ts";
-export { BAND_KINDS, bandAddress } from "./manifest/bands.ts";
+export type { ElementAddress, Facet, OwnerAddress, Part } from "./manifest/address.ts";
+export {
+  addressKey,
+  BUNDLE_ADDRESS,
+  bandAddress,
+  cardAddress,
+  FACETS,
+  idAddress,
+  isFacet,
+  PART_WORDS,
+  partAddress,
+  sameAddress,
+  TITLE_ADDRESS,
+} from "./manifest/address.ts";
 export type {
   CardPlace,
   ContainerDescriptor,
@@ -47,6 +59,9 @@ export type {
   Containers,
   Holding,
   ItemPlace,
+  Place,
+  PlaceKey,
+  Places,
 } from "./manifest/containers.ts";
 export {
   CARD_PLACE_MEMBERS,
@@ -56,19 +71,27 @@ export {
   containersOf,
   holdingOf,
   ITEM_PLACE_MEMBERS,
+  placeAt,
+  placedContainer,
   placedElement,
+  placeEntries,
+  placeKeyText,
   placeMembersOf,
+  samePlaceKey,
+  withPlaceAt,
 } from "./manifest/containers.ts";
 export { contains } from "./manifest/contains.ts";
 export type { EntryKind, ListedElement } from "./manifest/files.ts";
-export { isNamed, TITLE_ADDRESS } from "./manifest/files.ts";
+export { isNamed } from "./manifest/files.ts";
 export type { SaveOptions } from "./manifest/io.ts";
 export { loadManifest, normalizeManifest, saveManifest } from "./manifest/io.ts";
+export type { BandOrderEntry } from "./manifest/order.ts";
 export {
   bandOrderOf,
-  defaultBandOrder,
+  DEFAULT_BAND_ORDER,
   displayOrder,
   inheritedBandOrder,
+  LINE,
 } from "./manifest/order.ts";
 export { removedBy } from "./manifest/remove.ts";
 export type { Gap, GapOption, GapSide, GapVerb } from "./manifest/segments.ts";
@@ -90,29 +113,24 @@ export type { Coordinate } from "./number/coordinate.ts";
 export type { Real } from "./number/real.ts";
 export type {
   Address,
-  AddressSyntax,
   ManifestIndex,
-  PartWord,
   ResolvedAddress,
   ResolvedElement,
 } from "./workspace/address.ts";
 export {
-  cardAddress,
-  cardKey,
-  elementAddress,
-  elementOf,
+  elementAddressOf,
+  inBlock,
   indexOf,
-  parseAddressSyntax,
-  parseBand,
-  partAddress,
-  qualify,
+  isElementAddress,
+  manifestIds,
+  readAddress,
   resolveAddress,
   resolveElement,
   WORKSPACE,
 } from "./workspace/address.ts";
 export type { Block, BlockId } from "./workspace/blocks.ts";
 export { emptyWorkspace, readWorkspace, writeWorkspace } from "./workspace/file.ts";
-export { manifestIds, mintBlockId } from "./workspace/ids.ts";
+export { mintBlockId } from "./workspace/ids.ts";
 export { indexBetween, indicesBetween, isIndex } from "./workspace/order.ts";
 export type {
   CommandEntry,

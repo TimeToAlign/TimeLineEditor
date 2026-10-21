@@ -1,5 +1,6 @@
 /** The drawing element a descriptor was written from. */
 
+import type { ElementAddress } from "@timetoalign/tilie-core";
 import type { DrawnElement } from "@timetoalign/tilie-layout";
 
 /**
@@ -11,7 +12,7 @@ export interface DescriptorSource {
   /** The element's index in `Drawing.elements`. */
   readonly element: number;
   readonly type: DrawnElement["type"];
-  /** The element's address; null for the box's background. */
-  readonly address: string | null;
+  /** The element's address; `{}` for the block's background, the bundle's. */
+  readonly address: ElementAddress;
   readonly role: "primary" | "shadow";
 }

@@ -6,16 +6,24 @@ import path from "node:path";
 import {
   type AxisValue,
   apply,
-  type BandKind,
   type ContainerKind,
   createView,
+  type ElementAddress,
+  type Facet,
+  idAddress,
+  inBlock,
   isCommandError,
   isLoadError,
+  LINE,
   loadManifest,
   type Manifest,
+  type Part,
+  sameAddress,
   type TimelineManifest,
+  WORKSPACE,
 } from "@timetoalign/tilie-core";
 import {
+  type Address,
   type Graphical,
   fontMetrics as metrics,
   SCHEMA_VERSION,
@@ -81,9 +89,20 @@ export function drawFixture(
   return draw(manifest, placement, [DEFAULT_LAYER, ...extra, manifestLayer(manifest)], metrics);
 }
 
-export function element(drawing: Drawing, address: string | null, index = 0): DrawnElement {
-  const found = drawing.elements.filter((item) => item.address === address)[index];
-  if (found === undefined) throw new Error(`no element ${address}`);
+/**
+ * The schema's `Address` `{id}` with the part words `part` (section 2.2), for
+ * selectors and comparisons alike: core's builders give the read-only
+ * `ElementAddress`, which a selector does not take.
+ */
+export function at(id: string, ...part: Part[]): Address {
+  const [first, ...rest] = part;
+  return first === undefined ? { id } : { id, part: [first, ...rest] };
+}
+
+/** The element at `address`, the `index`-th of those a drawing draws there. */
+export function element(drawing: Drawing, address: ElementAddress, index = 0): DrawnElement {
+  const found = drawing.elements.filter((item) => sameAddress(item.address, address))[index];
+  if (found === undefined) throw new Error(`no element ${JSON.stringify(address)}`);
   return found;
 }
 
@@ -92,15 +111,15 @@ export function boxesOf(drawing: Drawing, kind: ContainerKind): DrawnBox[] {
   return drawing.boxes.filter((box) => box.kind === kind);
 }
 
-/** The frames and box-held cards of a drawing, its items, in drawing order. */
+/** The frames and block-held cards of a drawing, its items, in drawing order. */
 export function itemsOf(drawing: Drawing): DrawnBox[] {
   return drawing.boxes.filter((box) => box.item !== undefined);
 }
 
 /** The first container a drawing records at `address`. */
-export function boxAt(drawing: Drawing, address: string): DrawnBox {
-  const found = drawing.boxes.find((box) => box.address === address);
-  if (found === undefined) throw new Error(`no container ${address}`);
+export function boxAt(drawing: Drawing, address: ElementAddress): DrawnBox {
+  const found = drawing.boxes.find((box) => sameAddress(box.address, address));
+  if (found === undefined) throw new Error(`no container ${JSON.stringify(address)}`);
   return found;
 }
 
@@ -116,7 +135,7 @@ export function build(rootId: string, length: number, ...commands: object[]): Ma
   const timeline = { ...root, id: rootId, name: null, length: quarters(length) };
   let view = apply(createView(), {
     type: "add",
-    into: "workspace",
+    into: WORKSPACE,
     block: { id: BLOCK, manifest: { ...source, timelines: [timeline] }, x: 0, y: 0 },
   });
   for (const command of [...commands]) {
@@ -131,7 +150,7 @@ export function build(rootId: string, length: number, ...commands: object[]): Ma
 export function edit(name: string, ...commands: object[]): Manifest {
   let view = apply(createView(), {
     type: "add",
-    into: "workspace",
+    into: WORKSPACE,
     block: { id: BLOCK, manifest: loadFile(name), x: 0, y: 0 },
   });
   for (const command of commands) {
@@ -143,22 +162,21 @@ export function edit(name: string, ...commands: object[]): Manifest {
 }
 
 /**
- * A band order of the timeline `id` (section 6.4): the bands of the kinds
- * `above` from the top down, then `id`, then the bands of the kinds `below`
- * from the line down.
+ * A band order (section 6.4): the facets `above` from the top down, then
+ * `line`, then the facets `below` from the line down.
  */
-export function bandOrder(
-  id: string,
-  above: readonly BandKind[],
-  below: readonly BandKind[],
-): string[] {
-  const band = (kind: BandKind) => `${id}/${kind}_1`;
-  return [...above.map(band), id, ...below.map(band)];
+export function bandOrder(above: readonly Facet[], below: readonly Facet[]): string[] {
+  return [...above, LINE, ...below];
 }
 
-/** The `set` command of some properties of one element of the block. */
-export function set(address: string, values: object): object {
-  return { type: "set", changes: [{ target: `${BLOCK}/${address}`, values }] };
+/** The address of the element with ID `id` in the block. */
+export function target(id: string): object {
+  return inBlock(BLOCK, idAddress(id));
+}
+
+/** The `set` command of some properties of the element with ID `id` in the block. */
+export function set(id: string, values: object): object {
+  return { type: "set", changes: [{ target: target(id), values }] };
 }
 
 /**
@@ -183,7 +201,7 @@ export function withLocked(
 export function linearMap(timeline: string, id: string): object {
   return {
     type: "add",
-    into: `${BLOCK}/${timeline}`,
+    into: target(timeline),
     map: {
       type: "LinearMap",
       id,
@@ -200,7 +218,7 @@ export function child(parent: string, id: string, offset: number, length: number
   const [timeline] = load("bare").timelines;
   return {
     type: "add",
-    into: `${BLOCK}/${parent}`,
+    into: target(parent),
     child: {
       ...timeline,
       id,
