@@ -162,6 +162,14 @@ export default defineConfig(({ mode }) => {
       include: ["tests/**/*.test.ts"],
       // Builds the editor: run on its own by `pnpm test:build` (`vitest.build.config.ts`).
       exclude: ["tests/attributions.test.ts"],
+      server: {
+        deps: {
+          // The fixture menu imports the schema package's fixtures as `?raw` text,
+          // which only Vite's transform understands; left external, Node would load
+          // the installed package's JSON files itself and refuse the query.
+          inline: ["@timetoalign/timetoshare"],
+        },
+      },
     },
   };
 });

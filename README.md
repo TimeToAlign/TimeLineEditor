@@ -27,11 +27,9 @@ TiLiE keeps a small browser editing core and treats the local Python server as a
 
 ## Development
 
-Every application package takes the TimeToShare schema package from a TimeToShare checkout beside this repository (a `link:` to `../TimeToShare/js`), so clone and build that first. Then install and validate the application workspace (see [CONTRIBUTING.md](CONTRIBUTING.md#setup)):
+Every application package takes the TimeToShare schema package, `@timetoalign/timetoshare`, from npm. Install and validate the application workspace (see [CONTRIBUTING.md](CONTRIBUTING.md#setup)):
 
 ```bash
-git clone https://github.com/TimeToAlign/TimeToShare.git
-(cd TimeToShare/js && pnpm install && pnpm build)
 git clone https://github.com/TimeToAlign/TimeLineEditor.git
 cd TimeLineEditor/app
 pnpm install
