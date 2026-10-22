@@ -420,7 +420,7 @@ Deleting a segment, a child of a segment line, leaves a gap in its line, and is 
 
 Core is typed through the package's typed forms: `completeManifest(value: LosslessManifest): CompleteManifest`, `minimalManifest` and `canonicalManifest`, where `LosslessManifest` is the schema's type with every number a `JsonNumber` and `CompleteManifest` the same with every defaulted key present. `parseJson` throws `JsonSyntaxError` with the `offset`, `line` and `column` of the fault, which the inspector shows. The validators of both languages raise `SchemaValidationError` with a stable `code` naming the rule broken (`not_a_manifest`, `schema`, `representation`, `finite_number`, `duplicate_id`, `dangling_target`, `conversion_map`, `child_unit`, `child_offset`, `child_end`, `segment_line`, `manifest_id`, `group_member`, `order_key`, `display_order`, `band_order`), and refuse a number that is not finite at its path; core reports every such refusal as `schema_violation` with the validator's path and message.
 
-Every application package takes schema 0.1.0 through a `link:` dependency on the `js/` package of a TimeToShare checkout beside this repository (`../TimeToShare/js`), built there with `pnpm install` and `pnpm build`, until that version is released ([`AGENTS.md`](../AGENTS.md#dependency-policy)).
+Every application package takes schema 0.1.0 from npm, `@timetoalign/timetoshare` `^0.1.0`; a schema version not yet released is tried through a `link:` to a TimeToShare checkout instead ([`AGENTS.md`](../AGENTS.md#dependency-policy)). The editor's tests let Vite transform the package (`server.deps.inline`), since the Fixture menu reads its fixtures as text.
 
 ## The server
 
