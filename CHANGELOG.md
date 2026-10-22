@@ -2,6 +2,39 @@
 
 Release entries are written by release-please from the Conventional Commits since the previous release.
 
+## [0.3.0](https://github.com/TimeToAlign/TimeLineEditor/compare/v0.2.0...v0.3.0) (2026-10-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* address elements by objects and accept free ids unique across a manifest
+* manifests and workspace files must carry the marker "timetoshare": "0.1.0"; a file with the marker "timeskeleton" is refused as not a TimeToShare manifest.
+* read the revised manifest with abstract conversion maps, measure maps and flow-control elements
+* the workspace file is format version 3, which adds `sessions` and a session entry kind to the journal and `places` and `bands` to every block; version 2 files are refused.
+
+### Features
+
+* address elements by objects and accept free ids unique across a manifest ([d732333](https://github.com/TimeToAlign/TimeLineEditor/commit/d732333ba2e429528fb66f00a6204b095a85a57f))
+* bands as units, drawn per timeline and moved in the timeline editor ([1aef4ae](https://github.com/TimeToAlign/TimeLineEditor/commit/1aef4aebc270249c831d6b55845e9623ed603198))
+* draw a timeline in several groups with one card per group ([ec38bc1](https://github.com/TimeToAlign/TimeLineEditor/commit/ec38bc18904649a168cd10fcc4995da5bb964842))
+* edit bundles, groups and timelines in editors on the canvas ([2dc066b](https://github.com/TimeToAlign/TimeLineEditor/commit/2dc066bd18b346872cd3b0742a6f1796f6f6b2c6))
+* edit group and bundle blocks, drawn with cards, frames and ancestor lines ([d0393c1](https://github.com/TimeToAlign/TimeLineEditor/commit/d0393c158a4e344096d5d3cc719f76e1d2903c43))
+* hold one manifest shape per block, with segment delete, unknown length and unknown-key warnings ([e54e60a](https://github.com/TimeToAlign/TimeLineEditor/commit/e54e60a3e1fcae7c506bca32514f0c87f77af4d4))
+* level tab, workspace name, gap spacing and editor selection fixes ([9aa5fe8](https://github.com/TimeToAlign/TimeLineEditor/commit/9aa5fe863ecc5de2d9028b14d517190046222a83))
+* mark every box around the selection, thinning outward, and name every inspected element ([bbd82f8](https://github.com/TimeToAlign/TimeLineEditor/commit/bbd82f8465da1d5b65e54ec4552320e719bd7b97))
+* read and write TimeToShare 0.1.0 manifests ([1b20731](https://github.com/TimeToAlign/TimeLineEditor/commit/1b20731fac17ecd9e092cc62fd7ccf76f773cf05))
+* read the revised manifest with abstract conversion maps, measure maps and flow-control elements ([8a41908](https://github.com/TimeToAlign/TimeLineEditor/commit/8a419085fc5e9ab0f51508d53769a618e7d1f543))
+* resize every box alike, undo one change at a time, edit each element's geometry ([03b738f](https://github.com/TimeToAlign/TimeLineEditor/commit/03b738f8d234b4261574fd2143f32d63294eff6a))
+* select the box a press hits, refuse segment Delete, show a disabled Locked checkbox ([54e322f](https://github.com/TimeToAlign/TimeLineEditor/commit/54e322fe6510a3f1bc456205f4819c9e7911db0c))
+* split the inspector into Properties and Manifest tabs, with a minimal view ([a8d46a4](https://github.com/TimeToAlign/TimeLineEditor/commit/a8d46a41b19e19cb295842f1d6a69a60d5818c9c))
+* stretch every box vertically and keep requested margins in proportion ([64f1a95](https://github.com/TimeToAlign/TimeLineEditor/commit/64f1a950a5f3121f2530d26ffba9dcb129c35c6c))
+* undo closed editor sessions by runs, move a multi-selection in the bundle editor ([4f0c747](https://github.com/TimeToAlign/TimeLineEditor/commit/4f0c7476755f11769c5f569fe4ebbd363d380462))
+
+
+### Bug Fixes
+
+* mark a group frame that holds the selection, and show Locked as a plain readable checkbox ([6c2eea5](https://github.com/TimeToAlign/TimeLineEditor/commit/6c2eea5744666a668b5dc5840f5ddecf82dd5166))
+
 ## [0.2.0](https://github.com/TimeToAlign/TimeLineEditor/compare/v0.1.0...v0.2.0) (2026-10-12)
 
 
