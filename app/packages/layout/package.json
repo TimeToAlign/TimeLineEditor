@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@timetoalign/tilie-core": "workspace:*",
-    "@timetoalign/timetoshare": "link:../../../../TimeToShare/js"
+    "@timetoalign/timetoshare": "^0.1.0"
   },
   "devDependencies": {
     "fast-check": "4.10.2"

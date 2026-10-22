@@ -160,6 +160,10 @@ export default defineConfig(({ mode }) => {
       name: "editor",
       environment: "jsdom",
       include: ["tests/**/*.test.ts"],
+      // The fixture menu imports the schema package's fixtures with `?raw`,
+      // which only Vite resolves; Node would load a package from
+      // `node_modules` without that query.
+      server: { deps: { inline: ["@timetoalign/timetoshare"] } },
       // Builds the editor: run on its own by `pnpm test:build` (`vitest.build.config.ts`).
       exclude: ["tests/attributions.test.ts"],
     },

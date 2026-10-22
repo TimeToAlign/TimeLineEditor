@@ -6,13 +6,11 @@ TiLiE is a pnpm TypeScript workspace with a Svelte 5 application and a separate 
 
 Install Node.js 22.18 or newer, pnpm 12.10.1, Python 3.11 or newer, and uv.
 
-The five application packages that use the schema, `core`, `layout`, `writers`, `arranger` and `editor`, take it from the `@timetoalign/timetoshare` package. While TiLiE is built against a schema version that is not yet released, as it is now against schema 0.1.0, each of them depends on the package through a committed `link:` to the `js/` directory of a [TimeToShare](https://github.com/TimeToAlign/TimeToShare) checkout beside this repository (`link:../../../../TimeToShare/js` in each package manifest, `../TimeToShare/js` from the repository root), and the repository is not published in that state. Once that schema version is released, the `link:` is replaced by a compatible range from npm, `^0.1.0`. `pnpm dev` may read the linked package's directory, so the editor still loads its bundled font.
+The five application packages that use the schema, `core`, `layout`, `writers`, `arranger` and `editor`, take it from the `@timetoalign/timetoshare` package on npm, at a compatible range of the schema version TiLiE is built against (`^0.1.0`). While TiLiE is built against a schema version that is not yet released, each of them instead depends on the package through a committed `link:` to the `js/` directory of a [TimeToShare](https://github.com/TimeToAlign/TimeToShare) checkout beside this repository (`link:../../../../TimeToShare/js` in each package manifest, `../TimeToShare/js` from the repository root, built there with `pnpm install` and `pnpm build`), and the repository is not published in that state.
 
-From the repository root, build the sibling schema package first, then prepare both parts of the repository:
+From the repository root, prepare both parts of the repository:
 
 ```bash
-pnpm -C ../TimeToShare/js install
-pnpm -C ../TimeToShare/js build
 cd app
 pnpm install
 cd ../server
