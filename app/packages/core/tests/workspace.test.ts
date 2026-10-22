@@ -14,28 +14,28 @@ describe("workspace creation", () => {
   it("defaults blocks to the drawing's placement defaults and scale 1", () => {
     expect(DEFAULT_SETTINGS).toEqual({
       grid: { size: 8, snap: true },
-      blockDefaults: { scale: 1, length: 400, spacing: 8, width: null, height: null },
+      blockDefaults: { scale: 1, length: 400, spacing: 8, margin: 0, width: null, height: null },
       graphical: {},
     });
   });
 
   it("creates exactly the fixed metadata, the name, the settings and no blocks", () => {
     expect(createView()).toEqual({
-      meta: { format: "tilie-workspace", version: 5 },
+      meta: { format: "tilie-workspace", version: 6 },
       name: "untitled",
       settings: DEFAULT_SETTINGS,
       blocks: {},
     });
     const settings = { ...DEFAULT_SETTINGS, grid: { size: 4, snap: false } };
     expect(createView(settings)).toEqual({
-      meta: { format: "tilie-workspace", version: 5 },
+      meta: { format: "tilie-workspace", version: 6 },
       name: "untitled",
       settings,
       blocks: {},
     });
   });
 
-  it("gives a block exactly its twelve members", () => {
+  it("gives a block exactly its thirteen members", () => {
     expect(Object.keys(block(viewOf([A, "bare.json"]))).sort()).toEqual(
       [
         "id",
@@ -46,6 +46,7 @@ describe("workspace creation", () => {
         "scale",
         "length",
         "spacing",
+        "margin",
         "width",
         "height",
         "places",
@@ -100,6 +101,7 @@ describe("workspace checks", () => {
       scale: 0,
       length: -1,
       spacing: -1,
+      margin: -1,
       width: -5,
       height: null,
       manifest: {
@@ -113,6 +115,7 @@ describe("workspace checks", () => {
       { code: "non_positive_number", path: ["blocks", A, "length"] },
       { code: "non_positive_number", path: ["blocks", A, "width"] },
       { code: "invalid_value", path: ["blocks", A, "spacing"] },
+      { code: "invalid_value", path: ["blocks", A, "margin"] },
       {
         code: "region_end_before_start",
         path: ["blocks", A, "manifest", "timelines", 0, "regions", 0, "end"],

@@ -45,7 +45,7 @@ export type BlockNode = Node<BlockNodeData, "block">;
  */
 export type LivePlacement = Pick<
   Block,
-  "id" | "x" | "y" | "scale" | "length" | "spacing" | "width" | "height"
+  "id" | "x" | "y" | "scale" | "length" | "spacing" | "margin" | "width" | "height"
 > & { readonly drawing: Drawing };
 
 const NO_ELEMENTS: ReadonlySet<string> = new Set();
@@ -243,6 +243,7 @@ export function livePlacement(
     scale: shown.scale,
     length: shown.length,
     spacing: shown.spacing,
+    margin: shown.margin,
     width: shown.width,
     height: shown.height,
     drawing,

@@ -268,6 +268,24 @@ export function itemHolding(drawing: Drawing, box: DrawnBox): ItemBox {
   return holder;
 }
 
+/**
+ * The number of contents of the container `box` (`docs/drawing.md` in
+ * TimeToShare, section 1) as layout records it: a block's items, a frame's
+ * cards, a card's rows and bands; a band has none.
+ */
+export function contentCountOf(box: DrawnBox): number {
+  return box.contentCount ?? 0;
+}
+
+/**
+ * What a vertical Stretch of the container `box` changes (section 1): its
+ * `margin` when it has exactly one content, which has no gap to widen, else
+ * its `spacing`, the gap between its contents.
+ */
+export function verticalStretchOf(box: DrawnBox): "spacing" | "margin" {
+  return contentCountOf(box) === 1 ? "margin" : "spacing";
+}
+
 function holds(box: DrawnBox, { x, y }: DrawingPoint): boolean {
   return box.x <= x && x <= box.x + box.width && box.y <= y && y <= box.y + box.height;
 }

@@ -226,8 +226,20 @@ export function refusal(result: unknown): { code: string; path: readonly (string
 export function storeOf(view: View, options: StoreOptions = {}): Store {
   const store = createStore(emptyWorkspace(), options);
   const blocks = Object.values(view.blocks).sort((a, b) => compareCodePoints(a.index, b.index));
-  for (const { id, manifest, places, x, y, scale, length, spacing, width, height } of blocks) {
-    const block = { id, manifest, places, x, y, scale, length, spacing, width, height };
+  for (const {
+    id,
+    manifest,
+    places,
+    x,
+    y,
+    scale,
+    length,
+    spacing,
+    margin,
+    width,
+    height,
+  } of blocks) {
+    const block = { id, manifest, places, x, y, scale, length, spacing, margin, width, height };
     const refused = store.dispatch({ type: "add", into: {}, block });
     if (refused !== null) throw new Error(`${refused.code} at ${JSON.stringify(refused.path)}`);
   }

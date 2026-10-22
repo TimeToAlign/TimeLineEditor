@@ -44,6 +44,7 @@ export function bandGesture(host: NodeHost): GestureStrategy<BandPress, readonly
       ? null
       : bandMoveCommand(press.view, host.data().block.id, press.timeline, order);
   return {
+    moves: true,
     takes(event, at) {
       if (event.shiftKey || !actions.rules().bands) return null;
       const { block, drawing, editing } = host.data();

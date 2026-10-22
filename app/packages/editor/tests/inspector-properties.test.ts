@@ -44,7 +44,7 @@ import { editorAt } from "./support.ts";
 
 const M = "bmixed0000";
 /** The members of a place, in the order a place is written and the form shows them. */
-const PLACE = ["x", "y", "length", "scale", "spacing", "width", "height"] as const;
+const PLACE = ["x", "y", "length", "scale", "spacing", "margin", "width", "height"] as const;
 /** The fields' labels in place order: the size is the container's. */
 const LABELS = PLACE.map((property) =>
   property === "width" || property === "height" ? `container ${property}` : property,
@@ -92,9 +92,9 @@ function stored(store: Store): Shown {
 /** A gesture's placement of `M`: its stored placement, its drawing that of the block with `places`. */
 function livePlacementOf(store: Store, places: Block["places"]): LivePlacement {
   const block = blockOf(store);
-  const { x, y, scale, length, spacing, width, height } = block;
+  const { x, y, scale, length, spacing, margin, width, height } = block;
   const drawing = drawingOf(block, store.view.settings, fontMetrics, { places });
-  return { id: M, x, y, scale, length, spacing, width, height, drawing };
+  return { id: M, x, y, scale, length, spacing, margin, width, height, drawing };
 }
 
 function geometryIn(
@@ -132,6 +132,7 @@ function itemValues(box: DrawnBox) {
     scale: stated.scale ?? place.scale,
     length: stated.length ?? place.length,
     spacing: stated.spacing ?? place.spacing,
+    margin: stated.margin ?? place.margin,
     width: stated.width ?? place.width,
     height: stated.height ?? place.height,
   };
@@ -148,7 +149,16 @@ describe("the geometry", () => {
           holder: null,
           address: at(),
           box: null,
-          values: { x: 0, y: 0, scale: 1, length: 400, spacing: 8, width: null, height: null },
+          values: {
+            x: 0,
+            y: 0,
+            scale: 1,
+            length: 400,
+            spacing: 8,
+            margin: 0,
+            width: null,
+            height: null,
+          },
         },
       ],
     });
@@ -220,6 +230,7 @@ describe("the geometry", () => {
               scale: frame?.scale,
               length: frame?.length,
               spacing: card?.spacing,
+              margin: card?.margin,
               width: card?.size.width,
               height: card?.size.height,
             },
@@ -328,6 +339,7 @@ describe("the fields", () => {
       "group length",
       "group scale",
       "spacing",
+      "margin",
       "container width",
       "container height",
     ]);
@@ -336,8 +348,8 @@ describe("the fields", () => {
   it.each([
     [{}, "arranger", []],
     [{}, "bundle", []],
-    [{}, "group", ["length", "scale", "spacing"]],
-    [{}, "timeline", ["length", "scale", "spacing"]],
+    [{}, "group", ["length", "scale", "spacing", "margin"]],
+    [{}, "timeline", ["length", "scale", "spacing", "margin"]],
     [{ id: "group_1" }, "arranger", ["x", "y"]],
     [{ id: "group_1" }, "bundle", []],
     [{ id: "group_1" }, "group", ["x", "y"]],
@@ -354,7 +366,16 @@ describe("the fields", () => {
   });
 
   it("steps exactly, by 1 or by 0.1", () => {
-    expect(STEPS).toEqual({ x: 1, y: 1, scale: 0.1, length: 1, spacing: 1, width: 1, height: 1 });
+    expect(STEPS).toEqual({
+      x: 1,
+      y: 1,
+      scale: 0.1,
+      length: 1,
+      spacing: 1,
+      margin: 1,
+      width: 1,
+      height: 1,
+    });
     const cases: [number | null, 1 | -1, number, number][] = [
       [10.123, 1, 1, 11.123],
       [1, -1, 0.1, 0.9],
@@ -409,6 +430,7 @@ describe("the commands are the arranger's", () => {
     [[{ id: "group_1" }], "length", "300", 300, "arranger"],
     [[{ id: "score", part: ["card"] }], "scale", "1.5", 1.5, "arranger"],
     [[{ id: "score", part: ["card"] }], "spacing", "1.5", 1.5, "group"],
+    [[{ id: "group_1" }], "margin", "12", 12, "bundle"],
     [[{ id: "score", part: ["card"] }], "length", "500", 500, "group"],
     [[{ id: "group_1" }, { id: "group_2" }], "length", "350", 350, "arranger"],
     [
@@ -706,6 +728,7 @@ describe("the Properties form", () => {
       ["group length", false],
       ["group scale", false],
       ["spacing", false],
+      ["margin", false],
       ["container width", false],
       ["container height", false],
     ]);

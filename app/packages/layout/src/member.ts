@@ -41,6 +41,11 @@ export interface MemberLayout {
   readonly chevrons: readonly number[];
   /** Its height `Hm`: the content height `Hc` (section 6.5), the ancestor band included. */
   readonly height: number;
+  /**
+   * The number of its card's contents (section 1): its root's row, its root's present bands and
+   * its ancestor band when it has one.
+   */
+  readonly contentCount: number;
   /** It drawn with the shared start `x0`, the name column `n` and its top `top`, in item coordinates. */
   drawAt(x0: number, n: number, top: number): MemberDrawn;
 }
@@ -69,8 +74,8 @@ function rowsBelow(row: Row): Row[] {
 
 /**
  * Lay out one timeline drawn as a root (sections 3 to 6, and 8.3 for its
- * ancestors) in the card whose place key is `card`, of spacing `S`, its
- * line held by `holder`, the block or its group's frame, by
+ * ancestors) in the card whose place key is `card`, of spacing `S` and
+ * margin `V`, its line held by `holder`, the block or its group's frame, by
  * the three passes of section 6.4: every first fit and every row; the
  * distances, from the deepest rows up, then the ancestor band and the
  * heights; the ordinates, from the root's line down, once `drawAt` gives the
@@ -82,8 +87,9 @@ export function layoutMember(
   holder: Holder,
   card: PlaceKey,
   S: number,
+  V: number,
 ): MemberLayout {
-  const scope = traverse(context, member, holder, S);
+  const scope = traverse(context, member, holder, S, V);
   const { rootEntry } = scope;
 
   const fitted = fitTimelines(scope);
@@ -162,6 +168,7 @@ export function layoutMember(
     centred,
     chevrons: chevrons(ancestors),
     height: Hc,
+    contentCount: 1 + root.bands.length + (ancestors.length > 0 ? 1 : 0),
     drawAt,
   };
 }

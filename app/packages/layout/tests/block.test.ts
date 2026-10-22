@@ -345,17 +345,19 @@ describe("a titled manifest with two frames and an ungrouped root", () => {
   });
 
   it("gives every member's card its size, spacing and request, and its rectangle", () => {
-    const sized = (height: number) => ({
+    const sized = (height: number, contentCount: number) => ({
+      contentCount,
       size: { width: 546.484619140625, height },
       spacing: 4,
+      margin: 0,
       stated: {},
     });
     const members = boxesOf(drawing, "card").filter((box) => box.holder !== null);
-    expect(members.map((box) => box.card)).toEqual([
-      sized(78.953125),
-      sized(49.4765625),
-      sized(49.4765625),
-      sized(87.453125),
+    expect(members.map(({ contentCount, card }) => ({ contentCount, ...card }))).toEqual([
+      sized(78.953125, 4),
+      sized(49.4765625, 3),
+      sized(49.4765625, 3),
+      sized(87.453125, 4),
     ]);
     for (const box of members) {
       expect([box.x, box.y, box.width, box.height]).toEqual(

@@ -3,7 +3,7 @@
  * sections 8.1, 8.4 and 8.6): each group's frame with its members' cards,
  * and each ungrouped root's card, an item of one card without a frame. Each
  * card's member drawing is laid out here at its item's length and its card's
- * spacing; nothing is yet drawn.
+ * spacing and margin; nothing is yet drawn.
  */
 
 import {
@@ -67,6 +67,11 @@ export interface Card {
    * `spacing`, a block-held card's its item's, else 4.
    */
   readonly spacing: number;
+  /**
+   * Its margin `V`, empty space above its first row or band and below its last: a member's card's
+   * own `margin`, a block-held card's its item's, else 0.
+   */
+  readonly margin: number;
   /** Its top and height in item coordinates. */
   readonly top: number;
   readonly height: number;
@@ -87,6 +92,7 @@ export interface Item {
   readonly length: number;
   readonly scale: number;
   readonly spacing: number;
+  readonly margin: number;
   readonly height: number;
   readonly cards: readonly Card[];
 }
@@ -135,8 +141,8 @@ function containerOf(context: Context, key: PlaceKey): ContainerRef {
 
 /**
  * The card of `member` whose place key is `key`, held by `holder` (the
- * frame of its group, or the block), its member drawing laid out at `L`
- * and spacing `S`.
+ * frame of its group, or the block), its member drawing laid out at `L`,
+ * spacing `S` and margin `V`.
  */
 function cardOf(
   context: Context,
@@ -145,6 +151,7 @@ function cardOf(
   key: PlaceKey,
   L: number,
   S: number,
+  V: number,
 ): Pick<Card, "member" | "ref" | "address" | "style" | "layout"> {
   const timeline = member.timeline;
   const ref = containerOf(context, key);
@@ -154,18 +161,20 @@ function cardOf(
     holder.style,
   );
   const laid: Context = { ...context, placement: { ...context.placement, length: L } };
-  return { member, ref, address, style, layout: layoutMember(laid, member, holder, key, S) };
+  return { member, ref, address, style, layout: layoutMember(laid, member, holder, key, S, V) };
 }
 
 /**
  * Every item of the block in drawing order, the frames then the block-held
  * cards (section 8.6), `block` the holder of the frames and the block-held
  * cards and `top` the default top of the first item, below the title's
- * slot. An item's length `L`, scale and spacing are what its place states,
- * else the placement's length, 1, and 8 for a frame, 4 for a block-held card;
- * its member drawings are laid out at `L`, a block-held card's at its item's
- * spacing, a member's at its own card's (else 4), and a frame's cards lie
- * its spacing apart. No spacing multiplies another. Its height, in item
+ * slot and the block's margin. An item's length `L`, scale, spacing and
+ * margin are what its place states, else the placement's length, 1, 8 for a
+ * frame and 4 for a block-held card, and 0; its member drawings are laid out
+ * at `L`, a block-held card's at its item's spacing and margin, a member's
+ * at its own card's (else 4 and 0), and a frame's cards lie its spacing
+ * apart, its margin above the first and below the last. No spacing or
+ * margin multiplies another. Its height, in item
  * coordinates, is the larger of its content's and the requested one; its
  * place `x` and `y` what is stated, else `P` and, for `y`, the first item at
  * `top`, each further one the placement's `spacing` below the largest drawn
@@ -178,13 +187,18 @@ export function placeItems(context: Context, block: Holder, top: number): Item[]
   const place = (
     key: PlaceKey,
     frame: Frame | null,
-    content: (L: number, spacing: number) => { readonly height: number; readonly cards: Card[] },
+    content: (
+      L: number,
+      spacing: number,
+      margin: number,
+    ) => { readonly height: number; readonly cards: Card[] },
   ): Item => {
     const stated = statedOf(context, key);
     const length = stated.length ?? placement.length;
     const scale = stated.scale ?? 1;
     const spacing = stated.spacing ?? (frame === null ? CARD_SPACING : FRAME_SPACING);
-    const laid = content(length, spacing);
+    const margin = stated.margin ?? 0;
+    const laid = content(length, spacing, margin);
     const height = stated.height === undefined ? laid.height : Math.max(laid.height, stated.height);
     const x = stated.x ?? P;
     const y = stated.y ?? (lowest === undefined ? top : lowest + placement.spacing);
@@ -192,7 +206,7 @@ export function placeItems(context: Context, block: Holder, top: number): Item[]
     lowest = lowest === undefined ? bottom : Math.max(lowest, bottom);
     // A block-held card is as high as its item.
     const cards = frame === null ? laid.cards.map((card) => ({ ...card, height })) : laid.cards;
-    return { key, frame, stated, x, y, length, scale, spacing, height, cards };
+    return { key, frame, stated, x, y, length, scale, spacing, margin, height, cards };
   };
 
   const framed = frames.map(({ group, members }) => {
@@ -203,17 +217,20 @@ export function placeItems(context: Context, block: Holder, top: number): Item[]
     const holder: Holder = { key, style: context.cascade.resolve(key, block.style) };
     const title = titleOf(context, partAddress(address, "name"), group.id, group.name, holder);
     const frame: Frame = { ref, address, holder, title };
-    return place(item, frame, (L, Sf) => {
-      // The title's slot, then the cards the frame's spacing `Sf` apart, each the larger of its
-      // member drawing's height and the height its own request asks (section 8.4); each member
-      // drawing laid out at its card's own spacing.
+    return place(item, frame, (L, Sf, Vf) => {
+      // The title's slot, the frame's margin `Vf`, then the cards the frame's spacing `Sf` apart,
+      // each the larger of its member drawing's height and the height its own request asks, and
+      // `Vf` again after the last (section 8.4); a frame without cards draws no margin. Each
+      // member drawing is laid out at its card's own spacing and margin.
       let y = Q;
       if (title !== undefined) y = y + measure.lineHeight(title.size) + TITLE_GAP;
+      if (members.length > 0) y = y + Vf;
       const cards = members.map((member, index): Card => {
         const key: PlaceKey = { item: group.id, member: member.timeline.id };
         const stated = requestOf(context, key);
         const spacing = stated.spacing ?? CARD_SPACING;
-        const card = cardOf(context, member, holder, key, L, spacing);
+        const margin = stated.margin ?? 0;
+        const card = cardOf(context, member, holder, key, L, spacing, margin);
         const height =
           stated.height === undefined
             ? card.layout.height
@@ -221,17 +238,18 @@ export function placeItems(context: Context, block: Holder, top: number): Item[]
         if (index > 0) y = y + Sf;
         const cardTop = y;
         y = y + height;
-        return { ...card, stated, spacing, top: cardTop, height };
+        return { ...card, stated, spacing, margin, top: cardTop, height };
       });
+      if (members.length > 0) y = y + Vf;
       return { cards, height: y + Q };
     });
   });
   const loose = ungrouped.map((member) => {
     const key: PlaceKey = { item: member.timeline.id };
-    return place(key, null, (L, spacing) => {
-      const card = cardOf(context, member, block, key, L, spacing);
+    return place(key, null, (L, spacing, margin) => {
+      const card = cardOf(context, member, block, key, L, spacing, margin);
       const height = card.layout.height;
-      return { cards: [{ ...card, stated: {}, spacing, top: 0, height }], height };
+      return { cards: [{ ...card, stated: {}, spacing, margin, top: 0, height }], height };
     });
   });
   return [...framed, ...loose];

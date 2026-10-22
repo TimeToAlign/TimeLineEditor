@@ -89,6 +89,7 @@
         ],
         "timetoshare": "0.1.0"
       },
+      "margin": 0,
       "parent": null,
       "places": {},
       "scale": 1,
@@ -208,6 +209,7 @@
         ],
         "timetoshare": "0.1.0"
       },
+      "margin": 0,
       "parent": null,
       "places": {},
       "scale": 1,
@@ -392,6 +394,7 @@
         ],
         "timetoshare": "0.1.0"
       },
+      "margin": 0,
       "parent": null,
       "places": {},
       "scale": 1,
@@ -581,6 +584,7 @@
         ],
         "timetoshare": "0.1.0"
       },
+      "margin": 0,
       "parent": null,
       "places": {},
       "scale": 1,
@@ -1183,7 +1187,7 @@
   ],
   "meta": {
     "format": "tilie-workspace",
-    "version": 5
+    "version": 6
   },
   "name": "untitled",
   "sessions": {},
@@ -1191,6 +1195,7 @@
     "blockDefaults": {
       "height": null,
       "length": 400,
+      "margin": 0,
       "scale": 1,
       "spacing": 8,
       "width": null

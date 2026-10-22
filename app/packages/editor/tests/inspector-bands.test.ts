@@ -90,9 +90,20 @@ function record(timeline: string, facet: Facet, level: number, elements: number)
 
 /** A placement of `id` at its stored values, showing its stored drawing with `bands` instead of its own. */
 function placementOf(view: View, id: string, bands: readonly DrawnBox[]): LivePlacement {
-  const { drawing, x, y, scale, length, spacing, width, height } = stored(view, id);
+  const { drawing, x, y, scale, length, spacing, margin, width, height } = stored(view, id);
   const boxes = [...drawing.boxes.filter((box) => box.kind !== "band"), ...bands];
-  return { id, x, y, scale, length, spacing, width, height, drawing: { ...drawing, boxes } };
+  return {
+    id,
+    x,
+    y,
+    scale,
+    length,
+    spacing,
+    margin,
+    width,
+    height,
+    drawing: { ...drawing, boxes },
+  };
 }
 
 describe("bandRows", () => {
@@ -243,7 +254,7 @@ describe("the Properties panel of a band", () => {
       [...panel().querySelectorAll<HTMLInputElement>("input[type=number]")].map(
         (input) => input.name,
       ),
-    ).toEqual(["x", "y", "length", "scale", "spacing", "width", "height"]);
+    ).toEqual(["x", "y", "length", "scale", "spacing", "margin", "width", "height"]);
     expect(panel().querySelectorAll("input[type=checkbox]")).toHaveLength(0);
     expect(panel().querySelector("dl")).toBe(null);
   });

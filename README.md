@@ -12,7 +12,7 @@ What works in the source tree:
   - element addresses, and the workspace view with its blocks, ids and order keys;
   - the four commands `add`, `set`, `remove` and `style` over addresses, under the library's invariants;
   - a store whose command journal gives undo and redo;
-  - the workspace file `<name>.tle.json` (format version 5), named by default after the workspace.
+  - the workspace file `<name>.tle.json` (format version 6), named by default after the workspace.
 - **Drawing** (`layout`, `writers`). Every manifest is drawn as one block opened by its title:
   - groups as frames, and each timeline as a root in a card; a member of several groups gets a card in each of their frames, though no command yet puts a timeline into a second group;
   - a member that is a child timeline drawn under the lines of its ancestors;
@@ -29,7 +29,7 @@ What works in the source tree:
   - In the bundle editor, groups' frames and ungrouped timelines' cards are dragged freely. Dragging one that is in the selection moves everything selected by the same travel and keeps the selection.
 - **The editor** (`editor`). One component that the page served by `tilie` uses, and that any other page can mount with `pnpm build:embed`'s `tilie.js` ([embedding](docs/architecture.md#embedding)).
   - A header with a File menu (New workspace, Open…, Save, Save as…, Import manifest…, Export manifest…, Export minimal manifest…) and an About button, the canvas, and an inspector drawer opened by a tab at the right edge.
-  - Manifests are imported from any TimeToShare JSON file and exported in the complete or, on request, the minimal form, the file named after the manifest's `id`, else its `name`, else `bundle`.
+  - Manifests are imported from any TimeToShare JSON file, each as a new block at the centre of the view, moved right past the blocks it would overlap (not while an editor is open), and exported in the complete or, on request, the minimal form, the file named after the manifest's `id`, else its `name`, else `bundle`.
   - The inspector's first tab, named by the level in view (Arranger, Bundle, Group or Timeline), names the workspace or the edited element. Its Properties tab renames the workspace or the inspected element and edits the geometry of the selected block, frame or card. Its Manifest tab edits the selected block's manifest as JSON, YAML or TOML and lists unknown keys as warnings. Its Journal tab lists the journal, newest first.
   - Unsaved changes are marked with `•` in the header. A workspace's text is autosaved in the browser's IndexedDB and offered for restoring when the editor opens again.
 

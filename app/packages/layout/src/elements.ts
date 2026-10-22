@@ -15,11 +15,17 @@ export interface Placement {
   readonly length: number;
   /** The block's spacing: the gap between its items at their default `y` (section 8.6). */
   readonly spacing: number;
+  /**
+   * The block's margin `Vb`: empty space above its first item and below its last (sections 8.4
+   * and 8.6), finite, at least 0; left out, 0.
+   */
+  readonly margin?: number;
   readonly width: number | null;
   readonly height: number | null;
   /**
    * The places of the block's items, by group ID or ungrouped root ID, each group's holding
-   * the sizes and spacings of its members' cards in its `cards`, by member ID (section 8.6).
+   * the sizes, spacings and margins of its members' cards in its `cards`, by member ID (section
+   * 8.6).
    */
   readonly places: Places;
 }
@@ -27,6 +33,7 @@ export interface Placement {
 export const DEFAULT_PLACEMENT: Placement = {
   length: 400,
   spacing: 8,
+  margin: 0,
   width: null,
   height: null,
   places: {},

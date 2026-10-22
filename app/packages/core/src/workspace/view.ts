@@ -19,7 +19,7 @@ import { BLOCK_ID } from "./blocks.ts";
 
 export interface WorkspaceMeta {
   readonly format: "tilie-workspace";
-  readonly version: 5;
+  readonly version: 6;
 }
 
 export interface WorkspaceSettings {
@@ -37,14 +37,14 @@ export interface View {
   readonly blocks: { readonly [id: BlockId]: Block };
 }
 
-export const WORKSPACE_META: WorkspaceMeta = { format: "tilie-workspace", version: 5 };
+export const WORKSPACE_META: WorkspaceMeta = { format: "tilie-workspace", version: 6 };
 
 /** The name of a new workspace, and of one read from a file that states none. */
 export const UNTITLED_WORKSPACE = "untitled";
 
 export const DEFAULT_SETTINGS: WorkspaceSettings = {
   grid: { size: 8, snap: true },
-  blockDefaults: { scale: 1, length: 400, spacing: 8, width: null, height: null },
+  blockDefaults: { scale: 1, length: 400, spacing: 8, margin: 0, width: null, height: null },
   graphical: {},
 };
 
@@ -77,6 +77,7 @@ function placementProblems(block: Block, path: readonly PathSegment[]): Problem[
     check(readPositive(value, [...path, name]));
   }
   check(readNonNegative(block.spacing, [...path, "spacing"]));
+  check(readNonNegative(block.margin, [...path, "margin"]));
   const places = readPlaces(block.places, [...path, "places"]);
   if (isCommandError(places)) problems.push(places);
   else problems.push(...placeProblems(block, path));
@@ -92,7 +93,7 @@ function listed(words: readonly string[]): string {
  * The first member `place`, the place of `ref` (a frame's or a card's),
  * states beyond those `placeMembersOf(ref)` allows, as a problem of `code`
  * at `path` followed by that member; `undefined` when it states only those.
- * Only a member's card is so limited: to its size and spacing.
+ * Only a member's card is so limited: to its size, spacing and margin.
  */
 export function placeMemberProblem(
   ref: ContainerRef,

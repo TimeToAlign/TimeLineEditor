@@ -15,6 +15,8 @@ export interface BlockPlacement {
   readonly length: number;
   /** The block's spacing, the gap between its items at their default `y`: finite, at least 0. */
   readonly spacing: number;
+  /** The block's margin, empty space drawn above its first item and below its last: finite, at least 0. */
+  readonly margin: number;
   /** The requested block size, positive, or null for the content's own size. */
   readonly width: number | null;
   readonly height: number | null;
@@ -35,7 +37,7 @@ export interface Block extends BlockPlacement {
   /**
    * The stated places of the containers of its manifest's drawing: an item's
    * place by its group's or ungrouped root's ID, and in a group's entry the
-   * size and spacing of each member's card in its frame by member ID
+   * size, spacing and margin of each member's card in its frame by member ID
    * (`places[G].cards[T]`).
    */
   readonly places: Places;
@@ -52,6 +54,7 @@ export const BLOCK_MEMBERS = [
   "scale",
   "length",
   "spacing",
+  "margin",
   "width",
   "height",
   "places",

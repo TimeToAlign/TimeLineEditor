@@ -80,6 +80,7 @@ export const STEPS: { readonly [property in PlaceProperty]: number } = {
   scale: 0.1,
   length: 1,
   spacing: 1,
+  margin: 1,
   width: 1,
   height: 1,
 };
@@ -196,8 +197,8 @@ export function geometryOf(
 
 /** The block's placement as `shown` shows it: the values of the block. */
 function placementOf(shown: Shown): Values {
-  const { x, y, scale, length, spacing, width, height } = shown;
-  return { x, y, scale, length, spacing, width, height };
+  const { x, y, scale, length, spacing, margin, width, height } = shown;
+  return { x, y, scale, length, spacing, margin, width, height };
 }
 
 /** One read-only row of the Properties tab: what it names and the value it shows. */

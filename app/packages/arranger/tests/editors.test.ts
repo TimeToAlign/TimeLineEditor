@@ -332,18 +332,25 @@ describe("resizingOf and resizes", () => {
       ]),
     );
     const all = (written: string) =>
-      ["x", "y", "length", "scale", "spacing", "width", "height"].map(
+      ["x", "y", "length", "scale", "spacing", "margin", "width", "height"].map(
         (member) => `${member} ${written}`,
       );
     const block = all("block");
-    const fixedOff = ["x", "y", "-length", "-scale", "-spacing", "width", "height"].map(
+    const fixedOff = ["x", "y", "-length", "-scale", "-spacing", "-margin", "width", "height"].map(
       (member) => `${member} block`,
     );
     const item = all("item");
-    const unmoved = ["-x", "-y", "length", "scale", "spacing", "width", "height"].map(
+    const unmoved = ["-x", "-y", "length", "scale", "spacing", "margin", "width", "height"].map(
       (member) => `${member} item`,
     );
-    const held = ["length item", "scale item", "spacing own", "width own", "height own"];
+    const held = [
+      "length item",
+      "scale item",
+      "spacing own",
+      "margin own",
+      "width own",
+      "height own",
+    ];
     expect(table).toStrictEqual({
       block: { arranger: block, bundle: block, group: fixedOff, timeline: fixedOff },
       frame: {

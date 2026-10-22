@@ -106,7 +106,17 @@ new workspace stays `untitled`. In a text
 field the browser keeps Ctrl+Z; elsewhere Ctrl+Z, Ctrl+Y and Ctrl+Shift+Z
 step the journal and drop selected addresses that no longer exist. Import
 adds one `add` of the manifest at the view's centre, the new block
-selected; a refused manifest ("bad.json is not a manifest") adds nothing.
+selected (in jsdom's empty, zero-sized view `(0, 0)`; where it goes beside
+existing blocks is the arranger's to prove); a refused manifest ("bad.json
+is not a manifest") adds nothing. An editor changes only what it edits, so
+a new block cannot be added while one is open: with the editor of block A
+open, Import manifest… is `aria-disabled="true"` and choosing it opens no
+file input; after Done it is enabled again (`aria-disabled` absent). The
+session's own import, called with an editor open, opens no picker
+(`showOpenFilePicker` is never called and no file input appears),
+dispatches nothing (the view is the same object, the journal one entry
+long), neither reads the canvas's view nor moves the focus, and says
+nothing.
 Export writes the selected block's manifest, complete or minimal, as core's
 writer gives it, under its manifest file name, and is disabled while the
 selection spans two blocks.
@@ -324,7 +334,7 @@ The form edits the geometry of what is selected, never the block's when
 something inside it is. A selected container has a role: the **block**
 (its placement), an **item** (a frame, or a card the block holds: its
 place in the block) or a **held** card (a card a frame holds: its frame's
-shared scale and length, its own spacing and size). Each edited container
+shared scale and length, its own spacing, margin and size). Each edited container
 carries its selected address and its place key (`null` for the block,
 `{item: G}` for a frame, `{item: T}` for a card the block holds, `{item:
 G, member: T}` for a card a frame holds). The form is right when
@@ -339,7 +349,8 @@ ungrouped root `annotations`; `recording`, drawn only as `excerpt`'s
 ancestor, has no card).
 
 1. **Roles.** The block `{block}` names itself, "Block properties", `{x:
-   0, y: 0, scale: 1, length: 400, spacing: 8, width: null, height: null}`.
+   0, y: 0, scale: 1, length: 400, spacing: 8, margin: 0, width: null,
+   height: null}`.
    `group_1` and its title `{id: "group_1", part: ["name"]}` name the
    frame, "Frame properties", with its record's values (its spacing the
    frame's default 8). `annotations` and its card `{id: "annotations",
@@ -362,12 +373,13 @@ ancestor, has no card).
    values.
 4. **Fields per role and level** are the arranger's field table, in
    core's place order: the block and an item offer `x`, `y`, `length`,
-   `scale`, `spacing`, `width`, `height`; a held card `length`, `scale`
-   (labelled "group length", "group scale"), `spacing`, `width`, `height`.
+   `scale`, `spacing`, `margin`, `width`, `height`; a held card `length`,
+   `scale` (labelled "group length", "group scale"), `spacing`, `margin`,
+   `width`, `height`.
    The size is the container's: `width` and `height` are labelled
    "container width" and "container height" in every role.
    Withheld, and disabled in the form: the block's `length`, `scale`,
-   `spacing` in a group or timeline editor (the store refuses them there,
+   `spacing`, `margin` in a group or timeline editor (the store refuses them there,
    `side_effect`); an item's `x`, `y` everywhere but the bundle editor;
    nothing of a held card.
 5. **One edit, the arranger's command.** For the block's `x`, a frame's
@@ -375,7 +387,9 @@ ancestor, has no card).
    group editor, two frames, two held cards' `width` in the timeline editor
    and a frame's `scale` in the bundle editor, the command built from the
    typed text equals the arranger's edit of the same addresses, property,
-   value and level. An emptied `width` sends `null`; a value every selected
+   value and level; so does a frame's `margin` 12 in the bundle editor,
+   which states `{group_1: {margin: 12}}` and the drawn position of every
+   other item. An emptied `width` sends `null`; a value every selected
    container stores already (`650.0` for a stated 650, the block's `400`)
    gives no command. Text that is no decimal number is refused before
    dispatch, `invalid_value` at `[<first address's key>, property]`
@@ -384,7 +398,7 @@ ancestor, has no card).
    number"). A step is the arranger's edit with the step applied to each
    container's own value. A size below its minimum is item 7's.
 6. **Numbers a field shows and steps.** A step adds or subtracts 1 for `x`,
-   `y`, `length`, `spacing` (a gap in canvas units), `width`, `height` and
+   `y`, `length`, `spacing` (a gap in canvas units), `margin`, `width`, `height` and
    0.1 for `scale`,
    rounded to the decimals of value and step: 10.123 + 1 is 11.123, 1 − 0.1
    is 0.9, 0.9 − 0.1 is 0.8, 0.7 + 0.1 is 0.8, 1e-7 + 0.1 is 0.1000001,

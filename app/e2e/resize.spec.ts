@@ -184,7 +184,20 @@ test.describe("the blocks of small", () => {
     [SMALL.bare, "stretch", "right", 20, 0, { length: 420, spacing: 8, x: 40 }],
     [SMALL.bare, "stretch", "left", -21, 0, { length: 421, x: 19 }],
     [SMALL.bare, "stretch", "right", -500, 0, { length: 8, x: 40 }],
-    [SMALL.nested, "stretch", "bottom-right", 200, 51, { length: 600, spacing: 8, x: 40, y: 224 }],
+    // `nested` holds one item, so it has no gap: a vertical stretch sets its `margin` `V`, which
+    // lies above the item (the item's default top moves down by `V`, the block's top and its
+    // place origin stay) and again below it, so the block grows by 2V and the dragged edge stays
+    // under the pointer at V = dy / 2 (scale 1, zoom 1): 51 / 2 = 25.5, 40 / 2 = 20, both on the
+    // 1/2048 grid. `spacing` stays the fixture's 8.
+    [
+      SMALL.nested,
+      "stretch",
+      "bottom-right",
+      200,
+      51,
+      { length: 600, spacing: 8, margin: 25.5, x: 40, y: 224 },
+    ],
+    [SMALL.nested, "stretch", "bottom", 0, 40, { length: 400, spacing: 8, margin: 20, y: 224 }],
   ];
 
   test.describe("dragging a handle", () => {
@@ -218,19 +231,17 @@ test.describe("the blocks of small", () => {
       expect(await node(page, SMALL.bare).boundingBox()).toEqual(content);
     });
 
-    test("stretch: a block of one item has no gap, so a vertical stretch journals nothing", async ({
+    test("stretch: a block of one item at margin 0 shrinks no further, so a vertical shrink journals nothing", async ({
       page,
     }) => {
       await select(page, [{ block: SMALL.nested }]);
       await chooseMode(page, "stretch");
       const before = await placement(page, SMALL.nested);
       const box = await node(page, SMALL.nested).boundingBox();
-      for (const dy of [51, -40]) {
-        const grip = await page.locator('[data-testid="handle-bottom"]').boundingBox();
-        if (grip === null) throw new Error("handle bottom is not displayed");
-        await dragStart(page, { x: grip.x + grip.width / 2, y: grip.y + grip.height / 2 }, 0, dy);
-        await page.mouse.up();
-      }
+      const grip = await page.locator('[data-testid="handle-bottom"]').boundingBox();
+      if (grip === null) throw new Error("handle bottom is not displayed");
+      await dragStart(page, { x: grip.x + grip.width / 2, y: grip.y + grip.height / 2 }, 0, -40);
+      await page.mouse.up();
       expect(await journalLength(page)).toBe(START);
       expect(await placement(page, SMALL.nested)).toEqual(before);
       expect(await node(page, SMALL.nested).boundingBox()).toEqual(box);

@@ -124,6 +124,7 @@ const PLACEMENT_READERS: Readers<BlockPlacement> = {
   scale: readPositive,
   length: readPositive,
   spacing: readNonNegative,
+  margin: readNonNegative,
   width: readNullablePositive,
   height: readNullablePositive,
 };
@@ -258,6 +259,7 @@ const BLOCK_SET: Setters<BlockTarget> = {
   scale: blockValue("scale", PLACEMENT_READERS.scale),
   length: blockValue("length", PLACEMENT_READERS.length),
   spacing: blockValue("spacing", PLACEMENT_READERS.spacing),
+  margin: blockValue("margin", PLACEMENT_READERS.margin),
   width: blockValue("width", PLACEMENT_READERS.width),
   height: blockValue("height", PLACEMENT_READERS.height),
   manifest: (view, target, value, path, changes) => {
@@ -303,6 +305,7 @@ const NULLABLE_PLACE_READERS: Readers<PlaceValues> = {
   length: nullable(PLACE_READERS.length),
   scale: nullable(PLACE_READERS.scale),
   spacing: nullable(PLACE_READERS.spacing),
+  margin: nullable(PLACE_READERS.margin),
   width: nullable(PLACE_READERS.width),
   height: nullable(PLACE_READERS.height),
 };
@@ -355,7 +358,7 @@ function placedOf(target: KeyedTarget, path: readonly PathSegment[]): ContainerR
  * member, null unstates it, and a place left without members is no place.
  * Only a frame or a card has a place, and only the members its holder lets
  * it state (`placeMembersOf`): a block-held one its full place, a
- * frame-held card its size and spacing, the length and scale it is drawn
+ * frame-held card its size, spacing and margin, the length and scale it is drawn
  * with being its group's.
  */
 function mergePlace(

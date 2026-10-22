@@ -593,6 +593,54 @@ describe("itemResizeValues, stretch", () => {
     );
   });
 
+  it("stretches the margin of a member's card whose contents are one row, the frame's request following", () => {
+    const performance = { id: "performance" };
+    const bare = changed(view, {
+      type: "set",
+      changes: [
+        {
+          target: WORKSPACE,
+          values: {
+            graphical: {
+              statements: [
+                {
+                  select: {
+                    addresses: [
+                      { ...performance, facet: "markers" },
+                      { ...performance, facet: "conversion_maps" },
+                    ],
+                  },
+                  set: { display: "none" },
+                },
+              ],
+            },
+          },
+        },
+      ],
+    });
+    expect(resizedBox(bare, PERFORMANCE)).toMatchObject({
+      height: 28.8046875,
+      contentCount: 1,
+      card: { margin: 0, spacing: 4 },
+    });
+    for (const level of ["arranger", "bundle", "timeline"] as const) {
+      expect(values(bare, level, PERFORMANCE, "stretch", "bottom", 0, 16)).toStrictEqual(
+        byPlace([PERFORMANCE, { margin: 8 }]),
+      );
+    }
+    expect(values(bare, "arranger", PERFORMANCE, "stretch", "bottom", 0, -40)).toStrictEqual({});
+    expect(resizeOf(bare, "arranger", PERFORMANCE, "stretch", "bottom", 0, -40)).toBeNull();
+    const tall = placed(bare, A, "group_1", { height: 297.125 });
+    expect(values(tall, "arranger", PERFORMANCE, "stretch", "bottom", 0, 16)).toStrictEqual(
+      byPlace([PERFORMANCE, { margin: 8 }], [FRAME_1, { height: 329.125 }]),
+    );
+    const after = changed(
+      bare,
+      resizeOf(bare, "arranger", PERFORMANCE, "stretch", "bottom", 0, 16),
+    );
+    expect(blockIn(after, A).places.group_1?.cards?.performance).toEqual({ margin: 8 });
+  });
+
   it("refuses a member card's left handle", () => {
     expect(() => values(view, "timeline", SCORE, "stretch", "left", -20, 0)).toThrow(RangeError);
   });

@@ -196,8 +196,13 @@ on the length, so a stretch of the length moves the right edge by exactly
 the length change (checked at lengths 400, 420 and 600). A block's
 `spacing` is the gap between its block's items at their default `y`
 (drawing.md section 8.6); each block of `small` holds one item, so its
-spacing changes nothing drawn and a vertical stretch of it finds no other
-value. A frame's spacing is the gap between its cards: `bmixed0000`'s
+spacing changes nothing drawn. A vertical stretch of a container with
+exactly one content (a block's one item) sets its `margin` `V` instead,
+which lies above the item and again below it: the dragged edge stays under
+the pointer at `V = dy / 2` (scale 1, zoom 1), so `nested` stretched by
+(200, 51) at its bottom-right corner stores margin 25.5 and by 40 at its
+bottom margin 20, its `spacing` staying 8. Only a shrink from margin 0
+finds no other value and journals nothing. A frame's spacing is the gap between its cards: `bmixed0000`'s
 `group_1` is `161.234375 + Sf` high (its title's slot 24.8046875, its
 cards 78.953125 and 49.4765625, `Q` 8), so a vertical stretch by 44 sets
 its spacing to `8 + 44 = 52`.
@@ -335,8 +340,9 @@ table of handle drags in every mode the stored placement is the one the
 resize rules derive from the drawn box and the drag, with the opposite edge
 exactly put, one `set` at the block (`{block}`) journalled on release and
 none for a drag that changes no stored value; box keeps the content's own size below its extent,
-a vertical stretch of a block of one item, which has no gap, journals
-nothing, a resize held in the edge zone pans and follows the pointer, and
+a vertical stretch of a block of one item, which has no gap, sets its
+`margin` to half the vertical drag (scale 1, zoom 1) and leaves its
+`spacing`, a vertical shrink of it from margin 0 journals nothing, a resize held in the edge zone pans and follows the pointer, and
 undo restores the placement exactly. On `bundles` a frame's corner scales
 the group alone, a frame's vertical stretch by 44 sets its spacing to 52
 and states the other items where they are drawn, and a member's card keeps

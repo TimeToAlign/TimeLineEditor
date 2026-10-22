@@ -10,11 +10,14 @@ interface Heights {
   readonly Hc: number;
 }
 
-/** The heights given the outer edges `Ea` and `Eb` of the above and below sides. */
+/**
+ * The heights given the outer edges `Ea` and `Eb` of the above and below sides, the card margin
+ * `V` added inside the padding above and below, each last.
+ */
 export function heights(scope: Scope, above: number, below: number): Heights {
-  const { h, rootEntry } = scope;
+  const { h, rootEntry, V } = scope;
   const rootNameSize = rootEntry.name.style["font-size"];
-  const yLocal = Math.max(P + above, P + h(rootNameSize) / 2);
-  const Hc = yLocal + Math.max(below, h(rootNameSize) / 2) + P;
+  const yLocal = Math.max(P + above, P + h(rootNameSize) / 2) + V;
+  const Hc = yLocal + Math.max(below, h(rootNameSize) / 2) + V + P;
   return { yLocal, Hc };
 }

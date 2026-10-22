@@ -359,8 +359,11 @@ function linePosition(
     beyond: (side, ordinate, labelSize) =>
       side === "above" ? ordinate - scope.d(labelSize) : ordinate + scope.a(labelSize),
     flowMarkerEnd: (side) => {
-      // The root's flow markers run to the padding of the opposite side, counted from the drawing's top.
-      if (line === scope.rootEntry) return side === "below" ? top + P : top + (Hc - P);
+      // The root's flow markers run to the card margin of the opposite side, inside the padding,
+      // counted from the drawing's top.
+      if (line === scope.rootEntry) {
+        return side === "below" ? top + (P + scope.V) : top + (Hc - P - scope.V);
+      }
       const mb = Math.max(edges[opposite(side)], scope.h(size) / 2);
       return side === "below" ? y - mb : y + mb;
     },

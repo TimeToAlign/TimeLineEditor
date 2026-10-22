@@ -101,6 +101,7 @@ const PLACEMENT: { readonly [member in keyof BlockPlacement]: Reader } = {
   scale: readPositive,
   length: readPositive,
   spacing: readNonNegative,
+  margin: readNonNegative,
   width: readNullablePositive,
   height: readNullablePositive,
 };

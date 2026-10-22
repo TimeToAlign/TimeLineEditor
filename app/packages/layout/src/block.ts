@@ -44,11 +44,13 @@ export function draw(
   const block: Holder = { key: BLOCK_KEY, style: cascade.resolve(BLOCK_KEY, undefined) };
 
   // The manifest's title: its name, else its id; a manifest with neither has none. `Pt` (section
-  // 8.4): no item rises above F below the title's slot, and the first default top lies there.
+  // 8.4): no item rises above F and the block's margin below the title's slot, and the first
+  // default top lies there.
   const title = isNamed(manifest)
     ? titleOf(context, TITLE_ADDRESS, manifest.id ?? "", manifest.name, block)
     : undefined;
-  const Pt = title === undefined ? P : P + measure.lineHeight(title.size) + F;
+  const margin = placement.margin ?? 0;
+  const Pt = (title === undefined ? P : P + measure.lineHeight(title.size) + F) + margin;
 
   const items = placeItems(context, block, Pt);
   const columns = columnsOf(items);
@@ -62,5 +64,5 @@ export function draw(
     measure,
   );
   const laid = drawings.map((drawing) => layoutItem(drawing, horizontal, measure));
-  return emitDrawing(laid, { style: block.style, title, Pt }, placement, measure);
+  return emitDrawing(laid, { style: block.style, title, Pt, margin }, placement, measure);
 }

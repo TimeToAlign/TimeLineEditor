@@ -36,7 +36,15 @@ import {
 import type { Drawing, DrawnBox } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { CardBox, ItemBox } from "./boxes.ts";
-import { boxKey, isHeld, isItem, itemHolding, itemOf, keyedBox } from "./boxes.ts";
+import {
+  boxKey,
+  isHeld,
+  isItem,
+  itemHolding,
+  itemOf,
+  keyedBox,
+  verticalStretchOf,
+} from "./boxes.ts";
 import type { Level, PlaceProperty, Resizing } from "./containers.ts";
 import { LEVELS, levelOf, RESIZED_BY, resizingOf, resolveSelection } from "./containers.ts";
 import { drawingOf } from "./drawing.ts";
@@ -296,8 +304,15 @@ export function itemResizeCommand(
   return placeCommand(found, drawing, places, LEVELS[level].itemsFree);
 }
 
-/** A stretch's axis: the member of a place it sets and the size that follows the content. */
-const SIZES = { length: "width", spacing: "height" } as const;
+/** A stretch's factor, the member of a place it sets: `length` along time, `spacing` or `margin` vertically. */
+type Factor = "length" | "spacing" | "margin";
+
+/** The size that follows the content of a stretch by each factor. */
+const SIZES = { length: "width", spacing: "height", margin: "height" } as const;
+
+/** The entry of `Resizing.writes` a stretch by `factor` is written by: its axis's. */
+const writtenBy = (factor: Factor): "length" | "spacing" =>
+  factor === "length" ? "length" : "spacing";
 
 /** The stretch at one value of its factor. */
 interface Stretched {
@@ -310,12 +325,13 @@ interface Stretched {
 
 /**
  * A stretch of one frame or card of a block on one axis, as a function of
- * the factor's value (`length` along time, `spacing` vertically), built
- * from one drawing of the block before the stretch and memoized per value,
- * so a search and the changes it settles on draw each value once.
+ * the factor's value (`length` along time, `spacing` or `margin`
+ * vertically), built from one drawing of the block before the stretch and
+ * memoized per value, so a search and the changes it settles on draw each
+ * value once.
  *
  * At a value, the factor is stated on its key (a held card stretches its
- * group's `length` and its own `spacing`, `resizingOf`), and every stated
+ * group's `length` and its own `spacing` or `margin`, `resizingOf`), and every stated
  * size of the boxes stretched follows its own content by `kept`, keeping its
  * proportion to it: along time the widths of the item and of the cards its
  * frame holds, so the members' lines keep one length and every margin
@@ -337,7 +353,7 @@ export class Stretch {
   readonly #view: View;
   readonly #block: BlockId;
   readonly #metrics: FontMetrics;
-  readonly #factor: "length" | "spacing";
+  readonly #factor: Factor;
   readonly #size: "width" | "height";
   /** The place the factor is stated on. */
   readonly #key: PlaceKey;
@@ -356,7 +372,7 @@ export class Stretch {
     block: BlockId,
     box: DrawnBox,
     level: Level,
-    factor: "length" | "spacing",
+    factor: Factor,
     metrics: FontMetrics,
   ) {
     this.#view = view;
@@ -369,22 +385,23 @@ export class Stretch {
     const resized = resizedIn(drawing, box);
     const item = itemHolding(drawing, resized);
     const held = isHeld(resized);
-    this.#key = keyOf(resized, item, factor);
+    this.#key = keyOf(resized, item, writtenBy(factor));
     this.#item = item.key;
     this.#dragged = held ? resized.key : item.key;
     this.pinned =
       factor === "length" && LEVELS[level].frameWidthPinned
         ? quantize(item.item.place.width, GRID_FREE)
         : null;
-    // The spacing as drawn: stated, else the container's default (a frame's 8, a card's 4).
+    // The factor as drawn: stated, else the container's default (a frame's spacing 8, a card's
+    // 4, a margin 0).
     this.start =
       factor === "length"
         ? item.item.place.length
         : held
-          ? resized.card.spacing
-          : item.item.place.spacing;
+          ? resized.card[factor]
+          : item.item.place[factor];
     const cards =
-      held && factor === "spacing"
+      held && factor !== "length"
         ? [this.#key]
         : drawing.boxes
             .filter(
@@ -492,15 +509,17 @@ export class Stretch {
  *   is the group's.
  * - `box` sets `width` and `height`; a request at or below the box's own
  *   content stores `null`. On a held card they are the card's own.
- * - `stretch` sets `length` from a left or right handle and `spacing` from
- *   a top or bottom one, both from a corner: the largest value whose box
+ * - `stretch` sets `length` from a left or right handle and, from a top or
+ *   bottom one, `spacing`, or `margin` for a container with exactly one
+ *   content (`verticalStretchOf`), both from a corner: the largest value whose box
  *   does not pass the pointer, floored at `MIN_LENGTH` and at 0, the places
  *   being what a `Stretch` to it writes. Vertically a frame's `spacing` is
  *   the gap between its cards and a box-held card's the gap between its
- *   rows and bands, and a spacing the search leaves where it was drawn (a
- *   container without gaps) is not stated; a held card stretches its group
- *   along time, the card's own box following the pointer, and only its own
- *   card's `spacing` vertically. Where the frame keeps its
+ *   rows and bands, a margin the empty space above its one content and
+ *   below it, and a value the search leaves where it was drawn is not
+ *   stated; a held card stretches its group along time, the card's own box
+ *   following the pointer, and only its own card's `spacing` or `margin`
+ *   vertically. Where the frame keeps its
  *   width (`Stretch`), a stretch along time makes the frame's content
  *   follow the pointer, whichever box is dragged; vertically the frame
  *   adapts.
@@ -621,14 +640,15 @@ export function itemResizeValues(
   }
 
   if (sy !== 0) {
-    const stretch = new Stretch(current, block, resized, level, "spacing", metrics);
+    const factor = verticalStretchOf(resized);
+    const stretch = new Stretch(current, block, resized, level, factor, metrics);
     const target = held
       ? sizeIn(drawing, "height") + dy / scale
       : ((sy > 0 ? bottom + dy : bottom) - top) / scale;
     const drawn = (value: number) => stretch.drawn(value);
-    const spacing = solve(drawn, identity, stretch.start, target, 0).value;
-    // A container without gaps draws alike at every spacing: its stretch states nothing.
-    if (spacing !== stretch.start) stretchTo(stretch, spacing);
+    const value = solve(drawn, identity, stretch.start, target, 0).value;
+    // A value drawn alike as the one it started from states nothing.
+    if (value !== stretch.start) stretchTo(stretch, value);
   }
 
   if (sx >= 0 && sy >= 0) return changes;
@@ -645,8 +665,8 @@ export type ShownValues = { readonly [property in PlaceProperty]?: number };
 /**
  * What `box` of `drawing` shows for each of its place members: stated, else
  * drawn. An item shows every member of its place; a card a frame holds its
- * own spacing and size, and the scale and length of its frame, which its
- * group's members share.
+ * own spacing, margin and size, and the scale and length of its frame,
+ * which its group's members share.
  */
 export function shownValues(drawing: Drawing, box: ItemBox | CardBox): ShownValues {
   const placeValue = ({ item }: ItemBox, property: PlaceProperty) =>
@@ -657,11 +677,12 @@ export function shownValues(drawing: Drawing, box: ItemBox | CardBox): ShownValu
     );
   }
   const frame = itemHolding(drawing, box);
-  const { size, spacing, stated } = box.card;
+  const { size, spacing, margin, stated } = box.card;
   return {
     length: placeValue(frame, "length"),
     scale: placeValue(frame, "scale"),
     spacing,
+    margin,
     width: stated.width ?? size.width,
     height: stated.height ?? size.height,
   };
@@ -685,7 +706,7 @@ function refused(
  * drawn). A block sets its own member; a frame or a card a member of the
  * place its resizing writes (`resizingOf`: a held card's scale and length
  * are its group's), each place once, with the first element's value. A
- * `length` or `spacing` writes what a Stretch to it writes (`Stretch`),
+ * `length`, `spacing` or `margin` writes what a Stretch to it writes (`Stretch`),
  * each element's stretch starting from what the ones before it wrote; and
  * where the level's items lie freely (`itemsFree`), the same `set` states
  * the drawn position of every other item that states none
@@ -782,7 +803,7 @@ export function placeEdit(
     if (error !== null) return error;
     stored.push({ key, given });
     const changes =
-      (property === "length" || property === "spacing") && given !== null
+      (property === "length" || property === "spacing" || property === "margin") && given !== null
         ? new Stretch(edited, block.id, box, level, property, metrics).changes(given)
         : placeChanges([[key, { [property]: given }]]);
     for (const { key: changed, values } of changes.values()) setValues(places, changed, values);

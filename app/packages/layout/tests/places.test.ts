@@ -35,7 +35,13 @@ describe("default places reproduce the stacked block", () => {
     expect(Object.is(drawing.origin.y, 0)).toBe(true);
     const size = { width: 458.5771484375, height: 49.37890625 };
     expect(drawing.boxes.filter((record) => record.kind !== "band")).toEqual([
-      { ...block, width: 476.5771484375, height: 67.37890625, range: { start: 0, end: 8 } },
+      {
+        ...block,
+        width: 476.5771484375,
+        height: 67.37890625,
+        range: { start: 0, end: 8 },
+        contentCount: 1,
+      },
       {
         kind: "card",
         key: { item: "bare" },
@@ -46,8 +52,12 @@ describe("default places reproduce the stacked block", () => {
         ...size,
         range: { start: 1, end: 8 },
         displayed: true,
-        item: { place: { x: 8, y: 8, length: 400, scale: 1, spacing: 4, ...size }, stated: {} },
-        card: { size, spacing: 4, stated: {} },
+        contentCount: 2,
+        item: {
+          place: { x: 8, y: 8, length: 400, scale: 1, spacing: 4, margin: 0, ...size },
+          stated: {},
+        },
+        card: { size, spacing: 4, margin: 0, stated: {} },
       },
     ]);
   });
@@ -67,7 +77,11 @@ describe("default places reproduce the stacked block", () => {
         ...size,
         range: { start: 1, end: 23 },
         displayed: true,
-        item: { place: { x: 8, y: 8, length: 400, scale: 1, spacing: 8, ...size }, stated: {} },
+        contentCount: 2,
+        item: {
+          place: { x: 8, y: 8, length: 400, scale: 1, spacing: 8, margin: 0, ...size },
+          stated: {},
+        },
       },
     ]);
   });
@@ -137,16 +151,27 @@ describe("an item left of the padding, a width request and a length of its own",
         length: 400,
         scale: 1,
         spacing: 8,
+        margin: 0,
         width: 562.484619140625,
         height: 169.234375,
       },
-      { x: 40, y: 200, length: 400, scale: 1, spacing: 8, width: 700, height: 177.734375 },
+      {
+        x: 40,
+        y: 200,
+        length: 400,
+        scale: 1,
+        spacing: 8,
+        margin: 0,
+        width: 700,
+        height: 177.734375,
+      },
       {
         x: -30,
         y: 385.734375,
         length: 300,
         scale: 1,
         spacing: 4,
+        margin: 0,
         width: 462.484619140625,
         height: 71.85546875,
       },
@@ -220,6 +245,7 @@ describe("an item left of and above the padding and a height request", () => {
         length: 400,
         scale: 1,
         spacing: 4,
+        margin: 0,
         width: 507.896728515625,
         height: 63.453125,
       },
@@ -229,10 +255,20 @@ describe("an item left of and above the padding and a height request", () => {
         length: 400,
         scale: 1,
         spacing: 4,
+        margin: 0,
         width: 507.896728515625,
         height: 49.4765625,
       },
-      { x: -60, y: -150, length: 400, scale: 1, spacing: 4, width: 507.896728515625, height: 120 },
+      {
+        x: -60,
+        y: -150,
+        length: 400,
+        scale: 1,
+        spacing: 4,
+        margin: 0,
+        width: 507.896728515625,
+        height: 120,
+      },
     ]);
   });
 
@@ -338,6 +374,7 @@ describe("a frame's own length and height request, a card's width request", () =
         length: 300,
         scale: 1,
         spacing: 8,
+        margin: 0,
         width: 462.484619140625,
         height: 200,
       },
@@ -347,10 +384,20 @@ describe("a frame's own length and height request, a card's width request", () =
         length: 400,
         scale: 1,
         spacing: 8,
+        margin: 0,
         width: 562.484619140625,
         height: 177.734375,
       },
-      { x: 8, y: 422.5390625, length: 400, scale: 1, spacing: 4, width: 600, height: 71.85546875 },
+      {
+        x: 8,
+        y: 422.5390625,
+        length: 400,
+        scale: 1,
+        spacing: 4,
+        margin: 0,
+        width: 600,
+        height: 71.85546875,
+      },
     ]);
   });
 });
@@ -382,6 +429,7 @@ describe("a fractional place origin: the shift is added last", () => {
         length: 400,
         scale: 1,
         spacing: 4,
+        margin: 0,
         width: 507.896728515625,
         height: 63.453125,
       },
@@ -391,6 +439,7 @@ describe("a fractional place origin: the shift is added last", () => {
         length: 400,
         scale: 1,
         spacing: 4,
+        margin: 0,
         width: 507.896728515625,
         height: 49.4765625,
       },
@@ -400,6 +449,7 @@ describe("a fractional place origin: the shift is added last", () => {
         length: 400,
         scale: 1,
         spacing: 4,
+        margin: 0,
         width: 507.896728515625,
         height: 120,
       },

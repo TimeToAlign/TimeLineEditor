@@ -455,11 +455,11 @@ describe("the block fields in an editor", () => {
       .map((input) => [input.name, input.disabled]);
   }
 
-  const ALL = ["x", "y", "length", "scale", "spacing", "width", "height"];
+  const ALL = ["x", "y", "length", "scale", "spacing", "margin", "width", "height"];
   const enabled = ALL.map((name) => [name, false]);
   const blockFieldsOff = ALL.map((name) => [
     name,
-    name === "scale" || name === "length" || name === "spacing",
+    name === "scale" || name === "length" || name === "spacing" || name === "margin",
   ]);
 
   it("are refused by the store inside a group editor", () => {
@@ -470,7 +470,7 @@ describe("the block fields in an editor", () => {
     ).toBe("side_effect");
   });
 
-  it("disables scale, length and spacing in a group or timeline editor only", () => {
+  it("disables scale, length, spacing and margin in a group or timeline editor only", () => {
     const { store, stage } = staged(mixedStore());
     show(store);
     /** The fields after the editing path `editing`, read on the Properties tab. */

@@ -141,7 +141,8 @@ export function readNullablePositive(
 
 /**
  * The rule of each member of a place: a position is finite, a size and the
- * scale positive, the spacing, a gap, finite and at least 0.
+ * scale positive, the spacing, a gap, and the margin, empty space, finite
+ * and at least 0.
  */
 export const PLACE_READERS = {
   x: readFinite,
@@ -149,6 +150,7 @@ export const PLACE_READERS = {
   length: readPositive,
   scale: readPositive,
   spacing: readNonNegative,
+  margin: readNonNegative,
   width: readPositive,
   height: readPositive,
 } as const satisfies { readonly [member in keyof ItemPlace]-?: unknown };

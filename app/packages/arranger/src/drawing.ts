@@ -43,6 +43,7 @@ export function drawingOf(
     {
       length: placement.length,
       spacing: placement.spacing,
+      margin: placement.margin,
       width: placement.width,
       height: placement.height,
       places: placement.places,

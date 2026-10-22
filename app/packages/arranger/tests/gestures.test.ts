@@ -3,9 +3,10 @@
  * The one pointer gesture (README, "The gesture engine"): which presses it
  * takes and how it marks them, the click distance, the points a strategy
  * receives, one preview per new value, one command on release, Escape, the
- * canvas's slot and a cancelled pointer ending it without one, and the
- * click a gesture's release fires taken and no other. A recording strategy
- * stands for the four the canvas uses.
+ * canvas's slot and a cancelled pointer ending it without one, the slot
+ * hearing whether boxes are moved, and the click a gesture's release fires
+ * taken and no other. A recording strategy stands for the four the canvas
+ * uses.
  */
 
 import type { Command } from "@timetoalign/tilie-core";
@@ -19,8 +20,22 @@ import {
   pointerGesture,
   sourceAt,
 } from "../src/gesture.ts";
+import { bandGesture } from "../src/gestures/band.ts";
+import { heldGesture } from "../src/gestures/held.ts";
+import type { NodeHost } from "../src/gestures/host.ts";
+import { itemGesture } from "../src/gestures/item.ts";
+import type { ResizeHost } from "../src/gestures/resize.ts";
+import { resizeGesture } from "../src/gestures/resize.ts";
 import type { Matrix } from "../src/motion.ts";
-import { nextTask, pointer, pressEscape, stubPointerCapture, withScreenMatrix } from "./dom.ts";
+import {
+  nextTask,
+  pointer,
+  pressEscape,
+  recordingActions,
+  stubPointerCapture,
+  withScreenMatrix,
+} from "./dom.ts";
+import { mixedView } from "./support.ts";
 
 const SVG = "http://www.w3.org/2000/svg";
 const COMMAND: Command = { type: "remove", targets: [{ block: "bundle0001", id: "group_1" }] };
@@ -348,6 +363,86 @@ describe("ending a gesture without a command", () => {
       { preview: { x: 0, y: 50 } },
       { preview: null },
     ]);
+  });
+});
+
+describe("the slot hears whether boxes are moved", () => {
+  /** The scene with a slot recording what it hears, driving `strategy`. */
+  function heard(scene: Stage, moves: boolean): boolean[] {
+    const said: boolean[] = [];
+    const slot = new GestureSlot((moving) => said.push(moving));
+    attach(scene, { ...recording(scene.calls), moves }, { slot });
+    return said;
+  }
+
+  it("nothing for a press within the click distance", () => {
+    const scene = stage();
+    const said = heard(scene, true);
+    pointer(scene.element, "pointerdown", 30, 110);
+    pointer(scene.element, "pointermove", 32, 111);
+    pointer(scene.element, "pointerup", 32, 111);
+    expect(said).toEqual([]);
+  });
+
+  it("true from a moving gesture's start, false at its end, however it ends", () => {
+    const ends: [string, (scene: Stage) => void][] = [
+      ["release", (scene) => pointer(scene.element, "pointerup", 30, 130)],
+      ["Escape", () => pressEscape()],
+      ["cancel", (scene) => pointer(scene.element, "pointercancel", 30, 130)],
+    ];
+    for (const [name, end] of ends) {
+      const scene = stage();
+      const said = heard(scene, true);
+      pointer(scene.element, "pointerdown", 30, 110);
+      pointer(scene.element, "pointermove", 30, 130);
+      expect(said, name).toEqual([true]);
+      pointer(scene.element, "pointermove", 30, 150);
+      expect(said, name).toEqual([true]);
+      end(scene);
+      expect(said, name).toEqual([true, false]);
+      detach?.();
+      detach = undefined;
+      document.body.innerHTML = "";
+    }
+  });
+
+  it("false at the start and the end of a gesture that moves no box", () => {
+    const scene = stage();
+    const said = heard(scene, false);
+    pointer(scene.element, "pointerdown", 30, 110);
+    pointer(scene.element, "pointermove", 30, 130);
+    expect(said).toEqual([false]);
+    pointer(scene.element, "pointerup", 30, 130);
+    expect(said).toEqual([false, false]);
+  });
+
+  it("is told so by the item, held-card and band strategies, never by the resize handle's", () => {
+    const { actions } = recordingActions(mixedView());
+    const node: NodeHost = {
+      actions,
+      data() {
+        throw new Error("no strategy reads its node when it is made");
+      },
+      slide() {},
+      ghost() {},
+    };
+    const resizing: ResizeHost = {
+      actions,
+      target() {
+        throw new Error("no strategy reads its target when it is made");
+      },
+      level: () => "arranger",
+      mode: () => "box",
+      locked: () => false,
+      viewport: () => ({ x: 0, y: 0, zoom: 1 }),
+      autoPan: () => Promise.resolve(false),
+    };
+    expect([
+      itemGesture(node, { item: "group_2" }).moves,
+      heldGesture(node, "group_1", "score").moves,
+      bandGesture(node).moves,
+      resizeGesture(resizing, "right").moves,
+    ]).toEqual([true, true, true, undefined]);
   });
 });
 

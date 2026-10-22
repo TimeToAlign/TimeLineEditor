@@ -66,18 +66,25 @@ export interface DrawnBox {
    */
   readonly displayed: boolean;
   /**
+   * The number of its contents (section 1), absent for a band: the block's items, a frame's
+   * cards, a card's rows and bands (its root's row, its root's present bands and its ancestor
+   * band when it has one).
+   */
+  readonly contentCount?: number;
+  /**
    * A frame or a block-held card: its place with every default applied, `width` and `height` the
    * drawn size in item coordinates, before the scale; and the place as stated, `{}` when none.
    */
   readonly item?: { readonly place: Required<ItemPlace>; readonly stated: ItemPlace };
   /**
    * Any card: its drawn size in item coordinates, its spacing, the gap between its rows and its
-   * bands (a member's card's own `spacing`, a block-held card's its item's, else 4), and what
-   * `places` states for it.
+   * bands (a member's card's own `spacing`, a block-held card's its item's, else 4), its margin
+   * (likewise, else 0), and what `places` states for it.
    */
   readonly card?: {
     readonly size: { readonly width: number; readonly height: number };
     readonly spacing: number;
+    readonly margin: number;
     readonly stated: CardPlace;
   };
   /** A band: its timeline, facet, level, the elements it holds and its timeline's line. */

@@ -143,6 +143,24 @@ describe("places, display orders and band orders, accepted", () => {
     expect(block(gapless, ID).places).toEqual({ group_1: { spacing: 0 } });
   });
 
+  it("states a margin wherever a spacing is stated", () => {
+    const group = after(mixed(), set("group_1", { place: { margin: 12 } }));
+    expect(block(group, ID).places).toEqual({ group_1: { margin: 12 } });
+    const root = after(mixed(), set("annotations", { place: { margin: 12 } }));
+    expect(block(root, ID).places).toEqual({ annotations: { margin: 12 } });
+    const card = after(mixed(), set("score", { place: { margin: 12 } }));
+    expect(block(card, ID).places).toEqual({ group_1: { cards: { score: { margin: 12 } } } });
+    const spaced = after(card, set("score", { place: { spacing: 1.5 } }));
+    const place = block(spaced, ID).places.group_1?.cards?.score;
+    expect(place).toEqual({ spacing: 1.5, margin: 12 });
+    expect(Object.keys(place ?? {})).toEqual(["spacing", "margin"]);
+    expect(block(after(spaced, set("score", { place: { margin: null } })), ID).places).toEqual({
+      group_1: { cards: { score: { spacing: 1.5 } } },
+    });
+    const cards = after(mixed(), set("group_1", { cards: { score: { margin: 3 } } }));
+    expect(block(cards, ID).places).toEqual({ group_1: { cards: { score: { margin: 3 } } } });
+  });
+
   it("writes a group's display order, and null deletes it", () => {
     const start = mixed();
     const swapped = after(start, set("group_1", { order: ["performance", "score"] }));
@@ -271,7 +289,7 @@ describe("member cards placed through their group", () => {
     expect(refused(view, cards("g1", { t: { x: 1 } }))).toEqual({
       code: "not_an_item",
       path: [where("g1"), "cards", "t", "x"],
-      message: "'t' is a member: its card takes only width, height and spacing",
+      message: "'t' is a member: its card takes only width, height, spacing and margin",
     });
     expect(
       [{}, { t: {} }, { t: { width: 0 } }, { t: null }].map((values) =>
@@ -320,8 +338,8 @@ describe("places, display orders and band orders, refused", () => {
     });
   });
 
-  it("refuses a member's card anything but its size and spacing", () => {
-    const card = "'score' is a member: its card takes only width, height and spacing";
+  it("refuses a member's card anything but its size, spacing and margin", () => {
+    const card = "'score' is a member: its card takes only width, height, spacing and margin";
     expect(refused(view, set("score", { place: { x: 1 } }))).toEqual({
       code: "not_an_item",
       path: [where("score"), "place", "x"],
@@ -340,7 +358,7 @@ describe("places, display orders and band orders, refused", () => {
     expect(refused(mixed({}, CHILD_MEMBER), set("second-half", { place: { x: 10 } }))).toEqual({
       code: "not_an_item",
       path: [where("second-half"), "place", "x"],
-      message: "'second-half' is a member: its card takes only width, height and spacing",
+      message: "'second-half' is a member: its card takes only width, height, spacing and margin",
     });
   });
 
@@ -366,6 +384,9 @@ describe("places, display orders and band orders, refused", () => {
     [{ scale: 0 }, "non_positive_number", ["scale"]],
     [{ scale: -1 }, "non_positive_number", ["scale"]],
     [{ spacing: -1 }, "invalid_value", ["spacing"]],
+    [{ margin: -1 }, "invalid_value", ["margin"]],
+    [{ margin: Number.POSITIVE_INFINITY }, "non_finite_number", ["margin"]],
+    [{ margin: Number.NaN }, "non_finite_number", ["margin"]],
     [{ depth: 1 }, "unknown_property", ["depth"]],
     [5, "invalid_value", []],
   ])("refuses the place value %j", (place, code, inside) => {
@@ -746,7 +767,7 @@ describe("a block's places as stored", () => {
       {
         code: "unknown_member",
         path: at("places", "group_1", "cards", "score", "x"),
-        message: "'score' is a member: its card takes only width, height and spacing",
+        message: "'score' is a member: its card takes only width, height, spacing and margin",
       },
       {
         code: "unknown_place",

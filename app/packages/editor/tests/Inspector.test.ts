@@ -361,6 +361,7 @@ describe("the inspector component", () => {
       scale: 1,
       length: 400,
       spacing: 1,
+      margin: 0,
       width: null,
       height: null,
       drawing: drawn(A),

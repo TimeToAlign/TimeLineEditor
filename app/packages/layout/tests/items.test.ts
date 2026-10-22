@@ -22,10 +22,11 @@ const member = (places: Placement["places"]) =>
 const memberCards = (drawing: Drawing) =>
   boxesOf(drawing, "card")
     .filter((box) => box.holder !== null)
-    .map(({ key, holder, address, card, range }) => ({
+    .map(({ key, holder, address, contentCount, card, range }) => ({
       key,
       group: holder,
       address,
+      contentCount,
       ...card,
       range,
     }));
@@ -143,7 +144,16 @@ describe("the scale of an item", () => {
     expect(root.style["stroke-width"]).toBe(6);
     expect([drawing.width, drawing.height]).toEqual([937.154296875, 118.7578125]);
     expect(itemsOf(drawing).map((box) => box.item?.place)).toEqual([
-      { x: 8, y: 8, length: 400, scale: 2, spacing: 4, width: 458.5771484375, height: 49.37890625 },
+      {
+        x: 8,
+        y: 8,
+        length: 400,
+        scale: 2,
+        spacing: 4,
+        margin: 0,
+        width: 458.5771484375,
+        height: 49.37890625,
+      },
     ]);
   });
 
@@ -166,6 +176,7 @@ describe("the scale of an item", () => {
       length: 400,
       scale: 1.5,
       spacing: 4,
+      margin: 0,
       width: 507.896728515625,
       height: 49.4765625,
     });
@@ -195,7 +206,7 @@ describe("a member's card size", () => {
     expect(rect(drawing, at("group_1"))).toEqual({ x: 8, y: 8, width: 666, height: 244.7578125 });
     expect([drawing.width, drawing.height]).toEqual([682, 260.7578125]);
     expect(itemsOf(drawing).map((box) => box.item?.place)).toEqual([
-      { x: 8, y: 8, length: 400, scale: 1, spacing: 8, width: 666, height: 244.7578125 },
+      { x: 8, y: 8, length: 400, scale: 1, spacing: 8, margin: 0, width: 666, height: 244.7578125 },
     ]);
   });
 
@@ -207,6 +218,8 @@ describe("a member's card size", () => {
         address: at("second-half", "card"),
         size: { width: 526.4140625, height: 83.953125 },
         spacing: 4,
+        margin: 0,
+        contentCount: 3,
         stated: {},
         range: { start: 3, end: 16 },
       },
@@ -216,6 +229,8 @@ describe("a member's card size", () => {
         address: at("recording", "card"),
         size: { width: 650, height: 120 },
         spacing: 4,
+        margin: 0,
+        contentCount: 2,
         stated: { width: 650, height: 120 },
         range: { start: 16, end: 23 },
       },

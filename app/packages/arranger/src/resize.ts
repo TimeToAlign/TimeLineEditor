@@ -13,6 +13,7 @@ import type {
 } from "@timetoalign/tilie-core";
 import { ITEM_PLACE_MEMBERS, placeEntries, withPlaceAt } from "@timetoalign/tilie-core";
 import type { FontMetrics } from "@timetoalign/timetoshare";
+import { blockBox, verticalStretchOf } from "./boxes.ts";
 import { drawingOf, nodePosition } from "./drawing.ts";
 import { placeChange } from "./editing.ts";
 import { GRID_FREE, MIN_LENGTH, MIN_SCALE, quantize } from "./numbers.ts";
@@ -161,11 +162,12 @@ export function kept(request: number | null, content: number, stretched: number)
  *   ratios, floored at `MIN_SCALE`.
  * - `box` sets `width` and `height`; a request at or below the content's
  *   own extent stores `null`, the content's size.
- * - `stretch` sets `length` from a left or right handle and `spacing`, the
- *   gap between the items at their default `y`, from a top or bottom one:
- *   the largest value whose box does not pass the pointer, floored at
- *   `MIN_LENGTH` and at 0; a shrink past a flat piece stops at its knee
- *   (a block of one item has no gap, so its height never follows). The block
+ * - `stretch` sets `length` from a left or right handle and, from a top or
+ *   bottom one, `spacing`, the gap between the items at their default `y`,
+ *   or `margin` for a block of one item, which has no gap
+ *   (`verticalStretchOf`): the largest value whose box does not pass the
+ *   pointer, floored at `MIN_LENGTH` and at 0; a shrink past a flat piece
+ *   stops at its knee. The block
  *   follows the content on each axis (`kept`): a `width` or `height` larger
  *   than the content keeps its proportion to it, one at or below the
  *   content becomes `null`, and `null` stays. So the edge ends under the
@@ -220,12 +222,16 @@ export function resize(
         size = { ...size, height: values.height ?? content.height };
       }
     } else {
-      let { length, spacing } = block;
-      const stretch = (lengthTo: number, spacingTo: number) =>
+      const own = blockBox(drawing);
+      if (own === undefined) throw new RangeError(`block ${block.id} draws no block box`);
+      const vertical = verticalStretchOf(own);
+      let { length } = block;
+      let across = block[vertical];
+      const stretch = (lengthTo: number, acrossTo: number) =>
         drawingOf(block, settings, metrics, {
           ...free,
           length: lengthTo,
-          spacing: spacingTo,
+          [vertical]: acrossTo,
           places: blockStretchPlaces(block, lengthTo),
         });
       /** The block's extent at a content extent: the larger of it and the request following it. */
@@ -233,17 +239,17 @@ export function resize(
         Math.max(extent, kept(request, before, extent) ?? 0);
       if (sx !== 0) {
         const width = (value: number) =>
-          boxed(block.width, content.width, stretch(value, spacing).width);
+          boxed(block.width, content.width, stretch(value, across).width);
         length = solve(width, extentOf, length, targetWidth / z, MIN_LENGTH).value;
         values.length = length;
       }
       if (sy !== 0) {
         const height = (value: number) =>
           boxed(block.height, content.height, stretch(length, value).height);
-        spacing = solve(height, extentOf, spacing, targetHeight / z, 0).value;
-        values.spacing = spacing;
+        across = solve(height, extentOf, across, targetHeight / z, 0).value;
+        values[vertical] = across;
       }
-      const stretched = stretch(length, spacing);
+      const stretched = stretch(length, across);
       const places = blockStretchPlaces(block, length);
       if (places !== block.places) values.places = places;
       origin = stretched.origin;
@@ -271,8 +277,8 @@ export function resize(
  * The places of `block` stretched along time to `length`: every stated `x`,
  * `length` and `width`, an item's and a member's card's alike, scaled by
  * the ratio of the lengths, quantized to `GRID_FREE`, and every other
- * member kept (a container's `spacing` is its own gap, never a factor of
- * the block's), so a stretch scales the items' and cards' sizes and
+ * member kept (a container's `spacing` and `margin` are its own, never a
+ * factor of the block's), so a stretch scales the items' and cards' sizes and
  * distances along time and keeps their arrangement. The block's own
  * `places` object when nothing changes.
  */
@@ -289,6 +295,7 @@ export function blockStretchPlaces(
     height: 1,
     scale: 1,
     spacing: 1,
+    margin: 1,
   };
   let changed = false;
   let places: Places = {};
@@ -307,7 +314,17 @@ export function blockStretchPlaces(
 }
 
 /** The members of a block a resize may set. */
-const RESIZED = ["x", "y", "scale", "length", "spacing", "width", "height", "places"] as const;
+const RESIZED = [
+  "x",
+  "y",
+  "scale",
+  "length",
+  "spacing",
+  "margin",
+  "width",
+  "height",
+  "places",
+] as const;
 
 /**
  * The `set` storing a resize's values on its block: the block's own members

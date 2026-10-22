@@ -144,6 +144,7 @@ function render(
     scale,
     length: 400,
     spacing: 1,
+    margin: 0,
     width: null,
     height: null,
     places: {},

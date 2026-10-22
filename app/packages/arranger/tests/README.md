@@ -305,7 +305,7 @@ node and the identity of every node that did not change.
   (2, 31.1953125) with origin `(38, 48.8046875)` it is `x: 40, y: 80`, and
   so at scale 2 from (−36, −17.609375). For `bare` at (104, 40) it is
   exactly `{id: A, x: 104, y: 40, scale: 1, length: 400, spacing: 8,
-  width: null, height: null, drawing}`; the position wins over a previewed
+  margin: 0, width: null, height: null, drawing}`; the position wins over a previewed
   `x`.
 - **Property.** For any accepted sequence of gesture commands, projecting
   twice returns identical nodes, one per block, each as wide as its
@@ -333,14 +333,47 @@ snapping is decided before it (section "Snapping a moved block").
   case above nudged by (1, 0) goes to node (10, 31.1953125), snaps to (8,
   32), and stores `{x: 46, y: 80.8046875}`; not snapping, `{x: 48, y:
   80}`. No ids or a zero step give no command.
-- **Adding** puts the new block's top-left at the centre of what the
-  canvas shows, `((width / 2 − x) / zoom, (height / 2 − y) / zoom)`,
-  quantized as a move: `{x: 100, y: 50, zoom: 2, width: 1000, height:
-  600}` gives `(200, 128)` under the default grid (125 / 8 = 15.625
-  rounds to 16), `(200, 125)` without snapping; `{x: 0, y: 0, zoom: 3,
-  width: 1001, height: 1}` without snapping gives `(166.83349609375,
-  0.16650390625)`, an `add` into the workspace `{}`. Applied, the block carries the workspace's block
-  defaults and an index above every other.
+- **Adding** starts the new block at the centre of what the canvas
+  shows, `((width / 2 − x) / zoom, (height / 2 − y) / zoom)`, quantized
+  as a move: in an empty workspace `{x: 100, y: 50, zoom: 2, width:
+  1000, height: 600}` gives `(200, 128)` under the default grid (125 / 8
+  = 15.625 rounds to 16), `(200, 125)` without snapping; `{x: 0, y: 0,
+  zoom: 3, width: 1001, height: 1}` without snapping gives
+  `(166.83349609375, 0.16650390625)`, an `add` into the workspace `{}`.
+  Applied, the block carries the workspace's block defaults and an index
+  above every other.
+- **An added block is never placed on top of another.** Its node
+  rectangle is its drawing at the block defaults, `W × H` times its
+  scale, from its node position (the place origin minus `origin ×
+  scale`). While that rectangle's interior meets the node rectangle of a
+  root block grown by the grid size (8) on every side, its `x` moves to
+  the right edge of the rightmost such block plus 8, plus `origin.x ×
+  scale`, rounded up to the position step, and the test runs again; `y`
+  never changes and edges that only touch do not count. The proof is the
+  exact stored `x`, with the view `{x: 100, y: 50, zoom: 2, width: 1000,
+  height: 600}` and `bare` imported as C. `bare`'s origin is `(8, 8)` (its
+  card from `P` on both axes, no title), so a `bare` block whose place
+  origin is `(x, y)` has the node rectangle `x − 8` to `x − 8 +
+  476.5771484375`, `y − 8` to `y − 8 + 67.37890625`; the new block at
+  `(200, 128)` spans `192` to `668.5771484375` and `120` to
+  `187.37890625`.
+  - A `bare` at `(200, 128)`, the centre: it grows to `184` to
+    `676.5771484375`, which the new block meets, so `x = ⌈(668.5771484375
+    + 8 + 8) / 8⌉ × 8 = 688` (node from 680, clear of 676.5771484375);
+    the add is `(688, 128)`.
+  - `bare` at `(100, 128)` and, touching it on the right, `bare` at
+    `(576.5771484375, 128)` (node `568.5771484375` to `1045.154296875`):
+    the new block meets both, the rightmost ends at `1045.154296875`, so
+    `x = ⌈1061.154296875 / 8⌉ × 8 = 1064`: `(1064, 128)`, past both in
+    one step.
+  - `bare` at `(200, 128)` and `bare` at `(688, 128)` (node 680 to
+    `1156.5771484375`, grown from 672): the new block first meets only
+    the first, moves to 688, then meets the second and moves to `⌈(1156.5771484375
+    + 16) / 8⌉ × 8 = 1176`: `(1176, 128)`.
+  - A `bare` above the centre row: at `(200, 40)` its grown rectangle ends
+    at `107.37890625`, above 120, and at `(200, 52.62109375)` exactly at
+    120, touching: both are ignored, `(200, 128)`. At `(200, 53)` it ends
+    at `120.37890625` and is met: `(688, 128)`.
 
 ## Snapping a moved block (`snap.test.ts`)
 
@@ -401,8 +434,14 @@ the start; the height (sections 8.4, 8.6) is a maximum of the items'
 bottom edges, each affine in the block's spacing with the number of gaps
 above it as its slope, so non-decreasing and piecewise linear, flat for a
 block of one item and up to a knee where an item at its default `y` passes
-one whose `y` is stated. Vertically only the block's `spacing` changes:
-every stated `y` and `height` is kept. So the search is bracketed on the lattice (a Newton guess and its
+one whose `y` is stated. **A block of one item has no gap, so its vertical
+Stretch changes its `margin` instead** (section 1: a container with
+exactly one content), the empty space above its item and below it: the height is
+then `H(0) + 2m`, affine with slope 2 in the margin `m`, so the margin is
+half the travel, floored at 0. A block of two or more items changes its
+`spacing` exactly as before, and a block of none its `spacing` (drawing
+alike). Vertically only the block's `spacing` or `margin` changes: every
+stated `y` and `height` is kept, and neither changes the other. So the search is bracketed on the lattice (a Newton guess and its
 neighbour, then bisection), evaluates each lattice value once, and
 returns the value with what it measured there: on the extent `max(10,
 2x)` from 8, the target 30 gives 15, the target 4 the knee 5, never the
@@ -433,9 +472,12 @@ labels "0.0 s" and "231.0791836734694 s" are 21.86279296875 and
 | bare, scale 2 | right | (20, 0) | `{length: 410}` |
 | bare | left | (−21, 0) | `{length: 421, x: 19}` |
 | bare | right | (−500, 0) | `{length: 8}` (no flat piece) |
-| bare | bottom | (0, 30) | `{spacing: 8}`, no command (one item, no gap) |
-| nested | top | (0, −51) | `{spacing: 8, y: 80}`, no command |
-| nested | bottom-right | (400, 51) | `{length: 800, spacing: 8}` |
+| bare | bottom | (0, 30) | `{margin: 15}` (one item: its margin, half the travel; `spacing` untouched) |
+| bare | top | (0, −30) | `{margin: 15, y: 50}` (the bottom edge kept, the top 30 higher) |
+| bare, margin 15 | bottom | (0, −40) | `{margin: 0}` (the floor; past the content) |
+| bare | bottom | (0, −40) | `{margin: 0}`, no command (the margin it has) |
+| nested | top | (0, −51) | `{margin: 25.5, y: 29}` (one item) |
+| nested | bottom-right | (400, 51) | `{length: 800, margin: 25.5}` |
 | ungrouped | bottom | (0, 32) / (0, 5) | `{spacing: 24}` / `{spacing: 10.5}` (half the travel, two gaps) |
 | ungrouped | top | (0, −32) | `{spacing: 24, y: 48}` |
 | ungrouped | bottom | (0, −16) / (0, −40) | `{spacing: 0}` / `{spacing: 0}` (the floor) |
@@ -463,8 +505,8 @@ applied, the node lies at −19 and its right edge stays at 656.
 
 **A stretch keeps the arrangement.** Along time stated places scale with
 the stretch (`x`, `length`, `width` by the length ratio, quantized; `y`,
-`height`, `scale` and `spacing` kept, a container's spacing being its own
-gap): `{group_2: {x: 40, y: 200, width: 700}, annotations: {x: −30,
+`height`, `scale`, `spacing` and `margin` kept, a container's spacing and
+margin being its own): `{group_2: {x: 40, y: 200, width: 700}, annotations: {x: −30,
 length: 300}}` stretched from 400 to 500 becomes `{group_2: {x: 50, y:
 200, width: 875}, annotations: {x: −37.5, length: 375}}`; `{annotations:
 {x: 1, y: 1, height: 90, spacing: 2}}` to length 401 gives `x:
@@ -861,10 +903,12 @@ and stretches it along time (its item's place), and sizes and stretches
 vertically its own card (its own place).
 
 **The Properties fields** come from the same tables, compared whole per
-container and level: the place members in core's order, each with whose
-place it writes and whether the level edits it (the block's scale, length
-and spacing only where it resizes, an item's position only in an editor
-that moves; a held card's length and scale its group's; a band none).
+container and level: the place members in core's order (`x`, `y`,
+`length`, `scale`, `spacing`, `margin`, `width`, `height`), each with whose
+place it writes and whether the level edits it (the block's scale, length,
+spacing and margin only where it resizes, an item's position only in an
+editor that moves; a held card's length and scale its group's, its spacing
+and margin its own, the vertical stretch's column; a band none).
 
 ## Moving and resizing frames and cards (`items.test.ts`, `properties.test.ts`)
 
@@ -1074,6 +1118,25 @@ vertical Stretch that finds the spacing it started from states nothing: a
 card without gaps (`performance`) draws alike at every spacing, so its
 bottom by 16 gives no place and no command, and bottom-right by (20, 16)
 `{group_1: {length: 420}}` alone.
+
+**A container with exactly one content** (section 1) stretches its
+`margin`, not its `spacing`: its contents are read from the drawing's
+records alone, the `contentCount` layout records on each (a block's
+items, a frame's cards, a card's rows and bands), by one rule that the
+block's resize and every frame's and card's share. `performance` (its
+row, its markers and its conversion maps band: three contents) keeps the
+spacing rule above. With both its bands
+hidden by a workspace statement (`display: none` on `{id: performance,
+facet: markers}` and `{id: performance, facet: conversion_maps}`) it holds
+its row alone: its card is `Hp′ = (8 + h(11) / 2) + h(11) / 2 + 8 =
+28.8046875` high (no band reaches past the name's half row), `H(m) = Hp′ +
+2m`, so bottom by 16 at every level gives `{group_1 › performance:
+{margin: 8}}`, its `spacing` unstated; bottom by −40 floors at 0, the
+margin it has, so no place and no command. With `group_1`'s height
+requested at twice its content, `2 × (24.8046875 + 78.953125 + 8 +
+28.8046875 + 8) = 297.125`, the same drag gives `group_1 › performance:
+{margin: 8}` then `group_1: {height: 329.125}` (`297.125 × 164.5625 /
+148.5625`, its content 16 higher), in that order.
 
 **The command of a resize** sets each place in order and, where the
 level's items lie freely (arranger and bundle editor), the drawn position
@@ -1614,6 +1677,95 @@ resize the box, and a locked canvas shows no handle and disables the
 modes. A handle's drag by (60, 0) previews and stores exactly the command
 the resize sections derive for that delta, for a block and for a frame.
 A click and an Escape store nothing.
+
+### The resize toolbar while boxes move (`resize-toolbar-moves.test.ts`, `gestures.test.ts`)
+
+A move leaves no handle behind: while boxes are being moved the resize
+toolbar is not in the document at all, neither a `handle-*` nor a
+`mode-*` element, and once the move ends it is there again at the bounds
+the store leaves. A resize is not a move: through a handle's drag every
+handle and the mode menu stay. Keys move without a drag and hide nothing.
+
+The expected bounds are never read off the toolbar: a block's are its
+node position derived from the block as stored (its place origin less
+its drawing's origin times its scale), a frame's that node position plus
+the frame's rectangle in the block's drawing times the scale. The
+`handle-top-left` element sits at the bounds' top-left corner in canvas
+units (its `left` and `top`). Mounted on `bundle_mixed` alone at (40, 80)
+(no other block to snap to), with the canvas at (100, 100), zoom 1, and
+the resize mode Box (8 handles: four corners, four sides).
+
+1. **A block dragged on the arranger.** `{block: A}` selected shows 8
+   handles and the three mode buttons, the top-left handle at A's node
+   position. A press on A's node moved 32 by 24 screen px (past Svelte
+   Flow's drag threshold) removes every handle and mode button; they stay
+   absent through a further move by (8, 6). The release stores one entry at the
+   level (`entries`), and the 8 handles and three buttons are back, the top-left
+   handle at A's node position derived from the block now stored, exactly
+   (48, 88). Derivation: A's drawing origin is (0, 0) (`mixed`), so its node
+   position before the press is its place, (40, 80). Svelte Flow's drag
+   threshold is 1 screen px, so the drag starts at the first move, (32, 24),
+   and takes the node's offset from the pointer there: at that point the
+   node stays at (40, 80). The further move by (8, 6) at zoom 1 puts it at
+   (48, 86), which Svelte Flow's grid (the workspace's default, size 8,
+   snapping) rounds to (48, 88) (86 / 8 = 10.75, rounded to 11). The
+   arranger's snap quantizes that to the same grid, (48, 88), and finds no
+   other block to align to; with the origin (0, 0) the stored place is
+   `{x: 48, y: 88}` and the node position (48, 88).
+2. **A block drag that stores nothing** (the grid not snapping, the
+   press moved 32 by 24 and released there: Svelte Flow starts the drag
+   where the pointer passes its threshold and moves the node from that
+   point on, so the node has not moved, no command is made, and the canvas
+   shows the projection again, as when the store refuses a command): no
+   entry is stored
+   and the toolbar is back at the original node position.
+3. **A frame moved in the bundle editor.** `{block: A}` opened,
+   `{block: A, id: "group_2"}` selected: a press on the frame's own
+   rectangle moved by (40, 24) hides the toolbar; the release stores one
+   entry and shows it at `group_2`'s bounds derived from the block now
+   stored, exactly (848, 766.0390625). Derivation: before the press the
+   bounds' corner is A's node position (40, 80) plus `group_2`'s place (8,
+   206.0390625) (`bundle_mixed`'s table; `dlt_1` only lengthens `excerpt`
+   below it), (48, 286.0390625). Opening the editor centres `group_2`'s
+   frame: jsdom lays the pane out at 0 by 0, so the fitting zoom is 0 and
+   is clamped to the focus's least zoom, 0.05, the zoom at the press. The
+   frame's place moves by the screen travel divided by that zoom and by
+   A's scale 1, (40 / 0.05, 24 / 0.05) = (800, 480), to (808,
+   686.0390625), quantized to `GRID_FREE` unchanged. Every item stays
+   right of and below the block's border, so A's place origin stays (0, 0)
+   and its node position (40, 80): the corner is (40 + 808, 80 +
+   686.0390625). The same press and move ended by Escape, or by a cancelled
+   pointer, stores nothing and shows it at the original bounds.
+4. **A handle's resize.** With `{block: A}` selected on the arranger, a
+   press on `handle-right` moved by 60 px keeps the 8 handles and the
+   three mode buttons in the document during the drag and after the
+   release.
+5. **The slot hears the move** (`gestures.test.ts`, with the recording
+   strategy): a slot told of every change hears nothing for a press
+   within the click distance; a strategy that moves boxes makes it hear
+   `true` once the press passes the click distance and `false` once it
+   ends, by release, by Escape and by a cancelled pointer alike; one that
+   does not move boxes makes it hear `false` at its start and its end. The
+   item, held-card and band strategies declare that they move boxes, the
+   resize handle's does not.
+6. **A block drag Svelte Flow never stops.** Svelte Flow skips
+   `onnodedragstop` when it aborts a drag itself (a second touch, the
+   dragged node removed), so the end of the press and the dragged block
+   leaving the view end the move as well. On the view of case 2 (the grid
+   not snapping), the press on A's node moved 32 by 24 hides the toolbar;
+   a `pointercancel` on the window, with no mouse release before it, shows
+   the 8 handles and three buttons again at the node position before the
+   press. The mouse release that ends Svelte Flow's gesture afterwards, at
+   that same point, stores nothing and keeps them there.
+7. **The dragged block removed mid-drag.** Only mouse events are sent,
+   so no pointer event ends the press. The press on A's node moved 32 by
+   24 hides the toolbar; a `remove` of `{block: A}` is accepted by the
+   store; a further mouse move by (8, 6), on which Svelte Flow aborts the
+   drag (its node gone), and the mouse release, after which it calls no
+   `onnodedragstop`, follow. Undoing the removal brings A back, still
+   selected, and with it the 8 handles and three buttons at A's node
+   position before the press: a move still marked in progress would keep
+   them hidden.
 
 ### The store as Svelte state (`live-store.svelte.test.ts`)
 

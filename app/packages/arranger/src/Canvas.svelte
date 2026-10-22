@@ -8,14 +8,14 @@ import "./canvas.css";
 import { untrack } from "svelte";
 import { MediaQuery } from "svelte/reactivity";
 import BlockNode from "./BlockNode.svelte";
-import { BlockDrag } from "./blockDrag.ts";
+import { BlockDrag, type NodeDrag } from "./blockDrag.ts";
 import CanvasToolbar from "./CanvasToolbar.svelte";
 import type { Visible } from "./commands.ts";
 import type { Level } from "./containers.ts";
 import { levelOf, rulesOf } from "./containers.ts";
 import type { Editing } from "./editing.ts";
 import { EditorFocus } from "./editorFocus.svelte.ts";
-import { CLICK_DISTANCE, GestureSlot } from "./gesture.ts";
+import { CLICK_DISTANCE, GestureSlot, listen } from "./gesture.ts";
 import { CanvasPointer } from "./gestures/canvas.ts";
 import { PAN_SPEED, shiftWheel } from "./gestures/wheel.ts";
 import type { KeyContext } from "./keys.ts";
@@ -102,8 +102,15 @@ let guides: readonly Guide[] = $state.raw([]);
 let marquee = $state(false);
 /** The last refusal, announced in the status region. */
 let hint = $state("");
+/**
+ * Whether boxes are being moved: a block dragged by Svelte Flow, or a
+ * gesture inside a drawing that moves an item, a held card or a band. The
+ * resize toolbar is hidden meanwhile, so no handle is left behind at the
+ * bounds the move started from.
+ */
+let moving = $state(false);
 /** The gesture in progress inside a drawing or on a resize handle, which Escape ends. */
-const gestures = new GestureSlot();
+const gestures = new GestureSlot((next) => (moving = next));
 const reducedMotion = new MediaQuery("(prefers-reduced-motion: reduce)");
 
 const nodes = new CanvasNodes(() => ({ view, selection, metrics, editing }));
@@ -118,6 +125,12 @@ const editorFocus = new EditorFocus({
   reducedMotion: () => reducedMotion.current,
 });
 
+/**
+ * The block drag under way: the blocks Svelte Flow drags, and the stop of
+ * the window listeners that hear its press end; `null` while none is.
+ */
+let blockDrag: { readonly blocks: readonly string[]; readonly unlisten: () => void } | null = null;
+
 const drag = new BlockDrag({
   view: () => view,
   metrics: () => metrics,
@@ -131,6 +144,53 @@ const drag = new BlockDrag({
   dispatch,
   report: (placement) => onlive?.(placement),
 });
+
+/**
+ * Svelte Flow has started dragging the blocks of `event`: the resize toolbar
+ * is hidden, and the end of the press is heard on the window, in the capture
+ * phase, so no handler stops it from arriving.
+ */
+function startBlockDrag({ nodes: dragged }: NodeDrag): void {
+  endBlockDrag();
+  const capture = { capture: true };
+  const stops = ["pointerup", "pointercancel"].map((type) =>
+    listen(window, type, endBlockDrag, capture),
+  );
+  blockDrag = {
+    blocks: dragged.map(({ id }) => id),
+    unlisten: () => {
+      for (const stop of stops) stop();
+    },
+  };
+  moving = true;
+}
+
+/**
+ * The block drag has ended, once: the resize toolbar returns, the snap
+ * guides and the live placement are withdrawn. Svelte Flow says so with
+ * `onnodedragstop`, except when it aborts the drag itself (a second touch,
+ * the dragged node removed); the press's end and a dragged block leaving
+ * the view therefore end it too. Every press ends with a `pointerup` or a
+ * `pointercancel`, the touch's included, and a stop that follows it still
+ * stores the move.
+ */
+function endBlockDrag(): void {
+  if (blockDrag === null) return;
+  blockDrag.unlisten();
+  blockDrag = null;
+  moving = false;
+  guides = [];
+  onlive?.(null);
+}
+
+// A dragged block gone from the view ends its drag: Svelte Flow aborts it without a stop.
+$effect(() => {
+  const { blocks } = view;
+  if (moving && blockDrag?.blocks.some((id) => blocks[id] === undefined)) untrack(endBlockDrag);
+});
+
+// Unmounted mid-drag, the canvas leaves no listener on the window.
+$effect(() => endBlockDrag);
 
 /** Show the canvas at `next`; see `CanvasToolbar.setViewport`. */
 export function setViewport(next: Viewport): void {
@@ -339,11 +399,17 @@ function onkeydowncapture(event: KeyboardEvent) {
       onnodeclick={pointer.nodeclick}
       onpaneclick={pointer.paneclick}
       onselectionend={pointer.selectionend}
-      onnodedragstart={(event) => drag.start(event)}
+      onnodedragstart={(event) => {
+        startBlockDrag(event);
+        drag.start(event);
+      }}
       onnodedrag={(event) => drag.drag(event)}
-      onnodedragstop={(event) => drag.stop(event)}
+      onnodedragstop={(event) => {
+        endBlockDrag();
+        drag.stop(event);
+      }}
     >
-      {#if resizable !== undefined && resizableBounds !== undefined}
+      {#if !moving && resizable !== undefined && resizableBounds !== undefined}
         {@const block = view.blocks[resizable.block]}
         {#if block !== undefined}
           <ResizeToolbar

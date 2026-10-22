@@ -96,7 +96,16 @@ export function layoutItem(
   const right = frame === null ? end : Math.max(end, ...cardRights) + Q;
   const place = { x: item.x, y: item.y, length: item.length, scale: item.scale };
   const itemRecord = {
-    item: { place: { ...place, spacing: item.spacing, width: right, height: item.height }, stated },
+    item: {
+      place: {
+        ...place,
+        spacing: item.spacing,
+        margin: item.margin,
+        width: right,
+        height: item.height,
+      },
+      stated,
+    },
   };
 
   const elements: DrawnElement[] = [];
@@ -153,6 +162,7 @@ export function layoutItem(
       height: item.height,
       range: { start: 0, end: elements.length },
       displayed: frameShown,
+      contentCount: item.cards.length,
       ...itemRecord,
     });
   }
@@ -165,10 +175,12 @@ export function layoutItem(
       height: bottom - card.top,
       range,
       displayed,
+      contentCount: card.layout.contentCount,
       ...(frame === null ? itemRecord : {}),
       card: {
         size: { width: cardRight - left, height: card.height },
         spacing: card.spacing,
+        margin: card.margin,
         stated: card.stated,
       },
     });

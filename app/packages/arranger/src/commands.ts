@@ -16,9 +16,12 @@ import {
   idAddress,
   inBlock,
   indicesBetween,
+  isCommandError,
+  preview,
   sameAddress,
   WORKSPACE,
 } from "@timetoalign/tilie-core";
+import type { Drawing } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import { drawingOf, nodePosition } from "./drawing.ts";
 import { addressParts, type Editing } from "./editing.ts";
@@ -116,21 +119,84 @@ export interface Visible {
   readonly height: number;
 }
 
+/** A node's rectangle on the canvas. */
+interface NodeRect {
+  readonly left: number;
+  readonly top: number;
+  readonly right: number;
+  readonly bottom: number;
+}
+
+/** The node rectangle of `block` drawn as `drawing`: its drawing's size times its scale, from its node position. */
+function nodeRect(block: Pick<Block, "x" | "y" | "scale">, drawing: Drawing): NodeRect {
+  const { x, y } = nodePosition(block, drawing);
+  return {
+    left: x,
+    top: y,
+    right: x + drawing.width * block.scale,
+    bottom: y + drawing.height * block.scale,
+  };
+}
+
+/** Whether the interiors of two rectangles intersect; edges that only touch do not. */
+function overlaps(a: NodeRect, b: NodeRect): boolean {
+  return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+}
+
+/** `rect` grown by `margin` on every side. */
+function grown(rect: NodeRect, margin: number): NodeRect {
+  return {
+    left: rect.left - margin,
+    top: rect.top - margin,
+    right: rect.right + margin,
+    bottom: rect.bottom + margin,
+  };
+}
+
 /**
  * One `add` of a new block `id` holding `manifest`, its top-left at the
  * centre of what `visible` shows, quantized as a move under the view's grid
- * is. Its other placement members are the workspace's block defaults.
+ * is, then moved right past every block it would overlap: while its node
+ * rectangle (its drawing at the workspace's block defaults) meets a root
+ * block's grown by the grid size on every side, its node moves to the right
+ * edge of the rightmost such block plus the grid size, its `x` rounded up
+ * to the position step. Its `y` never changes; its other placement members
+ * are the workspace's block defaults.
  */
 export function addCommand(
   view: View,
   id: BlockId,
   manifest: Manifest,
   visible: Visible,
+  metrics: FontMetrics,
 ): AddCommand {
-  const step = positionStep(view.settings.grid);
-  const x = quantize((visible.width / 2 - visible.x) / visible.zoom, step);
+  const { grid } = view.settings;
+  const step = positionStep(grid);
+  let x = quantize((visible.width / 2 - visible.x) / visible.zoom, step);
   const y = quantize((visible.height / 2 - visible.y) / visible.zoom, step);
-  return { type: "add", into: WORKSPACE, block: { id, manifest, x, y } };
+  const command = (): AddCommand => ({
+    type: "add",
+    into: WORKSPACE,
+    block: { id, manifest, x, y },
+  });
+  const added = preview(view, command());
+  const block = isCommandError(added) ? undefined : added.blocks[id];
+  // A manifest core refuses is refused by the dispatch too; where it would lie does not matter.
+  if (block === undefined) return command();
+  const drawing = drawingOf(block, view.settings, metrics);
+  let others = Object.values(view.blocks)
+    .filter((other) => other.parent === null)
+    .map((other) => grown(nodeRect(other, drawingOf(other, view.settings, metrics)), grid.size));
+  for (;;) {
+    const rect = nodeRect({ x, y, scale: block.scale }, drawing);
+    const met = others.filter((other) => overlaps(rect, other));
+    if (met.length === 0) return command();
+    // The grown right edge is the block's right edge plus the grid size.
+    const right = Math.max(...met.map((other) => other.right));
+    x = Math.ceil((right + drawing.origin.x * block.scale) / step) * step + 0;
+    // Every block met lies left of the new place, so each is passed once and the search ends.
+    others = others.filter((other) => !met.includes(other));
+  }
 }
 
 export type ZOrderAction = "front" | "back" | "forward" | "backward";

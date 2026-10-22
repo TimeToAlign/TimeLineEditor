@@ -137,7 +137,8 @@ export interface Resizing {
   readonly levels: { readonly [level in Level]?: "inside" | "edited" };
   /**
    * By resize mode (`ResizeMode` of `resize.ts`), a stretch by its axis:
-   * `length` along time, `spacing` vertically.
+   * `length` along time, `spacing` vertically, which writes `spacing` or
+   * `margin` (`verticalStretchOf`).
    */
   readonly writes: {
     readonly scale: Written;
@@ -204,6 +205,7 @@ export const RESIZED_BY: {
   length: "length",
   scale: "scale",
   spacing: "spacing",
+  margin: "spacing",
   width: "box",
   height: "box",
 };

@@ -40,13 +40,13 @@ import type { View } from "./view.ts";
  * `width` and `height` are the block adapting to what it holds, and the
  * places and manifest are compared key by key.
  */
-const FIXED_MEMBERS = ["scale", "length", "spacing", "index", "parent"] as const;
+const FIXED_MEMBERS = ["scale", "length", "spacing", "margin", "index", "parent"] as const;
 
 /**
  * The members of a group's place that the editor of one of its members
  * changes: the length and scale the members share are each member's own,
  * a horizontal stretch keeps the frame's requested width in proportion,
- * and a change of a member card's spacing keeps the frame's requested
+ * and a change of a member card's spacing or margin keeps the frame's requested
  * height in proportion.
  */
 const SHARED_MEMBERS: readonly string[] = ["length", "scale", "width", "height"];
@@ -403,7 +403,7 @@ function blockChange(
  * innermost open editor's target, as a `side_effect` refusal; `null` when
  * every change lies inside it. In this order: the workspace's name or a
  * setting; another block; for an element's editor, its block's scale, length, spacing,
- * index or parent, a place of a key the element does not contain (a group
+ * margin, index or parent, a place of a key the element does not contain (a group
  * member's editor also changes its group's length, scale and width and its
  * siblings' card widths), and the manifest outside the element (the element
  * removed included; a display or band order lies inside when the element

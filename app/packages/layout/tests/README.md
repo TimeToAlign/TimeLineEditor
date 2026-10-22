@@ -762,11 +762,12 @@ u`; its default `y` lies the block's spacing (8) below the largest bottom
 edge before it (its requested height included, no shadow), summed in place
 coordinates; `Xl =
 min(0, smallest x − P)`, `Yt = min(0, smallest y − Pt)`, `Pt = P + h(s) +
-F` under a displayed title and `P` otherwise; the place origin `(0 − Xl, 0
+F` under a displayed title and `P` otherwise, each plus the block's margin
+(0 here; "Margins" below); the place origin `(0 − Xl, 0
 − Yt)`, so a zero origin is `+0`, is added to every finished position last;
 the title lies at `(Xl + P, (Yt + P) + a(s))`; `Wb = (P + largest right
 edge) − Xl`, `Hb = (P + largest bottom edge) − Yt`, shadows and the title
-included. The fixtures `bundle_mixed__places` and
+included, the block's margin added to the largest item edge. The fixtures `bundle_mixed__places` and
 `bundle_ungrouped__places` pin the drawn elements; here the records' places
 and the sums are proved, two of them with a fractional origin that tells
 the order of the sums apart.
@@ -881,6 +882,67 @@ coordinates. `bundle_ungrouped`'s quantities are those of "Places".
   block's spacing 24 on the one frame, give the cards 88.453125 and
   49.37890625 at spacings 8 and 4, `recording`'s card at 137.2578125 and the
   frame 186.63671875 high: no spacing multiplies another.
+
+## Margins (`margin.test.ts`)
+
+Sections 1, 6.4, 6.5, 8.4 and 8.6: a container's `margin` is empty space
+inside its padding, above its first content and below its last, so it
+makes the container exactly `2 × margin` higher, moves everything inside
+it exactly `margin` down, and changes no width and nothing outside it but
+what lies below it. Every value here is a sum of dyadic numbers, so each
+"exactly" is binary64 equality. The proof compares a drawing at margin 12
+with the same drawing at margin 0, element by element: an element inside
+the container must equal the margin-0 element moved by `(0, 12)` (layout's
+own `placedAt`, so every ordinate of every element type is checked), the
+container's own rectangle keeps its `x`, `y` and `width` and is 24
+higher, and what lies before it (a frame's title) is unchanged. A
+fixture-shaped restatement cannot pass this: every element of the drawing
+is compared.
+
+- **The block** (`bare`, placement `margin: 12`): the block is
+  `476.5771484375` wide at both, `67.37890625 + 24 = 91.37890625` high;
+  the card at `y = P + 12 = 20` (its default top, the block having no
+  title), its height 49.37890625 unchanged; every element but the
+  background moved by `(0, 12)`, the line at `22.40234375 + 12 =
+  34.40234375`; the place origin `(+0, +0)` at both, since the margin lies
+  between the top padding and the item.
+- **A frame of one card** (`bare` made the one member of a group `g`
+  through `add group`, `{g: {margin: 12}}`): the frame keeps `x`, `y` and
+  width and is 24 higher, its title unchanged; the card and everything in
+  it moved by `(0, 12)`; the block 24 higher, as wide.
+- **A card of one row**, block-held (`bare`, `{bare: {margin: 12}}`): the
+  card at `y = 8`, `49.37890625 + 24 = 73.37890625` high, the line at
+  34.40234375, the block 91.37890625 high and as wide; its record states
+  `margin` 12. Held by a frame (`g` above, `{g: {cards: {bare: {margin:
+  12}}}}`): the card and the frame each 24 higher, the frame's title
+  unchanged, everything in the card moved by `(0, 12)`.
+- **A member with an ancestor band** (`group_child_member`, `{group_1:
+  {cards: {second-half: {margin: 12}}}}`): `second-half`'s card `83.953125
+  + 24 = 107.953125` high, everything in it, its ancestor line `piece`
+  included, moved by `(0, 12)`; `recording`'s card and everything in it
+  moved by `(0, 24)`, the card from 124.7578125 to 148.7578125; the frame
+  `174.13671875 + 24 = 198.13671875` high.
+- **Flow markers** (`flow_control`, its root `flow:quarters` at `{margin:
+  12}`): the root's flow marker runs to `P + V` and `Hc − P − V` (section
+  6.4), so it too is moved by `(0, 12)`, both its ends; the card is 24
+  higher. Only the flow marker is compared there: a jump's arrowhead
+  corners are rotated points, not dyadic, so a jump drawn 12 lower is not
+  the jump moved by `(0, 12)` to the last bit.
+- **Margin 0 draws as no margin**: `bundle_mixed` with the placement's
+  margin, each item's and each member card's stated 0 draws exactly the
+  elements, width and height of `bundle_mixed` with none stated (the
+  drawing fixtures pin margin 0 byte for byte).
+- **The records**: every block, frame and card record carries its
+  `contentCount`, the number of its contents (section 1), counted where
+  layout lays them out: the block its items (`bare` 1), a frame its cards
+  (`g` 1), a card its root's row, its root's present bands and its
+  ancestor band: `bare` 2 (row, markers band); in
+  `group_child_member` `second-half` 3 (row, markers, ancestor band) and
+  `recording` 2; in `bundle_mixed` `score` 4 (row, markers, conversion
+  maps, flow control), `performance` and `page` 3 (row, markers,
+  conversion maps), `excerpt` 4 (row, markers, conversion maps, ancestor
+  band). A card's record carries its `margin` (stated, else 0), an item's
+  record place `margin` beside `spacing`.
 
 ## Container records and axes (`records.test.ts`)
 

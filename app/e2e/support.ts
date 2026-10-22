@@ -47,6 +47,7 @@ export interface Placement {
   readonly scale: number;
   readonly length: number;
   readonly spacing: number;
+  readonly margin: number;
   readonly width: number | null;
   readonly height: number | null;
 }
@@ -341,8 +342,8 @@ export function placement(page: Page, id: string): Promise<Placement> {
   return page.evaluate((block) => {
     const found = window.__tilie.store().view.blocks[block];
     if (found === undefined) throw new Error(`block ${block} is missing`);
-    const { x, y, index, scale, length, spacing, width, height } = found;
-    return { x, y, index, scale, length, spacing, width, height };
+    const { x, y, index, scale, length, spacing, margin, width, height } = found;
+    return { x, y, index, scale, length, spacing, margin, width, height };
   }, id);
 }
 

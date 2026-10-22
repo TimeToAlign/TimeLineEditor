@@ -196,7 +196,16 @@ describe("project", () => {
 describe("livePlacement", () => {
   const block = blockIn(view, A);
   const drawing = drawingOf(block, view.settings, metrics);
-  const stored = { id: A, scale: 1, length: 400, spacing: 8, width: null, height: null, drawing };
+  const stored = {
+    id: A,
+    scale: 1,
+    length: 400,
+    spacing: 8,
+    margin: 0,
+    width: null,
+    height: null,
+    drawing,
+  };
 
   it("takes the position from the node", () => {
     expect(livePlacement(block, { x: 104, y: 40 }, {}, drawing)).toStrictEqual({

@@ -121,6 +121,8 @@ export interface Scope extends Context {
   readonly L: number;
   /** The card spacing `S` (sections 6.2 and 8.6): the gap between its rows and between its bands. */
   readonly S: number;
+  /** The card margin `V` (sections 6.5 and 8.6): empty space above its first row or band and below its last. */
+  readonly V: number;
   /** The proportion `u` of an exact position on the root's axis (section 3.2). */
   readonly u: (value: Real) => number;
   /** `L × u`: an exact position's distance from the root's start. */
@@ -181,13 +183,15 @@ export function endOf(timeline: TimelineManifest, topLevel: boolean, open = fals
 
 /**
  * Traverse one timeline drawn as a root (section 6.1), its line held by
- * `holder`, the block or its group's frame, in a card of spacing `S`.
+ * `holder`, the block or its group's frame, in a card of spacing `S` and
+ * margin `V`.
  */
 export function traverse(
   context: Context,
   member: MemberDrawing,
   holder: Holder,
   S: number,
+  V: number,
 ): Scope {
   const { manifest, placement, cascade, measure } = context;
   const root = member.timeline;
@@ -342,6 +346,7 @@ export function traverse(
     lambda,
     L,
     S,
+    V,
     u,
     relativeX,
     relativeEnd,

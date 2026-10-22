@@ -109,6 +109,7 @@ export function heldGesture(
     return block;
   };
   return {
+    moves: true,
     takes(_event, at) {
       if (!actions.rules().reorder) return null;
       const { drawing, descriptors } = host.data();

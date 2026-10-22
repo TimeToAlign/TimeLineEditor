@@ -66,6 +66,7 @@ const views: { readonly [name: string]: View } = {
   bare,
   "bare, grid off": withGrid(bare, 8, false),
   "bare, scale 2": viewOf({ id: A, fixture: "bare", x: 40, y: 80, scale: 2 }),
+  "bare, margin 15": placed(bare, { margin: 15 }),
   nested,
   ungrouped,
   "ungrouped, score at y 200": placedItem(ungrouped, A, "score", { y: 200 }),
@@ -137,9 +138,12 @@ describe("resize: stretch", () => {
     ["bare, scale 2", "right", 20, 0, { length: 410 }],
     ["bare", "left", -21, 0, { length: 421, x: 19 }],
     ["bare", "right", -500, 0, { length: 8 }],
-    ["bare", "bottom", 0, 30, { spacing: 8 }],
-    ["nested", "top", 0, -51, { spacing: 8, y: 80 }],
-    ["nested", "bottom-right", 400, 51, { length: 800, spacing: 8 }],
+    ["bare", "bottom", 0, 30, { margin: 15 }],
+    ["bare", "top", 0, -30, { margin: 15, y: 50 }],
+    ["bare, margin 15", "bottom", 0, -40, { margin: 0 }],
+    ["bare", "bottom", 0, -40, { margin: 0 }],
+    ["nested", "top", 0, -51, { margin: 25.5, y: 29 }],
+    ["nested", "bottom-right", 400, 51, { length: 800, margin: 25.5 }],
     ["ungrouped", "bottom", 0, 32, { spacing: 24 }],
     ["ungrouped", "bottom", 0, 5, { spacing: 10.5 }],
     ["ungrouped", "top", 0, -32, { spacing: 24, y: 48 }],
@@ -165,6 +169,19 @@ describe("resize: stretch", () => {
     ["child member, width 600", "right", 50, 0, { length: 446.53466796875, width: 650 }],
   ])("%s %s by (%d, %d)", (name, handle, dx, dy, expected) => {
     expect(check(views[name] as View, "stretch", handle, dx, dy)).toStrictEqual(expected);
+  });
+});
+
+describe("resize: stretch of a block of one item", () => {
+  it("sets its margin, never its spacing, and nothing where the margin stays", () => {
+    const block = blockIn(bare, A);
+    const grown = resize(block, bare.settings, metrics, "stretch", "bottom", { dx: 0, dy: 30 });
+    expect(blockIn(changed(bare, resizeCommand(block, grown.values)), A)).toMatchObject({
+      margin: 15,
+      spacing: 8,
+    });
+    const floor = resize(block, bare.settings, metrics, "stretch", "bottom", { dx: 0, dy: -40 });
+    expect(resizeCommand(block, floor.values)).toBeNull();
   });
 });
 

@@ -46,15 +46,22 @@ export interface ItemPlace {
   readonly scale?: number;
   /** A frame's gap between its cards; a block-held card's between its rows and its bands. */
   readonly spacing?: number;
+  /** Empty space drawn above a frame's first card and below its last, or a block-held card's first and last row or band. */
+  readonly margin?: number;
   readonly width?: number;
   readonly height?: number;
 }
 
-/** The stated size and spacing (the gap between its rows and its bands) of a frame-held card. */
+/**
+ * The stated size, spacing (the gap between its rows and its bands) and
+ * margin (the empty space above its first and below its last) of a
+ * frame-held card.
+ */
 export interface CardPlace {
   readonly width?: number;
   readonly height?: number;
   readonly spacing?: number;
+  readonly margin?: number;
 }
 
 /**
@@ -146,6 +153,7 @@ export const ITEM_PLACE_MEMBERS = [
   "length",
   "scale",
   "spacing",
+  "margin",
   "width",
   "height",
 ] as const satisfies readonly (keyof ItemPlace)[];
@@ -155,6 +163,7 @@ export const CARD_PLACE_MEMBERS = [
   "width",
   "height",
   "spacing",
+  "margin",
 ] as const satisfies readonly (keyof CardPlace)[];
 
 /** The fixed properties of one kind of drawing container. */
@@ -360,8 +369,8 @@ export function placeMembersOf(ref: ContainerRef): readonly (keyof ItemPlace)[] 
 /**
  * `place` with only the members `ref` may state (`placeMembersOf`): `place`
  * itself when it states no other, `undefined` when it states none of them.
- * A timeline that becomes a group member so keeps its card's requested size
- * and spacing, and loses its position, length and scale.
+ * A timeline that becomes a group member so keeps its card's requested size,
+ * spacing and margin, and loses its position, length and scale.
  */
 export function keptPlace(
   ref: ContainerRef,

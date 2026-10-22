@@ -888,6 +888,10 @@ describe("the side-effect guard through the store", () => {
       code: "side_effect",
       path: [key(BLOCK), "length"],
     });
+    expect(refusal(store.dispatch(set(BLOCK, { margin: 12 })))).toEqual({
+      code: "side_effect",
+      path: [key(BLOCK), "margin"],
+    });
     expect(store.dispatch(set(BLOCK, { width: 900 }))).toBeNull();
     expect(refusal(store.dispatch(style({ element: "timeline" })))).toEqual({
       code: "side_effect",

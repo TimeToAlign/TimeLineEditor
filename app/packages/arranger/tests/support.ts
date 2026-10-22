@@ -348,6 +348,7 @@ function handDrawn(
     height,
     range: { start: 0, end },
     displayed: true,
+    contentCount: 1,
   };
   const card: DrawnBox = {
     kind: "card",
@@ -360,11 +361,27 @@ function handDrawn(
     height: cardHeight,
     range: { start: 1, end },
     displayed: true,
+    // Its root's row and its root's bands.
+    contentCount: 1 + bands.filter((band) => band.band.timeline === root).length,
     item: {
-      place: { x, y, length: 400, scale: 1, spacing: 1, width: cardWidth, height: cardHeight },
+      place: {
+        x,
+        y,
+        length: 400,
+        scale: 1,
+        spacing: 1,
+        margin: 0,
+        width: cardWidth,
+        height: cardHeight,
+      },
       stated: {},
     },
-    card: { size: { width: cardWidth, height: cardHeight }, spacing: 1, stated: {} },
+    card: {
+      size: { width: cardWidth, height: cardHeight },
+      spacing: 1,
+      margin: 0,
+      stated: {},
+    },
   };
   return {
     width,

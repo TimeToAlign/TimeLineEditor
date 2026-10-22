@@ -30,6 +30,7 @@ import {
   saveManifest,
   writeWorkspace,
 } from "@timetoalign/tilie-core";
+import type { FontMetrics } from "@timetoalign/timetoshare";
 import {
   MANIFEST_FILE,
   manifestFileName,
@@ -211,10 +212,21 @@ export class WorkspaceSession {
   }
 
   /**
-   * Import a manifest file the viewer picks as one new block whose top-left
-   * lies at the centre of the canvas's view; the block is selected.
+   * Whether a manifest can be imported: not while an editor is open, since
+   * an editor changes only what it edits and a new block lies outside it.
    */
-  async importManifest(canvas: ImportTarget): Promise<void> {
+  get importable(): boolean {
+    return this.live.editing.length === 0;
+  }
+
+  /**
+   * Import a manifest file the viewer picks as one new block, its top-left
+   * at the centre of the view, moved right past every block it would
+   * overlap (`metrics` measure the drawings); the block is selected. While
+   * an editor is open nothing is picked and nothing changes.
+   */
+  async importManifest(canvas: ImportTarget, metrics: FontMetrics): Promise<void> {
+    if (!this.importable) return;
     try {
       const opened = await openFile(MANIFEST_FILE);
       if (opened === null) return;
@@ -228,7 +240,7 @@ export class WorkspaceSession {
       }
       const id = mintBlockId();
       const refusal = this.store.dispatch(
-        addCommand(this.store.view, id, manifest, canvas.visible()),
+        addCommand(this.store.view, id, manifest, canvas.visible(), metrics),
       );
       if (refusal !== null) {
         this.#options.say(`${opened.name} could not be added.`, [refusal]);

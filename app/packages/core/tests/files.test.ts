@@ -101,7 +101,7 @@ describe("blocks hold any manifest", () => {
     const read = readWorkspace(text);
     expect(read).toEqual(workspace);
     if (!isLoadError(read)) {
-      expect(read.view.meta).toEqual({ format: "tilie-workspace", version: 5 });
+      expect(read.view.meta).toEqual({ format: "tilie-workspace", version: 6 });
       expect(writeWorkspace(read)).toBe(text);
     }
   });

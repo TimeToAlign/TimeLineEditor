@@ -341,7 +341,13 @@ export function commandIn(
       target: at(block, element),
       values: {
         place: pick(
-          [{ x: (p3 % 64) - 8 }, { scale }, { spacing: scale }, { width: 100 + (p3 % 900) }],
+          [
+            { x: (p3 % 64) - 8 },
+            { scale },
+            { spacing: scale },
+            { margin: scale },
+            { width: 100 + (p3 % 900) },
+          ],
           p1,
         ),
       },
@@ -404,7 +410,7 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
     }
     case 1: {
       const property = pick(
-        ["x", "y", "scale", "length", "spacing", "width", "height", "index", "index"],
+        ["x", "y", "scale", "length", "spacing", "margin", "width", "height", "index", "index"],
         p2,
       );
       const value =
@@ -541,6 +547,7 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
                 { width: canvas(p4), height: 1 + (p4 % 90) },
                 { scale: canvas(p4) },
                 { spacing: canvas(p4) },
+                { margin: canvas(p4) },
                 { width: 1 + (p4 % 700) },
                 { x: null, length: null },
                 {},

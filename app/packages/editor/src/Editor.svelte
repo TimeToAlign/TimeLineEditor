@@ -271,8 +271,9 @@ const fileItems: readonly MenuItem[] = $derived([
   },
   {
     label: "Import manifest…",
+    disabled: !session.importable,
     run: () => {
-      if (canvas !== undefined) void session.importManifest(canvas);
+      if (canvas !== undefined) void session.importManifest(canvas, fontMetrics);
     },
   },
   {

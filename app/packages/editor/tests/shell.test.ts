@@ -11,12 +11,13 @@ import {
   saveManifest,
   writeWorkspace,
 } from "@timetoalign/tilie-core";
-import { SCHEMA_VERSION } from "@timetoalign/timetoshare";
+import { fontMetrics, SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App.svelte";
 import { createAutosave, recoverWorkspace } from "../src/autosave.ts";
 import { manifestFileName } from "../src/files.ts";
+import { WorkspaceSession } from "../src/workspaceSession.svelte.ts";
 import { stubEditor } from "./dom.ts";
 import {
   fixture,
@@ -376,6 +377,53 @@ describe("manifests", () => {
     await vi.waitFor(() => expect(messages().length).toBe(1));
     expect(messages()[0]?.startsWith("bad.json is not a manifest")).toBe(true);
     expect(hook().store().journal.length).toBe(1);
+  });
+
+  it("offers no import while an editor is open", async () => {
+    start();
+    addBlock(hook().store(), A);
+    expect(hook().open({ block: A })).toBeNull();
+    flushSync();
+    expect(item("Import manifest…").getAttribute("aria-disabled")).toBe("true");
+    choose("Import manifest…");
+    await Promise.resolve();
+    expect(document.querySelector("input[type=file]")).toBeNull();
+    expect(hook().store().journal.length).toBe(1);
+
+    hook().done();
+    flushSync();
+    expect(item("Import manifest…").getAttribute("aria-disabled")).toBe(null);
+  });
+
+  it("picks no file and dispatches nothing when imported into with an editor open", async () => {
+    const say = vi.fn();
+    const session = new WorkspaceSession({ say });
+    const { store } = session;
+    expect(
+      store.dispatch({
+        type: "add",
+        into: {},
+        block: { id: A, manifest: fixture("bare"), x: 0, y: 0 },
+      }),
+    ).toBeNull();
+    expect(store.open({ block: A })).toBeNull();
+    const showOpenFilePicker = vi.fn(async () => []);
+    vi.stubGlobal("showOpenFilePicker", showOpenFilePicker);
+    const canvas = { visible: vi.fn(), focus: vi.fn() };
+    const view = store.view;
+
+    await session.importManifest(canvas, fontMetrics);
+    expect([
+      session.importable,
+      showOpenFilePicker.mock.calls.length,
+      document.querySelector("input[type=file]"),
+      store.view === view,
+      store.journal.length,
+      canvas.visible.mock.calls.length,
+      canvas.focus.mock.calls.length,
+      say.mock.calls.length,
+    ]).toEqual([false, 0, null, true, 1, 0, 0, 0]);
+    session.dispose();
   });
 
   it("exports the manifest of the block the selection lies in, complete or minimal", async () => {

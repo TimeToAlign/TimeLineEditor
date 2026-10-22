@@ -55,6 +55,7 @@ export function itemGesture(host: NodeHost, key: PlaceKey): GestureStrategy<Item
       press.together,
     );
   return {
+    moves: true,
     takes(_event, at) {
       if (!actions.rules().move) return null;
       const { block, drawing } = host.data();

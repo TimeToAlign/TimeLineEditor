@@ -261,12 +261,23 @@ describe("removeCommand", () => {
 });
 
 describe("addCommand", () => {
-  const view = viewOf({ id: A, fixture: "bare", x: 40, y: 80 });
+  const view = viewOf();
   const bare = load("bare");
   const visible = { x: 100, y: 50, zoom: 2, width: 1000, height: 600 };
+  /** Where `bare` added as C lands among `bare` blocks A and B at the given place origins. */
+  const landing = (...origins: readonly (readonly [number, number])[]) => {
+    const among = viewOf(
+      ...origins.map(([x, y], index) => ({ id: index === 0 ? A : B, fixture: "bare", x, y })),
+    );
+    const { x, y } = addCommand(among, C, bare, visible, metrics).block as {
+      x: number;
+      y: number;
+    };
+    return [x, y];
+  };
 
   it("places the block's top-left at the centre of the view, snapped to the grid", () => {
-    expect(addCommand(view, C, bare, visible)).toEqual({
+    expect(addCommand(view, C, bare, visible, metrics)).toEqual({
       type: "add",
       into: WORKSPACE,
       block: { id: C, manifest: bare, x: 200, y: 128 },
@@ -275,14 +286,14 @@ describe("addCommand", () => {
 
   it("quantizes to 1/2048 when the grid does not snap", () => {
     const free = withGrid(view, 8, false);
-    expect(addCommand(free, C, bare, visible).block).toEqual({
+    expect(addCommand(free, C, bare, visible, metrics).block).toEqual({
       id: C,
       manifest: bare,
       x: 200,
       y: 125,
     });
     const odd = { x: 0, y: 0, zoom: 3, width: 1001, height: 1 };
-    expect(addCommand(free, C, bare, odd).block).toEqual({
+    expect(addCommand(free, C, bare, odd, metrics).block).toEqual({
       id: C,
       manifest: bare,
       x: 166.83349609375,
@@ -290,12 +301,31 @@ describe("addCommand", () => {
     });
   });
 
+  it("moves right past a block at the centre, by the grid size, rounded up", () => {
+    expect(landing([200, 128])).toEqual([688, 128]);
+  });
+
+  it("moves past the rightmost of two touching blocks in one step", () => {
+    expect(landing([100, 128], [576.5771484375, 128])).toEqual([1064, 128]);
+  });
+
+  it("tests again after each move", () => {
+    expect(landing([200, 128], [688, 128])).toEqual([1176, 128]);
+  });
+
+  it("ignores a block above whose grown rectangle at most touches it", () => {
+    expect(landing([200, 40])).toEqual([200, 128]);
+    expect(landing([200, 52.62109375])).toEqual([200, 128]);
+    expect(landing([200, 53])).toEqual([688, 128]);
+  });
+
   it("is accepted by apply, giving the block the workspace's defaults", () => {
-    const after = changed(view, addCommand(view, C, bare, visible));
+    const among = viewOf({ id: A, fixture: "bare", x: 200, y: 128 });
+    const after = changed(among, addCommand(among, C, bare, visible, metrics));
     const block = blockIn(after, C);
     const { scale, length, spacing, width, height } = view.settings.blockDefaults;
     expect([block.x, block.y, block.scale, block.length, block.spacing]).toEqual([
-      200,
+      688,
       128,
       scale,
       length,

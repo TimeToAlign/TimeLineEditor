@@ -116,8 +116,9 @@ const flow = useStore();
  * pixels clear of its top, at any zoom. It is placed by the rule Svelte
  * Flow's `NodeToolbar` uses (`getNodeToolbarTransform`), applied to the box
  * rather than to a node, so the menu sits above the block or above the
- * frame or card resized alike, and follows it through a move, a resize and
- * every pan or zoom.
+ * frame or card resized alike, and follows it through a resize and every
+ * pan or zoom. While boxes are moved the canvas does not show the toolbar
+ * at all; it is shown again at the bounds the move leaves.
  */
 const menuTransform = $derived(
   getNodeToolbarTransform(bounds, flow.viewport, Position.Top, MENU_GAP, "center"),

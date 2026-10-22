@@ -47,7 +47,7 @@ describe("the workspace file", () => {
       "sessions",
       "settings",
     ]);
-    expect(value.meta).toEqual({ format: "tilie-workspace", version: 5 });
+    expect(value.meta).toEqual({ format: "tilie-workspace", version: 6 });
     expect(value.name).toBe("untitled");
     expect((value.journal as unknown[]).length).toBe(4);
     expect(value.sessions).toEqual({});
@@ -80,9 +80,31 @@ describe("the workspace file", () => {
     ],
     [
       "a later version",
-      edited((value) => Object.assign(value.meta as Value, { version: 6 })),
+      edited((value) => Object.assign(value.meta as Value, { version: 7 })),
       "unsupported_version",
       ["meta", "version"],
+    ],
+    [
+      "a block without a margin",
+      edited((value) => {
+        delete blockOf(value).margin;
+      }),
+      "missing_member",
+      ["blocks", A, "margin"],
+    ],
+    [
+      "a negative margin",
+      edited((value) => Object.assign(blockOf(value), { margin: -1 })),
+      "invalid_value",
+      ["blocks", A, "margin"],
+    ],
+    [
+      "block defaults without a margin",
+      edited((value) => {
+        delete ((value.settings as Value).blockDefaults as Value).margin;
+      }),
+      "missing_member",
+      ["settings", "blockDefaults", "margin"],
     ],
     [
       "a block's kind",
@@ -191,7 +213,24 @@ describe("the workspace file", () => {
     expect(isLoadError(result) && result.problems).toEqual([
       {
         code: "unsupported_version",
-        message: "workspace version 4 is not supported; this editor reads version 5 only",
+        message: "workspace version 4 is not supported; this editor reads version 6 only",
+        path: ["meta", "version"],
+      },
+    ]);
+  });
+
+  it("refuses a workspace of version 5 for its version alone", () => {
+    // Version 5 wrote no margin, on a block or among the block defaults.
+    const older = edited((value) => {
+      Object.assign(value.meta as Value, { version: 5 });
+      delete ((value.settings as Value).blockDefaults as Value).margin;
+      for (const item of Object.values(value.blocks as Value)) delete (item as Value).margin;
+    });
+    const result = readWorkspace(older);
+    expect(isLoadError(result) && result.problems).toEqual([
+      {
+        code: "unsupported_version",
+        message: "workspace version 5 is not supported; this editor reads version 6 only",
         path: ["meta", "version"],
       },
     ]);
@@ -217,7 +256,7 @@ describe("the workspace file", () => {
     ]);
   });
 
-  it("reads places with a scale and spacing and a member's card, and refuses a card beyond it", () => {
+  it("reads places with a scale, spacing and margin and a member's card, and refuses a card beyond it", () => {
     const store = createStore(
       { view: createView(), journal: [], sessions: {} },
       { clock: testClock() },
@@ -229,14 +268,17 @@ describe("the workspace file", () => {
         changes: [
           {
             target: { block: A, id: "group_1" },
-            values: { place: { length: 300, scale: 1.25, spacing: 2 } },
+            values: { place: { length: 300, scale: 1.25, spacing: 2, margin: 3 } },
           },
         ],
       },
       {
         type: "set",
         changes: [
-          { target: { block: A, id: "score" }, values: { place: { width: 650, spacing: 1.5 } } },
+          {
+            target: { block: A, id: "score" },
+            values: { place: { width: 650, spacing: 1.5, margin: 1 } },
+          },
         ],
       },
     ]) {
@@ -251,7 +293,8 @@ describe("the workspace file", () => {
         length: 300,
         scale: 1.25,
         spacing: 2,
-        cards: { score: { width: 650, spacing: 1.5 } },
+        margin: 3,
+        cards: { score: { width: 650, spacing: 1.5, margin: 1 } },
       },
     });
     const changedPlace = (where: readonly string[], values: Value) => {
@@ -268,13 +311,14 @@ describe("the workspace file", () => {
       problems: [
         {
           code: "unknown_member",
-          message: "'score' is a member: its card takes only width, height and spacing",
+          message: "'score' is a member: its card takes only width, height, spacing and margin",
           path: ["blocks", A, "places", ...score, "length"],
         },
       ],
     });
     for (const [where, member, value, code] of [
       [score, "spacing", -1, "invalid_value"],
+      [score, "margin", -1, "invalid_value"],
       [["group_1"], "scale", 0, "non_positive_number"],
     ] as const) {
       const refused = changedPlace(where, { [member]: value });

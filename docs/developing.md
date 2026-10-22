@@ -32,14 +32,15 @@ have, the schema is changed first.
   about a canvas.
 - A **block** is one manifest placed on the canvas with its placement: `x`,
   `y`, `scale`, `length`, `spacing` (the gap between the items of its
-  drawing), the requested `width` and `height`, and `places`, the stated
-  places of its items and the stated sizes and spacings of its members'
-  cards, a member's card set through its group. A block's styling is its manifest's `graphical`; the block has no
+  drawing), `margin` (the empty space above its first item and below its
+  last), the requested `width` and `height`, and `places`, the stated
+  places of its items and the stated sizes, spacings and margins of its
+  members' cards, a member's card set through its group. A block's styling is its manifest's `graphical`; the block has no
   style layer of its own.
 - The **workspace** is the canvas: its name, its blocks, the settings, and
   the command journal that produced them with the sessions of its editors.
   It is one canonical JSON file, by default `<name>.tle.json` after its
-  name, format version 5.
+  name, format version 6.
 
 No other noun names any of these. "Document", "record" and "envelope" name
 nothing here.

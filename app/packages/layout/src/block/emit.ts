@@ -19,15 +19,21 @@ import type { Title } from "./places.ts";
 export interface BlockContent {
   readonly style: Style;
   readonly title: Title | undefined;
-  /** No item rises above `Pt` below the block's top edge: the title's slot and `F`, else `P`. */
+  /**
+   * No item rises above `Pt` below the block's top edge: the title's slot and `F`, else `P`, and
+   * the block's margin.
+   */
   readonly Pt: number;
+  /** The block's margin `Vb`, again below its lowest item. */
+  readonly margin: number;
 }
 
 /**
  * The drawing of the items `laid` in a block (section 8.4). The block grows left
  * and up to hold every item with the padding `P` and the title's slot above
  * them, so the place origin lies at `(Ox, Oy)` in the block; its content runs
- * from `Xl` to `Xr` and from `Yt` to `Yb` in place coordinates, and its size
+ * from `Xl` to `Xr` and from `Yt` to `Yb` in place coordinates, the block's
+ * margin below its lowest item (a block without items has none), and its size
  * is at least the requested one. The block's own record comes first, its range
  * every element.
  */
@@ -50,6 +56,7 @@ export function emitDrawing(
   const axes: DrawnAxis[] = [];
   const rights: number[] = [];
   const bottoms: number[] = [];
+  let titleBottom: number | undefined;
   // The displayed title lies at the block's top left corner, its slot ending h(s) lower.
   if (block.title !== undefined) {
     const { size } = block.title;
@@ -58,7 +65,7 @@ export function emitDrawing(
     const title = titleElement(block.title, left, top + measure.ascent(size));
     elements.push(title);
     rights.push(left + measure.width(title.text, size));
-    bottoms.push(top + measure.lineHeight(size));
+    titleBottom = top + measure.lineHeight(size);
   }
   for (const { item, ...local } of laid) {
     const { x, y, scale } = item;
@@ -78,7 +85,9 @@ export function emitDrawing(
   }
 
   const Xr = rights.length === 0 ? 2 * P + K : P + Math.max(...rights);
-  const Yb = bottoms.length === 0 ? P : P + Math.max(...bottoms);
+  const lowest = bottoms.length === 0 ? [] : [Math.max(...bottoms) + block.margin];
+  const edges = titleBottom === undefined ? lowest : [...lowest, titleBottom];
+  const Yb = edges.length === 0 ? P : P + Math.max(...edges);
   const Wb = Xr - Xl;
   const Hb = Yb - Yt;
   const W = placement.width === null ? Wb : Math.max(Wb, placement.width);
@@ -102,6 +111,7 @@ export function emitDrawing(
     height: H,
     range: { start: 0, end: inBlock.length },
     displayed: true,
+    contentCount: laid.length,
   };
   return {
     width: W,

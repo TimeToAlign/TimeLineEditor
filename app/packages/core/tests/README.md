@@ -567,22 +567,24 @@ the schema agree by construction.
 ## Workspace view, ids and order (`workspace.test.ts`, `workspace-ids-order.test.ts`)
 
 The view is `{meta, name, settings, blocks}`; an empty one carries the
-format marker `{format: "tilie-workspace", version: 5}`, the name
+format marker `{format: "tilie-workspace", version: 6}`, the name
 `untitled` and the default settings
 `{grid: {size: 8, snap: true}, blockDefaults: {scale: 1, length: 400,
-spacing: 8, width: null, height: null}, graphical: {}}`, the drawing
-specification's placement defaults plus the block's scale (the block's
-`spacing` 8 is the gap between its items, drawing.md §8.6). A block has
-exactly its twelve members (`id`, `parent`, `index`, `x`, `y`, `scale`,
-`length`, `spacing`, `width`, `height`, `places`, `manifest`) and records
+spacing: 8, margin: 0, width: null, height: null}, graphical: {}}`, the
+drawing specification's placement defaults plus the block's scale (the
+block's `spacing` 8 is the gap between its items, its `margin` 0 the empty
+space above its first item and below its last, drawing.md §8.4, §8.6). A
+block has exactly its thirteen members (`id`, `parent`, `index`, `x`, `y`,
+`scale`, `length`, `spacing`, `margin`, `width`, `height`, `places`,
+`manifest`) and records
 no kind; a band order is no placement but the manifest's.
 
 1. **Checking a view** pins one exact code and path per rule, each under
    `["blocks", <id>, …]`: a parent cycle, a key that is not the block's id,
    an invalid id, an unknown parent, a repeated sibling index, a non-finite
    position, a non-positive size (`width` and `height` may be null), a
-   negative `spacing` (`invalid_value`; 0 is a gap like any other), and a
-   manifest problem prefixed by the block's path.
+   negative `spacing` or `margin` (`invalid_value`; 0 is a gap or a margin
+   like any other), and a manifest problem prefixed by the block's path.
 2. **Block ids** are ten base-36 characters drawn byte by byte, bytes 252 to
    255 refused; fixed byte streams pin the result.
 3. **Timeline prefixes** are the six classes' (`clt`, `dlt`, `cpt`,
@@ -712,7 +714,7 @@ string form is `addressKey`, and nothing splits or composes an ID.
    bundle level, styled as `block`, with no place; the frame at the group
    level, styled as `frame`, stating a whole place on the block; the card at
    the timeline level, styled as `card`, stating a whole place on the block
-   and its size and spacing in a frame; the band at the facet level, styled
+   and its size, spacing and margin in a frame; the band at the facet level, styled
    as `band`, with no place.
 9. **The containers of `bundle_mixed.json`** in drawing order, each with
    its holder: frames by group ID, each followed by its members' cards in
@@ -745,7 +747,7 @@ string form is `addressKey`, and nothing splits or composes an ID.
     their member's card, `score` has none, and the count of containers is
     derived by hand (two frames, five cards, fifteen timelines' bands).
 12. **Place members by holding**: a frame and a block-held card state a
-    whole place, a frame-held card only its size and spacing, a band and
+    whole place, a frame-held card only its size, spacing and margin, a band and
     the block nothing; a place is cut to what its container may state (kept
     whole, cut, or dropped when nothing is left); a group member is a
     timeline whose card a frame holds.
@@ -827,13 +829,13 @@ other commands are not judged by it.
 
 1. `add` a block `{id: A, manifest: bare, x: 0, y: 0}` to `createView()`:
    exactly `{id: A, parent: null, index: "a0", x: 0, y: 0, scale: 1,
-   length: 400, spacing: 8, width: null, height: null, places: {},
+   length: 400, spacing: 8, margin: 0, width: null, height: null, places: {},
    manifest: <bare.json>}`; a second block `B` given `scale: 2` has index
    `a1` and scale 2; one given `index: "Zz"` keeps it.
 2. Blocks and the workspace: one `set` moving `A` to (128, 64) and `B` to
    (1, 2) changes nothing else; `scale: 2, width: 120, height: null,
-   length: 800, spacing: 2` on `A` gives exactly those, and `spacing: 0`
-   is stored as given; `blockDefaults:
+   length: 800, spacing: 2, margin: 12` on `A` gives exactly those, and
+   `spacing: 0` and `margin: 0` are stored as given; `blockDefaults:
    {length: 640}` and `grid: {snap: false}` change that member only,
    `graphical` replaces the settings' block whole; `manifest` replaces a
    block's manifest whole, several roots and groups for one root alike.
@@ -909,7 +911,7 @@ group, or `null` takes it out; members are held in canonical order, and a
 stated display order lists a new member last and drops one that leaves.
 IDs never change, and so no address does; a moved timeline keeps its
 drawn band order and its card's stated size, and the places are fitted to
-the new drawing (a card a frame now holds keeps its size and spacing, moved
+the new drawing (a card a frame now holds keeps its size, spacing and margin, moved
 from `places[T]` to `places[G].cards[T]`; a place naming no frame or card
 goes).
 
@@ -1149,7 +1151,7 @@ timeline `{id: T, part: ["card"]}`, parts by `part`, the manifest's title
 1. **Blocks hold any manifest.** A workspace holding blocks of `bare.json`,
    `group_child_member.json` and `bundle_mixed.json` writes and reads back
    deep-equal, and writes again to the same bytes; its file format is
-   version 5.
+   version 6.
 2. **Invariants root by root.** `group_child_member.json` with
    `second-half`'s unit changed to `seconds` (its length written `8.0`, as
    the `float` axis of seconds represents it) is refused with exactly
@@ -1347,17 +1349,18 @@ or a timeline stacks is no placement: a group's **display order** and a
 timeline's **band order** lie in the block's manifest, as the entries of
 `graphical.order` keyed by the group's or the timeline's ID (TimeToShare's
 README, "graphical"), each set by the property `order` of its group or
-timeline. A place is `{x?, y?, length?, scale?, spacing?, width?,
+timeline. A place is `{x?, y?, length?, scale?, spacing?, margin?, width?,
 height?}`, `x` and `y` finite, `length`, `scale` and the sizes positive,
-`spacing` (a gap) finite and at least 0, at least one member stated and
+`spacing` (a gap) and `margin` (empty space above the first element and
+below the last) finite and at least 0, at least one member stated and
 none null: a place without members is never stored; a group's entry adds
 `cards`, an object of at least one card place by member ID. A card's place
-states only `width`, `height` and `spacing` (drawing.md §8.6: a member is
-drawn with its group's length and scale, while its spacing, the gap between
-its rows and its bands, is its own). These are proved by what a stored
-block holds after commands and by checking a view built as a read file
-would be: a stale or invented key, or a card stating more than its size and
-spacing, must never reach a saved file, or the file would be refused on
+states only `width`, `height`, `spacing` and `margin` (drawing.md §8.6: a
+member is drawn with its group's length and scale, while its spacing, the
+gap between its rows and its bands, and its margin are its own). These are
+proved by what a stored block holds after commands and by checking a view
+built as a read file would be: a stale or invented key, or a card stating
+more than its size, spacing and margin, must never reach a saved file, or the file would be refused on
 reading.
 
 Block `bundle0001` holds `bundles/bundle_mixed.json`; where a case names
@@ -1406,6 +1409,15 @@ markers band moved to the top and the conversion maps band below the line),
    {cards: {score: {spacing: 1.5, width: 650}}}}`. A spacing of 0 is a gap
    like any other: `set group_1 place {spacing: 0}` gives exactly
    `{group_1: {spacing: 0}}`.
+5a. **Margin, on every kind of place**, stated where `spacing` is: `set
+   group_1 place {margin: 12}` gives exactly `{group_1: {margin: 12}}`;
+   `set annotations place {margin: 12}` exactly `{annotations: {margin:
+   12}}`; `set score place {margin: 12}` exactly `{group_1: {cards:
+   {score: {margin: 12}}}}`, then `place {spacing: 1.5}` `{group_1: {cards:
+   {score: {spacing: 1.5, margin: 12}}}}` (a place's order: `spacing`
+   before `margin`), then `place {margin: null}` `{group_1: {cards: {score:
+   {spacing: 1.5}}}}`. `set group_1 {cards: {score: {margin: 3}}}` gives
+   exactly `{group_1: {cards: {score: {margin: 3}}}}`.
 6. **A display order.** `set group_1 order ["performance", "score"]`:
    `graphical.order` is `{group_1: ["performance", "score"], group_2:
    ["page", "excerpt"]}`; `order: null` deletes the entry, leaving exactly
@@ -1443,7 +1455,7 @@ markers band moved to the top and the conversion maps band below the line),
     piece place {width: 650}` the same at `[piece, "place"]`. A member's
     card states only its size: `set score place {x: 1}` is `not_an_item` at
     `[score, "place", "x"]`, message "'score' is a member: its card
-    takes only width, height and spacing"; `{width: 650, length: 300}` at `[…,
+    takes only width, height, spacing and margin"; `{width: 650, length: 300}` at `[…,
     "place", "length"]`, `{scale: 2}` at `[…, "place", "scale"]`, and in
     `group_child_member.json` `set second-half place {x: 10}` at
     `[second-half, "place", "x"]`. Both refusals come before the value is
@@ -1461,7 +1473,8 @@ markers band moved to the top and the conversion maps band below the line),
 12. Place values at `[x, "place", member]`: `{x: "1"}` `invalid_value`,
     `{y: Infinity}` `non_finite_number`, `{length: 0}`, `{width: -1}`,
     `{scale: 0}` and `{scale: -1}` `non_positive_number`, `{spacing: -1}`
-    `invalid_value`, `{depth: 1}` `unknown_property` (as every `set`
+    and `{margin: -1}` `invalid_value`, `{margin: Infinity}` and `{margin:
+    NaN}` `non_finite_number` (as for `spacing`), `{depth: 1}` `unknown_property` (as every `set`
     object value naming an unknown member); `place: 5` `invalid_value` at
     `[x, "place"]`; `place: {}` `invalid_value` at `[x, "place"]`, message
     "a place value states at least one member" (an empty value would
@@ -1592,7 +1605,7 @@ left without `addresses` goes.
   `[g1, "cards", "v"]`, message "'v' is no member of group 'g1'" (the code
   a stored `cards` key naming no member has); `{t: {x: 1}}` `not_an_item`
   at `[g1, "cards", "t", "x"]`, message "'t' is a member: its card takes
-  only width, height and spacing" (as `place` refuses it); `{}`
+  only width, height, spacing and margin" (as `place` refuses it); `{}`
   `invalid_value` at `[g1, "cards"]`; `{t: {}}` and `{t: null}`
   `invalid_value` at `[g1, "cards", "t"]`; `{t: {width: 0}}`
   `non_positive_number` at `[g1, "cards", "t", "width"]`; `cards` on the
@@ -1623,7 +1636,7 @@ is, codes and paths under `["blocks", "bundle0001", …]`):
     "cards", "page"]` ("'page' is no member of group 'group_1' of
     block 'bundle0001'"), `unknown_member` at `[…, "places", "group_1", "cards",
     "score", "x"]` ("'score' is a member: its card takes only width,
-    height and spacing"), `unknown_place` at `[…, "places", "nowhere"]` ("'nowhere'
+    height, spacing and margin"), `unknown_place` at `[…, "places", "nowhere"]` ("'nowhere'
     is no group and no ungrouped root of block 'bundle0001'"), and the same
     at `[…, "places", "recording"]` and `[…, "places", "score"]` (a
     member's bare ID); `group_1`'s own `{x: 3}`, the card of `performance`
@@ -1878,7 +1891,9 @@ group.
     editor. In the editor of `G1`, the commands of the
     guard's cases 6 to 11 (the block sized by `width 900` alone) are accepted
     or refused at the same paths, the refused ones journalling nothing
-    (`entries` holds the four accepted), and `open G2` is
+    (`entries` holds the four accepted); the block's `margin` 12 is refused
+    as its `length` is, `side_effect` at `[{block: A}, "margin"]` (a fixed
+    member of the block, as `spacing`); and `open G2` is
     `not_inside`. In the editor of `G2`, `remove excerpt` is
     refused as in guard case 25, message included, `entries` staying `[]`,
     and `remove page` is accepted as in guard case 27, `entries` holding that
@@ -2337,7 +2352,9 @@ that holds a member without being one.
 ## The workspace file (`file.test.ts`)
 
 `writeWorkspace(workspace)` is TimeToShare's `dumps` (keys sorted) of
-`{meta, name, settings, blocks, journal, sessions}`, format version 5;
+`{meta, name, settings, blocks, journal, sessions}`, format version 6
+(since a block and its defaults carry `margin`, which a version-5 file
+lacks);
 `readWorkspace(text)` reads with TimeToShare's `parseJson` (lossless) and
 returns a `Workspace` or a `LoadError`. An entry is exactly `{command,
 author, time}` or `{session, author, time}` (chosen by the presence of
@@ -2353,14 +2370,17 @@ without entries); a session id is ten characters of `0-9a-z`, as a key of
    text read back deep-equals the workspace, and writing it again gives the
    same bytes. Its members are exactly `blocks`, `journal`, `meta`,
    `name`, `sessions`, `settings`; `meta` is exactly `{format:
-   "tilie-workspace", version: 5}`; `name` is `untitled`; `sessions` is
+   "tilie-workspace", version: 6}`; `name` is `untitled`; `sessions` is
    `{}`.
 2. **Replay.** Replaying the read journal from `createView()` gives exactly
    the read `settings` and `blocks`.
 3. **Refusals**, each exactly one problem `{code, path}`: text `{` →
    `invalid_json` at `[]`; `format: "other"` → `unsupported_format` at
-   `["meta", "format"]`; `version: 6` → `unsupported_version` at `["meta",
-   "version"]`; a top-level member `extra` → `unknown_member` at
+   `["meta", "format"]`; `version: 7` → `unsupported_version` at `["meta",
+   "version"]`; a block without `margin` → `missing_member` at `["blocks",
+   A, "margin"]`; a block's `margin` −1 → `invalid_value` at `["blocks", A,
+   "margin"]`; `blockDefaults` without `margin` → `missing_member` at
+   `["settings", "blockDefaults", "margin"]`; a top-level member `extra` → `unknown_member` at
    `["extra"]`; `meta.created` → `unknown_member` at `["meta", "created"]`;
    `settings.styles` → `unknown_member` at `["settings", "styles"]`; a
    block's `overrides` → `unknown_member` at `["blocks", A, "overrides"]`; a
@@ -2382,8 +2402,12 @@ without entries); a session id is ten characters of `0-9a-z`, as a key of
    strings: the `add`s `into: "workspace"`, each `set` aimed at the bare
    block id) is refused for its version alone: exactly one problem,
    `unsupported_version` at `["meta", "version"]`, message `workspace
-   version 4 is not supported; this editor reads version 5 only`. There is
-   no migration.
+   version 4 is not supported; this editor reads version 6 only`. There is
+   no migration. **Version 5** likewise: the round trip's text with
+   `version: 5` and every block's and the block defaults' `margin` removed,
+   as that format wrote them, is refused with exactly one problem,
+   `unsupported_version` at `["meta", "version"]`, message `workspace
+   version 5 is not supported; this editor reads version 6 only`.
 5. **Sessions in the file.** On the text of a workspace whose journal is
    the `add` of block `A` holding `bundles/bundle_mixed.json` and one entry
    naming session `s = "session001"`, `{target: {block: A, id: "group_1"},
@@ -2423,16 +2447,18 @@ without entries); a session id is ten characters of `0-9a-z`, as a key of
    complete form.
 7. **Places in the file.** A store's workspace of block `A` holding
    `bundles/bundle_mixed.json` with `set {block: A, id: "group_1"} place
-   {length: 300, scale: 1.25, spacing: 2}` and `set {block: A, id:
-   "score"} place {width: 650, spacing: 1.5}` is written; the text reads
-   back deep-equal and writes the same bytes, `places` exactly `{group_1:
-   {length: 300, scale: 1.25, spacing: 2, cards: {score: {width: 650,
-   spacing: 1.5}}}}`. That text with `length: 300` added to `score`'s card
-   place is refused with exactly one problem, `unknown_member` at
-   `["blocks", A, "places", "group_1", "cards", "score", "length"]`,
-   message `'score' is a member: its card takes only width, height and
-   spacing`; with `score`'s `spacing` `-1`, `invalid_value` at `["blocks",
-   A, "places", "group_1", "cards", "score", "spacing"]`; with `group_1`'s
+   {length: 300, scale: 1.25, spacing: 2, margin: 3}` and `set {block: A,
+   id: "score"} place {width: 650, spacing: 1.5, margin: 1}` is written;
+   the text reads back deep-equal and writes the same bytes, `places`
+   exactly `{group_1: {length: 300, scale: 1.25, spacing: 2, margin: 3,
+   cards: {score: {width: 650, spacing: 1.5, margin: 1}}}}`. That text
+   with `length: 300` added to `score`'s card place is refused with exactly
+   one problem, `unknown_member` at `["blocks", A, "places", "group_1",
+   "cards", "score", "length"]`, message `'score' is a member: its card
+   takes only width, height, spacing and margin`; with `score`'s `spacing`
+   `-1`, `invalid_value` at `["blocks", A, "places", "group_1", "cards",
+   "score", "spacing"]`; with its `margin` `-1`, `invalid_value` at
+   `[…, "score", "margin"]`; with `group_1`'s
    `scale` `0`, `non_positive_number` at `["blocks", A, "places",
    "group_1", "scale"]`.
 
@@ -2579,7 +2605,10 @@ an ID); properties from
 the target's table, another kind's table and unknown names; coordinates on
 the axis, off it, negative and past the end, and lengths of null; payloads
 include ones the schema refuses (an ID holding a control character among
-them); selectors include `addresses`, `facet` and the element `frame`. Among them are `place` (members stated,
+them); selectors include `addresses`, `facet` and the element `frame`. A
+`margin` is generated wherever a `spacing` is, from the same values: on a
+block, on an item's place (`places[K]`) and on a member's card
+(`places[G].cards[T]`). Among them are `place` (members stated,
 unstated with null, empty, unknown, on items and members' cards) and
 `order` (a display order or band order turned, null, missing an entry,
 holding an entry that is neither `line` nor a facet, not an array), so every saved file also
@@ -2629,7 +2658,7 @@ the innermost level, so the reopen rule unfolds it), a whole session (open,
 one or two commands, Done), an unfold (reopen, undo until nothing is left to
 undo or one step, Done), Done, Cancel, undo and redo. A command in an open
 editor is mostly one that stays inside it (a name or a band order of a
-timeline it holds, its place's `x`, `scale`, `spacing` or `width`, a group's
+timeline it holds, its place's `x`, `scale`, `spacing`, `margin` or `width`, a group's
 display order, for a member its group's `length` and `scale`, the block's
 width), sometimes any generated command, so the guard both accepts and
 refuses; a target to open is mostly one the innermost editor holds, so

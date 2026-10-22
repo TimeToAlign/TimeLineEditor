@@ -82,6 +82,7 @@ describe("add", () => {
       scale: 1,
       length: 400,
       spacing: 8,
+      margin: 0,
       width: null,
       height: null,
       places: {},
@@ -272,9 +273,11 @@ describe("set", () => {
 
   it("sets the placement of a block", () => {
     const view = frozen([A, "bare.json"]);
-    const placement = { scale: 2, width: 120, height: null, length: 800, spacing: 2 };
+    const placement = { scale: 2, width: 120, height: null, length: 800, spacing: 2, margin: 12 };
     expect(block(applied(view, set(BLOCK, placement)))).toEqual({ ...block(view), ...placement });
     expect(block(applied(view, set(BLOCK, { spacing: 0 }))).spacing).toBe(0);
+    const margined = applied(view, set(BLOCK, { margin: 12 }));
+    expect(block(applied(margined, set(BLOCK, { margin: 0 }))).margin).toBe(0);
   });
 
   it("sets the workspace settings member by member, graphical whole", () => {
@@ -371,6 +374,8 @@ describe("set", () => {
       [set(BLOCK, { scale: 0 }), "non_positive_number", [key(BLOCK), "scale"]],
       [set(BLOCK, { width: -5 }), "non_positive_number", [key(BLOCK), "width"]],
       [set(BLOCK, { spacing: -1 }), "invalid_value", [key(BLOCK), "spacing"]],
+      [set(BLOCK, { margin: -1 }), "invalid_value", [key(BLOCK), "margin"]],
+      [set(BLOCK, { margin: Number.NaN }), "non_finite_number", [key(BLOCK), "margin"]],
       [set(BLOCK, { index: "a00" }), "invalid_index", [key(BLOCK), "index"]],
       [set(BLOCK, { index: "a1" }), "duplicate_index", [key(BLOCK), "index"]],
       [

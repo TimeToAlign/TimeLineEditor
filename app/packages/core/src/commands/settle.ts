@@ -164,7 +164,7 @@ function covered(manifest: Manifest, checked: boolean): Manifest | CommandError 
  * left its group, the other way) unless that card's place is stated
  * already; every other place goes. Each place is cut to the members its
  * holder lets it state (`placeMembersOf`) and dropped when nothing is left,
- * so a root that became a member keeps its card's size and spacing.
+ * so a root that became a member keeps its card's size, spacing and margin.
  * `places` itself when nothing changes.
  */
 function keptPlaces(places: Places, was: Manifest | undefined, manifest: Manifest): Places {

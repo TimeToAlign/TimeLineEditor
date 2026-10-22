@@ -104,6 +104,7 @@ describe("the live placement of a gesture inside a block", () => {
       scale: 1,
       length: 400,
       spacing: 8,
+      margin: 0,
       width: null,
       height: null,
     });
@@ -122,6 +123,7 @@ describe("the live placement of a gesture inside a block", () => {
       length: 460,
       scale: 1,
       spacing: 8,
+      margin: 0,
       width: 622.484619140625,
       height: 169.234375,
     });

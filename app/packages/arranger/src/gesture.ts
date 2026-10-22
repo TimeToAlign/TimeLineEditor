@@ -64,6 +64,12 @@ export interface GestureStrategy<P, V> {
   preview(press: P, value: V | null): void;
   /** The command that stores `value`; `null` when it changes nothing. */
   command(press: P, value: V): Command | null;
+  /**
+   * Whether the gesture moves boxes (an item, a held card, a band) rather
+   * than resizing one; the canvas's slot reports it while the gesture is
+   * under way.
+   */
+  readonly moves?: boolean;
 }
 
 /**
@@ -73,15 +79,24 @@ export interface GestureStrategy<P, V> {
  */
 export class GestureSlot {
   #abort: (() => void) | null = null;
+  readonly #moving: (moving: boolean) => void;
 
-  /** A gesture has started; `abort` ends it without a command. */
-  hold(abort: () => void): void {
+  /** `moving` hears whether a gesture that moves boxes is under way: on its start and on its end. */
+  constructor(moving: (moving: boolean) => void = () => {}) {
+    this.#moving = moving;
+  }
+
+  /** A gesture has started, moving boxes or not; `abort` ends it without a command. */
+  hold(abort: () => void, moves = false): void {
     this.#abort = abort;
+    this.#moving(moves);
   }
 
   /** The gesture holding `abort` has ended. */
   release(abort: () => void): void {
-    if (this.#abort === abort) this.#abort = null;
+    if (this.#abort !== abort) return;
+    this.#abort = null;
+    this.#moving(false);
   }
 
   /** End the gesture in progress as Escape does; whether there was one. */
@@ -287,7 +302,7 @@ export function pointerGesture<P, V>(
         const travel = Math.hypot(event.clientX - held.origin.x, event.clientY - held.origin.y);
         if (travel <= distance) return;
         held.started = true;
-        options.slot?.hold(escapeGesture);
+        options.slot?.hold(escapeGesture, strategy.moves === true);
         strategy.start?.(held.press);
       }
       const at = pointAt(event.clientX, event.clientY);
