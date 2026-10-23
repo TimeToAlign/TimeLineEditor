@@ -24,6 +24,7 @@ import { ENTRY_KINDS, ENTRY_LISTS, entriesOf } from "../manifest/files.ts";
 import type { Located } from "../manifest/tree.ts";
 import type {
   ConversionMap,
+  FlowControlElement,
   Group,
   Manifest,
   MeasureMap,
@@ -388,10 +389,14 @@ function resolvedIn(element: ResolvedElement, block: Block): ResolvedAddress {
   return { ...element, block };
 }
 
-/** `unknown_target` for an address naming nothing: `<address key> names nothing`, at `[<address key>]`. */
-export function namesNothing(address: Address): CommandError {
-  const key = addressKey(address);
-  return problem(ErrorCode.unknownTarget, `${key} names nothing`, [key]);
+/**
+ * `unknown_target` for an address naming nothing in `view`: `<address words>
+ * names nothing` (`addressWords`, worded from its members), at `[<address key>]`.
+ */
+export function namesNothing(view: View, address: Address): CommandError {
+  return problem(ErrorCode.unknownTarget, `${unresolvedWords(view, address)} names nothing`, [
+    addressKey(address),
+  ]);
 }
 
 /**
@@ -405,10 +410,165 @@ export function resolveAddress(view: View, address: Address): ResolvedAddress | 
   if ("code" in read) return read;
   if (read.block === undefined) return { kind: "workspace" };
   const block = view.blocks[read.block];
-  if (block === undefined) return namesNothing(address);
+  if (block === undefined) return namesNothing(view, address);
   if (!isElementAddress(read)) return { kind: "block", block };
   const resolved = resolveElement(block.manifest, elementAddressOf(read));
-  return resolved === undefined ? namesNothing(address) : resolvedIn(resolved, block);
+  return resolved === undefined ? namesNothing(view, address) : resolvedIn(resolved, block);
+}
+
+/** The word of each facet, lowercase: what its band is called. */
+const FACET_WORDS: { readonly [facet in Facet]: string } = {
+  markers: "markers",
+  conversion_maps: "conversion maps",
+  children: "children",
+  regions: "regions",
+  flow_control: "flow control",
+};
+
+/** The word of a facet, lowercase: `markers`, `conversion maps`, `children`, `regions`, `flow control`. */
+export function facetWord(facet: Facet): string {
+  return FACET_WORDS[facet];
+}
+
+/** The word of each type of flow-control element. */
+const FLOW_WORDS: { readonly [type in FlowControlElement["type"]]: string } = {
+  jump_from: "jump origin",
+  jump_to: "jump target",
+  flow_marker: "flow marker",
+};
+
+/** The word of each other kind of element a timeline holds in a list. */
+const ENTRY_WORDS: { readonly [kind in Exclude<EntryKind, "flow_control">]: string } = {
+  map: "conversion map",
+  region: "region",
+};
+
+/**
+ * The word of an element a timeline holds in a list, lowercase: `conversion
+ * map`, `region`, or a flow-control element's by its type (`jump origin`,
+ * `jump target`, `flow marker`).
+ */
+export function entryWord(kind: EntryKind, element: ListedElement): string {
+  if (kind !== "flow_control") return ENTRY_WORDS[kind];
+  if (!("manifestation" in element))
+    throw new Error("a flow-control entry is a flow-control element");
+  return FLOW_WORDS[element.type];
+}
+
+/** A name or an ID as a phrase quotes it. */
+const quoted = (text: string): string => `'${text}'`;
+
+/** A block's bundle by its manifest's `name`, else its `id`, else as the anonymous bundle. */
+function bundleWords({ manifest }: Block): string {
+  const name = manifest.name ?? manifest.id;
+  return name === null || name === undefined ? "the anonymous bundle" : `bundle ${quoted(name)}`;
+}
+
+/** The block `block` by its bundle, or by its ID when the view does not hold it. */
+function blockWords(view: View, block: BlockId): string {
+  const held = view.blocks[block];
+  return held === undefined ? `block ${quoted(block)}` : bundleWords(held);
+}
+
+/**
+ * What a resolved element is called without its block, and whether the
+ * words already name the bundle (a block's title and its parts).
+ */
+function elementWords(resolved: ResolvedAddress): {
+  readonly words: string;
+  readonly bundled: boolean;
+} {
+  switch (resolved.kind) {
+    case "workspace":
+      return { words: "the workspace", bundled: true };
+    case "block":
+      return { words: bundleWords(resolved.block), bundled: true };
+    case "title":
+      return { words: `the title of ${bundleWords(resolved.block)}`, bundled: true };
+    case "frame":
+      return { words: `group ${quoted(resolved.group.name ?? resolved.group.id)}`, bundled: false };
+    case "timeline":
+    case "card":
+    case "band": {
+      const { name, id } = resolved.at.timeline;
+      const timeline = `timeline ${quoted(name ?? id)}`;
+      if (resolved.kind === "timeline") return { words: timeline, bundled: false };
+      const part = resolved.kind === "card" ? "card" : `${facetWord(resolved.facet)} band`;
+      return { words: `the ${part} of ${timeline}`, bundled: false };
+    }
+    case "entry": {
+      const { element } = resolved;
+      const words = `${entryWord(resolved.entry, element)} ${quoted(element.name ?? element.id)}`;
+      return { words, bundled: false };
+    }
+    case "measure_map":
+      return {
+        words: `measure map ${quoted(resolved.map.name ?? resolved.map.id)}`,
+        bundled: false,
+      };
+    case "part": {
+      const owner = elementWords(resolved.owner);
+      const titled = resolved.owner.kind === "block" || resolved.owner.kind === "frame";
+      const word = resolved.word === "name" && titled ? "title" : resolved.word;
+      return { words: `the ${word} of ${owner.words}`, bundled: owner.bundled };
+    }
+  }
+}
+
+/**
+ * The members of an address that names nothing, worded: its parts, innermost
+ * first, and its facet's band, of its element by its kind where its ID names
+ * one (`the regions band of timeline 'Recording'`), else of its ID quoted
+ * (`'gone'`), or of its block's bundle without an ID (a bundle's name its
+ * `title`).
+ */
+function memberWords(view: View, address: Address): string {
+  const { block, id, facet, part = [] } = address;
+  const owned = facet !== undefined || part.length > 0;
+  const owner =
+    owned && block !== undefined && id !== undefined ? resolveAddress(view, { block, id }) : null;
+  let words: string;
+  if (owner !== null && !("code" in owner)) words = elementWords(owner).words;
+  else if (id !== undefined) words = quoted(id);
+  else words = block === undefined ? "the workspace" : blockWords(view, block);
+  if (facet !== undefined) words = `the ${facetWord(facet)} band of ${words}`;
+  part.forEach((word, index) => {
+    words = `the ${word === "name" && index === 0 && id === undefined ? "title" : word} of ${words}`;
+  });
+  return words;
+}
+
+/**
+ * An address as a message names it to a reader: the workspace, a bundle by
+ * its manifest's name or id (`bundle 'Mixed'`, `the anonymous bundle`), an
+ * element by its kind and its name, else its ID (`timeline 'Score'`,
+ * `region 'region_1'`), a band and a card by their timeline (`the regions
+ * band of timeline 'Score'`), a part by its owner, innermost first (`the
+ * label of the end of timeline 'Score'`, a bundle's or a group's name its
+ * `title`). An element of a manifest is followed by its bundle (`in bundle
+ * 'Mixed'`) unless the view holds that block alone. An address naming
+ * nothing is worded from its members: its ID quoted (`'gone'`), its block
+ * by its bundle, or by its ID (`block '0000000009'`) when the view does not
+ * hold it. `addressKey`, not this, is an address's string form.
+ */
+export function addressWords(view: View, address: Address): string {
+  const resolved = resolveAddress(view, address);
+  if ("code" in resolved) return unresolvedWords(view, address);
+  const { words, bundled } = elementWords(resolved);
+  return bundled ? words : inBundle(view, address, words);
+}
+
+/** The words of an address naming nothing: its members (`memberWords`), an element's followed by its bundle. */
+function unresolvedWords(view: View, address: Address): string {
+  const words = memberWords(view, address);
+  return address.id === undefined ? words : inBundle(view, address, words);
+}
+
+/** The words of an element of a manifest followed by its bundle, unless the view holds that block alone. */
+function inBundle(view: View, { block }: Address, words: string): string {
+  if (block === undefined) return words;
+  const alone = Object.keys(view.blocks).length === 1 && view.blocks[block] !== undefined;
+  return alone ? words : `${words} in ${blockWords(view, block)}`;
 }
 
 /** What a manifest's readers need once per manifest, memoised by identity. */

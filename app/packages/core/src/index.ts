@@ -20,6 +20,7 @@ export { apply } from "./commands/apply.ts";
 export { preview } from "./commands/preview.ts";
 export type {
   AddCommand,
+  AddKind,
   Change,
   Command,
   RemoveCommand,
@@ -118,7 +119,10 @@ export type {
   ResolvedElement,
 } from "./workspace/address.ts";
 export {
+  addressWords,
   elementAddressOf,
+  entryWord,
+  facetWord,
   inBlock,
   indexOf,
   isElementAddress,

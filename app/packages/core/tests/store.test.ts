@@ -43,7 +43,7 @@ describe("the store", () => {
     });
     expect(store.dispatch(move(B, 1))).toEqual({
       code: "unknown_target",
-      message: `{"block":"${B}"} names nothing`,
+      message: `block '${B}' names nothing`,
       path: [`{"block":"${B}"}`],
     });
     expect(store.view).toBe(view);

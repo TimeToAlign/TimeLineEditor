@@ -1,7 +1,7 @@
 /** The Journal tab's rows and the editors' names; the expected values are derived in `README.md` ("Words"). */
 
 import type { Address, Command, Entry, OpenEditor, Session } from "@timetoalign/tilie-core";
-import { addressKey, listEntries, WORKSPACE } from "@timetoalign/tilie-core";
+import { listEntries, WORKSPACE } from "@timetoalign/tilie-core";
 import { describe, expect, it } from "vitest";
 import type { JournalRow, JournalSource } from "../src/inspector/journal.ts";
 import { journalRows } from "../src/inspector/journal.ts";
@@ -13,11 +13,6 @@ const { A, B, C } = MIXED;
 /** The address of block `block`, or of its element `id`. */
 function address(block: string, id?: string): Address {
   return id === undefined ? { block } : { block, id };
-}
-
-/** An address as a sentence writes it: its one string form. */
-function key(target: Address): string {
-  return addressKey(target);
 }
 
 const view = mixedView();
@@ -80,9 +75,9 @@ describe("editorName", () => {
       "group_2",
       "Excerpt",
       "score",
-      '{"block":"0000000000","id":"gone"}',
-      '{"block":"0000000009","id":"score"}',
-      '{"block":"0000000009"}',
+      "'gone' in bundle 'Mixed'",
+      "'score' in block '0000000009'",
+      "block '0000000009'",
     ]);
   });
 });
@@ -96,7 +91,7 @@ describe("journalRows", () => {
         entry: removal,
         time: "08:05:09",
         author: "Ada",
-        text: `Removed ${key(address(B))}`,
+        text: `Removed bundle 'mixed'`,
         undone: false,
         earlier: false,
         children: [],
@@ -120,7 +115,10 @@ describe("journalRows", () => {
     expect(
       [
         entry({ type: "add", into: WORKSPACE, block: { id: "0000000003" } }),
+        entry({ type: "add", into: WORKSPACE, block: { id: B } }),
+        entry({ type: "add", into: address(A), timeline: { id: "viola", name: "Viola" } }),
         entry({ type: "add", into: address(A, "score"), region: { id: "region_1" } }),
+        entry({ type: "add", into: address(A, "score"), region: {} }),
         entry({ type: "set", changes: [{ target: address(A), values: { x: 25, y: -3 } }] }),
         entry({
           type: "set",
@@ -147,18 +145,28 @@ describe("journalRows", () => {
           select: { addresses: [{ id: "score" }] },
           set: { stroke: "#FF0000" },
         }),
+        entry({
+          type: "style",
+          select: { addresses: [{ id: "score" }] },
+          set: { stroke: "#FF0000" },
+          blocks: [A],
+        }),
         entry({ type: "style", select: { element: "timeline" }, set: { stroke: "#FF0000" } }),
       ].map((only) => textOf(only)),
     ).toEqual([
-      "Added block 0000000003 to {}",
-      `Added region region_1 to ${key(address(A, "score"))}`,
-      `Set x, y of ${key(address(A))}`,
-      `Set container width, container height of ${key(address(A))}`,
-      `Set x, y of ${key(address(A))} and 1 more`,
-      `Set place of ${key(address(A, "group_1"))} and 2 more`,
-      `Removed ${key(address(A, "group_2"))}, ${key(address(B))}`,
-      'Styled {"addresses":[{"id":"score"}]}',
-      'Styled {"element":"timeline"}',
+      "Added block '0000000003'",
+      "Added bundle 'mixed'",
+      "Added timeline 'Viola' to bundle 'Mixed'",
+      "Added region 'region_1' to timeline 'Score' in bundle 'Mixed'",
+      "Added a region to timeline 'Score' in bundle 'Mixed'",
+      "Set x, y of bundle 'Mixed'",
+      "Set container width, container height of bundle 'Mixed'",
+      "Set x, y of bundle 'Mixed' and 1 more",
+      "Set place of group 'Performance' in bundle 'Mixed' and 2 more",
+      "Removed group 'Facsimile' in bundle 'Mixed', bundle 'mixed'",
+      "Styled stroke of 'score'",
+      "Styled stroke of timeline 'Score' in bundle 'Mixed'",
+      "Styled stroke of matching elements",
     ]);
   });
 
@@ -201,8 +209,8 @@ describe("journalRows", () => {
     expect(texts()[0]).toBe("Edited group Performance (1 change)");
     expect(store.dispatch({ type: "remove", targets: [address(A, "group_1")] })).toBeNull();
     expect(texts().slice(0, 2)).toEqual([
-      `Removed ${key(address(A, "group_1"))}`,
-      `Edited ${key(address(A, "group_1"))} (1 change)`,
+      `Removed 'group_1' in bundle 'Mixed'`,
+      `Edited 'group_1' in bundle 'Mixed' (1 change)`,
     ]);
   });
 
@@ -218,15 +226,15 @@ describe("journalRows", () => {
 
   it("lists the newest first, the undone ones at the top", () => {
     expect(listed(level([e1, e2, u1, u2], {}, 2))).toEqual([
-      [`Set x of ${key(address(A, "score"))}`, true, false],
-      [`Set x of ${key(address(C))}`, true, false],
-      [`Set x of ${key(address(B))}`, false, false],
-      [`Set x of ${key(address(A))}`, false, false],
+      [`Set x of timeline 'Score' in bundle 'Mixed'`, true, false],
+      [`Set x of the anonymous bundle`, true, false],
+      [`Set x of bundle 'mixed'`, false, false],
+      [`Set x of bundle 'Mixed'`, false, false],
     ]);
     expect(listed({ editing: [editor(address(A, "group_1"))], ...level([e1, u1], {}, 1) })).toEqual(
       [
-        [`Set x of ${key(address(C))}`, true, false],
-        [`Set x of ${key(address(A))}`, false, false],
+        [`Set x of the anonymous bundle`, true, false],
+        [`Set x of bundle 'Mixed'`, false, false],
       ],
     );
   });
@@ -236,10 +244,10 @@ describe("journalRows", () => {
     expect(
       listed({ editing: [editor(address(A, "group_1"), "s0")], ...level([e1, u1], sessions, 1) }),
     ).toEqual([
-      [`Set x of ${key(address(C))}`, true, false],
-      [`Set x of ${key(address(A))}`, false, false],
-      [`Set x of ${key(address(B))}`, false, true],
-      [`Set x of ${key(address(A, "score"))}`, false, true],
+      [`Set x of the anonymous bundle`, true, false],
+      [`Set x of bundle 'Mixed'`, false, false],
+      [`Set x of bundle 'mixed'`, false, true],
+      [`Set x of timeline 'Score' in bundle 'Mixed'`, false, true],
     ]);
     expect(
       listed({
@@ -247,8 +255,8 @@ describe("journalRows", () => {
         ...level([e1, u1], sessions, 1),
       }),
     ).toEqual([
-      [`Set x of ${key(address(C))}`, true, false],
-      [`Set x of ${key(address(A))}`, false, false],
+      [`Set x of the anonymous bundle`, true, false],
+      [`Set x of bundle 'Mixed'`, false, false],
     ]);
   });
 
@@ -273,14 +281,14 @@ describe("journalRows", () => {
             "Edited group Performance (2 changes, 1 undone)",
             false,
             [
-              [`Set x of ${key(address(A, "score"))}`, true, []],
-              [`Set x of ${key(address(C))}`, false, []],
+              [`Set x of timeline 'Score' in bundle 'Mixed'`, true, []],
+              [`Set x of the anonymous bundle`, false, []],
             ],
           ],
-          [`Set x of ${key(address(B))}`, false, []],
+          [`Set x of bundle 'mixed'`, false, []],
         ],
       ],
-      [`Set x of ${key(address(A))}`, false, []],
+      [`Set x of bundle 'Mixed'`, false, []],
     ]);
     expect(tree(journalRows(source(level([e1, at("s5")], sessions, 0)), view))).toEqual([
       [
@@ -291,14 +299,14 @@ describe("journalRows", () => {
             "Edited group Performance (2 changes)",
             true,
             [
-              [`Set x of ${key(address(A, "score"))}`, true, []],
-              [`Set x of ${key(address(C))}`, true, []],
+              [`Set x of timeline 'Score' in bundle 'Mixed'`, true, []],
+              [`Set x of the anonymous bundle`, true, []],
             ],
           ],
-          [`Set x of ${key(address(B))}`, true, []],
+          [`Set x of bundle 'mixed'`, true, []],
         ],
       ],
-      [`Set x of ${key(address(A))}`, true, []],
+      [`Set x of bundle 'Mixed'`, true, []],
     ]);
   });
 
@@ -313,11 +321,11 @@ describe("journalRows", () => {
       view,
     );
     expect(rows.map((row) => [row.text, row.earlier])).toEqual([
-      [`Set x of ${key(address(A))}`, false],
+      [`Set x of bundle 'Mixed'`, false],
       ["Edited timeline Score (1 change)", true],
     ]);
     expect(rows[1]?.children.map((row) => [row.text, row.earlier])).toEqual([
-      [`Set x of ${key(address(B))}`, true],
+      [`Set x of bundle 'mixed'`, true],
     ]);
   });
 

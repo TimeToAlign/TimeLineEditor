@@ -566,7 +566,7 @@ for `{block: A, id: "clt_3", part: ["name"]}`, `A: [name]` for the title
 | numbers | {A: region_1 [label]} or with the region | [A: region_1] |
 | group_child_member | {A: second-half [start]} | [A: second-half] |
 | numbers | {A: group_1 [name]} | [A: group_1] |
-| corpus_mpm | {A: [name]}, or {B, A: [name]} | refused: `Block 0000000000: its title is removed only with the block; select the block to delete it.` |
+| corpus_mpm | {A: [name]}, or {B, A: [name]} | refused: `The title of bundle 'Beethoven_op35_1971Curzon_Var14only' is removed only with its block; select the block to delete it.` (the title's words, `addressWords`) |
 | corpus_mpm | {A: tmap_1} | [A: tmap_1] |
 | bundle_shared_member | {A: t [card]} | [A: t]: the one address of both cards of `t` |
 

@@ -16,6 +16,7 @@ import type { ElementKey } from "../src/manifest/elements.ts";
 import { manifestElements, timelineAncestry } from "../src/manifest/elements.ts";
 import type { Address, ResolvedAddress, ResolvedElement } from "../src/workspace/address.ts";
 import {
+  addressWords,
   elementAddressOf,
   inBlock,
   indexOf,
@@ -294,7 +295,7 @@ describe("resolving an address", () => {
     const address = inA({ id: "takes" });
     expect(resolveAddress(withId, address)).toEqual({
       code: "unknown_target",
-      message: '{"block":"0000000000","id":"takes"} names nothing',
+      message: "'takes' in bundle 'Mixed' names nothing",
       path: ['{"block":"0000000000","id":"takes"}'],
     });
     expect(resolveAddress(withId, { block: A })).toEqual({
@@ -325,37 +326,70 @@ describe("resolving an address", () => {
     expect(found).toMatchObject({ block: block(view, A), owner: { block: block(view, A) } });
   });
 
-  it.each<[Address]>([
-    [{ block: "0000000009" }],
-    [inA({ id: "nothing" })],
-    [inA({ id: "score/cmap_1" })],
-    [inA({ id: "recording", facet: "regions" })],
-    [inA({ id: "recording", part: ["card"] })],
-    [inA({ id: "group_1", facet: "regions" })],
-    [inA({ id: "cmap_1", facet: "regions" })],
-    [inA({ id: "score", part: ["card", "label"] })],
-    [inA({ id: "group_1", part: ["label"] })],
-    [inA({ id: "group_1", part: ["card"] })],
-    [inA({ part: ["name", "label"] })],
-    [inA({ part: ["label"] })],
-    [inA({ id: "score", part: ["start", "end"] })],
-    [inA({ id: "region_1", part: ["start"] })],
-    [{ block: B, part: ["name"] }],
+  it.each<[Address, string]>([
+    [{ block: "0000000009" }, "block '0000000009'"],
+    [inA({ id: "nothing" }), "'nothing' in bundle 'Mixed'"],
+    [inA({ id: "score/cmap_1" }), "'score/cmap_1' in bundle 'Mixed'"],
+    [
+      inA({ id: "recording", facet: "regions" }),
+      "the regions band of timeline 'Recording' in bundle 'Mixed'",
+    ],
+    [
+      inA({ id: "recording", part: ["card"] }),
+      "the card of timeline 'Recording' in bundle 'Mixed'",
+    ],
+    [
+      inA({ id: "group_1", facet: "regions" }),
+      "the regions band of group 'Performance' in bundle 'Mixed'",
+    ],
+    [
+      inA({ id: "cmap_1", facet: "regions" }),
+      "the regions band of conversion map 'cmap_1' in bundle 'Mixed'",
+    ],
+    [
+      inA({ id: "score", part: ["card", "label"] }),
+      "the label of the card of timeline 'Score' in bundle 'Mixed'",
+    ],
+    [inA({ id: "group_1", part: ["label"] }), "the label of group 'Performance' in bundle 'Mixed'"],
+    [inA({ id: "group_1", part: ["card"] }), "the card of group 'Performance' in bundle 'Mixed'"],
+    [inA({ part: ["name", "label"] }), "the label of the title of bundle 'Mixed'"],
+    [inA({ part: ["label"] }), "the label of bundle 'Mixed'"],
+    [
+      inA({ id: "score", part: ["start", "end"] }),
+      "the end of the start of timeline 'Score' in bundle 'Mixed'",
+    ],
+    [inA({ id: "region_1", part: ["start"] }), "the start of region 'Verse' in bundle 'Mixed'"],
+    [{ block: B, part: ["name"] }, "the title of the anonymous bundle"],
     // Parts nothing draws: a root drawn only as an ancestor line has no wedges; only a segment
     // has a label of its own; a region, a flow-control element and a map have no name; a map
     // and a MeasureMap no label.
-    [inA({ id: "recording", part: ["start"] })],
-    [inA({ id: "recording", part: ["end", "label"] })],
-    [inA({ id: "score", part: ["label"] })],
-    [inA({ id: "region_1", part: ["name"] })],
-    [inA({ id: "jump_from_1", part: ["name"] })],
-    [inA({ id: "cmap_1", part: ["label"] })],
-    [inA({ id: "cmap_1", part: ["name"] })],
-  ])("names nothing at %j", (address) => {
+    [
+      inA({ id: "recording", part: ["start"] }),
+      "the start of timeline 'Recording' in bundle 'Mixed'",
+    ],
+    [
+      inA({ id: "recording", part: ["end", "label"] }),
+      "the label of the end of timeline 'Recording' in bundle 'Mixed'",
+    ],
+    [inA({ id: "score", part: ["label"] }), "the label of timeline 'Score' in bundle 'Mixed'"],
+    [inA({ id: "region_1", part: ["name"] }), "the name of region 'Verse' in bundle 'Mixed'"],
+    [
+      inA({ id: "jump_from_1", part: ["name"] }),
+      "the name of jump origin 'jump_from_1' in bundle 'Mixed'",
+    ],
+    [
+      inA({ id: "cmap_1", part: ["label"] }),
+      "the label of conversion map 'cmap_1' in bundle 'Mixed'",
+    ],
+    [
+      inA({ id: "cmap_1", part: ["name"] }),
+      "the name of conversion map 'cmap_1' in bundle 'Mixed'",
+    ],
+  ])("names nothing at %j", (address, words) => {
     const key = addressKey(address);
     expect(resolveAddress(view, address)).toEqual({
       code: "unknown_target",
-      message: `${key} names nothing`,
+      message: `${words} names nothing`,
       path: [key],
     });
   });
@@ -371,6 +405,59 @@ describe("resolving an address", () => {
       message,
       path: [key],
     });
+  });
+});
+
+describe("the words of an address", () => {
+  it.each<[Address, string]>([
+    [WORKSPACE, "the workspace"],
+    [{ block: A }, "bundle 'Mixed'"],
+    [{ block: B }, "the anonymous bundle"],
+    [inA({ part: ["name"] }), "the title of bundle 'Mixed'"],
+    [{ block: B, part: ["name"] }, "the title of the anonymous bundle"],
+    [inA({ id: "group_1" }), "group 'Performance' in bundle 'Mixed'"],
+    [inA({ id: "group_1", part: ["name"] }), "the title of group 'Performance' in bundle 'Mixed'"],
+    [inA({ id: "performance" }), "timeline 'Performance' in bundle 'Mixed'"],
+    [inA({ id: "score", part: ["card"] }), "the card of timeline 'Score' in bundle 'Mixed'"],
+    [
+      inA({ id: "score", facet: "regions" }),
+      "the regions band of timeline 'Score' in bundle 'Mixed'",
+    ],
+    [
+      inA({ id: "score", facet: "conversion_maps" }),
+      "the conversion maps band of timeline 'Score' in bundle 'Mixed'",
+    ],
+    [
+      inA({ id: "score", part: ["end", "label"] }),
+      "the label of the end of timeline 'Score' in bundle 'Mixed'",
+    ],
+    [inA({ id: "region_2" }), "region 'Chorus' in bundle 'Mixed'"],
+    [inA({ id: "cmap_6" }), "conversion map 'cmap_6' in bundle 'Mixed'"],
+    [inA({ id: "jump_from_1" }), "jump origin 'jump_from_1' in bundle 'Mixed'"],
+    [{ block: B, id: "tempo" }, "conversion map 'Tempo' in the anonymous bundle"],
+    [inA({ id: "gone" }), "'gone' in bundle 'Mixed'"],
+    [
+      inA({ id: "recording", facet: "regions" }),
+      "the regions band of timeline 'Recording' in bundle 'Mixed'",
+    ],
+    [inA({ part: ["name", "label"] }), "the label of the title of bundle 'Mixed'"],
+    [{ block: "0000000009" }, "block '0000000009'"],
+    [
+      { block: "0000000009", id: "score", part: ["end", "label"] },
+      "the label of the end of 'score' in block '0000000009'",
+    ],
+  ])("words %j", (address, words) => {
+    expect(addressWords(view, address)).toBe(words);
+  });
+
+  it("words a measure map by its kind", () => {
+    const bars = { id: "bars", rows: [{ count: 1, qstamp: [0, 1] }] };
+    const held = changed(view, { type: "add", into: { block: A }, measure_map: bars });
+    expect(addressWords(held, inA({ id: "bars" }))).toBe("measure map 'bars' in bundle 'Mixed'");
+  });
+
+  it("leaves out the bundle where the view holds its block alone", () => {
+    expect(addressWords(viewOf([A, MIXED]), inA({ id: "score" }))).toBe("timeline 'Score'");
   });
 });
 

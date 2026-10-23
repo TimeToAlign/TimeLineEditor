@@ -651,24 +651,34 @@ oracles are the committed end-to-end workspaces and a store of
    selection.
 2. **Editor names.** A bundle by its `name`, else its `id`, else "Anonymous
    bundle"; a group or timeline by its `name`, else its id; anything the
-   view does not hold by its address's key (`addressKey`, e.g.
-   `{"block":"0000000000","id":"gone"}`). The editing bar, the level panel's
+   view does not hold by its address's words (core's `addressWords`):
+   `{block: A, id: "gone"}` "'gone' in bundle 'Mixed'", `{block:
+   "0000000009", id: "score"}` "'score' in block '0000000009'", `{block:
+   "0000000009"}` "block '0000000009'". The editing bar, the level panel's
    title line and the Journal use them. The level's word is "Arranger" at
    the top level, else the editor's: "Bundle", "Group", "Timeline".
 3. **Each journal entry is one sentence**, with the entry's UTC time as
-   `HH:MM:SS` and its author, every address written as its key
-   (`addressKey`): "Added block 0000000003 to {}", `Added region region_1
-   to {"block":"0000000000","id":"score"}`, `Set x, y of
-   {"block":"0000000000"}` (" and 1 more" for more changes), a block's
-   size by the Properties form's words (`Set container width, container
-   height of {"block":"0000000000"}`), `Removed
-   {"block":"0000000000","id":"group_2"}, {"block":"0000000001"}`,
-   `Styled {"addresses":[{"id":"score"}]}`, and a session "Edited <kind>
-   <name> (n changes)", counting changes at every depth ("Edited bundle
-   Mixed (3 changes)" for a bundle session holding a group session of
-   two), ", k undone" while partly undone, and without a kind word once its
-   target is gone (`Edited {"block":"0000000000","id":"group_1"} (1
-   change)`).
+   `HH:MM:SS` and its author, every address written as its words in the
+   view the panel shows (`addressWords`; so a renamed element goes by its
+   new name, and one that is gone by its ID): on the three-block store, "Added
+   block '0000000003'" for a block the view does not hold, "Added bundle
+   'mixed'" for one it holds, "Added timeline 'Viola' to bundle 'Mixed'"
+   (an added element by its name, else its id), "Added region 'region_1'
+   to timeline 'Score' in bundle 'Mixed'", "Added a region to timeline
+   'Score' in bundle 'Mixed'" for a value without either, "Set x, y of
+   bundle 'Mixed'" (" and 1 more" for more changes), a block's size by the
+   Properties form's words ("Set container width, container height of
+   bundle 'Mixed'"), "Set place of group 'Performance' in bundle 'Mixed'
+   and 2 more", "Removed group 'Facsimile' in bundle 'Mixed', bundle
+   'mixed'", a style by its properties and the addresses it lists ("Styled
+   stroke of 'score'"; with one block given, "Styled stroke of timeline
+   'Score' in bundle 'Mixed'") or else "Styled stroke of matching
+   elements", and a session "Edited <kind> <name> (n changes)", counting
+   changes at every depth ("Edited bundle Mixed (3 changes)" for a bundle
+   session holding a group session of two), ", k undone" while partly
+   undone, and without a kind word once its target is gone ("Removed
+   'group_1' in bundle 'Mixed'", then "Edited 'group_1' in bundle 'Mixed'
+   (1 change)").
 4. **Order.** Rows run newest first at every depth, undone ones at the top;
    in an editor its own rows, then the earlier session of the same target
    read only; with two editors open, the inner level only; a session's rows
