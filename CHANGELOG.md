@@ -2,6 +2,19 @@
 
 Release entries are written by release-please from the Conventional Commits since the previous release.
 
+## [0.4.0](https://github.com/TimeToAlign/TimeLineEditor/compare/v0.3.0...v0.4.0) (2026-10-23)
+
+
+### ⚠ BREAKING CHANGES
+
+* the workspace file format is version 6; every block and the block defaults carry `margin`, and a version-5 file is refused.
+
+### Features
+
+* add an Examples menu and leave the fixture menu out of release builds ([3d8b870](https://github.com/TimeToAlign/TimeLineEditor/commit/3d8b870bef3603eca35441d44a92a673b76dc510))
+* add an Examples menu and leave the fixture menu out of release builds ([#7](https://github.com/TimeToAlign/TimeLineEditor/issues/7)) ([1798487](https://github.com/TimeToAlign/TimeLineEditor/commit/1798487c0a25455623fa99ef1c1ee858c88e1a62))
+* stretch one-content containers by a margin, place imports beside blocks ([efbd1c0](https://github.com/TimeToAlign/TimeLineEditor/commit/efbd1c08ef453a246a77ae172f1f3fcce648fe2d))
+
 ## [0.3.0](https://github.com/TimeToAlign/TimeLineEditor/compare/v0.2.0...v0.3.0) (2026-10-22)
 
 
