@@ -12,7 +12,7 @@ import { ErrorCode, isCommandError, problem } from "../errors.ts";
 import { addressKey, sameAddress } from "../manifest/address.ts";
 import { contains } from "../manifest/contains.ts";
 import type { Address } from "./address.ts";
-import { elementAddressOf, isElementAddress, resolveAddress } from "./address.ts";
+import { addressWords, elementAddressOf, isElementAddress, resolveAddress } from "./address.ts";
 import { BLOCK_ID } from "./blocks.ts";
 import { mintBlockId } from "./ids.ts";
 import type { View } from "./view.ts";
@@ -212,8 +212,9 @@ export function editorKindOf(view: View, address: Address): EditorKind | Command
     case "timeline":
       return "timeline";
     default: {
-      const key = addressKey(address);
-      return problem(ErrorCode.noEditor, `${key} has no editor`, [key]);
+      return problem(ErrorCode.noEditor, `${addressWords(view, address)} has no editor`, [
+        addressKey(address),
+      ]);
     }
   }
 }

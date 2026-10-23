@@ -30,6 +30,7 @@ import { compareCodePoints, jsonEqual } from "../json.ts";
 import { addressKey, sameAddress } from "../manifest/address.ts";
 import { toJson } from "../values.ts";
 import type { Address } from "./address.ts";
+import { addressWords } from "./address.ts";
 import { sideEffect } from "./guard.ts";
 import type {
   CommandEntry,
@@ -492,7 +493,7 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
       if (original.editor !== null && !inside(original.editor, target)) {
         return problem(
           ErrorCode.notInside,
-          `${addressKey(target)} does not lie inside ${addressKey(original.editor.target)}`,
+          `${addressWords(current(), target)} does not lie inside ${addressWords(current(), original.editor.target)}`,
           [addressKey(target)],
         );
       }

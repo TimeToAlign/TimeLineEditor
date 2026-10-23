@@ -19,7 +19,7 @@ const at = (id: string, ...part: Part[]): Address =>
   part.length === 0 ? { block: BUNDLE, id } : { block: BUNDLE, id, part };
 const G1 = at("group_1");
 const G2 = at("group_2");
-/** The first segment of a path naming `address`, and its name in a message. */
+/** The first segment of a path naming `address`. */
 const key = (address: Address) => addressKey(address);
 const rename = (element: string, name: string) => ({
   type: "set",
@@ -69,18 +69,21 @@ describe("editor ids and kinds", () => {
     expect(editorKindOf(view, G1)).toBe("group");
     expect(editorKindOf(view, at("annotations"))).toBe("timeline");
     expect(editorKindOf(view, at("excerpt"))).toBe("timeline");
-    for (const address of [
-      {},
-      { block: BUNDLE, part: ["name"] },
-      at("group_1", "name"),
-      at("score", "card"),
-      { block: BUNDLE, id: "score", facet: "regions" },
-      at("region_1"),
-      { block: A, id: "tempo" },
-    ] as Address[]) {
+    for (const [address, words] of [
+      [{}, "the workspace"],
+      [{ block: BUNDLE, part: ["name"] }, "the title of bundle 'Mixed'"],
+      [at("group_1", "name"), "the title of group 'Performance' in bundle 'Mixed'"],
+      [at("score", "card"), "the card of timeline 'Score' in bundle 'Mixed'"],
+      [
+        { block: BUNDLE, id: "score", facet: "regions" },
+        "the regions band of timeline 'Score' in bundle 'Mixed'",
+      ],
+      [at("region_1"), "region 'Verse' in bundle 'Mixed'"],
+      [{ block: A, id: "tempo" }, "conversion map 'Tempo' in the anonymous bundle"],
+    ] as [Address, string][]) {
       expect(editorKindOf(view, address)).toEqual({
         code: "no_editor",
-        message: `${key(address)} has no editor`,
+        message: `${words} has no editor`,
         path: [key(address)],
       });
     }
@@ -319,7 +322,7 @@ describe("editor sessions", () => {
     store.open(G1);
     expect(store.open(G1)).toEqual({
       code: "not_inside",
-      message: `${key(G1)} does not lie inside ${key(G1)}`,
+      message: "group 'Performance' does not lie inside group 'Performance'",
       path: [key(G1)],
     });
     store.cancel();
@@ -907,7 +910,8 @@ describe("the side-effect guard through the store", () => {
     store.open(G2);
     expect(store.dispatch({ type: "remove", targets: [at("excerpt")] })).toEqual({
       code: "side_effect",
-      message: `${key(at("recording"))} lies outside ${key(G2)}: an editor changes only what it edits`,
+      message:
+        "timeline 'Recording' lies outside group 'Facsimile': an editor changes only what it edits",
       path: [key(at("recording"))],
     });
     expect(store.entries).toEqual([]);
@@ -933,7 +937,8 @@ describe("the side-effect guard through the store", () => {
     const editing = store.editing;
     expect(store.dispatch({ type: "remove", targets: [BLOCK] })).toEqual({
       code: "side_effect",
-      message: `the removal of ${key(BLOCK)} lies outside ${key(BLOCK)}: an editor changes only what it edits`,
+      message:
+        "the removal of bundle 'Mixed' lies outside bundle 'Mixed': an editor changes only what it edits",
       path: [key(BLOCK)],
     });
     expect(store.editing).toBe(editing);

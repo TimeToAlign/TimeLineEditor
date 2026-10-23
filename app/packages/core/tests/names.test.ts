@@ -171,7 +171,8 @@ describe("the workspace's name", () => {
     const refused = store.dispatch(rename("Eroica sketches"));
     expect(refused === null ? null : { ...refused }).toEqual({
       code: "side_effect",
-      message: `the workspace name lies outside {"block":"${A}"}: an editor changes only what it edits`,
+      message:
+        "the workspace name lies outside the anonymous bundle: an editor changes only what it edits",
       path: ["{}", "name"],
     });
     expect(store.view.name).toBe("untitled");

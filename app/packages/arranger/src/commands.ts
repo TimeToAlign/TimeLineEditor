@@ -13,12 +13,14 @@ import type {
 import {
   type Address,
   addressKey,
+  addressWords,
   idAddress,
   inBlock,
   indicesBetween,
   isCommandError,
   preview,
   sameAddress,
+  TITLE_ADDRESS,
   WORKSPACE,
 } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
@@ -328,8 +330,9 @@ export function removeCommand(
       continue;
     }
     if (element.id === undefined) {
+      const title = addressWords(view, inBlock(block.id, TITLE_ADDRESS));
       return {
-        refused: `Block ${block.id}: its title is removed only with the block; select the block to delete it.`,
+        refused: `${title.charAt(0).toUpperCase()}${title.slice(1)} is removed only with its block; select the block to delete it.`,
       };
     }
     add(inBlock(block.id, idAddress(element.id)));

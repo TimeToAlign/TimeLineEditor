@@ -506,14 +506,16 @@ together, a change outside the edited element is refused (a `set` of
 `group_2`'s place in `group_1`'s editor: `side_effect` at the path
 `[addressKey({block: "bmixed0000", id: "group_2"})]`), and a refused
 Delete shows its refusal (`excerpt` deleted in `group_2`'s editor changes
-its parent `recording`, which the group does not contain: the status line reads `<key of recording>
-lies outside <key of group_2>: an editor changes only what it edits`, each
-address printed as its `addressKey`); Delete pressed right after the group editor of
+its parent `recording`, which the group does not contain: the status line reads "timeline
+'Recording' in bundle 'Mixed' lies outside group 'Facsimile' in bundle
+'Mixed': an editor changes only what it edits", each address in its words,
+core's `addressWords`); Delete pressed right after the group editor of
 `group_1` has opened, the edited element selected by the opening, shows
 "Close its editor to delete the edited element." and journals nothing. The
 Journal tab shows a closed session as one
-row (a command's row reads `Set <members> of <addressKey of its first
-target>`, `Set name of {"block":"bmixed0000","id":"score"}`), keeps an undone entry greyed, and undoes nested and interleaved
+row (a command's row reads `Set <members> of <words of its first
+target>`, "Set name of timeline 'Score' in bundle 'Mixed'", the element by
+its name in the view shown, so a renamed timeline by its new name), keeps an undone entry greyed, and undoes nested and interleaved
 sessions one run at a time, newest first, redoing in mirror. A
 double-click outside the edited element closes the innermost editor. The
 places of the bundle's items and the editor's viewport after the drawer

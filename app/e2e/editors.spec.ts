@@ -609,7 +609,7 @@ test.describe("on bundles", () => {
     await arranger(page).focus();
     await page.keyboard.press("Delete");
     await expect(page.getByTestId("hint")).toHaveText(
-      `${addressKey(mixed("recording"))} lies outside ${addressKey(mixed("group_2"))}: an editor changes only what it edits`,
+      "timeline 'Recording' in bundle 'Mixed' lies outside group 'Facsimile' in bundle 'Mixed': an editor changes only what it edits",
     );
     expect(await entriesLength(page)).toBe(0);
     expect(await storeText(page, "view")).toBe(view);
@@ -651,15 +651,15 @@ test.describe("on bundles", () => {
     const journal = await panel(page, "Journal");
     const undone = journal.locator("[data-undone]");
     await expect(undone).toHaveCount(1);
-    await expect(undone).toContainText(`Set name of ${addressKey(mixed("score"))}`);
+    await expect(undone).toContainText("Set name of timeline 'Score' in bundle 'Mixed'");
     await expect(undone).toContainText("undone");
-    await expect(journal).toContainText(`Set place of ${addressKey(mixed("group_1"))}`);
+    await expect(journal).toContainText("Set place of group 'Performance' in bundle 'Mixed'");
     await expect(journal.locator("[data-undone]", { hasText: "Set place" })).toHaveCount(0);
     const rows = journal.getByRole("listitem");
     await expect(rows).toHaveCount(2);
     await expect(rows).toContainText([
-      `Set name of ${addressKey(mixed("score"))}`,
-      `Set place of ${addressKey(mixed("group_1"))}`,
+      "Set name of timeline 'Score' in bundle 'Mixed'",
+      "Set place of group 'Performance' in bundle 'Mixed'",
     ]);
     await page.evaluate(() => window.__tilie.store().redo());
     await expect(undone).toHaveCount(0);
@@ -701,7 +701,7 @@ test.describe("on bundles", () => {
     const children = journalRows(first);
     await expect(children).toHaveCount(2);
     await expect(children).toContainText([
-      `Set name of ${addressKey(mixed("annotations"))}`,
+      "Set name of timeline 'Annotations' in bundle 'Mixed'",
       "Edited group Performance (2 changes)",
     ]);
     await expect(children.first()).toHaveAttribute("data-undone");
@@ -774,9 +774,9 @@ test.describe("on bundles", () => {
       const children = journalRows(first);
       await expect(children).toHaveCount(3);
       await expect(children).toContainText([
-        `Set name of ${addressKey(mixed("annotations"))}`,
+        "Set name of timeline 'a1' in bundle 'Mixed'",
         "Edited group Performance (4 changes, 3 undone)",
-        `Set name of ${addressKey(mixed("annotations"))}`,
+        "Set name of timeline 'a1' in bundle 'Mixed'",
       ]);
       expect(await undone(children)).toEqual([true, false, false]);
       const group = children.nth(1);
@@ -787,9 +787,9 @@ test.describe("on bundles", () => {
       const members = journalRows(group);
       await expect(members).toHaveCount(3);
       await expect(members).toContainText([
-        `Set name of ${addressKey(mixed("performance"))}`,
+        "Set name of timeline 'b1' in bundle 'Mixed'",
         "Edited timeline Score (2 changes)",
-        `Set name of ${addressKey(mixed("performance"))}`,
+        "Set name of timeline 'b1' in bundle 'Mixed'",
       ]);
       expect(await undone(members)).toEqual([true, true, false]);
     }

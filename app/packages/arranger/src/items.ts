@@ -23,6 +23,7 @@ import type {
 } from "@timetoalign/tilie-core";
 import {
   addressKey,
+  addressWords,
   contains,
   ErrorCode,
   ITEM_PLACE_MEMBERS,
@@ -774,7 +775,7 @@ export function placeEdit(
     if (box === null || !(isItem(box) || isHeld(box))) {
       return refused(
         ErrorCode.wrongTargetKind,
-        `${addressKey(subject.address)} has no place to edit`,
+        `${addressWords(view, subject.address)} has no place to edit`,
         [addressKey(subject.address), property],
       );
     }

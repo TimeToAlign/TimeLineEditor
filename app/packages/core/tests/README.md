@@ -21,9 +21,11 @@ mutation throws.
 drawing specification, section 2.2): `{}` the workspace, `{block: A}` a
 block, `{block: A, id: "score"}` the element with the ID `score` of block
 `A`'s manifest, `{block: A, id: "score", facet: "regions"}` a band,
-`{block: A, id: "score", part: ["end", "label"]}` a part. Where a path or
-a message below names an address, it holds the address's one string form,
-`addressKey`: the path `[{block: A, id: "clt_3"}, "length"]` stands for
+`{block: A, id: "score", part: ["end", "label"]}` a part. Where a path
+below names an address, it holds the address's one string form,
+`addressKey`; where a message names one (`<address>`), it holds the
+address's words, `addressWords` in the view the message is about
+("Addresses and containers", item 15): the path `[{block: A, id: "clt_3"}, "length"]` stands for
 `['{"block":"0000000000","id":"clt_3"}', "length"]`, the workspace's
 `[{}, "name"]` for `["{}", "name"]`. A path that starts with a bare block
 id (`[A, "manifest", …]`, `[A, "places", …]`, `[A, "x"]` in the view
@@ -665,13 +667,14 @@ string form is `addressKey`, and nothing splits or composes an ID.
    (`{id: "score", part: ["end", "label"]}`). Each part carries its owner,
    and every level its block. The manifest's own ID names nothing: on a
    manifest with the id `takes`, `{block: A, id: "takes"}` is
-   `unknown_target`, message `{"block":"0000000000","id":"takes"} names
-   nothing`, while `{block: A}` is the block. A measure map (`bars`, added
+   `unknown_target`, message `'takes' in bundle 'Mixed' names nothing` at
+   `[{block: A, id: "takes"}]`, while `{block: A}` is the block. A measure map (`bars`, added
    into the block) resolves by its ID to itself and its index in
    `measure_maps`; it is not drawn and has no part (`{id: "bars", part:
    ["name"]}` names nothing).
 5. **What names nothing** is `unknown_target` at `[address]`, message
-   `<address> names nothing`: an unknown block or ID, an ID composed from
+   `<address> names nothing`, the address worded from its members (item
+   15; each case's words are written out in the test): an unknown block or ID, an ID composed from
    two (`score/cmap_1`), a band of a timeline drawn in no card (`{id:
    "recording", facet: "regions"}`), a facet of a group or a map, the cards
    of a timeline drawn in no card (`{id: "recording", part: ["card"]}`), a
@@ -784,6 +787,36 @@ string form is `addressKey`, and nothing splits or composes an ID.
     `annotations`, `cmap_6` to `excerpt`, `cmap_5` to `recording`, a
     group to nothing; fifteen IDs), and its elements equal the drawing's
     own.
+
+15. **The words of an address** (`addressWords`) name it to a reader in
+    messages: on the view of block `A` holding `bundles/bundle_mixed.json`
+    (named `Mixed`) and block `B` holding `map.json` (no name, no id),
+    `{}` is "the workspace", `{block: A}` "bundle 'Mixed'", `{block: B}`
+    "the anonymous bundle", `{block: A, part: ["name"]}` "the title of
+    bundle 'Mixed'", `{block: B, part: ["name"]}` (naming nothing) "the
+    title of the anonymous bundle"; an element by its kind and its name,
+    else its ID, followed by its bundle: `group_1` "group 'Performance' in
+    bundle 'Mixed'" and its title "the title of group 'Performance' in
+    bundle 'Mixed'", `performance` "timeline 'Performance' in bundle
+    'Mixed'", `score`'s card "the card of timeline 'Score' in bundle
+    'Mixed'", its regions band "the regions band of timeline 'Score' in
+    bundle 'Mixed'", its conversion maps band "the conversion maps band of
+    timeline 'Score' in bundle 'Mixed'", its end's label "the label of the
+    end of timeline 'Score' in bundle 'Mixed'", `region_2` "region 'Chorus'
+    in bundle 'Mixed'", `cmap_6` "conversion map 'cmap_6' in bundle
+    'Mixed'", `jump_from_1` "jump origin 'jump_from_1' in bundle 'Mixed'",
+    `B`'s `tempo` "conversion map 'Tempo' in the anonymous bundle", the
+    measure map `bars` added to `A` "measure map 'bars' in bundle 'Mixed'".
+    On a view holding block `A` alone the bundle is left out: `score`
+    "timeline 'Score'". An address naming nothing is worded from its
+    members: `{block: A, id: "gone"}` "'gone' in bundle 'Mixed'", the band
+    of a timeline drawn in no card `{block: A, id: "recording", facet:
+    "regions"}` "the regions band of timeline 'Recording' in bundle
+    'Mixed'" (its ID names a timeline), `{block: A, part: ["name",
+    "label"]}` "the label of the title of bundle 'Mixed'", a block the view
+    does not hold `{block: "0000000009"}` "block '0000000009'" and
+    `{block: "0000000009", id: "score", part: ["end", "label"]}` "the label
+    of the end of 'score' in block '0000000009'".
 
 ## Commands (`commands.test.ts`)
 
@@ -1866,7 +1899,7 @@ group.
     `[{}]`; `open
     nothing` → `unknown_target`; inside `open
     G1`: `open G1` → `not_inside`
-    "<G1> does not lie inside <G1>" (each `<G1>` the key of `G1`) at
+    "<G1> does not lie inside <G1>" (each `<G1>` the words of `G1`) at
     `[G1]`; inside `open bundle0001`: `open bundle0001` →
     `not_inside`; a refused open changes neither `editing` nor the
     listeners' count. Done and Cancel with no editor open change nothing.
@@ -2106,9 +2139,9 @@ is the view of that block alone, added by `add`; `after` is reached by
 block's address `{block: "bundle0001"}`, `G1` for `{block: "bundle0001",
 id: "group_1"}`, and a bare ID `x` as an editor's target or a command's
 for `{block: "bundle0001", id: "x"}`; in a path `[x]` is that address's
-key, and in a message `<x>` is it (`<group_2>` is
-`{"block":"bundle0001","id":"group_2"}`, `<bundle0001>` is
-`{"block":"bundle0001"}`).
+key, and in a message `<x>` is its words (`<group_2>` is "group
+'Facsimile'", `<bundle0001>` is "bundle 'Mixed'": the view holds that
+block alone).
 
 **`contains`** (`contains.test.ts`):
 
@@ -2171,12 +2204,13 @@ key, and in a message `<x>` is it (`<group_2>` is
     `bare.json`: `set {block: "0000000000"} x 50`, `add` of block
     `0000000001` (`bare.json`) and `remove {block: "0000000000"}` → at the
     blocks' addresses `[{block: "0000000000"}]`, `[{block: "0000000001"}]`,
-    `[{block: "0000000000"}]`, message `block '0000000000' lies outside …`;
+    `[{block: "0000000000"}]`, message `the anonymous bundle lies outside
+    …` (`bare.json` has neither name nor id);
     the bundle editor refuses the move alike.
 14. **Band orders.** A timeline's band order lies inside every editor that
     holds the timeline, and outside one that does not, refused there where
     a display order is, at `["bundle0001", "manifest", "graphical",
-    "order"]`, message `the graphical order of block 'bundle0001' lies
+    "order"]`, message `the graphical order of bundle 'Mixed' lies
     outside …`. `set excerpt order E` → nothing in the editors of
     `excerpt` (its own), `recording` (its parent's)
     and `group_2` (its group's); from there, `set excerpt order
@@ -2500,8 +2534,9 @@ and path, the view unchanged.
    no command gave it that name.
 3. **An editor does not rename the workspace.** With the bundle editor of
    block `A` (`{block: A}`) open, the same `set` is `side_effect` at `[{},
-   "name"]`, message `the workspace name lies outside
-   {"block":"0000000000"}: an editor changes only what it edits`.
+   "name"]`, message `the workspace name lies outside the anonymous
+   bundle: an editor changes only what it edits` (`bare.json` has neither
+   name nor id).
 4. **Names in a manifest**, on `bundles/bundle_mixed.json` in block `A`
    (the manifest named `Mixed`): `set {target: {block: A}, values: {name:
    "Op. 35"}}` leaves the manifest's `name` `Op. 35`, the rest of the
