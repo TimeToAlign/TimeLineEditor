@@ -101,6 +101,12 @@ describe("mount", () => {
     expect(localStorage.length).toBe(0);
     expect(window.__tilie).toBeUndefined();
     expect(document.querySelectorAll('[data-testid="fixture-select"]').length).toBe(0);
+    expect(
+      Array.from(
+        element.querySelectorAll('button[aria-haspopup="menu"]'),
+        (button) => button.textContent,
+      ),
+    ).toEqual(["File"]);
     expect(element.querySelector('[data-testid="about-server"]')?.textContent).toBe("no server");
   });
 

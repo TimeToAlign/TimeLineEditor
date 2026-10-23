@@ -89,11 +89,27 @@ function item(label: string): HTMLButtonElement {
   return found;
 }
 
-function choose(label: string): void {
-  menuButton().click();
+function choose(label: string, menu = menuButton()): void {
+  menu.click();
   flushSync();
   item(label).click();
   flushSync();
+}
+
+/** The header's menu buttons' labels. */
+function menuLabels(): (string | null)[] {
+  return Array.from(
+    document.querySelectorAll('button[aria-haspopup="menu"]'),
+    (button) => button.textContent,
+  );
+}
+
+function examplesButton(): HTMLButtonElement {
+  const button = [
+    ...document.querySelectorAll<HTMLButtonElement>('button[aria-haspopup="menu"]'),
+  ].find((entry) => entry.textContent === "Examples");
+  if (button === undefined) throw new Error("no Examples menu");
+  return button;
 }
 
 function key(target: EventTarget, init: KeyboardEventInit): KeyboardEvent {
@@ -145,7 +161,7 @@ describe("the File menu", () => {
     expect([button.textContent, button.getAttribute("aria-expanded")]).toEqual(["File", "false"]);
     expect(menu?.hidden).toBe(true);
     expect(
-      Array.from(document.querySelectorAll('[role="menuitem"]'), (entry) => [
+      Array.from(menu?.querySelectorAll('[role="menuitem"]') ?? [], (entry) => [
         entry.querySelector("span")?.textContent,
         entry.querySelector("kbd")?.textContent ?? null,
       ]),
@@ -424,6 +440,55 @@ describe("manifests", () => {
       say.mock.calls.length,
     ]).toEqual([false, 0, null, true, 1, 0, 0, 0]);
     session.dispose();
+  });
+
+  it("adds the chosen example as one block at the centre of the view, selected", async () => {
+    start();
+    expect(menuLabels()).toEqual(["File", "Examples"]);
+    const menu = document.getElementById(examplesButton().getAttribute("aria-controls") ?? "");
+    expect(
+      Array.from(
+        menu?.querySelectorAll('[role="menuitem"]') ?? [],
+        (entry) => entry.querySelector("span")?.textContent,
+      ),
+    ).toEqual([
+      "Score, performance and facsimile",
+      "Sonata in two takes",
+      "Styled edition",
+      "Repeats and jumps",
+    ]);
+
+    choose("Styled edition", examplesButton());
+    await vi.waitFor(() => expect(hook().store().journal.length).toBe(1));
+    const command = (hook().store().journal[0] as CommandEntry | undefined)?.command as {
+      type: string;
+      into: Address;
+      block: { id: string; x: number; y: number };
+    };
+    const { id } = command.block;
+    expect([command.type, command.into, command.block.x, command.block.y]).toEqual([
+      "add",
+      {},
+      0,
+      0,
+    ]);
+    expect(hook().store().view.blocks[id]?.manifest).toEqual(fixture("groups/group_styled"));
+    expect(hook().selection()).toEqual([{ block: id }]);
+  });
+
+  it("offers no example while an editor is open", async () => {
+    start();
+    addBlock(hook().store(), A);
+    expect(hook().open({ block: A })).toBeNull();
+    flushSync();
+    expect(item("Repeats and jumps").getAttribute("aria-disabled")).toBe("true");
+    choose("Repeats and jumps", examplesButton());
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(hook().store().journal.length).toBe(1);
+
+    hook().done();
+    flushSync();
+    expect(item("Repeats and jumps").getAttribute("aria-disabled")).toBe(null);
   });
 
   it("exports the manifest of the block the selection lies in, complete or minimal", async () => {

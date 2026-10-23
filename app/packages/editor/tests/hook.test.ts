@@ -189,11 +189,19 @@ function manifestFixtureText(name: string): string {
  */
 const FIXTURE_LOAD_TIMEOUT = 7_000;
 
+/** The header's fixture menu, once its lazily loaded component is shown. */
+async function fixtureMenu(): Promise<{ select: HTMLSelectElement; load: HTMLButtonElement }> {
+  return vi.waitFor(() => {
+    const select = document.querySelector<HTMLSelectElement>('[data-testid="fixture-select"]');
+    const load = document.querySelector<HTMLButtonElement>('[data-testid="fixture-load"]');
+    if (select === null || load === null) throw new Error("the fixture menu is missing");
+    return { select, load };
+  });
+}
+
 /** Choose `name` in the header's fixture menu, press Load and wait until a store holds it. */
 async function loadFromMenu(name: string): Promise<void> {
-  const select = document.querySelector<HTMLSelectElement>('[data-testid="fixture-select"]');
-  const load = document.querySelector<HTMLButtonElement>('[data-testid="fixture-load"]');
-  if (select === null || load === null) throw new Error("the fixture menu is missing");
+  const { select, load } = await fixtureMenu();
   const before = window.__tilie?.store();
   select.value = name;
   select.dispatchEvent(new Event("change"));
@@ -284,9 +292,7 @@ describe("the test hook", () => {
   it("offers the end-to-end workspaces in the header and loads the chosen one", {
     timeout: FIXTURE_LOAD_TIMEOUT,
   }, async () => {
-    const select = document.querySelector<HTMLSelectElement>('[data-testid="fixture-select"]');
-    const load = document.querySelector<HTMLButtonElement>('[data-testid="fixture-load"]');
-    if (select === null || load === null) throw new Error("the fixture menu is missing");
+    const { select, load } = await fixtureMenu();
     // The end-to-end workspaces are the generator's (`pnpm e2e:fixtures:check` pins them).
     const workspaces = readdirSync(E2E_FIXTURES)
       .filter((name) => name.endsWith(".tle.json"))

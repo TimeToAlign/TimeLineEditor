@@ -2,6 +2,7 @@
 import { isLoadError, loadManifest } from "@timetoalign/tilie-core";
 import { dumps, SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { EXAMPLES, examples } from "../src/examples.ts";
 import {
   lastChanged,
   MANIFEST_FILE,
@@ -12,7 +13,7 @@ import {
   WORKSPACE_FILE,
   workspaceFileName,
 } from "../src/files.ts";
-import { interceptDownloads, pickFile } from "./support.ts";
+import { fixtureText, interceptDownloads, pickFile } from "./support.ts";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -60,6 +61,49 @@ describe("lastChanged", () => {
         { ...entry, time: "2026-10-12T09:05:07.000Z" },
       ]),
     ).toBe("2026-10-12 09:05");
+  });
+});
+
+describe("the examples", () => {
+  const version = `fixtures/${SCHEMA_VERSION}`;
+  const chosen = [
+    "bundles/bundle_mixed",
+    "bundles/bundle_shared_parent",
+    "groups/group_styled",
+    "flow_control",
+  ];
+  /** A glob's result holding `names` below `fixtures/<directory>/`, each file's text its path. */
+  const found = (directory: string, names: readonly string[]) =>
+    Object.fromEntries(
+      names.map((name) => {
+        const file = `../node_modules/@timetoalign/timetoshare/fixtures/${directory}/${name}.json`;
+        return [file, async () => file];
+      }),
+    );
+
+  it("are four fixtures of the schema version, in order, under their labels", async () => {
+    expect(EXAMPLES.map(({ label, file }) => [label, file])).toEqual([
+      ["Score, performance and facsimile", `${version}/bundles/bundle_mixed.json`],
+      ["Sonata in two takes", `${version}/bundles/bundle_shared_parent.json`],
+      ["Styled edition", `${version}/groups/group_styled.json`],
+      ["Repeats and jumps", `${version}/flow_control.json`],
+    ]);
+    const texts = await Promise.all(EXAMPLES.map(({ text }) => text()));
+    expect(texts).toEqual(chosen.map((name) => fixtureText(name)));
+  });
+
+  it("read the files of the schema version and refuse a missing one", async () => {
+    const files = { ...found("0.0.1", chosen), ...found(SCHEMA_VERSION, chosen) };
+    const texts = await Promise.all(examples(files).map(({ text }) => text()));
+    expect(texts).toEqual(
+      chosen.map(
+        (name) =>
+          `../node_modules/@timetoalign/timetoshare/fixtures/${SCHEMA_VERSION}/${name}.json`,
+      ),
+    );
+    expect(() => examples(found(SCHEMA_VERSION, chosen.slice(0, 3)))).toThrow(
+      `the example ${version}/flow_control.json is missing`,
+    );
   });
 });
 

@@ -24,7 +24,9 @@ const schemaPackageJson = createRequire(import.meta.url).resolve(
  * packages import, so a package comes before the packages that import it
  * (the earlier group has the higher priority). Packages only the lazily
  * loaded YAML and TOML codecs import are in no group: grouped with a package
- * the main chunk needs, they would be loaded at start.
+ * the main chunk needs, they would be loaded at start. For the same reason
+ * no group takes a file imported as text (`?raw`), such as the schema
+ * package's fixtures the Examples menu loads when one is chosen.
  */
 const VENDOR_CHUNKS: readonly (readonly [string, (name: string) => boolean])[] = [
   ["svelte", (name) => name === "svelte"],
@@ -37,6 +39,7 @@ const CODE_SPLITTING = {
   groups: VENDOR_CHUNKS.map(([name, includes], index) => ({
     name,
     test: (id: string) => {
+      if (id.includes("?raw")) return false;
       const found = packageOf(id);
       return found !== undefined && includes(found[0]);
     },

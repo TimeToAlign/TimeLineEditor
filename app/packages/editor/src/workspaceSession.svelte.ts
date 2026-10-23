@@ -31,6 +31,7 @@ import {
   writeWorkspace,
 } from "@timetoalign/tilie-core";
 import type { FontMetrics } from "@timetoalign/timetoshare";
+import type { Example } from "./examples.ts";
 import {
   MANIFEST_FILE,
   manifestFileName,
@@ -220,37 +221,51 @@ export class WorkspaceSession {
   }
 
   /**
-   * Import a manifest file the viewer picks as one new block, its top-left
-   * at the centre of the view, moved right past every block it would
-   * overlap (`metrics` measure the drawings); the block is selected. While
-   * an editor is open nothing is picked and nothing changes.
+   * Import a manifest file the viewer picks as one new block (`#add`).
+   * While an editor is open nothing is picked and nothing changes.
    */
   async importManifest(canvas: ImportTarget, metrics: FontMetrics): Promise<void> {
     if (!this.importable) return;
     try {
       const opened = await openFile(MANIFEST_FILE);
       if (opened === null) return;
-      const manifest = loadManifest(opened.text);
-      if (isLoadError(manifest)) {
-        this.#options.say(
-          `${opened.name} is not a manifest TimeLineEditor can import.`,
-          manifest.problems,
-        );
-        return;
-      }
-      const id = mintBlockId();
-      const refusal = this.store.dispatch(
-        addCommand(this.store.view, id, manifest, canvas.visible(), metrics),
-      );
-      if (refusal !== null) {
-        this.#options.say(`${opened.name} could not be added.`, [refusal]);
-        return;
-      }
-      this.selection = selectionOf([{ block: id }]);
-      canvas.focus();
+      this.#add(opened.name, opened.text, canvas, metrics);
     } catch (error) {
       this.#options.say(`The file could not be imported: ${messageOf(error)}`);
     }
+  }
+
+  /** Add the manifest of `example` as one new block (`#add`); while an editor is open nothing changes. */
+  async importExample(example: Example, canvas: ImportTarget, metrics: FontMetrics): Promise<void> {
+    if (!this.importable) return;
+    try {
+      this.#add(example.label, await example.text(), canvas, metrics);
+    } catch (error) {
+      this.#options.say(`The example could not be added: ${messageOf(error)}`);
+    }
+  }
+
+  /**
+   * Add the manifest `text`, called `name` in messages, as one new block, its
+   * top-left at the centre of the view, moved right past every block it
+   * would overlap (`metrics` measure the drawings); the block is selected.
+   */
+  #add(name: string, text: string, canvas: ImportTarget, metrics: FontMetrics): void {
+    const manifest = loadManifest(text);
+    if (isLoadError(manifest)) {
+      this.#options.say(`${name} is not a manifest TimeLineEditor can import.`, manifest.problems);
+      return;
+    }
+    const id = mintBlockId();
+    const refusal = this.store.dispatch(
+      addCommand(this.store.view, id, manifest, canvas.visible(), metrics),
+    );
+    if (refusal !== null) {
+      this.#options.say(`${name} could not be added.`, [refusal]);
+      return;
+    }
+    this.selection = selectionOf([{ block: id }]);
+    canvas.focus();
   }
 
   /** The block the whole selection lies in, if it lies in exactly one. */

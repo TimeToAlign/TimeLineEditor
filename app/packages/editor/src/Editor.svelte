@@ -22,9 +22,9 @@ import { NOTICES_FILE } from "./attributions.ts";
 import type { Autosaving } from "./autosaving.ts";
 import { startAutosave } from "./autosaving.ts";
 import ConfirmDialog from "./ConfirmDialog.svelte";
+import { EXAMPLES } from "./examples.ts";
 import type { MenuItem } from "./FileMenu.svelte";
 import FileMenu from "./FileMenu.svelte";
-import FixtureMenu from "./FixtureMenu.svelte";
 import { openFile, UNTITLED, WORKSPACE_FILE } from "./files.ts";
 import InspectorDrawer from "./InspectorDrawer.svelte";
 import MessageArea from "./MessageArea.svelte";
@@ -38,6 +38,8 @@ import { WorkspaceRefusedError, WorkspaceSession } from "./workspaceSession.svel
 type Props = TimeLineEditorOptions & {
   /** Install the test hook and the fixture menu; only a build carrying them has them. */
   readonly testHook?: boolean;
+  /** Show the Examples menu. */
+  readonly examples?: boolean;
   /**
    * The title the header shows: the page's own heading where the editor is
    * the page; without one, the editor's name as plain text, so a host page
@@ -56,6 +58,7 @@ let {
   onchange,
   onselect,
   testHook = false,
+  examples = false,
   title,
 }: Props = $props();
 
@@ -288,6 +291,16 @@ const fileItems: readonly MenuItem[] = $derived([
   },
 ]);
 
+const exampleItems: readonly MenuItem[] = $derived(
+  EXAMPLES.map((example) => ({
+    label: example.label,
+    disabled: !session.importable,
+    run: () => {
+      if (canvas !== undefined) void session.importExample(example, canvas, fontMetrics);
+    },
+  })),
+);
+
 // --- The server and the autosave ---------------------------------------------
 
 /** The server's health, kept for the About pane; `null` until it answers. */
@@ -375,6 +388,14 @@ function loadOrThrow(text: string): void {
 
 const withTestHook = TEST_HOOK && untrack(() => testHook);
 
+// The build flag is spelled out here rather than read from `TEST_HOOK`, so
+// the bundler sees a constant condition and leaves the menu out of a
+// production build.
+const fixtureMenu =
+  import.meta.env.DEV || import.meta.env.VITE_TILIE_TEST_HOOK === "1"
+    ? import("./FixtureMenu.svelte")
+    : null;
+
 if (withTestHook) {
   /** What the end-to-end tests drive the editor through (`window.__tilie`). */
   const hook: TestHook = {
@@ -405,6 +426,7 @@ if (withTestHook) {
   <header>
     {#if title}{@render title()}{:else}<span class="title">TimeLineEditor</span>{/if}
     <FileMenu label="File" items={fileItems} />
+    {#if examples}<FileMenu label="Examples" items={exampleItems} />{/if}
     <span class="file" data-testid="file-name">{session.dirty ? "• " : ""}{session.fileName}</span>
     <span class="server" aria-live="polite">
       {#if offline}<span class="offline" title={offline}
@@ -412,8 +434,8 @@ if (withTestHook) {
         >{/if}
     </span>
     <span class="spacer"></span>
-    {#if withTestHook}
-      <FixtureMenu onload={loadOrThrow} />
+    {#if withTestHook && fixtureMenu !== null}
+      {#await fixtureMenu then { default: FixtureMenu }}<FixtureMenu onload={loadOrThrow} />{/await}
     {/if}
     <button type="button" class="about-button" onclick={() => about?.open()}>About</button>
   </header>
