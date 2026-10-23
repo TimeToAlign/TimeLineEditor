@@ -8,7 +8,7 @@
  * table, another kind's table and unknown names; own-axis values on the
  * axis, off it (a coordinate dict, another number type's representation,
  * past int64), negative and past the end, and lengths of null; payloads
- * include ones the schema refuses; a timeline's new parent and group are
+ * include ones the schema refuses; a timeline's new parent and groups are
  * drawn from the manifest's timelines and groups, itself and unknown ids
  * included. Every refusal the commands produce on these targets is
  * reachable.
@@ -578,7 +578,13 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
         const parent = p4 % 4 === 0 ? null : { timeline: host, offset: coordinate(on, p5, p6) };
         return set(element, { parent });
       }
-      return set(element, { group: pick([...groups, ...groups, null, "ghost", 3], p3) });
+      const [first = "ghost"] = groups;
+      const listed = [groups.length === 0 ? first : pick(groups, p4)];
+      const value = pick(
+        [listed, listed, groups, [], ["ghost"], [first, first], [3], "group_1"],
+        p3,
+      );
+      return set(element, { groups: value });
     }
     case 13: {
       // A new root timeline or a new group of a block's manifest.

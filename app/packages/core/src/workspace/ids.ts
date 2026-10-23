@@ -1,4 +1,7 @@
-/** Minting block ids, and the prefix of a minted timeline id by its timeline class. */
+/**
+ * Minting block ids, the next free element id of a manifest, and the prefix
+ * of a minted timeline id by its timeline class.
+ */
 
 import type { TimelineClass } from "../manifest/elements.ts";
 import type { BlockId } from "./blocks.ts";
@@ -29,3 +32,14 @@ export const TIMELINE_PREFIX = {
   ContinuousGraphicalTimeline: "cgt",
   DiscreteGraphicalTimeline: "dgt",
 } as const satisfies Readonly<Record<TimelineClass, string>>;
+
+/**
+ * The smallest `{prefix}_{N}`, `N` counted from 1, that `taken` does not
+ * hold: the ID an element added to a manifest is given, `taken` being the
+ * manifest's IDs (`manifestIds`).
+ */
+export function nextId(prefix: string, taken: ReadonlySet<string>): string {
+  let suffix = 1;
+  while (taken.has(`${prefix}_${suffix}`)) suffix += 1;
+  return `${prefix}_${suffix}`;
+}

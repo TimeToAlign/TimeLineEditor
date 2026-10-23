@@ -256,10 +256,11 @@ function readGroup(value: JsonObject, at: readonly PathSegment[]): Group | Comma
 /**
  * Add a group to a block's manifest: `{id, name?, meta?, members}`, read
  * through the schema boundary (`readGroup`), its ID taken by no element of
- * the manifest, its members timelines of the manifest under the rules of
- * `set group` (`already_member`, `nested_member`). A member that was drawn
- * in a card of the block is then drawn in the group's frame, `settle`
- * keeping its card's size.
+ * the manifest, its members timelines of the manifest, each joining it as
+ * `set groups` joins a group (`nested_member`, and `invalid_value` for a
+ * member listed twice). A member that was drawn in one card of the block is
+ * then drawn in the group's frame too, `settle` keeping that card's size
+ * when the frame is its only one.
  */
 function addGroup(view: View, target: BlockTarget, value: unknown, changes: ChangeSet) {
   const read = readNew(target, "group", value);
@@ -287,7 +288,10 @@ function addGroup(view: View, target: BlockTarget, value: unknown, changes: Chan
     if (isCommandError(timeline) || (timeline.kind !== "root" && timeline.kind !== "child")) {
       return problem(ErrorCode.unknownTarget, `'${member}' names no timeline of the manifest`, at);
     }
-    const next = setProperty(current, timeline.address, "group", id, own);
+    const groups = timeline.block.manifest.groups
+      .filter((item) => item.members.includes(member))
+      .map((item) => item.id);
+    const next = setProperty(current, timeline.address, "groups", [...groups, id], own);
     if (isCommandError(next)) return { ...next, path: at };
     current = next;
   }
