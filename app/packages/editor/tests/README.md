@@ -121,6 +121,19 @@ Export writes the selected block's manifest, complete or minimal, as core's
 writer gives it, under its manifest file name, and is disabled while the
 selection spans two blocks.
 
+The Examples menu, beside File on the standalone page, offers four manifest
+fixtures of the installed schema version, in this order and under these
+labels: "Score, performance and facsimile" (`bundles/bundle_mixed`),
+"Sonata in two takes" (`bundles/bundle_shared_parent`), "Styled edition"
+(`groups/group_styled`) and "Repeats and jumps" (`flow_control`). The list
+is built from the files a glob found; files of another schema version are
+ignored, and a missing example is an error naming its file
+(`fixtures/0.1.0/flow_control.json`). Choosing an example adds what Import
+adds for that fixture's text: one `add` of the fixture's manifest at the
+view's centre (`(0, 0)` in jsdom), the new block selected. While an editor
+is open every example is `aria-disabled="true"` and choosing one adds
+nothing; after Done they are enabled again.
+
 A workspace's file name is its name and `.tle.json`, every character a
 file name cannot hold on Windows, macOS or Linux (the control characters
 and `/ \ : * ? " < > |`) written `_`: `untitled` gives `untitled.tle.json`,
@@ -175,8 +188,10 @@ own, whose every copyright line the attribution gives; the build emits each
 font once as an asset, the title font byte-equal to the vendored file
 (SHA-256 `ba204497…b350`, 49,248 bytes); `THIRD_PARTY_NOTICES.txt` holds
 every full licence text in order, the two fonts last. No chunk reaches 500 kB, neither the YAML nor the
-TOML codec is preloaded, and no shipped file holds a fixture's generator
-string or "Fixture Generator". The development server may read the app
+TOML codec is preloaded, and a fixture's generator string occurs in the
+shipped files exactly four times, once in each example of the Examples
+menu, while no shipped file holds "Fixture Generator", the fixture menu's
+`fixture-select` or the test hook's `__tilie`. The development server may read the app
 workspace and the resolved schema package.
 
 ## The test hook (`hook.test.ts`)
@@ -216,7 +231,7 @@ an unknown block throws the same `RangeError`.
 `mount` is proven against a host page. The host stays untouched: its body
 margin, title, address and history length are unchanged, no request is
 made and no IndexedDB opened (no `server` and no `storage` given),
-`localStorage` stays empty, there is no test hook, no fixture menu and no
+`localStorage` stays empty, there is no test hook, no fixture menu, no Examples menu and no
 level-1 heading, and About says "no server". `text()` gives back the given `workspace` byte for
 byte. `onchange` reports `{fileName: "untitled.tle.json", dirty: false}`
 for it and exactly one `{…, dirty: true}` after a Delete on the canvas.

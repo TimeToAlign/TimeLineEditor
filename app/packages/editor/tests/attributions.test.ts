@@ -205,7 +205,7 @@ describe("the build", () => {
     expect(preloaded.filter((name) => /^(yaml|toml)-/.test(name))).toEqual([]);
   });
 
-  it("carries no fixture and no code building fixture workspaces", () => {
+  it("carries the examples alone of the fixtures, and neither the fixture menu nor the test hook", () => {
     const bare = readFileSync(
       path.join(
         path.dirname(
@@ -220,16 +220,18 @@ describe("the build", () => {
     const generator = (JSON.parse(bare) as { meta: { generator: string } }).meta.generator;
     expect(generator.startsWith("timetoalign ")).toBe(true);
     // Source maps hold every module's source text, the dead branch included, and are not shipped.
-    const written = readdirSync(outDir, { recursive: true, encoding: "utf8" })
+    const texts = readdirSync(outDir, { recursive: true, encoding: "utf8" })
       .filter((name) => !name.endsWith(".map"))
       .map((name) => path.join(outDir, name))
-      .filter((file) => statSync(file).isFile());
-    const found = written.filter((file) => {
-      const text = readFileSync(file, "latin1");
-      return text.includes(generator) || text.includes("Fixture Generator");
-    });
-    expect(written.length > 0).toBe(true);
-    expect(found).toEqual([]);
+      .filter((file) => statSync(file).isFile())
+      .map((file) => readFileSync(file, "latin1"));
+    expect(texts.length > 0).toBe(true);
+    expect(texts.reduce((count, text) => count + text.split(generator).length - 1, 0)).toBe(4);
+    expect(
+      ["Fixture Generator", "fixture-select", "__tilie"].filter((word) =>
+        texts.some((text) => text.includes(word)),
+      ),
+    ).toEqual([]);
   });
 
   it("lets the development server read the schema package", () => {

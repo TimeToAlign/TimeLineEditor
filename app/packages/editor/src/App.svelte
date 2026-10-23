@@ -3,8 +3,8 @@
  * The standalone page `tilie` serves: one editor filling the window. The
  * page owns what belongs to the document: its title, the `html` and `body`
  * styles, its one heading (the editor's header shows it), the token taken
- * from the fragment, the window-wide shortcuts and the test hook of test
- * builds.
+ * from the fragment, the window-wide shortcuts, the Examples menu and the
+ * test hook of test builds.
  */
 import { NOTICES_FILE } from "./attributions.ts";
 import Editor from "./Editor.svelte";
@@ -26,6 +26,7 @@ let status: Status = $state.raw({ fileName: UNTITLED, dirty: false });
   shortcuts="window"
   autofocus
   testHook
+  examples
   noticesUrl={NOTICES_FILE}
   onchange={(next) => (status = next)}
 >
