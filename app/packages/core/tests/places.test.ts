@@ -560,20 +560,25 @@ describe("pruning stale keys", () => {
     const joined = after(
       mixed(),
       set("annotations", { place: { x: 1, width: 700, spacing: 2 } }),
-      set("annotations", { group: "group_1" }),
+      set("annotations", { groups: ["group_1"] }),
     );
     expect(block(joined, ID).places).toEqual({
       group_1: { cards: { annotations: { width: 700, spacing: 2 } } },
     });
-    const left = after(joined, set("annotations", { group: null }));
+    const left = after(joined, set("annotations", { groups: [] }));
     expect(block(left, ID).places).toEqual({ annotations: { width: 700, spacing: 2 } });
     const member = after(
       mixed(),
       set("group_1", { place: { x: 10 } }),
       set("score", { place: { width: 650 } }),
-      set("score", { group: null }),
+      set("score", { groups: [] }),
     );
     expect(block(member, ID).places).toEqual({ group_1: { x: 10 }, score: { width: 650 } });
+    const sized = after(mixed(), set("score", { place: { width: 650 } }));
+    const both = after(sized, set("score", { groups: ["group_1", "group_2"] }));
+    expect(block(both, ID).places).toEqual({ group_1: { cards: { score: { width: 650 } } } });
+    const second = after(both, set("score", { groups: ["group_2"] }));
+    expect(block(second, ID).places).toEqual({ group_2: { cards: { score: { width: 650 } } } });
   });
 
   it("drops a removed timeline's place", () => {

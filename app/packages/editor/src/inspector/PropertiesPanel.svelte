@@ -6,7 +6,9 @@
  * of one band, or the form of the selected containers' geometry, or the
  * hint that the selection has none; the stored lock of the inspected
  * timelines stands right of the container size, read-only. Typed text is
- * the inspector's `PropertyDrafts`; a commit or a step is one `set`.
+ * the inspector's `PropertyDrafts`; a commit or a step is one `set`. Below,
+ * the group memberships of the selected timelines or group, and the New
+ * group button (`groups.ts`), each click one command.
  */
 import type {
   Editing,
@@ -16,9 +18,11 @@ import type {
   Subject,
 } from "@timetoalign/tilie-arranger";
 import { drawingOf, liveStore } from "@timetoalign/tilie-arranger";
-import type { Block, Store, View } from "@timetoalign/tilie-core";
+import type { AddCommand, Address, Block, SetCommand, Store, View } from "@timetoalign/tilie-core";
+import { sameAddress } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import type { Attachment } from "svelte/attachments";
+import { groupsOf, membersOf, newGroupOf } from "./groups.ts";
 import type { Geometry, NameField, Shown } from "./properties.ts";
 import { bandRows, fieldLabel, geometryOf, isSize, lockOf, nameOf } from "./properties.ts";
 import type { PropertyDrafts } from "./propertyDrafts.svelte.ts";
@@ -73,6 +77,37 @@ const band = $derived(shown === null ? null : bandRows(subjects, shown));
 
 /** The stored lock of the inspected timelines; `null` unless every subject is one. */
 const lock = $derived(block === null ? null : lockOf(subjects));
+
+/** The memberships offered: the selected timelines' groups, or the selected group's members; else `null`. */
+const memberships = $derived(
+  block === null ? null : (groupsOf(view, subjects, editing) ?? membersOf(view, subjects, editing)),
+);
+
+/** The New group button's command, for selected timelines or the selected block; else `null`. */
+const newGroup = $derived(block === null ? null : newGroupOf(view, subjects, editing));
+
+/** A refusal of the store, and the selection it was refused for. */
+interface MembershipRefusal {
+  readonly selected: readonly Address[];
+  readonly message: string;
+}
+
+/** The store's refusal of the last membership command: shown until the next command or another selection. */
+let refusal = $state<MembershipRefusal | null>(null);
+const membershipProblem = $derived.by(() => {
+  if (refusal === null || refusal.selected.length !== subjects.length) return null;
+  const { selected, message } = refusal;
+  return subjects.every((subject, index) => sameAddress(subject.address, selected[index] ?? {}))
+    ? message
+    : null;
+});
+
+/** Dispatch a membership command, keeping the store's refusal for the status line. */
+function dispatchMembership(command: SetCommand | AddCommand): void {
+  const message = store.dispatch(command)?.message;
+  const selected = subjects.map((subject) => subject.address);
+  refusal = message === undefined ? null : { selected, message };
+}
 
 /** The fields of the geometry before the size, and the size, which shares a row with Locked. */
 const placeFields = $derived(geometry?.fields.filter((field) => !isSize(field.property)) ?? []);
@@ -255,6 +290,47 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
   <p class="notice" role="status">{drafts.notice(edited) ?? ""}</p>
 {/if}
 
+{#if memberships !== null}
+  <fieldset class="memberships">
+    <legend>{memberships.legend}</legend>
+    {#each memberships.rows as row (row.id)}
+      <label
+        class:refused={row.refusal !== null}
+        title={row.refusal ?? undefined}
+        style:padding-inline-start="{row.depth * 1.25}rem"
+      >
+        <input
+          type="checkbox"
+          name="{memberships.legend.toLowerCase()}"
+          value={row.id}
+          checked={row.checked}
+          disabled={row.refusal !== null}
+          {@attach indeterminate(row.mixed)}
+          onchange={(event) => {
+            // The box shows the stored membership until the store has taken the command.
+            event.currentTarget.checked = row.checked;
+            dispatchMembership(row.command);
+          }}
+        />
+        {row.label}
+      </label>
+    {/each}
+  </fieldset>
+{/if}
+{#if newGroup !== null}
+  {@const add = newGroup}
+  <button
+    type="button"
+    class="new-group"
+    disabled={add.refusal !== null}
+    title={add.refusal ?? undefined}
+    onclick={() => dispatchMembership(add.command)}>New group</button
+  >
+{/if}
+{#if memberships !== null || newGroup !== null}
+  <p class="problem" role="status">{membershipProblem ?? ""}</p>
+{/if}
+
 <style>
   .hint {
     margin: 0;
@@ -339,6 +415,38 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
   .notice {
     margin: 0;
     color: #595959;
+  }
+
+  .memberships {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    margin: 0.5rem 0 0;
+    padding: 0.25rem 0.5rem 0.5rem;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+  }
+
+  .memberships legend {
+    color: #595959;
+  }
+
+  .memberships label {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  /* A membership core refuses: offered, greyed, its reason in the tooltip. */
+  .memberships label.refused {
+    color: #595959;
+    cursor: not-allowed;
+  }
+
+  .new-group {
+    display: block;
+    margin-top: 0.5rem;
+    font: inherit;
   }
 
 </style>
