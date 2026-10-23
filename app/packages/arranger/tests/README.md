@@ -244,10 +244,25 @@ drawing of its manifest at its placement with the layers default,
 workspace, manifest, in that order (section 1). Asked twice for one block
 and one settings object it is the identical object; after a `set` of the
 workspace's `graphical` it shows the statement (a block fill of
-`#FFFFFF`). Overrides are never cached: drawn at length 800 `bare` is
-`W(800) = 876.5771484375` wide and the block's own drawing stays the
-length-400 one; `bundle_mixed` with `annotations` at `{x: −30}` has the
+`#FFFFFF`). Overrides draw the placement they give: drawn at length 800
+`bare` is `W(800) = 876.5771484375` wide and the block's own drawing stays
+the length-400 one; `bundle_mixed` with `annotations` at `{x: −30}` has the
 origin `(38, 0)`, overridden with no places `(0, 0)`.
+
+**Equal placements share a drawing.** A resize measures the block at many
+placements on every pointer move, and the preview then draws the block it
+stores, so drawings are also remembered by the manifest and the values of
+the placement (`length`, `spacing`, `margin`, `width`, `height` and
+`places`, compared by value), the 32 placements of a
+manifest drawn last. What proves it: `bare` overridden to length 800 twice
+is the identical drawing, and the block `set` to length 800, a new block
+object, draws that identical drawing too; places equal by value but built anew
+(`{annotations: {x: −30}}` written twice) share one drawing, while
+`{x: −30}` and `{x: −31}` do not. Such a drawing is never served under
+other settings: after the `set` of the workspace's `graphical` the length
+800 drawing is a new one that shows the fill. After 32 other placements
+of `bare` (lengths 801 to 832) the length-800 drawing is drawn anew, equal
+to the first but not identical; asked again right after it is identical.
 
 ## The projection (`project.test.ts`, `properties.test.ts`)
 
