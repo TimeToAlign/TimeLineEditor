@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { BLOCK_ID } from "../src/workspace/blocks.ts";
-import { mintBlockId, TIMELINE_PREFIX } from "../src/workspace/ids.ts";
+import { mintBlockId, nextId, TIMELINE_PREFIX } from "../src/workspace/ids.ts";
 import { indexBetween, indicesBetween, isIndex } from "../src/workspace/order.ts";
 
 describe("block ids", () => {
@@ -30,6 +30,12 @@ describe("element ids", () => {
       ContinuousGraphicalTimeline: "cgt",
       DiscreteGraphicalTimeline: "dgt",
     });
+  });
+
+  it("gives the smallest free id of a prefix", () => {
+    expect(nextId("group", new Set())).toBe("group_1");
+    expect(nextId("group", new Set(["group_1", "group_2", "group_4"]))).toBe("group_3");
+    expect(nextId("group", new Set(["group_2", "clt_1"]))).toBe("group_1");
   });
 });
 

@@ -73,7 +73,7 @@ import type {
   WorkspaceTarget,
 } from "./targets.ts";
 import { targetOf } from "./targets.ts";
-import { joinGroup, lengthProblem, moveTimeline, placeChild } from "./topology.ts";
+import { lengthProblem, moveTimeline, placeChild, setGroups } from "./topology.ts";
 
 /**
  * Set one property of `target` to `value`: the new view, or the refusal at
@@ -613,7 +613,7 @@ const TIMELINE_SET: Setters<TimelineTarget> = {
     return timelineChange(view, target, path, changes, timeline.length, next, stored);
   },
   parent: moveTimeline,
-  group: joinGroup,
+  groups: setGroups,
   place: setPlace,
 };
 

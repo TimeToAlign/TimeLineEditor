@@ -130,7 +130,7 @@ export {
 } from "./workspace/address.ts";
 export type { Block, BlockId } from "./workspace/blocks.ts";
 export { emptyWorkspace, readWorkspace, writeWorkspace } from "./workspace/file.ts";
-export { mintBlockId } from "./workspace/ids.ts";
+export { mintBlockId, nextId } from "./workspace/ids.ts";
 export { indexBetween, indicesBetween, isIndex } from "./workspace/order.ts";
 export type {
   CommandEntry,

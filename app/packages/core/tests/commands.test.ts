@@ -1102,17 +1102,41 @@ describe("where a timeline lies", () => {
     expect(rootIds(view)).not.toContain("annotations");
   });
 
-  it("joins and leaves a group, its display order following", () => {
-    const joined = applied(mixed(), set(at("annotations"), { group: "group_1" }));
+  it("joins and leaves groups, their display orders following", () => {
+    const joined = applied(mixed(), set(at("annotations"), { groups: ["group_1"] }));
     expect(groupOf(joined, "group_1")?.members).toEqual(["annotations", "performance", "score"]);
     expect(manifest(joined).graphical?.order?.group_1).toEqual([
       "score",
       "performance",
       "annotations",
     ]);
-    const left = applied(mixed(), set(at("performance"), { group: null }));
+    const left = applied(mixed(), set(at("performance"), { groups: [] }));
     expect(groupOf(left, "group_1")?.members).toEqual(["score"]);
     expect(manifest(left).graphical?.order?.group_1).toEqual(["score"]);
+  });
+
+  it("puts a timeline into a second group and takes it out of the first", () => {
+    const view = mixed();
+    const both = applied(view, set(at("score"), { groups: ["group_2", "group_1"] }));
+    expect(groupOf(both, "group_1")).toEqual(groupOf(view, "group_1"));
+    expect(manifest(both).graphical?.order?.group_1).toEqual(["score", "performance"]);
+    expect(groupOf(both, "group_2")?.members).toEqual(["excerpt", "page", "score"]);
+    expect(manifest(both).graphical?.order?.group_2).toEqual(["page", "excerpt", "score"]);
+    expect(rejected(both, set(at("score"), { groups: ["group_1", "group_2"] }))).toEqual({
+      code: "invalid_value",
+      path: [key(at("score")), "groups"],
+    });
+    const moved = applied(both, set(at("score"), { groups: ["group_2"] }));
+    expect(groupOf(moved, "group_1")?.members).toEqual(["performance"]);
+    expect(manifest(moved).graphical?.order?.group_1).toEqual(["performance"]);
+    expect(groupOf(moved, "group_2")).toEqual(groupOf(both, "group_2"));
+    const added = applied(view, {
+      type: "add",
+      into: BLOCK,
+      group: { id: "group_3", members: ["score"] },
+    });
+    expect(groupOf(added, "group_3")?.members).toEqual(["score"]);
+    expect(groupOf(added, "group_1")).toEqual(groupOf(view, "group_1"));
   });
 
   it("refuses with the exact code and path", () => {
@@ -1128,26 +1152,23 @@ describe("where a timeline lies", () => {
       code: "duplicate_id",
       path: [key(BLOCK), "timeline", "id"],
     });
-    expect(
-      rejected(view, { type: "add", into: BLOCK, group: { id: "group_3", members: ["score"] } }),
-    ).toEqual({
-      code: "already_member",
-      path: [key(BLOCK), "group", "members", 0],
-    });
-    expect(rejected(view, set(at("score"), { group: "group_2" }))).toEqual({
-      code: "already_member",
-      path: [key(at("score")), "group"],
-    });
-    expect(rejected(view, set(at("recording"), { group: "group_2" }))).toEqual({
+    expect(rejected(view, set(at("recording"), { groups: ["group_2"] }))).toEqual({
       code: "nested_member",
-      path: [key(at("recording")), "group"],
+      path: [key(at("recording")), "groups", 0],
     });
+    expect(
+      rejected(view, {
+        type: "add",
+        into: BLOCK,
+        group: { id: "group_3", members: ["recording", "excerpt"] },
+      }),
+    ).toEqual({ code: "nested_member", path: [key(BLOCK), "group", "members", 1] });
     const grouped = applied(view, {
       type: "add",
       into: BLOCK,
       timeline: { id: "extra", unit: "quarters", length: quarters(4) },
     });
-    const joined = applied(grouped, set(at("extra"), { group: "group_1" }));
+    const joined = applied(grouped, set(at("extra"), { groups: ["group_1"] }));
     expect(
       rejected(joined, set(at("score"), { parent: { timeline: "extra", offset: quarters(0) } })),
     ).toEqual({ code: "nested_member", path: [key(at("score")), "parent"] });
@@ -1157,14 +1178,29 @@ describe("where a timeline lies", () => {
     expect(
       rejected(view, { type: "add", into: BLOCK, group: { id: "group_3", name: 3, members: [] } }),
     ).toEqual({ code: "schema_violation", path: [key(BLOCK), "group", "name"] });
-    expect(rejected(view, set(at("score"), { group: "ghost" }))).toEqual({
+    expect(rejected(view, set(at("score"), { groups: ["ghost"] }))).toEqual({
       code: "unknown_target",
-      path: [key(at("score")), "group"],
+      path: [key(at("score")), "groups", 0],
     });
-    expect(rejected(view, set(at("score"), { group: 3 }))).toEqual({
+    expect(rejected(view, set(at("score"), { groups: "group_1" }))).toEqual({
       code: "invalid_value",
-      path: [key(at("score")), "group"],
+      path: [key(at("score")), "groups"],
     });
+    expect(rejected(view, set(at("score"), { groups: [3] }))).toEqual({
+      code: "invalid_value",
+      path: [key(at("score")), "groups", 0],
+    });
+    expect(rejected(view, set(at("score"), { groups: ["group_1", "group_1"] }))).toEqual({
+      code: "invalid_value",
+      path: [key(at("score")), "groups", 1],
+    });
+    expect(
+      rejected(view, {
+        type: "add",
+        into: BLOCK,
+        group: { id: "group_3", members: ["annotations", "annotations"] },
+      }),
+    ).toEqual({ code: "invalid_value", path: [key(BLOCK), "group", "members", 1] });
     expect(
       rejected(view, set(at("annotations"), { parent: { timeline: "recording", offset: 0 } })),
     ).toEqual({ code: "unit_mismatch", path: [key(at("annotations")), "parent"] });
@@ -1229,7 +1265,7 @@ describe("previews", () => {
     const view = frozen([A, "bundles/bundle_mixed.json"]);
     for (const command of [
       set(at("annotations"), { parent: { timeline: "score", offset: quarters(4) } }),
-      set(at("annotations"), { group: "group_1" }),
+      set(at("annotations"), { groups: ["group_1"] }),
       { type: "add", into: BLOCK, group: { id: "group_3", members: ["annotations"] } },
       set(BLOCK, { x: 128, y: 64 }),
     ]) {

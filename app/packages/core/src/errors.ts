@@ -54,7 +54,6 @@ export const ErrorCode = {
   unitMismatch: "unit_mismatch",
   segmentStructure: "segment_structure",
   cycle: "cycle",
-  alreadyMember: "already_member",
   nestedMember: "nested_member",
 } as const;
 

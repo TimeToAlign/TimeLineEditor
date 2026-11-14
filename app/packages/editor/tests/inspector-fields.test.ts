@@ -214,7 +214,7 @@ describe("the Properties panel", () => {
   }
 
   function locked(): HTMLInputElement | null {
-    return document.querySelector<HTMLInputElement>("input[type=checkbox]");
+    return document.querySelector<HTMLInputElement>("label.locked input[type=checkbox]");
   }
 
   function status(): string | null {

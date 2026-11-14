@@ -246,7 +246,6 @@ describe("the generator reaches the refusal catalogue", () => {
     }
     expect([...seen].sort()).toEqual(
       [
-        "already_member",
         "child_exceeds_parent",
         "cycle",
         "duplicate_id",

@@ -520,6 +520,67 @@ reserved ID; an ID is unique across the manifest: the map `tempo` renamed
 not unique in the manifest, first at #/timelines/0/conversion_maps/0/id`
 at `/timelines/0/children/0/id`, the text and the journal kept.
 
+## Group memberships (`inspector-groups.test.ts`)
+
+Below the geometry, the Properties tab offers the group memberships of
+what is selected and a New group button; each click is one command, the
+very command core takes, and a checkbox or button core refuses is disabled
+with core's message as its tooltip. The workspace is the `bundles`
+workspace of "The Properties form": in `bmixed0000`, `group_1`
+"Performance" holds `performance` and `score`, `group_2` "Facsimile"
+holds `excerpt` and `page`; the timelines in the manifest's order are
+`annotations`, `page`, `performance`, `recording` with its child
+`excerpt`, and `score`. Commands are compared whole; a refusal's text is
+core's message, so the oracle is core's own nesting rule written out:
+`recording` holds `excerpt`, so neither can join a group that has the other.
+
+1. **The Groups of selected timelines** (`groupsOf`). For `score`'s card:
+   legend "Groups", the rows `group_1` "Performance" checked and `group_2`
+   "Facsimile" unchecked, neither mixed, depth 0; `group_1`'s command is
+   `set {block: M, id: "score"} groups []`, `group_2`'s `set … groups
+   ["group_1", "group_2"]`, neither refused. For `score` and `annotations`
+   (timeline addresses): `group_1` unchecked and mixed, its command putting
+   in only `annotations` (`groups ["group_1"]`); `group_2` unchecked and not
+   mixed, its command `score` `["group_1", "group_2"]` then `annotations`
+   `["group_2"]`, in selection order. For `recording`, `group_2` is refused
+   with exactly `'recording' and 'excerpt', a member of group 'group_2',
+   would hold one another`, `group_1` not. The same rows in the bundle
+   editor; none (`null`) for the block, `group_1`, a band of `performance`,
+   the map `cmap_1`, for `score`'s card in the group editor of `group_1` or
+   the timeline editor of `score`, and for `score` once `group_1` and
+   `group_2` are removed (a manifest without groups).
+2. **The Members of a selected group** (`membersOf`). For `group_1`, and
+   alike for its title: legend "Members", the rows `annotations`,
+   `page`, `performance`, `recording`, `excerpt`, `score`, labelled by name
+   ("Annotations", …), at depths 0, 0, 0, 0, 1, 0, checked exactly for
+   `performance` and `score`; `annotations`' command is `set … groups
+   ["group_1"]`, `performance`'s `groups []`. For `group_2`, `recording` is
+   refused with the message of item 1 and `score`'s command is `groups
+   ["group_1", "group_2"]`. None for two groups, a timeline or the block,
+   nor in the group editor of `group_1`.
+3. **New group** (`newGroupOf`). For the block: `add {into: {block: M},
+   group: {id: "group_3", members: []}}`, not refused (`group_1` and
+   `group_2` taken, `group_3` the smallest free `group_N`). For `score`'s
+   card and `annotations`: members `["score", "annotations"]`. For
+   `recording` and `excerpt`: refused with exactly `'excerpt' and
+   'recording', a member of group 'group_3', would hold one another`. None
+   for `group_1`, the block with a timeline, nothing selected, and in the
+   group editor of `group_1`.
+4. **Mounted.** For `score`'s card a fieldset "Groups" holds the checkboxes
+   "Performance" (checked) and "Facsimile"; a click on "Facsimile" adds one
+   journal entry whose command is item 1's, and the box is then checked; a
+   click on "Performance" then takes `score` out of `group_1` in one more
+   entry. For `recording`, "Facsimile" is disabled, its label's title item
+   1's message. For `group_1` the fieldset "Members" lists the six labels of
+   item 2, "Excerpt" indented by 1.25rem. For the block the button "New
+   group" adds `group_3` in one entry, and the manifest then holds three
+   groups. A command the store refuses although core takes it (the store
+   has the group editor of `group_1` open while the panel shows the
+   arranger, so `score` joining `group_2` is a side effect) leaves the
+   journal as it was, the box unchecked, and the status line holds exactly
+   the message of the store's refusal of that command; another selection
+   clears it.
+
 ## The tabs and panels (`Inspector.test.ts`, `inspector-tabs.test.ts`)
 
 **The tab rule** is proven as a table on the rule alone. The four tabs are

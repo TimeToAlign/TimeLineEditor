@@ -29,7 +29,7 @@ import type { Manifest } from "../manifest/types.ts";
 import type { CoordinateValue } from "../number/coordinate.ts";
 import { toAxisValue } from "../number/coordinate.ts";
 import { Rational } from "../number/rational.ts";
-import { TIMELINE_PREFIX } from "../workspace/ids.ts";
+import { nextId, TIMELINE_PREFIX } from "../workspace/ids.ts";
 import type { View } from "../workspace/view.ts";
 import type { ChangeSet } from "./mutations.ts";
 import { withBlock } from "./mutations.ts";
@@ -115,9 +115,7 @@ export function withSegmentLinesCovered(value: unknown, taken: Iterable<string> 
   let ids: Set<string> | undefined;
   const mint = (prefix: string): string => {
     ids ??= idsIn(value, new Set(taken));
-    let suffix = 1;
-    while (ids.has(`${prefix}_${suffix}`)) suffix += 1;
-    const id = `${prefix}_${suffix}`;
+    const id = nextId(prefix, ids);
     ids.add(id);
     return id;
   };

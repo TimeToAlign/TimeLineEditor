@@ -1,9 +1,9 @@
 /**
  * Where a timeline lies in its manifest: under which parent, at which
- * offset, in which group. A child is placed by one rule wherever it comes
+ * offset, in which groups. A child is placed by one rule wherever it comes
  * from (`placeChild`): added, given another offset, or moved with its subtree
- * under another parent (`moveTimeline`). A timeline joins or leaves a group
- * by `joinGroup`. IDs never change, and so no address does.
+ * under another parent (`moveTimeline`). A timeline joins and leaves groups
+ * by `setGroups`. IDs never change, and so no address does.
  */
 
 import type { CommandError } from "../errors.ts";
@@ -323,15 +323,17 @@ function withGroup(manifest: Manifest, group: Group, next: Group): Manifest {
 }
 
 /**
- * Put a timeline into a group or take it out (`set group`): a group id adds
- * it as the group's last member, `null` removes it from its group. A
- * timeline is a member of one group at most (`already_member`), and no
- * member of a group holds or lies inside another (`nested_member`). A
- * display order the group states lists the members it gains last and loses
- * the one that leaves. The lock its new place decides is applied (a segment
- * line that becomes a member is locked).
+ * Set the groups a timeline is a member of (`set groups`): a list of
+ * distinct group IDs. The timeline joins each group the list names that it
+ * was no member of, as that group's last member, and leaves each group it
+ * was a member of that the list does not name; the order of the list means
+ * nothing. A timeline may be a member of several groups, but no member of a
+ * group holds or lies inside another (`nested_member`). A display order a
+ * group states lists the member it gains last and loses the one that
+ * leaves. The lock its new place decides is applied (a segment line that
+ * becomes a member is locked).
  */
-export function joinGroup(
+export function setGroups(
   view: View,
   target: TimelineTarget,
   value: unknown,
@@ -341,29 +343,39 @@ export function joinGroup(
   const { block, at } = target;
   const { manifest } = block;
   const { id } = at.timeline;
-  if (value !== null && typeof value !== "string") {
-    return problem(ErrorCode.invalidValue, "a group is a group id or null", path);
+  if (!Array.isArray(value)) {
+    return problem(ErrorCode.invalidValue, "a timeline's groups are a list of group ids", path);
   }
-  const current = manifest.groups.find((group) => group.members.includes(id));
-  if (value === (current?.id ?? null)) return view;
-  let next: Manifest;
-  if (value === null) {
-    if (current === undefined) return view;
-    const members = current.members.filter((member) => member !== id);
-    next = withGroup(manifest, current, { ...current, members });
-  } else {
-    const group = manifest.groups.find((item) => item.id === value);
-    if (group === undefined) {
-      return problem(ErrorCode.unknownTarget, `'${value}' names no group of the manifest`, path);
+  const named: string[] = [];
+  for (const [index, entry] of value.entries()) {
+    const where = [...path, index];
+    if (typeof entry !== "string") {
+      return problem(ErrorCode.invalidValue, "a group is named by its id", where);
     }
-    if (current !== undefined) {
-      return problem(ErrorCode.alreadyMember, `'${id}' is a member of group '${current.id}'`, path);
+    if (named.includes(entry)) {
+      return problem(ErrorCode.invalidValue, `group '${entry}' is listed twice`, where);
     }
-    const { ancestry } = indexOf(manifest);
-    const nested = nestingProblem(group, [id], (member) => ancestry.get(member) ?? [], path);
-    if (nested !== undefined) return nested;
-    next = withGroup(manifest, group, { ...group, members: [...group.members, id] });
+    if (!manifest.groups.some((group) => group.id === entry)) {
+      return problem(ErrorCode.unknownTarget, `'${entry}' names no group of the manifest`, where);
+    }
+    named.push(entry);
   }
+  const { ancestry } = indexOf(manifest);
+  let next = manifest;
+  for (const group of manifest.groups) {
+    const listed = named.includes(group.id);
+    if (group.members.includes(id) === listed) continue;
+    if (listed) {
+      const where = [...path, named.indexOf(group.id)];
+      const nested = nestingProblem(group, [id], (member) => ancestry.get(member) ?? [], where);
+      if (nested !== undefined) return nested;
+    }
+    const members = listed
+      ? [...group.members, id]
+      : group.members.filter((member) => member !== id);
+    next = withGroup(next, group, { ...group, members });
+  }
+  if (next === manifest) return view;
   const members = new Set(next.groups.flatMap((group) => group.members));
   const locked = withPlaceLocks(at.timeline, at.parent?.timeline, (member) => members.has(member));
   if (locked !== at.timeline) {

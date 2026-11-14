@@ -590,6 +590,9 @@ no kind; a band order is no placement but the manifest's.
 3. **Timeline prefixes** are the six classes' (`clt`, `dlt`, `cpt`,
    `dpt`, `cgt`, `dgt`), which the IDs a segment line's first segment is
    minted with take ("Segment lines gain their first segment").
+   `nextId("group", taken)` is the smallest `group_N` not taken: `group_1`
+   for no IDs, `group_3` for `{group_1, group_2, group_4}`, and `group_1`
+   for `{group_2, clt_1}`.
 4. **Fractional indices** are compatible with `fractional-indexing` 4.0.0:
    its four published vectors, refusal of invalid keys and unordered
    bounds, and generated keys strictly between their bounds.
@@ -903,12 +906,16 @@ other commands are not judged by it.
 
 A timeline is placed by one rule wherever it comes from. `add timeline`
 adds a root read like a manifest's (completed, locked as its place decides,
-its id free); `add group` adds a group under the rules of `set group`.
+its id free); `add group` adds a group, each member joining it as `set
+groups` joins one.
 `set parent` moves a timeline with its subtree: `null` makes it a root,
 dropping a child's offset; `{timeline, offset}` a child there, growing the
-new parent as adding a child would. `set group` puts a timeline into a
-group, or `null` takes it out; members are held in canonical order, and a
-stated display order lists a new member last and drops one that leaves.
+new parent as adding a child would. `set groups` gives the groups a
+timeline is a member of, a list of distinct group IDs in any order: it joins
+each listed group it was no member of and leaves each it was a member of and
+the list leaves out, so a timeline may be a member of several groups;
+members are held in canonical order, and a stated display order lists a new
+member last and drops one that leaves.
 IDs never change, and so no address does; a moved timeline keeps its
 drawn band order and its card's stated size, and the places are fitted to
 the new drawing (a card a frame now holds keeps its size, spacing and margin, moved
@@ -937,21 +944,33 @@ What proves it, on `bundles/bundle_mixed.json` in block `A`:
    offset: [4, 1]}` on `annotations` makes it `score`'s only child at `[4,
    1]` and grows `score` to exactly `[16, 1]`; the roots no longer hold
    `annotations`.
-5. **A group joined and left.** `group: "group_1"` on `annotations` makes
-   `group_1`'s members `[annotations, performance, score]` and its display
-   order `[score, performance, annotations]`; `group: null` on
+5. **Groups joined and left.** `groups: ["group_1"]` on `annotations`
+   makes `group_1`'s members `[annotations, performance, score]` and its
+   display order `[score, performance, annotations]`; `groups: []` on
    `performance` leaves `[score]` and `[score]`.
+   **A second group.** `groups: ["group_2", "group_1"]` on `score` keeps
+   `group_1` as it was and makes `group_2`'s members `[excerpt, page,
+   score]` and its display order `[page, excerpt, score]`; on that view
+   `groups: ["group_1", "group_2"]` on `score` changes nothing (refused
+   with `invalid_value`, "the command changes nothing"), and `groups:
+   ["group_2"]` leaves `group_1` with the members and display order
+   `[performance]`, `group_2` unchanged. `add group {id: "group_3", members:
+   ["score"]}` adds `group_3` and keeps `score` in `group_1`.
 6. **Refusals**, each at `[<address>, <property>]` unless stated:
    `duplicate_id` at `[{block: A}, "timeline", "id"]` for a root added as
-   `score`; `already_member` at `[{block: A}, "group", "members", 0]` for a
-   group of `score` and at `[{block: A, id: "score"}, "group"]` for `score`
-   into `group_2`; `nested_member` for `recording` into `group_2`, which
-   holds `excerpt`, and, once a root `extra` of 4 quarters has joined
+   `score`; `nested_member` at `[{block: A, id: "recording"}, "groups", 0]`
+   for `groups: ["group_2"]` on `recording`, as `group_2` holds `excerpt`,
+   at `[{block: A}, "group", "members", 1]` for a group of `recording` and
+   `excerpt`, and, once a root `extra` of 4 quarters has joined
    `group_1`, for a move of `score` under `extra` or of `extra` under
    `score` (at `[{block: A, id: "score"}, "parent"]` and `[{block: A, id:
    "extra"}, "parent"]`); `schema_violation` at `[{block: A}, "group",
-   "name"]` for a group named `3`; `unknown_target` for a group `ghost`;
-   `invalid_value` for a `group` of `3` and a `parent` of `"score"`;
+   "name"]` for a group named `3`; `unknown_target` at `[{block: A, id:
+   "score"}, "groups", 0]` for `groups: ["ghost"]`; `invalid_value` at
+   `[{block: A, id: "score"}, "groups"]` for `groups: "group_1"`, at
+   `[…, "groups", 0]` for `[3]` and at `[…, "groups", 1]` for `["group_1",
+   "group_1"]`, at `[{block: A}, "group", "members", 1]` for a group of
+   `annotations` twice, and for a `parent` of `"score"`;
    `unit_mismatch` for `annotations` under `recording`; `cycle` for
    `recording` under `excerpt`; `unknown_target` at `[{block: A, id:
    "annotations"}, "parent", "timeline"]` for a parent named `ghost`; and,
@@ -1542,13 +1561,18 @@ stated already; nothing else is dropped.
     `places` is exactly `{group_1: {cards: {annotations: {spacing: 1.5,
     width: 700}}}}`.
 18. **The card's place moves both ways.** With `annotations` placed `{x:
-    1, width: 700, spacing: 2}`, `set annotations group "group_1"` leaves
-    `places` exactly `{group_1: {cards: {annotations: {width: 700, spacing:
-    2}}}}`, and `set annotations group null` then exactly `{annotations:
-    {width: 700, spacing: 2}}`. With `group_1` placed `{x: 10}` and
-    `score`'s card `{width: 650}`, `set score group null` leaves exactly
-    `{group_1: {x: 10}, score: {width: 650}}`: the frame keeps its own
-    place.
+    1, width: 700, spacing: 2}`, `set annotations groups ["group_1"]`
+    leaves `places` exactly `{group_1: {cards: {annotations: {width: 700,
+    spacing: 2}}}}`, and `set annotations groups []` then exactly
+    `{annotations: {width: 700, spacing: 2}}`. With `group_1` placed `{x:
+    10}` and `score`'s card `{width: 650}`, `set score groups []` leaves
+    exactly `{group_1: {x: 10}, score: {width: 650}}`: the frame keeps its
+    own place. A card in a second frame: with `score`'s card `{width:
+    650}` in `group_1`, `set score groups ["group_1", "group_2"]` leaves
+    `places` exactly `{group_1: {cards: {score: {width: 650}}}}` (the new
+    card states nothing), and `set score groups ["group_2"]` then exactly
+    `{group_2: {cards: {score: {width: 650}}}}`, the place moving to the
+    one card left.
 19. `remove annotations` with `annotations` placed: `places` loses its
     entry.
 
@@ -2614,7 +2638,8 @@ unstated with null, empty, unknown, on items and members' cards) and
 holding an entry that is neither `line` nor a facet, not an array), so every saved file also
 proves that no stale `places` key or `graphical.order` entry survives a
 command; and the topology commands `parent` (`null`, another timeline,
-itself, an unknown id), `group` (a group, `null`, an unknown id, a number)
+itself, an unknown id), `groups` (one group, every group, none, an unknown
+id, an id twice, a number, a bare id)
 and `add` of a root timeline or a group (fresh or taken ids, members
 existing or not), so a reshaped manifest still saves, reloads and replays.
 Each manifest fixture starts as block `A` beside a block `B` of
@@ -2632,8 +2657,7 @@ Each manifest fixture starts as block `A` beside a block `B` of
    read workspace deep-equals the store's.
 7. The generator reaches every refusal the commands produce on these
    targets: over a fixed sample (seed `20261011`, 150 sequences per fixture)
-   the set of codes observed is exactly `already_member`,
-   `child_exceeds_parent`, `cycle`, `duplicate_id`, `duplicate_index`,
+   the set of codes observed is exactly `child_exceeds_parent`, `cycle`, `duplicate_id`, `duplicate_index`,
    `id_not_settable`, `invalid_address`, `invalid_coordinate`,
    `invalid_index`, `invalid_order`, `invalid_value`,
    `length_below_content`, `locked`, `negative_child_offset`,

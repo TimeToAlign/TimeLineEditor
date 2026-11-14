@@ -438,6 +438,20 @@ selected group in one command. In the group editor of `group_1` with
 nothing selected, the Name field shows the edited group's name,
 `Performance`, and `Duo` with Enter renames the group.
 
+**`memberships.spec.ts`** (Chromium, Firefox, WebKit) opens the drawer's
+Properties tab on `bundles`. With `score`'s card selected, the fieldset
+"Groups" shows "Performance" checked and "Facsimile" not; a click on
+"Facsimile" is one command, `set {block: "bmixed0000", id: "score"}`
+with `groups ["group_1", "group_2"]`, the box is then checked, and the
+block, which drew one card of `score` (the hook's box records), draws two.
+With `group_2` selected, the fieldset "Members" shows "Recording" disabled
+(it holds the member `excerpt`), and a click on "Page" is one command,
+`page`'s `groups []`, after which the box is unchecked. With
+`annotations`' card selected, "New group" is one command, an `add`,
+after which the manifest's groups are `group_1` and `group_2` as before
+and `group_3` of `annotations`, and the fieldset "Groups" shows `group_3`,
+which has no name, checked.
+
 **`a11y.spec.ts`** (Chromium, Firefox, WebKit) runs axe-core on the page
 with `small` open and requires an empty violation list on the canvas, with
 an element selected, with the drawer open, on the drawer's Properties and
