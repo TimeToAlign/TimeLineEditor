@@ -9,16 +9,19 @@
 import type { Level, Selection } from "@timetoalign/tilie-arranger";
 import type {
   Address,
-  EntryKind,
   Facet,
-  FlowControlElement,
-  ListedElement,
   Manifest,
   OpenEditor,
   ResolvedAddress,
   View,
 } from "@timetoalign/tilie-core";
-import { addressKey, isCommandError, resolveAddress } from "@timetoalign/tilie-core";
+import {
+  addressWords,
+  entryWord,
+  facetWord,
+  isCommandError,
+  resolveAddress,
+} from "@timetoalign/tilie-core";
 
 /** The word of each level of the canvas, on the level tab and its title line. */
 const LEVEL_WORDS: { readonly [level in Level]: string } = {
@@ -33,39 +36,10 @@ export function levelWord(level: Level): string {
   return LEVEL_WORDS[level];
 }
 
-/** The word of the band of each facet, in its heading and its rows. */
-const BAND_WORDS: { readonly [facet in Facet]: string } = {
-  markers: "Markers",
-  conversion_maps: "Conversion maps",
-  children: "Children",
-  regions: "Regions",
-  flow_control: "Flow control",
-};
-
 /** The word of a band's facet, capitalised: `Markers`, `Conversion maps`, … */
 export function bandWord(facet: Facet): string {
-  return BAND_WORDS[facet];
-}
-
-/** The word of each type of flow-control element. */
-const FLOW_WORDS: { readonly [type in FlowControlElement["type"]]: string } = {
-  jump_from: "jump origin",
-  jump_to: "jump target",
-  flow_marker: "flow marker",
-};
-
-/** The word of each other kind of element a timeline holds in a list. */
-const ENTRY_WORDS: { readonly [kind in Exclude<EntryKind, "flow_control">]: string } = {
-  map: "conversion map",
-  region: "region",
-};
-
-/** The word of an element a timeline holds in a list: a flow-control element's by its type. */
-function entryWord(kind: EntryKind, element: ListedElement): string {
-  if (kind !== "flow_control") return ENTRY_WORDS[kind];
-  if (!("manifestation" in element))
-    throw new Error("a flow-control entry is a flow-control element");
-  return FLOW_WORDS[element.type];
+  const word = facetWord(facet);
+  return word.charAt(0).toUpperCase() + word.slice(1);
 }
 
 /** What a bundle is called that has neither a `name` nor an `id`. */
@@ -74,11 +48,12 @@ const ANONYMOUS_BUNDLE_NAME = "Anonymous bundle";
 /**
  * The name an editor's target goes by: a bundle's manifest `name`, else its
  * `id`, else "Anonymous bundle"; a group's or timeline's `name`, else its
- * id. A target the view does not hold goes by its address's key (`addressKey`).
+ * id. A target the view does not hold goes by its address's words
+ * (`addressWords`).
  */
 export function editorName(view: View, target: Address): string {
   const resolved = resolveAddress(view, target);
-  if (isCommandError(resolved)) return addressKey(target);
+  if (isCommandError(resolved)) return addressWords(view, target);
   switch (resolved.kind) {
     case "block": {
       const { manifest } = resolved.block;
@@ -89,7 +64,7 @@ export function editorName(view: View, target: Address): string {
     case "timeline":
       return resolved.at.timeline.name ?? resolved.at.timeline.id;
     default:
-      return addressKey(target);
+      return addressWords(view, target);
   }
 }
 

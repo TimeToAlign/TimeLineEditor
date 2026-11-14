@@ -215,7 +215,8 @@ describe("removeCommand", () => {
     const numbers = numbersView();
     const mpm = viewOf({ id: A, fixture: MPM }, { id: B, fixture: "bare" });
     const hint = {
-      refused: `Block ${A}: its title is removed only with the block; select the block to delete it.`,
+      refused:
+        "The title of bundle 'Beethoven_op35_1971Curzon_Var14only' is removed only with its block; select the block to delete it.",
     };
 
     it("removes an element of a root's tree by its ID", () => {

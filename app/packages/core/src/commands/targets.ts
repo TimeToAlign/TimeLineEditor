@@ -114,7 +114,7 @@ export function targetOf(view: View, address: Address): Target | CommandError {
       return { kind: entry, address, block, at, index };
     }
     default:
-      return namesNothing(address);
+      return namesNothing(view, address);
   }
 }
 

@@ -6,11 +6,22 @@
  * the same element.
  */
 
-import type { Command, Entry, ListedEntry, Session, Store, View } from "@timetoalign/tilie-core";
+import type {
+  AddCommand,
+  AddKind,
+  Command,
+  Entry,
+  ListedEntry,
+  Session,
+  Store,
+  StyleCommand,
+  View,
+} from "@timetoalign/tilie-core";
 import {
   ADD_KINDS,
-  addressKey,
+  addressWords,
   editorKindOf,
+  inBlock,
   isCommandError,
   isSessionEntry,
   listEntries,
@@ -47,39 +58,69 @@ function sessionOf(sessions: JournalSource["sessions"], id: string): Session {
   return session;
 }
 
-/** The `id` of an added value; `null` for a value without one. */
-function addedId(value: unknown): string | null {
-  return typeof value === "object" &&
-    value !== null &&
-    "id" in value &&
-    typeof value.id === "string"
-    ? value.id
-    : null;
+/** The word of each kind of element `add` puts in. */
+const ADD_WORDS: { readonly [kind in AddKind]: string } = {
+  block: "block",
+  timeline: "timeline",
+  group: "group",
+  measure_map: "measure map",
+  child: "child timeline",
+  map: "conversion map",
+  region: "region",
+  flow_control: "flow-control element",
+};
+
+/** The string member `member` of an added value; `null` for a value without one. */
+function addedMember(value: unknown, member: "id" | "name"): string | null {
+  if (typeof value !== "object" || value === null) return null;
+  const found: unknown = Reflect.get(value, member);
+  return typeof found === "string" ? found : null;
 }
 
-/** One command as a sentence. */
-function commandText(command: Command): string {
+/** What one `add` put in: an added block by its bundle while the view holds it, else by its kind and its name or id. */
+function addedWords(command: AddCommand, view: View): string {
+  const kind = ADD_KINDS.find((item) => command[item] !== undefined);
+  if (kind === undefined) return "nothing";
+  const value = command[kind];
+  const id = addedMember(value, "id");
+  if (kind === "block" && id !== null && view.blocks[id] !== undefined) {
+    return addressWords(view, { block: id });
+  }
+  const name = kind === "block" ? null : addedMember(value, "name");
+  const named = name ?? id;
+  const added = named === null ? `a ${ADD_WORDS[kind]}` : `${ADD_WORDS[kind]} '${named}'`;
+  return kind === "block" ? added : `${added} to ${addressWords(view, command.into)}`;
+}
+
+/** What a `style` selects: the addresses it lists, else the elements its selector matches. */
+function styledWords(command: StyleCommand, view: View): string {
+  const { addresses } = command.select;
+  if (addresses === undefined) return "matching elements";
+  const [block] = command.blocks ?? [];
+  const alone = command.blocks?.length === 1 ? block : undefined;
+  return addresses
+    .map((address) => addressWords(view, alone === undefined ? address : inBlock(alone, address)))
+    .join(", ");
+}
+
+/** One command as a sentence, every address worded (`addressWords`). */
+function commandText(command: Command, view: View): string {
   switch (command.type) {
-    case "add": {
-      const kind = ADD_KINDS.find((item) => command[item] !== undefined);
-      const id = kind === undefined ? null : addedId(command[kind]);
-      const words = [kind, id, "to", addressKey(command.into)].filter(
-        (word) => typeof word === "string",
-      );
-      return `Added ${words.join(" ")}`;
-    }
+    case "add":
+      return `Added ${addedWords(command, view)}`;
     case "set": {
       const [first, ...more] = command.changes;
       const properties = Object.keys(first?.values ?? {})
         .map(propertyWord)
         .join(", ");
       const rest = more.length > 0 ? ` and ${more.length} more` : "";
-      return `Set ${properties} of ${first === undefined ? "" : addressKey(first.target)}${rest}`;
+      const target = first === undefined ? "" : addressWords(view, first.target);
+      return `Set ${properties} of ${target}${rest}`;
     }
     case "remove":
-      return `Removed ${command.targets.map(addressKey).join(", ")}`;
+      return `Removed ${command.targets.map((target) => addressWords(view, target)).join(", ")}`;
     case "style":
-      return `Styled ${JSON.stringify(command.select)}`;
+      return `Styled ${Object.keys(command.set).join(", ")} of ${styledWords(command, view)}`;
   }
 }
 
@@ -94,7 +135,7 @@ function entryText(
   sessions: JournalSource["sessions"],
   view: View,
 ): string {
-  if (!isSessionEntry(entry)) return commandText(entry.command);
+  if (!isSessionEntry(entry)) return commandText(entry.command, view);
   const { target } = sessionOf(sessions, entry.session);
   const count = changes === 1 ? "1 change" : `${changes} changes`;
   const partly = applied > 0 && applied < changes ? `, ${changes - applied} undone` : "";

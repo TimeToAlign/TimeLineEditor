@@ -24,6 +24,7 @@ import { ENTRY_KINDS, entriesOf } from "../manifest/files.ts";
 import type { Manifest, TimelineManifest } from "../manifest/types.ts";
 import type { Address } from "./address.ts";
 import {
+  addressWords,
   elementAddressOf,
   inBlock,
   indexOf,
@@ -69,6 +70,9 @@ const GRAPHICAL_MEMBERS = ["statements", "styles", "order"];
 
 type Refuse = (what: string, path: readonly PathSegment[]) => CommandError;
 
+/** An address as a refusal names it (`addressWords`), in the view before the command or after it. */
+type Words = (address: Address) => string;
+
 const same = (left: unknown, right: unknown): boolean =>
   left === right || (left !== undefined && right !== undefined && jsonEqual(left, right));
 
@@ -79,7 +83,7 @@ function keysOf(...objects: readonly (object | undefined)[]): string[] {
   return byCodePoint(new Set(objects.flatMap((value) => Object.keys(value ?? {}))));
 }
 
-/** The address key of the element with ID `id` in block `block`, a refusal's path and words. */
+/** The address key of the element with ID `id` in block `block`, a refusal's path. */
 const keyIn = (block: BlockId, id: string): string => addressKey(inBlock(block, idAddress(id)));
 
 /** `first`, those of `keys` that it lists, followed by the rest of `keys` by code point. */
@@ -271,12 +275,13 @@ function manifestChange(
   block: BlockId,
   target: Address,
   refuse: Refuse,
+  words: Words,
   before: View,
   changes: ChangeSet | undefined,
 ): CommandError | null {
   const [was, now] = scopes;
   if (!namesGroupOrTimeline(now, element)) {
-    return refuse(`the removal of ${addressKey(target)}`, [addressKey(target)]);
+    return refuse(`the removal of ${words(target)}`, [addressKey(target)]);
   }
   if (was.manifest === now.manifest) return null;
   if (changes !== undefined && changedInside(before, block, element, changes)) return null;
@@ -295,7 +300,7 @@ function manifestChange(
   const differs = (id: string) =>
     a.elements.get(id) !== b.elements.get(id) &&
     !(was.inside(idAddress(id)) && !b.elements.has(id));
-  const changed = (id: string) => refuse(keyIn(block, id), [keyIn(block, id)]);
+  const changed = (id: string) => refuse(words(inBlock(block, idAddress(id))), [keyIn(block, id)]);
   function* walk(): Generator<string> {
     for (const { keys } of [was, now]) {
       for (const key of keys) if (key.address.id !== undefined) yield key.address.id;
@@ -315,12 +320,12 @@ function manifestChange(
   if (contained !== undefined) return changed(contained);
   for (const key of inOrder(TOP_MEMBERS, [...a.top.keys(), ...b.top.keys()])) {
     if (a.top.get(key) !== b.top.get(key)) {
-      return refuse(`the manifest's ${key} in block '${block}'`, [block, "manifest", key]);
+      return refuse(`the manifest's ${key} in ${words({ block })}`, [block, "manifest", key]);
     }
   }
   for (const key of inOrder(GRAPHICAL_MEMBERS, [...a.graphical.keys(), ...b.graphical.keys()])) {
     if (a.graphical.get(key) !== b.graphical.get(key)) {
-      return refuse(`the graphical ${key} of block '${block}'`, [
+      return refuse(`the graphical ${key} of ${words({ block })}`, [
         block,
         "manifest",
         "graphical",
@@ -339,15 +344,16 @@ function blockChange(
   element: string,
   target: Address,
   refuse: Refuse,
+  words: Words,
   changes: ChangeSet | undefined,
 ): CommandError | null {
   if (was === undefined || now === undefined) {
-    return refuse(`the removal of ${addressKey(target)}`, [addressKey(target)]);
+    return refuse(`the removal of ${words(target)}`, [addressKey(target)]);
   }
   const block = was.id;
   const member = FIXED_MEMBERS.find((name) => !same(was[name], now[name]));
   if (member !== undefined)
-    return refuse(`the ${member} of block '${block}'`, [addressKey({ block }), member]);
+    return refuse(`the ${member} of ${words({ block })}`, [addressKey({ block }), member]);
   const scopes = [scopeOf(was.manifest, element), scopeOf(now.manifest, element)] as const;
   const inside = placeInside(scopes);
   // The group the edited element is a member of in both manifests, whose shared members it changes.
@@ -392,10 +398,11 @@ function blockChange(
   if (key !== undefined) {
     const element =
       placedElement(now.manifest, key) ?? placedElement(was.manifest, key) ?? key.item;
-    const placed = keyIn(block, element);
-    return refuse(`the place of ${placed}`, [placed]);
+    return refuse(`the place of ${words(inBlock(block, idAddress(element)))}`, [
+      keyIn(block, element),
+    ]);
   }
-  return manifestChange(scopes, element, block, target, refuse, before, changes);
+  return manifestChange(scopes, element, block, target, refuse, words, before, changes);
 }
 
 /**
@@ -425,10 +432,12 @@ export function sideEffect(
   if (block === undefined) return null;
   const element = parsed.id;
   const workspace = addressKey(WORKSPACE);
+  const words: Words = (address) =>
+    addressWords(isCommandError(resolveAddress(before, address)) ? after : before, address);
   const refuse: Refuse = (what, path) =>
     problem(
       ErrorCode.sideEffect,
-      `${what} lies outside ${addressKey(target)}: an editor changes only what it edits`,
+      `${what} lies outside ${words(target)}: an editor changes only what it edits`,
       path,
     );
   // A change set names every setting and block a command touched; without one, both views are scanned.
@@ -445,11 +454,11 @@ export function sideEffect(
   const touched =
     changes === undefined ? keysOf(before.blocks, after.blocks) : byCodePoint(changes.blocks);
   const other = touched.find((id) => id !== block && !same(before.blocks[id], after.blocks[id]));
-  if (other !== undefined) return refuse(`block '${other}'`, [addressKey({ block: other })]);
+  if (other !== undefined) return refuse(words({ block: other }), [addressKey({ block: other })]);
   if (element === undefined) {
     return Object.hasOwn(after.blocks, block)
       ? null
-      : refuse(`the removal of ${addressKey(target)}`, [addressKey(target)]);
+      : refuse(`the removal of ${words(target)}`, [addressKey(target)]);
   }
   return blockChange(
     before,
@@ -458,6 +467,7 @@ export function sideEffect(
     element,
     target,
     refuse,
+    words,
     changes,
   );
 }

@@ -3,7 +3,7 @@
 import type { Selection } from "@timetoalign/tilie-arranger";
 import { liveStore, selectionOf } from "@timetoalign/tilie-arranger";
 import type { Address, Entry, OpenEditor, Store, View } from "@timetoalign/tilie-core";
-import { addressKey, listEntries } from "@timetoalign/tilie-core";
+import { listEntries } from "@timetoalign/tilie-core";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it } from "vitest";
 import InspectorDrawer from "../src/InspectorDrawer.svelte";
@@ -378,9 +378,9 @@ describe("with the store's own editors", () => {
       [...(panelOf("Journal")?.querySelectorAll(".text") ?? [])].map((item) => item.textContent),
     ).toEqual([
       "Edited group Performance (1 change)",
-      "Added block 0000000002 to {}",
-      "Added block 0000000001 to {}",
-      "Added block 0000000000 to {}",
+      "Added the anonymous bundle",
+      "Added bundle 'mixed'",
+      "Added bundle 'Mixed'",
     ]);
   });
 });
@@ -543,9 +543,9 @@ describe("the Journal panel", () => {
   const G = "Gerhardt";
   /** The three `add`s, newest first. */
   const ADDS = [
-    [T, G, "Added block 0000000002 to {}", false, false, null],
-    [T, G, "Added block 0000000001 to {}", false, false, null],
-    [T, G, "Added block 0000000000 to {}", false, false, null],
+    [T, G, "Added the anonymous bundle", false, false, null],
+    [T, G, "Added bundle 'mixed'", false, false, null],
+    [T, G, "Added bundle 'Mixed'", false, false, null],
   ];
 
   it("lists the rows, the undone one grey with a hidden word, and follows the store", () => {
@@ -556,13 +556,10 @@ describe("the Journal panel", () => {
     store.dispatch({ type: "set", changes: [{ target: BLOCK, values: { x: 25 } }] });
     store.undo();
     flushSync();
-    expect(items()).toEqual([
-      [T, G, `Set x of ${addressKey(BLOCK)}`, true, false, "undone"],
-      ...ADDS,
-    ]);
+    expect(items()).toEqual([[T, G, "Set x of bundle 'Mixed'", true, false, "undone"], ...ADDS]);
     store.dispatch({ type: "set", changes: [{ target: BLOCK, values: { y: 7 } }] });
     flushSync();
-    expect(items()).toEqual([[T, G, `Set y of ${addressKey(BLOCK)}`, false, false, null], ...ADDS]);
+    expect(items()).toEqual([[T, G, "Set y of bundle 'Mixed'", false, false, null], ...ADDS]);
   });
 
   it("lists the earlier session last, keeping the items per entry", () => {
@@ -585,7 +582,7 @@ describe("the Journal panel", () => {
     });
     expect(items()).toEqual([
       ...ADDS,
-      ["07:00:01", "Ada", `Set order of ${addressKey(GROUP.target)}`, false, true, null],
+      ["07:00:01", "Ada", "Set order of group 'Performance' in bundle 'Mixed'", false, true, null],
     ]);
     const after = [...(panelOf("Journal") as HTMLElement).querySelectorAll("li")];
     expect(after.slice(0, 3).map((item, index) => item === before[index])).toEqual([
@@ -625,7 +622,7 @@ describe("the Journal panel", () => {
       time: "2026-10-17T08:05:09.123Z",
     };
     stage({ editing: [GROUP], listed: listEntries([one], {}) });
-    expect(items()).toEqual([[T, G, `Set x of ${addressKey(BLOCK)}`, false, false, null]]);
+    expect(items()).toEqual([[T, G, "Set x of bundle 'Mixed'", false, false, null]]);
     expect(panel.textContent).not.toContain("No changes yet.");
   });
 
@@ -687,14 +684,14 @@ describe("the Journal panel", () => {
       ]);
     expect(rows(inner)).toEqual([
       ["Edited timeline Score (2 changes)", true, "undone", true],
-      [`Set name of ${addressKey({ block: A, id: "performance" })}`, false, null, false],
+      ["Set name of timeline 'P' in bundle 'Mixed'", false, null, false],
     ]);
     const timeline = inner.querySelector(":scope > ol > li") as HTMLElement;
     (timeline.querySelector(":scope > .row > button") as HTMLButtonElement).click();
     flushSync();
     expect(rows(timeline)).toEqual([
-      [`Set name of ${addressKey({ block: A, id: "score" })}`, true, "undone", false],
-      [`Set name of ${addressKey({ block: A, id: "score" })}`, true, "undone", false],
+      ["Set name of timeline 'Score' in bundle 'Mixed'", true, "undone", false],
+      ["Set name of timeline 'Score' in bundle 'Mixed'", true, "undone", false],
     ]);
     button().click();
     flushSync();
