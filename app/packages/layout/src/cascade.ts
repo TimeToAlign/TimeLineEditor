@@ -269,8 +269,11 @@ export class Cascade {
     if (element.facet !== null) {
       for (const statement of this.#byFacet.get(element.facet) ?? []) candidates.add(statement);
     }
-    for (const statement of this.#byAddress.get(addressKey(element.address)) ?? []) {
-      candidates.add(statement);
+    // Most layers select no address: the key is written only where one might match.
+    if (this.#byAddress.size > 0) {
+      for (const statement of this.#byAddress.get(addressKey(element.address)) ?? []) {
+        candidates.add(statement);
+      }
     }
     const values: StyleValues = {};
     if (parent !== undefined) for (const property of INHERITED) property.set(values, parent);

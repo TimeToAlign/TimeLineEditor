@@ -1,4 +1,4 @@
-/** A block's drawing, memoized by the identity of its inputs, and where its node lies. */
+/** A block's drawing, memoized by the identity of its inputs and by its placement, and where its node lies. */
 
 import type { Block, WorkspaceSettings } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
@@ -13,8 +13,23 @@ interface Memo {
   readonly drawing: Drawing;
 }
 
+/** How many placements of one manifest keep their drawing. */
+const RECENT = 32;
+
 const drawings = new WeakMap<Block, Memo>();
+/** Per manifest, the drawings of the placements drawn last, by `placementKey`, the latest last. */
+const placed = new WeakMap<Block["manifest"], Map<string, Memo>>();
 const descriptors = new WeakMap<Drawing, readonly Descriptor[]>();
+
+/** The placement members a drawing depends on. */
+type Placement = Pick<Block, "length" | "spacing" | "margin" | "width" | "height" | "places">;
+
+/** The one string form of a placement's values, `-0` told apart from `0`. */
+function placementKey({ length, spacing, margin, width, height, places }: Placement): string {
+  return JSON.stringify([length, spacing, margin, width, height, places], (_key, value) =>
+    Object.is(value, -0) ? "-0" : value,
+  );
+}
 
 /**
  * The drawing of a block: its manifest drawn at its placement with the
@@ -22,8 +37,10 @@ const descriptors = new WeakMap<Drawing, readonly Descriptor[]>();
  * lowest to highest. Blocks are immutable, so the drawing is memoized per
  * block and redrawn only when the settings or the metrics change identity.
  * `overrides` replace members of the block's placement (a resize measuring
- * the content at another length or with no size request) and are never
- * memoized.
+ * the content at another length or with no size request). Every drawing is
+ * also kept by its manifest and its placement's values, the `RECENT` last
+ * of a manifest: a resize measures one block at many placements on every
+ * pointer move, and the block its preview stores draws one of them again.
  */
 export function drawingOf(
   block: Block,
@@ -38,21 +55,37 @@ export function drawingOf(
     }
   }
   const placement = { ...block, ...overrides };
-  const drawing = draw(
-    placement.manifest,
-    {
-      length: placement.length,
-      spacing: placement.spacing,
-      margin: placement.margin,
-      width: placement.width,
-      height: placement.height,
-      places: placement.places,
-    },
-    [DEFAULT_LAYER, settings.graphical, placement.manifest.graphical],
-    metrics,
-  );
-  if (overrides === undefined) drawings.set(block, { settings, metrics, drawing });
-  return drawing;
+  let recent = placed.get(placement.manifest);
+  if (recent === undefined) {
+    recent = new Map();
+    placed.set(placement.manifest, recent);
+  }
+  const key = placementKey(placement);
+  let memo = recent.get(key);
+  recent.delete(key);
+  if (memo === undefined || memo.settings !== settings || memo.metrics !== metrics) {
+    const drawing = draw(
+      placement.manifest,
+      {
+        length: placement.length,
+        spacing: placement.spacing,
+        margin: placement.margin,
+        width: placement.width,
+        height: placement.height,
+        places: placement.places,
+      },
+      [DEFAULT_LAYER, settings.graphical, placement.manifest.graphical],
+      metrics,
+    );
+    memo = { settings, metrics, drawing };
+  }
+  recent.set(key, memo);
+  for (const oldest of recent.keys()) {
+    if (recent.size <= RECENT) break;
+    recent.delete(oldest);
+  }
+  if (overrides === undefined) drawings.set(block, memo);
+  return memo.drawing;
 }
 
 /** The element descriptors of a drawing, memoized by the drawing. */
