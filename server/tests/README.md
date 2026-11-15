@@ -24,6 +24,54 @@ The configured host and its `localhost` alias are accepted as `Host` and as
 the API. Every answer above, success or rejection, carries exactly one
 `Referrer-Policy: no-referrer` header.
 
+## Measure maps
+
+`POST /api/measure-maps` takes a manifest and answers, for each entry of its
+`measure_maps` in the manifest's order, the entry's `id` and its rows
+expanded by timetoalign (`MeasureMap.expand_rows`): every measure the
+compressed rows imply, with every member of its decompressed form. What
+proves the route is the expansion read off the Measure Map standard by
+hand, not the library's output: a compressed map is short enough to expand
+on paper, and an answer equal to that expansion cannot be a restatement of
+the code. The library's own expansion of the same rows is checked as well,
+to show the route adds or drops nothing beyond the stated serialization.
+
+The answer's form is fixed: `{"measure_maps": [{"id", "rows"}]}`; each row
+holds `ID`, `count`, `qstamp`, `number`, `name`, `time_signature`,
+`nominal_length`, `actual_length`, `start_repeat`, `end_repeat`, `next`,
+`volta` and `offset_within_measure`, in that order. The four quarter-note
+values (`qstamp`, the two lengths, `offset_within_measure`) are Fraction
+pairs `[numerator, denominator]`, `null` where the map gives none; `next`
+lists the successors' counts. A row's keys outside the row form are kept by
+the expansion and left out of the answer: they are no member of a measure.
+
+| Manifest | Answer |
+| --- | --- |
+| TimeToShare 0.2.0's fixture `groups/group_measure_map.json`, copied byte for byte into `data/` (rows count 1 and count 4, both 4/4 and four quarters long, row 1 naming `next` `["2"]`, row 4 stating qstamp 12) | 200, one map `measuremap_1` with four rows, compared whole with `data/group_measure_map.answer.json`: counts and numbers 1 to 4, IDs and names `"1"` to `"4"`, qstamps `[0, 1]`, `[4, 1]`, `[8, 1]`, `[12, 1]`, both lengths `[4, 1]`, `next` `[2]`, `[3]`, `[4]`, `[]`, `volta` `null`, `offset_within_measure` `[0, 1]`, no repeats |
+| two rows of 3/4: count 1 with `actual_length` 0.5 and `offset_within_measure` 2.5 (JSON floats), count 2 with `volta` 1 and an unknown key `"extra"` | 200, one map of two rows: row 1 qstamp `[0, 1]`, number 0 and name `"0"` (a first row shorter than its nominal length is the anacrusis), lengths `[3, 1]` and `[1, 2]`, offset `[5, 2]` (each float read as its exact binary value), `next` `[2]`; row 2 qstamp `[1, 2]`, number and name 2, lengths `[3, 1]`, `next` `[]`, `volta` 1, offset `[0, 1]`; no `"extra"` |
+| no `measure_maps`, or an empty list | 200 `{"measure_maps": []}` |
+| a body that is no JSON | 422 `{"detail": {"path": [], "message": "the body is not JSON"}}` |
+| a JSON body that is no object (a list) | 422 `{"detail": {"path": [], "message": "the body is not a JSON object"}}` |
+| `measure_maps` that is no list (an object) | 422 `{"detail": {"path": ["measure_maps"], "message": "measure_maps is not a list"}}` |
+| a second entry whose rows state count 2, then count 1 | 422 `{"detail": {"path": ["measure_maps", 1], "message": "Measure Map count 1 does not increase after count 2"}}`, the library's message, nothing for the valid first entry |
+| without the bearer token | 401 `{"detail": "missing or invalid token"}`, as every `/api/` path |
+
+The route reads nothing of the manifest but `measure_maps`; checking the
+rest of a manifest is the editor's, which sends only manifests it holds. It
+keeps nothing between requests: the editor asks once per version of a
+manifest, and two requests with one manifest answer the same.
+
+**A timetoalign without the expansion.** The expansion is in timetoalign's
+`timetoalign.timelines.structure`, which a released timetoalign may lack;
+the server is still started then, and only this route says so. With that
+module made unimportable, the server's modules import and the app is built
+anew from them: `GET /api/health` still answers 200 with its three
+versions, and every authorized `POST /api/measure-maps`, whatever its body,
+answers 501 `{"detail": {"path": [], "message": "the installed timetoalign
+<version> cannot expand measure maps"}}`, the version being the installed
+package's. The table's other cases need the expansion and are skipped,
+naming the reason, where the installed timetoalign lacks it.
+
 ## The command
 
 `tilie --check` against a built editor prints the health JSON and nothing

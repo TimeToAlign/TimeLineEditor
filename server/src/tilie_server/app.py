@@ -6,6 +6,7 @@ from fastapi import FastAPI
 
 from tilie_server import __version__
 from tilie_server.routers.health import router as health_router
+from tilie_server.routers.measure_maps import router as measure_maps_router
 from tilie_server.security import LocalOriginGuard, NoReferrer
 from tilie_server.settings import (
     API_PREFIX,
@@ -37,6 +38,7 @@ def create_app(settings: ServerSettings) -> FastAPI:
         redoc_url=None,
     )
     app.include_router(health_router)
+    app.include_router(measure_maps_router)
     mount_static(app, static_dir)
     app.add_middleware(
         LocalOriginGuard,

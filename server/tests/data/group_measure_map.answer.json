@@ -1,0 +1,69 @@
+{
+  "measure_maps": [
+    {
+      "id": "measuremap_1",
+      "rows": [
+        {
+          "ID": "1",
+          "count": 1,
+          "qstamp": [0, 1],
+          "number": 1,
+          "name": "1",
+          "time_signature": "4/4",
+          "nominal_length": [4, 1],
+          "actual_length": [4, 1],
+          "start_repeat": false,
+          "end_repeat": false,
+          "next": [2],
+          "volta": null,
+          "offset_within_measure": [0, 1]
+        },
+        {
+          "ID": "2",
+          "count": 2,
+          "qstamp": [4, 1],
+          "number": 2,
+          "name": "2",
+          "time_signature": "4/4",
+          "nominal_length": [4, 1],
+          "actual_length": [4, 1],
+          "start_repeat": false,
+          "end_repeat": false,
+          "next": [3],
+          "volta": null,
+          "offset_within_measure": [0, 1]
+        },
+        {
+          "ID": "3",
+          "count": 3,
+          "qstamp": [8, 1],
+          "number": 3,
+          "name": "3",
+          "time_signature": "4/4",
+          "nominal_length": [4, 1],
+          "actual_length": [4, 1],
+          "start_repeat": false,
+          "end_repeat": false,
+          "next": [4],
+          "volta": null,
+          "offset_within_measure": [0, 1]
+        },
+        {
+          "ID": "4",
+          "count": 4,
+          "qstamp": [12, 1],
+          "number": 4,
+          "name": "4",
+          "time_signature": "4/4",
+          "nominal_length": [4, 1],
+          "actual_length": [4, 1],
+          "start_repeat": false,
+          "end_repeat": false,
+          "next": [],
+          "volta": null,
+          "offset_within_measure": [0, 1]
+        }
+      ]
+    }
+  ]
+}
