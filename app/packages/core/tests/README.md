@@ -143,6 +143,31 @@ workspace package does; the editor shell lists the names it links.
    dividing the two doubles gives 0.8611121019002627). A value is expressed
    on an axis only when its number type holds it exactly: 9/2 not as an int,
    1/3 not as a float, 1e-300 not as an int64 Fraction.
+7. **Rounding a float to decimal places** is Python's `round(x, places)`:
+   the exact binary value of the double is scaled by `10^places`, rounded
+   to an integer half to even, and the result is the double nearest to that
+   integer over `10^places`. The oracle is Python's own `round`; every value
+   below is what CPython 3 prints for `round(x, 3)`: 312.48979591836735 →
+   312.49; 2.675 → 2.675; 0.0005 → 0.001 and 0.0015 → 0.002 (both doubles
+   lie just above the decimal half, so neither is a tie); 1e-05 → 0.0;
+   6.71875 → 6.719. A true tie goes to even, which only an exactly
+   representable half shows: `round(0.125, 2)` is 0.12 and `round(0.375,
+   2)` 0.38. The sign survives a rounding to zero (`round(-0.0001, 3)` is
+   −0.0, compared with `Object.is`), and an infinity or NaN is returned as
+   given.
+8. **One rounding to an integer**, half to even, serves every rounding
+   above, the decimal places of a shown fraction and a value expressed on
+   an int axis: `n/d` rounds to the nearest integer, a tie to the even one
+   and the sign kept symmetric (5/2 → 2, 7/2 → 4, −5/2 → −2, −7/2 → −4,
+   7/3 → 2, −8/3 → −3, 6/1 → 6); a denominator that is not positive is a
+   `RangeError`.
+9. **Positive decimal text** (a float step of the granularity) is read as
+   the exact value it spells, by one reader that the settings reader and
+   the grid share: `"0.2"` → 1/5, `"1"` → 1, `"007.50"` → 15/2; `"0"`,
+   `"0.0"`, `".5"`, `"1."`, `"1e-3"`, `"-1"`, `" 1"` and `""` spell none.
+10. **The exact value of a `Real`**: a Rational is returned as it is (the
+   same object), a float as its exact binary value (0.1 →
+   3602879701896397/36028797018963968, −2.5 → −5/2).
 
 ## Manifest load and save (`manifest.test.ts`)
 
@@ -568,14 +593,21 @@ the schema agree by construction.
 
 ## Workspace view, ids and order (`workspace.test.ts`, `workspace-ids-order.test.ts`)
 
-The view is `{meta, name, settings, blocks}`; an empty one carries the
-format marker `{format: "tilie-workspace", version: 6}`, the name
-`untitled` and the default settings
-`{grid: {size: 8, snap: true}, blockDefaults: {scale: 1, length: 400,
-spacing: 8, margin: 0, width: null, height: null}, graphical: {}}`, the
-drawing specification's placement defaults plus the block's scale (the
-block's `spacing` 8 is the gap between its items, its `margin` 0 the empty
-space above its first item and below its last, drawing.md §8.4, §8.6). A
+The view is `{meta, name, settings, graphical, blocks}`; an empty one
+carries the format marker `{format: "tilie-workspace", version: 7}`, the
+name `untitled`, the workspace's `graphical` `{}` (its default statements,
+the cascade's layer between the built-in defaults and each manifest's own)
+and the default settings `{grid: {size: 8, snap: true}, blockDefaults:
+{scale: 1, length: 400, spacing: 8, margin: 0, width: null, height: null},
+granularity: {fraction: {denominator: 1, refine: true}, float: {step: "1",
+refine: true}, int: {step: 1, refine: true}}}`, the drawing
+specification's placement defaults plus the block's scale (the block's
+`spacing` 8 is the gap between its items, its `margin` 0 the empty space
+above its first item and below its last, drawing.md §8.4, §8.6) and one
+step of each number type's own unit, refined when zooming. The float step
+is decimal text, so that `"0.2"` stays exactly 1/5. Settings are how the
+editor is used, not what the workspace holds: no command changes them
+("Workspace settings", under the store). A
 block has exactly its thirteen members (`id`, `parent`, `index`, `x`, `y`,
 `scale`, `length`, `spacing`, `margin`, `width`, `height`, `places`,
 `manifest`) and records
@@ -871,11 +903,11 @@ other commands are not judged by it.
 2. Blocks and the workspace: one `set` moving `A` to (128, 64) and `B` to
    (1, 2) changes nothing else; `scale: 2, width: 120, height: null,
    length: 800, spacing: 2, margin: 12` on `A` gives exactly those, and
-   `spacing: 0` and `margin: 0` are stored as given; `blockDefaults:
-   {length: 640}` and `grid: {snap: false}` change that member only,
-   `graphical` replaces the settings' block whole; `manifest` replaces a
+   `spacing: 0` and `margin: 0` are stored as given; on the workspace,
+   `graphical` replaces the workspace's `graphical` whole and leaves the
+   settings the same object; `manifest` replaces a
    block's manifest whole, several roots and groups for one root alike.
-   The settings' `graphical` and a `style`'s `set` store a declaration's
+   The workspace's `graphical` and a `style`'s `set` store a declaration's
    `2.0` as `2`, as loading does (item 17 of the manifest section).
 3. Timelines, on `nested.json`: `name`, `meta` and the root's `length`
    `[12, 1]` (the end of `clt_3`) are stored as given; `clt_3`'s `offset`
@@ -1051,11 +1083,12 @@ refusal as `apply`.
   manifest's own ID addresses nothing.
 - `set`: `id_not_settable` for an id and for a map payload with another id
   (`[{block: A, id: "tempo"}, "map", "id"]`); `unknown_property`
-  (`[{block: A}, "colour"]`); `wrong_target_kind` for a property of
-  another kind (`[{}, "x"]`, `[{block: A}, "grid"]`, a root's `offset`, a
+  (`[{block: A}, "colour"]`, and `[{}, "grid"]` and `[{}, "blockDefaults"]`:
+  settings are no property of any target); `wrong_target_kind` for a property of
+  another kind (`[{}, "x"]`, `[{block: A}, "graphical"]`, a root's `offset`, a
   map's `start`, a region's `coordinate`); `invalid_value`,
   `non_finite_number`, `non_positive_number`, `invalid_index` and
-  `duplicate_index` for block and setting values (a block's `spacing` −1
+  `duplicate_index` for block values (a block's `spacing` −1
   is `invalid_value` at `[{block: A}, "spacing"]`); `invalid_coordinate` for an own-axis value its number type
   does not read (`0.5` and `8` on a `fraction` axis, a coordinate dict);
   `locked`, `length_below_content` (`[23, 2]` on `clt_1`) and
@@ -1118,7 +1151,7 @@ refusal as `apply`.
 - Atomicity: a `set` of a valid and an unknown target, and a `remove` naming
   an absent block, are refused whole.
 - Changes nothing, on every kind of target (blocks `A` of `nested.json` and
-  `B` of `bare.json`): the settings' own values; `A`'s `x`, `index`,
+  `B` of `bare.json`): the workspace's own `graphical`; `A`'s `x`, `index`,
   `width` and its manifest as loaded; `clt_1`'s `name: null`, `meta: {}` and
   `length: [32, 2]`; `clt_3`'s own offset; on `map.json` `tempo`'s own
   payload; on `flow_control.json` `jump_to_1` at `[4, 2]`. Judging the whole
@@ -1203,7 +1236,7 @@ timeline `{id: T, part: ["card"]}`, parts by `part`, the manifest's title
 1. **Blocks hold any manifest.** A workspace holding blocks of `bare.json`,
    `group_child_member.json` and `bundle_mixed.json` writes and reads back
    deep-equal, and writes again to the same bytes; its file format is
-   version 6.
+   version 7.
 2. **Invariants root by root.** `group_child_member.json` with
    `second-half`'s unit changed to `seconds` (its length written `8.0`, as
    the `float` axis of seconds represents it) is refused with exactly
@@ -1784,12 +1817,75 @@ time `clock().toISOString()`. The tests inject a clock from
    Done included; a refused `open` does not count.
 7. **Verification.** A snapshot opens with its own view (`toBe`). A view the
    journal does not produce throws `JournalMismatchError` naming the number
-   of entries replayed and the first differing path, settings first, then
-   blocks by id, then a block's members: a block moved to 99 is entry 3 at
-   `["blocks", A, "x"]`; a grid of 16 is entry 3 at `["settings",
-   "grid"]`; the same view with an empty journal is entry 0 at `["blocks",
-   A]`. A journal entry the commands refuse (a move of a block that does
+   of entries replayed and the first differing path: the name, then the
+   workspace's `graphical`, then blocks by id, then a block's members: a
+   block moved to 99 is entry 3 at `["blocks", A, "x"]`; a `graphical`
+   with one statement the journal never set is entry 3 at
+   `["graphical"]`; the same view with an empty journal is entry 0 at
+   `["blocks", A]`. The settings are never compared: the same view with a
+   grid of 16 opens, and its store holds that grid. A journal entry the commands refuse (a move of a block that does
    not exist) is that entry, 1, at `["journal", 1]`.
+
+## Workspace settings (`settings.test.ts`)
+
+The settings (`grid`, `blockDefaults`, `granularity`) say how the editor is
+used, not what the workspace holds, so they live outside the journal:
+`store.configure(change)` changes them, where `change` names any of the
+three members and, for each, any of its own members (`{blockDefaults:
+{length: 600}}` keeps the other placement defaults; a `granularity` member
+is replaced whole). The proof is that the journal and the undo history
+cannot see them, and that nothing the journal replays depends on them. The
+store under test holds three journalled commands (the `add` of block `A`
+holding `bare.json`, two moves of `A`) and an injected clock.
+
+1. **Outside the journal.** `configure({grid: {size: 16, snap: false}})`
+   returns `null`; the journal still holds 3 entries (the same objects),
+   `view.settings.grid` is exactly `{size: 16, snap: false}`, the view is a
+   new object (the editor's dirty mark is `view !== savedView`), the
+   listener hears it once, and the clock is not read. `undo()` then undoes
+   the third journalled command (`A` back at its first move's `x`) and
+   leaves `grid` at `{size: 16, snap: false}`; so does `redo()`, and so
+   does Cancel of an editor opened before the change: a setting is never
+   undone.
+2. **Identity says what changed.** A member the change leaves as it was
+   stays the same object: `configure({grid: {size: 16}})` gives a new
+   `grid` and keeps `blockDefaults` and `granularity`; a following
+   `configure({granularity: {int: {step: 2, refine: true}}})` keeps that
+   `grid` and gives a new `granularity` (a reader holding a value read
+   under one granularity tells by identity alone that it changed).
+3. **The workspace's `graphical` is journalled.** A `set` of the workspace
+   `graphical` with one statement adds a 4th entry and leaves the settings
+   the same object; `undo()` restores the previous `graphical` exactly
+   (`{}`), `redo()` the statement.
+4. **Replay reads no setting.** `add` of block `a` under
+   `blockDefaults.length` 400, `configure({blockDefaults: {length: 600}})`,
+   `add` of block `b`: the journal's two `add` entries carry every
+   placement member explicitly, `a` `{scale: 1, length: 400, spacing: 8,
+   margin: 0, width: null, height: null}`, `b` the same with `length` 600;
+   replaying the journal from the empty workspace (whose defaults are 400)
+   reproduces both blocks exactly, and `createStore` over the snapshot
+   opens. The journalled `add` of `a` applied to a view whose block
+   defaults are all different (`{scale: 3, length: 999, spacing: 1,
+   margin: 5, width: 50, height: 60}`) gives exactly the store's `a`, so a
+   replay reads no setting whatever the defaults; the same `add` leaving
+   its placement out, applied outside the store (as a preview of where a
+   new block will lie is), takes those defaults. A member the command
+   states is kept (`scale: 2` stays 2).
+5. **Refused changes.** `configure` checks the merged settings as the file
+   reader does and refuses the first problem, leaving the settings, the
+   view and the listeners untouched: `grid.size` 0 → `non_positive_number`
+   at `["settings", "grid", "size"]`; `granularity.fraction.denominator`
+   1.5 → `invalid_value` at `["settings", "granularity", "fraction",
+   "denominator"]`; `granularity.float.step` `"0"`, `"-1"`, `"1e-3"` and
+   `".5"` → `invalid_value` at `["settings", "granularity", "float",
+   "step"]` (positive decimal text: digits, optionally a point and more
+   digits); `granularity.int.step` 0 → `non_positive_number` at
+   `["settings", "granularity", "int", "step"]`. A
+   change to the values already held returns `null`, keeps the view the
+   same object and calls no listener.
+6. **Inside an editor.** With an editor open, `configure` is accepted
+   (no side effect on any element is possible) and the session's entries
+   are unchanged.
 
 ## Editor sessions (`sessions.test.ts`)
 
@@ -2147,9 +2243,10 @@ visible thing must be refused at that thing's address. An element the
 target contains before and that no longer exists after is removed inside
 the target, never a difference. A refusal and an acceptance are asserted
 as the whole result. Given the command's change set, the guard compares
-only the settings and blocks it touched, and projects no manifest whose
+only the workspace's own members and the blocks it touched, and projects no manifest whose
 written paths all lie inside the target with none reaching past it, or
-that is the same object. A table of commands (settings, other blocks,
+that is the same object. A table of commands (the workspace's
+`graphical`, other blocks,
 renames, band and display orders, a group's place from a member's editor,
 an offset, each inside and outside) gives the same result with the change
 set and without it; a `NaN` in an outside `meta`, which only a projection
@@ -2221,9 +2318,12 @@ block alone).
 
 **Each rule's path, once:**
 
-12. **Settings.** `grid` replaced by `{size: 16, snap: true}` → at
-    `[{}, "grid"]`, message `the workspace setting grid lies
-    outside …`, in `G1`'s editor and in the bundle editor alike.
+12. **The workspace's own members.** Its `graphical` replaced by one with
+    a statement `{select: {element: "timeline"}, set: {stroke:
+    "#FF0000"}}` → at `[{}, "graphical"]`, message `the workspace's
+    graphical lies outside …`, in `G1`'s editor and in the bundle editor
+    alike. The settings are no part of a view a command changes, so an
+    `after` differing from `before` only in its `grid` → nothing.
 13. **Another block.** With a second block `0000000000` holding
     `bare.json`: `set {block: "0000000000"} x 50`, `add` of block
     `0000000001` (`bare.json`) and `remove {block: "0000000000"}` → at the
@@ -2275,9 +2375,10 @@ block alone).
 19. With the second block of 13, the `style` of 11 without `blocks`
     touches both blocks and is refused at `["0000000000"]` (another block),
     not at the statements (the manifest).
-20. One `after` with `grid` replaced, the block's `length` 500, `places`
-    `{group_2: {x: 10}}` and the name of `annotations` "A" → at
-    `[{}, "grid"]`; without the grid → at `["bundle0001",
+20. One `after` with the workspace's `graphical` replaced (12), the
+    block's `length` 500, `places` `{group_2: {x: 10}}` and the name of
+    `annotations` "A" → at `[{}, "graphical"]`; without the `graphical` →
+    at `["bundle0001",
     "length"]`; without the length too → at `[group_2]`; with
     the name alone → at `[annotations]`.
 
@@ -2311,7 +2412,7 @@ block alone).
     "E"` → nothing.
 24. **The bundle editor.** In the editor of `bundle0001`, `set annotations
     name "A"`, `set bundle0001 length 500`, the `style` of 11, and `places`
-    replaced by `{group_2: {x: 10}}` each → nothing; only the settings
+    replaced by `{group_2: {x: 10}}` each → nothing; only the workspace
     rule, the other-block rule and its own removal (18) apply to it.
 
 **The element a manifest refusal names.** Of the differing elements, a
@@ -2410,9 +2511,10 @@ that holds a member without being one.
 ## The workspace file (`file.test.ts`)
 
 `writeWorkspace(workspace)` is TimeToShare's `dumps` (keys sorted) of
-`{meta, name, settings, blocks, journal, sessions}`, format version 6
-(since a block and its defaults carry `margin`, which a version-5 file
-lacks);
+`{meta, name, settings, graphical, blocks, journal, sessions}`, format
+version 7 (since the settings left the journal and the workspace's default
+statements left the settings for the top-level `graphical`, which a
+version-6 file lacks);
 `readWorkspace(text)` reads with TimeToShare's `parseJson` (lossless) and
 returns a `Workspace` or a `LoadError`. An entry is exactly `{command,
 author, time}` or `{session, author, time}` (chosen by the presence of
@@ -2424,18 +2526,27 @@ without entries); a session id is ten characters of `0-9a-z`, as a key of
 `journal` through session entries.
 
 1. **Round trip.** A workspace built by a store (blocks of `bare.json` and
-   `map.json`, a move, a style, an undone command excluded) is written; the
-   text read back deep-equals the workspace, and writing it again gives the
-   same bytes. Its members are exactly `blocks`, `journal`, `meta`,
-   `name`, `sessions`, `settings`; `meta` is exactly `{format:
-   "tilie-workspace", version: 6}`; `name` is `untitled`; `sessions` is
-   `{}`.
+   `map.json`, a move, a style, an undone command excluded, the workspace's
+   `graphical` set to one statement, the grid configured to `{size: 16,
+   snap: false}` and the fraction granularity to denominator 5) is
+   written; the text read back deep-equals the workspace, and writing it
+   again gives the same bytes. Its members are exactly `blocks`,
+   `graphical`, `journal`, `meta`, `name`, `sessions`, `settings`;
+   `settings`' members are exactly `blockDefaults`, `granularity`, `grid`;
+   `meta` is exactly `{format: "tilie-workspace", version: 7}`; `name` is
+   `untitled`; `sessions` is `{}`.
 2. **Replay.** Replaying the read journal from `createView()` gives exactly
-   the read `settings` and `blocks`.
+   the read `graphical` and `blocks`; its settings are the defaults, the
+   read ones are the file's.
 3. **Refusals**, each exactly one problem `{code, path}`: text `{` →
    `invalid_json` at `[]`; `format: "other"` → `unsupported_format` at
-   `["meta", "format"]`; `version: 7` → `unsupported_version` at `["meta",
-   "version"]`; a block without `margin` → `missing_member` at `["blocks",
+   `["meta", "format"]`; `version: 8` → `unsupported_version` at `["meta",
+   "version"]`; no top-level `graphical` → `missing_member` at
+   `["graphical"]`; `settings.graphical` → `unknown_member` at
+   `["settings", "graphical"]`; no `settings.granularity` →
+   `missing_member` at `["settings", "granularity"]`; a granularity
+   `float.step` of `0.2` (a number, not text) → `invalid_value` at
+   `["settings", "granularity", "float", "step"]`; a block without `margin` → `missing_member` at `["blocks",
    A, "margin"]`; a block's `margin` −1 → `invalid_value` at `["blocks", A,
    "margin"]`; `blockDefaults` without `margin` → `missing_member` at
    `["settings", "blockDefaults", "margin"]`; a top-level member `extra` → `unknown_member` at
@@ -2458,14 +2569,18 @@ without entries); a session id is ten characters of `0-9a-z`, as a key of
 4. **Version 4.** A version-4 file (the round trip's text with `version:
    4` and its commands' addresses written as that format wrote them,
    strings: the `add`s `into: "workspace"`, each `set` aimed at the bare
-   block id) is refused for its version alone: exactly one problem,
+   block id, or at `"workspace"`) is refused for its version alone: exactly one problem,
    `unsupported_version` at `["meta", "version"]`, message `workspace
-   version 4 is not supported; this editor reads version 6 only`. There is
+   version 4 is not supported; this editor reads version 7 only`. There is
    no migration. **Version 5** likewise: the round trip's text with
    `version: 5` and every block's and the block defaults' `margin` removed,
    as that format wrote them, is refused with exactly one problem,
    `unsupported_version` at `["meta", "version"]`, message `workspace
-   version 5 is not supported; this editor reads version 6 only`.
+   version 5 is not supported; this editor reads version 7 only`. **Version
+   6** likewise: the round trip's text written as that format wrote it
+   (`version: 6`, no `granularity`, the workspace's `graphical` inside
+   `settings`) is refused for its version alone, message `workspace version
+   6 is not supported; this editor reads version 7 only`.
 5. **Sessions in the file.** On the text of a workspace whose journal is
    the `add` of block `A` holding `bundles/bundle_mixed.json` and one entry
    naming session `s = "session001"`, `{target: {block: A, id: "group_1"},
@@ -2685,7 +2800,7 @@ Each manifest fixture starts as block `A` beside a block `B` of
 2. A refused command leaves the view the same object.
 3. Undoing every entry restores every intermediate view (the same objects),
    and redoing every entry restores them again.
-4. Replaying the journal from `createView()` gives `settings` and `blocks`
+4. Replaying the journal from `createView()` gives `graphical` and `blocks`
    deep-equal to the store's.
 5. Every entry carries the author and the injected clock's time.
 6. `writeWorkspace(readWorkspace(text))` equals `text` byte for byte, and the
@@ -2748,6 +2863,233 @@ nothing.
     one is applied and the other undone. The level's own entries are not
     checked, since they undo one at a time.
 
+## Conversion maps (`maps.test.ts`)
+
+`compileMap(map, {knots?})` turns one conversion map of a manifest into a
+function of a position on its source axis; `express(result, targetUnit)`
+writes a result on the map's target axis. The contract is parity with
+timetoalign: for every map and every input, the value timetoalign gives
+when the map is called on that input, with the same number type. A
+position is passed as Python holds it: a `bigint` is an int, a `Rational`
+a Fraction, a `number` a float.
+
+1. **Parity table, generated by the library.** `parity/emit_maps.py` (run
+   with a Python where timetoalign is installed, then formatted by Biome:
+   `pnpm exec biome format --write packages/core/tests/parity/maps.json` in
+   `app/`) writes `parity/maps.json`: one manifest whose roots (a quarters,
+   a ticks and a seconds timeline) carry maps of all ten types, its
+   MeasureMap's expanded rows in the form the server's measure-maps route
+   answers, and for each map a list of inputs, each with timetoalign's
+   result: the map read by `ConversionMap.from_dict`, then called on the
+   input, which writes a number on its target axis in the unit's number
+   type. A result is recorded as its kind and value: `int` (the integer),
+   `float` (the double, written as Python's `repr`, so it reads back
+   bit for bit), `fraction` (the `[numerator, denominator]` pair), `string`,
+   `record` (the measure's `ID` and `count`), `outputs` (each named output,
+   recorded the same way), or `null` where timetoalign raises. The test
+   loads the manifest through `loadManifest`, compiles every map with the
+   recorded rows as `knots`, and requires for every input the same kind and
+   the same value (`Object.is` for a double), `undefined` for `null`. The
+   cases are chosen so that each proves one rule:
+   - **Parameters read by their JSON form**: an integer is an int, `0.5`
+     and `2.0` are floats, a pair is a Fraction.
+   - **Python's numeric tower**: `165375/8·x + 507150` stays exact on exact
+     input and is rounded once, half to even, onto `samples`; a float
+     scalar or a float input makes the whole result a float.
+   - **TableMap's two paths**: with an exact input and exact anchors,
+     `linear` interpolates and extrapolates in Fractions (`[0, 4] → [0, 2]`
+     gives 1/6 at 1/3, 5/2 at 5); every other combination runs on doubles,
+     as numpy's `interp`, including an input whose double equals an exact
+     anchor's double (`0.3333333333333333` against the anchor 1/3 reads
+     that anchor's value); `previous` answers the stored anchor value;
+     `extrapolate` `none` (undefined), `constant` (the end anchor's stored
+     value) and `linear` (the end segment on doubles outside the anchors
+     for `previous`). A TableMap whose distinct exact anchors share one
+     double is refused by timetoalign, so every input is undefined.
+   - **PiecewiseMap**: the intervals are half-open and chosen on doubles,
+     as timetoalign chooses them; the piece is evaluated on the input as
+     given; below the first or at and beyond the last break is undefined.
+   - **ChainMap** passes each raw result on, never rounded between maps:
+     1/960 quarters through ticks (480 per quarter) and back is 1/960.
+   - **CombinationMap** answers each output raw, keyed by its name.
+   - **ConstantMap**: a string, an exact number expressed on its target
+     unit, a number without a target unit as written.
+   - **The measure views** over a MeasureMap with an anacrusis (rows: 3/4
+     with an actual length of 1/2 at an offset of 5/2, then 3/4, 2/4,
+     2/4): the measure holding a position is the last whose qstamp is at
+     or before it, the first before them all; `MeasureNumberMap` answers an
+     int, `MeasureBeatMap` the number and the exact beat (a float position
+     read as its exact value), `FloatingMeasureMap` the floating measure
+     truncated to three decimals (0.833 at 0, 50.25 at 100).
+2. **Hand values** (the parity table's arithmetic, stated without the
+   library): the PiecewiseMap with breaks 0, 4, 16 and the pieces `1/2·x`
+   and `3/5·x − 2/5` (both exact LinearMaps, quarters to seconds) gives at
+   6 the exact 16/5, expressed on seconds as the float `3.2`; at 31/8 the
+   float `1.9375`; at 16 `undefined`. The LinearMap `165375/8·x + 507150`
+   (quarters to samples) gives at 1/3 the exact 4112325/8, expressed as the
+   int 514041. Half to even onto `samples`: 5/2 → 2, 7/2 → 4, −5/2 → −2,
+   the float 2.5 → 2.
+3. **Expressing a result.** Onto a `fraction` unit a float becomes its
+   exact binary value (0.1 is 3602879701896397/36028797018963968), onto a
+   `float` unit an exact value the nearest double (1/3 is
+   0.3333333333333333); an infinite float onto an int or fraction unit is
+   `undefined`, as timetoalign raises. A result without a target unit keeps
+   its kind (an int, a Fraction, a float), and so does each named output; a
+   string and a record pass unchanged whatever the target unit.
+4. **Compiled once per map object.** Compiling one map object twice with
+   the same rows gives the same evaluator (`toBe`); a copy equal in every
+   member gives another evaluator, as do the same map with another rows
+   list: the memo is keyed by objects, never by values.
+5. **Without the rows.** A measure view compiled without `knots`, or with
+   rows that lack its MeasureMap, says it is missing them (`missingKnots`
+   true) and is `undefined` at every position, as is a ChainMap holding
+   one; a LinearMap misses nothing. With the rows it evaluates.
+6. **Outputs one by one.** A CombinationMap's evaluator lists one
+   evaluator per output, in the manifest's key order, each with its own
+   target unit, so each output can be expressed on its own axis.
+
+## The granularity grid (`grid.test.ts`)
+
+`gridStep(numberType, granularity, devicePxPerUnit)` is the exact step of
+the grid a position on a timeline is picked from; `snapPosition` picks the
+grid point. The step depends on the base the settings state and, while
+"Refine when zooming" is on, on how many device pixels one unit of the
+axis covers: it is the finest step of the base's sequence still at least
+one device pixel wide, and the base itself when even the base is narrower.
+The expected steps follow from that rule by hand.
+
+1. **Steps.** `fraction` with denominator 1 at 75 px per unit: 1/64 (75/64
+   ≥ 1 > 75/128); denominator 5 at 75: 1/40 (75/40 ≥ 1 > 75/80);
+   denominator 20 without refinement: 1/20 at 0.01, 75 and 10^6 px. `float`
+   with step `"0.2"` at 1.92: 1/5, read exactly from the text (the base is
+   0.384 px wide, so it is kept); `"1"` at 120: 1/100 (1.2 px; 1/200 is
+   0.6). `int` with step 1 at 0.04: 50 (the smallest of 1, 2, 5, 10, 20,
+   50 at least 25 units); at 3: 1.
+2. **A refined grid and its base grid**: a refined fraction or float grid
+   contains its base grid, a refined int grid is coarser, a subset of its
+   base grid: at 0.5, 3, 75, 1000 and 10^6 px per unit, the base divided by
+   the step is an integer for `fraction` and `float`, the step divided by
+   the base for `int`.
+3. **A position on the grid.** `snapPosition(unitsFromStart, step,
+   length)` is the exact `n·step` for the integer `n` nearest to
+   `unitsFromStart / step` (ties upward), clamped to `[0, length]`, the
+   length a Rational or a float read as its exact value, `null` for an
+   unknown length (no upper clamp): 2.62 units at 1/5 → 13/5; −0.3 → 0; 9
+   at 1/2 with length 8 → 8; 7.9 at 1 with the float length 7.5 → 15/2;
+   0.5 at 1 → 1; 100.2 at 1 with an unknown length → 100.
+4. **Refusals.** A non-finite or non-positive pixel density, and a float
+   step that is not positive decimal text, are `RangeError`s.
+5. **The grid in use as text** (`gridText`), the one text the coordinate
+   flag's footer and the Timestamp tab write: the step with its unit's
+   symbol, then in parentheses the number type's base and whether it
+   refines. A fraction step is written `n/d` and its base `1/D` (`1` for
+   D = 1), a float step as its exact decimal and its base as stated, an
+   int step and base as digits: 1/32 on quarters, default granularity →
+   `grid 1/32 ♩ (fraction base 1, refining)`; 1/5 with denominator 5,
+   fixed → `grid 1/5 ♩ (fraction base 1/5, fixed)`; 1/200 on seconds →
+   `grid 0.005 s (float base 1, refining)`; 1/5 with step `"0.2"`, fixed →
+   `grid 0.2 s (float base 0.2, fixed)`; 200 on samples → `grid 200 smp
+   (int base 1, refining)`.
+
+## Displaying a value (`display.test.ts`)
+
+`displayValue(value, numberType)` is the text the coordinate flag and the
+Timestamp tab show, `copyValue` what Copy puts on the clipboard,
+`coordinateDict(value, unit, numberType)` the coordinate dict `{unit,
+number_type, value}` of the Timestamp tab's JSON, and `unitSymbol(unit)`
+the symbol every shown coordinate carries: the drawing's labels, the flag
+and the tab.
+
+1. **Fractions** show as a mixed fraction while the denominator is at most
+   64 (219/16 → `13 11/16`, −219/16 → `-13 11/16`, 1/64 → `1/64`, 3 →
+   `3`), else as their exact decimal when it terminates (27/2048 →
+   `0.01318359375`), else as `≈` and the decimal rounded to 12 places, half
+   to even (1/192 → `≈ 0.005208333333`, 1/65 → `≈ 0.015384615385`). Copy
+   gives `n/d` (`219/16`, `3`).
+2. **Floats** show Python's `round(x, 3)` spelled as Python's `repr`
+   (6.71875 → `6.719`, 6.0 → `6.0`, 1e-05 → `0.0`, 312.48979591836735 →
+   `312.49`); Copy gives the full `repr` (`6.71875`).
+3. **Ints** show their digits in groups of three separated by a space
+   (514041 → `514 041`, −1234567 → `-1 234 567`, 0 → `0`); Copy gives the
+   plain digits (`514041`).
+4. **Coordinate dicts** write the value as a manifest writes a bare value
+   of its number type: 219/16 on quarters → `{unit: "quarters",
+   number_type: "fraction", value: [219, 16]}`, 6.0 on seconds the
+   integral float (`JsonFloat` 6), 514041 on samples the integer 514041.
+5. A value whose kind is not the number type's (a `bigint` displayed as a
+   float) is a `TypeError`.
+6. **An exact decimal** (`exactDecimal`), the one writer of a terminating
+   decimal: 1/200 → `0.005`, −3/8 → `-0.375`, 3 → `3`, 27/2048 →
+   `0.01318359375`; 1/3 has none (`undefined`).
+7. **Unit symbols** are the table of TimeToShare's drawing specification
+   (section 5.2), the oracle: `quarters` → `♩` (U+2669), `seconds` → `s`,
+   `samples` → `smp`, `ticks` → `ticks`, `pixels` → `px`, and any other
+   unit its own name (`whole_notes` → `whole_notes`, `points` →
+   `points`).
+
+## Timestamps (`timestamp.test.ts`)
+
+`timestampAt(spec, position, knots)` is the one value the coordinate flag
+and the Timestamp tab show: for a position on a line, the line's own
+coordinate and its maps' values, and on a segment line the same again for
+the segment under the position. The spec names only primitive facts (the
+line's timeline, unit, number type and shown maps in drawing order; each
+segment's offset, length and shown maps), so the expected values follow by
+hand from the conversion maps' own arithmetic (section "Conversion maps")
+and need no drawing. A test proves the assembly: which parts there are,
+in which order, at which position each is read, and that each map's value
+is its evaluator's result expressed on its target unit, never recomputed.
+
+The specs are those of a form in three segments on quarters (fraction):
+the line `form` [0, 32] with the map `form_ticks` (480 per quarter onto
+ticks); segment `A` at 0, length 8 (`A_tempo` 1/2·x onto seconds,
+`A_samples` 22050·x onto samples); `B` at 8, length 12 (`B_samples`
+55125/2·x + 176400, `B_tempo` 5/8·x + 4, `B_ticks` 480·x, given in that
+order); `C` at 20, length 12 (`C_samples` 165375/8·x + 507150, `C_tempo`
+15/32·x + 23/2, `C_bars` 1/4·x onto whole notes).
+
+1. **A segment line at 27/2**: two parts. The line `form` at the
+   Fraction 27/2 with `form_ticks` the int 6480 (27/2·480); then `B`, a
+   segment, at 11/2 (27/2 − 8, counted from the segment's start) with, in
+   the order given (not by ID), `B_samples` 327994 (606375/4 + 176400 =
+   1311975/4 = 327993.75, rounded half to even onto samples), `B_tempo`
+   the float 7.4375 (119/16) and `B_ticks` the int 2640. The timestamp
+   names the block, the line and the step it was given (the same object).
+2. **The segment under a position** is the one of the largest offset whose
+   span `[offset, offset + length]` holds it, so a shared boundary belongs
+   to the later segment and the line's end to the last: at 8 `B` at 0
+   (`B_samples` 176400, `B_tempo` 4.0, `B_ticks` 0); at 0 `A` at 0
+   (`A_tempo` 0.0, `A_samples` 0); at 32 `C` at 12 (`C_samples` 755212,
+   from 755212.5 half to even; `C_tempo` 17.125, 137/8; `C_bars` the
+   Fraction 3). With only `A` given, at 10 no segment holds the position
+   and the timestamp has the line's part alone.
+3. **A child shows only its own maps**: a child line `cons` (quarters)
+   with `cons_tempo` 3/5·x − 2/5 and `cons_ticks` 480·x and no segments
+   gives at 2 one part, `cons` at 2, its two maps in the order given:
+   `cons_tempo` 4/5 expressed as the float 0.8, `cons_ticks` the int 960.
+4. **The line's number type writes each position**: on a float line
+   (seconds) the grid position 1/10 is the float 0.1 and its map 44100·x
+   onto samples the int 4410; on an int line (frames) the position 50 is
+   the int 50 and its map 1/25·x onto seconds the float 2.0.
+5. **No value**: a PiecewiseMap with breaks 0, 4, 16 at 16 has no value
+   (`null`) and misses no rows (`missingKnots` `null`); a MeasureNumberMap
+   without its MeasureMap's expanded rows has no value and says why
+   (`missingKnots`): given nothing, `no_server`; given a reason
+   (`unsupported`, `pending`, `failed`), that reason; given rows that lack
+   its MeasureMap, `failed`. A LinearMap misses nothing (`null`). A map
+   keeps its `id`, `name` (`null` when unnamed) and target unit.
+6. **The texts every reader shows** for a timestamp: its place, the line's
+   name and coordinate with its unit's symbol (`Form at 13 1/2 ♩` at
+   27/2); its grid under a granularity, the step it names (the same
+   object) on its line's number type and unit (1/2 on fraction quarters,
+   for the text of section "The granularity grid"); a measure by its name, else its number, else its count (`m. 3`;
+   `""` with number 7 → `7`; `""` with no number and count 9 → `9`); and
+   for a map without a value, one text per reason: no value at the
+   position → `no value here`; `no_server` → `needs a server to expand its
+   measure map`; `unsupported` → `the server cannot expand measure maps`;
+   `pending` → `waiting for the server`; `failed` → `the server did not
+   expand its measure map`.
+
 ## Budgets (`budget.test.ts`)
 
 The budgets time the code, so they do not run with the default suite, whose
@@ -2767,6 +3109,14 @@ measured and printed, not held to a budget: 497 to 501 ms over three runs,
 each the minimum of 5, at a load average of 4. With `TILIE_MEASURE=<file>`
 the test also builds 10,000 blocks (10,000 entries) and writes the figures
 of both sizes into that file.
+
+A conversion map is evaluated once per animation frame for every map the
+coordinate flag shows, so its evaluation is held to the frame: 1,000
+evaluations of a PiecewiseMap of 10^5 breaks (each piece an exact
+LinearMap) at exact positions spread over its whole domain take at most 50
+ms after compiling it once. The interval is found by a binary search over
+the breaks, so the cost grows with the logarithm of the breaks, not their
+number.
 
 ## External gates
 

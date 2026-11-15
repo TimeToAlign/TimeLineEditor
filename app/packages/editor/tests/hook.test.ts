@@ -441,7 +441,7 @@ describe("the test hook", () => {
       DOMRect.fromRect({ x: 100, y: 50, width: 2 * width, height: 2 * height }),
     );
     const { view } = hook().store();
-    const recorded = drawingOf(view.blocks[A] as Block, view.settings, fontMetrics).boxes.filter(
+    const recorded = drawingOf(view.blocks[A] as Block, view.graphical, fontMetrics).boxes.filter(
       (box) => box.kind === "band",
     );
 
@@ -467,7 +467,7 @@ describe("the test hook", () => {
     hook().load(workspaceOf("map", "map_child_band_order"));
     flushSync();
     const { view } = hook().store();
-    const recorded = drawingOf(view.blocks[A] as Block, view.settings, fontMetrics).boxes;
+    const recorded = drawingOf(view.blocks[A] as Block, view.graphical, fontMetrics).boxes;
     expect(hook().boxes(A)).toEqual(
       recorded.map(({ kind, address, key, holder, displayed }) => ({
         kind,

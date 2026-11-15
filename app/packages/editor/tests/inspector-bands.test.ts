@@ -40,7 +40,7 @@ function blockOf(view: View, id: string): Block {
 /** What the canvas shows of `id` without a gesture. */
 function stored(view: View, id: string): Shown {
   const block = blockOf(view, id);
-  return { ...block, drawing: drawingOf(block, view.settings, fontMetrics) };
+  return { ...block, drawing: drawingOf(block, view.graphical, fontMetrics) };
 }
 
 /** The address of `element` in block `block`; the block itself without an element. */

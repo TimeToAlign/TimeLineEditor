@@ -131,7 +131,7 @@ function initial(specs: readonly { fixture: string; x: number; y: number }[]): V
 function addresses(view: View): Address[] {
   const ids = Object.keys(view.blocks).sort();
   const drawn = (id: string) =>
-    drawingOf(view.blocks[id] as Block, view.settings, metrics).elements.flatMap((element) =>
+    drawingOf(view.blocks[id] as Block, view.graphical, metrics).elements.flatMap((element) =>
       element.type === "block" ? [] : [inBlock(id, element.address)],
     );
   return [...ids.map((block) => ({ block })), ...ids.flatMap(drawn)];
@@ -159,13 +159,13 @@ function commandOf(view: View, item: Gesture): object | null {
       if (block === undefined) return null;
       const handles = handlesFor(item.mode);
       const handle = handles[item.handle % handles.length] as (typeof handles)[number];
-      const { values } = resize(block, view.settings, metrics, item.mode, handle, item);
+      const { values } = resize(block, view.graphical, metrics, item.mode, handle, item);
       return resizeCommand(block, values);
     }
     case "itemResize": {
       const block = view.blocks[one(item.pick)];
       if (block === undefined) return null;
-      const boxes = resizable(drawingOf(block, view.settings, metrics));
+      const boxes = resizable(drawingOf(block, view.graphical, metrics));
       const resized = boxes[item.box % boxes.length];
       if (resized === undefined) return null;
       const handles = itemHandlesFor(item.mode, resized, "arranger");
@@ -185,7 +185,7 @@ function commandOf(view: View, item: Gesture): object | null {
     case "request": {
       const block = view.blocks[one(item.pick)];
       if (block === undefined) return null;
-      const keys = resizable(drawingOf(block, view.settings, metrics)).map((drawn) => drawn.key);
+      const keys = resizable(drawingOf(block, view.graphical, metrics)).map((drawn) => drawn.key);
       if (keys.length === 0 || (item.width === undefined && item.height === undefined)) return null;
       const place = {
         ...(item.width === undefined ? {} : { width: item.width / 2048 }),
@@ -260,7 +260,7 @@ describe("a member's Stretch", () => {
     timeout: DRAWING_TIMEOUT,
   }, () => {
     const view = mixedPlain();
-    const drawing = drawingOf(blockIn(view, A), view.settings, metrics);
+    const drawing = drawingOf(blockIn(view, A), view.graphical, metrics);
     const cards = drawing.boxes.filter(isHeld);
     const groupOf = (card: DrawnBox) => itemHolding(drawing, card).key;
     const width = fc.option(fc.integer({ min: 2048, max: 2000 * 2048 }), { nil: null });
@@ -343,7 +343,7 @@ function stretchCase(
   heightRatio: number | null,
 ) {
   const start = initial([{ fixture, x: 40, y: 80 }]);
-  const drawing = drawingOf(blockIn(start, A), start.settings, metrics);
+  const drawing = drawingOf(blockIn(start, A), start.graphical, metrics);
   // The block itself (null), an item, or a member's card.
   const boxes = [null, ...resizable(drawing)];
   const box = boxes[pick % boxes.length] ?? null;
@@ -364,7 +364,7 @@ function stretchCase(
   /** The stretched value, and the dragged box's extent on the stretched axis. */
   const state = (of: View) => {
     const block = blockIn(of, A);
-    const drawn = drawingOf(block, of.settings, metrics);
+    const drawn = drawingOf(block, of.graphical, metrics);
     if (box === null) {
       return {
         value: vertical ? block.spacing : block.length,
@@ -389,7 +389,7 @@ function stretchCase(
     const block = blockIn(of, A);
     const at = vertical ? { dx: 0, dy: by } : { dx: by, dy: 0 };
     if (box === null) {
-      const { values } = resize(block, of.settings, metrics, "stretch", handle, at);
+      const { values } = resize(block, of.graphical, metrics, "stretch", handle, at);
       return gestured(of, resizeCommand(block, values));
     }
     const places = itemResizeValues(of, A, box, "arranger", "stretch", handle, at, metrics);

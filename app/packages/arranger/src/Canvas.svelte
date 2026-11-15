@@ -1,5 +1,14 @@
 <script lang="ts">
-import type { Address, Command, Store } from "@timetoalign/tilie-core";
+import type {
+  Address,
+  Command,
+  Granularity,
+  GridInUse,
+  MeasureKnots,
+  Store,
+  Timestamp,
+} from "@timetoalign/tilie-core";
+import { gridText, timestampGrid, timestampPlace } from "@timetoalign/tilie-core";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { Viewport } from "@xyflow/svelte";
 import { SelectionMode, SvelteFlow } from "@xyflow/svelte";
@@ -10,12 +19,15 @@ import { MediaQuery } from "svelte/reactivity";
 import BlockNode from "./BlockNode.svelte";
 import { BlockDrag, type NodeDrag } from "./blockDrag.ts";
 import CanvasToolbar from "./CanvasToolbar.svelte";
+import CoordinateFlag from "./CoordinateFlag.svelte";
 import type { Visible } from "./commands.ts";
 import type { Level } from "./containers.ts";
 import { levelOf, rulesOf } from "./containers.ts";
+import type { Reading } from "./coordinates.ts";
+import { FrameCoalescer, MeasureKnotsSource, readingAt } from "./coordinates.ts";
 import type { Editing } from "./editing.ts";
 import { EditorFocus } from "./editorFocus.svelte.ts";
-import { CLICK_DISTANCE, GestureSlot, listen } from "./gesture.ts";
+import { CLICK_DISTANCE, GestureSlot, listen, type Point } from "./gesture.ts";
 import { CanvasPointer } from "./gestures/canvas.ts";
 import { PAN_SPEED, shiftWheel } from "./gestures/wheel.ts";
 import type { KeyContext } from "./keys.ts";
@@ -50,6 +62,31 @@ interface Props {
    * block or inside one reports one.
    */
   onlive?: (placement: LivePlacement | null) => void;
+  /**
+   * The grid "Show coordinates" picks positions from; the workspace's
+   * granularity setting when not given.
+   */
+  granularity?: Granularity;
+  /**
+   * Called with the timestamp a click pins while "Show coordinates" hovers
+   * a line, and with `null` on any other click on the canvas.
+   */
+  oncoordinatepin?: (pin: Timestamp | null) => void;
+  /**
+   * Called with the grid of a reading "Show coordinates" makes whenever it
+   * differs from the grid of the reading before: the step in use, the
+   * line's number type and unit, and the granularity that gave the step.
+   */
+  ongrid?: (grid: GridInUse) => void;
+  /**
+   * The expanded MeasureMaps of a manifest, given its text (the server's
+   * measure-maps route), or `unsupported` when the server cannot expand
+   * them; without it (`undefined`: no server), until it answers, or when
+   * it fails, measure views say why their rows are missing.
+   */
+  measureMaps?:
+    | ((manifest: string) => Promise<readonly MeasureKnots[] | "unsupported">)
+    | undefined;
 }
 
 let {
@@ -61,6 +98,10 @@ let {
   mode = $bindable(),
   viewport = $bindable(),
   onlive,
+  granularity,
+  oncoordinatepin,
+  ongrid,
+  measureMaps,
 }: Props = $props();
 
 /**
@@ -100,6 +141,12 @@ let toolbar: ReturnType<typeof CanvasToolbar> | undefined = $state();
 let root: HTMLElement | undefined = $state();
 let guides: readonly Guide[] = $state.raw([]);
 let marquee = $state(false);
+/** Whether "Show coordinates" is on: hovering a line shows its coordinate and its maps' values. */
+let coordinates = $state(false);
+/** The pointer over the canvas, in pixels from its top-left corner; `null` while it is elsewhere. */
+let hover: Point | null = $state.raw(null);
+/** Bumped when a manifest's expanded MeasureMaps arrive, so the reading is made again with them. */
+let knotsArrived = $state(0);
 /** The last refusal, announced in the status region. */
 let hint = $state("");
 /**
@@ -298,10 +345,141 @@ const pointer = new CanvasPointer({
   },
 });
 
+// --- Show coordinates -------------------------------------------------------
+
+/** Pointer moves, one reading per animation frame. */
+const frames = new FrameCoalescer<Point | null>((point) => (hover = point));
+
+const knots = $derived(
+  measureMaps === undefined ? undefined : new MeasureKnotsSource(measureMaps, () => knotsArrived++),
+);
+
+/** The reading of the canvas pixel `point` (from the canvas's top-left corner), or `null`. */
+function readingOf(point: Point) {
+  const { x, y, zoom } = viewport;
+  return readingAt(
+    nodes.nodes,
+    { x: (point.x - x) / zoom, y: (point.y - y) / zoom },
+    {
+      zoom,
+      ratio: typeof window === "undefined" ? 1 : window.devicePixelRatio || 1,
+      granularity: granularity ?? view.settings.granularity,
+      knotsOf: knots?.knotsOf,
+    },
+  );
+}
+
+/** What the pointer reads now; nothing while boxes move or "Show coordinates" is off. */
+const reading = $derived.by(() => {
+  void knotsArrived;
+  return !coordinates || moving || hover === null ? null : readingOf(hover);
+});
+
+/** The grid `reading` was picked on. */
+function gridOf(read: Reading): GridInUse {
+  return timestampGrid(read.timestamp, granularity ?? view.settings.granularity);
+}
+
+/** The grid last reported through `ongrid`. */
+let reported: GridInUse | null = null;
+
+// Each reading's grid is reported when it differs from the last one reported.
+$effect(() => {
+  if (reading === null || ongrid === undefined) return;
+  const grid = gridOf(reading);
+  const last = reported;
+  const same =
+    last?.step.equals(grid.step) === true &&
+    last.numberType === grid.numberType &&
+    last.unit === grid.unit &&
+    last.granularity === grid.granularity;
+  if (same) return;
+  reported = grid;
+  ongrid(grid);
+});
+
+/** What a screen reader hears when a click pins a timestamp; the moving flag is not announced. */
+let announced = $state("");
+
+/** The flag's place in canvas pixels, from the shown node of the read block. */
+const flag = $derived.by(() => {
+  const node = reading === null ? undefined : nodes.shown(reading.block);
+  if (reading === null || node === undefined) return null;
+  const { x, y, zoom } = viewport;
+  const { scale } = node.data.block;
+  const screen = (dx: number, dy: number) => ({
+    x: x + (node.position.x + dx * scale) * zoom,
+    y: y + (node.position.y + dy * scale) * zoom,
+  });
+  const at = screen(reading.at.x, reading.at.y);
+  return {
+    x: at.x,
+    y: at.y,
+    top: screen(reading.at.x, reading.top).y,
+    footer: gridText(gridOf(reading)),
+  };
+});
+
+/** The pointer in canvas pixels from the canvas's top-left corner. */
+function pixelOf(event: MouseEvent): Point | null {
+  const box = root?.getBoundingClientRect();
+  return box === undefined ? null : { x: event.clientX - box.left, y: event.clientY - box.top };
+}
+
+/** A move with no button held is read; one dragging something reads nothing. */
+function onpointermove(event: PointerEvent) {
+  if (!coordinates) return;
+  frames.push(event.buttons === 0 ? pixelOf(event) : null);
+}
+
+function onpointerleave() {
+  frames.cancel();
+  hover = null;
+}
+
+/** Where the last primary press on the canvas began, in client pixels; `null` after a button's. */
+let pinPress: Point | null = null;
+
+/** A press records where it began, for `pinOnRelease`. */
+function pinOnPress(event: PointerEvent) {
+  const onButton = event.target instanceof Element && event.target.closest("button") !== null;
+  pinPress =
+    event.isPrimary && event.button === 0 && !onButton
+      ? { x: event.clientX, y: event.clientY }
+      : null;
+}
+
+/**
+ * A click on the canvas (a primary press released within the click
+ * distance) pins the timestamp of the hovered line, read at the release
+ * itself, and clears the pin anywhere else; a press on a button (the
+ * toolbars) does neither.
+ */
+function pinOnRelease(event: PointerEvent) {
+  const press = pinPress;
+  pinPress = null;
+  if (press === null || !event.isPrimary) return;
+  if (Math.hypot(event.clientX - press.x, event.clientY - press.y) > CLICK_DISTANCE) return;
+  const point = coordinates ? pixelOf(event) : null;
+  const pinned = (point === null ? null : readingOf(point))?.timestamp ?? null;
+  announced = pinned === null ? "" : `Pinned ${timestampPlace(pinned)}`;
+  oncoordinatepin?.(pinned);
+}
+
+// Unmounted, the canvas leaves no frame waiting.
+$effect(() => () => frames.cancel());
+
 /** A press records itself and gives the canvas the focus, unless the focus is already inside it. */
 function onpointerdowncapture(event: PointerEvent) {
   pointer.pointerdowncapture(event);
+  pinOnPress(event);
   if (root !== undefined && !root.contains(document.activeElement)) focus();
+}
+
+/** A release ends the canvas pointer's press and may pin a reading, before anything inside stops it. */
+function onpointerupcapture(event: PointerEvent) {
+  pointer.pointerupcapture(event);
+  pinOnRelease(event);
 }
 
 // --- Keys ------------------------------------------------------------------
@@ -320,6 +498,7 @@ function keyContext(event: KeyboardEvent): KeyContext {
     refuse: (message) => (hint = message),
     setMode: (next) => (mode = next),
     toggleLock: () => (locked = !locked),
+    toggleCoordinates: () => (coordinates = !coordinates),
     zoomIn: () => toolbar?.zoomIn(),
     zoomOut: () => toolbar?.zoomOut(),
     fit: () => toolbar?.fit(),
@@ -360,11 +539,14 @@ function onkeydowncapture(event: KeyboardEvent) {
   tabindex="0"
   bind:this={root}
   style:--tilie-zoom={viewport.zoom}
+  data-reading={reading === null ? undefined : ""}
   bind:clientWidth={null, () => editorFocus.resized()}
   bind:clientHeight={null, () => editorFocus.resized()}
   {onpointerdowncapture}
-  onpointerupcapture={pointer.pointerupcapture}
+  {onpointerupcapture}
   ondblclick={pointer.dblclick}
+  onpointermovecapture={onpointermove}
+  {onpointerleave}
   {@attach shiftWheel((dx) => setViewport({ ...viewport, x: viewport.x + dx }))}
 >
   {#await fontLoaded}
@@ -424,7 +606,13 @@ function onkeydowncapture(event: KeyboardEvent) {
         {/if}
       {/if}
       <SnapGuides {guides} zoom={viewport.zoom} />
-      <CanvasToolbar bind:this={toolbar} bind:locked bind:marquee lockable={rules.lock} />
+      <CanvasToolbar
+        bind:this={toolbar}
+        bind:locked
+        bind:marquee
+        bind:coordinates
+        lockable={rules.lock}
+      />
     </SvelteFlow>
   {:catch error}
     <p class="tilie-font-state" role="status">
@@ -433,5 +621,17 @@ function onkeydowncapture(event: KeyboardEvent) {
         : String(error)}).
     </p>
   {/await}
+  {#if reading !== null && flag !== null}
+    <CoordinateFlag
+      timestamp={reading.timestamp}
+      hovered={reading.hit.map?.id ?? null}
+      footer={flag.footer}
+      x={flag.x}
+      y={flag.y}
+      top={flag.top}
+      width={root?.clientWidth ?? 0}
+    />
+  {/if}
   <p class="tilie-hint" data-testid="hint" role="status" aria-live="polite">{hint}</p>
+  <p class="tilie-announced" data-testid="coordinate-pinned" role="status">{announced}</p>
 </div>

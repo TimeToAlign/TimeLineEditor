@@ -8,7 +8,7 @@ import { findTimeline } from "../src/manifest/tree.ts";
 import type { Manifest, TimelineManifest } from "../src/manifest/types.ts";
 import type { Address } from "../src/workspace/address.ts";
 import type { View } from "../src/workspace/view.ts";
-import { createView, DEFAULT_SETTINGS } from "../src/workspace/view.ts";
+import { createView } from "../src/workspace/view.ts";
 import {
   A,
   addBlock,
@@ -280,20 +280,15 @@ describe("set", () => {
     expect(block(applied(margined, set(BLOCK, { margin: 0 }))).margin).toBe(0);
   });
 
-  it("sets the workspace settings member by member, graphical whole", () => {
+  it("sets the workspace's graphical whole, leaving the settings", () => {
     const view = frozen([A, "bare.json"]);
-    const defaults = applied(view, set(WORKSPACE, { blockDefaults: { length: 640 } }));
-    expect(defaults.settings).toEqual({
-      ...DEFAULT_SETTINGS,
-      blockDefaults: { ...DEFAULT_SETTINGS.blockDefaults, length: 640 },
-    });
-    const grid = applied(view, set(WORKSPACE, { grid: { snap: false } }));
-    expect(grid.settings.grid).toEqual({ size: 8, snap: false });
     const graphical = { statements: [{ select: { element: "map" }, set: { stroke: "#C00000" } }] };
-    expect(applied(view, set(WORKSPACE, { graphical })).settings.graphical).toEqual(graphical);
+    const styled = applied(view, set(WORKSPACE, { graphical }));
+    expect(styled.graphical).toEqual(graphical);
+    expect(styled.settings).toBe(view.settings);
   });
 
-  it("reads a declaration's integral float of a setting or a style command as its double", () => {
+  it("reads a declaration's integral float of the workspace's graphical or a style command as its double", () => {
     // A command text that writes `2.0` reads the number as a `JsonFloat`; the stored
     // declaration holds the double, so the cascade computes with a number.
     const view = frozen([A, "map.json"]);
@@ -301,7 +296,7 @@ describe("set", () => {
     const statement = { select: { element: "map" }, set: { "stroke-width": float } };
     const stored = { statements: [{ select: { element: "map" }, set: { "stroke-width": 2 } }] };
     expect(
-      applied(view, set(WORKSPACE, { graphical: { statements: [statement] } })).settings.graphical,
+      applied(view, set(WORKSPACE, { graphical: { statements: [statement] } })).graphical,
     ).toEqual(stored);
     const styled = applied(view, {
       type: "style",
@@ -363,7 +358,13 @@ describe("set", () => {
       [set(at("clt_1"), { id: "x" }), "id_not_settable", [key(at("clt_1")), "id"]],
       [set(BLOCK, { colour: 1 }), "unknown_property", [key(BLOCK), "colour"]],
       [set(WORKSPACE, { x: 1 }), "wrong_target_kind", [key(WORKSPACE), "x"]],
-      [set(BLOCK, { grid: { size: 4 } }), "wrong_target_kind", [key(BLOCK), "grid"]],
+      [set(BLOCK, { graphical: {} }), "wrong_target_kind", [key(BLOCK), "graphical"]],
+      [set(WORKSPACE, { grid: { size: 4 } }), "unknown_property", [key(WORKSPACE), "grid"]],
+      [
+        set(WORKSPACE, { blockDefaults: { length: 640 } }),
+        "unknown_property",
+        [key(WORKSPACE), "blockDefaults"],
+      ],
       [
         set(at("clt_1"), { offset: quarters(0) }),
         "wrong_target_kind",
@@ -378,11 +379,6 @@ describe("set", () => {
       [set(BLOCK, { margin: Number.NaN }), "non_finite_number", [key(BLOCK), "margin"]],
       [set(BLOCK, { index: "a00" }), "invalid_index", [key(BLOCK), "index"]],
       [set(BLOCK, { index: "a1" }), "duplicate_index", [key(BLOCK), "index"]],
-      [
-        set(WORKSPACE, { grid: { size: 0 } }),
-        "non_positive_number",
-        [key(WORKSPACE), "grid", "size"],
-      ],
       [
         set(WORKSPACE, { graphical: { statements: [{ select: {}, set: { stroke: "red" } }] } }),
         "schema_violation",
@@ -457,8 +453,6 @@ describe("set", () => {
     const maps = frozen([A, "map.json"]);
     const flow = frozen([A, "flow_control.json"]);
     const cases: [View, Address, object][] = [
-      [view, WORKSPACE, { grid: { size: 8 } }],
-      [view, WORKSPACE, { blockDefaults: { length: 400 } }],
       [view, WORKSPACE, { graphical: {} }],
       [view, BLOCK, { x: 0 }],
       [view, BLOCK, { index: "a0" }],

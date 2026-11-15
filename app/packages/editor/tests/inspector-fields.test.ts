@@ -341,7 +341,7 @@ describe("the Properties panel", () => {
 
   it("gives the block its minimum height as a number, and says so", () => {
     const store = storeOf();
-    const minimum = drawingOf(blockOf(store), store.view.settings, fontMetrics).height;
+    const minimum = drawingOf(blockOf(store), store.view.graphical, fontMetrics).height;
     const expected = placeEdit(store.view, addresses({}), "height", minimum, null, fontMetrics);
     show(store, [{}]);
     type("height", "1");
@@ -447,7 +447,7 @@ function frameSize(
   group: string,
   property: "width" | "height",
 ): number {
-  const drawing = drawingOf(block, store.view.settings, fontMetrics);
+  const drawing = drawingOf(block, store.view.graphical, fontMetrics);
   const frame = drawing.boxes.find(
     (box) => box.kind === "frame" && sameAddress(box.address, { id: group }),
   );

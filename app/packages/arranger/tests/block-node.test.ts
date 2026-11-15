@@ -301,7 +301,7 @@ describe("the hover marks", () => {
       svg,
       vi.fn(() => IDENTITY),
     );
-    const drawing = drawingOf(blockIn(view, A), view.settings, metrics);
+    const drawing = drawingOf(blockIn(view, A), view.graphical, metrics);
     const centre = (key: PlaceKey): [number, number] => {
       const box = keyedBox(drawing, key);
       if (box === undefined) throw new Error(`no box ${placeKeyText(key)}`);
@@ -435,7 +435,7 @@ describe("the selection marks", () => {
     // `t` is a member of `g1` and of `g2`: a card in each frame, both `{id: "t", part: ["card"]}`.
     const view = viewOf({ id: A, fixture: "bundles/bundle_shared_member" });
     const { svg } = mountOn(view, A, null, { selection: selectedIn(cardAddress("t")) });
-    const drawing = drawingOf(blockIn(view, A), view.settings, metrics);
+    const drawing = drawingOf(blockIn(view, A), view.graphical, metrics);
     /** The outline of the card under `key`: its record's own rectangle, as the node draws it. */
     const rectangle = (key: PlaceKey) => {
       const box = keyedBox(drawing, key);

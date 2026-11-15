@@ -13,7 +13,7 @@
 
 import type { NumberType, TimeUnit } from "@timetoalign/timetoshare";
 import type { Coordinate } from "./coordinate.ts";
-import { Rational } from "./rational.ts";
+import { Rational, roundHalfEven } from "./rational.ts";
 
 /** An exact value (int or Fraction) or a float. */
 export type Real = Rational | number;
@@ -37,15 +37,10 @@ function floorLog2Ratio(numerator: bigint, denominator: bigint): number {
 
 /** Round `numerator / denominator × 2^shift` to an integer, ties to even. */
 function roundedScaled(numerator: bigint, denominator: bigint, shift: number): bigint {
-  const scaledNumerator = shift >= 0 ? numerator * 2n ** BigInt(shift) : numerator;
-  const scaledDenominator = shift < 0 ? denominator * 2n ** BigInt(-shift) : denominator;
-  let quotient = scaledNumerator / scaledDenominator;
-  const remainder = scaledNumerator % scaledDenominator;
-  const twice = 2n * remainder;
-  if (twice > scaledDenominator || (twice === scaledDenominator && quotient % 2n !== 0n)) {
-    quotient += 1n;
-  }
-  return quotient;
+  return roundHalfEven(
+    shift >= 0 ? numerator * 2n ** BigInt(shift) : numerator,
+    shift < 0 ? denominator * 2n ** BigInt(-shift) : denominator,
+  );
 }
 
 /** The double nearest to an exact value, ties to even, as Python's `float(Fraction)`. */
@@ -92,6 +87,33 @@ export function fromFloat(value: number): Rational {
     : Rational.fromParts(sign * mantissa, 2n ** BigInt(-power));
 }
 
+/** The exact value of a `Real`: an exact value as it is, a float's exact binary value (`fromFloat`). */
+export function toRational(value: Real): Rational {
+  return typeof value === "number" ? fromFloat(value) : value;
+}
+
+/**
+ * `x` rounded to `places` decimal places as Python's `round(x, places)`:
+ * the exact value of the double times `10^places`, rounded to an integer
+ * half to even, and the double nearest to that integer over `10^places`.
+ * The sign of a zero result is `x`'s; an infinity or NaN is returned as
+ * given.
+ *
+ * @throws {TypeError} if `places` is not a safe integer.
+ */
+export function roundFloat(x: number, places: number): number {
+  if (!Number.isFinite(x)) return x;
+  if (!Number.isSafeInteger(places)) throw new TypeError(`${places} places is not an integer`);
+  const { numerator, denominator } = fromFloat(x);
+  const power = 10n ** BigInt(Math.abs(places));
+  const magnitude = (numerator < 0n ? -numerator : numerator) * (places >= 0 ? power : 1n);
+  const rounded = roundHalfEven(magnitude, denominator * (places >= 0 ? 1n : power));
+  const result = toFloat(
+    places >= 0 ? Rational.fromParts(rounded, power) : Rational.fromParts(rounded * power, 1n),
+  );
+  return x < 0 || Object.is(x, -0) ? -result : result;
+}
+
 /** A coordinate's value as Python holds it. */
 export function realOf(coordinate: Coordinate): Real {
   const { value } = coordinate;
@@ -112,9 +134,7 @@ export function compareReal(left: Real, right: Real): -1 | 0 | 1 {
   if (typeof left === "number" && typeof right === "number") {
     return left < right ? -1 : left > right ? 1 : 0;
   }
-  const a = left instanceof Rational ? left : fromFloat(left);
-  const b = right instanceof Rational ? right : fromFloat(right);
-  return a.compare(b);
+  return toRational(left).compare(toRational(right));
 }
 
 /**
@@ -126,7 +146,7 @@ export function exactCoordinate(
   unit: TimeUnit,
   numberType: NumberType,
 ): Coordinate | undefined {
-  const exact = value instanceof Rational ? value : fromFloat(value);
+  const exact = toRational(value);
   const fits = (n: bigint) => n >= INT64_MIN && n <= INT64_MAX;
   if (numberType === "float") {
     const float = value instanceof Rational ? toFloat(value) : value;

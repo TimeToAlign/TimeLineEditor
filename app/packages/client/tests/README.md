@@ -24,6 +24,28 @@ call or the exact result.
    is no JSON) rejects with code `status`, its status and the message "the
    health answer is not a name, a version and a timetoalign version".
 
+4. **Measure maps.** `measureMaps(manifest)` takes a manifest's JSON text,
+   as the schema package's writer spells it, and sends it unchanged as the
+   body of one `POST` to the base URL with `measure-maps` appended, with
+   `Content-Type: application/json` and the same `Authorization` rule as
+   `health()`; the client never parses or rewrites a manifest. Each call
+   sends exactly one request: asking once per version of a manifest is the
+   caller's, and nothing is kept between calls. A 2xx answer of the route's
+   form (the server's tests README, "Measure maps") resolves to its
+   `measure_maps` list compared whole, rows included (the answer to the
+   TimeToShare fixture `group_measure_map`, four rows, is the case); an
+   answer outside 2xx rejects as for `health()`, so a server whose
+   timetoalign cannot expand measure maps (501) rejects with code `status`
+   and status 501, which the editor tells apart from an unreachable server;
+   a 2xx body not of that
+   form (no `measure_maps` list, an entry without a string `id` or a `rows`
+   list, a row whose `qstamp` is not a pair of safe integers or `null`, a
+   row whose `count` is no safe integer, a number beyond 2^53 that JSON
+   parsing would round) rejects with code `status`, its status and the
+   message "the measure-maps answer is not a list of expanded measure
+   maps". A row is checked member by member, so an answer the client
+   accepts holds exact integers only.
+
 `pnpm typecheck` runs `tsc` under the workspace's strict settings, and the
 ladder (this package depends on `core` at most, and on no Svelte, layout or
 rendering code) is enforced by `.dependency-cruiser.cjs` and proven by

@@ -26,7 +26,7 @@ const view = changed(mixedView(), {
   into: WORKSPACE,
   block: { id: B, manifest: load("bare"), x: 600, y: 0 },
 });
-const drawing = drawingOf(blockIn(view, A), view.settings, metrics);
+const drawing = drawingOf(blockIn(view, A), view.graphical, metrics);
 
 /** The container of block A's drawing at `element`, failing loudly when there is none. */
 function box(element: ElementAddress): DrawnBox {

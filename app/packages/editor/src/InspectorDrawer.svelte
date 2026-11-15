@@ -4,17 +4,21 @@
  * `»` button closes it, and the choice is remembered under `storageKey`
  * when one is given. Beside its heading it names what is selected; below,
  * the inspector, rendered only while the drawer is open. What the inspector
- * holds between showings (unapplied text, drafts, the tab chosen) is kept
- * here, so closing the drawer loses none of it; an editor opened while it
- * is closed has the level tab shown when it opens.
+ * holds between showings (unapplied text, drafts, the tab chosen, the
+ * pinned timestamp) is kept here, so closing the drawer loses none of it;
+ * an editor opened while it is closed has the level tab shown when it
+ * opens, and a timestamp pinned while it is closed opens it. A pin is
+ * dropped, the tab kept, once its block's manifest or the granularity
+ * changes or its block is deleted.
  */
 import type { LivePlacement, LiveStore, Selection } from "@timetoalign/tilie-arranger";
+import type { GridInUse, Timestamp } from "@timetoalign/tilie-core";
 import { tick, untrack } from "svelte";
 import Inspector from "./inspector/Inspector.svelte";
 import { ManifestText } from "./inspector/manifestText.svelte.ts";
 import { PropertyDrafts } from "./inspector/propertyDrafts.svelte.ts";
-import type { Picked } from "./inspector/tabs.ts";
-import { initialPick, toggled } from "./inspector/tabs.ts";
+import type { Picked, Pin } from "./inspector/tabs.ts";
+import { initialPick, outlived, pinned, pinningOf, toggled } from "./inspector/tabs.ts";
 import { inspectedSubject } from "./inspector/words.ts";
 
 interface Props {
@@ -24,9 +28,11 @@ interface Props {
   placement: LivePlacement | null;
   /** Where the open or closed state is remembered (`localStorage`); `null` remembers nothing. */
   storageKey: string | null;
+  /** The grid of the canvas's last reading; `null` before the first. */
+  grid?: GridInUse | null;
 }
 
-let { live, selection, placement, storageKey }: Props = $props();
+let { live, selection, placement, storageKey, grid = null }: Props = $props();
 
 const id = $props.id();
 
@@ -51,6 +57,8 @@ const subject = $derived(inspectedSubject(live.view, selection));
 const manifest = new ManifestText();
 const drafts = new PropertyDrafts();
 let picked: Picked = $state.raw(untrack(() => initialPick(live.editing.length, live.openings)));
+let pin: Pin | null = $state.raw(null);
+let inspector: ReturnType<typeof Inspector> | undefined = $state();
 
 /** Whether the drawer is open. */
 export function isOpen(): boolean {
@@ -67,6 +75,27 @@ export function setOpen(next: boolean): void {
   } catch {
     // Without storage the choice holds until the editor goes.
   }
+}
+
+/**
+ * Pin `timestamp` in the Timestamp tab, opening the drawer and selecting
+ * the tab, or clear the pin (`null`), showing again the tab shown before
+ * the first pin.
+ */
+export function pinTimestamp(timestamp: Timestamp | null): void {
+  const pinning = timestamp === null ? null : pinningOf(live.view, timestamp);
+  if (pinning !== null && !open) setOpen(true);
+  ({ picked, pin } = pinned({ picked, pin }, pinning));
+}
+
+// A pin is dropped, the tab kept, once it no longer holds: its values were read from another manifest or grid.
+$effect(() => {
+  if (pin !== null && outlived(pin, live.view)) pin = null;
+});
+
+/** A click in the editor outside the canvas at `target`: clears the pin unless it lies in the tab list or the shown panel. */
+export function clickedAt(target: EventTarget | null): void {
+  if (pin !== null && !(inspector?.holds(target) ?? false)) pinTimestamp(null);
 }
 
 /** Open or close the drawer and move the focus to the control that undoes it. */
@@ -123,7 +152,17 @@ async function show(next: boolean): Promise<void> {
     >
   </div>
   {#if open}
-    <Inspector {live} {selection} {placement} {manifest} {drafts} bind:picked />
+    <Inspector
+      bind:this={inspector}
+      {live}
+      {selection}
+      {placement}
+      {manifest}
+      {drafts}
+      {grid}
+      bind:picked
+      bind:pin
+    />
   {/if}
 </aside>
 

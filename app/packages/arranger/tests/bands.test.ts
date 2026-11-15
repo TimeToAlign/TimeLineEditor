@@ -441,7 +441,7 @@ const timelineEditor = (block: string, timeline: string): Editing => ({
 
 describe("on layout's drawing of styled__score", () => {
   const view = viewOf({ id: A, fixture: STYLED });
-  const drawn = () => drawingOf(blockIn(view, A), view.settings, metrics);
+  const drawn = () => drawingOf(blockIn(view, A), view.graphical, metrics);
   const editing = timelineEditor(A, "score");
 
   it("records the present bands of score from its band order", () => {

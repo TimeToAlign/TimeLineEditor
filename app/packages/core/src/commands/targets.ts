@@ -15,7 +15,7 @@ import { namesNothing, resolveAddress } from "../workspace/address.ts";
 import type { Block } from "../workspace/blocks.ts";
 import type { View } from "../workspace/view.ts";
 
-/** The workspace, holding the settings and the blocks. */
+/** The workspace, holding its name, its default statements and the blocks. */
 export interface WorkspaceTarget {
   readonly kind: "workspace";
   readonly address: Address;

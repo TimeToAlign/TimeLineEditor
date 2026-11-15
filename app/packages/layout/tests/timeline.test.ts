@@ -16,13 +16,17 @@ import {
   manifestLayer,
   TextMeasure,
 } from "../src/index.ts";
+import { slotsOf } from "../src/slots.ts";
 import {
-  childrenStart,
+  type LaidChildren,
   type LinePlace,
   layoutTimeline,
+  ownStart,
   type PreparedTimeline,
   prepareTimeline,
+  reachOf,
   sourcesOf,
+  type TimelineDrawing,
   wholeExtent,
 } from "../src/timeline.ts";
 import { type Entry, type Scope, traverse } from "../src/traversal.ts";
@@ -72,12 +76,47 @@ const entryOf = (scope: Scope, id: string): Entry => {
 const prepared = (scope: Scope, id: string): PreparedTimeline =>
   prepareTimeline(scope, entryOf(scope, id));
 
+/** The slots of a timeline's conversion maps band laid out alone, a row of one line. */
+const slotsAlone = (timeline: PreparedTimeline) =>
+  timeline.maps.length === 0 ? undefined : slotsOf([timeline]);
+
+/** How far a timeline's line reaches, laid out alone. */
+const reachAlone = (timeline: PreparedTimeline) => reachOf(timeline, slotsAlone(timeline));
+
+/** The own start of a timeline's children band in a row of pitch `pl`, laid out alone. */
+function childrenAlone(timeline: PreparedTimeline, pl: number): number {
+  const slots = slotsAlone(timeline);
+  const spans =
+    slots === undefined
+      ? {}
+      : {
+          conversion_maps: {
+            start: ownStart(timeline, slots, "conversion_maps", {}, pl),
+            width: slots.width,
+          },
+        };
+  return ownStart(timeline, slots, "children", spans, pl);
+}
+
+/**
+ * A timeline laid out alone, its children band as `children` says: its conversion maps band at
+ * its own start, with the slots of its own maps.
+ */
+function alone(timeline: PreparedTimeline, children: LaidChildren | undefined): TimelineDrawing {
+  const slots = slotsAlone(timeline);
+  const spans = children === undefined ? {} : { children };
+  const maps =
+    slots === undefined
+      ? undefined
+      : { slots, start: ownStart(timeline, slots, "conversion_maps", spans, 14) };
+  return layoutTimeline(timeline, children, maps);
+}
+
 /** The laid bands of a timeline, top to bottom, as `[facet, level, start, width, edge, elements]`. */
 const laid = (timeline: PreparedTimeline, children?: { start: number; width: number }) =>
-  layoutTimeline(
-    timeline,
-    children === undefined ? undefined : { ...children, children: [] },
-  ).bands.map((band) => [band.facet, band.level, band.start, band.width, band.edge, band.elements]);
+  alone(timeline, children === undefined ? undefined : { ...children, children: [] }).bands.map(
+    (band) => [band.facet, band.level, band.start, band.width, band.edge, band.elements],
+  );
 
 const PLACE: LinePlace = { x0: 0, y: 100, size: 11, top: 0, Hc: 200 };
 
@@ -163,20 +202,20 @@ describe("where a band lies", () => {
   it("lays the markers and conversion maps bands against the line and the children band at c0", () => {
     const scope = scopeOf(load("map"));
     const melody = prepared(scope, "melody");
-    expect(melody.reach).toEqual({ above: 6.5, below: 0 });
+    expect(reachAlone(melody)).toEqual({ above: 6.5, below: 0 });
     expect(laid(melody, { start: 10.5, width: 14 })).toEqual([
       ["children", 2, 10.5, 14, 24.5, 1],
       ["conversion_maps", 1, 0, 6.5, 6.5, 1],
       ["markers", -1, 0, 26.9765625, 26.9765625, 2],
     ]);
-    const phrase = layoutTimeline(prepared(scope, "phrase"), undefined);
+    const phrase = alone(prepared(scope, "phrase"), undefined);
     expect(phrase.bands.map((band) => [band.facet, band.level])).toEqual([["conversion_maps", 1]]);
     expect(phrase.edges).toEqual({ above: 6.5, below: 0 });
   });
 
   it("puts two bands B apart on one side", () => {
     const melody = prepared(scopeOf(load("map_root_band_order")), "melody");
-    expect(melody.reach).toEqual({ above: 0, below: 6.5 });
+    expect(reachAlone(melody)).toEqual({ above: 0, below: 6.5 });
     expect(laid(melody, { start: 7, width: 14 })).toEqual([
       ["children", 1, 7, 14, 21, 1],
       ["conversion_maps", -1, 0, 6.5, 6.5, 1],
@@ -198,8 +237,8 @@ describe("where a band lies", () => {
       ]),
       "movement",
     );
-    expect(movement.reach).toEqual({ above: 0, below: 0 });
-    const drawing = layoutTimeline(movement, undefined);
+    expect(reachAlone(movement)).toEqual({ above: 0, below: 0 });
+    const drawing = alone(movement, undefined);
     expect(laid(movement)).toEqual([["regions", -1, 5.5, 18.4765625, 23.9765625, 1]]);
     expect(drawing.edges).toEqual({ above: 0, below: 23.9765625 });
 
@@ -218,7 +257,7 @@ describe("where a band lies", () => {
       ),
       "form",
     );
-    expect(form.reach).toEqual({ above: 8, below: 8 });
+    expect(reachAlone(form)).toEqual({ above: 8, below: 8 });
     expect(laid(form)).toEqual([
       ["regions", 1, 12, 18.4765625, 30.4765625, 2],
       ["markers", -1, 0, 26.9765625, 26.9765625, 1],
@@ -234,7 +273,7 @@ describe("where a band lies", () => {
   });
 
   it("gives a side without a band the line's reach as its outer edge", () => {
-    const b = layoutTimeline(prepared(scopeOf(load("segment_line")), "b"), undefined);
+    const b = alone(prepared(scopeOf(load("segment_line")), "b"), undefined);
     expect(b.bands).toEqual([]);
     expect(b.edges).toEqual({ above: 20.4765625, below: 8 });
   });
@@ -254,9 +293,9 @@ describe("where a band lies", () => {
       ),
       "pages",
     );
-    expect(pages.reach).toEqual({ above: 39.453125, below: 8 });
+    expect(reachAlone(pages)).toEqual({ above: 39.453125, below: 8 });
     expect(laid(pages)).toEqual([["markers", 1, 0, 26.9765625, 39.453125, 2]]);
-    const drawn = layoutTimeline(pages, undefined).elements(PLACE);
+    const drawn = alone(pages, undefined).elements(PLACE);
     expect(drawn.segmentLabels.map((item) => item.element.baseline)).toEqual([
       68.90087890625, 68.90087890625, 68.90087890625, 68.90087890625,
     ]);
@@ -267,14 +306,14 @@ describe("where a band lies", () => {
   });
 });
 
-describe("childrenStart", () => {
+describe("the own start of a children band", () => {
   it("takes the larger of the rule's start and half the row's pitch", () => {
     const melody = prepared(scopeOf(load("map")), "melody");
-    expect([childrenStart(melody, 14), childrenStart(melody, 30)]).toEqual([10.5, 15]);
+    expect([childrenAlone(melody, 14), childrenAlone(melody, 30)]).toEqual([10.5, 15]);
     const form = prepared(scopeOf(load("segment_line")), "form");
-    expect(childrenStart(form, 14)).toBe(24.4765625);
+    expect(childrenAlone(form, 14)).toBe(24.4765625);
     const score = prepared(scopeOf(load("unknown_length_child")), "score");
-    expect(childrenStart(score, 14)).toBe(7);
+    expect(childrenAlone(score, 14)).toBe(7);
   });
 });
 
@@ -294,13 +333,13 @@ describe("level 0", () => {
       ),
       "melody",
     );
-    expect(melody.reach).toEqual({ above: 0, below: 0 });
+    expect(reachAlone(melody)).toEqual({ above: 0, below: 0 });
     expect(laid(melody, { start: 7, width: 14 })).toEqual([
       ["children", 1, 7, 14, 21, 1],
       ["markers", -1, 0, 26.9765625, 26.9765625, 2],
       ["conversion_maps", -2, 30.9765625, 6.5, 37.4765625, 1],
     ]);
-    const drawn = layoutTimeline(melody, { start: 7, width: 14, children: [] }).elements(PLACE);
+    const drawn = alone(melody, { start: 7, width: 14, children: [] }).elements(PLACE);
     expect(drawn.maps.map((map) => [map.address, map.xs, map.xe, map.yc])).toEqual([
       [at("tempo"), 0, 400, 136.4765625],
     ]);
@@ -308,8 +347,8 @@ describe("level 0", () => {
 
   it("reaches k both ways with boundaries and puts segment labels above only", () => {
     const b = prepared(scopeOf(load("segment_line")), "b");
-    expect(b.reach).toEqual({ above: 20.4765625, below: 8 });
-    const drawn = layoutTimeline(b, undefined).elements(PLACE);
+    expect(reachAlone(b)).toEqual({ above: 20.4765625, below: 8 });
+    const drawn = alone(b, undefined).elements(PLACE);
     expect(drawn.line.map((line) => [line.type, line.address, line.y, line.end])).toEqual([
       ["child", at("b"), 100, "diamond"],
     ]);
@@ -387,7 +426,7 @@ describe("segments without a line", () => {
       regions: 3,
       flow_control: 2,
     });
-    const drawn = layoutTimeline(timeline, undefined).elements(PLACE);
+    const drawn = alone(timeline, undefined).elements(PLACE);
     expect(drawn.regions.map((item) => item.address)).toEqual([
       at("b_region"),
       at("b1_region"),
@@ -429,7 +468,7 @@ describe("segments without a line", () => {
       show("regions", "flow_control"),
       hide({ id: "b", facet: "regions" }),
     ]);
-    const drawn = layoutTimeline(prepared(scope, "b"), undefined).elements(PLACE);
+    const drawn = alone(prepared(scope, "b"), undefined).elements(PLACE);
     expect(drawn.regions.map((item) => item.address)).toEqual([at("b1_region"), at("b2_region")]);
   });
 
@@ -479,14 +518,11 @@ describe("extents", () => {
 
 describe("flow markers", () => {
   it("end at the padding of the opposite side for the root", () => {
-    const below = layoutTimeline(
-      prepared(scopeOf(load("flow_control")), "flow:quarters"),
-      undefined,
-    );
+    const below = alone(prepared(scopeOf(load("flow_control")), "flow:quarters"), undefined);
     expect(below.elements(PLACE).flowMarkers.map((item) => [item.y1, item.y2])).toEqual([
       [141.453125, 8],
     ]);
-    const above = layoutTimeline(
+    const above = alone(
       prepared(
         scopeOf(
           edit(
@@ -520,7 +556,7 @@ describe("flow markers", () => {
       },
     ];
     const ends = (manifest: Manifest, size = 11) =>
-      layoutTimeline(prepared(scopeOf(manifest, shown), "verse"), undefined)
+      alone(prepared(scopeOf(manifest, shown), "verse"), undefined)
         .elements({ ...PLACE, size })
         .flowMarkers.map((item) => item.y2);
     expect(ends(load("child_flow_control"))).toEqual([93.59765625]);

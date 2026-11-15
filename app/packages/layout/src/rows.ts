@@ -2,18 +2,21 @@
  * The rows of a member drawing (`docs/drawing.md` in TimeToShare, sections
  * 6.2 and 6.4, Children): the root's row, and the rows of the children bands
  * of each row's lines on one side, laid out together, at every depth. Holds
- * the second pass from the deepest rows up and places every line in the
- * third, from the root's line down.
+ * the second pass from the deepest rows up, in which the children bands and
+ * the conversion maps bands of a row's lines laid out together take their
+ * common starts, and places every line in the third, from the root's line
+ * down.
  */
 
-import { opposite, type Side } from "./bands.ts";
+import { type BandSpan, opposite, type Side } from "./bands.ts";
 import type { Fitted } from "./children.ts";
+import type { Slots } from "./maps.ts";
 import { lineNames } from "./names.ts";
 import {
-  childrenStart,
   type LaidChildren,
   type LinePlace,
   layoutTimeline,
+  ownStart,
   type TimelineDrawing,
 } from "./timeline.ts";
 import { type Entry, known, nth, rowPitch, type Scope } from "./traversal.ts";
@@ -125,66 +128,204 @@ export function rowsOf(scope: Scope, fitted: ReadonlyMap<Entry, Fitted>): Row {
   return rowOf([scope.rootEntry], size, rowPitch(scope, size));
 }
 
+/** Every row of a member drawing, the root's first, then each joint's rows, at every depth. */
+export function rowsBelow(row: Row): Row[] {
+  return [
+    row,
+    ...[row.joints.above, row.joints.below].flatMap((joint) =>
+      (joint?.rows ?? []).flatMap(rowsBelow),
+    ),
+  ];
+}
+
+/** The spans of a line's bands laid out together with other lines' bands, as they are found. */
+type Spans = Partial<Record<"children" | "conversion_maps", BandSpan>>;
+
+/**
+ * Bands of the lines of one row on one side laid out together (section 6.4,
+ * Children and Conversion maps): the children bands of a joint, or the
+ * conversion maps bands sharing one set of slots.
+ */
+interface Together {
+  readonly facet: "children" | "conversion_maps";
+  readonly lines: readonly Entry[];
+  /** The width of each line's band. */
+  readonly width: (line: Entry) => number;
+}
+
+/**
+ * The starts of the bands of the lines of `row` on `side` that are laid out
+ * together with other lines' (section 6.4, Where a band lies, The order of
+ * the starts), `sets` those bands, step by step: a set starts at `c0`, the
+ * largest of its bands' own starts (`ownStart`), once every band nearer each
+ * of their lines that is laid out together has its start. Since the slots
+ * keep apart the conversion maps bands whose lines' children bands lie on
+ * either side of them (`rowSlots`), no set waits on itself, and the order of
+ * the steps changes no start.
+ */
+function resolveStarts(
+  sets: readonly Together[],
+  side: Side,
+  pl: number,
+  fitted: ReadonlyMap<Entry, Fitted>,
+  slots: ReadonlyMap<Entry, Slots>,
+  spans: Map<Entry, Spans>,
+): void {
+  const spansOf = (line: Entry): Spans => {
+    const found = spans.get(line);
+    if (found !== undefined) return found;
+    const created: Spans = {};
+    spans.set(line, created);
+    return created;
+  };
+  const ready = (line: Entry, facet: Together["facet"]): boolean => {
+    const { levels } = known(fitted, line).prepared;
+    const nearer = levels[side].slice(0, levels[side].indexOf(facet));
+    return nearer.every(
+      (each) =>
+        (each !== "children" && each !== "conversion_maps") || spansOf(line)[each] !== undefined,
+    );
+  };
+  const pending = [...sets];
+  while (pending.length > 0) {
+    const index = pending.findIndex((set) => set.lines.every((line) => ready(line, set.facet)));
+    const set = pending[index];
+    if (set === undefined) throw new Error("the bands of a row wait on each other");
+    const c0 = Math.max(
+      ...set.lines.map((line) =>
+        ownStart(known(fitted, line).prepared, slots.get(line), set.facet, spansOf(line), pl),
+      ),
+    );
+    for (const line of set.lines) spansOf(line)[set.facet] = { start: c0, width: set.width(line) };
+    pending.splice(index, 1);
+  }
+}
+
 /**
  * The second pass for the lines of `row` (section 6.4, Children: "the
- * distances, from the deepest rows up"): for each side, the joint layout of
- * its lines' children bands (`layoutChildren`), which first lays out its own
- * rows, then each line of `row` laid out by `layoutTimeline` with its
- * children band. Keyed by the row's lines, each drawing holding its subtree.
+ * distances, from the deepest rows up"), `slots` the slots of every present
+ * conversion maps band (`rowSlots`): for each side, the rows of the joint
+ * layout of its lines' children bands, each laid out first; their halves
+ * (`childrenHalves`); the common start of each set of bands laid out
+ * together, the children bands and the conversion maps bands sharing slots
+ * (`resolveStarts`); the children placed (`placeChildren`); then each line
+ * of `row` laid out by `layoutTimeline`. Keyed by the row's lines, each
+ * drawing holding its subtree.
  */
 export function layoutRow(
   row: Row,
   fitted: ReadonlyMap<Entry, Fitted>,
+  slots: ReadonlyMap<Entry, Slots>,
 ): ReadonlyMap<Entry, TimelineDrawing> {
   const laid = new Map<Entry, LaidChildren>();
+  const spans = new Map<Entry, Spans>();
   for (const side of SIDES) {
     const joint = row.joints[side];
-    if (joint === undefined) continue;
-    const drawings = new Map<Entry, TimelineDrawing>();
-    for (const jointRow of joint.rows) {
-      for (const [line, drawing] of layoutRow(jointRow, fitted)) drawings.set(line, drawing);
+    const sets: Together[] = [];
+    let halves: Halves | undefined;
+    let drawings: Map<Entry, TimelineDrawing> | undefined;
+    if (joint !== undefined) {
+      drawings = new Map<Entry, TimelineDrawing>();
+      for (const jointRow of joint.rows) {
+        for (const [line, drawing] of layoutRow(jointRow, fitted, slots)) {
+          drawings.set(line, drawing);
+        }
+      }
+      const found = childrenHalves(joint, fitted, drawings);
+      halves = found;
+      sets.push({
+        facet: "children",
+        lines: joint.lines,
+        width: (line) => known(found.widths, line),
+      });
     }
-    for (const [line, children] of layoutChildren(joint, row.pitch, fitted, drawings)) {
-      laid.set(line, children);
+    const shared = new Set(
+      row.lines.flatMap((line) => {
+        const each = slots.get(line);
+        return each !== undefined && each.side === side ? [each] : [];
+      }),
+    );
+    for (const each of shared) {
+      sets.push({ facet: "conversion_maps", lines: each.lines, width: () => each.width });
+    }
+    resolveStarts(sets, side, row.pitch, fitted, slots, spans);
+    if (joint !== undefined && halves !== undefined && drawings !== undefined) {
+      for (const [line, children] of placeChildren(joint, halves, fitted, drawings, spans)) {
+        laid.set(line, children);
+      }
     }
   }
   return new Map(
-    row.lines.map((line) => [line, layoutTimeline(known(fitted, line).prepared, laid.get(line))]),
+    row.lines.map((line) => {
+      const lineSlots = slots.get(line);
+      const start = spans.get(line)?.conversion_maps?.start;
+      const maps =
+        lineSlots === undefined || start === undefined ? undefined : { slots: lineSlots, start };
+      return [line, layoutTimeline(known(fitted, line).prepared, laid.get(line), maps)];
+    }),
   );
 }
 
+/** The halves of the rows of a joint layout, and the width of each of its bands. */
+interface Halves {
+  /** `ik`, row `k`'s inner half, at index `k − 1`. */
+  readonly inner: readonly number[];
+  /** `ok`, row `k`'s outer half, at index `k − 1`. */
+  readonly outer: readonly number[];
+  /** Each band's width `i1 + o1 + … + iC + oC`, by the line whose band it is. */
+  readonly widths: ReadonlyMap<Entry, number>;
+}
+
 /**
- * The children bands of `joint` laid out together (section 6.4, Children),
- * `pl` the pitch of the row whose lines hold them, each row of `joint`
- * already laid out (`layoutRow`, its lines' drawings in `drawings`):
- *
- * - `c0`, the largest of the bands' own starts (`childrenStart` with `pl`);
- * - row `k`'s inner half `ik` and outer half `ok`, each the larger of `p /
- *   2` and the largest edge of row `k`'s children on that half's side,
- *   whichever band places them, `p` the joint's pitch; the outer half's side
- *   is `joint.side`, the inner half's the opposite one;
- * - `l1 = c0 + i1` and `l(k + 1) = lk + (ok + i(k + 1))`;
- * - each band `i1 + o1 + … + iC + oC` wide, summed left to right over its
- *   own `C` rows.
- *
- * Keyed by the lines of `joint`, each band with the children it places.
+ * The rows of the children bands of `joint` laid out together (section 6.4,
+ * Children), each row of `joint` already laid out (`layoutRow`, its lines'
+ * drawings in `drawings`): row `k`'s inner half `ik` and outer half `ok`,
+ * each the larger of `p / 2` and the largest edge of row `k`'s children on
+ * that half's side, whichever band places them, `p` the joint's pitch (the
+ * outer half's side is `joint.side`, the inner half's the opposite one); and
+ * each band `i1 + o1 + … + iC + oC` wide, summed left to right over its own
+ * `C` rows. None of it depends on where the bands start.
  */
-export function layoutChildren(
+function childrenHalves(
   joint: Joint,
-  pl: number,
   fitted: ReadonlyMap<Entry, Fitted>,
   drawings: ReadonlyMap<Entry, TimelineDrawing>,
-): ReadonlyMap<Entry, LaidChildren> {
+): Halves {
   const half = joint.pitch / 2;
-  const c0 = Math.max(
-    ...joint.lines.map((line) => childrenStart(known(fitted, line).prepared, pl)),
-  );
   const halves = (side: Side) =>
     joint.rows.map((row) =>
       Math.max(half, ...row.lines.map((line) => known(drawings, line).edges[side])),
     );
   const inner = halves(opposite(joint.side));
   const outer = halves(joint.side);
+  const widths = new Map(
+    joint.lines.map((line) => {
+      let width = 0;
+      for (let index = 0; index < known(fitted, line).fit.count; index += 1) {
+        width = width + nth(inner, index) + nth(outer, index);
+      }
+      return [line, width];
+    }),
+  );
+  return { inner, outer, widths };
+}
+
+/**
+ * The children bands of `joint` placed from their common start `c0`, found
+ * in `spans` (section 6.4, Children): `l1 = c0 + i1` and `l(k + 1) = lk +
+ * (ok + i(k + 1))`, by the halves `halves`. Keyed by the lines of `joint`,
+ * each band with the children it places.
+ */
+function placeChildren(
+  joint: Joint,
+  halves: Halves,
+  fitted: ReadonlyMap<Entry, Fitted>,
+  drawings: ReadonlyMap<Entry, TimelineDrawing>,
+  spans: ReadonlyMap<Entry, Spans>,
+): ReadonlyMap<Entry, LaidChildren> {
+  const { inner, outer, widths } = halves;
+  const c0 = spans.get(nth(joint.lines, 0))?.children?.start;
+  if (c0 === undefined) throw new Error("a children band is placed before its start");
   const distances: number[] = [];
   inner.forEach((ik, index) => {
     distances.push(
@@ -194,10 +335,6 @@ export function layoutChildren(
   return new Map(
     joint.lines.map((line) => {
       const { prepared, fit } = known(fitted, line);
-      let width = 0;
-      for (let index = 0; index < fit.count; index += 1) {
-        width = width + nth(inner, index) + nth(outer, index);
-      }
       const children = prepared.children.map((child) => {
         const row = known(fit.row, child);
         return {
@@ -206,7 +343,7 @@ export function layoutChildren(
           distance: nth(distances, row - 1),
         };
       });
-      return [line, { start: c0, width, children }];
+      return [line, { start: c0, width: known(widths, line), children }];
     }),
   );
 }

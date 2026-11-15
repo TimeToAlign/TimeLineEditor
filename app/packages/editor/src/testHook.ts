@@ -139,7 +139,7 @@ export function hookBands(drawing: Drawing, box: ClientBox): HookBand[] {
 function drawingIn(view: View, block: BlockId): Drawing {
   const found = view.blocks[block];
   if (found === undefined) throw new RangeError(`${block} is no block of the open workspace`);
-  return drawingOf(found, view.settings, fontMetrics);
+  return drawingOf(found, view.graphical, fontMetrics);
 }
 
 /**

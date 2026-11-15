@@ -13,20 +13,50 @@ import {
   placeMembersOf,
 } from "../manifest/containers.ts";
 import { manifestProblems } from "../manifest/io.ts";
-import { readFinite, readIndex, readNonNegative, readPlaces, readPositive } from "../values.ts";
+import { positiveDecimal } from "../number/rational.ts";
+import type { MemberReader } from "../values.ts";
+import {
+  readBoolean,
+  readExact,
+  readFinite,
+  readIndex,
+  readNonNegative,
+  readNullablePositive,
+  readPlaces,
+  readPositive,
+} from "../values.ts";
 import type { Block, BlockId, BlockPlacement } from "./blocks.ts";
 import { BLOCK_ID } from "./blocks.ts";
 
 export interface WorkspaceMeta {
   readonly format: "tilie-workspace";
-  readonly version: 6;
+  readonly version: 7;
 }
 
+/**
+ * The step of the grid a position on a timeline is picked from, per number
+ * type, and whether it is refined when zooming in (or, for `int`, coarsened
+ * when zooming out).
+ */
+export interface Granularity {
+  /** The step `1 / denominator`; the denominator a positive safe integer. */
+  readonly fraction: { readonly denominator: number; readonly refine: boolean };
+  /** The step as positive decimal text, read exactly (`"0.2"` is 1/5). */
+  readonly float: { readonly step: string; readonly refine: boolean };
+  /** The step, a positive safe integer. */
+  readonly int: { readonly step: number; readonly refine: boolean };
+}
+
+/**
+ * How the editor is used on this workspace: the canvas's snapping grid, the
+ * placement of new blocks and the granularity of positions on timelines.
+ * No command changes a setting, so the journal neither records nor undoes
+ * them (`Store.configure`).
+ */
 export interface WorkspaceSettings {
   readonly grid: { readonly size: number; readonly snap: boolean };
   readonly blockDefaults: BlockPlacement;
-  /** The workspace's default statements, between the built-in defaults and each manifest's own. */
-  readonly graphical: Graphical;
+  readonly granularity: Granularity;
 }
 
 export interface View {
@@ -34,23 +64,103 @@ export interface View {
   /** The workspace's name, the default name of its file (`<name>.tle.json`); never empty. */
   readonly name: string;
   readonly settings: WorkspaceSettings;
+  /** The workspace's default statements, between the built-in defaults and each manifest's own. */
+  readonly graphical: Graphical;
   readonly blocks: { readonly [id: BlockId]: Block };
 }
 
-export const WORKSPACE_META: WorkspaceMeta = { format: "tilie-workspace", version: 6 };
+export const WORKSPACE_META: WorkspaceMeta = { format: "tilie-workspace", version: 7 };
 
 /** The name of a new workspace, and of one read from a file that states none. */
 export const UNTITLED_WORKSPACE = "untitled";
 
+export const DEFAULT_GRANULARITY: Granularity = {
+  fraction: { denominator: 1, refine: true },
+  float: { step: "1", refine: true },
+  int: { step: 1, refine: true },
+};
+
 export const DEFAULT_SETTINGS: WorkspaceSettings = {
   grid: { size: 8, snap: true },
   blockDefaults: { scale: 1, length: 400, spacing: 8, margin: 0, width: null, height: null },
-  graphical: {},
+  granularity: DEFAULT_GRANULARITY,
 };
 
 /** An empty workspace with the given settings, named `untitled`. */
 export function createView(settings: WorkspaceSettings = DEFAULT_SETTINGS): View {
-  return { meta: WORKSPACE_META, name: UNTITLED_WORKSPACE, settings, blocks: {} };
+  return { meta: WORKSPACE_META, name: UNTITLED_WORKSPACE, settings, graphical: {}, blocks: {} };
+}
+
+/** The reader of each member of a block's placement, as a block and the block defaults store it. */
+export const PLACEMENT_READERS: {
+  readonly [M in keyof BlockPlacement]-?: (
+    value: unknown,
+    path: readonly PathSegment[],
+  ) => BlockPlacement[M] | Problem;
+} = {
+  scale: readPositive,
+  length: readPositive,
+  spacing: readNonNegative,
+  margin: readNonNegative,
+  width: readNullablePositive,
+  height: readNullablePositive,
+};
+
+function readPositiveInteger(value: unknown, path: readonly PathSegment[]): number | Problem {
+  const read = readPositive(value, path);
+  if (isCommandError(read)) return read;
+  return Number.isSafeInteger(read)
+    ? read
+    : problem(ErrorCode.invalidValue, "expected a positive safe integer", path);
+}
+
+function readDecimalStep(value: unknown, path: readonly PathSegment[]): string | Problem {
+  return typeof value === "string" && positiveDecimal(value) !== undefined
+    ? value
+    : problem(ErrorCode.invalidValue, "a step is positive decimal text, such as 0.2", path);
+}
+
+/**
+ * Read workspace settings, every member required and none unknown; the
+ * problems go to `problems` and the result is `undefined` when there are any.
+ */
+export function readSettings(
+  value: unknown,
+  path: readonly PathSegment[],
+  problems: Problem[],
+): WorkspaceSettings | undefined {
+  const step =
+    (read: MemberReader): MemberReader =>
+    (item, at) =>
+      readExact(item, at, { step: read, refine: readBoolean }, problems);
+  const read: unknown = readExact(
+    value,
+    path,
+    {
+      grid: (grid, at) => readExact(grid, at, { size: readPositive, snap: readBoolean }, problems),
+      blockDefaults: (defaults, at) => readExact(defaults, at, PLACEMENT_READERS, problems),
+      granularity: (granularity, at) =>
+        readExact(
+          granularity,
+          at,
+          {
+            fraction: (item, where) =>
+              readExact(
+                item,
+                where,
+                { denominator: readPositiveInteger, refine: readBoolean },
+                problems,
+              ),
+            float: step(readDecimalStep),
+            int: step(readPositiveInteger),
+          },
+          problems,
+        ),
+    },
+    problems,
+  );
+  // Every member was read by the reader of its type.
+  return read as WorkspaceSettings | undefined;
 }
 
 function formsParentCycle(view: View, start: BlockId): boolean {

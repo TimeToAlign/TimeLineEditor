@@ -64,7 +64,7 @@ const name = $derived(nameOf(view, subjects, live.editing.at(-1) ?? null));
 const shown: Shown | null = $derived.by(() => {
   if (block === null) return null;
   if (placement?.id === block.id) return placement;
-  return { ...block, drawing: drawingOf(block, view.settings, fontMetrics) };
+  return { ...block, drawing: drawingOf(block, view.graphical, fontMetrics) };
 });
 
 /** The geometry the form edits: containers of one role in the block; else `null`. */

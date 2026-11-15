@@ -240,7 +240,7 @@ function located(
   return { ...found, path: [...path, ...(inside ? found.path.slice(at.length) : [])] };
 }
 
-/** A `graphical` block, as a manifest's or the workspace settings'. */
+/** A `graphical` block, as a manifest's or the workspace's. */
 export function readGraphical(
   value: unknown,
   path: readonly PathSegment[],
@@ -274,4 +274,50 @@ export function readStatement(
   const declaration = plainDeclaration(statement.set, [...at, "set"]);
   if ("code" in declaration) return located(declaration, at, path);
   return { select: plainSelector(statement.select), set: declaration };
+}
+
+/** A reader of one member: its value as stored, a problem, or `undefined` when it pushed its problems. */
+export type MemberReader = (value: unknown, path: readonly PathSegment[]) => unknown;
+
+/**
+ * The members of an object, each read by its reader; an unknown member is
+ * `unknown_member`, an absent one `missing_member`. Problems go to `problems`.
+ */
+export function readExact(
+  value: unknown,
+  path: readonly PathSegment[],
+  readers: { readonly [member: string]: MemberReader },
+  problems: Problem[],
+): { [member: string]: unknown } | undefined {
+  if (!isJsonObject(value)) {
+    problems.push(problem(ErrorCode.invalidValue, "expected an object", path));
+    return undefined;
+  }
+  let complete = true;
+  for (const member of Object.keys(value)) {
+    if (!Object.hasOwn(readers, member)) {
+      problems.push(
+        problem(ErrorCode.unknownMember, `unknown member ${member}`, [...path, member]),
+      );
+      complete = false;
+    }
+  }
+  const result: { [member: string]: unknown } = {};
+  for (const [member, read] of Object.entries(readers)) {
+    if (!Object.hasOwn(value, member)) {
+      problems.push(
+        problem(ErrorCode.missingMember, `missing member ${member}`, [...path, member]),
+      );
+      complete = false;
+      continue;
+    }
+    const item = read(value[member], [...path, member]);
+    if (isCommandError(item)) {
+      problems.push(item);
+      complete = false;
+    } else if (item === undefined) {
+      complete = false;
+    } else result[member] = item;
+  }
+  return complete ? result : undefined;
 }

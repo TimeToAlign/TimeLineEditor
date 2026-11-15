@@ -241,9 +241,11 @@ The floors of a resize are scale 1/8, length 8 and spacing 0, a gap.
 
 The oracle is layout called directly: a block's drawing equals layout's
 drawing of its manifest at its placement with the layers default,
-workspace, manifest, in that order (section 1). Asked twice for one block
-and one settings object it is the identical object; after a `set` of the
-workspace's `graphical` it shows the statement (a block fill of
+workspace, manifest, in that order (section 1); the workspace layer is
+the workspace's own `graphical`, never a setting. Asked twice for one
+block and one workspace `graphical` it is the identical object, also after
+the grid is configured (the settings are no input of a drawing); after a
+`set` of the workspace's `graphical` it shows the statement (a block fill of
 `#FFFFFF`). Overrides draw the placement they give: drawn at length 800
 `bare` is `W(800) = 876.5771484375` wide and the block's own drawing stays
 the length-400 one; `bundle_mixed` with `annotations` at `{x: −30}` has the
@@ -259,7 +261,7 @@ is the identical drawing, and the block `set` to length 800, a new block
 object, draws that identical drawing too; places equal by value but built anew
 (`{annotations: {x: −30}}` written twice) share one drawing, while
 `{x: −30}` and `{x: −31}` do not. Such a drawing is never served under
-other settings: after the `set` of the workspace's `graphical` the length
+another workspace `graphical`: after the `set` of the workspace's `graphical` the length
 800 drawing is a new one that shows the fill. After 32 other placements
 of `bare` (lengths 801 to 832) the length-800 drawing is drawn anew, equal
 to the first but not identical; asked again right after it is identical.
@@ -477,9 +479,11 @@ and request, so the search stays monotone with or without a request.
 | `null` | 553 | 600 | `null` |
 
 `audio` is `corpus_audio_audio` at (40, 80) with every name hidden: its
-labels "0.0 s" and "231.0791836734694 s" are 21.86279296875 and
-102.02783203125 wide, so `W` is flat at 136.02783203125 below the knee
-`L* = 40.08251953125` and `95.9453125 + L` above it.
+labels "0.0 s" and "231.079 s" (the end 231.0791836734694 rounded to three
+places, TimeToShare's drawing specification section 5.2) are
+21.86279296875 and 44.76708984375 wide (the bundled font's advances at
+size 9), so `W` is flat at 107.3974609375 below the knee `L* =
+11.4521484375` and `95.9453125 + L` above it.
 
 | fixture | handle | delta | values |
 |---|---|---|---|
@@ -498,9 +502,9 @@ labels "0.0 s" and "231.0791836734694 s" are 21.86279296875 and
 | ungrouped | bottom | (0, −16) / (0, −40) | `{spacing: 0}` / `{spacing: 0}` (the floor) |
 | ungrouped | bottom-right | (40, 32) | `{length: 440, spacing: 24}` |
 | ungrouped, `score` at `{y: 200}` | bottom | (0, 50) | `{spacing: 192.6953125}` (across the knee: `143.734375 + s ≤ 336.4296875`) |
-| audio | right | (−500, 0) | `{length: 40.08251953125}` (the knee) |
-| audio, length 8 | right | (50, 0) | `{length: 90.08251953125}` |
-| audio, at the knee | right | (100, 0) | `{length: 140.08251953125}` |
+| audio | right | (−500, 0) | `{length: 11.4521484375}` (the knee) |
+| audio, length 8 | right | (50, 0) | `{length: 61.4521484375}` (8 lies below the knee, so the travel adds to the flat 107.3974609375) |
+| audio, at the knee (length 11.4521484375) | right | (100, 0) | `{length: 111.4521484375}` |
 | bare, width `2 Wc(400)` | right / left | (40, 0) / (−42, 0) | `{length: 420, width: 993.154296875}` / `{length: 421, width: 995.154296875, x: −2}` |
 | ungrouped, height `2 H(8)` = 504.328125 | bottom / top | (0, 32) / (0, −32) | `{spacing: 16, height: 536.328125}` / the same with `y: 48` |
 | ungrouped, width `2 W(400)` = 1051.79345703125 and height `2 H(8)` | bottom-right | (40, 32) | `{length: 420, spacing: 16, width: 1091.79345703125, height: 536.328125}` |
@@ -1460,6 +1464,137 @@ by the neighbour that moves; a way not permitted is disabled with its
 reason as its title, a permitted one enabled without a title; the first
 permitted way is preselected and takes the focus; Enter and OK confirm,
 Escape and Cancel cancel, and only a permitted way can be chosen.
+
+## Show coordinates (`coordinates.test.ts`)
+
+With "Show coordinates" on, the pointer reads a timeline where it comes
+near its line or any map drawn at that line, and the reading is the
+timestamp of one grid point. What would be wrong is shown by three
+questions, each answered with exact values: is the right thing hovered,
+is the right grid point picked, and does the timestamp read the right
+timelines and maps. The values a map gives are core's (its evaluators
+and `timestampAt` are proven against timetoalign there); the tests here
+assert the whole timestamp only to prove that the arranger hands core the
+line, the segments and the maps the drawing shows, in drawing order, and
+nothing else. Where a line lies is layout's: the tests read the lines
+and the maps of a drawing from layout's `lineAxes` record, the oracle for
+geometry, and derive every point from it; the numbers quoted below are
+that record's for block A holding the fixture at (40, 80), scale 1.
+
+**Hovering.** A line is hovered anywhere in its zone: from the line out
+to the outermost map drawn at it, 8 device pixels beyond, over the line's
+span widened by 8 device pixels on each side, so the reading never stops
+between the line and a map or between two maps, at any zoom. One canvas
+unit covers zoom × the block's scale × the device pixel ratio device
+pixels, so at 1, 1, 1 the tolerance is 8 canvas units, at zoom 2 on ratio
+2 it is 2. Within the zone the nearest in ordinate of the line and of
+each map whose span (widened alike) holds the abscissa is hovered, the
+line on a tie, an earlier map before a later one; that map's row is the
+highlighted one. Where two lines' zones hold the point, the line nearer
+by what is hovered in it wins. The abscissa is held to the span of what
+is hovered. A line whose length is unknown (or zero) stands for no
+coordinate and is never hovered. In `map` (`melody` y 40.5 from
+63.53662109375 to 463.53662109375, its map `tempo` at 35 over the same
+span; `phrase` y 23 from 163.53662109375 to 363.53662109375 with `ticks`
+at 17.5), at the abscissa 263.53662109375:
+
+| Point y | Hovered | Why |
+|---|---|---|
+| 48.5 | `melody`'s line | 8 below, the bound included |
+| 48.515625 | nothing | 8.015625 below |
+| 37 | `tempo` of `melody` | 2 from the map, 3.5 from the line |
+| 37.75 | `melody`'s line | 2.75 from both: the tie goes to the line |
+
+At (471.53662109375, 40.5), 8 right of `melody`'s end, the line is
+hovered with the abscissa held to 463.53662109375; at 471.55224609375
+nothing is. At (156, 20) `phrase`'s line (3 away) and its `ticks` (2.5)
+are both in reach and `ticks` wins, held to 163.53662109375. In
+`unknown_length` the line of `score` (length unknown, y 37) hovers
+nothing, even exactly on it.
+
+At zoom 2 on device-pixel ratio 2 (tolerance 2), with a second map
+`tempo_2` (`tempo` under another ID) added to `melody`, the line lies at
+45.5, `tempo` in slot 1 at 40 and `tempo_2` in slot 2 at 35 (layout's
+record), so the zone runs from 33 to 47.5. At the abscissa
+263.53662109375:
+
+| Point y | Hovered | Why |
+|---|---|---|
+| 42.5 | `tempo` | between line and slot 1, beyond 2 of both; 2.5 from `tempo`, 3 from the line |
+| 43 | `melody`'s line | between line and slot 1; 2.5 from the line, 3 from `tempo` |
+| 37.75 | `tempo` | between the slots; 2.25 from `tempo`, 2.75 from `tempo_2` |
+| 37.25 | `tempo_2` | between the slots; 2.75 from `tempo`, 2.25 from `tempo_2` |
+| 33 | `tempo_2` | 2 beyond the outermost map, the bound included |
+| 32.984375 | nothing | 2.015625 beyond it |
+| 47.5 | `melody`'s line | 2 below the line, the bound included |
+| 47.515625 | nothing | 2.015625 below it |
+
+**The grid point.** The step is core's `gridStep` for the line's number
+type, the workspace's granularity, and the device pixels one unit of the
+timeline covers: the line's width over its length × zoom × scale × ratio.
+The position is the multiple of the step nearest to the pointer's
+coordinate, held to the line's span (core's `snapPosition`). At the
+abscissa `xStart + 123.75` (dyadic, so exact in a double):
+
+| Fixture, line | Units per canvas unit | Zoom × ratio | Granularity | Step | Position |
+|---|---|---|---|---|---|
+| `map`, `melody` (8 quarters over 400) | 1/50 | 1 × 1 | default | 1/32 | 2.475 × 32 = 79.2 → 79/32 |
+| `map`, `melody` | 1/50 | 2 × 2 | default | 1/128 | 316.8 → 317/128 |
+| `map`, `melody` | 1/50 | 1 × 1 | fraction `1/5`, fixed | 1/5 | 12.375 → 12/5 |
+| `maps_seconds` (2 s, float, over 400) | 1/200 | 1 × 1 | default | 1/200 | 123.75 → 31/50, read 0.62 |
+| `maps_seconds` | 1/200 | 1 × 1 | float `"0.2"`, fixed | 1/5 | 3.09375 → 3/5, read 0.6 |
+| `discrete_physical`, `dpt_1` (44100 samples over 400) | 441/4 | 1 × 1 | default | 200 | 68.2171875 → 13600 |
+
+At `melody`'s end the position is 8, at its start 0. The footer is
+core's grid text of the reading's grid (the step, the line's number type
+and unit, the granularity), the same text the Timestamp tab writes:
+`grid 1/32 ♩ (fraction base 1, refining)`, `grid 0.005 s (float base 1,
+refining)`, `grid 0.2 s (float base 0.2, fixed)`, and `grid 200 smp (int
+base 1, refining)`.
+
+**What is read.** `segment_line` with a map `b_tempo` (`map`'s `tempo`
+under another ID) added to the segment line `b` and `b2_ticks` (`map`'s
+`ticks`) added to `b`'s segment `b2`, which has no line of its own, so it
+is drawn at `b`'s line: `b` y 39.9765625 from 152.294921875 to
+302.294921875 (12 quarters, step 1/8 at zoom 1), `b_tempo` at 34.4765625
+over all of it, `b2_ticks` at 29.4765625 from 227.294921875.
+
+- On `b`'s line at 223.294921875: 71/12.5 = 5.68 → 45/8. The timestamp
+  holds `b` at 45/8 with `b_tempo` 45/16 written on seconds (float)
+  2.8125, then the segment under it, `b1` at 45/8 without maps; the spec
+  lists both segments with their own maps only, `b`'s map never under a
+  segment.
+- On `b2_ticks` at the same abscissa: held to 227.294921875, the position
+  is 6, the boundary `b1` shares with `b2`. The hovered map names its
+  segment, so the timestamp holds `b` at 6 (`b_tempo` 3.0) then `b2` at 0
+  (`b2_ticks` 0 ticks), and `b2_ticks`'s row is the hovered one.
+- On `form`'s line at 152.294921875 (32 quarters over 400, step 1/8): 8,
+  the boundary of `a` and `b`; with the line hovered every segment is
+  given and core reads `b` at 0.
+- `map`: a child's reading holds its own maps only: `phrase` at its own
+  coordinate with `ticks`, never `melody`'s `tempo`.
+
+The flag writes each map's value with core's `displayValue` in the
+value's own number type and its unit's symbol: `b_tempo` 3.0 as `3.0 s`,
+2.8125 as `2.812 s` (3 places, half to even on the exact double),
+`b2_ticks` as `0 ticks`.
+
+**Measure maps.** The expanded MeasureMaps are asked once per manifest
+object (one version of a manifest) that has MeasureMaps, and never for
+one without; until the answer arrives they are `pending`, so hovering
+never waits. A second reading of the same manifest asks nothing; the
+answer, once there, is handed to every later reading of that manifest,
+the same array each time. A request that fails leaves them `failed`, an
+answer that the server cannot expand them `unsupported`; either is
+announced once (`changed`) and nothing is asked again. In
+`group_measure_map` the `MeasureRecordMap` `cmap_1` of `score` has no
+value without them and says why in core's words: with no server
+(`no_server`) `needs a server to expand its measure map`, while pending
+`waiting for the server`, `unsupported` `the server cannot expand
+measure maps`, `failed` `the server did not expand its measure map`.
+
+**One reading per frame.** Pointer moves are coalesced: three moves
+before an animation frame run one reading, with the last point.
 
 ## Package (`name.test.ts`)
 

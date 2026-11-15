@@ -24,7 +24,7 @@ import {
 
 const view = mixedPlain();
 const block = blockIn(view, A);
-const drawing = drawingOf(block, view.settings, metrics);
+const drawing = drawingOf(block, view.graphical, metrics);
 
 /** The place key of `score`'s card in `group_1`'s frame. */
 const SCORE_CARD = { item: "group_1", member: "score" } as const;
@@ -56,7 +56,7 @@ describe("memberOrderAt", () => {
         },
       ],
     });
-    const drawn = (of: View) => drawingOf(blockIn(of, A), of.settings, metrics);
+    const drawn = (of: View) => drawingOf(blockIn(of, A), of.graphical, metrics);
 
     it("draws no frame", () => {
       expect(drawn(hidden).elements.filter((element) => element.type === "frame")).toEqual([]);
@@ -90,7 +90,7 @@ describe("a reorder's preview", () => {
     const shown = blockIn(previewed, A);
     expect(shown.manifest.graphical?.order).toEqual({ group_2: ["page", "excerpt"] });
     expect(block.manifest.graphical?.order?.group_1).toEqual(["score", "performance"]);
-    const cards = drawingOf(shown, previewed.settings, metrics).elements.flatMap((element) =>
+    const cards = drawingOf(shown, previewed.graphical, metrics).elements.flatMap((element) =>
       element.type === "card" ? [[element.address, element.y]] : [],
     );
     expect(cards.slice(0, 2)).toEqual([
@@ -138,7 +138,7 @@ describe("reorderCommand", () => {
 
 describe("releaseMotion", () => {
   const reordered = changed(view, reorderCommand(block, "group_1", ["performance", "score"]));
-  const shown = drawingOf(blockIn(reordered, A), reordered.settings, metrics);
+  const shown = drawingOf(blockIn(reordered, A), reordered.graphical, metrics);
 
   it("moves the copy from its drop to the card's place after the release", () => {
     expect(releaseMotion(drawing, shown, SCORE_CARD, { x: 10, y: 100 })).toEqual({

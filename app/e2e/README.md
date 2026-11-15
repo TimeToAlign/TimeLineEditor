@@ -404,7 +404,8 @@ Apply stores the renamed fixture as `loadManifest` reads it, and an
 unapplied text survives a visit to another tab. The tabs: each is paired
 with one panel of its own through `aria-controls` and `aria-labelledby`,
 and the arrow, Home and End keys move the selection and the focus over the
-four tabs with and without an editor open; with the level tab chosen,
+five tabs (the level tab, Properties, Manifest, Journal, Timestamp) with
+and without an editor open; with the level tab chosen,
 entering the bundle editor keeps it shown, renamed from "Arranger" to
 "Bundle". The properties form: a value moves the block by
 exactly that amount, the fields follow a drag and a resize live (rounded to
@@ -654,6 +655,38 @@ children or `data-tilie` and the second editor drawn. The page's only
 level-1 heading is the host's. Without a hook, the drag starts from a
 named card found on the page.
 
+**`coordinates.spec.ts`** (Chromium, Firefox, WebKit) proves Show
+coordinates on `small` at viewport (40, 40), zoom 1, one device pixel per
+CSS pixel, with the toolbar's "Show coordinates" button pressed. The
+points are block `map0000000`'s drawing points (layout's record, the
+values the arranger's unit tests pin) placed where the arranger puts the
+block's node for the fixture's drawing: `melody` (8 quarters, fraction)
+at y 40.5 from 63.53662109375, 50 canvas units a quarter, its map
+`tempo` (×1/2 to seconds) at y 35, its child `phrase` at y 23 with
+`ticks` (×480 to ticks). The flag (`coordinate-flag`) writes each value
+in core's display text with its unit's symbol (the drawing
+specification's `♩`, `s`, `ticks`) and a footer naming the grid: at
+`xStart + 123.75` on `melody` the default fraction grid steps by 1/32, so
+the coordinate reads `2 15/32 ♩`, `tempo` `1.234 s` (1.234375 to three
+places) and the footer `grid 1/32 ♩ (fraction base 1, refining) · click
+to pin`; at `xStart + 200` `4 ♩` and `2.0 s`; the same abscissa on
+`tempo`'s drawing still reads `melody` at 4 with `tempo`'s row
+highlighted (`data-hovered`); 30 below the line nothing is within 8
+pixels and there is no flag; on `phrase` at 263.53662109375 `2 ♩` with
+`ticks` 960 and no `tempo` row. C toggles the flag. A click on a line pins
+the reading: the Timestamp tab is selected and shows the pinned heading
+(`timestamp-where`), and the journal keeps its length; a click on the
+empty pane clears the pin and selects Properties, the tab shown before.
+In the Timestamp tab's "Fractions" group, typing 5 as the denominator
+and unchecking "Refine when zooming" sets the workspace's fraction
+granularity to `{denominator: 5, refine: false}` without a journal entry
+and drops the pinned timestamp (read under the old grid), Timestamp
+staying selected; the same abscissa then reads `2 2/5 ♩` (12.375 steps of
+1/5 → 12/5) with the footer `grid 1/5 ♩ (fraction base 1/5, fixed) ·
+click to pin`, and
+the setting survives `text()` and `load` of the saved workspace, still
+without a journal entry.
+
 **`budget.spec.ts`** (`@budget`, Chromium only) measures script time with
 `grid-300` at viewport (20, 20), all nodes mounted: `ScriptDuration` from
 the DevTools Protocol's performance metrics, read around 60 pointer moves
@@ -661,7 +694,14 @@ or wheel events with two frames rendered on each side, divided by 60. The
 budgets are 3 ms per move for a block drag, 1 ms per move for a pan, 1 ms
 per Ctrl+wheel zoom and per plain wheel pan, and 1 ms per command with a
 single-block redraw within one frame; each test prints its measurement.
-These `≤` comparisons are budgets by definition.
+The coordinate flag's budget opens `small` at viewport (40, 40), zoom 1,
+adds to `melody` (block `map0000000`, 8 quarters) a PiecewiseMap "Pieces"
+of 10^5 breaks `8k / 99999` with a LinearMap between each two, turns Show
+coordinates on, and moves the pointer 200 times along `melody`'s line,
+each move followed by two frames, so every move is read once: the flag
+shows the map's row before and after, and the script time per move is at
+most one frame at 60 Hz, 16.7 ms. These `≤` comparisons are budgets by
+definition.
 
 **`visual.spec.ts`** (`@visual`, the pinned container only) compares
 zero-tolerance screenshots: each of `small`'s five nodes and the pane at

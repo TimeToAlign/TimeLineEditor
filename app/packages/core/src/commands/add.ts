@@ -13,7 +13,8 @@ import { SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import type { CommandError, LoadError, Problem } from "../errors.ts";
 import { ErrorCode, isCommandError, isLoadError, problem } from "../errors.ts";
 import type { JsonObject, PathSegment } from "../json.ts";
-import { addressKey, idAddress } from "../manifest/address.ts";
+import { isJsonObject } from "../json.ts";
+import { addressKey, idAddress, sameAddress } from "../manifest/address.ts";
 import type { EntryKind } from "../manifest/files.ts";
 import { ENTRY_KINDS, entriesOf } from "../manifest/files.ts";
 import { readOnAxis } from "../manifest/invariants.ts";
@@ -40,7 +41,7 @@ import { withSegmentLinesCovered } from "./settle.ts";
 import type { BlockTarget, TargetKind, TimelineTarget } from "./targets.ts";
 import { targetOf } from "./targets.ts";
 import { placeChild } from "./topology.ts";
-import type { AddCommand, AddKind } from "./types.ts";
+import type { AddCommand, AddKind, Command } from "./types.ts";
 import { ADD_KINDS } from "./types.ts";
 
 const INTO_TIMELINE: readonly AddKind[] = ["child", ...ENTRY_KINDS];
@@ -99,6 +100,10 @@ function addBlock(view: View, value: unknown, changes: ChangeSet): View | Comman
     index: indexBetween(greatest, null),
     x: 0,
     y: 0,
+    // An `add` the store journals states every placement member (`withStatedPlacement`),
+    // so a replay reads none of these; `apply` and `preview` of an add that leaves members
+    // out take them from the view's block defaults, as the arranger does when it previews
+    // where a new block will lie.
     ...view.settings.blockDefaults,
     places,
     manifest,
@@ -114,6 +119,19 @@ function addBlock(view: View, value: unknown, changes: ChangeSet): View | Comman
   }
   record(changes, path, id);
   return current;
+}
+
+/**
+ * `command` as the store journals it: an `add` of a block into the workspace
+ * with every placement member it leaves out stated from the workspace's
+ * block defaults, so that replaying the journal reads no setting; any other
+ * command unchanged.
+ */
+export function withStatedPlacement(view: View, command: Command): Command {
+  if (command.type !== "add" || !sameAddress(command.into, WORKSPACE)) return command;
+  const { block } = command;
+  if (!isJsonObject(block)) return command;
+  return { ...command, block: { ...view.settings.blockDefaults, ...block } };
 }
 
 /**

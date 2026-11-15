@@ -128,7 +128,7 @@ labels: "Score, performance and facsimile" (`bundles/bundle_mixed`),
 (`groups/group_styled`) and "Repeats and jumps" (`flow_control`). The list
 is built from the files a glob found; files of another schema version are
 ignored, and a missing example is an error naming its file
-(`fixtures/0.1.0/flow_control.json`). Choosing an example adds what Import
+(`fixtures/0.2.0/flow_control.json`). Choosing an example adds what Import
 adds for that fixture's text: one `add` of the fixture's manifest at the
 view's centre (`(0, 0)` in jsdom), the new block selected. While an editor
 is open every example is `aria-disabled="true"` and choosing one adds
@@ -583,9 +583,9 @@ core's message, so the oracle is core's own nesting rule written out:
 
 ## The tabs and panels (`Inspector.test.ts`, `inspector-tabs.test.ts`)
 
-**The tab rule** is proven as a table on the rule alone. The four tabs are
+**The tab rule** is proven as a table on the rule alone. The five tabs are
 always present, in this order: the level tab, Properties, Manifest,
-Journal. The level tab is labelled by the level's word: "Arranger" with no
+Journal, Timestamp. The level tab is labelled by the level's word: "Arranger" with no
 editor open, else "Bundle", "Group" or "Timeline" for the innermost
 editor's kind. The tab chosen is recorded with the store's count of editor
 openings when it was chosen or when the inspector was last shown or
@@ -638,7 +638,7 @@ closing and reopening, nothing journalled.
    meanwhile, Journal chosen, it shows Journal; with Journal chosen, a
    group editor opened while the drawer is open, the open drawer opened
    again, then closed and opened, it still shows Journal.
-5. **The keys** move over the four tabs, wrapping, at the top level and in
+5. **The keys** move over the five tabs, wrapping, at the top level and in
    an editor, the focus with the selection; the block's fields follow the
    editing level as in "The Properties form".
 6. **The Manifest panel**, with `bare` and `styled__score`: choosing YAML
@@ -679,6 +679,87 @@ are added around it; an empty level reads "No changes yet."; a session row
 has a disclosure button labelled by its text that lists its changes,
 newest first (one undo greys a session's whole run: "Edited bundle Mixed (3
 changes, 2 undone)"), and nothing of the expansion reaches the store.
+
+## The Timestamp tab (`timestamp.test.ts`)
+
+The Timestamp tab is always present. It holds the granularity of the
+workspace, the grid of the canvas's last reading and, once a timestamp is
+pinned, that timestamp. The timestamp's values, the steps, the display
+and copy texts, the grid text, the missing-value texts and the coordinate
+dicts are core's (its `timestampAt`, `displayValue`, `copyValue`,
+`gridText`, `missingValueText` and `coordinateDict`), the same texts the
+coordinate flag shows, so a test reads them from core and proves only
+what the editor adds:
+which tab is shown, which rows there are, in which words, what Copy
+carries and that a setting goes to the store's settings. The timestamp is
+core's for the form of core's README ("Timestamps") at 27/2: the line
+`form` with one map, then the segment `B` with three, in the order given.
+
+1. **Pinning, as a rule** (pure, a table). A pin selects Timestamp and
+   remembers the tab shown before it; a second pin moves the pin and keeps
+   that tab; clearing the pin shows that tab again and forgets it; clearing
+   without a pin changes nothing. Choosing a tab other than Timestamp
+   clears the pin and shows the chosen tab; choosing Timestamp keeps it. A
+   pin carries its block's manifest and the granularity, both the objects
+   the view held when it was pinned (a timestamp of a block the view does
+   not hold pins nothing), and it is outlived exactly when the view's
+   block is gone, its manifest is another object or its granularity is
+   another object; an unrelated change (another block's move) leaves it.
+2. **Pinning, in the drawer.** With Journal chosen in an open drawer,
+   `pinTimestamp(timestamp)` selects Timestamp and shows the pinned rows; a
+   second pin keeps them pinned; a click inside the tab's panel (on a
+   section heading) keeps the pin; a click anywhere else
+   (`clickedAt` with an element outside the inspector) clears it and shows
+   Journal, and choosing Timestamp then shows the empty state "Click a
+   coordinate on a timeline to pin it here." With Properties chosen and the
+   drawer closed, a pin opens it on Timestamp; choosing Manifest clears the
+   pin. A pinned timestamp is dropped, Timestamp staying selected with its
+   empty state, when its block's manifest changes (a `set` of a timeline's
+   `name` in block A), when the granularity changes (`configure` of the
+   fraction denominator) and when its block is deleted (`remove` of block
+   A); a move of block B keeps it.
+3. **The rows.** One section per part, headed by the part's name and, for
+   a segment, "segment": first the row "coordinate" (the part's position
+   and unit), then one row per map labelled by its name, else its ID; each
+   row's text is core's display text and the unit's symbol as core gives it
+   (TimeToShare's drawing specification, section 5.2: `♩` for quarters,
+   `s`, `smp`, `ticks`, `px`, any other unit its name), so the tab writes
+   units as the drawing's labels do; each row's Copy button
+   ("Copy <label> of <part>") writes core's copy text to the clipboard
+   (`B_tempo` gives `copyValue` of its value, the full float). A map
+   without a value reads core's missing-value text, "no value here", or
+   "needs a server to expand its measure map" when it misses the expanded
+   MeasureMap rows with no server, and has no Copy button (a PiecewiseMap
+   beyond its last break, a MeasureNumberMap without rows). A map with
+   named outputs gives one row per output, labelled "<label> · <output>",
+   its number shown without a unit (a CombinationMap of a seconds and a
+   ticks output). The
+   heading line says where the timestamp is and the grid step it was
+   picked with, under the granularity it was pinned with: "Form at 13 1/2
+   ♩ · grid 1/2 ♩ (fraction base 1, refining)".
+4. **Copy JSON** writes the standard writer's text (`dumps`) of the list of
+   parts, each `{timeline, segment, coordinate, maps}`, the coordinate and
+   every map's number as core's coordinate dict, a number without a unit as
+   `{number_type, value}`, a map without a value as `null`, named outputs
+   as an object of them. The same text is shown below the button.
+5. **Granularity** shows the workspace's settings (the defaults: step 1 /
+   1, step 1, step 1, each "Refine when zooming" checked). Typing 5 as the
+   fraction denominator sets `settings.granularity.fraction` to `{5,
+   true}`; typing 0.2 as the float step sets it to `"0.2"`; unchecking
+   "Refine when zooming" for integers sets `int.refine` false. None of it
+   adds a journal entry or an undo step. Typing 0 marks the field invalid
+   (`aria-invalid`) with core's problem message beside it and changes no
+   setting; leaving the field shows the stored value again, valid.
+6. **The step in use**, with or without a pin: before the canvas's first
+   reading the tab says "No reading yet: turn on Show coordinates and
+   point at a timeline."; given the grid of a reading (1/32 on quarters
+   under the default granularity) it says "In use: grid 1/32 ♩ (fraction
+   base 1, refining)", core's grid text.
+7. **The server's MeasureMaps** reach the canvas through one adapter of
+   the client: the rows a server answers pass as they are (the same
+   array); a `ServerError` with status 501 (the server cannot expand
+   MeasureMaps) becomes `unsupported`; any other failure (a 500, an
+   unreachable server) stays a rejection with the same error.
 
 ## Words (`inspector-subject.test.ts`, `journal.test.ts`)
 

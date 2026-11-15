@@ -125,12 +125,12 @@ beforeAll(async () => {
 });
 
 describe("format round trips", () => {
-  it("covers the 43, 11 and 11 fixtures of the top, groups/ and bundles/", () => {
+  it("covers the 47, 11 and 11 fixtures of the top, groups/ and bundles/", () => {
     expect([
       fixturesOf("").length,
       fixturesOf("groups").length,
       fixturesOf("bundles").length,
-    ]).toEqual([43, 11, 11]);
+    ]).toEqual([47, 11, 11]);
   });
 
   for (const name of fixtureNames) {
@@ -231,7 +231,7 @@ describe("the TOML null rule", () => {
     const text = written("toml", value);
     expect(text).toBe(
       [
-        'timetoshare = "0.1.0"',
+        'timetoshare = "0.2.0"',
         "",
         "[[groups]]",
         'id = "group_1"',

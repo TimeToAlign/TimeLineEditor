@@ -247,8 +247,8 @@ function project(
  * inside `element`, so that the manifest outside it is as it was: no change
  * reached past its path there (`reaching`), and each of its paths names the
  * block itself (a block member: replacing the manifest reaches) or an
- * element the target contains (`resolveAddress`, `contains`). A path in the
- * settings or in another block is compared on its own.
+ * element the target contains (`resolveAddress`, `contains`). A path of the
+ * workspace or in another block is compared on its own.
  */
 function changedInside(before: View, block: BlockId, element: string, changes: ChangeSet): boolean {
   if (changes.reaching.has(block)) return false;
@@ -408,15 +408,15 @@ function blockChange(
 /**
  * The first change from `before` to `after` that lies outside `target`, the
  * innermost open editor's target, as a `side_effect` refusal; `null` when
- * every change lies inside it. In this order: the workspace's name or a
- * setting; another block; for an element's editor, its block's scale, length, spacing,
+ * every change lies inside it. In this order: the workspace's name or its
+ * `graphical`; another block; for an element's editor, its block's scale, length, spacing,
  * margin, index or parent, a place of a key the element does not contain (a group
  * member's editor also changes its group's length, scale and width and its
  * siblings' card widths), and the manifest outside the element (the element
  * removed included; a display or band order lies inside when the element
  * contains its group or timeline). A block's editor changes anything in its
  * own block but its removal. With `changes`, the change set of the command
- * that led from `before` to `after`, only the settings and blocks it names
+ * that led from `before` to `after`, only the workspace and the blocks it names
  * are compared; the refusal is the same.
  */
 export function sideEffect(
@@ -440,16 +440,13 @@ export function sideEffect(
       `${what} lies outside ${words(target)}: an editor changes only what it edits`,
       path,
     );
-  // A change set names every setting and block a command touched; without one, both views are scanned.
+  // A change set names the workspace and every block a command touched; without one, both views are scanned.
+  // The settings are no command's to change, so they are never compared.
   if (changes === undefined || changes.targets.some((item) => item.block === undefined)) {
     if (before.name !== after.name) return refuse("the workspace name", [workspace, "name"]);
-    const was = new Map(Object.entries(before.settings));
-    const now = new Map(Object.entries(after.settings));
-    const setting = keysOf(before.settings, after.settings).find(
-      (key) => !same(was.get(key), now.get(key)),
-    );
-    if (setting !== undefined)
-      return refuse(`the workspace setting ${setting}`, [workspace, setting]);
+    if (!same(before.graphical, after.graphical)) {
+      return refuse("the workspace's graphical", [workspace, "graphical"]);
+    }
   }
   const touched =
     changes === undefined ? keysOf(before.blocks, after.blocks) : byCodePoint(changes.blocks);

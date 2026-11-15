@@ -69,6 +69,7 @@ test("entering and leaving editors in view keeps the chosen tab, the level tab r
     "Properties",
     "Manifest",
     "Journal",
+    "Timestamp",
   ]);
   await expect(tab(page, "Properties")).toHaveAttribute("aria-selected", "true");
   for (const { target, word } of PATH) {
@@ -78,6 +79,7 @@ test("entering and leaving editors in view keeps the chosen tab, the level tab r
       "Properties",
       "Manifest",
       "Journal",
+      "Timestamp",
     ]);
     await expect(tab(page, "Properties")).toHaveAttribute("aria-selected", "true");
   }

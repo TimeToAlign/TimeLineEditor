@@ -70,7 +70,7 @@ describe("generated command sequences", () => {
         );
         const replayed = replay(journal, {}).at(-1);
         if (replayed === undefined) throw new Error("a replay holds the empty view at least");
-        expect(replayed.settings).toEqual(store.view.settings);
+        expect(replayed.graphical).toEqual(store.view.graphical);
         expect(replayed.blocks).toEqual(store.view.blocks);
         const text = writeWorkspace({ view: store.view, journal, sessions: {} });
         const read = readWorkspace(text);

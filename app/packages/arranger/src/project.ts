@@ -159,7 +159,7 @@ export function project(
     const siblings = block.parent ?? "";
     const zIndex = ranks.get(siblings) ?? 0;
     ranks.set(siblings, zIndex + 1);
-    const drawing = drawingOf(block, view.settings, metrics);
+    const drawing = drawingOf(block, view.graphical, metrics);
     const position = nodePosition(block, drawing);
     const outside = edited !== null && edited.block !== block.id;
     const inside = outside

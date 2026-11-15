@@ -72,7 +72,7 @@ export function resizeGesture(
   function command(press: ResizePress, delta: Delta): SetCommand | null {
     const { view, block, box, level, mode } = press;
     if (box.kind === "block") {
-      const { values } = resize(block, view.settings, actions.metrics, mode, handle, delta);
+      const { values } = resize(block, view.graphical, actions.metrics, mode, handle, delta);
       return resizeCommand(block, values);
     }
     const places = itemResizeValues(

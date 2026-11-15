@@ -1,0 +1,1868 @@
+{
+  "manifest": {
+    "timetoshare": "0.2.0",
+    "timelines": [
+      {
+        "id": "quarters_root",
+        "unit": "quarters",
+        "length": null,
+        "conversion_maps": [
+          {
+            "type": "LinearMap",
+            "id": "q_samples",
+            "name": null,
+            "source_unit": "quarters",
+            "target_unit": "samples",
+            "scalar": [165375, 8],
+            "offset": 507150
+          },
+          {
+            "type": "LinearMap",
+            "id": "q_half_samples",
+            "name": null,
+            "source_unit": "quarters",
+            "target_unit": "samples",
+            "scalar": [1, 2],
+            "offset": 0
+          },
+          {
+            "type": "LinearMap",
+            "id": "q_seconds_float",
+            "name": null,
+            "source_unit": "quarters",
+            "target_unit": "seconds",
+            "scalar": 0.5,
+            "offset": 0
+          },
+          {
+            "type": "LinearMap",
+            "id": "q_seconds_integral_float",
+            "name": null,
+            "source_unit": "quarters",
+            "target_unit": "seconds",
+            "scalar": 2.0,
+            "offset": 1
+          },
+          {
+            "type": "PiecewiseMap",
+            "id": "q_pieces",
+            "name": null,
+            "source_unit": "quarters",
+            "target_unit": "seconds",
+            "breaks": [0, 4, 16],
+            "maps": [
+              {
+                "type": "LinearMap",
+                "id": "q_piece_1",
+                "name": null,
+                "source_unit": "quarters",
+                "target_unit": "seconds",
+                "scalar": [1, 2],
+                "offset": 0
+              },
+              {
+                "type": "LinearMap",
+                "id": "q_piece_2",
+                "name": null,
+                "source_unit": "quarters",
+                "target_unit": "seconds",
+                "scalar": [3, 5],
+                "offset": [-2, 5]
+              }
+            ]
+          },
+          {
+            "type": "TableMap",
+            "id": "q_table_exact",
+            "name": null,
+            "source_unit": "quarters",
+            "target_unit": "quarters",
+            "x_values": [0, 4],
+            "y_values": [0, 2],
+            "kind": "linear",
+            "extrapolate": "linear"
+          },
+          {
+            "type": "TableMap",
+            "id": "q_table_none",
+            "name": null,
+            "source_unit": "quarters",
+            "target_unit": "quarters",
+            "x_values": [0, 4],
+            "y_values": [0, 2],
+            "kind": "linear",
+            "extrapolate": "none"
+          },
+          {
+            "type": "TableMap",
+            "id": "q_table_constant",
+            "name": null,
+            "source_unit": "quarters",
+            "target_unit": "quarters",
+            "x_values": [0, 4],
+            "y_values": [0, 2],
+            "kind": "linear",
+            "extrapolate": "constant"
+          },
+          {
+            "type": "TableMap",
+            "id": "q_table_previous",
+            "name": null,
+            "source_unit": "quarters",
+            "target_unit": "ticks",
+            "x_values": [0, [1, 3], 1],
+            "y_values": [10, 20, 30],
+            "kind": "previous",
+            "extrapolate": "none"
+          },
+          {
+            "type": "TableMap",
+            "id": "q_table_mixed",
+            "name": null,
+            "source_unit": "quarters",
+            "target_unit": "seconds",
+            "x_values": [0, [1, 3], 1],
+            "y_values": [0, 1, 2],
+            "kind": "linear",
+            "extrapolate": "linear"
+          },
+          {
+            "type": "TableMap",
+            "id": "q_table_previous_outside",
+            "name": null,
+            "source_unit": "quarters",
+            "target_unit": "quarters",
+            "x_values": [0, 4],
+            "y_values": [0, 2],
+            "kind": "previous",
+            "extrapolate": "linear"
+          },
+          {
+            "type": "TableMap",
+            "id": "q_table_float_tie",
+            "name": null,
+            "source_unit": "quarters",
+            "target_unit": "quarters",
+            "x_values": [0, [6004799503160661, 18014398509481984], [1, 3]],
+            "y_values": [0, 1, 2],
+            "kind": "linear",
+            "extrapolate": "none"
+          },
+          {
+            "type": "ChainMap",
+            "id": "q_chain_back",
+            "name": null,
+            "source_unit": "quarters",
+            "target_unit": "quarters",
+            "maps": [
+              {
+                "type": "LinearMap",
+                "id": "q_chain_ticks",
+                "name": null,
+                "source_unit": "quarters",
+                "target_unit": "ticks",
+                "scalar": 480,
+                "offset": 0
+              },
+              {
+                "type": "LinearMap",
+                "id": "q_chain_quarters",
+                "name": null,
+                "source_unit": "ticks",
+                "target_unit": "quarters",
+                "scalar": [1, 480],
+                "offset": 0
+              }
+            ]
+          },
+          {
+            "type": "ChainMap",
+            "id": "q_chain_seconds",
+            "name": null,
+            "source_unit": "quarters",
+            "target_unit": "seconds",
+            "maps": [
+              {
+                "type": "LinearMap",
+                "id": "q_chain_s_ticks",
+                "name": null,
+                "source_unit": "quarters",
+                "target_unit": "ticks",
+                "scalar": 480,
+                "offset": 0
+              },
+              {
+                "type": "LinearMap",
+                "id": "q_chain_s_seconds",
+                "name": null,
+                "source_unit": "ticks",
+                "target_unit": "seconds",
+                "scalar": 0.001,
+                "offset": 0
+              }
+            ]
+          },
+          {
+            "type": "CombinationMap",
+            "id": "q_combination",
+            "name": null,
+            "source_unit": "quarters",
+            "target_unit": null,
+            "maps": {
+              "seconds": {
+                "type": "LinearMap",
+                "id": "q_combination_seconds",
+                "name": null,
+                "source_unit": "quarters",
+                "target_unit": "seconds",
+                "scalar": 0.5,
+                "offset": 0
+              },
+              "file": {
+                "type": "ConstantMap",
+                "id": "q_combination_file",
+                "name": null,
+                "source_unit": null,
+                "target_unit": null,
+                "value": "a.png"
+              },
+              "count": {
+                "type": "ConstantMap",
+                "id": "q_combination_count",
+                "name": null,
+                "source_unit": null,
+                "target_unit": null,
+                "value": 3
+              }
+            }
+          },
+          {
+            "type": "ConstantMap",
+            "id": "q_constant_number",
+            "name": null,
+            "source_unit": "quarters",
+            "target_unit": "seconds",
+            "value": [3, 2]
+          },
+          {
+            "type": "ConstantMap",
+            "id": "q_constant_label",
+            "name": null,
+            "source_unit": "quarters",
+            "target_unit": null,
+            "value": "intro"
+          },
+          {
+            "type": "ConstantMap",
+            "id": "q_constant_ticks",
+            "name": null,
+            "source_unit": "quarters",
+            "target_unit": "ticks",
+            "value": 2.5
+          },
+          {
+            "type": "MeasureRecordMap",
+            "id": "q_record",
+            "name": null,
+            "source_unit": "quarters",
+            "target_unit": null,
+            "measure_map": "bars"
+          },
+          {
+            "type": "MeasureNumberMap",
+            "id": "q_number",
+            "name": null,
+            "source_unit": "quarters",
+            "target_unit": null,
+            "measure_map": "bars"
+          },
+          {
+            "type": "MeasureBeatMap",
+            "id": "q_beat",
+            "name": null,
+            "source_unit": "quarters",
+            "target_unit": null,
+            "measure_map": "bars"
+          },
+          {
+            "type": "FloatingMeasureMap",
+            "id": "q_floating",
+            "name": null,
+            "source_unit": "quarters",
+            "target_unit": "floating_measures",
+            "measure_map": "bars"
+          }
+        ]
+      },
+      {
+        "id": "ticks_root",
+        "unit": "ticks",
+        "length": null,
+        "conversion_maps": [
+          {
+            "type": "TableMap",
+            "id": "t_seconds",
+            "name": null,
+            "source_unit": "ticks",
+            "target_unit": "seconds",
+            "x_values": [0, 480, 960],
+            "y_values": [0.0, 0.5, 1.5],
+            "kind": "linear",
+            "extrapolate": "linear"
+          },
+          {
+            "type": "LinearMap",
+            "id": "t_quarters",
+            "name": null,
+            "source_unit": "ticks",
+            "target_unit": "quarters",
+            "scalar": [1, 480],
+            "offset": 0
+          }
+        ]
+      },
+      {
+        "id": "seconds_root",
+        "unit": "seconds",
+        "length": null,
+        "conversion_maps": [
+          {
+            "type": "LinearMap",
+            "id": "s_samples",
+            "name": null,
+            "source_unit": "seconds",
+            "target_unit": "samples",
+            "scalar": 44100,
+            "offset": 0
+          },
+          {
+            "type": "LinearMap",
+            "id": "s_milliseconds",
+            "name": null,
+            "source_unit": "seconds",
+            "target_unit": "milliseconds",
+            "scalar": 1000,
+            "offset": 0
+          }
+        ]
+      }
+    ],
+    "measure_maps": [
+      {
+        "id": "bars",
+        "name": null,
+        "meta": {},
+        "rows": [
+          {
+            "count": 1,
+            "time_signature": "3/4",
+            "actual_length": [1, 2],
+            "offset_within_measure": [5, 2]
+          },
+          {
+            "count": 2
+          },
+          {
+            "count": 3,
+            "time_signature": "2/4"
+          },
+          {
+            "count": 4
+          }
+        ]
+      }
+    ]
+  },
+  "knots": [
+    {
+      "id": "bars",
+      "rows": [
+        {
+          "ID": "1",
+          "count": 1,
+          "qstamp": [0, 1],
+          "number": 0,
+          "name": "0",
+          "time_signature": "3/4",
+          "nominal_length": [3, 1],
+          "actual_length": [1, 2],
+          "start_repeat": false,
+          "end_repeat": false,
+          "next": [2],
+          "volta": null,
+          "offset_within_measure": [5, 2]
+        },
+        {
+          "ID": "2",
+          "count": 2,
+          "qstamp": [1, 2],
+          "number": 2,
+          "name": "2",
+          "time_signature": "3/4",
+          "nominal_length": [3, 1],
+          "actual_length": [3, 1],
+          "start_repeat": false,
+          "end_repeat": false,
+          "next": [3],
+          "volta": null,
+          "offset_within_measure": [0, 1]
+        },
+        {
+          "ID": "3",
+          "count": 3,
+          "qstamp": [7, 2],
+          "number": 3,
+          "name": "3",
+          "time_signature": "2/4",
+          "nominal_length": [2, 1],
+          "actual_length": [2, 1],
+          "start_repeat": false,
+          "end_repeat": false,
+          "next": [4],
+          "volta": null,
+          "offset_within_measure": [0, 1]
+        },
+        {
+          "ID": "4",
+          "count": 4,
+          "qstamp": [11, 2],
+          "number": 4,
+          "name": "4",
+          "time_signature": "2/4",
+          "nominal_length": [2, 1],
+          "actual_length": [2, 1],
+          "start_repeat": false,
+          "end_repeat": false,
+          "next": [],
+          "volta": null,
+          "offset_within_measure": [0, 1]
+        }
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "map": "q_samples",
+      "points": [
+        {
+          "x": {
+            "type": "fraction",
+            "value": [1, 3]
+          },
+          "result": {
+            "type": "int",
+            "value": 514041
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [0, 1]
+          },
+          "result": {
+            "type": "int",
+            "value": 507150
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [7, 2]
+          },
+          "result": {
+            "type": "int",
+            "value": 579502
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [-1, 3]
+          },
+          "result": {
+            "type": "int",
+            "value": 500259
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 1
+          },
+          "result": {
+            "type": "int",
+            "value": 527822
+          }
+        },
+        {
+          "x": {
+            "type": "float",
+            "value": 0.1
+          },
+          "result": {
+            "type": "int",
+            "value": 509217
+          }
+        }
+      ]
+    },
+    {
+      "map": "q_half_samples",
+      "points": [
+        {
+          "x": {
+            "type": "int",
+            "value": 5
+          },
+          "result": {
+            "type": "int",
+            "value": 2
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 7
+          },
+          "result": {
+            "type": "int",
+            "value": 4
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": -5
+          },
+          "result": {
+            "type": "int",
+            "value": -2
+          }
+        },
+        {
+          "x": {
+            "type": "float",
+            "value": 5.0
+          },
+          "result": {
+            "type": "int",
+            "value": 2
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [5, 1]
+          },
+          "result": {
+            "type": "int",
+            "value": 2
+          }
+        },
+        {
+          "x": {
+            "type": "float",
+            "value": 3.0
+          },
+          "result": {
+            "type": "int",
+            "value": 2
+          }
+        },
+        {
+          "x": {
+            "type": "float",
+            "value": -3.0
+          },
+          "result": {
+            "type": "int",
+            "value": -2
+          }
+        }
+      ]
+    },
+    {
+      "map": "q_seconds_float",
+      "points": [
+        {
+          "x": {
+            "type": "fraction",
+            "value": [1, 3]
+          },
+          "result": {
+            "type": "float",
+            "value": 0.16666666666666666
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 3
+          },
+          "result": {
+            "type": "float",
+            "value": 1.5
+          }
+        },
+        {
+          "x": {
+            "type": "float",
+            "value": 0.1
+          },
+          "result": {
+            "type": "float",
+            "value": 0.05
+          }
+        }
+      ]
+    },
+    {
+      "map": "q_seconds_integral_float",
+      "points": [
+        {
+          "x": {
+            "type": "fraction",
+            "value": [1, 3]
+          },
+          "result": {
+            "type": "float",
+            "value": 1.6666666666666665
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 3
+          },
+          "result": {
+            "type": "float",
+            "value": 7.0
+          }
+        }
+      ]
+    },
+    {
+      "map": "q_pieces",
+      "points": [
+        {
+          "x": {
+            "type": "int",
+            "value": 6
+          },
+          "result": {
+            "type": "float",
+            "value": 3.2
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [31, 8]
+          },
+          "result": {
+            "type": "float",
+            "value": 1.9375
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 16
+          },
+          "result": null
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [-1, 2]
+          },
+          "result": null
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 4
+          },
+          "result": {
+            "type": "float",
+            "value": 2.0
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 0
+          },
+          "result": {
+            "type": "float",
+            "value": 0.0
+          }
+        },
+        {
+          "x": {
+            "type": "float",
+            "value": 15.999
+          },
+          "result": {
+            "type": "float",
+            "value": 9.199399999999999
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [63, 4]
+          },
+          "result": {
+            "type": "float",
+            "value": 9.05
+          }
+        }
+      ]
+    },
+    {
+      "map": "q_table_exact",
+      "points": [
+        {
+          "x": {
+            "type": "fraction",
+            "value": [1, 3]
+          },
+          "result": {
+            "type": "fraction",
+            "value": [1, 6]
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 5
+          },
+          "result": {
+            "type": "fraction",
+            "value": [5, 2]
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": -2
+          },
+          "result": {
+            "type": "fraction",
+            "value": [-1, 1]
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 4
+          },
+          "result": {
+            "type": "fraction",
+            "value": [2, 1]
+          }
+        },
+        {
+          "x": {
+            "type": "float",
+            "value": 2.5
+          },
+          "result": {
+            "type": "fraction",
+            "value": [5, 4]
+          }
+        },
+        {
+          "x": {
+            "type": "float",
+            "value": 6.0
+          },
+          "result": {
+            "type": "fraction",
+            "value": [3, 1]
+          }
+        }
+      ]
+    },
+    {
+      "map": "q_table_none",
+      "points": [
+        {
+          "x": {
+            "type": "int",
+            "value": 5
+          },
+          "result": null
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 4
+          },
+          "result": {
+            "type": "fraction",
+            "value": [2, 1]
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [1, 3]
+          },
+          "result": {
+            "type": "fraction",
+            "value": [1, 6]
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": -1
+          },
+          "result": null
+        }
+      ]
+    },
+    {
+      "map": "q_table_constant",
+      "points": [
+        {
+          "x": {
+            "type": "int",
+            "value": 5
+          },
+          "result": {
+            "type": "fraction",
+            "value": [2, 1]
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": -1
+          },
+          "result": {
+            "type": "fraction",
+            "value": [0, 1]
+          }
+        },
+        {
+          "x": {
+            "type": "float",
+            "value": 2.0
+          },
+          "result": {
+            "type": "fraction",
+            "value": [1, 1]
+          }
+        }
+      ]
+    },
+    {
+      "map": "q_table_previous",
+      "points": [
+        {
+          "x": {
+            "type": "fraction",
+            "value": [1, 3]
+          },
+          "result": {
+            "type": "int",
+            "value": 20
+          }
+        },
+        {
+          "x": {
+            "type": "float",
+            "value": 0.3333333333333333
+          },
+          "result": {
+            "type": "int",
+            "value": 20
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [1, 2]
+          },
+          "result": {
+            "type": "int",
+            "value": 20
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 1
+          },
+          "result": {
+            "type": "int",
+            "value": 30
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 2
+          },
+          "result": null
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [1, 4]
+          },
+          "result": {
+            "type": "int",
+            "value": 10
+          }
+        }
+      ]
+    },
+    {
+      "map": "q_table_mixed",
+      "points": [
+        {
+          "x": {
+            "type": "float",
+            "value": 0.3333333333333333
+          },
+          "result": {
+            "type": "float",
+            "value": 1.0
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [1, 6]
+          },
+          "result": {
+            "type": "float",
+            "value": 0.5
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 2
+          },
+          "result": {
+            "type": "float",
+            "value": 3.5
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [1, 3]
+          },
+          "result": {
+            "type": "float",
+            "value": 1.0
+          }
+        },
+        {
+          "x": {
+            "type": "float",
+            "value": 0.5
+          },
+          "result": {
+            "type": "float",
+            "value": 1.25
+          }
+        }
+      ]
+    },
+    {
+      "map": "q_table_previous_outside",
+      "points": [
+        {
+          "x": {
+            "type": "int",
+            "value": 6
+          },
+          "result": {
+            "type": "fraction",
+            "value": [3, 1]
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 2
+          },
+          "result": {
+            "type": "fraction",
+            "value": [0, 1]
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": -2
+          },
+          "result": {
+            "type": "fraction",
+            "value": [-1, 1]
+          }
+        }
+      ]
+    },
+    {
+      "map": "q_table_float_tie",
+      "points": [
+        {
+          "x": {
+            "type": "fraction",
+            "value": [1, 3]
+          },
+          "result": null
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 0
+          },
+          "result": null
+        }
+      ]
+    },
+    {
+      "map": "q_chain_back",
+      "points": [
+        {
+          "x": {
+            "type": "fraction",
+            "value": [1, 960]
+          },
+          "result": {
+            "type": "fraction",
+            "value": [1, 960]
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [3, 2]
+          },
+          "result": {
+            "type": "fraction",
+            "value": [3, 2]
+          }
+        },
+        {
+          "x": {
+            "type": "float",
+            "value": 0.25
+          },
+          "result": {
+            "type": "fraction",
+            "value": [1, 4]
+          }
+        }
+      ]
+    },
+    {
+      "map": "q_chain_seconds",
+      "points": [
+        {
+          "x": {
+            "type": "fraction",
+            "value": [1, 3]
+          },
+          "result": {
+            "type": "float",
+            "value": 0.16
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 2
+          },
+          "result": {
+            "type": "float",
+            "value": 0.96
+          }
+        }
+      ]
+    },
+    {
+      "map": "q_combination",
+      "points": [
+        {
+          "x": {
+            "type": "fraction",
+            "value": [1, 3]
+          },
+          "result": {
+            "type": "outputs",
+            "value": {
+              "seconds": {
+                "type": "float",
+                "value": 0.16666666666666666
+              },
+              "file": {
+                "type": "string",
+                "value": "a.png"
+              },
+              "count": {
+                "type": "int",
+                "value": 3
+              }
+            }
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 4
+          },
+          "result": {
+            "type": "outputs",
+            "value": {
+              "seconds": {
+                "type": "float",
+                "value": 2.0
+              },
+              "file": {
+                "type": "string",
+                "value": "a.png"
+              },
+              "count": {
+                "type": "int",
+                "value": 3
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "map": "q_constant_number",
+      "points": [
+        {
+          "x": {
+            "type": "int",
+            "value": 0
+          },
+          "result": {
+            "type": "float",
+            "value": 1.5
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [1, 3]
+          },
+          "result": {
+            "type": "float",
+            "value": 1.5
+          }
+        }
+      ]
+    },
+    {
+      "map": "q_constant_label",
+      "points": [
+        {
+          "x": {
+            "type": "int",
+            "value": 0
+          },
+          "result": {
+            "type": "string",
+            "value": "intro"
+          }
+        }
+      ]
+    },
+    {
+      "map": "q_constant_ticks",
+      "points": [
+        {
+          "x": {
+            "type": "int",
+            "value": 0
+          },
+          "result": {
+            "type": "int",
+            "value": 2
+          }
+        }
+      ]
+    },
+    {
+      "map": "q_record",
+      "points": [
+        {
+          "x": {
+            "type": "fraction",
+            "value": [0, 1]
+          },
+          "result": {
+            "type": "record",
+            "value": {
+              "ID": "1",
+              "count": 1
+            }
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [1, 3]
+          },
+          "result": {
+            "type": "record",
+            "value": {
+              "ID": "1",
+              "count": 1
+            }
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [1, 2]
+          },
+          "result": {
+            "type": "record",
+            "value": {
+              "ID": "2",
+              "count": 2
+            }
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 2
+          },
+          "result": {
+            "type": "record",
+            "value": {
+              "ID": "2",
+              "count": 2
+            }
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [7, 2]
+          },
+          "result": {
+            "type": "record",
+            "value": {
+              "ID": "3",
+              "count": 3
+            }
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 5
+          },
+          "result": {
+            "type": "record",
+            "value": {
+              "ID": "3",
+              "count": 3
+            }
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": -1
+          },
+          "result": {
+            "type": "record",
+            "value": {
+              "ID": "1",
+              "count": 1
+            }
+          }
+        },
+        {
+          "x": {
+            "type": "float",
+            "value": 0.75
+          },
+          "result": {
+            "type": "record",
+            "value": {
+              "ID": "2",
+              "count": 2
+            }
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 100
+          },
+          "result": {
+            "type": "record",
+            "value": {
+              "ID": "4",
+              "count": 4
+            }
+          }
+        }
+      ]
+    },
+    {
+      "map": "q_number",
+      "points": [
+        {
+          "x": {
+            "type": "fraction",
+            "value": [0, 1]
+          },
+          "result": {
+            "type": "int",
+            "value": 0
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [1, 3]
+          },
+          "result": {
+            "type": "int",
+            "value": 0
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [1, 2]
+          },
+          "result": {
+            "type": "int",
+            "value": 2
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 2
+          },
+          "result": {
+            "type": "int",
+            "value": 2
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [7, 2]
+          },
+          "result": {
+            "type": "int",
+            "value": 3
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 5
+          },
+          "result": {
+            "type": "int",
+            "value": 3
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": -1
+          },
+          "result": {
+            "type": "int",
+            "value": 0
+          }
+        },
+        {
+          "x": {
+            "type": "float",
+            "value": 0.75
+          },
+          "result": {
+            "type": "int",
+            "value": 2
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 100
+          },
+          "result": {
+            "type": "int",
+            "value": 4
+          }
+        }
+      ]
+    },
+    {
+      "map": "q_beat",
+      "points": [
+        {
+          "x": {
+            "type": "fraction",
+            "value": [0, 1]
+          },
+          "result": {
+            "type": "outputs",
+            "value": {
+              "number": {
+                "type": "int",
+                "value": 0
+              },
+              "beat": {
+                "type": "fraction",
+                "value": [1, 1]
+              }
+            }
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [1, 3]
+          },
+          "result": {
+            "type": "outputs",
+            "value": {
+              "number": {
+                "type": "int",
+                "value": 0
+              },
+              "beat": {
+                "type": "fraction",
+                "value": [4, 3]
+              }
+            }
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [1, 2]
+          },
+          "result": {
+            "type": "outputs",
+            "value": {
+              "number": {
+                "type": "int",
+                "value": 2
+              },
+              "beat": {
+                "type": "fraction",
+                "value": [1, 1]
+              }
+            }
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 2
+          },
+          "result": {
+            "type": "outputs",
+            "value": {
+              "number": {
+                "type": "int",
+                "value": 2
+              },
+              "beat": {
+                "type": "fraction",
+                "value": [5, 2]
+              }
+            }
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [7, 2]
+          },
+          "result": {
+            "type": "outputs",
+            "value": {
+              "number": {
+                "type": "int",
+                "value": 3
+              },
+              "beat": {
+                "type": "fraction",
+                "value": [1, 1]
+              }
+            }
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 5
+          },
+          "result": {
+            "type": "outputs",
+            "value": {
+              "number": {
+                "type": "int",
+                "value": 3
+              },
+              "beat": {
+                "type": "fraction",
+                "value": [5, 2]
+              }
+            }
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": -1
+          },
+          "result": {
+            "type": "outputs",
+            "value": {
+              "number": {
+                "type": "int",
+                "value": 0
+              },
+              "beat": {
+                "type": "fraction",
+                "value": [0, 1]
+              }
+            }
+          }
+        },
+        {
+          "x": {
+            "type": "float",
+            "value": 0.75
+          },
+          "result": {
+            "type": "outputs",
+            "value": {
+              "number": {
+                "type": "int",
+                "value": 2
+              },
+              "beat": {
+                "type": "fraction",
+                "value": [5, 4]
+              }
+            }
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 100
+          },
+          "result": {
+            "type": "outputs",
+            "value": {
+              "number": {
+                "type": "int",
+                "value": 4
+              },
+              "beat": {
+                "type": "fraction",
+                "value": [191, 2]
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "map": "q_floating",
+      "points": [
+        {
+          "x": {
+            "type": "fraction",
+            "value": [0, 1]
+          },
+          "result": {
+            "type": "float",
+            "value": 0.833
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [1, 3]
+          },
+          "result": {
+            "type": "float",
+            "value": 0.944
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [1, 2]
+          },
+          "result": {
+            "type": "float",
+            "value": 1.0
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 2
+          },
+          "result": {
+            "type": "float",
+            "value": 1.5
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [7, 2]
+          },
+          "result": {
+            "type": "float",
+            "value": 2.0
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 5
+          },
+          "result": {
+            "type": "float",
+            "value": 2.75
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": -1
+          },
+          "result": {
+            "type": "float",
+            "value": 0.5
+          }
+        },
+        {
+          "x": {
+            "type": "float",
+            "value": 0.75
+          },
+          "result": {
+            "type": "float",
+            "value": 1.083
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 100
+          },
+          "result": {
+            "type": "float",
+            "value": 50.25
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [1, 4]
+          },
+          "result": {
+            "type": "float",
+            "value": 0.916
+          }
+        }
+      ]
+    },
+    {
+      "map": "t_seconds",
+      "points": [
+        {
+          "x": {
+            "type": "int",
+            "value": 240
+          },
+          "result": {
+            "type": "float",
+            "value": 0.25
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 720
+          },
+          "result": {
+            "type": "float",
+            "value": 1.0
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 1000
+          },
+          "result": {
+            "type": "float",
+            "value": 1.5833333333333333
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": -480
+          },
+          "result": {
+            "type": "float",
+            "value": -0.5
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 960
+          },
+          "result": {
+            "type": "float",
+            "value": 1.5
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 0
+          },
+          "result": {
+            "type": "float",
+            "value": 0.0
+          }
+        },
+        {
+          "x": {
+            "type": "fraction",
+            "value": [1, 3]
+          },
+          "result": {
+            "type": "float",
+            "value": 0.0003472222222222222
+          }
+        }
+      ]
+    },
+    {
+      "map": "t_quarters",
+      "points": [
+        {
+          "x": {
+            "type": "int",
+            "value": 720
+          },
+          "result": {
+            "type": "fraction",
+            "value": [3, 2]
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 1
+          },
+          "result": {
+            "type": "fraction",
+            "value": [1, 480]
+          }
+        },
+        {
+          "x": {
+            "type": "float",
+            "value": 0.5
+          },
+          "result": {
+            "type": "fraction",
+            "value": [4803839602528529, 4611686018427387904]
+          }
+        }
+      ]
+    },
+    {
+      "map": "s_samples",
+      "points": [
+        {
+          "x": {
+            "type": "float",
+            "value": 0.1
+          },
+          "result": {
+            "type": "int",
+            "value": 4410
+          }
+        },
+        {
+          "x": {
+            "type": "float",
+            "value": 1.5
+          },
+          "result": {
+            "type": "int",
+            "value": 66150
+          }
+        },
+        {
+          "x": {
+            "type": "float",
+            "value": 2.0000113378684805
+          },
+          "result": {
+            "type": "int",
+            "value": 88200
+          }
+        }
+      ]
+    },
+    {
+      "map": "s_milliseconds",
+      "points": [
+        {
+          "x": {
+            "type": "float",
+            "value": 0.1
+          },
+          "result": {
+            "type": "float",
+            "value": 100.0
+          }
+        },
+        {
+          "x": {
+            "type": "int",
+            "value": 3
+          },
+          "result": {
+            "type": "float",
+            "value": 3000.0
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -11,7 +11,7 @@ import type { LivePlacement, ResizeMode, Viewport } from "@timetoalign/tilie-arr
 import { Canvas, isTextInput, selectionOf, within } from "@timetoalign/tilie-arranger";
 import type { Health } from "@timetoalign/tilie-client";
 import { connect } from "@timetoalign/tilie-client";
-import type { Address, LoadError, Problem, Store } from "@timetoalign/tilie-core";
+import type { Address, GridInUse, LoadError, Problem, Store } from "@timetoalign/tilie-core";
 import { emptyWorkspace, isCommandError, readAddress } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import type { Snippet } from "svelte";
@@ -28,6 +28,7 @@ import FileMenu from "./FileMenu.svelte";
 import { openFile, UNTITLED, WORKSPACE_FILE } from "./files.ts";
 import InspectorDrawer from "./InspectorDrawer.svelte";
 import MessageArea from "./MessageArea.svelte";
+import { measureMapsOf } from "./measureMaps.ts";
 import type { Message } from "./messages.ts";
 import { messageOf } from "./messages.ts";
 import type { ServerOptions, TimeLineEditorOptions } from "./options.ts";
@@ -66,10 +67,13 @@ let {
 const AUTOSAVE_DELAY_MS = 1000;
 
 let root: HTMLElement | undefined = $state();
+let arranger: HTMLElement | undefined = $state();
 let canvas: ReturnType<typeof Canvas> | undefined = $state();
 let confirm: ReturnType<typeof ConfirmDialog> | undefined = $state();
 let about: ReturnType<typeof AboutDialog> | undefined = $state();
 let drawer: ReturnType<typeof InspectorDrawer> | undefined = $state();
+/** The grid of the canvas's last coordinate reading, which the Timestamp tab names; `null` before the first. */
+let grid: GridInUse | null = $state.raw(null);
 
 // --- Messages ---------------------------------------------------------------
 
@@ -257,6 +261,17 @@ function listenKeys(element: HTMLElement): () => void {
     : on(element, "keydown", onkeydown);
 }
 
+/**
+ * A click outside the canvas's area goes to the drawer, which clears a
+ * pinned timestamp unless the click lies in the inspector's tabs or the
+ * shown panel; the canvas pins and clears on its own clicks.
+ */
+function listenClicks(element: HTMLElement): () => void {
+  return on(element, "click", (event) => {
+    if (!within(arranger, event.target)) drawer?.clickedAt(event.target);
+  });
+}
+
 const fileItems: readonly MenuItem[] = $derived([
   { label: "New workspace", run: newWorkspace },
   { label: "Open…", shortcut: SHORTCUTS.open.label, keys: SHORTCUTS.open.keys, run: openFromFile },
@@ -422,7 +437,7 @@ if (withTestHook) {
 }
 </script>
 
-<div class="editor" bind:this={root} {@attach listenKeys}>
+<div class="editor" bind:this={root} {@attach listenKeys} {@attach listenClicks}>
   <header>
     {#if title}{@render title()}{:else}<span class="title">TimeLineEditor</span>{/if}
     <FileMenu label="File" items={fileItems} />
@@ -441,7 +456,7 @@ if (withTestHook) {
   </header>
 
   <main>
-    <div class="arranger">
+    <div class="arranger" bind:this={arranger}>
       <Canvas
         bind:this={canvas}
         live={session.live}
@@ -451,6 +466,9 @@ if (withTestHook) {
         bind:mode
         bind:viewport
         onlive={(next) => (placement = next)}
+        oncoordinatepin={(pin) => drawer?.pinTimestamp(pin)}
+        ongrid={(next) => (grid = next)}
+        measureMaps={server === null ? undefined : measureMapsOf(connect(server))}
       />
       <MessageArea
         {messages}
@@ -463,6 +481,7 @@ if (withTestHook) {
       selection={session.selection}
       {placement}
       storageKey={storage?.inspectorKey ?? null}
+      {grid}
     />
   </main>
 

@@ -14,7 +14,7 @@ import type { Located } from "../manifest/tree.ts";
 import type { ChildTimeline, Manifest, TimelineManifest } from "../manifest/types.ts";
 import type { Address } from "../workspace/address.ts";
 import type { Block, BlockId } from "../workspace/blocks.ts";
-import type { View, WorkspaceSettings } from "../workspace/view.ts";
+import type { View } from "../workspace/view.ts";
 
 /** A value a `set` wrote at one path: the value stored before its first write, and its last. */
 export interface Written {
@@ -80,7 +80,7 @@ function noted(
 
 /**
  * Record a change at `path` that may reach past the value there: of the
- * workspace settings when `block` is null, of the block otherwise, and with
+ * workspace when `block` is null, of the block otherwise, and with
  * `manifest` of its manifest too.
  */
 export function record(
@@ -95,7 +95,7 @@ export function record(
 
 /**
  * Record a `set` that wrote `value` at `path` where `stored` was, and changed
- * nothing else: of the workspace settings when `block` is null, of the block
+ * nothing else: of the workspace when `block` is null, of the block
  * otherwise, and with `manifest` of its manifest too.
  */
 export function recordValue(
@@ -110,10 +110,6 @@ export function recordValue(
   const key = JSON.stringify(path);
   const first = changes.written.get(key);
   changes.written.set(key, { block, stored: first === undefined ? stored : first.stored, value });
-}
-
-export function withSettings(view: View, settings: Partial<WorkspaceSettings>): View {
-  return { ...view, settings: { ...view.settings, ...settings } };
 }
 
 export function withBlock(view: View, block: Block): View {

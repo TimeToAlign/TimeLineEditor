@@ -170,7 +170,7 @@ function drawnWith(
   metrics: FontMetrics,
 ): Drawing {
   const next = withPlaces(view, block, changes);
-  return drawingOf(blockIn(next, block), next.settings, metrics);
+  return drawingOf(blockIn(next, block), next.graphical, metrics);
 }
 
 /**
@@ -268,7 +268,7 @@ export function itemMoveCommand(
   together: readonly PlaceKey[] = [],
 ): SetCommand | null {
   const found = blockIn(view, block);
-  const drawing = drawingOf(found, view.settings, metrics);
+  const drawing = drawingOf(found, view.graphical, metrics);
   const { place } = itemOf(drawing, key).item;
   const to = { x: quantize(x, GRID_FREE), y: quantize(y, GRID_FREE) };
   if (to.x === place.x && to.y === place.y) return null;
@@ -301,7 +301,7 @@ export function itemResizeCommand(
     );
   });
   if (!changes) return null;
-  const drawing = drawingOf(found, view.settings, metrics);
+  const drawing = drawingOf(found, view.graphical, metrics);
   return placeCommand(found, drawing, places, LEVELS[level].itemsFree);
 }
 
@@ -382,7 +382,7 @@ export class Stretch {
     this.#factor = factor;
     this.#size = SIZES[factor];
     const stored = blockIn(view, block);
-    const drawing = drawingOf(stored, view.settings, metrics);
+    const drawing = drawingOf(stored, view.graphical, metrics);
     const resized = resizedIn(drawing, box);
     const item = itemHolding(drawing, resized);
     const held = isHeld(resized);
@@ -536,7 +536,7 @@ export function itemResizeValues(
   metrics: FontMetrics,
 ): PlaceChanges {
   const stored = blockIn(view, block);
-  const drawing = drawingOf(stored, view.settings, metrics);
+  const drawing = drawingOf(stored, view.graphical, metrics);
   const resized = resizedIn(drawing, box);
   const held = isHeld(resized);
   const [sx, sy] = SIDES[handle];
@@ -653,7 +653,7 @@ export function itemResizeValues(
   }
 
   if (sx >= 0 && sy >= 0) return changes;
-  const after = drawingOf(blockIn(current, block), current.settings, metrics);
+  const after = drawingOf(blockIn(current, block), current.graphical, metrics);
   const own: PlaceValues = {};
   if (sx < 0) own.x = quantize(right - scale * sizeIn(after, "width"), GRID_FREE);
   if (sy < 0) own.y = quantize(bottom - scale * sizeIn(after, "height"), GRID_FREE);
@@ -743,7 +743,7 @@ export function placeEdit(
       property,
     ]);
   }
-  const drawing = drawingOf(block, view.settings, metrics);
+  const drawing = drawingOf(block, view.graphical, metrics);
   const valueFor = (current: number | null) =>
     typeof value === "function" ? value(current) : value;
   const check = (target: Address, given: number | null): CommandError | null => {

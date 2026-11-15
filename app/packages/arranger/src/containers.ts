@@ -324,7 +324,7 @@ export function resolveSelection(
       address,
       block: block.id,
       kind: KINDS[resolved.kind] ?? "element",
-      box: boxFor(drawingOf(block, view.settings, metrics), resolved, editing),
+      box: boxFor(drawingOf(block, view.graphical, metrics), resolved, editing),
       resolved,
     });
   }

@@ -1,15 +1,16 @@
 <script lang="ts">
 /**
- * The inspector: the editing bar, then a tab list over four panels: the
+ * The inspector: the editing bar, then a tab list over five panels: the
  * level tab (named by the level: Arranger, Bundle, Group or Timeline, its
- * panel opening with the level's title line), Properties, Manifest and
- * Journal. Only the shown panel is rendered; what the Properties and
+ * panel opening with the level's title line), Properties, Manifest, Journal
+ * and Timestamp. Only the shown panel is rendered; what the Properties and
  * Manifest tabs hold between visits (typed text, a chosen format) lives in
  * their state objects, which a host keeping them while the inspector is not
- * shown passes in, with the tab chosen.
+ * shown passes in, with the tab chosen and the pinned timestamp.
  */
 import type { LivePlacement, LiveStore, Selection } from "@timetoalign/tilie-arranger";
 import { resolveSelection } from "@timetoalign/tilie-arranger";
+import type { GridInUse } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import { untrack } from "svelte";
 import type { Attachment } from "svelte/attachments";
@@ -21,8 +22,9 @@ import { ManifestText } from "./manifestText.svelte.ts";
 import PropertiesPanel from "./PropertiesPanel.svelte";
 import { PropertyDrafts } from "./propertyDrafts.svelte.ts";
 import { selectedBlock } from "./selection.ts";
-import type { Picked, Tab } from "./tabs.ts";
-import { initialPick, nextTab, TABS, tabLabel } from "./tabs.ts";
+import TimestampPanel from "./TimestampPanel.svelte";
+import type { Picked, Pin, Tab } from "./tabs.ts";
+import { chosen, initialPick, nextTab, TABS, tabLabel } from "./tabs.ts";
 import { levelTitle } from "./words.ts";
 
 let {
@@ -32,6 +34,8 @@ let {
   manifest = new ManifestText(),
   drafts = new PropertyDrafts(),
   picked = $bindable(untrack(() => initialPick(live.editing.length, live.openings))),
+  pin = $bindable(null),
+  grid = null,
 }: {
   /** The open workspace's store, read as Svelte state. */
   live: LiveStore;
@@ -44,6 +48,10 @@ let {
   drafts?: PropertyDrafts;
   /** The tab last chosen, and how many editors had been opened then. */
   picked?: Picked;
+  /** The pinned timestamp and the tab shown before it; `null` while none is pinned. */
+  pin?: Pin | null;
+  /** The grid of the canvas's last reading; `null` before the first. */
+  grid?: GridInUse | null;
 } = $props();
 
 const uid = $props.id();
@@ -60,8 +68,17 @@ const openings = $derived(live.openings);
 /** The tab shown: the one chosen; the drawer chooses the level tab when an editor opened while it was closed. */
 const tab: Tab = $derived(picked.tab);
 
+/** Choose a tab; any but Timestamp clears the pin. */
 function choose(next: Tab): void {
-  picked = { tab: next, openings };
+  ({ picked, pin } = chosen({ picked, pin }, next, openings));
+}
+
+/** The tab list and the panels, where a click keeps a pinned timestamp. */
+let body: HTMLElement | undefined = $state();
+
+/** Whether `target` lies in the tab list or the shown panel, where a click keeps a pinned timestamp. */
+export function holds(target: EventTarget | null): boolean {
+  return body !== undefined && target instanceof Node && body.contains(target);
 }
 
 /** The tab buttons, to move the focus with the keys: each kept while it is mounted. */
@@ -92,7 +109,7 @@ const hinted = $derived(block === null && !manifest.dirty);
 <!-- Full width above the tabs, while an editor is open. -->
 <EditingBar {live} />
 
-<div class="inspector-body">
+<div class="inspector-body" bind:this={body}>
   <div class="tabs" role="tablist" aria-label="Inspector sections">
     {#each TABS as item (item)}
       <button
@@ -127,6 +144,8 @@ const hinted = $derived(block === null && !manifest.dirty);
         </p>
       {:else if item === "journal"}
         <JournalPanel rows={journalRows(live, view)} />
+      {:else if item === "timestamp"}
+        <TimestampPanel {live} pinned={pin} {grid} />
       {:else if item === "properties"}
         <PropertiesPanel
           {view}

@@ -1,6 +1,6 @@
 /**
- * The workspace file, `<name>.tle.json`: `{meta, name, settings, blocks,
- * journal, sessions}` written by TimeToShare's `dumps` and read losslessly
+ * The workspace file, `<name>.tle.json`: `{meta, name, settings, graphical,
+ * blocks, journal, sessions}` written by TimeToShare's `dumps` and read losslessly
  * by its `parseJson`. Any other format or version refuses the file before
  * anything else is read; any unknown member and any invalid manifest refuses
  * it too, and so does a session that the journal does not reach exactly
@@ -15,72 +15,32 @@ import type { JsonObject, PathSegment } from "../json.ts";
 import { isJsonObject, showJson } from "../json.ts";
 import { normalizeManifest } from "../manifest/io.ts";
 import type { Manifest } from "../manifest/types.ts";
+import type { MemberReader as Reader } from "../values.ts";
 import {
-  readBoolean,
+  readExact,
   readFinite,
   readGraphical,
   readName,
-  readNonNegative,
-  readNullablePositive,
   readPlaces,
-  readPositive,
   readString,
 } from "../values.ts";
 import { readAddress } from "./address.ts";
-import type { Block, BlockPlacement } from "./blocks.ts";
+import type { Block } from "./blocks.ts";
 import { BLOCK_MEMBERS } from "./blocks.ts";
 import type { Entry, Session, SessionId, Sessions } from "./sessions.ts";
 import { isSessionEntry, reachedSessions, SESSION_ID } from "./sessions.ts";
 import type { Workspace } from "./store.ts";
 import type { View, WorkspaceSettings } from "./view.ts";
-import { createView, structureProblems, UNTITLED_WORKSPACE, WORKSPACE_META } from "./view.ts";
+import {
+  createView,
+  PLACEMENT_READERS,
+  readSettings,
+  structureProblems,
+  UNTITLED_WORKSPACE,
+  WORKSPACE_META,
+} from "./view.ts";
 
 const TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
-
-type Reader = (value: unknown, path: readonly PathSegment[]) => unknown;
-
-/**
- * The members of an object, each read by its reader; an unknown member is
- * `unknown_member`, an absent one `missing_member`. Problems go to `problems`.
- */
-function readExact(
-  value: unknown,
-  path: readonly PathSegment[],
-  readers: { readonly [member: string]: Reader },
-  problems: Problem[],
-): { [member: string]: unknown } | undefined {
-  if (!isJsonObject(value)) {
-    problems.push(problem(ErrorCode.invalidValue, "expected an object", path));
-    return undefined;
-  }
-  let complete = true;
-  for (const member of Object.keys(value)) {
-    if (!Object.hasOwn(readers, member)) {
-      problems.push(
-        problem(ErrorCode.unknownMember, `unknown member ${member}`, [...path, member]),
-      );
-      complete = false;
-    }
-  }
-  const result: { [member: string]: unknown } = {};
-  for (const [member, read] of Object.entries(readers)) {
-    if (!Object.hasOwn(value, member)) {
-      problems.push(
-        problem(ErrorCode.missingMember, `missing member ${member}`, [...path, member]),
-      );
-      complete = false;
-      continue;
-    }
-    const item = read(value[member], [...path, member]);
-    if (isCommandError(item)) {
-      problems.push(item);
-      complete = false;
-    } else if (item === undefined) {
-      complete = false;
-    } else result[member] = item;
-  }
-  return complete ? result : undefined;
-}
 
 /** A reader that pushes its problems and returns `undefined` on failure. */
 function collecting(
@@ -97,15 +57,6 @@ function collecting(
   };
 }
 
-const PLACEMENT: { readonly [member in keyof BlockPlacement]: Reader } = {
-  scale: readPositive,
-  length: readPositive,
-  spacing: readNonNegative,
-  margin: readNonNegative,
-  width: readNullablePositive,
-  height: readNullablePositive,
-};
-
 const META: { readonly [member: string]: Reader } = {
   format: (value, path) =>
     value === WORKSPACE_META.format
@@ -121,21 +72,6 @@ const META: { readonly [member: string]: Reader } = {
         ),
 };
 
-function readSettings(problems: Problem[]): Reader {
-  return (value, path) =>
-    readExact(
-      value,
-      path,
-      {
-        grid: (grid, at) =>
-          readExact(grid, at, { size: readPositive, snap: readBoolean }, problems),
-        blockDefaults: (defaults, at) => readExact(defaults, at, PLACEMENT, problems),
-        graphical: readGraphical,
-      },
-      problems,
-    );
-}
-
 function readManifest(value: unknown, path: readonly PathSegment[]): Manifest | Problem[] {
   const manifest = normalizeManifest(value);
   if (!isLoadError(manifest)) return manifest;
@@ -147,7 +83,7 @@ function readManifest(value: unknown, path: readonly PathSegment[]): Manifest | 
 
 function readBlock(problems: Problem[]): Reader {
   const readers: { [member: string]: Reader } = {
-    ...PLACEMENT,
+    ...PLACEMENT_READERS,
     id: readString,
     parent: (value, path) => (value === null ? null : readString(value, path)),
     index: readString,
@@ -325,7 +261,8 @@ export function readWorkspace(text: string): Workspace | LoadError {
     {
       meta: (meta, path) => readExact(meta, path, META, problems),
       ...(stated ? { name: readName } : {}),
-      settings: readSettings(problems),
+      settings: (settings, path) => readSettings(settings, path, problems),
+      graphical: readGraphical,
       blocks,
       journal: readEntries(problems),
       sessions: readSessions(problems),
@@ -337,6 +274,7 @@ export function readWorkspace(text: string): Workspace | LoadError {
     meta: WORKSPACE_META,
     name: stated ? (top.name as string) : UNTITLED_WORKSPACE,
     settings: top.settings as WorkspaceSettings,
+    graphical: top.graphical as View["graphical"],
     blocks: top.blocks as View["blocks"],
   };
   const structure = structureProblems(view);
@@ -351,8 +289,8 @@ export function readWorkspace(text: string): Workspace | LoadError {
 /** The workspace file's text. */
 export function writeWorkspace(workspace: Workspace): string {
   const { view, journal, sessions } = workspace;
-  const { meta, name, settings, blocks } = view;
-  return dumps({ meta, name, settings, blocks, journal, sessions });
+  const { meta, name, settings, graphical, blocks } = view;
+  return dumps({ meta, name, settings, graphical, blocks, journal, sessions });
 }
 
 /** A workspace holding nothing: the empty view, an empty journal, no sessions. */

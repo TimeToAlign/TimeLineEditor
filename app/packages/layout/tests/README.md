@@ -315,7 +315,10 @@ is a child following its parent), and a side without a band has the line's reach
 as its outer edge. A children band starts at the larger of the rule's start and half its
 row's pitch (`map`'s `melody` at 10.5 for the pitch 14 and 15 for 30,
 `segment_line`'s `form` at 24.4765625, `unknown_length_child`'s `score` at
-7). The conversion maps band is the line's stack only at level ±1; a segment
+7). Laid out alone, a line's conversion maps band takes the slots of its
+own maps (section 6.4, Conversion maps, a row of one line); its width and
+the line's reach come from those slots, never from the band before them.
+The conversion maps band is the line's stack only at level ±1; a segment
 line with boundaries reaches `k` both ways, its segment labels above only
 (`b`: 20.4765625 above, 8 below). Segments without a line join their
 displayed bands to their segment line's, after its own, in its band order.
@@ -340,13 +343,21 @@ from sections 4 and 6.4:
   the child lies below the root. The markers band alone lies against the
   root's line, on the side the band order gives it. In
   `conversion_maps__maps_quarters` the twelve top-level maps (nested maps
-  are not drawn), in canonical order `cmap_1` to `tmap_4`, lie against the
+  are not drawn), none named, take their slots by type (section 6.4,
+  Conversion maps; code-point order `ChainMap`, `CombinationMap`,
+  `ConstantMap`, `FloatingMeasureMap`, `LinearMap`, `MeasureBeatMap`,
+  `MeasureNumberMap`, `MeasureRecordMap`, `PiecewiseMap`, `TableMap`), so
+  `cmap_4` takes slot 1, `cmap_1` (the MeasureRecordMap) slot 8, and the
+  three TableMaps `tmap_2` to `tmap_4`, which span one timeline and so
+  conflict, the sub-slots 10 to 12 in canonical order; they lie against the
   line above: the stack reaches `1.5 + 12 × 5 = 61.5`, `y_root = 69.5`, the
-  root at 77.5, `cmap_1` (`j = 1`, 5.5 out) at 72, `tmap_4` (`j = 12`, 60.5
-  out) at 17, `Hc = 69.5 + 26.9765625 + 8 = 104.4765625`, `H =
-  122.4765625`. With the markers band on that side, after the maps, the two
-  lie `B` apart: nothing above, so the root at 22.40234375, `cmap_1` at
-  27.90234375 and `tmap_4` at 82.90234375; the markers band from `61.5 + 4
+  root at 77.5, `cmap_4` (`j = 1`, 5.5 out) at 72, `cmap_1` (`j = 8`, 40.5
+  out) at 37, `tmap_4` (`j = 12`, 60.5 out) at 17, `Hc = 69.5 + 26.9765625
+  + 8 = 104.4765625`, `H = 122.4765625`. The maps are still drawn in the
+  order they are taken, canonical order, `cmap_1` first. With the markers
+  band on that side, after the maps, the two lie `B` apart: nothing above,
+  so the root at 22.40234375, `cmap_1` at 62.90234375 and `tmap_4` at
+  82.90234375; the markers band from `61.5 + 4
   = 65.5`, the wedges from `65.5 + 1.5 = 67` to 80 out (89.40234375 to
   102.40234375), `Eb = 65.5 + 26.9765625 = 92.4765625`, `Hc = 114.87890625`,
   `H = 132.87890625`. Ordered after it the maps lie beyond it and the line
@@ -377,6 +388,124 @@ from sections 4 and 6.4:
   sides of its lines, one name size and pitch for every row of a joint
   layout; a hidden child takes no room; a joint row mixing segment lines
   and a child counts the child's name alone, and its pitch.
+
+## Conversion map slots (`slots.test.ts`)
+
+Section 6.4, Conversion maps: the present conversion maps bands of the
+lines of one row on one side at one level share one sequence of slots.
+What proves it is a drawing in which the slot a map takes differs from the
+place it would take in a stack of its own line alone: maps of one key on
+two lines of a row at one height although their lines hold them in a
+different order; the same row split in two by a first fit, which then
+draws the same map one slot lower; and a common start that only another
+line of the row explains. The maps are LinearMaps added by command, named
+where a name is given, so every map of these manifests has one type and the
+key is the name. Each map is centred `c0 + w / 2 + j × (g + d) − d / 2`
+from its line, `g + d = 3 + 2 = 5`, so with `c0 = 0` and `w = 3` slot 1 lies
+5.5 out, slot 2 10.5, slot 3 15.5, slot 4 20.5 and slot 5 25.5; `J` slots
+make every band of the set `e = 1.5 + J × 5` wide. Children are 3 wide and
+their names 11 high, so a row's pitch is 14 and each half at least 7; the
+root's children band starts at `max(1.5 + 4, 7) = 7`; a drawn ordinate is
+`8 +` the card's, the card's line `8 +` its own (`y_root = P + Ea`, `Ea`
+above `h(11) / 2`).
+
+- **Siblings.** `r` (length 8) holds `ante` at 0 and `cons` at 4, each 4
+  long, extents `[0, 200]` and `[200, 400]`: one row. `ante` holds
+  `a_ticks` (named Ticks) and `b_tempo` (Tempo), `cons` `a_tempo` (Tempo)
+  and `b_ticks` (Ticks). Keys in order Tempo, Ticks; each key's two maps
+  span timelines that only meet, so they share one sub-slot: Tempo slot 1,
+  Ticks slot 2 on both lines, `J = 2`, `e = 11.5`, although `ante` takes
+  Ticks first. The row's outer half is 11.5, `Ea = 7 + 7 + 11.5 = 25.5`:
+  `r` at 41.5, both children at `41.5 − 14 = 27.5`, the Tempo maps at 22,
+  the Ticks maps at 17, `H = 86.4765625` (as `r` with one child of two
+  maps). Maps are drawn in the order they are taken: `a_ticks`, `b_tempo`,
+  `a_tempo`, `b_ticks`.
+- **The widest stroke.** The same with `ante`'s line 5 wide: `w = 5` for
+  both bands, slot 1 at `2.5 + 5 − 1 = 6.5`, slot 2 at 11.5, `e = 12.5`;
+  `Ea = 26.5`, `r` at 42.5, the children at 28.5, the Tempo maps at 22 and
+  the Ticks maps at 17 on both lines.
+- **A first fit moves a line.** `ante` (0 to 4) holds Tempo and Ticks,
+  `cons` Ticks alone. With `cons` at 4 the row holds both: `cons`'s Ticks
+  shares slot 2 at 17, `J = 2` and the drawing is the siblings' (`r` at
+  41.5, the children at 27.5, `ante`'s Tempo at 22). With `cons` at 3 (to
+  7) its extent `[150, 350]` conflicts with `ante`'s and the first fit puts
+  it in row 2: row 1 has `J = 2` (outer half 11.5), row 2 holds `cons`
+  alone, `J = 1`, `e = 6.5` (outer half 7); `l1 = 7 + 7 = 14`, `l2 = 14 +
+  (11.5 + 7) = 32.5`, `Ea = 7 + 32.5 = 39.5`: `r` at 55.5, `ante` at
+  41.5 with Tempo at 36 and Ticks at 31, `cons` at 23 with its Ticks in
+  slot 1 at 17.5, `H = 100.4765625`.
+- **Sub-slots on a segment line.** The root `form` (length 32, unnamed) is
+  a segment line of three segments without a line, `A` 0 to 8, `B` 8 to
+  20 and `C` 20 to 32, by command. `form` holds `form_ticks` (Ticks), `B`
+  holds `b_ticks` (Ticks): the segment's map joins `form`'s band, its
+  timeline `[100, 250]` conflicts with `form`'s `[0, 400]`, so the key
+  Ticks has two sub-slots: `form_ticks` slot 1, `b_ticks` slot 2, `J = 2`.
+  The line reaches `max(11.5, k) = 11.5` above (no segment label: the
+  segments have no name), `Ea = 11.5`, `form` at 27.5, `form_ticks` at 22,
+  `b_ticks` at 17. With further maps on `form` whose IDs sort against
+  their names, `a_ticks` (Ticks), `b_tempo` (Tempo), `c_samples` (Samples)
+  and `d_bars` (Bars), and `B`'s `e_ticks` (Ticks), the key order Bars,
+  Samples, Tempo, Ticks gives `d_bars` 1, `c_samples` 2, `b_tempo` 3,
+  `a_ticks` 4 and `e_ticks` 5, `J = 5`, `e = 26.5`: `form` at 42.5 and the
+  maps at 37, 32, 27, 22 and 17; drawn `a_ticks`, `b_tempo`, `c_samples`,
+  `d_bars`, `e_ticks`.
+- **Named before unnamed.** On `r` with one child `c` (4 to 8), maps added
+  as `z` (named Zeta), `m` (unnamed) and `a` (named Alpha): Alpha slot 1,
+  Zeta slot 2, the unnamed LinearMap slot 3; `c` at 27.5 with `J = 3`,
+  `e = 16.5`, `Ea = 7 + 7 + 16.5 = 30.5`, so `r` at 46.5, `c` at 32.5,
+  `a` at 27, `z` at 22 and `m` at 17.
+- **One common start beyond level 1.** `ante` and `cons` as in Siblings,
+  with one map named Tempo each, the regions band of every timeline shown,
+  and `r`'s band order (followed by both) `[children, conversion_maps,
+  regions] | [markers, flow_control]`, so each child's regions band lies at
+  level 1 and its maps band at level 2 above. `ante` holds two unnamed
+  regions, 0 to 2 and 1 to 3, which conflict: two rows, its regions band
+  `2 × 22.4765625 − 4 = 40.953125` wide from 5.5, its maps band's own start
+  `5.5 + 40.953125 + 4 = 50.453125`; `cons` one region, 0 to 2: one row,
+  18.4765625 wide, own start `27.9765625`. Both bands start at `c0 =
+  50.453125`, the larger, one shared slot each: the maps lie `50.453125 +
+  1.5 + 5 − 1 = 55.953125` from their lines, both edges `50.453125 + 6.5 =
+  56.953125`, the row's outer half that, `Ea = 7 + 7 + 56.953125 =
+  70.953125`: `r` at 86.953125, the children at 72.953125, both maps at
+  17. Laid out apart, `cons`'s map would lie at 39.4765625.
+- **Kept apart by the children band.** Maps bands of one level whose
+  lines' children bands lie nearer the line are laid out together apart
+  from the others, so no start waits on itself; the starts are then found
+  step by step. `r` (length 8) holds `A` (0 to 4) and `B` (4 to 8), each
+  with one map named Tempo; the regions bands shown. `A`'s band order
+  `[conversion_maps, children] | [markers, regions, flow_control]` puts
+  its children band at level 1 and its maps band at level 2 above; `B`'s
+  `[children, conversion_maps, regions] | [markers, flow_control]` its
+  regions band at 1, maps at 2, children at 3. `A` holds the child `A1` (0
+  to 4), `B` holds `B1` (0 to 4) and the region 0 to 2. Steps: `B`'s maps
+  band (children further out) from `5.5 + 18.4765625 + 4 = 27.9765625`, `J
+  = 1`, to 34.4765625; the children bands of `A` and `B`, own starts
+  `max(5.5, 7) = 7` and `34.4765625 + 4 = 38.4765625`, together from
+  38.4765625, one row holding `A1` and `B1` (halves 7 and 7), each band 14
+  wide, to 52.4765625; `A`'s maps band (children nearer) from `52.4765625 +
+  4 = 56.4765625`, its own `J = 1`, to 62.9765625. The row's outer half is
+  62.9765625, `Ea = 7 + 7 + 62.9765625 = 76.9765625`: `r` at 92.9765625,
+  `A` and `B` at 78.9765625, `A1` and `B1` at `78.9765625 − (38.4765625 +
+  7) = 33.5`, `A`'s map at `78.9765625 − 61.9765625 = 17` and `B`'s at
+  `78.9765625 − 33.4765625 = 45.5`. One common start for the two maps
+  bands would wait on itself.
+- **Two slot sequences in one row.** The same band orders with `B`
+  holding no child and the maps `b_tempo` (Tempo) and `b_ticks` (Ticks),
+  `A` its child `A1` and `a_tempo` (Tempo). `B`'s set has `J = 2`: from
+  27.9765625, Tempo 33.4765625 and Ticks 38.4765625 out, to 39.4765625.
+  `A`'s set has `J = 1`: its children band from 7 to 21, its maps band from
+  25, the map 30.5 out, to 31.5. Outer half 39.4765625, `Ea = 53.4765625`:
+  `r` at 69.4765625, `A` and `B` at 55.4765625, `A1` at 41.4765625,
+  `a_tempo` at 24.9765625, `b_tempo` at 22 and `b_ticks` at 17. Shared,
+  the two Tempo maps would take one slot of one sequence of 2.
+- **What decides the slots.** The slots of the row's bands, a band's start
+  and width, and every line's reach are read by the layout from the row
+  membership the first fits give, the displayed maps, and each band's
+  side, level and children band alone; a
+  row holding only one line with maps of one key in canonical order draws
+  its maps in canonical order (every drawing fixture but
+  `conversion_maps__maps_quarters`, whose twelve unnamed maps take their
+  slots by type, draws its maps in canonical order).
 
 ## Jumps, a float axis and band orders (`placement.test.ts`)
 
@@ -456,6 +585,15 @@ double nearest 0.04 and `400 ×` it rounds to 16, so `cpt_2` starts at
 106.6767578125; `4.75 / 12.5` is the double nearest 0.38 and `400 ×` it
 rounds to 152, so it ends at 242.6767578125. The labels show the floats as
 Python writes them: `0.0 s` and `12.5 s`.
+
+**Float labels** (section 5.2). A float is labelled as Python's `round(x,
+3)` rounds it (the exact double to the nearest thousandth, ties to even),
+then as `repr` spells the result. `continuous_physical` with its children
+removed and its root's length set by command, its end wedge reads `312.49
+s` for 312.48979591836735, `6.0 s` for 6, `6.719 s` for 6.71875 (no tie:
+6718.75 thousandths), `0.062 s` for 0.0625 (a tie, 62.5 thousandths, to
+even) and `0.0 s` for 1e-05; the start wedge reads `0.0 s`. The label
+carries the exact coordinate, the length as given, whatever its text.
 
 **Band order.** `with_region` with the regions and children bands above
 its root's line (no map, so no conversion maps band) and the markers and
@@ -1020,10 +1158,30 @@ from `x0` (not the chevrons' start) to the member's end `x0 + L` or the
 ancestor's own end short of it, with the ancestor's coordinates there:
 `piece` over `second-half` in `group_child_member` from 8 to 16 quarters,
 `recording` over `excerpt` in `bundle_mixed` from 44100 to 132300 samples,
-running on. Each axis lists the maps of its own timeline that the member
-drawing displays: in `bundle_mixed` `score` `cmap_1` and `cmap_2`,
-`performance` `cmap_3`, `page` `cmap_4`, `excerpt` `cmap_6`, none for the
-ancestor `recording`, whose line draws no map (its own `cmap_5` included).
+running on. Each axis names the card that draws it (its place key) and
+lists the maps drawn at its line, in the order they are drawn, each with
+the ID of the timeline it spans (its owner) and its `xs`, `xe` and `yc`:
+in `bundle_mixed` `score` `cmap_1` and `cmap_2`, `performance` `cmap_3`,
+`page` `cmap_4`, `excerpt` `cmap_6`, each owned by its axis's timeline,
+none for the ancestor `recording`, whose line draws no map (its own
+`cmap_5` included). An axis lists the segments of its timeline when it is a
+segment line, each with its ID, its offset and its length on the line's
+own axis (section 3.4), none otherwise.
+
+**`lineAxes(drawing)`** gives the same lines for a hit test, one entry per
+axis, keyed by the card's place key text followed by the timeline's address
+key, so two drawings of one timeline keep two entries: `timeline` the ID,
+`y` the ordinate, `xStart` and `xEnd`, `start`, `length` (`end − start`,
+null where the end is not known), `numberType`, `unit`, the segments and the
+maps as the axis lists them. For the segment line `form` of the slots
+section (`x0 = 16 + 25.84033203125 + 8 = 49.84033203125`, `x(t) = x0 + 12.5
+t`): one entry keyed by `form`'s card `{item: form}`, `y` 27.5, `xStart`
+49.84033203125, `xEnd` 449.84033203125, start 0, length 32, segments `A`
+(0, 8), `B` (8, 12), `C` (20, 12); maps `form_ticks` (owner `form`, `yc`
+22, from 49.84033203125 to 449.84033203125) and `b_ticks` (owner `B`, `yc`
+17, from 149.84033203125 to 299.84033203125). `bundle__bundle_shared_member`
+draws `t` in two cards: two entries for `t`, keyed by `{item: g1, member:
+t}` and `{item: g2, member: t}`.
 
 **`coordinateAt(axis, x)`** is `start + (x − xStart) / (xEnd − xStart) ×
 (end − start)`, every double read as its exact value, computed exactly and

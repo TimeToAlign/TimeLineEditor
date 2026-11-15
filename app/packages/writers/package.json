@@ -17,6 +17,6 @@
   "dependencies": {
     "@timetoalign/tilie-core": "workspace:*",
     "@timetoalign/tilie-layout": "workspace:*",
-    "@timetoalign/timetoshare": "^0.1.0"
+    "@timetoalign/timetoshare": "link:../../../../TimeToShare/js"
   }
 }

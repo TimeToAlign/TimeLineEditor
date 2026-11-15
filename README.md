@@ -6,13 +6,13 @@ TiLiE is a local browser editor and visualization tool for musical timelines rep
 
 What works in the source tree:
 
-- **Manifests and workspaces** (`core`). Manifests of TimeToShare schema 0.1.0, the current version, with exact numbers:
+- **Manifests and workspaces** (`core`). Manifests of TimeToShare schema 0.2.0, the current version, with exact numbers:
   - validated load of any manifest, completed with every default it leaves out, and save in the complete or the minimal form;
   - unknown keys kept and written back, and timelines of unknown length;
   - element addresses, and the workspace view with its blocks, ids and order keys;
   - the four commands `add`, `set`, `remove` and `style` over addresses, under the library's invariants;
   - a store whose command journal gives undo and redo;
-  - the workspace file `<name>.tle.json` (format version 6), named by default after the workspace.
+  - the workspace file `<name>.tle.json` (format version 7), named by default after the workspace.
 - **Drawing** (`layout`, `writers`). Every manifest is drawn as one block opened by its title:
   - groups as frames, and each timeline as a root in a card; a member of several groups gets a card in each of their frames;
   - a member that is a child timeline drawn under the lines of its ancestors;
@@ -33,7 +33,7 @@ What works in the source tree:
   - The inspector's first tab, named by the level in view (Arranger, Bundle, Group or Timeline), names the workspace or the edited element. Its Properties tab renames the workspace or the inspected element, edits the geometry of the selected block, frame or card, puts the selected timelines into groups or takes them out (a timeline may be in several groups), lists a selected group's members to change them, and creates a new group of the selected timelines. Its Manifest tab edits the selected block's manifest as JSON, YAML or TOML and lists unknown keys as warnings. Its Journal tab lists the journal, newest first.
   - Unsaved changes are marked with `•` in the header. A workspace's text is autosaved in the browser's IndexedDB and offered for restoring when the editor opens again.
 
-Not available yet: loading sources through `timetoalign` on the server, which so far exposes only `/api/health`.
+Not available yet: loading sources through `timetoalign` on the server, which so far exposes `/api/health` and `/api/measure-maps`, the expansion of a manifest's measure maps.
 
 ## Install
 
@@ -46,9 +46,9 @@ tilie
 
 ## Status
 
-The server binds only to `127.0.0.1`, creates a random bearer token for each run, rejects foreign Host and Origin headers, serves the bundled application, protects `/api/health`, and sends `Referrer-Policy: no-referrer` with every response. `tilie` prints and opens `http://127.0.0.1:<port>/#token=<token>`: the token travels in the URL fragment, which the browser never sends to the server. The editor reads it, removes it from the address bar, and sends it with its health request. The token is held in memory only, so reloading the page loses it and the header then shows the "offline" mark; restart `tilie` for a fresh URL.
+The server binds only to `127.0.0.1`, creates a random bearer token for each run, rejects foreign Host and Origin headers, serves the bundled application, protects every `/api/` route, and sends `Referrer-Policy: no-referrer` with every response. `tilie` prints and opens `http://127.0.0.1:<port>/#token=<token>`: the token travels in the URL fragment, which the browser never sends to the server. The editor reads it, removes it from the address bar, and sends it with its health request. The token is held in memory only, so reloading the page loses it and the header then shows the "offline" mark; restart `tilie` for a fresh URL.
 
-Of the six application packages, `core` implements the workspace, block, and manifest model described in [the architecture guide](docs/architecture.md#the-core-package). It reads and writes manifests of schema 0.1.0 only, the one version TimeToShare supports, and migrates nothing. `layout` exports `draw(manifest, placement, layers, metrics)`, which returns one derived drawing. `writers` exports `toDescriptors(drawing)`, `writeSvg(placed)`, and `writeTikz(placed, options)`; a placed drawing has `drawing`, `x`, `y`, and `scale`, and a page may contain more than one. `arranger` exports the canvas and the functions that turn its gestures into commands ([the canvas](docs/architecture.md#the-canvas)); `editor` is the application around it ([the editor](docs/architecture.md#the-editor)); `client` connects to the server and asks its health. There is no generated API client, server-side loading or export endpoint yet.
+Of the six application packages, `core` implements the workspace, block, and manifest model described in [the architecture guide](docs/architecture.md#the-core-package). It reads and writes manifests of schema 0.2.0 only, the one version TimeToShare supports, and migrates nothing. `layout` exports `draw(manifest, placement, layers, metrics)`, which returns one derived drawing. `writers` exports `toDescriptors(drawing)`, `writeSvg(placed)`, and `writeTikz(placed, options)`; a placed drawing has `drawing`, `x`, `y`, and `scale`, and a page may contain more than one. `arranger` exports the canvas and the functions that turn its gestures into commands ([the canvas](docs/architecture.md#the-canvas)); `editor` is the application around it ([the editor](docs/architecture.md#the-editor)); `client` connects to the server and asks its health and the expanded rows of a manifest's measure maps. There is no generated API client, server-side loading or export endpoint yet.
 
 ## Architecture
 

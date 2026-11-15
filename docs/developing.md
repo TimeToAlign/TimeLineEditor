@@ -37,10 +37,10 @@ have, the schema is changed first.
   places of its items and the stated sizes, spacings and margins of its
   members' cards, a member's card set through its group. A block's styling is its manifest's `graphical`; the block has no
   style layer of its own.
-- The **workspace** is the canvas: its name, its blocks, the settings, and
+- The **workspace** is the canvas: its name, its blocks, its default style statements, the settings (outside the journal), and
   the command journal that produced them with the sessions of its editors.
   It is one canonical JSON file, by default `<name>.tle.json` after its
-  name, format version 6.
+  name, format version 7.
 
 No other noun names any of these. "Document", "record" and "envelope" name
 nothing here.

@@ -12,8 +12,10 @@
 export const name = "@timetoalign/tilie-layout" as const;
 
 export type { Domain, ElementKey, Modality } from "@timetoalign/tilie-core/drawing";
+export type { LineAxis } from "./axes.ts";
+export { lineAxes } from "./axes.ts";
 export { draw } from "./block.ts";
-export type { DrawnAxis, DrawnBox, ElementRange } from "./boxes.ts";
+export type { AxisMap, AxisSegment, DrawnAxis, DrawnBox, ElementRange } from "./boxes.ts";
 export { coordinateAt } from "./boxes.ts";
 export type { Style } from "./cascade.ts";
 export { Cascade, INITIAL_STYLE } from "./cascade.ts";

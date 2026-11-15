@@ -145,7 +145,7 @@ export function heldGesture(
             ? null
             : releaseMotion(
                 press.drawing,
-                drawingOf(stored, view.settings, actions.metrics),
+                drawingOf(stored, view.graphical, actions.metrics),
                 card,
                 dropped,
               );

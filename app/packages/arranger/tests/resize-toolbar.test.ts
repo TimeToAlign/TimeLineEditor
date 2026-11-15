@@ -33,7 +33,7 @@ import Harness from "./ToolbarHarness.svelte";
 
 const VIEW = viewOf({ id: A, fixture: "bundles/bundle_mixed" });
 const BLOCK = blockIn(VIEW, A);
-const DRAWING = drawingOf(BLOCK, VIEW.settings, metrics);
+const DRAWING = drawingOf(BLOCK, VIEW.graphical, metrics);
 
 /** The box of A's drawing at `address`; `{}` names the block. */
 function box(address: ElementAddress): DrawnBox {
@@ -227,7 +227,7 @@ describe("a handle's gesture", () => {
     pointer(right, "pointerdown", 100, 25);
     pointer(right, "pointermove", 160, 25);
     pointer(right, "pointerup", 160, 25);
-    const { values } = resize(BLOCK, VIEW.settings, metrics, "box", "right", { dx: 60, dy: 0 });
+    const { values } = resize(BLOCK, VIEW.graphical, metrics, "box", "right", { dx: 60, dy: 0 });
     const command = resizeCommand(BLOCK, values);
     if (command === null) throw new Error("the resize changes nothing");
     expect(calls).toEqual([

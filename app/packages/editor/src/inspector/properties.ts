@@ -309,15 +309,15 @@ export type Edit = Result<{ readonly command: SetCommand | null; readonly notice
 function minimumOf(view: View, block: Block, element: Edited, property: "width" | "height") {
   const stored = view.blocks[block.id] ?? block;
   if (element.box === null) {
-    return drawingOf(stored, view.settings, fontMetrics, { [property]: null })[property];
+    return drawingOf(stored, view.graphical, fontMetrics, { [property]: null })[property];
   }
-  const box = keyedBox(drawingOf(stored, view.settings, fontMetrics), element.box);
+  const box = keyedBox(drawingOf(stored, view.graphical, fontMetrics), element.box);
   if (box === undefined || !(isItem(box) || isHeld(box))) {
     throw new Error(`${placeKeyText(element.box)} is drawn as a frame or a card`);
   }
   const { [property]: _request, ...place } = placeAt(stored.places, box.key) ?? {};
   const places = withPlaceAt(stored.places, box.key, place);
-  const drawing = drawingOf(stored, view.settings, fontMetrics, { places });
+  const drawing = drawingOf(stored, view.graphical, fontMetrics, { places });
   const content = keyedBox(drawing, element.box);
   if (content === undefined || !(isItem(content) || isHeld(content))) {
     throw new Error(`${placeKeyText(element.box)} is drawn without its request`);
@@ -406,7 +406,7 @@ function joined(view: View, geometry: Geometry, edits: readonly Own[]): SetComma
   if (first === undefined || geometry.elements.length === 1) return first?.command ?? null;
   const { id } = geometry.block;
   const block = view.blocks[id] ?? geometry.block;
-  const drawing = drawingOf(block, view.settings, fontMetrics);
+  const drawing = drawingOf(block, view.graphical, fontMetrics);
   // The place a change states (`changedPlace`), by its key; `null` for the block's own members.
   const placeOf = (change: Change): string | null => {
     const key = changedPlace(change);

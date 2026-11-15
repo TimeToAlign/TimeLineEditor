@@ -25,6 +25,40 @@ export function toBigInt(value: IntegerInput): bigint {
   throw new TypeError(`${String(value)} is not an exact integer; pass a bigint or a safe integer`);
 }
 
+/**
+ * The integer nearest to `numerator / denominator`, a tie going to the even
+ * one, as Python's `round`.
+ *
+ * @throws {RangeError} if `denominator` is not positive.
+ */
+export function roundHalfEven(numerator: bigint, denominator: bigint): bigint {
+  if (denominator <= 0n) throw new RangeError(`the denominator ${denominator} is not positive`);
+  const magnitude = numerator < 0n ? -numerator : numerator;
+  let quotient = magnitude / denominator;
+  const twice = 2n * (magnitude % denominator);
+  if (twice > denominator || (twice === denominator && quotient % 2n !== 0n)) quotient += 1n;
+  return numerator < 0n ? -quotient : quotient;
+}
+
+/** Positive decimal text: digits, optionally a point and more digits. */
+const POSITIVE_DECIMAL = /^(\d+)(?:\.(\d+))?$/;
+
+/**
+ * The exact value positive decimal text spells (`"0.2"` is 1/5): digits,
+ * optionally a point and more digits, not all zero; `undefined` for any
+ * other text (`".5"`, `"1e-3"`, `"-1"`, `"0"`).
+ */
+export function positiveDecimal(text: string): Rational | undefined {
+  const match = POSITIVE_DECIMAL.exec(text);
+  if (match === null) return undefined;
+  const fraction = match[2] ?? "";
+  const value = Rational.fromParts(
+    BigInt(`${match[1]}${fraction}`),
+    10n ** BigInt(fraction.length),
+  );
+  return value.numerator > 0n ? value : undefined;
+}
+
 function gcd(left: bigint, right: bigint): bigint {
   let a = left < 0n ? -left : left;
   let b = right < 0n ? -right : right;

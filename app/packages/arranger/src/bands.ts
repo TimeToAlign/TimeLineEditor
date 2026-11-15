@@ -165,7 +165,7 @@ export function bandStepCommand(
   if (selected === null || !offersBand(view, selected, editing)) return null;
   const block = view.blocks[selected.block];
   if (block === undefined) return null;
-  const drawing = drawingOf(block, view.settings, metrics);
+  const drawing = drawingOf(block, view.graphical, metrics);
   const drawn = offeredBands(drawing, selected.timeline).find(
     (band) => band.band.facet === selected.facet,
   );

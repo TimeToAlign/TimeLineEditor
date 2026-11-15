@@ -13,7 +13,7 @@ import { canonicalText } from "../json.ts";
 import type { Coordinate } from "../number/coordinate.ts";
 import { axisCoordinate, toAxisValue } from "../number/coordinate.ts";
 import { Rational } from "../number/rational.ts";
-import { exactCoordinate, fromFloat, realOf } from "../number/real.ts";
+import { exactCoordinate, realOf, toRational } from "../number/real.ts";
 import { orderedChildren } from "./elements.ts";
 import { checkOrdered } from "./invariants.ts";
 import { schemaProblems } from "./io.ts";
@@ -86,8 +86,7 @@ function segmentAt(manifest: Manifest, id: string): SegmentAt | undefined {
 
 /** A bare value on an axis as an exact value. */
 function exactOn(value: AxisValue, axis: TimelineManifest): Rational {
-  const real = realOf(axisCoordinate(value, axis));
-  return real instanceof Rational ? real : fromFloat(real);
+  return toRational(realOf(axisCoordinate(value, axis)));
 }
 
 /** An exact value as a bare value on an axis, when the axis's number type holds it exactly. */

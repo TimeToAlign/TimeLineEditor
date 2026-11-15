@@ -24,7 +24,8 @@ import { type Fitted, fitTimelines } from "./children.ts";
 import type { DrawnElement } from "./elements.ts";
 import { heights } from "./heights.ts";
 import { lineNames, nameElement, type RowName, rowName } from "./names.ts";
-import { layoutRow, type PlacedLine, placeLines, type Row, rowsOf } from "./rows.ts";
+import { layoutRow, type PlacedLine, placeLines, type Row, rowsBelow, rowsOf } from "./rows.ts";
+import { rowSlots } from "./slots.ts";
 import { type Context, type Entry, type Holder, known, traverse } from "./traversal.ts";
 
 /**
@@ -62,21 +63,12 @@ export interface MemberDrawn {
   readonly bands: DrawnBox[];
 }
 
-/** Every row of a member drawing, the root's first, then each joint's rows, at every depth. */
-function rowsBelow(row: Row): Row[] {
-  return [
-    row,
-    ...[row.joints.above, row.joints.below].flatMap((joint) =>
-      (joint?.rows ?? []).flatMap(rowsBelow),
-    ),
-  ];
-}
-
 /**
  * Lay out one timeline drawn as a root (sections 3 to 6, and 8.3 for its
  * ancestors) in the card whose place key is `card`, of spacing `S` and
  * margin `V`, its line held by `holder`, the block or its group's frame, by
- * the three passes of section 6.4: every first fit and every row; the
+ * the three passes of section 6.4: every first fit, every row, and the slots
+ * of the conversion maps bands of each row's lines; the
  * distances, from the deepest rows up, then the ancestor band and the
  * heights; the ordinates, from the root's line down, once `drawAt` gives the
  * member drawing's start and top.
@@ -94,7 +86,8 @@ export function layoutMember(
 
   const fitted = fitTimelines(scope);
   const rootRow = rowsOf(scope, fitted);
-  const root = known(layoutRow(rootRow, fitted), rootEntry);
+  const slots = rowSlots(rootRow, fitted);
+  const root = known(layoutRow(rootRow, fitted, slots), rootEntry);
   const ancestors = ancestorLines(scope);
   const band = ancestorBand(scope, ancestors, rootRow.pitch, root.edges.above);
   const { yLocal, Hc } = heights(scope, band.edge, root.edges.below);

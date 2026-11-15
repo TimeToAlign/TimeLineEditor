@@ -353,7 +353,7 @@ describe("the inspector component", () => {
     show(store, [{ block: A }], gesture);
     const field = (name: string) =>
       document.querySelector(`input[name="${name}"]`) as HTMLInputElement;
-    const drawn = (id: string) => drawingOf(blockOf(store, id), store.view.settings, fontMetrics);
+    const drawn = (id: string) => drawingOf(blockOf(store, id), store.view.graphical, fontMetrics);
     const placement = {
       id: A,
       x: 5.556,
@@ -422,6 +422,7 @@ describe("the inspector's tabs", () => {
       ["BUTTON", "Properties", "tabpanel", true, null],
       ["BUTTON", "Manifest", "tabpanel", true, null],
       ["BUTTON", "Journal", "tabpanel", true, null],
+      ["BUTTON", "Timestamp", "tabpanel", true, null],
     ]);
     expect(state()).toEqual(PROPERTIES);
     expect(document.querySelector('form[aria-label="Block properties"]')?.parentElement).toBe(
@@ -457,7 +458,8 @@ describe("the inspector's tabs", () => {
       ["ArrowLeft", PROPERTIES, "Properties"],
       ["Home", NEITHER, "Arranger"],
       ["ArrowRight", PROPERTIES, "Properties"],
-      ["End", NEITHER, "Journal"],
+      ["End", NEITHER, "Timestamp"],
+      ["ArrowLeft", NEITHER, "Journal"],
       ["ArrowLeft", MANIFEST, "Manifest"],
       ["ArrowLeft", PROPERTIES, "Properties"],
     ];

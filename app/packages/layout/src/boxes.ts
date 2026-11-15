@@ -8,7 +8,6 @@ import type {
   CardPlace,
   ContainerKind,
   ContainerRef,
-  ConversionMap,
   Coordinate,
   ElementAddress,
   Facet,
@@ -117,15 +116,42 @@ export function identityOf(
 }
 
 /**
+ * One map drawn at a line (section 6.4, Conversion maps): its ID, the ID of
+ * the timeline it spans (its owner: the line's own timeline or a segment
+ * without a line that joins it), the abscissas of its ends and the ordinate
+ * of its centre.
+ */
+export interface AxisMap {
+  readonly id: string;
+  readonly owner: string;
+  readonly xs: number;
+  readonly xe: number;
+  readonly yc: number;
+}
+
+/**
+ * One segment of a segment line (sections 3.1 and 3.4): its ID, its offset
+ * and its length on its segment line's own axis, the length by the end
+ * section 3.4 gives it where its own is not known.
+ */
+export interface AxisSegment {
+  readonly id: string;
+  readonly offset: Real;
+  readonly length: Real;
+}
+
+/**
  * One line drawn, as the axis of its timeline: the abscissas of its start
  * and end (not of its start circle, chevrons or end mark) and the
  * coordinates on its timeline's own axis there. An ancestor line is clipped
  * to its member: its start and end are where it meets the member's start
- * and end, or its own end short of the member's.
+ * and end, or its own end short of it.
  */
 export interface DrawnAxis {
   /** The address of the timeline drawn, `{id: T}`. */
   readonly address: ElementAddress;
+  /** The place key of the card whose member drawing draws it. */
+  readonly card: PlaceKey;
   /** The ordinate of its line, telling two drawings of one timeline apart. */
   readonly line: number;
   readonly xStart: number;
@@ -136,8 +162,10 @@ export interface DrawnAxis {
   readonly start: Real;
   /** Null where the end is not known. */
   readonly end: Real | null;
-  /** The timeline's conversion maps the drawing displays. */
-  readonly maps: readonly ConversionMap[];
+  /** The segments of its timeline when it is a segment line, in canonical order; else none. */
+  readonly segments: readonly AxisSegment[];
+  /** The maps drawn at its line, in the order they are drawn; none for an ancestor line. */
+  readonly maps: readonly AxisMap[];
 }
 
 const exact = (value: Real): Rational => (typeof value === "number" ? fromFloat(value) : value);

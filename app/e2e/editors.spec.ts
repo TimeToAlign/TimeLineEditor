@@ -78,7 +78,7 @@ function drawnPlaces(block: string): Record<string, { x: number; y: number }> {
   if (isLoadError(workspace)) throw new Error("bundles.tle.json is refused");
   const found = workspace.view.blocks[block];
   if (found === undefined) throw new Error(`block ${block} is missing`);
-  const drawing = drawingOf(found, workspace.view.settings, FONT_METRICS);
+  const drawing = drawingOf(found, workspace.view.graphical, FONT_METRICS);
   return Object.fromEntries(
     drawing.boxes.flatMap(({ key, item }) =>
       key === null || item === undefined ? [] : [[key.item, { x: item.place.x, y: item.place.y }]],
@@ -224,6 +224,7 @@ test.describe("on bundles", () => {
         "Properties",
         "Manifest",
         "Journal",
+        "Timestamp",
       ]);
       await expect(tab(page, word)).toHaveAttribute("aria-selected", "true");
       await expect(await panel(page, word)).toHaveText(text);
@@ -887,7 +888,7 @@ test.describe("leaving by a double-click, and the view when the canvas changes s
     if (isLoadError(workspace)) throw new Error("bundles.tle.json is refused");
     const block = workspace.view.blocks[MIXED];
     if (block === undefined) throw new Error(`block ${MIXED} is missing`);
-    const drawing = drawingOf(block, workspace.view.settings, FONT_METRICS);
+    const drawing = drawingOf(block, workspace.view.graphical, FONT_METRICS);
     const bounds = {
       ...nodePosition(block, drawing),
       width: drawing.width * block.scale,

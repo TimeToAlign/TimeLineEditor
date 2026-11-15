@@ -4,14 +4,20 @@ import { ControlButton, Controls, useSvelteFlow } from "@xyflow/svelte";
 import { roving } from "./roving.ts";
 
 interface Props {
-  /** The canvas lock and the marquee toggle; both are the viewer's own state. */
+  /** The canvas lock, the marquee toggle and "Show coordinates"; all are the viewer's own state. */
   locked: boolean;
   marquee: boolean;
+  coordinates: boolean;
   /** Whether the lock may be toggled: not on a read-only canvas. */
   lockable?: boolean;
 }
 
-let { locked = $bindable(), marquee = $bindable(), lockable = true }: Props = $props();
+let {
+  locked = $bindable(),
+  marquee = $bindable(),
+  coordinates = $bindable(),
+  lockable = true,
+}: Props = $props();
 
 const flow = useSvelteFlow();
 
@@ -58,7 +64,8 @@ export function toCanvas(client: XYPosition): XYPosition {
   buttons carry no key hints, and its lock toggles all interactivity, while
   ours freezes placement alone (selection, zoom and pan stay). The icons are
   Svelte Flow's (@xyflow/svelte 1.7.0, MIT licence, (c) webkid GmbH), whose
-  icon components the package does not export; the marquee icon is ours.
+  icon components the package does not export; the marquee and coordinates
+  icons are ours.
 -->
 <Controls
   position="bottom-left"
@@ -128,6 +135,19 @@ export function toCanvas(client: XYPosition): XYPosition {
         stroke-width="4"
         stroke-dasharray="6 4"
       />
+    </svg>
+  </ControlButton>
+  <ControlButton
+    class="tilie-toggle"
+    data-testid="coordinates"
+    aria-pressed={coordinates}
+    aria-label="Show coordinates"
+    title="Show coordinates (C)"
+    onclick={() => (coordinates = !coordinates)}
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" aria-hidden="true">
+      <path d="M14.5 0h3v9h-3zM14.5 23h3v9h-3zM0 14.5h9v3H0zM23 14.5h9v3h-9z" />
+      <circle cx="16" cy="16" r="4.2" />
     </svg>
   </ControlButton>
 </Controls>

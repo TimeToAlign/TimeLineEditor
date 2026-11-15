@@ -69,7 +69,7 @@ import {
 } from "./support.ts";
 
 function drawingIn(view: View): Drawing {
-  return drawingOf(blockIn(view, A), view.settings, metrics);
+  return drawingOf(blockIn(view, A), view.graphical, metrics);
 }
 
 /** The view with one workspace statement added. */
@@ -574,7 +574,7 @@ describe("the boxes holding part of the selection", () => {
 describe("selection and hover inside an editor", () => {
   const view = mixedPlain();
   const block = blockIn(view, A);
-  const drawing = drawingOf(block, view.settings, metrics);
+  const drawing = drawingOf(block, view.graphical, metrics);
   const group = insideOf(block.manifest, drawing, "group_1");
   const every = insideOf(block.manifest, drawing, null);
   const hit = (kind: Hit["kind"], element: ElementAddress | null): Hit => ({

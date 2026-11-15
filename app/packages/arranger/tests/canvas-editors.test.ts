@@ -722,7 +722,7 @@ describe("the resize toolbar in an editor", () => {
     expect(document.querySelectorAll("[data-testid^='handle-']")).toHaveLength(8);
     const before = store.view.blocks[A];
     if (before === undefined) throw new Error("no block A");
-    const drawing = drawingOf(before, store.view.settings, metrics);
+    const drawing = drawingOf(before, store.view.graphical, metrics);
     const place = (item: string) => itemOf(drawing, { item }).item.place;
     const handle = document.querySelector('[data-testid="handle-right"]');
     if (handle === null) throw new Error("no resize handle");
@@ -757,7 +757,7 @@ describe("the resize toolbar in an editor", () => {
     await select(blockA);
     const before = store.view.blocks[A];
     if (before === undefined) throw new Error("no block A");
-    const { width } = drawingOf(before, store.view.settings, metrics);
+    const { width } = drawingOf(before, store.view.graphical, metrics);
     const handle = document.querySelector('[data-testid="handle-right"]');
     if (handle === null) throw new Error("no resize handle");
     pointer("pointerdown", handle, { clientX: 0, clientY: 0, pointerType: "mouse" });
@@ -806,7 +806,7 @@ describe("the resize toolbar in an editor", () => {
   function drawnBox(address: ElementAddress): { x: number; y: number; width: number } {
     const block = store.view.blocks[A];
     if (block === undefined) throw new Error("no block A");
-    const rect = boxOf(drawingOf(block, store.view.settings, metrics), address);
+    const rect = boxOf(drawingOf(block, store.view.graphical, metrics), address);
     if (rect === undefined) throw new Error(`no box ${JSON.stringify(address)}`);
     const at = nodePositionOf(A);
     return {
@@ -891,7 +891,7 @@ describe("the canvas and the bands of the edited timeline", () => {
     const block = store.view.blocks[A];
     if (block === undefined) throw new Error("no block A");
     const address = bandAddress("score", facet);
-    const band = boxOf(drawingOf(block, store.view.settings, metrics), address);
+    const band = boxOf(drawingOf(block, store.view.graphical, metrics), address);
     if (band === undefined) throw new Error(`score's ${facet} band is not drawn`);
     return { x: band.x + band.width / 2, y: band.y + band.height / 2 };
   }

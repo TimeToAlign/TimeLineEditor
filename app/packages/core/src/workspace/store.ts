@@ -19,11 +19,16 @@
  * earliest undone one, so redo mirrors undo step for step. The undone
  * changes of a level are always its last ones, and a new entry on the level
  * discards them, keeping a partly undone session with its applied changes.
+ *
+ * The settings lie outside all of this: `configure` changes them at once,
+ * journals nothing and is never undone, so every view the store shows
+ * carries the settings last configured, whichever step it shows.
  */
 
+import { withStatedPlacement } from "../commands/add.ts";
 import { applyChanges, applyParsed } from "../commands/apply.ts";
 import { parseCommand } from "../commands/parse.ts";
-import type { CommandError } from "../errors.ts";
+import type { CommandError, Problem } from "../errors.ts";
 import { ErrorCode, isCommandError, JournalMismatchError, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";
 import { compareCodePoints, jsonEqual } from "../json.ts";
@@ -52,14 +57,24 @@ import {
   opensInside,
   reachedSessions,
 } from "./sessions.ts";
-import type { View } from "./view.ts";
-import { createView } from "./view.ts";
+import type { Granularity, View, WorkspaceSettings } from "./view.ts";
+import { createView, readSettings } from "./view.ts";
 
 /** A workspace: its view, the journal that produced it and the sessions its journal names. */
 export interface Workspace {
   readonly view: View;
   readonly journal: readonly Entry[];
   readonly sessions: Sessions;
+}
+
+/**
+ * A change of the settings: any of their members, each given in part (the
+ * members of a `granularity` entry whole).
+ */
+export interface SettingsChange {
+  readonly grid?: Partial<WorkspaceSettings["grid"]>;
+  readonly blockDefaults?: Partial<WorkspaceSettings["blockDefaults"]>;
+  readonly granularity?: Partial<Granularity>;
 }
 
 export interface StoreOptions {
@@ -92,6 +107,12 @@ export interface Store {
   readonly canRedo: boolean;
   /** Apply a command and journal it; `null` when it was accepted. */
   dispatch(command: unknown): CommandError | null;
+  /**
+   * Change the settings: journals nothing, is never undone, and gives a new
+   * view; `null` when accepted, else the first problem of the settings it
+   * would leave (at `["settings", …]`).
+   */
+  configure(change: SettingsChange): CommandError | null;
   /** Revert the innermost level's latest applied step: one change of its own, or a closed session's run. */
   undo(): void;
   /** Re-apply the innermost level's earliest undone step. */
@@ -188,15 +209,14 @@ function firstDifference(left: object, right: object): string | undefined {
 
 /**
  * The first path at which `replayed` differs from `view`: its name
- * (`["name"]`), a setting (`["settings", <member>]`), a block one of them
- * lacks (`["blocks", <id>]`) or a member of a block both hold (`["blocks",
- * <id>, <member>]`), blocks in code-point order of their ids; `undefined`
- * when they are the same.
+ * (`["name"]`), its `graphical` (`["graphical"]`), a block one of them lacks
+ * (`["blocks", <id>]`) or a member of a block both hold (`["blocks", <id>,
+ * <member>]`), blocks in code-point order of their ids; `undefined` when
+ * they are the same. The settings are no command's, so never compared.
  */
 function viewDifference(replayed: View, view: View): PathSegment[] | undefined {
   if (replayed.name !== view.name) return ["name"];
-  const setting = firstDifference(replayed.settings, view.settings);
-  if (setting !== undefined) return ["settings", setting];
+  if (!jsonEqual(replayed.graphical, view.graphical)) return ["graphical"];
   for (const id of keysOf(replayed.blocks, view.blocks).sort(compareCodePoints)) {
     const was = replayed.blocks[id];
     const now = view.blocks[id];
@@ -302,8 +322,21 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
   const listeners = new Set<(view: View) => void>();
   // Counts the changes of the store, so the derived getters are computed once per state.
   let revision = 0;
+  let settings = workspace.view.settings;
+  // A view with the current settings, by the view it is made from; emptied when they change.
+  let configured = new WeakMap<View, View>();
+  /** `view` with the current settings, the same object while they are its own. */
+  const withSettings = (view: View): View => {
+    if (view.settings === settings) return view;
+    let shown = configured.get(view);
+    if (shown === undefined) {
+      shown = { ...view, settings };
+      configured.set(view, shown);
+    }
+    return shown;
+  };
   const top = () => held(levels.at(-1), "its main level");
-  const current = () => held(top().views[top().applied], "its current view");
+  const current = () => withSettings(held(top().views[top().applied], "its current view"));
   const notify = () => {
     revision += 1;
     for (const listener of [...listeners]) listener(current());
@@ -443,9 +476,10 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
       return level.applied < level.changes.length;
     },
     dispatch(command) {
-      const parsed = parseCommand(command);
-      if (isCommandError(parsed)) return parsed;
+      const read = parseCommand(command);
+      if (isCommandError(read)) return read;
       const before = current();
+      const parsed = withStatedPlacement(before, read);
       const applied = applyChanges(before, parsed);
       if (isCommandError(applied)) return applied;
       const next = applied.view;
@@ -465,6 +499,30 @@ export function createStore(workspace: Workspace, options: StoreOptions = {}): S
       level.changes.push({ entry, owner: level.editor?.session ?? null });
       level.applied += 1;
       level.views[level.applied] = next;
+      notify();
+      return null;
+    },
+    configure(change) {
+      const merged = {
+        grid: { ...settings.grid, ...change.grid },
+        blockDefaults: { ...settings.blockDefaults, ...change.blockDefaults },
+        granularity: { ...settings.granularity, ...change.granularity },
+      };
+      const problems: Problem[] = [];
+      const read = readSettings(merged, ["settings"], problems);
+      const [first] = problems;
+      if (first !== undefined) return first;
+      if (read === undefined) throw new Error("settings read without a problem are settings");
+      if (jsonEqual(read, settings)) return null;
+      // A member the change leaves as it was stays the same object, so its identity says whether it changed.
+      const kept = <M extends keyof WorkspaceSettings>(member: M): WorkspaceSettings[M] =>
+        jsonEqual(read[member], settings[member]) ? settings[member] : read[member];
+      settings = {
+        grid: kept("grid"),
+        blockDefaults: kept("blockDefaults"),
+        granularity: kept("granularity"),
+      };
+      configured = new WeakMap();
       notify();
       return null;
     },

@@ -4,11 +4,13 @@
  * its five bands at its own line (`docs/drawing.md` in TimeToShare, section
  * 6.4, Every timeline's bands). Its bands draw what it holds and what each
  * segment without a line of its own adds to them. The three passes of
- * section 6.4 split the work: `prepareTimeline` (every first fit),
- * `childrenStart` and `layoutTimeline` (the distances, once its children are
- * laid out), `TimelineDrawing.elements` (the ordinates). The children
- * band's first fit and its rows, shared with the other lines of its row, are
- * laid out by `rows.ts` and `children.ts`; this module never places a child.
+ * section 6.4 split the work: `prepareTimeline` (every first fit), then,
+ * once the slots of its conversion maps band are known, `reachOf`,
+ * `ownStart` and `layoutTimeline` (the distances, once its children are laid
+ * out), `TimelineDrawing.elements` (the ordinates). The children band's
+ * first fit and its rows, and the slots and start of its conversion maps
+ * band, shared with the other lines of its row, are laid out by `rows.ts`,
+ * `children.ts` and `slots.ts`; this module never places a child.
  */
 
 import { bandOrderOf, FACETS, type Facet } from "@timetoalign/tilie-core";
@@ -18,6 +20,7 @@ import {
   bandStart,
   type Centred,
   fillSide,
+  type JointSpans,
   type LaidBand,
   type LineElements,
   type LinePosition,
@@ -30,7 +33,7 @@ import { P } from "./constants.ts";
 import { type Extent, widen } from "./fit.ts";
 import { flowControlBand } from "./flow.ts";
 import { type LevelZero, levelZero } from "./line.ts";
-import { conversionMapsBand } from "./maps.ts";
+import { conversionMapsBand, drawMaps, type MapMember, mapMembers, type Slots } from "./maps.ts";
 import { markersBand } from "./markers.ts";
 import { regionsBand } from "./regions.ts";
 import type { Entry, Scope } from "./traversal.ts";
@@ -44,7 +47,7 @@ export interface PreparedTimeline {
   readonly order: readonly string[];
   /** The side of its line each of its bands lies on, by its band order (section 6.4, The band order). */
   readonly sides: Readonly<Record<Facet, Side>>;
-  /** Its five bands, present or not; the children band without its width. */
+  /** Its five bands, present or not; the children and conversion maps bands without their widths. */
   readonly bands: Readonly<Record<Facet, PreparedBand>>;
   /** The facets of its present bands on each side, from level 1 or −1 outwards (section 6.4, Levels). */
   readonly levels: Readonly<Record<Side, readonly Facet[]>>;
@@ -57,13 +60,14 @@ export interface PreparedTimeline {
    * this is not empty.
    */
   readonly children: readonly Entry[];
+  /**
+   * The maps of its conversion maps band in the order they are taken (section 6.4, Conversion
+   * maps): its own, then those of each joined segment. Its band is present exactly when this is
+   * not empty.
+   */
+  readonly maps: readonly MapMember[];
   /** Its line, its segments' boundaries and labels. */
   readonly levelZero: LevelZero;
-  /**
-   * How far its line reaches on each side (section 6.4, Level 0): its map stack on a side is its
-   * conversion maps band when that band is present at level 1 or −1 there, and empty otherwise.
-   */
-  readonly reach: Readonly<Record<Side, number>>;
   /**
    * Its own extent (section 6.4, Children), from the root's start: the smallest interval holding
    * its line's extent and every extent its bands and its level 0 add, its children's left out.
@@ -101,12 +105,24 @@ export interface PlacedChild {
 }
 
 /**
+ * A conversion maps band laid out together with the conversion maps bands of
+ * the other lines of its row on the same side at the same level (section
+ * 6.4, Conversion maps): what `rows.ts` gives `layoutTimeline`.
+ */
+export interface LaidMaps {
+  /** The slots the bands share. */
+  readonly slots: Slots;
+  /** `c0`, the largest of the own starts of the bands laid out together (`ownStart`). */
+  readonly start: number;
+}
+
+/**
  * A children band laid out together with the children bands of the other
  * lines of its timeline's row on the same side (section 6.4, Children): what
  * `rows.ts` gives `layoutTimeline`.
  */
 export interface LaidChildren {
-  /** `c0`, the largest of the own starts of the bands laid out together (`childrenStart`). */
+  /** `c0`, the largest of the own starts of the bands laid out together (`ownStart`). */
   readonly start: number;
   /** Its width: `i1 + o1 + … + iC + oC`, its own `C` rows with the halves they share, summed left to right. */
   readonly width: number;
@@ -134,6 +150,8 @@ export interface TimelineDrawing {
   readonly edges: Readonly<Record<Side, number>>;
   /** Its children band laid out, `undefined` when it is absent. */
   readonly children: LaidChildren | undefined;
+  /** How far its line reaches on each side (section 6.4, Level 0; `reachOf`). */
+  readonly reach: Readonly<Record<Side, number>>;
   /**
    * Its own elements with its line at `place`: its line and what its bands hold, by the
    * categories of section 7.2, never its children's, which each draw their own.
@@ -171,21 +189,37 @@ function childrenBand(children: readonly Entry[]): PreparedBand {
 }
 
 /**
- * The width of the band lying against the line on `side` and sharing its
- * room (section 6.4, Where a band lies, Level 0 and Segment lines): the
- * conversion maps band at level 1 or −1, the line's map stack, or the
- * markers band at level 1, which the line's segment labels lie beyond; else
- * 0.
+ * The width of the band lying against the line of `prepared` on `side` and
+ * sharing its room (section 6.4, Where a band lies, Level 0 and Segment
+ * lines): the conversion maps band at level 1 or −1, the line's map stack,
+ * `e` by its slots `slots`, or the markers band at level 1, which the line's
+ * segment labels lie beyond; else 0.
  */
-function againstOf(
-  bands: Readonly<Record<Facet, PreparedBand>>,
-  levels: Readonly<Record<Side, readonly Facet[]>>,
-  side: Side,
-): number {
-  const facet = levels[side][0];
-  return facet === "conversion_maps" || (facet === "markers" && side === "above")
-    ? bands[facet].width
-    : 0;
+function againstOf(prepared: PreparedTimeline, slots: Slots | undefined, side: Side): number {
+  const facet = prepared.levels[side][0];
+  if (facet === "conversion_maps") {
+    if (slots === undefined)
+      throw new Error("a conversion maps band is laid out without its slots");
+    return slots.width;
+  }
+  return facet === "markers" && side === "above" ? prepared.bands.markers.width : 0;
+}
+
+/**
+ * How far the line of `prepared` reaches on each side (section 6.4, Level
+ * 0), `slots` the slots of its conversion maps band when it is present: its
+ * map stack on a side is that band when it lies there at level 1 or −1,
+ * reaching `e`, and empty otherwise.
+ */
+export function reachOf(
+  prepared: PreparedTimeline,
+  slots: Slots | undefined,
+): Readonly<Record<Side, number>> {
+  const { levelZero } = prepared;
+  return {
+    above: levelZero.reach("above", againstOf(prepared, slots, "above")),
+    below: levelZero.reach("below", againstOf(prepared, slots, "below")),
+  };
 }
 
 /**
@@ -193,9 +227,9 @@ function againstOf(
  * its band order (core's `bandOrderOf` over the scope's manifest), the side
  * of each band, each band prepared by its module from `sourcesOf` (markers,
  * conversion maps, regions, flow control; the children band from
- * `children`), the present bands' levels, its level 0 and its reach on each
- * side, its own extent and its centred labels. Uses no distance and no other
- * line's layout, so every line of a member drawing can be prepared first.
+ * `children`), the present bands' levels, its maps, its level 0, its own
+ * extent and its centred labels. Uses no distance and no other line's
+ * layout, so every line of a member drawing can be prepared first.
  */
 export function prepareTimeline(scope: Scope, line: Entry): PreparedTimeline {
   const id = line.manifest.id;
@@ -206,9 +240,10 @@ export function prepareTimeline(scope: Scope, line: Entry): PreparedTimeline {
       (entry) => entry.line && entry.drawn,
     ),
   );
+  const maps = mapMembers(scope, sources);
   const bands: Record<Facet, PreparedBand> = {
     children: childrenBand(children),
-    conversion_maps: conversionMapsBand(scope, line, sources),
+    conversion_maps: conversionMapsBand(maps),
     markers: markersBand(scope, line, sources),
     regions: regionsBand(scope, sources),
     flow_control: flowControlBand(scope, sources),
@@ -226,44 +261,44 @@ export function prepareTimeline(scope: Scope, line: Entry): PreparedTimeline {
     bands,
     levels,
     children,
+    maps,
     levelZero: zero,
-    reach: {
-      above: zero.reach("above", againstOf(bands, levels, "above")),
-      below: zero.reach("below", againstOf(bands, levels, "below")),
-    },
     extent: wholeExtent(firstExtent, otherExtents),
     centred: [...zero.centred, ...FACETS.flatMap((facet) => bands[facet].centred)],
   };
 }
 
 /**
- * The own start of the children band of `prepared`, on its side (section
- * 6.4, Where a band lies): the larger of `pl / 2` and the start `bandStart`
- * gives it after the present bands at lower levels of its side, `pl` the
- * pitch of the row its line lies in (`p0` for the root). Defined only for a
- * present children band.
+ * The own start of the children band or the conversion maps band of
+ * `prepared`, `facet`, on its side (section 6.4, Where a band lies): the
+ * start `bandStart` gives it after the present bands at lower levels of its
+ * side, those laid out with other lines' at `spans`, its line reaching as
+ * `slots` makes it (`reachOf`); for a children band the larger of that and
+ * `pl / 2`, `pl` the pitch of the row its line lies in (`p0` for the root).
+ * Defined only for a present band.
  */
-export function childrenStart(prepared: PreparedTimeline, pl: number): number {
-  const { scope, line, sides, levels, bands, reach } = prepared;
-  const side = sides.children;
-  const lower = levels[side].slice(0, levels[side].indexOf("children"));
+export function ownStart(
+  prepared: PreparedTimeline,
+  slots: Slots | undefined,
+  facet: "children" | "conversion_maps",
+  spans: JointSpans,
+  pl: number,
+): number {
+  const { scope, line, sides, levels, bands } = prepared;
+  const side = sides[facet];
+  const reach = reachOf(prepared, slots)[side];
+  const lower = levels[side].slice(0, levels[side].indexOf(facet));
   const w = line.style["stroke-width"];
   const before = fillSide(
     side,
-    lower.map((facet) => bands[facet]),
-    reach[side],
+    lower.map((each) => bands[each]),
+    reach,
     scope.S,
     w,
-    undefined,
+    spans,
   );
-  const start = bandStart(
-    "children",
-    lower.length === 0 ? undefined : before.edge,
-    reach[side],
-    w,
-    scope.S,
-  );
-  return Math.max(start, pl / 2);
+  const start = bandStart(facet, lower.length === 0 ? undefined : before.edge, reach, w, scope.S);
+  return facet === "children" ? Math.max(start, pl / 2) : start;
 }
 
 /**
@@ -295,18 +330,32 @@ function mergeLineElements(parts: readonly Partial<LineElements>[]): LineElement
 }
 
 /**
- * The second pass for one timeline, once its children band is laid out
- * (`children`, `undefined` exactly when that band is absent): each side
- * filled by `fillSide` from its present bands in level order, the children
- * band at `children.start` and `children.width` wide; its outer edges; and
- * its elements once its line's place is known.
+ * The second pass for one timeline, once its children band and its
+ * conversion maps band are laid out with those of the other lines of its row
+ * (`children` and `maps`, each `undefined` exactly when its band is absent):
+ * its reach by its slots (`reachOf`), each side filled by `fillSide` from
+ * its present bands in level order, the children band at `children.start`
+ * and `children.width` wide, the conversion maps band at `maps.start` and as
+ * wide as its slots make it; its outer edges; and its elements once its
+ * line's place is known.
  */
 export function layoutTimeline(
   prepared: PreparedTimeline,
   children: LaidChildren | undefined,
+  maps: LaidMaps | undefined,
 ): TimelineDrawing {
-  const { scope, line, sides, levels, bands, reach } = prepared;
+  const { scope, line, levels, bands } = prepared;
+  const slots = maps?.slots;
+  const reach = reachOf(prepared, slots);
   const w = line.style["stroke-width"];
+  const spans: JointSpans = {
+    ...(children === undefined
+      ? {}
+      : { children: { start: children.start, width: children.width } }),
+    ...(maps === undefined
+      ? {}
+      : { conversion_maps: { start: maps.start, width: maps.slots.width } }),
+  };
   const fill = (side: Side) =>
     fillSide(
       side,
@@ -314,7 +363,7 @@ export function layoutTimeline(
       reach[side],
       scope.S,
       w,
-      sides.children === side ? children : undefined,
+      spans,
     );
   const above = fill("above");
   const below = fill("below");
@@ -324,8 +373,12 @@ export function layoutTimeline(
   const elements = (place: LinePlace): LineElements => {
     const at = linePosition(prepared, edges, place);
     const parts = [
-      prepared.levelZero.draw(at, againstOf(bands, levels, "above")),
-      ...laid.map((band) => bands[band.facet].draw(band.start, band.side, at)),
+      prepared.levelZero.draw(at, againstOf(prepared, slots, "above")),
+      ...laid.map((band) =>
+        band.facet === "conversion_maps" && slots !== undefined
+          ? drawMaps(prepared.maps, slots, band.start, band.side, at)
+          : bands[band.facet].draw(band.start, band.side, at),
+      ),
     ];
     return mergeLineElements(parts);
   };
@@ -335,6 +388,7 @@ export function layoutTimeline(
     bands: laid,
     edges,
     children,
+    reach,
     elements,
   };
 }

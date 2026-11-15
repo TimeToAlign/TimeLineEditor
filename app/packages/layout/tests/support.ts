@@ -197,15 +197,15 @@ export function withLocked(
   return relocked;
 }
 
-/** The `add` command for a LinearMap from quarters to seconds. */
-export function linearMap(timeline: string, id: string): object {
+/** The `add` command for a LinearMap from quarters to seconds, named `name`. */
+export function linearMap(timeline: string, id: string, name: string | null = null): object {
   return {
     type: "add",
     into: target(timeline),
     map: {
       type: "LinearMap",
       id,
-      name: null,
+      name,
       source_unit: "quarters",
       target_unit: "seconds",
       scalar: [1, 2],

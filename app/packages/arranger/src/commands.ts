@@ -60,7 +60,7 @@ function placing(
   for (const move of moves) {
     const block = view.blocks[move.id];
     const origin =
-      block === undefined ? NO_ORIGIN : drawingOf(block, view.settings, metrics).origin;
+      block === undefined ? NO_ORIGIN : drawingOf(block, view.graphical, metrics).origin;
     const scale = block?.scale ?? 1;
     const x = quantize(quantize(move.x, step) + origin.x * scale, GRID_FREE);
     const y = quantize(quantize(move.y, step) + origin.y * scale, GRID_FREE);
@@ -106,7 +106,7 @@ export function nudgeCommand(
   for (const id of ids) {
     const block = view.blocks[id];
     if (block === undefined) continue;
-    const node = nodePosition(block, drawingOf(block, view.settings, metrics));
+    const node = nodePosition(block, drawingOf(block, view.graphical, metrics));
     moves.push({ id, x: node.x + dx * grid.size, y: node.y + dy * grid.size });
   }
   return placing(view, moves, positionStep(grid), metrics);
@@ -185,10 +185,10 @@ export function addCommand(
   const block = isCommandError(added) ? undefined : added.blocks[id];
   // A manifest core refuses is refused by the dispatch too; where it would lie does not matter.
   if (block === undefined) return command();
-  const drawing = drawingOf(block, view.settings, metrics);
+  const drawing = drawingOf(block, view.graphical, metrics);
   let others = Object.values(view.blocks)
     .filter((other) => other.parent === null)
-    .map((other) => grown(nodeRect(other, drawingOf(other, view.settings, metrics)), grid.size));
+    .map((other) => grown(nodeRect(other, drawingOf(other, view.graphical, metrics)), grid.size));
   for (;;) {
     const rect = nodeRect({ x, y, scale: block.scale }, drawing);
     const met = others.filter((other) => overlaps(rect, other));

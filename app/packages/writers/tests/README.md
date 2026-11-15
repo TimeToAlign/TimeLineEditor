@@ -374,8 +374,13 @@ of `t` alike, and the elements written after each card of `t` up to the
 next card carry the same address attributes in both, `t`'s line (`data-id`
 `t` alone) among them. `bundle__bundle_free_ids` draws IDs with a `/`, a
 space and a URI's `#` (`perf/take 2`, `take 2/intro`,
-`https://example.org/piece/score#exposition`), written verbatim. There are
-71 cases. Every case stating a spacing, of the block, in a place or in a
+`https://example.org/piece/score#exposition`), written verbatim. Among the
+hand-derived figures, `map_row_siblings`, `map_row_subslots` and
+`map_row_moved` pin the slots that the conversion maps bands of one row
+share (two siblings with maps of two keys in different canonical orders, a
+segment line's own map and its segments' maps of one key, a sibling moved
+to another row), and `label_float_rounding` the rounded label of a float
+end. There are 75 cases. Every case stating a spacing, of the block, in a place or in a
 member's card place, draws an SVG different from its manifest's default
 case: a spacing case that draws as the default (a block of one item has no
 gap) pins nothing.

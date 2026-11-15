@@ -86,14 +86,14 @@ function addresses(...elements: readonly ElementAddress[]): Selection {
 /** What the canvas shows of `M` without a gesture: the stored placement and drawing. */
 function stored(store: Store): Shown {
   const block = blockOf(store);
-  return { ...block, drawing: drawingOf(block, store.view.settings, fontMetrics) };
+  return { ...block, drawing: drawingOf(block, store.view.graphical, fontMetrics) };
 }
 
 /** A gesture's placement of `M`: its stored placement, its drawing that of the block with `places`. */
 function livePlacementOf(store: Store, places: Block["places"]): LivePlacement {
   const block = blockOf(store);
   const { x, y, scale, length, spacing, margin, width, height } = block;
-  const drawing = drawingOf(block, store.view.settings, fontMetrics, { places });
+  const drawing = drawingOf(block, store.view.graphical, fontMetrics, { places });
   return { id: M, x, y, scale, length, spacing, margin, width, height, drawing };
 }
 

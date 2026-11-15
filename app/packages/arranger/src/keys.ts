@@ -36,6 +36,8 @@ export interface KeyContext {
   refuse(message: string): void;
   setMode(mode: ResizeMode): void;
   toggleLock(): void;
+  /** Turns "Show coordinates" on or off. */
+  toggleCoordinates(): void;
   zoomIn(): void;
   zoomOut(): void;
   fit(): void;
@@ -190,6 +192,14 @@ export const KEYS: readonly KeyRow[] = [
     run(context) {
       if (!context.rules.lock) return false;
       context.toggleLock();
+      return true;
+    },
+  },
+  {
+    // "Show coordinates" is the viewer's own, on any canvas, read-only included.
+    match: (event) => plain(event) && (event.key === "c" || event.key === "C"),
+    run(context) {
+      context.toggleCoordinates();
       return true;
     },
   },

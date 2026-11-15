@@ -63,6 +63,7 @@ describe("the workspace's name", () => {
     const text = writeWorkspace(store.snapshot());
     expect(Object.keys(parseJson(text) as object)).toEqual([
       "blocks",
+      "graphical",
       "journal",
       "meta",
       "name",

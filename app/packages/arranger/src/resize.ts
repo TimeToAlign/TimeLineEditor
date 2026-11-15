@@ -3,16 +3,9 @@
  * around the content, or stretch the content's lengths and distances.
  */
 
-import type {
-  Block,
-  Change,
-  ItemPlace,
-  Places,
-  SetCommand,
-  WorkspaceSettings,
-} from "@timetoalign/tilie-core";
+import type { Block, Change, ItemPlace, Places, SetCommand } from "@timetoalign/tilie-core";
 import { ITEM_PLACE_MEMBERS, placeEntries, withPlaceAt } from "@timetoalign/tilie-core";
-import type { FontMetrics } from "@timetoalign/timetoshare";
+import type { FontMetrics, Graphical } from "@timetoalign/timetoshare";
 import { blockBox, verticalStretchOf } from "./boxes.ts";
 import { drawingOf, nodePosition } from "./drawing.ts";
 import { placeChange } from "./editing.ts";
@@ -179,7 +172,7 @@ export function kept(request: number | null, content: number, stretched: number)
  */
 export function resize(
   block: Block,
-  settings: WorkspaceSettings,
+  graphical: Graphical,
   metrics: FontMetrics,
   mode: ResizeMode,
   handle: Handle,
@@ -189,7 +182,7 @@ export function resize(
   if (mode === "scale" && (sx === 0 || sy === 0)) {
     throw new RangeError(`a block scales from its corners, not from ${handle}`);
   }
-  const drawing = drawingOf(block, settings, metrics);
+  const drawing = drawingOf(block, graphical, metrics);
   const z = block.scale;
   const node = nodePosition(block, drawing);
   const right = node.x + drawing.width * z;
@@ -209,7 +202,7 @@ export function resize(
     size = { ...size, scale };
   } else {
     const free = { width: null, height: null };
-    const content = drawingOf(block, settings, metrics, free);
+    const content = drawingOf(block, graphical, metrics, free);
     if (mode === "box") {
       if (sx !== 0) {
         const width = quantize(targetWidth / z, GRID_FREE);
@@ -228,7 +221,7 @@ export function resize(
       let { length } = block;
       let across = block[vertical];
       const stretch = (lengthTo: number, acrossTo: number) =>
-        drawingOf(block, settings, metrics, {
+        drawingOf(block, graphical, metrics, {
           ...free,
           length: lengthTo,
           [vertical]: acrossTo,

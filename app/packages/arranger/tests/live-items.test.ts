@@ -79,14 +79,14 @@ function stored(): Block {
 
 /** The drawing of A as stored before the gesture, with `places`. */
 function drawnWith(before: Block, places: Block["places"]) {
-  return drawingOf(before, store.view.settings, metrics, { places });
+  return drawingOf(before, store.view.graphical, metrics, { places });
 }
 
 describe("the live placement of a gesture inside a block", () => {
   it("carries a frame's Stretch before release", async () => {
     await show(inBlock(A, idAddress("group_1")), "stretch");
     const before = stored();
-    const drawing = drawingOf(before, store.view.settings, metrics);
+    const drawing = drawingOf(before, store.view.graphical, metrics);
     // Nothing is reported before a gesture.
     expect(reported).toEqual([]);
     const handle = document.querySelector('[data-testid="handle-right"]');

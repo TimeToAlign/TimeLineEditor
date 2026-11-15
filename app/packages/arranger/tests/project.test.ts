@@ -110,7 +110,7 @@ describe("project", () => {
     const [only] = project(numbers, selectionOf([label]), [], metrics, null);
     expect(only?.data.selectedElements).toEqual(keyed(at("region_1", "label")));
     expect(only?.data.affectedElements).toEqual(new Set(keysOf([at("region_1")])));
-    expect(only?.data.drawing).toBe(drawingOf(blockIn(numbers, A), numbers.settings, metrics));
+    expect(only?.data.drawing).toBe(drawingOf(blockIn(numbers, A), numbers.graphical, metrics));
   });
 
   it("marks nothing a Delete would not take: never the edited element", () => {
@@ -195,7 +195,7 @@ describe("project", () => {
 
 describe("livePlacement", () => {
   const block = blockIn(view, A);
-  const drawing = drawingOf(block, view.settings, metrics);
+  const drawing = drawingOf(block, view.graphical, metrics);
   const stored = {
     id: A,
     scale: 1,
@@ -249,7 +249,7 @@ describe("the node of a block placed by its place origin", () => {
     expect(large?.position).toEqual({ x: -36, y: -17.609375 });
     expect([large?.width, large?.height]).toEqual([1232.96923828125, 881.15625]);
     const block = blockIn(doubled, A);
-    expect(nodePosition(block, drawingOf(block, doubled.settings, metrics))).toEqual({
+    expect(nodePosition(block, drawingOf(block, doubled.graphical, metrics))).toEqual({
       x: -36,
       y: -17.609375,
     });
@@ -257,7 +257,7 @@ describe("the node of a block placed by its place origin", () => {
 
   it("gives the place origin back from the node's position", () => {
     const block = blockIn(moved, A);
-    const drawing = drawingOf(block, moved.settings, metrics);
+    const drawing = drawingOf(block, moved.graphical, metrics);
     expect(livePlacement(block, { x: 2, y: 31.1953125 }, {}, drawing)).toMatchObject({
       x: 40,
       y: 80,

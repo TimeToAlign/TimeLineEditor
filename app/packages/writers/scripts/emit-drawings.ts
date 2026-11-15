@@ -59,6 +59,10 @@ export const HAND_DERIVED: readonly string[] = [
   "unknown_length_child__regions-shown",
   "unknown_length_segments__regions-shown",
   "child_flow_control__flow-shown",
+  "map_row_siblings",
+  "map_row_subslots",
+  "map_row_moved",
+  "label_float_rounding",
 ];
 
 /** Write `text` to `file` unless it already holds it; report whether it changed. */

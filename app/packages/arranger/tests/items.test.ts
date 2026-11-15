@@ -64,12 +64,12 @@ const DRAWN = {
 };
 
 function placeOf(of: View, key: PlaceKey): ItemBox["item"]["place"] {
-  return itemOf(drawingOf(blockIn(of, A), of.settings, metrics), key).item.place;
+  return itemOf(drawingOf(blockIn(of, A), of.graphical, metrics), key).item.place;
 }
 
 /** A frame or card of block A in `of`, by its place key: the box a resize acts on. */
 function resizedBox(of: View, key: PlaceKey): DrawnBox {
-  const found = keyedBox(drawingOf(blockIn(of, A), of.settings, metrics), key);
+  const found = keyedBox(drawingOf(blockIn(of, A), of.graphical, metrics), key);
   if (found === undefined) throw new Error(`no box ${placeKeyText(key)}`);
   return found;
 }
@@ -156,7 +156,7 @@ const TITLE: ElementAddress = { part: ["name"] };
 
 describe("itemsMovedWith", () => {
   const { manifest } = blockIn(view, A);
-  const drawing = drawingOf(blockIn(view, A), view.settings, metrics);
+  const drawing = drawingOf(blockIn(view, A), view.graphical, metrics);
   const movedWith = (selected: readonly ElementAddress[], key: PlaceKey) =>
     itemsMovedWith(manifest, drawing, selectedOf(selected), key);
 
@@ -206,7 +206,7 @@ describe("itemsMovedWith", () => {
       height: 169.234375,
     });
     const block = blockIn(over, A);
-    const overDrawing = drawingOf(block, over.settings, metrics);
+    const overDrawing = drawingOf(block, over.graphical, metrics);
     const selected = selectedOf([{ id: "annotations", part: ["name"] }, idAddress("group_2")]);
     expect(itemsMovedWith(block.manifest, overDrawing, selected, FRAME_2)).toEqual([ANNOTATIONS]);
     expect(itemsMovedWith(block.manifest, overDrawing, selected, ANNOTATIONS)).toEqual([FRAME_2]);
@@ -217,7 +217,7 @@ describe("itemsMovedWith", () => {
     // `recording` a member of `group_1`, its child `excerpt` a member of `group_2`.
     const twice = recordingInGroup1(view);
     const block = blockIn(twice, A);
-    const twiceDrawing = drawingOf(block, twice.settings, metrics);
+    const twiceDrawing = drawingOf(block, twice.graphical, metrics);
     expect(
       twiceDrawing.boxes
         .filter((card) => sameAddress(card.address, cardAddress("excerpt")))
@@ -237,7 +237,7 @@ describe("itemsMovedWith", () => {
   it("puts a selected card of a member of two groups in the selection through both frames", () => {
     const shared = viewOf({ id: A, fixture: "bundles/bundle_shared_member", x: 40, y: 80 });
     const block = blockIn(shared, A);
-    const sharedDrawing = drawingOf(block, shared.settings, metrics);
+    const sharedDrawing = drawingOf(block, shared.graphical, metrics);
     const selected = selectedOf([cardAddress("t")]);
     expect(itemsMovedWith(block.manifest, sharedDrawing, selected, { item: "g1" })).toEqual([
       { item: "g2" },
@@ -255,14 +255,14 @@ describe("a move's preview", () => {
     const previewed = preview(view, command);
     if (isCommandError(previewed)) throw new Error(previewed.message);
     const after = changed(view, command);
-    expect(drawingOf(blockIn(previewed, A), previewed.settings, metrics)).toEqual(
-      drawingOf(blockIn(after, A), after.settings, metrics),
+    expect(drawingOf(blockIn(previewed, A), previewed.graphical, metrics)).toEqual(
+      drawingOf(blockIn(after, A), after.graphical, metrics),
     );
   });
 });
 
 describe("the boxes a resize acts on", () => {
-  const drawing = drawingOf(blockIn(view, A), view.settings, metrics);
+  const drawing = drawingOf(blockIn(view, A), view.graphical, metrics);
   const holding = (address: ElementAddress) => {
     const box = boxOf(drawing, address);
     if (box === undefined) throw new Error(`no box ${addressKey(address)}`);
@@ -678,7 +678,7 @@ describe("the shortening lock", () => {
   });
   /** The drawn width of the member's card under `key`, in item coordinates. */
   const cardWidth = (of: View, key: PlaceKey) =>
-    keyedBox(drawingOf(blockIn(of, A), of.settings, metrics), key)?.card?.size.width;
+    keyedBox(drawingOf(blockIn(of, A), of.graphical, metrics), key)?.card?.size.width;
 
   it("keeps a member card's margin in proportion and shortens the group again", () => {
     const boxed = after(shared, SHARED_EXPOSITION, "box", 551.39013671875);
@@ -778,7 +778,7 @@ describe("itemResizeValues, the group editor's stretch", () => {
       const resized = changes(of, "group", FRAME_1, "stretch", "right", dx, 0);
       const next = changed(of, itemResizeCommand(of, A, resized, "group", metrics));
       expect(
-        itemOf(drawingOf(blockIn(next, A), next.settings, metrics), FRAME_1).item.place.width,
+        itemOf(drawingOf(blockIn(next, A), next.graphical, metrics), FRAME_1).item.place.width,
       ).toBe(stretch.content(length));
     }
   });

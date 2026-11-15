@@ -153,6 +153,36 @@ describe("float axis", () => {
     expect(first).toMatchObject({ xs: 106.6767578125, xe: 242.6767578125 });
     expect(labels.map((item) => item.text)).toEqual(["0.0 s", "12.5 s"]);
   });
+
+  it("labels a float rounded to three places, carrying the exact coordinate", () => {
+    const labelled = (length: number) => {
+      const manifest = edit(
+        "continuous_physical",
+        { type: "remove", targets: [target("cpt_2"), target("cpt_3")] },
+        set("cpt_1", { length }),
+      );
+      const drawing = draw(
+        manifest,
+        DEFAULT_PLACEMENT,
+        [DEFAULT_LAYER, manifestLayer(manifest)],
+        metrics,
+      );
+      return drawing.elements
+        .filter((item): item is TextElement => item.type === "label")
+        .map((item) => [item.text, item.coordinate?.value]);
+    };
+    expect(labelled(312.48979591836735)).toEqual([
+      ["0.0 s", 0],
+      ["312.49 s", 312.48979591836735],
+    ]);
+    expect(labelled(6)).toEqual([
+      ["0.0 s", 0],
+      ["6.0 s", 6],
+    ]);
+    expect(labelled(6.71875)[1]).toEqual(["6.719 s", 6.71875]);
+    expect(labelled(0.0625)[1]).toEqual(["0.062 s", 0.0625]);
+    expect(labelled(1e-5)[1]).toEqual(["0.0 s", 1e-5]);
+  });
 });
 
 describe("band order", () => {

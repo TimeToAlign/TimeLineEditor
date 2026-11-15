@@ -28,6 +28,7 @@ import {
   type DrawnAxis,
   type DrawnBox,
   draw,
+  lineAxes,
   manifestLayer,
   type Placement,
 } from "../src/index.ts";
@@ -43,6 +44,7 @@ import {
   manifestNames,
   metrics,
   quarters,
+  set,
   target,
 } from "./support.ts";
 
@@ -436,15 +438,43 @@ describe("the axes of the drawn lines", () => {
     );
   });
 
-  it("lists the maps the drawing displays of the axis's own timeline", () => {
+  it("lists the maps drawn at the axis's line, each with its owner", () => {
     const drawing = drawFixture("bundles/bundle_mixed");
-    expect(drawing.axes.map((axis) => [axis.address, axis.maps.map((map) => map.id)])).toEqual([
-      [at("score"), ["cmap_1", "cmap_2"]],
-      [at("performance"), ["cmap_3"]],
-      [at("page"), ["cmap_4"]],
+    expect(
+      drawing.axes.map((axis) => [axis.address, axis.maps.map((map) => [map.id, map.owner])]),
+    ).toEqual([
+      [
+        at("score"),
+        [
+          ["cmap_1", "score"],
+          ["cmap_2", "score"],
+        ],
+      ],
+      [at("performance"), [["cmap_3", "performance"]]],
+      [at("page"), [["cmap_4", "page"]]],
       [at("recording"), []],
-      [at("excerpt"), ["cmap_6"]],
+      [at("excerpt"), [["cmap_6", "excerpt"]]],
       [at("annotations"), []],
+    ]);
+    // Each map's place is that of its drawn element.
+    for (const axis of drawing.axes) {
+      for (const map of axis.maps) {
+        const drawnMap = drawing.elements.find(
+          (item) => item.type === "map" && item.address.id === map.id,
+        );
+        expect(drawnMap).toMatchObject({ xs: map.xs, xe: map.xe, yc: map.yc });
+      }
+    }
+  });
+
+  it("names the card that draws each axis", () => {
+    const drawing = drawFixture("bundles/bundle_shared_member");
+    const keys = drawing.axes
+      .filter((axis) => sameAddress(axis.address, at("t")))
+      .map((axis) => axis.card);
+    expect(keys).toEqual([
+      { item: "g1", member: "t" },
+      { item: "g2", member: "t" },
     ]);
   });
 
@@ -466,6 +496,54 @@ describe("the axes of the drawn lines", () => {
     expect(exact(axis)).toEqual([at("form"), "quarters", "fraction", "0", "null"]);
     expect([axis?.xStart, axis?.xEnd]).toEqual([49.84033203125, 449.84033203125]);
     expect(axis && coordinateAt(axis, axis.xStart)).toBeNull();
+  });
+});
+
+describe("lineAxes", () => {
+  const form = build(
+    "form",
+    32,
+    child("form", "A", 0, 8),
+    child("form", "B", 8, 12),
+    child("form", "C", 20, 12),
+    set("form", { is_segment_line: true }),
+    linearMap("form", "form_ticks", "Ticks"),
+    linearMap("B", "b_ticks", "Ticks"),
+  );
+
+  it("gives a segment line its segments and the maps drawn at it, with their owners", () => {
+    const drawing = draw(form, DEFAULT_PLACEMENT, [DEFAULT_LAYER], metrics);
+    const axes = lineAxes(drawing);
+    expect([...axes.keys()]).toEqual([placeKeyText({ item: "form" }) + addressKey(at("form"))]);
+    const [axis] = axes.values();
+    expect(axis && { ...axis, start: String(axis.start), length: String(axis.length) }).toEqual({
+      timeline: "form",
+      y: 27.5,
+      xStart: 49.84033203125,
+      xEnd: 449.84033203125,
+      start: "0",
+      length: "32",
+      numberType: "fraction",
+      unit: "quarters",
+      segments: [
+        { id: "A", offset: Rational.of(0n), length: Rational.of(8n) },
+        { id: "B", offset: Rational.of(8n), length: Rational.of(12n) },
+        { id: "C", offset: Rational.of(20n), length: Rational.of(12n) },
+      ],
+      maps: [
+        { id: "form_ticks", owner: "form", yc: 22, xs: 49.84033203125, xe: 449.84033203125 },
+        { id: "b_ticks", owner: "B", yc: 17, xs: 149.84033203125, xe: 299.84033203125 },
+      ],
+    });
+  });
+
+  it("keeps one entry for each drawing of a timeline", () => {
+    const axes = lineAxes(drawFixture("bundles/bundle_shared_member"));
+    const drawings = [
+      placeKeyText({ item: "g1", member: "t" }) + addressKey(at("t")),
+      placeKeyText({ item: "g2", member: "t" }) + addressKey(at("t")),
+    ].map((key) => axes.get(key)?.timeline);
+    expect(drawings).toEqual(["t", "t"]);
   });
 });
 
@@ -502,6 +580,7 @@ describe("coordinateAt", () => {
 
   const axis = (numberType: DrawnAxis["numberType"], last: DrawnAxis["end"]): DrawnAxis => ({
     address: at("t"),
+    card: { item: "t" },
     line: 0,
     xStart: 0,
     xEnd: 3,
@@ -509,6 +588,7 @@ describe("coordinateAt", () => {
     numberType,
     start: numberType === "float" ? 0 : Rational.of(0),
     end: last,
+    segments: [],
     maps: [],
   });
 

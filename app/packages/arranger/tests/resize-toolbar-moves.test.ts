@@ -90,14 +90,14 @@ function topLeft(): { x: number; y: number } {
 function storedNode(): { x: number; y: number } {
   const block = store.view.blocks[A];
   if (block === undefined) throw new Error("no block A");
-  return nodePosition(block, drawingOf(block, store.view.settings, metrics));
+  return nodePosition(block, drawingOf(block, store.view.graphical, metrics));
 }
 
 /** The top-left corner of the frame or card `address` of block A on the canvas, as stored. */
 function storedBox(address: ElementAddress): { x: number; y: number } {
   const block = store.view.blocks[A];
   if (block === undefined) throw new Error("no block A");
-  const drawing = drawingOf(block, store.view.settings, metrics);
+  const drawing = drawingOf(block, store.view.graphical, metrics);
   const rect = boxOf(drawing, address);
   if (rect === undefined) throw new Error(`no box ${JSON.stringify(address)}`);
   const at = nodePosition(block, drawing);

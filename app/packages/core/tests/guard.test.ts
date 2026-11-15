@@ -50,6 +50,13 @@ const withBlock = (view: View, values: Partial<Block>): View => ({
 const withManifest = (view: View, values: Partial<Manifest>): View =>
   withBlock(view, { manifest: { ...block(view, BUNDLE).manifest, ...values } });
 
+/** The workspace's `graphical` with one statement. */
+const STYLED = {
+  statements: [{ select: { element: "timeline" as const }, set: { stroke: "#FF0000" } }],
+};
+
+const withGraphical = (view: View): View => ({ ...view, graphical: STYLED });
+
 const withGrid = (view: View): View => ({
   ...view,
   settings: { ...view.settings, grid: { size: 16, snap: true } },
@@ -120,14 +127,15 @@ describe("sideEffect, the exact cases", () => {
 });
 
 describe("sideEffect, each rule's path", () => {
-  it("refuses a workspace setting in every editor", () => {
-    const after = withGrid(before);
+  it("refuses the workspace's graphical in every editor, never a setting", () => {
+    const after = withGraphical(before);
     expect(sideEffect(before, after, G1)).toEqual(
-      outside("the workspace setting grid", ["{}", "grid"]),
+      outside("the workspace's graphical", ["{}", "graphical"]),
     );
     expect(sideEffect(before, after, BLOCK)).toEqual(
-      outside("the workspace setting grid", ["{}", "grid"], BLOCK),
+      outside("the workspace's graphical", ["{}", "graphical"], BLOCK),
     );
+    expect(sideEffect(before, withGrid(before), G1)).toBeNull();
   });
 
   it("refuses another block changing, appearing or going", () => {
@@ -254,8 +262,8 @@ describe("sideEffect, the order of the rules", () => {
     const renamed = changed(before, named("annotations", "A"));
     const placed = withBlock(renamed, { places: { group_2: { x: 10 } } });
     const longer = withBlock(placed, { length: 500 });
-    expect(sideEffect(before, withGrid(longer), G1)).toEqual(
-      outside("the workspace setting grid", ["{}", "grid"]),
+    expect(sideEffect(before, withGraphical(longer), G1)).toEqual(
+      outside("the workspace's graphical", ["{}", "graphical"]),
     );
     expect(sideEffect(before, longer, G1)).toEqual(
       outside("the length of bundle 'Mixed'", [key(BLOCK), "length"]),
@@ -270,10 +278,10 @@ describe("sideEffect, the order of the rules", () => {
 });
 
 describe("sideEffect, with the command's change set", () => {
-  const grid = set({}, { grid: { size: 16, snap: true } });
+  const styled = set({}, { graphical: STYLED });
   it.each([
-    [before, grid, G1, outside("the workspace setting grid", ["{}", "grid"])],
-    [before, grid, {}, null],
+    [before, styled, G1, outside("the workspace's graphical", ["{}", "graphical"])],
+    [before, styled, {}, null],
     [
       two,
       set({ block: A }, { x: 50 }),

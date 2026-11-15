@@ -133,5 +133,11 @@ export function placedAxis(axis: DrawnAxis, dx: number, dy: number, scale = 1): 
     xStart: dx + scale * axis.xStart,
     xEnd: dx + scale * axis.xEnd,
     line: dy + scale * axis.line,
+    maps: axis.maps.map((map) => ({
+      ...map,
+      xs: dx + scale * map.xs,
+      xe: dx + scale * map.xe,
+      yc: dy + scale * map.yc,
+    })),
   };
 }

@@ -37,6 +37,7 @@ export {
   JournalMismatchError,
 } from "./errors.ts";
 export type { Json, PathSegment } from "./json.ts";
+export { compareCodePoints } from "./json.ts";
 export type { ElementAddress, Facet, OwnerAddress, Part } from "./manifest/address.ts";
 export {
   addressKey,
@@ -110,7 +111,47 @@ export type {
   Region,
   TimelineManifest,
 } from "./manifest/types.ts";
+export type { CompileContext, MapEvaluator } from "./maps/compile.ts";
+export { compileMap } from "./maps/compile.ts";
+export type { Expressed, ExpressedNumber, ExpressedOutputs } from "./maps/express.ts";
+export { express, expressAs } from "./maps/express.ts";
+export type {
+  KnotsAbsence,
+  Timestamp,
+  TimestampMap,
+  TimestampPart,
+  TimestampSegment,
+  TimestampSpec,
+  TimestampTimeline,
+} from "./maps/timestamp.ts";
+export {
+  measureText,
+  missingValueText,
+  timestampAt,
+  timestampGrid,
+  timestampPlace,
+} from "./maps/timestamp.ts";
+export type {
+  MapInput,
+  MapOutputs,
+  MapResult,
+  MapValue,
+  MeasureKnot,
+  MeasureKnots,
+  MeasureRecord,
+  QuarterPair,
+} from "./maps/values.ts";
 export type { Coordinate } from "./number/coordinate.ts";
+export type { CoordinateDict } from "./number/display.ts";
+export {
+  coordinateDict,
+  copyValue,
+  displayValue,
+  exactDecimal,
+  unitSymbol,
+} from "./number/display.ts";
+export type { GridInUse } from "./number/grid.ts";
+export { gridStep, gridText, snapPosition } from "./number/grid.ts";
 export type { Real } from "./number/real.ts";
 export type {
   Address,
@@ -145,7 +186,12 @@ export type {
   Session,
 } from "./workspace/sessions.ts";
 export { editorKindOf, isSessionEntry, listEntries } from "./workspace/sessions.ts";
-export type { Store, StoreOptions, Workspace } from "./workspace/store.ts";
+export type { SettingsChange, Store, StoreOptions, Workspace } from "./workspace/store.ts";
 export { createStore } from "./workspace/store.ts";
-export type { View, WorkspaceSettings } from "./workspace/view.ts";
-export { createView, UNTITLED_WORKSPACE } from "./workspace/view.ts";
+export type { Granularity, View, WorkspaceSettings } from "./workspace/view.ts";
+export {
+  createView,
+  DEFAULT_GRANULARITY,
+  DEFAULT_SETTINGS,
+  UNTITLED_WORKSPACE,
+} from "./workspace/view.ts";

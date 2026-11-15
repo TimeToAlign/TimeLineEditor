@@ -89,23 +89,22 @@ export function changed(view: View, command: Command | object | null): View {
 }
 
 /**
- * A store whose journal builds `view`: from the empty workspace, one `set`
- * of every setting that differs, then one `add` per block in index order,
- * stating its placement and places. A store verifies its journal, so a view
- * is never handed to it without one.
+ * A store whose journal builds `view`: from the empty workspace configured
+ * with `view`'s settings, one `set` of the workspace's `graphical` when it
+ * has one, then one `add` per block in index order, stating its placement
+ * and places. A store verifies its journal, so a view is never handed to it
+ * without one.
  */
 export function storeOf(view: View): Store {
   const store = createStore(emptyWorkspace());
-  const defaults = createView().settings;
-  const settings = Object.fromEntries(
-    Object.entries(view.settings).filter(
-      ([member, value]) =>
-        JSON.stringify(value) !== JSON.stringify(defaults[member as keyof typeof defaults]),
-    ),
-  );
+  const configured = store.configure(view.settings);
+  if (configured !== null) throw new Error(`${configured.code} at ${configured.path}`);
   const commands: object[] = [];
-  if (Object.keys(settings).length > 0) {
-    commands.push({ type: "set", changes: [{ target: WORKSPACE, values: settings }] });
+  if (JSON.stringify(view.graphical) !== JSON.stringify(createView().graphical)) {
+    commands.push({
+      type: "set",
+      changes: [{ target: WORKSPACE, values: { graphical: view.graphical } }],
+    });
   }
   const blocks = Object.values(view.blocks).sort((left, right) =>
     left.index < right.index ? -1 : left.index > right.index ? 1 : 0,
@@ -162,11 +161,9 @@ export function numbersView(id: string = A): View {
 }
 
 /** The view with the grid set. */
+/** `view` under a grid of `size`, snapping or not: a setting, which no command changes. */
 export function withGrid(view: View, size: number, snap: boolean): View {
-  return changed(view, {
-    type: "set",
-    changes: [{ target: WORKSPACE, values: { grid: { size, snap } } }],
-  });
+  return { ...view, settings: { ...view.settings, grid: { size, snap } } };
 }
 
 /** The fixture path of the bundle of two groups and an ungrouped root the editors' tests use. */

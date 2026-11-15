@@ -4,13 +4,14 @@
  * 3 and 5.2).
  */
 
-import type { AxisValue, TimelineManifest } from "@timetoalign/tilie-core";
+import { type AxisValue, type TimelineManifest, unitSymbol } from "@timetoalign/tilie-core";
 import {
   addReal,
   compareReal,
   fromFloat,
   Rational,
   type Real,
+  roundFloat,
   toFloat,
 } from "@timetoalign/tilie-core/numbers";
 import type { NumberType, TimeUnit } from "@timetoalign/timetoshare";
@@ -121,25 +122,22 @@ export function proportion(t: Real, length: Real): number {
   return a / b;
 }
 
-/** The text of a value: `96`, `3/2`, `3` for 3/1; a float as Python's `repr` (`1.5`, `6.0`). */
+/**
+ * The text of a value (section 5.2): `96`, `3/2`, `3` for 3/1; a float rounded
+ * to three places as Python's `round(x, 3)` rounds it, then as Python's
+ * `repr` spells the result (`312.49`, `6.0`, `0.0` for 1e-05).
+ */
 function valueText(value: Real): string {
   if (value instanceof Rational) return value.toString();
+  const rounded = roundFloat(value, 3);
   return compactJson(
-    Number.isInteger(value) || Object.is(value, -0) ? new JsonFloat(value) : value,
+    Number.isInteger(rounded) || Object.is(rounded, -0) ? new JsonFloat(rounded) : rounded,
   );
 }
 
-const UNIT_SYMBOLS: Partial<Readonly<Record<TimeUnit, string>>> = {
-  quarters: "♩",
-  seconds: "s",
-  samples: "smp",
-  ticks: "ticks",
-  pixels: "px",
-};
-
 /** A coordinate label: the value's text, a space and the unit's symbol. */
 export function coordinateText(value: Real, unit: TimeUnit): string {
-  return `${valueText(value)} ${UNIT_SYMBOLS[unit] ?? unit}`;
+  return `${valueText(value)} ${unitSymbol(unit)}`;
 }
 
 /**

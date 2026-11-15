@@ -479,7 +479,7 @@ export function tabs(page: Page): Locator {
   return page.getByRole("tablist", { name: "Inspector sections" });
 }
 
-/** The inspector's tabs: the level tab, named for the level shown, then the three others. */
+/** The inspector's tabs: the level tab, named for the level shown, then the four others. */
 export type TabName =
   | "Arranger"
   | "Bundle"
@@ -487,7 +487,8 @@ export type TabName =
   | "Timeline"
   | "Properties"
   | "Manifest"
-  | "Journal";
+  | "Journal"
+  | "Timestamp";
 
 /** The inspector's tab `name`. */
 export function tab(page: Page, name: TabName): Locator {

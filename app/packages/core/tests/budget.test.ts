@@ -1,6 +1,9 @@
 import { writeFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { isLoadError } from "../src/errors.ts";
+import type { ConversionMap } from "../src/manifest/types.ts";
+import { compileMap } from "../src/maps/compile.ts";
+import { Rational } from "../src/number/rational.ts";
 import { readWorkspace, writeWorkspace } from "../src/workspace/file.ts";
 import type { Store } from "../src/workspace/store.ts";
 import { createStore } from "../src/workspace/store.ts";
@@ -83,6 +86,37 @@ describe("budgets", () => {
     });
     // Measured and reported, not yet held to a budget.
     console.info(`readWorkspace and createStore took ${open} ms`);
+  });
+
+  it("evaluates a PiecewiseMap of 10^5 breaks 1,000 times within 50 ms", () => {
+    const breaks = 100_000;
+    const map: ConversionMap = {
+      type: "PiecewiseMap",
+      id: "pieces",
+      name: null,
+      source_unit: "quarters",
+      target_unit: "seconds",
+      breaks: [0, 1, ...Array.from({ length: breaks - 2 }, (_, n) => n + 2)],
+      maps: Array.from({ length: breaks - 1 }, (_, n) => ({
+        type: "LinearMap",
+        id: `piece_${n}`,
+        name: null,
+        source_unit: "quarters",
+        target_unit: "seconds",
+        scalar: [n + 1, 7],
+        offset: [-n, 3],
+      })),
+    };
+    const evaluator = compileMap(map, {});
+    const positions = Array.from({ length: 1000 }, (_, n) =>
+      Rational.fromParts(BigInt(n * 299_969 + 1), 3000n),
+    );
+    const evaluations = fastest(() => {
+      for (const position of positions) {
+        if (evaluator.evaluate(position) === undefined) throw new Error("outside the map");
+      }
+    });
+    expect(evaluations, `1,000 evaluations took ${evaluations} ms`).toBeLessThanOrEqual(50);
   });
 
   const output = process.env.TILIE_MEASURE;

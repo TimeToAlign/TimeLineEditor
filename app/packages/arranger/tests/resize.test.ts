@@ -30,7 +30,7 @@ type Row = readonly [string, Handle, number, number, Partial<Block>];
 
 function check(view: View, mode: ResizeMode, handle: Handle, dx: number, dy: number) {
   const block = blockIn(view, A);
-  const { values } = resize(block, view.settings, metrics, mode, handle, { dx, dy });
+  const { values } = resize(block, view.graphical, metrics, mode, handle, { dx, dy });
   const command = resizeCommand(block, values);
   // A resize that changes no stored value is no command: the block carries its values already.
   const after = command === null ? block : blockIn(changed(view, command), A);
@@ -74,7 +74,7 @@ const views: { readonly [name: string]: View } = {
   "ungrouped, both requests": placed(ungrouped, { width: 1051.79345703125, height: 504.328125 }),
   "audio, no names": audio,
   "audio, no names, length 8": placed(audio, { length: 8 }),
-  "audio, no names, at the knee": placed(audio, { length: 40.08251953125 }),
+  "audio, no names, at the knee": placed(audio, { length: 11.4521484375 }),
   "bare, width 953.15": placed(bare, { width: 953.154296875 }),
   "bare, length 500, width 496.58": placed(bare, { length: 500, width: 496.5771484375 }),
   "child member, width 600": placed(viewOf({ id: A, fixture: CHILD_MEMBER, x: 40, y: 80 }), {
@@ -126,9 +126,9 @@ describe("resize: scale", () => {
 
   it("refuses an edge handle", () => {
     const block = blockIn(bare, A);
-    expect(() => resize(block, bare.settings, metrics, "scale", "right", { dx: 1, dy: 0 })).toThrow(
-      RangeError,
-    );
+    expect(() =>
+      resize(block, bare.graphical, metrics, "scale", "right", { dx: 1, dy: 0 }),
+    ).toThrow(RangeError);
   });
 });
 
@@ -151,9 +151,9 @@ describe("resize: stretch", () => {
     ["ungrouped", "bottom", 0, -40, { spacing: 0 }],
     ["ungrouped", "bottom-right", 40, 32, { length: 440, spacing: 24 }],
     ["ungrouped, score at y 200", "bottom", 0, 50, { spacing: 192.6953125 }],
-    ["audio, no names", "right", -500, 0, { length: 40.08251953125 }],
-    ["audio, no names, length 8", "right", 50, 0, { length: 90.08251953125 }],
-    ["audio, no names, at the knee", "right", 100, 0, { length: 140.08251953125 }],
+    ["audio, no names", "right", -500, 0, { length: 11.4521484375 }],
+    ["audio, no names, length 8", "right", 50, 0, { length: 61.4521484375 }],
+    ["audio, no names, at the knee", "right", 100, 0, { length: 111.4521484375 }],
     ["bare, width 953.15", "right", 40, 0, { length: 420, width: 993.154296875 }],
     ["bare, width 953.15", "left", -42, 0, { length: 421, width: 995.154296875, x: -2 }],
     ["ungrouped, height 504.33", "bottom", 0, 32, { spacing: 16, height: 536.328125 }],
@@ -175,12 +175,12 @@ describe("resize: stretch", () => {
 describe("resize: stretch of a block of one item", () => {
   it("sets its margin, never its spacing, and nothing where the margin stays", () => {
     const block = blockIn(bare, A);
-    const grown = resize(block, bare.settings, metrics, "stretch", "bottom", { dx: 0, dy: 30 });
+    const grown = resize(block, bare.graphical, metrics, "stretch", "bottom", { dx: 0, dy: 30 });
     expect(blockIn(changed(bare, resizeCommand(block, grown.values)), A)).toMatchObject({
       margin: 15,
       spacing: 8,
     });
-    const floor = resize(block, bare.settings, metrics, "stretch", "bottom", { dx: 0, dy: -40 });
+    const floor = resize(block, bare.graphical, metrics, "stretch", "bottom", { dx: 0, dy: -40 });
     expect(resizeCommand(block, floor.values)).toBeNull();
   });
 });
@@ -243,7 +243,7 @@ describe("resizing a block whose place origin lies inside it", () => {
     expect(before?.data.drawing.origin).toEqual({ x: 38, y: 0 });
     expect([before?.position.x, before?.width]).toEqual([2, 654]);
     const block = blockIn(view, A);
-    const { values } = resize(block, view.settings, metrics, "box", "left", { dx: -21, dy: 0 });
+    const { values } = resize(block, view.graphical, metrics, "box", "left", { dx: -21, dy: 0 });
     expect(values).toStrictEqual({ width: 675, x: 19 });
     const after = changed(view, resizeCommand(block, values));
     const [node] = project(after, NOTHING_SELECTED, [], metrics, null);
@@ -291,8 +291,11 @@ describe("stretching a block with placed items", () => {
   const block = blockIn(view, A);
 
   it("stretches the places with the content and keeps the margin's edge under the pointer", () => {
-    expect(drawingOf(block, view.settings, metrics).width).toBe(748);
-    const { values } = resize(block, view.settings, metrics, "stretch", "right", { dx: 74, dy: 0 });
+    expect(drawingOf(block, view.graphical, metrics).width).toBe(748);
+    const { values } = resize(block, view.graphical, metrics, "stretch", "right", {
+      dx: 74,
+      dy: 0,
+    });
     expect(values).toStrictEqual({
       length: 440,
       places: { group_2: { x: 44, y: 200, width: 770 } },
@@ -309,7 +312,7 @@ describe("stretching a block with placed items", () => {
       ],
     });
     const after = changed(view, command);
-    const drawing = drawingOf(blockIn(after, A), after.settings, metrics);
+    const drawing = drawingOf(blockIn(after, A), after.graphical, metrics);
     expect(blockIn(after, A).x + drawing.width).toBe(862);
     expect(keyedBox(drawing, { item: "group_2" })?.item?.place).toMatchObject({
       x: 44,

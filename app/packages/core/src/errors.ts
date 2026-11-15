@@ -134,8 +134,8 @@ export class InvalidManifestError extends Error {
  * Thrown when replaying a workspace's journal does not reproduce the view the
  * workspace holds: `entry` is the index of the first journal entry after
  * which the replayed view differs from what the snapshot implies, `path` the
- * first differing location in the view (`["settings", ...]` or `["blocks",
- * <id>, ...]`).
+ * first differing location in the view (`["name"]`, `["graphical"]` or
+ * `["blocks", <id>, ...]`).
  */
 export class JournalMismatchError extends Error {
   readonly entry: number;

@@ -7,6 +7,11 @@ import { createStore, replay } from "../src/workspace/store.ts";
 import { createView } from "../src/workspace/view.ts";
 import { A, addBlock, B, testClock } from "./support.ts";
 
+/** The workspace's `graphical`: one statement. */
+const STYLED = {
+  statements: [{ select: { element: "timeline" }, set: { stroke: "#0000FF" } }],
+};
+
 function built(): Workspace {
   const store = createStore(
     { view: createView(), journal: [], sessions: {} },
@@ -17,11 +22,16 @@ function built(): Workspace {
     addBlock(B, "map.json"),
     { type: "set", changes: [{ target: { block: A }, values: { x: 128, y: 64 } }] },
     { type: "style", select: { element: "map" }, set: { stroke: "#C00000" } },
+    { type: "set", changes: [{ target: {}, values: { graphical: STYLED } }] },
     { type: "set", changes: [{ target: { block: B }, values: { x: 0.5 } }] },
   ]) {
     expect(store.dispatch(command)).toBeNull();
   }
   store.undo();
+  expect(store.configure({ grid: { size: 16, snap: false } })).toBeNull();
+  expect(
+    store.configure({ granularity: { fraction: { denominator: 5, refine: true } } }),
+  ).toBeNull();
   return store.snapshot();
 }
 
@@ -41,23 +51,41 @@ describe("the workspace file", () => {
     const value = parseJson(text) as { readonly [key: string]: unknown };
     expect(Object.keys(value).sort()).toEqual([
       "blocks",
+      "graphical",
       "journal",
       "meta",
       "name",
       "sessions",
       "settings",
     ]);
-    expect(value.meta).toEqual({ format: "tilie-workspace", version: 6 });
+    expect(Object.keys(value.settings as object).sort()).toEqual([
+      "blockDefaults",
+      "granularity",
+      "grid",
+    ]);
+    expect(value.settings).toEqual({
+      grid: { size: 16, snap: false },
+      blockDefaults: { scale: 1, length: 400, spacing: 8, margin: 0, width: null, height: null },
+      granularity: {
+        fraction: { denominator: 5, refine: true },
+        float: { step: "1", refine: true },
+        int: { step: 1, refine: true },
+      },
+    });
+    expect(value.graphical).toEqual(STYLED);
+    expect(value.meta).toEqual({ format: "tilie-workspace", version: 7 });
     expect(value.name).toBe("untitled");
-    expect((value.journal as unknown[]).length).toBe(4);
+    expect((value.journal as unknown[]).length).toBe(5);
     expect(value.sessions).toEqual({});
   });
 
-  it("replays its journal to its settings and blocks", () => {
+  it("replays its journal to its graphical and blocks, never its settings", () => {
     const workspace = read(writeWorkspace(built()));
     const replayed = replay(workspace.journal, workspace.sessions).at(-1);
-    expect(replayed?.settings).toEqual(workspace.view.settings);
+    expect(replayed?.graphical).toEqual(workspace.view.graphical);
     expect(replayed?.blocks).toEqual(workspace.view.blocks);
+    expect(replayed?.settings).toEqual(createView().settings);
+    expect(workspace.view.settings.grid).toEqual({ size: 16, snap: false });
   });
 
   type Value = { [key: string]: unknown };
@@ -80,7 +108,7 @@ describe("the workspace file", () => {
     ],
     [
       "a later version",
-      edited((value) => Object.assign(value.meta as Value, { version: 7 })),
+      edited((value) => Object.assign(value.meta as Value, { version: 8 })),
       "unsupported_version",
       ["meta", "version"],
     ],
@@ -105,6 +133,37 @@ describe("the workspace file", () => {
       }),
       "missing_member",
       ["settings", "blockDefaults", "margin"],
+    ],
+    [
+      "no top-level graphical",
+      edited((value) => {
+        delete value.graphical;
+      }),
+      "missing_member",
+      ["graphical"],
+    ],
+    [
+      "graphical among the settings",
+      edited((value) => Object.assign(value.settings as Value, { graphical: {} })),
+      "unknown_member",
+      ["settings", "graphical"],
+    ],
+    [
+      "settings without a granularity",
+      edited((value) => {
+        delete (value.settings as Value).granularity;
+      }),
+      "missing_member",
+      ["settings", "granularity"],
+    ],
+    [
+      "a float step that is no text",
+      edited((value) => {
+        const { granularity } = value.settings as Value;
+        Object.assign((granularity as Value).float as Value, { step: 0.2 });
+      }),
+      "invalid_value",
+      ["settings", "granularity", "float", "step"],
     ],
     [
       "a block's kind",
@@ -204,7 +263,7 @@ describe("the workspace file", () => {
         if (command.type === "add") command.into = "workspace";
         if (command.type === "set") {
           for (const change of command.changes as Value[]) {
-            change.target = (change.target as Value).block;
+            change.target = (change.target as Value).block ?? "workspace";
           }
         }
       }
@@ -213,7 +272,7 @@ describe("the workspace file", () => {
     expect(isLoadError(result) && result.problems).toEqual([
       {
         code: "unsupported_version",
-        message: "workspace version 4 is not supported; this editor reads version 6 only",
+        message: "workspace version 4 is not supported; this editor reads version 7 only",
         path: ["meta", "version"],
       },
     ]);
@@ -230,7 +289,26 @@ describe("the workspace file", () => {
     expect(isLoadError(result) && result.problems).toEqual([
       {
         code: "unsupported_version",
-        message: "workspace version 5 is not supported; this editor reads version 6 only",
+        message: "workspace version 5 is not supported; this editor reads version 7 only",
+        path: ["meta", "version"],
+      },
+    ]);
+  });
+
+  it("refuses a workspace of version 6 for its version alone", () => {
+    // Version 6 wrote the workspace's statements among the settings, and no granularity.
+    const older = edited((value) => {
+      Object.assign(value.meta as Value, { version: 6 });
+      const settings = value.settings as Value;
+      delete settings.granularity;
+      settings.graphical = value.graphical;
+      delete value.graphical;
+    });
+    const result = readWorkspace(older);
+    expect(isLoadError(result) && result.problems).toEqual([
+      {
+        code: "unsupported_version",
+        message: "workspace version 6 is not supported; this editor reads version 7 only",
         path: ["meta", "version"],
       },
     ]);

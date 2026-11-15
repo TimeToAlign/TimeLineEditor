@@ -35,18 +35,15 @@ import {
   readGraphical,
   readIndex,
   readName,
-  readNonNegative,
-  readNullablePositive,
   readNullableString,
   readObject,
-  readPositive,
   toJson,
   unknownMember,
 } from "../values.ts";
 import type { Address } from "../workspace/address.ts";
 import type { Block, BlockId, BlockPlacement } from "../workspace/blocks.ts";
-import type { View, WorkspaceSettings } from "../workspace/view.ts";
-import { placeMemberProblem } from "../workspace/view.ts";
+import type { View } from "../workspace/view.ts";
+import { PLACEMENT_READERS, placeMemberProblem } from "../workspace/view.ts";
 import type { ChangeSet } from "./mutations.ts";
 import {
   entryAt,
@@ -57,7 +54,6 @@ import {
   withEntryAt,
   withEntryMember,
   withKey,
-  withSettings,
   withTimeline,
 } from "./mutations.ts";
 import { withSegmentLinesCovered } from "./settle.ts";
@@ -120,31 +116,6 @@ function readMembers<T>(
 
 // ---------------------------------------------------------------- workspace
 
-const PLACEMENT_READERS: Readers<BlockPlacement> = {
-  scale: readPositive,
-  length: readPositive,
-  spacing: readNonNegative,
-  margin: readNonNegative,
-  width: readNullablePositive,
-  height: readNullablePositive,
-};
-
-const GRID_READERS: Readers<WorkspaceSettings["grid"]> = { size: readPositive, snap: readBoolean };
-
-/** The workspace setting `member` replaced by `next`, unless it holds what is stored. */
-function settingChange<M extends keyof WorkspaceSettings>(
-  view: View,
-  path: readonly PathSegment[],
-  changes: ChangeSet,
-  member: M,
-  next: WorkspaceSettings[M],
-): View {
-  const stored = view.settings[member];
-  if (sameJson(stored, next)) return view;
-  recordValue(changes, path, null, false, stored, next);
-  return withSettings(view, { [member]: next });
-}
-
 const WORKSPACE_SET: Setters<WorkspaceTarget> = {
   /** The workspace's name, the default name of its file: a non-empty string. */
   name: (view, _, value, path, changes) => {
@@ -154,21 +125,13 @@ const WORKSPACE_SET: Setters<WorkspaceTarget> = {
     recordValue(changes, path, null, false, view.name, name);
     return { ...view, name };
   },
-  grid: (view, _, value, path, changes) => {
-    const grid = readMembers(value, path, GRID_READERS);
-    if (isCommandError(grid)) return grid;
-    return settingChange(view, path, changes, "grid", { ...view.settings.grid, ...grid });
-  },
-  blockDefaults: (view, _, value, path, changes) => {
-    const defaults = readMembers(value, path, PLACEMENT_READERS);
-    if (isCommandError(defaults)) return defaults;
-    const { blockDefaults } = view.settings;
-    return settingChange(view, path, changes, "blockDefaults", { ...blockDefaults, ...defaults });
-  },
+  /** The workspace's default statements, replaced whole. */
   graphical: (view, _, value, path, changes) => {
     const graphical = readGraphical(value, path);
     if (isCommandError(graphical)) return graphical;
-    return settingChange(view, path, changes, "graphical", graphical);
+    if (sameJson(view.graphical, graphical)) return view;
+    recordValue(changes, path, null, false, view.graphical, graphical);
+    return { ...view, graphical };
   },
 };
 

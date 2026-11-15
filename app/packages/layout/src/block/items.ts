@@ -50,9 +50,11 @@ export function drawItem(item: Item, { n, s0 }: Columns): ItemDrawing {
   return {
     item,
     drawn,
-    axes: item.cards.map((card, index) =>
-      axesOf(card.member, drawn[index] ?? EMPTY, s0, item.length),
-    ),
+    axes: item.cards.map((card, index) => {
+      const { key } = card.ref;
+      if (key === null) throw new Error("a card has no place key");
+      return axesOf(card.member, key, drawn[index] ?? EMPTY, s0, item.length);
+    }),
   };
 }
 

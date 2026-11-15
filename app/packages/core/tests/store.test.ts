@@ -163,12 +163,21 @@ describe("opening a workspace", () => {
     if (block === undefined) throw new Error("A was added");
     const moved = { ...workspace.view, blocks: { [A]: { ...block, x: 99 } } };
     expect(mismatch({ ...workspace, view: moved })).toEqual({ entry: 3, path: ["blocks", A, "x"] });
-    const settings = { ...workspace.view.settings, grid: { size: 16, snap: true } };
-    expect(mismatch({ ...workspace, view: { ...workspace.view, settings } })).toEqual({
+    const graphical = {
+      statements: [{ select: { element: "map" as const }, set: { stroke: "#C00000" } }],
+    };
+    expect(mismatch({ ...workspace, view: { ...workspace.view, graphical } })).toEqual({
       entry: 3,
-      path: ["settings", "grid"],
+      path: ["graphical"],
     });
     expect(mismatch({ ...workspace, journal: [] })).toEqual({ entry: 0, path: ["blocks", A] });
+  });
+
+  it("never compares the settings, and opens with the workspace's own", () => {
+    const workspace = written();
+    const settings = { ...workspace.view.settings, grid: { size: 16, snap: false } };
+    const store = createStore({ ...workspace, view: { ...workspace.view, settings } });
+    expect(store.view.settings.grid).toEqual({ size: 16, snap: false });
   });
 
   it("refuses a journal entry the commands refuse, at that entry", () => {

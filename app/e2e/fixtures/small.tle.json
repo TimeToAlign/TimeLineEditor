@@ -9,7 +9,7 @@
         "groups": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (1d61e026)"
+          "generator": "timetoalign 1.2.0 (c2880b0b)"
         },
         "name": null,
         "timelines": [
@@ -31,7 +31,7 @@
             "unit": "quarters"
           }
         ],
-        "timetoshare": "0.1.0"
+        "timetoshare": "0.2.0"
       },
       "margin": 0,
       "parent": null,
@@ -51,7 +51,7 @@
         "groups": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (1d61e026)"
+          "generator": "timetoalign 1.2.0 (c2880b0b)"
         },
         "name": null,
         "timelines": [
@@ -141,7 +141,7 @@
             "unit": "quarters"
           }
         ],
-        "timetoshare": "0.1.0"
+        "timetoshare": "0.2.0"
       },
       "margin": 0,
       "parent": null,
@@ -161,7 +161,7 @@
         "groups": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (1d61e026)"
+          "generator": "timetoalign 1.2.0 (c2880b0b)"
         },
         "name": null,
         "timelines": [
@@ -228,7 +228,7 @@
             "unit": "quarters"
           }
         ],
-        "timetoshare": "0.1.0"
+        "timetoshare": "0.2.0"
       },
       "margin": 0,
       "parent": null,
@@ -248,7 +248,7 @@
         "groups": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (1d61e026)"
+          "generator": "timetoalign 1.2.0 (c2880b0b)"
         },
         "name": null,
         "timelines": [
@@ -314,7 +314,7 @@
             "unit": "quarters"
           }
         ],
-        "timetoshare": "0.1.0"
+        "timetoshare": "0.2.0"
       },
       "margin": 0,
       "parent": null,
@@ -574,7 +574,7 @@
         "groups": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (1d61e026)"
+          "generator": "timetoalign 1.2.0 (c2880b0b)"
         },
         "name": null,
         "timelines": [
@@ -676,7 +676,7 @@
             "unit": "quarters"
           }
         ],
-        "timetoshare": "0.1.0"
+        "timetoshare": "0.2.0"
       },
       "margin": 0,
       "parent": null,
@@ -688,17 +688,20 @@
       "y": 160
     }
   },
+  "graphical": {},
   "journal": [
     {
       "author": "Fixture Generator",
       "command": {
         "block": {
+          "height": null,
           "id": "bare000000",
+          "length": 400,
           "manifest": {
             "groups": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (1d61e026)"
+              "generator": "timetoalign 1.2.0 (c2880b0b)"
             },
             "name": null,
             "timelines": [
@@ -720,8 +723,12 @@
                 "unit": "quarters"
               }
             ],
-            "timetoshare": "0.1.0"
+            "timetoshare": "0.2.0"
           },
+          "margin": 0,
+          "scale": 1,
+          "spacing": 8,
+          "width": null,
           "x": 0,
           "y": 0
         },
@@ -734,12 +741,14 @@
       "author": "Fixture Generator",
       "command": {
         "block": {
+          "height": null,
           "id": "nested0000",
+          "length": 400,
           "manifest": {
             "groups": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (1d61e026)"
+              "generator": "timetoalign 1.2.0 (c2880b0b)"
             },
             "name": null,
             "timelines": [
@@ -805,8 +814,12 @@
                 "unit": "quarters"
               }
             ],
-            "timetoshare": "0.1.0"
+            "timetoshare": "0.2.0"
           },
+          "margin": 0,
+          "scale": 1,
+          "spacing": 8,
+          "width": null,
           "x": 0,
           "y": 160
         },
@@ -819,12 +832,14 @@
       "author": "Fixture Generator",
       "command": {
         "block": {
+          "height": null,
           "id": "map0000000",
+          "length": 400,
           "manifest": {
             "groups": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (1d61e026)"
+              "generator": "timetoalign 1.2.0 (c2880b0b)"
             },
             "name": null,
             "timelines": [
@@ -891,8 +906,12 @@
                 "unit": "quarters"
               }
             ],
-            "timetoshare": "0.1.0"
+            "timetoshare": "0.2.0"
           },
+          "margin": 0,
+          "scale": 1,
+          "spacing": 8,
+          "width": null,
           "x": 0,
           "y": 320
         },
@@ -905,12 +924,14 @@
       "author": "Fixture Generator",
       "command": {
         "block": {
+          "height": null,
           "id": "flow000000",
+          "length": 400,
           "manifest": {
             "groups": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (1d61e026)"
+              "generator": "timetoalign 1.2.0 (c2880b0b)"
             },
             "name": null,
             "timelines": [
@@ -1000,8 +1021,12 @@
                 "unit": "quarters"
               }
             ],
-            "timetoshare": "0.1.0"
+            "timetoshare": "0.2.0"
           },
+          "margin": 0,
+          "scale": 1,
+          "spacing": 8,
+          "width": null,
           "x": 640,
           "y": 0
         },
@@ -1014,7 +1039,9 @@
       "author": "Fixture Generator",
       "command": {
         "block": {
+          "height": null,
           "id": "styled0000",
+          "length": 400,
           "manifest": {
             "graphical": {
               "order": {
@@ -1259,7 +1286,7 @@
             "groups": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (1d61e026)"
+              "generator": "timetoalign 1.2.0 (c2880b0b)"
             },
             "name": null,
             "timelines": [
@@ -1361,8 +1388,12 @@
                 "unit": "quarters"
               }
             ],
-            "timetoshare": "0.1.0"
+            "timetoshare": "0.2.0"
           },
+          "margin": 0,
+          "scale": 1,
+          "spacing": 8,
+          "width": null,
           "x": 640,
           "y": 160
         },
@@ -1374,7 +1405,7 @@
   ],
   "meta": {
     "format": "tilie-workspace",
-    "version": 6
+    "version": 7
   },
   "name": "untitled",
   "sessions": {},
@@ -1387,7 +1418,20 @@
       "spacing": 8,
       "width": null
     },
-    "graphical": {},
+    "granularity": {
+      "float": {
+        "refine": true,
+        "step": "1"
+      },
+      "fraction": {
+        "denominator": 1,
+        "refine": true
+      },
+      "int": {
+        "refine": true,
+        "step": 1
+      }
+    },
     "grid": {
       "size": 8,
       "snap": true

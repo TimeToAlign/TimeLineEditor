@@ -13,14 +13,16 @@ import {
   subtractCoordinates,
   toAxisValue,
 } from "../src/number/coordinate.ts";
-import { Rational } from "../src/number/rational.ts";
+import { positiveDecimal, Rational, roundHalfEven } from "../src/number/rational.ts";
 import {
   addReal,
   compareReal,
   exactCoordinate,
   fromFloat,
   realOf,
+  roundFloat,
   toFloat,
+  toRational,
 } from "../src/number/real.ts";
 
 const parts = (value: Rational) => [value.numerator, value.denominator];
@@ -272,5 +274,72 @@ describe("a child's end compares across number types as Python compares it", () 
     expect(shown(exactCoordinate(Rational.of([1, 3]), "number", "float"))).toBe(undefined);
     expect(shown(exactCoordinate(Rational.of([1, 2]), "number", "float"))).toBe(0.5);
     expect(shown(exactCoordinate(1e-300, "number", "fraction"))).toBe(undefined);
+  });
+});
+
+describe("roundFloat rounds as Python's round", () => {
+  it.each([
+    [312.48979591836735, 3, 312.49],
+    [2.675, 3, 2.675],
+    [0.0005, 3, 0.001],
+    [0.0015, 3, 0.002],
+    [1e-5, 3, 0],
+    [6.71875, 3, 6.719],
+    [0.125, 2, 0.12],
+    [0.375, 2, 0.38],
+  ])("round(%s, %s) is %s", (x, places, rounded) => {
+    expect(roundFloat(x, places)).toBe(rounded);
+  });
+
+  it("keeps the sign of a zero and returns what is not finite", () => {
+    expect(Object.is(roundFloat(-0.0001, 3), -0)).toBe(true);
+    expect(Object.is(roundFloat(-0, 3), -0)).toBe(true);
+    expect(Object.is(roundFloat(1e-5, 3), 0)).toBe(true);
+    expect(roundFloat(Number.POSITIVE_INFINITY, 3)).toBe(Number.POSITIVE_INFINITY);
+    expect(roundFloat(Number.NaN, 3)).toBeNaN();
+  });
+});
+
+describe("one rounding to an integer, half to even", () => {
+  it.each([
+    [5n, 2n, 2n],
+    [7n, 2n, 4n],
+    [-5n, 2n, -2n],
+    [-7n, 2n, -4n],
+    [7n, 3n, 2n],
+    [-8n, 3n, -3n],
+    [6n, 1n, 6n],
+  ])("rounds %s/%s to %s", (numerator, denominator, rounded) => {
+    expect(roundHalfEven(numerator, denominator)).toBe(rounded);
+  });
+
+  it("refuses a denominator that is not positive", () => {
+    expect(() => roundHalfEven(1n, 0n)).toThrow(RangeError);
+    expect(() => roundHalfEven(1n, -2n)).toThrow(RangeError);
+  });
+});
+
+describe("positive decimal text", () => {
+  it("reads the exact value it spells", () => {
+    expect(["0.2", "1", "007.50"].map((text) => positiveDecimal(text)?.toString())).toEqual([
+      "1/5",
+      "1",
+      "15/2",
+    ]);
+  });
+
+  it("reads nothing from any other text", () => {
+    for (const text of ["0", "0.0", ".5", "1.", "1e-3", "-1", " 1", ""]) {
+      expect(positiveDecimal(text)).toBeUndefined();
+    }
+  });
+});
+
+describe("the exact value of a Real", () => {
+  it("keeps a Rational and reads a float's exact binary value", () => {
+    const half = Rational.of([1, 2]);
+    expect(toRational(half)).toBe(half);
+    expect(parts(toRational(0.1))).toEqual([3602879701896397n, 36028797018963968n]);
+    expect(parts(toRational(-2.5))).toEqual([-5n, 2n]);
   });
 });

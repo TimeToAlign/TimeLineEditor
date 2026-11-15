@@ -1,14 +1,14 @@
 /** A block's drawing, memoized by the identity of its inputs and by its placement, and where its node lies. */
 
-import type { Block, WorkspaceSettings } from "@timetoalign/tilie-core";
+import type { Block } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import { DEFAULT_LAYER, draw } from "@timetoalign/tilie-layout";
 import type { Descriptor } from "@timetoalign/tilie-writers";
 import { toDescriptors } from "@timetoalign/tilie-writers";
-import type { FontMetrics } from "@timetoalign/timetoshare";
+import type { FontMetrics, Graphical } from "@timetoalign/timetoshare";
 
 interface Memo {
-  readonly settings: WorkspaceSettings;
+  readonly graphical: Graphical;
   readonly metrics: FontMetrics;
   readonly drawing: Drawing;
 }
@@ -33,9 +33,10 @@ function placementKey({ length, spacing, margin, width, height, places }: Placem
 
 /**
  * The drawing of a block: its manifest drawn at its placement with the
- * default layer, the workspace's statements and the manifest's own, from
+ * default layer, the workspace's `graphical` and the manifest's own, from
  * lowest to highest. Blocks are immutable, so the drawing is memoized per
- * block and redrawn only when the settings or the metrics change identity.
+ * block and redrawn only when the workspace's `graphical` or the metrics
+ * change identity.
  * `overrides` replace members of the block's placement (a resize measuring
  * the content at another length or with no size request). Every drawing is
  * also kept by its manifest and its placement's values, the `RECENT` last
@@ -44,13 +45,13 @@ function placementKey({ length, spacing, margin, width, height, places }: Placem
  */
 export function drawingOf(
   block: Block,
-  settings: WorkspaceSettings,
+  graphical: Graphical,
   metrics: FontMetrics,
   overrides?: Partial<Block>,
 ): Drawing {
   if (overrides === undefined) {
     const memo = drawings.get(block);
-    if (memo !== undefined && memo.settings === settings && memo.metrics === metrics) {
+    if (memo !== undefined && memo.graphical === graphical && memo.metrics === metrics) {
       return memo.drawing;
     }
   }
@@ -63,7 +64,7 @@ export function drawingOf(
   const key = placementKey(placement);
   let memo = recent.get(key);
   recent.delete(key);
-  if (memo === undefined || memo.settings !== settings || memo.metrics !== metrics) {
+  if (memo === undefined || memo.graphical !== graphical || memo.metrics !== metrics) {
     const drawing = draw(
       placement.manifest,
       {
@@ -74,10 +75,10 @@ export function drawingOf(
         height: placement.height,
         places: placement.places,
       },
-      [DEFAULT_LAYER, settings.graphical, placement.manifest.graphical],
+      [DEFAULT_LAYER, graphical, placement.manifest.graphical],
       metrics,
     );
-    memo = { settings, metrics, drawing };
+    memo = { graphical, metrics, drawing };
   }
   recent.set(key, memo);
   for (const oldest of recent.keys()) {

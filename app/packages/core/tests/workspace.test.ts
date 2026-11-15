@@ -11,26 +11,32 @@ function viewWith(...blocks: Block[]): View {
 }
 
 describe("workspace creation", () => {
-  it("defaults blocks to the drawing's placement defaults and scale 1", () => {
+  it("defaults blocks to the drawing's placement defaults and scale 1, and one step per number type", () => {
     expect(DEFAULT_SETTINGS).toEqual({
       grid: { size: 8, snap: true },
       blockDefaults: { scale: 1, length: 400, spacing: 8, margin: 0, width: null, height: null },
-      graphical: {},
+      granularity: {
+        fraction: { denominator: 1, refine: true },
+        float: { step: "1", refine: true },
+        int: { step: 1, refine: true },
+      },
     });
   });
 
-  it("creates exactly the fixed metadata, the name, the settings and no blocks", () => {
+  it("creates exactly the fixed metadata, the name, the settings, no statements and no blocks", () => {
     expect(createView()).toEqual({
-      meta: { format: "tilie-workspace", version: 6 },
+      meta: { format: "tilie-workspace", version: 7 },
       name: "untitled",
       settings: DEFAULT_SETTINGS,
+      graphical: {},
       blocks: {},
     });
     const settings = { ...DEFAULT_SETTINGS, grid: { size: 4, snap: false } };
     expect(createView(settings)).toEqual({
-      meta: { format: "tilie-workspace", version: 6 },
+      meta: { format: "tilie-workspace", version: 7 },
       name: "untitled",
       settings,
+      graphical: {},
       blocks: {},
     });
   });

@@ -35,7 +35,7 @@ export interface Preview {
 function drawnAt(node: BlockNode, view: View, metrics: FontMetrics): BlockNode {
   const block = view.blocks[node.id];
   if (block === undefined) return node;
-  const drawing = drawingOf(block, view.settings, metrics);
+  const drawing = drawingOf(block, view.graphical, metrics);
   const width = drawing.width * block.scale;
   const height = drawing.height * block.scale;
   return {

@@ -9,7 +9,7 @@ import { SCHEMA_VERSION } from "@timetoalign/timetoshare";
 export interface Example {
   /** The menu's label. */
   readonly label: string;
-  /** The fixture's path in the schema package, e.g. `fixtures/0.1.0/flow_control.json`. */
+  /** The fixture's path in the schema package, e.g. `fixtures/0.2.0/flow_control.json`. */
   readonly file: string;
   /** The manifest's text, fetched on first use. */
   readonly text: () => Promise<string>;

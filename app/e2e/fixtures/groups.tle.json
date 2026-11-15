@@ -29,7 +29,7 @@
         ],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (1d61e026)"
+          "generator": "timetoalign 1.2.0 (c2880b0b)"
         },
         "name": null,
         "timelines": [
@@ -87,7 +87,7 @@
             "unit": "seconds"
           }
         ],
-        "timetoshare": "0.1.0"
+        "timetoshare": "0.2.0"
       },
       "margin": 0,
       "parent": null,
@@ -127,7 +127,7 @@
         ],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (1d61e026)"
+          "generator": "timetoalign 1.2.0 (c2880b0b)"
         },
         "name": null,
         "timelines": [
@@ -207,7 +207,7 @@
             "unit": "quarters"
           }
         ],
-        "timetoshare": "0.1.0"
+        "timetoshare": "0.2.0"
       },
       "margin": 0,
       "parent": null,
@@ -251,7 +251,7 @@
         ],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (1d61e026)"
+          "generator": "timetoalign 1.2.0 (c2880b0b)"
         },
         "name": null,
         "timelines": [
@@ -392,7 +392,7 @@
             "unit": "quarters"
           }
         ],
-        "timetoshare": "0.1.0"
+        "timetoshare": "0.2.0"
       },
       "margin": 0,
       "parent": null,
@@ -471,7 +471,7 @@
         ],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (1d61e026)"
+          "generator": "timetoalign 1.2.0 (c2880b0b)"
         },
         "name": null,
         "timelines": [
@@ -582,7 +582,7 @@
             "unit": "quarters"
           }
         ],
-        "timetoshare": "0.1.0"
+        "timetoshare": "0.2.0"
       },
       "margin": 0,
       "parent": null,
@@ -594,12 +594,15 @@
       "y": 424
     }
   },
+  "graphical": {},
   "journal": [
     {
       "author": "Fixture Generator",
       "command": {
         "block": {
+          "height": null,
           "id": "gchild0000",
+          "length": 400,
           "manifest": {
             "graphical": {
               "order": {
@@ -624,7 +627,7 @@
             ],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (1d61e026)"
+              "generator": "timetoalign 1.2.0 (c2880b0b)"
             },
             "name": null,
             "timelines": [
@@ -682,8 +685,12 @@
                 "unit": "seconds"
               }
             ],
-            "timetoshare": "0.1.0"
+            "timetoshare": "0.2.0"
           },
+          "margin": 0,
+          "scale": 1,
+          "spacing": 8,
+          "width": null,
           "x": 0,
           "y": 0
         },
@@ -696,7 +703,9 @@
       "author": "Fixture Generator",
       "command": {
         "block": {
+          "height": null,
           "id": "ggrand0000",
+          "length": 400,
           "manifest": {
             "graphical": {
               "order": {
@@ -721,7 +730,7 @@
             ],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (1d61e026)"
+              "generator": "timetoalign 1.2.0 (c2880b0b)"
             },
             "name": null,
             "timelines": [
@@ -801,8 +810,12 @@
                 "unit": "quarters"
               }
             ],
-            "timetoshare": "0.1.0"
+            "timetoshare": "0.2.0"
           },
+          "margin": 0,
+          "scale": 1,
+          "spacing": 8,
+          "width": null,
           "x": 0,
           "y": 240
         },
@@ -815,7 +828,9 @@
       "author": "Fixture Generator",
       "command": {
         "block": {
+          "height": null,
           "id": "gmixed0000",
+          "length": 400,
           "manifest": {
             "graphical": {
               "order": {
@@ -844,7 +859,7 @@
             ],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (1d61e026)"
+              "generator": "timetoalign 1.2.0 (c2880b0b)"
             },
             "name": null,
             "timelines": [
@@ -985,8 +1000,12 @@
                 "unit": "quarters"
               }
             ],
-            "timetoshare": "0.1.0"
+            "timetoshare": "0.2.0"
           },
+          "margin": 0,
+          "scale": 1,
+          "spacing": 8,
+          "width": null,
           "x": 640,
           "y": 0
         },
@@ -999,7 +1018,9 @@
       "author": "Fixture Generator",
       "command": {
         "block": {
+          "height": null,
           "id": "gstyled000",
+          "length": 400,
           "manifest": {
             "graphical": {
               "order": {
@@ -1063,7 +1084,7 @@
             ],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (1d61e026)"
+              "generator": "timetoalign 1.2.0 (c2880b0b)"
             },
             "name": null,
             "timelines": [
@@ -1174,8 +1195,12 @@
                 "unit": "quarters"
               }
             ],
-            "timetoshare": "0.1.0"
+            "timetoshare": "0.2.0"
           },
+          "margin": 0,
+          "scale": 1,
+          "spacing": 8,
+          "width": null,
           "x": 640,
           "y": 424
         },
@@ -1187,7 +1212,7 @@
   ],
   "meta": {
     "format": "tilie-workspace",
-    "version": 6
+    "version": 7
   },
   "name": "untitled",
   "sessions": {},
@@ -1200,7 +1225,20 @@
       "spacing": 8,
       "width": null
     },
-    "graphical": {},
+    "granularity": {
+      "float": {
+        "refine": true,
+        "step": "1"
+      },
+      "fraction": {
+        "denominator": 1,
+        "refine": true
+      },
+      "int": {
+        "refine": true,
+        "step": 1
+      }
+    },
     "grid": {
       "size": 8,
       "snap": true

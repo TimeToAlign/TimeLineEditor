@@ -114,7 +114,8 @@ export interface LineElements {
  * One band of a timeline once its first fits are done (section 6.4, the
  * first of the three passes), before any distance is known. Every kind of
  * band but the children band is prepared by its own module; the children
- * band's width comes from its children's layout.
+ * band's width comes from its children's layout, the conversion maps band's
+ * from the slots it shares with the bands of its row (`JointSpans`).
  */
 export interface PreparedBand {
   /** The facet it draws; its address is `{id: T, facet}`, `T` its timeline (section 2.2). */
@@ -130,25 +131,27 @@ export interface PreparedBand {
   /**
    * Its width (section 6.4, Where a band lies), the distance its content reaches outwards from its
    * start, summed as its paragraph writes it: the markers band `w / 2 + 13`, or `w / 2 + 13 + 2 +
-   * T × h(9)` with label tiers (Markers); the conversion maps band `e = w / 2 + J × (g + d)`
-   * (Conversion maps); the regions band `R × pr − S` (Regions); the flow control band `T ×
-   * h(9) + (4 + S) + (K − 1) × pj + 2 + h(9)`, or `T × h(9)` without jumps (Flow control). 0 for an
-   * absent band, and for the children band, whose width its children's layout gives.
+   * T × h(9)` with label tiers (Markers); the regions band `R × pr − S` (Regions); the flow
+   * control band `T × h(9) + (4 + S) + (K − 1) × pj + 2 + h(9)`, or `T × h(9)` without jumps (Flow
+   * control). 0 for an absent band, for the children band, whose width its children's layout
+   * gives, and for the conversion maps band, `e = w / 2 + J × (g + d)` by its slots (Conversion
+   * maps).
    */
   readonly width: number;
   /**
    * What the band adds to its timeline's extent (section 6.4, Children), each measured from the
    * root's start as section 6.3 measures extents: the extent of every item its first fits place
    * (a region or jump widened to its drawn label, a wedge or flow-marker label), and
-   * `[L × u, L × u]` at every flow marker it draws. Empty for the children band: its children's extents are added by
-   * their own layout.
+   * `[L × u, L × u]` at every flow marker it draws. Empty for the children band, whose children's
+   * extents are added by their own layout, and for the conversion maps band: a map adds none.
    */
   readonly extents: readonly Extent[];
   /** Its drawn centred labels (section 6.7): wedge, region and jump labels. */
   readonly centred: readonly Centred[];
   /**
    * Its elements (section 6.6), the band starting at `start` outwards on `side` of the line
-   * placed at `at`: the third pass. The children band draws nothing: each child draws its own.
+   * placed at `at`: the third pass. The children band draws nothing, each child drawing its own,
+   * nor does the conversion maps band, whose maps take the slots of its row (`drawMaps`).
    */
   draw(start: number, side: Side, at: LinePosition): Partial<LineElements>;
 }
@@ -179,13 +182,18 @@ export interface LaidSide {
   readonly edge: number;
 }
 
-/** Where a children band lies once its children are laid out with the other bands of its row (section 6.4, Children). */
-export interface ChildrenSpan {
-  /** The joint start `c0`, the largest own start of the children bands laid out together. */
+/**
+ * Where a band laid out together with bands of other lines of its row lies
+ * (section 6.4, Children and Conversion maps): its start, the common `c0` of
+ * the bands laid out together, and its width.
+ */
+export interface BandSpan {
   readonly start: number;
-  /** Its width: its own rows with the halves they share. */
   readonly width: number;
 }
+
+/** The bands of a timeline laid out together with those of other lines: their spans by facet. */
+export type JointSpans = Readonly<Partial<Record<"children" | "conversion_maps", BandSpan>>>;
 
 /**
  * The side each band of a timeline lies on (section 6.4, The band order):
@@ -236,7 +244,7 @@ const againstLine = (facet: Facet): boolean => facet === "markers" || facet === 
  * at level 1 or −1 the markers band and the conversion maps band start at 0,
  * every other band `S` beyond the larger of `reach` and `w / 2`; any further
  * band starts at `previous` plus `S`. A children band's own start is the larger
- * of this and half its row's pitch (`childrenStart`).
+ * of this and half its row's pitch (`ownStart`).
  */
 export function bandStart(
   facet: Facet,
@@ -254,10 +262,12 @@ export function bandStart(
  * Where a band lies), `present` in level order, `reach` the line's reach on
  * that side (Level 0), `w` the line's stroke width and `S` the card spacing:
  *
- * - every band but the children band starts where `bandStart` puts it;
- * - the children band starts at `children.start` and is `children.width`
- *   wide (`children` is given exactly when `present` holds the children
- *   band; its start is never less than the one `bandStart` gives it);
+ * - every band but the children band and the conversion maps band starts
+ *   where `bandStart` puts it;
+ * - the children band and the conversion maps band, each laid out together
+ *   with the bands of other lines of its row, start and are as wide as
+ *   `spans` says (`spans` holds a span for each of them that `present`
+ *   holds);
  * - every outer edge is the band's start plus its width, the width summed
  *   first, and for the markers or conversion maps band at level 1 or −1 the
  *   larger of that and `reach`, since it shares its room with the line's;
@@ -272,7 +282,7 @@ export function fillSide(
   reach: number,
   S: number,
   w: number,
-  children: ChildrenSpan | undefined,
+  spans: JointSpans,
 ): LaidSide {
   const sign = side === "above" ? 1 : -1;
   const bands: LaidBand[] = [];
@@ -281,9 +291,10 @@ export function fillSide(
     const first = edge === undefined;
     let start: number;
     let width: number;
-    if (band.facet === "children") {
-      if (children === undefined) throw new Error("a children band is laid out without its rows");
-      ({ start, width } = children);
+    if (band.facet === "children" || band.facet === "conversion_maps") {
+      const span = spans[band.facet];
+      if (span === undefined) throw new Error(`a ${band.facet} band is laid out without its span`);
+      ({ start, width } = span);
     } else {
       start = bandStart(band.facet, edge, reach, w, S);
       width = band.width;

@@ -1,7 +1,8 @@
 /**
- * The canvas's time budgets on the 300-block workspace, measured in Chromium
- * through the DevTools Protocol's `Performance.getMetrics` (script time, the
- * number the frame rate cap cannot hide). Each test prints what it measured.
+ * The canvas's time budgets on the 300-block workspace, and the coordinate
+ * flag's over a PiecewiseMap of 10^5 breaks, measured in Chromium through
+ * the DevTools Protocol's `Performance.getMetrics` (script time, the number
+ * the frame rate cap cannot hide). Each test prints what it measured.
  * Derivation in `README.md` ("budget.spec.ts").
  */
 
@@ -10,11 +11,13 @@ import { expect, test } from "@playwright/test";
 import { GRID_PITCH } from "./fixtures/generate.ts";
 import {
   cardPoint,
+  dispatch,
   drag,
   emptyPoint,
   frames,
   node,
   open,
+  SMALL,
   setViewport,
   viewportOf,
 } from "./support.ts";
@@ -31,13 +34,18 @@ async function scriptSeconds(cdp: CDPSession): Promise<number> {
 }
 
 /** Script milliseconds per move of `gesture`, which makes `MOVES` moves. */
-async function perMove(page: Page, cdp: CDPSession, gesture: () => Promise<void>) {
+async function perMove(
+  page: Page,
+  cdp: CDPSession,
+  gesture: () => Promise<void>,
+  moves: number = MOVES,
+) {
   await frames(page);
   const before = await scriptSeconds(cdp);
   await gesture();
   await frames(page);
   const after = await scriptSeconds(cdp);
-  return ((after - before) * 1000) / MOVES;
+  return ((after - before) * 1000) / moves;
 }
 
 test.describe("budgets at 300 blocks", { tag: "@budget" }, () => {
@@ -163,5 +171,81 @@ test.describe("budgets at 300 blocks", { tag: "@budget" }, () => {
     console.log(`command: ${command.toFixed(3)} ms; single-block redraw: ${redraw.toFixed(3)} ms`);
     expect(command).toBeLessThanOrEqual(1);
     expect(redraw).toBeLessThanOrEqual(16.7);
+  });
+});
+
+/** The pointer moves of the coordinate flag's budget. */
+const FLAG_MOVES = 200;
+/** The breaks of the PiecewiseMap the flag reads. */
+const BREAKS = 100_000;
+/** One frame at 60 Hz, in milliseconds. */
+const FRAME_MS = 16.7;
+
+/**
+ * A PiecewiseMap from quarters to seconds on `melody` (8 quarters): `BREAKS`
+ * breaks `8k / (BREAKS − 1)` from 0 to 8, a LinearMap between each two.
+ */
+function pieces() {
+  return {
+    type: "PiecewiseMap",
+    id: "pieces",
+    name: "Pieces",
+    source_unit: "quarters",
+    target_unit: "seconds",
+    breaks: Array.from({ length: BREAKS }, (_, k) => [8 * k, BREAKS - 1]),
+    maps: Array.from({ length: BREAKS - 1 }, (_, k) => ({
+      type: "LinearMap",
+      id: `piece_${k}`,
+      name: null,
+      source_unit: "quarters",
+      target_unit: "seconds",
+      scalar: [k + 1, 7],
+      offset: [-k, 3],
+    })),
+  };
+}
+
+test.describe("the coordinate flag over a PiecewiseMap of 10^5 breaks", { tag: "@budget" }, () => {
+  test.beforeEach(async ({ page, browserName }) => {
+    test.skip(browserName !== "chromium", "script time is read through Chromium's protocol");
+    await open(page, "small");
+    await setViewport(page, { x: 40, y: 40, zoom: 1 });
+    expect(
+      await dispatch(page, {
+        type: "add",
+        into: { block: SMALL.map, id: "melody" },
+        map: pieces(),
+      }),
+    ).toBeNull();
+    await page.getByRole("button", { name: "Show coordinates" }).click();
+    await expect(page.getByTestId("coordinates")).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("a pointer move along the line costs at most one frame of script", async ({ page }) => {
+    const line = node(page, SMALL.map).locator('.tilie-block svg line[data-id="melody"]');
+    const box = await line.boundingBox();
+    if (box === null) throw new Error("melody's line is not displayed");
+    const y = box.y + box.height / 2;
+    const at = (n: number) => box.x + 2 + ((box.width - 4) * n) / (FLAG_MOVES - 1);
+    await page.mouse.move(at(0), y);
+    const flag = page.getByTestId("coordinate-flag");
+    await expect(flag.locator('[data-map="pieces"]')).toHaveCount(1);
+
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Performance.enable");
+    const ms = await perMove(
+      page,
+      cdp,
+      async () => {
+        for (let n = 0; n < FLAG_MOVES; n += 1) {
+          await page.mouse.move(at(n), y);
+          await frames(page);
+        }
+      },
+      FLAG_MOVES,
+    );
+    console.log(`coordinate flag: ${ms.toFixed(3)} ms of script per pointer move`);
+    await expect(flag.locator('[data-map="pieces"]')).toHaveCount(1);
+    expect(ms).toBeLessThanOrEqual(FRAME_MS);
   });
 });

@@ -147,10 +147,27 @@ describe("the markers band alone", () => {
 describe("the conversion maps band", () => {
   const name = "conversion_maps__maps_quarters";
 
-  it("lies against the root's line above it alone, a stack of 12 maps", () => {
+  it("lies against the root's line above it alone, 12 maps in slots by type", () => {
     const drawing = drawn(load(name));
     expect(element(drawing, at("maps:quarters"))).toMatchObject({ y: 77.5 });
-    expect(element(drawing, at("cmap_1"))).toMatchObject({ yc: 72 });
+    expect(element(drawing, at("cmap_4"))).toMatchObject({ yc: 72 });
+    expect(element(drawing, at("cmap_1"))).toMatchObject({ yc: 37 });
+    expect(
+      drawing.elements.flatMap((item) => (item.type === "map" ? [item.address.id] : [])),
+    ).toEqual([
+      "cmap_1",
+      "cmap_2",
+      "cmap_3",
+      "cmap_4",
+      "cmap_5",
+      "cmap_8",
+      "lmap_5",
+      "pmap_1",
+      "tmap_1",
+      "tmap_2",
+      "tmap_3",
+      "tmap_4",
+    ]);
     expect(element(drawing, at("tmap_4"))).toMatchObject({ yc: 17 });
     expect(drawing.height).toBe(122.4765625);
   });
@@ -165,7 +182,7 @@ describe("the conversion maps band", () => {
       ),
     );
     expect(element(drawing, at("maps:quarters"))).toMatchObject({ y: 22.40234375 });
-    expect(element(drawing, at("cmap_1"))).toMatchObject({ yc: 27.90234375 });
+    expect(element(drawing, at("cmap_1"))).toMatchObject({ yc: 62.90234375 });
     expect(element(drawing, at("tmap_4"))).toMatchObject({ yc: 82.90234375 });
     expect(element(drawing, at("maps:quarters", "start"))).toMatchObject({
       yt: 89.40234375,
