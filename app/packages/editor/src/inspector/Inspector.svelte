@@ -10,7 +10,7 @@
  */
 import type { LivePlacement, LiveStore, Selection } from "@timetoalign/tilie-arranger";
 import { resolveSelection } from "@timetoalign/tilie-arranger";
-import type { GridInUse } from "@timetoalign/tilie-core";
+import type { Address, Pin } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import { untrack } from "svelte";
 import type { Attachment } from "svelte/attachments";
@@ -23,7 +23,7 @@ import PropertiesPanel from "./PropertiesPanel.svelte";
 import { PropertyDrafts } from "./propertyDrafts.svelte.ts";
 import { selectedBlock } from "./selection.ts";
 import TimestampPanel from "./TimestampPanel.svelte";
-import type { Picked, Pin, Tab } from "./tabs.ts";
+import type { Picked, ShownPin, Tab } from "./tabs.ts";
 import { chosen, initialPick, nextTab, TABS, tabLabel } from "./tabs.ts";
 import { levelTitle } from "./words.ts";
 
@@ -35,7 +35,7 @@ let {
   drafts = new PropertyDrafts(),
   picked = $bindable(untrack(() => initialPick(live.editing.length, live.openings))),
   pin = $bindable(null),
-  grid = null,
+  timestamp = null,
 }: {
   /** The open workspace's store, read as Svelte state. */
   live: LiveStore;
@@ -49,9 +49,9 @@ let {
   /** The tab last chosen, and how many editors had been opened then. */
   picked?: Picked;
   /** The pinned timestamp and the tab shown before it; `null` while none is pinned. */
-  pin?: Pin | null;
-  /** The grid of the canvas's last reading; `null` before the first. */
-  grid?: GridInUse | null;
+  pin?: ShownPin | null;
+  /** The pin of the timestamp shown: `pin`'s own, or its named timestamp's read from the view. */
+  timestamp?: Pin | null;
 } = $props();
 
 const uid = $props.id();
@@ -71,6 +71,16 @@ const tab: Tab = $derived(picked.tab);
 /** Choose a tab; any but Timestamp clears the pin. */
 function choose(next: Tab): void {
   ({ picked, pin } = chosen({ picked, pin }, next, openings));
+}
+
+/** An edit of the shown unnamed timestamp moved its pin to `next`. */
+function repinned(next: Pin): void {
+  if (pin !== null && "pin" in pin) pin = { ...pin, pin: next };
+}
+
+/** The shown unnamed timestamp was named: show the named timestamp at `address`. */
+function named(address: Address): void {
+  if (pin !== null) pin = { named: address, before: pin.before };
 }
 
 /** The tab list and the panels, where a click keeps a pinned timestamp. */
@@ -145,7 +155,7 @@ const hinted = $derived(block === null && !manifest.dirty);
       {:else if item === "journal"}
         <JournalPanel rows={journalRows(live, view)} />
       {:else if item === "timestamp"}
-        <TimestampPanel {live} pinned={pin} {grid} />
+        <TimestampPanel {live} pin={timestamp} onpin={repinned} onnamed={named} />
       {:else if item === "properties"}
         <PropertiesPanel
           {view}
@@ -217,8 +227,10 @@ const hinted = $derived(block === null && !manifest.dirty);
     color: #595959;
   }
 
+  /* Body and shown panel fill the drawer's height, so a panel can keep a line at its bottom. */
   .inspector-body {
     display: flex;
+    flex: 1 0 auto;
     flex-direction: column;
     gap: 0.5rem;
     padding: 0 0.75rem 0.75rem;
@@ -254,6 +266,7 @@ const hinted = $derived(block === null && !manifest.dirty);
 
   .panel {
     display: flex;
+    flex: 1 0 auto;
     flex-direction: column;
     gap: 0.5rem;
   }

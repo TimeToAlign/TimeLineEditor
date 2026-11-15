@@ -261,7 +261,7 @@ export function readWorkspace(text: string): Workspace | LoadError {
     {
       meta: (meta, path) => readExact(meta, path, META, problems),
       ...(stated ? { name: readName } : {}),
-      settings: (settings, path) => readSettings(settings, path, problems),
+      settings: (settings, path) => readSettings(settings, path, problems, true),
       graphical: readGraphical,
       blocks,
       journal: readEntries(problems),

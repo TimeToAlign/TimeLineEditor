@@ -161,12 +161,13 @@ export function statementInside(
  * A manifest as seen from outside `element`, cut into comparable parts, each
  * the standard text of its value: per timeline (its lists reduced to their
  * ids), per map, region and flow-control element, per group, per measure
- * map; the other top-level members; the `graphical` members. The edited timeline's object, or the
- * edited group's and each of its members', stands as `{id}`; the entries of
- * `graphical.order` whose keys lie inside (the group's display order, the
- * band orders of the timelines it holds) are left out; only the
- * `statements` outside are kept, and of the named styles only those they
- * use.
+ * map, per named timestamp; the other top-level members; the other
+ * `graphical` members. The edited timeline's object, or the edited group's
+ * and each of its members', stands as `{id}`; the named timestamps lying on
+ * a timeline inside and the entries of `graphical.order` whose keys lie
+ * inside (the group's display order, the band orders of the timelines it
+ * holds) are left out; only the `statements` outside are kept, and of the
+ * named styles only those they use.
  */
 interface Projection {
   readonly elements: ReadonlyMap<string, string>;
@@ -220,11 +221,20 @@ function project(
     );
   }
   for (const map of byId(manifest.measure_maps)) elements.set(map.id, dumps(map));
+  const {
+    statements: _,
+    styles: named = {},
+    order = {},
+    timestamps = [],
+    ...rest
+  } = manifest.graphical ?? {};
+  for (const timestamp of byId(timestamps)) {
+    if (!inside(timestamp.timeline)) elements.set(timestamp.id, dumps(timestamp));
+  }
   const top = new Map<string, string>();
   for (const [key, value] of Object.entries(manifest)) {
     if (!LISTED_MEMBERS.includes(key)) top.set(key, dumps(value));
   }
-  const { statements: _, styles: named = {}, order = {}, ...rest } = manifest.graphical ?? {};
   const orders = Object.fromEntries(Object.entries(order).filter(([key]) => !inside(key)));
   const graphical = new Map<string, string>([
     ["statements", dumps(statements)],
@@ -306,7 +316,7 @@ function manifestChange(
       for (const key of keys) if (key.address.id !== undefined) yield key.address.id;
     }
     // Elements the block does not draw: the children of a root drawn only as an ancestor line,
-    // the jump targets and the measure maps.
+    // the jump targets, the measure maps and the named timestamps of a timeline drawn nowhere.
     yield* new Set([...a.elements.keys(), ...b.elements.keys()]);
   }
   // A differing element the target contains on one side only (a member joining or leaving

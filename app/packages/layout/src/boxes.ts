@@ -17,6 +17,7 @@ import type {
 } from "@timetoalign/tilie-core";
 import { exactCoordinate, fromFloat, Rational, toFloat } from "@timetoalign/tilie-core/numbers";
 import type { NumberType, TimeUnit } from "@timetoalign/timetoshare";
+import type { Style } from "./cascade.ts";
 
 /**
  * The half-open range `[start, end)` of `Drawing.elements` that a container
@@ -166,6 +167,27 @@ export interface DrawnAxis {
   readonly segments: readonly AxisSegment[];
   /** The maps drawn at its line, in the order they are drawn; none for an ancestor line. */
   readonly maps: readonly AxisMap[];
+  /** Where a coordinate marker of its line lies; null for an ancestor line, which draws none. */
+  readonly marker: AxisMarker | null;
+}
+
+/**
+ * Where a coordinate marker of a drawn line lies at any abscissa (sections
+ * 6.4, Markers, and 6.6, Wedges and Cross-section lines), as the layout
+ * draws a named timestamp's wedge and cross-section line there: the wedge's
+ * tip and base ordinates and the width of its base, from the start of the
+ * line's markers band (or from where that band would start were it present),
+ * and the cross-section line's ordinates; each with the style of a wedge or
+ * a cross-section line of the line's timeline that no named timestamp holds.
+ */
+export interface AxisMarker {
+  readonly wedge: {
+    readonly yt: number;
+    readonly yb: number;
+    readonly base: number;
+    readonly style: Style;
+  };
+  readonly crossSection: { readonly y1: number; readonly y2: number; readonly style: Style };
 }
 
 const exact = (value: Real): Rational => (typeof value === "number" ? fromFloat(value) : value);

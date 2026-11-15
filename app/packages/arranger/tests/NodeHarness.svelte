@@ -20,6 +20,7 @@ const IDLE: NodeActions = {
   zoom: () => 1,
   rules: () => LEVELS.arranger,
   reducedMotion: () => false,
+  coordinates: () => false,
   gestures: new GestureSlot(),
 };
 
@@ -39,6 +40,7 @@ setNodeActions({
   zoom: () => current().zoom(),
   rules: () => current().rules(),
   reducedMotion: () => current().reducedMotion(),
+  coordinates: () => current().coordinates(),
   get gestures() {
     return current().gestures;
   },

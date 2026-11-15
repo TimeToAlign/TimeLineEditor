@@ -108,6 +108,7 @@ export type {
   Manifest,
   ManifestGraphical,
   MeasureMap,
+  NamedTimestamp,
   Region,
   TimelineManifest,
 } from "./manifest/types.ts";
@@ -115,8 +116,12 @@ export type { CompileContext, MapEvaluator } from "./maps/compile.ts";
 export { compileMap } from "./maps/compile.ts";
 export type { Expressed, ExpressedNumber, ExpressedOutputs } from "./maps/express.ts";
 export { express, expressAs } from "./maps/express.ts";
+export type { InversionContext } from "./maps/invert.ts";
+export { invert, invertible } from "./maps/invert.ts";
 export type {
   KnotsAbsence,
+  Pin,
+  PinRow,
   Timestamp,
   TimestampMap,
   TimestampPart,
@@ -127,8 +132,9 @@ export type {
 export {
   measureText,
   missingValueText,
+  pinAt,
+  positionFor,
   timestampAt,
-  timestampGrid,
   timestampPlace,
 } from "./maps/timestamp.ts";
 export type {
@@ -146,12 +152,13 @@ export type { CoordinateDict } from "./number/display.ts";
 export {
   coordinateDict,
   copyValue,
+  copyValueWithUnit,
   displayValue,
   exactDecimal,
   unitSymbol,
 } from "./number/display.ts";
-export type { GridInUse } from "./number/grid.ts";
-export { gridStep, gridText, snapPosition } from "./number/grid.ts";
+export { snapPosition } from "./number/grid.ts";
+export { parseAxisValue } from "./number/parse.ts";
 export type { Real } from "./number/real.ts";
 export type {
   Address,
@@ -193,5 +200,6 @@ export {
   createView,
   DEFAULT_GRANULARITY,
   DEFAULT_SETTINGS,
+  MAX_DECIMALS,
   UNTITLED_WORKSPACE,
 } from "./workspace/view.ts";

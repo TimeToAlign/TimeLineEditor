@@ -1469,9 +1469,10 @@ Escape and Cancel cancel, and only a permitted way can be chosen.
 
 With "Show coordinates" on, the pointer reads a timeline where it comes
 near its line or any map drawn at that line, and the reading is the
-timestamp of one grid point. What would be wrong is shown by three
-questions, each answered with exact values: is the right thing hovered,
-is the right grid point picked, and does the timestamp read the right
+timestamp of one position, held as the pin a click there makes. What
+would be wrong is shown by three questions, each answered with exact
+values: is the right thing hovered, is the right position picked, and
+does the timestamp read the right
 timelines and maps. The values a map gives are core's (its evaluators
 and `timestampAt` are proven against timetoalign there); the tests here
 assert the whole timestamp only to prove that the arranger hands core the
@@ -1529,55 +1530,57 @@ record), so the zone runs from 33 to 47.5. At the abscissa
 | 47.5 | `melody`'s line | 2 below the line, the bound included |
 | 47.515625 | nothing | 2.015625 below it |
 
-**The grid point.** The step is core's `gridStep` for the line's number
-type, the workspace's granularity, and the device pixels one unit of the
-timeline covers: the line's width over its length × zoom × scale × ratio.
-The position is the multiple of the step nearest to the pointer's
-coordinate, held to the line's span (core's `snapPosition`). At the
-abscissa `xStart + 123.75` (dyadic, so exact in a double):
+**The position.** The position is core's `snapPosition` of the
+pointer's coordinate (counted from the timeline's 0) with the line's
+number type and the workspace's granularity, its reach `h` half a device
+pixel in units: the line's length over its width, over zoom × scale ×
+ratio, halved; held to the line's span. Core proves the rule; here the
+inputs are proven, by positions the rule gives only for the right `h`. At
+the abscissa `xStart + 123.75` (dyadic, so exact in a double):
 
-| Fixture, line | Units per canvas unit | Zoom × ratio | Granularity | Step | Position |
+| Fixture, line | Units per canvas unit | Zoom × ratio | Granularity | `p`, `h` | Position |
 |---|---|---|---|---|---|
-| `map`, `melody` (8 quarters over 400) | 1/50 | 1 × 1 | default | 1/32 | 2.475 × 32 = 79.2 → 79/32 |
-| `map`, `melody` | 1/50 | 2 × 2 | default | 1/128 | 316.8 → 317/128 |
-| `map`, `melody` | 1/50 | 1 × 1 | fraction `1/5`, fixed | 1/5 | 12.375 → 12/5 |
-| `maps_seconds` (2 s, float, over 400) | 1/200 | 1 × 1 | default | 1/200 | 123.75 → 31/50, read 0.62 |
-| `maps_seconds` | 1/200 | 1 × 1 | float `"0.2"`, fixed | 1/5 | 3.09375 → 3/5, read 0.6 |
-| `discrete_physical`, `dpt_1` (44100 samples over 400) | 441/4 | 1 × 1 | default | 200 | 68.2171875 → 13600 |
+| `map`, `melody` (8 quarters over 400) | 1/50 | 1 × 1 | default | 2.475, 0.01 | divisors 1 to 14 miss (the nearest, 5/2, 0.025 away), 15 gives 37/15 (0.00833): **37/15** |
+| `map`, `melody` | 1/50 | 2 × 2 | default | 2.475, 0.0025 | 15, 18, 20 miss, 21 gives 52/21 (0.00119): **52/21** |
+| `map`, `melody` | 1/50 | 1 × 1 | denominator 5 | 2.475, 0.01 | 2 and 12/5 miss: the fallback **12/5** |
+| `maps_seconds` (2 s, float, over 400) | 1/200 | 1 × 1 | default | 0.61875, 0.0025 | 1 and 0.6 miss, 0.62 is 0.00125 away: **31/50**, read 0.62 |
+| `maps_seconds` | 1/200 | 1 × 1 | decimals 1 | 0.61875, 0.0025 | 1 and 0.6 miss: the fallback **3/5**, read 0.6 |
+| `discrete_physical`, `dpt_1` (44100 samples over 400) | 441/4 | 1 × 1 | default | 13643.4375, 55.125 | 2h = 110.25, from 100: 13600 is 43.4375 away: **13600** |
 
-At `melody`'s end the position is 8, at its start 0. The footer is
-core's grid text of the reading's grid (the step, the line's number type
-and unit, the granularity), the same text the Timestamp tab writes:
-`grid 1/32 ♩ (fraction base 1, refining)`, `grid 0.005 s (float base 1,
-refining)`, `grid 0.2 s (float base 0.2, fixed)`, and `grid 200 smp (int
-base 1, refining)`.
+At `melody`'s end the position is 8, at its start 0. The reading's pin is
+unnamed (`named` `null`), reads its MeasureMaps as the reading does
+(`no_server` without a server) and holds the reading's timestamp; its
+spec carries the granularity it was read with (the same object), which
+the flag shows floats with. The flag's footer says `click to pin`.
 
 **What is read.** `segment_line` with a map `b_tempo` (`map`'s `tempo`
 under another ID) added to the segment line `b` and `b2_ticks` (`map`'s
 `ticks`) added to `b`'s segment `b2`, which has no line of its own, so it
 is drawn at `b`'s line: `b` y 39.9765625 from 152.294921875 to
-302.294921875 (12 quarters, step 1/8 at zoom 1), `b_tempo` at 34.4765625
+302.294921875 (12 quarters over 150, so `h` = 0.04 at zoom 1), `b_tempo` at 34.4765625
 over all of it, `b2_ticks` at 29.4765625 from 227.294921875.
 
-- On `b`'s line at 223.294921875: 71/12.5 = 5.68 → 45/8. The timestamp
-  holds `b` at 45/8 with `b_tempo` 45/16 written on seconds (float)
-  2.8125, then the segment under it, `b1` at 45/8 without maps; the spec
-  lists both segments with their own maps only, `b`'s map never under a
-  segment.
+- On `b`'s line at 223.294921875: 71/12.5 = 5.68; divisor 1 gives 6
+  (0.32 away), 2 gives 11/2 (0.18), 3 gives 17/3 (0.0133 ≤ 0.04) → 17/3.
+  The timestamp holds `b` at 17/3 with `b_tempo` 17/6 written on seconds
+  (float) 2.8333333333333335, then the segment under it, `b1` at 17/3
+  without maps; the spec lists both segments with their own maps only,
+  `b`'s map never under a segment, each with its length (`b1` 6, `b2` 6,
+  `b` 12).
 - On `b2_ticks` at the same abscissa: held to 227.294921875, the position
   is 6, the boundary `b1` shares with `b2`. The hovered map names its
   segment, so the timestamp holds `b` at 6 (`b_tempo` 3.0) then `b2` at 0
   (`b2_ticks` 0 ticks), and `b2_ticks`'s row is the hovered one.
-- On `form`'s line at 152.294921875 (32 quarters over 400, step 1/8): 8,
+- On `form`'s line at 152.294921875 (32 quarters over 400): 8,
   the boundary of `a` and `b`; with the line hovered every segment is
   given and core reads `b` at 0.
 - `map`: a child's reading holds its own maps only: `phrase` at its own
   coordinate with `ticks`, never `melody`'s `tempo`.
 
 The flag writes each map's value with core's `displayValue` in the
-value's own number type and its unit's symbol: `b_tempo` 3.0 as `3.0 s`,
-2.8125 as `2.812 s` (3 places, half to even on the exact double),
-`b2_ticks` as `0 ticks`.
+value's own number type, a float with the granularity's `decimals`, and
+its unit's symbol: `b_tempo` 3.0 as `3.0 s`, 2.8333333333333335 as `2.833
+s` at 3 places and `2.8 s` at 1, `b2_ticks` as `0 ticks`.
 
 **Measure maps.** The expanded MeasureMaps are asked once per manifest
 object (one version of a manifest) that has MeasureMaps, and never for
@@ -1936,3 +1939,73 @@ element of the node's drawing carrying `data-id="group_2"` and neither
 `data-facet` nor `data-part`), reports, before release, the drawing of what the
 release stores: `group_2` at (48, 230.0390625). Both report `null` once
 the gesture ends.
+
+### The coordinate marks and the mode split (`coordinate-marks.test.ts`)
+
+Where a wedge and a cross-section line lie, and how they are styled, is
+layout's (`wedgeAt`, `crossSection`, proven there against the drawing
+specification); the canvas owns only where it draws them and when. So
+what proves the marks is equality with layout's own output, never a
+number read off the screen. Block A holds `map` at (40, 80), the view at
+(0, 0) zoom 1, one device pixel per CSS pixel; `melody`'s line lies at
+y 40.5, its 4 quarters at the abscissa 263.53662109375 and 2 at
+163.53662109375 (layout's record, 50 units a quarter), and both are
+dyadic, so a pointer there picks exactly 4 and 2.
+
+- **Hover.** With Show coordinates on, the pointer on `melody` at 4
+  draws one wedge and one line whose attributes are exactly those of
+  `wedgeAt` and `crossSection` at 263.53662109375 on `melody`'s line key:
+  `points` as the writers write points, `fill`; `x1` = `x2`, `y1`, `y2`,
+  `stroke`, `stroke-width`, `stroke-dasharray`, no `opacity` (the default
+  styles are opaque). They are drawn in an `<svg>` whose `width`, `height`
+  and `viewBox` equal the block node's own and whose left and top are the
+  node's position, so they are in the drawing's units and scale with the
+  zoom as the drawing does. With a named timestamp `timestamp_1` added at
+  4 on `melody`, the hovered marks equal the drawn wedge's and
+  cross-section line's attributes, the strongest form of "the geometry a
+  named timestamp gets". With Show coordinates off nothing is marked and
+  no flag is shown. The flag has no dot.
+- **Pin.** Given an unnamed pin at 4 (the one a reading there makes), the
+  pinned marks equal layout's at 263.53662109375; the pin replaced by the
+  same pin moved to 2 (core's `pinAt`) moves them to 163.53662109375. A
+  pin with `named` set, and no pin, draw no pinned marks.
+- **Pinning.** With Show coordinates on, a press released where it began
+  on `melody` at 4 calls `oncoordinatepin` once with an unnamed pin of
+  `melody` at exactly 4; one 30 below the line, where nothing is hovered,
+  calls it with `null`; turning Show coordinates off calls it with `null`
+  once more; with it off, a click on the line calls nothing.
+- **Mode split.** With Show coordinates on, exactly the three drawn
+  elements of `timestamp_1` (its wedge, its label, its line, in that
+  order) carry `pointer-events="none"`, so the browser's hit test passes
+  a press on them to what lies beneath (the end-to-end suite asserts the
+  hit test); with it off, none do, and the node's element tree stays the
+  exported figure's. With Show coordinates off a click on any of the
+  three selects exactly `{block: A, id: "timestamp_1"}`, and all three
+  then show the selection; a selected label part alone shows it on the
+  label only.
+- **Zoom.** The zoom ranges from 0.05 to 256: `+` from 250 is 256 (300
+  held), from 2 it is 2.4 (beyond Svelte Flow's default 2), `-` from
+  0.055 is 0.05.
+- **The canvas's MeasureMaps for others.** The canvas's `knotsOf(manifest)`
+  hands out the answers of its one source of expanded MeasureMaps (the
+  "Measure maps" rules above), so the editor reads a named timestamp with
+  the rows its readings use, and no second request is made. On
+  `group_measure_map` with a `measureMaps` that answers one array of rows:
+  the first call gives `pending`; a reaction reading it (a derived value
+  in the harness) gives that same array once the answer arrives, without
+  another call from outside; every later call gives it again; `measureMaps`
+  was called exactly once. For a manifest without MeasureMaps (`map`) it
+  gives `undefined` and asks nothing; a canvas without `measureMaps` gives
+  `undefined` for any manifest.
+- **A named timestamp's pin** (`namedPin`) is read as a click at its
+  coordinate reads it, on the line drawing its timeline with the maps drawn
+  there; where no line draws its timeline (its line hidden, so that the
+  editor can still show it and say why its cross-section line is not
+  drawn), on its own axis with all its own maps. With `timestamp_1` at 4 on
+  `melody`, the pin is `{spec, knots: "no_server", timestamp, named:
+  "timestamp_1"}` with `spec` block A, the default granularity, the line
+  `melody` ("Melody", quarters, fraction, length 8, its one map `tempo`
+  as the manifest holds it) and no segments, and `timestamp` core's
+  `timestampAt(spec, 4)`; the same pin with `melody`'s line hidden by a
+  `style` of `{id: "melody"}` (`display: "none"`), where the drawing holds
+  no line at all.

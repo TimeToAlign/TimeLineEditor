@@ -3,12 +3,13 @@
  * it names, or of every manifest holding an element its selector matches.
  */
 
-import type { Declaration, Graphical, Selector, Statement } from "@timetoalign/timetoshare";
+import type { Declaration, Selector, Statement } from "@timetoalign/timetoshare";
 import type { CommandError } from "../errors.ts";
 import { ErrorCode, problem } from "../errors.ts";
 import { canonicalText } from "../json.ts";
 import { addressKey } from "../manifest/address.ts";
 import { selectorMatches } from "../manifest/elements.ts";
+import type { ManifestGraphical } from "../manifest/types.ts";
 import { indexOf } from "../workspace/address.ts";
 import type { Block } from "../workspace/blocks.ts";
 import type { View } from "../workspace/view.ts";
@@ -32,14 +33,15 @@ const isEmpty = (value: object): boolean => Object.keys(value).length === 0;
 
 /**
  * A `graphical` block with the statement embedded (see `StyleCommand`); its
- * other members, such as the display and band orders in `order`, are kept.
+ * other members, such as the display and band orders in `order` and the
+ * named timestamps, are kept.
  */
 export function embedStatement(
-  graphical: Graphical | undefined,
+  graphical: ManifestGraphical | undefined,
   select: Selector,
   set: Properties,
   name?: string,
-): Graphical {
+): ManifestGraphical {
   const styles: { [name: string]: Declaration } = { ...(graphical?.styles ?? {}) };
   let statements: Statement[] = [...(graphical?.statements ?? [])];
   const key = canonicalText(select);

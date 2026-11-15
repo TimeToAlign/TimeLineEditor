@@ -29,9 +29,7 @@ function built(): Workspace {
   }
   store.undo();
   expect(store.configure({ grid: { size: 16, snap: false } })).toBeNull();
-  expect(
-    store.configure({ granularity: { fraction: { denominator: 5, refine: true } } }),
-  ).toBeNull();
+  expect(store.configure({ granularity: { denominator: 5 } })).toBeNull();
   return store.snapshot();
 }
 
@@ -66,11 +64,7 @@ describe("the workspace file", () => {
     expect(value.settings).toEqual({
       grid: { size: 16, snap: false },
       blockDefaults: { scale: 1, length: 400, spacing: 8, margin: 0, width: null, height: null },
-      granularity: {
-        fraction: { denominator: 5, refine: true },
-        float: { step: "1", refine: true },
-        int: { step: 1, refine: true },
-      },
+      granularity: { denominator: 5, decimals: 3 },
     });
     expect(value.graphical).toEqual(STYLED);
     expect(value.meta).toEqual({ format: "tilie-workspace", version: 7 });
@@ -147,23 +141,6 @@ describe("the workspace file", () => {
       edited((value) => Object.assign(value.settings as Value, { graphical: {} })),
       "unknown_member",
       ["settings", "graphical"],
-    ],
-    [
-      "settings without a granularity",
-      edited((value) => {
-        delete (value.settings as Value).granularity;
-      }),
-      "missing_member",
-      ["settings", "granularity"],
-    ],
-    [
-      "a float step that is no text",
-      edited((value) => {
-        const { granularity } = value.settings as Value;
-        Object.assign((granularity as Value).float as Value, { step: 0.2 });
-      }),
-      "invalid_value",
-      ["settings", "granularity", "float", "step"],
     ],
     [
       "a block's kind",
@@ -293,6 +270,49 @@ describe("the workspace file", () => {
         path: ["meta", "version"],
       },
     ]);
+  });
+
+  it("reads a granularity of another shape as the default, and only the granularity", () => {
+    const workspace = read(text);
+    const shapes: unknown[] = [
+      undefined,
+      {
+        fraction: { denominator: 5, refine: true },
+        float: { step: "1", refine: true },
+        int: { step: 1, refine: true },
+      },
+      { denominator: 0, decimals: 3 },
+      { denominator: 5, decimals: 16 },
+      { denominator: 5 },
+      { denominator: 5, decimals: 3, refine: true },
+    ];
+    for (const shape of shapes) {
+      const lenient = read(
+        edited((value) => {
+          const settings = value.settings as Value;
+          if (shape === undefined) delete settings.granularity;
+          else settings.granularity = shape;
+        }),
+      );
+      expect(lenient.view.settings.granularity).toEqual({ denominator: 2520, decimals: 3 });
+      expect({ ...lenient.view.settings, granularity: null }).toEqual({
+        ...workspace.view.settings,
+        granularity: null,
+      });
+      expect(lenient.view.blocks).toEqual(workspace.view.blocks);
+      const written = parseJson(writeWorkspace(lenient)) as Value;
+      expect((written.settings as Value).granularity).toEqual({ denominator: 2520, decimals: 3 });
+    }
+    const strict = readWorkspace(
+      edited((value) => {
+        const settings = value.settings as Value;
+        settings.granularity = { denominator: 0, decimals: 3 };
+        Object.assign(settings.grid as Value, { size: 0 });
+      }),
+    );
+    expect(
+      isLoadError(strict) && strict.problems.map(({ code, path }) => ({ code, path })),
+    ).toEqual([{ code: "non_positive_number", path: ["settings", "grid", "size"] }]);
   });
 
   it("refuses a workspace of version 6 for its version alone", () => {

@@ -41,7 +41,7 @@ const frozen = (...blocks: (readonly [string, string])[]): View => deepFreeze(vi
 const tempo = () => load("map.json").timelines[0]?.conversion_maps[0] as object;
 const ticks = () => load("map.json").timelines[0]?.children[0]?.conversion_maps[0] as object;
 /** A `graphical` block as a settled manifest holds it: in its complete form. */
-const held = (graphical: object) => ({ order: {}, ...graphical });
+const held = (graphical: object) => ({ order: {}, timestamps: [], ...graphical });
 /** The refusal of a `set` that changes nothing, at its first value. */
 const nothing = (target: Address, property: string) => ({
   code: "invalid_value",

@@ -4,7 +4,13 @@
  * 3 and 5.2).
  */
 
-import { type AxisValue, type TimelineManifest, unitSymbol } from "@timetoalign/tilie-core";
+import {
+  type AxisValue,
+  type Manifest,
+  type TimelineManifest,
+  unitSymbol,
+} from "@timetoalign/tilie-core";
+import { namedTimestamps } from "@timetoalign/tilie-core/drawing";
 import {
   addReal,
   compareReal,
@@ -55,13 +61,15 @@ function larger(left: Real, right: Real): Real {
  * number type's zero and every coordinate its content reaches, displayed or
  * not. A child counts its offset plus its length, or plus its own reach when
  * its length is not known; regions their start and end; every flow-control
- * element its coordinate. Maps are not content, and a measure map belongs to
- * no timeline.
+ * element its coordinate; every named timestamp of it in `manifest`'s
+ * `graphical` object its coordinate. Maps are not content, and a measure map
+ * belongs to no timeline.
  * `reaches` holds the reach of every timeline already walked, so one traversal
  * walks each subtree once.
  */
 export function reachOf(
   timeline: TimelineManifest,
+  manifest: Manifest,
   reaches: WeakMap<TimelineManifest, Real> = new WeakMap(),
 ): Real {
   const cached = reaches.get(timeline);
@@ -72,13 +80,14 @@ export function reachOf(
     reach = larger(reach, value);
   };
   for (const child of timeline.children) {
-    take(add(own(child.offset), lengthValue(child) ?? reachOf(child, reaches)));
+    take(add(own(child.offset), lengthValue(child) ?? reachOf(child, manifest, reaches)));
   }
   for (const region of timeline.regions) {
     take(own(region.start));
     take(own(region.end));
   }
   for (const item of timeline.flow_control) take(own(item.coordinate));
+  for (const timestamp of namedTimestamps(manifest, timeline.id)) take(own(timestamp.coordinate));
   reaches.set(timeline, reach);
   return reach;
 }

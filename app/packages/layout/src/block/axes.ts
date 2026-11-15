@@ -4,7 +4,7 @@
  * own coordinates lie.
  */
 
-import type { PlaceKey, Real, TimelineManifest } from "@timetoalign/tilie-core";
+import type { Manifest, PlaceKey, Real, TimelineManifest } from "@timetoalign/tilie-core";
 import { type MemberDrawing, orderedChildren } from "@timetoalign/tilie-core/drawing";
 import { compareReal } from "@timetoalign/tilie-core/numbers";
 import type { AxisMap, AxisSegment, DrawnAxis } from "../boxes.ts";
@@ -38,7 +38,7 @@ interface Span {
  * reach `lambda`, open; the next segment's start; its segment line's end;
  * else its own reach, open.
  */
-function spansOf(root: TimelineManifest, lambda: Real): Map<string, Span> {
+function spansOf(manifest: Manifest, root: TimelineManifest, lambda: Real): Map<string, Span> {
   const spans = new Map<string, Span>();
   const visit = (
     timeline: TimelineManifest,
@@ -57,7 +57,7 @@ function spansOf(root: TimelineManifest, lambda: Real): Map<string, Span> {
             ? next !== undefined
               ? { end: next, ...known }
               : { end: parent.end, open: parent.open, rootEnd: parent.rootEnd }
-            : { end: add(start, reachOf(timeline)), open: true, rootEnd: false };
+            : { end: add(start, reachOf(timeline, manifest)), open: true, rootEnd: false };
     const span: Span = { timeline, start, ...ending };
     spans.set(timeline.id, span);
     const starts = orderedChildren(timeline).map((child) => ({
@@ -73,8 +73,10 @@ function spansOf(root: TimelineManifest, lambda: Real): Map<string, Span> {
 }
 
 /**
- * The axes of the lines `drawn` draws for `member`, started at `x0` and `L`
- * long, in item coordinates and in the order of their elements.
+ * The axes of the lines `drawn` draws for `member` of `manifest`, started at
+ * `x0` and `L` long, in item coordinates and in the order of their elements,
+ * each timeline's or child's line with where a coordinate marker of it lies
+ * (`MemberDrawn.markers`).
  *
  * A timeline's or a child's line runs from `Xs`, its own axis's zero, to
  * `Xe`, its end: its length, or the end the next segment or its segment
@@ -90,6 +92,7 @@ function spansOf(root: TimelineManifest, lambda: Real): Map<string, Span> {
  * the order they are drawn, each with the timeline it spans.
  */
 export function axesOf(
+  manifest: Manifest,
   member: MemberDrawing,
   card: PlaceKey,
   drawn: MemberDrawn,
@@ -98,9 +101,9 @@ export function axesOf(
 ): DrawnAxis[] {
   const root = member.timeline;
   // The root's length `λ`, or its reach when its length is not known (section 3.2).
-  const lambda = lengthValue(root) ?? reachOf(root);
+  const lambda = lengthValue(root) ?? reachOf(root, manifest);
   const relativeX = (value: Real) => L * proportion(value, lambda);
-  const spans = spansOf(root, lambda);
+  const spans = spansOf(manifest, root, lambda);
   const rootOpen = spans.get(root.id)?.open === true;
   // The timeline each map spans, by the map's ID, and the line each timeline's maps are drawn
   // at: its own, or its segment line's for a segment without a line.
@@ -156,6 +159,7 @@ export function axesOf(
       end: span.open ? null : (length ?? add(span.end, negate(span.start))),
       segments: segmentsOf(timeline),
       maps: drawnMaps.flatMap((item) => (item.line === timeline.id ? [item.map] : [])),
+      marker: drawn.markers.get(element) ?? null,
     };
   };
   const ancestorAxis = (element: LineElement): DrawnAxis | undefined => {
@@ -186,6 +190,7 @@ export function axesOf(
       end: short ? length : rootOpen ? null : add(start, lambda),
       segments: [],
       maps: [],
+      marker: null,
     };
   };
   return drawn.elements.flatMap((element) => {

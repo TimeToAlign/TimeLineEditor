@@ -2,7 +2,7 @@
 
 import type { Block } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
-import { DEFAULT_LAYER, draw } from "@timetoalign/tilie-layout";
+import { DEFAULT_LAYER, draw, manifestLayer } from "@timetoalign/tilie-layout";
 import type { Descriptor } from "@timetoalign/tilie-writers";
 import { toDescriptors } from "@timetoalign/tilie-writers";
 import type { FontMetrics, Graphical } from "@timetoalign/timetoshare";
@@ -31,10 +31,18 @@ function placementKey({ length, spacing, margin, width, height, places }: Placem
   );
 }
 
+/** The style layers a block is drawn with: the defaults, the workspace's statements, then its manifest's. */
+export function styleLayers(
+  graphical: Graphical,
+  manifest: Block["manifest"],
+): (Graphical | undefined)[] {
+  return [DEFAULT_LAYER, graphical, manifestLayer(manifest)];
+}
+
 /**
  * The drawing of a block: its manifest drawn at its placement with the
- * default layer, the workspace's `graphical` and the manifest's own, from
- * lowest to highest. Blocks are immutable, so the drawing is memoized per
+ * default layer, the workspace's `graphical` and the manifest's own
+ * (`manifestLayer`: its styles and statements), from lowest to highest. Blocks are immutable, so the drawing is memoized per
  * block and redrawn only when the workspace's `graphical` or the metrics
  * change identity.
  * `overrides` replace members of the block's placement (a resize measuring
@@ -75,7 +83,7 @@ export function drawingOf(
         height: placement.height,
         places: placement.places,
       },
-      [DEFAULT_LAYER, graphical, placement.manifest.graphical],
+      styleLayers(graphical, placement.manifest),
       metrics,
     );
     memo = { graphical, metrics, drawing };

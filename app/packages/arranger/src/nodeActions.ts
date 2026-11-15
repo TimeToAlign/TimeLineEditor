@@ -33,6 +33,11 @@ export interface NodeActions {
   rules(): LevelRules;
   /** Whether the reader prefers reduced motion, under which nothing in a drawing slides. */
   reducedMotion(): boolean;
+  /**
+   * Whether "Show coordinates" is on: a named timestamp's wedge, label and
+   * line then let the pointer through, so the coordinate gesture gets it.
+   */
+  coordinates(): boolean;
   /** The gesture in progress on this canvas, which Escape ends. */
   readonly gestures: GestureSlot;
 }

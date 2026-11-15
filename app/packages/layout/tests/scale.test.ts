@@ -231,8 +231,11 @@ describe("redraw operation counts", () => {
     expect(keys).toHaveLength(1000);
   });
 
-  it("tests the general statement once per element key, so resolves each key once", () => {
-    expect(tests[0]).toBe(1000);
+  it("tests the general statement once per element key and twice per line, so resolves each key once", () => {
+    // Each timeline or child line also resolves the wedge and the cross-section line no named
+    // timestamp holds, once each.
+    const lines = keys.filter((key) => key.type === "timeline" || key.type === "child").length;
+    expect(tests[0]).toBe(1000 + 2 * lines);
   });
 
   it("tests a statement with addresses, a class or an element only on keys it can match", () => {

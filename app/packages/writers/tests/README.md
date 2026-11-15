@@ -213,6 +213,16 @@ fill="#00CC00"/>`, then the end of section 6.6:
 - `chevrons`, a line running on (section 8.3): stop 50, then only the
   first two of those three: the two ends differ in the outer chevron alone.
 
+**Cross-section lines** (section 7.2) are lines from `(X, y1)` to `(X, y2)`
+as the layout states them, in that order, whichever is the smaller: `{id:
+s, part: [line]}` at `x 10` from `y1 25` up to `y2 5`, stroked `#1BA1E2`
+with width 1 and dash `3 3`, is `<line data-id="s" data-part="line" x1="10"
+y1="25" x2="10" y2="5" stroke="#1BA1E2" stroke-width="1"
+stroke-dasharray="3 3"/>`, in TikZ `\path[draw=ts1BA1E2,line
+width=1pt,dash pattern=on 3pt off 3pt] (10,5) -- (10,25);` (`30 − 25` and
+`30 − 5`). A wedge's points are the layout's (tip, then the base's left and
+right corners), the same an editor's unnamed wedge is drawn with.
+
 An ancestor line `{id: a}` running on at both sides, `xs = Xa = 20`, `xe = Xr =
 40`, `y 20`, width 2, dash `3 3`, opacity 0.35: the line `x1="20" …
 x2="40"` with its dash and `opacity="0.35"`; then the left chevrons, inner
@@ -310,7 +320,7 @@ point is `Xr` (or `Xa`) plus its multiple of `w`:
 every kind of element: a frame and its title, a card with its shadow, an
 ancestor line running on at both sides, lines ending in the diamond, the
 open arrowhead, the end circle and the arrowhead, a map, a region, a jump origin,
-a flow marker, a boundary, a wedge and labels. It writes 30 descriptors, in which
+a flow marker, a boundary, a cross-section line, a wedge and labels. It writes 31 descriptors, in which
 every tag occurs, one of them a shadow. For it and for every review case
 (drawn by the layout):
 
@@ -380,7 +390,22 @@ hand-derived figures, `map_row_siblings`, `map_row_subslots` and
 share (two siblings with maps of two keys in different canonical orders, a
 segment line's own map and its segments' maps of one key, a sibling moved
 to another row), and `label_float_rounding` the rounded label of a float
-end. There are 75 cases. Every case stating a spacing, of the block, in a place or in a
+end. `timestamps` draws named timestamps, its geometry derived in the
+layout's README: `x0 = 49.91552734375`, the root's line at 56.9765625,
+`clt_2`'s at 23, `H = 101.953125`. So, in block coordinates and to four
+decimals, `timestamp_1`'s wedge is `<polygon data-id="timestamp_1"
+points="124.9155,58.4766 121.9155,71.4766 127.9155,71.4766"
+fill="#000000"/>`, its label `<text data-id="timestamp_1" data-part="label"
+x="124.9155" y="81.8306" text-anchor="middle" font-size="9"
+fill="#000000">Downbeat</text>`, and the drawing ends with the two
+cross-section lines, `<line data-id="timestamp_1" data-part="line"
+x1="124.9155" y1="16" x2="124.9155" y2="83.9531" stroke="#1BA1E2"
+stroke-width="1" stroke-dasharray="3 3"/>` and `<line data-id="timestamp_3"
+data-part="line" x1="199.9155" y1="23" x2="199.9155" y2="16" …/>`, in TikZ
+`(124.9155,85.9531) -- (124.9155,18)` and `(199.9155,78.9531) --
+(199.9155,85.9531)` (`101.953125 − y`). Every other figure is unchanged by
+named timestamps: none of them has one, and the markers band of a timeline
+without one is absent whether shown or hidden. There are 76 cases. Every case stating a spacing, of the block, in a place or in a
 member's card place, draws an SVG different from its manifest's default
 case: a spacing case that draws as the default (a block of one item has no
 gap) pins nothing.

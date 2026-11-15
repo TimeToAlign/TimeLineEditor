@@ -33,6 +33,9 @@ export const TIMELINE_PREFIX = {
   DiscreteGraphicalTimeline: "dgt",
 } as const satisfies Readonly<Record<TimelineClass, string>>;
 
+/** The prefix of a named timestamp's ID (`timestamp_N`), which `add` mints. */
+export const TIMESTAMP_PREFIX = "timestamp";
+
 /**
  * The smallest `{prefix}_{N}`, `N` counted from 1, that `taken` does not
  * hold: the ID an element added to a manifest is given, `taken` being the

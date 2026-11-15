@@ -7,7 +7,8 @@
  */
 
 import type { Level } from "@timetoalign/tilie-arranger";
-import type { Granularity, Manifest, Timestamp, View } from "@timetoalign/tilie-core";
+import type { Address, Manifest, Pin, View } from "@timetoalign/tilie-core";
+import { resolveAddress } from "@timetoalign/tilie-core";
 import { levelWord } from "./words.ts";
 
 /** The inspector's sections, in tab order: the level tab first, then the four others. */
@@ -55,43 +56,62 @@ export function toggled(picked: Picked, openings: number, shown: boolean): Picke
 }
 
 /**
- * A timestamp as it is pinned: with the manifest of its block and the
- * granularity it was read under, so that it is never shown with another.
+ * An unnamed pin as the inspector holds it: core's pin, with the manifest
+ * of its block it was read from, so that it is never shown with another;
+ * the granularity it was read under is its spec's.
  */
-export interface Pinning {
-  readonly timestamp: Timestamp;
+export interface UnnamedPinning {
+  readonly pin: Pin;
   readonly manifest: Manifest;
-  readonly granularity: Granularity;
-}
-
-/** A pinned timestamp, and the tab shown before the first pin, shown again when the pin is cleared. */
-export interface Pin extends Pinning {
-  readonly before: Tab;
-}
-
-/** `timestamp` pinned in `view`: with its block's manifest and the granularity; `null` when its block is gone. */
-export function pinningOf(view: View, timestamp: Timestamp): Pinning | null {
-  const block = view.blocks[timestamp.block];
-  if (block === undefined) return null;
-  return { timestamp, manifest: block.manifest, granularity: view.settings.granularity };
 }
 
 /**
- * Whether `pin` no longer holds in `view`: its block is deleted, the
- * block's manifest is another object (any change to it), or the granularity
- * is another object (a change to it).
+ * A named timestamp as the inspector holds it: its address `{block, id}`,
+ * its pin read anew from the view, and with the canvas's MeasureMap rows,
+ * whenever it is shown.
  */
-export function outlived(pin: Pinning, view: View): boolean {
+export interface NamedPinning {
+  readonly named: Address;
+}
+
+/** What the Timestamp tab shows: an unnamed pin, or a named timestamp. */
+export type Pinning = UnnamedPinning | NamedPinning;
+
+/** A pinning as shown, and the tab shown before the first pin, shown again when the pin is cleared. */
+export type ShownPin = Pinning & { readonly before: Tab };
+
+/** `pin` held in `view`: with its block's manifest; `null` when its block is gone. */
+export function pinningOf(view: View, pin: Pin): UnnamedPinning | null {
+  const block = view.blocks[pin.timestamp.block];
+  if (block === undefined) return null;
+  return { pin, manifest: block.manifest };
+}
+
+/** Whether `address` names a named timestamp of `view`. */
+export function namesTimestamp(view: View, address: Address): boolean {
+  if (address.id === undefined) return false;
+  const resolved = resolveAddress(view, address);
+  return "kind" in resolved && resolved.kind === "timestamp";
+}
+
+/**
+ * Whether `pinning` no longer holds in `view`. An unnamed pin: its block is
+ * deleted, the block's manifest is another object (any change to it), or
+ * the granularity is another object than the one it was read under (a
+ * change to it). A named timestamp: its address names no named timestamp.
+ */
+export function outlived(pinning: Pinning, view: View): boolean {
+  if ("named" in pinning) return !namesTimestamp(view, pinning.named);
   return (
-    view.blocks[pin.timestamp.block]?.manifest !== pin.manifest ||
-    view.settings.granularity !== pin.granularity
+    view.blocks[pinning.pin.timestamp.block]?.manifest !== pinning.manifest ||
+    view.settings.granularity !== pinning.pin.spec.granularity
   );
 }
 
 /** What the inspector shows: the pick, and the pin (`null` without one). */
 export interface Shown {
   readonly picked: Picked;
-  readonly pin: Pin | null;
+  readonly pin: ShownPin | null;
 }
 
 /**

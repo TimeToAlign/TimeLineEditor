@@ -110,18 +110,17 @@ describe("the default layer's bands", () => {
       .filter((key) => key.type === "band" && cascade.resolve(key, undefined).display === "none")
       .map((key) => key.address);
   };
-  const three = (id: string) => [
-    bandAddress(id, "markers"),
-    bandAddress(id, "regions"),
-    bandAddress(id, "flow_control"),
-  ];
+  const two = (id: string) => [bandAddress(id, "regions"), bandAddress(id, "flow_control")];
 
-  it("hide the markers, regions and flow control bands of every timeline held by a band", () => {
-    expect(hidden("with_region")).toEqual([...three("clt_2"), ...three("clt_3")]);
-    expect(hidden("unknown_length_segments")).toEqual([
-      ...three("a"),
-      ...three("b"),
-      ...three("c"),
+  it("hide the regions and flow control bands of every timeline held by a band", () => {
+    expect(hidden("with_region")).toEqual([...two("clt_2"), ...two("clt_3")]);
+    expect(hidden("unknown_length_segments")).toEqual([...two("a"), ...two("b"), ...two("c")]);
+  });
+
+  it("show the markers band of every timeline, so every named timestamp stays visible", () => {
+    expect(hidden("timestamps")).toEqual([
+      bandAddress("clt_2", "regions"),
+      bandAddress("clt_2", "flow_control"),
     ]);
   });
 

@@ -49,7 +49,8 @@ const ordinate = (drawing: Drawing, id: string): number => {
 
 describe("a root of unknown length", () => {
   it("walks a timeline only once for one reach memo", () => {
-    const timeline = load("unknown_length").timelines[0];
+    const manifest = load("unknown_length");
+    const timeline = manifest.timelines[0];
     if (timeline === undefined) throw new Error("unknown_length has no root");
     let childReads = 0;
     const counted = new Proxy(timeline, {
@@ -59,8 +60,8 @@ describe("a root of unknown length", () => {
       },
     });
     const reaches = new WeakMap();
-    const first = reachOf(counted, reaches);
-    expect(reachOf(counted, reaches)).toBe(first);
+    const first = reachOf(counted, manifest, reaches);
+    expect(reachOf(counted, manifest, reaches)).toBe(first);
     expect(childReads).toBe(1);
   });
 

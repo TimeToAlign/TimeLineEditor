@@ -63,6 +63,7 @@ export const HAND_DERIVED: readonly string[] = [
   "map_row_subslots",
   "map_row_moved",
   "label_float_rounding",
+  "timestamps",
 ];
 
 /** Write `text` to `file` unless it already holds it; report whether it changed. */

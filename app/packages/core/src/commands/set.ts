@@ -21,12 +21,13 @@ import {
   withPlaceAt,
 } from "../manifest/containers.ts";
 import type { EntryKind, EntryTypes } from "../manifest/files.ts";
-import { contentEnd, readOnAxis } from "../manifest/invariants.ts";
+import { contentEnd, lengthOf, readOnAxis } from "../manifest/invariants.ts";
 import { normalizeManifest, readEntry, readMeasureMap } from "../manifest/io.ts";
 import { lockProblem, withPlaceLocks, withSegmentLine } from "../manifest/locks.ts";
 import { bandOrderProblem } from "../manifest/order.ts";
-import type { AxisValue, Manifest, TimelineManifest } from "../manifest/types.ts";
+import type { AxisValue, Manifest, NamedTimestamp, TimelineManifest } from "../manifest/types.ts";
 import { toAxisValue } from "../number/coordinate.ts";
+import { Rational } from "../number/rational.ts";
 import { compareReal, realOf } from "../number/real.ts";
 import {
   PLACE_READERS,
@@ -55,6 +56,7 @@ import {
   withEntryMember,
   withKey,
   withTimeline,
+  withTimestamps,
 } from "./mutations.ts";
 import { withSegmentLinesCovered } from "./settle.ts";
 import type {
@@ -66,6 +68,7 @@ import type {
   TargetKind,
   TargetOfKind,
   TimelineTarget,
+  TimestampTarget,
   WorkspaceTarget,
 } from "./targets.ts";
 import { targetOf } from "./targets.ts";
@@ -569,7 +572,7 @@ const TIMELINE_SET: Setters<TimelineTarget> = {
         path,
       );
     }
-    const refused = lengthProblem(target.at, length, path);
+    const refused = lengthProblem(target.block.manifest, target.at, length, path);
     if (refused !== undefined) return refused;
     const stored = toAxisValue(length);
     const next = { ...timeline, length: stored };
@@ -596,6 +599,7 @@ const CHILD_SET: Setters<TimelineTarget> = {
     const index = target.at.path.at(-1);
     const children = parent.timeline.children.filter((_, item) => item !== index);
     const placed = placeChild(
+      target.block.manifest,
       { ...parent, timeline: { ...parent.timeline, children } },
       timeline,
       offset,
@@ -724,6 +728,89 @@ const ENTRY_SET: { readonly [kind in EntryTarget["kind"]]: Setters<EntryTarget> 
   },
 };
 
+// ---------------------------------------------------------------- named timestamps
+
+/**
+ * A named timestamp's coordinate given to a command, as stored: a bare
+ * value on the own axis of `timeline`, the timeline it lies on
+ * (`invalid_coordinate` where it does not read as the axis's number type),
+ * from 0 to the timeline's length, or from 0 where the length is unknown
+ * (`invalid_value` before its start or after its end).
+ */
+export function readTimestampCoordinate(
+  value: unknown,
+  timeline: TimelineManifest,
+  path: readonly PathSegment[],
+): AxisValue | CommandError {
+  const json = toJson(value, path);
+  if (isCommandError(json)) return json;
+  const read = readOnAxis(json, timeline, path);
+  if (isCommandError(read)) return read;
+  const position = realOf(read);
+  if (compareReal(position, Rational.of(0n)) < 0) {
+    return problem(
+      ErrorCode.invalidValue,
+      `the coordinate lies before the start of timeline '${timeline.id}'`,
+      path,
+    );
+  }
+  const length = lengthOf(timeline);
+  if (length !== null && compareReal(position, realOf(length)) > 0) {
+    return problem(
+      ErrorCode.invalidValue,
+      `the coordinate lies after the end of timeline '${timeline.id}'`,
+      path,
+    );
+  }
+  return toAxisValue(read);
+}
+
+/**
+ * The view with the target timestamp replaced by `next`, unless the member
+ * it sets holds what is stored (`stored`, `value`).
+ */
+function timestampChange(
+  view: View,
+  target: TimestampTarget,
+  path: readonly PathSegment[],
+  changes: ChangeSet,
+  stored: unknown,
+  value: unknown,
+  next: NamedTimestamp,
+): View {
+  if (sameJson(stored, value)) return view;
+  const { block, index } = target;
+  const { manifest } = block;
+  recordValue(changes, path, block.id, true, stored, value);
+  const timestamps = (manifest.graphical?.timestamps ?? []).map((item, at) =>
+    at === index ? next : item,
+  );
+  return withBlock(view, { ...block, manifest: withTimestamps(manifest, timestamps) });
+}
+
+const TIMESTAMP_SET: Setters<TimestampTarget> = {
+  /** The timestamp's name, which its label shows: a non-empty string. */
+  name: (view, target, value, path, changes) => {
+    const name = readName(value, path);
+    if (isCommandError(name)) return name;
+    const { timestamp } = target;
+    return timestampChange(view, target, path, changes, timestamp.name, name, {
+      ...timestamp,
+      name,
+    });
+  },
+  /** Where the timestamp lies on its timeline's own axis (`readTimestampCoordinate`). */
+  coordinate: (view, target, value, path, changes) => {
+    const coordinate = readTimestampCoordinate(value, target.at.timeline, path);
+    if (isCommandError(coordinate)) return coordinate;
+    const { timestamp } = target;
+    return timestampChange(view, target, path, changes, timestamp.coordinate, coordinate, {
+      ...timestamp,
+      coordinate,
+    });
+  },
+};
+
 // ---------------------------------------------------------------- the table
 
 /** What a `set` may give each kind of target, by property. */
@@ -735,6 +822,7 @@ export const SETTABLE: { readonly [kind in TargetKind]: Setters<TargetOfKind[kin
   root: ROOT_SET,
   child: CHILD_SET,
   ...ENTRY_SET,
+  timestamp: TIMESTAMP_SET,
 };
 
 /** The setter of `property` for `target`, bound to it. */
@@ -766,6 +854,8 @@ function setterOf(
     case "root":
     case "child":
       return bind(SETTABLE[target.kind][property], target);
+    case "timestamp":
+      return bind(SETTABLE.timestamp[property], target);
     default:
       return bind(SETTABLE[target.kind][property], target);
   }

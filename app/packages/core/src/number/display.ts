@@ -1,12 +1,12 @@
 /**
  * A value as the editor shows it, copies it and writes it as a coordinate.
  *
- * A fraction shows as a mixed fraction while its denominator is at most 64,
- * else as its exact decimal where that ends, else as `≈` and 12 decimal
- * places; a float shows Python's `round(x, 3)` spelled as Python's `repr`;
- * an int shows its digits in groups of three. Copy carries the whole value:
- * `n/d` for a fraction, the full `repr` of a float, the plain digits of an
- * int.
+ * A fraction shows as a mixed fraction while its denominator is at most
+ * 2520, else as its exact decimal where that ends, else as `≈` and 12
+ * decimal places; a float shows Python's `round(x, decimals)` spelled as
+ * Python's `repr`; an int shows its digits in groups of three. Copy carries
+ * the whole value: `n/d` for a fraction, the full `repr` of a float, the
+ * plain digits of an int.
  */
 
 import type { NumberType, TimeUnit } from "@timetoalign/timetoshare";
@@ -17,8 +17,8 @@ import { toAxisValue } from "./coordinate.ts";
 import { Rational, roundHalfEven } from "./rational.ts";
 import { roundFloat } from "./real.ts";
 
-/** The largest denominator a fraction is shown with. */
-const MIXED_DENOMINATOR = 64n;
+/** The largest denominator a fraction is shown with: lcm(1, …, 10), the default granularity's. */
+const MIXED_DENOMINATOR = 2520n;
 /** The decimal places of an approximate fraction. */
 const APPROXIMATE_PLACES = 12;
 
@@ -126,13 +126,18 @@ export function unitSymbol(unit: TimeUnit): string {
 }
 
 /**
- * The text a value of `numberType` is shown with.
+ * The text a value of `numberType` is shown with, a float rounded to
+ * `decimals` places (the granularity's `decimals`).
  *
  * @throws {TypeError} if the value is not of the number type's kind (a `bigint` for `int`, a `number` for `float`, a `Rational` for `fraction`).
  */
-export function displayValue(value: CoordinateValue, numberType: NumberType): string {
+export function displayValue(
+  value: CoordinateValue,
+  numberType: NumberType,
+  decimals: number,
+): string {
   if (numberType === "fraction") return showFraction(fractionOf(value));
-  if (numberType === "float") return repr(roundFloat(floatOf(value), 3));
+  if (numberType === "float") return repr(roundFloat(floatOf(value), decimals));
   return groupDigits(intOf(value));
 }
 
@@ -145,6 +150,20 @@ export function copyValue(value: CoordinateValue, numberType: NumberType): strin
   if (numberType === "fraction") return fractionOf(value).toString();
   if (numberType === "float") return repr(floatOf(value));
   return intOf(value).toString();
+}
+
+/**
+ * The whole value with its unit's symbol, as Copy with the unit writes it:
+ * `copyValue`, a space, `unitSymbol(unit)` (`219/16 ♩`, `0.1 s`).
+ *
+ * @throws {TypeError} as `displayValue`.
+ */
+export function copyValueWithUnit(
+  value: CoordinateValue,
+  numberType: NumberType,
+  unit: TimeUnit,
+): string {
+  return `${copyValue(value, numberType)} ${unitSymbol(unit)}`;
 }
 
 /**

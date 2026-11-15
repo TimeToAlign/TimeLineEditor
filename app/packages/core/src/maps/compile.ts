@@ -62,7 +62,7 @@ function readInteger(value: unknown): bigint {
 }
 
 /** A map parameter read by its JSON form: an integer an int, any other number a float, a pair a Fraction. */
-function readValue(value: unknown): MapValue {
+export function readValue(value: unknown): MapValue {
   if (Array.isArray(value) && value.length === 2) {
     return Rational.fromParts(readInteger(value[0]), readInteger(value[1]));
   }
@@ -75,7 +75,7 @@ function readValue(value: unknown): MapValue {
 }
 
 /** `float(value)` of a map parameter, read without building an exact value where none is needed. */
-function readFloat(value: unknown): number {
+export function readFloat(value: unknown): number {
   if (typeof value === "number") return value;
   if (value instanceof JsonFloat) return value.value;
   return floatOf(readValue(value));
@@ -106,7 +106,7 @@ function clamp(value: number, low: number, high: number): number {
 }
 
 /** Whether the doubles increase strictly, as timetoalign requires of anchors and breaks. */
-function increasing(values: Float64Array): boolean {
+export function increasing(values: Float64Array): boolean {
   for (let i = 1; i < values.length; i += 1) {
     if (!((values[i - 1] as number) < (values[i] as number))) return false;
   }

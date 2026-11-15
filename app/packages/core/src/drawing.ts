@@ -12,6 +12,7 @@ export {
   DRAWN_FLOW,
   elementKey,
   manifestElements,
+  namedTimestamps,
   orderedChildren,
   selectorMatches,
   textKey,

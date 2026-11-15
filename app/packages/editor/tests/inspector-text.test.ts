@@ -125,12 +125,12 @@ beforeAll(async () => {
 });
 
 describe("format round trips", () => {
-  it("covers the 47, 11 and 11 fixtures of the top, groups/ and bundles/", () => {
+  it("covers the 48, 11 and 11 fixtures of the top, groups/ and bundles/", () => {
     expect([
       fixturesOf("").length,
       fixturesOf("groups").length,
       fixturesOf("bundles").length,
-    ]).toEqual([47, 11, 11]);
+    ]).toEqual([48, 11, 11]);
   });
 
   for (const name of fixtureNames) {
@@ -467,7 +467,8 @@ describe("the four text modes", () => {
       "        }",
       "      }",
       "    ],",
-      '    "styles": {}',
+      '    "styles": {},',
+      '    "timestamps": []',
       "  },",
       "",
     ].join("\n"),
@@ -600,6 +601,7 @@ describe("the four text modes", () => {
             order: {},
             statements: [{ select: { element: "timeline" }, set: { stroke: "#008000" } }],
             styles: {},
+            timestamps: [],
           }),
         );
       });

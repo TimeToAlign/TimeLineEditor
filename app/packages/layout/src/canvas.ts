@@ -90,6 +90,7 @@ export function placedAt(element: DrawnElement, dx: number, dy: number, scale = 
       };
     case "flow_marker":
     case "boundary":
+    case "cross_section":
       return { ...element, style, x: x(element.x), y1: y(element.y1), y2: y(element.y2) };
     case "wedge":
       return {
@@ -126,10 +127,31 @@ export function placedBox(box: DrawnBox, dx: number, dy: number, scale = 1): Dra
     : { ...placed, band: { ...box.band, line: dy + scale * box.band.line } };
 }
 
-/** A line's axis drawn at `(dx, dy)` and the scale `scale`, as `placedAt` draws its line. */
+/**
+ * A line's axis drawn at `(dx, dy)` and the scale `scale`, as `placedAt` draws its line, and its
+ * marker as `placedAt` draws a wedge and a cross-section line.
+ */
 export function placedAxis(axis: DrawnAxis, dx: number, dy: number, scale = 1): DrawnAxis {
+  const { marker } = axis;
+  const y = (v: number) => dy + scale * v;
   return {
     ...axis,
+    marker:
+      marker === null
+        ? null
+        : {
+            wedge: {
+              yt: y(marker.wedge.yt),
+              yb: y(marker.wedge.yb),
+              base: scale * marker.wedge.base,
+              style: scaledStyle(marker.wedge.style, scale),
+            },
+            crossSection: {
+              y1: y(marker.crossSection.y1),
+              y2: y(marker.crossSection.y2),
+              style: scaledStyle(marker.crossSection.style, scale),
+            },
+          },
     xStart: dx + scale * axis.xStart,
     xEnd: dx + scale * axis.xEnd,
     line: dy + scale * axis.line,

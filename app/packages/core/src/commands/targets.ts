@@ -9,7 +9,7 @@ import type { CommandError } from "../errors.ts";
 import { isCommandError } from "../errors.ts";
 import type { EntryKind } from "../manifest/files.ts";
 import type { Located } from "../manifest/tree.ts";
-import type { Group, MeasureMap, TimelineManifest } from "../manifest/types.ts";
+import type { Group, MeasureMap, NamedTimestamp, TimelineManifest } from "../manifest/types.ts";
 import type { Address } from "../workspace/address.ts";
 import { namesNothing, resolveAddress } from "../workspace/address.ts";
 import type { Block } from "../workspace/blocks.ts";
@@ -65,13 +65,26 @@ export interface EntryTarget {
   readonly index: number;
 }
 
+/** A named timestamp of a block's manifest. */
+export interface TimestampTarget {
+  readonly kind: "timestamp";
+  readonly address: Address;
+  readonly block: Block;
+  /** The timeline it lies on. */
+  readonly at: Located;
+  /** Its index in the manifest's `graphical.timestamps`. */
+  readonly index: number;
+  readonly timestamp: NamedTimestamp;
+}
+
 export type Target =
   | WorkspaceTarget
   | BlockTarget
   | GroupTarget
   | MeasureMapTarget
   | TimelineTarget
-  | EntryTarget;
+  | EntryTarget
+  | TimestampTarget;
 export type TargetKind = Target["kind"];
 
 /** The target of each kind, the type each kind's table of setters reads. */
@@ -85,6 +98,7 @@ export interface TargetOfKind {
   readonly map: EntryTarget;
   readonly region: EntryTarget;
   readonly flow_control: EntryTarget;
+  readonly timestamp: TimestampTarget;
 }
 
 /**
@@ -112,6 +126,10 @@ export function targetOf(view: View, address: Address): Target | CommandError {
     case "entry": {
       const { entry, block, at, index } = resolved;
       return { kind: entry, address, block, at, index };
+    }
+    case "timestamp": {
+      const { block, at, index, timestamp } = resolved;
+      return { kind: "timestamp", address, block, at, index, timestamp };
     }
     default:
       return namesNothing(view, address);

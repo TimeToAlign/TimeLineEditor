@@ -22,7 +22,13 @@ import {
 } from "./address.ts";
 import type { MemberDrawing } from "./files.ts";
 import { isNamed, memberDrawings } from "./files.ts";
-import type { ChildTimeline, ConversionMap, Manifest, TimelineManifest } from "./types.ts";
+import type {
+  ChildTimeline,
+  ConversionMap,
+  Manifest,
+  NamedTimestamp,
+  TimelineManifest,
+} from "./types.ts";
 
 export type Domain = "graphical" | "logical" | "physical";
 export type Modality = "continuous" | "discrete";
@@ -182,6 +188,30 @@ export function bandKey(timeline: string, facet: Facet, holder: ElementKey): Ele
   };
 }
 
+const NO_TIMESTAMPS: readonly NamedTimestamp[] = [];
+const timestampLists = new WeakMap<Manifest, ReadonlyMap<string, readonly NamedTimestamp[]>>();
+
+/**
+ * The named timestamps of the timeline `timeline` (section 2), in the order
+ * `graphical.timestamps` lists them, which is canonical (by timeline, then
+ * coordinate, then ID) in a manifest in canonical order; none when it has
+ * none. Memoised by the manifest's identity.
+ */
+export function namedTimestamps(manifest: Manifest, timeline: string): readonly NamedTimestamp[] {
+  let lists = timestampLists.get(manifest);
+  if (lists === undefined) {
+    const built = new Map<string, NamedTimestamp[]>();
+    for (const timestamp of manifest.graphical?.timestamps ?? []) {
+      const list = built.get(timestamp.timeline);
+      if (list === undefined) built.set(timestamp.timeline, [timestamp]);
+      else list.push(timestamp);
+    }
+    lists = built;
+    timestampLists.set(manifest, lists);
+  }
+  return lists.get(timeline) ?? NO_TIMESTAMPS;
+}
+
 /**
  * Every timeline id mapped to the ids from its root down to it, for every
  * root of the manifest; the length of the list is the timeline's depth.
@@ -242,11 +272,21 @@ export function orderedChildren(timeline: TimelineManifest): ChildTimeline[] {
  * children band its children by offset then ID, each segment with its
  * boundary when it is not the first segment and its label, which its
  * segment line holds directly; the conversion maps band its maps; the
- * markers band the member's two wedges with their labels; the regions band
- * its regions, and the flow control band its flow markers, then its jump
- * origins, each with its label (a jump target draws nothing of its own).
+ * markers band, for the member, its two wedges with their labels, then for
+ * every timeline its named timestamps in canonical order, each a wedge with
+ * its label, then the timestamp's cross-section line, which its timeline's
+ * line (or node) holds directly, so that hiding the band leaves the line
+ * (section 2.2: `{id: X}`, `{id: X, part: ["label"]}`, `{id: X, part:
+ * ["line"]}`); the regions band its
+ * regions, and the flow control band its flow markers, then its jump origins,
+ * each with its label (a jump target draws nothing of its own).
  */
-function memberElements(member: MemberDrawing, holder: ElementKey, keys: ElementKey[]): void {
+function memberElements(
+  manifest: Manifest,
+  member: MemberDrawing,
+  holder: ElementKey,
+  keys: ElementKey[],
+): void {
   const root = member.timeline;
   keys.push(elementKey("card", cardAddress(root.id), root, holder));
   const line = elementKey("timeline", idAddress(root.id), root, holder);
@@ -293,9 +333,15 @@ function memberElements(member: MemberDrawing, holder: ElementKey, keys: Element
         }
       },
       markers: (band) => {
-        if (timeline !== root) return;
-        labelled("wedge", partAddress(idAddress(timeline.id), "start"), band);
-        labelled("wedge", partAddress(idAddress(timeline.id), "end"), band);
+        if (timeline === root) {
+          labelled("wedge", partAddress(idAddress(timeline.id), "start"), band);
+          labelled("wedge", partAddress(idAddress(timeline.id), "end"), band);
+        }
+        for (const timestamp of namedTimestamps(manifest, timeline.id)) {
+          const at = idAddress(timestamp.id);
+          labelled("wedge", at, band);
+          keys.push(elementKey("cross_section", partAddress(at, "line"), timeline, key));
+        }
       },
       regions: (band) => {
         for (const region of timeline.regions) labelled("region", idAddress(region.id), band);
@@ -339,8 +385,8 @@ export function manifestElements(manifest: Manifest): ElementKey[] {
     const address = idAddress(frame.group.id);
     const group = unownedKey("frame", address, BLOCK_KEY);
     keys.push(group, unownedKey("name", partAddress(address, "name"), group));
-    for (const member of frame.members) memberElements(member, group, keys);
+    for (const member of frame.members) memberElements(ordered, member, group, keys);
   }
-  for (const member of ungrouped) memberElements(member, BLOCK_KEY, keys);
+  for (const member of ungrouped) memberElements(ordered, member, BLOCK_KEY, keys);
   return keys;
 }

@@ -1,5 +1,5 @@
 import { WORKSPACE } from "@timetoalign/tilie-core";
-import { DEFAULT_LAYER, draw } from "@timetoalign/tilie-layout";
+import { DEFAULT_LAYER, draw, manifestLayer } from "@timetoalign/tilie-layout";
 import { describe, expect, it } from "vitest";
 import { drawingOf } from "../src/drawing.ts";
 import { A, blockIn, changed, metrics, mixedPlain, placed, viewOf, withGrid } from "./support.ts";
@@ -18,7 +18,7 @@ describe("drawingOf", () => {
         height: null,
         places: {},
       },
-      [DEFAULT_LAYER, view.graphical, block.manifest.graphical],
+      [DEFAULT_LAYER, view.graphical, manifestLayer(block.manifest)],
       metrics,
     );
     expect(drawingOf(block, view.graphical, metrics)).toEqual(expected);
@@ -72,7 +72,7 @@ describe("drawingOf", () => {
           height: null,
           places: { annotations: { x: -30 } },
         },
-        [DEFAULT_LAYER, moved.graphical, mixed.manifest.graphical],
+        [DEFAULT_LAYER, moved.graphical, manifestLayer(mixed.manifest)],
         metrics,
       ),
     );

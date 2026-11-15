@@ -220,6 +220,7 @@ export function recordingActions(
       zoom: () => zoom,
       rules: () => rules,
       reducedMotion: () => reducedMotion,
+      coordinates: () => false,
       gestures: new GestureSlot(),
     },
   };

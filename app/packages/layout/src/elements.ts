@@ -133,9 +133,12 @@ export interface JumpElement extends Addressed {
   readonly corners: readonly [Point, Point];
 }
 
-/** A vertical line: a flow marker, or the boundary of a segment. */
+/**
+ * A vertical line: a flow marker, the boundary of a segment, or the
+ * cross-section line of a named timestamp, from `(x, y1)` to `(x, y2)`.
+ */
 export interface VerticalLineElement extends Addressed {
-  readonly type: "flow_marker" | "boundary";
+  readonly type: "flow_marker" | "boundary" | "cross_section";
   readonly x: number;
   readonly y1: number;
   readonly y2: number;

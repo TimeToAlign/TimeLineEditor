@@ -682,84 +682,188 @@ changes, 2 undone)"), and nothing of the expansion reaches the store.
 
 ## The Timestamp tab (`timestamp.test.ts`)
 
-The Timestamp tab is always present. It holds the granularity of the
-workspace, the grid of the canvas's last reading and, once a timestamp is
-pinned, that timestamp. The timestamp's values, the steps, the display
-and copy texts, the grid text, the missing-value texts and the coordinate
-dicts are core's (its `timestampAt`, `displayValue`, `copyValue`,
-`gridText`, `missingValueText` and `coordinateDict`), the same texts the
-coordinate flag shows, so a test reads them from core and proves only
-what the editor adds:
-which tab is shown, which rows there are, in which words, what Copy
-carries and that a setting goes to the store's settings. The timestamp is
-core's for the form of core's README ("Timestamps") at 27/2: the line
-`form` with one map, then the segment `B` with three, in the order given.
+The Timestamp tab is always present. Its main panel holds either a hint or
+the timestamp shown; one line at its bottom holds the workspace's two
+granularity settings. The timestamp's values, the display and copy texts,
+the place text, the missing-value texts, the coordinate dicts, the
+position an edited value gives (`parseAxisValue`, `positionFor`, `pinAt`)
+and whether a map can be solved for a position (`invertible`) are core's;
+a named timestamp's pin is the arranger's (`namedPin`), read from the
+block's drawing. A test reads those from their owner and proves only what
+the editor adds: which tab and which pane state are shown, which rows
+there are, in which words, which are editable, what each Copy carries,
+which command each control sends, exactly, and which pin is shown after
+it.
+
+Two specimens. **The form** of core's README ("Timestamps"), pinned
+unnamed at 27/2: the line `form` (32 quarters, fraction) with the
+LinearMap `form_ticks` (×480 to ticks), then the segment `B` (offset 8,
+length 12) with three LinearMaps; and a line `score` at 16 whose maps give
+no value (a PiecewiseMap beyond its last break, a MeasureNumberMap without
+rows) or name their outputs (a CombinationMap). **The fixture
+`timestamps`**, one block `0000000000`: the root `clt_1` (8 quarters,
+fraction, no maps, no segments) with the named timestamps `timestamp_1`
+"Downbeat" at 3/2 and `timestamp_2` "Climax" at 6, Climax's cross-section
+line hidden by a statement `display: none`, and the child `clt_2` with
+`timestamp_3` "Entry" at 1. Its timeline has no name, so its part is named
+by its ID, `clt_1`. A pin read from it is `{spec, knots: "no_server",
+timestamp, named}` with `spec` the line `clt_1` (`length` 8, no maps) and
+no segments, under the view's granularity.
 
 1. **Pinning, as a rule** (pure, a table). A pin selects Timestamp and
    remembers the tab shown before it; a second pin moves the pin and keeps
    that tab; clearing the pin shows that tab again and forgets it; clearing
    without a pin changes nothing. Choosing a tab other than Timestamp
-   clears the pin and shows the chosen tab; choosing Timestamp keeps it. A
-   pin carries its block's manifest and the granularity, both the objects
-   the view held when it was pinned (a timestamp of a block the view does
-   not hold pins nothing), and it is outlived exactly when the view's
-   block is gone, its manifest is another object or its granularity is
-   another object; an unrelated change (another block's move) leaves it.
+   clears the pin and shows the chosen tab; choosing Timestamp keeps it. An
+   unnamed pin is held with its block's manifest, the object the view held
+   when it was pinned (a pin of a block the view does not hold is held
+   nothing), and the granularity it was read under is its spec's; it is
+   outlived exactly when the view's block is gone, its manifest is another
+   object or the view's granularity is another object than its spec's; an
+   unrelated change (another block's move) leaves it. A named timestamp is
+   held by its address and is outlived exactly when the address names no
+   named timestamp (after `remove` of `timestamp_1`), not by a change of
+   its manifest (a `set` of its name).
 2. **Pinning, in the drawer.** With Journal chosen in an open drawer,
-   `pinTimestamp(timestamp)` selects Timestamp and shows the pinned rows; a
-   second pin keeps them pinned; a click inside the tab's panel (on a
-   section heading) keeps the pin; a click anywhere else
-   (`clickedAt` with an element outside the inspector) clears it and shows
-   Journal, and choosing Timestamp then shows the empty state "Click a
-   coordinate on a timeline to pin it here." With Properties chosen and the
-   drawer closed, a pin opens it on Timestamp; choosing Manifest clears the
-   pin. A pinned timestamp is dropped, Timestamp staying selected with its
-   empty state, when its block's manifest changes (a `set` of a timeline's
-   `name` in block A), when the granularity changes (`configure` of the
-   fraction denominator) and when its block is deleted (`remove` of block
-   A); a move of block B keeps it.
-3. **The rows.** One section per part, headed by the part's name and, for
-   a segment, "segment": first the row "coordinate" (the part's position
-   and unit), then one row per map labelled by its name, else its ID; each
-   row's text is core's display text and the unit's symbol as core gives it
-   (TimeToShare's drawing specification, section 5.2: `♩` for quarters,
-   `s`, `smp`, `ticks`, `px`, any other unit its name), so the tab writes
-   units as the drawing's labels do; each row's Copy button
-   ("Copy <label> of <part>") writes core's copy text to the clipboard
-   (`B_tempo` gives `copyValue` of its value, the full float). A map
-   without a value reads core's missing-value text, "no value here", or
-   "needs a server to expand its measure map" when it misses the expanded
-   MeasureMap rows with no server, and has no Copy button (a PiecewiseMap
-   beyond its last break, a MeasureNumberMap without rows). A map with
-   named outputs gives one row per output, labelled "<label> · <output>",
-   its number shown without a unit (a CombinationMap of a seconds and a
-   ticks output). The
-   heading line says where the timestamp is and the grid step it was
-   picked with, under the granularity it was pinned with: "Form at 13 1/2
-   ♩ · grid 1/2 ♩ (fraction base 1, refining)".
-4. **Copy JSON** writes the standard writer's text (`dumps`) of the list of
-   parts, each `{timeline, segment, coordinate, maps}`, the coordinate and
-   every map's number as core's coordinate dict, a number without a unit as
-   `{number_type, value}`, a map without a value as `null`, named outputs
-   as an object of them. The same text is shown below the button.
-5. **Granularity** shows the workspace's settings (the defaults: step 1 /
-   1, step 1, step 1, each "Refine when zooming" checked). Typing 5 as the
-   fraction denominator sets `settings.granularity.fraction` to `{5,
-   true}`; typing 0.2 as the float step sets it to `"0.2"`; unchecking
-   "Refine when zooming" for integers sets `int.refine` false. None of it
-   adds a journal entry or an undo step. Typing 0 marks the field invalid
-   (`aria-invalid`) with core's problem message beside it and changes no
-   setting; leaving the field shows the stored value again, valid.
-6. **The step in use**, with or without a pin: before the canvas's first
-   reading the tab says "No reading yet: turn on Show coordinates and
-   point at a timeline."; given the grid of a reading (1/32 on quarters
-   under the default granularity) it says "In use: grid 1/32 ♩ (fraction
-   base 1, refining)", core's grid text.
-7. **The server's MeasureMaps** reach the canvas through one adapter of
-   the client: the rows a server answers pass as they are (the same
-   array); a `ServerError` with status 501 (the server cannot expand
-   MeasureMaps) becomes `unsupported`; any other failure (a 500, an
-   unreachable server) stays a rejection with the same error.
+   `pinTimestamp(pin)` selects Timestamp and shows the pinned rows; a
+   second pin keeps them pinned; a click inside the tab's panel keeps the
+   pin; a click anywhere else (`clickedAt` with an element outside the
+   inspector) clears it and shows Journal, and choosing Timestamp then
+   shows the hint "Turn on Show coordinates (C) and click a timeline to
+   read a timestamp. With Show coordinates off, click a named timestamp to
+   edit it." and no header. With Properties chosen and the drawer closed,
+   a pin opens it on Timestamp; choosing Manifest clears the pin. An
+   unnamed pin is dropped, Timestamp staying selected with the hint, when
+   its block's manifest changes (a `set` of a timeline's `name` in block
+   A), when the granularity changes (`configure` of the denominator) and
+   when its block is deleted (`remove` of block A); a move of block B
+   keeps it. The drawer's `shownPin()` is the pin the canvas marks: the
+   unnamed pin itself, `null` without one.
+3. **Pane states and the header.** Without a pin: the hint alone. An
+   unnamed pin (`clt_1` at 3/2): the Name field empty, "Show cross-section
+   line" checked and disabled, no Delete button. Selecting exactly
+   `{block, id: "timestamp_1"}` (the drawer's `selected`, as the session
+   reports a selection) opens a closed drawer on Timestamp showing
+   Downbeat: Name "Downbeat", the box checked and enabled, a Delete button;
+   `shownPin()` is the pin read from the fixture, `named` `timestamp_1`, at
+   3/2. `timestamp_2` shows Climax with the box unchecked and enabled (its
+   own statement hides its line). Selecting anything else (block A) clears the named timestamp
+   and shows the tab chosen before; two addresses at once show nothing.
+4. **Naming.** On the unnamed pin, typing "Upbeat" and Enter journals
+   exactly `{type: "add", into: {block: "0000000000", id: "clt_1"},
+   timestamp: {name: "Upbeat", coordinate: [3, 2]}}`; the pane then shows
+   the new named timestamp `timestamp_4` (the smallest free ID): Name
+   "Upbeat", Delete present, `shownPin().named` `timestamp_4`. On Downbeat,
+   "Strong" and Enter journals `{type: "set", changes: [{target: {block:
+   "0000000000", id: "timestamp_1"}, values: {name: "Strong"}}]}`; an
+   emptied name and Enter journals nothing, shows "Downbeat" again and the
+   message "A named timestamp keeps a name; Delete removes it."; leaving
+   the field unchanged journals nothing. Delete journals `{type: "remove",
+   targets: [{block: "0000000000", id: "timestamp_1"}]}` and the pane shows
+   the hint.
+5. **The line toggle.** The box is checked exactly while the line's own
+   cascaded `display` (layout's cascade of the block's layers, for the
+   `cross_section` element `{id, part: ["line"]}`) is not `none`; it reads
+   neither the markers band nor whether the line is drawn. It is disabled,
+   with a visible hint the box names as its description, when its toggle
+   cannot change whether the line is drawn: checked while an element
+   holding the line hides it, unchecked while the line would stay hidden
+   once its own statement drops `display`. On Downbeat, unchecking
+   journals exactly `{type: "style", select: {addresses: [{id:
+   "timestamp_1", part: ["line"]}]}, set: {display: "none"}, blocks:
+   ["0000000000"]}` and the box shows unchecked; checking it again
+   journals the same with `display: null` and shows it checked. Climax
+   (its own statement `display: none`) shows unchecked and enabled, no
+   hint; checking journals exactly `{type: "style", select: {addresses:
+   [{id: "timestamp_2", part: ["line"]}]}, set: {display: null}, blocks:
+   ["0000000000"]}`, and the box shows checked. With the markers band of
+   `clt_1` hidden (`style` of `{id: "clt_1", facet: "markers"}`,
+   `display: "none"`) Downbeat's box stays checked and enabled: the band
+   holds the wedge, not the line. With the line of `clt_1` hidden
+   (`style` of `{id: "clt_1"}`, `display: "none"`) Downbeat's box is
+   checked and disabled with the hint "Timeline clt_1 is hidden, and the
+   line with it.", and Climax's unchecked and disabled with the same hint.
+   With a statement selecting every cross-section line (`style` of
+   `{element: "cross_section"}`, `display: "none"`) Downbeat's box is
+   unchecked and disabled with the hint "A style statement selecting more
+   than this line hides it; change it in the Manifest tab.". A disabled
+   box journals nothing when clicked.
+6. **The rows** (Pretty, the default). One section per part, headed by
+   the part's name and, for a segment, "segment": first the row
+   "coordinate", then one row per map labelled by its name, else its ID.
+   A number's value is a text field holding core's display text, its
+   unit's symbol beside it (TimeToShare's drawing specification, section
+   5.2: `♩`, `s`, `smp`, `ticks`); a label, a measure or a missing value
+   is text (`no value here`, `needs a server to expand its measure map`).
+   A map with named outputs gives one row per output, "<label> ·
+   <output>". The line's and the segment's coordinates and the value of
+   every invertible map are enabled; a number of a map that is not
+   (the CombinationMap's outputs) is disabled; its cell has the title
+   "This conversion map cannot be solved for a position" (a disabled field
+   shows no title in every browser) and the field names the same text,
+   held once in the panel, among its descriptions. A float shows the
+   granularity's `decimals` places (`B_tempo` 7.4375 as `7.438`). The
+   place line reads core's place text, "Form at 13 1/2 ♩".
+7. **Editing values.** Enter or leaving a field commits. On the unnamed
+   pin at 3/2, `7/4` in "coordinate of clt_1" shows the pin at 7/4: the
+   drawer's `shownPin()` equals `{…pin, timestamp: timestampAt(spec,
+   7/4)}`, the field shows `1 3/4`, nothing journalled. On Downbeat the
+   same edit journals exactly `{type: "set", changes: [{target: {block:
+   "0000000000", id: "timestamp_1"}, values: {coordinate: [7, 4]}}]}` and
+   `shownPin()` equals the named pin read at 7/4, `named` `timestamp_1`.
+   A map value moves the position its inverse gives: on the form, 7200 in
+   "Ticks of Form" gives the pin at 15 (7200 / 480). Text core refuses
+   (`abc`, refused by `parseAxisValue`) or a position outside the line (9
+   on `clt_1`, refused by `positionFor`) keeps the draft, marks the field
+   invalid and shows core's message beside it; Escape shows the stored
+   value again, valid.
+8. **Copy.** Each row has two icon buttons, "Copy the value" and "Copy the
+   value with its unit" (also their titles), under the column headings
+   `value` and `value + unit`; they write core's `copyValue` and
+   `copyValueWithUnit` texts (`B_tempo`: `7.4375` and `7.4375 s`; the
+   form's coordinate `27/2` and `27/2 ♩`); a value without a unit has no
+   second button, a missing value neither.
+9. **The format switch** is one component in both tabs: a radio group of
+   segments, "Manifest format" with JSON, YAML, TOML and "Timestamp
+   format" with Pretty, JSON, YAML, TOML. JSON, YAML and TOML show the
+   timestamp as one value, `{id, name}` of a named one, then `parts`,
+   each `{timeline, segment, coordinate, maps}`, every number with a unit
+   a coordinate dict, one without `{number_type, value}`, a map without a
+   value `null`, through the Manifest tab's codecs: the JSON text is the
+   standard writer's (`dumps`) of that value; YAML and TOML read "Loading
+   …" until their codec is loaded, then the codec's text of the same
+   value; TOML refuses a null as the Manifest tab does (the score line's
+   missing values give its `not_representable` message). One Copy writes
+   the text shown.
+10. **The settings line** shows the workspace's two settings, fields
+    "Denominator" and "Decimals" (the defaults 2520 and 3), each with its
+    hover hint as `title`, with or without a timestamp. Typing 5 as the
+    denominator and 6 as the decimals sets `settings.granularity` to
+    `{denominator: 5, decimals: 6}`, with no journal entry and no undo
+    step; the form's pin then read shows `B_tempo` as `7.4375`. Typing 0
+    as the denominator or 16 as the decimals marks the field invalid with
+    core's problem message beside it and changes no setting; leaving the
+    field shows the stored value again, valid.
+11. **The server's MeasureMaps** reach the canvas through one adapter of
+    the client: the rows a server answers pass as they are (the same
+    array); a `ServerError` with status 501 (the server cannot expand
+    MeasureMaps) becomes `unsupported`; any other failure (a 500, an
+    unreachable server) stays a rejection with the same error.
+12. **A named timestamp's MeasureMaps** are the canvas's: the drawer reads
+    a named timestamp with the rows the canvas's `knotsOf` gives for its
+    block's manifest, asked anew whenever its pin is read, so a pin is
+    read again when they arrive; without `knotsOf` it reads them as
+    `no_server`. Specimen: `group_measure_map` (block `0000000000`), its
+    `score` (16 quarters) with the `MeasureRecordMap` `cmap_1`, and
+    `timestamp_1` "Bar two" added at 6 on `score`; the rows of
+    `measuremap_1` are four 4/4 measures named "1" to "4" at qstamps 0, 4,
+    8 and 12, so 6 lies in measure "2". Selected while `knotsOf` answers
+    `pending`, the row `cmap_1` reads "waiting for the server"; once it
+    answers the rows (a reactive source changing, no new selection) the
+    row reads "2", and the shown pin equals, part for part, the pin of an
+    unnamed timestamp at 6 on `score` read with the same rows: the same
+    rows in the pane, `cmap_1` "2" in both. Without `knotsOf` the row
+    reads "needs a server to expand its measure map".
 
 ## Words (`inspector-subject.test.ts`, `journal.test.ts`)
 

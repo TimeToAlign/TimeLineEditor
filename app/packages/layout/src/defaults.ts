@@ -53,6 +53,10 @@ export const DEFAULT_LAYER: Graphical = {
       select: { element: "boundary" },
       set: { stroke: "#000000", "stroke-width": 1, "stroke-dasharray": "none" },
     },
+    {
+      select: { element: "cross_section" },
+      set: { stroke: "#1BA1E2", "stroke-width": 1, "stroke-dasharray": "3 3" },
+    },
     { select: { element: "ancestor" }, set: { "stroke-width": 3, opacity: 0.35 } },
     {
       select: { element: "ancestor", modality: "continuous" },
@@ -85,10 +89,6 @@ export const DEFAULT_LAYER: Graphical = {
     {
       select: { element: "name", inside: "ancestor" },
       set: { fill: "#6B7280", "font-size": 9, opacity: 1 },
-    },
-    {
-      select: { element: "band", facet: "markers", inside: "band" },
-      set: { display: "none" },
     },
     {
       select: { element: "band", facet: "regions", inside: "band" },

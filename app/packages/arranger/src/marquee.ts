@@ -28,10 +28,11 @@ function spanning(xs: readonly number[], ys: readonly number[]): Rect {
  * background its whole drawing, a frame's or a card's rectangle itself, a
  * line from its start to its end on its ordinate, a map likewise on its
  * centre, a region between its edges and ordinates, a jump around its
- * curve's points and its arrowhead, a flow marker, boundary or wedge on its
- * abscissa between its ordinates), and a text over its measured width (from
- * its anchor, or centred on it) from its baseline less the font's ascent to
- * its baseline plus the descent. Stroke widths and markers are not counted.
+ * curve's points and its arrowhead, a flow marker, boundary, cross-section
+ * line or wedge on its abscissa between its ordinates), and a text over its
+ * measured width (from its anchor, or centred on it) from its baseline less
+ * the font's ascent to its baseline plus the descent. Stroke widths and
+ * markers are not counted.
  */
 export function elementBounds(element: DrawnElement, measure: TextMeasure): Rect {
   switch (element.type) {
@@ -57,6 +58,7 @@ export function elementBounds(element: DrawnElement, measure: TextMeasure): Rect
     }
     case "flow_marker":
     case "boundary":
+    case "cross_section":
       return spanning([element.x], [element.y1, element.y2]);
     case "wedge":
       return spanning([element.x], [element.yt, element.yb]);

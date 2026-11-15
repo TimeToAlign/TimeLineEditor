@@ -11,15 +11,11 @@ function viewWith(...blocks: Block[]): View {
 }
 
 describe("workspace creation", () => {
-  it("defaults blocks to the drawing's placement defaults and scale 1, and one step per number type", () => {
+  it("defaults blocks to the drawing's placement defaults and scale 1, and the granularity to 1/2520 and 3 places", () => {
     expect(DEFAULT_SETTINGS).toEqual({
       grid: { size: 8, snap: true },
       blockDefaults: { scale: 1, length: 400, spacing: 8, margin: 0, width: null, height: null },
-      granularity: {
-        fraction: { denominator: 1, refine: true },
-        float: { step: "1", refine: true },
-        int: { step: 1, refine: true },
-      },
+      granularity: { denominator: 2520, decimals: 3 },
     });
   });
 

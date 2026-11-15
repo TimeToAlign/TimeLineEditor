@@ -17,6 +17,7 @@ export const ADD_KINDS = [
   "map",
   "region",
   "flow_control",
+  "timestamp",
 ] as const;
 export type AddKind = (typeof ADD_KINDS)[number];
 
@@ -24,7 +25,9 @@ export type AddKind = (typeof ADD_KINDS)[number];
  * Add one thing `into` a target: a `block` into `workspace`; a root
  * `timeline`, a `group` or a `measure_map` into a block; a `child`, a
  * `map`, a `region` or a `flow_control` element into a timeline. The value
- * is the thing as its container stores it, carrying its own id.
+ * is the thing as its container stores it, carrying its own id. A
+ * `timestamp` into a timeline is `{name, coordinate}`: its ID is minted
+ * (`timestamp_N`) and its timeline is the one it is added into.
  */
 export type AddCommand = {
   readonly type: "add";

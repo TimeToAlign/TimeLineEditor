@@ -9,6 +9,7 @@
 
 import { type Facet, isFacet, LINE } from "@timetoalign/tilie-core";
 import type { Real } from "@timetoalign/tilie-core/numbers";
+import type { AxisMarker } from "./boxes.ts";
 import type {
   JumpElement,
   LineElement,
@@ -62,6 +63,13 @@ export interface LinePosition {
    * lies in.
    */
   readonly flowMarkerEnd: (side: Side) => number;
+  /**
+   * The ordinates `[y1, y2]` of a cross-section line whose wedge lies at the line (section 6.6,
+   * Cross-section lines), counted from the member drawing's top `top` with its card margin `V`:
+   * for the root's line from `top + (P + V)` to `top + (Hc − P − V)`; for a line above the root's,
+   * from `yl` to `top + (P + V)`; for one below it, from `yl` to `top + (Hc − P − V)`.
+   */
+  readonly crossSection: readonly [number, number];
 }
 
 /**
@@ -96,9 +104,12 @@ export interface LineElements {
   readonly line: readonly LineElement[];
   /** The boundaries of its segments, on its line. */
   readonly boundaries: readonly SegmentElement<VerticalLineElement>[];
-  /** Its markers band's wedges, start before end: the root's only. */
+  /**
+   * Its markers band's wedges in the order the band places them: the root's start before its
+   * end, then its named timestamps', then those its segments without a line join to it.
+   */
   readonly wedges: readonly MarkerElement[];
-  /** The labels of those wedges, start before end. */
+  /** The labels of those wedges, in the order of `wedges`. */
   readonly wedgeLabels: readonly TextElement[];
   /** The labels of its segments, in their tiers above its line. */
   readonly segmentLabels: readonly SegmentElement<TextElement>[];
@@ -108,6 +119,19 @@ export interface LineElements {
   readonly jumpLabels: readonly TextElement[];
   /** The labels of its flow control band's flow markers, in the order of `flowMarkers`. */
   readonly flowMarkerLabels: readonly TextElement[];
+  /** The cross-section lines its markers band holds, in the order of their timestamps' wedges. */
+  readonly crossSections: readonly VerticalLineElement[];
+  /**
+   * Where a coordinate marker of its line lies, with its line (one, when its line is drawn): what
+   * the line's axis carries for an editor's marks (`DrawnAxis.marker`).
+   */
+  readonly markers: readonly LineMarker[];
+}
+
+/** A drawn line and where a coordinate marker of it lies. */
+export interface LineMarker {
+  readonly line: LineElement;
+  readonly marker: AxisMarker;
 }
 
 /**

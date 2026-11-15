@@ -4,7 +4,14 @@
  * TimeToShare, sections 6.6, 6.7 and 7.2), so the two never differ.
  */
 
-import type { DrawnElement, LineElement, PathCommand, Point, RegionElement } from "./elements.ts";
+import type {
+  DrawnElement,
+  LineElement,
+  MarkerElement,
+  PathCommand,
+  Point,
+  RegionElement,
+} from "./elements.ts";
 import type { TextMeasure } from "./metrics.ts";
 import { times } from "./numbers.ts";
 
@@ -168,6 +175,25 @@ function boundsOfPoints(points: readonly Point[]): Bounds {
   };
 }
 
+/**
+ * A wedge's three points (sections 6.6 and 7.2): its tip `(X, yt)`, then
+ * the corners of its base `(X − b / 2, yb)` and `(X + b / 2, yb)`, `b` the
+ * width of its base.
+ */
+export function wedgePoints({
+  x,
+  yt,
+  yb,
+  base,
+}: Pick<MarkerElement, "x" | "yt" | "yb" | "base">): readonly [Point, Point, Point] {
+  const half = base / 2;
+  return [
+    [x, yt],
+    [x - half, yb],
+    [x + half, yb],
+  ];
+}
+
 /** The points a line mark's bounds are taken over. */
 function markPoints(mark: LineMark): Point[] {
   if (mark.shape !== "circle") return [...mark.points];
@@ -226,14 +252,15 @@ export function boundsOf(element: DrawnElement, measure: TextMeasure): Bounds {
       ]);
     case "flow_marker":
     case "boundary":
-      return { left: element.x, top: element.y1, right: element.x, bottom: element.y2 };
-    case "wedge":
+    case "cross_section":
       return {
-        left: element.x - element.base / 2,
-        top: Math.min(element.yt, element.yb),
-        right: element.x + element.base / 2,
-        bottom: Math.max(element.yt, element.yb),
+        left: element.x,
+        top: Math.min(element.y1, element.y2),
+        right: element.x,
+        bottom: Math.max(element.y1, element.y2),
       };
+    case "wedge":
+      return boundsOfPoints(wedgePoints(element));
     case "name":
     case "label": {
       const size = element.style["font-size"];

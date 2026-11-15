@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { ElementAddress } from "@timetoalign/tilie-core";
+import type { ElementAddress, Manifest } from "@timetoalign/tilie-core";
 import { addressKey, placedElement, placeKeyText, samePlaceKey } from "@timetoalign/tilie-core";
 import type { Drawing, DrawnBox } from "@timetoalign/tilie-layout";
 import type { AttributeValue, Descriptor } from "@timetoalign/tilie-writers";
@@ -35,6 +35,7 @@ import { itemGesture } from "./gestures/item.ts";
 import { settle, slide } from "./motion.ts";
 import { getNodeActions } from "./nodeActions.ts";
 import type { BlockNode as BlockNodeType } from "./project.ts";
+import { timestampOwner } from "./selectionRules.ts";
 
 /** Svelte Flow passes every node prop; the node reads only its data. */
 let { data }: Pick<NodeProps<BlockNodeType>, "data"> = $props();
@@ -67,6 +68,8 @@ interface Entry {
   readonly attributes: Readonly<Record<string, string>>;
   /** The frame or card whose own rectangle it draws; `undefined` for anything else. */
   readonly box: DrawnBox | undefined;
+  /** The key of the named timestamp it draws a part of (`timestampOwner`); `null` for anything else. */
+  readonly timestamp: string | null;
 }
 
 /** Whether a role is a box's own rectangle: a frame's or a card's, never a card's shadow. */
@@ -74,12 +77,18 @@ function isBoxShape(role: Role): boolean {
   return role === "frame" || role === "card";
 }
 
+/** The key of the named timestamp `address` draws a part of, else `null`. */
+function ownerKey(manifest: Manifest, address: ElementAddress): string | null {
+  const owner = timestampOwner(manifest, address);
+  return owner === null ? null : addressKey(owner);
+}
+
 /**
  * Each descriptor with a key that survives a redraw, so that a reorder of a
  * group's members or of a timeline's bands moves their elements, which
  * slide to their new places, rather than redrawing them.
  */
-function keyed(drawing: Drawing, descriptors: readonly Descriptor[]): Entry[] {
+function keyed(manifest: Manifest, drawing: Drawing, descriptors: readonly Descriptor[]): Entry[] {
   const seen = new Map<string, number>();
   return descriptors.map((descriptor) => {
     const { address, element } = descriptor.source;
@@ -96,11 +105,12 @@ function keyed(drawing: Drawing, descriptors: readonly Descriptor[]): Entry[] {
         descriptor.attrs.map(([name, value]) => [name, domValue(value)]),
       ),
       box: isBoxShape(role) ? shapeBox(drawing, element) : undefined,
+      timestamp: ownerKey(manifest, address),
     };
   });
 }
 
-const entries = $derived(keyed(data.drawing, data.descriptors));
+const entries = $derived(keyed(data.block.manifest, data.drawing, data.descriptors));
 
 /**
  * The entries a mark copies: each frame's and card's own rectangle by its
@@ -147,8 +157,12 @@ function onpointerleave() {
   show(NO_HOVER);
 }
 
+/** Whether an entry shows the selection: its own address selected, or the named timestamp it draws. */
 function isSelected(entry: Entry): boolean {
-  return showsSelection(entry.role, entry.address, data.selectedElements);
+  return (
+    showsSelection(entry.role, entry.address, data.selectedElements) ||
+    (entry.timestamp !== null && data.selectedElements.has(entry.timestamp))
+  );
 }
 
 /** Whether an element shows the selection on itself: any but a box, whose selection is a mark. */
@@ -447,6 +461,7 @@ function ghostAttributesOf(descriptor: Descriptor): Record<string, string> {
         data-selected={glows(entry) ? "" : undefined}
         data-affected={isAffected(entry) ? "" : undefined}
         data-outside={isOutside(entry) ? "" : undefined}
+        pointer-events={entry.timestamp !== null && actions.coordinates() ? "none" : undefined}
         {@attach drawn(entry.descriptor.source)}
         {@attach gestureOf(entry.box)}
         animate:slide={slideParams(entry)}>{entry.descriptor.text}</svelte:element

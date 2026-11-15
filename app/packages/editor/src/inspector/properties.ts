@@ -528,6 +528,11 @@ function namedBy(resolved: ResolvedAddress): NameField | null {
       const target = inBlock(block.id, idAddress(map.id));
       return { target, name: map.name, nullable: true, manifest: block.manifest };
     }
+    case "timestamp": {
+      const { block, timestamp } = resolved;
+      const target = inBlock(block.id, idAddress(timestamp.id));
+      return { target, name: timestamp.name, nullable: false, manifest: block.manifest };
+    }
     case "part":
       return namedBy(resolved.owner);
   }

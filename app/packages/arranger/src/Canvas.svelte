@@ -3,12 +3,13 @@ import type {
   Address,
   Command,
   Granularity,
-  GridInUse,
+  Manifest,
   MeasureKnots,
+  Pin,
   Store,
-  Timestamp,
 } from "@timetoalign/tilie-core";
-import { gridText, timestampGrid, timestampPlace } from "@timetoalign/tilie-core";
+import { timestampPlace } from "@timetoalign/tilie-core";
+import type { Drawing } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { Viewport } from "@xyflow/svelte";
 import { SelectionMode, SvelteFlow } from "@xyflow/svelte";
@@ -20,11 +21,12 @@ import BlockNode from "./BlockNode.svelte";
 import { BlockDrag, type NodeDrag } from "./blockDrag.ts";
 import CanvasToolbar from "./CanvasToolbar.svelte";
 import CoordinateFlag from "./CoordinateFlag.svelte";
+import CoordinateMarks from "./CoordinateMarks.svelte";
 import type { Visible } from "./commands.ts";
 import type { Level } from "./containers.ts";
 import { levelOf, rulesOf } from "./containers.ts";
-import type { Reading } from "./coordinates.ts";
-import { FrameCoalescer, MeasureKnotsSource, readingAt } from "./coordinates.ts";
+import type { KnotsOf, MarkPlace, PlacedMarks } from "./coordinates.ts";
+import { FrameCoalescer, MeasureKnotsSource, pinnedPlace, readingAt } from "./coordinates.ts";
 import type { Editing } from "./editing.ts";
 import { EditorFocus } from "./editorFocus.svelte.ts";
 import { CLICK_DISTANCE, GestureSlot, listen, type Point } from "./gesture.ts";
@@ -63,21 +65,22 @@ interface Props {
    */
   onlive?: (placement: LivePlacement | null) => void;
   /**
-   * The grid "Show coordinates" picks positions from; the workspace's
-   * granularity setting when not given.
+   * How finely "Show coordinates" picks positions and shows floats; the
+   * workspace's granularity setting when not given.
    */
   granularity?: Granularity;
   /**
-   * Called with the timestamp a click pins while "Show coordinates" hovers
-   * a line, and with `null` on any other click on the canvas.
+   * The pinned timestamp: an unnamed one is marked with its wedge and its
+   * cross-section line at its position, which follow a replaced pin; a
+   * named one is drawn by its block's drawing, so nothing more is marked.
    */
-  oncoordinatepin?: (pin: Timestamp | null) => void;
+  pinned?: Pin | null;
   /**
-   * Called with the grid of a reading "Show coordinates" makes whenever it
-   * differs from the grid of the reading before: the step in use, the
-   * line's number type and unit, and the granularity that gave the step.
+   * While "Show coordinates" is on, called with the pin a click on a line
+   * makes, and with `null` on any other click on the canvas; called with
+   * `null` when "Show coordinates" is turned off.
    */
-  ongrid?: (grid: GridInUse) => void;
+  oncoordinatepin?: (pin: Pin | null) => void;
   /**
    * The expanded MeasureMaps of a manifest, given its text (the server's
    * measure-maps route), or `unsupported` when the server cannot expand
@@ -99,8 +102,8 @@ let {
   viewport = $bindable(),
   onlive,
   granularity,
+  pinned = null,
   oncoordinatepin,
-  ongrid,
   measureMaps,
 }: Props = $props();
 
@@ -141,7 +144,10 @@ let toolbar: ReturnType<typeof CanvasToolbar> | undefined = $state();
 let root: HTMLElement | undefined = $state();
 let guides: readonly Guide[] = $state.raw([]);
 let marquee = $state(false);
-/** Whether "Show coordinates" is on: hovering a line shows its coordinate and its maps' values. */
+/**
+ * Whether "Show coordinates" is on: hovering a line shows its coordinate
+ * and its maps' values, a click pins, and named timestamps take no pointer.
+ */
 let coordinates = $state(false);
 /** The pointer over the canvas, in pixels from its top-left corner; `null` while it is elsewhere. */
 let hover: Point | null = $state.raw(null);
@@ -310,6 +316,7 @@ setNodeActions({
   zoom: () => viewport.zoom,
   rules: () => rules,
   reducedMotion: () => reducedMotion.current,
+  coordinates: () => coordinates,
   gestures,
 });
 
@@ -354,6 +361,17 @@ const knots = $derived(
   measureMaps === undefined ? undefined : new MeasureKnotsSource(measureMaps, () => knotsArrived++),
 );
 
+/**
+ * The expanded MeasureMaps of `manifest` as this canvas's readings take
+ * them: asked of `measureMaps` once per manifest object and kept, `undefined`
+ * for a manifest without MeasureMaps or without `measureMaps`. Read in a
+ * reaction, it is read again when an answer arrives.
+ */
+export function knotsOf(manifest: Manifest): ReturnType<KnotsOf> {
+  void knotsArrived;
+  return knots?.knotsOf(manifest);
+}
+
 /** The reading of the canvas pixel `point` (from the canvas's top-left corner), or `null`. */
 function readingOf(point: Point) {
   const { x, y, zoom } = viewport;
@@ -364,39 +382,13 @@ function readingOf(point: Point) {
       zoom,
       ratio: typeof window === "undefined" ? 1 : window.devicePixelRatio || 1,
       granularity: granularity ?? view.settings.granularity,
-      knotsOf: knots?.knotsOf,
+      knotsOf,
     },
   );
 }
 
 /** What the pointer reads now; nothing while boxes move or "Show coordinates" is off. */
-const reading = $derived.by(() => {
-  void knotsArrived;
-  return !coordinates || moving || hover === null ? null : readingOf(hover);
-});
-
-/** The grid `reading` was picked on. */
-function gridOf(read: Reading): GridInUse {
-  return timestampGrid(read.timestamp, granularity ?? view.settings.granularity);
-}
-
-/** The grid last reported through `ongrid`. */
-let reported: GridInUse | null = null;
-
-// Each reading's grid is reported when it differs from the last one reported.
-$effect(() => {
-  if (reading === null || ongrid === undefined) return;
-  const grid = gridOf(reading);
-  const last = reported;
-  const same =
-    last?.step.equals(grid.step) === true &&
-    last.numberType === grid.numberType &&
-    last.unit === grid.unit &&
-    last.granularity === grid.granularity;
-  if (same) return;
-  reported = grid;
-  ongrid(grid);
-});
+const reading = $derived(!coordinates || moving || hover === null ? null : readingOf(hover));
 
 /** What a screen reader hears when a click pins a timestamp; the moving flag is not announced. */
 let announced = $state("");
@@ -412,12 +404,7 @@ const flag = $derived.by(() => {
     y: y + (node.position.y + dy * scale) * zoom,
   });
   const at = screen(reading.at.x, reading.at.y);
-  return {
-    x: at.x,
-    y: at.y,
-    top: screen(reading.at.x, reading.top).y,
-    footer: gridText(gridOf(reading)),
-  };
+  return { x: at.x, y: at.y, top: screen(reading.at.x, reading.top).y };
 });
 
 /** The pointer in canvas pixels from the canvas's top-left corner. */
@@ -450,21 +437,70 @@ function pinOnPress(event: PointerEvent) {
 }
 
 /**
- * A click on the canvas (a primary press released within the click
- * distance) pins the timestamp of the hovered line, read at the release
- * itself, and clears the pin anywhere else; a press on a button (the
- * toolbars) does neither.
+ * While "Show coordinates" is on, a click on the canvas (a primary press
+ * released within the click distance) pins the timestamp of the hovered
+ * line or map, read at the release itself, and clears the pin anywhere
+ * else; a press on a button (the toolbars) does neither, and with
+ * "Show coordinates" off a click pins nothing.
  */
 function pinOnRelease(event: PointerEvent) {
   const press = pinPress;
   pinPress = null;
-  if (press === null || !event.isPrimary) return;
+  if (!coordinates || press === null || !event.isPrimary) return;
   if (Math.hypot(event.clientX - press.x, event.clientY - press.y) > CLICK_DISTANCE) return;
-  const point = coordinates ? pixelOf(event) : null;
-  const pinned = (point === null ? null : readingOf(point))?.timestamp ?? null;
-  announced = pinned === null ? "" : `Pinned ${timestampPlace(pinned)}`;
-  oncoordinatepin?.(pinned);
+  const point = pixelOf(event);
+  const read = point === null ? null : readingOf(point);
+  pinnedLine = read?.hit.key ?? null;
+  announced = read === null ? "" : `Pinned ${timestampPlace(read.pin.timestamp)}`;
+  oncoordinatepin?.(read?.pin ?? null);
 }
+
+/** Turn "Show coordinates" on or off; turned off, the pin is cleared. */
+function setCoordinates(next: boolean): void {
+  if (next === coordinates) return;
+  coordinates = next;
+  if (next) return;
+  frames.cancel();
+  hover = null;
+  announced = "";
+  oncoordinatepin?.(null);
+}
+
+/** The line a click last pinned on, so a pinned timestamp stays marked on that card's line. */
+let pinnedLine: string | null = $state(null);
+
+/** The node of block `id` as Svelte Flow shows it now, a dragged block's at its dragged place. */
+function shownNode(id: string) {
+  return nodes.nodes.find((node) => node.id === id);
+}
+
+/**
+ * The marks drawn: the pinned unnamed timestamp's (`pinnedPlace`), then
+ * the hovered position's on the hovered line.
+ */
+const marks: readonly PlacedMarks[] = $derived.by(() => {
+  const found: PlacedMarks[] = [];
+  const mark = (
+    kind: PlacedMarks["kind"],
+    block: string,
+    place: (drawing: Drawing) => MarkPlace | null,
+  ) => {
+    const node = shownNode(block);
+    const at = node === undefined ? null : place(node.data.drawing);
+    if (node === undefined || at === null) return;
+    const { drawing, block: shown } = node.data;
+    found.push({ kind, ...at, drawing, origin: node.position, scale: shown.scale });
+  };
+  if (pinned !== null && pinned.named === null) {
+    const pin = pinned;
+    mark("pin", pin.spec.block, (drawing) => pinnedPlace(drawing, pin, pinnedLine));
+  }
+  if (reading !== null) {
+    const { hit, at } = reading;
+    mark("hover", reading.block, () => ({ key: hit.key, x: at.x }));
+  }
+  return found;
+});
 
 // Unmounted, the canvas leaves no frame waiting.
 $effect(() => () => frames.cancel());
@@ -498,7 +534,7 @@ function keyContext(event: KeyboardEvent): KeyContext {
     refuse: (message) => (hint = message),
     setMode: (next) => (mode = next),
     toggleLock: () => (locked = !locked),
-    toggleCoordinates: () => (coordinates = !coordinates),
+    toggleCoordinates: () => setCoordinates(!coordinates),
     zoomIn: () => toolbar?.zoomIn(),
     zoomOut: () => toolbar?.zoomOut(),
     fit: () => toolbar?.fit(),
@@ -559,6 +595,7 @@ function onkeydowncapture(event: KeyboardEvent) {
       edges={[]}
       {nodeTypes}
       minZoom={0.05}
+      maxZoom={256}
       {translateExtent}
       {...snapping}
       elevateNodesOnSelect={false}
@@ -606,11 +643,12 @@ function onkeydowncapture(event: KeyboardEvent) {
         {/if}
       {/if}
       <SnapGuides {guides} zoom={viewport.zoom} />
+      <CoordinateMarks {marks} />
       <CanvasToolbar
         bind:this={toolbar}
         bind:locked
         bind:marquee
-        bind:coordinates
+        bind:coordinates={() => coordinates, setCoordinates}
         lockable={rules.lock}
       />
     </SvelteFlow>
@@ -623,9 +661,8 @@ function onkeydowncapture(event: KeyboardEvent) {
   {/await}
   {#if reading !== null && flag !== null}
     <CoordinateFlag
-      timestamp={reading.timestamp}
+      timestamp={reading.pin.timestamp}
       hovered={reading.hit.map?.id ?? null}
-      footer={flag.footer}
       x={flag.x}
       y={flag.y}
       top={flag.top}

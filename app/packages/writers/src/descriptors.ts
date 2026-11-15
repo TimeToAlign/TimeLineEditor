@@ -13,7 +13,7 @@ import type {
   PathCommand,
   Point,
 } from "@timetoalign/tilie-layout";
-import { brace, lineGeometry } from "@timetoalign/tilie-layout";
+import { brace, lineGeometry, wedgePoints } from "@timetoalign/tilie-layout";
 import { formatNumber } from "./page.ts";
 import type { DescriptorSource } from "./source.ts";
 
@@ -309,21 +309,8 @@ function elementDescriptors(element: DrawnElement, index: number): Descriptor[] 
         ...[...line.start, ...line.end].map((mark) => markDescriptor(mark, writer)),
       ];
     }
-    case "wedge": {
-      const half = element.base / 2;
-      const { x, yt, yb } = element;
-      return [
-        writer.points(
-          "polygon",
-          [
-            [x, yt],
-            [x - half, yb],
-            [x + half, yb],
-          ],
-          filled,
-        ),
-      ];
-    }
+    case "wedge":
+      return [writer.points("polygon", wedgePoints(element), filled)];
     case "map": {
       const { xs, xe, yc } = element;
       const half = element.spacing / 2;
@@ -354,6 +341,7 @@ function elementDescriptors(element: DrawnElement, index: number): Descriptor[] 
     }
     case "flow_marker":
     case "boundary":
+    case "cross_section":
       return [writer.line(element.x, element.y1, element.x, element.y2)];
     case "name":
     case "label":

@@ -11,7 +11,12 @@ import { jsonEqual } from "../json.ts";
 import type { EntryKind, EntryTypes } from "../manifest/files.ts";
 import { ENTRY_LISTS } from "../manifest/files.ts";
 import type { Located } from "../manifest/tree.ts";
-import type { ChildTimeline, Manifest, TimelineManifest } from "../manifest/types.ts";
+import type {
+  ChildTimeline,
+  Manifest,
+  NamedTimestamp,
+  TimelineManifest,
+} from "../manifest/types.ts";
 import type { Address } from "../workspace/address.ts";
 import type { Block, BlockId } from "../workspace/blocks.ts";
 import type { View } from "../workspace/view.ts";
@@ -204,6 +209,17 @@ export function withEntryAdded<K extends EntryKind>(
 ): TimelineManifest {
   const list = ENTRY_LISTS[kind];
   return list.replace(timeline, [...list.get(timeline), entry]);
+}
+
+/**
+ * `manifest` with its named timestamps replaced by `timestamps`, its
+ * `graphical` object's other members kept (and created when it has none).
+ */
+export function withTimestamps(
+  manifest: Manifest,
+  timestamps: readonly NamedTimestamp[],
+): Manifest {
+  return { ...manifest, graphical: { ...manifest.graphical, timestamps } };
 }
 
 /** `object` with `key` set to `value`, or without `key` when `value` is undefined. */

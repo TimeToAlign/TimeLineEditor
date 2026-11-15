@@ -231,15 +231,14 @@
   background: #1a1d23;
 }
 
-.tilie-canvas .tilie-coordinates-dot {
+/*
+ * The wedge and cross-section line of the hovered and the pinned position,
+ * laid over their block's node in its drawing's units.
+ */
+.tilie-canvas .tilie-coordinate-marks {
   position: absolute;
-  width: 9px;
-  height: 9px;
-  margin: -4.5px 0 0 -4.5px;
-  box-sizing: border-box;
-  border-radius: 50%;
-  background: #fff;
-  border: 2px solid #1a1d23;
+  overflow: visible;
+  pointer-events: none;
 }
 
 .tilie-canvas .tilie-coordinates-flag {

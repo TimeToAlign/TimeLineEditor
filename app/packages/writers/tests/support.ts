@@ -242,6 +242,14 @@ export function everything(): Drawing {
       y1: 52,
       y2: 60,
     },
+    {
+      type: "cross_section",
+      address: at("t", "line"),
+      style: style({ stroke: "#1BA1E2", "stroke-dasharray": "3 3" }),
+      x: 70,
+      y1: 56,
+      y2: 34,
+    },
     { type: "wedge", address: at("c", "start"), style: BLACK, x: 52, yt: 57.5, yb: 70.5, base: 6 },
     {
       type: "label",

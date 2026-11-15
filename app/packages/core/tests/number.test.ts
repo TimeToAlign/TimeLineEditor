@@ -13,7 +13,7 @@ import {
   subtractCoordinates,
   toAxisValue,
 } from "../src/number/coordinate.ts";
-import { positiveDecimal, Rational, roundHalfEven } from "../src/number/rational.ts";
+import { Rational, roundHalfEven } from "../src/number/rational.ts";
 import {
   addReal,
   compareReal,
@@ -316,22 +316,6 @@ describe("one rounding to an integer, half to even", () => {
   it("refuses a denominator that is not positive", () => {
     expect(() => roundHalfEven(1n, 0n)).toThrow(RangeError);
     expect(() => roundHalfEven(1n, -2n)).toThrow(RangeError);
-  });
-});
-
-describe("positive decimal text", () => {
-  it("reads the exact value it spells", () => {
-    expect(["0.2", "1", "007.50"].map((text) => positiveDecimal(text)?.toString())).toEqual([
-      "1/5",
-      "1",
-      "15/2",
-    ]);
-  });
-
-  it("reads nothing from any other text", () => {
-    for (const text of ["0", "0.0", ".5", "1.", "1e-3", "-1", " 1", ""]) {
-      expect(positiveDecimal(text)).toBeUndefined();
-    }
   });
 });
 

@@ -6,6 +6,7 @@
  */
 import type { Block, Store } from "@timetoalign/tilie-core";
 import { unknownKeys } from "@timetoalign/tilie-core";
+import FormatSwitch from "./FormatSwitch.svelte";
 import { FORMAT_LABELS, FORMATS } from "./formats.svelte.ts";
 import type { ManifestText } from "./manifestText.svelte.ts";
 import { manifestOf } from "./manifestText.ts";
@@ -41,25 +42,13 @@ function onTextKey(event: KeyboardEvent): void {
 </script>
 
 <div class="options">
-  <div
-    class="formats"
-    role="radiogroup"
-    aria-label="Manifest format"
-    aria-describedby={manifest.dirty ? `${uid}-switch-hint` : undefined}
-  >
-    {#each FORMATS as item (item)}
-      <label class={["segment", { checked: manifest.format === item }]}>
-        <input
-          type="radio"
-          name="{uid}-format"
-          value={item}
-          bind:group={manifest.format}
-          disabled={manifest.dirty}
-        />
-        {FORMAT_LABELS[item]}
-      </label>
-    {/each}
-  </div>
+  <FormatSwitch
+    options={FORMATS.map((value) => ({ value, label: FORMAT_LABELS[value] }))}
+    bind:value={manifest.format}
+    label="Manifest format"
+    disabled={manifest.dirty}
+    describedby={manifest.dirty ? `${uid}-switch-hint` : undefined}
+  />
   <div class="toggles">
     <label>
       <input
@@ -146,59 +135,6 @@ function onTextKey(event: KeyboardEvent): void {
     align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
-  }
-
-  .formats {
-    display: inline-flex;
-    border: 1px solid #b0b0b0;
-    border-radius: 4px;
-    overflow: hidden;
-  }
-
-  .segment {
-    position: relative;
-    padding: 0.15rem 0.5rem;
-    cursor: pointer;
-  }
-
-  .segment + .segment {
-    border-left: 1px solid #b0b0b0;
-  }
-
-  .segment.checked {
-    background: #1a1a1a;
-    color: #fff;
-  }
-
-  /* The radio itself is invisible but stays focusable; the segment shows its state. */
-  .segment input {
-    position: absolute;
-    opacity: 0;
-    inset: 0;
-    margin: 0;
-    cursor: inherit;
-  }
-
-  .segment:has(input:focus-visible) {
-    outline: 2px solid #0a84ff;
-    outline-offset: -2px;
-  }
-
-  /* Disabled while the text holds an edit: greyed like the checkboxes beside
-     it, the checked format still filled. */
-  .formats:has(input:disabled),
-  .formats:has(input:disabled) .segment + .segment {
-    border-color: #d0d0d0;
-  }
-
-  .segment:has(input:disabled) {
-    color: #595959;
-    cursor: not-allowed;
-  }
-
-  .segment.checked:has(input:disabled) {
-    background: #595959;
-    color: #fff;
   }
 
   .toggles {

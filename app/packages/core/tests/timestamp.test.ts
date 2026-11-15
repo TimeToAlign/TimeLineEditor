@@ -2,22 +2,27 @@
 
 import type { TimeUnit } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
+import { isCommandError } from "../src/errors.ts";
 import type { ConversionMap } from "../src/manifest/types.ts";
 import type {
   KnotsAbsence,
+  Pin,
+  PinRow,
   Timestamp,
   TimestampSegment,
   TimestampSpec,
+  TimestampTimeline,
 } from "../src/maps/timestamp.ts";
 import {
   measureText,
   missingValueText,
+  pinAt,
+  positionFor,
   timestampAt,
-  timestampGrid,
   timestampPlace,
 } from "../src/maps/timestamp.ts";
 import { Rational } from "../src/number/rational.ts";
-import { DEFAULT_GRANULARITY } from "../src/workspace/view.ts";
+import type { Granularity } from "../src/workspace/view.ts";
 
 const q = (n: number, d = 1) => Rational.fromParts(BigInt(n), BigInt(d));
 
@@ -60,7 +65,7 @@ function segment(
   };
 }
 
-const STEP = q(1, 2);
+const GRANULARITY: Granularity = { denominator: 2520, decimals: 3 };
 const A = segment("A", 0, 8, [
   linear("A_tempo", "Tempo", [1, 2], 0, "seconds"),
   linear("A_samples", "Samples", 22050, 0, "samples"),
@@ -77,12 +82,13 @@ const C = segment("C", 20, 12, [
 ]);
 const FORM: TimestampSpec = {
   block: "0000000000",
-  step: STEP,
+  granularity: GRANULARITY,
   line: {
     timeline: "form",
     name: "Form",
     unit: "quarters",
     numberType: "fraction",
+    length: q(32),
     maps: [linear("form_ticks", "Ticks", 480, 0, "ticks")],
   },
   segments: [A, B, C],
@@ -106,12 +112,12 @@ function readout(timestamp: Timestamp): unknown[] {
 describe("a timestamp on a segment line", () => {
   it("reads the line, then the segment under the position counted from its start", () => {
     const timestamp = timestampAt(FORM, q(27, 2));
-    expect([timestamp.block, timestamp.timeline, timestamp.step]).toEqual([
+    expect([timestamp.block, timestamp.timeline, timestamp.granularity]).toEqual([
       "0000000000",
       "form",
-      STEP,
+      GRANULARITY,
     ]);
-    expect(timestamp.step).toBe(STEP);
+    expect(timestamp.granularity).toBe(GRANULARITY);
     expect(readout(timestamp)).toEqual([
       ["form", false, q(27, 2), [["form_ticks", 6480n]]],
       [
@@ -203,12 +209,13 @@ describe("a timestamp on a line without segments", () => {
     const timestamp = timestampAt(
       {
         block: "0000000001",
-        step: q(1),
+        granularity: GRANULARITY,
         line: {
           timeline: "cons",
           name: "Consequent",
           unit: "quarters",
           numberType: "fraction",
+          length: q(8),
           maps: [
             linear("cons_tempo", "Tempo", [3, 5], [-2, 5], "seconds"),
             linear("cons_ticks", "Ticks", 480, 0, "ticks"),
@@ -235,12 +242,13 @@ describe("a timestamp on a line without segments", () => {
     const float = timestampAt(
       {
         block: "0000000000",
-        step: q(1, 10),
+        granularity: GRANULARITY,
         line: {
           timeline: "recording",
           name: "Recording",
           unit: "seconds",
           numberType: "float",
+          length: q(10),
           maps: [linear("recording_samples", null, 44100, 0, "samples", "seconds")],
         },
         segments: [],
@@ -250,12 +258,13 @@ describe("a timestamp on a line without segments", () => {
     const int = timestampAt(
       {
         block: "0000000000",
-        step: q(1),
+        granularity: GRANULARITY,
         line: {
           timeline: "video",
           name: "Video",
           unit: "frames",
           numberType: "int",
+          length: q(100),
           maps: [linear("video_seconds", null, [1, 25], 0, "seconds", "frames")],
         },
         segments: [],
@@ -293,12 +302,13 @@ describe("a timestamp on a line without segments", () => {
     const ticks = linear("ticks", null, 480, 0, "ticks");
     const spec: TimestampSpec = {
       block: "0000000000",
-      step: q(1),
+      granularity: GRANULARITY,
       line: {
         timeline: "score",
         name: "score",
         unit: "quarters",
         numberType: "fraction",
+        length: q(16),
         maps: [pieces, bars, ticks],
       },
       segments: [],
@@ -318,17 +328,15 @@ describe("a timestamp on a line without segments", () => {
 });
 
 describe("the texts of a timestamp", () => {
-  it("names its place by the line's name and coordinate, and its grid by the line's axis", () => {
-    const timestamp = timestampAt(FORM, q(27, 2));
-    expect(timestampPlace(timestamp)).toBe("Form at 13 1/2 ♩");
-    const grid = timestampGrid(timestamp, DEFAULT_GRANULARITY);
-    expect(grid).toEqual({
-      step: FORM.step,
-      numberType: "fraction",
-      unit: "quarters",
-      granularity: DEFAULT_GRANULARITY,
-    });
-    expect(grid.step).toBe(FORM.step);
+  it("names its place by the line's name and coordinate, a float in the granularity's places", () => {
+    expect(timestampPlace(timestampAt(FORM, q(27, 2)))).toBe("Form at 13 1/2 ♩");
+    const recording: TimestampSpec = {
+      block: "0000000000",
+      granularity: { denominator: 2520, decimals: 1 },
+      line: line("recording", "Recording", "seconds", "float", 10, []),
+      segments: [],
+    };
+    expect(timestampPlace(timestampAt(recording, q(1234, 10000)))).toBe("Recording at 0.1 s");
   });
 
   it("shows a measure by its name, else its number, else its count", () => {
@@ -364,5 +372,131 @@ describe("the texts of a timestamp", () => {
       "waiting for the server",
       "the server did not expand its measure map",
     ]);
+  });
+});
+
+function line(
+  timeline: string,
+  name: string,
+  unit: TimeUnit,
+  numberType: TimestampTimeline["numberType"],
+  length: number,
+  maps: readonly ConversionMap[],
+): TimestampTimeline {
+  return { timeline, name, unit, numberType, length: q(length), maps };
+}
+
+/** A pin of `spec` at `position`, read without a server, unnamed. */
+function pinOf(spec: TimestampSpec, position: Rational): Pin {
+  return { spec, knots: "no_server", timestamp: timestampAt(spec, position), named: null };
+}
+
+const LINE: PinRow = { part: "line", map: null };
+const SEGMENT: PinRow = { part: "segment", map: null };
+
+describe("a pin", () => {
+  const pin = pinOf(FORM, q(27, 2));
+
+  it("moves to a position, its timestamp read anew", () => {
+    const moved = pinAt(pin, q(8));
+    expect([moved.spec, moved.knots, moved.named]).toEqual([FORM, "no_server", null]);
+    expect(moved.spec).toBe(pin.spec);
+    expect(moved.timestamp).toEqual(timestampAt(FORM, q(8)));
+  });
+
+  it("takes the line's and the segment's coordinate exactly", () => {
+    expect([
+      positionFor(pin, LINE, q(10)),
+      positionFor(pin, LINE, q(1, 7)),
+      positionFor(pin, SEGMENT, q(5, 2)),
+    ]).toEqual([q(10), q(1, 7), q(21, 2)]);
+  });
+
+  it("inverts a map of the line and of the segment", () => {
+    expect(positionFor(pin, { part: "line", map: "form_ticks" }, q(6480))).toEqual(q(27, 2));
+    expect(positionFor(pin, { part: "segment", map: "B_tempo" }, q(119, 16))).toEqual(q(27, 2));
+  });
+
+  it("settles a float inverse on a fraction line, any inverse on an int line", () => {
+    const fraction = pinOf(
+      {
+        block: "0000000000",
+        granularity: GRANULARITY,
+        line: line("f", "F", "quarters", "fraction", 32, [
+          linear("f_seconds", null, 0.3, 0, "seconds"),
+        ]),
+        segments: [],
+      },
+      q(0),
+    );
+    expect(positionFor(fraction, { part: "line", map: "f_seconds" }, q(1))).toEqual(q(10, 3));
+    const video = pinOf(
+      {
+        block: "0000000000",
+        granularity: GRANULARITY,
+        line: line("video", "Video", "frames", "int", 100, [
+          linear("video_seconds", null, [1, 25], 0, "seconds", "frames"),
+        ]),
+        segments: [],
+      },
+      q(0),
+    );
+    expect(positionFor(video, { part: "line", map: "video_seconds" }, q(101, 50))).toEqual(q(51));
+    const recording = pinOf(
+      {
+        block: "0000000000",
+        granularity: GRANULARITY,
+        line: line("recording", "Recording", "seconds", "float", 10, [
+          linear("recording_samples", null, 44100, 0, "samples", "seconds"),
+        ]),
+        segments: [],
+      },
+      q(0),
+    );
+    expect(positionFor(recording, { part: "line", map: "recording_samples" }, q(4410))).toEqual(
+      q(1, 10),
+    );
+  });
+
+  it("refuses a value outside its part, a map it cannot invert and a row it does not show", () => {
+    const fixed: ConversionMap = {
+      type: "ConstantMap",
+      id: "fixed",
+      name: null,
+      source_unit: "quarters",
+      target_unit: "seconds",
+      value: 3,
+    };
+    const withFixed = pinOf({ ...FORM, line: { ...FORM.line, maps: [fixed] } }, q(27, 2));
+    const child = pinOf(
+      {
+        block: "0000000000",
+        granularity: GRANULARITY,
+        line: line("cons", "Consequent", "quarters", "fraction", 8, []),
+        segments: [],
+      },
+      q(2),
+    );
+    const refusals = [
+      positionFor(pin, LINE, q(33)),
+      positionFor(pin, LINE, q(-1)),
+      positionFor(pin, SEGMENT, q(13)),
+      positionFor(pin, { part: "line", map: "form_ticks" }, q(19200)),
+      positionFor(withFixed, { part: "line", map: "fixed" }, q(3)),
+      positionFor(pin, { part: "line", map: "nope" }, q(3)),
+      positionFor(child, SEGMENT, q(1)),
+    ];
+    expect(refusals.every((refusal) => isCommandError(refusal))).toBe(true);
+    expect(refusals).toEqual(
+      [
+        "33 lies outside 'form' (0 to 32)",
+        "-1 lies outside 'form' (0 to 32)",
+        "13 lies outside 'B' (0 to 12)",
+        "40 lies outside 'form' (0 to 32)",
+        "no position on 'form' gives 3",
+        "'form' shows no map 'nope'",
+        "the timestamp shows no segment",
+      ].map((message) => ({ code: "invalid_value", message, path: [] })),
+    );
   });
 });

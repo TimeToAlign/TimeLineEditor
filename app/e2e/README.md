@@ -663,29 +663,40 @@ values the arranger's unit tests pin) placed where the arranger puts the
 block's node for the fixture's drawing: `melody` (8 quarters, fraction)
 at y 40.5 from 63.53662109375, 50 canvas units a quarter, its map
 `tempo` (×1/2 to seconds) at y 35, its child `phrase` at y 23 with
-`ticks` (×480 to ticks). The flag (`coordinate-flag`) writes each value
-in core's display text with its unit's symbol (the drawing
-specification's `♩`, `s`, `ticks`) and a footer naming the grid: at
-`xStart + 123.75` on `melody` the default fraction grid steps by 1/32, so
-the coordinate reads `2 15/32 ♩`, `tempo` `1.234 s` (1.234375 to three
-places) and the footer `grid 1/32 ♩ (fraction base 1, refining) · click
-to pin`; at `xStart + 200` `4 ♩` and `2.0 s`; the same abscissa on
-`tempo`'s drawing still reads `melody` at 4 with `tempo`'s row
-highlighted (`data-hovered`); 30 below the line nothing is within 8
-pixels and there is no flag; on `phrase` at 263.53662109375 `2 ♩` with
-`ticks` 960 and no `tempo` row. C toggles the flag. A click on a line pins
-the reading: the Timestamp tab is selected and shows the pinned heading
-(`timestamp-where`), and the journal keeps its length; a click on the
-empty pane clears the pin and selects Properties, the tab shown before.
-In the Timestamp tab's "Fractions" group, typing 5 as the denominator
-and unchecking "Refine when zooming" sets the workspace's fraction
-granularity to `{denominator: 5, refine: false}` without a journal entry
-and drops the pinned timestamp (read under the old grid), Timestamp
-staying selected; the same abscissa then reads `2 2/5 ♩` (12.375 steps of
-1/5 → 12/5) with the footer `grid 1/5 ♩ (fraction base 1/5, fixed) ·
-click to pin`, and
-the setting survives `text()` and `load` of the saved workspace, still
-without a journal entry.
+`ticks` (×480 to ticks). Half a device pixel is then 0.01 quarters, and
+the default granularity (denominator 2520, 3 decimals) picks the
+simplest fraction within it. The flag (`coordinate-flag`) writes each
+value in core's display text with its unit's symbol (the drawing
+specification's `♩`, `s`, `ticks`) and the footer `click to pin`: at
+`xStart + 123.75` on `melody` (2.475 quarters; divisors 1 to 14 miss, 15
+gives 37/15) the coordinate reads `2 7/15 ♩` and `tempo` `1.233 s`
+(37/30 to three places), with one hovered wedge and one hovered
+cross-section line; at `xStart + 200` `4 ♩` and `2.0 s`; the same
+abscissa on `tempo`'s drawing still reads `melody` at 4 with `tempo`'s
+row highlighted (`data-hovered`); 30 below the line nothing is within 8
+pixels: no flag and no marks; on `phrase` at 263.53662109375 `2 ♩` with
+`ticks` 960 and no `tempo` row. C toggles the flag. A click on a line
+pins the reading: the Timestamp tab is selected and shows the pinned
+place (`timestamp-where`), the pinned wedge and line stay when the
+pointer leaves, and the journal keeps its length; a click on the empty
+pane clears the pin and its marks and selects Properties, the tab shown
+before. In the Timestamp pane, `4` typed as "coordinate of Melody" moves
+the pin there (`Tempo of Melody` `2.0`), nothing journalled, while "Show
+cross-section line" is disabled; the name `Four` and Enter then journal
+exactly `{type: "add", into: {block: "map0000000", id: "melody"},
+timestamp: {name: "Four", coordinate: [4, 1]}}`, the pane shows Delete
+and the box checked and enabled, the pinned marks are gone and the named
+timestamp `timestamp_1` is drawn as an element. The pane's settings line
+shows "Denominator" 2520 and "Decimals" 3; typing 4 as the denominator
+sets `settings.granularity` to `{denominator: 4, decimals: 3}` without a
+journal entry, and the same abscissa then reads `2 1/2 ♩` (divisors 1, 2
+and 4 miss; the nearest multiple of 1/4 is 5/2); typing 0 marks the field
+invalid and changes nothing. A named timestamp added at 4 on `melody`
+lets the pointer through while Show coordinates is on (a click on it
+selects nothing of it); with Show coordinates off a click on its wedge,
+its label or its line selects exactly `{block: "map0000000", id:
+"timestamp_1"}` and shows it in the Timestamp pane (Name "Four",
+coordinate `4`, Delete), and hovering shows no flag and no marks.
 
 **`budget.spec.ts`** (`@budget`, Chromium only) measures script time with
 `grid-300` at viewport (20, 20), all nodes mounted: `ScriptDuration` from

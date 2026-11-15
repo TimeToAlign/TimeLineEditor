@@ -201,7 +201,7 @@ describe("graphical styles", () => {
     expect(saveManifest(manifest)).toBe(text);
     // Every key stays where the text wrote it: a number made a double keeps its place.
     const { graphical } = manifest;
-    expect(Object.keys(graphical ?? {})).toEqual(["order", "statements", "styles"]);
+    expect(Object.keys(graphical ?? {})).toEqual(["order", "statements", "styles", "timestamps"]);
     const jump = graphical?.statements?.find(
       (statement) => statement.select.element === "jump_from",
     );

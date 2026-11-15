@@ -1,9 +1,10 @@
 /**
  * `add`: what each kind of target takes (`ADDABLE`) and how each thing is
  * put in. A block goes into the workspace; a root timeline, a group or a
- * measure map into a block's manifest; a child, map, region or flow-control
- * element into a timeline. The value carries its ID: a block's taken by no
- * block of the workspace, any other's by no element of the manifest.
+ * measure map into a block's manifest; a child, map, region, flow-control
+ * element or named timestamp into a timeline. The value carries its ID: a
+ * block's taken by no block of the workspace, any other's by no element of
+ * the manifest; a named timestamp alone is given the next free ID.
  * Whatever has a default may be left out, `settle` writing it out. A
  * problem of the value lies at `[<address key of into>, <kind>, …]`, one of
  * the manifest the command would leave at `[<block id>, "manifest", …]`.
@@ -27,16 +28,29 @@ import {
 } from "../manifest/io.ts";
 import { statedLockProblem, withPlaceLocks } from "../manifest/locks.ts";
 import type { Group, MeasureMap, TimelineManifest } from "../manifest/types.ts";
-import { readObject, readPlaces, unknownMember } from "../values.ts";
+import { readName, readObject, readPlaces, unknownMember } from "../values.ts";
 import { idPath, inBlock, manifestIds, WORKSPACE } from "../workspace/address.ts";
 import type { Block } from "../workspace/blocks.ts";
 import { BLOCK_ID } from "../workspace/blocks.ts";
+import { nextId, TIMESTAMP_PREFIX } from "../workspace/ids.ts";
 import { indexBetween } from "../workspace/order.ts";
 import type { View } from "../workspace/view.ts";
 import { placeProblems } from "../workspace/view.ts";
 import type { ChangeSet } from "./mutations.ts";
-import { emptyChanges, record, withBlock, withEntryAdded, withTimeline } from "./mutations.ts";
-import { BLOCK_PROPERTIES, readBlockManifest, setProperty } from "./set.ts";
+import {
+  emptyChanges,
+  record,
+  withBlock,
+  withEntryAdded,
+  withTimeline,
+  withTimestamps,
+} from "./mutations.ts";
+import {
+  BLOCK_PROPERTIES,
+  readBlockManifest,
+  readTimestampCoordinate,
+  setProperty,
+} from "./set.ts";
 import { withSegmentLinesCovered } from "./settle.ts";
 import type { BlockTarget, TargetKind, TimelineTarget } from "./targets.ts";
 import { targetOf } from "./targets.ts";
@@ -44,7 +58,7 @@ import { placeChild } from "./topology.ts";
 import type { AddCommand, AddKind, Command } from "./types.ts";
 import { ADD_KINDS } from "./types.ts";
 
-const INTO_TIMELINE: readonly AddKind[] = ["child", ...ENTRY_KINDS];
+const INTO_TIMELINE: readonly AddKind[] = ["child", ...ENTRY_KINDS, "timestamp"];
 
 /** What `add` puts into each kind of target. */
 export const ADDABLE: { readonly [kind in TargetKind]: readonly AddKind[] } = {
@@ -57,6 +71,7 @@ export const ADDABLE: { readonly [kind in TargetKind]: readonly AddKind[] } = {
   map: [],
   region: [],
   flow_control: [],
+  timestamp: [],
 };
 
 const BLOCK_VALUE = ["id", "manifest", "places", ...BLOCK_PROPERTIES];
@@ -359,7 +374,7 @@ function addElement(
     const where = [block.id, "manifest", ...at.path, "children", timeline.children.length];
     const placed = readTimeline(child, timeline, block.manifest.measure_maps, ids, where, path);
     if (isCommandError(placed)) return placed;
-    changed = placeChild(at, placed, on, path);
+    changed = placeChild(block.manifest, at, placed, on, path);
   } else {
     const entry = readEntry(
       kind,
@@ -376,6 +391,49 @@ function addElement(
   if (isCommandError(changed)) return changed;
   record(changes, path, block.id, true);
   return withTimeline(view, block, at, changed);
+}
+
+/** The members of a named timestamp `add` is given; its ID is minted and its timeline is the target. */
+const TIMESTAMP_VALUE = ["name", "coordinate"];
+
+/**
+ * Add a named timestamp into a timeline: `{name, coordinate}`, both
+ * required (`invalid_value`), nothing else (`unknown_property`); the name
+ * non-empty, the coordinate on the timeline's own axis within it
+ * (`readTimestampCoordinate`). It is given the smallest free
+ * `timestamp_N` of the manifest and written into its `graphical` object's
+ * `timestamps`, which `settle` puts in canonical order.
+ */
+function addTimestamp(
+  view: View,
+  target: TimelineTarget,
+  value: unknown,
+  changes: ChangeSet,
+): View | CommandError {
+  const path = [addressKey(target.address), "timestamp"];
+  const object = readObject(value, path);
+  if (isCommandError(object)) return object;
+  const extra = unknownMember(object, TIMESTAMP_VALUE, path, ErrorCode.unknownProperty);
+  if (extra !== undefined) return extra;
+  for (const member of TIMESTAMP_VALUE) {
+    if (!Object.hasOwn(object, member)) {
+      return problem(ErrorCode.invalidValue, `a new timestamp needs ${member}`, [...path, member]);
+    }
+  }
+  const name = readName(object.name, [...path, "name"]);
+  if (isCommandError(name)) return name;
+  const { block, at } = target;
+  const coordinate = readTimestampCoordinate(object.coordinate, at.timeline, [
+    ...path,
+    "coordinate",
+  ]);
+  if (isCommandError(coordinate)) return coordinate;
+  const { manifest } = block;
+  const id = nextId(TIMESTAMP_PREFIX, manifestIds(manifest));
+  const timestamp = { id, timeline: at.timeline.id, coordinate, name };
+  const timestamps = [...(manifest.graphical?.timestamps ?? []), timestamp];
+  record(changes, path, block.id, true);
+  return withBlock(view, { ...block, manifest: withTimestamps(manifest, timestamps) });
 }
 
 function isEntryKind(kind: AddKind): kind is EntryKind {
@@ -399,6 +457,7 @@ export function applyAdd(view: View, command: AddCommand, changes: ChangeSet): V
         return addTimeline(view, target, value, changes);
       case "root":
       case "child":
+        if (kind === "timestamp") return addTimestamp(view, target, value, changes);
         if (kind === "child" || isEntryKind(kind)) {
           return addElement(view, target, kind, value, changes);
         }

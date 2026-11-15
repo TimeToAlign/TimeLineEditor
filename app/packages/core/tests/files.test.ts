@@ -520,6 +520,7 @@ describe("commands in blocks of several roots", () => {
         { select: { element: "card", inside: "frame" }, set: { rx: 2, shadow: "#C4B5FD" } },
         { select: { element: "ancestor" }, set: { opacity: 0.5 } },
       ],
+      timestamps: [],
     });
   });
 

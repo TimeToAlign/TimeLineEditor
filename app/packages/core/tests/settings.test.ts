@@ -80,11 +80,12 @@ describe("workspace settings", () => {
       after.blockDefaults === before.blockDefaults,
       after.granularity === before.granularity,
     ]).toEqual([false, true, true]);
-    expect(store.configure({ granularity: { int: { step: 2, refine: true } } })).toBeNull();
+    expect(store.configure({ granularity: { decimals: 6 } })).toBeNull();
     expect([
       store.view.settings.grid === after.grid,
       store.view.settings.granularity === after.granularity,
     ]).toEqual([true, false]);
+    expect(store.view.settings.granularity).toEqual({ denominator: 2520, decimals: 6 });
   });
 
   it("journals the workspace's graphical, and undoes it", () => {
@@ -164,23 +165,25 @@ describe("workspace settings", () => {
   type Refused = [SettingsChange, string, readonly (string | number)[]];
   it.each<Refused>([
     [{ grid: { size: 0 } }, "non_positive_number", ["settings", "grid", "size"]],
-    [
-      { granularity: { fraction: { denominator: 1.5, refine: true } } },
-      "invalid_value",
-      ["settings", "granularity", "fraction", "denominator"],
-    ],
-    ...["0", "-1", "1e-3", ".5"].map(
-      (step): Refused => [
-        { granularity: { float: { step, refine: true } } },
+    ...[1.5, 2 ** 53].map(
+      (denominator): Refused => [
+        { granularity: { denominator } },
         "invalid_value",
-        ["settings", "granularity", "float", "step"],
+        ["settings", "granularity", "denominator"],
       ],
     ),
     [
-      { granularity: { int: { step: 0, refine: true } } },
+      { granularity: { denominator: 0 } },
       "non_positive_number",
-      ["settings", "granularity", "int", "step"],
+      ["settings", "granularity", "denominator"],
     ],
+    ...[-1, 16, 1.5].map(
+      (decimals): Refused => [
+        { granularity: { decimals } },
+        "invalid_value",
+        ["settings", "granularity", "decimals"],
+      ],
+    ),
   ])("refuses %j with %s at its path", (change, code, path) => {
     const { store } = threeEntries();
     const view = store.view;
@@ -211,8 +214,10 @@ describe("workspace settings", () => {
     expect(store.open({ block: A })).toBeNull();
     expect(store.dispatch(move(A, 24))).toBeNull();
     const entries = store.entries;
-    expect(store.configure({ granularity: { float: { step: "0.2", refine: false } } })).toBeNull();
+    expect(store.configure({ granularity: { denominator: 5, decimals: 0 } })).toBeNull();
     expect(store.entries).toEqual(entries);
-    expect(store.view.settings.granularity.float).toEqual({ step: "0.2", refine: false });
+    expect(store.view.settings.granularity).toEqual({ denominator: 5, decimals: 0 });
+    expect(store.configure({ granularity: { decimals: 15 } })).toBeNull();
+    expect(store.view.settings.granularity).toEqual({ denominator: 5, decimals: 15 });
   });
 });

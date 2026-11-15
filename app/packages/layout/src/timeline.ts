@@ -13,7 +13,7 @@
  * `children.ts` and `slots.ts`; this module never places a child.
  */
 
-import { bandOrderOf, FACETS, type Facet } from "@timetoalign/tilie-core";
+import { bandOrderOf, FACETS, type Facet, LINE } from "@timetoalign/tilie-core";
 import type { Real } from "@timetoalign/tilie-core/numbers";
 import {
   bandSides,
@@ -23,6 +23,7 @@ import {
   type JointSpans,
   type LaidBand,
   type LineElements,
+  type LineMarker,
   type LinePosition,
   levelsOf,
   opposite,
@@ -34,7 +35,7 @@ import { type Extent, widen } from "./fit.ts";
 import { flowControlBand } from "./flow.ts";
 import { type LevelZero, levelZero } from "./line.ts";
 import { conversionMapsBand, drawMaps, type MapMember, mapMembers, type Slots } from "./maps.ts";
-import { markersBand } from "./markers.ts";
+import { crossSectionElement, type MarkersBand, markersBand, wedgeElement } from "./markers.ts";
 import { regionsBand } from "./regions.ts";
 import type { Entry, Scope } from "./traversal.ts";
 
@@ -49,6 +50,8 @@ export interface PreparedTimeline {
   readonly sides: Readonly<Record<Facet, Side>>;
   /** Its five bands, present or not; the children and conversion maps bands without their widths. */
   readonly bands: Readonly<Record<Facet, PreparedBand>>;
+  /** Its markers band, `bands.markers`, with the cross-section lines it holds. */
+  readonly markers: MarkersBand;
   /** The facets of its present bands on each side, from level 1 or −1 outwards (section 6.4, Levels). */
   readonly levels: Readonly<Record<Side, readonly Facet[]>>;
   /**
@@ -83,6 +86,8 @@ export interface LinePlace {
   readonly x0: number;
   /** The ordinate `yl` of its line, in item coordinates. */
   readonly y: number;
+  /** The ordinate `y_root` of the member drawing's root line, in item coordinates. */
+  readonly root: number;
   /** The name size `s` of the row its line lies in (section 6.2): the root's own name size for the root. */
   readonly size: number;
   /** The member drawing's top, in item coordinates (section 8.4). */
@@ -241,10 +246,11 @@ export function prepareTimeline(scope: Scope, line: Entry): PreparedTimeline {
     ),
   );
   const maps = mapMembers(scope, sources);
+  const markers = markersBand(scope, line, sources);
   const bands: Record<Facet, PreparedBand> = {
     children: childrenBand(children),
     conversion_maps: conversionMapsBand(maps),
-    markers: markersBand(scope, line, sources),
+    markers,
     regions: regionsBand(scope, sources),
     flow_control: flowControlBand(scope, sources),
   };
@@ -259,6 +265,7 @@ export function prepareTimeline(scope: Scope, line: Entry): PreparedTimeline {
     order,
     sides: bandSides(order),
     bands,
+    markers,
     levels,
     children,
     maps,
@@ -326,7 +333,35 @@ function mergeLineElements(parts: readonly Partial<LineElements>[]): LineElement
     regionLabels: parts.flatMap((part) => part.regionLabels ?? []),
     jumpLabels: parts.flatMap((part) => part.jumpLabels ?? []),
     flowMarkerLabels: parts.flatMap((part) => part.flowMarkerLabels ?? []),
+    crossSections: parts.flatMap((part) => part.crossSections ?? []),
+    markers: parts.flatMap((part) => part.markers ?? []),
   };
+}
+
+/**
+ * The start of the markers band of `prepared` on its side (section 6.4,
+ * Where a band lies), `laid` the present bands of that side in level order,
+ * `reach` the line's reach there and `w` its stroke width: the band's own
+ * start when it is present, else the start `bandStart` would give it after
+ * the present bands its band order lists between the line and it, as an
+ * editor's mark at a position no named timestamp holds is drawn
+ * (`DrawnAxis.marker`).
+ */
+function markersStart(
+  prepared: PreparedTimeline,
+  laid: readonly LaidBand[],
+  reach: number,
+  w: number,
+): number {
+  const own = laid.find((band) => band.facet === "markers");
+  if (own !== undefined) return own.start;
+  const { order, sides, scope } = prepared;
+  const line = order.indexOf(LINE);
+  const outwards =
+    sides.markers === "above" ? order.slice(0, line).reverse() : order.slice(line + 1);
+  const nearer = new Set(outwards.slice(0, outwards.indexOf("markers")));
+  const before = laid.filter((band) => nearer.has(band.facet)).at(-1);
+  return bandStart("markers", before?.edge, reach, w, scope.S);
 }
 
 /**
@@ -379,8 +414,26 @@ export function layoutTimeline(
           ? drawMaps(prepared.maps, slots, band.start, band.side, at)
           : bands[band.facet].draw(band.start, band.side, at),
       ),
+      { crossSections: prepared.markers.crossSections(at) },
     ];
-    return mergeLineElements(parts);
+    const merged = mergeLineElements(parts);
+    const [drawnLine] = merged.line;
+    if (drawnLine === undefined) return merged;
+    // Where a wedge and a cross-section line of the line lie, drawn by the code that draws a
+    // named timestamp's, at the abscissa 0.
+    const side = prepared.sides.markers;
+    const start = markersStart(prepared, (side === "above" ? above : below).bands, reach[side], w);
+    const { unnamed } = prepared.markers;
+    const wedge = wedgeElement(drawnLine.address, unnamed.wedge, 0, at, side, start, w);
+    const crossing = crossSectionElement(drawnLine.address, unnamed.crossSection, 0, at);
+    const marker: LineMarker = {
+      line: drawnLine,
+      marker: {
+        wedge: { yt: wedge.yt, yb: wedge.yb, base: wedge.base, style: wedge.style },
+        crossSection: { y1: crossing.y1, y2: crossing.y2, style: crossing.style },
+      },
+    };
+    return { ...merged, markers: [marker] };
   };
 
   return {
@@ -403,7 +456,11 @@ function linePosition(
   place: LinePlace,
 ): LinePosition {
   const { scope, line } = prepared;
-  const { x0, y, size, top, Hc } = place;
+  const { x0, y, size, top, Hc, root } = place;
+  // The card margin `V` above the first row and below the last, inside the padding, counted from
+  // the drawing's top.
+  const near = top + (P + scope.V);
+  const far = top + (Hc - P - scope.V);
   return {
     x0,
     x: (value: Real) => x0 + scope.relativeX(value),
@@ -416,10 +473,11 @@ function linePosition(
       // The root's flow markers run to the card margin of the opposite side, inside the padding,
       // counted from the drawing's top.
       if (line === scope.rootEntry) {
-        return side === "below" ? top + (P + scope.V) : top + (Hc - P - scope.V);
+        return side === "below" ? near : far;
       }
       const mb = Math.max(edges[opposite(side)], scope.h(size) / 2);
       return side === "below" ? y - mb : y + mb;
     },
+    crossSection: line === scope.rootEntry ? [near, far] : y < root ? [y, near] : [y, far],
   };
 }

@@ -259,6 +259,20 @@ export class Cascade {
    * `undefined` for the block (section 2.5).
    */
   resolve(element: ElementKey, parent: Style | undefined): Style {
+    return this.#resolve(element, parent, true);
+  }
+
+  /**
+   * The cascaded style of an element that has no address, such as a position
+   * an editor marks that no named timestamp holds: `resolve` without the
+   * statements whose selector names `addresses`, which select addressed
+   * elements only. `element`'s own address is not compared.
+   */
+  resolveUnaddressed(element: ElementKey, parent: Style | undefined): Style {
+    return this.#resolve(element, parent, false);
+  }
+
+  #resolve(element: ElementKey, parent: Style | undefined, addressed: boolean): Style {
     const candidates = new Set(this.#general);
     if (element.type !== null) {
       for (const statement of this.#byElement.get(element.type) ?? []) candidates.add(statement);
@@ -270,7 +284,7 @@ export class Cascade {
       for (const statement of this.#byFacet.get(element.facet) ?? []) candidates.add(statement);
     }
     // Most layers select no address: the key is written only where one might match.
-    if (this.#byAddress.size > 0) {
+    if (addressed && this.#byAddress.size > 0) {
       for (const statement of this.#byAddress.get(addressKey(element.address)) ?? []) {
         candidates.add(statement);
       }
@@ -278,6 +292,7 @@ export class Cascade {
     const values: StyleValues = {};
     if (parent !== undefined) for (const property of INHERITED) property.set(values, parent);
     for (const statement of [...candidates].sort((left, right) => left.order - right.order)) {
+      if (!addressed && statement.select.addresses !== undefined) continue;
       if (!this.matches(statement.select, element)) continue;
       for (const property of PROPERTIES) property.set(values, statement.set);
     }

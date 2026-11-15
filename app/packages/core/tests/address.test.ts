@@ -148,7 +148,7 @@ describe("the shape of an address", () => {
     // @ts-expect-error A band has no part: its address is no owner.
     partAddress(bandAddress("score", "regions"), "label");
     expect(FACETS).toEqual(["children", "conversion_maps", "markers", "regions", "flow_control"]);
-    expect(PART_WORDS).toEqual(["start", "end", "name", "label", "card"]);
+    expect(PART_WORDS).toEqual(["start", "end", "name", "label", "card", "line"]);
   });
 
   it("puts an element into its block and takes it out again", () => {
@@ -526,9 +526,11 @@ function kindOf(key: ElementKey): ResolvedElement["kind"] {
       return "entry";
     case "name":
       return key.address.id === undefined ? "title" : "part";
-    case "label":
     case "wedge":
+      return key.address.part === undefined ? "timestamp" : "part";
+    case "label":
     case "boundary":
+    case "cross_section":
       return "part";
     default:
       return "timeline";

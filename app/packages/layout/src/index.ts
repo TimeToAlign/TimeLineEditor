@@ -12,10 +12,17 @@
 export const name = "@timetoalign/tilie-layout" as const;
 
 export type { Domain, ElementKey, Modality } from "@timetoalign/tilie-core/drawing";
-export type { LineAxis } from "./axes.ts";
-export { lineAxes } from "./axes.ts";
+export type { CrossSection, LineAxis, WedgeMark } from "./axes.ts";
+export { crossSection, lineAxes, wedgeAt } from "./axes.ts";
 export { draw } from "./block.ts";
-export type { AxisMap, AxisSegment, DrawnAxis, DrawnBox, ElementRange } from "./boxes.ts";
+export type {
+  AxisMap,
+  AxisMarker,
+  AxisSegment,
+  DrawnAxis,
+  DrawnBox,
+  ElementRange,
+} from "./boxes.ts";
 export { coordinateAt } from "./boxes.ts";
 export type { Style } from "./cascade.ts";
 export { Cascade, INITIAL_STYLE } from "./cascade.ts";
@@ -41,6 +48,6 @@ export type {
 } from "./elements.ts";
 export { DEFAULT_PLACEMENT } from "./elements.ts";
 export type { Bounds, Circle, LineGeometry, LineMark } from "./geometry.ts";
-export { boundsOf, brace, lineGeometry } from "./geometry.ts";
+export { boundsOf, brace, lineGeometry, wedgePoints } from "./geometry.ts";
 export { cleanText, TextMeasure } from "./metrics.ts";
 export { times } from "./numbers.ts";

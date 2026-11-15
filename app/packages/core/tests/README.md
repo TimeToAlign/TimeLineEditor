@@ -161,11 +161,7 @@ workspace package does; the editor shell lists the names it links.
    and the sign kept symmetric (5/2 → 2, 7/2 → 4, −5/2 → −2, −7/2 → −4,
    7/3 → 2, −8/3 → −3, 6/1 → 6); a denominator that is not positive is a
    `RangeError`.
-9. **Positive decimal text** (a float step of the granularity) is read as
-   the exact value it spells, by one reader that the settings reader and
-   the grid share: `"0.2"` → 1/5, `"1"` → 1, `"007.50"` → 15/2; `"0"`,
-   `"0.0"`, `".5"`, `"1."`, `"1e-3"`, `"-1"`, `" 1"` and `""` spell none.
-10. **The exact value of a `Real`**: a Rational is returned as it is (the
+9. **The exact value of a `Real`**: a Rational is returned as it is (the
    same object), a float as its exact binary value (0.1 →
    3602879701896397/36028797018963968, −2.5 → −5/2).
 
@@ -498,7 +494,19 @@ check of who holds what.
    `{id: "flow_marker_1"}`, then the `jump_from`s `jump_from_1` and
    `jump_from_2`, each followed by its label); a jump target (`jump_to_1`,
    `jump_to_2`) is no element; in every one-root manifest fixture every
-   address is distinct (compared by `addressKey`).
+   address is distinct (compared by `addressKey`). A named timestamp
+   (`timestamps.json`) is a `wedge` `{id: "timestamp_N"}` with its label
+   `{id, part: ["label"]}`, held by its own timeline's markers band, and a
+   `cross_section` `{id, part: ["line"]}`, held by its own timeline's line
+   (the `timeline` or `child` element) and not by the band, so that hiding
+   the band leaves the line; each belongs to that timeline and is listed
+   after the root's two wedges, each band's in canonical order, in tree
+   order: `timestamp_3` of the child `clt_2` first, its wedge inside
+   `[block, timeline, band, child, band]` and its line inside `[block,
+   timeline, band, child]` (the root's children band, holding `clt_2`,
+   precedes its markers band), then `timestamp_1` and `timestamp_2` of
+   `clt_1`, each wedge inside `[block, timeline, band]` and each line
+   inside `[block, timeline]`, each label one `wedge` deeper.
 4. **The title** `{part: ["name"]}` follows the block for a manifest with a
    `name` or an `id`, and is absent for an anonymous one.
 5. **Matching** over `map.json`, one selector per member (`element`,
@@ -599,13 +607,13 @@ name `untitled`, the workspace's `graphical` `{}` (its default statements,
 the cascade's layer between the built-in defaults and each manifest's own)
 and the default settings `{grid: {size: 8, snap: true}, blockDefaults:
 {scale: 1, length: 400, spacing: 8, margin: 0, width: null, height: null},
-granularity: {fraction: {denominator: 1, refine: true}, float: {step: "1",
-refine: true}, int: {step: 1, refine: true}}}`, the drawing
+granularity: {denominator: 2520, decimals: 3}}`, the drawing
 specification's placement defaults plus the block's scale (the block's
 `spacing` 8 is the gap between its items, its `margin` 0 the empty space
-above its first item and below its last, drawing.md §8.4, §8.6) and one
-step of each number type's own unit, refined when zooming. The float step
-is decimal text, so that `"0.2"` stays exactly 1/5. Settings are how the
+above its first item and below its last, drawing.md §8.4, §8.6) and the
+granularity: positions on a fraction axis no finer than 1/2520 (2520 =
+lcm(1, …, 10), so every tuplet up to tens is reached), on a float axis no
+finer than three decimal places, floats shown with three. Settings are how the
 editor is used, not what the workspace holds: no command changes them
 ("Workspace settings", under the store). A
 block has exactly its thirteen members (`id`, `parent`, `index`, `x`, `y`,
@@ -1788,6 +1796,128 @@ removal: on `segment_children.json` styled with three boundary statements
 `within` `theme`, `t1` and `coda`, removing `theme` leaves exactly the
 `coda` statement.
 
+## Named timestamps (`timestamps.test.ts`)
+
+A named timestamp is `{id, timeline, coordinate, name}` in its manifest's
+`graphical.timestamps`, in canonical order (by timeline, then coordinate,
+then ID); it is an element of the manifest's one ID space, addressed `{id}`,
+with the drawing parts `["label"]` and `["line"]` (its cross-section line).
+What must hold: the four commands reach it like any other element and
+never through a command of its own; what a command leaves is the exact
+`graphical` a reader of the manifest would hold (settled: canonical order,
+coordinates spelled as their axis's number type selects); every refusal
+lies at the value at fault; and what goes with a timeline, a length or an
+editor goes with its timestamps too. Every case starts from block `A`
+holding `timestamps.json` (TimeToShare's fixture): root `clt_1` (quarters,
+fraction, length 8) holding the child `clt_2` at 2 of length 4 (locked);
+`timestamp_1` "Downbeat" on `clt_1` at 3/2, `timestamp_2` "Climax" on
+`clt_1` at 6 and `timestamp_3` "Entry" on `clt_2` at 1, and one statement
+`{select: {addresses: [{id: "timestamp_2", part: ["line"]}]}, set:
+{display: "none"}}`. Below, `T1`, `T2` and `T3` are those three objects as
+the fixture holds them, `{block: A, id: "x"}` is written `x`, and its part
+`{block: A, id: "x", part: ["line"]}` is written `x line`.
+
+**Resolving.** `timestamp_1` resolves (`resolveAddress`) to the kind
+`timestamp` with the timeline `clt_1`, index 0 and `T1`; `timestamp_3` to
+`clt_2`, index 2 and `T3`; their words are `timestamp 'Downbeat'` and
+`timestamp 'Entry'`. `timestamp_2 line` and `timestamp_2 label` resolve
+to parts of it (`the line of timestamp 'Climax'`, `the label of timestamp
+'Climax'`). `timestamp_9`, and `timestamp_1` with the facet `markers`,
+name nothing (`unknown_target` at their key). `manifestIds` holds the
+three timestamp IDs beside the timelines'. `clt_1` contains (`contains`)
+`timestamp_1`, `timestamp_3` and `timestamp_2 line`; `clt_2` contains
+`timestamp_3` only.
+
+**add** `{into: <timeline>, timestamp: {name, coordinate}}`:
+
+1. Into `clt_1`, `{name: "Coda", coordinate: [15, 2]}`: the timestamps
+   are exactly `T1`, `T2`, `{id: "timestamp_4", timeline: "clt_1",
+   coordinate: [15, 2], name: "Coda"}`, `T3` (the smallest free
+   `timestamp_N`; ordered by timeline before coordinate, so `clt_2`'s
+   comes last); the statement is unchanged.
+2. Into `clt_2`, `{name: "Exit", coordinate: [8, 2]}`: the new
+   `timestamp_4` holds `[4, 1]` (the value normalised on its axis, at the
+   timeline's end, which is inside it), after `T3`.
+3. After removing `timestamp_1`, an add into `clt_1` at `[1, 1]` mints
+   `timestamp_1` again and lists it first.
+4. Into `bare` of `bare.json` (no `graphical`), `{name: "Mid", coordinate:
+   [5, 2]}`: the manifest's `graphical` is exactly `{order: {},
+   statements: [], styles: {}, timestamps: [{id: "timestamp_1", timeline:
+   "bare", coordinate: [5, 2], name: "Mid"}]}`.
+5. Refusals, at `[<into>, "timestamp", …]`: name `""` is `invalid_value` at
+   `name` ("a name is a non-empty string"); `[17, 2]` is `invalid_value`
+   at `coordinate` ("the coordinate lies after the end of timeline
+   'clt_1'"), `[-1, 2]` likewise ("the coordinate lies before the start of
+   timeline 'clt_1'"); a bare `3` on the fraction axis is
+   `invalid_coordinate` at `coordinate`; a value without `coordinate` is
+   `invalid_value` at `coordinate` ("a new timestamp needs coordinate");
+   an `id` given is `unknown_property` at `id`; into the block `{block:
+   A}` or into `timestamp_1` it is `wrong_target_kind` at `[<into>,
+   "timestamp"]`.
+
+**set** on a timestamp takes `name` and `coordinate`:
+
+6. `timestamp_1 {name: "One"}` changes that name only; `timestamp_1
+   {coordinate: [7, 1]}` moves it after `T2`, the list being `T2`, `T1`
+   at `[7, 1]`, `T3`; `timestamp_3 {coordinate: [4, 1]}` (its timeline's
+   end) is accepted.
+7. Refusals at `[<timestamp>, <property>]`: `name: ""` `invalid_value`;
+   `timestamp_3 {coordinate: [9, 2]}` `invalid_value` ("the coordinate
+   lies after the end of timeline 'clt_2'"); `name: "Downbeat"`,
+   `coordinate: [3, 2]` and `coordinate: [6, 4]` (the stored value once
+   normalised) are each "the command changes nothing" (`invalid_value`);
+   `timeline` is `unknown_property` ("timestamp has no property
+   timeline"), `start` `wrong_target_kind`, `id` `id_not_settable`. The
+   parts are drawing addresses, no target: `set` on `timestamp_2 line`
+   and `remove` of it are `unknown_target` at its key.
+
+**remove**:
+
+8. Removing `timestamp_2` leaves the timestamps `T1`, `T3` and no
+   statement (its one address named the removed timestamp's line).
+9. Removing `clt_2` removes `T3` with it (`T1`, `T2` left, the statement
+   kept); removing `clt_1` leaves no timeline, no timestamp and no
+   statement.
+
+**Lengths.** A new length never leaves a timestamp of its timeline beyond
+it:
+
+10. After the add of item 1, `clt_1 {length: [7, 1]}` is
+    `timestamp_exceeds_length` at `[clt_1, "length"]`, message `timestamp
+    'timestamp_4' lies after the end of its timeline 'clt_1'`; `[15, 2]`
+    (the timestamp's own place) and `null` are accepted. With `clt_2`
+    unlocked (`unlockedView`), `clt_2 {length: [1, 2]}` is refused the same
+    way for `timestamp_3`, and `[1, 1]` is accepted. Where the timeline's
+    children reach further, `length_below_content` still comes first:
+    `clt_1 {length: [11, 2]}` is that.
+
+**The line toggle** is a `style` on a statement addressing exactly the
+line, no command of its own:
+
+11. `style {select: {addresses: [{id: "timestamp_1", part: ["line"]}]},
+    set: {display: "none"}, blocks: [A]}` leaves `graphical` exactly
+    `{order: {}, statements: [<the fixture's statement>, {select:
+    {addresses: [{id: "timestamp_1", part: ["line"]}]}, set: {display:
+    "none"}}], styles: {}, timestamps: [T1, T2, T3]}`; the same with
+    `display: null` gives back the fixture's `graphical` exactly, and on
+    `timestamp_2` it leaves `statements: []`.
+
+**The guard** (`sideEffect`, with the command's change set and without,
+the same result):
+
+12. In the editor of `clt_2`: `timestamp_3 {name: "In"}` and an add into
+    `clt_2` are accepted; `timestamp_1 {name: "One"}` is `side_effect` at
+    `[timestamp_1]`, message `timestamp 'Downbeat' lies outside timeline
+    'clt_2': an editor changes only what it edits`; an add into `clt_1`
+    of `Coda` is refused at `[timestamp_4]` (`timestamp 'Coda' …`); removing
+    `timestamp_2` is refused at `[timestamp_2]` (`timestamp 'Climax' …`);
+    the line toggle of item 11 is refused at `[A, "manifest",
+    "graphical", "statements"]` (`the graphical statements of the
+    anonymous bundle …`).
+13. In the editor of `clt_1`: removing `timestamp_2` (its statement goes
+    with it), removing `clt_2` (with `timestamp_3`), the line toggle of
+    item 11 and every case of item 12 are accepted.
+
 ## The store and the journal (`store.test.ts`)
 
 `createStore(workspace, {author?, clock?})` holds a `Workspace = {view,
@@ -1832,8 +1962,8 @@ The settings (`grid`, `blockDefaults`, `granularity`) say how the editor is
 used, not what the workspace holds, so they live outside the journal:
 `store.configure(change)` changes them, where `change` names any of the
 three members and, for each, any of its own members (`{blockDefaults:
-{length: 600}}` keeps the other placement defaults; a `granularity` member
-is replaced whole). The proof is that the journal and the undo history
+{length: 600}}` keeps the other placement defaults, `{granularity:
+{decimals: 6}}` keeps the denominator). The proof is that the journal and the undo history
 cannot see them, and that nothing the journal replays depends on them. The
 store under test holds three journalled commands (the `add` of block `A`
 holding `bare.json`, two moves of `A`) and an injected clock.
@@ -1850,9 +1980,10 @@ holding `bare.json`, two moves of `A`) and an injected clock.
 2. **Identity says what changed.** A member the change leaves as it was
    stays the same object: `configure({grid: {size: 16}})` gives a new
    `grid` and keeps `blockDefaults` and `granularity`; a following
-   `configure({granularity: {int: {step: 2, refine: true}}})` keeps that
-   `grid` and gives a new `granularity` (a reader holding a value read
-   under one granularity tells by identity alone that it changed).
+   `configure({granularity: {decimals: 6}})` keeps that `grid` and gives a
+   new `granularity`, exactly `{denominator: 2520, decimals: 6}` (a reader
+   holding a value read under one granularity tells by identity alone that
+   it changed).
 3. **The workspace's `graphical` is journalled.** A `set` of the workspace
    `graphical` with one statement adds a 4th entry and leaves the settings
    the same object; `undo()` restores the previous `graphical` exactly
@@ -1874,13 +2005,12 @@ holding `bare.json`, two moves of `A`) and an injected clock.
 5. **Refused changes.** `configure` checks the merged settings as the file
    reader does and refuses the first problem, leaving the settings, the
    view and the listeners untouched: `grid.size` 0 → `non_positive_number`
-   at `["settings", "grid", "size"]`; `granularity.fraction.denominator`
-   1.5 → `invalid_value` at `["settings", "granularity", "fraction",
-   "denominator"]`; `granularity.float.step` `"0"`, `"-1"`, `"1e-3"` and
-   `".5"` → `invalid_value` at `["settings", "granularity", "float",
-   "step"]` (positive decimal text: digits, optionally a point and more
-   digits); `granularity.int.step` 0 → `non_positive_number` at
-   `["settings", "granularity", "int", "step"]`. A
+   at `["settings", "grid", "size"]`; `granularity.denominator` 1.5 and
+   2^53 → `invalid_value` (a positive safe integer), 0 →
+   `non_positive_number`, each at `["settings", "granularity",
+   "denominator"]`; `granularity.decimals` −1, 16 and 1.5 →
+   `invalid_value` at `["settings", "granularity", "decimals"]` (an
+   integer from 0 to 15); 0 and 15 are accepted. A
    change to the values already held returns `null`, keeps the view the
    same object and calls no listener.
 6. **Inside an editor.** With an editor open, `configure` is accepted
@@ -2528,11 +2658,12 @@ without entries); a session id is ten characters of `0-9a-z`, as a key of
 1. **Round trip.** A workspace built by a store (blocks of `bare.json` and
    `map.json`, a move, a style, an undone command excluded, the workspace's
    `graphical` set to one statement, the grid configured to `{size: 16,
-   snap: false}` and the fraction granularity to denominator 5) is
+   snap: false}` and the granularity's denominator to 5) is
    written; the text read back deep-equals the workspace, and writing it
    again gives the same bytes. Its members are exactly `blocks`,
    `graphical`, `journal`, `meta`, `name`, `sessions`, `settings`;
-   `settings`' members are exactly `blockDefaults`, `granularity`, `grid`;
+   `settings`' members are exactly `blockDefaults`, `granularity`, `grid`,
+   the granularity exactly `{denominator: 5, decimals: 3}`;
    `meta` is exactly `{format: "tilie-workspace", version: 7}`; `name` is
    `untitled`; `sessions` is `{}`.
 2. **Replay.** Replaying the read journal from `createView()` gives exactly
@@ -2543,10 +2674,7 @@ without entries); a session id is ten characters of `0-9a-z`, as a key of
    `["meta", "format"]`; `version: 8` → `unsupported_version` at `["meta",
    "version"]`; no top-level `graphical` → `missing_member` at
    `["graphical"]`; `settings.graphical` → `unknown_member` at
-   `["settings", "graphical"]`; no `settings.granularity` →
-   `missing_member` at `["settings", "granularity"]`; a granularity
-   `float.step` of `0.2` (a number, not text) → `invalid_value` at
-   `["settings", "granularity", "float", "step"]`; a block without `margin` → `missing_member` at `["blocks",
+   `["settings", "graphical"]`; a block without `margin` → `missing_member` at `["blocks",
    A, "margin"]`; a block's `margin` −1 → `invalid_value` at `["blocks", A,
    "margin"]`; `blockDefaults` without `margin` → `missing_member` at
    `["settings", "blockDefaults", "margin"]`; a top-level member `extra` → `unknown_member` at
@@ -2566,7 +2694,20 @@ without entries); a session id is ten characters of `0-9a-z`, as a key of
    "workspace"`, the former string form, → `invalid_address` at
    `["journal", 0, "command", "into"]`; an entry command of type `move` →
    `invalid_command` at `["journal", 0, "command", "type"]`.
-4. **Version 4.** A version-4 file (the round trip's text with `version:
+4. **A granularity of another shape reads as the default.** The one
+   lenient member: settings lie outside the journal, so a granularity the
+   reader cannot read loses nothing a replay needs. The round trip's text
+   with `settings.granularity` removed, replaced by the shape an earlier
+   editor wrote (`{fraction: {denominator: 5, refine: true}, float: {step:
+   "1", refine: true}, int: {step: 1, refine: true}}`), by `{denominator:
+   0, decimals: 3}`, by `{denominator: 5, decimals: 16}`, by `{denominator:
+   5}` or by `{denominator: 5, decimals: 3, refine: true}` each reads
+   without a problem, its granularity exactly `{denominator: 2520,
+   decimals: 3}` and every other member as in the round trip; writing it
+   again writes that granularity. The reader is lenient there only: a
+   `grid.size` of 0 in the same file is still `non_positive_number` at
+   `["settings", "grid", "size"]`.
+5. **Version 4.** A version-4 file (the round trip's text with `version:
    4` and its commands' addresses written as that format wrote them,
    strings: the `add`s `into: "workspace"`, each `set` aimed at the bare
    block id, or at `"workspace"`) is refused for its version alone: exactly one problem,
@@ -2581,7 +2722,7 @@ without entries); a session id is ten characters of `0-9a-z`, as a key of
    (`version: 6`, no `granularity`, the workspace's `graphical` inside
    `settings`) is refused for its version alone, message `workspace version
    6 is not supported; this editor reads version 7 only`.
-5. **Sessions in the file.** On the text of a workspace whose journal is
+6. **Sessions in the file.** On the text of a workspace whose journal is
    the `add` of block `A` holding `bundles/bundle_mixed.json` and one entry
    naming session `s = "session001"`, `{target: {block: A, id: "group_1"},
    entries: [<set {block: A, id: "score"} name "S">]}` (written by a store
@@ -2791,7 +2932,12 @@ command; and the topology commands `parent` (`null`, another timeline,
 itself, an unknown id), `groups` (one group, every group, none, an unknown
 id, an id twice, a number, a bare id)
 and `add` of a root timeline or a group (fresh or taken ids, members
-existing or not), so a reshaped manifest still saves, reloads and replays.
+existing or not), so a reshaped manifest still saves, reloads and replays;
+and the named timestamps: an `add` of one into a timeline or elsewhere
+(its coordinate drawn like any other, an empty name, a missing coordinate,
+an `id` given), a `set` of its `name`, `coordinate` or `timeline`, its
+`remove`, and the `style` hiding or showing its line, on the manifest's
+timestamps and an unknown one.
 Each manifest fixture starts as block `A` beside a block `B` of
 `bare.json`, in a store with an injected clock, for ten sequences.
 
@@ -2821,9 +2967,14 @@ Each manifest fixture starts as block `A` beside a block `B` of
    `recapitulation` are segment lines that are children of `score` and
    group members, locked by their place. The sample runs in one test,
    measured at 9.8 to 10.7 s at a load average of 6, with an explicit
-   timeout of 32 s, about three times the slowest measurement. The refusals
+   timeout of 32 s, about three times the slowest measurement (10.6 s with
+   the named timestamps' commands among the kinds). The refusals
    of the store's editors (`no_editor`, `not_inside`, `side_effect`) are
-   pinned by the session and guard tests.
+   pinned by the session and guard tests, and `timestamp_exceeds_length`
+   by the named timestamps' tests: it needs a timestamp added beyond every
+   child of an unlocked timeline and a later length below it, which the
+   fixed sample does not build (the timestamps of `timestamps.json` lie
+   within its children's reach or on a locked timeline).
 
 **Editing sequences.** The same fixtures, in the same store, run sequences
 of up to 30 steps, ten per fixture, each step a seed with an operation: a
@@ -2834,7 +2985,8 @@ undo or one step, Done), Done, Cancel, undo and redo. A command in an open
 editor is mostly one that stays inside it (a name or a band order of a
 timeline it holds, its place's `x`, `scale`, `spacing`, `margin` or `width`, a group's
 display order, for a member its group's `length` and `scale`, the block's
-width), sometimes any generated command, so the guard both accepts and
+width, the name of a named timestamp lying on a timeline it holds, or a
+named timestamp added to such a timeline), sometimes any generated command, so the guard both accepts and
 refuses; a target to open is mostly one the innermost editor holds, so
 editors nest, sometimes one outside it, one without an editor or one naming
 nothing.
@@ -2948,93 +3100,195 @@ a Fraction, a `number` a float.
    evaluator per output, in the manifest's key order, each with its own
    target unit, so each output can be expressed on its own axis.
 
-## The granularity grid (`grid.test.ts`)
+## Picking a position (`grid.test.ts`)
 
-`gridStep(numberType, granularity, devicePxPerUnit)` is the exact step of
-the grid a position on a timeline is picked from; `snapPosition` picks the
-grid point. The step depends on the base the settings state and, while
-"Refine when zooming" is on, on how many device pixels one unit of the
-axis covers: it is the finest step of the base's sequence still at least
-one device pixel wide, and the base itself when even the base is narrower.
-The expected steps follow from that rule by hand.
+`snapPosition(p, h, numberType, length, granularity)` is the position the
+pointer picks: `p` units from the line's start (a double), `h` half a
+device pixel in units. It is the simplest value within `h` of `p`, never
+finer than the granularity: a fraction axis tries `k/d` for each divisor
+`d` of the denominator in ascending order (`k` the nearest integer to
+`p·d`, a tie going up), a float axis `p` rounded to 0, 1, …, `decimals`
+places (a tie going up), an int axis the nearest multiple of `10^m` from
+the largest power of ten not above `2h` (at least 1) down to 1; the first
+candidate within `h` wins, and where none is, the finest (the nearest
+multiple of `1/denominator`, `decimals` places, the nearest integer). The
+result is clamped to `[0, length]`. Every comparison is exact on the
+doubles' exact values, so the expected values below follow by hand from
+the decimal values of `p` and `h` (none lies near a boundary, where the
+double's exact value would decide). Granularity `{denominator: 2520,
+decimals: 3}` unless stated.
 
-1. **Steps.** `fraction` with denominator 1 at 75 px per unit: 1/64 (75/64
-   ≥ 1 > 75/128); denominator 5 at 75: 1/40 (75/40 ≥ 1 > 75/80);
-   denominator 20 without refinement: 1/20 at 0.01, 75 and 10^6 px. `float`
-   with step `"0.2"` at 1.92: 1/5, read exactly from the text (the base is
-   0.384 px wide, so it is kept); `"1"` at 120: 1/100 (1.2 px; 1/200 is
-   0.6). `int` with step 1 at 0.04: 50 (the smallest of 1, 2, 5, 10, 20,
-   50 at least 25 units); at 3: 1.
-2. **A refined grid and its base grid**: a refined fraction or float grid
-   contains its base grid, a refined int grid is coarser, a subset of its
-   base grid: at 0.5, 3, 75, 1000 and 10^6 px per unit, the base divided by
-   the step is an integer for `fraction` and `float`, the step divided by
-   the base for `int`.
-3. **A position on the grid.** `snapPosition(unitsFromStart, step,
-   length)` is the exact `n·step` for the integer `n` nearest to
-   `unitsFromStart / step` (ties upward), clamped to `[0, length]`, the
-   length a Rational or a float read as its exact value, `null` for an
-   unknown length (no upper clamp): 2.62 units at 1/5 → 13/5; −0.3 → 0; 9
-   at 1/2 with length 8 → 8; 7.9 at 1 with the float length 7.5 → 15/2;
-   0.5 at 1 → 1; 100.2 at 1 with an unknown length → 100.
-4. **Refusals.** A non-finite or non-positive pixel density, and a float
-   step that is not positive decimal text, are `RangeError`s.
-5. **The grid in use as text** (`gridText`), the one text the coordinate
-   flag's footer and the Timestamp tab write: the step with its unit's
-   symbol, then in parentheses the number type's base and whether it
-   refines. A fraction step is written `n/d` and its base `1/D` (`1` for
-   D = 1), a float step as its exact decimal and its base as stated, an
-   int step and base as digits: 1/32 on quarters, default granularity →
-   `grid 1/32 ♩ (fraction base 1, refining)`; 1/5 with denominator 5,
-   fixed → `grid 1/5 ♩ (fraction base 1/5, fixed)`; 1/200 on seconds →
-   `grid 0.005 s (float base 1, refining)`; 1/5 with step `"0.2"`, fixed →
-   `grid 0.2 s (float base 0.2, fixed)`; 200 on samples → `grid 200 smp
-   (int base 1, refining)`.
+1. **The worked example (fraction).** `p = 0.7499`, `h = 0.01`: `d = 1`
+   gives 1 (|1 − 0.7499| = 0.2501 > h), `d = 2` gives 1/2 (0.2499), `d =
+   3` gives 2/3 (2.2497 rounds to 2; 0.08323), `d = 4` gives 3/4 (2.9996
+   rounds to 3; 0.0001 ≤ h): **3/4**. With `h = 0.00001` every divisor
+   misses: every candidate is a multiple of 1/2520, and the nearest of
+   them, 1890/2520 = 3/4, lies 0.0001 away; so the fallback, 1890/2520 =
+   **3/4**.
+2. **Divisors in ascending order.** `p = 0.1`, `h = 0.02`: `d` = 1, 2, 3,
+   4 give 0 (0.1 away), `d = 5` gives 1/5 (0.5 ties up; 0.1), `d = 6`
+   1/6 (0.0667), `d = 7` 1/7 (0.0429), `d = 8` 1/8 (0.025), `d = 9` 1/9
+   (0.0111 ≤ h): **1/9**, before 1/10. With `h = 0.00001` the first within
+   reach is `d = 10`: **1/10** (the double 0.1 lies 5.6·10⁻¹⁸ from it).
+3. **Fallback to the finest.** `p = 0.123456`, `h = 0.000001`: the nearest
+   multiple of 1/2520 is 311/2520 (311.109 rounds to 311), 0.0000434 away,
+   so nothing is within reach and the result is **311/2520**.
+4. **Ties go up.** With denominator 2, `p = 0.25`, `h = 0.1`: `d = 1`
+   gives 0 (0.75 floors to 0; 0.25 away), `d = 2` gives 1/2 (0.5 ties up;
+   0.25 away); the fallback is the nearest multiple of 1/2, the tie going
+   up: **1/2**.
+5. **Floats.** `p = 1.23456`, `h = 0.004`: 0 places 1 (0.23456 away), 1
+   place 1.2 (0.03456), 2 places 1.23 (0.00456 > h), 3 places 1.235
+   (1234.56 rounds to 1235; 0.00044 ≤ h): **247/200**. With `h = 0.005`,
+   2 places are within reach: **123/100**. With `h = 0.0001` none is, and
+   the fallback is 3 places: **247/200**. A tie goes up, unlike Python's
+   `round`: decimals 2, `p = 0.125`, `h = 0.001`: 0 (0.125 away), 1/10
+   (1.25 rounds to 1; 0.025), 13/100 (12.5 ties up; 0.005 > h), so the
+   fallback **13/100**.
+6. **Ints.** `p = 12345.6`, `h = 600`: 2h = 1200, the largest power of ten
+   not above it 1000; the nearest multiple 12000 is 345.6 away ≤ h:
+   **12000**. `h = 300`: 2h = 600, from 100: 12300 (45.6 away): **12300**.
+   `h = 40`: from 10: 12350 (4.4 away): **12350**. `h = 0.2`: 2h = 0.4 < 1,
+   so only 1: 12346 is 0.4 away > h, and the fallback is the nearest
+   integer, **12346**. The int axis ignores the granularity.
+7. **Clamping.** A negative pick is 0 (`p = −0.3`, `h = 0.01`: the
+   candidate −3/10 → **0**); one beyond the length is the length (`p = 9`,
+   `h = 0.01`, length 8 → **8**; `p = 7.9`, `h = 0.5`, the float length
+   7.5, read as its exact value → **15/2**); an unknown length (`null`)
+   clamps only below (`p = 100.2`, `h = 0.5`, int → **100**).
+8. **Refusals.** `p` NaN or infinite, `h` 0, −1, NaN or infinite are
+   `RangeError`s.
 
-## Displaying a value (`display.test.ts`)
+## Displaying and copying a value (`display.test.ts`)
 
-`displayValue(value, numberType)` is the text the coordinate flag and the
-Timestamp tab show, `copyValue` what Copy puts on the clipboard,
-`coordinateDict(value, unit, numberType)` the coordinate dict `{unit,
-number_type, value}` of the Timestamp tab's JSON, and `unitSymbol(unit)`
-the symbol every shown coordinate carries: the drawing's labels, the flag
-and the tab.
+`displayValue(value, numberType, decimals)` is the text the coordinate
+flag and the Timestamp tab show, `decimals` the granularity's;
+`copyValue` what Copy puts on the clipboard, `copyValueWithUnit` the same
+with its unit's symbol; `coordinateDict(value, unit, numberType)` the
+coordinate dict `{unit, number_type, value}` of the Timestamp tab's JSON;
+and `unitSymbol(unit)` the symbol every shown coordinate carries: the
+drawing's labels, the flag and the tab. The float expectations are what
+CPython 3 prints for `repr(round(x, decimals))` and `repr(x)`.
 
 1. **Fractions** show as a mixed fraction while the denominator is at most
-   64 (219/16 → `13 11/16`, −219/16 → `-13 11/16`, 1/64 → `1/64`, 3 →
-   `3`), else as their exact decimal when it terminates (27/2048 →
-   `0.01318359375`), else as `≈` and the decimal rounded to 12 places, half
-   to even (1/192 → `≈ 0.005208333333`, 1/65 → `≈ 0.015384615385`). Copy
-   gives `n/d` (`219/16`, `3`).
-2. **Floats** show Python's `round(x, 3)` spelled as Python's `repr`
-   (6.71875 → `6.719`, 6.0 → `6.0`, 1e-05 → `0.0`, 312.48979591836735 →
-   `312.49`); Copy gives the full `repr` (`6.71875`).
-3. **Ints** show their digits in groups of three separated by a space
-   (514041 → `514 041`, −1234567 → `-1 234 567`, 0 → `0`); Copy gives the
-   plain digits (`514041`).
-4. **Coordinate dicts** write the value as a manifest writes a bare value
+   2520 = lcm(1, …, 10), whatever `decimals` (219/16 → `13 11/16`,
+   −219/16 → `-13 11/16`, 1/2520 → `1/2520`, 2521/2520 → `1 1/2520`,
+   27/2048 → `27/2048`, 3 → `3`), else as their exact decimal when it
+   terminates (1/4096 → `0.000244140625`), else as `≈` and the decimal
+   rounded to 12 places, half to even (1/2521 → `≈ 0.000396667989`,
+   1/5040 → `≈ 0.000198412698`).
+2. **Floats** show Python's `round(x, decimals)` spelled as Python's
+   `repr`, for `decimals` 0, 3 and 6: 6.71875 → `7.0`, `6.719`,
+   `6.71875`; 312.48979591836735 → `312.0`, `312.49`, `312.489796`; 1e-05
+   → `0.0`, `0.0`, `1e-05`; 2.5 → `2.0` (a true tie, to even), `2.5`,
+   `2.5`; 6.0 → `6.0` at 3.
+3. **Ints** show their digits in groups of three separated by a space at
+   any `decimals` (514041 → `514 041` at 0 and at 6, −1234567 → `-1 234
+   567`, 0 → `0`).
+4. **Copy** carries the whole value: a fraction `n/d` (`219/16`) or its
+   integer (`3`); a float the shortest text that reads back as the same
+   double, as Python's `repr` spells it (0.1 → `0.1`, 1e-07 → `1e-07`,
+   3.0 → `3.0`, 6.71875 → `6.71875`, 1e+16 → `1e+16`); an int its plain
+   digits (`514041`). **With the unit** it is that, a space and the
+   unit's symbol: 219/16 on quarters → `219/16 ♩`, 0.1 on seconds → `0.1
+   s`, 1e-07 on seconds → `1e-07 s`, 514041 on samples → `514041 smp`, 3
+   on whole notes → `3 whole_notes`.
+5. **Coordinate dicts** write the value as a manifest writes a bare value
    of its number type: 219/16 on quarters → `{unit: "quarters",
    number_type: "fraction", value: [219, 16]}`, 6.0 on seconds the
    integral float (`JsonFloat` 6), 514041 on samples the integer 514041.
-5. A value whose kind is not the number type's (a `bigint` displayed as a
-   float) is a `TypeError`.
-6. **An exact decimal** (`exactDecimal`), the one writer of a terminating
+6. A value whose kind is not the number type's (a `bigint` displayed as a
+   float, a float copied as a fraction, a Fraction copied with a unit as
+   an int) is a `TypeError`.
+7. **An exact decimal** (`exactDecimal`), the one writer of a terminating
    decimal: 1/200 → `0.005`, −3/8 → `-0.375`, 3 → `3`, 27/2048 →
    `0.01318359375`; 1/3 has none (`undefined`).
-7. **Unit symbols** are the table of TimeToShare's drawing specification
+8. **Unit symbols** are the table of TimeToShare's drawing specification
    (section 5.2), the oracle: `quarters` → `♩` (U+2669), `seconds` → `s`,
    `samples` → `smp`, `ticks` → `ticks`, `pixels` → `px`, and any other
    unit its own name (`whole_notes` → `whole_notes`, `points` →
    `points`).
+
+## Reading a typed value (`parse.test.ts`)
+
+`parseAxisValue(text, numberType)` reads what is typed into an editable
+value as the exact value its text spells, never through a JavaScript
+float, or refuses it. White space around the text is ignored; every form
+takes an optional sign (whether a negative value is allowed is the
+caller's to say). The oracle is the arithmetic of the text itself.
+
+1. **Fraction axis** accepts an integer, `n/d`, a mixed fraction `a b/c`
+   and a decimal: `3` → 3, `-3` → −3, ` 3/4 ` → 3/4, `6/8` → 3/4, `-3/4` →
+   −3/4, `13 11/16` → 219/16, `-13 11/16` → −219/16, `1 3/2` → 5/2,
+   `0.75` → 3/4, `.5` → 1/2, `2.` → 2, `0.1` → 1/10, `1e-3` → 1/1000,
+   `-2.5E2` → −250.
+2. **Float axis** accepts a decimal, with an optional exponent (Copy's
+   text reads back): `0.1` → 1/10 exactly, `1e-07` → 1/10000000, `3.0` →
+   3, `-2.5` → −5/2, `3` → 3.
+3. **Int axis** accepts digits, plain or in groups of three separated by
+   single spaces (the shown text reads back): `514041` and `514 041` →
+   514041, `-1 234 567` → −1234567, `+7` → 7.
+4. **Refusals** are `invalid_value` at `[]`, the message naming the text
+   and what the axis accepts. Fraction: `""`, `abc`, `1/0`, `1 1/0`,
+   `1/-2`, `3/4/5`, `1,5`, `0x10`, `Infinity`, `1e1001` (an exponent
+   beyond ±1000); the message of `1/0` is exactly `"1/0" is no fraction
+   value; write an integer, n/d, a b/c or a decimal`. Float: `3/4`, `1
+   1/2`, `inf`, `nan`, `1e`, `""`; the message of `inf` is `"inf" is no
+   float value; write a decimal number`. Int: `1.0`, `1e3`, `51 4041`,
+   `1/1`, `""`; the message of `1.0` is `"1.0" is no int value; write an
+   integer`.
+
+## Inverting a map (`invert.test.ts`)
+
+`invertible(map, context)` says whether a map is strictly monotone over
+the span `context.span` (`{start, end}`, `end` `null` for an unknown
+length); `invert(map, value, context)` is the position at which it gives
+`value`, exact (a Rational) on exact operands, a float where a float takes
+part, `null` where the map is not invertible or gives the value nowhere it
+reaches. The oracle is the forward evaluation: every inverse below is
+checked by hand against the map's own arithmetic ("Conversion maps"), and
+for the exact ones the test also evaluates the map (`compileMap`) at the
+inverse and gets the value back exactly. Span [0, 32] unless stated.
+
+1. **LinearMap.** `165375/8·x + 507150` (quarters to samples): invertible;
+   4112325/8 → exactly 1/3 (its value at 1/3); the int 514041 → (514041 −
+   507150)·8/165375 = **18376/55125**. `−2·x + 10`: 4 → 3. The float
+   scalar `0.5`: 1.5 → the float 3.0, and the exact 3/2 → the float 3.0
+   too (a float takes part). Scalar 0: not invertible, `null`.
+2. **TableMap** (`linear`), anchors `[0, 4, 8] → [0, 2, 10]`, extrapolate
+   `none`, span [0, 8]: invertible; 1 → 2, 2 → 4, 6 → 4 + (6 − 2)·4/8 =
+   6, 1/3 → 2/3, 11 → `null` (beyond the last anchor, nothing there).
+   Extrapolate `linear`, span [0, 12]: 14 → 8 + (14 − 10)·4/8 = 10.
+   Extrapolate `constant`: over [0, 12] not invertible (flat beyond 8),
+   over [0, 8] invertible. Falling anchors `[0, 4] → [10, 2]`: 6 → 2.
+   Anchors `[0, 4, 8] → [0, 2, 1]` rise then fall: not invertible over [0,
+   8], invertible over [0, 4] (the falling interval is not reached),
+   where 1 → 2. Kind `previous`: never invertible. Float anchors `[0.0,
+   4.0] → [0.0, 2.0]`: 1 → the float 2.0.
+3. **PiecewiseMap**, breaks 0, 4, 16, pieces `1/2·x` and `3/5·x − 2/5`
+   (both 2 at 4, so it rises without a step), span [0, 16]: invertible; 1
+   → 2; 16/5 → (16/5 + 2/5)·5/3 = 6; 2 → 4 (the first piece's 4 lies
+   outside its half-open interval, the second's does not). Pieces `1/2·x`
+   and `−x + 10` (rising, then falling): not invertible. Pieces `1/2·x`
+   and `x − 4` (2 before 4, 0 at it: a step back): not invertible.
+4. **ChainMap** of `480·x` (quarters to ticks) and the TableMap `[0,
+   1920] → [0, 2]` (ticks to seconds, extrapolate `none`): every link is
+   invertible over the span the links before give ([0, 15360] for the
+   table), so the chain is; 1 → 960 ticks → **2** quarters, exactly. A
+   chain of `480·x` and a ConstantMap is not invertible.
+5. **Never invertible**: a ConstantMap, a CombinationMap of one LinearMap
+   output and a MeasureNumberMap; `invert` gives `null` for each.
 
 ## Timestamps (`timestamp.test.ts`)
 
 `timestampAt(spec, position, knots)` is the one value the coordinate flag
 and the Timestamp tab show: for a position on a line, the line's own
 coordinate and its maps' values, and on a segment line the same again for
-the segment under the position. The spec names only primitive facts (the
-line's timeline, unit, number type and shown maps in drawing order; each
-segment's offset, length and shown maps), so the expected values follow by
+the segment under the position; a pin holds one and moves it, by a
+position or by an edited value (`pinAt`, `positionFor`). The spec names
+only primitive facts (the granularity; the line's timeline, unit, number
+type, length and shown maps in drawing order; each segment's the same and
+its offset), so the expected values follow by
 hand from the conversion maps' own arithmetic (section "Conversion maps")
 and need no drawing. A test proves the assembly: which parts there are,
 in which order, at which position each is read, and that each map's value
@@ -3054,7 +3308,8 @@ order); `C` at 20, length 12 (`C_samples` 165375/8·x + 507150, `C_tempo`
    the order given (not by ID), `B_samples` 327994 (606375/4 + 176400 =
    1311975/4 = 327993.75, rounded half to even onto samples), `B_tempo`
    the float 7.4375 (119/16) and `B_ticks` the int 2640. The timestamp
-   names the block, the line and the step it was given (the same object).
+   names the block, the line and the granularity it was given (the same
+   object).
 2. **The segment under a position** is the one of the largest offset whose
    span `[offset, offset + length]` holds it, so a shared boundary belongs
    to the later segment and the line's end to the last: at 8 `B` at 0
@@ -3068,7 +3323,7 @@ order); `C` at 20, length 12 (`C_samples` 165375/8·x + 507150, `C_tempo`
    gives at 2 one part, `cons` at 2, its two maps in the order given:
    `cons_tempo` 4/5 expressed as the float 0.8, `cons_ticks` the int 960.
 4. **The line's number type writes each position**: on a float line
-   (seconds) the grid position 1/10 is the float 0.1 and its map 44100·x
+   (seconds) the position 1/10 is the float 0.1 and its map 44100·x
    onto samples the int 4410; on an int line (frames) the position 50 is
    the int 50 and its map 1/25·x onto seconds the float 2.0.
 5. **No value**: a PiecewiseMap with breaks 0, 4, 16 at 16 has no value
@@ -3078,17 +3333,45 @@ order); `C` at 20, length 12 (`C_samples` 165375/8·x + 507150, `C_tempo`
    (`unsupported`, `pending`, `failed`), that reason; given rows that lack
    its MeasureMap, `failed`. A LinearMap misses nothing (`null`). A map
    keeps its `id`, `name` (`null` when unnamed) and target unit.
-6. **The texts every reader shows** for a timestamp: its place, the line's
-   name and coordinate with its unit's symbol (`Form at 13 1/2 ♩` at
-   27/2); its grid under a granularity, the step it names (the same
-   object) on its line's number type and unit (1/2 on fraction quarters,
-   for the text of section "The granularity grid"); a measure by its name, else its number, else its count (`m. 3`;
-   `""` with number 7 → `7`; `""` with no number and count 9 → `9`); and
-   for a map without a value, one text per reason: no value at the
-   position → `no value here`; `no_server` → `needs a server to expand its
-   measure map`; `unsupported` → `the server cannot expand measure maps`;
-   `pending` → `waiting for the server`; `failed` → `the server did not
-   expand its measure map`.
+6. **The texts every reader shows** for a timestamp: its place, the
+   line's name and coordinate with its unit's symbol (`Form at 13 1/2 ♩`
+   at 27/2; on a float line under `decimals` 1, `Recording at 0.1 s` at
+   the double 0.1234); a measure by its name, else its number, else its
+   count (`m. 3`; `""` with number 7 → `7`; `""` with no number and count
+   9 → `9`); and for a map without a value, one text per reason: no value
+   at the position → `no value here`; `no_server` → `needs a server to
+   expand its measure map`; `unsupported` → `the server cannot expand
+   measure maps`; `pending` → `waiting for the server`; `failed` → `the
+   server did not expand its measure map`.
+7. **A pin moves.** A pin `{spec, knots, timestamp, named}` of the form
+   spec at 27/2 (`knots` `no_server`, `named` `null`): `pinAt(pin, 8)`
+   keeps `spec`, `knots` and `named` (the same objects) and holds exactly
+   `timestampAt(spec, 8)`.
+8. **An edited value gives a position** (`positionFor(pin, row, value)`,
+   the position on the line, exact on its own axis):
+   - The line's coordinate is the position, exact, never snapped: 10 →
+     10; 1/7 → 1/7.
+   - The segment's coordinate (`B` at 27/2, offset 8): 5/2 → 8 + 5/2 =
+     21/2.
+   - A map of the line: `form_ticks` (480·x onto ticks) 6480 → 27/2.
+   - A map of the segment: `B_tempo` (5/8·x + 4) 119/16 (the text
+     `7.4375`) → (119/16 − 4)·8/5 = 11/2 on `B`, so 8 + 11/2 = 27/2.
+   - A float map on a fraction line: `f` (quarters, fraction, 32) with
+     `0.3·x` (float scalar) onto seconds: 1 → the float
+     3.3333333333333335, settled to the nearest multiple of 1/2520
+     (8400.0000000000004 rounds to 8400): **10/3**.
+   - On an int line: `video` (frames, int, 100) with `1/25·x` onto
+     seconds: 101/50 (the text `2.02`) → 101/2 exactly, settled to the
+     nearest integer, the tie going up: **51**.
+   - On a float line: `recording` (seconds, float, 10) with `44100·x`
+     onto samples: 4410 → 1/10, kept exact.
+   - **Refused**, each `invalid_value` at `[]` with the message given: the
+     line's 33 → `33 lies outside 'form' (0 to 32)`; −1 → `-1 lies outside
+     'form' (0 to 32)`; the segment's 13 → `13 lies outside 'B' (0 to
+     12)`; `form_ticks` 19200 → 40, `40 lies outside 'form' (0 to 32)`; a
+     ConstantMap `fixed` of the line, 3 → `no position on 'form' gives 3`;
+     the map `nope` → `'form' shows no map 'nope'`; the segment's row on
+     a pin without a segment part → `the timestamp shows no segment`.
 
 ## Budgets (`budget.test.ts`)
 

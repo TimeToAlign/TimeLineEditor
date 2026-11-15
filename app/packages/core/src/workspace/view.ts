@@ -1,10 +1,11 @@
 /** The immutable plain-JavaScript workspace view and its checks. */
 
 import type { Graphical } from "@timetoalign/timetoshare";
+import { JsonFloat } from "@timetoalign/timetoshare";
 import type { Problem } from "../errors.ts";
 import { ErrorCode, isCommandError, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";
-import { compareCodePoints } from "../json.ts";
+import { compareCodePoints, isJsonObject } from "../json.ts";
 import type { ContainerRef } from "../manifest/containers.ts";
 import {
   ITEM_PLACE_MEMBERS,
@@ -13,8 +14,6 @@ import {
   placeMembersOf,
 } from "../manifest/containers.ts";
 import { manifestProblems } from "../manifest/io.ts";
-import { positiveDecimal } from "../number/rational.ts";
-import type { MemberReader } from "../values.ts";
 import {
   readBoolean,
   readExact,
@@ -34,17 +33,17 @@ export interface WorkspaceMeta {
 }
 
 /**
- * The step of the grid a position on a timeline is picked from, per number
- * type, and whether it is refined when zooming in (or, for `int`, coarsened
- * when zooming out).
+ * How finely a position on a timeline is picked and a float shown: a
+ * fraction axis picks multiples of `1 / denominator` at the finest, a float
+ * axis decimals of at most `decimals` places, and a float is shown with
+ * `decimals` places. An int axis picks integers at the finest and has no
+ * setting.
  */
 export interface Granularity {
-  /** The step `1 / denominator`; the denominator a positive safe integer. */
-  readonly fraction: { readonly denominator: number; readonly refine: boolean };
-  /** The step as positive decimal text, read exactly (`"0.2"` is 1/5). */
-  readonly float: { readonly step: string; readonly refine: boolean };
-  /** The step, a positive safe integer. */
-  readonly int: { readonly step: number; readonly refine: boolean };
+  /** The finest fraction step is `1 / denominator`; a positive safe integer. */
+  readonly denominator: number;
+  /** The most decimal places a float is picked or shown with; an integer from 0 to 15. */
+  readonly decimals: number;
 }
 
 /**
@@ -74,11 +73,11 @@ export const WORKSPACE_META: WorkspaceMeta = { format: "tilie-workspace", versio
 /** The name of a new workspace, and of one read from a file that states none. */
 export const UNTITLED_WORKSPACE = "untitled";
 
-export const DEFAULT_GRANULARITY: Granularity = {
-  fraction: { denominator: 1, refine: true },
-  float: { step: "1", refine: true },
-  int: { step: 1, refine: true },
-};
+/** The default granularity: 2520 = lcm(1, …, 10) reaches every tuplet up to tens; floats to three places. */
+export const DEFAULT_GRANULARITY: Granularity = { denominator: 2520, decimals: 3 };
+
+/** The most decimal places `decimals` may state. */
+export const MAX_DECIMALS = 15;
 
 export const DEFAULT_SETTINGS: WorkspaceSettings = {
   grid: { size: 8, snap: true },
@@ -114,48 +113,47 @@ function readPositiveInteger(value: unknown, path: readonly PathSegment[]): numb
     : problem(ErrorCode.invalidValue, "expected a positive safe integer", path);
 }
 
-function readDecimalStep(value: unknown, path: readonly PathSegment[]): string | Problem {
-  return typeof value === "string" && positiveDecimal(value) !== undefined
-    ? value
-    : problem(ErrorCode.invalidValue, "a step is positive decimal text, such as 0.2", path);
+function readDecimals(value: unknown, path: readonly PathSegment[]): number | Problem {
+  const number = value instanceof JsonFloat ? value.value : value;
+  return typeof number === "number" &&
+    Number.isInteger(number) &&
+    number >= 0 &&
+    number <= MAX_DECIMALS
+    ? number
+    : problem(ErrorCode.invalidValue, `expected an integer from 0 to ${MAX_DECIMALS}`, path);
 }
+
+const GRANULARITY_READERS = { denominator: readPositiveInteger, decimals: readDecimals };
 
 /**
  * Read workspace settings, every member required and none unknown; the
  * problems go to `problems` and the result is `undefined` when there are any.
+ * With `lenient`, as a workspace file is read, a `granularity` that does not
+ * read as one (missing, or of another shape) is read as `DEFAULT_GRANULARITY`
+ * without a problem: settings lie outside the journal, so nothing a replay
+ * needs is lost. Every other member is read strictly either way.
  */
 export function readSettings(
   value: unknown,
   path: readonly PathSegment[],
   problems: Problem[],
+  lenient = false,
 ): WorkspaceSettings | undefined {
-  const step =
-    (read: MemberReader): MemberReader =>
-    (item, at) =>
-      readExact(item, at, { step: read, refine: readBoolean }, problems);
+  const granularity = (item: unknown, at: readonly PathSegment[]) => {
+    if (!lenient) return readExact(item, at, GRANULARITY_READERS, problems);
+    return readExact(item, at, GRANULARITY_READERS, []) ?? DEFAULT_GRANULARITY;
+  };
+  const stated =
+    lenient && isJsonObject(value) && !Object.hasOwn(value, "granularity")
+      ? { ...value, granularity: DEFAULT_GRANULARITY }
+      : value;
   const read: unknown = readExact(
-    value,
+    stated,
     path,
     {
       grid: (grid, at) => readExact(grid, at, { size: readPositive, snap: readBoolean }, problems),
       blockDefaults: (defaults, at) => readExact(defaults, at, PLACEMENT_READERS, problems),
-      granularity: (granularity, at) =>
-        readExact(
-          granularity,
-          at,
-          {
-            fraction: (item, where) =>
-              readExact(
-                item,
-                where,
-                { denominator: readPositiveInteger, refine: readBoolean },
-                problems,
-              ),
-            float: step(readDecimalStep),
-            int: step(readPositiveInteger),
-          },
-          problems,
-        ),
+      granularity,
     },
     problems,
   );

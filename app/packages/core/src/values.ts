@@ -3,7 +3,7 @@
  * the value as stored, or a problem at the given path.
  */
 
-import type { Declaration, Selector } from "@timetoalign/timetoshare";
+import type { Declaration, Graphical, Selector } from "@timetoalign/timetoshare";
 import { JsonFloat, SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import type { Problem } from "./errors.ts";
 import { ErrorCode, isCommandError, problem } from "./errors.ts";
@@ -12,7 +12,6 @@ import { isJsonObject, showJson } from "./json.ts";
 import type { CardPlace, ItemPlace, Place, Places } from "./manifest/containers.ts";
 import { ITEM_PLACE_MEMBERS } from "./manifest/containers.ts";
 import { plainDeclaration, plainGraphical, plainSelector, schemaChecked } from "./manifest/io.ts";
-import type { ManifestGraphical } from "./manifest/types.ts";
 import { jsonInteger } from "./number/coordinate.ts";
 import { isIndex } from "./workspace/order.ts";
 
@@ -240,17 +239,22 @@ function located(
   return { ...found, path: [...path, ...(inside ? found.path.slice(at.length) : [])] };
 }
 
-/** A `graphical` block, as a manifest's or the workspace's. */
-export function readGraphical(
-  value: unknown,
-  path: readonly PathSegment[],
-): ManifestGraphical | Problem {
+/**
+ * The workspace's `graphical` block. It lies beside no timeline, so the
+ * schema refuses every named timestamp in it (`timestamp_timeline`), and it
+ * reads as a plain `Graphical`.
+ */
+export function readGraphical(value: unknown, path: readonly PathSegment[]): Graphical | Problem {
   const read = readObject(value, path);
   if (isCommandError(read)) return read;
   const checked = schemaChecked({ timetoshare: SCHEMA_VERSION, timelines: [], graphical: read });
   if ("code" in checked) return located(checked, ["graphical"], path);
   const plain = plainGraphical(checked.graphical ?? {});
-  return "code" in plain ? located(plain, ["graphical"], path) : plain;
+  if ("code" in plain) return located(plain, ["graphical"], path);
+  const { timestamps, ...rest } = plain;
+  if (timestamps === undefined) return rest;
+  if (timestamps.length > 0) throw new Error("the schema refuses a timestamp beside no timeline");
+  return { ...rest, timestamps: [] };
 }
 
 /**

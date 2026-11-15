@@ -1,271 +1,496 @@
 <script lang="ts">
 /**
- * The Timestamp tab: the workspace's granularity, one setting per number
- * type, the grid of the canvas's last reading, and the timestamp pinned by
- * a click on a timeline, with Copy for each value and for the whole as
- * coordinate dicts. A setting is changed through the store's `configure`:
- * saved with the workspace, never journalled and never undone. Every value
- * and text shown is core's; the panel only lays them out and copies them.
+ * The Timestamp tab: one main panel holding the shown timestamp or a hint,
+ * and one line at the pane's bottom with the workspace's two granularity
+ * settings. A timestamp shows a header (its name, whether its
+ * cross-section line is shown, Delete for a named one), the format switch
+ * and its values: in Pretty a table whose values can be edited and copied,
+ * else its text in JSON, YAML or TOML with one Copy. An edit of an unnamed
+ * timestamp moves its pin; naming it adds it to the manifest; every change
+ * of a named one is a command. Every value, position and text is core's;
+ * the panel lays them out, reads typed text and sends commands.
  */
 import type { LiveStore } from "@timetoalign/tilie-arranger";
-import type { Granularity, GridInUse } from "@timetoalign/tilie-core";
-import { gridText } from "@timetoalign/tilie-core";
-import type { Pinning } from "./tabs.ts";
-import { timestampHeading, timestampJson, timestampSections } from "./timestamp.ts";
+import type { Address, Command, Granularity, Pin } from "@timetoalign/tilie-core";
+import {
+  copyValue,
+  parseAxisValue,
+  pinAt,
+  positionFor,
+  timestampPlace,
+} from "@timetoalign/tilie-core";
+import { Rational } from "@timetoalign/tilie-core/numbers";
+import { fontMetrics } from "@timetoalign/timetoshare";
+import FormatSwitch from "./FormatSwitch.svelte";
+import type { Format } from "./formats.svelte.ts";
+import { FORMAT_LABELS, FORMATS, isLoaded, loadCodec, writeText } from "./formats.svelte.ts";
+import type { LineToggle, TimestampRow } from "./timestamp.ts";
+import {
+  addedTimestamp,
+  addTimestamp,
+  lineToggle,
+  moveTimestamp,
+  namedTimestampOf,
+  removeTimestamp,
+  renameTimestamp,
+  showLine,
+  timestampSections,
+  timestampValue,
+} from "./timestamp.ts";
 
 interface Props {
   /** The open workspace's store, read as Svelte state. */
   live: LiveStore;
-  /** The pinned timestamp with the granularity it was read under; `null` while none is pinned. */
-  pinned: Pinning | null;
-  /** The grid of the canvas's last reading; `null` before the first. */
-  grid: GridInUse | null;
+  /** The timestamp shown; `null` while none is. */
+  pin: Pin | null;
+  /** An edit of an unnamed timestamp moved its pin to `next`. */
+  onpin: (next: Pin) => void;
+  /** The unnamed timestamp shown was named: the named timestamp at `address` is to be shown. */
+  onnamed: (address: Address) => void;
 }
 
-let { live, pinned, grid }: Props = $props();
-
-const timestamp = $derived(pinned?.timestamp ?? null);
+let { live, pin, onpin, onnamed }: Props = $props();
 
 const uid = $props.id();
 
-type Kind = "fraction" | "float" | "int";
+const HINT =
+  "Turn on Show coordinates (C) and click a timeline to read a timestamp. With Show coordinates off, click a named timestamp to edit it.";
+const LOCKED = "This conversion map cannot be solved for a position";
+const EMPTY_NAME = "A named timestamp keeps a name; Delete removes it.";
 
-/** One granularity setting: its legend, the words before its field, and how the step refines. */
-interface Field {
-  readonly kind: Kind;
-  readonly legend: string;
-  readonly before: string;
-  readonly inputmode: "numeric" | "decimal";
-  readonly hint: string;
-}
-
-const FIELDS: readonly Field[] = [
-  {
-    kind: "fraction",
-    legend: "Fractions",
-    before: "Step 1 /",
-    inputmode: "numeric",
-    hint: "Refining halves the step: 1/(D·2^k). A denominator of 5 reaches quintuplets.",
-  },
-  {
-    kind: "float",
-    legend: "Floats",
-    before: "Step",
-    inputmode: "decimal",
-    hint: "Refining divides the step by 2, 5, 10, 20, 50, …",
-  },
-  {
-    kind: "int",
-    legend: "Integers",
-    before: "Step",
-    inputmode: "numeric",
-    hint: "Never finer than the step; refining coarsens it to 2, 5, 10, … steps when zoomed out.",
-  },
+type Shown = "pretty" | Format;
+const SHOWN: readonly { readonly value: Shown; readonly label: string }[] = [
+  { value: "pretty", label: "Pretty" },
+  ...FORMATS.map((value) => ({ value, label: FORMAT_LABELS[value] })),
 ];
 
-const granularity = $derived(live.view.settings.granularity);
+const view = $derived(live.view);
+const address = $derived(
+  pin === null || pin.named === null ? null : { block: pin.spec.block, id: pin.named },
+);
+const named = $derived(address === null ? null : namedTimestampOf(view, address));
+const sections = $derived(pin === null ? [] : timestampSections(pin));
+/** The line's box: an unnamed timestamp's line is shown and fixed; a named one's follows its display. */
+const line: LineToggle = $derived(
+  address === null ? { checked: true, blocked: null } : lineToggle(view, address, fontMetrics),
+);
 
-/** The stated step of `kind`, as its field shows it, and whether it refines. */
-function stated(kind: Kind): { text: string; refine: boolean } {
-  if (kind === "fraction") {
-    return { text: String(granularity.fraction.denominator), refine: granularity.fraction.refine };
+// --- Typed text -------------------------------------------------------------
+
+type Texts = { readonly [key: string]: string };
+
+/**
+ * The texts typed into the name field (`name`) and the value fields (each
+ * row's key) while they differ from what is shown, and the refusals, by
+ * the same keys (`line` and `delete` for the header's controls): held for
+ * the pin they were typed for, so that another pin shows none.
+ */
+let typed: { readonly owner: Pin | null; readonly drafts: Texts; readonly problems: Texts } =
+  $state.raw({ owner: null, drafts: {}, problems: {} });
+const drafts: Texts = $derived(typed.owner === pin ? typed.drafts : {});
+const problems: Texts = $derived(typed.owner === pin ? typed.problems : {});
+
+function without(texts: Texts, key: string): Texts {
+  const { [key]: _, ...rest } = texts;
+  return rest;
+}
+
+function draft(key: string, text: string): void {
+  typed = { owner: pin, drafts: { ...drafts, [key]: text }, problems: without(problems, key) };
+}
+
+/** Drop the draft and the refusal of `key`: the field shows what is stored again. */
+function settled(key: string): void {
+  typed = { owner: pin, drafts: without(drafts, key), problems: without(problems, key) };
+}
+
+/** Keep the draft of `key` and show why it was refused. */
+function refused(key: string, message: string): void {
+  typed = { owner: pin, drafts, problems: { ...problems, [key]: message } };
+}
+
+/** Dispatch `command`; a refusal is shown at `key`, an acceptance settles it. */
+function send(key: string, command: Command): boolean {
+  const refusal = live.store.dispatch(command);
+  if (refusal === null) settled(key);
+  else refused(key, refusal.message);
+  return refusal === null;
+}
+
+// --- The header -------------------------------------------------------------
+
+/** Enter or leaving the name field: name an unnamed timestamp, rename a named one. */
+function commitName(): void {
+  const text = drafts.name;
+  if (pin === null || text === undefined) return;
+  if (pin.named === null) {
+    if (text === "") {
+      settled("name");
+      return;
+    }
+    const before = live.store.view;
+    const block = pin.spec.block;
+    if (!send("name", addTimestamp(pin, text))) return;
+    const id = addedTimestamp(before, live.store.view, block);
+    if (id !== null) onnamed({ block, id });
+    return;
   }
-  if (kind === "float") return { text: granularity.float.step, refine: granularity.float.refine };
-  return { text: String(granularity.int.step), refine: granularity.int.refine };
+  if (text === "") {
+    typed = {
+      owner: pin,
+      drafts: without(drafts, "name"),
+      problems: { ...problems, name: EMPTY_NAME },
+    };
+    return;
+  }
+  if (text === named?.name) settled("name");
+  else send("name", renameTimestamp(pin, text));
 }
 
-/** The setting of `kind` with the step `text` and `refine`; a field that is no integer gives NaN, which the store refuses. */
-function changeOf(kind: Kind, text: string, refine: boolean): Partial<Granularity> {
-  const integer = /^\s*\d+\s*$/.test(text) ? Number(text) : Number.NaN;
-  if (kind === "fraction") return { fraction: { denominator: integer, refine } };
-  if (kind === "float") return { float: { step: text.trim(), refine } };
-  return { int: { step: integer, refine } };
+function onNameKey(event: KeyboardEvent): void {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    commitName();
+  } else if (event.key === "Escape") settled("name");
 }
 
-/** The text typed into a field while it differs from what is stated, and the store's refusal of it. */
-const drafts: { [kind in Kind]?: string } = $state({});
-const problems: { [kind in Kind]?: string } = $state({});
-
-function configure(kind: Kind, text: string, refine: boolean): void {
-  const refusal = live.store.configure({ granularity: changeOf(kind, text, refine) });
-  if (refusal === null) delete problems[kind];
-  else problems[kind] = refusal.message;
+function toggleLine(event: Event & { currentTarget: HTMLInputElement }): void {
+  const box = event.currentTarget;
+  if (pin === null || pin.named === null || line.blocked !== null) return;
+  if (!send("line", showLine(pin, box.checked))) box.checked = !box.checked;
 }
 
-function typed(kind: Kind, text: string): void {
-  drafts[kind] = text;
-  configure(kind, text, stated(kind).refine);
+function remove(): void {
+  if (pin !== null && pin.named !== null) send("delete", removeTimestamp(pin));
 }
 
-/** Leaving a field shows what is stated again. */
-function left(kind: Kind): void {
-  delete drafts[kind];
-  delete problems[kind];
+// --- The values -------------------------------------------------------------
+
+/** Enter or leaving a value field: the position that gives the typed value, as the pin or as a `set`. */
+function commitValue(row: TimestampRow): void {
+  const text = drafts[row.key];
+  if (pin === null || text === undefined || row.edit === null || row.numberType === null) return;
+  const value = parseAxisValue(text, row.numberType);
+  const position = value instanceof Rational ? positionFor(pin, row.edit, value) : value;
+  if (!(position instanceof Rational)) {
+    refused(row.key, position.message);
+    return;
+  }
+  const moved = pinAt(pin, position);
+  if (pin.named === null) {
+    settled(row.key);
+    onpin(moved);
+    return;
+  }
+  const [was] = pin.timestamp.parts;
+  const [now] = moved.timestamp.parts;
+  const same =
+    was !== undefined &&
+    now !== undefined &&
+    copyValue(was.position, was.numberType) === copyValue(now.position, now.numberType);
+  if (same) settled(row.key);
+  else send(row.key, moveTimestamp(moved));
 }
 
-function refined(kind: Kind, refine: boolean): void {
-  configure(kind, stated(kind).text, refine);
+function onValueKey(event: KeyboardEvent, row: TimestampRow): void {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    commitValue(row);
+  } else if (event.key === "Escape") settled(row.key);
 }
 
-const sections = $derived(timestamp === null ? [] : timestampSections(timestamp));
-const json = $derived(timestamp === null ? "" : timestampJson(timestamp));
+// --- The text formats -------------------------------------------------------
+
+let shown: Shown = $state("pretty");
+/** Why the chosen format's codec could not be loaded; `null` while nothing failed. */
+let loadFailure: string | null = $state(null);
+
+function choose(next: Shown): void {
+  shown = next;
+  loadFailure = null;
+  if (next === "pretty" || isLoaded(next)) return;
+  loadCodec(next).catch((error: unknown) => {
+    if (shown === next) loadFailure = `Loading ${FORMAT_LABELS[next]} failed: ${String(error)}`;
+  });
+}
+
+/** The timestamp as text in the chosen format, or why it cannot be written; `null` while its codec loads. */
+const text = $derived.by(() => {
+  if (pin === null || shown === "pretty" || !isLoaded(shown)) return null;
+  const written = writeText(shown, timestampValue(pin, named));
+  return written.ok
+    ? { ok: true as const, text: written.value.text }
+    : { ok: false as const, message: written.problems.map((item) => item.message).join(" ") };
+});
+
+// --- Copying ----------------------------------------------------------------
 
 /** What the last Copy did. */
 let status = $state("");
 
-async function copy(text: string, what: string): Promise<void> {
+async function copy(copied: string, what: string): Promise<void> {
   try {
-    await navigator.clipboard.writeText(text);
+    await navigator.clipboard.writeText(copied);
     status = `Copied ${what}.`;
   } catch {
     status = `Copying ${what} failed; select its text to copy it.`;
   }
 }
+
+// --- The settings -----------------------------------------------------------
+
+type Kind = keyof Granularity;
+
+/** One granularity setting: its label and its hover hint. */
+const SETTINGS: readonly { readonly kind: Kind; readonly label: string; readonly hint: string }[] =
+  [
+    {
+      kind: "denominator",
+      label: "Denominator",
+      hint: "A fraction position is never finer than 1 / denominator.",
+    },
+    {
+      kind: "decimals",
+      label: "Decimals",
+      hint: "A float position has at most this many decimal places, and floats are shown with them.",
+    },
+  ];
+
+const granularity = $derived(view.settings.granularity);
+
+/** The text typed into a setting while it differs from what is stated, and the store's refusal of it. */
+const settingDrafts: { [kind in Kind]?: string } = $state({});
+const settingProblems: { [kind in Kind]?: string } = $state({});
+
+/** A field's text as the setting's number; text that is no integer gives NaN, which the store refuses. */
+function numberOf(text: string): number {
+  return /^\s*\d+\s*$/.test(text) ? Number(text) : Number.NaN;
+}
+
+function configure(kind: Kind, text: string): void {
+  settingDrafts[kind] = text;
+  const value = numberOf(text);
+  const change = kind === "denominator" ? { denominator: value } : { decimals: value };
+  const refusal = live.store.configure({ granularity: change });
+  if (refusal === null) delete settingProblems[kind];
+  else settingProblems[kind] = refusal.message;
+}
+
+/** Leaving a setting shows what is stated again. */
+function leave(kind: Kind): void {
+  delete settingDrafts[kind];
+  delete settingProblems[kind];
+}
 </script>
 
-<section class="granularity" aria-labelledby="{uid}-granularity">
-  <h3 id="{uid}-granularity">Granularity</h3>
-  <p class="hint">Saved with the workspace; never in the journal.</p>
-  {#each FIELDS as field (field.kind)}
-    <fieldset>
-      <legend>{field.legend}</legend>
-      <div class="row">
-        <label>
-          {field.before}
+{#snippet copyIcon()}
+  <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" focusable="false">
+    <rect x="5.5" y="5.5" width="8" height="9" rx="1" />
+    <path d="M3.5 10.5h-1v-8a1 1 0 0 1 1-1h7v1" />
+  </svg>
+{/snippet}
+
+<div class="pane">
+  <div class="main">
+    {#if pin === null}
+      <p class="hint" data-testid="timestamp-hint">{HINT}</p>
+    {:else}
+      <div class="header">
+        <label class="name">
+          Name
           <input
             type="text"
-            inputmode={field.inputmode}
-            size="6"
-            value={drafts[field.kind] ?? stated(field.kind).text}
-            aria-invalid={problems[field.kind] !== undefined}
-            aria-describedby="{uid}-{field.kind}-hint {uid}-{field.kind}-problem"
-            oninput={(event) => typed(field.kind, event.currentTarget.value)}
-            onchange={() => left(field.kind)}
+            size="12"
+            value={drafts.name ?? named?.name ?? ""}
+            aria-invalid={problems.name !== undefined}
+            aria-describedby="{uid}-name-problem"
+            oninput={(event) => draft("name", event.currentTarget.value)}
+            onkeydown={onNameKey}
+            onblur={commitName}
           />
         </label>
-        <label class="refine">
+        <label class="line">
           <input
             type="checkbox"
-            checked={stated(field.kind).refine}
-            onchange={(event) => refined(field.kind, event.currentTarget.checked)}
+            checked={line.checked}
+            disabled={pin.named === null || line.blocked !== null}
+            aria-describedby={line.blocked === null ? undefined : `${uid}-line-blocked`}
+            onchange={toggleLine}
           />
-          Refine when zooming
+          Show cross-section line
         </label>
+        {#if pin.named !== null}
+          <button type="button" class="delete" onclick={remove}>Delete</button>
+        {/if}
       </div>
-      <p class="hint" id="{uid}-{field.kind}-hint">{field.hint}</p>
-      <p class="problem" id="{uid}-{field.kind}-problem" role="status">{problems[field.kind] ?? ""}</p>
-    </fieldset>
-  {/each}
-  <p class="in-use" data-testid="grid-in-use">
-    {grid === null
-      ? "No reading yet: turn on Show coordinates and point at a timeline."
-      : `In use: ${gridText(grid)}`}
-  </p>
-</section>
+      {#if line.blocked !== null}
+        <p class="hint" id="{uid}-line-blocked" data-testid="line-blocked">{line.blocked}</p>
+      {/if}
+      <p class="problem" id="{uid}-name-problem" role="status">
+        {problems.name ?? problems.line ?? problems.delete ?? ""}
+      </p>
+      <p class="where" data-testid="timestamp-where">{timestampPlace(pin.timestamp)}</p>
 
-<section class="timestamp" aria-labelledby="{uid}-timestamp">
-  <h3 id="{uid}-timestamp">Timestamp</h3>
-  {#if pinned === null || timestamp === null}
-    <p class="empty">Click a coordinate on a timeline to pin it here.</p>
-  {:else}
-    <p class="where" data-testid="timestamp-where">
-      {timestampHeading(timestamp, pinned.granularity)}
-    </p>
-    <table>
-      {#each sections as section, index (index)}
-        <tbody>
-          <tr>
-            <th colspan="3" scope="colgroup">{section.heading}</th>
-          </tr>
-          {#each section.rows as row, at (at)}
+      <FormatSwitch options={SHOWN} bind:value={() => shown, choose} label="Timestamp format" />
+
+      {#if shown === "pretty"}
+        <span class="visually-hidden" id="{uid}-locked">{LOCKED}</span>
+        <table>
+          <thead>
             <tr>
-              <th scope="row">{row.label}</th>
-              <td class="value">{row.shown}</td>
-              <td class="copy">
-                {#if row.copied !== null}
-                  {@const copied = row.copied}
-                  <button
-                    type="button"
-                    aria-label="Copy {row.label} of {section.name}"
-                    onclick={() => copy(copied, `${row.label} of ${section.name}`)}>Copy</button
-                  >
-                {/if}
-              </td>
+              <th scope="col"><span class="visually-hidden">Label</span></th>
+              <th scope="col"><span class="visually-hidden">Value</span></th>
+              <th scope="col" class="copy">value</th>
+              <th scope="col" class="copy">value + unit</th>
             </tr>
+          </thead>
+          {#each sections as section, index (index)}
+            <tbody>
+              <tr>
+                <th colspan="4" scope="colgroup">{section.heading}</th>
+              </tr>
+              {#each section.rows as row (row.key)}
+                <tr data-row={row.key}>
+                  <th scope="row">{row.label}</th>
+                  <!-- A disabled field shows no hover hint in every browser: its cell carries it. -->
+                  <td class="value" title={row.locked ? LOCKED : undefined}>
+                    {#if row.numberType === null}
+                      <span class="text">{row.shown}</span>
+                    {:else}
+                      <input
+                        type="text"
+                        size="10"
+                        value={drafts[row.key] ?? row.shown}
+                        disabled={row.edit === null}
+                        aria-label="{row.label} of {section.name}"
+                        aria-invalid={problems[row.key] !== undefined}
+                        aria-describedby={row.locked
+                          ? `${uid}-${row.key}-problem ${uid}-locked`
+                          : `${uid}-${row.key}-problem`}
+                        oninput={(event) => draft(row.key, event.currentTarget.value)}
+                        onkeydown={(event) => onValueKey(event, row)}
+                        onblur={() => commitValue(row)}
+                      />
+                      {#if row.unit !== null}<span class="unit">{row.unit}</span>{/if}
+                    {/if}
+                    <span class="problem" id="{uid}-{row.key}-problem" role="status"
+                      >{problems[row.key] ?? ""}</span
+                    >
+                  </td>
+                  <td class="copy">
+                    {#if row.copied !== null}
+                      {@const copied = row.copied}
+                      <button
+                        type="button"
+                        class="icon"
+                        aria-label="Copy the value"
+                        title="Copy the value"
+                        onclick={() => copy(copied, copied)}>{@render copyIcon()}</button
+                      >
+                    {/if}
+                  </td>
+                  <td class="copy">
+                    {#if row.copiedWithUnit !== null}
+                      {@const copied = row.copiedWithUnit}
+                      <button
+                        type="button"
+                        class="icon"
+                        aria-label="Copy the value with its unit"
+                        title="Copy the value with its unit"
+                        onclick={() => copy(copied, copied)}>{@render copyIcon()}</button
+                      >
+                    {/if}
+                  </td>
+                </tr>
+              {/each}
+            </tbody>
           {/each}
-        </tbody>
-      {/each}
-    </table>
-    <div class="json">
-      <span class="hint">As coordinate dicts</span>
-      <button type="button" onclick={() => copy(json, "the JSON")}>Copy JSON</button>
-    </div>
-    <pre aria-label="The timestamp as coordinate dicts">{json}</pre>
-    <p class="hint">
-      Floats show 3 decimal places; Copy and the JSON carry the full value. A click outside this tab
-      clears the pin.
-    </p>
-  {/if}
-  <p class="status" role="status">{status}</p>
-</section>
+        </table>
+      {:else}
+        {@const label = FORMAT_LABELS[shown]}
+        {#if loadFailure !== null}
+          <p class="problem" role="alert">{loadFailure}</p>
+        {:else if text === null}
+          <p class="hint" role="status">Loading {label}…</p>
+        {:else if !text.ok}
+          <p class="problem text-problem" role="status">{text.message}</p>
+        {:else}
+          {@const written = text.text}
+          <div class="text-head">
+            <button type="button" onclick={() => copy(written, `the ${label}`)}>Copy</button>
+          </div>
+          <pre aria-label="The timestamp as {label}">{written}</pre>
+        {/if}
+      {/if}
+    {/if}
+    <p class="status" role="status">{status}</p>
+  </div>
+
+  <div class="settings" role="group" aria-label="Granularity">
+    {#each SETTINGS as setting (setting.kind)}
+      <label class="setting" title={setting.hint}>
+        {setting.label}
+        <input
+          type="text"
+          inputmode="numeric"
+          size="5"
+          value={settingDrafts[setting.kind] ?? String(granularity[setting.kind])}
+          aria-invalid={settingProblems[setting.kind] !== undefined}
+          aria-describedby="{uid}-{setting.kind}-problem"
+          oninput={(event) => configure(setting.kind, event.currentTarget.value)}
+          onchange={() => leave(setting.kind)}
+        />
+      </label>
+      <span class="problem" id="{uid}-{setting.kind}-problem" role="status"
+        >{settingProblems[setting.kind] ?? ""}</span
+      >
+    {/each}
+  </div>
+</div>
 
 <style>
-  h3 {
-    margin: 0;
-    font-size: 0.9rem;
-  }
-
   p {
     margin: 0;
   }
 
-  section {
+  .pane {
+    display: flex;
+    flex: 1 0 auto;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .main {
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
+    gap: 0.4rem;
   }
 
   .hint,
-  .empty {
+  .where {
     color: #595959;
   }
 
-  .empty {
-    font-style: italic;
-  }
-
-  fieldset {
-    margin: 0;
-    padding: 0.25rem 0.5rem 0.4rem;
-    border: 1px solid #d0d0d0;
-    border-radius: 4px;
-  }
-
-  legend {
-    color: #595959;
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-  }
-
-  .row {
+  .header {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.25rem 1rem;
+    gap: 0.4rem 0.75rem;
   }
 
-  .row input[type="text"] {
-    width: 5.5em;
+  .header input[type="text"],
+  .value input,
+  .setting input {
     font: inherit;
     font-variant-numeric: tabular-nums;
   }
 
-  .refine {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
+  .name input {
+    margin-left: 0.35rem;
+  }
+
+  .delete {
+    margin-left: auto;
   }
 
   .problem {
@@ -276,10 +501,25 @@ async function copy(text: string, what: string): Promise<void> {
     display: none;
   }
 
+  .value .problem {
+    display: block;
+    font-size: 0.75rem;
+  }
+
+  .value .problem:empty {
+    display: none;
+  }
+
   table {
     width: 100%;
     border-collapse: collapse;
     font-variant-numeric: tabular-nums;
+  }
+
+  thead th {
+    color: #595959;
+    font-size: 0.7rem;
+    font-weight: normal;
   }
 
   th[scope="colgroup"] {
@@ -299,20 +539,35 @@ async function copy(text: string, what: string): Promise<void> {
 
   td,
   th[scope="row"] {
-    padding: 0.2rem 0;
+    padding: 0.15rem 0;
     border-top: 1px solid #e4e4e4;
   }
 
   .value {
-    padding-left: 0.75rem;
+    padding-left: 0.5rem;
+  }
+
+  .value input {
+    width: 8em;
     text-align: right;
-    user-select: all;
+  }
+
+  .value input:disabled {
+    border-color: #e0e0e0;
+    background: #f4f4f4;
+    color: #8a8a8a;
+  }
+
+  .unit {
+    margin-left: 0.25rem;
+    color: #595959;
   }
 
   .copy {
     width: 1%;
-    padding-left: 0.5rem;
-    text-align: right;
+    padding-left: 0.4rem;
+    text-align: center;
+    white-space: nowrap;
   }
 
   button {
@@ -325,6 +580,18 @@ async function copy(text: string, what: string): Promise<void> {
     cursor: pointer;
   }
 
+  button.icon {
+    display: inline-flex;
+    padding: 0.15rem;
+    line-height: 0;
+  }
+
+  button.icon svg {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.2;
+  }
+
   button:hover {
     border-color: #0a84ff;
   }
@@ -334,10 +601,9 @@ async function copy(text: string, what: string): Promise<void> {
     outline-offset: 1px;
   }
 
-  .json {
+  .text-head {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
   }
 
   pre {
@@ -349,5 +615,41 @@ async function copy(text: string, what: string): Promise<void> {
     font-family: ui-monospace, "DejaVu Sans Mono", Menlo, Consolas, monospace;
     font-size: 0.75rem;
     user-select: all;
+  }
+
+  .status:empty {
+    display: none;
+  }
+
+  /* The settings: one discreet line at the pane's bottom. */
+  .settings {
+    position: sticky;
+    bottom: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 0.75rem;
+    margin-top: auto;
+    padding: 0.3rem 0;
+    border-top: 1px solid #e4e4e4;
+    background: #fff;
+    color: #595959;
+    font-size: 0.75rem;
+  }
+
+  .setting input {
+    width: 4.5em;
+    margin-left: 0.3rem;
+    padding: 0 0.2rem;
+    font-size: 0.75rem;
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 </style>

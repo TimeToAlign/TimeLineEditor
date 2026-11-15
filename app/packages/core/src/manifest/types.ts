@@ -22,6 +22,7 @@ import type {
   JsonFloat,
   Lossless,
   Number as SchemaNumber,
+  Timestamp,
 } from "@timetoalign/timetoshare";
 
 /**
@@ -78,12 +79,23 @@ export type ChildTimeline = TimelineManifest & { readonly offset: AxisValue };
 export type Group = ReadonlyView<CompleteGroup>;
 
 /**
- * A manifest's styling and its groups' display order, owned by the manifest,
- * never by a canvas. Its numbers are plain doubles: the schema boundary
- * (`normalizeManifest`) reads a declaration's integral float as the double it
- * equals.
+ * A named timestamp of a manifest, `{id, timeline, coordinate, name}`: its
+ * coordinate a bare value on the own axis of the timeline it names, as the
+ * reader returns it (an integral float on a float axis a `JsonFloat`, an
+ * integer beyond 2^53 a `bigint`), like every other own-axis value.
  */
-export type ManifestGraphical = Graphical;
+export type NamedTimestamp = ReadonlyView<Lossless<Timestamp>>;
+
+/**
+ * A manifest's styling, its display and band orders and its named
+ * timestamps, owned by the manifest, never by a canvas. The numbers of its
+ * declarations are plain doubles: the schema boundary (`normalizeManifest`)
+ * reads a declaration's integral float as the double it equals; a named
+ * timestamp's coordinate is an own-axis value and stays as read.
+ */
+export type ManifestGraphical = Omit<Graphical, "timestamps"> & {
+  timestamps?: readonly NamedTimestamp[];
+};
 
 /**
  * A TimeToShare manifest: its root timelines, optionally grouped. With an

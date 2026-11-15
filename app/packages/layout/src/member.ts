@@ -19,7 +19,7 @@ import {
   chevrons,
 } from "./ancestors.ts";
 import type { Centred, LineElements, SegmentElement } from "./bands.ts";
-import type { DrawnBox, ElementRange } from "./boxes.ts";
+import type { AxisMarker, DrawnBox, ElementRange } from "./boxes.ts";
 import { type Fitted, fitTimelines } from "./children.ts";
 import type { DrawnElement } from "./elements.ts";
 import { heights } from "./heights.ts";
@@ -61,6 +61,8 @@ export interface MemberDrawn {
    * first element.
    */
   readonly bands: DrawnBox[];
+  /** Where a coordinate marker of each of its drawn lines lies, by the line's element. */
+  readonly markers: ReadonlyMap<DrawnElement, AxisMarker>;
 }
 
 /**
@@ -113,7 +115,14 @@ export function layoutMember(
 
   const drawAt = (x0: number, n: number, top: number): MemberDrawn => {
     const yRoot = top + yLocal;
-    const placed = placeLines(root, rootRow, { x0, y: yRoot, size: rootRow.size, top, Hc });
+    const placed = placeLines(root, rootRow, {
+      x0,
+      y: yRoot,
+      root: yRoot,
+      size: rootRow.size,
+      top,
+      Hc,
+    });
     const drawn = placed.map((line) => line.drawing.elements(line.place));
     const each = <K extends keyof LineElements>(key: K): LineElements[K][number][] =>
       drawn.flatMap((elements) => [...elements[key]]);
@@ -151,9 +160,11 @@ export function layoutMember(
       ...each("regionLabels"),
       ...each("jumpLabels"),
       ...each("flowMarkerLabels"),
+      ...each("crossSections"),
     ];
     const end = { start: elements.length, end: elements.length };
-    return { elements, bands: bandRecords(placed, fitted, card, end) };
+    const markers = new Map(each("markers").map((item) => [item.line, item.marker]));
+    return { elements, bands: bandRecords(placed, fitted, card, end), markers };
   };
 
   return {

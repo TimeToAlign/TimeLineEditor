@@ -213,7 +213,7 @@ export function traverse(
   const entries: Entry[] = [];
   const reaches = new WeakMap<TimelineManifest, Real>();
   const rootLength = lengthValue(root);
-  const lambda = rootLength ?? reachOf(root, reaches);
+  const lambda = rootLength ?? reachOf(root, manifest, reaches);
   /**
    * Where a timeline starting at `start` ends, by the first rule of section
    * 3.4 that applies: its length; the root's reach; the next segment's
@@ -232,7 +232,7 @@ export function traverse(
       if (next !== undefined) return { end: next, open: false, rootEnd: false };
       return { end: parent.end, open: parent.open, rootEnd: parent.rootEnd };
     }
-    return { end: add(start, reachOf(timeline, reaches)), open: true, rootEnd: false };
+    return { end: add(start, reachOf(timeline, manifest, reaches)), open: true, rootEnd: false };
   };
   const visit = (
     timeline: TimelineManifest,

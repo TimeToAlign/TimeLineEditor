@@ -10,8 +10,8 @@
  * past int64), negative and past the end, and lengths of null; payloads
  * include ones the schema refuses; a timeline's new parent and groups are
  * drawn from the manifest's timelines and groups, itself and unknown ids
- * included. Every refusal the commands produce on these targets is
- * reachable.
+ * included; a named timestamp is added, set, removed and its line toggled.
+ * Every refusal the commands produce on these targets is reachable.
  *
  * A step of an editing sequence is such a seed with an operation: a
  * command (`commandIn` the innermost open editor), opening an editor
@@ -37,7 +37,7 @@ export interface Seed {
   readonly picks: readonly number[];
 }
 
-const KINDS = 14;
+const KINDS = 15;
 
 export const seedArbitrary: fc.Arbitrary<Seed> = fc.record({
   kind: fc.nat({ max: KINDS - 1 }),
@@ -307,8 +307,9 @@ export function editorFor(
  * The command a seed stands for in the editor of `target` (`null`: no
  * editor is open): mostly one that changes only what the editor edits (a
  * name or a band order of a timeline it holds, its place, a group's
- * display order, a member's group length and scale, or the block's width),
- * sometimes any command of `commandFor`. In the bundle editor
+ * display order, a member's group length and scale, the block's width,
+ * the name of a named timestamp on a timeline it holds, or a named
+ * timestamp added to one), sometimes any command of `commandFor`. In the bundle editor
  * every command is `commandFor`'s on its block.
  */
 export function commandIn(
@@ -331,8 +332,20 @@ export function commandIn(
   // A member's editor also resizes its group's frame: the length and scale the members share.
   const sharing = manifest.groups.find((group) => group.members.includes(element))?.id;
   const scale = 0.5 + (p3 % 4) / 2;
+  // A named timestamp lying on a timeline the editor holds, renamed; or one added there.
+  const stamps = (manifest.graphical?.timestamps ?? []).filter((item) =>
+    held.includes(item.timeline),
+  );
+  if (p7 % 8 === 1) {
+    return {
+      type: "add",
+      into: at(block, timeline),
+      timestamp: { name: `S${p3 % 5}`, coordinate: coordinate(axisOf(manifest, timeline), p2, p3) },
+    };
+  }
   const changes = [
     { target: at(block, timeline), values: { name: `N${p3 % 7}` } },
+    ...stamps.map((item) => ({ target: at(block, item.id), values: { name: `S${p3 % 5}` } })),
     {
       target: at(block, timeline),
       values: { order: pick([bandOrder(p3), null], p3 >> 3) },
@@ -359,6 +372,26 @@ export function commandIn(
       : [{ target: at(block, sharing), values: { place: { length: 100 + (p3 % 400), scale } } }]),
   ];
   return { type: "set", changes: [pick(changes, p2)] };
+}
+
+/** The axis of the timeline `id` of `manifest`, a fraction axis of 8 quarters where it has none. */
+function axisOf(manifest: Manifest, id: string): Axis {
+  return (
+    places(manifest).find((place) => place.timeline.id === id)?.timeline ?? {
+      unit: "quarters",
+      number_type: "fraction",
+      length: [8n, 1n],
+    }
+  );
+}
+
+/** Half of an own-axis value as its axis spells it: a pair's denominator doubled, an integer halved. */
+function halved(value: AxisValue): unknown {
+  if (typeof value === "number") return Number.isInteger(value) ? Math.floor(value / 2) : value / 2;
+  if (typeof value === "bigint") return value / 2n;
+  if (value instanceof JsonFloat) return value.value / 2;
+  const [numerator, denominator] = value;
+  return [numerator, typeof denominator === "number" ? denominator * 2 : denominator];
 }
 
 /** The concrete command a seed stands for in `view`, whose blocks are `blocks`. */
@@ -605,6 +638,55 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
           id: pick([`g${p3 % 4}`, `g${p3 % 4}`, ...ids], p3),
           members: [...members, ...(p5 % 7 === 0 ? ["ghost"] : [])],
         },
+      };
+    }
+    case 14: {
+      // A named timestamp: added into a timeline (or elsewhere; mostly so while the manifest
+      // holds none), its name, coordinate or timeline set, removed, its line hidden or shown
+      // again, or its timeline given a length half way to it.
+      const stamps = manifest?.graphical?.timestamps ?? [];
+      const branch = stamps.length === 0 && p2 % 4 !== 0 ? 0 : p2 % 5;
+      const stamp = pick([...stamps.map((item) => item.id), "timestamp_99"], p3);
+      const found = stamps.find((item) => item.id === stamp);
+      const lies = found?.timeline ?? id;
+      const on = manifest === undefined ? axis : axisOf(manifest, lies);
+      if (branch === 4) {
+        const length = found === undefined ? coordinate(on, p5, p6) : halved(found.coordinate);
+        return set(at(block, lies), { length });
+      }
+      if (branch === 0) {
+        const value = pick(
+          [
+            { name: `T${p4 % 3}`, coordinate: coordinate(axis, p5, p6) },
+            { name: `T${p4 % 3}`, coordinate: coordinate(axis, p5, p6) },
+            { name: "", coordinate: coordinate(axis, p5, p6) },
+            { name: "T" },
+            { id: "timestamp_1", name: "T", coordinate: coordinate(axis, p5, p6) },
+          ],
+          p4,
+        );
+        return {
+          type: "add",
+          into: pick([element, element, element, own], p7 >> 4),
+          timestamp: value,
+        };
+      }
+      if (branch === 1) {
+        const property = pick(["name", "coordinate", "coordinate", "timeline"], p4);
+        const value =
+          property === "coordinate"
+            ? coordinate(on, p5, p6)
+            : property === "name"
+              ? pick([`T${p5 % 3}`, "", null], p5)
+              : id;
+        return set(at(block, stamp), { [property]: value });
+      }
+      if (branch === 2) return { type: "remove", targets: [at(block, stamp)] };
+      return {
+        type: "style",
+        select: { addresses: [{ id: stamp, part: ["line"] }] },
+        set: { display: pick(["none", null], p4) },
+        blocks: [block],
       };
     }
     default: {

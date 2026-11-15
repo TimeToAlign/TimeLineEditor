@@ -148,15 +148,16 @@ export function plainSelector(select: Lossless<Selector>): Selector {
 }
 
 /**
- * A graphical block read losslessly as the plain `Graphical` the drawing
+ * A graphical block read losslessly as the `ManifestGraphical` the drawing
  * reads: every declaration's numbers doubles (`plainDeclaration`), in the
- * named styles and in the statements; the order kept as it is, and every
- * key of every object where it was.
+ * named styles and in the statements; the orders and the named timestamps
+ * (whose coordinates are own-axis values) kept as they are, and every key of
+ * every object where it was.
  */
 export function plainGraphical(graphical: Lossless<Graphical>): ManifestGraphical | Problem {
   const { styles, statements, ...rest } = graphical;
   const kept: typeof rest = graphical;
-  const result: { -readonly [P in keyof Graphical]: Graphical[P] } = { ...kept };
+  const result: { -readonly [P in keyof ManifestGraphical]: ManifestGraphical[P] } = { ...kept };
   if (styles !== undefined) {
     const plain: { [name: string]: Declaration } = {};
     for (const [name, declaration] of Object.entries(styles)) {
@@ -242,8 +243,15 @@ export function normalizeManifest(value: unknown): Manifest | LoadError {
   if ("code" in checked) return refuse(checked);
   const manifest = completed(checked);
   if (isLoadError(manifest) || manifest.graphical === undefined) return manifest;
-  // completeStyles issues the one warning naming every missing style.
-  return { ...manifest, graphical: completeStyles(manifest.graphical).graphical };
+  // completeStyles issues the one warning naming every missing style. It clones what it is
+  // given structurally, which would turn a coordinate's `JsonFloat` into a plain object, so
+  // the named timestamps, which name no style, stay out of it.
+  const { timestamps, ...styled } = manifest.graphical;
+  const { graphical } = completeStyles(styled);
+  return {
+    ...manifest,
+    graphical: timestamps === undefined ? graphical : { ...graphical, timestamps },
+  };
 }
 
 /** `object` with the member at `path` set to `value`, every object on the way copied. */

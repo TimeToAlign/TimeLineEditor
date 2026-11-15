@@ -40,8 +40,10 @@ Every timeline drawn with a line of its own has its five bands at its own
 line (section 6.4). By the default band order (section 4) the conversion
 maps band lies above its line at level 1 and the children band beyond it,
 and the markers, regions and flow control bands lie below, in that order;
-the defaults hide the markers, regions and flow control bands of every
-timeline but a member drawing's root. Only a present band has a level and
+the defaults hide the regions and flow control bands of every timeline but
+a member drawing's root, and show every markers band, which draws nothing
+but on the root and on a timeline with a named timestamp. Only a present
+band has a level and
 takes room. The band at level 1 or −1 starts at `c = 0` when it is the
 markers or the conversion maps band, and otherwise `S` beyond the larger of
 the line's reach on its side and `w / 2`: at `1.5 + 4 = 5.5` for a line of
@@ -86,10 +88,11 @@ package's `docs/drawing.md`: `DEFAULT_LAYER` equals it. Resolved alone, it
 gives `bare`'s block and card their fill, stroke, `rx` and shadow; in
 `group_child_member` the frame its own, the ancestor line `piece`, its marks
 and their labels opacity 0.35, its name grey at size 9 and not faded. It
-hides exactly the markers, regions and flow control bands of every timeline
-held by a band (`with_region`'s `clt_2` and `clt_3`,
-`unknown_length_segments`' `a`, `b` and `c`) and no band of a member
-drawing's root, a member that is a child included.
+hides exactly the regions and flow control bands of every timeline held by
+a band (`with_region`'s `clt_2` and `clt_3`, `unknown_length_segments`'
+`a`, `b` and `c`, `timestamps`' `clt_2`) and no band of a member drawing's
+root, a member that is a child included: every markers band is shown, so
+every named timestamp stays visible.
 
 ## The cascade (`cascade.test.ts`)
 
@@ -720,6 +723,149 @@ centred label, none for a hidden ancestor, and the ancestor band `S` beyond
 the stroke of a wide member's line. `inside: ancestor` matches the marks, never
 the member's own wedges.
 
+## Named timestamps (`timestamps.test.ts`)
+
+A named timestamp of `graphical.timestamps` is a coordinate marker of its
+timeline (sections 2, 2.1, 6.4 Markers, 6.6): a wedge `{id: X}` in its
+timeline's markers band with its name as label `{id: X, part: [label]}`,
+placed by the band's one first fit after the root's start and end labels,
+and a cross-section line `{id: X, part: [line]}`, drawn last, taking no
+room. Every manifest below is a fixture, or a fixture with named timestamps
+or statements written onto it and validated (no command adds a named
+timestamp to a block yet). Label widths at size 9: `Downbeat` `10421 × 9 /
+2048 = 45.79541015625`, `Climax` `7030 → 30.8935546875`, `Entry` `5449 →
+23.94580078125`. A wedge's base is 6, so its extent is `[L × u − 3, L × u +
+3]`.
+
+**`timestamps`, by hand.** Root `clt_1`, quarters, length 8, unlocked, no
+name (its row shows `clt_1`, 25.91552734375 wide); child `clt_2` at 2,
+length 4, locked. Its named timestamps, in canonical order: `timestamp_1`
+`Downbeat` at 3/2 and `timestamp_2` `Climax` at 6 on `clt_1`, `timestamp_3`
+`Entry` at 1 on `clt_2`, so at `2 + 1 = 3` on the root's axis. Its one
+statement hides `{id: timestamp_2, part: [line]}` alone.
+
+- Horizontal: `x0 = 16 + 25.91552734375 + 8 = 49.91552734375` (the widest
+  label reaching left, `0 ♩`, asks `16 + 6.416015625`), `x(t) = x0 + 50t`:
+  `Downbeat` at 124.91552734375, `Climax` at 349.91552734375, `Entry` at
+  199.91552734375; `clt_2` from 149.91552734375 to 349.91552734375, its
+  line stopping at the diamond's left corner `349.91552734375 − 4.5 =
+  345.41552734375`.
+- The root's markers band (below, level −1, `c = 0`) draws the wedges of
+  `clt_1`'s start and end, then `timestamp_1` and `timestamp_2` (a hidden
+  line hides nothing of its wedge). Its labels by one first fit, start,
+  end, `Downbeat`, `Climax`, with the extents `[−7.416015625,
+  7.416015625]`, `[392.583984375, 407.416015625]`, `[75 − 22.897705078125 −
+  1, 75 + 22.897705078125 + 1] = [51.102294921875, 98.897705078125]` and
+  `[300 − 15.44677734375 − 1, …] = [283.55322265625, 316.44677734375]`:
+  none conflicts, one tier, so `Eb = 1.5 + 13 + 2 + 10.4765625 =
+  26.9765625`.
+- `clt_2`'s markers band, below its own line at level −1 from 0, holds
+  `timestamp_3` and its label `Entry` in one tier, 26.9765625 wide, the
+  edge of `clt_2`'s below side. `clt_2` lies in the root's children band
+  above, from `max(1.5 + 4, 14 / 2) = 7`; its row's inner half, towards
+  the root, is `max(7, 26.9765625) = 26.9765625`, its outer half `max(7, 0)
+  = 7`: `l1 = 7 + 26.9765625 = 33.9765625`, the band 33.9765625 wide, `Ea =
+  40.9765625`, `y_root = 8 + 40.9765625 = 48.9765625`. With the card's top
+  at 8 the root's line lies at 56.9765625 and `clt_2`'s at `56.9765625 −
+  33.9765625 = 23`; `Hc = 48.9765625 + 26.9765625 + 8 = 83.953125`.
+- **The child row change.** With `graphical.timestamps` emptied,
+  `clt_2`'s markers band is absent, its row's halves are 7 and 7, `Ea = 7 +
+  14 = 21`, `y_root = 29`: the root's line lies at 37 and `clt_2`'s at
+  `37 − 14 = 23`. The named timestamp on `clt_2` moves the root's line down
+  by `56.9765625 − 37 = 19.9765625`, the room its wedge and label take.
+- Wedges: the root's tips at `56.9765625 + 1.5 = 58.4765625`, bases at
+  71.4765625, labels' baseline `(56.9765625 + 16.5) + 8.35400390625 =
+  81.83056640625`; `timestamp_3`'s tip at `23 + 1.5 = 24.5`, base 37.5,
+  `Entry`'s baseline `(23 + 16.5) + 8.35400390625 = 47.85400390625`. Each
+  wedge's base is 6 wide, centred on its `X`.
+- Cross-section lines (section 6.6, `P = 8`, `V = 0`): `timestamp_1`'s, on
+  the root's line, from `(124.91552734375, 8 + (8 + 0))` to
+  `(124.91552734375, 8 + (83.953125 − 8 − 0))`, so from 16 to 83.953125;
+  `timestamp_3`'s, on `clt_2`'s line above the root's, from its line
+  `(199.91552734375, 23)` up to `(199.91552734375, 16)`; `timestamp_2`
+  draws none. Each is `#1BA1E2`, width 1, dash `3 3`, the default
+  statement naming `element`.
+- The arrowhead's tip `449.91552734375 + 9 = 458.91552734375` is the right
+  edge (`8 ♩` reaches 456.33154296875): the card is `{8, 8,
+  458.91552734375, 83.953125}`, `W = 476.91552734375`, `H = 101.953125`.
+- The elements, in order: the block; the card; `clt_1`'s line, `clt_2`'s;
+  the wedges `{id: clt_1, part: [start]}`, `{id: clt_1, part: [end]}`,
+  `timestamp_1`, `timestamp_2` (the root's band), `timestamp_3` (`clt_2`'s);
+  the names `clt_2` (baseline `23 + 3.80810546875 = 26.80810546875`) and
+  `clt_1` (60.78466796875); the labels `0 ♩`, `8 ♩`, `Downbeat`, `Climax`,
+  `Entry` in the order of their wedges; and last the cross-section lines of
+  `timestamp_1` and `timestamp_3`.
+
+**Display, each on its own** (section 2.4). A named timestamp's wedge,
+with its label, lies in its timeline's markers band, but its cross-section
+line is held by its timeline's line (section 2.1). Hiding `{id:
+timestamp_3}` hides its wedge and its label and keeps its line from 23 to
+16; `clt_2`'s markers band is then absent, so the root's line lies at 37
+as without named timestamps. Hiding `clt_2`'s markers band `{id: clt_2,
+facet: markers}` hides the wedge and its label and keeps the line with the
+same ordinates, from `y1 = 23` to `y2 = 16` (the root's line again at 37,
+`clt_2`'s at 23 as before). Hiding `clt_2`'s line `{id: clt_2}` (its
+`child` element) hides its whole drawing, the wedge, the label and the
+cross-section line of `timestamp_3` included, while `timestamp_1`'s line
+is still drawn.
+
+**Tiers.** `bare` with `timestamp_1` `Zero` at 0 on `bare`: `Zero` centres
+on the start label's `X`, so their extents overlap and it takes tier 2
+behind `0 ♩` (start, end, then the timestamps): `Eb = 1.5 + 13 + 2 + 2 ×
+10.4765625 = 37.453125`, `Hc = 14.40234375 + 37.453125 + 8 =
+59.85546875`, `Zero`'s baseline `(22.40234375 + 26.9765625) +
+8.35400390625 = 57.73291015625`, tier 2 starting `1.5 + 13 + 2 +
+10.4765625 = 26.9765625` out.
+
+**A child's extent counts its wedges.** `contiguous` (root `piece`, length
+8, children `a` [0, 3], `c` [1, 3], `b` [3, 8], none named, every pitch
+14): `a` takes row 1, `c` row 2, `b` row 1 (it starts where `a` ends), so
+the children band, from 7, is `7 + 7 + 7 + 7 = 28` wide, `Ea = 35`, the
+root's line at `8 + (8 + 35) = 51` and `b`'s at `51 − 14 = 37`. With
+`timestamp_1` at 0 on `b` and its label hidden, `b`'s extent holds its
+wedge's `[150 − 3, 150 + 3]`, which conflicts with `a` (`[0, 150]`) in row 1 and `c` (`[50, 150]`) in row 2, so `b` takes row 3, whose
+inner half is `max(7, 1.5 + 13) = 14.5` (`b`'s markers band, no tier):
+`l3 = ((7 + 7) + (7 + 7)) + (7 + 14.5) = 49.5`, the band `7 + 7 + 7 + 7 +
+14.5 + 7 = 49.5` wide, `Ea = 56.5`, the root's line at `8 + (8 + 56.5) =
+72.5` and `b`'s at `72.5 − 49.5 = 23`.
+
+**Segments without a line.** `segment_line` with `timestamp_1` at 2 on the
+segment `b1` (at 0 in `b`, at 8 in `form`, so at 10 on `form`'s axis):
+its wedge joins `b`'s markers band and lies on `b`'s line at `X = b.xs + 400
+× 2 / 32 = b.xs + 25`, its tip 1.5 below that line and its base 14.5 below;
+its cross-section line runs from `b`'s line up to 16, since `b` lies above
+`form`.
+
+**The reach** (section 3.4). `unknown_length` with `timestamp_1` `Mark` at
+20 on `score`: `score`'s reach becomes 20 (it was 14, `coda`'s end), so
+`coda` is drawn from `53.798828125 + 400 × 10 / 20 = 253.798828125` to
+`53.798828125 + 280 = 333.798828125`, and the wedge lies at
+`53.798828125 + 400 = 453.798828125`.
+
+**The marks at any position.** A drawn line's axis carries where a wedge
+and a cross-section line of its timeline lie at any abscissa, drawn by the
+code that draws a named timestamp's; an editor draws its unnamed marks so.
+For a line keyed by its card's place key text followed by its address key
+(the keys of `lineAxes`), at the abscissa `x`:
+
+- in `timestamps`, on `clt_1` at 124.91552734375 the cross-section equals
+  `timestamp_1`'s drawn line and the wedge's points equal `timestamp_1`'s
+  wedge's tip and base corners, with the same style; on `clt_2` at
+  199.91552734375 they equal `timestamp_3`'s; on `clt_1` at
+  349.91552734375 the line is `{349.91552734375, 16, 83.953125}` in the
+  default style, displayed: a statement naming addresses (here hiding
+  `timestamp_2`'s line) never styles an unnamed mark;
+- in `timestamps` with `places` `{clt_1: {scale: 2}}`, the same agreements
+  hold with every drawn value scaled, the line's style width 2 and dash
+  `6 6`;
+- in `nested`, whose child `clt_3` (line at 37, above the root's at 51)
+  has no markers band: at 200 its wedge lies where that band would start,
+  from 0 below its line, `[[200, 38.5], [197, 51.5], [203, 51.5]]`, its
+  cross-section from 37 up to 16; the root's from 16 to 77.9765625, its
+  wedge `[[200, 52.5], [197, 65.5], [203, 65.5]]`;
+- an ancestor line (`group_child_member`'s `piece`) and a key naming no
+  line have neither.
+
 ## Timelines of unknown length (`unknown.test.ts`)
 
 Every end rule of section 6.6 is drawn. `unknown_length`'s root is scaled
@@ -768,7 +914,8 @@ left, the right margin `Mr`, the largest `e − (s0 + Li)` over the member
 drawings, and item `i`'s right edge `Ri = s0 + Li + Mr`, or its title's
 right edge when larger. At the default place `x = P = 8`: `xn = 8 + n`, `x0
 = 8 + s0`, `R = 8 + Ri`. Common values: `P = Q = K = 8`, the gap after the
-manifest's title `F = 8`, the frame's spacing `Sf = 8`, the title gap 4, `a(11) = 10.21044921875`, `h(11) = 12.8046875`. A member drawing with its
+manifest's title `F = 8`, the frame's spacing `Sf = 8`, the title gap 4,
+`a(11) = 10.21044921875`, `h(11) = 12.8046875`. A member drawing with its
 two wedges below in one label tier is `Hm = 14.40234375 + 26.9765625 + 8 =
 49.37890625` high with no ancestor, `48.9765625 + 26.9765625 + 8 =
 83.953125` with one ancestor row and `82.953125 + 26.9765625 + 8 =
@@ -778,12 +925,21 @@ two wedges below in one label tier is `Hm = 14.40234375 + 26.9765625 + 8 =
 line 17.5 above the member's. Maps end at their line's `Xe` and change no
 horizontal quantity.
 
-| case | `xn` | `x0` | `R` | heights | `W`, `H` set by |
-|---|---|---|---|---|---|
-| `bare` | 16 | `16 + 25.5771484375 + 8 = 49.5771484375` | arrowhead tip 458.5771484375 | 49.37890625 | 476.5771484375, 67.37890625: the shadow |
-| `group_child_member` | 24 | `24 + 64.61962890625 + 8 + 24 = 120.61962890625` | 534.4140625 (`10.0 s`) | 83.953125, 49.37890625 | 558.4140625, 190.13671875: the frame |
-| `group_parents_mixed` | 24 | `24 + 57.0302734375 + 8 + 24 = 113.0302734375` | 544.08642578125 (`1323000 smp`) | 83.953125, 87.453125, 83.953125, 49.4765625 | 568.08642578125, 377.640625 |
-| `group_grandchild` | 24 | `24 + 55.70361328125 + 8 + 24 = 111.70361328125` | 535.70361328125 (`score`'s outer chevron, `x0 + L + 8w`) | 117.9296875, 49.37890625 | 559.70361328125, 224.11328125 |
+Per case, `xn`; `x0`; `R`, with what sets it; the member drawings'
+heights; and `W`, `H`, with what sets them:
+
+- `bare`: 16; `16 + 25.5771484375 + 8 = 49.5771484375`; the arrowhead's
+  tip 458.5771484375; 49.37890625; 476.5771484375, 67.37890625, set by the
+  shadow.
+- `group_child_member`: 24; `24 + 64.61962890625 + 8 + 24 =
+  120.61962890625`; 534.4140625 (`10.0 s`); 83.953125, 49.37890625;
+  558.4140625, 190.13671875, set by the frame.
+- `group_parents_mixed`: 24; `24 + 57.0302734375 + 8 + 24 =
+  113.0302734375`; 544.08642578125 (`1323000 smp`); 83.953125, 87.453125,
+  83.953125, 49.4765625; 568.08642578125, 377.640625.
+- `group_grandchild`: 24; `24 + 55.70361328125 + 8 + 24 =
+  111.70361328125`; 535.70361328125 (`score`'s outer chevron, `x0 + L +
+  8w`); 117.9296875, 49.37890625; 559.70361328125, 224.11328125.
 
 A frame at `(P, P)` spans `0` to `Ri + K + Q` and `Q + h(11) + 4 + Σ Hm +
 (m − 1) Sf + Q` high for `m` cards; its title lies at `x = P + Q = 16`,
@@ -1214,7 +1370,11 @@ and a segment line of 40 segments. Every count comes from the inputs a
 draw is given, never from watching the code: each statement counts reads
 of its selector, the font the code points asked, the manifest listings of
 its keys. The statement with no element, class or address is tested
-exactly 1,000 times, so each key is resolved once; three whose address,
+exactly `1,000 + 2 × 63 = 1,126` times: each key is resolved once, and
+each of the 63 lines (the root, its 60 children, the nested child and the
+segment line, the keys of type `timeline` or `child`) resolves once each
+the wedge and the cross-section line of a position no named timestamp
+holds; three whose address,
 class or element no key has, 0 times; one per address the keys carry, the
 block's `{}` included, as often as core lists keys there. The font is read 203 times, the code points of the eleven distinct
 texts as a multiset; the manifest's keys are listed 0 times, so a draw

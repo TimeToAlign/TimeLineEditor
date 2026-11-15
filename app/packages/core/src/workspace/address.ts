@@ -28,6 +28,7 @@ import type {
   Group,
   Manifest,
   MeasureMap,
+  NamedTimestamp,
   TimelineManifest,
 } from "../manifest/types.ts";
 import type { Block, BlockId } from "./blocks.ts";
@@ -171,6 +172,15 @@ export type ResolvedAddress =
       readonly index: number;
     }
   | {
+      readonly kind: "timestamp";
+      readonly block: Block;
+      /** The timeline the timestamp lies on. */
+      readonly at: Located;
+      /** Its index in the manifest's `graphical.timestamps`. */
+      readonly index: number;
+      readonly timestamp: NamedTimestamp;
+    }
+  | {
       readonly kind: "part";
       readonly block: Block;
       readonly owner: ResolvedAddress;
@@ -197,12 +207,19 @@ export type ResolvedElement =
       readonly element: ListedElement;
     }
   | { readonly kind: "measure_map"; readonly map: MeasureMap; readonly index: number }
+  | {
+      readonly kind: "timestamp";
+      readonly at: Located;
+      readonly index: number;
+      readonly timestamp: NamedTimestamp;
+    }
   | { readonly kind: "part"; readonly owner: ResolvedElement; readonly word: Part };
 
 /**
  * What an ID of a manifest names, located in the manifest: a timeline, an
  * entry of a timeline's list, a conversion map another map holds (at
- * `path`, which nothing draws or addresses), a group or a MeasureMap.
+ * `path`, which nothing draws or addresses), a group, a MeasureMap or a
+ * named timestamp (with the timeline it lies on).
  */
 type Found =
   | { readonly kind: "timeline"; readonly at: Located }
@@ -214,7 +231,13 @@ type Found =
     }
   | { readonly kind: "held"; readonly path: readonly PathSegment[] }
   | { readonly kind: "group"; readonly group: Group }
-  | { readonly kind: "measure_map"; readonly map: MeasureMap; readonly index: number };
+  | { readonly kind: "measure_map"; readonly map: MeasureMap; readonly index: number }
+  | {
+      readonly kind: "timestamp";
+      readonly at: Located;
+      readonly index: number;
+      readonly timestamp: NamedTimestamp;
+    };
 
 const catalogues = new WeakMap<Manifest, ReadonlyMap<string, Found>>();
 
@@ -234,8 +257,10 @@ function heldMaps(map: ConversionMap): readonly (readonly [PathSegment, Conversi
  * Every ID of a manifest with what it names, built in one walk of its trees
  * and memoised by identity: per timeline in pre-order its own, its entries'
  * and, after each conversion map, the maps it holds at any depth; then the
- * groups' and the MeasureMaps'. An ID repeated in a manifest the schema
- * refuses keeps its first finding.
+ * groups', the MeasureMaps' and the named timestamps'. An ID repeated in a
+ * manifest the schema refuses keeps its first finding, and a timestamp on
+ * a timeline the manifest lacks, which the schema refuses too, is passed
+ * over.
  */
 function catalogueOf(manifest: Manifest): ReadonlyMap<string, Found> {
   const known = catalogues.get(manifest);
@@ -272,6 +297,11 @@ function catalogueOf(manifest: Manifest): ReadonlyMap<string, Found> {
   manifest.measure_maps.forEach((map, index) => {
     note(map.id, { kind: "measure_map", map, index });
   });
+  (manifest.graphical?.timestamps ?? []).forEach((timestamp, index) => {
+    const on = found.get(timestamp.timeline);
+    if (on?.kind === "timeline")
+      note(timestamp.id, { kind: "timestamp", at: on.at, index, timestamp });
+  });
   catalogues.set(manifest, found);
   return found;
 }
@@ -279,8 +309,8 @@ function catalogueOf(manifest: Manifest): ReadonlyMap<string, Found> {
 /**
  * Every ID a manifest holds, each unique across the manifest: the IDs of
  * its catalogue (its timelines at any depth, their conversion maps at any
- * depth, regions and flow-control elements, its groups and MeasureMaps) and
- * the manifest's own.
+ * depth, regions and flow-control elements, its groups, MeasureMaps and
+ * named timestamps) and the manifest's own.
  */
 export function manifestIds(manifest: Manifest): Set<string> {
   const ids = new Set(catalogueOf(manifest).keys());
@@ -291,7 +321,8 @@ export function manifestIds(manifest: Manifest): Set<string> {
 /**
  * Where an ID of a manifest's tree of timelines lies in the manifest, its
  * `id` member: a timeline's, an entry's or a held conversion map's;
- * `undefined` for a group's, a MeasureMap's and an ID the manifest lacks.
+ * `undefined` for a group's, a MeasureMap's, a named timestamp's and an ID
+ * the manifest lacks.
  */
 export function idPath(manifest: Manifest, id: string): readonly PathSegment[] | undefined {
   const found = catalogueOf(manifest).get(id);
@@ -310,8 +341,8 @@ export function idPath(manifest: Manifest, id: string): readonly PathSegment[] |
 /**
  * The element an ID names with what its address adds: a group's frame, a
  * measure map, a timeline, its cards (`part` beginning with `card`) or one
- * of its bands (`facet`), or an entry; with the part words that address
- * left to read, or `undefined` when it names nothing. A band or a card
+ * of its bands (`facet`), an entry or a named timestamp; with the part
+ * words that address left to read, or `undefined` when it names nothing. A band or a card
  * exists only for a timeline drawn in a card; a map another map holds is
  * neither drawn nor addressed.
  */
@@ -347,6 +378,8 @@ function baseOf(
     }
     case "measure_map":
       return part.length > 0 ? undefined : [{ ...found }, []];
+    case "timestamp":
+      return [{ ...found }, part];
     case "entry": {
       const element = entriesOf(found.at.timeline, found.entry)[found.index];
       if (element === undefined) return undefined;
@@ -363,7 +396,9 @@ function baseOf(
  * manifest), a group's title, the name of a timeline drawn with one, the
  * wedges and marks of a member drawing's root with their labels, a
  * segment's boundary (of every segment but the first) and label, the label
- * of a region, a flow marker or a jump origin, and the cards. `undefined`
+ * of a region, a flow marker or a jump origin, a named timestamp's label
+ * and cross-section line (`line`), and the cards. A named timestamp itself
+ * resolves with the timeline it lies on. `undefined`
  * for anything else, the bundle's address `{}` included (the workspace
  * resolver reads it as the block).
  */
@@ -506,6 +541,8 @@ function elementWords(resolved: ResolvedAddress): {
         words: `measure map ${quoted(resolved.map.name ?? resolved.map.id)}`,
         bundled: false,
       };
+    case "timestamp":
+      return { words: `timestamp ${quoted(resolved.timestamp.name)}`, bundled: false };
     case "part": {
       const owner = elementWords(resolved.owner);
       const titled = resolved.owner.kind === "block" || resolved.owner.kind === "frame";
@@ -575,7 +612,7 @@ function inBundle(view: View, { block }: Address, words: string): string {
 export interface ManifestIndex {
   readonly containers: Containers;
   readonly ancestry: ReadonlyMap<string, readonly string[]>;
-  /** Every timeline's and every entry's ID, mapped to the timeline it belongs to. */
+  /** Every timeline's, entry's and named timestamp's ID, mapped to the timeline it belongs to. */
   readonly owners: ReadonlyMap<string, string>;
   /** Every element of the manifest's drawing (`manifestElements`). */
   readonly elements: readonly ElementKey[];
@@ -621,11 +658,16 @@ export function indexOf(manifest: Manifest): ManifestIndex {
   return index;
 }
 
-/** Every timeline's ID mapped to itself and every entry's ID to the timeline holding it. */
+/**
+ * Every timeline's ID mapped to itself, every entry's ID to the timeline
+ * holding it and every named timestamp's to the timeline it lies on.
+ */
 function ownersOf(manifest: Manifest): ReadonlyMap<string, string> {
   const owners = new Map<string, string>();
   for (const [id, found] of catalogueOf(manifest)) {
-    if (found.kind === "timeline" || found.kind === "entry") owners.set(id, found.at.timeline.id);
+    if (found.kind === "timeline" || found.kind === "entry" || found.kind === "timestamp") {
+      owners.set(id, found.at.timeline.id);
+    }
   }
   return owners;
 }

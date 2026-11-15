@@ -11,7 +11,7 @@ import type { LivePlacement, ResizeMode, Viewport } from "@timetoalign/tilie-arr
 import { Canvas, isTextInput, selectionOf, within } from "@timetoalign/tilie-arranger";
 import type { Health } from "@timetoalign/tilie-client";
 import { connect } from "@timetoalign/tilie-client";
-import type { Address, GridInUse, LoadError, Problem, Store } from "@timetoalign/tilie-core";
+import type { Address, LoadError, Problem, Store } from "@timetoalign/tilie-core";
 import { emptyWorkspace, isCommandError, readAddress } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import type { Snippet } from "svelte";
@@ -72,8 +72,6 @@ let canvas: ReturnType<typeof Canvas> | undefined = $state();
 let confirm: ReturnType<typeof ConfirmDialog> | undefined = $state();
 let about: ReturnType<typeof AboutDialog> | undefined = $state();
 let drawer: ReturnType<typeof InspectorDrawer> | undefined = $state();
-/** The grid of the canvas's last coordinate reading, which the Timestamp tab names; `null` before the first. */
-let grid: GridInUse | null = $state.raw(null);
 
 // --- Messages ---------------------------------------------------------------
 
@@ -95,7 +93,10 @@ const session = new WorkspaceSession({
   replaced: () => {
     if (autofocus || within(root, document.activeElement)) canvas?.focus();
   },
-  selected: (selection) => onselect?.(selection),
+  selected: (selection) => {
+    onselect?.(selection);
+    drawer?.selected(selection);
+  },
 });
 
 // The viewer's own state: never written to the workspace.
@@ -466,8 +467,8 @@ if (withTestHook) {
         bind:mode
         bind:viewport
         onlive={(next) => (placement = next)}
+        pinned={drawer?.shownPin() ?? null}
         oncoordinatepin={(pin) => drawer?.pinTimestamp(pin)}
-        ongrid={(next) => (grid = next)}
         measureMaps={server === null ? undefined : measureMapsOf(connect(server))}
       />
       <MessageArea
@@ -481,7 +482,7 @@ if (withTestHook) {
       selection={session.selection}
       {placement}
       storageKey={storage?.inspectorKey ?? null}
-      {grid}
+      knotsOf={(manifest) => canvas?.knotsOf(manifest)}
     />
   </main>
 

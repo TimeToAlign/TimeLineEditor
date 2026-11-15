@@ -54,7 +54,7 @@ export function draw(
 
   const items = placeItems(context, block, Pt);
   const columns = columnsOf(items);
-  const drawings = items.map((item) => drawItem(item, columns));
+  const drawings = items.map((item) => drawItem(manifest, item, columns));
   const horizontal = horizontalOf(
     columns,
     items,

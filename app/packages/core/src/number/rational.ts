@@ -40,25 +40,6 @@ export function roundHalfEven(numerator: bigint, denominator: bigint): bigint {
   return numerator < 0n ? -quotient : quotient;
 }
 
-/** Positive decimal text: digits, optionally a point and more digits. */
-const POSITIVE_DECIMAL = /^(\d+)(?:\.(\d+))?$/;
-
-/**
- * The exact value positive decimal text spells (`"0.2"` is 1/5): digits,
- * optionally a point and more digits, not all zero; `undefined` for any
- * other text (`".5"`, `"1e-3"`, `"-1"`, `"0"`).
- */
-export function positiveDecimal(text: string): Rational | undefined {
-  const match = POSITIVE_DECIMAL.exec(text);
-  if (match === null) return undefined;
-  const fraction = match[2] ?? "";
-  const value = Rational.fromParts(
-    BigInt(`${match[1]}${fraction}`),
-    10n ** BigInt(fraction.length),
-  );
-  return value.numerator > 0n ? value : undefined;
-}
-
 function gcd(left: bigint, right: bigint): bigint {
   let a = left < 0n ? -left : left;
   let b = right < 0n ? -right : right;

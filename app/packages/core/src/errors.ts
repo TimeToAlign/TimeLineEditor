@@ -13,6 +13,7 @@ export const ErrorCode = {
   invalidCoordinate: "invalid_coordinate",
   numberTypeNotAllowed: "number_type_not_allowed",
   childExceedsParent: "child_exceeds_parent",
+  timestampExceedsLength: "timestamp_exceeds_length",
   locked: "locked",
   negativeChildOffset: "negative_child_offset",
   segmentNeverLocked: "segment_never_locked",

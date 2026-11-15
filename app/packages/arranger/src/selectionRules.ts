@@ -5,8 +5,16 @@
  * selection and the innermost open editor. Nothing here reads the DOM.
  */
 
-import type { Address, View } from "@timetoalign/tilie-core";
-import { addressKey, BUNDLE_ADDRESS, placedElement, sameAddress } from "@timetoalign/tilie-core";
+import type { Address, ElementAddress, Manifest, View } from "@timetoalign/tilie-core";
+import {
+  addressKey,
+  BUNDLE_ADDRESS,
+  idAddress,
+  inBlock,
+  placedElement,
+  resolveElement,
+  sameAddress,
+} from "@timetoalign/tilie-core";
 import type { DrawnBox } from "@timetoalign/tilie-layout";
 import type { DescriptorSource } from "@timetoalign/tilie-writers";
 import type { Hit } from "./boxes.ts";
@@ -42,17 +50,32 @@ export function hitAt(pressed: Pressed, editing: Editing | null): Hit | null {
 }
 
 /**
+ * The named timestamp of `manifest` that `element` draws: the timestamp's
+ * own address `{id}` for its wedge, its label and its cross-section line
+ * (core's `resolveElement`), `null` for any other element.
+ */
+export function timestampOwner(manifest: Manifest, element: ElementAddress): ElementAddress | null {
+  let resolved = resolveElement(manifest, element);
+  while (resolved?.kind === "part") resolved = resolved.owner;
+  return resolved?.kind === "timestamp" && element.id !== undefined ? idAddress(element.id) : null;
+}
+
+/**
  * What a press on `pressed` selects (`pressSelection`): the card, the frame,
- * the band or the element it hit, or the block where it hit the block
- * itself; `null` off every block and outside the edited element, where a press
- * changes nothing. A band is hit only with a drawing point: a key selects
- * none.
+ * the band or the element it hit, a named timestamp for any of its parts
+ * (`timestampOwner`), or the block where it hit the block itself; `null`
+ * off every block and outside the edited element, where a press changes
+ * nothing. A band is hit only with a drawing point: a key selects none.
  */
 export function pressedIn(pressed: Pressed, editing: Editing | null): Address | null {
   const hit = hitAt(pressed, editing);
-  return hit === null || pressed.node === undefined
-    ? null
-    : pressSelection(hit, editing, pressed.node.data.inside);
+  const { node } = pressed;
+  const address =
+    hit === null || node === undefined ? null : pressSelection(hit, editing, node.data.inside);
+  if (address === null || node === undefined) return null;
+  const { element } = addressParts(address);
+  const owner = element === null ? null : timestampOwner(node.data.block.manifest, element);
+  return owner === null ? address : inBlock(node.id, owner);
 }
 
 /**

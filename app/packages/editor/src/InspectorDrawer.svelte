@@ -7,18 +7,29 @@
  * holds between showings (unapplied text, drafts, the tab chosen, the
  * pinned timestamp) is kept here, so closing the drawer loses none of it;
  * an editor opened while it is closed has the level tab shown when it
- * opens, and a timestamp pinned while it is closed opens it. A pin is
- * dropped, the tab kept, once its block's manifest or the granularity
- * changes or its block is deleted.
+ * opens, and a timestamp pinned while it is closed opens it, as does
+ * selecting exactly one named timestamp. An unnamed pin is dropped, the tab
+ * kept, once its block's manifest or the granularity changes or its block
+ * is deleted; a named timestamp is read anew from the view after every
+ * change, and dropped once it is gone.
  */
-import type { LivePlacement, LiveStore, Selection } from "@timetoalign/tilie-arranger";
-import type { GridInUse, Timestamp } from "@timetoalign/tilie-core";
+import type { KnotsOf, LivePlacement, LiveStore, Selection } from "@timetoalign/tilie-arranger";
+import type { Address, Pin } from "@timetoalign/tilie-core";
+import { fontMetrics } from "@timetoalign/timetoshare";
 import { tick, untrack } from "svelte";
 import Inspector from "./inspector/Inspector.svelte";
 import { ManifestText } from "./inspector/manifestText.svelte.ts";
 import { PropertyDrafts } from "./inspector/propertyDrafts.svelte.ts";
-import type { Picked, Pin } from "./inspector/tabs.ts";
-import { initialPick, outlived, pinned, pinningOf, toggled } from "./inspector/tabs.ts";
+import type { Picked, ShownPin } from "./inspector/tabs.ts";
+import {
+  initialPick,
+  namesTimestamp,
+  outlived,
+  pinned,
+  pinningOf,
+  toggled,
+} from "./inspector/tabs.ts";
+import { namedPinOf } from "./inspector/timestamp.ts";
 import { inspectedSubject } from "./inspector/words.ts";
 
 interface Props {
@@ -28,11 +39,15 @@ interface Props {
   placement: LivePlacement | null;
   /** Where the open or closed state is remembered (`localStorage`); `null` remembers nothing. */
   storageKey: string | null;
-  /** The grid of the canvas's last reading; `null` before the first. */
-  grid?: GridInUse | null;
+  /**
+   * The expanded MeasureMaps of a manifest as the canvas reads them, which
+   * a named timestamp is read with, read again when they arrive; without
+   * it no server expands them.
+   */
+  knotsOf?: KnotsOf | undefined;
 }
 
-let { live, selection, placement, storageKey, grid = null }: Props = $props();
+let { live, selection, placement, storageKey, knotsOf }: Props = $props();
 
 const id = $props.id();
 
@@ -57,8 +72,21 @@ const subject = $derived(inspectedSubject(live.view, selection));
 const manifest = new ManifestText();
 const drafts = new PropertyDrafts();
 let picked: Picked = $state.raw(untrack(() => initialPick(live.editing.length, live.openings)));
-let pin: Pin | null = $state.raw(null);
+let pin = $state.raw<ShownPin | null>(null);
 let inspector: ReturnType<typeof Inspector> | undefined = $state();
+
+/**
+ * The pin of the timestamp shown: an unnamed pin as held, a named
+ * timestamp's read from the view with the canvas's MeasureMap rows.
+ */
+const timestamp: Pin | null = $derived(
+  pin === null ? null : "pin" in pin ? pin.pin : namedPinOf(live.view, pin, fontMetrics, knotsOf),
+);
+
+/** The pin of the timestamp the Timestamp tab shows, which the canvas marks; `null` for none. */
+export function shownPin(): Pin | null {
+  return timestamp;
+}
 
 /** Whether the drawer is open. */
 export function isOpen(): boolean {
@@ -78,17 +106,32 @@ export function setOpen(next: boolean): void {
 }
 
 /**
- * Pin `timestamp` in the Timestamp tab, opening the drawer and selecting
- * the tab, or clear the pin (`null`), showing again the tab shown before
- * the first pin.
+ * Pin `next` in the Timestamp tab, opening the drawer and selecting the
+ * tab, or clear the pin (`null`), showing again the tab shown before the
+ * first pin.
  */
-export function pinTimestamp(timestamp: Timestamp | null): void {
-  const pinning = timestamp === null ? null : pinningOf(live.view, timestamp);
+export function pinTimestamp(next: Pin | null): void {
+  const pinning = next === null ? null : pinningOf(live.view, next);
   if (pinning !== null && !open) setOpen(true);
   ({ picked, pin } = pinned({ picked, pin }, pinning));
 }
 
-// A pin is dropped, the tab kept, once it no longer holds: its values were read from another manifest or grid.
+/**
+ * The selection changed to `addresses`: exactly one named timestamp is shown
+ * in the Timestamp tab, opening the drawer; any other selection clears a
+ * named timestamp shown, an unnamed pin staying.
+ */
+export function selected(addresses: readonly Address[]): void {
+  const [only, ...others] = addresses;
+  if (only !== undefined && others.length === 0 && namesTimestamp(live.view, only)) {
+    if (!open) setOpen(true);
+    ({ picked, pin } = pinned({ picked, pin }, { named: only }));
+  } else if (pin !== null && !("pin" in pin)) {
+    ({ picked, pin } = pinned({ picked, pin }, null));
+  }
+}
+
+// A pin is dropped, the tab kept, once it no longer holds: its values were read from another manifest or granularity.
 $effect(() => {
   if (pin !== null && outlived(pin, live.view)) pin = null;
 });
@@ -159,9 +202,9 @@ async function show(next: boolean): Promise<void> {
       {placement}
       {manifest}
       {drafts}
-      {grid}
       bind:picked
       bind:pin
+      {timestamp}
     />
   {/if}
 </aside>
@@ -199,7 +242,9 @@ async function show(next: boolean): Promise<void> {
 
   /* A share of the editor's width; the arranger takes the rest. */
   .inspector {
+    display: flex;
     flex: none;
+    flex-direction: column;
     width: clamp(22rem, 32cqw, 40rem);
     max-width: 60cqw;
     border-left: 1px solid #d0d0d0;

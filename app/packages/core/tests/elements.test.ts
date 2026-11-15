@@ -95,6 +95,25 @@ describe("the elements of a manifest", () => {
     ]);
   });
 
+  it("holds a named timestamp's wedge by its markers band and its line by its timeline's line", () => {
+    const root = ["block", "timeline"];
+    const child = [...root, "band", "child"];
+    const stamp = (name: string, timeline: string, line: string[]) => [
+      ["wedge", id(name), timeline, CLT, [...line, "band"]],
+      ["label", id(name, "label"), timeline, CLT, [...line, "band", "wedge"]],
+      ["cross_section", id(name, "line"), timeline, CLT, line],
+    ];
+    expect(
+      manifestElements(load("timestamps.json"))
+        .filter((key) => key.address.id?.startsWith("timestamp_") === true)
+        .map((key) => [key.type, key.address, key.timeline, key.class, key.inside]),
+    ).toEqual([
+      ...stamp("timestamp_3", "clt_2", child),
+      ...stamp("timestamp_1", "clt_1", root),
+      ...stamp("timestamp_2", "clt_1", root),
+    ]);
+  });
+
   it("gives regions, flow markers and jump origins their drawn addresses, each with a label", () => {
     const addresses = (name: string) =>
       manifestElements(load(name))

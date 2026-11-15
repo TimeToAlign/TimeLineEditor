@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 /**
- * Show coordinates: what the pointer hovers, the grid point it picks and
+ * Show coordinates: what the pointer hovers, the position it picks and
  * what the timestamp reads. Derived in `README.md` ("Show coordinates").
  */
 
 import type { Granularity, Manifest, MeasureKnots, View } from "@timetoalign/tilie-core";
-import { DEFAULT_GRANULARITY, gridText, idAddress, inBlock } from "@timetoalign/tilie-core";
+import { DEFAULT_GRANULARITY, idAddress, inBlock } from "@timetoalign/tilie-core";
 import { Rational } from "@timetoalign/tilie-core/numbers";
 import type { LineAxis } from "@timetoalign/tilie-layout";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -130,27 +130,18 @@ describe("hovering", () => {
   });
 });
 
-describe("the grid point", () => {
+describe("the position", () => {
   const at = MELODY_START + 123.75;
 
   it.each([
-    [{ zoom: 1, ratio: 1 }, DEFAULT_GRANULARITY, q(1, 32), q(79, 32)],
-    [{ zoom: 2, ratio: 2 }, DEFAULT_GRANULARITY, q(1, 128), q(317, 128)],
-    [
-      { zoom: 1, ratio: 1 },
-      { ...DEFAULT_GRANULARITY, fraction: { denominator: 5, refine: false } },
-      q(1, 5),
-      q(12, 5),
-    ],
-  ])(
-    "on a fraction line at %j with %j: step %s, position %s",
-    (view, granularity, step, position) => {
-      const reading = readAt(viewWith("map"), at, 40.5, { ...view, granularity });
-      expect(reading?.step).toEqual(step);
-      expect(reading?.position).toEqual(position);
-      expect(reading?.timestamp.parts[0]?.position).toEqual(position);
-    },
-  );
+    [{ zoom: 1, ratio: 1 }, DEFAULT_GRANULARITY, q(37, 15)],
+    [{ zoom: 2, ratio: 2 }, DEFAULT_GRANULARITY, q(52, 21)],
+    [{ zoom: 1, ratio: 1 }, { denominator: 5, decimals: 3 }, q(12, 5)],
+  ])("on a fraction line at %j with %j: %s", (view, granularity, position) => {
+    const reading = readAt(viewWith("map"), at, 40.5, { ...view, granularity });
+    expect(reading?.position).toEqual(position);
+    expect(reading?.pin.timestamp.parts[0]?.position).toEqual(position);
+  });
 
   it("holds the position to the line's ends", () => {
     expect(readAt(viewWith("map"), MELODY_END + 4, 40.5)?.position).toEqual(q(8));
@@ -158,53 +149,33 @@ describe("the grid point", () => {
   });
 
   it.each([
-    [DEFAULT_GRANULARITY, q(1, 200), q(31, 50), 0.62, "grid 0.005 s (float base 1, refining)"],
-    [
-      { ...DEFAULT_GRANULARITY, float: { step: "0.2", refine: false } },
-      q(1, 5),
-      q(3, 5),
-      0.6,
-      "grid 0.2 s (float base 0.2, fixed)",
-    ],
-  ])("on a float line with %j", (granularity, step, position, read, footer) => {
+    [DEFAULT_GRANULARITY, q(31, 50), 0.62],
+    [{ denominator: 2520, decimals: 1 }, q(3, 5), 0.6],
+  ])("on a float line with %j", (granularity, position, read) => {
     const view = viewWith("conversion_maps__maps_seconds");
     const start = axis(view, "maps:seconds").xStart;
     const reading = readAt(view, start + 123.75, 22.5, { granularity });
-    expect([reading?.step, reading?.position, reading?.timestamp.parts[0]?.position]).toEqual([
-      step,
+    expect([reading?.position, reading?.pin.timestamp.parts[0]?.position]).toEqual([
       position,
       read,
     ]);
-    expect(gridText({ step, numberType: "float", unit: "seconds", granularity })).toBe(footer);
   });
 
   it("on an int line", () => {
     const view = viewWith("discrete_physical");
     const reading = readAt(view, axis(view, "dpt_1").xStart + 123.75, 37);
-    expect([reading?.step, reading?.position, reading?.timestamp.parts[0]?.position]).toEqual([
-      q(200),
+    expect([reading?.position, reading?.pin.timestamp.parts[0]?.position]).toEqual([
       q(13600),
       13600n,
     ]);
-    expect(
-      gridText({
-        step: q(200),
-        numberType: "int",
-        unit: "samples",
-        granularity: DEFAULT_GRANULARITY,
-      }),
-    ).toBe("grid 200 smp (int base 1, refining)");
   });
 
-  it("writes a fraction line's footer", () => {
-    expect(
-      gridText({
-        step: q(1, 32),
-        numberType: "fraction",
-        unit: "quarters",
-        granularity: DEFAULT_GRANULARITY,
-      }),
-    ).toBe("grid 1/32 ♩ (fraction base 1, refining)");
+  it("is held as an unnamed pin with the reading's spec, knots and timestamp", () => {
+    const granularity = { denominator: 2520, decimals: 3 };
+    const reading = readAt(viewWith("map"), at, 40.5, { granularity });
+    expect([reading?.pin.named, reading?.pin.knots]).toEqual([null, "no_server"]);
+    expect(reading?.pin.spec.granularity).toBe(granularity);
+    expect(reading?.pin.timestamp.granularity).toBe(granularity);
   });
 });
 
@@ -247,22 +218,28 @@ describe("what is read", () => {
       blockIn(view, A).manifest,
       A,
       { axis: axis(view, "b"), map: null },
-      q(1, 8),
+      DEFAULT_GRANULARITY,
     );
     expect(spec.line.maps.map((map) => map.id)).toEqual(["b_tempo"]);
+    expect(spec.line.length).toEqual(q(12));
     expect(
-      spec.segments.map(({ timeline, offset, maps }) => [timeline, offset, maps.map((m) => m.id)]),
+      spec.segments.map(({ timeline, offset, length, maps }) => [
+        timeline,
+        offset,
+        length,
+        maps.map((m) => m.id),
+      ]),
     ).toEqual([
-      ["b1", q(0), []],
-      ["b2", q(6), ["b2_ticks"]],
+      ["b1", q(0), q(6), []],
+      ["b2", q(6), q(6), ["b2_ticks"]],
     ]);
-    expect(reading?.timestamp).toEqual({
+    expect(reading?.pin.timestamp).toEqual({
       block: A,
       timeline: "b",
-      step: q(1, 8),
+      granularity: DEFAULT_GRANULARITY,
       parts: [
-        { ...part("b", "B", q(45, 8), false), maps: [tempo(2.8125)] },
-        { ...part("b1", "b1", q(45, 8), true), maps: [] },
+        { ...part("b", "B", q(17, 3), false), maps: [tempo(17 / 6)] },
+        { ...part("b1", "b1", q(17, 3), true), maps: [] },
       ],
     });
   });
@@ -270,7 +247,7 @@ describe("what is read", () => {
   it("on a segment's map reads that segment, also on the boundary it shares", () => {
     const reading = readAt(segmentMaps(), 223.294921875, 29.4765625);
     expect(reading?.hit.map?.id).toBe("b2_ticks");
-    expect(reading?.timestamp.parts).toEqual([
+    expect(reading?.pin.timestamp.parts).toEqual([
       { ...part("b", "B", q(6), false), maps: [tempo(3)] },
       {
         ...part("b2", "b2", q(0), true),
@@ -291,27 +268,30 @@ describe("what is read", () => {
     const view = segmentMaps();
     const form = axis(view, "form");
     const reading = readAt(view, 152.294921875, form.y);
-    expect(reading?.timestamp.parts.map(({ timeline, position }) => [timeline, position])).toEqual([
+    expect(
+      reading?.pin.timestamp.parts.map(({ timeline, position }) => [timeline, position]),
+    ).toEqual([
       ["form", q(8)],
       ["b", q(0)],
     ]);
   });
 
-  it("writes each value in its number type, a float to 3 places", () => {
-    const [b, b2] = readAt(segmentMaps(), 223.294921875, 29.4765625)?.timestamp.parts ?? [];
+  it("writes each value in its number type, a float to the granularity's places", () => {
+    const [b, b2] = readAt(segmentMaps(), 223.294921875, 29.4765625)?.pin.timestamp.parts ?? [];
     const [tempoMap] =
-      readAt(segmentMaps(), 223.294921875, 39.9765625)?.timestamp.parts[0]?.maps ?? [];
-    expect([b?.maps[0], b2?.maps[0], tempoMap].map((map) => map && mapValueText(map))).toEqual([
+      readAt(segmentMaps(), 223.294921875, 39.9765625)?.pin.timestamp.parts[0]?.maps ?? [];
+    expect([b?.maps[0], b2?.maps[0], tempoMap].map((map) => map && mapValueText(map, 3))).toEqual([
       { text: "3.0", unit: "s" },
       { text: "0", unit: "ticks" },
-      { text: "2.812", unit: "s" },
+      { text: "2.833", unit: "s" },
     ]);
+    expect(tempoMap && mapValueText(tempoMap, 1)).toEqual({ text: "2.8", unit: "s" });
   });
 
   it("a child reads its own maps only", () => {
     const reading = readAt(viewWith("map"), 263.53662109375, 23);
     expect(
-      reading?.timestamp.parts.map(({ timeline, maps }) => [timeline, maps.map((m) => m.id)]),
+      reading?.pin.timestamp.parts.map(({ timeline, maps }) => [timeline, maps.map((m) => m.id)]),
     ).toEqual([["phrase", ["ticks"]]]);
   });
 });
@@ -347,7 +327,7 @@ describe("measure maps", () => {
         ratio: 1,
         granularity: DEFAULT_GRANULARITY,
         knotsOf,
-      })?.timestamp.parts[0]?.maps ?? [];
+      })?.pin.timestamp.parts[0]?.maps ?? [];
     if (map === undefined) throw new Error("score reads its measure view");
     return map;
   }
@@ -367,7 +347,7 @@ describe("measure maps", () => {
         measureView(() => "pending"),
         measureView(() => "unsupported"),
         measureView(() => "failed"),
-      ].map(mapValueText),
+      ].map((item) => mapValueText(item, 3)),
     ).toEqual(
       [
         "needs a server to expand its measure map",

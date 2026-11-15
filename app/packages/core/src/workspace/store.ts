@@ -67,10 +67,7 @@ export interface Workspace {
   readonly sessions: Sessions;
 }
 
-/**
- * A change of the settings: any of their members, each given in part (the
- * members of a `granularity` entry whole).
- */
+/** A change of the settings: any of their members, each given in part. */
 export interface SettingsChange {
   readonly grid?: Partial<WorkspaceSettings["grid"]>;
   readonly blockDefaults?: Partial<WorkspaceSettings["blockDefaults"]>;

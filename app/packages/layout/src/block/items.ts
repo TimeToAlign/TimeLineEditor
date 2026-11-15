@@ -7,6 +7,7 @@
  * records of the item's containers and the axes of its lines.
  */
 
+import type { Manifest } from "@timetoalign/tilie-core";
 import { type DrawnAxis, type DrawnBox, identityOf } from "../boxes.ts";
 import { K, Q, SHADOW_OFFSET } from "../constants.ts";
 import type { DrawnElement, TextElement } from "../elements.ts";
@@ -44,8 +45,11 @@ export function titleElement(title: Title, x: number, baseline: number): TextEle
   return { type: "name", address, style, x, baseline, anchor: "start", text };
 }
 
-/** Draw each card of `item` at the columns: its member drawing's start `s0`, its top its card's. */
-export function drawItem(item: Item, { n, s0 }: Columns): ItemDrawing {
+/**
+ * Draw each card of `item` at the columns: its member drawing's start `s0`, its top its card's;
+ * `manifest` the manifest drawn, which its axes read.
+ */
+export function drawItem(manifest: Manifest, item: Item, { n, s0 }: Columns): ItemDrawing {
   const drawn = item.cards.map((card) => card.layout.drawAt(s0, n, card.top));
   return {
     item,
@@ -53,12 +57,12 @@ export function drawItem(item: Item, { n, s0 }: Columns): ItemDrawing {
     axes: item.cards.map((card, index) => {
       const { key } = card.ref;
       if (key === null) throw new Error("a card has no place key");
-      return axesOf(card.member, key, drawn[index] ?? EMPTY, s0, item.length);
+      return axesOf(manifest, card.member, key, drawn[index] ?? EMPTY, s0, item.length);
     }),
   };
 }
 
-const EMPTY: MemberDrawn = { elements: [], bands: [] };
+const EMPTY: MemberDrawn = { elements: [], bands: [], markers: new Map() };
 
 /**
  * Lay out an item drawn as `drawing` (sections 8.2, 8.4 and 8.5). A frame

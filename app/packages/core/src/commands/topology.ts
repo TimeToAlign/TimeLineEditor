@@ -9,7 +9,7 @@
 import type { CommandError } from "../errors.ts";
 import { ErrorCode, isCommandError, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";
-import { orderedChildren } from "../manifest/elements.ts";
+import { namedTimestamps, orderedChildren } from "../manifest/elements.ts";
 import { childEnd, childReach, lengthOf, readOnAxis } from "../manifest/invariants.ts";
 import { withPlaceLocks } from "../manifest/locks.ts";
 import { bandOrderOf } from "../manifest/order.ts";
@@ -42,16 +42,20 @@ function exceedsParent(
 }
 
 /**
- * Why the timeline at `at` cannot take `length`, if it cannot. A length
- * change never pushes a parent: the new end stays within the parent's known
- * length. Segments fix ends, which keeps a segment within its line too: a
- * segment ends where its successor starts, and the last one where its line
- * ends while the line's length is known; a segment line ends where its last
- * segment ends while that segment's length is known. A length of null is
- * always taken: it bounds nothing, and a segment or line of unknown length
- * ends where its neighbours say.
+ * Why the timeline at `at` in `manifest` cannot take `length`, if it
+ * cannot. A length change never pushes a parent: the new end stays within
+ * the parent's known length. Segments fix ends, which keeps a segment
+ * within its line too: a segment ends where its successor starts, and the
+ * last one where its line ends while the line's length is known; a segment
+ * line ends where its last segment ends while that segment's length is
+ * known. A named timestamp of the timeline keeps its place: the new length
+ * reaches the first, in canonical order, that would lie beyond it
+ * (`timestamp_exceeds_length`). A length of null is always taken: it bounds
+ * nothing, and a segment or line of unknown length ends where its
+ * neighbours say.
  */
 export function lengthProblem(
+  manifest: Manifest,
   at: Located,
   length: Coordinate | null,
   path: readonly PathSegment[],
@@ -96,12 +100,23 @@ export function lengthProblem(
       );
     }
   }
+  const limit = realOf(length);
+  const beyond = namedTimestamps(manifest, timeline.id).find(
+    ({ coordinate }) => compareReal(realOf(axisCoordinate(coordinate, timeline)), limit) > 0,
+  );
+  if (beyond !== undefined) {
+    return problem(
+      ErrorCode.timestampExceedsLength,
+      `timestamp '${beyond.id}' lies after the end of its timeline '${timeline.id}'`,
+      path,
+    );
+  }
   return undefined;
 }
 
 /**
- * Put `child` under the timeline at `at` at `offset`, a coordinate on that
- * timeline's axis, stored normalized. A child reaching past that timeline's
+ * Put `child` under the timeline at `at` in `manifest` at `offset`, a
+ * coordinate on that timeline's axis, stored normalized. A child reaching past that timeline's
  * known end (its end, or its offset when its length is not known) grows the
  * timeline to that point when it is unlocked and its number type holds the
  * point exactly, and is refused otherwise (`child_exceeds_parent` at
@@ -109,6 +124,7 @@ export function lengthProblem(
  * (`lengthProblem`). A timeline of unknown length stays unknown.
  */
 export function placeChild(
+  manifest: Manifest,
   at: Located,
   child: TimelineManifest,
   offset: Coordinate,
@@ -122,7 +138,7 @@ export function placeChild(
   if (known === null || compareReal(reach, realOf(known)) <= 0) return placed;
   const grown = parent.locked ? undefined : exactCoordinate(reach, parent.unit, parent.number_type);
   if (grown === undefined) return exceedsParent(placedChild, parent, path);
-  const refused = lengthProblem({ ...at, timeline: placed }, grown, path);
+  const refused = lengthProblem(manifest, { ...at, timeline: placed }, grown, path);
   return refused ?? { ...placed, length: toAxisValue(grown) };
 }
 
@@ -294,7 +310,7 @@ export function moveTimeline(
     // The new parent lies outside the moved subtree, so it is still there.
     const host = locateTimeline(without, parent.at.timeline.id);
     if (host === undefined) throw new Error(`${parent.at.timeline.id} left with ${timeline.id}`);
-    const placed = placeChild(host, timeline, parent.offset, path);
+    const placed = placeChild(without, host, timeline, parent.offset, path);
     if (isCommandError(placed)) return placed;
     moved = replaceTimeline(without, host, placed);
   }

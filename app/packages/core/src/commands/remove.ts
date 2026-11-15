@@ -47,7 +47,10 @@ interface Removal {
   readonly line: string | null;
 }
 
-/** The ID of a group, measure map, timeline or entry target; `null` for the workspace or a block. */
+/**
+ * The ID of a group, measure map, timeline, entry or timestamp target;
+ * `null` for the workspace or a block.
+ */
 function removalOf(target: Target): Removal | null {
   switch (target.kind) {
     case "workspace":
@@ -57,6 +60,8 @@ function removalOf(target: Target): Removal | null {
       return { element: target.group.id, line: null };
     case "measure_map":
       return { element: target.map.id, line: null };
+    case "timestamp":
+      return { element: target.timestamp.id, line: null };
     case "root":
     case "child": {
       const { at } = target;

@@ -1,10 +1,12 @@
 /**
  * Removing elements from a manifest. Removing a timeline, root or child,
- * removes its subtree, its ID from every group and from every display order,
- * every `addresses` entry of a `graphical` statement addressing a removed
- * element or a part, band or card of one (a statement left with no
- * `addresses` goes), and every statement whose `within` names a removed
- * timeline. Removing a group removes the group only: its
+ * removes its subtree, the named timestamps lying on it, its ID from every
+ * group and from every display order, every `addresses` entry of a
+ * `graphical` statement addressing a removed element or a part, band or
+ * card of one (a statement left with no `addresses` goes), and every
+ * statement whose `within` names a removed timeline. Removing a named
+ * timestamp removes it and the statements' `addresses` entries naming it
+ * or its parts alike. Removing a group removes the group only: its
  * members stay where they are. A group left without members stays. Removing
  * a measure map removes it only; a measure view still naming it leaves the
  * manifest dangling, which the schema check refuses.
@@ -20,10 +22,11 @@ function entryIds(timeline: TimelineManifest): string[] {
 
 /**
  * The IDs that removing the elements with the IDs `elements` (timelines,
- * groups, measure maps, maps, regions and flow-control elements) removes:
- * the elements themselves, every timeline below a removed one and every
- * map, region and flow-control element those timelines hold. An ID naming
- * nothing removes nothing.
+ * groups, measure maps, maps, regions, flow-control elements and named
+ * timestamps) removes: the elements themselves, every timeline below a
+ * removed one, every map, region and flow-control element those timelines
+ * hold and every named timestamp lying on one of them. An ID naming nothing
+ * removes nothing.
  */
 export function removedBy(manifest: Manifest, elements: Iterable<string>): Set<string> {
   const asked = new Set(elements);
@@ -39,6 +42,9 @@ export function removedBy(manifest: Manifest, elements: Iterable<string>): Set<s
   for (const root of manifest.timelines) visit(root, false);
   for (const group of manifest.groups) if (asked.has(group.id)) removed.add(group.id);
   for (const map of manifest.measure_maps) if (asked.has(map.id)) removed.add(map.id);
+  for (const { id, timeline } of manifest.graphical?.timestamps ?? []) {
+    if (asked.has(id) || removed.has(timeline)) removed.add(id);
+  }
   return removed;
 }
 
@@ -73,6 +79,9 @@ export function withoutElements(manifest: Manifest, elements: Iterable<string>):
         .filter(([group]) => !removed.has(group))
         .map(([group, members]) => [group, members.filter((id) => !removed.has(id))]),
     );
+  }
+  if (graphical.timestamps !== undefined) {
+    changed.timestamps = graphical.timestamps.filter(kept);
   }
   if (graphical.statements !== undefined) {
     changed.statements = graphical.statements.flatMap((statement) => {
