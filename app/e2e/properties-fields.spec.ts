@@ -54,6 +54,9 @@ test("a frame height at or below its minimum states none, and the message bar sa
   await height.press("Enter");
   await expect.poll(() => journalLength(page)).toBe(OPENED_JOURNAL.bundles + 1);
   await expect(height).toHaveValue(stated);
+  // The information dismisses itself after 3 s; the clock stands still until it has been read.
+  await page.clock.install();
+  await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 1000);
   await height.fill("1");
   await height.press("Enter");
   await expect.poll(() => journalLength(page)).toBe(OPENED_JOURNAL.bundles + 2);
@@ -67,6 +70,7 @@ test("a frame height at or below its minimum states none, and the message bar sa
     `To decrease the height below ${drawn} px, decrease the size of the contained elements first.`,
   );
   await expect(height).toHaveValue(drawn);
+  await page.clock.resume();
   await expect.poll(() => node(page, BUNDLES.mixed).boundingBox()).toEqual(before);
 });
 
