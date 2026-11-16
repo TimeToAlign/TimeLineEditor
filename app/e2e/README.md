@@ -435,7 +435,9 @@ and then `1`, typed and committed with Enter, is one command
 unstating it (a `set` at `{block: "bmixed0000", id: "group_1"}` with
 `place {height: null}`): the field shows the text it showed
 before (the drawn height, the minimum), the block's drawn box has its
-size on screen from before the first command, and the status line reads `To decrease the height
+size on screen from before the first command, and the message bar shows
+one information message (`data-kind="info"`, dismissed by itself after
+3 s, so it is read right after the command) reading `To decrease the height
 below <that text> px, decrease the size of the contained elements
 first.`. The container width and height stand side by side in one row,
 the disabled Locked checkbox right of the height, checked for `excerpt`'s

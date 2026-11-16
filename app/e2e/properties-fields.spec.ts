@@ -1,7 +1,8 @@
 /**
  * The Properties tab's fields on `bundles`: a container size committed
- * below its minimum, the size row with the Locked checkbox, and the Name
- * field. The method is in `README.md` ("properties-fields.spec.ts").
+ * below its minimum and the information it posts, the size row with the
+ * Locked checkbox, and the Name field. The method is in `README.md`
+ * ("properties-fields.spec.ts").
  */
 
 import type { Page } from "@playwright/test";
@@ -39,7 +40,7 @@ test.beforeEach(async ({ page }) => {
   await page.getByRole("button", { name: "Open inspector" }).click();
 });
 
-test("a frame height at or below its minimum states none, and the status line says why", async ({
+test("a frame height at or below its minimum states none, and the message bar says why", async ({
   page,
 }) => {
   await inspect(page, [{ id: "group_1" }]);
@@ -60,10 +61,12 @@ test("a frame height at or below its minimum states none, and the status line sa
   const changes = command?.type === "set" ? command.changes : [];
   const place = changes.find((change) => sameAddress(change.target, GROUP))?.values.place;
   expect(place).toEqual({ height: null });
-  await expect(height).toHaveValue(drawn);
-  await expect(page.getByRole("status").filter({ hasText: "To decrease" })).toHaveText(
+  const notice = page.getByTestId("message").filter({ hasText: "To decrease" });
+  await expect(notice).toHaveAttribute("data-kind", "info");
+  await expect(notice.getByRole("paragraph")).toHaveText(
     `To decrease the height below ${drawn} px, decrease the size of the contained elements first.`,
   );
+  await expect(height).toHaveValue(drawn);
   await expect.poll(() => node(page, BUNDLES.mixed).boundingBox()).toEqual(before);
 });
 
