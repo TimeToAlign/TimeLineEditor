@@ -83,7 +83,7 @@ own, imported, never copied.
   none on a boundary's mark), `[data-affected]`, `[data-contains-selection]` on a
   block's node, the mode buttons `[data-testid="mode-scale"
   | "mode-box" | "mode-stretch"]` and the canvas controls' `[data-testid="lock"
-  | "marquee"]` with `aria-pressed`,
+  | "marquee" | "coordinates"]` with `aria-pressed`,
   handles `[data-testid="handle-<handle>"]`, guides
   `[data-testid="snap-guide"]` and the refusal hint `[data-testid="hint"]`.
 - **The shell and the inspector** by role, label or `data-testid`, never
@@ -328,7 +328,11 @@ while it is selected) or, on the margin, the block; Delete and Backspace
 remove the selection as one `remove`, a selected timeline marking its
 descendants as affected; keys outside the arranger change nothing, arrows
 nudge by 8 and 64 and the z-order keys reorder, one command each; the
-canvas controls, the zoom and fit keys, and the inspector drawer, closed on
+canvas controls, bottom-left in the pane, are six buttons, top to bottom
+Zoom in, Zoom out, Fit to view, the lock, the marquee toggle and Show
+coordinates, each with its label and its title, and the
+arrow keys move the focus through them in that order, wrapping, without a
+nudge or a command; the zoom and fit keys; and the inspector drawer, closed on
 load and opening beside the pane without moving the view. Every expected
 journal entry is written out whole and compared with the journal.
 
