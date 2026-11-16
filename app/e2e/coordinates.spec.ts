@@ -42,9 +42,10 @@
  *   then adds `{name: "Four", coordinate: [4, 1]}` into `melody`, the
  *   toggles and Delete are enabled (Wedge, Name, Cross-section pressed),
  *   and the named timestamp is drawn as an element, no longer as marks.
- * - The settings line (the drawer, closed on load, opened): denominator 4 makes 2.475 quarters `2 1/2 ♩`
- *   (divisors 1, 2 and 4 miss by 0.475, 0.025, 0.025; the nearest
- *   multiple of 1/4 is 5/2), outside the journal.
+ * - The settings line (the drawer, closed on load, opened): denominator 4
+ *   makes 2.475 quarters `2 1/2 ♩` (divisors 1, 2 and 4 miss by 0.475,
+ *   0.025, 0.025; the nearest multiple of 1/4 is 5/2), outside the
+ *   journal.
  */
 
 import type { Page } from "@playwright/test";
