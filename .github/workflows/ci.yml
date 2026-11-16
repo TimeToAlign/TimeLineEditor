@@ -11,9 +11,6 @@ on:
 jobs:
   app:
     runs-on: ubuntu-24.04
-    # The app packages take @timetoalign/timetoshare from the js/ of a
-    # TimeToShare checkout beside this repository until it is released; the
-    # install-app action checks out its main, since no lockfile records it.
     defaults:
       run:
         working-directory: TimeLineEditor/app
@@ -42,9 +39,6 @@ jobs:
       options: --ipc=host
     env:
       HOME: /root
-    # The app packages take @timetoalign/timetoshare from the js/ of a
-    # TimeToShare checkout beside this repository until it is released; the
-    # install-app action checks out its main, since no lockfile records it.
     defaults:
       run:
         working-directory: TimeLineEditor/app
@@ -67,9 +61,6 @@ jobs:
   tikz:
     name: TikZ figures compile under LuaLaTeX
     runs-on: ubuntu-24.04
-    # The app packages take @timetoalign/timetoshare from the js/ of a
-    # TimeToShare checkout beside this repository until it is released; the
-    # install-app action checks out its main, since no lockfile records it.
     defaults:
       run:
         working-directory: TimeLineEditor/app
