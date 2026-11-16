@@ -19,10 +19,11 @@
  *
  * - `xStart + 123.75` on `melody`: 2.475 quarters; divisors 1 to 14 miss,
  *   15 gives 37/15, shown `2 7/15 ♩`; `tempo` 37/30 s, the float
- *   1.2333333333333334 rounded to 3 places and shown `1.233″`. Each row
- *   is the value's pretty text: the number, a space and the unit's symbol
+ *   1.2333333333333334 rounded to 3 places and shown `1.233″`. Each value
+ *   is its pretty text: the number, a space and the unit's symbol
  *   (`♩`, `ticks`), seconds written with `″` and no unit after, their
- *   decimals only where they are not zero.
+ *   decimals only where they are not zero. A map's row reads its name, a
+ *   space and its value (`Tempo 1.233″`).
  * - `xStart + 200`: 4 quarters, shown `4 ♩`; `tempo` the float 2.0, shown
  *   `2″`.
  * - The same abscissa on `tempo`'s drawing (y 35): still `melody` at 4,
@@ -41,7 +42,7 @@
  *   then adds `{name: "Four", coordinate: [4, 1]}` into `melody`, the
  *   toggles and Delete are enabled (Wedge, Name, Cross-section pressed),
  *   and the named timestamp is drawn as an element, no longer as marks.
- * - The settings line: denominator 4 makes 2.475 quarters `2 1/2 ♩`
+ * - The settings line (the drawer, closed on load, opened): denominator 4 makes 2.475 quarters `2 1/2 ♩`
  *   (divisors 1, 2 and 4 miss by 0.475, 0.025, 0.025; the nearest
  *   multiple of 1/4 is 5/2), outside the journal.
  */
@@ -124,14 +125,14 @@ test("the flag and the marks follow the pointer along a line and stay over its m
 }) => {
   await hover(page, MELODY.start + 123.75, MELODY.y);
   await expect(coordinate(page)).toHaveText("2 7/15 ♩");
-  await expect(row(page, "tempo")).toHaveText("Tempo1.233″");
+  await expect(row(page, "tempo")).toHaveText("Tempo 1.233″");
   await expect(footer(page)).toHaveText("click to pin");
   await expect(wedge(page, "hover")).toHaveCount(1);
   await expect(crossSectionLine(page, "hover")).toHaveCount(1);
 
   await hover(page, MELODY.start + 200, MELODY.y);
   await expect(coordinate(page)).toHaveText("4 ♩");
-  await expect(row(page, "tempo")).toHaveText("Tempo2″");
+  await expect(row(page, "tempo")).toHaveText("Tempo 2″");
   await expect(row(page, "tempo")).toHaveAttribute("data-hovered", "false");
 
   await hover(page, MELODY.start + 200, TEMPO_Y);
@@ -146,7 +147,7 @@ test("the flag and the marks follow the pointer along a line and stay over its m
 test("a child's flag holds its own maps only", async ({ page }) => {
   await hover(page, 263.53662109375, PHRASE_Y);
   await expect(coordinate(page)).toHaveText("2 ♩");
-  await expect(row(page, "ticks")).toHaveText("Ticks960 ticks");
+  await expect(row(page, "ticks")).toHaveText("Ticks 960 ticks");
   await expect(row(page, "tempo")).toHaveCount(0);
 });
 
@@ -234,6 +235,7 @@ test("the Timestamp tab moves the pin, then names it into the manifest", async (
 });
 
 test("Coordinate granularity sets the granularity outside the journal", async ({ page }) => {
+  await page.getByRole("button", { name: "Open inspector" }).click();
   await timestampTab(page).click();
   const shown = await panel(page, "Timestamp");
   const denominator = shown.getByLabel("Denominator", { exact: true });

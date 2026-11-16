@@ -681,15 +681,17 @@ the default granularity (denominator 2520, 3 decimals) picks the
 simplest fraction within it. The flag (`coordinate-flag`) writes each
 value as core's pretty text, the number, a space and its unit's pretty
 unit (`♩`, `ticks`), seconds with `″` and no pretty unit after, their decimals only
-where they are not zero, and the footer `click to pin`: at
+where they are not zero; a map's row reads the map's name, a space and
+its value (the text of the two elements, separated by white space, as
+Playwright normalises it); and the footer `click to pin`: at
 `xStart + 123.75` on `melody` (2.475 quarters; divisors 1 to 14 miss, 15
-gives 37/15) the coordinate reads `2 7/15 ♩` and `tempo` `1.233″`
+gives 37/15) the coordinate reads `2 7/15 ♩` and `tempo`'s row `Tempo 1.233″`
 (the float 37/30 rounded to three places), with one hovered wedge and one
-hovered cross-section line; at `xStart + 200` `4 ♩` and `2″` (the float
+hovered cross-section line; at `xStart + 200` `4 ♩` and `Tempo 2″` (the float
 2.0); the same abscissa on `tempo`'s drawing still reads `melody` at 4
 with `tempo`'s row highlighted (`data-hovered`); 30 below the line
 nothing is within 8 pixels: no flag and no marks; on `phrase` at
-263.53662109375 `2 ♩` with `960 ticks` and no `tempo` row. C toggles the flag. A click on a line
+263.53662109375 `2 ♩` with the row `Ticks 960 ticks` and no `tempo` row. C toggles the flag. A click on a line
 pins the reading: the Timestamp tab is selected and shows the pinned
 timestamp's Properties (`timestamp-properties`), the pinned wedge and line
 stay when the pointer leaves, and the journal keeps its length; a click on
@@ -704,7 +706,8 @@ Enter then journal exactly `{type: "add", into: {block: "map0000000", id:
 the toggles are enabled (Wedge, Name and Cross-section pressed, ID and
 Coordinate not), the pinned marks are gone and the named timestamp
 `timestamp_3` (after `melody`'s default `origin` and `length`) is drawn as
-an element. The pane's Coordinate granularity
+an element. With the drawer, closed on load, opened and the Timestamp
+tab chosen, the pane's Coordinate granularity
 shows "Denominator" 2520 and "Decimals" 3; typing 4 as the denominator
 sets `settings.granularity` to `{denominator: 4, decimals: 3}` without a
 journal entry, and the same abscissa then reads `2 1/2 ♩` (divisors 1, 2
