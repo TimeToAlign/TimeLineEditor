@@ -116,7 +116,13 @@ async function pointsOf(page: Page, block: string, address: ElementAddress): Pro
   return points;
 }
 
-/** The wedge of `score`'s default `origin` timestamp, in its markers band. */
+/**
+ * The wedge of `score`'s default `origin` timestamp, in its markers band.
+ * The schema fixture numbers the `origin` and then the `length` timestamp
+ * of each timeline drawn in a card, by ID (`annotations`, `excerpt`,
+ * `page`, `performance`, `score`), from `timestamp_1`, so `score`'s
+ * `origin` is the ninth.
+ */
 const SCORE_ORIGIN = idAddress("timestamp_9");
 
 test.describe("on bundles", () => {
