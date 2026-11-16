@@ -10,14 +10,15 @@
  * (the preview server and the browsers share it) and the host IPC namespace
  * (Chromium's shared memory), and `CI` and `TILIE_E2E_WORKERS` passed in
  * when set. A schema package linked from a sibling checkout lies outside the
- * app directory; it is mounted read-only at its own path as well
- * (`container.ts`).
+ * app directory; it is mounted read-only at its own path as well, and at the
+ * path the links name when the sibling checkout is reached through a
+ * symbolic link (`container.ts`).
  *
  * Usage: `node e2e/run.ts [playwright test arguments]`.
  */
 
 import { spawnSync } from "node:child_process";
-import { readFileSync, realpathSync } from "node:fs";
+import { lstatSync, readFileSync, readlinkSync, realpathSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { podmanArguments } from "./container.ts";
@@ -41,12 +42,26 @@ const schemaPackage = realpathSync(
   ),
 );
 
+/**
+ * The schema package as `core`'s link names it, resolved lexically as the
+ * container resolves it; `null` for a package installed as a directory or
+ * hoisted out of `core`'s `node_modules`.
+ */
+const link = path.join(appRoot, "packages", "core", "node_modules", "@timetoalign", "timetoshare");
+const linkedPackage = lstatSync(link, { throwIfNoEntry: false })?.isSymbolicLink()
+  ? path.resolve(path.dirname(link), readlinkSync(link))
+  : null;
+
 const inImage = process.env.PLAYWRIGHT_BROWSERS_PATH === "/ms-playwright";
 const run = inImage
   ? spawnSync(process.execPath, [cli, "test", ...args], { cwd: appRoot, stdio: "inherit" })
-  : spawnSync("podman", podmanArguments({ appRoot, schemaPackage, image, env, args }), {
-      stdio: "inherit",
-    });
+  : spawnSync(
+      "podman",
+      podmanArguments({ appRoot, schemaPackage, linkedPackage, image, env, args }),
+      {
+        stdio: "inherit",
+      },
+    );
 
 if (run.error) throw run.error;
 process.exit(run.status ?? 1);

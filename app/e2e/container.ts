@@ -1,6 +1,6 @@
 /**
  * The `podman run` arguments of `run.ts`, a pure function of its inputs so
- * that both mount cases are tested without starting a container.
+ * that every mount case is tested without starting a container.
  */
 
 import path from "node:path";
@@ -10,6 +10,11 @@ export interface ContainerOptions {
   readonly appRoot: string;
   /** The real directory of the installed `@timetoalign/timetoshare`. */
   readonly schemaPackage: string;
+  /**
+   * The path the packages' symbolic link to it names, resolved lexically
+   * from the link's directory, or `null` when the package is no link.
+   */
+  readonly linkedPackage: string | null;
   /** The Playwright image. */
   readonly image: string;
   /** The names of the host variables passed into the container, with their host values. */
@@ -32,13 +37,15 @@ function isInside(root: string, directory: string): boolean {
  * the host network and IPC namespace, each variable of `env` by its name
  * alone (podman copies the host's value), and the same `node e2e/run.ts`
  * inside the image. A schema package linked from a sibling checkout lies
- * outside `app/` and so is invisible in the container; it is added as one
- * read-only volume at its own absolute path, where the links in
- * `node_modules` find it, relabelled (`z`) as the app's volume is, for hosts
- * that enforce SELinux.
+ * outside `app/` and so is invisible in the container; its real directory
+ * is added as a read-only volume at its own absolute path and, when the
+ * sibling checkout is reached through a symbolic link, again at the path the
+ * links in `node_modules` name, which the container resolves lexically; each
+ * is relabelled (`z`) as the app's volume is, for hosts that enforce SELinux.
  */
 export function podmanArguments(options: ContainerOptions): string[] {
-  const { appRoot, schemaPackage, image, env, args } = options;
+  const { appRoot, schemaPackage, linkedPackage, image, env, args } = options;
+  const targets = new Set([schemaPackage, linkedPackage ?? schemaPackage]);
   return [
     "run",
     "--rm",
@@ -46,9 +53,9 @@ export function podmanArguments(options: ContainerOptions): string[] {
     "--network=host",
     "--ipc=host",
     `--volume=${appRoot}:${appRoot}:z`,
-    ...(isInside(appRoot, schemaPackage)
-      ? []
-      : [`--volume=${schemaPackage}:${schemaPackage}:ro,z`]),
+    ...[...targets]
+      .filter((target) => !isInside(appRoot, target))
+      .map((target) => `--volume=${schemaPackage}:${target}:ro,z`),
     `--workdir=${appRoot}`,
     ...env.map((name) => `--env=${name}`),
     image,

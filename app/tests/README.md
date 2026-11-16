@@ -66,15 +66,22 @@ times the slowest measurement.
 registry (its real directory then lies in `app/node_modules/.pnpm`, inside
 the mount) or from a schema package linked from a sibling checkout, whose
 real directory lies outside `app/` and would be missing in the container.
-`podmanArguments` (`e2e/container.ts`) builds the `podman run` arguments
-from the app directory, that real directory, the image, the names of the
-host variables to pass into the container (`CI` and `TILIE_E2E_WORKERS`,
-each only when set) and the Playwright arguments; it is a pure function, so
-every case is pinned without starting a container.
+The packages reach a linked package through relative symbolic links
+(`packages/<p>/node_modules/@timetoalign/timetoshare`), which the container
+resolves lexically: when the sibling checkout is itself reached through a
+symbolic link, the linked path is not the real one and exists in the
+container only if it is mounted. `podmanArguments` (`e2e/container.ts`)
+builds the `podman run` arguments from the app directory, that real
+directory, the linked path (the link's target resolved lexically from the
+link's directory, or none when the package is not a symbolic link), the
+image, the names of the host variables to pass into the container (`CI` and
+`TILIE_E2E_WORKERS`, each only when set) and the Playwright arguments; it is
+a pure function, so every case is pinned without starting a container.
 
 What proves it, with app directory `/w/app` and image `img`:
 
-1. **Package inside `app/`** (`/w/app/node_modules/.pnpm/x/node_modules/y`):
+1. **Package inside `app/`** (`/w/app/node_modules/.pnpm/x/node_modules/y`,
+   no linked path):
    the arguments are exactly `run --rm --init --network=host --ipc=host
    --volume=/w/app:/w/app:z --workdir=/w/app img node e2e/run.ts
    --project=chromium`, the command line `run.ts` built before the schema
@@ -85,7 +92,8 @@ What proves it, with app directory `/w/app` and image `img`:
    `TILIE_E2E_WORKERS` alone, only `--env=TILIE_E2E_WORKERS`, so a worker
    count set on the host reaches Playwright inside the container without CI
    being claimed.
-2. **Package outside `app/`** (`/w/TimeToShare/js`): the same list with
+2. **Package outside `app/`** (`/w/TimeToShare/js`, linked at that same
+   path, a sibling reached directly): the same list with
    exactly one more member, `--volume=/w/TimeToShare/js:/w/TimeToShare/js:ro,z`,
    right after the app's volume: read-only, at the identical absolute path,
    so the links in `node_modules` resolve unchanged, and relabelled for the
@@ -93,3 +101,11 @@ What proves it, with app directory `/w/app` and image `img`:
    lets the container read it.
 3. **A sibling whose name extends the app directory's** (`/w/app-schema`)
    is outside `app/` and is mounted; a prefix test on strings would miss it.
+4. **A sibling reached through a symbolic link** (real directory
+   `/w/TimeToShare/js`, linked path `/w/link/TimeToShare/js`): the real
+   directory is mounted at both paths, read-only and relabelled, right after
+   the app's volume, the real path first:
+   `--volume=/w/TimeToShare/js:/w/TimeToShare/js:ro,z
+   --volume=/w/TimeToShare/js:/w/link/TimeToShare/js:ro,z`. Mounted at its
+   real path alone, the links in `node_modules` would name a directory the
+   container does not have.

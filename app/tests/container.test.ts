@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { podmanArguments } from "../e2e/container.ts";
 
-const common = { appRoot: "/w/app", image: "img", env: [], args: ["--project=chromium"] };
+const common = {
+  appRoot: "/w/app",
+  linkedPackage: null,
+  image: "img",
+  env: [],
+  args: ["--project=chromium"],
+};
 
 const BEFORE = [
   "run",
@@ -36,7 +42,8 @@ describe("podmanArguments", () => {
   });
 
   it("mounts a schema package outside the app directory read-only and relabelled at its own path", () => {
-    expect(podmanArguments({ ...common, schemaPackage: "/w/TimeToShare/js" })).toEqual([
+    const schemaPackage = "/w/TimeToShare/js";
+    expect(podmanArguments({ ...common, schemaPackage, linkedPackage: schemaPackage })).toEqual([
       ...BEFORE.slice(0, 6),
       "--volume=/w/TimeToShare/js:/w/TimeToShare/js:ro,z",
       ...BEFORE.slice(6),
@@ -47,6 +54,21 @@ describe("podmanArguments", () => {
     expect(podmanArguments({ ...common, schemaPackage: "/w/app-schema" })).toEqual([
       ...BEFORE.slice(0, 6),
       "--volume=/w/app-schema:/w/app-schema:ro,z",
+      ...BEFORE.slice(6),
+    ]);
+  });
+
+  it("mounts a sibling reached through a symbolic link at its real and its linked path", () => {
+    expect(
+      podmanArguments({
+        ...common,
+        schemaPackage: "/w/TimeToShare/js",
+        linkedPackage: "/w/link/TimeToShare/js",
+      }),
+    ).toEqual([
+      ...BEFORE.slice(0, 6),
+      "--volume=/w/TimeToShare/js:/w/TimeToShare/js:ro,z",
+      "--volume=/w/TimeToShare/js:/w/link/TimeToShare/js:ro,z",
       ...BEFORE.slice(6),
     ]);
   });
