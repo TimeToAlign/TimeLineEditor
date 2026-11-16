@@ -491,11 +491,24 @@ removed as `{block, id: "region_1"}`), and refuses a selection holding the
 manifest's title whole. Hover marks exactly one box
 overlay, the card or the frame under the pointer (never a shadow or an
 enclosing frame), at zoom 1/2 and at scale 1.5 too, and a hovered segment
-boundary is marked with its card; a press on a frame selects the group;
+boundary is marked with its card; `gchild0000` at scale 1.5 draws its
+`<svg>` 830.8480224609375 wide, 1.5 times its drawing's width
+553.898681640625 (layout's record: `second-half`'s end mark label `16 ♩`,
+18.55810546875 wide, centred at 520.61962890625 on `piece`'s line, then 8
+each for the card, the frame and the block); a press on a frame selects the group;
 a click on a member's line marks its card and frame as holding the
 selection and the block dotted (the block's mark `data-marks="{}"`,
 `data-box="block"`), each in its stated colour. A stretch keeps
-the margin a box resize added in proportion. Through the File menu, the
+the margin a box resize added in proportion: `bungroup00` is drawn
+527.3271484375 wide (layout's record; its widest end label is
+`recording`'s `441 000 smp`, 59.2470703125 wide, centred at
+479.70361328125), so a Box drag of its bottom-right handle by (40, 30)
+states `width` 567.3271484375; a Stretch by the right handle by 50 then
+stores `x` 0, `y` 480, the height kept, `width` 617.3271484375 and
+`length` 446.474609375 (228595/512, the largest multiple of 1/2048 whose
+kept width, `567.3271484375 × (127.3271484375 + length) ÷ 527.3271484375`
+quantized to 1/2048, does not pass the pointer), and the node's left edge
+stays while its right edge moves 50. Through the File menu, the
 schema package's `group_styled` and `bundle_mixed` are imported and
 exported byte for byte.
 
@@ -593,6 +606,15 @@ is a real pointer gesture; the stored state is read through the hook.
   monotonically towards the card's new place; 90 frames later the copy is
   gone and the card is shown. Where the motion ends is the arranger's
   `releaseMotion`, pinned in its tests.
+- **A member's card stretched in its timeline editor stretches every
+  member**: in `score`'s timeline editor of `bmixed0000`, with `score`'s
+  card selected, Stretch offers the handles right, bottom-right and bottom;
+  the right handle dragged by 20 stores `group_1`'s place `{length: 420}`,
+  and both member cards of `group_1`, `score`'s and `performance`'s, are
+  drawn at `x` 16 and 567.915 wide (the SVG writer's text of
+  567.9150390625: at length 400 every card of the block is 547.9150390625
+  wide, set by `excerpt`'s end mark label `132 300 smp`, 59.2470703125
+  wide, centred at 526.29150390625, plus 8; the stretch adds 20).
 - **A stretch in the group editor grows as well as shrinks**: in
   `group_2`'s editor at viewport (−400, 40), zoom 1, a Stretch by the
   right handle of the frame, and of `recapitulation`'s card, by 60 stores

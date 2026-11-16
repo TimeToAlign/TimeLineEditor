@@ -954,7 +954,7 @@ test.describe("resizing in an editor", () => {
       element(page, MIXED, cardAddress(id))
         .last()
         .evaluate((rect) => [rect.getAttribute("x"), rect.getAttribute("width")]);
-    expect(await drawn("score")).toEqual(["16", "566.4846"]);
-    expect(await drawn("performance")).toEqual(["16", "566.4846"]);
+    expect(await drawn("score")).toEqual(["16", "567.915"]);
+    expect(await drawn("performance")).toEqual(["16", "567.915"]);
   });
 });
