@@ -12,7 +12,7 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import type { Address, ElementAddress, Facet } from "../packages/core/src/index.ts";
-import { addressKey, bandAddress, partAddress } from "../packages/core/src/index.ts";
+import { addressKey, bandAddress, idAddress } from "../packages/core/src/index.ts";
 import {
   addressSelector,
   arranger,
@@ -79,7 +79,7 @@ function band(timeline: string, facet: Facet, level: number, elements: number): 
 }
 
 /** `bmixed0000/score`'s bands as the fixture draws them. */
-const SCORE = [band("score", M, 1, 2), band("score", K, -1, 2), band("score", F, -2, 1)];
+const SCORE = [band("score", M, 1, 2), band("score", K, -1, 4), band("score", F, -2, 1)];
 
 /** The `set` of `bmixed0000/score`'s band order. */
 function setScoreOrder(order: string[]) {
@@ -116,8 +116,8 @@ async function pointsOf(page: Page, block: string, address: ElementAddress): Pro
   return points;
 }
 
-/** The start wedge of `score`. */
-const SCORE_START = partAddress({ id: "score" }, "start");
+/** The wedge of `score`'s default `origin` timestamp, in its markers band. */
+const SCORE_ORIGIN = idAddress("timestamp_9");
 
 test.describe("on bundles", () => {
   test.beforeEach(async ({ page }) => {
@@ -177,7 +177,7 @@ test.describe("on bundles", () => {
     expect(await bandsOf(page, MIXED, "score")).toEqual([
       band("score", M, 2, 2),
       band("score", F, 1, 1),
-      band("score", K, -1, 2),
+      band("score", K, -1, 4),
     ]);
     expect(await selection(page)).toEqual(SELECTED_F);
     const after = await storeText(page, "view");
@@ -207,7 +207,7 @@ test.describe("on bundles", () => {
     expect(await bandsOf(page, MIXED, "score")).toEqual([
       band("score", M, 1, 2),
       band("score", F, -1, 1),
-      band("score", K, -2, 2),
+      band("score", K, -2, 4),
     ]);
     expect(await selection(page)).toEqual(SELECTED_F);
   });
@@ -262,15 +262,15 @@ test.describe("on bundles", () => {
 
   test("a root's order change moves a child without an entry of its own", async ({ page }) => {
     const before = {
-      exposition: [band("exposition", M, 1, 2), band("exposition", K, -1, 2)],
-      recapitulation: [band("recapitulation", C, 1, 2), band("recapitulation", K, -1, 2)],
+      exposition: [band("exposition", M, 1, 2), band("exposition", K, -1, 4)],
+      recapitulation: [band("recapitulation", C, 1, 2), band("recapitulation", K, -1, 4)],
       recapitulation_first: [],
       recapitulation_second: [band("recapitulation_second", M, 1, 1)],
-      take_1: [band("take_1", M, 1, 1), band("take_1", K, -1, 2)],
+      take_1: [band("take_1", M, 1, 1), band("take_1", K, -1, 4)],
     };
     const after = {
       ...before,
-      exposition: [band("exposition", M, -1, 2), band("exposition", K, -2, 2)],
+      exposition: [band("exposition", M, -1, 2), band("exposition", K, -2, 4)],
       recapitulation_second: [band("recapitulation_second", M, -1, 1)],
     };
     const shown = async () =>
@@ -321,17 +321,17 @@ test.describe("on bundles", () => {
       [
         "ArrowUp",
         [C, M, LINE, F, K, R],
-        [band("score", M, 1, 2), band("score", F, -1, 1), band("score", K, -2, 2)],
+        [band("score", M, 1, 2), band("score", F, -1, 1), band("score", K, -2, 4)],
       ],
       [
         "ArrowUp",
         [C, M, F, LINE, K, R],
-        [band("score", M, 2, 2), band("score", F, 1, 1), band("score", K, -1, 2)],
+        [band("score", M, 2, 2), band("score", F, 1, 1), band("score", K, -1, 4)],
       ],
       [
         "ArrowUp",
         [C, F, M, LINE, K, R],
-        [band("score", F, 2, 1), band("score", M, 1, 2), band("score", K, -1, 2)],
+        [band("score", F, 2, 1), band("score", M, 1, 2), band("score", K, -1, 4)],
       ],
     ];
     for (const [entries, [key, order, bands]] of steps.entries()) {
@@ -354,7 +354,7 @@ test.describe("on bundles", () => {
     expect(await bandsOf(page, MIXED, "score")).toEqual([
       band("score", M, 2, 2),
       band("score", F, 1, 1),
-      band("score", K, -1, 2),
+      band("score", K, -1, 4),
     ]);
     expect(await selection(page)).toEqual(SELECTED_F);
   });
@@ -364,7 +364,7 @@ test.describe("on bundles", () => {
     await focusBand(page, MIXED, SCORE_F, 2);
     await select(page, SELECTED_F);
     const view = await storeText(page, "view");
-    const wedge = await pointsOf(page, MIXED, SCORE_START);
+    const wedge = await pointsOf(page, MIXED, SCORE_ORIGIN);
     const from = await bandPoint(page, MIXED, SCORE_F, 2);
     const gap = between(
       middleOf(await bandOf(page, MIXED, SCORE_M)),
@@ -373,10 +373,10 @@ test.describe("on bundles", () => {
     await dragStart(page, from, 0, gap - from.y);
     // The preview lays F between the line and the conversion maps band: the
     // line, and the markers band against it, lie lower in the card.
-    await expect.poll(() => pointsOf(page, MIXED, SCORE_START)).not.toBe(wedge);
+    await expect.poll(() => pointsOf(page, MIXED, SCORE_ORIGIN)).not.toBe(wedge);
 
     await page.keyboard.press("Escape");
-    await expect.poll(() => pointsOf(page, MIXED, SCORE_START)).toBe(wedge);
+    await expect.poll(() => pointsOf(page, MIXED, SCORE_ORIGIN)).toBe(wedge);
     expect(await selection(page)).toEqual(SELECTED_F);
     expect(await editing(page)).toEqual([
       { target: { block: MIXED, id: "score" }, kind: "timeline" },

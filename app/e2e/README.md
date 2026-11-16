@@ -625,7 +625,12 @@ facet}`, its facet, level, elements, and its line and rectangle on the
 screen); only a present band is recorded, offered, hovered and selected,
 and only in the innermost timeline editor of its own timeline. A band is
 hovered and clicked through its mark (`data-marks`, the `addressKey` of
-`{id: T, facet}`), and selecting it selects `{block, id: T, facet}`. A
+`{id: T, facet}`), and selecting it selects `{block, id: T, facet}`.
+Every root of the fixture holds its default timestamps `origin` and
+`length`, each drawn with its wedge and its coordinate label, so a root's
+markers band holds four elements; `score` of `bmixed0000` has three
+present bands, conversion maps (level 1, two elements), markers (level
+−1, four) and flow control (level −2, one). A
 band order is a permutation of `line` and the five facets, the default
 `children, conversion_maps, line, markers, regions, flow_control`; a drag
 across the line into a gap or along its side, and Ctrl/Cmd+ArrowUp or
@@ -637,7 +642,10 @@ flow_control, line, markers, regions`, dragged between the line and the
 markers band `children, conversion_maps, line, flow_control, markers,
 regions`; a root's order change (`score` of `bshared000` to `children,
 line, conversion_maps, markers, regions, flow_control`) moves a child
-without an entry of its own below its line; Escape during a drag dispatches nothing; no band is offered in
+without an entry of its own below its line; Escape during a drag
+dispatches nothing, the wedge of `score`'s `origin` timestamp
+(`timestamp_9`, in the markers band against the line) moving with the
+preview and back to its drawn `points`; no band is offered in
 the bundle or group editor or on the arranger; and Delete with only a band
 selected removes nothing.
 
