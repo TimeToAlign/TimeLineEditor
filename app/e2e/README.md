@@ -14,11 +14,15 @@ the Playwright image of the installed version through rootless podman, with
 `@timetoalign/timetoshare` from a schema package linked from a sibling
 checkout instead of the registry; its real directory then lies outside
 `app/`, so `run.ts` mounts it as well, read-only and at its identical
-absolute path, where the links in `node_modules` find it. Like the app's
-volume it carries podman's `z` option, so on a host that enforces SELinux
-the sibling checkout is relabelled for the container to read. With the registry
-package (inside `app/node_modules`) the command line is unchanged. The
-arguments are built by `container.ts` and pinned in `tests/README.md`.
+absolute path. The links in `node_modules` name it by a relative path,
+which the container resolves lexically; when the sibling checkout is
+reached through a symbolic link, that path differs from the real one, and
+`run.ts` mounts the real directory there too. Like the app's volume each
+mount carries podman's `z` option, so on a host that enforces SELinux the
+sibling checkout is relabelled for the container to read. With the
+registry package (inside `app/node_modules`) the command line is
+unchanged. The arguments are built by `container.ts` and pinned in
+`tests/README.md`.
 
 `pnpm e2e` runs the `chromium` project only; `pnpm e2e:all` runs
 `chromium`, `firefox`, `webkit` and `touch`, as CI does. A spec file name
@@ -83,7 +87,7 @@ own, imported, never copied.
   none on a boundary's mark), `[data-affected]`, `[data-contains-selection]` on a
   block's node, the mode buttons `[data-testid="mode-scale"
   | "mode-box" | "mode-stretch"]` and the canvas controls' `[data-testid="lock"
-  | "marquee"]` with `aria-pressed`,
+  | "marquee" | "coordinates"]` with `aria-pressed`,
   handles `[data-testid="handle-<handle>"]`, guides
   `[data-testid="snap-guide"]` and the refusal hint `[data-testid="hint"]`.
 - **The shell and the inspector** by role, label or `data-testid`, never
@@ -328,8 +332,12 @@ while it is selected) or, on the margin, the block; Delete and Backspace
 remove the selection as one `remove`, a selected timeline marking its
 descendants as affected; keys outside the arranger change nothing, arrows
 nudge by 8 and 64 and the z-order keys reorder, one command each; the
-canvas controls, the zoom and fit keys, and the inspector drawer, closed on
-load and opening beside the pane without moving the view. Every expected
+canvas controls, bottom-left in the pane, are six buttons, top to bottom
+Zoom in, Zoom out, Fit to view, the lock, the marquee toggle and Show
+coordinates, each with its label and its title, and the arrow keys move
+the focus through them in that order, wrapping, without a nudge or a
+command; the zoom and fit keys; and the inspector drawer, closed on load
+and opening beside the pane without moving the view. Every expected
 journal entry is written out whole and compared with the journal.
 
 **`resize.spec.ts`** (Chromium, Firefox, WebKit) proves the three resize
@@ -431,14 +439,18 @@ and then `1`, typed and committed with Enter, is one command
 unstating it (a `set` at `{block: "bmixed0000", id: "group_1"}` with
 `place {height: null}`): the field shows the text it showed
 before (the drawn height, the minimum), the block's drawn box has its
-size on screen from before the first command, and the status line reads `To decrease the height
-below <that text> px, decrease the size of the contained elements
-first.`. The container width and height stand side by side in one row,
-the disabled Locked checkbox right of the height, checked for `excerpt`'s
-card (`{id: "excerpt", part: ["card"]}` selected) and not for `score`'s. The Name field comes first and renames the
-selected group in one command. In the group editor of `group_1` with
-nothing selected, the Name field shows the edited group's name,
-`Performance`, and `Duo` with Enter renames the group.
+size on screen from before the first command, and the message bar shows
+one information message (`data-kind="info"`, dismissed by itself after
+3 s, so the page's clock is paused before the command and resumed once the
+message has been read) reading `To decrease the height below <that text>
+px, decrease the size of the contained elements first.`. The container
+width and height stand side by side in one row, the disabled Locked
+checkbox right of the height, checked for `excerpt`'s card (`{id:
+"excerpt", part: ["card"]}` selected) and not for `score`'s. The Name
+field comes first and renames the selected group in one command. In the
+group editor of `group_1` with nothing selected, the Name field shows the
+edited group's name, `Performance`, and `Duo` with Enter renames the
+group.
 
 **`memberships.spec.ts`** (Chromium, Firefox, WebKit) opens the drawer's
 Properties tab on `bundles`. With `score`'s card selected, the fieldset
@@ -475,19 +487,39 @@ order, each address once, compared by `addressKey`: a frame `{id: G}`, its
 title `{id: G, part: ["name"]}`, a card and its shadow
 `{id: T, part: ["card"]}`, a line `{id: T}`, the manifest's title
 `{part: ["name"]}`) equals the order of `docs/drawing.md` section 8.5
-applied to the fixture by hand, and the titles their texts. A part drawn twice, a member's
-line or an ancestor line in two frames, is marked selected in every copy.
+applied to the fixture by hand, and the titles their texts. A part drawn twice
+is marked selected in both copies: the start mark of `theme` in
+`ggrand0000`, a member drawn below its two ancestor lines `score` and
+`movement`, each of which marks its start (no line marks its own start).
 Delete removes a timeline with its subtree from its group (one `remove`
 of `{block, id: T}`) and a region added into `second-half` (`region_1`,
 removed as `{block, id: "region_1"}`), and refuses a selection holding the
 manifest's title whole. Hover marks exactly one box
 overlay, the card or the frame under the pointer (never a shadow or an
 enclosing frame), at zoom 1/2 and at scale 1.5 too, and a hovered segment
-boundary is marked with its card; a press on a frame selects the group;
+boundary is marked with its card; `gchild0000` at scale 1.5 draws its
+`<svg>` 830.8480224609375 wide, 1.5 times its drawing's width
+553.898681640625 (layout's record: `second-half`'s end mark label `16 ♩`,
+18.55810546875 wide, centred at 520.61962890625 on `piece`'s line, then 8
+each for the card, the frame and the block); a press on a frame selects the group;
 a click on a member's line marks its card and frame as holding the
 selection and the block dotted (the block's mark `data-marks="{}"`,
 `data-box="block"`), each in its stated colour. A stretch keeps
-the margin a box resize added in proportion. Through the File menu, the
+the margin a box resize added in proportion: `bungroup00` is drawn
+527.3271484375 wide (layout's record: it holds no frame, so each of its
+ungrouped cards lies at `x = P = 8`; its widest end label is
+`recording`'s `441 000 smp`, 59.2470703125 wide, centred at
+479.70361328125, so its right edge lies at 509.3271484375; the card
+padding `K` 8 beyond it is the cards' right edge 517.3271484375 (each card
+at `x` 8 and 509.3271484375 wide), their shadows 2 further 519.3271484375,
+and the block's padding `P` 8 beyond the shadows 527.3271484375), so a Box
+drag of its bottom-right handle by (40, 30) states `width` 567.3271484375;
+a Stretch by the right handle by 50 then stores `x` 0, `y` 480, the
+height kept, `width` 617.3271484375 and `length` 446.474609375
+(228595/512, the largest multiple of 1/2048 whose kept width,
+`567.3271484375 × (127.3271484375 + length) ÷ 527.3271484375` quantized
+to 1/2048, does not pass the pointer), and the node's left edge stays
+while its right edge moves 50. Through the File menu, the
 schema package's `group_styled` and `bundle_mixed` are imported and
 exported byte for byte.
 
@@ -585,6 +617,18 @@ is a real pointer gesture; the stored state is read through the hook.
   monotonically towards the card's new place; 90 frames later the copy is
   gone and the card is shown. Where the motion ends is the arranger's
   `releaseMotion`, pinned in its tests.
+- **A member's card stretched in its timeline editor stretches every
+  member**: in `score`'s timeline editor of `bmixed0000`, with `score`'s
+  card selected, Stretch offers the handles right, bottom-right and bottom;
+  the right handle dragged by 20 stores `group_1`'s place `{length: 420}`,
+  and both member cards of `group_1`, `score`'s and `performance`'s, are
+  drawn at `x` 16 and 567.915 wide (the SVG writer's text of
+  567.9150390625: at length 400 every card of the block is 547.9150390625
+  wide, set by `excerpt`'s end mark label `132 300 smp`, 59.2470703125
+  wide, centred at 526.29150390625, so its right edge lies at
+  555.9150390625; the card padding `K` 8 beyond it is the cards' right
+  edge 563.9150390625, and less the card's `x` 16 (the frame's `x` 8 plus
+  its padding `Q` 8) that is 547.9150390625; the stretch adds 20).
 - **A stretch in the group editor grows as well as shrinks**: in
   `group_2`'s editor at viewport (−400, 40), zoom 1, a Stretch by the
   right handle of the frame, and of `recapitulation`'s card, by 60 stores
@@ -621,7 +665,12 @@ facet}`, its facet, level, elements, and its line and rectangle on the
 screen); only a present band is recorded, offered, hovered and selected,
 and only in the innermost timeline editor of its own timeline. A band is
 hovered and clicked through its mark (`data-marks`, the `addressKey` of
-`{id: T, facet}`), and selecting it selects `{block, id: T, facet}`. A
+`{id: T, facet}`), and selecting it selects `{block, id: T, facet}`.
+Every timeline the fixture draws in a card holds its default timestamps
+`origin` and `length`, each drawn with its wedge and its coordinate label,
+so its markers band holds four elements; `score` of `bmixed0000` has three
+present bands, conversion maps (level 1, two elements), markers (level
+−1, four) and flow control (level −2, one). A
 band order is a permutation of `line` and the five facets, the default
 `children, conversion_maps, line, markers, regions, flow_control`; a drag
 across the line into a gap or along its side, and Ctrl/Cmd+ArrowUp or
@@ -633,7 +682,13 @@ flow_control, line, markers, regions`, dragged between the line and the
 markers band `children, conversion_maps, line, flow_control, markers,
 regions`; a root's order change (`score` of `bshared000` to `children,
 line, conversion_maps, markers, regions, flow_control`) moves a child
-without an entry of its own below its line; Escape during a drag dispatches nothing; no band is offered in
+without an entry of its own below its line; Escape during a drag
+dispatches nothing, the wedge of `score`'s `origin` timestamp
+(`timestamp_9`, in the markers band against the line: the schema fixture
+numbers the `origin` and then the `length` timestamp of each timeline
+drawn in a card, by ID, `annotations`, `excerpt`, `page`, `performance`,
+`score`, from `timestamp_1`, so `score`'s `origin` is the ninth) moving
+with the preview and back to its drawn `points`; no band is offered in
 the bundle or group editor or on the arranger; and Delete with only a band
 selected removes nothing.
 
@@ -669,20 +724,23 @@ the default granularity (denominator 2520, 3 decimals) picks the
 simplest fraction within it. The flag (`coordinate-flag`) writes each
 value as core's pretty text, the number, a space and its unit's pretty
 unit (`♩`, `ticks`), seconds with `″` and no pretty unit after, their decimals only
-where they are not zero, and the footer `click to pin`: at
+where they are not zero; a map's row reads the map's name, a space and
+its value (the text of the two elements, separated by white space, as
+Playwright normalises it); and the footer `click to pin`: at
 `xStart + 123.75` on `melody` (2.475 quarters; divisors 1 to 14 miss, 15
-gives 37/15) the coordinate reads `2 7/15 ♩` and `tempo` `1.233″`
+gives 37/15) the coordinate reads `2 7/15 ♩` and `tempo`'s row `Tempo 1.233″`
 (the float 37/30 rounded to three places), with one hovered wedge and one
-hovered cross-section line; at `xStart + 200` `4 ♩` and `2″` (the float
+hovered cross-section line; at `xStart + 200` `4 ♩` and `Tempo 2″` (the float
 2.0); the same abscissa on `tempo`'s drawing still reads `melody` at 4
 with `tempo`'s row highlighted (`data-hovered`); 30 below the line
 nothing is within 8 pixels: no flag and no marks; on `phrase` at
-263.53662109375 `2 ♩` with `960 ticks` and no `tempo` row. C toggles the flag. A click on a line
-pins the reading: the Timestamp tab is selected and shows the pinned
-timestamp's Properties (`timestamp-properties`), the pinned wedge and line
-stay when the pointer leaves, and the journal keeps its length; a click on
-the empty pane clears the pin and its marks and selects Properties, the
-tab shown before. In the Timestamp pane the values are exact:
+263.53662109375 `2 ♩` with the row `Ticks 960 ticks` and no `tempo` row.
+C toggles the flag. A click on a line pins the reading: the Timestamp tab
+is selected and shows the pinned timestamp's Properties
+(`timestamp-properties`), the pinned wedge and line stay when the pointer
+leaves, and the journal keeps its length; a click on the empty pane
+clears the pin and its marks and selects Properties, the tab shown
+before. In the Timestamp pane the values are exact:
 "coordinate of Melody" `37/15`, "Tempo of Melody" `1.2333333333333334`
 (the float 37/30); while the pin is unnamed the Display toggles and
 Delete are disabled. `4` typed as "coordinate of Melody" moves the pin
@@ -692,7 +750,8 @@ Enter then journal exactly `{type: "add", into: {block: "map0000000", id:
 the toggles are enabled (Wedge, Name and Cross-section pressed, ID and
 Coordinate not), the pinned marks are gone and the named timestamp
 `timestamp_3` (after `melody`'s default `origin` and `length`) is drawn as
-an element. The pane's Coordinate granularity
+an element. With the drawer, closed on load, opened and the Timestamp
+tab chosen, the pane's Coordinate granularity
 shows "Denominator" 2520 and "Decimals" 3; typing 4 as the denominator
 sets `settings.granularity` to `{denominator: 4, decimals: 3}` without a
 journal entry, and the same abscissa then reads `2 1/2 ♩` (divisors 1, 2

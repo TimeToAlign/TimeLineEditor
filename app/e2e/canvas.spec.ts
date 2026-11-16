@@ -736,11 +736,19 @@ test.describe("keyboard", () => {
       );
     await page.getByRole("button", { name: "Zoom in" }).focus();
     const visited: (string | null)[] = [];
-    for (let n = 0; n < 5; n += 1) {
+    for (let n = 0; n < 6; n += 1) {
       await page.keyboard.press("ArrowDown");
       visited.push(await focused());
     }
-    expect(visited).toEqual(["Zoom out", "Fit to view", "lock", "marquee", "Zoom in"]);
+    expect(visited).toEqual([
+      "Zoom out",
+      "Fit to view",
+      "lock",
+      "marquee",
+      "coordinates",
+      "Zoom in",
+    ]);
+    await page.keyboard.press("ArrowUp");
     await page.keyboard.press("ArrowUp");
     await page.keyboard.press("ArrowUp");
     expect(await focused()).toBe("lock");
@@ -847,9 +855,7 @@ test.describe("shell", () => {
     return { left: box.x, top: box.y, right: box.x + box.width, bottom: box.y + box.height };
   }
 
-  test("the canvas controls sit bottom-left in the pane with our five buttons", async ({
-    page,
-  }) => {
+  test("the canvas controls sit bottom-left in the pane with our six buttons", async ({ page }) => {
     expect(
       await page.evaluate(
         () =>
@@ -886,6 +892,7 @@ test.describe("shell", () => {
         "Add to selection (marquee)",
         "Add to selection: dragging on the canvas draws a marquee, and clicks and marquees add to the selection",
       ],
+      ["coordinates", "Show coordinates", "Show coordinates (C)"],
     ]);
     await expect(page.locator(".svelte-flow__controls-interactive")).toHaveCount(0);
   });

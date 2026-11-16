@@ -202,14 +202,15 @@ test.describe("a group workspace", () => {
   });
 
   test("selecting a part drawn twice marks both copies", async ({ page }) => {
-    const start = partAddress(line("second-half"), "start");
-    await expect(element(page, GROUPS.child, start)).toHaveCount(2);
-    const { x, y } = await partCentre(page, GROUPS.child, start);
+    // `theme`'s start is marked on both of its ancestor lines, `score` and `movement`.
+    const start = partAddress(line("theme"), "start");
+    await expect(element(page, GROUPS.grandchild, start)).toHaveCount(2);
+    const { x, y } = await partCentre(page, GROUPS.grandchild, start);
     await page.mouse.click(x, y);
-    expect(await selection(page)).toEqual([{ block: GROUPS.child, ...start }]);
+    expect(await selection(page)).toEqual([{ block: GROUPS.grandchild, ...start }]);
     expect(await marked(page, "selection")).toEqual([
-      markOf(GROUPS.child, start),
-      markOf(GROUPS.child, start),
+      markOf(GROUPS.grandchild, start),
+      markOf(GROUPS.grandchild, start),
     ]);
   });
 
@@ -345,7 +346,7 @@ test.describe("a group workspace", () => {
     expect(await journalLength(page)).toBe(OPENED_JOURNAL.groups + 1);
     await expect(node(page, GROUPS.child).locator(".tilie-block > svg")).toHaveAttribute(
       "width",
-      "837.62109375",
+      "830.8480224609375",
     );
     const { x, y } = await partCentre(page, GROUPS.child, line("recording"));
     await page.mouse.move(x, y, { steps: 2 });
@@ -563,7 +564,7 @@ test.describe("a bundle workspace", () => {
     await page.locator('[data-testid="mode-box"]').click();
     await drag("bottom-right", 40, 30);
     const boxed = await placement(page, block);
-    expect(boxed.width).toBe(565.89697265625);
+    expect(boxed.width).toBe(567.3271484375);
     expect(boxed.height).not.toBeNull();
 
     await page.locator('[data-testid="mode-stretch"]').click();
@@ -581,8 +582,8 @@ test.describe("a bundle workspace", () => {
     }).toEqual({
       x: 0,
       y: 480,
-      length: 446.4658203125,
-      width: 615.89697265625,
+      length: 446.474609375,
+      width: 617.3271484375,
       height: boxed.height,
     });
     if (before === null || after === null) throw new Error(`${block} is not displayed`);
