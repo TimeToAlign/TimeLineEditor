@@ -17,7 +17,7 @@ import { manifestOf, manifestText } from "../src/inspector/manifestText.ts";
 import type { Shown } from "../src/inspector/properties.ts";
 import { bandRows, geometryOf } from "../src/inspector/properties.ts";
 import { selectedBlock } from "../src/inspector/selection.ts";
-import { storeOf as storeOfFixtures } from "./support.ts";
+import { informing, storeOf as storeOfFixtures } from "./support.ts";
 
 /** `map`. */
 const A = "0000000000";
@@ -111,7 +111,8 @@ describe("bandRows", () => {
     [
       [bandOf(A, "melody", "conversion_maps"), band("Conversion maps", "1", "1")],
       [bandOf(A, "melody", "children"), band("Children", "2", "1")],
-      [bandOf(A, "melody", "markers"), band("Markers", "−1", "2")],
+      // The markers band holds the wedge and the coordinate label of `origin` and of `length`.
+      [bandOf(A, "melody", "markers"), band("Markers", "−1", "4")],
       [bandOf(A, "phrase", "conversion_maps"), band("Conversion maps", "1", "1")],
       [bandOf(B, "phrase", "conversion_maps"), band("Conversion maps", "−1", "1")],
     ].map(([address, expected]) => [addressKey(address as Address), address, expected] as const),
@@ -188,6 +189,7 @@ describe("the Properties panel of a band", () => {
   function show(store: Store, selection: readonly Address[]): void {
     app = mount(Inspector, {
       target: document.body,
+      context: informing(),
       props: { live: liveStore(store), selection: selectionOf(selection) },
     });
     flushSync();
@@ -219,7 +221,7 @@ describe("the Properties panel of a band", () => {
     show(store, [bandOf(A, "melody", "markers")]);
     expect(panel().querySelectorAll("dl")).toHaveLength(1);
     expect(texts("dt")).toEqual(["Band", "Level", "Elements"]);
-    expect(texts("dd")).toEqual(["Markers", "−1", "2"]);
+    expect(texts("dd")).toEqual(["Markers", "−1", "4"]);
     expect(panel().querySelectorAll("form, input, select, textarea, button")).toHaveLength(0);
     expect(panel().querySelector(".hint")).toBe(null);
 

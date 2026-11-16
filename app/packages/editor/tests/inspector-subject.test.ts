@@ -15,6 +15,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import InspectorDrawer from "../src/InspectorDrawer.svelte";
 import { inspectedSubject } from "../src/inspector/words.ts";
 import { holder } from "./holder.svelte.ts";
+import { informing } from "./support.ts";
 
 /** The end-to-end workspaces, the generator's output. */
 const E2E_FIXTURES = path.join(import.meta.dirname, "..", "..", "..", "e2e", "fixtures");
@@ -81,12 +82,17 @@ describe("inspectedSubject", () => {
       [at(MIXED, { id: "group_1", part: ["name"] }), named("Title of group", "Performance")],
       [at(MIXED, { id: "score" }), named("Timeline", "Score")],
       [at(MIXED, { id: "score", part: ["card"] }), named("Card of timeline", "Score")],
-      [at(MIXED, { id: "score", part: ["start"] }), named("Start of timeline", "Score")],
-      [at(MIXED, { id: "score", part: ["end"] }), named("End of timeline", "Score")],
       [at(MIXED, { id: "score", part: ["name"] }), named("Name of timeline", "Score")],
+      [at(MIXED, { id: "excerpt", part: ["start"] }), named("Start of timeline", "Excerpt")],
+      [at(MIXED, { id: "excerpt", part: ["end"] }), named("End of timeline", "Excerpt")],
       [
-        at(MIXED, { id: "score", part: ["end", "label"] }),
-        named("Label of end of timeline", "Score"),
+        at(MIXED, { id: "excerpt", part: ["end", "label"] }),
+        named("Label of end of timeline", "Excerpt"),
+      ],
+      [at(MIXED, { id: "timestamp_9" }), named("Timestamp", "origin")],
+      [
+        at(MIXED, { id: "timestamp_9", part: ["coordinate"] }),
+        named("Coordinate of timestamp", "origin"),
       ],
       [at(MIXED, { id: "excerpt" }), named("Timeline", "Excerpt")],
       [at(UNGROUPED, { id: "pages" }), named("Timeline", "Pages")],
@@ -234,6 +240,7 @@ describe("the subject beside the inspector's heading", () => {
     const selection = holder<Selection>(NOTHING_SELECTED);
     app = mount(InspectorDrawer, {
       target: document.body,
+      context: informing(),
       props: {
         live: liveStore(store),
         get selection() {

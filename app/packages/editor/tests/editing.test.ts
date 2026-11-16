@@ -14,7 +14,7 @@ const BLOCK: Address = { block: A };
 const GROUP: Address = { block: A, id: "group_1" };
 const SCORE: Address = { block: A, id: "score" };
 const SCORE_CARD: Address = { block: A, id: "score", part: ["card"] };
-const SCORE_START: Address = { block: A, id: "score", part: ["start"] };
+const SCORE_NAME: Address = { block: A, id: "score", part: ["name"] };
 
 let app: ReturnType<typeof mount> | undefined;
 
@@ -166,13 +166,13 @@ describe("the shell while editing", () => {
     hook().select([
       { block: A, id: "score", facet: "conversion_maps" },
       { block: A, id: "performance", facet: "conversion_maps" },
-      SCORE_START,
+      SCORE_NAME,
     ]);
     flushSync();
 
     hook().done();
     flushSync();
-    expect(hook().selection()).toEqual([SCORE_START]);
+    expect(hook().selection()).toEqual([SCORE_NAME]);
     open(SCORE);
     expect(hook().selection()).toEqual([SCORE_CARD]);
   });
@@ -181,9 +181,9 @@ describe("the shell while editing", () => {
     open(BLOCK);
     open(GROUP);
     open(SCORE);
-    hook().select([SCORE_START, { block: A, id: "performance" }, SCORE]);
+    hook().select([SCORE_NAME, { block: A, id: "performance" }, SCORE]);
     flushSync();
     rename("S");
-    expect(hook().selection()).toEqual([SCORE_START, SCORE]);
+    expect(hook().selection()).toEqual([SCORE_NAME, SCORE]);
   });
 });

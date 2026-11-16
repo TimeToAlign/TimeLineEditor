@@ -1,59 +1,75 @@
 /**
- * Show coordinates: what the pointer hovers on a drawn line and the
- * timestamp of the grid point under it.
+ * Show coordinates: what the pointer hovers on a drawn line, the position
+ * it picks there and the timestamp of that position.
  *
- * A line is hovered anywhere from the line out to the outermost map drawn
- * at it (layout's `lineAxes`), `HIT_TOLERANCE` device pixels beyond, so
- * the reading never stops over its maps or between them. The pointer's
- * abscissa picks an exact position, the simplest within its device pixel
- * under the granularity (core's `snapPosition`); the values at that
- * position are core's `timestampAt`, which evaluates each map through its
- * compiled evaluator. Nothing here evaluates a map or keeps a value: a
- * timestamp is computed anew for every frame that needs one.
+ * A timestamp is the cross-section of a timeline at a position: the
+ * timeline of the hovered line (the anchor), then every timeline its
+ * cross-section line crosses (layout's `crossedLines`: its displayed
+ * descendants with a line of their own, and the segments of every crossed
+ * line), each with the maps drawn for it. A line is hovered anywhere from
+ * the line out to the outermost map drawn at it, `HIT_TOLERANCE` device
+ * pixels beyond; what is hovered there, the line or one map, is the row
+ * the position is picked on (core's `snapOnRow`). Nothing here evaluates
+ * or inverts a map or keeps a value: a timestamp is computed anew for every
+ * frame that needs one.
  */
 
 import type {
   BlockId,
   ConversionMap,
+  CrossSectionMember,
+  CrossSectionSpec,
   Expressed,
   Granularity,
+  Knots,
   KnotsAbsence,
   Manifest,
   MeasureKnots,
+  NamedTimestamp,
   Pin,
-  TimestampMap,
-  TimestampSegment,
-  TimestampSpec,
-  TimestampTimeline,
+  Row,
+  TimelineAxis,
+  TimelineManifest,
+  Timestamp,
+  TimestampRow,
 } from "@timetoalign/tilie-core";
 import {
   displayValue,
   findTimeline,
+  idAddress,
   measureText,
-  missingValueText,
   saveManifest,
-  snapPosition,
+  snapOnRow,
   timestampAt,
+  timestampRows,
   unitSymbol,
 } from "@timetoalign/tilie-core";
+import { orderedChildren } from "@timetoalign/tilie-core/drawing";
 import {
   axisCoordinate,
-  type CoordinateValue,
   Rational,
-  type Real,
   realOf,
   toFloat,
   toRational,
 } from "@timetoalign/tilie-core/numbers";
-import type { AxisMap, Drawing, LineAxis } from "@timetoalign/tilie-layout";
-import { lineAxes } from "@timetoalign/tilie-layout";
+import type { AxisMap, Drawing, LineAxis, WedgeMark } from "@timetoalign/tilie-layout";
+import {
+  abscissaOf,
+  crossedLines,
+  crossSection,
+  lineAxes,
+  wedgeAt,
+} from "@timetoalign/tilie-layout";
+import type { AffordanceSource } from "./boxes.ts";
 import type { Point } from "./gesture.ts";
-import type { BlockNode } from "./project.ts";
+import type { BlockNode } from "./node.ts";
 
 /** How near, in device pixels, the pointer must come to a line or a map to hover it. */
 export const HIT_TOLERANCE = 8;
 
-/** A hovered line: its entry in `lineAxes`, the map hovered at it, and the abscissa on it. */
+const ZERO = Rational.fromParts(0n, 1n);
+
+/** A hovered line: its key in `lineAxes`, the map hovered at it, and the abscissa on it. */
 export interface LineHit {
   /** The key of the line in `lineAxes`. */
   readonly key: string;
@@ -66,35 +82,67 @@ export interface LineHit {
   readonly distance: number;
 }
 
-/** What the pointer reads on a block: the hovered line, the position and the pin a click there makes. */
+/** What the pointer reads on a block: the hovered line and row, the position and the pin a click there makes. */
 export interface Reading {
   readonly block: BlockId;
   readonly hit: LineHit;
-  /** The position picked, exact, on the line's own axis. */
+  /** The row hovered (`rowOf`): the position is picked on its axis. */
+  readonly row: Row;
+  /** The position picked, exact, on the hovered line's own axis. */
   readonly position: Rational;
   /** The pin of the position: its spec, the MeasureMaps read, its timestamp; unnamed. */
   readonly pin: Pin;
   /** Where the position lies on the line, in block-local canvas units. */
   readonly at: Point;
-  /** The topmost ordinate of the line and the maps drawn at it, in block-local canvas units. */
+  /**
+   * The topmost ordinate of the line, the maps drawn at it and its
+   * cross-section line, in block-local canvas units: the flag's pole rises
+   * above it.
+   */
   readonly top: number;
 }
 
+/**
+ * Whether a pointer picks a coordinate on `axis`: it spans some width and
+ * some coordinates as drawn (its length, or up to its reach where its
+ * length is not known), so a zero-length line is not hovered.
+ */
+function measurable(axis: LineAxis): boolean {
+  return axis.xEnd > axis.xStart && toFloat(toRational(axis.drawnLength)) > 0;
+}
+
+const markedByDrawing = new WeakMap<Drawing, ReadonlyMap<string, LineAxis>>();
 const axesByDrawing = new WeakMap<Drawing, ReadonlyMap<string, LineAxis>>();
 
-/** The drawn lines of `drawing` (layout's `lineAxes`), once per drawing. */
+/**
+ * The lines of `drawing` that draw coordinate markers (each one
+ * `crossedLines` crosses), once per drawing, keyed as in layout's
+ * `lineAxes` and in its order: never an ancestor line, which draws none.
+ * A named timestamp has its place on them, whatever their length.
+ */
+function markedOf(drawing: Drawing): ReadonlyMap<string, LineAxis> {
+  let marked = markedByDrawing.get(drawing);
+  if (marked === undefined) {
+    marked = new Map(
+      [...lineAxes(drawing)].filter(([key]) => crossedLines(drawing, key).length > 0),
+    );
+    markedByDrawing.set(drawing, marked);
+  }
+  return marked;
+}
+
+/**
+ * The lines of `drawing` a pointer reads a timestamp on, once per drawing:
+ * the marked lines (`markedOf`) that are measurable, a line of unknown
+ * length over its drawn span, never a zero-length line.
+ */
 export function axesOf(drawing: Drawing): ReadonlyMap<string, LineAxis> {
   let axes = axesByDrawing.get(drawing);
   if (axes === undefined) {
-    axes = lineAxes(drawing);
+    axes = new Map([...markedOf(drawing)].filter(([, axis]) => measurable(axis)));
     axesByDrawing.set(drawing, axes);
   }
   return axes;
-}
-
-/** Whether a position on `axis` stands for a coordinate: its length is known and it spans some width. */
-function measurable(axis: LineAxis): axis is LineAxis & { readonly length: Real } {
-  return axis.length !== null && toFloat(toRational(axis.length)) > 0 && axis.xEnd > axis.xStart;
 }
 
 /** `value` held to `[low, high]`. */
@@ -103,12 +151,12 @@ function held(value: number, low: number, high: number): number {
 }
 
 /**
- * Where `point` hovers the measurable line `axis`, `tolerance` canvas units
- * around, or `null`: its zone runs from the line out to its outermost map,
- * `tolerance` beyond, over the line's span widened by `tolerance`. In the
- * zone the nearest in ordinate of the line and of each map whose span,
- * widened alike, holds the abscissa is hovered, the line on a tie and an
- * earlier map before a later one; the abscissa is held to its span.
+ * Where `point` hovers the line `axis`, `tolerance` canvas units around, or
+ * `null`: its zone runs from the line out to its outermost map, `tolerance`
+ * beyond, over the line's span widened by `tolerance`. In the zone the
+ * nearest in ordinate of the line and of each map whose span, widened
+ * alike, holds the abscissa is hovered, the line on a tie and an earlier
+ * map before a later one; the abscissa is held to its span.
  */
 function zoneHit(key: string, axis: LineAxis, point: Point, tolerance: number): LineHit | null {
   if (point.x < axis.xStart - tolerance || point.x > axis.xEnd + tolerance) return null;
@@ -134,8 +182,8 @@ function zoneHit(key: string, axis: LineAxis, point: Point, tolerance: number): 
 }
 
 /**
- * The line `point` hovers among `axes`, `tolerance` canvas units around: of
- * every measurable line whose zone holds the point (`zoneHit`), the one
+ * The line `point` hovers among `axes` (`axesOf`), `tolerance` canvas units
+ * around: of every line whose zone holds the point (`zoneHit`), the one
  * nearest in ordinate by the line or the map hovered in it, an earlier line
  * on a tie; `null` where none does.
  */
@@ -146,48 +194,98 @@ export function lineAt(
 ): LineHit | null {
   let best: LineHit | null = null;
   for (const [key, axis] of axes) {
-    if (!measurable(axis)) continue;
     const hit = zoneHit(key, axis, point, tolerance);
     if (hit !== null && (best === null || hit.distance < best.distance)) best = hit;
   }
   return best;
 }
 
-/**
- * The position on `axis` for the abscissa `x` where one canvas unit of the
- * block covers `devicePixels` device pixels (the zoom times the block's
- * scale times the device pixel ratio): core's `snapPosition` of the
- * coordinate there, counted from the timeline's 0, with half a device
- * pixel in units as its reach, held to the line's drawn span `[start,
- * start + length]`.
- */
-export function positionAt(
-  axis: LineAxis,
-  x: number,
-  devicePixels: number,
-  granularity: Granularity,
-): Rational {
-  const start = toRational(axis.start);
-  const length = toRational(axis.length ?? 0);
-  const width = axis.xEnd - axis.xStart;
-  const fromStart = ((x - axis.xStart) / width) * toFloat(length);
-  const half = toFloat(length) / width / devicePixels / 2;
-  const position = snapPosition(
-    toFloat(start) + fromStart,
-    half,
-    axis.numberType,
-    start.add(length),
-    granularity,
-  );
-  return position.compare(start) < 0 ? start : position;
+/** The row a hit hovers: the line's timeline's coordinate, or the hovered map of the timeline owning it. */
+export function rowOf(hit: Pick<LineHit, "axis" | "map">): Row {
+  const { axis, map } = hit;
+  return map === null
+    ? { timeline: axis.timeline, map: null }
+    : { timeline: map.owner, map: map.id };
 }
 
-/** The abscissa of `position` on `axis`, in block-local canvas units. */
-export function abscissaOf(axis: LineAxis, position: Rational): number {
-  const start = toRational(axis.start);
-  const length = toFloat(toRational(axis.length ?? 0));
-  const share = length === 0 ? 0 : toFloat(position.subtract(start)) / length;
-  return axis.xStart + share * (axis.xEnd - axis.xStart);
+/** A timeline read by a cross-section: its axis, its length and `maps`. */
+function timelineAxis(timeline: TimelineManifest, maps: readonly ConversionMap[]): TimelineAxis {
+  return {
+    timeline: timeline.id,
+    name: timeline.name ?? timeline.id,
+    unit: timeline.unit,
+    numberType: timeline.number_type,
+    length: timeline.length === null ? null : realOf(axisCoordinate(timeline.length, timeline)),
+    maps,
+  };
+}
+
+/** The timeline `id` of `manifest`, which a drawing of it draws. */
+function drawnTimeline(manifest: Manifest, id: string): TimelineManifest {
+  const timeline = findTimeline(manifest, id);
+  if (timeline === undefined) throw new Error(`the drawn timeline '${id}' is not in its manifest`);
+  return timeline;
+}
+
+/**
+ * The cross-section read on the line keyed `lineKey` (a key of `markedOf`)
+ * of `drawing`, block `block`'s drawing of `manifest`, anchored on the
+ * timeline `anchor` (the line's own by default, else a segment the line
+ * holds): the anchor's timeline, then as members every timeline in its
+ * subtree that the cross-section line crosses (`crossedLines` after the
+ * line itself, and the segments of every crossed line), each once, in
+ * traversal order (pre-order, children by offset), each at its offset from
+ * the anchor's zero, exact. Every timeline carries the maps drawn for it at
+ * the crossed lines, in the order they are drawn, as the manifest holds
+ * them. No ancestor of the anchor, and no sibling segment of a segment
+ * anchor, is a member.
+ */
+export function crossSectionSpec(
+  manifest: Manifest,
+  block: BlockId,
+  drawing: Drawing,
+  lineKey: string,
+  granularity: Granularity,
+  anchor?: string,
+): CrossSectionSpec {
+  const all = lineAxes(drawing);
+  const lines = crossedLines(drawing, lineKey).flatMap((key) => {
+    const line = all.get(key);
+    return line === undefined ? [] : [line];
+  });
+  const [line] = lines;
+  if (line === undefined) throw new Error(`the line ${lineKey} draws no cross-section`);
+  const drawn = new Map<string, ConversionMap[]>();
+  for (const { maps } of lines) {
+    for (const { id, owner } of maps) {
+      const map = drawnTimeline(manifest, owner).conversion_maps.find((item) => item.id === id);
+      if (map !== undefined) drawn.set(owner, [...(drawn.get(owner) ?? []), map]);
+    }
+  }
+  const crossed = new Set(
+    lines.flatMap((each, index) => [
+      ...(index === 0 ? [] : [each.timeline]),
+      ...each.segments.map((segment) => segment.id),
+    ]),
+  );
+  const root = drawnTimeline(manifest, anchor ?? line.timeline);
+  const members: CrossSectionMember[] = [];
+  const walk = (timeline: TimelineManifest, offset: Rational): void => {
+    for (const child of orderedChildren(timeline)) {
+      const at = offset.add(toRational(realOf(axisCoordinate(child.offset, timeline))));
+      if (crossed.has(child.id)) {
+        members.push({ ...timelineAxis(child, drawn.get(child.id) ?? []), offset: at });
+      }
+      walk(child, at);
+    }
+  };
+  walk(root, ZERO);
+  return {
+    block,
+    granularity,
+    anchor: timelineAxis(root, drawn.get(root.id) ?? []),
+    members,
+  };
 }
 
 /** Where a timestamp's wedge and cross-section line are drawn: on a line, at an abscissa. */
@@ -210,18 +308,22 @@ export interface PlacedMarks extends MarkPlace {
   readonly scale: number;
 }
 
-/** A coordinate value as an exact rational, a float by its exact binary value. */
-function exactOf(value: CoordinateValue): Rational {
-  return typeof value === "bigint" ? Rational.fromParts(value, 1n) : toRational(value);
+/**
+ * Whether `position` lies on `axis`'s drawn span `[start, start +
+ * drawnLength]`: up to its end, or its reach where its length is not known.
+ */
+function spans(axis: LineAxis, position: Rational): boolean {
+  const start = toRational(axis.start);
+  const end = start.add(toRational(axis.drawnLength));
+  return position.compare(start) >= 0 && position.compare(end) <= 0;
 }
 
 /**
  * Where the pinned timestamp `pin` is marked in `drawing`, its block's: on
  * the line keyed `preferred` (the line it was pinned on) while that line
- * draws its timeline, else on the first measurable line drawing it, at the
- * abscissa of the line's coordinate the timestamp holds; `null` where no
- * measurable line draws its timeline or the coordinate lies outside the
- * line's drawn span `[start, start + length]`.
+ * draws its anchor, else on the first line of `axesOf` drawing it, at the
+ * abscissa of its position; `null` where no such line draws its anchor or
+ * the position lies outside the line's drawn span.
  */
 export function pinnedPlace(
   drawing: Drawing,
@@ -229,83 +331,131 @@ export function pinnedPlace(
   preferred: string | null,
 ): MarkPlace | null {
   const axes = axesOf(drawing);
-  const { timeline } = pin.spec.line;
-  const draws = (axis: LineAxis | undefined): axis is LineAxis & { readonly length: Real } =>
-    axis !== undefined && axis.timeline === timeline && measurable(axis);
+  const { timeline } = pin.spec.anchor;
   const own = preferred === null ? undefined : axes.get(preferred);
   const found =
-    preferred !== null && draws(own)
+    preferred !== null && own?.timeline === timeline
       ? ([preferred, own] as const)
-      : [...axes].find((entry): entry is [string, LineAxis & { readonly length: Real }] =>
-          draws(entry[1]),
-        );
-  const [line] = pin.timestamp.parts;
-  if (found === undefined || line === undefined) return null;
+      : [...axes].find(([, axis]) => axis.timeline === timeline);
+  const [anchor] = pin.timestamp.parts;
+  if (found === undefined || anchor === undefined) return null;
   const [key, axis] = found;
-  const position = exactOf(line.position);
-  const start = toRational(axis.start);
-  if (position.compare(start) < 0 || position.compare(start.add(toRational(axis.length))) > 0) {
-    return null;
-  }
-  return { key, x: abscissaOf(axis, position) };
+  const position = toRational(anchor.position);
+  return spans(axis, position) ? { key, x: abscissaOf(axis, position) } : null;
 }
 
-/** The maps of `owner` drawn at `axis`, in drawing order, as the manifest holds them. */
-function drawnMaps(manifest: Manifest, axis: LineAxis, owner: string): ConversionMap[] {
-  const timeline = findTimeline(manifest, owner);
-  if (timeline === undefined) return [];
-  return axis.maps.flatMap((drawn) => {
-    if (drawn.owner !== owner) return [];
-    const map = timeline.conversion_maps.find((candidate) => candidate.id === drawn.id);
-    return map === undefined ? [] : [map];
+/** A line a named timestamp has its place on: its key, its axis and where the timestamp's timeline's zero lies on it. */
+interface Holding {
+  readonly key: string;
+  readonly axis: LineAxis;
+  readonly offset: Rational;
+}
+
+/**
+ * The marked lines of `drawing` (`markedOf`) drawing the timeline
+ * `timeline`, in their order, each with its timeline's zero on it (0):
+ * every line of its own, else every line whose segment it is, at the
+ * segment's offset; none where no such line is drawn.
+ */
+function holdings(drawing: Drawing, timeline: string): Holding[] {
+  const lines = [...markedOf(drawing)];
+  const own = lines.filter(([, axis]) => axis.timeline === timeline);
+  if (own.length > 0) return own.map(([key, axis]) => ({ key, axis, offset: ZERO }));
+  return lines.flatMap(([key, axis]) => {
+    const segment = axis.segments.find((item) => item.id === timeline);
+    return segment === undefined ? [] : [{ key, axis, offset: toRational(segment.offset) }];
   });
 }
 
-/**
- * The timeline `id` of `manifest` as a timestamp reads it at `axis`, with
- * the maps drawn there; with no line (`null`), with all its own maps.
- */
-function timelineOf(manifest: Manifest, axis: LineAxis | null, id: string): TimestampTimeline {
-  const timeline = findTimeline(manifest, id);
-  if (timeline === undefined) throw new Error(`the drawn timeline '${id}' is not in its manifest`);
-  return {
-    timeline: id,
-    name: timeline.name ?? id,
-    unit: timeline.unit,
-    numberType: timeline.number_type,
-    length: timeline.length === null ? null : realOf(axisCoordinate(timeline.length, timeline)),
-    maps: axis === null ? timeline.conversion_maps : drawnMaps(manifest, axis, id),
-  };
+/** A named timestamp's coordinate, exact on its own timeline's axis. */
+function namedCoordinate(named: NamedTimestamp, timeline: TimelineManifest): Rational {
+  return toRational(realOf(axisCoordinate(named.coordinate, timeline)));
 }
 
 /**
- * What `timestampAt` reads for a position on `hit`'s line of block `block`:
- * the line's timeline with the maps drawn for it, and its segments with
- * theirs, in drawing order. A hovered map of a segment names that segment
- * alone, so the segment whose map the pointer is on is the one read, also
- * on the boundary it shares with the next.
+ * The pin of the named timestamp `id` of `manifest`, block `block`'s,
+ * drawn as `drawing`: its timeline the anchor, at its coordinate, read on
+ * the first marked line holding its timeline (`holdings`,
+ * `crossSectionSpec` anchored on it): a segment without a line of its own
+ * on its segment line's line, its members those of its own subtree that
+ * line crosses; where no line holds its timeline (a hidden line), with all
+ * its own maps and no members. `knots` as `timestampAt` takes them; `null`
+ * where the manifest holds no timestamp `id`.
  */
-export function timestampSpec(
+export function namedPin(
   manifest: Manifest,
   block: BlockId,
-  hit: Pick<LineHit, "axis" | "map">,
+  drawing: Drawing,
+  id: string,
   granularity: Granularity,
-): TimestampSpec {
-  const { axis, map } = hit;
-  const segments = axis.segments
-    .filter((segment) => map === null || map.owner === axis.timeline || map.owner === segment.id)
-    .map(
-      (segment): TimestampSegment => ({
-        ...timelineOf(manifest, axis, segment.id),
-        offset: segment.offset,
-      }),
-    );
-  return { block, granularity, line: timelineOf(manifest, axis, axis.timeline), segments };
+  knots: Knots,
+): Pin | null {
+  const named = manifest.graphical?.timestamps?.find((item) => item.id === id);
+  const timeline = named === undefined ? undefined : findTimeline(manifest, named.timeline);
+  if (named === undefined || timeline === undefined) return null;
+  const [holding] = holdings(drawing, named.timeline);
+  const spec: CrossSectionSpec =
+    holding === undefined
+      ? {
+          block,
+          granularity,
+          anchor: timelineAxis(timeline, timeline.conversion_maps),
+          members: [],
+        }
+      : crossSectionSpec(manifest, block, drawing, holding.key, granularity, named.timeline);
+  const position = namedCoordinate(named, timeline);
+  return { spec, knots, timestamp: timestampAt(spec, position, knots), named };
 }
 
-/** The topmost ordinate of `axis`'s line and the maps drawn at it. */
-function topOf(axis: LineAxis): number {
-  return axis.maps.reduce((top, map) => Math.min(top, map.yc), axis.y);
+/**
+ * A named timestamp whose `display` is empty, which the drawing therefore
+ * draws nothing of, as the canvas alone shows it so it stays selectable: a
+ * wedge where its own would lie on one line. It is its own canvas source
+ * (`drawn`): a press on it hits the timestamp's address.
+ */
+export interface Affordance extends AffordanceSource {
+  /** The key of the line in `lineAxes`. */
+  readonly line: string;
+  /** The wedge's corners in block-local canvas units (layout's `wedgeAt`). */
+  readonly points: WedgeMark["points"];
+}
+
+const affordancesByDrawing = new WeakMap<
+  Drawing,
+  { readonly manifest: Manifest; readonly affordances: readonly Affordance[] }
+>();
+
+/**
+ * The affordances of the named timestamps of `manifest` whose `display` is
+ * empty, `drawing` being its drawing: each on every marked line holding its
+ * timeline (`holdings`), whatever its length, its wedge at the abscissa of
+ * its coordinate (layout's `abscissaOf`: the line's start on a zero-length
+ * line), in the order the manifest lists them; a place outside the line's
+ * drawn span is left out. The one place their geometry is computed, once
+ * per drawing: the block node draws them, the marquee takes their bounds,
+ * the projection counts their addresses as drawn.
+ */
+export function affordancesOf(manifest: Manifest, drawing: Drawing): readonly Affordance[] {
+  const known = affordancesByDrawing.get(drawing);
+  if (known?.manifest === manifest) return known.affordances;
+  const affordances = (manifest.graphical?.timestamps ?? []).flatMap((named) => {
+    if (named.display.length > 0) return [];
+    const timeline = findTimeline(manifest, named.timeline);
+    if (timeline === undefined) return [];
+    const coordinate = namedCoordinate(named, timeline);
+    const address = idAddress(named.id);
+    return holdings(drawing, named.timeline).flatMap(({ key, axis, offset }): Affordance[] => {
+      const position = offset.add(coordinate);
+      const wedge = spans(axis, position)
+        ? wedgeAt(drawing, key, abscissaOf(axis, position))
+        : null;
+      return wedge === null
+        ? []
+        : [{ kind: "affordance", address, line: key, points: wedge.points }];
+    });
+  });
+  affordancesByDrawing.set(drawing, { manifest, affordances });
+  return affordances;
 }
 
 /**
@@ -318,7 +468,12 @@ export type KnotsOf = (manifest: Manifest) => readonly MeasureKnots[] | KnotsAbs
  * The reading of the canvas point `point` over `nodes` at `zoom`, with
  * `ratio` device pixels per CSS pixel: of every node whose drawing holds a
  * line `point` hovers (`lineAt`, `HIT_TOLERANCE` device pixels around), the
- * nearest, a later node on a tie; `null` where no line is hovered.
+ * nearest, a later node on a tie; `null` where no line is hovered. The
+ * position is core's `snapOnRow` on the hovered row (`rowOf`) of the
+ * line's cross-section (`crossSectionSpec`), `p` the pointer's coordinate
+ * on the line's axis and `h` half a device pixel there: the line's drawn
+ * length (up to its reach where its length is not known) over its width,
+ * over zoom × the block's scale × `ratio`, halved.
  * `knotsOf` gives the expanded MeasureMaps of a manifest, or why they are
  * not at hand; without it no server expands them.
  */
@@ -359,66 +514,46 @@ export function readingAt(
   }
   if (found === null) return null;
   const { node, hit, devicePixels } = found;
-  const { block } = node.data;
-  const position = positionAt(hit.axis, hit.x, devicePixels, options.granularity);
-  const spec = timestampSpec(block.manifest, block.id, hit, options.granularity);
-  const knots =
-    (options.knotsOf === undefined ? undefined : options.knotsOf(block.manifest)) ?? "no_server";
+  const { block, drawing } = node.data;
+  const { axis } = hit;
+  const length = toFloat(toRational(axis.drawnLength));
+  const width = axis.xEnd - axis.xStart;
+  const p = toFloat(toRational(axis.start)) + ((hit.x - axis.xStart) / width) * length;
+  const h = length / width / devicePixels / 2;
+  const spec = crossSectionSpec(block.manifest, block.id, drawing, hit.key, options.granularity);
+  const knots = options.knotsOf?.(block.manifest) ?? "no_server";
+  const row = rowOf(hit);
+  const position = snapOnRow(spec, row, p, h, knots);
   const pin: Pin = { spec, knots, timestamp: timestampAt(spec, position, knots), named: null };
+  const line = crossSection(drawing, hit.key, 0);
+  const top = Math.min(axis.y, ...axis.maps.map((map) => map.yc), line?.y1 ?? axis.y);
   return {
     block: block.id,
     hit,
+    row,
     position,
     pin,
-    at: { x: abscissaOf(hit.axis, position), y: hit.axis.y },
-    top: topOf(hit.axis),
+    at: { x: abscissaOf(axis, position), y: axis.y },
+    top,
   };
 }
 
-/**
- * The pin of the named timestamp `id` of `manifest`, block `block`'s,
- * drawn as `drawing`: read as a click at its coordinate reads it, on the
- * first line drawing its timeline with that line's maps and segments
- * (`timestampSpec`), or, for a segment, on its own axis with the maps drawn
- * for it at its line; where no line draws its timeline (a hidden line), on
- * its own axis with its own maps; `knots` as `timestampAt` takes them.
- * `null` where the manifest holds no timestamp `id`.
- */
-export function namedPin(
-  manifest: Manifest,
-  block: BlockId,
-  drawing: Drawing,
-  id: string,
-  granularity: Granularity,
-  knots: readonly MeasureKnots[] | KnotsAbsence,
-): Pin | null {
-  const named = manifest.graphical?.timestamps?.find((item) => item.id === id);
-  const timeline = named === undefined ? undefined : findTimeline(manifest, named.timeline);
-  if (named === undefined || timeline === undefined) return null;
-  const axes = [...axesOf(drawing).values()];
-  const own = axes.find((axis) => axis.timeline === named.timeline);
-  const holder = axes.find((axis) => axis.segments.some((item) => item.id === named.timeline));
-  const spec: TimestampSpec =
-    own !== undefined
-      ? timestampSpec(manifest, block, { axis: own, map: null }, granularity)
-      : {
-          block,
-          granularity,
-          line: timelineOf(manifest, holder ?? null, named.timeline),
-          segments: [],
-        };
-  const position = toRational(realOf(axisCoordinate(named.coordinate, timeline)));
-  return { spec, knots, timestamp: timestampAt(spec, position, knots), named: id };
+/** Where a timestamp lies: its anchor's name and coordinate with its unit's symbol, as `Form at 13 1/2 ♩`. */
+export function placeText(timestamp: Timestamp): string {
+  const [anchor] = timestamp.parts;
+  if (anchor === undefined) throw new Error("a timestamp has its anchor's part");
+  const shown = displayValue(anchor.position, anchor.numberType, timestamp.granularity.decimals);
+  return `${anchor.name} at ${shown} ${unitSymbol(anchor.unit)}`;
 }
 
-/** A map's value as the flag writes it: the text and its unit's symbol, `null` where it names none. */
+/** A value as the flag writes it: the text and its unit's symbol, `null` where it names none. */
 export interface ValueText {
   readonly text: string;
   readonly unit: string | null;
 }
 
 /**
- * An expressed result as text, a float with `decimals` places: a number in
+ * An expressed value as text, a float with `decimals` places: a number in
  * its type, a label as it is, a measure by its name, outputs by name.
  */
 function expressedText(value: Expressed, decimals: number): ValueText {
@@ -438,12 +573,70 @@ function expressedText(value: Expressed, decimals: number): ValueText {
 }
 
 /**
- * The value of one map of a timestamp as text, a float with `decimals`
- * places; a map that gives none says why, in core's words.
+ * The value of one row of a timestamp as text, a float with `decimals`
+ * places; a row that gives none says why, in core's words.
  */
-export function mapValueText(map: TimestampMap, decimals: number): ValueText {
-  if (map.value !== null) return expressedText(map.value, decimals);
-  return { text: missingValueText(map), unit: null };
+export function rowValueText(row: TimestampRow, decimals: number): ValueText {
+  if (row.value !== null) return expressedText(row.value, decimals);
+  return { text: row.missing ?? "", unit: null };
+}
+
+/** One part of a timestamp as the flag shows it: its timeline's name, then its rows. */
+export interface FlagPart {
+  readonly timeline: string;
+  readonly name: string;
+  /** Its coordinate's row first, then one row per map drawn for it. */
+  readonly rows: readonly TimestampRow[];
+}
+
+/** The rows of `pin` (core's `timestampRows`) grouped by part, in the timestamp's order. */
+export function flagParts(pin: Pin): FlagPart[] {
+  const rows = timestampRows(pin);
+  return pin.timestamp.parts.map((part) => ({
+    timeline: part.timeline,
+    name: part.name,
+    rows: rows.filter((row) => row.timeline === part.timeline),
+  }));
+}
+
+/** The width of the flag's pole in pixels, and how far the pole rises above what it marks. */
+export const POLE_WIDTH = 1;
+export const POLE_RISE = 22;
+
+/** Where the flag and its pole lie, in pixels from the canvas's top-left corner. */
+export interface FlagPlace {
+  /** The pole: its abscissa (its centre), its top and its bottom, the line's ordinate. */
+  readonly pole: { readonly x: number; readonly top: number; readonly bottom: number };
+  /** The flag's left and top edges. */
+  readonly left: number;
+  readonly top: number;
+  /** Whether the flag opens to the left of the pole. */
+  readonly flipped: boolean;
+}
+
+/**
+ * Where the flag of a reading hangs: its pole stands at `x` from `POLE_RISE`
+ * above `top` (the topmost of the line, its maps and its cross-section
+ * line), held below the canvas's top edge, down to `y`, the line; the flag
+ * hangs from the pole's top, its near edge touching the pole's side, so it
+ * never covers the pole nor the abscissa it marks. It opens to the right,
+ * and to the left where a flag `flagWidth` wide would leave the canvas,
+ * `width` wide, at its right edge.
+ */
+export function flagPlace(
+  at: { readonly x: number; readonly y: number; readonly top: number },
+  flagWidth: number,
+  width: number,
+): FlagPlace {
+  const poleTop = Math.max(0, at.top - POLE_RISE);
+  const right = at.x + POLE_WIDTH / 2;
+  const flipped = right + flagWidth > width;
+  return {
+    pole: { x: at.x, top: poleTop, bottom: at.y },
+    left: flipped ? at.x - POLE_WIDTH / 2 - flagWidth : right,
+    top: poleTop,
+    flipped,
+  };
 }
 
 /**

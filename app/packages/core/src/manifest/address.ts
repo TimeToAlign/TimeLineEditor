@@ -32,6 +32,8 @@ export const PART_WORDS = [
   "label",
   "card",
   "line",
+  "id",
+  "coordinate",
 ] as const satisfies readonly Part[];
 
 /** Whether a value is one of the part words. */

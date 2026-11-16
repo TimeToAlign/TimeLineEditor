@@ -25,6 +25,7 @@ import {
   showsSelection,
 } from "./boxes.ts";
 import { LEVELS } from "./containers.ts";
+import { affordancesOf } from "./coordinates.ts";
 import { addressParts, bandTimelineOf } from "./editing.ts";
 import type { GestureOptions } from "./gesture.ts";
 import { drawingPoint, drawn, pointerGesture, sourceAt } from "./gesture.ts";
@@ -33,8 +34,8 @@ import { cardDrawing, heldGesture } from "./gestures/held.ts";
 import type { Ghost, NodeHost } from "./gestures/host.ts";
 import { itemGesture } from "./gestures/item.ts";
 import { settle, slide } from "./motion.ts";
+import type { BlockNode as BlockNodeType } from "./node.ts";
 import { getNodeActions } from "./nodeActions.ts";
-import type { BlockNode as BlockNodeType } from "./project.ts";
 import { timestampOwner } from "./selectionRules.ts";
 
 /** Svelte Flow passes every node prop; the node reads only its data. */
@@ -170,6 +171,17 @@ function glows(entry: Entry): boolean {
   return !isBoxShape(entry.role) && isSelected(entry);
 }
 
+/**
+ * The affordances of the named timestamps that draw nothing (`affordancesOf`),
+ * each with its key in the node and the key of the timestamp it shows.
+ */
+const affordances = $derived(
+  affordancesOf(data.block.manifest, data.drawing).map((affordance) => {
+    const timestamp = addressKey(affordance.address);
+    return { affordance, timestamp, key: `${timestamp}#${affordance.line}` };
+  }),
+);
+
 /** The block itself, and its cards and frames, holding part of the selection. */
 const holding = $derived(holdingOf(data.drawing, data.selectedElements));
 
@@ -262,13 +274,14 @@ const edited = $derived.by(() => {
 });
 
 /**
- * Whether the element lies outside the edited group or timeline, and so is
- * faded and lets the pointer through. Another block is outside as a whole,
- * through its node; the bundle editor edits everything its block draws.
+ * Whether the element keyed `key` (`addressKey`) lies outside the edited
+ * group or timeline, and so is faded and lets the pointer through. Another
+ * block is outside as a whole, through its node; the bundle editor edits
+ * everything its block draws.
  */
-function isOutside(entry: Entry): boolean {
+function isOutside(key: string): boolean {
   if (edited == null) return false;
-  return !data.inside.has(addressKey(entry.address));
+  return !data.inside.has(key);
 }
 
 /** The timeline whose bands this block offers (`bandTimelineOf`), else `null`. */
@@ -460,12 +473,23 @@ function ghostAttributesOf(descriptor: Descriptor): Record<string, string> {
         visibility={hidden.has(entry.descriptor) ? "hidden" : undefined}
         data-selected={glows(entry) ? "" : undefined}
         data-affected={isAffected(entry) ? "" : undefined}
-        data-outside={isOutside(entry) ? "" : undefined}
+        data-outside={isOutside(addressKey(entry.address)) ? "" : undefined}
         pointer-events={entry.timestamp !== null && actions.coordinates() ? "none" : undefined}
         {@attach drawn(entry.descriptor.source)}
         {@attach gestureOf(entry.box)}
         animate:slide={slideParams(entry)}>{entry.descriptor.text}</svelte:element
       >
+    {/each}
+    {#each affordances as { affordance, timestamp, key } (key)}
+      <polygon
+        class="tilie-timestamp-affordance"
+        data-affordance={timestamp}
+        points={attributeText(affordance.points)}
+        data-selected={data.selectedElements.has(timestamp) ? "" : undefined}
+        data-outside={isOutside(timestamp) ? "" : undefined}
+        pointer-events={actions.coordinates() ? "none" : undefined}
+        {@attach drawn(affordance)}
+      />
     {/each}
     {#each holdingMarks as entry (entry.key)}
       <rect

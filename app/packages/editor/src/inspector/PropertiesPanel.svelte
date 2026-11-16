@@ -22,6 +22,7 @@ import type { AddCommand, Address, Block, SetCommand, Store, View } from "@timet
 import { sameAddress } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import type { Attachment } from "svelte/attachments";
+import { informOf } from "../messages.svelte.ts";
 import { groupsOf, membersOf, newGroupOf } from "./groups.ts";
 import type { Geometry, NameField, Shown } from "./properties.ts";
 import { bandRows, fieldLabel, geometryOf, isSize, lockOf, nameOf } from "./properties.ts";
@@ -50,6 +51,13 @@ let {
 } = $props();
 
 const uid = $props.id();
+/** Posts what a commit wrote other than what was typed (a size below its minimum) to the message bar. */
+const inform = informOf();
+
+/** Post `notice`, if there is one. */
+function notify(notice: string | null): void {
+  if (notice !== null) inform(notice);
+}
 
 /** The store's editing path, followed as it changes. */
 const live = $derived(liveStore(store));
@@ -102,7 +110,7 @@ const membershipProblem = $derived.by(() => {
     : null;
 });
 
-/** Dispatch a membership command, keeping the store's refusal for the status line. */
+/** Dispatch a membership command, keeping the store's refusal to show below them. */
 function dispatchMembership(command: SetCommand | AddCommand): void {
   const message = store.dispatch(command)?.message;
   const selected = subjects.map((subject) => subject.address);
@@ -139,7 +147,7 @@ function wheelSteps(property: PlaceProperty): Attachment<HTMLInputElement> {
     const onwheel = (event: WheelEvent) => {
       if (geometry === null || document.activeElement !== input || event.deltaY === 0) return;
       event.preventDefault();
-      drafts.step(geometry, property, event.deltaY < 0 ? 1 : -1, store);
+      notify(drafts.step(geometry, property, event.deltaY < 0 ? 1 : -1, store));
     };
     input.addEventListener("wheel", onwheel, { passive: false });
     return () => input.removeEventListener("wheel", onwheel);
@@ -157,7 +165,7 @@ function onInput(
     // The browser stepped from the shown text; the step is applied to the exact value instead.
     const direction = Math.sign(Number(input.value) - Number(drafts.value(geometry, property)));
     if (direction === 1 || direction === -1) {
-      drafts.step(geometry, property, direction, store);
+      notify(drafts.step(geometry, property, direction, store));
       input.value = drafts.value(geometry, property);
       return;
     }
@@ -185,10 +193,10 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
   if (geometry === null) return;
   if (event.key === "ArrowUp" || event.key === "ArrowDown") {
     event.preventDefault();
-    drafts.step(geometry, property, event.key === "ArrowUp" ? 1 : -1, store);
+    notify(drafts.step(geometry, property, event.key === "ArrowUp" ? 1 : -1, store));
   } else if (event.key === "Enter") {
     event.preventDefault();
-    drafts.commit(geometry, property, store);
+    notify(drafts.commit(geometry, property, store));
   } else if (event.key === "Escape") {
     drafts.discard(geometry, property);
   }
@@ -250,7 +258,7 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
       oninput={(event) => onInput(event, property)}
       {@attach wheelSteps(property)}
       onkeydown={(event) => onKey(event, property)}
-      onblur={() => drafts.commit(edited, property, store)}
+      onblur={() => notify(drafts.commit(edited, property, store))}
     />
   </label>
   {#if problem !== undefined}
@@ -287,7 +295,6 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
       {@render locked()}
     </div>
   </form>
-  <p class="notice" role="status">{drafts.notice(edited) ?? ""}</p>
 {/if}
 
 {#if memberships !== null}
@@ -410,11 +417,6 @@ function onKey(event: KeyboardEvent, property: PlaceProperty): void {
     gap: 0.25rem;
     color: #595959;
     cursor: not-allowed;
-  }
-
-  .notice {
-    margin: 0;
-    color: #595959;
   }
 
   .memberships {

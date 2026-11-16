@@ -10,7 +10,7 @@
  */
 import type { LivePlacement, LiveStore, Selection } from "@timetoalign/tilie-arranger";
 import { resolveSelection } from "@timetoalign/tilie-arranger";
-import type { Address, Pin } from "@timetoalign/tilie-core";
+import type { Pin } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import { untrack } from "svelte";
 import type { Attachment } from "svelte/attachments";
@@ -24,7 +24,7 @@ import { PropertyDrafts } from "./propertyDrafts.svelte.ts";
 import { selectedBlock } from "./selection.ts";
 import TimestampPanel from "./TimestampPanel.svelte";
 import type { Picked, ShownPin, Tab } from "./tabs.ts";
-import { chosen, initialPick, nextTab, TABS, tabLabel } from "./tabs.ts";
+import { chosen, heldOf, initialPick, nextTab, pinned, TABS, tabLabel } from "./tabs.ts";
 import { levelTitle } from "./words.ts";
 
 let {
@@ -73,14 +73,9 @@ function choose(next: Tab): void {
   ({ picked, pin } = chosen({ picked, pin }, next, openings));
 }
 
-/** An edit of the shown unnamed timestamp moved its pin to `next`. */
+/** The shown timestamp is now `next`: an unnamed one moved, or named. */
 function repinned(next: Pin): void {
-  if (pin !== null && "pin" in pin) pin = { ...pin, pin: next };
-}
-
-/** The shown unnamed timestamp was named: show the named timestamp at `address`. */
-function named(address: Address): void {
-  if (pin !== null) pin = { named: address, before: pin.before };
+  ({ picked, pin } = pinned({ picked, pin }, heldOf(live.store.view, next)));
 }
 
 /** The tab list and the panels, where a click keeps a pinned timestamp. */
@@ -155,7 +150,7 @@ const hinted = $derived(block === null && !manifest.dirty);
       {:else if item === "journal"}
         <JournalPanel rows={journalRows(live, view)} />
       {:else if item === "timestamp"}
-        <TimestampPanel {live} pin={timestamp} onpin={repinned} onnamed={named} />
+        <TimestampPanel {live} pin={timestamp} onpin={repinned} />
       {:else if item === "properties"}
         <PropertiesPanel
           {view}

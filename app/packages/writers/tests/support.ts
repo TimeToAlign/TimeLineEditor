@@ -75,9 +75,10 @@ const LOGICAL = style({ stroke: "#00CC00", fill: "#00CC00", "stroke-width": 3 })
  */
 export function bare(): Drawing {
   const [x0, xe, y] = [49.5771484375, 449.5771484375, 22.40234375];
-  const label = (end: "start" | "end", x: number, text: string): DrawnElement => ({
+  // The coordinate label of `bare`'s named timestamp `id`: `origin` or `length`.
+  const label = (id: string, x: number, text: string): DrawnElement => ({
     type: "label",
-    address: at("bare", end, "label"),
+    address: at(id, "coordinate"),
     style: style({ fill: "#000000", "font-size": 9 }),
     x,
     baseline: 47.25634765625,
@@ -110,7 +111,7 @@ export function bare(): Drawing {
     },
     {
       type: "wedge",
-      address: at("bare", "start"),
+      address: at("timestamp_1"),
       style: BLACK,
       x: x0,
       yt: 23.90234375,
@@ -119,7 +120,7 @@ export function bare(): Drawing {
     },
     {
       type: "wedge",
-      address: at("bare", "end"),
+      address: at("timestamp_2"),
       style: BLACK,
       x: xe,
       yt: 23.90234375,
@@ -135,8 +136,8 @@ export function bare(): Drawing {
       anchor: "start",
       text: "Bare",
     },
-    label("start", x0, "0 ♩"),
-    label("end", xe, "8 ♩"),
+    label("timestamp_1", x0, "0 ♩"),
+    label("timestamp_2", xe, "8 ♩"),
   );
 }
 

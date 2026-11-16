@@ -16,8 +16,7 @@ import {
   sameAddress,
 } from "@timetoalign/tilie-core";
 import type { DrawnBox } from "@timetoalign/tilie-layout";
-import type { DescriptorSource } from "@timetoalign/tilie-writers";
-import type { Hit } from "./boxes.ts";
+import type { CanvasSource, Hit } from "./boxes.ts";
 import { hitForAddress, hitOf, pressSelection, workedBox } from "./boxes.ts";
 import type { Level } from "./containers.ts";
 import { resizes } from "./containers.ts";
@@ -25,7 +24,7 @@ import type { Editing } from "./editing.ts";
 import { addressParts } from "./editing.ts";
 import { editorTargetOf } from "./editors.ts";
 import type { Point } from "./gesture.ts";
-import type { BlockNode } from "./project.ts";
+import type { BlockNode } from "./node.ts";
 import { insideOf } from "./project.ts";
 import type { Selection } from "./selection.ts";
 import { blockOf, click, NOTHING_SELECTED } from "./selection.ts";
@@ -34,8 +33,11 @@ import { blockOf, click, NOTHING_SELECTED } from "./selection.ts";
 export interface Pressed {
   /** The block node it lies in; `undefined` off every block. */
   readonly node: BlockNode | undefined;
-  /** The descriptor it draws; `null` for anything else (the node, the drawing's `<svg>`). */
-  readonly source: DescriptorSource | null;
+  /**
+   * What it draws, a descriptor or an affordance; `null` for anything else
+   * (the node, the drawing's `<svg>`).
+   */
+  readonly source: CanvasSource | null;
   /** The drawing point under the pointer; `null` without one (a key) or off a drawing. */
   readonly point: Point | null;
   /** Whether it is the empty pane. */
@@ -63,7 +65,8 @@ export function timestampOwner(manifest: Manifest, element: ElementAddress): Ele
 /**
  * What a press on `pressed` selects (`pressSelection`): the card, the frame,
  * the band or the element it hit, a named timestamp for any of its parts
- * (`timestampOwner`), or the block where it hit the block itself; `null`
+ * (`timestampOwner`) and for its affordance, whose source carries the
+ * timestamp's own address, or the block where it hit the block itself; `null`
  * off every block and outside the edited element, where a press changes
  * nothing. A band is hit only with a drawing point: a key selects none.
  */

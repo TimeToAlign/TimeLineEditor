@@ -128,15 +128,26 @@ export function quarters(numerator: number, denominator = 1): AxisValue {
   return [numerator, denominator];
 }
 
-/** A manifest built through commands: a quarters root, then commands on its block. */
+/**
+ * A manifest built through commands: a quarters root `rootId` of length `length` with the
+ * named timestamps an editor gives every new root, `origin` at 0 and `length` at its length,
+ * each drawing its wedge and its coordinate label (`bare`'s, moved to the new root), then
+ * commands on its block.
+ */
 export function build(rootId: string, length: number, ...commands: object[]): Manifest {
   const source = load("bare");
   const [root] = source.timelines;
   const timeline = { ...root, id: rootId, name: null, length: quarters(length) };
+  const timestamps = (source.graphical?.timestamps ?? []).map((timestamp) => ({
+    ...timestamp,
+    timeline: rootId,
+    ...(timestamp.name === "length" ? { coordinate: quarters(length) } : {}),
+  }));
+  const graphical = { ...source.graphical, timestamps };
   let view = apply(createView(), {
     type: "add",
     into: WORKSPACE,
-    block: { id: BLOCK, manifest: { ...source, timelines: [timeline] }, x: 0, y: 0 },
+    block: { id: BLOCK, manifest: { ...source, graphical, timelines: [timeline] }, x: 0, y: 0 },
   });
   for (const command of [...commands]) {
     if (isCommandError(view)) break;

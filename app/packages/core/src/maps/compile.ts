@@ -18,7 +18,7 @@ import type { TimeUnit } from "@timetoalign/timetoshare";
 import { JsonFloat } from "@timetoalign/timetoshare";
 import type { ConversionMap } from "../manifest/types.ts";
 import { Rational } from "../number/rational.ts";
-import { fromFloat, toFloat } from "../number/real.ts";
+import { fromFloat, toFloat, toRational } from "../number/real.ts";
 import type {
   MapInput,
   MapResult,
@@ -27,7 +27,7 @@ import type {
   MeasureKnots,
   QuarterPair,
 } from "./values.ts";
-import { addValues, exactOf, floatOf, isMapValue, multiplyValues } from "./values.ts";
+import { addValues, floatOf, isMapValue, multiplyValues } from "./values.ts";
 
 /** What a map is compiled with: the expanded rows of the manifest's MeasureMaps, when known. */
 export interface CompileContext {
@@ -144,11 +144,6 @@ function readsMissingKnots(map: ConversionMap, knots: readonly MeasureKnots[]): 
   }
 }
 
-/** A position as the exact value it holds: a float's exact binary value. */
-function asExact(value: MapInput): Rational {
-  return typeof value === "number" ? fromFloat(value) : exactOf(value);
-}
-
 function linearMap(scalarValue: unknown, offsetValue: unknown): Evaluate {
   const scalar = readValue(scalarValue);
   const offset = readValue(offsetValue);
@@ -181,8 +176,8 @@ function tableMap(map: Table): Evaluate {
   let exact: { readonly xs: readonly Rational[]; readonly ys: readonly Rational[] } | undefined;
   const exactAt = (x: Rational): Rational | undefined => {
     exact ??= {
-      xs: map.x_values.map((value) => asExact(readValue(value))),
-      ys: stored.map(asExact),
+      xs: map.x_values.map((value) => toRational(readValue(value))),
+      ys: stored.map(toRational),
     };
     const inside = nth(exact.xs, 0).compare(x) <= 0 && x.compare(nth(exact.xs, last)) <= 0;
     if (map.kind !== "linear" || (!inside && map.extrapolate !== "linear")) return undefined;
@@ -204,7 +199,7 @@ function tableMap(map: Table): Evaluate {
   };
   return (value) => {
     if (exactAnchors && typeof value !== "number") {
-      const result = exactAt(exactOf(value));
+      const result = exactAt(toRational(value));
       if (result !== undefined) return result;
     }
     const x = floatOf(value);
@@ -341,7 +336,7 @@ function floatingMeasures(rows: readonly MeasureKnot[]): Evaluate {
   if (!increasing(floats)) return NOTHING;
   const thousand = Rational.of(1000);
   return (value) => {
-    const x = asExact(value);
+    const x = toRational(value);
     const i = clamp(bisectRightExact(xs, floats, x) - 1, 0, xs.length - 2);
     const slope = nth(ys, i + 1)
       .subtract(nth(ys, i))

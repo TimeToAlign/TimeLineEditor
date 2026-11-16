@@ -205,7 +205,7 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
    `schema_violation` at `[]`. Core reads the current version only and
    migrates nothing.
 4. **The minimal form in, pinned by hand.** For the twin of `bare.json`
-   (its `meta` left out) the complete root is exactly `{id: "bare", name:
+   (its `meta` and `graphical` left out) the complete root is exactly `{id: "bare", name:
    "Bare", unit: "quarters", number_type: "fraction", length: [8, 1],
    locked: false, is_segment_line: false, meta: {}, children: [],
    conversion_maps: [], regions: [], flow_control: []}` and the manifest
@@ -252,7 +252,9 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
 11. **Each invariant at load and in a command.** For each of
     `number_type_not_allowed` and `region_end_before_start`, one copy of
     `with_region.json`
-    changed in exactly that respect is refused with exactly one problem:
+    changed in exactly that respect (for `number_type_not_allowed` its
+    `graphical` object, whose timestamps lie on the root's former axis,
+    left out) is refused with exactly one problem:
     that code at the exact path. `invalid_coordinate` is reached through
     commands only (a value the schema's representation check would refuse
     at load). A command meets the same invariants: in a block of
@@ -477,10 +479,13 @@ check of who holds what.
    `{id: "melody", part: ["card"]}` beside its line `{id: "melody"}`, then
    per timeline in pre-order its line and name (`{id, part: ["name"]}`) and
    its five bands (`{id, facet}`) in `FACETS` order, each band followed by
-   what it holds (children by offset then ID, maps, the root's two wedges
-   `{id: "melody", part: ["start"]}` and `["end"]` with their labels
-   `["start", "label"]` and `["end", "label"]`, regions, flow markers then
-   jump origins with their labels). The maps are `{id: "ticks"}` and
+   what it holds (children by offset then ID, maps, the wedges and
+   coordinate labels of the root's named timestamps `origin` and `length`,
+   `{id: "timestamp_1"}`, `{id: "timestamp_1", part: ["coordinate"]}`,
+   `{id: "timestamp_2"}`, `{id: "timestamp_2", part: ["coordinate"]}`, each
+   label held by the markers band and not by its wedge, regions, flow
+   markers then jump origins with their labels). No timeline's start or end
+   is an element of its own line. The maps are `{id: "ticks"}` and
    `{id: "tempo"}`. Every timeline lists all five bands. A band has no
    domain, modality or class, and its facet.
 2. **Timeline classes.** The six classes are written out with their units:
@@ -495,18 +500,22 @@ check of who holds what.
    `jump_from_2`, each followed by its label); a jump target (`jump_to_1`,
    `jump_to_2`) is no element; in every one-root manifest fixture every
    address is distinct (compared by `addressKey`). A named timestamp
-   (`timestamps.json`) is a `wedge` `{id: "timestamp_N"}` with its label
-   `{id, part: ["label"]}`, held by its own timeline's markers band, and a
-   `cross_section` `{id, part: ["line"]}`, held by its own timeline's line
-   (the `timeline` or `child` element) and not by the band, so that hiding
-   the band leaves the line; each belongs to that timeline and is listed
-   after the root's two wedges, each band's in canonical order, in tree
-   order: `timestamp_3` of the child `clt_2` first, its wedge inside
-   `[block, timeline, band, child, band]` and its line inside `[block,
-   timeline, band, child]` (the root's children band, holding `clt_2`,
-   precedes its markers band), then `timestamp_1` and `timestamp_2` of
-   `clt_1`, each wedge inside `[block, timeline, band]` and each line
-   inside `[block, timeline]`, each label one `wedge` deeper.
+   (`timestamps.json`) lists exactly the elements its `display` names, in
+   the order `wedge` `{id: "timestamp_N"}`, the `label`s `{id, part:
+   ["name"]}`, `{id, part: ["id"]}`, `{id, part: ["coordinate"]}`, then
+   the `cross_section` `{id, part: ["line"]}`: the wedge and the labels
+   held by its own timeline's markers band (a label beside the wedge, not
+   held by it), the line by its own timeline's line (the `timeline` or
+   `child` element) and not by the band, so that hiding the band leaves
+   the line; each belongs to that timeline, each band's in canonical order,
+   in tree order: `timestamp_3` of the child `clt_2` first (all five: wedge,
+   three labels, line), its wedge and labels inside `[block, timeline, band,
+   child, band]` and its line inside `[block, timeline, band, child]` (the
+   root's children band, holding `clt_2`, precedes its markers band), then
+   `timestamp_1` (the default: wedge, name label, line) and `timestamp_2`
+   (wedge, name label) of `clt_1`, wedges and labels inside `[block,
+   timeline, band]`, the line inside `[block, timeline]`. `{inside: wedge}`
+   matches nothing in `map.json`.
 4. **The title** `{part: ["name"]}` follows the block for a manifest with a
    `name` or an `id`, and is absent for an anonymous one.
 5. **Matching** over `map.json`, one selector per member (`element`,
@@ -672,7 +681,7 @@ string form is `addressKey`, and nothing splits or composes an ID.
    owner's `part` (`{id: "score"}` and `end` give `{id: "score", part:
    ["end"]}`, then `label` `["end", "label"]`) and keeps the owner's
    `block`, and refuses a band's address as its owner at the type level (a
-   band has no part: the test type-checks only with that call refused); `PART_WORDS` is `start`, `end`, `name`, `label`, `card`.
+   band has no part: the test type-checks only with that call refused); `PART_WORDS` is `start`, `end`, `name`, `label`, `card`, `line`, `id`, `coordinate`, the schema's order.
    `inBlock(A, element)` puts an element address into block `A`,
    `elementAddressOf` takes the block off again (`{}` for a block), and
    `isElementAddress` holds for an address stating `id`, `facet` or `part`
@@ -707,7 +716,8 @@ string form is `addressKey`, and nothing splits or composes an ID.
    facet: "regions"}` with the card holding it, an entry of each list by its
    ID alone (`region_2`, index 1 of `annotations`' regions; `cmap_6`, the
    map of the child `excerpt`; `jump_from_1`), and parts nested two deep
-   (`{id: "score", part: ["end", "label"]}`). Each part carries its owner,
+   (`{id: "excerpt", part: ["end", "label"]}`, the label of the mark of
+   `excerpt`'s end on its ancestor line `recording`). Each part carries its owner,
    and every level its block. The manifest's own ID names nothing: on a
    manifest with the id `takes`, `{block: A, id: "takes"}` is
    `unknown_target`, message `'takes' in bundle 'Mixed' names nothing` at
@@ -726,9 +736,9 @@ string form is `addressKey`, and nothing splits or composes an ID.
    owner `{part: ["label"]}`, a start's end, a region's start), the title
    of an unnamed manifest (`{block: B, part: ["name"]}` on `map.json`'s
    block): a title exists only for a named manifest, and every part nothing
-   draws (drawing.md §2.2): the wedges of `recording`, drawn only as an
-   ancestor line (`{id: "recording", part: ["start"]}`, `["end",
-   "label"]`), a label of a timeline that is no segment (`{id: "score",
+   draws (drawing.md §2.2): the start and end of `recording`, drawn only as
+   an ancestor line (`{id: "recording", part: ["start"]}`, `["end",
+   "label"]`; no line marks its own start or end), a label of a timeline that is no segment (`{id: "score",
    part: ["label"]}`), the name of a region and of a jump origin, and a
    map's label and name. A malformed address is
    `invalid_address` at `[address]` with the reader's message (`{block:
@@ -738,8 +748,8 @@ string form is `addressKey`, and nothing splits or composes an ID.
    their timelines, each with its one card in the frame of `group_1`; `{id:
    "https://example.org/piece/score#exposition"}` to the first region of
    the former; `{id: "take 2/intro", part: ["label"]}` to the label of the
-   region of `perf/take 2`, and `{id: "perf/take 2", part: ["end",
-   "label"]}` to the label of its end. Pieces of these IDs (`perf`, `take
+   region of `perf/take 2`, and `{id: "perf/take 2", part: ["name"]}` to
+   its name. Pieces of these IDs (`perf`, `take
    2`, `https:`, `intro`, the URI with an empty fragment) name nothing.
 7. **Every drawn element resolves to its kind.** For every manifest
    fixture, every address the enumeration gives but the block's resolves
@@ -827,8 +837,10 @@ string form is `addressKey`, and nothing splits or composes an ID.
 14. **Memoised by identity**: the listing and the index of a manifest are
     the same objects when asked twice; the index maps every timeline to
     itself and every entry to the timeline holding it (`region_1` to
-    `annotations`, `cmap_6` to `excerpt`, `cmap_5` to `recording`, a
-    group to nothing; fifteen IDs), and its elements equal the drawing's
+    `annotations`, `cmap_6` to `excerpt`, `cmap_5` to `recording`, each
+    named timestamp to the timeline it lies on (`timestamp_3` to
+    `excerpt`), a group to nothing; 25 IDs: 6 timelines, 9 entries, 10
+    timestamps), and its elements equal the drawing's
     own.
 
 15. **The words of an address** (`addressWords`) name it to a reader in
@@ -1247,7 +1259,8 @@ timeline `{id: T, part: ["card"]}`, parts by `part`, the manifest's title
    version 7.
 2. **Invariants root by root.** `group_child_member.json` with
    `second-half`'s unit changed to `seconds` (its length written `8.0`, as
-   the `float` axis of seconds represents it) is refused with exactly
+   the `float` axis of seconds represents it, its timestamps on the
+   quarters axis left out) is refused with exactly
    `schema_violation` at `["timelines", 0, "children", 0, "unit"]`, message
    `child 'second-half' has unit 'seconds', its parent 'piece' has
    'quarters'`: the path counts the roots of a manifest with a group.
@@ -1265,18 +1278,20 @@ timeline `{id: T, part: ["card"]}`, parts by `part`, the manifest's title
    label (`[…, ancestor, wedge]`); then the member's own line as a root's:
    `timeline` `{id: "second-half"}` (`[block, frame]`), its name and its
    five bands (`[block, frame, timeline]`), the markers band holding the
-   wedges (`[…, timeline, band]`), each followed by its label (`[…, band,
-   wedge]`); then `recording` the same way without ancestors. A timeline's
+   wedges and coordinate labels of its named timestamps `origin` and
+   `length` (`timestamp_3`, `timestamp_4`; both `[…, timeline, band]`);
+   then `recording` the same way without ancestors (`timestamp_1`,
+   `timestamp_2`). A timeline's
    keys carry its domain, modality and class (`second-half` and `piece`
    logical, continuous, `ContinuousLogicalTimeline`; `recording` physical,
    continuous, `ContinuousPhysicalTimeline`), a band its timeline, null
    domain, modality and class, and its facet. So an ancestor line holds no
    band, a member that is a child in `timelines` is a `timeline` element in
    its drawing whose bands are held by no band, and the mark addresses and
-   their labels occur twice, on the ancestor line and on the member's own
-   line. `{within: "piece"}` matches exactly the card of `second-half`, the
-   `piece` ancestor, its name, the four mark keys on it and every element of
-   the line `second-half` (eighteen keys); `{element: "frame"}` only the
+   their labels lie on the ancestor line alone. `{within: "piece"}` matches
+   exactly the card of `second-half`, the `piece` ancestor, its name, the
+   four mark keys on it and every element of the line `second-half`, its
+   timestamps' included (eighteen keys); `{element: "frame"}` only the
    frame; `{element: "card"}` exactly the cards of `second-half` and
    `recording`; `{inside: "ancestor"}` exactly the name of `piece` and the
    four mark keys on the ancestor line; `{element: "wedge", inside:
@@ -1293,7 +1308,9 @@ timeline `{id: T, part: ["card"]}`, parts by `part`, the manifest's title
    marks of `excerpt`'s start and end with their labels) and its line with
    its name and five bands, the bands holding its maps (`cmap_1`, `cmap_2`
    in `score`'s; `cmap_3` in `performance`'s; `cmap_4` in `page`'s;
-   `cmap_6` in `excerpt`'s), its wedges with their labels and its jump with
+   `cmap_6` in `excerpt`'s), the wedges and coordinate labels of its
+   `origin` and `length` (`annotations` `timestamp_1`, `timestamp_2`,
+   `excerpt` 3, 4, `page` 5, 6, `performance` 7, 8, `score` 9, 10) and its jump with
    its label (`{id: "jump_from_1"}`, `{id: "jump_from_1", part:
    ["label"]}`); then the ungrouped root `annotations` with its card, name
    and five bands, the regions band holding `region_1`, its label,
@@ -1307,19 +1324,21 @@ timeline `{id: T, part: ["card"]}`, parts by `part`, the manifest's title
    with the one ancestor `recording`, offset its offset there) and the
    ungrouped roots `["annotations"]`.
 5. **Addresses, one root and several.** In a block of `map.json`:
-   `manifestIds` is exactly `melody`, `phrase`, `tempo`, `ticks`; `set`
+   `manifestIds` is exactly `melody`, `phrase`, `tempo`, `ticks` and the
+   root's two timestamps `timestamp_1`, `timestamp_2`; `set`
    reaches the map `ticks` of the child `phrase` by `{block: A, id:
    "ticks"}`, and `{id: "melody/ticks"}` and `{id: "phrase/ticks"}` are
    `unknown_target`: no ID is composed. In a block of
    `group_number_types.json`, adding the region `region_1` (`[2, 1]` to
    `[4, 1]`) into `{block: A, id: "score"}` stores it in
    `timelines[2].regions`; `manifestIds` then holds exactly `group_1`,
-   `page`, `performance`, `region_1` and `score`. IDs are free: a region
+   `page`, `performance`, `region_1`, `score` and the three roots'
+   timestamps `timestamp_1` to `timestamp_6`. IDs are free: a region
    with the ID `start` or `card` (part words) added into `score` is
    accepted, listed before `region_1`, and `set` of its `name` on `{block:
    A, id: "start"}` names that region, while `{block: A, id: "score", part:
-   ["start"]}` is the wedge of `score`, a part, which no command aims at:
-   `unknown_target` at that address. `unknown_target` also for `{id:
+   ["start"]}` names nothing drawn (`score`'s start is its `origin`
+   timestamp) and is no target: `unknown_target` at that address. `unknown_target` also for `{id:
    "page/region_1"}`, `{id: "score/region_1"}`, and the parts `start` and
    `label` of `region_1` (a region has a label, but no command aims at a
    part); `{block: A, id: "group_1"}` is a group, which `set` refuses by
@@ -1373,7 +1392,8 @@ timeline `{id: T, part: ["card"]}`, parts by `part`, the manifest's title
      removing `recording`: the roots are `annotations`, `page`,
      `performance`, `score`; `group_2`'s members are `["page"]` and its
      order `["page"]`; `group_1` and its order are unchanged. `removedBy`
-     of `["recording"]` is exactly `{recording, excerpt, cmap_5, cmap_6}`.
+     of `["recording"]` is exactly `{recording, excerpt, cmap_5, cmap_6,
+     timestamp_3, timestamp_4}` (the timestamps lie on `excerpt`).
    - **A child.** `group_child_member.json`, removing `second-half`:
      `piece` has no children; `group_1`'s members and order are
      `["recording"]`.
@@ -1383,7 +1403,8 @@ timeline `{id: T, part: ["card"]}`, parts by `part`, the manifest's title
      added into `score` (stored with `name: null`, `kind: "linear"`,
      `extrapolate: "none"`), removing `performance` leaves `score`'s
      `conversion_maps` exactly `[warp]`; `removedBy` of `["performance"]`
-     is exactly `{performance}`.
+     is exactly `{performance, timestamp_3, timestamp_4}`, its own
+     timestamps and no map.
    - **A measure map goes alone.** The same manifest given the measure map
      `{id: "bars", rows: [{count: 1, qstamp: [0, 1]}]}` (added into
      `{block: A}`): `removedBy` of `["bars"]` is exactly `{bars}`, and
@@ -1416,8 +1437,8 @@ timeline `{id: T, part: ["card"]}`, parts by `part`, the manifest's title
    `[{block: A, id: "score"}, "region", "id"]` and `[…, "child", "id"]`.
    On `conversion_maps__maps_quarters.json`, whose maps hold maps two
    deep, `manifestIds` is exactly `cmap_1` to `cmap_8`, `lmap_1` to
-   `lmap_5`, `maps:quarters`, `measuremap_1`, `pmap_1` and `tmap_1` to
-   `tmap_4`: the maps a `ChainMap`, `CombinationMap` or `PiecewiseMap`
+   `lmap_5`, `maps:quarters`, `measuremap_1`, `pmap_1`, `timestamp_1`,
+   `timestamp_2` and `tmap_1` to `tmap_4`: the maps a `ChainMap`, `CombinationMap` or `PiecewiseMap`
    holds count. A region `lmap_3` (a held map's ID) into `maps:quarters`
    is `duplicate_id` at `[{block: A, id: "maps:quarters"}, "region",
    "id"]`, and `{id: "lmap_3"}` resolves to nothing: a held map is neither
@@ -1602,9 +1623,8 @@ markers band moved to the top and the conversion maps band below the line),
     `order: null` where nothing is stored: `set recording order null` and
     `set excerpt order null` (the fixture states no band order), `set
     group_1 order null` once a first one has deleted its entry, and on
-    `map.json`, which has no `graphical` at all, `set melody order null` and
-    `set phrase order null` (deleting an entry that is not there never adds
-    an empty `graphical`). In a store holding `map.json` as block
+    `map.json`, whose `graphical` states no order, `set melody order null`
+    and `set phrase order null`. In a store holding `map.json` as block
     `bundle0001`, `dispatch` of `set phrase order null` returns exactly that
     refusal, the view stays the same object and the journal keeps its one
     entry, the `add`.
@@ -1798,91 +1818,158 @@ removal: on `segment_children.json` styled with three boundary statements
 
 ## Named timestamps (`timestamps.test.ts`)
 
-A named timestamp is `{id, timeline, coordinate, name}` in its manifest's
-`graphical.timestamps`, in canonical order (by timeline, then coordinate,
-then ID); it is an element of the manifest's one ID space, addressed `{id}`,
-with the drawing parts `["label"]` and `["line"]` (its cross-section line).
-What must hold: the four commands reach it like any other element and
-never through a command of its own; what a command leaves is the exact
-`graphical` a reader of the manifest would hold (settled: canonical order,
+A named timestamp is `{id, timeline, coordinate, name, display}` in its
+manifest's `graphical.timestamps`, in canonical order (by timeline, then
+coordinate, then ID); it is an element of the manifest's one ID space,
+addressed `{id}`, with the drawing parts `["name"]`, `["id"]`,
+`["coordinate"]`, `["label"]` and `["line"]` (its cross-section line).
+`display` lists what of it is drawn, a subset of the schema package's words
+`wedge`, `name`, `id`, `coordinate`, `cross_section`, held in that
+canonical order (the package's `TIMESTAMP_DISPLAY`, never restated here)
+and always present in memory: a file leaving it out reads as the default
+`["wedge", "name", "cross_section"]`. What must hold: the four commands
+reach it like any other element and never through a command of its own;
+what a command leaves is the exact `graphical` a reader of the manifest
+would hold (settled: canonical order, `display` complete and canonical,
 coordinates spelled as their axis's number type selects); every refusal
 lies at the value at fault; and what goes with a timeline, a length or an
 editor goes with its timestamps too. Every case starts from block `A`
 holding `timestamps.json` (TimeToShare's fixture): root `clt_1` (quarters,
 fraction, length 8) holding the child `clt_2` at 2 of length 4 (locked);
-`timestamp_1` "Downbeat" on `clt_1` at 3/2, `timestamp_2` "Climax" on
-`clt_1` at 6 and `timestamp_3` "Entry" on `clt_2` at 1, and one statement
-`{select: {addresses: [{id: "timestamp_2", part: ["line"]}]}, set:
-{display: "none"}}`. Below, `T1`, `T2` and `T3` are those three objects as
-the fixture holds them, `{block: A, id: "x"}` is written `x`, and its part
-`{block: A, id: "x", part: ["line"]}` is written `x line`.
+`timestamp_1` "Downbeat" on `clt_1` at 3/2 with the default `display`,
+`timestamp_2` "Climax" on `clt_1` at 6 with `["wedge", "name"]` and
+`timestamp_3` "Entry" on `clt_2` at 1 with all five words; no statement.
+Below, `T1`, `T2` and `T3` are those three objects as the fixture holds
+them, `DEFAULT` is `["wedge", "name", "cross_section"]`, `{block: A, id:
+"x"}` is written `x`, and its part `{block: A, id: "x", part: ["line"]}`
+is written `x line`.
+
+**Reading and writing `display`.** The proof that the in-memory form is
+complete and canonical whatever the file states is that differently
+spelled files read to one value:
+
+1. `timestamps.minimal.json` (the fixture's minimal twin, `timestamp_1`
+   without `display`) reads to the same `graphical` as `timestamps.json`,
+   `T1.display` being `DEFAULT`; the fixture with `timestamp_3`'s
+   `display` reversed reads to the fixture's `graphical` exactly. Writing
+   is the schema package's: the round trips of every fixture
+   (`manifest.test.ts`) write the complete form with `display` and the
+   minimal form without the default, byte-equal to the fixture and its
+   twin.
 
 **Resolving.** `timestamp_1` resolves (`resolveAddress`) to the kind
 `timestamp` with the timeline `clt_1`, index 0 and `T1`; `timestamp_3` to
 `clt_2`, index 2 and `T3`; their words are `timestamp 'Downbeat'` and
-`timestamp 'Entry'`. `timestamp_2 line` and `timestamp_2 label` resolve
-to parts of it (`the line of timestamp 'Climax'`, `the label of timestamp
-'Climax'`). `timestamp_9`, and `timestamp_1` with the facet `markers`,
+`timestamp 'Entry'`. A part resolves only where its `display` draws it:
+`timestamp_1 line` (`the line of timestamp 'Downbeat'`) and its `name`
+part resolve to parts of it; `timestamp_2 line` (no `cross_section`) and
+`timestamp_1`'s `id` part (no `id`) name nothing (`unknown_target`). `timestamp_9`, and `timestamp_1` with the facet `markers`,
 name nothing (`unknown_target` at their key). `manifestIds` holds the
 three timestamp IDs beside the timelines'. `clt_1` contains (`contains`)
-`timestamp_1`, `timestamp_3` and `timestamp_2 line`; `clt_2` contains
+`timestamp_1`, `timestamp_3` and `timestamp_1 line`; `clt_2` contains
 `timestamp_3` only.
 
-**add** `{into: <timeline>, timestamp: {name, coordinate}}`:
+**add** `{into: <timeline>, timestamp: {name, coordinate, display?}}`:
 
-1. Into `clt_1`, `{name: "Coda", coordinate: [15, 2]}`: the timestamps
-   are exactly `T1`, `T2`, `{id: "timestamp_4", timeline: "clt_1",
-   coordinate: [15, 2], name: "Coda"}`, `T3` (the smallest free
-   `timestamp_N`; ordered by timeline before coordinate, so `clt_2`'s
-   comes last); the statement is unchanged.
-2. Into `clt_2`, `{name: "Exit", coordinate: [8, 2]}`: the new
+2. Into `clt_1`, `{name: "Coda", coordinate: [15, 2]}`: the timestamps
+   are exactly `T1`, `T2`, `CODA` = `{id: "timestamp_4", timeline:
+   "clt_1", coordinate: [15, 2], name: "Coda", display: DEFAULT}`, `T3`
+   (the smallest free `timestamp_N`; ordered by timeline before
+   coordinate, so `clt_2`'s comes last).
+3. Into `clt_2`, `{name: "Exit", coordinate: [8, 2]}`: the new
    `timestamp_4` holds `[4, 1]` (the value normalised on its axis, at the
    timeline's end, which is inside it), after `T3`.
-3. After removing `timestamp_1`, an add into `clt_1` at `[1, 1]` mints
+4. After removing `timestamp_1`, an add into `clt_1` at `[1, 1]` mints
    `timestamp_1` again and lists it first.
-4. Into `bare` of `bare.json` (no `graphical`), `{name: "Mid", coordinate:
-   [5, 2]}`: the manifest's `graphical` is exactly `{order: {},
+5. Into `bare` of `bare.json` with its `graphical` object left out before
+   reading, `{name: "Mid", coordinate: [5, 2]}`: the manifest's
+   `graphical` is exactly `{order: {},
    statements: [], styles: {}, timestamps: [{id: "timestamp_1", timeline:
-   "bare", coordinate: [5, 2], name: "Mid"}]}`.
-5. Refusals, at `[<into>, "timestamp", …]`: name `""` is `invalid_value` at
+   "bare", coordinate: [5, 2], name: "Mid", display: DEFAULT}]}`.
+6. A given `display` is stored canonically: `["cross_section", "id",
+   "wedge"]` is stored `["wedge", "id", "cross_section"]`; `[]` is stored
+   `[]` (nothing drawn is a state of its own, not the default).
+7. Refusals, at `[<into>, "timestamp", …]`: name `""` is `invalid_value` at
    `name` ("a name is a non-empty string"); `[17, 2]` is `invalid_value`
    at `coordinate` ("the coordinate lies after the end of timeline
    'clt_1'"), `[-1, 2]` likewise ("the coordinate lies before the start of
    timeline 'clt_1'"); a bare `3` on the fraction axis is
    `invalid_coordinate` at `coordinate`; a value without `coordinate` is
    `invalid_value` at `coordinate` ("a new timestamp needs coordinate");
-   an `id` given is `unknown_property` at `id`; into the block `{block:
-   A}` or into `timestamp_1` it is `wrong_target_kind` at `[<into>,
-   "timestamp"]`.
+   an `id` given is `unknown_property` at `id`; at `display`, each
+   `invalid_value`: `["wedge", "flag"]` ("'flag' is no display word"),
+   `["name", "wedge", "name"]` ("'name' is given twice"), `"wedge"` and
+   `[1]` ("a display is a list of display words"); into the block
+   `{block: A}` or into `timestamp_1` it is `wrong_target_kind` at
+   `[<into>, "timestamp"]`.
 
-**set** on a timestamp takes `name` and `coordinate`:
+**set** on a timestamp takes `name`, `coordinate` and `display`:
 
-6. `timestamp_1 {name: "One"}` changes that name only; `timestamp_1
+8. `timestamp_1 {name: "One"}` changes that name only; `timestamp_1
    {coordinate: [7, 1]}` moves it after `T2`, the list being `T2`, `T1`
    at `[7, 1]`, `T3`; `timestamp_3 {coordinate: [4, 1]}` (its timeline's
-   end) is accepted.
-7. Refusals at `[<timestamp>, <property>]`: `name: ""` `invalid_value`;
+   end) is accepted; `timestamp_2 {display: ["cross_section", "wedge",
+   "name"]}` stores `DEFAULT`, `timestamp_3 {display: []}` stores `[]`.
+9. Refusals at `[<timestamp>, <property>]`: `name: ""` `invalid_value`;
    `timestamp_3 {coordinate: [9, 2]}` `invalid_value` ("the coordinate
-   lies after the end of timeline 'clt_2'"); `name: "Downbeat"`,
-   `coordinate: [3, 2]` and `coordinate: [6, 4]` (the stored value once
-   normalised) are each "the command changes nothing" (`invalid_value`);
+   lies after the end of timeline 'clt_2'"); `display` refused with the
+   values and messages of item 7; `name: "Downbeat"`, `coordinate: [3,
+   2]`, `coordinate: [6, 4]` (the stored value once normalised) and
+   `timestamp_2 {display: ["name", "wedge"]}` (the stored list in another
+   order) are each "the command changes nothing" (`invalid_value`);
    `timeline` is `unknown_property` ("timestamp has no property
    timeline"), `start` `wrong_target_kind`, `id` `id_not_settable`. The
-   parts are drawing addresses, no target: `set` on `timestamp_2 line`
+   parts are drawing addresses, no target: `set` on `timestamp_1 line`
    and `remove` of it are `unknown_target` at its key.
 
 **remove**:
 
-8. Removing `timestamp_2` leaves the timestamps `T1`, `T3` and no
-   statement (its one address named the removed timestamp's line).
-9. Removing `clt_2` removes `T3` with it (`T1`, `T2` left, the statement
-   kept); removing `clt_1` leaves no timeline, no timestamp and no
-   statement.
+10. After a `style` of `{addresses: [{id: "timestamp_2", part:
+    ["label"]}]}` setting `display: "none"`, removing `timestamp_2` leaves the timestamps `T1`, `T3`
+    and no statement (its one address named the removed timestamp's
+    label).
+11. Removing `clt_2` removes `T3` with it (`T1`, `T2` left); removing
+    `clt_1` leaves no timeline and no timestamp.
+
+**Default timestamps.** A root a command adds, and every root of a
+manifest the editor imports without a `graphical` object, are given two
+timestamps, `origin` at the zero of the root's number type and `length` at
+its length when the length is known, each with `display: ["wedge",
+"coordinate"]`, its ID the next free `timestamp_N`. What proves it: the
+exact timestamps, per number type and with an unknown length; their
+absence for a timeline below a new root and for a manifest that has a
+`graphical` object; and one journal entry undone as one step.
+
+12. `add {into: A, timeline: {id: "late", unit: "quarters", number_type:
+    "fraction", length: [4, 1], children: [{id: "inner", unit: "quarters",
+    number_type: "fraction", length: [1, 1], offset: [1, 1]}]}}` leaves
+    `T1`, `T2`, `T3`, then `{id: "timestamp_4", timeline: "late",
+    coordinate: [0, 1], name: "origin", display: ["wedge",
+    "coordinate"]}` and `{id: "timestamp_5", timeline: "late", coordinate:
+    [4, 1], name: "length", display: ["wedge", "coordinate"]}`; `inner`
+    has none. In a store this is one journal entry: one `undo` gives back
+    the view before it, timestamps included.
+13. An `int` root (`ticks`, length 960) is given `origin` at `0` and
+    `length` at `960`; a `float` root (`seconds`) of unknown length only
+    `origin`, at the float `0.0` (a `JsonFloat`, as a reader returns it).
+14. Importing (`importedManifest`), each fixture read with its
+    `graphical` object left out: `bare.json` gains exactly the `graphical`
+    `{order: {}, statements: [], styles: {}, timestamps: [{id:
+    "timestamp_1", timeline: "bare", coordinate: [0, 1], name: "origin",
+    display: ["wedge", "coordinate"]}, {id: "timestamp_2", timeline:
+    "bare", coordinate: [8, 1], name: "length", display: ["wedge",
+    "coordinate"]}]}`; `nested.json` gains them for its root `clt_1` only
+    (`[0, 1]`, `[16, 1]`), none for `clt_3` or `clt_2`;
+    `unknown_length.json`'s root `score` of unknown length gains `origin`
+    alone, its child `coda` none; `timestamps.json`, read as it is (it has
+    a `graphical` object), is returned as the same object. Adding the
+    imported `bare.json` as a block is one journal entry, the block's
+    manifest holding the two timestamps.
 
 **Lengths.** A new length never leaves a timestamp of its timeline beyond
-it:
+it, and a timestamp at exactly the old end follows the end:
 
-10. After the add of item 1, `clt_1 {length: [7, 1]}` is
+15. After the add of item 2, `clt_1 {length: [7, 1]}` is
     `timestamp_exceeds_length` at `[clt_1, "length"]`, message `timestamp
     'timestamp_4' lies after the end of its timeline 'clt_1'`; `[15, 2]`
     (the timestamp's own place) and `null` are accepted. With `clt_2`
@@ -1890,33 +1977,32 @@ it:
     way for `timestamp_3`, and `[1, 1]` is accepted. Where the timeline's
     children reach further, `length_below_content` still comes first:
     `clt_1 {length: [11, 2]}` is that.
-
-**The line toggle** is a `style` on a statement addressing exactly the
-line, no command of its own:
-
-11. `style {select: {addresses: [{id: "timestamp_1", part: ["line"]}]},
-    set: {display: "none"}, blocks: [A]}` leaves `graphical` exactly
-    `{order: {}, statements: [<the fixture's statement>, {select:
-    {addresses: [{id: "timestamp_1", part: ["line"]}]}, set: {display:
-    "none"}}], styles: {}, timestamps: [T1, T2, T3]}`; the same with
-    `display: null` gives back the fixture's `graphical` exactly, and on
-    `timestamp_2` it leaves `statements: []`.
+16. With `End` added on `clt_1` at `[8, 1]` (its end, as `timestamp_4`):
+    `clt_1 {length: [10, 1]}` moves `End` to `[10, 1]`, every other
+    timestamp kept; `{length: [7, 1]}` moves `End` to `[7, 1]` (the
+    timestamp at the old end is no refusal); `{length: null}` moves
+    nothing. Growing `clt_1` by placing a child past its end (`add child
+    {id: "tail", …, offset: [6, 1], length: [4, 1]}`, `clt_1` grows to
+    `[10, 1]`) moves `End` to `[10, 1]` too: every length change follows
+    one rule.
+17. One `set` of two changes, `clt_1 {length: [6, 1]}` then `clt_1
+    {length: [8, 1]}`, is accepted although the length ends where it
+    began: `End` followed to `[6, 1]` and back, but `Climax` (at `[6, 1]`)
+    followed the second change, so both end at `[8, 1]`. In a store the
+    length change of item 16 is one journal entry, undone in one step.
 
 **The guard** (`sideEffect`, with the command's change set and without,
 the same result):
 
-12. In the editor of `clt_2`: `timestamp_3 {name: "In"}` and an add into
-    `clt_2` are accepted; `timestamp_1 {name: "One"}` is `side_effect` at
-    `[timestamp_1]`, message `timestamp 'Downbeat' lies outside timeline
-    'clt_2': an editor changes only what it edits`; an add into `clt_1`
-    of `Coda` is refused at `[timestamp_4]` (`timestamp 'Coda' …`); removing
-    `timestamp_2` is refused at `[timestamp_2]` (`timestamp 'Climax' …`);
-    the line toggle of item 11 is refused at `[A, "manifest",
-    "graphical", "statements"]` (`the graphical statements of the
-    anonymous bundle …`).
-13. In the editor of `clt_1`: removing `timestamp_2` (its statement goes
-    with it), removing `clt_2` (with `timestamp_3`), the line toggle of
-    item 11 and every case of item 12 are accepted.
+18. In the editor of `clt_2`: `timestamp_3 {name: "In"}`, `timestamp_3
+    {display: []}` and an add into `clt_2` are accepted; `timestamp_1
+    {name: "One"}` is `side_effect` at `[timestamp_1]`, message `timestamp
+    'Downbeat' lies outside timeline 'clt_2': an editor changes only what
+    it edits`; an add into `clt_1` of `Coda` is refused at `[timestamp_4]`
+    (`timestamp 'Coda' …`); removing `timestamp_2` is refused at
+    `[timestamp_2]` (`timestamp 'Climax' …`).
+19. In the editor of `clt_1`: removing `timestamp_2`, removing `clt_2`
+    (with `timestamp_3`) and every case of item 18 are accepted.
 
 ## The store and the journal (`store.test.ts`)
 
@@ -2401,7 +2487,9 @@ block alone).
    `{id: "group_2", part: ["name"]}`; for each member in display order its
    card (`{id, part: ["card"]}`), its line, name and five bands with
    everything they hold (`cmap_4` in `page`'s, `cmap_6` in `excerpt`'s, the
-   wedges and their labels in each markers band), and for `excerpt` the
+   wedges and coordinate labels of its `origin` and `length` in each
+   markers band, `timestamp_5`, `timestamp_6` of `page` and `timestamp_3`,
+   `timestamp_4` of `excerpt`), and for `excerpt` the
    marks `{id: "excerpt", part: ["start"]}` and `["end"]` with their labels
    on its ancestor line, never that line `{id: "recording"}` or its name. A
    band belongs to its timeline, so a member's five bands are in, empty
@@ -2935,9 +3023,9 @@ and `add` of a root timeline or a group (fresh or taken ids, members
 existing or not), so a reshaped manifest still saves, reloads and replays;
 and the named timestamps: an `add` of one into a timeline or elsewhere
 (its coordinate drawn like any other, an empty name, a missing coordinate,
-an `id` given), a `set` of its `name`, `coordinate` or `timeline`, its
-`remove`, and the `style` hiding or showing its line, on the manifest's
-timestamps and an unknown one.
+an `id` given, a `display` in any order, with an unknown or repeated
+word), a `set` of its `name`, `coordinate`, `display` or `timeline`, and
+its `remove`, on the manifest's timestamps and an unknown one.
 Each manifest fixture starts as block `A` beside a block `B` of
 `bare.json`, in a store with an injected clock, for ten sequences.
 
@@ -2960,7 +3048,7 @@ Each manifest fixture starts as block `A` beside a block `B` of
    `nested_member`, `non_finite_number`, `non_positive_number`, `not_an_item`, `not_removable`,
    `number_type_not_allowed`, `region_end_before_start`, `schema_violation`,
    `segment_end_fixed`, `segment_never_locked`, `segment_not_removable`,
-   `segment_structure`, `unit_mismatch`, `unknown_property`,
+   `segment_structure`, `timestamp_exceeds_length`, `unit_mismatch`, `unknown_property`,
    `unknown_target`, `unlocking_not_supported`, `wrong_target_kind`.
    `unlocking_not_supported` is reached in
    `bundles/bundle_shared_parent.json`, whose `exposition` and
@@ -2970,11 +3058,9 @@ Each manifest fixture starts as block `A` beside a block `B` of
    timeout of 32 s, about three times the slowest measurement (10.6 s with
    the named timestamps' commands among the kinds). The refusals
    of the store's editors (`no_editor`, `not_inside`, `side_effect`) are
-   pinned by the session and guard tests, and `timestamp_exceeds_length`
-   by the named timestamps' tests: it needs a timestamp added beyond every
-   child of an unlocked timeline and a later length below it, which the
-   fixed sample does not build (the timestamps of `timestamps.json` lie
-   within its children's reach or on a locked timeline).
+   pinned by the session and guard tests. `timestamp_exceeds_length` is
+   reached since the fixtures' roots carry their `origin` and `length`
+   timestamps: a length set below a timestamp that is not at the end.
 
 **Editing sequences.** The same fixtures, in the same store, run sequences
 of up to 30 steps, ten per fixture, each step a seed with an operation: a
@@ -3100,64 +3186,72 @@ a Fraction, a `number` a float.
    evaluator per output, in the manifest's key order, each with its own
    target unit, so each output can be expressed on its own axis.
 
-## Picking a position (`grid.test.ts`)
+## Picking a value (`grid.test.ts`)
 
-`snapPosition(p, h, numberType, length, granularity)` is the position the
-pointer picks: `p` units from the line's start (a double), `h` half a
-device pixel in units. It is the simplest value within `h` of `p`, never
-finer than the granularity: a fraction axis tries `k/d` for each divisor
-`d` of the denominator in ascending order (`k` the nearest integer to
-`p·d`, a tie going up), a float axis `p` rounded to 0, 1, …, `decimals`
-places (a tie going up), an int axis the nearest multiple of `10^m` from
-the largest power of ten not above `2h` (at least 1) down to 1; the first
-candidate within `h` wins, and where none is, the finest (the nearest
-multiple of `1/denominator`, `decimals` places, the nearest integer). The
-result is clamped to `[0, length]`. Every comparison is exact on the
-doubles' exact values, so the expected values below follow by hand from
-the decimal values of `p` and `h` (none lies near a boundary, where the
-double's exact value would decide). Granularity `{denominator: 2520,
-decimals: 3}` unless stated.
+`snapValue(value, reach, numberType, granularity)` is the one rule by
+which a pointer picks a value on any axis, a position on a line or the
+value of a map there: `value` is where the pointer is, `reach` half a
+device pixel measured on the same axis, both exact (a pointer's doubles
+enter by their exact values). It is the simplest value within `reach` of
+`value`, never finer than the granularity: a fraction axis tries `k/d` for
+each divisor `d` of the denominator in ascending order (`k` the nearest
+integer to `value·d`, a tie going up), a float axis `value` rounded to 0,
+1, …, `decimals` places (a tie going up), an int axis the nearest multiple
+of `10^m` from the largest power of ten not above `2·reach` (at least 1)
+down to 1; the first candidate within reach wins, and where none is, the
+finest (the nearest multiple of `1/denominator`, `decimals` places, the
+nearest integer). Holding a value to a span is a separate step,
+`clampValue(value, start, end)`. Below, `value` and `reach` are the exact
+values of the doubles written, so the expected values follow by hand from
+the decimals (none lies near a boundary, where the double's exact value
+would decide). Granularity `{denominator: 2520, decimals: 3}` unless
+stated.
 
-1. **The worked example (fraction).** `p = 0.7499`, `h = 0.01`: `d = 1`
-   gives 1 (|1 − 0.7499| = 0.2501 > h), `d = 2` gives 1/2 (0.2499), `d =
-   3` gives 2/3 (2.2497 rounds to 2; 0.08323), `d = 4` gives 3/4 (2.9996
-   rounds to 3; 0.0001 ≤ h): **3/4**. With `h = 0.00001` every divisor
-   misses: every candidate is a multiple of 1/2520, and the nearest of
-   them, 1890/2520 = 3/4, lies 0.0001 away; so the fallback, 1890/2520 =
-   **3/4**.
-2. **Divisors in ascending order.** `p = 0.1`, `h = 0.02`: `d` = 1, 2, 3,
-   4 give 0 (0.1 away), `d = 5` gives 1/5 (0.5 ties up; 0.1), `d = 6`
-   1/6 (0.0667), `d = 7` 1/7 (0.0429), `d = 8` 1/8 (0.025), `d = 9` 1/9
-   (0.0111 ≤ h): **1/9**, before 1/10. With `h = 0.00001` the first within
-   reach is `d = 10`: **1/10** (the double 0.1 lies 5.6·10⁻¹⁸ from it).
-3. **Fallback to the finest.** `p = 0.123456`, `h = 0.000001`: the nearest
-   multiple of 1/2520 is 311/2520 (311.109 rounds to 311), 0.0000434 away,
-   so nothing is within reach and the result is **311/2520**.
-4. **Ties go up.** With denominator 2, `p = 0.25`, `h = 0.1`: `d = 1`
-   gives 0 (0.75 floors to 0; 0.25 away), `d = 2` gives 1/2 (0.5 ties up;
-   0.25 away); the fallback is the nearest multiple of 1/2, the tie going
-   up: **1/2**.
-5. **Floats.** `p = 1.23456`, `h = 0.004`: 0 places 1 (0.23456 away), 1
-   place 1.2 (0.03456), 2 places 1.23 (0.00456 > h), 3 places 1.235
-   (1234.56 rounds to 1235; 0.00044 ≤ h): **247/200**. With `h = 0.005`,
-   2 places are within reach: **123/100**. With `h = 0.0001` none is, and
-   the fallback is 3 places: **247/200**. A tie goes up, unlike Python's
-   `round`: decimals 2, `p = 0.125`, `h = 0.001`: 0 (0.125 away), 1/10
-   (1.25 rounds to 1; 0.025), 13/100 (12.5 ties up; 0.005 > h), so the
-   fallback **13/100**.
-6. **Ints.** `p = 12345.6`, `h = 600`: 2h = 1200, the largest power of ten
-   not above it 1000; the nearest multiple 12000 is 345.6 away ≤ h:
-   **12000**. `h = 300`: 2h = 600, from 100: 12300 (45.6 away): **12300**.
-   `h = 40`: from 10: 12350 (4.4 away): **12350**. `h = 0.2`: 2h = 0.4 < 1,
-   so only 1: 12346 is 0.4 away > h, and the fallback is the nearest
-   integer, **12346**. The int axis ignores the granularity.
-7. **Clamping.** A negative pick is 0 (`p = −0.3`, `h = 0.01`: the
-   candidate −3/10 → **0**); one beyond the length is the length (`p = 9`,
-   `h = 0.01`, length 8 → **8**; `p = 7.9`, `h = 0.5`, the float length
-   7.5, read as its exact value → **15/2**); an unknown length (`null`)
-   clamps only below (`p = 100.2`, `h = 0.5`, int → **100**).
-8. **Refusals.** `p` NaN or infinite, `h` 0, −1, NaN or infinite are
-   `RangeError`s.
+1. **The worked example (fraction).** `value = 0.7499`, `reach = 0.01`:
+   `d = 1` gives 1 (|1 − 0.7499| = 0.2501 > reach), `d = 2` gives 1/2
+   (0.2499), `d = 3` gives 2/3 (2.2497 rounds to 2; 0.08323), `d = 4`
+   gives 3/4 (2.9996 rounds to 3; 0.0001 ≤ reach): **3/4**. With `reach =
+   0.00001` every divisor misses: every candidate is a multiple of 1/2520,
+   and the nearest of them, 1890/2520 = 3/4, lies 0.0001 away; so the
+   fallback, 1890/2520 = **3/4**.
+2. **Divisors in ascending order.** `value = 0.1`, `reach = 0.02`: `d` =
+   1, 2, 3, 4 give 0 (0.1 away), `d = 5` gives 1/5 (0.5 ties up; 0.1), `d
+   = 6` 1/6 (0.0667), `d = 7` 1/7 (0.0429), `d = 8` 1/8 (0.025), `d = 9`
+   1/9 (0.0111 ≤ reach): **1/9**, before 1/10. With `reach = 0.00001` the
+   first within reach is `d = 10`: **1/10** (the double 0.1 lies 5.6·10⁻¹⁸
+   from it).
+3. **Fallback to the finest.** `value = 0.123456`, `reach = 0.000001`: the
+   nearest multiple of 1/2520 is 311/2520 (311.109 rounds to 311),
+   0.0000434 away, so nothing is within reach and the result is
+   **311/2520**.
+4. **Ties go up.** With denominator 2, `value = 0.25`, `reach = 0.1`: `d =
+   1` gives 0 (0.75 floors to 0; 0.25 away), `d = 2` gives 1/2 (0.5 ties
+   up; 0.25 away); the fallback is the nearest multiple of 1/2, the tie
+   going up: **1/2**.
+5. **Floats.** `value = 1.23456`, `reach = 0.004`: 0 places 1 (0.23456
+   away), 1 place 1.2 (0.03456), 2 places 1.23 (0.00456 > reach), 3 places
+   1.235 (1234.56 rounds to 1235; 0.00044 ≤ reach): **247/200**. With
+   `reach = 0.005`, 2 places are within reach: **123/100**. With `reach =
+   0.0001` none is, and the fallback is 3 places: **247/200**. A tie goes
+   up, unlike Python's `round`: decimals 2, `value = 0.125`, `reach =
+   0.001`: 0 (0.125 away), 1/10 (1.25 rounds to 1; 0.025), 13/100 (12.5
+   ties up; 0.005 > reach), so the fallback **13/100**.
+6. **Ints.** `value = 12345.6`, `reach = 600`: 2·reach = 1200, the
+   largest power of ten not above it 1000; the nearest multiple 12000 is
+   345.6 away ≤ reach: **12000**. `reach = 300`: 2·reach = 600, from 100:
+   12300 (45.6 away): **12300**. `reach = 40`: from 10: 12350 (4.4 away):
+   **12350**. `reach = 0.2`: 2·reach = 0.4 < 1, so only 1: 12346 is 0.4
+   away > reach, and the fallback is the nearest integer, **12346**. The
+   int axis ignores the granularity.
+7. **Clamping** (`clampValue`). A value below the start is the start (the
+   snapped −3/10 of `value = −0.3`, `reach = 0.01`, held to `[0, 32]` →
+   **0**; 3 held to `[4, 8]` → **4**); one beyond the end is the end (the
+   snapped 9 of `value = 9`, `reach = 0.01`, held to `[0, 8]` → **8**; the
+   snapped 8 of `value = 7.9`, `reach = 0.5`, held to `[0, 7.5]`, the float
+   end read as its exact value → **15/2**); an unknown end (`null`) holds
+   only below (the snapped 100 of `value = 100.2`, `reach = 0.5` on an int
+   axis → **100**).
+8. **Refusals.** A reach of 0 or −1 is a `RangeError`.
 
 ## Displaying and copying a value (`display.test.ts`)
 
@@ -3281,97 +3375,177 @@ inverse and gets the value back exactly. Span [0, 32] unless stated.
 
 ## Timestamps (`timestamp.test.ts`)
 
-`timestampAt(spec, position, knots)` is the one value the coordinate flag
-and the Timestamp tab show: for a position on a line, the line's own
-coordinate and its maps' values, and on a segment line the same again for
-the segment under the position; a pin holds one and moves it, by a
-position or by an edited value (`pinAt`, `positionFor`). The spec names
-only primitive facts (the granularity; the line's timeline, unit, number
-type, length and shown maps in drawing order; each segment's the same and
-its offset), so the expected values follow by
-hand from the conversion maps' own arithmetic (section "Conversion maps")
-and need no drawing. A test proves the assembly: which parts there are,
-in which order, at which position each is read, and that each map's value
-is its evaluator's result expressed on its target unit, never recomputed.
+A timestamp is the cross-section of a timeline, the **anchor**, at a
+position exact on the anchor's axis: the anchor, then every **member** the
+caller lists (the anchor's segments and displayed descendants, each with
+its offset from the anchor's zero) whose closed span `[offset, offset +
+length]` holds the position (`[offset, ∞)` for an unknown length), each
+with its coordinate (the position minus its offset, in its number type)
+and the value of each of its maps. A **row** is one value of it: a
+timeline's own coordinate or one of its maps' values. One row abstraction
+reads a row forward from a position and back from a value to a position;
+the shown values, the position a pointer picks on a row (`snapOnRow`), the
+position an edited value gives (`positionFor`), the listed rows
+(`timestampRows`) and the JSON value (`timestampJson`) all go through it.
+The spec names only primitive facts (the anchor's and each member's
+timeline, name, unit, number type, length, maps and, for a member, its
+offset), which the test reads off a fixture's tree, an offset summed down
+the path from the anchor; so every expected value follows by hand from the
+maps' own arithmetic ("Conversion maps") and needs no drawing. Granularity
+`{denominator: 2520, decimals: 3}` unless stated; `knots` `no_server`
+unless stated. The manifests: `bundles/bundle_mixed.json` (`score`:
+quarters, fraction, length 12, `cmap_1` 480·x onto ticks (int), `cmap_2`
+1/2·x onto seconds (float); `recording`: samples, int, length 441000,
+`cmap_5` x/44100 onto seconds; its child `excerpt` at 44100, length 88200,
+`cmap_6` x/44100 onto seconds; `performance`: seconds, float, `cmap_3`
+44100·x onto samples), `segment_line.json`,
+`conversion_maps__maps_quarters.json` (`maps:quarters`, quarters,
+fraction, length 16, twelve maps of every kind) and `timestamps.json`, and
+the parity table's manifest with its MeasureMap's expanded rows
+(`parity/maps.json`, "Conversion maps").
 
-The specs are those of a form in three segments on quarters (fraction):
-the line `form` [0, 32] with the map `form_ticks` (480 per quarter onto
-ticks); segment `A` at 0, length 8 (`A_tempo` 1/2·x onto seconds,
-`A_samples` 22050·x onto samples); `B` at 8, length 12 (`B_samples`
-55125/2·x + 176400, `B_tempo` 5/8·x + 4, `B_ticks` 480·x, given in that
-order); `C` at 20, length 12 (`C_samples` 165375/8·x + 507150, `C_tempo`
-15/32·x + 23/2, `C_bars` 1/4·x onto whole notes).
-
-1. **A segment line at 27/2**: two parts. The line `form` at the
-   Fraction 27/2 with `form_ticks` the int 6480 (27/2·480); then `B`, a
-   segment, at 11/2 (27/2 − 8, counted from the segment's start) with, in
-   the order given (not by ID), `B_samples` 327994 (606375/4 + 176400 =
-   1311975/4 = 327993.75, rounded half to even onto samples), `B_tempo`
-   the float 7.4375 (119/16) and `B_ticks` the int 2640. The timestamp
-   names the block, the line and the granularity it was given (the same
-   object).
-2. **The segment under a position** is the one of the largest offset whose
-   span `[offset, offset + length]` holds it, so a shared boundary belongs
-   to the later segment and the line's end to the last: at 8 `B` at 0
-   (`B_samples` 176400, `B_tempo` 4.0, `B_ticks` 0); at 0 `A` at 0
-   (`A_tempo` 0.0, `A_samples` 0); at 32 `C` at 12 (`C_samples` 755212,
-   from 755212.5 half to even; `C_tempo` 17.125, 137/8; `C_bars` the
-   Fraction 3). With only `A` given, at 10 no segment holds the position
-   and the timestamp has the line's part alone.
-3. **A child shows only its own maps**: a child line `cons` (quarters)
-   with `cons_tempo` 3/5·x − 2/5 and `cons_ticks` 480·x and no segments
-   gives at 2 one part, `cons` at 2, its two maps in the order given:
-   `cons_tempo` 4/5 expressed as the float 0.8, `cons_ticks` the int 960.
-4. **The line's number type writes each position**: on a float line
-   (seconds) the position 1/10 is the float 0.1 and its map 44100·x
-   onto samples the int 4410; on an int line (frames) the position 50 is
-   the int 50 and its map 1/25·x onto seconds the float 2.0.
-5. **No value**: a PiecewiseMap with breaks 0, 4, 16 at 16 has no value
-   (`null`) and misses no rows (`missingKnots` `null`); a MeasureNumberMap
-   without its MeasureMap's expanded rows has no value and says why
-   (`missingKnots`): given nothing, `no_server`; given a reason
-   (`unsupported`, `pending`, `failed`), that reason; given rows that lack
-   its MeasureMap, `failed`. A LinearMap misses nothing (`null`). A map
-   keeps its `id`, `name` (`null` when unnamed) and target unit.
-6. **The texts every reader shows** for a timestamp: its place, the
-   line's name and coordinate with its unit's symbol (`Form at 13 1/2 ♩`
-   at 27/2; on a float line under `decimals` 1, `Recording at 0.1 s` at
-   the double 0.1234); a measure by its name, else its number, else its
-   count (`m. 3`; `""` with number 7 → `7`; `""` with no number and count
-   9 → `9`); and for a map without a value, one text per reason: no value
-   at the position → `no value here`; `no_server` → `needs a server to
-   expand its measure map`; `unsupported` → `the server cannot expand
-   measure maps`; `pending` → `waiting for the server`; `failed` → `the
-   server did not expand its measure map`.
-7. **A pin moves.** A pin `{spec, knots, timestamp, named}` of the form
-   spec at 27/2 (`knots` `no_server`, `named` `null`): `pinAt(pin, 8)`
-   keeps `spec`, `knots` and `named` (the same objects) and holds exactly
-   `timestampAt(spec, 8)`.
-8. **An edited value gives a position** (`positionFor(pin, row, value)`,
-   the position on the line, exact on its own axis):
-   - The line's coordinate is the position, exact, never snapped: 10 →
-     10; 1/7 → 1/7.
-   - The segment's coordinate (`B` at 27/2, offset 8): 5/2 → 8 + 5/2 =
-     21/2.
-   - A map of the line: `form_ticks` (480·x onto ticks) 6480 → 27/2.
-   - A map of the segment: `B_tempo` (5/8·x + 4) 119/16 (the text
-     `7.4375`) → (119/16 − 4)·8/5 = 11/2 on `B`, so 8 + 11/2 = 27/2.
-   - A float map on a fraction line: `f` (quarters, fraction, 32) with
-     `0.3·x` (float scalar) onto seconds: 1 → the float
-     3.3333333333333335, settled to the nearest multiple of 1/2520
-     (8400.0000000000004 rounds to 8400): **10/3**.
-   - On an int line: `video` (frames, int, 100) with `1/25·x` onto
-     seconds: 101/50 (the text `2.02`) → 101/2 exactly, settled to the
-     nearest integer, the tie going up: **51**.
-   - On a float line: `recording` (seconds, float, 10) with `44100·x`
-     onto samples: 4410 → 1/10, kept exact.
-   - **Refused**, each `invalid_value` at `[]` with the message given: the
-     line's 33 → `33 lies outside 'form' (0 to 32)`; −1 → `-1 lies outside
-     'form' (0 to 32)`; the segment's 13 → `13 lies outside 'B' (0 to
-     12)`; `form_ticks` 19200 → 40, `40 lies outside 'form' (0 to 32)`; a
-     ConstantMap `fixed` of the line, 3 → `no position on 'form' gives 3`;
-     the map `nope` → `'form' shows no map 'nope'`; the segment's row on
-     a pin without a segment part → `the timestamp shows no segment`.
+1. **The anchor alone.** `score` at 16/5, no members: one part, `score` at
+   the Fraction 16/5, `cmap_1` the int 1536 on ticks (16/5·480) and
+   `cmap_2` the float 1.6 on seconds (16/5·1/2 = 8/5), in the order of the
+   manifest. The timestamp names the block, the anchor and the granularity
+   it was given (the same object). `performance` at 2: its coordinate is
+   the float 2.0 and `cmap_3` the int 88200 (the float 88200.0 onto
+   samples).
+2. **Membership.** `recording` with the member `excerpt` (offset 44100):
+   at 100000 two parts, `recording` at the int 100000 with `cmap_5` the
+   float 2.2675736961451247 (100000/44100 = 1000/441), then `excerpt` at
+   55900 (100000 − 44100) with `cmap_6` the float 1.2675736961451247
+   (559/441); at 200000 `excerpt` is not crossed (155900 > 88200) and the
+   timestamp is `recording`'s alone; the span is closed, so at 44100
+   `excerpt` is crossed at 0 and at 132300 at 88200. With the member's
+   length unknown (`null`), 200000 crosses it at 155900.
+3. **Contiguous members are both crossed; the caller's order stands.**
+   `form` of `segment_line.json` with its descendants in traversal order
+   (`a` at 0 of 8, `a1` at 0 of 8, `b` at 8 of 12, `b1` at 8 of 6, `b2` at
+   14 of 6, `c` at 20 of 12, `c1` at 20 of 12, offsets from `form`'s
+   zero): at 8 the parts are `form` 8, `a` 8, `a1` 8, `b` 0, `b1` 0 (the
+   boundary of `a` and `b` is crossed by both, no tie-break); at 27/2
+   `form` 27/2, `b` 11/2, `b1` 11/2 (`b2` starts at 14); at 32 `form` 32,
+   `c` 12, `c1` 12. Given `b`, then `a`, at 8 the parts are `form`, `b`,
+   `a`.
+4. **Rows.** `timestampRows` lists per part its coordinate, then its maps:
+   `recording` at 100000 gives six rows, `{recording, null}` labelled
+   `Recording` with the int 100000, `{recording, cmap_5}` labelled `cmap_5`
+   (the map has no name), `{excerpt, null}` `Excerpt` 55900, `{excerpt,
+   cmap_6}`; all editable, no missing text. On `maps:quarters` at 2 a
+   coordinate is editable and a map is editable exactly when it is
+   invertible over its timeline's span [0, 16] ("Inverting a map"): the
+   ChainMap `cmap_4`, the LinearMap `lmap_5`, the PiecewiseMap `pmap_1`
+   (`x + 1` before 8, `x + 2` after, stepping up at 8) and the TableMap
+   `tmap_4` (rising, extrapolated linearly) are; the measure views `cmap_1`,
+   `cmap_2`, `cmap_3`, `tmap_1`, the CombinationMap `cmap_5`, the
+   ConstantMap `cmap_8`, `tmap_2` (flat by its `constant` extrapolation
+   beyond 4) and the `previous` TableMap `tmap_3` are not. A map without a
+   value has the missing text: `cmap_1`, `cmap_2`, `cmap_3`, `cmap_5` (its
+   `measure` output reads the MeasureMap) and `tmap_1` `needs a server to
+   expand its measure map`; given `pending`, `waiting for the server`;
+   given rows lacking the MeasureMap, `the server did not expand its
+   measure map`. The texts: `missingValueText` for a map with no value at
+   the position → `no value here`, `unsupported` → `the server cannot
+   expand measure maps`; `measureText` of a measure by its name, else its
+   number, else its count (`m. 3`; `""` with number 7 → `7`; `""` with no
+   number and count 9 → `9`).
+5. **Snapping on a row** (`snapOnRow(spec, row, p, h)`, `p` the pointer in
+   the anchor's units from its zero, `h` half a device pixel there):
+   - `score`'s own coordinate, `p = 3.13`, `h = 0.004`: `snapValue` on the
+     fraction axis, the divisors of 2520 ascending: 1 to 7 miss (3, 3, 3,
+     13/4, 16/5, 19/6, 22/7 lie 0.13, 0.13, 0.13, 0.12, 0.07, 0.0367,
+     0.0129 away), 8 gives 25/8 = 3.125 at 0.005 > h, 9 gives 28/9
+     (0.0189), 10 31/10 (0.03), 12 19/6, 14 22/7, 15 gives 47/15 =
+     3.13333 at 0.00333 ≤ h: **47/15**.
+   - `score`'s `cmap_2` (target seconds, float), decimals 1, same `p`, `h`:
+     v = 3.13/2 = 1.565, hv = |3.134/2 − 3.126/2|/2 = 0.002; 0 places give
+     2 (0.435 away), 1 place 1.6 (0.035 away): both miss, so the finest,
+     1.6 = 8/5, inverted exactly: (8/5)/(1/2) = **16/5**; the timestamp
+     there has `cmap_2` the float 1.6 and `cmap_1` the int 1536.
+   - `score`'s `cmap_1` (target ticks, int): v = 3.13·480 = 1502.4, hv =
+     0.008·480/2 = 1.92; 2·hv = 3.84 < 10, so only 1: 1502 lies 0.4 away
+     ≤ hv; 1502/480 = **751/240**.
+   - `excerpt`'s `cmap_6` in `recording`'s cross-section, `p = 100000`, `h
+     = 100`: v = 55900/44100 = 1.26757…, hv = (56000 − 55800)/44100/2 =
+     0.0022676; 0 places 1 (0.2676), 1 place 1.3 (0.0324), 2 places 1.27
+     (0.00243 > hv), 3 places 1.268 (0.000426 ≤ hv); 1.268·44100 = 55918.8,
+     settled on `excerpt`'s int axis to 55919, plus 44100: **100019**.
+   - A member's own coordinate snaps on its own axis: `excerpt`, `p =
+     100012.3`, `h = 3000`: 55912.3 on `excerpt`'s int axis, 2·h = 6000,
+     the multiple of 1000 nearest is 56000 (87.7 ≤ h), plus 44100:
+     **100100** (on `recording`'s axis the same pointer gives 100000).
+     The result is held to the member's span: `p = 140000`, `h = 0.5` →
+     95900 on `excerpt`, plus 44100 = 140000, held to [44100, 132300]:
+     **132300**.
+   - A map without an inverse falls back to its timeline's coordinate:
+     `maps:quarters`'s ConstantMap `cmap_8` at `p = 3.13`, `h = 0.004`
+     gives **47/15**, as its coordinate row does.
+   - Refused with a `RangeError`: `p` NaN or infinite, `h` 0, −1, NaN or
+     infinite, a row of a timeline the spec lacks or a map its timeline
+     lacks.
+6. **A pin moves.** A pin `{spec, knots, timestamp, named}` of `score` at
+   16/5 (`named` `null`): `pinAt(pin, 8)` keeps `spec`, `knots` and
+   `named` (the same objects) and holds exactly `timestampAt(spec, 8)`.
+7. **An edited value gives a position** (`positionFor(pin, row, value)`,
+   exact on the anchor's axis, never snapped):
+   - `score`'s coordinate: 10 → 10; 1/7 → 1/7. `cmap_1` 1536 → 16/5;
+     `cmap_2` 8/5 (the text `1.6`) → 16/5.
+   - `recording` at 100000: `excerpt`'s coordinate 55900 → 100000;
+     `cmap_6` 317/250 (the text `1.268`) → 100019, as snapping gave;
+     `cmap_5` 2 → 88200.
+   - A float inverse on a fraction axis: `maps:quarters`'s `tmap_4` (float
+     anchors) 1 → 8/4.25 = the float 1.8823529411764706, settled to the
+     nearest multiple of 1/2520 (4743.53 rounds to 4744): **593/315**.
+   - **Refused**, each `invalid_value` at `[]` with the message given:
+     `score`'s 13 → `13 lies outside 'score' (0 to 12)`; −1 → `-1 lies
+     outside 'score' (0 to 12)`; `cmap_1` 6240 → 13, `13 lies outside
+     'score' (0 to 12)`; `excerpt`'s 90000 → `90000 lies outside 'excerpt'
+     (0 to 88200)`; `maps:quarters`'s `cmap_8` 3 → `no position on
+     'maps:quarters' gives 3`; `score`'s map `nope` → `'score' shows no map
+     'nope'`; `excerpt`'s coordinate on `recording`'s pin at 200000 → `the
+     timestamp shows no 'excerpt'`.
+8. **The JSON value** (`timestampJson`): unnamed, `{timeline, coordinate,
+   mapping}`, the coordinate the anchor's bare value as a manifest writes
+   it; named, the named timestamp's members as the manifest holds them
+   (whatever members it has, in its order), then `mapping`. `mapping` is keyed by ID in part
+   order: each crossed timeline but the anchor its coordinate dict, each
+   map its value: a number with a unit its coordinate dict, one without
+   `{number_type, value}`, a label its string, a measure its record as the
+   rows give it, named outputs an object of their values, no value
+   `null`.
+   - `score` at 16/5: `{timeline: "score", coordinate: [16, 5], mapping:
+     {cmap_1: {unit: "ticks", number_type: "int", value: 1536}, cmap_2:
+     {unit: "seconds", number_type: "float", value: 1.6}}}`.
+   - `recording` at 100000: coordinate 100000, `mapping` keys `cmap_5`,
+     `excerpt`, `cmap_6` in that order, `excerpt` `{unit: "samples",
+     number_type: "int", value: 55900}`.
+   - `performance` at 2: coordinate the integral float 2.0, `cmap_3`
+     `{unit: "samples", number_type: "int", value: 88200}`.
+   - `maps:quarters` at 2: `cmap_1`, `cmap_2`, `cmap_3`, `cmap_5`, `tmap_1`
+     `null`; `cmap_4` 2·1/2·1/60 = 1/60 onto minutes, the float
+     0.016666666666666666; `cmap_8` `"section-a"`; `lmap_5` 3/2·2 + 1/3 =
+     10/3, the float 3.3333333333333335 on seconds; `pmap_1` 2 + 1 = 3, the
+     float 3.0; `tmap_2` 2.5·2/4 = 1.25; `tmap_3` (`previous`, no target
+     unit) `{number_type: "int", value: 60}`; `tmap_4` 4.25·2/8 = 1.0625.
+   - The parity manifest's `quarters_root` at 2 with its rows: `q_record`
+     the record of measure `2` (qstamp 1/2, the last at or before 2), as
+     the rows give it; `q_combination` `{seconds: {number_type: "float",
+     value: 1.0}, file: "a.png", count: {number_type: "int", value: 3}}`;
+     `q_constant_label` `"intro"`.
+   - Named: `timestamps.json`'s `timestamp_2` (`clt_1` at 6) with the
+     member `clt_2` (offset 2, length 4): the named timestamp's members, then
+     `mapping` `{clt_2: {unit: "quarters", number_type: "fraction", value:
+     [4, 1]}}` (6 − 2 = 4, the end of `clt_2`'s closed span).
+   - A segment's named timestamp: `segment_line.json` with `b2_ticks`
+     (`map.json`'s `ticks`, 480·x onto ticks, under another ID) and a
+     timestamp "Mark" at 1 added to `b`'s segment `b2` (offset 6, length
+     6, no children), both through `add`. Its pin is read with `b2` as the
+     anchor (a named timestamp's timeline is always its pin's anchor; the
+     segment line `b` and the sibling `b1` are no members): one part, `b2`
+     at 1; the JSON is the entry's members, then `mapping` `{b2_ticks:
+     {unit: "ticks", number_type: "int", value: 480}}` (1·480), with no
+     key `b2`: the anchor is never repeated in `mapping`.
 
 ## Budgets (`budget.test.ts`)
 

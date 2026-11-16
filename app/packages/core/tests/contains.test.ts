@@ -16,23 +16,31 @@ const id = (value: string, ...part: Part[]): ElementAddress =>
   part.length === 0 ? { id: value } : { id: value, part };
 const band = (timeline: string, facet: Facet): ElementAddress => ({ id: timeline, facet });
 
-const wedges = (timeline: string) => [
+/** The marks of a member's start and end on an ancestor line, each with its label. */
+const marks = (timeline: string) => [
   id(timeline, "start"),
   id(timeline, "start", "label"),
   id(timeline, "end"),
   id(timeline, "end", "label"),
 ];
 
-/** The five bands of the timeline `timeline`, each followed by what it holds: its maps, its wedges. */
-const bands = (timeline: string, maps: readonly string[]) => [
+/**
+ * The five bands of the timeline `timeline`, each followed by what it holds: its maps; the
+ * wedges and coordinate labels of its named timestamps `origin` and `length`, `stamps`.
+ */
+const bands = (timeline: string, maps: readonly string[], stamps: readonly string[]) => [
   band(timeline, "children"),
   band(timeline, "conversion_maps"),
   ...maps.map((map) => id(map)),
   band(timeline, "markers"),
-  ...wedges(timeline),
+  ...stamps.flatMap((stamp) => [id(stamp), id(stamp, "coordinate")]),
   band(timeline, "regions"),
   band(timeline, "flow_control"),
 ];
+
+// The named timestamps `origin` and `length` of `excerpt` and `page`.
+const EXCERPT = ["timestamp_3", "timestamp_4"];
+const PAGE = ["timestamp_5", "timestamp_6"];
 
 describe("contains", () => {
   it("holds a group's frame, title and what its members hold, never their ancestors", () => {
@@ -42,12 +50,12 @@ describe("contains", () => {
       id("page", "card"),
       id("page"),
       id("page", "name"),
-      ...bands("page", ["cmap_4"]),
+      ...bands("page", ["cmap_4"], PAGE),
       id("excerpt", "card"),
-      ...wedges("excerpt"),
+      ...marks("excerpt"),
       id("excerpt"),
       id("excerpt", "name"),
-      ...bands("excerpt", ["cmap_6"]),
+      ...bands("excerpt", ["cmap_6"], EXCERPT),
     ]);
     expect(contains(mixed, "group_1", id("group_2"))).toBe(false);
     expect(contains(mixed, "group_1", id("annotations", "card"))).toBe(false);
@@ -58,20 +66,20 @@ describe("contains", () => {
       id("excerpt", "card"),
       id("recording"),
       id("recording", "name"),
-      ...wedges("excerpt"),
+      ...marks("excerpt"),
       id("excerpt"),
       id("excerpt", "name"),
-      ...bands("excerpt", ["cmap_6"]),
+      ...bands("excerpt", ["cmap_6"], EXCERPT),
     ]);
   });
 
   it("leaves an ancestor line and the ancestor's own map outside a child", () => {
     expect(containedBy("excerpt")).toEqual([
       id("excerpt", "card"),
-      ...wedges("excerpt"),
+      ...marks("excerpt"),
       id("excerpt"),
       id("excerpt", "name"),
-      ...bands("excerpt", ["cmap_6"]),
+      ...bands("excerpt", ["cmap_6"], EXCERPT),
     ]);
     expect(contains(mixed, "excerpt", id("cmap_5"))).toBe(false);
     expect(contains(mixed, "recording", id("cmap_5"))).toBe(true);

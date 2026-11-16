@@ -10,7 +10,8 @@
  * past int64), negative and past the end, and lengths of null; payloads
  * include ones the schema refuses; a timeline's new parent and groups are
  * drawn from the manifest's timelines and groups, itself and unknown ids
- * included; a named timestamp is added, set, removed and its line toggled.
+ * included; a named timestamp is added, set (its display among the rest)
+ * and removed.
  * Every refusal the commands produce on these targets is reachable.
  *
  * A step of an editing sequence is such a seed with an operation: a
@@ -375,6 +376,21 @@ export function commandIn(
 }
 
 /** The axis of the timeline `id` of `manifest`, a fraction axis of 8 quarters where it has none. */
+/** A named timestamp's display: in canonical order or not, empty, with an unknown or repeated word. */
+function display(n: number): unknown {
+  return pick(
+    [
+      ["wedge", "coordinate"],
+      ["cross_section", "id", "wedge"],
+      [],
+      ["wedge", "flag"],
+      ["name", "name"],
+      "wedge",
+    ],
+    n,
+  );
+}
+
 function axisOf(manifest: Manifest, id: string): Axis {
   return (
     places(manifest).find((place) => place.timeline.id === id)?.timeline ?? {
@@ -642,8 +658,8 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
     }
     case 14: {
       // A named timestamp: added into a timeline (or elsewhere; mostly so while the manifest
-      // holds none), its name, coordinate or timeline set, removed, its line hidden or shown
-      // again, or its timeline given a length half way to it.
+      // holds none), its name, coordinate or timeline set, removed, its display set, or its
+      // timeline given a length half way to it.
       const stamps = manifest?.graphical?.timestamps ?? [];
       const branch = stamps.length === 0 && p2 % 4 !== 0 ? 0 : p2 % 5;
       const stamp = pick([...stamps.map((item) => item.id), "timestamp_99"], p3);
@@ -662,6 +678,7 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
             { name: "", coordinate: coordinate(axis, p5, p6) },
             { name: "T" },
             { id: "timestamp_1", name: "T", coordinate: coordinate(axis, p5, p6) },
+            { name: "T", coordinate: coordinate(axis, p5, p6), display: display(p6) },
           ],
           p4,
         );
@@ -682,12 +699,7 @@ export function commandFor(view: View, blocks: readonly string[], seed: Seed): o
         return set(at(block, stamp), { [property]: value });
       }
       if (branch === 2) return { type: "remove", targets: [at(block, stamp)] };
-      return {
-        type: "style",
-        select: { addresses: [{ id: stamp, part: ["line"] }] },
-        set: { display: pick(["none", null], p4) },
-        blocks: [block],
-      };
+      return set(at(block, stamp), { display: display(p4) });
     }
     default: {
       const addresses: Address[] = [

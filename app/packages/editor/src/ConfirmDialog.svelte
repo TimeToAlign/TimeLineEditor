@@ -1,48 +1,48 @@
 <script lang="ts">
 /**
- * A native modal dialog asking one question with two answers. `ask`
- * resolves `true` for the first answer, `false` for the second, and `null`
- * when the dialog is dismissed with Escape. Asked about an anchor, the
- * dialog opens just below it rather than centred, and a click on its
- * backdrop dismisses it too.
+ * A native modal dialog asking one question with two or more answers.
+ * `ask` resolves the answer chosen, or `null` when the dialog is dismissed
+ * with Escape. Asked about an anchor, the dialog opens just below it rather
+ * than centred, and a click on its backdrop dismisses it too.
  */
+import { flushSync } from "svelte";
 
 const id = $props.id();
 let dialog: HTMLDialogElement | undefined = $state();
 let question = $state("");
-let yes = $state("");
-let no = $state("");
+let answers: readonly string[] = $state.raw([]);
 /** Where an anchored question opens, in viewport pixels; `null` centres it. */
 let at: { readonly top: number; readonly left: number } | null = $state.raw(null);
-let yesButton: HTMLButtonElement | undefined = $state();
-let noButton: HTMLButtonElement | undefined = $state();
-let answer: ((value: boolean | null) => void) | undefined;
+/** The answer buttons, in the order of `answers`. */
+const buttons: HTMLButtonElement[] = [];
+let answer: ((value: string | null) => void) | undefined;
 
 /**
- * Ask `text`; `focused` names the answer that holds the focus when the
- * dialog opens, and `anchor`, when given, the element it opens below.
+ * Ask `text` with `choices`, shown in that order; the focus starts on
+ * `focused`, and `anchor`, when given, is the element the dialog opens
+ * below. A question asked while another is open dismisses that one.
  */
-export function ask(
+export function ask<const A extends string>(
   text: string,
-  first: string,
-  second: string,
-  focused: "first" | "second",
+  choices: readonly A[],
+  focused: NoInfer<A>,
   anchor: Element | null = null,
-): Promise<boolean | null> {
+): Promise<A | null> {
   answer?.(null);
   question = text;
-  yes = first;
-  no = second;
+  answers = choices;
   const rect = anchor?.getBoundingClientRect();
   at = rect === undefined ? null : { top: rect.bottom + 4, left: rect.left };
   return new Promise((resolve) => {
-    answer = resolve;
+    answer = (value) => resolve(choices.find((choice) => choice === value) ?? null);
+    // The buttons of the new answers exist once the dialog's content is updated.
+    flushSync();
     dialog?.showModal();
-    (focused === "first" ? yesButton : noButton)?.focus();
+    buttons[choices.indexOf(focused)]?.focus();
   });
 }
 
-function finish(value: boolean | null): void {
+function finish(value: string | null): void {
   const resolve = answer;
   answer = undefined;
   if (dialog?.open) dialog.close();
@@ -68,8 +68,11 @@ function onclick(event: MouseEvent): void {
   <div class="content">
     <p id="{id}-question">{question}</p>
     <div class="answers">
-      <button type="button" bind:this={yesButton} onclick={() => finish(true)}>{yes}</button>
-      <button type="button" bind:this={noButton} onclick={() => finish(false)}>{no}</button>
+      {#each answers as choice, index (choice)}
+        <button type="button" bind:this={buttons[index]} onclick={() => finish(choice)}
+          >{choice}</button
+        >
+      {/each}
     </div>
   </div>
 </dialog>

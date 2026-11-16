@@ -13,7 +13,7 @@ export const name = "@timetoalign/tilie-layout" as const;
 
 export type { Domain, ElementKey, Modality } from "@timetoalign/tilie-core/drawing";
 export type { CrossSection, LineAxis, WedgeMark } from "./axes.ts";
-export { crossSection, lineAxes, wedgeAt } from "./axes.ts";
+export { abscissaOf, crossedLines, crossSection, lineAxes, wedgeAt } from "./axes.ts";
 export { draw } from "./block.ts";
 export type {
   AxisMap,

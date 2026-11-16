@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { elementsInRect } from "../src/marquee.ts";
 import { insideOf, project } from "../src/project.ts";
 import { NOTHING_SELECTED } from "../src/selection.ts";
-import { A, blockIn, marqueeView, metrics } from "./support.ts";
+import { A, blockIn, changed, marqueeView, metrics, viewOf } from "./support.ts";
 
 const view = marqueeView();
 const [node] = project(view, NOTHING_SELECTED, [], metrics, null);
@@ -25,11 +25,9 @@ describe("elementsInRect", () => {
         idAddress("cmap_2"),
         idAddress("jump_from_1"),
         idAddress("score"),
-        part("score", "start"),
-        part("score", "end"),
+        idAddress("timestamp_9"),
+        idAddress("timestamp_10"),
         part("score", "name"),
-        part("score", "start", "label"),
-        part("score", "end", "label"),
         part("jump_from_1", "label"),
       ),
     );
@@ -43,6 +41,8 @@ describe("elementsInRect", () => {
         idAddress("region_3"),
         idAddress("excerpt"),
         idAddress("dlt_1"),
+        idAddress("timestamp_3"),
+        idAddress("timestamp_4"),
         part("dlt_1", "name"),
         part("excerpt", "name"),
         part("region_3", "label"),
@@ -57,5 +57,24 @@ describe("elementsInRect", () => {
     );
     const group = insideOf(manifest, node.data.drawing, "group_1");
     expect(elementsInRect(node, bottom, group, metrics)).toEqual([]);
+  });
+
+  it("takes a named timestamp for its parts, and one that draws nothing by its wedge", () => {
+    const silent = changed(viewOf({ id: A, fixture: "timestamps" }), {
+      type: "set",
+      changes: [{ target: inBlock(A, idAddress("timestamp_2")), values: { display: [] } }],
+    });
+    const [shown] = project(silent, NOTHING_SELECTED, [], metrics, null);
+    if (shown === undefined) throw new Error("no node");
+    const { drawing } = shown.data;
+    const inside = insideOf(blockIn(silent, A).manifest, drawing, null);
+    const stamps = (width: number) =>
+      elementsInRect(shown, { ...shown.position, width, height: drawing.height }, inside, metrics)
+        .flatMap(({ id, part: words }) =>
+          id?.startsWith("timestamp_") ? [words === undefined ? id : `${id} ${words}`] : [],
+        )
+        .sort();
+    expect(stamps(drawing.width)).toEqual(["timestamp_1", "timestamp_2", "timestamp_3"]);
+    expect(stamps(340)).toEqual(["timestamp_1", "timestamp_3"]);
   });
 });

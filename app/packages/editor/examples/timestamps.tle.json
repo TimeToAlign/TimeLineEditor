@@ -1,0 +1,711 @@
+{
+  "blocks": {
+    "timestamps": {
+      "height": null,
+      "id": "timestamps",
+      "index": "a0",
+      "length": 400,
+      "manifest": {
+        "graphical": {
+          "order": {},
+          "statements": [],
+          "styles": {},
+          "timestamps": [
+            {
+              "coordinate": 0.0,
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_3",
+              "name": "origin",
+              "timeline": "performance"
+            },
+            {
+              "coordinate": 2.25,
+              "display": [
+                "wedge",
+                "coordinate",
+                "cross_section"
+              ],
+              "id": "timestamp_9",
+              "name": "Entry",
+              "timeline": "performance"
+            },
+            {
+              "coordinate": 8.0,
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_4",
+              "name": "length",
+              "timeline": "performance"
+            },
+            {
+              "coordinate": [
+                5,
+                1
+              ],
+              "display": [
+                "wedge",
+                "id"
+              ],
+              "id": "timestamp_8",
+              "name": "Cadence",
+              "timeline": "phrase"
+            },
+            {
+              "coordinate": [
+                0,
+                1
+              ],
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_1",
+              "name": "origin",
+              "timeline": "score"
+            },
+            {
+              "coordinate": [
+                4,
+                1
+              ],
+              "display": [
+                "wedge",
+                "name",
+                "cross_section"
+              ],
+              "id": "timestamp_5",
+              "name": "Theme",
+              "timeline": "score"
+            },
+            {
+              "coordinate": [
+                21,
+                2
+              ],
+              "display": [
+                "wedge",
+                "name",
+                "id",
+                "coordinate",
+                "cross_section"
+              ],
+              "id": "timestamp_6",
+              "name": "Climax",
+              "timeline": "score"
+            },
+            {
+              "coordinate": [
+                14,
+                1
+              ],
+              "display": [],
+              "id": "timestamp_7",
+              "name": "Silent",
+              "timeline": "score"
+            },
+            {
+              "coordinate": [
+                16,
+                1
+              ],
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_2",
+              "name": "length",
+              "timeline": "score"
+            }
+          ]
+        },
+        "groups": [],
+        "measure_maps": [],
+        "meta": {},
+        "name": "Timestamps",
+        "timelines": [
+          {
+            "children": [
+              {
+                "children": [],
+                "conversion_maps": [],
+                "flow_control": [],
+                "id": "take_1",
+                "is_segment_line": false,
+                "length": 3.5,
+                "locked": false,
+                "meta": {},
+                "name": "Take 1",
+                "number_type": "float",
+                "offset": 0.0,
+                "regions": [],
+                "unit": "seconds"
+              },
+              {
+                "children": [],
+                "conversion_maps": [],
+                "flow_control": [],
+                "id": "take_2",
+                "is_segment_line": false,
+                "length": 4.5,
+                "locked": false,
+                "meta": {},
+                "name": "Take 2",
+                "number_type": "float",
+                "offset": 3.5,
+                "regions": [],
+                "unit": "seconds"
+              }
+            ],
+            "conversion_maps": [
+              {
+                "id": "samples",
+                "name": "Samples",
+                "offset": 0,
+                "scalar": 44100,
+                "source_unit": "seconds",
+                "target_unit": "samples",
+                "type": "LinearMap"
+              }
+            ],
+            "flow_control": [],
+            "id": "performance",
+            "is_segment_line": true,
+            "length": 8.0,
+            "locked": false,
+            "meta": {},
+            "name": "Performance",
+            "number_type": "float",
+            "regions": [],
+            "unit": "seconds"
+          },
+          {
+            "children": [
+              {
+                "children": [],
+                "conversion_maps": [
+                  {
+                    "id": "phrase_ticks",
+                    "name": "Phrase ticks",
+                    "offset": 0,
+                    "scalar": 480,
+                    "source_unit": "quarters",
+                    "target_unit": "ticks",
+                    "type": "LinearMap"
+                  }
+                ],
+                "flow_control": [],
+                "id": "phrase",
+                "is_segment_line": false,
+                "length": [
+                  6,
+                  1
+                ],
+                "locked": false,
+                "meta": {},
+                "name": "Phrase",
+                "number_type": "fraction",
+                "offset": [
+                  4,
+                  1
+                ],
+                "regions": [],
+                "unit": "quarters"
+              },
+              {
+                "children": [],
+                "conversion_maps": [],
+                "flow_control": [],
+                "id": "coda",
+                "is_segment_line": false,
+                "length": [
+                  4,
+                  1
+                ],
+                "locked": false,
+                "meta": {},
+                "name": "Coda",
+                "number_type": "fraction",
+                "offset": [
+                  12,
+                  1
+                ],
+                "regions": [],
+                "unit": "quarters"
+              }
+            ],
+            "conversion_maps": [
+              {
+                "id": "bars",
+                "name": "Bars",
+                "offset": 0,
+                "scalar": [
+                  1,
+                  4
+                ],
+                "source_unit": "quarters",
+                "target_unit": "whole_notes",
+                "type": "LinearMap"
+              },
+              {
+                "id": "tempo",
+                "name": "Tempo",
+                "offset": 0,
+                "scalar": [
+                  1,
+                  2
+                ],
+                "source_unit": "quarters",
+                "target_unit": "seconds",
+                "type": "LinearMap"
+              },
+              {
+                "id": "ticks",
+                "name": "Ticks",
+                "offset": 0,
+                "scalar": 480,
+                "source_unit": "quarters",
+                "target_unit": "ticks",
+                "type": "LinearMap"
+              }
+            ],
+            "flow_control": [],
+            "id": "score",
+            "is_segment_line": false,
+            "length": [
+              16,
+              1
+            ],
+            "locked": false,
+            "meta": {},
+            "name": "Score",
+            "number_type": "fraction",
+            "regions": [],
+            "unit": "quarters"
+          }
+        ],
+        "timetoshare": "0.2.0"
+      },
+      "margin": 0,
+      "parent": null,
+      "places": {},
+      "scale": 1,
+      "spacing": 8,
+      "width": null,
+      "x": 0,
+      "y": 0
+    }
+  },
+  "graphical": {},
+  "journal": [
+    {
+      "author": "TimeLineEditor",
+      "command": {
+        "changes": [
+          {
+            "target": {},
+            "values": {
+              "name": "Timestamps"
+            }
+          }
+        ],
+        "type": "set"
+      },
+      "time": "2026-10-12T09:00:00.000Z"
+    },
+    {
+      "author": "TimeLineEditor",
+      "command": {
+        "block": {
+          "height": null,
+          "id": "timestamps",
+          "length": 400,
+          "manifest": {
+            "name": "Timestamps",
+            "timelines": [],
+            "timetoshare": "0.2.0"
+          },
+          "margin": 0,
+          "scale": 1,
+          "spacing": 8,
+          "width": null,
+          "x": 0,
+          "y": 0
+        },
+        "into": {},
+        "type": "add"
+      },
+      "time": "2026-10-12T09:00:01.000Z"
+    },
+    {
+      "author": "TimeLineEditor",
+      "command": {
+        "into": {
+          "block": "timestamps"
+        },
+        "timeline": {
+          "id": "score",
+          "length": [
+            16,
+            1
+          ],
+          "name": "Score",
+          "unit": "quarters"
+        },
+        "type": "add"
+      },
+      "time": "2026-10-12T09:00:02.000Z"
+    },
+    {
+      "author": "TimeLineEditor",
+      "command": {
+        "into": {
+          "block": "timestamps",
+          "id": "score"
+        },
+        "map": {
+          "id": "ticks",
+          "name": "Ticks",
+          "scalar": 480,
+          "source_unit": "quarters",
+          "target_unit": "ticks",
+          "type": "LinearMap"
+        },
+        "type": "add"
+      },
+      "time": "2026-10-12T09:00:03.000Z"
+    },
+    {
+      "author": "TimeLineEditor",
+      "command": {
+        "into": {
+          "block": "timestamps",
+          "id": "score"
+        },
+        "map": {
+          "id": "bars",
+          "name": "Bars",
+          "scalar": [
+            1,
+            4
+          ],
+          "source_unit": "quarters",
+          "target_unit": "whole_notes",
+          "type": "LinearMap"
+        },
+        "type": "add"
+      },
+      "time": "2026-10-12T09:00:04.000Z"
+    },
+    {
+      "author": "TimeLineEditor",
+      "command": {
+        "into": {
+          "block": "timestamps",
+          "id": "score"
+        },
+        "map": {
+          "id": "tempo",
+          "name": "Tempo",
+          "scalar": [
+            1,
+            2
+          ],
+          "source_unit": "quarters",
+          "target_unit": "seconds",
+          "type": "LinearMap"
+        },
+        "type": "add"
+      },
+      "time": "2026-10-12T09:00:05.000Z"
+    },
+    {
+      "author": "TimeLineEditor",
+      "command": {
+        "child": {
+          "id": "phrase",
+          "length": [
+            6,
+            1
+          ],
+          "name": "Phrase",
+          "offset": [
+            4,
+            1
+          ],
+          "unit": "quarters"
+        },
+        "into": {
+          "block": "timestamps",
+          "id": "score"
+        },
+        "type": "add"
+      },
+      "time": "2026-10-12T09:00:06.000Z"
+    },
+    {
+      "author": "TimeLineEditor",
+      "command": {
+        "into": {
+          "block": "timestamps",
+          "id": "phrase"
+        },
+        "map": {
+          "id": "phrase_ticks",
+          "name": "Phrase ticks",
+          "scalar": 480,
+          "source_unit": "quarters",
+          "target_unit": "ticks",
+          "type": "LinearMap"
+        },
+        "type": "add"
+      },
+      "time": "2026-10-12T09:00:07.000Z"
+    },
+    {
+      "author": "TimeLineEditor",
+      "command": {
+        "child": {
+          "id": "coda",
+          "length": [
+            4,
+            1
+          ],
+          "name": "Coda",
+          "offset": [
+            12,
+            1
+          ],
+          "unit": "quarters"
+        },
+        "into": {
+          "block": "timestamps",
+          "id": "score"
+        },
+        "type": "add"
+      },
+      "time": "2026-10-12T09:00:08.000Z"
+    },
+    {
+      "author": "TimeLineEditor",
+      "command": {
+        "into": {
+          "block": "timestamps"
+        },
+        "timeline": {
+          "id": "performance",
+          "length": 8,
+          "name": "Performance",
+          "unit": "seconds"
+        },
+        "type": "add"
+      },
+      "time": "2026-10-12T09:00:09.000Z"
+    },
+    {
+      "author": "TimeLineEditor",
+      "command": {
+        "into": {
+          "block": "timestamps",
+          "id": "performance"
+        },
+        "map": {
+          "id": "samples",
+          "name": "Samples",
+          "scalar": 44100,
+          "source_unit": "seconds",
+          "target_unit": "samples",
+          "type": "LinearMap"
+        },
+        "type": "add"
+      },
+      "time": "2026-10-12T09:00:10.000Z"
+    },
+    {
+      "author": "TimeLineEditor",
+      "command": {
+        "child": {
+          "id": "take_1",
+          "length": 3.5,
+          "name": "Take 1",
+          "offset": 0,
+          "unit": "seconds"
+        },
+        "into": {
+          "block": "timestamps",
+          "id": "performance"
+        },
+        "type": "add"
+      },
+      "time": "2026-10-12T09:00:11.000Z"
+    },
+    {
+      "author": "TimeLineEditor",
+      "command": {
+        "child": {
+          "id": "take_2",
+          "length": 4.5,
+          "name": "Take 2",
+          "offset": 3.5,
+          "unit": "seconds"
+        },
+        "into": {
+          "block": "timestamps",
+          "id": "performance"
+        },
+        "type": "add"
+      },
+      "time": "2026-10-12T09:00:12.000Z"
+    },
+    {
+      "author": "TimeLineEditor",
+      "command": {
+        "changes": [
+          {
+            "target": {
+              "block": "timestamps",
+              "id": "performance"
+            },
+            "values": {
+              "is_segment_line": true
+            }
+          }
+        ],
+        "type": "set"
+      },
+      "time": "2026-10-12T09:00:13.000Z"
+    },
+    {
+      "author": "TimeLineEditor",
+      "command": {
+        "into": {
+          "block": "timestamps",
+          "id": "score"
+        },
+        "timestamp": {
+          "coordinate": [
+            4,
+            1
+          ],
+          "name": "Theme"
+        },
+        "type": "add"
+      },
+      "time": "2026-10-12T09:00:14.000Z"
+    },
+    {
+      "author": "TimeLineEditor",
+      "command": {
+        "into": {
+          "block": "timestamps",
+          "id": "score"
+        },
+        "timestamp": {
+          "coordinate": [
+            21,
+            2
+          ],
+          "display": [
+            "wedge",
+            "name",
+            "id",
+            "coordinate",
+            "cross_section"
+          ],
+          "name": "Climax"
+        },
+        "type": "add"
+      },
+      "time": "2026-10-12T09:00:15.000Z"
+    },
+    {
+      "author": "TimeLineEditor",
+      "command": {
+        "into": {
+          "block": "timestamps",
+          "id": "score"
+        },
+        "timestamp": {
+          "coordinate": [
+            14,
+            1
+          ],
+          "display": [],
+          "name": "Silent"
+        },
+        "type": "add"
+      },
+      "time": "2026-10-12T09:00:16.000Z"
+    },
+    {
+      "author": "TimeLineEditor",
+      "command": {
+        "into": {
+          "block": "timestamps",
+          "id": "phrase"
+        },
+        "timestamp": {
+          "coordinate": [
+            5,
+            1
+          ],
+          "display": [
+            "wedge",
+            "id"
+          ],
+          "name": "Cadence"
+        },
+        "type": "add"
+      },
+      "time": "2026-10-12T09:00:17.000Z"
+    },
+    {
+      "author": "TimeLineEditor",
+      "command": {
+        "into": {
+          "block": "timestamps",
+          "id": "performance"
+        },
+        "timestamp": {
+          "coordinate": 2.25,
+          "display": [
+            "wedge",
+            "coordinate",
+            "cross_section"
+          ],
+          "name": "Entry"
+        },
+        "type": "add"
+      },
+      "time": "2026-10-12T09:00:18.000Z"
+    }
+  ],
+  "meta": {
+    "format": "tilie-workspace",
+    "version": 7
+  },
+  "name": "Timestamps",
+  "sessions": {},
+  "settings": {
+    "blockDefaults": {
+      "height": null,
+      "length": 400,
+      "margin": 0,
+      "scale": 1,
+      "spacing": 8,
+      "width": null
+    },
+    "granularity": {
+      "decimals": 3,
+      "denominator": 2520
+    },
+    "grid": {
+      "size": 8,
+      "snap": true
+    }
+  }
+}

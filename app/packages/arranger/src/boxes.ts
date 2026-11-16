@@ -36,6 +36,25 @@ import type { Descriptor, DescriptorSource } from "@timetoalign/tilie-writers";
 import type { Editing } from "./editing.ts";
 import { addressParts, bandTimelineOf, frameGroupOf } from "./editing.ts";
 
+/**
+ * What an affordance of the canvas stands for: a named timestamp the
+ * drawing draws nothing of (`affordancesOf`), shown by the canvas alone, so
+ * it names no element of the drawing, only the timestamp's address.
+ */
+export interface AffordanceSource {
+  readonly kind: "affordance";
+  /** The named timestamp's address `{id}`. */
+  readonly address: ElementAddress;
+}
+
+/** What an element of a block node draws: a descriptor of the drawing, or an affordance. */
+export type CanvasSource = DescriptorSource | AffordanceSource;
+
+/** Whether `source` is an affordance's rather than a descriptor's. */
+export function isAffordance(source: CanvasSource): source is AffordanceSource {
+  return "kind" in source;
+}
+
 /** A frame or a block-held card: a box placed freely in the block. */
 export type ItemBox = DrawnBox & {
   readonly key: PlaceKey;
@@ -371,12 +390,14 @@ export function bandAt(drawing: Drawing, timeline: string, point: DrawingPoint):
 }
 
 /**
- * What the descriptor of source `source` hits in block `block`, drawn as
- * `drawing`: the frame or card it draws (its rectangle, or a card's shadow),
- * else the element it draws, classified by the drawing's containers; the
- * block itself where nothing carrying an element's address is hit (`source`
- * null, or the block's background). With `point` (in the drawing's units),
- * also the displayed frame or card on top under it (`boxAt`).
+ * What the element of source `source` hits in block `block`, drawn as
+ * `drawing`: the frame or card a descriptor draws (its rectangle, or a
+ * card's shadow), else the element it draws, classified by the drawing's
+ * containers; for an affordance the element of its address, the named
+ * timestamp (no box, no boundary); the block itself where nothing carrying
+ * an element's address is hit (`source` null, or the block's background).
+ * With `point` (in the drawing's units), also the displayed frame or card
+ * on top under it (`boxAt`).
  *
  * A band is hit only in the timeline editor of its timeline, when `editing`,
  * the innermost open editor, is that editor in this block
@@ -388,17 +409,18 @@ export function bandAt(drawing: Drawing, timeline: string, point: DrawingPoint):
 export function hitOf(
   block: BlockId,
   drawing: Drawing,
-  source: DescriptorSource | null,
+  source: CanvasSource | null,
   point?: DrawingPoint,
   editing: Editing | null = null,
 ): Hit {
   const within = point === undefined ? null : boxAt(drawing, point);
-  const element = source === null || source.type === "block" ? null : source.address;
+  const descriptor = source === null || isAffordance(source) ? null : source;
+  const element = source === null || descriptor?.type === "block" ? null : source.address;
   const box =
     element === null
       ? (blockBox(drawing) ?? null)
-      : source?.type === "frame" || source?.type === "card"
-        ? (shapeBox(drawing, source.element) ?? null)
+      : descriptor?.type === "frame" || descriptor?.type === "card"
+        ? (shapeBox(drawing, descriptor.element) ?? null)
         : null;
   const timeline = bandTimelineOf(block, editing);
   const band =
@@ -424,7 +446,7 @@ export function hitOf(
     address: inBlock(block, element),
     box,
     // A mark may carry a boundary's `{id: S, part: ["start"]}` form, but it is no boundary line.
-    boundary: source?.type === "boundary",
+    boundary: descriptor?.type === "boundary",
     within,
   };
 }

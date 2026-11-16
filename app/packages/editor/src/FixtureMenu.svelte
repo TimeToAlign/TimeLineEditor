@@ -5,7 +5,7 @@
  * fixture could not be opened is shown beside the button.
  */
 import { FIXTURES } from "./fixtures.ts";
-import { messageOf } from "./messages.ts";
+import { messageOf } from "./messages.svelte.ts";
 
 interface Props {
   /** Open the workspace file `text`; throws when it is refused. */

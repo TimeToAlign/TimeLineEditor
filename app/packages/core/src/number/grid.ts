@@ -1,21 +1,23 @@
 /**
- * The position a pointer picks on a timeline: the simplest value inside its
- * device pixel, never finer than the granularity.
+ * The simplest value inside a reach, never finer than the granularity.
  *
- * The pointer gives a double `p`, the units from the line's start, and `h`,
- * half a device pixel in units. A fraction axis tries the divisors of the
- * granularity's denominator from the smallest, a float axis 0 to
+ * A pointer picks a value on an axis: a position on a line, or the value of
+ * a map at that position. It gives the value and a reach, half a device
+ * pixel measured on the same axis; the value picked is the simplest of the
+ * axis's number type within that reach. A fraction axis tries the divisors
+ * of the granularity's denominator from the smallest, a float axis 0 to
  * `decimals` decimal places, an int axis the powers of ten from the largest
- * that fits in the pixel down to 1; the first value within `h` of `p` wins,
- * and where none is, the finest is taken. Every comparison is exact on the
- * doubles' exact values (`fromFloat`), so no float constructs the position.
+ * that fits in the pixel down to 1; the first value within reach wins, and
+ * where none is, the finest is taken. Every value is exact, so a pointer's
+ * doubles enter by their exact values (`fromFloat`) and no float constructs
+ * the result. Holding a value to a span is a separate step (`clampValue`).
  */
 
 import type { NumberType } from "@timetoalign/timetoshare";
 import type { Granularity } from "../workspace/view.ts";
 import { Rational } from "./rational.ts";
 import type { Real } from "./real.ts";
-import { fromFloat, toRational } from "./real.ts";
+import { toRational } from "./real.ts";
 
 const HALF = Rational.fromParts(1n, 2n);
 const ZERO = Rational.fromParts(0n, 1n);
@@ -52,7 +54,7 @@ function divisors(denominator: number): readonly bigint[] {
 
 /** The candidates of `numberType` in turn, simplest first, and the finest, taken where none is within reach. */
 function candidates(
-  position: Rational,
+  value: Rational,
   reach: Rational,
   numberType: NumberType,
   granularity: Granularity,
@@ -61,18 +63,18 @@ function candidates(
     const denominator = BigInt(granularity.denominator);
     return {
       tried: (function* () {
-        for (const d of divisors(granularity.denominator)) yield nearest(position, d);
+        for (const d of divisors(granularity.denominator)) yield nearest(value, d);
       })(),
-      finest: nearest(position, denominator),
+      finest: nearest(value, denominator),
     };
   }
   if (numberType === "float") {
     const places = granularity.decimals;
     return {
       tried: (function* () {
-        for (let n = 0; n <= places; n += 1) yield nearest(position, 10n ** BigInt(n));
+        for (let n = 0; n <= places; n += 1) yield nearest(value, 10n ** BigInt(n));
       })(),
-      finest: nearest(position, 10n ** BigInt(places)),
+      finest: nearest(value, 10n ** BigInt(places)),
     };
   }
   const pixel = reach.add(reach);
@@ -80,54 +82,48 @@ function candidates(
   while (Rational.fromParts(power * 10n, 1n).compare(pixel) <= 0) power *= 10n;
   return {
     tried: (function* () {
-      for (let step = power; step >= 1n; step /= 10n) yield nearestMultiple(position, step);
+      for (let step = power; step >= 1n; step /= 10n) yield nearestMultiple(value, step);
     })(),
-    finest: nearestMultiple(position, 1n),
+    finest: nearestMultiple(value, 1n),
   };
 }
 
 /**
- * The position the pointer picks at `p` units from the line's start, `h`
- * units being half a device pixel, on an axis of `numberType`, held to
- * `[0, length]` (`null`, an unknown length, holds only below):
+ * The value a pointer picks at `value` on an axis of `numberType`, `reach`
+ * being half a device pixel on that axis:
  *
  * - fraction: for each divisor `d` of `granularity.denominator`, ascending,
- *   the nearest `k/d` to `p` (a tie going up); the first within `h` of `p`
+ *   the nearest `k/d` to `value` (a tie going up); the first within `reach`
  *   wins; none: the nearest multiple of `1 / denominator`.
- * - float: for `n` from 0 to `granularity.decimals`, `p` rounded to `n`
+ * - float: for `n` from 0 to `granularity.decimals`, `value` rounded to `n`
  *   decimal places (a tie going up), as an exact decimal; the first within
- *   `h` wins; none: `decimals` places.
- * - int: for `10^m` from the largest power of ten not above `2h` (at least
- *   1) down to 1, the nearest multiple of `10^m` (a tie going up); the first
- *   within `h` wins; none: the nearest integer.
+ *   `reach` wins; none: `decimals` places.
+ * - int: for `10^m` from the largest power of ten not above `2·reach` (at
+ *   least 1) down to 1, the nearest multiple of `10^m` (a tie going up); the
+ *   first within `reach` wins; none: the nearest integer.
  *
- * @throws {RangeError} if `p` is not finite or `h` is not finite and positive.
+ * @throws {RangeError} if `reach` is not positive.
  */
-export function snapPosition(
-  p: number,
-  h: number,
+export function snapValue(
+  value: Rational,
+  reach: Rational,
   numberType: NumberType,
-  length: Real | null,
   granularity: Granularity,
 ): Rational {
-  if (!Number.isFinite(p)) throw new RangeError(`the position ${p} is not finite`);
-  if (!Number.isFinite(h) || h <= 0) {
-    throw new RangeError(`half a pixel of ${h} units is not finite and positive`);
-  }
-  const position = fromFloat(p);
-  const reach = fromFloat(h);
-  const { tried, finest } = candidates(position, reach, numberType, granularity);
-  let picked = finest;
+  if (reach.compare(ZERO) <= 0) throw new RangeError(`the reach ${reach} is not positive`);
+  const { tried, finest } = candidates(value, reach, numberType, granularity);
   for (const candidate of tried) {
-    const distance = candidate.subtract(position);
+    const distance = candidate.subtract(value);
     const magnitude = distance.numerator < 0n ? ZERO.subtract(distance) : distance;
-    if (magnitude.compare(reach) <= 0) {
-      picked = candidate;
-      break;
-    }
+    if (magnitude.compare(reach) <= 0) return candidate;
   }
-  if (picked.numerator < 0n) return ZERO;
-  if (length === null) return picked;
-  const end = toRational(length);
-  return picked.compare(end) > 0 ? end : picked;
+  return finest;
+}
+
+/** `value` held to `[start, end]`; an `end` of `null` (unknown) holds only below. */
+export function clampValue(value: Rational, start: Rational, end: Real | null): Rational {
+  if (value.compare(start) < 0) return start;
+  if (end === null) return value;
+  const last = toRational(end);
+  return value.compare(last) > 0 ? last : value;
 }

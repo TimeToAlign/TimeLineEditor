@@ -63,13 +63,6 @@ export interface LinePosition {
    * lies in.
    */
   readonly flowMarkerEnd: (side: Side) => number;
-  /**
-   * The ordinates `[y1, y2]` of a cross-section line whose wedge lies at the line (section 6.6,
-   * Cross-section lines), counted from the member drawing's top `top` with its card margin `V`:
-   * for the root's line from `top + (P + V)` to `top + (Hc − P − V)`; for a line above the root's,
-   * from `yl` to `top + (P + V)`; for one below it, from `yl` to `top + (Hc − P − V)`.
-   */
-  readonly crossSection: readonly [number, number];
 }
 
 /**
@@ -105,11 +98,15 @@ export interface LineElements {
   /** The boundaries of its segments, on its line. */
   readonly boundaries: readonly SegmentElement<VerticalLineElement>[];
   /**
-   * Its markers band's wedges in the order the band places them: the root's start before its
-   * end, then its named timestamps', then those its segments without a line join to it.
+   * Its markers band's wedges in the order the band places their named timestamps: its own, then
+   * those its segments without a line join to it.
    */
   readonly wedges: readonly MarkerElement[];
-  /** The labels of those wedges, in the order of `wedges`. */
+  /**
+   * Its markers band's labels of named timestamps, the marker labels: timestamp by timestamp in
+   * the order of `wedges`, each one's in the order of its stack (name, ID, coordinate), whether or
+   * not its wedge is drawn.
+   */
   readonly wedgeLabels: readonly TextElement[];
   /** The labels of its segments, in their tiers above its line. */
   readonly segmentLabels: readonly SegmentElement<TextElement>[];
@@ -119,7 +116,7 @@ export interface LineElements {
   readonly jumpLabels: readonly TextElement[];
   /** The labels of its flow control band's flow markers, in the order of `flowMarkers`. */
   readonly flowMarkerLabels: readonly TextElement[];
-  /** The cross-section lines its markers band holds, in the order of their timestamps' wedges. */
+  /** The cross-section lines its line holds, in the order its markers band places their timestamps. */
   readonly crossSections: readonly VerticalLineElement[];
   /**
    * Where a coordinate marker of its line lies, with its line (one, when its line is drawn): what
@@ -146,9 +143,9 @@ export interface PreparedBand {
   readonly facet: Facet;
   /**
    * The displayed elements it holds directly, those a segment without a line of its own adds to
-   * it included (section 6.4, What a band holds and Segments without a line): wedges, maps, child
-   * lines, regions, flow markers and jumps. A label is held by its element and not counted; a segment
-   * without a line is no element. The band is present when this is positive (section 6.4,
+   * it included (section 6.4, What a band holds and Segments without a line): wedges and the labels
+   * of named timestamps, maps, child lines, regions, flow markers and jumps. Any other label is
+   * held by its element and not counted; a segment without a line is no element. The band is present when this is positive (section 6.4,
    * Levels), and a band record's `band.elements` is this number.
    */
   readonly elements: number;

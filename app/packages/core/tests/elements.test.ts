@@ -86,31 +86,41 @@ describe("the elements of a manifest", () => {
         [...line, "band"],
       ],
       facet("melody", "markers", line),
-      ["wedge", id("melody", "start"), ...melody, null, [...line, "band"]],
-      ["label", id("melody", "start", "label"), ...melody, null, [...line, "band", "wedge"]],
-      ["wedge", id("melody", "end"), ...melody, null, [...line, "band"]],
-      ["label", id("melody", "end", "label"), ...melody, null, [...line, "band", "wedge"]],
+      ["wedge", id("timestamp_1"), ...melody, null, [...line, "band"]],
+      ["label", id("timestamp_1", "coordinate"), ...melody, null, [...line, "band"]],
+      ["wedge", id("timestamp_2"), ...melody, null, [...line, "band"]],
+      ["label", id("timestamp_2", "coordinate"), ...melody, null, [...line, "band"]],
       facet("melody", "regions", line),
       facet("melody", "flow_control", line),
     ]);
   });
 
-  it("holds a named timestamp's wedge by its markers band and its line by its timeline's line", () => {
+  it("lists what a named timestamp's display draws: wedge and labels in its band, its line on its line", () => {
     const root = ["block", "timeline"];
     const child = [...root, "band", "child"];
-    const stamp = (name: string, timeline: string, line: string[]) => [
-      ["wedge", id(name), timeline, CLT, [...line, "band"]],
-      ["label", id(name, "label"), timeline, CLT, [...line, "band", "wedge"]],
-      ["cross_section", id(name, "line"), timeline, CLT, line],
+    const stamp = (name: string, timeline: string, line: string[], words: readonly string[]) => [
+      ...(words.includes("wedge") ? [["wedge", id(name), timeline, CLT, [...line, "band"]]] : []),
+      ...(["name", "id", "coordinate"] as const)
+        .filter((word) => words.includes(word))
+        .map((word) => ["label", id(name, word), timeline, CLT, [...line, "band"]]),
+      ...(words.includes("cross_section")
+        ? [["cross_section", id(name, "line"), timeline, CLT, line]]
+        : []),
     ];
     expect(
       manifestElements(load("timestamps.json"))
         .filter((key) => key.address.id?.startsWith("timestamp_") === true)
         .map((key) => [key.type, key.address, key.timeline, key.class, key.inside]),
     ).toEqual([
-      ...stamp("timestamp_3", "clt_2", child),
-      ...stamp("timestamp_1", "clt_1", root),
-      ...stamp("timestamp_2", "clt_1", root),
+      ...stamp("timestamp_3", "clt_2", child, [
+        "wedge",
+        "name",
+        "id",
+        "coordinate",
+        "cross_section",
+      ]),
+      ...stamp("timestamp_1", "clt_1", root, ["wedge", "name", "cross_section"]),
+      ...stamp("timestamp_2", "clt_1", root, ["wedge", "name"]),
     ]);
   });
 
@@ -134,10 +144,10 @@ describe("the elements of a manifest", () => {
       ["band", band(flow, "children")],
       ["band", band(flow, "conversion_maps")],
       ["band", band(flow, "markers")],
-      ["wedge", id(flow, "start")],
-      ["label", id(flow, "start", "label")],
-      ["wedge", id(flow, "end")],
-      ["label", id(flow, "end", "label")],
+      ["wedge", id("timestamp_1")],
+      ["label", id("timestamp_1", "coordinate")],
+      ["wedge", id("timestamp_2")],
+      ["label", id("timestamp_2", "coordinate")],
       ["band", band(flow, "regions")],
       ["band", band(flow, "flow_control")],
       ["flow_marker", id("flow_marker_1")],
@@ -242,10 +252,10 @@ describe("selector matching", () => {
     [{ class: "regions" }, []],
     [{ addresses: [{ id: "phrase", facet: "regions" }] }, [band("phrase", "regions")]],
     [
-      { addresses: [{ id: "melody", part: ["end", "label"] }, { id: "ticks" }] },
-      [id("ticks"), id("melody", "end", "label")],
+      { addresses: [{ id: "timestamp_2", part: ["coordinate"] }, { id: "ticks" }] },
+      [id("ticks"), id("timestamp_2", "coordinate")],
     ],
-    [{ addresses: [{ id: "melody", part: ["label", "end"] }] }, []],
+    [{ addresses: [{ id: "timestamp_2", part: ["coordinate", "label"] }] }, []],
     [{ addresses: [{ id: "melody", part: ["card"] }] }, [id("melody", "card")]],
     [{ addresses: [{ part: ["name"] }] }, []],
     [{ element: "band", domain: "logical" }, []],
@@ -292,14 +302,14 @@ describe("the selector member inside", () => {
         id("ticks"),
         ...PHRASE_BANDS.slice(2),
         id("tempo"),
-        id("melody", "start"),
-        id("melody", "start", "label"),
-        id("melody", "end"),
-        id("melody", "end", "label"),
+        id("timestamp_1"),
+        id("timestamp_1", "coordinate"),
+        id("timestamp_2"),
+        id("timestamp_2", "coordinate"),
       ],
     ],
     [{ element: "band", inside: "band" }, PHRASE_BANDS],
-    [{ inside: "wedge" }, [id("melody", "start", "label"), id("melody", "end", "label")]],
+    [{ inside: "wedge" }, []],
     [{ inside: "card" }, []],
     [{ inside: "map" }, []],
     [{ element: "name", inside: "child" }, [id("phrase", "name")]],
@@ -381,10 +391,10 @@ describe("the elements of a segment line", () => {
       ...four("c"),
       row(band("form", "conversion_maps")),
       row(band("form", "markers")),
-      ["wedge", id("form", "start")],
-      ["label", id("form", "start", "label")],
-      ["wedge", id("form", "end")],
-      ["label", id("form", "end", "label")],
+      ["wedge", id("timestamp_1")],
+      ["label", id("timestamp_1", "coordinate")],
+      ["wedge", id("timestamp_2")],
+      ["label", id("timestamp_2", "coordinate")],
       row(band("form", "regions")),
       row(band("form", "flow_control")),
     ]);

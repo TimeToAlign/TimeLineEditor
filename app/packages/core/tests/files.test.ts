@@ -109,9 +109,15 @@ describe("blocks hold any manifest", () => {
 
 describe("invariants root by root", () => {
   it("refuses a child of another unit below timelines/<index>", () => {
-    const value = manifestValue(GROUP) as { timelines: { children: object[] }[] };
+    const value = manifestValue(GROUP) as {
+      timelines: { children: object[] }[];
+      graphical: { timestamps: { timeline: string }[] };
+    };
     const child = value.timelines[0]?.children[0];
     if (child === undefined) throw new Error("second-half is missing");
+    // Its timestamps lie on its quarters axis: they leave with the axis they lie on.
+    const { graphical } = value;
+    graphical.timestamps = graphical.timestamps.filter((item) => item.timeline !== "second-half");
     Object.assign(child, { unit: "seconds", number_type: "float", length: new JsonFloat(8) });
     const result = loadManifest(dumps(value));
     expect(isLoadError(result) ? result.problems : result).toEqual([
@@ -175,10 +181,11 @@ describe("the elements of a group manifest", () => {
       band("second-half", "children"),
       band("second-half", "conversion_maps"),
       band("second-half", "markers"),
-      ["wedge", id("second-half", "start"), ...half, null, marker],
-      ["label", id("second-half", "start", "label"), ...half, null, [...marker, "wedge"]],
-      ["wedge", id("second-half", "end"), ...half, null, marker],
-      ["label", id("second-half", "end", "label"), ...half, null, [...marker, "wedge"]],
+      // Its own named timestamps `origin` and `length`, wedges and labels held by the band.
+      ["wedge", id("timestamp_3"), ...half, null, marker],
+      ["label", id("timestamp_3", "coordinate"), ...half, null, marker],
+      ["wedge", id("timestamp_4"), ...half, null, marker],
+      ["label", id("timestamp_4", "coordinate"), ...half, null, marker],
       band("second-half", "regions"),
       band("second-half", "flow_control"),
       ["card", id("recording", "card"), ...recording, null, frame],
@@ -187,10 +194,10 @@ describe("the elements of a group manifest", () => {
       band("recording", "children"),
       band("recording", "conversion_maps"),
       band("recording", "markers"),
-      ["wedge", id("recording", "start"), ...recording, null, marker],
-      ["label", id("recording", "start", "label"), ...recording, null, [...marker, "wedge"]],
-      ["wedge", id("recording", "end"), ...recording, null, marker],
-      ["label", id("recording", "end", "label"), ...recording, null, [...marker, "wedge"]],
+      ["wedge", id("timestamp_1"), ...recording, null, marker],
+      ["label", id("timestamp_1", "coordinate"), ...recording, null, marker],
+      ["wedge", id("timestamp_2"), ...recording, null, marker],
+      ["label", id("timestamp_2", "coordinate"), ...recording, null, marker],
       band("recording", "regions"),
       band("recording", "flow_control"),
     ]);
@@ -216,7 +223,10 @@ describe("the elements of a group manifest", () => {
       bandOf("second-half", "children"),
       bandOf("second-half", "conversion_maps"),
       bandOf("second-half", "markers"),
-      ...marks,
+      id("timestamp_3"),
+      id("timestamp_3", "coordinate"),
+      id("timestamp_4"),
+      id("timestamp_4", "coordinate"),
       bandOf("second-half", "regions"),
       bandOf("second-half", "flow_control"),
     ]);
@@ -248,11 +258,13 @@ describe("the elements of a named manifest with two groups", () => {
   const manifest = load(BUNDLE);
   /**
    * A line drawn as a root: its name, then its five bands, each followed by
-   * what it holds (none of these lines draws a child): `maps`, its wedges,
-   * `regions` and `flow`.
+   * what it holds (none of these lines draws a child): `maps`, the wedges
+   * and coordinate labels of its named timestamps `origin` and `length`
+   * (`timestamp_N` and `timestamp_N+1`, `N` its `origin`), `regions` and `flow`.
    */
   const drawn = (
     timeline: string,
+    origin: number,
     { maps = [], regions = [], flow = [] }: { [band: string]: ElementAddress[] } = {},
   ) => [
     id(timeline),
@@ -261,10 +273,10 @@ describe("the elements of a named manifest with two groups", () => {
     bandOf(timeline, "conversion_maps"),
     ...maps,
     bandOf(timeline, "markers"),
-    id(timeline, "start"),
-    id(timeline, "start", "label"),
-    id(timeline, "end"),
-    id(timeline, "end", "label"),
+    ...[origin, origin + 1].flatMap((n) => [
+      id(`timestamp_${n}`),
+      id(`timestamp_${n}`, "coordinate"),
+    ]),
     bandOf(timeline, "regions"),
     ...regions,
     bandOf(timeline, "flow_control"),
@@ -279,16 +291,16 @@ describe("the elements of a named manifest with two groups", () => {
       id("group_1"),
       id("group_1", "name"),
       id("score", "card"),
-      ...drawn("score", {
+      ...drawn("score", 9, {
         maps: [id("cmap_1"), id("cmap_2")],
         flow: [id("jump_from_1"), id("jump_from_1", "label")],
       }),
       id("performance", "card"),
-      ...drawn("performance", { maps: [id("cmap_3")] }),
+      ...drawn("performance", 7, { maps: [id("cmap_3")] }),
       id("group_2"),
       id("group_2", "name"),
       id("page", "card"),
-      ...drawn("page", { maps: [id("cmap_4")] }),
+      ...drawn("page", 5, { maps: [id("cmap_4")] }),
       id("excerpt", "card"),
       id("recording"),
       id("recording", "name"),
@@ -296,9 +308,9 @@ describe("the elements of a named manifest with two groups", () => {
       id("excerpt", "start", "label"),
       id("excerpt", "end"),
       id("excerpt", "end", "label"),
-      ...drawn("excerpt", { maps: [id("cmap_6")] }),
+      ...drawn("excerpt", 3, { maps: [id("cmap_6")] }),
       id("annotations", "card"),
-      ...drawn("annotations", {
+      ...drawn("annotations", 1, {
         regions: [id("region_1"), id("region_1", "label"), id("region_2"), id("region_2", "label")],
       }),
     ]);
@@ -350,7 +362,14 @@ describe("addresses in a one-root block", () => {
   const view = viewOf([A, "map.json"]);
 
   it("hold every ID of the manifest once, whatever element carries it", () => {
-    expect([...manifestIds(file(view))].sort()).toEqual(["melody", "phrase", "tempo", "ticks"]);
+    expect([...manifestIds(file(view))].sort()).toEqual([
+      "melody",
+      "phrase",
+      "tempo",
+      "ticks",
+      "timestamp_1",
+      "timestamp_2",
+    ]);
   });
 
   it("reach a map of a child by its ID alone, and never compose IDs", () => {
@@ -381,6 +400,12 @@ describe("addresses in a block of several roots", () => {
       "performance",
       "region_1",
       "score",
+      "timestamp_1",
+      "timestamp_2",
+      "timestamp_3",
+      "timestamp_4",
+      "timestamp_5",
+      "timestamp_6",
     ]);
   });
 
@@ -520,7 +545,7 @@ describe("commands in blocks of several roots", () => {
         { select: { element: "card", inside: "frame" }, set: { rx: 2, shadow: "#C4B5FD" } },
         { select: { element: "ancestor" }, set: { opacity: 0.5 } },
       ],
-      timestamps: [],
+      timestamps: load(STYLED).graphical?.timestamps,
     });
   });
 
@@ -562,7 +587,7 @@ describe("delete deletes", () => {
       group_2: ["page"],
     });
     expect(removedBy(before, ["recording"])).toEqual(
-      new Set(["recording", "excerpt", "cmap_5", "cmap_6"]),
+      new Set(["recording", "excerpt", "cmap_5", "cmap_6", "timestamp_3", "timestamp_4"]),
     );
   });
 
@@ -585,7 +610,9 @@ describe("delete deletes", () => {
     const view = changed(viewOf([A, NUMBERS]), { type: "add", into: at("score"), map: warp });
     const stored = { ...warp, name: null, kind: "linear", extrapolate: "none" };
     expect(file(view).timelines[2]?.conversion_maps).toEqual([stored]);
-    expect(removedBy(file(view), ["performance"])).toEqual(new Set(["performance"]));
+    expect(removedBy(file(view), ["performance"])).toEqual(
+      new Set(["performance", "timestamp_3", "timestamp_4"]),
+    );
     expect(remove(view, "performance").timelines[1]?.conversion_maps).toEqual([stored]);
   });
 
@@ -696,6 +723,8 @@ describe("IDs of new elements", () => {
       "maps:quarters",
       "measuremap_1",
       "pmap_1",
+      "timestamp_1",
+      "timestamp_2",
       "tmap_1",
       "tmap_2",
       "tmap_3",

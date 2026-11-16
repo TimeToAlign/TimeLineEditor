@@ -21,13 +21,12 @@ import {
   withPlaceAt,
 } from "../manifest/containers.ts";
 import type { EntryKind, EntryTypes } from "../manifest/files.ts";
-import { contentEnd, lengthOf, readOnAxis } from "../manifest/invariants.ts";
+import { contentEnd, readOnAxis } from "../manifest/invariants.ts";
 import { normalizeManifest, readEntry, readMeasureMap } from "../manifest/io.ts";
 import { lockProblem, withPlaceLocks, withSegmentLine } from "../manifest/locks.ts";
 import { bandOrderProblem } from "../manifest/order.ts";
 import type { AxisValue, Manifest, NamedTimestamp, TimelineManifest } from "../manifest/types.ts";
 import { toAxisValue } from "../number/coordinate.ts";
-import { Rational } from "../number/rational.ts";
 import { compareReal, realOf } from "../number/real.ts";
 import {
   PLACE_READERS,
@@ -50,6 +49,7 @@ import {
   entryAt,
   record,
   recordValue,
+  replaceTimeline,
   sameJson,
   withBlock,
   withEntryAt,
@@ -72,6 +72,7 @@ import type {
   WorkspaceTarget,
 } from "./targets.ts";
 import { targetOf } from "./targets.ts";
+import { readTimestampCoordinate, readTimestampDisplay } from "./timestamps.ts";
 import { lengthProblem, moveTimeline, placeChild, setGroups } from "./topology.ts";
 
 /**
@@ -488,7 +489,12 @@ const MEASURE_MAP_SET: Setters<MeasureMapTarget> = {
 
 // ---------------------------------------------------------------- timelines
 
-/** The view with the target timeline replaced by `next`, unless the member it sets holds what is stored. */
+/**
+ * The view with the target timeline replaced by `next`, unless the member it
+ * sets holds what is stored. Where the replacement changed more than the
+ * timeline (the named timestamps at its end followed a new length,
+ * `replaceTimeline`), the change reaches past its path.
+ */
 function timelineChange(
   view: View,
   target: TimelineTarget,
@@ -499,8 +505,14 @@ function timelineChange(
   value: unknown,
 ): View {
   if (sameJson(stored, value)) return view;
-  recordValue(changes, path, target.block.id, true, stored, value);
-  return withTimeline(view, target.block, target.at, next);
+  const { block, at } = target;
+  const manifest = replaceTimeline(block.manifest, at, next);
+  if (manifest.graphical === block.manifest.graphical) {
+    recordValue(changes, path, block.id, true, stored, value);
+  } else {
+    record(changes, path, block.id, true);
+  }
+  return withBlock(view, { ...block, manifest });
 }
 
 const TIMELINE_SET: Setters<TimelineTarget> = {
@@ -572,7 +584,8 @@ const TIMELINE_SET: Setters<TimelineTarget> = {
         path,
       );
     }
-    const refused = lengthProblem(target.block.manifest, target.at, length, path);
+    const { block, at } = target;
+    const refused = lengthProblem(block.manifest, at, length, path);
     if (refused !== undefined) return refused;
     const stored = toAxisValue(length);
     const next = { ...timeline, length: stored };
@@ -731,41 +744,6 @@ const ENTRY_SET: { readonly [kind in EntryTarget["kind"]]: Setters<EntryTarget> 
 // ---------------------------------------------------------------- named timestamps
 
 /**
- * A named timestamp's coordinate given to a command, as stored: a bare
- * value on the own axis of `timeline`, the timeline it lies on
- * (`invalid_coordinate` where it does not read as the axis's number type),
- * from 0 to the timeline's length, or from 0 where the length is unknown
- * (`invalid_value` before its start or after its end).
- */
-export function readTimestampCoordinate(
-  value: unknown,
-  timeline: TimelineManifest,
-  path: readonly PathSegment[],
-): AxisValue | CommandError {
-  const json = toJson(value, path);
-  if (isCommandError(json)) return json;
-  const read = readOnAxis(json, timeline, path);
-  if (isCommandError(read)) return read;
-  const position = realOf(read);
-  if (compareReal(position, Rational.of(0n)) < 0) {
-    return problem(
-      ErrorCode.invalidValue,
-      `the coordinate lies before the start of timeline '${timeline.id}'`,
-      path,
-    );
-  }
-  const length = lengthOf(timeline);
-  if (length !== null && compareReal(position, realOf(length)) > 0) {
-    return problem(
-      ErrorCode.invalidValue,
-      `the coordinate lies after the end of timeline '${timeline.id}'`,
-      path,
-    );
-  }
-  return toAxisValue(read);
-}
-
-/**
  * The view with the target timestamp replaced by `next`, unless the member
  * it sets holds what is stored (`stored`, `value`).
  */
@@ -807,6 +785,16 @@ const TIMESTAMP_SET: Setters<TimestampTarget> = {
     return timestampChange(view, target, path, changes, timestamp.coordinate, coordinate, {
       ...timestamp,
       coordinate,
+    });
+  },
+  /** What of the timestamp is drawn (`readTimestampDisplay`): stored in canonical order. */
+  display: (view, target, value, path, changes) => {
+    const display = readTimestampDisplay(value, path);
+    if (isCommandError(display)) return display;
+    const { timestamp } = target;
+    return timestampChange(view, target, path, changes, timestamp.display, display, {
+      ...timestamp,
+      display,
     });
   },
 };

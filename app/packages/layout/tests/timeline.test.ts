@@ -118,7 +118,7 @@ const laid = (timeline: PreparedTimeline, children?: { start: number; width: num
     (band) => [band.facet, band.level, band.start, band.width, band.edge, band.elements],
   );
 
-const PLACE: LinePlace = { x0: 0, y: 100, root: 100, size: 11, top: 0, Hc: 200 };
+const PLACE: LinePlace = { x0: 0, y: 100, size: 11, top: 0, Hc: 200 };
 
 const show = (...facets: Facet[]): Graphical => ({
   statements: facets.map((facet) => ({
@@ -206,7 +206,7 @@ describe("where a band lies", () => {
     expect(laid(melody, { start: 10.5, width: 14 })).toEqual([
       ["children", 2, 10.5, 14, 24.5, 1],
       ["conversion_maps", 1, 0, 6.5, 6.5, 1],
-      ["markers", -1, 0, 26.9765625, 26.9765625, 2],
+      ["markers", -1, 0, 26.9765625, 26.9765625, 4],
     ]);
     const phrase = alone(prepared(scope, "phrase"), undefined);
     expect(phrase.bands.map((band) => [band.facet, band.level])).toEqual([["conversion_maps", 1]]);
@@ -219,7 +219,7 @@ describe("where a band lies", () => {
     expect(laid(melody, { start: 7, width: 14 })).toEqual([
       ["children", 1, 7, 14, 21, 1],
       ["conversion_maps", -1, 0, 6.5, 6.5, 1],
-      ["markers", -2, 10.5, 26.9765625, 37.4765625, 2],
+      ["markers", -2, 10.5, 26.9765625, 37.4765625, 4],
     ]);
   });
 
@@ -260,14 +260,14 @@ describe("where a band lies", () => {
     expect(reachAlone(form)).toEqual({ above: 8, below: 8 });
     expect(laid(form)).toEqual([
       ["regions", 1, 12, 18.4765625, 30.4765625, 2],
-      ["markers", -1, 0, 26.9765625, 26.9765625, 1],
+      ["markers", -1, 0, 26.9765625, 26.9765625, 2],
     ]);
   });
 
   it("starts each further band B beyond the one before it", () => {
     expect(laid(prepared(scopeOf(load("with_region")), "clt_1"), { start: 7, width: 28 })).toEqual([
       ["children", 1, 7, 28, 35, 2],
-      ["markers", -1, 0, 26.9765625, 26.9765625, 2],
+      ["markers", -1, 0, 26.9765625, 26.9765625, 4],
       ["regions", -2, 30.9765625, 18.4765625, 49.453125, 1],
     ]);
   });
@@ -294,7 +294,7 @@ describe("where a band lies", () => {
       "pages",
     );
     expect(reachAlone(pages)).toEqual({ above: 39.453125, below: 8 });
-    expect(laid(pages)).toEqual([["markers", 1, 0, 26.9765625, 39.453125, 2]]);
+    expect(laid(pages)).toEqual([["markers", 1, 0, 26.9765625, 39.453125, 4]]);
     const drawn = alone(pages, undefined).elements(PLACE);
     expect(drawn.segmentLabels.map((item) => item.element.baseline)).toEqual([
       68.90087890625, 68.90087890625, 68.90087890625, 68.90087890625,
@@ -336,7 +336,7 @@ describe("level 0", () => {
     expect(reachAlone(melody)).toEqual({ above: 0, below: 0 });
     expect(laid(melody, { start: 7, width: 14 })).toEqual([
       ["children", 1, 7, 14, 21, 1],
-      ["markers", -1, 0, 26.9765625, 26.9765625, 2],
+      ["markers", -1, 0, 26.9765625, 26.9765625, 4],
       ["conversion_maps", -2, 30.9765625, 6.5, 37.4765625, 1],
     ]);
     const drawn = alone(melody, { start: 7, width: 14, children: [] }).elements(PLACE);

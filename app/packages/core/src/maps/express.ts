@@ -14,9 +14,9 @@ import type { NumberType, TimeUnit } from "@timetoalign/timetoshare";
 import { numberTypeOf } from "@timetoalign/timetoshare";
 import type { CoordinateValue } from "../number/coordinate.ts";
 import { roundHalfEven } from "../number/rational.ts";
-import { fromFloat } from "../number/real.ts";
+import { toRational } from "../number/real.ts";
 import type { MapResult, MapValue, MeasureRecord } from "./values.ts";
-import { exactOf, floatOf, isMapValue, kindOf } from "./values.ts";
+import { floatOf, isMapValue, kindOf } from "./values.ts";
 
 /** A number a map gives, in a number type; `unit` null where the map names no target unit. */
 export interface ExpressedNumber {
@@ -40,7 +40,7 @@ export type Expressed = ExpressedNumber | string | MeasureRecord | ExpressedOutp
 export function expressAs(value: MapValue, numberType: NumberType): CoordinateValue | undefined {
   if (numberType === "float") return floatOf(value);
   if (typeof value === "number" && !Number.isFinite(value)) return undefined;
-  const exact = typeof value === "number" ? fromFloat(value) : exactOf(value);
+  const exact = toRational(value);
   if (numberType === "fraction") return exact;
   return exact.denominator === 1n
     ? exact.numerator

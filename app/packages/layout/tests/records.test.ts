@@ -21,6 +21,7 @@ import { Rational } from "@timetoalign/tilie-core/numbers";
 import { canonicalOrder, type Graphical, validate } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import {
+  abscissaOf,
   coordinateAt,
   DEFAULT_LAYER,
   DEFAULT_PLACEMENT,
@@ -131,7 +132,7 @@ describe("a root with bands on both sides (styled__score)", () => {
     const line = 62.640625;
     expect(bandsOf(drawFixture("styled__score"))).toEqual([
       record({ id: "score", facet: "children" }, 2, 1, line, { x, y: 16, width, height: 14 }),
-      record({ id: "score", facet: "markers" }, 1, 2, line, { x, y: 34, width, height: 28.640625 }),
+      record({ id: "score", facet: "markers" }, 1, 4, line, { x, y: 34, width, height: 28.640625 }),
       record({ id: "score", facet: "conversion_maps" }, -1, 1, line, {
         x,
         y: 62.640625,
@@ -170,7 +171,7 @@ describe("a child's shown regions band", () => {
   it("is hidden by default and then not recorded, taking no room", () => {
     expect(bandsOf(drawn(manifest))).toEqual([
       record({ id: "r", facet: "children" }, 1, 1, 37, { ...root, y: 16, height: 14 }),
-      record({ id: "r", facet: "markers" }, -1, 2, 37, { ...root, y: 37, height: 26.9765625 }),
+      record({ id: "r", facet: "markers" }, -1, 4, 37, { ...root, y: 37, height: 26.9765625 }),
     ]);
   });
 
@@ -181,7 +182,7 @@ describe("a child's shown regions band", () => {
         y: 16,
         height: 30.9765625,
       }),
-      record({ id: "r", facet: "markers" }, -1, 2, 53.9765625, {
+      record({ id: "r", facet: "markers" }, -1, 4, 53.9765625, {
         ...root,
         y: 53.9765625,
         height: 26.9765625,
@@ -240,7 +241,7 @@ describe("a segment line's band holding its segments' content", () => {
     ]);
     const span = { x: 42.42431640625, width: 435.916015625 };
     expect(bandsOf(drawing)).toEqual([
-      record({ id: "form", facet: "markers" }, -1, 1, 24, { ...span, y: 24, height: 26.9765625 }),
+      record({ id: "form", facet: "markers" }, -1, 2, 24, { ...span, y: 24, height: 26.9765625 }),
       record({ id: "form", facet: "regions" }, -2, 2, 24, {
         ...span,
         y: 54.9765625,
@@ -295,7 +296,6 @@ describe("a timeline drawn twice: a child in one card, a member in another", () 
       [{ id: "clt_1", facet: "regions" }, 75.8046875, G1],
       [{ id: "clt_2", facet: "conversion_maps" }, 61.8046875, G1],
       [{ id: "clt_2", facet: "conversion_maps" }, 226.5390625, G2],
-      [{ id: "clt_2", facet: "markers" }, 226.5390625, G2],
     ]);
   });
 
@@ -316,7 +316,7 @@ describe("a timeline drawn twice: a child in one card, a member in another", () 
         1,
         1,
         226.5390625,
-        { x: 74.49951171875, y: 220.0390625, width: 414.83203125, height: 6.5 },
+        { x: 81.91552734375, y: 220.0390625, width: 400, height: 6.5 },
         G2,
       ),
     ]);
@@ -359,7 +359,7 @@ describe("a timeline in several groups (bundle_shared_member)", () => {
   it("draws the timeline in each frame with the same addresses", () => {
     const first = drawnIn(G1T);
     expect(first).toContainEqual(at("t"));
-    expect(first).toContainEqual(at("t", "end", "label"));
+    expect(first).toContainEqual(at("timestamp_2", "coordinate"));
     expect(drawnIn(G2T)).toEqual(first);
   });
 
@@ -496,6 +496,17 @@ describe("the axes of the drawn lines", () => {
     expect(exact(axis)).toEqual([at("form"), "quarters", "fraction", "0", "null"]);
     expect([axis?.xStart, axis?.xEnd]).toEqual([49.84033203125, 449.84033203125]);
     expect(axis && coordinateAt(axis, axis.xStart)).toBeNull();
+    expect(String(axis?.drawnEnd)).toBe("17");
+  });
+
+  it("gives every axis the coordinate drawn at its end", () => {
+    const drawEnds = (name: string) =>
+      drawFixture(name).axes.map((axis) => [axis.address, String(axis.drawnEnd)]);
+    expect(drawEnds("styled__score")).toEqual([
+      [at("score"), "8"],
+      [at("b"), "4"],
+    ]);
+    expect(drawEnds("groups/group_child_member")[0]).toEqual([at("piece"), "16"]);
   });
 });
 
@@ -516,13 +527,21 @@ describe("lineAxes", () => {
     const axes = lineAxes(drawing);
     expect([...axes.keys()]).toEqual([placeKeyText({ item: "form" }) + addressKey(at("form"))]);
     const [axis] = axes.values();
-    expect(axis && { ...axis, start: String(axis.start), length: String(axis.length) }).toEqual({
+    expect(
+      axis && {
+        ...axis,
+        start: String(axis.start),
+        length: String(axis.length),
+        drawnLength: String(axis.drawnLength),
+      },
+    ).toEqual({
       timeline: "form",
       y: 27.5,
       xStart: 49.84033203125,
       xEnd: 449.84033203125,
       start: "0",
       length: "32",
+      drawnLength: "32",
       numberType: "fraction",
       unit: "quarters",
       segments: [
@@ -535,6 +554,17 @@ describe("lineAxes", () => {
         { id: "b_ticks", owner: "B", yc: 17, xs: 149.84033203125, xe: 299.84033203125 },
       ],
     });
+  });
+
+  it("places a coordinate at its abscissa on the drawn scale", () => {
+    const [axis] = lineAxes(draw(form, DEFAULT_PLACEMENT, [DEFAULT_LAYER], metrics)).values();
+    if (axis === undefined) throw new Error("form is drawn");
+    expect([0, 8, 32].map((t) => abscissaOf(axis, Rational.of(t)))).toEqual([
+      49.84033203125, 149.84033203125, 449.84033203125,
+    ]);
+    expect(abscissaOf({ ...axis, drawnLength: Rational.of(0) }, Rational.of(0))).toBe(
+      49.84033203125,
+    );
   });
 
   it("keeps one entry for each drawing of a timeline", () => {
@@ -578,7 +608,7 @@ describe("coordinateAt", () => {
     ]);
   });
 
-  const axis = (numberType: DrawnAxis["numberType"], last: DrawnAxis["end"]): DrawnAxis => ({
+  const axis = (numberType: DrawnAxis["numberType"], last: DrawnAxis["drawnEnd"]): DrawnAxis => ({
     address: at("t"),
     card: { item: "t" },
     line: 0,
@@ -588,6 +618,7 @@ describe("coordinateAt", () => {
     numberType,
     start: numberType === "float" ? 0 : Rational.of(0),
     end: last,
+    drawnEnd: last,
     segments: [],
     maps: [],
     marker: null,

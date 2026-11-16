@@ -104,7 +104,11 @@ describe("the minimal form in, either form out", () => {
       regions: [],
       flow_control: [],
     };
-    const { meta: _, ...twin } = parseJson(fixture("bare.json").twin) as Record<string, unknown>;
+    const {
+      meta: _,
+      graphical: __,
+      ...twin
+    } = parseJson(fixture("bare.json").twin) as Record<string, unknown>;
     expect(loadText(dumps(twin))).toEqual({
       timetoshare: SCHEMA_VERSION,
       name: null,
@@ -322,14 +326,17 @@ describe("invariants", () => {
     ],
     [
       "number_type_not_allowed",
-      (manifest) =>
+      (manifest) => {
         Object.assign(node(manifest, ...rootPath), {
           unit: "ticks",
           number_type: "fraction",
           length: [1, 1],
           children: [],
           regions: [],
-        }),
+        });
+        // The root's timestamps lie on its former axis: they go with it.
+        delete manifest.graphical;
+      },
       [...rootPath, "number_type"],
     ],
   ];

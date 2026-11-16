@@ -8,7 +8,6 @@ import type {
   Pin,
   Store,
 } from "@timetoalign/tilie-core";
-import { timestampPlace } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import type { Viewport } from "@xyflow/svelte";
@@ -26,7 +25,13 @@ import type { Visible } from "./commands.ts";
 import type { Level } from "./containers.ts";
 import { levelOf, rulesOf } from "./containers.ts";
 import type { KnotsOf, MarkPlace, PlacedMarks } from "./coordinates.ts";
-import { FrameCoalescer, MeasureKnotsSource, pinnedPlace, readingAt } from "./coordinates.ts";
+import {
+  FrameCoalescer,
+  MeasureKnotsSource,
+  pinnedPlace,
+  placeText,
+  readingAt,
+} from "./coordinates.ts";
 import type { Editing } from "./editing.ts";
 import { EditorFocus } from "./editorFocus.svelte.ts";
 import { CLICK_DISTANCE, GestureSlot, listen, type Point } from "./gesture.ts";
@@ -35,9 +40,9 @@ import { PAN_SPEED, shiftWheel } from "./gestures/wheel.ts";
 import type { KeyContext } from "./keys.ts";
 import { handleKey, inToolbar, isTextInput, within } from "./keys.ts";
 import type { LiveStore } from "./liveStore.svelte.ts";
+import type { LivePlacement } from "./node.ts";
 import { setNodeActions } from "./nodeActions.ts";
 import { CanvasNodes } from "./nodes.svelte.ts";
-import type { LivePlacement } from "./project.ts";
 import ResizeToolbar from "./ResizeToolbar.svelte";
 import type { ResizeMode } from "./resize.ts";
 import SnapGuides from "./SnapGuides.svelte";
@@ -77,8 +82,8 @@ interface Props {
   pinned?: Pin | null;
   /**
    * While "Show coordinates" is on, called with the pin a click on a line
-   * makes, and with `null` on any other click on the canvas; called with
-   * `null` when "Show coordinates" is turned off.
+   * or a map makes, and with `null` on any other click on the canvas;
+   * called with `null` when "Show coordinates" is turned off.
    */
   oncoordinatepin?: (pin: Pin | null) => void;
   /**
@@ -451,7 +456,7 @@ function pinOnRelease(event: PointerEvent) {
   const point = pixelOf(event);
   const read = point === null ? null : readingOf(point);
   pinnedLine = read?.hit.key ?? null;
-  announced = read === null ? "" : `Pinned ${timestampPlace(read.pin.timestamp)}`;
+  announced = read === null ? "" : `Pinned ${placeText(read.pin.timestamp)}`;
   oncoordinatepin?.(read?.pin ?? null);
 }
 
@@ -661,8 +666,8 @@ function onkeydowncapture(event: KeyboardEvent) {
   {/await}
   {#if reading !== null && flag !== null}
     <CoordinateFlag
-      timestamp={reading.pin.timestamp}
-      hovered={reading.hit.map?.id ?? null}
+      pin={reading.pin}
+      hovered={reading.row}
       x={flag.x}
       y={flag.y}
       top={flag.top}

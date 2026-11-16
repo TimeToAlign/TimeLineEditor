@@ -6,6 +6,7 @@
  */
 
 import type {
+  CompleteManifest,
   Declaration,
   Graphical,
   JsonNumber,
@@ -36,7 +37,7 @@ import type { EntryKind, EntryTypes } from "./files.ts";
 import { ENTRY_LISTS } from "./files.ts";
 import { checkOrdered } from "./invariants.ts";
 import { withSegmentsUnlocked } from "./locks.ts";
-import type { Manifest, ManifestGraphical, MeasureMap, TimelineManifest } from "./types.ts";
+import type { Manifest, MeasureMap, TimelineManifest } from "./types.ts";
 
 /** The problem a schema refusal is reported as. */
 function schemaProblem(error: unknown): Problem {
@@ -147,17 +148,21 @@ export function plainSelector(select: Lossless<Selector>): Selector {
   return { ...kept, addresses: [first, ...more] };
 }
 
+/** A graphical block without its named timestamps, which hold no declaration. */
+export type Styling = Omit<Graphical, "timestamps">;
+
 /**
- * A graphical block read losslessly as the `ManifestGraphical` the drawing
- * reads: every declaration's numbers doubles (`plainDeclaration`), in the
- * named styles and in the statements; the orders and the named timestamps
- * (whose coordinates are own-axis values) kept as they are, and every key of
- * every object where it was.
+ * The styling of a graphical block read losslessly, its declarations as the
+ * drawing reads them: every declaration's numbers doubles
+ * (`plainDeclaration`), in the named styles and in the statements; the
+ * orders kept as they are, and every key of every object where it was. The
+ * named timestamps, whose coordinates are own-axis values, are left to the
+ * caller.
  */
-export function plainGraphical(graphical: Lossless<Graphical>): ManifestGraphical | Problem {
+export function plainGraphical(graphical: Lossless<Styling>): Styling | Problem {
   const { styles, statements, ...rest } = graphical;
   const kept: typeof rest = graphical;
-  const result: { -readonly [P in keyof ManifestGraphical]: ManifestGraphical[P] } = { ...kept };
+  const result: { -readonly [P in keyof Styling]: Styling[P] } = { ...kept };
   if (styles !== undefined) {
     const plain: { [name: string]: Declaration } = {};
     for (const [name, declaration] of Object.entries(styles)) {
@@ -185,26 +190,25 @@ export function plainGraphical(graphical: Lossless<Graphical>): ManifestGraphica
 }
 
 /**
- * The complete form, in canonical order, of a value the schema accepts,
- * without its graphical block: the generated complete form, read as core's
- * read-only view of it.
+ * The complete form, in canonical order, of a value the schema accepts: the
+ * generated complete form, every named timestamp's `display` stated in
+ * canonical order among the rest.
  */
-function completeTimed(value: Omit<LosslessManifest, "graphical">): Omit<Manifest, "graphical"> {
-  const { graphical: _, ...timed } = canonicalOrder(completeManifest(value));
-  return timed;
+function completeForm(value: LosslessManifest): CompleteManifest {
+  return canonicalOrder(completeManifest(value));
 }
 
 /**
  * The complete form of a value the schema accepts, the step of
  * `normalizeManifest` after the schema check, for a value already checked
- * (`schemaChecked`): in canonical order, its segments unlocked (a segment's
- * own lock has no meaning: its segment line's governs it), every other lock
- * as the value states it, its graphical block made plain (`plainGraphical`)
- * and completed; or every invariant problem of it.
+ * (`schemaChecked`): completed and in canonical order, its segments
+ * unlocked (a segment's own lock has no meaning: its segment line's governs
+ * it), every other lock as the value states it, its graphical block's
+ * declarations made plain (`plainGraphical`); or every invariant problem of
+ * it.
  */
 export function completed(value: LosslessManifest): Manifest | LoadError {
-  const { graphical, ...timed } = value;
-  const form = completeTimed(timed);
+  const { graphical, ...form } = completeForm(value);
   const manifest: Manifest = {
     ...form,
     timelines: form.timelines.map((root) => withSegmentsUnlocked(root)),
@@ -212,9 +216,10 @@ export function completed(value: LosslessManifest): Manifest | LoadError {
   const problems = checkOrdered(manifest);
   if (problems.length > 0) return refuse(...problems);
   if (graphical === undefined) return manifest;
-  const plain = plainGraphical(graphical);
+  const { timestamps, ...styling } = graphical;
+  const plain = plainGraphical(styling);
   if ("code" in plain) return refuse(plain);
-  return { ...manifest, graphical: complete({ graphical: plain }).graphical };
+  return { ...manifest, graphical: { ...plain, timestamps } };
 }
 
 /**
@@ -247,10 +252,10 @@ export function normalizeManifest(value: unknown): Manifest | LoadError {
   // given structurally, which would turn a coordinate's `JsonFloat` into a plain object, so
   // the named timestamps, which name no style, stay out of it.
   const { timestamps, ...styled } = manifest.graphical;
-  const { graphical } = completeStyles(styled);
+  const { timestamps: _, ...styling } = completeStyles(styled).graphical;
   return {
     ...manifest,
-    graphical: timestamps === undefined ? graphical : { ...graphical, timestamps },
+    graphical: timestamps === undefined ? styling : { ...styling, timestamps },
   };
 }
 
@@ -321,8 +326,7 @@ export function readEntry<K extends EntryKind>(
     const inHost = timelines === "timelines" && root === 0;
     return { ...checked, path: inHost ? path : [...list.path, index] };
   }
-  const { graphical: _, ...timed } = checked;
-  const [read] = completeTimed(timed).timelines;
+  const [read] = completeForm(checked).timelines;
   // Canonical order may move the entry within its list; its id finds it.
   const entry = read === undefined ? undefined : list.get(read).find(({ id }) => id === value.id);
   if (entry === undefined) throw new Error(`the host lists the ${kind} ${String(value.id)}`);

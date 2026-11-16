@@ -51,8 +51,11 @@ describe("group_child_member: one ancestor", () => {
   });
 
   it("marks the member's start and end above the ancestor line, faded", () => {
-    const [startMark, startOwn] = all(drawing, at("second-half", "start"));
-    const [endMark, endOwn] = all(drawing, at("second-half", "end"));
+    const [startMark] = all(drawing, at("second-half", "start"));
+    const [endMark] = all(drawing, at("second-half", "end"));
+    // The member's own start and end are its named timestamps `origin` and `length`.
+    const startOwn = element(drawing, at("timestamp_3"));
+    const endOwn = element(drawing, at("timestamp_4"));
     expect(startMark).toMatchObject({
       type: "wedge",
       x: 120.61962890625,
@@ -73,7 +76,8 @@ describe("group_child_member: one ancestor", () => {
   });
 
   it("labels the marks on the ancestor's axis in its unit", () => {
-    const [start, own] = all(drawing, at("second-half", "start", "label"));
+    const [start] = all(drawing, at("second-half", "start", "label"));
+    const own = element(drawing, at("timestamp_3", "coordinate"));
     const [end] = all(drawing, at("second-half", "end", "label"));
     expect(start).toMatchObject({
       x: 120.61962890625,
@@ -138,14 +142,23 @@ describe("group_grandchild: every ancestor shown", () => {
     expect(marks.map((item) => [item.type, (item as { yt: number }).yt])).toEqual([
       ["wedge", 66.28125],
       ["wedge", 100.2578125],
-      ["wedge", 117.2578125],
       ["wedge", 66.28125],
       ["wedge", 100.2578125],
-      ["wedge", 117.2578125],
     ]);
     expect(marks.map((item) => (item as { yb: number }).yb)).toEqual([
-      53.28125, 87.2578125, 130.2578125, 53.28125, 87.2578125, 130.2578125,
+      53.28125, 87.2578125, 53.28125, 87.2578125,
     ]);
+    // The member's own `origin` and `length`, below its line.
+    expect(element(drawing, at("timestamp_3"))).toMatchObject({ yt: 117.2578125, yb: 130.2578125 });
+    expect(element(drawing, at("timestamp_4"))).toMatchObject({ yt: 117.2578125, yb: 130.2578125 });
+    expect(element(drawing, at("timestamp_3", "coordinate"))).toMatchObject({
+      text: "0 ♩",
+      baseline: 140.61181640625,
+    });
+    expect(element(drawing, at("timestamp_4", "coordinate"))).toMatchObject({
+      text: "8 ♩",
+      baseline: 140.61181640625,
+    });
     const labels = all(drawing, at("theme", "start", "label")).concat(
       all(drawing, at("theme", "end", "label")),
     );
@@ -157,10 +170,8 @@ describe("group_grandchild: every ancestor shown", () => {
     ).toEqual([
       ["24 ♩", 49.15869140625],
       ["8 ♩", 83.13525390625],
-      ["0 ♩", 140.61181640625],
       ["32 ♩", 49.15869140625],
       ["16 ♩", 83.13525390625],
-      ["8 ♩", 140.61181640625],
     ]);
     expect(element(drawing, at("score", "name"))).toMatchObject({
       baseline: 70.89697265625,
@@ -192,8 +203,8 @@ describe("group_grandchild: every ancestor shown", () => {
         ["wedge", at("theme", "end")],
         ["wedge", at("theme", "start")],
         ["wedge", at("theme", "end")],
-        ["wedge", at("theme", "start")],
-        ["wedge", at("theme", "end")],
+        ["wedge", at("timestamp_3")],
+        ["wedge", at("timestamp_4")],
         ["name", at("score", "name")],
         ["name", at("movement", "name")],
         ["name", at("theme", "name")],
@@ -201,8 +212,8 @@ describe("group_grandchild: every ancestor shown", () => {
         ["label", at("theme", "end", "label")],
         ["label", at("theme", "start", "label")],
         ["label", at("theme", "end", "label")],
-        ["label", at("theme", "start", "label")],
-        ["label", at("theme", "end", "label")],
+        ["label", at("timestamp_3", "coordinate")],
+        ["label", at("timestamp_4", "coordinate")],
       ],
     );
     const texts = drawing.elements
@@ -298,9 +309,9 @@ describe("single changes to group_child_member", () => {
     });
     expect(all(drawing, at("second-half", "start"))).toMatchObject([
       { yt: 66.28125, yb: 53.28125 },
-      { yt: 104.2578125, yb: 91.2578125 },
     ]);
-    expect(all(drawing, at("second-half", "start", "label"))[1]).toMatchObject({
+    expect(element(drawing, at("timestamp_3"))).toMatchObject({ yt: 104.2578125, yb: 91.2578125 });
+    expect(element(drawing, at("timestamp_3", "coordinate"))).toMatchObject({
       baseline: 87.13525390625,
     });
   });
@@ -348,9 +359,9 @@ describe("single changes to group_child_member", () => {
       ya: 47.8046875,
       height: 63.9765625,
     });
-    expect(all(drawing, at("second-half", "start"))).toHaveLength(1);
-    expect(all(drawing, at("second-half", "start", "label"))).toHaveLength(1);
-    expect(all(drawing, at("second-half", "start"))[0]?.style.opacity).toBe(1);
+    expect(all(drawing, at("second-half", "start"))).toEqual([]);
+    expect(all(drawing, at("second-half", "start", "label"))).toEqual([]);
+    expect(element(drawing, at("timestamp_3")).style.opacity).toBe(1);
     expect(element(drawing, at("piece", "name"))).toMatchObject({ baseline: 50.92041015625 });
   });
 
@@ -390,8 +401,8 @@ describe("single changes to group_child_member", () => {
       yt: 53.8046875,
       yb: 40.8046875,
     });
-    expect(all(drawing, at("second-half", "start", "label"))).toHaveLength(1);
-    expect(all(drawing, at("second-half", "start", "label"))[0]?.style.opacity).toBe(1);
+    expect(all(drawing, at("second-half", "start", "label"))).toEqual([]);
+    expect(element(drawing, at("timestamp_3", "coordinate")).style.opacity).toBe(1);
   });
 
   it("counts a mark label as a centred label for x0", () => {
@@ -418,7 +429,8 @@ describe("single changes to group_child_member", () => {
     );
     expect(drawing.elements.filter((item) => item.type === "ancestor")).toEqual([]);
     expect(all(drawing, at("piece", "name"))).toEqual([]);
-    expect(all(drawing, at("second-half", "start"))).toHaveLength(1);
+    expect(all(drawing, at("second-half", "start"))).toEqual([]);
+    expect(all(drawing, at("timestamp_3"))).toHaveLength(1);
     expect(xOf(drawing, "second-half")).toBe(96.61962890625);
     expect((element(drawing, at("second-half")) as { y: number }).y).toBe(47.20703125);
     expect(card(drawing, "second-half").height).toBe(49.37890625);
@@ -483,8 +495,9 @@ describe("the cascade on each drawing of an address", () => {
       only({ addresses: [at("piece")] }, { fill: "#112233" }),
       metrics,
     );
-    expect(styleOf(drawing, at("second-half", "start"))).toEqual(["#112233", "none"]);
-    expect(styleOf(drawing, at("second-half", "end", "label"))).toEqual(["#112233", "none"]);
+    expect(styleOf(drawing, at("second-half", "start"))).toEqual(["#112233"]);
+    expect(styleOf(drawing, at("second-half", "end", "label"))).toEqual(["#112233"]);
+    expect(styleOf(drawing, at("timestamp_3"))).toEqual(["none"]);
     expect(styleOf(drawing, at("piece", "name"))).toEqual(["#112233"]);
   });
 
@@ -496,13 +509,15 @@ describe("the cascade on each drawing of an address", () => {
       layers(only({ element: "wedge", inside: "ancestor" }, { fill: "#123456" })),
       metrics,
     );
-    expect(styleOf(inside, at("second-half", "start"))).toEqual(["#123456", "#000000"]);
+    expect(styleOf(inside, at("second-half", "start"))).toEqual(["#123456"]);
+    expect(styleOf(inside, at("timestamp_3"))).toEqual(["#000000"]);
     const byId = draw(
       manifest,
       DEFAULT_PLACEMENT,
       layers(only({ addresses: [at("second-half", "start")] }, { fill: "#654321" })),
       metrics,
     );
-    expect(styleOf(byId, at("second-half", "start"))).toEqual(["#654321", "#654321"]);
+    expect(styleOf(byId, at("second-half", "start"))).toEqual(["#654321"]);
+    expect(styleOf(byId, at("timestamp_3"))).toEqual(["#000000"]);
   });
 });

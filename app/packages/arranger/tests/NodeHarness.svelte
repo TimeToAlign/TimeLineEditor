@@ -4,9 +4,9 @@ import { fontMetrics } from "@timetoalign/timetoshare";
 import BlockNode from "../src/BlockNode.svelte";
 import { LEVELS } from "../src/containers.ts";
 import { GestureSlot } from "../src/gesture.ts";
+import type { BlockNodeData } from "../src/node.ts";
 import type { NodeActions } from "../src/nodeActions.ts";
 import { setNodeActions } from "../src/nodeActions.ts";
-import type { BlockNodeData } from "../src/project.ts";
 
 /** Actions that do nothing, for a node no test edits. */
 const IDLE: NodeActions = {

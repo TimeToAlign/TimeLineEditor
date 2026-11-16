@@ -1,24 +1,38 @@
+import { dumps, JsonFloat } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { apply, applyChanges } from "../src/commands/apply.ts";
 import { parseCommand } from "../src/commands/parse.ts";
+import { importedManifest } from "../src/commands/timestamps.ts";
 import { isCommandError } from "../src/errors.ts";
 import { addressKey } from "../src/manifest/address.ts";
 import { contains } from "../src/manifest/contains.ts";
-import type { ManifestGraphical, NamedTimestamp } from "../src/manifest/types.ts";
+import type { Manifest, ManifestGraphical, NamedTimestamp } from "../src/manifest/types.ts";
 import type { Address } from "../src/workspace/address.ts";
 import { addressWords, manifestIds, resolveAddress } from "../src/workspace/address.ts";
 import { sideEffect } from "../src/workspace/guard.ts";
 import type { View } from "../src/workspace/view.ts";
-import { A, block, changed, deepFreeze, load, refusal, unlockedView, viewOf } from "./support.ts";
+import {
+  A,
+  block,
+  changed,
+  deepFreeze,
+  fixture,
+  load,
+  loadText,
+  manifestValue,
+  refusal,
+  storeOf,
+  unlockedView,
+  viewOf,
+} from "./support.ts";
 
 const FIXTURE = "timestamps.json";
 const view = deepFreeze(viewOf([A, FIXTURE]));
-const fixture = load(FIXTURE).graphical;
-const [T1, T2, T3] = fixture?.timestamps ?? [];
+const graphical = load(FIXTURE).graphical;
+const [T1, T2, T3] = graphical?.timestamps ?? [];
 if (T1 === undefined || T2 === undefined || T3 === undefined) {
   throw new Error(`${FIXTURE} holds three timestamps`);
 }
-const [STATEMENT] = fixture?.statements ?? [];
 
 const at = (id: string): Address => ({ block: A, id });
 const line = (id: string): Address => ({ block: A, id, part: ["line"] });
@@ -31,12 +45,21 @@ const add = (into: string, timestamp: object) => ({
 });
 const set = (target: Address, values: object) => ({ type: "set", changes: [{ target, values }] });
 const remove = (...targets: Address[]) => ({ type: "remove", targets });
-const toggle = (id: string, display: "none" | null) => ({
-  type: "style",
-  select: { addresses: [{ id, part: ["line"] }] },
-  set: { display },
-  blocks: [A],
-});
+
+/** The display a timestamp is given where none is stated. */
+const DEFAULT = ["wedge", "name", "cross_section"];
+/** The display of the timestamps a new root is given. */
+const MARK = ["wedge", "coordinate"];
+
+/** The fixture `name` read with its `graphical` object left out. */
+function withoutGraphical(name: string): Manifest {
+  const { graphical: _, ...rest } = manifestValue(name);
+  return loadText(dumps(rest), name);
+}
+
+/** A view whose block `A` holds `manifest`. */
+const viewHolding = (manifest: Manifest): View =>
+  deepFreeze(changed(viewOf(), { type: "add", into: {}, block: { id: A, manifest, x: 0, y: 0 } }));
 
 const graphicalOf = (state: View): ManifestGraphical | undefined => block(state).manifest.graphical;
 const timestampsOf = (state: View): readonly NamedTimestamp[] | undefined =>
@@ -53,7 +76,31 @@ const CODA: NamedTimestamp = {
   timeline: "clt_1",
   coordinate: [15, 2],
   name: "Coda",
+  display: ["wedge", "name", "cross_section"],
 };
+
+/** The refusals of a display, by value: the message each gives. */
+const BAD_DISPLAYS: [unknown, string][] = [
+  [["wedge", "flag"], "'flag' is no display word"],
+  [["name", "wedge", "name"], "'name' is given twice"],
+  ["wedge", "a display is a list of display words"],
+  [[1], "a display is a list of display words"],
+];
+
+describe("reading a named timestamp's display", () => {
+  it("holds it complete and in canonical order whatever the file states", () => {
+    expect(T1?.display).toEqual(DEFAULT);
+    expect(loadText(fixture(FIXTURE).twin).graphical).toEqual(graphical);
+    const value = manifestValue(FIXTURE) as {
+      graphical: { timestamps: { display: string[] }[] };
+    };
+    const [, , third] = value.graphical.timestamps;
+    if (third === undefined) throw new Error(`${FIXTURE} holds three timestamps`);
+    third.display = [...third.display].reverse();
+    expect(third.display[0]).toBe("cross_section");
+    expect(loadText(dumps(value)).graphical).toEqual(graphical);
+  });
+});
 
 describe("resolving a named timestamp", () => {
   it("resolves to the timestamp with the timeline it lies on", () => {
@@ -73,15 +120,17 @@ describe("resolving a named timestamp", () => {
     expect(addressWords(view, at("timestamp_3"))).toBe("timestamp 'Entry'");
   });
 
-  it("resolves its line and label as parts", () => {
-    expect(addressWords(view, line("timestamp_2"))).toBe("the line of timestamp 'Climax'");
-    expect(addressWords(view, { block: A, id: "timestamp_2", part: ["label"] })).toBe(
-      "the label of timestamp 'Climax'",
-    );
-    for (const address of [line("timestamp_2"), { ...at("timestamp_2"), part: ["label"] }]) {
-      const resolved = resolveAddress(view, address as Address);
-      expect(isCommandError(resolved) ? resolved.code : resolved.kind).toBe("part");
-    }
+  it("resolves the parts it draws, and only those", () => {
+    expect(addressWords(view, line("timestamp_1"))).toBe("the line of timestamp 'Downbeat'");
+    const drawn = [line("timestamp_1"), { ...at("timestamp_1"), part: ["name"] }];
+    const undrawn = [line("timestamp_2"), { ...at("timestamp_1"), part: ["id"] }];
+    const kinds = (addresses: object[]) =>
+      addresses.map((address) => {
+        const resolved = resolveAddress(view, address as Address);
+        return isCommandError(resolved) ? resolved.code : resolved.kind;
+      });
+    expect(kinds(drawn)).toEqual(["part", "part"]);
+    expect(kinds(undrawn)).toEqual(["unknown_target", "unknown_target"]);
   });
 
   it("names nothing for an unknown ID or a facet", () => {
@@ -107,13 +156,13 @@ describe("resolving a named timestamp", () => {
         { id: "timestamp_1" },
         { id: "timestamp_2" },
         { id: "timestamp_3" },
-        { id: "timestamp_2", part: ["line" as const] },
+        { id: "timestamp_1", part: ["line" as const] },
       ].filter((element) => contains(manifest, timeline, element));
     expect(inside("clt_1")).toEqual([
       { id: "timestamp_1" },
       { id: "timestamp_2" },
       { id: "timestamp_3" },
-      { id: "timestamp_2", part: ["line"] },
+      { id: "timestamp_1", part: ["line"] },
     ]);
     expect(inside("clt_2")).toEqual([{ id: "timestamp_3" }]);
   });
@@ -123,25 +172,24 @@ describe("add a named timestamp", () => {
   it("mints the smallest free ID and lists it in canonical order", () => {
     const coda = changed(view, add("clt_1", { name: "Coda", coordinate: [15, 2] }));
     expect(timestampsOf(coda)).toEqual([T1, T2, CODA, T3]);
-    expect(graphicalOf(coda)?.statements).toEqual([STATEMENT]);
     const exit = changed(view, add("clt_2", { name: "Exit", coordinate: [8, 2] }));
     expect(timestampsOf(exit)).toEqual([
       T1,
       T2,
       T3,
-      { id: "timestamp_4", timeline: "clt_2", coordinate: [4, 1], name: "Exit" },
+      { id: "timestamp_4", timeline: "clt_2", coordinate: [4, 1], name: "Exit", display: DEFAULT },
     ]);
     const without = changed(view, remove(at("timestamp_1")));
     const again = changed(without, add("clt_1", { name: "Start", coordinate: [1, 1] }));
     expect(timestampsOf(again)).toEqual([
-      { id: "timestamp_1", timeline: "clt_1", coordinate: [1, 1], name: "Start" },
+      { id: "timestamp_1", timeline: "clt_1", coordinate: [1, 1], name: "Start", display: DEFAULT },
       T2,
       T3,
     ]);
   });
 
   it("gives a manifest without a graphical object one", () => {
-    const bare = changed(deepFreeze(viewOf([A, "bare.json"])), {
+    const bare = changed(viewHolding(withoutGraphical("bare.json")), {
       type: "add",
       into: at("bare"),
       timestamp: { name: "Mid", coordinate: [5, 2] },
@@ -150,8 +198,23 @@ describe("add a named timestamp", () => {
       order: {},
       statements: [],
       styles: {},
-      timestamps: [{ id: "timestamp_1", timeline: "bare", coordinate: [5, 2], name: "Mid" }],
+      timestamps: [
+        { id: "timestamp_1", timeline: "bare", coordinate: [5, 2], name: "Mid", display: DEFAULT },
+      ],
     });
+  });
+
+  it("stores a given display in canonical order", () => {
+    for (const [display, stored] of [
+      [
+        ["cross_section", "id", "wedge"],
+        ["wedge", "id", "cross_section"],
+      ],
+      [[], []],
+    ]) {
+      const coda = changed(view, add("clt_1", { name: "Coda", coordinate: [15, 2], display }));
+      expect(timestampsOf(coda)).toEqual([T1, T2, { ...CODA, display: stored }, T3]);
+    }
   });
 
   it("refuses a value at fault where it lies", () => {
@@ -178,6 +241,12 @@ describe("add a named timestamp", () => {
         "id",
         "unknown member id",
       ],
+      ...BAD_DISPLAYS.map(([display, message]): [object, string, string, string] => [
+        { name: "Shown", coordinate: [1, 1], display },
+        "invalid_value",
+        "display",
+        message,
+      ]),
     ];
     for (const [value, code, member, message] of cases) {
       const result = refused(apply(view, add("clt_1", value)));
@@ -198,13 +267,20 @@ describe("add a named timestamp", () => {
 });
 
 describe("set a named timestamp", () => {
-  it("sets its name and its coordinate, kept in canonical order", () => {
+  it("sets its name, its coordinate and its display, kept in canonical order", () => {
     const renamed = changed(view, set(at("timestamp_1"), { name: "One" }));
     expect(timestampsOf(renamed)).toEqual([{ ...T1, name: "One" }, T2, T3]);
     const moved = changed(view, set(at("timestamp_1"), { coordinate: [7, 1] }));
     expect(timestampsOf(moved)).toEqual([T2, { ...T1, coordinate: [7, 1] }, T3]);
     const end = changed(view, set(at("timestamp_3"), { coordinate: [4, 1] }));
     expect(timestampsOf(end)).toEqual([T1, T2, { ...T3, coordinate: [4, 1] }]);
+    const lined = changed(
+      view,
+      set(at("timestamp_2"), { display: ["cross_section", "wedge", "name"] }),
+    );
+    expect(timestampsOf(lined)).toEqual([T1, { ...T2, display: DEFAULT }, T3]);
+    const bare = changed(view, set(at("timestamp_3"), { display: [] }));
+    expect(timestampsOf(bare)).toEqual([T1, T2, { ...T3, display: [] }]);
   });
 
   it("refuses a value at fault, a value that changes nothing and what it has not", () => {
@@ -216,9 +292,21 @@ describe("set a named timestamp", () => {
         "invalid_value",
         "the coordinate lies after the end of timeline 'clt_2'",
       ],
+      ...BAD_DISPLAYS.map(([display, message]): [Address, object, string, string] => [
+        at("timestamp_1"),
+        { display },
+        "invalid_value",
+        message,
+      ]),
       [at("timestamp_1"), { name: "Downbeat" }, "invalid_value", "the command changes nothing"],
       [at("timestamp_1"), { coordinate: [3, 2] }, "invalid_value", "the command changes nothing"],
       [at("timestamp_1"), { coordinate: [6, 4] }, "invalid_value", "the command changes nothing"],
+      [
+        at("timestamp_2"),
+        { display: ["name", "wedge"] },
+        "invalid_value",
+        "the command changes nothing",
+      ],
       [
         at("timestamp_1"),
         { timeline: "clt_2" },
@@ -253,7 +341,14 @@ describe("set a named timestamp", () => {
 
 describe("remove a named timestamp", () => {
   it("removes it and every statement address naming it", () => {
-    const removed = changed(view, remove(at("timestamp_2")));
+    const styled = changed(view, {
+      type: "style",
+      select: { addresses: [{ id: "timestamp_2", part: ["label"] }] },
+      set: { display: "none" },
+      blocks: [A],
+    });
+    expect(graphicalOf(styled)?.statements).toHaveLength(1);
+    const removed = changed(styled, remove(at("timestamp_2")));
     expect(timestampsOf(removed)).toEqual([T1, T3]);
     expect(graphicalOf(removed)?.statements).toEqual([]);
   });
@@ -261,11 +356,107 @@ describe("remove a named timestamp", () => {
   it("goes with the timeline it lies on", () => {
     const child = changed(view, remove(at("clt_2")));
     expect(timestampsOf(child)).toEqual([T1, T2]);
-    expect(graphicalOf(child)?.statements).toEqual([STATEMENT]);
     const root = changed(view, remove(at("clt_1")));
     expect(block(root).manifest.timelines).toEqual([]);
     expect(timestampsOf(root)).toEqual([]);
-    expect(graphicalOf(root)?.statements).toEqual([]);
+  });
+});
+
+/** A default timestamp of `timeline`, `origin` or `length`, showing its wedge and coordinate. */
+const mark = (id: string, timeline: string, name: string, coordinate: unknown) => ({
+  id,
+  timeline,
+  coordinate,
+  name,
+  display: MARK,
+});
+
+describe("the default timestamps", () => {
+  const late = {
+    id: "late",
+    unit: "quarters",
+    number_type: "fraction",
+    length: [4, 1],
+    children: [
+      { id: "inner", unit: "quarters", number_type: "fraction", length: [1, 1], offset: [1, 1] },
+    ],
+  };
+  const addRoot = (timeline: object) => ({ type: "add", into: { block: A }, timeline });
+
+  it("are given to a new root, never to a timeline below it", () => {
+    expect(timestampsOf(changed(view, addRoot(late)))).toEqual([
+      T1,
+      T2,
+      T3,
+      mark("timestamp_4", "late", "origin", [0, 1]),
+      mark("timestamp_5", "late", "length", [4, 1]),
+    ]);
+  });
+
+  it("stand at the zero of each number type, and only at a known length", () => {
+    const ticks = changed(
+      view,
+      addRoot({ id: "midi", unit: "ticks", number_type: "int", length: 960 }),
+    );
+    expect(timestampsOf(ticks)?.slice(3)).toEqual([
+      mark("timestamp_4", "midi", "origin", 0),
+      mark("timestamp_5", "midi", "length", 960),
+    ]);
+    const audio = changed(
+      view,
+      addRoot({ id: "audio", unit: "seconds", number_type: "float", length: null }),
+    );
+    const [origin, ...more] =
+      timestampsOf(audio)?.filter((item) => item.timeline === "audio") ?? [];
+    expect(more).toEqual([]);
+    expect(origin).toEqual(mark("timestamp_4", "audio", "origin", new JsonFloat(0)));
+    expect(origin?.coordinate).toBeInstanceOf(JsonFloat);
+  });
+
+  it("come with the root in one journal entry, undone in one step", () => {
+    const store = storeOf(view);
+    const before = store.view;
+    const entries = store.journal.length;
+    expect(store.dispatch(addRoot(late))).toBeNull();
+    expect(store.journal.length).toBe(entries + 1);
+    expect(timestampsOf(store.view)?.map((item) => item.name)).toEqual([
+      "Downbeat",
+      "Climax",
+      "Entry",
+      "origin",
+      "length",
+    ]);
+    store.undo();
+    expect(store.view).toBe(before);
+  });
+
+  it("are given on import to the roots of a manifest without a graphical object", () => {
+    expect(importedManifest(withoutGraphical("bare.json")).graphical).toEqual({
+      order: {},
+      statements: [],
+      styles: {},
+      timestamps: [
+        mark("timestamp_1", "bare", "origin", [0, 1]),
+        mark("timestamp_2", "bare", "length", [8, 1]),
+      ],
+    });
+    expect(importedManifest(withoutGraphical("nested.json")).graphical?.timestamps).toEqual([
+      mark("timestamp_1", "clt_1", "origin", [0, 1]),
+      mark("timestamp_2", "clt_1", "length", [16, 1]),
+    ]);
+    const unknown = importedManifest(withoutGraphical("unknown_length.json"));
+    expect(unknown.graphical?.timestamps).toEqual([mark("timestamp_1", "score", "origin", [0, 1])]);
+    const stated = load(FIXTURE);
+    expect(importedManifest(stated)).toBe(stated);
+  });
+
+  it("are added with an imported block in one journal entry", () => {
+    const store = storeOf(viewOf());
+    const manifest = importedManifest(withoutGraphical("bare.json"));
+    const command = { type: "add", into: {}, block: { id: A, manifest, x: 0, y: 0 } };
+    expect(store.dispatch(command)).toBeNull();
+    expect(store.journal).toHaveLength(1);
+    expect(timestampsOf(store.view)).toEqual(manifest.graphical?.timestamps);
   });
 });
 
@@ -293,25 +484,55 @@ describe("a new length and the named timestamps", () => {
       path: [key(at("clt_1")), "length"],
     });
   });
-});
 
-describe("the cross-section line toggle", () => {
-  it("is a style on a statement addressing exactly the line", () => {
-    const hidden = changed(view, toggle("timestamp_1", "none"));
-    expect(graphicalOf(hidden)).toEqual({
-      order: {},
-      statements: [
-        STATEMENT,
-        {
-          select: { addresses: [{ id: "timestamp_1", part: ["line"] }] },
-          set: { display: "none" },
-        },
-      ],
-      styles: {},
-      timestamps: [T1, T2, T3],
+  const ended = deepFreeze(changed(view, add("clt_1", { name: "End", coordinate: [8, 1] })));
+  const END = {
+    id: "timestamp_4",
+    timeline: "clt_1",
+    coordinate: [8, 1],
+    name: "End",
+    display: DEFAULT,
+  };
+
+  it("moves a timestamp at the end with the end", () => {
+    expect(timestampsOf(ended)).toEqual([T1, T2, END, T3]);
+    const longer = changed(ended, set(at("clt_1"), { length: [10, 1] }));
+    expect(timestampsOf(longer)).toEqual([T1, T2, { ...END, coordinate: [10, 1] }, T3]);
+    const shorter = changed(ended, set(at("clt_1"), { length: [7, 1] }));
+    expect(timestampsOf(shorter)).toEqual([T1, T2, { ...END, coordinate: [7, 1] }, T3]);
+    const unknown = changed(ended, set(at("clt_1"), { length: null }));
+    expect(timestampsOf(unknown)).toEqual([T1, T2, END, T3]);
+    const tail = { id: "tail", unit: "quarters", number_type: "fraction", length: [4, 1] };
+    const grown = changed(ended, {
+      type: "add",
+      into: at("clt_1"),
+      child: { ...tail, offset: [6, 1] },
     });
-    expect(graphicalOf(changed(hidden, toggle("timestamp_1", null)))).toEqual(fixture);
-    expect(graphicalOf(changed(view, toggle("timestamp_2", null)))?.statements).toEqual([]);
+    expect(block(grown).manifest.timelines[0]?.length).toEqual([10, 1]);
+    expect(timestampsOf(grown)).toEqual([T1, T2, { ...END, coordinate: [10, 1] }, T3]);
+  });
+
+  it("follows every change of one set, which changes what it moved", () => {
+    const there = changed(ended, {
+      type: "set",
+      changes: [
+        { target: at("clt_1"), values: { length: [6, 1] } },
+        { target: at("clt_1"), values: { length: [8, 1] } },
+      ],
+    });
+    expect(block(there).manifest.timelines[0]?.length).toEqual([8, 1]);
+    expect(timestampsOf(there)).toEqual([T1, { ...T2, coordinate: [8, 1] }, END, T3]);
+  });
+
+  it("is one journal entry, undone in one step", () => {
+    const store = storeOf(ended);
+    const before = store.view;
+    const entries = store.journal.length;
+    expect(store.dispatch(set(at("clt_1"), { length: [10, 1] }))).toBeNull();
+    expect(store.journal.length).toBe(entries + 1);
+    expect(timestampsOf(store.view)?.[2]?.coordinate).toEqual([10, 1]);
+    store.undo();
+    expect(store.view).toBe(before);
   });
 });
 
@@ -333,6 +554,7 @@ describe("the guard and the named timestamps", () => {
   });
   const inChild = [
     set(at("timestamp_3"), { name: "In" }),
+    set(at("timestamp_3"), { display: [] }),
     add("clt_2", { name: "Exit", coordinate: [3, 1] }),
   ];
   const outOfChild: [object, string, readonly unknown[]][] = [
@@ -343,11 +565,6 @@ describe("the guard and the named timestamps", () => {
       [key(at("timestamp_4"))],
     ],
     [remove(at("timestamp_2")), "timestamp 'Climax'", [key(at("timestamp_2"))]],
-    [
-      toggle("timestamp_1", "none"),
-      "the graphical statements of the anonymous bundle",
-      [A, "manifest", "graphical", "statements"],
-    ],
   ];
 
   it("lets the editor of a timeline change the timestamps lying on it", () => {
@@ -360,7 +577,7 @@ describe("the guard and the named timestamps", () => {
     }
   });
 
-  it("removes a timestamp and its statement, or a timeline with its timestamps, inside it", () => {
+  it("removes a timestamp, or a timeline with its timestamps, inside it", () => {
     const commands = [
       remove(at("timestamp_2")),
       remove(at("clt_2")),

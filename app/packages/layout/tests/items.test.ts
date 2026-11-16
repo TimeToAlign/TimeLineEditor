@@ -132,7 +132,7 @@ describe("the scale of an item", () => {
     const name = element(drawing, at("bare", "name"));
     expect(name).toMatchObject({ x: 24, baseline: 44.4208984375 });
     expect(name.style["font-size"]).toBe(22);
-    expect(element(drawing, at("bare", "start"))).toMatchObject({
+    expect(element(drawing, at("timestamp_1"))).toMatchObject({
       type: "wedge",
       x: 91.154296875,
       yt: 39.8046875,

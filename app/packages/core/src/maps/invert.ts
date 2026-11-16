@@ -22,7 +22,7 @@ import { compareReal, toRational } from "../number/real.ts";
 import type { CompileContext } from "./compile.ts";
 import { compileMap, increasing, readFloat, readValue } from "./compile.ts";
 import type { MapValue } from "./values.ts";
-import { exactOf, floatOf, isMapValue } from "./values.ts";
+import { floatOf, isMapValue } from "./values.ts";
 
 /** What a map is inverted with: the compile context and the span of positions it is read over. */
 export interface InversionContext extends CompileContext {
@@ -63,7 +63,7 @@ function linearInverse(scalar: MapValue, offset: MapValue, y: MapValue): MapValu
   if (typeof scalar === "number" || typeof offset === "number" || typeof y === "number") {
     return (floatOf(y) - floatOf(offset)) / floatOf(scalar);
   }
-  return exactOf(y).subtract(exactOf(offset)).divide(exactOf(scalar));
+  return toRational(y).subtract(toRational(offset)).divide(toRational(scalar));
 }
 
 /** The one direction of `directions`, `null` when there is none or they differ. */
@@ -132,7 +132,7 @@ function tableInverse(reach: TableReach, i: number, y: MapValue, exact: boolean)
   if (exact && typeof y !== "number") {
     const [a, b, c, d] = [x0, x1, y0, y1].map((value) => toRational(realOf(value)));
     return (a as Rational).add(
-      exactOf(y)
+      toRational(y)
         .subtract(c as Rational)
         .multiply((b as Rational).subtract(a as Rational))
         .divide((d as Rational).subtract(c as Rational)),

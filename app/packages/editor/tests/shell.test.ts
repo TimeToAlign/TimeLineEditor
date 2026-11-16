@@ -6,16 +6,20 @@ import {
   createStore,
   createView,
   emptyWorkspace,
+  importedManifest,
   isLoadError,
+  loadManifest,
   readWorkspace,
   saveManifest,
   writeWorkspace,
 } from "@timetoalign/tilie-core";
 import { fontMetrics, SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import App from "../src/App.svelte";
 import { createAutosave, recoverWorkspace } from "../src/autosave.ts";
+import type { Example } from "../src/examples.ts";
+import { EXAMPLES } from "../src/examples.ts";
 import { manifestFileName } from "../src/files.ts";
 import { WorkspaceSession } from "../src/workspaceSession.svelte.ts";
 import { stubEditor } from "./dom.ts";
@@ -33,6 +37,13 @@ const A = "0000000000";
 const B = "0000000001";
 const health = { name: "tilie-server", version: "0.1.0", timetoalign: "1.2.0" };
 const EMPTY_TEXT = writeWorkspace(emptyWorkspace());
+
+/** The text of the workspace example "Timestamps". */
+function exampleText(): Promise<string> {
+  const example = EXAMPLES.find((item) => item.label === "Timestamps");
+  if (example === undefined) throw new Error("no example Timestamps");
+  return example.text();
+}
 
 let app: ReturnType<typeof mount> | undefined;
 
@@ -207,6 +218,9 @@ describe("opening and saving", () => {
     await vi.waitFor(() => expect(messages().length).toBe(1));
     const [message] = messages();
     expect(message?.startsWith("bad.tle.json is not a workspace file")).toBe(true);
+    expect(document.querySelector('[data-testid="message"]')?.getAttribute("data-kind")).toBe(
+      "warning",
+    );
     const problem = document.querySelector('[data-testid="message"] li')?.textContent ?? "";
     expect(problem.startsWith("invalid_json ")).toBe(true);
     expect(problem.endsWith(" at the top level")).toBe(true);
@@ -233,10 +247,11 @@ describe("opening and saving", () => {
     choose("New workspace");
     await vi.waitFor(() =>
       expect(openDialog()).toEqual({
-        question: "untitled.tle.json has unsaved changes. Discard them?",
-        answers: ["Discard", "Cancel"],
+        question: "untitled.tle.json has unsaved changes. Save them?",
+        answers: ["Save", "Discard", "Cancel"],
       }),
     );
+    expect(document.activeElement?.textContent).toBe("Cancel");
     answer("Cancel");
     await vi.waitFor(() => expect(openDialog()).toBe(null));
     expect(hook().store()).toBe(store);
@@ -247,6 +262,43 @@ describe("opening and saving", () => {
     await vi.waitFor(() => expect(hook().store()).not.toBe(store));
     expect(hook().store().view).toEqual(createView());
     expect(fileName()).toBe("untitled.tle.json");
+
+    const fresh = hook().store();
+    choose("New workspace");
+    await vi.waitFor(() => expect(hook().store()).not.toBe(fresh));
+    expect(openDialog()).toBe(null);
+  });
+
+  it("saves unsaved changes first when Save is the answer, and keeps them when nothing is saved", async () => {
+    start();
+    const downloads = interceptDownloads();
+    addBlock(hook().store(), A);
+    const store = hook().store();
+    const saved = writeWorkspace(store.snapshot());
+    choose("New workspace");
+    await vi.waitFor(() => expect(openDialog()).not.toBe(null));
+    answer("Save");
+    await vi.waitFor(() => expect(hook().store()).not.toBe(store));
+    expect([downloads, hook().store().view, fileName()]).toEqual([
+      [["untitled.tle.json", saved]],
+      createView(),
+      "untitled.tle.json",
+    ]);
+
+    addBlock(hook().store(), A);
+    const kept = hook().store();
+    vi.stubGlobal(
+      "showSaveFilePicker",
+      vi.fn(async () => {
+        throw new DOMException("cancelled", "AbortError");
+      }),
+    );
+    choose("New workspace");
+    await vi.waitFor(() => expect(openDialog()).not.toBe(null));
+    answer("Save");
+    await vi.waitFor(() => expect(openDialog()).toBe(null));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect([hook().store() === kept, fileName()]).toEqual([true, "• untitled.tle.json"]);
   });
 
   it("saves writeWorkspace of the store and clears the mark", async () => {
@@ -348,6 +400,27 @@ describe("saving twice at once", () => {
   });
 });
 
+describe("the message bar", () => {
+  it("shows a copy in the Timestamp tab as information", async () => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: async () => {} },
+    });
+    onTestFinished(() => {
+      Reflect.deleteProperty(navigator, "clipboard");
+    });
+    start();
+    hook().load(workspaceOf("bundles/bundle_mixed"));
+    hook().select([{ block: A, id: "timestamp_9" }]);
+    flushSync();
+    document.querySelector<HTMLButtonElement>('button[aria-label="Copy the value"]')?.click();
+    await vi.waitFor(() => expect(messages()).toEqual(["Copied 0."]));
+    expect(document.querySelector('[data-testid="message"]')?.getAttribute("data-kind")).toBe(
+      "info",
+    );
+  });
+});
+
 describe("undo and redo keys", () => {
   it("leave a text input to the browser and drop selected addresses that are gone", () => {
     start();
@@ -395,50 +468,71 @@ describe("manifests", () => {
     expect(hook().store().journal.length).toBe(1);
   });
 
-  it("offers no import while an editor is open", async () => {
+  it("gives a manifest without a graphical object its roots' default timestamps", async () => {
+    start();
+    const { graphical: _, ...plain } = JSON.parse(fixtureText("nested")) as {
+      [key: string]: unknown;
+    };
+    choose("Import manifest…");
+    await vi.waitFor(() => pickFile("plain.json", JSON.stringify(plain)));
+    await vi.waitFor(() => expect(hook().store().journal.length).toBe(1));
+    const [id] = Object.keys(hook().store().view.blocks);
+    const loaded = loadManifest(JSON.stringify(plain));
+    if (isLoadError(loaded) || id === undefined) throw new Error("not imported");
+    const manifest = hook().store().view.blocks[id]?.manifest;
+    expect(manifest).toEqual(importedManifest(loaded));
+    expect(manifest?.graphical?.timestamps?.map((item) => [item.timeline, item.name])).toEqual([
+      ["clt_1", "origin"],
+      ["clt_1", "length"],
+    ]);
+  });
+
+  it("offers Import manifest… while an editor is open", () => {
     start();
     addBlock(hook().store(), A);
     expect(hook().open({ block: A })).toBeNull();
     flushSync();
-    expect(item("Import manifest…").getAttribute("aria-disabled")).toBe("true");
-    choose("Import manifest…");
-    await Promise.resolve();
-    expect(document.querySelector("input[type=file]")).toBeNull();
-    expect(hook().store().journal.length).toBe(1);
-
-    hook().done();
-    flushSync();
     expect(item("Import manifest…").getAttribute("aria-disabled")).toBe(null);
   });
 
-  it("picks no file and dispatches nothing when imported into with an editor open", async () => {
-    const say = vi.fn();
-    const session = new WorkspaceSession({ say });
+  it("leaves every open editor before it adds a manifest; a refused one leaves them open", async () => {
+    const warn = vi.fn();
+    const session = new WorkspaceSession({ warn });
     const { store } = session;
-    expect(
-      store.dispatch({
-        type: "add",
-        into: {},
-        block: { id: A, manifest: fixture("bare"), x: 0, y: 0 },
-      }),
-    ).toBeNull();
-    expect(store.open({ block: A })).toBeNull();
-    const showOpenFilePicker = vi.fn(async () => []);
-    vi.stubGlobal("showOpenFilePicker", showOpenFilePicker);
-    const canvas = { visible: vi.fn(), focus: vi.fn() };
-    const view = store.view;
+    const added = store.dispatch({
+      type: "add",
+      into: {},
+      block: { id: A, manifest: fixture("bare"), x: 0, y: 0 },
+    });
+    expect([added, store.open({ block: A }), store.open({ block: A, id: "bare" })]).toEqual([
+      null,
+      null,
+      null,
+    ]);
+    const canvas = {
+      visible: () => ({ x: 0, y: 0, zoom: 1, width: 0, height: 0 }),
+      focus: vi.fn(),
+    };
+    const example = (text: string): Example => ({
+      label: "Example",
+      kind: "manifest",
+      text: async () => text,
+    });
 
-    await session.importManifest(canvas, fontMetrics);
-    expect([
-      session.importable,
-      showOpenFilePicker.mock.calls.length,
-      document.querySelector("input[type=file]"),
-      store.view === view,
-      store.journal.length,
-      canvas.visible.mock.calls.length,
-      canvas.focus.mock.calls.length,
-      say.mock.calls.length,
-    ]).toEqual([false, 0, null, true, 1, 0, 0, 0]);
+    await session.importExample(example('{"meta": {}}'), canvas, fontMetrics);
+    expect([store.editing.length, store.journal.length, warn.mock.calls.length]).toEqual([2, 1, 1]);
+
+    await session.importExample(example(fixtureText("flow_control")), canvas, fontMetrics);
+    const last = (store.journal.at(-1) as CommandEntry | undefined)?.command as {
+      type: string;
+      block: { id: string };
+    };
+    expect([store.editing.length, last.type, [...session.selection.values()]]).toEqual([
+      0,
+      "add",
+      [{ block: last.block.id }],
+    ]);
+    expect(store.view.blocks[last.block.id]?.manifest).toEqual(fixture("flow_control"));
     session.dispose();
   });
 
@@ -456,7 +550,11 @@ describe("manifests", () => {
       "Sonata in two takes",
       "Styled edition",
       "Repeats and jumps",
+      "Timestamps",
     ]);
+    expect(Array.from(menu?.querySelectorAll('[role="menuitem"][aria-disabled]') ?? [])).toEqual(
+      [],
+    );
 
     choose("Styled edition", examplesButton());
     await vi.waitFor(() => expect(hook().store().journal.length).toBe(1));
@@ -476,19 +574,49 @@ describe("manifests", () => {
     expect(hook().selection()).toEqual([{ block: id }]);
   });
 
-  it("offers no example while an editor is open", async () => {
+  it("offers every example while an editor is open", () => {
     start();
     addBlock(hook().store(), A);
     expect(hook().open({ block: A })).toBeNull();
     flushSync();
-    expect(item("Repeats and jumps").getAttribute("aria-disabled")).toBe("true");
-    choose("Repeats and jumps", examplesButton());
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(hook().store().journal.length).toBe(1);
+    expect(EXAMPLES.map(({ label }) => item(label).getAttribute("aria-disabled"))).toEqual(
+      EXAMPLES.map(() => null),
+    );
+  });
 
-    hook().done();
-    flushSync();
-    expect(item("Repeats and jumps").getAttribute("aria-disabled")).toBe(null);
+  it("opens Timestamps as the workspace, asking first on unsaved changes", async () => {
+    start();
+    const text = await exampleText();
+    const workspace = readWorkspace(text);
+    if (isLoadError(workspace)) throw new Error("the example is refused");
+    addBlock(hook().store(), A);
+    const store = hook().store();
+    choose("Timestamps", examplesButton());
+    await vi.waitFor(() =>
+      expect(openDialog()).toEqual({
+        question: "untitled.tle.json has unsaved changes. Save them?",
+        answers: ["Save", "Discard", "Cancel"],
+      }),
+    );
+    answer("Cancel");
+    await vi.waitFor(() => expect(openDialog()).toBe(null));
+    expect(hook().store()).toBe(store);
+
+    choose("Timestamps", examplesButton());
+    await vi.waitFor(() => expect(openDialog()).not.toBe(null));
+    answer("Discard");
+    await vi.waitFor(() => expect(hook().store()).not.toBe(store));
+    expect([hook().text(), hook().store().view.name, fileName(), hook().store().journal]).toEqual([
+      text,
+      "Timestamps",
+      "untitled.tle.json",
+      workspace.journal,
+    ]);
+
+    const opened = hook().store();
+    choose("Timestamps", examplesButton());
+    await vi.waitFor(() => expect(hook().store()).not.toBe(opened));
+    expect([openDialog(), hook().text()]).toEqual([null, text]);
   });
 
   it("exports the manifest of the block the selection lies in, complete or minimal", async () => {

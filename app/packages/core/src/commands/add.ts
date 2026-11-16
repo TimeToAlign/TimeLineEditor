@@ -10,7 +10,7 @@
  * the manifest the command would leave at `[<block id>, "manifest", …]`.
  */
 
-import { SCHEMA_VERSION } from "@timetoalign/timetoshare";
+import { DEFAULTS, SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import type { CommandError, LoadError, Problem } from "../errors.ts";
 import { ErrorCode, isCommandError, isLoadError, problem } from "../errors.ts";
 import type { JsonObject, PathSegment } from "../json.ts";
@@ -45,15 +45,15 @@ import {
   withTimeline,
   withTimestamps,
 } from "./mutations.ts";
-import {
-  BLOCK_PROPERTIES,
-  readBlockManifest,
-  readTimestampCoordinate,
-  setProperty,
-} from "./set.ts";
+import { BLOCK_PROPERTIES, readBlockManifest, setProperty } from "./set.ts";
 import { withSegmentLinesCovered } from "./settle.ts";
 import type { BlockTarget, TargetKind, TimelineTarget } from "./targets.ts";
 import { targetOf } from "./targets.ts";
+import {
+  readTimestampCoordinate,
+  readTimestampDisplay,
+  withDefaultTimestamps,
+} from "./timestamps.ts";
 import { placeChild } from "./topology.ts";
 import type { AddCommand, AddKind, Command } from "./types.ts";
 import { ADD_KINDS } from "./types.ts";
@@ -251,7 +251,11 @@ function readNew(
   return ids.has(id) ? duplicated(id, [...path, "id"]) : { object, id, path, ids };
 }
 
-/** Add a root timeline to a block's manifest: its ID taken by no element of the manifest. */
+/**
+ * Add a root timeline to a block's manifest: its ID taken by no element of
+ * the manifest. It is given its default timestamps (`withDefaultTimestamps`),
+ * its descendants none.
+ */
 function addTimeline(view: View, target: BlockTarget, value: unknown, changes: ChangeSet) {
   const read = readNew(target, "timeline", value);
   if (isCommandError(read)) return read;
@@ -262,10 +266,8 @@ function addTimeline(view: View, target: BlockTarget, value: unknown, changes: C
   const timeline = readTimeline(object, undefined, manifest.measure_maps, ids, at, path);
   if (isCommandError(timeline)) return timeline;
   record(changes, path, block.id, true);
-  return withBlock(view, {
-    ...block,
-    manifest: { ...manifest, timelines: [...manifest.timelines, timeline] },
-  });
+  const added = { ...manifest, timelines: [...manifest.timelines, timeline] };
+  return withBlock(view, { ...block, manifest: withDefaultTimestamps(added, timeline) });
 }
 
 /**
@@ -393,16 +395,21 @@ function addElement(
   return withTimeline(view, block, at, changed);
 }
 
-/** The members of a named timestamp `add` is given; its ID is minted and its timeline is the target. */
-const TIMESTAMP_VALUE = ["name", "coordinate"];
+/** The members a named timestamp `add` is given must have; its ID is minted and its timeline is the target. */
+const TIMESTAMP_REQUIRED = ["name", "coordinate"];
+
+/** Every member a named timestamp `add` is given may have. */
+const TIMESTAMP_VALUE = [...TIMESTAMP_REQUIRED, "display"];
 
 /**
- * Add a named timestamp into a timeline: `{name, coordinate}`, both
- * required (`invalid_value`), nothing else (`unknown_property`); the name
- * non-empty, the coordinate on the timeline's own axis within it
- * (`readTimestampCoordinate`). It is given the smallest free
- * `timestamp_N` of the manifest and written into its `graphical` object's
- * `timestamps`, which `settle` puts in canonical order.
+ * Add a named timestamp into a timeline: `{name, coordinate, display?}`,
+ * name and coordinate required (`invalid_value`), nothing else
+ * (`unknown_property`); the name non-empty, the coordinate on the
+ * timeline's own axis within it (`readTimestampCoordinate`), the display
+ * read by `readTimestampDisplay`, the schema's default where it is left
+ * out. It is given the smallest free `timestamp_N` of the manifest and
+ * written into its `graphical` object's `timestamps`, which `settle` puts
+ * in canonical order.
  */
 function addTimestamp(
   view: View,
@@ -415,7 +422,7 @@ function addTimestamp(
   if (isCommandError(object)) return object;
   const extra = unknownMember(object, TIMESTAMP_VALUE, path, ErrorCode.unknownProperty);
   if (extra !== undefined) return extra;
-  for (const member of TIMESTAMP_VALUE) {
+  for (const member of TIMESTAMP_REQUIRED) {
     if (!Object.hasOwn(object, member)) {
       return problem(ErrorCode.invalidValue, `a new timestamp needs ${member}`, [...path, member]);
     }
@@ -428,9 +435,14 @@ function addTimestamp(
     "coordinate",
   ]);
   if (isCommandError(coordinate)) return coordinate;
+  const display =
+    object.display === undefined
+      ? [...DEFAULTS.timestamp.display]
+      : readTimestampDisplay(object.display, [...path, "display"]);
+  if (isCommandError(display)) return display;
   const { manifest } = block;
   const id = nextId(TIMESTAMP_PREFIX, manifestIds(manifest));
-  const timestamp = { id, timeline: at.timeline.id, coordinate, name };
+  const timestamp = { id, timeline: at.timeline.id, coordinate, name, display };
   const timestamps = [...(manifest.graphical?.timestamps ?? []), timestamp];
   record(changes, path, block.id, true);
   return withBlock(view, { ...block, manifest: withTimestamps(manifest, timestamps) });

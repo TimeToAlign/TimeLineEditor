@@ -22,8 +22,8 @@
  */
 
 import type { Command } from "@timetoalign/tilie-core";
-import type { DescriptorSource } from "@timetoalign/tilie-writers";
 import type { Attachment } from "svelte/attachments";
+import type { CanvasSource } from "./boxes.ts";
 import { drawingMatrix, pointIn } from "./motion.ts";
 
 /**
@@ -152,15 +152,15 @@ export function drawingPoint(target: EventTarget | null, client: Point): Point |
   return matrix === null ? null : pointIn(matrix, client.x, client.y);
 }
 
-/** The source of each drawn descriptor element, by its DOM element (`drawn`). */
-const sources = new WeakMap<Element, DescriptorSource>();
+/** The source of each element a block node draws, by its DOM element (`drawn`). */
+const sources = new WeakMap<Element, CanvasSource>();
 
 /**
- * Record that the element it is attached to draws the descriptor of
- * `source`, so a pointer target is read back as the drawing's element it
- * draws (`sourceAt`), never from the DOM's attributes.
+ * Record that the element it is attached to draws `source`, so a pointer
+ * target is read back as what it draws (`sourceAt`), never from the DOM's
+ * attributes.
  */
-export function drawn(source: DescriptorSource): Attachment<Element> {
+export function drawn(source: CanvasSource): Attachment<Element> {
   return (element) => {
     sources.set(element, source);
     return () => {
@@ -169,8 +169,8 @@ export function drawn(source: DescriptorSource): Attachment<Element> {
   };
 }
 
-/** The descriptor source a pointer target draws (`drawn`); `null` for anything else. */
-export function sourceAt(target: EventTarget | null): DescriptorSource | null {
+/** The source a pointer target draws (`drawn`); `null` for anything else. */
+export function sourceAt(target: EventTarget | null): CanvasSource | null {
   return target instanceof Element ? (sources.get(target) ?? null) : null;
 }
 

@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 /**
  * Show coordinates on the canvas: the wedge and the cross-section line of
- * the hovered and the pinned position, what a click pins, what turning it
- * off clears, how a named timestamp is selected in either mode, and the
- * zoom's range. Derived in `README.md` ("The coordinate marks and the mode
- * split").
+ * the hovered and the pinned position, the flag, what a click pins, what
+ * turning it off clears, how a named timestamp is selected in either mode
+ * (one that draws nothing too) and deleted, and the zoom's range. Derived
+ * in `README.md` ("The coordinate marks and the mode split").
  */
 
 import type { Address, Manifest, MeasureKnots, Pin, Store, View } from "@timetoalign/tilie-core";
@@ -14,20 +14,20 @@ import {
   inBlock,
   partAddress,
   pinAt,
-  timestampAt,
 } from "@timetoalign/tilie-core";
 import { Rational } from "@timetoalign/tilie-core/numbers";
 import type { Drawing } from "@timetoalign/tilie-layout";
 import { crossSection, wedgeAt } from "@timetoalign/tilie-layout";
-import { attributeText } from "@timetoalign/tilie-writers";
+import { ADDRESS_ATTRIBUTES, attributeText, writeSvg } from "@timetoalign/tilie-writers";
 import type { Viewport } from "@xyflow/svelte";
 import { mount, unmount } from "svelte";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import type { KnotsOf } from "../src/coordinates.ts";
-import { axesOf, namedPin, readingAt } from "../src/coordinates.ts";
-import { drawingOf } from "../src/drawing.ts";
+import { axesOf, readingAt } from "../src/coordinates.ts";
+import { descriptorsOf, drawingOf } from "../src/drawing.ts";
 import { project } from "../src/project.ts";
 import { NOTHING_SELECTED, type Selection, selectionOf } from "../src/selection.ts";
+import { timestampOwner } from "../src/selectionRules.ts";
 import Harness from "./CanvasHarness.svelte";
 import { settle, stubCanvasGlobals } from "./dom.ts";
 import { A, blockIn, changed, metrics, storeOf, viewOf } from "./support.ts";
@@ -53,7 +53,7 @@ const VIEW: Viewport = { x: 0, y: 0, zoom: 1 };
 /** Block A holding `map` at (40, 80). */
 const mapView = (): View => viewOf({ id: A, fixture: "map", x: 40, y: 80 });
 
-/** `map` with the named timestamp `timestamp_1` ("Four") at 4 quarters on `melody`. */
+/** `map` with the named timestamp `timestamp_3` ("Four") at 4 quarters on `melody`. */
 const namedView = (): View =>
   changed(mapView(), {
     type: "add",
@@ -65,9 +65,10 @@ let mounted: ReturnType<typeof mount> | undefined;
 let harness: Mounted;
 let store: Store;
 let pins: (Pin | null)[];
+let resize: ReturnType<typeof stubCanvasGlobals>["resize"];
 
 beforeEach(() => {
-  stubCanvasGlobals();
+  ({ resize } = stubCanvasGlobals());
   pins = [];
 });
 
@@ -118,12 +119,14 @@ function shown(): { drawing: Drawing; x: number; y: number } {
   return { drawing: drawingOf(blockIn(view, A), view.graphical, metrics), ...node.position };
 }
 
-/** The key of `melody`'s line in block A's drawing (layout's `lineAxes`). */
-function melodyKey(drawing: Drawing): string {
-  const found = [...axesOf(drawing)].find(([, axis]) => axis.timeline === "melody");
-  if (found === undefined) throw new Error("no line of melody");
+/** The key of the line of timeline `id` in block A's drawing (layout's `lineAxes`). */
+function lineKey(drawing: Drawing, id: string): string {
+  const found = [...axesOf(drawing)].find(([, axis]) => axis.timeline === id);
+  if (found === undefined) throw new Error(`no line of ${id}`);
   return found[0];
 }
+
+const melodyKey = (drawing: Drawing): string => lineKey(drawing, "melody");
 
 /** The client point of block A's drawing point `(x, y)` at `VIEW` (jsdom puts the canvas at 0, 0). */
 function client(x: number, y: number): { clientX: number; clientY: number } {
@@ -239,8 +242,8 @@ describe("the hovered position", () => {
     await toggleCoordinates();
     await hoverAt(client(AT_4, MELODY_Y));
     const node = one(".svelte-flow__node[data-id] svg");
-    const wedge = one('polygon[data-id="timestamp_1"]:not([data-part])', node);
-    const line = one('line[data-id="timestamp_1"][data-part="line"]', node);
+    const wedge = one('polygon[data-id="timestamp_3"]:not([data-part])', node);
+    const line = one('line[data-id="timestamp_3"][data-part="line"]', node);
     expect(marks("hover")).toEqual({
       wedge: attributes(wedge, WEDGE),
       line: attributes(line, LINE),
@@ -269,7 +272,8 @@ describe("the pinned timestamp", () => {
     await settle();
     expect(marks("pin")).toEqual(expectedMarks(drawing, key, AT_2));
 
-    harness.pin({ ...pin, named: "timestamp_1" });
+    const timestamps = blockIn(namedView(), A).manifest.graphical?.timestamps ?? [];
+    harness.pin({ ...pin, named: timestamps.find((item) => item.id === "timestamp_3") ?? null });
     await settle();
     expect(marks("pin")).toBeNull();
 
@@ -287,8 +291,9 @@ describe("pinning", () => {
     expect(pins).toHaveLength(1);
     const [pin] = pins;
     expect(pin?.named).toBeNull();
-    expect(pin?.spec.line.timeline).toBe("melody");
+    expect(pin?.spec.anchor.timeline).toBe("melody");
     expect(pin?.timestamp.parts[0]?.position).toEqual(Rational.of([4, 1]));
+    expect(one('[data-testid="coordinate-pinned"]').textContent).toBe("Pinned Melody at 4 ♩");
 
     await clickAt(client(AT_4, MELODY_Y + 30));
     expect(pins.slice(1)).toEqual([null]);
@@ -302,9 +307,9 @@ describe("pinning", () => {
 });
 
 describe("the mode split", () => {
-  const timestamp: Address = inBlock(A, idAddress("timestamp_1"));
+  const timestamp: Address = inBlock(A, idAddress("timestamp_3"));
 
-  /** The drawn elements of block A letting the pointer through, as `[tag, data-id, data-part]`. */
+  /** The elements of block A's node letting the pointer through, as `[tag, data-id, data-part]`. */
   function passing(): (string | null)[][] {
     const node = one(".svelte-flow__node[data-id] svg");
     return [...node.querySelectorAll('[pointer-events="none"]')].map((element) => [
@@ -314,45 +319,226 @@ describe("the mode split", () => {
     ]);
   }
 
-  /** The drawn elements of `timestamp_1` that show the selection, as `data-part`. */
+  /** The drawn elements of block A carrying a named timestamp's address, as `passing` lists them. */
+  function stampParts(): (string | null)[][] {
+    const { manifest } = blockIn(store.view, A);
+    return descriptorsOf(shown().drawing).flatMap(({ tag, source }) =>
+      timestampOwner(manifest, source.address) === null
+        ? []
+        : [[tag, source.address.id ?? null, source.address.part?.join(" ") ?? null]],
+    );
+  }
+
+  /** The drawn elements of `timestamp_3` that show the selection, as `data-part`. */
   function glowing(): (string | null)[] {
     const node = one(".svelte-flow__node[data-id] svg");
-    return [...node.querySelectorAll('[data-id="timestamp_1"][data-selected]')].map((element) =>
+    return [...node.querySelectorAll('[data-id="timestamp_3"][data-selected]')].map((element) =>
       element.getAttribute("data-part"),
     );
   }
 
-  it("lets the pointer through a named timestamp only while Show coordinates is on", async () => {
+  it("lets the pointer through every named timestamp only while Show coordinates is on", async () => {
     await show(namedView());
     expect(passing()).toEqual([]);
     await toggleCoordinates();
-    expect(passing()).toEqual([
-      ["polygon", "timestamp_1", null],
-      ["text", "timestamp_1", "label"],
-      ["line", "timestamp_1", "line"],
+    expect(
+      stampParts()
+        .map(([, id, part]) => `${id} ${part}`)
+        .sort(),
+    ).toEqual([
+      "timestamp_1 coordinate",
+      "timestamp_1 null",
+      "timestamp_2 coordinate",
+      "timestamp_2 null",
+      "timestamp_3 line",
+      "timestamp_3 name",
+      "timestamp_3 null",
     ]);
+    expect(passing()).toEqual(stampParts());
     await toggleCoordinates();
     expect(passing()).toEqual([]);
   });
 
   it.each([
-    ["wedge", 'polygon[data-id="timestamp_1"]:not([data-part])'],
-    ["label", 'text[data-id="timestamp_1"][data-part="label"]'],
-    ["line", 'line[data-id="timestamp_1"][data-part="line"]'],
+    ["wedge", 'polygon[data-id="timestamp_3"]:not([data-part])'],
+    ["name label", 'text[data-id="timestamp_3"][data-part="name"]'],
+    ["line", 'line[data-id="timestamp_3"][data-part="line"]'],
   ])("selects the timestamp by its %s with Show coordinates off", async (_, selector) => {
     await show(namedView());
     const element = one(selector, one(".svelte-flow__node[data-id] svg"));
     element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await settle();
     expect([...harness.current().selection.values()]).toEqual([timestamp]);
-    expect(glowing()).toEqual([null, "label", "line"]);
+    expect(glowing()).toEqual([null, "name", "line"]);
   });
 
-  it("shows a selected label part on the label alone", async () => {
+  it("shows a selected name label part on the label alone", async () => {
     await show(namedView());
-    harness.select(selectionOf([inBlock(A, partAddress(idAddress("timestamp_1"), "label"))]));
+    harness.select(selectionOf([inBlock(A, partAddress(idAddress("timestamp_3"), "name"))]));
     await settle();
-    expect(glowing()).toEqual(["label"]);
+    expect(glowing()).toEqual(["name"]);
+  });
+
+  it("deletes a selected timestamp with Delete", async () => {
+    // The drawing's elements slide when the deletion moves them; jsdom has no Web Animations.
+    for (const [name, value] of [
+      ["animate", () => ({ cancel() {}, onfinish: null })],
+      ["getAnimations", () => []],
+    ] as const) {
+      Object.defineProperty(Element.prototype, name, { value, configurable: true, writable: true });
+    }
+    onTestFinished(() => {
+      for (const name of ["animate", "getAnimations"])
+        Reflect.deleteProperty(Element.prototype, name);
+    });
+    await show(namedView());
+    harness.select(selectionOf([timestamp]));
+    await settle();
+    arranger().dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Delete", bubbles: true, cancelable: true }),
+    );
+    await settle();
+    expect(blockIn(store.view, A).manifest.graphical?.timestamps?.map((item) => item.id)).toEqual([
+      "timestamp_1",
+      "timestamp_2",
+    ]);
+    expect(harness.current().selection.size).toBe(0);
+  });
+});
+
+describe("a timestamp that draws nothing", () => {
+  /** `timestamps` with `display` `[]` set on `timestamp_2` ("Climax", 6 on `clt_1`). */
+  const silentView = (): View =>
+    changed(viewOf({ id: A, fixture: "timestamps", x: 40, y: 80 }), {
+      type: "set",
+      changes: [{ target: inBlock(A, idAddress("timestamp_2")), values: { display: [] } }],
+    });
+
+  const affordances = () => [...document.querySelectorAll(".tilie-timestamp-affordance")];
+
+  it("is shown on the canvas alone as a light-grey wedge where its wedge would lie", async () => {
+    await show(silentView());
+    const { drawing } = shown();
+    expect(
+      descriptorsOf(drawing).filter(({ source }) => source.address.id === "timestamp_2"),
+    ).toEqual([]);
+    const figure = writeSvg([{ drawing, x: 0, y: 0, scale: 1 }]);
+    expect(figure).toContain('data-id="timestamp_1"');
+    expect(figure).not.toContain('data-id="timestamp_2"');
+    const [affordance, ...more] = affordances();
+    expect(more).toEqual([]);
+    const wedge = wedgeAt(drawing, lineKey(drawing, "clt_1"), 349.91552734375);
+    if (affordance === undefined || wedge === null) throw new Error("no affordance");
+    expect(attributes(affordance, ["points", "fill", "pointer-events"])).toEqual({
+      points: attributeText(wedge.points),
+      fill: null,
+      "pointer-events": null,
+    });
+    expect(ADDRESS_ATTRIBUTES.map((name) => affordance.getAttribute(name))).toEqual([
+      null,
+      null,
+      null,
+    ]);
+  });
+
+  it("is never shown for a timestamp that displays something", async () => {
+    await show(namedView());
+    expect(affordances()).toEqual([]);
+    if (mounted !== undefined) unmount(mounted);
+    mounted = undefined;
+    await show(viewOf({ id: A, fixture: "timestamps", x: 40, y: 80 }));
+    expect(affordances()).toEqual([]);
+  });
+
+  it("selects the timestamp with Show coordinates off and lets the pointer through while on", async () => {
+    await show(silentView());
+    const [affordance] = affordances();
+    affordance?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await settle();
+    expect([...harness.current().selection.values()]).toEqual([
+      inBlock(A, idAddress("timestamp_2")),
+    ]);
+    expect(affordances()[0]?.hasAttribute("data-selected")).toBe(true);
+    await toggleCoordinates();
+    expect(affordances()[0]?.getAttribute("pointer-events")).toBe("none");
+  });
+});
+
+describe("the flag", () => {
+  /** The flag shown hovering `melody` at 4 on a canvas `width` pixels wide, the flag 180 wide. */
+  async function flagAt(width: number) {
+    await show(mapView());
+    Object.defineProperty(arranger(), "clientWidth", { value: width, configurable: true });
+    await toggleCoordinates();
+    await hoverAt(client(AT_4, MELODY_Y));
+    const flag = one(".tilie-coordinates-flag");
+    Object.defineProperty(flag, "offsetWidth", { value: 180, configurable: true });
+    resize(flag, 180, 100);
+    await settle();
+    return {
+      flag: one(".tilie-coordinates-flag") as HTMLElement,
+      pole: one('[data-testid="coordinate-pole"]') as HTMLElement,
+    };
+  }
+
+  it("hangs at its pole, opening to the right", async () => {
+    const { flag, pole } = await flagAt(1000);
+    const { x, y } = shown();
+    expect([pole.style.left, pole.style.width, pole.style.top, pole.style.height]).toEqual([
+      `${x + AT_4 - 0.5}px`,
+      "1px",
+      `${y + 16 - 22}px`,
+      "46.5px",
+    ]);
+    expect([flag.style.left, flag.style.top, flag.dataset.flipped]).toEqual([
+      `${x + AT_4 + 0.5}px`,
+      `${y + 16 - 22}px`,
+      "false",
+    ]);
+  });
+
+  it("opens to the left where it would leave the canvas", async () => {
+    const { flag } = await flagAt(400);
+    expect([flag.style.left, flag.dataset.flipped]).toEqual([
+      `${shown().x + AT_4 - 0.5 - 180}px`,
+      "true",
+    ]);
+  });
+
+  it("lists the parts with their rows, the hovered one highlighted", async () => {
+    await flagAt(1000);
+    const rows = () =>
+      [...document.querySelectorAll(".tilie-coordinates-part")].map((part) => [
+        part.querySelector(".tilie-coordinates-head")?.textContent,
+        [...part.querySelectorAll(".tilie-coordinates-row")].map((row) => [
+          row.querySelector(".tilie-coordinates-name")?.textContent,
+          row.querySelector(".tilie-coordinates-value")?.textContent,
+          row.getAttribute("data-hovered"),
+        ]),
+      ]);
+    expect(rows()).toEqual([
+      [
+        "Melody",
+        [
+          ["coordinate", "4♩", "true"],
+          ["Tempo", "2.0s", "false"],
+        ],
+      ],
+      [
+        "Phrase",
+        [
+          ["coordinate", "2♩", "false"],
+          ["Ticks", "960ticks", "false"],
+        ],
+      ],
+    ]);
+    await hoverAt(client(AT_4, 35));
+    expect(
+      [...document.querySelectorAll('.tilie-coordinates-row[data-hovered="true"]')].map((row) =>
+        row.getAttribute("data-map"),
+      ),
+    ).toEqual(["tempo"]);
+    expect(one('[data-testid="coordinate-footer"]').textContent).toBe("click to pin");
   });
 });
 
@@ -393,54 +579,5 @@ describe("the canvas's MeasureMaps for others", () => {
   it("gives nothing without a server", async () => {
     await show(measureView());
     expect(harness.knotsOf(blockIn(store.view, A).manifest)).toBeUndefined();
-  });
-});
-
-describe("a named timestamp's pin", () => {
-  /** The pin of `timestamp_1` in block A of `view`, read without a server. */
-  const pinIn = (view: View) => {
-    const block = blockIn(view, A);
-    const drawing = drawingOf(block, view.graphical, metrics);
-    return namedPin(block.manifest, A, drawing, "timestamp_1", DEFAULT_GRANULARITY, "no_server");
-  };
-
-  it("is read on its line, and on its own axis with its own maps while no line draws it", () => {
-    const spec = {
-      block: A,
-      granularity: DEFAULT_GRANULARITY,
-      line: {
-        timeline: "melody",
-        name: "Melody",
-        unit: "quarters",
-        numberType: "fraction",
-        length: Rational.fromParts(8n, 1n),
-        maps: [
-          {
-            id: "tempo",
-            name: "Tempo",
-            offset: 0,
-            scalar: [1, 2],
-            source_unit: "quarters",
-            target_unit: "seconds",
-            type: "LinearMap",
-          },
-        ],
-      },
-      segments: [],
-    } as const;
-    const expected = {
-      spec,
-      knots: "no_server",
-      timestamp: timestampAt(spec, Rational.fromParts(4n, 1n), "no_server"),
-      named: "timestamp_1",
-    };
-    const hidden = changed(namedView(), {
-      type: "style",
-      select: { addresses: [{ id: "melody" }] },
-      set: { display: "none" },
-      blocks: [A],
-    });
-    expect(axesOf(drawingOf(blockIn(hidden, A), hidden.graphical, metrics)).size).toBe(0);
-    expect([pinIn(namedView()), pinIn(hidden)]).toEqual([expected, expected]);
   });
 });

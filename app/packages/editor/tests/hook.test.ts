@@ -139,7 +139,7 @@ function mapBands(phrase: number) {
   return [
     [{ id: "melody", facet: "children" }, "melody", "children", 2, 1],
     [{ id: "melody", facet: "conversion_maps" }, "melody", "conversion_maps", 1, 1],
-    [{ id: "melody", facet: "markers" }, "melody", "markers", -1, 2],
+    [{ id: "melody", facet: "markers" }, "melody", "markers", -1, 4],
     [{ id: "phrase", facet: "conversion_maps" }, "phrase", "conversion_maps", phrase, 1],
   ];
 }

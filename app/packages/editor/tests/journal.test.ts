@@ -152,6 +152,20 @@ describe("journalRows", () => {
           blocks: [A],
         }),
         entry({ type: "style", select: { element: "timeline" }, set: { stroke: "#FF0000" } }),
+        entry({
+          type: "add",
+          into: address(A, "score"),
+          timestamp: { name: "Upbeat", coordinate: [16, 5] },
+        }),
+        entry({
+          type: "set",
+          changes: [{ target: address(A, "timestamp_9"), values: { display: ["wedge"] } }],
+        }),
+        entry({
+          type: "set",
+          changes: [{ target: address(A, "timestamp_9"), values: { name: "Zero" } }],
+        }),
+        entry({ type: "remove", targets: [address(A, "timestamp_9")] }),
       ].map((only) => textOf(only)),
     ).toEqual([
       "Added block '0000000003'",
@@ -167,6 +181,10 @@ describe("journalRows", () => {
       "Styled stroke of 'score'",
       "Styled stroke of timeline 'Score' in bundle 'Mixed'",
       "Styled stroke of matching elements",
+      "Added timestamp 'Upbeat' to timeline 'Score' in bundle 'Mixed'",
+      "Set display of timestamp 'origin' in bundle 'Mixed'",
+      "Set name of timestamp 'origin' in bundle 'Mixed'",
+      "Removed timestamp 'origin' in bundle 'Mixed'",
     ]);
   });
 

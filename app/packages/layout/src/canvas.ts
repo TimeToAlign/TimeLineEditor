@@ -146,11 +146,15 @@ export function placedAxis(axis: DrawnAxis, dx: number, dy: number, scale = 1): 
               base: scale * marker.wedge.base,
               style: scaledStyle(marker.wedge.style, scale),
             },
-            crossSection: {
-              y1: y(marker.crossSection.y1),
-              y2: y(marker.crossSection.y2),
-              style: scaledStyle(marker.crossSection.style, scale),
-            },
+            crossSection:
+              marker.crossSection === null
+                ? null
+                : {
+                    y1: y(marker.crossSection.y1),
+                    y2: y(marker.crossSection.y2),
+                    style: scaledStyle(marker.crossSection.style, scale),
+                  },
+            descendants: marker.descendants,
           },
     xStart: dx + scale * axis.xStart,
     xEnd: dx + scale * axis.xEnd,

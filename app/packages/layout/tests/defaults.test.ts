@@ -82,19 +82,19 @@ describe("the default layer resolved", () => {
     expect(
       styles(drawing, at("second-half", "name"), ["fill", "font-size", "max-width", "opacity"]),
     ).toEqual([["#000000", 11, 160, 1]]);
-    for (const end of ["start", "end"] as const) {
-      const wedges = styles(drawing, at("second-half", end), ["fill", "opacity"]);
-      expect(wedges.toSorted((a, b) => (a[1] as number) - (b[1] as number))).toEqual([
+    // The marks on the ancestor line fade; the member's own `origin` and `length` do not.
+    for (const [end, own] of [
+      ["start", "timestamp_3"],
+      ["end", "timestamp_4"],
+    ] as const) {
+      expect(styles(drawing, at("second-half", end), ["fill", "opacity"])).toEqual([
         ["#000000", 0.35],
-        ["#000000", 1],
       ]);
-      const labels = styles(drawing, at("second-half", end, "label"), [
-        "fill",
-        "font-size",
-        "opacity",
-      ]);
-      expect(labels.toSorted((a, b) => (a[2] as number) - (b[2] as number))).toEqual([
-        ["#000000", 9, 0.35],
+      expect(styles(drawing, at(own), ["fill", "opacity"])).toEqual([["#000000", 1]]);
+      expect(
+        styles(drawing, at("second-half", end, "label"), ["fill", "font-size", "opacity"]),
+      ).toEqual([["#000000", 9, 0.35]]);
+      expect(styles(drawing, at(own, "coordinate"), ["fill", "font-size", "opacity"])).toEqual([
         ["#000000", 9, 1],
       ]);
     }

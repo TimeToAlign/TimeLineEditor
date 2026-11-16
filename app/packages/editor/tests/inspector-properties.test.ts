@@ -40,7 +40,7 @@ import {
   stepValue,
 } from "../src/inspector/properties.ts";
 import { holder } from "./holder.svelte.ts";
-import { editorAt } from "./support.ts";
+import { editorAt, informing } from "./support.ts";
 
 const M = "bmixed0000";
 /** The members of a place, in the order a place is written and the form shows them. */
@@ -552,6 +552,7 @@ describe("the Properties form", () => {
     const selection = holder<Selection>(addresses(...elements));
     app = mount(Inspector, {
       target: document.body,
+      context: informing(),
       props: {
         live: liveStore(store),
         get selection() {

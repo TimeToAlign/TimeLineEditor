@@ -32,7 +32,7 @@ import { removeCommand } from "../src/commands.ts";
 import { drawingOf } from "../src/drawing.ts";
 import type { Editing } from "../src/editing.ts";
 import { elementsInRect } from "../src/marquee.ts";
-import type { BlockNode } from "../src/project.ts";
+import type { BlockNode } from "../src/node.ts";
 import type { Selection } from "../src/selection.ts";
 import { existing, offersBand, selectedBand, selectionOf } from "../src/selection.ts";
 import {
@@ -471,7 +471,7 @@ describe("on layout's drawing of styled__score", () => {
         facet: "markers",
         level: 1,
         line: y,
-        elements: 2,
+        elements: 4,
       },
       {
         address: bandAddress("score", "conversion_maps"),

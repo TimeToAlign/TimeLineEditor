@@ -418,7 +418,7 @@ describe("applying a text", () => {
       return [problem?.code, problem?.line, problem?.column];
     });
     expect(positions).toEqual([
-      ["syntax_error", 19, 17],
+      ["syntax_error", 52, 17],
       ["syntax_error", 14, 5],
       ["syntax_error", 16, 1],
     ]);
@@ -452,50 +452,30 @@ describe("comments", () => {
 });
 
 describe("the four text modes", () => {
-  /** The `graphical` member of the styled `bare`'s JSON text, complete and minimal. */
-  const STYLED = {
-    complete: [
-      '  "graphical": {',
-      '    "order": {},',
-      '    "statements": [',
-      "      {",
-      '        "select": {',
-      '          "element": "timeline"',
-      "        },",
-      '        "set": {',
-      '          "stroke": "#800000"',
-      "        }",
-      "      }",
-      "    ],",
-      '    "styles": {},',
-      '    "timestamps": []',
-      "  },",
-      "",
-    ].join("\n"),
-    minimal: [
-      '  "graphical": {',
-      '    "statements": [',
-      "      {",
-      '        "select": {',
-      '          "element": "timeline"',
-      "        },",
-      '        "set": {',
-      '          "stroke": "#800000"',
-      "        }",
-      "      }",
-      "    ]",
-      "  },",
-      "",
-    ].join("\n"),
-  };
+  /** The statement the `style` of `styledBare` adds. */
+  const STATEMENT = { select: { element: "timeline" }, set: { stroke: "#800000" } };
+  /** A fixture's text as an object. */
+  const objectOf = (name: string) => parseJson(fixtureText(name)) as { [key: string]: Json };
+  /** `fixture` without its `graphical` (the styling), or with the statement added to it. */
+  function shownOf(fixture: { [key: string]: Json }, styled: boolean): string {
+    const { graphical, ...rest } = fixture;
+    if (!styled) return dumps(rest);
+    const own = graphical as { [key: string]: Json };
+    const statements = [...((own.statements ?? []) as Json[]), STATEMENT];
+    return dumps({ ...rest, graphical: { ...own, statements } });
+  }
   const bare = fixtureText("bare");
   const bareMinimal = fixtureText("bare.minimal");
-  /** The JSON text each mode shows; `graphical` sorts first. */
+  /**
+   * The JSON text each mode shows: the fixture `bare.json` or
+   * `bare.minimal.json`, whose `graphical` holds its root's default
+   * timestamps, without that `graphical` or with the statement added to it.
+   */
   const SHOWN: Record<Mode, string> = {
-    "complete without styling": bare,
-    "complete with styling": `{\n${STYLED.complete}${bare.slice(2)}`,
-    "minimal without styling": bareMinimal,
-    "minimal with styling": `{\n${STYLED.minimal}${bareMinimal.slice(2)}`,
+    "complete without styling": shownOf(objectOf("bare"), false),
+    "complete with styling": shownOf(objectOf("bare"), true),
+    "minimal without styling": shownOf(objectOf("bare.minimal"), false),
+    "minimal with styling": shownOf(objectOf("bare.minimal"), true),
   };
   /** The timeline's name changed from `Bare` to `Renamed`, in each format. */
   const RENAMED: Record<Format, readonly [string, string]> = {
@@ -520,8 +500,11 @@ describe("the four text modes", () => {
     const shown = parseJson(SHOWN[mode]) as Json;
 
     it(`shows the pinned text, ${mode}`, () => {
-      // The texts with the styling are spliced in after the opening "{\n" of the files.
-      expect([bare.slice(0, 2), bareMinimal.slice(0, 2)]).toEqual(["{\n", "{\n"]);
+      // Both fixtures state the default timestamps of their root in their `graphical`.
+      expect([bare, bareMinimal].map((text) => text.includes('"timestamps"'))).toEqual([
+        true,
+        true,
+      ]);
       expect(bareMinimal).not.toBe(bare);
       const store = styledBare();
       const manifest = manifestIn(store, A);
@@ -596,13 +579,10 @@ describe("the four text modes", () => {
         const applied = applyText(store, A, "json", edited, options);
         if (!applied.ok) throw new Error(JSON.stringify(applied.problems));
         expect(store.journal).toHaveLength(3);
+        const { graphical } = objectOf("bare");
+        const recoloured = { ...STATEMENT, set: { stroke: "#008000" } };
         expect(dumps(at(manifestIn(store, A), "graphical"))).toBe(
-          dumps({
-            order: {},
-            statements: [{ select: { element: "timeline" }, set: { stroke: "#008000" } }],
-            styles: {},
-            timestamps: [],
-          }),
+          dumps({ ...(graphical as { [key: string]: Json }), statements: [recoloured] }),
         );
       });
     } else {

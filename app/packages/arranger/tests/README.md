@@ -133,8 +133,8 @@ member drawing's card spacing `S`, between its rows and between its bands
     four descriptors addressed `{id: "score"}` in each card: in `exposition`'s its
     line, its start dot and two chevrons at the right; in
     `recapitulation`'s its line, two chevrons at the left and its
-    arrowhead. `{id: "exposition", part: ["start"]}` is drawn twice, on the ancestor line and
-    on `exposition`'s own. Every item is the drawing fixture
+    arrowhead. `{id: "exposition", part: ["start"]}` is drawn once, on the ancestor line (no
+    line marks its own start). Every item is the drawing fixture
     `bundle__bundle_shared_parent`'s 567.3901 wide, `Wf = 2324030 / 4096 =
     567.39013671875` (the only multiple of 1/4096 that rounds to it), and
     every member's card 551.3901, `Wf − 16`. Every term of the start `s0`
@@ -283,8 +283,10 @@ node and the identity of every node that did not change.
   are the writers' descriptors of its drawing; what lies inside is the key
   of every drawn address but the block's background, for `bare` exactly
   the card `{id: "bare", part: ["card"]}`, the line `{id: "bare"}`, then
-  its parts `start`, `end`, `name`, `start label`, `end label` (`part:
-  ["start"]` … `part: ["end", "label"]`), in drawing order.
+  the wedges of its named timestamps `origin` and `length` (`{id:
+  "timestamp_1"}`, `{id: "timestamp_2"}`), its name `{id: "bare", part:
+  ["name"]}`, and their coordinate labels (`{id: "timestamp_1", part:
+  ["coordinate"]}`, then `timestamp_2`'s), in drawing order.
 - **A node lies at its place origin** (section 8.6): `bundle_mixed` at
   (40, 80) with `annotations` at `{x: −30, y: −20}` lies at `(2,
   31.1953125)`, `616.484619140625 × 440.578125`; at scale 2 at `(−36,
@@ -298,10 +300,13 @@ node and the identity of every node that did not change.
   drawing order: the frame `{id: "group_1"}` and its title `{id:
   "group_1", part: ["name"]}`, then each member's card and every address
   drawn on it (`score`'s card, its maps `cmap_1`, `cmap_2`, its jump
-  origin, its line and parts, the jump's label; `performance`'s card, its
-  map `cmap_3`, its line and parts), never the manifest's title, `group_2`
-  or `annotations`; in `annotations`' timeline editor its card and every
-  address drawn on it.
+  origin, its line, the wedges of its named timestamps `origin` and
+  `length` (`timestamp_9`, `timestamp_10`), its name, their coordinate
+  labels, the jump's label; `performance`'s card, its map `cmap_3`, its
+  line, `timestamp_7`'s and `timestamp_8`'s wedges, its name, their
+  labels), never the manifest's title, `group_2` or `annotations`; in
+  `annotations`' timeline editor its card and every address drawn on it,
+  its named timestamps `timestamp_1` and `timestamp_2` among them.
 - **Several roots.** A block of `numbers` with `{block: A, id: "region_1",
   part: ["label"]}` selected holds the selected element `{id: "region_1",
   part: ["label"]}` and affects `{id: "region_1"}`.
@@ -478,8 +483,11 @@ and request, so the search stays monotone with or without a request.
 | 553 or 500 | 553 | 600 | `null` |
 | `null` | 553 | 600 | `null` |
 
-`audio` is `corpus_audio_audio` at (40, 80) with every name hidden: its
-labels "0.0 s" and "231.079 s" (the end 231.0791836734694 rounded to three
+`audio` is `corpus_audio_audio` at (40, 80) as the editor imports it
+(core's `importedManifest`: a manifest without `graphical` gets its root's
+named timestamps `origin` at 0.0 and `length` at its length, each drawing
+its wedge and its coordinate label) with every name hidden: its labels
+"0.0 s" and "231.079 s" (the end 231.0791836734694 rounded to three
 places, TimeToShare's drawing specification section 5.2) are
 21.86279296875 and 44.76708984375 wide (the bundled font's advances at
 size 9), so `W` is flat at 107.3974609375 below the knee `L* =
@@ -569,18 +577,22 @@ accepted.
 
 A selected part or card stands for the element whose ID it carries, the
 target `{block, id}`; duplicates collapse in selection order, and every
-command not refused is accepted, the removed IDs gone from the manifest.
+command not refused is accepted, the removed IDs gone from the manifest
+and every other ID kept (`with_region` keeps `clt_1`, `clt_2`, `clt_3` and
+the named timestamps `timestamp_1`, `timestamp_2` without `region_1`;
+`nested` keeps `clt_1`, `timestamp_1`, `timestamp_2` without `clt_3`).
 The tables of this section write an address by its members: `A` for
 `{block: A}`, `A: clt_3` for `{block: A, id: "clt_3"}`, `A: clt_3 [name]`
 for `{block: A, id: "clt_3", part: ["name"]}`, `A: [name]` for the title
 `{block: A, part: ["name"]}`; without the `A:` the element address alone
-(`clt_1 [start, label]` is `{id: "clt_1", part: ["start", "label"]}`).
+(`second-half [start, label]` is `{id: "second-half", part: ["start",
+"label"]}`).
 
 | view | selection | result |
 |---|---|---|
 | nested | {A} / {A: clt_3} / {A: clt_3 [name], A: clt_3} | targets [A] / [A: clt_3] / [A: clt_3] |
 | with_region | {A: region_1 [label]} | [A: region_1] |
-| nested; B bare | {B, A: clt_1 [start]} | [B, A: clt_1] |
+| nested; B bare | {B, A: clt_1 [name]} | [B, A: clt_1] |
 | any | {} | refused: `Nothing is selected.` |
 | numbers | {A: region_1 [label]} or with the region | [A: region_1] |
 | group_child_member | {A: second-half [start]} | [A: second-half] |
@@ -628,20 +640,30 @@ rule reads the manifest alone: the owners are the IDs the selected
 element addresses carry (the title carries none, a band is no owner); core
 names what removing them removes; the result is the keys (`addressKey`) of
 every drawn address of a removed element and of its parts, without the
-selected addresses and the parts of a directly selected element.
-Hand-derived from the fixtures' trees (`nested` `clt_1` ⊃ `clt_3` ⊃
-`clt_2`; `map` `melody`, map `tempo`, ⊃ `phrase`, map `ticks`):
+selected addresses and the parts of a directly selected element. A
+timeline's named timestamps go with it (core's `removedBy`). Hand-derived
+from the fixtures' trees (`nested` `clt_1` ⊃ `clt_3` ⊃ `clt_2`; `map`
+`melody`, map `tempo`, ⊃ `phrase`, map `ticks`) and their named
+timestamps, each drawing its wedge and its coordinate label (`ts N` below
+stands for `timestamp_N` and `timestamp_N [coordinate]`): `origin` and
+`length` of `nested`'s `clt_1` (`ts 1`, `ts 2`), of `numbers`'s `score`
+(`ts 5`, `ts 6`), of `group_child_member`'s `recording` (`ts 1`, `ts 2`)
+and `second-half` (`ts 3`, `ts 4`, a member card's), of `map`'s `melody`
+(`ts 1`, `ts 2`). A root draws no start or end marks of its own; a member
+drawn below its ancestor still has the marks of its start and end on the
+ancestor's line.
 
 | fixture | selection | affected |
 |---|---|---|
 | nested | {clt_3} / {clt_2} / {clt_3 [name]} | {clt_2, clt_2 [name]} / ∅ / {clt_3, clt_2, clt_2 [name]} |
-| nested | {clt_1} | {clt_3, clt_3 [name], clt_2, clt_2 [name]} |
-| nested | {clt_1 [start]} | {clt_1 [card], clt_1, clt_1 [name], clt_1 [start, label], clt_1 [end], clt_1 [end, label], clt_3, clt_3 [name], clt_2, clt_2 [name]} |
+| nested | {clt_1} | {clt_3, clt_3 [name], clt_2, clt_2 [name], ts 1, ts 2} |
+| nested | {clt_1 [name]} | {clt_1 [card], clt_1, clt_3, clt_3 [name], clt_2, clt_2 [name], ts 1, ts 2} |
 | map | {phrase} / {tempo} | {ticks} / ∅ |
+| map | {timestamp_1 [coordinate]} | {timestamp_1} |
 | with_region | {region_1 [label]} | {region_1} |
-| numbers | {region_1 [label]} / {region_1} / {score} | {region_1} / ∅ / {region_1, region_1 [label]} |
-| group_child_member | {piece} | {second-half [card], second-half [start], second-half [start, label], second-half [end], second-half [end, label], second-half, second-half [name]} |
-| group_child_member | {recording [card]} | {recording, recording [name], recording [start], recording [start, label], recording [end], recording [end, label]} |
+| numbers | {region_1 [label]} / {region_1} / {score} | {region_1} / ∅ / {region_1, region_1 [label], ts 5, ts 6} |
+| group_child_member | {piece} | {second-half [card], second-half [start], second-half [start, label], second-half [end], second-half [end, label], second-half, second-half [name], ts 3, ts 4} |
+| group_child_member | {recording [card]} | {recording, recording [name], ts 1, ts 2} |
 | corpus_mpm | {group_1} / {group_1 [name]} / {[name]} | ∅ / {group_1} / ∅ |
 
 The element an open editor edits is never deleted, so selecting it, or a
@@ -650,7 +672,7 @@ part of it, takes nothing away; the rest of the selection still does:
 | fixture | edited | selection | affected |
 |---|---|---|---|
 | nested | clt_3 | {clt_3} / {clt_3 [name]} | ∅ / ∅ |
-| nested | clt_1 | {clt_1 [start]} / {clt_1 [start], clt_3} | ∅ / {clt_2, clt_2 [name]} |
+| nested | clt_1 | {clt_1 [name]} / {clt_1 [name], clt_3} | ∅ / {clt_2, clt_2 [name]} |
 | corpus_mpm | group_1 | {group_1 [name]} | ∅ |
 | group_child_member | recording | {recording [card]} | ∅ |
 
@@ -696,8 +718,11 @@ given, and `isSelected` asks for an address by its key.
   id: "clt_9"}`, `{block: A, id: "clt_9", part: ["name"]}`, `{block: B}`,
   `{block: B, id: "clt_1"}` keep the first three in order (a part stands or falls with its element); on `numbers`, the
   label of `region_1`, the label of `region_2`, `score`'s name,
-  `group_1`'s name, `page`'s start and `{id: "nobody"}` keep the first,
-  the third, the fourth and the fifth; the title `{block: A, part:
+  `group_1`'s name, the coordinate label and the name label of `page`'s
+  named timestamp `timestamp_1` (`origin`, displaying its wedge and its
+  coordinate) and `{id: "nobody"}` keep the first, the third, the fourth
+  and the fifth (a part resolves only where its timestamp's `display`
+  draws it); the title `{block: A, part:
   ["name"]}` stays while its manifest is named (`bundle_mixed`), goes on an
   anonymous one (`nested`), as core resolves it. A selection wholly kept
   is returned as the identical object, so the canvas does not re-render.
@@ -707,11 +732,12 @@ given, and `isSelected` asks for an address by its key.
   keeps `{block: A, id: "group_1"}`, `{block: A, id: "score", part:
   ["card"]}` and `{block: A, id: "performance"}` and drops `{block: A}` and
   `{block: A, id: "page", part: ["card"]}`; `score`'s, opened inside it,
-  keeps `score`'s card and `{block: A, id: "score", part: ["start"]}` and
-  drops `{block: A, id: "performance"}`; opened alone it keeps `{block: A,
+  keeps `score`'s card and `score`'s named timestamp `{block: A, id:
+  "timestamp_9"}` and drops `{block: A, id: "performance"}`; opened alone it keeps `{block: A,
   id: "score"}` and `{block: A, id: "score", part: ["name"]}`; opened
   inside `group_1`'s it keeps `score`'s band `{block: A, id: "score",
-  facet: "conversion_maps"}` and its start and drops `performance`'s band.
+  facet: "conversion_maps"}` and `timestamp_9` and drops `performance`'s
+  band.
 - **An opened editor selects its edited element** (`editedSelection`), by
   the address a click on its box selects, read through core's resolver:
   on `bundle_mixed`, the bundle editor of `{block: A}` gives `{block: A}`,
@@ -746,10 +772,20 @@ coordinates are layout's.
   carrying the same `{id: S, part: ["start"]}` address. On
   `segment_line`: `{id: "form", part: ["card"]}` a card, `{id: "form"}`
   an element, `{id: "b", part: ["start"]}` and `{id: "b2", part:
-  ["start"]}` boundaries, `{id: "form", part: ["start"]}`'s wedge an
-  element; on `group_child_member`: `{id: "group_1"}` a frame, `{id:
-  "recording"}` an element, `{id: "recording", part: ["card"]}` a card,
-  `{id: "group_1", part: ["name"]}` an element.
+  ["start"]}` boundaries, the wedge of `form`'s named timestamp `{id:
+  "timestamp_1"}` an element; on `group_child_member`: `{id: "group_1"}`
+  a frame, `{id: "recording"}` an element, `{id: "recording", part:
+  ["card"]}` a card, `{id: "group_1", part: ["name"]}` an element, and
+  the mark of `second-half`'s start on its ancestor line, a wedge `{id:
+  "second-half", part: ["start"]}`, an element and no boundary.
+- **An affordance** (the canvas's own wedge for a named timestamp that
+  draws nothing, below in "Show coordinates") is no element of the
+  drawing: its source names no element index, only the kind `affordance`
+  and the timestamp's address. On `timestamps` with `display` `[]` on
+  `timestamp_2`, a press on it hits the element `{block: A, id:
+  "timestamp_2"}`, no box, no boundary, and selects exactly that address
+  on the arranger; in the timeline editor of `clt_1` it is hit before the
+  markers band under it, as a drawn element is, and selects the same.
 - **The box on top under a point** is the last displayed frame or card in
   drawing order whose rectangle holds the point, edges included; a frame
   or card that is not displayed holds no point. On `segment_line` a point
@@ -769,7 +805,8 @@ coordinates are layout's.
 - **What a press selects** is what it hit, inside what the level offers:
   on the arranger a card selects `{block: A, id: "recording", part:
   ["card"]}`, the frame `{block: A, id: "group_1"}`, the background
-  `{block: A}`, a line, a wedge or a title itself. The block is selected
+  `{block: A}`, a line, a wedge (`recording`'s named timestamp `{id:
+  "timestamp_1"}`) or a title itself. The block is selected
   only on the arranger and in its own bundle editor; in the group editor
   of `group_1` on `bundle_mixed`, `score`'s card, `{id: "group_1"}` and
   `{id: "score"}` select themselves, `page`'s card, `{id: "annotations"}`,
@@ -777,7 +814,8 @@ coordinates are layout's.
   stands for its timeline for every other reader: it still exists, its
   deletion removes `{block: A, id: "recording"}`, and what it takes away
   is the timeline's other drawn addresses: `{id: "recording"}`, its name,
-  its start and end wedges and their labels.
+  and its named timestamps `timestamp_1` and `timestamp_2` (`origin`,
+  `length`) with their coordinate labels.
 - **What the pointer highlights** is the box on top by its place key
   (`placeKeyText`), the boundary pressed and the band pressed by their
   addresses' keys (`addressKey`): on `group_child_member` the line
@@ -808,7 +846,7 @@ boxes by place key, `G › T` written for `{item: G, member: T}`, `G` for `{item
 
 | selected | holding boxes |
 |---|---|
-| `{id: "score"}`, or `{id: "score", part: ["start"]}` | group_1, group_1 › score |
+| `{id: "score"}`, or `{id: "timestamp_9"}` (the wedge of `score`'s `origin`) | group_1, group_1 › score |
 | `{id: "dlt_1"}`; `{id: "region_3", part: ["label"]}`; `{id: "excerpt"}`; `{id: "recording"}` (the ancestor line) | group_2, group_2 › excerpt |
 | `{id: "page", part: ["card"]}` | group_2 |
 | `{id: "group_1"}`; the title `{part: ["name"]}`; `{id: "annotations", part: ["card"]}` | none (the block alone) |
@@ -1374,8 +1412,9 @@ has, so core refuses it exactly with `{code: "invalid_value", message:
 
 **On layout's drawing of `styled__score`** the offered bands of `score`
 are children 2, markers 1, conversion maps −1, regions −2, flow control
-−3, holding 1, 2, 1, 1, 1 elements, each at the ordinate of `score`'s
-line; each steps as on S, gives nothing released at its own middle, and is
+−3, holding 1, 4, 1, 1, 1 elements (the markers band the wedges and
+coordinate labels of the named timestamps `origin` and `length`), each
+at the ordinate of `score`'s line; each steps as on S, gives nothing released at its own middle, and is
 hit at its centre through the card in `score`'s editor; the markers band's
 step down is accepted.
 
@@ -1435,9 +1474,13 @@ address in block A, written below by its element address:
 
 - The rectangle of `score`'s card gives, in drawing order, `{id:
   "cmap_1"}`, `{id: "cmap_2"}`, `{id: "jump_from_1"}`, `{id: "score"}`,
-  `{id: "score", part: ["start"]}`, `["end"]`, `["name"]`, `["start",
-  "label"]`, `["end", "label"]` of `score`, and `{id: "jump_from_1", part:
-  ["label"]}`, never the card.
+  `score`'s named timestamps `{id: "timestamp_9"}` and `{id:
+  "timestamp_10"}` (`origin`, `length`: each its wedge and its coordinate
+  label, which stand for the timestamp), `{id: "score", part: ["name"]}`
+  and `{id: "jump_from_1", part: ["label"]}`, never the card. Every part of
+  a named timestamp (its wedge, its labels, its line) stands for the
+  timestamp, taken where its first part is drawn, and only when every
+  part lies inside.
 - `cmap_7` lies in `dlt_1`'s conversion maps band, centred `1.5 + 5 − 1 =
   5.5` above `dlt_1`'s line; its reach 6.5 stays within the row's half
   pitch 7, so nothing else moves. The region lies in `excerpt`'s regions
@@ -1445,13 +1488,25 @@ address in block A, written below by its element address:
   then spans y 288.3203125 to 416.25.
 - `{40, 410, 600 × 86.25}` (drawing y 330 to 416.25) gives `{id:
   "cmap_6"}` (`excerpt`'s map), `{id: "cmap_7"}`, `{id: "region_3"}`,
-  `{id: "excerpt"}`, `{id: "dlt_1"}`, `{id: "dlt_1", part: ["name"]}`,
+  `{id: "excerpt"}`, `{id: "dlt_1"}`, `excerpt`'s named timestamps `{id:
+  "timestamp_3"}` and `{id: "timestamp_4"}` (drawn on `excerpt`'s own line
+  only, in its markers band below 330), `{id: "dlt_1", part: ["name"]}`,
   `{id: "excerpt", part: ["name"]}`, `{id: "region_3", part: ["label"]}`;
-  `excerpt`'s wedges and labels, drawn on the ancestor line above too, and
-  the ancestor line `{id: "recording"}` are left out.
+  the marks of `excerpt`'s start and end on the ancestor line above, and
+  the ancestor line `{id: "recording"}`, are left out.
 - Inside `dlt_1` only `{id: "cmap_7"}`, `{id: "dlt_1"}`, `{id: "dlt_1",
   part: ["name"]}`: core's containment decides by what an element belongs
   to; inside `group_1` nothing.
+- A named timestamp that draws nothing is taken by its affordance (its
+  bounds those of the affordance's three points, `affordancesOf`), whole,
+  as one address: on `timestamps`
+  with `display` `[]` on `timestamp_2` (6 on `clt_1`, its wedge at the
+  drawing's abscissa 349.91552734375, 3 to each side), the rectangle of
+  the whole drawing takes `timestamp_1`, `timestamp_2` and `timestamp_3`,
+  each once and no part of them; one ending at the drawing's abscissa 340
+  takes `timestamp_1` (at 3/2, abscissa 124.91552734375) and
+  `timestamp_3` (1 on `clt_2` at offset 2, 199.91552734375) without
+  `timestamp_2`.
 
 ## The segment's Delete menu (`gap-menu.test.ts`)
 
@@ -1469,35 +1524,44 @@ Escape and Cancel cancel, and only a permitted way can be chosen.
 
 With "Show coordinates" on, the pointer reads a timeline where it comes
 near its line or any map drawn at that line, and the reading is the
-timestamp of one position, held as the pin a click there makes. What
-would be wrong is shown by three questions, each answered with exact
-values: is the right thing hovered, is the right position picked, and
-does the timestamp read the right
-timelines and maps. The values a map gives are core's (its evaluators
-and `timestampAt` are proven against timetoalign there); the tests here
-assert the whole timestamp only to prove that the arranger hands core the
-line, the segments and the maps the drawing shows, in drawing order, and
-nothing else. Where a line lies is layout's: the tests read the lines
-and the maps of a drawing from layout's `lineAxes` record, the oracle for
-geometry, and derive every point from it; the numbers quoted below are
-that record's for block A holding the fixture at (40, 80), scale 1.
+timestamp of one position, held as the pin a click there makes. A
+timestamp is the cross-section of the hovered line's timeline (the
+anchor): everything its cross-section line crosses. What would be wrong
+is shown by four questions, each answered with exact values: is the right
+thing hovered, is the cross-section handed to core the one the drawing
+crosses, is the position picked on the hovered row, and is a named
+timestamp read as a click at its coordinate reads it. The values a map
+gives, the snapping rule and the timestamp itself are core's (proven
+there against timetoalign and by hand); the tests here prove that the
+arranger hands core the anchor, the members, their offsets and the maps
+the drawing shows, the right row and the right `p` and `h`, and nothing
+else. Where a line lies and which lines a cross-section line crosses is
+layout's: the tests read the lines and maps of a drawing from layout's
+`lineAxes` record and `crossedLines`, the oracles for geometry, and derive
+every point from them; the numbers quoted below are that record's for
+block A holding the fixture at (40, 80), scale 1.
 
-**Hovering.** A line is hovered anywhere in its zone: from the line out
-to the outermost map drawn at it, 8 device pixels beyond, over the line's
+**Hovering.** A line is read only where it draws coordinate markers (a
+line `crossedLines` crosses): never an ancestor line, which draws none.
+It is read over its drawn span, from `xStart` to `xEnd`, which stands for
+the coordinates of layout's record `drawnLength`: its length where known,
+else up to its reach (section 3.2), on the scale every line of its card
+shares; a line whose drawn length is 0 (a zero-length line, or one of
+unknown length reaching no further than its start) stands for no
+coordinate and is never hovered. A line is hovered anywhere in its zone: from the line out to
+the outermost map drawn at it, 8 device pixels beyond, over the line's
 span widened by 8 device pixels on each side, so the reading never stops
 between the line and a map or between two maps, at any zoom. One canvas
 unit covers zoom × the block's scale × the device pixel ratio device
 pixels, so at 1, 1, 1 the tolerance is 8 canvas units, at zoom 2 on ratio
 2 it is 2. Within the zone the nearest in ordinate of the line and of
 each map whose span (widened alike) holds the abscissa is hovered, the
-line on a tie, an earlier map before a later one; that map's row is the
-highlighted one. Where two lines' zones hold the point, the line nearer
-by what is hovered in it wins. The abscissa is held to the span of what
-is hovered. A line whose length is unknown (or zero) stands for no
-coordinate and is never hovered. In `map` (`melody` y 40.5 from
-63.53662109375 to 463.53662109375, its map `tempo` at 35 over the same
-span; `phrase` y 23 from 163.53662109375 to 363.53662109375 with `ticks`
-at 17.5), at the abscissa 263.53662109375:
+line on a tie, an earlier map before a later one. Where two lines' zones
+hold the point, the line nearer by what is hovered in it wins. The
+abscissa is held to the span of what is hovered. In `map` (`melody` y
+40.5 from 63.53662109375 to 463.53662109375, its map `tempo` at 35 over
+the same span; `phrase` y 23 from 163.53662109375 to 363.53662109375 with
+`ticks` at 17.5), at the abscissa 263.53662109375:
 
 | Point y | Hovered | Why |
 |---|---|---|
@@ -1510,8 +1574,24 @@ At (471.53662109375, 40.5), 8 right of `melody`'s end, the line is
 hovered with the abscissa held to 463.53662109375; at 471.55224609375
 nothing is. At (156, 20) `phrase`'s line (3 away) and its `ticks` (2.5)
 are both in reach and `ticks` wins, held to 163.53662109375. In
-`unknown_length` the line of `score` (length unknown, y 37) hovers
-nothing, even exactly on it.
+`unknown_length` the line of `score` (length unknown, y 37 from
+53.798828125 to 453.798828125) reaches 14 (its child `coda` at 10, 4
+long; its region ends at 8, its segno at 6): its drawn length is 14, so
+14/400 = 0.035 a canvas unit, and `coda`'s line starts at 53.798828125 +
+10/0.035 = 339.5131138392857 (layout's record). At (353.798828125, 37),
+on the line 300 right of its start, `p` = 300 · 0.035 = 10.5 and `h` =
+0.035 / 2 = 0.0175: the position is **21/2** (exact on divisor 2), and
+the timestamp holds `score` at 21/2 and `coda` at 1/2. A root of unknown
+length added to `map` without content, `late` (block A, `add {into:
+{block: A}, timeline: {id: late, unit: quarters, number_type: fraction,
+length: null}}`, which brings its `origin` `timestamp_3` at 0), reaches 0:
+its line is drawn (y 22.40234375 from 63.53662109375 to 463.53662109375)
+but its drawn length is 0, so it is not among the lines read and nothing
+is hovered on it. In `bundle_mixed` the card of `excerpt`
+draws the ancestor line of `recording` at y 323.296875 and `excerpt`'s
+line at 340.796875 with `cmap_6` at 335.296875 (126.29150390625 to
+526.29150390625): exactly on the ancestor line at 326.29150390625 nothing
+is hovered (`excerpt`'s zone begins at 327.296875).
 
 At zoom 2 on device-pixel ratio 2 (tolerance 2), with a second map
 `tempo_2` (`tempo` under another ID) added to `melody`, the line lies at
@@ -1530,57 +1610,165 @@ record), so the zone runs from 33 to 47.5. At the abscissa
 | 47.5 | `melody`'s line | 2 below the line, the bound included |
 | 47.515625 | nothing | 2.015625 below it |
 
-**The position.** The position is core's `snapPosition` of the
-pointer's coordinate (counted from the timeline's 0) with the line's
-number type and the workspace's granularity, its reach `h` half a device
-pixel in units: the line's length over its width, over zoom × scale ×
-ratio, halved; held to the line's span. Core proves the rule; here the
-inputs are proven, by positions the rule gives only for the right `h`. At
-the abscissa `xStart + 123.75` (dyadic, so exact in a double):
+**The cross-section.** The spec of a hovered line names its timeline as
+the anchor with the maps drawn at the line for it, then as members every
+timeline the cross-section line crosses: the lines `crossedLines` lists
+after the line itself, and the segments of every crossed line (its own
+included), each once, in traversal order (pre-order, children by offset).
+Each member's offset is its start on the anchor's axis, summed exactly
+down the manifest's tree from the anchor; each carries its name (its ID
+without one), unit, number type, length and the maps drawn for it at any
+crossed line, in drawing order, as the manifest holds them. An ancestor
+is never a member: a timestamp holds what its line crosses.
 
-| Fixture, line | Units per canvas unit | Zoom × ratio | Granularity | `p`, `h` | Position |
-|---|---|---|---|---|---|
-| `map`, `melody` (8 quarters over 400) | 1/50 | 1 × 1 | default | 2.475, 0.01 | divisors 1 to 14 miss (the nearest, 5/2, 0.025 away), 15 gives 37/15 (0.00833): **37/15** |
-| `map`, `melody` | 1/50 | 2 × 2 | default | 2.475, 0.0025 | 15, 18, 20 miss, 21 gives 52/21 (0.00119): **52/21** |
-| `map`, `melody` | 1/50 | 1 × 1 | denominator 5 | 2.475, 0.01 | 2 and 12/5 miss: the fallback **12/5** |
-| `maps_seconds` (2 s, float, over 400) | 1/200 | 1 × 1 | default | 0.61875, 0.0025 | 1 and 0.6 miss, 0.62 is 0.00125 away: **31/50**, read 0.62 |
-| `maps_seconds` | 1/200 | 1 × 1 | decimals 1 | 0.61875, 0.0025 | 1 and 0.6 miss: the fallback **3/5**, read 0.6 |
-| `discrete_physical`, `dpt_1` (44100 samples over 400) | 441/4 | 1 × 1 | default | 13643.4375, 55.125 | 2h = 110.25, from 100: 13600 is 43.4375 away: **13600** |
+- **From a root, with its children and their maps.** `map`'s `melody`:
+  the anchor `melody` ("Melody", quarters, fraction, 8, `[tempo]`), one
+  member `phrase` ("Phrase", 4, `[ticks]`) at offset 2 (its start 100
+  canvas units right of `melody`'s at 50 a quarter, and its manifest
+  offset).
+- **From a child, without its ancestors.** `phrase`'s line: the anchor
+  `phrase` with `[ticks]`, no members; `melody` is not one.
+- **Segment lines and segments, each once.** `segment_line` with `b2_ticks`
+  (`map`'s `ticks` under another ID) added to `b`'s segment `b2`: `form`'s
+  line crosses the lines of `a`, `b` and `c`, which are also `form`'s
+  segments, and those carry the segments `a1`, `b1`, `b2`, `c1`. The
+  members are `a` 0 (8), `a1` 0 (8), `b` 8 (12), `b1` 8 (6), `b2` 14 (6),
+  `c` 20 (12), `c1` 20 (12), offset (length), `b2` with `[b2_ticks]` drawn
+  at `b`'s line, every other without maps; `form` has none.
+- **A segment's map.** On `b`'s line (y 36.4765625 from 152.294921875 to
+  302.294921875, 12 quarters over 150) `b2_ticks` is drawn at 30.9765625
+  from 227.294921875 with `b2` as its owner; hovered, it is the row
+  `{timeline: "b2", map: "b2_ticks"}`, the line the row `{timeline: "b",
+  map: null}`. `b`'s spec: anchor `b` without maps, members `b1` 0 (6)
+  and `b2` 6 (6, `[b2_ticks]`).
 
-At `melody`'s end the position is 8, at its start 0. The reading's pin is
-unnamed (`named` `null`), reads its MeasureMaps as the reading does
-(`no_server` without a server) and holds the reading's timestamp; its
-spec carries the granularity it was read with (the same object), which
-the flag shows floats with. The flag's footer says `click to pin`.
+**The position: snapping on the hovered row.** The position is core's
+`snapOnRow` of the hovered row with `p` the pointer's coordinate on the
+line's axis (its abscissa held to the hovered span, from `xStart`, times
+the line's drawn length over its width) and `h` half a device pixel in
+the line's units: the drawn length over the width, over zoom × scale ×
+ratio, halved. Core proves the rule on these very rows (its README, "Snapping on
+a row"); here the inputs are proven, by positions the rule gives only
+for the right row, `p` and `h`.
 
-**What is read.** `segment_line` with a map `b_tempo` (`map`'s `tempo`
-under another ID) added to the segment line `b` and `b2_ticks` (`map`'s
-`ticks`) added to `b`'s segment `b2`, which has no line of its own, so it
-is drawn at `b`'s line: `b` y 39.9765625 from 152.294921875 to
-302.294921875 (12 quarters over 150, so `h` = 0.04 at zoom 1), `b_tempo` at 34.4765625
-over all of it, `b2_ticks` at 29.4765625 from 227.294921875.
+- **`bundle_mixed`'s `score`** (y 73.109375 from 126.29150390625 to
+  526.29150390625, 12 quarters over 400, so 0.03 a canvas unit; `cmap_1`
+  480·x onto ticks at 67.609375, `cmap_2` x/2 onto seconds at 62.609375).
+  At zoom 3.75, ratio 1, `h` = 0.03 / 3.75 / 2 = 0.004, and the abscissa
+  126.29150390625 + 3.13 / 0.03 gives `p` = 3.13 (the doubles nearest,
+  within 10⁻¹⁴, where every margin below is at least 0.001), core's own
+  pointer. On the line (y 73.109375) the position is **47/15**; on
+  `cmap_1` (y 67.609375) **751/240**; on `cmap_2` (y 62.609375) with
+  decimals 1 **16/5**, and with the default decimals 3 the value 1.565
+  itself (0 places 2, 1 place 1.6, 2 places 1.57 lie 0.435, 0.035, 0.005
+  from it, all beyond `hv` 0.002): **313/100**. The tolerance there is
+  8 / 3.75 = 2.1333 canvas units and the line and the maps lie 5 and 5.5
+  apart, so each pointer hovers exactly its row.
+- **`b2_ticks`** at zoom 1 (`h` = 12 / 150 / 2 = 0.04) at the abscissa
+  152.294921875 + 119.125 (`p` = 119.125 × 0.08 = 9.53): on `b`'s line,
+  9.53 on `b`'s fraction axis, divisor 1 gives 10 (0.47 away), 2 gives
+  19/2 (0.03 ≤ 0.04): **19/2**. On `b2_ticks` (y 30.9765625) the value is
+  (9.53 − 6)·480 = 1694.4 with `hv` = 0.08·480/2 = 19.2; ticks are int, so
+  `2·hv` = 38.4 admits multiples of 10: 1690 lies 4.4 away, inverted
+  1690/480 = 169/48 on `b2`, plus its offset 6: **457/48**. The timestamp
+  there holds `b` at 457/48 then `b2` at 169/48 with `b2_ticks` the int
+  1690 on ticks; `b1` (0 to 6) is not crossed.
+- **Other number types, through the line's own row**: `maps_seconds`
+  (`maps:seconds`, 2 seconds, float, over 400) at `xStart` + 123.75, `p`
+  0.61875, `h` 0.0025: 1 and 0.6 miss, 0.62 lies 0.00125 away: **31/50**,
+  read as the float 0.62; with decimals 1 the fallback **3/5**, read 0.6.
+  `discrete_physical`'s `dpt_1` (44100 samples over 400) at `xStart` +
+  123.75, `p` 13643.4375, `h` 55.125: `2h` = 110.25 admits multiples of
+  100: 13600 is 43.4375 away: **13600**, read as the int 13600.
+- **Held to the line's span.** `map`'s `melody` at 4 canvas units past its
+  end reads 8, at 4 before its start 0.
 
-- On `b`'s line at 223.294921875: 71/12.5 = 5.68; divisor 1 gives 6
-  (0.32 away), 2 gives 11/2 (0.18), 3 gives 17/3 (0.0133 ≤ 0.04) → 17/3.
-  The timestamp holds `b` at 17/3 with `b_tempo` 17/6 written on seconds
-  (float) 2.8333333333333335, then the segment under it, `b1` at 17/3
-  without maps; the spec lists both segments with their own maps only,
-  `b`'s map never under a segment, each with its length (`b1` 6, `b2` 6,
-  `b` 12).
-- On `b2_ticks` at the same abscissa: held to 227.294921875, the position
-  is 6, the boundary `b1` shares with `b2`. The hovered map names its
-  segment, so the timestamp holds `b` at 6 (`b_tempo` 3.0) then `b2` at 0
-  (`b2_ticks` 0 ticks), and `b2_ticks`'s row is the hovered one.
-- On `form`'s line at 152.294921875 (32 quarters over 400): 8,
-  the boundary of `a` and `b`; with the line hovered every segment is
-  given and core reads `b` at 0.
-- `map`: a child's reading holds its own maps only: `phrase` at its own
-  coordinate with `ticks`, never `melody`'s `tempo`.
+`p` and `h` read the line's drawn length, so a line of unknown length is
+read up to its reach exactly as a line of that length would be
+(`unknown_length` above).
 
-The flag writes each map's value with core's `displayValue` in the
-value's own number type, a float with the granularity's `decimals`, and
-its unit's symbol: `b_tempo` 3.0 as `3.0 s`, 2.8333333333333335 as `2.833
-s` at 3 places and `2.8 s` at 1, `b2_ticks` as `0 ticks`.
+The reading's pin is unnamed (`named` `null`), reads its MeasureMaps as
+the reading does (`no_server` without a server) and holds the reading's
+timestamp; its spec carries the granularity it was read with (the same
+object), which the flag shows floats with.
+
+**A named timestamp's pin** (`namedPin`) has its own timeline as the
+anchor, always, at its own coordinate: read as a click at its coordinate
+reads it, on the first line holding its timeline, with that line's
+cross-section (`{spec, knots, timestamp, named}`, `named` the manifest's
+own entry, the same object). With `timestamp_3` (the next free ID: `map`
+holds `origin` and `length` as `timestamp_1` and `timestamp_2`) at 4 on
+`melody`, the spec is `melody`'s from the root above and the timestamp
+core's `timestampAt(spec, 4)`: `melody` 4, `phrase` 2. A timestamp of a
+segment without a line of its own is read on its segment line's line
+anchored on the segment (`crossSectionSpec` with the segment as the
+anchor): its members are the timelines of the segment's own subtree that
+line crosses, never the segment line nor a sibling segment.
+`segment_line` with `b2_ticks` and a timestamp at 1 on `b2` (no children)
+reads the spec anchor `b2` ("b2", quarters, fraction, 6, `[b2_ticks]`, the
+map drawn at `b`'s line for it), no members, and the timestamp `b2` at 1
+with `b2_ticks` 480 (1·480); `b` and `b1` are no part of it. The same
+holds on a line of unknown length: `unknown_length`'s `origin`
+(`timestamp_1` at 0 on `score`) reads `score`'s spec (anchor `score`,
+length unknown, no maps; member `coda` at 10, 4 long) and the timestamp
+`score` 0 alone (`coda` starts at 10), and on a zero-length line: `late`'s
+`origin` (`timestamp_3`, above) reads anchor `late` (length unknown, no
+maps), no members, `late` 0. Where no line draws its timeline (its line
+hidden by a `style` of `{id: "melody"}`, `display: "none"`, so that the
+editor can still show it), it reads on its own axis with all its own maps
+and no members: anchor `melody` with `[tempo]`, `melody` 4 alone. An ID
+the manifest does not hold gives `null`.
+
+**The affordance of a named timestamp that draws nothing**
+(`affordancesOf`): a named timestamp whose `display` is emptied (`set
+{display: []}`) gets one affordance on every line holding its timeline
+(its own, else its segment line's at the segment's offset), whatever that
+line's length: the timestamp's address `{id}`, the line's key, and the
+three points of the wedge layout would draw there (`wedgeAt` at the
+abscissa of its coordinate on the line's drawn scale, layout's
+`abscissaOf`: `xStart` + (coordinate − start) / drawn length × width, and
+`xStart` where the drawn length is 0). It is the one place the
+affordance's geometry is computed: the block node draws those points,
+the marquee takes their bounds and the projection's `inside` its address,
+none of them calling `wedgeAt` again; for one drawing it is the same
+list, object for object. A timestamp displaying anything has none.
+`unknown_length` with `origin` emptied (a new root of unknown length,
+which gets an `origin` by default): one affordance, `timestamp_1` on
+`score`'s line, its points `wedgeAt` at 53.798828125 (0 / 14). `map` with
+`late` added and its `origin` emptied: one affordance, `timestamp_3` on
+`late`'s line at its start 63.53662109375, the line being zero-length;
+`melody`'s `origin` and `length` display their wedge and coordinate, so
+neither has one.
+
+**The flag** lists core's `timestampRows` grouped by part, in the
+timestamp's order: each part's heading its timeline's name, then its
+coordinate (labelled `coordinate`) and its maps' values (labelled by name,
+else ID), each value through core's `displayValue` in its own number
+type, a float with the granularity's `decimals` (display rounding is the
+flag's alone), with its unit's symbol; a missing value says why in core's
+words. The hovered row is highlighted, the coordinate of the hovered
+line's timeline or the hovered map. Values: `b`'s spec at 457/48, read on
+`b2_ticks`, gives the parts `B` (`coordinate` `9 25/48 ♩`) and `b2`
+(`coordinate` `3 25/48 ♩`, then `Ticks` `1 690 ticks`, the hovered row: an int is
+grouped by threes);
+`bundle_mixed`'s `score` at 16/5 shows `cmap_2` as `1.6 s` at 3 places;
+in `group_measure_map` the `MeasureRecordMap` `cmap_1` of `score` has no
+value without its expanded rows and its row says `needs a server to
+expand its measure map`. The footer says `click to pin`.
+
+**The flag hangs at its pole** (`flagPlace`). The pole, 1 pixel wide, is
+centred on the marked abscissa `x`, from 22 pixels above `top` (the
+topmost of the line, its maps and its cross-section line), never above
+the canvas's top edge, down to the line. The flag's top is the pole's
+top, and its near edge touches the pole's side: it opens to the right
+(left edge `x + 0.5`), and to the left (right edge `x − 0.5`) only where
+a flag opening right would leave the canvas, its left edge plus its width
+beyond the canvas's width; so it never covers the pole nor the marked
+abscissa. At `x` 100, `y` 200, `top` 150, a flag 180 wide on a canvas
+800 wide: the pole from 128 to 200, the flag at (100.5, 128); at `x` 700
+it is flipped, at (519.5, 128); at `x` 619.5 its right edge is exactly
+800 and it stays right, at 620; with `top` 10 the pole and the flag start
+at 0.
 
 **Measure maps.** The expanded MeasureMaps are asked once per manifest
 object (one version of a manifest) that has MeasureMaps, and never for
@@ -1605,10 +1793,12 @@ The package exports its exact name `"@timetoalign/tilie-arranger"`; its
 surface is `Canvas`, `liveStore`, `addCommand`, the selection helpers
 `resolveSelection`, `blockOf`, `existing`, `editedSelection`,
 `selectionOf`, `isSelected` and `NOTHING_SELECTED`, the key helpers
-`isTextInput` and `within`, `drawingOf`, `placeChange` and
-`changedPlace`, the inspector's readers `blockBox`, `boxOf`, `keyedBox`,
-`isItem`, `isHeld`, `fieldsOf`, `levelOf` and `shownValues`, and
-`placeEdit`; tests import everything else from its modules. `pnpm typecheck` type-checks
+`isTextInput` and `within`, `drawingOf`, `styleLayers`, `placeChange`
+and `changedPlace`, the inspector's readers `blockBox`, `boxOf`,
+`keyedBox`, `isItem`, `isHeld`, `fieldsOf`, `levelOf` and `shownValues`,
+`placeEdit`, and the timestamp pane's `namedPin` and the type `KnotsOf`
+(the MeasureKnots source is the canvas's own); tests import everything else from its modules.
+`pnpm typecheck` type-checks
 `src` and `tests` strictly, and the workspace's dependency rules keep it
 on `writers`, `layout`, `core`, `svelte` and `@xyflow/svelte`.
 
@@ -1643,8 +1833,9 @@ screen position chosen for the case or a value derived above.
    for the block and for `score`'s card, no drawn rectangle marked. On
    `nested`, the three descriptors of `{id: "clt_2"}` are `data-affected`
    beside the selected `{id: "clt_3"}`. On `bundle__bundle_shared_parent`,
-   `{id: "score"}` and `{id: "exposition", part: ["start"]}` mark all ten
-   descriptors drawing them, on both ancestor lines. Nothing selected,
+   `{id: "score"}` and `{id: "exposition", part: ["start"]}` mark all nine
+   descriptors drawing them, on both ancestor lines (`score`'s four in
+   each card, the start mark on the first). Nothing selected,
    nothing marked. Each time, the tree without the marks and those
    attributes still equals `figure.svg`.
 3. **Boxes are marked over the drawing**, in one vocabulary: every mark is
@@ -1716,7 +1907,7 @@ screen position chosen for the case or a value derived above.
    flow_control]` on `{block: A, id: "score"}`), reading every drop against
    the drawing at the press, never a preview's. A click, a release in
    place, Escape, a locked canvas, Shift and a press on an element over
-   the band store nothing; outside its timeline's editor no band is
+   the band (the wedge of `score`'s named timestamp `origin`) store nothing; outside its timeline's editor no band is
    marked or moved.
 7. **Fading, keys and slides.** Outside the edited element everything is
    `data-outside`, on the arranger and in the bundle editor nothing;
@@ -1950,7 +2141,11 @@ number read off the screen. Block A holds `map` at (40, 80), the view at
 (0, 0) zoom 1, one device pixel per CSS pixel; `melody`'s line lies at
 y 40.5, its 4 quarters at the abscissa 263.53662109375 and 2 at
 163.53662109375 (layout's record, 50 units a quarter), and both are
-dyadic, so a pointer there picks exactly 4 and 2.
+dyadic, so a pointer there picks exactly 4 and 2. `map` holds the named
+timestamps `origin` (`timestamp_1`, at 0) and `length` (`timestamp_2`, at
+8) on `melody`, each displaying its wedge and its coordinate label; a
+named timestamp added there is `timestamp_3` ("Four", at 4, the default
+display: wedge, name label, cross-section line).
 
 - **Hover.** With Show coordinates on, the pointer on `melody` at 4
   draws one wedge and one line whose attributes are exactly those of
@@ -1960,29 +2155,65 @@ dyadic, so a pointer there picks exactly 4 and 2.
   styles are opaque). They are drawn in an `<svg>` whose `width`, `height`
   and `viewBox` equal the block node's own and whose left and top are the
   node's position, so they are in the drawing's units and scale with the
-  zoom as the drawing does. With a named timestamp `timestamp_1` added at
-  4 on `melody`, the hovered marks equal the drawn wedge's and
-  cross-section line's attributes, the strongest form of "the geometry a
-  named timestamp gets". With Show coordinates off nothing is marked and
-  no flag is shown. The flag has no dot.
+  zoom as the drawing does. With `timestamp_3` added, the hovered marks
+  equal its drawn wedge's and cross-section line's attributes, the
+  strongest form of "the geometry a named timestamp gets". With Show
+  coordinates off nothing is marked and no flag is shown.
+- **The flag on the canvas.** The flag's place is `flagPlace` (above) of
+  the reading turned into canvas pixels: the node's position plus the
+  drawing point, times the zoom, plus the view's offset. Hovering
+  `melody` at 4 on a canvas 1000 pixels wide, with the flag 180 wide, `top`
+  is `melody`'s cross-section line's top, 16 (below it `tempo` at 35 and
+  the line at 40.5): the pole's left edge is the node's left + 263.53662109375
+  − 0.5, its top the node's top + 16 − 22, its height 40.5 − 16 + 22 =
+  46.5; the flag's left edge is the node's left + 263.53662109375 + 0.5,
+  its top the pole's, `data-flipped` `false`. On a canvas 400 pixels wide
+  the flag opens to the left: its left edge the node's left +
+  263.53662109375 − 0.5 − 180, `data-flipped` `true`. It holds two parts,
+  `Melody` (`coordinate` `4 ♩`, `Tempo` `2.0 s`) and `Phrase` (`coordinate`
+  `2 ♩`, `Ticks` `960 ticks`), and exactly one row is highlighted:
+  `melody`'s coordinate, and with the pointer on `tempo` (y 35) `tempo`'s.
 - **Pin.** Given an unnamed pin at 4 (the one a reading there makes), the
   pinned marks equal layout's at 263.53662109375; the pin replaced by the
   same pin moved to 2 (core's `pinAt`) moves them to 163.53662109375. A
   pin with `named` set, and no pin, draw no pinned marks.
 - **Pinning.** With Show coordinates on, a press released where it began
   on `melody` at 4 calls `oncoordinatepin` once with an unnamed pin of
-  `melody` at exactly 4; one 30 below the line, where nothing is hovered,
-  calls it with `null`; turning Show coordinates off calls it with `null`
-  once more; with it off, a click on the line calls nothing.
-- **Mode split.** With Show coordinates on, exactly the three drawn
-  elements of `timestamp_1` (its wedge, its label, its line, in that
-  order) carry `pointer-events="none"`, so the browser's hit test passes
-  a press on them to what lies beneath (the end-to-end suite asserts the
-  hit test); with it off, none do, and the node's element tree stays the
-  exported figure's. With Show coordinates off a click on any of the
-  three selects exactly `{block: A, id: "timestamp_1"}`, and all three
-  then show the selection; a selected label part alone shows it on the
-  label only.
+  `melody` at exactly 4 and announces `Pinned Melody at 4 ♩`; one 30
+  below the line, where nothing is hovered, calls it with `null`; turning
+  Show coordinates off calls it with `null` once more; with it off, a
+  click on the line calls nothing.
+- **Mode split.** With Show coordinates on, exactly the drawn elements
+  that carry an address of a named timestamp (core resolves it to the
+  timestamp or one of its parts) carry `pointer-events="none"`, in the
+  drawing's order; they are seven, `timestamp_1`'s and `timestamp_2`'s
+  wedges and coordinate labels and `timestamp_3`'s wedge, name label and
+  line (the order among them is layout's); so the browser's hit test
+  passes a press on them to what lies beneath (the end-to-end suite
+  asserts the hit test). With it off, none do, and the node's element
+  tree stays the exported figure's. With Show coordinates off a click on
+  `timestamp_3`'s wedge, name label or line selects exactly `{block: A,
+  id: "timestamp_3"}`, and all three then show the selection (in drawing
+  order, the wedge, the name label, the line); a selected name label part
+  alone shows it on the label only.
+- **A timestamp that draws nothing.** In `timestamps` (`clt_1`, 8
+  quarters over 400 from 49.91552734375) with `display` `[]` set on
+  `timestamp_2` ("Climax", at 6 on `clt_1`) the drawing draws no element
+  of `timestamp_2` (layout's, so the SVG writer's figure holds no
+  `data-id="timestamp_2"`), and the canvas alone draws one
+  `.tilie-timestamp-affordance` polygon for it, its `points` exactly
+  `wedgeAt` on `clt_1`'s line at 49.91552734375 + 6 × 50 =
+  349.91552734375; it carries no `fill` attribute (its light grey is the
+  canvas stylesheet's, as every canvas colour is) and no address
+  attribute, so it is never counted as a drawn element. `timestamp_1` and `timestamp_3`, which
+  display something, get none, and nor does any timestamp of `map`. With
+  Show coordinates off a click on it selects exactly `{block: A, id:
+  "timestamp_2"}` and it shows the selection; with Show coordinates on it
+  lets the pointer through, as every drawn part does.
+- **Delete.** With `timestamp_3` selected, Delete on the canvas removes
+  it (one `remove` of `{block: A, id: "timestamp_3"}`): the block's
+  manifest then holds `timestamp_1` and `timestamp_2` only, and the
+  selection is empty.
 - **Zoom.** The zoom ranges from 0.05 to 256: `+` from 250 is 256 (300
   held), from 2 it is 2.4 (beyond Svelte Flow's default 2), `-` from
   0.055 is 0.05.
@@ -1997,15 +2228,3 @@ dyadic, so a pointer there picks exactly 4 and 2.
   was called exactly once. For a manifest without MeasureMaps (`map`) it
   gives `undefined` and asks nothing; a canvas without `measureMaps` gives
   `undefined` for any manifest.
-- **A named timestamp's pin** (`namedPin`) is read as a click at its
-  coordinate reads it, on the line drawing its timeline with the maps drawn
-  there; where no line draws its timeline (its line hidden, so that the
-  editor can still show it and say why its cross-section line is not
-  drawn), on its own axis with all its own maps. With `timestamp_1` at 4 on
-  `melody`, the pin is `{spec, knots: "no_server", timestamp, named:
-  "timestamp_1"}` with `spec` block A, the default granularity, the line
-  `melody` ("Melody", quarters, fraction, length 8, its one map `tempo`
-  as the manifest holds it) and no segments, and `timestamp` core's
-  `timestampAt(spec, 4)`; the same pin with `melody`'s line hidden by a
-  `style` of `{id: "melody"}` (`display: "none"`), where the drawing holds
-  no line at all.

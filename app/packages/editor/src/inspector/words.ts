@@ -175,7 +175,7 @@ function describe(resolved: ResolvedAddress): Described | null {
  * to (the bundle, a group, a measure map, a timeline, a conversion map, a
  * region, a jump origin, a jump target or a flow marker), each part the
  * address appends prefixed (`Card of
- * timeline`, `Label of end of timeline`, `Regions band of timeline`); for
+ * timeline`, `Coordinate of timestamp`, `Regions band of timeline`); for
  * several addresses their count; `null` for no selection or an address
  * naming nothing.
  */

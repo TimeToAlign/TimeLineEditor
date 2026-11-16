@@ -581,7 +581,7 @@ function memberWords(view: View, address: Address): string {
  * element by its kind and its name, else its ID (`timeline 'Score'`,
  * `region 'region_1'`), a band and a card by their timeline (`the regions
  * band of timeline 'Score'`), a part by its owner, innermost first (`the
- * label of the end of timeline 'Score'`, a bundle's or a group's name its
+ * coordinate of timestamp 'Downbeat'`, a bundle's or a group's name its
  * `title`). An element of a manifest is followed by its bundle (`in bundle
  * 'Mixed'`) unless the view holds that block alone. An address naming
  * nothing is worded from its members: its ID quoted (`'gone'`), its block

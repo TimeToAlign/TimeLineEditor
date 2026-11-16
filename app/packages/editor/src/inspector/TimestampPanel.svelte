@@ -1,41 +1,36 @@
 <script lang="ts">
 /**
- * The Timestamp tab: one main panel holding the shown timestamp or a hint,
- * and one line at the pane's bottom with the workspace's two granularity
- * settings. A timestamp shows a header (its name, whether its
- * cross-section line is shown, Delete for a named one), the format switch
- * and its values: in Pretty a table whose values can be edited and copied,
- * else its text in JSON, YAML or TOML with one Copy. An edit of an unnamed
- * timestamp moves its pin; naming it adds it to the manifest; every change
- * of a named one is a command. Every value, position and text is core's;
- * the panel lays them out, reads typed text and sends commands.
+ * The Timestamp tab, three areas one below the other. **Coordinates**, a
+ * bordered panel: a hint while no timestamp is shown, else the format
+ * switch and the timestamp's values, in Pretty one group per timeline
+ * crossed whose exact values can be edited and copied, else its text in
+ * JSON, YAML or TOML with one Copy. **Properties**, a key/value grid: the
+ * name (naming an unnamed timestamp stores it), what it displays, and
+ * Delete; only the name while it is unnamed. **Coordinate granularity**, the
+ * workspace's two settings on one line at the pane's bottom. An edit of an
+ * unnamed timestamp moves its pin; every change of a named one is a
+ * command. Every value, row, position and text is core's; the panel lays
+ * them out, reads typed text and sends commands. A copy is confirmed in the
+ * message bar; a refusal shows at its field.
  */
 import type { LiveStore } from "@timetoalign/tilie-arranger";
-import type { Address, Command, Granularity, Pin } from "@timetoalign/tilie-core";
-import {
-  copyValue,
-  parseAxisValue,
-  pinAt,
-  positionFor,
-  timestampPlace,
-} from "@timetoalign/tilie-core";
+import type { Command, Granularity, Pin, TimestampDisplay } from "@timetoalign/tilie-core";
+import { parseAxisValue, pinAt, positionFor, timestampJson } from "@timetoalign/tilie-core";
 import { Rational } from "@timetoalign/tilie-core/numbers";
-import { fontMetrics } from "@timetoalign/timetoshare";
+import { informOf } from "../messages.svelte.ts";
 import FormatSwitch from "./FormatSwitch.svelte";
 import type { Format } from "./formats.svelte.ts";
 import { FORMAT_LABELS, FORMATS, isLoaded, loadCodec, writeText } from "./formats.svelte.ts";
-import type { LineToggle, TimestampRow } from "./timestamp.ts";
+import type { ValueRow } from "./timestamp.ts";
 import {
   addedTimestamp,
-  addTimestamp,
-  lineToggle,
-  moveTimestamp,
-  namedTimestampOf,
-  removeTimestamp,
-  renameTimestamp,
-  showLine,
-  timestampSections,
-  timestampValue,
+  DISPLAY_WORDS,
+  displayCommand,
+  displayOf,
+  moveCommand,
+  nameCommand,
+  removeCommand,
+  timelineRows,
 } from "./timestamp.ts";
 
 interface Props {
@@ -43,20 +38,21 @@ interface Props {
   live: LiveStore;
   /** The timestamp shown; `null` while none is. */
   pin: Pin | null;
-  /** An edit of an unnamed timestamp moved its pin to `next`. */
+  /** The timestamp shown is now `next`: an unnamed one moved, or named. */
   onpin: (next: Pin) => void;
-  /** The unnamed timestamp shown was named: the named timestamp at `address` is to be shown. */
-  onnamed: (address: Address) => void;
 }
 
-let { live, pin, onpin, onnamed }: Props = $props();
+let { live, pin, onpin }: Props = $props();
 
 const uid = $props.id();
+const inform = informOf();
 
 const HINT =
-  "Turn on Show coordinates (C) and click a timeline to read a timestamp. With Show coordinates off, click a named timestamp to edit it.";
-const LOCKED = "This conversion map cannot be solved for a position";
+  "Turn on Show coordinates (C) and click a timeline to pin a timestamp. With Show coordinates off, click a timestamp to edit it.";
+const READ_ONLY = "This value cannot be solved for a position, so it cannot be edited.";
 const EMPTY_NAME = "A named timestamp keeps a name; Delete removes it.";
+const UNNAMED =
+  "Naming the timestamp stores it; then its display can be set and it can be deleted.";
 
 type Shown = "pretty" | Format;
 const SHOWN: readonly { readonly value: Shown; readonly label: string }[] = [
@@ -65,15 +61,8 @@ const SHOWN: readonly { readonly value: Shown; readonly label: string }[] = [
 ];
 
 const view = $derived(live.view);
-const address = $derived(
-  pin === null || pin.named === null ? null : { block: pin.spec.block, id: pin.named },
-);
-const named = $derived(address === null ? null : namedTimestampOf(view, address));
-const sections = $derived(pin === null ? [] : timestampSections(pin));
-/** The line's box: an unnamed timestamp's line is shown and fixed; a named one's follows its display. */
-const line: LineToggle = $derived(
-  address === null ? { checked: true, blocked: null } : lineToggle(view, address, fontMetrics),
-);
+const groups = $derived(pin === null ? [] : timelineRows(pin));
+const display = $derived(pin === null ? [] : displayOf(pin));
 
 // --- Typed text -------------------------------------------------------------
 
@@ -82,8 +71,8 @@ type Texts = { readonly [key: string]: string };
 /**
  * The texts typed into the name field (`name`) and the value fields (each
  * row's key) while they differ from what is shown, and the refusals, by
- * the same keys (`line` and `delete` for the header's controls): held for
- * the pin they were typed for, so that another pin shows none.
+ * the same keys (`display` and `delete` for those controls): held for the
+ * pin they were typed for, so that another pin shows none.
  */
 let typed: { readonly owner: Pin | null; readonly drafts: Texts; readonly problems: Texts } =
   $state.raw({ owner: null, drafts: {}, problems: {} });
@@ -117,61 +106,22 @@ function send(key: string, command: Command): boolean {
   return refusal === null;
 }
 
-// --- The header -------------------------------------------------------------
-
-/** Enter or leaving the name field: name an unnamed timestamp, rename a named one. */
-function commitName(): void {
-  const text = drafts.name;
-  if (pin === null || text === undefined) return;
-  if (pin.named === null) {
-    if (text === "") {
-      settled("name");
-      return;
-    }
-    const before = live.store.view;
-    const block = pin.spec.block;
-    if (!send("name", addTimestamp(pin, text))) return;
-    const id = addedTimestamp(before, live.store.view, block);
-    if (id !== null) onnamed({ block, id });
-    return;
-  }
-  if (text === "") {
-    typed = {
-      owner: pin,
-      drafts: without(drafts, "name"),
-      problems: { ...problems, name: EMPTY_NAME },
-    };
-    return;
-  }
-  if (text === named?.name) settled("name");
-  else send("name", renameTimestamp(pin, text));
-}
-
-function onNameKey(event: KeyboardEvent): void {
+/** Enter commits a field, Escape shows what is stored again. */
+function onFieldKey(event: KeyboardEvent, key: string, commit: () => void): void {
   if (event.key === "Enter") {
     event.preventDefault();
-    commitName();
-  } else if (event.key === "Escape") settled("name");
+    commit();
+  } else if (event.key === "Escape") settled(key);
 }
 
-function toggleLine(event: Event & { currentTarget: HTMLInputElement }): void {
-  const box = event.currentTarget;
-  if (pin === null || pin.named === null || line.blocked !== null) return;
-  if (!send("line", showLine(pin, box.checked))) box.checked = !box.checked;
-}
-
-function remove(): void {
-  if (pin !== null && pin.named !== null) send("delete", removeTimestamp(pin));
-}
-
-// --- The values -------------------------------------------------------------
+// --- Coordinates ------------------------------------------------------------
 
 /** Enter or leaving a value field: the position that gives the typed value, as the pin or as a `set`. */
-function commitValue(row: TimestampRow): void {
+function commitValue(row: ValueRow): void {
   const text = drafts[row.key];
-  if (pin === null || text === undefined || row.edit === null || row.numberType === null) return;
+  if (pin === null || text === undefined || !row.editable || row.numberType === null) return;
   const value = parseAxisValue(text, row.numberType);
-  const position = value instanceof Rational ? positionFor(pin, row.edit, value) : value;
+  const position = value instanceof Rational ? positionFor(pin, row.row, value) : value;
   if (!(position instanceof Rational)) {
     refused(row.key, position.message);
     return;
@@ -182,24 +132,10 @@ function commitValue(row: TimestampRow): void {
     onpin(moved);
     return;
   }
-  const [was] = pin.timestamp.parts;
-  const [now] = moved.timestamp.parts;
-  const same =
-    was !== undefined &&
-    now !== undefined &&
-    copyValue(was.position, was.numberType) === copyValue(now.position, now.numberType);
-  if (same) settled(row.key);
-  else send(row.key, moveTimestamp(moved));
+  const command = moveCommand(pin, moved);
+  if (command === null) settled(row.key);
+  else send(row.key, command);
 }
-
-function onValueKey(event: KeyboardEvent, row: TimestampRow): void {
-  if (event.key === "Enter") {
-    event.preventDefault();
-    commitValue(row);
-  } else if (event.key === "Escape") settled(row.key);
-}
-
-// --- The text formats -------------------------------------------------------
 
 let shown: Shown = $state("pretty");
 /** Why the chosen format's codec could not be loaded; `null` while nothing failed. */
@@ -217,27 +153,57 @@ function choose(next: Shown): void {
 /** The timestamp as text in the chosen format, or why it cannot be written; `null` while its codec loads. */
 const text = $derived.by(() => {
   if (pin === null || shown === "pretty" || !isLoaded(shown)) return null;
-  const written = writeText(shown, timestampValue(pin, named));
+  const written = writeText(shown, timestampJson(pin));
   return written.ok
     ? { ok: true as const, text: written.value.text }
     : { ok: false as const, message: written.problems.map((item) => item.message).join(" ") };
 });
 
-// --- Copying ----------------------------------------------------------------
-
-/** What the last Copy did. */
-let status = $state("");
-
+/** Copy `copied`, confirming with `what` in the message bar. */
 async function copy(copied: string, what: string): Promise<void> {
   try {
     await navigator.clipboard.writeText(copied);
-    status = `Copied ${what}.`;
+    inform(`Copied ${what}.`);
   } catch {
-    status = `Copying ${what} failed; select its text to copy it.`;
+    inform(`Copying ${what} failed; select its text to copy it.`);
   }
 }
 
-// --- The settings -----------------------------------------------------------
+// --- Properties -------------------------------------------------------------
+
+/** Enter or leaving the name field: name an unnamed timestamp, storing it, or rename a named one. */
+function commitName(): void {
+  const name = drafts.name;
+  if (pin === null || name === undefined) return;
+  const { named } = pin;
+  if (named === null) {
+    if (name === "") {
+      settled("name");
+      return;
+    }
+    const before = live.store.view;
+    if (!send("name", nameCommand(pin, name))) return;
+    const added = addedTimestamp(before, live.store.view, pin.spec.block);
+    if (added !== null) onpin({ ...pin, named: added });
+  } else if (name === "") {
+    typed = {
+      owner: pin,
+      drafts: without(drafts, "name"),
+      problems: { ...problems, name: EMPTY_NAME },
+    };
+  } else if (name === named.name) settled("name");
+  else send("name", nameCommand(pin, name));
+}
+
+function toggle(word: TimestampDisplay): void {
+  if (pin !== null && pin.named !== null) send("display", displayCommand(pin, word));
+}
+
+function remove(): void {
+  if (pin !== null && pin.named !== null) send("delete", removeCommand(pin));
+}
+
+// --- Coordinate granularity -------------------------------------------------
 
 type Kind = keyof Granularity;
 
@@ -291,50 +257,15 @@ function leave(kind: Kind): void {
 {/snippet}
 
 <div class="pane">
-  <div class="main">
+  <section class="area coordinates" aria-labelledby="{uid}-coordinates">
+    <h3 id="{uid}-coordinates">Coordinates</h3>
     {#if pin === null}
       <p class="hint" data-testid="timestamp-hint">{HINT}</p>
     {:else}
-      <div class="header">
-        <label class="name">
-          Name
-          <input
-            type="text"
-            size="12"
-            value={drafts.name ?? named?.name ?? ""}
-            aria-invalid={problems.name !== undefined}
-            aria-describedby="{uid}-name-problem"
-            oninput={(event) => draft("name", event.currentTarget.value)}
-            onkeydown={onNameKey}
-            onblur={commitName}
-          />
-        </label>
-        <label class="line">
-          <input
-            type="checkbox"
-            checked={line.checked}
-            disabled={pin.named === null || line.blocked !== null}
-            aria-describedby={line.blocked === null ? undefined : `${uid}-line-blocked`}
-            onchange={toggleLine}
-          />
-          Show cross-section line
-        </label>
-        {#if pin.named !== null}
-          <button type="button" class="delete" onclick={remove}>Delete</button>
-        {/if}
-      </div>
-      {#if line.blocked !== null}
-        <p class="hint" id="{uid}-line-blocked" data-testid="line-blocked">{line.blocked}</p>
-      {/if}
-      <p class="problem" id="{uid}-name-problem" role="status">
-        {problems.name ?? problems.line ?? problems.delete ?? ""}
-      </p>
-      <p class="where" data-testid="timestamp-where">{timestampPlace(pin.timestamp)}</p>
-
       <FormatSwitch options={SHOWN} bind:value={() => shown, choose} label="Timestamp format" />
 
       {#if shown === "pretty"}
-        <span class="visually-hidden" id="{uid}-locked">{LOCKED}</span>
+        <span class="visually-hidden" id="{uid}-read-only">{READ_ONLY}</span>
         <table>
           <thead>
             <tr>
@@ -344,36 +275,36 @@ function leave(kind: Kind): void {
               <th scope="col" class="copy">value + unit</th>
             </tr>
           </thead>
-          {#each sections as section, index (index)}
-            <tbody>
+          {#each groups as group, g (group.timeline)}
+            <tbody data-timeline={group.timeline}>
               <tr>
-                <th colspan="4" scope="colgroup">{section.heading}</th>
+                <th colspan="4" scope="colgroup">{group.name}</th>
               </tr>
-              {#each section.rows as row (row.key)}
+              {#each group.rows as row, r (row.key)}
+                {@const locked = row.numberType !== null && !row.editable}
+                {@const problem = `${uid}-${g}-${r}-problem`}
                 <tr data-row={row.key}>
                   <th scope="row">{row.label}</th>
-                  <!-- A disabled field shows no hover hint in every browser: its cell carries it. -->
-                  <td class="value" title={row.locked ? LOCKED : undefined}>
+                  <td class="value" title={locked ? READ_ONLY : undefined}>
                     {#if row.numberType === null}
-                      <span class="text">{row.shown}</span>
+                      <span class="text">{row.text}</span>
                     {:else}
                       <input
                         type="text"
                         size="10"
-                        value={drafts[row.key] ?? row.shown}
-                        disabled={row.edit === null}
-                        aria-label="{row.label} of {section.name}"
+                        value={drafts[row.key] ?? row.text}
+                        readonly={locked}
+                        title={locked ? READ_ONLY : undefined}
+                        aria-label="{row.label} of {group.name}"
                         aria-invalid={problems[row.key] !== undefined}
-                        aria-describedby={row.locked
-                          ? `${uid}-${row.key}-problem ${uid}-locked`
-                          : `${uid}-${row.key}-problem`}
+                        aria-describedby={locked ? `${problem} ${uid}-read-only` : problem}
                         oninput={(event) => draft(row.key, event.currentTarget.value)}
-                        onkeydown={(event) => onValueKey(event, row)}
+                        onkeydown={(event) => onFieldKey(event, row.key, () => commitValue(row))}
                         onblur={() => commitValue(row)}
                       />
                       {#if row.unit !== null}<span class="unit">{row.unit}</span>{/if}
                     {/if}
-                    <span class="problem" id="{uid}-{row.key}-problem" role="status"
+                    <span class="problem" id={problem} role="status"
                       >{problems[row.key] ?? ""}</span
                     >
                   </td>
@@ -423,29 +354,95 @@ function leave(kind: Kind): void {
         {/if}
       {/if}
     {/if}
-    <p class="status" role="status">{status}</p>
-  </div>
+  </section>
 
-  <div class="settings" role="group" aria-label="Granularity">
-    {#each SETTINGS as setting (setting.kind)}
-      <label class="setting" title={setting.hint}>
-        {setting.label}
-        <input
-          type="text"
-          inputmode="numeric"
-          size="5"
-          value={settingDrafts[setting.kind] ?? String(granularity[setting.kind])}
-          aria-invalid={settingProblems[setting.kind] !== undefined}
-          aria-describedby="{uid}-{setting.kind}-problem"
-          oninput={(event) => configure(setting.kind, event.currentTarget.value)}
-          onchange={() => leave(setting.kind)}
-        />
-      </label>
-      <span class="problem" id="{uid}-{setting.kind}-problem" role="status"
-        >{settingProblems[setting.kind] ?? ""}</span
-      >
-    {/each}
-  </div>
+  {#if pin !== null}
+    {@const unnamed = pin.named === null}
+    <section
+      class={["area", "properties", { unnamed }]}
+      aria-labelledby="{uid}-properties"
+      data-testid="timestamp-properties"
+    >
+      <h3 id="{uid}-properties">Properties</h3>
+      <div class="grid">
+        <label class="key" for="{uid}-name">Name</label>
+        <div class="field">
+          <input
+            id="{uid}-name"
+            type="text"
+            size="16"
+            value={drafts.name ?? pin.named?.name ?? ""}
+            aria-invalid={problems.name !== undefined}
+            aria-describedby={unnamed ? `${uid}-name-problem ${uid}-unnamed` : `${uid}-name-problem`}
+            oninput={(event) => draft("name", event.currentTarget.value)}
+            onkeydown={(event) => onFieldKey(event, "name", commitName)}
+            onblur={commitName}
+          />
+          <span class="problem" id="{uid}-name-problem" role="status">{problems.name ?? ""}</span>
+        </div>
+
+        <span class="key needs-name" id="{uid}-display">Display</span>
+        <div class="field needs-name">
+          <div
+            class="toggles"
+            role="group"
+            aria-labelledby="{uid}-display"
+            aria-describedby={unnamed ? `${uid}-unnamed` : undefined}
+          >
+            {#each DISPLAY_WORDS as { word, label } (word)}
+              <button
+                type="button"
+                class="toggle"
+                aria-pressed={display.includes(word)}
+                disabled={unnamed}
+                onclick={() => toggle(word)}>{label}</button
+              >
+            {/each}
+          </div>
+          <span class="problem" role="status">{problems.display ?? ""}</span>
+        </div>
+
+        <span class="key needs-name" aria-hidden="true"></span>
+        <div class="field needs-name">
+          <button
+            type="button"
+            class="delete"
+            disabled={unnamed}
+            aria-describedby={unnamed ? `${uid}-unnamed` : undefined}
+            onclick={remove}>Delete</button
+          >
+          <span class="problem" role="status">{problems.delete ?? ""}</span>
+        </div>
+      </div>
+      {#if unnamed}
+        <p class="hint" id="{uid}-unnamed">{UNNAMED}</p>
+      {/if}
+    </section>
+  {/if}
+
+  <section class="area granularity" aria-labelledby="{uid}-granularity">
+    <h3 id="{uid}-granularity">Coordinate granularity</h3>
+    <div class="settings">
+      {#each SETTINGS as setting (setting.kind)}
+        <label class="setting" title={setting.hint}>
+          {setting.label}
+          <input
+            type="text"
+            inputmode="numeric"
+            size="5"
+            value={settingDrafts[setting.kind] ?? String(granularity[setting.kind])}
+            aria-invalid={settingProblems[setting.kind] !== undefined}
+            aria-describedby="{uid}-{setting.kind}-problem"
+            oninput={(event) => configure(setting.kind, event.currentTarget.value)}
+            onchange={() => leave(setting.kind)}
+          />
+        </label>
+        <span class="problem" id="{uid}-{setting.kind}-problem" role="status"
+          >{settingProblems[setting.kind] ?? ""}</span
+        >
+      {/each}
+    </div>
+  </section>
 </div>
 
 <style>
@@ -457,40 +454,38 @@ function leave(kind: Kind): void {
     display: flex;
     flex: 1 0 auto;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.75rem;
   }
 
-  .main {
+  .area {
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
   }
 
-  .hint,
-  .where {
+  h3 {
+    margin: 0;
+    color: #595959;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* The values: a bordered panel of their own. */
+  .coordinates {
+    padding: 0.5rem 0.6rem 0.6rem;
+    border: 1px solid #c8c8c8;
+    border-radius: 4px;
+  }
+
+  .hint {
     color: #595959;
   }
 
-  .header {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.4rem 0.75rem;
-  }
-
-  .header input[type="text"],
-  .value input,
-  .setting input {
+  input[type="text"] {
     font: inherit;
     font-variant-numeric: tabular-nums;
-  }
-
-  .name input {
-    margin-left: 0.35rem;
-  }
-
-  .delete {
-    margin-left: auto;
   }
 
   .problem {
@@ -501,12 +496,14 @@ function leave(kind: Kind): void {
     display: none;
   }
 
-  .value .problem {
+  .value .problem,
+  .field .problem {
     display: block;
     font-size: 0.75rem;
   }
 
-  .value .problem:empty {
+  .value .problem:empty,
+  .field .problem:empty {
     display: none;
   }
 
@@ -524,11 +521,9 @@ function leave(kind: Kind): void {
 
   th[scope="colgroup"] {
     padding: 0.5rem 0 0.2rem;
-    color: #595959;
-    font-size: 0.75rem;
-    letter-spacing: 0.05em;
+    color: #1a1a1a;
+    font-weight: 600;
     text-align: left;
-    text-transform: uppercase;
   }
 
   th[scope="row"] {
@@ -548,14 +543,16 @@ function leave(kind: Kind): void {
   }
 
   .value input {
-    width: 8em;
+    width: 9em;
     text-align: right;
   }
 
-  .value input:disabled {
-    border-color: #e0e0e0;
+  /* Read-only: shown, copied, never edited. */
+  .value input[readonly] {
+    border: 1px solid #e0e0e0;
     background: #f4f4f4;
-    color: #8a8a8a;
+    color: #6b6b6b;
+    cursor: default;
   }
 
   .unit {
@@ -592,13 +589,17 @@ function leave(kind: Kind): void {
     stroke-width: 1.2;
   }
 
-  button:hover {
+  button:hover:enabled {
     border-color: #0a84ff;
   }
 
   button:focus-visible {
     outline: 2px solid #0a84ff;
     outline-offset: 1px;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
   }
 
   .text-head {
@@ -617,22 +618,50 @@ function leave(kind: Kind): void {
     user-select: all;
   }
 
-  .status:empty {
-    display: none;
+  /* Properties: keys in one column, their controls in the other. */
+  .grid {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    align-items: baseline;
+    gap: 0.4rem 0.75rem;
   }
 
-  /* The settings: one discreet line at the pane's bottom. */
-  .settings {
+  .key {
+    color: #595959;
+  }
+
+  /* While unnamed, everything but the name is greyed: naming stores the timestamp. */
+  .unnamed .needs-name {
+    opacity: 0.5;
+  }
+
+  .toggles {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  .toggle[aria-pressed="true"] {
+    border-color: #0a84ff;
+    background: #e8f0fe;
+    color: #0b3d91;
+  }
+
+  /* Coordinate granularity: one discreet line at the pane's bottom. */
+  .granularity {
     position: sticky;
     bottom: 0;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0.25rem 0.75rem;
     margin-top: auto;
     padding: 0.3rem 0;
     border-top: 1px solid #e4e4e4;
     background: #fff;
+  }
+
+  .settings {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 0.75rem;
     color: #595959;
     font-size: 0.75rem;
   }

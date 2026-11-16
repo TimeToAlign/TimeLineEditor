@@ -22,6 +22,7 @@ import {
   createStore,
   ErrorCode,
   emptyWorkspace,
+  importedManifest,
   isLoadError,
   JournalMismatchError,
   loadManifest,
@@ -41,7 +42,7 @@ import {
   WORKSPACE_FILE,
   workspaceFileName,
 } from "./files.ts";
-import { messageOf } from "./messages.ts";
+import { messageOf } from "./messages.svelte.ts";
 
 /** A workspace file the reader refused, with its problems. */
 export class WorkspaceRefusedError extends Error {
@@ -67,8 +68,8 @@ export interface ImportTarget {
 }
 
 export interface SessionOptions {
-  /** Show a dismissible message; editing goes on. */
-  readonly say: (text: string, problems?: readonly Problem[]) => void;
+  /** Show a warning, kept until dismissed; editing goes on. */
+  readonly warn: (text: string, problems?: readonly Problem[]) => void;
   /** Called after the open workspace was replaced by another. */
   readonly replaced?: () => void;
   /** Called with the selected addresses whenever the selection changes. */
@@ -206,42 +207,29 @@ export class WorkspaceSession {
       this.savedView = current;
       this.#notify();
     } catch (error) {
-      this.#options.say(`The workspace could not be saved: ${messageOf(error)}`);
+      this.#options.warn(`The workspace could not be saved: ${messageOf(error)}`);
     } finally {
       this.#saving = false;
     }
   }
 
-  /**
-   * Whether a manifest can be imported: not while an editor is open, since
-   * an editor changes only what it edits and a new block lies outside it.
-   */
-  get importable(): boolean {
-    return this.live.editing.length === 0;
-  }
-
-  /**
-   * Import a manifest file the viewer picks as one new block (`#add`).
-   * While an editor is open nothing is picked and nothing changes.
-   */
+  /** Import a manifest file the viewer picks as one new block (`#add`). */
   async importManifest(canvas: ImportTarget, metrics: FontMetrics): Promise<void> {
-    if (!this.importable) return;
     try {
       const opened = await openFile(MANIFEST_FILE);
       if (opened === null) return;
       this.#add(opened.name, opened.text, canvas, metrics);
     } catch (error) {
-      this.#options.say(`The file could not be imported: ${messageOf(error)}`);
+      this.#options.warn(`The file could not be imported: ${messageOf(error)}`);
     }
   }
 
-  /** Add the manifest of `example` as one new block (`#add`); while an editor is open nothing changes. */
+  /** Add the manifest of the manifest example `example` as one new block (`#add`). */
   async importExample(example: Example, canvas: ImportTarget, metrics: FontMetrics): Promise<void> {
-    if (!this.importable) return;
     try {
       this.#add(example.label, await example.text(), canvas, metrics);
     } catch (error) {
-      this.#options.say(`The example could not be added: ${messageOf(error)}`);
+      this.#options.warn(`The example could not be added: ${messageOf(error)}`);
     }
   }
 
@@ -249,19 +237,27 @@ export class WorkspaceSession {
    * Add the manifest `text`, called `name` in messages, as one new block, its
    * top-left at the centre of the view, moved right past every block it
    * would overlap (`metrics` measure the drawings); the block is selected.
+   * A manifest without a `graphical` object is given its roots' default
+   * timestamps (`importedManifest`). An editor changes only what it edits,
+   * so every open editor is left first (Done), once the manifest is read;
+   * the view the block is placed in is the one shown before, since leaving
+   * moves the view back over a while.
    */
   #add(name: string, text: string, canvas: ImportTarget, metrics: FontMetrics): void {
-    const manifest = loadManifest(text);
-    if (isLoadError(manifest)) {
-      this.#options.say(`${name} is not a manifest TimeLineEditor can import.`, manifest.problems);
+    const loaded = loadManifest(text);
+    if (isLoadError(loaded)) {
+      this.#options.warn(`${name} is not a manifest TimeLineEditor can import.`, loaded.problems);
       return;
     }
+    const visible = canvas.visible();
+    while (this.store.editing.length > 0) this.store.done();
     const id = mintBlockId();
+    const manifest = importedManifest(loaded);
     const refusal = this.store.dispatch(
-      addCommand(this.store.view, id, manifest, canvas.visible(), metrics),
+      addCommand(this.store.view, id, manifest, visible, metrics),
     );
     if (refusal !== null) {
-      this.#options.say(`${name} could not be added.`, [refusal]);
+      this.#options.warn(`${name} could not be added.`, [refusal]);
       return;
     }
     this.selection = selectionOf([{ block: id }]);
@@ -286,7 +282,7 @@ export class WorkspaceSession {
       const text = saveManifest(block.manifest, { minimal });
       await saveFile(text, MANIFEST_FILE, manifestFileName(block.manifest));
     } catch (error) {
-      this.#options.say(`The manifest could not be exported: ${messageOf(error)}`);
+      this.#options.warn(`The manifest could not be exported: ${messageOf(error)}`);
     }
   }
 

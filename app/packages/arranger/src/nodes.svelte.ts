@@ -13,7 +13,7 @@ import { descriptorsOf, drawingOf, nodePosition } from "./drawing.ts";
 import type { Editing } from "./editing.ts";
 import type { Rect } from "./marquee.ts";
 import { rectOnCanvas } from "./marquee.ts";
-import type { BlockNode, LivePlacement } from "./project.ts";
+import type { BlockNode, LivePlacement } from "./node.ts";
 import { livePlacement, project } from "./project.ts";
 import type { Selection } from "./selection.ts";
 

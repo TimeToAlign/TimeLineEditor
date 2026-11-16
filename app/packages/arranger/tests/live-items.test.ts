@@ -14,7 +14,7 @@ import { itemOf } from "../src/boxes.ts";
 import Canvas from "../src/Canvas.svelte";
 import { drawingOf } from "../src/drawing.ts";
 import { liveStore } from "../src/liveStore.svelte.ts";
-import type { LivePlacement } from "../src/project.ts";
+import type { LivePlacement } from "../src/node.ts";
 import { selectionOf } from "../src/selection.ts";
 import { IDENTITY, pointer, settle, stubCanvasGlobals, withScreenMatrix } from "./dom.ts";
 import { A, metrics, mixedPlain, storeOf } from "./support.ts";

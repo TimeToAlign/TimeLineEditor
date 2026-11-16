@@ -148,7 +148,16 @@ describe("the shape of an address", () => {
     // @ts-expect-error A band has no part: its address is no owner.
     partAddress(bandAddress("score", "regions"), "label");
     expect(FACETS).toEqual(["children", "conversion_maps", "markers", "regions", "flow_control"]);
-    expect(PART_WORDS).toEqual(["start", "end", "name", "label", "card", "line"]);
+    expect(PART_WORDS).toEqual([
+      "start",
+      "end",
+      "name",
+      "label",
+      "card",
+      "line",
+      "id",
+      "coordinate",
+    ]);
   });
 
   it("puts an element into its block and takes it out again", () => {
@@ -267,15 +276,15 @@ describe("resolving an address", () => {
       ["part", "label", ["entry", "annotations", "region", 0, "region_1"]],
     ],
     [
-      inA({ id: "score", part: ["end"] }),
-      ["part", "end", ["timeline", "score", [{ item: "group_1", member: "score" }]]],
+      inA({ id: "excerpt", part: ["end"] }),
+      ["part", "end", ["timeline", "excerpt", [{ item: "group_2", member: "excerpt" }]]],
     ],
     [
-      inA({ id: "score", part: ["end", "label"] }),
+      inA({ id: "excerpt", part: ["end", "label"] }),
       [
         "part",
         "label",
-        ["part", "end", ["timeline", "score", [{ item: "group_1", member: "score" }]]],
+        ["part", "end", ["timeline", "excerpt", [{ item: "group_2", member: "excerpt" }]]],
       ],
     ],
     [
@@ -322,7 +331,7 @@ describe("resolving an address", () => {
   });
 
   it("carries the block of its manifest at every level", () => {
-    const found = resolveAddress(view, inA({ id: "score", part: ["end", "label"] }));
+    const found = resolveAddress(view, inA({ id: "excerpt", part: ["end", "label"] }));
     expect(found).toMatchObject({ block: block(view, A), owner: { block: block(view, A) } });
   });
 
@@ -493,10 +502,10 @@ describe("free IDs", () => {
       "label",
       ["entry", "perf/take 2", "region", 0, "take 2/intro"],
     ]);
-    expect(found(inA({ id: "perf/take 2", part: ["end", "label"] }))).toEqual([
+    expect(found(inA({ id: "perf/take 2", part: ["name"] }))).toEqual([
       "part",
-      "label",
-      ["part", "end", ["timeline", "perf/take 2", [{ item: "group_1", member: "perf/take 2" }]]],
+      "name",
+      ["timeline", "perf/take 2", [{ item: "group_1", member: "perf/take 2" }]],
     ]);
   });
 
@@ -590,8 +599,10 @@ describe("the index of a manifest", () => {
     expect(owners.get("region_1")).toBe("annotations");
     expect(owners.get("cmap_6")).toBe("excerpt");
     expect(owners.get("cmap_5")).toBe("recording");
+    expect(owners.get("timestamp_3")).toBe("excerpt");
     expect(owners.get("group_1")).toBeUndefined();
-    expect(owners.size).toBe(6 + 9);
+    // Six timelines, nine entries, ten timestamps.
+    expect(owners.size).toBe(6 + 9 + 10);
     expect(ancestry).toEqual(timelineAncestry(manifest));
   });
 

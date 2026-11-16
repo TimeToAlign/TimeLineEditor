@@ -43,8 +43,8 @@ function ordinates(drawing: Drawing): Record<string, number> {
 const wedges = (drawing: Drawing) =>
   drawing.elements.flatMap((item) => {
     if (item.type === "wedge") return [[item.address, item.yt, item.yb]];
-    // A wedge's label is the one label whose address has two part words, `[start | end, label]`.
-    if (item.type === "label" && item.address.part?.length === 2) {
+    // A wedge's label here is a named timestamp's coordinate label.
+    if (item.type === "label" && item.address.part?.[0] === "coordinate") {
       return [[item.address, item.baseline]];
     }
     return [];
@@ -116,10 +116,10 @@ describe("the markers band alone", () => {
     const drawing = drawn(load("bare"));
     expect(element(drawing, at("bare"))).toMatchObject({ y: 22.40234375 });
     expect(wedges(drawing)).toEqual([
-      [at("bare", "start"), 23.90234375, 36.90234375],
-      [at("bare", "end"), 23.90234375, 36.90234375],
-      [at("bare", "start", "label"), 47.25634765625],
-      [at("bare", "end", "label"), 47.25634765625],
+      [at("timestamp_1"), 23.90234375, 36.90234375],
+      [at("timestamp_2"), 23.90234375, 36.90234375],
+      [at("timestamp_1", "coordinate"), 47.25634765625],
+      [at("timestamp_2", "coordinate"), 47.25634765625],
     ]);
     expect(drawing.height).toBe(67.37890625);
   });
@@ -135,10 +135,10 @@ describe("the markers band alone", () => {
     );
     expect(element(drawing, at("bare"))).toMatchObject({ y: 42.9765625 });
     expect(wedges(drawing)).toEqual([
-      [at("bare", "start"), 41.4765625, 28.4765625],
-      [at("bare", "end"), 41.4765625, 28.4765625],
-      [at("bare", "start", "label"), 24.35400390625],
-      [at("bare", "end", "label"), 24.35400390625],
+      [at("timestamp_1"), 41.4765625, 28.4765625],
+      [at("timestamp_2"), 41.4765625, 28.4765625],
+      [at("timestamp_1", "coordinate"), 24.35400390625],
+      [at("timestamp_2", "coordinate"), 24.35400390625],
     ]);
     expect(drawing.height).toBe(67.37890625);
   });
@@ -184,7 +184,7 @@ describe("the conversion maps band", () => {
     expect(element(drawing, at("maps:quarters"))).toMatchObject({ y: 22.40234375 });
     expect(element(drawing, at("cmap_1"))).toMatchObject({ yc: 62.90234375 });
     expect(element(drawing, at("tmap_4"))).toMatchObject({ yc: 82.90234375 });
-    expect(element(drawing, at("maps:quarters", "start"))).toMatchObject({
+    expect(element(drawing, at("timestamp_1"))).toMatchObject({
       yt: 89.40234375,
       yb: 102.40234375,
     });
@@ -206,7 +206,7 @@ describe("the conversion maps band", () => {
       melody: 37,
       phrase: 23,
     });
-    expect(element(drawing, at("melody", "start"))).toMatchObject({ yt: 38.5, yb: 51.5 });
+    expect(element(drawing, at("timestamp_1"))).toMatchObject({ yt: 38.5, yb: 51.5 });
     expect(drawing.height).toBe(92.4765625);
   });
 });

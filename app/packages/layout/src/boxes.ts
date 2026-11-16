@@ -15,7 +15,13 @@ import type {
   PlaceKey,
   Real,
 } from "@timetoalign/tilie-core";
-import { exactCoordinate, fromFloat, Rational, toFloat } from "@timetoalign/tilie-core/numbers";
+import {
+  exactCoordinate,
+  fromFloat,
+  Rational,
+  toFloat,
+  toRational,
+} from "@timetoalign/tilie-core/numbers";
 import type { NumberType, TimeUnit } from "@timetoalign/timetoshare";
 import type { Style } from "./cascade.ts";
 
@@ -163,6 +169,11 @@ export interface DrawnAxis {
   readonly start: Real;
   /** Null where the end is not known. */
   readonly end: Real | null;
+  /**
+   * The coordinate at `xEnd`, on the same scale as every other line of its
+   * member drawing: `end` where it is known, else the reach's (section 3.2).
+   */
+  readonly drawnEnd: Real;
   /** The segments of its timeline when it is a segment line, in canonical order; else none. */
   readonly segments: readonly AxisSegment[];
   /** The maps drawn at its line, in the order they are drawn; none for an ancestor line. */
@@ -177,8 +188,9 @@ export interface DrawnAxis {
  * draws a named timestamp's wedge and cross-section line there: the wedge's
  * tip and base ordinates and the width of its base, from the start of the
  * line's markers band (or from where that band would start were it present),
- * and the cross-section line's ordinates; each with the style of a wedge or
- * a cross-section line of the line's timeline that no named timestamp holds.
+ * the cross-section line's ordinates, and what it crosses; each with the
+ * style of a wedge or a cross-section line of the line's timeline that no
+ * named timestamp holds.
  */
 export interface AxisMarker {
   readonly wedge: {
@@ -187,10 +199,24 @@ export interface AxisMarker {
     readonly base: number;
     readonly style: Style;
   };
-  readonly crossSection: { readonly y1: number; readonly y2: number; readonly style: Style };
+  /**
+   * The ordinates of the line's cross-section lines, `y1` the smaller: from the smallest to the
+   * largest of the line's ordinate and of the start and outer edge of its children band and of
+   * its conversion maps band, each where present; null where neither band is present, so that a
+   * cross-section line there has no length and is not drawn.
+   */
+  readonly crossSection: {
+    readonly y1: number;
+    readonly y2: number;
+    readonly style: Style;
+  } | null;
+  /**
+   * The IDs of the timelines its cross-section lines cross besides its own: its displayed
+   * descendants drawn with a line of their own in the member drawing, every one within its
+   * children band, in traversal order (section 6.1).
+   */
+  readonly descendants: readonly string[];
 }
-
-const exact = (value: Real): Rational => (typeof value === "number" ? fromFloat(value) : value);
 
 /**
  * `value` rounded once into `numberType`: a float to the nearest double, an
@@ -217,7 +243,7 @@ function rounded(value: Rational, unit: TimeUnit, numberType: NumberType): Coord
 export function coordinateAt(axis: DrawnAxis, x: number): Coordinate | null {
   const { xStart, xEnd, start, end } = axis;
   if (end === null || !(x >= xStart && x <= xEnd)) return null;
-  const from = exact(start);
+  const from = toRational(start);
   const value =
     xEnd === xStart
       ? from
@@ -225,7 +251,7 @@ export function coordinateAt(axis: DrawnAxis, x: number): Coordinate | null {
           fromFloat(x)
             .subtract(fromFloat(xStart))
             .divide(fromFloat(xEnd).subtract(fromFloat(xStart)))
-            .multiply(exact(end).subtract(from)),
+            .multiply(toRational(end).subtract(from)),
         );
   return rounded(value, axis.unit, axis.numberType) ?? null;
 }

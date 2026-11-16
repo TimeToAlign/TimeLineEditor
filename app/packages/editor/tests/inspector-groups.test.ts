@@ -17,7 +17,7 @@ import PropertiesPanel from "../src/inspector/PropertiesPanel.svelte";
 import { PropertyDrafts } from "../src/inspector/propertyDrafts.svelte.ts";
 import { selectedBlock } from "../src/inspector/selection.ts";
 import { holder } from "./holder.svelte.ts";
-import { editorAt } from "./support.ts";
+import { editorAt, informing } from "./support.ts";
 
 const M = "bmixed0000";
 
@@ -235,6 +235,7 @@ describe("the mounted memberships", () => {
     const subjects = () => resolveSelection(live.view, selection.value, null, fontMetrics);
     app = mount(PropertiesPanel, {
       target: document.body,
+      context: informing(),
       props: {
         get view() {
           return live.view;

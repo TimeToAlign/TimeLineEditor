@@ -38,14 +38,14 @@ import type { DrawnBox } from "@timetoalign/tilie-layout";
 import { flushSync, mount, tick, unmount } from "svelte";
 import { SvelteMap } from "svelte/reactivity";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { keyedBox } from "../src/boxes.ts";
+import { isAffordance, keyedBox } from "../src/boxes.ts";
 import { rulesOf } from "../src/containers.ts";
 import { drawingOf } from "../src/drawing.ts";
 import type { Editing } from "../src/editing.ts";
 import { sourceAt } from "../src/gesture.ts";
 import { itemMoveCommand } from "../src/items.ts";
 import { CUBIC_OUT } from "../src/motion.ts";
-import type { BlockNodeData } from "../src/project.ts";
+import type { BlockNodeData } from "../src/node.ts";
 import { project } from "../src/project.ts";
 import { reorderCommand } from "../src/reorder.ts";
 import type { Selection } from "../src/selection.ts";
@@ -81,13 +81,20 @@ const TIMELINE: Editing = { target: inA(idAddress("score")), kind: "timeline" };
 const tagged = (tag: string, address: ElementAddress): string => `${tag} ${addressKey(address)}`;
 
 /**
- * The elements of a root member drawing of `bundle_mixed` with the maps `maps`
- * and the jumps `jumps`, as `<tag> <address key>` in drawing order: the
- * card's shadow and card, the maps, each jump's shaft and arrowhead, the
- * line, its start dot and arrowhead, the start and end wedges, the name, the
- * two wedge labels and the jumps' labels.
+ * The elements of a root member drawing of `bundle_mixed` with the maps `maps`,
+ * the jumps `jumps` and the named timestamps `stamps` (its `origin` and
+ * `length`, each drawing its wedge and its coordinate label), as `<tag>
+ * <address key>` in drawing order: the card's shadow and card, the maps,
+ * each jump's shaft and arrowhead, the line, its start dot and arrowhead,
+ * the timestamps' wedges, the name, the timestamps' labels and the jumps'
+ * labels.
  */
-function memberElements(member: string, maps: string[], jumps: string[] = []): string[] {
+function memberElements(
+  member: string,
+  maps: string[],
+  jumps: string[],
+  stamps: string[],
+): string[] {
   const line = idAddress(member);
   return [
     tagged("rect", cardAddress(member)),
@@ -100,17 +107,20 @@ function memberElements(member: string, maps: string[], jumps: string[] = []): s
     tagged("line", line),
     tagged("circle", line),
     tagged("polygon", line),
-    tagged("polygon", part(member, "start")),
-    tagged("polygon", part(member, "end")),
+    ...stamps.map((stamp) => tagged("polygon", idAddress(stamp))),
     tagged("text", part(member, "name")),
-    tagged("text", part(member, "start", "label")),
-    tagged("text", part(member, "end", "label")),
+    ...stamps.map((stamp) => tagged("text", partAddress(idAddress(stamp), "coordinate"))),
     ...jumps.map((jump) => tagged("text", part(jump, "label"))),
   ];
 }
 
-const SCORE = memberElements("score", ["cmap_1", "cmap_2"], ["jump_from_1"]);
-const PERFORMANCE = memberElements("performance", ["cmap_3"]);
+const SCORE = memberElements(
+  "score",
+  ["cmap_1", "cmap_2"],
+  ["jump_from_1"],
+  ["timestamp_9", "timestamp_10"],
+);
+const PERFORMANCE = memberElements("performance", ["cmap_3"], [], ["timestamp_7", "timestamp_8"]);
 
 /** The selection of the element addresses `elements` of block A. */
 const selectedIn = (...elements: ElementAddress[]): Selection =>
@@ -442,7 +452,12 @@ describe("the selection marks", () => {
       if (box === undefined) throw new Error(`no card ${placeKeyText(key)}`);
       const own = drawn(svg).find((element) => {
         const source = sourceAt(element);
-        return source?.element === box.range.start && source.role === "primary";
+        return (
+          source !== null &&
+          !isAffordance(source) &&
+          source.element === box.range.start &&
+          source.role === "primary"
+        );
       });
       if (own === undefined) throw new Error(`no rectangle of ${placeKeyText(key)}`);
       return ["x", "y", "width", "height"].map((name) => own.getAttribute(name));
@@ -468,7 +483,6 @@ describe("keys", () => {
     const score = addressed(svg, cardAddress("score"));
     const performance = addressed(svg, cardAddress("performance"));
     expect(score.length).toBe(2);
-    expect(addressed(svg, part("excerpt", "start")).length).toBe(2);
     const command = reorderCommand(blockIn(VIEW, A), "group_1", ["performance", "score"]);
     redraw(changed(VIEW, command));
     expect(
@@ -1023,7 +1037,7 @@ describe("bands in the timeline editor", () => {
     const shifted = shown(TIMELINE);
     untaken(shifted, shifted.card, true);
     const wedge = shown(TIMELINE);
-    untaken(wedge, addressed(wedge.svg, part("score", "start"))[0] as Element);
+    untaken(wedge, addressed(wedge.svg, idAddress("timestamp_9"))[0] as Element);
   });
 
   it("marks and moves no band outside its timeline's editor", () => {

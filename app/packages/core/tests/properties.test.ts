@@ -271,6 +271,7 @@ describe("the generator reaches the refusal catalogue", () => {
         "segment_never_locked",
         "segment_not_removable",
         "segment_structure",
+        "timestamp_exceeds_length",
         "unit_mismatch",
         "unknown_property",
         "unknown_target",

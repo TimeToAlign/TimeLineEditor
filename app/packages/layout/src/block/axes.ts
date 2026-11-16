@@ -147,6 +147,7 @@ export function axesOf(
     if (span === undefined) return undefined;
     const { timeline } = span;
     const length = lengthValue(timeline);
+    const drawnEnd = length ?? add(span.end, negate(span.start));
     return {
       address: element.address,
       card,
@@ -156,7 +157,8 @@ export function axesOf(
       unit: timeline.unit,
       numberType: timeline.number_type,
       start: zero(timeline.number_type),
-      end: span.open ? null : (length ?? add(span.end, negate(span.start))),
+      end: span.open ? null : drawnEnd,
+      drawnEnd,
       segments: segmentsOf(timeline),
       maps: drawnMaps.flatMap((item) => (item.line === timeline.id ? [item.map] : [])),
       marker: drawn.markers.get(element) ?? null,
@@ -188,6 +190,7 @@ export function axesOf(
       start,
       // Clipped at the member's end, the coordinate there; at its own end short of it, its length.
       end: short ? length : rootOpen ? null : add(start, lambda),
+      drawnEnd: short && length !== null ? length : add(start, lambda),
       segments: [],
       maps: [],
       marker: null,

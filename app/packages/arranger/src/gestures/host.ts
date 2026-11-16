@@ -7,8 +7,8 @@ import type { BlockId, Command, PlaceKey, View } from "@timetoalign/tilie-core";
 import { isCommandError, preview } from "@timetoalign/tilie-core";
 import type { Descriptor } from "@timetoalign/tilie-writers";
 import type { Point } from "../gesture.ts";
+import type { BlockNodeData } from "../node.ts";
 import type { NodeActions } from "../nodeActions.ts";
-import type { BlockNodeData } from "../project.ts";
 
 /** A copy of a held card's drawing that follows the pointer while the card is reordered. */
 export interface Ghost {

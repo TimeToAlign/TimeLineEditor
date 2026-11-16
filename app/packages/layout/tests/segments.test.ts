@@ -40,8 +40,8 @@ const ofType = (drawing: Drawing, ...types: DrawnElement["type"][]) =>
 /** The segment labels, as `[address, x, baseline]`. */
 const segmentLabels = (drawing: Drawing) =>
   ofType(drawing, "label").flatMap((item) =>
-    // A segment's label has the one part word `label`; a wedge's label two.
-    item.type === "label" && item.address.part?.length === 1
+    // A segment's label has the part word `label`; a named timestamp's labels have others.
+    item.type === "label" && item.address.part?.[0] === "label"
       ? [[item.address, item.x, item.baseline]]
       : [],
   );
@@ -78,11 +78,11 @@ describe("segment_line", () => {
       at("b", "start"),
       at("b2", "start"),
       at("c", "start"),
-      at("form", "start"),
-      at("form", "end"),
+      at("timestamp_1"),
+      at("timestamp_2"),
       at("form", "name"),
-      at("form", "start", "label"),
-      at("form", "end", "label"),
+      at("timestamp_1", "coordinate"),
+      at("timestamp_2", "coordinate"),
       at("a", "label"),
       at("b", "label"),
       at("b1", "label"),
@@ -461,8 +461,8 @@ describe("a markers band at level 1 above a segment line", () => {
     expect(segmentLabels(drawing).map((item) => item[2])).toEqual([
       24.35400390625, 24.35400390625, 24.35400390625, 24.35400390625,
     ]);
-    expect(element(drawing, at("pages", "start"))).toMatchObject({ yt: 53.953125, yb: 40.953125 });
-    expect(element(drawing, at("pages", "end", "label"))).toMatchObject({
+    expect(element(drawing, at("timestamp_1"))).toMatchObject({ yt: 53.953125, yb: 40.953125 });
+    expect(element(drawing, at("timestamp_2", "coordinate"))).toMatchObject({
       baseline: 36.83056640625,
     });
     expect(element(drawing, at("page_2", "start"))).toMatchObject({ y1: 47.453125, y2: 63.453125 });

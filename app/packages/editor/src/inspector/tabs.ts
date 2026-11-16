@@ -56,32 +56,19 @@ export function toggled(picked: Picked, openings: number, shown: boolean): Picke
 }
 
 /**
- * An unnamed pin as the inspector holds it: core's pin, with the manifest
- * of its block it was read from, so that it is never shown with another;
- * the granularity it was read under is its spec's.
+ * A pin as the inspector holds it: core's pin (unnamed, or showing a named
+ * timestamp), with the manifest of its block it was read from.
  */
-export interface UnnamedPinning {
+export interface Held {
   readonly pin: Pin;
   readonly manifest: Manifest;
 }
 
-/**
- * A named timestamp as the inspector holds it: its address `{block, id}`,
- * its pin read anew from the view, and with the canvas's MeasureMap rows,
- * whenever it is shown.
- */
-export interface NamedPinning {
-  readonly named: Address;
-}
-
-/** What the Timestamp tab shows: an unnamed pin, or a named timestamp. */
-export type Pinning = UnnamedPinning | NamedPinning;
-
-/** A pinning as shown, and the tab shown before the first pin, shown again when the pin is cleared. */
-export type ShownPin = Pinning & { readonly before: Tab };
+/** A held pin as shown, and the tab shown before the first pin, shown again when the pin is cleared. */
+export type ShownPin = Held & { readonly before: Tab };
 
 /** `pin` held in `view`: with its block's manifest; `null` when its block is gone. */
-export function pinningOf(view: View, pin: Pin): UnnamedPinning | null {
+export function heldOf(view: View, pin: Pin): Held | null {
   const block = view.blocks[pin.timestamp.block];
   if (block === undefined) return null;
   return { pin, manifest: block.manifest };
@@ -95,16 +82,20 @@ export function namesTimestamp(view: View, address: Address): boolean {
 }
 
 /**
- * Whether `pinning` no longer holds in `view`. An unnamed pin: its block is
+ * Whether `held` no longer holds in `view`. An unnamed pin: its block is
  * deleted, the block's manifest is another object (any change to it), or
  * the granularity is another object than the one it was read under (a
- * change to it). A named timestamp: its address names no named timestamp.
+ * change to it). A named timestamp's pin, which is read anew from the view
+ * whenever it is shown: its address names no named timestamp.
  */
-export function outlived(pinning: Pinning, view: View): boolean {
-  if ("named" in pinning) return !namesTimestamp(view, pinning.named);
+export function outlived(held: Held, view: View): boolean {
+  const { pin } = held;
+  if (pin.named !== null) {
+    return !namesTimestamp(view, { block: pin.spec.block, id: pin.named.id });
+  }
   return (
-    view.blocks[pinning.pin.timestamp.block]?.manifest !== pinning.manifest ||
-    view.settings.granularity !== pinning.pin.spec.granularity
+    view.blocks[pin.timestamp.block]?.manifest !== held.manifest ||
+    view.settings.granularity !== pin.spec.granularity
   );
 }
 
@@ -115,17 +106,17 @@ export interface Shown {
 }
 
 /**
- * What is shown once `pinning` is pinned: the Timestamp tab, remembering
- * the tab shown before unless a pin already did; or, for `null`, once the
- * pin is cleared: the tab remembered, nothing pinned. Clearing without a
- * pin changes nothing.
+ * What is shown once `held` is pinned: the Timestamp tab, remembering the
+ * tab shown before unless a pin already did; or, for `null`, once the pin
+ * is cleared: the tab remembered, nothing pinned. Clearing without a pin
+ * changes nothing.
  */
-export function pinned(shown: Shown, pinning: Pinning | null): Shown {
+export function pinned(shown: Shown, held: Held | null): Shown {
   const { picked, pin } = shown;
-  if (pinning !== null) {
+  if (held !== null) {
     return {
       picked: { tab: "timestamp", openings: picked.openings },
-      pin: { ...pinning, before: pin?.before ?? picked.tab },
+      pin: { ...held, before: pin?.before ?? picked.tab },
     };
   }
   if (pin === null) return shown;

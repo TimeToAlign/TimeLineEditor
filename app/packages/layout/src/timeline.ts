@@ -35,7 +35,13 @@ import { type Extent, widen } from "./fit.ts";
 import { flowControlBand } from "./flow.ts";
 import { type LevelZero, levelZero } from "./line.ts";
 import { conversionMapsBand, drawMaps, type MapMember, mapMembers, type Slots } from "./maps.ts";
-import { crossSectionElement, type MarkersBand, markersBand, wedgeElement } from "./markers.ts";
+import {
+  type CrossSectionExtent,
+  crossSectionElement,
+  type MarkersBand,
+  markersBand,
+  wedgeElement,
+} from "./markers.ts";
 import { regionsBand } from "./regions.ts";
 import type { Entry, Scope } from "./traversal.ts";
 
@@ -86,8 +92,6 @@ export interface LinePlace {
   readonly x0: number;
   /** The ordinate `yl` of its line, in item coordinates. */
   readonly y: number;
-  /** The ordinate `y_root` of the member drawing's root line, in item coordinates. */
-  readonly root: number;
   /** The name size `s` of the row its line lies in (section 6.2): the root's own name size for the root. */
   readonly size: number;
   /** The member drawing's top, in item coordinates (section 8.4). */
@@ -405,8 +409,13 @@ export function layoutTimeline(
   const edges = { above: above.edge, below: below.edge };
   const laid = [...above.bands.toReversed(), ...below.bands];
 
+  const descendants = linesIn(children)
+    .sort(scope.byTraversal)
+    .map((entry) => entry.manifest.id);
+
   const elements = (place: LinePlace): LineElements => {
     const at = linePosition(prepared, edges, place);
+    const extent = crossSectionExtent(laid, at);
     const parts = [
       prepared.levelZero.draw(at, againstOf(prepared, slots, "above")),
       ...laid.map((band) =>
@@ -414,7 +423,7 @@ export function layoutTimeline(
           ? drawMaps(prepared.maps, slots, band.start, band.side, at)
           : bands[band.facet].draw(band.start, band.side, at),
       ),
-      { crossSections: prepared.markers.crossSections(at) },
+      { crossSections: prepared.markers.crossSections(at, extent) },
     ];
     const merged = mergeLineElements(parts);
     const [drawnLine] = merged.line;
@@ -425,12 +434,17 @@ export function layoutTimeline(
     const start = markersStart(prepared, (side === "above" ? above : below).bands, reach[side], w);
     const { unnamed } = prepared.markers;
     const wedge = wedgeElement(drawnLine.address, unnamed.wedge, 0, at, side, start, w);
-    const crossing = crossSectionElement(drawnLine.address, unnamed.crossSection, 0, at);
+    const crossing =
+      extent === null
+        ? null
+        : crossSectionElement(drawnLine.address, unnamed.crossSection, 0, extent);
     const marker: LineMarker = {
       line: drawnLine,
       marker: {
         wedge: { yt: wedge.yt, yb: wedge.yb, base: wedge.base, style: wedge.style },
-        crossSection: { y1: crossing.y1, y2: crossing.y2, style: crossing.style },
+        crossSection:
+          crossing === null ? null : { y1: crossing.y1, y2: crossing.y2, style: crossing.style },
+        descendants,
       },
     };
     return { ...merged, markers: [marker] };
@@ -447,6 +461,39 @@ export function layoutTimeline(
 }
 
 /**
+ * The lines a children band laid out as `laid` holds at any depth: its
+ * children, each followed by the lines its own children band holds; every
+ * one displayed (a child that is not is not placed, section 6.4, Children).
+ */
+function linesIn(laid: LaidChildren | undefined): Entry[] {
+  return (laid?.children ?? []).flatMap(({ drawing }) => [
+    drawing.prepared.line,
+    ...linesIn(drawing.children),
+  ]);
+}
+
+/**
+ * The extent of the cross-section lines of a line placed at `at` whose
+ * present bands are `laid` (section 6.6, Cross-section lines): of the line's
+ * ordinate and the ordinates of the start and the outer edge of its children
+ * band and of its conversion maps band, each where present, the smallest and
+ * the largest, each ordinate the line's ordinate less or plus a distance
+ * summed whole first; null where neither band is present. Nothing else
+ * bounds it: no other band, no card margin, no ancestor band.
+ */
+function crossSectionExtent(laid: readonly LaidBand[], at: LinePosition): CrossSectionExtent {
+  const crossed = laid.filter(
+    (band) => band.facet === "children" || band.facet === "conversion_maps",
+  );
+  if (crossed.length === 0) return null;
+  const ordinates = [
+    at.y,
+    ...crossed.flatMap((band) => [at.yAt(band.side, band.start), at.yAt(band.side, band.edge)]),
+  ];
+  return [Math.min(...ordinates), Math.max(...ordinates)];
+}
+
+/**
  * The line of `prepared` placed at `place` (sections 3.2, 3.3 and 6.4), its
  * sides reaching `edges`: what its bands and its level 0 draw from.
  */
@@ -456,7 +503,7 @@ function linePosition(
   place: LinePlace,
 ): LinePosition {
   const { scope, line } = prepared;
-  const { x0, y, size, top, Hc, root } = place;
+  const { x0, y, size, top, Hc } = place;
   // The card margin `V` above the first row and below the last, inside the padding, counted from
   // the drawing's top.
   const near = top + (P + scope.V);
@@ -478,6 +525,5 @@ function linePosition(
       const mb = Math.max(edges[opposite(side)], scope.h(size) / 2);
       return side === "below" ? y - mb : y + mb;
     },
-    crossSection: line === scope.rootEntry ? [near, far] : y < root ? [y, near] : [y, far],
   };
 }

@@ -94,12 +94,12 @@ describe("styled__score", () => {
     },
     { ...root, address: at("score"), xs: x0, xe, y: y.root },
     { ...child, address: at("b"), xs: 298.080078125, xe, y: y.b },
-    { type: "wedge", address: at("score", "start"), x: x0, yt: y.tipW, yb: y.baseW, base: 6 },
-    { type: "wedge", address: at("score", "end"), x: xe, yt: y.tipW, yb: y.baseW, base: 6 },
+    { type: "wedge", address: at("timestamp_1"), x: x0, yt: y.tipW, yb: y.baseW, base: 6 },
+    { type: "wedge", address: at("timestamp_2"), x: xe, yt: y.tipW, yb: y.baseW, base: 6 },
     name(at("b", "name"), y.bName, "b"),
     name(at("score", "name"), y.scoreName, "Styled score"),
-    { ...label(at("score", "start", "label"), x0, y.wedgeLabel, "0 ♩"), coordinate: q(0) },
-    { ...label(at("score", "end", "label"), xe, y.wedgeLabel, "8 ♩"), coordinate: q(8) },
+    { ...label(at("timestamp_1", "coordinate"), x0, y.wedgeLabel, "0 ♩"), coordinate: q(0) },
+    { ...label(at("timestamp_2", "coordinate"), xe, y.wedgeLabel, "8 ♩"), coordinate: q(8) },
     label(at("intro", "label"), 148.080078125, y.regionLabel, "intro"),
     label(at("da-capo", "label"), 298.080078125, y.jumpLabel, "D.C."),
   ];
@@ -207,26 +207,26 @@ describe("nested at length 800 and card spacing 8", () => {
       { ...root, address: at("clt_1"), xs: x0, xe, y: 62 },
       { ...child, address: at("clt_3"), xs: 249.91552734375, xe: 649.91552734375, y: 43.5 },
       { ...child, address: at("clt_2"), xs: 324.91552734375, xe: 424.91552734375, y: 25 },
-      { type: "wedge", address: at("clt_1", "start"), x: x0, yt: 63.5, yb: 76.5, base: 6 },
-      { type: "wedge", address: at("clt_1", "end"), x: xe, yt: 63.5, yb: 76.5, base: 6 },
+      { type: "wedge", address: at("timestamp_1"), x: x0, yt: 63.5, yb: 76.5, base: 6 },
+      { type: "wedge", address: at("timestamp_2"), x: xe, yt: 63.5, yb: 76.5, base: 6 },
       name(at("clt_2", "name"), 28.80810546875, "clt_2"),
       name(at("clt_3", "name"), 47.30810546875, "clt_3"),
       name(at("clt_1", "name"), 65.80810546875, "clt_1"),
-      { ...label(at("clt_1", "start", "label"), x0, 86.85400390625, "0 ♩"), coordinate: q(0) },
-      { ...label(at("clt_1", "end", "label"), xe, 86.85400390625, "16 ♩"), coordinate: q(16) },
+      { ...label(at("timestamp_1", "coordinate"), x0, 86.85400390625, "0 ♩"), coordinate: q(0) },
+      { ...label(at("timestamp_2", "coordinate"), xe, 86.85400390625, "16 ♩"), coordinate: q(16) },
     ]);
     expect(height(drawing, "clt_1")).toBe(88.9765625);
   });
 });
 
-describe("wedge-label tiers", () => {
+describe("tiers of the stacks of origin and length", () => {
   const labels = (drawing: Drawing) =>
-    [at("bare", "start", "label"), at("bare", "end", "label")].map((address) => {
+    [at("timestamp_1", "coordinate"), at("timestamp_2", "coordinate")].map((address) => {
       const item = element(drawing, address) as { x: number; baseline: number };
       return [item.x, item.baseline];
     });
 
-  it("shares tier 1 when the end label's extent starts where the start label's ends", () => {
+  it("shares tier 1 when the length stack's extent starts where the origin stack's ends", () => {
     const drawing = drawFixture("bare", [], placedAt(14.83203125));
     expect(labels(drawing)).toEqual([
       [49.5771484375, 47.25634765625],
@@ -235,7 +235,7 @@ describe("wedge-label tiers", () => {
     expect(height(drawing, "bare")).toBe(49.37890625);
   });
 
-  it("puts the end label in tier 2 when the extents overlap, placing start before end", () => {
+  it("puts the length stack in tier 2 when the extents overlap, placing origin first", () => {
     const drawing = drawFixture("bare", [], placedAt(10));
     expect(labels(drawing)).toEqual([
       [49.5771484375, 47.25634765625],

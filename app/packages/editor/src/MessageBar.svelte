@@ -1,6 +1,11 @@
 <script lang="ts">
+/**
+ * The message bar over the canvas: one card per message, newest last, each
+ * with its problems and a Dismiss button. A warning is amber and stays until
+ * dismissed; information is blue and dismisses itself.
+ */
 import ProblemList from "./inspector/ProblemList.svelte";
-import type { Message } from "./messages.ts";
+import type { Message } from "./messages.svelte.ts";
 
 interface Props {
   messages: readonly Message[];
@@ -13,7 +18,7 @@ let { messages, ondismiss }: Props = $props();
 <!-- Non-modal: editing goes on while messages are shown. -->
 <section class="messages" aria-label="Messages" aria-live="polite">
   {#each messages as message (message.id)}
-    <div class="message" data-testid="message">
+    <div class="message" data-testid="message" data-kind={message.kind}>
       <p>{message.text}</p>
       {#if message.problems.length > 0}
         <div class="problems"><ProblemList problems={message.problems} /></div>
@@ -48,6 +53,11 @@ let { messages, ondismiss }: Props = $props();
     font-size: 0.85rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
     pointer-events: auto;
+  }
+
+  .message[data-kind="info"] {
+    border-color: #7aa7d9;
+    background: #eef5fd;
   }
 
   p {

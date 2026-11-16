@@ -44,13 +44,15 @@ import {
 } from "../src/boxes.ts";
 import { removeCommand } from "../src/commands.ts";
 import { levelOf, resolveSelection } from "../src/containers.ts";
+import { affordancesOf } from "../src/coordinates.ts";
 import { descriptorsOf, drawingOf } from "../src/drawing.ts";
 import type { Editing } from "../src/editing.ts";
 import { bandTimelineOf } from "../src/editing.ts";
 import { itemMoveCommand } from "../src/items.ts";
 import { insideOf, project } from "../src/project.ts";
 import { click, existing, NOTHING_SELECTED, selectionOf } from "../src/selection.ts";
-import { resizableOf } from "../src/selectionRules.ts";
+import type { Pressed } from "../src/selectionRules.ts";
+import { pressedIn, resizableOf } from "../src/selectionRules.ts";
 import {
   A,
   B,
@@ -131,9 +133,8 @@ describe("boxes in a manifest of one root", () => {
     expect(hit(part("b2", "start"), "boundary")).toEqual(
       plain("element", inA(part("b2", "start")), true),
     );
-    // A line end's wedge carries a boundary's `{id: S, part: ["start"]}` form, but it is no boundary line.
-    expect(hit(part("form", "start"), "wedge")).toEqual(
-      plain("element", inA(part("form", "start"))),
+    expect(hit(idAddress("timestamp_1"), "wedge")).toEqual(
+      plain("element", inA(idAddress("timestamp_1"))),
     );
     expect(hit(BUNDLE_ADDRESS)).toEqual(plain("block", { block: A }));
     expect(summary(hitOf(A, drawing, null))).toEqual(plain("block", { block: A }));
@@ -221,6 +222,13 @@ describe("boxes in a manifest with one group", () => {
       kind: "element",
       address: inA(part("group_1", "name")),
     });
+    // The mark of a member's start on its ancestor line carries a boundary's `{id: S, part:
+    // ["start"]}` form, but it is no boundary line.
+    expect(summary(hit(part("second-half", "start"), "wedge"))).toMatchObject({
+      kind: "element",
+      address: inA(part("second-half", "start")),
+      boundary: false,
+    });
   });
 
   it.each([
@@ -273,7 +281,7 @@ describe("boxes in a manifest with one group", () => {
     expect(pressed(idAddress("group_1"))).toEqual(inA(idAddress("group_1")));
     expect(pressed(BUNDLE_ADDRESS)).toEqual({ block: A });
     expect(pressed(idAddress("recording"), "timeline")).toEqual(inA(idAddress("recording")));
-    expect(pressed(part("recording", "start"), "wedge")).toEqual(inA(part("recording", "start")));
+    expect(pressed(idAddress("timestamp_1"), "wedge")).toEqual(inA(idAddress("timestamp_1")));
     expect(pressed(part("group_1", "name"))).toEqual(inA(part("group_1", "name")));
   });
 
@@ -338,10 +346,10 @@ describe("boxes in a manifest with one group", () => {
         [
           idAddress("recording"),
           part("recording", "name"),
-          part("recording", "start"),
-          part("recording", "start", "label"),
-          part("recording", "end"),
-          part("recording", "end", "label"),
+          idAddress("timestamp_1"),
+          partAddress(idAddress("timestamp_1"), "coordinate"),
+          idAddress("timestamp_2"),
+          partAddress(idAddress("timestamp_2"), "coordinate"),
         ].map(addressKey),
       ),
     );
@@ -371,7 +379,7 @@ describe("the boxes holding part of the selection", () => {
 
   it.each([
     ["a member's line", [idAddress("score")], [g1, cardKey("group_1", "score")]],
-    ["a member's start", [part("score", "start")], [g1, cardKey("group_1", "score")]],
+    ["a member's named timestamp", [idAddress("timestamp_9")], [g1, cardKey("group_1", "score")]],
     ["a child's line", [idAddress("dlt_1")], [g2, cardKey("group_2", "excerpt")]],
     ["a region's label", [part("region_3", "label")], [g2, cardKey("group_2", "excerpt")]],
     ["a member that is a child", [idAddress("excerpt")], [g2, cardKey("group_2", "excerpt")]],
@@ -737,5 +745,60 @@ describe("the bands of the edited timeline", () => {
       boundary: null,
       band: addressKey(bandAddress("score", "children")),
     });
+  });
+});
+
+describe("an affordance", () => {
+  /** `timestamps` with `display` `[]` on `timestamp_2`, which the drawing then draws nothing of. */
+  const view = changed(viewOf({ id: A, fixture: "timestamps" }), {
+    type: "set",
+    changes: [{ target: inA(idAddress("timestamp_2")), values: { display: [] } }],
+  });
+  const clt1: Editing = { target: inA(idAddress("clt_1")), kind: "timeline" };
+  const nodeIn = (editing: Editing | null) => {
+    const [node] = project(view, NOTHING_SELECTED, [], metrics, editing);
+    if (node === undefined) throw new Error("no node");
+    return node;
+  };
+  const { drawing } = nodeIn(null).data;
+  const [affordance, ...more] = affordancesOf(blockIn(view, A).manifest, drawing);
+  if (affordance === undefined || more.length > 0) throw new Error("not one affordance");
+  /** The middle of the affordance's wedge. */
+  const middle = {
+    x: affordance.points.reduce((sum, [x]) => sum + x, 0) / 3,
+    y: affordance.points.reduce((sum, [, y]) => sum + y, 0) / 3,
+  };
+  const press = (editing: Editing | null): Pressed => ({
+    node: nodeIn(editing),
+    source: affordance,
+    point: middle,
+    pane: false,
+  });
+
+  it("hits the named timestamp's address, no box and no boundary", () => {
+    expect(hitOf(A, drawing, affordance)).toEqual({
+      block: A,
+      kind: "element",
+      address: inA(idAddress("timestamp_2")),
+      box: null,
+      boundary: false,
+      within: null,
+    });
+  });
+
+  it("selects the named timestamp on the arranger", () => {
+    expect(pressedIn(press(null), null)).toEqual(inA(idAddress("timestamp_2")));
+  });
+
+  it("is hit before the markers band in the timeline's editor, and selects the timestamp", () => {
+    expect(hitOf(A, drawing, null, middle, clt1).address).toEqual(
+      inA(bandAddress("clt_1", "markers")),
+    );
+    expect(summary(hitOf(A, drawing, affordance, middle, clt1))).toMatchObject({
+      kind: "element",
+      address: inA(idAddress("timestamp_2")),
+      boundary: false,
+    });
+    expect(pressedIn(press(clt1), clt1)).toEqual(inA(idAddress("timestamp_2")));
   });
 });

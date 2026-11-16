@@ -7,7 +7,7 @@
 import type { Command, View, WorkspaceSettings } from "@timetoalign/tilie-core";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import { moveCommand } from "./commands.ts";
-import type { BlockNode, LivePlacement } from "./project.ts";
+import type { BlockNode, LivePlacement } from "./node.ts";
 import { livePlacement } from "./project.ts";
 import type { Selection } from "./selection.ts";
 import { blockOf, isSelected, selectionOf } from "./selection.ts";

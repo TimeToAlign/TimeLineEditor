@@ -1,24 +1,32 @@
 /**
- * A timestamp: the values a position on a drawn line has, and a pinned
- * timestamp moved by an edited value.
+ * A timestamp: the cross-section of a timeline at a position.
  *
- * A position on a line is exact, on the line's own axis. Its timestamp holds the line's own coordinate and the value of
- * each map shown for the line; on a segment line it also holds the segment
- * under the position, read from the segment's own start, with the segment's
- * maps. Each value is its map's compiled evaluator at the position, written
- * on the map's target unit (`express`), so every reader of a timestamp
- * shows the same values and none computes them again. The texts a reader
- * shows for a timestamp's place, a measure and a missing value are here
- * too, so every reader writes them alike.
+ * The timestamp of a timeline (the anchor) at a position, exact on the
+ * anchor's own axis, is everything its cross-section line crosses there:
+ * the anchor, then each member (the anchor's segments and displayed
+ * descendants, as the caller lists them) whose span holds the position,
+ * each with its coordinate and the value of each of its drawn maps. A
+ * **row** is one of those values: a member's own coordinate or one of its
+ * maps' values. One row abstraction (`rowAxis`) evaluates a row forward
+ * from an anchor position and back from a value to an anchor position;
+ * the values a timestamp shows, the position a pointer picks on a row
+ * (`snapOnRow`) and the position an edited value gives (`positionFor`)
+ * all go through it, so no reader evaluates or inverts a map another way.
+ * The rows every reader lists (`timestampRows`), the timestamp as one JSON
+ * value (`timestampJson`) and the texts shown for a measure and a missing
+ * value are here too, so every reader writes them alike.
  */
 
 import type { NumberType, TimeUnit } from "@timetoalign/timetoshare";
+import { numberTypeOf } from "@timetoalign/timetoshare";
 import type { Problem } from "../errors.ts";
 import { ErrorCode, problem } from "../errors.ts";
-import type { ConversionMap } from "../manifest/types.ts";
+import type { Json, JsonObject } from "../json.ts";
+import type { ConversionMap, NamedTimestamp } from "../manifest/types.ts";
 import type { CoordinateValue } from "../number/coordinate.ts";
-import { displayValue, unitSymbol } from "../number/display.ts";
-import { nearest } from "../number/grid.ts";
+import { jsonFloat, jsonInteger, toAxisValue } from "../number/coordinate.ts";
+import { coordinateDict } from "../number/display.ts";
+import { clampValue, nearest, snapValue } from "../number/grid.ts";
 import { Rational } from "../number/rational.ts";
 import type { Real } from "../number/real.ts";
 import { compareReal, fromFloat, toRational } from "../number/real.ts";
@@ -28,14 +36,17 @@ import type { CompileContext } from "./compile.ts";
 import { compileMap } from "./compile.ts";
 import type { Expressed } from "./express.ts";
 import { express, expressAs } from "./express.ts";
-import { invert } from "./invert.ts";
-import type { MeasureKnot, MeasureKnots } from "./values.ts";
+import { invert, invertible } from "./invert.ts";
+import type { MapResult, MapValue, MeasureKnot, MeasureKnots } from "./values.ts";
+import { isMapValue, kindOf } from "./values.ts";
+
+const ZERO = Rational.fromParts(0n, 1n);
 
 /**
- * A timeline as a timestamp reads it: its axis, its length (`null` when
- * unknown) and the maps shown for it, in drawing order.
+ * A timeline as a cross-section reads it: its axis, its length (`null`
+ * when unknown) and its drawn maps, in drawing order.
  */
-export interface TimestampTimeline {
+export interface TimelineAxis {
   readonly timeline: string;
   /** The timeline's name, or its whole ID without one. */
   readonly name: string;
@@ -45,21 +56,22 @@ export interface TimestampTimeline {
   readonly maps: readonly ConversionMap[];
 }
 
-/** A segment of the line: where it starts on the line. */
-export interface TimestampSegment extends TimestampTimeline {
+/** A timeline the cross-section line may cross: its zero lies `offset` from the anchor's zero, on the anchor's axis, exactly. */
+export interface CrossSectionMember extends TimelineAxis {
   readonly offset: Real;
 }
 
 /**
- * What a timestamp is read from: the drawn line, its segments (none for any
- * other line) and the granularity its readers show floats with and an
- * edited value is settled to.
+ * What a timestamp is read from: the anchor, the members its cross-section
+ * line may cross (the anchor excluded, in the order given), and the
+ * granularity its floats are shown with and its pointer positions picked
+ * to.
  */
-export interface TimestampSpec {
+export interface CrossSectionSpec {
   readonly block: BlockId;
   readonly granularity: Granularity;
-  readonly line: TimestampTimeline;
-  readonly segments: readonly TimestampSegment[];
+  readonly anchor: TimelineAxis;
+  readonly members: readonly CrossSectionMember[];
 }
 
 /**
@@ -69,6 +81,9 @@ export interface TimestampSpec {
  * or its answer lacks a MeasureMap (`failed`).
  */
 export type KnotsAbsence = "no_server" | "unsupported" | "pending" | "failed";
+
+/** The expanded rows of a manifest's MeasureMaps, or why they are not at hand. */
+export type Knots = readonly MeasureKnots[] | KnotsAbsence;
 
 /** One map's value at a timestamp's position; `value` is `null` where the map gives none. */
 export interface TimestampMap {
@@ -83,154 +98,99 @@ export interface TimestampMap {
   readonly missingKnots: KnotsAbsence | null;
 }
 
-/** One timeline's part of a timestamp: its coordinate, in its number type, and its maps' values. */
+/** One crossed timeline's part of a timestamp: its coordinate, in its number type, and its maps' values. */
 export interface TimestampPart {
   readonly timeline: string;
   readonly name: string;
   readonly unit: TimeUnit;
   readonly numberType: NumberType;
   readonly position: CoordinateValue;
-  readonly segment: boolean;
   readonly maps: readonly TimestampMap[];
 }
 
-/** The values a position on a line has: the line's part, then the segment's when one holds it. */
+/** The cross-section of a timeline at a position: the anchor's part first, then each crossed member's. */
 export interface Timestamp {
   readonly block: BlockId;
-  /** The line's timeline. */
+  /** The anchor's timeline. */
   readonly timeline: string;
   /** The granularity of its spec: `decimals` is how many places its floats are shown with. */
   readonly granularity: Granularity;
   readonly parts: readonly TimestampPart[];
 }
 
-/**
- * The segment under `position`: of those whose span `[offset, offset +
- * length]` holds it, the one starting last, so a shared boundary belongs to
- * the later segment and the line's end to the last.
- */
-function segmentAt(
-  segments: readonly TimestampSegment[],
-  position: Rational,
-): TimestampSegment | undefined {
-  let found: TimestampSegment | undefined;
-  for (const segment of segments) {
-    const start = toRational(segment.offset);
-    if (start.compare(position) > 0) continue;
-    if (segment.length !== null && compareReal(position.subtract(start), segment.length) > 0) {
-      continue;
-    }
-    if (found === undefined || start.compare(toRational(found.offset)) > 0) found = segment;
-  }
-  return found;
-}
-
-function partOf(
-  timeline: TimestampTimeline,
-  position: Rational,
-  segment: boolean,
-  context: CompileContext,
-  absence: KnotsAbsence,
-): TimestampPart {
-  const value = expressAs(position, timeline.numberType);
-  if (value === undefined) throw new RangeError(`${position} is no ${timeline.numberType} value`);
-  const maps = timeline.maps.map((map): TimestampMap => {
-    const evaluator = compileMap(map, context);
-    const result = evaluator.evaluate(value);
-    return {
-      id: map.id,
-      name: map.name ?? null,
-      targetUnit: evaluator.targetUnit,
-      value: result === undefined ? null : (express(result, evaluator.targetUnit) ?? null),
-      missingKnots: evaluator.missingKnots ? absence : null,
-    };
-  });
-  return {
-    timeline: timeline.timeline,
-    name: timeline.name,
-    unit: timeline.unit,
-    numberType: timeline.numberType,
-    position: value,
-    segment,
-    maps,
-  };
-}
-
-/**
- * The timestamp of `position`, exact on the line's own axis: the line's part at `position`, then, when a segment holds
- * it, the segment's part at `position` minus the segment's offset. Each
- * part's position is written in its timeline's number type, each map
- * evaluated there in the order given. `knots` are the expanded rows of the
- * manifest's MeasureMaps, or why they are not at hand (`no_server` when not
- * given); a map reading a MeasureMap without its rows gives no value and
- * says why (`failed` when the rows given lack it).
- */
-export function timestampAt(
-  spec: TimestampSpec,
-  position: Rational,
-  knots: readonly MeasureKnots[] | KnotsAbsence = "no_server",
-): Timestamp {
-  const given = typeof knots !== "string";
-  const context: CompileContext = given ? { knots } : {};
-  const absence: KnotsAbsence = given ? "failed" : knots;
-  const parts = [partOf(spec.line, position, false, context, absence)];
-  const segment = segmentAt(spec.segments, position);
-  if (segment !== undefined) {
-    const within = position.subtract(toRational(segment.offset));
-    parts.push(partOf(segment, within, true, context, absence));
-  }
-  return {
-    block: spec.block,
-    timeline: spec.line.timeline,
-    granularity: spec.granularity,
-    parts,
-  };
-}
-
-/** Where a timestamp lies: its line's name and coordinate with its unit's symbol, as `Form at 13 1/2 ♩`. */
-export function timestampPlace(timestamp: Timestamp): string {
-  const [line] = timestamp.parts;
-  if (line === undefined) throw new Error("a timestamp has its line's part");
-  const shown = displayValue(line.position, line.numberType, timestamp.granularity.decimals);
-  return `${line.name} at ${shown} ${unitSymbol(line.unit)}`;
-}
-
-/**
- * A pinned timestamp: what it is read from, the expanded MeasureMaps it was
- * read with (or why they are not at hand), the timestamp itself, and the
- * `timestamp_N` ID of the named timestamp it shows (`null` for an unnamed
- * one).
- */
-export interface Pin {
-  readonly spec: TimestampSpec;
-  readonly knots: readonly MeasureKnots[] | KnotsAbsence;
-  readonly timestamp: Timestamp;
-  readonly named: string | null;
-}
-
-/** `pin` moved to `position` on its line's own axis, its timestamp read anew. */
-export function pinAt(pin: Pin, position: Rational): Pin {
-  return { ...pin, timestamp: timestampAt(pin.spec, position, pin.knots) };
-}
-
-/**
- * A row of a pinned timestamp whose value is edited: the coordinate of the
- * line (`part` `"line"`) or of the segment under the position
- * (`"segment"`), or, with `map`, the value of that map of the part.
- */
-export interface PinRow {
-  readonly part: "line" | "segment";
+/** A row of a cross-section: the timeline's own coordinate (`map` `null`) or the value of its map `map`. */
+export interface Row {
+  readonly timeline: string;
   readonly map: string | null;
 }
 
 /**
- * The position an inverse gives, on an axis of `numberType`: a float on a
- * fraction axis the nearest multiple of `1 / denominator`, any value on an
- * int axis the nearest integer (a tie going up both times); an exact value
- * on a fraction or float axis, and a float on a float axis, as it is.
+ * A row read both ways. Forward, from a position on the anchor's axis to
+ * the row's value; backward, from a value to the position on the anchor's
+ * axis where the row takes it.
+ */
+export interface RowAxis {
+  readonly row: Row;
+  /** The timeline the row belongs to; the anchor's offset is 0. */
+  readonly member: CrossSectionMember;
+  /** Where the member starts on the anchor's axis: its offset, exactly. */
+  readonly start: Rational;
+  /** The unit of the row's values: the member's for its coordinate, the map's target unit (`null` where it names none). */
+  readonly unit: TimeUnit | null;
+  /** The number type of the row's values: the member's for its coordinate, its target unit's for a map (`null` without one). */
+  readonly numberType: NumberType | null;
+  /** Whether a value of the row leads back to one position over the member's span: always for a coordinate; for a map, while it is invertible there. */
+  readonly invertible: boolean;
+  /** Why a map reading a MeasureMap without its expanded rows gives nothing; `null` for every other row. */
+  readonly missingKnots: KnotsAbsence | null;
+  /**
+   * The row's raw value at `position` on the anchor's axis: the member's
+   * coordinate (`position` minus the offset, written in the member's number
+   * type), or the map's result there; `undefined` where it gives none.
+   */
+  valueAt(position: Rational): MapResult | undefined;
+  /** The row's value at `position` as readers show it, on its unit; `null` where it gives none. */
+  expressedAt(position: Rational): Expressed | null;
+  /**
+   * The position on the anchor's axis at which the row takes `value`,
+   * exact: a map's inverse over the member's span `[0, length]`, settled on
+   * the member's axis (a float on a fraction axis to the nearest multiple
+   * of `1 / denominator`, any value on an int axis to the nearest integer,
+   * an exact value kept), the offset added, settled on the anchor's axis
+   * alike; a coordinate is the value itself. `null` where none is: the map
+   * is not invertible over the span or gives the value nowhere. The
+   * position is not held to the member's span.
+   */
+  positionOf(value: MapValue): Rational | null;
+}
+
+/** The compile context `knots` give, and why a MeasureMap's rows are missing when a map lacks them. */
+interface Reading {
+  readonly context: CompileContext;
+  readonly absence: KnotsAbsence;
+}
+
+function readingOf(knots: Knots): Reading {
+  return typeof knots === "string"
+    ? { context: {}, absence: knots }
+    : { context: { knots }, absence: "failed" };
+}
+
+/** The member named `timeline`: the anchor at offset 0, else the member given. */
+function memberOf(spec: CrossSectionSpec, timeline: string): CrossSectionMember | undefined {
+  if (spec.anchor.timeline === timeline) return { ...spec.anchor, offset: ZERO };
+  return spec.members.find((member) => member.timeline === timeline);
+}
+
+/**
+ * The position an inverse or a sum gives, on an axis of `numberType`: a
+ * float on a fraction axis the nearest multiple of `1 / denominator`, any
+ * value on an int axis the nearest integer (a tie going up both times); an
+ * exact value on a fraction or float axis, and a float on a float axis, as
+ * it is.
  */
 function settled(value: Real, numberType: NumberType, granularity: Granularity): Rational {
-  const exact = typeof value === "number" ? fromFloat(value) : value;
+  const exact = toRational(value);
   if (numberType === "int") return nearest(exact, 1n);
   if (numberType === "fraction" && typeof value === "number") {
     return nearest(exact, BigInt(granularity.denominator));
@@ -238,47 +198,298 @@ function settled(value: Real, numberType: NumberType, granularity: Granularity):
   return exact;
 }
 
+function axisOf(
+  spec: CrossSectionSpec,
+  member: CrossSectionMember,
+  map: ConversionMap | null,
+  reading: Reading,
+): RowAxis {
+  const start = toRational(member.offset);
+  const coordinate = (position: Rational): CoordinateValue | undefined =>
+    expressAs(position.subtract(start), member.numberType);
+  const onAnchor = (own: Real): Rational =>
+    settled(
+      start.add(settled(own, member.numberType, spec.granularity)),
+      spec.anchor.numberType,
+      spec.granularity,
+    );
+  const row: Row = { timeline: member.timeline, map: map === null ? null : map.id };
+  if (map === null) {
+    return {
+      row,
+      member,
+      start,
+      unit: member.unit,
+      numberType: member.numberType,
+      invertible: true,
+      missingKnots: null,
+      valueAt: coordinate,
+      expressedAt: (position) => {
+        const value = coordinate(position);
+        return value === undefined
+          ? null
+          : { unit: member.unit, numberType: member.numberType, value };
+      },
+      positionOf: (value) => onAnchor(toRational(value)),
+    };
+  }
+  const evaluator = compileMap(map, reading.context);
+  const { targetUnit } = evaluator;
+  const inversion = {
+    ...reading.context,
+    span: { start: ZERO, end: member.length },
+  };
+  const valueAt = (position: Rational): MapResult | undefined => {
+    const x = coordinate(position);
+    return x === undefined ? undefined : evaluator.evaluate(x);
+  };
+  let solvable: boolean | undefined;
+  return {
+    row,
+    member,
+    start,
+    unit: targetUnit,
+    numberType: targetUnit === null ? null : numberTypeOf({ unit: targetUnit }),
+    get invertible() {
+      solvable ??= invertible(map, inversion);
+      return solvable;
+    },
+    missingKnots: evaluator.missingKnots ? reading.absence : null,
+    valueAt,
+    expressedAt: (position) => {
+      const result = valueAt(position);
+      return result === undefined ? null : (express(result, targetUnit) ?? null);
+    },
+    positionOf: (value) => {
+      const x = invert(map, value, inversion);
+      return x === null ? null : onAnchor(x);
+    },
+  };
+}
+
+function axisIn(spec: CrossSectionSpec, row: Row, reading: Reading): RowAxis | null {
+  const member = memberOf(spec, row.timeline);
+  if (member === undefined) return null;
+  if (row.map === null) return axisOf(spec, member, null, reading);
+  const map = member.maps.find((item) => item.id === row.map);
+  return map === undefined ? null : axisOf(spec, member, map, reading);
+}
+
+/**
+ * The row `row` of `spec` read both ways, its maps compiled with `knots`
+ * (the expanded rows of the manifest's MeasureMaps, or why they are not at
+ * hand); `null` where the spec has no such timeline or the timeline no
+ * such map.
+ */
+export function rowAxis(
+  spec: CrossSectionSpec,
+  row: Row,
+  knots: Knots = "no_server",
+): RowAxis | null {
+  return axisIn(spec, row, readingOf(knots));
+}
+
+/** Whether `member`'s closed span on the anchor's axis, `[offset, offset + length]` (unbounded above for an unknown length), holds `position`. */
+function crosses(member: CrossSectionMember, position: Rational): boolean {
+  const own = position.subtract(toRational(member.offset));
+  return own.numerator >= 0n && (member.length === null || compareReal(own, member.length) <= 0);
+}
+
+function partOf(
+  spec: CrossSectionSpec,
+  member: CrossSectionMember,
+  position: Rational,
+  reading: Reading,
+): TimestampPart {
+  const value = axisOf(spec, member, null, reading).valueAt(position);
+  if (value === undefined || !isMapValue(value)) {
+    throw new RangeError(`${position} is no ${member.numberType} value`);
+  }
+  const maps = member.maps.map((map): TimestampMap => {
+    const axis = axisOf(spec, member, map, reading);
+    return {
+      id: map.id,
+      name: map.name ?? null,
+      targetUnit: axis.unit,
+      value: axis.expressedAt(position),
+      missingKnots: axis.missingKnots,
+    };
+  });
+  return {
+    timeline: member.timeline,
+    name: member.name,
+    unit: member.unit,
+    numberType: member.numberType,
+    position: value,
+    maps,
+  };
+}
+
+/**
+ * The timestamp of `position`, exact on the anchor's axis: the anchor's
+ * part, then the part of each member, in the order given, whose closed
+ * span `[offset, offset + length]` holds the position (a boundary two
+ * contiguous members share is crossed by both). Each part's coordinate is
+ * the position minus its offset, written in its number type, and each map
+ * is evaluated there in the order given. `knots` are the expanded rows of
+ * the manifest's MeasureMaps, or why they are not at hand (`no_server`
+ * when not given); a map reading a MeasureMap without its rows gives no
+ * value and says why (`failed` when the rows given lack it).
+ */
+export function timestampAt(
+  spec: CrossSectionSpec,
+  position: Rational,
+  knots: Knots = "no_server",
+): Timestamp {
+  const reading = readingOf(knots);
+  const anchor: CrossSectionMember = { ...spec.anchor, offset: ZERO };
+  const crossed = spec.members.filter((member) => crosses(member, position));
+  return {
+    block: spec.block,
+    timeline: spec.anchor.timeline,
+    granularity: spec.granularity,
+    parts: [anchor, ...crossed].map((member) => partOf(spec, member, position, reading)),
+  };
+}
+
+/** A row's raw value at `position` as an exact number; `undefined` where it gives none or no number. */
+function numberAt(axis: RowAxis, position: Rational): Rational | undefined {
+  const value = axis.valueAt(position);
+  return value === undefined || !isMapValue(value) ? undefined : toRational(value);
+}
+
+function magnitude(value: Rational): Rational {
+  return value.numerator < 0n ? ZERO.subtract(value) : value;
+}
+
+/**
+ * The position a pointer picks on a map's row: the map's value at the
+ * pointer, snapped on the value's axis within half the values' spread over
+ * the pointer's reach, then brought back exactly; `null` where the row has
+ * no inverse there or no number.
+ */
+function snappedOnValues(
+  axis: RowAxis,
+  position: Rational,
+  reach: Rational,
+  granularity: Granularity,
+): Rational | null {
+  const value = axis.valueAt(position);
+  if (value === undefined || !isMapValue(value) || !axis.invertible) return null;
+  const v = toRational(value);
+  const below = numberAt(axis, position.subtract(reach));
+  const above = numberAt(axis, position.add(reach));
+  if (below === undefined || above === undefined) return null;
+  const spread = magnitude(above.subtract(below)).multiply(Rational.fromParts(1n, 2n));
+  if (spread.numerator === 0n) return null;
+  const snapped = snapValue(v, spread, axis.numberType ?? kindOf(value), granularity);
+  return axis.positionOf(snapped);
+}
+
+/**
+ * The position on the anchor's axis a pointer picks on the row `row`
+ * (exact): `p` is the pointer, in units from the anchor's zero, `h` half a
+ * device pixel in the anchor's units.
+ *
+ * - The member's own coordinate: the simplest value of the member's number
+ *   type within `h` of `p` minus the offset (`snapValue`), the offset
+ *   added.
+ * - A map's value: `v`, the map's value at `p`, is snapped within `hv`,
+ *   half the absolute difference of its values at `p − h` and `p + h`,
+ *   under the cap of the map's target number type (the value's own kind
+ *   where the map names no target unit); the snapped value is inverted
+ *   exactly (`RowAxis.positionOf`). A map without an inverse there, a
+ *   value that is no number, or one whose inverse gives nothing falls back
+ *   to the member's own coordinate.
+ *
+ * The result is held to the member's span within the anchor's `[0,
+ * length]`.
+ *
+ * @throws {RangeError} if `p` is not finite, `h` is not finite and
+ *   positive, or the spec has no such row.
+ */
+export function snapOnRow(
+  spec: CrossSectionSpec,
+  row: Row,
+  p: number,
+  h: number,
+  knots: Knots = "no_server",
+): Rational {
+  if (!Number.isFinite(p)) throw new RangeError(`the position ${p} is not finite`);
+  if (!Number.isFinite(h) || h <= 0) {
+    throw new RangeError(`half a pixel of ${h} units is not finite and positive`);
+  }
+  const reading = readingOf(knots);
+  const axis = axisIn(spec, row, reading);
+  if (axis === null) {
+    throw new RangeError(
+      `the cross-section has no row ${row.map ?? "coordinate"} of '${row.timeline}'`,
+    );
+  }
+  const position = fromFloat(p);
+  const reach = fromFloat(h);
+  const { member, start } = axis;
+  const own = (): Rational => {
+    const snapped = snapValue(position.subtract(start), reach, member.numberType, spec.granularity);
+    const found = axisOf(spec, member, null, reading).positionOf(snapped);
+    if (found === null) throw new Error("a coordinate leads back to its position");
+    return found;
+  };
+  const picked =
+    (row.map === null ? null : snappedOnValues(axis, position, reach, spec.granularity)) ?? own();
+  const end = member.length === null ? null : start.add(toRational(member.length));
+  const last = spec.anchor.length;
+  const high = end === null || (last !== null && compareReal(end, last) > 0) ? last : end;
+  return clampValue(picked, start.numerator < 0n ? ZERO : start, high);
+}
+
+/**
+ * A pinned timestamp: what it is read from, the expanded MeasureMaps it was
+ * read with (or why they are not at hand), the timestamp itself, and the
+ * named timestamp it shows (`null` for an unnamed one), whose timeline is
+ * the anchor.
+ */
+export interface Pin {
+  readonly spec: CrossSectionSpec;
+  readonly knots: Knots;
+  readonly timestamp: Timestamp;
+  readonly named: NamedTimestamp | null;
+}
+
+/** `pin` moved to `position` on its anchor's axis, its timestamp read anew. */
+export function pinAt(pin: Pin, position: Rational): Pin {
+  return { ...pin, timestamp: timestampAt(pin.spec, position, pin.knots) };
+}
+
 function refused(message: string): Problem {
   return problem(ErrorCode.invalidValue, message, []);
 }
 
 /**
- * The position on the pin's line, exact on its own axis, at which the row
- * `row` takes the edited `value` (read by `parseAxisValue`): the line's
- * coordinate is the position; a segment's coordinate lies at the segment's
- * offset plus the value; a map's value is inverted (`invert`) over its
- * part's span `[0, length]` and the result settled on the part's axis (a
- * float on a fraction axis to the granularity's `1 / denominator`, any
- * value on an int axis to the nearest integer). A position outside its
- * part's `[0, length]`, a map that is not invertible there or gives the
- * value nowhere, and a row the pin does not show are refused as
- * `invalid_value` at `[]`.
+ * The position on the pin's anchor axis, exact, at which the row `row`
+ * takes the edited `value` (read by `parseAxisValue`), through the row's
+ * `positionOf`. Refused, each as `invalid_value` at `[]`: a row of a
+ * timeline the timestamp does not show, a map its timeline does not draw,
+ * a value no position gives (the map is not invertible over its
+ * timeline's span, or gives the value nowhere), and a position outside
+ * the timeline's `[0, length]`.
  */
-export function positionFor(pin: Pin, row: PinRow, value: Rational): Rational | Problem {
-  const { spec, timestamp } = pin;
-  const part = timestamp.parts.find((item) => item.segment === (row.part === "segment"));
-  const segment = spec.segments.find((item) => item.timeline === part?.timeline);
-  const timeline = row.part === "line" ? spec.line : segment;
-  if (part === undefined || timeline === undefined) {
-    return refused(`the timestamp shows no ${row.part}`);
+export function positionFor(pin: Pin, row: Row, value: Rational): Rational | Problem {
+  const { timeline } = row;
+  if (!pin.timestamp.parts.some((part) => part.timeline === timeline)) {
+    return refused(`the timestamp shows no '${timeline}'`);
   }
-  let own = value;
-  if (row.map !== null) {
-    const map = timeline.maps.find((item) => item.id === row.map);
-    if (map === undefined) return refused(`'${timeline.timeline}' shows no map '${row.map}'`);
-    const inverse = invert(map, value, {
-      ...(typeof pin.knots === "string" ? {} : { knots: pin.knots }),
-      span: { start: Rational.fromParts(0n, 1n), end: timeline.length },
-    });
-    if (inverse === null) return refused(`no position on '${timeline.timeline}' gives ${value}`);
-    own = settled(inverse, timeline.numberType, spec.granularity);
-  }
-  const { length } = timeline;
+  const axis = rowAxis(pin.spec, row, pin.knots);
+  if (axis === null) return refused(`'${timeline}' shows no map '${row.map}'`);
+  const position = axis.positionOf(value);
+  if (position === null) return refused(`no position on '${timeline}' gives ${value}`);
+  const own = position.subtract(axis.start);
+  const { length } = axis.member;
   if (own.numerator < 0n || (length !== null && compareReal(own, length) > 0)) {
     const span = length === null ? "at least 0" : `0 to ${toRational(length)}`;
-    return refused(`${own} lies outside '${timeline.timeline}' (${span})`);
+    return refused(`${own} lies outside '${timeline}' (${span})`);
   }
-  return row.part === "line" || segment === undefined ? own : toRational(segment.offset).add(own);
+  return position;
 }
 
 /** What a measure is shown as: its name, else its number, else its count. */
@@ -301,4 +512,107 @@ const MISSING_KNOTS_TEXTS: { readonly [absence in KnotsAbsence]: string } = {
  */
 export function missingValueText(map: Pick<TimestampMap, "missingKnots">): string {
   return map.missingKnots === null ? "no value here" : MISSING_KNOTS_TEXTS[map.missingKnots];
+}
+
+/**
+ * One row of a pinned timestamp as every reader lists it: its row, the
+ * timeline it belongs to, its label (the timeline's name for its
+ * coordinate; a map's name, else its ID), its value (`null` where it has
+ * none; a CombinationMap's outputs are one value), the text shown instead
+ * of a missing value, and whether an edited value moves the timestamp.
+ */
+export interface TimestampRow {
+  readonly row: Row;
+  readonly timeline: string;
+  readonly label: string;
+  readonly value: Expressed | null;
+  readonly missing: string | null;
+  readonly editable: boolean;
+}
+
+/**
+ * The rows of `pin`'s timestamp in order: per part, its coordinate, then
+ * its maps in drawing order. A coordinate is always editable; a map while
+ * it is invertible over its timeline's span.
+ */
+export function timestampRows(pin: Pin): TimestampRow[] {
+  const reading = readingOf(pin.knots);
+  return pin.timestamp.parts.flatMap((part) => {
+    const { timeline } = part;
+    const coordinate: TimestampRow = {
+      row: { timeline, map: null },
+      timeline,
+      label: part.name,
+      value: { unit: part.unit, numberType: part.numberType, value: part.position },
+      missing: null,
+      editable: true,
+    };
+    const maps = part.maps.map((map): TimestampRow => {
+      const row: Row = { timeline, map: map.id };
+      return {
+        row,
+        timeline,
+        label: map.name ?? map.id,
+        value: map.value,
+        missing: map.value === null ? missingValueText(map) : null,
+        editable: axisIn(pin.spec, row, reading)?.invertible ?? false,
+      };
+    });
+    return [coordinate, ...maps];
+  });
+}
+
+/** A number without a unit as a manifest writes a bare value: an integer, a float, a Fraction pair. */
+function bareValue(value: CoordinateValue): Json {
+  if (value instanceof Rational) {
+    return [jsonInteger(value.numerator), jsonInteger(value.denominator)];
+  }
+  return typeof value === "bigint" ? jsonInteger(value) : jsonFloat(value);
+}
+
+/**
+ * A row's value as JSON: a number with a unit its coordinate dict, one
+ * without `{number_type, value}`, a label as it is, a measure its record,
+ * named outputs an object of their values; `null` where there is none.
+ */
+function valueJson(value: Expressed | null): Json {
+  if (value === null || typeof value === "string") return value;
+  if ("record" in value) return { ...value.record };
+  if ("outputs" in value) {
+    const outputs: { [output: string]: Json } = {};
+    for (const [output, inner] of Object.entries(value.outputs)) outputs[output] = valueJson(inner);
+    return outputs;
+  }
+  return value.unit === null
+    ? { number_type: value.numberType, value: bareValue(value.value) }
+    : { ...coordinateDict(value.value, value.unit, value.numberType) };
+}
+
+/**
+ * `pin`'s timestamp as one JSON value: the named timestamp's members as the
+ * manifest holds them, or, unnamed, `{timeline, coordinate}` (the anchor's
+ * coordinate as a bare value on its own axis), then `mapping`, keyed by ID
+ * in part order: each crossed timeline but the anchor its coordinate dict,
+ * each map of each part its value (`null` where it gives none).
+ */
+export function timestampJson(pin: Pin): Json {
+  const { parts } = pin.timestamp;
+  const [anchor] = parts;
+  if (anchor === undefined) throw new Error("a timestamp has its anchor's part");
+  const mapping: { [id: string]: Json } = {};
+  for (const [index, part] of parts.entries()) {
+    if (index > 0) {
+      mapping[part.timeline] = { ...coordinateDict(part.position, part.unit, part.numberType) };
+    }
+    for (const map of part.maps) mapping[map.id] = valueJson(map.value);
+  }
+  const entry: JsonObject = pin.named ?? {
+    timeline: anchor.timeline,
+    coordinate: toAxisValue({
+      unit: anchor.unit,
+      numberType: anchor.numberType,
+      value: anchor.position,
+    }),
+  };
+  return { ...entry, mapping };
 }

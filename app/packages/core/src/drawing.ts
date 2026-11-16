@@ -5,7 +5,7 @@
  * the timelines drawn as roots.
  */
 
-export type { Domain, ElementKey, Modality } from "./manifest/elements.ts";
+export type { Domain, ElementKey, Modality, TimestampLabel } from "./manifest/elements.ts";
 export {
   BLOCK_KEY,
   bandKey,
@@ -15,6 +15,7 @@ export {
   namedTimestamps,
   orderedChildren,
   selectorMatches,
+  TIMESTAMP_LABELS,
   textKey,
   timelineAncestry,
   unownedKey,

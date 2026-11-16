@@ -97,7 +97,7 @@ describe("jump origins of corpus_score_ms3", () => {
   };
 
   it("places the jump origins on the flow row below the flow-marker label tier", () => {
-    expect(drawing.height).toBe(180.3828125);
+    expect(drawing.height).toBe(154.90625);
     expect(drawing.elements.find((item) => sameAddress(item.address, at("clt_1")))).toMatchObject({
       y: 59.5,
     });
@@ -107,34 +107,34 @@ describe("jump origins of corpus_score_ms3", () => {
     expect(
       drawing.elements.find((item) => sameAddress(item.address, at("flow_marker_1", "label"))),
     ).toMatchObject({
-      baseline: 98.83056640625,
+      baseline: 73.35400390625,
     });
   });
 
   it("arrives steeply on a short jump origin", () => {
     expect(jump(at("jump_from_2"))).toMatchObject({
-      start: [165.3993480785473, 100.953125],
-      c1: [157.2912399704392, 111.61979166666667],
-      c2: [141.07502375422297, 111.61979166666667],
-      tip: [132.96691564611487, 100.953125],
-      base: [135.38752148242557, 104.13756645576875],
+      start: [165.3993480785473, 75.4765625],
+      c1: [157.2912399704392, 86.14322916666667],
+      c2: [141.07502375422297, 86.14322916666667],
+      tip: [132.96691564611487, 75.4765625],
+      base: [135.38752148242557, 78.66100395576875],
       corners: [
-        [133.7953007545412, 105.3478693739241],
-        [136.97974221030995, 102.9272635376134],
+        [133.7953007545412, 79.8713068739241],
+        [136.97974221030995, 77.4507010376134],
       ],
     });
   });
 
   it("arrives flatly on a long jump origin", () => {
     expect(jump(at("jump_from_4"))).toMatchObject({
-      start: [468.10205078125, 100.953125],
-      c1: [368.10205078125, 166.22395833333331],
-      c2: [168.10205078125, 166.22395833333331],
-      tip: [68.10205078125, 100.953125],
-      base: [71.45167385263575, 103.13945189221907],
+      start: [468.10205078125, 75.4765625],
+      c1: [368.10205078125, 140.74739583333331],
+      c2: [168.10205078125, 140.74739583333331],
+      tip: [68.10205078125, 75.4765625],
+      base: [71.45167385263575, 77.66288939221907],
       corners: [
-        [70.35851040652622, 104.81426342791194],
-        [72.54483729874529, 101.4646403565262],
+        [70.35851040652622, 79.33770092791194],
+        [72.54483729874529, 75.9880778565262],
       ],
     });
   });
@@ -145,9 +145,10 @@ describe("float axis", () => {
     const drawing = drawFixture("continuous_physical");
     const root = drawing.elements.find((item) => sameAddress(item.address, at("cpt_1")));
     const first = drawing.elements.find((item) => sameAddress(item.address, at("cpt_2")));
-    // The labels of the root's own elements: its two wedges' labels.
+    // The coordinate labels of the root's `origin` and `length`.
     const labels = drawing.elements.filter(
-      (item): item is TextElement => item.type === "label" && item.address.id === "cpt_1",
+      (item): item is TextElement =>
+        item.type === "label" && item.address.part?.[0] === "coordinate",
     );
     expect(root).toMatchObject({ xs: 90.6767578125, xe: 490.6767578125 });
     expect(first).toMatchObject({ xs: 106.6767578125, xe: 242.6767578125 });

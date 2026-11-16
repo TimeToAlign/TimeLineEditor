@@ -18,6 +18,7 @@ export const name = "@timetoalign/tilie-core" as const;
 export { type UnknownKey, unknownKeys } from "@timetoalign/timetoshare";
 export { apply } from "./commands/apply.ts";
 export { preview } from "./commands/preview.ts";
+export { importedManifest } from "./commands/timestamps.ts";
 export type {
   AddCommand,
   AddKind,
@@ -111,6 +112,7 @@ export type {
   NamedTimestamp,
   Region,
   TimelineManifest,
+  TimestampDisplay,
 } from "./manifest/types.ts";
 export type { CompileContext, MapEvaluator } from "./maps/compile.ts";
 export { compileMap } from "./maps/compile.ts";
@@ -119,23 +121,26 @@ export { express, expressAs } from "./maps/express.ts";
 export type { InversionContext } from "./maps/invert.ts";
 export { invert, invertible } from "./maps/invert.ts";
 export type {
+  CrossSectionMember,
+  CrossSectionSpec,
+  Knots,
   KnotsAbsence,
   Pin,
-  PinRow,
+  Row,
+  TimelineAxis,
   Timestamp,
   TimestampMap,
   TimestampPart,
-  TimestampSegment,
-  TimestampSpec,
-  TimestampTimeline,
+  TimestampRow,
 } from "./maps/timestamp.ts";
 export {
   measureText,
-  missingValueText,
   pinAt,
   positionFor,
+  snapOnRow,
   timestampAt,
-  timestampPlace,
+  timestampJson,
+  timestampRows,
 } from "./maps/timestamp.ts";
 export type {
   MapInput,
@@ -157,7 +162,6 @@ export {
   exactDecimal,
   unitSymbol,
 } from "./number/display.ts";
-export { snapPosition } from "./number/grid.ts";
 export { parseAxisValue } from "./number/parse.ts";
 export type { Real } from "./number/real.ts";
 export type {

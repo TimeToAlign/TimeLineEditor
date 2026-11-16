@@ -27,7 +27,7 @@ async function cancel(): Promise<void> {
     return;
   }
   const question = `Are you sure you want to discard ${changes} ${changes === 1 ? "change" : "changes"}?`;
-  if ((await confirm?.ask(question, "Yes", "No", "second", cancelButton ?? null)) === true) {
+  if ((await confirm?.ask(question, ["Yes", "No"], "No", cancelButton ?? null)) === "Yes") {
     live.store.cancel();
   }
 }

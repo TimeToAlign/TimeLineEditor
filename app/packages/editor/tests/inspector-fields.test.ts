@@ -24,7 +24,7 @@ import PropertiesPanel from "../src/inspector/PropertiesPanel.svelte";
 import { nameCommand, nameOf, shownValue } from "../src/inspector/properties.ts";
 import { PropertyDrafts } from "../src/inspector/propertyDrafts.svelte.ts";
 import { selectedBlock } from "../src/inspector/selection.ts";
-import { editorAt } from "./support.ts";
+import { editorAt, informing } from "./support.ts";
 
 const M = "bmixed0000";
 
@@ -96,7 +96,7 @@ describe("the name field", () => {
     [[{ id: "group_1" }], { id: "group_1" }, "Performance"],
     [[{ id: "score" }], { id: "score" }, "Score"],
     [[{ id: "score", part: ["card"] }], { id: "score" }, "Score"],
-    [[{ id: "score", part: ["start"] }], { id: "score" }, "Score"],
+    [[{ id: "score", part: ["name"] }], { id: "score" }, "Score"],
     [[{ id: "cmap_4" }], { id: "cmap_4" }, null],
     [[{ id: "jump_from_1" }], { id: "jump_from_1" }, null],
   ])("names %j by %j, %j", (elements, element, name) => {
@@ -169,13 +169,18 @@ describe("the Properties panel", () => {
     showSelection(store, addresses(...(elements ?? [])), level);
   }
 
+  /** The information the panel posted to the message bar since it was mounted. */
+  let informed: string[] = [];
+
   /** Mount the panel on `store` for the addresses `selection`. */
   function showSelection(store: Store, selection: Selection, level: Level = "arranger"): void {
     const live = liveStore(store);
     const editing = editorAt(level, M);
     const subjects = () => resolveSelection(live.view, selection, editing, fontMetrics);
+    informed = [];
     app = mount(PropertiesPanel, {
       target: document.body,
+      context: informing(informed),
       props: {
         get view() {
           return live.view;
@@ -215,10 +220,6 @@ describe("the Properties panel", () => {
 
   function locked(): HTMLInputElement | null {
     return document.querySelector<HTMLInputElement>("label.locked input[type=checkbox]");
-  }
-
-  function status(): string | null {
-    return document.querySelector('[role="status"]')?.textContent ?? null;
   }
 
   function lastCommand(store: Store): unknown {
@@ -347,10 +348,10 @@ describe("the Properties panel", () => {
     type("height", "1");
     press("height", "Enter");
     expect(lastCommand(store)).toEqual(expected);
-    expect(status()).toBe(below("height", minimum));
+    expect(informed).toEqual([below("height", minimum)]);
     expect(input("height").value).toBe(shownValue(minimum));
     type("height", "2");
-    expect(status()).toBe("");
+    expect(informed).toEqual([below("height", minimum)]);
   });
 
   it.each(["height", "width"] as const)(
@@ -379,16 +380,16 @@ describe("the Properties panel", () => {
       press(property, "Enter");
       expect(lastCommand(store)).toEqual(expected);
       expect(blockOf(store).places.group_1?.[property]).toBe(undefined);
-      expect(status()).toBe(below(property, minimum));
+      expect(informed).toEqual([below(property, minimum)]);
       expect(input(property).value).toBe(shownValue(minimum));
       const entries = store.journal.length;
       type(property, "1");
       press(property, "Enter");
       expect(store.journal.length).toBe(entries);
-      expect(status()).toBe(below(property, minimum));
+      expect(informed).toEqual([below(property, minimum), below(property, minimum)]);
       type(property, String(minimum));
       press(property, "Enter");
-      expect([store.journal.length, status()]).toEqual([entries, ""]);
+      expect([store.journal.length, informed.length]).toEqual([entries, 2]);
     },
   );
 
@@ -428,7 +429,7 @@ describe("the Properties panel", () => {
       blockOf(store).places[low.key]?.height,
       blockOf(store).places[high.key]?.height,
     ]).toEqual([{}, value, undefined]);
-    expect(status()).toBe(below("height", high.minimum));
+    expect(informed).toEqual([below("height", high.minimum)]);
   });
 
   it("says nothing for a size above the minimum", () => {
@@ -436,7 +437,7 @@ describe("the Properties panel", () => {
     show(store, [{ id: "group_1" }]);
     type("height", String(frameSize(blockOf(store), store, "group_1", "height") + 10));
     press("height", "Enter");
-    expect(status()).toBe("");
+    expect(informed).toEqual([]);
   });
 });
 

@@ -40,8 +40,12 @@ const set = (target: Address, properties: object) => ({
 const frozen = (...blocks: (readonly [string, string])[]): View => deepFreeze(viewOf(...blocks));
 const tempo = () => load("map.json").timelines[0]?.conversion_maps[0] as object;
 const ticks = () => load("map.json").timelines[0]?.children[0]?.conversion_maps[0] as object;
-/** A `graphical` block as a settled manifest holds it: in its complete form. */
-const held = (graphical: object) => ({ order: {}, timestamps: [], ...graphical });
+/** A `graphical` block as a settled manifest holds it: in its complete form, the fixture `name`'s timestamps kept. */
+const held = (name: string, graphical: object) => ({
+  order: {},
+  timestamps: load(name).graphical?.timestamps ?? [],
+  ...graphical,
+});
 /** The refusal of a `set` that changes nothing, at its first value. */
 const nothing = (target: Address, property: string) => ({
   code: "invalid_value",
@@ -866,7 +870,7 @@ describe("style", () => {
     let view = frozen([A, "map.json"], [B, "bare.json"]);
     view = applied(view, style({ select: { element: "map" }, set: red }));
     expect(manifest(view).graphical).toEqual(
-      held({ styles: {}, statements: [{ select: { element: "map" }, set: red }] }),
+      held("map.json", { styles: {}, statements: [{ select: { element: "map" }, set: red }] }),
     );
     expect(manifest(view, B)).toEqual(load("bare.json"));
     view = applied(view, style({ select: { element: "map" }, set: { "stroke-width": 2 } }));
@@ -891,7 +895,7 @@ describe("style", () => {
       { select: { element: "map" }, set: { "stroke-width": 2 } },
     ]);
     view = applied(view, style({ select: { element: "map" }, set: { "stroke-width": null } }));
-    expect(manifest(view).graphical).toEqual(held({ styles: {}, statements: [] }));
+    expect(manifest(view).graphical).toEqual(held("map.json", { styles: {}, statements: [] }));
   });
 
   it("names a style in the listed blocks only", () => {
@@ -906,7 +910,7 @@ describe("style", () => {
       }),
     );
     expect(manifest(named, B).graphical).toEqual(
-      held({
+      held("bare.json", {
         styles: { green: { stroke: "#00CC00" } },
         statements: [{ select: { element: "timeline" }, set: "green" }],
       }),
@@ -917,7 +921,7 @@ describe("style", () => {
       style({ select: { element: "timeline" }, set: { opacity: 0.5 }, blocks: [B] }),
     );
     expect(manifest(inline, B).graphical).toEqual(
-      held({
+      held("bare.json", {
         styles: { green: { stroke: "#00CC00" } },
         statements: [{ select: { element: "timeline" }, set: { stroke: "#00CC00", opacity: 0.5 } }],
       }),
@@ -926,7 +930,9 @@ describe("style", () => {
       named,
       style({ select: { element: "timeline" }, set: { stroke: null }, name: "green", blocks: [B] }),
     );
-    expect(manifest(emptied, B).graphical).toEqual(held({ styles: {}, statements: [] }));
+    expect(manifest(emptied, B).graphical).toEqual(
+      held("bare.json", { styles: {}, statements: [] }),
+    );
   });
 
   it("refuses an unknown block and a malformed statement", () => {

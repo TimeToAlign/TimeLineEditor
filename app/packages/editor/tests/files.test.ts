@@ -1,7 +1,11 @@
 /// <reference types="node" />
-import { isLoadError, loadManifest } from "@timetoalign/tilie-core";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import type { TimelineManifest } from "@timetoalign/tilie-core";
+import { isLoadError, loadManifest, readWorkspace } from "@timetoalign/tilie-core";
 import { dumps, SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { exampleFiles } from "../../../e2e/fixtures/generate.ts";
 import { EXAMPLES, examples } from "../src/examples.ts";
 import {
   lastChanged,
@@ -14,6 +18,11 @@ import {
   workspaceFileName,
 } from "../src/files.ts";
 import { fixtureText, interceptDownloads, pickFile } from "./support.ts";
+
+/** The committed text of the example "Timestamps". */
+function exampleText(): string {
+  return readFileSync(path.join(import.meta.dirname, "../examples/timestamps.tle.json"), "utf8");
+}
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -72,38 +81,113 @@ describe("the examples", () => {
     "groups/group_styled",
     "flow_control",
   ];
+  const fixtureFile = (directory: string, name: string) =>
+    `../node_modules/@timetoalign/timetoshare/fixtures/${directory}/${name}.json`;
   /** A glob's result holding `names` below `fixtures/<directory>/`, each file's text its path. */
   const found = (directory: string, names: readonly string[]) =>
     Object.fromEntries(
       names.map((name) => {
-        const file = `../node_modules/@timetoalign/timetoshare/fixtures/${directory}/${name}.json`;
+        const file = fixtureFile(directory, name);
         return [file, async () => file];
       }),
     );
+  const WORKSPACE = "../examples/timestamps.tle.json";
+  const workspaces = { [WORKSPACE]: async () => WORKSPACE };
 
-  it("are four fixtures of the schema version, in order, under their labels", async () => {
-    expect(EXAMPLES.map(({ label, file }) => [label, file])).toEqual([
-      ["Score, performance and facsimile", `${version}/bundles/bundle_mixed.json`],
-      ["Sonata in two takes", `${version}/bundles/bundle_shared_parent.json`],
-      ["Styled edition", `${version}/groups/group_styled.json`],
-      ["Repeats and jumps", `${version}/flow_control.json`],
+  it("are four manifest fixtures of the schema version, then the workspace Timestamps", async () => {
+    expect(EXAMPLES.map(({ label, kind }) => [label, kind])).toEqual([
+      ["Score, performance and facsimile", "manifest"],
+      ["Sonata in two takes", "manifest"],
+      ["Styled edition", "manifest"],
+      ["Repeats and jumps", "manifest"],
+      ["Timestamps", "workspace"],
     ]);
     const texts = await Promise.all(EXAMPLES.map(({ text }) => text()));
-    expect(texts).toEqual(chosen.map((name) => fixtureText(name)));
+    expect(texts).toEqual([...chosen.map((name) => fixtureText(name)), exampleText()]);
   });
 
   it("read the files of the schema version and refuse a missing one", async () => {
     const files = { ...found("0.0.1", chosen), ...found(SCHEMA_VERSION, chosen) };
-    const texts = await Promise.all(examples(files).map(({ text }) => text()));
-    expect(texts).toEqual(
-      chosen.map(
-        (name) =>
-          `../node_modules/@timetoalign/timetoshare/fixtures/${SCHEMA_VERSION}/${name}.json`,
-      ),
-    );
-    expect(() => examples(found(SCHEMA_VERSION, chosen.slice(0, 3)))).toThrow(
+    const texts = await Promise.all(examples(files, workspaces).map(({ text }) => text()));
+    expect(texts).toEqual([...chosen.map((name) => fixtureFile(SCHEMA_VERSION, name)), WORKSPACE]);
+    expect(() => examples(found(SCHEMA_VERSION, chosen.slice(0, 3)), workspaces)).toThrow(
       `the example ${version}/flow_control.json is missing`,
     );
+    expect(() => examples(files, {})).toThrow(
+      "the example examples/timestamps.tle.json is missing",
+    );
+  });
+
+  it("hold Timestamps as the generator writes it", () => {
+    expect(exampleText()).toBe(exampleFiles().get("timestamps.tle.json"));
+    const workspace = readWorkspace(exampleText());
+    if (isLoadError(workspace)) throw new Error(JSON.stringify(workspace.problems));
+    const { view, journal } = workspace;
+    const manifest = view.blocks.timestamps?.manifest;
+    if (manifest === undefined) throw new Error("no block timestamps");
+    const timelines = (items: readonly TimelineManifest[]): unknown[] =>
+      items.map((item) => [
+        item.id,
+        item.unit,
+        item.number_type,
+        item.is_segment_line,
+        item.conversion_maps.map((map) => [map.id, map.target_unit]),
+        timelines(item.children),
+      ]);
+    expect([
+      view.name,
+      Object.keys(view.blocks),
+      [...new Set(journal.map((entry) => entry.author))],
+      timelines(manifest.timelines),
+      (manifest.graphical?.timestamps ?? [])
+        .map((item) => [item.id, item.timeline, item.name, item.display])
+        .sort(([left], [right]) =>
+          String(left).localeCompare(String(right), "en", { numeric: true }),
+        ),
+    ]).toEqual([
+      "Timestamps",
+      ["timestamps"],
+      ["TimeLineEditor"],
+      [
+        [
+          "performance",
+          "seconds",
+          "float",
+          true,
+          [["samples", "samples"]],
+          [
+            ["take_1", "seconds", "float", false, [], []],
+            ["take_2", "seconds", "float", false, [], []],
+          ],
+        ],
+        [
+          "score",
+          "quarters",
+          "fraction",
+          false,
+          [
+            ["bars", "whole_notes"],
+            ["tempo", "seconds"],
+            ["ticks", "ticks"],
+          ],
+          [
+            ["phrase", "quarters", "fraction", false, [["phrase_ticks", "ticks"]], []],
+            ["coda", "quarters", "fraction", false, [], []],
+          ],
+        ],
+      ],
+      [
+        ["timestamp_1", "score", "origin", ["wedge", "coordinate"]],
+        ["timestamp_2", "score", "length", ["wedge", "coordinate"]],
+        ["timestamp_3", "performance", "origin", ["wedge", "coordinate"]],
+        ["timestamp_4", "performance", "length", ["wedge", "coordinate"]],
+        ["timestamp_5", "score", "Theme", ["wedge", "name", "cross_section"]],
+        ["timestamp_6", "score", "Climax", ["wedge", "name", "id", "coordinate", "cross_section"]],
+        ["timestamp_7", "score", "Silent", []],
+        ["timestamp_8", "phrase", "Cadence", ["wedge", "id"]],
+        ["timestamp_9", "performance", "Entry", ["wedge", "coordinate", "cross_section"]],
+      ],
+    ]);
   });
 });
 

@@ -677,26 +677,30 @@ row highlighted (`data-hovered`); 30 below the line nothing is within 8
 pixels: no flag and no marks; on `phrase` at 263.53662109375 `2 ♩` with
 `ticks` 960 and no `tempo` row. C toggles the flag. A click on a line
 pins the reading: the Timestamp tab is selected and shows the pinned
-place (`timestamp-where`), the pinned wedge and line stay when the
-pointer leaves, and the journal keeps its length; a click on the empty
-pane clears the pin and its marks and selects Properties, the tab shown
-before. In the Timestamp pane, `4` typed as "coordinate of Melody" moves
-the pin there (`Tempo of Melody` `2.0`), nothing journalled, while "Show
-cross-section line" is disabled; the name `Four` and Enter then journal
-exactly `{type: "add", into: {block: "map0000000", id: "melody"},
-timestamp: {name: "Four", coordinate: [4, 1]}}`, the pane shows Delete
-and the box checked and enabled, the pinned marks are gone and the named
-timestamp `timestamp_1` is drawn as an element. The pane's settings line
+timestamp's Properties (`timestamp-properties`), the pinned wedge and line
+stay when the pointer leaves, and the journal keeps its length; a click on
+the empty pane clears the pin and its marks and selects Properties, the
+tab shown before. In the Timestamp pane the values are exact:
+"coordinate of Melody" `37/15`, "Tempo of Melody" `1.2333333333333334`
+(the float 37/30); while the pin is unnamed the Display toggles and
+Delete are disabled. `4` typed as "coordinate of Melody" moves the pin
+there (`Tempo of Melody` `2.0`), nothing journalled; the name `Four` and
+Enter then journal exactly `{type: "add", into: {block: "map0000000", id:
+"melody"}, timestamp: {name: "Four", coordinate: [4, 1]}}`, Delete and
+the toggles are enabled (Wedge, Name and Cross-section pressed, ID and
+Coordinate not), the pinned marks are gone and the named timestamp
+`timestamp_3` (after `melody`'s default `origin` and `length`) is drawn as
+an element. The pane's Coordinate granularity
 shows "Denominator" 2520 and "Decimals" 3; typing 4 as the denominator
 sets `settings.granularity` to `{denominator: 4, decimals: 3}` without a
 journal entry, and the same abscissa then reads `2 1/2 ♩` (divisors 1, 2
 and 4 miss; the nearest multiple of 1/4 is 5/2); typing 0 marks the field
-invalid and changes nothing. A named timestamp added at 4 on `melody`
-lets the pointer through while Show coordinates is on (a click on it
-selects nothing of it); with Show coordinates off a click on its wedge,
-its label or its line selects exactly `{block: "map0000000", id:
-"timestamp_1"}` and shows it in the Timestamp pane (Name "Four",
-coordinate `4`, Delete), and hovering shows no flag and no marks.
+invalid and changes nothing. A timestamp added at 4 on `melody` lets the
+pointer through while Show coordinates is on (a click on it selects
+nothing of it); with Show coordinates off a click on its wedge, its name
+label or its line selects exactly `{block: "map0000000", id:
+"timestamp_3"}` and shows it in the Timestamp pane (Name "Four",
+coordinate `4`, Delete enabled), and hovering shows no flag and no marks.
 
 **`budget.spec.ts`** (`@budget`, Chromium only) measures script time with
 `grid-300` at viewport (20, 20), all nodes mounted: `ScriptDuration` from

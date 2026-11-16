@@ -6,7 +6,9 @@ import type { Drawing, DrawnElement } from "@timetoalign/tilie-layout";
 import { TextMeasure } from "@timetoalign/tilie-layout";
 import type { FontMetrics } from "@timetoalign/timetoshare";
 import { boxOf } from "./boxes.ts";
-import type { BlockNode } from "./project.ts";
+import { affordancesOf } from "./coordinates.ts";
+import type { BlockNode } from "./node.ts";
+import { timestampOwner } from "./selectionRules.ts";
 
 /** An axis-aligned rectangle: on the canvas, or in a drawing's own units. */
 export interface Rect {
@@ -111,10 +113,12 @@ function holds(outer: Rect, inner: Rect): boolean {
  * The elements of `node` a marquee over the canvas rectangle `rect` selects,
  * as addresses in the node's block, in drawing order, each once: the
  * addresses among `inside` (the node's `inside`, by their keys) whose every
- * drawn element lies wholly
- * in `rect`, edges included (`elementBounds`, on the canvas). An address
- * drawn in several places, such as an ancestor line in several cards, is
- * taken only when all of them lie inside. Frames and cards are containers,
+ * drawn element lies wholly in `rect`, edges included (`elementBounds`, on
+ * the canvas). An address drawn in several places, such as an ancestor line
+ * in several cards, is taken only when all of them lie inside. Every part of
+ * a named timestamp (its wedge, labels and line, and the affordance of one
+ * that draws nothing, `affordancesOf`) stands for the timestamp, which
+ * is taken when all of them lie inside. Frames and cards are containers,
  * which a click selects, never a marquee; a band draws nothing, so no
  * marquee selects one either.
  */
@@ -124,17 +128,31 @@ export function elementsInRect(
   inside: ReadonlySet<string>,
   metrics: FontMetrics,
 ): Address[] {
-  const { drawing } = node.data;
+  const { drawing, block } = node.data;
   const measure = new TextMeasure(metrics);
   const taken = new Map<string, { readonly address: ElementAddress; held: boolean }>();
+  const take = (address: ElementAddress, bounds: Rect) => {
+    const owner = timestampOwner(block.manifest, address) ?? address;
+    const key = addressKey(owner);
+    const held = holds(rect, rectOnCanvas(node, bounds));
+    const known = taken.get(key);
+    if (known === undefined) taken.set(key, { address: owner, held });
+    else known.held &&= held;
+  };
   for (const element of drawing.elements) {
     const { address } = element;
-    const key = addressKey(address);
-    if (isContainerAddress(drawing, address) || !inside.has(key)) continue;
-    const held = holds(rect, rectOnCanvas(node, elementBounds(element, measure)));
-    const known = taken.get(key);
-    if (known === undefined) taken.set(key, { address, held });
-    else known.held &&= held;
+    if (isContainerAddress(drawing, address) || !inside.has(addressKey(address))) continue;
+    take(address, elementBounds(element, measure));
+  }
+  for (const { address, points } of affordancesOf(block.manifest, drawing)) {
+    if (!inside.has(addressKey(address))) continue;
+    take(
+      address,
+      spanning(
+        points.map(([px]) => px),
+        points.map(([, py]) => py),
+      ),
+    );
   }
   return [...taken.values()]
     .filter((item) => item.held)

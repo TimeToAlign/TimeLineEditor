@@ -26,11 +26,16 @@
  *   `tempo`'s row highlighted.
  * - 30 below the line nothing lies within 8 pixels: no flag, no marks.
  * - `phrase` at 263.53662109375: 2 quarters, `ticks` 960, no `tempo` row.
- * - A named timestamp `timestamp_1` added at 4 on `melody` draws its
- *   wedge, label and cross-section line at `xStart + 200`.
- * - The Timestamp tab edits the pin: `4` typed as `melody`'s coordinate
- *   moves the pin there (`tempo` `2.0`), nothing journalled; the name
- *   `Four` then adds `{name: "Four", coordinate: [4, 1]}` into `melody`,
+ * - `melody` holds its default timestamps `origin` and `length`
+ *   (`timestamp_1`, `timestamp_2`), so a timestamp added at 4 on `melody`
+ *   is `timestamp_3`; with the default display it draws its wedge, its
+ *   name label and its cross-section line at `xStart + 200`.
+ * - The Timestamp tab edits the pin: its Coordinates show the exact
+ *   values (`37/15`, never rounded); `4` typed as `melody`'s coordinate
+ *   moves the pin there (`tempo` `2.0`), nothing journalled; while it is
+ *   unnamed its Display toggles and Delete are disabled. The name `Four`
+ *   then adds `{name: "Four", coordinate: [4, 1]}` into `melody`, the
+ *   toggles and Delete are enabled (Wedge, Name, Cross-section pressed),
  *   and the named timestamp is drawn as an element, no longer as marks.
  * - The settings line: denominator 4 makes 2.475 quarters `2 1/2 ♩`
  *   (divisors 1, 2 and 4 miss by 0.475, 0.025, 0.025; the nearest
@@ -96,8 +101,8 @@ const wedge = (page: Page, kind: "hover" | "pin") =>
   marks(page, kind).getByTestId("coordinate-wedge");
 const crossSectionLine = (page: Page, kind: "hover" | "pin") =>
   marks(page, kind).getByTestId("coordinate-line");
-/** The named timestamp `timestamp_1` of block `map`. */
-const TIMESTAMP = { block: SMALL.map, id: "timestamp_1" };
+/** The timestamp added at 4 on `melody` of block `map`, after its default `origin` and `length`. */
+const TIMESTAMP = { block: SMALL.map, id: "timestamp_3" };
 const timestampTab = (page: Page) =>
   tabs(page).getByRole("tab", { name: "Timestamp", exact: true });
 
@@ -161,7 +166,7 @@ test("a click pins and selects Timestamp; a click elsewhere clears it and restor
   await expect(coordinate(page)).toHaveText("2 7/15♩");
   await page.mouse.click(point.x, point.y);
   await expect(timestampTab(page)).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByTestId("timestamp-where")).toHaveCount(1);
+  await expect(page.getByTestId("timestamp-properties")).toHaveCount(1);
   expect(await journalLength(page)).toBe(OPENED_JOURNAL.small);
   await hover(page, MELODY.start + 200, MELODY.y + 30);
   await expect(wedge(page, "pin")).toHaveCount(1);
@@ -169,7 +174,7 @@ test("a click pins and selects Timestamp; a click elsewhere clears it and restor
 
   const empty = await emptyPoint(page, 560, 120);
   await page.mouse.click(empty.x, empty.y);
-  await expect(page.getByTestId("timestamp-where")).toHaveCount(0);
+  await expect(page.getByTestId("timestamp-properties")).toHaveCount(0);
   await expect(marks(page, "pin")).toHaveCount(0);
   await expect(timestampTab(page)).toHaveAttribute("aria-selected", "false");
   await expect(tabs(page).getByRole("tab", { name: "Properties", exact: true })).toHaveAttribute(
@@ -185,8 +190,15 @@ test("the Timestamp tab moves the pin, then names it into the manifest", async (
   await page.mouse.click(point.x, point.y);
   const shown = await panel(page, "Timestamp");
   const own = shown.getByLabel("coordinate of Melody", { exact: true });
-  await expect(own).toHaveValue("2 7/15");
-  await expect(shown.getByLabel("Show cross-section line")).toBeDisabled();
+  await expect(own).toHaveValue("37/15");
+  await expect(shown.getByLabel("Tempo of Melody", { exact: true })).toHaveValue(
+    "1.2333333333333334",
+  );
+  const display = shown.getByRole("group", { name: "Display", exact: true });
+  const toggle = (label: string) => display.getByRole("button", { name: label, exact: true });
+  const remove = shown.getByRole("button", { name: "Delete", exact: true });
+  await expect(toggle("Cross-section")).toBeDisabled();
+  await expect(remove).toBeDisabled();
   await own.fill("4");
   await own.press("Enter");
   await expect(own).toHaveValue("4");
@@ -202,14 +214,22 @@ test("the Timestamp tab moves the pin, then names it into the manifest", async (
     into: { block: SMALL.map, id: "melody" },
     timestamp: { name: "Four", coordinate: [4, 1] },
   });
-  await expect(shown.getByRole("button", { name: "Delete", exact: true })).toHaveCount(1);
-  await expect(shown.getByLabel("Show cross-section line")).toBeChecked();
-  await expect(shown.getByLabel("Show cross-section line")).toBeEnabled();
+  await expect(remove).toBeEnabled();
+  for (const [label, pressed] of [
+    ["Wedge", "true"],
+    ["Name", "true"],
+    ["ID", "false"],
+    ["Coordinate", "false"],
+    ["Cross-section", "true"],
+  ] as const) {
+    await expect(toggle(label)).toBeEnabled();
+    await expect(toggle(label)).toHaveAttribute("aria-pressed", pressed);
+  }
   await expect(marks(page, "pin")).toHaveCount(0);
   await expect(part(page, SMALL.map, { id: TIMESTAMP.id })).toHaveCount(1);
 });
 
-test("the settings line sets the granularity outside the journal", async ({ page }) => {
+test("Coordinate granularity sets the granularity outside the journal", async ({ page }) => {
   await timestampTab(page).click();
   const shown = await panel(page, "Timestamp");
   const denominator = shown.getByLabel("Denominator", { exact: true });
@@ -241,9 +261,9 @@ test("a named timestamp passes the pointer on while coordinates show, else is se
 
   await page.getByRole("button", { name: "Show coordinates" }).click();
   await expect(page.getByTestId("coordinates")).toHaveAttribute("aria-pressed", "false");
-  await expect(page.getByTestId("timestamp-where")).toHaveCount(0);
+  await expect(page.getByTestId("timestamp-properties")).toHaveCount(0);
   const own = idAddress(TIMESTAMP.id);
-  for (const address of [own, partAddress(own, "label"), partAddress(own, "line")]) {
+  for (const address of [own, partAddress(own, "name"), partAddress(own, "line")]) {
     await clickPart(page, SMALL.map, address);
     expect(await selection(page)).toEqual([TIMESTAMP]);
   }
@@ -251,7 +271,7 @@ test("a named timestamp passes the pointer on while coordinates show, else is se
   const shown = await panel(page, "Timestamp");
   await expect(shown.getByLabel("Name", { exact: true })).toHaveValue("Four");
   await expect(shown.getByLabel("coordinate of Melody", { exact: true })).toHaveValue("4");
-  await expect(shown.getByRole("button", { name: "Delete", exact: true })).toHaveCount(1);
+  await expect(shown.getByRole("button", { name: "Delete", exact: true })).toBeEnabled();
   await hover(page, MELODY.start + 200, MELODY.y);
   await expect(flag(page)).toHaveCount(0);
   await expect(marks(page, "hover")).toHaveCount(0);

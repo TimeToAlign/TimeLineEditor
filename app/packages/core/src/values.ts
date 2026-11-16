@@ -249,12 +249,12 @@ export function readGraphical(value: unknown, path: readonly PathSegment[]): Gra
   if (isCommandError(read)) return read;
   const checked = schemaChecked({ timetoshare: SCHEMA_VERSION, timelines: [], graphical: read });
   if ("code" in checked) return located(checked, ["graphical"], path);
-  const plain = plainGraphical(checked.graphical ?? {});
+  const { timestamps, ...styling } = checked.graphical ?? {};
+  const plain = plainGraphical(styling);
   if ("code" in plain) return located(plain, ["graphical"], path);
-  const { timestamps, ...rest } = plain;
-  if (timestamps === undefined) return rest;
+  if (timestamps === undefined) return plain;
   if (timestamps.length > 0) throw new Error("the schema refuses a timestamp beside no timeline");
-  return { ...rest, timestamps: [] };
+  return { ...plain, timestamps: [] };
 }
 
 /**

@@ -448,7 +448,7 @@ describe("places, display orders and band orders, refused", () => {
     const ordered = after(view, set("excerpt", { order: E }));
     const deleted = after(view, set("group_1", { order: null }));
     const bare = mixed({}, "map.json");
-    expect(block(bare, ID).manifest.graphical).toBeUndefined();
+    expect(block(bare, ID).manifest.graphical?.order).toEqual({});
     const cases: [View, string, object][] = [
       [view, "annotations", { place: { x: null } }],
       [sized, "score", { place: { width: 650 } }],
@@ -667,6 +667,9 @@ describe("band orders go with their timelines", () => {
       graphical: {
         ...stored.graphical,
         order: { group_1: DISPLAY.group_1, group_2: ["page", "fragment"], ...orders },
+        timestamps: (stored.graphical?.timestamps ?? []).map((item) =>
+          item.timeline === "excerpt" ? { ...item, timeline: "fragment" } : item,
+        ),
       },
     });
     expect(refused(start, set("", { manifest: renamed({ excerpt: E }) }))).toEqual({

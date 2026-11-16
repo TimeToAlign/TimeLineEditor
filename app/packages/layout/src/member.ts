@@ -118,7 +118,6 @@ export function layoutMember(
     const placed = placeLines(root, rootRow, {
       x0,
       y: yRoot,
-      root: yRoot,
       size: rootRow.size,
       top,
       Hc,

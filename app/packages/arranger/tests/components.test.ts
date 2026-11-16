@@ -36,7 +36,7 @@ import {
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it } from "vitest";
 import { sourceAt } from "../src/gesture.ts";
-import type { BlockNodeData } from "../src/project.ts";
+import type { BlockNodeData } from "../src/node.ts";
 import { roving } from "../src/roving.ts";
 import NodeHarness from "./NodeHarness.svelte";
 
@@ -264,12 +264,7 @@ describe("BlockNode", () => {
     const text = shown.svg;
 
     const score = Array(4).fill(addressKey(idAddress("score")));
-    expect(markedWith(svg, "data-selected")).toEqual([
-      ...score,
-      addressKey(start),
-      addressKey(start),
-      ...score,
-    ]);
+    expect(markedWith(svg, "data-selected")).toEqual([...score, addressKey(start), ...score]);
     expect(trees(drawn(svg), ["data-selected"])).toEqual(exported(text));
     expect(holdingMarks(svg)).toEqual([
       BLOCK_HOLDS,

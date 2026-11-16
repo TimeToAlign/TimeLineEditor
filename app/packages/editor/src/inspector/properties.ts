@@ -296,7 +296,7 @@ export function decimalOf(text: string): number | null {
 
 /**
  * What an edit gives: the one `set` (`null` when it changes nothing) with
- * what the status line says of it (`null` for nothing), or why it was
+ * the notice the message bar shows of it (`null` for none), or why it was
  * refused.
  */
 export type Edit = Result<{ readonly command: SetCommand | null; readonly notice: string | null }>;
@@ -325,7 +325,7 @@ function minimumOf(view: View, block: Block, element: Edited, property: "width" 
   return shownValues(drawing, content)[property] ?? 0;
 }
 
-/** What the status line says when a size below its minimum is replaced by it. */
+/** The notice the message bar shows when a size below its minimum is replaced by it. */
 export function belowMinimum(property: "width" | "height", minimum: number): string {
   return `To decrease the ${property} below ${shownValue(minimum)} px, decrease the size of the contained elements first.`;
 }

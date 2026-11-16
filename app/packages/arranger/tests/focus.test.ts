@@ -2,7 +2,7 @@ import type { Address } from "@timetoalign/tilie-core";
 import { idAddress, inBlock } from "@timetoalign/tilie-core";
 import { describe, expect, it } from "vitest";
 import { FOCUS_DURATION, focusViewport, targetBounds } from "../src/focus.ts";
-import type { BlockNode } from "../src/project.ts";
+import type { BlockNode } from "../src/node.ts";
 import { project } from "../src/project.ts";
 import { NOTHING_SELECTED } from "../src/selection.ts";
 import { A, changed, metrics, mixedView } from "./support.ts";

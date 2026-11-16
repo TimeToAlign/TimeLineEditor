@@ -6,9 +6,9 @@
  * replaced (an applied text, an undo), they are gone. The form reads each
  * field's text through `value`, a draft else the value every container
  * shares. A commit that wrote something other than what was typed (a size
- * below its container's minimum) leaves a notice for the status line, until
- * the next edit. The name field's draft and refusal belong to the target named
- * in the manifest it was typed against, alike.
+ * below its container's minimum) returns a notice saying so, which the form
+ * posts as information. The name field's draft and refusal belong to the
+ * target named in the manifest it was typed against, alike.
  */
 
 import type { PlaceProperty } from "@timetoalign/tilie-arranger";
@@ -40,11 +40,9 @@ interface Entry {
   readonly owner: DraftOwner | null;
   readonly drafts: Texts;
   readonly problems: Texts;
-  /** What the status line says of the last commit. */
-  readonly notice: string | null;
 }
 
-const EMPTY: Entry = { owner: null, drafts: {}, problems: {}, notice: null };
+const EMPTY: Entry = { owner: null, drafts: {}, problems: {} };
 
 /** The name field's text and refusal, and the target and manifest they belong to. */
 interface NameDraft {
@@ -54,7 +52,7 @@ interface NameDraft {
   readonly problem: string | undefined;
 }
 
-/** What dispatching an edit gave: the refusal's message, or what the status line says. */
+/** What dispatching an edit gave: the refusal's message, or the notice of what it wrote. */
 interface Dispatched {
   readonly refusal: string | undefined;
   readonly notice: string | null;
@@ -106,25 +104,13 @@ export class PropertyDrafts {
     return sameOwner(this.#entry.owner, ownerOf(geometry)) ? this.#entry : EMPTY;
   }
 
-  #write(
-    geometry: Geometry,
-    property: PlaceProperty,
-    draft: string | undefined,
-    problem?: string,
-    notice: string | null = null,
-  ) {
+  #write(geometry: Geometry, property: PlaceProperty, draft: string | undefined, problem?: string) {
     const entry = this.#of(geometry);
     this.#entry = {
       owner: ownerOf(geometry),
       drafts: withText(entry.drafts, property, draft),
       problems: withText(entry.problems, property, problem),
-      notice,
     };
-  }
-
-  /** What the status line says of the last commit to `geometry`'s containers; `null` for nothing. */
-  notice(geometry: Geometry): string | null {
-    return this.#of(geometry).notice;
   }
 
   /** Why the last commit of `property` was refused; `undefined` while it was not. */
@@ -165,38 +151,45 @@ export class PropertyDrafts {
   /**
    * Commit the draft of `property` as one `set`: dropped once the store
    * accepts it (a draft of the stored value dispatches nothing), kept with
-   * the refusal otherwise.
+   * the refusal otherwise. Returns the notice of what it wrote, if any.
    */
-  commit(geometry: Geometry, property: PlaceProperty, store: Store): void {
+  commit(geometry: Geometry, property: PlaceProperty, store: Store): string | null {
     const draft = this.#of(geometry).drafts[property];
-    if (draft === undefined) return;
+    if (draft === undefined) return null;
     const { refusal, notice } = dispatched(
       propertyCommand(store.view, geometry, property, draft),
       store,
     );
-    this.#write(geometry, property, refusal === undefined ? undefined : draft, refusal, notice);
+    this.#write(geometry, property, refusal === undefined ? undefined : draft, refusal);
+    return notice;
   }
 
   /**
    * Commit one step of the property's `STEPS` (`direction` ±1) at once:
    * from the draft when there is one (an empty field counts as 0, a draft
    * that is no number is not stepped), else each container from its own
-   * exact value, never from the rounded text the field shows.
+   * exact value, never from the rounded text the field shows. Returns the
+   * notice of what it wrote, if any.
    */
-  step(geometry: Geometry, property: PlaceProperty, direction: 1 | -1, store: Store): void {
+  step(
+    geometry: Geometry,
+    property: PlaceProperty,
+    direction: 1 | -1,
+    store: Store,
+  ): string | null {
     const draft = this.#of(geometry).drafts[property]?.trim();
     if (draft === undefined) {
       const { refusal, notice } = dispatched(
         stepCommand(store.view, geometry, property, direction),
         store,
       );
-      this.#write(geometry, property, undefined, refusal, notice);
-      return;
+      this.#write(geometry, property, undefined, refusal);
+      return notice;
     }
     const base = draft === "" ? null : decimalOf(draft);
-    if (draft !== "" && base === null) return;
+    if (draft !== "" && base === null) return null;
     this.#write(geometry, property, String(stepValue(base, direction, STEPS[property])));
-    this.commit(geometry, property, store);
+    return this.commit(geometry, property, store);
   }
 
   /** The name draft of `field`'s target in its manifest; `null` when it was typed for another. */

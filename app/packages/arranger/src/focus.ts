@@ -8,7 +8,7 @@ import type { Viewport } from "@xyflow/svelte";
 import { isDisplayed, keyedBox } from "./boxes.ts";
 import { addressParts } from "./editing.ts";
 import { elementBounds, isContainerAddress, type Rect, rectOnCanvas } from "./marquee.ts";
-import type { BlockNode } from "./project.ts";
+import type { BlockNode } from "./node.ts";
 
 /** How long, in milliseconds, the view takes to move to an editor and back. */
 export const FOCUS_DURATION = 1000;

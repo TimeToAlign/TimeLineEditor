@@ -19,7 +19,120 @@
           },
           "statements": [],
           "styles": {},
-          "timestamps": []
+          "timestamps": [
+            {
+              "coordinate": [
+                0,
+                1
+              ],
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_1",
+              "name": "origin",
+              "timeline": "annotations"
+            },
+            {
+              "coordinate": [
+                12,
+                1
+              ],
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_2",
+              "name": "length",
+              "timeline": "annotations"
+            },
+            {
+              "coordinate": 0,
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_3",
+              "name": "origin",
+              "timeline": "excerpt"
+            },
+            {
+              "coordinate": 88200,
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_4",
+              "name": "length",
+              "timeline": "excerpt"
+            },
+            {
+              "coordinate": 0,
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_5",
+              "name": "origin",
+              "timeline": "page"
+            },
+            {
+              "coordinate": 1920,
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_6",
+              "name": "length",
+              "timeline": "page"
+            },
+            {
+              "coordinate": 0.0,
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_7",
+              "name": "origin",
+              "timeline": "performance"
+            },
+            {
+              "coordinate": 12.5,
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_8",
+              "name": "length",
+              "timeline": "performance"
+            },
+            {
+              "coordinate": [
+                0,
+                1
+              ],
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_9",
+              "name": "origin",
+              "timeline": "score"
+            },
+            {
+              "coordinate": [
+                12,
+                1
+              ],
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_10",
+              "name": "length",
+              "timeline": "score"
+            }
+          ]
         },
         "groups": [
           {
@@ -43,7 +156,7 @@
         ],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (33ee9efd)"
+          "generator": "timetoalign 1.2.0 (a3e0d256)"
         },
         "name": "Mixed",
         "timelines": [
@@ -282,7 +395,120 @@
           },
           "statements": [],
           "styles": {},
-          "timestamps": []
+          "timestamps": [
+            {
+              "coordinate": [
+                0,
+                1
+              ],
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_1",
+              "name": "origin",
+              "timeline": "exposition"
+            },
+            {
+              "coordinate": [
+                12,
+                1
+              ],
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_2",
+              "name": "length",
+              "timeline": "exposition"
+            },
+            {
+              "coordinate": 0,
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_3",
+              "name": "origin",
+              "timeline": "page"
+            },
+            {
+              "coordinate": 1754,
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_4",
+              "name": "length",
+              "timeline": "page"
+            },
+            {
+              "coordinate": [
+                0,
+                1
+              ],
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_5",
+              "name": "origin",
+              "timeline": "recapitulation"
+            },
+            {
+              "coordinate": [
+                12,
+                1
+              ],
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_6",
+              "name": "length",
+              "timeline": "recapitulation"
+            },
+            {
+              "coordinate": 0.0,
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_7",
+              "name": "origin",
+              "timeline": "take_1"
+            },
+            {
+              "coordinate": 30.0,
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_8",
+              "name": "length",
+              "timeline": "take_1"
+            },
+            {
+              "coordinate": 0.0,
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_9",
+              "name": "origin",
+              "timeline": "take_2"
+            },
+            {
+              "coordinate": 28.5,
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_10",
+              "name": "length",
+              "timeline": "take_2"
+            }
+          ]
         },
         "groups": [
           {
@@ -306,7 +532,7 @@
         ],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (33ee9efd)"
+          "generator": "timetoalign 1.2.0 (a3e0d256)"
         },
         "name": "Sonata",
         "timelines": [
@@ -727,7 +953,74 @@
           },
           "statements": [],
           "styles": {},
-          "timestamps": []
+          "timestamps": [
+            {
+              "coordinate": [
+                0,
+                1
+              ],
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_1",
+              "name": "origin",
+              "timeline": "t"
+            },
+            {
+              "coordinate": [
+                8,
+                1
+              ],
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_2",
+              "name": "length",
+              "timeline": "t"
+            },
+            {
+              "coordinate": 0.0,
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_3",
+              "name": "origin",
+              "timeline": "u"
+            },
+            {
+              "coordinate": 4.0,
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_4",
+              "name": "length",
+              "timeline": "u"
+            },
+            {
+              "coordinate": 0,
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_5",
+              "name": "origin",
+              "timeline": "v"
+            },
+            {
+              "coordinate": 800,
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_6",
+              "name": "length",
+              "timeline": "v"
+            }
+          ]
         },
         "groups": [
           {
@@ -751,7 +1044,7 @@
         ],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (33ee9efd)"
+          "generator": "timetoalign 1.2.0 (a3e0d256)"
         },
         "name": "Shared",
         "timelines": [
@@ -818,10 +1111,83 @@
       "index": "a2",
       "length": 400,
       "manifest": {
+        "graphical": {
+          "order": {},
+          "statements": [],
+          "styles": {},
+          "timestamps": [
+            {
+              "coordinate": 0,
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_1",
+              "name": "origin",
+              "timeline": "pages"
+            },
+            {
+              "coordinate": 5262,
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_2",
+              "name": "length",
+              "timeline": "pages"
+            },
+            {
+              "coordinate": 0,
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_3",
+              "name": "origin",
+              "timeline": "recording"
+            },
+            {
+              "coordinate": 441000,
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_4",
+              "name": "length",
+              "timeline": "recording"
+            },
+            {
+              "coordinate": [
+                0,
+                1
+              ],
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_5",
+              "name": "origin",
+              "timeline": "score"
+            },
+            {
+              "coordinate": [
+                16,
+                1
+              ],
+              "display": [
+                "wedge",
+                "coordinate"
+              ],
+              "id": "timestamp_6",
+              "name": "length",
+              "timeline": "score"
+            }
+          ]
+        },
         "groups": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (33ee9efd)"
+          "generator": "timetoalign 1.2.0 (a3e0d256)"
         },
         "name": "Sketches",
         "timelines": [
@@ -1013,7 +1379,120 @@
               },
               "statements": [],
               "styles": {},
-              "timestamps": []
+              "timestamps": [
+                {
+                  "coordinate": [
+                    0,
+                    1
+                  ],
+                  "display": [
+                    "wedge",
+                    "coordinate"
+                  ],
+                  "id": "timestamp_1",
+                  "name": "origin",
+                  "timeline": "annotations"
+                },
+                {
+                  "coordinate": [
+                    12,
+                    1
+                  ],
+                  "display": [
+                    "wedge",
+                    "coordinate"
+                  ],
+                  "id": "timestamp_2",
+                  "name": "length",
+                  "timeline": "annotations"
+                },
+                {
+                  "coordinate": 0,
+                  "display": [
+                    "wedge",
+                    "coordinate"
+                  ],
+                  "id": "timestamp_3",
+                  "name": "origin",
+                  "timeline": "excerpt"
+                },
+                {
+                  "coordinate": 88200,
+                  "display": [
+                    "wedge",
+                    "coordinate"
+                  ],
+                  "id": "timestamp_4",
+                  "name": "length",
+                  "timeline": "excerpt"
+                },
+                {
+                  "coordinate": 0,
+                  "display": [
+                    "wedge",
+                    "coordinate"
+                  ],
+                  "id": "timestamp_5",
+                  "name": "origin",
+                  "timeline": "page"
+                },
+                {
+                  "coordinate": 1920,
+                  "display": [
+                    "wedge",
+                    "coordinate"
+                  ],
+                  "id": "timestamp_6",
+                  "name": "length",
+                  "timeline": "page"
+                },
+                {
+                  "coordinate": 0.0,
+                  "display": [
+                    "wedge",
+                    "coordinate"
+                  ],
+                  "id": "timestamp_7",
+                  "name": "origin",
+                  "timeline": "performance"
+                },
+                {
+                  "coordinate": 12.5,
+                  "display": [
+                    "wedge",
+                    "coordinate"
+                  ],
+                  "id": "timestamp_8",
+                  "name": "length",
+                  "timeline": "performance"
+                },
+                {
+                  "coordinate": [
+                    0,
+                    1
+                  ],
+                  "display": [
+                    "wedge",
+                    "coordinate"
+                  ],
+                  "id": "timestamp_9",
+                  "name": "origin",
+                  "timeline": "score"
+                },
+                {
+                  "coordinate": [
+                    12,
+                    1
+                  ],
+                  "display": [
+                    "wedge",
+                    "coordinate"
+                  ],
+                  "id": "timestamp_10",
+                  "name": "length",
+                  "timeline": "score"
+                }
+              ]
             },
             "groups": [
               {
@@ -1037,7 +1516,7 @@
             ],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (33ee9efd)"
+              "generator": "timetoalign 1.2.0 (a3e0d256)"
             },
             "name": "Mixed",
             "timelines": [
@@ -1281,7 +1760,120 @@
               },
               "statements": [],
               "styles": {},
-              "timestamps": []
+              "timestamps": [
+                {
+                  "coordinate": [
+                    0,
+                    1
+                  ],
+                  "display": [
+                    "wedge",
+                    "coordinate"
+                  ],
+                  "id": "timestamp_1",
+                  "name": "origin",
+                  "timeline": "exposition"
+                },
+                {
+                  "coordinate": [
+                    12,
+                    1
+                  ],
+                  "display": [
+                    "wedge",
+                    "coordinate"
+                  ],
+                  "id": "timestamp_2",
+                  "name": "length",
+                  "timeline": "exposition"
+                },
+                {
+                  "coordinate": 0,
+                  "display": [
+                    "wedge",
+                    "coordinate"
+                  ],
+                  "id": "timestamp_3",
+                  "name": "origin",
+                  "timeline": "page"
+                },
+                {
+                  "coordinate": 1754,
+                  "display": [
+                    "wedge",
+                    "coordinate"
+                  ],
+                  "id": "timestamp_4",
+                  "name": "length",
+                  "timeline": "page"
+                },
+                {
+                  "coordinate": [
+                    0,
+                    1
+                  ],
+                  "display": [
+                    "wedge",
+                    "coordinate"
+                  ],
+                  "id": "timestamp_5",
+                  "name": "origin",
+                  "timeline": "recapitulation"
+                },
+                {
+                  "coordinate": [
+                    12,
+                    1
+                  ],
+                  "display": [
+                    "wedge",
+                    "coordinate"
+                  ],
+                  "id": "timestamp_6",
+                  "name": "length",
+                  "timeline": "recapitulation"
+                },
+                {
+                  "coordinate": 0.0,
+                  "display": [
+                    "wedge",
+                    "coordinate"
+                  ],
+                  "id": "timestamp_7",
+                  "name": "origin",
+                  "timeline": "take_1"
+                },
+                {
+                  "coordinate": 30.0,
+                  "display": [
+                    "wedge",
+                    "coordinate"
+                  ],
+                  "id": "timestamp_8",
+                  "name": "length",
+                  "timeline": "take_1"
+                },
+                {
+                  "coordinate": 0.0,
+                  "display": [
+                    "wedge",
+                    "coordinate"
+                  ],
+                  "id": "timestamp_9",
+                  "name": "origin",
+                  "timeline": "take_2"
+                },
+                {
+                  "coordinate": 28.5,
+                  "display": [
+                    "wedge",
+                    "coordinate"
+                  ],
+                  "id": "timestamp_10",
+                  "name": "length",
+                  "timeline": "take_2"
+                }
+              ]
             },
             "groups": [
               {
@@ -1305,7 +1897,7 @@
             ],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (33ee9efd)"
+              "generator": "timetoalign 1.2.0 (a3e0d256)"
             },
             "name": "Sonata",
             "timelines": [
@@ -1718,10 +2310,83 @@
           "id": "bungroup00",
           "length": 400,
           "manifest": {
+            "graphical": {
+              "order": {},
+              "statements": [],
+              "styles": {},
+              "timestamps": [
+                {
+                  "coordinate": 0,
+                  "display": [
+                    "wedge",
+                    "coordinate"
+                  ],
+                  "id": "timestamp_1",
+                  "name": "origin",
+                  "timeline": "pages"
+                },
+                {
+                  "coordinate": 5262,
+                  "display": [
+                    "wedge",
+                    "coordinate"
+                  ],
+                  "id": "timestamp_2",
+                  "name": "length",
+                  "timeline": "pages"
+                },
+                {
+                  "coordinate": 0,
+                  "display": [
+                    "wedge",
+                    "coordinate"
+                  ],
+                  "id": "timestamp_3",
+                  "name": "origin",
+                  "timeline": "recording"
+                },
+                {
+                  "coordinate": 441000,
+                  "display": [
+                    "wedge",
+                    "coordinate"
+                  ],
+                  "id": "timestamp_4",
+                  "name": "length",
+                  "timeline": "recording"
+                },
+                {
+                  "coordinate": [
+                    0,
+                    1
+                  ],
+                  "display": [
+                    "wedge",
+                    "coordinate"
+                  ],
+                  "id": "timestamp_5",
+                  "name": "origin",
+                  "timeline": "score"
+                },
+                {
+                  "coordinate": [
+                    16,
+                    1
+                  ],
+                  "display": [
+                    "wedge",
+                    "coordinate"
+                  ],
+                  "id": "timestamp_6",
+                  "name": "length",
+                  "timeline": "score"
+                }
+              ]
+            },
             "groups": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (33ee9efd)"
+              "generator": "timetoalign 1.2.0 (a3e0d256)"
             },
             "name": "Sketches",
             "timelines": [
@@ -1913,7 +2578,74 @@
               },
               "statements": [],
               "styles": {},
-              "timestamps": []
+              "timestamps": [
+                {
+                  "coordinate": [
+                    0,
+                    1
+                  ],
+                  "display": [
+                    "wedge",
+                    "coordinate"
+                  ],
+                  "id": "timestamp_1",
+                  "name": "origin",
+                  "timeline": "t"
+                },
+                {
+                  "coordinate": [
+                    8,
+                    1
+                  ],
+                  "display": [
+                    "wedge",
+                    "coordinate"
+                  ],
+                  "id": "timestamp_2",
+                  "name": "length",
+                  "timeline": "t"
+                },
+                {
+                  "coordinate": 0.0,
+                  "display": [
+                    "wedge",
+                    "coordinate"
+                  ],
+                  "id": "timestamp_3",
+                  "name": "origin",
+                  "timeline": "u"
+                },
+                {
+                  "coordinate": 4.0,
+                  "display": [
+                    "wedge",
+                    "coordinate"
+                  ],
+                  "id": "timestamp_4",
+                  "name": "length",
+                  "timeline": "u"
+                },
+                {
+                  "coordinate": 0,
+                  "display": [
+                    "wedge",
+                    "coordinate"
+                  ],
+                  "id": "timestamp_5",
+                  "name": "origin",
+                  "timeline": "v"
+                },
+                {
+                  "coordinate": 800,
+                  "display": [
+                    "wedge",
+                    "coordinate"
+                  ],
+                  "id": "timestamp_6",
+                  "name": "length",
+                  "timeline": "v"
+                }
+              ]
             },
             "groups": [
               {
@@ -1937,7 +2669,7 @@
             ],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (33ee9efd)"
+              "generator": "timetoalign 1.2.0 (a3e0d256)"
             },
             "name": "Shared",
             "timelines": [

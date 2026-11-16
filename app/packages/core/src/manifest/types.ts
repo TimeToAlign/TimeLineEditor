@@ -18,11 +18,11 @@ import type {
   CompleteMeasureMap,
   CompleteRegion,
   CompleteTimeline,
+  CompleteTimestamp,
   Graphical,
   JsonFloat,
   Lossless,
   Number as SchemaNumber,
-  Timestamp,
 } from "@timetoalign/timetoshare";
 
 /**
@@ -79,12 +79,17 @@ export type ChildTimeline = TimelineManifest & { readonly offset: AxisValue };
 export type Group = ReadonlyView<CompleteGroup>;
 
 /**
- * A named timestamp of a manifest, `{id, timeline, coordinate, name}`: its
- * coordinate a bare value on the own axis of the timeline it names, as the
- * reader returns it (an integral float on a float axis a `JsonFloat`, an
- * integer beyond 2^53 a `bigint`), like every other own-axis value.
+ * A named timestamp of a manifest, `{id, timeline, coordinate, name,
+ * display}`: its coordinate a bare value on the own axis of the timeline it
+ * names, as the reader returns it (an integral float on a float axis a
+ * `JsonFloat`, an integer beyond 2^53 a `bigint`), like every other own-axis
+ * value; its `display` always stated, in the schema package's canonical
+ * order (`TIMESTAMP_DISPLAY`).
  */
-export type NamedTimestamp = ReadonlyView<Lossless<Timestamp>>;
+export type NamedTimestamp = ReadonlyView<CompleteTimestamp>;
+
+/** A word of a named timestamp's `display`: a part of it that is drawn. */
+export type TimestampDisplay = NamedTimestamp["display"][number];
 
 /**
  * A manifest's styling, its display and band orders and its named

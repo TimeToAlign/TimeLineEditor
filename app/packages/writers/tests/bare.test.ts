@@ -12,11 +12,11 @@ const SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="508.5771" height="99
 <line data-id="bare" x1="49.5771" y1="22.4023" x2="449.5771" y2="22.4023" stroke="#00CC00" stroke-width="3"/>
 <circle data-id="bare" cx="49.5771" cy="22.4023" r="3" fill="#00CC00"/>
 <polygon data-id="bare" points="458.5771,22.4023 449.5771,17.9023 449.5771,26.9023" fill="#00CC00"/>
-<polygon data-id="bare" data-part="start" points="49.5771,23.9023 46.5771,36.9023 52.5771,36.9023" fill="#000000"/>
-<polygon data-id="bare" data-part="end" points="449.5771,23.9023 446.5771,36.9023 452.5771,36.9023" fill="#000000"/>
+<polygon data-id="timestamp_1" points="49.5771,23.9023 46.5771,36.9023 52.5771,36.9023" fill="#000000"/>
+<polygon data-id="timestamp_2" points="449.5771,23.9023 446.5771,36.9023 452.5771,36.9023" fill="#000000"/>
 <text data-id="bare" data-part="name" x="16" y="26.2104" text-anchor="start" font-size="11" fill="#000000">Bare</text>
-<text data-id="bare" data-part="start label" x="49.5771" y="47.2563" text-anchor="middle" font-size="9" fill="#000000">0 ♩</text>
-<text data-id="bare" data-part="end label" x="449.5771" y="47.2563" text-anchor="middle" font-size="9" fill="#000000">8 ♩</text>
+<text data-id="timestamp_1" data-part="coordinate" x="49.5771" y="47.2563" text-anchor="middle" font-size="9" fill="#000000">0 ♩</text>
+<text data-id="timestamp_2" data-part="coordinate" x="449.5771" y="47.2563" text-anchor="middle" font-size="9" fill="#000000">8 ♩</text>
 </g>
 </svg>
 `;

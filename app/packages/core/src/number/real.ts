@@ -12,7 +12,7 @@
  */
 
 import type { NumberType, TimeUnit } from "@timetoalign/timetoshare";
-import type { Coordinate } from "./coordinate.ts";
+import type { Coordinate, CoordinateValue } from "./coordinate.ts";
 import { Rational, roundHalfEven } from "./rational.ts";
 
 /** An exact value (int or Fraction) or a float. */
@@ -87,9 +87,13 @@ export function fromFloat(value: number): Rational {
     : Rational.fromParts(sign * mantissa, 2n ** BigInt(-power));
 }
 
-/** The exact value of a `Real`: an exact value as it is, a float's exact binary value (`fromFloat`). */
-export function toRational(value: Real): Rational {
-  return typeof value === "number" ? fromFloat(value) : value;
+/**
+ * The exact value of a coordinate value or a `Real`: a Fraction as it is, an
+ * int as the Fraction `n/1`, a float by its exact binary value (`fromFloat`).
+ */
+export function toRational(value: CoordinateValue): Rational {
+  if (typeof value === "number") return fromFloat(value);
+  return typeof value === "bigint" ? Rational.fromParts(value, 1n) : value;
 }
 
 /**

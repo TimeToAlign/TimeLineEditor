@@ -156,7 +156,7 @@ describe("a child's band order", () => {
       melody: 37,
       phrase: 23,
     });
-    expect(element(drawing, at("melody", "start"))).toMatchObject({ yt: 49, yb: 62 });
+    expect(element(drawing, at("timestamp_1"))).toMatchObject({ yt: 49, yb: 62 });
     expect(drawing.height).toBe(92.4765625);
   });
 

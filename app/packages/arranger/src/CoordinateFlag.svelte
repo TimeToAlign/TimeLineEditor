@@ -1,82 +1,72 @@
 <script lang="ts">
-import type { Timestamp } from "@timetoalign/tilie-core";
-import { displayValue, unitSymbol } from "@timetoalign/tilie-core";
-import { mapValueText } from "./coordinates.ts";
+import type { Pin, Row } from "@timetoalign/tilie-core";
+import { flagParts, flagPlace, POLE_WIDTH, rowValueText } from "./coordinates.ts";
 
 interface Props {
-  /** The timestamp shown: the line's part, then the segment's. */
-  timestamp: Timestamp;
-  /** The ID of the hovered map, whose row is highlighted; `null` when the line is hovered. */
-  hovered: string | null;
+  /** The pin the hovered position makes: its timestamp is shown, part by part. */
+  pin: Pin;
+  /** The hovered row, highlighted: the line's coordinate or one map's value. */
+  hovered: Row;
   /** Where the position lies on the line, in pixels from the canvas's top-left corner. */
   x: number;
   y: number;
-  /** The topmost ordinate of the line and its maps, in the same pixels: the flag stands above it. */
+  /** The topmost ordinate of the line, its maps and its cross-section line, in the same pixels. */
   top: number;
-  /** The canvas's width in pixels, which the flag keeps inside. */
+  /** The canvas's width in pixels: a flag that would leave it there opens to the left. */
   width: number;
 }
 
-let { timestamp, hovered, x, y, top, width }: Props = $props();
+let { pin, hovered, x, y, top, width }: Props = $props();
 
 /** The places a float is shown with: the granularity's. */
-const decimals = $derived(timestamp.granularity.decimals);
-
-/** The length of the pole from the topmost map to the flag; the pole runs on down to the line. */
-const POLE = 22;
-/** The flag's margin from the canvas's edges. */
-const EDGE = 6;
+const decimals = $derived(pin.timestamp.granularity.decimals);
+const parts = $derived(flagParts(pin));
 
 let flagWidth = $state(0);
-let flagHeight = $state(0);
 
-/** Above the line's maps when there is room, else below the line. */
-const above = $derived(top - POLE - flagHeight >= EDGE - 2);
-const left = $derived.by(() => {
-  const right = x - 14 + flagWidth > width - EDGE ? x + 14 - flagWidth : x - 14;
-  return Math.max(EDGE, right);
-});
-const flagTop = $derived(above ? top - POLE - flagHeight : y + POLE);
-const pole = $derived(
-  above ? { top: top - POLE, height: y - (top - POLE) } : { top: y, height: POLE },
-);
+const place = $derived(flagPlace({ x, y, top }, flagWidth, width));
+
+/** Whether `row` is the hovered one. */
+function isHovered(row: Row): boolean {
+  return row.timeline === hovered.timeline && row.map === hovered.map;
+}
 </script>
 
 <div class="tilie-coordinates" data-testid="coordinate-flag">
-  <div class="tilie-coordinates-pole" style:left="{x - 0.5}px" style:top="{pole.top}px" style:height="{pole.height}px"></div>
+  <div
+    class="tilie-coordinates-pole"
+    data-testid="coordinate-pole"
+    style:left="{place.pole.x - POLE_WIDTH / 2}px"
+    style:width="{POLE_WIDTH}px"
+    style:top="{place.pole.top}px"
+    style:height="{place.pole.bottom - place.pole.top}px"
+  ></div>
   <div
     class="tilie-coordinates-flag"
     role="group"
     aria-label="Coordinates"
-    style:left="{left}px"
-    style:top="{flagTop}px"
+    data-flipped={place.flipped}
+    style:left="{place.left}px"
+    style:top="{place.top}px"
     bind:offsetWidth={flagWidth}
-    bind:offsetHeight={flagHeight}
   >
-    {#each timestamp.parts as part (part.timeline)}
+    {#each parts as part (part.timeline)}
       <div class="tilie-coordinates-part" data-timeline={part.timeline}>
-        <div class="tilie-coordinates-head">
-          <span class="tilie-coordinates-name">
-            {part.name}{#if part.segment}<span class="tilie-coordinates-tag">segment</span>{/if}
-          </span>
-          <span class="tilie-coordinates-value" data-testid="coordinate"
-            >{displayValue(part.position, part.numberType, decimals)}<span class="tilie-coordinates-unit"
-              >{unitSymbol(part.unit)}</span
-            ></span
+        <div class="tilie-coordinates-head">{part.name}</div>
+        {#each part.rows as item (item.row.map)}
+          {@const value = rowValueText(item, decimals)}
+          <div
+            class="tilie-coordinates-row"
+            data-map={item.row.map ?? undefined}
+            data-hovered={isHovered(item.row)}
           >
-        </div>
-        {#each part.maps as map (map.id)}
-          {@const value = mapValueText(map, decimals)}
-          <div class="tilie-coordinates-row" data-map={map.id} data-hovered={map.id === hovered}>
-            <span class="tilie-coordinates-name">{map.name ?? map.id}</span>
-            <span class="tilie-coordinates-value"
+            <span class="tilie-coordinates-name">{item.row.map === null ? "coordinate" : item.label}</span>
+            <span class="tilie-coordinates-value" data-testid={item.row.map === null ? "coordinate" : undefined}
               >{value.text}{#if value.unit !== null}<span class="tilie-coordinates-unit"
                   >{value.unit}</span
                 >{/if}</span
             >
           </div>
-        {:else}
-          <div class="tilie-coordinates-none">no displayed maps</div>
         {/each}
       </div>
     {/each}

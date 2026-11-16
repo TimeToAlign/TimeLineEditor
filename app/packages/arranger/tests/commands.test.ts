@@ -187,7 +187,7 @@ describe("removeCommand", () => {
     const command = removeCommand(region, selectionOf([at("region_1", "label")]), null);
     expect(command).toEqual(removing(at("region_1")));
     expect(manifestIds(blockIn(changed(region, command), A).manifest)).toEqual(
-      new Set(["clt_1", "clt_2", "clt_3"]),
+      new Set(["clt_1", "clt_2", "clt_3", "timestamp_1", "timestamp_2"]),
     );
   });
 
@@ -195,7 +195,7 @@ describe("removeCommand", () => {
     const command = removeCommand(nested, selectionOf([at("clt_1")]), null);
     expect(command).toEqual(removing(at("clt_1")));
     expect(blockIn(changed(nested, command), A).manifest.timelines).toEqual([]);
-    expect(removeCommand(nested, selectionOf([{ block: B }, at("clt_1", "start")]), null)).toEqual(
+    expect(removeCommand(nested, selectionOf([{ block: B }, at("clt_1", "name")]), null)).toEqual(
       removing({ block: B }, at("clt_1")),
     );
   });
@@ -208,7 +208,9 @@ describe("removeCommand", () => {
 
   it("is accepted by apply", () => {
     const after = changed(nested, removeCommand(nested, selectionOf([at("clt_3")]), null));
-    expect(manifestIds(blockIn(after, A).manifest)).toEqual(new Set(["clt_1"]));
+    expect(manifestIds(blockIn(after, A).manifest)).toEqual(
+      new Set(["clt_1", "timestamp_1", "timestamp_2"]),
+    );
   });
 
   describe("with several roots and groups", () => {

@@ -116,7 +116,20 @@ function thousandElements(): Manifest {
     regions: [],
     flow_control: [],
   };
-  return canonicalOrder({ ...bare, name: null, timelines: [root], groups: [] });
+  // The root's named timestamps `origin` and `length`, `bare`'s moved to it: a wedge and a
+  // coordinate label each.
+  const timestamps = (bare.graphical?.timestamps ?? []).map((timestamp) => ({
+    ...timestamp,
+    timeline: "root",
+    ...(timestamp.name === "length" ? { coordinate: q(200) } : {}),
+  }));
+  return canonicalOrder({
+    ...bare,
+    name: null,
+    timelines: [root],
+    groups: [],
+    graphical: { ...bare.graphical, timestamps },
+  });
 }
 
 /**
@@ -163,7 +176,8 @@ function counting(): { readonly font: FontMetrics; readonly reads: string[] } {
 }
 
 /**
- * Every distinct text the drawing measures: the root's start and end labels, the region's,
+ * Every distinct text the drawing measures: the coordinate labels of the root's `origin` and
+ * `length`, the region's,
  * flow marker's and jump origin's labels, the root's name, the nested child's, and the names
  * of the rows of children, each row's names joined (the segment line's row ends with its own).
  */

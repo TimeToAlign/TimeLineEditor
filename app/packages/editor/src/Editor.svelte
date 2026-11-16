@@ -22,15 +22,15 @@ import { NOTICES_FILE } from "./attributions.ts";
 import type { Autosaving } from "./autosaving.ts";
 import { startAutosave } from "./autosaving.ts";
 import ConfirmDialog from "./ConfirmDialog.svelte";
+import type { Example } from "./examples.ts";
 import { EXAMPLES } from "./examples.ts";
 import type { MenuItem } from "./FileMenu.svelte";
 import FileMenu from "./FileMenu.svelte";
 import { openFile, UNTITLED, WORKSPACE_FILE } from "./files.ts";
 import InspectorDrawer from "./InspectorDrawer.svelte";
-import MessageArea from "./MessageArea.svelte";
+import MessageBar from "./MessageBar.svelte";
 import { measureMapsOf } from "./measureMaps.ts";
-import type { Message } from "./messages.ts";
-import { messageOf } from "./messages.ts";
+import { Messages, messageOf, provideInform } from "./messages.svelte.ts";
 import type { ServerOptions, TimeLineEditorOptions } from "./options.ts";
 import type { TestHook } from "./testHook.ts";
 import { bandsOf, boxesOf, installTestHook, TEST_HOOK } from "./testHook.ts";
@@ -75,19 +75,20 @@ let drawer: ReturnType<typeof InspectorDrawer> | undefined = $state();
 
 // --- Messages ---------------------------------------------------------------
 
-let messages: readonly Message[] = $state.raw([]);
-let messageCount = 0;
+const messages = new Messages();
 
-/** Show a dismissible message; editing goes on. */
-function say(text: string, problems: readonly Problem[] = []): void {
-  messageCount += 1;
-  messages = [...messages, { id: messageCount, text, problems }];
+/** Show a warning in the message bar, kept until dismissed; editing goes on. */
+function warn(text: string, problems: readonly Problem[] = []): void {
+  messages.warn(text, problems);
 }
+
+// Every component below posts its confirmations as information in the message bar.
+provideInform((text) => messages.inform(text));
 
 // --- The workspace ----------------------------------------------------------
 
 const session = new WorkspaceSession({
-  say,
+  warn,
   // Never take the focus from the host page: only the page asks for it, or
   // a viewer already working in the editor.
   replaced: () => {
@@ -146,25 +147,51 @@ session.listen(() =>
 const initial = untrack(() => workspace);
 if (initial !== undefined) {
   const refusal = session.open(initial);
-  if (refusal !== null) say("The workspace could not be opened.", refusal.problems);
+  if (refusal !== null) warn("The workspace could not be opened.", refusal.problems);
 }
 
 // --- Files ------------------------------------------------------------------
 
-/** Whether the open workspace may be replaced: it is saved, or the viewer discards it. */
+/**
+ * Whether the open workspace may be replaced: it has no unsaved changes, or
+ * the viewer saves them (and the save is made) or discards them. One
+ * question for New, Open and a workspace example.
+ */
 async function mayReplace(): Promise<boolean> {
   if (!session.dirty) return true;
   const answer = await confirm?.ask(
-    `${session.fileName} has unsaved changes. Discard them?`,
-    "Discard",
+    `${session.fileName} has unsaved changes. Save them?`,
+    ["Save", "Discard", "Cancel"],
     "Cancel",
-    "second",
   );
-  return answer === true;
+  if (answer === "Discard") return true;
+  if (answer !== "Save") return false;
+  await session.save(false);
+  return !session.dirty;
 }
 
 async function newWorkspace(): Promise<void> {
   if (await mayReplace()) session.replace(emptyWorkspace(), UNTITLED, null, true);
+}
+
+/**
+ * Open `example`: a manifest is imported as one more block, as Import adds
+ * a file; a workspace replaces the open one (`mayReplace`), opened as saved
+ * under no file.
+ */
+async function openExample(example: Example): Promise<void> {
+  if (example.kind === "manifest") {
+    if (canvas !== undefined) await session.importExample(example, canvas, fontMetrics);
+    return;
+  }
+  if (!(await mayReplace())) return;
+  try {
+    const refusal = session.open(await example.text(), UNTITLED);
+    if (refusal !== null)
+      warn(`The example ${example.label} could not be opened.`, refusal.problems);
+  } catch (error) {
+    warn(`The example ${example.label} could not be opened: ${messageOf(error)}`);
+  }
 }
 
 async function openFromFile(): Promise<void> {
@@ -174,10 +201,10 @@ async function openFromFile(): Promise<void> {
     if (opened === null) return;
     const refusal = session.open(opened.text, opened.name, opened.handle);
     if (refusal !== null) {
-      say(`${opened.name} is not a workspace file TimeLineEditor can open.`, refusal.problems);
+      warn(`${opened.name} is not a workspace file TimeLineEditor can open.`, refusal.problems);
     }
   } catch (error) {
-    say(`The file could not be opened: ${messageOf(error)}`);
+    warn(`The file could not be opened: ${messageOf(error)}`);
   }
 }
 
@@ -290,7 +317,6 @@ const fileItems: readonly MenuItem[] = $derived([
   },
   {
     label: "Import manifest…",
-    disabled: !session.importable,
     run: () => {
       if (canvas !== undefined) void session.importManifest(canvas, fontMetrics);
     },
@@ -307,15 +333,10 @@ const fileItems: readonly MenuItem[] = $derived([
   },
 ]);
 
-const exampleItems: readonly MenuItem[] = $derived(
-  EXAMPLES.map((example) => ({
-    label: example.label,
-    disabled: !session.importable,
-    run: () => {
-      if (canvas !== undefined) void session.importExample(example, canvas, fontMetrics);
-    },
-  })),
-);
+const exampleItems: readonly MenuItem[] = EXAMPLES.map((example) => ({
+  label: example.label,
+  run: () => void openExample(example),
+}));
 
 // --- The server and the autosave ---------------------------------------------
 
@@ -340,15 +361,16 @@ onMount(() => {
     autosaving = startAutosave(session, {
       slot: storage.slot,
       delayMs: AUTOSAVE_DELAY_MS,
-      say,
-      ask: async (question, first, second, focused) =>
-        (await confirm?.ask(question, first, second, focused)) ?? null,
+      warn,
+      ask: async (question, answers, focused) =>
+        (await confirm?.ask(question, answers, focused)) ?? null,
     });
   }
   if (server !== null) void checkHealth(server);
   return () => {
     autosaving?.stop();
     session.dispose();
+    messages.dispose();
   };
 });
 
@@ -371,7 +393,7 @@ export function selection(): Address[] {
 
 /**
  * Select `addresses`, each read at this boundary (core's `readAddress`): an
- * address that is not one is left out, and the message area names its
+ * address that is not one is left out, and the message bar names its
  * problem.
  */
 export function select(addresses: readonly Address[]): void {
@@ -382,7 +404,7 @@ export function select(addresses: readonly Address[]): void {
     if (isCommandError(address)) problems.push(address);
     else read.push(address);
   });
-  if (problems.length > 0) say("Some addresses could not be selected.", problems);
+  if (problems.length > 0) warn("Some addresses could not be selected.", problems);
   session.selection = selectionOf(read);
 }
 
@@ -471,10 +493,7 @@ if (withTestHook) {
         oncoordinatepin={(pin) => drawer?.pinTimestamp(pin)}
         measureMaps={server === null ? undefined : measureMapsOf(connect(server))}
       />
-      <MessageArea
-        {messages}
-        ondismiss={(id) => (messages = messages.filter((message) => message.id !== id))}
-      />
+      <MessageBar messages={messages.shown} ondismiss={(id) => messages.dismiss(id)} />
     </div>
     <InspectorDrawer
       bind:this={drawer}

@@ -12,9 +12,10 @@ function geometry(drawing: Drawing): unknown[] {
 }
 
 const q = (value: number) => ({ unit: "quarters", value: Rational.of(value) });
-const wedges = (x0: number, xe: number, root: string) => [
-  { type: "wedge", address: at(root, "start"), x: x0, yt: 0, yb: 0, base: 6 },
-  { type: "wedge", address: at(root, "end"), x: xe, yt: 0, yb: 0, base: 6 },
+/** The wedges of the root's named timestamps `origin` at 0 and `length` at its length. */
+const wedges = (x0: number, xe: number) => [
+  { type: "wedge", address: at("timestamp_1"), x: x0, yt: 0, yb: 0, base: 6 },
+  { type: "wedge", address: at("timestamp_2"), x: xe, yt: 0, yb: 0, base: 6 },
 ];
 /** The block and the root's card, `P = 8` from the block's top left, `Hm` high. */
 const blockAndCard = (root: string, W: number, H: number, cardWidth: number, Hm: number) => [
@@ -37,7 +38,7 @@ describe("bare", () => {
   it("draws the hand-derived geometry", () => {
     const x0 = 49.5771484375;
     const xe = 449.5771484375;
-    const tips = wedges(x0, xe, "bare").map((item) => ({
+    const tips = wedges(x0, xe).map((item) => ({
       ...item,
       yt: 23.90234375,
       yb: 36.90234375,
@@ -56,7 +57,7 @@ describe("bare", () => {
       },
       {
         type: "label",
-        address: at("bare", "start", "label"),
+        address: at("timestamp_1", "coordinate"),
         x: x0,
         baseline: 47.25634765625,
         anchor: "middle",
@@ -65,7 +66,7 @@ describe("bare", () => {
       },
       {
         type: "label",
-        address: at("bare", "end", "label"),
+        address: at("timestamp_2", "coordinate"),
         x: xe,
         baseline: 47.25634765625,
         anchor: "middle",
@@ -94,7 +95,7 @@ describe("bare", () => {
       "stroke-width": 3,
       "stroke-dasharray": "none",
     });
-    expect(element(drawing, at("bare", "start")).style).toMatchObject({
+    expect(element(drawing, at("timestamp_1")).style).toMatchObject({
       fill: "#000000",
       stroke: "#00CC00",
       "stroke-width": 3,
@@ -103,7 +104,7 @@ describe("bare", () => {
       fill: "#000000",
       "font-size": 11,
     });
-    expect(element(drawing, at("bare", "end", "label")).style).toMatchObject({
+    expect(element(drawing, at("timestamp_2", "coordinate")).style).toMatchObject({
       fill: "#000000",
       "font-size": 9,
     });
@@ -120,7 +121,7 @@ describe("nested", () => {
       { ...root, address: at("clt_1"), xs: x0, xe, y: 51 },
       { ...child, address: at("clt_3"), xs: 149.91552734375, xe: 349.91552734375, y: 37 },
       { ...child, address: at("clt_2"), xs: 187.41552734375, xe: 237.41552734375, y: 23 },
-      ...wedges(x0, xe, "clt_1").map((item) => ({ ...item, yt: 52.5, yb: 65.5 })),
+      ...wedges(x0, xe).map((item) => ({ ...item, yt: 52.5, yb: 65.5 })),
       ...(
         [
           ["clt_2", 26.80810546875],
@@ -137,7 +138,7 @@ describe("nested", () => {
       })),
       {
         type: "label",
-        address: at("clt_1", "start", "label"),
+        address: at("timestamp_1", "coordinate"),
         x: x0,
         baseline: 75.85400390625,
         anchor: "middle",
@@ -146,7 +147,7 @@ describe("nested", () => {
       },
       {
         type: "label",
-        address: at("clt_1", "end", "label"),
+        address: at("timestamp_2", "coordinate"),
         x: xe,
         baseline: 75.85400390625,
         anchor: "middle",
@@ -206,7 +207,7 @@ describe("flow_control", () => {
         ],
       },
       { ...root, address: at("flow:quarters"), xs: x0, xe, y: 22.40234375 },
-      ...wedges(x0, xe, "flow:quarters").map((item) => ({
+      ...wedges(x0, xe).map((item) => ({
         ...item,
         yt: 23.90234375,
         yb: 36.90234375,
@@ -221,7 +222,7 @@ describe("flow_control", () => {
       },
       {
         type: "label",
-        address: at("flow:quarters", "start", "label"),
+        address: at("timestamp_1", "coordinate"),
         x: x0,
         baseline: 47.25634765625,
         anchor: "middle",
@@ -230,7 +231,7 @@ describe("flow_control", () => {
       },
       {
         type: "label",
-        address: at("flow:quarters", "end", "label"),
+        address: at("timestamp_2", "coordinate"),
         x: xe,
         baseline: 47.25634765625,
         anchor: "middle",
@@ -289,7 +290,7 @@ describe("map", () => {
       },
       { ...root, address: at("melody"), xs: x0, xe, y: 40.5 },
       { ...child, address: at("phrase"), xs: 163.53662109375, xe: 363.53662109375, y: 23 },
-      ...wedges(x0, xe, "melody").map((item) => ({ ...item, yt: 42, yb: 55 })),
+      ...wedges(x0, xe).map((item) => ({ ...item, yt: 42, yb: 55 })),
       {
         type: "name",
         address: at("phrase", "name"),
@@ -308,7 +309,7 @@ describe("map", () => {
       },
       {
         type: "label",
-        address: at("melody", "start", "label"),
+        address: at("timestamp_1", "coordinate"),
         x: x0,
         baseline: 65.35400390625,
         anchor: "middle",
@@ -317,7 +318,7 @@ describe("map", () => {
       },
       {
         type: "label",
-        address: at("melody", "end", "label"),
+        address: at("timestamp_2", "coordinate"),
         x: xe,
         baseline: 65.35400390625,
         anchor: "middle",
@@ -358,7 +359,7 @@ describe("with_region", () => {
       { ...root, address: at("clt_1"), xs: x0, xe, y: 51 },
       { ...child, address: at("clt_2"), xs: x(1 / 36), xe: x(13 / 36), y: 37 },
       { ...child, address: at("clt_3"), xs: x(1 / 6), xe: x(5 / 12), y: 23 },
-      ...wedges(x0, xe, "clt_1").map((item) => ({ ...item, yt: 52.5, yb: 65.5 })),
+      ...wedges(x0, xe).map((item) => ({ ...item, yt: 52.5, yb: 65.5 })),
       ...(
         [
           ["clt_3", 26.80810546875],
@@ -375,7 +376,7 @@ describe("with_region", () => {
       })),
       {
         type: "label",
-        address: at("clt_1", "start", "label"),
+        address: at("timestamp_1", "coordinate"),
         x: x0,
         baseline: 75.85400390625,
         anchor: "middle",
@@ -384,7 +385,7 @@ describe("with_region", () => {
       },
       {
         type: "label",
-        address: at("clt_1", "end", "label"),
+        address: at("timestamp_2", "coordinate"),
         x: xe,
         baseline: 75.85400390625,
         anchor: "middle",

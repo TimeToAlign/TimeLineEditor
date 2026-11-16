@@ -237,7 +237,7 @@ describe("descriptors", () => {
     ]);
   });
 
-  it("writes the timestamps fixture's named timestamps, their lines last", () => {
+  it("writes the timestamps fixture's named timestamps, their stacked labels and their line last", () => {
     const manifest = loadFixture("timestamps");
     const drawing = draw(
       manifest,
@@ -247,18 +247,19 @@ describe("descriptors", () => {
     );
     const svg = svgBody(drawing);
     expect(svg).toContain(
-      '<polygon data-id="timestamp_1" points="124.9155,58.4766 121.9155,71.4766 127.9155,71.4766" fill="#000000"/>',
+      '<polygon data-id="timestamp_1" points="124.9155,79.4297 121.9155,92.4297 127.9155,92.4297" fill="#000000"/>',
     );
     expect(svg).toContain(
-      '<text data-id="timestamp_1" data-part="label" x="124.9155" y="81.8306" text-anchor="middle" font-size="9" fill="#000000">Downbeat</text>',
+      '<text data-id="timestamp_1" data-part="name" x="124.9155" y="102.7837" text-anchor="middle" font-size="9" fill="#000000">Downbeat</text>',
     );
-    expect(svg.slice(-2)).toEqual([
-      '<line data-id="timestamp_1" data-part="line" x1="124.9155" y1="16" x2="124.9155" y2="83.9531" stroke="#1BA1E2" stroke-width="1" stroke-dasharray="3 3"/>',
-      '<line data-id="timestamp_3" data-part="line" x1="199.9155" y1="23" x2="199.9155" y2="16" stroke="#1BA1E2" stroke-width="1" stroke-dasharray="3 3"/>',
+    expect(svg.slice(-4)).toEqual([
+      '<text data-id="timestamp_3" data-part="name" x="199.9155" y="47.854" text-anchor="middle" font-size="9" fill="#000000">Entry</text>',
+      '<text data-id="timestamp_3" data-part="id" x="199.9155" y="58.3306" text-anchor="middle" font-size="9" fill="#000000">timestamp_3</text>',
+      '<text data-id="timestamp_3" data-part="coordinate" x="199.9155" y="68.8071" text-anchor="middle" font-size="9" fill="#000000">1 ♩</text>',
+      '<line data-id="timestamp_1" data-part="line" x1="124.9155" y1="16" x2="124.9155" y2="77.9297" stroke="#1BA1E2" stroke-width="1" stroke-dasharray="3 3"/>',
     ]);
-    expect(tikzBody(drawing).slice(-2)).toEqual([
-      "\\path[draw=ts1BA1E2,line width=1pt,dash pattern=on 3pt off 3pt] (124.9155,85.9531) -- (124.9155,18);",
-      "\\path[draw=ts1BA1E2,line width=1pt,dash pattern=on 3pt off 3pt] (199.9155,78.9531) -- (199.9155,85.9531);",
+    expect(tikzBody(drawing).slice(-1)).toEqual([
+      "\\path[draw=ts1BA1E2,line width=1pt,dash pattern=on 3pt off 3pt] (124.9155,106.9062) -- (124.9155,44.9766);",
     ]);
     // An editor's wedge at the same position writes the same points.
     const key = placeKeyText({ item: "clt_1" }) + addressKey({ id: "clt_1" });

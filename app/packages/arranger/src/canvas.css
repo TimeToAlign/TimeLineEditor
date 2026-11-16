@@ -142,6 +142,14 @@
   stroke: #0a84ff;
 }
 
+/*
+ * A named timestamp that draws nothing, shown on the canvas alone (never in
+ * an export) as a light-grey wedge, so it stays selectable.
+ */
+.tilie-canvas .tilie-block .tilie-timestamp-affordance {
+  fill: #c8c8c8;
+}
+
 /* A selected element, box or band. */
 .tilie-canvas .tilie-block [data-selected],
 .tilie-canvas .tilie-block rect.tilie-mark[data-mark="selection"] {
@@ -227,7 +235,6 @@
 
 .tilie-canvas .tilie-coordinates-pole {
   position: absolute;
-  width: 1px;
   background: #1a1d23;
 }
 
@@ -285,22 +292,15 @@
 }
 
 .tilie-canvas .tilie-coordinates-row .tilie-coordinates-name,
-.tilie-canvas .tilie-coordinates-tag,
 .tilie-canvas .tilie-coordinates-unit,
-.tilie-canvas .tilie-coordinates-none,
 .tilie-canvas .tilie-coordinates-foot {
   color: #5b6372;
   font-weight: 400;
 }
 
-.tilie-canvas .tilie-coordinates-tag,
 .tilie-canvas .tilie-coordinates-unit {
   margin-left: 4px;
   font-size: 11px;
-}
-
-.tilie-canvas .tilie-coordinates-none {
-  font-style: italic;
 }
 
 .tilie-canvas .tilie-coordinates-foot {

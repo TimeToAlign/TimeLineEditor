@@ -7,7 +7,9 @@ import type { PlacedMarks } from "./coordinates.ts";
 /**
  * The wedge and the cross-section line of the hovered position and of the
  * pinned unnamed timestamp, each as a named timestamp lying there draws its
- * own (layout's `wedgeAt` and `crossSection`, with their resolved styles).
+ * own (layout's `wedgeAt` and `crossSection`, with their resolved styles); a
+ * line without a cross-section (neither its children band nor its
+ * conversion maps band is present) draws the wedge alone.
  * Each is drawn in its block's drawing units, in an `<svg>` laid over the
  * block's node exactly as the node's own, so strokes and dashes scale with
  * the zoom as the drawing's do. They never take the pointer.

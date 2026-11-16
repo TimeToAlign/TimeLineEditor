@@ -188,6 +188,17 @@ export function bandKey(timeline: string, facet: Facet, holder: ElementKey): Ele
   };
 }
 
+/**
+ * The words of a named timestamp's `display` that name its labels, in the
+ * order its stack holds them outwards from its wedge (sections 2 and 6.4,
+ * Markers): its name, its ID, its coordinate. Each is a `label` element
+ * addressed `{id: X, part: [word]}`.
+ */
+export const TIMESTAMP_LABELS = ["name", "id", "coordinate"] as const;
+
+/** A word naming one of a named timestamp's labels. */
+export type TimestampLabel = (typeof TIMESTAMP_LABELS)[number];
+
 const NO_TIMESTAMPS: readonly NamedTimestamp[] = [];
 const timestampLists = new WeakMap<Manifest, ReadonlyMap<string, readonly NamedTimestamp[]>>();
 
@@ -272,12 +283,12 @@ export function orderedChildren(timeline: TimelineManifest): ChildTimeline[] {
  * children band its children by offset then ID, each segment with its
  * boundary when it is not the first segment and its label, which its
  * segment line holds directly; the conversion maps band its maps; the
- * markers band, for the member, its two wedges with their labels, then for
- * every timeline its named timestamps in canonical order, each a wedge with
- * its label, then the timestamp's cross-section line, which its timeline's
- * line (or node) holds directly, so that hiding the band leaves the line
- * (section 2.2: `{id: X}`, `{id: X, part: ["label"]}`, `{id: X, part:
- * ["line"]}`); the regions band its
+ * markers band its timeline's named timestamps in canonical order, of each
+ * the elements its `display` lists: its wedge `{id: X}`, its labels `{id: X,
+ * part: [word]}` in the order of `TIMESTAMP_LABELS`, each held by the band
+ * beside the wedge and not by it, then its cross-section line `{id: X, part:
+ * ["line"]}`, which its timeline's line (or node) holds directly, so that
+ * hiding the band leaves the line (sections 2 and 2.2); the regions band its
  * regions, and the flow control band its flow markers, then its jump origins,
  * each with its label (a jump target draws nothing of its own).
  */
@@ -333,14 +344,17 @@ function memberElements(
         }
       },
       markers: (band) => {
-        if (timeline === root) {
-          labelled("wedge", partAddress(idAddress(timeline.id), "start"), band);
-          labelled("wedge", partAddress(idAddress(timeline.id), "end"), band);
-        }
-        for (const timestamp of namedTimestamps(manifest, timeline.id)) {
-          const at = idAddress(timestamp.id);
-          labelled("wedge", at, band);
-          keys.push(elementKey("cross_section", partAddress(at, "line"), timeline, key));
+        for (const { id, display } of namedTimestamps(manifest, timeline.id)) {
+          const at = idAddress(id);
+          if (display.includes("wedge")) keys.push(elementKey("wedge", at, timeline, band));
+          for (const word of TIMESTAMP_LABELS) {
+            if (display.includes(word)) {
+              keys.push(elementKey("label", partAddress(at, word), timeline, band));
+            }
+          }
+          if (display.includes("cross_section")) {
+            keys.push(elementKey("cross_section", partAddress(at, "line"), timeline, key));
+          }
         }
       },
       regions: (band) => {
@@ -371,8 +385,8 @@ function memberElements(
  * and its member drawings in display order; then the roots drawn without a
  * frame. A timeline drawn more than once, as an ancestor line and as a line
  * of its own, or as a member of several groups, is listed at each drawing
- * with the same address, cards included, and so are a member's start and
- * end, marked on its own line and on each of its ancestor lines.
+ * with the same address, cards included, and so are the marks of a member's
+ * start and end on each of its ancestor lines.
  */
 export function manifestElements(manifest: Manifest): ElementKey[] {
   const ordered = canonicalOrder(manifest);

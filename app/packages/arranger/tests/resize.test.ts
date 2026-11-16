@@ -1,5 +1,11 @@
 import type { Block, View } from "@timetoalign/tilie-core";
-import { idAddress, inBlock, WORKSPACE } from "@timetoalign/tilie-core";
+import {
+  createView,
+  idAddress,
+  importedManifest,
+  inBlock,
+  WORKSPACE,
+} from "@timetoalign/tilie-core";
 import { describe, expect, it } from "vitest";
 import { keyedBox } from "../src/boxes.ts";
 import { drawingOf } from "../src/drawing.ts";
@@ -19,6 +25,7 @@ import {
   blockIn,
   CHILD_MEMBER,
   changed,
+  load,
   metrics,
   mixedPlain,
   placed as placedItem,
@@ -49,18 +56,30 @@ function placed(view: View, values: Partial<Block>): View {
   return changed(view, { type: "set", changes: [{ target: { block: A }, values }] });
 }
 
-/** corpus_audio_audio with every name hidden, so its wide end label sets the block's left margin. */
-const audio = changed(viewOf({ id: A, fixture: "corpus_audio_audio", x: 40, y: 80 }), {
-  type: "set",
-  changes: [
-    {
-      target: WORKSPACE,
-      values: {
-        graphical: { statements: [{ select: { element: "name" }, set: { display: "none" } }] },
+/**
+ * corpus_audio_audio as the editor imports it (core's `importedManifest`: a manifest without
+ * `graphical` gets its root's named timestamps `origin` and `length`, each drawing its
+ * coordinate label), with every name hidden, so its wide end label sets the block's width
+ * while its line is short.
+ */
+const audio = changed(
+  changed(createView(), {
+    type: "add",
+    into: WORKSPACE,
+    block: { id: A, manifest: importedManifest(load("corpus_audio_audio")), x: 40, y: 80 },
+  }),
+  {
+    type: "set",
+    changes: [
+      {
+        target: WORKSPACE,
+        values: {
+          graphical: { statements: [{ select: { element: "name" }, set: { display: "none" } }] },
+        },
       },
-    },
-  ],
-});
+    ],
+  },
+);
 
 const views: { readonly [name: string]: View } = {
   bare,

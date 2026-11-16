@@ -3,50 +3,14 @@
 import type { Block, ElementAddress, Manifest, View } from "@timetoalign/tilie-core";
 import { addressKey, contains } from "@timetoalign/tilie-core";
 import type { Drawing } from "@timetoalign/tilie-layout";
-import type { Descriptor } from "@timetoalign/tilie-writers";
 import type { FontMetrics } from "@timetoalign/timetoshare";
-import type { Node } from "@xyflow/svelte";
 import { affectedBy } from "./affected.ts";
+import { affordancesOf } from "./coordinates.ts";
 import { descriptorsOf, drawingOf, nodePosition } from "./drawing.ts";
 import type { Editing } from "./editing.ts";
 import { addressParts, sameEditing } from "./editing.ts";
+import type { BlockNode, LivePlacement } from "./node.ts";
 import { isSelected, type Selection } from "./selection.ts";
-
-/** What a block node renders. */
-export type BlockNodeData = {
-  readonly block: Block;
-  readonly drawing: Drawing;
-  readonly descriptors: readonly Descriptor[];
-  /** The block's selected element addresses, by their keys (`addressKey`). */
-  readonly selectedElements: ReadonlyMap<string, ElementAddress>;
-  /**
-   * The keys of the addresses that removing the selected elements would also remove,
-   * highlighted with them.
-   */
-  readonly affectedElements: ReadonlySet<string>;
-  /** The innermost open editor, the same on every node; `null` on the arranger. */
-  readonly editing: Editing | null;
-  /**
-   * The keys of the drawn element addresses that lie inside the edited
-   * element, the only ones that are hovered and selected: every drawn
-   * address on the arranger and in this block's bundle editor, those the
-   * edited group or timeline contains in its editor, none in another block
-   * while an editor is open.
-   */
-  readonly inside: ReadonlySet<string>;
-};
-
-export type BlockNode = Node<BlockNodeData, "block">;
-
-/**
- * A block's placement as the canvas shows it during a gesture, before
- * anything is stored, and the drawing its node shows then, its items and
- * cards where the gesture puts them.
- */
-export type LivePlacement = Pick<
-  Block,
-  "id" | "x" | "y" | "scale" | "length" | "spacing" | "margin" | "width" | "height"
-> & { readonly drawing: Drawing };
 
 const NO_ELEMENTS: ReadonlySet<string> = new Set();
 
@@ -58,8 +22,9 @@ const insides = new WeakMap<Drawing, Map<string | null, ReadonlySet<string>>>();
  * The keys of the element addresses `drawing` draws inside `element`, the ID
  * of a group or a timeline of `manifest` (core's `contains`), or of every
  * address it draws but the block's background when `element` is `null`, the
- * whole block. Memoized by the drawing and the element, so an unchanged node
- * keeps the identical set.
+ * whole block; a named timestamp that draws nothing counts as drawn where
+ * the canvas shows it in its place (`affordancesOf`). Memoized by the
+ * drawing and the element, so an unchanged node keeps the identical set.
  */
 export function insideOf(
   manifest: Manifest,
@@ -73,14 +38,15 @@ export function insideOf(
   }
   let found = byElement.get(element);
   if (found === undefined) {
-    const addresses = new Set<string>();
-    for (const drawn of drawing.elements) {
-      if (drawn.type === "block") continue;
-      if (element === null || contains(manifest, element, drawn.address)) {
-        addresses.add(addressKey(drawn.address));
-      }
-    }
-    found = addresses;
+    const shown = [
+      ...drawing.elements.flatMap((drawn) => (drawn.type === "block" ? [] : [drawn.address])),
+      ...affordancesOf(manifest, drawing).map(({ address }) => address),
+    ];
+    found = new Set(
+      shown
+        .filter((address) => element === null || contains(manifest, element, address))
+        .map(addressKey),
+    );
     byElement.set(element, found);
   }
   return found;

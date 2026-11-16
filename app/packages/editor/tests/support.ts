@@ -18,6 +18,7 @@ import { SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import { vi } from "vitest";
 import type { Autosave, AutosaveOptions } from "../src/autosave.ts";
 import { fixtureWorkspace } from "../src/fixtureWorkspace.ts";
+import { informContext } from "../src/messages.svelte.ts";
 import type { TestHook } from "../src/testHook.ts";
 
 const directory = path.join(
@@ -161,4 +162,14 @@ export function editorAt(level: Level, block: string): Editing | null {
     case "timeline":
       return { target: { block, id: "score" }, kind: level };
   }
+}
+
+/**
+ * The component context of an inspector component mounted on its own,
+ * `mount`'s `context`: the information it posts is appended to `informed`.
+ */
+export function informing(informed: string[] = []): ReturnType<typeof informContext> {
+  return informContext((text) => {
+    informed.push(text);
+  });
 }

@@ -79,11 +79,12 @@ describe("a root of unknown length", () => {
     });
   });
 
-  it("has its start wedge and the label 0 only, and the outer chevron's tip sets the block", () => {
+  it("has its origin's wedge and the label 0 only, and the outer chevron's tip sets the block", () => {
     const drawing = drawFixture("unknown_length");
-    expect(addresses(drawing, "wedge")).toEqual([at("score", "start")]);
+    expect(addresses(drawing, "wedge")).toEqual([at("timestamp_1")]);
     expect(texts(drawing)).toEqual(["0 ♩"]);
-    const end = [at("score", "end"), at("score", "end", "label")];
+    // A root of unknown length has no `length` timestamp.
+    const end = [at("timestamp_2"), at("timestamp_2", "coordinate")];
     expect(
       drawing.elements.some((item) => end.some((address) => sameAddress(item.address, address))),
     ).toBe(false);
@@ -151,7 +152,7 @@ describe("a child of unknown length in a known parent", () => {
       xe: 483.490234375,
       end: "arrowhead",
     });
-    expect(addresses(drawing, "wedge")).toEqual([at("score", "start"), at("score", "end")]);
+    expect(addresses(drawing, "wedge")).toEqual([at("timestamp_1"), at("timestamp_2")]);
   });
 
   it("takes room for its three chevrons in its row: 9.5w past its end", () => {
@@ -223,8 +224,8 @@ describe("a segment line whose segments are of unknown length", () => {
     );
     expect(
       drawing.elements.flatMap((item) =>
-        // The segments' labels, each with the one part word `label`.
-        item.type === "label" && item.address.part?.length === 1 ? [[item.address, item.x]] : [],
+        // The segments' labels, each with the part word `label`.
+        item.type === "label" && item.address.part?.[0] === "label" ? [[item.address, item.x]] : [],
       ),
     ).toEqual([
       [at("a", "label"), 143.95797909007354],
@@ -257,13 +258,15 @@ describe("ancestor lines and unknown lengths", () => {
       end: "unknown",
     });
     expect(line(drawing, "piece")).toEqual({ xs: x0 - 12, xe: x0 + 400 + 12, end: "chevrons" });
+    // The ancestor marks the member's start alone; the member's own `origin` is its timestamp.
     expect(addresses(drawing, "wedge").filter((item) => item.id === "second-half")).toEqual([
-      at("second-half", "start"),
       at("second-half", "start"),
     ]);
     const marks = drawing.elements.filter(
       (item) =>
-        item.type === "label" && sameAddress(item.address, at("second-half", "start", "label")),
+        item.type === "label" &&
+        (sameAddress(item.address, at("second-half", "start", "label")) ||
+          sameAddress(item.address, at("timestamp_3", "coordinate"))),
     );
     expect(marks.map((item) => (item.type === "label" ? item.text : ""))).toEqual(["8 ♩", "0 ♩"]);
   });

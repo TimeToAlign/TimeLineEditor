@@ -23,7 +23,14 @@ import { readObject, unknownMember } from "../values.ts";
 import { indexOf } from "../workspace/address.ts";
 import type { View } from "../workspace/view.ts";
 import type { ChangeSet } from "./mutations.ts";
-import { record, replaceTimeline, sameJson, withBlock, withKey } from "./mutations.ts";
+import {
+  record,
+  replaceTimeline,
+  sameJson,
+  timestampsAtEnd,
+  withBlock,
+  withKey,
+} from "./mutations.ts";
 import type { TimelineTarget } from "./targets.ts";
 
 /** The refusal of a child reaching past its parent's known length. */
@@ -48,8 +55,9 @@ function exceedsParent(
  * within its line too: a segment ends where its successor starts, and the
  * last one where its line ends while the line's length is known; a segment
  * line ends where its last segment ends while that segment's length is
- * known. A named timestamp of the timeline keeps its place: the new length
- * reaches the first, in canonical order, that would lie beyond it
+ * known. A named timestamp of the timeline at its end follows the end
+ * (`replaceTimeline`); any other keeps its place, and the new length refuses
+ * the first, in canonical order, that would lie beyond it
  * (`timestamp_exceeds_length`). A length of null is always taken: it bounds
  * nothing, and a segment or line of unknown length ends where its
  * neighbours say.
@@ -101,8 +109,11 @@ export function lengthProblem(
     }
   }
   const limit = realOf(length);
+  const following = timestampsAtEnd(manifest, timeline);
   const beyond = namedTimestamps(manifest, timeline.id).find(
-    ({ coordinate }) => compareReal(realOf(axisCoordinate(coordinate, timeline)), limit) > 0,
+    (timestamp) =>
+      !following.includes(timestamp) &&
+      compareReal(realOf(axisCoordinate(timestamp.coordinate, timeline)), limit) > 0,
   );
   if (beyond !== undefined) {
     return problem(

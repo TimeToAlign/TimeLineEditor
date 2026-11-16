@@ -10,7 +10,7 @@ import { toDescriptors } from "@timetoalign/tilie-writers";
 import { describe, expect, it } from "vitest";
 import { drawingOf, nodePosition } from "../src/drawing.ts";
 import type { Editing } from "../src/editing.ts";
-import type { BlockNode } from "../src/project.ts";
+import type { BlockNode } from "../src/node.ts";
 import { blocksInOrder, livePlacement, project } from "../src/project.ts";
 import { isSelected, NOTHING_SELECTED, selectionOf } from "../src/selection.ts";
 import {
@@ -48,12 +48,17 @@ const keyed = (...addresses: ElementAddress[]) =>
   new Map(addresses.map((address) => [addressKey(address), address]));
 
 /** The marks of a wedge-ended timeline `id`, in drawing order after its line. */
-const wedges = (id: string) => [
-  at(id, "start"),
-  at(id, "end"),
+/**
+ * What a root's card draws after its line, in drawing order: the wedges of
+ * its named timestamps `origin` and `length`, its name, then their
+ * coordinate labels.
+ */
+const markers = (id: string, origin: string, length: string) => [
+  at(origin),
+  at(length),
   at(id, "name"),
-  at(id, "start", "label"),
-  at(id, "end", "label"),
+  at(origin, "coordinate"),
+  at(length, "coordinate"),
 ];
 
 function node(nodes: readonly BlockNode[], id: string): BlockNode {
@@ -101,7 +106,9 @@ describe("project", () => {
       expect(member in node(nodes, A)).toBe(false);
     }
     expect(dataA.editing).toBeNull();
-    expect([...dataA.inside]).toEqual(keysOf([cardAddress("bare"), at("bare"), ...wedges("bare")]));
+    expect([...dataA.inside]).toEqual(
+      keysOf([cardAddress("bare"), at("bare"), ...markers("bare", "timestamp_1", "timestamp_2")]),
+    );
   });
 
   it("projects a group block through the same drawing, with its elements selected", () => {
@@ -308,12 +315,12 @@ describe("the projection under an editor", () => {
         at("cmap_2"),
         at("jump_from_1"),
         at("score"),
-        ...wedges("score"),
+        ...markers("score", "timestamp_9", "timestamp_10"),
         at("jump_from_1", "label"),
         cardAddress("performance"),
         at("cmap_3"),
         at("performance"),
-        ...wedges("performance"),
+        ...markers("performance", "timestamp_7", "timestamp_8"),
       ]),
     );
     const editing: Editing = { target: of(A, "annotations"), kind: "timeline" };
@@ -324,7 +331,7 @@ describe("the projection under an editor", () => {
         at("region_1"),
         at("region_2"),
         at("annotations"),
-        ...wedges("annotations"),
+        ...markers("annotations", "timestamp_1", "timestamp_2"),
         at("region_1", "label"),
         at("region_2", "label"),
       ]),

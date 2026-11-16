@@ -354,33 +354,34 @@ describe("one address drawn twice", () => {
   });
 
   it.each([
-    at("second-half", "start"),
-    at("second-half", "end"),
-    at("second-half", "start", "label"),
-    at("second-half", "end", "label"),
-  ])("draws %j on the ancestor line and on the member's own line", (address) => {
-    const drawing = draw(
-      loadFile("groups/group_child_member"),
-      DEFAULT_PLACEMENT,
-      [
-        {
-          statements: [
-            { select: { addresses: [at("piece")] }, set: { stroke: "#111111" } },
-            { select: { inside: "ancestor" }, set: { opacity: 0.5 } },
-          ],
-        },
-      ],
-      metrics,
-    );
-    const pairs = drawing.elements
-      .filter((item) => sameAddress(item.address, address))
-      .map((item) => [item.style.stroke, item.style.opacity])
-      .sort((a, b) => String(a[0]).localeCompare(String(b[0])));
-    expect(pairs).toEqual([
-      ["#111111", 0.5],
-      ["none", 1],
-    ]);
-  });
+    [at("second-half", "start"), at("timestamp_3")],
+    [at("second-half", "end"), at("timestamp_4")],
+    [at("second-half", "start", "label"), at("timestamp_3", "coordinate")],
+    [at("second-half", "end", "label"), at("timestamp_4", "coordinate")],
+  ])(
+    "draws %j on the ancestor line only, inside it, and %j on the member's own line",
+    (address, own) => {
+      const drawing = draw(
+        loadFile("groups/group_child_member"),
+        DEFAULT_PLACEMENT,
+        [
+          {
+            statements: [
+              { select: { addresses: [at("piece")] }, set: { stroke: "#111111" } },
+              { select: { inside: "ancestor" }, set: { opacity: 0.5 } },
+            ],
+          },
+        ],
+        metrics,
+      );
+      const pairs = (wanted: Address) =>
+        drawing.elements
+          .filter((item) => sameAddress(item.address, wanted))
+          .map((item) => [item.style.stroke, item.style.opacity]);
+      expect(pairs(address)).toEqual([["#111111", 0.5]]);
+      expect(pairs(own)).toEqual([["none", 1]]);
+    },
+  );
 });
 
 describe("shadow", () => {

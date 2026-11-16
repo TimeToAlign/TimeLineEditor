@@ -77,16 +77,19 @@ its card. `W = 476.5771484375`, `H = 67.37890625`; the background `fill
 bare}` from `x0 = 49.5771484375` to `Xe = 449.5771484375` at `y =
 22.40234375`, `#00CC00`, width 3, a start circle and the arrowhead (tip `Xe
 + 3w = 458.5771484375`, base on `Xe` from `y − 4.5` to `y + 4.5`); the
-wedges `{id: bare, part: [start]}` and `{id: bare, part: [end]}` at `x0` and `Xe`, tip
+wedges of its named timestamps `origin` `{id: timestamp_1}` and `length`
+`{id: timestamp_2}` at `x0` and `Xe`, tip
 `y + 1.5 = 23.90234375`, base `36.90234375`, at `x ∓ 3`, `#000000`; the name
 `{id: bare, part: [name]}`, `Bare`, at `x = 16`, baseline `26.21044921875`,
-size 11; the labels `{id: bare, part: [start, label]}` and `{id: bare,
-part: [end, label]}`, `0 ♩` and `8 ♩`, at `x0` and `Xe`, baseline
+size 11; their coordinate labels `{id: timestamp_1, part: [coordinate]}`
+and `{id: timestamp_2, part: [coordinate]}`, `0 ♩` and `8 ♩`, at `x0` and
+`Xe`, baseline
 `47.25634765625`, size 9. Placed alone, the page is `508.5771484375 ×
 99.37890625`. The SVG written is, byte for byte, the schema package's
 hand-derived figure of `bare`: each element after the background carries
-`data-id="bare"` and, but the line's three descriptors, the `data-part` of
-its address (`card`, `start`, `end`, `name`, `start label`, `end label`).
+its address, `data-id="bare"` with the `data-part` `card` or `name`, none
+for the line's three descriptors, and the timestamps' `data-id` with the
+`data-part` `coordinate` on their labels.
 
 In TikZ every ordinate becomes `H − y`: the line `44.9765625`, the
 arrowhead's base corners `49.4765625` and `40.4765625`, the wedges' tips
@@ -390,22 +393,29 @@ hand-derived figures, `map_row_siblings`, `map_row_subslots` and
 share (two siblings with maps of two keys in different canonical orders, a
 segment line's own map and its segments' maps of one key, a sibling moved
 to another row), and `label_float_rounding` the rounded label of a float
-end. `timestamps` draws named timestamps, its geometry derived in the
-layout's README: `x0 = 49.91552734375`, the root's line at 56.9765625,
-`clt_2`'s at 23, `H = 101.953125`. So, in block coordinates and to four
-decimals, `timestamp_1`'s wedge is `<polygon data-id="timestamp_1"
-points="124.9155,58.4766 121.9155,71.4766 127.9155,71.4766"
-fill="#000000"/>`, its label `<text data-id="timestamp_1" data-part="label"
-x="124.9155" y="81.8306" text-anchor="middle" font-size="9"
-fill="#000000">Downbeat</text>`, and the drawing ends with the two
-cross-section lines, `<line data-id="timestamp_1" data-part="line"
-x1="124.9155" y1="16" x2="124.9155" y2="83.9531" stroke="#1BA1E2"
-stroke-width="1" stroke-dasharray="3 3"/>` and `<line data-id="timestamp_3"
-data-part="line" x1="199.9155" y1="23" x2="199.9155" y2="16" …/>`, in TikZ
-`(124.9155,85.9531) -- (124.9155,18)` and `(199.9155,78.9531) --
-(199.9155,85.9531)` (`101.953125 − y`). Every other figure is unchanged by
-named timestamps: none of them has one, and the markers band of a timeline
-without one is absent whether shown or hidden. There are 76 cases. Every case stating a spacing, of the block, in a place or in a
+end. Every root of a non-corpus fixture carries the named timestamps
+`origin` and `length` (`origin` alone for an unknown length), each drawing
+its wedge and its coordinate label where the root's start and end were
+marked before: their figures keep every number and address the wedges
+`{id: timestamp_N}` and the labels `{id: timestamp_N, part: [coordinate]}`.
+`timestamps` draws named timestamps of every `display`, its geometry
+derived in the layout's README and in TimeToShare's drawings README: `x0 =
+49.91552734375`, the root's line at 77.9296875, `clt_2`'s at 23, `H =
+122.90625`. So, in block coordinates and to four decimals,
+`timestamp_1`'s wedge is `<polygon data-id="timestamp_1"
+points="124.9155,79.4297 121.9155,92.4297 127.9155,92.4297"
+fill="#000000"/>`, its name label `<text data-id="timestamp_1"
+data-part="name" x="124.9155" y="102.7837" text-anchor="middle"
+font-size="9" fill="#000000">Downbeat</text>`, the stack of `timestamp_3`
+its labels `data-part="name"` (`Entry`, `y="47.854"`), `data-part="id"`
+(`timestamp_3`, `y="58.3306"`) and `data-part="coordinate"` (`1 ♩`,
+`y="68.8071"`), the last labels written, and the drawing ends with the one
+cross-section line, `<line data-id="timestamp_1" data-part="line"
+x1="124.9155" y1="16" x2="124.9155" y2="77.9297" stroke="#1BA1E2"
+stroke-width="1" stroke-dasharray="3 3"/>`, in TikZ `(124.9155,106.9062) --
+(124.9155,44.9766)` (`122.90625 − y`, 106.90625 a tie to the even
+106.9062). `timestamp_2` lists no cross-section line and `timestamp_3`'s
+timeline has no band for one to cross. There are 76 cases. Every case stating a spacing, of the block, in a place or in a
 member's card place, draws an SVG different from its manifest's default
 case: a spacing case that draws as the default (a block of one item has no
 gap) pins nothing.

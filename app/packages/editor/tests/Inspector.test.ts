@@ -7,7 +7,7 @@ import path from "node:path";
 import type { LivePlacement, Selection } from "@timetoalign/tilie-arranger";
 import { drawingOf, liveStore, NOTHING_SELECTED, selectionOf } from "@timetoalign/tilie-arranger";
 import type { Address, Block, CommandEntry, Store, UnknownKey } from "@timetoalign/tilie-core";
-import { isLoadError, loadManifest, saveManifest } from "@timetoalign/tilie-core";
+import { isLoadError, loadManifest } from "@timetoalign/tilie-core";
 import {
   dumps,
   fontMetrics,
@@ -18,19 +18,27 @@ import {
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, describe, expect, it } from "vitest";
 import InspectorDrawer from "../src/InspectorDrawer.svelte";
-import { loadCodec, writeText } from "../src/inspector/formats.svelte.ts";
+import type { Format } from "../src/inspector/formats.svelte.ts";
+import { loadCodec } from "../src/inspector/formats.svelte.ts";
 import Inspector from "../src/inspector/Inspector.svelte";
 import type { TextOptions } from "../src/inspector/manifestText.ts";
 import { manifestOf, manifestText } from "../src/inspector/manifestText.ts";
 import { problemPointer } from "../src/inspector/problems.ts";
 import { holder } from "./holder.svelte.ts";
-import { storeOf as storeOfFixtures } from "./support.ts";
+import { informing, storeOf as storeOfFixtures } from "./support.ts";
 
 const A = "0000000000";
 const B = "0000000001";
 const HINT = "Select a block to inspect its manifest.";
 /** The options the Manifest tab starts with: the complete form, without the styling. */
 const COMPLETE: TextOptions = { includeStyling: false, minimal: false };
+
+/** The text the Manifest panel shows of block A in `format` by default: complete, without the styling. */
+function shownText(store: Store, format: Format): string {
+  const text = manifestText(manifestOf(blockOf(store, A)), format, COMPLETE);
+  if (!text.ok) throw new Error("not written");
+  return text.value.text;
+}
 
 const directory = path.join(
   path.dirname(createRequire(import.meta.url).resolve("@timetoalign/timetoshare/package.json")),
@@ -79,6 +87,7 @@ function show(
   const selected = holder<Selection>(selectionOf(selection));
   app = mount(Inspector, {
     target: document.body,
+    context: informing(),
     props: {
       live: liveStore(store),
       get selection() {
@@ -210,20 +219,16 @@ describe("the inspector component", () => {
     await loadCodec("yaml");
     flushSync();
     expect(document.querySelector(".loading")).toBe(null);
-    const yaml = writeText("yaml", manifestOf(blockOf(store, A)));
-    if (!yaml.ok) throw new Error("not written");
-    expect(textarea().value).toBe(yaml.value.text);
+    expect(textarea().value).toBe(shownText(store, "yaml"));
   });
 
   it("shows, switches, applies and follows the manifest", async () => {
     const store = storeOf();
     show(store, [{ block: A, id: "bare" }]);
     openTab("Manifest");
-    expect(textarea().value).toBe(saveManifest(blockOf(store, A).manifest));
+    expect(textarea().value).toBe(shownText(store, "json"));
     await chooseYaml();
-    const yaml = writeText("yaml", manifestOf(blockOf(store, A)));
-    if (!yaml.ok) throw new Error("not written");
-    expect(textarea().value).toBe(yaml.value.text);
+    expect(textarea().value).toBe(shownText(store, "yaml"));
 
     expect(switchHint()).toBe(null);
     type(textarea(), textarea().value.replace("  name: Bare\n", "  name: Hello # was Bare\n"));
@@ -266,9 +271,7 @@ describe("the inspector component", () => {
     );
     button("Revert").click();
     flushSync();
-    const newer = writeText("yaml", manifestOf(blockOf(store, A)));
-    if (!newer.ok) throw new Error("not written");
-    expect(textarea().value).toBe(newer.value.text);
+    expect(textarea().value).toBe(shownText(store, "yaml"));
     expect(textarea().value).toContain("  name: Bye\n");
     expect(document.querySelector(".notice")).toBe(null);
     expect([button("Apply").disabled, button("Revert").disabled]).toEqual([true, true]);
@@ -833,6 +836,7 @@ describe("the inspector in its drawer", () => {
   function drawer(store: Store, selection: Address[]): void {
     app = mount(InspectorDrawer, {
       target: document.body,
+      context: informing(),
       props: {
         live: liveStore(store),
         selection: selectionOf(selection),

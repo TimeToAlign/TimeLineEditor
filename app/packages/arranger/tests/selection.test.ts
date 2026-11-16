@@ -5,6 +5,7 @@ import {
   cardAddress,
   idAddress,
   inBlock,
+  partAddress,
   TITLE_ADDRESS,
   WORKSPACE,
 } from "@timetoalign/tilie-core";
@@ -173,7 +174,8 @@ describe("existing", () => {
       inA(part("region_2", "label")),
       inA(part("score", "name")),
       inA(part("group_1", "name")),
-      inA(part("page", "start")),
+      inA(partAddress(idAddress("timestamp_1"), "coordinate")),
+      inA(partAddress(idAddress("timestamp_1"), "name")),
       inA(idAddress("nobody")),
     ]);
     expect(keysOf(existing(numbersView(), selection, null))).toEqual(
@@ -181,7 +183,7 @@ describe("existing", () => {
         inA(part("region_1", "label")),
         inA(part("score", "name")),
         inA(part("group_1", "name")),
-        inA(part("page", "start")),
+        inA(partAddress(idAddress("timestamp_1"), "coordinate")),
       ),
     );
   });
@@ -207,7 +209,7 @@ describe("existing when an editor opens", () => {
     const group = inA(idAddress("group_1"));
     const score = inA(idAddress("score"));
     const scoreCard = inA(cardAddress("score"));
-    const scoreStart = inA(part("score", "start"));
+    const scoreStart = inA(idAddress("timestamp_9"));
     const performance = inA(idAddress("performance"));
     const annotationsCard = inA(cardAddress("annotations"));
     expect(opening({ block: A }, { block: A }, { block: B }, group, annotationsCard)).toEqual(

@@ -1,6 +1,7 @@
 /**
  * The typed edits a command makes to a view: a block replaced, a timeline
- * replaced where it lies in its manifest, an entry of a kind replaced in its
+ * replaced where it lies in its manifest (its timestamps at its end
+ * following a new length), an entry of a kind replaced in its
  * timeline's list (`ENTRY_LISTS`). Every edit returns a new value and shares what it leaves
  * unchanged. The change set records what a command changed, for the store's
  * no-op refusal, for `settle`, and for the guard of an open editor.
@@ -8,8 +9,10 @@
 
 import type { PathSegment } from "../json.ts";
 import { jsonEqual } from "../json.ts";
+import { namedTimestamps } from "../manifest/elements.ts";
 import type { EntryKind, EntryTypes } from "../manifest/files.ts";
 import { ENTRY_LISTS } from "../manifest/files.ts";
+import { lengthOf } from "../manifest/invariants.ts";
 import type { Located } from "../manifest/tree.ts";
 import type {
   ChildTimeline,
@@ -17,6 +20,8 @@ import type {
   NamedTimestamp,
   TimelineManifest,
 } from "../manifest/types.ts";
+import { axisCoordinate } from "../number/coordinate.ts";
+import { compareReal, realOf } from "../number/real.ts";
 import type { Address } from "../workspace/address.ts";
 import type { Block, BlockId } from "../workspace/blocks.ts";
 import type { View } from "../workspace/view.ts";
@@ -131,12 +136,8 @@ function asChild(at: Located, timeline: TimelineManifest): ChildTimeline {
   return { ...timeline, offset };
 }
 
-/** `manifest` with the timeline `at` locates replaced by `timeline`. */
-export function replaceTimeline(
-  manifest: Manifest,
-  at: Located,
-  timeline: TimelineManifest,
-): Manifest {
+/** `manifest` with the timeline `at` locates replaced by `timeline`, where it lies. */
+function placedTimeline(manifest: Manifest, at: Located, timeline: TimelineManifest): Manifest {
   const index = at.path.at(-1);
   const { parent } = at;
   if (parent === undefined) {
@@ -147,7 +148,46 @@ export function replaceTimeline(
   }
   const child = asChild(at, timeline);
   const children = parent.timeline.children.map((item, at) => (at === index ? child : item));
-  return replaceTimeline(manifest, parent, { ...parent.timeline, children });
+  return placedTimeline(manifest, parent, { ...parent.timeline, children });
+}
+
+/**
+ * The named timestamps of `timeline` lying exactly at its end, in
+ * canonical order; none where its length is unknown.
+ */
+export function timestampsAtEnd(
+  manifest: Manifest,
+  timeline: TimelineManifest,
+): readonly NamedTimestamp[] {
+  const length = lengthOf(timeline);
+  if (length === null) return [];
+  const end = realOf(length);
+  return namedTimestamps(manifest, timeline.id).filter(
+    ({ coordinate }) => compareReal(realOf(axisCoordinate(coordinate, timeline)), end) === 0,
+  );
+}
+
+/**
+ * `manifest` with the timeline `at` locates replaced by `timeline`. Where
+ * the new timeline's length is known and another than the old one's, the
+ * named timestamps lying at the old end move to the new one: a timestamp
+ * at a timeline's end stays at its end whatever changes the length.
+ */
+export function replaceTimeline(
+  manifest: Manifest,
+  at: Located,
+  timeline: TimelineManifest,
+): Manifest {
+  const placed = placedTimeline(manifest, at, timeline);
+  const { length } = timeline;
+  if (length === null || sameJson(at.timeline.length, length)) return placed;
+  const following = timestampsAtEnd(placed, at.timeline);
+  if (following.length === 0) return placed;
+  const timestamps = placed.graphical?.timestamps ?? [];
+  return withTimestamps(
+    placed,
+    timestamps.map((item) => (following.includes(item) ? { ...item, coordinate: length } : item)),
+  );
 }
 
 /** The view with the timeline `at` locates in `block`'s manifest replaced by `timeline`. */

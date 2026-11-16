@@ -11,7 +11,7 @@
 import type { NumberType } from "@timetoalign/timetoshare";
 import type { CoordinateValue } from "../number/coordinate.ts";
 import { Rational } from "../number/rational.ts";
-import { toFloat } from "../number/real.ts";
+import { toFloat, toRational } from "../number/real.ts";
 
 /** A number a map reads or gives: `bigint` an int, `Rational` a Fraction, `number` a float. */
 export type MapValue = CoordinateValue;
@@ -76,11 +76,6 @@ export function floatOf(value: MapValue): number {
   return toFloat(value);
 }
 
-/** An exact value as a `Rational`. */
-export function exactOf(value: bigint | Rational): Rational {
-  return typeof value === "bigint" ? Rational.fromParts(value, 1n) : value;
-}
-
 function combine(
   left: MapValue,
   right: MapValue,
@@ -92,7 +87,7 @@ function combine(
     return float(floatOf(left), floatOf(right));
   }
   if (typeof left === "bigint" && typeof right === "bigint") return ints(left, right);
-  return exact(exactOf(left), exactOf(right));
+  return exact(toRational(left), toRational(right));
 }
 
 /** `left + right` on Python's numeric tower. */

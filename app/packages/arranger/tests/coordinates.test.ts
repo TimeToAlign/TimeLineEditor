@@ -1,28 +1,41 @@
 // @vitest-environment jsdom
 /**
- * Show coordinates: what the pointer hovers, the position it picks and
- * what the timestamp reads. Derived in `README.md` ("Show coordinates").
+ * Show coordinates: what the pointer hovers, the cross-section handed to
+ * core, the position picked on the hovered row, a named timestamp's pin,
+ * the flag's rows and place. Derived in `README.md` ("Show coordinates").
  */
 
-import type { Granularity, Manifest, MeasureKnots, View } from "@timetoalign/tilie-core";
-import { DEFAULT_GRANULARITY, idAddress, inBlock } from "@timetoalign/tilie-core";
+import type {
+  CrossSectionSpec,
+  Granularity,
+  Manifest,
+  MeasureKnots,
+  View,
+} from "@timetoalign/tilie-core";
+import { DEFAULT_GRANULARITY, idAddress, inBlock, timestampAt } from "@timetoalign/tilie-core";
 import { Rational } from "@timetoalign/tilie-core/numbers";
-import type { LineAxis } from "@timetoalign/tilie-layout";
+import type { Drawing, LineAxis } from "@timetoalign/tilie-layout";
+import { lineAxes, wedgeAt } from "@timetoalign/tilie-layout";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  affordancesOf,
   axesOf,
+  crossSectionSpec,
   FrameCoalescer,
+  flagParts,
+  flagPlace,
   lineAt,
   MeasureKnotsSource,
-  mapValueText,
+  namedPin,
+  placeText,
   readingAt,
-  timestampSpec,
+  rowValueText,
 } from "../src/coordinates.ts";
 import { drawingOf } from "../src/drawing.ts";
-import type { BlockNode } from "../src/project.ts";
+import type { BlockNode } from "../src/node.ts";
 import { project } from "../src/project.ts";
 import { NOTHING_SELECTED } from "../src/selection.ts";
-import { A, blockIn, changed, load, metrics, viewOf } from "./support.ts";
+import { A, blockIn, changed, load, MIXED, metrics, viewOf } from "./support.ts";
 
 const q = (numerator: number, denominator = 1) => Rational.of([numerator, denominator]);
 
@@ -30,16 +43,45 @@ const q = (numerator: number, denominator = 1) => Rational.of([numerator, denomi
 const viewWith = (fixture: string, scale?: number): View =>
   viewOf({ id: A, fixture, x: 40, y: 80, ...(scale === undefined ? {} : { scale }) });
 
-/** The drawn lines of block A, layout's record. */
-function axes(view: View): ReadonlyMap<string, LineAxis> {
-  return axesOf(drawingOf(blockIn(view, A), view.graphical, metrics));
+function drawingIn(view: View): Drawing {
+  return drawingOf(blockIn(view, A), view.graphical, metrics);
 }
 
-/** The line of timeline `id` in block A. */
-function axis(view: View, id: string): LineAxis {
-  const found = [...axes(view).values()].find((line) => line.timeline === id);
+/** The lines block A is read on (`axesOf`). */
+function axes(view: View): ReadonlyMap<string, LineAxis> {
+  return axesOf(drawingIn(view));
+}
+
+/** The key and the line of timeline `id` in block A. */
+function lineOf(view: View, id: string): [string, LineAxis] {
+  const found = [...axes(view)].find(([, line]) => line.timeline === id);
   if (found === undefined) throw new Error(`no line of ${id}`);
   return found;
+}
+
+const axis = (view: View, id: string): LineAxis => lineOf(view, id)[1];
+
+/** The spec read on the line of `id` in block A. */
+function specOf(view: View, id: string): CrossSectionSpec {
+  const block = blockIn(view, A);
+  return crossSectionSpec(
+    block.manifest,
+    A,
+    drawingIn(view),
+    lineOf(view, id)[0],
+    DEFAULT_GRANULARITY,
+  );
+}
+
+/** A spec's anchor and members as `[timeline, offset, length, map IDs]`, the anchor's offset 0. */
+function shape(spec: CrossSectionSpec) {
+  const { anchor, members } = spec;
+  return [{ ...anchor, offset: q(0) }, ...members].map(({ timeline, offset, length, maps }) => [
+    timeline,
+    offset,
+    length,
+    maps.map((map) => map.id),
+  ]);
 }
 
 /** `map` with a second map `tempo_2` (its `tempo` under another ID) added to `melody`. */
@@ -50,6 +92,17 @@ function twoSlots(): View {
     type: "add",
     into: inBlock(A, idAddress("melody")),
     map: { ...tempo, id: "tempo_2" },
+  });
+}
+
+/** `segment_line` with `b2_ticks` (`map`'s `ticks` under another ID) on `b`'s segment `b2`. */
+function segmentTicks(): View {
+  const ticks = load("map").timelines[0]?.children[0]?.conversion_maps[0];
+  if (ticks === undefined) throw new Error("map has changed");
+  return changed(viewWith("segment_line"), {
+    type: "add",
+    into: inBlock(A, idAddress("b2")),
+    map: { ...ticks, id: "b2_ticks" },
   });
 }
 
@@ -88,6 +141,28 @@ function readAt(
 const MELODY_START = 63.53662109375;
 const MELODY_END = 463.53662109375;
 
+/** `map` with the root `late` added to block A, of unknown length and without content. */
+const withLate = (): View =>
+  changed(viewWith("map"), {
+    type: "add",
+    into: { block: A },
+    timeline: { id: "late", unit: "quarters", number_type: "fraction", length: null },
+  });
+
+/** `view` with the `display` of the named timestamp `id` of block A emptied. */
+const undisplayed = (view: View, id: string): View =>
+  changed(view, {
+    type: "set",
+    changes: [{ target: inBlock(A, idAddress(id)), values: { display: [] } }],
+  });
+
+/** The key and the drawn line of timeline `id` in block A, whether or not it is read. */
+function drawnLine(view: View, id: string): [string, LineAxis] {
+  const found = [...lineAxes(drawingIn(view))].find(([, line]) => line.timeline === id);
+  if (found === undefined) throw new Error(`no drawn line of ${id}`);
+  return found;
+}
+
 describe("hovering", () => {
   const map = () => viewWith("map");
 
@@ -125,27 +200,160 @@ describe("hovering", () => {
     ).toEqual(expected);
   });
 
-  it("never hovers a line of unknown length", () => {
-    expect(hovered(viewWith("unknown_length"), 200, 37)).toBeNull();
+  it("hovers a line of unknown length over its drawn span, up to its reach", () => {
+    const view = viewWith("unknown_length");
+    const score = axis(view, "score");
+    expect([score.y, score.xStart, score.xEnd, score.length, score.drawnLength]).toEqual([
+      37,
+      53.798828125,
+      453.798828125,
+      null,
+      q(14),
+    ]);
+    expect(axis(view, "coda").xStart).toBe(339.5131138392857);
+    const reading = readAt(view, 353.798828125, 37);
+    expect([reading?.row, reading?.position]).toEqual([{ timeline: "score", map: null }, q(21, 2)]);
+    expect(
+      reading?.pin.timestamp.parts.map(({ timeline, position }) => [timeline, position]),
+    ).toEqual([
+      ["score", q(21, 2)],
+      ["coda", q(1, 2)],
+    ]);
+  });
+
+  it("never hovers a line whose drawn length is 0", () => {
+    const view = withLate();
+    const [, late] = drawnLine(view, "late");
+    expect([late.y, late.xStart, late.xEnd, late.length, late.drawnLength]).toEqual([
+      22.40234375,
+      63.53662109375,
+      463.53662109375,
+      null,
+      q(0),
+    ]);
+    expect([...axes(view).values()].some((line) => line.timeline === "late")).toBe(false);
+    expect(hovered(view, 263.53662109375, 22.40234375)).toBeNull();
+  });
+
+  it("never hovers an ancestor line", () => {
+    const view = viewWith(MIXED);
+    expect(axis(view, "excerpt")).toMatchObject({ y: 340.796875 });
+    expect([...axes(view).values()].some((line) => line.timeline === "recording")).toBe(false);
+    expect(hovered(view, 326.29150390625, 323.296875)).toBeNull();
   });
 });
 
-describe("the position", () => {
-  const at = MELODY_START + 123.75;
+describe("the cross-section", () => {
+  it("of a root holds its children with their maps", () => {
+    expect(shape(specOf(viewWith("map"), "melody"))).toEqual([
+      ["melody", q(0), q(8), ["tempo"]],
+      ["phrase", q(2), q(4), ["ticks"]],
+    ]);
+    const { anchor, members } = specOf(viewWith("map"), "melody");
+    expect([anchor.name, anchor.unit, anchor.numberType, members[0]?.name]).toEqual([
+      "Melody",
+      "quarters",
+      "fraction",
+      "Phrase",
+    ]);
+    expect(anchor.maps).toEqual(load("map").timelines[0]?.conversion_maps);
+  });
+
+  it("of a child holds no ancestor", () => {
+    expect(shape(specOf(viewWith("map"), "phrase"))).toEqual([["phrase", q(0), q(4), ["ticks"]]]);
+  });
+
+  it("holds every crossed line and every segment once, in traversal order", () => {
+    expect(shape(specOf(segmentTicks(), "form"))).toEqual([
+      ["form", q(0), q(32), []],
+      ["a", q(0), q(8), []],
+      ["a1", q(0), q(8), []],
+      ["b", q(8), q(12), []],
+      ["b1", q(8), q(6), []],
+      ["b2", q(14), q(6), ["b2_ticks"]],
+      ["c", q(20), q(12), []],
+      ["c1", q(20), q(12), []],
+    ]);
+  });
+
+  it("of a segment line names a segment's map by its segment", () => {
+    const view = segmentTicks();
+    const b = axis(view, "b");
+    expect([b.y, b.xStart, b.xEnd, b.maps]).toEqual([
+      36.4765625,
+      152.294921875,
+      302.294921875,
+      [{ id: "b2_ticks", owner: "b2", xs: 227.294921875, xe: 302.294921875, yc: 30.9765625 }],
+    ]);
+    expect(shape(specOf(view, "b"))).toEqual([
+      ["b", q(0), q(12), []],
+      ["b1", q(0), q(6), []],
+      ["b2", q(6), q(6), ["b2_ticks"]],
+    ]);
+    expect(readAt(view, 271.419921875, 30.9765625)?.row).toEqual({
+      timeline: "b2",
+      map: "b2_ticks",
+    });
+    expect(readAt(view, 271.419921875, 36.4765625)?.row).toEqual({ timeline: "b", map: null });
+  });
+});
+
+describe("the position, snapped on the hovered row", () => {
+  /** `bundle_mixed`'s `score` read at `p` = 3.13 with `h` = 0.004 (zoom 3.75), at the ordinate `y`. */
+  function onScore(y: number, granularity: Granularity = DEFAULT_GRANULARITY) {
+    const view = viewWith(MIXED);
+    const score = axis(view, "score");
+    expect([score.xStart, score.xEnd, score.y, score.maps.map((map) => map.yc)]).toEqual([
+      126.29150390625,
+      526.29150390625,
+      73.109375,
+      [67.609375, 62.609375],
+    ]);
+    return readAt(view, score.xStart + 3.13 / 0.03, y, { zoom: 3.75, granularity });
+  }
 
   it.each([
-    [{ zoom: 1, ratio: 1 }, DEFAULT_GRANULARITY, q(37, 15)],
-    [{ zoom: 2, ratio: 2 }, DEFAULT_GRANULARITY, q(52, 21)],
-    [{ zoom: 1, ratio: 1 }, { denominator: 5, decimals: 3 }, q(12, 5)],
-  ])("on a fraction line at %j with %j: %s", (view, granularity, position) => {
-    const reading = readAt(viewWith("map"), at, 40.5, { ...view, granularity });
-    expect(reading?.position).toEqual(position);
+    [73.109375, DEFAULT_GRANULARITY, { timeline: "score", map: null }, q(47, 15)],
+    [67.609375, DEFAULT_GRANULARITY, { timeline: "score", map: "cmap_1" }, q(751, 240)],
+    [62.609375, { denominator: 2520, decimals: 1 }, { timeline: "score", map: "cmap_2" }, q(16, 5)],
+    [62.609375, DEFAULT_GRANULARITY, { timeline: "score", map: "cmap_2" }, q(313, 100)],
+  ])("on bundle_mixed's score at y %d with %j: %j gives %s", (y, granularity, row, position) => {
+    const reading = onScore(y, granularity);
+    expect([reading?.row, reading?.position]).toEqual([row, position]);
     expect(reading?.pin.timestamp.parts[0]?.position).toEqual(position);
   });
 
-  it("holds the position to the line's ends", () => {
-    expect(readAt(viewWith("map"), MELODY_END + 4, 40.5)?.position).toEqual(q(8));
-    expect(readAt(viewWith("map"), MELODY_START - 4, 40.5)?.position).toEqual(q(0));
+  it("on a segment's map snaps its value and brings it back to the line", () => {
+    const view = segmentTicks();
+    const onLine = readAt(view, 271.419921875, 36.4765625);
+    const onMap = readAt(view, 271.419921875, 30.9765625);
+    expect([onLine?.position, onMap?.position]).toEqual([q(19, 2), q(457, 48)]);
+    expect(onMap?.pin.timestamp.parts).toEqual([
+      {
+        timeline: "b",
+        name: "B",
+        unit: "quarters",
+        numberType: "fraction",
+        position: q(457, 48),
+        maps: [],
+      },
+      {
+        timeline: "b2",
+        name: "b2",
+        unit: "quarters",
+        numberType: "fraction",
+        position: q(169, 48),
+        maps: [
+          {
+            id: "b2_ticks",
+            name: "Ticks",
+            targetUnit: "ticks",
+            value: { unit: "ticks", numberType: "int", value: 1690n },
+            missingKnots: null,
+          },
+        ],
+      },
+    ]);
   });
 
   it.each([
@@ -153,8 +361,8 @@ describe("the position", () => {
     [{ denominator: 2520, decimals: 1 }, q(3, 5), 0.6],
   ])("on a float line with %j", (granularity, position, read) => {
     const view = viewWith("conversion_maps__maps_seconds");
-    const start = axis(view, "maps:seconds").xStart;
-    const reading = readAt(view, start + 123.75, 22.5, { granularity });
+    const line = axis(view, "maps:seconds");
+    const reading = readAt(view, line.xStart + 123.75, line.y, { granularity });
     expect([reading?.position, reading?.pin.timestamp.parts[0]?.position]).toEqual([
       position,
       read,
@@ -163,136 +371,243 @@ describe("the position", () => {
 
   it("on an int line", () => {
     const view = viewWith("discrete_physical");
-    const reading = readAt(view, axis(view, "dpt_1").xStart + 123.75, 37);
+    const line = axis(view, "dpt_1");
+    const reading = readAt(view, line.xStart + 123.75, line.y);
     expect([reading?.position, reading?.pin.timestamp.parts[0]?.position]).toEqual([
       q(13600),
       13600n,
     ]);
   });
 
+  it("holds the position to the line's ends", () => {
+    expect(readAt(viewWith("map"), MELODY_END + 4, 40.5)?.position).toEqual(q(8));
+    expect(readAt(viewWith("map"), MELODY_START - 4, 40.5)?.position).toEqual(q(0));
+  });
+
   it("is held as an unnamed pin with the reading's spec, knots and timestamp", () => {
     const granularity = { denominator: 2520, decimals: 3 };
-    const reading = readAt(viewWith("map"), at, 40.5, { granularity });
+    const reading = readAt(viewWith("map"), MELODY_START + 200, 40.5, { granularity });
     expect([reading?.pin.named, reading?.pin.knots]).toEqual([null, "no_server"]);
     expect(reading?.pin.spec.granularity).toBe(granularity);
     expect(reading?.pin.timestamp.granularity).toBe(granularity);
+    expect(reading && placeText(reading.pin.timestamp)).toBe("Melody at 4 ♩");
   });
 });
 
-describe("what is read", () => {
-  /** `segment_line` with `b_tempo` on the segment line `b` and `b2_ticks` on its segment `b2`. */
-  function segmentMaps(): View {
-    const melody = load("map").timelines[0];
-    const tempo = melody?.conversion_maps[0];
-    const ticks = melody?.children[0]?.conversion_maps[0];
-    if (tempo === undefined || ticks === undefined) throw new Error("map has changed");
-    const into = (id: string) => inBlock(A, idAddress(id));
-    const view = changed(viewWith("segment_line"), {
+describe("a named timestamp's pin", () => {
+  /** `view` with a named timestamp "Mark" at `coordinate` on the timeline `into`. */
+  const stamped = (view: View, into: string, coordinate: unknown): View =>
+    changed(view, {
       type: "add",
-      into: into("b"),
-      map: { ...tempo, id: "b_tempo" },
+      into: inBlock(A, idAddress(into)),
+      timestamp: { name: "Mark", coordinate },
     });
-    return changed(view, { type: "add", into: into("b2"), map: { ...ticks, id: "b2_ticks" } });
-  }
-  const tempo = (value: number) => ({
-    id: "b_tempo",
-    name: "Tempo",
-    targetUnit: "seconds",
-    value: { unit: "seconds", numberType: "float", value },
-    missingKnots: null,
-  });
-  const part = (timeline: string, name: string, position: Rational, segment: boolean) => ({
-    timeline,
-    name,
-    unit: "quarters",
-    numberType: "fraction",
-    position,
-    segment,
+
+  const pinIn = (view: View, id: string) => {
+    const block = blockIn(view, A);
+    return namedPin(block.manifest, A, drawingIn(view), id, DEFAULT_GRANULARITY, "no_server");
+  };
+
+  const named = (view: View, id: string) =>
+    blockIn(view, A).manifest.graphical?.timestamps?.find((item) => item.id === id);
+
+  it("is read on its line's cross-section, as a click there reads it", () => {
+    const view = stamped(viewWith("map"), "melody", [4, 1]);
+    const pin = pinIn(view, "timestamp_3");
+    const spec = specOf(view, "melody");
+    expect(pin).toEqual({
+      spec,
+      knots: "no_server",
+      timestamp: timestampAt(spec, q(4), "no_server"),
+      named: named(view, "timestamp_3"),
+    });
+    expect(pin?.named).toBe(named(view, "timestamp_3"));
+    expect(pin?.timestamp.parts.map(({ timeline, position }) => [timeline, position])).toEqual([
+      ["melody", q(4)],
+      ["phrase", q(2)],
+    ]);
   });
 
-  it("on a segment line gives every segment, each with its own maps", () => {
-    const view = segmentMaps();
-    const reading = readAt(view, 223.294921875, 39.9765625);
-    expect(reading?.hit.map).toBeNull();
-    const spec = timestampSpec(
-      blockIn(view, A).manifest,
-      A,
-      { axis: axis(view, "b"), map: null },
-      DEFAULT_GRANULARITY,
-    );
-    expect(spec.line.maps.map((map) => map.id)).toEqual(["b_tempo"]);
-    expect(spec.line.length).toEqual(q(12));
-    expect(
-      spec.segments.map(({ timeline, offset, length, maps }) => [
-        timeline,
-        offset,
-        length,
-        maps.map((m) => m.id),
-      ]),
-    ).toEqual([
-      ["b1", q(0), q(6), []],
-      ["b2", q(6), q(6), ["b2_ticks"]],
-    ]);
-    expect(reading?.pin.timestamp).toEqual({
+  it("of a segment without a line is anchored on the segment, read on its segment line's line", () => {
+    const view = stamped(segmentTicks(), "b2", [1, 1]);
+    const pin = pinIn(view, "timestamp_3");
+    const b2 = blockIn(view, A).manifest.timelines[0]?.children[1]?.children[1];
+    expect(b2?.id).toBe("b2");
+    expect(pin?.spec).toEqual({
       block: A,
-      timeline: "b",
       granularity: DEFAULT_GRANULARITY,
-      parts: [
-        { ...part("b", "B", q(17, 3), false), maps: [tempo(17 / 6)] },
-        { ...part("b1", "b1", q(17, 3), true), maps: [] },
-      ],
-    });
-  });
-
-  it("on a segment's map reads that segment, also on the boundary it shares", () => {
-    const reading = readAt(segmentMaps(), 223.294921875, 29.4765625);
-    expect(reading?.hit.map?.id).toBe("b2_ticks");
-    expect(reading?.pin.timestamp.parts).toEqual([
-      { ...part("b", "B", q(6), false), maps: [tempo(3)] },
-      {
-        ...part("b2", "b2", q(0), true),
-        maps: [
-          {
-            id: "b2_ticks",
-            name: "Ticks",
-            targetUnit: "ticks",
-            value: { unit: "ticks", numberType: "int", value: 0n },
-            missingKnots: null,
-          },
-        ],
+      anchor: {
+        timeline: "b2",
+        name: "b2",
+        unit: "quarters",
+        numberType: "fraction",
+        length: q(6),
+        maps: b2?.conversion_maps,
       },
-    ]);
-  });
-
-  it("on a line without maps gives every segment to core, which reads the later one at a boundary", () => {
-    const view = segmentMaps();
-    const form = axis(view, "form");
-    const reading = readAt(view, 152.294921875, form.y);
+      members: [],
+    });
+    expect(pin?.spec).toEqual(
+      crossSectionSpec(
+        blockIn(view, A).manifest,
+        A,
+        drawingIn(view),
+        lineOf(view, "b")[0],
+        DEFAULT_GRANULARITY,
+        "b2",
+      ),
+    );
     expect(
-      reading?.pin.timestamp.parts.map(({ timeline, position }) => [timeline, position]),
-    ).toEqual([
-      ["form", q(8)],
-      ["b", q(0)],
+      pin?.timestamp.parts.map(({ timeline, position, maps }) => [
+        timeline,
+        position,
+        maps.map((map) => map.value),
+      ]),
+    ).toEqual([["b2", q(1), [{ unit: "ticks", numberType: "int", value: 480n }]]]);
+  });
+
+  it("of a line of unknown length is read on that line", () => {
+    const view = undisplayed(viewWith("unknown_length"), "timestamp_1");
+    const pin = pinIn(view, "timestamp_1");
+    expect(pin?.spec).toEqual(specOf(view, "score"));
+    expect(shape(specOf(view, "score"))).toEqual([
+      ["score", q(0), null, []],
+      ["coda", q(10), q(4), []],
+    ]);
+    expect(pin?.timestamp.parts.map(({ timeline, position }) => [timeline, position])).toEqual([
+      ["score", q(0)],
     ]);
   });
 
-  it("writes each value in its number type, a float to the granularity's places", () => {
-    const [b, b2] = readAt(segmentMaps(), 223.294921875, 29.4765625)?.pin.timestamp.parts ?? [];
-    const [tempoMap] =
-      readAt(segmentMaps(), 223.294921875, 39.9765625)?.pin.timestamp.parts[0]?.maps ?? [];
-    expect([b?.maps[0], b2?.maps[0], tempoMap].map((map) => map && mapValueText(map, 3))).toEqual([
-      { text: "3.0", unit: "s" },
-      { text: "0", unit: "ticks" },
-      { text: "2.833", unit: "s" },
+  it("of a zero-length line is read on that line, though nothing is hovered there", () => {
+    const view = undisplayed(withLate(), "timestamp_3");
+    const pin = pinIn(view, "timestamp_3");
+    expect(pin?.named?.timeline).toBe("late");
+    expect(pin?.spec).toEqual({
+      block: A,
+      granularity: DEFAULT_GRANULARITY,
+      anchor: {
+        timeline: "late",
+        name: "late",
+        unit: "quarters",
+        numberType: "fraction",
+        length: null,
+        maps: [],
+      },
+      members: [],
+    });
+    expect(pin?.timestamp.parts.map(({ timeline, position }) => [timeline, position])).toEqual([
+      ["late", q(0)],
     ]);
-    expect(tempoMap && mapValueText(tempoMap, 1)).toEqual({ text: "2.8", unit: "s" });
   });
 
-  it("a child reads its own maps only", () => {
-    const reading = readAt(viewWith("map"), 263.53662109375, 23);
-    expect(
-      reading?.pin.timestamp.parts.map(({ timeline, maps }) => [timeline, maps.map((m) => m.id)]),
-    ).toEqual([["phrase", ["ticks"]]]);
+  it("is read on its own axis with all its own maps where no line draws it", () => {
+    const hidden = changed(stamped(viewWith("map"), "melody", [4, 1]), {
+      type: "style",
+      select: { addresses: [{ id: "melody" }] },
+      set: { display: "none" },
+      blocks: [A],
+    });
+    expect(axes(hidden).size).toBe(0);
+    const melody = load("map").timelines[0];
+    const pin = pinIn(hidden, "timestamp_3");
+    expect(pin?.spec).toEqual({
+      block: A,
+      granularity: DEFAULT_GRANULARITY,
+      anchor: {
+        timeline: "melody",
+        name: "Melody",
+        unit: "quarters",
+        numberType: "fraction",
+        length: q(8),
+        maps: melody?.conversion_maps,
+      },
+      members: [],
+    });
+    expect(pin?.timestamp.parts.map(({ timeline, position }) => [timeline, position])).toEqual([
+      ["melody", q(4)],
+    ]);
+  });
+
+  it("is null for an ID the manifest does not hold", () => {
+    expect(pinIn(viewWith("map"), "timestamp_9")).toBeNull();
+  });
+});
+
+describe("the affordance of a named timestamp that draws nothing", () => {
+  const affordances = (view: View) => affordancesOf(blockIn(view, A).manifest, drawingIn(view));
+
+  /** The affordance of the named timestamp `id` on line `line` with its wedge at `x`. */
+  function expected(view: View, id: string, line: string, x: number) {
+    const wedge = wedgeAt(drawingIn(view), line, x);
+    if (wedge === null) throw new Error(`no wedge on ${line}`);
+    return { kind: "affordance", address: idAddress(id), line, points: wedge.points };
+  }
+
+  it("lies on a line of unknown length at the abscissa of its coordinate", () => {
+    const view = undisplayed(viewWith("unknown_length"), "timestamp_1");
+    const [line] = drawnLine(view, "score");
+    expect(affordances(view)).toEqual([expected(view, "timestamp_1", line, 53.798828125)]);
+  });
+
+  it("lies on a zero-length line at its start", () => {
+    const view = undisplayed(withLate(), "timestamp_3");
+    const [line] = drawnLine(view, "late");
+    expect(affordances(view)).toEqual([expected(view, "timestamp_3", line, 63.53662109375)]);
+  });
+
+  it("is computed once per drawing", () => {
+    const view = undisplayed(viewWith("unknown_length"), "timestamp_1");
+    const block = blockIn(view, A);
+    const drawing = drawingIn(view);
+    expect(affordancesOf(block.manifest, drawing)).toBe(affordancesOf(block.manifest, drawing));
+  });
+
+  it("is none for a timestamp that displays anything", () => {
+    expect(affordances(withLate())).toEqual([]);
+  });
+});
+
+describe("the flag", () => {
+  it("lists the rows part by part, values to the granularity's places", () => {
+    const reading = readAt(segmentTicks(), 271.419921875, 30.9765625);
+    if (reading === null) throw new Error("b2_ticks is not read there");
+    const parts = flagParts(reading.pin).map(({ timeline, name, rows }) => [
+      timeline,
+      name,
+      rows.map((row) => [row.row, row.label, rowValueText(row, 3)]),
+    ]);
+    expect(parts).toEqual([
+      ["b", "B", [[{ timeline: "b", map: null }, "B", { text: "9 25/48", unit: "♩" }]]],
+      [
+        "b2",
+        "b2",
+        [
+          [{ timeline: "b2", map: null }, "b2", { text: "3 25/48", unit: "♩" }],
+          [{ timeline: "b2", map: "b2_ticks" }, "Ticks", { text: "1 690", unit: "ticks" }],
+        ],
+      ],
+    ]);
+  });
+
+  it("writes a float to the granularity's places", () => {
+    const view = viewWith(MIXED);
+    const score = axis(view, "score");
+    const reading = readAt(view, score.xStart + 3.13 / 0.03, 62.609375, {
+      zoom: 3.75,
+      granularity: { denominator: 2520, decimals: 1 },
+    });
+    if (reading === null) throw new Error("cmap_2 is not read there");
+    const [, , seconds] = flagParts(reading.pin)[0]?.rows ?? [];
+    expect(seconds && rowValueText(seconds, 3)).toEqual({ text: "1.6", unit: "s" });
+  });
+
+  it.each([
+    [{ x: 100, y: 200, top: 150 }, 800, { x: 100, top: 128, bottom: 200 }, 100.5, 128, false],
+    [{ x: 700, y: 200, top: 150 }, 800, { x: 700, top: 128, bottom: 200 }, 519.5, 128, true],
+    [{ x: 619.5, y: 200, top: 150 }, 800, { x: 619.5, top: 128, bottom: 200 }, 620, 128, false],
+    [{ x: 100, y: 40, top: 10 }, 800, { x: 100, top: 0, bottom: 40 }, 100.5, 0, false],
+  ])("hangs at the pole at %j on a canvas %d wide", (at, width, pole, left, top, flipped) => {
+    expect(flagPlace(at, 180, width)).toEqual({ pole, left, top, flipped });
   });
 });
 
@@ -315,39 +630,31 @@ describe("measure maps", () => {
     expect(fetch).toHaveBeenCalledTimes(1);
   });
 
-  /** What the `MeasureRecordMap` `cmap_1` of `score` reads, with `knotsOf` when given. */
-  function measureView(
-    knotsOf?: (manifest: Manifest) => ReturnType<MeasureKnotsSource["knotsOf"]>,
-  ) {
+  /** The row of the `MeasureRecordMap` `cmap_1` of `score`, read with `knotsOf` when given. */
+  function measureRow(knotsOf?: (manifest: Manifest) => ReturnType<MeasureKnotsSource["knotsOf"]>) {
     const view = viewOf({ id: A, fixture: "groups/group_measure_map", x: 40, y: 80 });
     const score = axis(view, "score");
-    const [map] =
-      readingAt(nodes(view), canvasPoint(view, score.xStart + 10, score.y), {
-        zoom: 1,
-        ratio: 1,
-        granularity: DEFAULT_GRANULARITY,
-        knotsOf,
-      })?.pin.timestamp.parts[0]?.maps ?? [];
-    if (map === undefined) throw new Error("score reads its measure view");
-    return map;
+    const reading = readingAt(nodes(view), canvasPoint(view, score.xStart + 10, score.y), {
+      zoom: 1,
+      ratio: 1,
+      granularity: DEFAULT_GRANULARITY,
+      knotsOf,
+    });
+    const row = reading === null ? undefined : flagParts(reading.pin)[0]?.rows[1];
+    if (row === undefined) throw new Error("score reads its measure view");
+    return row;
   }
 
   it("leaves a measure view without a value until they are there, and says why", () => {
-    const map = measureView();
-    expect(map).toEqual({
-      id: "cmap_1",
-      name: null,
-      targetUnit: null,
-      value: null,
-      missingKnots: "no_server",
-    });
+    const row = measureRow();
+    expect([row.row, row.value]).toEqual([{ timeline: "score", map: "cmap_1" }, null]);
     expect(
       [
-        map,
-        measureView(() => "pending"),
-        measureView(() => "unsupported"),
-        measureView(() => "failed"),
-      ].map((item) => mapValueText(item, 3)),
+        row,
+        measureRow(() => "pending"),
+        measureRow(() => "unsupported"),
+        measureRow(() => "failed"),
+      ].map((item) => rowValueText(item, 3)),
     ).toEqual(
       [
         "needs a server to expand its measure map",

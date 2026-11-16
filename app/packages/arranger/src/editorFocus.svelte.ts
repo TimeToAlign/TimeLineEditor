@@ -10,7 +10,7 @@ import type { FontMetrics } from "@timetoalign/timetoshare";
 import { tick, untrack } from "svelte";
 import type { Viewport } from "./focus.ts";
 import { FOCUS_DURATION, focusViewport, targetBounds } from "./focus.ts";
-import type { BlockNode } from "./project.ts";
+import type { BlockNode } from "./node.ts";
 import { blockOf } from "./selection.ts";
 
 /** What the focus reads from the canvas and does through it. */
