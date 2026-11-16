@@ -481,8 +481,10 @@ order, each address once, compared by `addressKey`: a frame `{id: G}`, its
 title `{id: G, part: ["name"]}`, a card and its shadow
 `{id: T, part: ["card"]}`, a line `{id: T}`, the manifest's title
 `{part: ["name"]}`) equals the order of `docs/drawing.md` section 8.5
-applied to the fixture by hand, and the titles their texts. A part drawn twice, a member's
-line or an ancestor line in two frames, is marked selected in every copy.
+applied to the fixture by hand, and the titles their texts. A part drawn twice
+is marked selected in both copies: the start mark of `theme` in
+`ggrand0000`, a member drawn below its two ancestor lines `score` and
+`movement`, each of which marks its start (no line marks its own start).
 Delete removes a timeline with its subtree from its group (one `remove`
 of `{block, id: T}`) and a region added into `second-half` (`region_1`,
 removed as `{block, id: "region_1"}`), and refuses a selection holding the

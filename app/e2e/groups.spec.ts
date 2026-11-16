@@ -202,14 +202,15 @@ test.describe("a group workspace", () => {
   });
 
   test("selecting a part drawn twice marks both copies", async ({ page }) => {
-    const start = partAddress(line("second-half"), "start");
-    await expect(element(page, GROUPS.child, start)).toHaveCount(2);
-    const { x, y } = await partCentre(page, GROUPS.child, start);
+    // `theme`'s start is marked on both of its ancestor lines, `score` and `movement`.
+    const start = partAddress(line("theme"), "start");
+    await expect(element(page, GROUPS.grandchild, start)).toHaveCount(2);
+    const { x, y } = await partCentre(page, GROUPS.grandchild, start);
     await page.mouse.click(x, y);
-    expect(await selection(page)).toEqual([{ block: GROUPS.child, ...start }]);
+    expect(await selection(page)).toEqual([{ block: GROUPS.grandchild, ...start }]);
     expect(await marked(page, "selection")).toEqual([
-      markOf(GROUPS.child, start),
-      markOf(GROUPS.child, start),
+      markOf(GROUPS.grandchild, start),
+      markOf(GROUPS.grandchild, start),
     ]);
   });
 
