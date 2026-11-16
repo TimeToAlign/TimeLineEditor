@@ -1,0 +1,32 @@
+name: Install the app
+description: >
+  Set up pnpm and Node, build the schema package from a TimeToShare checkout
+  beside this repository, and install the locked app dependencies. Expects this
+  repository checked out into TimeLineEditor/.
+runs:
+  using: composite
+  steps:
+    # The app packages take @timetoalign/timetoshare from the sibling
+    # checkout's js/ until the schema version they need is released; main,
+    # since no lockfile records it.
+    - uses: actions/checkout@v7
+      with:
+        repository: TimeToAlign/TimeToShare
+        ref: main
+        path: TimeToShare
+    - uses: pnpm/action-setup@v6
+      with:
+        package_json_file: TimeLineEditor/app/package.json
+    - uses: actions/setup-node@v7
+      with:
+        node-version: 22
+        cache: pnpm
+        cache-dependency-path: |
+          TimeLineEditor/app/pnpm-lock.yaml
+          TimeToShare/js/pnpm-lock.yaml
+    - run: pnpm install --frozen-lockfile && pnpm build
+      shell: bash
+      working-directory: TimeToShare/js
+    - run: pnpm install --frozen-lockfile
+      shell: bash
+      working-directory: TimeLineEditor/app
