@@ -4,6 +4,7 @@
  */
 
 import { times } from "@timetoalign/tilie-layout";
+import { FONT_FILES } from "@timetoalign/timetoshare";
 import { type Descriptor, type PathCommand, type Point, toDescriptors } from "./descriptors.ts";
 import { formatNumber, type Placed, page } from "./page.ts";
 
@@ -11,9 +12,23 @@ import { formatNumber, type Placed, page } from "./page.ts";
 export interface TikzOptions {
   /** A complete LuaLaTeX document (default), or the `tikzpicture` environment alone. */
   readonly standalone?: boolean;
-  /** The directory holding `DejaVuSans.ttf`, `.` by default. */
+  /**
+   * The directory holding both font files, `.` by default. It is written
+   * verbatim into the document, so it must hold none of
+   * `~ \ " % # { }` (`UNWRITABLE_DIRECTORY`).
+   */
   readonly fontDirectory?: string;
 }
+
+/**
+ * The characters a font directory cannot hold: written verbatim into a Lua
+ * string in `\directlua` and into `fontspec`'s `Path=`, each would end the
+ * string, start a comment or a control sequence, or open or close a group.
+ */
+const UNWRITABLE_DIRECTORY = ["~", "\\", '"', "%", "#", "{", "}"] as const;
+
+/** The text font, DejaVu Sans, and the music font, Noto Music, its luaotfload fallback. */
+const [TEXT_FONT, MUSIC_FONT] = FONT_FILES;
 
 const SPECIAL: Readonly<Record<string, string>> = {
   "\\": "\\textbackslash{}",
@@ -46,7 +61,7 @@ function escapeTex(text: string): string {
 const colourName = (colour: string): string => `ts${colour.slice(1)}`;
 const isColour = (value: string): boolean => value.startsWith("#");
 
-/** `h(s)`, the line height of the drawing font at size `s`. */
+/** `h(s)`, the line height of the drawing's fonts at size `s`. */
 const lineHeight = (size: number): number => (2384 * size) / 2048;
 
 /** A `stroke-dasharray`, its numbers already written by the number rule, as a dash pattern. */
@@ -143,9 +158,20 @@ function command(descriptor: Descriptor, height: number): string {
   }
 }
 
-/** Write placed drawings as TikZ. */
+/**
+ * Write placed drawings as TikZ.
+ *
+ * @throws {Error} if `options.fontDirectory` holds a character the document
+ *   cannot carry (`~`, `\`, `"`, `%`, `#`, `{`, `}`), naming it.
+ */
 export function writeTikz(placed: readonly Placed[], options_: TikzOptions = {}): string {
   const { standalone = true, fontDirectory = "." } = options_;
+  const unwritable = UNWRITABLE_DIRECTORY.find((character) => fontDirectory.includes(character));
+  if (unwritable !== undefined) {
+    throw new Error(
+      `the font directory ${JSON.stringify(fontDirectory)} holds '${unwritable}', which a TikZ document cannot carry`,
+    );
+  }
   const sheet = page(placed);
   const scopes = sheet.drawings.map((item) => ({ item, descriptors: toDescriptors(item.drawing) }));
   const colours = new Set<string>();
@@ -174,7 +200,8 @@ export function writeTikz(placed: readonly Placed[], options_: TikzOptions = {})
     ? [
         "\\documentclass{standalone}",
         "\\usepackage{fontspec}",
-        `\\setsansfont{DejaVuSans.ttf}[Path=${fontDirectory}/,Kerning=Off,Ligatures={TeXOff,NoCommon}]`,
+        `\\directlua{luaotfload.add_fallback("music", {"[${fontDirectory}/${MUSIC_FONT}]:mode=node;"})}`,
+        `\\setsansfont{${TEXT_FONT}}[Path=${fontDirectory}/,Kerning=Off,Ligatures={TeXOff,NoCommon},RawFeature={fallback=music}]`,
         "\\usepackage{tikz}",
         "\\begin{document}",
         ...lines,

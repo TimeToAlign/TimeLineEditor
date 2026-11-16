@@ -577,13 +577,13 @@ describe("the flag", () => {
       rows.map((row) => [row.row, row.label, rowValueText(row, 3)]),
     ]);
     expect(parts).toEqual([
-      ["b", "B", [[{ timeline: "b", map: null }, "B", { text: "9 25/48", unit: "♩" }]]],
+      ["b", "B", [[{ timeline: "b", map: null }, "B", "9 25/48 ♩"]]],
       [
         "b2",
         "b2",
         [
-          [{ timeline: "b2", map: null }, "b2", { text: "3 25/48", unit: "♩" }],
-          [{ timeline: "b2", map: "b2_ticks" }, "Ticks", { text: "1 690", unit: "ticks" }],
+          [{ timeline: "b2", map: null }, "b2", "3 25/48 ♩"],
+          [{ timeline: "b2", map: "b2_ticks" }, "Ticks", "1 690 ticks"],
         ],
       ],
     ]);
@@ -598,7 +598,7 @@ describe("the flag", () => {
     });
     if (reading === null) throw new Error("cmap_2 is not read there");
     const [, , seconds] = flagParts(reading.pin)[0]?.rows ?? [];
-    expect(seconds && rowValueText(seconds, 3)).toEqual({ text: "1.6", unit: "s" });
+    expect(seconds && rowValueText(seconds, 3)).toBe("1.6″");
   });
 
   it.each([
@@ -655,14 +655,12 @@ describe("measure maps", () => {
         measureRow(() => "unsupported"),
         measureRow(() => "failed"),
       ].map((item) => rowValueText(item, 3)),
-    ).toEqual(
-      [
-        "needs a server to expand its measure map",
-        "waiting for the server",
-        "the server cannot expand measure maps",
-        "the server did not expand its measure map",
-      ].map((text) => ({ text, unit: null })),
-    );
+    ).toEqual([
+      "needs a server to expand its measure map",
+      "waiting for the server",
+      "the server cannot expand measure maps",
+      "the server did not expand its measure map",
+    ]);
   });
 
   it.each([

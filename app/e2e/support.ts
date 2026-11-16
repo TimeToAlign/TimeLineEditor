@@ -981,20 +981,25 @@ export function between(above: number, below: number): number {
   return (above + below) / 2;
 }
 
-/** The family the canvas declares for drawn text: the bundled DejaVu Sans. */
-export const DRAWING_FACE = "TiLiE DejaVu Sans";
+/**
+ * The families the canvas declares for drawn text, in fallback order: the
+ * bundled DejaVu Sans, then the bundled Noto Music for what DejaVu Sans does
+ * not map.
+ */
+export const DRAWING_FACES = ["TiLiE DejaVu Sans", "TiLiE Noto Music"] as const;
 
 /**
  * A text's width as the drawing defines it: the sum of its code points'
  * advances times the font size over the units per em (2048), kerning off.
- * The value is a dyadic fraction and exact as a double. A code point the
- * face lacks throws: the browser would draw it in another font.
+ * The value is a dyadic fraction and exact as a double. A code point
+ * neither bundled face draws throws: the browser would draw it in another
+ * font.
  */
 export function advanceWidth(text: string, size: number): number {
   let units = 0;
   for (const character of text) {
     const advance = FONT_METRICS.advances[String(character.codePointAt(0))];
-    if (advance === undefined) throw new Error(`the face has no glyph for ${character}`);
+    if (advance === undefined) throw new Error(`no bundled face has a glyph for ${character}`);
     units += advance;
   }
   return (units * size) / FONT_METRICS.units_per_em;
@@ -1013,17 +1018,18 @@ const ENGINE_WIDTH: Record<string, (width: number) => number> = {
 
 /**
  * The drawn texts whose laid-out width is not their width in the bundled
- * face. In Chromium and WebKit the expected width is derived by hand from
+ * faces. In Chromium and WebKit the expected width is derived by hand from
  * the advance table (`advanceWidth`, then the engine's rule above). Firefox's
  * stored width differs from the exact one by up to 6e-4 px by a rule no
  * rounding grid reproduces, so there the expected width is the same string
- * laid out afresh, after the face has loaded, in the same `<svg>` with the
- * same font size. Either way an empty list proves every text was laid out
- * with the bundled face, not with a fallback that stood in while it loaded.
+ * laid out afresh, after the faces have loaded, in the same `<svg>` with
+ * the same font size. Either way an empty list proves every text was laid
+ * out with the bundled faces, not with a fallback that stood in while they
+ * loaded.
  */
 export async function textsNotInFace(page: Page, browserName: string): Promise<string[]> {
-  const rows = await page.evaluate(async (family) => {
-    await document.fonts.load(`11px "${family}"`);
+  const rows = await page.evaluate(async (families) => {
+    await Promise.all(families.map((family) => document.fonts.load(`11px "${family}"`)));
     await document.fonts.ready;
     return [...document.querySelectorAll<SVGTextElement>(".svelte-flow__node text")].map((text) => {
       const size = Number.parseFloat(getComputedStyle(text).fontSize);
@@ -1047,7 +1053,7 @@ export async function textsNotInFace(page: Page, browserName: string): Promise<s
         relaid,
       };
     });
-  }, DRAWING_FACE);
+  }, DRAWING_FACES);
   const rule = ENGINE_WIDTH[browserName];
   return rows
     .filter((row) => {

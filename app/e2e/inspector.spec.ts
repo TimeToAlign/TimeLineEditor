@@ -429,14 +429,14 @@ test("the form follows a frame's Stretch live in the bundle editor", async ({ pa
   const length = frame.getByLabel("length", { exact: true });
   const width = frame.getByLabel("container width", { exact: true });
   await expect(length).toHaveValue("400");
-  await expect(width).toHaveValue("562.48");
+  await expect(width).toHaveValue("563.92");
   const entries = () => page.evaluate(() => window.__tilie.store().entries.length);
   await page.locator('[data-testid="mode-stretch"]').click();
   const grip = await page.locator('[data-testid="handle-right"]').boundingBox();
   if (grip === null) throw new Error("the right handle is not displayed");
   await dragStart(page, { x: grip.x + grip.width / 2, y: grip.y + grip.height / 2 }, 20, 0);
   await expect(length).toHaveValue("420");
-  await expect(width).toHaveValue("582.48");
+  await expect(width).toHaveValue("583.92");
   expect(await entries()).toBe(0);
   await page.mouse.up();
   await expect.poll(entries).toBe(1);
@@ -451,7 +451,7 @@ test("the form follows a frame's Stretch live in the bundle editor", async ({ pa
     annotations: { x: 8, y: 391.7734375 },
   });
   await expect(length).toHaveValue("420");
-  await expect(width).toHaveValue("582.48");
+  await expect(width).toHaveValue("583.92");
 });
 
 /** The text's form (the checkbox "Minimal") and whether it includes the styling. */

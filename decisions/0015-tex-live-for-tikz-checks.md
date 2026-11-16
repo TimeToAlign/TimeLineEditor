@@ -35,6 +35,12 @@ which runs the compile test of the writers with `TILIE_REQUIRE_LUALATEX=1`,
 so a missing `lualatex` fails it. On a machine without TeX the test is
 skipped with that reason; everywhere else it compiles every golden figure.
 
+**Superseded in part (2026-11-16).** The figures set their text in DejaVu
+Sans with Noto Music as a luaotfload fallback for what DejaVu Sans does not
+map (TimeToShare's decision 0012), both named by path in the font directory
+that the compile test fills with the files the schema package ships. No
+system font is read, so the job no longer installs `fonts-dejavu-core`.
+
 ## Maintenance and dependencies
 
 The packages are those of TeX Live 2023 as packaged by Debian and Ubuntu

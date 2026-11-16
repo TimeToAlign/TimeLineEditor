@@ -177,7 +177,7 @@ export function markersBand(scope: Scope, line: Entry, sources: readonly Entry[]
       const texts: Readonly<Record<TimestampLabel, string>> = {
         name: timestamp.name,
         id: timestamp.id,
-        coordinate: coordinateText(own, timeline.unit),
+        coordinate: coordinateText(own, timeline.number_type, timeline.unit),
       };
       const labels = !banded
         ? []

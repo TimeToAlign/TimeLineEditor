@@ -268,18 +268,27 @@ export function focus(): void {
 }
 
 /**
- * The canvas is mounted only once the bundled face has loaded: `draw`
- * measures text with its advance table, and Chromium keeps the layout of SVG
- * text drawn before a face arrives. Without a font loading API (jsdom) there
- * is nothing to wait for.
+ * The bundled faces the drawing's text is set in, as `canvas.css` declares
+ * them: DejaVu Sans, then Noto Music for what DejaVu Sans does not map.
  */
-const FACE = '16px "TiLiE DejaVu Sans"';
+const FACES = ["TiLiE DejaVu Sans", "TiLiE Noto Music"] as const;
+
+/**
+ * The canvas is mounted only once both bundled faces have loaded: `draw`
+ * measures text with their advance table, and Chromium keeps the layout of
+ * SVG text drawn before a face arrives. Without a font loading API (jsdom)
+ * there is nothing to wait for.
+ */
 const fontLoaded: Promise<void> | true =
   typeof document === "undefined" || !("fonts" in document)
     ? true
-    : document.fonts.load(FACE).then((faces) => {
-        if (faces.length === 0) throw new Error("the face is not declared");
-      });
+    : Promise.all(
+        FACES.map((family) =>
+          document.fonts.load(`16px "${family}"`).then((faces) => {
+            if (faces.length === 0) throw new Error(`the face "${family}" is not declared`);
+          }),
+        ),
+      ).then(() => undefined);
 
 // A newly opened workspace is fitted into view once the flow exists, and only then: an empty
 // one is not, since Svelte Flow would hold the fit until the first block appears.
@@ -591,7 +600,7 @@ function onkeydowncapture(event: KeyboardEvent) {
   {@attach shiftWheel((dx) => setViewport({ ...viewport, x: viewport.x + dx }))}
 >
   {#await fontLoaded}
-    <p class="tilie-font-state">Loading the font…</p>
+    <p class="tilie-font-state">Loading the fonts…</p>
   {:then}
     <SvelteFlow
       id={flowId}
@@ -659,7 +668,7 @@ function onkeydowncapture(event: KeyboardEvent) {
     </SvelteFlow>
   {:catch error}
     <p class="tilie-font-state" role="status">
-      The canvas cannot be shown: its font, DejaVu Sans, did not load ({error instanceof Error
+      The canvas cannot be shown: its fonts, DejaVu Sans and Noto Music, did not load ({error instanceof Error
         ? error.message
         : String(error)}).
     </p>

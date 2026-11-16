@@ -54,7 +54,6 @@ function isHovered(row: Row): boolean {
       <div class="tilie-coordinates-part" data-timeline={part.timeline}>
         <div class="tilie-coordinates-head">{part.name}</div>
         {#each part.rows as item (item.row.map)}
-          {@const value = rowValueText(item, decimals)}
           <div
             class="tilie-coordinates-row"
             data-map={item.row.map ?? undefined}
@@ -62,9 +61,7 @@ function isHovered(row: Row): boolean {
           >
             <span class="tilie-coordinates-name">{item.row.map === null ? "coordinate" : item.label}</span>
             <span class="tilie-coordinates-value" data-testid={item.row.map === null ? "coordinate" : undefined}
-              >{value.text}{#if value.unit !== null}<span class="tilie-coordinates-unit"
-                  >{value.unit}</span
-                >{/if}</span
+              >{rowValueText(item, decimals)}</span
             >
           </div>
         {/each}

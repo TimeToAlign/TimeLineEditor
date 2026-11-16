@@ -266,8 +266,8 @@ describe("group_parents_mixed: ancestors of three number types", () => {
       ["48 ♩", 49.15869140625],
     ]);
     expect(labels("take")).toEqual([
-      ["30.0 s", 141.11181640625],
-      ["55.5 s", 141.11181640625],
+      ["30″", 141.11181640625],
+      ["55.5″", 141.11181640625],
     ]);
     expect(labels("system")).toEqual([
       ["0 px", 236.56494140625],

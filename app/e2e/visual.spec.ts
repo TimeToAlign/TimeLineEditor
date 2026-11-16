@@ -8,7 +8,7 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import {
-  DRAWING_FACE,
+  DRAWING_FACES,
   frames,
   node,
   open,
@@ -20,21 +20,23 @@ import {
 
 test.use({ viewport: { width: 1600, height: 1000 } });
 
-/** The face the canvas declares for drawn text: the bundled DejaVu Sans. */
-const FACE = `12px "${DRAWING_FACE}"`;
+/** The faces the canvas declares for drawn text, at the size the shots load them. */
+const FACES = DRAWING_FACES.map((family) => `12px "${family}"`);
 
 /**
- * Wait until the drawing font is loaded and laid out: `document.fonts.load`
- * starts the load if no text has asked for the face yet (a bare
- * `document.fonts.ready` resolves early then), `check` confirms the face is
- * usable, and two frames let the text be laid out and painted with it.
+ * Wait until the drawing fonts are loaded and laid out: `document.fonts.load`
+ * starts each load if no text has asked for the face yet (a bare
+ * `document.fonts.ready` resolves early then), `check` confirms each face is
+ * usable, and two frames let the text be laid out and painted with them.
  */
 async function fontsSettled(page: Page): Promise<void> {
-  await page.evaluate(async (face) => {
-    await document.fonts.load(face, "Flow control ♩");
+  await page.evaluate(async (faces) => {
+    await Promise.all(faces.map((face) => document.fonts.load(face)));
     await document.fonts.ready;
-    if (!document.fonts.check(face, "Flow control ♩")) throw new Error(`${face} is not loaded`);
-  }, FACE);
+    for (const face of faces) {
+      if (!document.fonts.check(face)) throw new Error(`${face} is not loaded`);
+    }
+  }, FACES);
   await frames(page);
 }
 

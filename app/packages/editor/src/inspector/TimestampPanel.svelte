@@ -2,11 +2,12 @@
 /**
  * The Timestamp tab, three areas one below the other. **Coordinates**, a
  * bordered panel: a hint while no timestamp is shown, else the format
- * switch and the timestamp's values, in Pretty one group per timeline
- * crossed whose exact values can be edited and copied, else its text in
- * JSON, YAML or TOML with one Copy. **Properties**, a key/value grid: the
- * name (naming an unnamed timestamp stores it), what it displays, and
- * Delete; only the name while it is unnamed. **Coordinate granularity**, the
+ * switch and the timestamp's values, in Editor one group per timeline
+ * crossed whose exact values can be edited and copied (the value, the raw
+ * text with its unit written out, the pretty text), else its text in JSON,
+ * YAML or TOML with one Copy. **Properties**, a key/value grid: the name
+ * (naming an unnamed timestamp stores it), what it displays, and Delete;
+ * only the name while it is unnamed. **Coordinate granularity**, the
  * workspace's two settings on one line at the pane's bottom. An edit of an
  * unnamed timestamp moves its pin; every change of a named one is a
  * command. Every value, row, position and text is core's; the panel lays
@@ -21,7 +22,7 @@ import { informOf } from "../messages.svelte.ts";
 import FormatSwitch from "./FormatSwitch.svelte";
 import type { Format } from "./formats.svelte.ts";
 import { FORMAT_LABELS, FORMATS, isLoaded, loadCodec, writeText } from "./formats.svelte.ts";
-import type { ValueRow } from "./timestamp.ts";
+import type { Copies, ValueRow } from "./timestamp.ts";
 import {
   addedTimestamp,
   DISPLAY_WORDS,
@@ -53,10 +54,23 @@ const READ_ONLY = "This value cannot be solved for a position, so it cannot be e
 const EMPTY_NAME = "A named timestamp keeps a name; Delete removes it.";
 const UNNAMED =
   "Naming the timestamp stores it; then its display can be set and it can be deleted.";
+const NAME_PLACEHOLDER = "Type a name to keep it";
 
-type Shown = "pretty" | Format;
+/** The Copy columns: what each copies, its heading and its buttons' title, which their label extends with the row. */
+const COPY_COLUMNS: readonly {
+  readonly copies: keyof Copies;
+  readonly heading: string;
+  readonly label: string;
+}[] = [
+  { copies: "value", heading: "value", label: "Copy the value" },
+  { copies: "raw", heading: "value + unit", label: "Copy the value with its unit written out" },
+  { copies: "pretty", heading: "pretty", label: "Copy the value with symbols" },
+];
+
+/** What the Coordinates area shows: the values to edit, or the timestamp's text in a format. */
+type Shown = "editor" | Format;
 const SHOWN: readonly { readonly value: Shown; readonly label: string }[] = [
-  { value: "pretty", label: "Pretty" },
+  { value: "editor", label: "Editor" },
   ...FORMATS.map((value) => ({ value, label: FORMAT_LABELS[value] })),
 ];
 
@@ -137,14 +151,14 @@ function commitValue(row: ValueRow): void {
   else send(row.key, command);
 }
 
-let shown: Shown = $state("pretty");
+let shown: Shown = $state("editor");
 /** Why the chosen format's codec could not be loaded; `null` while nothing failed. */
 let loadFailure: string | null = $state(null);
 
 function choose(next: Shown): void {
   shown = next;
   loadFailure = null;
-  if (next === "pretty" || isLoaded(next)) return;
+  if (next === "editor" || isLoaded(next)) return;
   loadCodec(next).catch((error: unknown) => {
     if (shown === next) loadFailure = `Loading ${FORMAT_LABELS[next]} failed: ${String(error)}`;
   });
@@ -152,7 +166,7 @@ function choose(next: Shown): void {
 
 /** The timestamp as text in the chosen format, or why it cannot be written; `null` while its codec loads. */
 const text = $derived.by(() => {
-  if (pin === null || shown === "pretty" || !isLoaded(shown)) return null;
+  if (pin === null || shown === "editor" || !isLoaded(shown)) return null;
   const written = writeText(shown, timestampJson(pin));
   return written.ok
     ? { ok: true as const, text: written.value.text }
@@ -264,25 +278,27 @@ function leave(kind: Kind): void {
     {:else}
       <FormatSwitch options={SHOWN} bind:value={() => shown, choose} label="Timestamp format" />
 
-      {#if shown === "pretty"}
+      {#if shown === "editor"}
         <span class="visually-hidden" id="{uid}-read-only">{READ_ONLY}</span>
         <table>
           <thead>
             <tr>
               <th scope="col"><span class="visually-hidden">Label</span></th>
               <th scope="col"><span class="visually-hidden">Value</span></th>
-              <th scope="col" class="copy">value</th>
-              <th scope="col" class="copy">value + unit</th>
+              {#each COPY_COLUMNS as column (column.copies)}
+                <th scope="col" class="copy">{column.heading}</th>
+              {/each}
             </tr>
           </thead>
           {#each groups as group, g (group.timeline)}
             <tbody data-timeline={group.timeline}>
               <tr>
-                <th colspan="4" scope="colgroup">{group.name}</th>
+                <th colspan={2 + COPY_COLUMNS.length} scope="colgroup">{group.name}</th>
               </tr>
               {#each group.rows as row, r (row.key)}
                 {@const locked = row.numberType !== null && !row.editable}
                 {@const problem = `${uid}-${g}-${r}-problem`}
+                {@const named = `${row.label} of ${group.name}`}
                 <tr data-row={row.key}>
                   <th scope="row">{row.label}</th>
                   <td class="value" title={locked ? READ_ONLY : undefined}>
@@ -295,7 +311,7 @@ function leave(kind: Kind): void {
                         value={drafts[row.key] ?? row.text}
                         readonly={locked}
                         title={locked ? READ_ONLY : undefined}
-                        aria-label="{row.label} of {group.name}"
+                        aria-label={named}
                         aria-invalid={problems[row.key] !== undefined}
                         aria-describedby={locked ? `${problem} ${uid}-read-only` : problem}
                         oninput={(event) => draft(row.key, event.currentTarget.value)}
@@ -308,30 +324,20 @@ function leave(kind: Kind): void {
                       >{problems[row.key] ?? ""}</span
                     >
                   </td>
-                  <td class="copy">
-                    {#if row.copied !== null}
-                      {@const copied = row.copied}
-                      <button
-                        type="button"
-                        class="icon"
-                        aria-label="Copy the value"
-                        title="Copy the value"
-                        onclick={() => copy(copied, copied)}>{@render copyIcon()}</button
-                      >
-                    {/if}
-                  </td>
-                  <td class="copy">
-                    {#if row.copiedWithUnit !== null}
-                      {@const copied = row.copiedWithUnit}
-                      <button
-                        type="button"
-                        class="icon"
-                        aria-label="Copy the value with its unit"
-                        title="Copy the value with its unit"
-                        onclick={() => copy(copied, copied)}>{@render copyIcon()}</button
-                      >
-                    {/if}
-                  </td>
+                  {#each COPY_COLUMNS as column (column.copies)}
+                    {@const copied = row.copies?.[column.copies] ?? null}
+                    <td class="copy">
+                      {#if copied !== null}
+                        <button
+                          type="button"
+                          class="icon"
+                          aria-label="{column.label} of {named}"
+                          title={column.label}
+                          onclick={() => copy(copied, copied)}>{@render copyIcon()}</button
+                        >
+                      {/if}
+                    </td>
+                  {/each}
                 </tr>
               {/each}
             </tbody>
@@ -369,8 +375,10 @@ function leave(kind: Kind): void {
         <div class="field">
           <input
             id="{uid}-name"
+            class="name"
             type="text"
             size="16"
+            placeholder={unnamed ? NAME_PLACEHOLDER : undefined}
             value={drafts.name ?? pin.named?.name ?? ""}
             aria-invalid={problems.name !== undefined}
             aria-describedby={unnamed ? `${uid}-name-problem ${uid}-unnamed` : `${uid}-name-problem`}
@@ -555,9 +563,15 @@ function leave(kind: Kind): void {
     cursor: default;
   }
 
+  /*
+   * The editor's face, then the bundled Noto Music the canvas declares, so
+   * that a pretty unit no system face maps (the whole note) is drawn alike
+   * on every host.
+   */
   .unit {
     margin-left: 0.25rem;
     color: #595959;
+    font-family: system-ui, "TiLiE Noto Music", sans-serif;
   }
 
   .copy {
@@ -628,6 +642,11 @@ function leave(kind: Kind): void {
 
   .key {
     color: #595959;
+  }
+
+  /* The name's placeholder gives way as soon as the field is entered. */
+  .name:focus::placeholder {
+    color: transparent;
   }
 
   /* While unnamed, everything but the name is greyed: naming stores the timestamp. */

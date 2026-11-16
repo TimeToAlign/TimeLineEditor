@@ -6,7 +6,7 @@ TimeToShare manifest as TimeToShare's drawing specification defines it
 below: sections 1 to 6 for each timeline drawn as a root, section 8 for the
 block that holds them). The tests prove it from the specification, never from
 the code's own output: every expected number is derived by hand from the
-specification's formulas and the font's advance widths, and the arithmetic
+specification's formulas and the fonts' advance widths, and the arithmetic
 is written out below. The drawing fixtures of the schema package, byte-equal
 in the writers' tests, are the serialisation oracle; core is the oracle for
 manifest facts (element keys, ancestry, member drawings). Manifests are
@@ -18,8 +18,8 @@ non-corpus fixtures carries the named timestamps an editor gives a new
 root, `origin` at 0 and `length` at its length (none for an unknown
 length), each drawing its wedge and its coordinate label, and a manifest
 built through commands starts from a root that carries them too (`bare`'s,
-moved to the new root and its length); the corpus fixtures carry none. The font metrics are the schema
-package's. All comparisons are exact (`toBe`, `toEqual`); no tolerance
+moved to the new root and its length); the corpus fixtures carry none. The metrics table of the two fonts
+is the schema package's. All comparisons are exact (`toBe`, `toEqual`); no tolerance
 anywhere.
 
 "The default layers" means `[DEFAULT_LAYER]`, plus `manifestLayer` of the
@@ -79,8 +79,12 @@ of every list of fixtures.
 
 Hand-summed strings prove the width, ascent, descent and line-height
 formulas (`0 ♩` at 9 is 12.83203125, `h(9) = 10.4765625`, `h(11) =
-12.8046875`); an unmapped code point counts the fallback advance and is
-listed; a control character becomes a space. Font metrics that record every
+12.8046875`); the one table holds 6,467 advances, DejaVu Sans's and those
+of Noto Music for what DejaVu Sans does not map from U+0020 up, so the whole note `𝅝`
+(U+1D15D), which only Noto Music draws, measures its own advance (1053 at
+size 2048) and is not listed; a code point neither font maps (U+4E00,
+U+E000) counts the fallback advance and is listed; a control character
+becomes a space. Font metrics that record every
 read of the advance table prove that a text is read once whatever its
 sizes, and that cutting `AAAA` to width 20 at size 9 reads the text and the
 ellipsis once each and returns `A…` with the width measuring it gives,
@@ -596,23 +600,25 @@ level 2; `jump_from_3` `[172.97297297297297, 302.7027027027027]`, level 1;
 **Float axis.** `continuous_physical`: root `cpt_1`, seconds, `float`,
 length 12.5; children `cpt_2` at 0.5, length 4.25, and `cpt_3` at 6.0,
 length 3.0, both in child row 1. The row's joined name `cpt_2, cpt_3` (`A =
-12414`, `N = 66.6767578125`) is the widest; `0.0 s` (21.86279296875 wide)
-asks `16 + 10.931396484375`, so `x0 = 90.6767578125`, the root running to
+12414`, `N = 66.6767578125`) is the widest; `0″` (9.087890625 wide)
+asks `16 + 4.5439453125`, so `x0 = 90.6767578125`, the root running to
 490.6767578125. The proportions are binary64 quotients: `0.5 / 12.5` is the
 double nearest 0.04 and `400 ×` it rounds to 16, so `cpt_2` starts at
 106.6767578125; `4.75 / 12.5` is the double nearest 0.38 and `400 ×` it
 rounds to 152, so it ends at 242.6767578125. The coordinate labels of its
-`origin` and `length` show the floats as Python writes them: `0.0 s` and
-`12.5 s`.
+`origin` and `length` show the floats as Python writes them, seconds
+split: `0″` and `12.5″`.
 
 **Float labels** (section 5.2). A float is labelled as Python's `round(x,
 3)` rounds it (the exact double to the nearest thousandth, ties to even),
-then as `repr` spells the result. `continuous_physical` with its children
+then as `repr` spells the result, seconds split into minutes `′` and
+seconds `″` (core's pretty text at three places, its tests the oracle of
+the split). `continuous_physical` with its children
 removed and its root's length set by command (its `length` timestamp
-following the length), the coordinate label of `length` reads `312.49
-s` for 312.48979591836735, `6.0 s` for 6, `6.719 s` for 6.71875 (no tie:
-6718.75 thousandths), `0.062 s` for 0.0625 (a tie, 62.5 thousandths, to
-even) and `0.0 s` for 1e-05; `origin`'s reads `0.0 s`. The label
+following the length), the coordinate label of `length` reads
+`5′12.49″` for 312.48979591836735, `6″` for 6, `6.719″` for 6.71875 (no
+tie: 6718.75 thousandths), `0.062″` for 0.0625 (a tie, 62.5 thousandths,
+to even) and `0″` for 1e-05; `origin`'s reads `0″`. The label
 carries the exact coordinate, the length as given, whatever its text.
 
 **Band order.** `with_region` with the regions and children bands above
@@ -1010,11 +1016,13 @@ heights; and `W`, `H`, with what sets them:
   tip 458.5771484375; 49.37890625; 476.5771484375, 67.37890625, set by the
   shadow.
 - `group_child_member`: 24; `24 + 64.61962890625 + 8 + 24 =
-  120.61962890625`; 534.4140625 (`10.0 s`); 83.953125, 49.37890625;
-  558.4140625, 190.13671875, set by the frame.
+  120.61962890625`; 529.898681640625 (`second-half`'s end
+  mark `16 ♩` on `piece`'s line, 18.55810546875 wide; `recording`'s end
+  label `10″` reaches only 528.026611328125); 83.953125, 49.37890625;
+  553.898681640625, 190.13671875, set by the frame.
 - `group_parents_mixed`: 24; `24 + 57.0302734375 + 8 + 24 =
-  113.0302734375`; 544.08642578125 (`1323000 smp`); 83.953125, 87.453125,
-  83.953125, 49.4765625; 568.08642578125, 377.640625.
+  113.0302734375`; 546.947265625 (`1 323 000 smp`); 83.953125, 87.453125,
+  83.953125, 49.4765625; 570.947265625, 377.640625.
 - `group_grandchild`: 24; `24 + 55.70361328125 + 8 + 24 =
   111.70361328125`; 535.70361328125 (`score`'s outer chevron, `x0 + L +
   8w`); 117.9296875, 49.37890625; 559.70361328125, 224.11328125.
@@ -1034,9 +1042,9 @@ root `annotations`) is the case of every rule at once:
 
 - `n = 16`; `N = 70.29150390625` (`Performance`); `recording` runs on to
   the left, so `s0 = 16 + 70.29150390625 + 8 + 24 = 118.29150390625`.
-- `Mr = 28.193115234375`, half of `excerpt`'s end mark label `132300 smp`
-  (56.38623046875) past the shared end; every item has `Ri =
-  546.484619140625`, every member's card is 546.484619140625 wide.
+- `Mr = 29.62353515625`, half of `excerpt`'s end mark label `132 300 smp`
+  (59.2470703125) past the shared end; every item has `Ri =
+  547.9150390625`, every member's card is 547.9150390625 wide.
 - Heights: `score` 78.953125 (two maps, `y_root = 19.5`; its flow control
   band from 30.9765625, 20.4765625 wide), `performance` and `page`
   49.4765625, `excerpt` 87.453125, `annotations` 71.85546875 (its two
@@ -1045,7 +1053,7 @@ root `annotations`) is the case of every rule at once:
   `group_1` at 28.8046875, 169.234375 high, its cards at 53.609375 and
   140.5625; `group_2` at 206.0390625, 177.734375 high, its cards at
   230.84375 and 288.3203125; `annotations`' card at 391.7734375. Every line
-  runs from 126.29150390625 to 526.29150390625; `W = 580.484619140625`, `H
+  runs from 126.29150390625 to 526.29150390625; `W = 581.9150390625`, `H
   = 473.62890625`, both from `annotations`' card's shadow.
 - Element order: the block, the title, `group_1`, its title, `score`'s
   card, `score`'s maps `cmap_1` and `cmap_2`, its jump origin
@@ -1066,7 +1074,7 @@ root `annotations`) is the case of every rule at once:
   its holder null.
   The frames and `annotations`' card are the items and carry `item`, their
   place; every card carries `card`, its size in item coordinates (a
-  member's card `{546.484619140625, Hm}`), its `spacing` 4 and its request
+  member's card `{547.9150390625, Hm}`), its `spacing` 4 and its request
   `{}`, and its rectangle is its drawn one. Every band is held by the card
   whose member drawing draws its line, its holder that card's key, and its
   range is empty.
@@ -1149,7 +1157,7 @@ the order of the sums apart.
   `458.5771484375 × 49.37890625`, `[1, 8)`, its place `{8, 8, 400, 1, 4,
   458.5771484375, 49.37890625}` (as `{x, y, length, scale, spacing, width,
   height}`, the spacing a card's default 4) stated `{}`; the origin `(+0,
-  +0)`. `group_child_member`'s frame `{8, 8, 400, 1, 8, 542.4140625,
+  +0)`. `group_child_member`'s frame `{8, 8, 400, 1, 8, 537.898681640625,
   174.13671875}` (a frame's default spacing 8), `[1, 23)`. Stating
   the defaults (`{bare: {x: 8, y: 8, length: 400}}`) draws the same; only
   `stated` changes.
@@ -1162,28 +1170,28 @@ the order of the sums apart.
   their stated places; `group_2`'s request gives `Ri = 700 − K − Q = 684`,
   the frame exactly 700 wide; `annotations` at `L = 300`, its default `y`
   `max(28.8046875 + 169.234375, 200 + 177.734375) + 8 = 385.734375`, its
-  card `418.29150390625 + 28.193115234375 + 16 = 462.484619140625` wide;
+  card `418.29150390625 + 29.62353515625 + 16 = 463.9150390625` wide;
   origin `(38, 0)`, `Wb = (8 + 740) + 38 = 786`, `Hb = 467.58984375`. Every
   item's lines start at the block's one start, each at its own length.
 - **`bundle_ungrouped__places`** (`{score: {x: −60, y: −150, height:
-  120}}`; no frame, `s0 = 71.70361328125`, every card 507.896728515625
+  120}}`; no frame, `s0 = 71.70361328125`, every card 509.3271484375
   wide, `score` 84.4296875 high on its own and 120 by request): origin
   `(68, 178.8046875)`, the title pushed up with the block's top to `(8,
   18.21044921875)`, `score`'s card at `(8, 28.8046875)`, `W =
-  593.896728515625`, `H = 338.5390625`; the other items keep their default
+  595.3271484375`, `H = 338.5390625`; the other items keep their default
   places.
 - **A frame's own length and height request, a card's width request**
   (`bundle_mixed` at `{group_1: {length: 300, height: 200}, annotations:
   {width: 600}}`): `group_1`'s lines end at 426.29150390625, the frame `{8,
-  28.8046875, 462.484619140625, 200}`; `group_2` at 236.8046875;
+  28.8046875, 463.9150390625, 200}`; `group_2` at 236.8046875;
   `annotations`' card at 422.5390625, `Ri = 600 − K − Q = 584`, exactly 600
   wide (without the inset `Q` it would be 608); `W = 618`, `H =
   504.39453125`.
 - **A fractional origin: the shift is added last.** `bundle_ungrouped` at
   `{score: {x: −60.33, y: −150.33, height: 120}}`: origin `(68.33,
-  179.1346875)`, every card keeps 507.896728515625 (laid out from the
+  179.1346875)`, every card keeps 509.3271484375 (laid out from the
   shifted `x` it would be 507.89672851562506), `recording`'s line at
-  293.89250000000004, `Wb = 594.226728515625`, `Hb = 338.86906250000004`.
+  293.89250000000004, `Wb = 595.6571484375`, `Hb = 338.86906250000004`.
   `bundle_mixed` at `{group_1: {y: 10.11}, annotations: {x: 560, y:
   −40.1}}`: `Oy = 68.9046875`, `group_2`'s default `y` `(10.11 + 169.234375)
   + 8 = 187.344375` in place coordinates, drawn at 256.24906250000004
@@ -1200,11 +1208,11 @@ coordinates. `bundle_ungrouped`'s quantities are those of "Places".
 
 - **One layout.** `bundle_ungrouped` without `score`: `pages` takes the
   widest name and the margin from `recording`, its line from
-  79.70361328125, its card 507.896728515625 wide; `W = 525.896728515625`,
+  79.70361328125, its card 509.3271484375 wide; `W = 527.3271484375`,
   `H = 159.734375`. Two items of one length are equally wide wherever they
   lie (`{recording: {x: 100}}`: from 171.70361328125); a stated length
   keeps the shared name column (`{recording: {length: 200}}`: the card
-  307.896728515625 wide).
+  309.3271484375 wide).
 - **The title in its slot.** `{pages: {y: 20}}`: `Oy = 8.8046875`, the
   title's baseline 18.21044921875, the items at 20, 91.453125 and
   148.9296875 in place coordinates, `H = 252.1640625`.
@@ -1223,7 +1231,7 @@ coordinates. `bundle_ungrouped`'s quantities are those of "Places".
   frame `{8, 8, 666, 244.7578125}`, `W = 682`, `H = 260.7578125`; the
   cards' records, keyed `{item: group_1, member: second-half}` and `{item:
   group_1, member: recording}`, held by `{item: group_1}`: `second-half`
-  `{526.4140625, 83.953125}` `[3, 16)`, `recording` `{650, 120}` stated
+  `{521.898681640625, 83.953125}` `[3, 16)`, `recording` `{650, 120}` stated
   `{width: 650, height: 120}` `[16, 23)`. A member's entry (under its
   group's entry's `cards`, by member ID) is read for `width`, `height` and
   `spacing` alone: one also stating `x`, `y`, `length` and `scale` draws as
@@ -1466,7 +1474,7 @@ them: one root with its named timestamps `origin` and `length` (a wedge and
 a coordinate label each), 60 children with maps, regions, jump targets, flow
 markers and a jump origin, and a segment line of 40 segments. Every count comes from the inputs a
 draw is given, never from watching the code: each statement counts reads
-of its selector, the font the code points asked, the manifest listings of
+of its selector, the metrics table the code points asked, the manifest listings of
 its keys. The statement with no element, class or address is tested
 exactly `1,000 + 2 × 63 = 1,126` times: each key is resolved once, and
 each of the 63 lines (the root, its 60 children, the nested child and the
@@ -1474,6 +1482,6 @@ segment line, the keys of type `timeline` or `child`) resolves once each
 the wedge and the cross-section line of a position no named timestamp
 holds; three whose address,
 class or element no key has, 0 times; one per address the keys carry, the
-block's `{}` included, as often as core lists keys there. The font is read 203 times, the code points of the eleven distinct
+block's `{}` included, as often as core lists keys there. The metrics table is read 203 times, the code points of the eleven distinct
 texts as a multiset; the manifest's keys are listed 0 times, so a draw
 copies nothing. No count is a timing.

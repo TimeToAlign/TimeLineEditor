@@ -5,12 +5,20 @@
  */
 
 /*
- * The bundled DejaVu Sans 2.37, under a family name of its own, so a system
- * copy of DejaVu Sans, whose outlines may differ, never stands in for it.
+ * The bundled DejaVu Sans 2.37 and Noto Music 2.004, each under a family name
+ * of its own, so a system copy, whose outlines may differ, never stands in
+ * for either. Noto Music follows DejaVu Sans in the drawing's family list and
+ * draws what DejaVu Sans does not map, such as the whole note.
  */
 @font-face {
   font-family: "TiLiE DejaVu Sans";
   src: url("@timetoalign/timetoshare/fonts/DejaVuSans.ttf") format("truetype");
+  font-display: block;
+}
+
+@font-face {
+  font-family: "TiLiE Noto Music";
+  src: url("@timetoalign/timetoshare/fonts/NotoMusic-Regular.ttf") format("truetype");
   font-display: block;
 }
 
@@ -80,8 +88,8 @@
 
 .tilie-canvas .tilie-block svg {
   display: block;
-  /* biome-ignore lint/a11y/useGenericFontNames: the drawing is laid out with this face's advances alone; the canvas mounts only once it has loaded, and no other face may stand in. */
-  font-family: "TiLiE DejaVu Sans";
+  /* biome-ignore lint/a11y/useGenericFontNames: the drawing is laid out with these faces' advances alone; the canvas mounts only once both have loaded, and no other face may stand in. */
+  font-family: "TiLiE DejaVu Sans", "TiLiE Noto Music";
   overflow: visible;
   font-kerning: none;
   font-variant-ligatures: none;
@@ -257,6 +265,8 @@
   background: #fff;
   color: #12151a;
   box-shadow: 0 3px 10px rgb(10 15 25 / 18%);
+  /* The editor's face, then the bundled Noto Music for a pretty unit no system face maps (the whole note). */
+  font-family: system-ui, "TiLiE Noto Music", sans-serif;
   font-size: 12px;
   line-height: 1.35;
   font-variant-numeric: tabular-nums;
@@ -292,15 +302,9 @@
 }
 
 .tilie-canvas .tilie-coordinates-row .tilie-coordinates-name,
-.tilie-canvas .tilie-coordinates-unit,
 .tilie-canvas .tilie-coordinates-foot {
   color: #5b6372;
   font-weight: 400;
-}
-
-.tilie-canvas .tilie-coordinates-unit {
-  margin-left: 4px;
-  font-size: 11px;
 }
 
 .tilie-canvas .tilie-coordinates-foot {

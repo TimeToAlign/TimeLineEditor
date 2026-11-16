@@ -3253,55 +3253,102 @@ stated.
    axis → **100**).
 8. **Refusals.** A reach of 0 or −1 is a `RangeError`.
 
-## Displaying and copying a value (`display.test.ts`)
+## The texts of a coordinate (`display.test.ts`)
 
-`displayValue(value, numberType, decimals)` is the text the coordinate
-flag and the Timestamp tab show, `decimals` the granularity's;
-`copyValue` what Copy puts on the clipboard, `copyValueWithUnit` the same
-with its unit's symbol; `coordinateDict(value, unit, numberType)` the
-coordinate dict `{unit, number_type, value}` of the Timestamp tab's JSON;
-and `unitSymbol(unit)` the symbol every shown coordinate carries: the
-drawing's labels, the flag and the tab. The float expectations are what
-CPython 3 prints for `repr(round(x, decimals))` and `repr(x)`.
+A coordinate has two texts. The **raw** text (`rawText(value, numberType,
+unit)`) is the exact value and its unit's schema name spelled out; the
+**pretty** text (`prettyText(value, numberType, unit, decimals?)`) is
+written with symbols and abbreviations (`prettyUnit(unit)`), exact without
+`decimals` (the Timestamp tab's pretty Copy) and rounded with them (the
+coordinate flag at the granularity's `decimals`, the drawing's labels at
+3). `copyValue` is what Copy puts on the clipboard, `coordinateDict(value,
+unit, numberType)` the coordinate dict `{unit, number_type, value}` of the
+Timestamp tab's JSON. The oracles: a float expectation is what CPython 3
+prints for `repr(x)` or `repr(round(x, decimals))`; the seconds' split is
+the integer arithmetic of the exact value, `h = ⌊m / 3600⌋`, `min = ⌊(m
+mod 3600) / 60⌋`, the seconds the rest, `m` the magnitude, taken for a
+float from the decimal digits of its `repr`, never from float arithmetic
+(75.1, whose double lies below 75.1, must still give `15.1` seconds).
 
-1. **Fractions** show as a mixed fraction while the denominator is at most
-   2520 = lcm(1, …, 10), whatever `decimals` (219/16 → `13 11/16`,
-   −219/16 → `-13 11/16`, 1/2520 → `1/2520`, 2521/2520 → `1 1/2520`,
-   27/2048 → `27/2048`, 3 → `3`), else as their exact decimal when it
-   terminates (1/4096 → `0.000244140625`), else as `≈` and the decimal
-   rounded to 12 places, half to even (1/2521 → `≈ 0.000396667989`,
-   1/5040 → `≈ 0.000198412698`).
-2. **Floats** show Python's `round(x, decimals)` spelled as Python's
-   `repr`, for `decimals` 0, 3 and 6: 6.71875 → `7.0`, `6.719`,
-   `6.71875`; 312.48979591836735 → `312.0`, `312.49`, `312.489796`; 1e-05
-   → `0.0`, `0.0`, `1e-05`; 2.5 → `2.0` (a true tie, to even), `2.5`,
-   `2.5`; 6.0 → `6.0` at 3.
-3. **Ints** show their digits in groups of three separated by a space at
-   any `decimals` (514041 → `514 041` at 0 and at 6, −1234567 → `-1 234
-   567`, 0 → `0`).
-4. **Copy** carries the whole value: a fraction `n/d` (`219/16`) or its
+1. **Copy** carries the whole value: a fraction `n/d` (`219/16`) or its
    integer (`3`); a float the shortest text that reads back as the same
    double, as Python's `repr` spells it (0.1 → `0.1`, 1e-07 → `1e-07`,
    3.0 → `3.0`, 6.71875 → `6.71875`, 1e+16 → `1e+16`); an int its plain
-   digits (`514041`). **With the unit** it is that, a space and the
-   unit's symbol: 219/16 on quarters → `219/16 ♩`, 0.1 on seconds → `0.1
-   s`, 1e-07 on seconds → `1e-07 s`, 514041 on samples → `514041 smp`, 3
-   on whole notes → `3 whole_notes`.
-5. **Coordinate dicts** write the value as a manifest writes a bare value
+   digits (`514041`).
+2. **Raw text** is the copy text, a space and the unit's schema name, for
+   every unit: 219/16 → `219/16 number`, `219/16 floating_measures`,
+   `219/16 whole_notes`, `219/16 quarters`, `219/16 ticks`, `219/16
+   milliseconds`, `219/16 seconds`, `219/16 minutes`, `219/16 samples`,
+   `219/16 frames`, `219/16 pixels`, `219/16 meters`, `219/16
+   centimeters`, `219/16 millimeters`, `219/16 inches`, `219/16 points`;
+   and 0.1 on seconds → `0.1 seconds`, 3 on whole notes → `3
+   whole_notes`, 514041 on samples → `514041 samples`.
+3. **Pretty units** are the table the editor and the drawing share:
+   `number` → `number`, `floating_measures` → `floating_measures`,
+   `whole_notes` → `𝅝` (U+1D15D), `quarters` → `♩` (U+2669), `ticks` →
+   `ticks`, `milliseconds` → `ms`, `seconds` → `s`, `minutes` → `min`,
+   `samples` → `smp`, `frames` → `frames`, `pixels` → `px`, `meters` →
+   `m`, `centimeters` → `cm`, `millimeters` → `mm`, `inches` → `in`,
+   `points` → `pt`. The **pretty text** of 219/16 in every unit but
+   seconds is `13 11/16`, a space and that unit (`13 11/16 ♩`, `13 11/16
+   𝅝`, `13 11/16 ms`, …); in seconds it is `13 11/16″`; a value without a
+   unit (`null`) is its number alone (`13 11/16`).
+4. **Exact pretty numbers.** A fraction is mixed, its integer part shown
+   when not zero, whatever its denominator and never digit-grouped:
+   219/16 → `13 11/16`, −219/16 → `-13 11/16`, −3/8 → `-3/8`, 3 → `3`,
+   1/2521 → `1/2521`, 5043/2521 → `2 1/2521`, 1/4096 → `1/4096`, 123457/2
+   → `61728 1/2`. An int is grouped by three with single spaces: 514041 →
+   `514 041 smp`, −1234567 → `-1 234 567`, 1000 → `1 000`, 999 → `999`,
+   0 → `0`. A float is its full `repr`: 0.1 → `0.1`, 6.71875 → `6.71875`,
+   1e-07 → `1e-07`, 1e+16 → `1e+16`, the double of 0.1 + 0.2 →
+   `0.30000000000000004`.
+5. **Seconds, exact.** Hours `h` only when not 0; minutes `′` (U+2032)
+   when not 0 or after hours; seconds `″` (U+2033) always; a part after a
+   shown one padded to two digits; the seconds' decimals only when not
+   zero; no unit after. Floats: 42.5 → `42.5″`, 5.241 → `5.241″`, 75.5 →
+   `1′15.5″`, 3725.0 → `1h02′05″`, 3605.25 → `1h00′05.25″`, 60.0 →
+   `1′00″`, 0.0 → `0″`, −75.5 → `-1′15.5″`, 75.1 → `1′15.1″`, 0.1 + 0.2 →
+   `0.30000000000000004″`, 1e-05 → `0.00001″` (the `repr`'s digits
+   written out), 1e+16 → `2777777777777h46′40″` (10^16 = 2777777777777 ×
+   3600 + 2800, 2800 = 46 × 60 + 40). Fractions: 151/2 → `1′15 1/2″`,
+   121/2 → `1′00 1/2″` (the padded integer part is written even when 0),
+   1/2 → `1/2″`, 7201/2 → `1h00′00 1/2″`. Ints: 3725 → `1h02′05″`, 59 →
+   `59″`, −3600 → `-1h00′00″`.
+6. **Rounded.** With `decimals` a float is Python's `round(x, decimals)`
+   spelled as its `repr`, for `decimals` 0, 3 and 6: 6.71875 → `7.0`,
+   `6.719`, `6.71875`; 312.48979591836735 → `312.0`, `312.49`,
+   `312.489796`; 1e-05 → `0.0`, `0.0`, `1e-05`; 2.5 → `2.0` (a true tie,
+   to even), `2.5`, `2.5`; 6.0 → `6.0` at 3. A fraction is mixed while its
+   denominator is at most 2520 = lcm(1, …, 10), whatever `decimals`
+   (219/16 → `13 11/16`, 1/2520 → `1/2520`, 2521/2520 → `1 1/2520`,
+   27/2048 → `27/2048`), else its exact decimal where it terminates
+   (1/4096 → `0.000244140625`), else `≈` and the decimal rounded to 12
+   places, half to even (1/2521 → `≈ 0.000396667989`, 1/5040 → `≈
+   0.000198412698`, the denominator 2550 = 2 × 3 × 5² × 17: 1/2550 → `≈
+   0.000392156863`, −1/2550 → `≈ -0.000392156863`). An int is grouped at
+   any `decimals` (514041 → `514 041` at 0 and at 6). **Seconds are split
+   after rounding**: 59.9996 at 3 → round gives 60.0 → `1′00″`, 3599.9996
+   at 3 → `1h00′00″`, 3725.0004 at 3 → `1h02′05″`, 75.1 at 0 → `1′15″`;
+   151/2 at 3 → `1′15 1/2″`, 1/4096 → `0.000244140625″`, 153001/2550 (60 +
+   1/2550) → `≈ 1′00.000392156863″` (rounded to 60.000392156863 first,
+   then split).
+7. **Coordinate dicts** write the value as a manifest writes a bare value
    of its number type: 219/16 on quarters → `{unit: "quarters",
    number_type: "fraction", value: [219, 16]}`, 6.0 on seconds the
    integral float (`JsonFloat` 6), 514041 on samples the integer 514041.
-6. A value whose kind is not the number type's (a `bigint` displayed as a
-   float, a float copied as a fraction, a Fraction copied with a unit as
-   an int) is a `TypeError`.
-7. **An exact decimal** (`exactDecimal`), the one writer of a terminating
+8. A value whose kind is not the number type's (a `bigint` shown as a
+   float, a float copied as a fraction, a Fraction written raw as an int,
+   a Fraction in a coordinate dict of an int axis) is a `TypeError`.
+9. **No pretty text is signed zero.** A float −0.0 and a value that
+   rounds to zero are written unsigned: −0.0 → `0″` in seconds, `0.0 ♩`
+   in quarters, `0.0` without a unit; −0.0004 at 3 places → `0″` and
+   `0.0 ♩` (Python's `round(-0.0004, 3)` is −0.0); −1/(3 × 10^13), a
+   fraction of no terminating decimal, at 3 → `≈ 0.000000000000 ♩` (its
+   magnitude rounds to 0 at 12 places). Copy and the raw text keep the
+   float's `repr` exactly: −0.0 → `-0.0` and `-0.0 seconds`.
+10. **An exact decimal** (`exactDecimal`), the one writer of a terminating
    decimal: 1/200 → `0.005`, −3/8 → `-0.375`, 3 → `3`, 27/2048 →
    `0.01318359375`; 1/3 has none (`undefined`).
-8. **Unit symbols** are the table of TimeToShare's drawing specification
-   (section 5.2), the oracle: `quarters` → `♩` (U+2669), `seconds` → `s`,
-   `samples` → `smp`, `ticks` → `ticks`, `pixels` → `px`, and any other
-   unit its own name (`whole_notes` → `whole_notes`, `points` →
-   `points`).
 
 ## Reading a typed value (`parse.test.ts`)
 

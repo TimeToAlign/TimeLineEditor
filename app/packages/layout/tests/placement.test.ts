@@ -152,7 +152,7 @@ describe("float axis", () => {
     );
     expect(root).toMatchObject({ xs: 90.6767578125, xe: 490.6767578125 });
     expect(first).toMatchObject({ xs: 106.6767578125, xe: 242.6767578125 });
-    expect(labels.map((item) => item.text)).toEqual(["0.0 s", "12.5 s"]);
+    expect(labels.map((item) => item.text)).toEqual(["0″", "12.5″"]);
   });
 
   it("labels a float rounded to three places, carrying the exact coordinate", () => {
@@ -173,16 +173,16 @@ describe("float axis", () => {
         .map((item) => [item.text, item.coordinate?.value]);
     };
     expect(labelled(312.48979591836735)).toEqual([
-      ["0.0 s", 0],
-      ["312.49 s", 312.48979591836735],
+      ["0″", 0],
+      ["5′12.49″", 312.48979591836735],
     ]);
     expect(labelled(6)).toEqual([
-      ["0.0 s", 0],
-      ["6.0 s", 6],
+      ["0″", 0],
+      ["6″", 6],
     ]);
-    expect(labelled(6.71875)[1]).toEqual(["6.719 s", 6.71875]);
-    expect(labelled(0.0625)[1]).toEqual(["0.062 s", 0.0625]);
-    expect(labelled(1e-5)[1]).toEqual(["0.0 s", 1e-5]);
+    expect(labelled(6.71875)[1]).toEqual(["6.719″", 6.71875]);
+    expect(labelled(0.0625)[1]).toEqual(["0.062″", 0.0625]);
+    expect(labelled(1e-5)[1]).toEqual(["0″", 1e-5]);
   });
 });
 

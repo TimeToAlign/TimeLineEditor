@@ -197,7 +197,7 @@ describe("itemsMovedWith", () => {
     expect(movedWith([idAddress("recording")], FRAME_2)).toBeNull();
     // `annotations`' card drawn over `group_1`'s frame.
     const over = changed(view, itemMoveCommand(view, A, ANNOTATIONS, 8, 60, metrics));
-    const width = 562.484619140625;
+    const width = 563.9150390625;
     expect(placeOf(over, ANNOTATIONS)).toMatchObject({ x: 8, y: 60, width, height: 71.85546875 });
     expect(placeOf(over, FRAME_1)).toMatchObject({
       x: 8,
@@ -400,13 +400,13 @@ function one(key: PlaceKey, place: PlaceValues): PlaceChanges {
 describe("itemResizeValues, scale", () => {
   it.each([
     [view, "bottom-right", 40, 20, { scale: 1.2783203125 }],
-    [view, "top-left", -40, -20, { scale: 1.2783203125, x: -148.55078125, y: 371.7744140625 }],
+    [view, "top-left", -40, -20, { scale: 1.2783203125, x: -148.94921875, y: 371.7744140625 }],
     [view, "bottom-right", -1000, -1000, { scale: 0.125 }],
     [doubled(view), "bottom-right", 80, 40, { scale: 1.2783203125 }],
     [
       placed(view, A, "annotations", { scale: 2 }),
       "bottom-right",
-      -562.484619140625,
+      -563.9150390625,
       -71.85546875,
       { scale: null },
     ],
@@ -439,7 +439,7 @@ describe("itemResizeValues, box", () => {
     ["right", 20, 0, { width: 600 }],
     ["right", -20, 0, { width: null }],
     ["left", -21, 0, { width: 601, x: -13 }],
-    ["left", 100, 0, { width: null, x: 25.515625 }],
+    ["left", 100, 0, { width: null, x: 24.0849609375 }],
     ["bottom", 0, 10.5, { height: 188.234375 }],
     ["top", 0, -16, { height: 193.734375, y: 190.0390625 }],
   ] as const)("group_2 %s by (%d, %d)", (handle, dx, dy, expected) => {
@@ -468,7 +468,7 @@ describe("itemResizeValues, box", () => {
   it("sizes a member's own card, in item coordinates under its group's scale", () => {
     const scaled = placed(view, A, "group_1", { scale: 1.25 });
     expect(values(scaled, "arranger", PERFORMANCE, "box", "bottom-right", 50, 30)).toStrictEqual(
-      byPlace([PERFORMANCE, { width: 586.48486328125, height: 73.4765625 }]),
+      byPlace([PERFORMANCE, { width: 587.9150390625, height: 73.4765625 }]),
     );
     expect(values(scaled, "arranger", PERFORMANCE, "box", "right", -50, 0)).toStrictEqual(
       byPlace([PERFORMANCE, { width: null }]),
@@ -480,9 +480,9 @@ describe("itemResizeValues, box", () => {
 });
 
 /** Twice the content of every item of `bundle_mixed` at length 400, `2 W(400)`. */
-const TWICE_ITEM = 1124.96923828125;
+const TWICE_ITEM = 1127.830078125;
 /** Twice the content of every member's card of `bundle_mixed` at length 400, `2 Wc(400)`. */
-const TWICE_CARD = 1092.96923828125;
+const TWICE_CARD = 1095.830078125;
 /** Twice the height of `annotations`'s card at its default spacing, `2 Ha(4)`. */
 const TWICE_ANNOTATIONS = 143.7109375;
 /** Twice the height of `performance`'s card, `2 Hp`. */
@@ -505,8 +505,8 @@ describe("itemResizeValues, stretch", () => {
     [view, "bottom-right", 20, 20, { length: 420, spacing: 24 }],
     [view, "bottom", 0, -2, { spacing: 2 }],
     [view, "bottom", 0, -40, { spacing: 0 }],
-    [wide, "right", 40, 0, { length: 420, width: 1164.96923828125 }],
-    [wide, "left", -42, 0, { length: 421, width: 1166.96923828125, x: -34 }],
+    [wide, "right", 40, 0, { length: 420, width: 1167.830078125 }],
+    [wide, "left", -42, 0, { length: 421, width: 1169.830078125, x: -34 }],
     [tall, "bottom", 0, 40, { spacing: 24, height: 183.7109375 }],
   ] as const)("annotations, case %#", (of, handle, dx, dy, expected) => {
     expect(values(of, "bundle", ANNOTATIONS, "stretch", handle, dx, dy)).toStrictEqual(
@@ -553,14 +553,14 @@ describe("itemResizeValues, stretch", () => {
       16,
       byPlace([SCORE, { spacing: 12 }], [FRAME_1, { height: 370.46875 }]),
     ],
-    [framed, SCORE, "right", 30, 0, byPlace([FRAME_1, { length: 415, width: 1154.96923828125 }])],
+    [framed, SCORE, "right", 30, 0, byPlace([FRAME_1, { length: 415, width: 1157.830078125 }])],
     [
       wideCard,
       SCORE,
       "right",
       30,
       0,
-      byPlace([FRAME_1, { length: 430 }], [PERFORMANCE, { width: 1152.96923828125 }]),
+      byPlace([FRAME_1, { length: 430 }], [PERFORMANCE, { width: 1155.830078125 }]),
     ],
     [
       wideCard,
@@ -568,7 +568,7 @@ describe("itemResizeValues, stretch", () => {
       "right",
       60,
       0,
-      byPlace([FRAME_1, { length: 430 }], [PERFORMANCE, { width: 1152.96923828125 }]),
+      byPlace([FRAME_1, { length: 430 }], [PERFORMANCE, { width: 1155.830078125 }]),
     ],
   ] as const)(
     "stretches a member's group along time and its own card vertically, case %#",
@@ -648,7 +648,7 @@ describe("itemResizeValues, stretch", () => {
   it("writes a member's stretch as its changes in order, then the other items' positions", () => {
     expect(resizeOf(wideCard, "arranger", SCORE, "stretch", "right", 30, 0)?.changes).toEqual([
       { target: at("group_1"), values: { place: { length: 430 } } },
-      { target: at("group_1"), values: { cards: { performance: { width: 1152.96923828125 } } } },
+      { target: at("group_1"), values: { cards: { performance: { width: 1155.830078125 } } } },
       { target: at("group_2"), values: { place: DRAWN.group_2 } },
       { target: at("annotations"), values: { place: DRAWN.annotations } },
     ]);
@@ -720,7 +720,7 @@ describe("the shortening lock", () => {
 describe("itemResizeValues, the group editor's stretch", () => {
   const framed = placed(view, A, "group_1", { width: 600 });
   const wideCard = placed(view, A, "performance", { width: TWICE_CARD });
-  const PINNED = 562.48486328125;
+  const PINNED = 563.9150390625;
 
   it.each([
     [view, 20, { length: 420, width: null }],
@@ -748,13 +748,13 @@ describe("itemResizeValues, the group editor's stretch", () => {
   it.each([
     [
       20,
-      byPlace([FRAME_1, { length: 410, width: null }], [PERFORMANCE, { width: 1112.96923828125 }]),
+      byPlace([FRAME_1, { length: 410, width: null }], [PERFORMANCE, { width: 1115.830078125 }]),
     ],
     [
       -100,
       byPlace(
-        [FRAME_1, { length: 350, width: 1108.96923828125 }],
-        [PERFORMANCE, { width: 992.96923828125 }],
+        [FRAME_1, { length: 350, width: 1111.830078125 }],
+        [PERFORMANCE, { width: 995.830078125 }],
       ),
     ],
   ] as const)("keeps a card's stated width in proportion, case %#", (dx, expected) => {
@@ -806,7 +806,7 @@ describe("itemResizeValues, the group editor's stretch", () => {
 });
 
 describe("Stretch, its changes", () => {
-  const PINNED = 562.48486328125;
+  const PINNED = 563.9150390625;
   const framed = placed(view, A, "group_1", { width: 600 });
   const wideCard = placed(view, A, "performance", { width: TWICE_CARD });
   const wideAnnotations = placed(view, A, "annotations", { width: TWICE_ITEM });
@@ -827,7 +827,7 @@ describe("Stretch, its changes", () => {
       wideCard,
       "arranger",
       430,
-      byPlace([FRAME_1, { length: 430 }], [PERFORMANCE, { width: 1152.96923828125 }]),
+      byPlace([FRAME_1, { length: 430 }], [PERFORMANCE, { width: 1155.830078125 }]),
     ],
     [view, "group", 500, byPlace([FRAME_1, { length: 500, width: null }])],
     [view, "group", 300, byPlace([FRAME_1, { length: 300, width: PINNED }])],
@@ -838,15 +838,15 @@ describe("Stretch, its changes", () => {
       "group",
       350,
       byPlace(
-        [FRAME_1, { length: 350, width: 1108.96923828125 }],
-        [PERFORMANCE, { width: 992.96923828125 }],
+        [FRAME_1, { length: 350, width: 1111.830078125 }],
+        [PERFORMANCE, { width: 995.830078125 }],
       ),
     ],
     [
       wideCard,
       "group",
       500,
-      byPlace([FRAME_1, { length: 500, width: null }], [PERFORMANCE, { width: 1292.96923828125 }]),
+      byPlace([FRAME_1, { length: 500, width: null }], [PERFORMANCE, { width: 1295.830078125 }]),
     ],
   ] as const)(
     "a group's length from its frame or a member's card, case %#",
@@ -858,7 +858,7 @@ describe("Stretch, its changes", () => {
 
   it("an ungrouped card's length", () => {
     expect(stretchedTo(wideAnnotations, "bundle", ANNOTATIONS, "length", 420)).toStrictEqual(
-      byPlace([ANNOTATIONS, { length: 420, width: 1164.96923828125 }]),
+      byPlace([ANNOTATIONS, { length: 420, width: 1167.830078125 }]),
     );
   });
 
@@ -908,7 +908,7 @@ describe("itemResizeCommand", () => {
         ...others,
       ]);
     }
-    const members = { length: 400, width: 562.48486328125 };
+    const members = { length: 400, width: 563.9150390625 };
     expect(itemResizeCommand(view, A, one(FRAME_1, members), "group", metrics)?.changes).toEqual([
       { target: at("group_1"), values: { place: members } },
     ]);
@@ -919,7 +919,7 @@ describe("itemResizeCommand", () => {
   });
 
   it("sizes a member's card through its group, stating every other item's position but its frame's", () => {
-    const size = { width: 586.48486328125, height: 73.4765625 };
+    const size = { width: 587.9150390625, height: 73.4765625 };
     const command = itemResizeCommand(view, A, one(PERFORMANCE, size), "arranger", metrics);
     expect(command?.changes).toEqual([
       { target: at("group_1"), values: { cards: { performance: size } } },
@@ -978,7 +978,7 @@ describe("placeEdit", () => {
   });
 
   it("sets a held card's size through its group, named by its card or by its line", () => {
-    const width = 586.48486328125;
+    const width = 587.9150390625;
     const expected = [
       { target: at("group_1"), values: { cards: { performance: { width } } } },
       ...others,

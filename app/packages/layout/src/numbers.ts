@@ -7,8 +7,8 @@
 import {
   type AxisValue,
   type Manifest,
+  prettyText,
   type TimelineManifest,
-  unitSymbol,
 } from "@timetoalign/tilie-core";
 import { namedTimestamps } from "@timetoalign/tilie-core/drawing";
 import {
@@ -17,11 +17,10 @@ import {
   fromFloat,
   Rational,
   type Real,
-  roundFloat,
   toFloat,
 } from "@timetoalign/tilie-core/numbers";
 import type { NumberType, TimeUnit } from "@timetoalign/timetoshare";
-import { compactJson, isJsonFloat, JsonFloat } from "@timetoalign/timetoshare";
+import { isJsonFloat } from "@timetoalign/timetoshare";
 
 function integerValue(value: unknown): bigint {
   if (isJsonFloat(value)) return BigInt(value.value);
@@ -131,22 +130,20 @@ export function proportion(t: Real, length: Real): number {
   return a / b;
 }
 
-/**
- * The text of a value (section 5.2): `96`, `3/2`, `3` for 3/1; a float rounded
- * to three places as Python's `round(x, 3)` rounds it, then as Python's
- * `repr` spells the result (`312.49`, `6.0`, `0.0` for 1e-05).
- */
-function valueText(value: Real): string {
-  if (value instanceof Rational) return value.toString();
-  const rounded = roundFloat(value, 3);
-  return compactJson(
-    Number.isInteger(rounded) || Object.is(rounded, -0) ? new JsonFloat(rounded) : rounded,
-  );
-}
+/** The places a float label is rounded to (section 5.2). */
+const LABEL_DECIMALS = 3;
 
-/** A coordinate label: the value's text, a space and the unit's symbol. */
-export function coordinateText(value: Real, unit: TimeUnit): string {
-  return `${valueText(value)} ${unitSymbol(unit)}`;
+/**
+ * A coordinate label (section 5.2): the pretty text of a value on an axis of
+ * `numberType` and `unit`, rounded as a label is, to three places. An exact
+ * value is an int on an int axis where it is integral, else a fraction; a
+ * float value, a sum involving a float, is a float whatever the axis.
+ */
+export function coordinateText(value: Real, numberType: NumberType, unit: TimeUnit): string {
+  if (typeof value === "number") return prettyText(value, "float", unit, LABEL_DECIMALS);
+  return numberType === "int" && value.denominator === 1n
+    ? prettyText(value.numerator, "int", unit, LABEL_DECIMALS)
+    : prettyText(value, "fraction", unit, LABEL_DECIMALS);
 }
 
 /**

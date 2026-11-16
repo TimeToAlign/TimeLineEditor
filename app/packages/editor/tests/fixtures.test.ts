@@ -1,0 +1,78 @@
+/// <reference types="node" />
+import { readdirSync } from "node:fs";
+import { createRequire } from "node:module";
+import path from "node:path";
+import { isLoadError, readWorkspace } from "@timetoalign/tilie-core";
+import { SCHEMA_VERSION } from "@timetoalign/timetoshare";
+import { describe, expect, it } from "vitest";
+import { FIXTURES } from "../src/fixtures.ts";
+
+/** The installed schema package's `fixtures/` directory. */
+const ROOT = path.join(
+  path.dirname(createRequire(import.meta.url).resolve("@timetoalign/timetoshare/package.json")),
+  "fixtures",
+);
+/** The end-to-end workspaces. */
+const E2E = path.join(import.meta.dirname, "..", "..", "..", "e2e", "fixtures");
+
+/** Every `*.json` below `directory` outside `skipped`, as its path below it without `.json`. */
+function jsonBelow(directory: string, skipped: readonly string[] = []): string[] {
+  return readdirSync(directory, { recursive: true, encoding: "utf8" })
+    .map((file) => file.split(path.sep).join("/"))
+    .filter((file) => file.endsWith(".json") && !skipped.some((top) => file.startsWith(`${top}/`)))
+    .map((file) => file.slice(0, -".json".length));
+}
+
+/** The manifest fixtures of the version, the warning cases and the workspaces, labelled as the menu labels them. */
+const manifests = jsonBelow(path.join(ROOT, SCHEMA_VERSION), ["drawings"]);
+const warnings = jsonBelow(path.join(ROOT, "warnings", SCHEMA_VERSION)).map(
+  (name) => `warnings/${name}`,
+);
+const workspaces = readdirSync(E2E)
+  .filter((file) => file.endsWith(".tle.json"))
+  .map((file) => `e2e/${file.slice(0, -".tle.json".length)}`);
+
+const names = FIXTURES.map(({ name }) => name);
+
+describe("the fixture menu", () => {
+  it("lists every fixture once, under its path label, in code-unit order", () => {
+    expect([manifests.length, warnings.length, workspaces.length]).toEqual([140, 13, 5]);
+    expect(names).toEqual(
+      [...manifests, ...warnings, ...workspaces].sort((left, right) =>
+        left < right ? -1 : left > right ? 1 : 0,
+      ),
+    );
+    expect(new Set(names).size).toBe(158);
+    expect(names.slice(0, 5)).toEqual([
+      "bare",
+      "bare.minimal",
+      "bundles/bundle_free_ids",
+      "bundles/bundle_free_ids.minimal",
+      "bundles/bundle_mixed",
+    ]);
+    expect(names.slice(-5)).toEqual([
+      "warnings/several_depths",
+      "warnings/support_policy",
+      "warnings/timeline_class",
+      "with_region",
+      "with_region.minimal",
+    ]);
+    for (const name of ["bundles/corpus_tilia", "groups/corpus_tilia", "e2e/small"]) {
+      expect(names).toContain(name);
+    }
+    expect(names.filter((name) => /^(drawings|rejections)\//.test(name))).toEqual([]);
+  });
+});
+
+describe("a workspace the reader accepts is built of", () => {
+  const built = FIXTURES.filter(({ name }) => !name.startsWith("e2e/"));
+
+  it("every manifest fixture and warning case, one case each", () => {
+    expect(built.length).toBe(153);
+  });
+
+  it.each(built)("$name", async ({ text }) => {
+    const read = readWorkspace(await text());
+    expect(isLoadError(read) ? read.problems.map(({ code }) => code) : []).toEqual([]);
+  });
+});

@@ -65,7 +65,7 @@ describe("default places reproduce the stacked block", () => {
   it("group_child_member: one frame at (8, 8)", () => {
     const drawing = drawFixture("groups/group_child_member");
     expect(drawing.origin).toEqual({ x: 0, y: 0 });
-    const size = { width: 542.4140625, height: 174.13671875 };
+    const size = { width: 537.898681640625, height: 174.13671875 };
     expect(itemsOf(drawing)).toEqual([
       {
         kind: "frame",
@@ -152,7 +152,7 @@ describe("an item left of the padding, a width request and a length of its own",
         scale: 1,
         spacing: 8,
         margin: 0,
-        width: 562.484619140625,
+        width: 563.9150390625,
         height: 169.234375,
       },
       {
@@ -172,7 +172,7 @@ describe("an item left of the padding, a width request and a length of its own",
         scale: 1,
         spacing: 4,
         margin: 0,
-        width: 462.484619140625,
+        width: 463.9150390625,
         height: 71.85546875,
       },
     ]);
@@ -188,7 +188,7 @@ describe("an item left of the padding, a width request and a length of its own",
     expect(rect(drawing, at("group_1"))).toEqual({
       x: 46,
       y: 28.8046875,
-      width: 562.484619140625,
+      width: 563.9150390625,
       height: 169.234375,
     });
     expect(rect(drawing, at("group_2"))).toEqual({ x: 78, y: 200, width: 700, height: 177.734375 });
@@ -201,7 +201,7 @@ describe("an item left of the padding, a width request and a length of its own",
     expect(rect(drawing, at("annotations", "card"))).toEqual({
       x: 8,
       y: 385.734375,
-      width: 462.484619140625,
+      width: 463.9150390625,
       height: 71.85546875,
     });
   });
@@ -233,7 +233,7 @@ describe("an item left of and above the padding and a height request", () => {
   );
 
   it("grows the block left and up and moves the place origin", () => {
-    expect([drawing.width, drawing.height]).toEqual([593.896728515625, 338.5390625]);
+    expect([drawing.width, drawing.height]).toEqual([595.3271484375, 338.5390625]);
     expect(drawing.origin).toEqual({ x: 68, y: 178.8046875 });
   });
 
@@ -246,7 +246,7 @@ describe("an item left of and above the padding and a height request", () => {
         scale: 1,
         spacing: 4,
         margin: 0,
-        width: 507.896728515625,
+        width: 509.3271484375,
         height: 63.453125,
       },
       {
@@ -256,7 +256,7 @@ describe("an item left of and above the padding and a height request", () => {
         scale: 1,
         spacing: 4,
         margin: 0,
-        width: 507.896728515625,
+        width: 509.3271484375,
         height: 49.4765625,
       },
       {
@@ -266,7 +266,7 @@ describe("an item left of and above the padding and a height request", () => {
         scale: 1,
         spacing: 4,
         margin: 0,
-        width: 507.896728515625,
+        width: 509.3271484375,
         height: 120,
       },
     ]);
@@ -276,7 +276,7 @@ describe("an item left of and above the padding and a height request", () => {
     expect(rect(drawing, at("score", "card"))).toEqual({
       x: 8,
       y: 28.8046875,
-      width: 507.896728515625,
+      width: 509.3271484375,
       height: 120,
     });
     expect(line(drawing, "score")).toMatchObject({ xs: 79.70361328125, y: 43.3046875 });
@@ -286,14 +286,14 @@ describe("an item left of and above the padding and a height request", () => {
     expect(rect(drawing, at("pages", "card"))).toEqual({
       x: 76,
       y: 207.609375,
-      width: 507.896728515625,
+      width: 509.3271484375,
       height: 63.453125,
     });
     expect(line(drawing, "pages")).toMatchObject({ xs: 147.70361328125 });
     expect(rect(drawing, at("recording", "card"))).toEqual({
       x: 76,
       y: 279.0625,
-      width: 507.896728515625,
+      width: 509.3271484375,
       height: 49.4765625,
     });
     expect(line(drawing, "recording")).toMatchObject({ xs: 147.70361328125, y: 293.5625 });
@@ -325,13 +325,13 @@ describe("a frame's own length and height request, a card's width request", () =
     expect(rect(drawing, at("group_1"))).toEqual({
       x: 8,
       y: 28.8046875,
-      width: 462.484619140625,
+      width: 463.9150390625,
       height: 200,
     });
     expect(rect(drawing, at("score", "card"))).toEqual({
       x: 16,
       y: 53.609375,
-      width: 446.484619140625,
+      width: 447.9150390625,
       height: 78.953125,
     });
     expect(rect(drawing, at("performance", "card"))).toMatchObject({ y: 140.5625 });
@@ -341,7 +341,7 @@ describe("a frame's own length and height request, a card's width request", () =
     expect(rect(drawing, at("group_2"))).toEqual({
       x: 8,
       y: 236.8046875,
-      width: 562.484619140625,
+      width: 563.9150390625,
       height: 177.734375,
     });
     expect(rect(drawing, at("page", "card"))).toMatchObject({ y: 261.609375 });
@@ -375,7 +375,7 @@ describe("a frame's own length and height request, a card's width request", () =
         scale: 1,
         spacing: 8,
         margin: 0,
-        width: 462.484619140625,
+        width: 463.9150390625,
         height: 200,
       },
       {
@@ -385,7 +385,7 @@ describe("a frame's own length and height request, a card's width request", () =
         scale: 1,
         spacing: 8,
         margin: 0,
-        width: 562.484619140625,
+        width: 563.9150390625,
         height: 177.734375,
       },
       {
@@ -417,10 +417,10 @@ describe("a fractional place origin: the shift is added last", () => {
     expect(rect(drawing, at("pages", "card"))).toEqual({
       x: 76.33,
       y: 207.939375,
-      width: 507.896728515625,
+      width: 509.3271484375,
       height: 63.453125,
     });
-    expect(rect(drawing, at("recording", "card"))).toMatchObject({ width: 507.896728515625 });
+    expect(rect(drawing, at("recording", "card"))).toMatchObject({ width: 509.3271484375 });
     expect(line(drawing, "recording")).toMatchObject({ y: 293.89250000000004 });
     expect(itemsOf(drawing).map((box) => box.item?.place)).toEqual([
       {
@@ -430,7 +430,7 @@ describe("a fractional place origin: the shift is added last", () => {
         scale: 1,
         spacing: 4,
         margin: 0,
-        width: 507.896728515625,
+        width: 509.3271484375,
         height: 63.453125,
       },
       {
@@ -440,7 +440,7 @@ describe("a fractional place origin: the shift is added last", () => {
         scale: 1,
         spacing: 4,
         margin: 0,
-        width: 507.896728515625,
+        width: 509.3271484375,
         height: 49.4765625,
       },
       {
@@ -450,14 +450,14 @@ describe("a fractional place origin: the shift is added last", () => {
         scale: 1,
         spacing: 4,
         margin: 0,
-        width: 507.896728515625,
+        width: 509.3271484375,
         height: 120,
       },
     ]);
   });
 
   it("measures the block in place coordinates, less its left and top", () => {
-    expect([drawing.width, drawing.height]).toEqual([594.226728515625, 338.86906250000004]);
+    expect([drawing.width, drawing.height]).toEqual([595.6571484375, 338.86906250000004]);
   });
 
   it("sums a default top in place coordinates", () => {

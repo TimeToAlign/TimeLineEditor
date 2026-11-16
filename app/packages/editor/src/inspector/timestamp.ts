@@ -1,8 +1,9 @@
 /**
  * A pinned timestamp as the Timestamp tab shows, copies and edits it: its
  * rows grouped by the timeline they belong to, each number written exactly
- * (its copy text, never rounded) with its unit's symbol; the pin of a
- * named timestamp read anew from the view; and the commands the tab sends.
+ * (its copy text, never rounded) beside its pretty unit, and copied as the
+ * value, the raw text and the pretty text; the pin of a named timestamp
+ * read anew from the view; and the commands the tab sends.
  * Nothing here computes a value: the rows, the values, whether a row can be
  * edited, the position an edit gives and the JSON are core's, the pin of a
  * named timestamp the arranger's.
@@ -25,21 +26,35 @@ import type {
 } from "@timetoalign/tilie-core";
 import {
   copyValue,
-  copyValueWithUnit,
   measureText,
+  prettyText,
+  prettyUnit,
+  rawText,
   timestampRows,
-  unitSymbol,
 } from "@timetoalign/tilie-core";
 import { toAxisValue } from "@timetoalign/tilie-core/numbers";
 import type { FontMetrics, NumberType } from "@timetoalign/timetoshare";
 import { DEFAULTS, TIMESTAMP_DISPLAY } from "@timetoalign/timetoshare";
 
 /**
- * One value as the tab shows it: its label, its exact text and unit symbol,
- * what each Copy writes (`null`: no such Copy), and whether an edit of it
- * moves the timestamp. A number's `numberType` is the type its text is read
- * in; a text (a label, a measure, a missing value) has none and is never
- * edited.
+ * What the Copy buttons of one value write, `null` where there is no such
+ * Copy: the value (`copyValue`, a text as it is), the raw text with its unit
+ * written out (`rawText`; none without a unit) and the pretty text
+ * (`prettyText`, exact; none where it is the value's text, as a float
+ * without a unit is).
+ */
+export interface Copies {
+  readonly value: string;
+  readonly raw: string | null;
+  readonly pretty: string | null;
+}
+
+/**
+ * One value as the tab shows it: its label, its exact text and pretty unit,
+ * what its Copy buttons write (`null`: none, a missing value), and whether
+ * an edit of it moves the timestamp. A number's `numberType` is the type
+ * its text is read in; a text (a label, a measure, a missing value) has
+ * none and is never edited.
  */
 export interface ValueRow {
   /** Unique among the rows of one timestamp. */
@@ -50,8 +65,7 @@ export interface ValueRow {
   readonly text: string;
   readonly unit: string | null;
   readonly numberType: NumberType | null;
-  readonly copied: string | null;
-  readonly copiedWithUnit: string | null;
+  readonly copies: Copies | null;
   readonly editable: boolean;
 }
 
@@ -75,8 +89,7 @@ function textRow(key: string, row: Row, label: string, text: string, copied: boo
     text,
     unit: null,
     numberType: null,
-    copied: copied ? text : null,
-    copiedWithUnit: null,
+    copies: copied ? { value: text, raw: null, pretty: null } : null,
     editable: false,
   };
 }
@@ -97,16 +110,20 @@ function valueRows(
   }
   const { unit, numberType } = value;
   const text = copyValue(value.value, numberType);
+  const pretty = prettyText(value.value, numberType, unit);
   return [
     {
       key,
       row,
       label,
       text,
-      unit: unit === null ? null : unitSymbol(unit),
+      unit: unit === null ? null : prettyUnit(unit),
       numberType,
-      copied: text,
-      copiedWithUnit: unit === null ? null : copyValueWithUnit(value.value, numberType, unit),
+      copies: {
+        value: text,
+        raw: unit === null ? null : rawText(value.value, numberType, unit),
+        pretty: pretty === text ? null : pretty,
+      },
       editable,
     },
   ];

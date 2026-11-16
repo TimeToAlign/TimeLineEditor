@@ -11,8 +11,9 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { licenceFile, packageOf, RULE, SUBRULE } from "../notices.ts";
 import {
   ATTRIBUTIONS,
-  FONT_LICENCE,
+  MUSIC_FONT_LICENCE,
   NOTICES_FILE,
+  TEXT_FONT_LICENCE,
   TITLE_FONT_LICENCE,
 } from "../src/attributions.ts";
 import configOf from "../vite.config.ts";
@@ -21,6 +22,20 @@ const editor = path.join(import.meta.dirname, "..");
 /** The vendored title font and its licence. */
 const titleFont = path.join(editor, "fonts", "IBMPlexMono-Regular.woff2");
 const titleFontLicence = path.join(editor, "fonts", "LICENSE.txt");
+/** A licence file of the schema package's drawing fonts. */
+function schemaFontLicence(file: string): string {
+  return readFileSync(
+    createRequire(import.meta.url).resolve(`@timetoalign/timetoshare/fonts/${file}`),
+    "utf8",
+  );
+}
+/** The lines of a licence text that `start` matches at their start, trimmed. */
+function linesStarting(text: string, start: RegExp): string[] {
+  return text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => start.test(line));
+}
 let outDir: string;
 /** Each bundled npm package and the directory it was bundled from. */
 const bundled = new Map<string, string>();
@@ -92,7 +107,8 @@ describe("the attributions", () => {
     const others = ATTRIBUTIONS.filter((item) => !item.package);
     expect(others.map((entry) => [entry.name, entry.licence])).toEqual([
       ["Icons of the canvas controls, from @xyflow/svelte", "MIT"],
-      ["DejaVu Sans 2.37", FONT_LICENCE],
+      ["DejaVu Sans 2.37", TEXT_FONT_LICENCE],
+      ["Noto Music 2.004", MUSIC_FONT_LICENCE],
       ["IBM Plex Mono 2.5.0", TITLE_FONT_LICENCE],
     ]);
     const flowLicence = readFileSync(
@@ -101,21 +117,22 @@ describe("the attributions", () => {
     );
     expect(others[0]?.copyright.map((line) => flowLicence.includes(line))).toEqual([true]);
     expect(assets.filter((name) => /^DejaVuSans-.*\.ttf$/.test(name)).length).toBe(1);
-    const licence = readFileSync(
-      createRequire(import.meta.url).resolve("@timetoalign/timetoshare/fonts/LICENSE"),
-      "utf8",
-    );
+    expect(assets.filter((name) => /^NotoMusic-Regular-.*\.ttf$/.test(name)).length).toBe(1);
+    const licence = schemaFontLicence("DejaVuSans-LICENSE");
     expect(others[1]?.copyright.length).toBe(2);
     for (const line of others[1]?.copyright ?? []) {
       expect([line, licence.includes(line)]).toEqual([line, true]);
     }
+    // Noto Music's licence names its copyright holders on the lines starting "Copyright" and a
+    // year; the OFL's own text speaks of the "Copyright Holder".
+    const music = linesStarting(schemaFontLicence("NotoMusic-LICENSE"), /^Copyright \d/);
+    expect(others[2]?.copyright).toEqual(music);
+    expect(music).toEqual([
+      "Copyright 2022 The Noto Project Authors (https://github.com/notofonts/music)",
+    ]);
     // The title font's licence names its copyright holder on the lines starting "Copyright ©".
-    const titleLicence = readFileSync(titleFontLicence, "utf8");
-    const holders = titleLicence
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line.startsWith("Copyright ©"));
-    expect(others[2]?.copyright).toEqual(holders);
+    const holders = linesStarting(readFileSync(titleFontLicence, "utf8"), /^Copyright ©/);
+    expect(others[3]?.copyright).toEqual(holders);
     expect(holders).toEqual(['Copyright © 2017 IBM Corp. with Reserved Font Name "Plex"']);
   });
 
@@ -141,7 +158,7 @@ describe("the attributions", () => {
         expect(rule).toBe(SUBRULE);
         return { heading, licence, text: rest.join("\n") };
       });
-    const packageSections = sections.slice(0, -3);
+    const packageSections = sections.slice(0, -4);
     const expected = [...bundled.keys()].sort().map((name) => {
       const directory = bundled.get(name) as string;
       const manifest = JSON.parse(readFileSync(path.join(directory, "package.json"), "utf8")) as {
@@ -161,22 +178,25 @@ describe("the attributions", () => {
     const flowVersion = (
       JSON.parse(readFileSync(path.join(flow, "package.json"), "utf8")) as { version: string }
     ).version;
-    const font = readFileSync(
-      createRequire(import.meta.url).resolve("@timetoalign/timetoshare/fonts/LICENSE"),
-      "utf8",
-    );
+    const font = schemaFontLicence("DejaVuSans-LICENSE");
+    const music = schemaFontLicence("NotoMusic-LICENSE");
     const flowText = readFileSync(licenceFile(flow) as string, "utf8");
     const title = readFileSync(titleFontLicence, "utf8");
-    expect(sections.slice(-3)).toEqual([
+    expect(sections.slice(-4)).toEqual([
       {
         heading: `Icons of the canvas controls, copied from @xyflow/svelte ${flowVersion}`,
         licence: "License: MIT",
         text: flowText.endsWith("\n") ? `${flowText}\n` : `${flowText}\n\n`,
       },
       {
-        heading: "DejaVu Sans 2.37 (the bundled font, from @timetoalign/timetoshare)",
-        licence: `License: ${FONT_LICENCE}`,
+        heading: "DejaVu Sans 2.37 (the bundled text font, from @timetoalign/timetoshare)",
+        licence: `License: ${TEXT_FONT_LICENCE}`,
         text: font.endsWith("\n") ? `${font}\n` : `${font}\n\n`,
+      },
+      {
+        heading: "Noto Music 2.004 (the bundled music font, from @timetoalign/timetoshare)",
+        licence: `License: ${MUSIC_FONT_LICENCE}`,
+        text: music.endsWith("\n") ? `${music}\n` : `${music}\n\n`,
       },
       {
         heading: "IBM Plex Mono 2.5.0 (the bundled title font of the inspector)",

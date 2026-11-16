@@ -18,16 +18,16 @@ import type {
 } from "@timetoalign/tilie-core";
 import {
   copyValue,
-  copyValueWithUnit,
   createStore,
   isLoadError,
   parseAxisValue,
   pinAt,
   positionFor,
+  prettyText,
+  rawText,
   readWorkspace,
   timestampAt,
   timestampJson,
-  unitSymbol,
 } from "@timetoalign/tilie-core";
 import { Rational } from "@timetoalign/tilie-core/numbers";
 import type { TimeUnit } from "@timetoalign/timetoshare";
@@ -527,7 +527,7 @@ describe("pinning, in the drawer", () => {
   });
 });
 
-describe("coordinates, Pretty", () => {
+describe("coordinates, Editor", () => {
   it("group the rows by timeline, every number exact with its unit", () => {
     const store = mixed();
     const inspector = drawer(store, true);
@@ -549,7 +549,7 @@ describe("coordinates, Pretty", () => {
         "Score",
         [
           row("coordinate", "4", "♩"),
-          row("Bars", "1", unitSymbol("whole_notes")),
+          row("Bars", "1", "𝅝"),
           row("Tempo", "2.0", "s"),
           row("Ticks", "1920", "ticks"),
         ],
@@ -676,7 +676,7 @@ describe("copying", () => {
     return [...(found?.querySelectorAll<HTMLButtonElement>("button") ?? [])];
   }
 
-  it("writes core's copy texts, with and without the unit, and posts them as information", async () => {
+  it("writes the value, its raw and its pretty text, and posts each as information", async () => {
     const written = clipboard();
     const store = example();
     const inspector = drawer(store, true, T);
@@ -684,31 +684,50 @@ describe("copying", () => {
     expect([...panel().querySelectorAll("thead th.copy")].map((cell) => cell.textContent)).toEqual([
       "value",
       "value + unit",
+      "pretty",
     ]);
     expect(
       copies("Tempo").map((button) => [button.getAttribute("aria-label"), button.title]),
     ).toEqual([
-      ["Copy the value", "Copy the value"],
-      ["Copy the value with its unit", "Copy the value with its unit"],
+      ["Copy the value of Tempo of Score", "Copy the value"],
+      [
+        "Copy the value with its unit written out of Tempo of Score",
+        "Copy the value with its unit written out",
+      ],
+      ["Copy the value with symbols of Tempo of Score", "Copy the value with symbols"],
     ]);
     for (const button of copies("Tempo")) button.click();
-    await vi.waitFor(() => expect(informed).toHaveLength(2));
+    await vi.waitFor(() => expect(informed).toHaveLength(3));
     expect([written, informed]).toEqual([
-      [copyValue(2, "float"), copyValueWithUnit(2, "float", "seconds")],
-      ["Copied 2.0.", "Copied 2.0 s."],
+      [copyValue(2, "float"), rawText(2, "float", "seconds"), prettyText(2, "float", "seconds")],
+      ["Copied 2.0.", "Copied 2.0 seconds.", "Copied 2″."],
     ]);
-    expect(written).toEqual(["2.0", "2.0 s"]);
+    expect(written).toEqual(["2.0", "2.0 seconds", "2″"]);
   });
 
-  it("has no Copy with the unit for a number without one, and none for a missing value", () => {
+  it("shows only the Copies that write a text of their own, keeping the cells, and none for a missing value", async () => {
+    const written = clipboard();
     const store = mixed();
     const inspector = drawer(store, true);
     inspector.pinTimestamp(others(store));
     expect(
-      ["Tempo", "Both · seconds"].map((label) =>
+      ["Tempo", "Both · seconds", "Both · ticks"].map((label) =>
         copies(label).map((button) => button.getAttribute("aria-label")),
       ),
-    ).toEqual([[], ["Copy the value"]]);
+    ).toEqual([
+      [],
+      ["Copy the value of Both · seconds of Score"],
+      ["Copy the value of Both · ticks of Score"],
+    ]);
+    const cells = [...panel().querySelectorAll("tr[data-row]")].map(
+      (item) => item.querySelectorAll("td.copy").length,
+    );
+    expect(cells).toEqual([3, 3, 3, 3, 3]);
+    for (const label of ["Both · seconds", "Both · ticks"]) {
+      for (const button of copies(label)) button.click();
+    }
+    await vi.waitFor(() => expect(informed).toHaveLength(2));
+    expect(written).toEqual(["8.0", "7680"]);
   });
 });
 
@@ -737,7 +756,7 @@ describe("the format switch", () => {
     click("Manifest");
     expect(group("Manifest format")).toEqual([["JSON", "YAML", "TOML"], "JSON"]);
     inspector.selected([THEME]);
-    expect(group("Timestamp format")).toEqual([["Pretty", "JSON", "YAML", "TOML"], "Pretty"]);
+    expect(group("Timestamp format")).toEqual([["Editor", "JSON", "YAML", "TOML"], "Editor"]);
   });
 
   it("shows a named timestamp as JSON, then YAML once its codec is loaded, with one Copy", async () => {
@@ -796,11 +815,22 @@ describe("properties", () => {
     expect([
       nameField().value,
       nameField().disabled,
+      nameField().placeholder,
+      described(nameField()),
       toggles(),
       deleteButton()?.disabled,
       described(deleteButton() as Element),
       area?.classList.contains("unnamed"),
-    ]).toEqual(["", false, pressed(["Wedge", "Name", "Cross-section"], true), true, UNNAMED, true]);
+    ]).toEqual([
+      "",
+      false,
+      "Type a name to keep it",
+      UNNAMED,
+      pressed(["Wedge", "Name", "Cross-section"], true),
+      true,
+      UNNAMED,
+      true,
+    ]);
     const entries = store.journal.length;
     toggle("ID");
     deleteButton()?.click();
@@ -818,12 +848,14 @@ describe("properties", () => {
     });
     expect([
       nameField().value,
+      nameField().hasAttribute("placeholder"),
       toggles(),
       deleteButton()?.disabled,
       inspector.shownPin()?.named?.id,
       properties()?.classList.contains("unnamed"),
     ]).toEqual([
       "Upbeat",
+      false,
       pressed(["Wedge", "Name", "Cross-section"]),
       false,
       "timestamp_11",
@@ -835,7 +867,7 @@ describe("properties", () => {
     const store = example();
     const inspector = drawer(store, true, T);
     inspector.selected([THEME]);
-    expect(nameField().value).toBe("Theme");
+    expect([nameField().value, nameField().hasAttribute("placeholder")]).toEqual(["Theme", false]);
     const entries = store.journal.length;
     nameField().dispatchEvent(new Event("blur"));
     type(nameField(), "");

@@ -1,6 +1,7 @@
 /**
- * Text measured from the advance widths of the drawing font
- * (`docs/drawing.md` in TimeToShare, section 5.1).
+ * Text measured from the advance widths of the drawing's fonts, DejaVu Sans
+ * and its fallback Noto Music, read from one merged table (`docs/drawing.md`
+ * in TimeToShare, section 5.1).
  */
 
 import type { FontMetrics } from "@timetoalign/timetoshare";
@@ -17,7 +18,7 @@ export interface TextAdvances {
   readonly prefixes: readonly number[];
 }
 
-/** Measures texts with one font; collects the code points it measured with `fallback`. */
+/** Measures texts with one metrics table; collects the code points it measured with `fallback`. */
 export class TextMeasure {
   readonly metrics: FontMetrics;
   readonly unmapped = new Set<number>();

@@ -63,13 +63,13 @@ describe("one horizontal layout for the block", () => {
     ]);
     expect(line(drawing, "pages")).toMatchObject({ xs: 79.70361328125 });
     expect(line(drawing, "recording")).toMatchObject({ xs: 79.70361328125 });
-    expect(rect(drawing, at("pages", "card"))).toMatchObject({ width: 507.896728515625 });
-    expect(rect(drawing, at("recording", "card"))).toMatchObject({ width: 507.896728515625 });
+    expect(rect(drawing, at("pages", "card"))).toMatchObject({ width: 509.3271484375 });
+    expect(rect(drawing, at("recording", "card"))).toMatchObject({ width: 509.3271484375 });
     expect([
       element(drawing, at("pages", "name")),
       element(drawing, at("recording", "name")),
     ]).toMatchObject([{ x: 16 }, { x: 16 }]);
-    expect([drawing.width, drawing.height]).toEqual([525.896728515625, 159.734375]);
+    expect([drawing.width, drawing.height]).toEqual([527.3271484375, 159.734375]);
   });
 
   it("draws two items of one length equally wide wherever they lie", () => {
@@ -77,20 +77,20 @@ describe("one horizontal layout for the block", () => {
     expect(rect(drawing, at("recording", "card"))).toEqual({
       x: 100,
       y: 100.2578125,
-      width: 507.896728515625,
+      width: 509.3271484375,
       height: 49.4765625,
     });
     expect(rect(drawing, at("pages", "card"))).toEqual({
       x: 8,
       y: 28.8046875,
-      width: 507.896728515625,
+      width: 509.3271484375,
       height: 63.453125,
     });
     expect(line(drawing, "recording")).toMatchObject({
       xs: 171.70361328125,
       xe: 571.70361328125,
     });
-    expect(drawing.width).toBe(617.896728515625);
+    expect(drawing.width).toBe(619.3271484375);
   });
 
   it("keeps the shared name column for an item of its own length", () => {
@@ -100,8 +100,8 @@ describe("one horizontal layout for the block", () => {
       xe: 279.70361328125,
     });
     expect(element(drawing, at("recording", "name"))).toMatchObject({ x: 16 });
-    expect(rect(drawing, at("recording", "card"))).toMatchObject({ width: 307.896728515625 });
-    expect(rect(drawing, at("pages", "card"))).toMatchObject({ width: 507.896728515625 });
+    expect(rect(drawing, at("recording", "card"))).toMatchObject({ width: 309.3271484375 });
+    expect(rect(drawing, at("pages", "card"))).toMatchObject({ width: 509.3271484375 });
     expect(line(drawing, "pages")).toMatchObject({ xs: 79.70361328125, xe: 479.70361328125 });
   });
 });
@@ -162,14 +162,14 @@ describe("the scale of an item", () => {
     expect(rect(drawing, at("recording", "card"))).toEqual({
       x: 8,
       y: 100.2578125,
-      width: 761.8450927734375,
+      width: 763.99072265625,
       height: 74.21484375,
     });
     expect(itemsOf(drawing)[2]?.item?.place.y).toBe(182.47265625);
     expect(element(ungrouped({}), at("recording")).style["stroke-dasharray"]).toBe("3 3");
     expect(element(drawing, at("recording")).style["stroke-dasharray"]).toBe("4.5 4.5");
     expect(element(drawing, at("recording", "name")).style["font-size"]).toBe(16.5);
-    expect(drawing.width).toBe(780.8450927734375);
+    expect(drawing.width).toBe(782.99072265625);
     expect(itemsOf(drawing)[1]?.item?.place).toEqual({
       x: 8,
       y: 100.2578125,
@@ -177,7 +177,7 @@ describe("the scale of an item", () => {
       scale: 1.5,
       spacing: 4,
       margin: 0,
-      width: 507.896728515625,
+      width: 509.3271484375,
       height: 49.4765625,
     });
   });
@@ -197,7 +197,7 @@ describe("a member's card size", () => {
     expect(rect(drawing, at("second-half", "card"))).toEqual({
       x: 16,
       y: 32.8046875,
-      width: 526.4140625,
+      width: 521.898681640625,
       height: 83.953125,
     });
   });
@@ -216,7 +216,7 @@ describe("a member's card size", () => {
         key: { item: "group_1", member: "second-half" },
         group: { item: "group_1" },
         address: at("second-half", "card"),
-        size: { width: 526.4140625, height: 83.953125 },
+        size: { width: 521.898681640625, height: 83.953125 },
         spacing: 4,
         margin: 0,
         contentCount: 3,
@@ -277,7 +277,7 @@ describe("spacings, each its own container's", () => {
       expect(boxesOf(spaced, "card").map((box) => box.card)).toEqual(
         boxesOf(drawing, "card").map((box) => box.card),
       );
-      expect([spaced.width, spaced.height]).toEqual([525.896728515625, 284.1640625]);
+      expect([spaced.width, spaced.height]).toEqual([527.3271484375, 284.1640625]);
     });
 
     it("keeps a stated y and lies below the largest bottom edge before an item", () => {
@@ -299,7 +299,7 @@ describe("spacings, each its own container's", () => {
       expect(rect(drawing, at("score", "card"))).toEqual({
         x: 8,
         y: 157.734375,
-        width: 507.896728515625,
+        width: 509.3271484375,
         height: 92.4296875,
       });
       expect(line(drawing, "score")).toMatchObject({ y: 172.234375 });
@@ -307,7 +307,7 @@ describe("spacings, each its own container's", () => {
         y1: 217.6875,
         y2: 165.734375,
       });
-      expect([drawing.width, drawing.height]).toEqual([525.896728515625, 260.1640625]);
+      expect([drawing.width, drawing.height]).toEqual([527.3271484375, 260.1640625]);
     });
 
     it("leaves the other cards and the items' default tops as they are", () => {
@@ -326,7 +326,7 @@ describe("spacings, each its own container's", () => {
       expect(itemsOf(drawing)[2]).toMatchObject({
         key: { item: "score" },
         item: { stated: { spacing: 8 } },
-        card: { size: { width: 507.896728515625, height: 92.4296875 }, stated: {} },
+        card: { size: { width: 509.3271484375, height: 92.4296875 }, stated: {} },
       });
     });
   });
@@ -338,22 +338,22 @@ describe("spacings, each its own container's", () => {
       expect(rect(drawing, at("second-half", "card"))).toEqual({
         x: 16,
         y: 32.8046875,
-        width: 526.4140625,
+        width: 521.898681640625,
         height: 83.953125,
       });
       expect(rect(drawing, at("recording", "card"))).toEqual({
         x: 16,
         y: 132.7578125,
-        width: 526.4140625,
+        width: 521.898681640625,
         height: 49.37890625,
       });
       expect(rect(drawing, at("group_1"))).toEqual({
         x: 8,
         y: 8,
-        width: 542.4140625,
+        width: 537.898681640625,
         height: 182.13671875,
       });
-      expect([drawing.width, drawing.height]).toEqual([558.4140625, 198.13671875]);
+      expect([drawing.width, drawing.height]).toEqual([553.898681640625, 198.13671875]);
     });
 
     it("reports the frame's spacing, the cards' their own", () => {
@@ -372,7 +372,7 @@ describe("spacings, each its own container's", () => {
       expect(rect(drawing, at("second-half", "card"))).toEqual({
         x: 16,
         y: 32.8046875,
-        width: 526.4140625,
+        width: 521.898681640625,
         height: 88.453125,
       });
       expect(line(drawing, "second-half")).toMatchObject({ y: 86.28125 });
@@ -380,7 +380,7 @@ describe("spacings, each its own container's", () => {
       expect(rect(drawing, at("recording", "card"))).toEqual({
         x: 16,
         y: 129.2578125,
-        width: 526.4140625,
+        width: 521.898681640625,
         height: 49.37890625,
       });
       expect(rect(drawing, at("group_1"))).toMatchObject({ height: 178.63671875 });

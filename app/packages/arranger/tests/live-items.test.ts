@@ -124,7 +124,7 @@ describe("the live placement of a gesture inside a block", () => {
       scale: 1,
       spacing: 8,
       margin: 0,
-      width: 622.484619140625,
+      width: 623.9150390625,
       height: 169.234375,
     });
     for (const key of [{ item: "group_2" }, { item: "annotations" }]) {

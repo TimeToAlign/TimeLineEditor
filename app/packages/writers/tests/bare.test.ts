@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { writeSvg, writeTikz } from "../src/index.ts";
 import { bare } from "./support.ts";
 
-const SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="508.5771" height="99.3789" viewBox="0 0 508.5771 99.3789" font-family="DejaVu Sans" text-rendering="geometricPrecision" style="font-kerning:none;font-variant-ligatures:none">
+const SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="508.5771" height="99.3789" viewBox="0 0 508.5771 99.3789" font-family="DejaVu Sans, Noto Music" text-rendering="geometricPrecision" style="font-kerning:none;font-variant-ligatures:none">
 <g transform="translate(16 16)">
 <rect x="0" y="0" width="476.5771" height="67.3789" rx="10" fill="#F3F4F6"/>
 <rect data-id="bare" data-part="card" x="10" y="10" width="458.5771" height="49.3789" rx="5" fill="#B8BEC8"/>
@@ -23,7 +23,8 @@ const SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="508.5771" height="99
 
 const TIKZ = `\\documentclass{standalone}
 \\usepackage{fontspec}
-\\setsansfont{DejaVuSans.ttf}[Path=/fonts/,Kerning=Off,Ligatures={TeXOff,NoCommon}]
+\\directlua{luaotfload.add_fallback("music", {"[/fonts/NotoMusic-Regular.ttf]:mode=node;"})}
+\\setsansfont{DejaVuSans.ttf}[Path=/fonts/,Kerning=Off,Ligatures={TeXOff,NoCommon},RawFeature={fallback=music}]
 \\usepackage{tikz}
 \\begin{document}
 \\begin{tikzpicture}[x=1pt,y=1pt,miter limit=4,font=\\sffamily]
@@ -70,8 +71,9 @@ describe("bare", () => {
     expect(writeTikz(placed, { standalone: false, fontDirectory: "/fonts" })).toBe(
       `${picture.join("\n")}\n`,
     );
-    expect(writeTikz(placed).split("\n")[2]).toBe(
-      "\\setsansfont{DejaVuSans.ttf}[Path=./,Kerning=Off,Ligatures={TeXOff,NoCommon}]",
-    );
+    expect(writeTikz(placed).split("\n").slice(2, 4)).toEqual([
+      '\\directlua{luaotfload.add_fallback("music", {"[./NotoMusic-Regular.ttf]:mode=node;"})}',
+      "\\setsansfont{DejaVuSans.ttf}[Path=./,Kerning=Off,Ligatures={TeXOff,NoCommon},RawFeature={fallback=music}]",
+    ]);
   });
 });

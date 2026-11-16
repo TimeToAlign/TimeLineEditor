@@ -50,7 +50,7 @@ export function manifestFiles(directory: string, subdirectory = ""): string[] {
 /** The drawing fixtures of the installed schema version, one directory per review case. */
 export const drawingsDirectory = path.join(fixturesDirectory, "drawings");
 
-/** The installed package's `fonts/` directory, holding the drawing font `DejaVuSans.ttf`. */
+/** The installed package's `fonts/` directory, holding the drawing fonts, `FONT_FILES`. */
 export const fontDirectory = path.join(packageDir, "fonts");
 
 /** A manifest fixture by its path below `fixturesDirectory`, without `.json`. */

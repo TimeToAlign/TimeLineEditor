@@ -210,20 +210,25 @@ This test builds the production page with source maps, so it runs under
 `pnpm test:build`, outside `pnpm test`. The oracles are the source maps and
 each bundled package's own files: the attributions name exactly the npm
 packages found in the bundle, each with the licence of its `package.json`
-and every copyright line of its licence file; the icons and both fonts are
-backed by their licence files, the drawing font (DejaVu Sans) by the schema
-package's and the title font (IBM Plex Mono, vendored in `fonts/`) by its
-own, whose every copyright line the attribution gives; the build emits each
-font once as an asset, the title font byte-equal to the vendored file
-(SHA-256 `ba204497…b350`, 49,248 bytes); `THIRD_PARTY_NOTICES.txt` holds
-every full licence text in order, the two fonts last. No chunk reaches 500 kB, neither the YAML nor the
+and every copyright line of its licence file; the icons and the three fonts
+are backed by their licence files, the drawing's two fonts by the schema
+package's (DejaVu Sans by `fonts/DejaVuSans-LICENSE`, which holds both of
+its copyright lines; Noto Music, OFL-1.1, by `fonts/NotoMusic-LICENSE`,
+whose every copyright line, a line starting "Copyright" and a year, the
+attribution gives) and the title font (IBM
+Plex Mono, vendored in `fonts/`) by its own, whose every copyright line the
+attribution gives; the build emits each font once as an asset, the title
+font byte-equal to the vendored file (SHA-256 `ba204497…b350`, 49,248
+bytes); `THIRD_PARTY_NOTICES.txt` holds every full licence text in order,
+the icons and the three fonts last (DejaVu Sans, Noto Music, IBM Plex
+Mono). No chunk reaches 500 kB, neither the YAML nor the
 TOML codec is preloaded, and a fixture's generator string occurs in the
 shipped files exactly four times, once in each example of the Examples
 menu, while no shipped file holds "Fixture Generator", the fixture menu's
 `fixture-select` or the test hook's `__tilie`. The development server may read the app
 workspace and the resolved schema package.
 
-## The test hook (`hook.test.ts`)
+## The test hook and the fixture menu (`hook.test.ts`, `fixtures.test.ts`)
 
 `window.__tilie` exists in a test build and goes with the editor. At start
 it reports the empty workspace, no selection, `locked()` false and `mode()`
@@ -233,11 +238,27 @@ it reports the empty workspace, no selection, `locked()` false and `mode()`
 reader's problem codes and keeps the store. Its `open`,
 `done` and `cancel` drive the editing path as the store does, without the
 bar's question (`unknown_target` for an unknown target). The fixture menu
-offers every end-to-end workspace and every group and bundle fixture of the
-schema version but `corpus_*` and the minimal twins, sorted; a manifest
-fixture loads as one block `fixture000` at the origin, journalled once by
-"Fixture Generator", and Delete on the canvas removes a selected timeline
-of it as one `remove`.
+offers every fixture there is, and the test proves it against the files on
+disk rather than against a list kept beside the code: its options are
+exactly, each once, every `*.json` below the installed schema package's
+`fixtures/<SCHEMA_VERSION>/` outside `drawings/` (the top level, `groups/`
+and `bundles/`, `corpus_*` and the minimal twins included) labelled by its
+path below that directory without `.json` (`bare`, `bare.minimal`,
+`groups/corpus_tilia`, `bundles/corpus_tilia`), every warning case of
+`fixtures/warnings/<SCHEMA_VERSION>/` as `warnings/<name>`, and every
+end-to-end workspace as `e2e/<name>`; no label repeats and the list is in
+code-unit order. For the installed package that is 140 manifest fixtures,
+13 warning cases and 5 workspaces, 158 options, from `bare` to
+`with_region.minimal`; no option starts with `drawings/` or `rejections/`,
+which hold drawing inputs and outputs and refused manifests. Every
+manifest fixture and every warning case's `manifest` builds its menu
+workspace without throwing, a workspace the reader accepts, so each option
+loads (`fixtures.test.ts`, one case per fixture named by its label, so that
+a failure names the fixture and no case builds more than one workspace). A
+manifest fixture loads
+as one block `fixture000` at the origin, journalled once by "Fixture
+Generator", and Delete on the canvas removes a selected timeline of it as
+one `remove`.
 
 Its `bands` maps each band record of a block's drawing into client pixels
 through the drawing's `<svg>` rectangle: the rectangle's offset plus the
@@ -782,12 +803,13 @@ which no position solves).
    closed drawer on Timestamp showing it, `shownPin()` the arranger's
    `namedPin` of it; selecting anything else (the block) clears it and
    shows the tab chosen before; two addresses at once show nothing.
-3. **Coordinates, Pretty** (the default). One `tbody` per timeline crossed,
+3. **Coordinates, Editor** (the default). One `tbody` per timeline crossed,
    in core's order, headed by its name; its first row "coordinate", then one
    row per map labelled by its name, else its ID. A number is a text field
    holding its **exact** text (core's copy text, never rounded by
-   `decimals`: `cmap_2` `1.6`, `tempo` `2.0`), its unit's symbol beside it
-   (TimeToShare's drawing specification, section 5.2); a label, a measure or
+   `decimals`: `cmap_2` `1.6`, `tempo` `2.0`), its pretty unit beside it
+   (core's `prettyUnit`: `♩`, `ticks`, `s` for seconds, `𝅝` for whole
+   notes); a label, a measure or
    a missing value is text (`no value here`, `needs a server to expand its
    measure map`). A map with named outputs gives one row per output,
    "<label> · <output>", without a unit. Every coordinate and every invertible map's value
@@ -810,15 +832,24 @@ which no position solves).
    of `bundle_mixed`, refused by `positionFor`) keeps the draft, marks the
    field invalid and shows core's message beside it; Escape shows the
    stored value again, valid.
-5. **Copy.** Each number's row has two icon buttons, "Copy the value" and
-   "Copy the value with its unit" (also their titles), under the column
-   headings `value` and `value + unit`; they write core's `copyValue` and
-   `copyValueWithUnit` texts (Theme's `tempo`: `2.0` and `2.0 s`) and post
-   "Copied 2.0." and "Copied 2.0 s." to the message bar as information; a
-   value without a unit has no second button, a missing value neither.
+5. **Copy.** Three columns of icon buttons under the headings `value`,
+   `value + unit` and `pretty`, titled "Copy the value", "Copy the value
+   with its unit written out" and "Copy the value with symbols"; each
+   button's label is its title followed by the row's field label ("Copy
+   the value of tempo of Theme"), so no two rows' buttons share a label.
+   They write core's three texts of the value, its copy text, its raw text
+   and its exact pretty text (Theme's `tempo`, 2.0 seconds: `2.0`, `2.0
+   seconds`, `2″`), each button its own, and post "Copied 2.0.", "Copied
+   2.0 seconds." and "Copied 2″." to the message bar as information. A
+   button is shown only where it writes a text of its own: a number
+   without a unit (the CombinationMap's outputs `Both · seconds`, 8.0, and
+   `Both · ticks`, 7680) has neither a `value + unit` button nor a `pretty`
+   one, whose text would be the value's again, only the value's button,
+   writing `8.0` and `7680`; their cells stay, empty. A missing value has
+   none.
 6. **The format switch** is one component in both tabs: a radio group of
    segments, "Manifest format" with JSON, YAML, TOML and "Timestamp
-   format" with Pretty, JSON, YAML, TOML. JSON, YAML and TOML show core's
+   format" with Editor, JSON, YAML, TOML, Editor chosen first. JSON, YAML and TOML show core's
    `timestampJson` of the pin through the Manifest tab's codecs: the JSON
    text is the standard writer's (`dumps`) of that value (for Theme its
    manifest entry and `mapping`); YAML and TOML read "Loading …" until their
@@ -830,7 +861,9 @@ which no position solves).
    field labelled by it), "Display" (a group of five toggle buttons Wedge,
    Name, ID, Coordinate, Cross-section, in that order, each `aria-pressed`
    by whether its word is in the timestamp's `display`), and Delete.
-   - *Unnamed.* The name field is empty and enabled; the toggles show the
+   - *Unnamed.* The name field is empty and enabled, with the placeholder
+     "Type a name to keep it" (hidden by the panel's style while the field
+     has focus) and still described by the hint below; the toggles show the
      default (Wedge, Name, Cross-section pressed) and, with Delete, are
      disabled and greyed, each described by the hint "Naming the timestamp
      stores it; then its display can be set and it can be deleted."; a
@@ -841,7 +874,7 @@ which no position solves).
      smallest free ID): Name "Upbeat", the toggles and Delete enabled,
      `shownPin().named.id` `timestamp_11`. An emptied name journals
      nothing.
-   - *Named.* Theme shows Name "Theme"; "Subject" and Enter journals
+   - *Named.* Theme shows Name "Theme" and no placeholder; "Subject" and Enter journals
      `{type: "set", changes: [{target: {block: "timestamps", id:
      "timestamp_5"}, values: {name: "Subject"}}]}`; an emptied name and
      Enter journals nothing, shows "Theme" again and, at the field, "A

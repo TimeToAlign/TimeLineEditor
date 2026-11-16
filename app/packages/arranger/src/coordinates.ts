@@ -34,15 +34,14 @@ import type {
   TimestampRow,
 } from "@timetoalign/tilie-core";
 import {
-  displayValue,
   findTimeline,
   idAddress,
   measureText,
+  prettyText,
   saveManifest,
   snapOnRow,
   timestampAt,
   timestampRows,
-  unitSymbol,
 } from "@timetoalign/tilie-core";
 import { orderedChildren } from "@timetoalign/tilie-core/drawing";
 import {
@@ -538,47 +537,37 @@ export function readingAt(
   };
 }
 
-/** Where a timestamp lies: its anchor's name and coordinate with its unit's symbol, as `Form at 13 1/2 ♩`. */
+/** Where a timestamp lies: its anchor's name and pretty coordinate, as `Form at 13 1/2 ♩`. */
 export function placeText(timestamp: Timestamp): string {
   const [anchor] = timestamp.parts;
   if (anchor === undefined) throw new Error("a timestamp has its anchor's part");
-  const shown = displayValue(anchor.position, anchor.numberType, timestamp.granularity.decimals);
-  return `${anchor.name} at ${shown} ${unitSymbol(anchor.unit)}`;
-}
-
-/** A value as the flag writes it: the text and its unit's symbol, `null` where it names none. */
-export interface ValueText {
-  readonly text: string;
-  readonly unit: string | null;
+  const { position, numberType, unit } = anchor;
+  return `${anchor.name} at ${prettyText(position, numberType, unit, timestamp.granularity.decimals)}`;
 }
 
 /**
- * An expressed value as text, a float with `decimals` places: a number in
- * its type, a label as it is, a measure by its name, outputs by name.
+ * An expressed value as the flag writes it, rounded to `decimals` places:
+ * a number as its pretty text, a label as it is, a measure by its name,
+ * outputs by name.
  */
-function expressedText(value: Expressed, decimals: number): ValueText {
-  if (typeof value === "string") return { text: value, unit: null };
-  if ("record" in value) return { text: measureText(value.record), unit: "measure" };
+function expressedText(value: Expressed, decimals: number): string {
+  if (typeof value === "string") return value;
+  if ("record" in value) return `${measureText(value.record)} measure`;
   if ("outputs" in value) {
-    const outputs = Object.entries(value.outputs).map(([name, output]) => {
-      const { text, unit } = expressedText(output, decimals);
-      return `${name} ${text}${unit === null ? "" : ` ${unit}`}`;
-    });
-    return { text: outputs.join(" · "), unit: null };
+    return Object.entries(value.outputs)
+      .map(([name, output]) => `${name} ${expressedText(output, decimals)}`)
+      .join(" · ");
   }
-  return {
-    text: displayValue(value.value, value.numberType, decimals),
-    unit: value.unit === null ? null : unitSymbol(value.unit),
-  };
+  return prettyText(value.value, value.numberType, value.unit, decimals);
 }
 
 /**
- * The value of one row of a timestamp as text, a float with `decimals`
- * places; a row that gives none says why, in core's words.
+ * The value of one row of a timestamp as the flag writes it, rounded to
+ * `decimals` places; a row that gives none says why, in core's words.
  */
-export function rowValueText(row: TimestampRow, decimals: number): ValueText {
+export function rowValueText(row: TimestampRow, decimals: number): string {
   if (row.value !== null) return expressedText(row.value, decimals);
-  return { text: row.missing ?? "", unit: null };
+  return row.missing ?? "";
 }
 
 /** One part of a timestamp as the flag shows it: its timeline's name, then its rows. */

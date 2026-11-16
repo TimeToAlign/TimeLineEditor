@@ -135,7 +135,7 @@ describe("segment_pages_accolades", () => {
   const drawing = drawFixture("segment_pages_accolades");
 
   it("draws the block and lines of its derivation", () => {
-    expect([drawing.width, drawing.height]).toEqual([493.257080078125, 113.9296875]);
+    expect([drawing.width, drawing.height]).toEqual([494.6875, 113.9296875]);
     expect(lines(drawing)).toEqual([
       [at("pages"), "timeline", 56.85498046875, 456.85498046875, 68.953125, "open"],
       [at("page_1"), "child", 56.85498046875, 156.85498046875, 36.4765625, "diamond"],

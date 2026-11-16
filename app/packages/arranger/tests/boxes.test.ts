@@ -447,13 +447,13 @@ describe("the boxes holding part of the selection", () => {
       drawing.elements[sourceOf(drawing, address, type).element];
 
     it("draws each card's member drawing inside the other card", () => {
-      const width = 562.484619140625;
+      const width = 563.9150390625;
       expect(rect(cardKey("annotations"))).toEqual({ x: 8, y: 60, width, height: 71.85546875 });
       expect(rect(g1)).toEqual({ x: 8, y: 28.8046875, width, height: 169.234375 });
       expect(rect(cardKey("group_1", "score"))).toEqual({
         x: 16,
         y: 53.609375,
-        width: 546.484619140625,
+        width: 547.9150390625,
         height: 78.953125,
       });
       const line = element("timeline", idAddress("score")) as LineElement;

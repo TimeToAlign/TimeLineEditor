@@ -90,10 +90,10 @@ const views: { readonly [name: string]: View } = {
   ungrouped,
   "ungrouped, score at y 200": placedItem(ungrouped, A, "score", { y: 200 }),
   "ungrouped, height 504.33": placed(ungrouped, { height: 504.328125 }),
-  "ungrouped, both requests": placed(ungrouped, { width: 1051.79345703125, height: 504.328125 }),
+  "ungrouped, both requests": placed(ungrouped, { width: 1054.654296875, height: 504.328125 }),
   "audio, no names": audio,
   "audio, no names, length 8": placed(audio, { length: 8 }),
-  "audio, no names, at the knee": placed(audio, { length: 11.4521484375 }),
+  "audio, no names, at the knee": placed(audio, { length: 16.76708984375 }),
   "bare, width 953.15": placed(bare, { width: 953.154296875 }),
   "bare, length 500, width 496.58": placed(bare, { length: 500, width: 496.5771484375 }),
   "child member, width 600": placed(viewOf({ id: A, fixture: CHILD_MEMBER, x: 40, y: 80 }), {
@@ -170,9 +170,9 @@ describe("resize: stretch", () => {
     ["ungrouped", "bottom", 0, -40, { spacing: 0 }],
     ["ungrouped", "bottom-right", 40, 32, { length: 440, spacing: 24 }],
     ["ungrouped, score at y 200", "bottom", 0, 50, { spacing: 192.6953125 }],
-    ["audio, no names", "right", -500, 0, { length: 11.4521484375 }],
-    ["audio, no names, length 8", "right", 50, 0, { length: 61.4521484375 }],
-    ["audio, no names, at the knee", "right", 100, 0, { length: 111.4521484375 }],
+    ["audio, no names", "right", -500, 0, { length: 16.76708984375 }],
+    ["audio, no names, length 8", "right", 50, 0, { length: 66.76708984375 }],
+    ["audio, no names, at the knee", "right", 100, 0, { length: 116.76708984375 }],
     ["bare, width 953.15", "right", 40, 0, { length: 420, width: 993.154296875 }],
     ["bare, width 953.15", "left", -42, 0, { length: 421, width: 995.154296875, x: -2 }],
     ["ungrouped, height 504.33", "bottom", 0, 32, { spacing: 16, height: 536.328125 }],
@@ -182,10 +182,10 @@ describe("resize: stretch", () => {
       "bottom-right",
       40,
       32,
-      { length: 420, spacing: 16, width: 1091.79345703125, height: 536.328125 },
+      { length: 420, spacing: 16, width: 1094.654296875, height: 536.328125 },
     ],
     ["bare, length 500, width 496.58", "right", 20, 0, { length: 520, width: null }],
-    ["child member, width 600", "right", 50, 0, { length: 446.53466796875, width: 650 }],
+    ["child member, width 600", "right", 50, 0, { length: 446.158203125, width: 650 }],
   ])("%s %s by (%d, %d)", (name, handle, dx, dy, expected) => {
     expect(check(views[name] as View, "stretch", handle, dx, dy)).toStrictEqual(expected);
   });

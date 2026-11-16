@@ -18,7 +18,7 @@ const bottom = { x: 40, y: 410, width: 600, height: 86.25 };
 
 describe("elementsInRect", () => {
   it("selects the elements wholly inside, never a box", () => {
-    const card = { x: 56, y: 133.609375, width: 546.484619140625, height: 78.953125 };
+    const card = { x: 56, y: 133.609375, width: 547.9150390625, height: 78.953125 };
     expect(elementsInRect(node, card, every, metrics)).toEqual(
       at(
         idAddress("cmap_1"),

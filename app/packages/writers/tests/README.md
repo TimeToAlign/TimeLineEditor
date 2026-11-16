@@ -105,7 +105,8 @@ background `(0,0) rectangle (476.5771,67.3789)`, the shadow `(10, 67.37890625
 ```
 \documentclass{standalone}
 \usepackage{fontspec}
-\setsansfont{DejaVuSans.ttf}[Path=/fonts/,Kerning=Off,Ligatures={TeXOff,NoCommon}]
+\directlua{luaotfload.add_fallback("music", {"[/fonts/NotoMusic-Regular.ttf]:mode=node;"})}
+\setsansfont{DejaVuSans.ttf}[Path=/fonts/,Kerning=Off,Ligatures={TeXOff,NoCommon},RawFeature={fallback=music}]
 \usepackage{tikz}
 \begin{document}
 \begin{tikzpicture}[x=1pt,y=1pt,miter limit=4,font=\sffamily]
@@ -134,7 +135,25 @@ background `(0,0) rectangle (476.5771,67.3789)`, the shadow `(10, 67.37890625
 
 With `standalone: false` the output is the lines from `\begin{tikzpicture}`
 to `\end{tikzpicture}` alone; the default font directory is `.`
-(`Path=./`).
+(`[./NotoMusic-Regular.ttf]` and `Path=./`).
+
+## The font directory (`tikz.test.ts`)
+
+The standalone TikZ document writes the font directory verbatim twice: in a
+Lua string inside `\directlua{…}` and in `fontspec`'s `Path=` key. TeX
+reads both before any escaping could apply, so a character TeX or Lua
+gives a meaning there (`~` an active space, `\` a control sequence, `"`
+the end of the Lua string, `%` a comment, `#` a parameter, `{` and `}`
+groups) would break the document or name another directory. The writer
+therefore refuses such a directory rather than write a document that does
+not compile: for each of the seven characters, the directory `/a<c>b`
+throws an `Error` whose message is exactly `the font directory "/a<c>b"
+holds '<c>', which a TikZ document cannot carry`, the directory written as
+a JSON string (`"/a\\b"` for the backslash, `"/a\"b"` for the quote). It
+is refused whether or not the document is standalone, since the option is
+the same. Directories without them are written as given: `/fonts`, `.`
+and `../fonts-2.37 (copy)` give `Path=/fonts/`, `Path=./` and
+`Path=../fonts-2.37 (copy)/`.
 
 ## Descriptors and commands (`descriptors.test.ts`)
 
@@ -323,7 +342,9 @@ point is `Xr` (or `Xa`) plus its multiple of `w`:
 every kind of element: a frame and its title, a card with its shadow, an
 ancestor line running on at both sides, lines ending in the diamond, the
 open arrowhead, the end circle and the arrowhead, a map, a region, a jump origin,
-a flow marker, a boundary, a cross-section line, a wedge and labels. It writes 31 descriptors, in which
+a flow marker, a boundary, a cross-section line, a wedge and labels; the
+frame's title holds the TeX specials, `♩`, which DejaVu Sans draws, and the
+whole note `𝅝` (U+1D15D), which only Noto Music draws. It writes 31 descriptors, in which
 every tag occurs, one of them a shadow. For it and for every review case
 (drawn by the layout):
 
@@ -346,7 +367,7 @@ every tag occurs, one of them a shadow. For it and for every review case
 
 The drawing fixtures of the schema package (`fixtures/<version>/drawings/`,
 read from the installed `@timetoalign/timetoshare`, like the manifests and
-the font) are the contract between implementations of the specification.
+the two fonts) are the contract between implementations of the specification.
 Each directory holds `inputs.json` (the manifest's path below
 `fixtures/<version>/`, the placement, the scale and the application's style
 layers) and the expected `figure.svg` and `figure.tex`. For every directory
@@ -425,10 +446,14 @@ gap) pins nothing.
 Every drawing fixture's `figure.svg`, and the SVG of the every-kind drawing,
 parses as XML with an SVG root (Python's ElementTree). Every `figure.tex`,
 and the TikZ of the every-kind drawing, compiled in a directory holding a
-copy of this package's `fonts/DejaVuSans.ttf` (the documents name the font directory
+copy of both of the schema package's font files, `fonts/DejaVuSans.ttf` and
+`fonts/NotoMusic-Regular.ttf` (the documents find both in the directory
 `.`), compiles under LuaLaTeX with exit status 0, and its log holds no
 fontspec warning and no `Missing character` line: every text, `♩` and the
-escaped TeX specials included, is set in DejaVu Sans, since each node's
+escaped TeX specials included, is set in the sans font, since each node's
 `font` option restates `\sffamily`, and every command kind is valid TikZ.
+The whole note `𝅝`, which DejaVu Sans does not map, is the proof that the
+Noto Music fallback is in force: without it LuaLaTeX logs `Missing
+character: There is no 𝅝 (U+1D15D) in font [./DejaVuSans.ttf]…`.
 The test is skipped where `lualatex` is absent and fails without it when
 `TILIE_REQUIRE_LUALATEX` is set.

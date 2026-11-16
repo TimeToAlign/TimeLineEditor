@@ -520,15 +520,15 @@ describe("the flag", () => {
       [
         "Melody",
         [
-          ["coordinate", "4♩", "true"],
-          ["Tempo", "2.0s", "false"],
+          ["coordinate", "4 ♩", "true"],
+          ["Tempo", "2″", "false"],
         ],
       ],
       [
         "Phrase",
         [
-          ["coordinate", "2♩", "false"],
-          ["Ticks", "960ticks", "false"],
+          ["coordinate", "2 ♩", "false"],
+          ["Ticks", "960 ticks", "false"],
         ],
       ],
     ]);

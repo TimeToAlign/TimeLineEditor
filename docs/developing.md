@@ -17,7 +17,8 @@ installed from PyPI as `tilie-server`, whose wheel ships the built editor).
 The manifest format the editor reads and writes is specified by the
 TimeToShare repository: the JSON Schema, the generated TypeScript types
 and validator, the Python validator, the fixtures, the drawing
-specification `docs/drawing.md` and the font metrics. Setting up both
+specification `docs/drawing.md` and the two drawing fonts with their
+metrics table. Setting up both
 checkouts is described in [`CONTRIBUTING.md`](../CONTRIBUTING.md#setup). The editor never
 specifies the manifest; where the editor needs a word the schema does not
 have, the schema is changed first.

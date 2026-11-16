@@ -1,7 +1,7 @@
 /**
  * The embed build inside a host page it does not own: two editors mounted
  * side by side by `mount`, each drawing its own workspace with the bundled
- * face loaded from beside the bundle, leaving the host's styles, title and
+ * faces loaded from beside the bundle, leaving the host's styles, title and
  * keys alone, asking no server, and leaving its element empty on
  * `destroy()`. The method is in `README.md` ("embed.spec.ts").
  */
@@ -10,7 +10,14 @@ import type { Page, Request } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import { cardAddress } from "../packages/core/src/index.ts";
 import type * as Embed from "../packages/editor/src/embed.ts";
-import { type FixtureName, fixtureText, framePoint, nodeDragStart, SMALL } from "./support.ts";
+import {
+  DRAWING_FACES,
+  type FixtureName,
+  fixtureText,
+  framePoint,
+  nodeDragStart,
+  SMALL,
+} from "./support.ts";
 
 /** The host's origin: no server answers it, every request to it is answered by the route below. */
 const HOST = "http://host.test";
@@ -77,9 +84,6 @@ const SLOTS: readonly { readonly slot: string; readonly fixture: FixtureName; bl
   { slot: "second", fixture: "bundles", blocks: 4 },
 ];
 
-/** The family the embed declares for drawn text. */
-const FACE = "TiLiE DejaVu Sans";
-
 /**
  * Serve the host page at `HOST`, forward `/tilie/…` to the embed build the
  * web server serves at `<baseURL>embed/…`, and answer anything else 404.
@@ -141,27 +145,28 @@ test.beforeEach(async ({ page, baseURL }) => {
   }
 });
 
-test("each slot draws its own workspace with the bundled face, asking no server", async ({
+test("each slot draws its own workspace with the bundled faces, asking no server", async ({
   page,
 }) => {
   expect(await texts(page)).toEqual(SLOTS.map(({ fixture }) => fixtureText(fixture)));
   expect(
-    await page.evaluate(async (family) => {
+    await page.evaluate(async (families) => {
       await document.fonts.ready;
-      const faces = [...document.fonts].filter(
-        (face) => face.family.replaceAll('"', "") === family,
-      );
-      return {
-        statuses: faces.map((face) => face.status),
+      return families.map((family) => ({
+        statuses: [...document.fonts]
+          .filter((face) => face.family.replaceAll('"', "") === family)
+          .map((face) => face.status),
         check: document.fonts.check(`16px "${family}"`),
-      };
-    }, FACE),
-  ).toEqual({ statuses: ["loaded"], check: true });
-  const font = requests.filter((request) => request.url().endsWith(".ttf"));
-  expect(font.map((request) => new URL(request.url()).pathname)).toEqual([
-    expect.stringMatching(/^\/tilie\/assets\/[^/]+\.ttf$/),
-  ]);
-  expect((await font[0]?.response())?.status()).toBe(200);
+      }));
+    }, DRAWING_FACES),
+  ).toEqual(DRAWING_FACES.map(() => ({ statuses: ["loaded"], check: true })));
+  const fonts = requests.filter((request) => request.url().endsWith(".ttf"));
+  expect(fonts.map((request) => new URL(request.url()).pathname)).toEqual(
+    DRAWING_FACES.map(() => expect.stringMatching(/^\/tilie\/assets\/[^/]+\.ttf$/)),
+  );
+  expect(
+    await Promise.all(fonts.map(async (request) => (await request.response())?.status())),
+  ).toEqual(DRAWING_FACES.map(() => 200));
   expect(await page.evaluate(() => window.__tilie === undefined)).toBe(true);
   expect(requests.filter((request) => new URL(request.url()).pathname.includes("/api/"))).toEqual(
     [],

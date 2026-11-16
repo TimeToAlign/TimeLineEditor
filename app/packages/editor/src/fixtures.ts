@@ -1,18 +1,24 @@
 /**
- * The fixture menu of development and test builds: the end-to-end
- * workspaces (`app/e2e/fixtures/*.tle.json`), and one workspace per group
- * and bundle fixture of the installed schema package's version, built from
- * the manifest fixture on first use. Fixtures named `corpus_*` are loader
- * output, not drawings made to be looked at, and are left out, as are the
- * minimal twins (`*.minimal.json`), which hold what their complete fixtures
- * hold. A production build contains neither the menu nor the files.
+ * The fixture menu of development and test builds. It offers every fixture
+ * there is: each manifest fixture of the installed schema package's
+ * version, at the top of `fixtures/<version>/` or below it, corpus fixtures
+ * and minimal twins included, built into a workspace of one block on first
+ * use; the manifest of each warning case of that version; and the
+ * end-to-end workspaces (`app/e2e/fixtures/*.tle.json`). The rejection
+ * cases, refused by design, and the drawings, which are no manifests, are
+ * left out. A production build contains neither the menu nor the files.
  */
 
-import { SCHEMA_VERSION } from "@timetoalign/timetoshare";
+import { dumps, parseJson, SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import { manifestWorkspace } from "./fixtureWorkspace.ts";
 
 export interface Fixture {
-  /** The file's base name, e.g. `small` or `group_number_types`. */
+  /**
+   * The menu's label, unique: a manifest fixture's path below the version's
+   * directory without `.json` (`bare`, `bare.minimal`,
+   * `groups/corpus_tilia`), `warnings/<name>` for a warning case and
+   * `e2e/<name>` for an end-to-end workspace.
+   */
   readonly name: string;
   /** The workspace file's text, fetched (and built) on first use. */
   readonly text: () => Promise<string>;
@@ -21,26 +27,47 @@ export interface Fixture {
 /** The files a glob found: path → their text, loaded on demand. */
 type Files = Record<string, () => Promise<string>>;
 
-function baseName(path: string, extension: string): string {
-  return path.slice(path.lastIndexOf("/") + 1, -extension.length);
+/** Where the schema package's fixtures lie in a path the glob found. */
+const FIXTURE_ROOT = "/timetoshare/fixtures/";
+
+/** The manifest of a warning case `{manifest, unknown_keys}`, as text. */
+function caseManifest(name: string, text: string): string {
+  const value = parseJson(text);
+  if (
+    typeof value !== "object" ||
+    value === null ||
+    Array.isArray(value) ||
+    !("manifest" in value)
+  ) {
+    throw new Error(`the warning case ${name} holds no manifest`);
+  }
+  return dumps(value.manifest);
 }
 
 /**
- * The menu's entries, sorted by name: every workspace file, and every
- * manifest fixture of `SCHEMA_VERSION` not named `corpus_*` and no minimal twin.
+ * The menu's entries in code-unit order of their labels: every workspace
+ * file, every manifest fixture of `SCHEMA_VERSION` and every warning case
+ * of that version among `manifests`; files of other versions are skipped.
  */
 export function fixtures(workspaces: Files, manifests: Files): Fixture[] {
-  const version = `/fixtures/${SCHEMA_VERSION}/`;
   const entries: Fixture[] = Object.entries(workspaces).map(([path, text]) => ({
-    name: baseName(path, ".tle.json"),
+    name: `e2e/${path.slice(path.lastIndexOf("/") + 1, -".tle.json".length)}`,
     text,
   }));
+  const version = `${SCHEMA_VERSION}/`;
+  const warnings = `warnings/${SCHEMA_VERSION}/`;
   for (const [path, text] of Object.entries(manifests)) {
-    const name = baseName(path, ".json");
-    if (!path.includes(version) || name.startsWith("corpus_") || name.endsWith(".minimal")) {
-      continue;
+    const below = path.slice(path.indexOf(FIXTURE_ROOT) + FIXTURE_ROOT.length, -".json".length);
+    if (below.startsWith(version)) {
+      const name = below.slice(version.length);
+      entries.push({ name, text: async () => manifestWorkspace(name, await text()) });
+    } else if (below.startsWith(warnings)) {
+      const name = `warnings/${below.slice(warnings.length)}`;
+      entries.push({
+        name,
+        text: async () => manifestWorkspace(name, caseManifest(name, await text())),
+      });
     }
-    entries.push({ name, text: async () => manifestWorkspace(name, await text()) });
   }
   return entries.sort((left, right) =>
     left.name < right.name ? -1 : left.name > right.name ? 1 : 0,
@@ -59,9 +86,9 @@ export const FIXTURES: readonly Fixture[] =
         }),
         import.meta.glob<string>(
           [
-            "../node_modules/@timetoalign/timetoshare/fixtures/*/groups/*.json",
-            "../node_modules/@timetoalign/timetoshare/fixtures/*/bundles/*.json",
-            "!**/*.minimal.json",
+            "../node_modules/@timetoalign/timetoshare/fixtures/**/*.json",
+            "!../node_modules/@timetoalign/timetoshare/fixtures/rejections/**",
+            "!../node_modules/@timetoalign/timetoshare/fixtures/*/drawings/**",
           ],
           { query: "?raw", import: "default" },
         ),

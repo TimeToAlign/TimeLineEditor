@@ -153,7 +153,10 @@ function line(
   return { type, address, style: { ...LOGICAL, ...changes }, xs, xe, y, start, end };
 }
 
-/** A drawing holding every kind of element, with TeX specials in its texts. */
+/**
+ * A drawing holding every kind of element, with TeX specials, a code point
+ * of DejaVu Sans (`♩`) and one only Noto Music draws (`𝅝`) in its texts.
+ */
 export function everything(): Drawing {
   const blue = { stroke: "#0050EF", fill: "#0050EF", "stroke-width": 2 };
   return boxed(
@@ -177,7 +180,7 @@ export function everything(): Drawing {
       x: 16,
       baseline: 20,
       anchor: "start",
-      text: " \\~^#$%&_{}  ♩ ",
+      text: " \\~^#$%&_{}  ♩ 𝅝 ",
     },
     {
       type: "card",

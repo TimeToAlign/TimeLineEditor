@@ -21,7 +21,7 @@ describe("font measures", () => {
     expect([metrics.units_per_em, metrics.ascender, metrics.descender, metrics.fallback]).toEqual([
       2048, 1901, 483, 1229,
     ]);
-    expect(Object.keys(metrics.advances).length).toBe(5918);
+    expect(Object.keys(metrics.advances).length).toBe(6467);
     expect([metrics.advances["9833"], metrics.advances["48"], metrics.advances["32"]]).toEqual([
       966, 1303, 651,
     ]);
@@ -38,7 +38,13 @@ describe("font measures", () => {
     expect([...measure.unmapped]).toEqual([]);
   });
 
-  it("counts fallback for unmapped code points and lists them", () => {
+  it("measures a code point only Noto Music maps with its own advance, unlisted", () => {
+    const measure = new TextMeasure(metrics);
+    expect(measure.width("\u{1D15D}", 2048)).toBe(1053);
+    expect([...measure.unmapped]).toEqual([]);
+  });
+
+  it("counts fallback for code points neither font maps and lists them", () => {
     const measure = new TextMeasure(metrics);
     expect(measure.width("\u{E000}", 2048)).toBe(1229);
     expect(measure.width("\u{4E00}\u{E000}", 2048)).toBe(2458);

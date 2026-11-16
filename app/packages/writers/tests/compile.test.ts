@@ -2,7 +2,7 @@
  * The drawing fixtures' `figure.svg`, and the SVG of a drawing holding every
  * kind of element, parse as XML (Python's ElementTree); their `figure.tex`,
  * and the TikZ of that drawing, compile under LuaLaTeX with the bundled
- * font. `fixtures.test.ts` pins the fixture files to the writers' output.
+ * fonts. `fixtures.test.ts` pins the fixture files to the writers' output.
  */
 
 import { spawn, spawnSync } from "node:child_process";
@@ -16,6 +16,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { FONT_FILES } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { writeSvg, writeTikz } from "../src/index.ts";
 import { drawingsDirectory, everything, fontDirectory } from "./support.ts";
@@ -85,11 +86,10 @@ describe("the TikZ", () => {
     async () => {
       const directory = mkdtempSync(path.join(tmpdir(), "tilie-tikz-"));
       try {
-        // The fixtures name the font directory `.`: the font sits beside each document.
-        copyFileSync(
-          path.join(fontDirectory, "DejaVuSans.ttf"),
-          path.join(directory, "DejaVuSans.ttf"),
-        );
+        // The fixtures name the font directory `.`: both fonts sit beside each document.
+        for (const file of FONT_FILES) {
+          copyFileSync(path.join(fontDirectory, file), path.join(directory, file));
+        }
         for (const name of names) {
           copyFileSync(
             path.join(drawingsDirectory, name, "figure.tex"),

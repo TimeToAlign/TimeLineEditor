@@ -94,7 +94,7 @@ member drawing's card spacing `S`, between its rows and between its bands
 - **`ungrouped`** is `bundle_ungrouped` at (40, 80), the title "Sketches"
   and three block-held cards at their default places, `pages` (63.453125
   high), `recording` (49.4765625) and `score` (84.4296875), all
-  525.896728515625 wide in the block, `W(L) = 125.896728515625 + L`. At the
+  527.3271484375 wide in the block, `W(L) = 127.3271484375 + L`. At the
   block's spacing `s` they lie at `28.8046875`, `92.2578125 + s` and
   `(92.2578125 + s) + 49.4765625 + s`, so the block is `H(s) = 8 + ((141.734375
   + 2s) + 86.4296875)`, `236.1640625 + 2s`, affine with the slope 2 of its
@@ -164,9 +164,9 @@ member drawing's card spacing `S`, between its rows and between its bands
 
   | item | place key | address | `x` | `y` | `length` | `width` | `height` |
   |---|---|---|---|---|---|---|---|
-  | `group_1` | `{item: "group_1"}` | `{id: "group_1"}` | 8 | 28.8046875 | 400 | 562.484619140625 | 169.234375 |
-  | `group_2` | `{item: "group_2"}` | `{id: "group_2"}` | 8 | 206.0390625 | 400 | 562.484619140625 | 177.734375 |
-  | `annotations` | `{item: "annotations"}` | `{id: "annotations", part: ["card"]}` | 8 | 391.7734375 | 400 | 562.484619140625 | 71.85546875 |
+  | `group_1` | `{item: "group_1"}` | `{id: "group_1"}` | 8 | 28.8046875 | 400 | 563.9150390625 | 169.234375 |
+  | `group_2` | `{item: "group_2"}` | `{id: "group_2"}` | 8 | 206.0390625 | 400 | 563.9150390625 | 177.734375 |
+  | `annotations` | `{item: "annotations"}` | `{id: "annotations", part: ["card"]}` | 8 | 391.7734375 | 400 | 563.9150390625 | 71.85546875 |
 
   - Heights (sections 6.4, 6.5, 8.3, 8.4): the cards are `score` 78.953125
     (two maps above, its jump's flow band below the wedges), `performance`
@@ -180,27 +180,27 @@ member drawing's card spacing `S`, between its rows and between its bands
   - Widths: the block holds frames, so the name column starts at `n = Q + K
     = 16` in every item; `N = 70.29150390625` (`Performance`, the widest
     name); `recording`'s ancestor line runs on to the left, so `s0 = n + N
-    + G' + 8 × 3 = 118.29150390625`; `Mr = 28.193115234375`, half of
-    `excerpt`'s end label `132300 smp` centred on the shared end. So every
-    item spans 0 to `s0 + 400 + Mr + K + Q = 562.484619140625`, and as
-    neither `s0` nor `Mr` depends on a length, `W(L) = 162.484619140625 +
+    + G' + 8 × 3 = 118.29150390625`; `Mr = 29.62353515625`, half of
+    `excerpt`'s end label `132 300 smp` centred on the shared end. So every
+    item spans 0 to `s0 + 400 + Mr + K + Q = 563.9150390625`, and as
+    neither `s0` nor `Mr` depends on a length, `W(L) = 163.9150390625 +
     L`. The held cards span `Q = 8` to `Ri + K` in item coordinates: they
-    lie at x 16 and are 546.484619140625 wide, `Wc(L) = 146.484619140625 +
+    lie at x 16 and are 547.9150390625 wide, `Wc(L) = 147.9150390625 +
     L` (the cards `{item: "group_1", member: "score"}` at y 53.609375,
     `{item: "group_1", member: "performance"}` at 140.5625, `{item:
     "group_2", member: "page"}` at 230.84375 and `{item: "group_2", member:
     "excerpt"}` at 288.3203125). Every line runs from `8 + s0 =
     126.29150390625` to 526.29150390625. The block is
-    `P + 562.484619140625 + 2 + P = 580.484619140625` by `391.7734375 +
+    `P + 563.9150390625 + 2 + P = 581.9150390625` by `391.7734375 +
     71.85546875 + 2 + P = 473.62890625` (the ungrouped card's shadow), its
     place origin at `(0, 0)`.
   - **Moved left and up:** with `annotations` placed at `{x: −30, y: −20}`
     the block reaches `−30 − P = −38` on the left and `−20 − 28.8046875` at
     the top (section 8.4: the title's slot is the items' top border), so
     the place origin lies at `(38, 48.8046875)`, and the block is `(8 +
-    570.484619140625) + 38 = 616.484619140625` wide and `(8 + 206.0390625
+    571.9150390625) + 38 = 617.9150390625` wide and `(8 + 206.0390625
     + 177.734375) + 48.8046875 = 440.578125` high. With `{x: −30}` alone
-    the origin is `(38, 0)` in `616.484619140625 × 473.62890625`.
+    the origin is `(38, 0)` in `617.9150390625 × 473.62890625`.
   - **`mixed`** is `bundle_mixed` with the child `dlt_1` (`samples`,
     offset 0, length 44100, half of `excerpt`) added to `excerpt`, drawn
     on `excerpt`'s card from x 126.29150390625 to `126.29150390625 + 400 ×
@@ -213,14 +213,14 @@ member drawing's card spacing `S`, between its rows and between its bands
     part: ["name"]}`,
     anchored at x `8 + n = 24` and 26.85009765625 wide, is centred on that
     line and spans y 334.89453125 to 347.69921875 (`h(11)` high). The child
-    changes neither `N`, `s0` nor `Mr`. `mixed`'s block is `580.484619140625
+    changes neither `N`, `s0` nor `Mr`. `mixed`'s block is `581.9150390625
     × 491.62890625`: `group_2` is 195.734375 high and `annotations` lies at
     y 409.7734375.
 
 ## Numbers on the canvas (`numbers.test.ts`)
 
 Every stored position and size is a multiple of a step: the grid's size
-when it snaps, else 1/2048, the font's units per em, so text-derived
+when it snaps, else 1/2048, the metrics table's units per em, so text-derived
 edges at integer sizes and scales are stored bit-exact. Rounding is to
 the nearest multiple, halves towards +∞, never −0:
 
@@ -289,8 +289,8 @@ node and the identity of every node that did not change.
   ["coordinate"]}`, then `timestamp_2`'s), in drawing order.
 - **A node lies at its place origin** (section 8.6): `bundle_mixed` at
   (40, 80) with `annotations` at `{x: −30, y: −20}` lies at `(2,
-  31.1953125)`, `616.484619140625 × 440.578125`; at scale 2 at `(−36,
-  −17.609375)`, `1232.96923828125 × 881.15625`. With no places the node
+  31.1953125)`, `617.9150390625 × 440.578125`; at scale 2 at `(−36,
+  −17.609375)`, `1235.830078125 × 881.15625`. With no places the node
   lies at the block's `x`, `y`.
 - **Editors.** A holds `bundle_mixed` at (40, 80), B `bare` at (600, 0).
   In A's bundle editor A's node is not draggable and holds every drawn
@@ -486,12 +486,17 @@ and request, so the search stays monotone with or without a request.
 `audio` is `corpus_audio_audio` at (40, 80) as the editor imports it
 (core's `importedManifest`: a manifest without `graphical` gets its root's
 named timestamps `origin` at 0.0 and `length` at its length, each drawing
-its wedge and its coordinate label) with every name hidden: its labels
-"0.0 s" and "231.079 s" (the end 231.0791836734694 rounded to three
-places, TimeToShare's drawing specification section 5.2) are
-21.86279296875 and 44.76708984375 wide (the bundled font's advances at
-size 9), so `W` is flat at 107.3974609375 below the knee `L* =
-11.4521484375` and `95.9453125 + L` above it.
+its wedge and its coordinate label) with every name hidden: its labels,
+core's pretty texts, are "0″" and "3′51.079″" (the end 231.0791836734694
+rounded to three places, then split into minutes and seconds), 2068 × 9 /
+2048 = 9.087890625 and 9699 × 9 / 2048 = 42.62255859375 wide (the bundled
+font's advances at size 9). With no name drawn the start is `s0 = 16 +
+max(9.087890625 / 2, 42.62255859375 / 2 − L)` in the block and the end
+label sets the right margin, so `W` is flat at `16 + 42.62255859375 + 18 =
+76.62255859375` below the knee `L* = (42.62255859375 − 9.087890625) / 2 =
+16.767333984375` and `59.855224609375 + L` above it. `L*` is no multiple
+of 1/2048 (34339.5 steps): the lattice knee is `34339 / 2048 =
+16.76708984375`, the last step on the flat piece.
 
 | fixture | handle | delta | values |
 |---|---|---|---|
@@ -510,14 +515,14 @@ size 9), so `W` is flat at 107.3974609375 below the knee `L* =
 | ungrouped | bottom | (0, −16) / (0, −40) | `{spacing: 0}` / `{spacing: 0}` (the floor) |
 | ungrouped | bottom-right | (40, 32) | `{length: 440, spacing: 24}` |
 | ungrouped, `score` at `{y: 200}` | bottom | (0, 50) | `{spacing: 192.6953125}` (across the knee: `143.734375 + s ≤ 336.4296875`) |
-| audio | right | (−500, 0) | `{length: 11.4521484375}` (the knee) |
-| audio, length 8 | right | (50, 0) | `{length: 61.4521484375}` (8 lies below the knee, so the travel adds to the flat 107.3974609375) |
-| audio, at the knee (length 11.4521484375) | right | (100, 0) | `{length: 111.4521484375}` |
+| audio | right | (−500, 0) | `{length: 16.76708984375}` (the lattice knee) |
+| audio, length 8 | right | (50, 0) | `{length: 66.76708984375}` (8 lies below the knee, so the travel adds to the flat 76.62255859375: `L ≤ 66.767333984375`) |
+| audio, at the knee (length 16.76708984375) | right | (100, 0) | `{length: 116.76708984375}` |
 | bare, width `2 Wc(400)` | right / left | (40, 0) / (−42, 0) | `{length: 420, width: 993.154296875}` / `{length: 421, width: 995.154296875, x: −2}` |
 | ungrouped, height `2 H(8)` = 504.328125 | bottom / top | (0, 32) / (0, −32) | `{spacing: 16, height: 536.328125}` / the same with `y: 48` |
-| ungrouped, width `2 W(400)` = 1051.79345703125 and height `2 H(8)` | bottom-right | (40, 32) | `{length: 420, spacing: 16, width: 1091.79345703125, height: 536.328125}` |
+| ungrouped, width `2 W(400)` = 1054.654296875 and height `2 H(8)` | bottom-right | (40, 32) | `{length: 420, spacing: 16, width: 1094.654296875, height: 536.328125}` |
 | bare, length 500, width 496.58 | right | (20, 0) | `{length: 520, width: null}` (a request the content overtook) |
-| child member, width 600 | right | (50, 0) | `{length: 446.53466796875, width: 650}` (`Wc(L) = 158.4140625 + L`; 914504 steps would draw 650.00048828125) |
+| child member, width 600 | right | (50, 0) | `{length: 446.158203125, width: 650}` (the block's content `Wb(L) = 153.898681640625 + L`: `s0 = 16 + 64.61962890625 + 8 + 8 × 3`, the right margin half of the ancestor's end label `16 ♩`, the frame and the block 32 wider than the card; 913733 steps would draw 650.00048828125) |
 
 **The shortening lock.** On `bundle_shared_parent` (`Wb(L) =
 185.39013671875 + L`): Box right by 585.39013671875 gives `{width:
@@ -976,8 +981,8 @@ when the box grows left or up. Whatever a gesture measures before release
 it measures on the view its command would leave, so a move's preview
 equals the drawing of the applied view by construction. A holds
 `bundle_mixed` at (40, 80), its items as in the fixture facts.
-562.484619140625 is an odd multiple of 1/4096, so a width quantized from
-it rounds half up.
+563.9150390625 is a multiple of 1/2048, so a width quantized from it is
+itself.
 
 **Notation.** A gesture names the frame or card it acts on by its place
 key, and its place changes are a map of place keys to values. In this
@@ -1057,7 +1062,7 @@ frame's gaps.
 
 **Scale** (on `annotations`' card, arranger): bottom-right by (40, 20)
 `{scale: 1.2783203125}` (2618.03 steps); top-left by (−40, −20) the same
-with `x: −148.55078125, y: 371.7744140625`; by (−1000, −1000) the floor;
+with `x: −148.94921875, y: 371.7744140625`; by (−1000, −1000) the floor;
 at block scale 2 by (80, 40) the same 1.2783203125; with `scale` 2 stated,
 halving gives `{scale: null}`, the default. On a held card the scale is
 its group's, from the frame's top left to the card's bottom right:
@@ -1066,13 +1071,13 @@ Only an offered corner scales.
 
 **Box** (on `group_2` with `width` 580, bundle editor): right by 20
 `{width: 600}`, by −20 `{width: null}`; left by −21 `{width: 601, x:
-−13}`, by 100 `{width: null, x: 25.515625}`; bottom by 10.5 `{height:
+−13}`, by 100 `{width: null, x: 24.0849609375}`; bottom by 10.5 `{height:
 188.234375}`; top by −16 `{height: 193.734375, y: 190.0390625}`; at block
 scale 2 right by 20 `{width: 590}`. Applied, the left row moves the place
 origin to (21, 0) and keeps `group_2`'s right edge at canvas x 628. A held
 card sizes its own card in item coordinates: with `group_1` at scale 1.25,
 `group_1 › performance` bottom-right by (50, 30) gives `{group_1 › performance: {width:
-586.48486328125, height: 73.4765625}}`, right by −50 `{width: null}`.
+587.9150390625, height: 73.4765625}}`, right by −50 `{width: null}`.
 
 **Stretch** follows a block's rule, every stated size of the stretched
 boxes following its own content. On `annotations`' card (bundle editor):
@@ -1084,7 +1089,7 @@ boxes following its own content. On `annotations`' card (bundle editor):
 | | bottom / top | (0, 20) / (0, −20) | `{spacing: 24}` / `{spacing: 24, y: 371.7734375}` |
 | | bottom-right | (20, 20) | `{length: 420, spacing: 24}` |
 | | bottom | (0, −2) / (0, −40) | `{spacing: 2}` / `{spacing: 0}` (the floor) |
-| width `2 W(400)` | right / left | (40, 0) / (−42, 0) | `{length: 420, width: 1164.96923828125}` / `{length: 421, width: 1166.96923828125, x: −34}` |
+| width `2 W(400)` | right / left | (40, 0) / (−42, 0) | `{length: 420, width: 1167.830078125}` / `{length: 421, width: 1169.830078125, x: −34}` |
 | height `2 Ha(4)` | bottom | (0, 40) | `{spacing: 24, height: 183.7109375}` |
 
 A frame's stretch widens the gap between its cards, each card keeping its
@@ -1101,8 +1106,8 @@ its own card vertically, and has no left handle:
 | | group_1 › score | bottom-right | (20, 16) | both of the above |
 | score height `2 Hs(4)` = 157.90625 | group_1 › score | bottom | (0, 32) | `{group_1 › score: {spacing: 12, height: 189.90625}}` |
 | group_1 height `2 H(8)` | group_1 › score | bottom | (0, 16) | `{group_1 › score: {spacing: 12}, group_1: {height: 370.46875}}` (`338.46875 × 185.234375 ÷ 169.234375`) |
-| group_1 width `2 W(400)` | group_1 › score | right | (30, 0) | `{group_1: {length: 415, width: 1154.96923828125}}` (the frame's width widens its cards, so the card is drawn `2 W(L) − 16`) |
-| performance width `2 Wc(400)` | group_1 › score, or group_1 › performance by (60, 0) | right | (30, 0) | `{group_1: {length: 430}, group_1 › performance: {width: 1152.96923828125}}` |
+| group_1 width `2 W(400)` | group_1 › score | right | (30, 0) | `{group_1: {length: 415, width: 1157.830078125}}` (the frame's width widens its cards, so the card is drawn `2 W(L) − 16`) |
+| performance width `2 Wc(400)` | group_1 › score, or group_1 › performance by (60, 0) | right | (30, 0) | `{group_1: {length: 430}, group_1 › performance: {width: 1155.830078125}}` |
 
 Each row's command is accepted on the arranger, in the bundle editor and
 in the member's timeline editor, where a held card's stretch writes its
@@ -1124,7 +1129,7 @@ at `3 Wc(400)`, Stretch right by 90 gives `{group_1: {length: 430, width:
 null}, group_1 › exposition: {width: 1744.17041015625}}`.
 
 **The group editor keeps the frame's width** along time at its drawn
-width, quantized (562.48486328125), while the content, the cards' widths
+width, quantized (563.9150390625), while the content, the cards' widths
 following, fits in it: a stretch that shrinks the members states that
 width. Once the content is wider the frame follows it (`width: null`), so
 the members stretch larger and the frame grows with them, its right edge
@@ -1137,11 +1142,11 @@ Wc(400) + (L − 400)`, its frame 16 wider:
 
 | case | handle | delta | values |
 |---|---|---|---|
-| | right | (20, 0) / (−100, 0) | `{group_1: {length: 420, width: null}}` / `{length: 300, width: 562.48486328125}` |
-| width 600 | right | (30, 0) / (200, 0) | `{group_1: {length: 430, width: 600}}` / `{length: 600, width: null}` (content 762.48486328125) |
+| | right | (20, 0) / (−100, 0) | `{group_1: {length: 420, width: null}}` / `{length: 300, width: 563.9150390625}` |
+| width 600 | right | (30, 0) / (200, 0) | `{group_1: {length: 430, width: 600}}` / `{length: 600, width: null}` (content 763.9150390625) |
 | | bottom (frame) | (0, 44) | `{group_1: {spacing: 52}}` |
 | | bottom-right (frame) | (20, 44) | `{group_1: {length: 420, width: null, spacing: 52}}` |
-| performance width `2 Wc(400)` | right | (20, 0) / (−100, 0) | `{group_1: {length: 410, width: null}, group_1 › performance: {width: 1112.96923828125}}` (the frame 1108.96923828125 + 20) / `{group_1: {length: 350, width: 1108.96923828125}, group_1 › performance: {width: 992.96923828125}}` |
+| performance width `2 Wc(400)` | right | (20, 0) / (−100, 0) | `{group_1: {length: 410, width: null}, group_1 › performance: {width: 1115.830078125}}` (the frame 1111.830078125 + 20) / `{group_1: {length: 350, width: 1111.830078125}, group_1 › performance: {width: 995.830078125}}` |
 
 Each row is given alike by the frame `group_1` and by the card
 `group_1 › score`. On `bundle_shared_parent` (whose recapitulation group's
@@ -1159,11 +1164,11 @@ frame and a held card alike:
 | case | box | level | value | values |
 |---|---|---|---|---|
 | | group_1 or group_1 › score | arranger | length 300 | `{group_1: {length: 300}}` |
-| performance width `2 Wc(400)` | group_1 or group_1 › score | arranger | length 430 | `{group_1: {length: 430}, group_1 › performance: {width: 1152.96923828125}}` |
-| annotations width `2 W(400)` | annotations | bundle | length 420 | `{annotations: {length: 420, width: 1164.96923828125}}` |
-| | group_1 or group_1 › score | group | length 500 / 300 | `{group_1: {length: 500, width: null}}` / `{group_1: {length: 300, width: 562.48486328125}}` |
+| performance width `2 Wc(400)` | group_1 or group_1 › score | arranger | length 430 | `{group_1: {length: 430}, group_1 › performance: {width: 1155.830078125}}` |
+| annotations width `2 W(400)` | annotations | bundle | length 420 | `{annotations: {length: 420, width: 1167.830078125}}` |
+| | group_1 or group_1 › score | group | length 500 / 300 | `{group_1: {length: 500, width: null}}` / `{group_1: {length: 300, width: 563.9150390625}}` |
 | group_1 width 600 | group_1 or group_1 › score | group | length 430 / 500 | `{length: 430, width: 600}` / `{length: 500, width: null}` |
-| performance width `2 Wc(400)` | group_1 or group_1 › score | group | length 350 / 500 | the pointer's row above / `{group_1: {length: 500, width: null}, group_1 › performance: {width: 1292.96923828125}}` (`2 Wc(500)`) |
+| performance width `2 Wc(400)` | group_1 or group_1 › score | group | length 350 / 500 | the pointer's row above / `{group_1: {length: 500, width: null}, group_1 › performance: {width: 1295.830078125}}` (`2 Wc(500)`) |
 | score height `2 Hs(4)` | group_1 / group_1 › score | bundle | spacing 16 / 12 | `{group_1: {spacing: 16}}` (no card's height follows) / `{group_1 › score: {spacing: 12, height: 189.90625}}` |
 | group_1 height `2 H(8)` | group_1 | bundle | spacing 16 | `{group_1: {spacing: 16, height: 354.46875}}` |
 | group_1 height `2 H(8)` | group_1 › score | arranger | spacing 12 | `group_1 › score: {spacing: 12}` then `group_1: {height: 370.46875}`, in that order |
@@ -1201,7 +1206,7 @@ of every other item without one, never the frame holding an edited held
 card: `group_2`'s left Box row gives `group_2`'s place, then `group_1`'s
 and `annotations`' positions, at both levels; in the group editor
 `[{target: {block: A, id: "group_1"}, values: {place: {length: 400,
-width: 562.48486328125}}}]` alone; in a timeline editor `[{target:
+width: 563.9150390625}}}]` alone; in a timeline editor `[{target:
 {block: A, id: "annotations"}, values: {place: {length: 420}}}]` alone:
 an ungrouped root's card is placed on its timeline.
 A held card's size on the arranger (`group_1 › performance`) is its own
@@ -1447,13 +1452,13 @@ marquee selects one.
 
 The rectangle an editor centres is its target's container on the canvas,
 read from the drawing's records: on `mixed` at (40, 80) the block `{block:
-A}` `{40, 80, 580.484619140625 × 491.62890625}`, `{block: A, id:
-"group_1"}`'s frame `{48, 108.8046875, 562.484619140625 × 169.234375}`,
+A}` `{40, 80, 581.9150390625 × 491.62890625}`, `{block: A, id:
+"group_1"}`'s frame `{48, 108.8046875, 563.9150390625 × 169.234375}`,
 `{block: A, id: "annotations"}`'s card `{48, 489.7734375,
-562.484619140625 × 71.85546875}`; a child with no card the rectangle
+563.9150390625 × 71.85546875}`; a child with no card the rectangle
 around its drawn elements, `{block: A, id: "dlt_1"}`'s line and name
 `{64, 414.89453125, 302.29150390625 × 12.8046875}`; at scale 2 the frame
-`{56, 137.609375, 1124.96923828125 × 338.46875}`; a target in another
+`{56, 137.609375, 1127.830078125 × 338.46875}`; a target in another
 block (`{block: "0000000009", id: "group_1"}`) throws. The viewport centres it in the pane less the drawer with 10 % free
 on each side, the zoom clamped to [0.05, 4]: in a 1200 × 800 pane with a
 400 drawer, `{100, 50, 320 × 160}` gives `{x: −120, y: 140, zoom: 2}`,
@@ -1743,15 +1748,17 @@ neither has one.
 **The flag** lists core's `timestampRows` grouped by part, in the
 timestamp's order: each part's heading its timeline's name, then its
 coordinate (labelled `coordinate`) and its maps' values (labelled by name,
-else ID), each value through core's `displayValue` in its own number
-type, a float with the granularity's `decimals` (display rounding is the
-flag's alone), with its unit's symbol; a missing value says why in core's
+else ID), each value as core's pretty text in its own number type and
+unit, rounded with the granularity's `decimals` (display rounding is the
+flag's alone; a value without a unit is its number alone, a measure its
+name and the word `measure`); a missing value says why in core's
 words. The hovered row is highlighted, the coordinate of the hovered
 line's timeline or the hovered map. Values: `b`'s spec at 457/48, read on
 `b2_ticks`, gives the parts `B` (`coordinate` `9 25/48 ♩`) and `b2`
 (`coordinate` `3 25/48 ♩`, then `Ticks` `1 690 ticks`, the hovered row: an int is
 grouped by threes);
-`bundle_mixed`'s `score` at 16/5 shows `cmap_2` as `1.6 s` at 3 places;
+`bundle_mixed`'s `score` at 16/5 shows `cmap_2`, a float of seconds, as
+`1.6″` at 3 places;
 in `group_measure_map` the `MeasureRecordMap` `cmap_1` of `score` has no
 value without its expanded rows and its row says `needs a server to
 expand its measure map`. The footer says `click to pin`.
@@ -1950,7 +1957,7 @@ Mounted on a store holding `bundle_mixed` at (40, 80) and `bare` at
    nothing. A refusal of the store is shown in the status line with the
    store's own message.
 4. **The view.** Opening moves the view to the edited element: opening
-   `group_1` on a canvas of 10000 × 10000 px shows it at (3683.03…,
+   `group_1` on a canvas of 10000 × 10000 px shows it at (3680.169921875,
    4226.3125), zoom 4. Closing returns it to where each level was entered
    from. A level opened during a move returns to where that move was
    heading. A canvas that changes size centres the edited element again,
@@ -2170,7 +2177,7 @@ display: wedge, name label, cross-section line).
   its top the pole's, `data-flipped` `false`. On a canvas 400 pixels wide
   the flag opens to the left: its left edge the node's left +
   263.53662109375 − 0.5 − 180, `data-flipped` `true`. It holds two parts,
-  `Melody` (`coordinate` `4 ♩`, `Tempo` `2.0 s`) and `Phrase` (`coordinate`
+  `Melody` (`coordinate` `4 ♩`, `Tempo` `2″`) and `Phrase` (`coordinate`
   `2 ♩`, `Ticks` `960 ticks`), and exactly one row is highlighted:
   `melody`'s coordinate, and with the pointer on `tempo` (y 35) `tempo`'s.
 - **Pin.** Given an unnamed pin at 4 (the one a reading there makes), the

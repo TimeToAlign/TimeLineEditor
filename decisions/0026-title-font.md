@@ -109,6 +109,11 @@ About pane lists it with its licence and copyright line, and the notices
 file carries its full licence text after DejaVu Sans's. The build test
 requires the emitted asset to equal the vendored file byte for byte.
 
+**Superseded in part (2026-11-16).** The editor bundles a second drawing
+face from the schema package, Noto Music 2.004, for what DejaVu Sans does
+not map (TimeToShare's decision 0012), so it carries three faces; the
+notices file holds IBM Plex Mono's licence after Noto Music's.
+
 ## Maintenance and dependencies
 
 No package and no code: one static file and its licence. IBM maintains

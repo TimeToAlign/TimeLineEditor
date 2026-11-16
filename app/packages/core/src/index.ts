@@ -157,10 +157,10 @@ export type { CoordinateDict } from "./number/display.ts";
 export {
   coordinateDict,
   copyValue,
-  copyValueWithUnit,
-  displayValue,
   exactDecimal,
-  unitSymbol,
+  prettyText,
+  prettyUnit,
+  rawText,
 } from "./number/display.ts";
 export { parseAxisValue } from "./number/parse.ts";
 export type { Real } from "./number/real.ts";

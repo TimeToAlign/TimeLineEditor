@@ -1,5 +1,5 @@
 /// <reference types="node" />
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { drawingOf } from "@timetoalign/tilie-arranger";
 import type { Address, Block, CommandEntry, Facet, Manifest } from "@timetoalign/tilie-core";
@@ -18,6 +18,7 @@ import { fontMetrics } from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App.svelte";
+import { FIXTURES } from "../src/fixtures.ts";
 import type { HookBand } from "../src/testHook.ts";
 import { bandsOf, hookBands } from "../src/testHook.ts";
 import { WorkspaceRefusedError } from "../src/workspaceSession.svelte.ts";
@@ -177,11 +178,6 @@ describe("bandsOf", () => {
   });
 });
 
-/** The text of a group or bundle fixture of the installed schema package. */
-function manifestFixtureText(name: string): string {
-  return fixtureText(`${name.startsWith("group_") ? "groups" : "bundles"}/${name}`);
-}
-
 /**
  * The limit of a wait for a load through the fixture menu and of each test
  * holding one: about three times the slowest such test measured, 2.2 s on
@@ -289,42 +285,22 @@ describe("the test hook", () => {
     expect(hook().store()).toBe(open);
   });
 
-  it("offers the end-to-end workspaces in the header and loads the chosen one", {
+  it("offers every fixture in the header and loads the chosen one", {
     timeout: FIXTURE_LOAD_TIMEOUT,
   }, async () => {
     const { select, load } = await fixtureMenu();
-    // The end-to-end workspaces are the generator's (`pnpm e2e:fixtures:check` pins them).
-    const workspaces = readdirSync(E2E_FIXTURES)
-      .filter((name) => name.endsWith(".tle.json"))
-      .map((name) => name.slice(0, -".tle.json".length));
-    const manifests = [
-      "bundle_free_ids",
-      "bundle_mixed",
-      "bundle_shared_member",
-      "bundle_shared_parent",
-      "bundle_ungrouped",
-      "group_child_member",
-      "group_grandchild",
-      "group_measure_map",
-      "group_number_types",
-      "group_parent_both",
-      "group_parent_exact",
-      "group_parent_right",
-      "group_parents_mixed",
-      "group_styled",
-      "group_unknown_length",
-    ];
-    expect(workspaces.includes("small")).toBe(true);
+    // `fixtures.test.ts` proves these labels against the files on disk.
     expect(Array.from(select.options, (option) => option.value)).toEqual(
-      [...workspaces, ...manifests].sort(),
+      FIXTURES.map(({ name }) => name),
     );
+    expect(select.options.length).toBe(158);
     expect(select.labels?.[0]?.textContent?.trim().startsWith("Fixture")).toBe(true);
 
     const text = readFileSync(path.join(E2E_FIXTURES, "small.tle.json"), "utf8");
     const expected = readWorkspace(text);
     if (isLoadError(expected)) throw new Error("small.tle.json is refused");
     hook().select([{ block: A }]);
-    select.value = "small";
+    select.value = "e2e/small";
     select.dispatchEvent(new Event("change"));
     load.click();
 
@@ -341,9 +317,9 @@ describe("the test hook", () => {
   it("opens a group or bundle fixture as one block of its manifest", {
     timeout: FIXTURE_LOAD_TIMEOUT,
   }, async () => {
-    for (const name of ["group_number_types", "bundle_mixed"] as const) {
+    for (const name of ["groups/group_number_types", "bundles/bundle_mixed"] as const) {
       await loadFromMenu(name);
-      const manifest = loadManifest(manifestFixtureText(name));
+      const manifest = loadManifest(fixtureText(name));
       if (isLoadError(manifest)) throw new Error(`${name} is refused`);
       const block = hook().store().view.blocks.fixture000;
       expect([block?.x, block?.y]).toEqual([0, 0]);
@@ -361,8 +337,8 @@ describe("the test hook", () => {
     timeout: FIXTURE_LOAD_TIMEOUT,
   }, async () => {
     for (const [name, timeline] of [
-      ["group_child_member", "second-half"],
-      ["bundle_mixed", "annotations"],
+      ["groups/group_child_member", "second-half"],
+      ["bundles/bundle_mixed", "annotations"],
     ] as const) {
       await loadFromMenu(name);
       const view = hook().store().view;

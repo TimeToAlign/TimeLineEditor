@@ -94,7 +94,7 @@ export function ancestorLines(scope: Scope): AncestorLine[] {
         label,
         u: part === "start" ? 0 : 1,
         value,
-        ...measured(label, coordinateText(value, timeline.unit)),
+        ...measured(label, coordinateText(value, timeline.number_type, timeline.unit)),
       };
     });
     return {

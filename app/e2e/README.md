@@ -37,7 +37,7 @@ Two modules hold what the specs share. `schema.ts` loads the schema
 package the editor's packages resolve (installed or linked), typed as that
 package's own exports (the suite's `tsconfig.json` maps the package for
 types only), and gives its directory, its `SCHEMA_VERSION`, the manifest
-fixtures of that version and the bundled face's metrics, the package's own
+fixtures of that version and the bundled faces' metrics, the package's own
 export the editor draws with.
 `support.ts` holds every helper more than one spec uses: opening a fixture,
 reading the hook, selecting, closing an editor, the inspector's tabs and
@@ -159,12 +159,12 @@ present. The files are never edited by hand.
 The group workspace takes one manifest of each shape the drawing distinguishes:
 a member that is a child (one ancestor line), a grandchild (two), members
 under three different roots beside a root member, and a styled frame; the
-blocks it draws (558.4140625 × 190.13671875, 559.70361328125 × 224.11328125,
-568.08642578125 × 377.640625, 544.693603515625 × 260.1875) do not
+blocks it draws (553.898681640625 × 190.13671875, 559.70361328125 × 224.11328125,
+570.947265625 × 377.640625, 546.1240234375 × 260.1875) do not
 overlap at those positions, and all four lie inside a 1600 × 1000 page at
 viewport (40, 40), zoom 1. The bundle workspace holds every synthetic manifest
-of `bundles/` (blocks 580.484619140625 × 473.62890625, 585.39013671875 ×
-537.4609375, 525.896728515625 × 252.1640625, 541.83056640625 ×
+of `bundles/` (blocks 581.9150390625 × 473.62890625, 585.39013671875 ×
+537.4609375, 527.3271484375 × 252.1640625, 541.83056640625 ×
 323.9296875), none overlapping another at those positions.
 
 After opening, the journal holds one `add` per block (5, 4, 4, 300, 900); a gesture
@@ -214,7 +214,7 @@ part: ["card"]}` (roots `bare`, `clt_1`, `melody`, `flow:quarters`,
 
 The items of the two bundles with frames lie at their default places
 (drawing.md sections 6.4, 6.5, 8.4 and 8.6, at the default spacings), derived from the
-fixture and the font alone. A member drawing is `Hm = y_root + max(Eb,
+fixture and the fonts' metrics table alone. A member drawing is `Hm = y_root + max(Eb,
 h(11) / 2) + 8` high, `y_root = max(8 + Ea, 8 + h(11) / 2)`, with `h(11) =
 12.8046875` and `h(9) = 10.4765625`. Below every line lie its wedges with
 one tier of labels, `1.5 + 13 + 2 + h(9) = 26.9765625` (a boundary's 8 is
@@ -265,7 +265,7 @@ phrase, region and jump labels) is centred at least 43
 inside either end of its line at every length these tests use, against
 half-widths of at most 32.53, so neither the start nor the right margin of
 the one horizontal layout (drawing.md section 8.2) moves. Every item of
-`bmixed0000` is `162.484619140625 + L` wide (562.484619140625 at 400); in
+`bmixed0000` is `163.9150390625 + L` wide (563.9150390625 at 400); in
 `bshared000` every member's card is `Wc(L) = 151.39013671875 + L` wide and
 every frame and the ungrouped card `16 + Wc(L)`.
 
@@ -289,16 +289,17 @@ every frame and the ungrouped card `16 + Wc(L)`.
 - A nudge moves by one grid step (8), with Shift eight steps (64), and the
   result snaps to the grid.
 
-## The bundled face
+## The bundled faces
 
 A drawn text's width is defined by the drawing: the sum of its code points'
-advances in the bundled face's advance table times the font size over 2048,
+advances in the bundled faces' one advance table (DejaVu Sans's, with Noto
+Music's for what DejaVu Sans does not map) times the font size over 2048,
 kerning off, a dyadic fraction exact as a double ("Phrase" at 11 px is
 (1235 + 1298 + 842 + 1255 + 1067 + 1260) × 11 / 2048 = 37.36669921875).
 Each engine stores it in its own precision: WebKit exactly, Chromium
 rounded up to its 1/64 px layout unit (37.375). Firefox stores values up to
 6e-4 px off by a rule no rounding grid reproduces, so there the expected
-width is the same string laid out afresh, after the face has loaded, in the
+width is the same string laid out afresh, after the faces have loaded, in the
 same `<svg>` at the same size. A text laid out with a stand-in font fails
 either way (the fallback gives "Phrase" 34.79). `canvas.spec.ts` and
 `visual.spec.ts` require every text to pass.
@@ -312,7 +313,7 @@ fixtures, the drawing facts and the gesture rules above.
 **`canvas.spec.ts`** (Chromium, Firefox, WebKit) proves the canvas with the
 mouse and the keyboard on `small` at viewport (40, 40), zoom 1, page 1600 ×
 1000: opening draws one node per block, the fixture menu loads `small` as
-the hook does, and every text is in the bundled face; a drag is one `set`
+the hook does, and every text is in the bundled faces; a drag is one `set`
 at the grid- and block-snapped position that the gesture rules give from
 the drag's delta, with undo and redo restoring both placements exactly; two
 selected blocks move in one command with two changes; a snap to another
@@ -643,10 +644,10 @@ two empty 600-px slots) and forwards `/tilie/…` to the embed build, so the
 editor's files reach the page from the host's origin. The host imports
 `mount` from `tilie.js` and mounts `small` in the first slot and `bundles`
 in the second. Each slot then shows one node per block of its workspace and
-each editor's `text()` equals its fixture byte for byte; the bundled face
-is loaded (`document.fonts.check`, and the one face of that family
-`loaded`) from `assets/` beside the bundle, which proves the relative font
-URL; no request goes to an `/api/` path and no test hook is installed. A
+each editor's `text()` equals its fixture byte for byte; both bundled
+faces, DejaVu Sans and Noto Music, are loaded (`document.fonts.check`, and
+the one face of each family `loaded`) from `assets/` beside the bundle, two
+`.ttf` requests answered 200, which proves the relative font URLs; no request goes to an `/api/` path and no test hook is installed. A
 drag in the first slot changes that editor's text alone, and the host's
 body margin (7px) and title survive it. Ctrl/Cmd+S on the host's input and
 Ctrl/Cmd+Z on its body reach the host with `defaultPrevented` false, read
@@ -666,16 +667,17 @@ at y 40.5 from 63.53662109375, 50 canvas units a quarter, its map
 `ticks` (×480 to ticks). Half a device pixel is then 0.01 quarters, and
 the default granularity (denominator 2520, 3 decimals) picks the
 simplest fraction within it. The flag (`coordinate-flag`) writes each
-value in core's display text with its unit's symbol (the drawing
-specification's `♩`, `s`, `ticks`) and the footer `click to pin`: at
+value as core's pretty text, the number, a space and its unit's pretty
+unit (`♩`, `ticks`), seconds with `″` and no pretty unit after, their decimals only
+where they are not zero, and the footer `click to pin`: at
 `xStart + 123.75` on `melody` (2.475 quarters; divisors 1 to 14 miss, 15
-gives 37/15) the coordinate reads `2 7/15 ♩` and `tempo` `1.233 s`
-(37/30 to three places), with one hovered wedge and one hovered
-cross-section line; at `xStart + 200` `4 ♩` and `2.0 s`; the same
-abscissa on `tempo`'s drawing still reads `melody` at 4 with `tempo`'s
-row highlighted (`data-hovered`); 30 below the line nothing is within 8
-pixels: no flag and no marks; on `phrase` at 263.53662109375 `2 ♩` with
-`ticks` 960 and no `tempo` row. C toggles the flag. A click on a line
+gives 37/15) the coordinate reads `2 7/15 ♩` and `tempo` `1.233″`
+(the float 37/30 rounded to three places), with one hovered wedge and one
+hovered cross-section line; at `xStart + 200` `4 ♩` and `2″` (the float
+2.0); the same abscissa on `tempo`'s drawing still reads `melody` at 4
+with `tempo`'s row highlighted (`data-hovered`); 30 below the line
+nothing is within 8 pixels: no flag and no marks; on `phrase` at
+263.53662109375 `2 ♩` with `960 ticks` and no `tempo` row. C toggles the flag. A click on a line
 pins the reading: the Timestamp tab is selected and shows the pinned
 timestamp's Properties (`timestamp-properties`), the pinned wedge and line
 stay when the pointer leaves, and the journal keeps its length; a click on
@@ -721,7 +723,7 @@ definition.
 **`visual.spec.ts`** (`@visual`, the pinned container only) compares
 zero-tolerance screenshots: each of `small`'s five nodes and the pane at
 viewport (40, 40), zoom 1, nothing selected, and the pane with `groups`
-open. Before the shots the face is forced to load and the face check above
+open. Before the shots both faces are forced to load and the face check above
 must hold, so no baseline holds text laid out with a stand-in font. The
 baselines are made and checked only in the pinned container (`pnpm
 e2e:visual:update`, `pnpm e2e:visual`).

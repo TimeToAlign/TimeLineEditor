@@ -39,6 +39,12 @@ font directory holds the bundled font, and refuses to rasterize when
 `fc-list` under that file lists any other font or when `rsvg-convert`
 fails.
 
+**Superseded in part (2026-11-16).** The drawing specification draws what
+DejaVu Sans does not map in Noto Music 2.004, which TimeToShare ships
+beside it (`fonts/NotoMusic-Regular.ttf`, its decision 0012). The font
+directory holds both files, and the script refuses to rasterize unless
+`fc-list` lists exactly those two.
+
 ## Maintenance and dependencies
 
 librsvg is a GNOME project maintained since 2002 with several active

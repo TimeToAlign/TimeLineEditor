@@ -78,12 +78,13 @@ jobs:
         working-directory: app
     steps:
       - uses: actions/checkout@v7
-      - name: Install a minimal TeX Live with LuaLaTeX, TikZ, standalone and DejaVu Sans
+      # The figures read their fonts from the schema package's files, never a system copy.
+      - name: Install a minimal TeX Live with LuaLaTeX, TikZ and standalone
         run: |
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends \
             texlive-luatex texlive-latex-recommended texlive-latex-extra \
-            texlive-pictures fonts-dejavu-core
+            texlive-pictures
       - uses: pnpm/action-setup@v6
         with:
           package_json_file: app/package.json

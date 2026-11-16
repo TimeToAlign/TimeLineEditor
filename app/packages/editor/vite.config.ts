@@ -6,7 +6,7 @@ import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { searchForWorkspaceRoot } from "vite";
 import { defineConfig } from "vitest/config";
 import { packageOf, thirdPartyNotices } from "./notices.ts";
-import { FONT_LICENCE, TITLE_FONT_LICENCE } from "./src/attributions.ts";
+import { MUSIC_FONT_LICENCE, TEXT_FONT_LICENCE, TITLE_FONT_LICENCE } from "./src/attributions.ts";
 
 /** The `version` of a package.json file. */
 function versionOf(file: string): string {
@@ -59,7 +59,7 @@ const CODE_SPLITTING = {
  * as `tilie.js` with its exports kept, all styles in `tilie.css`, the lazy
  * chunks and the fonts under `assets/`, and the notices file; a host page
  * loads `tilie.css` and imports `mount` from `tilie.js`. Library mode is
- * not used, since it would inline the font into the stylesheet.
+ * not used, since it would inline the fonts into the stylesheet.
  *
  * The About pane shows the editor's version (the workspace's `package.json`,
  * which releases bump) and the bundled TimeToShare's, fixed at build time.
@@ -67,7 +67,7 @@ const CODE_SPLITTING = {
  * During `pnpm dev`, API calls are proxied to a locally running server
  * (`tilie --port <port> --no-browser`); set `TILIE_PORT` to its port. The
  * development server may also read the schema package's real directory, so
- * that the bundled font is served: installed from npm it lies inside the
+ * that the bundled drawing fonts are served: installed from npm it lies inside the
  * workspace anyway, but a local TimeToShare checkout linked in to try a
  * schema change lies outside it.
  */
@@ -91,9 +91,22 @@ export default defineConfig(({ mode }) => {
             licenceFile: path.join(flow, "LICENSE"),
           },
           {
-            title: "DejaVu Sans 2.37 (the bundled font, from @timetoalign/timetoshare)",
-            licence: FONT_LICENCE,
-            licenceFile: path.join(directory("@timetoalign/timetoshare"), "fonts", "LICENSE"),
+            title: "DejaVu Sans 2.37 (the bundled text font, from @timetoalign/timetoshare)",
+            licence: TEXT_FONT_LICENCE,
+            licenceFile: path.join(
+              directory("@timetoalign/timetoshare"),
+              "fonts",
+              "DejaVuSans-LICENSE",
+            ),
+          },
+          {
+            title: "Noto Music 2.004 (the bundled music font, from @timetoalign/timetoshare)",
+            licence: MUSIC_FONT_LICENCE,
+            licenceFile: path.join(
+              directory("@timetoalign/timetoshare"),
+              "fonts",
+              "NotoMusic-LICENSE",
+            ),
           },
           {
             title: "IBM Plex Mono 2.5.0 (the bundled title font of the inspector)",
