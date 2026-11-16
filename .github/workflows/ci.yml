@@ -13,18 +13,12 @@ jobs:
     runs-on: ubuntu-24.04
     defaults:
       run:
-        working-directory: app
+        working-directory: TimeLineEditor/app
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
         with:
-          package_json_file: app/package.json
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22
-          cache: pnpm
-          cache-dependency-path: app/pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile
+          path: TimeLineEditor
+      - uses: ./TimeLineEditor/.github/actions/install-app
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
@@ -32,7 +26,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: editor-dist
-          path: app/packages/editor/dist
+          path: TimeLineEditor/app/packages/editor/dist
           if-no-files-found: error
 
   e2e:
@@ -47,18 +41,12 @@ jobs:
       HOME: /root
     defaults:
       run:
-        working-directory: app
+        working-directory: TimeLineEditor/app
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
         with:
-          package_json_file: app/package.json
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22
-          cache: pnpm
-          cache-dependency-path: app/pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile
+          path: TimeLineEditor
+      - uses: ./TimeLineEditor/.github/actions/install-app
       - run: pnpm e2e:fixtures:check
       - run: pnpm e2e:all
       - uses: actions/upload-artifact@v7
@@ -66,8 +54,8 @@ jobs:
         with:
           name: e2e-report
           path: |
-            app/playwright-report
-            app/e2e/test-results
+            TimeLineEditor/app/playwright-report
+            TimeLineEditor/app/e2e/test-results
           if-no-files-found: ignore
 
   tikz:
@@ -75,9 +63,11 @@ jobs:
     runs-on: ubuntu-24.04
     defaults:
       run:
-        working-directory: app
+        working-directory: TimeLineEditor/app
     steps:
       - uses: actions/checkout@v7
+        with:
+          path: TimeLineEditor
       # The figures read their fonts from the schema package's files, never a system copy.
       - name: Install a minimal TeX Live with LuaLaTeX, TikZ and standalone
         run: |
@@ -85,15 +75,7 @@ jobs:
           sudo apt-get install --yes --no-install-recommends \
             texlive-luatex texlive-latex-recommended texlive-latex-extra \
             texlive-pictures
-      - uses: pnpm/action-setup@v6
-        with:
-          package_json_file: app/package.json
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22
-          cache: pnpm
-          cache-dependency-path: app/pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile
+      - uses: ./TimeLineEditor/.github/actions/install-app
       - name: Compile every golden TikZ figure
         run: pnpm vitest run --project writers packages/writers/tests/compile.test.ts
         env:

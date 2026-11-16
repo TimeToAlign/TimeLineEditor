@@ -38,38 +38,36 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ needs.release-please.outputs.tag_name }}
+          path: TimeLineEditor
+      - uses: actions/checkout@v7
+        with:
+          repository: TimeToAlign/timetoalign
+          # the timetoalign commit server/uv.lock was locked against; moves with it
+          ref: a3e0d256f0c13ba847a4baa712050104cea02ab9
+          path: timetoalign
       - name: The tag matches the declared versions
-        run: python3 scripts/check_versions.py --tag "${{ needs.release-please.outputs.tag_name }}"
-      - uses: pnpm/action-setup@v6
-        with:
-          package_json_file: app/package.json
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22
-          cache: pnpm
-          cache-dependency-path: app/pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile
-        working-directory: app
+        run: python3 TimeLineEditor/scripts/check_versions.py --tag "${{ needs.release-please.outputs.tag_name }}"
+      - uses: ./TimeLineEditor/.github/actions/install-app
       - run: pnpm lint && pnpm typecheck && pnpm test
-        working-directory: app
+        working-directory: TimeLineEditor/app
       - run: pnpm build
-        working-directory: app
+        working-directory: TimeLineEditor/app
       - uses: astral-sh/setup-uv@v10.2.0
         with:
           version: "0.11.28"
           python-version: "3.11"
       - run: uv sync --locked
-        working-directory: server
+        working-directory: TimeLineEditor/server
       - run: uv run pytest
-        working-directory: server
+        working-directory: TimeLineEditor/server
       - run: uv build
-        working-directory: server
+        working-directory: TimeLineEditor/server
       - name: The wheel bundles the built editor
-        run: unzip -l server/dist/*.whl | grep tilie_server/static/index.html
+        run: unzip -l TimeLineEditor/server/dist/*.whl | grep tilie_server/static/index.html
       - uses: actions/upload-artifact@v7
         with:
           name: dist
-          path: server/dist
+          path: TimeLineEditor/server/dist
           if-no-files-found: error
 
   publish:
