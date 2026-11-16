@@ -2,10 +2,10 @@
 /**
  * Fixtures and file stubs for the editor's tests: manifests from the
  * installed `@timetoalign/timetoshare`, workspaces and stores built of
- * them, the test hook of a mounted page, the fallback file input answered
- * with a chosen file, downloads recorded instead of performed, the
- * autosaves of mounted editors waited for between tests, and the open
- * editor of a level.
+ * them, the test hook of a mounted page, the open dialog read and
+ * answered, the fallback file input answered with a chosen file, downloads
+ * recorded instead of performed, the autosaves of mounted editors waited
+ * for between tests, and the open editor of a level.
  */
 
 import { readFileSync } from "node:fs";
@@ -15,6 +15,7 @@ import type { Editing, Level } from "@timetoalign/tilie-arranger";
 import type { Manifest, Store } from "@timetoalign/tilie-core";
 import { createStore, isLoadError, loadManifest, readWorkspace } from "@timetoalign/tilie-core";
 import { SCHEMA_VERSION } from "@timetoalign/timetoshare";
+import { flushSync } from "svelte";
 import { vi } from "vitest";
 import type { Autosave, AutosaveOptions } from "../src/autosave.ts";
 import { fixtureWorkspace } from "../src/fixtureWorkspace.ts";
@@ -75,6 +76,26 @@ export function hook(): TestHook {
   const installed = window.__tilie;
   if (installed === undefined) throw new Error("window.__tilie is not installed");
   return installed;
+}
+
+/** The open modal dialog's question and answers. */
+export function openDialog(): { question: string; answers: string[] } | null {
+  const dialog = [...document.querySelectorAll("dialog")].find((element) => element.open);
+  if (dialog === undefined) return null;
+  return {
+    question: dialog.querySelector("p")?.textContent ?? "",
+    answers: Array.from(dialog.querySelectorAll("button"), (button) => button.textContent ?? ""),
+  };
+}
+
+/** Press the answer `label` of the open modal dialog. */
+export function answer(label: string): void {
+  const button = [...document.querySelectorAll<HTMLButtonElement>("dialog[open] button")].find(
+    (entry) => entry.textContent === label,
+  );
+  if (button === undefined) throw new Error(`no answer ${label}`);
+  button.click();
+  flushSync();
 }
 
 /** Answer the pending fallback file input with the file `name` holding `text`; returns the input. */

@@ -57,7 +57,7 @@ TiLiE keeps a small browser editing core and treats the local Python server as a
 
 ## Development
 
-Every application package takes the TimeToShare schema package, `@timetoalign/timetoshare`, from npm. Install and validate the application workspace (see [CONTRIBUTING.md](CONTRIBUTING.md#setup)):
+Every application package that uses the TimeToShare schema package, `@timetoalign/timetoshare`, takes it through a `link:` to the `js/` directory of a checkout beside this repository until schema 0.2.0 is published on npm, and `^0.2.0` from npm once it is. Clone [TimeToShare](https://github.com/TimeToAlign/TimeToShare) there and build its `js/` package first (see [CONTRIBUTING.md](CONTRIBUTING.md#setup)), then install and validate the application workspace:
 
 ```bash
 git clone https://github.com/TimeToAlign/TimeLineEditor.git
@@ -81,7 +81,7 @@ The command writes SVG and PNG renders plus `index.html` under
 Noto Music files bundled by TimeToShare and refuses to render when another font
 is visible.
 
-Set up, test, and build the server separately:
+Set up, test, and build the server separately. Until a timetoalign release carries the measure-map expansion, the server installs timetoalign from a checkout beside this repository, so clone [timetoalign](https://github.com/TimeToAlign/timetoalign) there first (see [CONTRIBUTING.md](CONTRIBUTING.md#setup)):
 
 ```bash
 cd ../server

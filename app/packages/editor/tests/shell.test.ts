@@ -24,11 +24,13 @@ import { manifestFileName } from "../src/files.ts";
 import { WorkspaceSession } from "../src/workspaceSession.svelte.ts";
 import { stubEditor } from "./dom.ts";
 import {
+  answer,
   fixture,
   fixtureText,
   flushAutosaves,
   hook,
   interceptDownloads,
+  openDialog,
   pickFile,
   workspaceOf,
 } from "./support.ts";
@@ -143,25 +145,6 @@ function messages(): string[] {
     document.querySelectorAll('[data-testid="message"]'),
     (message) => message.querySelector("p")?.textContent ?? "",
   );
-}
-
-/** The open modal dialog's question and answers. */
-function openDialog(): { question: string; answers: string[] } | null {
-  const dialog = [...document.querySelectorAll("dialog")].find((element) => element.open);
-  if (dialog === undefined) return null;
-  return {
-    question: dialog.querySelector("p")?.textContent ?? "",
-    answers: Array.from(dialog.querySelectorAll("button"), (button) => button.textContent ?? ""),
-  };
-}
-
-function answer(label: string): void {
-  const button = [...document.querySelectorAll<HTMLButtonElement>("dialog[open] button")].find(
-    (entry) => entry.textContent === label,
-  );
-  if (button === undefined) throw new Error(`no answer ${label}`);
-  button.click();
-  flushSync();
 }
 
 describe("the File menu", () => {

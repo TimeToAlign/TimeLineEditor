@@ -2,7 +2,7 @@
 import { readdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
-import { isLoadError, readWorkspace } from "@timetoalign/tilie-core";
+import { isLoadError, loadManifest, readWorkspace } from "@timetoalign/tilie-core";
 import { SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { FIXTURES } from "../src/fixtures.ts";
@@ -32,7 +32,7 @@ const workspaces = readdirSync(E2E)
   .filter((file) => file.endsWith(".tle.json"))
   .map((file) => `e2e/${file.slice(0, -".tle.json".length)}`);
 
-const names = FIXTURES.map(({ name }) => name);
+const names = FIXTURES.map(({ label }) => label);
 
 describe("the fixture menu", () => {
   it("lists every fixture once, under its path label, in code-unit order", () => {
@@ -64,14 +64,21 @@ describe("the fixture menu", () => {
   });
 });
 
-describe("a workspace the reader accepts is built of", () => {
-  const built = FIXTURES.filter(({ name }) => !name.startsWith("e2e/"));
+describe("an entry", () => {
+  const imported = FIXTURES.filter(({ kind }) => kind === "manifest");
+  const opened = FIXTURES.filter(({ kind }) => kind === "workspace");
 
-  it("every manifest fixture and warning case, one case each", () => {
-    expect(built.length).toBe(153);
+  it("is a manifest for every manifest fixture and warning case, a workspace for every end-to-end file", () => {
+    expect([imported.length, opened.length]).toEqual([153, 5]);
+    expect(opened.map(({ label }) => label)).toEqual(workspaces);
   });
 
-  it.each(built)("$name", async ({ text }) => {
+  it.each(imported)("$label is a manifest core reads", async ({ text }) => {
+    const read = loadManifest(await text());
+    expect(isLoadError(read) ? read.problems.map(({ code }) => code) : []).toEqual([]);
+  });
+
+  it.each(opened)("$label is a workspace the reader accepts", async ({ text }) => {
     const read = readWorkspace(await text());
     expect(isLoadError(read) ? read.problems.map(({ code }) => code) : []).toEqual([]);
   });

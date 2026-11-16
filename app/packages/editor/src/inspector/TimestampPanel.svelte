@@ -5,7 +5,9 @@
  * switch and the timestamp's values, in Editor one group per timeline
  * crossed whose exact values can be edited and copied (the value, the raw
  * text with its unit written out, the pretty text), else its text in JSON,
- * YAML or TOML with one Copy. **Properties**, a key/value grid: the name
+ * YAML or TOML with one Copy; the text is a readout, not a manifest, so in
+ * TOML a member whose value is null (a map without a value) is left out,
+ * where JSON and YAML write the null. **Properties**, a key/value grid: the name
  * (naming an unnamed timestamp stores it), what it displays, and Delete;
  * only the name while it is unnamed. **Coordinate granularity**, the
  * workspace's two settings on one line at the pane's bottom. An edit of an
@@ -16,12 +18,12 @@
  */
 import type { LiveStore } from "@timetoalign/tilie-arranger";
 import type { Command, Granularity, Pin, TimestampDisplay } from "@timetoalign/tilie-core";
-import { parseAxisValue, pinAt, positionFor, timestampJson } from "@timetoalign/tilie-core";
+import { parseAxisValue, pinAt, positionFor } from "@timetoalign/tilie-core";
 import { Rational } from "@timetoalign/tilie-core/numbers";
 import { informOf } from "../messages.svelte.ts";
 import FormatSwitch from "./FormatSwitch.svelte";
 import type { Format } from "./formats.svelte.ts";
-import { FORMAT_LABELS, FORMATS, isLoaded, loadCodec, writeText } from "./formats.svelte.ts";
+import { FORMAT_LABELS, FORMATS, isLoaded, loadCodec } from "./formats.svelte.ts";
 import type { Copies, ValueRow } from "./timestamp.ts";
 import {
   addedTimestamp,
@@ -32,6 +34,7 @@ import {
   nameCommand,
   removeCommand,
   timelineRows,
+  timestampText,
 } from "./timestamp.ts";
 
 interface Props {
@@ -167,7 +170,7 @@ function choose(next: Shown): void {
 /** The timestamp as text in the chosen format, or why it cannot be written; `null` while its codec loads. */
 const text = $derived.by(() => {
   if (pin === null || shown === "editor" || !isLoaded(shown)) return null;
-  const written = writeText(shown, timestampJson(pin));
+  const written = timestampText(shown, pin);
   return written.ok
     ? { ok: true as const, text: written.value.text }
     : { ok: false as const, message: written.problems.map((item) => item.message).join(" ") };

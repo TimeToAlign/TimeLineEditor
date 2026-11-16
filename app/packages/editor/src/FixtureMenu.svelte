@@ -1,32 +1,25 @@
 <script lang="ts">
 /**
- * The header's fixture menu of development and test builds: the fixture
- * workspaces (`fixtures.ts`), one chosen and opened with Load. Why a
- * fixture could not be opened is shown beside the button.
+ * The header's fixture menu of development and test builds: the fixtures
+ * (`fixtures.ts`), one chosen and opened with Open as the Examples menu
+ * opens an example.
  */
+import type { Example } from "./examples.ts";
 import { FIXTURES } from "./fixtures.ts";
-import { messageOf } from "./messages.svelte.ts";
 
 interface Props {
-  /** Open the workspace file `text`; throws when it is refused. */
-  onload: (text: string) => void;
+  /** Open the fixture `example` as the Examples menu opens one. */
+  onopen: (example: Example) => Promise<void>;
 }
 
-let { onload }: Props = $props();
+let { onopen }: Props = $props();
 
-let fixture = $state(FIXTURES[0]?.name ?? "");
-let problem = $state("");
+let fixture = $state(FIXTURES[0]?.label ?? "");
 
 /** Open the chosen fixture. */
-async function load(): Promise<void> {
-  const chosen = FIXTURES.find(({ name }) => name === fixture);
-  if (chosen === undefined) return;
-  try {
-    onload(await chosen.text());
-    problem = "";
-  } catch (error) {
-    problem = messageOf(error);
-  }
+function open(): void {
+  const chosen = FIXTURES.find(({ label }) => label === fixture);
+  if (chosen !== undefined) void onopen(chosen);
 }
 </script>
 
@@ -35,13 +28,12 @@ async function load(): Promise<void> {
   <label>
     Fixture
     <select data-testid="fixture-select" bind:value={fixture}>
-      {#each FIXTURES as item (item.name)}
-        <option value={item.name}>{item.name}</option>
+      {#each FIXTURES as item (item.label)}
+        <option value={item.label}>{item.label}</option>
       {/each}
     </select>
   </label>
-  <button type="button" data-testid="fixture-load" onclick={load}>Load</button>
-  <span class="problem" role="status">{problem}</span>
+  <button type="button" data-testid="fixture-open" onclick={open}>Open</button>
 </div>
 {/if}
 

@@ -7,7 +7,55 @@
       ]
     },
     "statements": [],
-    "styles": {}
+    "styles": {},
+    "timestamps": [
+      {
+        "coordinate": 0,
+        "display": [
+          "wedge",
+          "coordinate"
+        ],
+        "id": "timestamp_1",
+        "name": "origin",
+        "timeline": "midi"
+      },
+      {
+        "coordinate": 7680,
+        "display": [
+          "wedge",
+          "coordinate"
+        ],
+        "id": "timestamp_2",
+        "name": "length",
+        "timeline": "midi"
+      },
+      {
+        "coordinate": [
+          0,
+          1
+        ],
+        "display": [
+          "wedge",
+          "coordinate"
+        ],
+        "id": "timestamp_3",
+        "name": "origin",
+        "timeline": "score"
+      },
+      {
+        "coordinate": [
+          16,
+          1
+        ],
+        "display": [
+          "wedge",
+          "coordinate"
+        ],
+        "id": "timestamp_4",
+        "name": "length",
+        "timeline": "score"
+      }
+    ]
   },
   "groups": [
     {
@@ -73,7 +121,7 @@
     }
   ],
   "meta": {
-    "generator": "timetoalign 1.2.0 (c2880b0b)"
+    "generator": "timetoalign 1.2.0 (a3e0d256)"
   },
   "name": null,
   "timelines": [

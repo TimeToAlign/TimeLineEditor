@@ -5,7 +5,6 @@ import json
 import sys
 from fractions import Fraction
 from importlib.metadata import version
-from importlib.util import find_spec
 from pathlib import Path
 from typing import Any
 
@@ -24,11 +23,6 @@ AUTH = {"Authorization": f"Bearer {TOKEN}"}
 ROUTE = "/api/measure-maps"
 DATA = Path(__file__).parent / "data"
 EXPANSION = "timetoalign.timelines.structure"
-
-needs_expansion = pytest.mark.skipif(
-    find_spec(EXPANSION) is None,
-    reason="the installed timetoalign cannot expand measure maps",
-)
 
 
 @pytest.fixture
@@ -61,7 +55,6 @@ def row(**members: Any) -> dict[str, Any]:
     return {**plain, **members}
 
 
-@needs_expansion
 def test_the_fixture_answers_its_hand_expanded_rows(server: TestClient) -> None:
     response = server.post(ROUTE, headers=AUTH, json=read("group_measure_map.json"))
     assert response.status_code == 200
@@ -69,7 +62,6 @@ def test_the_fixture_answers_its_hand_expanded_rows(server: TestClient) -> None:
     assert list(response.json()["measure_maps"][0]["rows"][0]) == list(row())
 
 
-@needs_expansion
 def test_the_answer_is_the_library_expansion(server: TestClient) -> None:
     from timetoalign.timelines.structure import MeasureMap
 
@@ -91,7 +83,6 @@ def test_the_answer_is_the_library_expansion(server: TestClient) -> None:
     assert response.json()["measure_maps"][0]["rows"] == library
 
 
-@needs_expansion
 def test_floats_volta_and_unknown_keys(server: TestClient) -> None:
     manifest = {
         "measure_maps": [
@@ -145,7 +136,6 @@ def test_floats_volta_and_unknown_keys(server: TestClient) -> None:
     }
 
 
-@needs_expansion
 @pytest.mark.parametrize("manifest", [{"timetoshare": "0.2.0"}, {"measure_maps": []}])
 def test_a_manifest_without_measure_maps_answers_none(
     server: TestClient, manifest: dict[str, Any]
@@ -155,7 +145,6 @@ def test_a_manifest_without_measure_maps_answers_none(
     assert response.json() == {"measure_maps": []}
 
 
-@needs_expansion
 def test_two_requests_answer_the_same(server: TestClient) -> None:
     manifest = read("group_measure_map.json")
     first = server.post(ROUTE, headers=AUTH, json=manifest)
@@ -163,7 +152,6 @@ def test_two_requests_answer_the_same(server: TestClient) -> None:
     assert first.content == second.content
 
 
-@needs_expansion
 @pytest.mark.parametrize(
     ("body", "path", "message"),
     [
@@ -181,7 +169,6 @@ def test_a_body_of_another_form_is_refused(
     assert response.json() == {"detail": {"path": path, "message": message}}
 
 
-@needs_expansion
 def test_a_map_the_library_refuses_is_named_by_its_path(server: TestClient) -> None:
     manifest = read("group_measure_map.json")
     manifest["measure_maps"].append(

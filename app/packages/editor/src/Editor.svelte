@@ -155,7 +155,7 @@ if (initial !== undefined) {
 /**
  * Whether the open workspace may be replaced: it has no unsaved changes, or
  * the viewer saves them (and the save is made) or discards them. One
- * question for New, Open and a workspace example.
+ * question for New, Open and a workspace example (or fixture).
  */
 async function mayReplace(): Promise<boolean> {
   if (!session.dirty) return true;
@@ -418,7 +418,7 @@ export function flush(): Promise<void> {
   return autosaving?.flush() ?? Promise.resolve();
 }
 
-/** Open `text`, throwing the reader's refusal: the test hook's and the fixture menu's load. */
+/** Open `text`, throwing the reader's refusal: the test hook's load. */
 function loadOrThrow(text: string): void {
   const refusal = load(text);
   if (refusal !== null) throw new WorkspaceRefusedError(refusal.problems);
@@ -473,7 +473,7 @@ if (withTestHook) {
     </span>
     <span class="spacer"></span>
     {#if withTestHook && fixtureMenu !== null}
-      {#await fixtureMenu then { default: FixtureMenu }}<FixtureMenu onload={loadOrThrow} />{/await}
+      {#await fixtureMenu then { default: FixtureMenu }}<FixtureMenu onopen={openExample} />{/await}
     {/if}
     <button type="button" class="about-button" onclick={() => about?.open()}>About</button>
   </header>

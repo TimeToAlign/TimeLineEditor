@@ -105,15 +105,26 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.11", "3.13"]
+    # server/pyproject.toml takes timetoalign from the checkout beside this
+    # repository until a timetoalign release carries the measure-map expansion,
+    # so both repositories are checked out side by side.
     defaults:
       run:
-        working-directory: server
+        working-directory: TimeLineEditor/server
     steps:
       - uses: actions/checkout@v7
+        with:
+          path: TimeLineEditor
+      - uses: actions/checkout@v7
+        with:
+          repository: TimeToAlign/timetoalign
+          # the timetoalign commit server/uv.lock was locked against; moves with it
+          ref: a3e0d256f0c13ba847a4baa712050104cea02ab9
+          path: timetoalign
       - uses: actions/download-artifact@v8
         with:
           name: editor-dist
-          path: app/packages/editor/dist
+          path: TimeLineEditor/app/packages/editor/dist
       - uses: astral-sh/setup-uv@v10.2.0
         with:
           version: "0.11.28"

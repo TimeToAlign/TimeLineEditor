@@ -1,28 +1,23 @@
 /**
  * The fixture menu of development and test builds. It offers every fixture
- * there is: each manifest fixture of the installed schema package's
- * version, at the top of `fixtures/<version>/` or below it, corpus fixtures
- * and minimal twins included, built into a workspace of one block on first
- * use; the manifest of each warning case of that version; and the
- * end-to-end workspaces (`app/e2e/fixtures/*.tle.json`). The rejection
- * cases, refused by design, and the drawings, which are no manifests, are
- * left out. A production build contains neither the menu nor the files.
+ * there is as an example (`examples.ts`), opened as the Examples menu opens
+ * one: each manifest fixture of the installed schema package's version, at
+ * the top of `fixtures/<version>/` or below it, corpus fixtures and minimal
+ * twins included, and the manifest of each warning case of that version,
+ * each imported as one more block; and the end-to-end workspaces
+ * (`app/e2e/fixtures/*.tle.json`), each opened as the workspace. The
+ * rejection cases, refused by design, and the drawings, which are no
+ * manifests, are left out. A production build contains neither the menu
+ * nor the files.
+ *
+ * An entry's label is unique: a manifest fixture's path below the
+ * version's directory without `.json` (`bare`, `bare.minimal`,
+ * `groups/corpus_tilia`), `warnings/<name>` for a warning case and
+ * `e2e/<name>` for an end-to-end workspace.
  */
 
 import { dumps, parseJson, SCHEMA_VERSION } from "@timetoalign/timetoshare";
-import { manifestWorkspace } from "./fixtureWorkspace.ts";
-
-export interface Fixture {
-  /**
-   * The menu's label, unique: a manifest fixture's path below the version's
-   * directory without `.json` (`bare`, `bare.minimal`,
-   * `groups/corpus_tilia`), `warnings/<name>` for a warning case and
-   * `e2e/<name>` for an end-to-end workspace.
-   */
-  readonly name: string;
-  /** The workspace file's text, fetched (and built) on first use. */
-  readonly text: () => Promise<string>;
-}
+import type { Example } from "./examples.ts";
 
 /** The files a glob found: path → their text, loaded on demand. */
 type Files = Record<string, () => Promise<string>>;
@@ -49,9 +44,10 @@ function caseManifest(name: string, text: string): string {
  * file, every manifest fixture of `SCHEMA_VERSION` and every warning case
  * of that version among `manifests`; files of other versions are skipped.
  */
-export function fixtures(workspaces: Files, manifests: Files): Fixture[] {
-  const entries: Fixture[] = Object.entries(workspaces).map(([path, text]) => ({
-    name: `e2e/${path.slice(path.lastIndexOf("/") + 1, -".tle.json".length)}`,
+export function fixtures(workspaces: Files, manifests: Files): Example[] {
+  const entries: Example[] = Object.entries(workspaces).map(([path, text]) => ({
+    label: `e2e/${path.slice(path.lastIndexOf("/") + 1, -".tle.json".length)}`,
+    kind: "workspace",
     text,
   }));
   const version = `${SCHEMA_VERSION}/`;
@@ -59,25 +55,25 @@ export function fixtures(workspaces: Files, manifests: Files): Fixture[] {
   for (const [path, text] of Object.entries(manifests)) {
     const below = path.slice(path.indexOf(FIXTURE_ROOT) + FIXTURE_ROOT.length, -".json".length);
     if (below.startsWith(version)) {
-      const name = below.slice(version.length);
-      entries.push({ name, text: async () => manifestWorkspace(name, await text()) });
+      entries.push({ label: below.slice(version.length), kind: "manifest", text });
     } else if (below.startsWith(warnings)) {
-      const name = `warnings/${below.slice(warnings.length)}`;
+      const label = `warnings/${below.slice(warnings.length)}`;
       entries.push({
-        name,
-        text: async () => manifestWorkspace(name, caseManifest(name, await text())),
+        label,
+        kind: "manifest",
+        text: async () => caseManifest(label, await text()),
       });
     }
   }
   return entries.sort((left, right) =>
-    left.name < right.name ? -1 : left.name > right.name ? 1 : 0,
+    left.label < right.label ? -1 : left.label > right.label ? 1 : 0,
   );
 }
 
 // The build flag is spelled out here rather than imported (`TEST_HOOK`), so
 // the bundler sees a constant condition and leaves the files out of a
 // production build.
-export const FIXTURES: readonly Fixture[] =
+export const FIXTURES: readonly Example[] =
   import.meta.env.DEV || import.meta.env.VITE_TILIE_TEST_HOOK === "1"
     ? fixtures(
         import.meta.glob<string>("../../../e2e/fixtures/*.tle.json", {

@@ -69,8 +69,9 @@ anew from them: `GET /api/health` still answers 200 with its three
 versions, and every authorized `POST /api/measure-maps`, whatever its body,
 answers 501 `{"detail": {"path": [], "message": "the installed timetoalign
 <version> cannot expand measure maps"}}`, the version being the installed
-package's. The table's other cases need the expansion and are skipped,
-naming the reason, where the installed timetoalign lacks it.
+package's. The table's other cases are never skipped: they run against
+the timetoalign the server is locked to, and a timetoalign without the
+expansion fails them.
 
 ## The command
 

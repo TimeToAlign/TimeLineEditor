@@ -6,11 +6,13 @@ import type { Address, Block, CommandEntry, Facet, Manifest } from "@timetoalign
 import {
   addressKey,
   createView,
+  importedManifest,
   isLoadError,
   isSessionEntry,
   loadManifest,
   manifestIds,
   readWorkspace,
+  unknownKeys,
   writeWorkspace,
 } from "@timetoalign/tilie-core";
 import type { Drawing, DrawnBox } from "@timetoalign/tilie-layout";
@@ -23,7 +25,15 @@ import type { HookBand } from "../src/testHook.ts";
 import { bandsOf, hookBands } from "../src/testHook.ts";
 import { WorkspaceRefusedError } from "../src/workspaceSession.svelte.ts";
 import { stubEditor } from "./dom.ts";
-import { fixtureText, flushAutosaves, hook, workspaceOf } from "./support.ts";
+import {
+  answer,
+  fixture,
+  fixtureText,
+  flushAutosaves,
+  hook,
+  openDialog,
+  workspaceOf,
+} from "./support.ts";
 
 vi.mock("../src/autosave.ts", async (importOriginal) =>
   (await import("./support.ts")).recordAutosaves(await importOriginal()),
@@ -179,36 +189,62 @@ describe("bandsOf", () => {
 });
 
 /**
- * The limit of a wait for a load through the fixture menu and of each test
- * holding one: about three times the slowest such test measured, 2.2 s on
- * a loaded machine.
+ * The limit of a wait for a fixture opened through the fixture menu and of
+ * each test holding one: about three times the slowest such test measured,
+ * 2.2 s on a loaded machine.
  */
 const FIXTURE_LOAD_TIMEOUT = 7_000;
 
 /** The header's fixture menu, once its lazily loaded component is shown. */
-async function fixtureMenu(): Promise<{ select: HTMLSelectElement; load: HTMLButtonElement }> {
+async function fixtureMenu(): Promise<{ select: HTMLSelectElement; open: HTMLButtonElement }> {
   return vi.waitFor(() => {
     const select = document.querySelector<HTMLSelectElement>('[data-testid="fixture-select"]');
-    const load = document.querySelector<HTMLButtonElement>('[data-testid="fixture-load"]');
-    if (select === null || load === null) throw new Error("the fixture menu is missing");
-    return { select, load };
+    const open = document.querySelector<HTMLButtonElement>('[data-testid="fixture-open"]');
+    if (select === null || open === null) throw new Error("the fixture menu is missing");
+    return { select, open };
   });
 }
 
-/** Choose `name` in the header's fixture menu, press Load and wait until a store holds it. */
-async function loadFromMenu(name: string): Promise<void> {
-  const { select, load } = await fixtureMenu();
-  const before = window.__tilie?.store();
-  select.value = name;
+/** Choose `label` in the header's fixture menu and press Open. */
+async function openFromMenu(label: string): Promise<void> {
+  const { select, open } = await fixtureMenu();
+  select.value = label;
   select.dispatchEvent(new Event("change"));
-  load.click();
-  await vi.waitFor(
-    () => {
-      expect(window.__tilie?.store()).not.toBe(before);
-    },
-    { timeout: FIXTURE_LOAD_TIMEOUT },
-  );
+  open.click();
+}
+
+/**
+ * Add block `A` of `bare` to the open store, unsaved; returns the added
+ * block.
+ */
+function addBare(): Block {
+  const refusal = hook()
+    .store()
+    .dispatch({ type: "add", into: {}, block: { id: A, manifest: fixture("bare"), x: 0, y: 0 } });
+  if (refusal !== null) throw new Error(refusal.message);
   flushSync();
+  return hook().store().view.blocks[A] as Block;
+}
+
+/**
+ * Open `label` from the fixture menu on a new workspace holding only the
+ * block `A` of `bare`, added unsaved, and wait for the import's `add`;
+ * returns `A` as it was before and the new block's id.
+ */
+async function importFromMenu(label: string): Promise<{ first: Block; id: string }> {
+  hook().load(workspaceOf());
+  const first = addBare();
+  await openFromMenu(label);
+  await vi.waitFor(() => expect(hook().store().journal.length).toBe(2), {
+    timeout: FIXTURE_LOAD_TIMEOUT,
+  });
+  flushSync();
+  const command = (hook().store().journal[1] as CommandEntry).command as {
+    type: string;
+    block?: { id: string };
+  };
+  if (command.type !== "add" || command.block === undefined) throw new Error("no block added");
+  return { first, id: command.block.id };
 }
 
 describe("the test hook", () => {
@@ -285,24 +321,23 @@ describe("the test hook", () => {
     expect(hook().store()).toBe(open);
   });
 
-  it("offers every fixture in the header and loads the chosen one", {
+  it("offers every fixture in the header and opens a workspace fixture at once", {
     timeout: FIXTURE_LOAD_TIMEOUT,
   }, async () => {
-    const { select, load } = await fixtureMenu();
+    const { select } = await fixtureMenu();
     // `fixtures.test.ts` proves these labels against the files on disk.
     expect(Array.from(select.options, (option) => option.value)).toEqual(
-      FIXTURES.map(({ name }) => name),
+      FIXTURES.map(({ label }) => label),
     );
     expect(select.options.length).toBe(158);
     expect(select.labels?.[0]?.textContent?.trim().startsWith("Fixture")).toBe(true);
+    expect(document.querySelector('[data-testid="fixture-open"]')?.textContent).toBe("Open");
 
     const text = readFileSync(path.join(E2E_FIXTURES, "small.tle.json"), "utf8");
     const expected = readWorkspace(text);
     if (isLoadError(expected)) throw new Error("small.tle.json is refused");
     hook().select([{ block: A }]);
-    select.value = "e2e/small";
-    select.dispatchEvent(new Event("change"));
-    load.click();
+    await openFromMenu("e2e/small");
 
     await vi.waitFor(
       () => {
@@ -312,37 +347,43 @@ describe("the test hook", () => {
     );
     expect(hook().store().journal).toEqual(expected.journal);
     expect(hook().selection()).toEqual([]);
+    expect(openDialog()).toBe(null);
   });
 
-  it("opens a group or bundle fixture as one block of its manifest", {
+  it("imports a group or bundle fixture as one more block, asking nothing on unsaved changes", {
     timeout: FIXTURE_LOAD_TIMEOUT,
   }, async () => {
     for (const name of ["groups/group_number_types", "bundles/bundle_mixed"] as const) {
-      await loadFromMenu(name);
+      const { first, id } = await importFromMenu(name);
       const manifest = loadManifest(fixtureText(name));
       if (isLoadError(manifest)) throw new Error(`${name} is refused`);
-      const block = hook().store().view.blocks.fixture000;
-      expect([block?.x, block?.y]).toEqual([0, 0]);
-      expect(block?.manifest).toEqual(manifest);
-      expect(Object.keys(hook().store().view.blocks)).toEqual(["fixture000"]);
-      expect(
-        hook()
-          .store()
-          .journal.map((entry) => [(entry as CommandEntry).command.type, entry.author, entry.time]),
-      ).toEqual([["add", "Fixture Generator", "2026-10-12T09:00:00.000Z"]]);
+      const { blocks } = hook().store().view;
+      expect(Object.keys(blocks).length).toBe(2);
+      expect(blocks[A]).toEqual(first);
+      expect(blocks[id]?.manifest).toEqual(importedManifest(manifest));
+      expect(hook().selection()).toEqual([{ block: id }]);
+      expect(openDialog()).toBe(null);
     }
   });
 
-  it("removes a timeline of a group or bundle block on Delete", {
+  it("imports a warning case keeping the unknown keys the Manifest tab lists", {
+    timeout: FIXTURE_LOAD_TIMEOUT,
+  }, async () => {
+    const { id } = await importFromMenu("warnings/timeline_class");
+    const manifest = hook().store().view.blocks[id]?.manifest as Manifest;
+    expect(unknownKeys(manifest)).toEqual([{ key: "class", path: ["timelines", 0] }]);
+  });
+
+  it("removes a timeline of an imported group or bundle block on Delete", {
     timeout: FIXTURE_LOAD_TIMEOUT,
   }, async () => {
     for (const [name, timeline] of [
       ["groups/group_child_member", "second-half"],
       ["bundles/bundle_mixed", "annotations"],
     ] as const) {
-      await loadFromMenu(name);
+      const { id } = await importFromMenu(name);
       const view = hook().store().view;
-      hook().select([{ block: "fixture000", id: timeline }]);
+      hook().select([{ block: id, id: timeline }]);
       flushSync();
       const canvas = document.querySelector('[role="application"]');
       if (canvas === null) throw new Error("the canvas is missing");
@@ -352,16 +393,49 @@ describe("the test hook", () => {
       expect(
         hook()
           .store()
-          .journal.map((entry) => (entry as CommandEntry).command),
-      ).toEqual([
-        (hook().store().journal[0] as CommandEntry | undefined)?.command,
-        { type: "remove", targets: [{ block: "fixture000", id: timeline }] },
-      ]);
-      expect(
-        manifestIds(hook().store().view.blocks.fixture000?.manifest as Manifest).has(timeline),
-      ).toBe(false);
+          .journal.slice(2)
+          .map((entry) => (entry as CommandEntry).command),
+      ).toEqual([{ type: "remove", targets: [{ block: id, id: timeline }] }]);
+      expect(manifestIds(hook().store().view.blocks[id]?.manifest as Manifest).has(timeline)).toBe(
+        false,
+      );
       expect(hook().selection()).toEqual([]);
     }
+  });
+
+  it("replaces the workspace with a workspace fixture only after asking on unsaved changes", {
+    timeout: FIXTURE_LOAD_TIMEOUT,
+  }, async () => {
+    const text = readFileSync(path.join(E2E_FIXTURES, "small.tle.json"), "utf8");
+    const expected = readWorkspace(text);
+    if (isLoadError(expected)) throw new Error("small.tle.json is refused");
+    addBare();
+    const store = hook().store();
+    const view = store.view;
+
+    await openFromMenu("e2e/small");
+    await vi.waitFor(() =>
+      expect(openDialog()).toEqual({
+        question: "untitled.tle.json has unsaved changes. Save them?",
+        answers: ["Save", "Discard", "Cancel"],
+      }),
+    );
+    answer("Cancel");
+    await vi.waitFor(() => expect(openDialog()).toBe(null));
+    expect(hook().store()).toBe(store);
+    expect(hook().store().view).toBe(view);
+
+    await openFromMenu("e2e/small");
+    await vi.waitFor(() => expect(openDialog()).not.toBe(null));
+    answer("Discard");
+    await vi.waitFor(() => expect(hook().store()).not.toBe(store), {
+      timeout: FIXTURE_LOAD_TIMEOUT,
+    });
+    expect([
+      hook().store().view,
+      hook().store().journal,
+      document.querySelector('[data-testid="file-name"]')?.textContent,
+    ]).toEqual([expected.view, expected.journal, "untitled.tle.json"]);
   });
 
   it("opens and closes editors and lists the editing path", () => {

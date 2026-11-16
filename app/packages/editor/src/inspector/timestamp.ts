@@ -3,10 +3,10 @@
  * rows grouped by the timeline they belong to, each number written exactly
  * (its copy text, never rounded) beside its pretty unit, and copied as the
  * value, the raw text and the pretty text; the pin of a named timestamp
- * read anew from the view; and the commands the tab sends.
- * Nothing here computes a value: the rows, the values, whether a row can be
- * edited, the position an edit gives and the JSON are core's, the pin of a
- * named timestamp the arranger's.
+ * read anew from the view; its text in a format; and the commands the tab
+ * sends. Nothing here computes a value: the rows, the values, whether a row
+ * can be edited, the position an edit gives and the JSON are core's, the pin
+ * of a named timestamp the arranger's.
  */
 
 import type { KnotsOf } from "@timetoalign/tilie-arranger";
@@ -16,6 +16,7 @@ import type {
   AxisValue,
   Command,
   Expressed,
+  Json,
   NamedTimestamp,
   Pin,
   Row,
@@ -30,11 +31,15 @@ import {
   prettyText,
   prettyUnit,
   rawText,
+  timestampJson,
   timestampRows,
 } from "@timetoalign/tilie-core";
 import { toAxisValue } from "@timetoalign/tilie-core/numbers";
 import type { FontMetrics, NumberType } from "@timetoalign/timetoshare";
-import { DEFAULTS, TIMESTAMP_DISPLAY } from "@timetoalign/timetoshare";
+import { DEFAULTS, isJsonObject, TIMESTAMP_DISPLAY } from "@timetoalign/timetoshare";
+import type { Format, Text } from "./formats.svelte.ts";
+import { writeText } from "./formats.svelte.ts";
+import type { Result } from "./problems.ts";
 
 /**
  * What the Copy buttons of one value write, `null` where there is no such
@@ -149,6 +154,31 @@ export function timelineRows(pin: Pin): TimelineRows[] {
     }
   }
   return groups;
+}
+
+/** `value` with every object member whose value is null left out, at any depth; array items stay. */
+function withoutNullMembers(value: Json): Json {
+  if (Array.isArray(value)) return value.map(withoutNullMembers);
+  if (!isJsonObject(value)) return value;
+  return Object.fromEntries(
+    Object.entries(value as { readonly [key: string]: Json })
+      .filter(([, item]) => item !== null)
+      .map(([key, item]) => [key, withoutNullMembers(item)]),
+  );
+}
+
+/**
+ * `pin`'s timestamp as text in `format`: core's `timestampJson` written by
+ * the inspector's codec. The text is a readout, not a manifest, so the
+ * manifest's null rule does not apply to it: in TOML, which has no null,
+ * every member whose value is null (a map without a value at the position,
+ * a measure's missing number or length) is left out; JSON and YAML keep it.
+ *
+ * @throws {Error} when the format's codec has not been loaded (`loadCodec`).
+ */
+export function timestampText(format: Format, pin: Pin): Result<Text> {
+  const value = timestampJson(pin);
+  return writeText(format, format === "toml" ? withoutNullMembers(value) : value);
 }
 
 /** The address of the named timestamp `pin` shows; `null` for an unnamed pin. */

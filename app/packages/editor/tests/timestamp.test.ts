@@ -37,9 +37,9 @@ import { SvelteMap } from "svelte/reactivity";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import InspectorDrawer from "../src/InspectorDrawer.svelte";
 import { isLoaded, loadCodec, writeText } from "../src/inspector/formats.svelte.ts";
-import { InspectorCode } from "../src/inspector/problems.ts";
 import type { Held, Shown } from "../src/inspector/tabs.ts";
 import { chosen, heldOf, outlived, pinned } from "../src/inspector/tabs.ts";
+import { timestampText } from "../src/inspector/timestamp.ts";
 import { measureMapsOf } from "../src/measureMaps.ts";
 import { informing, storeOf } from "./support.ts";
 
@@ -786,18 +786,92 @@ describe("the format switch", () => {
     expect(written).toEqual([expected.value.text]);
   });
 
-  it("refuses a null in TOML as the Manifest tab does", async () => {
-    const store = mixed();
+  it("leaves a map without a value out of the TOML, where JSON writes its null", async () => {
+    const store = storeOf("conversion_maps__maps_whole_notes");
     const inspector = drawer(store, true);
-    inspector.pinTimestamp(others(store));
+    inspector.selected([{ block: A, id: "timestamp_1" }]);
+    choose("json");
+    expect(text()).toBe(
+      [
+        "{",
+        '  "coordinate": [',
+        "    0,",
+        "    1",
+        "  ],",
+        '  "display": [',
+        '    "wedge",',
+        '    "coordinate"',
+        "  ],",
+        '  "id": "timestamp_1",',
+        '  "mapping": {',
+        '    "cmap_1": null',
+        "  },",
+        '  "name": "origin",',
+        '  "timeline": "maps:whole_notes"',
+        "}",
+        "",
+      ].join("\n"),
+    );
     await loadCodec("toml");
     choose("toml");
-    const refused = writeText("toml", timestampJson(others(store)));
-    if (refused.ok) throw new Error("TOML holds no null");
-    expect([refused.problems[0]?.code, find(".text-problem").textContent]).toEqual([
-      InspectorCode.notRepresentable,
-      refused.problems.map((item) => item.message).join(" "),
+    expect([text(), panel().querySelector(".text-problem")]).toEqual([
+      [
+        "coordinate = [ 0, 1 ]",
+        'display = [ "wedge", "coordinate" ]',
+        'id = "timestamp_1"',
+        'name = "origin"',
+        'timeline = "maps:whole_notes"',
+        "",
+        "[mapping]",
+        "",
+      ].join("\n"),
+      null,
     ]);
+  });
+
+  it("writes a timestamp whose every map has a value as TOML as before", async () => {
+    const store = example();
+    const inspector = drawer(store, true, T);
+    inspector.selected([THEME]);
+    await loadCodec("toml");
+    choose("toml");
+    expect(text()).toBe(
+      [
+        "coordinate = [ 4, 1 ]",
+        'display = [ "wedge", "name", "cross_section" ]',
+        'id = "timestamp_5"',
+        'name = "Theme"',
+        'timeline = "score"',
+        "",
+        "[mapping]",
+        "",
+        "[mapping.bars]",
+        'unit = "whole_notes"',
+        'number_type = "fraction"',
+        "value = [ 1, 1 ]",
+        "",
+        "[mapping.tempo]",
+        'unit = "seconds"',
+        'number_type = "float"',
+        "value = 2.0",
+        "",
+        "[mapping.ticks]",
+        'unit = "ticks"',
+        'number_type = "int"',
+        "value = 1920",
+        "",
+        "[mapping.phrase]",
+        'unit = "quarters"',
+        'number_type = "fraction"',
+        "value = [ 0, 1 ]",
+        "",
+        "[mapping.phrase_ticks]",
+        'unit = "ticks"',
+        'number_type = "int"',
+        "value = 0",
+        "",
+      ].join("\n"),
+    );
   });
 });
 
@@ -1083,6 +1157,105 @@ describe("a named timestamp's MeasureMaps", () => {
     const rows = groups();
     inspector.pinTimestamp({ ...shown, named: null });
     expect([groups(), measureRow()]).toEqual([rows, "2"]);
+  });
+
+  it("leave a measure's null members out of the TOML, where JSON and YAML write them", async () => {
+    const { store, barTwo } = measureStore();
+    const unnumbered = { ...measure("2", 4), number: null, nominal_length: null };
+    const rows: MeasureKnots[] = [
+      {
+        id: "measuremap_1",
+        rows: [measure("1", 0), unnumbered, measure("3", 8), measure("4", 12)],
+      },
+    ];
+    const pin = named(store, barTwo, rows);
+    await loadCodec("yaml");
+    await loadCodec("toml");
+    const [json, yaml, toml] = (["json", "yaml", "toml"] as const).map((format) => {
+      const written = timestampText(format, pin);
+      if (!written.ok) throw new Error(`no ${format} text`);
+      return written.value.text;
+    });
+    expect(json).toBe(
+      [
+        "{",
+        '  "coordinate": [',
+        "    6,",
+        "    1",
+        "  ],",
+        '  "display": [',
+        '    "wedge",',
+        '    "name",',
+        '    "cross_section"',
+        "  ],",
+        '  "id": "timestamp_5",',
+        '  "mapping": {',
+        '    "cmap_1": {',
+        '      "ID": "2",',
+        '      "actual_length": [',
+        "        4,",
+        "        1",
+        "      ],",
+        '      "count": 2,',
+        '      "name": "2",',
+        '      "nominal_length": null,',
+        '      "number": null,',
+        '      "offset_within_measure": [',
+        "        0,",
+        "        1",
+        "      ],",
+        '      "qstamp": [',
+        "        4,",
+        "        1",
+        "      ]",
+        "    }",
+        "  },",
+        '  "name": "Bar two",',
+        '  "timeline": "score"',
+        "}",
+        "",
+      ].join("\n"),
+    );
+    expect(yaml).toBe(
+      [
+        "id: timestamp_5",
+        "timeline: score",
+        "coordinate: [ 6, 1 ]",
+        "name: Bar two",
+        "display: [ wedge, name, cross_section ]",
+        "mapping:",
+        "  cmap_1:",
+        '    ID: "2"',
+        '    name: "2"',
+        "    count: 2",
+        "    number: null",
+        "    qstamp: [ 4, 1 ]",
+        "    nominal_length: null",
+        "    actual_length: [ 4, 1 ]",
+        "    offset_within_measure: [ 0, 1 ]",
+        "",
+      ].join("\n"),
+    );
+    expect(toml).toBe(
+      [
+        'id = "timestamp_5"',
+        'timeline = "score"',
+        "coordinate = [ 6, 1 ]",
+        'name = "Bar two"',
+        'display = [ "wedge", "name", "cross_section" ]',
+        "",
+        "[mapping]",
+        "",
+        "[mapping.cmap_1]",
+        'ID = "2"',
+        'name = "2"',
+        "count = 2",
+        "qstamp = [ 4, 1 ]",
+        "actual_length = [ 4, 1 ]",
+        "offset_within_measure = [ 0, 1 ]",
+        "",
+      ].join("\n"),
+    );
   });
 
   it("need a server without the canvas's", () => {

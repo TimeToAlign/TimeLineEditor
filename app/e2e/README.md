@@ -312,8 +312,8 @@ fixtures, the drawing facts and the gesture rules above.
 
 **`canvas.spec.ts`** (Chromium, Firefox, WebKit) proves the canvas with the
 mouse and the keyboard on `small` at viewport (40, 40), zoom 1, page 1600 ×
-1000: opening draws one node per block, the fixture menu loads `small` as
-the hook does, and every text is in the bundled faces; a drag is one `set`
+1000: opening draws one node per block, the fixture menu opens `small` as
+the hook loads it, and every text is in the bundled faces; a drag is one `set`
 at the grid- and block-snapped position that the gesture rules give from
 the drag's delta, with undo and redo restoring both placements exactly; two
 selected blocks move in one command with two changes; a snap to another

@@ -1,4 +1,5 @@
 import { readFileSync, realpathSync } from "node:fs";
+import type { OutgoingMessage } from "node:http";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -48,6 +49,23 @@ const CODE_SPLITTING = {
 };
 
 /**
+ * Set the `Origin` of a request the development proxy forwards to `origin`,
+ * the server's own, if it is the development page's own origin: `http://`
+ * and `host`, the `Host` the browser addressed the development server by.
+ * Any other `Origin` passes unchanged, so that the server refuses it as it
+ * refuses every origin but its own, and a request without one stays without.
+ */
+export function presentOrigin(
+  request: OutgoingMessage,
+  host: string | undefined,
+  origin: string,
+): void {
+  if (host !== undefined && request.getHeader("origin") === `http://${host}`) {
+    request.setHeader("origin", origin);
+  }
+}
+
+/**
  * Two builds share this configuration.
  *
  * The page (`vite build`): `index.html` into `dist/`. The built page is
@@ -66,6 +84,9 @@ const CODE_SPLITTING = {
  *
  * During `pnpm dev`, API calls are proxied to a locally running server
  * (`tilie --port <port> --no-browser`); set `TILIE_PORT` to its port. The
+ * proxy presents the server's own origin in place of the development page's
+ * own, since the server refuses every origin but its own; any other `Origin`
+ * passes unchanged, so the server still refuses a foreign page. The
  * development server may also read the schema package's real directory, so
  * that the bundled drawing fonts are served: installed from npm it lies inside the
  * workspace anyway, but a local TimeToShare checkout linked in to try a
@@ -73,6 +94,8 @@ const CODE_SPLITTING = {
  */
 export default defineConfig(({ mode }) => {
   const embed = mode === "embed";
+  /** The origin of the locally running server that `pnpm dev` proxies API calls to. */
+  const apiOrigin = `http://127.0.0.1:${process.env.TILIE_PORT ?? "8000"}`;
   return {
     base: "./",
     plugins: [
@@ -167,8 +190,12 @@ export default defineConfig(({ mode }) => {
       },
       proxy: {
         "/api": {
-          target: `http://127.0.0.1:${process.env.TILIE_PORT ?? "8000"}`,
+          target: apiOrigin,
           changeOrigin: true,
+          configure: (proxy) =>
+            proxy.on("proxyReq", (request, page) =>
+              presentOrigin(request, page.headers.host, apiOrigin),
+            ),
         },
       },
     },

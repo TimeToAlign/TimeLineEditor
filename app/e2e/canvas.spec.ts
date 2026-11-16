@@ -88,10 +88,10 @@ test("opening shows one node per block", async ({ page }) => {
   await expect(part(page, SMALL.styled, { id: "ticks" })).toBeAttached();
 });
 
-test("the fixture menu loads small", async ({ page }) => {
+test("the fixture menu opens small", async ({ page }) => {
   await page.goto("/");
   await page.locator('[data-testid="fixture-select"]').selectOption("e2e/small");
-  await page.locator('[data-testid="fixture-load"]').click();
+  await page.locator('[data-testid="fixture-open"]').click();
   await expect(page.getByTestId("block")).toHaveCount(5);
   for (const id of SMALL_ORDER) await expect(node(page, id)).toHaveCount(1);
   expect(await journalLength(page)).toBe(START);

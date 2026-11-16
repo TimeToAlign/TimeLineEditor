@@ -228,6 +228,22 @@ menu, while no shipped file holds "Fixture Generator", the fixture menu's
 `fixture-select` or the test hook's `__tilie`. The development server may read the app
 workspace and the resolved schema package.
 
+## The development proxy (`proxy.test.ts`)
+
+`pnpm dev` serves the page from Vite's own origin and proxies `/api` to the
+locally running server, which refuses every origin but its own. The test
+builds the configuration for `development` with `TILIE_PORT` set to `8123`:
+the one proxied path is `/api` and its target is `http://127.0.0.1:8123`.
+It then drives the real wiring: the `configure` hook is called with a Node
+event emitter standing in for the proxy, and a `proxyReq` event is emitted
+with a real Node outgoing message carrying `Authorization: Bearer abc` and
+an incoming request whose `Host` is `localhost:5173`, the development page
+as the browser addressed it. The development page's own origin, `Origin:
+http://localhost:5173`, leaves as `Origin: http://127.0.0.1:8123`, the proxy
+target; a foreign one, `Origin: https://example.org`, leaves unchanged, so
+that the server still refuses it; a request without an `Origin` leaves
+without one. In every case `Authorization` leaves as `Bearer abc`.
+
 ## The test hook and the fixture menu (`hook.test.ts`, `fixtures.test.ts`)
 
 `window.__tilie` exists in a test build and goes with the editor. At start
@@ -250,15 +266,34 @@ end-to-end workspace as `e2e/<name>`; no label repeats and the list is in
 code-unit order. For the installed package that is 140 manifest fixtures,
 13 warning cases and 5 workspaces, 158 options, from `bare` to
 `with_region.minimal`; no option starts with `drawings/` or `rejections/`,
-which hold drawing inputs and outputs and refused manifests. Every
-manifest fixture and every warning case's `manifest` builds its menu
-workspace without throwing, a workspace the reader accepts, so each option
-loads (`fixtures.test.ts`, one case per fixture named by its label, so that
-a failure names the fixture and no case builds more than one workspace). A
-manifest fixture loads
-as one block `fixture000` at the origin, journalled once by "Fixture
-Generator", and Delete on the canvas removes a selected timeline of it as
-one `remove`.
+which hold drawing inputs and outputs and refused manifests. Each option
+is an entry of the Examples menu's shape, and Open opens it as the
+Examples menu opens an example, through the same routine: every manifest
+fixture and every warning case is of kind `manifest`, its text the
+fixture's or the warning case's `manifest`, which core's `loadManifest`
+accepts, so each option imports (`fixtures.test.ts`, one case per fixture
+named by its label, so that a failure names the fixture); every end-to-end
+workspace is of kind `workspace`, its text the file's, which the reader
+accepts; 153 entries of kind `manifest` and 5 of kind `workspace`. A
+manifest fixture is imported, never replacing the workspace and asking
+nothing, even with unsaved changes: chosen on a workspace holding one
+block (`bare` as `0000000000`), it adds one `add` of core's
+`importedManifest` of the fixture's manifest (`groups/group_number_types`,
+`bundles/bundle_mixed`), placed as Import manifest… places a file, the new
+block selected; the
+workspace then holds exactly two blocks, the first one equal to itself
+before (its manifest and place), no question was asked and the journal
+grew by exactly that one `add`. A warning case is imported the same way,
+and its warnings surface as for Import manifest…: the block's manifest
+keeps the unknown key, so core's `unknownKeys` of it, what the Manifest
+tab lists, is the case's `unknown_keys` (`warnings/timeline_class`:
+`[{key: "class", path: ["timelines", 0]}]`). Delete on the canvas removes
+a selected timeline of an imported block as one `remove`. An end-to-end
+workspace replaces the open one only after the one question on unsaved
+changes: with unsaved changes, Cancel keeps the store, Discard opens the
+file as the workspace, its view and journal the file's, under
+`untitled.tle.json` without "• "; without unsaved changes it opens at once
+(`e2e/small`) and clears the selection.
 
 Its `bands` maps each band record of a block's drawing into client pixels
 through the drawing's `<svg>` rectangle: the rectangle's offset plus the
@@ -853,10 +888,36 @@ which no position solves).
    `timestampJson` of the pin through the Manifest tab's codecs: the JSON
    text is the standard writer's (`dumps`) of that value (for Theme its
    manifest entry and `mapping`); YAML and TOML read "Loading …" until their
-   codec is loaded, then the codec's text of the same value; TOML refuses a
-   null as the Manifest tab does (the hand-built line's missing values give
-   its `not_representable` message). One Copy writes the text shown and
-   posts "Copied the JSON." (the format's word).
+   codec is loaded, then the codec's text of the same value. One Copy
+   writes the text shown and posts "Copied the JSON." (the format's word).
+   **A timestamp's text is a readout, not a manifest**, so the Manifest
+   tab's null rule does not apply to it: in TOML, which has no null, every
+   object member whose value is null (a map without a value at the
+   position; a measure's missing number or length) is left out, at any
+   depth; JSON and YAML keep the null. The editor's own rule is proven on
+   two specimens and one regression, each text written out in full in the
+   test, never derived from the code under test:
+   - *A map without a value.* `conversion_maps__maps_whole_notes` (block
+     `0000000000`) pinned at its named `origin` (`timestamp_1`, at 0 on
+     `maps:whole_notes`) without a server: its ChainMap `cmap_1` reaches a
+     MeasureRecordMap whose MeasureMap has no rows, so `cmap_1` has no
+     value. The JSON text carries `"mapping": {"cmap_1": null}`; the TOML
+     text shown in the pane is exactly the named timestamp's members and
+     an empty `[mapping]` table, no line for `cmap_1`, and no refusal
+     shows.
+   - *Every map with a value* (regression). Theme (`timestamp_5` of the
+     example "Timestamps", at 4 on `score`, its rows all valued) gives the
+     same TOML text as before the rule: the codec's text of
+     `timestampJson` unchanged, written out in the test.
+   - *A null inside a value.* "Bar two" of `group_measure_map` (item 10)
+     read with the four measures, measure "2" given with `number` and
+     `nominal_length` null: `cmap_1`'s value is that measure's record, and
+     its TOML text has a `[mapping.cmap_1]` table without `number` and
+     `nominal_length`, while its JSON and its YAML keep both as null
+     (`"number": null`, `number: null`).
+   The Manifest tab's TOML (`nulls.ts`, `toml.ts`) is untouched: its tests
+   in `inspector-text.test.ts` and `inspector-codecs.test.ts` stay as they
+   are.
 7. **Properties.** A two-column grid of keys and controls: "Name" (a text
    field labelled by it), "Display" (a group of five toggle buttons Wedge,
    Name, ID, Coordinate, Cross-section, in that order, each `aria-pressed`
