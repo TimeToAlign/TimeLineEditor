@@ -75,6 +75,24 @@ expansion fails them.
 
 ## The command
 
+**The port.** Without `--port`, `tilie` listens on port 8000, so that the
+editor keeps one address from run to run and the browser keeps what it
+remembers for that address (the identity that asserts the viewer's links,
+for one); when 8000 cannot be bound, it listens on a free port instead and
+says so on stderr: `tilie: port 8000 is in use, so the server runs on port
+<port>; the browser remembers the editor's settings, your identity among
+them, for each port apart`. A port is free when it can be bound as the
+server binds it, with `SO_REUSEADDR` outside Windows, so that the
+connections of a run just stopped do not hold it. The choice is proved on
+its own with a default the test controls: a port the test found free is
+chosen as it is, without a notice; a port the test holds listening gives
+another port, one the test can then bind, and that notice exactly; a port
+given with `--port` is kept even while it is held, without a notice (the
+server then fails to start, as below). The command itself, run with
+`--check` and no `--port` while port 8000 is held (by the test, or by
+another process already), exits 0, prints the health JSON and on stderr
+exactly the notice, naming a port other than 8000.
+
 `tilie --check` against a built editor prints the health JSON and nothing
 on stderr, exit code 0; without a built editor it prints `tilie --check
 failed: GET / answered 503: {"detail":"app not built"}` with exit code 1; on
@@ -92,8 +110,14 @@ SIGINT, SIGINT to a command started as a background job (which inherits
 SIGINT as ignored, as every background job of a non-interactive shell
 does), and SIGTERM each end the run within five seconds with exit code 0,
 nothing more on stdout and exactly uvicorn's startup and graceful-shutdown
-lines on stderr. A process that outlives the deadline is killed, so a
-failure cannot stall the suite.
+lines on stderr. Whatever the outcome, every test stops the process it
+started before it ends: one that outlives the deadline, or one the signal
+cannot be sent to, is killed, so a failure can neither stall the suite nor
+leave a server running after it. These signals are POSIX ones: Windows
+cannot send SIGINT to another process, nor start one with SIGINT ignored,
+and ends one at SIGTERM without a graceful shutdown, so the tests that stop
+the long-running command with a signal (this one and the access log's
+above) run only on POSIX systems (CI runs them on Linux).
 
 ## Release version check
 
