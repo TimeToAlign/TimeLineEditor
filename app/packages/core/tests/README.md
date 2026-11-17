@@ -603,11 +603,13 @@ the schema agree by construction.
    `children`, the first in the default band order's order. The stranger
    and missing messages are also what TimeToShare's identity check reports
    first for the same value.
-5. **Entries the schema's pattern refuses** (an empty string, an entry
-   holding a control character) are refused by both: core as a stranger,
-   the schema at the entry (`["graphical", "order", "clt_3", 6]`) with its
-   pattern; every value core accepts the schema accepts and every value it
-   refuses the schema refuses.
+5. **Entries the schema refuses** (an empty string, an entry holding a
+   control character) are refused by both: core as a stranger, the schema
+   at the entry (`["graphical", "order", "clt_3", 6]`), the empty string by
+   its `minLength` ("must NOT have fewer than 1 characters"), the control
+   character by its `not` over control characters ("must NOT be valid");
+   every value core accepts the schema accepts and every value it refuses
+   the schema refuses.
 
 ## Workspace view, ids and order (`workspace.test.ts`, `workspace-ids-order.test.ts`)
 

@@ -1,11 +1,5 @@
 import type { PathSegment } from "@timetoalign/timetoshare";
-import {
-  dumps,
-  identityProblems,
-  SchemaValidationError,
-  schema,
-  validate,
-} from "@timetoalign/timetoshare";
+import { dumps, identityProblems, SchemaValidationError, validate } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { FACETS, isFacet } from "../src/manifest/address.ts";
 import {
@@ -42,9 +36,6 @@ function validatorRefusal(value: unknown): { path: readonly PathSegment[]; detai
     throw error;
   }
 }
-
-/** The pattern the schema document gives every entry of an order. */
-const ENTRY_PATTERN = schema.$defs.Order.items.pattern;
 
 /** A fixture carrying `order` as its `graphical.order` entries for timelines, beside its own. */
 function withOrder(name: string, order: Record<string, readonly string[]>): Manifest {
@@ -184,19 +175,19 @@ describe("band order problems", () => {
     expect(identityProblems(carrying(manifest, "clt_3", value))[0]?.detail).toBe(message);
   });
 
-  it.each([[""], ["li\u0000ne"]])(
-    "reports %j, which the schema's pattern refuses, as a stranger",
-    (entry) => {
-      const value = [...D, entry];
-      expect(bandOrderProblem(manifest, "clt_3", value)).toBe(
-        `'${entry}' is not 'line' or a facet, in the band order of 'clt_3'`,
-      );
-      expect(validatorRefusal(carrying(manifest, "clt_3", value))).toEqual({
-        path: ["graphical", "order", "clt_3", 6],
-        detail: `must match pattern "${ENTRY_PATTERN}"`,
-      });
-    },
-  );
+  it.each([
+    ["", "must NOT have fewer than 1 characters"],
+    ["li\u0000ne", "must NOT be valid"],
+  ])("reports %j, which the schema refuses, as a stranger", (entry, detail) => {
+    const value = [...D, entry];
+    expect(bandOrderProblem(manifest, "clt_3", value)).toBe(
+      `'${entry}' is not 'line' or a facet, in the band order of 'clt_3'`,
+    );
+    expect(validatorRefusal(carrying(manifest, "clt_3", value))).toEqual({
+      path: ["graphical", "order", "clt_3", 6],
+      detail,
+    });
+  });
 
   it("refuses exactly the values the validators refuse", () => {
     const values: unknown[] = [
