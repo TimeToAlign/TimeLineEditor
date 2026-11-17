@@ -413,7 +413,8 @@ Apply stores the renamed fixture as `loadManifest` reads it, and an
 unapplied text survives a visit to another tab. The tabs: each is paired
 with one panel of its own through `aria-controls` and `aria-labelledby`,
 and the arrow, Home and End keys move the selection and the focus over the
-five tabs (the level tab, Properties, Manifest, Journal, Timestamp) with
+six tabs (the level tab, Properties, Metadata, Manifest, Journal,
+Timestamp) with
 and without an editor open; with the level tab chosen,
 entering the bundle editor keeps it shown, renamed from "Arranger" to
 "Bundle". The properties form: a value moves the block by

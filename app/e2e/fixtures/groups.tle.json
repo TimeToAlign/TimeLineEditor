@@ -75,11 +75,13 @@
             "name": "Second half"
           }
         ],
+        "links": [],
         "measure_maps": [],
         "meta": {
           "generator": "timetoalign 1.2.0 (a3e0d256)"
         },
         "name": null,
+        "schemes": [],
         "timelines": [
           {
             "children": [
@@ -93,6 +95,7 @@
                   8,
                   1
                 ],
+                "links": [],
                 "locked": true,
                 "meta": {},
                 "name": "Second half",
@@ -113,6 +116,7 @@
               16,
               1
             ],
+            "links": [],
             "locked": false,
             "meta": {},
             "name": "Piece",
@@ -127,6 +131,7 @@
             "id": "recording",
             "is_segment_line": false,
             "length": 10.0,
+            "links": [],
             "locked": false,
             "meta": {},
             "name": "Recording",
@@ -221,11 +226,13 @@
             "name": "Theme"
           }
         ],
+        "links": [],
         "measure_maps": [],
         "meta": {
           "generator": "timetoalign 1.2.0 (a3e0d256)"
         },
         "name": null,
+        "schemes": [],
         "timelines": [
           {
             "children": [],
@@ -234,6 +241,7 @@
             "id": "recording",
             "is_segment_line": false,
             "length": 12.0,
+            "links": [],
             "locked": false,
             "meta": {},
             "name": "Recording",
@@ -255,6 +263,7 @@
                       8,
                       1
                     ],
+                    "links": [],
                     "locked": true,
                     "meta": {},
                     "name": "Theme",
@@ -275,6 +284,7 @@
                   16,
                   1
                 ],
+                "links": [],
                 "locked": true,
                 "meta": {},
                 "name": "Movement",
@@ -295,6 +305,7 @@
               64,
               1
             ],
+            "links": [],
             "locked": false,
             "meta": {},
             "name": "Score",
@@ -433,11 +444,13 @@
             "name": "Exposition"
           }
         ],
+        "links": [],
         "measure_maps": [],
         "meta": {
           "generator": "timetoalign 1.2.0 (a3e0d256)"
         },
         "name": null,
+        "schemes": [],
         "timelines": [
           {
             "children": [],
@@ -459,6 +472,7 @@
             "id": "audio",
             "is_segment_line": false,
             "length": 1323000,
+            "links": [],
             "locked": false,
             "meta": {},
             "name": "Audio",
@@ -475,6 +489,7 @@
                 "id": "system",
                 "is_segment_line": false,
                 "length": 600,
+                "links": [],
                 "locked": true,
                 "meta": {},
                 "name": "System",
@@ -489,6 +504,7 @@
             "id": "page",
             "is_segment_line": false,
             "length": 1754,
+            "links": [],
             "locked": false,
             "meta": {},
             "name": "Page",
@@ -515,6 +531,7 @@
                 "id": "take",
                 "is_segment_line": false,
                 "length": 25.5,
+                "links": [],
                 "locked": true,
                 "meta": {},
                 "name": "Take",
@@ -529,6 +546,7 @@
             "id": "session",
             "is_segment_line": false,
             "length": 90.0,
+            "links": [],
             "locked": false,
             "meta": {},
             "name": "Session",
@@ -548,6 +566,7 @@
                   32,
                   1
                 ],
+                "links": [],
                 "locked": true,
                 "meta": {},
                 "name": "Exposition",
@@ -568,6 +587,7 @@
               48,
               1
             ],
+            "links": [],
             "locked": true,
             "meta": {},
             "name": "Sonata",
@@ -721,11 +741,13 @@
             "name": "Edition"
           }
         ],
+        "links": [],
         "measure_maps": [],
         "meta": {
           "generator": "timetoalign 1.2.0 (a3e0d256)"
         },
         "name": null,
+        "schemes": [],
         "timelines": [
           {
             "children": [],
@@ -747,6 +769,7 @@
             "id": "page",
             "is_segment_line": false,
             "length": 1920,
+            "links": [],
             "locked": false,
             "meta": {},
             "name": "Page",
@@ -771,6 +794,7 @@
             "id": "performance",
             "is_segment_line": false,
             "length": 12.5,
+            "links": [],
             "locked": false,
             "meta": {},
             "name": "Performance",
@@ -812,6 +836,7 @@
               12,
               1
             ],
+            "links": [],
             "locked": false,
             "meta": {},
             "name": "Score",
@@ -823,6 +848,7 @@
                   1
                 ],
                 "id": "region_1",
+                "links": [],
                 "meta": {},
                 "name": "Theme",
                 "start": [
@@ -925,11 +951,13 @@
                 "name": "Second half"
               }
             ],
+            "links": [],
             "measure_maps": [],
             "meta": {
               "generator": "timetoalign 1.2.0 (a3e0d256)"
             },
             "name": null,
+            "schemes": [],
             "timelines": [
               {
                 "children": [
@@ -943,6 +971,7 @@
                       8,
                       1
                     ],
+                    "links": [],
                     "locked": true,
                     "meta": {},
                     "name": "Second half",
@@ -963,6 +992,7 @@
                   16,
                   1
                 ],
+                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Piece",
@@ -977,6 +1007,7 @@
                 "id": "recording",
                 "is_segment_line": false,
                 "length": 10.0,
+                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Recording",
@@ -1076,11 +1107,13 @@
                 "name": "Theme"
               }
             ],
+            "links": [],
             "measure_maps": [],
             "meta": {
               "generator": "timetoalign 1.2.0 (a3e0d256)"
             },
             "name": null,
+            "schemes": [],
             "timelines": [
               {
                 "children": [],
@@ -1089,6 +1122,7 @@
                 "id": "recording",
                 "is_segment_line": false,
                 "length": 12.0,
+                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Recording",
@@ -1110,6 +1144,7 @@
                           8,
                           1
                         ],
+                        "links": [],
                         "locked": true,
                         "meta": {},
                         "name": "Theme",
@@ -1130,6 +1165,7 @@
                       16,
                       1
                     ],
+                    "links": [],
                     "locked": true,
                     "meta": {},
                     "name": "Movement",
@@ -1150,6 +1186,7 @@
                   64,
                   1
                 ],
+                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Score",
@@ -1293,11 +1330,13 @@
                 "name": "Exposition"
               }
             ],
+            "links": [],
             "measure_maps": [],
             "meta": {
               "generator": "timetoalign 1.2.0 (a3e0d256)"
             },
             "name": null,
+            "schemes": [],
             "timelines": [
               {
                 "children": [],
@@ -1319,6 +1358,7 @@
                 "id": "audio",
                 "is_segment_line": false,
                 "length": 1323000,
+                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Audio",
@@ -1335,6 +1375,7 @@
                     "id": "system",
                     "is_segment_line": false,
                     "length": 600,
+                    "links": [],
                     "locked": true,
                     "meta": {},
                     "name": "System",
@@ -1349,6 +1390,7 @@
                 "id": "page",
                 "is_segment_line": false,
                 "length": 1754,
+                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Page",
@@ -1375,6 +1417,7 @@
                     "id": "take",
                     "is_segment_line": false,
                     "length": 25.5,
+                    "links": [],
                     "locked": true,
                     "meta": {},
                     "name": "Take",
@@ -1389,6 +1432,7 @@
                 "id": "session",
                 "is_segment_line": false,
                 "length": 90.0,
+                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Session",
@@ -1408,6 +1452,7 @@
                       32,
                       1
                     ],
+                    "links": [],
                     "locked": true,
                     "meta": {},
                     "name": "Exposition",
@@ -1428,6 +1473,7 @@
                   48,
                   1
                 ],
+                "links": [],
                 "locked": true,
                 "meta": {},
                 "name": "Sonata",
@@ -1586,11 +1632,13 @@
                 "name": "Edition"
               }
             ],
+            "links": [],
             "measure_maps": [],
             "meta": {
               "generator": "timetoalign 1.2.0 (a3e0d256)"
             },
             "name": null,
+            "schemes": [],
             "timelines": [
               {
                 "children": [],
@@ -1612,6 +1660,7 @@
                 "id": "page",
                 "is_segment_line": false,
                 "length": 1920,
+                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Page",
@@ -1636,6 +1685,7 @@
                 "id": "performance",
                 "is_segment_line": false,
                 "length": 12.5,
+                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Performance",
@@ -1677,6 +1727,7 @@
                   12,
                   1
                 ],
+                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Score",
@@ -1688,6 +1739,7 @@
                       1
                     ],
                     "id": "region_1",
+                    "links": [],
                     "meta": {},
                     "name": "Theme",
                     "start": [

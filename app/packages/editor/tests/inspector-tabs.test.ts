@@ -145,17 +145,17 @@ function titleLine(name: string): unknown[] {
 const titled = (word: string, name: string) => [word, name, `${word} ${name}`, 1];
 
 describe("the tab rule", () => {
-  it("has the four tabs, the level tab first and named by its level", () => {
-    expect(TABS).toEqual(["level", "properties", "manifest", "journal", "timestamp"]);
+  it("has the six tabs, the level tab first and named by its level", () => {
+    expect(TABS).toEqual(["level", "properties", "metadata", "manifest", "journal", "timestamp"]);
     expect(
       (["arranger", "bundle", "group", "timeline"] as const).map((level) =>
         TABS.map((tab) => tabLabel(tab, level)),
       ),
     ).toEqual([
-      ["Arranger", "Properties", "Manifest", "Journal", "Timestamp"],
-      ["Bundle", "Properties", "Manifest", "Journal", "Timestamp"],
-      ["Group", "Properties", "Manifest", "Journal", "Timestamp"],
-      ["Timeline", "Properties", "Manifest", "Journal", "Timestamp"],
+      ["Arranger", "Properties", "Metadata", "Manifest", "Journal", "Timestamp"],
+      ["Bundle", "Properties", "Metadata", "Manifest", "Journal", "Timestamp"],
+      ["Group", "Properties", "Metadata", "Manifest", "Journal", "Timestamp"],
+      ["Timeline", "Properties", "Metadata", "Manifest", "Journal", "Timestamp"],
     ]);
     expect([initialPick(0, 3), initialPick(1, 3), initialPick(2, 0)]).toEqual([
       { tab: "properties", openings: 3 },
@@ -205,12 +205,14 @@ describe("the tab rule", () => {
     expect([
       nextTab("level", key("ArrowRight")),
       nextTab("properties", key("ArrowRight")),
+      nextTab("metadata", key("ArrowRight")),
       nextTab("manifest", key("ArrowRight")),
       nextTab("journal", key("ArrowRight")),
       nextTab("timestamp", key("ArrowRight")),
       nextTab("level", key("ArrowLeft")),
       nextTab("properties", key("ArrowLeft")),
       nextTab("journal", key("ArrowLeft")),
+      nextTab("manifest", key("ArrowLeft")),
       nextTab("manifest", key("Home")),
       nextTab("manifest", key("End")),
       nextTab("level", key("Home")),
@@ -221,6 +223,7 @@ describe("the tab rule", () => {
       nextTab("manifest", key("ArrowRight", { metaKey: true })),
     ]).toEqual([
       "properties",
+      "metadata",
       "manifest",
       "journal",
       "timestamp",
@@ -228,6 +231,7 @@ describe("the tab rule", () => {
       "timestamp",
       "level",
       "manifest",
+      "metadata",
       "level",
       "timestamp",
       "level",
@@ -241,11 +245,12 @@ describe("the tab rule", () => {
 });
 
 describe("the tab set", () => {
-  it("shows the five tabs without an editor, each naming its panel", () => {
+  it("shows the six tabs without an editor, each naming its panel", () => {
     show(mixedStore());
     expect(tabs()).toEqual([
       off("Arranger"),
       on("Properties"),
+      off("Metadata"),
       off("Manifest"),
       off("Journal"),
       off("Timestamp"),
@@ -255,6 +260,7 @@ describe("the tab set", () => {
       return [panel?.getAttribute("role"), panel?.getAttribute("aria-labelledby") === tab.id];
     });
     expect(pairs).toEqual([
+      ["tabpanel", true],
       ["tabpanel", true],
       ["tabpanel", true],
       ["tabpanel", true],
@@ -270,15 +276,16 @@ describe("the tab set", () => {
     expect(panels()).toEqual([
       ["Arranger", true],
       ["Properties", false],
+      ["Metadata", true],
       ["Manifest", true],
       ["Journal", true],
       ["Timestamp", true],
     ]);
     expect(
-      ["Arranger", "Manifest", "Journal", "Timestamp"].map(
+      ["Arranger", "Metadata", "Manifest", "Journal", "Timestamp"].map(
         (name) => panelOf(name)?.childElementCount,
       ),
-    ).toEqual([0, 0, 0, 0]);
+    ).toEqual([0, 0, 0, 0, 0]);
     click("Journal");
     expect([panelOf("Properties")?.childElementCount, panelOf("Journal")?.hidden]).toEqual([
       0,
@@ -297,6 +304,7 @@ describe("the tab set", () => {
     expect(tabs()).toEqual([
       off("Arranger"),
       on("Properties"),
+      off("Metadata"),
       off("Manifest"),
       off("Journal"),
       off("Timestamp"),
@@ -314,6 +322,7 @@ describe("the tab set", () => {
     expect(panels()).toEqual([
       ["Arranger", true],
       ["Properties", true],
+      ["Metadata", true],
       ["Manifest", true],
       ["Journal", false],
       ["Timestamp", true],
@@ -328,6 +337,7 @@ describe("the tab set", () => {
     expect(tabs()).toEqual([
       off("Group"),
       on("Properties"),
+      off("Metadata"),
       off("Manifest"),
       off("Journal"),
       off("Timestamp"),
@@ -337,6 +347,7 @@ describe("the tab set", () => {
     expect(tabs()).toEqual([
       off("Timeline"),
       off("Properties"),
+      off("Metadata"),
       off("Manifest"),
       on("Journal"),
       off("Timestamp"),
@@ -345,6 +356,7 @@ describe("the tab set", () => {
     expect(tabs()).toEqual([
       off("Group"),
       off("Properties"),
+      off("Metadata"),
       off("Manifest"),
       on("Journal"),
       off("Timestamp"),
@@ -353,6 +365,7 @@ describe("the tab set", () => {
     expect(tabs()).toEqual([
       off("Arranger"),
       off("Properties"),
+      off("Metadata"),
       off("Manifest"),
       on("Journal"),
       off("Timestamp"),
@@ -368,6 +381,7 @@ describe("the tab set", () => {
     expect(tabs()).toEqual([
       on("Group"),
       off("Properties"),
+      off("Metadata"),
       off("Manifest"),
       off("Journal"),
       off("Timestamp"),
@@ -381,6 +395,7 @@ describe("the tab set", () => {
     expect(tabs()).toEqual([
       on("Arranger"),
       off("Properties"),
+      off("Metadata"),
       off("Manifest"),
       off("Journal"),
       off("Timestamp"),
@@ -402,6 +417,7 @@ describe("the tab set", () => {
     expect(tabs()).toEqual([
       on("Bundle"),
       off("Properties"),
+      off("Metadata"),
       off("Manifest"),
       off("Journal"),
       off("Timestamp"),
@@ -431,6 +447,7 @@ describe("with the store's own editors", () => {
     expect(tabs()).toEqual([
       off("Group"),
       on("Properties"),
+      off("Metadata"),
       off("Manifest"),
       off("Journal"),
       off("Timestamp"),
@@ -444,6 +461,7 @@ describe("with the store's own editors", () => {
     expect(tabs()).toEqual([
       off("Arranger"),
       on("Properties"),
+      off("Metadata"),
       off("Manifest"),
       off("Journal"),
       off("Timestamp"),
@@ -494,6 +512,7 @@ describe("in the drawer", () => {
     expect(tabs()).toEqual([
       on("Group"),
       off("Properties"),
+      off("Metadata"),
       off("Manifest"),
       off("Journal"),
       off("Timestamp"),
@@ -511,6 +530,7 @@ describe("in the drawer", () => {
     expect(tabs()).toEqual([
       off("Arranger"),
       off("Properties"),
+      off("Metadata"),
       off("Manifest"),
       on("Journal"),
       off("Timestamp"),
@@ -527,6 +547,7 @@ describe("in the drawer", () => {
     expect(tabs()).toEqual([
       off("Group"),
       off("Properties"),
+      off("Metadata"),
       off("Manifest"),
       on("Journal"),
       off("Timestamp"),
@@ -535,6 +556,7 @@ describe("in the drawer", () => {
     expect(tabs()).toEqual([
       off("Group"),
       off("Properties"),
+      off("Metadata"),
       off("Manifest"),
       on("Journal"),
       off("Timestamp"),
@@ -544,6 +566,7 @@ describe("in the drawer", () => {
     expect(tabs()).toEqual([
       off("Group"),
       off("Properties"),
+      off("Metadata"),
       off("Manifest"),
       on("Journal"),
       off("Timestamp"),
@@ -607,7 +630,7 @@ describe("the keys", () => {
     });
   }
 
-  it("move over the five tabs, wrapping, at the top level and in an editor", () => {
+  it("move over the six tabs, wrapping, at the top level and in an editor", () => {
     const { store, stage } = staged(mixedStore());
     show(store);
     expect(steps("Properties", ["ArrowLeft", "ArrowLeft", "ArrowRight", "End", "Home"])).toEqual([
@@ -625,12 +648,14 @@ describe("the keys", () => {
         "ArrowRight",
         "ArrowRight",
         "ArrowRight",
+        "ArrowRight",
         "ArrowLeft",
         "Home",
         "End",
       ]),
     ).toEqual([
       "Properties",
+      "Metadata",
       "Manifest",
       "Journal",
       "Timestamp",

@@ -196,6 +196,12 @@ describe("the TOML null rule", () => {
       FlowControlElement: ["label", "name"],
       MapBase: ["name", "source_unit", "target_unit"],
       Group: ["name"],
+      Scheme: ["criteria", "name"],
+      Link: ["assertion", "label", "parts_relation"],
+      Descriptor: ["integrity", "media_type", "size"],
+      Assertion: ["asserted_on", "match", "method", "service", "status"],
+      PartSlot: ["absent", "assertion", "label"],
+      PartOf: ["assertion", "label", "position"],
     });
   });
 
@@ -232,6 +238,8 @@ describe("the TOML null rule", () => {
     expect(text).toBe(
       [
         'timetoshare = "0.2.0"',
+        "schemes = []",
+        "links = []",
         "",
         "[[groups]]",
         'id = "group_1"',
@@ -254,6 +262,7 @@ describe("the TOML null rule", () => {
         "conversion_maps = []",
         "regions = []",
         "flow_control = []",
+        "links = []",
         'number_type = "int"',
         "",
         "[timelines.meta]",
@@ -268,6 +277,7 @@ describe("the TOML null rule", () => {
         "children = []",
         "regions = []",
         "flow_control = []",
+        "links = []",
         'number_type = "fraction"',
         "",
         "[timelines.meta]",
@@ -418,9 +428,9 @@ describe("applying a text", () => {
       return [problem?.code, problem?.line, problem?.column];
     });
     expect(positions).toEqual([
-      ["syntax_error", 52, 17],
-      ["syntax_error", 14, 5],
-      ["syntax_error", 16, 1],
+      ["syntax_error", 55, 17],
+      ["syntax_error", 17, 5],
+      ["syntax_error", 19, 1],
     ]);
     expect(store.journal).toHaveLength(1);
   });

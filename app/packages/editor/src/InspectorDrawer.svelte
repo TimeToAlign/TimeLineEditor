@@ -18,6 +18,7 @@ import type { Address, Pin } from "@timetoalign/tilie-core";
 import { fontMetrics } from "@timetoalign/timetoshare";
 import { tick, untrack } from "svelte";
 import Inspector from "./inspector/Inspector.svelte";
+import { Identity } from "./inspector/identity.svelte.ts";
 import { ManifestText } from "./inspector/manifestText.svelte.ts";
 import { PropertyDrafts } from "./inspector/propertyDrafts.svelte.ts";
 import type { Picked, ShownPin } from "./inspector/tabs.ts";
@@ -39,6 +40,8 @@ interface Props {
   placement: LivePlacement | null;
   /** Where the open or closed state is remembered (`localStorage`); `null` remembers nothing. */
   storageKey: string | null;
+  /** Where the viewer's identity is remembered (`localStorage`); `null` remembers it nowhere. */
+  identityKey?: string | null;
   /**
    * The expanded MeasureMaps of a manifest as the canvas reads them, which
    * a named timestamp is read with, read again when they arrive; without
@@ -47,7 +50,7 @@ interface Props {
   knotsOf?: KnotsOf | undefined;
 }
 
-let { live, selection, placement, storageKey, knotsOf }: Props = $props();
+let { live, selection, placement, storageKey, identityKey = null, knotsOf }: Props = $props();
 
 const id = $props.id();
 
@@ -71,6 +74,8 @@ const subject = $derived(inspectedSubject(live.view, selection));
 /** The inspector's state between showings: its typed text, its drafts and the tab chosen. */
 const manifest = new ManifestText();
 const drafts = new PropertyDrafts();
+/** Who asserts the links the viewer creates; read from storage once, at mount. */
+const identity = new Identity(untrack(() => identityKey));
 let picked: Picked = $state.raw(untrack(() => initialPick(live.editing.length, live.openings)));
 let pin = $state.raw<ShownPin | null>(null);
 let inspector: ReturnType<typeof Inspector> | undefined = $state();
@@ -204,6 +209,7 @@ async function show(next: boolean): Promise<void> {
       {placement}
       {manifest}
       {drafts}
+      {identity}
       bind:picked
       bind:pin
       {timestamp}

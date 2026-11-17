@@ -501,6 +501,7 @@ if (withTestHook) {
       selection={session.selection}
       {placement}
       storageKey={storage?.inspectorKey ?? null}
+      identityKey={storage?.identityKey ?? null}
       knotsOf={(manifest) => canvas?.knotsOf(manifest)}
     />
   </main>

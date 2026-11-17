@@ -12,6 +12,12 @@ export interface StorageOptions {
   readonly slot: string;
   /** The `localStorage` key remembering whether the inspector drawer is open. */
   readonly inspectorKey: string;
+  /**
+   * The `localStorage` key remembering the viewer's identity, the URI that
+   * asserts the links they create; without it the identity holds until the
+   * editor goes.
+   */
+  readonly identityKey?: string;
 }
 
 /** What the open workspace's file is, reported after every change and every load. */
