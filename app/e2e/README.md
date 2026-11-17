@@ -470,8 +470,11 @@ which has no name, checked.
 **`a11y.spec.ts`** (Chromium, Firefox, WebKit) runs axe-core on the page
 with `small` open and requires an empty violation list on the canvas, with
 an element selected, with the drawer open, on the drawer's Properties and
-Manifest tabs inspecting a timeline, with the File menu, the About dialog and the
-discard question open. Tab reaches the nodes in z-order, Enter selects the
+Manifest tabs inspecting a timeline, on its Metadata tab inspecting the
+bundle of `bare` given one link (one card, its URIs a web address and a
+`urn:`, an assertion with a status) and with the identity dialog open over
+it (Change identity), with the File menu, the About dialog and the discard
+question open. Tab reaches the nodes in z-order, Enter selects the
 focused one and Escape clears the selection.
 
 **`culling.spec.ts`** (Chromium, Firefox, WebKit) proves that culling is off
