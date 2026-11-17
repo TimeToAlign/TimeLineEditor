@@ -68,7 +68,11 @@ const LISTED_MEMBERS = ["timelines", "groups", "measure_maps", "graphical"];
 /** The `graphical` members compared first, in this order; the others follow by code point. */
 const GRAPHICAL_MEMBERS = ["statements", "styles", "order"];
 
-type Refuse = (what: string, path: readonly PathSegment[]) => CommandError;
+/** The members of a manifest and of its `graphical` named by a plural noun: they "lie" outside. */
+const PLURAL_MEMBERS: ReadonlySet<string> = new Set(["links", "schemes", "statements", "styles"]);
+
+/** A `side_effect` refusal of `what`, at `path`; `plural` where `what` names several things. */
+type Refuse = (what: string, path: readonly PathSegment[], plural?: boolean) => CommandError;
 
 /** An address as a refusal names it (`addressWords`), in the view before the command or after it. */
 type Words = (address: Address) => string;
@@ -161,8 +165,9 @@ export function statementInside(
  * A manifest as seen from outside `element`, cut into comparable parts, each
  * the standard text of its value: per timeline (its lists reduced to their
  * ids), per map, region and flow-control element, per group, per measure
- * map, per named timestamp; the other top-level members; the other
- * `graphical` members. The edited timeline's object, or the edited group's
+ * map, per named timestamp, each without its links; the links of each
+ * timeline and region; the other top-level members; the other `graphical`
+ * members. The edited timeline's object, or the edited group's
  * and each of its members', stands as `{id}`; the named timestamps lying on
  * a timeline inside and the entries of `graphical.order` whose keys lie
  * inside (the group's display order, the band orders of the timelines it
@@ -171,6 +176,7 @@ export function statementInside(
  */
 interface Projection {
   readonly elements: ReadonlyMap<string, string>;
+  readonly links: ReadonlyMap<string, string>;
   readonly top: ReadonlyMap<string, string>;
   readonly graphical: ReadonlyMap<string, string>;
 }
@@ -191,25 +197,31 @@ function project(
   const group = manifest.groups.find((item) => item.id === element);
   const hidden = new Set(group === undefined ? [element] : group.members);
   const elements = new Map<string, string>();
+  const links = new Map<string, string>();
+  // An element and its links apart, so that a refusal names the links where only they differ.
+  const set = (id: string, value: object) => {
+    if (!("links" in value)) {
+      elements.set(id, dumps(value));
+      return;
+    }
+    const { links: held, ...rest } = value;
+    elements.set(id, dumps(rest));
+    links.set(id, dumps(held));
+  };
   const visit = (timeline: TimelineManifest) => {
     if (hidden.has(timeline.id)) {
       elements.set(timeline.id, dumps({ id: timeline.id }));
       return;
     }
-    elements.set(
-      timeline.id,
-      dumps({
-        ...timeline,
-        children: ids(timeline.children),
-        conversion_maps: ids(timeline.conversion_maps),
-        regions: ids(timeline.regions),
-        flow_control: ids(timeline.flow_control),
-      }),
-    );
+    set(timeline.id, {
+      ...timeline,
+      children: ids(timeline.children),
+      conversion_maps: ids(timeline.conversion_maps),
+      regions: ids(timeline.regions),
+      flow_control: ids(timeline.flow_control),
+    });
     for (const kind of ENTRY_KINDS) {
-      for (const entry of byId(entriesOf(timeline, kind))) {
-        elements.set(entry.id, dumps(entry));
-      }
+      for (const entry of byId(entriesOf(timeline, kind))) set(entry.id, entry);
     }
     for (const child of byId(timeline.children)) visit(child);
   };
@@ -249,7 +261,7 @@ function project(
     ["order", dumps(orders)],
   ]);
   for (const [key, value] of Object.entries(rest)) graphical.set(key, dumps(value));
-  return { elements, top, graphical };
+  return { elements, links, top, graphical };
 }
 
 /**
@@ -328,19 +340,29 @@ function manifestChange(
     contained ??= id;
   }
   if (contained !== undefined) return changed(contained);
+  // The links of an element outside, which a removal inside prunes where a part slot names it.
+  for (const id of walk()) {
+    if (a.links.has(id) && b.links.has(id) && a.links.get(id) !== b.links.get(id)) {
+      const where = words(inBlock(block, idAddress(id)));
+      return refuse(`the links of ${where}`, [keyIn(block, id), "links"], true);
+    }
+  }
   for (const key of inOrder(TOP_MEMBERS, [...a.top.keys(), ...b.top.keys()])) {
     if (a.top.get(key) !== b.top.get(key)) {
-      return refuse(`the manifest's ${key} in ${words({ block })}`, [block, "manifest", key]);
+      return refuse(
+        `the manifest's ${key} in ${words({ block })}`,
+        [block, "manifest", key],
+        PLURAL_MEMBERS.has(key),
+      );
     }
   }
   for (const key of inOrder(GRAPHICAL_MEMBERS, [...a.graphical.keys(), ...b.graphical.keys()])) {
     if (a.graphical.get(key) !== b.graphical.get(key)) {
-      return refuse(`the graphical ${key} of ${words({ block })}`, [
-        block,
-        "manifest",
-        "graphical",
-        key,
-      ]);
+      return refuse(
+        `the graphical ${key} of ${words({ block })}`,
+        [block, "manifest", "graphical", key],
+        PLURAL_MEMBERS.has(key),
+      );
     }
   }
   return null;
@@ -444,10 +466,10 @@ export function sideEffect(
   const workspace = addressKey(WORKSPACE);
   const words: Words = (address) =>
     addressWords(isCommandError(resolveAddress(before, address)) ? after : before, address);
-  const refuse: Refuse = (what, path) =>
+  const refuse: Refuse = (what, path, plural = false) =>
     problem(
       ErrorCode.sideEffect,
-      `${what} lies outside ${words(target)}: an editor changes only what it edits`,
+      `${what} ${plural ? "lie" : "lies"} outside ${words(target)}: an editor changes only what it edits`,
       path,
     );
   // A change set names the workspace and every block a command touched; without one, both views are scanned.

@@ -97,6 +97,14 @@ export type { EntryKind, ListedElement } from "./manifest/files.ts";
 export { isNamed } from "./manifest/files.ts";
 export type { SaveOptions } from "./manifest/io.ts";
 export { loadManifest, normalizeManifest, saveManifest } from "./manifest/io.ts";
+export type {
+  LinkedManifest,
+  LinkedRegion,
+  LinkedTimeline,
+  LinkHolder,
+  LinkOwner,
+} from "./manifest/links.ts";
+export { linkHolder, linkHolders } from "./manifest/links.ts";
 export type { BandOrderEntry } from "./manifest/order.ts";
 export {
   bandOrderOf,

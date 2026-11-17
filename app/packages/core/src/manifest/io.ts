@@ -30,14 +30,23 @@ import {
   validate,
 } from "@timetoalign/timetoshare";
 import type { LoadError, Problem } from "../errors.ts";
-import { ErrorCode, InvalidManifestError, isLoadError, problem } from "../errors.ts";
+import {
+  ErrorCode,
+  InvalidManifestError,
+  isCommandError,
+  isLoadError,
+  problem,
+} from "../errors.ts";
 import type { JsonObject, PathSegment } from "../json.ts";
+import { withValueAt } from "../json.ts";
 import type { Part } from "./address.ts";
 import type { EntryKind, EntryTypes } from "./files.ts";
 import { ENTRY_LISTS } from "./files.ts";
 import { checkOrdered } from "./invariants.ts";
 import { withSegmentsUnlocked } from "./locks.ts";
-import type { Manifest, MeasureMap, TimelineManifest } from "./types.ts";
+import type { Located } from "./tree.ts";
+import { findTimeline } from "./tree.ts";
+import type { Manifest, MeasureMap } from "./types.ts";
 
 /** The problem a schema refusal is reported as. */
 function schemaProblem(error: unknown): Problem {
@@ -259,16 +268,6 @@ export function normalizeManifest(value: unknown): Manifest | LoadError {
   };
 }
 
-/** `object` with the member at `path` set to `value`, every object on the way copied. */
-function withMemberAt(object: object, path: readonly string[], value: unknown): object {
-  const [member, ...rest] = path;
-  if (member === undefined) throw new Error("a member path names a member");
-  const members: { readonly [key: string]: unknown } = { ...object };
-  const inner = members[member];
-  const held = typeof inner === "object" && inner !== null ? inner : {};
-  return { ...members, [member]: rest.length === 0 ? value : withMemberAt(held, rest, value) };
-}
-
 /**
  * `value` in its complete form and canonical order, as a command's change
  * is checked; a value that cannot be ordered (an entry whose ordering member
@@ -288,55 +287,48 @@ export function completeOrdered<T>(value: T): T | Problem {
 }
 
 /**
- * What an element given to a command may name beside its own tree: the
- * measure maps of its manifest, which a measure view names, and the schemes,
- * which an identifier of a link names.
+ * A value given to a command, read where it will lie: `probe`, the manifest
+ * with the value in place, completed, ordered and checked whole by the
+ * schema as `settle` checks a manifest, so that what the value names (a
+ * measure map, a scheme, a timeline or region a part slot names) is found
+ * wherever it lies in the manifest. The complete form, or the schema's first
+ * problem with its path from the manifest.
  */
-export type Beside = Pick<Manifest, "measure_maps" | "schemes">;
+export function readInPlace(probe: unknown): CompleteManifest | Problem {
+  const ordered = completeOrdered(probe);
+  if (isCommandError(ordered)) return ordered;
+  const checked = schemaChecked(ordered);
+  return "code" in checked ? checked : completeForm(checked);
+}
 
 /**
  * A map, region or flow-control element given to a command, read through
- * the schema boundary in `host`, the timeline that will list it at `index`
- * of its kind's list (the entry there replaced, or appended at the list's
- * length): `host` alone (its children left out) with the value in place,
- * beside the measure maps and schemes of its manifest (`beside`), is
- * completed, ordered and checked by the schema as `settle` checks a
- * manifest, and the value is returned in its complete form. A schema
- * problem is returned with its path from `host`, the caller placing it in
- * its manifest.
+ * the schema boundary where it will lie: in the timeline `at` locates in
+ * `manifest`, at `index` of its kind's list (the entry there replaced, or
+ * appended at the list's length), the whole manifest read with the value in
+ * place (`readInPlace`), and the value returned in its complete form. A
+ * schema problem is returned with its path from the timeline, or at the
+ * entry's place in it where the problem lies elsewhere; the caller places it
+ * in its manifest.
  */
 export function readEntry<K extends EntryKind>(
   kind: K,
   value: JsonObject,
-  host: TimelineManifest,
+  at: Located,
   index: number,
-  beside: Beside,
+  manifest: Manifest,
 ): EntryTypes[K] | Problem {
   const list = ENTRY_LISTS[kind];
-  const items: unknown[] = [...list.get(host)];
+  const items: unknown[] = [...list.get(at.timeline)];
   items[index] = value;
-  // The probe holds the entry alone: without its children a segment line would fail the
-  // segment rule (its segments end where it ends), so the probe is no segment line.
-  const timeline = withMemberAt(
-    { ...host, children: [], is_segment_line: false },
-    list.path,
-    items,
-  );
-  const ordered = completeOrdered({
-    timetoshare: SCHEMA_VERSION,
-    timelines: [timeline],
-    measure_maps: beside.measure_maps,
-    schemes: beside.schemes,
-  });
-  const checked = "code" in ordered ? ordered : schemaChecked(ordered);
-  if ("code" in checked) {
-    const [timelines, root, ...path] = checked.path;
-    const inHost = timelines === "timelines" && root === 0;
-    return { ...checked, path: inHost ? path : [...list.path, index] };
+  const read = readInPlace(withValueAt(manifest, [...at.path, ...list.path], items));
+  if ("code" in read) {
+    const inHost = at.path.every((step, position) => read.path[position] === step);
+    return { ...read, path: inHost ? read.path.slice(at.path.length) : [...list.path, index] };
   }
-  const [read] = completeForm(checked).timelines;
+  const host = findTimeline(read, at.timeline.id);
   // Canonical order may move the entry within its list; its id finds it.
-  const entry = read === undefined ? undefined : list.get(read).find(({ id }) => id === value.id);
+  const entry = host === undefined ? undefined : list.get(host).find(({ id }) => id === value.id);
   if (entry === undefined) throw new Error(`the host lists the ${kind} ${String(value.id)}`);
   return entry;
 }

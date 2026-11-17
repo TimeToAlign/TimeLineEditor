@@ -6,6 +6,7 @@ import { apply } from "../src/commands/apply.ts";
 import { importedManifest } from "../src/commands/timestamps.ts";
 import { isCommandError } from "../src/errors.ts";
 import { loadManifest, saveManifest } from "../src/manifest/io.ts";
+import { linkHolder } from "../src/manifest/links.ts";
 import { findTimeline } from "../src/manifest/tree.ts";
 import type { Link, Manifest } from "../src/manifest/types.ts";
 import type { Address } from "../src/workspace/address.ts";
@@ -377,7 +378,7 @@ describe("links through edits", () => {
     const refusal = store.dispatch(setLinks([BLOCK, [W]]));
     expect(refusal === null ? null : [refusal.code, refusal.message, refusal.path]).toEqual([
       "side_effect",
-      "the manifest's links in bundle 'Mixed' lies outside timeline 'Score': an editor changes only what it edits",
+      "the manifest's links in bundle 'Mixed' lie outside timeline 'Score': an editor changes only what it edits",
       [A, "manifest", "links"],
     ]);
   });
@@ -398,5 +399,198 @@ describe("links through edits", () => {
     const text = saveManifest(manifestOf(view));
     expect(text.includes('"timelines": []')).toBe(true);
     expect(loadText(text).links).toEqual([COMPLETE_W]);
+  });
+});
+
+/** `S(x, …)`: `W` reading one part `I` represented by the elements `ids`. */
+const S = (...ids: string[]) => ({
+  ...W,
+  parts_relation: "has_part",
+  parts: [{ label: "I", represented_by: ids }],
+});
+
+/** A part slot in its complete form. */
+const slot = (label: string, represented: string[], absent: string | null = null) => ({
+  uri: [],
+  identifiers: [],
+  label,
+  represented_by: represented,
+  absent,
+  assertion: null,
+});
+
+/** `S*(x, …)`, the complete form of `S(x, …)`; `S∅` for none. */
+const completeS = (...ids: string[]) => ({
+  ...COMPLETE_W,
+  parts_relation: "has_part",
+  parts: [ids.length > 0 ? slot("I", ids) : slot("I", [], "not_represented")],
+});
+
+/** `T`: `W` reading `I` represented by `clt_2` and `clt_3`, and `II` by `clt_2`. */
+const T = {
+  ...W,
+  parts_relation: "has_part",
+  parts: [
+    { label: "I", represented_by: ["clt_2", "clt_3"] },
+    { label: "II", represented_by: ["clt_2"] },
+  ],
+};
+
+/** The links of the element `id` of block A's manifest (`null` the manifest's own). */
+function heldBy(view: View, id: string | null): readonly Link[] | undefined {
+  return linkHolder(manifestOf(view), id)?.links;
+}
+
+describe("links given with an element", () => {
+  it("are read where they will lie (item 12)", () => {
+    const view = viewOf([A, MIXED]);
+    const region = applied(view, {
+      type: "add",
+      into: at("annotations"),
+      region: { id: "region_3", start: [0, 1], end: [1, 1], links: [S("score")] },
+    });
+    const child = applied(view, {
+      type: "add",
+      into: at("recording"),
+      child: { id: "take", unit: "samples", length: 100, offset: 0, links: [S("region_1")] },
+    });
+    const extra = {
+      id: "extra",
+      unit: "quarters",
+      length: [4, 1],
+      regions: [{ id: "region_9", start: [0, 1], end: [1, 1], links: [S("score")] }],
+    };
+    const root = applied(view, { type: "add", into: BLOCK, timeline: extra });
+    expect([heldBy(region, "region_3"), heldBy(child, "take"), heldBy(root, "region_9")]).toEqual([
+      [completeS("score")],
+      [completeS("region_1")],
+      [completeS("score")],
+    ]);
+    expect(
+      refused(view, { type: "add", into: BLOCK, timeline: { ...extra, links: [S("nowhere")] } }),
+    ).toEqual({
+      code: "schema_violation",
+      message: "'nowhere' names no timeline or region of this manifest",
+      path: [A, "manifest", "timelines", 5, "links", 0, "parts", 0, "represented_by", 0],
+    });
+    const own = applied(view, setLinks([at("recording"), [S("excerpt")]]));
+    const scaled = {
+      id: "scaled",
+      type: "LinearMap",
+      source_unit: "samples",
+      target_unit: "seconds",
+      scalar: [1, 44100],
+    };
+    const mapped = applied(own, { type: "add", into: at("recording"), map: scaled });
+    const regioned = applied(own, {
+      type: "add",
+      into: at("recording"),
+      region: { id: "take_region", start: 0, end: 100 },
+    });
+    expect([
+      findTimeline(manifestOf(mapped), "recording")?.conversion_maps.map(({ id }) => id),
+      findTimeline(manifestOf(regioned), "recording")?.regions.map(({ id }) => id),
+      heldBy(mapped, "recording"),
+    ]).toEqual([["cmap_5", "scaled"], ["take_region"], [completeS("excerpt")]]);
+  });
+});
+
+describe("removing what a part slot names", () => {
+  /** `nested.json` with `clt_1`'s links `[S(clt_2)]` and its region `region_1` holding `[T]`. */
+  const nested = () =>
+    applied(
+      applied(viewOf([A, "nested.json"]), {
+        type: "add",
+        into: at("clt_1"),
+        region: { id: "region_1", start: [0, 1], end: [4, 1], links: [T] },
+      }),
+      setLinks([at("clt_1"), [S("clt_2")]]),
+    );
+  const completeT = (first: string[], second: string[]) => ({
+    ...COMPLETE_W,
+    parts_relation: "has_part",
+    parts: [
+      first.length > 0 ? slot("I", first) : slot("I", [], "not_represented"),
+      second.length > 0 ? slot("II", second) : slot("II", [], "not_represented"),
+    ],
+  });
+
+  it("prunes every holder's slots, a child at depth 2 and a segment alike (item 13)", () => {
+    const store = storeOf(nested());
+    expect([heldBy(store.view, "clt_1"), heldBy(store.view, "region_1")]).toEqual([
+      [completeS("clt_2")],
+      [completeT(["clt_2", "clt_3"], ["clt_2"])],
+    ]);
+    const entries = store.journal.length;
+    expect(store.dispatch({ type: "remove", targets: [at("clt_2")] })).toBe(null);
+    expect([
+      store.journal.length - entries,
+      heldBy(store.view, "clt_1"),
+      heldBy(store.view, "region_1"),
+    ]).toEqual([1, [completeS()], [completeT(["clt_3"], [])]]);
+    const segments = applied(
+      applied(viewOf([A, "segment_children.json"]), {
+        type: "add",
+        into: at("coda"),
+        region: { id: "region_1", start: [0, 1], end: [1, 1], links: [S("i2")] },
+      }),
+      setLinks([at("piece"), [S("i1")]]),
+    );
+    const removed = applied(segments, { type: "remove", targets: [at("intro")] });
+    expect([heldBy(removed, "piece"), heldBy(removed, "region_1")]).toEqual([
+      [completeS()],
+      [completeS()],
+    ]);
+  });
+
+  it("keeps a region's links through changes of the region (item 14)", () => {
+    const view = applied(nested(), {
+      type: "set",
+      changes: [{ target: at("region_1"), values: { start: [1, 1], end: [3, 1], name: "Theme" } }],
+    });
+    const region = findTimeline(manifestOf(view), "clt_1")?.regions[0];
+    expect([region?.start, region?.end, region?.name, region?.links]).toEqual([
+      [1, 1],
+      [3, 1],
+      "Theme",
+      [completeT(["clt_2", "clt_3"], ["clt_2"])],
+    ]);
+  });
+
+  it("is refused in an editor where it prunes outside (item 15)", () => {
+    const refusal = (view: View, editing: string, removed: string) => {
+      const store = storeOf(view);
+      expect(store.open(at(editing))).toBe(null);
+      const before = store.view;
+      const result = store.dispatch({ type: "remove", targets: [at(removed)] });
+      expect(store.view).toBe(before);
+      return result === null ? null : [result.code, result.message, result.path];
+    };
+    const outside = (what: string, where: string) =>
+      `${what} lie outside ${where}: an editor changes only what it edits`;
+    const own = applied(viewOf([A, "nested.json"]), setLinks([at("clt_1"), [S("clt_2")]]));
+    const manifest = applied(viewOf([A, "nested.json"]), setLinks([BLOCK, [S("clt_2")]]));
+    const mixed = applied(viewOf([A, MIXED]), setLinks([at("score"), [S("region_1")]]));
+    expect([
+      refusal(own, "clt_3", "clt_2"),
+      refusal(manifest, "clt_3", "clt_2"),
+      refusal(mixed, "annotations", "region_1"),
+    ]).toEqual([
+      [
+        "side_effect",
+        outside("the links of timeline 'clt_1'", "timeline 'clt_3'"),
+        [key(at("clt_1")), "links"],
+      ],
+      [
+        "side_effect",
+        outside("the manifest's links in the anonymous bundle", "timeline 'clt_3'"),
+        [A, "manifest", "links"],
+      ],
+      [
+        "side_effect",
+        outside("the links of timeline 'Score'", "timeline 'Annotations'"),
+        [key(at("score")), "links"],
+      ],
+    ]);
   });
 });

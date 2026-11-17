@@ -10,6 +10,8 @@ import {
   readEntry,
   saveManifest,
 } from "../src/manifest/io.ts";
+import type { Located } from "../src/manifest/tree.ts";
+import { locateTimeline } from "../src/manifest/tree.ts";
 import type { Manifest, TimelineManifest } from "../src/manifest/types.ts";
 import { createView } from "../src/workspace/view.ts";
 import {
@@ -510,10 +512,14 @@ describe("segments read unlocked", () => {
 });
 
 describe("an entry given to a command", () => {
-  const [melody] = load("map.json").timelines;
-  if (melody === undefined) throw new Error("map.json has a root");
-  /** Nothing beside the timeline: no measure maps and no schemes. */
-  const NOTHING = { measure_maps: [], schemes: [] };
+  const manifest = load("map.json");
+  /** The timeline `id` of `manifest`, located. */
+  const located = (id: string): Located => {
+    const at = locateTimeline(manifest, id);
+    if (at === undefined) throw new Error(`map.json has ${id}`);
+    return at;
+  };
+  const melody = located("melody");
   const tempo = {
     id: "tempo",
     scalar: [1, 2],
@@ -523,14 +529,12 @@ describe("an entry given to a command", () => {
   };
 
   it("reads an accepted map in its complete form", () => {
-    expect(readEntry("map", tempo, melody, 0, NOTHING)).toEqual({
+    expect(readEntry("map", tempo, melody, 0, manifest)).toEqual({
       ...tempo,
       name: null,
       offset: 0,
     });
-    const [phrase] = melody.children;
-    if (phrase === undefined) throw new Error("melody has a child");
-    expect(readEntry("map", { ...tempo, id: "second" }, phrase, 1, NOTHING)).toEqual({
+    expect(readEntry("map", { ...tempo, id: "second" }, located("phrase"), 1, manifest)).toEqual({
       ...tempo,
       id: "second",
       name: null,
@@ -540,7 +544,7 @@ describe("an entry given to a command", () => {
 
   it("refuses a region at its path from the timeline that will list it", () => {
     const region = { id: "verse\tchorus", start: [0, 1], end: [2, 1] };
-    expect(refusal(readEntry("region", region, melody, 0, NOTHING))).toEqual({
+    expect(refusal(readEntry("region", region, melody, 0, manifest))).toEqual({
       code: "schema_violation",
       path: ["regions", 0, "id"],
     });
@@ -560,12 +564,13 @@ describe("an entry given to a command", () => {
       target_unit: null,
       measure_map: "bars",
     };
-    const index = melody.conversion_maps.length;
-    expect(readEntry("map", view, melody, index, { ...NOTHING, measure_maps: [bars] })).toEqual({
+    const index = melody.timeline.conversion_maps.length;
+    const beside = { ...manifest, measure_maps: [bars] };
+    expect(readEntry("map", view, melody, index, beside)).toEqual({
       ...view,
       name: null,
     });
-    expect(refusal(readEntry("map", view, melody, index, NOTHING))).toEqual({
+    expect(refusal(readEntry("map", view, melody, index, manifest))).toEqual({
       code: "schema_violation",
       path: ["conversion_maps", index, "measure_map"],
     });

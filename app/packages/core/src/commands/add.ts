@@ -13,22 +13,23 @@
 import { DEFAULTS, SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import type { CommandError, LoadError, Problem } from "../errors.ts";
 import { ErrorCode, isCommandError, isLoadError, problem } from "../errors.ts";
-import type { JsonObject, PathSegment } from "../json.ts";
-import { isJsonObject } from "../json.ts";
+import type { Json, JsonObject, PathSegment } from "../json.ts";
+import { compareCodePoints, isJsonObject, withValueAt } from "../json.ts";
 import { addressKey, idAddress, sameAddress } from "../manifest/address.ts";
 import type { EntryKind } from "../manifest/files.ts";
 import { ENTRY_KINDS, entriesOf } from "../manifest/files.ts";
 import { readOnAxis } from "../manifest/invariants.ts";
-import type { Beside } from "../manifest/io.ts";
 import {
   completed,
   normalizeManifest,
   readEntry,
+  readInPlace,
   readMeasureMap,
   schemaChecked,
 } from "../manifest/io.ts";
+import { linkHolders, unlinked } from "../manifest/links.ts";
 import { statedLockProblem, withPlaceLocks } from "../manifest/locks.ts";
-import type { Group, TimelineManifest } from "../manifest/types.ts";
+import type { Group, Manifest, TimelineManifest } from "../manifest/types.ts";
 import { readName, readObject, readPlaces, unknownMember } from "../values.ts";
 import { idPath, inBlock, manifestIds, WORKSPACE } from "../workspace/address.ts";
 import type { Block } from "../workspace/blocks.ts";
@@ -151,17 +152,17 @@ export function withStatedPlacement(view: View, command: Command): Command {
 }
 
 /**
- * A problem of a host manifest holding one value first in its `list`,
- * placed at `at`, where the value lies in the command or will lie in the
- * block.
+ * A problem of a manifest holding a value at `place`, placed at `at`, where
+ * the value lies in the command or will lie in the block: below `at` where
+ * it lies in the value, else at `at`.
  */
 function located(
   problem: Problem,
-  list: "timelines" | "groups",
+  place: readonly PathSegment[],
   at: readonly PathSegment[],
 ): Problem {
-  const [member, index, ...rest] = problem.path;
-  return { ...problem, path: member === list && index === 0 ? [...at, ...rest] : [...at] };
+  const inside = place.every((step, index) => problem.path[index] === step);
+  return { ...problem, path: inside ? [...at, ...problem.path.slice(place.length)] : [...at] };
 }
 
 /** The first problem of a manifest `normalizeManifest` refused. */
@@ -171,37 +172,43 @@ function firstProblem(refused: LoadError): Problem {
   return first;
 }
 
+/** Where the one value of a host manifest lies in it. */
+const FIRST_ROOT = ["timelines", 0];
+
 /**
- * A timeline given to `add`, read through the schema boundary as the one
- * root of a manifest of its own, beside the measure maps and schemes of the
- * manifest it is added to (`beside`), which its measure views and its links'
- * identifiers may name: its segment lines covered
+ * A timeline given to `add`, read through the schema boundary in two steps.
+ * First the timeline alone, the links of its elements left out
+ * (`unlinked`), as the one root of a manifest of its own beside the measure
+ * maps and schemes of `manifest`, the manifest it is added to, which its
+ * measure views may name: its segment lines covered
  * (`withSegmentLinesCovered`, no ID minted there among `taken`, the IDs of
- * the manifest it is added to), checked by the schema, the `locked` it and
- * its subtree state checked against their place under `parent`
- * (`statedLockProblem`; a root's own lock is its own) before reading unlocks
- * its segments, then completed (`completed`, the schema check done), every
- * ID of its tree checked against `taken` (`duplicate_id` at the first it
- * shares), and given the locks its place decides (a new timeline is no
- * group member yet). A problem is reported at `at`, where the timeline will
- * lie in the block, and below it; a refused lock at `path`.
+ * the manifest), checked by the schema, the `locked` it and its subtree
+ * state checked against their place under `parent` (`statedLockProblem`; a
+ * root's own lock is its own) before reading unlocks its segments, then
+ * completed (`completed`, the schema check done), every ID of its tree
+ * checked against `taken` (`duplicate_id` at the first it shares), and given
+ * the locks its place decides (a new timeline is no group member yet). Then
+ * its links, where they will lie (`withLinksRead`). A problem is reported at
+ * `at`, where the timeline will lie in the block, and below it; a refused
+ * lock at `path`.
  */
 function readTimeline(
   value: JsonObject,
   parent: TimelineManifest | undefined,
-  beside: Beside,
+  manifest: Manifest,
   taken: ReadonlySet<string>,
   at: readonly PathSegment[],
   path: readonly PathSegment[],
 ): TimelineManifest | CommandError {
+  const links = new Map<string, Json>();
   const host = {
     timetoshare: SCHEMA_VERSION,
-    timelines: [value],
-    measure_maps: beside.measure_maps,
-    schemes: beside.schemes,
+    timelines: [unlinked(value, links)],
+    measure_maps: manifest.measure_maps,
+    schemes: manifest.schemes,
   };
   const checked = schemaChecked(withSegmentLinesCovered(host, taken));
-  if ("code" in checked) return located(checked, "timelines", at);
+  if ("code" in checked) return located(checked, FIRST_ROOT, at);
   const [fragment] = checked.timelines;
   if (fragment === undefined) throw new Error("the host holds the timeline");
   const placed = parent === undefined ? (fragment.children ?? []) : [fragment];
@@ -210,17 +217,51 @@ function readTimeline(
     if (refused !== undefined) return refused;
   }
   const read = completed(checked);
-  if (isLoadError(read)) return located(firstProblem(read), "timelines", at);
+  if (isLoadError(read)) return located(firstProblem(read), FIRST_ROOT, at);
   for (const id of manifestIds(read)) {
     // The measure maps beside the timeline are the manifest's own: only its tree's IDs lie in it.
     const where = idPath(read, id);
     if (where !== undefined && taken.has(id)) {
-      return located(duplicated(id, where), "timelines", at);
+      return located(duplicated(id, where), FIRST_ROOT, at);
     }
   }
   const [timeline] = read.timelines;
   if (timeline === undefined) throw new Error("the host holds the timeline");
-  return withPlaceLocks(timeline, parent, () => false);
+  const own = withPlaceLocks(timeline, parent, () => false);
+  return links.size === 0 ? own : withLinksRead(own, links, manifest, at);
+}
+
+/**
+ * `timeline`, read with the links of its elements left out, with the links
+ * `links` holds by the ID of their element, read where they will lie: the
+ * timeline, its links in place, appended to the roots of `manifest`, which
+ * is read whole (`readInPlace`), so that a part slot may name any timeline
+ * or region of the manifest. A problem is reported at `at`, where the
+ * timeline will lie in the block, and below it.
+ */
+function withLinksRead(
+  timeline: TimelineManifest,
+  links: ReadonlyMap<string, Json>,
+  manifest: Manifest,
+  at: readonly PathSegment[],
+): TimelineManifest | CommandError {
+  // The roots lie in canonical order, by ID: the timeline goes where that order puts it.
+  const index = manifest.timelines.filter(
+    ({ id }) => compareCodePoints(id, timeline.id) < 0,
+  ).length;
+  const place = ["timelines", index];
+  const roots = manifest.timelines.toSpliced(index, 0, timeline);
+  let probe: unknown = { ...manifest, timelines: roots };
+  for (const holder of linkHolders({ links: [], timelines: [timeline] })) {
+    const given = holder.id === null ? undefined : links.get(holder.id);
+    const [, , ...below] = holder.path;
+    if (given !== undefined) probe = withValueAt(probe, [...place, ...below], given);
+  }
+  const read = readInPlace(probe);
+  if ("code" in read) return located(read, place, at);
+  const linked = read.timelines.find(({ id }) => id === timeline.id);
+  if (linked === undefined) throw new Error("the manifest holds the timeline");
+  return linked;
 }
 
 /** `duplicate_id` for `id`, an ID the manifest holds, given again at `path`. */
@@ -289,7 +330,7 @@ function readGroup(value: JsonObject, at: readonly PathSegment[]): Group | Comma
     timelines: [],
     groups: [{ ...value, members: [] }],
   });
-  if (isLoadError(read)) return located(firstProblem(read), "groups", at);
+  if (isLoadError(read)) return located(firstProblem(read), ["groups", 0], at);
   const [group] = read.groups;
   if (group === undefined) throw new Error("the host holds the group");
   return group;
@@ -385,13 +426,7 @@ function addElement(
     if (isCommandError(placed)) return placed;
     changed = placeChild(block.manifest, at, placed, on, path);
   } else {
-    const entry = readEntry(
-      kind,
-      object,
-      timeline,
-      entriesOf(timeline, kind).length,
-      block.manifest,
-    );
+    const entry = readEntry(kind, object, at, entriesOf(timeline, kind).length, block.manifest);
     if (isCommandError(entry)) {
       return { ...entry, path: [block.id, "manifest", ...at.path, ...entry.path] };
     }
