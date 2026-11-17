@@ -27,10 +27,11 @@ have, the schema is changed first.
 
 - A **manifest** is one TimeToShare manifest: root timelines with exact
   coordinates, children at exact offsets, conversion maps, regions, flow
-  control; optionally groups, measure maps, an `id`, a `name`, and
-  `graphical`, the styling of its own drawing with the display orders of
-  its groups and the band orders of its timelines. A manifest knows nothing
-  about a canvas.
+  control; optionally groups, measure maps, an `id`, a `name`, the links
+  and schemes of the description layer (the manifest, every timeline and
+  every region hold links to what they are about), and `graphical`, the
+  styling of its own drawing with the display orders of its groups and the
+  band orders of its timelines. A manifest knows nothing about a canvas.
 - A **block** is one manifest placed on the canvas with its placement: `x`,
   `y`, `scale`, `length`, `spacing` (the gap between the items of its
   drawing), `margin` (the empty space above its first item and below its
@@ -117,7 +118,8 @@ address)` is the one place that decides what an address names, returning
 a discriminated record (workspace, block, title, frame, timeline, card,
 band, entry, measure map, part); a part names something only where it is
 drawn. Nothing reads an ID or an address out of
-a string.
+a string. A link has neither an ID nor an address: it is changed through
+the element holding it, by one `set` of that element's whole `links` list.
 
 ## How a change travels
 
