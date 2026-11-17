@@ -306,15 +306,16 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
     four segments stating `false`.
 15. **Malformed text** is refused with code `invalid_json` at path `[]`.
 16. **An entry given to a command** (a map, region or flow-control
-    element) is checked by the schema in the timeline that will list it,
-    beside the measure maps and schemes of its manifest, completed and ordered as a
+    element) is checked by the schema where it will lie: in the timeline
+    that will list it, within the whole manifest, whose measure maps,
+    schemes, timelines and regions it may name, completed and ordered as a
     command's result is: a minimal `LinearMap` `tempo`, in `melody` of
     `map.json` and in its child `phrase`, comes back in its complete form
     (`name: null`, `offset: 0`); a region whose ID holds a tab
     (`"verse\tchorus"`) is `schema_violation` at `["regions", 0, "id"]`, its path from that
     timeline, which a command reports below its block's manifest; a
     `MeasureRecordMap` `x_record` naming the measure map `bars` reads in its
-    complete form (`name: null`) beside `bars`, and without it is
+    complete form (`name: null`) in `map.json` given `bars`, and without it is
     `schema_violation` at its own `measure_map` (`["conversion_maps", i,
     "measure_map"]`, `i` its place in canonical order, after `melody`'s
     own maps).
@@ -2102,7 +2103,7 @@ the label `Op. 106`.
 10. **An editor changes only its element's links.** In the editor of
     `score` (`open`), a `set` of `score`'s links is accepted; a `set` of
     the bundle's links is refused `side_effect` "the manifest's links in
-    bundle 'Mixed' lies outside timeline 'Score': an editor changes only
+    bundle 'Mixed' lie outside timeline 'Score': an editor changes only
     what it edits" at `[A, "manifest", "links"]`.
 11. **A manifest without timelines.** `bare.json`'s value with `timelines:
     []` and without its `graphical` (whose timestamps lie on `bare`) loads,
@@ -2110,6 +2111,60 @@ the label `Op. 106`.
     timestamp; a block holding it takes a
     `set` of its links to `[W]`, and `saveManifest` writes `"timelines":
     []` and `[W*]`.
+
+In the items below, `S(x, …)` is `W` with `parts_relation: "has_part"` and
+one slot `{label: "I", represented_by: [x, …]}`, and `S*(x, …)` its
+complete form, the slot `{uri: [], identifiers: [], label: "I",
+represented_by: [x, …], absent: null, assertion: null}`; a slot whose
+elements are all removed becomes `{uri: [], identifiers: [], label: "I",
+represented_by: [], absent: "not_represented", assertion: null}`, written
+`S∅` for the whole link.
+
+12. **An added element's links are read where they will lie**, in the
+    whole manifest, since a part slot may name any timeline or region of
+    it. In `bundle_mixed`: an `add` into `annotations` of a region
+    `region_3` from 0 to 1 holding `[S(score)]` (another root) stores
+    `[S*(score)]` on it; an `add` into `recording` of a child `take`
+    (samples, length 100, offset 0) holding `[S(region_1)]` (a region of
+    another root) stores `[S*(region_1)]` on `take`; an `add` into the
+    block of a root `extra` (quarters, length 4) whose region `region_9`
+    (0 to 1) holds `[S(score)]` stores `[S*(score)]` on `region_9`. The
+    root `extra` holding `[S(nowhere)]` itself is `schema_violation`
+    "'nowhere' names no timeline or region of this manifest" at `[A,
+    "manifest", "timelines", 5, "links", 0, "parts", 0, "represented_by",
+    0]`, where it would lie after the five roots. With `recording`'s links
+    `[S(excerpt)]` (its own child), an `add` into `recording` of a
+    `LinearMap` `scaled` (samples to seconds, scalar 1/44100) and one of a
+    region `take_region` (0 to 100) are both accepted: the timeline listing
+    an entry is read with its children and the rest of the manifest. Read
+    alone, without what their slots name, every one of these but the
+    refusal would be refused.
+13. **Removing what a part slot names, everywhere.** `nested.json` (the
+    root `clt_1`, its child `clt_3`, its child `clt_2`) with `clt_1`'s
+    links `[S(clt_2)]` and a region `region_1` of `clt_1` (0 to 4) holding
+    `[T]`, `T` being `W` with the slots `I` represented by `clt_2` and
+    `clt_3` and `II` by `clt_2`: removing `clt_2`, a child at depth 2,
+    gives `clt_1` `[S∅]` and `region_1` `I` represented by `clt_3` alone
+    and `II` absent `not_represented`, in one command.
+    `segment_children.json` with `piece`'s links `[S(i1)]` (`i1` a segment
+    of the segment line `intro`) and a region `region_1` of `coda` (0 to 1)
+    holding `[S(i2)]`: removing `intro`, whose segments go with it, gives
+    both `[S∅]`.
+14. **A region's links survive changes of the region.** In `nested.json`
+    with `region_1` holding `[T]`, one `set` of its `start` to 1, its `end`
+    to 3 and its `name` to "Theme" leaves its links `[T*]`, `T`'s complete
+    form.
+15. **An editor refuses to prune outside it.** In `nested.json` with
+    `clt_1`'s links `[S(clt_2)]`, in the editor of `clt_3`, removing
+    `clt_2` (inside it) is refused `side_effect` "the links of timeline
+    'clt_1' lie outside timeline 'clt_3': an editor changes only what it
+    edits" at `[{block: A, id: "clt_1"}, "links"]`; with the manifest's own
+    links `[S(clt_2)]` instead, "the manifest's links in the anonymous
+    bundle lie outside timeline 'clt_3': …" at `[A, "manifest", "links"]`.
+    In `bundle_mixed` with `score`'s links `[S(region_1)]`, in the editor
+    of `annotations`, removing `region_1` is refused "the links of timeline
+    'Score' lie outside timeline 'Annotations': …" at `[{block: A, id:
+    "score"}, "links"]`. Each refusal leaves the store as it was.
 
 ## The store and the journal (`store.test.ts`)
 
@@ -2554,7 +2609,9 @@ element wrongly in as well as one wrongly out.
 The **guard** compares the view before and after a command for an editor's
 target and returns the first change outside the target as `side_effect`,
 message `<what> lies outside <target>: an editor changes only what it
-edits`, or nothing. Its rules are checked in a fixed order and the first hit
+edits` ("lie" where `<what>` names several things: the links of an element,
+the manifest's `links` or `schemes`, the graphical `statements` or
+`styles`), or nothing. Its rules are checked in a fixed order and the first hit
 decides the path, so each rule is proved once by its path, and the order by
 changes that hit several rules at once. The manifest is compared on a
 projection that hides the edited element's own object (a group's object and

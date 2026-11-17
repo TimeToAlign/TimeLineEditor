@@ -720,7 +720,7 @@ function entryRead(
   changes: ChangeSet,
 ): View | CommandError {
   const { block, at, kind, index } = target;
-  const read = readEntry(kind, object, at.timeline, index, block.manifest);
+  const read = readEntry(kind, object, at, index, block.manifest);
   if (isCommandError(read)) {
     return { ...read, path: [block.id, "manifest", ...at.path, ...read.path] };
   }

@@ -43,7 +43,7 @@ jobs:
         with:
           repository: TimeToAlign/timetoalign
           # the timetoalign commit server/uv.lock was locked against; moves with it
-          ref: 476a9e0059c69b14e387eec5b70446c27219c3b8
+          ref: a5884e355378e1068f8457eebdae7d96db992936
           path: timetoalign
       - name: The tag matches the declared versions
         run: python3 TimeLineEditor/scripts/check_versions.py --tag "${{ needs.release-please.outputs.tag_name }}"

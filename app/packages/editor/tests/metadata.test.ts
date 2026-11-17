@@ -7,8 +7,8 @@ import path from "node:path";
 import type { Editing } from "@timetoalign/tilie-arranger";
 import { resolveSelection, selectionOf } from "@timetoalign/tilie-arranger";
 import type { Address, Manifest, View } from "@timetoalign/tilie-core";
-import { isLoadError, loadManifest } from "@timetoalign/tilie-core";
-import type { CompleteLink } from "@timetoalign/timetoshare";
+import { isLoadError, linkHolder, loadManifest } from "@timetoalign/tilie-core";
+import type { Assertion, CompleteLink } from "@timetoalign/timetoshare";
 import {
   ABSENCE_REASONS,
   dumps,
@@ -23,23 +23,23 @@ import {
   withUri,
 } from "@timetoalign/timetoshare";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { Identity } from "../src/inspector/identity.svelte.ts";
-import type { Shown } from "../src/inspector/metadata.ts";
+import { Identity, NO_IDENTITY } from "../src/inspector/identity.svelte.ts";
+import type { Held, Shown } from "../src/inspector/metadata.ts";
 import {
   absenceChoices,
   dayOf,
   describedOf,
   extended,
-  heldBy,
   inspectedOf,
   isUri,
+  isWebAddress,
   linkCard,
   pasted,
   relabelled,
   SELECT_HINT,
+  statusChange,
   viewerAssertion,
   withAbsence,
-  withStatus,
 } from "../src/inspector/metadata.ts";
 import {
   EDITOR,
@@ -50,6 +50,8 @@ import {
   OP106,
   SCHEME_NAME,
   URIS,
+  VIEWER,
+  WHOLE,
   WORK,
   WORK_PAGE,
 } from "./op106.ts";
@@ -57,8 +59,11 @@ import { storeOf } from "./support.ts";
 
 const A = "0000000000";
 const B = "0000000001";
-const I = "https://orcid.org/0000-0002-1825-0097";
-const ASSERTION = { asserted_by: [I], asserted_on: "2026-11-17", method: "manual" };
+const I = VIEWER;
+const E = EDITOR.asserted_by[0];
+const DAY = "2026-11-17";
+const ASSERTION = { asserted_by: [I], asserted_on: DAY, method: "manual" };
+const RELATOR = "http://id.loc.gov/vocabulary/relators/prf";
 
 /** A manifest from a value, failing loudly if it is refused. */
 function manifestOf(value: unknown): Manifest {
@@ -81,9 +86,17 @@ function summary(shown: Shown): unknown {
   return shown.kind === "none" ? shown.hint : [shown.kind, shown.target, shown.words];
 }
 
+/** The bundle's own links of a manifest value, as the tab reads them. */
+function bundleLinks(value: unknown): { described: ReturnType<typeof describedOf>; held: Held } {
+  const described = describedOf(manifestOf(value));
+  const held = linkHolder(described.complete, null);
+  if (held === undefined) throw new Error("no links");
+  return { described, held };
+}
+
 /** The Op. 106 link in its complete form. */
 function op106Link(): CompleteLink {
-  const [link] = describedOf(manifestOf(OP106)).complete.links;
+  const [link] = bundleLinks(OP106).held.links;
   if (link === undefined) throw new Error("no link");
   return link;
 }
@@ -150,9 +163,7 @@ describe("what is inspected (item 1)", () => {
 
 describe("the card of a link", () => {
   it("shows every part of the Op. 106 link (item 2)", () => {
-    const described = describedOf(manifestOf(OP106));
-    const held = heldBy(described.complete, null);
-    if (held === undefined) throw new Error("no links");
+    const { described, held } = bundleLinks(OP106);
     expect(linkCard(described, held, 0)).toEqual({
       level: "work",
       relation: "pertains_to",
@@ -173,11 +184,11 @@ describe("the card of a link", () => {
           identifiers: [],
           representedBy: [],
           absent: "not_represented",
+          assertion: null,
         })),
       },
       partOf: [],
-      assertion:
-        "asserted by https://example.org/people/editor · on 2026-11-17 · method manual · status confirmed",
+      assertion: `asserted by ${E} · on 2026-11-17 · method manual · status confirmed`,
       status: "confirmed",
       warnings: [],
     });
@@ -190,16 +201,14 @@ describe("the card of a link", () => {
       asserted_on: "2026-11-18",
       method: "imported",
     });
-    const described = describedOf(manifestOf({ ...OP106, links: [first, second] }));
-    const held = heldBy(described.complete, null);
-    if (held === undefined) throw new Error("no links");
+    const { described, held } = bundleLinks({ ...OP106, links: [first, second] });
     const cards = held.links.map((_, index) => linkCard(described, held, index));
     expect(
       cards.map((card) => [card.parts?.slots.map((slot) => slot.label), card.assertion]),
     ).toEqual([
       [
         MOVEMENTS.map(([, label]) => label),
-        "asserted by https://example.org/people/editor · on 2026-11-17 · method manual · status confirmed",
+        `asserted by ${E} · on 2026-11-17 · method manual · status confirmed`,
       ],
       [
         [0, 2, 1, 3].map((index) => (MOVEMENTS[index] as readonly [string, string])[1]),
@@ -219,9 +228,7 @@ describe("the card of a link", () => {
       readFileSync(path.join(directory, "description_absent_unregistered.json"), "utf8"),
     );
     if (!isJsonObject(value)) throw new Error("no case");
-    const described = describedOf(manifestOf(value.manifest));
-    const held = heldBy(described.complete, null);
-    if (held === undefined) throw new Error("no links");
+    const { described, held } = bundleLinks(value.manifest);
     const card = linkCard(described, held, 0);
     expect([
       card.parts?.slots.map((slot) => [slot.representedBy, slot.absent]),
@@ -238,9 +245,45 @@ describe("the card of a link", () => {
       [...ABSENCE_REASONS],
     ]);
   });
+
+  it("shows the whole description (item 4)", () => {
+    const { described, held } = bundleLinks(WHOLE);
+    const card = linkCard(described, held, 0);
+    expect([
+      card.records,
+      card.assertion,
+      card.parts?.slots.slice(0, 2).map(({ uris, identifiers, assertion }) => ({
+        uris,
+        identifiers,
+        assertion,
+      })),
+      card.partOf,
+    ]).toEqual([
+      [
+        "https://example.org/records/op106.jsonld (application/ld+json, 2048 bytes, sha256-AAAA)",
+        "https://example.org/records/plain",
+      ],
+      `asserted by ${E} · on 2026-11-17 · method manual · service https://example.org/reconcile · based on https://example.org/sources/a, https://example.org/sources/b · status confirmed`,
+      [
+        {
+          uris: [`${MB}${MOVEMENTS[0]?.[0]}`, "https://example.org/movements/1"],
+          identifiers: [{ scheme: SCHEME_NAME, value: "op. 106 no. 1" }],
+          assertion: `asserted by ${I} · on 2026-11-18 · method inferred`,
+        },
+        { uris: [`${MB}${MOVEMENTS[1]?.[0]}`], identifiers: [], assertion: null },
+      ],
+      [
+        {
+          text: "part of Hammerklavier sonatas (has_part), position 1",
+          assertion: `asserted by ${I}`,
+        },
+        { text: "part of https://example.org/collections/late (aggregates)", assertion: null },
+      ],
+    ]);
+  });
 });
 
-describe("a pasted URL (item 4)", () => {
+describe("a pasted URL (item 5)", () => {
   it("gives a link where the registry tells its level", () => {
     expect(pasted(` ${WORK_PAGE} `, ASSERTION)).toEqual({
       kind: "link",
@@ -260,13 +303,25 @@ describe("a pasted URL (item 4)", () => {
       { kind: "level", url: wikidata },
       { kind: "level", url: unknown },
     ]);
-    const levels = [pasted(wikidata, ASSERTION, "work"), pasted(unknown, ASSERTION, "expression")];
+    const levels = [
+      pasted(wikidata, ASSERTION, "work"),
+      pasted(unknown, ASSERTION, "expression"),
+      pasted(unknown, ASSERTION, "agent", ` ${RELATOR} `),
+    ];
     expect(
-      levels.map((item) => (item.kind === "link" ? [item.link.level, item.link.uri] : item)),
+      levels.map((item) =>
+        item.kind === "link" ? [item.link.level, item.link.relation, item.link.uri] : item,
+      ),
     ).toEqual([
-      ["work", ["http://www.wikidata.org/entity/Q146730"]],
-      ["expression", [unknown]],
+      ["work", "pertains_to", ["http://www.wikidata.org/entity/Q146730"]],
+      ["expression", "pertains_to", [unknown]],
+      ["agent", RELATOR, [unknown]],
     ]);
+    expect(pasted(unknown, ASSERTION, "agent")).toEqual({
+      kind: "refused",
+      message:
+        "The pasted text gives no link: an agent link states its relation, the agent's role.",
+    });
   });
 
   it("refuses a text that is no absolute URI", () => {
@@ -277,8 +332,8 @@ describe("a pasted URL (item 4)", () => {
   });
 });
 
-describe("changes of a link (item 5)", () => {
-  it("label, URL, absence and status, each the schema package's", () => {
+describe("changes of a link (item 6)", () => {
+  it("label, URL and absence, each the schema package's", () => {
     const link = op106Link();
     const single = linkFromUrls([WORK_PAGE], { label: "Op. 106" });
     expect(relabelled(link, " Hammerklavier ")).toEqual(withLabel(link, "Hammerklavier"));
@@ -305,26 +360,84 @@ describe("changes of a link (item 5)", () => {
       "not_represented",
     ]);
     expect({ ...lost, parts: link.parts }).toEqual(link);
-    expect(withStatus(link, "unconfirmed").assertion).toEqual({
-      ...link.assertion,
-      status: "unconfirmed",
-    });
-    expect(withStatus(link, null).assertion?.status).toBe(null);
-    expect(withStatus(link, "unconfirmed")).toEqual(
-      withAssertion(link, { ...EDITOR, status: "unconfirmed" }),
-    );
   });
 });
 
-describe("the day and the identity (item 6)", () => {
+describe("a status chosen (item 7)", () => {
+  const bare = linkFromUrls([WORK_PAGE]);
+  /** `link` asserted by `assertion`, as the schema package states it. */
+  const asserted = (link: CompleteLink, assertion: Assertion | null) =>
+    withAssertion(link, assertion);
+
+  it("changes the viewer's own assertion in place, stamped", () => {
+    const own = asserted(bare, {
+      asserted_by: [I],
+      asserted_on: "2026-11-01",
+      method: "imported",
+      match: "exact",
+      status: "unconfirmed",
+    });
+    const nobody = asserted(bare, { asserted_on: "2026-11-01", method: "imported" });
+    expect([
+      statusChange(bare, "confirmed", I, DAY),
+      statusChange(own, "rejected", I, DAY),
+      statusChange(nobody, "confirmed", null, DAY),
+    ]).toEqual([
+      { kind: "replaced", link: asserted(bare, { ...ASSERTION, status: "confirmed" }) },
+      {
+        kind: "replaced",
+        link: asserted(bare, { ...ASSERTION, match: "exact", status: "rejected" }),
+      },
+      {
+        kind: "replaced",
+        link: asserted(bare, {
+          asserted_by: [],
+          asserted_on: DAY,
+          method: "manual",
+          status: "confirmed",
+        }),
+      },
+    ]);
+  });
+
+  it("appends a link of the viewer's own where another agent asserted it", () => {
+    const link = op106Link();
+    expect([
+      statusChange(link, "rejected", I, DAY),
+      statusChange(link, "rejected", null, DAY),
+    ]).toEqual([
+      { kind: "appended", link: asserted(link, { ...ASSERTION, status: "rejected" }) },
+      {
+        kind: "appended",
+        link: asserted(link, {
+          asserted_by: [],
+          asserted_on: DAY,
+          method: "manual",
+          status: "rejected",
+        }),
+      },
+    ]);
+  });
+
+  it("leaves no assertion where only a status was stated and none is chosen", () => {
+    const only = asserted(bare, { status: "confirmed" });
+    const own = asserted(bare, { ...ASSERTION, asserted_on: "2026-11-01", status: "confirmed" });
+    expect([statusChange(only, null, I, DAY), statusChange(own, null, I, DAY)]).toEqual([
+      { kind: "replaced", link: asserted(bare, null) },
+      { kind: "replaced", link: asserted(bare, { ...ASSERTION, status: null }) },
+    ]);
+  });
+});
+
+describe("the day, the identity's form, the addresses followed (item 8)", () => {
   it("dates an assertion by the local calendar day", () => {
-    expect(dayOf(new Date(2026, 10, 17, 23, 59))).toBe("2026-11-17");
-    expect(viewerAssertion(null, "2026-11-17")).toEqual({
+    expect(dayOf(new Date(2026, 10, 17, 23, 59))).toBe(DAY);
+    expect(viewerAssertion(null, DAY)).toEqual({
       asserted_by: [],
-      asserted_on: "2026-11-17",
+      asserted_on: DAY,
       method: "manual",
     });
-    expect(viewerAssertion(I, "2026-11-17")).toEqual(ASSERTION);
+    expect(viewerAssertion(I, DAY)).toEqual(ASSERTION);
   });
 
   it("reads an identity as the schema reads a URI", () => {
@@ -333,36 +446,61 @@ describe("the day and the identity (item 6)", () => {
     ).toEqual([true, true, false, false, false]);
   });
 
-  it("keeps the identity under its key, and without storage in memory", () => {
-    localStorage.setItem("test.identity", I);
-    const remembered = new Identity("test.identity");
-    expect([remembered.uri, remembered.answered, remembered.asks]).toEqual([I, true, false]);
-    localStorage.setItem("test.identity", "");
-    const empty = new Identity("test.identity");
-    expect([empty.uri, empty.answered, empty.asks]).toEqual([null, false, true]);
-    const unkeyed = new Identity(null);
-    unkeyed.give(I);
-    expect([unkeyed.uri, unkeyed.answered, localStorage.length]).toEqual([I, true, 1]);
-    empty.give(I);
-    expect(localStorage.getItem("test.identity")).toBe(I);
-    empty.give(null);
-    expect([empty.uri, empty.answered, localStorage.getItem("test.identity")]).toEqual([
+  it("follows only web addresses", () => {
+    expect(
+      [
+        "https://example.org/w",
+        "http://example.org/w",
+        "javascript:alert(1)",
+        "data:text/html,hi",
+        "urn:isbn:0451450523",
+        "mailto:a@example.org",
+        "Hammerklavier",
+      ].map(isWebAddress),
+    ).toEqual([true, true, false, false, false, false, false]);
+  });
+});
+
+describe("the identity", () => {
+  const KEY = "test.identity";
+  /** The identity, whether it is answered and whether it asks, made from what `KEY` holds. */
+  const stateOf = (stored: string | null) => {
+    if (stored === null) localStorage.removeItem(KEY);
+    else localStorage.setItem(KEY, stored);
+    const identity = new Identity(KEY);
+    return [identity.uri, identity.answered, identity.asks];
+  };
+
+  it("is remembered in three states, and a text that is no URI asks again", () => {
+    expect([null, I, NO_IDENTITY, "orcid 0000", ""].map((stored) => stateOf(stored))).toEqual([
+      [null, false, true],
+      [I, true, false],
+      [null, true, false],
+      [null, false, true],
+      [null, false, true],
+    ]);
+  });
+
+  it("writes what is given under its key, and holds it without a key or storage", () => {
+    const keyed = new Identity(KEY);
+    keyed.give(I);
+    const written = localStorage.getItem(KEY);
+    keyed.give(null);
+    expect([written, localStorage.getItem(KEY), keyed.uri, keyed.answered]).toEqual([
+      I,
+      NO_IDENTITY,
       null,
       true,
-      null,
     ]);
-    vi.stubGlobal("localStorage", {
-      getItem: () => {
-        throw new Error("no storage");
-      },
-      setItem: () => {
-        throw new Error("no storage");
-      },
-      removeItem: () => {
-        throw new Error("no storage");
-      },
-    });
-    const without = new Identity("test.identity");
+    localStorage.clear();
+    const unkeyed = new Identity(null);
+    unkeyed.give(I);
+    expect([unkeyed.uri, unkeyed.answered, localStorage.length]).toEqual([I, true, 0]);
+    const throwing = () => {
+      throw new Error("no storage");
+    };
+    vi.stubGlobal("localStorage", { getItem: throwing, setItem: throwing, removeItem: throwing });
+    const without = new Identity(KEY);
     expect([without.uri, without.asks]).toEqual([null, true]);
     without.give(I);
     expect([without.uri, without.asks]).toEqual([I, false]);

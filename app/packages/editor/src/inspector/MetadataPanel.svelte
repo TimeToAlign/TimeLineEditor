@@ -5,40 +5,46 @@
  * one bundle at the top level), one card per link in the order the element
  * holds them, two readings of one work two cards. A field "Paste a URL"
  * creates a link through TimeToShare's registry; where the registry tells
- * no level, a level is chosen first. The first paste asks for the viewer's
- * identity, which asserts every link they create (`Identity`). Every change
- * is one `set` of the element's `links`, built from the store's current
- * links by the schema package's functions; a refusal or a text that gives
- * no link is posted to the message bar.
+ * no level, a level is chosen first, and an agent's role with the level
+ * `agent`. The first link created or status chosen asks for the viewer's
+ * identity, which asserts what they state (`Identity`). Every change is one
+ * `set` of the element's `links`, built from the store's current links by
+ * the schema package's functions; a refusal or a text that gives no link is
+ * posted to the message bar. What is typed, and the URL field open on a
+ * card, belong to the element shown and to its list of links as it was.
  */
 import type { Editing, Subject } from "@timetoalign/tilie-arranger";
-import type { Store, View } from "@timetoalign/tilie-core";
-import { sameAddress } from "@timetoalign/tilie-core";
+import type { Address, Store, View } from "@timetoalign/tilie-core";
+import { linkHolder, sameAddress } from "@timetoalign/tilie-core";
 import type { CompleteLink, Level } from "@timetoalign/timetoshare";
+import { tick } from "svelte";
 import { informOf } from "../messages.svelte.ts";
 import IdentityDialog from "./IdentityDialog.svelte";
 import type { Identity } from "./identity.svelte.ts";
-import type { Inspected } from "./metadata.ts";
+import type { Inspected, StatusChange } from "./metadata.ts";
 import {
+  AGENT,
   ASSERTION_STATUSES,
   absenceChoices,
   dayOf,
   describedOf,
   extended,
-  heldBy,
   inspectedOf,
   isRegisteredAbsence,
+  isWebAddress,
   LINK_LEVELS,
   linkCard,
   linksCommand,
+  linksText,
+  messageOf,
   pasted,
   relabelled,
   removed,
   replaced,
   sameLink,
+  statusChange,
   viewerAssertion,
   withAbsence,
-  withStatus,
 } from "./metadata.ts";
 
 let {
@@ -67,36 +73,58 @@ const described = $derived(shown.kind === "none" ? null : describedOf(shown.bloc
 const held = $derived(
   shown.kind === "none" || described === null
     ? null
-    : (heldBy(described.complete, shown.id) ?? null),
+    : (linkHolder(described.complete, shown.id) ?? null),
 );
 const cards = $derived(
   held === null || described === null
     ? []
     : held.links.map((_, index) => linkCard(described, held, index)),
 );
+const shownList = $derived(held === null ? null : linksText(held.links));
 
-/** The text of the paste field. */
-let text = $state("");
+/** Whether `target` is the address of the element shown. */
+function isShown(target: Address): boolean {
+  return shown.kind !== "none" && sameAddress(target, shown.target);
+}
+
+/** The text of the paste field, typed on the element `target`. */
+let draft = $state<{ readonly target: Address; readonly text: string } | null>(null);
 /** A pasted URL whose level is to be chosen, for the element it was pasted on. */
-let pending = $state<{ readonly url: string; readonly target: Inspected["target"] } | null>(null);
+let pending = $state<{ readonly url: string; readonly target: Address } | null>(null);
 let level = $state<Level>("work");
-/** The card whose Add URL field is open; `null` for none. */
-let adding = $state<number | null>(null);
-let addition = $state("");
+/** The agent's role, the relation of a link at the level `agent`. */
+let role = $state("");
+/** The card whose Add URL field is open, on the element `target` holding the list `list`. */
+let adding = $state<{
+  readonly target: Address;
+  readonly list: string;
+  readonly index: number;
+  readonly text: string;
+} | null>(null);
 let dialog: ReturnType<typeof IdentityDialog> | undefined = $state();
 
+/** The paste field's text, while the element it was typed on is shown. */
+const text = $derived(draft !== null && isShown(draft.target) ? draft.text : "");
 /** The pending URL, while the element it was pasted on is shown. */
-const waiting = $derived(
-  pending !== null && shown.kind !== "none" && sameAddress(pending.target, shown.target)
-    ? pending
-    : null,
+const waiting = $derived(pending !== null && isShown(pending.target) ? pending : null);
+/** The open Add URL field, while its element is shown holding the list it was opened on. */
+const open = $derived(
+  adding !== null && isShown(adding.target) && adding.list === shownList ? adding : null,
 );
+
+function setText(value: string): void {
+  if (shown.kind !== "none") draft = { target: shown.target, text: value };
+}
+
+function setAddition(value: string): void {
+  if (open !== null) adding = { ...open, text: value };
+}
 
 /** The links `inspected` holds in the store now. */
 function current(inspected: Inspected): readonly CompleteLink[] {
   const block = store.view.blocks[inspected.block.id];
   if (block === undefined) return [];
-  return heldBy(describedOf(block.manifest).complete, inspected.id)?.links ?? [];
+  return linkHolder(describedOf(block.manifest).complete, inspected.id)?.links ?? [];
 }
 
 /** Dispatch the links `next` of `inspected`; a refusal is posted. Whether the store took them. */
@@ -107,17 +135,31 @@ function change(inspected: Inspected, next: readonly CompleteLink[]): boolean {
   return false;
 }
 
-/** Change the link `index` of the shown element by `edit`; nothing when it gives the same link. */
-function edit(index: number, edited: (link: CompleteLink) => CompleteLink): void {
-  if (shown.kind === "none") return;
+/**
+ * Change the link `index` of the shown element by `edited`; a refusal of
+ * the schema package's functions is posted. Whether the links changed.
+ */
+function edit(index: number, edited: (link: CompleteLink) => CompleteLink): boolean {
+  if (shown.kind === "none") return false;
   const links = current(shown);
   const link = links[index];
-  if (link === undefined) return;
-  const next = edited(link);
-  if (!sameLink(next, link)) change(shown, replaced(links, index, next));
+  if (link === undefined) return false;
+  let next: CompleteLink;
+  try {
+    next = edited(link);
+  } catch (error) {
+    inform(`The link could not be changed: ${messageOf(error)}.`);
+    return false;
+  }
+  return !sameLink(next, link) && change(shown, replaced(links, index, next));
 }
 
-/** The assertion of a link created now. */
+/** The link `index` of the shown element in the store now. */
+function stored(index: number): CompleteLink | undefined {
+  return shown.kind === "none" ? undefined : current(shown)[index];
+}
+
+/** The assertion of what the viewer states now. */
 function assertion() {
   return viewerAssertion(identity.uri, dayOf(new Date()));
 }
@@ -125,7 +167,7 @@ function assertion() {
 /** Append `link` to the links of `inspected`; the paste field is cleared once it is taken. */
 function append(inspected: Inspected, link: CompleteLink): void {
   if (change(inspected, [...current(inspected), link])) {
-    text = "";
+    draft = null;
     pending = null;
   }
 }
@@ -145,14 +187,17 @@ async function take(pastedText: string): Promise<void> {
   if (identity.asks && !(await askIdentity())) return;
   const result = pasted(pastedText, assertion());
   if (result.kind === "link") append(inspected, result.link);
-  else if (result.kind === "level") pending = { url: result.url, target: inspected.target };
-  else inform(result.message);
+  else if (result.kind === "level") {
+    pending = { url: result.url, target: inspected.target };
+    level = "work";
+    role = "";
+  } else inform(result.message);
 }
 
-/** Create the waiting URL's link at the chosen level. */
+/** Create the waiting URL's link at the chosen level, an agent's with its role. */
 function createAtLevel(): void {
   if (waiting === null || shown.kind === "none") return;
-  const result = pasted(waiting.url, assertion(), level);
+  const result = pasted(waiting.url, assertion(), level, role);
   if (result.kind === "link") append(shown, result.link);
   else if (result.kind === "refused") inform(result.message);
 }
@@ -161,7 +206,7 @@ function onPaste(event: ClipboardEvent): void {
   const data = event.clipboardData?.getData("text/plain") ?? "";
   if (data === "") return;
   event.preventDefault();
-  text = data;
+  setText(data);
   void take(data);
 }
 
@@ -171,36 +216,48 @@ function onPasteKey(event: KeyboardEvent): void {
   void take(text);
 }
 
+/** Focus the element `id` once the panel shows what was just changed. */
+async function focusLater(id: string): Promise<void> {
+  await tick();
+  document.getElementById(id)?.focus();
+}
+
+const cardId = (index: number) => `${uid}-link-${index}`;
+
 function onAddKey(event: KeyboardEvent, index: number): void {
   if (event.key === "Escape") {
     event.preventDefault();
     adding = null;
+    void focusLater(`${cardId(index)}-add-button`);
     return;
   }
-  if (event.key !== "Enter") return;
+  if (event.key !== "Enter" || open === null || shown.kind === "none") return;
   event.preventDefault();
-  if (shown.kind === "none") return;
-  const link = current(shown)[index];
+  const link = stored(index);
   if (link === undefined) return;
-  const result = extended(link, addition);
+  const result = extended(link, open.text);
   if (!result.ok) {
     inform(result.message);
     return;
   }
   if (change(shown, replaced(current(shown), index, result.link))) {
     adding = null;
-    addition = "";
+    void focusLater(`${cardId(index)}-add-button`);
   }
 }
 
 function openAdding(index: number): void {
-  adding = index;
-  addition = "";
+  if (shown.kind === "none" || shownList === null) return;
+  adding = { target: shown.target, list: shownList, index, text: "" };
 }
 
+/** Remove the link `index`; the focus moves to the card taking its place, else the one before, else the paste field. */
 function removeLink(index: number): void {
   if (shown.kind === "none") return;
-  change(shown, removed(current(shown), index));
+  const links = current(shown);
+  if (!change(shown, removed(links, index))) return;
+  const next = index < links.length - 1 ? index : index - 1;
+  void focusLater(next >= 0 ? cardId(next) : `${uid}-paste`);
 }
 
 /** The status chosen in a select: one of the schema's, or none. */
@@ -208,11 +265,68 @@ function statusOf(value: string): (typeof ASSERTION_STATUSES)[number] | null {
   return ASSERTION_STATUSES.find((status) => status === value) ?? null;
 }
 
+/**
+ * State the status chosen on the link `index`, the viewer's statement
+ * (`statusChange`), asking for the identity the first time; the select then
+ * shows the link's status as stored.
+ */
+async function chooseStatus(select: HTMLSelectElement, index: number): Promise<void> {
+  const inspected = shown;
+  if (inspected.kind === "none") return;
+  const status = statusOf(select.value);
+  const shownStatus = () => {
+    select.value = current(inspected)[index]?.assertion?.status ?? "";
+  };
+  if (identity.asks && !(await askIdentity())) {
+    shownStatus();
+    return;
+  }
+  const links = current(inspected);
+  const link = links[index];
+  if (link === undefined) {
+    shownStatus();
+    return;
+  }
+  let result: StatusChange;
+  try {
+    result = statusChange(link, status, identity.uri, dayOf(new Date()));
+  } catch (error) {
+    inform(`The status could not be stated: ${messageOf(error)}.`);
+    shownStatus();
+    return;
+  }
+  if (result.kind === "appended") change(inspected, [...links, result.link]);
+  else if (!sameLink(result.link, link)) change(inspected, replaced(links, index, result.link));
+  shownStatus();
+}
+
+/** Set the absence of slot `slot` of the link `index`; the select then shows the absence as stored. */
+function chooseAbsence(select: HTMLSelectElement, index: number, slot: number): void {
+  if (!edit(index, (link) => withAbsence(link, slot, select.value))) {
+    select.value = stored(index)?.parts[slot]?.absent ?? "";
+  }
+}
+
+/** Set the label of the link `index`; the field then shows the label as stored. */
+function commitLabel(field: HTMLInputElement, index: number): void {
+  if (!edit(index, (link) => relabelled(link, field.value))) {
+    field.value = stored(index)?.label ?? "";
+  }
+}
+
 /** Focus an element once it is mounted. */
 function focused(element: HTMLElement): void {
   element.focus();
 }
 </script>
+
+<!-- A URI as text to follow where it is a web address, else as code; written on one line so
+     that no space separates it from what follows. -->
+{#snippet uriText(uri: string)}{#if isWebAddress(uri)}<a
+      href={uri}
+      target="_blank"
+      rel="noopener noreferrer">{uri}</a
+    >{:else}<code>{uri}</code>{/if}{/snippet}
 
 {#if shown.kind === "none"}
   <p class="hint">{shown.hint}</p>
@@ -224,7 +338,7 @@ function focused(element: HTMLElement): void {
     <input
       id="{uid}-paste"
       type="url"
-      bind:value={text}
+      bind:value={() => text, setText}
       onpaste={onPaste}
       onkeydown={onPasteKey}
       aria-describedby="{uid}-paste-hint"
@@ -242,12 +356,22 @@ function focused(element: HTMLElement): void {
       </p>
       <label>
         Level
-        <select bind:value={level}>
+        <select bind:value={level} {@attach focused}>
           {#each LINK_LEVELS as item (item)}
             <option value={item}>{item}</option>
           {/each}
         </select>
       </label>
+      {#if level === AGENT}
+        <label>
+          Role
+          <input type="text" bind:value={role} aria-describedby="{uid}-role-hint" />
+        </label>
+        <p id="{uid}-role-hint" class="hint">
+          The agent's role in what the element holds, usually a MARC relator URI such as
+          <code>http://id.loc.gov/vocabulary/relators/prf</code> (performer).
+        </p>
+      {/if}
       <button type="button" onclick={createAtLevel}>Add link</button>
       <button type="button" onclick={() => (pending = null)}>Cancel</button>
     </div>
@@ -255,8 +379,7 @@ function focused(element: HTMLElement): void {
 
   <p class="identity" data-testid="metadata-identity">
     {#if identity.uri !== null}
-      Your links are asserted by
-      <a href={identity.uri} target="_blank" rel="noopener noreferrer">{identity.uri}</a>.
+      Your links are asserted by {@render uriText(identity.uri)}.
     {:else if identity.answered}
       Your links are asserted without an identity.
     {:else}
@@ -270,135 +393,159 @@ function focused(element: HTMLElement): void {
   {:else}
     <ol class="links" aria-label="Links">
       {#each cards as card, index (index)}
-        {@const name = `${uid}-link-${index}`}
-        <li class="card" aria-labelledby="{name}-heading">
-          <p id="{name}-heading" class="heading">
-            <span class="level-word">{card.level}</span>
-            <span class="relation">{card.relation}</span>
-            {#if card.label !== null}<span class="label">{card.label}</span>{/if}
-          </p>
+        {@const name = cardId(index)}
+        <li>
+          <div id={name} class="card" role="group" aria-labelledby="{name}-heading" tabindex="-1">
+            <p id="{name}-heading" class="heading">
+              <span class="level-word">{card.level}</span>
+              <span class="relation">{card.relation}</span>
+              {#if card.label !== null}<span class="label">{card.label}</span>{/if}
+            </p>
 
-          <div class="row">
-            <label for="{name}-label">Label</label>
-            <input
-              id="{name}-label"
-              type="text"
-              value={card.label ?? ""}
-              onchange={(event) => edit(index, (link) => relabelled(link, event.currentTarget.value))}
-            />
-          </div>
+            <div class="row">
+              <label for="{name}-label">Label</label>
+              <input
+                id="{name}-label"
+                type="text"
+                value={card.label ?? ""}
+                onchange={(event) => commitLabel(event.currentTarget, index)}
+              />
+            </div>
 
-          {#if card.uris.length > 0}
-            <ul class="uris" aria-label="URIs">
-              {#each card.uris as uri, at (uri)}
-                <li>
-                  <a href={uri} target="_blank" rel="noopener noreferrer">{uri}</a>
-                  {#if at === 0}<span class="preferred">preferred</span>{/if}
-                </li>
-              {/each}
-            </ul>
-          {/if}
-
-          {#if card.identifiers.length > 0}
-            <ul class="identifiers" aria-label="Identifiers">
-              {#each card.identifiers as identifier, at (at)}
-                <li><span class="scheme">{identifier.scheme}</span> <code>{identifier.value}</code></li>
-              {/each}
-            </ul>
-          {/if}
-
-          {#if card.records.length > 0}
-            <ul class="records" aria-label="Records">
-              {#each card.records as record, at (at)}
-                <li><code>{record}</code></li>
-              {/each}
-            </ul>
-          {/if}
-
-          {#if card.parts !== null}
-            <section class="parts" aria-labelledby="{name}-parts">
-              <p id="{name}-parts">
-                Parts: <code>{card.parts.relation}</code>,
-                {card.parts.ordered ? "in their own order" : "in display order only"}
-              </p>
-              <ol aria-label="Part slots">
-                {#each card.parts.slots as slot, at (at)}
+            {#if card.uris.length > 0}
+              <ul class="uris" aria-label="URIs">
+                {#each card.uris as uri, at (uri)}
                   <li>
-                    <span class="slot-label">{slot.label ?? `Part ${slot.position}`}</span>
-                    {#each slot.uris.slice(0, 1) as uri (uri)}
-                      <a href={uri} target="_blank" rel="noopener noreferrer">{uri}</a>
-                    {/each}
-                    {#if slot.absent === null}
-                      <span class="represented">represented by {slot.representedBy.join(", ")}</span>
-                    {:else}
-                      <label>
-                        Absent
-                        <select
-                          value={slot.absent}
-                          onchange={(event) =>
-                            edit(index, (link) => withAbsence(link, at, event.currentTarget.value))}
-                        >
-                          {#each absenceChoices(slot.absent) as reason (reason)}
-                            <option value={reason}
-                              >{isRegisteredAbsence(reason) ? reason : `${reason} (unregistered)`}</option
-                            >
+                    {@render uriText(uri)}
+                    {#if at === 0}<span class="preferred">preferred</span>{/if}
+                  </li>
+                {/each}
+              </ul>
+            {/if}
+
+            {#if card.identifiers.length > 0}
+              <ul class="identifiers" aria-label="Identifiers">
+                {#each card.identifiers as identifier, at (at)}
+                  <li><span class="scheme">{identifier.scheme}</span> <code>{identifier.value}</code></li>
+                {/each}
+              </ul>
+            {/if}
+
+            {#if card.records.length > 0}
+              <ul class="records" aria-label="Records">
+                {#each card.records as record, at (at)}
+                  <li><code>{record}</code></li>
+                {/each}
+              </ul>
+            {/if}
+
+            {#if card.parts !== null}
+              <section class="parts" aria-labelledby="{name}-parts">
+                <p id="{name}-parts">
+                  Parts: <code>{card.parts.relation}</code>,
+                  {card.parts.ordered ? "in their own order" : "in display order only"}
+                </p>
+                <ol aria-label="Part slots">
+                  {#each card.parts.slots as slot, at (at)}
+                    <li>
+                      <span class="slot-label">{slot.label ?? `Part ${slot.position}`}</span>
+                      {#if slot.uris.length > 0}
+                        <ul class="slot-uris" aria-label="URIs of part {slot.position}">
+                          {#each slot.uris as uri (uri)}
+                            <li>{@render uriText(uri)}</li>
                           {/each}
-                        </select>
-                      </label>
+                        </ul>
+                      {/if}
+                      {#if slot.identifiers.length > 0}
+                        <ul class="slot-identifiers" aria-label="Identifiers of part {slot.position}">
+                          {#each slot.identifiers as identifier, number (number)}
+                            <li>
+                              <span class="scheme">{identifier.scheme}</span>
+                              <code>{identifier.value}</code>
+                            </li>
+                          {/each}
+                        </ul>
+                      {/if}
+                      {#if slot.absent === null}
+                        <span class="represented">represented by {slot.representedBy.join(", ")}</span>
+                      {:else}
+                        <label>
+                          Absent
+                          <select
+                            value={slot.absent}
+                            onchange={(event) => chooseAbsence(event.currentTarget, index, at)}
+                          >
+                            {#each absenceChoices(slot.absent) as reason (reason)}
+                              <option value={reason}
+                                >{isRegisteredAbsence(reason) ? reason : `${reason} (unregistered)`}</option
+                              >
+                            {/each}
+                          </select>
+                        </label>
+                      {/if}
+                      {#if slot.assertion !== null}
+                        <span class="entry-assertion">{slot.assertion}</span>
+                      {/if}
+                    </li>
+                  {/each}
+                </ol>
+              </section>
+            {/if}
+
+            {#if card.partOf.length > 0}
+              <ul class="part-of" aria-label="Part of">
+                {#each card.partOf as whole, at (at)}
+                  <li>
+                    {whole.text}
+                    {#if whole.assertion !== null}
+                      <span class="entry-assertion">{whole.assertion}</span>
                     {/if}
                   </li>
                 {/each}
-              </ol>
-            </section>
-          {/if}
-
-          {#if card.partOf.length > 0}
-            <ul class="part-of" aria-label="Part of">
-              {#each card.partOf as whole, at (at)}
-                <li>{whole}</li>
-              {/each}
-            </ul>
-          {/if}
-
-          <div class="row assertion">
-            <span>{card.assertion ?? "No assertion"}</span>
-            <label>
-              Status
-              <select
-                value={card.status ?? ""}
-                onchange={(event) =>
-                  edit(index, (link) => withStatus(link, statusOf(event.currentTarget.value)))}
-              >
-                <option value="">not stated</option>
-                {#each ASSERTION_STATUSES as status (status)}
-                  <option value={status}>{status}</option>
-                {/each}
-              </select>
-            </label>
-          </div>
-
-          {#if card.warnings.length > 0}
-            <ul class="warnings" aria-label="Warnings">
-              {#each card.warnings as warning, at (at)}
-                <li>{warning}</li>
-              {/each}
-            </ul>
-          {/if}
-
-          <div class="actions">
-            {#if adding === index}
-              <label for="{name}-add">URL to add</label>
-              <input
-                id="{name}-add"
-                type="url"
-                bind:value={addition}
-                onkeydown={(event) => onAddKey(event, index)}
-                {@attach focused}
-              />
-            {:else}
-              <button type="button" onclick={() => openAdding(index)}>Add URL</button>
+              </ul>
             {/if}
-            <button type="button" onclick={() => removeLink(index)}>Remove link</button>
+
+            <div class="row assertion">
+              <span>{card.assertion ?? "No assertion"}</span>
+              <label>
+                Status
+                <select
+                  value={card.status ?? ""}
+                  onchange={(event) => void chooseStatus(event.currentTarget, index)}
+                >
+                  <option value="">not stated</option>
+                  {#each ASSERTION_STATUSES as status (status)}
+                    <option value={status}>{status}</option>
+                  {/each}
+                </select>
+              </label>
+            </div>
+
+            {#if card.warnings.length > 0}
+              <ul class="warnings" aria-label="Warnings">
+                {#each card.warnings as warning, at (at)}
+                  <li>{warning}</li>
+                {/each}
+              </ul>
+            {/if}
+
+            <div class="actions">
+              {#if open?.index === index}
+                <label for="{name}-add">URL to add</label>
+                <input
+                  id="{name}-add"
+                  type="url"
+                  bind:value={() => open?.text ?? "", setAddition}
+                  onkeydown={(event) => onAddKey(event, index)}
+                  {@attach focused}
+                />
+              {:else}
+                <button id="{name}-add-button" type="button" onclick={() => openAdding(index)}
+                  >Add URL</button
+                >
+              {/if}
+              <button type="button" onclick={() => removeLink(index)}>Remove link</button>
+            </div>
           </div>
         </li>
       {/each}
@@ -435,7 +582,8 @@ function focused(element: HTMLElement): void {
     flex: 1 1 12rem;
   }
 
-  .paste .hint {
+  .paste .hint,
+  .level .hint {
     flex-basis: 100%;
     font-size: 0.8rem;
   }
@@ -479,7 +627,8 @@ function focused(element: HTMLElement): void {
 
   button:focus-visible,
   input:focus-visible,
-  select:focus-visible {
+  select:focus-visible,
+  .card:focus-visible {
     outline: 2px solid #0a84ff;
     outline-offset: 1px;
   }
@@ -550,15 +699,30 @@ function focused(element: HTMLElement): void {
     overflow-wrap: anywhere;
   }
 
-  .parts ol li {
+  .parts ol > li {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
     gap: 0.35rem 0.5rem;
   }
 
+  .slot-uris,
+  .slot-identifiers {
+    flex-basis: 100%;
+  }
+
   .slot-label {
     font-weight: 600;
+  }
+
+  .entry-assertion {
+    flex-basis: 100%;
+    color: #3d3d3d;
+    font-size: 0.85rem;
+  }
+
+  .part-of .entry-assertion {
+    display: block;
   }
 
   .assertion span {

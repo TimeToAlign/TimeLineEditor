@@ -55,9 +55,9 @@ function save(event: SubmitEvent): void {
   <form novalidate onsubmit={save}>
     <h2 id="{id}-title">Who asserts your links?</h2>
     <p id="{id}-about">
-      Each link you create states that you asserted it, and when. Give your identity as a URI, for
-      instance your ORCID iD (<code>https://orcid.org/…</code>). It is kept in this browser and
-      written into a workspace only inside the assertions of the links you create.
+      Each link you create, and each status you choose, states that you asserted it, and when. Give
+      your identity as a URI, for instance your ORCID iD (<code>https://orcid.org/…</code>). It is
+      kept in this browser and written into a workspace only inside the assertions you make.
     </p>
     <label for="{id}-uri">Your identity</label>
     <input

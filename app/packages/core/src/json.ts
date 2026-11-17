@@ -52,6 +52,34 @@ export function jsonEqual(left: unknown, right: unknown): boolean {
   return canonicalText(left) === canonicalText(right);
 }
 
+/**
+ * `value` with what lies at `path` replaced by `replacement`, every object
+ * and list on the way copied and the rest kept as it is; a member missing on
+ * the way becomes an empty object. An index names an item of a list, or the
+ * place after its last item.
+ *
+ * @throws {TypeError} if an index meets no list, or lies beyond its end.
+ */
+export function withValueAt(
+  value: unknown,
+  path: readonly PathSegment[],
+  replacement: unknown,
+): unknown {
+  const [step, ...rest] = path;
+  if (step === undefined) return replacement;
+  if (typeof step === "number") {
+    if (!Array.isArray(value) || step > value.length) {
+      throw new TypeError(`no place ${step} in a list`);
+    }
+    const items: unknown[] = [...value];
+    items[step] = withValueAt(items[step], rest, replacement);
+    return items;
+  }
+  const members: { readonly [key: string]: unknown } =
+    typeof value === "object" && value !== null ? { ...value } : {};
+  return { ...members, [step]: withValueAt(members[step], rest, replacement) };
+}
+
 /** `-1`, `0` or `1` by Unicode code points, not by UTF-16 units as JavaScript's `<` compares. */
 export function compareCodePoints(left: string, right: string): number {
   const a = Array.from(left, (character) => character.codePointAt(0) as number);

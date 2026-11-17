@@ -1,14 +1,15 @@
 /**
  * Accessibility of the canvas page with `small` open: axe-core reports no
- * violation, with the inspector on either of its tabs too, and the keyboard
- * reaches, selects and releases the blocks.
+ * violation, with the inspector on its Properties, Manifest and Metadata
+ * tabs and the identity dialog open too, and the keyboard reaches, selects
+ * and releases the blocks.
  * Derivation in `README.md` ("a11y.spec.ts").
  */
 
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
-import { drawer, field, open, SMALL, select, selection } from "./support.ts";
+import { dispatch, drawer, field, open, SMALL, select, selection } from "./support.ts";
 
 /** The `data-id` of the focused node, or `null` when focus is elsewhere. */
 function focusedNode(page: Page): Promise<string | null> {
@@ -70,6 +71,38 @@ test("axe-core reports no violation on either tab of the inspector", async ({ pa
   await expect(page.getByLabel(/^Manifest \(/)).toBeVisible();
   const onManifest = await new AxeBuilder({ page }).analyze();
   expect(onManifest.violations).toEqual([]);
+});
+
+test("axe-core reports no violation on the Metadata tab and in the identity dialog", async ({
+  page,
+}) => {
+  const link = {
+    relation: "pertains_to",
+    level: "work",
+    label: "Piano Sonata No. 29, Op. 106",
+    uri: [
+      "http://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284",
+      "urn:x-example:op106",
+    ],
+    assertion: { asserted_by: ["https://example.org/people/editor"], status: "confirmed" },
+  };
+  const values = { links: [link] };
+  expect(
+    await dispatch(page, { type: "set", changes: [{ target: { block: SMALL.bare }, values }] }),
+  ).toBe(null);
+  await select(page, [{ block: SMALL.bare }]);
+  await page.getByRole("button", { name: "Open inspector" }).click();
+  const metadata = page.getByRole("tab", { name: "Metadata", exact: true });
+  await metadata.click();
+  await expect(metadata).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("list", { name: "Links" }).getByRole("group")).toHaveCount(1);
+  const onMetadata = await new AxeBuilder({ page }).analyze();
+  expect(onMetadata.violations).toEqual([]);
+
+  await page.getByRole("button", { name: "Change identity" }).click();
+  await expect(page.getByRole("dialog", { name: "Who asserts your links?" })).toBeVisible();
+  const inDialog = await new AxeBuilder({ page }).analyze();
+  expect(inDialog.violations).toEqual([]);
 });
 
 test("axe-core reports no violation with the File menu open", async ({ page }) => {

@@ -25,6 +25,10 @@ from tilie_server.settings import ServerSettings
 HOST = "127.0.0.1"
 HEALTH_KEYS = frozenset({"name", "version", "timetoalign"})
 STARTUP_TIMEOUT = 15.0
+# The port `tilie` listens on unless told otherwise. A browser keeps what a
+# page stores (the identity that asserts the viewer's links, for one) for its
+# address, port included, so a stable port keeps it from run to run.
+DEFAULT_PORT = 8000
 
 
 def free_port() -> int:
@@ -32,6 +36,49 @@ def free_port() -> int:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.bind((HOST, 0))
         return int(sock.getsockname()[1])
+
+
+def port_is_free(port: int) -> bool:
+    """Whether ``port`` could be bound on the loopback interface a moment ago.
+
+    The port is bound as the server binds it: with ``SO_REUSEADDR`` outside
+    Windows, so that the connections of a run just stopped do not hold it.
+    On Windows the option would let a second socket share a port in use.
+    """
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        if sys.platform != "win32":
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            sock.bind((HOST, port))
+        except OSError:
+            return False
+    return True
+
+
+def choose_port(
+    requested: int | None, default: int = DEFAULT_PORT
+) -> tuple[int, str | None]:
+    """The port to listen on, and the notice to print about it, if any.
+
+    Args:
+        requested: The port given with ``--port``, taken as it is; ``None``
+            for none.
+        default: The port taken without one, while it is free.
+
+    Returns:
+        The port and ``None``; or, when no port is requested and ``default``
+        is in use, a free port and the notice saying so.
+    """
+    if requested is not None:
+        return requested, None
+    if port_is_free(default):
+        return default, None
+    port = free_port()
+    return port, (
+        f"tilie: port {default} is in use, so the server runs on port {port}; "
+        "the browser remembers the editor's settings, your identity among them, "
+        "for each port apart"
+    )
 
 
 def parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
@@ -43,7 +90,8 @@ def parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
         "--port",
         type=int,
         default=None,
-        help="port to listen on (default: a free port)",
+        help=f"port to listen on (default: {DEFAULT_PORT}, or a free port while "
+        f"{DEFAULT_PORT} is in use)",
     )
     parser.add_argument(
         "--no-browser",
@@ -140,7 +188,9 @@ def verify(base_url: str, token: str) -> dict[str, str]:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
-    port = free_port() if args.port is None else args.port
+    port, notice = choose_port(args.port)
+    if notice is not None:
+        print(notice, file=sys.stderr, flush=True)
     token = secrets.token_urlsafe(32)
     settings = ServerSettings(
         host=HOST,

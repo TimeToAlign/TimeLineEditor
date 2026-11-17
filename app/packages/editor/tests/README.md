@@ -992,12 +992,12 @@ which no position solves).
 The tab shows and edits the links of TimeToShare's description layer: a
 link from the bundle, a timeline or a region to a work or another entity.
 A link is the schema package's, built from URLs through its registry of
-known schemes (`linkFromUrls`) and changed through its functions
-(`withLabel`, `withUri`, `withParts`, `withAssertion`); the editor defines
-none of it, so the oracles are that package's builders and core's store.
-Every change is one `set` of the element's `links` (core's "Links"), built
-from the store's current links. Recognition is local: no test stubs a
-network and none is reached.
+known schemes (`linkFromUrls`, `recognize`) and changed through its
+functions (`withLabel`, `withUri`, `withParts`, `withAssertion`,
+`assertionFor`); the editor defines none of it, so the oracles are that
+package's builders and core's store. Every change is one `set` of the
+element's `links` (core's "Links"), built from the store's current links.
+Recognition is local: no test stubs a network and none is reached.
 
 **The Op. 106 bundle** is the manifest pinned in TimeToShare's
 `js/tests/description.test.ts`, written inline: named "Beethoven, Piano
@@ -1012,8 +1012,11 @@ and `mb_beethoven_opus` `op. 106`, `parts_relation` `has_part` with four
 ordered slots ("I. Allegro", "II. Scherzo. Assai vivace", "III. Adagio
 sostenuto", "IV. Introduzione. Largo – Allegro risoluto"), each with the
 MusicBrainz work URI of its movement and `absent: "not_represented"`, and
-the assertion by `https://example.org/people/editor` on 2026-11-17,
+the assertion by `E` = `https://example.org/people/editor` on 2026-11-17,
 `manual`, `confirmed`.
+
+`I` is the viewer's identity `https://orcid.org/0000-0002-1825-0097`; the
+day is 2026-11-17 throughout.
 
 **The model** (`metadata.ts`, proven on the module alone):
 
@@ -1038,51 +1041,103 @@ the assertion by `https://example.org/people/editor` on 2026-11-17,
    "Works of Ludwig van Beethoven by opus number" (the manifest's scheme by
    its name) with their values; no records; the parts `has_part`, ordered,
    four slots at positions 1 to 4, each with its label, its one URI, no
-   representing element and the absence `not_represented`; no `part_of`;
-   the assertion line "asserted by https://example.org/people/editor · on
-   2026-11-17 · method manual · status confirmed", the status `confirmed`;
-   no warning. Given a second reading (the slots in the order 1, 3, 2, 4,
-   asserted 2026-11-18 `imported`), the bundle holds two links and so two
-   cards, in their order, each its own.
+   identifier, no representing element, the absence `not_represented` and
+   no assertion of its own; no `part_of`; the assertion line "asserted by
+   E · on 2026-11-17 · method manual · status confirmed", the status
+   `confirmed`; no warning. Given a second reading (the slots in the order
+   1, 3, 2, 4, asserted 2026-11-18 `imported`), the bundle holds two links
+   and so two cards, in their order, each its own.
 3. **Representation and warnings.** The shared warning case
    `description_absent_unregistered.json`: the first slot is represented by
    `intro` (a region without a name, shown by its ID), the second absent
    `destroyed`, which is no registered reason: the card warns "'destroyed'
    is no registered word, at /parts/1/absent", and the absence choices are
    the five registered reasons followed by `destroyed`.
-4. **Paste.** With the assertion `{asserted_by: [I], asserted_on:
-   "2026-11-17", method: "manual"}` (`I` =
-   `https://orcid.org/0000-0002-1825-0097`): the MusicBrainz work page of
-   Op. 106 gives a link equal to `linkFromUrls` of it with that assertion
-   (level `work`, the entity URI); the Wikidata page
-   `https://www.wikidata.org/wiki/Q146730` and an unknown absolute URI
-   `https://example.org/works/op106` each wait for a level, and given
-   `work` and `expression` give the links of `http://www.wikidata.org/entity/Q146730`
-   at `work` and of the URI as written at `expression`; `Hammerklavier`
-   is refused "The pasted text gives no link: 'Hammerklavier' is no
-   absolute URI."
-5. **Changes.** Label "Hammerklavier" replaces the label, an empty label
+4. **The whole description.** The Op. 106 link given everything a card
+   reads: a record `https://example.org/records/op106.jsonld` stating
+   `application/ld+json`, 2048 bytes and `sha256-AAAA`, and a record
+   `https://example.org/records/plain` stating nothing; an assertion by `E`
+   with the service `https://example.org/reconcile` and based on
+   `https://example.org/sources/a` and `https://example.org/sources/b`;
+   its first slot with a second URI `https://example.org/movements/1`, the
+   identifier `mb_beethoven_opus` `op. 106 no. 1` and an assertion of its
+   own by `I` on 2026-11-18, `inferred`; its second slot with an assertion
+   equal to the link's; and two wholes, one labelled "Hammerklavier
+   sonatas", `has_part`, position 1, asserted by `I`, and one named only by
+   the URI `https://example.org/collections/late`, `aggregates`. The card
+   reads the records "https://example.org/records/op106.jsonld
+   (application/ld+json, 2048 bytes, sha256-AAAA)" and
+   "https://example.org/records/plain"; the assertion line "asserted by E ·
+   on 2026-11-17 · method manual · service https://example.org/reconcile ·
+   based on https://example.org/sources/a, https://example.org/sources/b ·
+   status confirmed"; slot 1 both URIs, the identifier "Works of Ludwig van
+   Beethoven by opus number" `op. 106 no. 1` and "asserted by I · on
+   2026-11-18 · method inferred"; slot 2 no assertion of its own, since the
+   one it states is the link's; the wholes "part of Hammerklavier sonatas
+   (has_part), position 1" with "asserted by I" and "part of
+   https://example.org/collections/late (aggregates)" with none.
+5. **Paste.** With the viewer's assertion `{asserted_by: [I],
+   asserted_on: "2026-11-17", method: "manual"}`: the MusicBrainz work page
+   of Op. 106 gives a link equal to `linkFromUrls` of it with that
+   assertion (level `work`, the entity URI); the Wikidata page
+   `https://www.wikidata.org/wiki/Q146730` (a scheme the registry gives no
+   level) and an unknown absolute URI `https://example.org/works/op106`
+   each wait for a level, and given `work` and `expression` give the links
+   of `http://www.wikidata.org/entity/Q146730` at `work` and of the URI as
+   written at `expression`; given `agent` and the role
+   `http://id.loc.gov/vocabulary/relators/prf`, the unknown URI gives the
+   link at `agent` whose relation is that role, and given `agent` without
+   a role it is refused "The pasted text gives no link: an agent link
+   states its relation, the agent's role."; `Hammerklavier` is refused
+   "The pasted text gives no link: 'Hammerklavier' is no absolute URI."
+6. **Changes.** Label "Hammerklavier" replaces the label, an empty label
    unstates it; adding `https://www.wikidata.org/wiki/Q146730` to a link
    holding only the MusicBrainz URI appends the Wikidata entity URI; adding
    a URI the link holds is "The link holds that URL already."; adding
    `Hammerklavier` is "The URL cannot be added: 'Hammerklavier' is no
    absolute URI."; the absence of slot 3 set to `lost` changes that slot
-   only; the status `unconfirmed` replaces `confirmed`, keeping the rest of
-   the assertion, and `null` unstates it. Each is equal to the schema
-   package's function applied to the same link.
-6. **The day and the identity.** The day of 2026-11-17 at 23:59 local time
-   is `2026-11-17`; the viewer's assertion without an identity is
-   `{asserted_by: [], asserted_on, method: "manual"}`. `isUri` accepts
-   `I` and `urn:isbn:0451450523` and refuses `orcid 0000`, the empty text
-   and `https://example.org/a b`, as the schema's `Uri` does.
+   only. Each is equal to the schema package's function applied to the
+   same link.
+7. **A status is the viewer's statement** (`statusChange`, on the day
+   2026-11-17). A link with no assertion, given `confirmed` by `I`, is
+   replaced by the same link asserted `{asserted_by: [I], asserted_on:
+   "2026-11-17", method: "manual", status: "confirmed"}`. A link asserted
+   by `I` on 2026-11-01, `imported`, `match: "exact"`, `unconfirmed`,
+   given `rejected` by `I`, is replaced, its assertion `{asserted_by: [I],
+   asserted_on: "2026-11-17", method: "manual", match: "exact", status:
+   "rejected"}`: the match kept, the rest stamped. A link asserted by
+   nobody named (`{asserted_on: "2026-11-01", method: "imported"}`), given
+   `confirmed` without an identity, is replaced with `asserted_by: []`,
+   `asserted_on: "2026-11-17"`, `manual`, `confirmed`. The Op. 106 link,
+   asserted by `E`, given `rejected` by `I` is not changed: a link is
+   appended, equal to it but asserted `{asserted_by: [I], asserted_on:
+   "2026-11-17", method: "manual", status: "rejected"}`, and given
+   `rejected` without an identity the appended link's `asserted_by` is
+   empty. "Not stated" on a link whose assertion is only `{status:
+   "confirmed"}` leaves it with no assertion; on a link asserted by `I`
+   with a status it unstates the status, the assertion stamped. Each
+   result equals the schema package's `withAssertion` of the link with the
+   assertion named.
+8. **The day, the identity's form, the addresses followed.** The day of
+   2026-11-17 at 23:59 local time is `2026-11-17`; the viewer's assertion
+   without an identity is `{asserted_by: [], asserted_on, method:
+   "manual"}`. `isUri` accepts `I` and `urn:isbn:0451450523` and refuses
+   `orcid 0000`, the empty text and `https://example.org/a b`, as the
+   schema's `Uri` does. `isWebAddress` holds for `https://example.org/w`
+   and `http://example.org/w` only, not for `javascript:alert(1)`,
+   `data:text/html,hi`, `urn:isbn:0451450523`, `mailto:a@example.org`
+   or `Hammerklavier`.
 
 **The identity** (`identity.svelte.ts`): kept under the key the host
-gives, in `localStorage` only. A key holding a URI gives that identity,
-answered; an empty or missing key, or a `null` key, none, not answered.
-`give(I)` writes `I` under the key, `give(null)` removes it; both make it
-answered. With `localStorage` throwing on every access the identity starts
-without one and `give` holds it in memory: nothing throws. The workspace
-never holds it except inside the assertions of links the viewer creates:
+gives, in `localStorage` only, in one of three states. Nothing stored:
+never asked, no identity, it asks. A URI stored: that identity, answered.
+`none` stored: answered without an identity, it does not ask again. A
+stored text that is no URI as the dialog reads one (`orcid 0000`, the
+empty text) asks again, without an identity. `give(I)` writes `I` under
+the key and `give(null)` writes `none`; both make it answered. A `null` key
+remembers nothing. With `localStorage` throwing on every access the
+identity starts unasked and `give` holds it in memory: nothing throws. The
+workspace never holds it except inside the assertions the viewer makes:
 after a paste, the workspace file's text contains `I` exactly twice, in
 that link's `asserted_by` in the block's manifest and in the journalled
 `set` that added it.
@@ -1094,11 +1149,12 @@ the Metadata tab chosen; dates under a fixed clock of 2026-11-17):
    with the Op. 106 text adds one block, selected, whose manifest has
    `timelines: []`; the drawer opened and Metadata chosen show "Links of
    bundle 'Beethoven, Piano Sonata No. 29, Op. 106'", one card in a list
-   "Links": its heading `work pertains_to <label>`; three URI links, each
-   `target="_blank"` and `rel="noopener noreferrer"`, the first marked
-   "preferred"; the two identifier rows; the parts line; four slots, each
-   with a select "Absent" showing `not_represented` among the five
-   registered reasons; the assertion line; no warning list.
+   "Links", a group named by its heading: its heading `work pertains_to
+   <label>`; three URI links, each `target="_blank"` and `rel="noopener
+   noreferrer"`, the first marked "preferred"; the two identifier rows;
+   the parts line; four slots, each with its URI link and a select "Absent"
+   showing `not_represented` among the five registered reasons; the
+   assertion line; no warning list.
 2. **Pasting a recognised URL** on the bundle of `bare` asks first for the
    identity (the dialog "Who asserts your links?"); `orcid 0000` saved
    shows "An identity is an absolute URI, …" and keeps the dialog open;
@@ -1106,25 +1162,68 @@ the Metadata tab chosen; dates under a fixed clock of 2026-11-17):
    one journal entry, the `set` of `{block: A}`'s links to the pasted link
    asserted by `I` on 2026-11-17, `manual`; the field is emptied and the
    card shows. A second paste asks nothing. Undo removes the card.
-3. **A URL without a level** shows the level question naming the URL, a
-   select "Level" over the five levels; choosing `work` and Add link adds
-   the link; Cancel instead adds nothing and removes the question.
+3. **A URL without a level** shows the level question naming the URL, the
+   focus on its select "Level" over the five levels; choosing `work` and
+   Add link adds the link; Cancel instead adds nothing and removes the
+   question. Choosing `agent` shows a field "Role" described by a hint
+   naming `http://id.loc.gov/vocabulary/relators/prf`; Add link without a
+   role posts "The pasted text gives no link: an agent link states its
+   relation, the agent's role." and adds nothing; with that role typed it
+   adds the link at `agent` whose relation is the role.
 4. **Text that is no URI** posts "The pasted text gives no link:
    'Hammerklavier' is no absolute URI." and journals nothing.
 5. **Without storage** (`localStorage` throwing), the first paste still
    asks, the link is asserted by the identity given, and the second paste
    asks nothing. Cancel in the dialog adds nothing; No identity adds the
-   link asserted without `asserted_by`.
-6. **The card's edits**, on the Op. 106 bundle, each one `set` of the
-   bundle's links equal to the model's: the label typed and committed;
-   Add URL, then a Wikidata page the link does not hold (`Q146731`) and
-   Enter; the third slot's absence set
-   to `lost`; the status `unconfirmed`; Remove link. Change identity
-   replaces the identity shown on the tab.
-7. **Where the links are.** With `score` of `bundle_mixed` selected the
-   tab reads "Links of timeline 'Score'" and a paste adds the link to
-   `score` only; with `region_1` selected, to the region; a group selected
-   shows its hint and no paste field.
+   link asserted without `asserted_by`. With storage, No identity writes
+   `none` under the key, and an Identity made anew from that key does not
+   ask.
+6. **The card's edits**, on the Op. 106 bundle with `I` given, each one
+   `set` of the bundle's links equal to the model's: the label typed and
+   committed; Add URL, then a Wikidata page the link does not hold
+   (`Q146731`) and Enter, after which the focus is on the card's Add URL
+   button; the third slot's absence set to `lost`; Remove link. Change
+   identity replaces the identity shown on the tab. Add URL then Escape
+   closes the field, changes nothing and puts the focus on Add URL.
+7. **A status chosen is the viewer's statement.** On a link without an
+   assertion (an identity not yet given), choosing `confirmed` asks for
+   the identity; Cancel changes nothing and the select shows "not stated"
+   again; choosing it again and saving `I` replaces the link in place, one
+   card, its assertion line "asserted by I · on 2026-11-17 · method manual
+   · status confirmed". Choosing `rejected` on it then (asserted by `I`)
+   replaces it again, asking nothing. On the Op. 106 bundle (asserted by
+   `E`) with `I` given, choosing `unconfirmed` appends a second card whose
+   line is "asserted by I · on 2026-11-17 · method manual · status
+   unconfirmed", the first card unchanged, its select still showing
+   `confirmed`; one journal entry each.
+8. **State belongs to the element shown.** In `bundle_mixed` with
+   `score` holding two links and `region_1` one, the Add URL field opened
+   on `score`'s second card with text typed, and the paste field typed:
+   selecting `region_1` shows its card with an Add URL button and no URL
+   field, and an empty paste field. Back on `score`, Remove link on its
+   first card closes the field the second card had open: the list it was
+   opened on is gone. When the last card is removed the focus goes to the
+   paste field; when another card takes the place of the one removed, to
+   that card.
+9. **Only web addresses are followed.** A link whose URIs are
+   `https://example.org/w`, `javascript:alert(1)` and `data:text/html,hi`
+   shows one anchor, `https://example.org/w`, and the other two as code;
+   an identity `urn:isbn:0451450523` is shown as code, not as an anchor.
+10. **The whole description shown.** The link of model item 4 on the Op.
+    106 bundle shows its two records, its assertion line, slot 1's two URI
+    links in a list "URIs of part 1", its identifier row in a list
+    "Identifiers of part 1" and its own assertion line, slot 2 without
+    one, and the two wholes with the first one's assertion.
+11. **A refusal of the schema package keeps the stored value shown.** A
+    link at the level `expression` whose one slot names the MusicBrainz
+    work of the first movement (a work URI) and is absent `lost`: choosing
+    `unknown` posts "The link could not be changed: part slot 1 is
+    recognised at the level 'work', the link's level is 'expression'.",
+    journals nothing, and the select shows `lost`.
+12. **Where the links are.** With `score` of `bundle_mixed` selected the
+    tab reads "Links of timeline 'Score'" and a paste adds the link to
+    `score` only; with `region_1` selected, to the region; a group selected
+    shows its hint and no paste field.
 
 ## The message bar (`messages.test.ts`, `shell.test.ts`)
 

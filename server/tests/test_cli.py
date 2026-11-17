@@ -13,9 +13,19 @@ from subprocess import Popen
 
 import pytest
 
-from tilie_server.cli import HOST, free_port
+from tilie_server.cli import DEFAULT_PORT, HOST, choose_port, free_port
 
 SHUTDOWN_TIMEOUT = 5
+NOTICE = (
+    "tilie: port {default} is in use, so the server runs on port {port}; "
+    "the browser remembers the editor's settings, your identity among them, "
+    "for each port apart"
+)
+# Windows cannot send SIGINT to another process nor start one with SIGINT
+# ignored, and ends one at SIGTERM without a graceful shutdown.
+posix_signals = pytest.mark.skipif(
+    sys.platform == "win32", reason="the shutdown signals are POSIX signals"
+)
 
 
 def run_tilie(*args: str) -> subprocess.CompletedProcess[str]:
@@ -49,6 +59,68 @@ def test_check_fails_without_a_built_app(tmp_path: Path) -> None:
     assert result.stderr == (
         'tilie --check failed: GET / answered 503: {"detail":"app not built"}\n'
     )
+
+
+def bindable(port: int) -> bool:
+    """Whether the test can bind ``port`` on the loopback interface now."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        try:
+            sock.bind((HOST, port))
+        except OSError:
+            return False
+    return True
+
+
+def test_the_default_port_is_8000() -> None:
+    assert DEFAULT_PORT == 8000
+
+
+def test_a_free_default_port_is_chosen_as_it_is() -> None:
+    port = free_port()
+    assert choose_port(None, default=port) == (port, None)
+
+
+def test_a_default_port_in_use_gives_a_free_port_and_a_notice() -> None:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind((HOST, 0))
+        sock.listen()
+        held = sock.getsockname()[1]
+        port, notice = choose_port(None, default=held)
+        assert notice == NOTICE.format(default=held, port=port)
+        assert port != held
+    assert bindable(port)
+
+
+def test_a_requested_port_is_kept_even_while_it_is_in_use() -> None:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind((HOST, 0))
+        sock.listen()
+        held = sock.getsockname()[1]
+        assert choose_port(held, default=free_port()) == (held, None)
+
+
+def test_without_a_port_the_command_falls_back_while_8000_is_in_use(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "index.html").write_text("<!doctype html>")
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        try:
+            sock.bind((HOST, DEFAULT_PORT))
+            sock.listen()
+        except OSError:
+            pass  # another process holds the port: it is in use either way
+        result = run_tilie("--check", "--static-dir", str(tmp_path))
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout) == {
+        "name": "tilie-server",
+        "version": version("tilie-server"),
+        "timetoalign": version("timetoalign"),
+    }
+    before, after = (re.escape(part) for part in NOTICE.split("{port}"))
+    pattern = before.replace(re.escape("{default}"), str(DEFAULT_PORT))
+    match = re.fullmatch(rf"{pattern}(?P<port>\d+){after}\n", result.stderr)
+    assert match is not None, result.stderr
+    assert int(match["port"]) != DEFAULT_PORT
 
 
 def test_check_fails_when_the_port_is_taken(tmp_path: Path) -> None:
@@ -96,18 +168,21 @@ def start_tilie(static_dir: Path, port: int, *, background: bool = False) -> Pop
 def stop(process: Popen[str], shutdown_signal: signal.Signals) -> tuple[str, str]:
     """Send ``shutdown_signal`` and collect the remaining output.
 
-    A process still running after ``SHUTDOWN_TIMEOUT`` seconds is killed and
-    the timeout re-raised, so a defective server cannot stall the suite.
+    The process never outlives this call: one still running after
+    ``SHUTDOWN_TIMEOUT`` seconds, or one the signal could not be sent to, is
+    killed and the error re-raised, so a defective server can neither stall
+    the suite nor stay running after it.
     """
-    process.send_signal(shutdown_signal)
     try:
+        process.send_signal(shutdown_signal)
         return process.communicate(timeout=SHUTDOWN_TIMEOUT)
-    except subprocess.TimeoutExpired:
-        process.kill()
-        process.communicate()
-        raise
+    finally:
+        if process.poll() is None:
+            process.kill()
+            process.communicate()
 
 
+@posix_signals
 def test_the_token_never_reaches_the_access_log(tmp_path: Path) -> None:
     (tmp_path / "index.html").write_text("<!doctype html>")
     port = free_port()
@@ -141,6 +216,7 @@ def test_the_token_never_reaches_the_access_log(tmp_path: Path) -> None:
     assert output.count(token) == 1
 
 
+@posix_signals
 @pytest.mark.parametrize(
     ("shutdown_signal", "background"),
     [

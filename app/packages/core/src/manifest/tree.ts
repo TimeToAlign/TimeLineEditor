@@ -7,6 +7,9 @@
 import type { PathSegment } from "../json.ts";
 import type { Manifest, TimelineManifest } from "./types.ts";
 
+/** What the search reads of a manifest: its root timelines. */
+export type Roots = Pick<Manifest, "timelines">;
+
 /** A root timeline of a manifest and its path from the manifest's top. */
 export interface RootPath {
   readonly timeline: TimelineManifest;
@@ -14,7 +17,7 @@ export interface RootPath {
 }
 
 /** The root timelines of a manifest with their paths, `["timelines", <index>]`. */
-export function rootPaths(manifest: Manifest): RootPath[] {
+export function rootPaths(manifest: Roots): RootPath[] {
   return manifest.timelines.map((timeline, index) => ({ timeline, path: ["timelines", index] }));
 }
 
@@ -39,7 +42,7 @@ export function searchTree<T>(here: Located, pick: (at: Located) => T | undefine
 }
 
 /** The timeline carrying `id` among a manifest's roots and their descendants, located. */
-export function locateTimeline(manifest: Manifest, id: string): Located | undefined {
+export function locateTimeline(manifest: Roots, id: string): Located | undefined {
   for (const root of rootPaths(manifest)) {
     const found = searchTree({ ...root, parent: undefined }, (at) =>
       at.timeline.id === id ? at : undefined,
@@ -65,6 +68,6 @@ export function isSegment(manifest: Manifest, id: string): boolean {
  * `undefined` for an id no timeline carries, such as a group's, the
  * manifest's or an element address `<root>/<id>`.
  */
-export function findTimeline(manifest: Manifest, id: string): TimelineManifest | undefined {
+export function findTimeline(manifest: Roots, id: string): TimelineManifest | undefined {
   return locateTimeline(manifest, id)?.timeline;
 }

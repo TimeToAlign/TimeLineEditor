@@ -72,16 +72,18 @@ const named = (id: string, name: string) => set(at(id), { name });
 /** The name of `address` in a message, in `view` (`addressWords`, pinned in `address.test.ts`). */
 const words = (address: Address, view: View = before) => addressWords(view, address);
 
-const outside = (
-  what: string,
-  path: readonly (string | number)[],
-  target = G1,
-  view: View = before,
-) => ({
-  code: "side_effect",
-  message: `${what} lies outside ${words(target, view)}: an editor changes only what it edits`,
-  path,
-});
+/** The refusal of a change of `what`, which `verb` ("lies", or "lie" for several things) outside `target`. */
+const refusal =
+  (verb: "lies" | "lie") =>
+  (what: string, path: readonly (string | number)[], target = G1, view: View = before) => ({
+    code: "side_effect",
+    message: `${what} ${verb} outside ${words(target, view)}: an editor changes only what it edits`,
+    path,
+  });
+
+const outside = refusal("lies");
+/** The refusal of a change of `what`, a plural noun (the statements, the styles). */
+const outsideAll = refusal("lie");
 
 describe("sideEffect, the exact cases", () => {
   it("accepts a place of the edited group", () => {
@@ -114,7 +116,7 @@ describe("sideEffect, the exact cases", () => {
   it("refuses a statement reaching outside and accepts one reaching only inside", () => {
     const wide = changed(before, { type: "style", select: TIMELINES, set: RED });
     expect(sideEffect(before, wide, G1)).toEqual(
-      outside("the graphical statements of bundle 'Mixed'", [
+      outsideAll("the graphical statements of bundle 'Mixed'", [
         BUNDLE,
         "manifest",
         "graphical",
@@ -205,7 +207,7 @@ describe("sideEffect, each rule's path", () => {
     });
     const wide = changed(before, styled(TIMELINES, "#FF0000"));
     expect(sideEffect(wide, changed(wide, styled(TIMELINES, "#00FF00")), G1)).toEqual(
-      outside("the graphical styles of bundle 'Mixed'", [
+      outsideAll("the graphical styles of bundle 'Mixed'", [
         BUNDLE,
         "manifest",
         "graphical",
@@ -390,7 +392,7 @@ describe("statements inside and outside", () => {
   it("lies inside when every band it matches belongs to a timeline the editor holds", () => {
     const inline = { display: "inline" };
     const statements = (target: Address) =>
-      outside(
+      outsideAll(
         "the graphical statements of bundle 'Mixed'",
         [BUNDLE, "manifest", "graphical", "statements"],
         target,
