@@ -2,22 +2,31 @@
  * Who asserts the links the viewer creates: an identity given as a URI
  * (an ORCID iD, for instance), the viewer's own state, never written to the
  * workspace except inside the assertions of the links they create. It is
- * remembered in the browser's `localStorage` under a key the host gives;
- * without a key, or where storage is unavailable, it holds until the
- * editor goes.
+ * remembered in the browser's `localStorage` under a key the host gives:
+ * the URI, or `NO_IDENTITY` for a viewer who chose to go on without one, so
+ * that neither is asked again; nothing stored means never asked. A stored
+ * text that is no URI, as the dialog reads one, is asked for again. Without
+ * a key, or where storage is unavailable, the answer holds until the editor
+ * goes.
  */
+
+import { isUri } from "./metadata.ts";
 
 /** What the identity dialog answers: the identity given, `null` to go on without one. */
 export interface IdentityAnswer {
   readonly uri: string | null;
 }
 
-/** The identity remembered under `key`; `null` without a key, without one remembered, or without storage. */
-function remembered(key: string | null): string | null {
+/** What is stored for a viewer who chose to go on without an identity; no URI reads so. */
+export const NO_IDENTITY = "none";
+
+/** The answer remembered under `key`; `null` without a key, without one remembered, or without storage. */
+function remembered(key: string | null): IdentityAnswer | null {
   if (key === null) return null;
   try {
     const stored = localStorage.getItem(key);
-    return stored === null || stored === "" ? null : stored;
+    if (stored === NO_IDENTITY) return { uri: null };
+    return stored !== null && isUri(stored) ? { uri: stored } : null;
   } catch {
     return null;
   }
@@ -31,14 +40,15 @@ export class Identity {
   answered = $state(false);
   readonly #key: string | null;
 
-  /** The identity remembered under `key` (`null` remembers nothing); one remembered counts as answered. */
+  /** The answer remembered under `key` (`null` remembers nothing); one remembered counts as answered. */
   constructor(key: string | null) {
     this.#key = key;
-    this.uri = remembered(key);
-    this.answered = this.uri !== null;
+    const answer = remembered(key);
+    this.uri = answer?.uri ?? null;
+    this.answered = answer !== null;
   }
 
-  /** Whether a paste asks for the identity first: nobody was asked yet. */
+  /** Whether a change asks for the identity first: nobody was asked yet. */
   get asks(): boolean {
     return !this.answered;
   }
@@ -49,10 +59,9 @@ export class Identity {
     this.answered = true;
     if (this.#key === null) return;
     try {
-      if (uri === null) localStorage.removeItem(this.#key);
-      else localStorage.setItem(this.#key, uri);
+      localStorage.setItem(this.#key, uri ?? NO_IDENTITY);
     } catch {
-      // Without storage the identity holds until the editor goes.
+      // Without storage the answer holds until the editor goes.
     }
   }
 }

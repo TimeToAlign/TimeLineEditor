@@ -58,3 +58,62 @@ export const OP106 = {
     },
   ],
 };
+
+/** The viewer's identity in the tests of the Metadata tab. */
+export const VIEWER = "https://orcid.org/0000-0002-1825-0097";
+
+/** The Op. 106 bundle whose one link states everything a card reads (item 4). */
+export const WHOLE = (() => {
+  const [link] = OP106.links;
+  if (link === undefined) throw new Error("no link");
+  const [first, second, ...rest] = link.parts;
+  if (first === undefined || second === undefined) throw new Error("no slots");
+  return {
+    ...OP106,
+    links: [
+      {
+        ...link,
+        records: [
+          {
+            url: "https://example.org/records/op106.jsonld",
+            media_type: "application/ld+json",
+            size: 2048,
+            integrity: "sha256-AAAA",
+          },
+          { url: "https://example.org/records/plain" },
+        ],
+        assertion: {
+          ...EDITOR,
+          service: "https://example.org/reconcile",
+          based_on: ["https://example.org/sources/a", "https://example.org/sources/b"],
+        },
+        parts: [
+          {
+            ...first,
+            uri: [...first.uri, "https://example.org/movements/1"],
+            identifiers: [{ scheme: "mb_beethoven_opus", value: "op. 106 no. 1" }],
+            assertion: { asserted_by: [VIEWER], asserted_on: "2026-11-18", method: "inferred" },
+          },
+          {
+            ...second,
+            assertion: {
+              ...EDITOR,
+              service: "https://example.org/reconcile",
+              based_on: ["https://example.org/sources/a", "https://example.org/sources/b"],
+            },
+          },
+          ...rest,
+        ],
+        part_of: [
+          {
+            parts_relation: "has_part",
+            label: "Hammerklavier sonatas",
+            position: 1,
+            assertion: { asserted_by: [VIEWER] },
+          },
+          { parts_relation: "aggregates", uri: ["https://example.org/collections/late"] },
+        ],
+      },
+    ],
+  };
+})();

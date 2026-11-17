@@ -1,9 +1,10 @@
 /**
  * The Metadata tab's model: which element's links it shows (`inspectedOf`),
  * each link as its card reads it (`linkCard`), the one command of every
- * change (`linksCommand`) and what a pasted URL gives (`pasted`). A link is
- * TimeToShare's: built from URLs through the schema package's registry of
- * known schemes (`linkFromUrls`) and changed through its functions
+ * change (`linksCommand`), what a pasted URL gives (`pasted`) and what
+ * choosing a status states (`statusChange`). A link is TimeToShare's: built
+ * from URLs through the schema package's registry of known schemes
+ * (`linkFromUrls`, `recognize`) and changed through its functions
  * (`withLabel`, `withUri`, `withParts`, `withAssertion`); this module
  * defines no part of it. Recognition is local: no URL is ever fetched.
  */
@@ -13,30 +14,35 @@ import { editedSelection } from "@timetoalign/tilie-arranger";
 import type {
   Address,
   Block,
+  LinkHolder,
   Manifest,
-  PathSegment,
   ResolvedAddress,
   SetCommand,
   View,
 } from "@timetoalign/tilie-core";
-import { addressWords, isCommandError, resolveAddress } from "@timetoalign/tilie-core";
+import { addressWords, isCommandError, linkHolders, resolveAddress } from "@timetoalign/tilie-core";
 import type {
   Assertion,
+  CompleteAssertion,
+  CompleteDescriptor,
   CompleteLink,
   CompleteManifest,
+  CompletePartOf,
   CompletePartSlot,
-  CompleteTimeline,
   Identifier,
   Level,
+  LosslessManifest,
   UnregisteredTerm,
 } from "@timetoalign/timetoshare";
 import {
   ABSENCE_REASONS,
+  assertionFor,
   completeManifest,
   defaultRegistry,
   dumps,
   LEVELS,
   linkFromUrls,
+  recognize,
   SCHEMA_VERSION,
   STATUSES,
   unregisteredTerms,
@@ -134,64 +140,44 @@ export function inspectedOf(
     : shownAt(view, { block: only.id });
 }
 
-/** A manifest as the schema package reads it: its complete form, and its unregistered terms. */
+/**
+ * A manifest as the schema package reads it: its complete form, its
+ * unregistered terms, and the name of each of its timelines and regions by
+ * ID (its `name`, else its ID).
+ */
 export interface Described {
   readonly complete: CompleteManifest;
   readonly terms: readonly UnregisteredTerm[];
+  readonly names: ReadonlyMap<string, string>;
 }
+
+/** The links of one element as the tab reads them, with the path of its `links` list. */
+export type Held = LinkHolder<CompleteLink>;
 
 const described = new WeakMap<Manifest, Described>();
 
-/** A block's manifest in TimeToShare's complete form, with its unregistered terms; memoised by identity. */
+/**
+ * Check `value` as the schema does, putting its unregistered terms into
+ * `terms`: TimeToShare's `unregisteredTerms` validates as `validate` does,
+ * so the manifest is checked once.
+ */
+function checkTerms(value: unknown, terms: UnregisteredTerm[]): asserts value is LosslessManifest {
+  terms.push(...unregisteredTerms(value));
+}
+
+/** A block's manifest in TimeToShare's complete form, with its terms and names; memoised by identity. */
 export function describedOf(manifest: Manifest): Described {
   const known = described.get(manifest);
   if (known !== undefined) return known;
   const value: unknown = manifest;
-  validate(value);
-  const found = { complete: completeManifest(value), terms: unregisteredTerms(value) };
+  const terms: UnregisteredTerm[] = [];
+  checkTerms(value, terms);
+  const complete = completeManifest(value);
+  const names = new Map<string, string>();
+  for (const { id, name } of linkHolders(complete)) if (id !== null) names.set(id, name ?? id);
+  const found = { complete, terms, names };
   described.set(manifest, found);
   return found;
-}
-
-/** The links an element holds and their path in its manifest. */
-export interface Held {
-  readonly links: readonly CompleteLink[];
-  /** The path of the element's `links` list from the manifest. */
-  readonly path: readonly PathSegment[];
-}
-
-/** The links of the element `id` (`null` the manifest itself) in `manifest`; `undefined` for no such element. */
-export function heldBy(manifest: CompleteManifest, id: string | null): Held | undefined {
-  if (id === null) return { links: manifest.links, path: ["links"] };
-  const visit = (timeline: CompleteTimeline, path: readonly PathSegment[]): Held | undefined => {
-    if (timeline.id === id) return { links: timeline.links, path: [...path, "links"] };
-    const index = timeline.regions.findIndex((region) => region.id === id);
-    const region = timeline.regions[index];
-    if (region !== undefined)
-      return { links: region.links, path: [...path, "regions", index, "links"] };
-    for (const [at, child] of timeline.children.entries()) {
-      const found = visit(child, [...path, "children", at]);
-      if (found !== undefined) return found;
-    }
-    return undefined;
-  };
-  for (const [at, root] of manifest.timelines.entries()) {
-    const found = visit(root, ["timelines", at]);
-    if (found !== undefined) return found;
-  }
-  return undefined;
-}
-
-/** The names of the timelines and regions of a manifest by ID: each one's `name`, else its ID. */
-function namesOf(manifest: CompleteManifest): ReadonlyMap<string, string> {
-  const names = new Map<string, string>();
-  const visit = (timeline: CompleteTimeline) => {
-    names.set(timeline.id, timeline.name ?? timeline.id);
-    for (const region of timeline.regions) names.set(region.id, region.name ?? region.id);
-    for (const child of timeline.children) visit(child);
-  };
-  for (const root of manifest.timelines) visit(root);
-  return names;
 }
 
 /**
@@ -216,12 +202,15 @@ export interface SlotRow {
   /** Its position in the reading, from 1. */
   readonly position: number;
   readonly label: string | null;
+  /** Its URIs, the first preferred. */
   readonly uris: readonly string[];
   readonly identifiers: readonly IdentifierRow[];
   /** The names of the elements representing it; empty for an absent part. */
   readonly representedBy: readonly string[];
   /** Why no element represents it; `null` for a represented part. */
   readonly absent: string | null;
+  /** The assertion line of its own assertion where it differs from the link's; else `null`. */
+  readonly assertion: string | null;
 }
 
 /** The reading of a link's parts. */
@@ -229,6 +218,14 @@ export interface PartsRow {
   readonly relation: string;
   readonly ordered: boolean;
   readonly slots: readonly SlotRow[];
+}
+
+/** One whole the linked entity belongs to, as a card shows it. */
+export interface PartOfRow {
+  /** `part of <whole> (<parts_relation>)`, then `, position <n>` where stated. */
+  readonly text: string;
+  /** The assertion line of its own assertion where it differs from the link's; else `null`. */
+  readonly assertion: string | null;
 }
 
 /** One link as its card shows it. */
@@ -239,12 +236,12 @@ export interface LinkCard {
   /** The URIs, the first preferred. */
   readonly uris: readonly string[];
   readonly identifiers: readonly IdentifierRow[];
-  /** The records, each its URL and, where stated, its media type. */
+  /** The records, each its URL and what is stated of it (media type, size, integrity). */
   readonly records: readonly string[];
   /** The reading of the parts; `null` for a link stating none. */
   readonly parts: PartsRow | null;
-  /** The wholes the entity belongs to, one line each. */
-  readonly partOf: readonly string[];
+  /** The wholes the entity belongs to. */
+  readonly partOf: readonly PartOfRow[];
   /** The assertion line; `null` for a link without one. */
   readonly assertion: string | null;
   /** The assertion's `status`; `null` where none is stated. */
@@ -256,37 +253,74 @@ export interface LinkCard {
 const identifierRows = (manifest: CompleteManifest, identifiers: readonly Identifier[]) =>
   identifiers.map(({ scheme, value }) => ({ scheme: schemeName(manifest, scheme), value }));
 
-/** The assertion line: who asserted it, when, how, how closely and whether it stands; each where stated. */
+/**
+ * The assertion line: who asserted it, when, how, through which service, on
+ * which sources, how closely and whether it stands; each where stated.
+ */
 export function assertionLine(assertion: Assertion | null): string | null {
   if (assertion === null) return null;
-  const { asserted_by = [], asserted_on, method, match, status } = assertion;
+  const {
+    asserted_by = [],
+    asserted_on,
+    method,
+    service,
+    based_on = [],
+    match,
+    status,
+  } = assertion;
   const parts = [
     asserted_by.length > 0 ? `asserted by ${asserted_by.join(", ")}` : null,
     (asserted_on ?? null) === null ? null : `on ${asserted_on}`,
     (method ?? null) === null ? null : `method ${method}`,
+    (service ?? null) === null ? null : `service ${service}`,
+    based_on.length > 0 ? `based on ${based_on.join(", ")}` : null,
     (match ?? null) === null ? null : `match ${match}`,
     (status ?? null) === null ? null : `status ${status}`,
   ].filter((part) => part !== null);
   return parts.length === 0 ? null : parts.join(" · ");
 }
 
+/**
+ * The line of the assertion holding for a slot or `part_of` entry of `link`
+ * (TimeToShare's `assertionFor`: its own, else the link's) where it differs
+ * from the link's own line; `null` where the link's holds.
+ */
+function entryAssertion(
+  link: CompleteLink,
+  entry: CompletePartSlot | CompletePartOf,
+): string | null {
+  const own = assertionLine(assertionFor(link, entry));
+  return own === assertionLine(link.assertion) ? null : own;
+}
+
+/** A record as a card shows it: its URL, then its media type, size and integrity where stated. */
+function recordText({ url, media_type, size, integrity }: CompleteDescriptor): string {
+  const stated = [media_type, size === null ? null : `${String(size)} bytes`, integrity].filter(
+    (item) => item !== null,
+  );
+  return stated.length === 0 ? url : `${url} (${stated.join(", ")})`;
+}
+
 /** A JSON pointer of a path below a link. */
-const pointer = (path: readonly PathSegment[]) =>
+const pointer = (path: readonly (string | number)[]) =>
   path.map((segment) => `/${String(segment).replaceAll("~", "~0").replaceAll("/", "~1")}`).join("");
 
 /**
  * The card of the link `index` of `held`, an element's links in a described
  * manifest: its level and relation, label, URIs, identifiers by their
  * schemes' names, records, the reading of its parts (each slot's label,
- * URIs, identifiers and representing elements by name, or its absence), its
- * `part_of` entries, its assertion line, and a warning for each of its
- * unregistered terms (`'<term>' is no registered word, at <pointer in the
- * link>`).
+ * URIs, identifiers, representing elements by name or its absence, and its
+ * own assertion), its `part_of` entries with theirs, its assertion line, and
+ * a warning for each of its unregistered terms (`'<term>' is no registered
+ * word, at <pointer in the link>`).
  */
-export function linkCard({ complete, terms }: Described, held: Held, index: number): LinkCard {
+export function linkCard(
+  { complete, terms, names }: Described,
+  held: Held,
+  index: number,
+): LinkCard {
   const link = held.links[index];
   if (link === undefined) throw new RangeError(`no link ${index} at ${pointer(held.path)}`);
-  const names = namesOf(complete);
   const prefix = [...held.path, index];
   const warnings = terms
     .filter((term) => prefix.every((segment, at) => term.path[at] === segment))
@@ -301,6 +335,7 @@ export function linkCard({ complete, terms }: Described, held: Held, index: numb
     identifiers: identifierRows(complete, slot.identifiers),
     representedBy: slot.represented_by.map((id) => names.get(id) ?? id),
     absent: slot.absent,
+    assertion: entryAssertion(link, slot),
   }));
   return {
     level: link.level,
@@ -308,17 +343,18 @@ export function linkCard({ complete, terms }: Described, held: Held, index: numb
     label: link.label,
     uris: link.uri,
     identifiers: identifierRows(complete, link.identifiers),
-    records: link.records.map((record) =>
-      record.media_type === null ? record.url : `${record.url} (${record.media_type})`,
-    ),
+    records: link.records.map(recordText),
     parts:
       link.parts_relation === null && slots.length === 0
         ? null
         : { relation: link.parts_relation ?? "", ordered: link.parts_ordered, slots },
     partOf: link.part_of.map((entry) => {
       const whole = entry.label ?? entry.uri[0] ?? entry.identifiers[0]?.value ?? "";
-      const position = entry.position === null ? "" : `, position ${entry.position}`;
-      return `${entry.parts_relation} of ${whole}${position}`;
+      const position = entry.position === null ? "" : `, position ${String(entry.position)}`;
+      return {
+        text: `part of ${whole} (${entry.parts_relation})${position}`,
+        assertion: entryAssertion(link, entry),
+      };
     }),
     assertion: assertionLine(link.assertion),
     status: link.assertion?.status ?? null,
@@ -334,6 +370,11 @@ export function linksCommand(inspected: Inspected, links: readonly CompleteLink[
 /** Whether two links are the same JSON, as the schema package's writer writes them. */
 export function sameLink(left: CompleteLink, right: CompleteLink): boolean {
   return dumps(left) === dumps(right);
+}
+
+/** A list of links as the schema package's writer writes it: what tells two lists apart. */
+export function linksText(links: readonly CompleteLink[]): string {
+  return dumps(links);
 }
 
 /** `links` with the link `index` replaced by `link`. */
@@ -362,7 +403,7 @@ export type Changed =
   | { readonly ok: false; readonly message: string };
 
 /** The message of a refusal of the schema package's functions. */
-function messageOf(error: unknown): string {
+export function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
@@ -393,12 +434,62 @@ export function withAbsence(link: CompleteLink, slot: number, reason: string): C
 /** The statuses an assertion may state, in the schema's order; `null` states none. */
 export const ASSERTION_STATUSES: readonly (typeof STATUSES)[number][] = STATUSES;
 
-/** The link with its assertion's `status` set (`null` unstates it); a link without one gains one. */
-export function withStatus(
+/** A status an assertion may state, or `null` for none. */
+export type Status = (typeof STATUSES)[number] | null;
+
+/** What choosing a status on a link states: the link changed in place, or a link of the viewer's own appended. */
+export type StatusChange =
+  | { readonly kind: "replaced"; readonly link: CompleteLink }
+  | { readonly kind: "appended"; readonly link: CompleteLink };
+
+/** Whether an assertion states nothing but its status. */
+function onlyStatus(assertion: CompleteAssertion): boolean {
+  const { status: _, ...rest } = assertion;
+  return Object.values(rest).every(
+    (value) => value === null || (Array.isArray(value) && value.length === 0),
+  );
+}
+
+/**
+ * What choosing `status` on `link` states, the viewer being `identity` (a
+ * URI, or `null` for none) on `day`. A status is the statement of whoever
+ * chooses it, so where the link's assertion is the viewer's own (it is
+ * null, names no agent, or names exactly the viewer) the status changes in
+ * place and the assertion is stamped as the viewer's: `asserted_by`
+ * `[identity]` where an identity is given, `asserted_on` the day, `method`
+ * `manual`; choosing no status on an assertion stating nothing but its
+ * status leaves the link without an assertion. Where another agent asserted
+ * the link, the link stays as it is and a link of its own is appended: the
+ * same link with the viewer's assertion stating `status`, as TimeToShare's
+ * description says of differing assertions.
+ */
+export function statusChange(
   link: CompleteLink,
-  status: (typeof STATUSES)[number] | null,
-): CompleteLink {
-  return withAssertion(link, { ...(link.assertion ?? {}), status });
+  status: Status,
+  identity: string | null,
+  day: string,
+): StatusChange {
+  const { assertion } = link;
+  const by = assertion?.asserted_by ?? [];
+  const own = by.length === 0 || (identity !== null && by.length === 1 && by[0] === identity);
+  if (!own) {
+    return {
+      kind: "appended",
+      link: withAssertion(link, { ...viewerAssertion(identity, day), status }),
+    };
+  }
+  if (status === null && (assertion === null || onlyStatus(assertion))) {
+    return { kind: "replaced", link: withAssertion(link, null) };
+  }
+  return {
+    kind: "replaced",
+    link: withAssertion(link, {
+      ...assertion,
+      ...viewerAssertion(identity, day),
+      ...(identity === null ? { asserted_by: by } : {}),
+      status,
+    }),
+  };
 }
 
 /** The registered absence reasons, and `reason` after them when it is none of them. */
@@ -415,6 +506,9 @@ export function isRegisteredAbsence(reason: string): boolean {
 
 /** The levels a link may have, in the schema's order. */
 export const LINK_LEVELS: readonly Level[] = LEVELS;
+
+/** The level whose links name the agent's role as their relation. */
+export const AGENT: Level = "agent";
 
 /** The calendar date of `now` in the viewer's time zone, `YYYY-MM-DD`: the day an assertion is made. */
 export function dayOf(now: Date): string {
@@ -449,6 +543,20 @@ export function isUri(text: string): boolean {
   }
 }
 
+/**
+ * Whether a URI may be offered as a link to follow: an `http:` or `https:`
+ * address. Any other URI, a `urn:` or a `javascript:` one alike, is shown
+ * as text.
+ */
+export function isWebAddress(uri: string): boolean {
+  try {
+    const { protocol } = new URL(uri);
+    return protocol === "http:" || protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 /** What a pasted text gives: a link, a URL whose level must be chosen, or why it gives nothing. */
 export type Pasted =
   | { readonly kind: "link"; readonly link: CompleteLink }
@@ -457,30 +565,23 @@ export type Pasted =
 
 /**
  * What the text pasted as a URL gives, read through TimeToShare's default
- * registry (`linkFromUrls`), the link asserted by `assertion`: with `level`,
- * the link at that level; without, the link at the level the registry
- * recognises, or the URL waiting for a level where the registry tells none
- * (a scheme without a level, an absolute URI it does not know); a text
- * that is no absolute URI is refused with the schema package's reason.
+ * registry, the link asserted by `assertion`: without `level`, an absolute
+ * URI whose level the registry does not tell (`recognize`: a scheme without
+ * a level, or a URI it does not know) waits for one, and any other text
+ * gives the link at the level the registry recognises; with `level`, the
+ * link at that level, an agent's taking `role` as its relation. What gives
+ * no link is refused with the schema package's reason.
  */
-export function pasted(text: string, assertion: Assertion, level?: Level): Pasted {
+export function pasted(text: string, assertion: Assertion, level?: Level, role = ""): Pasted {
   const url = text.trim();
-  try {
-    const options = level === undefined ? { assertion } : { assertion, level };
-    return { kind: "link", link: linkFromUrls([url], options) };
-  } catch (error) {
-    return level === undefined && takesLevel(url)
-      ? { kind: "level", url }
-      : { kind: "refused", message: `The pasted text gives no link: ${messageOf(error)}.` };
+  if (level === undefined && (recognize(url)?.level ?? null) === null && isUri(url)) {
+    return { kind: "level", url };
   }
-}
-
-/** Whether `url` gives a link once its level is stated: the registry tells none for it. */
-function takesLevel(url: string): boolean {
+  const stated = level === undefined ? {} : { level };
+  const relation = level === AGENT && role.trim() !== "" ? { relation: role.trim() } : {};
   try {
-    linkFromUrls([url], { level: "work" });
-    return true;
-  } catch {
-    return false;
+    return { kind: "link", link: linkFromUrls([url], { assertion, ...stated, ...relation }) };
+  } catch (error) {
+    return { kind: "refused", message: `The pasted text gives no link: ${messageOf(error)}.` };
   }
 }
