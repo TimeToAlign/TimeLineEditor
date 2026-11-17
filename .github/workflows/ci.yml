@@ -89,7 +89,9 @@ jobs:
         python-version: ["3.11", "3.13"]
     # server/pyproject.toml takes timetoalign from the checkout beside this
     # repository until a timetoalign release carries the measure-map expansion,
-    # so both repositories are checked out side by side.
+    # and timetoshare (which timetoalign reads links with) from the TimeToShare
+    # checkout until a release carries schema 0.2.0, so the three repositories
+    # are checked out side by side.
     defaults:
       run:
         working-directory: TimeLineEditor/server
@@ -101,8 +103,15 @@ jobs:
         with:
           repository: TimeToAlign/timetoalign
           # the timetoalign commit server/uv.lock was locked against; moves with it
-          ref: a3e0d256f0c13ba847a4baa712050104cea02ab9
+          ref: 476a9e0059c69b14e387eec5b70446c27219c3b8
           path: timetoalign
+      - uses: actions/checkout@v7
+        with:
+          repository: TimeToAlign/TimeToShare
+          # main, as the app's install takes it; uv.lock records only the
+          # package's version and requirements, which a relock follows
+          ref: main
+          path: TimeToShare
       - uses: actions/download-artifact@v8
         with:
           name: editor-dist
