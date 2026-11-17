@@ -187,10 +187,18 @@ async function expectTabPairs(page: Page, present: readonly TabName[]): Promise<
 }
 
 test("the tabs follow the keyboard", async ({ page }) => {
-  const arranging = ["Arranger", "Properties", "Manifest", "Journal", "Timestamp"] as const;
+  const arranging = [
+    "Arranger",
+    "Properties",
+    "Metadata",
+    "Manifest",
+    "Journal",
+    "Timestamp",
+  ] as const;
   await expectTabPairs(page, arranging);
   await tab(page, "Properties").focus();
   for (const [key, name] of [
+    ["ArrowRight", "Metadata"],
     ["ArrowRight", "Manifest"],
     ["ArrowRight", "Journal"],
     ["ArrowRight", "Timestamp"],
@@ -208,7 +216,7 @@ test("the tabs follow the keyboard", async ({ page }) => {
   expect(
     await page.evaluate((target) => window.__tilie.open(target), { block: SMALL.bare }),
   ).toBeNull();
-  const editing = ["Bundle", "Properties", "Manifest", "Journal", "Timestamp"] as const;
+  const editing = ["Bundle", "Properties", "Metadata", "Manifest", "Journal", "Timestamp"] as const;
   await expectTabPairs(page, editing);
   await expect(tab(page, "Bundle")).toHaveAttribute("aria-selected", "true");
   await tab(page, "Bundle").focus();

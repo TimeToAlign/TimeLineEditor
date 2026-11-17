@@ -19,6 +19,7 @@ import { addressKey, idAddress, sameAddress } from "../manifest/address.ts";
 import type { EntryKind } from "../manifest/files.ts";
 import { ENTRY_KINDS, entriesOf } from "../manifest/files.ts";
 import { readOnAxis } from "../manifest/invariants.ts";
+import type { Beside } from "../manifest/io.ts";
 import {
   completed,
   normalizeManifest,
@@ -27,7 +28,7 @@ import {
   schemaChecked,
 } from "../manifest/io.ts";
 import { statedLockProblem, withPlaceLocks } from "../manifest/locks.ts";
-import type { Group, MeasureMap, TimelineManifest } from "../manifest/types.ts";
+import type { Group, TimelineManifest } from "../manifest/types.ts";
 import { readName, readObject, readPlaces, unknownMember } from "../values.ts";
 import { idPath, inBlock, manifestIds, WORKSPACE } from "../workspace/address.ts";
 import type { Block } from "../workspace/blocks.ts";
@@ -172,8 +173,9 @@ function firstProblem(refused: LoadError): Problem {
 
 /**
  * A timeline given to `add`, read through the schema boundary as the one
- * root of a manifest of its own, beside the `measureMaps` of the manifest it
- * is added to, which its measure views may name: its segment lines covered
+ * root of a manifest of its own, beside the measure maps and schemes of the
+ * manifest it is added to (`beside`), which its measure views and its links'
+ * identifiers may name: its segment lines covered
  * (`withSegmentLinesCovered`, no ID minted there among `taken`, the IDs of
  * the manifest it is added to), checked by the schema, the `locked` it and
  * its subtree state checked against their place under `parent`
@@ -187,12 +189,17 @@ function firstProblem(refused: LoadError): Problem {
 function readTimeline(
   value: JsonObject,
   parent: TimelineManifest | undefined,
-  measureMaps: readonly MeasureMap[],
+  beside: Beside,
   taken: ReadonlySet<string>,
   at: readonly PathSegment[],
   path: readonly PathSegment[],
 ): TimelineManifest | CommandError {
-  const host = { timetoshare: SCHEMA_VERSION, timelines: [value], measure_maps: measureMaps };
+  const host = {
+    timetoshare: SCHEMA_VERSION,
+    timelines: [value],
+    measure_maps: beside.measure_maps,
+    schemes: beside.schemes,
+  };
   const checked = schemaChecked(withSegmentLinesCovered(host, taken));
   if ("code" in checked) return located(checked, "timelines", at);
   const [fragment] = checked.timelines;
@@ -263,7 +270,7 @@ function addTimeline(view: View, target: BlockTarget, value: unknown, changes: C
   const { block } = target;
   const { manifest } = block;
   const at = [block.id, "manifest", "timelines", manifest.timelines.length];
-  const timeline = readTimeline(object, undefined, manifest.measure_maps, ids, at, path);
+  const timeline = readTimeline(object, undefined, manifest, ids, at, path);
   if (isCommandError(timeline)) return timeline;
   record(changes, path, block.id, true);
   const added = { ...manifest, timelines: [...manifest.timelines, timeline] };
@@ -374,7 +381,7 @@ function addElement(
     const on = readOnAxis(offset, timeline, [...path, "offset"]);
     if (isCommandError(on)) return on;
     const where = [block.id, "manifest", ...at.path, "children", timeline.children.length];
-    const placed = readTimeline(child, timeline, block.manifest.measure_maps, ids, where, path);
+    const placed = readTimeline(child, timeline, block.manifest, ids, where, path);
     if (isCommandError(placed)) return placed;
     changed = placeChild(block.manifest, at, placed, on, path);
   } else {
@@ -383,7 +390,7 @@ function addElement(
       object,
       timeline,
       entriesOf(timeline, kind).length,
-      block.manifest.measure_maps,
+      block.manifest,
     );
     if (isCommandError(entry)) {
       return { ...entry, path: [block.id, "manifest", ...at.path, ...entry.path] };

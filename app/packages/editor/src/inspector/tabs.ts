@@ -11,13 +11,21 @@ import type { Address, Manifest, Pin, View } from "@timetoalign/tilie-core";
 import { resolveAddress } from "@timetoalign/tilie-core";
 import { levelWord } from "./words.ts";
 
-/** The inspector's sections, in tab order: the level tab first, then the four others. */
-export const TABS = ["level", "properties", "manifest", "journal", "timestamp"] as const;
+/** The inspector's sections, in tab order: the level tab first, then the five others. */
+export const TABS = [
+  "level",
+  "properties",
+  "metadata",
+  "manifest",
+  "journal",
+  "timestamp",
+] as const;
 export type Tab = (typeof TABS)[number];
 
 /** The word on each tab but the level tab, which is named by its level. */
 const TAB_LABELS: { readonly [tab in Exclude<Tab, "level">]: string } = {
   properties: "Properties",
+  metadata: "Metadata",
   manifest: "Manifest",
   journal: "Journal",
   timestamp: "Timestamp",

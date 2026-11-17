@@ -222,6 +222,7 @@ test.describe("on bundles", () => {
       await expect(tabs(page).getByRole("tab")).toHaveText([
         word,
         "Properties",
+        "Metadata",
         "Manifest",
         "Journal",
         "Timestamp",

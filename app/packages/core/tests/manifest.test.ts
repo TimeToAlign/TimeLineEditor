@@ -103,6 +103,7 @@ describe("the minimal form in, either form out", () => {
       conversion_maps: [],
       regions: [],
       flow_control: [],
+      links: [],
     };
     const {
       meta: _,
@@ -115,6 +116,8 @@ describe("the minimal form in, either form out", () => {
       meta: {},
       groups: [],
       measure_maps: [],
+      schemes: [],
+      links: [],
       timelines: [root],
     });
   });
@@ -509,6 +512,8 @@ describe("segments read unlocked", () => {
 describe("an entry given to a command", () => {
   const [melody] = load("map.json").timelines;
   if (melody === undefined) throw new Error("map.json has a root");
+  /** Nothing beside the timeline: no measure maps and no schemes. */
+  const NOTHING = { measure_maps: [], schemes: [] };
   const tempo = {
     id: "tempo",
     scalar: [1, 2],
@@ -518,10 +523,14 @@ describe("an entry given to a command", () => {
   };
 
   it("reads an accepted map in its complete form", () => {
-    expect(readEntry("map", tempo, melody, 0, [])).toEqual({ ...tempo, name: null, offset: 0 });
+    expect(readEntry("map", tempo, melody, 0, NOTHING)).toEqual({
+      ...tempo,
+      name: null,
+      offset: 0,
+    });
     const [phrase] = melody.children;
     if (phrase === undefined) throw new Error("melody has a child");
-    expect(readEntry("map", { ...tempo, id: "second" }, phrase, 1, [])).toEqual({
+    expect(readEntry("map", { ...tempo, id: "second" }, phrase, 1, NOTHING)).toEqual({
       ...tempo,
       id: "second",
       name: null,
@@ -531,7 +540,7 @@ describe("an entry given to a command", () => {
 
   it("refuses a region at its path from the timeline that will list it", () => {
     const region = { id: "verse\tchorus", start: [0, 1], end: [2, 1] };
-    expect(refusal(readEntry("region", region, melody, 0, []))).toEqual({
+    expect(refusal(readEntry("region", region, melody, 0, NOTHING))).toEqual({
       code: "schema_violation",
       path: ["regions", 0, "id"],
     });
@@ -552,8 +561,11 @@ describe("an entry given to a command", () => {
       measure_map: "bars",
     };
     const index = melody.conversion_maps.length;
-    expect(readEntry("map", view, melody, index, [bars])).toEqual({ ...view, name: null });
-    expect(refusal(readEntry("map", view, melody, index, []))).toEqual({
+    expect(readEntry("map", view, melody, index, { ...NOTHING, measure_maps: [bars] })).toEqual({
+      ...view,
+      name: null,
+    });
+    expect(refusal(readEntry("map", view, melody, index, NOTHING))).toEqual({
       code: "schema_violation",
       path: ["conversion_maps", index, "measure_map"],
     });

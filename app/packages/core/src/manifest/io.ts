@@ -288,22 +288,29 @@ export function completeOrdered<T>(value: T): T | Problem {
 }
 
 /**
+ * What an element given to a command may name beside its own tree: the
+ * measure maps of its manifest, which a measure view names, and the schemes,
+ * which an identifier of a link names.
+ */
+export type Beside = Pick<Manifest, "measure_maps" | "schemes">;
+
+/**
  * A map, region or flow-control element given to a command, read through
  * the schema boundary in `host`, the timeline that will list it at `index`
  * of its kind's list (the entry there replaced, or appended at the list's
  * length): `host` alone (its children left out) with the value in place,
- * beside `measureMaps`, the measure maps of its manifest, which a measure
- * view names, is completed, ordered and checked by the schema as `settle`
- * checks a manifest, and the value is returned in its complete form. A
- * schema problem is returned with its path from `host`, the caller placing
- * it in its manifest.
+ * beside the measure maps and schemes of its manifest (`beside`), is
+ * completed, ordered and checked by the schema as `settle` checks a
+ * manifest, and the value is returned in its complete form. A schema
+ * problem is returned with its path from `host`, the caller placing it in
+ * its manifest.
  */
 export function readEntry<K extends EntryKind>(
   kind: K,
   value: JsonObject,
   host: TimelineManifest,
   index: number,
-  measureMaps: readonly MeasureMap[],
+  beside: Beside,
 ): EntryTypes[K] | Problem {
   const list = ENTRY_LISTS[kind];
   const items: unknown[] = [...list.get(host)];
@@ -318,7 +325,8 @@ export function readEntry<K extends EntryKind>(
   const ordered = completeOrdered({
     timetoshare: SCHEMA_VERSION,
     timelines: [timeline],
-    measure_maps: measureMaps,
+    measure_maps: beside.measure_maps,
+    schemes: beside.schemes,
   });
   const checked = "code" in ordered ? ordered : schemaChecked(ordered);
   if ("code" in checked) {

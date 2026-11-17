@@ -263,8 +263,8 @@ path below that directory without `.json` (`bare`, `bare.minimal`,
 `groups/corpus_tilia`, `bundles/corpus_tilia`), every warning case of
 `fixtures/warnings/<SCHEMA_VERSION>/` as `warnings/<name>`, and every
 end-to-end workspace as `e2e/<name>`; no label repeats and the list is in
-code-unit order. For the installed package that is 140 manifest fixtures,
-13 warning cases and 5 workspaces, 158 options, from `bare` to
+code-unit order. For the installed package that is 144 manifest fixtures,
+17 warning cases and 5 workspaces, 166 options, from `bare` to
 `with_region.minimal`; no option starts with `drawings/` or `rejections/`,
 which hold drawing inputs and outputs and refused manifests. Each option
 is an entry of the Examples menu's shape, and Open opens it as the
@@ -274,7 +274,7 @@ fixture's or the warning case's `manifest`, which core's `loadManifest`
 accepts, so each option imports (`fixtures.test.ts`, one case per fixture
 named by its label, so that a failure names the fixture); every end-to-end
 workspace is of kind `workspace`, its text the file's, which the reader
-accepts; 153 entries of kind `manifest` and 5 of kind `workspace`. A
+accepts; 161 entries of kind `manifest` and 5 of kind `workspace`. A
 manifest fixture is imported, never replacing the workspace and asking
 nothing, even with unsaved changes: chosen on a workspace holding one
 block (`bare` as `0000000000`), it adds one `add` of core's
@@ -361,9 +361,14 @@ comparison) and the store (what it accepts and refuses).
    it the default null, and reading puts it back; the walk over the
    schema's definitions lists exactly the `name` of the manifest, a group,
    a measure map and a region; a timeline's `length`, `name`; a
-   flow-control element's `label`, `name`; and `name`, `source_unit`,
+   flow-control element's `label`, `name`; `name`, `source_unit`,
    `target_unit` of `MapBase`, the base every conversion map type takes
-   through its `allOf`, which the walk along a value follows. A manifest of
+   through its `allOf`, which the walk along a value follows; and of the
+   description layer a scheme's `criteria`, `name`; a link's `assertion`,
+   `label`, `parts_relation`; a record's `integrity`, `media_type`, `size`;
+   an assertion's `asserted_on`, `match`, `method`, `service`, `status`; a
+   part slot's `absent`, `assertion`, `label`; and a `part_of` entry's
+   `assertion`, `label`, `position`. A manifest of
    two roots (one of unknown length, one holding a `LinearMap` whose
    `target_unit` is null), a group and a measure map has its TOML text
    pinned whole, and reads back with all seven nulls. A measure-map row with
@@ -385,9 +390,10 @@ comparison) and the store (what it accepts and refuses).
    `"locked": "yes"` is `schema_violation` "must be boolean" at
    `/timelines/0/locked`, `"unit": "parsecs"` "must be equal to constant"
    (the first `const` of the units' `oneOf`) at `/timelines/0/unit`. A syntax error carries the
-   reader's 1-based line and column: JSON `"locked": ,` at 52:17 (after
-   the default timestamps' `graphical`, which sorts first), YAML
-   `locked: [false` at 14:5, TOML `locked = ` at 16:1. No refusal adds a
+   reader's 1-based line and column: JSON `"locked": ,` at 55:17 (after
+   the default timestamps' `graphical`, which sorts first, and the empty
+   `links` of the manifest), YAML `locked: [false` at 17:5, TOML
+   `locked = ` at 19:1. No refusal adds a
    journal entry.
 6. **Comments survive.** In each of the four modes, a YAML or TOML text
    with a comment line and an inline comment, applied, is exactly the typed
@@ -673,9 +679,9 @@ core's message, so the oracle is core's own nesting rule written out:
 
 ## The tabs and panels (`Inspector.test.ts`, `inspector-tabs.test.ts`)
 
-**The tab rule** is proven as a table on the rule alone. The five tabs are
-always present, in this order: the level tab, Properties, Manifest,
-Journal, Timestamp. The level tab is labelled by the level's word: "Arranger" with no
+**The tab rule** is proven as a table on the rule alone. The six tabs are
+always present, in this order: the level tab, Properties, Metadata,
+Manifest, Journal, Timestamp. The level tab is labelled by the level's word: "Arranger" with no
 editor open, else "Bundle", "Group" or "Timeline" for the innermost
 editor's kind. The tab chosen is recorded with the store's count of editor
 openings when it was chosen or when the inspector was last shown or
@@ -728,7 +734,7 @@ closing and reopening, nothing journalled.
    meanwhile, Journal chosen, it shows Journal; with Journal chosen, a
    group editor opened while the drawer is open, the open drawer opened
    again, then closed and opened, it still shows Journal.
-5. **The keys** move over the five tabs, wrapping, at the top level and in
+5. **The keys** move over the six tabs, wrapping, at the top level and in
    an editor, the focus with the selection; the block's fields follow the
    editing level as in "The Properties form".
 6. **The Manifest panel**, with `bare` and `styled__score`: choosing YAML
@@ -754,7 +760,8 @@ closing and reopening, nothing journalled.
 9. **Warnings.** Each shared warning case of the installed TimeToShare
    (`fixtures/warnings/<SCHEMA_VERSION>/`) loads in core and, selected,
    lists exactly its expected unknown keys, each with its pointer or "at
-   the top level", in a list "Warnings"; no problem is listed, and an
+   the top level", then its expected unregistered terms of links, each
+   with its pointer, in a list "Warnings"; no problem is listed, and an
    applied edit keeps the warnings. `bare` shows no warning list.
 10. **The Properties panel** commits on Enter (the block's `x` to 25 is one
    `set` of `x`), steps from the stored value, never the shown one (10.123
@@ -979,6 +986,145 @@ which no position solves).
     shown pin equals, part for part, that pin moved to 6 without its named
     timestamp and pinned as an unnamed pin: the same rows in the pane. Without
     `knotsOf` the row reads "needs a server to expand its measure map".
+
+## The Metadata tab (`metadata.test.ts`, `metadata-panel.test.ts`)
+
+The tab shows and edits the links of TimeToShare's description layer: a
+link from the bundle, a timeline or a region to a work or another entity.
+A link is the schema package's, built from URLs through its registry of
+known schemes (`linkFromUrls`) and changed through its functions
+(`withLabel`, `withUri`, `withParts`, `withAssertion`); the editor defines
+none of it, so the oracles are that package's builders and core's store.
+Every change is one `set` of the element's `links` (core's "Links"), built
+from the store's current links. Recognition is local: no test stubs a
+network and none is reached.
+
+**The Op. 106 bundle** is the manifest pinned in TimeToShare's
+`js/tests/description.test.ts`, written inline: named "Beethoven, Piano
+Sonata No. 29, Op. 106", `timelines: []`, one scheme `mb_beethoven_opus`
+("Works of Ludwig van Beethoven by opus number", its URI the MusicBrainz
+series), and one link: level `work`, relation `pertains_to`, label "Piano
+Sonata No. 29 in B♭ major, Op. 106", the three URIs
+`http://musicbrainz.org/work/4a622b0d-…`, `http://www.wikidata.org/entity/Q146730`
+and `http://viaf.org/viaf/186299955`, the identifiers IMSLP
+(`http://www.wikidata.org/entity/P839`) `Piano_Sonata_No.29,_Op.106_(Beethoven,_Ludwig_van)`
+and `mb_beethoven_opus` `op. 106`, `parts_relation` `has_part` with four
+ordered slots ("I. Allegro", "II. Scherzo. Assai vivace", "III. Adagio
+sostenuto", "IV. Introduzione. Largo – Allegro risoluto"), each with the
+MusicBrainz work URI of its movement and `absent: "not_represented"`, and
+the assertion by `https://example.org/people/editor` on 2026-11-17,
+`manual`, `confirmed`.
+
+**The model** (`metadata.ts`, proven on the module alone):
+
+1. **What is inspected.** In a view of `bundle_mixed` (block `A`) and
+   `bare` (block `B`): the block `{block: A}` selected gives the bundle,
+   target `{block: A}`, words "bundle 'Mixed'"; a card of `score`, its
+   regions band and its name part give the timeline `score`, target
+   `{block: A, id: "score"}`, words "timeline 'Score' in bundle 'Mixed'";
+   `region_1` and its label give the region `region_1`, words "region
+   'Verse' in bundle 'Mixed'"; the bundle's title gives the bundle. A group
+   gives the hint "Group 'Performance' in bundle 'Mixed' holds no links: a
+   bundle, a timeline or a region does. Select its block, a timeline or a
+   region."; a conversion map and a named timestamp give the same sentence
+   with their words. Two subjects, and nothing selected among the two
+   blocks, give "Select a block, a timeline or a region to see its links."
+   With nothing selected in the editor of `score` the timeline `score` is
+   inspected, in the bundle editor of `A` the bundle; at the top level of a
+   view of one block, that block's bundle.
+2. **The card of the Op. 106 link**: level `work`, relation `pertains_to`,
+   the label; the three URIs in order (the first preferred); the
+   identifiers "IMSLP ID" (the registry's name of the scheme URI) and
+   "Works of Ludwig van Beethoven by opus number" (the manifest's scheme by
+   its name) with their values; no records; the parts `has_part`, ordered,
+   four slots at positions 1 to 4, each with its label, its one URI, no
+   representing element and the absence `not_represented`; no `part_of`;
+   the assertion line "asserted by https://example.org/people/editor · on
+   2026-11-17 · method manual · status confirmed", the status `confirmed`;
+   no warning. Given a second reading (the slots in the order 1, 3, 2, 4,
+   asserted 2026-11-18 `imported`), the bundle holds two links and so two
+   cards, in their order, each its own.
+3. **Representation and warnings.** The shared warning case
+   `description_absent_unregistered.json`: the first slot is represented by
+   `intro` (a region without a name, shown by its ID), the second absent
+   `destroyed`, which is no registered reason: the card warns "'destroyed'
+   is no registered word, at /parts/1/absent", and the absence choices are
+   the five registered reasons followed by `destroyed`.
+4. **Paste.** With the assertion `{asserted_by: [I], asserted_on:
+   "2026-11-17", method: "manual"}` (`I` =
+   `https://orcid.org/0000-0002-1825-0097`): the MusicBrainz work page of
+   Op. 106 gives a link equal to `linkFromUrls` of it with that assertion
+   (level `work`, the entity URI); the Wikidata page
+   `https://www.wikidata.org/wiki/Q146730` and an unknown absolute URI
+   `https://example.org/works/op106` each wait for a level, and given
+   `work` and `expression` give the links of `http://www.wikidata.org/entity/Q146730`
+   at `work` and of the URI as written at `expression`; `Hammerklavier`
+   is refused "The pasted text gives no link: 'Hammerklavier' is no
+   absolute URI."
+5. **Changes.** Label "Hammerklavier" replaces the label, an empty label
+   unstates it; adding `https://www.wikidata.org/wiki/Q146730` to a link
+   holding only the MusicBrainz URI appends the Wikidata entity URI; adding
+   a URI the link holds is "The link holds that URL already."; adding
+   `Hammerklavier` is "The URL cannot be added: 'Hammerklavier' is no
+   absolute URI."; the absence of slot 3 set to `lost` changes that slot
+   only; the status `unconfirmed` replaces `confirmed`, keeping the rest of
+   the assertion, and `null` unstates it. Each is equal to the schema
+   package's function applied to the same link.
+6. **The day and the identity.** The day of 2026-11-17 at 23:59 local time
+   is `2026-11-17`; the viewer's assertion without an identity is
+   `{asserted_by: [], asserted_on, method: "manual"}`. `isUri` accepts
+   `I` and `urn:isbn:0451450523` and refuses `orcid 0000`, the empty text
+   and `https://example.org/a b`, as the schema's `Uri` does.
+
+**The identity** (`identity.svelte.ts`): kept under the key the host
+gives, in `localStorage` only. A key holding a URI gives that identity,
+answered; an empty or missing key, or a `null` key, none, not answered.
+`give(I)` writes `I` under the key, `give(null)` removes it; both make it
+answered. With `localStorage` throwing on every access the identity starts
+without one and `give` holds it in memory: nothing throws. The workspace
+never holds it except inside the assertions of links the viewer creates:
+after a paste, the workspace file's text contains `I` exactly twice, in
+that link's `asserted_by` in the block's manifest and in the journalled
+`set` that added it.
+
+**The panel** (`metadata-panel.test.ts`, the Inspector mounted on a store,
+the Metadata tab chosen; dates under a fixed clock of 2026-11-17):
+
+1. **The Op. 106 bundle imported.** Through the page, Import manifest…
+   with the Op. 106 text adds one block, selected, whose manifest has
+   `timelines: []`; the drawer opened and Metadata chosen show "Links of
+   bundle 'Beethoven, Piano Sonata No. 29, Op. 106'", one card in a list
+   "Links": its heading `work pertains_to <label>`; three URI links, each
+   `target="_blank"` and `rel="noopener noreferrer"`, the first marked
+   "preferred"; the two identifier rows; the parts line; four slots, each
+   with a select "Absent" showing `not_represented` among the five
+   registered reasons; the assertion line; no warning list.
+2. **Pasting a recognised URL** on the bundle of `bare` asks first for the
+   identity (the dialog "Who asserts your links?"); `orcid 0000` saved
+   shows "An identity is an absolute URI, …" and keeps the dialog open;
+   `I` saved closes it, writes `I` under the identity key and adds exactly
+   one journal entry, the `set` of `{block: A}`'s links to the pasted link
+   asserted by `I` on 2026-11-17, `manual`; the field is emptied and the
+   card shows. A second paste asks nothing. Undo removes the card.
+3. **A URL without a level** shows the level question naming the URL, a
+   select "Level" over the five levels; choosing `work` and Add link adds
+   the link; Cancel instead adds nothing and removes the question.
+4. **Text that is no URI** posts "The pasted text gives no link:
+   'Hammerklavier' is no absolute URI." and journals nothing.
+5. **Without storage** (`localStorage` throwing), the first paste still
+   asks, the link is asserted by the identity given, and the second paste
+   asks nothing. Cancel in the dialog adds nothing; No identity adds the
+   link asserted without `asserted_by`.
+6. **The card's edits**, on the Op. 106 bundle, each one `set` of the
+   bundle's links equal to the model's: the label typed and committed;
+   Add URL, then a Wikidata page the link does not hold (`Q146731`) and
+   Enter; the third slot's absence set
+   to `lost`; the status `unconfirmed`; Remove link. Change identity
+   replaces the identity shown on the tab.
+7. **Where the links are.** With `score` of `bundle_mixed` selected the
+   tab reads "Links of timeline 'Score'" and a paste adds the link to
+   `score` only; with `region_1` selected, to the region; a group selected
+   shows its hint and no paste field.
 
 ## The message bar (`messages.test.ts`, `shell.test.ts`)
 

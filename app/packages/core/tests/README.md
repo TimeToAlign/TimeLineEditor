@@ -2,7 +2,8 @@
 
 `core` holds exact coordinates, one TimeToShare manifest of TimeToShare's
 `SCHEMA_VERSION` (`{timetoshare, timelines, id?, name?, meta?, groups?,
-graphical?}`: root timelines, optionally named, optionally grouped), the
+measure_maps?, schemes?, links?, graphical?}`: root timelines, optionally
+named, optionally grouped, optionally linked to external entities), the
 elements a selector can match, the immutable workspace view of blocks, the
 four commands `add`, `set`, `remove` and `style` over addresses, the store
 with its command journal and editor sessions, and the workspace file. This
@@ -207,11 +208,11 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
 4. **The minimal form in, pinned by hand.** For the twin of `bare.json`
    (its `meta` and `graphical` left out) the complete root is exactly `{id: "bare", name:
    "Bare", unit: "quarters", number_type: "fraction", length: [8, 1],
-   locked: false, is_segment_line: false, meta: {}, children: [],
+   locked: false, is_segment_line: false, meta: {}, children: [], links: [],
    conversion_maps: [], regions: [], flow_control: []}` and the manifest
    around it `{timetoshare, name: null, meta: {}, groups: [],
-   measure_maps: [], timelines: [root]}`: no `id` and no `graphical`, whose
-   default is "absent".
+   measure_maps: [], schemes: [], links: [], timelines: [root]}`: no `id`
+   and no `graphical`, whose default is "absent".
 5. **Unknown keys survive.** `bare.json` with an unknown key at the top
    (`"x-top": 1`), on the root (`"x-root": {"a": [1, 2]}`) and on a region it
    is given (`"x-region": "kept"`) loads with all three in place; after a
@@ -306,7 +307,7 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
 15. **Malformed text** is refused with code `invalid_json` at path `[]`.
 16. **An entry given to a command** (a map, region or flow-control
     element) is checked by the schema in the timeline that will list it,
-    beside the measure maps of its manifest, completed and ordered as a
+    beside the measure maps and schemes of its manifest, completed and ordered as a
     command's result is: a minimal `LinearMap` `tempo`, in `melody` of
     `map.json` and in its child `phrase`, comes back in its complete form
     (`name: null`, `offset: 0`); a region whose ID holds a tab
@@ -602,11 +603,13 @@ the schema agree by construction.
    `children`, the first in the default band order's order. The stranger
    and missing messages are also what TimeToShare's identity check reports
    first for the same value.
-5. **Entries the schema's pattern refuses** (an empty string, an entry
-   holding a control character) are refused by both: core as a stranger,
-   the schema at the entry (`["graphical", "order", "clt_3", 6]`) with its
-   pattern; every value core accepts the schema accepts and every value it
-   refuses the schema refuses.
+5. **Entries the schema refuses** (an empty string, an entry holding a
+   control character) are refused by both: core as a stranger, the schema
+   at the entry (`["graphical", "order", "clt_3", 6]`), the empty string by
+   its `minLength` ("must NOT have fewer than 1 characters"), the control
+   character by its `not` over control characters ("must NOT be valid");
+   every value core accepts the schema accepts and every value it refuses
+   the schema refuses.
 
 ## Workspace view, ids and order (`workspace.test.ts`, `workspace-ids-order.test.ts`)
 
@@ -2003,6 +2006,110 @@ the same result):
     `[timestamp_2]` (`timestamp 'Climax' …`).
 19. In the editor of `clt_1`: removing `timestamp_2`, removing `clt_2`
     (with `timestamp_3`) and every case of item 18 are accepted.
+
+## Links (`links.test.ts`)
+
+TimeToShare's description layer puts `links` on the manifest, on every
+timeline and on every region, and `schemes` on the manifest; both belong
+to the complete form, so core holds them, keeps them through every command
+and writes them. A link has no ID and no address: it is a member of the
+element holding it, and a `set` of `links` names that element, the block
+for the manifest's own links (as `name` is the manifest's), a timeline
+(root or child) or a region. The list is given whole, read with the
+manifest it will lie in (an identifier may name a scheme of the manifest,
+a part slot names its timelines and regions) and stored in its complete
+form, in the order given. Building and changing a link is the schema
+package's (`linkFromUrls`, `withLabel`, `withParts`, …); these tests give
+links as values and compare the stored form with that package's builders.
+The manifests are `bundles/bundle_mixed.json` in block `A`, and `bare.json`
+changed before loading where a scheme or an empty `timelines` is needed.
+
+The link `W` below is `{relation: "pertains_to", level: "work", uri: [MB],
+label: "Op. 106"}`, with `MB` the entity URI
+`http://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284`. Its
+complete form `W*` is `{relation: "pertains_to", level: "work", uri: [MB],
+identifiers: [], records: [], label: "Op. 106", assertion: null,
+parts_relation: null, parts: [], parts_ordered: true, part_of: []}`, which
+equals TimeToShare's `linkFromUrl` of the work's page URL
+`https://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284` with
+the label `Op. 106`.
+
+1. **Every owner takes `links`.** One `set` with four changes, `{block:
+   A}`, `score` (a root), `excerpt` (a child) and `region_1` (a region of
+   `annotations`), each `links: [W]`, stores `[W*]` on the manifest, on
+   `score`, on `excerpt` and on `region_1`; every other timeline and
+   region keeps `links: []`, and the manifest's `schemes` stays `[]`.
+2. **One command, undone and redone.** Through the store, `set` of the
+   bundle's links to `[W]` adds exactly one journal entry; `undo` gives
+   back the view before it (`links: []`), `redo` the view after it, each
+   equal as JSON. A second `set` to `[]` removes the link: two entries,
+   the manifest's links `[]` again.
+3. **A list equal to the stored one changes nothing.** `set` of `score`'s
+   links to `[W]` while it holds `[W*]` (the minimal form of the same
+   link) is `invalid_value` "the command changes nothing" at
+   `[{block: A, id: "score"}, "links"]`.
+4. **Refusals.** `links: "W"` on `score` is `invalid_value` "links is a
+   list of links" at `[{block: A, id: "score"}, "links"]`. On the bundle,
+   a link without `level` is `schema_violation` "must have required
+   property 'level'" at `[A, "manifest", "links", 0]`; a link whose
+   identifier names the scheme `opus`, which the manifest does not
+   declare, is `schema_violation` "'opus' names no scheme of this manifest
+   and is no absolute URI" at `[A, "manifest", "links", 0, "identifiers",
+   0, "scheme"]`; a link with `parts_relation: "has_part"` and one part
+   slot represented by `nowhere` is `schema_violation` "'nowhere' names no
+   timeline or region of this manifest" at `[A, "manifest", "links", 0,
+   "parts", 0, "represented_by", 0]`. A group takes no links: `set` of
+   `group_1`'s `links` is `wrong_target_kind` "links is a property of
+   block, root, child, region, not of group" at `[{block: A, id:
+   "group_1"}, "links"]`. No refusal changes the view.
+5. **`links` is no member of a block.** An `add` of a block whose value
+   states `links: []` beside its manifest is `unknown_property` "unknown
+   member links" at `[{}, "block", "links"]`.
+6. **Scheme IDs are manifest IDs.** `bare.json` with `schemes: [{id:
+   "clt_1", name: "Opus numbers"}]` loads with the scheme in its complete
+   form (`uri: []`, `criteria: null`) and its IDs are exactly `bare`,
+   `timestamp_1`, `timestamp_2` and `clt_1`. In block `A` holding it, an
+   `add` of a root timeline `clt_1` (4 quarters) is `duplicate_id` "'clt_1'
+   is already an ID of the manifest" at `[{block: A}, "timeline", "id"]`;
+   `set` of `bare`'s `is_segment_line` to `true` gives it the one segment
+   `clt_2`, the scheme's ID passed over; the address `{block: A, id:
+   "clt_1"}` names nothing (`unknown_target`): a scheme is not drawn.
+7. **An identifier may name a scheme of the manifest.** In that block, a
+   `set` of `bare`'s links to a link whose identifier is `{scheme: "clt_1",
+   value: "op. 106"}` is accepted, and so is an `add` of a region
+   `region_1` from 0 to 4 holding the same link, which the region keeps in
+   its complete form; in plain `bare.json` the same `add` is
+   `schema_violation` "'clt_1' names no scheme of this manifest and is no
+   absolute URI" at `[A, "manifest", "timelines", 0, "regions", 0,
+   "links", 0, "identifiers", 0, "scheme"]`.
+8. **Links survive every edit and the file.** After item 1, `set` of
+   `score`'s name, an `add` of a region into `annotations`, a `style`
+   command giving `score` a stroke width and `set` of the bundle's name
+   leave the four
+   lists exactly `[W*]` and the new region's `[]`; `saveManifest` of the
+   manifest, read back by
+   `loadManifest`, gives the same manifest, and so does its minimal form.
+9. **Removing what a part slot names.** The bundle given the link `P`: `W`
+   with `parts_relation: "has_part"` and three slots, `I` represented by
+   `score` and `region_1`, `II` by `performance`, `III` absent `lost`.
+   Removing `performance` leaves `I` and `III` as they were and makes `II`
+   `{uri: [], identifiers: [], label: "II", represented_by: [], absent:
+   "not_represented", assertion: null}`: the part exists and the manifest
+   now leaves it out; removing `annotations`, which holds `region_1`, then
+   leaves `I` represented by `score` alone. Each removal is one command,
+   and undoing both gives `P`'s complete form back. Without the pruning
+   the schema would refuse each removal (a dangling `represented_by`).
+10. **An editor changes only its element's links.** In the editor of
+    `score` (`open`), a `set` of `score`'s links is accepted; a `set` of
+    the bundle's links is refused `side_effect` "the manifest's links in
+    bundle 'Mixed' lies outside timeline 'Score': an editor changes only
+    what it edits" at `[A, "manifest", "links"]`.
+11. **A manifest without timelines.** `bare.json`'s value with `timelines:
+    []` and without its `graphical` (whose timestamps lie on `bare`) loads,
+    and `importedManifest` gives it back equal, no root to give a
+    timestamp; a block holding it takes a
+    `set` of its links to `[W]`, and `saveManifest` writes `"timelines":
+    []` and `[W*]`.
 
 ## The store and the journal (`store.test.ts`)
 

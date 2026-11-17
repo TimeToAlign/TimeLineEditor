@@ -40,11 +40,13 @@
           ]
         },
         "groups": [],
+        "links": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (a3e0d256)"
+          "generator": "timetoalign 1.2.0 (ff43780a)"
         },
         "name": null,
+        "schemes": [],
         "timelines": [
           {
             "children": [],
@@ -56,6 +58,7 @@
               8,
               1
             ],
+            "links": [],
             "locked": false,
             "meta": {},
             "name": "Bare",
@@ -115,11 +118,13 @@
           ]
         },
         "groups": [],
+        "links": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (a3e0d256)"
+          "generator": "timetoalign 1.2.0 (ff43780a)"
         },
         "name": null,
+        "schemes": [],
         "timelines": [
           {
             "children": [],
@@ -199,6 +204,7 @@
               16,
               1
             ],
+            "links": [],
             "locked": false,
             "meta": {},
             "name": "Flow control",
@@ -258,11 +264,13 @@
           ]
         },
         "groups": [],
+        "links": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (a3e0d256)"
+          "generator": "timetoalign 1.2.0 (ff43780a)"
         },
         "name": null,
+        "schemes": [],
         "timelines": [
           {
             "children": [
@@ -286,6 +294,7 @@
                   4,
                   1
                 ],
+                "links": [],
                 "locked": true,
                 "meta": {},
                 "name": "Phrase",
@@ -319,6 +328,7 @@
               8,
               1
             ],
+            "links": [],
             "locked": false,
             "meta": {},
             "name": "Melody",
@@ -378,11 +388,13 @@
           ]
         },
         "groups": [],
+        "links": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (a3e0d256)"
+          "generator": "timetoalign 1.2.0 (ff43780a)"
         },
         "name": null,
+        "schemes": [],
         "timelines": [
           {
             "children": [
@@ -398,6 +410,7 @@
                       2,
                       1
                     ],
+                    "links": [],
                     "locked": true,
                     "meta": {},
                     "name": null,
@@ -418,6 +431,7 @@
                   8,
                   1
                 ],
+                "links": [],
                 "locked": true,
                 "meta": {},
                 "name": null,
@@ -438,6 +452,7 @@
               16,
               1
             ],
+            "links": [],
             "locked": false,
             "meta": {},
             "name": null,
@@ -728,11 +743,13 @@
           ]
         },
         "groups": [],
+        "links": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (a3e0d256)"
+          "generator": "timetoalign 1.2.0 (ff43780a)"
         },
         "name": null,
+        "schemes": [],
         "timelines": [
           {
             "children": [
@@ -746,6 +763,7 @@
                   4,
                   1
                 ],
+                "links": [],
                 "locked": true,
                 "meta": {},
                 "name": null,
@@ -767,6 +785,7 @@
                   4,
                   1
                 ],
+                "links": [],
                 "locked": true,
                 "meta": {},
                 "name": null,
@@ -810,6 +829,7 @@
               8,
               1
             ],
+            "links": [],
             "locked": false,
             "meta": {},
             "name": "Score",
@@ -821,6 +841,7 @@
                   1
                 ],
                 "id": "intro",
+                "links": [],
                 "meta": {},
                 "name": "intro",
                 "start": [
@@ -888,11 +909,13 @@
               ]
             },
             "groups": [],
+            "links": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (a3e0d256)"
+              "generator": "timetoalign 1.2.0 (ff43780a)"
             },
             "name": null,
+            "schemes": [],
             "timelines": [
               {
                 "children": [],
@@ -904,6 +927,7 @@
                   8,
                   1
                 ],
+                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Bare",
@@ -968,11 +992,13 @@
               ]
             },
             "groups": [],
+            "links": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (a3e0d256)"
+              "generator": "timetoalign 1.2.0 (ff43780a)"
             },
             "name": null,
+            "schemes": [],
             "timelines": [
               {
                 "children": [
@@ -988,6 +1014,7 @@
                           2,
                           1
                         ],
+                        "links": [],
                         "locked": true,
                         "meta": {},
                         "name": null,
@@ -1008,6 +1035,7 @@
                       8,
                       1
                     ],
+                    "links": [],
                     "locked": true,
                     "meta": {},
                     "name": null,
@@ -1028,6 +1056,7 @@
                   16,
                   1
                 ],
+                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": null,
@@ -1092,11 +1121,13 @@
               ]
             },
             "groups": [],
+            "links": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (a3e0d256)"
+              "generator": "timetoalign 1.2.0 (ff43780a)"
             },
             "name": null,
+            "schemes": [],
             "timelines": [
               {
                 "children": [
@@ -1120,6 +1151,7 @@
                       4,
                       1
                     ],
+                    "links": [],
                     "locked": true,
                     "meta": {},
                     "name": "Phrase",
@@ -1153,6 +1185,7 @@
                   8,
                   1
                 ],
+                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Melody",
@@ -1217,11 +1250,13 @@
               ]
             },
             "groups": [],
+            "links": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (a3e0d256)"
+              "generator": "timetoalign 1.2.0 (ff43780a)"
             },
             "name": null,
+            "schemes": [],
             "timelines": [
               {
                 "children": [],
@@ -1301,6 +1336,7 @@
                   16,
                   1
                 ],
+                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Flow control",
@@ -1596,11 +1632,13 @@
               ]
             },
             "groups": [],
+            "links": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (a3e0d256)"
+              "generator": "timetoalign 1.2.0 (ff43780a)"
             },
             "name": null,
+            "schemes": [],
             "timelines": [
               {
                 "children": [
@@ -1614,6 +1652,7 @@
                       4,
                       1
                     ],
+                    "links": [],
                     "locked": true,
                     "meta": {},
                     "name": null,
@@ -1635,6 +1674,7 @@
                       4,
                       1
                     ],
+                    "links": [],
                     "locked": true,
                     "meta": {},
                     "name": null,
@@ -1678,6 +1718,7 @@
                   8,
                   1
                 ],
+                "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Score",
@@ -1689,6 +1730,7 @@
                       1
                     ],
                     "id": "intro",
+                    "links": [],
                     "meta": {},
                     "name": "intro",
                     "start": [

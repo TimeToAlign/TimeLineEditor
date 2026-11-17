@@ -9,7 +9,11 @@
  *   (required, may be null) and `name` of every timeline; `name`,
  *   `source_unit` and `target_unit` of every conversion map; `name` of a
  *   region; `name` and `label` of a flow-control element; `name` of a
- *   group, of a measure map and of the manifest.
+ *   group, of a measure map and of the manifest; and in the description
+ *   layer `name` and `criteria` of a scheme, `label`, `assertion` and
+ *   `parts_relation` of a link, `label`, `absent` and `assertion` of a part
+ *   slot, `label`, `position` and `assertion` of a `part_of` entry, the
+ *   null members of an assertion and of a record.
  * - Any other null cannot be shown: an optional member without the default
  *   null that may be null (a measure-map row's `nominal_length`, where
  *   absent and null mean different things) or a null array item. Such a

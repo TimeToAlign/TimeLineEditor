@@ -329,7 +329,7 @@ describe("the test hook", () => {
     expect(Array.from(select.options, (option) => option.value)).toEqual(
       FIXTURES.map(({ label }) => label),
     );
-    expect(select.options.length).toBe(158);
+    expect(select.options.length).toBe(166);
     expect(select.labels?.[0]?.textContent?.trim().startsWith("Fixture")).toBe(true);
     expect(document.querySelector('[data-testid="fixture-open"]')?.textContent).toBe("Open");
 

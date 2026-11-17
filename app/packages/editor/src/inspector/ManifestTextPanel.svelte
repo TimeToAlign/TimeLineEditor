@@ -1,11 +1,11 @@
 <script lang="ts">
 /**
  * The Manifest tab: the format and options, the text, Apply and Revert,
- * the problems and the warnings. Its state is the inspector's
+ * the problems and the warnings (unknown keys, unregistered terms). Its state is the inspector's
  * `ManifestText`, which it follows while it is shown.
  */
 import type { Block, Store } from "@timetoalign/tilie-core";
-import { unknownKeys } from "@timetoalign/tilie-core";
+import { unknownKeys, unregisteredTerms } from "@timetoalign/tilie-core";
 import FormatSwitch from "./FormatSwitch.svelte";
 import { FORMAT_LABELS, FORMATS } from "./formats.svelte.ts";
 import type { ManifestText } from "./manifestText.svelte.ts";
@@ -30,8 +30,12 @@ const uid = $props.id();
 // Follow the selection, the manifest and the choice while the text holds no unapplied edit.
 $effect.pre(() => manifest.follow(block));
 
-/** The keys of the block's manifest no definition declares: warnings, which never stop editing. */
+/**
+ * The keys of the block's manifest no definition declares, then the terms of
+ * its links outside their registered words: warnings, which never stop editing.
+ */
 const warnings = $derived(block === null ? [] : unknownKeys(manifestOf(block)));
+const terms = $derived(block === null ? [] : unregisteredTerms(manifestOf(block)));
 
 function onTextKey(event: KeyboardEvent): void {
   if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
@@ -113,7 +117,7 @@ function onTextKey(event: KeyboardEvent): void {
   />
 {/if}
 
-{#if warnings.length > 0}
+{#if warnings.length + terms.length > 0}
   <ul class="warnings" aria-label="Warnings">
     {#each warnings as warning (`${problemPointer(warning)}\u0000${warning.key}`)}
       {@const place = problemPlace(warning)}
@@ -123,6 +127,12 @@ function onTextKey(event: KeyboardEvent): void {
           >at {#if "pointer" in place && place.pointer !== null}<code>{place.pointer}</code
             >{:else}the top level{/if}</span
         >
+      </li>
+    {/each}
+    {#each terms as term (problemPointer(term))}
+      <li>
+        Unregistered term <code>{term.term}</code>
+        <span class="where">at <code>{problemPointer(term)}</code></span>
       </li>
     {/each}
   </ul>

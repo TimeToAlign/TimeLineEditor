@@ -6,7 +6,14 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import type { LivePlacement, Selection } from "@timetoalign/tilie-arranger";
 import { drawingOf, liveStore, NOTHING_SELECTED, selectionOf } from "@timetoalign/tilie-arranger";
-import type { Address, Block, CommandEntry, Store, UnknownKey } from "@timetoalign/tilie-core";
+import type {
+  Address,
+  Block,
+  CommandEntry,
+  Store,
+  UnknownKey,
+  UnregisteredTerm,
+} from "@timetoalign/tilie-core";
 import { isLoadError, loadManifest } from "@timetoalign/tilie-core";
 import {
   dumps,
@@ -59,18 +66,25 @@ function storeOf(): Store {
 
 const warningsDirectory = path.join(directory, "..", "warnings", SCHEMA_VERSION);
 
+/** What a shared warning case expects: its unknown keys and its unregistered terms. */
+interface Expected {
+  readonly keys: readonly UnknownKey[];
+  readonly terms: readonly UnregisteredTerm[];
+}
+
 /** A shared warning case's manifest, read by core, and the case's expectation. */
 function read(name: string) {
   const text = readFileSync(path.join(warningsDirectory, name), "utf8");
   const value = parseJson(text);
   if (!isJsonObject(value) || value.manifest === undefined)
     throw new Error(`${name} has no manifest`);
-  const expected: readonly UnknownKey[] = JSON.parse(text).unknown_keys;
+  const stated = JSON.parse(text);
+  const expected: Expected = { keys: stated.unknown_keys, terms: stated.unregistered_terms };
   return { manifest: loadManifest(dumps(value.manifest)), expected };
 }
 
 /** A store holding the manifest of one shared warning case in block A, and the case's expectation. */
-function warningCase(name: string): { store: Store; expected: readonly UnknownKey[] } {
+function warningCase(name: string): { store: Store; expected: Expected } {
   const { manifest, expected } = read(name);
   if (isLoadError(manifest)) throw new Error(`${name}: ${manifest.problems[0]?.message}`);
   return { store: storeOfFixtures(manifest), expected };
@@ -401,7 +415,7 @@ describe("the inspector's tabs", () => {
 
   const PROPERTIES = [["true", "0"], ["false", "-1"], false, true];
   const MANIFEST = [["false", "-1"], ["true", "0"], true, false];
-  /** Another tab shown (the level tab, Journal). */
+  /** Another tab shown (the level tab, Metadata, Journal). */
   const NEITHER = [["false", "-1"], ["false", "-1"], true, true];
 
   it("shows the Properties tab at mount and swaps on a click", () => {
@@ -423,6 +437,7 @@ describe("the inspector's tabs", () => {
     ).toEqual([
       ["BUTTON", "Arranger", "tabpanel", true, null],
       ["BUTTON", "Properties", "tabpanel", true, null],
+      ["BUTTON", "Metadata", "tabpanel", true, null],
       ["BUTTON", "Manifest", "tabpanel", true, null],
       ["BUTTON", "Journal", "tabpanel", true, null],
       ["BUTTON", "Timestamp", "tabpanel", true, null],
@@ -457,13 +472,16 @@ describe("the inspector's tabs", () => {
   it("moves between the tabs with the arrows, Home and End", () => {
     show(storeOf(), [{ block: A }]);
     const steps: [string, unknown[], string][] = [
+      ["ArrowRight", NEITHER, "Metadata"],
       ["ArrowRight", MANIFEST, "Manifest"],
+      ["ArrowLeft", NEITHER, "Metadata"],
       ["ArrowLeft", PROPERTIES, "Properties"],
       ["Home", NEITHER, "Arranger"],
       ["ArrowRight", PROPERTIES, "Properties"],
       ["End", NEITHER, "Timestamp"],
       ["ArrowLeft", NEITHER, "Journal"],
       ["ArrowLeft", MANIFEST, "Manifest"],
+      ["ArrowLeft", NEITHER, "Metadata"],
       ["ArrowLeft", PROPERTIES, "Properties"],
     ];
     tabNamed("Properties").focus();
@@ -801,17 +819,19 @@ describe("the inspector's warnings", () => {
   });
 
   for (const name of cases) {
-    it(`lists every unknown key of ${name} with its path, and editing continues`, () => {
+    it(`lists every unknown key and unregistered term of ${name} with its path, and editing continues`, () => {
       const { store, expected } = warningCase(name);
       show(store, [{ block: A }]);
       openTab("Manifest");
       expect(document.querySelectorAll('ul[aria-label="Warnings"]')).toHaveLength(1);
-      expect(listed()).toEqual(
-        expected.map((item) => [
+      const rows = [
+        ...expected.keys.map((item) => [
           item.key,
           item.path.length === 0 ? "at the top level" : problemPointer(item),
         ]),
-      );
+        ...expected.terms.map((item) => [item.term, problemPointer(item)]),
+      ];
+      expect(listed()).toEqual(rows);
       expect(problemItems()).toHaveLength(0);
       const text = manifestText(manifestOf(blockOf(store, A)), "json", COMPLETE);
       if (!text.ok) throw new Error("not written");
@@ -820,7 +840,7 @@ describe("the inspector's warnings", () => {
       button("Apply").click();
       flushSync();
       expect(store.journal).toHaveLength(2);
-      expect(listed()).toHaveLength(expected.length);
+      expect(listed()).toHaveLength(rows.length);
     });
   }
 
