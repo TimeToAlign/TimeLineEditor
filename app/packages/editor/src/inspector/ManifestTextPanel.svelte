@@ -11,6 +11,7 @@ import { FORMAT_LABELS, FORMATS } from "./formats.svelte.ts";
 import type { ManifestText } from "./manifestText.svelte.ts";
 import { manifestOf } from "./manifestText.ts";
 import ProblemList from "./ProblemList.svelte";
+import type { InspectorProblem } from "./problems.ts";
 import { problemPlace, problemPointer } from "./problems.ts";
 
 let {
@@ -117,22 +118,26 @@ function onTextKey(event: KeyboardEvent): void {
   />
 {/if}
 
+{#snippet where(warning: Pick<InspectorProblem, "path">)}
+  {@const place = problemPlace(warning)}
+  <span class="where"
+    >at {#if "pointer" in place && place.pointer !== null}<code>{place.pointer}</code
+      >{:else}the top level{/if}</span
+  >
+{/snippet}
+
 {#if warnings.length + terms.length > 0}
   <ul class="warnings" aria-label="Warnings">
     {#each warnings as warning (`${problemPointer(warning)}\u0000${warning.key}`)}
-      {@const place = problemPlace(warning)}
       <li>
         Unknown key <code>{warning.key}</code>
-        <span class="where"
-          >at {#if "pointer" in place && place.pointer !== null}<code>{place.pointer}</code
-            >{:else}the top level{/if}</span
-        >
+        {@render where(warning)}
       </li>
     {/each}
     {#each terms as term (problemPointer(term))}
       <li>
         Unregistered term <code>{term.term}</code>
-        <span class="where">at <code>{problemPointer(term)}</code></span>
+        {@render where(term)}
       </li>
     {/each}
   </ul>
