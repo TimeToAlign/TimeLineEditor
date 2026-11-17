@@ -13,7 +13,7 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import type { Manifest } from "../packages/core/src/index.ts";
 import { isLoadError, loadManifest } from "../packages/core/src/index.ts";
-import { dumps, manifestFixture, parseJson } from "./schema.ts";
+import { dumps, loads, manifestFixture } from "./schema.ts";
 import {
   BUNDLES,
   cardPoint,
@@ -479,6 +479,9 @@ const MODES: readonly Mode[] = [
 const SCORE = '"name": "Score"';
 const RENAMED = '"name": "Renamed"';
 
+/** The pretty JSON text of a value, as the Manifest tab writes JSON. */
+const prettyJson = (value: unknown): string => dumps(value, { serialization: "json" });
+
 /**
  * The JSON text of `styled__score` in `mode`, from the fixture files alone:
  * the complete or the minimal file, without its `graphical` member unless
@@ -486,9 +489,11 @@ const RENAMED = '"name": "Renamed"';
  */
 function modeText(mode: Mode): string {
   const text = manifestFixture(mode.minimal ? "styled__score.minimal" : "styled__score");
-  if (mode.includeStyling) return text;
-  const value = parseJson(text) as Record<string, unknown>;
-  return dumps(Object.fromEntries(Object.entries(value).filter(([key]) => key !== "graphical")));
+  const value = loads(text) as Record<string, unknown>;
+  if (mode.includeStyling) return prettyJson(value);
+  return prettyJson(
+    Object.fromEntries(Object.entries(value).filter(([key]) => key !== "graphical")),
+  );
 }
 
 for (const mode of MODES) {
@@ -500,10 +505,11 @@ for (const mode of MODES) {
     await showManifest(page);
     const minimal = page.getByRole("checkbox", { name: "Minimal", exact: true });
     const includeStyling = page.getByRole("checkbox", { name: "Include styling", exact: true });
-    await expect(minimal).not.toBeChecked();
-    await expect(includeStyling).not.toBeChecked();
-    if (mode.minimal) await minimal.check();
-    if (mode.includeStyling) await includeStyling.check();
+    // A block without a manifest file of its own is written as a new manifest: minimal, styled.
+    await expect(minimal).toBeChecked();
+    await expect(includeStyling).toBeChecked();
+    await minimal.setChecked(mode.minimal);
+    await includeStyling.setChecked(mode.includeStyling);
     const shown = modeText(mode);
     expect(shown.split(SCORE)).toHaveLength(2);
     const text = manifestText(page);
@@ -538,7 +544,9 @@ for (const mode of MODES) {
         changes: [{ target: { block: SMALL.styled }, values: { manifest: expect.anything() } }],
       },
     ]);
-    const expected = loadManifest(manifestFixture("styled__score").replace(SCORE, RENAMED));
+    const expected = loadManifest(
+      prettyJson(loads(manifestFixture("styled__score"))).replace(SCORE, RENAMED),
+    );
     if (isLoadError(expected)) throw new Error(`the renamed fixture is refused`);
     // Deep equality: the store keeps the key order of the text applied, which no writer shows.
     expect(JSON.parse(await storedManifest(page, SMALL.styled))).toEqual(

@@ -19,7 +19,7 @@ const at = (id: string): Address => ({ block: BUNDLE, id });
 /** The first segment of a path naming `address`. */
 const key = (address: Address) => addressKey(address);
 const G1 = at("group_1");
-const MIXED = "bundles/bundle_mixed.json";
+const MIXED = "bundles/bundle_mixed.yaml";
 const RED: Declaration = { stroke: "#FF0000" };
 const TIMELINES: Selector = { element: "timeline" };
 const SCORE: Selector = { addresses: [{ id: "score" }] };
@@ -37,8 +37,8 @@ const E = ["line", "children", "conversion_maps", "markers", "regions", "flow_co
 const SCORE_LINE_FIRST = E;
 
 const before = deepFreeze(viewOf([BUNDLE, MIXED]));
-/** `before` with a second block, `A`, holding `bare.json`. */
-const two = deepFreeze(viewOf([BUNDLE, MIXED], [A, "bare.json"]));
+/** `before` with a second block, `A`, holding `bare.yaml`. */
+const two = deepFreeze(viewOf([BUNDLE, MIXED], [A, "bare.yaml"]));
 
 /** `view` with members of the bundle's block replaced. */
 const withBlock = (view: View, values: Partial<Block>): View => ({
@@ -145,7 +145,7 @@ describe("sideEffect, each rule's path", () => {
     expect(sideEffect(two, moved, G1)).toEqual(
       outside("the anonymous bundle", [key({ block: A })], G1, two),
     );
-    expect(sideEffect(two, changed(two, addBlock(B, "bare.json")), G1)).toEqual(
+    expect(sideEffect(two, changed(two, addBlock(B, "bare.yaml")), G1)).toEqual(
       outside("the anonymous bundle", [key({ block: B })], G1, two),
     );
     expect(sideEffect(two, changed(two, { type: "remove", targets: [{ block: A }] }), G1)).toEqual(
@@ -292,7 +292,7 @@ describe("sideEffect, with the command's change set", () => {
     ],
     [
       two,
-      addBlock(B, "bare.json"),
+      addBlock(B, "bare.yaml"),
       G1,
       outside("the anonymous bundle", [key({ block: B })], G1, two),
     ],

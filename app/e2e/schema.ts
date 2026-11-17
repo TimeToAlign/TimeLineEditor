@@ -35,10 +35,10 @@ export const SCHEMA_VERSION = schema.SCHEMA_VERSION;
 /** The bundled face's advance table: the package's own export, the data the editor draws with. */
 export const FONT_METRICS: FontMetrics = schema.fontMetrics;
 
-/** The package's JSON writer and reader, as the editor's manifest text uses them. */
-export const { dumps, parseJson } = schema;
+/** The package's writer and its reader of every serialization, as the editor uses them. */
+export const { dumps, loads } = schema;
 
 /** The text of a manifest fixture by its path below the schema version's fixtures (`groups/group_styled`). */
 export function manifestFixture(name: string): string {
-  return readFileSync(path.join(packageDir, "fixtures", SCHEMA_VERSION, `${name}.json`), "utf8");
+  return readFileSync(path.join(packageDir, "fixtures", SCHEMA_VERSION, `${name}.yaml`), "utf8");
 }

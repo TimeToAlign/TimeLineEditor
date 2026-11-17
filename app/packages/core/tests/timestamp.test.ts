@@ -82,10 +82,10 @@ function specOf(
   return { block: A, granularity, anchor: axisOf(node), members: chosen };
 }
 
-const MIXED = load("bundles/bundle_mixed.json");
-const SEGMENTS = load("segment_line.json");
-const MAPS = load("conversion_maps__maps_quarters.json");
-const NAMED = load("timestamps.json");
+const MIXED = load("bundles/bundle_mixed.yaml");
+const SEGMENTS = load("segment_line.yaml");
+const MAPS = load("conversion_maps__maps_quarters.yaml");
+const NAMED = load("timestamps.yaml");
 const SCORE = specOf(MIXED, "score");
 const RECORDING = specOf(MIXED, "recording");
 const PERFORMANCE = specOf(MIXED, "performance");
@@ -467,7 +467,7 @@ describe("the JSON value of a timestamp", () => {
 
   it("of a named timestamp is its manifest entry and the mapping", () => {
     const named = NAMED.graphical?.timestamps?.find((item) => item.id === "timestamp_2");
-    if (named === undefined) throw new Error("timestamps.json holds timestamp_2");
+    if (named === undefined) throw new Error("timestamps.yaml holds timestamp_2");
     const spec = specOf(NAMED, "clt_1");
     const pin: Pin = { ...pinOf(spec, q(6)), named };
     const value = timestampJson(pin);
@@ -479,12 +479,12 @@ describe("the JSON value of a timestamp", () => {
   });
 
   it("of a segment's named timestamp has the segment as its anchor, never in its mapping", () => {
-    const ticks = load("map.json").timelines[0]?.children[0]?.conversion_maps[0];
-    if (ticks === undefined) throw new Error("map.json has changed");
+    const ticks = load("map.yaml").timelines[0]?.children[0]?.conversion_maps[0];
+    if (ticks === undefined) throw new Error("map.yaml has changed");
     const view = [
       { type: "add", into: at("b2"), map: { ...ticks, id: "b2_ticks" } },
       { type: "add", into: at("b2"), timestamp: { name: "Mark", coordinate: [1, 1] } },
-    ].reduce(changed, viewOf([A, "segment_line.json"]));
+    ].reduce(changed, viewOf([A, "segment_line.yaml"]));
     const { manifest } = block(view);
     const named = manifest.graphical?.timestamps?.find((item) => item.timeline === "b2");
     if (named === undefined) throw new Error("b2 holds the timestamp added");

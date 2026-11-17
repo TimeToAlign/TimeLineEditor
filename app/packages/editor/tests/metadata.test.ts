@@ -15,7 +15,7 @@ import {
   fontMetrics,
   isJsonObject,
   linkFromUrls,
-  parseJson,
+  loads,
   SCHEMA_VERSION,
   withAssertion,
   withLabel,
@@ -224,8 +224,8 @@ describe("the card of a link", () => {
       "warnings",
       SCHEMA_VERSION,
     );
-    const value = parseJson(
-      readFileSync(path.join(directory, "description_absent_unregistered.json"), "utf8"),
+    const value = loads(
+      readFileSync(path.join(directory, "description_absent_unregistered.yaml"), "utf8"),
     );
     if (!isJsonObject(value)) throw new Error("no case");
     const { described, held } = bundleLinks(value.manifest);

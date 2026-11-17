@@ -7,7 +7,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
-import { dumps, parseJson, SCHEMA_VERSION } from "@timetoalign/timetoshare";
+import { dumps, loads, SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import { apply } from "../src/commands/apply.ts";
 import type { Command } from "../src/commands/types.ts";
 import { isCommandError, isLoadError } from "../src/errors.ts";
@@ -34,13 +34,14 @@ export interface Fixture {
   readonly text: string;
 }
 
-function jsonFiles(dir: string): string[] {
+/** The YAML files directly in `dir`, by name. */
+function yamlFiles(dir: string): string[] {
   return readdirSync(dir)
-    .filter((name) => name.endsWith(".json"))
+    .filter((name) => name.endsWith(".yaml"))
     .sort();
 }
 
-/** A fixture with the text of its minimal twin (`<name>.minimal.json`). */
+/** A fixture with the text of its minimal twin (`<name>.minimal.yaml`). */
 export interface FixtureWithTwin extends Fixture {
   readonly twin: string;
 }
@@ -49,12 +50,12 @@ export interface FixtureWithTwin extends Fixture {
 function fixturesIn(subdirectory = ""): FixtureWithTwin[] {
   const dir = path.join(fixturesDir, SCHEMA_VERSION, subdirectory);
   const read = (name: string) => readFileSync(path.join(dir, name), "utf8");
-  return jsonFiles(dir)
-    .filter((name) => !name.endsWith(".minimal.json"))
+  return yamlFiles(dir)
+    .filter((name) => !name.endsWith(".minimal.yaml"))
     .map((name) => ({
       name: subdirectory === "" ? name : `${subdirectory}/${name}`,
       text: read(name),
-      twin: read(name.replace(/\.json$/, ".minimal.json")),
+      twin: read(name.replace(/\.yaml$/, ".minimal.yaml")),
     }));
 }
 
@@ -88,8 +89,8 @@ function isNonFinite(value: unknown): value is NonFinite {
 /** Every shared rejection case of the installed schema version, its value rendered as text. */
 export const rejections: readonly Rejection[] = (() => {
   const dir = path.join(fixturesDir, "rejections", SCHEMA_VERSION);
-  return jsonFiles(dir).map((name) => {
-    const entry = parseJson(readFileSync(path.join(dir, name), "utf8")) as JsonObject;
+  return yamlFiles(dir).map((name) => {
+    const entry = loads(readFileSync(path.join(dir, name), "utf8")) as JsonObject;
     // The rejected value may be anything; its compact text keeps every
     // value and every array position, which is all a pinned path needs.
     return {
@@ -101,7 +102,7 @@ export const rejections: readonly Rejection[] = (() => {
   });
 })();
 
-/** The manifest fixture named by its path below `fixtures/<version>/`, e.g. `groups/group_styled.json`. */
+/** The manifest fixture named by its path below `fixtures/<version>/`, e.g. `groups/group_styled.yaml`. */
 export function fixture(name: string): FixtureWithTwin {
   const found = allFixtures.find((item) => item.name === name);
   if (found === undefined) throw new Error(`no manifest fixture ${name}`);
@@ -127,7 +128,7 @@ export function load(name: string): Manifest {
 
 /** The value of a manifest fixture's text, losslessly, to change before loading it. */
 export function manifestValue(name: string): Record<string, unknown> {
-  return parseJson(fixtureText(name)) as Record<string, unknown>;
+  return loads(fixtureText(name)) as Record<string, unknown>;
 }
 
 /** Freeze a value deeply, so any mutation of it throws in strict mode. */

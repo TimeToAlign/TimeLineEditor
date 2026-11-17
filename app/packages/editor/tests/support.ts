@@ -30,7 +30,7 @@ const directory = path.join(
 
 /** The text of a manifest fixture of the installed schema version. */
 export function fixtureText(name: string): string {
-  return readFileSync(path.join(directory, `${name}.json`), "utf8");
+  return readFileSync(path.join(directory, `${name}.yaml`), "utf8");
 }
 
 /** A manifest fixture, failing loudly if it is refused. */

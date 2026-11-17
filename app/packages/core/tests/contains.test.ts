@@ -4,7 +4,7 @@ import { contains } from "../src/manifest/contains.ts";
 import { manifestElements } from "../src/manifest/elements.ts";
 import { load } from "./support.ts";
 
-const mixed = load("bundles/bundle_mixed.json");
+const mixed = load("bundles/bundle_mixed.yaml");
 
 /** The addresses of the manifest's enumeration that `container` contains, in its order. */
 const containedBy = (container: string) =>
@@ -88,7 +88,7 @@ describe("contains", () => {
   });
 
   it("gives an entry to the timeline holding it", () => {
-    const map = load("map.json");
+    const map = load("map.yaml");
     expect(contains(map, "phrase", id("ticks"))).toBe(true);
     expect(contains(map, "phrase", id("tempo"))).toBe(false);
     expect(contains(map, "melody", id("tempo"))).toBe(true);
@@ -98,7 +98,7 @@ describe("contains", () => {
   });
 
   it("contains nothing in anything else, and nothing holds the title or an unknown address", () => {
-    const map = load("map.json");
+    const map = load("map.yaml");
     for (const container of ["tempo", "nothing"]) {
       expect(contains(map, container, id(container))).toBe(false);
       expect(contains(map, container, id("melody"))).toBe(false);

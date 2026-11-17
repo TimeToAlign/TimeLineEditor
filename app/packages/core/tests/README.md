@@ -35,7 +35,7 @@ check or the guard) is a location in the view, not an address.
 **Where manifests come from.** Every manifest is a fixture of the
 installed TimeToShare package: `fixtures/<SCHEMA_VERSION>/` with its
 `groups/` and `bundles/`, each in the complete form beside its minimal twin
-(`<name>.minimal.json`), and the shared rejection cases of
+(`<name>.minimal.yaml`, canonical YAML), and the shared rejection cases of
 `fixtures/rejections/<SCHEMA_VERSION>/`. A variant is built from a fixture
 through commands, or by changing the fixture's value before loading it
 (lifting a lock by stating `locked: false` is one such change). Core holds
@@ -43,16 +43,16 @@ no manifest literal of its own except where a rejection or a single rule
 is asserted, and never names one like a fixture. So the suite proves core
 against whatever TimeToShare ships. The manifests named most often:
 
-- `bare.json`: root `bare` "Bare", 8 quarters.
-- `nested.json`: root `clt_1` of 16, child `clt_3` at 4 of 8, its child
+- `bare.yaml`: root `bare` "Bare", 8 quarters.
+- `nested.yaml`: root `clt_1` of 16, child `clt_3` at 4 of 8, its child
   `clt_2` at 3/2 of 2, both locked.
-- `map.json`: root `melody` with the map `tempo`, child `phrase` at 2 with
+- `map.yaml`: root `melody` with the map `tempo`, child `phrase` at 2 with
   the map `ticks` (addressed `{id: "ticks"}`: every ID is unique across a
   manifest, so an element is addressed by its ID wherever it lies).
-- `segment_line.json`: root `form` of 32 with the segments `a` 0–8, `b`
+- `segment_line.yaml`: root `form` of 32 with the segments `a` 0–8, `b`
   8–20 and `c` 20–32, each a locked segment line; `b` holds `b1` 0–6 and
   `b2` 6–12, `c` holds `c1` 0–12.
-- `bundles/bundle_mixed.json`: named "Mixed", no id. Roots `annotations`
+- `bundles/bundle_mixed.yaml`: named "Mixed", no id. Roots `annotations`
   (regions `region_1` "Verse" and `region_2` "Chorus"), `score` (12
   quarters; maps `cmap_1` and `cmap_2`, jump `jump_from_1` "Repeat"),
   `performance` (seconds, map `cmap_3`), `page` (pixels, map `cmap_4`) and
@@ -65,19 +65,19 @@ against whatever TimeToShare ships. The manifests named most often:
   cards of the members `score`, `performance`, `page` and `excerpt`;
   `recording` holds a member, so it is drawn in no card, only as
   `excerpt`'s ancestor line.
-- `bundles/bundle_shared_member.json`: roots `t` (quarters), `u` (seconds)
+- `bundles/bundle_shared_member.yaml`: roots `t` (quarters), `u` (seconds)
   and `v` (pixels); `g1` of `t`, `u` and `g2` of `t`, `v`: `t` has a card
   in each frame.
-- `bundles/bundle_free_ids.json`: roots `https://example.org/piece/score`
+- `bundles/bundle_free_ids.yaml`: roots `https://example.org/piece/score`
   (quarters, region `https://example.org/piece/score#exposition`) and
   `perf/take 2` (seconds, region `take 2/intro`), both members of
   `group_1`; one statement selects `{addresses: [{id: "take 2/intro"}]}`.
-- `groups/group_child_member.json`: group `group_1` "Second half", display
+- `groups/group_child_member.yaml`: group `group_1` "Second half", display
   order `second-half`, `recording`; root `piece` holds the member
   `second-half` at 8; root `recording`.
-- `groups/group_number_types.json`: group `group_1` "Edition" of the roots
+- `groups/group_number_types.yaml`: group `group_1` "Edition" of the roots
   `page`, `performance`, `score`, display order `score`, `page`,
-  `performance`; `groups/group_styled.json` is the same with `graphical`
+  `performance`; `groups/group_styled.yaml` is the same with `graphical`
   styles and statements beside its `order`.
 
 ## Package name (`name.test.ts`)
@@ -182,14 +182,15 @@ order, root by root, with paths starting at `["timelines", <index>]` and a
 child at `[…, "children", <index>]`; saving a manifest that fails it throws
 `InvalidManifestError` carrying the complete exact problem list.
 
-1. **Fixture round trip.** For every manifest fixture,
-   `saveManifest(loadManifest(text))` equals `text` byte for byte, with no
-   skip and no normalization in the comparison. Each minimal twin reads to
-   the same manifest: `saveManifest(loadManifest(twin))` equals the
-   fixture's text and `saveManifest(loadManifest(twin), {minimal: true})`
-   the twin's. The twins are no fixtures of their own in the suites that
-   iterate every fixture (the properties and the budgets), which would only
-   run each manifest twice.
+1. **Fixture round trip.** For every manifest fixture (canonical YAML, the
+   complete form), `saveManifest(loadManifest(text), {minimal: false})`
+   equals `text` byte for byte, with no skip and no normalization in the
+   comparison. Each minimal twin reads to the same manifest:
+   `saveManifest(loadManifest(twin), {minimal: false})` equals the
+   fixture's text and `saveManifest(loadManifest(twin))`, the minimal form
+   being the default, the twin's. The twins are no fixtures of their own in
+   the suites that iterate every fixture (the properties and the budgets),
+   which would only run each manifest twice.
 2. **Shared rejections.** Every shared rejection case, written as JSON text,
    is refused by `loadManifest` with exactly one problem whose `path` equals
    the case's `path`. These include TimeToShare's identity and
@@ -200,12 +201,12 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
    map, an `int` on a `fraction` axis),
    all `schema_violation`s from its `validate`, so `core` checks none of
    them again; a `non_finite` case is refused with its number in place.
-3. **The version marker.** `bare.json` with `"timetoshare": "0.6.0"` is
+3. **The version marker.** `bare.yaml` with `"timetoshare": "0.6.0"` is
    refused with exactly one problem `{code: "schema_violation", path:
    ["timetoshare"]}`; without the marker it is refused with exactly one
    `schema_violation` at `[]`. Core reads the current version only and
    migrates nothing.
-4. **The minimal form in, pinned by hand.** For the twin of `bare.json`
+4. **The minimal form in, pinned by hand.** For the twin of `bare.yaml`
    (its `meta` and `graphical` left out) the complete root is exactly `{id: "bare", name:
    "Bare", unit: "quarters", number_type: "fraction", length: [8, 1],
    locked: false, is_segment_line: false, meta: {}, children: [], links: [],
@@ -213,7 +214,7 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
    around it `{timetoshare, name: null, meta: {}, groups: [],
    measure_maps: [], schemes: [], links: [], timelines: [root]}`: no `id`
    and no `graphical`, whose default is "absent".
-5. **Unknown keys survive.** `bare.json` with an unknown key at the top
+5. **Unknown keys survive.** `bare.yaml` with an unknown key at the top
    (`"x-top": 1`), on the root (`"x-root": {"a": [1, 2]}`) and on a region it
    is given (`"x-region": "kept"`) loads with all three in place; after a
    `set` of the root's `name` and an `add` of a flow marker, all three are still
@@ -226,19 +227,19 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
    by code point); core adds none of its own. The loaded manifest contains
    an empty declaration for each. The input object is not mutated and a
    declaration already present is preserved.
-7. **Exact integers.** `discrete_logical.json` with its length value `480`
+7. **Exact integers.** `discrete_logical.yaml` with its length value `480`
    replaced by `9007199254740993` (2^53 + 1) loads as the `bigint` and saves
-   it as written; `continuous_logical.json` with its length Fraction
+   it as written; `continuous_logical.yaml` with its length Fraction
    numerator `12` replaced by `9007199254740993` loads as
    `[9007199254740993n, 1]` and saves it as written.
-8. **Save goes through the canonical order.** `bare.json` given two jump
+8. **Save goes through the canonical order.** `bare.yaml` given two jump
    targets at the same coordinate with the ids `"\u{1F3B5}"` (a surrogate
    pair in UTF-16) and `"～"`, in that order, is written with `"～"` first:
    flow-control elements by coordinate, then id in code-point order, the
    reverse of JavaScript's default sort.
 9. **A child of another number type** (a float child of a Fraction parent,
    length `4.0`) loads and saves byte for byte.
-10. **Invariant refusal lists every violation.** `with_region.json` changed
+10. **Invariant refusal lists every violation.** `with_region.yaml` changed
     to break three invariants at once (`clt_2` given a region `region_2`
     from `[1, 1]` to `[0, 1]`, `clt_3` placed at `[-1, 1]`, the root's
     region ending at `[0, 1]`, before its start) is refused with exactly
@@ -252,21 +253,21 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
     throws `InvalidManifestError`.
 11. **Each invariant at load and in a command.** For each of
     `number_type_not_allowed` and `region_end_before_start`, one copy of
-    `with_region.json`
+    `with_region.yaml`
     changed in exactly that respect (for `number_type_not_allowed` its
     `graphical` object, whose timestamps lie on the root's former axis,
     left out) is refused with exactly one problem:
     that code at the exact path. `invalid_coordinate` is reached through
     commands only (a value the schema's representation check would refuse
     at load). A command meets the same invariants: in a block of
-    `with_region.json`, `set` of `{block: A, id: "region_1"}`'s `end` to `[0, 1]` is
+    `with_region.yaml`, `set` of `{block: A, id: "region_1"}`'s `end` to `[0, 1]` is
     `region_end_before_start` at `[A, "manifest", "timelines", 0,
     "regions", 0, "end"]`.
 12. **A child's unit and extent and a map's source unit are the
     schema's.** TimeToShare's `validate` refuses a child whose unit
     differs from its parent's, a child reaching past its parent's known
     length and a map whose non-null source unit is not its timeline's, so
-    core holds no check of its own for any of them. One copy of `with_region.json` with `clt_2`'s
+    core holds no check of its own for any of them. One copy of `with_region.yaml` with `clt_2`'s
     unit `whole_notes` is refused with exactly one problem,
     `schema_violation` at `["timelines", 0, "children", 0, "unit"]` with
     the validator's message `child 'clt_2' has unit 'whole_notes', its
@@ -284,7 +285,7 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
     it fails if core rewrites it.
 13. **A negative child offset is core's to refuse.** The schema accepts a
     child starting before its parent's origin; core does not support it
-    yet. One copy of `with_region.json` with `clt_2`'s offset `[-1, 3]` is
+    yet. One copy of `with_region.yaml` with `clt_2`'s offset `[-1, 3]` is
     refused with exactly one problem, `negative_child_offset` at
     `["timelines", 0, "children", 0, "offset"]`, message `A negative child
     offset is not supported yet: child 'clt_2' has offset [-1, 3].` (the
@@ -294,37 +295,79 @@ child at `[…, "children", <index>]`; saving a manifest that fails it throws
     -1.`, and a root `take` of `10.0` `seconds` whose child `part` of `2.0`
     lies at `-1.0` gives `... child 'part' has offset -1.0.`, each at
     `["timelines", 0, "children", 0, "offset"]`. A root's offset may be
-    negative: `negative_offset.json` (root `recording` at `-2.5`) is in the
+    negative: `negative_offset.yaml` (root `recording` at `-2.5`) is in the
     round trip of item 1.
 14. **Segments read unlocked.** A segment that is no segment line is never
     locked, its line's lock governing it, whatever the file states:
-    `segment_line.json` with `b1` stated `true` and `b2` `false` loads with
+    `segment_line.yaml` with `b1` stated `true` and `b2` `false` loads with
     `false` on `a1`, `b1`, `b2` and `c1` and the stated value elsewhere
     (`true` on the segment lines `a`, `b`, `c`, `false` on `form`); `b`
     stated `false` is kept. It saves `"locked": false` on each segment, its
     minimal form leaves it out, and it deep-equals the same file with the
     four segments stating `false`.
-15. **Malformed text** is refused with code `invalid_json` at path `[]`.
+15. **Malformed text** is refused at path `[]`: with code `invalid_json`
+    when it is read as JSON (`{"timetoshare": `), with `invalid_yaml` when
+    it is read as YAML (`timelines: [`, and a mapping key repeated,
+    `timetoshare: "0.2.0"` twice).
 16. **An entry given to a command** (a map, region or flow-control
     element) is checked by the schema where it will lie: in the timeline
     that will list it, within the whole manifest, whose measure maps,
     schemes, timelines and regions it may name, completed and ordered as a
     command's result is: a minimal `LinearMap` `tempo`, in `melody` of
-    `map.json` and in its child `phrase`, comes back in its complete form
+    `map.yaml` and in its child `phrase`, comes back in its complete form
     (`name: null`, `offset: 0`); a region whose ID holds a tab
     (`"verse\tchorus"`) is `schema_violation` at `["regions", 0, "id"]`, its path from that
     timeline, which a command reports below its block's manifest; a
     `MeasureRecordMap` `x_record` naming the measure map `bars` reads in its
-    complete form (`name: null`) in `map.json` given `bars`, and without it is
+    complete form (`name: null`) in `map.yaml` given `bars`, and without it is
     `schema_violation` at its own `measure_map` (`["conversion_maps", i,
     "measure_map"]`, `i` its place in canonical order, after `melody`'s
     own maps).
-17. **Declarations are plain numbers.** `styled__score.json` with its six
+17. **Declarations are plain numbers.** `styled__score.yaml` with its six
     integral declaration numbers spelled `4.0`, `2.0`, … reads equal to the
     fixture and saves to its text, every key in place; 2^53 reads, 2^53 + 1
     is `invalid_value` "9007199254740993 has no exact double" at its member.
 18. **An unorderable value** (a region `start` of `"later"`) is refused with
     the schema's first problem at that value.
+
+## A manifest file written back as it came (`manifest-file.test.ts`)
+
+A manifest read from a file is written back in the form, styling and
+serialization it came in, each inferred when the file is read
+(`readManifestFile`), and `saveManifest(manifest, file)` writes exactly
+that. The oracle is the file's own text: a text a TimeToShare writer wrote
+must come back byte for byte, so any inference that is wrong, or any member
+of the file description `saveManifest` ignores, changes bytes. The texts
+are the schema package's fixtures and twins, and the same values written
+by its `dumps` in the other two serializations.
+
+1. **Inference.** For every manifest fixture, `readManifestFile(text)`
+   gives the manifest `loadManifest(text)` gives and the file `{minimal:
+   false, styling: s, serialization: "yaml"}`, `s` whether the value holds
+   a top-level `graphical` key; its twin gives `{minimal: true, styling: s,
+   serialization: "yaml"}` with the same `s`. The same values written by
+   `dumps(value, {serialization: "json"})` give `"json"` and by
+   `dumps(value, {serialization: "jcs"})` give `"jcs"`, each with the same
+   `minimal` and `styling`. `bare.yaml` holds `graphical` (`s` true), and
+   `bare.yaml` and its twin without their `graphical` give `s` false.
+2. **Written back as it came.** For each of these texts, `saveManifest(
+   manifest, file)` of what `readManifestFile` gave equals the text byte for
+   byte: every fixture and every twin, in canonical YAML, pretty JSON and
+   RFC 8785 JSON, and `bare.yaml` and its twin without `graphical`. A value
+   that RFC 8785 JSON cannot write (an integer beyond ±(2^53 − 1)) has no
+   RFC 8785 text and would be left out of that serialization only; no
+   fixture holds one, and the test fails if one does, so that the list is
+   reconsidered.
+3. **Styling left out.** `saveManifest(load("bare.yaml"), {styling:
+   false})` holds no `graphical` key and reads back to the manifest
+   without its `graphical`; with `styling: true` it holds the manifest's.
+4. **Defaults.** `saveManifest(manifest)` writes as `NEW_MANIFEST_FILE`
+   says, `{minimal: true, styling: true, serialization: "yaml"}`: for
+   `bare.yaml` exactly its twin's text.
+5. **Refusals keep their code.** A text `readManifestFile` cannot read is
+   refused exactly as `loadManifest` refuses it: `{"timetoshare": `
+   (`invalid_json`), `timelines: [` (`invalid_yaml`) and `bare.yaml` with
+   its version `0.6.0` (`schema_violation` at `["timetoshare"]`).
 
 ## Unknown length (`length.test.ts`)
 
@@ -374,7 +417,7 @@ in play is the one under test. Each checks the exact length of the edited
 timeline and of its parent afterwards, or the exact code and path of the
 refusal; none reaches `schema_violation`.
 
-On `nested.json`, both children unlocked:
+On `nested.yaml`, both children unlocked:
 
 1. **Set.** `clt_3` length `[12, 1]` is accepted, `clt_1` stays `[16, 1]`;
    `[13, 1]` (end 17) is `child_exceeds_parent` at `[{block: A, id: "clt_3"},
@@ -389,7 +432,7 @@ On `nested.json`, both children unlocked:
 4. **A root has no parent.** A child of 4 at 14 into `clt_1` grows it to
    exactly `[18, 1]`.
 
-On `segment_line.json` (`form` unlocked; segments read unlocked):
+On `segment_line.yaml` (`form` unlocked; segments read unlocked):
 
 5. **The last segment of a line of known length.** On `b2`, its length
    `[8, 1]` and `[4, 1]` are each `segment_end_fixed` at `[{block: A, id: "b2"},
@@ -476,7 +519,7 @@ are then run over those keys and their matches written out by hand too. A
 key held by the wrong element shows as a wrong chain, so the chains are the
 check of who holds what.
 
-1. **The enumeration of `map.json`**: twenty-two keys. The block (`block`,
+1. **The enumeration of `map.yaml`**: twenty-two keys. The block (`block`,
    address `{}`, every other member null, holding nothing), the root's card
    `{id: "melody", part: ["card"]}` beside its line `{id: "melody"}`, then
    per timeline in pre-order its line and name (`{id, part: ["name"]}`) and
@@ -494,15 +537,15 @@ check of who holds what.
    each unit belongs to exactly one class, and the units are exactly the
    schema's (the `const` of every entry of `TimeUnit`'s `oneOf`). A map takes its `target_unit`'s domain and modality, `number`
    included.
-3. **Regions, flow markers and jump origins** of `with_region.json` and
-   `flow_control.json` are addressed by their IDs, each with a label
+3. **Regions, flow markers and jump origins** of `with_region.yaml` and
+   `flow_control.yaml` are addressed by their IDs, each with a label
    (`{id, part: ["label"]}`), and held by their bands (the whole (type,
-   address) list of `flow_control.json` is pinned: `flow_marker`
+   address) list of `flow_control.yaml` is pinned: `flow_marker`
    `{id: "flow_marker_1"}`, then the `jump_from`s `jump_from_1` and
    `jump_from_2`, each followed by its label); a jump target (`jump_to_1`,
    `jump_to_2`) is no element; in every one-root manifest fixture every
    address is distinct (compared by `addressKey`). A named timestamp
-   (`timestamps.json`) lists exactly the elements its `display` names, in
+   (`timestamps.yaml`) lists exactly the elements its `display` names, in
    the order `wedge` `{id: "timestamp_N"}`, the `label`s `{id, part:
    ["name"]}`, `{id, part: ["id"]}`, `{id, part: ["coordinate"]}`, then
    the `cross_section` `{id, part: ["line"]}`: the wedge and the labels
@@ -517,23 +560,23 @@ check of who holds what.
    `timestamp_1` (the default: wedge, name label, line) and `timestamp_2`
    (wedge, name label) of `clt_1`, wedges and labels inside `[block,
    timeline, band]`, the line inside `[block, timeline]`. `{inside: wedge}`
-   matches nothing in `map.json`.
+   matches nothing in `map.yaml`.
 4. **The title** `{part: ["name"]}` follows the block for a manifest with a
    `name` or an `id`, and is absent for an anonymous one.
-5. **Matching** over `map.json`, one selector per member (`element`,
+5. **Matching** over `map.yaml`, one selector per member (`element`,
    `domain`, `modality`, `class`, `facet`, `addresses`, `within`), bands
    included: a band belongs to its timeline (`within`), `facet` matches the
    bands of that facet in tree order (`{facet: "markers"}` the markers band
    of `phrase`, then `melody`'s), a band has no class (`{class: "regions"}`
    matches nothing), and no selector naming a domain or modality matches
    it; a map's class is its type (`{class: "LinearMap"}` matches both maps
-   of `map.json`, `ticks` then `tempo` in tree order). `addresses` matches
+   of `map.yaml`, `ticks` then `tempo` in tree order). `addresses` matches
    whole addresses: `[{id: "melody", part: ["end", "label"]}, {id:
    "ticks"}]` matches `ticks` and then that label, `[{id: "melody", part:
    ["label", "end"]}]` nothing, `[{id: "phrase", facet: "regions"}]` the
    band, `[{id: "melody", part: ["card"]}]` the card and `[{part:
    ["name"]}]` nothing (the manifest is anonymous). The empty selector
-   matches every key. On `bundles/bundle_free_ids.json` its statement's
+   matches every key. On `bundles/bundle_free_ids.yaml` its statement's
    selector `{addresses: [{id: "take 2/intro"}]}` matches exactly the region
    `take 2/intro` of `perf/take 2`: an ID is matched whole, never split.
 6. **`inside`** matches what an element of the named type holds at any
@@ -541,7 +584,7 @@ check of who holds what.
    the line every key after it; a hand-built chain (`[block, frame,
    timeline, ancestor]`) proves the matcher reads the chain and nothing
    else.
-7. **Segment lines** of `segment_line.json`: a segment that is a segment
+7. **Segment lines** of `segment_line.yaml`: a segment that is a segment
    line is a `child` without a name, one that is not has type `null` (no
    selector naming `element` matches it, and it adds nothing to the chains
    below it); boundaries (`{id: "b", part: ["start"]}`) and labels are held
@@ -579,7 +622,7 @@ the schema agree by construction.
 2. **The default band order** is drawing.md §4's: `DEFAULT_BAND_ORDER` is
    exactly `["children", "conversion_maps", "line", "markers", "regions",
    "flow_control"]`, `LINE` is `"line"`.
-3. **Effective and inherited band orders** on `nested.json` under three
+3. **Effective and inherited band orders** on `nested.yaml` under three
    pairwise different orders (the default `D`, the README's example `R` =
    `["children", "markers", "line", "conversion_maps", "regions",
    "flow_control"]`, a third `K` = `["flow_control", "line", "children",
@@ -587,7 +630,7 @@ the schema agree by construction.
    takes `D`, a descendant its parent's order verbatim (with `clt_1: R`,
    `clt_3` and `clt_2` draw `R`; with `clt_3: K` too, `clt_2` draws `K`), an
    entry wins for its own timeline only; a member that is a child follows
-   its parent (`second-half` of `group_child_member.json` under `piece: R`
+   its parent (`second-half` of `group_child_member.yaml` under `piece: R`
    draws `R`, the root member `recording` `D`); an unknown ID gets `D`.
 4. **Band order problems**, each the first in the README's order (shape,
    repeat, unknown ID, stranger, missing), with the exact message, IDs and
@@ -620,7 +663,7 @@ name `untitled`, the workspace's `graphical` `{}` (its default statements,
 the cascade's layer between the built-in defaults and each manifest's own)
 and the default settings `{grid: {size: 8, snap: true}, blockDefaults:
 {scale: 1, length: 400, spacing: 8, margin: 0, width: null, height: null},
-granularity: {denominator: 2520, decimals: 3}}`, the drawing
+granularity: {denominator: 2520, decimals: 3}, manifests: {}}`, the drawing
 specification's placement defaults plus the block's scale (the block's
 `spacing` 8 is the gap between its items, its `margin` 0 the empty space
 above its first item and below its last, drawing.md §8.4, §8.6) and the
@@ -707,8 +750,8 @@ string form is `addressKey`, and nothing splits or composes an ID.
    addresses: equal whatever their members' order, unequal for another
    part, a part's words in another order, another facet, or a block on one
    side only.
-4. **Every kind resolves.** On a block of `bundles/bundle_mixed.json` (and
-   one of `map.json`), one address per kind with its expected resolution
+4. **Every kind resolves.** On a block of `bundles/bundle_mixed.yaml` (and
+   one of `map.yaml`), one address per kind with its expected resolution
    written by hand: the workspace `{}`, a block `{block: A}`, the title
    `{part: ["name"]}`, a frame `{id: "group_1"}` (its place key `{item:
    "group_1"}`) and its title `{id: "group_1", part: ["name"]}`, a timeline
@@ -738,7 +781,7 @@ string form is `addressKey`, and nothing splits or composes an ID.
    group's card, a part an owner does not have (a card's label, a frame's
    label, the title's label `{part: ["name", "label"]}`, a label without an
    owner `{part: ["label"]}`, a start's end, a region's start), the title
-   of an unnamed manifest (`{block: B, part: ["name"]}` on `map.json`'s
+   of an unnamed manifest (`{block: B, part: ["name"]}` on `map.yaml`'s
    block): a title exists only for a named manifest, and every part nothing
    draws (drawing.md §2.2): the start and end of `recording`, drawn only as
    an ancestor line (`{id: "recording", part: ["start"]}`, `["end",
@@ -747,7 +790,7 @@ string form is `addressKey`, and nothing splits or composes an ID.
    map's label and name. A malformed address is
    `invalid_address` at `[address]` with the reader's message (`{block:
    "short"}`, a facet beside a part, an element without its block).
-6. **Free IDs.** On a block of `bundles/bundle_free_ids.json`, `{id:
+6. **Free IDs.** On a block of `bundles/bundle_free_ids.yaml`, `{id:
    "https://example.org/piece/score"}` and `{id: "perf/take 2"}` resolve to
    their timelines, each with its one card in the frame of `group_1`; `{id:
    "https://example.org/piece/score#exposition"}` to the first region of
@@ -776,7 +819,7 @@ string form is `addressKey`, and nothing splits or composes an ID.
    the timeline level, styled as `card`, stating a whole place on the block
    and its size, spacing and margin in a frame; the band at the facet level, styled
    as `band`, with no place.
-9. **The containers of `bundle_mixed.json`** in drawing order, each with
+9. **The containers of `bundle_mixed.yaml`** in drawing order, each with
    its holder: frames by group ID, each followed by its members' cards in
    display order, then the ungrouped roots' cards on the block;
    `recording` has no card and so no bands. A frame is addressed `{id: G}`
@@ -790,7 +833,7 @@ string form is `addressKey`, and nothing splits or composes an ID.
    is exactly `{kind: "block", key: null, address: {}, holder: null,
    timeline: null, facet: null}`.
 10. **A timeline in several groups** (drawing.md §2.2, §8.1): on
-    `bundles/bundle_shared_member.json` (`g1` with `t`, `u`; `g2` with `t`,
+    `bundles/bundle_shared_member.yaml` (`g1` with `t`, `u`; `g2` with `t`,
     `v`) the frames and cards in drawing order are keyed `{item: "g1"}`,
     `{item: "g1", member: "t"}`, `{item: "g1", member: "u"}`, `{item:
     "g2"}`, `{item: "g2", member: "t"}`, `{item: "g2", member: "v"}`; `t`
@@ -802,7 +845,7 @@ string form is `addressKey`, and nothing splits or composes an ID.
     its one card, `{id: "t", facet: "regions"}` both drawings, and a group's
     card nothing; `t` is a group member.
 11. **A child's bands lie in the card of its nearest ancestor drawn in
-    one**: on `bundles/bundle_shared_parent.json`, where the root `score`
+    one**: on `bundles/bundle_shared_parent.yaml`, where the root `score`
     holds two members and is drawn in no card, the bands of segments lie in
     their member's card, `score` has none, and the count of containers is
     derived by hand (two frames, five cards, fifteen timelines' bands).
@@ -832,7 +875,7 @@ string form is `addressKey`, and nothing splits or composes an ID.
     removes `annotations`. `placeEntries(P)` is exactly `[[{item:
     "group_1"}, {x: 10}], [{item: "group_1", member: "score"}, {width:
     650}], [{item: "annotations"}, {y: 4}], [{item: "group_2", member:
-    "page"}, {height: 80}]]`. On `bundle_mixed.json`, `placedContainer`
+    "page"}, {height: 80}]]`. On `bundle_mixed.yaml`, `placedContainer`
     gives `score`'s card for `{item: "group_1", member: "score"}`, and
     `placedElement` gives `group_1`, `score` and `annotations` for the keys
     of the frame, a member's card and an ungrouped root's card, and nothing
@@ -848,8 +891,8 @@ string form is `addressKey`, and nothing splits or composes an ID.
     own.
 
 15. **The words of an address** (`addressWords`) name it to a reader in
-    messages: on the view of block `A` holding `bundles/bundle_mixed.json`
-    (named `Mixed`) and block `B` holding `map.json` (no name, no id),
+    messages: on the view of block `A` holding `bundles/bundle_mixed.yaml`
+    (named `Mixed`) and block `B` holding `map.yaml` (no name, no id),
     `{}` is "the workspace", `{block: A}` "bundle 'Mixed'", `{block: B}`
     "the anonymous bundle", `{block: A, part: ["name"]}` "the title of
     bundle 'Mixed'", `{block: B, part: ["name"]}` (naming nothing) "the
@@ -922,7 +965,7 @@ other commands are not judged by it.
 1. `add` a block `{id: A, manifest: bare, x: 0, y: 0}` to `createView()`:
    exactly `{id: A, parent: null, index: "a0", x: 0, y: 0, scale: 1,
    length: 400, spacing: 8, margin: 0, width: null, height: null, places: {},
-   manifest: <bare.json>}`; a second block `B` given `scale: 2` has index
+   manifest: <bare.yaml>}`; a second block `B` given `scale: 2` has index
    `a1` and scale 2; one given `index: "Zz"` keeps it.
 2. Blocks and the workspace: one `set` moving `A` to (128, 64) and `B` to
    (1, 2) changes nothing else; `scale: 2, width: 120, height: null,
@@ -933,21 +976,21 @@ other commands are not judged by it.
    block's manifest whole, several roots and groups for one root alike.
    The workspace's `graphical` and a `style`'s `set` store a declaration's
    `2.0` as `2`, as loading does (item 17 of the manifest section).
-3. Timelines, on `nested.json`: `name`, `meta` and the root's `length`
+3. Timelines, on `nested.yaml`: `name`, `meta` and the root's `length`
    `[12, 1]` (the end of `clt_3`) are stored as given; `clt_3`'s `offset`
    `[6, 1]` leaves the root at `[16, 1]`, `[10, 1]` grows the unlocked root
    to exactly `[18, 1]`. `add` the minimal child `{id: "clt_1", offset: [2,
    4], unit: "quarters", length: [8, 1], locked: true}` into `bare` (8):
    exactly that child complete, offset `[1, 2]`, the root grown to `[17,
    2]`.
-4. Entries: the maps `tempo` and `ticks` of `map.json` added into `bare` are
+4. Entries: the maps `tempo` and `ticks` of `map.yaml` added into `bare` are
    kept verbatim in id order whichever comes first; an entry may be added
    into a segment line too, as the entry is validated alone (`tempo` into
-   `b` of `segment_line.json` is kept, the line's length and segments
+   `b` of `segment_line.yaml` is kept, the line's length and segments
    unchanged); `set` of `tempo`'s payload with `scalar: [1, 4]` stores
    exactly that payload. Into `bare`, the region `{id: "region_1", name:
    "A", start: [2, 1], end: [4, 1]}` is stored with `meta: {}`, and `end`
-   `[6, 1]` with `name` null exactly so. On `flow_control.json`, whose
+   `[6, 1]` with `name` null exactly so. On `flow_control.yaml`, whose
    elements in canonical order are the jump targets `jump_to_1` at 2 and
    `jump_to_2` (segno) at 4, the jump origin `jump_from_1` at 8 targeting
    `jump_to_1`, the flow marker `flow_marker_1` at 12 and the jump origin `jump_from_2`
@@ -968,17 +1011,17 @@ other commands are not judged by it.
 5. Measure maps, a block's manifest's top-level list, their IDs unique
    across the manifest as every ID: `add {into: {block: A}, measure_map:
    {id: "bars", rows: [{count: 1, qstamp: [0, 1]}]}}` into a block of
-   `bare.json` stores it with `name: null, meta: {}`; `set bars {name:
+   `bare.yaml` stores it with `name: null, meta: {}`; `set bars {name:
    "Bars", rows: <a second row {count: 2, qstamp: [4, 1]} appended>}`
    stores exactly both; the `MeasureRecordMap` `{id: "record",
    source_unit: "quarters", target_unit: null, measure_map: "bars"}` added
    into `bare` is stored with `name: null`; removing `{block: A, id:
    "record"}` and `{block: A, id: "bars"}` together leaves both lists
    empty.
-6. `remove` on `map.json`: a child takes its map; a map goes alone; the last
+6. `remove` on `map.yaml`: a child takes its map; a map goes alone; the last
    root leaves `timelines: []` and the block; two blocks go together, and a
    block goes with every block whose `parent` chain reaches it.
-7. `style` over `A` (`map.json`) and `B` (`bare.json`) without `blocks`:
+7. `style` over `A` (`map.yaml`) and `B` (`bare.yaml`) without `blocks`:
    `{element: "map"}` `stroke` goes into `A` only, as `{order: {}, styles:
    {}, statements: [{select: {element: "map"}, set: {stroke:
    "#C00000"}}]}`; a second property merges into that statement, a selector
@@ -1011,10 +1054,10 @@ the new drawing (a card a frame now holds keeps its size, spacing and margin, mo
 from `places[T]` to `places[G].cards[T]`; a place naming no frame or card
 goes).
 
-What proves it, on `bundles/bundle_mixed.json` in block `A`:
+What proves it, on `bundles/bundle_mixed.yaml` in block `A`:
 
-1. **A root added.** `add timeline` of `bare.json`'s root in its minimal form
-   adds exactly `bare.json`'s complete root.
+1. **A root added.** `add timeline` of `bare.yaml`'s root in its minimal form
+   adds exactly `bare.yaml`'s complete root.
 2. **A group added.** With `annotations` placed at `{x: 10, width: 300,
    spacing: 2}`, `add group {id: "group_3", members: ["annotations"]}` adds
    exactly `{id: "group_3", name: null, meta: {}, members:
@@ -1064,7 +1107,7 @@ What proves it, on `bundles/bundle_mixed.json` in block `A`:
    `recording` under `excerpt`; `unknown_target` at `[{block: A, id:
    "annotations"}, "parent", "timeline"]` for a parent named `ghost`; and,
    after a root `extra` of 4 samples is added, `child_exceeds_parent` for it
-   under the locked `excerpt` (of 88,200) at 88,200. On `segment_line.json`,
+   under the locked `excerpt` (of 88,200) at 88,200. On `segment_line.yaml`,
    `segment_structure` for `parent: null` on the segment `b1` and on the
    segment line `b` and, after a root `extra` of 4 quarters is added, for
    `extra` under the segment line `form`.
@@ -1074,8 +1117,8 @@ What proves it, on `bundles/bundle_mixed.json` in block `A`:
 A gesture shows `preview(view, command)`: the command as `apply` applies
 it, without the schema check, the invariants and the no-op refusal. What
 proves it: on
-`bundle_mixed.json`, for a move under a new parent, a group joined, a group
-added and a block moved, `preview` equals `apply`; on `nested.json`, for
+`bundle_mixed.yaml`, for a move under a new parent, a group joined, a group
+added and a block moved, `preview` equals `apply`; on `nested.yaml`, for
 `clt_2`'s offset `[-1, 1]`, which the invariants refuse, `preview` gives
 the view with that offset stored; for a `set` that changes nothing it gives
 back the very view (`toBe`); for an unknown target it gives the same
@@ -1126,13 +1169,13 @@ refusal as `apply`.
   `id_not_settable` at `[{block: A, id: "jump_from_1"}, "flow_control",
   "id"]` for a whole
   element of another id. Manifest locations: `negative_child_offset`
-  (`clt_2` at `[-1, 1]`), `region_end_before_start` (`with_region.json`),
+  (`clt_2` at `[-1, 1]`), `region_end_before_start` (`with_region.yaml`),
   `schema_violation` for a jump origin targeting no jump target (at
   `jump_from_1`'s `target`, index 2) and for removing the jump target a jump
   origin names (at its `target`, index 1 once `jump_to_1` is gone): a
   removal that leaves a reference dangling is refused, never followed by
   removing the referrer. A measure map is held to the same rule: on a
-  block of `bare.json` holding `bars`, removing `{block: A, id: "bars"}` while the view
+  block of `bare.yaml` holding `bars`, removing `{block: A, id: "bars"}` while the view
   `record` names it is `schema_violation` at `record`'s `measure_map`
   (`[A, "manifest", "timelines", 0, "conversion_maps", 0,
   "measure_map"]`), the place where adding `record` without `bars` is
@@ -1174,11 +1217,11 @@ refusal as `apply`.
   address).
 - Atomicity: a `set` of a valid and an unknown target, and a `remove` naming
   an absent block, are refused whole.
-- Changes nothing, on every kind of target (blocks `A` of `nested.json` and
-  `B` of `bare.json`): the workspace's own `graphical`; `A`'s `x`, `index`,
+- Changes nothing, on every kind of target (blocks `A` of `nested.yaml` and
+  `B` of `bare.yaml`): the workspace's own `graphical`; `A`'s `x`, `index`,
   `width` and its manifest as loaded; `clt_1`'s `name: null`, `meta: {}` and
-  `length: [32, 2]`; `clt_3`'s own offset; on `map.json` `tempo`'s own
-  payload; on `flow_control.json` `jump_to_1` at `[4, 2]`. Judging the whole
+  `length: [32, 2]`; `clt_3`'s own offset; on `map.yaml` `tempo`'s own
+  payload; on `flow_control.yaml` `jump_to_1` at `[4, 2]`. Judging the whole
   command: `A` at its own `x` with `B` moved is accepted; refused are both
   at their own `x` (at `[{block: A}, "x"]`), `A`'s `x` 5 then 0, `clt_1`'s
   place `{x: 3}` then `{x: null}` (at `[{block: A, id: "clt_1"},
@@ -1200,7 +1243,7 @@ it changes nothing and is refused as such; beside a value that changes
 something, it is accepted. Each case checks the exact `locked` afterwards,
 or the exact code, path and message of the refusal, the view unchanged.
 
-1. **`set locked` on a segment.** In a block of `segment_line.json`,
+1. **`set locked` on a segment.** In a block of `segment_line.yaml`,
    `locked: true` on `b1` is `segment_never_locked` at `[{block: A, id: "b1"},
    "locked"]`, message `A segment is never locked: lock its segment line
    'b' instead.`; `locked: false` on `b1` changes nothing (refused as such
@@ -1209,14 +1252,14 @@ or the exact code, path and message of the refusal, the view unchanged.
    same block, `locked: false` on `b` (a segment that is a segment line) is
    `unlocking_not_supported` at `[{block: A, id: "b"}, "locked"]`, message `Unlocking
    a segment line that is a child, a segment or a group member is not
-   supported yet.`. The same refusal for `intro` of `segment_children.json`
+   supported yet.`. The same refusal for `intro` of `segment_children.yaml`
    (a segment line that is a child of `piece`, no segment) and for the root
-   `original_score:dgt_1` of `bundles/corpus_ieee1599.json` (a segment line
+   `original_score:dgt_1` of `bundles/corpus_ieee1599.yaml` (a segment line
    that is a group member). Each of the three holds `locked: true`, so
    `locked: true` on it changes nothing (refused as such at `[{block: A, id: "<id>"},
    "locked"]`).
 3. **`set locked` to the value a timeline has.** In a block of
-   `segment_line.json` whose file states `locked: false` on `b` (kept on
+   `segment_line.yaml` whose file states `locked: false` on `b` (kept on
    reading), `locked: false` on `b` alone changes nothing and is refused as
    such at `[{block: A, id: "b"}, "locked"]`, never as `unlocking_not_supported`;
    `{locked: false, name: "Bridge"}` on `b` is accepted and leaves `b`
@@ -1225,19 +1268,19 @@ or the exact code, path and message of the refusal, the view unchanged.
    Unlocking it again is then `unlocking_not_supported` at `[{block: A, id: "b"},
    "locked"]`, as in case 2, so the acceptance is the no-op's and no lifted
    rule's.
-4. **`set locked` elsewhere.** On the root `form` of `segment_line.json`
+4. **`set locked` elsewhere.** On the root `form` of `segment_line.yaml`
    (a segment line, neither a child nor a member) `locked: true` and then
    `locked: false` are both accepted, leaving `true` and then `false`.
 5. **`add child` into a segment line.** Neither value stating `locked`:
-   into the root `form` of `unknown_length_segments.json` (its length
+   into the root `form` of `unknown_length_segments.yaml` (its length
    unknown), a child `d` of 4 at 20 holds `locked: false`; into the root
-   `form` of `segment_line.json`, a child `e` of unknown length at 32 that
+   `form` of `segment_line.yaml`, a child `e` of unknown length at 32 that
    is a segment line holding no segment holds `locked: true`. The same `d`
    stating `locked: true` is `segment_never_locked` at `[{block: A, id: "form"},
    "child"]`, message `A segment is never locked: lock its segment line
    'form' instead.`; the same `e` stating `locked: false` is
    `unlocking_not_supported` at the same path.
-6. **`add child` of a subtree.** Into the root `bare` of `bare.json` (not
+6. **`add child` of a subtree.** Into the root `bare` of `bare.yaml` (not
    a segment line), a child `sl` of 4 at 0 that is a segment line holding
    the segment `s1` of 4 at 0, neither stating `locked`, is added with
    `sl` locked and `s1` unlocked. The same value with `s1` stating `locked:
@@ -1257,11 +1300,11 @@ addressed `{id}` wherever it lies, a band `{id: T, facet}`, every card of a
 timeline `{id: T, part: ["card"]}`, parts by `part`, the manifest's title
 `{part: ["name"]}`; no address is composed from IDs.
 
-1. **Blocks hold any manifest.** A workspace holding blocks of `bare.json`,
-   `group_child_member.json` and `bundle_mixed.json` writes and reads back
+1. **Blocks hold any manifest.** A workspace holding blocks of `bare.yaml`,
+   `group_child_member.yaml` and `bundle_mixed.yaml` writes and reads back
    deep-equal, and writes again to the same bytes; its file format is
    version 7.
-2. **Invariants root by root.** `group_child_member.json` with
+2. **Invariants root by root.** `group_child_member.yaml` with
    `second-half`'s unit changed to `seconds` (its length written `8.0`, as
    the `float` axis of seconds represents it, its timestamps on the
    quarters axis left out) is refused with exactly
@@ -1269,7 +1312,7 @@ timeline `{id: T, part: ["card"]}`, parts by `part`, the manifest's title
    `child 'second-half' has unit 'seconds', its parent 'piece' has
    'quarters'`: the path counts the roots of a manifest with a group.
 3. **Elements of a group manifest.** The enumeration of
-   `group_child_member.json` is written out whole, every member of every
+   `group_child_member.yaml` is written out whole, every member of every
    key, and compared exactly. Its order: the block; the frame `{id:
    "group_1"}` (type `frame`, chain `[block]`) and its title `{id:
    "group_1", part: ["name"]}` (`[block, frame]`), both belonging to no
@@ -1303,7 +1346,7 @@ timeline `{id: T, part: ["card"]}`, parts by `part`, the manifest's title
    the name of `piece`; `{inside: "frame"}` every key but the block and the
    frame.
 4. **Elements of a named manifest with two groups.** The addresses of
-   `bundle_mixed.json`'s enumeration are written out whole: the block `{}`;
+   `bundle_mixed.yaml`'s enumeration are written out whole: the block `{}`;
    the title `{part: ["name"]}` (whether the manifest is named, as here, or
    has an id); per frame in group order the frame, its title and its
    members' cards in display order (`group_1`: `score`, `performance`;
@@ -1327,13 +1370,13 @@ timeline `{id: T, part: ["card"]}`, parts by `part`, the manifest's title
    (`score`, `performance`) and `group_2` (`page`, `excerpt`, the latter
    with the one ancestor `recording`, offset its offset there) and the
    ungrouped roots `["annotations"]`.
-5. **Addresses, one root and several.** In a block of `map.json`:
+5. **Addresses, one root and several.** In a block of `map.yaml`:
    `manifestIds` is exactly `melody`, `phrase`, `tempo`, `ticks` and the
    root's two timestamps `timestamp_1`, `timestamp_2`; `set`
    reaches the map `ticks` of the child `phrase` by `{block: A, id:
    "ticks"}`, and `{id: "melody/ticks"}` and `{id: "phrase/ticks"}` are
    `unknown_target`: no ID is composed. In a block of
-   `group_number_types.json`, adding the region `region_1` (`[2, 1]` to
+   `group_number_types.yaml`, adding the region `region_1` (`[2, 1]` to
    `[4, 1]`) into `{block: A, id: "score"}` stores it in
    `timelines[2].regions`; `manifestIds` then holds exactly `group_1`,
    `page`, `performance`, `region_1`, `score` and the three roots'
@@ -1347,34 +1390,34 @@ timeline `{id: T, part: ["card"]}`, parts by `part`, the manifest's title
    `label` of `region_1` (a region has a label, but no command aims at a
    part); `{block: A, id: "group_1"}` is a group, which `set` refuses by
    kind (`wrong_target_kind` for `length`). `findTimeline`, the one reader
-   of a timeline by id, searches every root's tree: in `bundle_mixed.json`
+   of a timeline by id, searches every root's tree: in `bundle_mixed.yaml`
    it gives for `annotations` the object at `timelines[0]` and for
    `excerpt` the object at `timelines[3].children[0]` (the very objects,
    not copies), and `undefined` for `group_1`, `name`, `recording/excerpt`,
    `cmap_6` (a map) and `nothing`. `resolveElement` reads a map, region or
    flow-control element by its ID alone and gives its kind and the very
-   object: in `map.json` `{id: "tempo"}` the map
+   object: in `map.yaml` `{id: "tempo"}` the map
    `timelines[0].conversion_maps[0]` and `{id: "ticks"}` the map
    `timelines[0].children[0].conversion_maps[0]`, both kind `map`; in
-   `flow_control.json` `flow_marker_1`, `jump_from_1` and `jump_to_1` the
+   `flow_control.yaml` `flow_marker_1`, `jump_from_1` and `jump_to_1` the
    elements of `timelines[0].flow_control` with those ids (a flow marker, a
    jump origin, a jump target), each kind `flow_control`; in
-   `group_number_types.json` with `region_1`, `{id: "region_1"}` the object
+   `group_number_types.yaml` with `region_1`, `{id: "region_1"}` the object
    `timelines[2].regions[0]`, kind `region`. It gives no entry for `{id:
    "score"}` (a timeline), `{id: "group_1"}` (a group), `{part: ["name"]}`
    (the title), `{id: "score/region_1"}`, `{id: "region_1", part:
    ["label"]}` (a part) and `{id: "nothing"}`.
 6. **Commands.** `set` reaches a timeline at any depth: `name: "Late"` on
-   `{block: A, id: "second-half"}` of `group_child_member.json` changes
+   `{block: A, id: "second-half"}` of `group_child_member.yaml` changes
    exactly `timelines[0].children[0].name`, and `name: "Intro"` on `{block:
    A, id: "region_1"}` that region's name. `add` the child `clt_1` (bare's
    root, locked, offset `[0, 1]`) into `score` of
-   `group_number_types.json`: it is stored in `timelines[2].children`.
+   `group_number_types.yaml`: it is stored in `timelines[2].children`.
    `duplicate_id` is manifest-wide: a child carrying `page` (a timeline of
    another root) at `[{block: A, id: "score"}, "child", "id"]`; a second
    `region_1` into `score` and one into `page`, another root, at `[{block:
    A, id: "score"}, "region", "id"]` and `[{block: A, id: "page"}, "region",
-   "id"]`. `style` with `blocks: [A]` on `group_styled.json`,
+   "id"]`. `style` with `blocks: [A]` on `group_styled.yaml`,
    `{select: {element: "ancestor"}, set: {opacity: 0.5}}`, adds that
    statement after the manifest's three and keeps `styles` and `order`,
    written out literally: `order` exactly `{group_1: ["score", "page",
@@ -1392,16 +1435,16 @@ timeline `{id: T, part: ["card"]}`, parts by `part`, the manifest's title
    included, and `removedBy(manifest, ids)` names, by ID, exactly what
    goes, which the arranger's Delete preview reads. Each effect on its own
    case:
-   - **A subtree, its ids in groups and orders.** `bundle_mixed.json`,
+   - **A subtree, its ids in groups and orders.** `bundle_mixed.yaml`,
      removing `recording`: the roots are `annotations`, `page`,
      `performance`, `score`; `group_2`'s members are `["page"]` and its
      order `["page"]`; `group_1` and its order are unchanged. `removedBy`
      of `["recording"]` is exactly `{recording, excerpt, cmap_5, cmap_6,
      timestamp_3, timestamp_4}` (the timestamps lie on `excerpt`).
-   - **A child.** `group_child_member.json`, removing `second-half`:
+   - **A child.** `group_child_member.yaml`, removing `second-half`:
      `piece` has no children; `group_1`'s members and order are
      `["recording"]`.
-   - **A map belongs to its timeline only.** `group_number_types.json`
+   - **A map belongs to its timeline only.** `group_number_types.yaml`
      with the `TableMap` `{id: "warp", source_unit: "quarters",
      target_unit: "seconds", x_values: [0, 12], y_values: [0, 12.5]}`
      added into `score` (stored with `name: null`, `kind: "linear"`,
@@ -1414,7 +1457,7 @@ timeline `{id: T, part: ["card"]}`, parts by `part`, the manifest's title
      `{block: A}`): `removedBy` of `["bars"]` is exactly `{bars}`, and
      removing `bars` leaves `measure_maps: []` and every timeline as it
      was.
-   - **`addresses` entries naming a removed element.** `group_styled.json`
+   - **`addresses` entries naming a removed element.** `group_styled.yaml`
      with the statements `{select: {addresses: [{id: "page"}, {id: "score",
      part: ["card"]}]}, set: {opacity: 0.5}}` and `{select: {addresses:
      [{id: "page", part: ["name"]}, {id: "page", facet: "regions"}]}, set:
@@ -1423,11 +1466,11 @@ timeline `{id: T, part: ["card"]}`, parts by `part`, the manifest's title
      part and band of `page` go with `page`), the manifest's own three
      statements are unchanged.
    - **A group left without members stays; the last root leaves an empty
-     array.** `group_number_types.json`, removing `page`, `performance` and
+     array.** `group_number_types.yaml`, removing `page`, `performance` and
      `score` in one command: `timelines` is `[]`, `groups` is exactly
      `[{id: "group_1", name: "Edition", meta: {}, members: []}]`, the order
      `{group_1: []}`.
-   - **Deleting a group keeps its members.** `bundle_mixed.json`, removing
+   - **Deleting a group keeps its members.** `bundle_mixed.yaml`, removing
      `group_1`: the roots are unchanged, `groups` is `[group_2]`, the order
      holds `group_2` alone, and `memberDrawings` draws `annotations`,
      `performance` and `score` as ungrouped roots.
@@ -1435,11 +1478,11 @@ timeline `{id: T, part: ["card"]}`, parts by `part`, the manifest's title
      `recording` and `excerpt` gives the same manifest as removing
      `recording`.
 8. **IDs of new elements** are unique across the manifest. On
-   `bundle_mixed.json` given the id `edition`, a region and a child
+   `bundle_mixed.yaml` given the id `edition`, a region and a child
    carrying `group_1`, `edition` (the manifest's own id) or `cmap_5` (a map
    of another root) added into `score` are each `duplicate_id` at
    `[{block: A, id: "score"}, "region", "id"]` and `[…, "child", "id"]`.
-   On `conversion_maps__maps_quarters.json`, whose maps hold maps two
+   On `conversion_maps__maps_quarters.yaml`, whose maps hold maps two
    deep, `manifestIds` is exactly `cmap_1` to `cmap_8`, `lmap_1` to
    `lmap_5`, `maps:quarters`, `measuremap_1`, `pmap_1`, `timestamp_1`,
    `timestamp_2` and `tmap_1` to `tmap_4`: the maps a `ChainMap`, `CombinationMap` or `PiecewiseMap`
@@ -1481,8 +1524,8 @@ built as a read file would be: a stale or invented key, or a card stating
 more than its size, spacing and margin, must never reach a saved file, or the file would be refused on
 reading.
 
-Block `bundle0001` holds `bundles/bundle_mixed.json`; where a case names
-`groups/group_child_member.json` (whose root `piece` holds the member
+Block `bundle0001` holds `bundles/bundle_mixed.yaml`; where a case names
+`groups/group_child_member.yaml` (whose root `piece` holds the member
 `second-half` and so is no item), its block is `bundle0001` too. `set x
 {…}` aims at `{block: "bundle0001", id: "x"}`, `set bundle0001 {…}` at
 `{block: "bundle0001"}`, and a path `[x, …]` starts with that address's
@@ -1510,7 +1553,7 @@ markers band moved to the top and the conversion maps band below the line),
 4. **A member's card size.** `set score place {width: 650, height: 120}`
    (a member that is a root): exactly `{group_1: {cards: {score: {width:
    650, height: 120}}}}`; then `place {width: null}`: `{group_1: {cards:
-   {score: {height: 120}}}}`. In `group_child_member.json`, `set
+   {score: {height: 120}}}}`. In `group_child_member.yaml`, `set
    second-half place {width: 650, height: 120}` (a member that is a child
    timeline): exactly `{group_1: {cards: {"second-half": {width: 650,
    height: 120}}}}`.
@@ -1569,17 +1612,17 @@ markers band moved to the top and the conversion maps band below the line),
 
 10. `set recording place {x: 1}` (it holds a member, so it is drawn in no
     card): `not_an_item` at `[recording, "place"]`, message "'recording'
-    is not drawn in a card of its own"; in `group_child_member.json`, `set
+    is not drawn in a card of its own"; in `group_child_member.yaml`, `set
     piece place {width: 650}` the same at `[piece, "place"]`. A member's
     card states only its size: `set score place {x: 1}` is `not_an_item` at
     `[score, "place", "x"]`, message "'score' is a member: its card
     takes only width, height, spacing and margin"; `{width: 650, length: 300}` at `[…,
     "place", "length"]`, `{scale: 2}` at `[…, "place", "scale"]`, and in
-    `group_child_member.json` `set second-half place {x: 10}` at
+    `group_child_member.yaml` `set second-half place {x: 10}` at
     `[second-half, "place", "x"]`. Both refusals come before the value is
     read: `set recording place {x: "a"}` is `not_an_item` at `[…, "place"]`
     and `set score place {x: "a"}` at `[…, "place", "x"]`. On
-    `bundles/bundle_shared_member.json` (`t` a member of `g1` and `g2`),
+    `bundles/bundle_shared_member.yaml` (`t` a member of `g1` and `g2`),
     `set t place {width: 650}` is `not_an_item` at `[t, "place"]`, message
     "'t' is drawn in the frames of several groups", while `set u place
     {width: 650}` (a member of `g1` only) gives exactly `{g1: {cards: {u:
@@ -1627,8 +1670,8 @@ markers band moved to the top and the conversion maps band below the line),
     `order: null` where nothing is stored: `set recording order null` and
     `set excerpt order null` (the fixture states no band order), `set
     group_1 order null` once a first one has deleted its entry, and on
-    `map.json`, whose `graphical` states no order, `set melody order null`
-    and `set phrase order null`. In a store holding `map.json` as block
+    `map.yaml`, whose `graphical` states no order, `set melody order null`
+    and `set phrase order null`. In a store holding `map.yaml` as block
     `bundle0001`, `dispatch` of `set phrase order null` returns exactly that
     refusal, the view stays the same object and the journal keeps its one
     entry, the `add`.
@@ -1653,7 +1696,7 @@ stated already; nothing else is dropped.
     is then neither an item nor a group member). `recording` then holds no
     member, so it is an item: `set recording place {x: 1}` is accepted.
 17. A root becoming a member: with `annotations` placed (`{x: 1}`), `set
-    bundle0001 manifest` to `bundle_mixed.json` with `annotations` added to
+    bundle0001 manifest` to `bundle_mixed.yaml` with `annotations` added to
     `group_1`'s `members` and display order: `places` is `{}`. The same
     with `annotations` placed `{x: 1, scale: 2, spacing: 1.5, width: 700}`:
     `places` is exactly `{group_1: {cards: {annotations: {spacing: 1.5,
@@ -1709,7 +1752,7 @@ left without `addresses` goes.
     "regions"}`.
 
 **Member cards placed through their group** (on
-`bundles/bundle_shared_member.json`: `t` a member of `g1` and `g2`, `u` of
+`bundles/bundle_shared_member.yaml`: `t` a member of `g1` and `g2`, `u` of
 `g1` only, `v` of `g2` only; `set g {cards: …}` aims at the group `g`):
 
 - `set g1 {cards: {t: {width: 650, spacing: 2}}}` gives exactly `{g1:
@@ -1777,11 +1820,11 @@ is, codes and paths under `["blocks", "bundle0001", …]`):
 
 ## Removing a segment (`segments.test.ts`, `commands.test.ts`)
 
-A segment is a child of a segment line: on `segment_children.json`
+A segment is a child of a segment line: on `segment_children.yaml`
 exactly `i1`, `i2`, `t1`, `t2`, `t3`, `c1` and `c2`. It is not removed on
 its own: removing
 it would leave a gap in its segment line, and the editor offers no way to
-close it yet. On `segment_children.json`, removing `{block: A, id: "t2"}`
+close it yet. On `segment_children.yaml`, removing `{block: A, id: "t2"}`
 is `segment_not_removable` at `[{block: A, id: "t2"}]`, message `Removing
 segment 't2' of line 'theme' is not supported yet`, and so is removing `t2`
 and `t3` together, another segment not removing its line. Removing it with
@@ -1800,8 +1843,8 @@ segment of unknown length ends at its successor's offset (the last at Λ's
 end); a length that is not known stays unknown.
 
 What proves it: each way is applied to a line whose every number is known
-(`segment_children.json`, `theme` unlocked) and to one whose lengths are
-not (`unknown_length_segments.json`), and the resulting offsets and lengths
+(`segment_children.yaml`, `theme` unlocked) and to one whose lengths are
+not (`unknown_length_segments.yaml`), and the resulting offsets and lengths
 are compared with values worked out by hand from the rule above, written
 out literally; what each way moves on the root's axis is written out too.
 The ways come in the order of preference (left extend, right extend, left
@@ -1810,13 +1853,13 @@ line refuses both shifts (`its segment line 'theme' is locked`), the first
 and last segments lack a neighbour (`no segment precedes it`, `no segment
 follows it`), a root has no offset to move (`its segment line 'form' is
 a root and has no offset to move`), and a result the manifest's rules refuse
-is refused with that rule's message (on `segment_line.json`, `segment 'b'
+is refused with that rule's message (on `segment_line.yaml`, `segment 'b'
 of segment line 'form' does not start where the one before it ends`). A
 timeline that is no segment has no ways. A segment's neighbours are
 segments, which are never locked, so they may always extend.
 
 Statements naming a removed timeline in `within` go with it, for any
-removal: on `segment_children.json` styled with three boundary statements
+removal: on `segment_children.yaml` styled with three boundary statements
 `within` `theme`, `t1` and `coda`, removing `theme` leaves exactly the
 `coda` statement.
 
@@ -1838,7 +1881,7 @@ would hold (settled: canonical order, `display` complete and canonical,
 coordinates spelled as their axis's number type selects); every refusal
 lies at the value at fault; and what goes with a timeline, a length or an
 editor goes with its timestamps too. Every case starts from block `A`
-holding `timestamps.json` (TimeToShare's fixture): root `clt_1` (quarters,
+holding `timestamps.yaml` (TimeToShare's fixture): root `clt_1` (quarters,
 fraction, length 8) holding the child `clt_2` at 2 of length 4 (locked);
 `timestamp_1` "Downbeat" on `clt_1` at 3/2 with the default `display`,
 `timestamp_2` "Climax" on `clt_1` at 6 with `["wedge", "name"]` and
@@ -1852,8 +1895,8 @@ is written `x line`.
 complete and canonical whatever the file states is that differently
 spelled files read to one value:
 
-1. `timestamps.minimal.json` (the fixture's minimal twin, `timestamp_1`
-   without `display`) reads to the same `graphical` as `timestamps.json`,
+1. `timestamps.minimal.yaml` (the fixture's minimal twin, `timestamp_1`
+   without `display`) reads to the same `graphical` as `timestamps.yaml`,
    `T1.display` being `DEFAULT`; the fixture with `timestamp_3`'s
    `display` reversed reads to the fixture's `graphical` exactly. Writing
    is the schema package's: the round trips of every fixture
@@ -1885,7 +1928,7 @@ three timestamp IDs beside the timelines'. `clt_1` contains (`contains`)
    timeline's end, which is inside it), after `T3`.
 4. After removing `timestamp_1`, an add into `clt_1` at `[1, 1]` mints
    `timestamp_1` again and lists it first.
-5. Into `bare` of `bare.json` with its `graphical` object left out before
+5. Into `bare` of `bare.yaml` with its `graphical` object left out before
    reading, `{name: "Mid", coordinate: [5, 2]}`: the manifest's
    `graphical` is exactly `{order: {},
    statements: [], styles: {}, timestamps: [{id: "timestamp_1", timeline:
@@ -1957,17 +2000,17 @@ absence for a timeline below a new root and for a manifest that has a
     `length` at `960`; a `float` root (`seconds`) of unknown length only
     `origin`, at the float `0.0` (a `JsonFloat`, as a reader returns it).
 14. Importing (`importedManifest`), each fixture read with its
-    `graphical` object left out: `bare.json` gains exactly the `graphical`
+    `graphical` object left out: `bare.yaml` gains exactly the `graphical`
     `{order: {}, statements: [], styles: {}, timestamps: [{id:
     "timestamp_1", timeline: "bare", coordinate: [0, 1], name: "origin",
     display: ["wedge", "coordinate"]}, {id: "timestamp_2", timeline:
     "bare", coordinate: [8, 1], name: "length", display: ["wedge",
-    "coordinate"]}]}`; `nested.json` gains them for its root `clt_1` only
+    "coordinate"]}]}`; `nested.yaml` gains them for its root `clt_1` only
     (`[0, 1]`, `[16, 1]`), none for `clt_3` or `clt_2`;
-    `unknown_length.json`'s root `score` of unknown length gains `origin`
-    alone, its child `coda` none; `timestamps.json`, read as it is (it has
+    `unknown_length.yaml`'s root `score` of unknown length gains `origin`
+    alone, its child `coda` none; `timestamps.yaml`, read as it is (it has
     a `graphical` object), is returned as the same object. Adding the
-    imported `bare.json` as a block is one journal entry, the block's
+    imported `bare.yaml` as a block is one journal entry, the block's
     manifest holding the two timestamps.
 
 **Lengths.** A new length never leaves a timestamp of its timeline beyond
@@ -2022,7 +2065,7 @@ a part slot names its timelines and regions) and stored in its complete
 form, in the order given. Building and changing a link is the schema
 package's (`linkFromUrls`, `withLabel`, `withParts`, …); these tests give
 links as values and compare the stored form with that package's builders.
-The manifests are `bundles/bundle_mixed.json` in block `A`, and `bare.json`
+The manifests are `bundles/bundle_mixed.yaml` in block `A`, and `bare.yaml`
 changed before loading where a scheme or an empty `timelines` is needed.
 
 The link `W` below is `{relation: "pertains_to", level: "work", uri: [MB],
@@ -2066,7 +2109,7 @@ the label `Op. 106`.
 5. **`links` is no member of a block.** An `add` of a block whose value
    states `links: []` beside its manifest is `unknown_property` "unknown
    member links" at `[{}, "block", "links"]`.
-6. **Scheme IDs are manifest IDs.** `bare.json` with `schemes: [{id:
+6. **Scheme IDs are manifest IDs.** `bare.yaml` with `schemes: [{id:
    "clt_1", name: "Opus numbers"}]` loads with the scheme in its complete
    form (`uri: []`, `criteria: null`) and its IDs are exactly `bare`,
    `timestamp_1`, `timestamp_2` and `clt_1`. In block `A` holding it, an
@@ -2079,7 +2122,7 @@ the label `Op. 106`.
    `set` of `bare`'s links to a link whose identifier is `{scheme: "clt_1",
    value: "op. 106"}` is accepted, and so is an `add` of a region
    `region_1` from 0 to 4 holding the same link, which the region keeps in
-   its complete form; in plain `bare.json` the same `add` is
+   its complete form; in plain `bare.yaml` the same `add` is
    `schema_violation` "'clt_1' names no scheme of this manifest and is no
    absolute URI" at `[A, "manifest", "timelines", 0, "regions", 0,
    "links", 0, "identifiers", 0, "scheme"]`.
@@ -2105,7 +2148,7 @@ the label `Op. 106`.
     the bundle's links is refused `side_effect` "the manifest's links in
     bundle 'Mixed' lie outside timeline 'Score': an editor changes only
     what it edits" at `[A, "manifest", "links"]`.
-11. **A manifest without timelines.** `bare.json`'s value with `timelines:
+11. **A manifest without timelines.** `bare.yaml`'s value with `timelines:
     []` and without its `graphical` (whose timestamps lie on `bare`) loads,
     and `importedManifest` gives it back equal, no root to give a
     timestamp; a block holding it takes a
@@ -2139,22 +2182,22 @@ represented_by: [], absent: "not_represented", assertion: null}`, written
     an entry is read with its children and the rest of the manifest. Read
     alone, without what their slots name, every one of these but the
     refusal would be refused.
-13. **Removing what a part slot names, everywhere.** `nested.json` (the
+13. **Removing what a part slot names, everywhere.** `nested.yaml` (the
     root `clt_1`, its child `clt_3`, its child `clt_2`) with `clt_1`'s
     links `[S(clt_2)]` and a region `region_1` of `clt_1` (0 to 4) holding
     `[T]`, `T` being `W` with the slots `I` represented by `clt_2` and
     `clt_3` and `II` by `clt_2`: removing `clt_2`, a child at depth 2,
     gives `clt_1` `[S∅]` and `region_1` `I` represented by `clt_3` alone
     and `II` absent `not_represented`, in one command.
-    `segment_children.json` with `piece`'s links `[S(i1)]` (`i1` a segment
+    `segment_children.yaml` with `piece`'s links `[S(i1)]` (`i1` a segment
     of the segment line `intro`) and a region `region_1` of `coda` (0 to 1)
     holding `[S(i2)]`: removing `intro`, whose segments go with it, gives
     both `[S∅]`.
-14. **A region's links survive changes of the region.** In `nested.json`
+14. **A region's links survive changes of the region.** In `nested.yaml`
     with `region_1` holding `[T]`, one `set` of its `start` to 1, its `end`
     to 3 and its `name` to "Theme" leaves its links `[T*]`, `T`'s complete
     form.
-15. **An editor refuses to prune outside it.** In `nested.json` with
+15. **An editor refuses to prune outside it.** In `nested.yaml` with
     `clt_1`'s links `[S(clt_2)]`, in the editor of `clt_3`, removing
     `clt_2` (inside it) is refused `side_effect` "the links of timeline
     'clt_1' lie outside timeline 'clt_3': an editor changes only what it
@@ -2214,7 +2257,7 @@ three members and, for each, any of its own members (`{blockDefaults:
 {decimals: 6}}` keeps the denominator). The proof is that the journal and the undo history
 cannot see them, and that nothing the journal replays depends on them. The
 store under test holds three journalled commands (the `add` of block `A`
-holding `bare.json`, two moves of `A`) and an injected clock.
+holding `bare.yaml`, two moves of `A`) and an injected clock.
 
 1. **Outside the journal.** `configure({grid: {size: 16, snap: false}})`
    returns `null`; the journal still holds 3 entries (the same objects),
@@ -2264,6 +2307,21 @@ holding `bare.json`, two moves of `A`) and an injected clock.
 6. **Inside an editor.** With an editor open, `configure` is accepted
    (no side effect on any element is possible) and the session's entries
    are unchanged.
+7. **How each block's manifest is written** (`manifests`, by block ID,
+   each entry `{minimal, styling, serialization}` whole). A new workspace
+   holds `{}`, and `manifestFileOf(settings, A)` for a block without an
+   entry is `NEW_MANIFEST_FILE`, `{minimal: true, styling: true,
+   serialization: "yaml"}`. `configure({manifests: {[A]: {minimal: false,
+   styling: false, serialization: "json"}}})` returns `null`, journals
+   nothing, and `manifestFileOf` then gives that entry for `A` and still
+   `NEW_MANIFEST_FILE` for `B`; a second `configure` naming only `B` keeps
+   `A`'s entry as it was. Undo of the `add` of `A` keeps `A`'s
+   entry (the journal may bring the block back, as redo does). Refused,
+   leaving the settings as they were: an entry's `serialization` `"toml"`
+   → `invalid_value` at `["settings", "manifests", A, "serialization"]`;
+   `minimal` `"yes"` → `invalid_value` at `["settings", "manifests", A,
+   "minimal"]`; a key that is no block ID, `"A"` → `invalid_block_id` at
+   `["settings", "manifests", "A"]`.
 
 ## Editor sessions (`sessions.test.ts`)
 
@@ -2308,7 +2366,7 @@ a new command keeps exactly the applied changes at every depth under the
 same ids; and the file then replays. Every view named below is the very
 object the store held (`toBe`) unless "deep-equal" is said.
 
-The cases run on block `bundle0001` holding `bundles/bundle_mixed.json`,
+The cases run on block `bundle0001` holding `bundles/bundle_mixed.yaml`,
 added by the store's first dispatch. Addresses are objects: `bundle0001`
 below stands for the block's address `{block: "bundle0001"}`, `G1` for
 `{block: "bundle0001", id: "group_1"}`, `G2` for the same with `group_2`,
@@ -2328,7 +2386,7 @@ group.
    "bundle0001", part: ["name"]}`, `group_1`'s title, the cards of `score`
    (`part: ["card"]`), a band (`{block: "bundle0001", id: "score", facet:
    "regions"}`), the region `region_1` and the map `tempo` of block `A`
-   (`map.json`) → `no_editor` "<address> has no editor" at `[<address>]`;
+   (`map.yaml`) → `no_editor` "<address> has no editor" at `[<address>]`;
    `nothing`, `{block: "0000000009"}` and, on a manifest with the id
    `takes`, `takes` (the manifest's own ID addresses nothing) →
    `unknown_target` at `[<address>]`. The editor kind reads the resolver's
@@ -2632,7 +2690,7 @@ an offset, each inside and outside) gives the same result with the change
 set and without it; a `NaN` in an outside `meta`, which only a projection
 reads, is accepted with it and throws without it.
 
-Block `bundle0001` holds `bundles/bundle_mixed.json`; `R`, `E` and `D`
+Block `bundle0001` holds `bundles/bundle_mixed.yaml`; `R`, `E` and `D`
 are the band orders of "Places, display orders and band orders". `before`
 is the view of that block alone, added by `add`; `after` is reached by
 `apply` unless a case says it is built by replacing one member of
@@ -2646,7 +2704,7 @@ block alone).
 
 **`contains`** (`contains.test.ts`):
 
-1. **A group.** Over `bundle_mixed.json`'s enumeration, `group_2` contains
+1. **A group.** Over `bundle_mixed.yaml`'s enumeration, `group_2` contains
    exactly, in enumeration order: its frame `{id: "group_2"}` and title
    `{id: "group_2", part: ["name"]}`; for each member in display order its
    card (`{id, part: ["card"]}`), its line, name and five bands with
@@ -2670,7 +2728,7 @@ block alone).
    (drawing.md §8.3), so the enumeration cannot show it; the second answer
    proves that the first is the boundary's, not that of an address
    `contains` does not know.
-4. **Entries belong to the timeline holding them.** In `map.json`,
+4. **Entries belong to the timeline holding them.** In `map.yaml`,
    `phrase` contains `{id: "ticks"}` (its map) and not `{id: "tempo"}`;
    `melody` contains both, `{id: "phrase", part: ["name"]}` and `{id:
    "ticks", part: ["label"]}`.
@@ -2707,11 +2765,11 @@ block alone).
     alike. The settings are no part of a view a command changes, so an
     `after` differing from `before` only in its `grid` → nothing.
 13. **Another block.** With a second block `0000000000` holding
-    `bare.json`: `set {block: "0000000000"} x 50`, `add` of block
-    `0000000001` (`bare.json`) and `remove {block: "0000000000"}` → at the
+    `bare.yaml`: `set {block: "0000000000"} x 50`, `add` of block
+    `0000000001` (`bare.yaml`) and `remove {block: "0000000000"}` → at the
     blocks' addresses `[{block: "0000000000"}]`, `[{block: "0000000001"}]`,
     `[{block: "0000000000"}]`, message `the anonymous bundle lies outside
-    …` (`bare.json` has neither name nor id);
+    …` (`bare.yaml` has neither name nor id);
     the bundle editor refuses the move alike.
 14. **Band orders.** A timeline's band order lies inside every editor that
     holds the timeline, and outside one that does not, refused there where
@@ -2892,7 +2950,7 @@ that holds a member without being one.
 
 ## The workspace file (`file.test.ts`)
 
-`writeWorkspace(workspace)` is TimeToShare's `dumps` (keys sorted) of
+`writeWorkspace(workspace)` is TimeToShare's `dumps` in pretty JSON (keys sorted) of
 `{meta, name, settings, graphical, blocks, journal, sessions}`, format
 version 7 (since the settings left the journal and the workspace's default
 statements left the settings for the top-level `graphical`, which a
@@ -2907,15 +2965,18 @@ without entries); a session id is ten characters of `0-9a-z`, as a key of
 `sessions` and in an entry. Every session is reached exactly once from
 `journal` through session entries.
 
-1. **Round trip.** A workspace built by a store (blocks of `bare.json` and
-   `map.json`, a move, a style, an undone command excluded, the workspace's
+1. **Round trip.** A workspace built by a store (blocks of `bare.yaml` and
+   `map.yaml`, a move, a style, an undone command excluded, the workspace's
    `graphical` set to one statement, the grid configured to `{size: 16,
-   snap: false}` and the granularity's denominator to 5) is
-   written; the text read back deep-equals the workspace, and writing it
+   snap: false}`, the granularity's denominator to 5 and the manifest file
+   of block `A` to `{minimal: false, styling: false, serialization:
+   "json"}`) is written; the text read back deep-equals the workspace, and writing it
    again gives the same bytes. Its members are exactly `blocks`,
    `graphical`, `journal`, `meta`, `name`, `sessions`, `settings`;
    `settings`' members are exactly `blockDefaults`, `granularity`, `grid`,
-   the granularity exactly `{denominator: 5, decimals: 3}`;
+   `manifests`, the granularity exactly `{denominator: 5, decimals: 3}`,
+   `manifests` exactly `{[A]: {minimal: false, serialization: "json",
+   styling: false}}`;
    `meta` is exactly `{format: "tilie-workspace", version: 7}`; `name` is
    `untitled`; `sessions` is `{}`.
 2. **Replay.** Replaying the read journal from `createView()` gives exactly
@@ -2956,9 +3017,12 @@ without entries); a session id is ten characters of `0-9a-z`, as a key of
    5}` or by `{denominator: 5, decimals: 3, refine: true}` each reads
    without a problem, its granularity exactly `{denominator: 2520,
    decimals: 3}` and every other member as in the round trip; writing it
-   again writes that granularity. The reader is lenient there only: a
-   `grid.size` of 0 in the same file is still `non_positive_number` at
-   `["settings", "grid", "size"]`.
+   again writes that granularity. **The manifest files likewise**: the
+   text with `settings.manifests` removed (a file written before the editor
+   kept them), or replaced by `[]` or by `{[A]: {minimal: "yes"}}`, reads
+   without a problem, with `manifests` exactly `{}`. The reader is lenient
+   there only: a `grid.size` of 0 in the same file is still
+   `non_positive_number` at `["settings", "grid", "size"]`.
 5. **Version 4.** A version-4 file (the round trip's text with `version:
    4` and its commands' addresses written as that format wrote them,
    strings: the `add`s `into: "workspace"`, each `set` aimed at the bare
@@ -2975,7 +3039,7 @@ without entries); a session id is ten characters of `0-9a-z`, as a key of
    `settings`) is refused for its version alone, message `workspace version
    6 is not supported; this editor reads version 7 only`.
 6. **Sessions in the file.** On the text of a workspace whose journal is
-   the `add` of block `A` holding `bundles/bundle_mixed.json` and one entry
+   the `add` of block `A` holding `bundles/bundle_mixed.yaml` and one entry
    naming session `s = "session001"`, `{target: {block: A, id: "group_1"},
    entries: [<set {block: A, id: "score"} name "S">]}` (written by a store
    and then edited as text,
@@ -3012,7 +3076,7 @@ without entries); a session id is ten characters of `0-9a-z`, as a key of
    deep-equal to the one read from the original text: a block holds the
    complete form.
 7. **Places in the file.** A store's workspace of block `A` holding
-   `bundles/bundle_mixed.json` with `set {block: A, id: "group_1"} place
+   `bundles/bundle_mixed.yaml` with `set {block: A, id: "group_1"} place
    {length: 300, scale: 1.25, spacing: 2, margin: 3}` and `set {block: A,
    id: "score"} place {width: 650, spacing: 1.5, margin: 1}` is written;
    the text reads back deep-equal and writes the same bytes, `places`
@@ -3067,16 +3131,16 @@ and path, the view unchanged.
 3. **An editor does not rename the workspace.** With the bundle editor of
    block `A` (`{block: A}`) open, the same `set` is `side_effect` at `[{},
    "name"]`, message `the workspace name lies outside the anonymous
-   bundle: an editor changes only what it edits` (`bare.json` has neither
+   bundle: an editor changes only what it edits` (`bare.yaml` has neither
    name nor id).
-4. **Names in a manifest**, on `bundles/bundle_mixed.json` in block `A`
+4. **Names in a manifest**, on `bundles/bundle_mixed.yaml` in block `A`
    (the manifest named `Mixed`): `set {target: {block: A}, values: {name:
    "Op. 35"}}` leaves the manifest's `name` `Op. 35`, the rest of the
    manifest equal; `null` leaves it `null`. `set {block: A, id: "group_1"}
    {name: "Duo"}` leaves `group_1` named `Duo` and every other member of it
    and of the manifest equal; `null` leaves it `null`; `3` is
    `invalid_value` at `[{block: A, id: "group_1"}, "name"]`. On
-   `map.json`, `set {block: A, id: "tempo"} {name: "Beat"}` stores
+   `map.yaml`, `set {block: A, id: "tempo"} {name: "Beat"}` stores
    `name: "Beat"` in the map `tempo` (named `Tempo`), its payload otherwise
    equal. Each
    value the target already holds is refused as changing nothing. An
@@ -3104,7 +3168,7 @@ the rule is part of the command.
 
 What proves it, each manifest compared exactly:
 
-1. **Apply.** On `bundles/bundle_mixed.json` in block `A`, the manifest
+1. **Apply.** On `bundles/bundle_mixed.yaml` in block `A`, the manifest
    with `is_segment_line: true` on `page` (pixels, int, length 1920, a
    member of `group_2`, no children) set as `A`'s `manifest` is accepted:
    `page` holds exactly one child, `{id: "dgt_1", unit: "pixels",
@@ -3126,16 +3190,16 @@ What proves it, each manifest compared exactly:
    number_type: "fraction", offset: [0, 1], length: [12, 1], …}`;
    `performance` (float seconds, 12.5) the segment `cpt_1` at offset `0.0`
    (a `JsonFloat`) of length `12.5`.
-3. **The id is free in the manifest.** On `bundle_mixed.json` with a root
+3. **The id is free in the manifest.** On `bundle_mixed.yaml` with a root
    `dgt_1` (pixels, 10) added first, the segment of `page` is `dgt_2`. An
    `id` under `meta` is no ID of the manifest: `page` applied as a segment
    line with `meta: {id: "dgt_1", note: {id: "dgt_2"}}` gains `dgt_1`.
 4. **Unknown length.** On a root `open` of unknown length (quarters)
-   added to `bare.json`'s block, `set {block: A, id: "open"} {is_segment_line: true}`
+   added to `bare.yaml`'s block, `set {block: A, id: "open"} {is_segment_line: true}`
    leaves `open` a segment line without children, its length `null`.
 5. **Turning it off.** The schema lets a timeline that is no segment line
    hold any children within its length, so turning the flag off keeps the
-   segments as children. On `segment_line.json`, `set {block: A, id: "form"}
+   segments as children. On `segment_line.yaml`, `set {block: A, id: "form"}
    {is_segment_line: false}` leaves `form` with the children `a`, `b` and
    `c` exactly as they were (offsets, lengths, their own segments): each
    is still a segment line, now a child, and so still locked; their
@@ -3146,15 +3210,15 @@ What proves it, each manifest compared exactly:
    `[{block: A, id: "form"}, "is_segment_line"]`; `"yes"` is `invalid_value` there.
    Turning the flag off lifts the lock the place rule gave the line for
    being a segment line, and keeps a lock no place decided: on
-   `bundle_mixed.json`, the member `performance` (unlocked) turned on holds
+   `bundle_mixed.yaml`, the member `performance` (unlocked) turned on holds
    `locked: true`, turned off again `locked: false`, its segment `cpt_1`
    unlocked; the same for a child `c` (quarters, `[0, 1]`, `[4, 1]`, no
-   `locked` stated) added into `bare.json`'s root. The root `form`, no
+   `locked` stated) added into `bare.yaml`'s root. The root `form`, no
    child and no member, set `locked: true` and then turned off keeps
    `locked: true`.
 6. **Adding a segment line.** `add {into: {block: A, id: "bare"}, child: {id: "sl", unit:
    "quarters", offset: [0, 1], length: [4, 1], is_segment_line: true}}`
-   into `bare.json`'s root adds `sl` holding the segment `clt_1` from `[0,
+   into `bare.yaml`'s root adds `sl` holding the segment `clt_1` from `[0,
    1]` of `[4, 1]`, `sl` locked by its place (a segment line that is a
    child).
 7. **Preview.** `preview` of the setter of case 2 gives the same manifest
@@ -3191,7 +3255,7 @@ an `id` given, a `display` in any order, with an unknown or repeated
 word), a `set` of its `name`, `coordinate`, `display` or `timeline`, and
 its `remove`, on the manifest's timestamps and an unknown one.
 Each manifest fixture starts as block `A` beside a block `B` of
-`bare.json`, in a store with an injected clock, for ten sequences.
+`bare.yaml`, in a store with an injected clock, for ten sequences.
 
 1. After every accepted command the view check finds nothing, and every
    block's manifest saves and reloads deep-equal with identical text.
@@ -3215,7 +3279,7 @@ Each manifest fixture starts as block `A` beside a block `B` of
    `segment_structure`, `timestamp_exceeds_length`, `unit_mismatch`, `unknown_property`,
    `unknown_target`, `unlocking_not_supported`, `wrong_target_kind`.
    `unlocking_not_supported` is reached in
-   `bundles/bundle_shared_parent.json`, whose `exposition` and
+   `bundles/bundle_shared_parent.yaml`, whose `exposition` and
    `recapitulation` are segment lines that are children of `score` and
    group members, locked by their place. The sample runs in one test,
    measured at 9.8 to 10.7 s at a load average of 6, with an explicit
@@ -3431,14 +3495,15 @@ Timestamp tab's JSON. The oracles: a float expectation is what CPython 3
 prints for `repr(x)` or `repr(round(x, decimals))`; the seconds' split is
 the integer arithmetic of the exact value, `h = ⌊m / 3600⌋`, `min = ⌊(m
 mod 3600) / 60⌋`, the seconds the rest, `m` the magnitude, taken for a
-float from the decimal digits of its `repr`, never from float arithmetic
+float from the decimal digits of its spelling, never from float arithmetic
 (75.1, whose double lies below 75.1, must still give `15.1` seconds).
 
 1. **Copy** carries the whole value: a fraction `n/d` (`219/16`) or its
    integer (`3`); a float the shortest text that reads back as the same
-   double, as Python's `repr` spells it (0.1 → `0.1`, 1e-07 → `1e-07`,
-   3.0 → `3.0`, 6.71875 → `6.71875`, 1e+16 → `1e+16`); an int its plain
-   digits (`514041`).
+   double, as TimeToShare's manifest writers spell it, which is Python's
+   `repr` with a fractional digit given to a mantissa in exponent form
+   (0.1 → `0.1`, 1e-07 → `1.0e-07`, 3.0 → `3.0`, 6.71875 → `6.71875`,
+   1e+16 → `1.0e+16`); an int its plain digits (`514041`).
 2. **Raw text** is the copy text, a space and the unit's schema name, for
    every unit: 219/16 → `219/16 number`, `219/16 floating_measures`,
    `219/16 whole_notes`, `219/16 quarters`, `219/16 ticks`, `219/16
@@ -3463,25 +3528,25 @@ float from the decimal digits of its `repr`, never from float arithmetic
    1/2521 → `1/2521`, 5043/2521 → `2 1/2521`, 1/4096 → `1/4096`, 123457/2
    → `61728 1/2`. An int is grouped by three with single spaces: 514041 →
    `514 041 smp`, −1234567 → `-1 234 567`, 1000 → `1 000`, 999 → `999`,
-   0 → `0`. A float is its full `repr`: 0.1 → `0.1`, 6.71875 → `6.71875`,
-   1e-07 → `1e-07`, 1e+16 → `1e+16`, the double of 0.1 + 0.2 →
-   `0.30000000000000004`.
+   0 → `0`. A float is its full spelling: 0.1 → `0.1`, 6.71875 →
+   `6.71875`, 1e-07 → `1.0e-07`, 1e+16 → `1.0e+16`, the double of 0.1 +
+   0.2 → `0.30000000000000004`.
 5. **Seconds, exact.** Hours `h` only when not 0; minutes `′` (U+2032)
    when not 0 or after hours; seconds `″` (U+2033) always; a part after a
    shown one padded to two digits; the seconds' decimals only when not
    zero; no unit after. Floats: 42.5 → `42.5″`, 5.241 → `5.241″`, 75.5 →
    `1′15.5″`, 3725.0 → `1h02′05″`, 3605.25 → `1h00′05.25″`, 60.0 →
    `1′00″`, 0.0 → `0″`, −75.5 → `-1′15.5″`, 75.1 → `1′15.1″`, 0.1 + 0.2 →
-   `0.30000000000000004″`, 1e-05 → `0.00001″` (the `repr`'s digits
+   `0.30000000000000004″`, 1e-05 → `0.00001″` (the spelling's digits
    written out), 1e+16 → `2777777777777h46′40″` (10^16 = 2777777777777 ×
    3600 + 2800, 2800 = 46 × 60 + 40). Fractions: 151/2 → `1′15 1/2″`,
    121/2 → `1′00 1/2″` (the padded integer part is written even when 0),
    1/2 → `1/2″`, 7201/2 → `1h00′00 1/2″`. Ints: 3725 → `1h02′05″`, 59 →
    `59″`, −3600 → `-1h00′00″`.
 6. **Rounded.** With `decimals` a float is Python's `round(x, decimals)`
-   spelled as its `repr`, for `decimals` 0, 3 and 6: 6.71875 → `7.0`,
+   spelled as Copy spells it, for `decimals` 0, 3 and 6: 6.71875 → `7.0`,
    `6.719`, `6.71875`; 312.48979591836735 → `312.0`, `312.49`,
-   `312.489796`; 1e-05 → `0.0`, `0.0`, `1e-05`; 2.5 → `2.0` (a true tie,
+   `312.489796`; 1e-05 → `0.0`, `0.0`, `1.0e-05`; 2.5 → `2.0` (a true tie,
    to even), `2.5`, `2.5`; 6.0 → `6.0` at 3. A fraction is mixed while its
    denominator is at most 2520 = lcm(1, …, 10), whatever `decimals`
    (219/16 → `13 11/16`, 1/2520 → `1/2520`, 2521/2520 → `1 1/2520`,
@@ -3604,14 +3669,14 @@ offset), which the test reads off a fixture's tree, an offset summed down
 the path from the anchor; so every expected value follows by hand from the
 maps' own arithmetic ("Conversion maps") and needs no drawing. Granularity
 `{denominator: 2520, decimals: 3}` unless stated; `knots` `no_server`
-unless stated. The manifests: `bundles/bundle_mixed.json` (`score`:
+unless stated. The manifests: `bundles/bundle_mixed.yaml` (`score`:
 quarters, fraction, length 12, `cmap_1` 480·x onto ticks (int), `cmap_2`
 1/2·x onto seconds (float); `recording`: samples, int, length 441000,
 `cmap_5` x/44100 onto seconds; its child `excerpt` at 44100, length 88200,
 `cmap_6` x/44100 onto seconds; `performance`: seconds, float, `cmap_3`
-44100·x onto samples), `segment_line.json`,
-`conversion_maps__maps_quarters.json` (`maps:quarters`, quarters,
-fraction, length 16, twelve maps of every kind) and `timestamps.json`, and
+44100·x onto samples), `segment_line.yaml`,
+`conversion_maps__maps_quarters.yaml` (`maps:quarters`, quarters,
+fraction, length 16, twelve maps of every kind) and `timestamps.yaml`, and
 the parity table's manifest with its MeasureMap's expanded rows
 (`parity/maps.json`, "Conversion maps").
 
@@ -3631,7 +3696,7 @@ the parity table's manifest with its MeasureMap's expanded rows
    `excerpt` is crossed at 0 and at 132300 at 88200. With the member's
    length unknown (`null`), 200000 crosses it at 155900.
 3. **Contiguous members are both crossed; the caller's order stands.**
-   `form` of `segment_line.json` with its descendants in traversal order
+   `form` of `segment_line.yaml` with its descendants in traversal order
    (`a` at 0 of 8, `a1` at 0 of 8, `b` at 8 of 12, `b1` at 8 of 6, `b2` at
    14 of 6, `c` at 20 of 12, `c1` at 20 of 12, offsets from `form`'s
    zero): at 8 the parts are `form` 8, `a` 8, `a1` 8, `b` 0, `b1` 0 (the
@@ -3744,12 +3809,12 @@ the parity table's manifest with its MeasureMap's expanded rows
      the rows give it; `q_combination` `{seconds: {number_type: "float",
      value: 1.0}, file: "a.png", count: {number_type: "int", value: 3}}`;
      `q_constant_label` `"intro"`.
-   - Named: `timestamps.json`'s `timestamp_2` (`clt_1` at 6) with the
+   - Named: `timestamps.yaml`'s `timestamp_2` (`clt_1` at 6) with the
      member `clt_2` (offset 2, length 4): the named timestamp's members, then
      `mapping` `{clt_2: {unit: "quarters", number_type: "fraction", value:
      [4, 1]}}` (6 − 2 = 4, the end of `clt_2`'s closed span).
-   - A segment's named timestamp: `segment_line.json` with `b2_ticks`
-     (`map.json`'s `ticks`, 480·x onto ticks, under another ID) and a
+   - A segment's named timestamp: `segment_line.yaml` with `b2_ticks`
+     (`map.yaml`'s `ticks`, 480·x onto ticks, under another ID) and a
      timestamp "Mark" at 1 added to `b`'s segment `b2` (offset 6, length
      6, no children), both through `add`. Its pin is read with `b2` as the
      anchor (a named timestamp's timeline is always its pin's anchor; the

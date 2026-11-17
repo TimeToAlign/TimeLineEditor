@@ -9,11 +9,12 @@ import {
   importedManifest,
   isLoadError,
   loadManifest,
+  manifestFileOf,
   readWorkspace,
   saveManifest,
   writeWorkspace,
 } from "@timetoalign/tilie-core";
-import { fontMetrics, SCHEMA_VERSION } from "@timetoalign/timetoshare";
+import { dumps, fontMetrics, loads, SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import { flushSync, mount, unmount } from "svelte";
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import App from "../src/App.svelte";
@@ -166,20 +167,18 @@ describe("the File menu", () => {
       ["Save as…", "Ctrl+Shift+S"],
       ["Import manifest…", null],
       ["Export manifest…", null],
-      ["Export minimal manifest…", null],
     ]);
-    expect(item("Export minimal manifest…").getAttribute("aria-disabled")).toBe("true");
     expect(item("Export manifest…").getAttribute("aria-disabled")).toBe("true");
 
     key(button, { key: "ArrowDown" });
     await vi.waitFor(() => expect(focusedLabel()).toBe("New workspace"));
     expect([button.getAttribute("aria-expanded"), menu?.hidden]).toEqual(["true", false]);
     key(document.activeElement as Element, { key: "ArrowUp" });
-    expect(focusedLabel()).toBe("Export minimal manifest…");
+    expect(focusedLabel()).toBe("Export manifest…");
     key(document.activeElement as Element, { key: "ArrowDown" });
     expect(focusedLabel()).toBe("New workspace");
     key(document.activeElement as Element, { key: "End" });
-    expect(focusedLabel()).toBe("Export minimal manifest…");
+    expect(focusedLabel()).toBe("Export manifest…");
     key(document.activeElement as Element, { key: "Home" });
     expect(focusedLabel()).toBe("New workspace");
     key(document.activeElement as Element, { key: "Escape" });
@@ -187,7 +186,7 @@ describe("the File menu", () => {
     expect(document.activeElement).toBe(button);
 
     key(button, { key: "ArrowUp" });
-    await vi.waitFor(() => expect(focusedLabel()).toBe("Export minimal manifest…"));
+    await vi.waitFor(() => expect(focusedLabel()).toBe("Export manifest…"));
   });
 });
 
@@ -426,7 +425,7 @@ describe("manifests", () => {
   it("imports a manifest as one block at the centre of the view, selected", async () => {
     start();
     choose("Import manifest…");
-    await vi.waitFor(() => pickFile("nested.json", fixtureText("nested")));
+    await vi.waitFor(() => pickFile("nested.yaml", fixtureText("nested")));
     await vi.waitFor(() => expect(hook().store().journal.length).toBe(1));
     const command = (hook().store().journal[0] as CommandEntry | undefined)?.command as {
       type: string;
@@ -453,14 +452,15 @@ describe("manifests", () => {
 
   it("gives a manifest without a graphical object its roots' default timestamps", async () => {
     start();
-    const { graphical: _, ...plain } = JSON.parse(fixtureText("nested")) as {
+    const { graphical: _, ...plain } = loads(fixtureText("nested")) as {
       [key: string]: unknown;
     };
+    const text = dumps(plain, { serialization: "json" });
     choose("Import manifest…");
-    await vi.waitFor(() => pickFile("plain.json", JSON.stringify(plain)));
+    await vi.waitFor(() => pickFile("plain.json", text));
     await vi.waitFor(() => expect(hook().store().journal.length).toBe(1));
     const [id] = Object.keys(hook().store().view.blocks);
-    const loaded = loadManifest(JSON.stringify(plain));
+    const loaded = loadManifest(text);
     if (isLoadError(loaded) || id === undefined) throw new Error("not imported");
     const manifest = hook().store().view.blocks[id]?.manifest;
     expect(manifest).toEqual(importedManifest(loaded));
@@ -602,7 +602,7 @@ describe("manifests", () => {
     expect([openDialog(), hook().text()]).toEqual([null, text]);
   });
 
-  it("exports the manifest of the block the selection lies in, complete or minimal", async () => {
+  it("exports the manifest of the block the selection lies in as a new manifest", async () => {
     start();
     const downloads = interceptDownloads();
     addBlock(hook().store(), A, "nested");
@@ -617,16 +617,57 @@ describe("manifests", () => {
     choose("Export manifest…");
     const manifest = hook().store().view.blocks[A]?.manifest;
     if (manifest === undefined) throw new Error("block A is missing");
+    // No file wrote the block: it is written minimal, with its styling, in canonical YAML.
     await vi.waitFor(() =>
-      expect(downloads).toEqual([[manifestFileName(manifest), saveManifest(manifest)]]),
+      expect(downloads).toEqual([[manifestFileName(manifest, "yaml"), saveManifest(manifest)]]),
     );
-    expect(item("Export minimal manifest…").getAttribute("aria-disabled")).toBe(null);
-    choose("Export minimal manifest…");
-    await vi.waitFor(() => expect(downloads).toHaveLength(2));
-    expect(downloads[1]).toEqual([
-      manifestFileName(manifest),
-      saveManifest(manifest, { minimal: true }),
-    ]);
+    expect(downloads[0]?.[1]).toBe(
+      saveManifest(manifest, { minimal: true, styling: true, serialization: "yaml" }),
+    );
+  });
+
+  it("writes an imported manifest file back as it came", async () => {
+    start();
+    const downloads = interceptDownloads();
+    const { graphical: _, ...plain } = loads(fixtureText("nested")) as {
+      [key: string]: unknown;
+    };
+    const texts = [
+      [
+        "bundle.yaml",
+        fixtureText("bare"),
+        { minimal: false, styling: true, serialization: "yaml" },
+      ],
+      [
+        "bundle.yaml",
+        fixtureText("bare.minimal"),
+        { minimal: true, styling: true, serialization: "yaml" },
+      ],
+      [
+        "bundle.json",
+        dumps(loads(fixtureText("nested")), { serialization: "json" }),
+        { minimal: false, styling: true, serialization: "json" },
+      ],
+      [
+        "bundle.json",
+        dumps(plain, { serialization: "jcs" }),
+        { minimal: false, styling: false, serialization: "jcs" },
+      ],
+    ] as const;
+    for (const [index, [name, text, file]] of texts.entries()) {
+      choose("Import manifest…");
+      await vi.waitFor(() => pickFile(name, text));
+      await vi.waitFor(() => expect(hook().store().journal.length).toBe(index + 1));
+      const [selected] = hook().selection();
+      if (selected?.block === undefined) throw new Error("the imported block is not selected");
+      expect(manifestFileOf(hook().store().view.settings, selected.block)).toEqual(file);
+      flushSync();
+      choose("Export manifest…");
+      await vi.waitFor(() => expect(downloads).toHaveLength(index + 1));
+      expect(downloads[index]).toEqual([name, text]);
+    }
+    const last = hook().store().view.blocks[hook().selection()[0]?.block ?? ""];
+    expect(last?.manifest.graphical?.timestamps?.length).toBe(2);
   });
 });
 

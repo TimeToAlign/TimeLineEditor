@@ -40,7 +40,7 @@ test("a workspace survives save, reopen and save byte for byte", async ({ page }
   await setViewport(page, { x: 100, y: 50, zoom: 1 });
 
   const bare = manifestFixture("bare");
-  await pick(page, "Import manifest…", "bare.json", bare);
+  await pick(page, "Import manifest…", "bare.yaml", bare);
   await expect.poll(() => journalLength(page)).toBe(1);
   const [selected] = await selection(page);
   if (selected?.block === undefined || selected.id !== undefined) {
@@ -110,7 +110,7 @@ test("an opened workspace is fitted; an import into it leaves the view", async (
   const fitted = await viewportOf(page);
 
   const bare = manifestFixture("bare");
-  await pick(page, "Import manifest…", "bare.json", bare);
+  await pick(page, "Import manifest…", "bare.yaml", bare);
   await expect.poll(() => journalLength(page)).toBe(OPENED_JOURNAL.small + 1);
   await frames(page);
   expect(await viewportOf(page)).toEqual(fitted);

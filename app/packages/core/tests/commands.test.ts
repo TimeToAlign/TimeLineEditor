@@ -1,4 +1,4 @@
-import { JsonFloat, parseJson } from "@timetoalign/timetoshare";
+import { JsonFloat, loads } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { apply } from "../src/commands/apply.ts";
 import { parseCommand } from "../src/commands/parse.ts";
@@ -38,8 +38,8 @@ const set = (target: Address, properties: object) => ({
   changes: [{ target, values: properties }],
 });
 const frozen = (...blocks: (readonly [string, string])[]): View => deepFreeze(viewOf(...blocks));
-const tempo = () => load("map.json").timelines[0]?.conversion_maps[0] as object;
-const ticks = () => load("map.json").timelines[0]?.children[0]?.conversion_maps[0] as object;
+const tempo = () => load("map.yaml").timelines[0]?.conversion_maps[0] as object;
+const ticks = () => load("map.yaml").timelines[0]?.children[0]?.conversion_maps[0] as object;
 /** A `graphical` block as a settled manifest holds it: in its complete form, the fixture `name`'s timestamps kept. */
 const held = (name: string, graphical: object) => ({
   order: {},
@@ -76,7 +76,7 @@ function root(view: View, id = A): TimelineManifest {
 
 describe("add", () => {
   it("adds a block with the defaults and an index after the others", () => {
-    const view = applied(createView(), addBlock(A, "bare.json"));
+    const view = applied(createView(), addBlock(A, "bare.yaml"));
     expect(block(view)).toEqual({
       id: A,
       parent: null,
@@ -90,24 +90,24 @@ describe("add", () => {
       width: null,
       height: null,
       places: {},
-      manifest: load("bare.json"),
+      manifest: load("bare.yaml"),
     });
     const second = applied(view, {
       type: "add",
       into: WORKSPACE,
-      block: { id: B, manifest: load("bare.json"), x: 0, y: 0, scale: 2 },
+      block: { id: B, manifest: load("bare.yaml"), x: 0, y: 0, scale: 2 },
     });
     expect([block(second, B).index, block(second, B).scale]).toEqual(["a1", 2]);
     const given = applied(view, {
       type: "add",
       into: WORKSPACE,
-      block: { id: C, manifest: load("bare.json"), x: 0, y: 0, index: "Zz" },
+      block: { id: C, manifest: load("bare.yaml"), x: 0, y: 0, index: "Zz" },
     });
     expect(block(given, C).index).toBe("Zz");
   });
 
   it("adds a child given in the minimal form, normalizing its offset and growing the root", () => {
-    const view = applied(viewOf([A, "bare.json"]), {
+    const view = applied(viewOf([A, "bare.yaml"]), {
       type: "add",
       into: at("bare"),
       child: {
@@ -118,8 +118,8 @@ describe("add", () => {
         locked: true,
       },
     });
-    const [bare] = load("bare.json").timelines;
-    if (bare === undefined) throw new Error("bare.json holds a root");
+    const [bare] = load("bare.yaml").timelines;
+    if (bare === undefined) throw new Error("bare.yaml holds a root");
     expect(root(view).length).toEqual([17, 2]);
     expect(root(view).children).toEqual([
       { ...bare, id: "clt_1", name: null, offset: quarters(1, 2), locked: true },
@@ -131,14 +131,14 @@ describe("add", () => {
       [tempo(), ticks()],
       [ticks(), tempo()],
     ]) {
-      let view = viewOf([A, "bare.json"]);
+      let view = viewOf([A, "bare.yaml"]);
       for (const map of order) view = applied(view, { type: "add", into: at("bare"), map });
       expect(root(view).conversion_maps).toEqual([tempo(), ticks()]);
     }
   });
 
   it("adds a conversion map into a segment line, validating the entry alone", () => {
-    const view = applied(viewOf([A, "segment_line.json"]), {
+    const view = applied(viewOf([A, "segment_line.yaml"]), {
       type: "add",
       into: at("b"),
       map: tempo(),
@@ -150,14 +150,14 @@ describe("add", () => {
   });
 
   it("refuses with the exact code and path", () => {
-    const view = viewOf([A, "map.json"]);
-    const bare = load("bare.json");
+    const view = viewOf([A, "map.yaml"]);
+    const bare = load("bare.yaml");
     expect(rejected(view, { type: "add", into: at("tempo"), child: {} })).toEqual({
       code: "wrong_target_kind",
       path: [key(at("tempo")), "child"],
     });
     expect(
-      rejected(viewOf([A, "groups/group_number_types.json"]), {
+      rejected(viewOf([A, "groups/group_number_types.yaml"]), {
         type: "add",
         into: at("group_1"),
         region: { id: "region_1", start: [0, 1], end: [1, 1] },
@@ -187,7 +187,7 @@ describe("add", () => {
       code: "non_positive_number",
       path: [key(WORKSPACE), "block", "scale"],
     });
-    const one = viewOf([A, "bare.json"]);
+    const one = viewOf([A, "bare.yaml"]);
     expect(
       rejected(one, {
         type: "add",
@@ -263,7 +263,7 @@ describe("add", () => {
 
 describe("set", () => {
   it("moves two blocks in one command and changes nothing else", () => {
-    const view = frozen([A, "bare.json"], [B, "map.json"]);
+    const view = frozen([A, "bare.yaml"], [B, "map.yaml"]);
     const moved = applied(view, {
       type: "set",
       changes: [
@@ -276,7 +276,7 @@ describe("set", () => {
   });
 
   it("sets the placement of a block", () => {
-    const view = frozen([A, "bare.json"]);
+    const view = frozen([A, "bare.yaml"]);
     const placement = { scale: 2, width: 120, height: null, length: 800, spacing: 2, margin: 12 };
     expect(block(applied(view, set(BLOCK, placement)))).toEqual({ ...block(view), ...placement });
     expect(block(applied(view, set(BLOCK, { spacing: 0 }))).spacing).toBe(0);
@@ -285,7 +285,7 @@ describe("set", () => {
   });
 
   it("sets the workspace's graphical whole, leaving the settings", () => {
-    const view = frozen([A, "bare.json"]);
+    const view = frozen([A, "bare.yaml"]);
     const graphical = { statements: [{ select: { element: "map" }, set: { stroke: "#C00000" } }] };
     const styled = applied(view, set(WORKSPACE, { graphical }));
     expect(styled.graphical).toEqual(graphical);
@@ -295,7 +295,7 @@ describe("set", () => {
   it("reads a declaration's integral float of the workspace's graphical or a style command as its double", () => {
     // A command text that writes `2.0` reads the number as a `JsonFloat`; the stored
     // declaration holds the double, so the cascade computes with a number.
-    const view = frozen([A, "map.json"]);
+    const view = frozen([A, "map.yaml"]);
     const float = new JsonFloat(2);
     const statement = { select: { element: "map" }, set: { "stroke-width": float } };
     const stored = { statements: [{ select: { element: "map" }, set: { "stroke-width": 2 } }] };
@@ -324,14 +324,14 @@ describe("set", () => {
   });
 
   it("replaces a block's manifest whole, whatever it holds", () => {
-    const view = applied(viewOf([A, "bare.json"]), set(BLOCK, { manifest: load("nested.json") }));
-    expect(manifest(view)).toEqual(load("nested.json"));
-    const bundle = load("bundles/bundle_mixed.json");
+    const view = applied(viewOf([A, "bare.yaml"]), set(BLOCK, { manifest: load("nested.yaml") }));
+    expect(manifest(view)).toEqual(load("nested.yaml"));
+    const bundle = load("bundles/bundle_mixed.yaml");
     expect(manifest(applied(view, set(BLOCK, { manifest: bundle })))).toEqual(bundle);
   });
 
   it("sets timeline members, growing the unlocked root for a child's offset", () => {
-    const view = frozen([A, "nested.json"]);
+    const view = frozen([A, "nested.yaml"]);
     expect(root(applied(view, set(at("clt_1"), { name: "Score" })))).toEqual({
       ...root(view),
       name: "Score",
@@ -349,7 +349,7 @@ describe("set", () => {
   });
 
   it("replaces a conversion map's payload, keeping its id", () => {
-    const view = frozen([A, "map.json"]);
+    const view = frozen([A, "map.yaml"]);
     const payload = { ...tempo(), scalar: [1, 4] };
     expect(root(applied(view, set(at("tempo"), { map: payload }))).conversion_maps).toEqual([
       payload,
@@ -357,7 +357,7 @@ describe("set", () => {
   });
 
   it("refuses by the target's kind with the exact code and path", () => {
-    const view = viewOf([A, "nested.json"], [B, "bare.json"]);
+    const view = viewOf([A, "nested.yaml"], [B, "bare.yaml"]);
     const cases: [object, string, (string | number)[]][] = [
       [set(at("clt_1"), { id: "x" }), "id_not_settable", [key(at("clt_1")), "id"]],
       [set(BLOCK, { colour: 1 }), "unknown_property", [key(BLOCK), "colour"]],
@@ -397,7 +397,7 @@ describe("set", () => {
         [key(at("clt_1")), "length"],
       ],
       [
-        set(BLOCK, { manifest: { ...load("bare.json"), timetoshare: "0.6.0" } }),
+        set(BLOCK, { manifest: { ...load("bare.yaml"), timetoshare: "0.6.0" } }),
         "schema_violation",
         [A, "manifest", "timetoshare"],
       ],
@@ -417,7 +417,7 @@ describe("set", () => {
     ];
     for (const [command, code, path] of cases)
       expect(rejected(view, command)).toEqual({ code, path });
-    const maps = viewOf([A, "map.json"]);
+    const maps = viewOf([A, "map.yaml"]);
     expect(rejected(maps, set(at("tempo"), { start: 0 }))).toEqual({
       code: "wrong_target_kind",
       path: [key(at("tempo")), "start"],
@@ -427,7 +427,7 @@ describe("set", () => {
       path: [key(at("tempo")), "map", "id"],
     });
     // The manifest's own ID addresses nothing.
-    const bare = viewOf([A, "bare.json"]);
+    const bare = viewOf([A, "bare.yaml"]);
     const takes = {
       ...bare,
       blocks: { [A]: { ...block(bare), manifest: { ...manifest(bare), id: "takes" } } },
@@ -439,7 +439,7 @@ describe("set", () => {
   });
 
   it("is atomic", () => {
-    const view = frozen([A, "bare.json"]);
+    const view = frozen([A, "bare.yaml"]);
     expect(
       rejected(view, {
         type: "set",
@@ -453,15 +453,15 @@ describe("set", () => {
   });
 
   it("refuses a set that changes nothing, on every kind of target", () => {
-    const view = frozen([A, "nested.json"], [B, "bare.json"]);
-    const maps = frozen([A, "map.json"]);
-    const flow = frozen([A, "flow_control.json"]);
+    const view = frozen([A, "nested.yaml"], [B, "bare.yaml"]);
+    const maps = frozen([A, "map.yaml"]);
+    const flow = frozen([A, "flow_control.yaml"]);
     const cases: [View, Address, object][] = [
       [view, WORKSPACE, { graphical: {} }],
       [view, BLOCK, { x: 0 }],
       [view, BLOCK, { index: "a0" }],
       [view, BLOCK, { width: null }],
-      [view, BLOCK, { manifest: load("nested.json") }],
+      [view, BLOCK, { manifest: load("nested.yaml") }],
       [view, at("clt_1"), { name: null }],
       [view, at("clt_1"), { meta: {} }],
       [view, at("clt_1"), { length: quarters(32, 2) }],
@@ -475,7 +475,7 @@ describe("set", () => {
   });
 
   it("judges the whole set, never one value", () => {
-    const view = frozen([A, "nested.json"], [B, "bare.json"]);
+    const view = frozen([A, "nested.yaml"], [B, "bare.yaml"]);
     const moves = (a: number, b: number) => ({
       type: "set",
       changes: [
@@ -486,7 +486,7 @@ describe("set", () => {
     const moved = applied(view, moves(0, 7));
     expect([block(moved), block(moved, B)]).toEqual([block(view), { ...block(view, B), x: 7 }]);
     expect(apply(view, moves(0, 0))).toEqual(nothing(BLOCK, "x"));
-    const nested = load("nested.json");
+    const nested = load("nested.yaml");
     const named = { ...nested, timelines: nested.timelines.map((t) => ({ ...t, name: "Score" })) };
     const undone = {
       type: "set",
@@ -534,7 +534,7 @@ describe("locks by place", () => {
   }
 
   it("refuses to lock a segment, whose unlock changes nothing", () => {
-    const view = frozen([A, "segment_line.json"]);
+    const view = frozen([A, "segment_line.yaml"]);
     expect(refusedWith(view, set(at("b1"), { locked: true }))).toEqual({
       code: "segment_never_locked",
       message: SEGMENT.replace("%s", "b"),
@@ -547,9 +547,9 @@ describe("locks by place", () => {
 
   it("refuses to unlock a segment line that is a child, a segment or a group member", () => {
     for (const [fixture, id] of [
-      ["segment_line.json", "b"],
-      ["segment_children.json", "intro"],
-      ["bundles/corpus_ieee1599.json", "original_score:dgt_1"],
+      ["segment_line.yaml", "b"],
+      ["segment_children.yaml", "intro"],
+      ["bundles/corpus_ieee1599.yaml", "original_score:dgt_1"],
     ] as const) {
       const view = frozen([A, fixture]);
       expect(refusedWith(view, set(at(id), { locked: false }))).toEqual({
@@ -564,7 +564,7 @@ describe("locks by place", () => {
 
   it("never refuses the lock a timeline has, even where the opposite is refused", () => {
     // The file states `b` unlocked, which reading keeps: only segments are unlocked.
-    const view = deepFreeze(unlockedView("segment_line.json", "b"));
+    const view = deepFreeze(unlockedView("segment_line.yaml", "b"));
     expect(refusedWith(view, set(at("b"), { locked: false }))).toEqual(nothing(at("b"), "locked"));
     const kept = applied(view, set(at("b"), { locked: false, name: "Bridge" }));
     expect([lockOf(kept, "b"), findTimeline(manifest(kept), "b")?.name]).toEqual([false, "Bridge"]);
@@ -589,7 +589,7 @@ describe("locks by place", () => {
   });
 
   it("lets a root segment line outside a group take either lock", () => {
-    const locked = applied(frozen([A, "segment_line.json"]), set(at("form"), { locked: true }));
+    const locked = applied(frozen([A, "segment_line.yaml"]), set(at("form"), { locked: true }));
     expect(lockOf(locked, "form")).toBe(true);
     expect(lockOf(applied(locked, set(at("form"), { locked: false })), "form")).toBe(false);
   });
@@ -597,8 +597,8 @@ describe("locks by place", () => {
   it("adds into a segment line with the lock the place decides", () => {
     const add = (child: object) => ({ type: "add", into: at("form"), child });
     // A segment line's segments are all segment lines or none.
-    const plain = frozen([A, "unknown_length_segments.json"]);
-    const lines = frozen([A, "segment_line.json"]);
+    const plain = frozen([A, "unknown_length_segments.yaml"]);
+    const lines = frozen([A, "segment_line.yaml"]);
     const d = { id: "d", unit: "quarters", offset: quarters(20), length: quarters(4) };
     const e = { ...d, id: "e", offset: quarters(32), length: null, is_segment_line: true };
     expect(lockOf(applied(plain, add(d)), "d")).toBe(false);
@@ -616,7 +616,7 @@ describe("locks by place", () => {
   });
 
   it("gives every timeline of an added subtree the lock its place decides", () => {
-    const view = frozen([A, "bare.json"]);
+    const view = frozen([A, "bare.yaml"]);
     const segment = { id: "s1", unit: "quarters", offset: quarters(0), length: quarters(4) };
     const line = (s1: object) => ({
       type: "add",
@@ -646,7 +646,7 @@ describe("regions and flow-control elements", () => {
   const flowPath = [A, "manifest", "timelines", 0, "flow_control"];
 
   it("adds and sets a region", () => {
-    const added = applied(viewOf([A, "bare.json"]), into("region", region));
+    const added = applied(viewOf([A, "bare.yaml"]), into("region", region));
     expect(root(added).regions).toEqual([{ ...region, meta: {}, links: [] }]);
     const changed = applied(added, set(at("region_1"), { end: quarters(6), name: null }));
     expect(root(changed).regions).toEqual([
@@ -655,11 +655,11 @@ describe("regions and flow-control elements", () => {
   });
 
   it("adds, sets and removes flow-control elements", () => {
-    const view = frozen([A, "flow_control.json"]);
+    const view = frozen([A, "flow_control.yaml"]);
     const [marker, segno, jump, fine, ds] = root(view).flow_control;
     if (!marker || !segno || !jump || !fine || !ds) {
       throw new Error(
-        "flow_control.json holds two jump targets, two jump origins and a flow marker",
+        "flow_control.yaml holds two jump targets, two jump origins and a flow marker",
       );
     }
     expect([marker.id, segno.id, jump.id, fine.id, ds.id]).toEqual([
@@ -718,7 +718,7 @@ describe("regions and flow-control elements", () => {
   });
 
   it("refuses with the exact code and path", () => {
-    const flow = viewOf([A, "flow_control.json"]);
+    const flow = viewOf([A, "flow_control.yaml"]);
     expect(rejected(flow, set(at("jump_from_1"), { target: "nothing" }))).toEqual({
       code: "schema_violation",
       path: [...flowPath, 2, "target"],
@@ -755,7 +755,7 @@ describe("regions and flow-control elements", () => {
       code: "invalid_coordinate",
       path: [key(at("flow_marker_1")), "coordinate"],
     });
-    const regions = viewOf([A, "with_region.json"]);
+    const regions = viewOf([A, "with_region.yaml"]);
     expect(rejected(regions, set(at("region_1"), { end: quarters(0) }))).toEqual({
       code: "region_end_before_start",
       path: [A, "manifest", "timelines", 0, "regions", 0, "end"],
@@ -764,7 +764,7 @@ describe("regions and flow-control elements", () => {
       code: "wrong_target_kind",
       path: [key(at("region_1")), "coordinate"],
     });
-    const bare = viewOf([A, "bare.json"]);
+    const bare = viewOf([A, "bare.yaml"]);
     expect(rejected(bare, into("region", { ...region, id: "a\u0001b" }))).toEqual({
       code: "schema_violation",
       path: [A, "manifest", "timelines", 0, "regions", 0, "id"],
@@ -782,7 +782,7 @@ describe("measure maps", () => {
     measure_map: "bars",
   };
   const withBars = () =>
-    applied(frozen([A, "bare.json"]), { type: "add", into: BLOCK, measure_map: bars });
+    applied(frozen([A, "bare.yaml"]), { type: "add", into: BLOCK, measure_map: bars });
   const viewPath = [A, "manifest", "timelines", 0, "conversion_maps", 0, "measure_map"];
 
   it("adds, sets and removes a measure map, which a measure view names", () => {
@@ -798,7 +798,7 @@ describe("measure maps", () => {
   });
 
   it("refuses with the exact code and path", () => {
-    const bare = viewOf([A, "bare.json"]);
+    const bare = viewOf([A, "bare.yaml"]);
     expect(rejected(bare, { type: "add", into: at("bare"), map: record })).toEqual({
       code: "schema_violation",
       path: viewPath,
@@ -835,7 +835,7 @@ describe("measure maps", () => {
 
 describe("remove", () => {
   it("removes children, maps, roots and blocks", () => {
-    const view = frozen([A, "map.json"], [B, "bare.json"]);
+    const view = frozen([A, "map.yaml"], [B, "bare.yaml"]);
     const withoutChild = root(applied(view, { type: "remove", targets: [at("phrase")] }));
     expect(withoutChild.children).toEqual([]);
     const withoutMap = root(applied(view, { type: "remove", targets: [at("tempo")] }));
@@ -851,7 +851,7 @@ describe("remove", () => {
   });
 
   it("refuses the workspace and an unknown target, atomically", () => {
-    const view = frozen([A, "map.json"]);
+    const view = frozen([A, "map.yaml"]);
     expect(rejected(view, { type: "remove", targets: [WORKSPACE] })).toEqual({
       code: "not_removable",
       path: [key(WORKSPACE)],
@@ -869,12 +869,12 @@ describe("style", () => {
   const style = (properties: object) => ({ type: "style", ...properties });
 
   it("embeds a statement in every manifest it concerns and merges equal selectors", () => {
-    let view = frozen([A, "map.json"], [B, "bare.json"]);
+    let view = frozen([A, "map.yaml"], [B, "bare.yaml"]);
     view = applied(view, style({ select: { element: "map" }, set: red }));
     expect(manifest(view).graphical).toEqual(
-      held("map.json", { styles: {}, statements: [{ select: { element: "map" }, set: red }] }),
+      held("map.yaml", { styles: {}, statements: [{ select: { element: "map" }, set: red }] }),
     );
-    expect(manifest(view, B)).toEqual(load("bare.json"));
+    expect(manifest(view, B)).toEqual(load("bare.yaml"));
     view = applied(view, style({ select: { element: "map" }, set: { "stroke-width": 2 } }));
     expect(manifest(view).graphical?.statements).toEqual([
       { select: { element: "map" }, set: { ...red, "stroke-width": 2 } },
@@ -897,11 +897,11 @@ describe("style", () => {
       { select: { element: "map" }, set: { "stroke-width": 2 } },
     ]);
     view = applied(view, style({ select: { element: "map" }, set: { "stroke-width": null } }));
-    expect(manifest(view).graphical).toEqual(held("map.json", { styles: {}, statements: [] }));
+    expect(manifest(view).graphical).toEqual(held("map.yaml", { styles: {}, statements: [] }));
   });
 
   it("names a style in the listed blocks only", () => {
-    const view = frozen([A, "map.json"], [B, "bare.json"]);
+    const view = frozen([A, "map.yaml"], [B, "bare.yaml"]);
     const named = applied(
       view,
       style({
@@ -912,7 +912,7 @@ describe("style", () => {
       }),
     );
     expect(manifest(named, B).graphical).toEqual(
-      held("bare.json", {
+      held("bare.yaml", {
         styles: { green: { stroke: "#00CC00" } },
         statements: [{ select: { element: "timeline" }, set: "green" }],
       }),
@@ -923,7 +923,7 @@ describe("style", () => {
       style({ select: { element: "timeline" }, set: { opacity: 0.5 }, blocks: [B] }),
     );
     expect(manifest(inline, B).graphical).toEqual(
-      held("bare.json", {
+      held("bare.yaml", {
         styles: { green: { stroke: "#00CC00" } },
         statements: [{ select: { element: "timeline" }, set: { stroke: "#00CC00", opacity: 0.5 } }],
       }),
@@ -933,12 +933,12 @@ describe("style", () => {
       style({ select: { element: "timeline" }, set: { stroke: null }, name: "green", blocks: [B] }),
     );
     expect(manifest(emptied, B).graphical).toEqual(
-      held("bare.json", { styles: {}, statements: [] }),
+      held("bare.yaml", { styles: {}, statements: [] }),
     );
   });
 
   it("refuses an unknown block and a malformed statement", () => {
-    const view = viewOf([A, "map.json"]);
+    const view = viewOf([A, "map.yaml"]);
     expect(rejected(view, style({ select: {}, set: red, blocks: [C] }))).toEqual({
       code: "unknown_target",
       path: [key({ block: C })],
@@ -1019,7 +1019,7 @@ describe("malformed commands", () => {
 });
 
 describe("where a timeline lies", () => {
-  const mixed = () => frozen([A, "bundles/bundle_mixed.json"]);
+  const mixed = () => frozen([A, "bundles/bundle_mixed.yaml"]);
   const groupOf = (view: View, id: string) => manifest(view).groups.find((item) => item.id === id);
   const rootIds = (view: View) => manifest(view).timelines.map((item) => item.id);
   const timeline = (view: View, id: string) => findTimeline(manifest(view), id);
@@ -1034,9 +1034,9 @@ describe("where a timeline lies", () => {
   ];
 
   it("adds a root timeline completed as a manifest's root is", () => {
-    const [minimal] = (parseJson(fixture("bare.json").twin) as { timelines: object[] }).timelines;
+    const [minimal] = (loads(fixture("bare.yaml").twin) as { timelines: object[] }).timelines;
     const view = applied(mixed(), { type: "add", into: BLOCK, timeline: minimal });
-    expect(timeline(view, "bare")).toEqual(root(viewOf([A, "bare.json"])));
+    expect(timeline(view, "bare")).toEqual(root(viewOf([A, "bare.yaml"])));
   });
 
   it("adds a group, its new member's card keeping only its size and stretch", () => {
@@ -1222,7 +1222,7 @@ describe("where a timeline lies", () => {
     expect(
       rejected(samples, set(at("extra"), { parent: { timeline: "excerpt", offset: 88_200 } })),
     ).toEqual({ code: "child_exceeds_parent", path: [key(at("extra")), "parent"] });
-    const line = frozen([A, "segment_line.json"]);
+    const line = frozen([A, "segment_line.yaml"]);
     const extra = applied(line, {
       type: "add",
       into: BLOCK,
@@ -1243,7 +1243,7 @@ describe("where a timeline lies", () => {
 });
 
 describe("removing a segment", () => {
-  const segments = () => frozen([A, "segment_children.json"]);
+  const segments = () => frozen([A, "segment_children.yaml"]);
 
   it("refuses a segment on its own, which would leave a gap", () => {
     expect(apply(segments(), { type: "remove", targets: [at("t2")] })).toEqual({
@@ -1264,7 +1264,7 @@ describe("removing a segment", () => {
 
 describe("previews", () => {
   it("shows what apply stores", () => {
-    const view = frozen([A, "bundles/bundle_mixed.json"]);
+    const view = frozen([A, "bundles/bundle_mixed.yaml"]);
     for (const command of [
       set(at("annotations"), { parent: { timeline: "score", offset: quarters(4) } }),
       set(at("annotations"), { groups: ["group_1"] }),
@@ -1278,7 +1278,7 @@ describe("previews", () => {
   });
 
   it("shows a value only the invariants refuse, and gives back the view for no change", () => {
-    const view = frozen([A, "nested.json"]);
+    const view = frozen([A, "nested.yaml"]);
     const negative = parseCommand(set(at("clt_2"), { offset: quarters(-1) }));
     const nothing = parseCommand(set(BLOCK, { x: 0 }));
     const unknown = parseCommand(set(at("ghost"), { name: "G" }));

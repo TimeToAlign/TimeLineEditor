@@ -24,7 +24,7 @@ const band = (timeline: string, facet: Facet): ElementAddress => ({ id: timeline
 /** The addresses of a timeline's five bands, in the order of `FACETS`. */
 const bandsOf = (timeline: string) => FACETS.map((facet) => band(timeline, facet));
 
-/** The five bands of the child `phrase` of `map.json`. */
+/** The five bands of the child `phrase` of `map.yaml`. */
 const PHRASE_BANDS = bandsOf("phrase");
 
 /** The addresses of the keys a selector matches, in enumeration order. */
@@ -34,7 +34,7 @@ function matcher(keys: readonly ElementKey[], ancestry: ReadonlyMap<string, read
 }
 
 describe("the elements of a manifest", () => {
-  it("enumerates map.json in tree order", () => {
+  it("enumerates map.yaml in tree order", () => {
     const melody = ["melody", "logical", "continuous", CLT] as const;
     const phrase = ["phrase", "logical", "continuous", CLT] as const;
     const line = ["block", "timeline"];
@@ -50,7 +50,7 @@ describe("the elements of a manifest", () => {
       inside,
     ];
     expect(
-      manifestElements(load("map.json")).map((key) => [
+      manifestElements(load("map.yaml")).map((key) => [
         key.type,
         key.address,
         key.timeline,
@@ -108,7 +108,7 @@ describe("the elements of a manifest", () => {
         : []),
     ];
     expect(
-      manifestElements(load("timestamps.json"))
+      manifestElements(load("timestamps.yaml"))
         .filter((key) => key.address.id?.startsWith("timestamp_") === true)
         .map((key) => [key.type, key.address, key.timeline, key.class, key.inside]),
     ).toEqual([
@@ -129,13 +129,13 @@ describe("the elements of a manifest", () => {
       manifestElements(load(name))
         .filter((key) => ["region", "flow_marker", "jump_from"].includes(key.type as string))
         .map((key) => key.address);
-    expect(addresses("with_region.json")).toEqual([id("region_1")]);
+    expect(addresses("with_region.yaml")).toEqual([id("region_1")]);
     expect(
-      manifestElements(load("with_region.json")).find((key) => key.type === "region")?.inside,
+      manifestElements(load("with_region.yaml")).find((key) => key.type === "region")?.inside,
     ).toEqual(["block", "timeline", "band"]);
     const flow = "flow:quarters";
     expect(
-      manifestElements(load("flow_control.json")).map((key) => [key.type, key.address]),
+      manifestElements(load("flow_control.yaml")).map((key) => [key.type, key.address]),
     ).toEqual([
       ["block", {}],
       ["card", id(flow, "card")],
@@ -169,7 +169,7 @@ describe("the elements of a manifest", () => {
   it("lists the title of a named manifest, addressed by the part name alone", () => {
     const title = { ...BLOCK_NAME };
     const top = (members: object) =>
-      manifestElements(loadText(dumps({ ...manifestValue("bare.json"), ...members })))[1];
+      manifestElements(loadText(dumps({ ...manifestValue("bare.yaml"), ...members })))[1];
     expect(top({ name: "Piece" })).toEqual(title);
     expect(top({ id: "edition" })).toEqual(title);
     expect(top({})?.type).toBe("card");
@@ -214,7 +214,7 @@ describe("timeline classes", () => {
 });
 
 describe("selector matching", () => {
-  const manifest = load("map.json");
+  const manifest = load("map.yaml");
   const keys = manifestElements(manifest);
   const matched = matcher(keys, timelineAncestry(manifest));
 
@@ -270,7 +270,7 @@ describe("selector matching", () => {
   });
 
   it("matches a free ID as a whole", () => {
-    const free = load("bundles/bundle_free_ids.json");
+    const free = load("bundles/bundle_free_ids.yaml");
     const statement = free.graphical?.statements?.[0];
     expect(statement?.select).toEqual({ addresses: [{ id: "take 2/intro" }] });
     const found = manifestElements(free).filter((key) =>
@@ -283,7 +283,7 @@ describe("selector matching", () => {
 });
 
 describe("the selector member inside", () => {
-  const manifest = load("map.json");
+  const manifest = load("map.yaml");
   const keys = manifestElements(manifest);
   const ancestry = timelineAncestry(manifest);
   const matched = matcher(keys, ancestry);
@@ -344,7 +344,7 @@ describe("the selector member inside", () => {
 });
 
 describe("the elements of a segment line", () => {
-  const manifest = load("segment_line.json");
+  const manifest = load("segment_line.yaml");
   const keys = manifestElements(manifest);
   const matched = matcher(keys, timelineAncestry(manifest));
   const row = (facet: ElementAddress) => ["band", facet];

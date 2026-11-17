@@ -13,7 +13,8 @@ import {
   placedContainer,
   placeMembersOf,
 } from "../manifest/containers.ts";
-import { manifestProblems } from "../manifest/io.ts";
+import type { ManifestFile } from "../manifest/io.ts";
+import { manifestProblems, NEW_MANIFEST_FILE } from "../manifest/io.ts";
 import {
   readBoolean,
   readExact,
@@ -48,14 +49,21 @@ export interface Granularity {
 
 /**
  * How the editor is used on this workspace: the canvas's snapping grid, the
- * placement of new blocks and the granularity of positions on timelines.
- * No command changes a setting, so the journal neither records nor undoes
- * them (`Store.configure`).
+ * placement of new blocks, the granularity of positions on timelines and
+ * how each block's manifest is written to a file. No command changes a
+ * setting, so the journal neither records nor undoes them
+ * (`Store.configure`).
  */
 export interface WorkspaceSettings {
   readonly grid: { readonly size: number; readonly snap: boolean };
   readonly blockDefaults: BlockPlacement;
   readonly granularity: Granularity;
+  /**
+   * How the manifest of a block is written to a file, by block ID; a block
+   * without an entry as `NEW_MANIFEST_FILE` (`manifestFileOf`). An entry
+   * outlives its block, which the journal may bring back.
+   */
+  readonly manifests: { readonly [block: BlockId]: ManifestFile };
 }
 
 export interface View {
@@ -83,7 +91,13 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
   grid: { size: 8, snap: true },
   blockDefaults: { scale: 1, length: 400, spacing: 8, margin: 0, width: null, height: null },
   granularity: DEFAULT_GRANULARITY,
+  manifests: {},
 };
+
+/** How the manifest of block `block` is written to a file: its entry in `settings`, else `NEW_MANIFEST_FILE`. */
+export function manifestFileOf(settings: WorkspaceSettings, block: BlockId): ManifestFile {
+  return settings.manifests[block] ?? NEW_MANIFEST_FILE;
+}
 
 /** An empty workspace with the given settings, named `untitled`. */
 export function createView(settings: WorkspaceSettings = DEFAULT_SETTINGS): View {
@@ -125,13 +139,55 @@ function readDecimals(value: unknown, path: readonly PathSegment[]): number | Pr
 
 const GRANULARITY_READERS = { denominator: readPositiveInteger, decimals: readDecimals };
 
+/** The serializations a manifest file is written in, TimeToShare's names. */
+const SERIALIZATIONS: readonly string[] = ["yaml", "json", "jcs"];
+
+function readSerialization(value: unknown, path: readonly PathSegment[]): string | Problem {
+  return typeof value === "string" && SERIALIZATIONS.includes(value)
+    ? value
+    : problem(ErrorCode.invalidValue, 'expected "yaml", "json" or "jcs"', path);
+}
+
+const MANIFEST_FILE_READERS = {
+  minimal: readBoolean,
+  styling: readBoolean,
+  serialization: readSerialization,
+};
+
+/** The manifest files by block ID (`WorkspaceSettings.manifests`), every entry read exactly. */
+function readManifestFiles(
+  value: unknown,
+  path: readonly PathSegment[],
+  problems: Problem[],
+): { [block: BlockId]: unknown } | undefined {
+  if (!isJsonObject(value)) {
+    problems.push(problem(ErrorCode.invalidValue, "expected an object", path));
+    return undefined;
+  }
+  const result: { [block: BlockId]: unknown } = {};
+  let complete = true;
+  for (const [block, entry] of Object.entries(value)) {
+    const at = [...path, block];
+    if (!BLOCK_ID.test(block)) {
+      problems.push(problem(ErrorCode.invalidBlockId, `invalid block id '${block}'`, at));
+      complete = false;
+      continue;
+    }
+    const read = readExact(entry, at, MANIFEST_FILE_READERS, problems);
+    if (read === undefined) complete = false;
+    else result[block] = read;
+  }
+  return complete ? result : undefined;
+}
+
 /**
  * Read workspace settings, every member required and none unknown; the
  * problems go to `problems` and the result is `undefined` when there are any.
  * With `lenient`, as a workspace file is read, a `granularity` that does not
  * read as one (missing, or of another shape) is read as `DEFAULT_GRANULARITY`
- * without a problem: settings lie outside the journal, so nothing a replay
- * needs is lost. Every other member is read strictly either way.
+ * and such `manifests` as none, without a problem: settings lie outside the
+ * journal, so nothing a replay needs is lost. Every other member is read
+ * strictly either way.
  */
 export function readSettings(
   value: unknown,
@@ -143,9 +199,17 @@ export function readSettings(
     if (!lenient) return readExact(item, at, GRANULARITY_READERS, problems);
     return readExact(item, at, GRANULARITY_READERS, []) ?? DEFAULT_GRANULARITY;
   };
+  const manifests = (item: unknown, at: readonly PathSegment[]) => {
+    if (!lenient) return readManifestFiles(item, at, problems);
+    return readManifestFiles(item, at, []) ?? DEFAULT_SETTINGS.manifests;
+  };
   const stated =
-    lenient && isJsonObject(value) && !Object.hasOwn(value, "granularity")
-      ? { ...value, granularity: DEFAULT_GRANULARITY }
+    lenient && isJsonObject(value)
+      ? {
+          granularity: DEFAULT_SETTINGS.granularity,
+          manifests: DEFAULT_SETTINGS.manifests,
+          ...value,
+        }
       : value;
   const read: unknown = readExact(
     stated,
@@ -154,6 +218,7 @@ export function readSettings(
       grid: (grid, at) => readExact(grid, at, { size: readPositive, snap: readBoolean }, problems),
       blockDefaults: (defaults, at) => readExact(defaults, at, PLACEMENT_READERS, problems),
       granularity,
+      manifests,
     },
     problems,
   );

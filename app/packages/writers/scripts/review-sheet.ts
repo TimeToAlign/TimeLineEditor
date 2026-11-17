@@ -62,7 +62,7 @@ try {
         ? ""
         : `; unmapped code points ${item.drawing.unmapped.join(", ")}`;
     rows.push(
-      `<figure>\n<figcaption><code>${escapeHtml(item.name)}.png</code> (${escapeHtml(item.manifest)}.json): ${placement}${unmapped}</figcaption>\n<img src="${escapeHtml(item.name)}.png" alt="${escapeHtml(item.name)}">\n</figure>`,
+      `<figure>\n<figcaption><code>${escapeHtml(item.name)}.png</code> (${escapeHtml(item.manifest)}.yaml): ${placement}${unmapped}</figcaption>\n<img src="${escapeHtml(item.name)}.png" alt="${escapeHtml(item.name)}">\n</figure>`,
     );
   }
   writeFileSync(

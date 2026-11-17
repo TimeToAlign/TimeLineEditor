@@ -11,12 +11,12 @@
  * nor the files.
  *
  * An entry's label is unique: a manifest fixture's path below the
- * version's directory without `.json` (`bare`, `bare.minimal`,
+ * version's directory without `.yaml` (`bare`, `bare.minimal`,
  * `groups/corpus_tilia`), `warnings/<name>` for a warning case and
  * `e2e/<name>` for an end-to-end workspace.
  */
 
-import { dumps, parseJson, SCHEMA_VERSION } from "@timetoalign/timetoshare";
+import { dumps, loads, SCHEMA_VERSION } from "@timetoalign/timetoshare";
 import type { Example } from "./examples.ts";
 
 /** The files a glob found: path → their text, loaded on demand. */
@@ -25,9 +25,9 @@ type Files = Record<string, () => Promise<string>>;
 /** Where the schema package's fixtures lie in a path the glob found. */
 const FIXTURE_ROOT = "/timetoshare/fixtures/";
 
-/** The manifest of a warning case `{manifest, unknown_keys}`, as text. */
+/** The manifest of a warning case `{manifest, unknown_keys}`, as canonical YAML. */
 function caseManifest(name: string, text: string): string {
-  const value = parseJson(text);
+  const value = loads(text);
   if (
     typeof value !== "object" ||
     value === null ||
@@ -53,7 +53,7 @@ export function fixtures(workspaces: Files, manifests: Files): Example[] {
   const version = `${SCHEMA_VERSION}/`;
   const warnings = `warnings/${SCHEMA_VERSION}/`;
   for (const [path, text] of Object.entries(manifests)) {
-    const below = path.slice(path.indexOf(FIXTURE_ROOT) + FIXTURE_ROOT.length, -".json".length);
+    const below = path.slice(path.indexOf(FIXTURE_ROOT) + FIXTURE_ROOT.length, -".yaml".length);
     if (below.startsWith(version)) {
       entries.push({ label: below.slice(version.length), kind: "manifest", text });
     } else if (below.startsWith(warnings)) {
@@ -82,8 +82,9 @@ export const FIXTURES: readonly Example[] =
         }),
         import.meta.glob<string>(
           [
-            "../node_modules/@timetoalign/timetoshare/fixtures/**/*.json",
+            "../node_modules/@timetoalign/timetoshare/fixtures/**/*.yaml",
             "!../node_modules/@timetoalign/timetoshare/fixtures/rejections/**",
+            "!../node_modules/@timetoalign/timetoshare/fixtures/serializations/**",
             "!../node_modules/@timetoalign/timetoshare/fixtures/*/drawings/**",
           ],
           { query: "?raw", import: "default" },

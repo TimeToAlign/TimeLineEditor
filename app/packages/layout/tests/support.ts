@@ -49,21 +49,27 @@ export const BLOCK = "0000000000";
 
 /**
  * The fixtures at the top by name, then those sorted into `groups/…` and
- * `bundles/…`, without their minimal twins (`*.minimal.json`).
+ * `bundles/…`, without their minimal twins (`*.minimal.yaml`).
  */
 export function manifestNames(): string[] {
   return ["", "groups/", "bundles/"].flatMap((prefix) =>
     readdirSync(path.join(fixturesDir, prefix))
-      .filter((name) => name.endsWith(".json") && !name.endsWith(".minimal.json"))
+      .filter((name) => name.endsWith(".yaml") && !name.endsWith(".minimal.yaml"))
       .map((name) => `${prefix}${name.slice(0, -5)}`)
       .sort(),
   );
 }
 
-/** A fixture by its path below the fixtures directory (`groups/…`), without `.json`. */
+/** The fixtures read so far, by name: a manifest is immutable, so each file is read once. */
+const loaded = new Map<string, Manifest>();
+
+/** A fixture by its path below the fixtures directory (`groups/…`), without `.yaml`. */
 export function loadFile(name: string): Manifest {
-  const result = loadManifest(readFileSync(path.join(fixturesDir, `${name}.json`), "utf8"));
+  const known = loaded.get(name);
+  if (known !== undefined) return known;
+  const result = loadManifest(readFileSync(path.join(fixturesDir, `${name}.yaml`), "utf8"));
   if (isLoadError(result)) throw new Error(`${name}: ${result.problems[0]?.message}`);
+  loaded.set(name, result);
   return result;
 }
 

@@ -40,7 +40,7 @@ test.beforeEach(async ({ page }) => {
 
 test("Delete on a segment is refused and changes nothing", async ({ page }) => {
   await chooseItem(page, "New workspace");
-  await pick(page, "Import manifest…", "segment_line.json", manifestFixture("segment_line"));
+  await pick(page, "Import manifest…", "segment_line.yaml", manifestFixture("segment_line"));
   await expect.poll(() => journalLength(page)).toBe(1);
   const [selected] = await selection(page);
   const block = selected?.block;

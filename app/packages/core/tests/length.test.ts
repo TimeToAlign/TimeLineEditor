@@ -75,7 +75,7 @@ describe("a length of null means the length is not known", () => {
   ])("is accepted on %s and saved as null", (_, input) => {
     expect(problems(input)).toEqual([]);
     const saved = saveManifest(loadText(input));
-    expect(saved).toContain('"length": null');
+    expect(saved).toContain("length: null\n");
     expect(loadText(saved)).toEqual(loadText(input));
   });
 });
@@ -196,10 +196,10 @@ describe("a length change never pushes a parent", () => {
     return found;
   }
 
-  describe("on nested.json", () => {
+  describe("on nested.yaml", () => {
     const nested = deepFreeze(
       changed(
-        fixtureView([A, "nested.json"]),
+        fixtureView([A, "nested.yaml"]),
         set({ clt_3: { locked: false }, clt_2: { locked: false } }),
       ),
     );
@@ -240,10 +240,10 @@ describe("a length change never pushes a parent", () => {
     });
   });
 
-  describe("on segment_line.json", () => {
+  describe("on segment_line.yaml", () => {
     // Segments read unlocked; a segment line that is a segment is unlocked
     // by its value stating so, which no command can do yet.
-    const lines = deepFreeze(fixtureView([A, "segment_line.json"]));
+    const lines = deepFreeze(fixtureView([A, "segment_line.yaml"]));
 
     it("keeps the last segment ending where its line of known length ends", () => {
       for (const length of [
@@ -273,14 +273,14 @@ describe("a length change never pushes a parent", () => {
     });
 
     it("lets the last segment of a line of unknown length change", () => {
-      const view = deepFreeze(unlockedView("segment_line.json", "b"));
+      const view = deepFreeze(unlockedView("segment_line.yaml", "b"));
       const open = changed(view, set({ b: { length: null } }));
       const grown = lengths(changed(open, set({ b2: { length: [8, 1] } })));
       expect([grown.b2, grown.b]).toEqual([[8, 1], null]);
     });
 
     it("keeps a segment line ending where its last segment of known length ends", () => {
-      const view = changed(unlockedView("segment_line.json", "c"), set({ form: { length: null } }));
+      const view = changed(unlockedView("segment_line.yaml", "c"), set({ form: { length: null } }));
       expect(refusal(apply(view, set({ c: { length: [14, 1] } })))).toEqual({
         code: "segment_end_fixed",
         path: [key(at("c")), "length"],
@@ -288,7 +288,7 @@ describe("a length change never pushes a parent", () => {
     });
 
     it("refuses a segment growing to hold a child while its line's length is known", () => {
-      const view = deepFreeze(unlockedView("segment_line.json", "c"));
+      const view = deepFreeze(unlockedView("segment_line.yaml", "c"));
       expect(refusal(apply(view, add("c", child("c2", 12, 4))))).toEqual({
         code: "segment_end_fixed",
         path: [key(at("c")), "child"],

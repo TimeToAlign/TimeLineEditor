@@ -1,12 +1,11 @@
 /** The side-effect guard: an open editor changes only the element it edits. */
 
 import type { Statement } from "@timetoalign/timetoshare";
-import { dumps } from "@timetoalign/timetoshare";
 import type { ChangeSet } from "../commands/mutations.ts";
 import type { CommandError } from "../errors.ts";
 import { ErrorCode, isCommandError, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";
-import { compareCodePoints, jsonEqual } from "../json.ts";
+import { canonicalText, compareCodePoints, jsonEqual } from "../json.ts";
 import type { ElementAddress } from "../manifest/address.ts";
 import { addressKey, idAddress } from "../manifest/address.ts";
 import type { CardPlace, ItemPlace, PlaceKey } from "../manifest/containers.ts";
@@ -163,8 +162,8 @@ export function statementInside(
 
 /**
  * A manifest as seen from outside `element`, cut into comparable parts, each
- * the standard text of its value: per timeline (its lists reduced to their
- * ids), per map, region and flow-control element, per group, per measure
+ * the canonical text of its value (`canonicalText`): per timeline (its lists
+ * reduced to their ids), per map, region and flow-control element, per group, per measure
  * map, per named timestamp, each without its links; the links of each
  * timeline and region; the other top-level members; the other `graphical`
  * members. The edited timeline's object, or the edited group's
@@ -201,16 +200,16 @@ function project(
   // An element and its links apart, so that a refusal names the links where only they differ.
   const set = (id: string, value: object) => {
     if (!("links" in value)) {
-      elements.set(id, dumps(value));
+      elements.set(id, canonicalText(value));
       return;
     }
     const { links: held, ...rest } = value;
-    elements.set(id, dumps(rest));
-    links.set(id, dumps(held));
+    elements.set(id, canonicalText(rest));
+    links.set(id, canonicalText(held));
   };
   const visit = (timeline: TimelineManifest) => {
     if (hidden.has(timeline.id)) {
-      elements.set(timeline.id, dumps({ id: timeline.id }));
+      elements.set(timeline.id, canonicalText({ id: timeline.id }));
       return;
     }
     set(timeline.id, {
@@ -229,10 +228,12 @@ function project(
   for (const item of byId(manifest.groups)) {
     elements.set(
       item.id,
-      dumps(item === group ? { id: item.id } : { ...item, members: byCodePoint(item.members) }),
+      canonicalText(
+        item === group ? { id: item.id } : { ...item, members: byCodePoint(item.members) },
+      ),
     );
   }
-  for (const map of byId(manifest.measure_maps)) elements.set(map.id, dumps(map));
+  for (const map of byId(manifest.measure_maps)) elements.set(map.id, canonicalText(map));
   const {
     statements: _,
     styles: named = {},
@@ -241,26 +242,26 @@ function project(
     ...rest
   } = manifest.graphical ?? {};
   for (const timestamp of byId(timestamps)) {
-    if (!inside(timestamp.timeline)) elements.set(timestamp.id, dumps(timestamp));
+    if (!inside(timestamp.timeline)) elements.set(timestamp.id, canonicalText(timestamp));
   }
   const top = new Map<string, string>();
   for (const [key, value] of Object.entries(manifest)) {
-    if (!LISTED_MEMBERS.includes(key)) top.set(key, dumps(value));
+    if (!LISTED_MEMBERS.includes(key)) top.set(key, canonicalText(value));
   }
   const orders = Object.fromEntries(Object.entries(order).filter(([key]) => !inside(key)));
   const graphical = new Map<string, string>([
-    ["statements", dumps(statements)],
+    ["statements", canonicalText(statements)],
     [
       "styles",
-      dumps(
+      canonicalText(
         Object.fromEntries(
           styles.filter((name) => Object.hasOwn(named, name)).map((name) => [name, named[name]]),
         ),
       ),
     ],
-    ["order", dumps(orders)],
+    ["order", canonicalText(orders)],
   ]);
-  for (const [key, value] of Object.entries(rest)) graphical.set(key, dumps(value));
+  for (const [key, value] of Object.entries(rest)) graphical.set(key, canonicalText(value));
   return { elements, links, top, graphical };
 }
 

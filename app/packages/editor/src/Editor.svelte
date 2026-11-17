@@ -324,12 +324,7 @@ const fileItems: readonly MenuItem[] = $derived([
   {
     label: "Export manifest…",
     disabled: session.exportable === null,
-    run: () => session.exportManifest(false),
-  },
-  {
-    label: "Export minimal manifest…",
-    disabled: session.exportable === null,
-    run: () => session.exportManifest(true),
+    run: () => session.exportManifest(),
   },
 ]);
 

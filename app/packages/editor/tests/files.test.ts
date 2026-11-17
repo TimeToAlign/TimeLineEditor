@@ -41,7 +41,7 @@ describe("workspaceFileName", () => {
 });
 
 describe("manifestFileName", () => {
-  it("is the manifest's id, else its name, else manifest, outside [A-Za-z0-9_-] replaced", () => {
+  it("is the manifest's id, else its name, else bundle, outside [A-Za-z0-9_-] replaced, then the serialization's extension", () => {
     const named = (members: object) => {
       const manifest = loadManifest(
         dumps({
@@ -51,11 +51,17 @@ describe("manifestFileName", () => {
         }),
       );
       if (isLoadError(manifest)) throw new Error("the manifest is refused");
-      return manifestFileName(manifest);
+      return (["yaml", "json", "jcs"] as const).map((serialization) =>
+        manifestFileName(manifest, serialization),
+      );
     };
-    expect(named({ id: "flow:quarters", name: "Flow" })).toBe("flow_quarters.json");
-    expect(named({ name: "Eroica: II" })).toBe("Eroica__II.json");
-    expect(named({})).toBe("bundle.json");
+    expect(named({ id: "flow:quarters", name: "Flow" })).toEqual([
+      "flow_quarters.yaml",
+      "flow_quarters.json",
+      "flow_quarters.json",
+    ]);
+    expect(named({ name: "Eroica: II" })[0]).toBe("Eroica__II.yaml");
+    expect(named({})).toEqual(["bundle.yaml", "bundle.json", "bundle.json"]);
   });
 });
 
@@ -82,7 +88,7 @@ describe("the examples", () => {
     "flow_control",
   ];
   const fixtureFile = (directory: string, name: string) =>
-    `../node_modules/@timetoalign/timetoshare/fixtures/${directory}/${name}.json`;
+    `../node_modules/@timetoalign/timetoshare/fixtures/${directory}/${name}.yaml`;
   /** A glob's result holding `names` below `fixtures/<directory>/`, each file's text its path. */
   const found = (directory: string, names: readonly string[]) =>
     Object.fromEntries(
@@ -111,7 +117,7 @@ describe("the examples", () => {
     const texts = await Promise.all(examples(files, workspaces).map(({ text }) => text()));
     expect(texts).toEqual([...chosen.map((name) => fixtureFile(SCHEMA_VERSION, name)), WORKSPACE]);
     expect(() => examples(found(SCHEMA_VERSION, chosen.slice(0, 3)), workspaces)).toThrow(
-      `the example ${version}/flow_control.json is missing`,
+      `the example ${version}/flow_control.yaml is missing`,
     );
     expect(() => examples(files, {})).toThrow(
       "the example examples/timestamps.tle.json is missing",
@@ -202,7 +208,7 @@ describe("the fallback picker and download", () => {
 
     const cancelled = openFile(MANIFEST_FILE);
     const second = document.querySelector<HTMLInputElement>("input[type=file]");
-    expect(second?.accept).toBe(".json");
+    expect(second?.accept).toBe(".yaml,.yml,.json");
     second?.dispatchEvent(new Event("cancel"));
     expect(await cancelled).toBe(null);
     expect(document.querySelectorAll("input").length).toBe(0);
@@ -273,6 +279,29 @@ describe("File System Access", () => {
       ],
     ]);
     expect(picked.written).toEqual(["v3"]);
+  });
+
+  it("offers manifest files in YAML and in JSON", async () => {
+    const opened = handle("piece.yml", "timelines: []");
+    const showOpenFilePicker = vi.fn(async () => [opened.value]);
+    vi.stubGlobal("showOpenFilePicker", showOpenFilePicker);
+    expect(await openFile(MANIFEST_FILE)).toEqual({
+      name: "piece.yml",
+      text: "timelines: []",
+      handle: opened.value,
+    });
+    expect(showOpenFilePicker.mock.calls).toEqual([
+      [
+        {
+          types: [
+            {
+              description: "TimeToShare manifest",
+              accept: { "application/yaml": [".yaml", ".yml"], "application/json": [".json"] },
+            },
+          ],
+        },
+      ],
+    ]);
   });
 
   it("gives null for a cancelled picker and throws any other failure", async () => {

@@ -4,7 +4,7 @@
  * segment").
  */
 
-import { dumps, JsonFloat, parseJson } from "@timetoalign/timetoshare";
+import { dumps, JsonFloat, loads } from "@timetoalign/timetoshare";
 import { describe, expect, it } from "vitest";
 import { apply } from "../src/commands/apply.ts";
 import { preview } from "../src/commands/preview.ts";
@@ -36,7 +36,7 @@ type Value = { [key: string]: unknown };
 
 /** A fixture's value with `change` applied to the timeline `id`, wherever it lies. */
 function edited(name: string, id: string, change: (timeline: Value) => Value): Value {
-  const value = parseJson(fixtureText(name)) as Value;
+  const value = loads(fixtureText(name)) as Value;
   const walk = (timeline: Value): Value => {
     const own = timeline.id === id ? change(timeline) : timeline;
     const children = own.children as Value[] | undefined;
@@ -60,7 +60,7 @@ function rejected(view: View, command: object) {
   return refusal(apply(deepFreeze(view), command));
 }
 
-const MIXED = "bundles/bundle_mixed.json";
+const MIXED = "bundles/bundle_mixed.yaml";
 
 /** `page` of the mixed bundle made a segment line holding its first segment. */
 function pageCovered(locked: boolean): Value {
@@ -142,7 +142,7 @@ describe("a segment line without segments", () => {
   });
 
   it("stays without segments while its length is unknown", () => {
-    const view = changed(viewOf([A, "bare.json"]), {
+    const view = changed(viewOf([A, "bare.yaml"]), {
       type: "add",
       into: { block: A },
       timeline: { id: "open", unit: "quarters", length: null },
@@ -154,7 +154,7 @@ describe("a segment line without segments", () => {
   });
 
   it("is added with its first segment", () => {
-    const view = viewOf([A, "bare.json"]);
+    const view = viewOf([A, "bare.yaml"]);
     const next = changed(view, {
       type: "add",
       into: at("bare"),
@@ -187,7 +187,7 @@ describe("a segment line without segments", () => {
 
 describe("a segment line turned off", () => {
   it("keeps its segments as children, each locked by its new place", () => {
-    const view = viewOf([A, "segment_line.json"]);
+    const view = viewOf([A, "segment_line.yaml"]);
     const before = timeline(view, "form");
     const form = timeline(changed(view, set(at("form"), { is_segment_line: false })), "form");
     expect(form).toEqual({ ...before, is_segment_line: false });
@@ -198,7 +198,7 @@ describe("a segment line turned off", () => {
     ["a group member", MIXED, "performance", undefined],
     [
       "a child",
-      "bare.json",
+      "bare.yaml",
       "c",
       { into: at("bare"), child: { id: "c", unit: "quarters", offset: [0, 1], length: [4, 1] } },
     ],
@@ -215,7 +215,7 @@ describe("a segment line turned off", () => {
   });
 
   it("keeps a lock no place decided", () => {
-    const view = viewOf([A, "segment_line.json"]);
+    const view = viewOf([A, "segment_line.yaml"]);
     const locked = changed(view, set(at("form"), { locked: true }));
     const form = timeline(changed(locked, set(at("form"), { is_segment_line: false })), "form");
     expect([form.locked, form.is_segment_line]).toEqual([true, false]);
@@ -223,7 +223,7 @@ describe("a segment line turned off", () => {
 
   it("is refused for one segment beside segment lines", () => {
     expect(
-      rejected(viewOf([A, "segment_line.json"]), set(at("b"), { is_segment_line: false })),
+      rejected(viewOf([A, "segment_line.yaml"]), set(at("b"), { is_segment_line: false })),
     ).toEqual({
       code: "schema_violation",
       path: [A, "manifest", "timelines", 0, "children", 1, "is_segment_line"],
@@ -231,7 +231,7 @@ describe("a segment line turned off", () => {
   });
 
   it("refuses the value held and anything but a boolean", () => {
-    const view = viewOf([A, "segment_line.json"]);
+    const view = viewOf([A, "segment_line.yaml"]);
     const result = apply(deepFreeze(view), set(at("form"), { is_segment_line: true }));
     expect(isCommandError(result) ? { ...result } : null).toEqual({
       code: "invalid_value",
