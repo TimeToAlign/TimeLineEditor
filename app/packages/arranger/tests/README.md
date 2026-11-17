@@ -485,18 +485,20 @@ and request, so the search stays monotone with or without a request.
 
 `audio` is `corpus_audio_audio` at (40, 80) as the editor imports it
 (core's `importedManifest`: a manifest without `graphical` gets its root's
-named timestamps `origin` at 0.0 and `length` at its length, each drawing
-its wedge and its coordinate label) with every name hidden: its labels,
-core's pretty texts, are "0″" and "3′51.079″" (the end 231.0791836734694
-rounded to three places, then split into minutes and seconds), 2068 × 9 /
-2048 = 9.087890625 and 9699 × 9 / 2048 = 42.62255859375 wide (the bundled
-font's advances at size 9). With no name drawn the start is `s0 = 16 +
-max(9.087890625 / 2, 42.62255859375 / 2 − L)` in the block and the end
-label sets the right margin, so `W` is flat at `16 + 42.62255859375 + 18 =
-76.62255859375` below the knee `L* = (42.62255859375 − 9.087890625) / 2 =
-16.767333984375` and `59.855224609375 + L` above it. `L*` is no multiple
-of 1/2048 (34339.5 steps): the lattice knee is `34339 / 2048 =
-16.76708984375`, the last step on the flat piece.
+named timestamps `origin` at 0 and `length` at its length, each drawing
+its wedge and its coordinate label) with every name hidden. Its one
+timeline is an audio file in samples (an int axis of length 10188800,
+with a map to seconds, which sets neither margin): its labels, core's pretty
+texts, are "0 smp" and "10 188 800 smp" (the digits grouped in threes),
+6316 × 9 / 2048 = 27.755859375 and 16739 × 9 / 2048 = 73.56005859375 wide
+(the bundled font's advances at size 9). With no name drawn the start is
+`s0 = 16 + max(27.755859375 / 2, 73.56005859375 / 2 − L)` in the block and
+the end label sets the right margin, so `W` is flat at `16 +
+73.56005859375 + 18 = 107.56005859375` below the knee `L* =
+(73.56005859375 − 27.755859375) / 2 = 22.902099609375` and
+`84.657958984375 + L` above it. `L*` is no multiple of 1/2048 (46903.5
+steps): the lattice knee is `46903 / 2048 = 22.90185546875`, the last step
+on the flat piece.
 
 | fixture | handle | delta | values |
 |---|---|---|---|
@@ -515,9 +517,9 @@ of 1/2048 (34339.5 steps): the lattice knee is `34339 / 2048 =
 | ungrouped | bottom | (0, −16) / (0, −40) | `{spacing: 0}` / `{spacing: 0}` (the floor) |
 | ungrouped | bottom-right | (40, 32) | `{length: 440, spacing: 24}` |
 | ungrouped, `score` at `{y: 200}` | bottom | (0, 50) | `{spacing: 192.6953125}` (across the knee: `143.734375 + s ≤ 336.4296875`) |
-| audio | right | (−500, 0) | `{length: 16.76708984375}` (the lattice knee) |
-| audio, length 8 | right | (50, 0) | `{length: 66.76708984375}` (8 lies below the knee, so the travel adds to the flat 76.62255859375: `L ≤ 66.767333984375`) |
-| audio, at the knee (length 16.76708984375) | right | (100, 0) | `{length: 116.76708984375}` |
+| audio | right | (−500, 0) | `{length: 22.90185546875}` (the lattice knee) |
+| audio, length 8 | right | (50, 0) | `{length: 72.90185546875}` (8 lies below the knee, so the travel adds to the flat 107.56005859375: `L ≤ 72.902099609375`) |
+| audio, at the knee (length 22.90185546875) | right | (100, 0) | `{length: 122.90185546875}` |
 | bare, width `2 Wc(400)` | right / left | (40, 0) / (−42, 0) | `{length: 420, width: 993.154296875}` / `{length: 421, width: 995.154296875, x: −2}` |
 | ungrouped, height `2 H(8)` = 504.328125 | bottom / top | (0, 32) / (0, −32) | `{spacing: 16, height: 536.328125}` / the same with `y: 48` |
 | ungrouped, width `2 W(400)` = 1054.654296875 and height `2 H(8)` | bottom-right | (40, 32) | `{length: 420, spacing: 16, width: 1094.654296875, height: 536.328125}` |
