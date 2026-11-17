@@ -487,9 +487,9 @@ and request, so the search stays monotone with or without a request.
 (core's `importedManifest`: a manifest without `graphical` gets its root's
 named timestamps `origin` at 0 and `length` at its length, each drawing
 its wedge and its coordinate label) with every name hidden. Its one
-timeline is an audio file in samples (an int axis of length 10190592,
+timeline is an audio file in samples (an int axis of length 10188800,
 with a map to seconds, which sets neither margin): its labels, core's pretty
-texts, are "0 smp" and "10 190 592 smp" (the digits grouped in threes),
+texts, are "0 smp" and "10 188 800 smp" (the digits grouped in threes),
 6316 × 9 / 2048 = 27.755859375 and 16739 × 9 / 2048 = 73.56005859375 wide
 (the bundled font's advances at size 9). With no name drawn the start is
 `s0 = 16 + max(27.755859375 / 2, 73.56005859375 / 2 − L)` in the block and

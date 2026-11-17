@@ -59,7 +59,7 @@ function placed(view: View, values: Partial<Block>): View {
 /**
  * corpus_audio_audio as the editor imports it (core's `importedManifest`: a manifest without
  * `graphical` gets its root's named timestamps `origin` and `length`, each drawing its
- * coordinate label), with every name hidden, so its wide end label `10 190 592 smp` sets the
+ * coordinate label), with every name hidden, so its wide end label `10 188 800 smp` sets the
  * block's width while its line is short.
  */
 const audio = changed(
