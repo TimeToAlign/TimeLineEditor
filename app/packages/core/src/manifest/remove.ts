@@ -9,11 +9,41 @@
  * or its parts alike. Removing a group removes the group only: its
  * members stay where they are. A group left without members stays. Removing
  * a measure map removes it only; a measure view still naming it leaves the
- * manifest dangling, which the schema check refuses.
+ * manifest dangling, which the schema check refuses. A part slot of a link
+ * (the manifest's, a timeline's or a region's) that names a removed
+ * timeline or region in its `represented_by` loses that ID; a slot left
+ * with none is absent from the manifest, `not_represented`: the part
+ * exists and the manifest now leaves it out.
  */
 
+import type { ABSENCE_REASONS } from "@timetoalign/timetoshare";
 import { ENTRY_KINDS, entriesOf } from "./files.ts";
-import type { Manifest, ManifestGraphical, TimelineManifest } from "./types.ts";
+import type { Link, Manifest, ManifestGraphical, TimelineManifest } from "./types.ts";
+
+/** Why no element represents a part whose representing elements were all removed. */
+const LEFT_OUT: (typeof ABSENCE_REASONS)[number] = "not_represented";
+
+/**
+ * The links with the IDs `removed` taken out of every part slot's
+ * `represented_by`, a slot left with none `absent` as `LEFT_OUT`; each
+ * link, and the list, as it was where nothing names a removed ID.
+ */
+function withoutRepresented(links: readonly Link[], removed: ReadonlySet<string>): readonly Link[] {
+  const names = (link: Link) =>
+    link.parts.some((slot) => slot.represented_by.some((id) => removed.has(id)));
+  if (!links.some(names)) return links;
+  return links.map((link) => {
+    if (!names(link)) return link;
+    const parts = link.parts.map((slot) => {
+      const kept = slot.represented_by.filter((id) => !removed.has(id));
+      if (kept.length === slot.represented_by.length) return slot;
+      return kept.length > 0
+        ? { ...slot, represented_by: kept }
+        : { ...slot, represented_by: kept, absent: LEFT_OUT };
+    });
+    return { ...link, parts };
+  });
+}
 
 /** The IDs of every map, region and flow-control element of one timeline. */
 function entryIds(timeline: TimelineManifest): string[] {
@@ -57,11 +87,15 @@ export function withoutElements(manifest: Manifest, elements: Iterable<string>):
     ...timeline,
     children: timeline.children.filter(kept).map(prune),
     conversion_maps: timeline.conversion_maps.filter(kept),
-    regions: timeline.regions.filter(kept),
+    regions: timeline.regions
+      .filter(kept)
+      .map((region) => ({ ...region, links: withoutRepresented(region.links, removed) })),
     flow_control: timeline.flow_control.filter(kept),
+    links: withoutRepresented(timeline.links, removed),
   });
   const result: Manifest = {
     ...manifest,
+    links: withoutRepresented(manifest.links, removed),
     timelines: manifest.timelines.filter(kept).map(prune),
     groups: manifest.groups
       .filter((group) => !removed.has(group.id))

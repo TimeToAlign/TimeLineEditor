@@ -14,8 +14,17 @@
 
 export const name = "@timetoalign/tilie-core" as const;
 
-/** The keys of a manifest its schema does not declare, kept and written back, shown as warnings. */
-export { type UnknownKey, unknownKeys } from "@timetoalign/timetoshare";
+/**
+ * The keys of a manifest its schema does not declare, kept and written back,
+ * and the bare terms of its links outside their registered words, kept and
+ * read as their fallbacks: both shown as warnings.
+ */
+export {
+  type UnknownKey,
+  type UnregisteredTerm,
+  unknownKeys,
+  unregisteredTerms,
+} from "@timetoalign/timetoshare";
 export { apply } from "./commands/apply.ts";
 export { preview } from "./commands/preview.ts";
 export { importedManifest } from "./commands/timestamps.ts";
@@ -106,6 +115,7 @@ export type {
   ConversionMap,
   FlowControlElement,
   Group,
+  Link,
   Manifest,
   ManifestGraphical,
   MeasureMap,

@@ -55,6 +55,7 @@ const region = (id: string, start: unknown, end: unknown) => ({
   start,
   end,
   meta: {},
+  links: [],
 });
 const addRegion = (into: string, value: object) => ({
   type: "add",

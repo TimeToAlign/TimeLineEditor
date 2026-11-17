@@ -25,7 +25,13 @@ import { contentEnd, readOnAxis } from "../manifest/invariants.ts";
 import { normalizeManifest, readEntry, readMeasureMap } from "../manifest/io.ts";
 import { lockProblem, withPlaceLocks, withSegmentLine } from "../manifest/locks.ts";
 import { bandOrderProblem } from "../manifest/order.ts";
-import type { AxisValue, Manifest, NamedTimestamp, TimelineManifest } from "../manifest/types.ts";
+import type {
+  AxisValue,
+  Manifest,
+  NamedTimestamp,
+  Region,
+  TimelineManifest,
+} from "../manifest/types.ts";
 import { toAxisValue } from "../number/coordinate.ts";
 import { compareReal, realOf } from "../number/real.ts";
 import {
@@ -44,6 +50,7 @@ import type { Address } from "../workspace/address.ts";
 import type { Block, BlockId, BlockPlacement } from "../workspace/blocks.ts";
 import type { View } from "../workspace/view.ts";
 import { PLACEMENT_READERS, placeMemberProblem } from "../workspace/view.ts";
+import { readLinks } from "./links.ts";
 import type { ChangeSet } from "./mutations.ts";
 import {
   entryAt,
@@ -203,6 +210,20 @@ const BLOCK_SET: Setters<BlockTarget> = {
     recordValue(changes, path, block.id, true, manifest.name, name);
     return withBlock(view, { ...block, manifest: { ...manifest, name } });
   },
+  /**
+   * The links of the block's manifest as a whole (`readLinks`). They lie
+   * outside every element of the manifest, so the change reaches past its
+   * path: an editor of a group or a timeline never makes it.
+   */
+  links: (view, target, value, path, changes) => {
+    const { block } = target;
+    const links = readLinks(block, null, value, path);
+    if (isCommandError(links)) return links;
+    const { manifest } = block;
+    if (sameJson(manifest.links, links)) return view;
+    record(changes, path, block.id, true);
+    return withBlock(view, { ...block, manifest: { ...manifest, links } });
+  },
   x: blockValue("x", readFinite),
   y: blockValue("y", readFinite),
   index: (view, target, value, path, changes) => {
@@ -240,12 +261,15 @@ const BLOCK_SET: Setters<BlockTarget> = {
   },
 };
 
+/** The properties of a block target that are its manifest's: its name and its own links. */
+const MANIFEST_PROPERTIES: readonly string[] = ["name", "links"];
+
 /**
  * The names of a block's own members a `set` may give, in the order a new
- * block's are applied; `name` is its manifest's.
+ * block's are applied; `name` and `links` are its manifest's.
  */
 export const BLOCK_PROPERTIES: readonly string[] = Object.keys(BLOCK_SET).filter(
-  (property) => property !== "name",
+  (property) => !MANIFEST_PROPERTIES.includes(property),
 );
 
 // ---------------------------------------------------------------- places and orders
@@ -536,6 +560,21 @@ const TIMELINE_SET: Setters<TimelineTarget> = {
     const { timeline } = target.at;
     return timelineChange(view, target, path, changes, timeline.meta, { ...timeline, meta }, meta);
   },
+  /** The timeline's links as a whole (`readLinks`). */
+  links: (view, target, value, path, changes) => {
+    const { timeline } = target.at;
+    const links = readLinks(target.block, timeline.id, value, path);
+    if (isCommandError(links)) return links;
+    return timelineChange(
+      view,
+      target,
+      path,
+      changes,
+      timeline.links,
+      { ...timeline, links },
+      links,
+    );
+  },
   locked: (view, target, value, path, changes) => {
     const locked = readBoolean(value, path);
     if (isCommandError(locked)) return locked;
@@ -633,6 +672,14 @@ type EntryReader<T> = (
   target: EntryTarget,
 ) => T | Problem;
 
+/** The links of the region the target names, as a whole (`readLinks`). */
+const readRegionLinks: EntryReader<Region["links"]> = (value, path, target) => {
+  const region = entryAt(target.at.timeline, "region", target.index);
+  if (region === undefined)
+    throw new Error(`${target.at.timeline.id} lists region ${target.index}`);
+  return readLinks(target.block, region.id, value, path);
+};
+
 /** A bare value on the axis of the timeline listing the entry. */
 const readAxis: EntryReader<AxisValue> = (value, path, target) => {
   const json = toJson(value, path);
@@ -673,7 +720,7 @@ function entryRead(
   changes: ChangeSet,
 ): View | CommandError {
   const { block, at, kind, index } = target;
-  const read = readEntry(kind, object, at.timeline, index, block.manifest.measure_maps);
+  const read = readEntry(kind, object, at.timeline, index, block.manifest);
   if (isCommandError(read)) {
     return { ...read, path: [block.id, "manifest", ...at.path, ...read.path] };
   }
@@ -727,6 +774,7 @@ const ENTRY_SET: { readonly [kind in EntryTarget["kind"]]: Setters<EntryTarget> 
     start: entryValue("region", "start", readAxis),
     end: entryValue("region", "end", readAxis),
     meta: entryValue("region", "meta", readObject),
+    links: entryValue("region", "links", readRegionLinks),
   },
   // The type decides which other members an element may carry: a new type replaces it whole.
   flow_control: {

@@ -45,8 +45,8 @@ const ZEROS: { readonly [type in NumberType]: CoordinateValue } = {
  * Every ID a manifest value states, read as JSON before the schema checks
  * it, added to `ids`: the manifest's own, its timelines' at any depth with
  * their conversion maps' (and the maps those hold, at any depth), regions'
- * and flow-control elements', its groups' and its MeasureMaps'; never a
- * string under `meta` or `graphical`.
+ * and flow-control elements', its groups', its MeasureMaps' and its
+ * schemes'; never a string under `meta` or `graphical`.
  */
 function idsIn(manifest: JsonObject, ids: Set<string>): Set<string> {
   const note = (value: unknown) => {
@@ -69,8 +69,9 @@ function idsIn(manifest: JsonObject, ids: Set<string>): Set<string> {
   };
   note(manifest);
   for (const item of listed(manifest, "timelines")) timeline(item);
-  for (const item of [...listed(manifest, "groups"), ...listed(manifest, "measure_maps")])
-    note(item);
+  for (const list of ["groups", "measure_maps", "schemes"]) {
+    for (const item of listed(manifest, list)) note(item);
+  }
   return ids;
 }
 

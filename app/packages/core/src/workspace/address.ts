@@ -310,10 +310,12 @@ function catalogueOf(manifest: Manifest): ReadonlyMap<string, Found> {
  * Every ID a manifest holds, each unique across the manifest: the IDs of
  * its catalogue (its timelines at any depth, their conversion maps at any
  * depth, regions and flow-control elements, its groups, MeasureMaps and
- * named timestamps) and the manifest's own.
+ * named timestamps), its schemes' and the manifest's own. A scheme, like
+ * the manifest, is neither drawn nor addressed.
  */
 export function manifestIds(manifest: Manifest): Set<string> {
   const ids = new Set(catalogueOf(manifest).keys());
+  for (const scheme of manifest.schemes) ids.add(scheme.id);
   if (manifest.id !== undefined) ids.add(manifest.id);
   return ids;
 }
