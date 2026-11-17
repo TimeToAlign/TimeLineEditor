@@ -74,11 +74,11 @@ describe("band orders", () => {
   });
 
   it("give every timeline of a manifest without entries the default", () => {
-    expect(orders(load("nested.json"))).toEqual(ids.map((id) => [id, D, D]));
+    expect(orders(load("nested.yaml"))).toEqual(ids.map((id) => [id, D, D]));
   });
 
   it("let a child follow its parent's entry verbatim", () => {
-    expect(orders(withOrder("nested.json", { clt_1: R }))).toEqual([
+    expect(orders(withOrder("nested.yaml", { clt_1: R }))).toEqual([
       ["clt_1", R, D],
       ["clt_3", R, R],
       ["clt_2", R, R],
@@ -86,7 +86,7 @@ describe("band orders", () => {
   });
 
   it("let a grandchild follow its parent's own entry, not the root's", () => {
-    const manifest = withOrder("nested.json", { clt_1: R, clt_3: K });
+    const manifest = withOrder("nested.yaml", { clt_1: R, clt_3: K });
     expect(orders(manifest)).toEqual([
       ["clt_1", R, D],
       ["clt_3", K, R],
@@ -95,7 +95,7 @@ describe("band orders", () => {
   });
 
   it("let a member that is a child follow its parent, a root member the default", () => {
-    const manifest = withOrder("groups/group_child_member.json", { piece: R });
+    const manifest = withOrder("groups/group_child_member.yaml", { piece: R });
     expect(
       ["second-half", "recording"].map((id) => [
         bandOrderOf(manifest, id),
@@ -108,7 +108,7 @@ describe("band orders", () => {
   });
 
   it("give an ID no timeline carries the default", () => {
-    const manifest = load("nested.json");
+    const manifest = load("nested.yaml");
     expect([bandOrderOf(manifest, "nothing"), inheritedBandOrder(manifest, "nothing")]).toEqual([
       D,
       D,
@@ -117,7 +117,7 @@ describe("band orders", () => {
 });
 
 describe("band order problems", () => {
-  const manifest = load("nested.json");
+  const manifest = load("nested.yaml");
 
   it.each([[D], [R], [K], [[...D].reverse()]])("accept %j", (value) => {
     expect(bandOrderProblem(manifest, "clt_3", value)).toBeNull();

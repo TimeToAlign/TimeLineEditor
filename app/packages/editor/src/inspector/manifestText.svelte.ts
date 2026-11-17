@@ -1,9 +1,10 @@
 /**
- * The Manifest tab's state: the format and options chosen, the text typed,
- * the manifest the shown text was written from, the problems listed and
- * whether the manifest changed under an unapplied edit. It lives as long as
- * the inspector, so an unapplied text survives while another tab is shown;
- * the panel calls `follow` while it is shown.
+ * The Manifest tab's state: the format chosen, the text typed, the manifest
+ * and the options the shown text was written from, the problems listed and
+ * whether the manifest changed under an unapplied edit. The options are the
+ * block's manifest file in the workspace's settings, which the panel passes
+ * in. It lives as long as the inspector, so an unapplied text survives
+ * while another tab is shown; the panel calls `follow` while it is shown.
  */
 
 import type { Block, BlockId, Json, Store } from "@timetoalign/tilie-core";
@@ -35,8 +36,6 @@ interface Shown extends Choice {
 
 export class ManifestText {
   format: Format = $state("json");
-  includeStyling = $state(false);
-  minimal = $state(false);
   /** The text in the text area. */
   text = $state("");
   /** The problems listed under the text: a refused Apply's, or writing the manifest's. */
@@ -54,11 +53,6 @@ export class ManifestText {
   /** Whether the listed problems are a refused Apply's, which go with the text applied. */
   #refused = false;
 
-  /** The format and options chosen. */
-  get choice(): Choice {
-    return { format: this.format, includeStyling: this.includeStyling, minimal: this.minimal };
-  }
-
   /** Whether the text differs from the text last written from the manifest; Apply and Revert act only then. */
   get dirty(): boolean {
     return this.text !== this.#written;
@@ -70,17 +64,17 @@ export class ManifestText {
   }
 
   /**
-   * Follow the block selected, its manifest and the choice while the text
-   * holds no unapplied edit: the text is written again, or patched when it
-   * shows the same block in the same choice. Under an edit nothing is
-   * replaced, and a change is noted as `stale`; a text typed back to the
-   * shown text follows at once and drops a refused Apply's problems. A
-   * codec not loaded yet is loaded first.
+   * Follow the block selected, its manifest, the format and the block's
+   * `options` while the text holds no unapplied edit: the text is written
+   * again, or patched when it shows the same block in the same choice.
+   * Under an edit nothing is replaced, and a change is noted as `stale`; a
+   * text typed back to the shown text follows at once and drops a refused
+   * Apply's problems. A codec not loaded yet is loaded first.
    */
-  follow(block: Block | null): void {
+  follow(block: Block | null, options: TextOptions): void {
     const id = block?.id ?? null;
     const manifest = block === null ? null : manifestOf(block);
-    const wanted = this.choice;
+    const wanted: Choice = { format: this.format, ...options };
     const ready = this.ready;
     const edited = this.dirty;
     untrack(() => {
@@ -107,7 +101,7 @@ export class ManifestText {
         return;
       }
       if (id === null || manifest === null) this.#clear();
-      else this.#show(id, manifest);
+      else this.#show(id, manifest, wanted);
     });
   }
 
@@ -133,12 +127,12 @@ export class ManifestText {
     this.stale = false;
   }
 
-  /** Drop the unapplied text and show `block`'s stored manifest, or nothing without a block. */
-  revert(block: Block | null): void {
+  /** Drop the unapplied text and show `block`'s stored manifest with its `options`, or nothing without a block. */
+  revert(block: Block | null, options: TextOptions): void {
     this.#source = null;
     this.#shown = null;
     if (block === null) this.#clear();
-    else this.#show(block.id, manifestOf(block));
+    else this.#show(block.id, manifestOf(block), { format: this.format, ...options });
   }
 
   /** Show nothing. */
@@ -151,9 +145,8 @@ export class ManifestText {
     this.stale = false;
   }
 
-  /** Show the manifest of `id`, patching the current document when it shows that block in the same choice. */
-  #show(id: BlockId, manifest: Json): void {
-    const current = this.choice;
+  /** Show the manifest of `id` as `current` chooses, patching the current document when it shows that block in the same choice. */
+  #show(id: BlockId, manifest: Json, current: Choice): void {
     const shown = this.#shown;
     const written =
       this.#source !== null && shown !== null && shown.block === id && sameChoice(shown, current)

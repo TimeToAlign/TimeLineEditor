@@ -22,7 +22,7 @@ export interface Example {
 /** The files a glob found: path → their text, loaded on demand. */
 type Files = Record<string, () => Promise<string>>;
 
-/** Each manifest example's label and its fixture's path below `fixtures/<version>/`, without `.json`. */
+/** Each manifest example's label and its fixture's path below `fixtures/<version>/`, without `.yaml`. */
 const MANIFESTS: readonly (readonly [label: string, fixture: string])[] = [
   ["Score, performance and facsimile", "bundles/bundle_mixed"],
   ["Sonata in two takes", "bundles/bundle_shared_parent"],
@@ -51,7 +51,7 @@ export function examples(fixtures: Files, workspaces: Files): Example[] {
     ...MANIFESTS.map(([label, fixture]) => ({
       label,
       kind: "manifest" as const,
-      text: found(fixtures, `fixtures/${SCHEMA_VERSION}/${fixture}.json`),
+      text: found(fixtures, `fixtures/${SCHEMA_VERSION}/${fixture}.yaml`),
     })),
     ...WORKSPACES.map(([label, file]) => ({
       label,
@@ -64,10 +64,10 @@ export function examples(fixtures: Files, workspaces: Files): Example[] {
 export const EXAMPLES: readonly Example[] = examples(
   import.meta.glob<string>(
     [
-      "../node_modules/@timetoalign/timetoshare/fixtures/*/bundles/bundle_mixed.json",
-      "../node_modules/@timetoalign/timetoshare/fixtures/*/bundles/bundle_shared_parent.json",
-      "../node_modules/@timetoalign/timetoshare/fixtures/*/groups/group_styled.json",
-      "../node_modules/@timetoalign/timetoshare/fixtures/*/flow_control.json",
+      "../node_modules/@timetoalign/timetoshare/fixtures/*/bundles/bundle_mixed.yaml",
+      "../node_modules/@timetoalign/timetoshare/fixtures/*/bundles/bundle_shared_parent.yaml",
+      "../node_modules/@timetoalign/timetoshare/fixtures/*/groups/group_styled.yaml",
+      "../node_modules/@timetoalign/timetoshare/fixtures/*/flow_control.yaml",
     ],
     { query: "?raw", import: "default" },
   ),

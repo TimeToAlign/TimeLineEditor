@@ -769,7 +769,7 @@ describe("the format switch", () => {
     inspector.selected([THEME]);
     const value = timestampJson(named(store, THEME));
     choose("json");
-    expect(text()).toBe(dumps(value));
+    expect(text()).toBe(dumps(value, { serialization: "json" }));
     if (!isLoaded("yaml")) {
       choose("yaml");
       expect(panel().querySelector('[role="status"]')?.textContent).toBe("Loading YAML…");
@@ -794,14 +794,8 @@ describe("the format switch", () => {
     expect(text()).toBe(
       [
         "{",
-        '  "coordinate": [',
-        "    0,",
-        "    1",
-        "  ],",
-        '  "display": [',
-        '    "wedge",',
-        '    "coordinate"',
-        "  ],",
+        '  "coordinate": [0, 1],',
+        '  "display": ["wedge", "coordinate"],',
         '  "id": "timestamp_1",',
         '  "mapping": {',
         '    "cmap_1": null',
@@ -1179,35 +1173,19 @@ describe("a named timestamp's MeasureMaps", () => {
     expect(json).toBe(
       [
         "{",
-        '  "coordinate": [',
-        "    6,",
-        "    1",
-        "  ],",
-        '  "display": [',
-        '    "wedge",',
-        '    "name",',
-        '    "cross_section"',
-        "  ],",
+        '  "coordinate": [6, 1],',
+        '  "display": ["wedge", "name", "cross_section"],',
         '  "id": "timestamp_5",',
         '  "mapping": {',
         '    "cmap_1": {',
         '      "ID": "2",',
-        '      "actual_length": [',
-        "        4,",
-        "        1",
-        "      ],",
+        '      "actual_length": [4, 1],',
         '      "count": 2,',
         '      "name": "2",',
         '      "nominal_length": null,',
         '      "number": null,',
-        '      "offset_within_measure": [',
-        "        0,",
-        "        1",
-        "      ],",
-        '      "qstamp": [',
-        "        4,",
-        "        1",
-        "      ]",
+        '      "offset_within_measure": [0, 1],',
+        '      "qstamp": [4, 1]',
         "    }",
         "  },",
         '  "name": "Bar two",',
@@ -1218,21 +1196,21 @@ describe("a named timestamp's MeasureMaps", () => {
     );
     expect(yaml).toBe(
       [
+        "coordinate: [6, 1]",
+        "display: [wedge, name, cross_section]",
         "id: timestamp_5",
-        "timeline: score",
-        "coordinate: [ 6, 1 ]",
-        "name: Bar two",
-        "display: [ wedge, name, cross_section ]",
         "mapping:",
         "  cmap_1:",
         '    ID: "2"',
-        '    name: "2"',
+        "    actual_length: [4, 1]",
         "    count: 2",
-        "    number: null",
-        "    qstamp: [ 4, 1 ]",
+        '    name: "2"',
         "    nominal_length: null",
-        "    actual_length: [ 4, 1 ]",
-        "    offset_within_measure: [ 0, 1 ]",
+        "    number: null",
+        "    offset_within_measure: [0, 1]",
+        "    qstamp: [4, 1]",
+        'name: "Bar two"',
+        "timeline: score",
         "",
       ].join("\n"),
     );

@@ -83,8 +83,8 @@ name; with `score`'s editor open inside `group_1`'s, a rename keeps
 
 The File menu follows the WAI-ARIA menu button pattern: its items and
 shortcut labels (New workspace, Open… Ctrl+O, Save Ctrl+S, Save as…
-Ctrl+Shift+S, Import manifest…, Export manifest…, Export minimal
-manifest…), the exports disabled without a selected block, and every key
+Ctrl+Shift+S, Import manifest…, Export manifest…), the export disabled
+without a selected block, and every key
 of the pattern, each checked by the focused item and `aria-expanded`. A
 refused file leaves the open workspace as it is and shows one dismissible
 message, "bad.tle.json is not a workspace file", with each problem's code
@@ -123,9 +123,27 @@ block A and of its timeline open, a manifest it reads leaves every open
 editor first (Done: none open afterwards) and is then added as one more
 `add`, selected, placed in the view shown before leaving; a refused one
 leaves both editors open, adds nothing and says so once.
-Export writes the selected block's manifest, complete or minimal, as core's
-writer gives it, under its manifest file name, and is disabled while the
-selection spans two blocks.
+**A manifest file is written back as it came.** Import reads a manifest
+in any of TimeToShare's serializations by its content, and records in the
+workspace's settings how its file wrote it (core's `readManifestFile`, whose
+inference core's tests prove): the new block's manifest file is exactly what
+core infers from the text, and nothing is journalled for it. Export writes
+the selected block's manifest as the block's manifest file says
+(`manifestFileOf`), under its manifest file name, and is disabled while the
+selection spans two blocks. The oracle is the imported text itself: for
+each of the four texts `bare`'s complete fixture (canonical YAML), its
+minimal twin, `nested` written in pretty JSON and `nested` without its
+`graphical` written in RFC 8785 JSON, imported through the picker and
+exported unchanged, the download is exactly the imported text, under
+`bundle.yaml`, `bundle.yaml`, `bundle.json` and `bundle.json` (neither
+manifest has an id or a name); the settings
+hold `{minimal: false, styling: true, serialization: "yaml"}`, `{minimal:
+true, styling: true, serialization: "yaml"}`, `{minimal: false, styling:
+true, serialization: "json"}` and `{minimal: false, styling: false,
+serialization: "jcs"}` for the four blocks, though the last holds its
+roots' default timestamps in a `graphical` of its own. A block no file
+wrote (added by a command) is exported as a new manifest: minimal, with
+its styling, in canonical YAML, under `.yaml`.
 
 The Examples menu, beside File on the standalone page, offers five
 examples in this order, each declaring how it is read: four manifest
@@ -136,7 +154,7 @@ and "Repeats and jumps" (`flow_control`), each of kind `manifest`; then
 "Timestamps", of kind `workspace`, the file `examples/timestamps.tle.json`.
 The list is built from the files two globs found; fixtures of another
 schema version are ignored, and a missing example is an error naming its
-file (`fixtures/0.2.0/flow_control.json`, `examples/timestamps.tle.json`).
+file (`fixtures/0.2.0/flow_control.yaml`, `examples/timestamps.tle.json`).
 No item is ever disabled. Choosing a manifest example adds what Import adds
 for that fixture's text: one `add` of the fixture's manifest at the view's
 centre (`(0, 0)` in jsdom), the new block selected, leaving an open editor
@@ -170,9 +188,13 @@ and `/ \ : * ? " < > |`) written `_`: `untitled` gives `untitled.tle.json`,
 tab `a_b_c_d_e_f_g_h_i_j_.tle.json`.
 
 A manifest's file name is its id, else its name, else `bundle`, characters
-outside `[A-Za-z0-9_-]` replaced by `_` (`flow_quarters.json`,
-`Eroica__II.json`, `bundle.json`); the last-change time is the last entry's
-local time to the minute (`2026-10-12 09:05` in UTC). The fallback file
+outside `[A-Za-z0-9_-]` replaced by `_`, then `.yaml` for canonical YAML
+and `.json` for either JSON form (`flow_quarters.yaml`, `Eroica__II.yaml`,
+`bundle.yaml`; `bundle.json` for `"json"` and `"jcs"`); the last-change
+time is the last entry's local time to the minute (`2026-10-12 09:05` in
+UTC). Import offers manifest files by their media types and extensions,
+`application/yaml` `.yaml` and `.yml`, `application/json` `.json`, the
+fallback input accepting `.yaml,.yml,.json`. The fallback file
 input opens the chosen file's exact text and leaves no input behind, a
 download writes exactly the given text; with File System Access a file is
 saved back into its handle, a save without one picks one, a cancelled
@@ -256,10 +278,10 @@ reader's problem codes and keeps the store. Its `open`,
 bar's question (`unknown_target` for an unknown target). The fixture menu
 offers every fixture there is, and the test proves it against the files on
 disk rather than against a list kept beside the code: its options are
-exactly, each once, every `*.json` below the installed schema package's
+exactly, each once, every `*.yaml` below the installed schema package's
 `fixtures/<SCHEMA_VERSION>/` outside `drawings/` (the top level, `groups/`
 and `bundles/`, `corpus_*` and the minimal twins included) labelled by its
-path below that directory without `.json` (`bare`, `bare.minimal`,
+path below that directory without `.yaml` (`bare`, `bare.minimal`,
 `groups/corpus_tilia`, `bundles/corpus_tilia`), every warning case of
 `fixtures/warnings/<SCHEMA_VERSION>/` as `warnings/<name>`, and every
 end-to-end workspace as `e2e/<name>`; no label repeats and the list is in
@@ -341,15 +363,20 @@ writes the pending autosave before it unmounts.
 
 The Manifest panel shows the selected block's manifest as JSON, YAML or
 TOML and writes an edited text back as one `set` of the block's
-`manifest`. The oracles are the fixtures (their bytes), TimeToShare's
-`dumps` (a canonical text that sorts keys, so only a changed value fails a
-comparison) and the store (what it accepts and refuses).
+`manifest`. A text written fresh is the manifest file's text: JSON is
+TimeToShare's pretty JSON and YAML its canonical YAML (`dumps` with
+`"json"` and `"yaml"`), so with a block's manifest file in that
+serialization the shown text equals what Export writes. The oracles are the
+fixtures (their bytes), TimeToShare's `dumps` (a canonical text that sorts
+keys, so only a changed value fails a comparison) and the store (what it
+accepts and refuses).
 
 1. **Every manifest round-trips through every format, byte for byte.**
    Each manifest fixture of the installed schema version (top level,
    `groups/`, `bundles/`; a minimal twin reads back as its complete fixture,
    a case already) is written in each format and read back, and `dumps` of
-   the value read equals the fixture's bytes.
+   the value read equals the fixture's bytes; the YAML text written is the
+   fixture's bytes themselves.
 2. **Numbers stay exact.** Through `set`, an integer length of
    9007199254740993 ticks (2^53 + 1), a float of 12.500000000000002 seconds
    and an integral float of 1e16 seconds survive all three formats as
@@ -401,8 +428,8 @@ comparison) and the store (what it accepts and refuses).
    same mode is the same text with the new name, both comments in place.
 7. **The four modes.** A text is complete or minimal, with or without the
    styling (`graphical`). With `bare` styled by one `style` command, each
-   mode's JSON text is pinned whole: the fixture `bare.json` or
-   `bare.minimal.json`, whose `graphical` holds its root's default
+   mode's JSON text is pinned whole: the fixture `bare.yaml` or
+   `bare.minimal.yaml`, whose `graphical` holds its root's default
    timestamps, without that `graphical`, or with the statement added to
    its `statements`. In every mode
    and format an applied edit stores the complete manifest with that edit
@@ -436,6 +463,18 @@ panels"):
   TOML) stays while that manifest is shown, the text area empty;
 - Revert shows the selected block's stored manifest, or nothing;
 - a change of format or option writes the text again.
+
+**The options are the block's.** Include styling and Minimal show how the
+selected block's manifest is written to a file, the workspace's setting
+(`manifestFileOf`), and a change of either is `configure` of that block's
+entry, journalling nothing. With `bare` in block A and `styled__score` in
+block B, no entry stated: both boxes are checked (a new manifest is minimal
+and styled) and the text is the minimal, styled one. Unchecking Minimal on
+A gives A's entry exactly `{minimal: false, styling: true, serialization:
+"yaml"}`, leaves the journal as it was, shows the complete text and makes
+the workspace unsaved; selecting B shows both boxes checked again, and A
+again Minimal unchecked. The entry survives a save and an open of the
+workspace file.
 
 ## The Properties form (`inspector-properties.test.ts`, `inspector-bands.test.ts`, `inspector-fields.test.ts`)
 
@@ -893,8 +932,9 @@ which no position solves).
    segments, "Manifest format" with JSON, YAML, TOML and "Timestamp
    format" with Editor, JSON, YAML, TOML, Editor chosen first. JSON, YAML and TOML show core's
    `timestampJson` of the pin through the Manifest tab's codecs: the JSON
-   text is the standard writer's (`dumps`) of that value (for Theme its
-   manifest entry and `mapping`); YAML and TOML read "Loading …" until their
+   text is TimeToShare's pretty JSON (`dumps`) of that value (for Theme its
+   manifest entry and `mapping`), the YAML text its canonical YAML, keys
+   sorted as in JSON; YAML and TOML read "Loading …" until their
    codec is loaded, then the codec's text of the same value. One Copy
    writes the text shown and posts "Copied the JSON." (the format's word).
    **A timestamp's text is a readout, not a manifest**, so the Manifest
@@ -1048,7 +1088,7 @@ day is 2026-11-17 throughout.
    1, 3, 2, 4, asserted 2026-11-18 `imported`), the bundle holds two links
    and so two cards, in their order, each its own.
 3. **Representation and warnings.** The shared warning case
-   `description_absent_unregistered.json`: the first slot is represented by
+   `description_absent_unregistered.yaml`: the first slot is represented by
    `intro` (a region without a name, shown by its ID), the second absent
    `destroyed`, which is no registered reason: the card warns "'destroyed'
    is no registered word, at /parts/1/absent", and the absence choices are

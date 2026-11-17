@@ -1,15 +1,18 @@
 /**
- * The YAML codec of the inspector, loaded on first use: the `yaml` package
+ * The YAML codec of the inspector, loaded on first use. A manifest is
+ * written as TimeToShare's canonical YAML (`dumps`), so the text is the
+ * manifest file's; it is read, and that text parsed, by the `yaml` package
  * with every integer a `bigint` and the YAML 1.2 core schema. The parsed
  * document is kept and patched node by node, so comments survive wherever a
- * value keeps its kind.
+ * value keeps its kind: a document holding a comment is written in the
+ * library's layout, one without again in canonical YAML. Comments are no
+ * part of a manifest; keeping them is a convenience of the text.
  */
 
 import type { Json } from "@timetoalign/tilie-core";
 import { dumps, isJsonFloat } from "@timetoalign/timetoshare";
-import type { Node } from "yaml";
+import type { Document, Node } from "yaml";
 import {
-  Document,
   isAlias,
   isMap,
   isScalar,
@@ -17,6 +20,7 @@ import {
   Pair,
   parseDocument,
   Scalar,
+  visit,
   YAMLMap,
   YAMLSeq,
 } from "yaml";
@@ -26,6 +30,23 @@ import type { Result } from "./problems.ts";
 import { catching, InspectorCode, ProblemError, refused } from "./problems.ts";
 
 const YAML_OPTIONS = { intAsBigInt: true, schema: "core", uniqueKeys: true } as const;
+
+/** How a document holding comments is written: sequences of scalars as canonical YAML spells them, `[8, 1]`. */
+const TO_STRING = { flowCollectionPadding: false } as const;
+
+/** Whether `document` holds a comment anywhere. */
+function hasComments(document: Document): boolean {
+  if (document.commentBefore || document.comment) return true;
+  let found = false;
+  visit(document, (_, node) => {
+    if ((isScalar(node) || isMap(node) || isSeq(node)) && (node.commentBefore || node.comment)) {
+      found = true;
+      return visit.BREAK;
+    }
+    return undefined;
+  });
+  return found;
+}
 
 /** A YAML node holding `value`; sequences of scalars only are written in flow style. */
 function yamlNode(document: Document, value: Json): Node {
@@ -138,15 +159,14 @@ function yamlSource(document: Document): Source {
           document.contents,
           value,
         ) as typeof document.contents;
-        return document.toString();
+        return hasComments(document) ? document.toString(TO_STRING) : dumps(value);
       }),
   };
 }
 
 function writeYaml(value: Json): Result<Text> {
-  const document = new Document(null, YAML_OPTIONS);
-  document.contents = yamlNode(document, value) as typeof document.contents;
-  return { ok: true, value: { text: document.toString(), source: yamlSource(document) } };
+  const text = dumps(value);
+  return { ok: true, value: { text, source: yamlSource(parseDocument(text, YAML_OPTIONS)) } };
 }
 
 function readYaml(text: string): Result<Read> {

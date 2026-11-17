@@ -21,9 +21,9 @@ import {
 import { resolveElement } from "../src/workspace/address.ts";
 import { load } from "./support.ts";
 
-const MIXED = "bundles/bundle_mixed.json";
-const SHARED = "bundles/bundle_shared_parent.json";
-const SHARED_MEMBER = "bundles/bundle_shared_member.json";
+const MIXED = "bundles/bundle_mixed.yaml";
+const SHARED = "bundles/bundle_shared_parent.yaml";
+const SHARED_MEMBER = "bundles/bundle_shared_member.yaml";
 
 /** A frame or card as `[kind, its place key, the holder's place key]`, the block's written `null`. */
 const row = (ref: ContainerRef) => [ref.kind, ref.key, ref.holder?.key ?? null];

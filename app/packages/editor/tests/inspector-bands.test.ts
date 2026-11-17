@@ -226,9 +226,10 @@ describe("the Properties panel of a band", () => {
     expect(panel().querySelector(".hint")).toBe(null);
 
     openTab("Manifest");
+    // A block without a manifest file of its own is shown as a new manifest: minimal, styled.
     const expected = manifestText(manifestOf(blockOf(store.view, A)), "json", {
-      includeStyling: false,
-      minimal: false,
+      includeStyling: true,
+      minimal: true,
     });
     if (!expected.ok) throw new Error("the manifest is not written");
     expect(document.querySelector("textarea")?.value).toBe(expected.value.text);

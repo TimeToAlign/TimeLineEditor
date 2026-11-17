@@ -26,7 +26,7 @@ import {
   viewOf,
 } from "./support.ts";
 
-const MIXED = "bundles/bundle_mixed.json";
+const MIXED = "bundles/bundle_mixed.yaml";
 const BLOCK: Address = { block: A };
 const MB = "http://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284";
 const PAGE = "https://musicbrainz.org/work/4a622b0d-b0c0-405e-b49e-05b70c108284";
@@ -97,12 +97,12 @@ function everyList(view: View): Record<string, readonly Link[]> {
   return lists;
 }
 
-/** Block A holding `bare.json` with a scheme `clt_1`. */
+/** Block A holding `bare.yaml` with a scheme `clt_1`. */
 function withScheme(): View {
-  const value = manifestValue("bare.json");
+  const value = manifestValue("bare.yaml");
   const manifest = loadText(
     dumps({ ...value, schemes: [{ id: "clt_1", name: "Opus numbers" }] }),
-    "bare.json with a scheme",
+    "bare.yaml with a scheme",
   );
   return changed(createView(), { type: "add", into: {}, block: { id: A, manifest, x: 0, y: 0 } });
 }
@@ -216,7 +216,7 @@ describe("links", () => {
   });
 
   it("are no member of a block (item 5)", () => {
-    const manifest = loadText(dumps(manifestValue("bare.json")), "bare.json");
+    const manifest = loadText(dumps(manifestValue("bare.yaml")), "bare.yaml");
     expect(
       refused(createView(), {
         type: "add",
@@ -272,7 +272,7 @@ describe("schemes", () => {
     expect(regionLinks(added, "bare", "region_1")).toEqual([
       { ...COMPLETE_W, identifiers: [{ scheme: "clt_1", value: "op. 106" }] },
     ]);
-    expect(refused(viewOf([A, "bare.json"]), { type: "add", into: at("bare"), region })).toEqual({
+    expect(refused(viewOf([A, "bare.yaml"]), { type: "add", into: at("bare"), region })).toEqual({
       code: "schema_violation",
       message: "'clt_1' names no scheme of this manifest and is no absolute URI",
       path: [A, "manifest", "timelines", 0, "regions", 0, "links", 0, "identifiers", 0, "scheme"],
@@ -309,7 +309,7 @@ describe("links through edits", () => {
       regionLinks(view, "annotations", "region_3"),
     ]).toEqual([[COMPLETE_W], [COMPLETE_W], [COMPLETE_W], [COMPLETE_W], []]);
     const manifest = manifestOf(view);
-    for (const options of [{}, { minimal: true }]) {
+    for (const options of [{}, { minimal: false }]) {
       expect(loadText(saveManifest(manifest, options))).toEqual(manifest);
     }
   });
@@ -384,7 +384,7 @@ describe("links through edits", () => {
   });
 
   it("are held by a manifest without timelines (item 11)", () => {
-    const { graphical: _, ...value } = manifestValue("bare.json");
+    const { graphical: _, ...value } = manifestValue("bare.yaml");
     const read = loadManifest(dumps({ ...value, timelines: [] }));
     if ("problems" in read) throw new Error("refused");
     expect(importedManifest(read)).toEqual(read);
@@ -397,7 +397,7 @@ describe("links through edits", () => {
       setLinks([BLOCK, [W]]),
     );
     const text = saveManifest(manifestOf(view));
-    expect(text.includes('"timelines": []')).toBe(true);
+    expect(text.includes("timelines: []\n")).toBe(true);
     expect(loadText(text).links).toEqual([COMPLETE_W]);
   });
 });
@@ -496,10 +496,10 @@ describe("links given with an element", () => {
 });
 
 describe("removing what a part slot names", () => {
-  /** `nested.json` with `clt_1`'s links `[S(clt_2)]` and its region `region_1` holding `[T]`. */
+  /** `nested.yaml` with `clt_1`'s links `[S(clt_2)]` and its region `region_1` holding `[T]`. */
   const nested = () =>
     applied(
-      applied(viewOf([A, "nested.json"]), {
+      applied(viewOf([A, "nested.yaml"]), {
         type: "add",
         into: at("clt_1"),
         region: { id: "region_1", start: [0, 1], end: [4, 1], links: [T] },
@@ -529,7 +529,7 @@ describe("removing what a part slot names", () => {
       heldBy(store.view, "region_1"),
     ]).toEqual([1, [completeS()], [completeT(["clt_3"], [])]]);
     const segments = applied(
-      applied(viewOf([A, "segment_children.json"]), {
+      applied(viewOf([A, "segment_children.yaml"]), {
         type: "add",
         into: at("coda"),
         region: { id: "region_1", start: [0, 1], end: [1, 1], links: [S("i2")] },
@@ -568,8 +568,8 @@ describe("removing what a part slot names", () => {
     };
     const outside = (what: string, where: string) =>
       `${what} lie outside ${where}: an editor changes only what it edits`;
-    const own = applied(viewOf([A, "nested.json"]), setLinks([at("clt_1"), [S("clt_2")]]));
-    const manifest = applied(viewOf([A, "nested.json"]), setLinks([BLOCK, [S("clt_2")]]));
+    const own = applied(viewOf([A, "nested.yaml"]), setLinks([at("clt_1"), [S("clt_2")]]));
+    const manifest = applied(viewOf([A, "nested.yaml"]), setLinks([BLOCK, [S("clt_2")]]));
     const mixed = applied(viewOf([A, MIXED]), setLinks([at("score"), [S("region_1")]]));
     expect([
       refusal(own, "clt_3", "clt_2"),

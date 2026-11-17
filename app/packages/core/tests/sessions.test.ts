@@ -34,7 +34,7 @@ function mixedStore(): Store {
     { view: createView(), journal: [], sessions: {} },
     { clock: testClock() },
   );
-  expect(store.dispatch(addBlock(BUNDLE, "bundles/bundle_mixed.json"))).toBeNull();
+  expect(store.dispatch(addBlock(BUNDLE, "bundles/bundle_mixed.yaml"))).toBeNull();
   return store;
 }
 
@@ -64,7 +64,7 @@ describe("editor ids and kinds", () => {
   });
 
   it("names the editor of each address", () => {
-    const view = viewOf([BUNDLE, "bundles/bundle_mixed.json"], [A, "map.json"]);
+    const view = viewOf([BUNDLE, "bundles/bundle_mixed.yaml"], [A, "map.yaml"]);
     expect(editorKindOf(view, BLOCK)).toBe("bundle");
     expect(editorKindOf(view, G1)).toBe("group");
     expect(editorKindOf(view, at("annotations"))).toBe("timeline");

@@ -11,11 +11,12 @@ function viewWith(...blocks: Block[]): View {
 }
 
 describe("workspace creation", () => {
-  it("defaults blocks to the drawing's placement defaults and scale 1, and the granularity to 1/2520 and 3 places", () => {
+  it("defaults blocks to the drawing's placement defaults and scale 1, the granularity to 1/2520 and 3 places, and states no manifest file", () => {
     expect(DEFAULT_SETTINGS).toEqual({
       grid: { size: 8, snap: true },
       blockDefaults: { scale: 1, length: 400, spacing: 8, margin: 0, width: null, height: null },
       granularity: { denominator: 2520, decimals: 3 },
+      manifests: {},
     });
   });
 
@@ -38,7 +39,7 @@ describe("workspace creation", () => {
   });
 
   it("gives a block exactly its thirteen members", () => {
-    expect(Object.keys(block(viewOf([A, "bare.json"]))).sort()).toEqual(
+    expect(Object.keys(block(viewOf([A, "bare.yaml"]))).sort()).toEqual(
       [
         "id",
         "parent",
@@ -59,7 +60,7 @@ describe("workspace creation", () => {
 });
 
 describe("workspace checks", () => {
-  const bare = block(viewOf([A, "bare.json"]));
+  const bare = block(viewOf([A, "bare.yaml"]));
   const at = (id: string, changes: Partial<Block> = {}): Block => ({ ...bare, id, ...changes });
 
   it("reports parents, indices and ids in id order with exact paths", () => {
@@ -93,7 +94,7 @@ describe("workspace checks", () => {
   });
 
   it("reports the placement and prefixed manifest problems exactly", () => {
-    const region = block(viewOf([A, "with_region.json"]));
+    const region = block(viewOf([A, "with_region.yaml"]));
     const [timeline] = region.manifest.timelines;
     const [first] = timeline?.regions ?? [];
     if (timeline === undefined || first === undefined) throw new Error("the fixture has a region");

@@ -43,10 +43,10 @@ describe("copyValue", () => {
     ]);
     expect([0.1, 1e-7, 3, 6.71875, 1e16].map((x) => copyValue(x, "float"))).toEqual([
       "0.1",
-      "1e-07",
+      "1.0e-07",
       "3.0",
       "6.71875",
-      "1e+16",
+      "1.0e+16",
     ]);
     expect(copyValue(514041n, "int")).toBe("514041");
   });
@@ -94,17 +94,17 @@ describe("prettyText, exact", () => {
     ).toEqual(["514 041 smp", "-1 234 567 smp", "1 000 smp", "999 smp", "0 smp"]);
   });
 
-  it("writes a float's full repr", () => {
+  it("writes a float as TimeToShare spells it", () => {
     expect([0.1, 6.71875, 1e-7, 1e16, 0.1 + 0.2].map((x) => prettyText(x, "float", null))).toEqual([
       "0.1",
       "6.71875",
-      "1e-07",
-      "1e+16",
+      "1.0e-07",
+      "1.0e+16",
       "0.30000000000000004",
     ]);
   });
 
-  it("splits float seconds on the repr's digits", () => {
+  it("splits float seconds on the digits of their spelling", () => {
     expect(
       [42.5, 5.241, 75.5, 3725.0, 3605.25, 60.0, 0.0, -75.5, 75.1, 0.1 + 0.2, 1e-5, 1e16].map((x) =>
         prettyText(x, "float", "seconds"),
@@ -138,11 +138,11 @@ describe("prettyText, exact", () => {
 });
 
 describe("prettyText, rounded", () => {
-  it("rounds a float to the given places as Python's round, spelled as its repr", () => {
+  it("rounds a float to the given places as Python's round, spelled as TimeToShare spells it", () => {
     const at = (x: number) => [0, 3, 6].map((places) => prettyText(x, "float", null, places));
     expect(at(6.71875)).toEqual(["7.0", "6.719", "6.71875"]);
     expect(at(312.48979591836735)).toEqual(["312.0", "312.49", "312.489796"]);
-    expect(at(1e-5)).toEqual(["0.0", "0.0", "1e-05"]);
+    expect(at(1e-5)).toEqual(["0.0", "0.0", "1.0e-05"]);
     expect(at(2.5)).toEqual(["2.0", "2.5", "2.5"]);
     expect(prettyText(6, "float", null, 3)).toBe("6.0");
   });

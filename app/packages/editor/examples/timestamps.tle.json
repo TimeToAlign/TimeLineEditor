@@ -13,110 +13,63 @@
           "timestamps": [
             {
               "coordinate": 0.0,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_3",
               "name": "origin",
               "timeline": "performance"
             },
             {
               "coordinate": 2.25,
-              "display": [
-                "wedge",
-                "coordinate",
-                "cross_section"
-              ],
+              "display": ["wedge", "coordinate", "cross_section"],
               "id": "timestamp_9",
               "name": "Entry",
               "timeline": "performance"
             },
             {
               "coordinate": 8.0,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_4",
               "name": "length",
               "timeline": "performance"
             },
             {
-              "coordinate": [
-                5,
-                1
-              ],
-              "display": [
-                "wedge",
-                "id"
-              ],
+              "coordinate": [5, 1],
+              "display": ["wedge", "id"],
               "id": "timestamp_8",
               "name": "Cadence",
               "timeline": "phrase"
             },
             {
-              "coordinate": [
-                0,
-                1
-              ],
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "coordinate": [0, 1],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_1",
               "name": "origin",
               "timeline": "score"
             },
             {
-              "coordinate": [
-                4,
-                1
-              ],
-              "display": [
-                "wedge",
-                "name",
-                "cross_section"
-              ],
+              "coordinate": [4, 1],
+              "display": ["wedge", "name", "cross_section"],
               "id": "timestamp_5",
               "name": "Theme",
               "timeline": "score"
             },
             {
-              "coordinate": [
-                21,
-                2
-              ],
-              "display": [
-                "wedge",
-                "name",
-                "id",
-                "coordinate",
-                "cross_section"
-              ],
+              "coordinate": [21, 2],
+              "display": ["wedge", "name", "id", "coordinate", "cross_section"],
               "id": "timestamp_6",
               "name": "Climax",
               "timeline": "score"
             },
             {
-              "coordinate": [
-                14,
-                1
-              ],
+              "coordinate": [14, 1],
               "display": [],
               "id": "timestamp_7",
               "name": "Silent",
               "timeline": "score"
             },
             {
-              "coordinate": [
-                16,
-                1
-              ],
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "coordinate": [16, 1],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_2",
               "name": "length",
               "timeline": "score"
@@ -206,19 +159,13 @@
                 "flow_control": [],
                 "id": "phrase",
                 "is_segment_line": false,
-                "length": [
-                  6,
-                  1
-                ],
+                "length": [6, 1],
                 "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Phrase",
                 "number_type": "fraction",
-                "offset": [
-                  4,
-                  1
-                ],
+                "offset": [4, 1],
                 "regions": [],
                 "unit": "quarters"
               },
@@ -228,19 +175,13 @@
                 "flow_control": [],
                 "id": "coda",
                 "is_segment_line": false,
-                "length": [
-                  4,
-                  1
-                ],
+                "length": [4, 1],
                 "links": [],
                 "locked": false,
                 "meta": {},
                 "name": "Coda",
                 "number_type": "fraction",
-                "offset": [
-                  12,
-                  1
-                ],
+                "offset": [12, 1],
                 "regions": [],
                 "unit": "quarters"
               }
@@ -250,10 +191,7 @@
                 "id": "bars",
                 "name": "Bars",
                 "offset": 0,
-                "scalar": [
-                  1,
-                  4
-                ],
+                "scalar": [1, 4],
                 "source_unit": "quarters",
                 "target_unit": "whole_notes",
                 "type": "LinearMap"
@@ -262,10 +200,7 @@
                 "id": "tempo",
                 "name": "Tempo",
                 "offset": 0,
-                "scalar": [
-                  1,
-                  2
-                ],
+                "scalar": [1, 2],
                 "source_unit": "quarters",
                 "target_unit": "seconds",
                 "type": "LinearMap"
@@ -283,10 +218,7 @@
             "flow_control": [],
             "id": "score",
             "is_segment_line": false,
-            "length": [
-              16,
-              1
-            ],
+            "length": [16, 1],
             "links": [],
             "locked": false,
             "meta": {},
@@ -357,10 +289,7 @@
         },
         "timeline": {
           "id": "score",
-          "length": [
-            16,
-            1
-          ],
+          "length": [16, 1],
           "name": "Score",
           "unit": "quarters"
         },
@@ -397,10 +326,7 @@
         "map": {
           "id": "bars",
           "name": "Bars",
-          "scalar": [
-            1,
-            4
-          ],
+          "scalar": [1, 4],
           "source_unit": "quarters",
           "target_unit": "whole_notes",
           "type": "LinearMap"
@@ -419,10 +345,7 @@
         "map": {
           "id": "tempo",
           "name": "Tempo",
-          "scalar": [
-            1,
-            2
-          ],
+          "scalar": [1, 2],
           "source_unit": "quarters",
           "target_unit": "seconds",
           "type": "LinearMap"
@@ -436,15 +359,9 @@
       "command": {
         "child": {
           "id": "phrase",
-          "length": [
-            6,
-            1
-          ],
+          "length": [6, 1],
           "name": "Phrase",
-          "offset": [
-            4,
-            1
-          ],
+          "offset": [4, 1],
           "unit": "quarters"
         },
         "into": {
@@ -479,15 +396,9 @@
       "command": {
         "child": {
           "id": "coda",
-          "length": [
-            4,
-            1
-          ],
+          "length": [4, 1],
           "name": "Coda",
-          "offset": [
-            12,
-            1
-          ],
+          "offset": [12, 1],
           "unit": "quarters"
         },
         "into": {
@@ -595,10 +506,7 @@
           "id": "score"
         },
         "timestamp": {
-          "coordinate": [
-            4,
-            1
-          ],
+          "coordinate": [4, 1],
           "name": "Theme"
         },
         "type": "add"
@@ -613,17 +521,8 @@
           "id": "score"
         },
         "timestamp": {
-          "coordinate": [
-            21,
-            2
-          ],
-          "display": [
-            "wedge",
-            "name",
-            "id",
-            "coordinate",
-            "cross_section"
-          ],
+          "coordinate": [21, 2],
+          "display": ["wedge", "name", "id", "coordinate", "cross_section"],
           "name": "Climax"
         },
         "type": "add"
@@ -638,10 +537,7 @@
           "id": "score"
         },
         "timestamp": {
-          "coordinate": [
-            14,
-            1
-          ],
+          "coordinate": [14, 1],
           "display": [],
           "name": "Silent"
         },
@@ -657,14 +553,8 @@
           "id": "phrase"
         },
         "timestamp": {
-          "coordinate": [
-            5,
-            1
-          ],
-          "display": [
-            "wedge",
-            "id"
-          ],
+          "coordinate": [5, 1],
+          "display": ["wedge", "id"],
           "name": "Cadence"
         },
         "type": "add"
@@ -680,11 +570,7 @@
         },
         "timestamp": {
           "coordinate": 2.25,
-          "display": [
-            "wedge",
-            "coordinate",
-            "cross_section"
-          ],
+          "display": ["wedge", "coordinate", "cross_section"],
           "name": "Entry"
         },
         "type": "add"
@@ -714,6 +600,7 @@
     "grid": {
       "size": 8,
       "snap": true
-    }
+    },
+    "manifests": {}
   }
 }

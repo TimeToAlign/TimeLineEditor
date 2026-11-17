@@ -33,7 +33,7 @@ function started(text: string): Store {
     { view: createView(), journal: [], sessions: {} },
     { clock: testClock() },
   );
-  for (const command of [addText(text), addBlock(B, "bare.json")]) {
+  for (const command of [addText(text), addBlock(B, "bare.yaml")]) {
     expect(store.dispatch(command)).toBeNull();
   }
   return store;
@@ -57,10 +57,13 @@ describe("generated command sequences", () => {
           const view = store.view;
           expect(checkWorkspace(view)).toEqual([]);
           for (const block of Object.values(view.blocks)) {
-            const text = saveManifest(block.manifest);
+            const text = saveManifest(block.manifest, { minimal: false });
             const loaded = loadManifest(text);
             expect(loaded).toEqual(block.manifest);
-            if (!isLoadError(loaded)) expect(saveManifest(loaded)).toBe(text);
+            if (isLoadError(loaded)) continue;
+            expect(saveManifest(loaded, { minimal: false })).toBe(text);
+            const short = saveManifest(loaded);
+            expect(saveManifest(loadText(short))).toBe(short);
           }
           views.push(view);
         }
@@ -234,7 +237,7 @@ describe("the generator reaches the refusal catalogue", () => {
   it("over every manifest", { timeout: CATALOGUE_TIMEOUT }, () => {
     const seen = new Set<string>();
     for (const [, source] of SOURCES) {
-      const start = changed(changed(createView(), addText(source)), addBlock(B, "bare.json"));
+      const start = changed(changed(createView(), addText(source)), addBlock(B, "bare.yaml"));
       for (const seeds of fc.sample(sequenceArbitrary, { numRuns: 150, seed: 20261011 })) {
         let view = start;
         for (const seed of seeds) {

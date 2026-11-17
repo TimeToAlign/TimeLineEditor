@@ -7,6 +7,12 @@ import { createStore, replay } from "../src/workspace/store.ts";
 import { createView } from "../src/workspace/view.ts";
 import { A, addBlock, B, testClock } from "./support.ts";
 
+/** How a workspace file is written: pretty JSON. */
+const JSON_TEXT = { serialization: "json" } as const;
+
+/** How block `A`'s manifest is written in the built workspace. */
+const A_FILE = { minimal: false, styling: false, serialization: "json" } as const;
+
 /** The workspace's `graphical`: one statement. */
 const STYLED = {
   statements: [{ select: { element: "timeline" }, set: { stroke: "#0000FF" } }],
@@ -18,8 +24,8 @@ function built(): Workspace {
     { clock: testClock() },
   );
   for (const command of [
-    addBlock(A, "bare.json"),
-    addBlock(B, "map.json"),
+    addBlock(A, "bare.yaml"),
+    addBlock(B, "map.yaml"),
     { type: "set", changes: [{ target: { block: A }, values: { x: 128, y: 64 } }] },
     { type: "style", select: { element: "map" }, set: { stroke: "#C00000" } },
     { type: "set", changes: [{ target: {}, values: { graphical: STYLED } }] },
@@ -30,6 +36,7 @@ function built(): Workspace {
   store.undo();
   expect(store.configure({ grid: { size: 16, snap: false } })).toBeNull();
   expect(store.configure({ granularity: { denominator: 5 } })).toBeNull();
+  expect(store.configure({ manifests: { [A]: A_FILE } })).toBeNull();
   return store.snapshot();
 }
 
@@ -60,11 +67,13 @@ describe("the workspace file", () => {
       "blockDefaults",
       "granularity",
       "grid",
+      "manifests",
     ]);
     expect(value.settings).toEqual({
       grid: { size: 16, snap: false },
       blockDefaults: { scale: 1, length: 400, spacing: 8, margin: 0, width: null, height: null },
       granularity: { denominator: 5, decimals: 3 },
+      manifests: { [A]: A_FILE },
     });
     expect(value.graphical).toEqual(STYLED);
     expect(value.meta).toEqual({ format: "tilie-workspace", version: 7 });
@@ -87,7 +96,7 @@ describe("the workspace file", () => {
   const edited = (change: (value: Value) => void): string => {
     const value = parseJson(text) as Value;
     change(value);
-    return dumps(value);
+    return dumps(value, JSON_TEXT);
   };
   const blockOf = (value: Value) => (value.blocks as Value)[A] as Value;
   const entry = (value: Value) => (value.journal as Value[])[0] as Value;
@@ -303,6 +312,20 @@ describe("the workspace file", () => {
       const written = parseJson(writeWorkspace(lenient)) as Value;
       expect((written.settings as Value).granularity).toEqual({ denominator: 2520, decimals: 3 });
     }
+    for (const shape of [undefined, [], { [A]: { minimal: "yes" } }]) {
+      const lenient = read(
+        edited((value) => {
+          const settings = value.settings as Value;
+          if (shape === undefined) delete settings.manifests;
+          else settings.manifests = shape;
+        }),
+      );
+      expect(lenient.view.settings.manifests).toEqual({});
+      expect({ ...lenient.view.settings, manifests: null }).toEqual({
+        ...workspace.view.settings,
+        manifests: null,
+      });
+    }
     const strict = readWorkspace(
       edited((value) => {
         const settings = value.settings as Value;
@@ -348,7 +371,7 @@ describe("the workspace file", () => {
     const value = parseJson(writeWorkspace(built())) as Value;
     const [root] = (blockOf(value).manifest as Value).timelines as Value[];
     Object.assign(root as Value, { regions: [{ id: "region_1", start: [4, 1], end: [2, 1] }] });
-    const result = readWorkspace(dumps(value));
+    const result = readWorkspace(dumps(value, JSON_TEXT));
     expect(isLoadError(result) && result.problems.map((item) => [item.code, item.path])).toEqual([
       ["region_end_before_start", ["blocks", A, "manifest", "timelines", 0, "regions", 0, "end"]],
     ]);
@@ -360,7 +383,7 @@ describe("the workspace file", () => {
       { clock: testClock() },
     );
     for (const command of [
-      addBlock(A, "bundles/bundle_mixed.json"),
+      addBlock(A, "bundles/bundle_mixed.yaml"),
       {
         type: "set",
         changes: [
@@ -402,7 +425,7 @@ describe("the workspace file", () => {
         blockOf(value).places as Value,
       );
       Object.assign(place, values);
-      return readWorkspace(dumps(value));
+      return readWorkspace(dumps(value, JSON_TEXT));
     };
     const score = ["group_1", "cards", "score"];
     expect(changedPlace(score, { length: 300 })).toMatchObject({
@@ -434,7 +457,7 @@ describe("the workspace file", () => {
         { view: createView(), journal: [], sessions: {} },
         { clock: testClock() },
       );
-      expect(store.dispatch(addBlock(A, "bundles/bundle_mixed.json"))).toBeNull();
+      expect(store.dispatch(addBlock(A, "bundles/bundle_mixed.yaml"))).toBeNull();
       const set = {
         type: "set",
         changes: [{ target: { block: A, id: "score" }, values: { name: "S" } }],
@@ -444,12 +467,12 @@ describe("the workspace file", () => {
       const [added, command] = value.journal as Value[];
       value.journal = [added, { session: S, author: "Gerhardt", time: (command as Value).time }];
       value.sessions = { [S]: { target: { block: A, id: "group_1" }, entries: [command] } };
-      return dumps(value);
+      return dumps(value, JSON_TEXT);
     })();
     const withSessions = (change: (value: Value) => void): string => {
       const value = parseJson(sessionText) as Value;
       change(value);
-      return dumps(value);
+      return dumps(value, JSON_TEXT);
     };
     const sessionsOf = (value: Value) => value.sessions as Value;
     const sessionEntry = (value: Value) => (value.journal as Value[])[1] as Value;

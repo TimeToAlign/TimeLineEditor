@@ -8,56 +8,35 @@
       "manifest": {
         "graphical": {
           "order": {
-            "group_1": [
-              "second-half",
-              "recording"
-            ]
+            "group_1": ["second-half", "recording"]
           },
           "statements": [],
           "styles": {},
           "timestamps": [
             {
               "coordinate": 0.0,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_1",
               "name": "origin",
               "timeline": "recording"
             },
             {
               "coordinate": 10.0,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_2",
               "name": "length",
               "timeline": "recording"
             },
             {
-              "coordinate": [
-                0,
-                1
-              ],
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "coordinate": [0, 1],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_3",
               "name": "origin",
               "timeline": "second-half"
             },
             {
-              "coordinate": [
-                8,
-                1
-              ],
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "coordinate": [8, 1],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_4",
               "name": "length",
               "timeline": "second-half"
@@ -67,10 +46,7 @@
         "groups": [
           {
             "id": "group_1",
-            "members": [
-              "recording",
-              "second-half"
-            ],
+            "members": ["recording", "second-half"],
             "meta": {},
             "name": "Second half"
           }
@@ -78,7 +54,7 @@
         "links": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (ff43780a)"
+          "generator": "timetoalign 1.2.0 (df58bc9d)"
         },
         "name": null,
         "schemes": [],
@@ -91,19 +67,13 @@
                 "flow_control": [],
                 "id": "second-half",
                 "is_segment_line": false,
-                "length": [
-                  8,
-                  1
-                ],
+                "length": [8, 1],
                 "links": [],
                 "locked": true,
                 "meta": {},
                 "name": "Second half",
                 "number_type": "fraction",
-                "offset": [
-                  8,
-                  1
-                ],
+                "offset": [8, 1],
                 "regions": [],
                 "unit": "quarters"
               }
@@ -112,10 +82,7 @@
             "flow_control": [],
             "id": "piece",
             "is_segment_line": false,
-            "length": [
-              16,
-              1
-            ],
+            "length": [16, 1],
             "links": [],
             "locked": false,
             "meta": {},
@@ -159,56 +126,35 @@
       "manifest": {
         "graphical": {
           "order": {
-            "group_1": [
-              "theme",
-              "recording"
-            ]
+            "group_1": ["theme", "recording"]
           },
           "statements": [],
           "styles": {},
           "timestamps": [
             {
               "coordinate": 0.0,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_1",
               "name": "origin",
               "timeline": "recording"
             },
             {
               "coordinate": 12.0,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_2",
               "name": "length",
               "timeline": "recording"
             },
             {
-              "coordinate": [
-                0,
-                1
-              ],
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "coordinate": [0, 1],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_3",
               "name": "origin",
               "timeline": "theme"
             },
             {
-              "coordinate": [
-                8,
-                1
-              ],
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "coordinate": [8, 1],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_4",
               "name": "length",
               "timeline": "theme"
@@ -218,10 +164,7 @@
         "groups": [
           {
             "id": "group_1",
-            "members": [
-              "recording",
-              "theme"
-            ],
+            "members": ["recording", "theme"],
             "meta": {},
             "name": "Theme"
           }
@@ -229,7 +172,7 @@
         "links": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (ff43780a)"
+          "generator": "timetoalign 1.2.0 (df58bc9d)"
         },
         "name": null,
         "schemes": [],
@@ -259,19 +202,13 @@
                     "flow_control": [],
                     "id": "theme",
                     "is_segment_line": false,
-                    "length": [
-                      8,
-                      1
-                    ],
+                    "length": [8, 1],
                     "links": [],
                     "locked": true,
                     "meta": {},
                     "name": "Theme",
                     "number_type": "fraction",
-                    "offset": [
-                      8,
-                      1
-                    ],
+                    "offset": [8, 1],
                     "regions": [],
                     "unit": "quarters"
                   }
@@ -280,19 +217,13 @@
                 "flow_control": [],
                 "id": "movement",
                 "is_segment_line": false,
-                "length": [
-                  16,
-                  1
-                ],
+                "length": [16, 1],
                 "links": [],
                 "locked": true,
                 "meta": {},
                 "name": "Movement",
                 "number_type": "fraction",
-                "offset": [
-                  16,
-                  1
-                ],
+                "offset": [16, 1],
                 "regions": [],
                 "unit": "quarters"
               }
@@ -301,10 +232,7 @@
             "flow_control": [],
             "id": "score",
             "is_segment_line": false,
-            "length": [
-              64,
-              1
-            ],
+            "length": [64, 1],
             "links": [],
             "locked": false,
             "meta": {},
@@ -333,98 +261,63 @@
       "manifest": {
         "graphical": {
           "order": {
-            "group_1": [
-              "exposition",
-              "take",
-              "system",
-              "audio"
-            ]
+            "group_1": ["exposition", "take", "system", "audio"]
           },
           "statements": [],
           "styles": {},
           "timestamps": [
             {
               "coordinate": 0,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_1",
               "name": "origin",
               "timeline": "audio"
             },
             {
               "coordinate": 1323000,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_2",
               "name": "length",
               "timeline": "audio"
             },
             {
-              "coordinate": [
-                0,
-                1
-              ],
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "coordinate": [0, 1],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_3",
               "name": "origin",
               "timeline": "exposition"
             },
             {
-              "coordinate": [
-                32,
-                1
-              ],
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "coordinate": [32, 1],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_4",
               "name": "length",
               "timeline": "exposition"
             },
             {
               "coordinate": 0,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_5",
               "name": "origin",
               "timeline": "system"
             },
             {
               "coordinate": 600,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_6",
               "name": "length",
               "timeline": "system"
             },
             {
               "coordinate": 0.0,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_7",
               "name": "origin",
               "timeline": "take"
             },
             {
               "coordinate": 25.5,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_8",
               "name": "length",
               "timeline": "take"
@@ -434,12 +327,7 @@
         "groups": [
           {
             "id": "group_1",
-            "members": [
-              "audio",
-              "exposition",
-              "system",
-              "take"
-            ],
+            "members": ["audio", "exposition", "system", "take"],
             "meta": {},
             "name": "Exposition"
           }
@@ -447,7 +335,7 @@
         "links": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (ff43780a)"
+          "generator": "timetoalign 1.2.0 (df58bc9d)"
         },
         "name": null,
         "schemes": [],
@@ -459,10 +347,7 @@
                 "id": "cmap_2",
                 "name": null,
                 "offset": 0,
-                "scalar": [
-                  1,
-                  44100
-                ],
+                "scalar": [1, 44100],
                 "source_unit": "samples",
                 "target_unit": "seconds",
                 "type": "LinearMap"
@@ -562,19 +447,13 @@
                 "flow_control": [],
                 "id": "exposition",
                 "is_segment_line": false,
-                "length": [
-                  32,
-                  1
-                ],
+                "length": [32, 1],
                 "links": [],
                 "locked": true,
                 "meta": {},
                 "name": "Exposition",
                 "number_type": "fraction",
-                "offset": [
-                  16,
-                  1
-                ],
+                "offset": [16, 1],
                 "regions": [],
                 "unit": "quarters"
               }
@@ -583,10 +462,7 @@
             "flow_control": [],
             "id": "sonata",
             "is_segment_line": false,
-            "length": [
-              48,
-              1
-            ],
+            "length": [48, 1],
             "links": [],
             "locked": true,
             "meta": {},
@@ -615,11 +491,7 @@
       "manifest": {
         "graphical": {
           "order": {
-            "group_1": [
-              "score",
-              "page",
-              "performance"
-            ]
+            "group_1": ["score", "page", "performance"]
           },
           "statements": [
             {
@@ -633,9 +505,7 @@
                 "addresses": [
                   {
                     "id": "group_1",
-                    "part": [
-                      "name"
-                    ]
+                    "part": ["name"]
                   }
                 ],
                 "element": "name"
@@ -663,66 +533,42 @@
           "timestamps": [
             {
               "coordinate": 0,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_1",
               "name": "origin",
               "timeline": "page"
             },
             {
               "coordinate": 1920,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_2",
               "name": "length",
               "timeline": "page"
             },
             {
               "coordinate": 0.0,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_3",
               "name": "origin",
               "timeline": "performance"
             },
             {
               "coordinate": 12.5,
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_4",
               "name": "length",
               "timeline": "performance"
             },
             {
-              "coordinate": [
-                0,
-                1
-              ],
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "coordinate": [0, 1],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_5",
               "name": "origin",
               "timeline": "score"
             },
             {
-              "coordinate": [
-                12,
-                1
-              ],
-              "display": [
-                "wedge",
-                "coordinate"
-              ],
+              "coordinate": [12, 1],
+              "display": ["wedge", "coordinate"],
               "id": "timestamp_6",
               "name": "length",
               "timeline": "score"
@@ -732,11 +578,7 @@
         "groups": [
           {
             "id": "group_1",
-            "members": [
-              "page",
-              "performance",
-              "score"
-            ],
+            "members": ["page", "performance", "score"],
             "meta": {},
             "name": "Edition"
           }
@@ -744,7 +586,7 @@
         "links": [],
         "measure_maps": [],
         "meta": {
-          "generator": "timetoalign 1.2.0 (ff43780a)"
+          "generator": "timetoalign 1.2.0 (df58bc9d)"
         },
         "name": null,
         "schemes": [],
@@ -756,10 +598,7 @@
                 "id": "cmap_3",
                 "name": null,
                 "offset": 0,
-                "scalar": [
-                  3,
-                  4
-                ],
+                "scalar": [3, 4],
                 "source_unit": "pixels",
                 "target_unit": "points",
                 "type": "LinearMap"
@@ -817,10 +656,7 @@
             ],
             "flow_control": [
               {
-                "coordinate": [
-                  8,
-                  1
-                ],
+                "coordinate": [8, 1],
                 "id": "jump_from_1",
                 "label": "Repeat",
                 "manifestation": "repeat_end",
@@ -832,10 +668,7 @@
             ],
             "id": "score",
             "is_segment_line": false,
-            "length": [
-              12,
-              1
-            ],
+            "length": [12, 1],
             "links": [],
             "locked": false,
             "meta": {},
@@ -843,18 +676,12 @@
             "number_type": "fraction",
             "regions": [
               {
-                "end": [
-                  8,
-                  1
-                ],
+                "end": [8, 1],
                 "id": "region_1",
                 "links": [],
                 "meta": {},
                 "name": "Theme",
-                "start": [
-                  0,
-                  1
-                ]
+                "start": [0, 1]
               }
             ],
             "unit": "quarters"
@@ -884,56 +711,35 @@
           "manifest": {
             "graphical": {
               "order": {
-                "group_1": [
-                  "second-half",
-                  "recording"
-                ]
+                "group_1": ["second-half", "recording"]
               },
               "statements": [],
               "styles": {},
               "timestamps": [
                 {
                   "coordinate": 0.0,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_1",
                   "name": "origin",
                   "timeline": "recording"
                 },
                 {
                   "coordinate": 10.0,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_2",
                   "name": "length",
                   "timeline": "recording"
                 },
                 {
-                  "coordinate": [
-                    0,
-                    1
-                  ],
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "coordinate": [0, 1],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_3",
                   "name": "origin",
                   "timeline": "second-half"
                 },
                 {
-                  "coordinate": [
-                    8,
-                    1
-                  ],
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "coordinate": [8, 1],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_4",
                   "name": "length",
                   "timeline": "second-half"
@@ -943,10 +749,7 @@
             "groups": [
               {
                 "id": "group_1",
-                "members": [
-                  "recording",
-                  "second-half"
-                ],
+                "members": ["recording", "second-half"],
                 "meta": {},
                 "name": "Second half"
               }
@@ -954,7 +757,7 @@
             "links": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (ff43780a)"
+              "generator": "timetoalign 1.2.0 (df58bc9d)"
             },
             "name": null,
             "schemes": [],
@@ -967,19 +770,13 @@
                     "flow_control": [],
                     "id": "second-half",
                     "is_segment_line": false,
-                    "length": [
-                      8,
-                      1
-                    ],
+                    "length": [8, 1],
                     "links": [],
                     "locked": true,
                     "meta": {},
                     "name": "Second half",
                     "number_type": "fraction",
-                    "offset": [
-                      8,
-                      1
-                    ],
+                    "offset": [8, 1],
                     "regions": [],
                     "unit": "quarters"
                   }
@@ -988,10 +785,7 @@
                 "flow_control": [],
                 "id": "piece",
                 "is_segment_line": false,
-                "length": [
-                  16,
-                  1
-                ],
+                "length": [16, 1],
                 "links": [],
                 "locked": false,
                 "meta": {},
@@ -1040,56 +834,35 @@
           "manifest": {
             "graphical": {
               "order": {
-                "group_1": [
-                  "theme",
-                  "recording"
-                ]
+                "group_1": ["theme", "recording"]
               },
               "statements": [],
               "styles": {},
               "timestamps": [
                 {
                   "coordinate": 0.0,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_1",
                   "name": "origin",
                   "timeline": "recording"
                 },
                 {
                   "coordinate": 12.0,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_2",
                   "name": "length",
                   "timeline": "recording"
                 },
                 {
-                  "coordinate": [
-                    0,
-                    1
-                  ],
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "coordinate": [0, 1],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_3",
                   "name": "origin",
                   "timeline": "theme"
                 },
                 {
-                  "coordinate": [
-                    8,
-                    1
-                  ],
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "coordinate": [8, 1],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_4",
                   "name": "length",
                   "timeline": "theme"
@@ -1099,10 +872,7 @@
             "groups": [
               {
                 "id": "group_1",
-                "members": [
-                  "recording",
-                  "theme"
-                ],
+                "members": ["recording", "theme"],
                 "meta": {},
                 "name": "Theme"
               }
@@ -1110,7 +880,7 @@
             "links": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (ff43780a)"
+              "generator": "timetoalign 1.2.0 (df58bc9d)"
             },
             "name": null,
             "schemes": [],
@@ -1140,19 +910,13 @@
                         "flow_control": [],
                         "id": "theme",
                         "is_segment_line": false,
-                        "length": [
-                          8,
-                          1
-                        ],
+                        "length": [8, 1],
                         "links": [],
                         "locked": true,
                         "meta": {},
                         "name": "Theme",
                         "number_type": "fraction",
-                        "offset": [
-                          8,
-                          1
-                        ],
+                        "offset": [8, 1],
                         "regions": [],
                         "unit": "quarters"
                       }
@@ -1161,19 +925,13 @@
                     "flow_control": [],
                     "id": "movement",
                     "is_segment_line": false,
-                    "length": [
-                      16,
-                      1
-                    ],
+                    "length": [16, 1],
                     "links": [],
                     "locked": true,
                     "meta": {},
                     "name": "Movement",
                     "number_type": "fraction",
-                    "offset": [
-                      16,
-                      1
-                    ],
+                    "offset": [16, 1],
                     "regions": [],
                     "unit": "quarters"
                   }
@@ -1182,10 +940,7 @@
                 "flow_control": [],
                 "id": "score",
                 "is_segment_line": false,
-                "length": [
-                  64,
-                  1
-                ],
+                "length": [64, 1],
                 "links": [],
                 "locked": false,
                 "meta": {},
@@ -1219,98 +974,63 @@
           "manifest": {
             "graphical": {
               "order": {
-                "group_1": [
-                  "exposition",
-                  "take",
-                  "system",
-                  "audio"
-                ]
+                "group_1": ["exposition", "take", "system", "audio"]
               },
               "statements": [],
               "styles": {},
               "timestamps": [
                 {
                   "coordinate": 0,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_1",
                   "name": "origin",
                   "timeline": "audio"
                 },
                 {
                   "coordinate": 1323000,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_2",
                   "name": "length",
                   "timeline": "audio"
                 },
                 {
-                  "coordinate": [
-                    0,
-                    1
-                  ],
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "coordinate": [0, 1],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_3",
                   "name": "origin",
                   "timeline": "exposition"
                 },
                 {
-                  "coordinate": [
-                    32,
-                    1
-                  ],
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "coordinate": [32, 1],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_4",
                   "name": "length",
                   "timeline": "exposition"
                 },
                 {
                   "coordinate": 0,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_5",
                   "name": "origin",
                   "timeline": "system"
                 },
                 {
                   "coordinate": 600,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_6",
                   "name": "length",
                   "timeline": "system"
                 },
                 {
                   "coordinate": 0.0,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_7",
                   "name": "origin",
                   "timeline": "take"
                 },
                 {
                   "coordinate": 25.5,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_8",
                   "name": "length",
                   "timeline": "take"
@@ -1320,12 +1040,7 @@
             "groups": [
               {
                 "id": "group_1",
-                "members": [
-                  "audio",
-                  "exposition",
-                  "system",
-                  "take"
-                ],
+                "members": ["audio", "exposition", "system", "take"],
                 "meta": {},
                 "name": "Exposition"
               }
@@ -1333,7 +1048,7 @@
             "links": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (ff43780a)"
+              "generator": "timetoalign 1.2.0 (df58bc9d)"
             },
             "name": null,
             "schemes": [],
@@ -1345,10 +1060,7 @@
                     "id": "cmap_2",
                     "name": null,
                     "offset": 0,
-                    "scalar": [
-                      1,
-                      44100
-                    ],
+                    "scalar": [1, 44100],
                     "source_unit": "samples",
                     "target_unit": "seconds",
                     "type": "LinearMap"
@@ -1448,19 +1160,13 @@
                     "flow_control": [],
                     "id": "exposition",
                     "is_segment_line": false,
-                    "length": [
-                      32,
-                      1
-                    ],
+                    "length": [32, 1],
                     "links": [],
                     "locked": true,
                     "meta": {},
                     "name": "Exposition",
                     "number_type": "fraction",
-                    "offset": [
-                      16,
-                      1
-                    ],
+                    "offset": [16, 1],
                     "regions": [],
                     "unit": "quarters"
                   }
@@ -1469,10 +1175,7 @@
                 "flow_control": [],
                 "id": "sonata",
                 "is_segment_line": false,
-                "length": [
-                  48,
-                  1
-                ],
+                "length": [48, 1],
                 "links": [],
                 "locked": true,
                 "meta": {},
@@ -1506,11 +1209,7 @@
           "manifest": {
             "graphical": {
               "order": {
-                "group_1": [
-                  "score",
-                  "page",
-                  "performance"
-                ]
+                "group_1": ["score", "page", "performance"]
               },
               "statements": [
                 {
@@ -1524,9 +1223,7 @@
                     "addresses": [
                       {
                         "id": "group_1",
-                        "part": [
-                          "name"
-                        ]
+                        "part": ["name"]
                       }
                     ],
                     "element": "name"
@@ -1554,66 +1251,42 @@
               "timestamps": [
                 {
                   "coordinate": 0,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_1",
                   "name": "origin",
                   "timeline": "page"
                 },
                 {
                   "coordinate": 1920,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_2",
                   "name": "length",
                   "timeline": "page"
                 },
                 {
                   "coordinate": 0.0,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_3",
                   "name": "origin",
                   "timeline": "performance"
                 },
                 {
                   "coordinate": 12.5,
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_4",
                   "name": "length",
                   "timeline": "performance"
                 },
                 {
-                  "coordinate": [
-                    0,
-                    1
-                  ],
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "coordinate": [0, 1],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_5",
                   "name": "origin",
                   "timeline": "score"
                 },
                 {
-                  "coordinate": [
-                    12,
-                    1
-                  ],
-                  "display": [
-                    "wedge",
-                    "coordinate"
-                  ],
+                  "coordinate": [12, 1],
+                  "display": ["wedge", "coordinate"],
                   "id": "timestamp_6",
                   "name": "length",
                   "timeline": "score"
@@ -1623,11 +1296,7 @@
             "groups": [
               {
                 "id": "group_1",
-                "members": [
-                  "page",
-                  "performance",
-                  "score"
-                ],
+                "members": ["page", "performance", "score"],
                 "meta": {},
                 "name": "Edition"
               }
@@ -1635,7 +1304,7 @@
             "links": [],
             "measure_maps": [],
             "meta": {
-              "generator": "timetoalign 1.2.0 (ff43780a)"
+              "generator": "timetoalign 1.2.0 (df58bc9d)"
             },
             "name": null,
             "schemes": [],
@@ -1647,10 +1316,7 @@
                     "id": "cmap_3",
                     "name": null,
                     "offset": 0,
-                    "scalar": [
-                      3,
-                      4
-                    ],
+                    "scalar": [3, 4],
                     "source_unit": "pixels",
                     "target_unit": "points",
                     "type": "LinearMap"
@@ -1708,10 +1374,7 @@
                 ],
                 "flow_control": [
                   {
-                    "coordinate": [
-                      8,
-                      1
-                    ],
+                    "coordinate": [8, 1],
                     "id": "jump_from_1",
                     "label": "Repeat",
                     "manifestation": "repeat_end",
@@ -1723,10 +1386,7 @@
                 ],
                 "id": "score",
                 "is_segment_line": false,
-                "length": [
-                  12,
-                  1
-                ],
+                "length": [12, 1],
                 "links": [],
                 "locked": false,
                 "meta": {},
@@ -1734,18 +1394,12 @@
                 "number_type": "fraction",
                 "regions": [
                   {
-                    "end": [
-                      8,
-                      1
-                    ],
+                    "end": [8, 1],
                     "id": "region_1",
                     "links": [],
                     "meta": {},
                     "name": "Theme",
-                    "start": [
-                      0,
-                      1
-                    ]
+                    "start": [0, 1]
                   }
                 ],
                 "unit": "quarters"
@@ -1788,6 +1442,7 @@
     "grid": {
       "size": 8,
       "snap": true
-    }
+    },
+    "manifests": {}
   }
 }

@@ -2,11 +2,12 @@ import { describe, expect, it } from "vitest";
 import { apply } from "../src/commands/apply.ts";
 import type { Command, SetCommand } from "../src/commands/types.ts";
 import { isCommandError } from "../src/errors.ts";
+import { NEW_MANIFEST_FILE } from "../src/manifest/io.ts";
 import { isSessionEntry } from "../src/workspace/sessions.ts";
 import type { SettingsChange, Store } from "../src/workspace/store.ts";
 import { createStore, replay } from "../src/workspace/store.ts";
 import type { View } from "../src/workspace/view.ts";
-import { createView } from "../src/workspace/view.ts";
+import { createView, manifestFileOf } from "../src/workspace/view.ts";
 import { A, addBlock, B, testClock } from "./support.ts";
 
 const empty = () => ({ view: createView(), journal: [], sessions: {} });
@@ -26,7 +27,7 @@ function threeEntries(): { store: Store; reads: () => number } {
       return clock();
     },
   });
-  for (const command of [addBlock(A, "bare.json"), move(A, 8), move(A, 16)]) {
+  for (const command of [addBlock(A, "bare.yaml"), move(A, 8), move(A, 16)]) {
     expect(store.dispatch(command)).toBeNull();
   }
   return { store, reads: () => count };
@@ -108,9 +109,9 @@ describe("workspace settings", () => {
 
   it("states every placement member in a journalled add, so a replay reads no setting", () => {
     const store = createStore(empty(), { clock: testClock() });
-    expect(store.dispatch(addBlock(A, "bare.json"))).toBeNull();
+    expect(store.dispatch(addBlock(A, "bare.yaml"))).toBeNull();
     expect(store.configure({ blockDefaults: { length: 600 } })).toBeNull();
-    expect(store.dispatch(addBlock(B, "bare.json"))).toBeNull();
+    expect(store.dispatch(addBlock(B, "bare.yaml"))).toBeNull();
     const placement = { scale: 1, spacing: 8, margin: 0, width: null, height: null };
     expect(addedBlock(store, 0)).toMatchObject({ ...placement, length: 400 });
     expect(addedBlock(store, 1)).toMatchObject({ ...placement, length: 600 });
@@ -123,7 +124,7 @@ describe("workspace settings", () => {
 
   it("applies a journalled add under any block defaults to the same block", () => {
     const store = createStore(empty(), { clock: testClock() });
-    expect(store.dispatch(addBlock(A, "bare.json"))).toBeNull();
+    expect(store.dispatch(addBlock(A, "bare.yaml"))).toBeNull();
     const entry = store.journal[0];
     if (entry === undefined || isSessionEntry(entry)) throw new Error("a command entry");
     const other = createView({
@@ -140,7 +141,7 @@ describe("workspace settings", () => {
       ...createView().settings,
       blockDefaults: { scale: 3, length: 999, spacing: 1, margin: 5, width: 50, height: 60 },
     });
-    const applied = apply(other, addBlock(A, "bare.json"));
+    const applied = apply(other, addBlock(A, "bare.yaml"));
     if (isCommandError(applied)) throw new Error(applied.message);
     expect(applied.blocks[A]).toMatchObject({
       scale: 3,
@@ -154,7 +155,7 @@ describe("workspace settings", () => {
 
   it("keeps a placement member the add states", () => {
     const store = createStore(empty(), { clock: testClock() });
-    const add = addBlock(A, "bare.json");
+    const add = addBlock(A, "bare.yaml");
     if (add.type !== "add") throw new Error("an add");
     const block = { ...(add.block as object), scale: 2 };
     expect(store.dispatch({ ...add, block })).toBeNull();
@@ -219,5 +220,70 @@ describe("workspace settings", () => {
     expect(store.view.settings.granularity).toEqual({ denominator: 5, decimals: 0 });
     expect(store.configure({ granularity: { decimals: 15 } })).toBeNull();
     expect(store.view.settings.granularity).toEqual({ denominator: 5, decimals: 15 });
+  });
+});
+
+describe("how each block's manifest is written", () => {
+  const JSON_FILE = { minimal: false, styling: false, serialization: "json" } as const;
+  const NEW = { minimal: true, styling: true, serialization: "yaml" };
+
+  it("holds no entry in a new workspace, a block without one written as a new manifest", () => {
+    expect(createView().settings.manifests).toEqual({});
+    expect(NEW_MANIFEST_FILE).toEqual(NEW);
+    expect(manifestFileOf(createView().settings, A)).toBe(NEW_MANIFEST_FILE);
+  });
+
+  it("is set block by block outside the journal, each entry whole", () => {
+    const { store } = threeEntries();
+    const journal = store.journal;
+    expect(store.configure({ manifests: { [A]: JSON_FILE } })).toBeNull();
+    expect(store.journal).toEqual(journal);
+    expect(manifestFileOf(store.view.settings, A)).toEqual(JSON_FILE);
+    expect(manifestFileOf(store.view.settings, B)).toBe(NEW_MANIFEST_FILE);
+    const entry = store.view.settings.manifests[A];
+    const yamlFile = { minimal: true, styling: false, serialization: "yaml" } as const;
+    expect(store.configure({ manifests: { [B]: yamlFile } })).toBeNull();
+    expect(store.view.settings.manifests[A]).toEqual(entry);
+    expect(manifestFileOf(store.view.settings, B)).toEqual(yamlFile);
+  });
+
+  it("outlives its block, which undo takes away and redo brings back", () => {
+    const store = createStore(empty(), { clock: testClock() });
+    expect(store.dispatch(addBlock(A, "bare.yaml"))).toBeNull();
+    expect(store.configure({ manifests: { [A]: JSON_FILE } })).toBeNull();
+    store.undo();
+    expect(store.view.blocks[A]).toBeUndefined();
+    expect(manifestFileOf(store.view.settings, A)).toEqual(JSON_FILE);
+    store.redo();
+    expect(store.view.blocks[A]).toBeDefined();
+    expect(manifestFileOf(store.view.settings, A)).toEqual(JSON_FILE);
+  });
+
+  it.each<[string, unknown, readonly (string | number)[], string]>([
+    [
+      "a serialization of no manifest",
+      { [A]: { ...JSON_FILE, serialization: "toml" } },
+      ["settings", "manifests", A, "serialization"],
+      "invalid_value",
+    ],
+    [
+      "a form that is no boolean",
+      { [A]: { ...JSON_FILE, minimal: "yes" } },
+      ["settings", "manifests", A, "minimal"],
+      "invalid_value",
+    ],
+    [
+      "a key that is no block ID",
+      { A: JSON_FILE },
+      ["settings", "manifests", "A"],
+      "invalid_block_id",
+    ],
+  ])("refuses %s at its path", (_, manifests, path, code) => {
+    const { store } = threeEntries();
+    const view = store.view;
+    // The values are wrong on purpose: the store checks what an untyped caller gives.
+    const refused = store.configure({ manifests } as SettingsChange);
+    expect(refused && { code: refused.code, path: refused.path }).toEqual({ code, path });
+    expect(store.view).toBe(view);
   });
 });

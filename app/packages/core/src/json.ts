@@ -8,8 +8,8 @@
  * JSON of its own.
  */
 
-import type { JsonNumber, Lossless, Json as SchemaJson } from "@timetoalign/timetoshare";
-import { canonicalJson, isJsonObject as isObject } from "@timetoalign/timetoshare";
+import type { JsonNumber } from "@timetoalign/timetoshare";
+import { compactJson, isJsonObject as isObject } from "@timetoalign/timetoshare";
 
 /** One step of a path into a JSON value: an object key or an array index. */
 export type PathSegment = string | number;
@@ -24,12 +24,19 @@ export function isJsonObject(value: unknown): value is JsonObject {
 }
 
 /**
- * The canonical JSON text of a value (keys sorted by code point, no
- * whitespace). The writer refuses, with a `TypeError`, any value that is not
- * JSON, whatever its declared type.
+ * The canonical text of a value, which equal values share: its compact JSON
+ * (no whitespace, strings and numbers spelled as the schema package's
+ * writers spell them, an integer and a float of equal value apart) with
+ * every object's keys sorted by code point. The writer refuses, with a
+ * `TypeError`, any value that is not JSON, whatever its declared type.
  */
 export function canonicalText(value: unknown): string {
-  return canonicalJson(value as Lossless<SchemaJson>);
+  if (Array.isArray(value)) return `[${value.map(canonicalText).join(",")}]`;
+  if (!isObject(value)) return compactJson(value);
+  const members = Object.keys(value)
+    .sort(compareCodePoints)
+    .map((key) => `${compactJson(key)}:${canonicalText(value[key])}`);
+  return `{${members.join(",")}}`;
 }
 
 /** A short text of any value for a message: its canonical JSON when it has one. */

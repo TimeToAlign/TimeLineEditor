@@ -26,7 +26,7 @@ import {
   viewOf,
 } from "./support.ts";
 
-const FIXTURE = "timestamps.json";
+const FIXTURE = "timestamps.yaml";
 const view = deepFreeze(viewOf([A, FIXTURE]));
 const graphical = load(FIXTURE).graphical;
 const [T1, T2, T3] = graphical?.timestamps ?? [];
@@ -189,7 +189,7 @@ describe("add a named timestamp", () => {
   });
 
   it("gives a manifest without a graphical object one", () => {
-    const bare = changed(viewHolding(withoutGraphical("bare.json")), {
+    const bare = changed(viewHolding(withoutGraphical("bare.yaml")), {
       type: "add",
       into: at("bare"),
       timestamp: { name: "Mid", coordinate: [5, 2] },
@@ -431,7 +431,7 @@ describe("the default timestamps", () => {
   });
 
   it("are given on import to the roots of a manifest without a graphical object", () => {
-    expect(importedManifest(withoutGraphical("bare.json")).graphical).toEqual({
+    expect(importedManifest(withoutGraphical("bare.yaml")).graphical).toEqual({
       order: {},
       statements: [],
       styles: {},
@@ -440,11 +440,11 @@ describe("the default timestamps", () => {
         mark("timestamp_2", "bare", "length", [8, 1]),
       ],
     });
-    expect(importedManifest(withoutGraphical("nested.json")).graphical?.timestamps).toEqual([
+    expect(importedManifest(withoutGraphical("nested.yaml")).graphical?.timestamps).toEqual([
       mark("timestamp_1", "clt_1", "origin", [0, 1]),
       mark("timestamp_2", "clt_1", "length", [16, 1]),
     ]);
-    const unknown = importedManifest(withoutGraphical("unknown_length.json"));
+    const unknown = importedManifest(withoutGraphical("unknown_length.yaml"));
     expect(unknown.graphical?.timestamps).toEqual([mark("timestamp_1", "score", "origin", [0, 1])]);
     const stated = load(FIXTURE);
     expect(importedManifest(stated)).toBe(stated);
@@ -452,7 +452,7 @@ describe("the default timestamps", () => {
 
   it("are added with an imported block in one journal entry", () => {
     const store = storeOf(viewOf());
-    const manifest = importedManifest(withoutGraphical("bare.json"));
+    const manifest = importedManifest(withoutGraphical("bare.yaml"));
     const command = { type: "add", into: {}, block: { id: A, manifest, x: 0, y: 0 } };
     expect(store.dispatch(command)).toBeNull();
     expect(store.journal).toHaveLength(1);

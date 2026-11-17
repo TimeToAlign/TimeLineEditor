@@ -390,7 +390,7 @@ markers, regions`).
 **`files.spec.ts`** (Chromium, Firefox, WebKit) takes the fallback path every
 engine offers: the pickers are deleted before the page loads, so a file is
 read through the file chooser and written as a download. The gate is the
-round trip: a new workspace, an imported `bare.json` placed at the view's
+round trip: a new workspace, an imported `bare.yaml` placed at the view's
 centre snapped to the grid, a drag and a stretch (three entries), then
 Ctrl/Cmd+S, whose download equals the hook's `text()` and clears the
 file name's unsaved mark, Open of that file, which restores the journal

@@ -18,7 +18,7 @@ const move = (block: string, x: number): SetCommand => ({
 describe("the store", () => {
   it("stamps every accepted command with its author and time", () => {
     const store = createStore(empty(), { clock: testClock() });
-    expect(store.dispatch(addBlock(A, "bare.json"))).toBeNull();
+    expect(store.dispatch(addBlock(A, "bare.yaml"))).toBeNull();
     expect(store.dispatch(move(A, 8))).toBeNull();
     store.setAuthor("Ada");
     expect(store.dispatch(move(A, 16))).toBeNull();
@@ -35,7 +35,7 @@ describe("the store", () => {
 
   it("journals nothing for a refused command and tells no listener", () => {
     const store = createStore(empty(), { clock: testClock() });
-    store.dispatch(addBlock(A, "bare.json"));
+    store.dispatch(addBlock(A, "bare.yaml"));
     const view = store.view;
     let calls = 0;
     store.subscribe(() => {
@@ -56,7 +56,7 @@ describe("the store", () => {
   it("undoes and redoes to the very same views", () => {
     const store = createStore(empty(), { clock: testClock() });
     const views: View[] = [store.view];
-    for (const command of [addBlock(A, "bare.json"), move(A, 8), move(A, 16)]) {
+    for (const command of [addBlock(A, "bare.yaml"), move(A, 8), move(A, 16)]) {
       store.dispatch(command);
       views.push(store.view);
     }
@@ -86,7 +86,7 @@ describe("the store", () => {
   it("undoes past the loaded view by replaying the journal", () => {
     const first = createStore(empty(), { clock: testClock() });
     const views: View[] = [first.view];
-    for (const command of [addBlock(A, "bare.json"), move(A, 8), move(A, 16)]) {
+    for (const command of [addBlock(A, "bare.yaml"), move(A, 8), move(A, 16)]) {
       first.dispatch(command);
       views.push(first.view);
     }
@@ -104,7 +104,7 @@ describe("the store", () => {
     const store = createStore(empty(), { clock: testClock() });
     const seen: View[] = [];
     const unsubscribe = store.subscribe((view) => seen.push(view));
-    store.dispatch(addBlock(A, "bare.json"));
+    store.dispatch(addBlock(A, "bare.yaml"));
     store.undo();
     store.redo();
     expect(seen.length).toBe(3);
@@ -117,7 +117,7 @@ describe("the store", () => {
 
   it("counts the editors it opens", () => {
     const store = createStore(empty(), { clock: testClock() });
-    store.dispatch(addBlock(A, "bare.json"));
+    store.dispatch(addBlock(A, "bare.yaml"));
     expect(store.openings).toBe(0);
     expect(store.open({ block: A })).toBeNull();
     expect(store.open({ block: A, id: "bare" })).toBeNull();
@@ -135,7 +135,7 @@ describe("opening a workspace", () => {
   /** A workspace written by a store: block `A` added, then moved to 8 and to 16. */
   function written(): Workspace {
     const store = createStore(empty(), { clock: testClock() });
-    for (const command of [addBlock(A, "bare.json"), move(A, 8), move(A, 16)]) {
+    for (const command of [addBlock(A, "bare.yaml"), move(A, 8), move(A, 16)]) {
       store.dispatch(command);
     }
     return store.snapshot();

@@ -29,9 +29,9 @@ import {
 } from "../src/workspace/address.ts";
 import { A, allFixtures, B, block, changed, loadText, refusal, viewOf } from "./support.ts";
 
-const MIXED = "bundles/bundle_mixed.json";
-const FREE = "bundles/bundle_free_ids.json";
-const view = viewOf([A, MIXED], [B, "map.json"]);
+const MIXED = "bundles/bundle_mixed.yaml";
+const FREE = "bundles/bundle_free_ids.yaml";
+const view = viewOf([A, MIXED], [B, "map.yaml"]);
 
 /** The address in block `A` of the element `element`. */
 const inA = (element: ElementAddress): Address => inBlock(A, element);

@@ -7,18 +7,40 @@
 
 import type { Entry, Manifest } from "@timetoalign/tilie-core";
 import { UNTITLED_WORKSPACE } from "@timetoalign/tilie-core";
+import type { Serialization } from "@timetoalign/timetoshare";
 
-/** What a picker offers: a description and the one extension it filters on. */
+/** What a picker offers: a description and the extensions it filters on, by media type. */
 export interface FileKind {
   readonly description: string;
-  readonly extension: string;
+  readonly accept: { readonly [mediaType: string]: readonly string[] };
 }
+
+const WORKSPACE_EXTENSION = ".tle.json";
 
 export const WORKSPACE_FILE: FileKind = {
   description: "TimeLineEditor workspace",
-  extension: ".tle.json",
+  accept: { "application/json": [WORKSPACE_EXTENSION] },
 };
-export const MANIFEST_FILE: FileKind = { description: "TimeToShare manifest", extension: ".json" };
+
+const YAML_MANIFEST: FileKind = {
+  description: "TimeToShare manifest",
+  accept: { "application/yaml": [".yaml"] },
+};
+const JSON_MANIFEST: FileKind = {
+  description: "TimeToShare manifest",
+  accept: { "application/json": [".json"] },
+};
+
+/** A manifest file to import: canonical YAML (`.yaml`, `.yml`) or JSON (`.json`), read by its content. */
+export const MANIFEST_FILE: FileKind = {
+  description: "TimeToShare manifest",
+  accept: { "application/yaml": [".yaml", ".yml"], "application/json": [".json"] },
+};
+
+/** The file a manifest is exported to in `serialization`: `.yaml` for YAML, `.json` for both JSON forms. */
+export function manifestFileKind(serialization: Serialization): FileKind {
+  return serialization === "yaml" ? YAML_MANIFEST : JSON_MANIFEST;
+}
 
 /** The printable characters some system refuses in a file name: `/` everywhere, the rest on Windows. */
 const NOT_IN_FILE_NAMES = new Set(["/", "\\", ":", "*", "?", '"', "<", ">", "|"]);
@@ -35,7 +57,7 @@ function refusedInFileNames(character: string): boolean {
  */
 export function workspaceFileName(name: string): string {
   const stem = Array.from(name, (character) => (refusedInFileNames(character) ? "_" : character));
-  return `${stem.join("")}${WORKSPACE_FILE.extension}`;
+  return `${stem.join("")}${WORKSPACE_EXTENSION}`;
 }
 
 /** The name a new workspace is saved under: its default name's file, `untitled.tle.json`. */
@@ -68,7 +90,17 @@ interface Pickers {
 const pickers = (): Pickers => globalThis as Pickers;
 
 function types(kind: FileKind): PickerOptions["types"] {
-  return [{ description: kind.description, accept: { "application/json": [kind.extension] } }];
+  const accept = Object.fromEntries(
+    Object.entries(kind.accept).map(([type, extensions]) => [type, [...extensions]]),
+  );
+  return [{ description: kind.description, accept }];
+}
+
+/** The first media type of `kind`, the type of a download. */
+function mediaType(kind: FileKind): string {
+  const [first] = Object.keys(kind.accept);
+  if (first === undefined) throw new Error(`${kind.description} names no media type`);
+  return first;
 }
 
 function cancelled(error: unknown): boolean {
@@ -98,7 +130,7 @@ function chooseFile(kind: FileKind): Promise<File | null> {
   return new Promise((resolve) => {
     const input = document.createElement("input");
     input.type = "file";
-    input.accept = kind.extension;
+    input.accept = Object.values(kind.accept).flat().join(",");
     input.hidden = true;
     const settle = (file: File | null) => {
       input.remove();
@@ -124,7 +156,7 @@ export async function saveFile(
 ): Promise<Saved | null> {
   const { showSaveFilePicker } = pickers();
   if (handle === null && showSaveFilePicker === undefined) {
-    download(text, name);
+    download(text, name, mediaType(kind));
     return { name, handle: null };
   }
   try {
@@ -144,8 +176,8 @@ export async function saveFile(
   }
 }
 
-function download(text: string, name: string): void {
-  const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+function download(text: string, name: string, type: string): void {
+  const url = URL.createObjectURL(new Blob([text], { type }));
   const link = document.createElement("a");
   link.href = url;
   link.download = name;
@@ -159,19 +191,21 @@ function download(text: string, name: string): void {
 
 /**
  * The file name of a manifest that has neither an `id` nor a `name`, before
- * `.json`: every manifest is an alignment bundle, and this one an anonymous
- * bundle.
+ * its extension: every manifest is an alignment bundle, and this one an
+ * anonymous bundle.
  */
 export const ANONYMOUS_BUNDLE = "bundle";
 
 /**
- * The file name a manifest is exported under: its `id`, else its `name`,
- * else `bundle`, each character outside `A–Z a–z 0–9 _ -` written `_`,
- * then `.json`.
+ * The file name a manifest is exported under in `serialization`: its `id`,
+ * else its `name`, else `bundle`, each character outside `A–Z a–z 0–9 _ -`
+ * written `_`, then the extension of the serialization's file
+ * (`manifestFileKind`).
  */
-export function manifestFileName(manifest: Manifest): string {
+export function manifestFileName(manifest: Manifest, serialization: Serialization): string {
   const stem = manifest.id ?? manifest.name ?? ANONYMOUS_BUNDLE;
-  return `${stem.replace(/[^A-Za-z0-9_-]/g, "_")}.json`;
+  const [extension] = Object.values(manifestFileKind(serialization).accept).flat();
+  return `${stem.replace(/[^A-Za-z0-9_-]/g, "_")}${extension}`;
 }
 
 /**

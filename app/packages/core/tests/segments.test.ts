@@ -10,9 +10,9 @@ import type { Address } from "../src/workspace/address.ts";
 import type { View } from "../src/workspace/view.ts";
 import { A, block, changed, deepFreeze, load, refusal, unlockedView, viewOf } from "./support.ts";
 
-const CHILDREN = "segment_children.json";
-const UNKNOWN = "unknown_length_segments.json";
-const LINE = "segment_line.json";
+const CHILDREN = "segment_children.yaml";
+const UNKNOWN = "unknown_length_segments.yaml";
+const LINE = "segment_line.yaml";
 
 const at = (id: string): Address => ({ block: A, id });
 const LEFT_EXTEND: Gap = { side: "left", verb: "extend" };
@@ -54,7 +54,7 @@ const childIds = (manifest: Manifest, id: string) =>
 
 describe("a segment", () => {
   it("is a child of a segment line; the lines, the root and an unknown id are not", () => {
-    const manifest = load("segment_children.json");
+    const manifest = load("segment_children.yaml");
     const ids = ["piece", "intro", "i1", "i2", "theme", "t1", "t2", "t3", "coda", "c1", "c2"];
     expect(ids.filter((id) => isSegment(manifest, id))).toEqual([
       "i1",
