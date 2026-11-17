@@ -966,7 +966,6 @@ source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
     { name = "timetoalign" },
-    { name = "timetoshare" },
     { name = "uvicorn", extra = ["standard"] },
 ]
 
@@ -981,7 +980,6 @@ dev = [
 requires-dist = [
     { name = "fastapi", specifier = ">=0.141,<1" },
     { name = "timetoalign", editable = "../../timetoalign" },
-    { name = "timetoshare", editable = "../../TimeToShare/python" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.53,<1" },
 ]
 
