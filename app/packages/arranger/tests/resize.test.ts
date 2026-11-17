@@ -59,8 +59,8 @@ function placed(view: View, values: Partial<Block>): View {
 /**
  * corpus_audio_audio as the editor imports it (core's `importedManifest`: a manifest without
  * `graphical` gets its root's named timestamps `origin` and `length`, each drawing its
- * coordinate label), with every name hidden, so its wide end label sets the block's width
- * while its line is short.
+ * coordinate label), with every name hidden, so its wide end label `10 190 592 smp` sets the
+ * block's width while its line is short.
  */
 const audio = changed(
   changed(createView(), {
@@ -93,7 +93,7 @@ const views: { readonly [name: string]: View } = {
   "ungrouped, both requests": placed(ungrouped, { width: 1054.654296875, height: 504.328125 }),
   "audio, no names": audio,
   "audio, no names, length 8": placed(audio, { length: 8 }),
-  "audio, no names, at the knee": placed(audio, { length: 16.76708984375 }),
+  "audio, no names, at the knee": placed(audio, { length: 22.90185546875 }),
   "bare, width 953.15": placed(bare, { width: 953.154296875 }),
   "bare, length 500, width 496.58": placed(bare, { length: 500, width: 496.5771484375 }),
   "child member, width 600": placed(viewOf({ id: A, fixture: CHILD_MEMBER, x: 40, y: 80 }), {
@@ -170,9 +170,9 @@ describe("resize: stretch", () => {
     ["ungrouped", "bottom", 0, -40, { spacing: 0 }],
     ["ungrouped", "bottom-right", 40, 32, { length: 440, spacing: 24 }],
     ["ungrouped, score at y 200", "bottom", 0, 50, { spacing: 192.6953125 }],
-    ["audio, no names", "right", -500, 0, { length: 16.76708984375 }],
-    ["audio, no names, length 8", "right", 50, 0, { length: 66.76708984375 }],
-    ["audio, no names, at the knee", "right", 100, 0, { length: 116.76708984375 }],
+    ["audio, no names", "right", -500, 0, { length: 22.90185546875 }],
+    ["audio, no names, length 8", "right", 50, 0, { length: 72.90185546875 }],
+    ["audio, no names, at the knee", "right", 100, 0, { length: 122.90185546875 }],
     ["bare, width 953.15", "right", 40, 0, { length: 420, width: 993.154296875 }],
     ["bare, width 953.15", "left", -42, 0, { length: 421, width: 995.154296875, x: -2 }],
     ["ungrouped, height 504.33", "bottom", 0, 32, { spacing: 16, height: 536.328125 }],
