@@ -1561,6 +1561,14 @@ markers band moved to the top and the conversion maps band below the line),
 2. `set annotations place {x: -30, y: 4.5, width: 700, height: 120}` (an
    ungrouped root, negative and fractional positions allowed): exactly that
    place under `annotations`.
+2a. **-0 is stored as 0.** A JSON file has no -0 for a canvas number, so
+   a stored -0 would read back as a different number. An `add` of the
+   block at `x: -0, y: -0`; from a block at `x: 5, y: 5`, `set bundle0001
+   {x: -0, y: -0}`, `set group_1 place {y: -0, spacing: -0, margin: -0}`
+   and `set score place {spacing: -0}`: the added block's `x` and `y`
+   and each of these six numbers are stored as 0 (`Object.is(…, 0)`,
+   which tells 0 from -0), and the workspace written and read back equals
+   the view.
 3. **Scale.** `set group_1 place {scale: 1.5}`: exactly `{group_1: {scale:
    1.5}}`; then `place {scale: null}`: `{}`. `set annotations place
    {scale: 1.5}`: exactly `{annotations: {scale: 1.5}}`.
