@@ -6,13 +6,14 @@
  * styling and Minimal, are how the block's manifest is written to a file,
  * kept in the workspace's settings and changed there (`configure`).
  */
-import type { Block, ManifestFile, Store, View } from "@timetoalign/tilie-core";
+import type { Block, Store, View } from "@timetoalign/tilie-core";
 import {
   manifestFileOf,
   NEW_MANIFEST_FILE,
   unknownKeys,
   unregisteredTerms,
 } from "@timetoalign/tilie-core";
+import type { FileForm } from "@timetoalign/timetoshare";
 import FormatSwitch from "./FormatSwitch.svelte";
 import { FORMAT_LABELS, FORMATS } from "./formats.svelte.ts";
 import type { ManifestText } from "./manifestText.svelte.ts";
@@ -39,7 +40,7 @@ let {
 const uid = $props.id();
 
 /** How the block's manifest is written to a file: the options the text shows. */
-const file: ManifestFile = $derived(
+const file: FileForm = $derived(
   block === null ? NEW_MANIFEST_FILE : manifestFileOf(view.settings, block.id),
 );
 const options = $derived({ includeStyling: file.styling, minimal: file.minimal });
@@ -48,7 +49,7 @@ const options = $derived({ includeStyling: file.styling, minimal: file.minimal }
 $effect.pre(() => manifest.follow(block, options));
 
 /** Write one member of the block's manifest file to the settings. */
-function configure(change: Partial<ManifestFile>): void {
+function configure(change: Partial<FileForm>): void {
   if (block === null) return;
   const refused = store.configure({ manifests: { [block.id]: { ...file, ...change } } });
   if (refused !== null) throw new Error(`a manifest file is refused: ${refused.message}`);

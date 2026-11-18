@@ -1,7 +1,7 @@
 /** The immutable plain-JavaScript workspace view and its checks. */
 
-import type { Graphical } from "@timetoalign/timetoshare";
-import { JsonFloat } from "@timetoalign/timetoshare";
+import type { FileForm, Graphical, Serialization } from "@timetoalign/timetoshare";
+import { isSerialization, JsonFloat } from "@timetoalign/timetoshare";
 import type { Problem } from "../errors.ts";
 import { ErrorCode, isCommandError, problem } from "../errors.ts";
 import type { PathSegment } from "../json.ts";
@@ -13,7 +13,6 @@ import {
   placedContainer,
   placeMembersOf,
 } from "../manifest/containers.ts";
-import type { ManifestFile } from "../manifest/io.ts";
 import { manifestProblems, NEW_MANIFEST_FILE } from "../manifest/io.ts";
 import {
   readBoolean,
@@ -63,7 +62,7 @@ export interface WorkspaceSettings {
    * without an entry as `NEW_MANIFEST_FILE` (`manifestFileOf`). An entry
    * outlives its block, which the journal may bring back.
    */
-  readonly manifests: { readonly [block: BlockId]: ManifestFile };
+  readonly manifests: { readonly [block: BlockId]: FileForm };
 }
 
 export interface View {
@@ -95,7 +94,7 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
 };
 
 /** How the manifest of block `block` is written to a file: its entry in `settings`, else `NEW_MANIFEST_FILE`. */
-export function manifestFileOf(settings: WorkspaceSettings, block: BlockId): ManifestFile {
+export function manifestFileOf(settings: WorkspaceSettings, block: BlockId): FileForm {
   return settings.manifests[block] ?? NEW_MANIFEST_FILE;
 }
 
@@ -139,11 +138,8 @@ function readDecimals(value: unknown, path: readonly PathSegment[]): number | Pr
 
 const GRANULARITY_READERS = { denominator: readPositiveInteger, decimals: readDecimals };
 
-/** The serializations a manifest file is written in, TimeToShare's names. */
-const SERIALIZATIONS: readonly string[] = ["yaml", "json", "jcs"];
-
-function readSerialization(value: unknown, path: readonly PathSegment[]): string | Problem {
-  return typeof value === "string" && SERIALIZATIONS.includes(value)
+function readSerialization(value: unknown, path: readonly PathSegment[]): Serialization | Problem {
+  return isSerialization(value)
     ? value
     : problem(ErrorCode.invalidValue, 'expected "yaml", "json" or "jcs"', path);
 }
@@ -154,38 +150,45 @@ const MANIFEST_FILE_READERS = {
   serialization: readSerialization,
 };
 
-/** The manifest files by block ID (`WorkspaceSettings.manifests`), every entry read exactly. */
+/**
+ * The manifest files by block ID (`WorkspaceSettings.manifests`), every
+ * entry read exactly. With `lenient`, a value that is no object reads as
+ * none and each entry that does not read is left out, without a problem.
+ */
 function readManifestFiles(
   value: unknown,
   path: readonly PathSegment[],
   problems: Problem[],
+  lenient: boolean,
 ): { [block: BlockId]: unknown } | undefined {
+  const found = lenient ? [] : problems;
   if (!isJsonObject(value)) {
-    problems.push(problem(ErrorCode.invalidValue, "expected an object", path));
-    return undefined;
+    found.push(problem(ErrorCode.invalidValue, "expected an object", path));
+    return lenient ? {} : undefined;
   }
   const result: { [block: BlockId]: unknown } = {};
   let complete = true;
   for (const [block, entry] of Object.entries(value)) {
     const at = [...path, block];
     if (!BLOCK_ID.test(block)) {
-      problems.push(problem(ErrorCode.invalidBlockId, `invalid block id '${block}'`, at));
+      found.push(problem(ErrorCode.invalidBlockId, `invalid block id '${block}'`, at));
       complete = false;
       continue;
     }
-    const read = readExact(entry, at, MANIFEST_FILE_READERS, problems);
+    const read = readExact(entry, at, MANIFEST_FILE_READERS, found);
     if (read === undefined) complete = false;
     else result[block] = read;
   }
-  return complete ? result : undefined;
+  return complete || lenient ? result : undefined;
 }
 
 /**
  * Read workspace settings, every member required and none unknown; the
  * problems go to `problems` and the result is `undefined` when there are any.
  * With `lenient`, as a workspace file is read, a `granularity` that does not
- * read as one (missing, or of another shape) is read as `DEFAULT_GRANULARITY`
- * and such `manifests` as none, without a problem: settings lie outside the
+ * read as one (missing, or of another shape) is read as `DEFAULT_GRANULARITY`,
+ * a `manifests` that is missing or no object as none and each of its entries
+ * that does not read is left out, without a problem: settings lie outside the
  * journal, so nothing a replay needs is lost. Every other member is read
  * strictly either way.
  */
@@ -199,10 +202,8 @@ export function readSettings(
     if (!lenient) return readExact(item, at, GRANULARITY_READERS, problems);
     return readExact(item, at, GRANULARITY_READERS, []) ?? DEFAULT_GRANULARITY;
   };
-  const manifests = (item: unknown, at: readonly PathSegment[]) => {
-    if (!lenient) return readManifestFiles(item, at, problems);
-    return readManifestFiles(item, at, []) ?? DEFAULT_SETTINGS.manifests;
-  };
+  const manifests = (item: unknown, at: readonly PathSegment[]) =>
+    readManifestFiles(item, at, problems, lenient);
   const stated =
     lenient && isJsonObject(value)
       ? {

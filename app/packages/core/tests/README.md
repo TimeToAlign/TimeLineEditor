@@ -364,7 +364,21 @@ by its `dumps` in the other two serializations.
 4. **Defaults.** `saveManifest(manifest)` writes as `NEW_MANIFEST_FILE`
    says, `{minimal: true, styling: true, serialization: "yaml"}`: for
    `bare.yaml` exactly its twin's text.
-5. **Refusals keep their code.** A text `readManifestFile` cannot read is
+5. **Texts no writer wrote** come back in the form they are read as, so
+   not as they came; the schema package's shared cases
+   (`fixtures/file_forms/`) and one byte order mark prove it exactly.
+   `neither.yaml` states some defaults (`groups: []`, a timeline's `locked:
+   false`) and leaves out others: it is neither minimal nor complete, reads
+   as `{minimal: false, styling: true, serialization: "yaml"}` and comes
+   back complete, the bytes of `neither.expected.yaml`. `one_line.json`,
+   pretty JSON's value on one line in another key order, reads as
+   `{minimal: true, styling: false, serialization: "json"}` and comes back
+   in the canonical layout, the bytes of `one_line.expected.json`.
+   `bare.yaml`'s RFC 8785 JSON after a byte order mark reads as `{minimal:
+   false, styling: true, serialization: "json"}` (a text with the mark is
+   never RFC 8785 JSON) and comes back as `bare.yaml`'s pretty JSON, without
+   the mark.
+6. **Refusals keep their code.** A text `readManifestFile` cannot read is
    refused exactly as `loadManifest` refuses it: `{"timetoshare": `
    (`invalid_json`), `timelines: [` (`invalid_yaml`) and `bare.yaml` with
    its version `0.6.0` (`schema_violation` at `["timetoshare"]`).
@@ -2249,12 +2263,14 @@ time `clock().toISOString()`. The tests inject a clock from
 
 ## Workspace settings (`settings.test.ts`)
 
-The settings (`grid`, `blockDefaults`, `granularity`) say how the editor is
-used, not what the workspace holds, so they live outside the journal:
-`store.configure(change)` changes them, where `change` names any of the
-three members and, for each, any of its own members (`{blockDefaults:
-{length: 600}}` keeps the other placement defaults, `{granularity:
-{decimals: 6}}` keeps the denominator). The proof is that the journal and the undo history
+The settings (`grid`, `blockDefaults`, `granularity`, `manifests`) say how
+the editor is used, not what the workspace holds, so they live outside the
+journal: `store.configure(change)` changes them, where `change` names any
+of the four members. The first three are merged member by member: `change`
+names any of their own members (`{blockDefaults: {length: 600}}` keeps the
+other placement defaults, `{granularity: {decimals: 6}}` keeps the
+denominator). `manifests` is merged block by block, each entry it names
+replacing that block's entry whole (item 7). The proof is that the journal and the undo history
 cannot see them, and that nothing the journal replays depends on them. The
 store under test holds three journalled commands (the `add` of block `A`
 holding `bare.yaml`, two moves of `A`) and an injected clock.
@@ -3007,9 +3023,10 @@ without entries); a session id is ten characters of `0-9a-z`, as a key of
    "workspace"`, the former string form, → `invalid_address` at
    `["journal", 0, "command", "into"]`; an entry command of type `move` →
    `invalid_command` at `["journal", 0, "command", "type"]`.
-4. **A granularity of another shape reads as the default.** The one
-   lenient member: settings lie outside the journal, so a granularity the
-   reader cannot read loses nothing a replay needs. The round trip's text
+4. **A granularity of another shape reads as the default.** One of the two
+   lenient members (`granularity`, `manifests`): settings lie outside the
+   journal, so a granularity the reader cannot read loses nothing a replay
+   needs. The round trip's text
    with `settings.granularity` removed, replaced by the shape an earlier
    editor wrote (`{fraction: {denominator: 5, refine: true}, float: {step:
    "1", refine: true}, int: {step: 1, refine: true}}`), by `{denominator:
@@ -3020,9 +3037,12 @@ without entries); a session id is ten characters of `0-9a-z`, as a key of
    again writes that granularity. **The manifest files likewise**: the
    text with `settings.manifests` removed (a file written before the editor
    kept them), or replaced by `[]` or by `{[A]: {minimal: "yes"}}`, reads
-   without a problem, with `manifests` exactly `{}`. The reader is lenient
-   there only: a `grid.size` of 0 in the same file is still
-   `non_positive_number` at `["settings", "grid", "size"]`.
+   without a problem, with `manifests` exactly `{}`. Only the entries that
+   do not read are left out: `{[A]: <A's entry>, [B]: {minimal: "yes"},
+   "A": <A's entry>}` reads with `manifests` exactly `{[A]: <A's entry>}`.
+   The reader is lenient on these two members only: a `grid.size` of 0 in
+   the same file is still `non_positive_number` at `["settings", "grid",
+   "size"]`.
 5. **Version 4.** A version-4 file (the round trip's text with `version:
    4` and its commands' addresses written as that format wrote them,
    strings: the `add`s `into: "workspace"`, each `set` aimed at the bare
