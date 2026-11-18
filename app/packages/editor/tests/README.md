@@ -243,8 +243,15 @@ attribution gives; the build emits each font once as an asset, the title
 font byte-equal to the vendored file (SHA-256 `ba204497…b350`, 49,248
 bytes); `THIRD_PARTY_NOTICES.txt` holds every full licence text in order,
 the icons and the three fonts last (DejaVu Sans, Noto Music, IBM Plex
-Mono). No chunk reaches 500 kB, neither the YAML nor the
-TOML codec is preloaded, and a fixture's generator string occurs in the
+Mono). No chunk reaches 500 kB. What a chunk holds is read from its source
+map, what the page loads at start from `index.html` (its module script and
+its `modulepreload` links): the `yaml` package is bundled once, from one
+directory, in the chunk of the schema package, which reads YAML and is
+loaded at start; the inspector's YAML codec (`src/inspector/yaml.ts`) is
+in a chunk of its own that holds no npm package, and its TOML codec
+(`src/inspector/toml.ts`) in a chunk of its own with the TOML library
+(`@decimalturn/toml-patch`), which no other chunk holds; neither codec's
+chunk is loaded at start. A fixture's generator string occurs in the
 shipped files exactly four times, once in each example of the Examples
 menu, while no shipped file holds "Fixture Generator", the fixture menu's
 `fixture-select` or the test hook's `__tilie`. The development server may read the app

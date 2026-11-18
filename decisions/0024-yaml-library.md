@@ -50,20 +50,20 @@ Scores run from 1 (least suitable) to 5 (most suitable).
 
 Use `yaml` `^2.9.1` in the editor (locked at 2.9.1, released 2026-09-11),
 always with `{intAsBigInt: true, schema: "core", uniqueKeys: true}`. The
-inspector (`packages/editor/src/inspector/formats.ts`) keeps the parsed
-`Document`, reads values by walking its nodes (a `bigint` within the safe
-range becomes a plain number, an integral `number` a `JsonFloat`), writes
-integral floats with one fractional digit (`minFractionDigits`), and
-patches the document node by node, keeping a node, and so its comments,
-wherever the new value has the same kind.
+inspector (`packages/editor/src/inspector/yaml.ts`) reads a text's value
+with the schema package's `parseYaml`, so it accepts what Import accepts,
+and keeps the text's parsed `Document` beside it; it writes integral
+floats with one fractional digit (`minFractionDigits`) and patches the
+document node by node, keeping a node, and so its comments, wherever the
+new value has the same kind.
 
 ## Maintenance and dependencies
 
 `yaml` is maintained by Eemeli Aro, its single maintainer on npm. His
 library starts at 1.0 in 2018; the 0.x versions published under the same
-name from 2011 were an unrelated package (105 versions are published under
-the name in all; a 3.0 line is in prerelease beside 2.x). The
-repository has about 1,700 stars and a test suite that runs the official
+name from 2011 to 2016 were TJ Holowaychuk's unrelated package (105
+versions are published under the name in all; a 3.0 line is in prerelease
+beside 2.x). The repository has about 1,700 stars and a test suite that runs the official
 YAML test suite. A single maintainer is a bus-factor risk; the 2.x line is
 mature and the exit cost is low (one module).
 
@@ -74,7 +74,13 @@ Registry metadata checked on 2026-10-12 (unpacked bytes):
 | `yaml` 2.9.1 | 2026-09-11 | ISC | 686,297 | none |
 
 What the editor bundle gains: the parts the inspector imports, built alone
-with Vite and minified, are 129,871 bytes (34,171 gzipped). The inspector loads it by a dynamic import the first time its format is chosen, so it sits in its own chunk of the built editor, 98.22 kB (30.77 kB gzipped), never in the main chunk. The schema package `@timetoalign/timetoshare` reads YAML manifests with the same library since its 0.2.0 (TimeToShare's own decision record), so the library is also part of the schema package's chunk, which the page loads at start; manifest files are imported in YAML through it, and the inspector's codec stays lazy.
+with Vite and minified, are 129,871 bytes (34,171 gzipped). The schema
+package `@timetoalign/timetoshare` reads YAML manifests with the same
+library since its 0.2.0 (TimeToShare's
+`decisions/0014-typescript-yaml-reader.md`), so `yaml` is part of the schema package's chunk and loads at start; the
+build resolves one copy for both (`resolve.dedupe`). The inspector's
+codec, loaded by a dynamic import the first time YAML is chosen, is a
+chunk of its own of 2.03 kB (1.00 kB gzipped; measured 2026-11-18).
 
 Primary sources: <https://registry.npmjs.org/yaml>,
 <https://github.com/eemeli/yaml>, <https://eemeli.org/yaml/>,
@@ -85,9 +91,11 @@ Primary sources: <https://registry.npmjs.org/yaml>,
 
 The YAML text survives Apply and outside changes with its comments while one
 block stays selected; switching block, format or reloading writes the text
-anew. The library writes the document back in its own layout (indentation,
-flow sequences of scalars), so whitespace the user typed may change; values
-and comments do not. Exit cost: `formats.ts`'s YAML section.
+anew. A text whose value Apply leaves as it is stays exactly as typed; once
+the value changes, a document holding a comment is written in the
+library's own layout (a mapping in a sequence begins on its dash's line),
+so whitespace the user typed may change; values and comments do not. Exit
+cost: `yaml.ts`.
 
 ## Review date
 

@@ -145,6 +145,11 @@ export default defineConfig(({ mode }) => {
       ),
       __TIMETOSHARE_VERSION__: JSON.stringify(versionOf(schemaPackageJson)),
     },
+    resolve: {
+      // A schema package linked from a TimeToShare checkout brings its own
+      // installed `yaml`; the YAML codec and the schema package share one.
+      dedupe: ["yaml"],
+    },
     environments: {
       client: {
         resolve: {
