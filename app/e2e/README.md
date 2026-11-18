@@ -385,7 +385,10 @@ and a band dragged with one finger moves across its line without panning
 the view (`bmixed0000`'s `score`, its `flow_control` band released above
 the conversion maps band: one `set` at `{block: "bmixed0000", id:
 "score"}` of the order `children, flow_control, conversion_maps, line,
-markers, regions`).
+markers, regions`, after which `score` draws flow control at level 2 with
+one element, conversion maps at level 1 with two and markers at level −1
+with four, its default timestamps `origin` and `length` each a wedge and
+a coordinate label, as in `bands.spec.ts`).
 
 **`files.spec.ts`** (Chromium, Firefox, WebKit) takes the fallback path every
 engine offers: the pickers are deleted before the page loads, so a file is
@@ -729,7 +732,14 @@ values the arranger's unit tests pin) placed where the arranger puts the
 block's node for the fixture's drawing: `melody` (8 quarters, fraction)
 at y 40.5 from 63.53662109375, 50 canvas units a quarter, its map
 `tempo` (×1/2 to seconds) at y 35, its child `phrase` at y 23 with
-`ticks` (×480 to ticks). Half a device pixel is then 0.01 quarters, and
+`ticks` (×480 to ticks). The viewport's abscissa is then moved right by
+less than a pixel so that `melody`'s start lies on a whole screen pixel,
+and every pointer position lies a whole number of pixels from it:
+Playwright hands Firefox and WebKit whole pixels only (it floors a
+fractional pointer position), while Chromium takes fractions, so only
+whole-pixel positions read the same coordinate in every engine; an
+ordinate is rounded to a whole pixel, which decides only the line
+nearest. Half a device pixel is then 0.01 quarters, and
 the default granularity (denominator 2520, 3 decimals) picks the
 simplest fraction within it. The flag (`coordinate-flag`) writes each
 value as core's pretty text, the number, a space and its unit's pretty
@@ -737,7 +747,7 @@ unit (`♩`, `ticks`), seconds with `″` and no pretty unit after, their decima
 where they are not zero; a map's row reads the map's name, a space and
 its value (the text of the two elements, separated by white space, as
 Playwright normalises it); and the footer `click to pin`: at
-`xStart + 123.75` on `melody` (2.475 quarters; divisors 1 to 14 miss, 15
+`xStart + 123` on `melody` (2.46 quarters; divisors 1 to 14 miss, 15
 gives 37/15) the coordinate reads `2 7/15 ♩` and `tempo`'s row `Tempo 1.233″`
 (the float 37/30 rounded to three places), with one hovered wedge and one
 hovered cross-section line; at `xStart + 200` `4 ♩` and `Tempo 2″` (the float
@@ -765,11 +775,15 @@ tab chosen, the pane's Coordinate granularity
 shows "Denominator" 2520 and "Decimals" 3; typing 4 as the denominator
 sets `settings.granularity` to `{denominator: 4, decimals: 3}` without a
 journal entry, and the same abscissa then reads `2 1/2 ♩` (divisors 1, 2
-and 4 miss; the nearest multiple of 1/4 is 5/2); typing 0 marks the field
-invalid and changes nothing. A timestamp added at 4 on `melody` lets the
+and 4 miss 2.46 by 0.46, 0.04 and 0.04; the nearest multiple of 1/4 is
+5/2); typing 0 marks the field invalid and changes nothing. A timestamp added at 4 on `melody` lets the
 pointer through while Show coordinates is on (a click on it selects
 nothing of it); with Show coordinates off a click on its wedge, its name
-label or its line selects exactly `{block: "map0000000", id:
+label or its line, each at the centre of its client rectangle rounded to
+a whole pixel (the rectangle lies a hair off the drawing's points, and a
+floored centre misses the one-pixel line; the page's own rectangle, since
+WebKit reports a selected label's box elsewhere to Playwright's
+`boundingBox`), selects exactly `{block: "map0000000", id:
 "timestamp_3"}` and shows it in the Timestamp pane (Name "Four",
 coordinate `4`, Delete enabled), and hovering shows no flag and no marks.
 

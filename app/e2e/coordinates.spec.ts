@@ -7,7 +7,13 @@
  *
  * The block `map0000000` holds the fixture `map`, its place origin at
  * canvas (0, 320); its node lies where the arranger puts it for the
- * fixture's drawing (`nodePosition`). In its drawing (layout's record)
+ * fixture's drawing (`nodePosition`). The viewport is zoom 1 at (40, 40),
+ * its abscissa moved right by less than a pixel so that `melody`'s start
+ * lies on a whole screen pixel: Playwright hands Firefox and WebKit whole
+ * pixels only (it floors a fractional pointer position), so every pointer
+ * position below lies a whole number of pixels from that start and every
+ * engine reads the same coordinate; an ordinate is rounded to a whole
+ * pixel, which decides only the line nearest. In its drawing (layout's record)
  * `melody` (8 quarters, fraction) runs at
  * y 40.5 from 63.53662109375 to 463.53662109375, 50 canvas units a
  * quarter, its map `tempo` (×1/2 to seconds) at y 35 over the same span;
@@ -17,7 +23,7 @@
  * 0.01 quarters, and the default granularity (denominator 2520, 3
  * decimals) picks the simplest fraction within it.
  *
- * - `xStart + 123.75` on `melody`: 2.475 quarters; divisors 1 to 14 miss,
+ * - `xStart + 123` on `melody`: 2.46 quarters; divisors 1 to 14 miss,
  *   15 gives 37/15, shown `2 7/15 ♩`; `tempo` 37/30 s, the float
  *   1.2333333333333334 rounded to 3 places and shown `1.233″`. Each value
  *   is its pretty text: the number, a space and the unit's symbol
@@ -43,19 +49,19 @@
  *   toggles and Delete are enabled (Wedge, Name, Cross-section pressed),
  *   and the named timestamp is drawn as an element, no longer as marks.
  * - The settings line (the drawer, closed on load, opened): denominator 4
- *   makes 2.475 quarters `2 1/2 ♩` (divisors 1, 2 and 4 miss by 0.475,
- *   0.025, 0.025; the nearest multiple of 1/4 is 5/2), outside the
+ *   makes 2.46 quarters `2 1/2 ♩` (divisors 1, 2 and 4 miss by 0.46,
+ *   0.04, 0.04; the nearest multiple of 1/4 is 5/2), outside the
  *   journal.
  */
 
 import type { Page } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 import { drawingOf, nodePosition } from "../packages/arranger/src/drawing.ts";
+import type { ElementAddress } from "../packages/core/src/index.ts";
 import { idAddress, isLoadError, partAddress, readWorkspace } from "../packages/core/src/index.ts";
 import { FONT_METRICS } from "./schema.ts";
 import {
   arranger,
-  clickPart,
   dispatch,
   emptyPoint,
   fixtureText,
@@ -86,9 +92,30 @@ const MELODY = { y: 40.5, start: 63.53662109375 };
 const TEMPO_Y = 35;
 const PHRASE_Y = 23;
 
-/** The screen point of block `map`'s drawing point `(x, y)`. */
-function onMap(page: Page, x: number, y: number) {
-  return toScreen(page, NODE.x + x, NODE.y + y);
+/**
+ * The screen point of block `map`'s drawing point `(x, y)`, the ordinate
+ * rounded to a whole pixel; an abscissa off a whole pixel is refused, since
+ * Firefox and WebKit would receive it floored.
+ */
+async function onMap(page: Page, x: number, y: number): Promise<{ x: number; y: number }> {
+  const point = await toScreen(page, NODE.x + x, NODE.y + y);
+  if (!Number.isInteger(point.x)) throw new Error(`${x} lies at ${point.x}, off a whole pixel`);
+  return { x: point.x, y: Math.round(point.y) };
+}
+
+/**
+ * Click the drawn part `address` of block `map` at the centre of its client
+ * rectangle, rounded to a whole pixel: a box's edges lie a hair off the
+ * drawing's points, and a floored centre would miss the one-pixel
+ * cross-section line. The rectangle is the page's own: WebKit reports a
+ * selected label's box elsewhere to Playwright's `boundingBox`.
+ */
+async function clickOnMap(page: Page, address: ElementAddress): Promise<void> {
+  const { x, y } = await part(page, SMALL.map, address).evaluate((drawn) => {
+    const box = drawn.getBoundingClientRect();
+    return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  });
+  await page.mouse.click(Math.round(x), Math.round(y));
 }
 
 async function hover(page: Page, x: number, y: number): Promise<void> {
@@ -117,6 +144,8 @@ test.use({ viewport: { width: 1600, height: 1000 }, deviceScaleFactor: 1 });
 test.beforeEach(async ({ page }) => {
   await open(page, "small");
   await setViewport(page, VIEW);
+  const start = await toScreen(page, NODE.x + MELODY.start, NODE.y + MELODY.y);
+  await setViewport(page, { ...VIEW, x: VIEW.x + Math.ceil(start.x) - start.x });
   await page.getByRole("button", { name: "Show coordinates" }).click();
   await expect(page.getByTestId("coordinates")).toHaveAttribute("aria-pressed", "true");
 });
@@ -124,7 +153,7 @@ test.beforeEach(async ({ page }) => {
 test("the flag and the marks follow the pointer along a line and stay over its maps", async ({
   page,
 }) => {
-  await hover(page, MELODY.start + 123.75, MELODY.y);
+  await hover(page, MELODY.start + 123, MELODY.y);
   await expect(coordinate(page)).toHaveText("2 7/15 ♩");
   await expect(row(page, "tempo")).toHaveText("Tempo 1.233″");
   await expect(footer(page)).toHaveText("click to pin");
@@ -167,7 +196,7 @@ test("C toggles the flag", async ({ page }) => {
 test("a click pins and selects Timestamp; a click elsewhere clears it and restores the tab", async ({
   page,
 }) => {
-  const point = await onMap(page, MELODY.start + 123.75, MELODY.y);
+  const point = await onMap(page, MELODY.start + 123, MELODY.y);
   await page.mouse.move(point.x, point.y);
   await expect(coordinate(page)).toHaveText("2 7/15 ♩");
   await page.mouse.click(point.x, point.y);
@@ -190,7 +219,7 @@ test("a click pins and selects Timestamp; a click elsewhere clears it and restor
 });
 
 test("the Timestamp tab moves the pin, then names it into the manifest", async ({ page }) => {
-  const point = await onMap(page, MELODY.start + 123.75, MELODY.y);
+  const point = await onMap(page, MELODY.start + 123, MELODY.y);
   await page.mouse.move(point.x, point.y);
   await expect(coordinate(page)).toHaveText("2 7/15 ♩");
   await page.mouse.click(point.x, point.y);
@@ -246,7 +275,7 @@ test("Coordinate granularity sets the granularity outside the journal", async ({
   const granularity = async () => JSON.parse(await storeText(page, "view")).settings.granularity;
   expect(await granularity()).toEqual({ denominator: 4, decimals: 3 });
   expect(await journalLength(page)).toBe(OPENED_JOURNAL.small);
-  await hover(page, MELODY.start + 123.75, MELODY.y);
+  await hover(page, MELODY.start + 123, MELODY.y);
   await expect(coordinate(page)).toHaveText("2 1/2 ♩");
   await denominator.fill("0");
   await expect(denominator).toHaveAttribute("aria-invalid", "true");
@@ -263,7 +292,7 @@ test("a named timestamp passes the pointer on while coordinates show, else is se
   });
   expect(added).toBeNull();
 
-  await clickPart(page, SMALL.map, { id: TIMESTAMP.id });
+  await clickOnMap(page, { id: TIMESTAMP.id });
   expect(await selection(page)).not.toContainEqual(TIMESTAMP);
 
   await page.getByRole("button", { name: "Show coordinates" }).click();
@@ -271,7 +300,7 @@ test("a named timestamp passes the pointer on while coordinates show, else is se
   await expect(page.getByTestId("timestamp-properties")).toHaveCount(0);
   const own = idAddress(TIMESTAMP.id);
   for (const address of [own, partAddress(own, "name"), partAddress(own, "line")]) {
-    await clickPart(page, SMALL.map, address);
+    await clickOnMap(page, address);
     expect(await selection(page)).toEqual([TIMESTAMP]);
   }
   await expect(timestampTab(page)).toHaveAttribute("aria-selected", "true");
