@@ -247,8 +247,8 @@ function clock(
 
 /**
  * The pretty unit of `unit`: `♩` for quarters, `𝅝` for whole notes, `ms`,
- * `s`, `min`, `smp`, `ticks`, `px`, `pt`, `m`, `cm`, `mm`, `in`, any other
- * unit its name.
+ * `s`, `min`, `smp`, `ticks`, `px`, `pt`, `m`, `cm`, `mm`, `in`, `uu` for user
+ * units, any other unit its name.
  */
 export function prettyUnit(unit: TimeUnit): string {
   return PRETTY_UNITS[unit];
