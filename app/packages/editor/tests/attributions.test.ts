@@ -39,6 +39,8 @@ function linesStarting(text: string, start: RegExp): string[] {
 let outDir: string;
 /** Each bundled npm package and the directory it was bundled from. */
 const bundled = new Map<string, string>();
+/** The absolute path of every module of each JavaScript chunk, by the chunk's file name. */
+const modulesOf = new Map<string, string[]>();
 let assets: string[];
 let noticesText: string;
 let indexHtml: string;
@@ -66,8 +68,9 @@ beforeAll(async () => {
     const map = JSON.parse(readFileSync(path.join(directory, file), "utf8")) as {
       sources: string[];
     };
-    for (const source of map.sources) {
-      const absolute = path.resolve(directory, source);
+    const modules = map.sources.map((source) => path.resolve(directory, source));
+    modulesOf.set(file.replace(/\.map$/, ""), modules);
+    for (const absolute of modules) {
       const found = packageOf(absolute);
       if (found !== undefined) bundled.set(...found);
     }
@@ -217,12 +220,42 @@ describe("the build", () => {
     expect(sizes.filter(([, size]) => size >= 500_000)).toEqual([]);
   });
 
-  it("preloads neither the YAML nor the TOML codec", () => {
-    const preloaded = [...indexHtml.matchAll(/<link rel="modulepreload"[^>]*href="([^"]+)"/g)].map(
-      (match) => path.basename(match[1] as string),
-    );
-    expect(preloaded.length > 0).toBe(true);
-    expect(preloaded.filter((name) => /^(yaml|toml)-/.test(name))).toEqual([]);
+  it("bundles `yaml` once, with the schema package, and loads neither codec at start", () => {
+    const atStart = [
+      ...indexHtml.matchAll(/<script type="module"[^>]*src="([^"]+)"/g),
+      ...indexHtml.matchAll(/<link rel="modulepreload"[^>]*href="([^"]+)"/g),
+    ].map((match) => path.basename(match[1] as string));
+    /** The chunks holding a module that `holds` accepts. */
+    const chunksWith = (holds: (module: string) => boolean): string[] =>
+      [...modulesOf].filter(([, modules]) => modules.some(holds)).map(([chunk]) => chunk);
+    /** The chunks holding a module of the npm package `name`, and the directories it came from. */
+    const packageChunks = (name: string) => {
+      const directories = new Set<string>();
+      const chunks = chunksWith((module) => {
+        const found = packageOf(module);
+        if (found?.[0] !== name) return false;
+        directories.add(found[1]);
+        return true;
+      });
+      return { chunks, directories: directories.size };
+    };
+    const codecChunk = (file: string) =>
+      chunksWith((module) => module === path.join(editor, "src", "inspector", file));
+
+    const schema = packageChunks("@timetoalign/timetoshare").chunks;
+    expect(schema).toHaveLength(1);
+    expect(packageChunks("yaml")).toEqual({ chunks: schema, directories: 1 });
+    expect(atStart).toContain(schema[0]);
+
+    const yaml = codecChunk("yaml.ts");
+    expect(yaml).toHaveLength(1);
+    expect(
+      (modulesOf.get(yaml[0] as string) as string[]).filter((module) => packageOf(module)),
+    ).toEqual([]);
+    const toml = codecChunk("toml.ts");
+    expect(toml).toHaveLength(1);
+    expect(packageChunks("@decimalturn/toml-patch")).toEqual({ chunks: toml, directories: 1 });
+    expect(atStart.filter((chunk) => [...yaml, ...toml].includes(chunk))).toEqual([]);
   });
 
   it("carries the examples alone of the fixtures, and neither the fixture menu nor the test hook", () => {

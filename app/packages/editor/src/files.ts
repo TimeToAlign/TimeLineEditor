@@ -22,13 +22,16 @@ export const WORKSPACE_FILE: FileKind = {
   accept: { "application/json": [WORKSPACE_EXTENSION] },
 };
 
+const YAML_EXTENSION = ".yaml";
+const JSON_EXTENSION = ".json";
+
 const YAML_MANIFEST: FileKind = {
   description: "TimeToShare manifest",
-  accept: { "application/yaml": [".yaml"] },
+  accept: { "application/yaml": [YAML_EXTENSION] },
 };
 const JSON_MANIFEST: FileKind = {
   description: "TimeToShare manifest",
-  accept: { "application/json": [".json"] },
+  accept: { "application/json": [JSON_EXTENSION] },
 };
 
 /** A manifest file to import: canonical YAML (`.yaml`, `.yml`) or JSON (`.json`), read by its content. */
@@ -199,12 +202,12 @@ export const ANONYMOUS_BUNDLE = "bundle";
 /**
  * The file name a manifest is exported under in `serialization`: its `id`,
  * else its `name`, else `bundle`, each character outside `A–Z a–z 0–9 _ -`
- * written `_`, then the extension of the serialization's file
- * (`manifestFileKind`).
+ * written `_`, then the extension of the serialization's file: `.yaml`
+ * for YAML, `.json` for both JSON forms.
  */
 export function manifestFileName(manifest: Manifest, serialization: Serialization): string {
   const stem = manifest.id ?? manifest.name ?? ANONYMOUS_BUNDLE;
-  const [extension] = Object.values(manifestFileKind(serialization).accept).flat();
+  const extension = serialization === "yaml" ? YAML_EXTENSION : JSON_EXTENSION;
   return `${stem.replace(/[^A-Za-z0-9_-]/g, "_")}${extension}`;
 }
 

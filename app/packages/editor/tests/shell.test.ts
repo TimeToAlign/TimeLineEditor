@@ -21,7 +21,6 @@ import App from "../src/App.svelte";
 import { createAutosave, recoverWorkspace } from "../src/autosave.ts";
 import type { Example } from "../src/examples.ts";
 import { EXAMPLES } from "../src/examples.ts";
-import { manifestFileName } from "../src/files.ts";
 import { WorkspaceSession } from "../src/workspaceSession.svelte.ts";
 import { stubEditor } from "./dom.ts";
 import {
@@ -618,9 +617,7 @@ describe("manifests", () => {
     const manifest = hook().store().view.blocks[A]?.manifest;
     if (manifest === undefined) throw new Error("block A is missing");
     // No file wrote the block: it is written minimal, with its styling, in canonical YAML.
-    await vi.waitFor(() =>
-      expect(downloads).toEqual([[manifestFileName(manifest, "yaml"), saveManifest(manifest)]]),
-    );
+    await vi.waitFor(() => expect(downloads).toEqual([["bundle.yaml", saveManifest(manifest)]]));
     expect(downloads[0]?.[1]).toBe(
       saveManifest(manifest, { minimal: true, styling: true, serialization: "yaml" }),
     );

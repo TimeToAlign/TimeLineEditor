@@ -115,6 +115,14 @@ function setOrFail(store: Store, target: Address, values: Record<string, unknown
   if (error !== null) throw new Error(`${error.code}: ${error.message}`);
 }
 
+/**
+ * A canonical YAML text in the `yaml` library's layout, the one difference
+ * the README derives: a mapping in a sequence begins on its dash's line.
+ */
+function libraryLayout(text: string): string {
+  return text.replace(/^( *)-\n +/gm, "$1- ");
+}
+
 /** A member of a JSON value by path. */
 function at(value: Json, ...keys: (string | number)[]): Json {
   return keys.reduce<Json>((item, key) => (item as Record<string, Json>)[key] as Json, value);
@@ -435,6 +443,26 @@ describe("applying a text", () => {
     ]);
     expect(store.journal).toHaveLength(1);
   });
+
+  it("refuses a YAML anchor and alias as Import does", () => {
+    const store = storeOf("bare");
+    const text = "a: &x 1\nb: *x\n";
+    const message = "an anchor at line 1, column 7 of the YAML text";
+    expect(loadManifest(text)).toEqual({ problems: [{ code: "invalid_yaml", message, path: [] }] });
+    expect(applyText(store, A, "yaml", text, FILE_FORM)).toEqual({
+      ok: false,
+      problems: [
+        {
+          code: "syntax_error",
+          message,
+          path: [],
+          line: 1,
+          column: 7,
+        },
+      ],
+    });
+    expect(store.journal).toHaveLength(1);
+  });
 });
 
 describe("comments", () => {
@@ -451,23 +479,39 @@ describe("comments", () => {
         const text = original.replace(nameLine, edited);
         const applied = applyText(store, A, format, text, options);
         if (!applied.ok) throw new Error(JSON.stringify(applied.problems));
-        if (format === "toml") expect(applied.value.text).toBe(text);
-        else {
-          // The YAML library writes a commented document in its own layout, both comments kept.
-          for (const line of edited.split("\n").filter((item) => item !== "")) {
-            expect(applied.value.text).toContain(`${line.trim()}\n`);
-          }
-          expect(applied.value.text).not.toBe(text);
-          expect(dumps(readBack(format, applied.value.text))).toBe(dumps(readBack(format, text)));
-        }
+        expect(applied.value.text).toBe(text);
+        expect(store.journal).toHaveLength(3);
         expect(at(manifestIn(store, A), "timelines", 0, "name")).toBe("Hello");
         setOrFail(store, { block: A, id: "bare" }, { name: "Bye" });
         const followed = follow(applied.value.source, manifestIn(store, A), options);
         if (!followed.ok) throw new Error(JSON.stringify(followed.problems));
-        expect(followed.value.text).toBe(applied.value.text.replace("Hello", "Bye"));
+        const renamed = text.replace("Hello", "Bye");
+        expect(followed.value.text).toBe(format === "yaml" ? libraryLayout(renamed) : renamed);
       });
     }
   }
+
+  it("are kept in the library's layout when Apply changes the YAML value", () => {
+    const store = styledBare();
+    const original = written("yaml", manifestIn(store, A));
+    const text = original
+      .replace("    name: Bare\n", "    # shown on the canvas\n    name: Hello # was Bare\n")
+      .replace("    regions: []\n", "");
+    const applied = applyText(store, A, "yaml", text, FILE_FORM);
+    if (!applied.ok) throw new Error(JSON.stringify(applied.problems));
+    expect(at(manifestIn(store, A), "timelines", 0, "regions")).toEqual([]);
+    expect(applied.value.text).toBe(
+      libraryLayout(text).replace("    unit: quarters\n", "    unit: quarters\n    regions: []\n"),
+    );
+  });
+
+  it("go when the YAML value changes and none is left", () => {
+    const store = styledBare();
+    const text = written("yaml", manifestIn(store, A)).replace("    regions: []\n", "");
+    const applied = applyText(store, A, "yaml", text, FILE_FORM);
+    if (!applied.ok) throw new Error(JSON.stringify(applied.problems));
+    expect(applied.value.text).toBe(written("yaml", manifestIn(store, A)));
+  });
 });
 
 describe("the four text modes", () => {
