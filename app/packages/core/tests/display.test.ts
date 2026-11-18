@@ -33,6 +33,8 @@ const UNITS: readonly (readonly [TimeUnit, string])[] = [
   ["millimeters", "mm"],
   ["inches", "in"],
   ["points", "pt"],
+  ["css_pixels", "css_pixels"],
+  ["user_units", "user_units"],
 ];
 
 describe("copyValue", () => {

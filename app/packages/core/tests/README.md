@@ -549,7 +549,9 @@ check of who holds what.
    domain, modality or class, and its facet.
 2. **Timeline classes.** The six classes are written out with their units:
    each unit belongs to exactly one class, and the units are exactly the
-   schema's (the `const` of every entry of `TimeUnit`'s `oneOf`). A map takes its `target_unit`'s domain and modality, `number`
+   schema's (the `const` of every entry of `TimeUnit`'s `oneOf`);
+   `css_pixels` and `user_units` are `ContinuousGraphicalTimeline`, beside
+   `points`. A map takes its `target_unit`'s domain and modality, `number`
    included.
 3. **Regions, flow markers and jump origins** of `with_region.yaml` and
    `flow_control.yaml` are addressed by their IDs, each with a label
@@ -3537,17 +3539,20 @@ float from the decimal digits of its spelling, never from float arithmetic
    `219/16 whole_notes`, `219/16 quarters`, `219/16 ticks`, `219/16
    milliseconds`, `219/16 seconds`, `219/16 minutes`, `219/16 samples`,
    `219/16 frames`, `219/16 pixels`, `219/16 meters`, `219/16
-   centimeters`, `219/16 millimeters`, `219/16 inches`, `219/16 points`;
-   and 0.1 on seconds → `0.1 seconds`, 3 on whole notes → `3
-   whole_notes`, 514041 on samples → `514041 samples`.
+   centimeters`, `219/16 millimeters`, `219/16 inches`, `219/16 points`,
+   `219/16 css_pixels`, `219/16 user_units`; and 0.1 on seconds → `0.1
+   seconds`, 3 on whole notes → `3 whole_notes`, 514041 on samples →
+   `514041 samples`.
 3. **Pretty units** are the table the editor and the drawing share:
    `number` → `number`, `floating_measures` → `floating_measures`,
    `whole_notes` → `𝅝` (U+1D15D), `quarters` → `♩` (U+2669), `ticks` →
    `ticks`, `milliseconds` → `ms`, `seconds` → `s`, `minutes` → `min`,
    `samples` → `smp`, `frames` → `frames`, `pixels` → `px`, `meters` →
    `m`, `centimeters` → `cm`, `millimeters` → `mm`, `inches` → `in`,
-   `points` → `pt`. The **pretty text** of 219/16 in every unit but
-   seconds is `13 11/16`, a space and that unit (`13 11/16 ♩`, `13 11/16
+   `points` → `pt`, `css_pixels` → `css_pixels`, `user_units` →
+   `user_units` (neither has an abbreviation, so each is shown by its name;
+   `px` is the discrete `pixels`). The **pretty text** of 219/16 in every
+   unit but seconds is `13 11/16`, a space and that unit (`13 11/16 ♩`, `13 11/16
    𝅝`, `13 11/16 ms`, …); in seconds it is `13 11/16″`; a value without a
    unit (`null`) is its number alone (`13 11/16`).
 4. **Exact pretty numbers.** A fraction is mixed, its integer part shown

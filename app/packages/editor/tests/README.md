@@ -296,8 +296,8 @@ path below that directory without `.yaml` (`bare`, `bare.minimal`,
 `groups/corpus_tilia`, `bundles/corpus_tilia`), every warning case of
 `fixtures/warnings/<SCHEMA_VERSION>/` as `warnings/<name>`, and every
 end-to-end workspace as `e2e/<name>`; no label repeats and the list is in
-code-unit order. For the installed package that is 144 manifest fixtures,
-17 warning cases and 5 workspaces, 166 options, from `bare` to
+code-unit order. For the installed package that is 146 manifest fixtures,
+17 warning cases and 5 workspaces, 168 options, from `bare` to
 `with_region.minimal`; no option starts with `drawings/` or `rejections/`,
 which hold drawing inputs and outputs and refused manifests. Each option
 is an entry of the Examples menu's shape, and Open opens it as the
@@ -307,7 +307,7 @@ fixture's or the warning case's `manifest`, which core's `loadManifest`
 accepts, so each option imports (`fixtures.test.ts`, one case per fixture
 named by its label, so that a failure names the fixture); every end-to-end
 workspace is of kind `workspace`, its text the file's, which the reader
-accepts; 161 entries of kind `manifest` and 5 of kind `workspace`. A
+accepts; 163 entries of kind `manifest` and 5 of kind `workspace`. A
 manifest fixture is imported, never replacing the workspace and asking
 nothing, even with unsaved changes: chosen on a workspace holding one
 block (`bare` as `0000000000`), it adds one `add` of core's

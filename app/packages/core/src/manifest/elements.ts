@@ -114,6 +114,8 @@ const UNIT_DOMAINS: Readonly<Record<TimeUnit, readonly [Domain, Modality]>> = {
   millimeters: ["graphical", "continuous"],
   inches: ["graphical", "continuous"],
   points: ["graphical", "continuous"],
+  css_pixels: ["graphical", "continuous"],
+  user_units: ["graphical", "continuous"],
 };
 
 /** Whether a string is one of the schema's units. */

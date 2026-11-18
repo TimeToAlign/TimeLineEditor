@@ -194,7 +194,15 @@ describe("timeline classes", () => {
       DiscreteLogicalTimeline: ["ticks"],
       ContinuousPhysicalTimeline: ["milliseconds", "seconds", "minutes"],
       DiscretePhysicalTimeline: ["samples", "frames"],
-      ContinuousGraphicalTimeline: ["meters", "centimeters", "millimeters", "inches", "points"],
+      ContinuousGraphicalTimeline: [
+        "meters",
+        "centimeters",
+        "millimeters",
+        "inches",
+        "points",
+        "css_pixels",
+        "user_units",
+      ],
       DiscreteGraphicalTimeline: ["pixels"],
     } as const;
     const units = Object.values(classes).flat();
